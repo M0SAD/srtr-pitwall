@@ -17,7 +17,9 @@ export function overlayComponent(type: string) {
 }
 
 /** Overlay'i kendi tema değişkenleriyle çizer. `themed` false ise dış kap tema taşır. */
-export function OverlayView(props: { type: string; options?: Record<string, unknown>; themed?: boolean; class?: string }) {
+/** Panel önizlemelerinde overlay düzenleme modundaymış gibi çizilir: sadece belli durumlarda görünenler
+ * (bayrak, pit hızı, radar, piste dönüş…) de örnek hâliyle görünsün. */
+export function OverlayView(props: { type: string; options?: Record<string, unknown>; themed?: boolean; class?: string; editing?: boolean }) {
   const m = manifestById(props.type);
   const C = overlayComponent(props.type);
   const opts = createMemo(() => ({ ...(m ? defaultOptions(m) : {}), ...(props.options ?? {}) }));
@@ -26,7 +28,7 @@ export function OverlayView(props: { type: string; options?: Record<string, unkn
     <div class={`ov-theme ovview ${props.class ?? ""}`} style={vars()}>
       <Show when={C} fallback={<div class="ov-panel ov-empty">{props.type}</div>}>
         <Suspense>
-          <Dynamic component={C} options={opts()} units={settings().general.units} editing={false} />
+          <Dynamic component={C} options={opts()} units={settings().general.units} editing={props.editing ?? true} />
         </Suspense>
       </Show>
     </div>

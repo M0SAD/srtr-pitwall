@@ -7,7 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { AppState } from "@/sdk/types";
 import { settings, updateSettings } from "@/sdk/settings";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { isPro, proDaysLeft, proExpiringSoon } from "@/cloud/account";
+import { isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
@@ -26,9 +26,11 @@ import { CommunityThemes } from "./pages/CommunityThemes";
 import { ScreenshotsPage } from "./pages/ScreenshotsPage";
 import { NoticeBell } from "./components/Moderation";
 import { FriendsDock } from "./components/FriendsDock";
+import { SimPicker } from "./components/SimPicker";
 import { loadNotices } from "@/cloud/moderation";
 import { VoicePage } from "./pages/VoicePage";
 import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
+import { SupportPage } from "./pages/SupportPage";
 import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
@@ -58,6 +60,7 @@ const TOP: NavItem[] = [
 
 const BOTTOM: NavItem[] = [
   { id: "admin", label: "Yönetim", icon: () => <I.ShieldCheck /> },
+  { id: "support", label: "Destek", icon: () => <I.LifeBuoy /> },
   { id: "pro", label: "PRO", icon: () => <I.Heart /> },
   { id: "account", label: "Hesap", icon: () => <I.User /> },
   { id: "settings", label: "Ayarlar", icon: () => <I.Settings /> },
@@ -76,13 +79,17 @@ const TITLES: Record<Section, string> = {
   account: "Hesap",
   admin: "Yönetim",
   settings: "Ayarlar",
+  support: "Destek",
 };
+
+/** Sol menüde gösterilsin mi: yöneticinin gizlediği bölümler (yönetici hepsini görür), Destek sadece giriş yapınca */
+const railVisible = (id: Section) => !isHiddenSection(id) && (id !== "support" || (cloudEnabled && !!session()));
 
 /** Alt menüsü olan bölümler */
 const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
   drivers: [
     { id: "friends", label: "Arkadaşlar ve etiketler" },
-    { id: "league", label: "League Builder" },
+    { id: "league", label: "Lig Kategorileri" },
   ],
   community: [
     { id: "home", label: "Ana sayfa" },
@@ -96,7 +103,7 @@ const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
 
 function RailButton(p: { item: NavItem }) {
   return (
-    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro" }} title={p.item.label} onClick={() => go(p.item.id, (p.item.id === "admin" ? adminSubs() : SUBS[p.item.id])?.[0]?.id ?? "")}>
+    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro", "hidden-sec": isAdmin() && markedHiddenSection(p.item.id) }} title={p.item.label} onClick={() => go(p.item.id, (p.item.id === "admin" ? adminSubs() : SUBS[p.item.id])?.[0]?.id ?? "")}>
       {p.item.icon()}
       <Show when={p.item.badge}>
         <i class="rail-badge">{p.item.badge!()}</i>
@@ -158,19 +165,23 @@ export function App() {
     <div class="shell2">
       <nav class="rail">
         <div class="rail-logo" title="SRTR Pitwall" />
-        <For each={TOP}>{(it) => <RailButton item={it} />}</For>
+        <For each={TOP.filter((it) => railVisible(it.id))}>{(it) => <RailButton item={it} />}</For>
         <div class="rail-sp" />
-        <For each={BOTTOM.filter((it) => it.id !== "admin" || canSeeAdmin())}>{(it) => <RailButton item={it} />}</For>
+        <For each={BOTTOM.filter((it) => (it.id !== "admin" || canSeeAdmin()) && railVisible(it.id))}>{(it) => <RailButton item={it} />}</For>
       </nav>
 
+      <Show when={update()?.available}>
+        <div class="update-banner">
+          <I.Download />
+          <span>{t("Yeni sürüm hazır: {0}", update()!.version ?? "")}</span>
+          <button class="btn primary small" onClick={() => setUpdateDialog(true)}>
+            Şimdi yükle
+          </button>
+        </div>
+      </Show>
       <header class="top2">
         <h1>{TITLES[section()]}</h1>
         <div class="top2-right">
-          <Show when={update()?.available}>
-            <button class="btn update-badge" title="Yeni sürümü indir ve kur" onClick={() => setUpdateDialog(true)}>
-              <I.Download /> {t("Güncelleme: {0}", update()!.version ?? "")}
-            </button>
-          </Show>
           <Show when={proExpiringSoon()}>
             <button class="btn warn-badge" title="PRO üyeliğini yenile" onClick={() => go("pro")}>
               <I.Heart /> {t("PRO: {0} gün kaldı", proDaysLeft() ?? 0)}
@@ -178,22 +189,18 @@ export function App() {
           </Show>
           <Show when={version()?.updateConfigured && !update()?.available}>
             <button
-              class="btn ghost update-badge"
+              class="icon-btn update-check"
+              classList={{ ok: justChecked(), err: !!updateError() }}
               disabled={checking()}
-              title={updateError() || "Yeni sürüm var mı diye bak"}
+              title={checking() ? t("Denetleniyor…") : updateError() ? t("Denetlenemedi, tekrar dene") : justChecked() ? t("En güncel sürümdesin") : t("Güncellemeleri denetle")}
               onClick={() => checkUpdate(true)}
             >
               <span classList={{ spin: checking() }} style={{ display: "inline-flex" }}>
                 <I.RefreshCw />
-              </span>{" "}
-              {checking() ? t("Denetleniyor…") : updateError() ? t("Denetlenemedi, tekrar dene") : justChecked() ? t("En güncel sürümdesin") : t("Güncellemeleri denetle")}
+              </span>
             </button>
           </Show>
-          <div class="seg" title="Simülasyon">
-            <button class="on">Otomatik</button>
-            <button class="on-soft">iRacing</button>
-            <button disabled title="Yakında">LMU</button>
-          </div>
+          <SimPicker />
           <NoticeBell />
           <span class={`conn-pill ${conn().cls}`}>
             <i />
@@ -246,6 +253,14 @@ export function App() {
         </Show>
         <main class="content2">
           <Switch>
+            <Match when={isHiddenSection(section())}>
+              <div class="page">
+                <p class="muted">Bu bölüm şu an kullanılamıyor.</p>
+              </div>
+            </Match>
+            <Match when={section() === "support"}>
+              <SupportPage />
+            </Match>
             <Match when={section() === "overlays"}>
               <OverlaysPage />
             </Match>

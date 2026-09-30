@@ -976,3 +976,235 @@ table.list .num {
 .btn-accent .muted {
   color: rgba(21, 16, 10, 0.65);
 }
+
+/* Ücretsiz PRO kampanyası şeridi */
+.promo-banner {
+  background: linear-gradient(90deg, rgba(62, 207, 142, 0.16), rgba(255, 138, 42, 0.12));
+  border-bottom: 1px solid rgba(62, 207, 142, 0.35);
+}
+.promo-in {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+.promo-in > b {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--green);
+  color: #06140d;
+  font: 800 12px var(--font);
+}
+.promo-in > span {
+  flex: 1;
+  min-width: 220px;
+}
+.promo-note {
+  color: var(--muted);
+}
+
+/* Onay kutusu satırı */
+.chk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.chk input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+.chk.boxed {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 138, 42, 0.35);
+  border-radius: 9px;
+  background: rgba(255, 138, 42, 0.06);
+}
+
+/* Destek talepleri (hesap ve yönetim) */
+.sp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.sp-item:hover {
+  border-color: var(--accent);
+}
+.sp-item .grow {
+  flex: 1;
+  min-width: 0;
+}
+.sp-item b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.sp-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sp-cats button {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: none;
+  color: var(--muted);
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+.sp-cats button.on {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(255, 138, 42, 0.1);
+}
+.sp-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sp-thumb {
+  position: relative;
+  width: 92px;
+  height: 66px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.sp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sp-thumb button {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  cursor: pointer;
+}
+.sp-add {
+  width: 92px;
+  height: 66px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: 600 12px var(--font);
+  cursor: pointer;
+}
+.sp-add:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.sp-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow: auto;
+  margin: 12px 0;
+}
+.sp-msg {
+  max-width: 88%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.sp-msg.mine {
+  align-self: flex-end;
+  background: #1c2029;
+}
+.sp-msg.staff {
+  border-color: rgba(255, 138, 42, 0.45);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.sp-msg .head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.sp-msg.staff .head b {
+  color: var(--accent);
+}
+.sp-msg p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sp-imgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sp-imgs img {
+  width: 132px;
+  height: 90px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.sp-status {
+  padding: 2px 9px;
+  border-radius: 10px;
+  font: 700 11.5px var(--font);
+  white-space: nowrap;
+}
+.sp-status.open {
+  background: rgba(255, 138, 42, 0.16);
+  color: var(--accent);
+}
+.sp-status.answered {
+  background: rgba(62, 207, 142, 0.16);
+  color: var(--green);
+}
+.sp-status.closed {
+  background: #1c2029;
+  color: var(--muted);
+}
+.vis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.vis-grid .chk {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}

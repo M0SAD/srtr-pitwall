@@ -41,7 +41,9 @@ export default function DigiFlags(props: OverlayProps) {
 
   const active = createMemo(() => {
     const f = s()?.flags ?? [];
-    return FLAGS.find((d) => d.names.some((n) => f.includes(n) && (n !== "green" || props.options.showGreen)));
+    const a = FLAGS.find((d) => d.names.some((n) => f.includes(n) && (n !== "green" || props.options.showGreen)));
+    // Düzenlerken / önizlemede bayrak yoksa örnek olarak damalı bayrak gösterilir
+    return a ?? (props.editing ? FLAGS.find((d) => d.names.includes("checkered")) : undefined);
   });
 
   const n = () => props.options.size as number;

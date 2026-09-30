@@ -34,6 +34,8 @@ pub struct Status {
     /// Oyuncunun iRacing hesabı (hesap eşleme için)
     pub user_id: i64,
     pub user_name: String,
+    /// Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "" (yok/demo)
+    pub sim: String,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -514,6 +516,7 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         user_name: me.map(|d| d.name.clone()).unwrap_or_default(),
         car_path: me.map(|d| d.car_path.clone()).unwrap_or_default(),
         class_name: me.map(|d| d.class_name.clone()).unwrap_or_default(),
+        sim: String::new(),
     }
 }
 

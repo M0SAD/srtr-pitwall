@@ -1,8 +1,11 @@
 // SRTR Pitwall sunucu işleri (veritabanı tarafından çağrılır, uygulama çağırmaz):
 //   {"type":"report","id":"<rapor id>"}  Yeni rapor: yöneticilere e-posta gönderir
 //   {"type":"friend_request","id":"<bildirim id>"}  Yeni arkadaşlık isteği: karşı tarafa temalı e-posta gönderir
-//   {"type":"pro_expiring","id":"<bildirim id>"}  PRO bitmesine 15 gün kala hatırlatma e-postası
+//   {"type":"pro_expiring","id":"<bildirim id>"}  PRO bitmesine 10 gün ve son 1 gün kala hatırlatma e-postası
 //   {"type":"device_alert","id":"<bildirim id>"}   Yöneticiye: hesap cihaz sınırını aştı
+//   {"type":"pro_changed","id":"<bildirim id>"}   Yönetici PRO süresini elle değiştirdi (kullanıcıya, kendi dilinde)
+//   {"type":"support_new" | "support_user_reply","id":"<bildirim id>"}  Yöneticiye: yeni destek talebi / yeni mesaj
+//   {"type":"support_reply","id":"<bildirim id>"}  Kullanıcıya: destek talebine yanıt geldi (kendi dilinde)
 //   {"type":"cleanup"}                   6 aydır açılmayan ekran görüntülerini siler,
 //                                        sahibine uygulama içi bildirim ve e-posta gönderir
 //
@@ -373,6 +376,48 @@ const PRO_EXP: Record<string, { subject: string; line: string; how: string; note
   },
 };
 
+// Son gün uyarısı (bitişe 24 saatten az kala)
+const PRO_LAST: Record<string, { subject: string; line: string }> = {
+  "tr": { subject: "PRO üyeliğinin son günü", line: "PRO üyeliğin {1} itibarıyla sona eriyor. Kesintisiz devam etmek için şimdi yenile." },
+  "en": { subject: "Last day of your PRO membership", line: "Your PRO membership ends on {1}. Renew now to keep going without a break." },
+  "de": { subject: "Letzter Tag deiner PRO-Mitgliedschaft", line: "Deine PRO-Mitgliedschaft endet am {1}. Verlängere jetzt, um ohne Unterbrechung weiterzumachen." },
+  "es": { subject: "Último día de tu membresía PRO", line: "Tu membresía PRO termina el {1}. Renueva ahora para seguir sin interrupciones." },
+  "pt-BR": { subject: "Último dia da sua assinatura PRO", line: "Sua assinatura PRO termina em {1}. Renove agora para continuar sem interrupção." },
+  "pt-PT": { subject: "Último dia da tua subscrição PRO", line: "A tua subscrição PRO termina em {1}. Renova agora para continuares sem interrupção." },
+  "fr": { subject: "Dernier jour de ton abonnement PRO", line: "Ton abonnement PRO se termine le {1}. Renouvelle-le maintenant pour continuer sans interruption." },
+  "it": { subject: "Ultimo giorno del tuo abbonamento PRO", line: "Il tuo abbonamento PRO scade il {1}. Rinnova ora per continuare senza interruzioni." },
+  "nl": { subject: "Laatste dag van je PRO-lidmaatschap", line: "Je PRO-lidmaatschap eindigt op {1}. Verleng nu om zonder onderbreking door te gaan." },
+  "pl": { subject: "Ostatni dzień Twojego członkostwa PRO", line: "Twoje członkostwo PRO kończy się {1}. Odnów je teraz, aby kontynuować bez przerwy." },
+  "sv": { subject: "Sista dagen av ditt PRO-medlemskap", line: "Ditt PRO-medlemskap upphör den {1}. Förnya nu för att fortsätta utan avbrott." },
+  "fi": { subject: "PRO-jäsenyytesi viimeinen päivä", line: "PRO-jäsenyytesi päättyy {1}. Uusi nyt jatkaaksesi keskeytyksettä." },
+  "ru": { subject: "Последний день твоей PRO-подписки", line: "Твоя PRO-подписка заканчивается {1}. Продли сейчас, чтобы продолжить без перерыва." },
+  "zh-CN": { subject: "PRO 会员最后一天", line: "你的 PRO 会员将于 {1} 到期。立即续费即可不间断使用。" },
+  "ja": { subject: "PRO メンバーシップ最終日", line: "PRO メンバーシップは {1} に終了します。今すぐ更新すれば中断なく使い続けられます。" },
+};
+
+// Tarih biçimi: kullanıcının dili
+const LOCALES: Record<string, string> = {
+  tr: "tr-TR", en: "en-GB", de: "de-DE", es: "es-ES", "pt-BR": "pt-BR", "pt-PT": "pt-PT", fr: "fr-FR", it: "it-IT",
+  nl: "nl-NL", pl: "pl-PL", sv: "sv-SE", fi: "fi-FI", ru: "ru-RU", "zh-CN": "zh-CN", ja: "ja-JP",
+};
+function fmtDay(d: Date, lang: string, time = false) {
+  const loc = LOCALES[lang] ?? LOCALES[lang.split("-")[0]] ?? "en-GB";
+  try {
+    return d.toLocaleString(loc, time
+      ? { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul", timeZoneName: "short" }
+      : { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Istanbul" });
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
+}
+function pick<T>(dict: Record<string, T>, lang: string): T {
+  return dict[lang] ?? dict[lang.split("-")[0]] ?? dict.en;
+}
+
+const BOX = "margin:0 0 14px;padding:12px 14px;background:#10131a;border:1px solid #262b36;border-left:3px solid #ff8a2a;border-radius:8px;color:#cfd5e1;font-size:14px";
+const button = (href: string, label: string) =>
+  `<p style="margin:18px 0 4px"><a href="${esc(href)}" style="display:inline-block;background:#ff8a2a;color:#111;font-weight:700;padding:10px 18px;border-radius:8px;text-decoration:none">${esc(label)}</a></p>`;
+
 async function proExpiring(id: string) {
   const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
   if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
@@ -380,20 +425,23 @@ async function proExpiring(id: string) {
   const u = await userInfo(n.user_id);
   if (!u.email) return { ok: true, skipped: "e-posta yok" };
   const until = new Date(n.data?.until ?? Date.now());
+  const last = n.data?.stage === "d1" || until.getTime() - Date.now() <= 86400000;
   const days = Math.max(1, Math.ceil((until.getTime() - Date.now()) / 86400000));
-  const m = PRO_EXP[u.lang] ?? PRO_EXP[u.lang.split("-")[0]] ?? PRO_EXP.en;
-  const date = until.toLocaleDateString(u.lang === "tr" ? "tr-TR" : "en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const m = pick(PRO_EXP, u.lang);
+  const lm = pick(PRO_LAST, u.lang);
+  const date = fmtDay(until, u.lang, last);
   const fill = (t: string) => t.replace("{0}", String(days)).replace("{1}", date);
+  const line = fill(last ? lm.line : m.line);
   const body = `
-    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid #262b36;border-radius:10px;text-align:center">
-      <div style="font:800 40px/1 Arial,Helvetica,sans-serif;color:#ff8a2a">${days}</div>
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid ${last ? "#e5322d" : "#262b36"};border-radius:10px;text-align:center">
+      <div style="font:800 40px/1 Arial,Helvetica,sans-serif;color:${last ? "#ff5a4f" : "#ff8a2a"}">${last ? "24h" : days}</div>
       <div style="font-size:12px;letter-spacing:1px;color:#8a93a4;text-transform:uppercase;margin-top:6px">PRO</div>
     </div>
-    <p style="margin:0 0 14px">${esc(fill(m.line))}</p>
-    <div style="margin:0 0 14px;padding:12px 14px;background:#10131a;border:1px solid #262b36;border-left:3px solid #ff8a2a;border-radius:8px;color:#cfd5e1;font-size:14px">${esc(m.how)}</div>
+    <p style="margin:0 0 14px">${esc(line)}</p>
+    <div style="${BOX}">${esc(m.how)}</div>
     <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.note)}</p>`;
-  const subject = fill(m.subject);
-  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, fill(m.line)));
+  const subject = fill(last ? lm.subject : m.subject);
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line));
   return { ok: true, sent };
 }
 
@@ -416,6 +464,307 @@ async function deviceAlert(id: string) {
       tr ? "Uygulamada Yönetim → Cihazlar bölümünden inceleyebilirsin." : "Review it in the app under Management → Devices."
     }</p>`;
   const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${name}`, page(title, body));
+  return { ok: true, sent };
+}
+
+// ---------------------------------------------------------------------------
+// Yönetici PRO süresini elle değiştirdi (kullanıcıya, kendi dilinde)
+// ---------------------------------------------------------------------------
+
+type ProChg = {
+  add: string; cut: string; set: string; forever: string; remove: string;
+  until: string; added: string; removed: string; foreverLine: string; removeLine: string; note: string; foot: string;
+};
+const PRO_CHG: Record<string, ProChg> = {
+  "tr": {
+    add: "PRO üyeliğin uzatıldı", cut: "PRO süren güncellendi", set: "PRO bitiş tarihin güncellendi",
+    forever: "Artık süresiz PRO üyesisin", remove: "PRO üyeliğin sonlandırıldı",
+    until: "Yeni bitiş tarihi: {0}", added: "PRO üyeliğine {0} gün eklendi.", removed: "PRO üyeliğinden {0} gün düşüldü.",
+    foreverLine: "PRO üyeliğin süresiz olarak tanımlandı. Tüm PRO özelliklerini sınırsız kullanabilirsin.",
+    removeLine: "PRO üyeliğin ekibimiz tarafından sonlandırıldı. Ayarların ve verilerin silinmez.",
+    note: "Ekibin notu",
+    foot: "Değişiklik SRTR Pitwall'da birkaç dakika içinde görünür (hemen görmek için programı yeniden başlat).",
+  },
+  "en": {
+    add: "Your PRO membership was extended", cut: "Your PRO time was updated", set: "Your PRO end date was updated",
+    forever: "You're now an unlimited PRO member", remove: "Your PRO membership was ended",
+    until: "New end date: {0}", added: "{0} days were added to your PRO membership.", removed: "{0} days were removed from your PRO membership.",
+    foreverLine: "Your PRO membership is now unlimited. Enjoy every PRO feature with no end date.",
+    removeLine: "Your PRO membership was ended by our team. Your settings and data are kept.",
+    note: "Note from the team",
+    foot: "The change shows up in SRTR Pitwall within a few minutes (restart the app to see it right away).",
+  },
+  "de": {
+    add: "Deine PRO-Mitgliedschaft wurde verlängert", cut: "Deine PRO-Laufzeit wurde aktualisiert", set: "Dein PRO-Enddatum wurde aktualisiert",
+    forever: "Du bist jetzt unbegrenzt PRO-Mitglied", remove: "Deine PRO-Mitgliedschaft wurde beendet",
+    until: "Neues Enddatum: {0}", added: "Deiner PRO-Mitgliedschaft wurden {0} Tage hinzugefügt.", removed: "Von deiner PRO-Mitgliedschaft wurden {0} Tage abgezogen.",
+    foreverLine: "Deine PRO-Mitgliedschaft ist jetzt unbegrenzt. Nutze alle PRO-Funktionen ohne Enddatum.",
+    removeLine: "Deine PRO-Mitgliedschaft wurde von unserem Team beendet. Deine Einstellungen und Daten bleiben erhalten.",
+    note: "Hinweis vom Team",
+    foot: "Die Änderung erscheint in SRTR Pitwall innerhalb weniger Minuten (starte die App neu, um sie sofort zu sehen).",
+  },
+  "es": {
+    add: "Tu membresía PRO se ha ampliado", cut: "Tu tiempo PRO se ha actualizado", set: "La fecha de fin de tu PRO se ha actualizado",
+    forever: "Ahora eres miembro PRO sin límite", remove: "Tu membresía PRO ha finalizado",
+    until: "Nueva fecha de fin: {0}", added: "Se han añadido {0} días a tu membresía PRO.", removed: "Se han quitado {0} días de tu membresía PRO.",
+    foreverLine: "Tu membresía PRO ahora es ilimitada. Disfruta de todas las funciones PRO sin fecha de fin.",
+    removeLine: "Nuestro equipo ha finalizado tu membresía PRO. Tus ajustes y datos se conservan.",
+    note: "Nota del equipo",
+    foot: "El cambio aparecerá en SRTR Pitwall en unos minutos (reinicia la aplicación para verlo al instante).",
+  },
+  "pt-BR": {
+    add: "Sua assinatura PRO foi estendida", cut: "Seu tempo PRO foi atualizado", set: "A data de término do seu PRO foi atualizada",
+    forever: "Agora você é membro PRO ilimitado", remove: "Sua assinatura PRO foi encerrada",
+    until: "Nova data de término: {0}", added: "{0} dias foram adicionados à sua assinatura PRO.", removed: "{0} dias foram removidos da sua assinatura PRO.",
+    foreverLine: "Sua assinatura PRO agora é ilimitada. Aproveite todos os recursos PRO sem data de término.",
+    removeLine: "Sua assinatura PRO foi encerrada pela nossa equipe. Suas configurações e dados são mantidos.",
+    note: "Nota da equipe",
+    foot: "A mudança aparece no SRTR Pitwall em alguns minutos (reinicie o app para ver na hora).",
+  },
+  "pt-PT": {
+    add: "A tua subscrição PRO foi prolongada", cut: "O teu tempo PRO foi atualizado", set: "A data de fim do teu PRO foi atualizada",
+    forever: "Agora és membro PRO ilimitado", remove: "A tua subscrição PRO foi terminada",
+    until: "Nova data de fim: {0}", added: "Foram adicionados {0} dias à tua subscrição PRO.", removed: "Foram retirados {0} dias da tua subscrição PRO.",
+    foreverLine: "A tua subscrição PRO é agora ilimitada. Aproveita todas as funcionalidades PRO sem data de fim.",
+    removeLine: "A tua subscrição PRO foi terminada pela nossa equipa. As tuas definições e dados mantêm-se.",
+    note: "Nota da equipa",
+    foot: "A alteração aparece no SRTR Pitwall dentro de alguns minutos (reinicia a aplicação para a veres de imediato).",
+  },
+  "fr": {
+    add: "Ton abonnement PRO a été prolongé", cut: "Ta durée PRO a été mise à jour", set: "La date de fin de ton PRO a été mise à jour",
+    forever: "Tu es maintenant membre PRO sans limite", remove: "Ton abonnement PRO a pris fin",
+    until: "Nouvelle date de fin : {0}", added: "{0} jours ont été ajoutés à ton abonnement PRO.", removed: "{0} jours ont été retirés de ton abonnement PRO.",
+    foreverLine: "Ton abonnement PRO est désormais illimité. Profite de toutes les fonctions PRO sans date de fin.",
+    removeLine: "Notre équipe a mis fin à ton abonnement PRO. Tes réglages et données sont conservés.",
+    note: "Note de l'équipe",
+    foot: "Le changement apparaît dans SRTR Pitwall d'ici quelques minutes (redémarre l'application pour le voir tout de suite).",
+  },
+  "it": {
+    add: "Il tuo abbonamento PRO è stato esteso", cut: "Il tuo tempo PRO è stato aggiornato", set: "La data di scadenza del tuo PRO è stata aggiornata",
+    forever: "Ora sei un membro PRO senza limiti", remove: "Il tuo abbonamento PRO è terminato",
+    until: "Nuova data di scadenza: {0}", added: "Sono stati aggiunti {0} giorni al tuo abbonamento PRO.", removed: "Sono stati tolti {0} giorni dal tuo abbonamento PRO.",
+    foreverLine: "Il tuo abbonamento PRO ora è illimitato. Goditi tutte le funzioni PRO senza scadenza.",
+    removeLine: "Il nostro team ha terminato il tuo abbonamento PRO. Impostazioni e dati restano.",
+    note: "Nota del team",
+    foot: "La modifica compare in SRTR Pitwall entro pochi minuti (riavvia l'app per vederla subito).",
+  },
+  "nl": {
+    add: "Je PRO-lidmaatschap is verlengd", cut: "Je PRO-tijd is bijgewerkt", set: "De einddatum van je PRO is bijgewerkt",
+    forever: "Je bent nu onbeperkt PRO-lid", remove: "Je PRO-lidmaatschap is beëindigd",
+    until: "Nieuwe einddatum: {0}", added: "Er zijn {0} dagen aan je PRO-lidmaatschap toegevoegd.", removed: "Er zijn {0} dagen van je PRO-lidmaatschap afgehaald.",
+    foreverLine: "Je PRO-lidmaatschap is nu onbeperkt. Geniet van alle PRO-functies zonder einddatum.",
+    removeLine: "Je PRO-lidmaatschap is door ons team beëindigd. Je instellingen en gegevens blijven bewaard.",
+    note: "Opmerking van het team",
+    foot: "De wijziging is binnen enkele minuten zichtbaar in SRTR Pitwall (herstart de app om het meteen te zien).",
+  },
+  "pl": {
+    add: "Twoje członkostwo PRO zostało przedłużone", cut: "Twój czas PRO został zaktualizowany", set: "Data zakończenia PRO została zaktualizowana",
+    forever: "Masz teraz bezterminowe PRO", remove: "Twoje członkostwo PRO zostało zakończone",
+    until: "Nowa data zakończenia: {0}", added: "Do Twojego członkostwa PRO dodano {0} dni.", removed: "Z Twojego członkostwa PRO odjęto {0} dni.",
+    foreverLine: "Twoje członkostwo PRO jest teraz bezterminowe. Korzystaj ze wszystkich funkcji PRO bez daty końcowej.",
+    removeLine: "Nasz zespół zakończył Twoje członkostwo PRO. Ustawienia i dane zostają.",
+    note: "Notatka od zespołu",
+    foot: "Zmiana pojawi się w SRTR Pitwall w ciągu kilku minut (uruchom aplikację ponownie, aby zobaczyć ją od razu).",
+  },
+  "sv": {
+    add: "Ditt PRO-medlemskap har förlängts", cut: "Din PRO-tid har uppdaterats", set: "Slutdatumet för ditt PRO har uppdaterats",
+    forever: "Du är nu PRO-medlem utan tidsgräns", remove: "Ditt PRO-medlemskap har avslutats",
+    until: "Nytt slutdatum: {0}", added: "{0} dagar har lagts till ditt PRO-medlemskap.", removed: "{0} dagar har dragits från ditt PRO-medlemskap.",
+    foreverLine: "Ditt PRO-medlemskap gäller nu utan tidsgräns. Använd alla PRO-funktioner utan slutdatum.",
+    removeLine: "Vårt team har avslutat ditt PRO-medlemskap. Dina inställningar och data finns kvar.",
+    note: "Meddelande från teamet",
+    foot: "Ändringen syns i SRTR Pitwall inom några minuter (starta om appen för att se den direkt).",
+  },
+  "fi": {
+    add: "PRO-jäsenyyttäsi jatkettiin", cut: "PRO-aikasi päivitettiin", set: "PRO-jäsenyytesi päättymispäivä päivitettiin",
+    forever: "Olet nyt rajaton PRO-jäsen", remove: "PRO-jäsenyytesi päätettiin",
+    until: "Uusi päättymispäivä: {0}", added: "PRO-jäsenyyteesi lisättiin {0} päivää.", removed: "PRO-jäsenyydestäsi vähennettiin {0} päivää.",
+    foreverLine: "PRO-jäsenyytesi on nyt rajaton. Käytä kaikkia PRO-ominaisuuksia ilman päättymispäivää.",
+    removeLine: "Tiimimme päätti PRO-jäsenyytesi. Asetukset ja tiedot säilyvät.",
+    note: "Tiimin viesti",
+    foot: "Muutos näkyy SRTR Pitwallissa muutamassa minuutissa (käynnistä sovellus uudelleen nähdäksesi sen heti).",
+  },
+  "ru": {
+    add: "Твоя PRO-подписка продлена", cut: "Срок PRO обновлён", set: "Дата окончания PRO обновлена",
+    forever: "Теперь у тебя бессрочный PRO", remove: "Твоя PRO-подписка отключена",
+    until: "Новая дата окончания: {0}", added: "К твоей PRO-подписке добавлено дней: {0}.", removed: "Из твоей PRO-подписки вычтено дней: {0}.",
+    foreverLine: "Твоя PRO-подписка теперь бессрочная. Пользуйся всеми PRO-функциями без ограничений по времени.",
+    removeLine: "Наша команда отключила твою PRO-подписку. Настройки и данные сохраняются.",
+    note: "Сообщение от команды",
+    foot: "Изменение появится в SRTR Pitwall в течение нескольких минут (перезапусти программу, чтобы увидеть его сразу).",
+  },
+  "zh-CN": {
+    add: "你的 PRO 会员已延长", cut: "你的 PRO 时长已更新", set: "你的 PRO 到期日已更新",
+    forever: "你现在是永久 PRO 会员", remove: "你的 PRO 会员已终止",
+    until: "新的到期日：{0}", added: "已为你的 PRO 会员增加 {0} 天。", removed: "已从你的 PRO 会员中扣除 {0} 天。",
+    foreverLine: "你的 PRO 会员现已永久有效，可无限期使用所有 PRO 功能。",
+    removeLine: "我们的团队已终止你的 PRO 会员。你的设置和数据会保留。",
+    note: "团队留言",
+    foot: "更改将在几分钟内显示在 SRTR Pitwall 中（重启程序可立即看到）。",
+  },
+  "ja": {
+    add: "PRO メンバーシップが延長されました", cut: "PRO の期間が更新されました", set: "PRO の終了日が更新されました",
+    forever: "無期限の PRO メンバーになりました", remove: "PRO メンバーシップが終了しました",
+    until: "新しい終了日：{0}", added: "PRO メンバーシップに {0} 日追加されました。", removed: "PRO メンバーシップから {0} 日差し引かれました。",
+    foreverLine: "PRO メンバーシップが無期限になりました。すべての PRO 機能を期限なしで利用できます。",
+    removeLine: "チームにより PRO メンバーシップが終了されました。設定とデータは保持されます。",
+    note: "チームからのメモ",
+    foot: "変更は数分以内に SRTR Pitwall に反映されます（すぐに確認するにはアプリを再起動してください）。",
+  },
+};
+
+async function proChanged(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "pro_changed") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(PRO_CHG, u.lang);
+  const d = n.data ?? {};
+  const nu = d.new_until ? new Date(d.new_until) : null;
+  const ou = d.old_until ? new Date(d.old_until) : null;
+  const forever = !!nu && nu.getTime() - Date.now() > 3000 * 86400000;
+  const ended = !nu || nu.getTime() <= Date.now() + 60000;
+  const days = Number(d.days ?? 0);
+  const shorter = !!nu && !!ou && nu.getTime() < ou.getTime();
+  let subject: string;
+  let line: string;
+  if (ended) {
+    subject = m.remove;
+    line = m.removeLine;
+  } else if (forever) {
+    subject = m.forever;
+    line = m.foreverLine;
+  } else if (d.mode === "add" && days !== 0) {
+    subject = days > 0 ? m.add : m.cut;
+    line = (days > 0 ? m.added : m.removed).replace("{0}", String(Math.abs(days)));
+  } else {
+    subject = shorter ? m.cut : ou && nu && nu.getTime() > ou.getTime() ? m.add : m.set;
+    line = "";
+  }
+  const big = ended ? "—" : forever ? "∞" : String(Math.max(1, Math.ceil((nu!.getTime() - Date.now()) / 86400000)));
+  const body = `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid ${ended ? "#e5322d" : "#262b36"};border-radius:10px;text-align:center">
+      <div style="font:800 40px/1 Arial,Helvetica,sans-serif;color:${ended ? "#ff5a4f" : "#ff8a2a"}">${esc(big)}</div>
+      <div style="font-size:12px;letter-spacing:1px;color:#8a93a4;text-transform:uppercase;margin-top:6px">PRO</div>
+    </div>
+    ${line ? `<p style="margin:0 0 10px">${esc(line)}</p>` : ""}
+    ${!ended && !forever ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(m.until.replace("{0}", fmtDay(nu!, u.lang)))}</b></p>` : ""}
+    ${d.note ? `<div style="${BOX}"><div style="font-size:12px;color:#8a93a4;margin-bottom:4px">${esc(m.note)}</div>${esc(d.note)}</div>` : ""}
+    <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.foot)}</p>`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line || subject));
+  return { ok: true, sent };
+}
+
+// ---------------------------------------------------------------------------
+// Destek talepleri
+// ---------------------------------------------------------------------------
+
+const SITE = "https://pitwall.simracetr.com";
+
+const SUPPORT_CATS: Record<string, { tr: string; en: string }> = {
+  bug: { tr: "Hata bildirimi", en: "Bug report" },
+  payment: { tr: "Ödeme / abonelik", en: "Payment / subscription" },
+  account: { tr: "Hesap", en: "Account" },
+  feature: { tr: "Öneri / istek", en: "Suggestion / request" },
+  overlay: { tr: "Overlay / görünüm", en: "Overlay / appearance" },
+  other: { tr: "Diğer", en: "Other" },
+};
+
+const SUPPORT_REPLY: Record<string, { subject: string; line: string; how: string; button: string }> = {
+  "tr": { subject: "Destek talebine yanıt: {0}", line: "Destek ekibi \"{0}\" konulu talebini yanıtladı:", how: "Yanıtlamak ya da talebi kapatmak için SRTR Pitwall'da sol menüden Destek'i aç ya da hesap sayfana git.", button: "Talebi görüntüle" },
+  "en": { subject: "Reply to your support ticket: {0}", line: "Our support team replied to your ticket \"{0}\":", how: "To reply or close the ticket, open Support in the left menu of SRTR Pitwall or visit your account page.", button: "View ticket" },
+  "de": { subject: "Antwort auf deine Support-Anfrage: {0}", line: "Unser Support-Team hat auf deine Anfrage „{0}“ geantwortet:", how: "Um zu antworten oder die Anfrage zu schließen, öffne in SRTR Pitwall links Support oder besuche deine Kontoseite.", button: "Anfrage ansehen" },
+  "es": { subject: "Respuesta a tu solicitud de soporte: {0}", line: "Nuestro equipo de soporte ha respondido a tu solicitud «{0}»:", how: "Para responder o cerrar la solicitud, abre Soporte en el menú izquierdo de SRTR Pitwall o visita la página de tu cuenta.", button: "Ver solicitud" },
+  "pt-BR": { subject: "Resposta ao seu chamado de suporte: {0}", line: "Nossa equipe de suporte respondeu ao seu chamado \"{0}\":", how: "Para responder ou fechar o chamado, abra Suporte no menu à esquerda do SRTR Pitwall ou acesse a página da sua conta.", button: "Ver chamado" },
+  "pt-PT": { subject: "Resposta ao teu pedido de suporte: {0}", line: "A nossa equipa de suporte respondeu ao teu pedido \"{0}\":", how: "Para responder ou fechar o pedido, abre Suporte no menu à esquerda do SRTR Pitwall ou visita a página da tua conta.", button: "Ver pedido" },
+  "fr": { subject: "Réponse à ta demande d'assistance : {0}", line: "Notre équipe d'assistance a répondu à ta demande « {0} » :", how: "Pour répondre ou fermer la demande, ouvre Assistance dans le menu de gauche de SRTR Pitwall ou va sur la page de ton compte.", button: "Voir la demande" },
+  "it": { subject: "Risposta alla tua richiesta di supporto: {0}", line: "Il nostro team di supporto ha risposto alla tua richiesta \"{0}\":", how: "Per rispondere o chiudere la richiesta, apri Supporto nel menu a sinistra di SRTR Pitwall o visita la pagina del tuo account.", button: "Vedi richiesta" },
+  "nl": { subject: "Antwoord op je supportverzoek: {0}", line: "Ons supportteam heeft je verzoek \"{0}\" beantwoord:", how: "Open Support in het linkermenu van SRTR Pitwall of ga naar je accountpagina om te antwoorden of het verzoek te sluiten.", button: "Verzoek bekijken" },
+  "pl": { subject: "Odpowiedź na Twoje zgłoszenie: {0}", line: "Nasz zespół wsparcia odpowiedział na Twoje zgłoszenie „{0}”:", how: "Aby odpowiedzieć lub zamknąć zgłoszenie, otwórz Wsparcie w lewym menu SRTR Pitwall albo wejdź na stronę swojego konta.", button: "Zobacz zgłoszenie" },
+  "sv": { subject: "Svar på ditt supportärende: {0}", line: "Vårt supportteam har svarat på ditt ärende \"{0}\":", how: "Öppna Support i vänstermenyn i SRTR Pitwall eller gå till din kontosida för att svara eller stänga ärendet.", button: "Visa ärendet" },
+  "fi": { subject: "Vastaus tukipyyntöösi: {0}", line: "Tukitiimimme vastasi pyyntöösi \"{0}\":", how: "Vastaa tai sulje pyyntö avaamalla SRTR Pitwallin vasemmasta valikosta Tuki tai siirtymällä tilisivullesi.", button: "Näytä pyyntö" },
+  "ru": { subject: "Ответ на твоё обращение в поддержку: {0}", line: "Команда поддержки ответила на твоё обращение «{0}»:", how: "Чтобы ответить или закрыть обращение, открой «Поддержка» в левом меню SRTR Pitwall или зайди на страницу аккаунта.", button: "Открыть обращение" },
+  "zh-CN": { subject: "你的支持工单有新回复：{0}", line: "支持团队已回复你的工单“{0}”：", how: "如需回复或关闭工单，请在 SRTR Pitwall 左侧菜单打开“支持”，或访问你的账户页面。", button: "查看工单" },
+  "ja": { subject: "サポートへのお問い合わせに返信がありました：{0}", line: "サポートチームがお問い合わせ「{0}」に返信しました：", how: "返信やクローズは、SRTR Pitwall の左メニューの「サポート」またはアカウントページから行えます。", button: "お問い合わせを見る" },
+};
+
+/** Talebin son mesajı (isteğe göre personel/kullanıcı) ve görsellerinin 7 günlük imzalı adresleri */
+async function lastMessage(ticket: string, staff: boolean) {
+  const { data } = await db
+    .from("support_messages")
+    .select("body,images,is_staff,created_at")
+    .eq("ticket_id", ticket)
+    .eq("is_staff", staff)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const imgs: string[] = [];
+  if (data?.images?.length) {
+    const { data: signed } = await db.storage.from("support").createSignedUrls(data.images, 7 * 86400);
+    for (const s of signed ?? []) if (s.signedUrl) imgs.push(s.signedUrl);
+  }
+  return { body: String(data?.body ?? ""), imgs };
+}
+
+const quote = (text: string) =>
+  `<div style="margin:0 0 14px;padding:12px 14px;background:#10131a;border:1px solid #262b36;border-left:3px solid #ff8a2a;border-radius:8px;color:#e9ecf2;font-size:14px;white-space:pre-wrap">${esc(text)}</div>`;
+const thumbs = (imgs: string[]) =>
+  imgs.length
+    ? `<div style="margin:0 0 14px">${imgs
+        .map((u) => `<a href="${esc(u)}"><img src="${esc(u)}" alt="" style="width:118px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #262b36;margin:0 6px 6px 0"></a>`)
+        .join("")}</div>`
+    : "";
+
+// Yöneticiye: yeni talep ya da talep sahibinden yeni mesaj
+async function supportAdmin(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "support_new" && n.kind !== "support_user_reply") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const isNew = n.kind === "support_new";
+  const msg = await lastMessage(String(d.ticket), false);
+  const title = isNew ? (L === "tr" ? "Yeni destek talebi" : "New support ticket") : L === "tr" ? "Destek talebine yeni mesaj" : "New message on a support ticket";
+  const row = (k: string, v: string) =>
+    `<tr><td style="color:#8b93a3;padding:4px 12px 4px 0;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0">${v}</td></tr>`;
+  const body = `
+    <table style="font-size:14px;border-collapse:collapse;margin:0 0 14px">
+      ${row(L === "tr" ? "Konu" : "Subject", `<b style="color:#ffb35c">${esc(d.subject ?? "?")}</b>`)}
+      ${row(L === "tr" ? "Kategori" : "Category", esc(SUPPORT_CATS[d.category]?.[L] ?? d.category ?? "?"))}
+      ${row(L === "tr" ? "Üye" : "Member", esc(d.name ?? "?"))}
+    </table>
+    ${msg.body ? quote(msg.body) : ""}
+    ${thumbs(msg.imgs)}
+    <p style="color:#8b93a3;font-size:13px;margin:0">${
+      L === "tr" ? "Uygulamada Yönetim → Destek bölümünden ya da web yönetim panelinden yanıtlayabilirsin." : "Reply in the app under Management → Support or in the web admin panel."
+    }</p>
+    ${button(`${SITE}/yonetim.html#destek`, L === "tr" ? "Yönetim panelinde aç" : "Open in admin panel")}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.subject ?? ""}`, page(title, body, String(d.subject ?? "")));
+  return { ok: true, sent };
+}
+
+// Kullanıcıya: talebine yanıt geldi (kendi dilinde)
+async function supportReply(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "support_reply") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(SUPPORT_REPLY, u.lang);
+  const d = n.data ?? {};
+  const subj = String(d.subject ?? "");
+  const msg = await lastMessage(String(d.ticket), true);
+  const body = `
+    <p style="margin:0 0 12px">${esc(m.line.replace("{0}", subj))}</p>
+    ${msg.body ? quote(msg.body) : ""}
+    ${thumbs(msg.imgs)}
+    <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.how)}</p>
+    ${button(`${SITE}/hesap.html#destek`, m.button)}`;
+  const subject = m.subject.replace("{0}", subj);
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, m.line.replace("{0}", subj)));
   return { ok: true, sent };
 }
 
@@ -558,6 +907,12 @@ Deno.serve(async (req) => {
             ? await proExpiring(body.id)
             : body.type === "device_alert" && body.id
               ? await deviceAlert(body.id)
+              : body.type === "pro_changed" && body.id
+                ? await proChanged(body.id)
+                : (body.type === "support_new" || body.type === "support_user_reply") && body.id
+                  ? await supportAdmin(body.id)
+                  : body.type === "support_reply" && body.id
+                    ? await supportReply(body.id)
           : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
     return Response.json(res, { status: res.ok ? 200 : 400 });
   } catch (e) {

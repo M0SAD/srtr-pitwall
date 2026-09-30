@@ -8,6 +8,7 @@ import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { REPORT_REASONS, deleteNotice, markNoticesRead, notices, sendReport, type Notice, type ReportTarget } from "@/cloud/moderation";
 import * as I from "../icons";
+import { go, openTicket } from "../ui";
 
 export function ReportDialog(props: { type: ReportTarget; id: string; what: string; onClose: () => void }) {
   const [reason, setReason] = createSignal("");
@@ -201,11 +202,37 @@ function noticeText(n: Notice): string {
   if (n.kind === "friend_accepted") return t("{0} arkadaşlık isteğini kabul etti.", n.data.name ?? "?");
   if (n.kind === "layout_removed") return t('"{0}" adlı düzenin bir moderatör tarafından kaldırıldı.', n.data.title ?? "?");
   if (n.kind === "pro_expiring") {
-    const days = Math.max(0, Math.ceil((new Date(n.data.until).getTime() - Date.now()) / 86400000));
+    const until = new Date(n.data.until);
+    if (n.data.stage === "d1" && until.getTime() > Date.now())
+      return t("PRO üyeliğinin son günü! {0} tarihinde sona eriyor.", until.toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" }));
+    const days = Math.max(0, Math.ceil((until.getTime() - Date.now()) / 86400000));
     return t("PRO üyeliğinin bitmesine {0} gün kaldı.", days);
   }
+  if (n.kind === "pro_changed") {
+    const nu = n.data.new_until ? new Date(n.data.new_until) : null;
+    const date = nu ? nu.toLocaleDateString(localeTag()) : "";
+    const days = Number(n.data.days ?? 0);
+    let s: string;
+    if (!nu || nu.getTime() <= Date.now() + 60_000) s = t("PRO üyeliğin sonlandırıldı.");
+    else if (nu.getTime() - Date.now() > 3000 * 86400000) s = t("Artık süresiz PRO üyesisin.");
+    else if (n.data.mode === "add" && days > 0) s = t("PRO üyeliğine {0} gün eklendi. Yeni bitiş: {1}", days, date);
+    else if (n.data.mode === "add" && days < 0) s = t("PRO üyeliğinden {0} gün düşüldü. Yeni bitiş: {1}", Math.abs(days), date);
+    else s = t("PRO bitiş tarihin {0} olarak güncellendi.", date);
+    return n.data.note ? `${s}\n${t("Not: {0}", n.data.note)}` : s;
+  }
+  if (n.kind === "support_new") return t('{0} yeni destek talebi açtı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
+  if (n.kind === "support_user_reply") return t('{0} destek talebine yazdı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
+  if (n.kind === "support_reply") return t('Destek talebin yanıtlandı: "{0}"', n.data.subject ?? "");
   if (n.kind === "device_alert") return t("{0} hesabı {1} farklı bilgisayardan kullanılıyor.", n.data.name ?? "?", n.data.count ?? "?");
   return n.data.text ?? n.kind;
+}
+
+/** Bildirime tıklayınca gidilecek yer (destek talebi, PRO sayfası) */
+function noticeTarget(n: Notice): (() => void) | null {
+  if ((n.kind === "support_new" || n.kind === "support_user_reply") && n.data.ticket) return () => openTicket(n.data.ticket, true);
+  if (n.kind === "support_reply" && n.data.ticket) return () => openTicket(n.data.ticket, false);
+  if (n.kind === "pro_expiring" || n.kind === "pro_changed") return () => go("pro");
+  return null;
 }
 
 export function NoticeBell() {
@@ -241,7 +268,24 @@ export function NoticeBell() {
               <For each={notices()}>
                 {(n) => (
                   <div class="notice-item" classList={{ unread: !n.read, ann: !!n.ann }}>
-                    <Show when={n.ann} fallback={<p>{noticeText(n)}</p>}>
+                    <Show
+                      when={n.ann}
+                      fallback={
+                        <p
+                          classList={{ "notice-link": !!noticeTarget(n) }}
+                          style={noticeTarget(n) ? { cursor: "pointer", "white-space": "pre-line" } : { "white-space": "pre-line" }}
+                          onClick={() => {
+                            const fn = noticeTarget(n);
+                            if (fn) {
+                              fn();
+                              setOpen(false);
+                            }
+                          }}
+                        >
+                          {noticeText(n)}
+                        </p>
+                      }
+                    >
                       <p data-no-i18n>
                         <b>
                           <I.Megaphone /> {n.ann!.title}

@@ -155,12 +155,35 @@ export function LeaguePage() {
   return (
     <div class="page league">
       <section class="panel">
-        <h3>League Builder</h3>
+        <h3>Lig Kategorileri (League Builder)</h3>
         <p class="muted small">
-          Lig yarışlarında iRacing sınıfları yerine ligin kategorilerini (ör. Pro / Pro-Am / Am) kullan. Etkin
-          yapılandırma tüm overlay'lere uygulanır: Leaderboard başlıkları, sınıf renkleri, sınıf içi sıralar, Relative,
-          harita ve Live Timing. Lig kimliği girersen sadece o ligin oturumlarında devreye girer.
+          Lig yarışlarında sürücüler çoğu zaman iRacing'in araç sınıflarına göre değil, ligin kendi kategorilerine göre
+          yarışır: ör. aynı GT3 araçlarıyla <b>Pro</b>, <b>Pro-Am</b> ve <b>Am</b> ayrı sıralanır. iRacing bunu bilmediği
+          için overlay'ler herkesi tek sınıf gösterir. Bu bölümde ligin kategorilerini tanımlayıp sürücüleri (ya da
+          araç sınıflarını) kategorilere atarsın; SRTR Pitwall da overlay'leri buna göre çizer.
         </p>
+        <div class="lg-help">
+          <div>
+            <b>1. Kategorileri oluştur</b>
+            <span>Ad ve renk ver (ör. Pro kırmızı, Am yeşil).</span>
+          </div>
+          <div>
+            <b>2. Sürücüleri ata</b>
+            <span>Oturumdaki sürücüleri tek tek ya da araç sınıfına göre toplu olarak bir kategoriye koy.</span>
+          </div>
+          <div>
+            <b>3. Etkinleştir</b>
+            <span>
+              Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu
+              kategorilere göre gösterilir.
+            </span>
+          </div>
+          <div>
+            <b>4. Ligle sınırla (isteğe bağlı)</b>
+            <span>Lig kimliğini yazarsan sadece o ligin oturumlarında devreye girer; diğer yarışlar normal görünür.</span>
+          </div>
+        </div>
+        <p class="muted small">Yapılandırmayı dışa aktarıp lig arkadaşlarınla paylaşabilir, onların yapılandırmasını içe aktarabilirsin.</p>
         <div class="lg-bar">
           <select class="input" value={selId()} onChange={(e) => setSelId(e.currentTarget.value)}>
             <Show when={league().configs.length === 0}>

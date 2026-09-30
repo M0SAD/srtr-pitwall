@@ -183,6 +183,20 @@ export async function storageRemove(bucket: string, paths: string[]) {
   if (!res.ok) throw await storageError(res);
 }
 
+/** Özel kovadaki dosyalar için süreli (imzalı) adresler: yol -> adres */
+export async function storageSignedUrls(bucket: string, paths: string[], expiresIn = 3600): Promise<Record<string, string>> {
+  if (!paths.length) return {};
+  const headers = { ...(await storageHeaders()), "Content-Type": "application/json" };
+  const res = await fetch(`${URL_}/storage/v1/object/sign/${bucket}`, { method: "POST", headers, body: JSON.stringify({ expiresIn, paths }) });
+  if (!res.ok) throw await storageError(res);
+  const rows = (await res.json()) as { path: string | null; signedURL: string | null; error: string | null }[];
+  const out: Record<string, string> = {};
+  rows.forEach((r, i) => {
+    if (r.signedURL) out[r.path ?? paths[i]] = `${URL_}/storage/v1${r.signedURL.startsWith("/") ? "" : "/"}${r.signedURL}`;
+  });
+  return out;
+}
+
 function currentLang(): string {
   return lang();
 }

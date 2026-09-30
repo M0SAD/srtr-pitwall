@@ -51,6 +51,12 @@ export interface AppConfig {
   shot_daily_limit?: number;
   /** Bildirimler okunduktan sonra kaç saat listede kalır */
   notice_keep_hours?: number;
+  /** Yöneticinin gizlediği sol menü bölümleri ve overlay'ler (yöneticiler yine görür) */
+  hidden_sections?: string[];
+  hidden_overlays?: string[];
+  /** Herkese ücretsiz PRO kampanyası: bu tarihe kadar giriş yapmış herkes PRO */
+  promo_pro_until?: string | null;
+  promo_note?: string;
 }
 
 export interface Entitlement {
@@ -77,7 +83,23 @@ export { profile, config, entitlement };
 export const isAdmin = () => !!profile()?.is_admin;
 /** Uygulamanın sahibi: yönetici atar, izin gruplarını ve moderasyon kayıtlarını görür */
 export const isOwner = () => !!profile()?.is_owner;
-export const isPro = () => entitlement().pro || isAdmin();
+/** Ücretsiz PRO kampanyasının bitişi (yoksa 0) */
+export const promoUntil = () => {
+  const v = config()?.promo_pro_until;
+  const t = v ? new Date(v).getTime() : 0;
+  return t > Date.now() ? t : 0;
+};
+/** Kampanya sürüyor ve giriş yapılmış: tüm PRO özellikleri açık */
+export const promoActive = () => !!session() && promoUntil() > 0;
+export const isPro = () => entitlement().pro || isAdmin() || promoActive();
+
+/** Yöneticinin gizlediği overlay (yöneticiler gizlenenleri de görür) */
+export const isHiddenOverlay = (id: string) => !isAdmin() && (config()?.hidden_overlays ?? []).includes(id);
+/** Yöneticinin gizlediği sol menü bölümü */
+export const isHiddenSection = (id: string) => !isAdmin() && (config()?.hidden_sections ?? []).includes(id);
+/** Gizli işaretli mi (yönetici "gizli" rozeti için) */
+export const markedHiddenOverlay = (id: string) => (config()?.hidden_overlays ?? []).includes(id);
+export const markedHiddenSection = (id: string) => (config()?.hidden_sections ?? []).includes(id);
 
 /** Bu overlay PRO'ya ayrılmış ve kullanıcı PRO değil mi? */
 export function isLocked(id: string) {
@@ -148,10 +170,14 @@ export function proDaysLeft(): number | null {
   return Math.ceil((u - Date.now()) / 86400_000);
 }
 
-/** Bitmesine 15 gün ya da daha az kalmış ve kendini yenilemeyen PRO */
+/** Bitmesine 10 gün ya da daha az kalmış ve kendini yenilemeyen PRO (kampanya süresi sayılmaz) */
 export const proExpiringSoon = () => {
   const d = proDaysLeft();
-  return d !== null && d > 0 && d <= 15 && !proInfo()?.renewing;
+  if (promoActive()) {
+    const own = profile()?.pro_until ? new Date(profile()!.pro_until!).getTime() : 0;
+    if (own <= promoUntil()) return false;
+  }
+  return d !== null && d > 0 && d <= 10 && !proInfo()?.renewing;
 };
 
 /** Türkiye'den mi kullanılıyor (saat dilimi): TL fiyatları gösterilir */
@@ -273,7 +299,10 @@ export async function refreshEntitlement() {
     loadProInfo();
     invoke<{ display: string }>("app_version").then((v) => registerDevice(v.display)).catch(() => {});
     if (c) syncWatermark(normalizeWatermark(c.watermark), p?.display_name ?? "");
-    const until = p?.is_admin ? Date.now() + 3650 * 86400_000 : p?.pro_until ? new Date(p.pro_until).getTime() : 0;
+    const own = p?.is_admin ? Date.now() + 3650 * 86400_000 : p?.pro_until ? new Date(p.pro_until).getTime() : 0;
+    // Ücretsiz PRO kampanyası: giriş yapmış herkes kampanya bitene kadar PRO
+    const promo = session() && c?.promo_pro_until ? new Date(c.promo_pro_until).getTime() : 0;
+    const until = Math.max(own, promo > Date.now() ? promo : 0);
     const value = { proUntil: until, locked: c?.pro_overlays ?? entitlement().locked };
     setEntitlement(await invoke<Entitlement>("entitlement_set", { value }));
   } catch {
@@ -289,6 +318,15 @@ let started = false;
 export function startEntitlement() {
   if (started) return;
   started = true;
+  // Başka pencere (ör. yönetici panelden kaydetti) yapılandırmayı güncelledi: gizlenenler hemen uygulansın
+  window.addEventListener("storage", (e) => {
+    if (e.key !== CONFIG_CACHE || !e.newValue) return;
+    try {
+      setConfig(JSON.parse(e.newValue));
+    } catch {
+      /* bozuk */
+    }
+  });
   readEntitlement().then(refreshEntitlement);
   setInterval(refreshEntitlement, 6 * 3600_000);
   if (inTauri) {
@@ -336,6 +374,48 @@ export function adminFindUsers(q: string) {
 export function adminSetPro(user: string, until: Date | null) {
   return api("POST", "rpc/admin_set_pro", { body: { p_user: user, p_until: until ? until.toISOString() : null } });
 }
+
+export type ProChangeMode = "add" | "set" | "unlimited" | "remove";
+/** PRO süresini düzenle; notify: kullanıcıya bildirim + e-posta (kendi dilinde). Yeni bitişi döner. */
+export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: number; until?: Date; note?: string; notify?: boolean } = {}) {
+  return api<string | null>("POST", "rpc/admin_change_pro", {
+    body: {
+      p_user: user,
+      p_mode: mode,
+      p_days: o.days ?? null,
+      p_until: o.until ? o.until.toISOString() : null,
+      p_note: o.note ?? "",
+      p_notify: !!o.notify,
+    },
+  });
+}
+
+export type Money = Record<string, number>;
+export interface AdminRevenue {
+  month: Money;
+  d30: Money;
+  all: Money;
+  payments_month: number;
+  payments_all: number;
+  paying_users: number;
+  paid_pro: number;
+  free_pro: number;
+  promo_until: string | null;
+}
+export const adminRevenue = () => api<AdminRevenue>("POST", "rpc/admin_revenue", { body: {} });
+
+export interface ProMember {
+  user_id: string;
+  display_name: string;
+  email: string;
+  pro_until: string | null;
+  pro_source: string | null;
+  paid: Money;
+  payments: number;
+  last_payment: string | null;
+  renewing: boolean;
+}
+export const adminProMembers = (kind: "paid" | "free") => api<ProMember[]>("POST", "rpc/admin_pro_members", { body: { p_kind: kind } });
 
 export interface StorageUsage {
   bucket: string;

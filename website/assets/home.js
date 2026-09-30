@@ -2,7 +2,28 @@
 import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, locale, planFor, planName, PLANS } from "./core.js";
 
 addDict({
-  hero_eyebrow: ["iRacing için hepsi bir arada", "All-in-one for iRacing"],
+  hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
+  pill_sims: ["iRacing · ACC · AC · LMU · rF2 · AMS2", "iRacing · ACC · AC · LMU · rF2 · AMS2"],
+  f10_t: ["Birden çok simülasyon", "Multiple sims"],
+  f10_d: [
+    "iRacing'in yanında Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2 ve Automobilista 2. Hangi oyunu açarsan kendiliğinden algılar.",
+    "Besides iRacing: Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2 and Automobilista 2. Detects whichever game you start.",
+  ],
+  f11_t: ["Destek", "Support"],
+  f11_d: [
+    "Program içinden ya da siteden destek talebi aç, konu seç, ekran görüntüsü ekle; yanıt gelince bildirim ve e-posta alırsın.",
+    "Open a support ticket from the app or the website, pick a topic, attach screenshots; you get a notification and e-mail when we reply.",
+  ],
+  f12_t: ["Steam gibi arkadaş listesi", "Steam-like friends list"],
+  f12_d: [
+    "Ayrı arkadaş penceresi, masaüstünde mesaj bildirimleri, ifadeler (:D → 😄) ve arkadaşının canlı verisi ayrı pencerede.",
+    "A separate friends window, desktop message pop-ups, emojis (:D → 😄) and your friend's live data in its own window.",
+  ],
+  q8: ["Hangi oyunları destekliyor?", "Which games are supported?"],
+  a8: [
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate ve rFactor 2 (rF2 Shared Memory eklentisiyle), Automobilista 2 / Project CARS 2 (oyun ayarlarında Shared Memory: Project CARS 2). Her oyunun sağladığı veri farklıdır; en eksiksiz destek iRacing'dedir.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate and rFactor 2 (with the rF2 Shared Memory plugin), Automobilista 2 / Project CARS 2 (Shared Memory: Project CARS 2 in the game options). Each game exposes different data; iRacing has the most complete support.",
+  ],
   hero_title: ["Sim kokpitin için <span class=\"accent\">eksiksiz bir pit duvarı</span>", "A complete <span class=\"accent\">pit wall</span> for your sim rig"],
   hero_lead: [
     "Overlay'ler, görsel ve sesli spotter, yakıt stratejisi, arkadaşlarla canlı veri, OBS yayın düzenleri ve topluluk — tek, hafif bir uygulamada.",
@@ -191,6 +212,9 @@ const FEATS = [
   ["🌍", "f7"],
   ["📸", "f8"],
   ["🎨", "f9"],
+  ["🏁", "f10"],
+  ["🛟", "f11"],
+  ["😄", "f12"],
 ];
 // hesapsız, ücretsiz hesap, PRO
 const CMP = [
@@ -215,7 +239,7 @@ function renderStatic() {
   ).join("");
   const mark = (v) => (v ? `<span class="y">✓</span>` : `<span class="n">—</span>`);
   $("#cmp-body").innerHTML = CMP.map(([k, a, b, c]) => `<tr><td>${T(k)}</td><td>${mark(a)}</td><td>${mark(b)}</td><td>${mark(c)}</td></tr>`).join("");
-  $("#faq-list").innerHTML = [1, 2, 3, 4, 5, 6, 7]
+  $("#faq-list").innerHTML = [1, 8, 2, 3, 4, 5, 6, 7]
     .map((i) => `<details><summary>${T("q" + i)}</summary><p>${T("a" + i)}</p></details>`)
     .join("");
 }

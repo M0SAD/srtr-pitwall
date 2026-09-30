@@ -3555,3 +3555,63 @@ body {
 .pro-extend-cap {
   margin: 14px 0 6px;
 }
+
+/* Güncelleme: üst çubukta sadece döngü simgesi; yeni sürüm varsa üstte şerit */
+.update-check {
+  color: var(--muted);
+}
+.update-check.ok {
+  color: #3ecf8e;
+}
+.update-check.err {
+  color: #ff8d8a;
+}
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(90deg, #ff8a2a, #ffb070);
+  color: #15100a;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.update-banner svg {
+  width: 16px;
+  height: 16px;
+}
+.update-banner .btn.primary {
+  background: #15100a;
+  color: #ffb070;
+  border-color: #15100a;
+}
+
+.lg-help {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.lg-help > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.lg-help b {
+  color: var(--accent-2);
+}
+.lg-help span {
+  color: var(--muted);
+}

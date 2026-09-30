@@ -15,9 +15,11 @@ mod logos;
 mod model;
 mod mqtt;
 mod sdk;
+mod sims;
 mod server;
 mod session;
 mod trackmap;
+mod toast;
 mod tracker;
 mod device;
 mod updater;
@@ -1205,6 +1207,11 @@ pub fn run() {
             replay_to,
             replay_live,
             window_open,
+            toast::toast_show,
+            toast::toast_take,
+            toast::toast_layout,
+            toast::toast_open_chat,
+            toast::friends_take_chat,
             server_apply,
             server_status,
             state_get,

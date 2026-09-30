@@ -1,7 +1,7 @@
 // Şeffaf overlay penceresi. Tüm overlay'ler bu tek pencerenin içinde çizilir
 // (her overlay için ayrı pencere açmak RAM'i katlar).
 
-import { isLocked, startPing } from "@/cloud/account";
+import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
 import { t } from "@/sdk/i18n";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
@@ -156,7 +156,7 @@ export function Host() {
       const p = shown()!;
       monitors();
       return instancesOf(p)
-        .filter(([, i]) => i.enabled && !isLocked(i.type) && belongsTo(i.monitor, windowMonitor))
+        .filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type) && belongsTo(i.monitor, windowMonitor))
         .map(([k, i]) => [k, manifests.find((m) => m.id === i.type)!] as [string, OverlayManifest])
         .filter(([, m]) => !!m);
     },

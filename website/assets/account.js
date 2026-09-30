@@ -18,6 +18,7 @@ import {
   myProfile,
   planFor,
   planName,
+  promoUntil,
   sb,
   toast,
 } from "./core.js";
@@ -83,6 +84,42 @@ addDict({
   a_admin_link: ["Yönetim paneline git", "Go to the admin panel"],
   a_err_confirm: ["E-postan henüz onaylanmamış. Kodu gönderdik, aşağıya yaz.", "Your e-mail isn't confirmed yet. We sent a code, enter it below."],
   a_security: ["Güvenlik", "Security"],
+  a_promo_active: ["Kampanya ile PRO: {0} tarihine kadar tüm PRO özellikleri açık.", "PRO via promotion: every PRO feature is unlocked until {0}."],
+  s_title: ["Destek", "Support"],
+  s_lead: [
+    "Bir sorun mu var ya da önerin mi? Talep aç; yanıt geldiğinde bildirim ve e-posta alırsın.",
+    "Having a problem or a suggestion? Open a ticket; you'll get a notification and an e-mail when we reply.",
+  ],
+  s_new: ["Yeni talep", "New ticket"],
+  s_none: ["Henüz talebin yok.", "You have no tickets yet."],
+  s_category: ["Konu başlığı", "Topic"],
+  s_cat_bug: ["Hata bildirimi", "Bug report"],
+  s_cat_overlay: ["Overlay / görünüm", "Overlay / appearance"],
+  s_cat_payment: ["Ödeme / abonelik", "Payment / subscription"],
+  s_cat_account: ["Hesap", "Account"],
+  s_cat_feature: ["Öneri / istek", "Suggestion / request"],
+  s_cat_other: ["Diğer", "Other"],
+  s_subject: ["Başlık", "Subject"],
+  s_subject_ph: ["Kısaca ne oldu?", "What happened, in short?"],
+  s_message: ["Mesaj", "Message"],
+  s_message_ph: ["Ne yapıyordun, ne bekliyordun, ne oldu?", "What were you doing, what did you expect, what happened?"],
+  s_images: ["Görseller (en fazla 4)", "Images (up to 4)"],
+  s_add_image: ["+ Görsel", "+ Image"],
+  s_send: ["Gönder", "Send"],
+  s_sending: ["Gönderiliyor…", "Sending…"],
+  s_reply_ph: ["Mesajın…", "Your message…"],
+  s_status_open: ["Açık", "Open"],
+  s_status_answered: ["Yanıtlandı", "Answered"],
+  s_status_closed: ["Kapalı", "Closed"],
+  s_close: ["Talebi kapat", "Close ticket"],
+  s_reopen: ["Yeniden aç", "Reopen"],
+  s_team: ["Destek ekibi", "Support team"],
+  s_new_reply: ["Yeni yanıt", "New reply"],
+  s_closed_note: ["Bu talep kapalı. Yazarsan yeniden açılır.", "This ticket is closed. Writing will reopen it."],
+  s_required: ["Başlık ve mesaj gerekli.", "Subject and message are required."],
+  s_created: ["Talebin gönderildi.", "Your ticket was sent."],
+  s_too_big: ["Görsel çok büyük (en fazla 5 MB).", "Image too large (max 5 MB)."],
+  s_back: ["← Taleplerim", "← My tickets"],
 });
 
 let mode = new URLSearchParams(location.search).get("mode") === "signup" ? "signup" : "login";
@@ -229,7 +266,7 @@ async function afterLogin() {
       return;
     }
   }
-  history.replaceState(null, "", "hesap.html");
+  history.replaceState(null, "", "hesap.html" + (location.hash === "#destek" ? "#destek" : ""));
   render();
 }
 
@@ -245,6 +282,7 @@ async function dashboard(u) {
   ]);
   const p = prof || {};
   const d = daysLeft(p.pro_until);
+  const promo = promoUntil(cfg);
   const active = p.is_admin || (d !== null && d > 0);
   const forever = p.is_admin || (d !== null && d > 3000);
   const sub = pro?.sub;
@@ -268,7 +306,8 @@ async function dashboard(u) {
     <div class="grid g2" style="align-items:start">
       <div class="stack">
         <div class="card">
-          <div class="row between"><h3>${T("a_pro")}</h3>${active ? `<span class="badge pro">PRO</span>` : `<span class="badge">${T("a_pro_none")}</span>`}</div>
+          <div class="row between"><h3>${T("a_pro")}</h3>${active || promo ? `<span class="badge pro">PRO</span>` : `<span class="badge">${T("a_pro_none")}</span>`}</div>
+          ${promo ? `<div class="msg good" style="margin-top:10px">${esc(T("a_promo_active", fmtDate(promo, true)))}${cfg.promo_note ? `<br><span class="muted small">${esc(cfg.promo_note)}</span>` : ""}</div>` : ""}
           ${
             active
               ? `<div class="pro-status" style="margin:10px 0 14px">
@@ -332,6 +371,12 @@ async function dashboard(u) {
           <button class="btn btn-sm">${T("a_set_password")}</button>
         </form>
 
+        <div class="card" id="destek">
+          <div class="row between"><h3 style="margin:0">${T("s_title")}</h3><button class="btn btn-sm btn-accent" id="sp-new">${T("s_new")}</button></div>
+          <p class="muted small">${T("s_lead")}</p>
+          <div id="sp-body"><p class="muted small">${T("loading")}</p></div>
+        </div>
+
         <div class="card">
           <h3>${T("a_app")}</h3>
           <p class="muted small">${T("a_app_lead")}</p>
@@ -361,6 +406,7 @@ async function dashboard(u) {
     const { error } = await sb.auth.updateUser({ password: String(new FormData(e.target).get("password")) });
     error ? toast(error.message, true) : (toast(T("saved")), e.target.reset());
   });
+  initSupport(u);
   // İndirme bağlantısı
   const { latestRelease, hit } = await import("./core.js");
   latestRelease().then((r) => {
@@ -370,6 +416,229 @@ async function dashboard(u) {
     });
     $$("[data-version]").forEach((el) => (el.textContent = r.version || ""));
   });
+}
+
+// ---------------------------------------------------------------------------
+// Destek talepleri
+// ---------------------------------------------------------------------------
+const SP_CATS = ["bug", "overlay", "payment", "account", "feature", "other"];
+const SP_MAX = 4;
+let spView = { mode: "list" };
+
+async function spRpc(name, args = {}) {
+  const { data, error } = await sb.rpc(name, args);
+  if (error) throw new Error(error.message);
+  return data;
+}
+const spStatus = (s) => `<span class="sp-status ${esc(s)}">${esc(T("s_status_" + s))}</span>`;
+
+/** Görseli küçültüp (en çok 1920 px) kullanıcının klasörüne yükler; yolları döner */
+async function spUpload(u, files) {
+  const stamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const out = [];
+  for (let i = 0; i < Math.min(files.length, SP_MAX); i++) {
+    const f = files[i];
+    let blob = f;
+    let ext = (f.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+    try {
+      const bmp = await createImageBitmap(f);
+      const k = Math.min(1, 1920 / Math.max(bmp.width, bmp.height));
+      if (k < 1 || f.size > 1500000 || !["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+        const c = document.createElement("canvas");
+        c.width = Math.round(bmp.width * k);
+        c.height = Math.round(bmp.height * k);
+        c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+        blob = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.86));
+        ext = "jpg";
+      }
+    } catch {}
+    if (!blob || blob.size > 5 * 1024 * 1024) throw new Error(T("s_too_big"));
+    const path = `${u.id}/${stamp}/${i + 1}.${ext}`;
+    const { error } = await sb.storage.from("support").upload(path, blob, { contentType: ext === "jpg" ? "image/jpeg" : blob.type });
+    if (error) throw new Error(error.message);
+    out.push(path);
+  }
+  return out;
+}
+
+/** Görsel seçici (önizlemeli); seçilen dosyaları döndüren fonksiyon verir */
+function spPicker(el) {
+  let files = [];
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.multiple = true;
+  input.hidden = true;
+  const draw = () => {
+    el.innerHTML = files.map((f, i) => `<div class="sp-thumb"><img src="${URL.createObjectURL(f)}" alt=""><button type="button" data-rm="${i}">✕</button></div>`).join("") +
+      (files.length < SP_MAX ? `<button type="button" class="sp-add">${T("s_add_image")}<br>${files.length}/${SP_MAX}</button>` : "");
+    el.appendChild(input);
+    el.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => ((files = files.filter((_, k) => k !== +b.dataset.rm)), draw())));
+    el.querySelector(".sp-add")?.addEventListener("click", () => input.click());
+  };
+  const add = (list) => {
+    files = [...files, ...[...list].filter((f) => f.type.startsWith("image/"))].slice(0, SP_MAX);
+    draw();
+  };
+  input.addEventListener("change", () => {
+    add(input.files || []);
+    input.value = "";
+  });
+  draw();
+  return { get: () => files, add, clear: () => ((files = []), draw()) };
+}
+
+async function spList(u, body) {
+  const rows = (await spRpc("my_support_tickets")) || [];
+  if (!rows.length) {
+    body.innerHTML = `<p class="muted small">${T("s_none")}</p>`;
+    return;
+  }
+  body.innerHTML = `<div class="sp-list">${rows
+    .map(
+      (r) => `<button class="sp-item" data-t="${esc(r.id)}">
+        ${r.unread ? `<i class="sp-dot" title="${esc(T("s_new_reply"))}"></i>` : ""}
+        <span class="grow"><b>${esc(r.subject)}</b><span class="muted small">${esc(T("s_cat_" + r.category))} · ${fmtDate(r.updated_at, true)}</span></span>
+        ${spStatus(r.status)}
+      </button>`,
+    )
+    .join("")}</div>`;
+  body.querySelectorAll("[data-t]").forEach((b) =>
+    b.addEventListener("click", () => {
+      spView = { mode: "thread", id: b.dataset.t };
+      spShow(u);
+    }),
+  );
+}
+
+function spForm(u, body) {
+  let cat = "bug";
+  body.innerHTML = `<form id="sp-f">
+    <p class="small"><button type="button" class="linkbtn" id="sp-back">${T("s_back")}</button></p>
+    <div class="field"><label>${T("s_category")}</label><div class="sp-cats">${SP_CATS.map((c) => `<button type="button" data-c="${c}" class="${c === cat ? "on" : ""}">${T("s_cat_" + c)}</button>`).join("")}</div></div>
+    <div class="field"><label>${T("s_subject")}</label><input name="subject" maxlength="120" placeholder="${esc(T("s_subject_ph"))}"></div>
+    <div class="field"><label>${T("s_message")}</label><textarea name="body" rows="6" maxlength="4000" placeholder="${esc(T("s_message_ph"))}"></textarea></div>
+    <div class="field"><label>${T("s_images")}</label><div class="sp-pick" id="sp-pick"></div></div>
+    <button class="btn btn-accent">${T("s_send")}</button>
+  </form>`;
+  const pick = spPicker(body.querySelector("#sp-pick"));
+  body.querySelector("textarea").addEventListener("paste", (e) => {
+    if (e.clipboardData?.files?.length) pick.add(e.clipboardData.files);
+  });
+  body.querySelector("#sp-back").addEventListener("click", () => ((spView = { mode: "list" }), spShow(u)));
+  body.querySelectorAll("[data-c]").forEach((b) =>
+    b.addEventListener("click", () => {
+      cat = b.dataset.c;
+      body.querySelectorAll("[data-c]").forEach((x) => x.classList.toggle("on", x === b));
+    }),
+  );
+  body.querySelector("#sp-f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const subject = String(f.get("subject")).trim();
+    const text = String(f.get("body")).trim();
+    if (!subject || !text) return toast(T("s_required"), true);
+    const btn = e.target.querySelector("button.btn-accent");
+    btn.disabled = true;
+    btn.textContent = T("s_sending");
+    try {
+      const images = await spUpload(u, pick.get());
+      const id = await spRpc("support_create", { p_category: cat, p_subject: subject, p_body: text, p_images: images });
+      toast(T("s_created"));
+      spView = { mode: "thread", id };
+      spShow(u);
+    } catch (err) {
+      toast(err.message || String(err), true);
+      btn.disabled = false;
+      btn.textContent = T("s_send");
+    }
+  });
+}
+
+async function spThread(u, body, id) {
+  const [tickets, msgs] = await Promise.all([spRpc("my_support_tickets"), spRpc("support_thread", { p_ticket: id })]);
+  const t = (tickets || []).find((x) => x.id === id);
+  if (!t) {
+    spView = { mode: "list" };
+    return spShow(u);
+  }
+  sb.rpc("support_seen", { p_ticket: id }).then(() => {}, () => {});
+  const paths = [...new Set((msgs || []).flatMap((m) => m.images || []))];
+  const urls = {};
+  if (paths.length) {
+    const { data } = await sb.storage.from("support").createSignedUrls(paths, 3600);
+    (data || []).forEach((x) => x.signedUrl && (urls[x.path] = x.signedUrl));
+  }
+  body.innerHTML = `
+    <p class="small row between"><button type="button" class="linkbtn" id="sp-back">${T("s_back")}</button>
+      <button type="button" class="btn btn-sm" id="sp-st">${t.status === "closed" ? T("s_reopen") : T("s_close")}</button></p>
+    <div class="row between"><b>${esc(t.subject)}</b>${spStatus(t.status)}</div>
+    <span class="muted small">${esc(T("s_cat_" + t.category))} · ${fmtDate(t.created_at, true)}</span>
+    <div class="sp-msgs">${(msgs || [])
+      .map(
+        (m) => `<div class="sp-msg ${m.is_staff ? "staff" : "mine"}">
+          <div class="head"><b>${m.is_staff ? esc(T("s_team")) : esc(m.author_name)}</b><span>${fmtDate(m.created_at, true)}</span></div>
+          <p>${esc(m.body)}</p>
+          ${(m.images || []).length ? `<div class="sp-imgs">${m.images.map((p) => (urls[p] ? `<a href="${esc(urls[p])}" target="_blank" rel="noopener"><img src="${esc(urls[p])}" alt=""></a>` : "")).join("")}</div>` : ""}
+        </div>`,
+      )
+      .join("")}</div>
+    ${t.status === "closed" ? `<p class="muted small">${T("s_closed_note")}</p>` : ""}
+    <form id="sp-r">
+      <div class="field"><textarea name="body" rows="3" maxlength="4000" placeholder="${esc(T("s_reply_ph"))}"></textarea></div>
+      <div class="row between" style="align-items:flex-end"><div class="sp-pick" id="sp-pick"></div><button class="btn btn-accent">${T("s_send")}</button></div>
+    </form>`;
+  const box = body.querySelector(".sp-msgs");
+  box.scrollTop = box.scrollHeight;
+  const pick = spPicker(body.querySelector("#sp-pick"));
+  body.querySelector("textarea").addEventListener("paste", (e) => {
+    if (e.clipboardData?.files?.length) pick.add(e.clipboardData.files);
+  });
+  body.querySelector("#sp-back").addEventListener("click", () => ((spView = { mode: "list" }), spShow(u)));
+  body.querySelector("#sp-st").addEventListener("click", async () => {
+    try {
+      await spRpc("support_set_status", { p_ticket: id, p_status: t.status === "closed" ? "open" : "closed" });
+      spShow(u);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+  body.querySelector("#sp-r").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = String(new FormData(e.target).get("body")).trim();
+    if (!text) return;
+    const btn = e.target.querySelector("button.btn-accent");
+    btn.disabled = true;
+    try {
+      const images = await spUpload(u, pick.get());
+      await spRpc("support_reply", { p_ticket: id, p_body: text, p_images: images });
+      spShow(u);
+    } catch (err) {
+      toast(err.message || String(err), true);
+      btn.disabled = false;
+    }
+  });
+}
+
+async function spShow(u) {
+  const body = $("#sp-body");
+  if (!body) return;
+  try {
+    if (spView.mode === "new") spForm(u, body);
+    else if (spView.mode === "thread") await spThread(u, body, spView.id);
+    else await spList(u, body);
+  } catch (e) {
+    body.innerHTML = `<div class="msg bad">${esc(e.message || e)}</div>`;
+  }
+}
+
+function initSupport(u) {
+  $("#sp-new")?.addEventListener("click", () => {
+    spView = { mode: "new" };
+    spShow(u);
+  });
+  spShow(u);
+  if (location.hash === "#destek") setTimeout(() => $("#destek")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
 }
 
 async function render() {

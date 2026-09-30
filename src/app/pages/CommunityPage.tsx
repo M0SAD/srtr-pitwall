@@ -1,7 +1,7 @@
 // Topluluk: paylaşılan overlay düzenleri. Ara, önizle, profil olarak indir, puan ver, yorum yaz.
 
 import { localeTag, t } from "@/sdk/i18n";
-import { For, Show, createEffect, createMemo, createResource, createSignal, on, onMount } from "solid-js";
+import { For, Show, createMemo, createResource, createSignal, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isLocked, isPro, profile } from "@/cloud/account";
@@ -21,15 +21,43 @@ import {
   getLayoutData,
   layoutBoxes,
   markDownloaded,
-  myLayouts,
   myRating,
   rate,
-  searchLayouts,
+  layoutCars,
+  myRatedLayoutIds,
+  queryLayouts,
   shareLayout,
+  ASPECT_RES,
+  type Aspect,
   type LayoutBox,
+  type LayoutSort,
   type LayoutSummary,
-  type Sort,
+  type ResTier,
 } from "@/cloud/layouts";
+import { communityStats } from "@/cloud/community";
+import {
+  Author,
+  EmptyState,
+  FGroup,
+  FilterBar,
+  Hero,
+  LoadMore,
+  MinStars,
+  PERIODS,
+  Pills,
+  Range,
+  Select,
+  SkeletonGrid,
+  Tabs,
+  TextFilter,
+  Toggle,
+  compact,
+  debounced,
+  periodLabel,
+  relTime,
+  stored,
+  type ActiveChip,
+} from "./CommunityKit";
 import { activeProfile, settings, updateSettings, type Profile } from "@/sdk/settings";
 import { inTauri } from "@/sdk/platform";
 import { go } from "../ui";
@@ -128,27 +156,223 @@ export function ProGate(props: { children: any; label?: string }) {
   );
 }
 
+/** Çözünürlüğün en-boy sınıfı (kart etiketi için) */
+export function aspectOf(w: number, h: number): string {
+  const key = `${w}x${h}`;
+  for (const [k, list] of Object.entries(ASPECT_RES)) if (list.includes(key)) return k === "triple" ? "Üçlü" : k;
+  const r = w / Math.max(1, h);
+  if (r > 4.5) return "Üçlü";
+  if (r > 3.2) return "32:9";
+  if (r > 2.2) return "21:9";
+  if (r > 1.7) return "16:9";
+  if (r > 1.5) return "16:10";
+  return "4:3";
+}
+
+/** Topluluk düzeni kartı (liste ve ana sayfa) */
+export function LayoutCard(p: { l: LayoutSummary & { comment_count?: number }; rank?: number; onOpen: () => void; onAuthor?: (name: string) => void; onCar?: (car: string) => void }) {
+  const l = () => p.l;
+  const fresh = () => Date.now() - new Date(l().created_at).getTime() < 3 * 86400_000;
+  return (
+    <div class="cx-card" role="button" tabIndex={0} onClick={p.onOpen} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), p.onOpen())}>
+      <div class="cx-cover lp-cover">
+        <LayoutPreview boxes={l().boxes} w={l().screen_w} h={l().screen_h} scale={l().ui_scale} labels />
+        <div class="cx-badges">
+          <Show when={p.rank}>
+            <i class="cx-rank">{p.rank}</i>
+          </Show>
+          <Show when={fresh() && !p.rank}>
+            <i class="cx-new">YENİ</i>
+          </Show>
+          <span class="lt-sp" />
+          <i class="cx-res" data-no-i18n>
+            {l().screen_w}×{l().screen_h}
+          </i>
+        </div>
+        <span class="cx-open">
+          <I.Eye /> Önizle
+        </span>
+      </div>
+      <div class="cx-body">
+        <div class="cx-title-row">
+          <b class="cx-title" data-no-i18n title={l().title}>
+            {l().title}
+          </b>
+        </div>
+        <div class="cx-byline">
+          <Author name={l().author_name} iracing={l().author_iracing} onClick={p.onAuthor ? () => p.onAuthor!(l().author_name) : undefined} />
+          <small class="cx-date" title={new Date(l().created_at).toLocaleString(localeTag())}>
+            {relTime(l().created_at)}
+          </small>
+        </div>
+        <div class="cx-tags">
+          <span class="cx-tag acc">{aspectOf(l().screen_w, l().screen_h)}</span>
+          <span class="cx-tag">{t("{0} overlay", l().overlay_count)}</span>
+          <For each={l().cars.slice(0, 2)}>
+            {(c) => (
+              <span
+                class="cx-tag car"
+                data-no-i18n
+                title={c}
+                onClick={(e) => {
+                  if (!p.onCar) return;
+                  e.stopPropagation();
+                  p.onCar(c);
+                }}
+              >
+                {c}
+              </span>
+            )}
+          </For>
+          <Show when={l().cars.length > 2}>
+            <span class="cx-tag" title={l().cars.slice(2).join(", ")} data-no-i18n>
+              +{l().cars.length - 2}
+            </span>
+          </Show>
+        </div>
+        <div class="cx-stats">
+          <span class="cx-rating" classList={{ none: !l().rating_count }}>
+            <span class="cx-star">★</span>
+            <b>{l().rating_count ? Number(l().rating_avg).toFixed(1) : "—"}</b>
+            <small>({l().rating_count})</small>
+          </span>
+          <span title="İndirme">
+            <I.Download /> {compact(l().downloads)}
+          </span>
+          <span title="Yorum">
+            <I.MessageCircle /> {compact(l().comment_count ?? 0)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type LTab = "all" | "mine" | "rated";
+
+const LAYOUT_SORTS: { id: LayoutSort; label: string }[] = [
+  { id: "new", label: "En yeni" },
+  { id: "trend7", label: "Haftanın popülerleri" },
+  { id: "trend30", label: "Ayın popülerleri" },
+  { id: "downloads", label: "En çok indirilen" },
+  { id: "top", label: "En yüksek puan" },
+  { id: "votes", label: "En çok oy alan" },
+  { id: "comments", label: "En çok yorumlanan" },
+  { id: "overlays", label: "En çok overlay" },
+  { id: "updated", label: "Son güncellenen" },
+  { id: "old", label: "En eski" },
+  { id: "title", label: "Ada göre (A-Z)" },
+];
+
+interface LFilters {
+  sort: LayoutSort;
+  days: number;
+  author: string;
+  res: string;
+  aspect: Aspect;
+  tier: ResTier;
+  car: string;
+  carMode: "" | "specific" | "generic";
+  ovMin: number;
+  ovMax: number;
+  minRating: number;
+  minDownloads: number;
+  hasComments: boolean;
+}
+
+const L_DEFAULT: LFilters = {
+  sort: "new",
+  days: 0,
+  author: "",
+  res: "",
+  aspect: "",
+  tier: "",
+  car: "",
+  carMode: "",
+  ovMin: 0,
+  ovMax: 0,
+  minRating: 0,
+  minDownloads: 0,
+  hasComments: false,
+};
+
+const ASPECTS: { id: Aspect; label: string }[] = [
+  { id: "", label: "Hepsi" },
+  { id: "16:9", label: "16:9" },
+  { id: "16:10", label: "16:10" },
+  { id: "21:9", label: "21:9" },
+  { id: "32:9", label: "32:9" },
+  { id: "triple", label: "Üçlü ekran" },
+];
+const TIERS: { id: ResTier; label: string }[] = [
+  { id: "", label: "Hepsi" },
+  { id: "1080", label: "1080p" },
+  { id: "1440", label: "1440p" },
+  { id: "4k", label: "4K+" },
+];
+
 export function CommunityPage(props: { kind: LayoutKind }) {
+  const stream = props.kind === "stream";
   const [q, setQ] = createSignal("");
-  const [sort, setSort] = createSignal<Sort>("new");
-  const [res, setRes] = createSignal("");
-  const [tab, setTab] = createSignal<"all" | "mine">("all");
+  const dq = debounced(q);
+  const [f, setF] = stored<LFilters>(`pitwall.cx.${props.kind}.filters`, L_DEFAULT);
+  const [panel, setPanel] = stored<boolean>(`pitwall.cx.${props.kind}.panel`, false);
+  const set = <K extends keyof LFilters>(k: K, v: LFilters[K]) => setF({ ...f(), [k]: v });
+  const [tab, setTab] = createSignal<LTab>("all");
   const [open, setOpen] = createSignal<LayoutSummary | null>(null);
   const [sharing, setSharing] = createSignal(false);
   const [version, setVersion] = createSignal(0);
-  const [debounced, setDebounced] = createSignal("");
-  let timer: number | undefined;
-  createEffect(
-    on(q, (v) => {
-      clearTimeout(timer);
-      timer = window.setTimeout(() => setDebounced(v), 300);
-    }),
+  const PAGE = 24;
+  // Sayfa sayısı filtre imzasına bağlı: filtre değişince 1'e döner (fazladan istek olmadan)
+  const sig = createMemo(() => JSON.stringify([dq(), f(), tab()]));
+  const [pageState, setPageState] = createSignal({ sig: "", n: 1 });
+  const pages = () => (pageState().sig === sig() ? pageState().n : 1);
+  const setPages = (n: number) => setPageState({ sig: sig(), n });
+
+  const [stats] = createResource(() => (session() ? 1 : null), () => communityStats().catch(() => undefined));
+  const [cars] = createResource(() => (session() ? props.kind : null), (k) => layoutCars(k).catch(() => []));
+  const [ratedIds] = createResource(
+    () => (session() && tab() === "rated" ? version() + 1 : null),
+    () => myRatedLayoutIds().catch(() => [] as string[]),
   );
 
   const [list] = createResource(
-    () => (session() ? { q: debounced(), sort: sort(), res: res(), tab: tab(), v: version(), kind: props.kind } : null),
-    async (k) => (k.tab === "mine" ? myLayouts(k.kind) : searchLayouts(k.q, k.sort, k.res, 0, k.kind)),
+    () => {
+      if (!session()) return null;
+      if (tab() === "rated" && !ratedIds()) return null;
+      return { q: dq(), f: f(), tab: tab(), v: version(), p: pages(), ids: tab() === "rated" ? ratedIds() : undefined };
+    },
+    (k) =>
+      queryLayouts(
+        { ...k.f, kind: props.kind, q: k.q, userId: k.tab === "mine" ? session()?.user.id : undefined, ids: k.ids ?? undefined },
+        0,
+        PAGE * k.p,
+      ),
   );
+  const items = () => list.latest ?? [];
+  const hasMore = () => (list.latest?.length ?? 0) >= PAGE * pages();
+
+  const chips = createMemo(() => {
+    const x = f();
+    const c: ActiveChip[] = [];
+    const clr = (k: keyof LFilters) => () => set(k, L_DEFAULT[k] as never);
+    if (x.days) c.push({ label: "Tarih", value: periodLabel(x.days), clear: clr("days") });
+    if (x.author) c.push({ label: "Kullanıcı", value: x.author, raw: true, clear: clr("author") });
+    if (x.aspect) c.push({ label: "Oran", value: ASPECTS.find((a) => a.id === x.aspect)!.label, clear: clr("aspect") });
+    if (x.tier) c.push({ label: "Çözünürlük sınıfı", value: TIERS.find((a) => a.id === x.tier)!.label, clear: clr("tier") });
+    if (x.res) c.push({ label: "Çözünürlük", value: x.res.replace("x", "×"), raw: true, clear: clr("res") });
+    if (x.car) c.push({ label: "Araç", value: x.car, raw: true, clear: clr("car") });
+    if (x.carMode) c.push({ label: "Araç kuralı", value: x.carMode === "specific" ? "Araca özel" : "Genel", clear: clr("carMode") });
+    if (x.ovMin || x.ovMax) c.push({ label: "Overlay", value: `${x.ovMin || 0}–${x.ovMax || "∞"}`, raw: true, clear: () => setF({ ...f(), ovMin: 0, ovMax: 0 }) });
+    if (x.minRating) c.push({ label: "Puan", value: t("{0}+ yıldız", x.minRating), clear: clr("minRating") });
+    if (x.minDownloads) c.push({ label: "İndirme", value: `≥ ${x.minDownloads}`, raw: true, clear: clr("minDownloads") });
+    if (x.hasComments) c.push({ label: "Yorum", value: "Yorumu olanlar", clear: clr("hasComments") });
+    return c;
+  });
+  const clearAll = () => {
+    setF({ ...L_DEFAULT, sort: f().sort });
+    setQ("");
+  };
 
   if (!cloudEnabled) {
     return (
@@ -162,66 +386,160 @@ export function CommunityPage(props: { kind: LayoutKind }) {
   }
 
   return (
-    <Show when={session()} fallback={<LoginWall what={props.kind === "stream" ? "Topluluk yayın düzenleri" : "Topluluk düzenleri"} />}>
-      <div class="page">
-        <section class="panel cm-bar">
-          <div class="cm-tabs">
-            <button classList={{ on: tab() === "all" }} onClick={() => setTab("all")}>
-              {props.kind === "stream" ? "Tüm yayın düzenleri" : "Tüm düzenler"}
+    <Show when={session()} fallback={<LoginWall what={stream ? "Topluluk yayın düzenleri" : "Topluluk düzenleri"} />}>
+      <div class="page cx-page">
+        <Hero
+          icon={stream ? <I.Radio /> : <I.LayoutDashboard />}
+          kicker="Topluluk"
+          title={stream ? "Yayın düzenleri" : "Overlay düzenleri"}
+          sub={
+            stream
+              ? "Yayıncıların OBS sahneleri için hazırladığı yerleşimler. Önizle, puanla ve tek tıkla kendi yayınına ekle."
+              : "Sürücülerin paylaştığı overlay yerleşimleri. Ekranına uygun olanı bul, önizle ve tek tıkla profil olarak kullan."
+          }
+          stats={[
+            { n: stream ? stats()?.streams : stats()?.layouts, label: "Paylaşım" },
+            { n: stats()?.downloads, label: "İndirme" },
+            { n: stats()?.members, label: "Üye" },
+          ]}
+          actions={
+            <button class="btn primary" onClick={() => setSharing(true)}>
+              <I.Share2 /> {stream ? "Yayın düzenimi paylaş" : "Düzenimi paylaş"}
             </button>
-            <button classList={{ on: tab() === "mine" }} onClick={() => setTab("mine")}>
-              Paylaştıklarım
-            </button>
-          </div>
-          <Show when={tab() === "all"}>
-            <input class="input cm-search" placeholder="Düzen adı, kullanıcı ya da iRacing adı ara" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
-            <select class="input" value={res()} onChange={(e) => setRes(e.currentTarget.value)}>
-              <option value="">Tüm çözünürlükler</option>
-              <For each={RESOLUTIONS}>{(r) => <option value={r}>{r.replace("x", "×")}</option>}</For>
-            </select>
-            <select class="input" value={sort()} onChange={(e) => setSort(e.currentTarget.value as Sort)}>
-              <option value="new">En yeni</option>
-              <option value="top">En yüksek puan</option>
-              <option value="downloads">En çok indirilen</option>
-            </select>
-          </Show>
-          <span class="lt-sp" />
-          <button class="btn primary" onClick={() => setSharing(true)}>
-            {props.kind === "stream" ? "Yayın düzenimi paylaş" : "Düzenimi paylaş"}
-          </button>
-        </section>
+          }
+        />
+
+        <FilterBar
+          tabs={
+            <Tabs<LTab>
+              value={tab()}
+              onChange={setTab}
+              tabs={[
+                { id: "all", label: "Keşfet" },
+                { id: "mine", label: "Paylaştıklarım" },
+                { id: "rated", label: "Puanladıklarım" },
+              ]}
+            />
+          }
+          q={q()}
+          onQ={setQ}
+          placeholder="Ad, açıklama, kullanıcı ya da iRacing adı ara"
+          sort={f().sort}
+          sorts={LAYOUT_SORTS}
+          onSort={(v) => set("sort", v as LayoutSort)}
+          open={panel()}
+          onToggle={() => setPanel(!panel())}
+          chips={chips()}
+          onClear={clearAll}
+          count={items().length}
+          loading={list.loading}
+        >
+          <FGroup label="Paylaşım tarihi">
+            <Pills value={f().days} options={PERIODS} onChange={(v) => set("days", v)} />
+          </FGroup>
+          <FGroup label={stream ? "Tuval oranı" : "Ekran oranı"}>
+            <Pills value={f().aspect} options={ASPECTS} onChange={(v) => set("aspect", v)} />
+          </FGroup>
+          <FGroup label="Çözünürlük sınıfı">
+            <Pills value={f().tier} options={TIERS} onChange={(v) => set("tier", v)} />
+          </FGroup>
+          <FGroup label="Tam çözünürlük">
+            <Select value={f().res} onChange={(v) => set("res", v)} all="Tüm çözünürlükler" options={RESOLUTIONS.map((r) => ({ id: r, label: r.replace("x", "×"), raw: true }))} />
+          </FGroup>
+          <FGroup label="Araç" hint={cars()?.length ? t("{0} farklı araç", cars()!.length) : undefined}>
+            <Select
+              value={f().car}
+              onChange={(v) => set("car", v)}
+              all="Tüm araçlar"
+              options={(cars() ?? []).slice(0, 80).map((c) => ({ id: c.name, label: `${c.name} (${c.count})`, raw: true }))}
+            />
+          </FGroup>
+          <FGroup label="Araç kuralı">
+            <Pills
+              value={f().carMode}
+              options={[
+                { id: "", label: "Hepsi" },
+                { id: "specific", label: "Araca özel" },
+                { id: "generic", label: "Genel" },
+              ]}
+              onChange={(v) => set("carMode", v)}
+            />
+          </FGroup>
+          <FGroup label="Overlay sayısı">
+            <Range min={f().ovMin} max={f().ovMax} onMin={(v) => set("ovMin", v)} onMax={(v) => set("ovMax", v)} />
+          </FGroup>
+          <FGroup label="En düşük puan">
+            <MinStars value={f().minRating} onChange={(v) => set("minRating", v)} />
+          </FGroup>
+          <FGroup label="En az indirme">
+            <Pills
+              value={f().minDownloads}
+              options={[
+                { id: 0, label: "Hepsi" },
+                { id: 10, label: "10+" },
+                { id: 50, label: "50+" },
+                { id: 100, label: "100+" },
+                { id: 500, label: "500+" },
+              ]}
+              onChange={(v) => set("minDownloads", v)}
+            />
+          </FGroup>
+          <FGroup label="Kullanıcı">
+            <TextFilter value={f().author} onChange={(v) => set("author", v)} placeholder="Görünen ad ya da iRacing adı" />
+          </FGroup>
+          <FGroup label="Diğer">
+            <Toggle checked={f().hasComments} label="Yalnızca yorumu olanlar" onChange={(v) => set("hasComments", v)} />
+          </FGroup>
+        </FilterBar>
 
         <Show when={list.error}>
           <p class="error">{String(list.error?.message ?? list.error)}</p>
         </Show>
-        <Show when={!list.loading && (list() ?? []).length === 0 && !list.error}>
-          <p class="muted cm-empty">{tab() === "mine" ? "Henüz düzen paylaşmadın." : "Sonuç yok."}</p>
-        </Show>
 
-        <div class="cm-grid">
-          <For each={list() ?? []}>
-            {(l) => (
-              <button class="cm-card" onClick={() => setOpen(l)}>
-                <LayoutPreview boxes={l.boxes} w={l.screen_w} h={l.screen_h} scale={l.ui_scale} labels />
-                <div class="cm-card-body">
-                  <b data-no-i18n>{l.title}</b>
-                  <small data-no-i18n>
-                    {l.author_name || "?"}
-                    {l.author_iracing ? ` · ${l.author_iracing}` : ""}
-                  </small>
-                  <div class="cm-meta">
-                    <span class="cm-res">
-                      {l.screen_w}×{l.screen_h}
-                    </span>
-                    <span>{l.overlay_count} overlay</span>
-                    <span>⭳ {l.downloads}</span>
-                    <Stars value={Number(l.rating_avg)} count={l.rating_count} />
-                  </div>
-                </div>
-              </button>
-            )}
-          </For>
-        </div>
+        <Show when={list.latest || !list.loading} fallback={<SkeletonGrid n={8} />}>
+          <Show
+            when={items().length > 0}
+            fallback={
+              <Show when={!list.loading && !list.error}>
+                <EmptyState
+                  icon={tab() === "all" ? <I.Search /> : stream ? <I.Radio /> : <I.LayoutDashboard />}
+                  title={tab() === "mine" ? "Henüz düzen paylaşmadın." : tab() === "rated" ? "Henüz puan vermedin." : "Bu filtrelere uyan düzen yok."}
+                  hint={tab() === "all" ? "Filtreleri gevşetmeyi ya da aramayı değiştirmeyi dene." : undefined}
+                  action={
+                    <Show
+                      when={chips().length > 0 || q()}
+                      fallback={
+                        <Show when={tab() === "mine"}>
+                          <button class="btn primary" onClick={() => setSharing(true)}>
+                            {stream ? "Yayın düzenimi paylaş" : "Düzenimi paylaş"}
+                          </button>
+                        </Show>
+                      }
+                    >
+                      <button class="btn" onClick={clearAll}>
+                        Filtreleri temizle
+                      </button>
+                    </Show>
+                  }
+                />
+              </Show>
+            }
+          >
+            <div class="cx-grid" classList={{ busy: list.loading }}>
+              <For each={items()}>
+                {(l) => (
+                  <LayoutCard
+                    l={l}
+                    onOpen={() => setOpen(l)}
+                    onAuthor={(n) => (setTab("all"), set("author", n), setPanel(true))}
+                    onCar={(c) => (set("car", c), setPanel(true))}
+                  />
+                )}
+              </For>
+            </div>
+            <LoadMore show={hasMore()} loading={list.loading} onClick={() => setPages(pages() + 1)} />
+          </Show>
+        </Show>
 
         <Show when={open()}>
           <LayoutDetail l={open()!} kind={props.kind} onClose={() => setOpen(null)} onChanged={() => setVersion(version() + 1)} />
@@ -320,34 +638,60 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
 
   return (
     <div class="modal-back" onClick={(e) => e.target === e.currentTarget && props.onClose()}>
-      <div class="modal cm-detail wide">
+      <div class="modal cm-detail wide cx-detail">
         <header>
-          <div>
+          <div class="cx-dhead">
+            <span class="cx-kicker">{props.kind === "stream" ? "Yayın düzeni" : "Overlay düzeni"}</span>
             <h3 data-no-i18n>{l().title}</h3>
-            <small class="muted">
-              <span data-no-i18n>
-                {l().author_name}
-                {l().author_iracing ? ` · iRacing: ${l().author_iracing}` : ""}
-              </span>{" "}
-              · {new Date(l().created_at).toLocaleDateString(localeTag())}
-            </small>
+            <div class="cx-byline">
+              <Author name={l().author_name} iracing={l().author_iracing} />
+              <small class="cx-date" title={new Date(l().created_at).toLocaleString(localeTag())}>
+                {new Date(l().created_at).toLocaleDateString(localeTag())} · {relTime(l().created_at)}
+              </small>
+            </div>
           </div>
-          <button class="btn ghost small" onClick={props.onClose}>
-            Kapat
+          <button class="btn ghost small cx-close" onClick={props.onClose} title="Kapat">
+            <I.X />
           </button>
         </header>
 
-        <Show when={data()} fallback={<LayoutPreview boxes={l().boxes} w={l().screen_w} h={l().screen_h} scale={l().ui_scale} labels />}>
-          <SharedLayoutPreview profile={data()!.profile} theme={data()!.theme} w={l().screen_w / (l().ui_scale || 1)} h={l().screen_h / (l().ui_scale || 1)} stream={props.kind === "stream"} />
-        </Show>
+        <div class="cx-dprev">
+          <Show when={data()} fallback={<LayoutPreview boxes={l().boxes} w={l().screen_w} h={l().screen_h} scale={l().ui_scale} labels />}>
+            <SharedLayoutPreview profile={data()!.profile} theme={data()!.theme} w={l().screen_w / (l().ui_scale || 1)} h={l().screen_h / (l().ui_scale || 1)} stream={props.kind === "stream"} />
+          </Show>
+        </div>
 
-        <div class="cm-detail-meta">
-          <span class="cm-res">
-            {l().screen_w}×{l().screen_h}
-          </span>
-          <span>{l().overlay_count} overlay</span>
-          <span>{t("⭳ {0} indirme", l().downloads)}</span>
-          <Stars value={avg().v} count={avg().n} />
+        <div class="cx-dstats">
+          <div>
+            <small>Puan</small>
+            <span class="cx-dstars">
+              <Stars value={avg().v} />
+              <b>{avg().v ? avg().v.toFixed(1) : "—"}</b>
+              <small>{t("({0} oy)", avg().n)}</small>
+            </span>
+          </div>
+          <div>
+            <small>İndirme</small>
+            <b>{compact(l().downloads)}</b>
+          </div>
+          <div>
+            <small>Yorum</small>
+            <b>{cmts()?.length ?? (l() as { comment_count?: number }).comment_count ?? 0}</b>
+          </div>
+          <div>
+            <small>{props.kind === "stream" ? "Tuval" : "Ekran"}</small>
+            <b data-no-i18n>
+              {l().screen_w}×{l().screen_h}
+            </b>
+          </div>
+          <div>
+            <small>Oran</small>
+            <b>{aspectOf(l().screen_w, l().screen_h)}</b>
+          </div>
+          <div>
+            <small>Overlay</small>
+            <b>{l().overlay_count}</b>
+          </div>
         </div>
         <Show when={l().description}>
           <p class="cm-desc" data-no-i18n>
@@ -375,9 +719,18 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
             </div>
           </Show>
           <Show when={l().cars.length > 0}>
-            <p class="muted small">
-              Araçlar: <span data-no-i18n>{l().cars.join(", ")}</span>
-            </p>
+            <div>
+              <h4>Araçlar</h4>
+              <div class="cx-tags">
+                <For each={l().cars}>
+                  {(c) => (
+                    <span class="cx-tag car" data-no-i18n>
+                      {c}
+                    </span>
+                  )}
+                </For>
+              </div>
+            </div>
           </Show>
         </div>
 

@@ -6,7 +6,7 @@
     "main",
     "overlay",
     "pitwall",
-    "timing", "engineer", "overlay-m*", "friends", "friend-*"
+    "timing", "engineer", "overlay-m*", "friends", "friend-*", "toast"
   ],
   "permissions": [
     "core:default",

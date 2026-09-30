@@ -8,7 +8,7 @@ import { manifestById, manifests } from "@/sdk/registry";
 import { instanceName, instancesOf, settings, updateSettings, type Profile } from "@/sdk/settings";
 import { useSnapshot } from "@/sdk/telemetry";
 import { appState } from "../App";
-import { isLocked } from "@/cloud/account";
+import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
 import { Switch } from "../components/SettingsForm";
 import { newLayout } from "./LayoutsPage";
@@ -98,7 +98,7 @@ export function StreamingPage() {
   const [sharing, setSharing] = createSignal(false);
   const canvas = () => p()?.canvas ?? { w: 1920, h: 1080 };
 
-  const keys = createMemo(() => (p() ? instancesOf(p()!).filter(([, i]) => i.enabled && !isLocked(i.type)).map(([k]) => k) : []));
+  const keys = createMemo(() => (p() ? instancesOf(p()!).filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type)).map(([k]) => k) : []));
   // Tuvaldeki overlay'ler sabit görüntü (Demo açıksa canlı)
   useSnapshot(
     () => {
@@ -214,7 +214,7 @@ export function StreamingPage() {
                 }}
               >
                 <option value="">+ Overlay ekle…</option>
-                <For each={manifests.filter((m) => !isLocked(m.id))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
+                <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
               </select>
               <Show when={!isSceneOnly(p()!)}>
                 <button class="btn ghost" title="Bu yayın düzenini tüm ayarları ve renkleriyle toplulukta paylaş" onClick={() => setSharing(true)}>

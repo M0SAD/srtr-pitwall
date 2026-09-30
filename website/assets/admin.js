@@ -12,10 +12,59 @@ const SECTIONS = [
   ["satislar", "Satışlar"],
   ["abonelikler", "Abonelikler"],
   ["uyeler", "Üyeler"],
+  ["destek", "Destek"],
   ["gecmis", "Süre geçmişi"],
   ["cihazlar", "Cihazlar"],
   ["planlar", "Planlar ve fiyatlar"],
+  ["kampanya", "Ücretsiz PRO"],
+  ["gorunurluk", "Görünürlük"],
 ];
+
+// Programdaki overlay'ler (src/overlays/*/manifest.ts); yeni overlay eklenince buraya da eklenmeli.
+// Listede olmayan ama gizlenmiş ya da PRO'ya ayrılmış kimlikler de ayrıca gösterilir.
+const OVERLAYS = [
+  ["battlebox", "Battle Box"],
+  ["corners", "Viraj Analizi"],
+  ["dataframe", "Data Frame"],
+  ["delta", "Delta Bar"],
+  ["digiflags", "DigiFlags"],
+  ["flatmap", "Düz Harita"],
+  ["fuel", "Yakıt Hesaplayıcı"],
+  ["incidentlog", "Olay Günlüğü"],
+  ["incidents", "Olay Sayacı"],
+  ["inputs", "Pedallar & Girdi"],
+  ["laptimes", "Tur Süreleri"],
+  ["minimap", "Mini Harita"],
+  ["overtake", "Hızlı Sınıf Uyarısı"],
+  ["pitspeed", "Pit Hızı"],
+  ["radar", "Görsel Spotter"],
+  ["rejoin", "Piste Dönüş"],
+  ["relative", "Relative"],
+  ["scene", "Yayın Sahnesi"],
+  ["session", "Oturum & Bayraklar"],
+  ["standings", "Sıralama Tablosu"],
+  ["telemetry", "Telemetri Paneli"],
+  ["tires", "Lastikler"],
+  ["trackmap", "Pist Haritası"],
+  ["twitch", "Twitch Sohbeti"],
+  ["weather", "Canlı Hava"],
+  ["webview", "Webview"],
+];
+// Programın sol menüsünde gizlenebilen bölümler (Yönetim, Ayarlar ve Hesap gizlenemez)
+const APP_SECTIONS = [
+  ["overlays", "Overlay'ler"],
+  ["layouts", "Düzenler"],
+  ["streaming", "Yayın"],
+  ["drivers", "Sürücüler"],
+  ["community", "Topluluk"],
+  ["shots", "Ekran Görüntüleri"],
+  ["tools", "Araçlar"],
+  ["voice", "Sesli Mühendis"],
+  ["support", "Destek"],
+  ["pro", "PRO"],
+];
+const SUPPORT_CATS = { bug: "Hata bildirimi", overlay: "Overlay / görünüm", payment: "Ödeme / abonelik", account: "Hesap", feature: "Öneri / istek", other: "Diğer" };
+const SUPPORT_ST = { open: ["warn", "Açık"], answered: ["ok", "Yanıtlandı"], closed: ["", "Kapalı"] };
 
 const SRC = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: "Yönetici" };
 
@@ -36,7 +85,7 @@ function proBadge(until, admin = false) {
   const d = daysLeft(until);
   if (d === null || d <= 0) return `<span class="badge">—</span>`;
   if (d > 3000) return `<span class="badge pro">PRO ∞</span>`;
-  return `<span class="badge ${d <= 15 ? "warn" : "pro"}">PRO · ${d} gün</span>`;
+  return `<span class="badge ${d <= 10 ? "warn" : "pro"}">PRO · ${d} gün</span>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,7 +142,11 @@ function barList(rows, key, label = (r) => r[key]) {
 // Bölümler
 // ---------------------------------------------------------------------------
 async function ozet(el) {
-  const [s, a] = await Promise.all([rpc("admin_site_stats", { p_days: range }), rpc("admin_stats").catch(() => ({}))]);
+  const [s, a, rv] = await Promise.all([
+    rpc("admin_site_stats", { p_days: range }),
+    rpc("admin_stats").catch(() => ({})),
+    rpc("admin_revenue").catch(() => null),
+  ]);
   const stat = (t, v, sub = "") => `<div class="stat"><small>${t}</small><b>${v}</b>${sub ? `<i>${sub}</i>` : ""}</div>`;
   const src = Object.entries(s.pro_by_source || {}).map(([k, v]) => ({ k: SRC[k] || k, n: v }));
   el.innerHTML = `
@@ -111,6 +164,9 @@ async function ozet(el) {
       ${stat("İndirme tıklaması", s.downloads)}
       ${stat("Program açık", a.online ?? "—", `${a.racing ?? 0} yarışta · 24 saatte ${a.active_24h ?? "—"}`)}
       ${stat("Kurulum", a.installs ?? "—", `30 günde aktif ${a.active_30d ?? "—"}`)}
+      ${rv ? stat("Bu ay kazanç", money(rv.month), `son 30 gün ${money(rv.d30)}`) : ""}
+      ${rv ? stat("Parayla PRO", rv.paid_pro, `${rv.paying_users} kişi ödeme yaptı`) : ""}
+      ${rv ? stat("Ücretsiz PRO", rv.free_pro, rv.promo_until && new Date(rv.promo_until) > new Date() ? `kampanya ${fmtDate(rv.promo_until)} tarihine kadar` : "yönetici / diğer") : ""}
     </div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row between"><h3>Ziyaretçi ve yeni üye</h3><span class="small"><span style="color:#ff8a2a">■</span> ziyaretçi <span style="color:#3ecf8e">■</span> üye</span></div><canvas class="chart" id="c1"></canvas></div>
@@ -171,7 +227,12 @@ async function satislar(el) {
           .join("")}</div>
         <button class="btn btn-sm" id="csv">CSV indir</button></div>
     </div>
-    <div class="card table-scroll"><table class="list"><thead><tr><th>Tarih</th><th>Üye</th><th>Kaynak</th><th>Plan</th><th class="num">Tutar</th></tr></thead><tbody id="pay-body"></tbody></table></div>`;
+    <div class="card table-scroll"><table class="list"><thead><tr><th>Tarih</th><th>Üye</th><th>Kaynak</th><th>Plan</th><th class="num">Tutar</th></tr></thead><tbody id="pay-body"></tbody></table></div>
+    <div class="row between" style="margin:22px 0 10px">
+      <h3 style="margin:0">PRO üyeler: parayla / ücretsiz</h3>
+      <div class="seg" id="pk">${[["paid", "Parayla PRO"], ["free", "Ücretsiz PRO"]].map(([k, l]) => `<button data-k="${k}" class="${k === "paid" ? "on" : ""}">${l}</button>`).join("")}</div>
+    </div>
+    <div class="card table-scroll" id="pro-members"><p class="muted">Yükleniyor…</p></div>`;
   $$("#srcs button", el).forEach((b) =>
     b.addEventListener("click", () => {
       src = b.dataset.s;
@@ -179,6 +240,38 @@ async function satislar(el) {
       draw();
     }),
   );
+  const members = async (kind) => {
+    const box = $("#pro-members");
+    try {
+      const list = (await rpc("admin_pro_members", { p_kind: kind })) || [];
+      box.innerHTML = `<p class="muted small">${
+        kind === "paid"
+          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon, Ko-fi) gelen ya da ödeme kaydı olan üyeler."
+          : "Aktif PRO olup hiç ödemesi olmayan üyeler (yönetici tarafından verilen süreler vb.)."
+      } ${list.length} kişi.</p>
+      <table class="list"><thead><tr><th>Üye</th><th>PRO</th><th>Kaynak</th><th class="num">Ödediği</th><th>Son ödeme</th></tr></thead><tbody>
+      ${
+        list
+          .map(
+            (r) => `<tr><td>${esc(r.display_name || "—")}<br><span class="muted small">${esc(r.email)}</span></td>
+            <td>${proBadge(r.pro_until)}${r.renewing ? `<br><span class="muted tiny">yenileniyor</span>` : ""}</td>
+            <td>${esc(SRC[r.pro_source] || r.pro_source || "—")}</td>
+            <td class="num">${r.payments ? money(r.paid) : "—"}${r.payments ? `<br><span class="muted tiny">${r.payments} ödeme</span>` : ""}</td>
+            <td>${r.last_payment ? fmtDate(r.last_payment) : "—"}</td></tr>`,
+          )
+          .join("") || `<tr><td colspan="5" class="muted">Kimse yok.</td></tr>`
+      }</tbody></table>`;
+    } catch (e) {
+      box.innerHTML = `<div class="msg bad">${esc(e.message)}</div>`;
+    }
+  };
+  $$("#pk button", el).forEach((b) =>
+    b.addEventListener("click", () => {
+      $$("#pk button", el).forEach((x) => x.classList.toggle("on", x === b));
+      members(b.dataset.k);
+    }),
+  );
+  members("paid");
   $("#csv").addEventListener("click", () => {
     const head = "tarih,kaynak,uye,eposta,plan,tur,tutar,para\n";
     const body = rows
@@ -266,9 +359,12 @@ async function proModal(u, done) {
     <div class="row between"><h3 style="margin:0">${esc(u.name)}</h3><button class="linkbtn" id="mx">✕</button></div>
     <p class="muted small">${esc(u.email)}</p>
     <p>Şu an: ${proBadge(u.until)} ${u.until ? `<span class="muted small">(${fmtDate(u.until, true)})</span>` : ""}</p>
-    <div class="field"><label>Not (gün eklerken geçmişe yazılır)</label><input id="mnote" maxlength="200" placeholder="ör. yayın desteği, hata telafisi"></div>
+    <div class="field"><label>Not (geçmişe yazılır; bildirim açıksa e-postada da görünür)</label><input id="mnote" maxlength="200" placeholder="ör. yayın desteği, hata telafisi"></div>
+    <label class="chk boxed" style="margin-bottom:12px"><input type="checkbox" id="mnotify" ${localStorage.getItem("pitwall.admin.proNotify") === "1" ? "checked" : ""}>
+      <span><b>Kullanıcıya bildir (e-posta + bildirim)</b><br><span class="muted small">Değişiklik kullanıcıya uygulamada bildirim ve kendi dilinde e-posta olarak gider.</span></span></label>
     <div class="row" style="margin-bottom:10px">
       ${[7, 30, 90, 180, 365].map((d) => `<button class="btn btn-sm" data-add="${d}">+${d} gün</button>`).join("")}
+      ${[-7, -30].map((d) => `<button class="btn btn-sm btn-danger" data-add="${d}">−${-d} gün</button>`).join("")}
     </div>
     <div class="row" style="margin-bottom:10px">
       <input id="mdays" type="number" style="width:120px" placeholder="gün (eksi kısaltır)">
@@ -289,35 +385,34 @@ async function proModal(u, done) {
   bg.addEventListener("click", (e) => e.target === bg && close());
   $("#mx", bg).addEventListener("click", close);
   const note = () => $("#mnote", bg).value.trim();
+  const notify = () => $("#mnotify", bg).checked;
+  $("#mnotify", bg).addEventListener("change", () => {
+    try {
+      localStorage.setItem("pitwall.admin.proNotify", notify() ? "1" : "0");
+    } catch {}
+  });
+  const change = async (mode, args, label) => {
+    try {
+      const nu = await rpc("admin_change_pro", { p_user: u.id, p_mode: mode, p_days: args.days ?? null, p_until: args.until ?? null, p_note: note(), p_notify: notify() });
+      after((label || (nu ? `Yeni bitiş: ${fmtDate(nu, true)}` : "PRO alındı")) + (notify() ? " · kullanıcıya bildirildi" : ""));
+    } catch (e) {
+      toast(e.message, true);
+    }
+  };
   const after = async (msg) => {
     toast(msg);
     close();
     await done?.();
   };
-  const add = async (days) => {
-    if (!days) return;
-    try {
-      const nu = await rpc("admin_extend_pro", { p_user: u.id, p_days: days, p_note: note() });
-      after(`Yeni bitiş: ${fmtDate(nu, true)}`);
-    } catch (e) {
-      toast(e.message, true);
-    }
-  };
-  const setUntil = async (date, label) => {
-    try {
-      await rpc("admin_set_pro", { p_user: u.id, p_until: date ? date.toISOString() : null });
-      after(label);
-    } catch (e) {
-      toast(e.message, true);
-    }
-  };
+  const add = (days) => days && change("add", { days });
+  const setUntil = (date, label) => (date ? change("set", { until: date.toISOString() }, label) : change("remove", {}, label));
   $$("[data-add]", bg).forEach((b) => b.addEventListener("click", () => add(+b.dataset.add)));
   $("#madd", bg).addEventListener("click", () => add(parseInt($("#mdays", bg).value, 10)));
   $("#mset", bg).addEventListener("click", () => {
     const v = $("#mdate", bg).value;
     if (v) setUntil(new Date(v + "T23:59:00"), "Tarih ayarlandı");
   });
-  $("#mforever", bg).addEventListener("click", () => setUntil(new Date("2099-12-31T00:00:00Z"), "Süresiz PRO verildi"));
+  $("#mforever", bg).addEventListener("click", () => change("unlimited", {}, "Süresiz PRO verildi"));
   $("#mremove", bg).addEventListener("click", () => {
     if (confirm(`${u.name} kullanıcısının PRO'su alınsın mı?`)) setUntil(null, "PRO alındı");
   });
@@ -425,7 +520,194 @@ async function planlar(el) {
   });
 }
 
-const RENDER = { ozet, satislar, abonelikler, uyeler, gecmis, cihazlar, planlar };
+// ---------------------------------------------------------------------------
+// Destek talepleri
+// ---------------------------------------------------------------------------
+let spStatusF = "";
+let spCatF = "";
+let spOpen = "";
+async function destek(el) {
+  const rows = (await rpc("admin_support_tickets", { p_status: spStatusF || null, p_category: spCatF || null })) || [];
+  const unread = rows.filter((r) => r.unread).length;
+  el.innerHTML = `
+    <div class="row between" style="margin-bottom:14px">
+      <h2 style="margin:0">Destek ${unread ? `<span class="badge warn">${unread} okunmamış</span>` : ""}</h2>
+      <div class="row">
+        <div class="seg" id="sps">${[["", "Hepsi"], ["unread", "Okunmamış"], ["open", "Açık"], ["answered", "Yanıtlandı"], ["closed", "Kapalı"]]
+          .map(([k, l]) => `<button data-s="${k}" class="${k === spStatusF ? "on" : ""}">${l}</button>`)
+          .join("")}</div>
+        <select id="spc" style="width:190px"><option value="">Tüm kategoriler</option>${Object.entries(SUPPORT_CATS)
+          .map(([k, l]) => `<option value="${k}" ${k === spCatF ? "selected" : ""}>${l}</option>`)
+          .join("")}</select>
+      </div>
+    </div>
+    <div class="grid g2" style="align-items:start;grid-template-columns:minmax(260px,1fr) 2fr">
+      <div class="card"><div class="sp-list">${
+        rows
+          .map(
+            (r) => `<button class="sp-item" data-t="${esc(r.id)}" style="${r.id === spOpen ? "border-color:var(--accent)" : ""}">
+            ${r.unread ? `<i class="sp-dot"></i>` : ""}
+            <span class="grow"><b>${esc(r.subject)}</b><span class="muted small">${esc(r.display_name || r.email || "?")} · ${esc(SUPPORT_CATS[r.category] || r.category)} · ${fmtDate(r.updated_at, true)}</span></span>
+            <span class="badge ${SUPPORT_ST[r.status]?.[0] || ""}">${esc(SUPPORT_ST[r.status]?.[1] || r.status)}</span>
+          </button>`,
+          )
+          .join("") || `<p class="muted">Talep yok.</p>`
+      }</div></div>
+      <div class="card" id="sp-thread"><p class="muted">Soldan bir talep seç.</p></div>
+    </div>`;
+  $$("#sps button", el).forEach((b) => b.addEventListener("click", () => ((spStatusF = b.dataset.s), show())));
+  $("#spc", el).addEventListener("change", (e) => ((spCatF = e.target.value), show()));
+  $$("[data-t]", el).forEach((b) =>
+    b.addEventListener("click", () => {
+      spOpen = b.dataset.t;
+      $$("[data-t]", el).forEach((x) => (x.style.borderColor = x === b ? "var(--accent)" : ""));
+      thread(rows.find((r) => r.id === spOpen));
+    }),
+  );
+  const cur = rows.find((r) => r.id === spOpen);
+  if (cur) thread(cur);
+}
+
+async function thread(t) {
+  const box = $("#sp-thread");
+  if (!t || !box) return;
+  box.innerHTML = `<p class="muted">Yükleniyor…</p>`;
+  try {
+    const msgs = (await rpc("support_thread", { p_ticket: t.id })) || [];
+    sb.rpc("support_seen", { p_ticket: t.id }).then(() => {}, () => {});
+    const paths = [...new Set(msgs.flatMap((m) => m.images || []))];
+    const urls = {};
+    if (paths.length) {
+      const { data } = await sb.storage.from("support").createSignedUrls(paths, 3600);
+      (data || []).forEach((x) => x.signedUrl && (urls[x.path] = x.signedUrl));
+    }
+    box.innerHTML = `
+      <div class="row between"><div><b>${esc(t.subject)}</b><br><span class="muted small">${esc(t.display_name || "—")} · ${esc(t.email || "")} · ${esc(SUPPORT_CATS[t.category] || t.category)} · ${proBadge(t.pro_until)}</span></div>
+        <button class="btn btn-sm" id="sp-st">${t.status === "closed" ? "Yeniden aç" : "Talebi kapat"}</button></div>
+      <div class="sp-msgs">${msgs
+        .map(
+          (m) => `<div class="sp-msg ${m.is_staff ? "staff mine" : ""}">
+            <div class="head"><b>${esc(m.author_name)}${m.is_staff ? " · ekip" : ""}</b><span>${fmtDate(m.created_at, true)}</span></div>
+            <p>${esc(m.body)}</p>
+            ${(m.images || []).length ? `<div class="sp-imgs">${m.images.map((p) => (urls[p] ? `<a href="${esc(urls[p])}" target="_blank" rel="noopener"><img src="${esc(urls[p])}" alt=""></a>` : "")).join("")}</div>` : ""}
+          </div>`,
+        )
+        .join("")}</div>
+      <form id="sp-r">
+        <div class="field"><textarea name="body" rows="4" maxlength="4000" placeholder="Yanıtın (kullanıcıya bildirim ve kendi dilinde e-posta gider)"></textarea></div>
+        <div class="row between"><input type="file" id="sp-files" accept="image/*" multiple style="width:auto"><button class="btn btn-accent">Yanıtla</button></div>
+      </form>`;
+    const mb = $(".sp-msgs", box);
+    mb.scrollTop = mb.scrollHeight;
+    $("#sp-st", box).addEventListener("click", async () => {
+      try {
+        await rpc("support_set_status", { p_ticket: t.id, p_status: t.status === "closed" ? "open" : "closed" });
+        show();
+      } catch (e) {
+        toast(e.message, true);
+      }
+    });
+    $("#sp-r", box).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = String(new FormData(e.target).get("body")).trim();
+      if (!text) return;
+      const btn = e.target.querySelector("button.btn-accent");
+      btn.disabled = true;
+      try {
+        const me = (await sb.auth.getUser()).data.user;
+        const files = [...($("#sp-files", box).files || [])].filter((f) => f.type.startsWith("image/")).slice(0, 4);
+        const stamp = Date.now().toString(36);
+        const images = [];
+        for (let i = 0; i < files.length; i++) {
+          if (files[i].size > 5 * 1024 * 1024) throw new Error("Görsel çok büyük (en fazla 5 MB)");
+          const path = `${me.id}/${stamp}/${i + 1}.${(files[i].type.split("/")[1] || "jpg").replace("jpeg", "jpg")}`;
+          const { error } = await sb.storage.from("support").upload(path, files[i], { contentType: files[i].type });
+          if (error) throw new Error(error.message);
+          images.push(path);
+        }
+        await rpc("support_reply", { p_ticket: t.id, p_body: text, p_images: images });
+        toast("Yanıt gönderildi");
+        show();
+      } catch (err) {
+        toast(err.message, true);
+        btn.disabled = false;
+      }
+    });
+  } catch (e) {
+    box.innerHTML = `<div class="msg bad">${esc(e.message)}</div>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ücretsiz PRO kampanyası
+// ---------------------------------------------------------------------------
+async function kampanya(el) {
+  const c = await appConfig();
+  const until = c.promo_pro_until && new Date(c.promo_pro_until) > new Date() ? new Date(c.promo_pro_until) : null;
+  el.innerHTML = `<h2>Ücretsiz PRO kampanyası</h2>
+    <p class="muted small">Kampanya süresince <b>giriş yapmış tüm üyeler</b> tüm PRO özelliklerini kullanır (programda ve sunucudaki PRO denetimlerinde).
+      Giriş yapmayanlar yararlanamaz. Sitede bir şerit kampanyayı ve bitişini duyurur. Süre bitince her şey kendiliğinden eski haline döner.</p>
+    <div class="card stack">
+      <div class="row between"><div><b style="font-size:20px">${until ? `${daysLeft(until)} gün kaldı` : "Kampanya kapalı"}</b>
+        ${until ? `<br><span class="muted small">Bitiş: ${fmtDate(until, true)}</span>` : ""}</div>${until ? `<span class="badge ok">AÇIK</span>` : ""}</div>
+      <div class="field"><label>Kampanya notu (şeritte ve programda görünür, isteğe bağlı)</label><input id="pnote" maxlength="160" value="${esc(c.promo_note || "")}" placeholder="ör. Bayrama özel herkese PRO!"></div>
+      <div class="row">
+        ${[7, 14, 30].map((d) => `<button class="btn btn-sm" data-pd="${d}">${until ? `+${d} gün uzat` : `${d} gün başlat`}</button>`).join("")}
+        <input type="date" id="pdate" style="width:180px"><button class="btn btn-sm" id="pset">Bu tarihe kadar</button>
+        ${until ? `<button class="btn btn-sm" id="psave">Notu kaydet</button><button class="btn btn-sm btn-danger" id="pend">Bitir</button>` : ""}
+      </div>
+    </div>`;
+  const save = async (d, msg) => {
+    const { data, error } = await sb
+      .from("app_config")
+      .update({ promo_pro_until: d ? d.toISOString() : null, promo_note: $("#pnote").value.trim(), updated_at: new Date().toISOString() })
+      .eq("id", 1)
+      .select();
+    if (error || !data?.length) return toast(error?.message || "Kaydedilemedi", true);
+    toast(msg);
+    show();
+  };
+  $$("[data-pd]", el).forEach((b) =>
+    b.addEventListener("click", () => save(new Date((until?.getTime() ?? Date.now()) + +b.dataset.pd * 86400000), `Kampanya ${b.dataset.pd} gün`)),
+  );
+  $("#pset").addEventListener("click", () => {
+    const v = $("#pdate").value;
+    if (v) save(new Date(v + "T23:59:00"), "Kampanya bitişi ayarlandı");
+  });
+  $("#psave")?.addEventListener("click", () => save(until, "Kaydedildi"));
+  $("#pend")?.addEventListener("click", () => confirm("Kampanya şimdi bitirilsin mi?") && save(null, "Kampanya bitirildi"));
+}
+
+// ---------------------------------------------------------------------------
+// Görünürlük: programdaki bölümleri ve overlay'leri gizle
+// ---------------------------------------------------------------------------
+async function gorunurluk(el) {
+  const c = await appConfig();
+  const hs = new Set(c.hidden_sections || []);
+  const ho = new Set(c.hidden_overlays || []);
+  const known = new Set(OVERLAYS.map((o) => o[0]));
+  const extra = [...new Set([...(c.hidden_overlays || []), ...(c.pro_overlays || [])])].filter((id) => id !== "voice" && !known.has(id)).map((id) => [id, id]);
+  const box = (key, id, label, hidden) =>
+    `<label class="chk"><input type="checkbox" data-key="${key}" data-id="${esc(id)}" ${hidden ? "" : "checked"}><span>${esc(label)}${hidden ? ` <span class="badge bad">gizli</span>` : ""}</span></label>`;
+  el.innerHTML = `<h2>Görünürlük</h2>
+    <p class="muted small">İşareti kaldırılan bölümler ve overlay'ler programda yönetici olmayan kullanıcılara görünmez (menüden, overlay listesinden ve ekle menüsünden kalkar,
+      açık olanlar ekrana çizilmez). Yöneticiler hepsini "gizli" rozetiyle görmeye devam eder. Yönetim, Ayarlar ve Hesap gizlenemez.</p>
+    <div class="card"><h3>Sol menü bölümleri</h3><div class="vis-grid">${APP_SECTIONS.map(([id, l]) => box("hidden_sections", id, l, hs.has(id))).join("")}</div></div>
+    <div class="card" style="margin-top:16px"><h3>Overlay'ler</h3><div class="vis-grid">${[...OVERLAYS, ...extra].map(([id, l]) => box("hidden_overlays", id, l, ho.has(id))).join("")}</div></div>`;
+  $$("[data-key]", el).forEach((cb) =>
+    cb.addEventListener("change", async () => {
+      const key = cb.dataset.key;
+      const set = key === "hidden_sections" ? hs : ho;
+      cb.checked ? set.delete(cb.dataset.id) : set.add(cb.dataset.id);
+      const { data, error } = await sb.from("app_config").update({ [key]: [...set], updated_at: new Date().toISOString() }).eq("id", 1).select();
+      if (error || !data?.length) return toast(error?.message || "Kaydedilemedi", true);
+      toast(cb.checked ? "Gösteriliyor" : "Gizlendi");
+      show();
+    }),
+  );
+}
+
+const RENDER = { ozet, satislar, abonelikler, uyeler, destek, gecmis, cihazlar, planlar, kampanya, gorunurluk };
 
 async function show() {
   history.replaceState(null, "", "#" + section);

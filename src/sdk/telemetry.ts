@@ -171,7 +171,7 @@ export function usePreview() {
  * sonra akış ve demo üretimi durur; overlay son hâliyle ekranda kalır (işlemci ve bellek harcamaz).
  * `keepLive` true iken (ör. kullanıcı Demo'yu açtıysa) akış sürer.
  */
-export function useSnapshot(topics: () => Sub[], trigger: () => unknown, keepLive: () => boolean = () => false, ms = 1500) {
+export function useSnapshot(topics: () => Sub[], trigger: () => unknown, keepLive: () => boolean = () => false, ms = 5000) {
   const setSubs = useSubscriptions([]);
   let holding = false;
   const hold = (on: boolean) => {

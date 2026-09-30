@@ -16,7 +16,7 @@ import {
   updateSettings,
 } from "@/sdk/settings";
 import { defaultOptions, type SettingField } from "@/sdk/overlay";
-import { isLocked } from "@/cloud/account";
+import { isAdmin, isHiddenOverlay, isLocked, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot } from "@/sdk/telemetry";
 import { loadMonitors, monitorLabel, monitors } from "@/sdk/monitors";
 import { SettingsForm, Slider, Switch } from "../components/SettingsForm";
@@ -47,7 +47,7 @@ export function OverlaysPage() {
   loadMonitors();
   const profile = () => activeProfile();
   const list = createMemo(() => instancesOf(profile()));
-  const active = () => list().filter(([, i]) => i.enabled);
+  const active = () => list().filter(([, i]) => i.enabled && !isHiddenOverlay(i.type));
   /** Bu türden açık bir overlay varsa anahtarı */
   const existing = (type: string) => active().find(([, i]) => i.type === type)?.[0] ?? null;
 
@@ -104,6 +104,7 @@ export function OverlaysPage() {
   const byCat = createMemo(() => {
     const g = new Map<string, typeof manifests>();
     for (const m of manifests) {
+      if (isHiddenOverlay(m.id)) continue;
       const c = m.category;
       if (!g.has(c)) g.set(c, []);
       g.get(c)!.push(m);
@@ -211,6 +212,9 @@ export function OverlaysPage() {
                       >
                         <span class="ovitem-ic">{overlayIcon(m.id)}</span>
                         <span class="ovitem-name">{m.name}</span>
+                        <Show when={isAdmin() && markedHiddenOverlay(m.id)}>
+                          <span class="hidden-badge" title="Yönetici olmayanlar bu overlay'i görmez">gizli</span>
+                        </Show>
                         <Show when={isLocked(m.id)}>
                           <span class="pro-badge small">PRO</span>
                         </Show>
@@ -233,7 +237,7 @@ export function OverlaysPage() {
           </button>
           <Show when={adding()}>
             <div class="addmenu">
-              <For each={manifests}>
+              <For each={manifests.filter((m) => !isHiddenOverlay(m.id))}>
                 {(m) => (
                   <button
                     disabled={isLocked(m.id)}

@@ -17,7 +17,8 @@ export type Section =
   | "pro"
   | "account"
   | "admin"
-  | "settings";
+  | "settings"
+  | "support";
 
 export const [section, setSection] = createSignal<Section>("overlays");
 /** Bölüm içindeki alt sayfa (ayarlar: general, appearance, ...) */
@@ -26,6 +27,15 @@ export const [sub, setSub] = createSignal<string>("");
 export function go(sec: Section, subPage = "") {
   setSection(sec);
   setSub(subPage);
+}
+
+/** Destek: açılacak talep (bildirime tıklayınca) */
+export const [supportFocus, setSupportFocus] = createSignal<string | null>(null);
+/** Destek talebini aç: kullanıcı kendi talebini Destek'te, yönetici Yönetim › Destek'te görür */
+export function openTicket(id: string, admin = false) {
+  setSupportFocus(id);
+  if (admin) go("admin", "support");
+  else go("support");
 }
 
 /** Eski sayfa adları (bazı bileşenler kullanıyor) */

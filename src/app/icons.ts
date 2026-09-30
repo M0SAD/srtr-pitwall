@@ -67,3 +67,4 @@ export { default as MessageCircle } from "lucide-solid/icons/message-circle";
 export { default as Palette } from "lucide-solid/icons/palette";
 export { default as House } from "lucide-solid/icons/house";
 
+export { default as LifeBuoy } from "lucide-solid/icons/life-buoy";

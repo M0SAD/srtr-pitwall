@@ -1,5 +1,6 @@
 // Yönetim: sadece yöneticilere (ve moderatörlere) görünen ayrı bölüm.
-// Alt sayfalar: Özet, Üyeler, Abonelikler, Cihazlar, Planlar ve fiyatlar, Bildirimler, Moderasyon, Medya.
+// Alt sayfalar: Özet, Gelir, Üyeler, Destek, Abonelikler, Cihazlar, Planlar ve fiyatlar, Ücretsiz PRO,
+// Görünürlük, Bildirimler, Moderasyon, Medya.
 
 import { For, Match, Show, Switch, createResource, createSignal, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
@@ -28,6 +29,7 @@ import { manifests } from "@/sdk/registry";
 import { ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminModeration";
 import { AdminHosting, AdminWatermark } from "../components/AdminMedia";
 import { AdminNotices } from "../components/AdminNotices";
+import { AdminPromo, AdminRevenue, AdminSupport, AdminVisibility, ProEditor } from "../components/AdminExtras";
 import { sub } from "../ui";
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
@@ -40,10 +42,14 @@ type Run = (fn: () => Promise<unknown>, ok: string) => Promise<void>;
 export function adminSubs(): { id: string; label: string }[] {
   const all: { id: string; label: string; need: () => boolean }[] = [
     { id: "overview", label: "Özet", need: isAdmin },
+    { id: "revenue", label: "Gelir", need: isAdmin },
     { id: "members", label: "Üyeler", need: isAdmin },
+    { id: "support", label: "Destek", need: isAdmin },
     { id: "subs", label: "Abonelikler", need: isAdmin },
     { id: "devices", label: "Cihazlar", need: isAdmin },
     { id: "plans", label: "Planlar ve fiyatlar", need: isAdmin },
+    { id: "promo", label: "Ücretsiz PRO", need: isAdmin },
+    { id: "visibility", label: "Görünürlük", need: isAdmin },
     { id: "notices", label: "Bildirimler", need: isAdmin },
     { id: "moderation", label: "Moderasyon", need: () => isAdmin() || can("reports.view") },
     { id: "media", label: "Medya", need: isAdmin },
@@ -82,8 +88,20 @@ export function AdminPage() {
         <Match when={page() === "overview"}>
           <Overview />
         </Match>
+        <Match when={page() === "revenue"}>
+          <AdminRevenue />
+        </Match>
         <Match when={page() === "members"}>
           <Members run={run} />
+        </Match>
+        <Match when={page() === "support"}>
+          <AdminSupport />
+        </Match>
+        <Match when={page() === "promo"}>
+          <AdminPromo run={run} />
+        </Match>
+        <Match when={page() === "visibility"}>
+          <AdminVisibility run={run} />
         </Match>
         <Match when={page() === "subs"}>
           <Subscriptions />
@@ -188,11 +206,7 @@ function Members(props: { run: Run }) {
       setMore(rows.length === 50);
     }, "");
   onMount(() => search());
-  const setPro = (u: AdminUser, days: number | null) =>
-    props.run(async () => {
-      await adminSetPro(u.id, days === null ? null : new Date(Date.now() + days * 86400_000));
-      await search();
-    }, days === null ? "PRO kaldırıldı" : `PRO verildi (${days} gün)`);
+  const [editing, setEditing] = createSignal<AdminUser | null>(null);
   return (
     <section class="panel admin-panel">
       <h3>Üyeler</h3>
@@ -244,26 +258,9 @@ function Members(props: { run: Run }) {
                   </small>
                 </div>
                 <div class="btns">
-                  <button class="btn ghost small" onClick={() => setPro(u, 31)}>
-                    1 ay
+                  <button class="btn small" title="Gün ekle / çıkar, tarih ayarla, süresiz ya da kaldır; istersen kullanıcıya bildir" onClick={() => setEditing(u)}>
+                    PRO süresini düzenle
                   </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 92)}>
-                    3 ay
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 183)}>
-                    6 ay
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 366)}>
-                    1 yıl
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 36500)}>
-                    Süresiz
-                  </button>
-                  <Show when={pro()}>
-                    <button class="btn ghost small danger" onClick={() => setPro(u, null)}>
-                      Kaldır
-                    </button>
-                  </Show>
                 </div>
                 <Show when={isOwner() && !u.is_owner}>
                   <div class="btns owner-row">
@@ -310,6 +307,9 @@ function Members(props: { run: Run }) {
         <button class="btn ghost small" onClick={() => search(true)}>
           Daha fazla
         </button>
+      </Show>
+      <Show when={editing()}>
+        <ProEditor user={editing()!} run={props.run} onClose={() => setEditing(null)} onDone={() => adminUsers(q().trim(), filter(), 0).then((rows) => rows && setUsers(rows)).catch(() => {})} />
       </Show>
     </section>
   );

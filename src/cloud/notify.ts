@@ -1,5 +1,7 @@
-// Windows bildirim merkezi / sağ alt köşe bildirimi (Steam mesajları gibi). Yarışta değilken ya da
-// oyun tam ekran değilken görünür; rahatsız etme açıkken gönderilmez.
+// Windows bildirim merkezi (yedek). Arkadaş mesajları ve istekleri artık kendi açılır penceremizle
+// (src-tauri/src/toast.rs + src/window/Toast.tsx) gösterilir; bu sadece o pencere açılamazsa kullanılır.
+// Windows bildirimleri; Odak yardımı/Rahatsız etmeyin, kapalı uygulama bildirimi izni ya da kurulu
+// olmayan (geliştirme) sürümde kayıtlı uygulama kimliği olmaması yüzünden hiç görünmeyebilir.
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 
 let allowed: boolean | null = null;

@@ -20,6 +20,9 @@ document.addEventListener("contextmenu", (e) => {
 const root = document.getElementById("root")!;
 const view = query.get("view") ?? "pitwall";
 const social = view === "friends" || view === "friend";
+// Mesaj açılır penceresi (sağ alt, saydam): kendi küçük görünümü, panel stilleri gerekmez
+const toast = view === "toast";
+if (toast) document.documentElement.classList.add("toast-root");
 document.title =
   view === "timing"
     ? "SRTR Pitwall – Live Timing"
@@ -27,7 +30,7 @@ document.title =
       ? "SRTR Pitwall – Mühendis"
       : view === "friends"
         ? "SRTR Pitwall – Arkadaşlar"
-        : view === "friend"
+        : view === "friend" || view === "toast"
           ? "SRTR Pitwall"
           : "SRTR Pitwall – Pitwall Paneli";
 
@@ -39,11 +42,14 @@ initSettings(`window-${view}`).then(async () => {
     await import("@/app/shell.css");
   }
   const { FriendsWindow, FriendWindow } = social ? await import("./Friends") : ({} as typeof import("./Friends"));
+  const { Toast } = toast ? await import("./Toast") : ({} as typeof import("./Toast"));
   root.textContent = "";
   const dispose = render(
     () =>
-      view === "friends" ? (
-        <FriendsWindow />
+      toast ? (
+        <Toast />
+      ) : view === "friends" ? (
+        <FriendsWindow chat={query.get("chat") ?? ""} />
       ) : view === "friend" ? (
         <FriendWindow id={query.get("id") ?? ""} />
       ) : view === "timing" ? (
@@ -56,5 +62,5 @@ initSettings(`window-${view}`).then(async () => {
     root,
   );
   import.meta.hot?.dispose(dispose);
-  startEntitlement();
+  if (!toast) startEntitlement();
 });

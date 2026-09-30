@@ -197,8 +197,14 @@ export interface ScreenshotSettings {
   quality: number;
 }
 
+/** Veri kaynağı simülasyon: "auto" çalışanı bulur (önce iRacing) */
+export type SimChoice = "auto" | "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2";
+export const SIM_CHOICES: SimChoice[] = ["auto", "iracing", "acc", "ac", "lmu", "rf2", "ams2"];
+
 export interface GeneralSettings {
   demo: boolean;
+  /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
+  sim: SimChoice;
   monitor: number | null;
   units: Units;
   hideWhenOffTrack: boolean;
@@ -296,6 +302,7 @@ export function defaultSettings(): AppSettings {
     updatedAt: 0,
     general: {
       demo: false,
+      sim: "auto",
       monitor: null,
       units: "metric",
       hideWhenOffTrack: false,
@@ -358,6 +365,7 @@ export function normalize(input: unknown): AppSettings {
     general: {
       ...d.general,
       ...(s.general ?? {}),
+      sim: SIM_CHOICES.includes(s.general?.sim as SimChoice) ? (s.general!.sim as SimChoice) : "auto",
       server: { ...d.general.server, ...(s.general?.server ?? {}) },
       shortcuts: { ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) },
       screenshots: { ...d.general.screenshots, ...(s.general?.screenshots ?? {}) },

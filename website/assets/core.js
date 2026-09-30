@@ -193,6 +193,11 @@ addDict({
   plan_6m: ["6 aylık", "6 months"],
   plan_12m: ["12 aylık", "12 months"],
   language: ["Dil", "Language"],
+  promo_banner: [
+    "Ücretsiz PRO kampanyası: {0} tarihine kadar hesabıyla giriş yapan herkes tüm PRO özelliklerini kullanabilir.",
+    "Free PRO promotion: until {0}, everyone signed in with an account can use every PRO feature.",
+  ],
+  promo_cta: ["Ücretsiz hesap aç", "Create a free account"],
 });
 
 // ---------------------------------------------------------------------------
@@ -407,6 +412,33 @@ export function footerHtml() {
   </footer>`;
 }
 
+/** Ücretsiz PRO kampanyası sürüyorsa bitiş tarihi (yoksa null) */
+export function promoUntil(cfg) {
+  const t = cfg?.promo_pro_until ? new Date(cfg.promo_pro_until).getTime() : 0;
+  return t > Date.now() ? new Date(t) : null;
+}
+
+/** Kampanya şeridi: üst menünün altında (kampanya yoksa bir şey göstermez) */
+async function promoBanner() {
+  try {
+    const cfg = await appConfig();
+    const until = promoUntil(cfg);
+    if (!until) return;
+    const u = await currentUser();
+    const el = document.createElement("div");
+    el.className = "promo-banner";
+    const draw = () => {
+      el.innerHTML = `<div class="wrap promo-in"><b>PRO</b><span>${esc(T("promo_banner", fmtDate(until, true)))}${
+        cfg.promo_note ? ` <span class="promo-note">${esc(cfg.promo_note)}</span>` : ""
+      }</span>${u ? "" : `<a class="btn btn-sm btn-accent" href="hesap.html?mode=signup">${esc(T("promo_cta"))}</a>`}</div>`;
+    };
+    draw();
+    document.addEventListener("langchange", draw);
+    const top = document.querySelector("header.top");
+    top ? top.after(el) : document.body.prepend(el);
+  } catch {}
+}
+
 /** Sayfa iskeleti: üst menü + alt bilgi ekle, dili uygula, sayacı çalıştır */
 export async function boot(page, active = "") {
   await loadLang(lang);
@@ -416,4 +448,5 @@ export async function boot(page, active = "") {
   bindDownloads();
   hit(page);
   await initNav();
+  promoBanner();
 }

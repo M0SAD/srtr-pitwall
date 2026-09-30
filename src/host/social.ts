@@ -7,13 +7,25 @@
 import { createSignal, type Accessor } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { cloudEnabled, session } from "@/cloud/supabase";
+import { api, cloudEnabled, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
 import type { Status } from "@/sdk/types";
 import { osNotify } from "@/cloud/notify";
 import { t } from "@/sdk/i18n";
-import { messageBeep, myFriends, onLive, onMessages, pushLive, setMyStatus, type Friend, type LiveData } from "@/cloud/social";
+import {
+  emojify,
+  friendLook,
+  messageBeep,
+  myFriends,
+  onLive,
+  onMessages,
+  pushLive,
+  setMyStatus,
+  type Friend,
+  type LiveData,
+  type ToastPayload,
+} from "@/cloud/social";
 
 export interface MsgToast {
   id: string;
@@ -41,6 +53,30 @@ async function chatVisible(): Promise<boolean> {
     /* pencere bilgisi alınamazsa bildirim gösterilir */
   }
   return false;
+}
+
+/**
+ * Steam benzeri açılır pencere (sağ alt köşe, görev çubuğunun üstü). Windows bildirim sistemine
+ * bağlı değildir. Açılamazsa (eski sürüm/izin) Windows bildirimine düşer.
+ */
+async function popup(kind: ToastPayload["kind"], f: Pick<Friend, "friend_id" | "display_name">, body: string, id?: string) {
+  const look = friendLook(f.friend_id);
+  const payload: ToastPayload = {
+    id: id ?? `${kind}-${f.friend_id}-${Date.now()}`,
+    kind,
+    friendId: f.friend_id,
+    name: f.display_name || "?",
+    body,
+    color: look.color,
+    photo: look.photo || undefined,
+    ts: Date.now(),
+  };
+  try {
+    await invoke("toast_show", { payload });
+  } catch {
+    // Yedek: Windows bildirim merkezi (açılır pencere gösterilemediyse; ikisi birden çıkmasın)
+    void osNotify(kind === "message" ? payload.name : "SRTR Pitwall", body);
+  }
 }
 
 export function startSocial(status: Accessor<Status | undefined>) {
@@ -89,14 +125,29 @@ export function startSocial(status: Accessor<Status | undefined>) {
     try {
       const prev = friends;
       friends = (await myFriends()) ?? [];
-      // Masaüstü bildirimi: beni güvenilir seçen ya da istek gönderen yeni arkadaş
+      // Açılır pencere: beni güvenilir seçen ya da istek gönderen yeni arkadaş (yarıştayken oyun içi bildirim)
       if (prev.length && !soc().dnd) {
         for (const f of friends) {
           const was = prev.find((x) => x.friend_id === f.friend_id);
+          let text = "";
+          let kind: ToastPayload["kind"] = "request";
           if (f.status === "accepted" && f.trusts_me && !f.muted && !was?.trusts_me) {
-            osNotify("SRTR Pitwall", t("{0} seni güvenilir olarak işaretledi; verilerini görebilirsin", f.display_name));
+            kind = "trusted";
+            text = t("Seni güvenilir olarak işaretledi; verilerini görebilirsin");
           } else if (f.status === "pending_in" && !was) {
-            osNotify("SRTR Pitwall", t("{0} sana arkadaşlık isteği gönderdi", f.display_name));
+            text = t("Sana arkadaşlık isteği gönderdi");
+          }
+          if (!text) continue;
+          if (racing()) {
+            const id = `${kind}-${f.friend_id}`;
+            setToast({ id, from: f.display_name || "?", body: text });
+            setTimeout(() => setToast((x) => (x?.id === id ? null : x)), 7000);
+          } else {
+            void chatVisible().then((v) => {
+              if (v) return;
+              void popup(kind, f, text);
+              if (soc().sound) messageBeep();
+            });
           }
         }
       }
@@ -117,6 +168,27 @@ export function startSocial(status: Accessor<Status | undefined>) {
       });
     }
   };
+  // iRacing hesabı: iRacing'e bağlanınca oturumdaki üye no ve ad hesaba kendiliğinden yazılır
+  // (hesapta iRacing bilgisi yoksa ya da farklı bir iRacing hesabı açıksa; oturum başına bir kez)
+  let linkedFor = "";
+  setInterval(async () => {
+    const s = status();
+    const uid = session()?.user.id;
+    if (!uid || !racing() || !s || !(s.userId > 0) || (s.sim && s.sim !== "iracing")) return;
+    const key = `${uid}:${s.userId}`;
+    if (linkedFor === key) return;
+    linkedFor = key;
+    try {
+      const rows = await api<{ iracing_id: number | null; iracing_name: string | null }[]>("GET", `profiles?id=eq.${uid}&select=iracing_id,iracing_name`);
+      const p = rows?.[0];
+      if (p && (p.iracing_id !== s.userId || p.iracing_name !== s.userName)) {
+        await api("PATCH", `profiles?id=eq.${uid}`, { body: { iracing_id: s.userId, iracing_name: s.userName } });
+      }
+    } catch {
+      linkedFor = "";
+    }
+  }, 20_000);
+
   setTimeout(refreshFriends, 4000);
   setInterval(refreshFriends, 60_000);
 
@@ -142,19 +214,29 @@ export function startSocial(status: Accessor<Status | undefined>) {
     if (!uid) return;
     stopMsg = await onMessages((m) => {
       const f = friends.find((x) => x.friend_id === m.sender);
-      // Windows bildirimi (Steam gibi): panel ya da arkadaş penceresi önde değilken; sessize alınan
-      // arkadaştan ve rahatsız etme açıkken gelmez; yarıştayken oyun içi bildirim gösterilir
+      // Steam gibi sağ alt açılır pencere: panel ya da Arkadaşlar penceresi önde değilken (öndeyse
+      // mesajı zaten o gösterir ve sesi o çalar); sessize alınan arkadaştan, mesajlar kapalıyken ve
+      // rahatsız etme açıkken gelmez; yarıştayken bunun yerine oyun içi bildirim gösterilir
       if (!racing() && !soc().dnd && soc().acceptMessages && !f?.muted) {
-        chatVisible().then((v) => {
-          if (!v) void osNotify(f?.display_name ?? "SRTR Pitwall", m.body);
-        });
+        void (async () => {
+          if (await chatVisible()) return;
+          // Yeni eklenen arkadaş listede henüz yoksa adını almak için listeyi yenile
+          let who = f;
+          if (!who) {
+            await refreshFriends();
+            who = friends.find((x) => x.friend_id === m.sender);
+            if (who?.muted) return;
+          }
+          void popup("message", who ?? { friend_id: m.sender, display_name: "?" }, emojify(m.body), m.id);
+          if (soc().sound) messageBeep();
+        })();
       }
       if (f?.muted || !racing()) return; // yarışta değilken panel gösterir
       if (soc().dnd) {
         setPending(pending() + 1);
         return;
       }
-      setToast({ id: m.id, from: f?.display_name ?? "?", body: m.body });
+      setToast({ id: m.id, from: f?.display_name ?? "?", body: emojify(m.body) });
       if (soc().sound) messageBeep();
       setTimeout(() => setToast((t) => (t?.id === m.id ? null : t)), 7000);
     });

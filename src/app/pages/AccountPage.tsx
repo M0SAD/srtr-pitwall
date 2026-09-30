@@ -1,5 +1,5 @@
 import { localeTag, t } from "@/sdk/i18n";
-import { For, Match, Show, Switch, createResource, createSignal, onMount } from "solid-js";
+import { For, Match, Show, Switch, createResource, createSignal, onMount, createEffect } from "solid-js";
 import {
   cloudEnabled,
   conflict,
@@ -28,6 +28,8 @@ import {
   loadProInfo,
   proDaysLeft,
   proExpiringSoon,
+  promoActive,
+  promoUntil,
   proInfo,
   profile,
   refreshEntitlement,
@@ -346,12 +348,16 @@ function IracingPanel() {
       setErr(String((e as Error).message));
     }
   };
+  createEffect(() => {
+    const s = detected();
+    if (s && profile() && !profile()!.iracing_id) void link();
+  });
   return (
     <section class="panel">
       <h3>iRacing hesabı</h3>
       <Show
         when={profile()?.iracing_id}
-        fallback={<p class="muted">Henüz bağlanmadı. iRacing'de bir oturuma girince aşağıdan tek tıkla bağlayabilirsin.</p>}
+        fallback={<p class="muted">Henüz bağlanmadı. iRacing'e bağlandığında (bir oturuma girdiğinde) iRacing adın ve üye numaran buraya kendiliğinden yazılır.</p>}
       >
         <div class="row">
           <div>
@@ -378,9 +384,8 @@ function IracingPanel() {
         <p class="error">{err()}</p>
       </Show>
       <p class="muted small">
-        iRacing'in kendi hesabıyla giriş (OAuth) için geliştiricilerin iRacing'den izin alması gerekiyor; iRacing yeni
-        uygulama kayıtlarını şu an durdurmuş durumda. O yüzden hesabın, bu bilgisayarda iRacing'e girdiğinde uygulamanın
-        okuduğu bilgilerle bağlanır. Paylaştığın düzenlerde iRacing adın görünür, arama da bu adla yapılabilir.
+        SRTR Pitwall iRacing'den veri almaya başlayınca (bu bilgisayarda iRacing'de hangi hesap açıksa) adını ve üye
+        numaranı hesabına otomatik bağlar. Adın paylaştığın düzenlerde görünür ve arkadaşların seni bu adla bulabilir.
       </p>
     </section>
   );
@@ -403,6 +408,15 @@ function ProPanel() {
       <h3>
         PRO üyelik <span class="pro-badge">PRO</span>
       </h3>
+      <Show when={promoActive()}>
+        <p class="pro-promo" style={{ padding: "10px 12px", border: "1px solid #3ddc84", "border-radius": "8px", background: "color-mix(in srgb, #3ddc84 8%, transparent)", color: "#bff5d5" }}>
+          <b>{t("Ücretsiz PRO kampanyası: {0} tarihine kadar tüm PRO özellikleri herkese açık!", new Date(promoUntil()).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" }))}</b>
+          <Show when={c()?.promo_note}>
+            <br />
+            <span class="muted">{c()!.promo_note}</span>
+          </Show>
+        </p>
+      </Show>
       <Show
         when={isPro()}
         fallback={

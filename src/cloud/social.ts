@@ -3,6 +3,7 @@
 
 import { RealtimeClient, type RealtimeChannel } from "@supabase/realtime-js";
 import { api, cloudEnabled, session, token } from "./supabase";
+import { settings } from "@/sdk/settings";
 
 export interface Friend {
   friend_id: string;
@@ -91,6 +92,16 @@ export function conversation(friend: string) {
     "GET",
     `messages?select=*&or=(and(sender.eq.${me},recipient.eq.${friend}),and(sender.eq.${friend},recipient.eq.${me}))&order=created_at.desc&limit=100`,
   ).then((r) => (r ?? []).reverse());
+}
+
+/** Son mesajlar (arkadaş listesinde son mesaj önizlemesi için); en yeniden eskiye */
+export function recentMessages(limit = 200) {
+  const me = session()?.user.id;
+  if (!me) return Promise.resolve([] as Message[]);
+  return api<Message[]>(
+    "GET",
+    `messages?select=id,sender,recipient,body,created_at,read_at&or=(sender.eq.${me},recipient.eq.${me})&order=created_at.desc&limit=${limit}`,
+  ).then((r) => r ?? []);
 }
 
 export interface MyStatus {
@@ -200,4 +211,99 @@ export function messageBeep(volume = 0.25) {
   } catch {
     /* ses yok */
   }
+}
+
+// ---------------------------------------------------------------------------
+// İfadeler (emoji) ve avatar rengi: panel, Arkadaşlar penceresi ve mesaj açılır penceresi ortak kullanır
+// ---------------------------------------------------------------------------
+
+/** Yazı ifadeleri → emoji. "gg" gibi kısaltmalar yazı olarak kalır. */
+export const EMOTICONS: [string, string][] = [
+  [":'(", "😢"],
+  [":+1:", "👍"],
+  [":-)", "🙂"],
+  [":)", "🙂"],
+  [":-D", "😄"],
+  [":D", "😄"],
+  [";-)", "😉"],
+  [";)", "😉"],
+  [":-(", "🙁"],
+  [":(", "🙁"],
+  [":-P", "😛"],
+  [":P", "😛"],
+  [":p", "😛"],
+  [":-O", "😮"],
+  [":O", "😮"],
+  [":o", "😮"],
+  ["<3", "❤️"],
+  ["xD", "😆"],
+  ["XD", "😆"],
+  ["8)", "😎"],
+  ["B)", "😎"],
+];
+
+const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// İfade sadece tek başına yazıldığında değişir (başında boşluk/satır başı, sonunda boşluk/noktalama/son):
+// "http://", "(1-8)" ya da "abc:Dx" gibi yazılar bozulmaz.
+const EMO_ALT = EMOTICONS.map(([k]) => escRe(k)).join("|");
+const EMO_ALL = new RegExp(`(^|\\s)(${EMO_ALT})(?=$|\\s|[.,!?])`, "g");
+const EMO_TYPED = new RegExp(`(^|\\s)(${EMO_ALT})(?=\\s)`, "g");
+const EMO_MAP = new Map(EMOTICONS);
+
+/** Tüm ifadeleri emojiye çevirir (gönderirken ve gösterirken) */
+export function emojify(text: string) {
+  return text.replace(EMO_ALL, (_m, pre: string, k: string) => pre + (EMO_MAP.get(k) ?? k));
+}
+
+/** Yazarken: sadece arkasından boşluk gelmiş (tamamlanmış) ifadeleri çevirir */
+export function emojifyTyped(text: string) {
+  return text.replace(EMO_TYPED, (_m, pre: string, k: string) => pre + (EMO_MAP.get(k) ?? k));
+}
+
+const EMOJI_RE = /(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic}|\p{Emoji_Modifier})*)/gu;
+
+/** Mesajı yazı ve emoji parçalarına ayırır (emojiler biraz büyük çizilir) */
+export function emojiParts(text: string): { t: string; emo: boolean }[] {
+  return text
+    .split(EMOJI_RE)
+    .filter((x) => x !== "")
+    .map((t) => ({ t, emo: /\p{Extended_Pictographic}/u.test(t) }));
+}
+
+/** Sadece 1-3 emojiden oluşan mesaj (büyük gösterilir) */
+export function emojiOnly(text: string) {
+  const p = emojiParts(text.trim()).filter((x) => x.t.trim() !== "");
+  return p.length > 0 && p.length <= 3 && p.every((x) => x.emo);
+}
+
+/** Kimlikten sabit, okunaklı bir renk (arkadaşa özel renk seçilmemişse) */
+export function hashColor(id: string) {
+  // FNV-1a + karıştırma: benzer kimlikler de birbirinden farklı renk alsın
+  let h = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0;
+  return `hsl(${h % 360} 58% 50%)`;
+}
+
+export function initialOf(name: string) {
+  const c = [...(name || "?").trim()][0] ?? "?";
+  return c.toLocaleUpperCase("tr");
+}
+
+/** Mesaj açılır penceresine (toast) giden kart */
+export interface ToastPayload {
+  id: string;
+  kind: "message" | "request" | "trusted";
+  friendId: string;
+  name: string;
+  body: string;
+  color: string;
+  photo?: string;
+  ts: number;
+}
+
+/** Arkadaşın avatarı: Arkadaşlar sayfasında ona özel seçilen renk/fotoğraf, yoksa kimlikten renk */
+export function friendLook(id: string): { color: string; photo: string } {
+  const e = settings().friends?.list?.find((x) => x.accountId === id);
+  return { color: e?.color || hashColor(id), photo: e?.photo || "" };
 }

@@ -236,6 +236,8 @@ struct State {
     tracker: Tracker,
     map: TrackMap,
     history: crate::history::History,
+    /// Bağlı sim kısa adı (`status.sim`), bağlı değilse boş
+    sim: &'static str,
 }
 
 /// Bitmiş oturum kaydını arka planda diske yazar.
@@ -265,6 +267,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         tracker: Tracker::default(),
         map: TrackMap::new(map_dir),
         history: Default::default(),
+        sim: "",
     };
     let mut demo: Option<Demo> = None;
     let mut last_demo_step = Instant::now();
@@ -272,10 +275,13 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     let mut last_team = Instant::now();
     let mut voice = crate::voice::Voice::default();
 
+    // Canlı sim bağlantısı (iRacing, ACC/AC, LMU/rF2, AMS2). Bkz. sims/mod.rs
     #[cfg(windows)]
-    let mut live: Option<crate::sdk::LiveSource> = None;
+    let mut live: Option<Box<dyn crate::sims::Source>> = None;
     #[cfg(windows)]
-    let mut last_session_update = -1;
+    let mut sim_pref = crate::sims::SimPref::from_settings(crate::current_settings(&app).as_ref());
+    #[cfg(windows)]
+    let mut last_pref_check = Instant::now();
     #[cfg(windows)]
     let mut last_try = Instant::now() - Duration::from_secs(10);
     // Son yeni telemetri satırının zamanı. iRacing yarış ekranı kapanınca veya donunca
@@ -311,8 +317,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     if last_try.elapsed() > Duration::from_secs(2) {
                         last_try = Instant::now();
                         if live.is_none() {
-                            live = crate::sdk::LiveSource::open();
-                            last_session_update = -1;
+                            live = crate::sims::open(sim_pref);
                         }
                         if let Some(src) = live.as_mut() {
                             let mut probe = Frame::default();
@@ -359,31 +364,37 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
 
             #[cfg(windows)]
             {
+                // Sim seçimi (ayar: general.sim) değişti mi? Uymayan bağlantı bırakılır.
+                let mut drop_live = false;
+                if last_pref_check.elapsed() > Duration::from_secs(1) {
+                    last_pref_check = Instant::now();
+                    sim_pref = crate::sims::SimPref::from_settings(crate::current_settings(&app).as_ref());
+                    if live.as_ref().map(|l| !sim_pref.accepts(l.kind())).unwrap_or(false) {
+                        drop_live = true;
+                    }
+                }
                 if live.is_none() && last_try.elapsed() > Duration::from_secs(1) {
                     last_try = Instant::now();
-                    live = crate::sdk::LiveSource::open();
-                    last_session_update = -1;
+                    live = crate::sims::open(sim_pref);
                 }
-                let mut drop_live = false;
-                if let Some(src) = live.as_mut() {
+                if drop_live {
+                    // aşağıda bırakılır
+                } else if let Some(src) = live.as_mut() {
                     // iRacing her yeni veri yazdığında olay sinyali verir (60 Hz).
                     src.wait(200);
                     if src.connected() {
-                        let su = src.session_info_update();
-                        if su != last_session_update {
-                            if let Some(y) = src.session_yaml() {
-                                st.raw = crate::session::parse(&y);
-                                st.league_ver = u64::MAX;
-                                let key = format!("{}_{}", st.raw.track_id, st.raw.track_config);
-                                st.map.set_track(&key);
-                            }
-                            last_session_update = su;
+                        if let Some(sd) = src.session_update() {
+                            st.raw = sd;
+                            st.league_ver = u64::MAX;
+                            let key = src.map_key(&st.raw);
+                            st.map.set_track(&key);
                         }
                         new_frame = src.read(&mut st.frame);
                         if new_frame {
                             last_data = Instant::now();
                         }
                         connected = last_data.elapsed() < STALE_AFTER;
+                        st.sim = src.kind().id();
                     } else {
                         drop_live = true;
                     }
@@ -393,6 +404,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 if drop_live {
                     save_record(&shared, st.history.take());
                     live = None;
+                    st.sim = "";
                     st.frame = Frame::default();
                     st.raw = SessionData::default();
                     st.league_ver = u64::MAX;
@@ -558,7 +570,13 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                 p.clone()
             } else {
                 let p = match name {
-                    "status" => Packet::Status(calc::status(f, s, connected, demo, preview)),
+                    "status" => {
+                        let mut x = calc::status(f, s, connected, demo, preview);
+                        if connected && !demo && !preview {
+                            x.sim = st.sim.to_string();
+                        }
+                        Packet::Status(x)
+                    }
                     "inputs" => Packet::Inputs(calc::inputs(f, s)),
                     "telemetry" => Packet::Telemetry(calc::telemetry(f, s, t)),
                     "delta" => Packet::Delta(calc::delta(f, t)),

@@ -1,7 +1,7 @@
 // Topluluk → Ekran Görüntüleri: paylaşılan görüntüler, puanlar, yorumlar, raporlama.
 // Görüntülemek, puanlamak, yorum yazmak ve arka plan yapmak herkese açık; paylaşmak PRO.
 
-import { For, Show, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
+import { For, Show, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { localeTag, t } from "@/sdk/i18n";
 import { cloudEnabled, session } from "@/cloud/supabase";
@@ -12,42 +12,188 @@ import {
   deleteShot,
   deleteShotComment,
   editShotComment,
+  myRatedShotIds,
   myShotRating,
-  myShots,
+  queryShots,
   rateShot,
-  searchShots,
+  shotFacets,
   shotComments,
   shotThumbUrl,
   shotUrl,
   shotViewed,
   updateShot,
   type SharedShot,
-  type ShotSort,
+  type ShotSortX,
 } from "@/cloud/shots";
+import { communityStats } from "@/cloud/community";
+import {
+  Author,
+  EmptyState,
+  FGroup,
+  FilterBar,
+  Hero,
+  LoadMore,
+  MinStars,
+  PERIODS,
+  Pills,
+  SkeletonGrid,
+  Tabs,
+  TextFilter,
+  Toggle,
+  compact,
+  debounced,
+  periodLabel,
+  relTime,
+  stored,
+  type ActiveChip,
+} from "./CommunityKit";
 import { importEditBackdrop } from "../components/Shots";
 import { CommentList, ReportDialog } from "../components/Moderation";
 import { LoginWall, Stars } from "./CommunityPage";
 import { go } from "../ui";
 import * as I from "../icons";
 
+/** Ekran görüntüsü kartı (liste ve ana sayfa) */
+export function ShotCard(p: { s: SharedShot; rank?: number; onOpen: () => void; onAuthor?: (n: string) => void; onTrack?: (v: string) => void; onCar?: (v: string) => void }) {
+  const s = () => p.s;
+  const fresh = () => Date.now() - new Date(s().created_at).getTime() < 3 * 86400_000;
+  const [loaded, setLoaded] = createSignal(false);
+  const pick = (fn: ((v: string) => void) | undefined, v: string) => (e: MouseEvent) => {
+    if (!fn) return;
+    e.stopPropagation();
+    fn(v);
+  };
+  return (
+    <div class="cx-card shot" role="button" tabIndex={0} onClick={p.onOpen} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), p.onOpen())}>
+      <div class="cx-cover" classList={{ loaded: loaded() }}>
+        <img src={shotThumbUrl(s())} alt="" loading="lazy" draggable={false} onLoad={() => setLoaded(true)} onError={() => setLoaded(true)} />
+        <div class="cx-badges">
+          <Show when={p.rank}>
+            <i class="cx-rank">{p.rank}</i>
+          </Show>
+          <Show when={fresh() && !p.rank}>
+            <i class="cx-new">YENİ</i>
+          </Show>
+          <span class="lt-sp" />
+          <Show when={s().views !== undefined}>
+            <i class="cx-res">
+              <I.Eye /> {compact(s().views)}
+            </i>
+          </Show>
+        </div>
+        <div class="cx-cover-cap">
+          <Show when={s().track}>
+            <span class="cx-tag glass" data-no-i18n title={s().track} onClick={pick(p.onTrack, s().track)}>
+              <I.Map /> <span>{s().track}</span>
+            </span>
+          </Show>
+          <Show when={s().car}>
+            <span class="cx-tag glass" data-no-i18n title={s().car} onClick={pick(p.onCar, s().car)}>
+              <I.Car /> <span>{s().car}</span>
+            </span>
+          </Show>
+        </div>
+      </div>
+      <div class="cx-body">
+        <b class="cx-title" data-no-i18n title={s().title}>
+          {s().title}
+        </b>
+        <div class="cx-byline">
+          <Author name={s().author_name} iracing={s().author_iracing} onClick={p.onAuthor ? () => p.onAuthor!(s().author_name) : undefined} />
+          <small class="cx-date" title={new Date(s().created_at).toLocaleString(localeTag())}>
+            {relTime(s().created_at)}
+          </small>
+        </div>
+        <div class="cx-stats">
+          <span class="cx-rating" classList={{ none: !s().rating_count }}>
+            <span class="cx-star">★</span>
+            <b>{s().rating_count ? Number(s().rating_avg).toFixed(1) : "—"}</b>
+            <small>({s().rating_count})</small>
+          </span>
+          <span title="Yorum">
+            <I.MessageCircle /> {compact(s().comment_count)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type STab = "all" | "mine" | "rated";
+
+const SHOT_SORTS: { id: ShotSortX; label: string }[] = [
+  { id: "new", label: "En yeni" },
+  { id: "trend7", label: "Haftanın popülerleri" },
+  { id: "trend30", label: "Ayın popülerleri" },
+  { id: "views", label: "En çok görüntülenen" },
+  { id: "top", label: "En yüksek puan" },
+  { id: "votes", label: "En çok oy alan" },
+  { id: "comments", label: "En çok yorumlanan" },
+  { id: "old", label: "En eski" },
+];
+
+interface SFilters {
+  sort: ShotSortX;
+  days: number;
+  author: string;
+  track: string;
+  car: string;
+  minRating: number;
+  minViews: number;
+  hasComments: boolean;
+  edited: boolean;
+}
+const S_DEFAULT: SFilters = { sort: "new", days: 0, author: "", track: "", car: "", minRating: 0, minViews: 0, hasComments: false, edited: false };
+
 export function CommunityShots() {
   const [q, setQ] = createSignal("");
-  const [debounced, setDebounced] = createSignal("");
-  const [sort, setSort] = createSignal<ShotSort>("new");
-  const [tab, setTab] = createSignal<"all" | "mine">("all");
+  const dq = debounced(q);
+  const [f, setF] = stored<SFilters>("pitwall.cx.shots.filters", S_DEFAULT);
+  const [panel, setPanel] = stored<boolean>("pitwall.cx.shots.panel", false);
+  const set = <K extends keyof SFilters>(k: K, v: SFilters[K]) => setF({ ...f(), [k]: v });
+  const [tab, setTab] = createSignal<STab>("all");
   const [version, setVersion] = createSignal(0);
   const [open, setOpen] = createSignal<SharedShot | null>(null);
-  let timer: number | undefined;
-  createEffect(
-    on(q, (v) => {
-      clearTimeout(timer);
-      timer = window.setTimeout(() => setDebounced(v), 300);
-    }),
+  const PAGE = 30;
+  const sig = createMemo(() => JSON.stringify([dq(), f(), tab()]));
+  const [pageState, setPageState] = createSignal({ sig: "", n: 1 });
+  const pages = () => (pageState().sig === sig() ? pageState().n : 1);
+
+  const [stats] = createResource(() => (session() ? 1 : null), () => communityStats().catch(() => undefined));
+  const [facets] = createResource(() => (session() ? 1 : null), () => shotFacets().catch(() => ({ tracks: [], cars: [] })));
+  const [ratedIds] = createResource(
+    () => (session() && tab() === "rated" ? version() + 1 : null),
+    () => myRatedShotIds().catch(() => [] as string[]),
   );
   const [list] = createResource(
-    () => ({ q: debounced(), sort: sort(), tab: tab(), v: version() }),
-    (k) => (!session() ? Promise.resolve([] as SharedShot[]) : k.tab === "mine" ? myShots() : searchShots(k.q, k.sort)),
+    () => {
+      if (!session()) return null;
+      if (tab() === "rated" && !ratedIds()) return null;
+      return { q: dq(), f: f(), tab: tab(), v: version(), p: pages(), ids: tab() === "rated" ? ratedIds() : undefined };
+    },
+    (k) => queryShots({ ...k.f, q: k.q, userId: k.tab === "mine" ? session()?.user.id : undefined, ids: k.ids ?? undefined }, 0, PAGE * k.p),
   );
+  const items = () => list.latest ?? [];
+  const hasMore = () => (list.latest?.length ?? 0) >= PAGE * pages();
+
+  const chips = createMemo(() => {
+    const x = f();
+    const c: ActiveChip[] = [];
+    const clr = (k: keyof SFilters) => () => set(k, S_DEFAULT[k] as never);
+    if (x.days) c.push({ label: "Tarih", value: periodLabel(x.days), clear: clr("days") });
+    if (x.author) c.push({ label: "Kullanıcı", value: x.author, raw: true, clear: clr("author") });
+    if (x.track) c.push({ label: "Pist", value: x.track, raw: true, clear: clr("track") });
+    if (x.car) c.push({ label: "Araç", value: x.car, raw: true, clear: clr("car") });
+    if (x.minRating) c.push({ label: "Puan", value: t("{0}+ yıldız", x.minRating), clear: clr("minRating") });
+    if (x.minViews) c.push({ label: "Görüntülenme", value: `≥ ${x.minViews}`, raw: true, clear: clr("minViews") });
+    if (x.hasComments) c.push({ label: "Yorum", value: "Yorumu olanlar", clear: clr("hasComments") });
+    if (x.edited) c.push({ label: "Durum", value: "Düzenlenmiş", clear: clr("edited") });
+    return c;
+  });
+  const clearAll = () => {
+    setF({ ...S_DEFAULT, sort: f().sort });
+    setQ("");
+  };
 
   if (!cloudEnabled) {
     return (
@@ -60,87 +206,153 @@ export function CommunityShots() {
     );
   }
 
+  const shareBtn = () => (
+    <Show
+      when={isPro()}
+      fallback={
+        <button class="btn primary" onClick={() => go("pro")} title="Görüntü paylaşmak PRO özelliğidir; görüntülemek, puanlamak ve arka plan yapmak herkese açık">
+          <I.Lock /> PRO ile paylaş
+        </button>
+      }
+    >
+      <button class="btn primary" onClick={() => go("shots")}>
+        <I.Camera /> Görüntü paylaş
+      </button>
+    </Show>
+  );
+
   return (
     <Show when={session()} fallback={<LoginWall what="Topluluk ekran görüntüleri" />}>
-    <div class="page">
-      <section class="panel cm-bar">
-        <div class="cm-tabs">
-          <button classList={{ on: tab() === "all" }} onClick={() => setTab("all")}>
-            Tüm görüntüler
-          </button>
-          <button classList={{ on: tab() === "mine" }} onClick={() => setTab("mine")} disabled={!session()}>
-            Paylaştıklarım
-          </button>
-        </div>
-        <Show when={tab() === "all"}>
-          <input class="input cm-search" placeholder="Başlık, kullanıcı, pist ya da araç ara" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
-          <select class="input" value={sort()} onChange={(e) => setSort(e.currentTarget.value as ShotSort)}>
-            <option value="new">En yeni</option>
-            <option value="top">En yüksek puan</option>
-            <option value="comments">En çok yorumlanan</option>
-          </select>
-        </Show>
-        <span class="lt-sp" />
-        <Show
-          when={session()}
-          fallback={
-            <button class="btn primary" onClick={() => go("account")}>
-              Paylaşmak için giriş yap
-            </button>
+      <div class="page cx-page">
+        <Hero
+          icon={<I.Camera />}
+          kicker="Topluluk"
+          title="Ekran görüntüleri"
+          sub="Pistten en güzel anlar. Puanla, yorum yaz ya da beğendiğin görüntüyü düzenleme arka planı yap."
+          stats={[
+            { n: stats()?.shots, label: "Görsel" },
+            { n: stats()?.views, label: "Görüntülenme" },
+            { n: stats()?.comments, label: "Yorum" },
+          ]}
+          actions={shareBtn()}
+        />
+
+        <FilterBar
+          tabs={
+            <Tabs<STab>
+              value={tab()}
+              onChange={setTab}
+              tabs={[
+                { id: "all", label: "Keşfet" },
+                { id: "mine", label: "Paylaştıklarım" },
+                { id: "rated", label: "Puanladıklarım" },
+              ]}
+            />
           }
+          q={q()}
+          onQ={setQ}
+          placeholder="Başlık, açıklama, kullanıcı, pist ya da araç ara"
+          sort={f().sort}
+          sorts={SHOT_SORTS}
+          onSort={(v) => set("sort", v as ShotSortX)}
+          open={panel()}
+          onToggle={() => setPanel(!panel())}
+          chips={chips()}
+          onClear={clearAll}
+          count={items().length}
+          loading={list.loading}
         >
+          <FGroup label="Paylaşım tarihi">
+            <Pills value={f().days} options={PERIODS} onChange={(v) => set("days", v)} />
+          </FGroup>
+          <FGroup label="Pist" hint={facets()?.tracks.length ? t("{0} pist", facets()!.tracks.length) : undefined}>
+            <TextFilter value={f().track} onChange={(v) => set("track", v)} placeholder="Pist adı" options={(facets()?.tracks ?? []).slice(0, 100).map((x) => x.name)} />
+          </FGroup>
+          <FGroup label="Araç" hint={facets()?.cars.length ? t("{0} araç", facets()!.cars.length) : undefined}>
+            <TextFilter value={f().car} onChange={(v) => set("car", v)} placeholder="Araç adı" options={(facets()?.cars ?? []).slice(0, 100).map((x) => x.name)} />
+          </FGroup>
+          <FGroup label="En düşük puan">
+            <MinStars value={f().minRating} onChange={(v) => set("minRating", v)} />
+          </FGroup>
+          <FGroup label="En az görüntülenme">
+            <Pills
+              value={f().minViews}
+              options={[
+                { id: 0, label: "Hepsi" },
+                { id: 25, label: "25+" },
+                { id: 100, label: "100+" },
+                { id: 500, label: "500+" },
+              ]}
+              onChange={(v) => set("minViews", v)}
+            />
+          </FGroup>
+          <FGroup label="Kullanıcı">
+            <TextFilter value={f().author} onChange={(v) => set("author", v)} placeholder="Görünen ad ya da iRacing adı" />
+          </FGroup>
+          <FGroup label="Diğer">
+            <Toggle checked={f().hasComments} label="Yalnızca yorumu olanlar" onChange={(v) => set("hasComments", v)} />
+            <Toggle checked={f().edited} label="Düzenlenmiş olanlar" onChange={(v) => set("edited", v)} />
+          </FGroup>
+          <Show when={(facets()?.tracks.length ?? 0) > 0}>
+            <FGroup label="Popüler pistler" wide>
+              <div class="cx-quick">
+                <For each={facets()!.tracks.slice(0, 10)}>
+                  {(x) => (
+                    <button classList={{ on: f().track === x.name }} onClick={() => set("track", f().track === x.name ? "" : x.name)} data-no-i18n>
+                      {x.name} <small>{x.count}</small>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </FGroup>
+          </Show>
+        </FilterBar>
+
+        <Show when={list.error}>
+          <p class="error">{String(list.error?.message ?? list.error)}</p>
+        </Show>
+
+        <Show when={list.latest || !list.loading} fallback={<SkeletonGrid n={9} kind="shot" class="cx-grid shots" />}>
           <Show
-            when={isPro()}
+            when={items().length > 0}
             fallback={
-              <button class="btn primary" onClick={() => go("pro")} title="Görüntü paylaşmak PRO özelliğidir; görüntülemek, puanlamak ve arka plan yapmak herkese açık">
-                <I.Lock /> PRO ile paylaş
-              </button>
+              <Show when={!list.loading && !list.error}>
+                <EmptyState
+                  icon={<I.Camera />}
+                  title={tab() === "mine" ? "Henüz görüntü paylaşmadın." : tab() === "rated" ? "Henüz puan vermedin." : "Bu filtrelere uyan görüntü yok."}
+                  hint={tab() === "all" ? "Filtreleri gevşetmeyi ya da aramayı değiştirmeyi dene." : undefined}
+                  action={
+                    <Show when={chips().length > 0 || q()} fallback={<Show when={tab() === "mine"}>{shareBtn()}</Show>}>
+                      <button class="btn" onClick={clearAll}>
+                        Filtreleri temizle
+                      </button>
+                    </Show>
+                  }
+                />
+              </Show>
             }
           >
-            <button class="btn primary" onClick={() => go("shots")}>
-              Görüntü paylaş
-            </button>
+            <div class="cx-grid shots" classList={{ busy: list.loading }}>
+              <For each={items()}>
+                {(s) => (
+                  <ShotCard
+                    s={s}
+                    onOpen={() => setOpen(s)}
+                    onAuthor={(n) => (setTab("all"), set("author", n), setPanel(true))}
+                    onTrack={(v) => (set("track", v), setPanel(true))}
+                    onCar={(v) => (set("car", v), setPanel(true))}
+                  />
+                )}
+              </For>
+            </div>
+            <LoadMore show={hasMore()} loading={list.loading} onClick={() => setPageState({ sig: sig(), n: pages() + 1 })} />
           </Show>
         </Show>
-      </section>
 
-      <Show when={list.error}>
-        <p class="error">{String(list.error?.message ?? list.error)}</p>
-      </Show>
-      <Show when={!list.loading && (list() ?? []).length === 0 && !list.error}>
-        <p class="muted cm-empty">{tab() === "mine" ? "Henüz görüntü paylaşmadın." : "Sonuç yok."}</p>
-      </Show>
-
-      <div class="shot-grid">
-        <For each={list() ?? []}>
-          {(s) => (
-            <button class="shot-card" onClick={() => setOpen(s)}>
-              <div class="shot-thumb">
-                <img src={shotThumbUrl(s)} alt="" loading="lazy" draggable={false} />
-              </div>
-              <span class="shot-cap">
-                <b data-no-i18n>{s.title}</b>
-                <small>
-                  <span data-no-i18n>{s.author_name || "?"}</span>
-                  <Show when={s.track}>
-                    {" · "}
-                    <span data-no-i18n>{s.track}</span>
-                  </Show>
-                </small>
-                <span class="cm-meta">
-                  <Stars value={Number(s.rating_avg)} count={s.rating_count} />
-                  <span title="Yorumlar">💬 {s.comment_count}</span>
-                </span>
-              </span>
-            </button>
-          )}
-        </For>
+        <Show when={open()}>
+          <SharedShotDetail s={open()!} onClose={() => setOpen(null)} onChanged={() => setVersion(version() + 1)} />
+        </Show>
       </div>
-
-      <Show when={open()}>
-        <SharedShotDetail s={open()!} onClose={() => setOpen(null)} onChanged={() => setVersion(version() + 1)} />
-      </Show>
-    </div>
     </Show>
   );
 }

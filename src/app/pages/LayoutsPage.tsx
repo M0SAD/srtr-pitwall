@@ -22,7 +22,7 @@ import {
 } from "@/sdk/settings";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
-import { isLocked } from "@/cloud/account";
+import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
 import { Switch } from "../components/SettingsForm";
 import * as I from "../icons";
@@ -202,7 +202,7 @@ export function LayoutsPage() {
     const m = monitor();
     if (!prof) return [];
     return instancesOf(prof)
-      .filter(([, i]) => i.enabled && !isLocked(i.type) && (m ? belongsToMonitor(i.monitor, m) : belongsTo(i.monitor, "")))
+      .filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type) && (m ? belongsToMonitor(i.monitor, m) : belongsTo(i.monitor, "")))
       .map(([k]) => k);
   });
 
@@ -453,7 +453,7 @@ export function LayoutsPage() {
                     }}
                   >
                     <option value="">+ Bu monitöre ekle…</option>
-                    <For each={manifests.filter((m) => !isLocked(m.id))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
+                    <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
                   </select>
                   <button class="btn ghost small" onClick={() => invoke("edit_mode_set", { on: true })} title="Oyunun üstünde gerçek boyutta düzenle">
                     <I.MousePointer2 /> Ekranda düzenle

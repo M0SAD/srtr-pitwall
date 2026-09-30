@@ -11,11 +11,11 @@ function NeedLogin() {
   return <p class="muted small fdock-empty">Arkadaş listesi için programda Hesap sayfasından giriş yap.</p>;
 }
 
-export function FriendsWindow() {
+export function FriendsWindow(props: { chat?: string }) {
   const [open] = createSignal(true);
   return (
     <Show when={session()} fallback={<NeedLogin />}>
-      <FriendsPanel standalone open={open} />
+      <FriendsPanel standalone open={open} initialChat={props.chat} />
     </Show>
   );
 }

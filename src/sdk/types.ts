@@ -21,6 +21,8 @@ export interface Status {
   /** Oyuncunun iRacing hesabı */
   userId: number;
   userName: string;
+  /** Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2", yoksa "" */
+  sim?: string;
 }
 
 export interface Inputs {
