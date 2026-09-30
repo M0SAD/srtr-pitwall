@@ -225,9 +225,13 @@ function priceNum(s) {
   const m = String(s || "").replace(/\s/g, "").match(/(\d+(?:[.,]\d{1,2})?)/);
   return m ? parseFloat(m[1].replace(",", ".")) : NaN;
 }
-function priceCur(s) {
-  const t = String(s || "").replace(/[\d.,\s]/g, "");
-  return t || "";
+/** Aylık karşılığı fiyattaki para birimiyle yazar: "83,25₺", "€3,75", "$4.16" */
+function perMonth(s, n) {
+  const str = String(s || "");
+  const sym = (str.match(/[€$£₺]/) || str.match(/\b(TL|TRY|USD|EUR|GBP)\b/i) || [""])[0];
+  const v = n.toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!sym) return v;
+  return /₺|TL|TRY/i.test(sym) ? `${v}${sym === "₺" ? "₺" : " " + sym}` : /^[A-Z]+$/i.test(sym) ? `${v} ${sym}` : `${sym}${v}`;
 }
 
 function renderPlans() {
@@ -236,7 +240,7 @@ function renderPlans() {
     const price = c[p.price] || "";
     const link = c[p.checkout] || "";
     const n = priceNum(price);
-    const per = p.months > 1 && isFinite(n) ? T("per_month", `${priceCur(price)}${(n / p.months).toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) : "";
+    const per = p.months > 1 && isFinite(n) ? T("per_month", perMonth(price, n / p.months)) : "";
     const tag = p.id === "12m" ? T("best_value") : p.id === "3m" ? T("popular") : "";
     const href = link ? (user ? checkoutUrl(link, user) : `hesap.html?buy=${p.id}`) : "";
     return `<div class="card plan${p.id === "12m" ? " best" : ""}">
