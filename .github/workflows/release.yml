@@ -37,10 +37,13 @@ jobs:
         shell: bash
         run: |
           echo "display=$(node -p "require('./version.json').display")" >> "$GITHUB_OUTPUT"
+          node scripts/notlar.mjs | tr -d '\r' > "$RUNNER_TEMP/notes.txt"
+          DELIM="NOTES_$(date +%s%N)"
           {
-            echo "notes<<NOTES_EOF"
-            node scripts/notlar.mjs
-            echo "NOTES_EOF"
+            echo "notes<<$DELIM"
+            cat "$RUNNER_TEMP/notes.txt"
+            echo
+            echo "$DELIM"
           } >> "$GITHUB_OUTPUT"
 
       - uses: tauri-apps/tauri-action@v0
