@@ -1,5 +1,6 @@
 // Kontrol paneli kabuğu: solda ikon menü, üstte durum çubuğu, ortada bölüm.
 
+import { t } from "@/sdk/i18n";
 import { For, Match, Show, Switch, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -8,7 +9,8 @@ import { settings, updateSettings } from "@/sdk/settings";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isPro } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
-import { checkUpdate, focusOverlay, go, loadVersion, section, sub, update, version, type Section } from "./ui";
+import { bindUpdateEvents, checkUpdate, focusOverlay, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
+import { UpdateDialog } from "./components/UpdateDialog";
 import * as I from "./icons";
 import { OverlaysPage } from "./pages/OverlaysPage";
 import { LayoutsPage } from "./pages/LayoutsPage";
@@ -126,6 +128,7 @@ export function App() {
     const pending = await invoke<string | null>("panel_take_focus");
     if (pending) focusOverlay(pending);
     await loadVersion();
+    bindUpdateEvents();
     if (version()?.updateConfigured) checkUpdate();
   });
 
@@ -151,8 +154,8 @@ export function App() {
         <h1>{TITLES[section()]}</h1>
         <div class="top2-right">
           <Show when={update()?.available}>
-            <button class="btn update-badge" onClick={() => go("settings", "about")}>
-              Güncelleme: {update()!.version}
+            <button class="btn update-badge" title="Yeni sürümü indir ve kur" onClick={() => setUpdateDialog(true)}>
+              <I.Download /> {t("Güncelleme: {0}", update()!.version ?? "")}
             </button>
           </Show>
           <div class="seg" title="Simülasyon">
@@ -261,6 +264,7 @@ export function App() {
           </Switch>
         </main>
         <FriendsDock />
+        <UpdateDialog />
       </div>
     </div>
   );

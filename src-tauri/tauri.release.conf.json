@@ -10,7 +10,7 @@
         "https://github.com/M0SAD/srtr-pitwall/releases/latest/download/latest.json"
       ],
       "windows": {
-        "installMode": "passive"
+        "installMode": "quiet"
       }
     }
   }

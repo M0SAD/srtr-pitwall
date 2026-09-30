@@ -1,5 +1,6 @@
 // SRTR Pitwall sunucu işleri (veritabanı tarafından çağrılır, uygulama çağırmaz):
 //   {"type":"report","id":"<rapor id>"}  Yeni rapor: yöneticilere e-posta gönderir
+//   {"type":"friend_request","id":"<bildirim id>"}  Yeni arkadaşlık isteği: karşı tarafa temalı e-posta gönderir
 //   {"type":"cleanup"}                   6 aydır açılmayan ekran görüntülerini siler,
 //                                        sahibine uygulama içi bildirim ve e-posta gönderir
 //
@@ -40,15 +41,34 @@ function esc(s: unknown) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
-function page(title: string, body: string) {
-  return `<!doctype html><html><body style="margin:0;background:#0e1116;font-family:Segoe UI,Arial,sans-serif;color:#eceff4">
-<div style="max-width:560px;margin:0 auto;padding:28px 18px">
-  <div style="font-weight:800;font-size:18px;letter-spacing:.02em;margin-bottom:14px"><span style="color:#ff8a2a">&#9656;</span> SRTR Pitwall</div>
-  <div style="background:#181b21;border:1px solid #2a2f3a;border-radius:12px;padding:22px">
-    <h2 style="margin:0 0 12px;font-size:18px;color:#fff">${esc(title)}</h2>
-    ${body}
-  </div>
-</div></body></html>`;
+// Tüm e-postalar aynı temada: koyu arka plan, turuncu vurgu, pist kerbi şeridi
+function page(title: string, body: string, preheader = "") {
+  const kerb = Array.from(
+    { length: 24 },
+    (_, i) => `<td style="height:6px;background:${i % 2 ? "#ffffff" : "#e5322d"};font-size:0;line-height:0">&nbsp;</td>`,
+  ).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>${esc(title)}</title></head>
+<body style="margin:0;padding:0;background:#0b0d12">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0d12"><tr><td align="center" style="padding:32px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
+  <tr><td style="padding:0 4px 18px 4px">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="width:34px;height:34px;background:#ff8a2a;border-radius:8px;text-align:center;vertical-align:middle;font:900 20px/34px Arial,Helvetica,sans-serif;color:#111">&#10095;</td>
+      <td style="padding-left:10px;font:800 20px/1 'Segoe UI',Arial,Helvetica,sans-serif;color:#e9ecf2;letter-spacing:.5px">SRTR <span style="color:#ff8a2a">Pitwall</span></td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="background:#151821;border:1px solid #262b36;border-radius:14px;overflow:hidden">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${kerb}</tr></table>
+    <div style="padding:26px 26px 24px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#e9ecf2;font-size:15px;line-height:1.6">
+      <h2 style="margin:0 0 14px;font-size:20px;line-height:1.3;color:#ffffff">${esc(title)}</h2>
+      ${body}
+    </div>
+  </td></tr>
+  <tr><td style="padding:16px 8px 0;text-align:center;font:12px/1.5 'Segoe UI',Arial,Helvetica,sans-serif;color:#6b7383">
+    SRTR Pitwall &middot; <a href="https://pitwall.simracetr.com" style="color:#8a93a4;text-decoration:none">pitwall.simracetr.com</a>
+  </td></tr>
+</table></td></tr></table></body></html>`;
 }
 
 async function sendMail(to: string[], subject: string, html: string) {
@@ -127,6 +147,130 @@ async function report(id: string) {
     }</p>`;
   const sent = await sendMail([...new Set(to)], `SRTR Pitwall · ${title}: ${reason}`, page(title, body));
   await db.from("reports").update({ notified_at: new Date().toISOString() }).eq("id", id);
+  return { ok: true, sent };
+}
+
+// ---------------------------------------------------------------------------
+// Arkadaşlık isteği e-postası (isteği alan kişiye)
+// ---------------------------------------------------------------------------
+
+const FRIEND: Record<string, { subject: string; line: string; how: string; note: string }> = {
+  tr: {
+    subject: "{0} sana arkadaşlık isteği gönderdi",
+    line: "{0}, SRTR Pitwall'da seni arkadaş olarak eklemek istiyor.",
+    how: "SRTR Pitwall'u aç, sağ alttaki Arkadaşlar düğmesine (ya da üstteki zil simgesine) tıkla ve isteği kabul et ya da reddet.",
+    note: "Bu kişiyi tanımıyorsan isteği reddedebilirsin; karşı tarafa bildirim gitmez.",
+  },
+  en: {
+    subject: "{0} sent you a friend request",
+    line: "{0} wants to add you as a friend on SRTR Pitwall.",
+    how: "Open SRTR Pitwall, click Friends at the bottom right (or the bell icon at the top), and accept or decline the request.",
+    note: "If you don't know this person, just decline. They won't be notified.",
+  },
+  de: {
+    subject: "{0} hat dir eine Freundschaftsanfrage gesendet",
+    line: "{0} möchte dich in SRTR Pitwall als Freund hinzufügen.",
+    how: "Öffne SRTR Pitwall, klicke unten rechts auf Freunde (oder oben auf die Glocke) und nimm die Anfrage an oder lehne sie ab.",
+    note: "Wenn du diese Person nicht kennst, lehne die Anfrage einfach ab. Sie wird nicht benachrichtigt.",
+  },
+  es: {
+    subject: "{0} te ha enviado una solicitud de amistad",
+    line: "{0} quiere añadirte como amigo en SRTR Pitwall.",
+    how: "Abre SRTR Pitwall, haz clic en Amigos (abajo a la derecha) o en la campana de arriba, y acepta o rechaza la solicitud.",
+    note: "Si no conoces a esta persona, simplemente recházala. No se le avisará.",
+  },
+  "pt-BR": {
+    subject: "{0} enviou um pedido de amizade para você",
+    line: "{0} quer adicionar você como amigo no SRTR Pitwall.",
+    how: "Abra o SRTR Pitwall, clique em Amigos (canto inferior direito) ou no sino no topo, e aceite ou recuse o pedido.",
+    note: "Se você não conhece essa pessoa, é só recusar. Ela não será notificada.",
+  },
+  "pt-PT": {
+    subject: "{0} enviou-te um pedido de amizade",
+    line: "{0} quer adicionar-te como amigo no SRTR Pitwall.",
+    how: "Abre o SRTR Pitwall, clica em Amigos (canto inferior direito) ou no sino no topo, e aceita ou recusa o pedido.",
+    note: "Se não conheces esta pessoa, basta recusar. Ela não será notificada.",
+  },
+  fr: {
+    subject: "{0} t'a envoyé une demande d'ami",
+    line: "{0} souhaite t'ajouter comme ami sur SRTR Pitwall.",
+    how: "Ouvre SRTR Pitwall, clique sur Amis (en bas à droite) ou sur la cloche en haut, puis accepte ou refuse la demande.",
+    note: "Si tu ne connais pas cette personne, refuse simplement. Elle ne sera pas prévenue.",
+  },
+  it: {
+    subject: "{0} ti ha inviato una richiesta di amicizia",
+    line: "{0} vuole aggiungerti come amico su SRTR Pitwall.",
+    how: "Apri SRTR Pitwall, clicca su Amici (in basso a destra) o sulla campanella in alto, e accetta o rifiuta la richiesta.",
+    note: "Se non conosci questa persona, rifiuta semplicemente. Non riceverà nessuna notifica.",
+  },
+  nl: {
+    subject: "{0} heeft je een vriendschapsverzoek gestuurd",
+    line: "{0} wil je toevoegen als vriend in SRTR Pitwall.",
+    how: "Open SRTR Pitwall, klik rechtsonder op Vrienden (of bovenaan op de bel) en accepteer of weiger het verzoek.",
+    note: "Ken je deze persoon niet, weiger het verzoek dan gewoon. Diegene krijgt geen melding.",
+  },
+  pl: {
+    subject: "{0} wysłał(a) Ci zaproszenie do znajomych",
+    line: "{0} chce dodać Cię do znajomych w SRTR Pitwall.",
+    how: "Otwórz SRTR Pitwall, kliknij Znajomi (prawy dolny róg) lub dzwonek u góry i zaakceptuj albo odrzuć zaproszenie.",
+    note: "Jeśli nie znasz tej osoby, po prostu odrzuć zaproszenie. Nie otrzyma ona powiadomienia.",
+  },
+  sv: {
+    subject: "{0} har skickat en vänförfrågan till dig",
+    line: "{0} vill lägga till dig som vän i SRTR Pitwall.",
+    how: "Öppna SRTR Pitwall, klicka på Vänner (nere till höger) eller på klockan högst upp och godkänn eller avvisa förfrågan.",
+    note: "Känner du inte personen kan du bara avvisa. Personen får ingen avisering.",
+  },
+  fi: {
+    subject: "{0} lähetti sinulle kaveripyynnön",
+    line: "{0} haluaa lisätä sinut kaveriksi SRTR Pitwallissa.",
+    how: "Avaa SRTR Pitwall, napsauta Kaverit (oikealla alhaalla) tai kelloa ylhäällä ja hyväksy tai hylkää pyyntö.",
+    note: "Jos et tunne henkilöä, hylkää pyyntö. Hänelle ei lähde ilmoitusta.",
+  },
+  ru: {
+    subject: "{0} отправил(а) тебе запрос в друзья",
+    line: "{0} хочет добавить тебя в друзья в SRTR Pitwall.",
+    how: "Открой SRTR Pitwall, нажми «Друзья» (справа внизу) или колокольчик вверху и прими или отклони запрос.",
+    note: "Если ты не знаешь этого человека, просто отклони запрос. Он не получит уведомления.",
+  },
+  "zh-CN": {
+    subject: "{0} 向你发送了好友请求",
+    line: "{0} 想在 SRTR Pitwall 中添加你为好友。",
+    how: "打开 SRTR Pitwall，点击右下角的“好友”（或顶部的铃铛图标），然后接受或拒绝请求。",
+    note: "如果你不认识对方，直接拒绝即可，对方不会收到通知。",
+  },
+  ja: {
+    subject: "{0} さんからフレンド申請が届きました",
+    line: "{0} さんが SRTR Pitwall であなたをフレンドに追加したいと考えています。",
+    how: "SRTR Pitwall を開き、右下の「フレンド」（または上部のベルアイコン）をクリックして、申請を承認または拒否してください。",
+    note: "知らない相手の場合は拒否するだけで大丈夫です。相手には通知されません。",
+  },
+};
+
+async function friendRequest(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "friend_request") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const { data: from } = await db.from("profiles").select("display_name,iracing_name").eq("id", n.data?.from).maybeSingle();
+  const name = from?.display_name || n.data?.name || "?";
+  const m = FRIEND[u.lang] ?? FRIEND[u.lang.split("-")[0]] ?? FRIEND.en;
+  const fill = (t: string) => t.replace("{0}", name);
+  const initial = esc(String(name).trim().charAt(0).toUpperCase() || "?");
+  const body = `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr>
+      <td style="width:52px;height:52px;background:#ff8a2a;border-radius:26px;text-align:center;vertical-align:middle;font:800 24px/52px Arial,Helvetica,sans-serif;color:#111">${initial}</td>
+      <td style="padding-left:14px;vertical-align:middle">
+        <div style="font-size:17px;font-weight:700;color:#fff">${esc(name)}</div>
+        ${from?.iracing_name ? `<div style="font-size:13px;color:#8a93a4">iRacing: ${esc(from.iracing_name)}</div>` : ""}
+      </td>
+    </tr></table>
+    <p style="margin:0 0 14px">${esc(fill(m.line))}</p>
+    <div style="margin:0 0 14px;padding:12px 14px;background:#10131a;border:1px solid #262b36;border-left:3px solid #ff8a2a;border-radius:8px;color:#cfd5e1;font-size:14px">${esc(m.how)}</div>
+    <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.note)}</p>`;
+  const subject = fill(m.subject);
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, fill(m.line)));
   return { ok: true, sent };
 }
 
@@ -261,7 +405,11 @@ Deno.serve(async (req) => {
   }
   try {
     const res =
-      body.type === "report" && body.id ? await report(body.id) : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
+      body.type === "report" && body.id
+        ? await report(body.id)
+        : body.type === "friend_request" && body.id
+          ? await friendRequest(body.id)
+          : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
     return Response.json(res, { status: res.ok ? 200 : 400 });
   } catch (e) {
     console.error(e);

@@ -5,6 +5,7 @@
 import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { settings, updateSettings } from "@/sdk/settings";
+import { syncAccountFriends } from "@/sdk/friends";
 import { session } from "@/cloud/supabase";
 import { isPro } from "@/cloud/account";
 import {
@@ -27,7 +28,7 @@ import {
   type Person,
 } from "@/cloud/social";
 import { appState } from "../App";
-import { go } from "../ui";
+import { editFriendLook, go } from "../ui";
 import * as I from "../icons";
 
 type View = { kind: "list" } | { kind: "chat"; f: Friend } | { kind: "live"; f: Friend } | { kind: "add" };
@@ -35,9 +36,19 @@ type View = { kind: "list" } | { kind: "chat"; f: Friend } | { kind: "live"; f: 
 export function FriendsDock() {
   const [open, setOpen] = createSignal(false);
   const [view, setView] = createSignal<View>({ kind: "list" });
-  const [list, { refetch, mutate }] = createResource(
+  let lastList: Friend[] = [];
+  const [list, { refetch, mutate }] = createResource<Friend[], string | null>(
     () => (session() ? session()!.user.id : null),
-    () => myFriends().catch(() => [] as Friend[]),
+    async () => {
+      try {
+        lastList = (await myFriends()) ?? [];
+        // Kabul edilen arkadaşlar Arkadaşlar sayfasındaki listeye (renk/simge ayarıyla) otomatik eklenir
+        syncAccountFriends(lastList);
+      } catch {
+        /* çevrimdışı: son liste kalsın */
+      }
+      return lastList;
+    },
   );
   const [err, setErr] = createSignal("");
   const friends = () => list() ?? [];
@@ -130,7 +141,16 @@ export function FriendsDock() {
               <MyStatusBar />
               <div class="fdock-list">
                 <Show when={friends().length > 0} fallback={<p class="muted small fdock-empty">Henüz arkadaşın yok. Sağ üstten ekleyebilirsin.</p>}>
-                  <For each={friends()}>
+                  <Show when={friends().some((f) => f.status !== "accepted")}>
+                    <div class="fdock-sec">
+                      Onay bekleyenler <i>{friends().filter((f) => f.status !== "accepted").length}</i>
+                    </div>
+                    <For each={[...friends().filter((f) => f.status === "pending_in"), ...friends().filter((f) => f.status === "pending_out")]}>
+                      {(f) => <FriendRow f={f} onChat={() => {}} onLive={() => {}} act={act} />}
+                    </For>
+                    <div class="fdock-sec">Arkadaşlar</div>
+                  </Show>
+                  <For each={accepted().slice().sort((a, b) => Number(b.racing) - Number(a.racing) || Number(b.online) - Number(a.online) || a.display_name.localeCompare(b.display_name))}>
                     {(f) => (
                       <FriendRow
                         f={f}
@@ -204,7 +224,15 @@ function FriendRow(props: { f: Friend; onChat: () => void; onLive: () => void; a
   const f = () => props.f;
   const [menu, setMenu] = createSignal(false);
   return (
-    <div class="frow" classList={{ racing: f().racing, online: f().online && !f().racing, pending: f().status !== "accepted" }}>
+    <div
+      class="frow"
+      classList={{ racing: f().racing, online: f().online && !f().racing, pending: f().status !== "accepted" }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (f().status === "accepted") setMenu(true);
+      }}
+    >
       <i class="frow-dot" />
       <div class="frow-main" onClick={() => f().status === "accepted" && props.onChat()}>
         <b data-no-i18n>{f().display_name || "?"}</b>
@@ -245,6 +273,9 @@ function FriendRow(props: { f: Friend; onChat: () => void; onLive: () => void; a
         <div class="frow-menu" onMouseLeave={() => setMenu(false)}>
           <button onClick={() => (setMenu(false), props.onChat())}>
             <I.MessageSquare /> Mesaj
+          </button>
+          <button onClick={() => (setMenu(false), editFriendLook(f().friend_id))} title="Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla">
+            <I.Palette /> Görünümü düzenle
           </button>
           <Show
             when={isPro() || f().trusted}

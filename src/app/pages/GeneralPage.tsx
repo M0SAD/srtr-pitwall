@@ -1,10 +1,9 @@
-import { LANGS } from "@/sdk/i18n";
+import { LANGS, t } from "@/sdk/i18n";
 import { EditBackdropSettings } from "../components/Shots";
 import { setUserLang } from "@/cloud/supabase";
-import { createResource, createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { listen } from "@tauri-apps/api/event";
+import { createResource, createSignal, For, Show } from "solid-js";
 import notesRaw from "../../../SURUM_NOTLARI.md?raw";
-import { checkUpdate, checking, update, updateError, version } from "../ui";
+import { checkUpdate, checking, setUpdateDialog, update, updateError, version } from "../ui";
 import { invoke } from "@tauri-apps/api/core";
 import { settings, updateSettings } from "@/sdk/settings";
 import { appState, setDemo } from "../App";
@@ -193,28 +192,6 @@ export function GeneralPage() {
 }
 
 export function About() {
-  const [progress, setProgress] = createSignal<number | null>(null);
-  const [installErr, setInstallErr] = createSignal("");
-
-  onMount(async () => {
-    const un = await listen<{ downloaded: number; total: number | null }>("update-progress", (e) => {
-      const { downloaded, total } = e.payload;
-      setProgress(total ? Math.round((downloaded / total) * 100) : 0);
-    });
-    onCleanup(un);
-  });
-
-  const install = async () => {
-    setInstallErr("");
-    setProgress(0);
-    try {
-      await invoke("update_install");
-    } catch (e) {
-      setInstallErr(String(e));
-      setProgress(null);
-    }
-  };
-
   return (
     <section class="panel">
       <h3>Hakkında</h3>
@@ -236,8 +213,8 @@ export function About() {
                 </button>
               }
             >
-              <button class="btn primary" disabled={progress() !== null} onClick={install}>
-                {progress() !== null ? `İndiriliyor %${progress()}` : `${update()!.version} sürümüne güncelle`}
+              <button class="btn primary" onClick={() => setUpdateDialog(true)}>
+                {t("{0} sürümüne güncelle", update()!.version)}
               </button>
             </Show>
           </div>
@@ -252,8 +229,8 @@ export function About() {
           <Notes text={update()!.notes!} />
         </div>
       </Show>
-      <Show when={updateError() || installErr()}>
-        <p class="error">{updateError() || installErr()}</p>
+      <Show when={updateError()}>
+        <p class="error">{updateError()}</p>
       </Show>
       <details class="notes">
         <summary>Sürüm notları</summary>
@@ -264,7 +241,7 @@ export function About() {
 }
 
 /** Basit Markdown gösterimi: başlıklar, madde işaretleri, **kalın**. */
-function Notes(props: { text: string }) {
+export function Notes(props: { text: string }) {
   const lines = () => props.text.split("\n");
   const bold = (t: string) =>
     t.split(/(\*\*[^*]+\*\*)/g).map((part) => (part.startsWith("**") ? <b>{part.slice(2, -2)}</b> : part));

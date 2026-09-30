@@ -1545,6 +1545,21 @@ grant select, insert, update, delete on public.announcements to authenticated;
 grant select, insert, delete on public.announcement_reads to authenticated;
 grant all on public.shared_themes, public.announcements, public.announcement_reads to service_role;
 
+-- ---------------------------------------------------------------------------
+-- Arkadaşlık isteği gelince karşı tarafa temalı e-posta (Edge Function pitwall-jobs gönderir)
+-- ---------------------------------------------------------------------------
+create or replace function public.friend_request_mail() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.kind = 'friend_request' then
+    perform public.call_jobs(jsonb_build_object('type', 'friend_request', 'id', new.id));
+  end if;
+  return null;
+end $$;
+drop trigger if exists friend_request_mail on public.notifications;
+create trigger friend_request_mail after insert on public.notifications
+  for each row execute function public.friend_request_mail();
+
 -- Kendini yönetici yapmak (bir kere, kendi e-postanla çalıştır):
 --   update public.profiles set is_admin = true
 --   where id = (select id from auth.users where email = 'SENIN@EPOSTAN.com');

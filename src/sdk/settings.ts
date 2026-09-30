@@ -129,6 +129,10 @@ export interface Friend {
   note: string;
   /** Sürücü etiketi (ör. "Takım", "Dikkat"); listede adın yanında görünür */
   tag?: string;
+  /** Hesap arkadaşıysa: hesabın kimliği (arkadaşlık kabul edilince otomatik eklenir) */
+  accountId?: string;
+  /** Ad hesaptan otomatik geliyor (elle değiştirilince kapanır) */
+  autoName?: boolean;
 }
 
 export interface FriendsSettings {

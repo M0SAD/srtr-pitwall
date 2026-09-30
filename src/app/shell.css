@@ -3111,3 +3111,201 @@ body {
 .appearance .presets + .btns {
   margin-top: 12px;
 }
+
+/* ---- Güncelleme penceresi ---- */
+.update-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.update-badge svg {
+  width: 14px;
+  height: 14px;
+}
+.modal.upd {
+  width: min(520px, 92vw);
+}
+.modal.upd h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal.upd h3 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+.upd-notes {
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 8px 0;
+}
+.upd-progress {
+  margin: 14px 0 8px;
+}
+.upd-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.upd-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ff8a2a, #ffb35c);
+  transition: width 0.2s ease;
+}
+.upd-bar i.indeterminate {
+  background: linear-gradient(90deg, #ff8a2a 0%, #ffd9b0 50%, #ff8a2a 100%);
+  background-size: 200% 100%;
+  animation: upd-slide 1.2s linear infinite;
+}
+@keyframes upd-slide {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+.upd-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.upd-status small {
+  color: var(--muted);
+}
+.modal.upd .btns {
+  margin-top: 10px;
+}
+
+/* ---- Arkadaşlar sayfası ---- */
+.fr-req {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.fr-results {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+.fr-results .fr-req:last-child {
+  border-bottom: 0;
+}
+.fr-count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.fr-login {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.fr-login > svg {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+}
+.fr-login > div {
+  flex: 1;
+  min-width: 220px;
+}
+.fr-login p {
+  margin: 2px 0 0;
+}
+.fr-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.fr-card.open {
+  border-color: var(--accent);
+  border-left-color: inherit;
+}
+.fr-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.fr-summary .fr-avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 19px;
+}
+.fr-sum-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fr-sum-main small {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fr-on {
+  color: #33d17a;
+}
+.fr-tagchip {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+.fr-prev {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+.ovmenu button.danger {
+  color: #ff6b6b;
+}
+.fdock-sec {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fdock-sec i {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-style: normal;
+}
+.notice-actions {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 4px;
+}

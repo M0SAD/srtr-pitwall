@@ -3,7 +3,7 @@
 // Eşleşme önce iRacing üye numarasıyla (CustID), yoksa tam adla yapılır.
 
 import { createMemo } from "solid-js";
-import { settings, type Friend } from "./settings";
+import { settings, updateSettings, type Friend } from "./settings";
 
 export type FriendPlace = "relative" | "standings" | "timing" | "map";
 
@@ -76,5 +76,59 @@ export function resizePhoto(file: File, size = 96): Promise<string> {
       reject(new Error("Resim okunamadı"));
     };
     img.src = url;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Hesap arkadaşları: kabul edilen her arkadaş otomatik olarak yerel listeye eklenir
+// (renk, simge, fotoğraf, etiket burada arkadaşa özel ayarlanır); arkadaşlık bitince kalkar.
+// ---------------------------------------------------------------------------
+
+export interface CloudFriendLite {
+  friend_id: string;
+  display_name: string;
+  iracing_name: string | null;
+  status: string;
+}
+
+const nameOfCloud = (f: CloudFriendLite) => (f.iracing_name || f.display_name || "?").trim();
+
+/** Sunucudan gelen arkadaş listesiyle yerel listeyi eşitler. Sadece başarılı bir okumadan sonra çağır. */
+export function syncAccountFriends(cloud: CloudFriendLite[]) {
+  const acc = cloud.filter((f) => f.status === "accepted");
+  const ids = new Set(acc.map((f) => f.friend_id));
+  const list = settings().friends.list;
+  const seen = new Set<string>();
+  const dup = list.some((x) => x.accountId && (seen.has(x.accountId) ? true : (seen.add(x.accountId), false)));
+  const stale = list.some((x) => x.accountId && !ids.has(x.accountId));
+  const missing = acc.some((f) => {
+    const e = list.find((x) => x.accountId === f.friend_id);
+    return !e || (e.autoName && e.name !== nameOfCloud(f));
+  });
+  if (!dup && !stale && !missing) return;
+  updateSettings((d) => {
+    const have = new Set<string>();
+    d.friends.list = d.friends.list.filter((x) => {
+      if (!x.accountId) return true;
+      if (!ids.has(x.accountId) || have.has(x.accountId)) return false;
+      have.add(x.accountId);
+      return true;
+    });
+    for (const f of acc) {
+      const e = d.friends.list.find((x) => x.accountId === f.friend_id);
+      if (!e) {
+        d.friends.list.unshift({
+          id: Math.random().toString(36).slice(2, 9),
+          name: nameOfCloud(f),
+          userId: 0,
+          color: "",
+          icon: "",
+          photo: "",
+          note: "",
+          accountId: f.friend_id,
+          autoName: true,
+        });
+      } else if (e.autoName && e.name !== nameOfCloud(f)) e.name = nameOfCloud(f);
+    }
   });
 }

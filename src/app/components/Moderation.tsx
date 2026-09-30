@@ -1,6 +1,7 @@
 // Topluluk içeriği için ortak parçalar: rapor penceresi, yorum listesi (düzenle/sil/raporla)
 // ve bildirimler.
 
+import { friendRespond } from "@/cloud/social";
 import { For, Show, createSignal } from "solid-js";
 import { Portal } from "solid-js/web";
 import { localeTag, t } from "@/sdk/i18n";
@@ -245,6 +246,28 @@ export function NoticeBell() {
                           <span class="notice-body">{n.ann!.body}</span>
                         </Show>
                       </p>
+                    </Show>
+                    <Show when={n.kind === "friend_request" && n.data.from}>
+                      <div class="notice-actions">
+                        <button
+                          class="btn primary small"
+                          onClick={async () => {
+                            await friendRespond(n.data.from, true).catch(() => {});
+                            deleteNotice(n.id);
+                          }}
+                        >
+                          Kabul et
+                        </button>
+                        <button
+                          class="btn ghost small"
+                          onClick={async () => {
+                            await friendRespond(n.data.from, false).catch(() => {});
+                            deleteNotice(n.id);
+                          }}
+                        >
+                          Reddet
+                        </button>
+                      </div>
                     </Show>
                     <small class="muted">{new Date(n.created_at).toLocaleString(localeTag())}</small>
                     <button class="link" onClick={() => deleteNotice(n.id)}>

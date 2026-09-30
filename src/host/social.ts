@@ -9,6 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
+import { syncAccountFriends } from "@/sdk/friends";
 import type { Status } from "@/sdk/types";
 import { messageBeep, myFriends, onLive, onMessages, pushLive, setMyStatus, type Friend, type LiveData } from "@/cloud/social";
 
@@ -71,6 +72,8 @@ export function startSocial(status: Accessor<Status | undefined>) {
     }
     try {
       friends = (await myFriends()) ?? [];
+      // Kabul edilen arkadaşlar panel kapalıyken de renk/simge listesine eklenir
+      syncAccountFriends(friends);
     } catch {
       return;
     }

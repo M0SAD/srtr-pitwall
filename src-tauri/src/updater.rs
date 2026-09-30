@@ -74,13 +74,18 @@ pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Re
     app.state::<crate::SettingsStore>().flush(&app);
     let mut downloaded: u64 = 0;
     let emitter = app.clone();
+    let done = app.clone();
     update
         .download_and_install(
             move |chunk, total| {
                 downloaded += chunk as u64;
                 let _ = emitter.emit("update-progress", Progress { downloaded, total });
             },
-            || {},
+            // İndirme bitti: kurulum sessizce başlar, program kendiliğinden kapanır ve
+            // kurulum bitince yeni sürüm olarak yeniden açılır (Windows'ta eklenti süreci sonlandırır).
+            move || {
+                let _ = done.emit("update-stage", "installing");
+            },
         )
         .await
         .map_err(|e| e.to_string())?;

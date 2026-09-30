@@ -89,6 +89,56 @@ export async function checkUpdate() {
   }
 }
 
+/** Arkadaş listesinde sağ tık > "Görünümü düzenle": Arkadaşlar sayfası bu arkadaşın ayarını açar */
+export const [friendFocus, setFriendFocus] = createSignal<string | null>(null);
+export function editFriendLook(accountId: string) {
+  setFriendFocus(accountId);
+  go("drivers", "friends");
+}
+
+// ---- Güncelleme kurulumu (ilerleme çubuğu penceresi) ----
+export type InstallPhase = "idle" | "download" | "installing" | "error";
+export const [updateDialog, setUpdateDialog] = createSignal(false);
+export const [installPhase, setInstallPhase] = createSignal<InstallPhase>("idle");
+export const [installPct, setInstallPct] = createSignal(0);
+export const [installBytes, setInstallBytes] = createSignal<{ done: number; total: number | null }>({ done: 0, total: null });
+export const [installError, setInstallError] = createSignal("");
+
+let updateEventsBound = false;
+/** İlerleme olaylarını bir kez bağlar (panel açılışında) */
+export async function bindUpdateEvents() {
+  if (updateEventsBound || !inTauriWin()) return;
+  updateEventsBound = true;
+  const { listen } = await import("@tauri-apps/api/event");
+  await listen<{ downloaded: number; total: number | null }>("update-progress", (e) => {
+    const { downloaded, total } = e.payload;
+    setInstallBytes({ done: downloaded, total });
+    setInstallPct(total ? Math.min(100, Math.round((downloaded / total) * 100)) : 0);
+  });
+  await listen<string>("update-stage", (e) => {
+    if (e.payload === "installing") {
+      setInstallPct(100);
+      setInstallPhase("installing");
+    }
+  });
+}
+
+/** İndir ve kur: indirme bitince kurulum sessizce başlar, program kapanır ve yeni sürümle yeniden açılır */
+export async function installUpdate() {
+  if (installPhase() === "download" || installPhase() === "installing") return;
+  await bindUpdateEvents();
+  setInstallError("");
+  setInstallPct(0);
+  setInstallBytes({ done: 0, total: null });
+  setInstallPhase("download");
+  try {
+    await invoke("update_install");
+  } catch (e) {
+    setInstallError(String(e));
+    setInstallPhase("error");
+  }
+}
+
 /** Sağ tık > "Ayarlarını aç": Overlay'ler sayfasında o kopyayı seçer. */
 export function focusOverlay(id: string) {
   go("overlays");
