@@ -16,6 +16,7 @@ export type Section =
   | "voice"
   | "pro"
   | "account"
+  | "admin"
   | "settings";
 
 export const [section, setSection] = createSignal<Section>("overlays");

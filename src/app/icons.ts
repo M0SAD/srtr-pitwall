@@ -66,3 +66,4 @@ export { default as Trophy } from "lucide-solid/icons/trophy";
 export { default as MessageCircle } from "lucide-solid/icons/message-circle";
 export { default as Palette } from "lucide-solid/icons/palette";
 export { default as House } from "lucide-solid/icons/house";
+

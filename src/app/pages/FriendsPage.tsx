@@ -179,7 +179,7 @@ export function FriendsPage() {
             <b>Nerede gösterilsin</b>
           </div>
           <div class="fr-where">
-            <For each={[["relative", "Relative"], ["standings", "Leaderboard"], ["timing", "Live Timing"], ["map", "Haritalar"]] as const}>
+            <For each={[["relative", "Relative"], ["standings", "Sıralama Tablosu"], ["timing", "Live Timing"], ["map", "Haritalar"]] as const}>
               {([k, label]) => (
                 <label class="check">
                   <input type="checkbox" checked={fs().where[k]} onChange={(e) => updateSettings((d) => (d.friends.where[k] = e.currentTarget.checked))} />

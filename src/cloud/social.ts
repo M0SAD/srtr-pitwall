@@ -58,6 +58,11 @@ export interface LiveData {
   track?: string;
   position?: number;
   session?: string;
+  /** Pistteki konum (tur yüzdesi 0..1) */
+  lapPct?: number;
+  best?: number;
+  last?: number;
+  laps?: { lap: number; time: number; valid: boolean; pit: boolean }[];
 }
 
 export const myFriends = () => api<Friend[]>("POST", "rpc/my_friends", { body: {} });

@@ -1560,6 +1560,448 @@ drop trigger if exists friend_request_mail on public.notifications;
 create trigger friend_request_mail after insert on public.notifications
   for each row execute function public.friend_request_mail();
 
+-- ---------------------------------------------------------------------------
+-- Lemon Squeezy abonelikleri, PRO süresi uyarısı, cihaz takibi
+-- ---------------------------------------------------------------------------
+alter table public.app_config add column if not exists checkout_1m text not null default '';
+alter table public.app_config add column if not exists checkout_3m text not null default '';
+alter table public.app_config add column if not exists checkout_6m text not null default '';
+alter table public.app_config add column if not exists checkout_12m text not null default '';
+alter table public.app_config add column if not exists device_limit int not null default 2;
+alter table public.profiles add column if not exists pro_warned_until timestamptz;
+
+-- Lemon Squeezy abonelik kayıtları (webhook yazar)
+create table if not exists public.subscriptions (
+  lemon_id text primary key,
+  user_id uuid references public.profiles (id) on delete set null,
+  email text not null default '',
+  status text not null default '',
+  plan text not null default '',
+  variant_id text not null default '',
+  renews_at timestamptz,
+  ends_at timestamptz,
+  portal_url text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists subscriptions_user on public.subscriptions (user_id);
+alter table public.subscriptions enable row level security;
+drop policy if exists "own subscription" on public.subscriptions;
+create policy "own subscription" on public.subscriptions for select using (auth.uid() = user_id);
+
+-- Webhook: aboneliği kaydet, hesabın PRO süresini ayarla (sadece sunucu çağırır)
+create or replace function public.apply_subscription(
+  p_lemon_id text, p_user uuid, p_email text, p_status text, p_plan text, p_variant text,
+  p_renews timestamptz, p_ends timestamptz, p_portal text, p_until timestamptz
+) returns text language plpgsql security definer set search_path = public, auth as $$
+declare
+  uid uuid := p_user;
+begin
+  if uid is not null and not exists (select 1 from public.profiles where id = uid) then
+    uid := null;
+  end if;
+  if uid is null and coalesce(p_email, '') <> '' then
+    select p.id into uid from public.profiles p join auth.users u on u.id = p.id
+      where lower(u.email) = lower(p_email) or lower(coalesce(p.pay_email, '')) = lower(p_email)
+      limit 1;
+  end if;
+  insert into public.subscriptions (lemon_id, user_id, email, status, plan, variant_id, renews_at, ends_at, portal_url)
+    values (p_lemon_id, uid, coalesce(p_email, ''), p_status, p_plan, p_variant, p_renews, p_ends, coalesce(p_portal, ''))
+    on conflict (lemon_id) do update set
+      user_id = coalesce(excluded.user_id, public.subscriptions.user_id),
+      email = excluded.email, status = excluded.status, plan = excluded.plan, variant_id = excluded.variant_id,
+      renews_at = excluded.renews_at, ends_at = excluded.ends_at,
+      portal_url = case when excluded.portal_url = '' then public.subscriptions.portal_url else excluded.portal_url end,
+      updated_at = now();
+  if p_until is null then
+    return coalesce(uid::text, 'none');
+  end if;
+  if uid is null then
+    insert into public.pending_pro (email, pro_until, source) values (lower(p_email), p_until, 'lemon')
+      on conflict (email) do update set pro_until = greatest(public.pending_pro.pro_until, excluded.pro_until), source = 'lemon';
+    return 'pending';
+  end if;
+  -- Elle/Patreon ile verilmiş daha uzun süre varsa kısaltma
+  update public.profiles set
+    pro_until = case when pro_source = 'lemon' or pro_until is null or pro_until < p_until then p_until else pro_until end,
+    pro_source = case when pro_source = 'lemon' or pro_until is null or pro_until < p_until then 'lemon' else pro_source end
+  where id = uid;
+  return uid::text;
+end $$;
+revoke all on function public.apply_subscription(text, uuid, text, text, text, text, timestamptz, timestamptz, text, timestamptz) from public, anon, authenticated;
+grant execute on function public.apply_subscription(text, uuid, text, text, text, text, timestamptz, timestamptz, text, timestamptz) to service_role;
+
+-- Hesabın aboneliği kendini yeniliyor mu? (yenileniyorsa süre dolma uyarısı gerekmez)
+create or replace function public.sub_renewing(p_user uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.subscriptions s
+    where s.user_id = p_user and s.status in ('active', 'on_trial') and (s.ends_at is null or s.ends_at > now()));
+$$;
+
+-- Kullanıcı: kendi PRO durumu ve aboneliği
+create or replace function public.my_pro() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'pro_until', p.pro_until,
+    'source', p.pro_source,
+    'renewing', public.sub_renewing(p.id),
+    'sub', (select to_jsonb(s) from (
+      select status, plan, renews_at, ends_at, portal_url from public.subscriptions
+      where user_id = p.id order by updated_at desc limit 1) s)
+  ) from public.profiles p where p.id = auth.uid();
+$$;
+
+-- Bitmesine 15 gün kalan (ve yenilenmeyen) PRO'lar için günde bir bildirim (e-postayı pitwall-jobs gönderir)
+create or replace function public.pro_expiry_notify() returns int
+language plpgsql security definer set search_path = public as $$
+declare
+  n int;
+begin
+  with due as (
+    select p.id, p.pro_until from public.profiles p
+    where p.pro_until > now() and p.pro_until <= now() + interval '15 days'
+      and not p.is_admin and p.pro_warned_until is distinct from p.pro_until
+      and not public.sub_renewing(p.id)
+  ), ins as (
+    insert into public.notifications (user_id, kind, data)
+    select id, 'pro_expiring', jsonb_build_object('until', pro_until) from due returning 1
+  ), upd as (
+    update public.profiles set pro_warned_until = pro_until where id in (select id from due) returning 1
+  )
+  select count(*) into n from ins;
+  return coalesce(n, 0);
+end $$;
+revoke all on function public.pro_expiry_notify() from public, anon, authenticated;
+select cron.unschedule(jobid) from cron.job where jobname = 'pitwall-pro-expiry';
+select cron.schedule('pitwall-pro-expiry', '5 6 * * *', $$ select public.pro_expiry_notify() $$);
+
+-- Cihaz takibi: her hesabın giriş yaptığı bilgisayarlar (kimlik karma olarak tutulur)
+create table if not exists public.devices (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  device_hash text not null,
+  label text not null default '',
+  app_version text not null default '',
+  first_seen timestamptz not null default now(),
+  last_seen timestamptz not null default now(),
+  primary key (user_id, device_hash)
+);
+alter table public.devices enable row level security;
+
+create table if not exists public.device_flags (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  device_count int not null,
+  created_at timestamptz not null default now(),
+  resolved boolean not null default false,
+  resolved_at timestamptz
+);
+alter table public.device_flags enable row level security;
+
+create or replace function public.register_device(p_hash text, p_label text, p_version text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  n int;
+  lim int;
+  nm text;
+begin
+  if uid is null or length(coalesce(p_hash, '')) < 8 then
+    return '{}'::jsonb;
+  end if;
+  insert into public.devices (user_id, device_hash, label, app_version)
+    values (uid, left(p_hash, 64), left(coalesce(p_label, ''), 60), left(coalesce(p_version, ''), 30))
+    on conflict (user_id, device_hash) do update
+      set last_seen = now(), label = excluded.label, app_version = excluded.app_version;
+  select coalesce(device_limit, 2) into lim from public.app_config where id = 1;
+  select count(*) into n from public.devices where user_id = uid and last_seen > now() - interval '30 days';
+  if n > lim
+     and not exists (select 1 from public.device_flags f where f.user_id = uid and (not f.resolved or f.device_count >= n)) then
+    insert into public.device_flags (user_id, device_count) values (uid, n);
+    select display_name into nm from public.profiles where id = uid;
+    insert into public.notifications (user_id, kind, data)
+      select a.id, 'device_alert', jsonb_build_object('user', uid, 'name', coalesce(nm, '?'), 'count', n)
+      from public.profiles a where a.is_admin;
+  end if;
+  return jsonb_build_object('count', n, 'limit', lim);
+end $$;
+
+-- Yönetici: hesaplar ve cihazları (p_filter: flagged | multi | all)
+create or replace function public.admin_devices(p_filter text default 'multi')
+returns table (user_id uuid, display_name text, email text, pro_until timestamptz, device_count int, flag_id uuid, devices jsonb)
+language plpgsql stable security definer set search_path = public, auth as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return query
+    select p.id, p.display_name, u.email::text, p.pro_until,
+      (select count(*)::int from public.devices d where d.user_id = p.id and d.last_seen > now() - interval '30 days'),
+      (select f.id from public.device_flags f where f.user_id = p.id and not f.resolved order by f.created_at desc limit 1),
+      (select coalesce(jsonb_agg(jsonb_build_object('hash', d.device_hash, 'label', d.label, 'version', d.app_version,
+         'first_seen', d.first_seen, 'last_seen', d.last_seen) order by d.last_seen desc), '[]'::jsonb)
+         from public.devices d where d.user_id = p.id)
+    from public.profiles p join auth.users u on u.id = p.id
+    where exists (select 1 from public.devices d where d.user_id = p.id)
+      and (p_filter = 'all'
+        or (p_filter = 'flagged' and exists (select 1 from public.device_flags f where f.user_id = p.id and not f.resolved))
+        or (p_filter = 'multi' and (select count(*) from public.devices d where d.user_id = p.id and d.last_seen > now() - interval '30 days') > 1))
+    order by 5 desc, p.created_at desc
+    limit 200;
+end $$;
+
+create or replace function public.admin_remove_device(p_user uuid, p_hash text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  delete from public.devices where user_id = p_user and device_hash = p_hash;
+end $$;
+
+create or replace function public.admin_resolve_flag(p_flag uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  update public.device_flags set resolved = true, resolved_at = now() where id = p_flag;
+end $$;
+
+-- Yönetici: abonelik listesi
+create or replace function public.admin_subscriptions()
+returns table (lemon_id text, user_id uuid, display_name text, email text, status text, plan text,
+               renews_at timestamptz, ends_at timestamptz, updated_at timestamptz, created_at timestamptz, pro_until timestamptz)
+language plpgsql stable security definer set search_path = public, auth as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return query
+    select s.lemon_id, s.user_id, p.display_name, coalesce(u.email::text, s.email), s.status, s.plan,
+           s.renews_at, s.ends_at, s.updated_at, s.created_at, p.pro_until
+    from public.subscriptions s
+    left join public.profiles p on p.id = s.user_id
+    left join auth.users u on u.id = s.user_id
+    order by s.updated_at desc
+    limit 300;
+end $$;
+
+-- Bildirimden e-posta: arkadaşlık isteği, PRO süresi uyarısı, cihaz uyarısı
+create or replace function public.friend_request_mail() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.kind in ('friend_request', 'pro_expiring', 'device_alert') then
+    perform public.call_jobs(jsonb_build_object('type', new.kind, 'id', new.id));
+  end if;
+  return null;
+end $$;
+
+grant select on public.subscriptions to authenticated;
+grant execute on function public.my_pro(), public.register_device(text, text, text), public.sub_renewing(uuid) to authenticated;
+grant execute on function public.admin_devices(text), public.admin_remove_device(uuid, text),
+  public.admin_resolve_flag(uuid), public.admin_subscriptions() to authenticated;
+grant all on public.subscriptions, public.devices, public.device_flags to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Web sitesi: ödemeler, PRO süre değişiklik kaydı, site ziyaret istatistikleri
+-- ---------------------------------------------------------------------------
+
+-- Her ödeme (Lemon Squeezy fatura/sipariş, Patreon ödeme, Ko-fi) bir satır. Webhook yazar.
+create table if not exists public.payments (
+  id text primary key,
+  source text not null,
+  user_id uuid references public.profiles (id) on delete set null,
+  email text not null default '',
+  amount numeric(12, 2) not null default 0,
+  currency text not null default 'USD',
+  plan text not null default '',
+  kind text not null default 'payment', -- payment | refund
+  created_at timestamptz not null default now()
+);
+create index if not exists payments_created on public.payments (created_at desc);
+create index if not exists payments_user on public.payments (user_id);
+alter table public.payments enable row level security;
+drop policy if exists "own payments" on public.payments;
+create policy "own payments" on public.payments for select using (auth.uid() = user_id);
+
+create or replace function public.record_payment(
+  p_id text, p_source text, p_email text, p_user uuid, p_amount numeric, p_currency text, p_plan text, p_kind text)
+returns void language plpgsql security definer set search_path = public, auth as $$
+declare
+  uid uuid := p_user;
+begin
+  if uid is null and coalesce(p_email, '') <> '' then
+    select p.id into uid from public.profiles p join auth.users u on u.id = p.id
+      where lower(u.email) = lower(p_email) or lower(coalesce(p.pay_email, '')) = lower(p_email) limit 1;
+  end if;
+  insert into public.payments (id, source, user_id, email, amount, currency, plan, kind)
+    values (p_id, p_source, uid, lower(coalesce(p_email, '')), coalesce(p_amount, 0), upper(coalesce(nullif(p_currency, ''), 'USD')),
+            coalesce(p_plan, ''), coalesce(nullif(p_kind, ''), 'payment'))
+    on conflict (id) do update set amount = excluded.amount, kind = excluded.kind, user_id = coalesce(public.payments.user_id, excluded.user_id);
+end $$;
+revoke all on function public.record_payment(text, text, text, uuid, numeric, text, text, text) from public, anon, authenticated;
+
+-- PRO süre değişiklikleri (yönetici uzatması, abonelik, Patreon ...): kim, ne zaman, eskisi/yenisi
+create table if not exists public.pro_log (
+  id bigint generated always as identity primary key,
+  user_id uuid references public.profiles (id) on delete cascade,
+  by_user uuid references public.profiles (id) on delete set null,
+  old_until timestamptz,
+  new_until timestamptz,
+  source text not null default '',
+  note text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists pro_log_user on public.pro_log (user_id, created_at desc);
+alter table public.pro_log enable row level security;
+
+-- profiles.pro_until her değiştiğinde kayıt düşer
+create or replace function public.pro_log_trg() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.pro_until is distinct from old.pro_until then
+    insert into public.pro_log (user_id, by_user, old_until, new_until, source)
+      values (new.id, auth.uid(), old.pro_until, new.pro_until, coalesce(new.pro_source, ''));
+  end if;
+  return new;
+end $$;
+drop trigger if exists pro_log_trg on public.profiles;
+create trigger pro_log_trg after update of pro_until on public.profiles
+  for each row execute function public.pro_log_trg();
+
+-- Yönetici: PRO süresini gün ekleyerek uzat (eksi değer kısaltır); not kaydedilir
+create or replace function public.admin_extend_pro(p_user uuid, p_days int, p_note text default '')
+returns timestamptz language plpgsql security definer set search_path = public as $$
+declare
+  nu timestamptz;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  update public.profiles
+    set pro_until = greatest(coalesce(pro_until, now()), now()) + make_interval(days => p_days), pro_source = 'admin'
+    where id = p_user returning pro_until into nu;
+  update public.pro_log set note = coalesce(p_note, '')
+    where id = (select max(id) from public.pro_log where user_id = p_user);
+  return nu;
+end $$;
+
+create or replace function public.admin_pro_log(p_user uuid default null)
+returns table (id bigint, user_id uuid, display_name text, by_name text, old_until timestamptz, new_until timestamptz,
+               source text, note text, created_at timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return query
+    select l.id, l.user_id, p.display_name, b.display_name, l.old_until, l.new_until, l.source, l.note, l.created_at
+    from public.pro_log l
+    left join public.profiles p on p.id = l.user_id
+    left join public.profiles b on b.id = l.by_user
+    where p_user is null or l.user_id = p_user
+    order by l.created_at desc limit 200;
+end $$;
+
+create or replace function public.admin_payments(p_days int default 365)
+returns table (id text, source text, user_id uuid, display_name text, email text, amount numeric, currency text,
+               plan text, kind text, created_at timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return query
+    select x.id, x.source, x.user_id, p.display_name, x.email, x.amount, x.currency, x.plan, x.kind, x.created_at
+    from public.payments x left join public.profiles p on p.id = x.user_id
+    where x.created_at > now() - make_interval(days => greatest(p_days, 1))
+    order by x.created_at desc limit 1000;
+end $$;
+
+-- Site ziyaretleri: her sayfa açılışı bir satır (ziyaretçi kimliği tarayıcıda rastgele, kişisel veri yok)
+create table if not exists public.site_visits (
+  id bigint generated always as identity primary key,
+  visitor text not null,
+  path text not null,
+  ref text not null default '',
+  lang text not null default '',
+  user_id uuid,
+  created_at timestamptz not null default now()
+);
+create index if not exists site_visits_created on public.site_visits (created_at desc);
+alter table public.site_visits enable row level security;
+
+create or replace function public.site_hit(p_visitor text, p_path text, p_ref text, p_lang text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if char_length(coalesce(p_visitor, '')) not between 8 and 64 then return; end if;
+  -- aynı ziyaretçi aynı sayfayı 30 dk içinde tekrar sayılmaz
+  if exists (select 1 from public.site_visits where visitor = p_visitor and path = left(p_path, 120)
+             and created_at > now() - interval '30 minutes') then return; end if;
+  insert into public.site_visits (visitor, path, ref, lang, user_id)
+    values (p_visitor, left(coalesce(p_path, '/'), 120), left(coalesce(p_ref, ''), 200), left(coalesce(p_lang, ''), 12), auth.uid());
+end $$;
+
+-- Yönetici: site ve satış istatistikleri (son p_days gün)
+create or replace function public.admin_site_stats(p_days int default 30)
+returns jsonb language plpgsql stable security definer set search_path = public, auth as $$
+declare
+  since timestamptz := date_trunc('day', now()) - make_interval(days => greatest(p_days, 1) - 1);
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return jsonb_build_object(
+    'visits', (select count(*) from public.site_visits where created_at >= since),
+    'visitors', (select count(distinct visitor) from public.site_visits where created_at >= since),
+    'downloads', (select count(*) from public.site_visits where created_at >= since and path = '/download'),
+    'signups', (select count(*) from public.profiles where created_at >= since),
+    'revenue', (select coalesce(jsonb_object_agg(currency, total), '{}') from (
+        select currency, sum(case when kind = 'refund' then -amount else amount end) total
+        from public.payments where created_at >= since group by currency) r),
+    'revenue_all', (select coalesce(jsonb_object_agg(currency, total), '{}') from (
+        select currency, sum(case when kind = 'refund' then -amount else amount end) total
+        from public.payments group by currency) r),
+    'payments', (select count(*) from public.payments where created_at >= since and kind = 'payment'),
+    'active_subs', (select count(*) from public.subscriptions where status in ('active', 'on_trial', 'past_due')),
+    'pro', (select count(*) from public.profiles where pro_until > now()),
+    'pro_by_source', (select coalesce(jsonb_object_agg(src, n), '{}') from (
+        select coalesce(pro_source, '?') src, count(*) n from public.profiles where pro_until > now() group by 1) s),
+    'users', (select count(*) from public.profiles),
+    'expiring_15d', (select count(*) from public.profiles where pro_until > now() and pro_until <= now() + interval '15 days'),
+    'daily', (select coalesce(jsonb_agg(d order by d->>'day'), '[]') from (
+        select jsonb_build_object(
+          'day', to_char(g, 'YYYY-MM-DD'),
+          'visits', (select count(*) from public.site_visits v where v.created_at >= g and v.created_at < g + interval '1 day'),
+          'visitors', (select count(distinct visitor) from public.site_visits v where v.created_at >= g and v.created_at < g + interval '1 day'),
+          'signups', (select count(*) from public.profiles p where p.created_at >= g and p.created_at < g + interval '1 day'),
+          'payments', (select count(*) from public.payments x where x.kind = 'payment' and x.created_at >= g and x.created_at < g + interval '1 day'),
+          'revenue', (select coalesce(sum(case when kind = 'refund' then -amount else amount end), 0) from public.payments x
+                      where x.created_at >= g and x.created_at < g + interval '1 day')
+        ) d
+        from generate_series(since, date_trunc('day', now()), interval '1 day') g) q),
+    'pages', (select coalesce(jsonb_agg(x), '[]') from (
+        select path, count(*) n from public.site_visits where created_at >= since group by path order by n desc limit 12) x),
+    'refs', (select coalesce(jsonb_agg(x), '[]') from (
+        select ref, count(*) n from public.site_visits where created_at >= since and ref <> '' group by ref order by n desc limit 12) x),
+    'langs', (select coalesce(jsonb_agg(x), '[]') from (
+        select lang, count(distinct visitor) n from public.site_visits where created_at >= since group by lang order by n desc limit 12) x)
+  );
+end $$;
+
+-- Kullanıcı: kendi ödemeleri
+create or replace function public.my_payments()
+returns table (id text, source text, amount numeric, currency text, plan text, kind text, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select id, source, amount, currency, plan, kind, created_at from public.payments
+  where user_id = auth.uid() order by created_at desc limit 100;
+$$;
+
+grant execute on function public.site_hit(text, text, text, text) to anon, authenticated;
+grant execute on function public.my_payments() to authenticated;
+grant execute on function public.admin_extend_pro(uuid, int, text), public.admin_pro_log(uuid),
+  public.admin_payments(int), public.admin_site_stats(int) to authenticated;
+
 -- Kendini yönetici yapmak (bir kere, kendi e-postanla çalıştır):
 --   update public.profiles set is_admin = true
 --   where id = (select id from auth.users where email = 'SENIN@EPOSTAN.com');

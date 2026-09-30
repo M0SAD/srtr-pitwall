@@ -12,6 +12,7 @@ import { useEditBackdrop } from "./BackdropPicker";
 import { Portal } from "solid-js/web";
 import { ContextMenu, type MenuState } from "@/host/ContextMenu";
 import { focusOverlay } from "../ui";
+import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 
 export interface CanvasProps {
   profileId: string;
@@ -135,11 +136,14 @@ function CanvasItem(props: {
     const i = inst();
     if (!i) return { x: 0, y: 0, w: 0, h: 0, eff: 1, scale: 1 };
     const d = drag();
-    const own = d ? d.scale : i.scale;
+    // Overlay düzenleme modunda taşınıyorsa oradaki anlık konum
+    const rd = d ? undefined : remoteDrag(props.profileId, props.key);
+    const base = rd ?? i;
+    const own = d ? d.scale : base.scale;
     const eff = effectiveScale(own, gScale());
     const w = size().w * eff;
     const h = size().h * eff;
-    const r = d ? { x: d.x, y: d.y, w, h } : layoutRect({ x: i.x, y: i.y, w: size().w * own, h: size().h * own }, eff / own, props.screen);
+    const r = d ? { x: d.x, y: d.y, w, h } : layoutRect({ x: base.x, y: base.y, w: size().w * own, h: size().h * own }, eff / own, props.screen);
     return { ...clampRect(r, props.screen), eff, scale: own };
   });
   createEffect(() => {
@@ -147,9 +151,15 @@ function CanvasItem(props: {
     rects.set(props.key, { x: v.x, y: v.y, w: v.w, h: v.h });
   });
 
+  const livePos = (r: Rect, own: number) => {
+    const eff = effectiveScale(own, gScale());
+    const pos = unlayoutPos(r, eff / own, props.screen);
+    return { profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own };
+  };
   const commit = (r: Rect, own: number) => {
     const eff = effectiveScale(own, gScale());
     const pos = unlayoutPos(r, eff / own, props.screen);
+    endDrag({ profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own });
     updateSettings((d) => {
       const o = d.profiles[props.profileId]?.overlays[props.key];
       if (!o) return;
@@ -179,6 +189,7 @@ function CanvasItem(props: {
       );
       props.setGuides(r.guides);
       setDrag({ x: r.x, y: r.y, scale: o.scale });
+      sendDrag(livePos({ x: r.x, y: r.y, w: o.w, h: o.h }, o.scale));
     };
     const up = () => {
       t.removeEventListener("pointermove", move);
@@ -205,6 +216,8 @@ function CanvasItem(props: {
       const eff = Math.max(0.2, (right - o.x) / size().w);
       const own = Math.min(3, Math.max(0.4, Math.round((eff / g0) * 100) / 100));
       setDrag({ x: o.x, y: o.y, scale: own });
+      const e2 = effectiveScale(own, g0);
+      sendDrag(livePos({ x: o.x, y: o.y, w: size().w * e2, h: size().h * e2 }, own));
     };
     const up = () => {
       t.removeEventListener("pointermove", move);

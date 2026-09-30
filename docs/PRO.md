@@ -1,4 +1,38 @@
-# PRO üyelik (Patreon / Ko-fi)
+# PRO üyelik (Lemon Squeezy, Patreon / Ko-fi)
+
+**Önerilen yol: Lemon Squeezy.** 1, 3, 6 ve 12 aylık abonelikler kendiliğinden yenilenir. Ödeme olunca bir bildirim
+(webhook) Supabase'deki `pro-webhook` fonksiyonuna gelir; uygulama hesabın PRO süresini ayarlar. Kullanıcı
+uygulamada kalan süreyi görür, bitmesine 15 gün kala (ve abonelik yenilenmiyorsa) uygulama içi bildirim, e-posta
+ve üst çubukta uyarı alır.
+
+## Lemon Squeezy kurulumu
+
+1. Ürünü abonelik olarak oluştur ve 4 varyant ekle: her **1 / 3 / 6 / 12 ayda** bir ödeme.
+2. Her varyantın **Share** bölümündeki ödeme bağlantısını kopyala; uygulamada **Yönetim → Planlar ve fiyatlar**
+   bölümündeki ilgili plana yapıştır, fiyat metnini yaz, **Kaydet**. Uygulama bağlantıya kullanıcının hesabını
+   (kimlik ve e-posta) kendisi ekler.
+3. Lemon Squeezy → **Settings → Webhooks → +**:
+   - URL: `https://<proje>.supabase.co/functions/v1/pro-webhook?source=lemon`
+   - Signing secret: kendin bir değer belirle (uzun, rastgele) ve kopyala.
+   - Olaylar: `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`,
+     `subscription_expired`, `subscription_paused`, `subscription_unpaused`, `subscription_payment_success`,
+     `subscription_payment_refunded` (son ikisi web sitesi yönetim panelindeki satış/gelir istatistikleri için).
+4. Supabase → **Edge Functions → Secrets**: `LEMON_WEBHOOK_SECRET` = aynı signing secret.
+5. `pro-webhook` fonksiyonunun **Verify JWT** ayarı kapalı olmalı (Lemon Supabase anahtarı göndermez).
+
+PRO, yenileme tarihine 3 gün ek süreyle verilir; iptalde ödenen dönemin sonuna kadar sürer. Elle ya da Patreon
+ile verilmiş daha uzun bir süre varsa abonelik onu kısaltmaz.
+
+## Cihaz sınırı
+
+Uygulama girişte bilgisayarın karma kimliğini kaydeder. Bir hesap **Yönetim → Planlar ve fiyatlar → Cihaz sınırı**
+kadar bilgisayarı aşarsa (varsayılan 2, son 30 günde açılanlar sayılır) yöneticilere bildirim ve e-posta gider;
+**Yönetim → Cihazlar** bölümünde hesabı, bilgisayarları ve son kullanım zamanlarını görür, bir cihazı kaldırır,
+uyarıyı kapatır ya da PRO'yu alırsın.
+
+---
+
+# Eski yöntem: Patreon / Ko-fi
 
 PRO üyelik aylık ya da yıllık abonelikle çalışır. Ödemeyi Patreon ya da Ko-fi alır; her ödemede bir bildirim
 (webhook) Supabase'deki `pro-webhook` fonksiyonuna gelir ve ödeyen e-postanın SRTR Pitwall hesabına PRO süresi
@@ -44,18 +78,18 @@ e-postasını yazar. Henüz hesabı olmayan biri öderse kayıt olduğunda PRO k
 
 ## 3. Uygulamada göster
 
-Uygulamada yönetici hesabınla **Hesap → Yönetici → Abonelik sayfası** bölümüne Patreon/Ko-fi bağlantılarını ve
+Uygulamada yönetici hesabınla **Yönetim → Planlar ve fiyatlar** bölümüne Patreon/Ko-fi bağlantılarını ve
 fiyat metinlerini (ör. "3 € / ay", "30 € / yıl") yaz. PRO olmayan kullanıcılar Hesap sayfasında bu bilgileri ve
 abone ol düğmelerini görür.
 
 ## Elle PRO verme
 
-**Hesap → Yönetici → Kullanıcılar**: ad, e-posta ya da iRacing adıyla ara; 1 ay, 1 yıl ya da süresiz PRO ver,
+**Yönetim → Üyeler**: ad, e-posta ya da iRacing adıyla ara; 1 ay, 1 yıl ya da süresiz PRO ver,
 gerekirse kaldır. (Hediye, çekiliş, destekçi vb. için.)
 
 ## Hangi overlay'ler PRO?
 
-**Hesap → Yönetici → PRO overlay'ler** listesinden işaretle. Değişiklik kullanıcılara en geç 6 saat içinde
+**Yönetim → Planlar ve fiyatlar → PRO overlay'ler** listesinden işaretle. Değişiklik kullanıcılara en geç 6 saat içinde
 (ya da uygulamayı yeniden açtıklarında) yansır. PRO olmayan kullanıcıda bu overlay'ler panelde **PRO**
 rozetiyle kilitli görünür ve ekranda gösterilmez. Topluluktan indirilen düzenlerde de kilitli kalır.
 

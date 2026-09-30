@@ -200,6 +200,11 @@ function noticeText(n: Notice): string {
   if (n.kind === "friend_request") return t("{0} arkadaşlık isteği gönderdi.", n.data.name ?? "?");
   if (n.kind === "friend_accepted") return t("{0} arkadaşlık isteğini kabul etti.", n.data.name ?? "?");
   if (n.kind === "layout_removed") return t('"{0}" adlı düzenin bir moderatör tarafından kaldırıldı.', n.data.title ?? "?");
+  if (n.kind === "pro_expiring") {
+    const days = Math.max(0, Math.ceil((new Date(n.data.until).getTime() - Date.now()) / 86400000));
+    return t("PRO üyeliğinin bitmesine {0} gün kaldı.", days);
+  }
+  if (n.kind === "device_alert") return t("{0} hesabı {1} farklı bilgisayardan kullanılıyor.", n.data.name ?? "?", n.data.count ?? "?");
   return n.data.text ?? n.kind;
 }
 

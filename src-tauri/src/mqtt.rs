@@ -85,6 +85,24 @@ pub struct TeamFuel {
     pub on_pit: bool,
     /// Gönderim zamanı (unix ms)
     pub ts: u64,
+    /// Pistteki konum (tur yüzdesi 0..1)
+    pub lap_pct: f32,
+    /// Sıralama
+    pub position: i32,
+    /// En iyi ve son tur (sn, 0: yok)
+    pub best: f32,
+    pub last: f32,
+    /// Son turlar (en yeni sonda)
+    pub laps: Vec<TeamLap>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct TeamLap {
+    pub lap: i32,
+    pub time: f32,
+    pub valid: bool,
+    pub pit: bool,
 }
 
 #[derive(Serialize, Clone, Default)]

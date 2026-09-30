@@ -2,7 +2,7 @@
 // anlık mesajlar, güvenilir işaretleme (verilerimi görebilir) ve yarıştaki arkadaşın canlı verisi.
 // Sadece giriş yapanlara görünür. Mesaj göndermek ve güvenilir işaretlemek PRO.
 
-import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { settings, updateSettings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
@@ -15,26 +15,44 @@ import {
   friendRequest,
   friendRespond,
   friendSet,
-  getLive,
   markRead,
   messageBeep,
   myFriends,
-  onLive,
   onMessages,
   sendMessage,
   type Friend,
-  type LiveData,
   type Message,
   type Person,
 } from "@/cloud/social";
-import { appState } from "../App";
+import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import { editFriendLook, go } from "../ui";
 import * as I from "../icons";
+import FriendData from "./FriendData";
 
 type View = { kind: "list" } | { kind: "chat"; f: Friend } | { kind: "live"; f: Friend } | { kind: "add" };
 
-export function FriendsDock() {
-  const [open, setOpen] = createSignal(false);
+/** Pencere dışından (ayrı arkadaş penceresi) panele yönlendirme */
+function panelGo(what: { sec?: string; sub?: string; friend?: string }) {
+  invoke("panel_front").catch(() => {});
+  setTimeout(() => emit("panel-go", what).catch(() => {}), 400);
+}
+
+/** Arkadaşın canlı verisini ayrı pencerede aç */
+export function openFriendWindow(f: Friend) {
+  invoke("window_open", { view: `friend:${f.friend_id}` }).catch(() => {});
+}
+
+export interface Nav {
+  pro: () => void;
+  look: (id: string) => void;
+}
+
+/** Arkadaş listesi paneli: panelin sağ altındaki kutuda ya da ayrı "Arkadaşlar" penceresinde */
+export function FriendsPanel(props: { standalone?: boolean; open: () => boolean; onClose?: () => void; racing?: () => boolean; onCounts?: (online: number, badge: number) => void }) {
+  const nav: Nav = props.standalone
+    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }) }
+    : { pro: () => go("pro"), look: (id) => editFriendLook(id) };
   const [view, setView] = createSignal<View>({ kind: "list" });
   let lastList: Friend[] = [];
   const [list, { refetch, mutate }] = createResource<Friend[], string | null>(
@@ -56,16 +74,18 @@ export function FriendsDock() {
   const online = () => accepted().filter((f) => f.online).length;
   const unread = () => friends().reduce((a, f) => a + (f.unread || 0), 0);
   const requests = () => friends().filter((f) => f.status === "pending_in").length;
+  createEffect(() => props.onCounts?.(online(), unread() + requests()));
 
   // Liste açıkken 20 sn'de bir, kapalıyken 60 sn'de bir yenile
   onMount(() => {
     let n = 0;
     const iv = setInterval(() => {
       n++;
-      if (open() || n % 3 === 0) refetch();
+      if (props.open() || n % 3 === 0) refetch();
     }, 20_000);
     onCleanup(() => clearInterval(iv));
   });
+  createEffect(on(props.open, (o) => o && (setView({ kind: "list" }), refetch()), { defer: true }));
 
   // Gelen mesajlar
   const [incoming, setIncoming] = createSignal<Message | null>(null);
@@ -79,10 +99,11 @@ export function FriendsDock() {
         onMessages((m) => {
           setIncoming(m);
           const v = view();
-          const chatting = open() && v.kind === "chat" && v.f.friend_id === m.sender;
+          const chatting = props.open() && v.kind === "chat" && v.f.friend_id === m.sender;
           if (!chatting) mutate(friends().map((f) => (f.friend_id === m.sender ? { ...f, unread: (f.unread || 0) + 1 } : f)));
+          const muted = friends().find((f) => f.friend_id === m.sender)?.muted;
           // Yarışta değilken panel ses çalar (yarıştayken overlay ekranı gösterir)
-          if (!appState().connected && settings().general.social.sound && !chatting) messageBeep();
+          if (!props.racing?.() && settings().general.social.sound && !settings().general.social.dnd && !muted && !chatting) messageBeep();
         }).then((s) => (stop = s));
         const cleanup = () => stop();
         onCleanup(cleanup);
@@ -102,88 +123,101 @@ export function FriendsDock() {
   };
 
   return (
+    <div class="fdock-panel" classList={{ standalone: !!props.standalone }} onContextMenu={(e) => e.preventDefault()}>
+      <header>
+        <Show when={view().kind !== "list"}>
+          <button class="icon-btn" title="Geri" onClick={() => setView({ kind: "list" })}>
+            <I.ChevronLeft />
+          </button>
+        </Show>
+        <b>
+          {view().kind === "chat"
+            ? (view() as { f: Friend }).f.display_name
+            : view().kind === "live"
+              ? t("{0} · canlı veri", (view() as { f: Friend }).f.display_name)
+              : view().kind === "add"
+                ? "Arkadaş ekle"
+                : "Arkadaşlar"}
+        </b>
+        <span class="lt-sp" />
+        <Show when={view().kind === "live"}>
+          <button class="icon-btn" title="Ayrı pencerede aç" onClick={() => openFriendWindow((view() as { f: Friend }).f)}>
+            <I.ExternalLink />
+          </button>
+        </Show>
+        <Show when={view().kind === "list"}>
+          <button class="icon-btn" title="Arkadaş ekle" onClick={() => setView({ kind: "add" })}>
+            <I.UserPlus />
+          </button>
+          <Show when={!props.standalone}>
+            <button class="icon-btn" title="Ayrı pencerede aç (Steam gibi)" onClick={() => (invoke("window_open", { view: "friends" }).catch(() => {}), props.onClose?.())}>
+              <I.ExternalLink />
+            </button>
+          </Show>
+        </Show>
+        <Show when={props.onClose}>
+          <button class="icon-btn" title="Kapat" onClick={() => props.onClose?.()}>
+            <I.X />
+          </button>
+        </Show>
+      </header>
+      <Show when={err()}>
+        <p class="error small fdock-err" onClick={() => setErr("")}>
+          {err()}
+        </p>
+      </Show>
+
+      <Show when={view().kind === "list"}>
+        <MyStatusBar />
+        <div class="fdock-list">
+          <Show when={friends().length > 0} fallback={<p class="muted small fdock-empty">Henüz arkadaşın yok. Sağ üstten ekleyebilirsin.</p>}>
+            <Show when={friends().some((f) => f.status !== "accepted")}>
+              <div class="fdock-sec">
+                Onay bekleyenler <i>{friends().filter((f) => f.status !== "accepted").length}</i>
+              </div>
+              <For each={[...friends().filter((f) => f.status === "pending_in"), ...friends().filter((f) => f.status === "pending_out")]}>
+                {(f) => <FriendRow f={f} nav={nav} onChat={() => {}} onLive={() => {}} act={act} />}
+              </For>
+              <div class="fdock-sec">Arkadaşlar</div>
+            </Show>
+            <For each={accepted().slice().sort((a, b) => Number(b.racing) - Number(a.racing) || Number(b.online) - Number(a.online) || a.display_name.localeCompare(b.display_name))}>
+              {(f) => <FriendRow f={f} nav={nav} onChat={() => setView({ kind: "chat", f })} onLive={() => setView({ kind: "live", f })} act={act} />}
+            </For>
+          </Show>
+        </div>
+      </Show>
+      <Show when={view().kind === "add"}>
+        <AddFriend friends={friends()} act={act} />
+      </Show>
+      <Show when={view().kind === "chat"}>
+        <Chat
+          f={(view() as { f: Friend }).f}
+          incoming={incoming()}
+          onRead={() => mutate(friends().map((x) => (x.friend_id === (view() as { f: Friend }).f.friend_id ? { ...x, unread: 0 } : x)))}
+        />
+      </Show>
+      <Show when={view().kind === "live"}>
+        <FriendData f={(view() as { f: Friend }).f} />
+      </Show>
+    </div>
+  );
+}
+
+export function FriendsDock(props: { racing?: () => boolean }) {
+  const [open, setOpen] = createSignal(false);
+  const [counts, setCounts] = createSignal<[number, number]>([0, 0]);
+  return (
     <Show when={session()}>
       <div class="fdock" classList={{ open: open() }}>
-        <Show when={open()}>
-          <div class="fdock-panel" onContextMenu={(e) => e.preventDefault()}>
-            <header>
-              <Show when={view().kind !== "list"}>
-                <button class="icon-btn" title="Geri" onClick={() => setView({ kind: "list" })}>
-                  <I.ChevronLeft />
-                </button>
-              </Show>
-              <b>
-                {view().kind === "chat"
-                  ? (view() as { f: Friend }).f.display_name
-                  : view().kind === "live"
-                    ? t("{0} · canlı veri", (view() as { f: Friend }).f.display_name)
-                    : view().kind === "add"
-                      ? "Arkadaş ekle"
-                      : "Arkadaşlar"}
-              </b>
-              <span class="lt-sp" />
-              <Show when={view().kind === "list"}>
-                <button class="icon-btn" title="Arkadaş ekle" onClick={() => setView({ kind: "add" })}>
-                  <I.UserPlus />
-                </button>
-              </Show>
-              <button class="icon-btn" title="Kapat" onClick={() => setOpen(false)}>
-                <I.X />
-              </button>
-            </header>
-            <Show when={err()}>
-              <p class="error small fdock-err" onClick={() => setErr("")}>
-                {err()}
-              </p>
-            </Show>
-
-            <Show when={view().kind === "list"}>
-              <MyStatusBar />
-              <div class="fdock-list">
-                <Show when={friends().length > 0} fallback={<p class="muted small fdock-empty">Henüz arkadaşın yok. Sağ üstten ekleyebilirsin.</p>}>
-                  <Show when={friends().some((f) => f.status !== "accepted")}>
-                    <div class="fdock-sec">
-                      Onay bekleyenler <i>{friends().filter((f) => f.status !== "accepted").length}</i>
-                    </div>
-                    <For each={[...friends().filter((f) => f.status === "pending_in"), ...friends().filter((f) => f.status === "pending_out")]}>
-                      {(f) => <FriendRow f={f} onChat={() => {}} onLive={() => {}} act={act} />}
-                    </For>
-                    <div class="fdock-sec">Arkadaşlar</div>
-                  </Show>
-                  <For each={accepted().slice().sort((a, b) => Number(b.racing) - Number(a.racing) || Number(b.online) - Number(a.online) || a.display_name.localeCompare(b.display_name))}>
-                    {(f) => (
-                      <FriendRow
-                        f={f}
-                        onChat={() => setView({ kind: "chat", f })}
-                        onLive={() => setView({ kind: "live", f })}
-                        act={act}
-                      />
-                    )}
-                  </For>
-                </Show>
-              </div>
-            </Show>
-            <Show when={view().kind === "add"}>
-              <AddFriend friends={friends()} act={act} />
-            </Show>
-            <Show when={view().kind === "chat"}>
-              <Chat
-                f={(view() as { f: Friend }).f}
-                incoming={incoming()}
-                onRead={() => mutate(friends().map((x) => (x.friend_id === (view() as { f: Friend }).f.friend_id ? { ...x, unread: 0 } : x)))}
-              />
-            </Show>
-            <Show when={view().kind === "live"}>
-              <LiveView f={(view() as { f: Friend }).f} />
-            </Show>
-          </div>
-        </Show>
-        <button class="fdock-btn" onClick={() => (setOpen(!open()), setView({ kind: "list" }), refetch())}>
+        <div style={{ display: open() ? "contents" : "none" }}>
+          <FriendsPanel open={open} onClose={() => setOpen(false)} racing={props.racing} onCounts={(o, b) => setCounts([o, b])} />
+        </div>
+        <button class="fdock-btn" onClick={() => setOpen(!open())}>
           <I.Users />
           <span>Arkadaşlar</span>
-          <small>{t("{0} çevrimiçi", online())}</small>
-          <Show when={unread() + requests() > 0}>
-            <i class="fdock-badge">{unread() + requests()}</i>
+          <small>{t("{0} çevrimiçi", counts()[0])}</small>
+          <Show when={counts()[1] > 0}>
+            <i class="fdock-badge">{counts()[1]}</i>
           </Show>
         </button>
       </div>
@@ -220,7 +254,7 @@ function statusText(f: Friend) {
   return f.last_seen ? t("Son görülme: {0}", new Date(f.last_seen).toLocaleString(localeTag(), { dateStyle: "short", timeStyle: "short" })) : t("Çevrimdışı");
 }
 
-function FriendRow(props: { f: Friend; onChat: () => void; onLive: () => void; act: (fn: () => Promise<unknown>) => void }) {
+function FriendRow(props: { f: Friend; nav: Nav; onChat: () => void; onLive: () => void; act: (fn: () => Promise<unknown>) => void }) {
   const f = () => props.f;
   const [menu, setMenu] = createSignal(false);
   return (
@@ -236,7 +270,9 @@ function FriendRow(props: { f: Friend; onChat: () => void; onLive: () => void; a
       <i class="frow-dot" />
       <div class="frow-main" onClick={() => f().status === "accepted" && props.onChat()}>
         <b data-no-i18n>{f().display_name || "?"}</b>
-        <small data-no-i18n={f().racing ? true : undefined}>{statusText(f())}</small>
+        <small data-no-i18n={f().racing ? true : undefined} title={statusText(f())}>
+          {statusText(f())}
+        </small>
       </div>
       <Show when={f().unread > 0}>
         <span class="frow-unread">{f().unread}</span>
@@ -255,8 +291,8 @@ function FriendRow(props: { f: Friend; onChat: () => void; onLive: () => void; a
         </button>
       </Show>
       <Show when={f().status === "accepted"}>
-        <Show when={f().racing && f().trusts_me}>
-          <button class="btn small live-btn" title="Verilerini gör (yakıt, turlar…)" onClick={props.onLive}>
+        <Show when={f().trusts_me}>
+          <button class="btn small live-btn" classList={{ idle: !f().racing }} title="Verilerini gör (yakıt, turlar, pistteki yeri)" onClick={props.onLive}>
             <I.Gauge /> Veriler
           </button>
         </Show>
@@ -274,13 +310,28 @@ function FriendRow(props: { f: Friend; onChat: () => void; onLive: () => void; a
           <button onClick={() => (setMenu(false), props.onChat())}>
             <I.MessageSquare /> Mesaj
           </button>
-          <button onClick={() => (setMenu(false), editFriendLook(f().friend_id))} title="Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla">
+          <Show
+            when={f().trusts_me}
+            fallback={
+              <button disabled title="Arkadaşın seni güvenilir işaretleyince yakıtını, turlarını ve pistteki yerini görebilirsin">
+                <I.Gauge /> Canlı veri (seni güvenilir seçmedi)
+              </button>
+            }
+          >
+            <button onClick={() => (setMenu(false), props.onLive())}>
+              <I.Gauge /> Canlı veri: yakıt, turlar, pistteki yeri
+            </button>
+            <button onClick={() => (setMenu(false), openFriendWindow(f()))}>
+              <I.ExternalLink /> Canlı veriyi ayrı pencerede aç
+            </button>
+          </Show>
+          <button onClick={() => (setMenu(false), props.nav.look(f().friend_id))} title="Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla">
             <I.Palette /> Görünümü düzenle
           </button>
           <Show
             when={isPro() || f().trusted}
             fallback={
-              <button onClick={() => go("pro")} title="Kod vermeden güvenilir işaretleme PRO özelliğidir">
+              <button onClick={() => props.nav.pro()} title="Kod vermeden güvenilir işaretleme PRO özelliğidir">
                 <I.Lock /> Güvenilir işaretle (PRO)
               </button>
             }
@@ -438,69 +489,6 @@ function Chat(props: { f: Friend; incoming: Message | null; onRead: () => void }
             </button>
           </div>
         </Show>
-      </Show>
-    </div>
-  );
-}
-
-function LiveView(props: { f: Friend }) {
-  const [d, setD] = createSignal<LiveData | null>(null);
-  const [at, setAt] = createSignal(0);
-  onMount(async () => {
-    const r = await getLive(props.f.friend_id).catch(() => null);
-    if (r) {
-      setD(r.data);
-      setAt(new Date(r.updated_at).getTime());
-    }
-    const stop = await onLive([props.f.friend_id], (_u, x) => {
-      setD(x);
-      setAt(Date.now());
-    });
-    onCleanup(stop);
-  });
-  const [now, setNow] = createSignal(Date.now());
-  const iv = setInterval(() => setNow(Date.now()), 1000);
-  onCleanup(() => clearInterval(iv));
-  const age = createMemo(() => Math.max(0, Math.round((now() - at()) / 1000)));
-  const f1 = (v: number | undefined, u = "") => (v === undefined || !isFinite(v) ? "—" : `${v.toFixed(1)}${u}`);
-  return (
-    <div class="flive">
-      <Show when={d()} fallback={<p class="muted small fdock-empty">Veri bekleniyor… (arkadaşın pistte olmalı)</p>}>
-        <div class="flive-head" data-no-i18n>
-          <b>
-            #{d()!.number} {d()!.car}
-          </b>
-          <small>{[d()!.session, d()!.track].filter(Boolean).join(" · ")}</small>
-        </div>
-        <div class="flive-grid">
-          <div>
-            <small>Yakıt</small>
-            <b>{f1(d()!.level, " L")}</b>
-            <i>{Math.round((d()!.pct || 0) * 100)}%</i>
-          </div>
-          <div>
-            <small>Kalan tur</small>
-            <b>{f1(d()!.lapsLeft)}</b>
-          </div>
-          <div>
-            <small>Tur başı</small>
-            <b>{f1(d()!.usage, " L")}</b>
-          </div>
-          <div>
-            <small>Bitiş için eklenecek</small>
-            <b>{f1(d()!.refuel, " L")}</b>
-          </div>
-          <div>
-            <small>Tur</small>
-            <b>{d()!.lap}</b>
-          </div>
-          <div>
-            <small>Pit</small>
-            <b>{d()!.onPit ? t("Pitte") : "—"}</b>
-          </div>
-        </div>
-        <small class="muted">{age() < 10 ? t("Canlı") : t("{0} sn önce", age())}</small>
-        <p class="muted small">Bu veri Yakıt overlay'inin takım bölümünde ve SRTR Pitwall panelinde de görünür.</p>
       </Show>
     </div>
   );

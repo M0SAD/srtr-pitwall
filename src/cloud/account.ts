@@ -27,6 +27,13 @@ export interface AppConfig {
   price_yearly: string;
   price_3m?: string;
   price_6m?: string;
+  /** Lemon Squeezy ödeme bağlantıları (1, 3, 6, 12 aylık) */
+  checkout_1m?: string;
+  checkout_3m?: string;
+  checkout_6m?: string;
+  checkout_12m?: string;
+  /** Bir hesabın kullanabileceği bilgisayar sayısı (aşılınca yöneticiye uyarı gider) */
+  device_limit?: number;
   pro_note: string;
   watermark?: Partial<WatermarkCfg>;
   shots_enabled?: boolean;
@@ -101,6 +108,103 @@ export async function updateProfile(patch: Partial<Pick<Profile, "display_name" 
   if (rows?.[0]) setProfile(rows[0]);
 }
 
+// ---------------------------------------------------------------------------
+// PRO süresi ve abonelik
+// ---------------------------------------------------------------------------
+
+export interface ProInfo {
+  pro_until: string | null;
+  source: string | null;
+  /** Abonelik kendini yeniliyor mu */
+  renewing: boolean;
+  sub: { status: string; plan: string; renews_at: string | null; ends_at: string | null; portal_url: string } | null;
+}
+
+const [proInfo, setProInfo] = createSignal<ProInfo | null>(null);
+export { proInfo };
+
+export async function loadProInfo() {
+  if (!cloudEnabled || !session()) return setProInfo(null);
+  try {
+    setProInfo((await api<ProInfo>("POST", "rpc/my_pro", { body: {} })) ?? null);
+  } catch {
+    /* çevrimdışı: son değer kalır */
+  }
+}
+
+/** PRO'nun bitmesine kaç tam gün kaldı (PRO yoksa ya da süresizse null) */
+export function proDaysLeft(): number | null {
+  const u = entitlement().proUntil;
+  if (!u || isAdmin() || u - Date.now() > 3000 * 86400_000) return null;
+  return Math.ceil((u - Date.now()) / 86400_000);
+}
+
+/** Bitmesine 15 gün ya da daha az kalmış ve kendini yenilemeyen PRO */
+export const proExpiringSoon = () => {
+  const d = proDaysLeft();
+  return d !== null && d > 0 && d <= 15 && !proInfo()?.renewing;
+};
+
+/** Lemon Squeezy ödeme bağlantısına hesabı (kimlik ve e-posta) ekler */
+export function checkoutUrl(base: string) {
+  try {
+    const u = new URL(base);
+    const s = session();
+    if (s) {
+      u.searchParams.set("checkout[email]", s.user.email ?? "");
+      u.searchParams.set("checkout[custom][user_id]", s.user.id);
+    }
+    return u.toString();
+  } catch {
+    return base;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cihaz kaydı: hesabın hangi bilgisayarlarda kullanıldığını sunucu sayar
+// ---------------------------------------------------------------------------
+
+export async function registerDevice(version: string) {
+  const s = session();
+  if (!cloudEnabled || !inTauri || !s) return;
+  try {
+    const d = await invoke<{ hash: string; label: string }>("device_info");
+    await api("POST", "rpc/register_device", { body: { p_hash: d.hash, p_label: d.label, p_version: version } });
+  } catch {
+    /* sonra yeniden denenir */
+  }
+}
+
+export interface AdminDeviceRow {
+  user_id: string;
+  display_name: string;
+  email: string;
+  pro_until: string | null;
+  device_count: number;
+  flag_id: string | null;
+  devices: { hash: string; label: string; version: string; first_seen: string; last_seen: string }[];
+}
+
+export type DeviceFilter = "flagged" | "multi" | "all";
+export const adminDevices = (filter: DeviceFilter) => api<AdminDeviceRow[]>("POST", "rpc/admin_devices", { body: { p_filter: filter } });
+export const adminRemoveDevice = (user: string, hash: string) => api("POST", "rpc/admin_remove_device", { body: { p_user: user, p_hash: hash } });
+export const adminResolveFlag = (flag: string) => api("POST", "rpc/admin_resolve_flag", { body: { p_flag: flag } });
+
+export interface AdminSub {
+  lemon_id: string;
+  user_id: string | null;
+  display_name: string | null;
+  email: string;
+  status: string;
+  plan: string;
+  renews_at: string | null;
+  ends_at: string | null;
+  updated_at: string;
+  created_at: string;
+  pro_until: string | null;
+}
+export const adminSubscriptions = () => api<AdminSub[]>("POST", "rpc/admin_subscriptions", { body: {} });
+
 /** Rust tarafındaki (diske yazılan) PRO durumunu oku */
 export async function readEntitlement() {
   try {
@@ -126,6 +230,8 @@ export async function refreshEntitlement() {
   try {
     if (!session()) setProfile(null);
     const [c, p] = await Promise.all([loadConfig(), session() ? loadProfile() : Promise.resolve(null)]);
+    loadProInfo();
+    invoke<{ display: string }>("app_version").then((v) => registerDevice(v.display)).catch(() => {});
     if (c) syncWatermark(normalizeWatermark(c.watermark), p?.display_name ?? "");
     const until = p?.is_admin ? Date.now() + 3650 * 86400_000 : p?.pro_until ? new Date(p.pro_until).getTime() : 0;
     const value = { proUntil: until, locked: c?.pro_overlays ?? entitlement().locked };

@@ -1,9 +1,10 @@
 // PRO üyelik bildirimi: Patreon ve Ko-fi ödeme bildirimlerini alır, ödeyen e-postaya PRO süresi verir.
 //
-// Adres: https://<proje>.supabase.co/functions/v1/pro-webhook?source=patreon  (ya da source=kofi)
+// Adres: https://<proje>.supabase.co/functions/v1/pro-webhook?source=lemon  (ya da patreon / kofi)
 // Gizli değerler (Supabase -> Edge Functions -> Secrets):
 //   PATREON_WEBHOOK_SECRET  Patreon webhook sayfasındaki "secret"
 //   KOFI_VERIFICATION_TOKEN Ko-fi -> API -> Verification Token
+//   LEMON_WEBHOOK_SECRET    Lemon Squeezy -> Settings -> Webhooks -> signing secret (source=lemon)
 // Kurulum: docs/PRO.md
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -39,6 +40,21 @@ async function grant(email: string, until: Date, source: string) {
   return data as string;
 }
 
+/** Ödemeyi istatistik için kaydeder (hata olursa PRO işlemini durdurmaz) */
+async function record(p: { id: string; source: string; email: string; user?: string | null; amount: number; currency: string; plan: string; kind?: string }) {
+  const { error } = await supabase.rpc("record_payment", {
+    p_id: p.id,
+    p_source: p.source,
+    p_email: p.email,
+    p_user: p.user ?? null,
+    p_amount: Math.round(p.amount * 100) / 100,
+    p_currency: p.currency,
+    p_plan: p.plan,
+    p_kind: p.kind ?? "payment",
+  });
+  if (error) console.error("record_payment", error.message);
+}
+
 function ok(body: unknown) {
   return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
 }
@@ -58,6 +74,16 @@ async function kofi(req: Request) {
   if (typeof raw !== "string") return fail(400, "data yok");
   const d = JSON.parse(raw);
   if (d.verification_token !== Deno.env.get("KOFI_VERIFICATION_TOKEN")) return fail(401, "token hatalı");
+  if (d.kofi_transaction_id && d.email) {
+    await record({
+      id: `kofi-${d.kofi_transaction_id}`,
+      source: "kofi",
+      email: String(d.email),
+      amount: Number(d.amount) || 0,
+      currency: String(d.currency || "USD"),
+      plan: String(d.tier_name || d.type || ""),
+    });
+  }
   if (d.type !== "Subscription" && !d.is_subscription_payment) return ok({ ignored: d.type });
   const email = String(d.email || "").trim();
   if (!email) return fail(400, "e-posta yok");
@@ -92,11 +118,89 @@ async function patreon(req: Request) {
     return ok({ ignored: a.patron_status ?? event });
   }
   const cadence = Number(a.pledge_cadence) || 1; // 1 aylık, 12 yıllık
+  // Ödeme kaydı: her tahsilat tarihi bir kez sayılır
+  if (a.last_charge_status === "Paid" && a.last_charge_date) {
+    await record({
+      id: `patreon-${j?.data?.id ?? email}-${a.last_charge_date}`,
+      source: "patreon",
+      email,
+      amount: (Number(a.currently_entitled_amount_cents) || 0) / 100,
+      currency: "USD",
+      plan: cadence >= 12 ? "Patreon 12m" : "Patreon 1m",
+    });
+  }
   const next = a.next_charge_date ? new Date(a.next_charge_date) : null;
   const base = next && next.getTime() > Date.now() ? next.getTime() : Date.now() + (cadence >= 12 ? 365 : 31) * DAY;
   const until = new Date(base + GRACE_DAYS * DAY);
   const r = await grant(email, until, "patreon");
   return ok({ ok: true, user: r });
+}
+
+// ---------------------------------------------------------------------------
+// Lemon Squeezy: abonelik olayları (subscription_created / updated / cancelled / expired ...).
+// X-Signature = HMAC-SHA256(gövde, signing secret). Ödemeyi yapan hesap, ödeme bağlantısına eklenen
+// checkout[custom][user_id] ile eşlenir; yoksa ödeme e-postasıyla.
+// Aktif abonelik: bir sonraki yenileme tarihine (+ek süre) kadar PRO. İptal: ödenen dönem bitene kadar.
+// ---------------------------------------------------------------------------
+async function lemon(req: Request) {
+  const raw = await req.text();
+  const secret = Deno.env.get("LEMON_WEBHOOK_SECRET") ?? "";
+  const sig = req.headers.get("X-Signature") ?? "";
+  const mine = createHmac("sha256", secret).update(raw).digest("hex");
+  if (!secret || sig.length !== mine.length || !timingSafeEqual(new TextEncoder().encode(sig), new TextEncoder().encode(mine))) {
+    return fail(401, "imza hatalı");
+  }
+  const j = JSON.parse(raw);
+  const event = String(j?.meta?.event_name ?? "");
+  const custom = j?.meta?.custom_data?.user_id;
+  const customUser = typeof custom === "string" && /^[0-9a-f-]{36}$/i.test(custom) ? custom : null;
+  // Ödeme / iade (abonelik faturası): sadece kayıt, PRO süresini abonelik olayı ayarlar
+  if (j?.data?.type === "subscription-invoices") {
+    const a = j.data.attributes ?? {};
+    const { data: sub } = await supabase.from("subscriptions").select("plan,user_id").eq("lemon_id", String(a.subscription_id ?? "")).maybeSingle();
+    const refund = event.includes("refund") || a.status === "refunded";
+    await record({
+      id: `lemon-inv-${j.data.id}${refund ? "-refund" : ""}`,
+      source: "lemon",
+      email: String(a.user_email ?? ""),
+      user: customUser ?? sub?.user_id ?? null,
+      amount: (Number(refund ? a.refunded_amount || a.total : a.total) || 0) / 100,
+      currency: String(a.currency ?? "USD"),
+      plan: String(sub?.plan ?? ""),
+      kind: refund ? "refund" : "payment",
+    });
+    return ok({ ok: true, event });
+  }
+  if (j?.data?.type !== "subscriptions") return ok({ ignored: event });
+  const a = j.data.attributes ?? {};
+  const status = String(a.status ?? "");
+  const email = String(a.user_email ?? "").trim();
+  const renews = a.renews_at ? new Date(a.renews_at) : null;
+  const ends = a.ends_at ? new Date(a.ends_at) : null;
+  let until: Date | null = null;
+  if (status === "active" || status === "on_trial" || status === "past_due") {
+    if (renews) until = new Date(renews.getTime() + GRACE_DAYS * DAY);
+  } else if (status === "cancelled") {
+    // İptal: ödenen dönemin sonuna kadar
+    until = ends ?? new Date();
+  } else {
+    // expired / unpaid / paused: PRO biter
+    until = ends && ends.getTime() < Date.now() ? ends : new Date();
+  }
+  const { data, error } = await supabase.rpc("apply_subscription", {
+    p_lemon_id: String(j.data.id),
+    p_user: customUser,
+    p_email: email,
+    p_status: status,
+    p_plan: String(a.variant_name || a.product_name || ""),
+    p_variant: String(a.variant_id ?? ""),
+    p_renews: renews ? renews.toISOString() : null,
+    p_ends: ends ? ends.toISOString() : null,
+    p_portal: String(a.urls?.customer_portal ?? ""),
+    p_until: until ? until.toISOString() : null,
+  });
+  if (error) throw new Error(error.message);
+  return ok({ ok: true, event, status, user: data });
 }
 
 Deno.serve(async (req) => {
@@ -105,7 +209,8 @@ Deno.serve(async (req) => {
   try {
     if (source === "kofi") return await kofi(req);
     if (source === "patreon") return await patreon(req);
-    return fail(400, "source=patreon ya da source=kofi olmalı");
+    if (source === "lemon") return await lemon(req);
+    return fail(400, "source=lemon, patreon ya da kofi olmalı");
   } catch (e) {
     console.error(e);
     return fail(500, String((e as Error).message ?? e));

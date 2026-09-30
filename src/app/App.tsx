@@ -7,9 +7,9 @@ import { listen } from "@tauri-apps/api/event";
 import type { AppState } from "@/sdk/types";
 import { settings, updateSettings } from "@/sdk/settings";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { isPro } from "@/cloud/account";
+import { isPro, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
-import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
+import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
 import * as I from "./icons";
 import { OverlaysPage } from "./pages/OverlaysPage";
@@ -29,6 +29,7 @@ import { FriendsDock } from "./components/FriendsDock";
 import { loadNotices } from "@/cloud/moderation";
 import { VoicePage } from "./pages/VoicePage";
 import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
+import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 
@@ -56,6 +57,7 @@ const TOP: NavItem[] = [
 ];
 
 const BOTTOM: NavItem[] = [
+  { id: "admin", label: "Yönetim", icon: () => <I.ShieldCheck /> },
   { id: "pro", label: "PRO", icon: () => <I.Heart /> },
   { id: "account", label: "Hesap", icon: () => <I.User /> },
   { id: "settings", label: "Ayarlar", icon: () => <I.Settings /> },
@@ -72,6 +74,7 @@ const TITLES: Record<Section, string> = {
   voice: "Sesli Mühendis",
   pro: "PRO Üyelik",
   account: "Hesap",
+  admin: "Yönetim",
   settings: "Ayarlar",
 };
 
@@ -93,7 +96,7 @@ const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
 
 function RailButton(p: { item: NavItem }) {
   return (
-    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro" }} title={p.item.label} onClick={() => go(p.item.id, SUBS[p.item.id]?.[0].id ?? "")}>
+    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro" }} title={p.item.label} onClick={() => go(p.item.id, (p.item.id === "admin" ? adminSubs() : SUBS[p.item.id])?.[0]?.id ?? "")}>
       {p.item.icon()}
       <Show when={p.item.badge}>
         <i class="rail-badge">{p.item.badge!()}</i>
@@ -125,6 +128,11 @@ export function App() {
     await listen<AppState>("app-state", (e) => setAppState(e.payload));
     // Düzenleme ekranında sağ tık > "Ayarlarını aç"
     await listen<string>("focus-overlay", (e) => focusOverlay(e.payload));
+    // Ayrı arkadaş penceresinden: "PRO'ya bak", "Görünümü düzenle"
+    await listen<{ sec?: string; sub?: string; friend?: string }>("panel-go", (e) => {
+      if (e.payload.friend) editFriendLook(e.payload.friend);
+      else if (e.payload.sec) go(e.payload.sec as Parameters<typeof go>[0], e.payload.sub ?? "");
+    });
     const pending = await invoke<string | null>("panel_take_focus");
     if (pending) focusOverlay(pending);
     await loadVersion();
@@ -144,7 +152,7 @@ export function App() {
     return { cls: "off", text: "Bağlı değil" };
   };
 
-  const subs = () => SUBS[section()];
+  const subs = () => (section() === "admin" ? adminSubs() : SUBS[section()]);
 
   return (
     <div class="shell2">
@@ -152,7 +160,7 @@ export function App() {
         <div class="rail-logo" title="SRTR Pitwall" />
         <For each={TOP}>{(it) => <RailButton item={it} />}</For>
         <div class="rail-sp" />
-        <For each={BOTTOM}>{(it) => <RailButton item={it} />}</For>
+        <For each={BOTTOM.filter((it) => it.id !== "admin" || canSeeAdmin())}>{(it) => <RailButton item={it} />}</For>
       </nav>
 
       <header class="top2">
@@ -161,6 +169,11 @@ export function App() {
           <Show when={update()?.available}>
             <button class="btn update-badge" title="Yeni sürümü indir ve kur" onClick={() => setUpdateDialog(true)}>
               <I.Download /> {t("Güncelleme: {0}", update()!.version ?? "")}
+            </button>
+          </Show>
+          <Show when={proExpiringSoon()}>
+            <button class="btn warn-badge" title="PRO üyeliğini yenile" onClick={() => go("pro")}>
+              <I.Heart /> {t("PRO: {0} gün kaldı", proDaysLeft() ?? 0)}
             </button>
           </Show>
           <Show when={version()?.updateConfigured && !update()?.available}>
@@ -223,7 +236,9 @@ export function App() {
             </For>
             <div class="subnav-foot">
               <Show when={cloudEnabled}>
-                <small class="muted">{session() ? (isPro() ? "PRO üye" : "Giriş yapıldı") : "Misafir"}</small>
+                <small class="muted">
+                  {session() ? (isPro() ? (proDaysLeft() !== null ? t("PRO üye · {0} gün kaldı", proDaysLeft()!) : "PRO üye") : "Giriş yapıldı") : "Misafir"}
+                </small>
               </Show>
               <small class="muted">Sürüm {version()?.display ?? "…"}</small>
             </div>
@@ -276,12 +291,15 @@ export function App() {
             <Match when={section() === "account"}>
               <AccountPage />
             </Match>
+            <Match when={section() === "admin" && canSeeAdmin()}>
+              <AdminPage />
+            </Match>
             <Match when={section() === "settings"}>
               <SettingsPage page={sub() || "general"} />
             </Match>
           </Switch>
         </main>
-        <FriendsDock />
+        <FriendsDock racing={() => appState().connected} />
         <UpdateDialog />
       </div>
     </div>

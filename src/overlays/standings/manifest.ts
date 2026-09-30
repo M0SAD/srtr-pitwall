@@ -31,7 +31,7 @@ export const STANDINGS_DEFAULT_COLUMNS = [
 
 export default defineOverlay({
   id: "standings",
-  name: "Leaderboard",
+  name: "Sıralama Tablosu",
   description:
     "Çok sınıflı sıralama: sınıf başlıkları ve SOF, ülke, araç, iRating, fark/aralık, 5 tur ortalaması, en iyi tur, pit durumu. Sütunlar sıralanabilir.",
   category: "race",

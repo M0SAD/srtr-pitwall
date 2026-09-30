@@ -1,6 +1,8 @@
 // SRTR Pitwall sunucu işleri (veritabanı tarafından çağrılır, uygulama çağırmaz):
 //   {"type":"report","id":"<rapor id>"}  Yeni rapor: yöneticilere e-posta gönderir
 //   {"type":"friend_request","id":"<bildirim id>"}  Yeni arkadaşlık isteği: karşı tarafa temalı e-posta gönderir
+//   {"type":"pro_expiring","id":"<bildirim id>"}  PRO bitmesine 15 gün kala hatırlatma e-postası
+//   {"type":"device_alert","id":"<bildirim id>"}   Yöneticiye: hesap cihaz sınırını aştı
 //   {"type":"cleanup"}                   6 aydır açılmayan ekran görüntülerini siler,
 //                                        sahibine uygulama içi bildirim ve e-posta gönderir
 //
@@ -14,7 +16,7 @@
 //   REPORT_TO  (isteğe bağlı) rapor e-postalarının ek alıcıları, virgülle
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "npm:nodemailer@6.9.16";
 
 function serviceKey(): string {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -73,14 +75,18 @@ function page(title: string, body: string, preheader = "") {
 
 async function sendMail(to: string[], subject: string, html: string) {
   if (!SMTP_PASS || to.length === 0) return false;
-  const client = new SMTPClient({
-    connection: { hostname: SMTP_HOST, port: SMTP_PORT, tls: true, auth: { username: SMTP_USER, password: SMTP_PASS } },
+  // nodemailer: Türkçe karakterli konu ve HTML doğru kodlanır (denomailer bunu bozuyordu)
+  const tr = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
   });
-  try {
-    await client.send({ from: `SRTR Pitwall <${SMTP_USER}>`, to, subject, html, content: "auto" });
-  } finally {
-    await client.close();
-  }
+  // Uygulama adı hiçbir dile çevrilmez: Gmail / Google Çeviri'ye "çevirme" işareti
+  const bi = html.indexOf("<body");
+  html = html.slice(0, bi) + html.slice(bi).replace(/SRTR (<span[^>]*>)?Pitwall(<\/span>)?/g, (m) => `<span translate="no" class="notranslate">${m}</span>`);
+  const text = html.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&middot;/g, "·").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+  await tr.sendMail({ from: `SRTR Pitwall <${SMTP_USER}>`, to: to.join(", "), subject, html, text });
   return true;
 }
 
@@ -274,6 +280,145 @@ async function friendRequest(id: string) {
   return { ok: true, sent };
 }
 
+const PRO_EXP: Record<string, { subject: string; line: string; how: string; note: string }> = {
+  "tr": {
+    subject: "PRO üyeliğinin bitmesine {0} gün kaldı",
+    line: "PRO üyeliğin {1} tarihinde sona eriyor ({0} gün kaldı).",
+    how: "SRTR Pitwall'u aç, sol menüden PRO'ya gir ve yenile; kaldığın yerden devam edersin.",
+    note: "Süre dolduğunda PRO overlay'ler ve sesli mühendis kilitlenir, ayarların ve verilerin silinmez.",
+  },
+  "en": {
+    subject: "Your PRO membership ends in {0} days",
+    line: "Your PRO membership ends on {1} ({0} days left).",
+    how: "Open SRTR Pitwall, go to PRO in the left menu and renew to keep going without a break.",
+    note: "When it ends, PRO overlays and the voice engineer lock. Your settings and data are kept.",
+  },
+  "de": {
+    subject: "Deine PRO-Mitgliedschaft endet in {0} Tagen",
+    line: "Deine PRO-Mitgliedschaft endet am {1} (noch {0} Tage).",
+    how: "Öffne SRTR Pitwall, gehe im linken Menü auf PRO und verlängere, um ohne Unterbrechung weiterzumachen.",
+    note: "Nach Ablauf sind PRO-Overlays und der Sprach-Ingenieur gesperrt. Einstellungen und Daten bleiben erhalten.",
+  },
+  "es": {
+    subject: "Tu membresía PRO termina en {0} días",
+    line: "Tu membresía PRO termina el {1} (quedan {0} días).",
+    how: "Abre SRTR Pitwall, entra en PRO en el menú izquierdo y renueva para seguir sin interrupciones.",
+    note: "Al terminar, los overlays PRO y el ingeniero de voz se bloquean. Tus ajustes y datos se conservan.",
+  },
+  "pt-BR": {
+    subject: "Sua assinatura PRO termina em {0} dias",
+    line: "Sua assinatura PRO termina em {1} (faltam {0} dias).",
+    how: "Abra o SRTR Pitwall, entre em PRO no menu à esquerda e renove para continuar sem interrupção.",
+    note: "Ao terminar, os overlays PRO e o engenheiro de voz ficam bloqueados. Suas configurações e dados são mantidos.",
+  },
+  "pt-PT": {
+    subject: "A tua subscrição PRO termina em {0} dias",
+    line: "A tua subscrição PRO termina em {1} (faltam {0} dias).",
+    how: "Abre o SRTR Pitwall, entra em PRO no menu à esquerda e renova para continuares sem interrupção.",
+    note: "Quando terminar, os overlays PRO e o engenheiro de voz ficam bloqueados. As tuas definições e dados mantêm-se.",
+  },
+  "fr": {
+    subject: "Ton abonnement PRO se termine dans {0} jours",
+    line: "Ton abonnement PRO se termine le {1} ({0} jours restants).",
+    how: "Ouvre SRTR Pitwall, va dans PRO dans le menu de gauche et renouvelle pour continuer sans interruption.",
+    note: "À la fin, les overlays PRO et l'ingénieur vocal sont verrouillés. Tes réglages et données sont conservés.",
+  },
+  "it": {
+    subject: "Il tuo abbonamento PRO scade tra {0} giorni",
+    line: "Il tuo abbonamento PRO scade il {1} (mancano {0} giorni).",
+    how: "Apri SRTR Pitwall, vai su PRO nel menu a sinistra e rinnova per continuare senza interruzioni.",
+    note: "Alla scadenza gli overlay PRO e l'ingegnere vocale vengono bloccati. Impostazioni e dati restano.",
+  },
+  "nl": {
+    subject: "Je PRO-lidmaatschap eindigt over {0} dagen",
+    line: "Je PRO-lidmaatschap eindigt op {1} (nog {0} dagen).",
+    how: "Open SRTR Pitwall, ga links naar PRO en verleng om zonder onderbreking door te gaan.",
+    note: "Daarna zijn PRO-overlays en de stemengineer vergrendeld. Je instellingen en gegevens blijven bewaard.",
+  },
+  "pl": {
+    subject: "Twoje członkostwo PRO kończy się za {0} dni",
+    line: "Twoje członkostwo PRO kończy się {1} (zostało {0} dni).",
+    how: "Otwórz SRTR Pitwall, wejdź w PRO w lewym menu i odnów, aby kontynuować bez przerwy.",
+    note: "Po zakończeniu nakładki PRO i inżynier głosowy zostaną zablokowane. Ustawienia i dane zostają.",
+  },
+  "sv": {
+    subject: "Ditt PRO-medlemskap upphör om {0} dagar",
+    line: "Ditt PRO-medlemskap upphör den {1} ({0} dagar kvar).",
+    how: "Öppna SRTR Pitwall, gå till PRO i vänstermenyn och förnya för att fortsätta utan avbrott.",
+    note: "När det upphör låses PRO-overlays och röstingenjören. Dina inställningar och data finns kvar.",
+  },
+  "fi": {
+    subject: "PRO-jäsenyytesi päättyy {0} päivän kuluttua",
+    line: "PRO-jäsenyytesi päättyy {1} ({0} päivää jäljellä).",
+    how: "Avaa SRTR Pitwall, siirry vasemmasta valikosta kohtaan PRO ja uusi jäsenyys jatkaaksesi keskeytyksettä.",
+    note: "Päättyessään PRO-overlayt ja ääni-insinööri lukitaan. Asetukset ja tiedot säilyvät.",
+  },
+  "ru": {
+    subject: "Твоя PRO-подписка закончится через {0} дн.",
+    line: "Твоя PRO-подписка заканчивается {1} (осталось дней: {0}).",
+    how: "Открой SRTR Pitwall, зайди в PRO в левом меню и продли подписку, чтобы продолжить без перерыва.",
+    note: "После окончания PRO-оверлеи и голосовой инженер блокируются. Настройки и данные сохраняются.",
+  },
+  "zh-CN": {
+    subject: "你的 PRO 会员将在 {0} 天后到期",
+    line: "你的 PRO 会员将于 {1} 到期（还剩 {0} 天）。",
+    how: "打开 SRTR Pitwall，在左侧菜单进入 PRO 并续费，即可不间断继续使用。",
+    note: "到期后，PRO 叠加层和语音工程师将被锁定，你的设置和数据会保留。",
+  },
+  "ja": {
+    subject: "PRO メンバーシップはあと {0} 日で終了します",
+    line: "PRO メンバーシップは {1} に終了します（残り {0} 日）。",
+    how: "SRTR Pitwall を開き、左メニューの PRO から更新すると、中断せずに使い続けられます。",
+    note: "終了後は PRO オーバーレイとボイスエンジニアがロックされます。設定とデータは保持されます。",
+  },
+};
+
+async function proExpiring(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "pro_expiring") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const until = new Date(n.data?.until ?? Date.now());
+  const days = Math.max(1, Math.ceil((until.getTime() - Date.now()) / 86400000));
+  const m = PRO_EXP[u.lang] ?? PRO_EXP[u.lang.split("-")[0]] ?? PRO_EXP.en;
+  const date = until.toLocaleDateString(u.lang === "tr" ? "tr-TR" : "en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const fill = (t: string) => t.replace("{0}", String(days)).replace("{1}", date);
+  const body = `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid #262b36;border-radius:10px;text-align:center">
+      <div style="font:800 40px/1 Arial,Helvetica,sans-serif;color:#ff8a2a">${days}</div>
+      <div style="font-size:12px;letter-spacing:1px;color:#8a93a4;text-transform:uppercase;margin-top:6px">PRO</div>
+    </div>
+    <p style="margin:0 0 14px">${esc(fill(m.line))}</p>
+    <div style="margin:0 0 14px;padding:12px 14px;background:#10131a;border:1px solid #262b36;border-left:3px solid #ff8a2a;border-radius:8px;color:#cfd5e1;font-size:14px">${esc(m.how)}</div>
+    <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.note)}</p>`;
+  const subject = fill(m.subject);
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, fill(m.line)));
+  return { ok: true, sent };
+}
+
+// Yöneticiye: bir hesap cihaz sınırını aştı
+async function deviceAlert(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "device_alert") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const tr = u.lang === "tr";
+  const name = String(n.data?.name ?? "?");
+  const count = Number(n.data?.count ?? 0);
+  const title = tr ? "Şüpheli hesap kullanımı" : "Suspicious account usage";
+  const body = `
+    <p style="margin:0 0 12px"><b style="color:#ffb35c">${esc(name)}</b> ${
+      tr ? `hesabı ${count} farklı bilgisayardan kullanılıyor (sınır aşıldı).` : `is being used from ${count} different computers (limit exceeded).`
+    }</p>
+    <p style="color:#8b93a3;font-size:13px;margin:0">${
+      tr ? "Uygulamada Yönetim → Cihazlar bölümünden inceleyebilirsin." : "Review it in the app under Management → Devices."
+    }</p>`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${name}`, page(title, body));
+  return { ok: true, sent };
+}
+
 // ---------------------------------------------------------------------------
 // 6 aydır açılmayan görsellerin silinmesi
 // ---------------------------------------------------------------------------
@@ -409,6 +554,10 @@ Deno.serve(async (req) => {
         ? await report(body.id)
         : body.type === "friend_request" && body.id
           ? await friendRequest(body.id)
+          : body.type === "pro_expiring" && body.id
+            ? await proExpiring(body.id)
+            : body.type === "device_alert" && body.id
+              ? await deviceAlert(body.id)
           : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
     return Response.json(res, { status: res.ok ? 200 : 400 });
   } catch (e) {

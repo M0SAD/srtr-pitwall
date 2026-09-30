@@ -19,6 +19,7 @@ mod server;
 mod session;
 mod trackmap;
 mod tracker;
+mod device;
 mod updater;
 mod voice;
 
@@ -460,6 +461,29 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
         "pitwall" => ("pitwall", "Pitwall Paneli", 1500.0, 900.0),
         "timing" => ("timing", "Live Timing", 1100.0, 800.0),
         "engineer" => ("engineer", "Mühendis Ekranı", 1000.0, 600.0),
+        "friends" => ("friends", "Arkadaşlar", 380.0, 680.0),
+        v if v.starts_with("friend:") => {
+            // Bir arkadaşın canlı verisi (her arkadaş için ayrı pencere)
+            let id = &v["friend:".len()..];
+            if id.is_empty() || id.len() > 40 || !id.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+                return Err("geçersiz arkadaş".into());
+            }
+            let label = format!("friend-{id}");
+            if let Some(w) = app.get_webview_window(&label) {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+                return Ok(());
+            }
+            return WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(format!("window.html?view=friend&id={id}").into()))
+                .title(format!("SRTR Pitwall – {}", tr(&app, "Arkadaş verileri")))
+                .inner_size(400.0, 820.0)
+                .min_inner_size(340.0, 420.0)
+                .additional_browser_args(browser_args())
+                .build()
+                .map(|_| ())
+                .map_err(|e| e.to_string());
+        }
         _ => return Err("bilinmeyen pencere".into()),
     };
     if let Some(w) = app.get_webview_window(label) {
@@ -471,11 +495,19 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
     WebviewWindowBuilder::new(&app, label, WebviewUrl::App(format!("window.html?view={view}").into()))
         .title(format!("SRTR Pitwall – {}", tr(&app, title)))
         .inner_size(w, h)
-        .min_inner_size(700.0, 500.0)
+        .min_inner_size(if label == "friends" { 320.0 } else { 700.0 }, if label == "friends" { 420.0 } else { 500.0 })
         .additional_browser_args(browser_args())
         .build()
         .map(|_| ())
         .map_err(|e| e.to_string())
+}
+
+/// Tepsiden "Arkadaşlar" penceresini aç
+fn open_friends(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = window_open(app, "friends".into()).await;
+    });
 }
 
 // ---- Web sunucusu (OBS tarayıcı kaynağı) ----
@@ -901,18 +933,24 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", TRAY_LABELS[2].1, true, None::<&str>)?;
     let edit = MenuItem::with_id(app, "edit", TRAY_LABELS[0].1, true, None::<&str>)?;
     let hide = MenuItem::with_id(app, "hide", TRAY_LABELS[1].1, true, None::<&str>)?;
-    *app.state::<KeyBindings>().tray.lock() =
-        vec![("edit".into(), edit.clone()), ("hide".into(), hide.clone()), ("panel".into(), open.clone())];
+    let friends = MenuItem::with_id(app, "friends", TRAY_LABELS[4].1, true, None::<&str>)?;
+    *app.state::<KeyBindings>().tray.lock() = vec![
+        ("edit".into(), edit.clone()),
+        ("hide".into(), hide.clone()),
+        ("panel".into(), open.clone()),
+        ("friends".into(), friends.clone()),
+    ];
     let sep = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Çıkış", true, None::<&str>)?;
     app.state::<KeyBindings>().tray.lock().push(("quit".into(), quit.clone()));
-    let menu = Menu::with_items(app, &[&open, &edit, &hide, &sep, &quit])?;
+    let menu = Menu::with_items(app, &[&open, &friends, &edit, &hide, &sep, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .tooltip(format!("SRTR Pitwall {}", display_version()))
         .menu(&menu)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => bring_panel_front(app),
+            "friends" => open_friends(app),
             "edit" => {
                 let on = !shared(app).edit_mode.load(Ordering::Relaxed);
                 set_edit_mode(app, on);
@@ -948,8 +986,13 @@ struct KeyBindings {
     tray: Mutex<Vec<(String, MenuItem<tauri::Wry>)>>,
 }
 
-const TRAY_LABELS: [(&str, &str); 4] =
-    [("edit", "Düzenleme Modu"), ("hide", "Overlay Gizle/Göster"), ("panel", "Kontrol Paneli"), ("quit", "Çıkış")];
+const TRAY_LABELS: [(&str, &str); 5] = [
+    ("edit", "Düzenleme Modu"),
+    ("hide", "Overlay Gizle/Göster"),
+    ("panel", "Kontrol Paneli"),
+    ("quit", "Çıkış"),
+    ("friends", "Arkadaşlar"),
+];
 
 #[derive(Serialize)]
 struct ShortcutError {
@@ -1137,6 +1180,7 @@ pub fn run() {
         // Tek örnek: ikinci kez açılmaya çalışılırsa yeni kopya kapanır, mevcut olanın paneli öne gelir.
         // (Eklentiler arasında ilk sırada olmalı.)
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| bring_panel_front(app)))
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![TRAY_ARG]),
@@ -1206,6 +1250,7 @@ pub fn run() {
             shots::edit_backdrop_clear,
             entitlement::entitlement_get,
             entitlement::entitlement_set,
+            device::device_info,
             updater::update_check,
             updater::update_install,
         ])

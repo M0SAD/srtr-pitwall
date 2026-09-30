@@ -9,6 +9,9 @@ import { friendOf, friendRowStyle, friendsOn } from "@/sdk/friends";
 import { FriendBadge } from "@/sdk/FriendBadge";
 import { HeaderStats, formatName } from "@/sdk/HeaderStats";
 import { STANDINGS_COLUMNS, STANDINGS_DEFAULT_COLUMNS } from "./manifest";
+import { Flag } from "@/sdk/Flag";
+import { Helmet } from "@/sdk/Helmet";
+import { t } from "@/sdk/i18n";
 import "./style.css";
 
 interface Group {
@@ -105,7 +108,11 @@ export default function Standings(props: OverlayProps) {
   const cell = (key: string, r: Row): JSX.Element => {
     switch (key) {
       case "flair":
-        return <span class="st-flair" data-no-i18n>{r.flair}</span>;
+        return (
+          <span class="st-flair" data-no-i18n>
+            <Flag code={r.flair} />
+          </span>
+        );
       case "name": {
         const tag = friendsOn("standings") ? friendOf(r.userId, r.name)?.tag : "";
         return (
@@ -169,7 +176,9 @@ export default function Standings(props: OverlayProps) {
             <b>{data()!.sessionType || "Oturum"}</b> <span class="ov-mono">{sessionTime()}</span>
           </span>
           <HeaderStats fields={(props.options.headerFields as string[]) ?? []} units={props.units} sof={mySof()} />
-          <span class="ov-dim">{`${data()!.carCount} araç`}</span>
+          <span class="ov-dim st-count" title={t("{0} araç", data()!.carCount)}>
+            <Helmet /> {data()!.carCount}
+          </span>
         </div>
       </Show>
       <Show when={groups().length > 0} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
@@ -181,7 +190,9 @@ export default function Standings(props: OverlayProps) {
                   <span class="st-ribbon" style={{ background: g.info.color || "#888" }}>
                     {g.info.name || "Sınıf"}
                   </span>
-                  <span class="ov-dim">{`${g.info.count} araç`}</span>
+                  <span class="ov-dim st-count" title={t("{0} araç", g.info.count)}>
+                    <Helmet /> {g.info.count}
+                  </span>
                   <span>
                     <span class="ov-tag st-sof">SOF</span> {irating(g.info.sof)}
                   </span>

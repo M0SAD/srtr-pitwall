@@ -15,7 +15,9 @@ export function Switch(props: { checked: boolean; onChange: (v: boolean) => void
   );
 }
 
-/** Değeri kutunun içinde yazan, dolan kaydırıcı (Edge tarzı) */
+/** Değeri kutunun içinde yazan, dolan kaydırıcı (Edge tarzı).
+ * Fareyle sürükleme kendi işaretçi olaylarımızla yapılır (yerel kaydırıcı bazı durumlarda tutulamıyordu);
+ * klavye (ok tuşları) için görünmez bir range kutusu durur. */
 export function Slider(props: {
   value: number;
   min: number;
@@ -26,13 +28,61 @@ export function Slider(props: {
   onInput: (v: number) => void;
 }) {
   const pct = () => ((props.value - props.min) / Math.max(1e-9, props.max - props.min)) * 100;
+  const [dragging, setDragging] = createSignal(false);
+  let box: HTMLDivElement | undefined;
+  let input: HTMLInputElement | undefined;
+  const valueAt = (clientX: number) => {
+    const r = box!.getBoundingClientRect();
+    const k = Math.min(1, Math.max(0, (clientX - r.left) / Math.max(1, r.width)));
+    const st = props.step ?? 1;
+    const v = props.min + Math.round((k * (props.max - props.min)) / st) * st;
+    // Ondalık adımlarda kayan nokta artıklarını temizle
+    const dec = String(st).includes(".") ? String(st).split(".")[1].length : 0;
+    return Math.min(props.max, Math.max(props.min, Number(v.toFixed(dec))));
+  };
+  let last = NaN;
+  const apply = (clientX: number) => {
+    const v = valueAt(clientX);
+    if (v !== last) {
+      last = v;
+      if (v !== props.value) props.onInput(v);
+    }
+  };
+  const down = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    input?.focus();
+    last = NaN;
+    setDragging(true);
+    apply(e.clientX);
+    const move = (ev: PointerEvent) => apply(ev.clientX);
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      setDragging(false);
+    };
+    // Pencere düzeyinde dinlenir: form yeniden çizilse ya da fare kutudan çıksa da sürükleme sürer
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
   return (
-    <div class="fslider" style={{ "--p": `${Math.max(0, Math.min(100, pct()))}%` }}>
+    <div class="fslider" classList={{ dragging: dragging() }} ref={box} style={{ "--p": `${Math.max(0, Math.min(100, pct()))}%` }} onPointerDown={down}>
       <span class="fslider-val">
         {props.format ? props.format(props.value) : props.value}
         {props.unit ? ` ${props.unit}` : ""}
       </span>
-      <input type="range" min={props.min} max={props.max} step={props.step ?? 1} value={props.value} onInput={(e) => props.onInput(Number(e.currentTarget.value))} />
+      <input
+        ref={input}
+        type="range"
+        tabIndex={0}
+        min={props.min}
+        max={props.max}
+        step={props.step ?? 1}
+        value={props.value}
+        onInput={(e) => props.onInput(Number(e.currentTarget.value))}
+      />
     </div>
   );
 }

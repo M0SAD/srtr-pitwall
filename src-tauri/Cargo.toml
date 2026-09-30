@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.21"
+version = "1.0.25"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -26,7 +26,9 @@ base64 = "0.22"
 rumqttc = { version = "0.25", default-features = false }
 rumqttd = { version = "0.20", default-features = false }
 rodio = { version = "0.20", default-features = false, features = ["wav"] }
+sha2 = "0.10"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "bmp", "webp"] }
+tauri-plugin-notification = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
@@ -37,6 +39,7 @@ windows-sys = { version = "0.59", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_Graphics_Gdi",
   "Win32_System_SystemInformation",
+  "Win32_System_Registry",
 ] }
 
 # En hızlı ve en küçük exe için sürüm profili.

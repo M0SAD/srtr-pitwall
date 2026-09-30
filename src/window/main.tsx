@@ -19,12 +19,42 @@ document.addEventListener("contextmenu", (e) => {
 
 const root = document.getElementById("root")!;
 const view = query.get("view") ?? "pitwall";
-document.title = view === "timing" ? "SRTR Pitwall – Live Timing" : view === "engineer" ? "SRTR Pitwall – Mühendis" : "SRTR Pitwall – Pitwall Paneli";
+const social = view === "friends" || view === "friend";
+document.title =
+  view === "timing"
+    ? "SRTR Pitwall – Live Timing"
+    : view === "engineer"
+      ? "SRTR Pitwall – Mühendis"
+      : view === "friends"
+        ? "SRTR Pitwall – Arkadaşlar"
+        : view === "friend"
+          ? "SRTR Pitwall"
+          : "SRTR Pitwall – Pitwall Paneli";
 
-initSettings(`window-${view}`).then(() => {
+initSettings(`window-${view}`).then(async () => {
   startDomTranslation();
+  // Arkadaş pencereleri panelin görünümünü kullanır
+  if (social) {
+    await import("@/app/app.css");
+    await import("@/app/shell.css");
+  }
+  const { FriendsWindow, FriendWindow } = social ? await import("./Friends") : ({} as typeof import("./Friends"));
   root.textContent = "";
-  const dispose = render(() => (view === "timing" ? <Timing /> : view === "engineer" ? <Engineer /> : <Pitwall />), root);
+  const dispose = render(
+    () =>
+      view === "friends" ? (
+        <FriendsWindow />
+      ) : view === "friend" ? (
+        <FriendWindow id={query.get("id") ?? ""} />
+      ) : view === "timing" ? (
+        <Timing />
+      ) : view === "engineer" ? (
+        <Engineer />
+      ) : (
+        <Pitwall />
+      ),
+    root,
+  );
   import.meta.hot?.dispose(dispose);
   startEntitlement();
 });

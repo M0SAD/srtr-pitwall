@@ -1,8 +1,4 @@
 import { localeTag, t } from "@/sdk/i18n";
-import { ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminModeration";
-import { can, listGroups, ownerSetAdmin, setUserGroup, type PermGroup } from "@/cloud/moderation";
-import { AdminHosting, AdminWatermark } from "../components/AdminMedia";
-import { AdminNotices } from "../components/AdminNotices";
 import { For, Match, Show, Switch, createResource, createSignal, onMount } from "solid-js";
 import {
   cloudEnabled,
@@ -23,21 +19,19 @@ import {
   syncState,
 } from "@/cloud/supabase";
 import {
-  adminStats,
-  adminUsers,
-  type UserFilter,
-  adminSetPro,
+  checkoutUrl,
   config,
   entitlement,
   isAdmin,
-  isOwner,
   isPro,
   loadConfig,
+  loadProInfo,
+  proDaysLeft,
+  proExpiringSoon,
+  proInfo,
   profile,
   refreshEntitlement,
-  saveConfig,
   updateProfile,
-  type AdminUser,
 } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { manifests } from "@/sdk/registry";
@@ -302,12 +296,6 @@ function Signed() {
           </div>
         </section>
       </Show>
-      <Show when={can("reports.view")}>
-        <ModerationPanel />
-      </Show>
-      <Show when={isAdmin()}>
-        <AdminPanel />
-      </Show>
     </>
   );
 }
@@ -396,11 +384,22 @@ function IracingPanel() {
   );
 }
 
+const PLAN_LIST = [
+  { label: "1 aylık", price: "price_monthly", checkout: "checkout_1m" },
+  { label: "3 aylık", price: "price_3m", checkout: "checkout_3m" },
+  { label: "6 aylık", price: "price_6m", checkout: "checkout_6m" },
+  { label: "12 aylık", price: "price_yearly", checkout: "checkout_12m" },
+] as const;
+
 function ProPanel() {
   const [cfg] = createResource(() => config() ?? loadConfig().catch(() => null));
   const c = () => config() ?? cfg();
   const [payEmail, setPayEmail] = createSignal("");
   const locked = () => (c()?.pro_overlays ?? []).map((id) => manifests.find((m) => m.id === id)?.name ?? id);
+  onMount(() => loadProInfo());
+  const plans = () => PLAN_LIST.filter((p) => c()?.[p.price] || c()?.[p.checkout]);
+  const sub = () => proInfo()?.sub ?? null;
+  const days = () => proDaysLeft();
 
   return (
     <section class="panel pro-panel">
@@ -412,7 +411,7 @@ function ProPanel() {
         fallback={
           <>
             <p>
-              PRO üyelik SRTR Pitwall'un geliştirilmesini destekler ve PRO'ya özel overlay'lerin kilidini açar.
+              PRO üyelik SRTR Pitwall'un geliştirilmesini destekler ve PRO'ya özel özelliklerin kilidini açar.
               <Show when={locked().length > 0}>
                 {" "}
                 PRO overlay'ler: <b>{locked().join(", ")}</b>.
@@ -421,66 +420,99 @@ function ProPanel() {
             <Show when={c()?.pro_note}>
               <p class="muted">{c()!.pro_note}</p>
             </Show>
-            <div class="pro-plans">
-              <Show when={c()?.price_monthly}>
-                <div class="pro-plan">
-                  <small>Aylık</small>
-                  <b>{c()!.price_monthly}</b>
-                </div>
-              </Show>
-              <Show when={c()?.price_3m}>
-                <div class="pro-plan">
-                  <small>3 aylık</small>
-                  <b>{c()!.price_3m}</b>
-                </div>
-              </Show>
-              <Show when={c()?.price_6m}>
-                <div class="pro-plan">
-                  <small>6 aylık</small>
-                  <b>{c()!.price_6m}</b>
-                </div>
-              </Show>
-              <Show when={c()?.price_yearly}>
-                <div class="pro-plan">
-                  <small>Yıllık</small>
-                  <b>{c()!.price_yearly}</b>
-                </div>
-              </Show>
-            </div>
-            <div class="btns">
-              <Show when={c()?.patreon_url}>
-                <button class="btn primary" onClick={() => openUrl(c()!.patreon_url)}>
-                  Patreon'da abone ol
-                </button>
-              </Show>
-              <Show when={c()?.kofi_url}>
-                <button class="btn primary" onClick={() => openUrl(c()!.kofi_url)}>
-                  Ko-fi'de abone ol
-                </button>
-              </Show>
-            </div>
-            <p class="muted small">
-              Aboneliği SRTR Pitwall hesabınla <b>aynı e-posta</b> ile yap; PRO birkaç dakika içinde otomatik açılır ve her
-              ödemede uzar.
-              <Show when={!session()}> Önce yukarıdan hesap oluştur.</Show>
-            </p>
           </>
         }
       >
-        <p>
-          PRO üyesin, teşekkürler!{" "}
-          <Show when={!isAdmin()}>
-            <span class="muted">
-              Geçerlilik: {fmtDate(entitlement().proUntil)} {profile()?.pro_source ? `(${profile()!.pro_source})` : ""}
-            </span>
+        <div class="pro-status" classList={{ warn: proExpiringSoon() }}>
+          <Show
+            when={!isAdmin()}
+            fallback={
+              <p>
+                PRO üyesin, teşekkürler! <span class="muted">Yönetici hesabında PRO süresizdir.</span>
+              </p>
+            }
+          >
+            <p>
+              <b>PRO üyesin, teşekkürler!</b>
+            </p>
+            <Show when={days() !== null} fallback={<p class="muted">PRO süresiz.</p>}>
+              <div class="pro-left">
+                <b>{t("{0} gün kaldı", days() ?? 0)}</b>
+                <small>{t("Bitiş: {0}", fmtDate(entitlement().proUntil))}</small>
+              </div>
+            </Show>
+            <Show when={sub()}>
+              <p class="muted small">
+                <Show
+                  when={proInfo()?.renewing}
+                  fallback={
+                    <>
+                      {sub()!.status === "cancelled" ? "Abonelik iptal edildi; ödediğin dönemin sonuna kadar PRO sürer." : t("Abonelik durumu: {0}", sub()!.status)}
+                    </>
+                  }
+                >
+                  {t("Otomatik yenileniyor · sonraki ödeme: {0}", fmtDate(sub()!.renews_at))}
+                </Show>
+              </p>
+            </Show>
+            <Show when={proExpiringSoon()}>
+              <p class="pro-warn">PRO üyeliğin yakında bitiyor. Aşağıdan yenileyebilirsin.</p>
+            </Show>
           </Show>
+        </div>
+      </Show>
+
+      <Show when={!isPro() || proExpiringSoon() || (!proInfo()?.renewing && !isAdmin())}>
+        <Show when={plans().length > 0}>
+          <div class="pro-plans">
+            <For each={plans()}>
+              {(p) => (
+                <div class="pro-plan">
+                  <small>{p.label}</small>
+                  <b>{c()?.[p.price] || "—"}</b>
+                  <button
+                    class="btn primary small"
+                    disabled={!session() || !c()?.[p.checkout]}
+                    title={!session() ? "Önce giriş yap" : ""}
+                    onClick={() => openUrl(checkoutUrl(c()![p.checkout]!))}
+                  >
+                    {isPro() ? "Yenile" : "Abone ol"}
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
+        <div class="btns">
+          <Show when={c()?.patreon_url}>
+            <button class="btn ghost" data-no-i18n onClick={() => openUrl(c()!.patreon_url)}>
+              Patreon
+            </button>
+          </Show>
+          <Show when={c()?.kofi_url}>
+            <button class="btn ghost" data-no-i18n onClick={() => openUrl(c()!.kofi_url)}>
+              Ko-fi
+            </button>
+          </Show>
+        </div>
+        <p class="muted small">
+          Abonelik kendiliğinden yenilenir; istediğin zaman iptal edebilirsin. Ödeme sonrası PRO birkaç dakika içinde otomatik açılır.
+          <Show when={!session()}> Önce hesap oluştur ya da giriş yap.</Show>
         </p>
       </Show>
+      <Show when={sub()?.portal_url}>
+        <div class="btns">
+          <button class="btn ghost" onClick={() => openUrl(sub()!.portal_url)}>
+            Aboneliği yönet (kart, fatura, iptal)
+          </button>
+        </div>
+      </Show>
+
       <Show when={session() && profile()}>
         <div class="row">
           <div>
             <b>Ödeme e-postası</b>
-            <small>Patreon/Ko-fi'de farklı bir e-posta kullanıyorsan buraya yaz</small>
+            <small>Ödemeyi farklı bir e-postayla yaptıysan buraya yaz</small>
           </div>
           <div class="mqtt-host">
             <input
@@ -495,291 +527,14 @@ function ProPanel() {
             </button>
           </div>
         </div>
-        <button class="btn ghost small" onClick={() => refreshEntitlement()}>
-          Üyeliği yeniden denetle
-        </button>
-      </Show>
-    </section>
-  );
-}
-
-function AdminPanel() {
-  const [msg, setMsg] = createSignal("");
-  const [groups] = createResource(() => listGroups().catch(() => [] as PermGroup[]));
-  const [q, setQ] = createSignal("");
-  const [users, setUsers] = createSignal<AdminUser[]>([]);
-  const [draft, setDraft] = createSignal<Record<string, string>>({});
-  const c = () => config();
-  const val = (k: "patreon_url" | "kofi_url" | "price_monthly" | "price_3m" | "price_6m" | "price_yearly" | "pro_note") => draft()[k] ?? c()?.[k] ?? "";
-
-  let hide: number | undefined;
-  const run = async (fn: () => Promise<unknown>, ok: string) => {
-    try {
-      await fn();
-      setMsg(ok);
-      clearTimeout(hide);
-      if (ok) hide = window.setTimeout(() => setMsg(""), 3000);
-    } catch (e) {
-      setMsg("Hata: " + String((e as Error).message));
-    }
-  };
-  const toggle = (id: string, on: boolean) => {
-    const cur = new Set(c()?.pro_overlays ?? []);
-    on ? cur.add(id) : cur.delete(id);
-    run(() => saveConfig({ pro_overlays: [...cur] }), "PRO overlay listesi kaydedildi");
-  };
-  const [filter, setFilter] = createSignal<UserFilter>("all");
-  const [more, setMore] = createSignal(false);
-  const [stats, { refetch: refetchStats }] = createResource(() => adminStats().catch(() => null));
-  const search = (append = false) =>
-    run(async () => {
-      const rows = (await adminUsers(q().trim(), filter(), append ? users().length : 0)) ?? [];
-      setUsers(append ? [...users(), ...rows] : rows);
-      setMore(rows.length === 50);
-    }, "");
-  onMount(() => search());
-  const setPro = (u: AdminUser, days: number | null) =>
-    run(async () => {
-      await adminSetPro(u.id, days === null ? null : new Date(Date.now() + days * 86400_000));
-      await search();
-      refetchStats();
-    }, days === null ? "PRO kaldırıldı" : `PRO verildi (${days} gün)`);
-
-  return (
-    <section class="panel admin-panel">
-      <h3>
-        Yönetici <span class="admin-badge">sadece sen görürsün</span>
-      </h3>
-      <Show when={msg()}>
-        <div class="toast" classList={{ err: msg().startsWith("Hata") }} onClick={() => setMsg("")}>
-          {msg()}
-        </div>
-      </Show>
-
-      <h4>PRO overlay'ler</h4>
-      <p class="muted small">İşaretlenen overlay'ler PRO olmayan kullanıcılarda kilitli olur (panelde açılamaz, ekranda görünmez).</p>
-      <div class="admin-ovs">
-        <label class="check">
-          <input type="checkbox" checked={(c()?.pro_overlays ?? []).includes("voice")} onChange={(e) => toggle("voice", e.currentTarget.checked)} />
-          <span>
-            <b>Sesli mühendis</b>
-          </span>
-        </label>
-        <For each={manifests}>
-          {(m) => (
-            <label class="check">
-              <input type="checkbox" checked={(c()?.pro_overlays ?? []).includes(m.id)} onChange={(e) => toggle(m.id, e.currentTarget.checked)} />
-              <span>{m.name}</span>
-            </label>
-          )}
-        </For>
-      </div>
-
-      <h4>Abonelik sayfası</h4>
-      <For
-        each={
-          [
-            ["patreon_url", "Patreon bağlantısı", "https://www.patreon.com/..."],
-            ["kofi_url", "Ko-fi bağlantısı", "https://ko-fi.com/..."],
-            ["price_monthly", "Aylık plan", "ör. 3 € / ay"],
-            ["price_3m", "3 aylık plan", "ör. 8 € / 3 ay"],
-            ["price_6m", "6 aylık plan", "ör. 15 € / 6 ay"],
-            ["price_yearly", "Yıllık plan", "ör. 28 € / yıl"],
-            ["pro_note", "PRO açıklaması", "PRO ile gelenler…"],
-          ] as const
-        }
-      >
-        {([k, label, ph]) => (
-          <div class="row">
-            <div>
-              <b>{label}</b>
-            </div>
-            <input class="input admin-wide" placeholder={ph} value={val(k)} onInput={(e) => setDraft({ ...draft(), [k]: e.currentTarget.value })} />
-          </div>
-        )}
-      </For>
-      <button
-        class="btn primary"
-        onClick={() =>
-          run(async () => {
-            await saveConfig(draft());
-            setDraft({});
-          }, "Abonelik bilgileri kaydedildi")
-        }
-        disabled={Object.keys(draft()).length === 0}
-      >
-        Kaydet
-      </button>
-
-      <AdminNotices run={run} />
-      <AdminWatermark run={run} />
-      <AdminHosting run={run} />
-
-      <Show when={isOwner()}>
-        <OwnerGroups run={run} />
-        <ModLogPanel />
-      </Show>
-
-      <h4>Kullanım</h4>
-      <Show when={stats()} fallback={<p class="muted small">{stats.loading ? "Yükleniyor…" : "İstatistikler okunamadı."}</p>}>
-        <div class="stat-grid">
-          <div class="stat on">
-            <b>{stats()!.online}</b>
-            <small>Şu an çevrimiçi</small>
-          </div>
-          <div class="stat race">
-            <b>{stats()!.racing}</b>
-            <small>Şu an yarışta</small>
-          </div>
-          <div class="stat">
-            <b>{stats()!.active_24h}</b>
-            <small>Son 24 saatte kullanan</small>
-          </div>
-          <div class="stat">
-            <b>{stats()!.active_30d}</b>
-            <small>Son 30 günde kullanan</small>
-          </div>
-          <div class="stat">
-            <b>{stats()!.installs}</b>
-            <small>Toplam kurulum</small>
-          </div>
-          <div class="stat">
-            <b>{stats()!.users}</b>
-            <small>{t("Kayıtlı üye (+{0} bu hafta)", stats()!.users_7d)}</small>
-          </div>
-          <div class="stat pro">
-            <b>{stats()!.pro}</b>
-            <small>PRO üye</small>
-          </div>
-          <div class="stat">
-            <b>{stats()!.admins}</b>
-            <small>Yönetici</small>
-          </div>
-        </div>
-        <small class="muted">Kurulum sayısı giriş yapmayanları da içerir; uygulama açıkken 2 dakikada bir sayılır.</small>
-      </Show>
-      <div class="btns">
-        <button class="btn ghost small" onClick={() => refetchStats()}>
-          Yenile
-        </button>
-      </div>
-
-      <h4>Kullanıcılar</h4>
-      <div class="cm-tabs">
-        <For each={[["all", "Tüm kayıtlılar"], ["pro", "PRO üyeler"], ["online", "Çevrimiçi"], ["admin", "Yöneticiler"]] as const}>
-          {([id, label]) => (
-            <button classList={{ on: filter() === id }} onClick={() => (setFilter(id), search())}>
-              {label}
-            </button>
-          )}
-        </For>
-      </div>
-      <div class="fr-add">
-        <input class="input" placeholder="Ad, e-posta ya da iRacing adı" value={q()} onInput={(e) => setQ(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && search()} />
-        <button class="btn" onClick={() => search()}>
-          Ara
-        </button>
-      </div>
-      <div class="admin-users">
-        <For each={users()}>
-          {(u) => {
-            const pro = () => !!u.pro_until && new Date(u.pro_until).getTime() > Date.now();
-            return (
-              <div class="admin-user">
-                <div>
-                  <b>{u.display_name || "(adsız)"}</b>
-                  <Show when={u.is_owner}>
-                    <span class="admin-badge owner">sahip</span>
-                  </Show>
-                  <Show when={u.is_admin && !u.is_owner}>
-                    <span class="admin-badge">yönetici</span>
-                  </Show>
-                  <For each={(groups() ?? []).filter((g) => (u.groups ?? []).includes(g.id))}>
-                    {(g) => (
-                      <span class="admin-badge grp" style={{ "--gc": g.color }} data-no-i18n>
-                        {g.name}
-                      </span>
-                    )}
-                  </For>
-                  <small>
-                    {u.email}
-                    {u.iracing_name ? ` · iRacing: ${u.iracing_name}` : ""}
-                  </small>
-                  <small>{pro() ? `PRO: ${fmtDate(u.pro_until)} (${u.pro_source ?? "?"})` : "PRO değil"}</small>
-                  <small class="muted">
-                    {u.created_at ? t("Kayıt: {0}", fmtDate(u.created_at)) : ""}
-                    {u.last_seen
-                      ? ` · ${new Date(u.last_seen).getTime() > Date.now() - 4 * 60_000 ? t("çevrimiçi") : t("son görülme: {0}", fmtDate(u.last_seen))}`
-                      : ""}
-                    {u.version ? ` · ${u.version}` : ""}
-                  </small>
-                </div>
-                <div class="btns">
-                  <button class="btn ghost small" onClick={() => setPro(u, 31)}>
-                    1 ay
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 92)}>
-                    3 ay
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 183)}>
-                    6 ay
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 366)}>
-                    1 yıl
-                  </button>
-                  <button class="btn ghost small" onClick={() => setPro(u, 36500)}>
-                    Süresiz
-                  </button>
-                  <Show when={pro()}>
-                    <button class="btn ghost small danger" onClick={() => setPro(u, null)}>
-                      Kaldır
-                    </button>
-                  </Show>
-                </div>
-                <Show when={isOwner() && !u.is_owner}>
-                  <div class="btns owner-row">
-                    <button
-                      class="btn ghost small"
-                      classList={{ danger: u.is_admin }}
-                      onClick={() =>
-                        run(async () => {
-                          await ownerSetAdmin(u.id, !u.is_admin);
-                          await search();
-                        }, u.is_admin ? "Yöneticilik alındı" : "Yönetici yapıldı")
-                      }
-                    >
-                      {u.is_admin ? "Yöneticiliği al" : "Yönetici yap"}
-                    </button>
-                    <For each={groups() ?? []}>
-                      {(g) => {
-                        const inG = () => (u.groups ?? []).includes(g.id);
-                        return (
-                          <button
-                            class="btn ghost small grp-toggle"
-                            classList={{ on: inG() }}
-                            style={{ "--gc": g.color }}
-                            onClick={() =>
-                              run(async () => {
-                                await setUserGroup(u.id, g.id, !inG());
-                                await search();
-                              }, inG() ? "Gruptan çıkarıldı" : "Gruba eklendi")
-                            }
-                          >
-                            <span data-no-i18n>{g.name}</span> {inG() ? "✓" : "+"}
-                          </button>
-                        );
-                      }}
-                    </For>
-                  </div>
-                </Show>
-              </div>
-            );
+        <button
+          class="btn ghost small"
+          onClick={async () => {
+            await refreshEntitlement();
+            await loadProInfo();
           }}
-        </For>
-      </div>
-      <Show when={more()}>
-        <button class="btn ghost small" onClick={() => search(true)}>
-          Daha fazla
+        >
+          Üyeliği yeniden denetle
         </button>
       </Show>
     </section>

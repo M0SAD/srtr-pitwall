@@ -11,6 +11,8 @@ import { cloudEnabled, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
 import type { Status } from "@/sdk/types";
+import { osNotify } from "@/cloud/notify";
+import { t } from "@/sdk/i18n";
 import { messageBeep, myFriends, onLive, onMessages, pushLive, setMyStatus, type Friend, type LiveData } from "@/cloud/social";
 
 export interface MsgToast {
@@ -26,6 +28,20 @@ export const clearPending = () => setPending(0);
 
 let friends: Friend[] = [];
 let started = false;
+
+/** Mesajları zaten gösteren bir pencere (panel ya da Arkadaşlar penceresi) şu an önde mi */
+async function chatVisible(): Promise<boolean> {
+  try {
+    const { Window } = await import("@tauri-apps/api/window");
+    for (const label of ["main", "friends"]) {
+      const w = await Window.getByLabel(label);
+      if (w && (await w.isVisible()) && !(await w.isMinimized()) && (await w.isFocused())) return true;
+    }
+  } catch {
+    /* pencere bilgisi alınamazsa bildirim gösterilir */
+  }
+  return false;
+}
 
 export function startSocial(status: Accessor<Status | undefined>) {
   if (started || !cloudEnabled) return;
@@ -71,7 +87,19 @@ export function startSocial(status: Accessor<Status | undefined>) {
       return;
     }
     try {
+      const prev = friends;
       friends = (await myFriends()) ?? [];
+      // Masaüstü bildirimi: beni güvenilir seçen ya da istek gönderen yeni arkadaş
+      if (prev.length && !soc().dnd) {
+        for (const f of friends) {
+          const was = prev.find((x) => x.friend_id === f.friend_id);
+          if (f.status === "accepted" && f.trusts_me && !f.muted && !was?.trusts_me) {
+            osNotify("SRTR Pitwall", t("{0} seni güvenilir olarak işaretledi; verilerini görebilirsin", f.display_name));
+          } else if (f.status === "pending_in" && !was) {
+            osNotify("SRTR Pitwall", t("{0} sana arkadaşlık isteği gönderdi", f.display_name));
+          }
+        }
+      }
       // Kabul edilen arkadaşlar panel kapalıyken de renk/simge listesine eklenir
       syncAccountFriends(friends);
     } catch {
@@ -90,7 +118,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
     }
   };
   setTimeout(refreshFriends, 4000);
-  setInterval(refreshFriends, 2 * 60_000);
+  setInterval(refreshFriends, 60_000);
 
   // Yarışırken canlı verimi gönder (sadece güvendiğim en az bir arkadaş varsa, 3 sn'de bir)
   let lastPush = 0;
@@ -113,8 +141,15 @@ export function startSocial(status: Accessor<Status | undefined>) {
     stopMsg();
     if (!uid) return;
     stopMsg = await onMessages((m) => {
-      if (!racing()) return; // yarışta değilken panel gösterir
       const f = friends.find((x) => x.friend_id === m.sender);
+      // Windows bildirimi (Steam gibi): panel ya da arkadaş penceresi önde değilken; sessize alınan
+      // arkadaştan ve rahatsız etme açıkken gelmez; yarıştayken oyun içi bildirim gösterilir
+      if (!racing() && !soc().dnd && soc().acceptMessages && !f?.muted) {
+        chatVisible().then((v) => {
+          if (!v) void osNotify(f?.display_name ?? "SRTR Pitwall", m.body);
+        });
+      }
+      if (f?.muted || !racing()) return; // yarışta değilken panel gösterir
       if (soc().dnd) {
         setPending(pending() + 1);
         return;

@@ -541,6 +541,12 @@ body {
   pointer-events: none;
 }
 
+.fslider {
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+
 .fslider input {
   position: absolute;
   inset: 0;
@@ -548,7 +554,12 @@ body {
   height: 100%;
   margin: 0;
   opacity: 0;
-  cursor: ew-resize;
+  pointer-events: none;
+}
+
+.fslider:focus-within,
+.fslider.dragging {
+  border-color: var(--accent);
 }
 
 .stepper {
@@ -3316,4 +3327,214 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* PRO süresi, yönetim: abonelik ve cihaz sayfaları */
+.warn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1a0f05;
+  background: #ffb35c;
+  border-color: #ffb35c;
+  font-weight: 700;
+}
+.warn-badge svg {
+  width: 14px;
+  height: 14px;
+}
+.pro-status {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.pro-status.warn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+}
+.pro-status p {
+  margin: 0 0 6px;
+}
+.pro-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+.pro-left b {
+  font-size: 22px;
+  color: var(--accent-2);
+}
+.pro-left small {
+  color: var(--muted);
+}
+.pro-warn {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+.pro-plan .btn {
+  margin-top: 8px;
+}
+.admin-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #e5322d;
+  border-radius: 10px;
+  background: color-mix(in srgb, #e5322d 12%, var(--bg-2));
+}
+.sub-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--bg-4);
+}
+.sub-badge.active,
+.sub-badge.on_trial {
+  color: #3ddc84;
+  background: color-mix(in srgb, #3ddc84 14%, transparent);
+}
+.sub-badge.past_due,
+.sub-badge.unpaid,
+.sub-badge.paused {
+  color: #ffb35c;
+  background: color-mix(in srgb, #ffb35c 16%, transparent);
+}
+.sub-badge.cancelled,
+.sub-badge.expired {
+  color: #ff6b66;
+  background: color-mix(in srgb, #e5322d 16%, transparent);
+}
+.admin-user.flagged {
+  border-color: #e5322d;
+}
+.dev-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-4);
+}
+.dev-count.over {
+  color: #fff;
+  background: #e5322d;
+}
+.dev-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+.dev-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+.dev-row.old {
+  opacity: 0.55;
+}
+.dev-row small {
+  display: block;
+}
+.plan-edit {
+  display: grid;
+  grid-template-columns: 90px minmax(120px, 200px) 1fr;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+@media (max-width: 900px) {
+  .plan-edit {
+    grid-template-columns: 1fr;
+  }
+}
+.flive-sec {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+.flive-map {
+  align-self: center;
+  border-radius: 8px;
+  background: var(--bg-3);
+}
+.flive-laps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.flive-laps div {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--bg-3);
+  font-variant-numeric: tabular-nums;
+}
+.flive-laps span,
+.flive-laps i {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12px;
+}
+.flive-laps .best {
+  outline: 1px solid #a64cff;
+}
+.flive-laps .best b {
+  color: #c98bff;
+}
+.flive-laps .bad b {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* Ayrı "Arkadaşlar" penceresi (Steam gibi) ve arkadaş verisi penceresi */
+.fdock-panel.standalone {
+  width: 100%;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.live-btn.idle {
+  opacity: 0.75;
+}
+.fwin {
+  height: 100vh;
+  overflow-y: auto;
+  background: #15181f;
+}
+.fwin .flive {
+  overflow: visible;
+}
+.fwin-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: #15181f;
+  z-index: 2;
 }

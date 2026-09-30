@@ -466,6 +466,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 if let Some(me) = st.session.player() {
                     let fu = calc::fuel(f, &st.session, &st.tracker);
                     let row = &fu.avg5;
+                    let lp = st.history.laps(f);
                     let tf = crate::mqtt::TeamFuel {
                         sender: me.name.clone(),
                         car: me.car_name.clone(),
@@ -479,6 +480,18 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                         lap: f.lap,
                         on_pit: f.on_pit_road,
                         ts: crate::mqtt::now_ms(),
+                        lap_pct: f.lap_dist_pct,
+                        position: f.cars.get(me.car_idx as usize).map(|c| c.position).unwrap_or(0),
+                        best: lp.best,
+                        last: lp.laps.iter().rev().find(|l| l.time > 0.0).map(|l| l.time).unwrap_or(0.0),
+                        laps: lp
+                            .laps
+                            .iter()
+                            .rev()
+                            .take(10)
+                            .rev()
+                            .map(|l| crate::mqtt::TeamLap { lap: l.lap, time: l.time, valid: l.valid, pit: l.pit })
+                            .collect(),
                     };
                     shared.mqtt.publish_team(&tf);
                     // Arkadaş listesi: güvenilir arkadaşlara gönderilmek üzere arayüze (demo verisi gitmez)

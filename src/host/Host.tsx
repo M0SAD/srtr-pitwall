@@ -39,6 +39,7 @@ import {
   type Rect,
 } from "./snap";
 import { ContextMenu, type MenuState } from "./ContextMenu";
+import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 import { BackdropPicker } from "@/app/components/BackdropPicker";
 
 // Panelden yeni eklenen overlay: kısa süre gösterilir ve vurgulanır
@@ -369,7 +370,9 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   // ve her zaman ekran içine sıkıştırılır (ör. monitör değişince dışarıda kalmaz).
   const view = createMemo(() => {
     const d = drag();
-    const own = d ? d.scale : inst().scale;
+    // Panelde (Düzenler) taşınıyorsa oradaki anlık konum
+    const rd = d ? undefined : remoteDrag(shown()?.id, id);
+    const own = d ? d.scale : (rd ?? inst()).scale;
     const eff = effectiveScale(own, globalScale());
     const w = size().w * eff;
     const h = size().h * eff;
@@ -377,7 +380,8 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     if (d) {
       r = { x: d.x, y: d.y, w, h };
     } else {
-      const base = { x: inst().x, y: inst().y, w: size().w * own, h: size().h * own };
+      const b = rd ?? inst();
+      const base = { x: b.x, y: b.y, w: size().w * own, h: size().h * own };
       r = layoutRect(base, eff / own, screen());
     }
     const c = clampRect(r, screen());
@@ -392,9 +396,15 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   const others = () => [...rects.entries()].filter(([k]) => k !== id).map(([, r]) => r);
 
   /** Ekrandaki dikdörtgeni %100 yerleşime çevirip kaydeder. */
+  const livePos = (r: Rect, own: number) => {
+    const eff = effectiveScale(own, globalScale());
+    const pos = unlayoutPos(r, eff / own, screen());
+    return { profile: shown()?.id ?? "", key: id, x: Math.round(pos.x), y: Math.round(pos.y), scale: own };
+  };
   const commit = (r: Rect, own: number) => {
     const eff = effectiveScale(own, globalScale());
     const pos = unlayoutPos(r, eff / own, screen());
+    endDrag({ profile: shown()?.id ?? "", key: id, x: Math.round(pos.x), y: Math.round(pos.y), scale: own });
     editOverlay(id, (i) => {
       i.x = Math.round(pos.x);
       i.y = Math.round(pos.y);
@@ -422,6 +432,7 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       );
       setGuides(r.guides);
       setDrag({ x: r.x, y: r.y, scale: o.scale });
+      sendDrag(livePos({ x: r.x, y: r.y, w: o.w, h: o.h }, o.scale));
     };
     const up = () => {
       target.removeEventListener("pointermove", move);
@@ -454,6 +465,8 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       const eff = Math.min(maxEff, Math.max(0.2, (right - o.x) / size().w));
       const own = Math.min(3, Math.max(0.4, Math.round((eff / g0) * 100) / 100));
       setDrag({ x: o.x, y: o.y, scale: own });
+      const e2 = effectiveScale(own, g0);
+      sendDrag(livePos({ x: o.x, y: o.y, w: size().w * e2, h: size().h * e2 }, own));
     };
     const up = () => {
       target.removeEventListener("pointermove", move);

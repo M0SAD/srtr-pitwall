@@ -326,7 +326,10 @@ export function OverlaysPage() {
 function InstanceSettings(props: { key: string }) {
   const k = props.key;
   const inst = () => activeProfile().overlays[k];
-  const m = () => manifestById(inst()?.type ?? "");
+  // Tür değişmedikçe aynı kalsın: ayar değişince form yeniden kurulmasın (kaydırıcı sürüklemesi
+  // kopmasın, sütun sıralarken sayfa başa kaymasın)
+  const type = createMemo(() => inst()?.type ?? "");
+  const m = createMemo(() => manifestById(type()));
   const isCopy = () => inst() && k !== inst()!.type;
   const upd = (fn: Parameters<typeof updateOverlay>[1]) => updateOverlay(k, fn);
 
