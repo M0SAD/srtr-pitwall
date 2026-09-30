@@ -1,0 +1,270 @@
+// Kontrol paneli kabuğu: solda ikon menü, üstte durum çubuğu, ortada bölüm.
+
+import { For, Match, Show, Switch, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { AppState } from "@/sdk/types";
+import { settings, updateSettings } from "@/sdk/settings";
+import { cloudEnabled, session } from "@/cloud/supabase";
+import { isPro } from "@/cloud/account";
+import { useSubscriptions, useTopic } from "@/sdk/telemetry";
+import { checkUpdate, focusOverlay, go, loadVersion, section, sub, update, version, type Section } from "./ui";
+import * as I from "./icons";
+import { OverlaysPage } from "./pages/OverlaysPage";
+import { LayoutsPage } from "./pages/LayoutsPage";
+import { StreamingPage } from "./pages/StreamingPage";
+import { AccountPage, ProPage } from "./pages/AccountPage";
+import { ToolsPage } from "./pages/ToolsPage";
+import { LeaguePage } from "./pages/LeaguePage";
+import { FriendsPage } from "./pages/FriendsPage";
+import { CommunityPage } from "./pages/CommunityPage";
+import { CommunityShots } from "./pages/CommunityShots";
+import { CommunityHome } from "./pages/CommunityHome";
+import { CommunityThemes } from "./pages/CommunityThemes";
+import { ScreenshotsPage } from "./pages/ScreenshotsPage";
+import { NoticeBell } from "./components/Moderation";
+import { FriendsDock } from "./components/FriendsDock";
+import { loadNotices } from "@/cloud/moderation";
+import { VoicePage } from "./pages/VoicePage";
+import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
+
+export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
+
+export function setDemo(on: boolean) {
+  invoke("demo_set", { on });
+  updateSettings((d) => (d.general.demo = on));
+}
+
+interface NavItem {
+  id: Section;
+  label: string;
+  icon: () => JSX.Element;
+  badge?: () => string;
+}
+
+const TOP: NavItem[] = [
+  { id: "overlays", label: "Overlay'ler", icon: () => <I.Box /> },
+  { id: "layouts", label: "Düzenler", icon: () => <I.LayoutDashboard /> },
+  { id: "streaming", label: "Yayın", icon: () => <I.Radio /> },
+  { id: "drivers", label: "Sürücüler", icon: () => <I.Users /> },
+  { id: "community", label: "Topluluk", icon: () => <I.Share2 /> },
+  { id: "shots", label: "Ekran Görüntüleri", icon: () => <I.Camera /> },
+  { id: "tools", label: "Araçlar", icon: () => <I.Gauge /> },
+  { id: "voice", label: "Sesli Mühendis", icon: () => <I.Mic />, badge: () => "PRO" },
+];
+
+const BOTTOM: NavItem[] = [
+  { id: "pro", label: "PRO", icon: () => <I.Heart /> },
+  { id: "account", label: "Hesap", icon: () => <I.User /> },
+  { id: "settings", label: "Ayarlar", icon: () => <I.Settings /> },
+];
+
+const TITLES: Record<Section, string> = {
+  overlays: "Overlay'ler",
+  layouts: "Düzenler",
+  streaming: "Yayın",
+  drivers: "Sürücüler",
+  community: "Topluluk",
+  shots: "Ekran Görüntüleri",
+  tools: "Araçlar",
+  voice: "Sesli Mühendis",
+  pro: "PRO Üyelik",
+  account: "Hesap",
+  settings: "Ayarlar",
+};
+
+/** Alt menüsü olan bölümler */
+const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
+  drivers: [
+    { id: "friends", label: "Arkadaşlar ve etiketler" },
+    { id: "league", label: "League Builder" },
+  ],
+  community: [
+    { id: "home", label: "Ana sayfa" },
+    { id: "layouts", label: "Düzenler" },
+    { id: "stream", label: "Yayın düzenleri" },
+    { id: "shots", label: "Ekran Görüntüleri" },
+    { id: "themes", label: "Temalar" },
+  ],
+  settings: SETTINGS_PAGES,
+};
+
+function RailButton(p: { item: NavItem }) {
+  return (
+    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro" }} title={p.item.label} onClick={() => go(p.item.id, SUBS[p.item.id]?.[0].id ?? "")}>
+      {p.item.icon()}
+      <Show when={p.item.badge}>
+        <i class="rail-badge">{p.item.badge!()}</i>
+      </Show>
+    </button>
+  );
+}
+
+function Toggle(p: { on: boolean; label: string; icon: JSX.Element; title?: string; onChange: (v: boolean) => void; tone?: string }) {
+  return (
+    <button class={`top-toggle ${p.tone ?? ""}`} classList={{ on: p.on }} title={p.title} onClick={() => p.onChange(!p.on)}>
+      {p.icon}
+      <span>{p.label}</span>
+      <i class="top-switch" />
+    </button>
+  );
+}
+
+export function App() {
+  const status = useTopic("status");
+  // Panel her zaman durum bilgisini dinler
+  useSubscriptions([]);
+
+  onMount(async () => {
+    // Bildirimler 10 dakikada bir yenilenir
+    const nt = setInterval(loadNotices, 3 * 60_000);
+    onCleanup(() => clearInterval(nt));
+    setAppState(await invoke<AppState>("state_get"));
+    await listen<AppState>("app-state", (e) => setAppState(e.payload));
+    // Düzenleme ekranında sağ tık > "Ayarlarını aç"
+    await listen<string>("focus-overlay", (e) => focusOverlay(e.payload));
+    const pending = await invoke<string | null>("panel_take_focus");
+    if (pending) focusOverlay(pending);
+    await loadVersion();
+    if (version()?.updateConfigured) checkUpdate();
+  });
+
+  const conn = () => {
+    const a = appState();
+    if (a.demo) return { cls: "demo", text: "Demo" };
+    if (a.connected) return { cls: "on", text: status()?.track ? `Bağlı · ${status()!.track}` : "Bağlı" };
+    return { cls: "off", text: "Bağlı değil" };
+  };
+
+  const subs = () => SUBS[section()];
+
+  return (
+    <div class="shell2">
+      <nav class="rail">
+        <div class="rail-logo" title="SRTR Pitwall" />
+        <For each={TOP}>{(it) => <RailButton item={it} />}</For>
+        <div class="rail-sp" />
+        <For each={BOTTOM}>{(it) => <RailButton item={it} />}</For>
+      </nav>
+
+      <header class="top2">
+        <h1>{TITLES[section()]}</h1>
+        <div class="top2-right">
+          <Show when={update()?.available}>
+            <button class="btn update-badge" onClick={() => go("settings", "about")}>
+              Güncelleme: {update()!.version}
+            </button>
+          </Show>
+          <div class="seg" title="Simülasyon">
+            <button class="on">Otomatik</button>
+            <button class="on-soft">iRacing</button>
+            <button disabled title="Yakında">LMU</button>
+          </div>
+          <NoticeBell />
+          <span class={`conn-pill ${conn().cls}`}>
+            <i />
+            {conn().text}
+          </span>
+          <Toggle on={appState().demo} label="Demo" icon={<I.FlaskConical />} title="iRacing olmadan örnek veriyle göster" onChange={setDemo} />
+          <Show when={appState().demo && (settings().general.voice.enabled || settings().general.sounds.fasterClass.enabled || settings().general.sounds.alongside.enabled)}>
+            <button
+              class="top-toggle"
+              classList={{ on: !settings().general.demoMute }}
+              title={settings().general.demoMute ? "Demo sesleri kapalı (spotter ve bipler)" : "Demo sesleri açık (spotter ve bipler)"}
+              onClick={() => updateSettings((d) => (d.general.demoMute = !d.general.demoMute))}
+            >
+              {settings().general.demoMute ? <I.VolumeX /> : <I.Volume2 />}
+              <span>Ses</span>
+            </button>
+          </Show>
+          <Toggle on={!appState().hidden} label="Görünür" icon={<I.Eye />} title="Overlay'leri göster/gizle" onChange={(v) => invoke("hidden_set", { on: !v })} />
+          <Toggle
+            on={!appState().editMode}
+            label={appState().editMode ? "Kilit açık" : "Kilitli"}
+            icon={appState().editMode ? <I.LockOpen /> : <I.Lock />}
+            title="Kilidi açınca overlay'ler ekranda sürüklenebilir"
+            tone={appState().editMode ? "warn" : ""}
+            onChange={(v) => invoke("edit_mode_set", { on: !v })}
+          />
+        </div>
+      </header>
+
+      <div class="body2" classList={{ "with-sub": !!subs() }}>
+        <Show when={subs()}>
+          <aside class="subnav">
+            <div class="subnav-title">{TITLES[section()]}</div>
+            <For each={subs()}>
+              {(s) => (
+                <button classList={{ active: sub() === s.id }} onClick={() => go(section(), s.id)}>
+                  {s.label}
+                </button>
+              )}
+            </For>
+            <div class="subnav-foot">
+              <Show when={cloudEnabled}>
+                <small class="muted">{session() ? (isPro() ? "PRO üye" : "Giriş yapıldı") : "Misafir"}</small>
+              </Show>
+              <small class="muted">Sürüm {version()?.display ?? "…"}</small>
+            </div>
+          </aside>
+        </Show>
+        <main class="content2">
+          <Switch>
+            <Match when={section() === "overlays"}>
+              <OverlaysPage />
+            </Match>
+            <Match when={section() === "layouts"}>
+              <LayoutsPage />
+            </Match>
+            <Match when={section() === "streaming"}>
+              <StreamingPage />
+            </Match>
+            <Match when={section() === "drivers" && sub() === "league"}>
+              <LeaguePage />
+            </Match>
+            <Match when={section() === "drivers"}>
+              <FriendsPage />
+            </Match>
+            <Match when={section() === "community" && sub() === "shots"}>
+              <CommunityShots />
+            </Match>
+            <Match when={section() === "shots"}>
+              <ScreenshotsPage />
+            </Match>
+            <Match when={section() === "community" && sub() === "themes"}>
+              <CommunityThemes />
+            </Match>
+            <Match when={section() === "community" && sub() === "layouts"}>
+              <CommunityPage kind="layout" />
+            </Match>
+            <Match when={section() === "community" && sub() === "stream"}>
+              <CommunityPage kind="stream" />
+            </Match>
+            <Match when={section() === "community"}>
+              <CommunityHome />
+            </Match>
+            <Match when={section() === "tools"}>
+              <ToolsPage />
+            </Match>
+            <Match when={section() === "voice"}>
+              <VoicePage />
+            </Match>
+            <Match when={section() === "pro"}>
+              <ProPage />
+            </Match>
+            <Match when={section() === "account"}>
+              <AccountPage />
+            </Match>
+            <Match when={section() === "settings"}>
+              <SettingsPage page={sub() || "general"} />
+            </Match>
+          </Switch>
+        </main>
+        <FriendsDock />
+      </div>
+    </div>
+  );
+}
+
+// Eski bileşenler için
+export { settings };

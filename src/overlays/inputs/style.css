@@ -1,0 +1,108 @@
+.inp {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  min-height: 102px;
+  box-sizing: border-box;
+}
+
+.inp.shift {
+  border-color: var(--ov-blue);
+}
+
+.inp-trace {
+  width: 240px;
+  height: 86px;
+  flex: none;
+  background: color-mix(in srgb, var(--ov-bg-solid) 60%, transparent);
+  border-radius: 4px;
+}
+
+.inp-bars {
+  display: flex;
+  gap: 5px;
+}
+
+.inp-bar {
+  position: relative;
+  width: 14px;
+  height: 86px;
+  background: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.inp-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.inp-fill.abs {
+  background: var(--ov-yellow) !important;
+}
+
+.inp-gear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 5.4em;
+  line-height: 1;
+}
+
+.inp-gear b {
+  font-size: 2.4em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.inp.shift .inp-gear b {
+  color: var(--ov-blue);
+}
+
+.inp-gear span {
+  margin-top: 4px;
+  font-size: 1.231em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.inp-gear small {
+  font-size: 0.769em;
+  color: var(--ov-dim);
+}
+
+.inp-wheel {
+  width: 2.5em;
+  height: 2.5em;
+  margin-top: 4px;
+  overflow: visible;
+}
+
+.w-rim {
+  fill: none;
+  stroke: var(--ov-dim);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+
+.w-grip {
+  stroke: var(--ov-text);
+  stroke-width: 5.5;
+  stroke-linecap: round;
+}
+
+.w-spoke {
+  stroke: var(--ov-dim);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.w-hub {
+  fill: color-mix(in srgb, var(--ov-text) 25%, var(--ov-bg-solid));
+}
+
+.w-mark {
+  fill: var(--ov-accent);
+}

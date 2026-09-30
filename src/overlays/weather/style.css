@@ -1,0 +1,93 @@
+.wx {
+  width: 240px;
+}
+
+.wx-title {
+  color: var(--ov-text);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.wx-compass {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0 8px;
+}
+
+.wx-compass svg {
+  width: 130px;
+  height: 130px;
+}
+
+.wx-ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 40%, transparent);
+  stroke-width: 1.2;
+}
+
+.wx-card {
+  fill: var(--ov-text);
+  font: var(--ov-weight-strong) 11px var(--ov-font);
+  text-anchor: middle;
+}
+
+.wx-card.north {
+  fill: var(--ov-red);
+}
+
+.wx-arrow {
+  fill: var(--ov-blue);
+}
+
+.wx-car {
+  fill: var(--ov-red);
+}
+
+.wx-speed b {
+  font-size: 1.2em;
+}
+
+.wx-rows {
+  border-top: 1px solid var(--ov-divider);
+}
+
+.wx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: var(--ov-row-h);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ov-divider);
+}
+
+.wx-row span {
+  font-size: 0.78em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.05em;
+  color: var(--ov-dim);
+}
+
+.wx-wet {
+  padding-top: 8px;
+}
+
+.wx-bar {
+  height: 1.3em;
+  margin: 0 10px 2px;
+  padding: 2px;
+  border-radius: 5px;
+  border: 1px solid var(--ov-divider);
+}
+
+.wx-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ov-blue);
+}
+
+.wx-wet .wx-row {
+  border-bottom: 0;
+}

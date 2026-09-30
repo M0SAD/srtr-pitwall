@@ -1,0 +1,60 @@
+# Sürüm yayınlama: GitHub'a "v1.0.X" etiketi gönderilince Windows derlemesi yapılır,
+# imzalanır, GitHub Releases'a yüklenir ve latest.json (güncelleme bilgisi) oluşturulur.
+# Kurulum ve anahtarlar: docs/GUNCELLEME.md
+
+name: Sürüm yayınla
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Sürüm bilgisi ve notlar
+        id: meta
+        shell: bash
+        run: |
+          echo "display=$(node -p "require('./version.json').display")" >> "$GITHUB_OUTPUT"
+          {
+            echo "notes<<NOTES_EOF"
+            node scripts/notlar.mjs
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "SRTR Pitwall ${{ steps.meta.outputs.display }}"
+          releaseBody: ${{ steps.meta.outputs.notes }}
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          args: --config src-tauri/tauri.release.conf.json

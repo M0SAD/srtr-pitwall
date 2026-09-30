@@ -1,0 +1,75 @@
+.lpt {
+  width: 330px;
+  overflow: hidden;
+}
+.lpt-best {
+  color: var(--ov-purple);
+  font-family: var(--ov-mono);
+  text-transform: none;
+}
+.lpt-rows {
+  display: flex;
+  flex-direction: column;
+}
+.lpt-row {
+  display: grid;
+  grid-template-columns: 2em 5.4em repeat(3, 1fr) auto auto 1.8em;
+  align-items: center;
+  gap: 6px;
+  height: var(--ov-row-h);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ov-divider);
+}
+.lpt.nosec .lpt-row {
+  grid-template-columns: 2em 5.4em 1fr auto 1.8em;
+}
+.lpt-row:nth-child(odd) {
+  background: var(--ov-bg-row);
+}
+.lpt-row.best .lpt-time {
+  color: var(--ov-purple);
+  font-weight: var(--ov-weight-strong);
+}
+.lpt-row.invalid .lpt-time {
+  color: var(--ov-dim);
+  text-decoration: line-through;
+}
+.lpt-row.pit {
+  opacity: 0.75;
+}
+.lpt-sec {
+  text-align: right;
+  font-size: 0.9em;
+  color: var(--ov-dim);
+}
+.lpt-delta,
+.lpt-fuel {
+  text-align: right;
+  font-size: 0.9em;
+  min-width: 3.6em;
+}
+.lpt-purple {
+  color: var(--ov-purple) !important;
+}
+.lpt-flag {
+  text-align: center;
+}
+.lpt-tag-pit {
+  background: var(--ov-blue);
+  color: #fff;
+}
+.lpt-tag-inv {
+  background: var(--ov-red);
+  color: #fff;
+  font-style: normal;
+}
+.lpt-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.92em;
+}
+.lpt-foot span:last-child {
+  margin-left: auto;
+}

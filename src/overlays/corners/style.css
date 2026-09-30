@@ -1,0 +1,30 @@
+.cn {
+  width: 300px;
+  overflow: hidden;
+}
+.cn-row {
+  display: grid;
+  grid-template-columns: 2.6em 1fr 1fr 1.2fr;
+  align-items: center;
+  gap: 6px;
+  height: calc(var(--ov-row-h) - 2px);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ov-divider);
+  text-align: right;
+}
+.cn-row > :first-child {
+  text-align: left;
+}
+.cn-cap {
+  font-size: 0.8em;
+  height: 20px;
+}
+.cn-n {
+  font-weight: var(--ov-weight-strong);
+}
+.cn-row.next {
+  background: var(--ov-bg-me);
+}
+.cn-row.live b {
+  text-decoration: underline dotted;
+}

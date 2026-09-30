@@ -1,0 +1,27 @@
+.dflag {
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  gap: 3px;
+  width: 180px;
+  height: 180px;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: #050608;
+  border: 1px solid #1c1f26;
+}
+
+.dflag i {
+  border-radius: 50%;
+  background: #15181e;
+}
+
+.dflag.blink {
+  animation: dflag-blink 0.9s steps(2) infinite;
+}
+
+@keyframes dflag-blink {
+  50% {
+    opacity: 0.25;
+  }
+}

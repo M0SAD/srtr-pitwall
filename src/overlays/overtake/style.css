@@ -1,0 +1,42 @@
+.ot {
+  width: 280px;
+  overflow: hidden;
+}
+.ot-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: calc(var(--ov-row-h) + 4px);
+  padding: 0 10px;
+  border-left: 4px solid var(--cc);
+  border-bottom: 1px solid var(--ov-divider);
+  white-space: nowrap;
+}
+.ot-cls {
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--cc);
+  color: #111;
+  font-size: 0.8em;
+  font-weight: var(--ov-weight-strong);
+}
+.ot-num {
+  color: var(--ov-dim);
+}
+.ot-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ot-gap {
+  font-size: 1.1em;
+}
+.ot-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--cc);
+  transition: width 0.2s linear;
+}

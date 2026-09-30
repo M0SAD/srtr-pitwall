@@ -1,0 +1,8 @@
+{
+  "confirm-signup": "SRTR Pitwall ✓ {{ .Token }}",
+  "reset-password": "SRTR Pitwall 🔑 {{ .Token }}",
+  "magic-link": "SRTR Pitwall ➜ {{ .Token }}",
+  "change-email": "SRTR Pitwall ✉ {{ .Token }}",
+  "reauthentication": "SRTR Pitwall 🔒 {{ .Token }}",
+  "password-changed": "SRTR Pitwall 🔐 ✓"
+}

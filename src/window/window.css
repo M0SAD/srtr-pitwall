@@ -1,0 +1,459 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #0b0d11;
+  color: var(--ov-text, #eef1f6);
+  font: 14px "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+.pw-dim {
+  color: var(--ov-dim);
+}
+
+/* ---------- Pitwall ---------- */
+
+.pw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: var(--ov-fs);
+}
+
+.pw-top,
+.lt-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1d2129;
+  background: #101318;
+}
+
+.pw-top b,
+.lt-top b {
+  font-size: 1.2em;
+}
+
+.pw-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pw-status i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.pw-status.on i {
+  background: var(--ov-green);
+}
+
+.pw-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(540px, 1.15fr) minmax(460px, 1fr) 330px;
+  grid-template-areas:
+    "lb map wx"
+    "lb map fuel"
+    "lb in fuel"
+    "lb lap fuel"
+    "lb tyr fuel"
+    "veh bat ses";
+  gap: 8px;
+  padding: 8px;
+  overflow: auto;
+  align-content: start;
+}
+
+.pw-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #1d2129;
+  border-radius: 8px;
+  background: #0f1216;
+  overflow: hidden;
+}
+
+.pw-card > header {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ov-dim);
+  border-bottom: 1px solid #1d2129;
+}
+
+.pw-body {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 6px;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Overlay'ler sabit genişlikli; kart içinde yayılsın */
+.pw-body > * {
+  max-width: 100%;
+}
+
+.pw-lb {
+  grid-area: lb;
+}
+
+.pw-lb .st {
+  width: 100%;
+}
+
+.pw-map {
+  grid-area: map;
+}
+
+.pw-map .pw-body {
+  overflow: hidden;
+}
+
+.pw-wx {
+  grid-area: wx;
+}
+
+.pw-in {
+  grid-area: in;
+}
+
+.pw-fuel {
+  grid-area: fuel;
+}
+
+.pw-lap {
+  grid-area: lap;
+}
+
+.pw-veh {
+  grid-area: veh;
+}
+
+.pw-bat {
+  grid-area: bat;
+}
+
+.pw-ses {
+  grid-area: ses;
+}
+
+.pw-tyr {
+  grid-area: tyr;
+}
+
+.pw-wx .wx,
+.pw-fuel .fuel,
+.pw-ses .ses {
+  width: 100%;
+}
+
+@media (max-width: 1300px) {
+  .pw-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: none;
+  }
+  .pw-card {
+    grid-area: auto !important;
+    grid-row: auto !important;
+  }
+}
+
+/* ---------- Live Timing ---------- */
+
+.lt {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: var(--ov-fs);
+}
+
+.lt-sp {
+  flex: 1;
+}
+
+.lt-pill {
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--ov-green);
+  color: #0b0d11;
+  font-weight: 700;
+}
+
+.lt-btn {
+  padding: 4px 12px;
+  border: 1px solid #2a2f3a;
+  border-radius: 6px;
+  background: #171b22;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lt-btn:hover {
+  border-color: var(--ov-accent);
+}
+
+.lt-btn.accent {
+  background: var(--ov-accent);
+  border-color: var(--ov-accent);
+  color: #111;
+  font-weight: 700;
+}
+
+.lt-btn.small {
+  padding: 2px 9px;
+  font-size: 0.85em;
+}
+
+.lt-err {
+  padding: 6px 16px;
+  background: #3a1518;
+  color: #ffb4b4;
+}
+
+.lt-cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.3fr);
+}
+
+.lt-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid #1d2129;
+}
+
+.lt-panel > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ov-dim);
+  border-bottom: 1px solid #1d2129;
+}
+
+.lt-scroll {
+  flex: 1;
+  overflow: auto;
+}
+
+.lt-row {
+  display: grid;
+  grid-template-columns: 2.2em 3em 4.2em 1fr 4em 4.5em 4.5em;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 34px;
+  border-bottom: 1px solid #161a21;
+}
+
+.lt-head {
+  height: 26px;
+  color: var(--ov-dim);
+  letter-spacing: 0.06em;
+}
+
+/* Sütun genişlikleri em cinsinden; küçük yazı sadece içerikte olsun */
+.lt-head > span {
+  font-size: 0.75em;
+}
+
+.lt-row.me {
+  background: var(--ov-bg-me);
+}
+
+.lt-row.pit {
+  opacity: 0.6;
+}
+
+.lt-pos {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 0;
+  border-radius: 4px;
+  color: #111;
+  font-weight: 700;
+  text-align: center;
+}
+
+.lt-row .car-logo {
+  justify-content: flex-start;
+  font-size: 0.85em;
+}
+
+.lt-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.lt-pit {
+  margin-left: 6px;
+  background: var(--ov-yellow);
+  color: #111;
+}
+
+.lt-class {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 14px;
+  border-left: 4px solid;
+  background: #12161c;
+}
+
+.lt-filter {
+  display: flex;
+  gap: 4px;
+}
+
+.lt-filter button {
+  padding: 2px 10px;
+  border: 1px solid #2a2f3a;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ov-dim);
+  font: inherit;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.lt-filter button.on {
+  border-color: var(--ov-accent);
+  color: var(--ov-text);
+}
+
+.lt-ev {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  min-height: 36px;
+  border-bottom: 1px solid #161a21;
+}
+
+.lt-lap {
+  width: 2.6em;
+}
+
+.lt-ico {
+  width: 1.4em;
+  text-align: center;
+}
+
+.lt-bar {
+  align-self: stretch;
+  width: 3px;
+  margin: 6px 0;
+}
+
+.lt-txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.lt-time {
+  font-size: 0.85em;
+}
+
+.k-lost .lt-ico,
+.k-flag .lt-ico {
+  color: var(--ov-yellow);
+}
+
+.k-gained .lt-ico,
+.k-fastest .lt-ico {
+  color: var(--ov-green);
+}
+
+.k-fastest .lt-txt {
+  color: var(--ov-purple);
+}
+
+/* ---------- Mühendis ekranı ---------- */
+.eng {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #07080b;
+  font-size: calc(var(--ov-fs) * 1.25);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.eng-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #1d2129;
+}
+
+.eng-top b {
+  font-size: 1.2em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.eng-dots {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.eng-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.eng-dots i.on {
+  background: var(--ov-accent);
+}
+
+.eng-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.eng-body.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.eng-card {
+  min-height: 0;
+}
+
+.eng-card .pw-body {
+  align-items: center;
+  zoom: 1.35;
+}

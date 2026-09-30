@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Kontrol paneli ve overlay penceresi için izinler",
+  "windows": [
+    "main",
+    "overlay",
+    "pitwall",
+    "timing", "engineer", "overlay-m*"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

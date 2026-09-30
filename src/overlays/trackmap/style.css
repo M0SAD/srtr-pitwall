@@ -1,0 +1,22 @@
+.tmap {
+  position: relative;
+}
+
+.tmap canvas {
+  display: block;
+}
+
+.tmap-rec {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 0.92em;
+}

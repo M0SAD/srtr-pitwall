@@ -1,0 +1,55 @@
+.rj {
+  width: 260px;
+  overflow: hidden;
+}
+.rj-state {
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 1.35em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.06em;
+  color: #111;
+}
+.rj-safe .rj-state {
+  background: var(--ov-green);
+}
+.rj-caution .rj-state {
+  background: var(--ov-yellow);
+}
+.rj-wait .rj-state {
+  background: var(--ov-red);
+  color: #fff;
+  animation: rj-pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes rj-pulse {
+  to {
+    filter: brightness(1.35);
+  }
+}
+.rj-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--ov-row-h);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ov-divider);
+  white-space: nowrap;
+}
+.rj-row i {
+  width: 4px;
+  height: 60%;
+  border-radius: 2px;
+}
+.rj-num {
+  color: var(--ov-dim);
+}
+.rj-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rj-m {
+  min-width: 3.5em;
+  text-align: right;
+  font-size: 0.85em;
+}

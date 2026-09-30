@@ -1,0 +1,188 @@
+.st {
+  width: 560px;
+}
+
+.st-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ov-divider);
+}
+
+.st-class {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px 0 0;
+  height: calc(var(--ov-row-h) - 2px);
+  background: color-mix(in srgb, var(--ov-text) 4%, transparent);
+  font-size: 0.92em;
+}
+
+.st-class > :last-child {
+  margin-left: auto;
+}
+
+.st-ribbon {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  min-width: 7em;
+  padding: 0 18px 0 10px;
+  color: #111;
+  font-weight: var(--ov-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: none;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+
+.st-sof {
+  border: 1px solid var(--ov-dim);
+  color: var(--ov-dim);
+}
+
+.st-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: calc(var(--ov-row-h) - 2px);
+  padding: 0 10px 0 0;
+  border-bottom: 1px solid var(--ov-divider);
+}
+
+.st-row:nth-child(even) {
+  background: var(--ov-bg-row);
+}
+
+.st-row.me {
+  background: var(--ov-bg-me);
+  font-weight: var(--ov-weight-strong);
+}
+
+.st-row.pit {
+  opacity: 0.6;
+}
+
+.st-accent {
+  align-self: stretch;
+  width: 3px;
+  flex: none;
+}
+
+.st-gap-row {
+  height: 14px;
+  line-height: 10px;
+  text-align: center;
+  color: var(--ov-dim);
+  border-bottom: 1px solid var(--ov-divider);
+}
+
+.st-pos {
+  width: 1.6em;
+  text-align: right;
+  font-weight: var(--ov-weight-strong);
+}
+
+.st-flair {
+  width: 1.8em;
+  text-align: center;
+  font-size: 0.72em;
+  color: var(--ov-dim);
+  border: 1px solid var(--ov-divider);
+  border-radius: 2px;
+  line-height: 1.3;
+}
+
+.st-flair:empty {
+  border-color: transparent;
+}
+
+.st-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-pit {
+  margin-left: 6px;
+  background: var(--ov-yellow);
+  color: #111;
+}
+
+.st-chg {
+  font-size: 0.8em;
+}
+
+.st-chg.up {
+  color: var(--ov-green);
+}
+
+.st-chg.down {
+  color: var(--ov-red);
+}
+
+.st-car {
+  width: 5.5em;
+  font-size: 0.82em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-ir {
+  min-width: 3.4em;
+  padding: 0 5px;
+  border-radius: 0.7em;
+  background: color-mix(in srgb, var(--ov-text) 88%, transparent);
+  color: var(--ov-bg-solid);
+  font-size: 0.8em;
+  text-align: center;
+  text-shadow: none;
+}
+
+.st-gap {
+  width: 3.6em;
+  text-align: right;
+}
+
+.st-lap {
+  width: 4.6em;
+  text-align: right;
+  font-size: 0.92em;
+}
+
+.st-lap.pb,
+.st-best {
+  color: var(--ov-green);
+}
+
+.st-lap.best {
+  color: var(--ov-purple);
+}
+
+/* Satır arka planı saydamlığı (ayar) */
+.st {
+  background: color-mix(in srgb, var(--ov-bg) var(--st-bg, 100%), transparent);
+}
+.st-head .hdr-stats {
+  flex: 1;
+  justify-content: center;
+}
+.st-lic {
+  color: #fff;
+  font-size: 0.72em;
+}
+.st-pits {
+  min-width: 1.8em;
+  text-align: right;
+  font-size: 0.85em;
+}
+.st-dtag {
+  margin-left: 6px;
+  background: var(--ov-purple);
+  color: #fff;
+}

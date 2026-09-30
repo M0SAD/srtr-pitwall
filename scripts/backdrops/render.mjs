@@ -1,0 +1,12 @@
+import { chromium } from "playwright-core";
+const [mode, out, dpr = "1"] = process.argv.slice(2);
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-proxy-server", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+const p = await b.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: +dpr });
+p.on("console", (m) => (m.type() === "error" || m.type() === "warning") && console.log("console:", m.text().slice(0, 300)));
+p.on("pageerror", (e) => console.log("pageerror:", e.message));
+await p.goto(`http://127.0.0.1:8765/index.html?mode=${mode}`, { waitUntil: "commit", timeout: 0 });
+await p.waitForFunction(() => window.__done === true, null, { timeout: 600000 });
+await p.waitForTimeout(500);
+const data = await p.evaluate(() => document.querySelector("canvas").toDataURL("image/png"));
+(await import("fs")).writeFileSync(out, Buffer.from(data.split(",")[1], "base64"));
+await b.close();

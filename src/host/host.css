@@ -1,0 +1,362 @@
+.host {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.host.editing {
+  pointer-events: auto;
+  /* Düzenleme modunda ekranı hafifçe karart */
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Izgara sadece "Izgara" açıkken görünür; kapalıyken sadece overlay çerçeveleri kalır */
+.host.editing.grid-on {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+  background-size: var(--grid, 20px) var(--grid, 20px);
+}
+
+/* Tam pencereyi bir kare boyunca yeniden çizdirmek için (bkz. nudgeRepaint) */
+.repaint {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0);
+}
+
+.repaint.on {
+  background: rgba(0, 0, 0, 0.004);
+}
+
+.frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.editing .frame {
+  cursor: move;
+  outline: 2px dashed rgba(255, 138, 42, 0.9);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.editing .frame.dragging {
+  outline-style: solid;
+  z-index: 5;
+}
+
+.frame-label {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 3px 2px 8px;
+  border-radius: 4px;
+  background: #ff8a2a;
+  color: #111;
+  font: 600 11px "Segoe UI", system-ui, sans-serif;
+  text-shadow: none;
+  white-space: nowrap;
+  transform-origin: 0 100%;
+}
+
+.frame-label.right {
+  left: auto;
+  right: 0;
+  transform-origin: 100% 100%;
+}
+
+.frame-close {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #111;
+  font: 700 11px/18px "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.frame-close:hover {
+  background: #111;
+  color: #ff8a2a;
+}
+
+.frame-resize {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: #ff8a2a;
+  cursor: nwse-resize;
+  z-index: 2;
+  transform-origin: 50% 50%;
+}
+
+/* Yapıştırma kılavuz çizgileri */
+.guide {
+  position: fixed;
+  z-index: 8;
+  pointer-events: none;
+  background: #2ec5ff;
+}
+
+.guide.v {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.guide.h {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.edit-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 8px 7px 16px;
+  border-radius: 8px;
+  background: #16181f;
+  border: 1px solid #ff8a2a;
+  color: #eef1f6;
+  font: 13px "Segoe UI", system-ui, sans-serif;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.edit-hint {
+  color: #9aa2b1;
+}
+
+.edit-banner kbd {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #2a2e38;
+  font: 11px "Segoe UI", system-ui, sans-serif;
+}
+
+.edit-banner label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.edit-banner input {
+  accent-color: #ff8a2a;
+}
+
+.edit-banner select {
+  color-scheme: dark;
+  padding: 2px 4px;
+  border: 1px solid #333846;
+  border-radius: 4px;
+  background: #0e1015;
+  color: #eef1f6;
+  font: inherit;
+}
+
+.edit-banner button {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 5px;
+  background: #ff8a2a;
+  color: #111;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-banner button.ghost {
+  background: transparent;
+  border: 1px solid #3a3f4b;
+  color: #eef1f6;
+  font-weight: 500;
+}
+
+/* Ekranın tam ortasındaki çizgiler (ızgaradan daha belirgin) */
+.center-line {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1;
+  background: rgba(255, 138, 42, 0.45);
+}
+
+.center-line.v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  margin-left: -0.5px;
+}
+
+.center-line.h {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  margin-top: -0.5px;
+}
+
+.frame-label small {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+/* Sağ tık menüsü */
+.edit-layout {
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: #2a2e38;
+  color: #ffb35c;
+  font-weight: 600;
+}
+
+/* Ayarlar → Performans: animasyon ve geçişleri kapat */
+.host.reduce-fx *,
+.host.reduce-fx *::before,
+.host.reduce-fx *::after {
+  animation: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Ayarlar → Genel: opak paneller */
+.host.opaque .ov-panel {
+  background: var(--ov-bg-solid) !important;
+}
+
+/* Düzenleme ekranı arka plan görseli (ör. kokpit içinden ekran görüntüsü) */
+.host.editing.has-bg {
+  background: none;
+}
+
+.edit-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.edit-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: var(--grid, 20px) var(--grid, 20px);
+}
+
+/* Ekran görüntüsü alındı bildirimi */
+.shot-toast {
+  position: fixed;
+  left: 50%;
+  top: 28px;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(14, 17, 22, 0.92);
+  border: 1px solid rgba(255, 138, 42, 0.8);
+  color: #fff;
+  font: 600 14px Inter, "Segoe UI", sans-serif;
+  pointer-events: none;
+  z-index: 9999;
+  animation: shot-toast-in 0.18s ease-out;
+}
+
+.shot-toast.err {
+  border-color: #e5484d;
+}
+
+@keyframes shot-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+
+/* Panelden yeni eklenen overlay'in vurgusu */
+.frame.peek {
+  outline: 3px solid rgba(255, 138, 42, 0.95);
+  outline-offset: 4px;
+  border-radius: 6px;
+  animation: frame-peek 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes frame-peek {
+  from {
+    outline-color: rgba(255, 138, 42, 0.95);
+    box-shadow: 0 0 0 0 rgba(255, 138, 42, 0.5);
+  }
+  to {
+    outline-color: rgba(255, 200, 60, 0.5);
+    box-shadow: 0 0 28px 6px rgba(255, 138, 42, 0.45);
+  }
+}
+
+/* Arkadaştan mesaj (yarıştayken) */
+.msg-toast {
+  position: fixed;
+  right: 24px;
+  top: 90px;
+  max-width: 380px;
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(14, 17, 22, 0.94);
+  border: 1px solid rgba(78, 161, 255, 0.8);
+  color: #fff;
+  font: 14px Inter, "Segoe UI", sans-serif;
+  pointer-events: none;
+  z-index: 9998;
+  animation: shot-toast-in 0.2s ease-out;
+}
+.msg-toast b {
+  color: #9cc0ff;
+}
+.msg-toast p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.msg-ic {
+  font-size: 20px;
+}
+/* Rahatsız etme açıkken: sadece alt köşede sayaç */
+.msg-pending {
+  position: fixed;
+  right: 16px;
+  bottom: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(14, 17, 22, 0.8);
+  color: #9cc0ff;
+  font: 600 12px Inter, "Segoe UI", sans-serif;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Izgara kapalıyken orta çizgiler de gizlenir: sadece overlay çerçeveleri kalır */
+.host.editing:not(.grid-on) .center-line {
+  display: none;
+}

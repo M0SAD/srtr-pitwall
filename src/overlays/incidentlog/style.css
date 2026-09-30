@@ -1,0 +1,67 @@
+.il {
+  width: 320px;
+  overflow: hidden;
+}
+.il-total {
+  font-family: var(--ov-mono);
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-text);
+  text-transform: none;
+}
+.il-total.warn {
+  color: var(--ov-red);
+}
+.il-bar {
+  height: 3px;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+}
+.il-bar > div {
+  height: 100%;
+  background: var(--ov-green);
+  transition: width 0.3s;
+}
+.il-bar > div.warn {
+  background: var(--ov-red);
+}
+.il-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--ov-row-h);
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ov-divider);
+  white-space: nowrap;
+}
+.il-row:nth-child(odd) {
+  background: var(--ov-bg-row);
+}
+.il-row.fresh {
+  animation: il-flash 1s ease-in-out infinite alternate;
+}
+@keyframes il-flash {
+  from {
+    background: color-mix(in srgb, var(--ov-red) 30%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+.il-time {
+  min-width: 3.3em;
+}
+.il-lap,
+.il-sec {
+  min-width: 2em;
+}
+.il-pts {
+  padding: 0 5px;
+  border-radius: 3px;
+  color: #111;
+  font-weight: var(--ov-weight-strong);
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+.il-kind {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
