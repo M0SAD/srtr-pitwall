@@ -1,207 +1,78 @@
-# SRTR Pitwall — iRacing Overlay
+<div align="center">
 
-Hafif ve hızlı iRacing overlay uygulaması. **Tauri 2 + Rust + SolidJS** ile yazıldı.
+<img src="docs/images/logo.png" width="96" alt="SRTR Pitwall logo" />
 
-- Tüm telemetri okuma ve hesaplama Rust'ta, tek bir arka plan iş parçacığında yapılır.
-- Overlay'ler monitör başına tek bir şeffaf pencerede çizilir (her overlay için ayrı pencere açılmaz); birden
-  fazla monitör desteklenir, her overlay'in monitörü Düzenler sayfasında seçilir.
-- Her overlay sadece ihtiyaç duyduğu veriyi, kendi belirlediği sıklıkta alır (ör. pedallar 60 Hz, sıralama 3 Hz).
-- `src/overlays/` klasörüne yeni bir klasör eklemek, overlay'in kontrol panelinde görünmesi için yeterlidir.
-- Üyeliksiz tam çalışır. İsteğe bağlı Supabase hesabıyla ayarlar buluta yedeklenir.
-- **Görünüm/tema sistemi:** font, renkler, opaklık, köşe, satır yoğunluğu ve genel boyut tek yerden değişir,
-  tüm overlay'lere anında uygulanır. 6 hazır tema (Varsayılan, Gece Mavisi, Karbon, Açık, Yüksek Kontrast, Neon).
-- **Düzenleme ekranı:** ızgaraya ve diğer overlay'lerin/ekranın kenarlarına yapıştırma, kılavuz çizgileri,
-  ekran dışına taşımayı engelleme, her çerçevede kapatma düğmesi.
+# SRTR Pitwall
 
-## Hazır overlay'ler
+### The all-in-one iRacing companion — overlays, spotter, strategy, streaming and community in one lightweight app.
 
-| Overlay | İçerik |
+**English** · [Türkçe](docs/readme/README.tr.md) · [Deutsch](docs/readme/README.de.md) · [Español](docs/readme/README.es.md) · [Français](docs/readme/README.fr.md) · [Italiano](docs/readme/README.it.md) · [Português (BR)](docs/readme/README.pt-BR.md) · [Português (PT)](docs/readme/README.pt-PT.md) · [Nederlands](docs/readme/README.nl.md) · [Polski](docs/readme/README.pl.md) · [Svenska](docs/readme/README.sv.md) · [Suomi](docs/readme/README.fi.md) · [Русский](docs/readme/README.ru.md) · [简体中文](docs/readme/README.zh-CN.md) · [日本語](docs/readme/README.ja.md)
+
+[**⬇ Download the latest version**](../../releases/latest) · [**🌐 pitwall.simracetr.com**](https://pitwall.simracetr.com)
+
+</div>
+
+---
+
+<img src="docs/images/layout.jpg" alt="SRTR Pitwall overlays on track" width="100%" />
+
+## Why SRTR Pitwall?
+
+Most overlay apps stop at overlays. SRTR Pitwall is a complete pit wall for your sim rig:
+
+- 🏎️ **26 overlays, one transparent window** — relative, leaderboard, fuel, tires, radar, track map, delta, inputs, weather, flags and more. Everything draws in a single window per monitor, so it stays fast even with a full layout.
+- 🎙️ **Visual & voice spotter** — car-left / car-right, three-wide, flags, fuel and position calls with a Turkish voice pack, plus faster-class and rejoin warnings.
+- ⛽ **Fuel strategy with live team sharing** — per-lap consumption, refuel amounts, pit windows, and your teammates' fuel shown live in your own overlay.
+- 👥 **Friends with trusted live telemetry** — add friends, see who is online or racing, and let the drivers you trust see your live fuel and lap data. No codes, no setup.
+- 💬 **In-race messaging** — messages from friends pop up on screen with a sound while you race. Do-not-disturb keeps them quiet until you're back in the garage.
+- 📺 **Stream layouts for OBS** — separate layouts for streaming, ready-made scenes (starting soon, be right back, ending, garage cover) and a Twitch chat overlay.
+- 🌍 **Community hub** — share and download complete layouts, stream layouts and colour themes with every setting included. Rate, comment, and browse this month's and all-time top picks.
+- 📸 **One-key screenshots** — Print Screen captures the game *with* your overlays and a watermark, then share it to the community gallery.
+- 🎨 **Theme engine** — fonts, colours, density, corner radius, opacity and size change every overlay at once. Six built-in themes, plus themes from the community.
+- 🧩 **Layout manager** — automatic layouts per car and session, multi-monitor support, snapping guides and a live preview on real track backdrops.
+- 🔄 **Signed auto-updates** — new versions install with one click, verified against our signing key.
+- 🌐 **15 languages** — English, Türkçe, Deutsch, Español, Français, Italiano, Português, Nederlands, Polski, Svenska, Suomi, Русский, 简体中文, 日本語.
+
+<img src="docs/images/panel.jpg" alt="SRTR Pitwall control panel" width="100%" />
+
+## Built for performance
+
+Your GPU and CPU belong to the sim. SRTR Pitwall is written in **Rust** with a **SolidJS** interface on **Tauri 2**:
+
+- All telemetry reading and calculation runs in Rust on a single background thread.
+- Each overlay only receives the data it needs, at its own rate. Data for closed overlays is never computed.
+- The overlay window is fully hidden when iRacing is not running.
+- Previews in the control panel are static snapshots, so they use no CPU when you're not interacting.
+- No blur effects or constant animations: nothing competes with the game for the GPU.
+
+## Getting started
+
+1. Download the installer from [**Releases**](../../releases/latest) and install it.
+2. Run iRacing in **borderless / windowed fullscreen** mode. Windows doesn't allow any overlay on top of exclusive fullscreen.
+3. Overlays appear automatically when iRacing connects. Use the **Demo** switch to design your layout without iRacing.
+
+| Shortcut | Action |
 |---|---|
-| Relative | Önündeki/arkandaki araçlar: fark, stint/PIT/OUT, lisans+SR, iRating ve tahmini değişim, son tur, bayraklar; hava ve SOF satırları |
-| Leaderboard | Çok sınıflı sıralama, sınıf SOF'u, ülke, marka, iRating, fark/aralık, 5 tur ort., en iyi tur |
-| Yakıt Hesaplayıcı | Son/ort.5/ort.10 tüketim tablosu, ikmal, hedef tüketim, kalan tur, pit penceresi |
-| Telemetri Paneli | Vites halkası, devir ışıkları, hız, pozisyon değişimi, son tur, yakıt, sıcaklık, ABS/TC/BB |
-| Pedallar & Girdi | Gaz/fren/debriyaj izi (yumuşak grafik seçeneği), vites, hız, direksiyon |
-| Delta Bar | En iyi tura göre fark, eğilim, tur süreleri |
-| Görsel Spotter | Radar ya da spotter çubukları; araç blokları boyuna konuma göre hareket eder |
-| Pist Haritası / Mini Harita | Otomatik kaydedilen pist şekli üzerinde araçlar |
-| Canlı Hava | Rüzgâr pusulası, sıcaklıklar, nem, yağış, pist ıslaklığı |
-| Oturum & Bayraklar, DigiFlags | Bayrak uyarıları, kalan süre/tur, LED matris bayrak |
-| Olay Sayacı, Battle Box, Data Frame, Webview | Olay/sınır, önündeki-arkandaki mücadele, tek değer kutusu, web sayfası |
-| Lastikler | Dört lastiğin iç/orta/dış sıcaklığı, kalan diş, soğuk basınç (iRacing pitte günceller) |
-| Tur Süreleri | Son turlar, 3 sektör, en iyiye fark, yakıt, geçersiz/pit turları, teorik en iyi tur |
-| Olay Günlüğü | Her olay puanı: saat, tur, sektör, tür (pist dışı / kontrol kaybı / temas) |
-| Pit Hızı | Pit hız sınırına göre hız, sınırlayıcı uyarısı |
-| Hızlı Sınıf Uyarısı, Piste Dönüş | Arkadan gelen hızlı sınıf araçları; pist dışından güvenli dönüş yardımcısı |
-| Düz Harita, Viraj Analizi | Düz şerit pist haritası; en iyi tura göre viraj en düşük hız karşılaştırması |
-| Twitch Sohbeti, Sahne | Yayın için sohbet ve başlıyor/ara/bitiş/garaj ekranları |
+| `Ctrl` + `Shift` + `E` | Edit layout (drag, resize, right-click for options) |
+| `Ctrl` + `Shift` + `D` | Show / hide overlays |
+| `Ctrl` + `Shift` + `Space` | Bring the control panel to the front |
+| `Print Screen` | Screenshot with overlays |
 
-Araçlar: **Pitwall Paneli**, **Live Timing** (tekrar/kamera düğmeli yarış kontrol akışı), **OBS tarayıcı kaynağı**
-(yerel web sunucusu), **Layout Manager** (araca/oturuma göre otomatik düzen, spotting ve yayın düzenleri),
-**MQTT** (dahili sunucu + istemci, takım yakıt paylaşımı), **League Builder** (lig kategorileri), **araç markası logoları**,
-**Arkadaşlar** (aynı yarıştaki arkadaşlar renkli/simgeli), **Topluluk** (düzen paylaşımı, arama, puan, yorum),
-**hesap ve PRO üyelik** (Patreon/Ko-fi aboneliği, yönetici paneli), **Sesli Mühendis ve Spotter** (PRO; bilgisayardaki
-CrewChief ses paketiyle), **Mühendis ekranı** (tablet/tarayıcı için döngülü ekranlar), **oturum kayıtları ve yarış özetleri**,
-**uzak telemetri**.
+All shortcuts can be changed in **Settings → Shortcuts**.
 
-## Kurulum (Windows)
+## Free and PRO
 
-Bir kez kurulması gerekenler:
+SRTR Pitwall works fully **without an account**. A free account unlocks the community, cloud backup of your settings and the friends list. **PRO** adds premium overlays, the voice engineer, trusted live data sharing and sending messages to friends, sharing and using community themes, and using, rating and commenting on community layouts.
 
-1. **Node.js 20 veya üstü** — https://nodejs.org
-2. **Rust** — https://rustup.rs (varsayılan `x86_64-pc-windows-msvc` araç zinciri)
-3. **Visual Studio C++ Build Tools** — "Desktop development with C++" iş yükü
-   (Rust kurulumu bunu yoksa zaten önerir)
-4. **WebView2** — Windows 10/11'de zaten yüklü.
+## Community
 
-Ayrıntılı kılavuz: https://v2.tauri.app/start/prerequisites/
+Made by **Erkin Azcan** for the [Sim Race Türkiye](https://www.simracetr.com) community.
 
-## Çalıştırma ve exe üretme
+[YouTube](https://www.youtube.com/@ErkinAzcan) · [Twitch](https://www.twitch.tv/erkinazcan) · [Kick](https://kick.com/erkinazcan) · [Instagram](https://www.instagram.com/erkinazcan) · [Steam](https://steamcommunity.com/id/erkinazcan/)
 
-```bat
-npm install
+Found a bug or have an idea? Open an [issue](../../issues).
 
-:: Geliştirme: değişiklikler anında görünür (sıcak yeniden yükleme)
-npm run app:dev
+---
 
-:: Sürüm derlemesi: optimize edilmiş exe + kurulum dosyaları
-npm run app:build
-```
-
-Ya da kök klasördeki **`build.bat`** dosyasına çift tıkla; bağımlılıkları kurar ve derler.
-
-Derleme bitince:
-
-- Taşınabilir exe: `src-tauri\target\release\pitwall.exe`
-- Kurulum dosyası: `src-tauri\target\release\bundle\nsis\SRTR Pitwall_0.1.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\SRTR Pitwall_0.1.0_x64_en-US.msi`
-
-İlk sürüm derlemesi Rust bağımlılıkları yüzünden birkaç dakika sürer; sonrakiler hızlıdır.
-
-## Kullanım
-
-- iRacing'i **Kenarlıksız pencere (Borderless / Windowed Fullscreen)** modunda çalıştır. Özel tam ekran modunda
-  Windows hiçbir pencerenin oyunun üstünde görünmesine izin vermez; bu, tüm overlay uygulamaları için geçerlidir.
-- Uygulama açılınca overlay'ler iRacing bağlandığında kendiliğinden görünür.
-- **Demo** anahtarı iRacing olmadan sahte bir 24 araçlı çok sınıflı yarış oynatır; overlay tasarlarken kullan.
-- **Ctrl+Shift+E**: yerleşimi düzenle (sürükle, sağ alt köşeden boyutlandır, ✕ ile kapat). Tekrar basınca biter.
-  Taşırken **Alt** basılı tutulursa yapıştırma geçici olarak kapanır.
-- **Ctrl+Shift+D**: overlay'leri gizle/göster.
-- **Ctrl+Shift+Boşluk**: kontrol panelini öne getir (düzenleme modunda panel overlay'lerin üstünde kalır).
-- Kısayolların hepsi **Genel ayarlar → Kısayollar**'dan değiştirilebilir.
-- Düzenleme modunda bir overlay'e **sağ tıkla**: ortala, köşelere yerleştir, boyutu sıfırla, ayarlarını aç.
-- Aynı anda tek SRTR Pitwall çalışır. **Windows ile başlat** seçeneği Genel ayarlarda; bu şekilde başlayınca sadece
-  tepside çalışır.
-- Kontrol paneli kapatılınca uygulama sistem tepsisinde çalışmaya devam eder (panel belleği boşaltılır).
-  Tepsi simgesine tıklayınca panel yeniden açılır; tamamen kapatmak için tepsi menüsünden **Çıkış**.
-- Profiller: farklı araçlar/seriler için ayrı yerleşimler oluşturup aralarında geçiş yapabilirsin.
-
-- **Pist haritası:** iRacing pist şeklini vermez; uygulama bir pistteki ilk temiz turunda (pite girmeden, pist
-  dışına çıkmadan) şekli kendisi çıkarır ve saklar. Harita ters görünürse overlay ayarlarındaki "Aynala"yı aç.
-  Kayıtlar: `%APPDATA%\com.pitwall.overlay\tracks\`
-- **OBS:** Araçlar → Web sunucusu'nu aç, verilen adresi OBS'te Tarayıcı Kaynağı olarak ekle (1920×1080).
-- **Marka logoları:** logolar tescilli olduğu için uygulamayla gelmez. Görünüm → Araç markası logoları →
-  "Logo klasörünü aç" ile açılan klasöre `porsche.png`, `aston-martin.svg` gibi dosyalar koy
-  (`%APPDATA%\com.pitwall.overlay\logos\`). Logo yoksa marka adı yazılır.
-- **Takım yakıt paylaşımı (MQTT):** Araçlar → MQTT. Takımdan biri "MQTT sunucusunu çalıştır"ı açar (port 1883,
-  internetten bağlanılacaksa modemde port yönlendirmesi gerekir) ya da ortak bir MQTT sunucusu kullanılır. Herkes
-  istemciyi açıp aynı sunucu adresini ve aynı **takım adını** yazar. Sürüş yapanın yakıtı Yakıt overlay'inin
-  altında ve Pitwall'da herkese görünür.
-- **Arkadaşlar:** iRacing adını (ve istersen üye numarasını) eklediğin kişiler Relative, Leaderboard, Live
-  Timing ve haritalarda kendi renginle, haritada simge ya da fotoğrafla görünür. Aynı oturumdaysanız listeden
-  tek tıkla eklenir.
-- **Hesap ve Topluluk:** kurulum [docs/SUPABASE.md](docs/SUPABASE.md). Hesapla düzenlerini paylaşırsın; başkaları
-  adına, iRacing adına ya da çözünürlüğe göre arar, ekran şemasını görür, tek tıkla profil olarak indirir, yıldız
-  ve yorum bırakır.
-- **PRO:** yönetici seçtiği overlay'leri PRO yapar; PRO olmayanlarda kilitli olur. Ödeme Patreon/Ko-fi ile,
-  kurulum [docs/PRO.md](docs/PRO.md).
-- **League Builder:** lig yarışlarında iRacing sınıfları yerine Pro / Pro-Am / Am gibi kategoriler. Sürücüleri
-  sürükle-bırak ile ata, iRacing sınıflarına göre varsayılan ver, lig kimliği girersen sadece o ligde çalışır.
-  Yapılandırma dışa/içe aktarılarak lig arkadaşlarıyla paylaşılabilir.
-
-Ayarlar şurada saklanır: `%APPDATA%\com.pitwall.overlay\settings.json`
-
-## Ekran görüntüleri
-
-- Oyundayken **Print Screen** (Ayarlar → Kısayollar'dan değiştirilebilir) ekranı overlay'lerle birlikte
-  `Resimler\SRTR Pitwall` klasörüne kaydeder ve yönetici filigranını ekler (`src-tauri/src/shots.rs`).
-- Filigran arayüzde canvas ile çizilir (`src/sdk/watermark.ts`) ve PNG olarak Rust'a gönderilir; Rust görüntü
-  yüksekliğine göre ölçekleyip bindirir. Ayarı `app_config.watermark` (Hesap → Yönetici).
-- Toplulukta paylaşılan görseller Supabase Storage'daki herkese açık `screenshots` kovasında
-  (`<kullanıcı id>/<id>.jpg` + `_t.jpg` küçük resim); bilgiler `screenshots`, `screenshot_ratings`,
-  `screenshot_comments` tablolarında (`supabase/schema.sql`).
-- Düzenleme ekranı arka planı ayar klasöründe `edit-backdrop.jpg` olarak tutulur.
-
-## Diller ve çeviri
-
-Arayüz 15 dilde (Ayarlar → Genel → Dil). Kaynak dil Türkçe: metinler kodda Türkçe yazılır ve
-çeviri anahtarı da bu Türkçe metindir. Çeviriler `src/locales/<dil>.json` dosyalarında.
-
-- Panel ve overlay'lerdeki görünen metinler DOM çevirmeniyle kendiliğinden çevrilir; kodda
-  gereken yerlerde `t("Metin {0}", değer)` kullanılır (`src/sdk/i18n.ts`). Çevrilmemesi gereken
-  alanlara (sürücü adı, bayrak kodu…) `data-no-i18n` eklenir.
-- Rust tarafı (tepsi, pencere başlıkları, oturum özeti) çevirileri `i18n_set` komutuyla alır.
-- Yeni metin ekledikten sonra: `node scripts/i18n/extract.mjs --missing` eksikleri listeler;
-  kurallar `scripts/i18n/TRANSLATING.md` dosyasında.
-- E-posta şablonları çok dilli: `node supabase/templates/build.mjs` ile üretilir, kullanıcının
-  dili Supabase'de `user_metadata.lang` alanında tutulur.
-
-## Sürümler ve güncelleme
-
-Sürüm biçimi `GGAAYY-NN` (ör. `290926-01`). Değişiklikler `SURUM_NOTLARI.md` dosyasında. Sürüm yükseltme ve
-otomatik güncellemenin kurulumu: [docs/GUNCELLEME.md](docs/GUNCELLEME.md)
-
-## Proje yapısı
-
-```
-pitwall/
-├─ src-tauri/                 Rust çekirdek
-│  ├─ src/sdk.rs              iRacing paylaşımlı bellek okuyucu (Windows)
-│  ├─ src/session.rs          Session YAML ayrıştırıcı (sürücüler, sınıflar, oturumlar)
-│  ├─ src/model.rs            Normalize veri modeli (Frame, SessionData)
-│  ├─ src/calc.rs             Relative, standings, yakıt, delta, radar hesapları
-│  ├─ src/engine.rs           Telemetri iş parçacığı + abonelik tabanlı yayın
-│  ├─ src/demo.rs             Sahte yarış üretici
-│  ├─ src/league.rs           League Builder (kategori uygulama, sınıf içi sıra)
-│  ├─ src/mqtt.rs             MQTT sunucusu/istemcisi, takım yakıt paylaşımı
-│  ├─ src/logos.rs            Kullanıcının marka logoları klasörü
-│  ├─ src/entitlement.rs      PRO durumu (diske yazılır, çevrimdışı da geçerli)
-│  └─ src/lib.rs              Pencereler, komutlar, tepsi, kısayollar, ayar dosyası
-├─ src/
-│  ├─ app/                    Kontrol paneli (Overlay'ler, Görünüm, Araçlar, League Builder, Genel, Hesap)
-│  ├─ host/                   Şeffaf overlay penceresi, düzenleme modu, snap.ts (yapıştırma)
-│  ├─ sdk/                    Ortak API: ayarlar, telemetri, theme.ts (tema), fonts.ts
-│  ├─ cloud/supabase.ts       İsteğe bağlı bulut senkronizasyonu
-│  └─ overlays/               ← Overlay'ler burada
-│     ├─ relative/  standings/  fuel/  delta/  inputs/  radar/  session/
-│     └─ _template/           Yeni overlay için şablon (yüklenmez)
-├─ supabase/schema.sql        Bulut şeması (hesap, paylaşım, PRO)
-├─ supabase/functions/        pro-webhook: Patreon/Ko-fi ödeme bildirimi
-└─ docs/
-   ├─ OVERLAY_YAZMA.md        Yeni overlay nasıl eklenir
-   ├─ SUPABASE.md             Hesap/bulut kurulumu (adım adım)
-   └─ PRO.md                  PRO üyelik ve ödeme kurulumu
-```
-
-## Yeni overlay eklemek
-
-`src/overlays/_template` klasörünü kopyala, adını değiştir (ör. `laptimer`), `manifest.ts` içindeki `id`'yi
-klasör adıyla aynı yap. `npm run app:dev` açıkken kaydettiğin an kontrol panelinde belirir. Ayrıntılar:
-[docs/OVERLAY_YAZMA.md](docs/OVERLAY_YAZMA.md)
-
-## Performans notları
-
-- **Tek render süreci:** iki pencere `--renderer-process-limit=1` ile aynı WebView2 render sürecini paylaşır.
-  İstersen `src-tauri/tauri.conf.json` ve `src-tauri/src/lib.rs` içindeki `BROWSER_ARGS`'tan kaldırabilirsin
-  (ikisi aynı olmalı).
-- **Gizli pencere = sıfır çizim:** iRacing bağlı değilken overlay penceresi tamamen gizlenir.
-- **Abone olunmayan veri hesaplanmaz:** kapalı bir overlay'in verisi Rust'ta hiç üretilmez.
-- **Tembel yükleme:** kapalı overlay'lerin kodu overlay penceresine hiç yüklenmez.
-- **Sanal DOM yok:** SolidJS yalnızca değişen metin düğümünü günceller; pedal izi Canvas ile çizilir.
-- **Sürüm profili:** `lto = "fat"`, `codegen-units = 1`, `opt-level = 3`, `panic = "abort"`, `strip = true`.
-- CSS'te `backdrop-filter`/bulanıklık ve sürekli animasyon kullanılmaz (GPU'yu oyunla paylaşmamak için).
-
-## Sonraki adımlar için fikirler
-
-VR'da gösterim, pit limit uyarısı, çok sınıflı geçiş uyarısı, hibrit enerji (GTP), tur geçmişi / stint analizi,
-diğer simülasyonlar (ACC, LMU, AMS2) için veri kaynakları.
+<sub>Developer documentation (Turkish): [docs/GELISTIRME.md](docs/GELISTIRME.md) · Release notes: [SURUM_NOTLARI.md](SURUM_NOTLARI.md)<br/>
+iRacing is a trademark of iRacing.com Motorsport Simulations, LLC. SRTR Pitwall is not affiliated with or endorsed by iRacing.</sub>
