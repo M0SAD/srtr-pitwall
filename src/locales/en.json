@@ -608,6 +608,7 @@
  "Güncel": "Current",
  "Güncel tur": "Current lap",
  "Güncelleme sıklığı": "Update rate",
+ "Güncelleme sunucusuna ulaşılamadı. İnternet bağlantını kontrol et.": "Couldn't reach the update server. Check your internet connection.",
  "Güncelleme:": "Update:",
  "Güncellemeleri denetle": "Check for updates",
  "Günlük paylaşım sınırı": "Daily share limit",

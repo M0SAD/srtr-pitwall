@@ -1,5 +1,6 @@
 // Kontrol panelinin sayfalar arası paylaşılan durumu.
 
+import { t } from "@/sdk/i18n";
 import { createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -76,7 +77,13 @@ export async function checkUpdate() {
   try {
     setUpdate(await invoke<UpdateInfo>("update_check"));
   } catch (e) {
-    setUpdateError(String(e));
+    const m = String(e);
+    // Henüz yayınlanmış sürüm yok (latest.json bulunamadı) ya da internet yok
+    if (/valid release JSON|404|Not Found/i.test(m)) {
+      setUpdate({ configured: true, available: false, version: null, notes: null, date: null });
+    } else if (/error sending request|dns|connect|timed out|network/i.test(m)) {
+      setUpdateError(t("Güncelleme sunucusuna ulaşılamadı. İnternet bağlantını kontrol et."));
+    } else setUpdateError(m);
   } finally {
     setChecking(false);
   }

@@ -608,6 +608,7 @@
  "Güncel": "src/app/pages/AccountPage.tsx",
  "Güncel tur": "src/sdk/HeaderStats.tsx",
  "Güncelleme sıklığı": "src/overlays/delta/manifest.ts, src/overlays/inputs/manifest.ts, src/overlays/minimap/manifest.ts, src/overlays/radar/manifest.ts, src/overlays/relative/manifest.ts, src/overlays/standings/manifest.ts, src/overlays/telemetry/manifest.ts, src/overlays/trackmap/manifest.ts",
+ "Güncelleme sunucusuna ulaşılamadı. İnternet bağlantını kontrol et.": "src/app/ui.ts",
  "Güncelleme:": "src/app/App.tsx",
  "Güncellemeleri denetle": "src/app/pages/GeneralPage.tsx",
  "Günlük paylaşım sınırı": "src/app/components/AdminMedia.tsx",
