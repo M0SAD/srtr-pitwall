@@ -85,19 +85,18 @@ seçili olmalı.
 
 ## Her yeni sürümde
 
+Elle etiket (tag) atmana gerek yok. Değişiklikleri GitHub'a gönder (GitHub Desktop'ta commit + Push origin);
+iş akışı `version.json` içindeki sürümün daha önce yayınlanıp yayınlanmadığına bakar. Yeni sürümse derler,
+`v1.0.X` etiketini ve sürümü kendisi oluşturur. Sürüm numarası artmadıysa hiçbir şey yapmaz.
+
 ```bat
 node scripts\surum.mjs
 :: SURUM_NOTLARI.md dosyasının en üstüne yeni sürümün notlarını yaz
-git add -A
-git commit -m "Sürüm 290926-02"
-git tag v1.0.2
-git push
-git push --tags
+:: sonra GitHub Desktop: Commit to main, Push origin
 ```
 
-`git tag` için betiğin yazdığı paket sürümünü kullan. Birkaç dakika içinde GitHub'daki **Actions**
-sekmesinde derleme biter ve **Releases** sayfasında yeni sürüm görünür. Kullanıcılar paneli açtığında
-güncellemeyi görür.
+Birkaç dakika içinde GitHub'daki **Actions** sekmesinde derleme biter ve **Releases** sayfasında yeni sürüm
+görünür. Kullanıcılar paneli açtığında güncellemeyi görür.
 
 İlk imzalı sürümü kullanıcılar bir kere elle kurmalıdır (içinde açık anahtar olan ilk sürüm). Sonraki tüm
 sürümler otomatik gelir.

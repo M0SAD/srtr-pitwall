@@ -57,4 +57,4 @@ writeFileSync(p("src-tauri/Cargo.toml"), cargo.replace(/^version = ".*"$/m, `ver
 
 console.log(`Sürüm yükseltildi: ${version.display} -> ${next.display}  (paket sürümü ${next.semver})`);
 console.log(`SURUM_NOTLARI.md dosyasının en üstüne "## ${next.display}" başlığıyla değişiklikleri yazmayı unutma.`);
-console.log(`Yayınlamak için: git tag v${next.semver} && git push --tags`);
+console.log(`Yayınlamak için: değişiklikleri GitHub Desktop ile push et; yayın kendiliğinden başlar`);
