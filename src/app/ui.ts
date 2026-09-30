@@ -66,12 +66,14 @@ export const [version, setVersion] = createSignal<VersionInfo | null>(null);
 export const [update, setUpdate] = createSignal<UpdateInfo | null>(null);
 export const [updateError, setUpdateError] = createSignal("");
 export const [checking, setChecking] = createSignal(false);
+/** Elle yapılan denetimden sonra kısa süre "güncelsin" göstermek için */
+export const [justChecked, setJustChecked] = createSignal(false);
 
 export async function loadVersion() {
   setVersion(await invoke<VersionInfo>("app_version"));
 }
 
-export async function checkUpdate() {
+export async function checkUpdate(manual = false) {
   setChecking(true);
   setUpdateError("");
   try {
@@ -86,6 +88,10 @@ export async function checkUpdate() {
     } else setUpdateError(m);
   } finally {
     setChecking(false);
+    if (manual && !updateError() && !update()?.available) {
+      setJustChecked(true);
+      setTimeout(() => setJustChecked(false), 4000);
+    }
   }
 }
 

@@ -29,6 +29,7 @@ export { default as Magnet } from "lucide-solid/icons/magnet";
 export { default as Search } from "lucide-solid/icons/search";
 export { default as Star } from "lucide-solid/icons/star";
 export { default as Download } from "lucide-solid/icons/download";
+export { default as RefreshCw } from "lucide-solid/icons/refresh-cw";
 export { default as Volume2 } from "lucide-solid/icons/volume-2";
 export { default as VolumeX } from "lucide-solid/icons/volume-x";
 export { default as Tv } from "lucide-solid/icons/tv";

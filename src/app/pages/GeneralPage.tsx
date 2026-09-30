@@ -208,7 +208,7 @@ export function About() {
             <Show
               when={update()?.available}
               fallback={
-                <button class="btn ghost" disabled={checking()} onClick={() => checkUpdate()}>
+                <button class="btn ghost" disabled={checking()} onClick={() => checkUpdate(true)}>
                   {checking() ? "Denetleniyor…" : "Güncellemeleri denetle"}
                 </button>
               }

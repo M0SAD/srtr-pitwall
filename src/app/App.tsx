@@ -9,7 +9,7 @@ import { settings, updateSettings } from "@/sdk/settings";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isPro } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
-import { bindUpdateEvents, checkUpdate, focusOverlay, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
+import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
 import * as I from "./icons";
 import { OverlaysPage } from "./pages/OverlaysPage";
@@ -129,7 +129,12 @@ export function App() {
     if (pending) focusOverlay(pending);
     await loadVersion();
     bindUpdateEvents();
-    if (version()?.updateConfigured) checkUpdate();
+    if (version()?.updateConfigured) {
+      checkUpdate();
+      // Program açık kaldıkça 30 dakikada bir yeni sürüme bakar
+      const ut = setInterval(() => !checking() && checkUpdate(), 30 * 60_000);
+      onCleanup(() => clearInterval(ut));
+    }
   });
 
   const conn = () => {
@@ -156,6 +161,19 @@ export function App() {
           <Show when={update()?.available}>
             <button class="btn update-badge" title="Yeni sürümü indir ve kur" onClick={() => setUpdateDialog(true)}>
               <I.Download /> {t("Güncelleme: {0}", update()!.version ?? "")}
+            </button>
+          </Show>
+          <Show when={version()?.updateConfigured && !update()?.available}>
+            <button
+              class="btn ghost update-badge"
+              disabled={checking()}
+              title={updateError() || "Yeni sürüm var mı diye bak"}
+              onClick={() => checkUpdate(true)}
+            >
+              <span classList={{ spin: checking() }} style={{ display: "inline-flex" }}>
+                <I.RefreshCw />
+              </span>{" "}
+              {checking() ? t("Denetleniyor…") : updateError() ? t("Denetlenemedi, tekrar dene") : justChecked() ? t("En güncel sürümdesin") : t("Güncellemeleri denetle")}
             </button>
           </Show>
           <div class="seg" title="Simülasyon">

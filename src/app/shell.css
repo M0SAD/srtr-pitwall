@@ -3309,3 +3309,11 @@ body {
   gap: 6px;
   margin: 6px 0 4px;
 }
+.update-badge .spin svg {
+  animation: upd-spin 0.9s linear infinite;
+}
+@keyframes upd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
