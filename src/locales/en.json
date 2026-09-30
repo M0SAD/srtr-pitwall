@@ -1751,5 +1751,17 @@
   "SRTR Pitwall – {0}": "SRTR Pitwall – {0}",
   "SRTR Pitwall – Arkadaşlar": "SRTR Pitwall – Friends",
   "Verilerini gör (yakıt, turlar, pistteki yeri)": "See their data (fuel, laps, position on track)",
-  "Arkadaş verileri": "Friend data"
+  "Arkadaş verileri": "Friend data",
+  "Fiyat metni": "Price text",
+  "Ödeme bağlantısı": "Checkout link",
+  "ör. $4.99 / €4,99": "e.g. $4.99 / €4.99",
+  "ör. 149₺": "e.g. 149₺",
+  "Satın aldığın süre kalan sürenin üstüne eklenir.": "The time you buy is added to your remaining time.",
+  "Süreni uzat": "Extend your PRO",
+  "TL varyantının bağlantısı": "Link of the TL variant",
+  "Türkiye (TL)": "Turkey (TL)",
+  "Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa herkes genel fiyatı görür.": "Users in Turkey (Turkey time zone) see the TL price and TL link; everyone else sees the general (USD / EUR) price. If the Turkey fields are empty, everyone sees the general price.",
+  "Uzat": "Extend",
+  "Web sitesinde hesabım": "My account on the website",
+  "Yönetici hesabında gerekmez; kullanıcılar bu bölümü böyle görür.": "Not needed on an admin account; this is how users see this section."
 }

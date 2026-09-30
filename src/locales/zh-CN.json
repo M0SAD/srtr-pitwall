@@ -1751,5 +1751,17 @@
   "SRTR Pitwall – {0}": "SRTR Pitwall – {0}",
   "SRTR Pitwall – Arkadaşlar": "SRTR Pitwall – 好友",
   "Verilerini gör (yakıt, turlar, pistteki yeri)": "查看其数据（燃油、圈速、赛道位置）",
-  "Arkadaş verileri": "好友数据"
+  "Arkadaş verileri": "好友数据",
+  "Fiyat metni": "价格文字",
+  "Ödeme bağlantısı": "付款链接",
+  "ör. $4.99 / €4,99": "例如 $4.99 / €4,99",
+  "ör. 149₺": "例如 149₺",
+  "Satın aldığın süre kalan sürenin üstüne eklenir.": "购买的时长会加到剩余时长上。",
+  "Süreni uzat": "延长 PRO",
+  "TL varyantının bağlantısı": "TL 版本的链接",
+  "Türkiye (TL)": "土耳其（TL）",
+  "Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa herkes genel fiyatı görür.": "在土耳其使用的用户（土耳其时区）会看到 TL 价格和链接；其他人看到通用价格（USD / EUR）。土耳其字段为空时，所有人都看到通用价格。",
+  "Uzat": "延长",
+  "Web sitesinde hesabım": "网站上的我的账号",
+  "Yönetici hesabında gerekmez; kullanıcılar bu bölümü böyle görür.": "管理员账号无需此操作；用户看到的就是这个样子。"
 }

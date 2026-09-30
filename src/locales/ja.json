@@ -1751,5 +1751,17 @@
   "SRTR Pitwall – {0}": "SRTR Pitwall – {0}",
   "SRTR Pitwall – Arkadaşlar": "SRTR Pitwall – フレンド",
   "Verilerini gör (yakıt, turlar, pistteki yeri)": "データを見る(燃料、ラップ、コース上の位置)",
-  "Arkadaş verileri": "フレンドのデータ"
+  "Arkadaş verileri": "フレンドのデータ",
+  "Fiyat metni": "価格テキスト",
+  "Ödeme bağlantısı": "決済リンク",
+  "ör. $4.99 / €4,99": "例: $4.99 / €4,99",
+  "ör. 149₺": "例: 149₺",
+  "Satın aldığın süre kalan sürenin üstüne eklenir.": "購入した期間は残り期間に加算されます。",
+  "Süreni uzat": "PROを延長",
+  "TL varyantının bağlantısı": "TL版のリンク",
+  "Türkiye (TL)": "トルコ(TL)",
+  "Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa herkes genel fiyatı görür.": "トルコのユーザー(トルコのタイムゾーン)にはTL価格とTLリンク、それ以外には通常価格(USD / EUR)が表示されます。トルコ欄が空なら全員に通常価格が表示されます。",
+  "Uzat": "延長",
+  "Web sitesinde hesabım": "ウェブサイトのマイアカウント",
+  "Yönetici hesabında gerekmez; kullanıcılar bu bölümü böyle görür.": "管理者アカウントでは不要です。ユーザーにはこのように表示されます。"
 }

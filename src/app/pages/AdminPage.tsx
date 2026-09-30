@@ -20,6 +20,8 @@ import {
   type AdminUser,
   type DeviceFilter,
   type UserFilter,
+  PLAN_LIST,
+  type AppConfig,
 } from "@/cloud/account";
 import { can, listGroups, ownerSetAdmin, setUserGroup, type PermGroup } from "@/cloud/moderation";
 import { manifests } from "@/sdk/registry";
@@ -478,7 +480,7 @@ function Devices(props: { run: Run }) {
 // ---------------------------------------------------------------------------
 // Planlar ve fiyatlar
 // ---------------------------------------------------------------------------
-type PlanKey = "price_monthly" | "price_3m" | "price_6m" | "price_yearly" | "checkout_1m" | "checkout_3m" | "checkout_6m" | "checkout_12m" | "patreon_url" | "kofi_url" | "pro_note";
+type PlanKey = Extract<keyof AppConfig, string>;
 
 function Plans(props: { run: Run }) {
   const [draft, setDraft] = createSignal<Record<string, string>>({});
@@ -490,22 +492,32 @@ function Plans(props: { run: Run }) {
     on ? cur.add(id) : cur.delete(id);
     props.run(() => saveConfig({ pro_overlays: [...cur] }), "PRO overlay listesi kaydedildi");
   };
-  const PLANS: [string, PlanKey, PlanKey, string][] = [
-    ["1 aylık", "price_monthly", "checkout_1m", "ör. 3 € / ay"],
-    ["3 aylık", "price_3m", "checkout_3m", "ör. 8 € / 3 ay"],
-    ["6 aylık", "price_6m", "checkout_6m", "ör. 15 € / 6 ay"],
-    ["12 aylık", "price_yearly", "checkout_12m", "ör. 28 € / yıl"],
-  ];
   return (
     <section class="panel admin-panel">
       <h3>Planlar ve fiyatlar</h3>
       <p class="muted small">{t("Fiyat metni kullanıcıya gösterilir. Ödeme bağlantısı, Lemon Squeezy'de ilgili ürünün Share bölümündeki bağlantıdır; uygulama kullanıcının hesabını otomatik ekler.")}</p>
-      <For each={PLANS}>
-        {([label, price, checkout, ph]) => (
-          <div class="plan-edit">
-            <b>{label}</b>
-            <input class="input" placeholder={ph} value={val(price)} onInput={(e) => set(price, e.currentTarget.value)} />
-            <input class="input" placeholder="https://….lemonsqueezy.com/checkout/buy/…" value={val(checkout)} onInput={(e) => set(checkout, e.currentTarget.value)} />
+      <p class="muted small">
+        Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa
+        herkes genel fiyatı görür.
+      </p>
+      <div class="plan-edit plan-edit-head">
+        <span />
+        <small>Fiyat metni</small>
+        <small>Ödeme bağlantısı</small>
+      </div>
+      <For each={PLAN_LIST}>
+        {(p) => (
+          <div class="plan-group">
+            <div class="plan-edit">
+              <b>{p.label}</b>
+              <input class="input" placeholder="ör. $4.99 / €4,99" value={val(p.price)} onInput={(e) => set(p.price, e.currentTarget.value)} />
+              <input class="input" placeholder="https://….lemonsqueezy.com/checkout/buy/…" value={val(p.checkout)} onInput={(e) => set(p.checkout, e.currentTarget.value)} />
+            </div>
+            <div class="plan-edit">
+              <small class="muted">Türkiye (TL)</small>
+              <input class="input" placeholder="ör. 149₺" value={val(p.trPrice)} onInput={(e) => set(p.trPrice, e.currentTarget.value)} />
+              <input class="input" placeholder="TL varyantının bağlantısı" value={val(p.trCheckout)} onInput={(e) => set(p.trCheckout, e.currentTarget.value)} />
+            </div>
           </div>
         )}
       </For>

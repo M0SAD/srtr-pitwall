@@ -2002,6 +2002,16 @@ grant execute on function public.my_payments() to authenticated;
 grant execute on function public.admin_extend_pro(uuid, int, text), public.admin_pro_log(uuid),
   public.admin_payments(int), public.admin_site_stats(int) to authenticated;
 
+-- Türkiye'ye özel fiyatlar (TL): Türkiye'den girenler bu fiyatı ve ödeme bağlantısını görür; boşsa genel fiyat
+alter table public.app_config add column if not exists price_tr_1m text not null default '';
+alter table public.app_config add column if not exists price_tr_3m text not null default '';
+alter table public.app_config add column if not exists price_tr_6m text not null default '';
+alter table public.app_config add column if not exists price_tr_12m text not null default '';
+alter table public.app_config add column if not exists checkout_tr_1m text not null default '';
+alter table public.app_config add column if not exists checkout_tr_3m text not null default '';
+alter table public.app_config add column if not exists checkout_tr_6m text not null default '';
+alter table public.app_config add column if not exists checkout_tr_12m text not null default '';
+
 -- Kendini yönetici yapmak (bir kere, kendi e-postanla çalıştır):
 --   update public.profiles set is_admin = true
 --   where id = (select id from auth.users where email = 'SENIN@EPOSTAN.com');

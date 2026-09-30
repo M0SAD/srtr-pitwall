@@ -1,5 +1,5 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
-import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, lang, PLANS } from "./core.js";
+import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, locale, planFor, planName, PLANS } from "./core.js";
 
 addDict({
   hero_eyebrow: ["iRacing için hepsi bir arada", "All-in-one for iRacing"],
@@ -229,7 +229,7 @@ function priceNum(s) {
 function perMonth(s, n) {
   const str = String(s || "");
   const sym = (str.match(/[€$£₺]/) || str.match(/\b(TL|TRY|USD|EUR|GBP)\b/i) || [""])[0];
-  const v = n.toLocaleString(lang === "tr" ? "tr-TR" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const v = n.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (!sym) return v;
   return /₺|TL|TRY/i.test(sym) ? `${v}${sym === "₺" ? "₺" : " " + sym}` : /^[A-Z]+$/i.test(sym) ? `${v} ${sym}` : `${sym}${v}`;
 }
@@ -237,15 +237,14 @@ function perMonth(s, n) {
 function renderPlans() {
   const c = cfg || {};
   $("#plans").innerHTML = PLANS.map((p) => {
-    const price = c[p.price] || "";
-    const link = c[p.checkout] || "";
+    const { price, checkout: link } = planFor(c, p);
     const n = priceNum(price);
     const per = p.months > 1 && isFinite(n) ? T("per_month", perMonth(price, n / p.months)) : "";
     const tag = p.id === "12m" ? T("best_value") : p.id === "3m" ? T("popular") : "";
     const href = link ? (user ? checkoutUrl(link, user) : `hesap.html?buy=${p.id}`) : "";
     return `<div class="card plan${p.id === "12m" ? " best" : ""}">
       ${tag ? `<span class="tag">${esc(tag)}</span>` : ""}
-      <div class="name">${esc(lang === "tr" ? p.tr : p.en)}</div>
+      <div class="name">${esc(planName(p))}</div>
       <div class="price">${esc(price || T("price_tbd"))}</div>
       <div class="per">${esc(per)}</div>
       ${href ? `<a class="btn ${p.id === "12m" ? "btn-accent" : ""}" href="${esc(href)}" data-plan="${p.id}">${T("buy")}</a>` : `<button class="btn" disabled>${T("soon")}</button>`}

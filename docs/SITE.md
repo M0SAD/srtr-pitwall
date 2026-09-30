@@ -29,3 +29,12 @@ fonksiyonları). Ödemelerin gelir istatistiğine düşmesi için Lemon Squeezy 
 `subscription_payment_success` ve `subscription_payment_refunded` olayları da seçili olmalı (docs/PRO.md).
 
 Ziyaret sayacı kişisel veri toplamaz: tarayıcıda rastgele bir kimlik tutulur, aynı sayfa 30 dakikada bir sayılır.
+
+## Dil ve bölgesel fiyat
+
+- Site 15 dilde (programla aynı). Dil sırası: ziyaretçinin seçimi → tarayıcı dili → saat dilimi → İngilizce.
+  Türkçe/İngilizce metinler `assets/*.js` içinde, diğer diller `assets/lang/<kod>.json`. Deneme: `?lang=de`.
+- Türkiye saat diliminden girenler Türkiye (TL) fiyatını ve bağlantısını görür (yönetimde girildiyse), diğerleri
+  genel fiyatı. Deneme: `?region=tr` / `?region=intl` (tarayıcıda hatırlanır).
+- Lemon Squeezy'de TL fiyatı için aynı üründe ayrı varyantlar (ör. "1 aylık – Türkiye") oluşturup bağlantılarını
+  Türkiye alanlarına yapıştır.

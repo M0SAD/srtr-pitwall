@@ -1751,5 +1751,17 @@
   "SRTR Pitwall – {0}": "SRTR Pitwall – {0}",
   "SRTR Pitwall – Arkadaşlar": "SRTR Pitwall – Kaverit",
   "Verilerini gör (yakıt, turlar, pistteki yeri)": "Näytä tiedot (polttoaine, kierrokset, sijainti radalla)",
-  "Arkadaş verileri": "Kaverin tiedot"
+  "Arkadaş verileri": "Kaverin tiedot",
+  "Fiyat metni": "Hintateksti",
+  "Ödeme bağlantısı": "Maksulinkki",
+  "ör. $4.99 / €4,99": "esim. $4.99 / €4,99",
+  "ör. 149₺": "esim. 149₺",
+  "Satın aldığın süre kalan sürenin üstüne eklenir.": "Ostamasi aika lisätään jäljellä olevaan aikaan.",
+  "Süreni uzat": "Jatka PRO-jäsenyyttä",
+  "TL varyantının bağlantısı": "TL-version linkki",
+  "Türkiye (TL)": "Turkki (TL)",
+  "Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa herkes genel fiyatı görür.": "Turkissa olevat (Turkin aikavyöhyke) näkevät TL-hinnan ja -linkin; muut näkevät yleisen hinnan (USD / EUR). Jos Turkin kentät ovat tyhjiä, kaikki näkevät yleisen hinnan.",
+  "Uzat": "Jatka",
+  "Web sitesinde hesabım": "Oma tili verkkosivulla",
+  "Yönetici hesabında gerekmez; kullanıcılar bu bölümü böyle görür.": "Ei tarvita ylläpitäjän tilillä; käyttäjät näkevät tämän osion näin."
 }

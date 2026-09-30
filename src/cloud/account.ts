@@ -32,6 +32,15 @@ export interface AppConfig {
   checkout_3m?: string;
   checkout_6m?: string;
   checkout_12m?: string;
+  /** Türkiye'ye özel (TL) fiyat ve ödeme bağlantıları; boşsa genel fiyat */
+  price_tr_1m?: string;
+  price_tr_3m?: string;
+  price_tr_6m?: string;
+  price_tr_12m?: string;
+  checkout_tr_1m?: string;
+  checkout_tr_3m?: string;
+  checkout_tr_6m?: string;
+  checkout_tr_12m?: string;
   /** Bir hesabın kullanabileceği bilgisayar sayısı (aşılınca yöneticiye uyarı gider) */
   device_limit?: number;
   pro_note: string;
@@ -144,6 +153,37 @@ export const proExpiringSoon = () => {
   const d = proDaysLeft();
   return d !== null && d > 0 && d <= 15 && !proInfo()?.renewing;
 };
+
+/** Türkiye'den mi kullanılıyor (saat dilimi): TL fiyatları gösterilir */
+export function inTurkey(): boolean {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone === "Europe/Istanbul";
+  } catch {
+    return false;
+  }
+}
+
+export interface PlanDef {
+  id: "1m" | "3m" | "6m" | "12m";
+  label: string;
+  price: keyof AppConfig;
+  checkout: keyof AppConfig;
+  trPrice: keyof AppConfig;
+  trCheckout: keyof AppConfig;
+}
+export const PLAN_LIST: PlanDef[] = [
+  { id: "1m", label: "1 aylık", price: "price_monthly", checkout: "checkout_1m", trPrice: "price_tr_1m", trCheckout: "checkout_tr_1m" },
+  { id: "3m", label: "3 aylık", price: "price_3m", checkout: "checkout_3m", trPrice: "price_tr_3m", trCheckout: "checkout_tr_3m" },
+  { id: "6m", label: "6 aylık", price: "price_6m", checkout: "checkout_6m", trPrice: "price_tr_6m", trCheckout: "checkout_tr_6m" },
+  { id: "12m", label: "12 aylık", price: "price_yearly", checkout: "checkout_12m", trPrice: "price_tr_12m", trCheckout: "checkout_tr_12m" },
+];
+
+/** Planın kullanıcının bölgesindeki fiyatı ve ödeme bağlantısı */
+export function planFor(c: AppConfig | null | undefined, p: PlanDef): { price: string; checkout: string } {
+  const g = (k: keyof AppConfig) => String((c?.[k] as string | undefined) ?? "");
+  const tr = inTurkey() && (g(p.trPrice) || g(p.trCheckout));
+  return { price: tr ? g(p.trPrice) : g(p.price), checkout: tr ? g(p.trCheckout) : g(p.checkout) };
+}
 
 /** Lemon Squeezy ödeme bağlantısına hesabı (kimlik ve e-posta) ekler */
 export function checkoutUrl(base: string) {

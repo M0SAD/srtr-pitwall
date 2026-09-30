@@ -1751,5 +1751,17 @@
   "SRTR Pitwall – {0}": "SRTR Pitwall – {0}",
   "SRTR Pitwall – Arkadaşlar": "SRTR Pitwall – Amigos",
   "Verilerini gör (yakıt, turlar, pistteki yeri)": "Ver sus datos (combustible, vueltas, posición en pista)",
-  "Arkadaş verileri": "Datos del amigo"
+  "Arkadaş verileri": "Datos del amigo",
+  "Fiyat metni": "Texto del precio",
+  "Ödeme bağlantısı": "Enlace de pago",
+  "ör. $4.99 / €4,99": "p. ej. $4.99 / €4,99",
+  "ör. 149₺": "p. ej. 149₺",
+  "Satın aldığın süre kalan sürenin üstüne eklenir.": "El tiempo que compres se suma al que te queda.",
+  "Süreni uzat": "Amplía tu PRO",
+  "TL varyantının bağlantısı": "Enlace de la variante en TL",
+  "Türkiye (TL)": "Turquía (TL)",
+  "Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa herkes genel fiyatı görür.": "Quien use la app en Turquía (zona horaria de Turquía) ve el precio y enlace en TL; los demás, el precio general (USD / EUR). Si los campos de Turquía están vacíos, todos ven el precio general.",
+  "Uzat": "Ampliar",
+  "Web sitesinde hesabım": "Mi cuenta en la web",
+  "Yönetici hesabında gerekmez; kullanıcılar bu bölümü böyle görür.": "No hace falta en una cuenta de administrador; así ven los usuarios esta sección."
 }

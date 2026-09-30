@@ -32,6 +32,8 @@ import {
   profile,
   refreshEntitlement,
   updateProfile,
+  PLAN_LIST,
+  planFor,
 } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { manifests } from "@/sdk/registry";
@@ -384,12 +386,7 @@ function IracingPanel() {
   );
 }
 
-const PLAN_LIST = [
-  { label: "1 aylık", price: "price_monthly", checkout: "checkout_1m" },
-  { label: "3 aylık", price: "price_3m", checkout: "checkout_3m" },
-  { label: "6 aylık", price: "price_6m", checkout: "checkout_6m" },
-  { label: "12 aylık", price: "price_yearly", checkout: "checkout_12m" },
-] as const;
+
 
 function ProPanel() {
   const [cfg] = createResource(() => config() ?? loadConfig().catch(() => null));
@@ -397,7 +394,7 @@ function ProPanel() {
   const [payEmail, setPayEmail] = createSignal("");
   const locked = () => (c()?.pro_overlays ?? []).map((id) => manifests.find((m) => m.id === id)?.name ?? id);
   onMount(() => loadProInfo());
-  const plans = () => PLAN_LIST.filter((p) => c()?.[p.price] || c()?.[p.checkout]);
+  const plans = () => PLAN_LIST.map((p) => ({ ...p, ...planFor(c(), p) })).filter((p) => p.price || p.checkout);
   const sub = () => proInfo()?.sub ?? null;
   const days = () => proDaysLeft();
 
@@ -462,21 +459,30 @@ function ProPanel() {
         </div>
       </Show>
 
-      <Show when={!isPro() || proExpiringSoon() || (!proInfo()?.renewing && !isAdmin())}>
+      {/* Satın alma / süre uzatma her zaman görünür (PRO iken süre üstüne eklenir) */}
+      <div class="pro-buy">
+        <Show when={isPro()}>
+          <p class="pro-extend-cap">
+            <b>Süreni uzat</b>{" "}
+            <span class="muted small">
+              {isAdmin() ? "Yönetici hesabında gerekmez; kullanıcılar bu bölümü böyle görür." : "Satın aldığın süre kalan sürenin üstüne eklenir."}
+            </span>
+          </p>
+        </Show>
         <Show when={plans().length > 0}>
           <div class="pro-plans">
             <For each={plans()}>
               {(p) => (
                 <div class="pro-plan">
                   <small>{p.label}</small>
-                  <b>{c()?.[p.price] || "—"}</b>
+                  <b>{p.price || "—"}</b>
                   <button
                     class="btn primary small"
-                    disabled={!session() || !c()?.[p.checkout]}
+                    disabled={!session() || !p.checkout}
                     title={!session() ? "Önce giriş yap" : ""}
-                    onClick={() => openUrl(checkoutUrl(c()![p.checkout]!))}
+                    onClick={() => openUrl(checkoutUrl(p.checkout))}
                   >
-                    {isPro() ? "Yenile" : "Abone ol"}
+                    {isPro() ? "Uzat" : "Abone ol"}
                   </button>
                 </div>
               )}
@@ -499,7 +505,12 @@ function ProPanel() {
           Abonelik kendiliğinden yenilenir; istediğin zaman iptal edebilirsin. Ödeme sonrası PRO birkaç dakika içinde otomatik açılır.
           <Show when={!session()}> Önce hesap oluştur ya da giriş yap.</Show>
         </p>
-      </Show>
+        <div class="btns">
+          <button class="btn ghost small" onClick={() => openUrl("https://pitwall.simracetr.com/hesap.html")}>
+            Web sitesinde hesabım
+          </button>
+        </div>
+      </div>
       <Show when={sub()?.portal_url}>
         <div class="btns">
           <button class="btn ghost" onClick={() => openUrl(sub()!.portal_url)}>

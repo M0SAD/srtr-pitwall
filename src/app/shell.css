@@ -3538,3 +3538,20 @@ body {
   background: #15181f;
   z-index: 2;
 }
+
+.plan-group {
+  padding: 6px 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+.plan-group .plan-edit {
+  margin: 4px 0;
+}
+.plan-edit-head small {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pro-extend-cap {
+  margin: 14px 0 6px;
+}

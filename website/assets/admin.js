@@ -393,11 +393,17 @@ async function planlar(el) {
   const f = (k, label, ph = "", type = "text") =>
     `<div class="field"><label>${label}</label><input name="${k}" type="${type}" value="${esc(c[k] ?? "")}" placeholder="${esc(ph)}"></div>`;
   el.innerHTML = `<h2>Planlar ve fiyatlar</h2>
-    <p class="muted small">Buradaki fiyatlar ve ödeme bağlantıları hem sitede hem programda görünür. Ödeme bağlantısı: Lemon Squeezy → ürün → varyant → Share.</p>
+    <p class="muted small">Buradaki fiyatlar ve ödeme bağlantıları hem sitede hem programda görünür. Ödeme bağlantısı: Lemon Squeezy → ürün → varyant → Share.
+      Türkiye'den girenler (saat dilimi Türkiye olanlar) TL fiyatını ve TL bağlantısını görür, diğer herkes genel fiyatı. Sitede <code>?region=tr</code> ya da <code>?region=intl</code> ekleyerek iki görünümü de deneyebilirsin.</p>
     <form id="pf" class="stack">
       <div class="grid g2">
         ${PLANS.map(
-          (p) => `<div class="card"><h3>${p.tr}</h3>${f(p.price, "Fiyat metni", "ör. €4,99")}${f(p.checkout, "Lemon Squeezy ödeme bağlantısı", "https://….lemonsqueezy.com/buy/…")}</div>`,
+          (p) => `<div class="card"><h3>${p.tr}</h3>
+            <p class="small muted" style="margin:0 0 8px"><b>Diğer ülkeler</b> (USD / EUR)</p>
+            ${f(p.price, "Fiyat metni", "ör. $4.99 ya da €4,99")}${f(p.checkout, "Lemon Squeezy ödeme bağlantısı", "https://….lemonsqueezy.com/buy/…")}
+            <p class="small muted" style="margin:6px 0 8px"><b>Türkiye</b> (TL) — boş bırakılırsa Türkiye'de de yukarıdaki kullanılır</p>
+            ${f(p.trPrice, "Fiyat metni (TL)", "ör. 149₺")}${f(p.trCheckout, "Lemon Squeezy ödeme bağlantısı (TL varyantı)", "https://….lemonsqueezy.com/buy/…")}
+          </div>`,
         ).join("")}
       </div>
       <div class="card grid g2">

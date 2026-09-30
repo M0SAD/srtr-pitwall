@@ -16,6 +16,8 @@ import {
   fmtMoney,
   lang,
   myProfile,
+  planFor,
+  planName,
   sb,
   toast,
 } from "./core.js";
@@ -221,7 +223,7 @@ async function afterLogin() {
   if (u && buyPlan) {
     const cfg = await appConfig().catch(() => ({}));
     const p = PLANS.find((x) => x.id === buyPlan);
-    const link = p && cfg[p.checkout];
+    const link = p && planFor(cfg, p).checkout;
     if (link) {
       location.href = checkoutUrl(link, u);
       return;
@@ -246,10 +248,11 @@ async function dashboard(u) {
   const active = p.is_admin || (d !== null && d > 0);
   const forever = p.is_admin || (d !== null && d > 3000);
   const sub = pro?.sub;
-  const planBtns = PLANS.filter((x) => cfg[x.checkout])
+  const planBtns = PLANS.map((x) => ({ x, ...planFor(cfg, x) }))
+    .filter((o) => o.checkout)
     .map(
-      (x) => `<a class="btn ${x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(cfg[x.checkout], u))}">
-        ${esc(lang === "tr" ? x.tr : x.en)} <span class="muted">${esc(cfg[x.price] || "")}</span></a>`,
+      (o) => `<a class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(o.checkout, u))}">
+        ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></a>`,
     )
     .join("");
   const srcName = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: T("nav_admin") }[p.pro_source] || p.pro_source || "—";

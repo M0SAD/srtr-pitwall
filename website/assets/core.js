@@ -12,8 +12,28 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 // ---------------------------------------------------------------------------
-// Dil: Türkçe / English. Sayfadaki metinler data-t="anahtar" ile, koddakiler T("anahtar") ile.
+// Dil: programdaki 15 dil. Türkçe ve İngilizce bu dosyalarda; diğerleri assets/lang/<kod>.json.
+// Ziyaretçinin dili: kendi seçimi > tarayıcı dili > saat dilimi (ülke) > İngilizce.
+// Sayfadaki metinler data-t="anahtar" ile, koddakiler T("anahtar") ile.
 // ---------------------------------------------------------------------------
+export const LANGS = [
+  ["en", "English"],
+  ["tr", "Türkçe"],
+  ["de", "Deutsch"],
+  ["es", "Español"],
+  ["fr", "Français"],
+  ["it", "Italiano"],
+  ["pt-BR", "Português (BR)"],
+  ["pt-PT", "Português (PT)"],
+  ["nl", "Nederlands"],
+  ["pl", "Polski"],
+  ["sv", "Svenska"],
+  ["fi", "Suomi"],
+  ["ru", "Русский"],
+  ["zh-CN", "简体中文"],
+  ["ja", "日本語"],
+];
+const CODES = LANGS.map((l) => l[0]);
 const DICT = { tr: {}, en: {} };
 export function addDict(d) {
   for (const k of Object.keys(d)) {
@@ -22,18 +42,80 @@ export function addDict(d) {
   }
 }
 
+/** Saat diliminden ülke dili (tarayıcı dili desteklenmiyorsa) */
+const TZ_LANG = {
+  "Europe/Istanbul": "tr",
+  "Europe/Berlin": "de",
+  "Europe/Vienna": "de",
+  "Europe/Zurich": "de",
+  "Europe/Madrid": "es",
+  "America/Mexico_City": "es",
+  "America/Argentina/Buenos_Aires": "es",
+  "America/Bogota": "es",
+  "America/Santiago": "es",
+  "Europe/Paris": "fr",
+  "Europe/Brussels": "fr",
+  "Europe/Rome": "it",
+  "America/Sao_Paulo": "pt-BR",
+  "Europe/Lisbon": "pt-PT",
+  "Europe/Amsterdam": "nl",
+  "Europe/Warsaw": "pl",
+  "Europe/Stockholm": "sv",
+  "Europe/Helsinki": "fi",
+  "Europe/Moscow": "ru",
+  "Asia/Shanghai": "zh-CN",
+  "Asia/Tokyo": "ja",
+};
+
+function timeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+}
+
+function matchLang(tag) {
+  const t = String(tag || "").toLowerCase();
+  const exact = CODES.find((c) => c.toLowerCase() === t);
+  if (exact) return exact;
+  const base = t.split("-")[0];
+  if (base === "pt") return t.includes("pt-pt") ? "pt-PT" : "pt-BR";
+  if (base === "zh") return "zh-CN";
+  return CODES.find((c) => c.split("-")[0] === base) ?? null;
+}
+
 function pickLang() {
   try {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (q && matchLang(q)) return matchLang(q);
     const s = localStorage.getItem("pitwall.site.lang");
-    if (s === "tr" || s === "en") return s;
+    if (s && CODES.includes(s)) return s;
   } catch {}
-  return (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
+  for (const l of navigator.languages || [navigator.language]) {
+    const m = matchLang(l);
+    if (m) return m;
+  }
+  return TZ_LANG[timeZone()] ?? "en";
 }
 export let lang = pickLang();
 
-/** Çeviri; {0}, {1} yerine değerler konur */
+async function loadLang(l) {
+  if (DICT[l]) return;
+  try {
+    const r = await fetch(`assets/lang/${l}.json`);
+    DICT[l] = r.ok ? await r.json() : {};
+  } catch {
+    DICT[l] = {};
+  }
+}
+
+/** Tarih/sayı biçimi için yerel ayar */
+export const locale = () => (lang === "zh-CN" ? "zh-CN" : lang);
+
+/** Çeviri; {0}, {1} yerine değerler konur. Eksik çeviride İngilizce kullanılır. */
 export function T(key, ...args) {
-  const s = DICT[lang][key] ?? DICT.tr[key] ?? key;
+  const s = DICT[lang]?.[key] ?? DICT.en[key] ?? DICT.tr[key] ?? key;
   return s.replace(/\{(\d)\}/g, (_, i) => String(args[+i] ?? ""));
 }
 
@@ -42,16 +124,44 @@ export function applyLang(root = document) {
   root.querySelectorAll("[data-t]").forEach((el) => (el.innerHTML = T(el.dataset.t)));
   root.querySelectorAll("[data-t-ph]").forEach((el) => (el.placeholder = T(el.dataset.tPh)));
   root.querySelectorAll("[data-t-title]").forEach((el) => (el.title = T(el.dataset.tTitle)));
-  document.querySelectorAll(".lang-btn").forEach((b) => (b.textContent = lang === "tr" ? "EN" : "TR"));
+  document.querySelectorAll(".lang-sel").forEach((b) => (b.value = lang));
 }
 
-export function setLang(l) {
+export async function setLang(l) {
+  await loadLang(l);
   lang = l;
   try {
     localStorage.setItem("pitwall.site.lang", l);
   } catch {}
   applyLang();
   document.dispatchEvent(new CustomEvent("langchange"));
+}
+
+// ---------------------------------------------------------------------------
+// Bölge: Türkiye'den girenlere TL fiyatları (yönetim panelinde girildiyse), diğerlerine USD/EUR.
+// Saat dilimine bakılır; ?region=tr / ?region=intl ile denenebilir.
+// ---------------------------------------------------------------------------
+function pickRegion() {
+  try {
+    const q = new URLSearchParams(location.search).get("region");
+    if (q === "tr" || q === "intl") {
+      localStorage.setItem("pitwall.site.region", q);
+      return q;
+    }
+    const s = localStorage.getItem("pitwall.site.region");
+    if (s === "tr" || s === "intl") return s;
+  } catch {}
+  return timeZone() === "Europe/Istanbul" ? "tr" : "intl";
+}
+export const region = pickRegion();
+
+/** Planın bu bölgedeki fiyat metni ve ödeme bağlantısı (Türkiye alanı boşsa genel fiyat) */
+export function planFor(cfg, p) {
+  const tr = region === "tr" && (cfg[p.trPrice] || cfg[p.trCheckout]);
+  return {
+    price: (tr ? cfg[p.trPrice] : cfg[p.price]) || "",
+    checkout: (tr ? cfg[p.trCheckout] : cfg[p.checkout]) || "",
+  };
 }
 
 // Ortak metinler (üst menü, alt bilgi, genel)
@@ -78,6 +188,11 @@ addDict({
   saved: ["Kaydedildi", "Saved"],
   days: ["gün", "days"],
   unlimited: ["Süresiz", "Unlimited"],
+  plan_1m: ["1 aylık", "1 month"],
+  plan_3m: ["3 aylık", "3 months"],
+  plan_6m: ["6 aylık", "6 months"],
+  plan_12m: ["12 aylık", "12 months"],
+  language: ["Dil", "Language"],
 });
 
 // ---------------------------------------------------------------------------
@@ -118,11 +233,13 @@ export function checkoutUrl(base, user) {
 }
 
 export const PLANS = [
-  { id: "1m", months: 1, price: "price_monthly", checkout: "checkout_1m", tr: "1 aylık", en: "1 month" },
-  { id: "3m", months: 3, price: "price_3m", checkout: "checkout_3m", tr: "3 aylık", en: "3 months" },
-  { id: "6m", months: 6, price: "price_6m", checkout: "checkout_6m", tr: "6 aylık", en: "6 months" },
-  { id: "12m", months: 12, price: "price_yearly", checkout: "checkout_12m", tr: "12 aylık", en: "12 months" },
+  { id: "1m", months: 1, price: "price_monthly", checkout: "checkout_1m", trPrice: "price_tr_1m", trCheckout: "checkout_tr_1m", tr: "1 aylık" },
+  { id: "3m", months: 3, price: "price_3m", checkout: "checkout_3m", trPrice: "price_tr_3m", trCheckout: "checkout_tr_3m", tr: "3 aylık" },
+  { id: "6m", months: 6, price: "price_6m", checkout: "checkout_6m", trPrice: "price_tr_6m", trCheckout: "checkout_tr_6m", tr: "6 aylık" },
+  { id: "12m", months: 12, price: "price_yearly", checkout: "checkout_12m", trPrice: "price_tr_12m", trCheckout: "checkout_tr_12m", tr: "12 aylık" },
 ];
+/** Plan adı ("1 aylık" / "1 month" …) */
+export const planName = (p) => T("plan_" + p.id);
 
 // ---------------------------------------------------------------------------
 // Yardımcılar
@@ -136,12 +253,12 @@ export function fmtDate(v, time = false) {
   if (!v) return "—";
   const d = new Date(v);
   return time
-    ? d.toLocaleString(lang === "tr" ? "tr-TR" : "en-GB", { dateStyle: "medium", timeStyle: "short" })
-    : d.toLocaleDateString(lang === "tr" ? "tr-TR" : "en-GB", { dateStyle: "medium" });
+    ? d.toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" })
+    : d.toLocaleDateString(locale(), { dateStyle: "medium" });
 }
 export function fmtMoney(n, cur = "USD") {
   try {
-    return new Intl.NumberFormat(lang === "tr" ? "tr-TR" : "en-US", { style: "currency", currency: cur }).format(n);
+    return new Intl.NumberFormat(locale(), { style: "currency", currency: cur }).format(n);
   } catch {
     return `${Number(n).toFixed(2)} ${cur}`;
   }
@@ -231,7 +348,7 @@ export function bindDownloads() {
 // Üst menü: giriş durumuna göre Hesabım / Yönetim
 // ---------------------------------------------------------------------------
 export async function initNav() {
-  $$(".lang-btn").forEach((b) => b.addEventListener("click", () => setLang(lang === "tr" ? "en" : "tr")));
+  $$(".lang-sel").forEach((b) => b.addEventListener("change", () => setLang(b.value)));
   const burger = $(".burger");
   if (burger) burger.addEventListener("click", () => $(".nav").classList.toggle("open"));
   const refresh = async () => {
@@ -262,7 +379,7 @@ export function headerHtml(active = "") {
         <a href="yonetim.html" class="nav-admin${active === "admin" ? " on" : ""}" hidden data-t="nav_admin"></a>
         <a href="hesap.html" class="nav-login${active === "account" ? " on" : ""}" data-t="nav_login"></a>
         <a href="#" class="btn btn-accent btn-sm" data-download data-t="nav_download"></a>
-        <button class="lang-btn" type="button" aria-label="Language">EN</button>
+        <select class="lang-sel" aria-label="Language" title="Language">${LANGS.map(([c, n]) => `<option value="${c}">${n}</option>`).join("")}</select>
       </nav>
       <button class="burger" type="button" aria-label="Menu"><span></span><span></span><span></span></button>
     </div>
@@ -292,6 +409,7 @@ export function footerHtml() {
 
 /** Sayfa iskeleti: üst menü + alt bilgi ekle, dili uygula, sayacı çalıştır */
 export async function boot(page, active = "") {
+  await loadLang(lang);
   document.body.insertAdjacentHTML("afterbegin", headerHtml(active));
   document.body.insertAdjacentHTML("beforeend", footerHtml());
   applyLang();
