@@ -2,6 +2,7 @@
 // üyeler (PRO süresi verme / uzatma / alma), süre geçmişi, cihaz uyarıları, planlar ve fiyatlar.
 // Yetkiyi sunucu denetler: admin_* fonksiyonları yönetici olmayana hata döner.
 import { $, $$, PLANS, appConfig, boot, daysLeft, esc, fmtDate, fmtMoney, myProfile, sb, toast } from "./core.js";
+import { reklamlar } from "./ads-admin.js";
 
 const app = () => $("#app");
 let section = location.hash.slice(1) || "ozet";
@@ -17,6 +18,7 @@ const SECTIONS = [
   ["cihazlar", "Cihazlar"],
   ["planlar", "Planlar ve fiyatlar"],
   ["kampanya", "Ücretsiz PRO"],
+  ["reklamlar", "Reklamlar"],
   ["gorunurluk", "Görünürlük"],
 ];
 
@@ -707,7 +709,7 @@ async function gorunurluk(el) {
   );
 }
 
-const RENDER = { ozet, satislar, abonelikler, uyeler, destek, gecmis, cihazlar, planlar, kampanya, gorunurluk };
+const RENDER = { ozet, satislar, abonelikler, uyeler, destek, gecmis, cihazlar, planlar, kampanya, reklamlar: (el) => reklamlar(el, show), gorunurluk };
 
 async function show() {
   history.replaceState(null, "", "#" + section);

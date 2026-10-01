@@ -40,6 +40,7 @@ import {
 import { useTopic } from "@/sdk/telemetry";
 import { manifests } from "@/sdk/registry";
 import { openUrl } from "../ui";
+import { AdSlot } from "../components/AdSlot";
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
 
@@ -68,6 +69,7 @@ export function AccountPage() {
           <Signed />
         </Match>
       </Switch>
+      <AdSlot placement="panel_banner" />
     </div>
   );
 }

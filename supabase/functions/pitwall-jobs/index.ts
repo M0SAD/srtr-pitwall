@@ -6,6 +6,8 @@
 //   {"type":"pro_changed","id":"<bildirim id>"}   Yönetici PRO süresini elle değiştirdi (kullanıcıya, kendi dilinde)
 //   {"type":"support_new" | "support_user_reply","id":"<bildirim id>"}  Yöneticiye: yeni destek talebi / yeni mesaj
 //   {"type":"support_reply","id":"<bildirim id>"}  Kullanıcıya: destek talebine yanıt geldi (kendi dilinde)
+//   {"type":"ad_live" | "ad_rejected" | "ad_ended","id":"<bildirim id>"}  Reklam verene: reklam yayında / reddedildi-durduruldu / bitti
+//   {"type":"ad_reported" | "ad_pending","id":"<bildirim id>"}  Yöneticiye: reklam raporlandı (gizlendi) / onay bekliyor
 //   {"type":"cleanup"}                   6 aydır açılmayan ekran görüntülerini siler,
 //                                        sahibine uygulama içi bildirim ve e-posta gönderir
 //
@@ -769,6 +771,245 @@ async function supportReply(id: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Reklamlar: reklam verene (kendi dilinde) yayında / reddedildi-durduruldu / bitti;
+// yöneticiye (tr/en) rapor ve onay bekleyen reklam
+// ---------------------------------------------------------------------------
+
+type AdMail = {
+  live: string; liveLine: string; resumedLine: string; until: string; bought: string;
+  rejected: string; rejectedLine: string; paused: string; pausedLine: string; reportsLine: string;
+  ended: string; endedLine: string; stats: string; note: string; button: string;
+};
+const AD_MAIL: Record<string, AdMail> = {
+  "tr": {
+    live: "Reklamın yayında: {0}", liveLine: "\"{0}\" başlıklı reklamın yayına girdi.", resumedLine: "\"{0}\" başlıklı reklamın yeniden yayında.",
+    until: "Bitiş: {0}", bought: "Satın alınan gösterim: {0}",
+    rejected: "Reklamın reddedildi: {0}", rejectedLine: "\"{0}\" başlıklı reklamın incelendi ve yayınlanmayacak. Ödeme yaptıysan iade için bize destek talebiyle ulaşabilirsin.",
+    paused: "Reklamın durduruldu: {0}", pausedLine: "\"{0}\" başlıklı reklamın bir yönetici tarafından durduruldu.",
+    reportsLine: "\"{0}\" başlıklı reklamın kullanıcı raporları nedeniyle geçici olarak gizlendi; yöneticiler inceleyecek.",
+    ended: "Reklamın sona erdi: {0}", endedLine: "\"{0}\" başlıklı reklamının yayını tamamlandı. Teşekkürler!",
+    stats: "{0} gösterim · {1} tıklama", note: "Not", button: "Reklamlarımı gör",
+  },
+  "en": {
+    live: "Your ad is live: {0}", liveLine: "Your ad \"{0}\" is now live.", resumedLine: "Your ad \"{0}\" is live again.",
+    until: "Ends: {0}", bought: "Purchased impressions: {0}",
+    rejected: "Your ad was rejected: {0}", rejectedLine: "Your ad \"{0}\" was reviewed and will not be published. If you paid, open a support ticket for a refund.",
+    paused: "Your ad was paused: {0}", pausedLine: "Your ad \"{0}\" was paused by an administrator.",
+    reportsLine: "Your ad \"{0}\" was temporarily hidden because of user reports; an administrator will review it.",
+    ended: "Your ad has ended: {0}", endedLine: "Your ad \"{0}\" has finished its run. Thank you!",
+    stats: "{0} impressions · {1} clicks", note: "Note", button: "View my ads",
+  },
+  "de": {
+    live: "Deine Anzeige ist live: {0}", liveLine: "Deine Anzeige „{0}“ ist jetzt live.", resumedLine: "Deine Anzeige „{0}“ ist wieder live.",
+    until: "Endet: {0}", bought: "Gekaufte Impressionen: {0}",
+    rejected: "Deine Anzeige wurde abgelehnt: {0}", rejectedLine: "Deine Anzeige „{0}“ wurde geprüft und wird nicht veröffentlicht. Wenn du bezahlt hast, eröffne für eine Erstattung eine Support-Anfrage.",
+    paused: "Deine Anzeige wurde pausiert: {0}", pausedLine: "Deine Anzeige „{0}“ wurde von einem Administrator pausiert.",
+    reportsLine: "Deine Anzeige „{0}“ wurde wegen Nutzermeldungen vorübergehend ausgeblendet; ein Administrator prüft sie.",
+    ended: "Deine Anzeige ist beendet: {0}", endedLine: "Deine Anzeige „{0}“ ist vollständig ausgeliefert. Vielen Dank!",
+    stats: "{0} Impressionen · {1} Klicks", note: "Hinweis", button: "Meine Anzeigen ansehen",
+  },
+  "es": {
+    live: "Tu anuncio está publicado: {0}", liveLine: "Tu anuncio «{0}» ya está publicado.", resumedLine: "Tu anuncio «{0}» vuelve a estar publicado.",
+    until: "Finaliza: {0}", bought: "Impresiones compradas: {0}",
+    rejected: "Tu anuncio fue rechazado: {0}", rejectedLine: "Tu anuncio «{0}» fue revisado y no se publicará. Si ya pagaste, abre una solicitud de soporte para el reembolso.",
+    paused: "Tu anuncio fue pausado: {0}", pausedLine: "Un administrador ha pausado tu anuncio «{0}».",
+    reportsLine: "Tu anuncio «{0}» se ha ocultado temporalmente por denuncias de usuarios; un administrador lo revisará.",
+    ended: "Tu anuncio ha finalizado: {0}", endedLine: "Tu anuncio «{0}» ha completado su campaña. ¡Gracias!",
+    stats: "{0} impresiones · {1} clics", note: "Nota", button: "Ver mis anuncios",
+  },
+  "pt-BR": {
+    live: "Seu anúncio está no ar: {0}", liveLine: "Seu anúncio \"{0}\" já está no ar.", resumedLine: "Seu anúncio \"{0}\" está no ar novamente.",
+    until: "Termina em: {0}", bought: "Impressões compradas: {0}",
+    rejected: "Seu anúncio foi recusado: {0}", rejectedLine: "Seu anúncio \"{0}\" foi analisado e não será publicado. Se você já pagou, abra um chamado de suporte para o reembolso.",
+    paused: "Seu anúncio foi pausado: {0}", pausedLine: "Seu anúncio \"{0}\" foi pausado por um administrador.",
+    reportsLine: "Seu anúncio \"{0}\" foi ocultado temporariamente por denúncias de usuários; um administrador vai analisá-lo.",
+    ended: "Seu anúncio terminou: {0}", endedLine: "A veiculação do seu anúncio \"{0}\" foi concluída. Obrigado!",
+    stats: "{0} impressões · {1} cliques", note: "Observação", button: "Ver meus anúncios",
+  },
+  "pt-PT": {
+    live: "O teu anúncio está publicado: {0}", liveLine: "O teu anúncio \"{0}\" já está publicado.", resumedLine: "O teu anúncio \"{0}\" voltou a estar publicado.",
+    until: "Termina: {0}", bought: "Impressões compradas: {0}",
+    rejected: "O teu anúncio foi recusado: {0}", rejectedLine: "O teu anúncio \"{0}\" foi analisado e não será publicado. Se já pagaste, abre um pedido de suporte para o reembolso.",
+    paused: "O teu anúncio foi pausado: {0}", pausedLine: "O teu anúncio \"{0}\" foi pausado por um administrador.",
+    reportsLine: "O teu anúncio \"{0}\" foi ocultado temporariamente devido a denúncias de utilizadores; um administrador vai analisá-lo.",
+    ended: "O teu anúncio terminou: {0}", endedLine: "A campanha do teu anúncio \"{0}\" terminou. Obrigado!",
+    stats: "{0} impressões · {1} cliques", note: "Nota", button: "Ver os meus anúncios",
+  },
+  "fr": {
+    live: "Ton annonce est en ligne : {0}", liveLine: "Ton annonce « {0} » est maintenant en ligne.", resumedLine: "Ton annonce « {0} » est de nouveau en ligne.",
+    until: "Fin : {0}", bought: "Impressions achetées : {0}",
+    rejected: "Ton annonce a été refusée : {0}", rejectedLine: "Ton annonce « {0} » a été examinée et ne sera pas publiée. Si tu as payé, ouvre une demande d'assistance pour un remboursement.",
+    paused: "Ton annonce a été suspendue : {0}", pausedLine: "Ton annonce « {0} » a été suspendue par un administrateur.",
+    reportsLine: "Ton annonce « {0} » a été masquée temporairement suite à des signalements ; un administrateur va l'examiner.",
+    ended: "Ton annonce est terminée : {0}", endedLine: "La diffusion de ton annonce « {0} » est terminée. Merci !",
+    stats: "{0} impressions · {1} clics", note: "Remarque", button: "Voir mes annonces",
+  },
+  "it": {
+    live: "Il tuo annuncio è online: {0}", liveLine: "Il tuo annuncio \"{0}\" è ora online.", resumedLine: "Il tuo annuncio \"{0}\" è di nuovo online.",
+    until: "Termina: {0}", bought: "Impression acquistate: {0}",
+    rejected: "Il tuo annuncio è stato rifiutato: {0}", rejectedLine: "Il tuo annuncio \"{0}\" è stato esaminato e non verrà pubblicato. Se hai già pagato, apri una richiesta di supporto per il rimborso.",
+    paused: "Il tuo annuncio è stato sospeso: {0}", pausedLine: "Il tuo annuncio \"{0}\" è stato sospeso da un amministratore.",
+    reportsLine: "Il tuo annuncio \"{0}\" è stato nascosto temporaneamente a causa di segnalazioni degli utenti; un amministratore lo esaminerà.",
+    ended: "Il tuo annuncio è terminato: {0}", endedLine: "La campagna del tuo annuncio \"{0}\" è terminata. Grazie!",
+    stats: "{0} impression · {1} clic", note: "Nota", button: "Vedi i miei annunci",
+  },
+  "nl": {
+    live: "Je advertentie is live: {0}", liveLine: "Je advertentie \"{0}\" is nu live.", resumedLine: "Je advertentie \"{0}\" is weer live.",
+    until: "Eindigt: {0}", bought: "Gekochte vertoningen: {0}",
+    rejected: "Je advertentie is afgewezen: {0}", rejectedLine: "Je advertentie \"{0}\" is beoordeeld en wordt niet gepubliceerd. Heb je al betaald, open dan een supportverzoek voor een terugbetaling.",
+    paused: "Je advertentie is gepauzeerd: {0}", pausedLine: "Je advertentie \"{0}\" is door een beheerder gepauzeerd.",
+    reportsLine: "Je advertentie \"{0}\" is tijdelijk verborgen vanwege meldingen van gebruikers; een beheerder bekijkt hem.",
+    ended: "Je advertentie is afgelopen: {0}", endedLine: "Je advertentie \"{0}\" is volledig vertoond. Bedankt!",
+    stats: "{0} vertoningen · {1} klikken", note: "Opmerking", button: "Mijn advertenties bekijken",
+  },
+  "pl": {
+    live: "Twoja reklama jest aktywna: {0}", liveLine: "Twoja reklama „{0}” jest już wyświetlana.", resumedLine: "Twoja reklama „{0}” jest ponownie wyświetlana.",
+    until: "Koniec: {0}", bought: "Zakupione wyświetlenia: {0}",
+    rejected: "Twoja reklama została odrzucona: {0}", rejectedLine: "Twoja reklama „{0}” została sprawdzona i nie zostanie opublikowana. Jeśli już zapłaciłeś, otwórz zgłoszenie do wsparcia w sprawie zwrotu.",
+    paused: "Twoja reklama została wstrzymana: {0}", pausedLine: "Twoja reklama „{0}” została wstrzymana przez administratora.",
+    reportsLine: "Twoja reklama „{0}” została tymczasowo ukryta z powodu zgłoszeń użytkowników; administrator ją sprawdzi.",
+    ended: "Twoja reklama zakończyła się: {0}", endedLine: "Emisja Twojej reklamy „{0}” została zakończona. Dziękujemy!",
+    stats: "{0} wyświetleń · {1} kliknięć", note: "Uwaga", button: "Zobacz moje reklamy",
+  },
+  "sv": {
+    live: "Din annons är publicerad: {0}", liveLine: "Din annons \"{0}\" visas nu.", resumedLine: "Din annons \"{0}\" visas igen.",
+    until: "Slutar: {0}", bought: "Köpta visningar: {0}",
+    rejected: "Din annons avvisades: {0}", rejectedLine: "Din annons \"{0}\" har granskats och kommer inte att publiceras. Om du har betalat, öppna ett supportärende för återbetalning.",
+    paused: "Din annons har pausats: {0}", pausedLine: "Din annons \"{0}\" har pausats av en administratör.",
+    reportsLine: "Din annons \"{0}\" har tillfälligt dolts på grund av rapporter från användare; en administratör granskar den.",
+    ended: "Din annons har avslutats: {0}", endedLine: "Din annons \"{0}\" har visats klart. Tack!",
+    stats: "{0} visningar · {1} klick", note: "Notering", button: "Visa mina annonser",
+  },
+  "fi": {
+    live: "Mainoksesi on julkaistu: {0}", liveLine: "Mainoksesi \"{0}\" näkyy nyt.", resumedLine: "Mainoksesi \"{0}\" näkyy taas.",
+    until: "Päättyy: {0}", bought: "Ostetut näyttökerrat: {0}",
+    rejected: "Mainoksesi hylättiin: {0}", rejectedLine: "Mainoksesi \"{0}\" tarkistettiin, eikä sitä julkaista. Jos olet jo maksanut, avaa tukipyyntö hyvitystä varten.",
+    paused: "Mainoksesi keskeytettiin: {0}", pausedLine: "Ylläpitäjä keskeytti mainoksesi \"{0}\".",
+    reportsLine: "Mainoksesi \"{0}\" piilotettiin väliaikaisesti käyttäjien ilmoitusten vuoksi; ylläpitäjä tarkistaa sen.",
+    ended: "Mainoksesi on päättynyt: {0}", endedLine: "Mainoksesi \"{0}\" kampanja on päättynyt. Kiitos!",
+    stats: "{0} näyttökertaa · {1} klikkausta", note: "Huomautus", button: "Näytä mainokseni",
+  },
+  "ru": {
+    live: "Твоя реклама запущена: {0}", liveLine: "Твоя реклама «{0}» теперь показывается.", resumedLine: "Твоя реклама «{0}» снова показывается.",
+    until: "Окончание: {0}", bought: "Куплено показов: {0}",
+    rejected: "Твоя реклама отклонена: {0}", rejectedLine: "Твоя реклама «{0}» проверена и не будет опубликована. Если ты уже оплатил, создай обращение в поддержку для возврата средств.",
+    paused: "Твоя реклама приостановлена: {0}", pausedLine: "Администратор приостановил твою рекламу «{0}».",
+    reportsLine: "Твоя реклама «{0}» временно скрыта из-за жалоб пользователей; администратор её проверит.",
+    ended: "Показ твоей рекламы завершён: {0}", endedLine: "Показ рекламы «{0}» полностью завершён. Спасибо!",
+    stats: "Показов: {0} · кликов: {1}", note: "Примечание", button: "Мои объявления",
+  },
+  "zh-CN": {
+    live: "你的广告已上线：{0}", liveLine: "你的广告“{0}”现已上线。", resumedLine: "你的广告“{0}”已重新上线。",
+    until: "结束时间：{0}", bought: "已购买展示次数：{0}",
+    rejected: "你的广告未通过审核：{0}", rejectedLine: "你的广告“{0}”经审核后不会发布。如已付款，请提交支持工单申请退款。",
+    paused: "你的广告已暂停：{0}", pausedLine: "你的广告“{0}”已被管理员暂停。",
+    reportsLine: "由于用户举报，你的广告“{0}”已被暂时隐藏，管理员将进行审核。",
+    ended: "你的广告已结束：{0}", endedLine: "你的广告“{0}”已投放完毕。感谢支持！",
+    stats: "{0} 次展示 · {1} 次点击", note: "备注", button: "查看我的广告",
+  },
+  "ja": {
+    live: "広告が公開されました：{0}", liveLine: "広告「{0}」の掲載が始まりました。", resumedLine: "広告「{0}」の掲載が再開されました。",
+    until: "終了：{0}", bought: "購入したインプレッション数：{0}",
+    rejected: "広告が承認されませんでした：{0}", rejectedLine: "広告「{0}」は審査の結果、掲載されません。お支払い済みの場合は、返金のためサポートにお問い合わせください。",
+    paused: "広告が一時停止されました：{0}", pausedLine: "広告「{0}」は管理者によって一時停止されました。",
+    reportsLine: "広告「{0}」はユーザーからの報告により一時的に非表示になりました。管理者が確認します。",
+    ended: "広告の掲載が終了しました：{0}", endedLine: "広告「{0}」の掲載が完了しました。ありがとうございました！",
+    stats: "{0} インプレッション · {1} クリック", note: "メモ", button: "自分の広告を見る",
+  },
+};
+
+const AD_PLACES: Record<string, { tr: string; en: string }> = {
+  panel_banner: { tr: "Uygulama · geniş banner", en: "App · wide banner" },
+  panel_card: { tr: "Uygulama · kare kart", en: "App · square card" },
+  site_home: { tr: "Site · ana sayfa banner", en: "Website · home banner" },
+  site_account: { tr: "Site · hesap sayfası kartı", en: "Website · account page card" },
+};
+const AD_REASONS: Record<string, { tr: string; en: string }> = {
+  inappropriate: { tr: "Uygunsuz", en: "Inappropriate" },
+  misleading: { tr: "Yanıltıcı / dolandırıcılık", en: "Misleading / scam" },
+  spam: { tr: "Spam", en: "Spam" },
+  other: { tr: "Diğer", en: "Other" },
+};
+
+async function adOwner(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (!["ad_live", "ad_rejected", "ad_ended"].includes(n.kind)) return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(AD_MAIL, u.lang);
+  const d = n.data ?? {};
+  const title = String(d.title ?? "");
+  const f = (s: string) => s.replace("{0}", title);
+  const nf = (v: unknown) => Number(v ?? 0).toLocaleString(LOCALES[u.lang] ?? "en-GB");
+  let subject: string;
+  let line: string;
+  let color = "#ff8a2a";
+  let extra = "";
+  if (n.kind === "ad_live") {
+    subject = f(m.live);
+    line = f(d.resumed ? m.resumedLine : m.liveLine);
+    if (d.model === "days" && d.ends_at) extra = m.until.replace("{0}", fmtDay(new Date(d.ends_at), u.lang, true));
+    else if (d.model === "impressions") extra = m.bought.replace("{0}", nf(d.quantity));
+  } else if (n.kind === "ad_rejected") {
+    color = "#e5322d";
+    subject = f(d.mode === "rejected" ? m.rejected : m.paused);
+    line = f(d.mode === "rejected" ? m.rejectedLine : d.mode === "reports" ? m.reportsLine : m.pausedLine);
+  } else {
+    subject = f(m.ended);
+    line = f(m.endedLine);
+    extra = m.stats.replace("{0}", nf(d.impressions)).replace("{1}", nf(d.clicks));
+  }
+  const place = AD_PLACES[d.placement]?.[u.lang === "tr" ? "tr" : "en"] ?? String(d.placement ?? "");
+  const body = `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid #262b36;border-left:3px solid ${color};border-radius:10px">
+      <div style="font:700 16px/1.3 'Segoe UI',Arial,Helvetica,sans-serif;color:#ffffff">${esc(title)}</div>
+      <div style="font-size:12px;color:#8a93a4;margin-top:4px">${esc(place)}</div>
+    </div>
+    <p style="margin:0 0 12px">${esc(line)}</p>
+    ${extra ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(extra)}</b></p>` : ""}
+    ${d.note ? `<div style="${BOX}"><div style="font-size:12px;color:#8a93a4;margin-bottom:4px">${esc(m.note)}</div>${esc(d.note)}</div>` : ""}
+    ${button(`${SITE}/reklam.html`, m.button)}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line));
+  return { ok: true, sent };
+}
+
+// Yöneticiye: reklam raporlandı / gizlendi, ya da ödendi ve onay bekliyor
+async function adAdmin(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "ad_reported" && n.kind !== "ad_pending") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const pending = n.kind === "ad_pending";
+  const title = pending
+    ? L === "tr" ? "Onay bekleyen reklam" : "Ad awaiting approval"
+    : d.hidden ? (L === "tr" ? "Reklam raporlarla gizlendi" : "Ad hidden by reports") : L === "tr" ? "Reklam raporlandı" : "Ad reported";
+  const row = (k: string, v: string) =>
+    `<tr><td style="color:#8b93a3;padding:4px 12px 4px 0;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0">${v}</td></tr>`;
+  const body = `
+    <table style="font-size:14px;border-collapse:collapse;margin:0 0 14px">
+      ${row(L === "tr" ? "Reklam" : "Ad", `<b style="color:#ffb35c">${esc(d.title ?? "?")}</b>`)}
+      ${row(L === "tr" ? "Yer" : "Placement", esc(AD_PLACES[d.placement]?.[L] ?? d.placement ?? "?"))}
+      ${row(L === "tr" ? "Reklam veren" : "Advertiser", esc(d.name ?? "?"))}
+      ${pending ? "" : row(L === "tr" ? "Sebep" : "Reason", esc(AD_REASONS[d.reason]?.[L] ?? d.reason ?? "?"))}
+      ${pending ? "" : row(L === "tr" ? "Toplam rapor" : "Total reports", esc(d.reports ?? "?"))}
+    </table>
+    <p style="color:#8b93a3;font-size:13px;margin:0">${
+      pending
+        ? L === "tr" ? "Ödeme alındı; otomatik onay kapalı olduğu için reklam yayına girmeden önce onayını bekliyor." : "Payment received; auto-approve is off, so the ad waits for your approval before going live."
+        : d.hidden
+          ? L === "tr" ? "Rapor sınırı aşıldığı için reklam yayından kaldırıldı. İnceleyip sürdürebilir ya da reddedebilirsin." : "The report threshold was reached, so the ad was taken down. Review it and resume or reject it."
+          : L === "tr" ? "Reklam yayında kalıyor; raporları yönetim panelinden inceleyebilirsin." : "The ad stays live; review the reports in the admin panel."
+    }</p>
+    ${button(`${SITE}/yonetim.html#reklamlar`, L === "tr" ? "Yönetim panelinde aç" : "Open in admin panel")}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.title ?? ""}`, page(title, body, String(d.title ?? "")));
+  return { ok: true, sent };
+}
+
+// ---------------------------------------------------------------------------
 // 6 aydır açılmayan görsellerin silinmesi
 // ---------------------------------------------------------------------------
 
@@ -913,6 +1154,10 @@ Deno.serve(async (req) => {
                   ? await supportAdmin(body.id)
                   : body.type === "support_reply" && body.id
                     ? await supportReply(body.id)
+                    : (body.type === "ad_live" || body.type === "ad_rejected" || body.type === "ad_ended") && body.id
+                      ? await adOwner(body.id)
+                      : (body.type === "ad_reported" || body.type === "ad_pending") && body.id
+                        ? await adAdmin(body.id)
           : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
     return Response.json(res, { status: res.ok ? 200 : 400 });
   } catch (e) {

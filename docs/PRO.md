@@ -105,3 +105,27 @@ anahtarı sadece Supabase'in kendi fonksiyon ortamında kullanılır, uygulamaya
   yazmalı, sonra **Üyeliği yeniden denetle**. (Sonraki ödemede otomatik eşleşir; hemen istiyorsa yönetici elle
   verebilir.)
 - **401 imza hatalı / token hatalı:** Secrets'taki değer Patreon/Ko-fi'dekiyle aynı değil.
+
+## Reklamlar (kendi kendine reklam verme)
+
+Reklam verenler sitedeki **Reklam ver** (`reklam.html`) sayfasından yer, gösterim paketi ya da gün seçer, görsel
+yükler ve öder; ödeme gelince reklam otomatik yayına girer (Yönetim → Reklamlar'da otomatik onay kapalıysa onay bekler).
+PRO üyeler reklam görmez, oyun içi overlay'lerde reklam yoktur. Kurulum:
+
+1. SQL Editor'de `supabase/c22_guncelleme.sql` dosyasını çalıştır (şemanın c22 bölümü: tablolar, `ads` kovası, RPC'ler,
+   10 dakikada bir çalışan `pitwall-ads` işi).
+2. Lemon Squeezy → **Products → New product**: ad ör. "SRTR Pitwall reklamı", **tek seferlik (single payment)**,
+   fiyat herhangi (ör. 1) — gerçek tutar her ödemede sunucuda hesaplanıp `custom_price` ile gönderilir. Varyant
+   numarasını not et (ürün → varyant → adresteki sayı ya da API).
+3. Lemon Squeezy → **Settings → API** → yeni API anahtarı; **Settings → Stores** → mağaza numarası.
+4. Lemon Squeezy → **Settings → Webhooks**: mevcut `pro-webhook?source=lemon` webhook'unda **order_created** ve
+   **order_refunded** olaylarını da işaretle.
+5. Supabase → **Edge Functions → Secrets**: `LEMON_API_KEY`, `LEMON_STORE_ID`, `LEMON_AD_VARIANT_ID`
+   (isteğe bağlı: `LEMON_TEST_MODE=1` test ödemesi için, `SITE_URL`).
+6. `supabase/functions/ads-checkout/index.ts` dosyasıyla **ads-checkout** fonksiyonunu oluştur — **Verify JWT açık**
+   kalsın (site oturum anahtarıyla çağırır). `pro-webhook` ve `pitwall-jobs` fonksiyonlarını da güncel dosyalarla yeniden yayınla.
+7. Yönetim → **Reklamlar**: fiyatları (1.000 gösterim / günlük, para birimi Lemon mağazanla aynı) gir ve **Reklamlar açık**'ı işaretle.
+
+Kullanıcılar reklamı sağ tıklayıp raporlar; **rapor sınırına** ulaşan reklam gizlenir, yöneticilere bildirim + e-posta
+gider. Reddettiğin ödenmiş reklamlar için iadeyi Lemon Squeezy'den yap; `order_refunded` gelince reklam durur ve
+ödeme listesinde iade görünür.

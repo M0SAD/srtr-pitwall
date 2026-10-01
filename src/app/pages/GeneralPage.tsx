@@ -7,6 +7,7 @@ import { checkUpdate, checking, setUpdateDialog, update, updateError, version } 
 import { invoke } from "@tauri-apps/api/core";
 import { settings, updateSettings } from "@/sdk/settings";
 import { appState, setDemo } from "../App";
+import { freeView, realAdmin, setFreeView } from "@/cloud/account";
 
 interface MonitorInfo {
   index: number;
@@ -45,6 +46,24 @@ export function GeneralPage() {
   return (
     <div class="page narrow">
       <GeneralExtra />
+      <Show when={realAdmin()}>
+        <section class="panel">
+          <h3>Yönetici: test görünümü</h3>
+          <div class="row">
+            <div>
+              <b>PRO olmayan üye gibi gör</b>
+              <small>
+                Arayüz, overlay'ler ve kilitler PRO olmayan bir üyenin gördüğü gibi görünür (yönetim menüsü de gizlenir). Sadece
+                bu bilgisayarda geçerlidir; üstteki şeritten tek tıkla kapatabilirsin.
+              </small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" checked={freeView()} onChange={(e) => setFreeView(e.currentTarget.checked)} />
+              <i />
+            </label>
+          </div>
+        </section>
+      </Show>
       <section class="panel">
         <h3>Başlangıç</h3>
         <div class="row">
@@ -308,6 +327,12 @@ function GeneralExtra() {
         sub="iRacing bağlandığında kontrol paneli tepsiye iner."
         on={g().minimizeOnConnect}
         onChange={(v) => set((x) => (x.minimizeOnConnect = v))}
+      />
+      <Row
+        title="Yarış bitince Olaylar ekranını aç"
+        sub="Damalı bayraktan sonra olay listesi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider."
+        on={g().eventsAutoOpen}
+        onChange={(v) => set((x) => (x.eventsAutoOpen = v))}
       />
       <Row
         title="Oyuna odağı geri ver"

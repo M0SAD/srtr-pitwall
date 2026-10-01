@@ -5,6 +5,8 @@
 //   PATREON_WEBHOOK_SECRET  Patreon webhook sayfasındaki "secret"
 //   KOFI_VERIFICATION_TOKEN Ko-fi -> API -> Verification Token
 //   LEMON_WEBHOOK_SECRET    Lemon Squeezy -> Settings -> Webhooks -> signing secret (source=lemon)
+//   LEMON_AD_VARIANT_ID     (isteğe bağlı) reklam ürününün varyantı; reklam siparişleri (order_created /
+//                           order_refunded, custom_data.ad_id) bu varyantla eşleşmeli (bkz. ads-checkout)
 // Kurulum: docs/PRO.md
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -154,6 +156,11 @@ async function lemon(req: Request) {
   const event = String(j?.meta?.event_name ?? "");
   const custom = j?.meta?.custom_data?.user_id;
   const customUser = typeof custom === "string" && /^[0-9a-f-]{36}$/i.test(custom) ? custom : null;
+  // Reklam ödemesi (ads-checkout'un açtığı tek seferlik sipariş): order_created → yayına al, order_refunded → durdur
+  const adId = j?.meta?.custom_data?.ad_id;
+  if (j?.data?.type === "orders" && typeof adId === "string" && /^[0-9a-f-]{36}$/i.test(adId)) {
+    return await lemonAdOrder(j, event, adId, customUser);
+  }
   // Ödeme / iade (abonelik faturası): sadece kayıt, PRO süresini abonelik olayı ayarlar
   if (j?.data?.type === "subscription-invoices") {
     const a = j.data.attributes ?? {};
@@ -201,6 +208,62 @@ async function lemon(req: Request) {
   });
   if (error) throw new Error(error.message);
   return ok({ ok: true, event, status, user: data });
+}
+
+// ---------------------------------------------------------------------------
+// Lemon Squeezy reklam siparişi (webhook olayları: order_created, order_refunded).
+// LEMON_AD_VARIANT_ID ayarlıysa siparişin varyantı onunla eşleşmeli.
+// ---------------------------------------------------------------------------
+const AD_PLACES: Record<string, string> = {
+  panel_banner: "Uygulama banner",
+  panel_card: "Uygulama kart",
+  site_home: "Site ana sayfa",
+  site_account: "Site hesap sayfası",
+};
+
+// deno-lint-ignore no-explicit-any
+async function lemonAdOrder(j: any, event: string, adId: string, customUser: string | null) {
+  const a = j.data.attributes ?? {};
+  const wantVariant = Deno.env.get("LEMON_AD_VARIANT_ID") ?? "";
+  const gotVariant = String(a.first_order_item?.variant_id ?? "");
+  if (wantVariant && gotVariant && gotVariant !== wantVariant) return ok({ ignored: "variant", event });
+  const refund = event === "order_refunded" || a.status === "refunded" || a.status === "partial_refund";
+  const orderId = String(j.data.id);
+  if (refund) {
+    const { data, error } = await supabase.rpc("ad_refunded", { p_ad: adId });
+    if (error) throw new Error(error.message);
+    await record({
+      id: `lemon-ad-${orderId}-refund`,
+      source: "lemon",
+      email: String(a.user_email ?? ""),
+      user: customUser ?? data?.user_id ?? null,
+      amount: (Number(a.refunded_amount || a.total) || 0) / 100,
+      currency: String(a.currency ?? "USD"),
+      plan: `Reklam: ${AD_PLACES[data?.placement] ?? data?.placement ?? ""}`,
+      kind: "refund",
+    });
+    return ok({ ok: true, event, ad: adId, refunded: true });
+  }
+  if (event !== "order_created" || a.status !== "paid") return ok({ ignored: a.status ?? event });
+  const amount = (Number(a.total) || 0) / 100;
+  const { data, error } = await supabase.rpc("ad_paid", {
+    p_ad: adId,
+    p_user: customUser,
+    p_order: orderId,
+    p_amount: amount,
+    p_currency: String(a.currency ?? "USD"),
+  });
+  if (error) throw new Error(error.message);
+  await record({
+    id: `lemon-ad-${orderId}`,
+    source: "lemon",
+    email: String(a.user_email ?? ""),
+    user: customUser ?? data?.user_id ?? null,
+    amount,
+    currency: String(a.currency ?? "USD"),
+    plan: `Reklam: ${AD_PLACES[data?.placement] ?? data?.placement ?? ""}`,
+  });
+  return ok({ ok: true, event, ad: adId, status: data?.status });
 }
 
 Deno.serve(async (req) => {

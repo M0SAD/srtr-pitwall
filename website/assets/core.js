@@ -173,6 +173,7 @@ addDict({
   nav_login: ["Giriş yap", "Sign in"],
   nav_account: ["Hesabım", "My account"],
   nav_admin: ["Yönetim", "Admin"],
+  nav_ads: ["Reklam ver", "Advertise"],
   footer_made: [
     "<b>Erkin Azcan</b> tarafından <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> topluluğu için geliştirildi.",
     "Built by <b>Erkin Azcan</b> for the <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> community.",
@@ -288,7 +289,7 @@ export function toast(msg, bad = false) {
 // ---------------------------------------------------------------------------
 // Ziyaret sayacı (kişisel veri yok: tarayıcıda rastgele kimlik)
 // ---------------------------------------------------------------------------
-function visitorId() {
+export function visitorId() {
   try {
     let v = localStorage.getItem("pitwall.site.vid");
     if (!v) {
@@ -381,6 +382,7 @@ export function headerHtml(active = "") {
         <a href="index.html#features" data-t="nav_features"></a>
         <a href="index.html#pricing" data-t="nav_pricing"></a>
         <a href="index.html#faq" data-t="nav_faq"></a>
+        <a href="reklam.html" class="${active === "ads" ? "on" : ""}" data-t="nav_ads"></a>
         <a href="yonetim.html" class="nav-admin${active === "admin" ? " on" : ""}" hidden data-t="nav_admin"></a>
         <a href="hesap.html" class="nav-login${active === "account" ? " on" : ""}" data-t="nav_login"></a>
         <a href="#" class="btn btn-accent btn-sm" data-download data-t="nav_download"></a>
@@ -406,6 +408,7 @@ export function footerHtml() {
         <a href="https://kick.com/erkinazcan" target="_blank" rel="noopener">Kick</a>
         <a href="https://www.instagram.com/erkinazcan" target="_blank" rel="noopener">Instagram</a>
         <a href="https://github.com/${REPO}" target="_blank" rel="noopener">GitHub</a>
+        <a href="reklam.html" data-t="nav_ads"></a>
       </div>
     </div>
     <div class="wrap"><p class="muted tiny" data-t="footer_legal"></p></div>

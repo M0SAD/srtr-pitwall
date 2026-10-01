@@ -256,6 +256,11 @@ async function onSubmit(e) {
 async function afterLogin() {
   const { data } = await sb.auth.getSession();
   const u = data.session?.user;
+  // Reklam ver sayfasından gelindiyse oraya dön
+  if (u && new URLSearchParams(location.search).get("next") === "reklam") {
+    location.href = "reklam.html";
+    return;
+  }
   // Fiyatlardan gelindiyse doğrudan ödemeye
   if (u && buyPlan) {
     const cfg = await appConfig().catch(() => ({}));
@@ -377,6 +382,8 @@ async function dashboard(u) {
           <div id="sp-body"><p class="muted small">${T("loading")}</p></div>
         </div>
 
+        <div data-ad="site_account" hidden></div>
+
         <div class="card">
           <h3>${T("a_app")}</h3>
           <p class="muted small">${T("a_app_lead")}</p>
@@ -407,6 +414,7 @@ async function dashboard(u) {
     error ? toast(error.message, true) : (toast(T("saved")), e.target.reset());
   });
   initSupport(u);
+  import("./adslot.js").then((m) => m.mountAds(app()), () => {});
   // İndirme bağlantısı
   const { latestRelease, hit } = await import("./core.js");
   latestRelease().then((r) => {
@@ -645,7 +653,7 @@ async function render() {
   const { data } = await sb.auth.getSession();
   const u = data.session?.user;
   if (!u) return authView();
-  if (buyPlan) return afterLogin();
+  if (buyPlan || new URLSearchParams(location.search).get("next") === "reklam") return afterLogin();
   app().innerHTML = `<p class="muted page">${T("loading")}</p>`;
   try {
     await dashboard(u);

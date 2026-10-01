@@ -89,6 +89,16 @@ addDict({
     "Font, colour, opacity and size in one go. Automatic layouts per car and session, multi-monitor.",
   ],
 
+  f13_t: ["Olaylar ekranı ve replay", "Events screen and replay"],
+  f13_d: [
+    "Yarış bitince olaylar listesi kendiliğinden açılır: kazalar, geçişler, pit girişleri. Birine tıkla, iRacing replay'i o ana atlasın.",
+    "When the race ends the events list opens by itself: incidents, overtakes, pit stops. Click one and the iRacing replay jumps to that moment.",
+  ],
+  f14_t: ["Reklam ver", "Advertise"],
+  f14_d: [
+    "Sim yarışçılarına ulaş: gösterim ya da süre paketi seç, yerini belirle, öde; reklamın otomatik yayına girsin.",
+    "Reach sim racers: pick an impressions or time package, choose a placement, pay, and your ad goes live automatically.",
+  ],
   panel_eyebrow: ["Kontrol paneli", "Control panel"],
   panel_title: ["Her şey tek yerde, gerçek pist üstünde önizleme", "Everything in one place, previewed on a real track"],
   panel_lead: [
@@ -215,6 +225,8 @@ const FEATS = [
   ["🏁", "f10"],
   ["🛟", "f11"],
   ["😄", "f12"],
+  ["🎬", "f13"],
+  ["📣", "f14"],
 ];
 // hesapsız, ücretsiz hesap, PRO
 const CMP = [
@@ -283,6 +295,7 @@ function renderPlans() {
 
 async function main() {
   await boot("/");
+  import("./adslot.js").then((m) => m.mountAds(), () => {});
   renderStatic();
   renderPlans();
   document.addEventListener("langchange", () => {

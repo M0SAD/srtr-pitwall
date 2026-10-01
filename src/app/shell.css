@@ -3615,3 +3615,22 @@ body {
 .lg-help span {
   color: var(--muted);
 }
+
+.freeview-banner {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 10px;
+  background: #2a1d3d;
+  border: 1px solid #a64cff;
+  color: #e5ccff;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}

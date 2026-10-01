@@ -130,6 +130,8 @@ pub struct Shared {
     /// Demo açıkken sesli spotter/bipler sussun
     pub demo_mute: AtomicBool,
     pub peek_gen: AtomicU64,
+    /// Olaylar ekranı: oturumun olay listesi (bkz. events.rs)
+    pub events: Mutex<crate::events::EventLog>,
 }
 
 const KNOWN: [&str; 20] = [
@@ -447,6 +449,20 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 crate::league::reposition(&mut st.frame, &st.session);
             }
             st.tracker.update(&st.frame, &st.session);
+            // Olaylar ekranı: olayları topla; oyuncu yarışı bitirince pencereyi bir kez aç
+            let finished = {
+                let mut ev = shared.events.lock();
+                ev.set_source(st.sim, demo_on);
+                ev.update(&st.frame, &st.session, &st.tracker)
+            };
+            if finished && !demo_on && connected {
+                let auto = crate::current_settings(&app)
+                    .and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool()))
+                    .unwrap_or(true);
+                if auto {
+                    crate::open_events(&app);
+                }
+            }
             let done = st.history.update(&st.frame, &st.session, !demo_on && connected);
             save_record(&shared, done);
             if demo.is_none() {

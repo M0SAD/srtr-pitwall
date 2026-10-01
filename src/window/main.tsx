@@ -20,6 +20,8 @@ document.addEventListener("contextmenu", (e) => {
 const root = document.getElementById("root")!;
 const view = query.get("view") ?? "pitwall";
 const social = view === "friends" || view === "friend";
+// Olaylar penceresi panelin görünümünü kullanır (app.css + shell.css)
+const events = view === "events";
 // Mesaj açılır penceresi (sağ alt, saydam): kendi küçük görünümü, panel stilleri gerekmez
 const toast = view === "toast";
 if (toast) document.documentElement.classList.add("toast-root");
@@ -30,6 +32,8 @@ document.title =
       ? "SRTR Pitwall – Mühendis"
       : view === "friends"
         ? "SRTR Pitwall – Arkadaşlar"
+        : events
+        ? "SRTR Pitwall – Olaylar"
         : view === "friend" || view === "toast"
           ? "SRTR Pitwall"
           : "SRTR Pitwall – Pitwall Paneli";
@@ -37,12 +41,13 @@ document.title =
 initSettings(`window-${view}`).then(async () => {
   startDomTranslation();
   // Arkadaş pencereleri panelin görünümünü kullanır
-  if (social) {
+  if (social || events) {
     await import("@/app/app.css");
     await import("@/app/shell.css");
   }
   const { FriendsWindow, FriendWindow } = social ? await import("./Friends") : ({} as typeof import("./Friends"));
   const { Toast } = toast ? await import("./Toast") : ({} as typeof import("./Toast"));
+  const { Events } = events ? await import("./Events") : ({} as typeof import("./Events"));
   root.textContent = "";
   const dispose = render(
     () =>
@@ -52,6 +57,8 @@ initSettings(`window-${view}`).then(async () => {
         <FriendsWindow chat={query.get("chat") ?? ""} />
       ) : view === "friend" ? (
         <FriendWindow id={query.get("id") ?? ""} />
+      ) : events ? (
+        <Events />
       ) : view === "timing" ? (
         <Timing />
       ) : view === "engineer" ? (

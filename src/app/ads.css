@@ -1,0 +1,238 @@
+/* Reklam alanları (uygulama kontrol paneli; overlay'lerde reklam yok) ve Yönetim › Reklamlar */
+
+.ad-slot {
+  position: relative;
+  margin: 18px auto 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.ad-slot:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.ad-slot .ad-body {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.ad-slot .ad-img {
+  display: block;
+  object-fit: cover;
+  background: var(--bg-3);
+}
+.ad-slot .ad-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ad-slot .ad-text b {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ad-slot .ad-text small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.ad-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #cfd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* Geniş banner: 8:1 görsel + altta tek satır metin */
+.ad-panel_banner {
+  max-width: 960px;
+}
+.ad-panel_banner .ad-body {
+  flex-direction: column;
+}
+.ad-panel_banner .ad-img {
+  width: 100%;
+  aspect-ratio: 8 / 1;
+}
+.ad-panel_banner .ad-text {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 12px;
+}
+.ad-panel_banner .ad-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Kare kart: solda kare görsel, sağda metin (dar alanlarda alt alta) */
+.ad-panel_card {
+  max-width: 460px;
+}
+.ad-panel_card .ad-body {
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+}
+.ad-panel_card .ad-img {
+  width: 110px;
+  height: 110px;
+  flex: none;
+  border-radius: 8px;
+  aspect-ratio: 1;
+}
+.ad-panel_card .ad-text b {
+  white-space: normal;
+  font-size: 14px;
+}
+
+.ad-menu {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 5px;
+  border: 1px solid #333846;
+  border-radius: 8px;
+  background: #16181f;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.ad-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: #eef1f6;
+  font: 13px "Segoe UI", system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.ad-menu button:hover {
+  background: #232733;
+}
+.ad-menu svg {
+  width: 15px;
+  height: 15px;
+  color: var(--accent);
+}
+
+/* ---- Yönetim › Reklamlar ---- */
+.ads-admin .ads-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+.ads-admin .ads-price {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 6px 0 10px;
+}
+.ads-admin .ads-price th,
+.ads-admin .ads-price td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.ads-admin .ads-price th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.ads-admin .ads-price input.input {
+  width: 100px;
+}
+.ads-admin .ads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ads-admin .ads-row {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+.ads-admin .ads-row img {
+  width: 150px;
+  max-height: 110px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--bg-3);
+}
+.ads-admin .ads-row .ads-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13px;
+}
+.ads-admin .ads-row .ads-meta a {
+  color: var(--accent-2);
+  overflow-wrap: anywhere;
+}
+.ads-admin .ads-row .ads-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: stretch;
+}
+.ads-admin .ads-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ads-admin .ads-chip.ok {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 45%, transparent);
+}
+.ads-admin .ads-chip.warn {
+  color: var(--yellow);
+  border-color: color-mix(in srgb, var(--yellow) 45%, transparent);
+}
+.ads-admin .ads-chip.bad {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 45%, transparent);
+}
+.ads-admin .ads-reports {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .ads-admin .ads-row {
+    grid-template-columns: 1fr;
+  }
+}

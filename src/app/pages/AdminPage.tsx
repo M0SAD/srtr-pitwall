@@ -1,6 +1,6 @@
 // Yönetim: sadece yöneticilere (ve moderatörlere) görünen ayrı bölüm.
 // Alt sayfalar: Özet, Gelir, Üyeler, Destek, Abonelikler, Cihazlar, Planlar ve fiyatlar, Ücretsiz PRO,
-// Görünürlük, Bildirimler, Moderasyon, Medya.
+// Reklamlar, Görünürlük, Bildirimler, Moderasyon, Medya.
 
 import { For, Match, Show, Switch, createResource, createSignal, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
@@ -30,6 +30,7 @@ import { ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminMo
 import { AdminHosting, AdminWatermark } from "../components/AdminMedia";
 import { AdminNotices } from "../components/AdminNotices";
 import { AdminPromo, AdminRevenue, AdminSupport, AdminVisibility, ProEditor } from "../components/AdminExtras";
+import { AdminAds } from "../components/AdminAds";
 import { sub } from "../ui";
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
@@ -49,6 +50,7 @@ export function adminSubs(): { id: string; label: string }[] {
     { id: "devices", label: "Cihazlar", need: isAdmin },
     { id: "plans", label: "Planlar ve fiyatlar", need: isAdmin },
     { id: "promo", label: "Ücretsiz PRO", need: isAdmin },
+    { id: "ads", label: "Reklamlar", need: isAdmin },
     { id: "visibility", label: "Görünürlük", need: isAdmin },
     { id: "notices", label: "Bildirimler", need: isAdmin },
     { id: "moderation", label: "Moderasyon", need: () => isAdmin() || can("reports.view") },
@@ -90,6 +92,9 @@ export function AdminPage() {
         </Match>
         <Match when={page() === "revenue"}>
           <AdminRevenue />
+        </Match>
+        <Match when={page() === "ads"}>
+          <AdminAds run={run} />
         </Match>
         <Match when={page() === "members"}>
           <Members run={run} />

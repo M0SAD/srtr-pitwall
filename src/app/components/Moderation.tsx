@@ -8,7 +8,8 @@ import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { REPORT_REASONS, deleteNotice, markNoticesRead, notices, sendReport, type Notice, type ReportTarget } from "@/cloud/moderation";
 import * as I from "../icons";
-import { go, openTicket } from "../ui";
+import { go, openTicket, openUrl } from "../ui";
+import { AD_SITE } from "@/cloud/ads";
 
 export function ReportDialog(props: { type: ReportTarget; id: string; what: string; onClose: () => void }) {
   const [reason, setReason] = createSignal("");
@@ -224,6 +225,18 @@ function noticeText(n: Notice): string {
   if (n.kind === "support_user_reply") return t('{0} destek talebine yazdı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
   if (n.kind === "support_reply") return t('Destek talebin yanıtlandı: "{0}"', n.data.subject ?? "");
   if (n.kind === "device_alert") return t("{0} hesabı {1} farklı bilgisayardan kullanılıyor.", n.data.name ?? "?", n.data.count ?? "?");
+  if (n.kind === "ad_live") return n.data.resumed ? t('Reklamın yeniden yayında: "{0}"', n.data.title ?? "") : t('Reklamın yayına girdi: "{0}"', n.data.title ?? "");
+  if (n.kind === "ad_rejected") {
+    if (n.data.mode === "rejected") return t('Reklamın reddedildi: "{0}"', n.data.title ?? "") + (n.data.note ? `\n${t("Not: {0}", n.data.note)}` : "");
+    if (n.data.mode === "reports") return t('Reklamın kullanıcı raporları nedeniyle gizlendi: "{0}"', n.data.title ?? "");
+    return t('Reklamın durduruldu: "{0}"', n.data.title ?? "") + (n.data.note ? `\n${t("Not: {0}", n.data.note)}` : "");
+  }
+  if (n.kind === "ad_ended") return t('Reklamın sona erdi: "{0}" ({1} gösterim, {2} tıklama)', n.data.title ?? "", n.data.impressions ?? 0, n.data.clicks ?? 0);
+  if (n.kind === "ad_reported")
+    return n.data.hidden
+      ? t('Reklam raporlarla gizlendi: "{0}" ({1} rapor)', n.data.title ?? "", n.data.reports ?? "?")
+      : t('Reklam raporlandı: "{0}" ({1} rapor)', n.data.title ?? "", n.data.reports ?? "?");
+  if (n.kind === "ad_pending") return t('Onay bekleyen reklam: "{0}" ({1})', n.data.title ?? "", n.data.name ?? "?");
   return n.data.text ?? n.kind;
 }
 
@@ -232,6 +245,8 @@ function noticeTarget(n: Notice): (() => void) | null {
   if ((n.kind === "support_new" || n.kind === "support_user_reply") && n.data.ticket) return () => openTicket(n.data.ticket, true);
   if (n.kind === "support_reply" && n.data.ticket) return () => openTicket(n.data.ticket, false);
   if (n.kind === "pro_expiring" || n.kind === "pro_changed") return () => go("pro");
+  if (n.kind === "ad_reported" || n.kind === "ad_pending") return () => go("admin", "ads");
+  if (n.kind === "ad_live" || n.kind === "ad_rejected" || n.kind === "ad_ended") return () => openUrl(AD_SITE);
   return null;
 }
 

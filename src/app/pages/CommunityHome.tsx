@@ -11,6 +11,7 @@ import { ThemeCard } from "./CommunityThemes";
 import { Tabs, compact } from "./CommunityKit";
 import { go } from "../ui";
 import * as I from "../icons";
+import { AdSlot } from "../components/AdSlot";
 
 const PERIOD_KEY = "pitwall.communityPeriod";
 const PERIODS: { id: Period; label: string }[] = [
@@ -95,6 +96,7 @@ export function CommunityHome() {
           <Stat icon={<I.Star />} n={stats()?.ratings} label="Puan" />
           <Stat icon={<I.Users />} n={stats()?.members} label="Üye" />
         </div>
+        <AdSlot placement="panel_card" />
 
         <ShotRow title="En çok görüntülenen görseller" icon={<I.Eye />} k={key} by="views" onOpen={setOpenShot} more={() => go("community", "shots")} />
         <LayoutRow title="En çok kullanılan düzenler" icon={<I.Download />} k={key} by="downloads" kind="layout" onOpen={setOpenLayout} more={() => go("community", "layouts")} />

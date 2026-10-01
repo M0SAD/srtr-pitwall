@@ -6,6 +6,7 @@ mod demo;
 mod audio;
 mod engine;
 mod entitlement;
+mod events;
 mod extras;
 mod history;
 mod i18n;
@@ -455,6 +456,30 @@ fn replay_live() -> Result<(), String> {
     broadcast::replay_live()
 }
 
+// ---- Olaylar ekranı ----
+
+#[tauri::command]
+fn events_get(state: State<'_, Arc<Shared>>) -> events::EventsInfo {
+    let connected = state.connected.load(Ordering::Relaxed);
+    state.events.lock().info(connected)
+}
+
+/// Olayın ~5 sn öncesine iRacing tekrarını sarar, kamerayı araca çevirir ve 1x oynatır.
+#[tauri::command]
+fn replay_seek(state: State<'_, Arc<Shared>>, session_num: i32, session_time: f64, car_number: String) -> Result<(), String> {
+    let (sim, demo) = {
+        let ev = state.events.lock();
+        (ev.sim, ev.demo)
+    };
+    if demo {
+        return Err("Demo modunda tekrar yok".into());
+    }
+    if !sim.is_empty() && sim != "iracing" {
+        return Err("Replay bu oyunda desteklenmiyor".into());
+    }
+    broadcast::replay_seek(session_num, session_time, &car_number, 5.0)
+}
+
 // ---- Ek pencereler: Pitwall ve Live Timing ----
 
 #[tauri::command]
@@ -464,6 +489,7 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
         "timing" => ("timing", "Live Timing", 1100.0, 800.0),
         "engineer" => ("engineer", "Mühendis Ekranı", 1000.0, 600.0),
         "friends" => ("friends", "Arkadaşlar", 380.0, 680.0),
+        "events" => ("events", "Olaylar", 720.0, 760.0),
         v if v.starts_with("friend:") => {
             // Bir arkadaşın canlı verisi (her arkadaş için ayrı pencere)
             let id = &v["friend:".len()..];
@@ -497,7 +523,14 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
     WebviewWindowBuilder::new(&app, label, WebviewUrl::App(format!("window.html?view={view}").into()))
         .title(format!("SRTR Pitwall – {}", tr(&app, title)))
         .inner_size(w, h)
-        .min_inner_size(if label == "friends" { 320.0 } else { 700.0 }, if label == "friends" { 420.0 } else { 500.0 })
+        .min_inner_size(
+            match label {
+                "friends" => 320.0,
+                "events" => 460.0,
+                _ => 700.0,
+            },
+            if label == "friends" { 420.0 } else { 500.0 },
+        )
         .additional_browser_args(browser_args())
         .build()
         .map(|_| ())
@@ -509,6 +542,14 @@ fn open_friends(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let _ = window_open(app, "friends".into()).await;
+    });
+}
+
+/// "Olaylar" penceresini aç (tepsi ve yarış bitince otomatik)
+pub(crate) fn open_events(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = window_open(app, "events".into()).await;
     });
 }
 
@@ -936,16 +977,18 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let edit = MenuItem::with_id(app, "edit", TRAY_LABELS[0].1, true, None::<&str>)?;
     let hide = MenuItem::with_id(app, "hide", TRAY_LABELS[1].1, true, None::<&str>)?;
     let friends = MenuItem::with_id(app, "friends", TRAY_LABELS[4].1, true, None::<&str>)?;
+    let events = MenuItem::with_id(app, "events", TRAY_LABELS[5].1, true, None::<&str>)?;
     *app.state::<KeyBindings>().tray.lock() = vec![
         ("edit".into(), edit.clone()),
         ("hide".into(), hide.clone()),
         ("panel".into(), open.clone()),
         ("friends".into(), friends.clone()),
+        ("events".into(), events.clone()),
     ];
     let sep = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Çıkış", true, None::<&str>)?;
     app.state::<KeyBindings>().tray.lock().push(("quit".into(), quit.clone()));
-    let menu = Menu::with_items(app, &[&open, &friends, &edit, &hide, &sep, &quit])?;
+    let menu = Menu::with_items(app, &[&open, &friends, &events, &edit, &hide, &sep, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .tooltip(format!("SRTR Pitwall {}", display_version()))
@@ -953,6 +996,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => bring_panel_front(app),
             "friends" => open_friends(app),
+            "events" => open_events(app),
             "edit" => {
                 let on = !shared(app).edit_mode.load(Ordering::Relaxed);
                 set_edit_mode(app, on);
@@ -988,12 +1032,13 @@ struct KeyBindings {
     tray: Mutex<Vec<(String, MenuItem<tauri::Wry>)>>,
 }
 
-const TRAY_LABELS: [(&str, &str); 5] = [
+const TRAY_LABELS: [(&str, &str); 6] = [
     ("edit", "Düzenleme Modu"),
     ("hide", "Overlay Gizle/Göster"),
     ("panel", "Kontrol Paneli"),
     ("quit", "Çıkış"),
     ("friends", "Arkadaşlar"),
+    ("events", "Olaylar"),
 ];
 
 #[derive(Serialize)]
@@ -1127,7 +1172,7 @@ fn i18n_set(app: AppHandle, strings: std::collections::HashMap<String, String>) 
     i18n::set(strings);
     let v = current_settings(&app);
     refresh_tray_labels(&app, v.as_ref());
-    for (label, title) in [("pitwall", "Pitwall Paneli"), ("timing", "Live Timing"), ("engineer", "Mühendis Ekranı")] {
+    for (label, title) in [("pitwall", "Pitwall Paneli"), ("timing", "Live Timing"), ("engineer", "Mühendis Ekranı"), ("events", "Olaylar")] {
         if let Some(w) = app.get_webview_window(label) {
             let _ = w.set_title(&format!("SRTR Pitwall – {}", tr(&app, title)));
         }
@@ -1206,6 +1251,8 @@ pub fn run() {
             camera_car,
             replay_to,
             replay_live,
+            events_get,
+            replay_seek,
             window_open,
             toast::toast_show,
             toast::toast_take,

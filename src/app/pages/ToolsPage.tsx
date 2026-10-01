@@ -43,6 +43,12 @@ export function ToolsPage() {
           view="engineer"
           text="Büyük yazılı, ekranlar arasında kendiliğinden geçen mühendis/ikinci monitör görünümü."
         />
+        <Tool
+          icon={<I.Clapperboard />}
+          title="Olaylar"
+          view="events"
+          text="Oturumun kazaları, geçişleri, pitleri ve bayrakları. Olaya tıkla, iRacing tekrarı o ana gitsin. Yarış bitince kendiliğinden açılır."
+        />
       </div>
       <section class="panel">
         <h3>Başka cihazdan</h3>

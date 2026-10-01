@@ -57,6 +57,11 @@ export interface AppConfig {
   /** Herkese ücretsiz PRO kampanyası: bu tarihe kadar giriş yapmış herkes PRO */
   promo_pro_until?: string | null;
   promo_note?: string;
+  /** Reklamlar: açık mı, ödeme sonrası otomatik yayın, kaç raporda gizlenir, yer başına fiyatlar */
+  ads_enabled?: boolean;
+  ad_auto_approve?: boolean;
+  ad_report_hide_threshold?: number;
+  ad_pricing?: import("./ads").AdPricing;
 }
 
 export interface Entitlement {
@@ -80,7 +85,30 @@ const [config, setConfig] = createSignal<AppConfig | null>(cachedConfig());
 const [entitlement, setEntitlement] = createSignal<Entitlement>({ pro: false, proUntil: 0, locked: [] });
 export { profile, config, entitlement };
 
-export const isAdmin = () => !!profile()?.is_admin;
+/** Gerçek yönetici yetkisi (PRO olmayan görünüm açıkken de) */
+export const realAdmin = () => !!profile()?.is_admin;
+
+// "PRO olmayan kullanıcı gibi gör" (sadece yöneticiler açabilir; bu bilgisayarda, tüm pencerelerde geçerli)
+const FREE_VIEW_KEY = "pitwall.viewAsFree";
+const [freeViewFlag, setFreeViewFlag] = createSignal(typeof localStorage !== "undefined" && localStorage.getItem(FREE_VIEW_KEY) === "1");
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === FREE_VIEW_KEY) setFreeViewFlag(e.newValue === "1");
+  });
+}
+/** Yönetici arayüzü PRO olmayan bir üye gibi görüyor mu */
+export const freeView = () => freeViewFlag();
+export function setFreeView(on: boolean) {
+  try {
+    if (on) localStorage.setItem(FREE_VIEW_KEY, "1");
+    else localStorage.removeItem(FREE_VIEW_KEY);
+  } catch {
+    /* depolama yoksa sadece bu pencere */
+  }
+  setFreeViewFlag(on);
+}
+
+export const isAdmin = () => realAdmin() && !freeView();
 /** Uygulamanın sahibi: yönetici atar, izin gruplarını ve moderasyon kayıtlarını görür */
 export const isOwner = () => !!profile()?.is_owner;
 /** Ücretsiz PRO kampanyasının bitişi (yoksa 0) */
@@ -91,7 +119,9 @@ export const promoUntil = () => {
 };
 /** Kampanya sürüyor ve giriş yapılmış: tüm PRO özellikleri açık */
 export const promoActive = () => !!session() && promoUntil() > 0;
-export const isPro = () => entitlement().pro || isAdmin() || promoActive();
+export const isPro = () => !freeView() && (entitlement().pro || isAdmin() || promoActive());
+/** PRO'ya özel overlay mi (kullanıcı PRO olsa da) */
+export const isProOverlay = (id: string) => entitlement().locked.includes(id) || (config()?.pro_overlays ?? []).includes(id);
 
 /** Yöneticinin gizlediği overlay (yöneticiler gizlenenleri de görür) */
 export const isHiddenOverlay = (id: string) => !isAdmin() && (config()?.hidden_overlays ?? []).includes(id);

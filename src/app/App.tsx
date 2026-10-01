@@ -7,7 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { AppState } from "@/sdk/types";
 import { settings, updateSettings } from "@/sdk/settings";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
+import { freeView, realAdmin, setFreeView, isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
@@ -170,6 +170,14 @@ export function App() {
         <For each={BOTTOM.filter((it) => (it.id !== "admin" || canSeeAdmin()) && railVisible(it.id))}>{(it) => <RailButton item={it} />}</For>
       </nav>
 
+      <Show when={freeView() && realAdmin()}>
+        <div class="freeview-banner">
+          <span>PRO olmayan üye görünümü açık</span>
+          <button class="btn small" onClick={() => setFreeView(false)}>
+            Kapat
+          </button>
+        </div>
+      </Show>
       <Show when={update()?.available}>
         <div class="update-banner">
           <I.Download />

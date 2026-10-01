@@ -16,7 +16,7 @@ import {
   updateSettings,
 } from "@/sdk/settings";
 import { defaultOptions, type SettingField } from "@/sdk/overlay";
-import { isAdmin, isHiddenOverlay, isLocked, markedHiddenOverlay } from "@/cloud/account";
+import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot } from "@/sdk/telemetry";
 import { loadMonitors, monitorLabel, monitors } from "@/sdk/monitors";
 import { SettingsForm, Slider, Switch } from "../components/SettingsForm";
@@ -215,8 +215,8 @@ export function OverlaysPage() {
                         <Show when={isAdmin() && markedHiddenOverlay(m.id)}>
                           <span class="hidden-badge" title="Yönetici olmayanlar bu overlay'i görmez">gizli</span>
                         </Show>
-                        <Show when={isLocked(m.id)}>
-                          <span class="pro-badge small">PRO</span>
+                        <Show when={isProOverlay(m.id)}>
+                          <span class="pro-badge small" title={isLocked(m.id) ? "PRO üyelere özel" : "PRO overlay"}>PRO</span>
                         </Show>
                         <Show when={inst()?.enabled}>
                           <span class="ovitem-on" title="Açık">
@@ -267,7 +267,7 @@ export function OverlaysPage() {
                     <Show when={!settings().general.allowDuplicates && existing(m.id)}>
                       <span class="added-tag">ekli</span>
                     </Show>
-                    <Show when={isLocked(m.id)}>
+                    <Show when={isProOverlay(m.id)}>
                       <span class="pro-badge small">PRO</span>
                     </Show>
                   </button>

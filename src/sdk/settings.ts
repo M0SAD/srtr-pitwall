@@ -230,6 +230,8 @@ export interface GeneralSettings {
   /** Düzenleme ekranının arka plan görseli (dosya ayar klasöründe; rev değişince yeniden yüklenir) */
   editBackdrop: { enabled: boolean; opacity: number; rev: number; has: boolean };
   minimizeOnConnect: boolean;
+  /** Yarış bitince Olaylar penceresini otomatik aç (Rust `general.eventsAutoOpen` okur) */
+  eventsAutoOpen: boolean;
   returnFocus: boolean;
   timeFormat: "24" | "12";
   /** Arayüz dili (ör. "tr", "en", "pt-BR") */
@@ -319,6 +321,7 @@ export function defaultSettings(): AppSettings {
       screenshots: { includeOverlays: true, onlyInGame: true, format: "jpg", quality: 92 },
       editBackdrop: { enabled: true, opacity: 100, rev: 0, has: false },
       minimizeOnConnect: false,
+      eventsAutoOpen: true,
       returnFocus: true,
       timeFormat: "24",
       language: detectLang(),
