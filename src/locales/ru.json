@@ -364,10 +364,7 @@
   "Açıklama (isteğe bağlı)": "Описание (необязательно)",
   "Açıklama (seri, araç, an…)": "Описание (серия, машина, момент…)",
   "Açılamadı": "Не удалось открыть",
-<<<<<<< HEAD
   "Açılan sayfada bu kodu gir:": "Введи этот код на открывшейся странице:",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Açılıyor…": "Открываем…",
   "Ad": "Имя",
   "Ad (iRacing'deki tam ad)": "Имя (полное имя в iRacing)",
@@ -1200,11 +1197,8 @@
   "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "Обычное окно оверлея на весь экран не показывается (в режиме редактирования оно всё равно видно). Включай, только если ездишь исключительно в VR.",
   "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "Выравнивает по краям/центру экрана и других overlay, показывает направляющие.",
   "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "Автосмена экранов (0: выкл.)",
-<<<<<<< HEAD
   "Eksik kontrolü": "Проверка пропусков",
   "Eksik listesini kopyala": "Скопировать список пропусков",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "Ручная ссылка (необязательно, используется, если автоматическая цена не задана)",
   "Elle eklenmiş (hesapsız)": "Добавлен вручную (без аккаунта)",
   "Eller": "Руки",
@@ -1381,14 +1375,10 @@
   "Gelirim, kurulumu bitiriyorum": "Буду, доделываю сетап",
   "Geliştirmeye destek": "Поддержать разработку",
   "Genel": "Общие",
-<<<<<<< HEAD
   "Genel ayar": "Общая настройка",
   "Genel kısayollar": "Глобальные сочетания",
   "Genel para birimi": "Основная валюта",
   "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "Использовать общий вид чата (Настройки → Чат)",
-=======
-  "Genel para birimi": "Основная валюта",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Genesis": "Genesis",
   "Geniş": "Широкий",
   "Geniş (XL)": "Широкий (XL)",
@@ -2536,13 +2526,9 @@
   "Ödeme bekleyen": "Ждут оплаты",
   "Ödeme bekliyor": "Ждёт оплаты",
   "Ödeme e-postası": "E-mail оплаты",
-<<<<<<< HEAD
   "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "Чеки об оплате, подарочный PRO, изменения срока PRO и коды входа отправляются всегда",
   "Ödeme sayfası açılamadı": "Не удалось открыть страницу оплаты",
   "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "При оплате используется твой e-mail; счета и продления — на тебе. E-mail получателя никому не передаётся. Если у получателя уже есть PRO, подарок добавится сверху.",
-=======
-  "Ödeme sayfası açılamadı": "Не удалось открыть страницу оплаты",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Ödeme sonrası otomatik yayınla": "Публиковать автоматически после оплаты",
   "Ödeme sorunu olan abonelik": "Подписка с проблемой оплаты",
   "Ödeme yapan üye": "Платящий участник",
@@ -2597,11 +2583,8 @@
   "ör. 149": "напр. 149",
   "ör. 149₺": "напр. 149₺",
   "ör. 4.99": "напр. 4.99",
-<<<<<<< HEAD
   "ör. ali, veli": "напр. ali, veli",
   "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "напр. Не хочешь стать PRO, угощая меня кофе раз в месяц? :)",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "ör. Bayrama özel herkese PRO!": "напр. PRO для всех к празднику!",
   "ör. Bir kahve?": "напр. Кофе?",
   "ör. Bu akşam: Spa 6 Saat": "напр. Сегодня: 6 часов Спа",
@@ -3630,10 +3613,7 @@
   "Topluluktan: {0}": "Из сообщества: {0}",
   "Touring car (TCR)": "Туринг (TCR)",
   "Toyota": "Toyota",
-<<<<<<< HEAD
   "Track Temp": "Track Temp",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "TRY": "TRY",
   "tur": "круг",
   "Tur": "Круг",
@@ -4089,10 +4069,7 @@
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. Функцию нужно публиковать с ВКЛЮЧЁННОЙ проверкой JWT (пользоваться могут только вошедшие участники). Для Twitch secret не нужен.",
   "Yukarı": "Вверх",
   "Yumuşak grafik": "Плавный график",
-<<<<<<< HEAD
   "Yumuşak lastik": "Мягкая шина",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "Рекламодатели из-за рубежа платят в этой валюте (напр. USD)",
   "Yuvarlak": "Скруглённые",
   "Yuvarlak köşe": "Скруглённые углы",

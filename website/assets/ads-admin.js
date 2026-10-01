@@ -89,17 +89,10 @@ export async function reklamlar(el, rerender) {
             const p = pr.placements[id] || {};
             return `<tr><td>${PLACE_TR[id]}</td><td class="muted">${AD_PLACES[id].w}×${AD_PLACES[id].h}</td>
               <td><input type="checkbox" data-on="${id}" ${p.on !== false ? "checked" : ""} style="width:18px;height:18px"></td>
-<<<<<<< HEAD
               <td><input type="text" inputmode="decimal" data-cpm="${id}" value="${esc(p.cpm ?? 0)}" style="width:110px"></td>
               <td><input type="text" inputmode="decimal" data-day="${id}" value="${esc(p.day ?? 0)}" style="width:110px"></td>
               <td><input type="text" inputmode="decimal" data-cpmtr="${id}" value="${esc(p.cpm_tr ?? 0)}" style="width:110px"></td>
               <td><input type="text" inputmode="decimal" data-daytr="${id}" value="${esc(p.day_tr ?? 0)}" style="width:110px"></td></tr>`;
-=======
-              <td><input type="number" min="0" step="0.01" data-cpm="${id}" value="${esc(p.cpm ?? 0)}" style="width:110px"></td>
-              <td><input type="number" min="0" step="0.01" data-day="${id}" value="${esc(p.day ?? 0)}" style="width:110px"></td>
-              <td><input type="number" min="0" step="0.01" data-cpmtr="${id}" value="${esc(p.cpm_tr ?? 0)}" style="width:110px"></td>
-              <td><input type="number" min="0" step="0.01" data-daytr="${id}" value="${esc(p.day_tr ?? 0)}" style="width:110px"></td></tr>`;
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
           })
           .join("")}
       </tbody></table></div>
@@ -170,17 +163,10 @@ export async function reklamlar(el, rerender) {
     for (const id of Object.keys(AD_PLACES)) {
       placements[id] = {
         on: $(`[data-on="${id}"]`).checked,
-<<<<<<< HEAD
         cpm: Math.max(0, dec($(`[data-cpm="${id}"]`).value) || 0),
         day: Math.max(0, dec($(`[data-day="${id}"]`).value) || 0),
         cpm_tr: Math.max(0, dec($(`[data-cpmtr="${id}"]`).value) || 0),
         day_tr: Math.max(0, dec($(`[data-daytr="${id}"]`).value) || 0),
-=======
-        cpm: Math.max(0, Number($(`[data-cpm="${id}"]`).value) || 0),
-        day: Math.max(0, Number($(`[data-day="${id}"]`).value) || 0),
-        cpm_tr: Math.max(0, Number($(`[data-cpmtr="${id}"]`).value) || 0),
-        day_tr: Math.max(0, Number($(`[data-daytr="${id}"]`).value) || 0),
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
       };
     }
     const impressions = nums(f.get("impressions"));

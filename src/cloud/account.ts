@@ -66,7 +66,6 @@ export interface AppConfig {
   /** Otomatik PRO fiyatları (pro-checkout bu tutarla Lemon Squeezy ödeme sayfası açar).
    *  price: genel fiyat (currency, ör. USD), price_tr: Türkiye fiyatı (currency_tr, ör. TRY) */
   pro_pricing?: ProPricing;
-<<<<<<< HEAD
   /** Yeni hesaplara deneme PRO (c41): açık mı ve kaç gün */
   trial_enabled?: boolean;
   trial_days?: number;
@@ -74,8 +73,6 @@ export interface AppConfig {
   livechat_twitch_client_id?: string;
   livechat_youtube_client_id?: string;
   livechat_kick_client_id?: string;
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }
 
 export interface ProPricing {
@@ -343,7 +340,6 @@ export function checkoutUrl(base: string) {
   }
 }
 
-<<<<<<< HEAD
 /** Program içi ödeme tamamlandı (hesap sayfasında teşekkür mesajı için) */
 const [checkoutPaid, setCheckoutPaid] = createSignal(false);
 /** Son açılan ödeme hediye miydi (teşekkür mesajı ve hediye listesi için) */
@@ -405,16 +401,6 @@ export async function startProCheckout(planId: PlanDef["id"], giftTo?: string, c
   } catch {
     await invoke("open_url", { url }).catch(() => window.open(url, "_blank"));
   }
-=======
-/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar,
- *  sayfa varsayılan tarayıcıda açılır. Hata olursa mesajıyla fırlatır. */
-export async function startProCheckout(planId: PlanDef["id"]) {
-  const r = await callFunction<{ url?: string }>("pro-checkout", { plan: planId, region: inTurkey() ? "tr" : "intl" });
-  const url = r?.url;
-  if (!url) throw new Error("Ödeme sayfası açılamadı");
-  if (inTauri) await invoke("open_url", { url }).catch(() => window.open(url, "_blank"));
-  else window.open(url, "_blank");
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }
 
 // ---------------------------------------------------------------------------

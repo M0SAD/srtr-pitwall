@@ -315,7 +315,6 @@
   "f14_t": "Adverteren",
   "f14_d": "Bereik simracers: kies een weergave- of tijdpakket, kies een plek, betaal, en je advertentie gaat automatisch live.",
   "a_opening_checkout": "Checkout openen…",
-<<<<<<< HEAD
   "a_paid_pro": "Betaling ontvangen, bedankt! PRO wordt binnen een paar seconden op je account gezet; vernieuw de pagina als je het niet ziet.",
   "ad_st_paused_owner": "Door jou gepauzeerd",
   "ad_imp_left": "Nog {0} weergaven",
@@ -588,7 +587,4 @@
   "trial_note": "Na de proefperiode gaat je account automatisch terug naar de gratis versie; geen betaalgegevens nodig.",
   "trial_ok": "Aan de slag",
   "fr_bg_changed": "🖼️ Heeft de chatachtergrond gewijzigd"
-=======
-  "a_paid_pro": "Betaling ontvangen, bedankt! PRO wordt binnen een paar seconden op je account gezet; vernieuw de pagina als je het niet ziet."
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

@@ -315,7 +315,6 @@
   "f14_t": "Annonsera",
   "f14_d": "Nå simracers: välj ett visnings- eller tidspaket, välj placering, betala — din annons går live automatiskt.",
   "a_opening_checkout": "Öppnar kassan…",
-<<<<<<< HEAD
   "a_paid_pro": "Betalningen är mottagen, tack! PRO läggs till på ditt konto inom några sekunder; ladda om sidan om du inte ser det.",
   "ad_st_paused_owner": "Pausad av dig",
   "ad_imp_left": "{0} visningar kvar",
@@ -588,7 +587,4 @@
   "trial_note": "När provperioden tar slut går kontot automatiskt tillbaka till gratisversionen; inga betaluppgifter behövs.",
   "trial_ok": "Nu kör vi",
   "fr_bg_changed": "🖼️ Ändrade chattbakgrunden"
-=======
-  "a_paid_pro": "Betalningen är mottagen, tack! PRO läggs till på ditt konto inom några sekunder; ladda om sidan om du inte ser det."
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

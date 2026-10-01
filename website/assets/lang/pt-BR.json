@@ -315,7 +315,6 @@
   "f14_t": "Anuncie",
   "f14_d": "Alcance sim racers: escolha um pacote de visualizações ou de tempo, a posição, pague, e seu anúncio entra no ar automaticamente.",
   "a_opening_checkout": "Abrindo o checkout…",
-<<<<<<< HEAD
   "a_paid_pro": "Pagamento recebido, obrigado! O PRO é aplicado à sua conta em alguns segundos; atualize a página se não aparecer.",
   "ad_st_paused_owner": "Pausado por você",
   "ad_imp_left": "Restam {0} visualizações",
@@ -588,7 +587,4 @@
   "trial_note": "Quando o teste acabar, sua conta volta automaticamente para a versão gratuita; nenhum dado de pagamento é pedido.",
   "trial_ok": "Vamos lá",
   "fr_bg_changed": "🖼️ Alterou o plano de fundo do chat"
-=======
-  "a_paid_pro": "Pagamento recebido, obrigado! O PRO é aplicado à sua conta em alguns segundos; atualize a página se não aparecer."
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

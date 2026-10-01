@@ -315,7 +315,6 @@
   "f14_t": "Zareklamuj się",
   "f14_d": "Dotrzyj do sim racerów: wybierz pakiet wyświetleń lub czasu, wybierz miejsce, zapłać — reklama wystartuje automatycznie.",
   "a_opening_checkout": "Otwieranie płatności…",
-<<<<<<< HEAD
   "a_paid_pro": "Płatność otrzymana, dzięki! PRO zostanie przypisane do twojego konta w ciągu kilku sekund; odśwież stronę, jeśli go nie widzisz.",
   "ad_st_paused_owner": "Wstrzymana przez ciebie",
   "ad_imp_left": "Zostało {0} wyświetleń",
@@ -588,7 +587,4 @@
   "trial_note": "Po zakończeniu okresu próbnego konto samo wraca do wersji darmowej; nie podajesz danych płatności.",
   "trial_ok": "Zaczynajmy",
   "fr_bg_changed": "🖼️ Zmieniono tło czatu"
-=======
-  "a_paid_pro": "Płatność otrzymana, dzięki! PRO zostanie przypisane do twojego konta w ciągu kilku sekund; odśwież stronę, jeśli go nie widzisz."
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

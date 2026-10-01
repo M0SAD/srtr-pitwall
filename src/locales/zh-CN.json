@@ -364,10 +364,7 @@
   "Açıklama (isteğe bağlı)": "描述（可选）",
   "Açıklama (seri, araç, an…)": "描述（系列赛、车辆、瞬间…）",
   "Açılamadı": "无法打开",
-<<<<<<< HEAD
   "Açılan sayfada bu kodu gir:": "在打开的页面中输入此代码：",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Açılıyor…": "正在打开…",
   "Ad": "名字",
   "Ad (iRacing'deki tam ad)": "姓名（iRacing 中的全名）",
@@ -1200,11 +1197,8 @@
   "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "不显示覆盖全屏的普通 Overlay 窗口（编辑模式下仍会显示）。仅在你只用 VR 驾驶时开启。",
   "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "对齐屏幕和其他 overlay 的边缘/中线，并显示参考线。",
   "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "画面间自动切换（0：关闭）",
-<<<<<<< HEAD
   "Eksik kontrolü": "缺失检查",
   "Eksik listesini kopyala": "复制缺失列表",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "手动链接（可选，未设置自动价格时使用）",
   "Elle eklenmiş (hesapsız)": "手动添加（无账号）",
   "Eller": "手势",
@@ -1381,14 +1375,10 @@
   "Gelirim, kurulumu bitiriyorum": "会来的，我在调车",
   "Geliştirmeye destek": "支持开发",
   "Genel": "常规",
-<<<<<<< HEAD
   "Genel ayar": "全局设置",
   "Genel kısayollar": "全局快捷键",
   "Genel para birimi": "通用货币",
   "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "使用通用聊天外观（设置 → 聊天）",
-=======
-  "Genel para birimi": "通用货币",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Genesis": "Genesis",
   "Geniş": "宽",
   "Geniş (XL)": "宽（XL）",
@@ -2536,13 +2526,9 @@
   "Ödeme bekleyen": "待付款",
   "Ödeme bekliyor": "待付款",
   "Ödeme e-postası": "付款邮箱",
-<<<<<<< HEAD
   "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "付款收据、赠送 PRO、PRO 期限变更和登录验证码始终会发送",
   "Ödeme sayfası açılamadı": "无法打开付款页面",
   "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "结账时使用你自己的邮箱；发票和续订费用由你承担。接收人的邮箱绝不会被分享。如果对方已有 PRO，赠送时长会叠加。",
-=======
-  "Ödeme sayfası açılamadı": "无法打开付款页面",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Ödeme sonrası otomatik yayınla": "付款后自动上线",
   "Ödeme sorunu olan abonelik": "存在付款问题的订阅",
   "Ödeme yapan üye": "付费会员",
@@ -2597,11 +2583,8 @@
   "ör. 149": "例如 149",
   "ör. 149₺": "例如 149₺",
   "ör. 4.99": "例如 4.99",
-<<<<<<< HEAD
   "ör. ali, veli": "例如 ali, veli",
   "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "例如：每月请我喝杯咖啡，成为 PRO 怎么样？:)",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "ör. Bayrama özel herkese PRO!": "例如：节日特惠，全员 PRO！",
   "ör. Bir kahve?": "例如：请喝杯咖啡？",
   "ör. Bu akşam: Spa 6 Saat": "例：今晚：Spa 6 小时",
@@ -3630,10 +3613,7 @@
   "Topluluktan: {0}": "来自社区：{0}",
   "Touring car (TCR)": "房车（TCR）",
   "Toyota": "Toyota",
-<<<<<<< HEAD
   "Track Temp": "Track Temp",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "TRY": "TRY",
   "tur": "圈",
   "Tur": "圈",
@@ -4089,10 +4069,7 @@
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET。函数发布时必须开启 JWT 验证（仅登录会员可用）。Twitch 不需要 secret。",
   "Yukarı": "上",
   "Yumuşak grafik": "平滑曲线",
-<<<<<<< HEAD
   "Yumuşak lastik": "软胎",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "来自海外的广告主以此货币付款（如 USD）",
   "Yuvarlak": "圆角",
   "Yuvarlak köşe": "圆角",

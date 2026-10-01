@@ -364,14 +364,9 @@
  "Açıklama (isteğe bağlı)": "src/app/components/AdSlot.tsx, src/app/components/Moderation.tsx, src/app/pages/CommunityThemes.tsx",
  "Açıklama (seri, araç, an…)": "src/app/pages/ScreenshotsPage.tsx",
  "Açılamadı": "src/app/components/Shots.tsx",
-<<<<<<< HEAD
  "Açılan sayfada bu kodu gir:": "src/app/pages/livechat/SendTab.tsx",
  "Açılıyor…": "src/app/pages/AccountPage.tsx, src/app/pages/livechat/SendTab.tsx",
  "Ad": "src/app/components/AdminVoicePacks.tsx, src/app/pages/CommunityThemes.tsx, src/app/pages/LeaguePage.tsx",
-=======
- "Açılıyor…": "src/app/pages/AccountPage.tsx",
- "Ad": "src/app/pages/CommunityThemes.tsx, src/app/pages/LeaguePage.tsx",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "Ad (iRacing'deki tam ad)": "src/app/pages/FriendsPage.tsx",
  "Ad biçimi": "src/overlays/relative/manifest.ts, src/overlays/standings/manifest.ts",
  "Ad kısaltma": "src/overlays/livechat/manifest.ts",
@@ -1202,11 +1197,8 @@
  "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "src/app/components/VrPanel.tsx",
  "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "src/app/pages/GeneralPage.tsx",
  "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "src/app/pages/SettingsPage.tsx",
-<<<<<<< HEAD
  "Eksik kontrolü": "src/app/components/VoicePacks.tsx",
  "Eksik listesini kopyala": "src/app/components/VoicePacks.tsx",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "src/app/pages/AdminPage.tsx",
  "Elle eklenmiş (hesapsız)": "src/app/pages/FriendsPage.tsx",
  "Eller": "src/app/components/EmojiPicker.tsx",
@@ -1380,7 +1372,6 @@
  "Gelen mesajları okumak her zaman açık": "src/sdk/proFeatures.ts",
  "Gelir": "src/app/components/AdminExtras.tsx, src/app/pages/AdminPage.tsx",
  "Gelir bilgisi okunamadı.": "src/app/components/AdminExtras.tsx",
-<<<<<<< HEAD
  "Gelirim, kurulumu bitiriyorum": "src/app/pages/ChatLookPage.tsx",
  "Geliştirmeye destek": "src/app/components/TrialWelcome.tsx, src/app/pages/AccountPage.tsx",
  "Genel": "src/app/components/ConvBg.tsx, src/app/pages/CommunityPage.tsx, src/app/pages/OverlaysPage.tsx, src/app/pages/SettingsPage.tsx",
@@ -1388,11 +1379,6 @@
  "Genel kısayollar": "src/app/components/ShortcutsPanel.tsx",
  "Genel para birimi": "src/app/components/AdminAds.tsx, src/app/pages/AdminPage.tsx",
  "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "src/app/components/ConvBg.tsx",
-=======
- "Geliştirmeye destek": "src/app/pages/AccountPage.tsx",
- "Genel": "src/app/pages/CommunityPage.tsx, src/app/pages/OverlaysPage.tsx, src/app/pages/SettingsPage.tsx",
- "Genel para birimi": "src/app/components/AdminAds.tsx, src/app/pages/AdminPage.tsx",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "Genesis": "src/sdk/logos.tsx",
  "Geniş": "src/sdk/theme.ts",
  "Geniş (XL)": "src/app/pages/SettingsPage.tsx",
@@ -2540,13 +2526,9 @@
  "Ödeme bekleyen": "src/app/components/AdminAds.tsx",
  "Ödeme bekliyor": "src/cloud/ads.ts",
  "Ödeme e-postası": "src/app/pages/AccountPage.tsx",
-<<<<<<< HEAD
  "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "src/app/components/EmailPrefsPanel.tsx",
  "Ödeme sayfası açılamadı": "src/cloud/account.ts",
  "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "src/app/pages/AccountPage.tsx",
-=======
- "Ödeme sayfası açılamadı": "src/cloud/account.ts",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "Ödeme sonrası otomatik yayınla": "src/app/components/AdminAds.tsx",
  "Ödeme sorunu olan abonelik": "src/app/pages/AdminPage.tsx",
  "Ödeme yapan üye": "src/app/components/AdminExtras.tsx",
@@ -2601,11 +2583,8 @@
  "ör. 149": "src/app/pages/AdminPage.tsx",
  "ör. 149₺": "src/app/pages/AdminPage.tsx",
  "ör. 4.99": "src/app/pages/AdminPage.tsx",
-<<<<<<< HEAD
  "ör. ali, veli": "src/app/pages/livechat/VoiceTabs.tsx",
  "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "src/app/components/AdminContent.tsx",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "ör. Bayrama özel herkese PRO!": "src/app/components/AdminExtras.tsx",
  "ör. Bir kahve?": "src/app/components/AdminContent.tsx",
  "ör. Bu akşam: Spa 6 Saat": "src/overlays/scene/manifest.ts",
@@ -3634,10 +3613,7 @@
  "Topluluktan: {0}": "src/app/pages/AppearancePage.tsx",
  "Touring car (TCR)": "src/overlays/dashboard/manifest.ts",
  "Toyota": "src/sdk/logos.tsx",
-<<<<<<< HEAD
  "Track Temp": "src/overlays/dashboard/Overlay.tsx",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "TRY": "src/app/components/AdminAds.tsx, src/app/pages/AdminPage.tsx, src/cloud/account.ts, src/cloud/ads.ts",
  "tur": "src/app/pages/SettingsPage.tsx, src-tauri",
  "Tur": "src/app/components/FriendData.tsx, src/app/pages/TelemetryPage.tsx, src/overlays/dashboard/manifest.ts, src/overlays/dataframe/metrics.ts, src/overlays/fuel/Overlay.tsx, src/overlays/incidents/manifest.ts, src/overlays/session/Overlay.tsx, src/sdk/WxIcon.tsx",
@@ -3732,7 +3708,6 @@
  "Türkiye para birimi": "src/app/components/AdminAds.tsx, src/app/pages/AdminPage.tsx",
  "Türkiye'den kullananlar (saat dilimi Türkiye) Türkiye fiyatını (TL) görür ve öder; diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa herkes genel fiyatı görür.": "src/app/pages/AdminPage.tsx",
  "Türkiye'den reklam verenler, o yer için Türkiye fiyatı girildiyse bu para birimiyle öder (ör. TRY). Türkiye fiyatı 0 ise genel fiyat uygulanır.": "src/app/components/AdminAds.tsx",
-<<<<<<< HEAD
  "Twitch": "src/app/components/Creator.tsx, src/cloud/profile.ts, src/sdk/livechat.ts",
  "Twitch / YouTube / Kick sohbetine buradan yazmak PRO üyelere özel.": "src/app/pages/livechat/ChatTab.tsx",
  "Twitch Client ID": "src/app/components/AdminLiveChat.tsx",
@@ -3744,14 +3719,6 @@
  "UPDATE": "src/cloud/groups.ts, src/cloud/teams.ts",
  "USD": "src/app/components/AdminAds.tsx, src/app/pages/AdminPage.tsx, src/cloud/account.ts, src/cloud/ads.ts",
  "usf 2000": "src/sdk/logos.tsx",
-=======
- "Twitch": "src/app/components/Creator.tsx, src/app/pages/SettingsPage.tsx",
- "Twitch kanalının sohbetini oyunun üstünde gösterir. Giriş gerekmez (anonim okuma). Kanal adı Ayarlar → Entegrasyonlar'dan ya da buradan girilir.": "src/overlays/twitch/manifest.ts",
- "Twitch Sohbet overlay'i bu kanalın sohbetini gösterir (giriş gerekmez).": "src/app/pages/SettingsPage.tsx",
- "Twitch Sohbeti": "src/overlays/twitch/manifest.ts",
- "Up": "src/sdk/shortcuts.ts",
- "USD": "src/app/components/AdminAds.tsx, src/app/pages/AdminPage.tsx, src/cloud/account.ts, src/cloud/ads.ts",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "Uyarı": "src/app/components/SharedLayoutPreview.tsx, src/sdk/theme.ts",
  "Uyarı kapatıldı": "src/app/pages/AdminPage.tsx",
  "Uyarı mesafesi": "src/app/components/SoundsPanel.tsx, src/overlays/overtake/manifest.ts",
@@ -4102,14 +4069,9 @@
  "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "src/app/components/AdminLiveChat.tsx",
  "Yukarı": "src/app/components/SettingsForm.tsx, src/app/pages/LeaguePage.tsx",
  "Yumuşak grafik": "src/overlays/inputs/manifest.ts",
-<<<<<<< HEAD
  "Yumuşak lastik": "src/sdk/TireBadge.tsx",
  "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "src/app/components/AdminAds.tsx",
  "Yuvarlak": "src/app/pages/ChatLookPage.tsx, src/app/pages/CommunityThemes.tsx, src/overlays/inputs/manifest.ts",
-=======
- "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "src/app/components/AdminAds.tsx",
- "Yuvarlak": "src/app/pages/CommunityThemes.tsx",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
  "Yuvarlak köşe": "src/app/pages/CommunityThemes.tsx",
  "Yükleme kuyruğu": "src/app/pages/TelemetryPage.tsx",
  "Yüklenecek tur yok": "src/app/pages/TelemetryPage.tsx",

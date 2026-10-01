@@ -1,12 +1,9 @@
 // Reklam ödemesi: reklam verenin ödenmemiş reklamı için Lemon Squeezy'de tek seferlik ödeme sayfası açar.
 //
 // Adres: https://<proje>.supabase.co/functions/v1/ads-checkout   (POST {"ad_id":"<reklam id>"})
-<<<<<<< HEAD
 // İndirim kuponu: {"ad_id":…, "coupon":"ERKIN"} (isteğe bağlı) → kupon sunucuda yeniden doğrulanır (coupon_validate, c34;
 // reklam modeli impressions / days kuponun paketlerinde olmalı), indirimli tutar custom_price olur ve indirim ödeme
 // sayfasında ürün adı/açıklamasında görünür. custom_data.coupon_id ile pro-webhook kullanımı kaydeder (coupon_redeem).
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 // Verify JWT: KAPALI (oturum fonksiyon içinde db.auth.getUser ile doğrulanır). Fiyat istemciden alınmaz: app_config.ad_pricing'den
 // yeniden hesaplanır (public.ad_price) ve Lemon'a custom_price (kuruş/cent) olarak gönderilir.
 // Ödeme bitince Lemon "order_created" olayını pro-webhook'a (?source=lemon) yollar; meta.custom_data.ad_id
@@ -112,7 +109,6 @@ async function rate(from: string, to: string): Promise<number | null> {
   }
 }
 
-<<<<<<< HEAD
 /** Kuponlu tutar (c34 coupon_apply ile aynı: 2 haneye yuvarlanır) */
 const discounted = (price: number, percent: number) => Math.round(price * (100 - percent) + 1e-6) / 100;
 
@@ -125,8 +121,6 @@ function money(n: number, cur: string, tr: boolean) {
   }
 }
 
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 function reply(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
@@ -174,7 +168,6 @@ Deno.serve(async (req) => {
     const price = Number(q?.price ?? 0);
     const currency = String(q?.currency ?? "USD");
     if (!(price > 0)) return reply(400, { error: "Fiyat belirlenmemiş" });
-<<<<<<< HEAD
 
     // İndirim kuponu (isteğe bağlı): sunucuda yeniden doğrulanır, istemcinin fiyatına güvenilmez
     const couponCode = typeof body?.coupon === "string" ? body.coupon.trim() : "";
@@ -204,17 +197,6 @@ Deno.serve(async (req) => {
     const conv = (n: number) => (storeCur !== currency ? Math.round(n * fxRate * 100) / 100 : n);
     const full = conv(price);
     const charge = coupon ? conv(discounted(price, coupon.percent)) : full;
-=======
-    // Bu para biriminin mağazası; yoksa ana mağaza ve kur çevrimi
-    const { store, variant, currency: storeCur } = await storeFor(currency);
-    if (!store || !variant) return reply(503, { error: "Reklam ödemesi henüz yapılandırılmadı" });
-    let charge = price;
-    if (storeCur !== currency) {
-      const fx = await rate(currency, storeCur);
-      if (!fx) return reply(502, { error: "Kur alınamadı, biraz sonra tekrar dene" });
-      charge = Math.round(price * fx * 100) / 100;
-    }
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     const cents = Math.round(charge * 100);
     if (!(cents > 0)) return reply(400, { error: "Fiyat belirlenmemiş" });
     await db.from("ad_campaigns").update({ price, currency, updated_at: new Date().toISOString() }).eq("id", ad.id);
@@ -225,7 +207,6 @@ Deno.serve(async (req) => {
       ? ad.model === "impressions" ? `${ad.quantity.toLocaleString("tr-TR")} gösterim` : `${ad.quantity} gün`
       : ad.model === "impressions" ? `${ad.quantity.toLocaleString("en-US")} impressions` : `${ad.quantity} day${ad.quantity > 1 ? "s" : ""}`;
     const place = (trText ? PLACE_NAMES_TR : PLACE_NAMES)[ad.placement] ?? ad.placement;
-<<<<<<< HEAD
     const baseName = trText ? `SRTR Pitwall reklam · ${place}` : `SRTR Pitwall ad · ${place}`;
     const name = coupon
       ? trText
@@ -246,21 +227,14 @@ Deno.serve(async (req) => {
           coupon_currency: storeCur,
         }
       : {};
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     const payload = {
       data: {
         type: "checkouts",
         attributes: {
           custom_price: cents,
           product_options: {
-<<<<<<< HEAD
             name,
             description: `${what} — "${ad.title}"${couponLine}`,
-=======
-            name: trText ? `SRTR Pitwall reklam · ${place}` : `SRTR Pitwall ad · ${place}`,
-            description: `${what} — "${ad.title}"`,
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
             redirect_url: `${SITE}/reklam.html?paid=${ad.id}`,
             enabled_variants: [Number(variant)],
           },
@@ -294,7 +268,6 @@ Deno.serve(async (req) => {
       console.error("lemon checkout", res.status, JSON.stringify(j?.errors ?? j));
       return reply(502, { error: "Ödeme sayfası açılamadı" });
     }
-<<<<<<< HEAD
     return reply(200, {
       url,
       price,
@@ -303,9 +276,6 @@ Deno.serve(async (req) => {
       charged_currency: storeCur,
       ...(coupon ? { coupon: coupon.code, percent: coupon.percent, discounted: discounted(price, coupon.percent) } : {}),
     });
-=======
-    return reply(200, { url, price, currency, charged: charge, charged_currency: storeCur });
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   } catch (e) {
     console.error(e);
     return reply(500, { error: String((e as Error).message ?? e) });

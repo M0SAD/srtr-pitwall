@@ -364,10 +364,7 @@
   "Açıklama (isteğe bağlı)": "説明(任意)",
   "Açıklama (seri, araç, an…)": "説明(シリーズ、車、シーン…)",
   "Açılamadı": "開けませんでした",
-<<<<<<< HEAD
   "Açılan sayfada bu kodu gir:": "開いたページでこのコードを入力してください：",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Açılıyor…": "開いています…",
   "Ad": "名前",
   "Ad (iRacing'deki tam ad)": "名前（iRacing での正式名）",
@@ -1200,11 +1197,8 @@
   "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "画面全体を覆う通常のオーバーレイウィンドウを表示しません（編集モードでは表示されます）。VR でのみ走行する場合にオンにしてください。",
   "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "画面や他のオーバーレイの端/中央線にスナップし、ガイド線を表示します。",
   "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "画面の自動切り替え(0: オフ)",
-<<<<<<< HEAD
   "Eksik kontrolü": "不足チェック",
   "Eksik listesini kopyala": "不足リストをコピー",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "手動リンク（任意、自動価格が未設定の場合に使用）",
   "Elle eklenmiş (hesapsız)": "手動で追加（アカウントなし）",
   "Eller": "手",
@@ -1381,14 +1375,10 @@
   "Gelirim, kurulumu bitiriyorum": "行くよ、セットアップ仕上げ中",
   "Geliştirmeye destek": "開発をサポート",
   "Genel": "一般",
-<<<<<<< HEAD
   "Genel ayar": "全体設定",
   "Genel kısayollar": "グローバルショートカット",
   "Genel para birimi": "通常の通貨",
   "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "共通のチャット表示を使用（設定 → チャット）",
-=======
-  "Genel para birimi": "通常の通貨",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Genesis": "Genesis",
   "Geniş": "ワイド",
   "Geniş (XL)": "ワイド (XL)",
@@ -2536,13 +2526,9 @@
   "Ödeme bekleyen": "支払い待ち",
   "Ödeme bekliyor": "支払い待ち",
   "Ödeme e-postası": "支払い用メールアドレス",
-<<<<<<< HEAD
   "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "支払いの領収書、ギフト PRO、PRO 期間の変更、ログインコードは常に送信されます",
   "Ödeme sayfası açılamadı": "決済ページを開けませんでした",
   "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "決済ではあなたのメールアドレスが使われ、請求書と更新料金はあなたの負担になります。受取人のメールアドレスが共有されることはありません。受取人がすでにPROの場合、ギフト分が追加されます。",
-=======
-  "Ödeme sayfası açılamadı": "決済ページを開けませんでした",
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Ödeme sonrası otomatik yayınla": "支払い後に自動で公開",
   "Ödeme sorunu olan abonelik": "支払いに問題のあるサブスクリプション",
   "Ödeme yapan üye": "有料会員",
@@ -2597,11 +2583,8 @@
   "ör. 149": "例: 149",
   "ör. 149₺": "例: 149₺",
   "ör. 4.99": "例: 4.99",
-<<<<<<< HEAD
   "ör. ali, veli": "例：ali, veli",
   "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "例: 月に 1 杯のコーヒーで PRO になりませんか？ :)",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "ör. Bayrama özel herkese PRO!": "例: 祝日限定で全員PRO！",
   "ör. Bir kahve?": "例: コーヒー 1 杯？",
   "ör. Bu akşam: Spa 6 Saat": "例: 今夜: Spa 6時間",
@@ -3630,10 +3613,7 @@
   "Topluluktan: {0}": "コミュニティから：{0}",
   "Touring car (TCR)": "ツーリングカー（TCR）",
   "Toyota": "Toyota",
-<<<<<<< HEAD
   "Track Temp": "Track Temp",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "TRY": "TRY",
   "tur": "周",
   "Tur": "周",
@@ -4089,10 +4069,7 @@
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET。関数は JWT 検証をオンにしてデプロイする必要があります（ログイン済みメンバーのみ使用可）。Twitch には secret は不要です。",
   "Yukarı": "上",
   "Yumuşak grafik": "スムーズグラフ",
-<<<<<<< HEAD
   "Yumuşak lastik": "ソフトタイヤ",
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "海外の広告主はこの通貨で支払います（例：USD）",
   "Yuvarlak": "丸",
   "Yuvarlak köşe": "角丸",

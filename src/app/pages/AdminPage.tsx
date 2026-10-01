@@ -603,19 +603,11 @@ function Plans(props: { run: Run }) {
               <b>{p.label}</b>
               <label class="plan-field">
                 <small>Fiyat (yurt dışı, USD)</small>
-<<<<<<< HEAD
                 <input class="input" type="text" inputmode="decimal" placeholder="ör. 4.99" value={ppNum(p.id, "price")} onInput={(e) => set(`pp:${p.id}:price`, e.currentTarget.value)} />
               </label>
               <label class="plan-field">
                 <small>Türkiye fiyatı (TL)</small>
                 <input class="input" type="text" inputmode="decimal" placeholder="ör. 149" value={ppNum(p.id, "price_tr")} onInput={(e) => set(`pp:${p.id}:price_tr`, e.currentTarget.value)} />
-=======
-                <input class="input" type="number" min="0" step="0.01" placeholder="ör. 4.99" value={ppNum(p.id, "price")} onInput={(e) => set(`pp:${p.id}:price`, e.currentTarget.value)} />
-              </label>
-              <label class="plan-field">
-                <small>Türkiye fiyatı (TL)</small>
-                <input class="input" type="number" min="0" step="0.01" placeholder="ör. 149" value={ppNum(p.id, "price_tr")} onInput={(e) => set(`pp:${p.id}:price_tr`, e.currentTarget.value)} />
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
               </label>
             </div>
           </div>

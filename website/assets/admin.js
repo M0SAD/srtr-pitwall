@@ -700,11 +700,7 @@ async function planlar(el) {
   const f = (k, label, ph = "", type = "text") =>
     `<div class="field"><label>${label}</label><input name="${k}" type="${type}" value="${esc(c[k] ?? "")}" placeholder="${esc(ph)}"></div>`;
   const num = (k, label, v, ph = "") =>
-<<<<<<< HEAD
     `<div class="field"><label>${label}</label><input name="${k}" type="text" inputmode="decimal" value="${v > 0 ? esc(v) : ""}" placeholder="${esc(ph)}"></div>`;
-=======
-    `<div class="field"><label>${label}</label><input name="${k}" type="number" min="0" step="0.01" value="${v > 0 ? esc(v) : ""}" placeholder="${esc(ph)}"></div>`;
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   el.innerHTML = `<h2>Planlar ve fiyatlar</h2>
     <p class="muted small">Buradaki fiyatlar hem sitede hem programda görünür ve ödeme tutarı olarak kullanılır. Lemon Squeezy'de tek bir abonelik ürünü
       (“SRTR Pitwall PRO”) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant numaraları Supabase'de

@@ -10,7 +10,6 @@
 //                           LEMON_USD_AD_VARIANT_ID gibi para birimi mağazalarının varyantları da kabul edilir.
 // PRO abonelikleri pro-checkout'un açtığı ödeme sayfasından gelir (custom_data.user_id + custom_data.plan);
 // plan adı Lemon'daki varyant adından alınır (ör. "Monthly" / "Yearly"), yoksa custom_data.plan ("1m" …).
-<<<<<<< HEAD
 // Hediye PRO (pro-checkout gift_to): custom_data.user_id = alıcı, custom_data.gifter = hediye eden (ödeyen).
 // Abonelik alıcıya işlenir (apply_subscription p_gifter); fatura/ödeme kaydı ise hediye edene yazılır
 // (makbuz ona gider), alıcı payments.gift_to'da tutulur. Önce c26_guncelleme.sql çalıştırılmalı.
@@ -18,8 +17,6 @@
 // coupon_currency ekler; ödeme gelince kullanım coupon_redeem ile kaydedilir (abonelik / sipariş başına bir kez).
 // PRO'da indirim Lemon indirim koduyla (checkout_data.discount_code) uygulanır, custom_price tam fiyattır; kullanımın
 // indirimli tutarı (amount_after) ilk abonelik faturasının toplamından (total) alınır.
-=======
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 // Kurulum: docs/PRO.md
 
 import { createHmac, timingSafeEqual } from "node:crypto";

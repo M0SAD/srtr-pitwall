@@ -315,7 +315,6 @@
   "f14_t": "Pubblicizza",
   "f14_d": "Raggiungi i sim racer: scegli un pacchetto di visualizzazioni o di durata, la posizione, paga, e il tuo annuncio va online in automatico.",
   "a_opening_checkout": "Apertura del checkout…",
-<<<<<<< HEAD
   "a_paid_pro": "Pagamento ricevuto, grazie! PRO viene applicato al tuo account in pochi secondi; ricarica la pagina se non lo vedi.",
   "ad_st_paused_owner": "Sospeso da te",
   "ad_imp_left": "Restano {0} visualizzazioni",
@@ -588,7 +587,4 @@
   "trial_note": "Alla fine della prova il tuo account torna automaticamente alla versione gratuita; nessun dato di pagamento richiesto.",
   "trial_ok": "Iniziamo",
   "fr_bg_changed": "🖼️ Ha cambiato lo sfondo della chat"
-=======
-  "a_paid_pro": "Pagamento ricevuto, grazie! PRO viene applicato al tuo account in pochi secondi; ricarica la pagina se non lo vedi."
->>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }
