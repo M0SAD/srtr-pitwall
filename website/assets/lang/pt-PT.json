@@ -313,5 +313,7 @@
   "f13_t": "Ecrã de eventos e replay",
   "f13_d": "Quando a corrida termina, a lista de eventos abre sozinha: incidentes, ultrapassagens, paragens nas boxes. Clica num e o replay do iRacing salta para esse momento.",
   "f14_t": "Anunciar",
-  "f14_d": "Chega aos sim racers: escolhe um pacote de visualizações ou de tempo, a posição, paga, e o teu anúncio fica ativo automaticamente."
+  "f14_d": "Chega aos sim racers: escolhe um pacote de visualizações ou de tempo, a posição, paga, e o teu anúncio fica ativo automaticamente.",
+  "a_opening_checkout": "A abrir o pagamento…",
+  "a_paid_pro": "Pagamento recebido, obrigado! O PRO é aplicado à tua conta em poucos segundos; atualiza a página se não aparecer."
 }

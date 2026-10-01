@@ -6,7 +6,10 @@
 //   KOFI_VERIFICATION_TOKEN Ko-fi -> API -> Verification Token
 //   LEMON_WEBHOOK_SECRET    Lemon Squeezy -> Settings -> Webhooks -> signing secret (source=lemon)
 //   LEMON_AD_VARIANT_ID     (isteğe bağlı) reklam ürününün varyantı; reklam siparişleri (order_created /
-//                           order_refunded, custom_data.ad_id) bu varyantla eşleşmeli (bkz. ads-checkout)
+//                           order_refunded, custom_data.ad_id) bu varyantla eşleşmeli (bkz. ads-checkout).
+//                           LEMON_USD_AD_VARIANT_ID gibi para birimi mağazalarının varyantları da kabul edilir.
+// PRO abonelikleri pro-checkout'un açtığı ödeme sayfasından gelir (custom_data.user_id + custom_data.plan);
+// plan adı Lemon'daki varyant adından alınır (ör. "Monthly" / "Yearly"), yoksa custom_data.plan ("1m" …).
 // Kurulum: docs/PRO.md
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -199,7 +202,7 @@ async function lemon(req: Request) {
     p_user: customUser,
     p_email: email,
     p_status: status,
-    p_plan: String(a.variant_name || a.product_name || ""),
+    p_plan: String(a.variant_name || a.product_name || j?.meta?.custom_data?.plan || ""),
     p_variant: String(a.variant_id ?? ""),
     p_renews: renews ? renews.toISOString() : null,
     p_ends: ends ? ends.toISOString() : null,
@@ -224,9 +227,18 @@ const AD_PLACES: Record<string, string> = {
 // deno-lint-ignore no-explicit-any
 async function lemonAdOrder(j: any, event: string, adId: string, customUser: string | null) {
   const a = j.data.attributes ?? {};
-  const wantVariant = Deno.env.get("LEMON_AD_VARIANT_ID") ?? "";
+  // Tanımlı tüm reklam varyantları (ana mağaza + LEMON_<PARA>_AD_VARIANT_ID)
+  const wantVariants = Object.entries(Deno.env.toObject())
+    .filter(([k, v]) => /^LEMON_(?:[A-Z]{3}_)?AD_VARIANT_ID$/.test(k) && v)
+    .map(([, v]) => String(v).trim());
+  // … ya da reklam ürünleri (LEMON_AD_PRODUCT_ID / LEMON_<PARA>_AD_PRODUCT_ID)
+  const wantProducts = Object.entries(Deno.env.toObject())
+    .filter(([k, v]) => /^LEMON_(?:[A-Z]{3}_)?AD_PRODUCT_ID$/.test(k) && v)
+    .map(([, v]) => String(v).trim());
   const gotVariant = String(a.first_order_item?.variant_id ?? "");
-  if (wantVariant && gotVariant && gotVariant !== wantVariant) return ok({ ignored: "variant", event });
+  const gotProduct = String(a.first_order_item?.product_id ?? "");
+  const known = (gotVariant && wantVariants.includes(gotVariant)) || (gotProduct && wantProducts.includes(gotProduct));
+  if (wantVariants.length + wantProducts.length > 0 && (gotVariant || gotProduct) && !known) return ok({ ignored: "variant", event });
   const refund = event === "order_refunded" || a.status === "refunded" || a.status === "partial_refund";
   const orderId = String(j.data.id);
   if (refund) {

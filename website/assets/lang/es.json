@@ -313,5 +313,7 @@
   "f13_t": "Pantalla de eventos y repetición",
   "f13_d": "Al terminar la carrera se abre sola la lista de eventos: incidentes, adelantamientos, paradas en boxes. Haz clic en uno y la repetición de iRacing salta a ese momento.",
   "f14_t": "Anúnciate",
-  "f14_d": "Llega a los sim racers: elige un paquete de impresiones o de tiempo, escoge el espacio, paga y tu anuncio se publica automáticamente."
+  "f14_d": "Llega a los sim racers: elige un paquete de impresiones o de tiempo, escoge el espacio, paga y tu anuncio se publica automáticamente.",
+  "a_opening_checkout": "Abriendo el pago…",
+  "a_paid_pro": "¡Pago recibido, gracias! PRO se aplica a tu cuenta en unos segundos; recarga la página si no lo ves."
 }

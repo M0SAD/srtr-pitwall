@@ -313,5 +313,7 @@
   "f13_t": "Ereignis-Fenster und Replay",
   "f13_d": "Nach dem Rennen öffnet sich die Ereignisliste von selbst: Incidents, Überholmanöver, Boxenstopps. Klick auf einen Eintrag und das iRacing-Replay springt zu diesem Moment.",
   "f14_t": "Werbung schalten",
-  "f14_d": "Erreiche Sim-Racer: Wähle ein Aufruf- oder Laufzeitpaket, bestimme den Platz, bezahle – deine Anzeige geht automatisch live."
+  "f14_d": "Erreiche Sim-Racer: Wähle ein Aufruf- oder Laufzeitpaket, bestimme den Platz, bezahle – deine Anzeige geht automatisch live.",
+  "a_opening_checkout": "Checkout wird geöffnet…",
+  "a_paid_pro": "Zahlung erhalten, danke! PRO wird deinem Konto in wenigen Sekunden gutgeschrieben; lade die Seite neu, falls du es nicht siehst."
 }

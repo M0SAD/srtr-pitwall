@@ -3539,6 +3539,24 @@ body {
   z-index: 2;
 }
 
+.plan-edit.plan-price {
+  grid-template-columns: 90px minmax(120px, 200px) minmax(120px, 200px);
+  align-items: end;
+}
+.plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.plan-field small {
+  color: var(--muted);
+  font-size: 11px;
+}
+@media (max-width: 900px) {
+  .plan-edit.plan-price {
+    grid-template-columns: 1fr;
+  }
+}
 .plan-group {
   padding: 6px 0 8px;
   border-bottom: 1px solid var(--line);

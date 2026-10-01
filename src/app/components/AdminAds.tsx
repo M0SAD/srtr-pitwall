@@ -67,10 +67,10 @@ function AdSettings(p: { run: Run }) {
   const [imp, setImp] = createSignal(pricing().impressions.join(", "));
   const [days, setDays] = createSignal(pricing().days.join(", "));
   const [thr, setThr] = createSignal(String(c()?.ad_report_hide_threshold ?? 3));
-  const setPlace = (id: AdPlacement, k: "on" | "cpm" | "day", v: boolean | number) =>
+  const setPlace = (id: AdPlacement, k: "on" | "cpm" | "day" | "cpm_tr" | "day_tr", v: boolean | number) =>
     setPr((x) => ({ ...x, placements: { ...x.placements, [id]: { ...x.placements[id], [k]: v } } }));
   const savePricing = () => {
-    const next: AdPricing = { ...pr(), currency: (pr().currency || "USD").trim().toUpperCase().slice(0, 3), impressions: numList(imp()), days: numList(days()) };
+    const next: AdPricing = { ...pr(), currency: (pr().currency || "USD").trim().toUpperCase().slice(0, 3), currency_tr: (pr().currency_tr || "TRY").trim().toUpperCase().slice(0, 3), impressions: numList(imp()), days: numList(days()) };
     if (!next.impressions.length || !next.days.length) return p.run(async () => Promise.reject(new Error(t("Paket listeleri boş olamaz"))), "");
     return p.run(() => saveConfig({ ad_pricing: next, ad_report_hide_threshold: Math.max(1, parseInt(thr(), 10) || 3) }), t("Reklam fiyatları kaydedildi"));
   };
@@ -118,6 +118,8 @@ function AdSettings(p: { run: Run }) {
             <th>Satışta</th>
             <th>{t("1.000 gösterim ({0})", pr().currency)}</th>
             <th>{t("Günlük ({0})", pr().currency)}</th>
+            <th>{t("Türkiye 1.000 gösterim ({0})", pr().currency_tr || "TRY")}</th>
+            <th>{t("Türkiye günlük ({0})", pr().currency_tr || "TRY")}</th>
           </tr>
         </thead>
         <tbody>
@@ -137,6 +139,12 @@ function AdSettings(p: { run: Run }) {
                 <td>
                   <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.day ?? 0} onInput={(e) => setPlace(id, "day", Number(e.currentTarget.value) || 0)} />
                 </td>
+                <td>
+                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.cpm_tr ?? 0} onInput={(e) => setPlace(id, "cpm_tr", Number(e.currentTarget.value) || 0)} />
+                </td>
+                <td>
+                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.day_tr ?? 0} onInput={(e) => setPlace(id, "day_tr", Number(e.currentTarget.value) || 0)} />
+                </td>
               </tr>
             )}
           </For>
@@ -144,10 +152,17 @@ function AdSettings(p: { run: Run }) {
       </table>
       <div class="row">
         <div>
-          <b>Para birimi</b>
-          <small>Lemon Squeezy mağazanın para birimiyle aynı olmalı (ör. USD)</small>
+          <b>Genel para birimi</b>
+          <small>Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)</small>
         </div>
         <input class="input" maxLength={3} style={{ width: "90px" }} value={pr().currency} onInput={(e) => setPr((x) => ({ ...x, currency: e.currentTarget.value }))} />
+      </div>
+      <div class="row">
+        <div>
+          <b>Türkiye para birimi</b>
+          <small>Türkiye'den reklam verenler, o yer için Türkiye fiyatı girildiyse bu para birimiyle öder (ör. TRY). Türkiye fiyatı 0 ise genel fiyat uygulanır.</small>
+        </div>
+        <input class="input" maxLength={3} style={{ width: "90px" }} value={pr().currency_tr ?? "TRY"} onInput={(e) => setPr((x) => ({ ...x, currency_tr: e.currentTarget.value }))} />
       </div>
       <div class="row">
         <div>

@@ -155,14 +155,53 @@ function pickRegion() {
 }
 export const region = pickRegion();
 
-/** Planın bu bölgedeki fiyat metni ve ödeme bağlantısı (Türkiye alanı boşsa genel fiyat) */
+/** Yönetim panelinde girilen otomatik fiyat (app_config.pro_pricing); yoksa null.
+ *  Türkiye'den girenlere Türkiye fiyatı (girildiyse), diğerlerine genel fiyat. */
+export function proPrice(cfg, p) {
+  const pr = cfg?.pro_pricing || {};
+  const pl = pr.plans?.[p.id] || {};
+  const tr = Number(pl.price_tr);
+  if (region === "tr" && tr > 0) return { num: tr, cur: String(pr.currency_tr || "TRY").toUpperCase() };
+  const n = Number(pl.price);
+  if (n > 0) return { num: n, cur: String(pr.currency || "USD").toUpperCase() };
+  return null;
+}
+
+/** Planın bu bölgedeki fiyat metni ve ödeme bağlantısı (Türkiye alanı boşsa genel fiyat).
+ *  Otomatik fiyat girildiyse checkout "pro:<plan>" olur (ödeme startProCheckout ile açılır). */
 export function planFor(cfg, p) {
+  const dyn = proPrice(cfg, p);
+  if (dyn) return { price: fmtMoney(dyn.num, dyn.cur), checkout: "pro:" + p.id, num: dyn.num, cur: dyn.cur };
   const tr = region === "tr" && (cfg[p.trPrice] || cfg[p.trCheckout]);
   return {
     price: (tr ? cfg[p.trPrice] : cfg[p.price]) || "",
     checkout: (tr ? cfg[p.trCheckout] : cfg[p.checkout]) || "",
   };
 }
+
+/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar */
+export async function startProCheckout(planId) {
+  try {
+    const { data, error } = await sb.functions.invoke("pro-checkout", { body: { plan: planId, region } });
+    if (error) {
+      let msg = error.message;
+      try {
+        const j = await error.context?.json();
+        msg = j?.error || msg;
+      } catch {}
+      throw new Error(msg);
+    }
+    if (!data?.url) throw new Error(T("error"));
+    location.href = data.url;
+    return true;
+  } catch (e) {
+    toast(e?.message || T("error"), true);
+    return false;
+  }
+}
+
+/** Ödeme bağlantısı mı, otomatik ödeme mi ("pro:<plan>") */
+export const isProCheckout = (link) => typeof link === "string" && link.startsWith("pro:");
 
 // Ortak metinler (üst menü, alt bilgi, genel)
 addDict({

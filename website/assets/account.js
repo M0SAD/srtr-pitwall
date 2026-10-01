@@ -14,12 +14,14 @@ import {
   esc,
   fmtDate,
   fmtMoney,
+  isProCheckout,
   lang,
   myProfile,
   planFor,
   planName,
   promoUntil,
   sb,
+  startProCheckout,
   toast,
 } from "./core.js";
 
@@ -44,6 +46,11 @@ addDict({
     "Use this account to sign in to the SRTR Pitwall app too (app → Account).",
   ],
   a_buy_after: ["Giriş yapınca ödeme sayfasına yönlendirileceksin.", "After signing in you'll be taken to checkout."],
+  a_opening_checkout: ["Ödeme sayfası açılıyor…", "Opening checkout…"],
+  a_paid_pro: [
+    "Ödemen alındı, teşekkürler! PRO birkaç saniye içinde hesabına işlenir; görünmezse sayfayı yenile.",
+    "Payment received, thank you! PRO is applied to your account within a few seconds; refresh the page if you don't see it.",
+  ],
   a_title: ["Hesabım", "My account"],
   a_logout: ["Çıkış yap", "Sign out"],
   a_profile: ["Profil", "Profile"],
@@ -123,7 +130,7 @@ addDict({
 });
 
 let mode = new URLSearchParams(location.search).get("mode") === "signup" ? "signup" : "login";
-const buyPlan = new URLSearchParams(location.search).get("buy");
+let buyPlan = new URLSearchParams(location.search).get("buy");
 let pendingEmail = "";
 
 const app = () => $("#app");
@@ -266,7 +273,11 @@ async function afterLogin() {
     const cfg = await appConfig().catch(() => ({}));
     const p = PLANS.find((x) => x.id === buyPlan);
     const link = p && planFor(cfg, p).checkout;
-    if (link) {
+    buyPlan = null;
+    if (link && isProCheckout(link)) {
+      app().innerHTML = `<p class="muted page">${T("a_opening_checkout")}</p>`;
+      if (await startProCheckout(p.id)) return;
+    } else if (link) {
       location.href = checkoutUrl(link, u);
       return;
     }
@@ -293,8 +304,11 @@ async function dashboard(u) {
   const sub = pro?.sub;
   const planBtns = PLANS.map((x) => ({ x, ...planFor(cfg, x) }))
     .filter((o) => o.checkout)
-    .map(
-      (o) => `<a class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(o.checkout, u))}">
+    .map((o) =>
+      isProCheckout(o.checkout)
+        ? `<button class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" data-pro="${o.x.id}">
+        ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></button>`
+        : `<a class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(o.checkout, u))}">
         ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></a>`,
     )
     .join("");
@@ -393,6 +407,12 @@ async function dashboard(u) {
     </div>
   </div>`;
 
+  $$("[data-pro]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      if (!(await startProCheckout(b.dataset.pro))) b.disabled = false;
+    }),
+  );
   $("#logout").addEventListener("click", async () => {
     await sb.auth.signOut();
     render();
@@ -663,6 +683,11 @@ async function render() {
 }
 
 await boot("/hesap", "account");
+// PRO ödemesinden dönüş (pro-checkout redirect_url)
+if (new URLSearchParams(location.search).get("paid") === "pro") {
+  toast(T("a_paid_pro"));
+  history.replaceState(null, "", "hesap.html" + location.hash);
+}
 render();
 document.addEventListener("langchange", () => {
   render();

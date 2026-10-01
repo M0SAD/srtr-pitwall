@@ -23,6 +23,8 @@ import {
   type UserFilter,
   PLAN_LIST,
   type AppConfig,
+  type PlanDef,
+  type ProPricing,
 } from "@/cloud/account";
 import { can, listGroups, ownerSetAdmin, setUserGroup, type PermGroup } from "@/cloud/moderation";
 import { manifests } from "@/sdk/registry";
@@ -492,6 +494,15 @@ function Plans(props: { run: Run }) {
   const c = () => config();
   const val = (k: PlanKey) => draft()[k] ?? (c()?.[k] as string | undefined) ?? "";
   const set = (k: string, v: string) => setDraft({ ...draft(), [k]: v });
+  // Otomatik fiyatlar (app_config.pro_pricing): taslakta "pp:<plan>:price" / "pp:<plan>:price_tr" / "pp:currency" / "pp:currency_tr"
+  const pp = () => c()?.pro_pricing ?? {};
+  const ppNum = (id: PlanDef["id"], f: "price" | "price_tr") => {
+    const d = draft()[`pp:${id}:${f}`];
+    if (d !== undefined) return d;
+    const n = Number(pp().plans?.[id]?.[f]);
+    return n > 0 ? String(n) : "";
+  };
+  const ppCur = (f: "currency" | "currency_tr") => draft()[`pp:${f}`] ?? pp()[f] ?? (f === "currency" ? "USD" : "TRY");
   const toggle = (id: string, on: boolean) => {
     const cur = new Set(c()?.pro_overlays ?? []);
     on ? cur.add(id) : cur.delete(id);
@@ -500,32 +511,68 @@ function Plans(props: { run: Run }) {
   return (
     <section class="panel admin-panel">
       <h3>Planlar ve fiyatlar</h3>
-      <p class="muted small">{t("Fiyat metni kullanıcıya gösterilir. Ödeme bağlantısı, Lemon Squeezy'de ilgili ürünün Share bölümündeki bağlantıdır; uygulama kullanıcının hesabını otomatik ekler.")}</p>
       <p class="muted small">
-        Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa
-        herkes genel fiyatı görür.
+        Lemon Squeezy'de tek bir abonelik ürünü (SRTR Pitwall PRO) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant
+        numaraları Supabase'de gizli değer olarak girilir. Tutarlar buradan alınır: ödeme sayfası bu tutarla açılır ve yenilemeler de aynı tutarla olur
+        (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
       </p>
-      <div class="plan-edit plan-edit-head">
-        <span />
-        <small>Fiyat metni</small>
-        <small>Ödeme bağlantısı</small>
+      <p class="muted small">
+        Türkiye'den kullananlar (saat dilimi Türkiye) Türkiye fiyatını (TL) görür ve öder; diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa herkes genel fiyatı
+        görür.
+      </p>
+      <div class="plan-edit plan-price">
+        <b>Para birimi</b>
+        <label class="plan-field">
+          <small>Genel para birimi</small>
+          <input class="input" maxLength={3} value={ppCur("currency")} onInput={(e) => set("pp:currency", e.currentTarget.value)} />
+        </label>
+        <label class="plan-field">
+          <small>Türkiye para birimi</small>
+          <input class="input" maxLength={3} value={ppCur("currency_tr")} onInput={(e) => set("pp:currency_tr", e.currentTarget.value)} />
+        </label>
       </div>
       <For each={PLAN_LIST}>
         {(p) => (
           <div class="plan-group">
-            <div class="plan-edit">
+            <div class="plan-edit plan-price">
               <b>{p.label}</b>
-              <input class="input" placeholder="ör. $4.99 / €4,99" value={val(p.price)} onInput={(e) => set(p.price, e.currentTarget.value)} />
-              <input class="input" placeholder="https://….lemonsqueezy.com/checkout/buy/…" value={val(p.checkout)} onInput={(e) => set(p.checkout, e.currentTarget.value)} />
-            </div>
-            <div class="plan-edit">
-              <small class="muted">Türkiye (TL)</small>
-              <input class="input" placeholder="ör. 149₺" value={val(p.trPrice)} onInput={(e) => set(p.trPrice, e.currentTarget.value)} />
-              <input class="input" placeholder="TL varyantının bağlantısı" value={val(p.trCheckout)} onInput={(e) => set(p.trCheckout, e.currentTarget.value)} />
+              <label class="plan-field">
+                <small>Fiyat (yurt dışı, USD)</small>
+                <input class="input" type="number" min="0" step="0.01" placeholder="ör. 4.99" value={ppNum(p.id, "price")} onInput={(e) => set(`pp:${p.id}:price`, e.currentTarget.value)} />
+              </label>
+              <label class="plan-field">
+                <small>Türkiye fiyatı (TL)</small>
+                <input class="input" type="number" min="0" step="0.01" placeholder="ör. 149" value={ppNum(p.id, "price_tr")} onInput={(e) => set(`pp:${p.id}:price_tr`, e.currentTarget.value)} />
+              </label>
             </div>
           </div>
         )}
       </For>
+      <details class="notes">
+        <summary>Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)</summary>
+        <p class="muted small">{t("Fiyat metni kullanıcıya gösterilir. Ödeme bağlantısı, Lemon Squeezy'de ilgili ürünün Share bölümündeki bağlantıdır; uygulama kullanıcının hesabını otomatik ekler.")}</p>
+        <div class="plan-edit plan-edit-head">
+          <span />
+          <small>Fiyat metni</small>
+          <small>Ödeme bağlantısı</small>
+        </div>
+        <For each={PLAN_LIST}>
+          {(p) => (
+            <div class="plan-group">
+              <div class="plan-edit">
+                <b>{p.label}</b>
+                <input class="input" placeholder="ör. $4.99 / €4,99" value={val(p.price)} onInput={(e) => set(p.price, e.currentTarget.value)} />
+                <input class="input" placeholder="https://….lemonsqueezy.com/checkout/buy/…" value={val(p.checkout)} onInput={(e) => set(p.checkout, e.currentTarget.value)} />
+              </div>
+              <div class="plan-edit">
+                <small class="muted">Türkiye (TL)</small>
+                <input class="input" placeholder="ör. 149₺" value={val(p.trPrice)} onInput={(e) => set(p.trPrice, e.currentTarget.value)} />
+                <input class="input" placeholder="TL varyantının bağlantısı" value={val(p.trCheckout)} onInput={(e) => set(p.trCheckout, e.currentTarget.value)} />
+              </div>
+            </div>
+          )}
+        </For>
+      </details>
       <div class="row">
         <div>
           <b>PRO açıklaması</b>
@@ -571,7 +618,18 @@ function Plans(props: { run: Run }) {
         disabled={Object.keys(draft()).length === 0}
         onClick={() =>
           props.run(async () => {
-            const d: Record<string, unknown> = { ...draft() };
+            const d: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(draft())) if (!k.startsWith("pp:")) d[k] = v;
+            if (Object.keys(draft()).some((k) => k.startsWith("pp:"))) {
+              const money = (v: string) => {
+                const n = Math.round(parseFloat(v.replace(",", ".")) * 100) / 100;
+                return n > 0 ? n : 0;
+              };
+              const cur = (v: string, def: string) => v.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || def;
+              const plans: NonNullable<ProPricing["plans"]> = {};
+              for (const p of PLAN_LIST) plans[p.id] = { price: money(ppNum(p.id, "price")), price_tr: money(ppNum(p.id, "price_tr")) };
+              d.pro_pricing = { ...pp(), currency: cur(ppCur("currency"), "USD"), currency_tr: cur(ppCur("currency_tr"), "TRY"), plans } satisfies ProPricing;
+            }
             if (d.device_limit !== undefined) d.device_limit = Math.max(1, Math.min(20, Math.round(Number(d.device_limit) || 2)));
             await saveConfig(d);
             setDraft({});

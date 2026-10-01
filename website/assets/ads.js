@@ -1,7 +1,7 @@
 // Reklam ver: reklam veren yer, fiyat modeli (gösterim paketi / süre), görsel, metin, bağlantı ve hedef dili seçer,
 // canlı önizlemeyi ve toplam fiyatı görür, "Öde" ile Lemon Squeezy ödeme sayfasına gider (ads-checkout).
 // Ödeme gelince reklam kendiliğinden yayına girer. "Reklamlarım": durum, gösterim / tıklama, kalan.
-import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, sb, toast } from "./core.js";
+import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, region, sb, toast } from "./core.js";
 import { AD_PLACES, adHtml, adImg } from "./adslot.js";
 
 addDict({
@@ -140,9 +140,18 @@ const st = {
   imgInfo: "",
 };
 
-const place = (id) => pr.placements?.[id] ?? {};
+// Türkiye'deki ziyaretçiye, o yer için TL fiyatı girilmişse TL fiyatları; diğerlerine genel (USD) fiyat.
+// Sunucudaki public.ad_price ile aynı kural.
+const rawPlace = (id) => pr.placements?.[id] ?? {};
+const trPriced = (id) => region === "tr" && (Number(rawPlace(id).cpm_tr) > 0 || Number(rawPlace(id).day_tr) > 0);
+const place = (id) => {
+  const p = rawPlace(id);
+  return trPriced(id)
+    ? { on: p.on, cpm: Number(p.cpm_tr) || 0, day: Number(p.day_tr) || 0, cur: pr.currency_tr || "TRY" }
+    : { on: p.on, cpm: Number(p.cpm) || 0, day: Number(p.day) || 0, cur: pr.currency || "USD" };
+};
 const onSale = (id) => place(id).on !== false && (Number(place(id).cpm) > 0 || Number(place(id).day) > 0);
-const money = (n) => fmtMoney(n, pr.currency || "USD");
+const money = (n, id = st.placement) => fmtMoney(n, place(id).cur);
 function priceOf(pl, model, qty) {
   const p = place(pl);
   const v = model === "impressions" ? (Number(p.cpm) || 0) * (qty / 1000) : (Number(p.day) || 0) * qty;
@@ -203,7 +212,7 @@ function placeCard(id, selectable) {
   const sale = onSale(id);
   const { w, h } = AD_PLACES[id];
   const prices = sale
-    ? `${Number(p.cpm) > 0 ? `<span>${esc(T("ad_per_1000", money(p.cpm)))}</span>` : ""}${Number(p.day) > 0 ? `<span>${esc(T("ad_per_day", money(p.day)))}</span>` : ""}`
+    ? `${Number(p.cpm) > 0 ? `<span>${esc(T("ad_per_1000", money(p.cpm, id)))}</span>` : ""}${Number(p.day) > 0 ? `<span>${esc(T("ad_per_day", money(p.day, id)))}</span>` : ""}`
     : `<span>${esc(T("ad_off"))}</span>`;
   const inner = `<span class="adp-shape" style="aspect-ratio:${w}/${h}"></span>
     <b>${esc(T("ad_pl_" + id))}</b>
@@ -436,6 +445,7 @@ async function pay() {
       p_url: st.url.trim(),
       p_image: path,
       p_langs: st.langs,
+      p_region: region === "tr" ? "tr" : "intl",
     });
     if (error) throw error;
     // Düzenlenen reklamın eski görseli artık kullanılmıyor

@@ -313,5 +313,7 @@
   "f13_t": "Ekran zdarzeń i powtórka",
   "f13_d": "Po wyścigu lista zdarzeń otwiera się sama: incydenty, wyprzedzenia, pit stopy. Kliknij jedno, a powtórka iRacing przeskoczy do tej chwili.",
   "f14_t": "Zareklamuj się",
-  "f14_d": "Dotrzyj do sim racerów: wybierz pakiet wyświetleń lub czasu, wybierz miejsce, zapłać — reklama wystartuje automatycznie."
+  "f14_d": "Dotrzyj do sim racerów: wybierz pakiet wyświetleń lub czasu, wybierz miejsce, zapłać — reklama wystartuje automatycznie.",
+  "a_opening_checkout": "Otwieranie płatności…",
+  "a_paid_pro": "Płatność otrzymana, dzięki! PRO zostanie przypisane do twojego konta w ciągu kilku sekund; odśwież stronę, jeśli go nie widzisz."
 }

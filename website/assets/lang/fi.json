@@ -313,5 +313,7 @@
   "f13_t": "Tapahtumanäkymä ja uusinta",
   "f13_d": "Kilpailun päätyttyä tapahtumalista avautuu itsestään: insidentit, ohitukset, varikkokäynnit. Klikkaa yhtä, niin iRacingin uusinta hyppää siihen hetkeen.",
   "f14_t": "Mainosta",
-  "f14_d": "Tavoita simracerit: valitse näyttö- tai aikapaketti, valitse paikka, maksa — mainoksesi julkaistaan automaattisesti."
+  "f14_d": "Tavoita simracerit: valitse näyttö- tai aikapaketti, valitse paikka, maksa — mainoksesi julkaistaan automaattisesti.",
+  "a_opening_checkout": "Avataan maksusivua…",
+  "a_paid_pro": "Maksu vastaanotettu, kiitos! PRO päivittyy tilillesi muutamassa sekunnissa; päivitä sivu, jos et näe sitä."
 }

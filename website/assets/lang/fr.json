@@ -313,5 +313,7 @@
   "f13_t": "Écran des événements et replay",
   "f13_d": "À la fin de la course, la liste des événements s'ouvre toute seule : incidents, dépassements, arrêts aux stands. Clique sur l'un d'eux et le replay iRacing saute à ce moment.",
   "f14_t": "Faire de la pub",
-  "f14_d": "Touche les sim racers : choisis un pack de vues ou de durée, l'emplacement, paie, et ta pub est publiée automatiquement."
+  "f14_d": "Touche les sim racers : choisis un pack de vues ou de durée, l'emplacement, paie, et ta pub est publiée automatiquement.",
+  "a_opening_checkout": "Ouverture du paiement…",
+  "a_paid_pro": "Paiement reçu, merci ! PRO est activé sur ton compte en quelques secondes ; actualise la page si tu ne le vois pas."
 }

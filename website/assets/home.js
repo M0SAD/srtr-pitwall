@@ -1,5 +1,5 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
-import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, locale, planFor, planName, PLANS } from "./core.js";
+import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, startProCheckout } from "./core.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
@@ -273,17 +273,29 @@ function perMonth(s, n) {
 function renderPlans() {
   const c = cfg || {};
   $("#plans").innerHTML = PLANS.map((p) => {
-    const { price, checkout: link } = planFor(c, p);
-    const n = priceNum(price);
-    const per = p.months > 1 && isFinite(n) ? T("per_month", perMonth(price, n / p.months)) : "";
+    const { price, checkout: link, num, cur } = planFor(c, p);
+    let per = "";
+    if (p.months > 1 && num > 0) per = T("per_month", fmtMoney(num / p.months, cur));
+    else if (p.months > 1 && !num) {
+      const n = priceNum(price);
+      if (isFinite(n)) per = T("per_month", perMonth(price, n / p.months));
+    }
     const tag = p.id === "12m" ? T("best_value") : p.id === "3m" ? T("popular") : "";
-    const href = link ? (user ? checkoutUrl(link, user) : `hesap.html?buy=${p.id}`) : "";
+    const cls = `btn ${p.id === "12m" ? "btn-accent" : ""}`;
+    // Otomatik fiyat (pro-checkout) + giriş yapılmış: düğme; giriş yoksa önce hesap sayfası
+    const dyn = isProCheckout(link);
+    const href = link ? (!user ? `hesap.html?buy=${p.id}` : dyn ? "" : checkoutUrl(link, user)) : "";
+    const btn = !link
+      ? `<button class="btn" disabled>${T("soon")}</button>`
+      : href
+        ? `<a class="${cls}" href="${esc(href)}" data-plan="${p.id}">${T("buy")}</a>`
+        : `<button class="${cls}" data-pro="${p.id}">${T("buy")}</button>`;
     return `<div class="card plan${p.id === "12m" ? " best" : ""}">
       ${tag ? `<span class="tag">${esc(tag)}</span>` : ""}
       <div class="name">${esc(planName(p))}</div>
       <div class="price">${esc(price || T("price_tbd"))}</div>
       <div class="per">${esc(per)}</div>
-      ${href ? `<a class="btn ${p.id === "12m" ? "btn-accent" : ""}" href="${esc(href)}" data-plan="${p.id}">${T("buy")}</a>` : `<button class="btn" disabled>${T("soon")}</button>`}
+      ${btn}
     </div>`;
   }).join("");
   const alt = [];
@@ -298,6 +310,13 @@ async function main() {
   import("./adslot.js").then((m) => m.mountAds(), () => {});
   renderStatic();
   renderPlans();
+  $("#plans").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-pro]");
+    if (!b || b.disabled) return;
+    b.disabled = true;
+    const ok = await startProCheckout(b.dataset.pro);
+    if (!ok) b.disabled = false;
+  });
   document.addEventListener("langchange", () => {
     renderStatic();
     renderPlans();

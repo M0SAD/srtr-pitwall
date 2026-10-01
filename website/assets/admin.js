@@ -487,19 +487,37 @@ async function cihazlar(el) {
 
 async function planlar(el) {
   const c = await appConfig();
+  const pp = c.pro_pricing || {};
+  const plans = pp.plans || {};
   const f = (k, label, ph = "", type = "text") =>
     `<div class="field"><label>${label}</label><input name="${k}" type="${type}" value="${esc(c[k] ?? "")}" placeholder="${esc(ph)}"></div>`;
+  const num = (k, label, v, ph = "") =>
+    `<div class="field"><label>${label}</label><input name="${k}" type="number" min="0" step="0.01" value="${v > 0 ? esc(v) : ""}" placeholder="${esc(ph)}"></div>`;
   el.innerHTML = `<h2>Planlar ve fiyatlar</h2>
-    <p class="muted small">Buradaki fiyatlar ve ödeme bağlantıları hem sitede hem programda görünür. Ödeme bağlantısı: Lemon Squeezy → ürün → varyant → Share.
-      Türkiye'den girenler (saat dilimi Türkiye olanlar) TL fiyatını ve TL bağlantısını görür, diğer herkes genel fiyatı. Sitede <code>?region=tr</code> ya da <code>?region=intl</code> ekleyerek iki görünümü de deneyebilirsin.</p>
+    <p class="muted small">Buradaki fiyatlar hem sitede hem programda görünür ve ödeme tutarı olarak kullanılır. Lemon Squeezy'de tek bir abonelik ürünü
+      (“SRTR Pitwall PRO”) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant numaraları Supabase'de
+      <code>LEMON_PRO_1M_VARIANT_ID</code> … <code>LEMON_PRO_12M_VARIANT_ID</code> olarak girilir. Tutarlar buradan alınır ve <code>pro-checkout</code>
+      fonksiyonu ödeme sayfasını bu tutarla açar; yenilemeler de aynı tutarla olur (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
+      Türkiye'den girenler (saat dilimi Türkiye olanlar) Türkiye fiyatını (TL) görür ve öder, diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa Türkiye'de de genel fiyat kullanılır.
+      Sitede <code>?region=tr</code> ya da <code>?region=intl</code> ekleyerek iki görünümü de deneyebilirsin.</p>
     <form id="pf" class="stack">
+      <div class="card grid g2">
+        <div class="field" style="margin:0"><label>Genel para birimi</label><input name="pp_currency" maxlength="3" value="${esc(pp.currency || "USD")}"></div>
+        <div class="field" style="margin:0"><label>Türkiye para birimi</label><input name="pp_currency_tr" maxlength="3" value="${esc(pp.currency_tr || "TRY")}"></div>
+      </div>
       <div class="grid g2">
         ${PLANS.map(
           (p) => `<div class="card"><h3>${p.tr}</h3>
-            <p class="small muted" style="margin:0 0 8px"><b>Diğer ülkeler</b> (USD / EUR)</p>
-            ${f(p.price, "Fiyat metni", "ör. $4.99 ya da €4,99")}${f(p.checkout, "Lemon Squeezy ödeme bağlantısı", "https://….lemonsqueezy.com/buy/…")}
-            <p class="small muted" style="margin:6px 0 8px"><b>Türkiye</b> (TL) — boş bırakılırsa Türkiye'de de yukarıdaki kullanılır</p>
-            ${f(p.trPrice, "Fiyat metni (TL)", "ör. 149₺")}${f(p.trCheckout, "Lemon Squeezy ödeme bağlantısı (TL varyantı)", "https://….lemonsqueezy.com/buy/…")}
+            <div class="grid g2">
+              ${num(`pp_price_${p.id}`, "Fiyat (yurt dışı, USD)", plans[p.id]?.price, "ör. 4.99")}
+              ${num(`pp_tr_${p.id}`, "Türkiye fiyatı (TL)", plans[p.id]?.price_tr, "ör. 149")}
+            </div>
+            <details style="margin-top:6px"><summary class="small muted">Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)</summary>
+              <p class="small muted" style="margin:6px 0 8px"><b>Diğer ülkeler</b></p>
+              ${f(p.price, "Fiyat metni", "ör. $4.99 ya da €4,99")}${f(p.checkout, "Lemon Squeezy ödeme bağlantısı", "https://….lemonsqueezy.com/buy/…")}
+              <p class="small muted" style="margin:6px 0 8px"><b>Türkiye</b> — boş bırakılırsa Türkiye'de de yukarıdaki kullanılır</p>
+              ${f(p.trPrice, "Fiyat metni (TL)", "ör. 149₺")}${f(p.trCheckout, "Lemon Squeezy ödeme bağlantısı (TL varyantı)", "https://….lemonsqueezy.com/buy/…")}
+            </details>
           </div>`,
         ).join("")}
       </div>
@@ -515,7 +533,18 @@ async function planlar(el) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const patch = { updated_at: new Date().toISOString() };
-    for (const [k, v] of fd.entries()) patch[k] = k === "device_limit" ? Math.max(1, parseInt(String(v), 10) || 2) : String(v).trim();
+    const money = (v) => {
+      const n = Math.round(parseFloat(String(v ?? "").replace(",", ".")) * 100) / 100;
+      return n > 0 ? n : 0;
+    };
+    const cur = (v, d) => (String(v || "").trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || d);
+    const plansOut = {};
+    for (const p of PLANS) plansOut[p.id] = { price: money(fd.get(`pp_price_${p.id}`)), price_tr: money(fd.get(`pp_tr_${p.id}`)) };
+    patch.pro_pricing = { ...pp, currency: cur(fd.get("pp_currency"), "USD"), currency_tr: cur(fd.get("pp_currency_tr"), "TRY"), plans: plansOut };
+    for (const [k, v] of fd.entries()) {
+      if (k.startsWith("pp_")) continue;
+      patch[k] = k === "device_limit" ? Math.max(1, parseInt(String(v), 10) || 2) : String(v).trim();
+    }
     const { data, error } = await sb.from("app_config").update(patch).eq("id", 1).select();
     if (error || !data?.length) return toast(error?.message || "Kaydedilemedi", true);
     toast("Kaydedildi");

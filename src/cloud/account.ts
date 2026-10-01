@@ -2,8 +2,9 @@
 
 import { createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { api, cloudEnabled, session } from "./supabase";
+import { api, callFunction, cloudEnabled, session } from "./supabase";
 import { apiBase, inTauri } from "@/sdk/platform";
+import { localeTag } from "@/sdk/i18n";
 import { loadNotices, loadPerms } from "./moderation";
 import { normalizeWatermark, syncWatermark, type WatermarkCfg } from "@/sdk/watermark";
 
@@ -62,6 +63,15 @@ export interface AppConfig {
   ad_auto_approve?: boolean;
   ad_report_hide_threshold?: number;
   ad_pricing?: import("./ads").AdPricing;
+  /** Otomatik PRO fiyatları (pro-checkout bu tutarla Lemon Squeezy ödeme sayfası açar).
+   *  price: genel fiyat (currency, ör. USD), price_tr: Türkiye fiyatı (currency_tr, ör. TRY) */
+  pro_pricing?: ProPricing;
+}
+
+export interface ProPricing {
+  currency?: string;
+  currency_tr?: string;
+  plans?: Partial<Record<"1m" | "3m" | "6m" | "12m", { price?: number; price_tr?: number }>>;
 }
 
 export interface Entitlement {
@@ -234,8 +244,34 @@ export const PLAN_LIST: PlanDef[] = [
   { id: "12m", label: "12 aylık", price: "price_yearly", checkout: "checkout_12m", trPrice: "price_tr_12m", trCheckout: "checkout_tr_12m" },
 ];
 
-/** Planın kullanıcının bölgesindeki fiyatı ve ödeme bağlantısı */
-export function planFor(c: AppConfig | null | undefined, p: PlanDef): { price: string; checkout: string } {
+/** Para tutarını yerel biçimde yazar ("$4.99", "₺149,00") */
+export function fmtPrice(n: number, cur: string) {
+  try {
+    return new Intl.NumberFormat(localeTag(), { style: "currency", currency: cur }).format(n);
+  } catch {
+    return `${n.toFixed(2)} ${cur}`;
+  }
+}
+
+/** Yönetim panelinde girilen otomatik fiyat (Türkiye'de, girildiyse Türkiye fiyatı); yoksa null */
+export function proPrice(c: AppConfig | null | undefined, p: PlanDef): { num: number; cur: string } | null {
+  const pr = c?.pro_pricing ?? {};
+  const pl = pr.plans?.[p.id] ?? {};
+  const tr = Number(pl.price_tr);
+  if (inTurkey() && tr > 0) return { num: tr, cur: String(pr.currency_tr || "TRY").toUpperCase() };
+  const n = Number(pl.price);
+  if (n > 0) return { num: n, cur: String(pr.currency || "USD").toUpperCase() };
+  return null;
+}
+
+/** Otomatik ödeme mi ("pro:<plan>", pro-checkout ile açılır) yoksa elle girilmiş bağlantı mı */
+export const isProCheckout = (link: string) => link.startsWith("pro:");
+
+/** Planın kullanıcının bölgesindeki fiyatı ve ödeme bağlantısı.
+ *  Otomatik fiyat girildiyse checkout "pro:<plan>" olur (ödeme startProCheckout ile açılır). */
+export function planFor(c: AppConfig | null | undefined, p: PlanDef): { price: string; checkout: string; num?: number; cur?: string } {
+  const dyn = proPrice(c, p);
+  if (dyn) return { price: fmtPrice(dyn.num, dyn.cur), checkout: "pro:" + p.id, num: dyn.num, cur: dyn.cur };
   const g = (k: keyof AppConfig) => String((c?.[k] as string | undefined) ?? "");
   const tr = inTurkey() && (g(p.trPrice) || g(p.trCheckout));
   return { price: tr ? g(p.trPrice) : g(p.price), checkout: tr ? g(p.trCheckout) : g(p.checkout) };
@@ -254,6 +290,16 @@ export function checkoutUrl(base: string) {
   } catch {
     return base;
   }
+}
+
+/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar,
+ *  sayfa varsayılan tarayıcıda açılır. Hata olursa mesajıyla fırlatır. */
+export async function startProCheckout(planId: PlanDef["id"]) {
+  const r = await callFunction<{ url?: string }>("pro-checkout", { plan: planId, region: inTurkey() ? "tr" : "intl" });
+  const url = r?.url;
+  if (!url) throw new Error("Ödeme sayfası açılamadı");
+  if (inTauri) await invoke("open_url", { url }).catch(() => window.open(url, "_blank"));
+  else window.open(url, "_blank");
 }
 
 // ---------------------------------------------------------------------------

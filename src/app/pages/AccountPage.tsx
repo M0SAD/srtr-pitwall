@@ -36,6 +36,8 @@ import {
   updateProfile,
   PLAN_LIST,
   planFor,
+  isProCheckout,
+  startProCheckout,
 } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { manifests } from "@/sdk/registry";
@@ -404,6 +406,20 @@ function ProPanel() {
   const plans = () => PLAN_LIST.map((p) => ({ ...p, ...planFor(c(), p) })).filter((p) => p.price || p.checkout);
   const sub = () => proInfo()?.sub ?? null;
   const days = () => proDaysLeft();
+  const [buying, setBuying] = createSignal("");
+  const [buyErr, setBuyErr] = createSignal("");
+  const buy = async (id: (typeof PLAN_LIST)[number]["id"], link: string) => {
+    setBuyErr("");
+    if (!isProCheckout(link)) return openUrl(checkoutUrl(link));
+    setBuying(id);
+    try {
+      await startProCheckout(id);
+    } catch (e) {
+      setBuyErr(String((e as Error).message ?? e));
+    } finally {
+      setBuying("");
+    }
+  };
 
   return (
     <section class="panel pro-panel">
@@ -494,16 +510,19 @@ function ProPanel() {
                   <b>{p.price || "—"}</b>
                   <button
                     class="btn primary small"
-                    disabled={!session() || !p.checkout}
+                    disabled={!session() || !p.checkout || !!buying()}
                     title={!session() ? "Önce giriş yap" : ""}
-                    onClick={() => openUrl(checkoutUrl(p.checkout))}
+                    onClick={() => buy(p.id, p.checkout)}
                   >
-                    {isPro() ? "Uzat" : "Abone ol"}
+                    {buying() === p.id ? "Açılıyor…" : isPro() ? "Uzat" : "Abone ol"}
                   </button>
                 </div>
               )}
             </For>
           </div>
+          <Show when={buyErr()}>
+            <p class="error">{buyErr()}</p>
+          </Show>
         </Show>
         <div class="btns">
           <Show when={c()?.patreon_url}>

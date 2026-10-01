@@ -48,14 +48,18 @@ export interface Ad {
 }
 
 export interface AdPricing {
+  /** Genel (yurt dışı) para birimi */
   currency: string;
+  /** Türkiye'deki reklam verenler için para birimi; yerin cpm_tr / day_tr fiyatı girildiyse kullanılır */
+  currency_tr?: string;
   impressions: number[];
   days: number[];
-  placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number }>>;
+  placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number; cpm_tr?: number; day_tr?: number }>>;
 }
 
 export const DEFAULT_AD_PRICING: AdPricing = {
   currency: "USD",
+  currency_tr: "TRY",
   impressions: [1000, 5000, 10000, 50000],
   days: [1, 3, 7, 14, 30],
   placements: {

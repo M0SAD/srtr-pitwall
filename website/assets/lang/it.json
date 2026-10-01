@@ -313,5 +313,7 @@
   "f13_t": "Schermata eventi e replay",
   "f13_d": "A fine gara la lista eventi si apre da sola: incidenti, sorpassi, pit stop. Cliccane uno e il replay di iRacing salta a quel momento.",
   "f14_t": "Pubblicizza",
-  "f14_d": "Raggiungi i sim racer: scegli un pacchetto di visualizzazioni o di durata, la posizione, paga, e il tuo annuncio va online in automatico."
+  "f14_d": "Raggiungi i sim racer: scegli un pacchetto di visualizzazioni o di durata, la posizione, paga, e il tuo annuncio va online in automatico.",
+  "a_opening_checkout": "Apertura del checkout…",
+  "a_paid_pro": "Pagamento ricevuto, grazie! PRO viene applicato al tuo account in pochi secondi; ricarica la pagina se non lo vedi."
 }

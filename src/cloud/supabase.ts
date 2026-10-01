@@ -135,6 +135,27 @@ export async function api<T = any>(
   return (text ? JSON.parse(text) : null) as T;
 }
 
+/** Supabase Edge Function çağrısı (POST, oturum anahtarıyla). Hata gövdesindeki {error} mesajı fırlatılır. */
+export async function callFunction<T = any>(name: string, body: unknown): Promise<T> {
+  if (!cloudEnabled) throw new Error("Bulut bağlantısı yapılandırılmamış");
+  const t = await token();
+  if (!t) throw new Error("Bu işlem için giriş yapmalısın");
+  const res = await fetch(`${URL_}/functions/v1/${name}`, {
+    method: "POST",
+    headers: { apikey: KEY!, Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  const text = await res.text();
+  let j: any = null;
+  try {
+    j = text ? JSON.parse(text) : null;
+  } catch {
+    /* düz metin */
+  }
+  if (!res.ok) throw new Error(j?.error || j?.message || text || `Bulut hatası ${res.status}`);
+  return j as T;
+}
+
 // ---------------------------------------------------------------------------
 // Görsel barındırma: Supabase Storage (ücretsiz planda 1 GB depolama)
 // ---------------------------------------------------------------------------
