@@ -8,7 +8,7 @@ import { listen } from "@tauri-apps/api/event";
 import { settings, updateSettings } from "@/sdk/settings";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { encodeForShare, shareShot, shotLimits } from "@/cloud/shots";
+import { encodeForShare, shareShot, sharedLocalPaths, shotLimits } from "@/cloud/shots";
 import { useScreenshotBytes } from "../components/Backdrop";
 import {
   IracingShotHelp,
@@ -33,6 +33,7 @@ export function ScreenshotsPage() {
   const [ver, setVer] = createSignal(0);
   const [list] = createResource(() => ({ s: src(), v: ver() }), (k) => listShots(k.s));
   const [dirs] = createResource(() => invoke<ShotDirs>("shots_dirs").catch(() => null));
+  const [shared] = createResource(() => ({ v: ver(), u: session()?.user.id }), () => sharedLocalPaths());
   const [open, setOpen] = createSignal<number | null>(null);
   const [sharing, setSharing] = createSignal<LocalShot | null>(null);
   const [msg, setMsg] = createSignal<{ text: string; err?: boolean } | null>(null);
@@ -139,6 +140,11 @@ export function ScreenshotsPage() {
           {(s, i) => (
             <button class="shot-card" onClick={() => setOpen(i())}>
               <ShotThumb shot={s} />
+              <Show when={shared()?.has(s.path)}>
+                <span class="shot-shared" title={t("Bu görüntüyü toplulukta paylaştın")}>
+                  ✓ {t("Paylaşıldı")}
+                </span>
+              </Show>
               <span class="shot-cap">
                 <b>{s.track || s.name}</b>
                 <small>
@@ -174,6 +180,7 @@ export function ScreenshotsPage() {
           onShared={() => {
             setSharing(null);
             setOpen(null);
+            setVer(ver() + 1);
             go("community", "shots");
           }}
         />

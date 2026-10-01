@@ -452,6 +452,8 @@ fn worker(app: &AppHandle, auto: bool) -> Result<(), String> {
 fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
     let s = sh();
     let mut ovs: Vec<Ov> = Vec::new();
+    // SteamVR beklenirken basılan kısayollar birikmiş olabilir: bağlanınca toplu uygulanmasın
+    s.inner.lock().cmds.clear();
     let mut cfg = s.inner.lock().cfg.clone();
     let mut gen = u64::MAX;
     let mut base: Base = cfg.base.unwrap_or(Base::ZERO);

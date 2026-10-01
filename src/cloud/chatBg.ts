@@ -57,6 +57,9 @@ export async function clearSharedChatBg(friendId: string) {
 
 // Görsel yolu → blob adresi (oturum boyunca bir kez indirilir)
 const imgCache = new Map<string, Promise<string | null>>();
+/** blob: adresi → Blob (CSP blob: adresine fetch'e izin vermez; "Bu arka planı kullan" bunu kullanır) */
+const blobCache = new Map<string, Blob>();
+
 export function sharedImageUrl(path: string): Promise<string | null> {
   let p = imgCache.get(path);
   if (!p) {
@@ -66,7 +69,10 @@ export function sharedImageUrl(path: string): Promise<string | null> {
         if (!u) return null;
         const r = await fetch(u);
         if (!r.ok) return null;
-        return URL.createObjectURL(await r.blob());
+        const b = await r.blob();
+        const url = URL.createObjectURL(b);
+        blobCache.set(url, b);
+        return url;
       })
       .catch(() => null);
     p.then((u) => !u && imgCache.delete(path));
@@ -160,5 +166,12 @@ export async function clearRoomBg(scope: RoomScope, room: string, quiet = false)
 export async function sharedImageBlob(path: string): Promise<Blob> {
   const u = await sharedImageUrl(path);
   if (!u) throw new Error("Görsel artık yok.");
-  return (await fetch(u)).blob();
+  const cached = blobCache.get(u);
+  if (cached) return cached;
+  // Önbellekte yoksa imzalı adresten doğrudan indir
+  const signed = (await storageSignedUrls(CHAT_BG_BUCKET, [path], 600))[path];
+  if (!signed) throw new Error("Görsel artık yok.");
+  const r = await fetch(signed);
+  if (!r.ok) throw new Error("Görsel artık yok.");
+  return r.blob();
 }

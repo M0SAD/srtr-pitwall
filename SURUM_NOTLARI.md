@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-56
+
+- **Sohbet arka planı: "Bu arka planı kullan" hatası düzeltildi** ("Failed to fetch"): görsel artık güvenlik kuralına takılmadan kopyalanır.
+- **Ekran görüntüleri: paylaşılanlar işaretli.** Toplulukta paylaştığın görüntülerin üzerinde "✓ Paylaşıldı" rozeti ve turuncu çerçeve; topluluktan silinince işaret kalkar. (Bu sürümden önce paylaşılanlar işaretlenemez.)
+- **Canlı Sohbet overlay'i:** gerçek sohbet çalışıyorsa gerçek mesajlar; çalışmıyorsa demo / önizleme / düzenlemede arayüz dilinde akan örnek sohbet (platform simgeleri, abonelik / Süper Chat / raid satırları, yavaşça değişen izleyici sayıları). Örnek yazarlar mümkünse PRO üyelerin adları.
+- **Yerel VR (SteamVR) — deneysel (Ayarlar › VR):** overlay'ler doğrudan gözlüğün içinde. Başlat / Durdur, sim bağlanınca otomatik başlat, masaüstünde de göster, ters çevir, kare hızı, saydamlık yöntemi, oturarak / ayakta. Overlay başına konum, uzaklık, dönüş, genişlik, eğrilik, opaklık, "bana dön" ve bakış modu (kaydırıcılar ya da yapılandırma modunda fare). Kısayollar: F9 yapılandırma, Space sonraki overlay, M mod, F10 kaydet, Home sıfırla, End ortala, F bana dön, G bakış. SteamVR etkin çalışma zamanı olmalı. Windows'ta ve gözlükle henüz denenmedi.
+- Yeni metinler 14 dile çevrildi.
+
+## 021026-55
+
+- **Görsel silme hatası düzeltildi:** yönetici/moderatör başkasının görselini silerken çıkan 'record "old" has no field "screenshot_id"' hatası giderildi (c48, sunucu tarafı; program güncellemesi gerekmez).
+
 ## 021026-54
 
 - **Sıralama / Relative: lisans rozeti sabit genişlikte.** "Pro 4.4" gibi uzun rozetler artık soldaki marka logosu sütununu kaydırmıyor; logolar tek dikey hizada.

@@ -3,34 +3,10 @@ import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { t } from "@/sdk/i18n";
 import { fmtCount, shortName, type ChatMsg, type Platform } from "@/sdk/livechat";
+import { settings } from "@/sdk/settings";
+import { createChatSim } from "./sim";
 import { CaptionBox, PlatformIcon, PollBox, fontStack } from "./parts";
 import "./style.css";
-
-const now0 = Date.now();
-const SAMPLE: ChatMsg[] = [
-  sample("1", "twitch", "SRTRFan", "Güzel start! 🏁", { sub: true, color: "#ff8a2a" }),
-  sample("2", "youtube", "Mehmet Y.", "T1'de dikkatli ol", { mod: true }),
-  sample("3", "kick", "gt3sever", "Bu tur 1:47 gelir", { vip: true }),
-  { ...sample("4", "youtube", "Destekçi", "Kolay gelsin!", {}), kind: "superchat", amount: "₺50,00" },
-  { ...sample("5", "twitch", "Akıncı", "", {}), kind: "raid", alert: { type: "raid", gifted: false, count: 42 } },
-];
-
-function sample(id: string, platform: Platform, name: string, text: string, f: { sub?: boolean; mod?: boolean; vip?: boolean; color?: string }): ChatMsg {
-  return {
-    id: `s:${id}`,
-    nativeId: id,
-    platform,
-    channel: platform,
-    channelName: "",
-    showTag: false,
-    kind: "chat",
-    author: { name, login: name.toLowerCase(), color: f.color, mod: !!f.mod, sub: !!f.sub, owner: false, member: false, vip: !!f.vip },
-    parts: text ? [{ t: "text", v: text }] : [],
-    text,
-    ts: now0,
-    deleted: false,
-  };
-}
 
 const ALERT_COLORS: Record<string, string> = {
   sub: "#ffd700",
@@ -91,8 +67,17 @@ export default function LiveChat(props: OverlayProps) {
 
   // Silinen mesaj "mesaj silindi" olarak 6 sn kalır, sonra kaldırılır
   const delAt = new Map<string, number>();
-  // Sohbet çalışmıyorken (başlatılmadı / durduruldu) overlay boş kalır; düzenlemede örnek gösterilir
+  // GERÇEK: sohbet motoru çalışıyor → sadece gerçek mesajlar (henüz mesaj yoksa boş; düzenlemede "bekleniyor" notu).
+  // BENZETİM: sohbet çalışmıyor ve demo modu açık ya da overlay önizleniyor / düzenleniyor / sabitlenmiş → akan sahte sohbet
+  // (sadece bu bileşende; kayda, sesli okumaya, moderasyona girmez). Diğer durumda (normal oturum, sohbet kapalı) boş.
   const running = () => !!topic()?.running;
+  const status = useTopic("status");
+  const demo = () => !!status()?.demo || !!settings().general.demo;
+  const simOn = createMemo(() => !running() && (props.editing || demo()));
+  const sim = createChatSim(simOn);
+  /** En az bir kanala bağlı mı (yayın açık, sohbet okunuyor) */
+  const connected = () => (topic()?.channels ?? []).some((c) => c.state === "live" || c.chat);
+  const waiting = () => running() && props.editing && !live().length;
   // Konu her gönderimde yeni nesnelerle gelir: aynı mesajın eski nesnesi korunur ki liste baştan çizilmesin
   // (aksi halde her yeni mesajda / izleyici sayısı değişiminde tüm satırlar kaybolup yeniden belirir).
   let cache = new Map<string, ChatMsg>();
@@ -108,7 +93,7 @@ export default function LiveChat(props: OverlayProps) {
     return out;
   });
   const shown = createMemo(() => {
-    let l = running() || props.editing ? live() : [];
+    let l = running() ? live() : simOn() ? sim.msgs() : [];
     const fade = Number(o().fade) * 1000;
     const n = now();
     l = l.filter((m) => {
@@ -125,8 +110,6 @@ export default function LiveChat(props: OverlayProps) {
     });
     l = l.slice(-Math.max(1, Number(o().maxMessages) || 12));
     if (delAt.size > 500) for (const k of [...delAt.keys()].slice(0, 250)) delAt.delete(k);
-    // Örnek mesajlar sabit nesneler (her saniye yeniden üretilirse giriş animasyonu döngüye girer)
-    if (!l.length && props.editing) l = SAMPLE;
     return o().newestTop ? [...l].reverse() : l;
   });
 
@@ -197,7 +180,7 @@ export default function LiveChat(props: OverlayProps) {
 
   // İzleyici çubuğu
   const barSize = () => ({ small: 11, normal: 15, large: 21 })[o().viewerBar as string] ?? 0;
-  const viewers = () => (running() ? topic()?.viewers : undefined);
+  const viewers = () => (running() ? topic()?.viewers : simOn() ? sim.viewers() : undefined);
   /** Çubukta gösterilecek platformlar: bağlı (kilitli olmayan) ya da ★ favori kanalı olanlar. Yayın kapalıysa "—". */
   const barPlatforms = createMemo(() => {
     const chans = running() ? (topic()?.channels ?? []) : [];
@@ -205,8 +188,8 @@ export default function LiveChat(props: OverlayProps) {
     for (const c of chans) if (c.platform && (c.state !== "locked" || c.mine)) set.add(c.platform);
     return (["youtube", "twitch", "kick"] as const).filter((p) => set.has(p));
   });
-  const barOn = () => barSize() > 0 && (props.editing || running());
-  const sample = () => props.editing && !running();
+  const barOn = () => barSize() > 0 && (simOn() || running());
+  const sample = simOn;
   const clock = () => new Date(now()).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
   return (
@@ -229,13 +212,13 @@ export default function LiveChat(props: OverlayProps) {
               {(p) => (
                 <span class="lc-bar-item">
                   <PlatformIcon platform={p} size={barSize() + 2} />
-                  {fmtCount(sample() ? 123 : viewers()?.[p])}
+                  {fmtCount(viewers()?.[p])}
                 </span>
               )}
             </For>
           </Show>
           <Show when={sample() || o().viewerMode === "total" || barPlatforms().length > 1}>
-            <span class="lc-bar-item lc-bar-total">Σ {fmtCount(sample() ? 369 : viewers()?.total)}</span>
+            <span class="lc-bar-item lc-bar-total">Σ {fmtCount(viewers()?.total)}</span>
           </Show>
           <Show when={o().showClock}>
             <span class="lc-bar-clock">{clock()}</span>
@@ -249,6 +232,11 @@ export default function LiveChat(props: OverlayProps) {
         <CaptionBox captions={caps()!} now={now()} maxAge={10} />
       </Show>
       <div class="lc-list" data-no-i18n>
+        <Show when={waiting()}>
+          <div class="lc-msg system" classList={{ bubble: !!o().bubbles }} style={{ opacity: 0.6 }}>
+            {connected() ? t("Sohbet bekleniyor…") : t("Kanala bağlanılıyor…")}
+          </div>
+        </Show>
         <For each={shown()}>
           {(m) => {
             const isAlert = m.kind !== "chat" && m.kind !== "system";

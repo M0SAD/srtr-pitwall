@@ -3835,3 +3835,27 @@ h3.ur-head {
   font-size: 12.5px;
   line-height: 1.45;
 }
+
+/* Ekran görüntüleri: toplulukta paylaşılmış olanların işareti */
+.shot-card {
+  position: relative;
+}
+.shot-card:has(.shot-shared) {
+  outline: 2px solid var(--accent, #ff8a1f);
+  outline-offset: -2px;
+}
+.shot-shared {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent, #ff8a1f);
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}

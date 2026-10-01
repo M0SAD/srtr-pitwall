@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.54"
+version = "1.0.56"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
