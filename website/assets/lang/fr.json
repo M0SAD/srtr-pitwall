@@ -315,6 +315,7 @@
   "f14_t": "Faire de la pub",
   "f14_d": "Touche les sim racers : choisis un pack de vues ou de durée, l'emplacement, paie, et ta pub est publiée automatiquement.",
   "a_opening_checkout": "Ouverture du paiement…",
+<<<<<<< HEAD
   "a_paid_pro": "Paiement reçu, merci ! PRO est activé sur ton compte en quelques secondes ; actualise la page si tu ne le vois pas.",
   "ad_st_paused_owner": "Suspendue par toi",
   "ad_imp_left": "Encore {0} vues",
@@ -587,4 +588,7 @@
   "trial_note": "À la fin de l'essai, ton compte repasse automatiquement en version gratuite ; aucun moyen de paiement demandé.",
   "trial_ok": "C'est parti",
   "fr_bg_changed": "🖼️ A changé le fond du chat"
+=======
+  "a_paid_pro": "Paiement reçu, merci ! PRO est activé sur ton compte en quelques secondes ; actualise la page si tu ne le vois pas."
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

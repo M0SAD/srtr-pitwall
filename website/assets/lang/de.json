@@ -315,6 +315,7 @@
   "f14_t": "Werbung schalten",
   "f14_d": "Erreiche Sim-Racer: Wähle ein Aufruf- oder Laufzeitpaket, bestimme den Platz, bezahle – deine Anzeige geht automatisch live.",
   "a_opening_checkout": "Checkout wird geöffnet…",
+<<<<<<< HEAD
   "a_paid_pro": "Zahlung erhalten, danke! PRO wird deinem Konto in wenigen Sekunden gutgeschrieben; lade die Seite neu, falls du es nicht siehst.",
   "ad_st_paused_owner": "Von dir pausiert",
   "ad_imp_left": "Noch {0} Aufrufe",
@@ -587,4 +588,7 @@
   "trial_note": "Nach der Testphase wechselt dein Konto automatisch zur kostenlosen Version; keine Zahlungsdaten nötig.",
   "trial_ok": "Los geht's",
   "fr_bg_changed": "🖼️ Chat-Hintergrund geändert"
+=======
+  "a_paid_pro": "Zahlung erhalten, danke! PRO wird deinem Konto in wenigen Sekunden gutgeschrieben; lade die Seite neu, falls du es nicht siehst."
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

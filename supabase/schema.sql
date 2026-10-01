@@ -3179,6 +3179,7 @@ grant execute on function public.ad_save(uuid, text, text, int, text, text, text
 --      Eski fiyat metni / ödeme bağlantısı alanları, otomatik fiyat girilmemiş planlar için kullanılmaya devam eder.
 -- ---------------------------------------------------------------------------
 alter table public.app_config add column if not exists pro_pricing jsonb not null default '{"currency":"USD","currency_tr":"TRY","plans":{}}'::jsonb;
+<<<<<<< HEAD
 
 -- ---------------------------------------------------------------------------
 -- c25: Ödeme bildirimleri ve reklam verenin kendi reklamını durdurması.
@@ -9946,3 +9947,5 @@ insert into public.pro_feature_catalog (key, label, grp, default_pro, updated_at
   ('social.messages_tts', 'Mesajlar overlay''inde mesajları sesli okuma', 'Sosyal', true, now())
 on conflict (key) do update
   set label = excluded.label, grp = excluded.grp, default_pro = excluded.default_pro, updated_at = now();
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3

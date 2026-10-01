@@ -315,6 +315,7 @@
   "f14_t": "Mainosta",
   "f14_d": "Tavoita simracerit: valitse näyttö- tai aikapaketti, valitse paikka, maksa — mainoksesi julkaistaan automaattisesti.",
   "a_opening_checkout": "Avataan maksusivua…",
+<<<<<<< HEAD
   "a_paid_pro": "Maksu vastaanotettu, kiitos! PRO päivittyy tilillesi muutamassa sekunnissa; päivitä sivu, jos et näe sitä.",
   "ad_st_paused_owner": "Keskeytit itse",
   "ad_imp_left": "{0} näyttöä jäljellä",
@@ -587,4 +588,7 @@
   "trial_note": "Kokeilun päätyttyä tilisi palaa automaattisesti ilmaisversioon; maksutietoja ei tarvita.",
   "trial_ok": "Aloitetaan",
   "fr_bg_changed": "🖼️ Vaihtoi keskustelun taustan"
+=======
+  "a_paid_pro": "Maksu vastaanotettu, kiitos! PRO päivittyy tilillesi muutamassa sekunnissa; päivitä sivu, jos et näe sitä."
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

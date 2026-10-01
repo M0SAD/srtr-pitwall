@@ -22,7 +22,10 @@ import {
   promoUntil,
   rememberChoice,
   sb,
+<<<<<<< HEAD
   setRememberMe,
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   startProCheckout,
   toast,
 } from "./core.js";
@@ -522,6 +525,7 @@ async function dashboard(u) {
     </div>
   </div>`;
 
+<<<<<<< HEAD
   // PRO tanıtım kartı (yönetici ayarlar; PRO olmayanlara)
   if ($("#pro-promo")) import("./propromo.js").then((m) => m.mountProPromo($("#pro-promo")), () => {});
   // İndirim kuponu: satın alma ve hediye kartlarındaki fiyatlar güncellenir
@@ -537,6 +541,12 @@ async function dashboard(u) {
     b.addEventListener("click", async () => {
       b.disabled = true;
       if (!(await startProCheckout(b.dataset.pro, null, proCouponFor(b.dataset.pro)?.code))) b.disabled = false;
+=======
+  $$("[data-pro]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      if (!(await startProCheckout(b.dataset.pro))) b.disabled = false;
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     }),
   );
   $("#logout").addEventListener("click", async () => {
@@ -1044,10 +1054,16 @@ async function render() {
 
 await boot("/hesap", "account");
 // PRO ödemesinden dönüş (pro-checkout redirect_url)
+<<<<<<< HEAD
 const paidKind = new URLSearchParams(location.search).get("paid");
 if (paidKind === "pro" || paidKind === "gift") {
   toast(T(paidKind === "gift" ? "a_paid_gift" : "a_paid_pro"));
   history.replaceState(null, "", "hesap.html" + (paidKind === "gift" && !location.hash ? "#hediye" : location.hash));
+=======
+if (new URLSearchParams(location.search).get("paid") === "pro") {
+  toast(T("a_paid_pro"));
+  history.replaceState(null, "", "hesap.html" + location.hash);
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }
 render();
 document.addEventListener("langchange", () => {

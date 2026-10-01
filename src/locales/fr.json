@@ -364,7 +364,10 @@
   "Açıklama (isteğe bağlı)": "Détails (facultatif)",
   "Açıklama (seri, araç, an…)": "Description (série, voiture, moment…)",
   "Açılamadı": "Impossible d'ouvrir",
+<<<<<<< HEAD
   "Açılan sayfada bu kodu gir:": "Saisis ce code sur la page qui s'ouvre :",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Açılıyor…": "Ouverture…",
   "Ad": "Nom",
   "Ad (iRacing'deki tam ad)": "Nom (nom complet sur iRacing)",
@@ -1197,8 +1200,11 @@
   "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "La fenêtre d'overlay normale qui couvre l'écran n'est pas affichée (elle reste visible en mode édition). À activer seulement si tu roules en VR.",
   "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "Aligne sur les bords/centres de l'écran et des autres overlays, avec des lignes guides.",
   "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "Passage auto entre les écrans (0 : désactivé)",
+<<<<<<< HEAD
   "Eksik kontrolü": "Vérifier les manquants",
   "Eksik listesini kopyala": "Copier la liste des manquants",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "Lien manuel (facultatif, utilisé si aucun prix automatique n'est défini)",
   "Elle eklenmiş (hesapsız)": "Ajouté manuellement (sans compte)",
   "Eller": "Mains",
@@ -1375,10 +1381,14 @@
   "Gelirim, kurulumu bitiriyorum": "J'arrive, je finis mon setup",
   "Geliştirmeye destek": "Soutenir le développement",
   "Genel": "Général",
+<<<<<<< HEAD
   "Genel ayar": "Réglage global",
   "Genel kısayollar": "Raccourcis globaux",
   "Genel para birimi": "Devise générale",
   "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "Utiliser l'apparence générale des discussions (Paramètres → Discussion)",
+=======
+  "Genel para birimi": "Devise générale",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Genesis": "Genesis",
   "Geniş": "Large",
   "Geniş (XL)": "Large (XL)",
@@ -2526,9 +2536,13 @@
   "Ödeme bekleyen": "En attente de paiement",
   "Ödeme bekliyor": "En attente de paiement",
   "Ödeme e-postası": "E-mail de paiement",
+<<<<<<< HEAD
   "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "Les reçus de paiement, PRO offert, changements de durée PRO et codes de connexion sont toujours envoyés",
   "Ödeme sayfası açılamadı": "Impossible d'ouvrir la page de paiement",
   "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "Ton propre e-mail est utilisé au paiement ; les factures et renouvellements sont à ta charge. L'e-mail du destinataire n'est jamais partagé. S'il a déjà PRO, le cadeau s'ajoute à sa durée.",
+=======
+  "Ödeme sayfası açılamadı": "Impossible d'ouvrir la page de paiement",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Ödeme sonrası otomatik yayınla": "Publier automatiquement après paiement",
   "Ödeme sorunu olan abonelik": "Abonnement avec problème de paiement",
   "Ödeme yapan üye": "Membres payants",
@@ -2583,8 +2597,11 @@
   "ör. 149": "ex. 149",
   "ör. 149₺": "ex. 149₺",
   "ör. 4.99": "ex. 4.99",
+<<<<<<< HEAD
   "ör. ali, veli": "ex. ali, veli",
   "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "ex. Envie de passer PRO en m'offrant 1 café par mois ? :)",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "ör. Bayrama özel herkese PRO!": "p. ex. PRO pour tous pendant les fêtes !",
   "ör. Bir kahve?": "ex. Un café ?",
   "ör. Bu akşam: Spa 6 Saat": "ex. Ce soir : 6 Heures de Spa",
@@ -3613,7 +3630,10 @@
   "Topluluktan: {0}": "De la communauté : {0}",
   "Touring car (TCR)": "Voiture de tourisme (TCR)",
   "Toyota": "Toyota",
+<<<<<<< HEAD
   "Track Temp": "Track Temp",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "TRY": "TRY",
   "tur": "tour",
   "Tur": "Tour",
@@ -4069,7 +4089,10 @@
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. La fonction doit être déployée avec la vérification JWT ACTIVÉE (seuls les membres connectés peuvent l'utiliser). Twitch n'a pas besoin de secret.",
   "Yukarı": "Haut",
   "Yumuşak grafik": "Graphique lissé",
+<<<<<<< HEAD
   "Yumuşak lastik": "Pneu tendre",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "Les annonceurs de l'étranger paient dans cette devise (ex. USD)",
   "Yuvarlak": "Arrondis",
   "Yuvarlak köşe": "Coins arrondis",

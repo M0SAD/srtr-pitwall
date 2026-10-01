@@ -38,6 +38,7 @@ import {
   planFor,
   isProCheckout,
   startProCheckout,
+<<<<<<< HEAD
   checkoutPaid,
   checkoutGift,
   myGifts,
@@ -45,6 +46,8 @@ import {
   SUB_LIVE,
   type AppConfig,
   type GiftSent,
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 } from "@/cloud/account";
 import { findPeople, hashColor, initialOf, type Person } from "@/cloud/social";
 import { useTopic } from "@/sdk/telemetry";
@@ -430,7 +433,11 @@ function ProPanel() {
     if (!isProCheckout(link)) return openUrl(checkoutUrl(link));
     setBuying(id);
     try {
+<<<<<<< HEAD
       await startProCheckout(id, undefined, couponFor(id)?.code);
+=======
+      await startProCheckout(id);
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     } catch (e) {
       setBuyErr(String((e as Error).message ?? e));
     } finally {
@@ -554,6 +561,7 @@ function ProPanel() {
           <Show when={buyErr()}>
             <p class="error">{buyErr()}</p>
           </Show>
+<<<<<<< HEAD
           <Show when={checkoutPaid()}>
             <p class="ok" style={{ color: "#3ddc84" }}>
               {checkoutGift()
@@ -561,6 +569,8 @@ function ProPanel() {
                 : t("Ödemen alındı, teşekkürler! PRO birkaç saniye içinde hesabına işlenir.")}
             </p>
           </Show>
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
         </Show>
         <div class="btns">
           <Show when={c()?.patreon_url}>

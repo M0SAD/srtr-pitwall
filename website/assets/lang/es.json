@@ -315,6 +315,7 @@
   "f14_t": "Anúnciate",
   "f14_d": "Llega a los sim racers: elige un paquete de impresiones o de tiempo, escoge el espacio, paga y tu anuncio se publica automáticamente.",
   "a_opening_checkout": "Abriendo el pago…",
+<<<<<<< HEAD
   "a_paid_pro": "¡Pago recibido, gracias! PRO se aplica a tu cuenta en unos segundos; recarga la página si no lo ves.",
   "ad_st_paused_owner": "Pausado por ti",
   "ad_imp_left": "Quedan {0} impresiones",
@@ -587,4 +588,7 @@
   "trial_note": "Cuando termine la prueba, tu cuenta volverá sola a la versión gratuita; no se piden datos de pago.",
   "trial_ok": "Empecemos",
   "fr_bg_changed": "🖼️ Cambió el fondo del chat"
+=======
+  "a_paid_pro": "¡Pago recibido, gracias! PRO se aplica a tu cuenta en unos segundos; recarga la página si no lo ves."
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 }

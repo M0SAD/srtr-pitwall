@@ -364,7 +364,10 @@
   "Açıklama (isteğe bağlı)": "Beskrivning (valfritt)",
   "Açıklama (seri, araç, an…)": "Beskrivning (serie, bil, ögonblick…)",
   "Açılamadı": "Kunde inte öppnas",
+<<<<<<< HEAD
   "Açılan sayfada bu kodu gir:": "Ange den här koden på sidan som öppnas:",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Açılıyor…": "Öppnar…",
   "Ad": "Namn",
   "Ad (iRacing'deki tam ad)": "Namn (fullständigt namn i iRacing)",
@@ -1197,8 +1200,11 @@
   "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "Det vanliga overlay-fönstret som täcker skärmen visas inte (syns fortfarande i redigeringsläge). Slå bara på om du enbart kör i VR.",
   "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "Fäster mot kant-/mittlinjer på skärmen och andra overlays och visar stödlinjer.",
   "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "Automatisk växling mellan skärmar (0: av)",
+<<<<<<< HEAD
   "Eksik kontrolü": "Kontrollera saknade",
   "Eksik listesini kopyala": "Kopiera lista över saknade",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "Manuell länk (valfri, används om inget automatiskt pris har angetts)",
   "Elle eklenmiş (hesapsız)": "Tillagd manuellt (utan konto)",
   "Eller": "Händer",
@@ -1375,10 +1381,14 @@
   "Gelirim, kurulumu bitiriyorum": "Jag kommer, fixar klart setupen",
   "Geliştirmeye destek": "Stöd utvecklingen",
   "Genel": "Allmänt",
+<<<<<<< HEAD
   "Genel ayar": "Global inställning",
   "Genel kısayollar": "Globala kortkommandon",
   "Genel para birimi": "Allmän valuta",
   "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "Använd allmänt chattutseende (Inställningar → Chatt)",
+=======
+  "Genel para birimi": "Allmän valuta",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Genesis": "Genesis",
   "Geniş": "Bred",
   "Geniş (XL)": "Bred (XL)",
@@ -2526,9 +2536,13 @@
   "Ödeme bekleyen": "Obetalda",
   "Ödeme bekliyor": "Väntar på betalning",
   "Ödeme e-postası": "Betalnings-e-post",
+<<<<<<< HEAD
   "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "Betalningskvitton, PRO i present, ändringar av PRO-perioden och inloggningskoder skickas alltid",
   "Ödeme sayfası açılamadı": "Kunde inte öppna kassan",
   "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "Din egen e-post används i kassan; fakturor och förnyelser står du för. Mottagarens e-post delas aldrig. Har mottagaren redan PRO läggs presenten till ovanpå.",
+=======
+  "Ödeme sayfası açılamadı": "Kunde inte öppna kassan",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Ödeme sonrası otomatik yayınla": "Publicera automatiskt efter betalning",
   "Ödeme sorunu olan abonelik": "Prenumeration med betalningsproblem",
   "Ödeme yapan üye": "Betalande medlem",
@@ -2583,8 +2597,11 @@
   "ör. 149": "t.ex. 149",
   "ör. 149₺": "t.ex. 149₺",
   "ör. 4.99": "t.ex. 4.99",
+<<<<<<< HEAD
   "ör. ali, veli": "t.ex. ali, veli",
   "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "t.ex. Vill du inte bli PRO genom att bjuda mig på en kaffe i månaden? :)",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "ör. Bayrama özel herkese PRO!": "t.ex. PRO till alla i helgen!",
   "ör. Bir kahve?": "t.ex. En kaffe?",
   "ör. Bu akşam: Spa 6 Saat": "t.ex. I kväll: Spa 6 timmar",
@@ -3613,7 +3630,10 @@
   "Topluluktan: {0}": "Från communityn: {0}",
   "Touring car (TCR)": "Standardvagn (TCR)",
   "Toyota": "Toyota",
+<<<<<<< HEAD
   "Track Temp": "Track Temp",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "TRY": "TRY",
   "tur": "varv",
   "Tur": "Varv",
@@ -4069,7 +4089,10 @@
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. Funktionen måste driftsättas med JWT-verifiering PÅ (bara inloggade medlemmar kan använda den). Twitch behöver ingen secret.",
   "Yukarı": "Upp",
   "Yumuşak grafik": "Mjuk graf",
+<<<<<<< HEAD
   "Yumuşak lastik": "Mjukt däck",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "Annonsörer från utlandet betalar i denna valuta (t.ex. USD)",
   "Yuvarlak": "Rundad",
   "Yuvarlak köşe": "Rundade hörn",

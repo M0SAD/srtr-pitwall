@@ -153,6 +153,12 @@ function AdSettings(p: { run: Run }) {
                 <td>
                   <input class="input" type="text" inputmode="decimal" value={pr().placements[id]?.day_tr ?? 0} onChange={(e) => setPlace(id, "day_tr", toNum(e.currentTarget.value))} />
                 </td>
+                <td>
+                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.cpm_tr ?? 0} onInput={(e) => setPlace(id, "cpm_tr", Number(e.currentTarget.value) || 0)} />
+                </td>
+                <td>
+                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.day_tr ?? 0} onInput={(e) => setPlace(id, "day_tr", Number(e.currentTarget.value) || 0)} />
+                </td>
               </tr>
             )}
           </For>

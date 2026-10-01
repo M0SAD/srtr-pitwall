@@ -278,6 +278,7 @@ export function planFor(cfg, p) {
   };
 }
 
+<<<<<<< HEAD
 // ---------------------------------------------------------------------------
 // Ödeme sayfası: Lemon Squeezy katmanı (lemon.js) ile sitenin içinde açılır.
 // lemon.js yüklenemezse (engelleyici, ağ) ~6 sn sonra tam sayfa yönlendirmeye düşülür.
@@ -354,6 +355,12 @@ export async function startProCheckout(planId, giftTo = null, coupon = null) {
     if (giftTo) body.gift_to = giftTo;
     if (coupon) body.coupon = coupon;
     const { data, error } = await sb.functions.invoke("pro-checkout", { body });
+=======
+/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar */
+export async function startProCheckout(planId) {
+  try {
+    const { data, error } = await sb.functions.invoke("pro-checkout", { body: { plan: planId, region } });
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     if (error) {
       let msg = error.message;
       try {
@@ -363,12 +370,17 @@ export async function startProCheckout(planId, giftTo = null, coupon = null) {
       throw new Error(msg);
     }
     if (!data?.url) throw new Error(T("error"));
+<<<<<<< HEAD
     const how = await openCheckout(data.url, () => {
       toast(T(giftTo ? "gift_pay_ok" : "pay_ok"));
       setTimeout(() => (location.href = `hesap.html?paid=${giftTo ? "gift" : "pro"}`), 3000);
     });
     // Katman açıldıysa sayfa yerinde kalır (false: düğme yeniden etkinleşir); tam sayfa yönlendirmede true
     return how === "redirect";
+=======
+    location.href = data.url;
+    return true;
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   } catch (e) {
     toast(e?.message || T("error"), true);
     return false;

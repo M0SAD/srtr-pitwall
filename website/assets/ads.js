@@ -1,7 +1,11 @@
 // Reklam ver: reklam veren yer, fiyat modeli (gösterim paketi / süre), görsel, metin, bağlantı ve hedef dili seçer,
 // canlı önizlemeyi ve toplam fiyatı görür, "Öde" ile Lemon Squeezy ödeme sayfasına gider (ads-checkout).
 // Ödeme gelince reklam kendiliğinden yayına girer. "Reklamlarım": durum, gösterim / tıklama, kalan.
+<<<<<<< HEAD
 import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, openCheckout, region, sb, toast } from "./core.js";
+=======
+import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, region, sb, toast } from "./core.js";
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 import { AD_PLACES, adHtml, adImg } from "./adslot.js";
 import { couponBox, couponPrice, getCoupon, strikeHtml } from "./coupon.js";
 

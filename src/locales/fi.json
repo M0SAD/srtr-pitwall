@@ -364,7 +364,10 @@
   "Açıklama (isteğe bağlı)": "Kuvaus (valinnainen)",
   "Açıklama (seri, araç, an…)": "Kuvaus (sarja, auto, hetki…)",
   "Açılamadı": "Avaaminen epäonnistui",
+<<<<<<< HEAD
   "Açılan sayfada bu kodu gir:": "Syötä tämä koodi avautuvalle sivulle:",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Açılıyor…": "Avataan…",
   "Ad": "Nimi",
   "Ad (iRacing'deki tam ad)": "Nimi (koko nimi iRacingissa)",
@@ -1197,8 +1200,11 @@
   "Ekranı kaplayan normal overlay penceresi gösterilmez (düzenleme modunda yine görünür). Sadece VR'da sürüyorsan aç.": "Näytön peittävää tavallista overlay-ikkunaa ei näytetä (näkyy silti muokkaustilassa). Ota käyttöön vain, jos ajat pelkästään VR:ssä.",
   "Ekranın ve diğer overlay'lerin kenar/orta çizgilerine hizalar, kılavuz çizgisi gösterir.": "Kohdistaa näytön ja muiden overlayden reuna-/keskiviivoihin ja näyttää apuviivat.",
   "Ekranlar arasında kendiliğinden geçiş (0: kapalı)": "Automaattinen vaihto näkymien välillä (0: pois)",
+<<<<<<< HEAD
   "Eksik kontrolü": "Puutteiden tarkistus",
   "Eksik listesini kopyala": "Kopioi puutelista",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)": "Manuaalinen linkki (valinnainen, käytetään jos automaattista hintaa ei ole asetettu)",
   "Elle eklenmiş (hesapsız)": "Lisätty käsin (ei tiliä)",
   "Eller": "Kädet",
@@ -1375,10 +1381,14 @@
   "Gelirim, kurulumu bitiriyorum": "Tulen, viimeistelen setupin",
   "Geliştirmeye destek": "Tue kehitystä",
   "Genel": "Yleiset",
+<<<<<<< HEAD
   "Genel ayar": "Yleinen asetus",
   "Genel kısayollar": "Yleiset pikanäppäimet",
   "Genel para birimi": "Yleinen valuutta",
   "Genel sohbet görünümünü kullan (Ayarlar → Sohbet)": "Käytä yleistä keskustelun ulkoasua (Asetukset → Keskustelu)",
+=======
+  "Genel para birimi": "Yleinen valuutta",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Genesis": "Genesis",
   "Geniş": "Leveä",
   "Geniş (XL)": "Leveä (XL)",
@@ -2526,9 +2536,13 @@
   "Ödeme bekleyen": "Maksamattomat",
   "Ödeme bekliyor": "Odottaa maksua",
   "Ödeme e-postası": "Maksun sähköposti",
+<<<<<<< HEAD
   "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir": "Maksukuitit, lahja-PRO, PRO-jakson muutokset ja kirjautumiskoodit lähetetään aina",
   "Ödeme sayfası açılamadı": "Maksusivua ei voitu avata",
   "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.": "Kassalla käytetään omaa sähköpostiasi; laskut ja uusintamaksut ovat sinun. Vastaanottajan sähköpostia ei koskaan jaeta. Jos vastaanottajalla on jo PRO, lahja lisätään sen päälle.",
+=======
+  "Ödeme sayfası açılamadı": "Maksusivua ei voitu avata",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Ödeme sonrası otomatik yayınla": "Julkaise automaattisesti maksun jälkeen",
   "Ödeme sorunu olan abonelik": "Tilaus, jonka maksussa on ongelma",
   "Ödeme yapan üye": "Maksava jäsen",
@@ -2583,8 +2597,11 @@
   "ör. 149": "esim. 149",
   "ör. 149₺": "esim. 149₺",
   "ör. 4.99": "esim. 4.99",
+<<<<<<< HEAD
   "ör. ali, veli": "esim. ali, veli",
   "ör. Bana ayda 1 kahve ısmarlayarak PRO olmak istemez misin? :)": "esim. Etkö haluaisi PRO:ksi tarjoamalla minulle kahvin kuussa? :)",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "ör. Bayrama özel herkese PRO!": "esim. PRO kaikille juhlapyhien kunniaksi!",
   "ör. Bir kahve?": "esim. Kahvi?",
   "ör. Bu akşam: Spa 6 Saat": "esim. Tänä iltana: Spa 6 h",
@@ -3613,7 +3630,10 @@
   "Topluluktan: {0}": "Yhteisöltä: {0}",
   "Touring car (TCR)": "Touring-auto (TCR)",
   "Toyota": "Toyota",
+<<<<<<< HEAD
   "Track Temp": "Track Temp",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "TRY": "TRY",
   "tur": "kierros",
   "Tur": "Kierros",
@@ -4069,7 +4089,10 @@
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. Funktio pitää julkaista JWT-tarkistus PÄÄLLÄ (vain kirjautuneet jäsenet voivat käyttää). Twitch ei tarvitse secretiä.",
   "Yukarı": "Ylös",
   "Yumuşak grafik": "Pehmeä käyrä",
+<<<<<<< HEAD
   "Yumuşak lastik": "Pehmeä rengas",
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   "Yurt dışından reklam verenler bu para birimiyle öder (ör. USD)": "Ulkomaiset mainostajat maksavat tällä valuutalla (esim. USD)",
   "Yuvarlak": "Pyöristetty",
   "Yuvarlak köşe": "Pyöristetyt kulmat",

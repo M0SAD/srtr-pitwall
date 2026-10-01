@@ -1,6 +1,7 @@
 // PRO üyelik ödemesi: giriş yapmış kullanıcı için Lemon Squeezy'de abonelik ödeme sayfası açar.
 //
 // Adres: https://<proje>.supabase.co/functions/v1/pro-checkout   (POST {"plan":"1m|3m|6m|12m","region":"tr|intl"})
+<<<<<<< HEAD
 // Hediye PRO: {"plan":…, "region":…, "gift_to":"<alıcının hesap kimliği>"} → abonelik alıcıya işlenir
 // (custom_data.user_id = alıcı, custom_data.gifter = çağıran). Ödeme sayfasındaki e-posta ÇAĞIRANIN kendi
 // e-postasıdır: fatura, makbuz ve yenileme ödemeleri ona aittir; alıcının e-postası hiçbir yerde gösterilmez.
@@ -20,6 +21,11 @@
 // Verify JWT: KAPALI (oturum fonksiyon içinde db.auth.getUser ile doğrulanır). Fiyat istemciden alınmaz:
 // app_config.pro_pricing'den okunur ve Lemon'a custom_price (kuruş/cent, kuponsuz tam fiyat) olarak gönderilir.
 // Abonelikte bu tutar tüm yenilemelerde de kullanılır (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
+=======
+// Verify JWT: KAPALI (oturum fonksiyon içinde db.auth.getUser ile doğrulanır). Fiyat istemciden alınmaz:
+// app_config.pro_pricing'den okunur ve Lemon'a custom_price (kuruş/cent) olarak gönderilir. Abonelikte bu tutar
+// tüm yenilemelerde de kullanılır (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 // Lemon'da tek abonelik ürünü ("SRTR Pitwall PRO") ve 4 varyantı vardır: her 1 / 3 / 6 / 12 ayda bir yenilenen
 // (varyant fiyatı önemsiz, yer tutucu). Ödeme bitince Lemon abonelik olaylarını pro-webhook'a (?source=lemon) yollar;
 // meta.custom_data.user_id ile PRO bu hesaba işlenir.
@@ -93,6 +99,7 @@ async function rate(from: string, to: string): Promise<number | null> {
   }
 }
 
+<<<<<<< HEAD
 /** Kuponlu tutar (c34 coupon_apply ile aynı: 2 haneye yuvarlanır) */
 const discounted = (price: number, percent: number) => Math.round(price * (100 - percent) + 1e-6) / 100;
 
@@ -148,6 +155,8 @@ function money(n: number, cur: string, tr: boolean) {
   }
 }
 
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 function reply(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
@@ -168,12 +177,16 @@ Deno.serve(async (req) => {
     if (ue || !user) return reply(401, { error: "Giriş yapmalısın" });
 
     const body = await req.json().catch(() => ({}));
+<<<<<<< HEAD
     const embed = body?.embed === true;
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     const plan = String(body?.plan ?? "");
     const months = MONTHS[plan];
     if (!months) return reply(400, { error: "Geçersiz plan" });
     const region = body?.region === "tr" ? "tr" : "intl";
 
+<<<<<<< HEAD
     // Hediye: alıcı kayıtlı bir üye olmalı ve çağıran olmamalı
     let giftTo: string | null = null;
     let giftName = "";
@@ -188,6 +201,8 @@ Deno.serve(async (req) => {
       giftName = String(rp.display_name || "").trim() || "?";
     }
 
+=======
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
     // Fiyat sunucuda app_config.pro_pricing'den
     const { data: cfg, error: ce } = await db.from("app_config").select("pro_pricing").eq("id", 1).maybeSingle();
     if (ce) throw new Error(ce.message);
@@ -205,6 +220,7 @@ Deno.serve(async (req) => {
     }
     if (!(price > 0)) return reply(400, { error: "Bu plan için fiyat belirlenmemiş" });
 
+<<<<<<< HEAD
     // İndirim kuponu (isteğe bağlı): sunucuda yeniden doğrulanır, istemcinin fiyatına güvenilmez
     const couponCode = typeof body?.coupon === "string" ? body.coupon.trim() : "";
     let coupon: { id: string; code: string; percent: number; validUntil: string | null } | null = null;
@@ -342,6 +358,19 @@ Deno.serve(async (req) => {
           coupon_duration: duration === "repeating" ? `repeating:${durMonths}` : duration,
         }
       : {};
+=======
+    // Bu para biriminin mağazası; yoksa ana mağaza ve kur çevrimi
+    const { store, variant, currency: storeCur } = storeFor(currency, plan);
+    if (!store || !variant) return reply(503, { error: NOT_READY });
+    let charge = price;
+    if (storeCur !== currency) {
+      const fx = await rate(currency, storeCur);
+      if (!fx) return reply(502, { error: "Kur alınamadı, biraz sonra tekrar dene" });
+      charge = Math.round(price * fx * 100) / 100;
+    }
+    const cents = Math.round(charge * 100);
+    if (!(cents > 0)) return reply(400, { error: "Bu plan için fiyat belirlenmemiş" });
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
 
     const payload = {
       data: {
@@ -349,6 +378,7 @@ Deno.serve(async (req) => {
         attributes: {
           custom_price: cents,
           product_options: {
+<<<<<<< HEAD
             // Lemon başlığın yanına varyant adını zaten ekler ("SRTR Pitwall PRO (12 aylık)")
             name: title,
             ...(lines.length ? { description: lines.join(" · ") } : {}),
@@ -367,6 +397,19 @@ Deno.serve(async (req) => {
           },
           expires_at: expiresAt,
           test_mode: testMode,
+=======
+            name: storeCur === "TRY" ? `SRTR Pitwall PRO · ${months} aylık` : `SRTR Pitwall PRO · ${months} month${months > 1 ? "s" : ""}`,
+            redirect_url: `${SITE}/hesap.html?paid=pro`,
+            enabled_variants: [Number(variant)],
+          },
+          checkout_options: { embed: false, media: false },
+          checkout_data: {
+            email: user.email ?? undefined,
+            custom: { user_id: user.id, plan },
+          },
+          expires_at: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
+          test_mode: Deno.env.get("LEMON_TEST_MODE") === "1",
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
         },
         relationships: {
           store: { data: { type: "stores", id: String(store) } },
@@ -389,6 +432,7 @@ Deno.serve(async (req) => {
       console.error("lemon checkout", res.status, JSON.stringify(j?.errors ?? j));
       return reply(502, { error: "Ödeme sayfası açılamadı" });
     }
+<<<<<<< HEAD
     return reply(200, {
       url,
       price,
@@ -405,6 +449,9 @@ Deno.serve(async (req) => {
           }
         : {}),
     });
+=======
+    return reply(200, { url, price, currency, charged: charge, charged_currency: storeCur });
+>>>>>>> 2eced7f1d54b4de63de247375088ba133e0d37d3
   } catch (e) {
     console.error(e);
     return reply(500, { error: String((e as Error).message ?? e) });
