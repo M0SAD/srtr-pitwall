@@ -1157,6 +1157,32 @@ p.small {
   color: #ff8a80;
 }
 
+.sc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sc-group h4 {
+  margin: 14px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.sc-fixed {
+  min-width: 120px;
+  padding: 4px 10px;
+  border: 1px solid #2f3542;
+  border-radius: 6px;
+  background: #12151b;
+  font: 12px "JetBrains Mono", monospace;
+  text-align: center;
+}
+
 /* ---------- Arkadaşlar ---------- */
 .fr-color {
   width: 40px;
@@ -1685,4 +1711,71 @@ p.small {
 
 .lang-select {
   min-width: 220px;
+}
+
+/* Hediye PRO (Hesap / PRO sayfası) */
+.gift-box {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #2a2f3a;
+}
+.gift-inline {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #5a3f1c;
+  border-radius: 8px;
+  background: rgba(255, 179, 65, 0.04);
+}
+.gift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+.gift-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-radius: 6px;
+}
+.gift-row + .gift-row {
+  border-top: 1px solid #1d2129;
+}
+.gift-sel {
+  border: 1px solid #5a3f1c;
+}
+.gift-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gift-main b {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gift-av {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 30%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.gift-h {
+  margin: 14px 0 0;
+  font-size: 13px;
+}
+.gift-ok {
+  color: #3ddc84;
+}
+.gift-from {
+  color: #ffb341;
 }

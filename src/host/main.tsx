@@ -1,8 +1,11 @@
 import { render } from "solid-js/web";
 import { Host } from "./Host";
+import { Single } from "./Single";
+import { query } from "@/sdk/platform";
 import { initSettings } from "@/sdk/settings";
 import { startDomTranslation } from "@/sdk/i18n";
 import { startEntitlement } from "@/cloud/account";
+import { startProFeatures } from "@/sdk/proFeatures";
 import "@/sdk/fonts";
 import "@/overlays/base.css";
 import "./host.css";
@@ -20,7 +23,10 @@ initSettings("overlay").then(() => {
   startDomTranslation();
   // Geliştirme modunda dosya kaydedilince eski kopya kaldırılır (çift çizim olmasın).
   root.textContent = "";
-  const dispose = render(() => <Host />, root);
+  // ?only=<overlay>: tek overlay (OBS kısa adresleri /livechat, /livepoll, /captions)
+  const only = query.get("only");
+  const dispose = render(() => (only ? <Single type={only} /> : <Host />), root);
   import.meta.hot?.dispose(dispose);
   startEntitlement();
+  startProFeatures(false);
 });

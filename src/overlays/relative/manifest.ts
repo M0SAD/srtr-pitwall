@@ -1,5 +1,36 @@
 import { defineOverlay } from "@/sdk/overlay";
 import { NAME_FORMATS, headerField } from "@/sdk/HeaderStats";
+import { labelStyleField } from "@/sdk/WxIcon";
+
+export const RELATIVE_COLUMNS = [
+  { value: "class", label: "Sınıf rengi" },
+  { value: "pos", label: "Sınıf sırası" },
+  { value: "num", label: "Araç numarası" },
+  { value: "car", label: "Araç markası (logo)" },
+  { value: "name", label: "Sürücü" },
+  { value: "stint", label: "Stint / PIT / OUT" },
+  { value: "license", label: "Lisans ve SR" },
+  { value: "irating", label: "iRating" },
+  { value: "last", label: "Son tur" },
+  { value: "tire", label: "Lastik" },
+  { value: "gap", label: "Fark" },
+  { value: "flag", label: "Bayrak" },
+];
+
+export const RELATIVE_DEFAULT_COLUMNS = [
+  { key: "class", on: true },
+  { key: "pos", on: true },
+  { key: "num", on: true },
+  { key: "car", on: true },
+  { key: "name", on: true },
+  { key: "stint", on: true },
+  { key: "license", on: true },
+  { key: "irating", on: true },
+  { key: "last", on: true },
+  { key: "tire", on: false },
+  { key: "gap", on: true },
+  { key: "flag", on: true },
+];
 
 export default defineOverlay({
   id: "relative",
@@ -22,14 +53,18 @@ export default defineOverlay({
     headerField("headerFields", "Üst satır bilgileri", ["air", "track", "wetness", "humidity", "precip"]),
     { key: "showFooter", label: "Alt satır", type: "boolean", default: true, group: "Başlık" },
     headerField("footerFields", "Alt satır bilgileri", ["sof", "incidents", "remaining", "clock"]),
-    { key: "showClass", label: "Sınıf rengi", type: "boolean", default: true },
-    { key: "showCar", label: "Araç markası (logo)", type: "boolean", default: false },
-    { key: "showStint", label: "Stint / PIT / OUT", type: "boolean", default: true },
-    { key: "showLicense", label: "Lisans ve SR", type: "boolean", default: true },
-    { key: "showIrating", label: "iRating", type: "boolean", default: true },
-    { key: "showIrDelta", label: "Tahmini iRating değişimi (yarış)", type: "boolean", default: true },
-    { key: "showLast", label: "Son tur", type: "boolean", default: true },
-    { key: "showFlags", label: "Bayrak sütunu", type: "boolean", default: true },
+    labelStyleField("Başlık"),
+    {
+      key: "columns",
+      label: "Sütunlar",
+      type: "order",
+      default: RELATIVE_DEFAULT_COLUMNS,
+      options: RELATIVE_COLUMNS,
+      group: "Sütunlar",
+      hint: "Lastik: her aracın taktığı lastik — yağmur (mavi), ara (yeşil I), yumuşak (kırmızı S), orta (sarı M), sert (beyaz H), kuru (gri D). Bayrak: araca gösterilen bayrağın rengi.",
+    },
+    { key: "logoSize", label: "Logo boyutu", type: "number", default: 150, min: 80, max: 220, step: 10, unit: "%", group: "Sütunlar" },
+    { key: "showIrDelta", label: "Tahmini iRating değişimi (yarış)", type: "boolean", default: true, group: "Sütunlar" },
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 10, min: 2, max: 30, step: 1, unit: "Hz" },
   ],
 });

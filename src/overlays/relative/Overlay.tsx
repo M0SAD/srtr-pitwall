@@ -1,5 +1,5 @@
 import { For, Show, createMemo } from "solid-js";
-import type { OverlayProps } from "@/sdk/overlay";
+import { orderValue, type OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { irating, lapTime } from "@/sdk/format";
 import type { Row } from "@/sdk/types";
@@ -8,6 +8,9 @@ import { CarLogo } from "@/sdk/logos";
 import { friendOf, friendRowStyle, friendsOn } from "@/sdk/friends";
 import { HeaderStats, formatName } from "@/sdk/HeaderStats";
 import { FriendBadge } from "@/sdk/FriendBadge";
+import { TireBadge } from "@/sdk/TireBadge";
+import { t } from "@/sdk/i18n";
+import { RELATIVE_COLUMNS, RELATIVE_DEFAULT_COLUMNS } from "./manifest";
 import "./style.css";
 
 export function LicensePill(props: { r: Row }) {
@@ -48,12 +51,44 @@ export function ComboPill(props: { r: Row; delta: boolean }) {
   );
 }
 
+/** Bayrak kodu -> [görünüm sınıfı, ad]. Sim'den gelen kısa kodlar (BLK/DSQ/REP/BLU) ve renk adları. */
+const FLAG_SWATCH: Record<string, [string, string]> = {
+  blk: ["black", "Siyah bayrak"],
+  black: ["black", "Siyah bayrak"],
+  dsq: ["dsq", "Diskalifiye (siyah bayrak)"],
+  disqualify: ["dsq", "Diskalifiye (siyah bayrak)"],
+  rep: ["meatball", "Teknik bayrak (turuncu toplu siyah)"],
+  repair: ["meatball", "Teknik bayrak (turuncu toplu siyah)"],
+  meatball: ["meatball", "Teknik bayrak (turuncu toplu siyah)"],
+  blu: ["blue", "Mavi bayrak"],
+  blue: ["blue", "Mavi bayrak"],
+  yellow: ["yellow", "Sarı bayrak"],
+  yel: ["yellow", "Sarı bayrak"],
+  green: ["green", "Yeşil bayrak"],
+  grn: ["green", "Yeşil bayrak"],
+  white: ["white", "Beyaz bayrak"],
+  wht: ["white", "Beyaz bayrak"],
+  red: ["red", "Kırmızı bayrak"],
+  checkered: ["checkered", "Damalı bayrak"],
+  chk: ["checkered", "Damalı bayrak"],
+  debris: ["debris", "Pistte döküntü bayrağı"],
+  slow: ["slow", "Yavaşla uyarısı"],
+};
+
+/** Bayrak sütunu: yazısız renkli bayrak; adı ipucunda */
 export function FlagBadge(props: { flag: string }) {
+  const info = () => (props.flag ? FLAG_SWATCH[props.flag.toLowerCase()] : undefined);
   return (
-    <Show when={props.flag}>
-      <span class={`ov-tag fb fb-${props.flag.toLowerCase()}`}>{props.flag}</span>
+    <Show when={info()}>
+      <span class={`fsw fsw-${info()![0]}`} title={info()![1]} data-tip={t(info()![1])} />
     </Show>
   );
+}
+
+/** Eski ayarlardan (showClass vb.) sütun listesi */
+function legacyColumns(o: Record<string, unknown>) {
+  const map: Record<string, string> = { class: "showClass", car: "showCar", stint: "showStint", license: "showLicense", irating: "showIrating", last: "showLast", tire: "showTire", flag: "showFlags" };
+  return RELATIVE_DEFAULT_COLUMNS.map((c) => ({ key: c.key, on: map[c.key] && typeof o[map[c.key]] === "boolean" ? (o[map[c.key]] as boolean) : c.on }));
 }
 
 export default function Relative(props: OverlayProps) {
@@ -67,6 +102,75 @@ export default function Relative(props: OverlayProps) {
     return all.slice(Math.max(0, me - n), me + n + 1);
   });
 
+  const columns = createMemo(() =>
+    orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options)).filter((c) => c.on),
+  );
+  const isOn = (k: string) => columns().some((c) => c.key === k);
+
+  const cell = (key: string, r: Row) => {
+    switch (key) {
+      case "class":
+        return <span class="rel-class" style={{ background: r.classColor || "#666" }} />;
+      case "pos":
+        return <span class="rel-pos">{r.classPos > 0 ? r.classPos : "-"}</span>;
+      case "num":
+        return <span class="rel-num">{r.number}</span>;
+      case "name":
+        return (
+          <span class="rel-name">
+            <FriendBadge place="relative" userId={r.userId} name={r.name} />
+            <span data-no-i18n>{formatName(r.name, props.options.nameFormat as string)}</span>
+            <Show when={friendsOn("relative") && friendOf(r.userId, r.name)?.tag}>
+              <span class="ov-tag rel-dtag">{friendOf(r.userId, r.name)!.tag}</span>
+            </Show>
+          </span>
+        );
+      case "car":
+        return <CarLogo class="rel-car" cell carName={r.carName || r.car} fallback={r.car} scale={((props.options.logoSize as number) ?? 150) / 100} />;
+      case "stint":
+        return (
+          <span class="rel-stint">
+            <Show when={r.pitState} fallback={<>{r.stint > 0 ? `T${r.stint}` : ""}</>}>
+              <span class={`ov-tag ps ps-${r.pitState.toLowerCase()}`}>{r.pitState}</span>
+            </Show>
+          </span>
+        );
+      case "license":
+        return (
+          <Show when={!settings().theme.combineLicense} fallback={<ComboPill r={r} delta={props.options.showIrDelta} />}>
+            <LicensePill r={r} />
+          </Show>
+        );
+      case "irating":
+        return (
+          <Show when={!settings().theme.combineLicense} fallback={<Show when={!isOn("license")}><ComboPill r={r} delta={props.options.showIrDelta} /></Show>}>
+            <IrPill r={r} delta={props.options.showIrDelta} />
+          </Show>
+        );
+      case "last":
+        return (
+          <span class="rel-last ov-mono" classList={{ pb: r.lastPb }}>
+            {lapTime(r.last)}
+          </span>
+        );
+      case "tire":
+        return (
+          <span class="rel-tire">
+            <TireBadge kind={r.tireKind} />
+          </span>
+        );
+      case "gap":
+        return <span class="rel-gap ov-mono">{r.isMe ? "" : (r.gap > 0 ? "-" : "+") + Math.abs(r.gap).toFixed(1)}</span>;
+      case "flag":
+        return (
+          <span class="rel-flag">
+            <FlagBadge flag={r.flag} />
+          </span>
+        );
+    }
+    return null;
+  };
+
   const rowClass = (r: Row) =>
     r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
 
@@ -74,7 +178,7 @@ export default function Relative(props: OverlayProps) {
     <div class="ov-panel rel">
       <Show when={props.options.showHeader && data()}>
         <div class="rel-head">
-          <HeaderStats fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()!.sof} />
+          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()!.sof} />
         </div>
       </Show>
       <Show when={rows().length > 0} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
@@ -82,54 +186,7 @@ export default function Relative(props: OverlayProps) {
           <For each={rows()}>
             {(r) => (
               <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
-                <Show when={props.options.showClass}>
-                  <span class="rel-class" style={{ background: r.classColor || "#666" }} />
-                </Show>
-                <span class="rel-pos">{r.classPos > 0 ? r.classPos : "-"}</span>
-                <span class="rel-num">{r.number}</span>
-                <span class="rel-name">
-                  <FriendBadge place="relative" userId={r.userId} name={r.name} />
-                  <span data-no-i18n>{formatName(r.name, props.options.nameFormat as string)}</span>
-                  <Show when={friendsOn("relative") && friendOf(r.userId, r.name)?.tag}>
-                    <span class="ov-tag rel-dtag">{friendOf(r.userId, r.name)!.tag}</span>
-                  </Show>
-                </span>
-                <Show when={props.options.showCar}>
-                  <CarLogo class="rel-car" carName={r.carName || r.car} fallback={r.car} />
-                </Show>
-                <Show when={props.options.showStint}>
-                  <span class="rel-stint">
-                    <Show when={r.pitState} fallback={<>{r.stint > 0 ? `T${r.stint}` : ""}</>}>
-                      <span class={`ov-tag ps ps-${r.pitState.toLowerCase()}`}>{r.pitState}</span>
-                    </Show>
-                  </span>
-                </Show>
-                <Show
-                  when={!settings().theme.combineLicense}
-                  fallback={
-                    <Show when={props.options.showLicense || props.options.showIrating}>
-                      <ComboPill r={r} delta={props.options.showIrDelta} />
-                    </Show>
-                  }
-                >
-                  <Show when={props.options.showLicense}>
-                    <LicensePill r={r} />
-                  </Show>
-                  <Show when={props.options.showIrating}>
-                    <IrPill r={r} delta={props.options.showIrDelta} />
-                  </Show>
-                </Show>
-                <Show when={props.options.showLast}>
-                  <span class="rel-last ov-mono" classList={{ pb: r.lastPb }}>
-                    {lapTime(r.last)}
-                  </span>
-                </Show>
-                <span class="rel-gap ov-mono">{r.isMe ? "" : (r.gap > 0 ? "-" : "+") + Math.abs(r.gap).toFixed(1)}</span>
-                <Show when={props.options.showFlags}>
-                  <span class="rel-flag">
-                    <FlagBadge flag={r.flag} />
-                  </span>
-                </Show>
+                <For each={columns()}>{(c) => cell(c.key, r)}</For>
               </div>
             )}
           </For>
@@ -137,7 +194,7 @@ export default function Relative(props: OverlayProps) {
       </Show>
       <Show when={props.options.showFooter && data()}>
         <div class="rel-foot">
-          <HeaderStats fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "remaining", "clock"]} units={props.units} sof={data()!.sof} />
+          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "remaining", "clock"]} units={props.units} sof={data()!.sof} />
         </div>
       </Show>
     </div>

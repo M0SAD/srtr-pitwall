@@ -2,8 +2,9 @@
 
 import { createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { api, cloudEnabled, session } from "./supabase";
+import { api, callFunction, cloudEnabled, session } from "./supabase";
 import { apiBase, inTauri } from "@/sdk/platform";
+import { localeTag } from "@/sdk/i18n";
 import { loadNotices, loadPerms } from "./moderation";
 import { normalizeWatermark, syncWatermark, type WatermarkCfg } from "@/sdk/watermark";
 
@@ -62,6 +63,22 @@ export interface AppConfig {
   ad_auto_approve?: boolean;
   ad_report_hide_threshold?: number;
   ad_pricing?: import("./ads").AdPricing;
+  /** Otomatik PRO fiyatları (pro-checkout bu tutarla Lemon Squeezy ödeme sayfası açar).
+   *  price: genel fiyat (currency, ör. USD), price_tr: Türkiye fiyatı (currency_tr, ör. TRY) */
+  pro_pricing?: ProPricing;
+  /** Yeni hesaplara deneme PRO (c41): açık mı ve kaç gün */
+  trial_enabled?: boolean;
+  trial_days?: number;
+  /** Canlı Sohbet › Sohbete yaz (c43): geliştirici uygulamalarının herkese açık istemci kimlikleri (gizli anahtarlar Supabase secrets'ta) */
+  livechat_twitch_client_id?: string;
+  livechat_youtube_client_id?: string;
+  livechat_kick_client_id?: string;
+}
+
+export interface ProPricing {
+  currency?: string;
+  currency_tr?: string;
+  plans?: Partial<Record<"1m" | "3m" | "6m" | "12m", { price?: number; price_tr?: number }>>;
 }
 
 export interface Entitlement {
@@ -179,7 +196,48 @@ export interface ProInfo {
   /** Abonelik kendini yeniliyor mu */
   renewing: boolean;
   sub: { status: string; plan: string; renews_at: string | null; ends_at: string | null; portal_url: string } | null;
+  /** Bana hediye edilmiş (sürmekte olan) abonelik; portal bağlantısı ödeyene ait olduğu için yok */
+  gift?: GiftReceived | null;
+  gifted_by_name?: string | null;
 }
+
+export interface GiftReceived {
+  status: string;
+  plan: string;
+  renews_at: string | null;
+  ends_at: string | null;
+  until: string | null;
+  created_at: string;
+  gifted_by_name: string;
+}
+
+/** Hediye ettiğim abonelik (my_gifts) */
+export interface GiftSent {
+  lemon_id: string;
+  recipient: string | null;
+  recipient_name: string;
+  plan: string;
+  status: string;
+  renews_at: string | null;
+  ends_at: string | null;
+  until: string | null;
+  created_at: string;
+}
+
+/** Sürmekte olan abonelik durumları */
+export const SUB_LIVE = ["active", "on_trial", "past_due"];
+
+export const myGifts = () => api<GiftSent[]>("POST", "rpc/my_gifts", { body: {} }).then((r) => r ?? []);
+
+/** Hediye ettiğim aboneliği sonlandırır (Lemon'da iptal; alıcının PRO'su ödenen dönemin sonuna kadar sürer) */
+export const cancelGift = (lemonId: string) =>
+  callFunction<{ ok: boolean; status: string; ends_at: string | null }>("gift-cancel", { lemon_id: lemonId });
+
+/** E-posta bildirim tercihleri (c35). Anahtar yoksa sunucu varsayılanı: takımlar kapalı, diğerleri açık. */
+export type EmailPrefKey = "friends" | "teams" | "support" | "ads" | "pro" | "shots";
+export type EmailPrefs = Record<EmailPrefKey, boolean>;
+export const myEmailPrefs = () => api<EmailPrefs>("POST", "rpc/my_email_prefs", { body: {} });
+export const setEmailPrefs = (patch: Partial<EmailPrefs>) => api<EmailPrefs>("POST", "rpc/email_prefs_set", { body: { p_prefs: patch } });
 
 const [proInfo, setProInfo] = createSignal<ProInfo | null>(null);
 export { proInfo };
@@ -234,8 +292,34 @@ export const PLAN_LIST: PlanDef[] = [
   { id: "12m", label: "12 aylık", price: "price_yearly", checkout: "checkout_12m", trPrice: "price_tr_12m", trCheckout: "checkout_tr_12m" },
 ];
 
-/** Planın kullanıcının bölgesindeki fiyatı ve ödeme bağlantısı */
-export function planFor(c: AppConfig | null | undefined, p: PlanDef): { price: string; checkout: string } {
+/** Para tutarını yerel biçimde yazar ("$4.99", "₺149,00") */
+export function fmtPrice(n: number, cur: string) {
+  try {
+    return new Intl.NumberFormat(localeTag(), { style: "currency", currency: cur }).format(n);
+  } catch {
+    return `${n.toFixed(2)} ${cur}`;
+  }
+}
+
+/** Yönetim panelinde girilen otomatik fiyat (Türkiye'de, girildiyse Türkiye fiyatı); yoksa null */
+export function proPrice(c: AppConfig | null | undefined, p: PlanDef): { num: number; cur: string } | null {
+  const pr = c?.pro_pricing ?? {};
+  const pl = pr.plans?.[p.id] ?? {};
+  const tr = Number(pl.price_tr);
+  if (inTurkey() && tr > 0) return { num: tr, cur: String(pr.currency_tr || "TRY").toUpperCase() };
+  const n = Number(pl.price);
+  if (n > 0) return { num: n, cur: String(pr.currency || "USD").toUpperCase() };
+  return null;
+}
+
+/** Otomatik ödeme mi ("pro:<plan>", pro-checkout ile açılır) yoksa elle girilmiş bağlantı mı */
+export const isProCheckout = (link: string) => link.startsWith("pro:");
+
+/** Planın kullanıcının bölgesindeki fiyatı ve ödeme bağlantısı.
+ *  Otomatik fiyat girildiyse checkout "pro:<plan>" olur (ödeme startProCheckout ile açılır). */
+export function planFor(c: AppConfig | null | undefined, p: PlanDef): { price: string; checkout: string; num?: number; cur?: string } {
+  const dyn = proPrice(c, p);
+  if (dyn) return { price: fmtPrice(dyn.num, dyn.cur), checkout: "pro:" + p.id, num: dyn.num, cur: dyn.cur };
   const g = (k: keyof AppConfig) => String((c?.[k] as string | undefined) ?? "");
   const tr = inTurkey() && (g(p.trPrice) || g(p.trCheckout));
   return { price: tr ? g(p.trPrice) : g(p.price), checkout: tr ? g(p.trCheckout) : g(p.checkout) };
@@ -253,6 +337,69 @@ export function checkoutUrl(base: string) {
     return u.toString();
   } catch {
     return base;
+  }
+}
+
+/** Program içi ödeme tamamlandı (hesap sayfasında teşekkür mesajı için) */
+const [checkoutPaid, setCheckoutPaid] = createSignal(false);
+/** Son açılan ödeme hediye miydi (teşekkür mesajı ve hediye listesi için) */
+const [checkoutGift, setCheckoutGift] = createSignal(false);
+export { checkoutPaid, checkoutGift };
+
+/** Webhook gecikmesi: PRO durumunu ~10 sn boyunca birkaç kez yeniler */
+function refreshAfterPayment() {
+  for (const ms of [1500, 4000, 7000, 11000]) {
+    setTimeout(() => {
+      refreshEntitlement();
+      loadProInfo();
+    }, ms);
+  }
+}
+
+let checkoutListening = false;
+/** Ödeme penceresinin olaylarını bir kez dinler (checkout-done: ödeme bitti; checkout-closed: pencere kapandı) */
+async function listenCheckout() {
+  if (checkoutListening) return;
+  checkoutListening = true;
+  const { listen } = await import("@tauri-apps/api/event");
+  await listen<string>("checkout-done", () => {
+    setCheckoutPaid(true);
+    refreshAfterPayment();
+  });
+  // Dönüş adresine gidilmeden kapatıldıysa da (ödeme yapılmış olabilir) bir kez yenile
+  await listen("checkout-closed", () => {
+    setTimeout(() => {
+      refreshEntitlement();
+      loadProInfo();
+    }, 1500);
+  });
+}
+
+/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar.
+ *  Programda sayfa ayrı bir uygulama penceresinde açılır (checkout_open); ödeme bitince PRO durumu
+ *  yenilenir. Olmazsa varsayılan tarayıcıda açılır. Hata olursa mesajıyla fırlatır.
+ *  giftTo: hediye PRO için alıcının hesap kimliği (ödeme sayfasında ödeyenin kendi e-postası kullanılır).
+ *  coupon: indirim kuponu kodu (sunucuda yeniden doğrulanır). */
+export async function startProCheckout(planId: PlanDef["id"], giftTo?: string, coupon?: string) {
+  const r = await callFunction<{ url?: string }>("pro-checkout", {
+    plan: planId,
+    region: inTurkey() ? "tr" : "intl",
+    ...(giftTo ? { gift_to: giftTo } : {}),
+    ...(coupon ? { coupon } : {}),
+  });
+  const url = r?.url;
+  if (!url) throw new Error("Ödeme sayfası açılamadı");
+  if (!inTauri) {
+    window.open(url, "_blank");
+    return;
+  }
+  setCheckoutPaid(false);
+  setCheckoutGift(!!giftTo);
+  try {
+    await listenCheckout();
+    await invoke("checkout_open", { url, donePrefix: "https://pitwall.simracetr.com/hesap.html?paid=" });
+  } catch {
+    await invoke("open_url", { url }).catch(() => window.open(url, "_blank"));
   }
 }
 
@@ -317,6 +464,64 @@ export async function readEntitlement() {
  * Buluttan yapılandırmayı ve profili alıp PRO durumunu günceller. İnternet yoksa
  * son bilinen durum geçerli kalır (PRO süresi bitene kadar).
  */
+/** Sesli mühendis PRO'ya ayrılmış mı: yöneticinin "PRO özellikleri" kararı (voice.engineer), yoksa varsayılan PRO.
+ *  proFeatures.ts döngüsel içe aktarmayı önlemek için kararları önbellekten okur. */
+function voiceRequiresPro(): boolean {
+  try {
+    const v = JSON.parse(localStorage.getItem("pitwall.proFeatures") || "{}");
+    if (v && typeof v["voice.engineer"] === "boolean") return v["voice.engineer"];
+  } catch {
+    /* önbellek yok */
+  }
+  return true;
+}
+
+/** Ekran görüntüsü almak PRO'ya ayrılmış mı (tools.screenshots; varsayılan herkese açık). Rust kısayolu "shots" kilidine bakar. */
+function shotsRequirePro(): boolean {
+  try {
+    const v = JSON.parse(localStorage.getItem("pitwall.proFeatures") || "{}");
+    return !!v && v["tools.screenshots"] === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Rust'a giden kilit listesi: "voice" sadece sesli mühendis PRO'ya ayrılmışsa (eski pro_overlays işareti yok sayılır),
+ *  "shots" ekran görüntüsü almak PRO'ya ayrılmışsa, "livechat.*" Canlı Sohbet özellikleri PRO'ya ayrılmışsa */
+function withVoiceLock(list: string[]): string[] {
+  const rest = list.filter((x) => x !== "voice" && x !== "shots" && !x.startsWith("livechat.") && !x.startsWith("social."));
+  if (voiceRequiresPro()) rest.push("voice");
+  if (shotsRequirePro()) rest.push("shots");
+  rest.push(...livechatLocks());
+  return rest;
+}
+
+/** Canlı Sohbet: PRO'ya ayrılmış özellikler (yönetici kararı, yoksa varsayılan PRO). Rust aynı adlarla denetler. */
+// "social.messages_tts": Mesajlar overlay'inde sesli okuma (aynı düzen; Rust: livechat/tts.rs social_tts_speak)
+const LIVECHAT_LOCKS = ["livechat.multi", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts"];
+function livechatLocks(): string[] {
+  let v: Record<string, unknown> = {};
+  try {
+    v = JSON.parse(localStorage.getItem("pitwall.proFeatures") || "{}") || {};
+  } catch {
+    /* önbellek yok */
+  }
+  return LIVECHAT_LOCKS.filter((k) => (typeof v[k] === "boolean" ? v[k] : true));
+}
+
+/** Yönetici sesli mühendis kararını değiştirdi: Rust tarafındaki kilidi hemen güncelle */
+export async function syncVoiceLock() {
+  if (!inTauri) return;
+  const cur = entitlement();
+  const locked = withVoiceLock(cur.locked);
+  if (locked.length === cur.locked.length && locked.every((x) => cur.locked.includes(x))) return;
+  try {
+    setEntitlement(await invoke<Entitlement>("entitlement_set", { value: { proUntil: cur.proUntil, locked } }));
+  } catch {
+    /* sonraki yenilemede düzelir */
+  }
+}
+
 export async function refreshEntitlement() {
   if (!cloudEnabled || !inTauri) {
     await readEntitlement();
@@ -333,7 +538,7 @@ export async function refreshEntitlement() {
     // Ücretsiz PRO kampanyası: giriş yapmış herkes kampanya bitene kadar PRO
     const promo = session() && c?.promo_pro_until ? new Date(c.promo_pro_until).getTime() : 0;
     const until = Math.max(own, promo > Date.now() ? promo : 0);
-    const value = { proUntil: until, locked: c?.pro_overlays ?? entitlement().locked };
+    const value = { proUntil: until, locked: withVoiceLock(c?.pro_overlays ?? entitlement().locked) };
     setEntitlement(await invoke<Entitlement>("entitlement_set", { value }));
   } catch {
     await readEntitlement();

@@ -1,4 +1,5 @@
 import { defineOverlay } from "@/sdk/overlay";
+import { labelStyleField } from "@/sdk/WxIcon";
 
 export default defineOverlay({
   id: "weather",
@@ -19,5 +20,6 @@ export default defineOverlay({
     },
     { key: "showCompass", label: "Pusula", type: "boolean", default: true },
     { key: "showWetness", label: "Pist ıslaklığı çubuğu", type: "boolean", default: true },
+    labelStyleField(),
   ],
 });

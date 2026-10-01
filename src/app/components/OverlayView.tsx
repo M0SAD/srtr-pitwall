@@ -4,6 +4,7 @@ import { Show, Suspense, createMemo, lazy, type Component } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { loadComponent, manifestById } from "@/sdk/registry";
 import { defaultOptions } from "@/sdk/overlay";
+import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { settings } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
 
@@ -22,7 +23,7 @@ export function overlayComponent(type: string) {
 export function OverlayView(props: { type: string; options?: Record<string, unknown>; themed?: boolean; class?: string; editing?: boolean }) {
   const m = manifestById(props.type);
   const C = overlayComponent(props.type);
-  const opts = createMemo(() => ({ ...(m ? defaultOptions(m) : {}), ...(props.options ?? {}) }));
+  const opts = createMemo(() => sanitizeOverlayOptions(props.type, { ...(m ? defaultOptions(m) : {}), ...(props.options ?? {}) }));
   const vars = createMemo(() => (props.themed === false ? {} : themeVars(settings().theme)));
   return (
     <div class={`ov-theme ovview ${props.class ?? ""}`} style={vars()}>

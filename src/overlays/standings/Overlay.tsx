@@ -7,7 +7,9 @@ import type { ClassInfo, Row } from "@/sdk/types";
 import { CarLogo } from "@/sdk/logos";
 import { friendOf, friendRowStyle, friendsOn } from "@/sdk/friends";
 import { FriendBadge } from "@/sdk/FriendBadge";
-import { HeaderStats, formatName } from "@/sdk/HeaderStats";
+import { HeaderStats, formatName, sessionIcon } from "@/sdk/HeaderStats";
+import { WxLabel } from "@/sdk/WxIcon";
+import { TireBadge } from "@/sdk/TireBadge";
 import { STANDINGS_COLUMNS, STANDINGS_DEFAULT_COLUMNS } from "./manifest";
 import { Flag } from "@/sdk/Flag";
 import { Helmet } from "@/sdk/Helmet";
@@ -97,10 +99,10 @@ export default function Standings(props: OverlayProps) {
     return "+" + v.toFixed((props.options.decimals as number) ?? 1);
   };
 
-  const sessionTime = () => {
+  const sessionTime = (bare = false) => {
     const d = data();
     if (!d) return "";
-    if (d.totalLaps > 0) return `Tur ${d.leaderLap}/${d.totalLaps}`;
+    if (d.totalLaps > 0) return bare ? `${d.leaderLap}/${d.totalLaps}` : `Tur ${d.leaderLap}/${d.totalLaps}`;
     if (d.totalTime > 0) return `${clock(d.elapsed)} / ${clock(d.totalTime)}`;
     return clock(d.elapsed);
   };
@@ -135,7 +137,7 @@ export default function Standings(props: OverlayProps) {
           </span>
         );
       case "car":
-        return <CarLogo class="st-car" carName={r.carName || r.car} fallback={r.car} mode={props.options.carStyle as "logo" | "text" | "both"} />;
+        return <CarLogo class="st-car" cell={(props.options.carStyle ?? "logo") === "logo"} carName={r.carName || r.car} fallback={r.car} mode={props.options.carStyle as "logo" | "text" | "both"} scale={((props.options.logoSize as number) ?? 150) / 100} />;
       case "license":
         return (
           <span class="ov-tag st-lic" style={{ background: r.licColor || "#666" }}>
@@ -156,6 +158,12 @@ export default function Standings(props: OverlayProps) {
             {lapTime(r.last)}
           </span>
         );
+      case "tire":
+        return (
+          <span class="st-tire">
+            <TireBadge kind={r.tireKind} />
+          </span>
+        );
       case "best":
         return (
           <span class="st-lap ov-mono st-best" classList={{ best: r.classBest }}>
@@ -172,10 +180,21 @@ export default function Standings(props: OverlayProps) {
     <div class="ov-panel st" style={{ "--st-bg": `${rowBg()}%` }}>
       <Show when={props.options.showHeader && data()}>
         <div class="st-head">
-          <span>
-            <b>{data()!.sessionType || "Oturum"}</b> <span class="ov-mono">{sessionTime()}</span>
-          </span>
-          <HeaderStats fields={(props.options.headerFields as string[]) ?? []} units={props.units} sof={mySof()} />
+          <Show
+            when={props.options.labelStyle !== "text"}
+            fallback={
+              <span>
+                <b>{data()!.sessionType || "Oturum"}</b> <span class="ov-mono">{sessionTime()}</span>
+              </span>
+            }
+          >
+            <span class="st-sess">
+              <WxLabel kind={sessionIcon(data()!.sessionType)} text="" title={data()!.sessionType || "Oturum"} class="st-sess-ic" />
+              <WxLabel kind={data()!.totalLaps > 0 ? "lap" : "clock"} text="" title={data()!.totalLaps > 0 ? "Lider turu / toplam" : "Geçen / toplam süre"} class="st-sess-ic" />
+              <span class="ov-mono">{sessionTime(true)}</span>
+            </span>
+          </Show>
+          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? []} units={props.units} sof={mySof()} />
           <span class="ov-dim st-count" title={t("{0} araç", data()!.carCount)}>
             <Helmet /> {data()!.carCount}
           </span>

@@ -7,12 +7,16 @@ import { defaultOptions } from "@/sdk/overlay";
 import { injectSamples } from "@/sdk/samples";
 import { SettingsForm, Switch } from "../components/SettingsForm";
 import { LogosPanel } from "../components/LogosPanel";
+import { AppBgPanel } from "../components/AppBgPanel";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ProLockBox, ProLockNote } from "../components/ProLock";
 import { applySharedTheme, ShareThemeDialog, ThemeSwatch } from "./CommunityThemes";
 import { ProGate } from "./CommunityPage";
 import { go } from "../ui";
 import { t as t2 } from "@/sdk/i18n";
 import * as I from "../icons";
 import type { Theme } from "@/sdk/theme";
+import { UndoRedo } from "@/sdk/UndoRedo";
 
 /** Boyut, opaklık ve rozet ayarı dışında iki tema aynı mı */
 function sameTheme(a: Theme, b: Theme) {
@@ -42,7 +46,9 @@ export function AppearancePage() {
   return (
     <div class="page appearance">
       <section class="panel">
-        <h3>Hazır temalar</h3>
+        <h3 class="ur-head">
+          Hazır temalar <UndoRedo keys class="ur-panel" />
+        </h3>
         <p class="muted">Bir tema seç, sonra aşağıdan istediğin kadar değiştir. Değişiklikler tüm overlay'lere anında uygulanır.</p>
         <div class="presets">
           <For each={PRESETS}>
@@ -94,7 +100,7 @@ export function AppearancePage() {
           <button class="btn ghost small" onClick={() => go("community", "themes")}>
             <I.Palette /> Topluluk temaları
           </button>
-          <ProGate label="Temanı paylaşmak için PRO">
+          <ProGate label="Temanı paylaşmak için PRO" feature="community.share.themes">
             <button class="btn ghost small" onClick={() => setSharing(true)}>
               <I.Share2 /> Temamı toplulukta paylaş
             </button>
@@ -110,7 +116,8 @@ export function AppearancePage() {
         </Show>
       </section>
 
-      <section class="panel">
+      <ProLockNote feature={F.themes} text="Temayı düzenlemek (yazı tipi, renkler, kenarlık…) PRO üyelere özel. Hazır temaları seçebilirsin." />
+      <section class="panel" classList={{ "prolock-dim": proLocked(F.themes) }} inert={proLocked(F.themes)}>
         <h3>Yazı tipi</h3>
         <div class="font-cards">
           <For each={FONTS}>
@@ -173,7 +180,7 @@ export function AppearancePage() {
         <div>
           <For each={THEME_GROUPS}>
             {(grp) => (
-              <section class="panel">
+              <section class="panel" classList={{ "prolock-dim": proLocked(F.themes) }} inert={proLocked(F.themes)}>
                 <h3>{grp.title}</h3>
                 <SettingsForm
                   fields={grp.fields}
@@ -195,6 +202,9 @@ export function AppearancePage() {
             </button>
           </div>
           <LogosPanel />
+          <ProLockBox feature={F.appBg} text="Uygulama arka planı PRO üyelere özel.">
+            <AppBgPanel />
+          </ProLockBox>
         </div>
 
         <aside class="preview-wrap">

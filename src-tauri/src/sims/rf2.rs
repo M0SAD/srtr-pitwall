@@ -12,7 +12,7 @@
 //! Dünya koordinatları sol elli, +y yukarı; araç yerel ekseninde +x sol, +z geri.
 
 use super::*;
-use crate::model::{CarState, Driver, SessionEntry};
+use crate::model::{tire_kind_from_name, CarState, Driver, SessionEntry};
 
 pub const MAX_VEHICLES: usize = 128;
 
@@ -44,6 +44,7 @@ pub mod tv {
     pub const SPEED_LIMITER: usize = 604;
     pub const FRONT_TIRE_COMPOUND_INDEX: usize = 606;
     pub const FUEL_CAPACITY: usize = 608;
+    pub const FRONT_TIRE_COMPOUND_NAME: usize = 620; // char[18]
     pub const REAR_BRAKE_BIAS: usize = 664;
     pub const PHYSICAL_STEERING_WHEEL_RANGE: usize = 692;
     pub const WHEELS: usize = 848;
@@ -98,6 +99,8 @@ pub mod vs {
     pub const PIT_STATE: usize = 457;
     pub const ESTIMATED_LAP_TIME: usize = 472;
     pub const FLAG: usize = 504;
+    /// 0 tur ve süre sayılmaz, 1 tur sayılır ama süre sayılmaz, 2 ikisi de sayılır
+    pub const COUNT_LAP_FLAG: usize = 506;
     pub const IN_GARAGE_STALL: usize = 507;
     pub const SIZE: usize = 584;
 }
@@ -122,6 +125,7 @@ pub struct Veh {
     pub pit_state: u8,
     pub est_lap: f64,
     pub flag: u8,
+    pub count_lap_flag: u8,
     pub in_garage: bool,
     pub finish_status: i8,
 }
@@ -200,6 +204,7 @@ pub fn parse_scoring(b: &[u8]) -> Scoring {
             pit_state: rd_u8(b, o + vs::PIT_STATE),
             est_lap: rd_f64(b, o + vs::ESTIMATED_LAP_TIME),
             flag: rd_u8(b, o + vs::FLAG),
+            count_lap_flag: rd_u8(b, o + vs::COUNT_LAP_FLAG),
             in_garage: rd_u8(b, o + vs::IN_GARAGE_STALL) != 0,
             finish_status: rd_u8(b, o + vs::FINISH_STATUS) as i8,
         });
@@ -271,6 +276,8 @@ pub fn build_session(sc: &Scoring, tele: &[u8], slots: &mut Slots) -> SessionDat
             car_name: v.vehicle.clone(),
             car_path: v.vehicle.clone(),
             team_name: v.vehicle.clone(),
+            // mControl: 0 yerel oyuncu, 1 yerel yapay zekâ, 2 uzak (çevrimiçi), 3 tekrar
+            is_ai: !v.is_player && v.control == 1,
             ..Default::default()
         };
         if v.is_player {
@@ -343,6 +350,8 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
     f.wind_vel = (sc.wind[0].powi(2) + sc.wind[2].powi(2)).sqrt() as f32;
     f.wind_dir = sc.wind[0].atan2(sc.wind[2]) as f32;
     f.replay = me.map(|v| v.control == 3).unwrap_or(false);
+    // Yeşil bayrakta, pistteyken "süre sayılmaz" işareti: tur geçersiz (pist sınırı vb.)
+    f.lap_invalid = sc.game_phase == 5 && me.map(|v| v.count_lap_flag < 2 && !v.in_pits && !v.in_garage).unwrap_or(false);
 
     // Araçlar
     for c in f.cars.iter_mut() {
@@ -354,7 +363,12 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         if sd.driver(idx).is_none() {
             continue;
         }
-        let speed = tele_find(tele, v.id).map(|o| len3(rd_vec3(tele, o + tv::LOCAL_VEL))).unwrap_or(v.speed);
+        let to = tele_find(tele, v.id);
+        let speed = to.map(|o| len3(rd_vec3(tele, o + tv::LOCAL_VEL))).unwrap_or(v.speed);
+        // Ön lastik hamuru (adıyla; "Soft", "Wet"...) ve indeksi
+        let (tire, tire_kind) = to
+            .map(|o| (rd_u8(tele, o + tv::FRONT_TIRE_COMPOUND_INDEX) as i32, tire_kind_from_name(&rd_cstr(tele, o + tv::FRONT_TIRE_COMPOUND_NAME, 18))))
+            .unwrap_or((-1, 0));
         let mut pct = ((v.lap_dist + speed * dt) / len) as f32;
         let mut laps = v.total_laps;
         if pct >= 1.0 {
@@ -376,6 +390,8 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         } else {
             3
         };
+        c.tire = tire;
+        c.tire_kind = tire_kind;
         c.f2 = if race { v.behind_leader.max(0.0) as f32 } else { 0.0 };
         c.flags = if v.flag == 6 { flags::BLUE } else { 0 } | if v.finish_status == 3 { flags::DQ } else { 0 };
         if v.is_player {

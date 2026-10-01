@@ -632,3 +632,109 @@
 .fadd-help {
   margin: 0;
 }
+
+/* ---------- Mesaj menüsü, raporlama, sohbeti temizleme ---------- */
+.frow-flag.trust.off {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.fx .frow-menu .pro-badge.small {
+  margin-left: auto;
+}
+.frow-menu-note {
+  margin: 2px 9px 6px;
+  max-width: 250px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.fx .fmsg-menu {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  min-width: 170px;
+  z-index: 50;
+}
+.fx header .icon-btn.on {
+  color: #ff7b7f;
+}
+.fclear {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, #e5322d 10%, #15181f);
+}
+.fclear p {
+  margin: 0;
+  line-height: 1.45;
+}
+.fclear-btns,
+.freport-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.fclear-btns svg,
+.freport-btns svg {
+  width: 13px;
+  height: 13px;
+}
+.freport {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: #15181f;
+}
+.freport-head {
+  display: flex;
+  align-items: center;
+}
+.freport-head b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.freport-head svg {
+  width: 14px;
+  height: 14px;
+}
+.freport-quote {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid #ff7b7f;
+  border-radius: 6px;
+  background: #1c2029;
+  font-size: 12.5px;
+  max-height: 84px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.freport-quote small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.freport-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.freport textarea {
+  resize: none;
+  font-size: 12.5px;
+}
+.freport .success,
+.freport .error {
+  margin: 0;
+}
+.fr-prohint {
+  align-self: flex-start;
+}
+.fr-prohint .pro-badge.small {
+  margin-left: 6px;
+}

@@ -6,6 +6,8 @@ import { createEffect, createRoot } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { startAutoSync } from "@/cloud/supabase";
 import { startEntitlement } from "@/cloud/account";
+import { startProFeatures, unlockPreviews } from "@/sdk/proFeatures";
+import { startDemoShowcase } from "@/cloud/demoShowcase";
 import "@/sdk/fonts";
 import "@/overlays/base.css";
 import "./app.css";
@@ -34,4 +36,7 @@ initSettings("main").then(() => {
   import.meta.hot?.dispose(dispose);
   startAutoSync();
   startEntitlement();
+  startProFeatures(true);
+  unlockPreviews();
+  startDemoShowcase();
 });

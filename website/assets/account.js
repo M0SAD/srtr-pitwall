@@ -14,14 +14,22 @@ import {
   esc,
   fmtDate,
   fmtMoney,
+  isProCheckout,
   lang,
   myProfile,
   planFor,
   planName,
   promoUntil,
+  rememberChoice,
   sb,
+  setRememberMe,
+  startProCheckout,
   toast,
 } from "./core.js";
+import { attachEmoji } from "./emoji.js";
+import { mountProfileEditor } from "./profile.js";
+import { maybeClaimTrial } from "./trial.js";
+import { couponBox, decoratePlans, proCouponFor } from "./coupon.js";
 
 addDict({
   a_login: ["Giriş yap", "Sign in"],
@@ -31,6 +39,7 @@ addDict({
   a_password_new: ["Yeni şifre (en az 6 karakter)", "New password (min. 6 characters)"],
   a_name: ["Görünen ad", "Display name"],
   a_forgot: ["Şifremi unuttum", "Forgot password"],
+  a_remember: ["Beni hatırla", "Remember me"],
   a_code: ["E-postadaki 6 haneli kod", "6-digit code from the e-mail"],
   a_verify: ["Doğrula", "Verify"],
   a_resend: ["Kodu yeniden gönder", "Resend code"],
@@ -44,7 +53,42 @@ addDict({
     "Use this account to sign in to the SRTR Pitwall app too (app → Account).",
   ],
   a_buy_after: ["Giriş yapınca ödeme sayfasına yönlendirileceksin.", "After signing in you'll be taken to checkout."],
+  a_opening_checkout: ["Ödeme sayfası açılıyor…", "Opening checkout…"],
+  a_paid_pro: [
+    "Ödemen alındı, teşekkürler! PRO birkaç saniye içinde hesabına işlenir; görünmezse sayfayı yenile.",
+    "Payment received, thank you! PRO is applied to your account within a few seconds; refresh the page if you don't see it.",
+  ],
   a_title: ["Hesabım", "My account"],
+  a_tele_title: ["Telemetri", "Telemetry"],
+  a_tele_public: ["Telemetri verilerimi başkaları görebilsin", "Let others see my telemetry"],
+  ep_title: ["E-posta bildirimleri", "E-mail notifications"],
+  ep_lead: [
+    "Hangi bildirimlerin e-postayla da gelmesini istediğini seç. Uygulama içi bildirimler her zaman gelir.",
+    "Choose which notifications should also be sent by e-mail. In-app notifications always arrive.",
+  ],
+  ep_friends: ["Arkadaşlık istekleri", "Friend requests"],
+  ep_friends_sub: ["Sana gelen arkadaşlık istekleri", "Friend requests you receive"],
+  ep_teams: ["Takım bildirimleri", "Team notifications"],
+  ep_teams_sub: ["Davet, katılma isteği, kabul, duyuru, yöneticilik", "Invites, join requests, approvals, announcements, admin roles"],
+  ep_support: ["Destek yanıtları", "Support replies"],
+  ep_support_sub: ["Destek talebine yanıt geldiğinde", "When your support ticket gets a reply"],
+  ep_ads: ["Reklam durumu", "Ad status"],
+  ep_ads_sub: ["Reklamın yayına alındı, reddedildi ya da bitti", "Your ad went live, was rejected or ended"],
+  ep_pro: ["PRO hatırlatmaları", "PRO reminders"],
+  ep_pro_sub: ["PRO üyeliğinin bitmesine 10 gün ve 1 gün kala", "10 days and 1 day before your PRO membership ends"],
+  ep_shots: ["Ekran görüntüleri", "Screenshots"],
+  ep_shots_sub: ["6 ay açılmadığı için silinen ekran görüntüleri", "Screenshots deleted after 6 months without views"],
+  ep_always: ["Hesap ve ödeme e-postaları", "Account and payment e-mails"],
+  ep_always_sub: [
+    "Ödeme makbuzları, hediye PRO, PRO süresi değişiklikleri ve giriş kodları her zaman gönderilir",
+    "Payment receipts, gifted PRO, PRO changes and sign-in codes are always sent",
+  ],
+  ep_always_on: ["Her zaman açık", "Always on"],
+  a_tele_lead: [
+    "Programın kaydettiği turların, kişisel en iyilerin ve tur izlerin diğer üyelere açık olur. Kapalıyken sadece sen ve takım arkadaşların görebilir.",
+    "Laps recorded by the app, your personal bests and lap traces are visible to other members. When off, only you and your teammates can see them.",
+  ],
+  a_tele_open: ["Telemetrimi gör", "View my telemetry"],
   a_logout: ["Çıkış yap", "Sign out"],
   a_profile: ["Profil", "Profile"],
   a_iracing: ["iRacing adı", "iRacing name"],
@@ -120,10 +164,49 @@ addDict({
   s_created: ["Talebin gönderildi.", "Your ticket was sent."],
   s_too_big: ["Görsel çok büyük (en fazla 5 MB).", "Image too large (max 5 MB)."],
   s_back: ["← Taleplerim", "← My tickets"],
+  s_emoji: ["İfade ekle", "Insert emoji"],
+  g_title: ["🎁 Hediye PRO", "🎁 Gift PRO"],
+  g_lead: [
+    "Kayıtlı bir üyeye PRO aboneliği hediye et. Ödemeyi sen yaparsın, PRO onun hesabına işlenir; istediğin zaman sonlandırabilirsin.",
+    "Gift a PRO subscription to a registered member. You pay, PRO is applied to their account, and you can end it anytime.",
+  ],
+  g_search_ph: ["Üye ara (görünen ad ya da iRacing adı)", "Search members (display name or iRacing name)"],
+  g_search: ["Ara", "Search"],
+  g_min: ["En az 2 harf yaz.", "Type at least 2 letters."],
+  g_none: ["Kimse bulunamadı.", "No one found."],
+  g_pick: ["Seç", "Select"],
+  g_to: ["Alıcı", "Recipient"],
+  g_change: ["Değiştir", "Change"],
+  g_plan_pick: ["Plan seç ve öde:", "Pick a plan and pay:"],
+  g_note: [
+    "Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.",
+    "Your own e-mail is used at checkout; invoices and renewal charges are yours. The recipient's e-mail is never shared. If they already have PRO, the gift is added on top.",
+  ],
+  g_unavailable: ["Hediye PRO şu an kullanılamıyor.", "Gift PRO isn't available right now."],
+  g_mine: ["Hediye ettiğim abonelikler", "Subscriptions I gifted"],
+  g_mine_none: ["Henüz kimseye PRO hediye etmedin.", "You haven't gifted PRO to anyone yet."],
+  g_active: ["Aktif", "Active"],
+  g_cancelled: ["İptal edildi – bitiş {0}", "Cancelled – ends {0}"],
+  g_expired: ["Sona erdi", "Ended"],
+  g_next: ["Sonraki yenileme: {0}", "Next renewal: {0}"],
+  g_end: ["Sonlandır", "End"],
+  g_end_q: [
+    "Hediye sonlandırılsın mı? Artık yenilenmez; {0} ödenen dönemin sonuna kadar PRO kalır.",
+    "End this gift? It won't renew; {0} keeps PRO until the paid period ends.",
+  ],
+  g_end_yes: ["Evet, sonlandır", "Yes, end it"],
+  g_ended: ["Hediye sonlandırıldı.", "The gift was ended."],
+  g_from: ["🎁 {0} tarafından hediye edildi", "🎁 Gifted by {0}"],
+  g_from_ended: ["Hediye sonlandırıldı; PRO {0} tarihine kadar sürer.", "The gift was ended; PRO lasts until {0}."],
+  g_for: ["Hediye: {0}", "Gift: {0}"],
+  a_paid_gift: [
+    "Hediye ödemen alındı, teşekkürler! PRO birkaç saniye içinde alıcının hesabına işlenir.",
+    "Gift payment received, thank you! PRO is applied to the recipient's account within a few seconds.",
+  ],
 });
 
 let mode = new URLSearchParams(location.search).get("mode") === "signup" ? "signup" : "login";
-const buyPlan = new URLSearchParams(location.search).get("buy");
+let buyPlan = new URLSearchParams(location.search).get("buy");
 let pendingEmail = "";
 
 const app = () => $("#app");
@@ -139,6 +222,7 @@ function authView(msg = "", bad = false) {
     body = `<form id="f">
       <div class="field"><label>${T("a_email")}</label><input name="email" type="email" autocomplete="email" required value="${esc(pendingEmail)}"></div>
       <div class="field"><label>${T("a_password")}</label><input name="password" type="password" autocomplete="current-password" required></div>
+      <label class="chk small" style="margin:-2px 0 14px"><input type="checkbox" name="remember"${rememberChoice() ? " checked" : ""}><span>${T("a_remember")}</span></label>
       <button class="btn btn-accent" style="width:100%">${T("a_login")}</button>
       <p class="small" style="margin-top:12px"><button type="button" class="linkbtn" id="forgot">${T("a_forgot")}</button></p>
     </form>`;
@@ -203,6 +287,8 @@ async function onSubmit(e) {
   try {
     if (mode === "login") {
       pendingEmail = String(f.get("email")).trim();
+      // Oturumun nerede saklanacağı girişten önce belirlenir (işaretsiz: tarayıcı kapanınca çıkış)
+      setRememberMe(f.get("remember") === "on");
       const { error } = await sb.auth.signInWithPassword({ email: pendingEmail, password: String(f.get("password")) });
       if (error) {
         if (/confirm/i.test(error.message)) {
@@ -266,12 +352,16 @@ async function afterLogin() {
     const cfg = await appConfig().catch(() => ({}));
     const p = PLANS.find((x) => x.id === buyPlan);
     const link = p && planFor(cfg, p).checkout;
-    if (link) {
+    buyPlan = null;
+    if (link && isProCheckout(link)) {
+      app().innerHTML = `<p class="muted page">${T("a_opening_checkout")}</p>`;
+      if (await startProCheckout(p.id)) return;
+    } else if (link) {
       location.href = checkoutUrl(link, u);
       return;
     }
   }
-  history.replaceState(null, "", "hesap.html" + (location.hash === "#destek" ? "#destek" : ""));
+  history.replaceState(null, "", "hesap.html" + (location.hash === "#destek" || location.hash === "#eposta" ? location.hash : ""));
   render();
 }
 
@@ -279,11 +369,12 @@ async function afterLogin() {
 // Hesap paneli
 // ---------------------------------------------------------------------------
 async function dashboard(u) {
-  const [prof, cfg, pro, pays] = await Promise.all([
+  const [prof, cfg, pro, pays, gifts] = await Promise.all([
     myProfile(true),
     appConfig().catch(() => ({})),
     sb.rpc("my_pro").then((r) => r.data ?? null),
     sb.rpc("my_payments").then((r) => r.data ?? []),
+    sb.rpc("my_gifts").then((r) => r.data ?? [], () => []),
   ]);
   const p = prof || {};
   const d = daysLeft(p.pro_until);
@@ -291,10 +382,14 @@ async function dashboard(u) {
   const active = p.is_admin || (d !== null && d > 0);
   const forever = p.is_admin || (d !== null && d > 3000);
   const sub = pro?.sub;
+  const gotGift = pro?.gift;
   const planBtns = PLANS.map((x) => ({ x, ...planFor(cfg, x) }))
     .filter((o) => o.checkout)
-    .map(
-      (o) => `<a class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(o.checkout, u))}">
+    .map((o) =>
+      isProCheckout(o.checkout)
+        ? `<button class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" data-pro="${o.x.id}">
+        ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></button>`
+        : `<a class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(o.checkout, u))}">
         ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></a>`,
     )
     .join("");
@@ -310,6 +405,7 @@ async function dashboard(u) {
     </div>
     <div class="grid g2" style="align-items:start">
       <div class="stack">
+        ${active || promo ? "" : `<div id="pro-promo"></div>`}
         <div class="card">
           <div class="row between"><h3>${T("a_pro")}</h3>${active || promo ? `<span class="badge pro">PRO</span>` : `<span class="badge">${T("a_pro_none")}</span>`}</div>
           ${promo ? `<div class="msg good" style="margin-top:10px">${esc(T("a_promo_active", fmtDate(promo, true)))}${cfg.promo_note ? `<br><span class="muted small">${esc(cfg.promo_note)}</span>` : ""}</div>` : ""}
@@ -327,12 +423,20 @@ async function dashboard(u) {
             ${sub ? `<dt>${T("a_plan")}</dt><dd>${esc(sub.plan || "—")} <span class="badge ${pro.renewing ? "ok" : "warn"}">${pro.renewing ? T("a_renewing") : T("a_not_renewing")}</span></dd>` : ""}
             ${sub?.renews_at && pro.renewing ? `<dt>${T("a_next_renew")}</dt><dd>${fmtDate(sub.renews_at)}</dd>` : ""}
           </dl>
+          ${
+            gotGift
+              ? `<div class="msg good gift-from">${esc(T("g_from", gotGift.gifted_by_name || "?"))}${
+                  gotGift.status === "cancelled" ? `<br><span class="muted small">${esc(T("g_from_ended", fmtDate(p.pro_until)))}</span>` : ""
+                }</div>`
+              : ""
+          }
           ${sub?.portal_url ? `<p style="margin-top:14px"><a class="btn btn-sm" href="${esc(sub.portal_url)}" target="_blank" rel="noopener">${T("a_manage")}</a></p>` : ""}
         </div>
 
         <div class="card">
           <h3>${T("a_buy_title")}</h3>
           <p class="muted small">${T("a_buy_note")}</p>
+          ${planBtns.includes("data-pro=") ? `<div id="cp-pro"></div>` : ""}
           <div class="row">${planBtns || `<span class="muted small">${T("soon")}</span>`}</div>
           ${
             cfg.patreon_url || cfg.kofi_url
@@ -344,6 +448,14 @@ async function dashboard(u) {
           }
         </div>
 
+        <div class="card" id="hediye">
+          <h3>${T("g_title")}</h3>
+          <p class="muted small">${T("g_lead")}</p>
+          <div id="g-pick"></div>
+          <h3 style="margin-top:18px;font-size:16px">${T("g_mine")}</h3>
+          <div id="g-list"></div>
+        </div>
+
         <div class="card">
           <h3>${T("a_payments")}</h3>
           ${
@@ -352,7 +464,7 @@ async function dashboard(u) {
                 ${pays
                   .map(
                     (x) =>
-                      `<tr><td>${fmtDate(x.created_at)}</td><td>${esc(x.plan || x.source)}${x.kind === "refund" ? ` <span class="badge bad">${T("a_refund")}</span>` : ""}</td><td class="num">${fmtMoney(x.kind === "refund" ? -x.amount : x.amount, x.currency)}</td></tr>`,
+                      `<tr><td>${fmtDate(x.created_at)}</td><td>${esc(x.plan || x.source)}${x.gift_name != null ? ` <span class="badge">${esc(T("g_for", x.gift_name || "?"))}</span>` : ""}${x.kind === "refund" ? ` <span class="badge bad">${T("a_refund")}</span>` : ""}</td><td class="num">${fmtMoney(x.kind === "refund" ? -x.amount : x.amount, x.currency)}</td></tr>`,
                   )
                   .join("")}
               </tbody></table></div>`
@@ -370,6 +482,8 @@ async function dashboard(u) {
           <div class="row between"><span class="muted small">${T("a_member_since")}: ${fmtDate(u.created_at)}</span><button class="btn btn-accent btn-sm">${T("save")}</button></div>
         </form>
 
+        <div class="card" id="profil"><p class="muted small">${T("loading")}</p></div>
+
         <form class="card" id="pw">
           <h3>${T("a_security")}</h3>
           <div class="field"><label>${T("a_password_new")}</label><input name="password" type="password" minlength="6" autocomplete="new-password" required></div>
@@ -380,6 +494,21 @@ async function dashboard(u) {
           <div class="row between"><h3 style="margin:0">${T("s_title")}</h3><button class="btn btn-sm btn-accent" id="sp-new">${T("s_new")}</button></div>
           <p class="muted small">${T("s_lead")}</p>
           <div id="sp-body"><p class="muted small">${T("loading")}</p></div>
+        </div>
+
+        <div class="card" id="telemetri">
+          <h3>${T("a_tele_title")}</h3>
+          <label class="row between" style="gap:14px;cursor:pointer">
+            <span><b>${T("a_tele_public")}</b><br><span class="muted small">${T("a_tele_lead")}</span></span>
+            <input type="checkbox" id="tele-public" style="width:auto" ${p.telemetry_public !== false ? "checked" : ""}>
+          </label>
+          <a class="btn btn-sm" href="yarisci.html?u=me" style="margin-top:10px">${T("a_tele_open")}</a>
+        </div>
+
+        <div class="card" id="eposta">
+          <h3>${T("ep_title")}</h3>
+          <p class="muted small">${T("ep_lead")}</p>
+          <div id="ep-body"><p class="muted small">${T("loading")}</p></div>
         </div>
 
         <div data-ad="site_account" hidden></div>
@@ -393,6 +522,23 @@ async function dashboard(u) {
     </div>
   </div>`;
 
+  // PRO tanıtım kartı (yönetici ayarlar; PRO olmayanlara)
+  if ($("#pro-promo")) import("./propromo.js").then((m) => m.mountProPromo($("#pro-promo")), () => {});
+  // İndirim kuponu: satın alma ve hediye kartlarındaki fiyatlar güncellenir
+  couponBox($("#cp-pro"), {
+    product: "pro",
+    onChange: () => {
+      decoratePlans(document, "pro");
+      decoratePlans($("#g-pick"), "gplan", true);
+    },
+  });
+  decoratePlans(document, "pro");
+  $$("[data-pro]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      if (!(await startProCheckout(b.dataset.pro, null, proCouponFor(b.dataset.pro)?.code))) b.disabled = false;
+    }),
+  );
   $("#logout").addEventListener("click", async () => {
     await sb.auth.signOut();
     render();
@@ -413,7 +559,17 @@ async function dashboard(u) {
     const { error } = await sb.auth.updateUser({ password: String(new FormData(e.target).get("password")) });
     error ? toast(error.message, true) : (toast(T("saved")), e.target.reset());
   });
+  $("#tele-public")?.addEventListener("change", async (e) => {
+    const { error } = await sb.rpc("telemetry_set_public", { p_on: e.target.checked });
+    if (error) {
+      e.target.checked = !e.target.checked;
+      toast(error.message, true);
+    } else toast(T("saved"));
+  });
+  mountProfileEditor($("#profil"), u).then(() => location.hash === "#profil" && $("#profil")?.scrollIntoView({ block: "start" }));
   initSupport(u);
+  initEmailPrefs();
+  initGift(u, cfg, gifts);
   import("./adslot.js").then((m) => m.mountAds(app()), () => {});
   // İndirme bağlantısı
   const { latestRelease, hit } = await import("./core.js");
@@ -424,6 +580,226 @@ async function dashboard(u) {
     });
     $$("[data-version]").forEach((el) => (el.textContent = r.version || ""));
   });
+}
+
+// ---------------------------------------------------------------------------
+// E-posta bildirim tercihleri (c35: my_email_prefs / email_prefs_set). Hesap/ödeme e-postaları her zaman açık.
+// ---------------------------------------------------------------------------
+const EP_CATS = ["friends", "teams", "support", "ads", "pro", "shots"];
+
+async function initEmailPrefs() {
+  const el = $("#ep-body");
+  if (!el) return;
+  const { data: prefs, error } = await sb.rpc("my_email_prefs");
+  if (error || !prefs) {
+    el.innerHTML = `<p class="msg bad small">${esc(error?.message || "—")}</p>`;
+    return;
+  }
+  const row = (k, on, locked = false) => `<label class="row between" style="gap:14px;margin:0 0 10px;${locked ? "opacity:.7" : "cursor:pointer"}">
+      <span><b>${T(locked ? "ep_always" : `ep_${k}`)}</b><br><span class="muted small">${T(locked ? "ep_always_sub" : `ep_${k}_sub`)}</span></span>
+      <input type="checkbox" style="width:auto" ${locked ? `checked disabled title="${esc(T("ep_always_on"))}"` : `data-ep="${k}" ${on ? "checked" : ""}`}>
+    </label>`;
+  el.innerHTML = EP_CATS.map((k) => row(k, prefs[k] === true)).join("") + row("", true, true);
+  $$("[data-ep]", el).forEach((cb) =>
+    cb.addEventListener("change", async () => {
+      cb.disabled = true;
+      const { error: e } = await sb.rpc("email_prefs_set", { p_prefs: { [cb.dataset.ep]: cb.checked } });
+      cb.disabled = false;
+      if (e) {
+        cb.checked = !cb.checked;
+        toast(e.message, true);
+      } else toast(T("saved"));
+    }),
+  );
+  if (location.hash === "#eposta") setTimeout(() => $("#eposta")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+}
+
+// ---------------------------------------------------------------------------
+// Hediye PRO: üye ara, plan seç, öde; hediye ettiklerimi listele ve sonlandır
+// ---------------------------------------------------------------------------
+
+/** Kimlikten sabit renk (programdaki arkadaş avatarıyla aynı) */
+function hashColor(id) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0;
+  return `hsl(${h % 360} 58% 50%)`;
+}
+const avatar = (id, name) =>
+  `<span class="gift-av" translate="no" style="background:${hashColor(String(id || "?"))}">${esc(([...String(name || "?").trim()][0] || "?").toLocaleUpperCase(lang))}</span>`;
+const GIFT_LIVE = ["active", "on_trial", "past_due"];
+
+let giftTo = null; // { id, name }
+let giftRes = null; // son arama sonuçları
+let giftQ = "";
+let giftConfirm = null; // sonlandırma onayı bekleyen lemon_id
+
+function initGift(u, cfg, gifts) {
+  giftTo = null;
+  giftRes = null;
+  giftConfirm = null;
+  drawGiftPick(u, cfg);
+  drawGiftList(u, gifts);
+  if (location.hash === "#hediye") setTimeout(() => $("#hediye")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+}
+
+/** Üye arama (programdaki arkadaş aramasıyla aynı sorgu; kendisi hariç) */
+async function findMembers(u, q) {
+  const t = q.replace(/[(),*%]/g, " ").trim();
+  const { data, error } = await sb
+    .from("profiles")
+    .select("id,display_name,iracing_name")
+    .or(`display_name.ilike.*${t}*,iracing_name.ilike.*${t}*`)
+    .neq("id", u.id)
+    .limit(20);
+  if (error) throw new Error(error.message);
+  return (data || []).filter((x) => x.id !== u.id);
+}
+
+function drawGiftPick(u, cfg) {
+  const el = $("#g-pick");
+  if (!el) return;
+  const plans = PLANS.map((x) => ({ x, ...planFor(cfg, x) })).filter((o) => isProCheckout(o.checkout));
+  if (!plans.length) {
+    el.innerHTML = `<p class="muted small">${T("g_unavailable")}</p>`;
+    return;
+  }
+  if (giftTo) {
+    el.innerHTML = `<div class="gift-sel">${avatar(giftTo.id, giftTo.name)}
+        <span class="grow" style="flex:1;min-width:0"><span class="muted small">${T("g_to")}</span><br><b translate="no">${esc(giftTo.name)}</b></span>
+        <button type="button" class="btn btn-sm btn-ghost" id="g-change">${T("g_change")}</button></div>
+      <p class="small" style="margin:0 0 8px">${T("g_plan_pick")}</p>
+      <div class="row">${plans
+        .map((o) => `<button type="button" class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" data-gplan="${o.x.id}">${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></button>`)
+        .join("")}</div>
+      <p class="muted small" style="margin:10px 0 0">${T("g_note")}</p>`;
+    decoratePlans(el, "gplan", true);
+    $("#g-change").addEventListener("click", () => {
+      giftTo = null;
+      drawGiftPick(u, cfg);
+    });
+    $$("[data-gplan]", el).forEach((b) =>
+      b.addEventListener("click", async () => {
+        $$("[data-gplan]", el).forEach((x) => (x.disabled = true));
+        if (!(await startProCheckout(b.dataset.gplan, giftTo.id, proCouponFor(b.dataset.gplan, true)?.code)))
+          $$("[data-gplan]", el).forEach((x) => (x.disabled = false));
+      }),
+    );
+    return;
+  }
+  el.innerHTML = `<form class="gift-search" id="g-f">
+      <input name="q" maxlength="40" autocomplete="off" placeholder="${esc(T("g_search_ph"))}" value="${esc(giftQ)}">
+      <button class="btn btn-sm">${T("g_search")}</button>
+    </form>
+    <div class="gift-list" id="g-res">${
+      giftRes === null
+        ? ""
+        : giftRes.length
+          ? giftRes
+              .map(
+                (x) => `<div class="gift-row">${avatar(x.id, x.display_name)}
+                  <span class="grow"><b translate="no">${esc(x.display_name || "?")}</b>${x.iracing_name ? `<span class="muted small" translate="no">iRacing: ${esc(x.iracing_name)}</span>` : ""}</span>
+                  <button type="button" class="btn btn-sm btn-accent" data-gto="${esc(x.id)}">${T("g_pick")}</button></div>`,
+              )
+              .join("")
+          : `<p class="muted small">${T("g_none")}</p>`
+    }</div>`;
+  $("#g-f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    giftQ = String(new FormData(e.target).get("q") || "").trim();
+    if (giftQ.length < 2) return toast(T("g_min"), true);
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      giftRes = await findMembers(u, giftQ);
+      drawGiftPick(u, cfg);
+    } catch (err) {
+      toast(err.message || String(err), true);
+      btn.disabled = false;
+    }
+  });
+  $$("[data-gto]", el).forEach((b) =>
+    b.addEventListener("click", () => {
+      const x = (giftRes || []).find((r) => r.id === b.dataset.gto);
+      if (!x) return;
+      giftTo = { id: x.id, name: x.display_name || "?" };
+      drawGiftPick(u, cfg);
+    }),
+  );
+}
+
+function drawGiftList(u, gifts) {
+  const el = $("#g-list");
+  if (!el) return;
+  if (!gifts.length) {
+    el.innerHTML = `<p class="muted small">${T("g_mine_none")}</p>`;
+    return;
+  }
+  el.innerHTML = `<div class="gift-list">${gifts
+    .map((g) => {
+      const live = GIFT_LIVE.includes(g.status);
+      const status = live
+        ? `<span class="badge ok">${T("g_active")}</span>`
+        : g.status === "cancelled"
+          ? `<span class="badge warn">${esc(T("g_cancelled", fmtDate(g.ends_at || g.until)))}</span>`
+          : `<span class="badge">${T("g_expired")}</span>`;
+      const ask = giftConfirm === g.lemon_id;
+      return `<div class="gift-row" style="align-items:flex-start">${avatar(g.recipient, g.recipient_name)}
+        <span class="grow">
+          <b translate="no">${esc(g.recipient_name || "?")}</b>
+          <span class="small">${esc(g.plan || "—")} ${status}</span>
+          ${live && g.renews_at ? `<span class="muted small">${esc(T("g_next", fmtDate(g.renews_at)))}</span>` : ""}
+          ${
+            ask
+              ? `<span class="small" style="margin-top:6px">${esc(T("g_end_q", g.recipient_name || "?"))}</span>
+                 <span class="gift-confirm"><button type="button" class="btn btn-sm btn-danger" data-gyes="${esc(g.lemon_id)}">${T("g_end_yes")}</button>
+                 <button type="button" class="btn btn-sm btn-ghost" data-gno>${T("cancel")}</button></span>`
+              : ""
+          }
+        </span>
+        ${live && !ask ? `<button type="button" class="btn btn-sm" data-gend="${esc(g.lemon_id)}">${T("g_end")}</button>` : ""}
+      </div>`;
+    })
+    .join("")}</div>`;
+  $$("[data-gend]", el).forEach((b) =>
+    b.addEventListener("click", () => {
+      giftConfirm = b.dataset.gend;
+      drawGiftList(u, gifts);
+    }),
+  );
+  $$("[data-gno]", el).forEach((b) =>
+    b.addEventListener("click", () => {
+      giftConfirm = null;
+      drawGiftList(u, gifts);
+    }),
+  );
+  $$("[data-gyes]", el).forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        const { data, error } = await sb.functions.invoke("gift-cancel", { body: { lemon_id: b.dataset.gyes } });
+        if (error) {
+          let msg = error.message;
+          try {
+            msg = (await error.context?.json())?.error || msg;
+          } catch {}
+          throw new Error(msg);
+        }
+        toast(T("g_ended"));
+        giftConfirm = null;
+        const g = gifts.find((x) => x.lemon_id === b.dataset.gyes);
+        if (g) {
+          g.status = "cancelled";
+          g.ends_at = data?.ends_at || g.ends_at || g.renews_at;
+        }
+        const fresh = await sb.rpc("my_gifts").then((r) => r.data, () => null);
+        drawGiftList(u, fresh || gifts);
+      } catch (err) {
+        toast(err.message || String(err), true);
+        b.disabled = false;
+      }
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -525,7 +901,7 @@ function spForm(u, body) {
     <p class="small"><button type="button" class="linkbtn" id="sp-back">${T("s_back")}</button></p>
     <div class="field"><label>${T("s_category")}</label><div class="sp-cats">${SP_CATS.map((c) => `<button type="button" data-c="${c}" class="${c === cat ? "on" : ""}">${T("s_cat_" + c)}</button>`).join("")}</div></div>
     <div class="field"><label>${T("s_subject")}</label><input name="subject" maxlength="120" placeholder="${esc(T("s_subject_ph"))}"></div>
-    <div class="field"><label>${T("s_message")}</label><textarea name="body" rows="6" maxlength="4000" placeholder="${esc(T("s_message_ph"))}"></textarea></div>
+    <div class="field"><label>${T("s_message")}</label><textarea name="body" rows="6" maxlength="4000" placeholder="${esc(T("s_message_ph"))}"></textarea><div class="sp-tools" id="sp-emo"></div></div>
     <div class="field"><label>${T("s_images")}</label><div class="sp-pick" id="sp-pick"></div></div>
     <button class="btn btn-accent">${T("s_send")}</button>
   </form>`;
@@ -533,6 +909,7 @@ function spForm(u, body) {
   body.querySelector("textarea").addEventListener("paste", (e) => {
     if (e.clipboardData?.files?.length) pick.add(e.clipboardData.files);
   });
+  attachEmoji(body.querySelector("textarea"), { host: body.querySelector("#sp-emo"), title: T("s_emoji"), up: false });
   body.querySelector("#sp-back").addEventListener("click", () => ((spView = { mode: "list" }), spShow(u)));
   body.querySelectorAll("[data-c]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -594,7 +971,7 @@ async function spThread(u, body, id) {
     ${t.status === "closed" ? `<p class="muted small">${T("s_closed_note")}</p>` : ""}
     <form id="sp-r">
       <div class="field"><textarea name="body" rows="3" maxlength="4000" placeholder="${esc(T("s_reply_ph"))}"></textarea></div>
-      <div class="row between" style="align-items:flex-end"><div class="sp-pick" id="sp-pick"></div><button class="btn btn-accent">${T("s_send")}</button></div>
+      <div class="row between" style="align-items:flex-end"><div class="sp-tools" id="sp-emo"><div class="sp-pick" id="sp-pick"></div></div><button class="btn btn-accent">${T("s_send")}</button></div>
     </form>`;
   const box = body.querySelector(".sp-msgs");
   box.scrollTop = box.scrollHeight;
@@ -602,6 +979,7 @@ async function spThread(u, body, id) {
   body.querySelector("textarea").addEventListener("paste", (e) => {
     if (e.clipboardData?.files?.length) pick.add(e.clipboardData.files);
   });
+  attachEmoji(body.querySelector("textarea"), { host: body.querySelector("#sp-emo"), title: T("s_emoji") });
   body.querySelector("#sp-back").addEventListener("click", () => ((spView = { mode: "list" }), spShow(u)));
   body.querySelector("#sp-st").addEventListener("click", async () => {
     try {
@@ -660,9 +1038,17 @@ async function render() {
   } catch (e) {
     app().innerHTML = `<div class="page"><div class="msg bad">${esc(e.message || e)}</div></div>`;
   }
+  // Yeni hesaba deneme PRO (c41): bir kez sorulur; verilirse kutlama penceresi, kapanınca panel yenilenir
+  maybeClaimTrial(u, render);
 }
 
 await boot("/hesap", "account");
+// PRO ödemesinden dönüş (pro-checkout redirect_url)
+const paidKind = new URLSearchParams(location.search).get("paid");
+if (paidKind === "pro" || paidKind === "gift") {
+  toast(T(paidKind === "gift" ? "a_paid_gift" : "a_paid_pro"));
+  history.replaceState(null, "", "hesap.html" + (paidKind === "gift" && !location.hash ? "#hediye" : location.hash));
+}
 render();
 document.addEventListener("langchange", () => {
   render();

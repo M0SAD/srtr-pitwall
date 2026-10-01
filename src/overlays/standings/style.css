@@ -148,11 +148,16 @@
 }
 
 .st-car {
-  width: 5.5em;
+  width: max(5.5em, calc(3.4em * var(--logo-k, 1)));
   font-size: 0.82em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Sadece logo: dar, sabit genişlikli hücre */
+.st-car.car-logo-cell {
+  width: calc(2.8em * var(--logo-k, 1));
 }
 
 .st-ir {
@@ -207,4 +212,17 @@
   margin-left: 6px;
   background: var(--ov-purple);
   color: #fff;
+}
+.st-tire {
+  width: 1.6em;
+  display: inline-flex;
+  justify-content: center;
+}
+.st-sess {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.st-sess .st-sess-ic + .st-sess-ic {
+  margin-left: 4px;
 }

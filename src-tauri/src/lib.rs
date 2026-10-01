@@ -9,9 +9,11 @@ mod entitlement;
 mod events;
 mod extras;
 mod history;
+mod laprec;
 mod i18n;
 mod shots;
 mod league;
+mod livechat;
 mod logos;
 mod model;
 mod mqtt;
@@ -20,11 +22,20 @@ mod sims;
 mod server;
 mod session;
 mod trackmap;
+mod translate;
 mod toast;
 mod tracker;
 mod device;
 mod updater;
 mod voice;
+mod voice_rules;
+mod voicepack;
+mod voicesub;
+mod vr;
+mod voicepack_build;
+mod voicepack_dl;
+mod winstate;
+mod prtsc;
 
 use engine::{Packet, Shared, Sink, TopicReq};
 use serde::Serialize;
@@ -37,7 +48,7 @@ use tauri::ipc::Channel;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindowBuilder};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 /// Her iki pencere aynı WebView2 ortamını paylaşmalı (aynı argümanlar).
 /// `--renderer-process-limit=1` iki pencerenin tek bir render sürecini paylaşmasını sağlar (RAM tasarrufu).
@@ -47,7 +58,7 @@ const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreen
 /// belirlenir (WebView2 ortamı süreç boyunca değişemez; değişiklik yeniden başlatınca geçerli).
 static BROWSER_ARGS_DYN: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
-fn browser_args() -> &'static str {
+pub(crate) fn browser_args() -> &'static str {
     BROWSER_ARGS_DYN.get().map(|s| s.as_str()).unwrap_or(BROWSER_ARGS)
 }
 
@@ -60,6 +71,12 @@ fn init_browser_args(settings: Option<&Value>) {
     }
     if flag("disableGpuCompositing") {
         a += " --disable-gpu-compositing";
+    }
+    // VR modu: overlay pencereleri arkada / ekran dışında kalınca da çizmeyi sürdürsün
+    if let Some((feature, extra)) = vr::browser_flags(settings) {
+        a = a.replacen("msSmartScreenProtection", &format!("msSmartScreenProtection,{feature}"), 1);
+        a += " ";
+        a += extra;
     }
     let _ = BROWSER_ARGS_DYN.set(a);
 }
@@ -143,6 +160,11 @@ pub(crate) fn sync_overlay_visibility(app: &AppHandle) {
         || s.always_show.load(Ordering::Relaxed))
         && !s.user_hidden.load(Ordering::Relaxed))
         || s.peek.load(Ordering::Relaxed);
+    // Overlay'ler sayfasında yeni eklenen overlay ekranda tutuluyor (oyun kapalıyken; oyun bağlanınca normal kurallar)
+    let pinned = s.pin.lock().is_some() && !s.connected.load(Ordering::Relaxed);
+    let show = show || pinned;
+    // VR modu "masaüstü overlay'ini gizle": sadece düzenleme modunda (ve yeni eklenen overlay gösterilirken) görünür
+    let show = show && (!vr::hide_desktop() || s.edit_mode.load(Ordering::Relaxed) || s.peek.load(Ordering::Relaxed) || pinned);
     for w in overlay_windows(app) {
         if show {
             let _ = w.show();
@@ -178,6 +200,11 @@ fn sync_monitor_windows(app: &AppHandle, settings: &Value) {
             for o in ovs.values() {
                 let on = o.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
                 always |= on && o.get("alwaysShow").and_then(|v| v.as_bool()).unwrap_or(false);
+                // Canlı sohbet overlay'leri: "Sürekli göster" (options.always, varsayılan açık) oyun kapalıyken de pencereyi açık tutar
+                let ty = o.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                always |= on
+                    && matches!(ty, "livechat" | "livepoll" | "captions")
+                    && o.pointer("/options/always").and_then(|v| v.as_bool()).unwrap_or(true);
                 let m = o.get("monitor").and_then(|v| v.as_str()).unwrap_or("");
                 if on && !m.is_empty() && m != def_name && !wanted.iter().any(|x| x == m) {
                     wanted.push(m.to_string());
@@ -200,8 +227,9 @@ fn sync_monitor_windows(app: &AppHandle, settings: &Value) {
             Some(w) => w,
             None => {
                 let url = format!("overlay.html?monitor={}", server::url_encode(name));
+                // Her monitörün penceresi ayrı başlıkta (pencere yakalama araçları ayırt edebilsin)
                 let built = WebviewWindowBuilder::new(app, &label, WebviewUrl::App(url.into()))
-                    .title("SRTR Pitwall Overlay")
+                    .title(format!("SRTR Pitwall Overlay - {}", name.trim_start_matches(|c: char| !c.is_ascii_alphanumeric())))
                     .transparent(true)
                     .decorations(false)
                     .shadow(false)
@@ -230,6 +258,7 @@ fn sync_monitor_windows(app: &AppHandle, settings: &Value) {
             let _ = w.destroy();
         }
     }
+    vr::sync(app, settings);
     sync_overlay_visibility(app);
 }
 
@@ -325,6 +354,7 @@ fn apply_dynamic(app: &AppHandle, value: &Value) {
         sh.set_league(league);
     }
     push_voice_cfg(app, value);
+    livechat::apply_settings(app, value);
     sh.demo_mute.store(value.pointer("/general/demoMute").and_then(|x| x.as_bool()).unwrap_or(false), Ordering::Relaxed);
     {
         let sh2 = value.pointer("/general/sharing");
@@ -350,31 +380,66 @@ fn voice_allowed(app: &AppHandle) -> bool {
     e.pro || !e.locked.iter().any(|x| x == "voice")
 }
 
+/// Ayarlardan ses ayarları (paket klasörü kurulu paketlerden ya da özel klasörden çözülür)
+fn voice_cfg_of(app: &AppHandle, value: &Value) -> (voice::VoiceCfg, voice::SoundsCfg) {
+    voice::cfg_from_settings(value, voicepack::voicepacks_dir(app).as_deref())
+}
+
 pub(crate) fn push_voice_cfg(app: &AppHandle, value: &Value) {
-    let (vc, sc) = voice::cfg_from_settings(value);
+    let (vc, sc) = voice_cfg_of(app, value);
     *shared(app).voice_cfg.lock() = Some((vc, sc, voice_allowed(app)));
 }
 
 #[tauri::command]
 fn voice_info(app: AppHandle) -> voice::VoiceInfo {
-    let (vc, _) = current_settings(&app).map(|v| voice::cfg_from_settings(&v)).unwrap_or_default();
-    voice::info(&vc, shared(&app).voice_active.load(Ordering::Relaxed))
+    let (vc, _) = current_settings(&app).map(|v| voice_cfg_of(&app, &v)).unwrap_or_default();
+    let dir = voicepack::voicepacks_dir(&app);
+    voice::info(&vc, dir.as_deref(), shared(&app).voice_active.load(Ordering::Relaxed))
 }
+
+/// Test düğmeleri için ayrı bir ses motoru (son çalınan kaydı hatırlasın diye kalıcı)
+static VOICE_TEST: Mutex<Option<voice::Voice>> = parking_lot::const_mutex(None);
 
 #[tauri::command]
 fn voice_test(app: AppHandle, key: String) -> Result<(), String> {
     if !voice_allowed(&app) {
         return Err("Sesli mühendis PRO üyelere özel".into());
     }
-    let (vc, sc) = current_settings(&app).map(|v| voice::cfg_from_settings(&v)).unwrap_or_default();
-    let mut v = voice::Voice::default();
+    let (vc, sc) = current_settings(&app).map(|v| voice_cfg_of(&app, &v)).unwrap_or_default();
+    let mut g = VOICE_TEST.lock();
+    let v = g.get_or_insert_with(|| {
+        let mut v = voice::Voice::default();
+        v.acks = false;
+        v
+    });
+    v.set_cfg(vc, sc, true);
+    v.test(&key)
+}
+
+/// Ayarları değiştirmeden verilen klasördeki (ör. kayıt yapılan şablon klasörü) bir ifadeyi çal
+#[tauri::command]
+fn voice_test_dir(app: AppHandle, dir: String, key: String) -> Result<(), String> {
+    if !voice_allowed(&app) {
+        return Err("Sesli mühendis PRO üyelere özel".into());
+    }
+    let (mut vc, sc) = current_settings(&app).map(|v| voice_cfg_of(&app, &v)).unwrap_or_default();
+    let (root, meta) = voicepack::resolve(None, "", &dir).ok_or("Bu klasörde ses paketi bulunamadı")?;
+    vc.custom_dir = dir;
+    vc.pack_root = Some(root);
+    vc.pack_meta = meta;
+    let mut g = VOICE_TEST.lock();
+    let v = g.get_or_insert_with(|| {
+        let mut v = voice::Voice::default();
+        v.acks = false;
+        v
+    });
     v.set_cfg(vc, sc, true);
     v.test(&key)
 }
 
 #[tauri::command]
 fn sound_test(app: AppHandle, kind: String) {
-    let (_, sc) = current_settings(&app).map(|v| voice::cfg_from_settings(&v)).unwrap_or_default();
+    let (_, sc) = current_settings(&app).map(|v| voice_cfg_of(&app, &v)).unwrap_or_default();
     match kind.as_str() {
         "alongside" => {
             let c = sc.alongside;
@@ -520,7 +585,9 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
         let _ = w.set_focus();
         return Ok(());
     }
-    WebviewWindowBuilder::new(&app, label, WebviewUrl::App(format!("window.html?view={view}").into()))
+    // Son kullanılan konum/boyut (bağlı bir monitördeyse); pencere gizli açılıp yerleştirildikten sonra gösterilir
+    let saved = winstate::restore(&app, label);
+    let win = WebviewWindowBuilder::new(&app, label, WebviewUrl::App(format!("window.html?view={view}").into()))
         .title(format!("SRTR Pitwall – {}", tr(&app, title)))
         .inner_size(w, h)
         .min_inner_size(
@@ -531,10 +598,17 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
             },
             if label == "friends" { 420.0 } else { 500.0 },
         )
+        .visible(saved.is_none())
         .additional_browser_args(browser_args())
         .build()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    if let Some(g) = saved {
+        winstate::apply(&win, &g);
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+    winstate::track(&app, &win);
+    Ok(())
 }
 
 /// Tepsiden "Arkadaşlar" penceresini aç
@@ -551,6 +625,17 @@ pub(crate) fn open_events(app: &AppHandle) {
     tauri::async_runtime::spawn(async move {
         let _ = window_open(app, "events".into()).await;
     });
+}
+
+/// "Olaylar" penceresi açık değilse aç (tekrar başlayınca; açıksa odağı çalma)
+pub(crate) fn open_events_if_closed(app: &AppHandle) {
+    let open = app
+        .get_webview_window("events")
+        .map(|w| w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false))
+        .unwrap_or(false);
+    if !open {
+        open_events(app);
+    }
 }
 
 // ---- Web sunucusu (OBS tarayıcı kaynağı) ----
@@ -756,6 +841,64 @@ fn open_url(url: String) -> Result<(), String> {
     r.map(|_| ()).map_err(|e| e.to_string())
 }
 
+/// Ödeme penceresinin dönüş adresi öneki (pencere yeniden kullanılınca güncellenir)
+static CHECKOUT_DONE: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+/// Ödeme sayfasını (Lemon Squeezy) programın içinde ayrı bir pencerede açar. Pencere dış adres
+/// gösterir; IPC izni yoktur (capabilities'te "checkout" yok). Ödeme bitip sayfa `done_prefix` ile
+/// başlayan dönüş adresine gitmek isteyince gezinme engellenir, "checkout-done" olayı yayınlanır ve
+/// pencere kapanır. Pencere elle kapatılırsa "checkout-closed" yayınlanır.
+#[tauri::command]
+async fn checkout_open(app: AppHandle, url: String, done_prefix: String) -> Result<(), String> {
+    let parsed: tauri::Url = url.parse().map_err(|_| "Geçersiz adres".to_string())?;
+    if parsed.scheme() != "https" || !done_prefix.starts_with("https://") {
+        return Err("Geçersiz adres".into());
+    }
+    if let Ok(mut d) = CHECKOUT_DONE.lock() {
+        *d = done_prefix;
+    }
+    if let Some(w) = app.get_webview_window("checkout") {
+        w.navigate(parsed).map_err(|e| e.to_string())?;
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    let nav_app = app.clone();
+    let w = WebviewWindowBuilder::new(&app, "checkout", WebviewUrl::External(parsed))
+        .title(format!("SRTR Pitwall – {}", tr(&app, "Ödeme")))
+        .inner_size(520.0, 760.0)
+        .min_inner_size(380.0, 480.0)
+        .center()
+        .resizable(true)
+        .decorations(true)
+        .focused(true)
+        .additional_browser_args(browser_args())
+        .on_navigation(move |u| {
+            let done = CHECKOUT_DONE.lock().map(|d| d.clone()).unwrap_or_default();
+            if done.is_empty() || !u.as_str().starts_with(&done) {
+                return true;
+            }
+            let _ = nav_app.emit("checkout-done", u.as_str().to_string());
+            let a = nav_app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Some(w) = a.get_webview_window("checkout") {
+                    let _ = w.close();
+                }
+            });
+            false
+        })
+        .build()
+        .map_err(|e| e.to_string())?;
+    let ev_app = app.clone();
+    w.on_window_event(move |e| {
+        if let tauri::WindowEvent::Destroyed = e {
+            let _ = ev_app.emit("checkout-closed", ());
+        }
+    });
+    Ok(())
+}
+
 #[tauri::command]
 fn logos_list(app: AppHandle) -> Vec<logos::Logo> {
     logos::list(&app)
@@ -785,6 +928,31 @@ fn sessions_open_dir(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn sessions_prune(app: AppHandle, days: u32, keep: usize, all: Option<bool>) -> Result<usize, String> {
     Ok(history::prune(&sessions_path(&app)?, days, keep, all.unwrap_or(false)))
+}
+
+fn telemetry_queue(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let d = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(laprec::queue_path(&d))
+}
+
+/// Telemetri kuyruğu: yüklenmeyi bekleyen en eski turlar (iz dahil) ve toplam sayı
+#[tauri::command]
+fn telemetry_pending(app: AppHandle, limit: Option<usize>) -> Result<Value, String> {
+    let p = telemetry_queue(&app)?;
+    let laps = laprec::pending(&p, limit.unwrap_or(20).clamp(1, 200));
+    Ok(serde_json::json!({ "laps": laps, "total": laprec::count(&p) }))
+}
+
+/// Yüklenen turları kuyruktan siler; kalan sayıyı döner
+#[tauri::command]
+fn telemetry_ack(app: AppHandle, ids: Vec<String>) -> Result<usize, String> {
+    laprec::ack(&telemetry_queue(&app)?, &ids).map_err(|e| e.to_string())
+}
+
+/// Yüklenmemiş turları siler
+#[tauri::command]
+fn telemetry_queue_clear(app: AppHandle) -> Result<(), String> {
+    laprec::clear(&telemetry_queue(&app)?).map_err(|e| e.to_string())
 }
 
 /// Oturum kaydının okunabilir özetini döner (dosya adı ile)
@@ -838,6 +1006,32 @@ fn team_remote_set(app: AppHandle, key: String, fuel: Option<mqtt::TeamFuel>) {
     }
 }
 
+/// Overlay'ler sayfasında yeni eklenen overlay'i ekranda tut (id: None → bırak). Süre sınırı yok: kullanıcı sayfadan
+/// çıkınca / başka overlay seçince / panel kapanınca bırakılır. Tutulurken oyun kapalıysa örnek (demo) veri üretilir
+/// (engine.rs: preview), overlay pencereleri gizli olsa da açılır.
+#[tauri::command]
+fn overlay_pin(app: AppHandle, id: Option<String>) {
+    set_overlay_pin(&app, id.filter(|x| !x.is_empty()));
+}
+
+#[tauri::command]
+fn overlay_pin_get(app: AppHandle) -> Option<String> {
+    shared(&app).pin.lock().clone()
+}
+
+fn set_overlay_pin(app: &AppHandle, id: Option<String>) {
+    let s = shared(app);
+    {
+        let mut g = s.pin.lock();
+        if *g == id {
+            return;
+        }
+        *g = id.clone();
+    }
+    let _ = app.emit("overlay-pin", serde_json::json!({ "id": id }));
+    sync_overlay_visibility(app);
+}
+
 /// Panelden overlay eklenince: overlay'ler gizli olsa bile birkaç saniye göster, yeni overlay vurgulansın
 #[tauri::command]
 async fn overlay_peek(app: AppHandle, id: String, ms: Option<u64>) {
@@ -867,6 +1061,56 @@ fn toggle_hidden(app: &AppHandle) {
     let v = !s.user_hidden.load(Ordering::Relaxed);
     s.user_hidden.store(v, Ordering::Relaxed);
     sync_overlay_visibility(app);
+}
+
+/// Kısayol: sesli mühendisi aç/kapat (`general.voice.enabled`). Onay olarak bir ifade (yoksa bip)
+/// çalınır ve overlay'de kısa bir bildirim gösterilir.
+fn toggle_voice(app: &AppHandle) {
+    if !voice_allowed(app) {
+        audio::send(audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+        let _ = app.emit("voice-toggled", serde_json::json!({ "on": false, "error": true }));
+        return;
+    }
+    let Some(mut v) = current_settings(app) else { return };
+    let cur = v.pointer("/general/voice/enabled").and_then(|x| x.as_bool()).unwrap_or(true);
+    let on = !cur;
+    let Some(vo) = v.pointer_mut("/general/voice").and_then(|x| x.as_object_mut()) else { return };
+    vo.insert("enabled".into(), Value::Bool(on));
+    if let Some(o) = v.as_object_mut() {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        o.insert("updatedAt".into(), Value::from(now));
+    }
+    // Onayı burada çal; ses motoru aynı değişikliği bir daha söylemesin
+    shared(app).voice_skip_ack.store(true, Ordering::Relaxed);
+    settings_set(app.clone(), app.state::<SettingsStore>(), v.clone(), "shortcut".into());
+    let said = {
+        let (vc, sc) = voice_cfg_of(app, &v);
+        let mut g = VOICE_TEST.lock();
+        let t = g.get_or_insert_with(|| {
+            let mut t = voice::Voice::default();
+            t.acks = false;
+            t
+        });
+        t.set_cfg(vc, sc, true);
+        t.test(if on { "acknowledge/keepQuietDisabled" } else { "acknowledge/keepQuietEnabled" }).is_ok()
+    };
+    if !said {
+        // Ses paketi/kaydı yok: açılınca iki tiz, kapanınca bir pes bip
+        let beeps: &'static [f32] = if on { &[880.0, 1320.0] } else { &[440.0] };
+        std::thread::spawn(move || {
+            for (i, f) in beeps.iter().enumerate() {
+                if i > 0 {
+                    std::thread::sleep(std::time::Duration::from_millis(140));
+                }
+                audio::send(audio::Cmd::Beep { freq: *f, ms: 110, volume: 0.5, pan: 0.0 });
+            }
+        });
+    }
+    // Overlay kısa bir bildirim gösterir (metin arayüz dilinde, bkz. Host.tsx)
+    let _ = app.emit("voice-toggled", serde_json::json!({ "on": on, "error": false }));
 }
 
 #[tauri::command]
@@ -926,6 +1170,77 @@ fn place_overlay(app: &AppHandle, index: Option<usize>) {
     }
 }
 
+/// Monitör listesinin imzası (ad + konum + boyut + ölçek). Değişince monitör takıldı/çıkarıldı demektir.
+fn monitor_signature(app: &AppHandle) -> Option<String> {
+    let w = app.get_webview_window("overlay")?;
+    let list = w.available_monitors().ok()?;
+    Some(
+        list.iter()
+            .map(|m| {
+                format!(
+                    "{}@{},{}:{}x{}*{}",
+                    m.name().cloned().unwrap_or_default(),
+                    m.position().x,
+                    m.position().y,
+                    m.size().width,
+                    m.size().height,
+                    m.scale_factor()
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("|"),
+    )
+}
+
+/// Monitör tak-çıkar takibi: her 2 sn'de bir monitör listesini karşılaştırır (ucuz).
+/// Değişince overlay pencereleri yeniden yerleştirilir ve arayüze "monitors-changed" gönderilir.
+fn spawn_monitor_watch(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut last = monitor_signature(&app);
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            let Some(sig) = monitor_signature(&app) else { continue };
+            if last.as_deref() == Some(sig.as_str()) {
+                continue;
+            }
+            last = Some(sig);
+            // Windows'un yeni düzeni oturtması için kısa bir bekleme
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            let settings = current_settings(&app);
+            let monitor = settings
+                .as_ref()
+                .and_then(|v| v.pointer("/general/monitor"))
+                .and_then(|v| v.as_u64())
+                .map(|v| v as usize);
+            place_overlay(&app, monitor);
+            if let Some(v) = settings.as_ref() {
+                sync_monitor_windows(&app, v);
+            }
+            let _ = app.emit("monitors-changed", ());
+        }
+    });
+}
+
+/// İlk kurulumda (daha önce ayar dosyası yoksa) "Windows ile başlat" bir kez açılır.
+/// İşaret dosyası sayesinde kullanıcı sonradan kapatırsa tekrar açılmaz; mevcut kullanıcılara dokunulmaz.
+fn autostart_first_run(app: &AppHandle, had_settings: bool) {
+    let Ok(dir) = app.path().app_config_dir() else { return };
+    let marker = dir.join("autostart.init");
+    if marker.exists() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(&dir);
+    let _ = std::fs::write(&marker, b"1");
+    // Geliştirme derlemesi kendini başlangıca eklemesin
+    if had_settings || cfg!(debug_assertions) {
+        return;
+    }
+    use tauri_plugin_autostart::ManagerExt;
+    if let Err(e) = app.autolaunch().enable() {
+        eprintln!("Otomatik başlatma açılamadı: {e}");
+    }
+}
+
 #[tauri::command]
 fn overlay_set_monitor(app: AppHandle, index: usize) {
     place_overlay(&app, Some(index));
@@ -969,7 +1284,16 @@ fn open_panel(app: &AppHandle) {
         .min_inner_size(900.0, 600.0)
         .center()
         .additional_browser_args(browser_args())
-        .build();
+        .build()
+        .map(|w| {
+            // Panel kapanınca (pencere yok edilir) ekranda tutulan yeni overlay bırakılır
+            let app2 = app.clone();
+            w.on_window_event(move |e| {
+                if let tauri::WindowEvent::Destroyed = e {
+                    set_overlay_pin(&app2, None);
+                }
+            });
+        });
 }
 
 fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
@@ -1018,8 +1342,36 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 /// Kısayol eylemleri ve varsayılan tuşları
-const SHORTCUTS: [(&str, &str); 4] =
-    [("edit", "Ctrl+Shift+E"), ("hide", "Ctrl+Shift+D"), ("panel", "Ctrl+Shift+Space"), ("shot", "PrintScreen")];
+const SHORTCUTS: [(&str, &str); 10] = [
+    ("edit", "Ctrl+Shift+E"),
+    ("hide", "Ctrl+Shift+D"),
+    ("panel", "Ctrl+Shift+Space"),
+    ("shot", "F12"),
+    ("voice", "Ctrl+Shift+V"),
+    // Canlı Sohbet (MultiChatOverlay varsayılanları): anket aç/bitir, sesli okuma aç/kapat, sustur, altyazı aç/kapat
+    ("poll", "F9"),
+    ("tts", "F5"),
+    ("ttsHush", ""),
+    ("stt", "F6"),
+    // Canlı sohbeti başlat / durdur (her zaman kayıtlı)
+    ("chat", "Ctrl+Shift+C"),
+];
+
+/// Sadece Canlı Sohbet çalışırken (ya da altyazı açıkken) kaydedilen kısayollar: F5/F6/F9 diğer uygulamalara kalsın
+const LIVECHAT_ONLY: [&str; 4] = ["poll", "tts", "ttsHush", "stt"];
+
+/// Kısayolları yeniden kaydet (canlı sohbet başlayınca / durunca)
+pub(crate) fn refresh_shortcuts(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let v = current_settings(&app);
+        apply_shortcuts(&app, v.as_ref());
+    });
+}
+
+/// Sadece oyundayken kaydedilen kısayollar: oyun kapalıyken tuş diğer uygulamalara kalır
+/// (ör. Ctrl+Shift+V "biçimsiz yapıştır"). Ekran görüntüsü ayrıca `screenshots.onlyInGame` ayarına bağlı.
+const IN_GAME_ONLY: [&str; 1] = ["voice"];
 
 #[derive(Default)]
 struct KeyBindings {
@@ -1052,10 +1404,19 @@ fn shortcuts_from_settings(v: Option<&Value>) -> Vec<(String, String)> {
     SHORTCUTS
         .iter()
         .map(|(a, d)| {
-            let key = sc.and_then(|s| s.get(*a)).and_then(|x| x.as_str()).unwrap_or(d).trim().to_string();
+            let mut key = sc.and_then(|s| s.get(*a)).and_then(|x| x.as_str()).unwrap_or(d).trim().to_string();
+            // Eski varsayılanlar (PrintScreen, Ctrl+PrintScreen) bir kez F12'ye taşınır;
+            // arayüz ayarı kaydedince `shotKeyV3` yazılır ve kullanıcının sonraki seçimi korunur.
+            if *a == "shot" && (key == "PrintScreen" || key == "Ctrl+PrintScreen") && !shot_key_migrated(v) {
+                key = (*d).to_string();
+            }
             (a.to_string(), key)
         })
         .collect()
+}
+
+fn shot_key_migrated(v: Option<&Value>) -> bool {
+    v.and_then(|v| v.pointer("/general/shotKeyV3")).and_then(|x| x.as_bool()).unwrap_or(false)
 }
 
 fn want_text(v: Option<&Value>, action: &str) -> String {
@@ -1070,7 +1431,7 @@ fn apply_shortcuts(app: &AppHandle, v: Option<&Value>) {
     static LOCK: Mutex<()> = parking_lot::const_mutex(());
     let _guard = LOCK.lock();
     let mut want = shortcuts_from_settings(v);
-    // Ekran görüntüsü kısayolu (PrintScreen) varsayılan olarak sadece oyundayken kaydedilir;
+    // Ekran görüntüsü kısayolu (Ctrl+PrintScreen) varsayılan olarak sadece oyundayken kaydedilir;
     // oyun kapalıyken tuş Windows'un kendi işlevine kalır.
     let only_in_game = v
         .and_then(|v| v.pointer("/general/screenshots/onlyInGame"))
@@ -1079,6 +1440,12 @@ fn apply_shortcuts(app: &AppHandle, v: Option<&Value>) {
     let in_game = shared(app).connected.load(Ordering::Relaxed);
     if only_in_game && !in_game {
         want.retain(|(a, _)| a != "shot");
+    }
+    if !in_game {
+        want.retain(|(a, _)| !IN_GAME_ONLY.contains(&a.as_str()));
+    }
+    if !livechat::hotkeys_active(app) {
+        want.retain(|(a, _)| !LIVECHAT_ONLY.contains(&a.as_str()));
     }
     let key = format!("{want:?}");
     let st = app.state::<KeyBindings>();
@@ -1119,7 +1486,23 @@ fn apply_shortcuts(app: &AppHandle, v: Option<&Value>) {
     }
 
     let mut bound = Vec::new();
+    let mut hook_used = false;
     for (action, sc) in parsed {
+        // PrintScreen içeren ekran görüntüsü kısayolu Windows'ta klavye kancasıyla dinlenir
+        // (RegisterHotKey PrintScreen'i güvenilir şekilde iletmiyor, bkz. prtsc.rs)
+        if prtsc::SUPPORTED && action == "shot" && sc.key == Code::PrintScreen {
+            match prtsc::enable(shortcut_mods(&sc)) {
+                Ok(()) => {
+                    if gs.is_registered(sc) {
+                        let _ = gs.unregister(sc);
+                    }
+                    hook_used = true;
+                    bound.push((action, sc));
+                    continue;
+                }
+                Err(e) => eprintln!("PrintScreen kancası: {e}"),
+            }
+        }
         if gs.is_registered(sc) {
             bound.push((action, sc));
             continue;
@@ -1131,11 +1514,26 @@ fn apply_shortcuts(app: &AppHandle, v: Option<&Value>) {
                 let _ = gs.unregister(sc);
                 match gs.register(sc) {
                     Ok(()) => bound.push((action, sc)),
-                    // Başka bir uygulama (ör. eski "PitWall" kurulumu) aynı kısayolu kullanıyor
-                    Err(e) => errors.push((action, format!("Kaydedilemedi: başka bir uygulama bu kısayolu kullanıyor ({e})"))),
+                    Err(e) => {
+                        // Ekran görüntüsü F tuşundaysa (ör. F12: Windows bunu hata ayıklayıcıya ayırabilir)
+                        // klavye kancasıyla dinle
+                        let vk = function_key_number(sc.key).and_then(prtsc::vk_function_key);
+                        if let (true, "shot", Some(vk), false) = (prtsc::SUPPORTED, action.as_str(), vk, hook_used) {
+                            if prtsc::enable_key(vk, shortcut_mods(&sc)).is_ok() {
+                                hook_used = true;
+                                bound.push((action, sc));
+                                continue;
+                            }
+                        }
+                        // Başka bir uygulama (ör. eski "PitWall" kurulumu) aynı kısayolu kullanıyor
+                        errors.push((action, format!("Kaydedilemedi: başka bir uygulama bu kısayolu kullanıyor ({e})")))
+                    }
                 }
             }
         }
+    }
+    if !hook_used {
+        prtsc::disable();
     }
     for (a, e) in &errors {
         eprintln!("kısayol {a}: {e}");
@@ -1143,6 +1541,30 @@ fn apply_shortcuts(app: &AppHandle, v: Option<&Value>) {
     *st.bound.lock() = bound;
     *st.errors.lock() = errors;
     refresh_tray_labels(app, v);
+}
+
+/// F1–F24 tuşunun numarası
+fn function_key_number(c: Code) -> Option<u32> {
+    let s = format!("{c:?}");
+    s.strip_prefix('F').and_then(|n| n.parse::<u32>().ok()).filter(|n| (1..=24).contains(n))
+}
+
+/// Kısayolun değiştiricileri (PrintScreen kancası için)
+fn shortcut_mods(sc: &Shortcut) -> u8 {
+    let mut m = 0;
+    if sc.mods.contains(Modifiers::CONTROL) {
+        m |= prtsc::MOD_CTRL;
+    }
+    if sc.mods.contains(Modifiers::SHIFT) {
+        m |= prtsc::MOD_SHIFT;
+    }
+    if sc.mods.contains(Modifiers::ALT) {
+        m |= prtsc::MOD_ALT;
+    }
+    if sc.mods.intersects(Modifiers::SUPER | Modifiers::META) {
+        m |= prtsc::MOD_WIN;
+    }
+    m
 }
 
 /// Tepsi menüsü etiketleri: arayüz dilinde, atanmış kısayolla birlikte
@@ -1179,6 +1601,18 @@ fn i18n_set(app: AppHandle, strings: std::collections::HashMap<String, String>) 
     }
 }
 
+/// Demo vitrini: panelin buluttan aldığı PRO üye adları (bkz. demo.rs)
+#[tauri::command]
+fn demo_set_names(names: Vec<String>) -> usize {
+    demo::set_showcase_names(names)
+}
+
+/// Panel kısayol kaydederken PrintScreen kancasını duraklatır (tuş arayüze ulaşsın)
+#[tauri::command]
+fn shortcuts_pause(paused: bool) {
+    prtsc::set_paused(paused);
+}
+
 #[tauri::command]
 fn shortcuts_status(app: AppHandle) -> Vec<ShortcutError> {
     app.state::<KeyBindings>()
@@ -1210,10 +1644,18 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 Some("hide") => toggle_hidden(app),
                 Some("panel") => bring_panel_front(app),
                 Some("shot") => shots::take(app, false),
+                Some("voice") => toggle_voice(app),
+                Some("poll") => livechat::hotkey_poll(app),
+                Some("tts") => livechat::tts::hotkey_toggle(app),
+                Some("ttsHush") => livechat::tts::hotkey_hush(app),
+                Some("stt") => livechat::stt::hotkey_toggle(app),
+                Some("chat") => livechat::hotkey_chat(app),
                 _ => {}
             }
         })
         .build();
+    let hook_app = app.clone();
+    prtsc::set_action(Box::new(move || shots::take(&hook_app, false)));
     if app.plugin(plugin).is_ok() {
         apply_shortcuts(app, saved);
     }
@@ -1228,6 +1670,7 @@ pub fn run() {
         // (Eklentiler arasında ilk sırada olmalı.)
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| bring_panel_front(app)))
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![TRAY_ARG]),
@@ -1265,6 +1708,8 @@ pub fn run() {
             demo_set,
             edit_mode_set,
             overlay_peek,
+            overlay_pin,
+            overlay_pin_get,
             team_remote_set,
             hidden_set,
             monitors_list,
@@ -1279,15 +1724,33 @@ pub fn run() {
             logos_list,
             logos_open_dir,
             open_url,
+            checkout_open,
             voice_info,
             voice_test,
+            vr::vr_fit,
+            voicepack::voice_packs_installed,
+            voicepack::voice_catalog,
+            voicepack::voice_packs_open_dir,
+            voicepack_dl::voice_pack_install,
+            voicepack_dl::voice_pack_cancel,
+            voicepack_dl::voice_pack_remove,
+            voicepack_dl::voice_pack_probe,
+            voicepack_build::voice_pack_build,
+            voicepack_build::voice_pack_template,
+            voicepack_build::voice_pack_check,
+            voice_test_dir,
             sound_test,
             mqtt_status,
+            translate::translate_text,
             shortcuts_status,
+            shortcuts_pause,
             sessions_info,
             sessions_open_dir,
             sessions_prune,
             session_summary,
+            telemetry_pending,
+            telemetry_ack,
+            telemetry_queue_clear,
             i18n_set,
             shots::watermark_set,
             shots::shot_take,
@@ -1302,17 +1765,69 @@ pub fn run() {
             shots::edit_backdrop_import,
             shots::edit_backdrop_read,
             shots::edit_backdrop_clear,
+            shots::chat_bg_import,
+            shots::chat_bg_read,
+            shots::chat_bg_clear,
+            shots::bg_file_import,
+            shots::bg_file_read,
+            shots::bg_file_clear,
+            demo_set_names,
             entitlement::entitlement_get,
             entitlement::entitlement_set,
             device::device_info,
             updater::update_check,
             updater::update_install,
+            livechat::livechat_start,
+            livechat::livechat_stop,
+            livechat::livechat_restart,
+            livechat::livechat_status,
+            livechat::livechat_parse_links,
+            livechat::livechat_channels_set,
+            livechat::livechat_history,
+            livechat::livechat_state,
+            livechat::livechat_poll_start,
+            livechat::livechat_poll_stop,
+            livechat::livechat_poll_reset,
+            livechat::livechat_poll_get,
+            livechat::livechat_ban_user,
+            livechat::livechat_unban_user,
+            livechat::livechat_hide_message,
+            livechat::livechat_clear,
+            livechat::livechat_log_set,
+            livechat::livechat_log_open_dir,
+            livechat::chatlog::livechat_log_days,
+            livechat::chatlog::livechat_log_read,
+            livechat::chatlog::livechat_log_search,
+            livechat::chatlog::livechat_log_delete,
+            livechat::chatlog::livechat_log_export,
+            livechat::tts::social_tts_speak,
+            livechat::livechat_streamlabs_token_set,
+            livechat::livechat_streamlabs_status,
+            livechat::livechat_caption_push,
+            livechat::livechat_caption_clear,
+            livechat::tts::livechat_tts_voices,
+            livechat::tts::livechat_audio_outputs,
+            livechat::tts::livechat_tts_status,
+            livechat::tts::livechat_tts_test,
+            livechat::tts::livechat_tts_skip,
+            livechat::tts::livechat_tts_clear,
+            livechat::stt::livechat_stt_languages,
+            livechat::stt::livechat_stt_status,
+            livechat::stt::livechat_stt_restart,
+            livechat::send::livechat_send_status,
+            livechat::send::livechat_twitch_login,
+            livechat::send::livechat_oauth_login,
+            livechat::send::livechat_auth_cancel,
+            livechat::send::livechat_auth_logout,
+            livechat::send::livechat_send,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
 
             // Kayıtlı genel ayarları uygula (panel açılmadan önce).
+            let had_settings = settings_path(&handle).map(|p| p.exists()).unwrap_or(false);
             let saved = read_settings(&handle);
+            autostart_first_run(&handle, had_settings);
             *app.state::<SettingsStore>().current.lock() = saved.clone();
             spawn_settings_writer(handle.clone());
             let general = saved.as_ref().and_then(|v| v.get("general"));
@@ -1341,7 +1856,10 @@ pub fn run() {
 
             setup_tray(&handle)?;
             setup_shortcuts(&handle, saved.as_ref());
+            voicesub::init(shared_state.clone());
             engine::spawn(handle.clone(), shared_state.clone());
+            // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)
+            livechat::init(&handle, shared_state.clone());
             if srv_on {
                 apply_server(&handle, true, srv_port, srv_lan);
             }
@@ -1349,6 +1867,7 @@ pub fn run() {
                 apply_dynamic(&handle, v);
             }
             sync_overlay_visibility(&handle);
+            spawn_monitor_watch(handle.clone());
             Ok(())
         })
         .build(tauri::generate_context!())

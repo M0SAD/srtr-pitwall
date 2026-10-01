@@ -165,13 +165,103 @@ export const ACTION_LABELS: Record<string, string> = {
   admin_revoke: "Yöneticiliği aldı",
   group_add: "Gruba ekledi",
   group_remove: "Gruptan çıkardı",
+  message_report_dismiss: "Mesaj raporunu yoksaydı",
+  message_report_resolve: "Mesaj raporunu kapattı",
+  message_report_reopen: "Mesaj raporunu yeniden açtı",
+  message_report_delete_message: "Raporlanan mesajı sildi",
+  team_delete: "Takımı sildi",
+  support_delete: "Destek talebini sildi",
+  messages_view: "Özel mesajlara baktı",
+  ad_force_delete: "Reklamı kalıcı sildi",
 };
 
 export const LOG_TARGETS: Record<string, string> = {
   ...TARGET_LABELS,
   report: "Rapor",
   user: "Kullanıcı",
+  message: "Mesaj",
+  team: "Takım",
+  support: "Destek talebi",
+  ad: "Reklam",
 };
+
+// ---------------------------------------------------------------------------
+// Mesaj raporları (arkadaş mesajları; sadece yöneticiler)
+// ---------------------------------------------------------------------------
+
+export interface MessageReportRow {
+  id: string;
+  message_id: string | null;
+  reason: string;
+  note: string;
+  body: string;
+  message_at: string | null;
+  status: "open" | "dismissed" | "resolved" | "removed";
+  created_at: string;
+  handled_at: string | null;
+  handled_name: string;
+  reporter: string;
+  reporter_name: string;
+  reported: string | null;
+  reported_name: string;
+  message_exists: boolean;
+  reported_total: number;
+}
+
+export type MessageReportAction = "dismiss" | "resolve" | "reopen" | "delete_message";
+
+export const adminMessageReports = (status: "open" | "all") =>
+  api<MessageReportRow[]>("POST", "rpc/admin_message_reports", { body: { p_status: status === "all" ? "" : status } }).then((r) => r ?? []);
+export const adminMessageReportSet = (id: string, action: MessageReportAction) =>
+  api("POST", "rpc/admin_message_report_set", { body: { p_id: id, p_action: action } });
+
+// ---------------------------------------------------------------------------
+// Tüm özel mesajlar (sadece yönetici; her ilk sayfa moderasyon kaydına yazılır)
+// ---------------------------------------------------------------------------
+
+export interface AdminMessageRow {
+  id: string;
+  sender: string;
+  sender_name: string;
+  sender_iracing: string | null;
+  recipient: string;
+  recipient_name: string;
+  recipient_iracing: string | null;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+  hidden_by_sender: boolean;
+  hidden_by_recipient: boolean;
+  reported: boolean;
+  total: number;
+}
+
+export interface AdminMessageFilter {
+  /** Üye adı / iRacing adı (parça) ya da kullanıcı kimliği */
+  user?: string;
+  /** İkinci üye: verilirse sadece ikisi arasındaki mesajlar */
+  other?: string;
+  text?: string;
+  /** ISO tarih (dahil) */
+  from?: string | null;
+  /** ISO tarih (hariç) */
+  to?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
+export const adminMessages = (f: AdminMessageFilter) =>
+  api<AdminMessageRow[]>("POST", "rpc/admin_messages", {
+    body: {
+      p_user_query: f.user?.trim() || null,
+      p_other_query: f.other?.trim() || null,
+      p_text: f.text?.trim() || null,
+      p_from: f.from || null,
+      p_to: f.to || null,
+      p_limit: f.limit ?? 100,
+      p_offset: f.offset ?? 0,
+    },
+  }).then((r) => r ?? []);
 
 // ---------------------------------------------------------------------------
 // Bildirimler
@@ -265,6 +355,24 @@ export async function deleteNotice(id: string) {
     await api("POST", "announcement_reads", { body: { announcement_id: aid, read_at: new Date(0).toISOString() }, prefer: "return=minimal" }).catch(() => {});
   } else await api("DELETE", `notifications?id=eq.${id}`).catch(() => {});
   setNotices(notices().filter((n) => n.id !== id));
+}
+
+/** Tüm bildirimleri sil (yalnız kendi satırları; duyurular okundu sayılıp gizlenir) */
+export async function deleteAllNotices() {
+  const uid = session()?.user.id;
+  if (!uid) return;
+  const list = notices();
+  if (list.some((n) => !n.ann)) await api("DELETE", `notifications?user_id=eq.${uid}`, { prefer: "return=minimal" }).catch(() => {});
+  const aids = list.filter((n) => n.ann).map((n) => n.id.slice(2));
+  if (aids.length) {
+    await api("DELETE", `announcement_reads?user_id=eq.${uid}&announcement_id=in.(${aids.join(",")})`, { prefer: "return=minimal" }).catch(() => {});
+    const epoch = new Date(0).toISOString();
+    await api("POST", "announcement_reads", {
+      body: aids.map((a) => ({ announcement_id: a, read_at: epoch })),
+      prefer: "return=minimal",
+    }).catch(() => {});
+  }
+  setNotices([]);
 }
 
 // Yönetici: duyurular

@@ -117,10 +117,13 @@ export async function setSubscriptions(topics: Sub[]) {
   }
 }
 
+const LIVE_TOPICS: TopicName[] = ["livechat", "livepoll", "captions", "voice"];
+
 /** Bağlantı koptuğunda eski verinin ekranda kalmaması için. */
 export function clearData() {
   for (const k of Object.keys(store) as TopicName[]) {
-    if (k !== "status") (store[k][1] as (v: unknown) => void)(undefined);
+    // Canlı sohbet konuları iRacing'den bağımsız (bağlantı kopunca silinmez)
+    if (k !== "status" && !LIVE_TOPICS.includes(k)) (store[k][1] as (v: unknown) => void)(undefined);
   }
 }
 

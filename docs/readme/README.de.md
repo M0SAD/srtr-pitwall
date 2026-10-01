@@ -20,7 +20,7 @@
 
 Die meisten Overlay-Apps hören bei Overlays auf. SRTR Pitwall ist eine komplette Boxenmauer für dein Sim-Rig:
 
-- 🏎️ **26 Overlays, ein transparentes Fenster** — Relative, Leaderboard, Sprit, Reifen, Radar, Streckenkarte, Delta, Inputs, Wetter, Flaggen und mehr. Alles wird pro Monitor in einem einzigen Fenster gezeichnet — und bleibt selbst mit vollem Layout flott.
+- 🏎️ **27 Overlays, ein transparentes Fenster** — Relative, Leaderboard, Sprit, Reifen, Radar, Streckenkarte, Delta, Inputs, Wetter, Flaggen und mehr. Alles wird pro Monitor in einem einzigen Fenster gezeichnet — und bleibt selbst mit vollem Layout flott.
 - 🎙️ **Visueller & akustischer Spotter** — Auto links / Auto rechts, drei nebeneinander, Flaggen-, Sprit- und Positionsansagen mit türkischem Sprachpaket, dazu Warnungen vor schnelleren Klassen und beim Wiedereinfädeln.
 - ⛽ **Spritstrategie mit Live-Teamsharing** — Verbrauch pro Runde, Nachtankmengen, Boxenfenster und der Sprit deiner Teamkollegen live in deinem eigenen Overlay.
 - 👥 **Freunde mit vertrauenswürdiger Live-Telemetrie** — Freunde hinzufügen, sehen, wer online ist oder gerade fährt, und Fahrern deines Vertrauens deine Live-Sprit- und Rundendaten zeigen. Keine Codes, kein Setup.

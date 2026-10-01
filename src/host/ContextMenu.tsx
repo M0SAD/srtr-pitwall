@@ -5,6 +5,7 @@ import { For, onCleanup, onMount, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { addInstance, defaultInstance, removeInstance, settings, updateOverlay } from "@/sdk/settings";
 import { monitorLabel, monitors, monitorOf } from "@/sdk/monitors";
+import { canDuplicate } from "@/sdk/registry";
 import "./context-menu.css";
 import type { Rect } from "./snap";
 
@@ -103,7 +104,7 @@ export function ContextMenu(props: {
         },
       })),
     // Ayarlarda "birden fazla eklenebilsin" açıksa
-    ...(settings().general.allowDuplicates
+    ...(canDuplicate(s().type, settings().general.allowDuplicates)
       ? [
           {
             label: "Aynısından ekle",

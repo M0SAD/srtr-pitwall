@@ -18,7 +18,7 @@ export default defineOverlay({
       key: "pressUnit",
       label: "Basınç birimi",
       type: "select",
-      default: "kpa",
+      default: "psi",
       options: [
         { value: "kpa", label: "kPa" },
         { value: "psi", label: "psi" },

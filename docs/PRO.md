@@ -7,18 +7,55 @@ ve üst çubukta uyarı alır.
 
 ## Lemon Squeezy kurulumu
 
-1. Ürünü abonelik olarak oluştur ve 4 varyant ekle: her **1 / 3 / 6 / 12 ayda** bir ödeme.
-2. Her varyantın **Share** bölümündeki ödeme bağlantısını kopyala; uygulamada **Yönetim → Planlar ve fiyatlar**
-   bölümündeki ilgili plana yapıştır, fiyat metnini yaz, **Kaydet**. Uygulama bağlantıya kullanıcının hesabını
-   (kimlik ve e-posta) kendisi ekler.
-3. Lemon Squeezy → **Settings → Webhooks → +**:
+Fiyatlar Lemon Squeezy'de değil, **yönetim panelinde** belirlenir. Lemon'da tek bir abonelik ürünü vardır; kullanıcı
+"Satın al"a basınca `pro-checkout` fonksiyonu o planın varyantıyla, yönetim panelindeki tutarı `custom_price` olarak
+göndererek ödeme sayfasını açar. Lemon'un belgelerine göre abonelikte bu özel tutar **tüm yenilemelerde** de
+kullanılır; bu yüzden panelde fiyatı değiştirmek yalnızca yeni abonelikleri etkiler, mevcut aboneler eski tutardan
+yenilenmeye devam eder.
+
+1. Lemon Squeezy → **Products → New product**: ad **SRTR Pitwall PRO**, **abonelik (subscription)**. 4 varyant ekle:
+   - **Monthly** — her 1 ayda bir
+   - **Every 3 months** — her 3 ayda bir
+   - **Every 6 months** — her 6 ayda bir
+   - **Yearly** — her 12 ayda bir
+
+   Varyant fiyatları önemsizdir (yer tutucu, ör. 1); gerçek tutar her ödemede panelden alınır. Varyant adları
+   abonelik listesinde ve ödeme geçmişinde plan adı olarak görünür. Her varyantın numarasını not et (ürün → varyant →
+   adresteki sayı ya da API).
+2. Lemon Squeezy → **Settings → API** → yeni API anahtarı; **Settings → Stores** → mağaza numarası.
+3. Supabase → **Edge Functions → Secrets**:
+   - `LEMON_API_KEY` — API anahtarı (reklamlarla ortak)
+   - `LEMON_STORE_ID` — ana mağaza numarası (reklamlarla ortak)
+   - `LEMON_STORE_CURRENCY` — (isteğe bağlı) ana mağazanın para birimi, varsayılan `TRY`
+   - `LEMON_PRO_1M_VARIANT_ID`, `LEMON_PRO_3M_VARIANT_ID`, `LEMON_PRO_6M_VARIANT_ID`, `LEMON_PRO_12M_VARIANT_ID`
+   - `LEMON_WEBHOOK_SECRET` — aşağıdaki webhook'un signing secret'ı
+   - (isteğe bağlı) `LEMON_TEST_MODE=1` test ödemesi için, `SITE_URL` ödeme sonrası dönüş adresi
+4. `supabase/functions/pro-checkout/index.ts` dosyasıyla **pro-checkout** fonksiyonunu oluştur; **Verify JWT kapalı**
+   olsun (oturum fonksiyonun içinde doğrulanır). `pro-webhook` fonksiyonunu da güncel dosyayla yeniden yayınla.
+5. SQL Editor'de `supabase/c24_guncelleme.sql` dosyasını çalıştır (`app_config.pro_pricing` sütunu).
+6. **Yönetim → Planlar ve fiyatlar** (sitede ya da uygulamada): her plan için **Fiyat (yurt dışı, USD)** ve
+   **Türkiye fiyatı (TL)** gir, **Kaydet**. Türkiye'den girenler (saat dilimi Türkiye) TL fiyatını görür ve öder,
+   diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa Türkiye'de de genel fiyat kullanılır. Bir plan için hiç
+   otomatik fiyat girilmezse eski yöntem (elle yapıştırılan ödeme bağlantısı ve fiyat metni) kullanılır.
+7. Lemon Squeezy → **Settings → Webhooks → +**:
    - URL: `https://<proje>.supabase.co/functions/v1/pro-webhook?source=lemon`
-   - Signing secret: kendin bir değer belirle (uzun, rastgele) ve kopyala.
+   - Signing secret: kendin bir değer belirle (uzun, rastgele) ve Supabase'de `LEMON_WEBHOOK_SECRET` olarak gir.
    - Olaylar: `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`,
      `subscription_expired`, `subscription_paused`, `subscription_unpaused`, `subscription_payment_success`,
      `subscription_payment_refunded` (son ikisi web sitesi yönetim panelindeki satış/gelir istatistikleri için).
-4. Supabase → **Edge Functions → Secrets**: `LEMON_WEBHOOK_SECRET` = aynı signing secret.
-5. `pro-webhook` fonksiyonunun **Verify JWT** ayarı kapalı olmalı (Lemon Supabase anahtarı göndermez).
+8. `pro-webhook` fonksiyonunun **Verify JWT** ayarı kapalı olmalı (Lemon Supabase anahtarı göndermez).
+
+### Para birimi ve mağazalar
+
+Lemon'da her mağazanın tek para birimi vardır. Ana mağaza TL ise (varsayılan) Türkiye fiyatı doğrudan TL olarak
+alınır; yurt dışı (USD) fiyatı ödeme anında güncel kurla TL'ye çevrilerek ödeme sayfası açılır. Yurt dışı müşterilerin
+doğrudan dolarla ödemesini istersen **isteğe bağlı bir USD mağazası** aç, aynı PRO ürününü (4 varyant) orada da oluştur
+ve şu gizli değerleri ekle: `LEMON_USD_STORE_ID`, `LEMON_USD_PRO_1M_VARIANT_ID`, `LEMON_USD_PRO_3M_VARIANT_ID`,
+`LEMON_USD_PRO_6M_VARIANT_ID`, `LEMON_USD_PRO_12M_VARIANT_ID` (başka para birimleri için aynı kalıp: `LEMON_EUR_…`).
+Bir para birimi için mağaza tanımlıysa ödeme o mağazada, o para biriminde açılır.
+
+**Ödemeler (payout):** Lemon Squeezy kazancı varsayılan olarak USD öder; **Settings → Payouts** bölümünden
+ödeme para birimini **TRY** seçebilirsin.
 
 PRO, yenileme tarihine 3 gün ek süreyle verilir; iptalde ödenen dönemin sonuna kadar sürer. Elle ya da Patreon
 ile verilmiş daha uzun bir süre varsa abonelik onu kısaltmaz.
@@ -122,7 +159,7 @@ PRO üyeler reklam görmez, oyun içi overlay'lerde reklam yoktur. Kurulum:
    **order_refunded** olaylarını da işaretle.
 5. Supabase → **Edge Functions → Secrets**: `LEMON_API_KEY`, `LEMON_STORE_ID`, `LEMON_AD_VARIANT_ID`
    (isteğe bağlı: `LEMON_TEST_MODE=1` test ödemesi için, `SITE_URL`).
-6. `supabase/functions/ads-checkout/index.ts` dosyasıyla **ads-checkout** fonksiyonunu oluştur — **Verify JWT açık**
+6. `supabase/functions/ads-checkout/index.ts` dosyasıyla **ads-checkout** fonksiyonunu oluştur — **Verify JWT kapalı** (oturum fonksiyon içinde doğrulanır)
    kalsın (site oturum anahtarıyla çağırır). `pro-webhook` ve `pitwall-jobs` fonksiyonlarını da güncel dosyalarla yeniden yayınla.
 7. Yönetim → **Reklamlar**: fiyatları (1.000 gösterim / günlük, para birimi Lemon mağazanla aynı) gir ve **Reklamlar açık**'ı işaretle.
 

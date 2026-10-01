@@ -155,32 +155,240 @@ export function defaultFriends(): FriendsSettings {
   };
 }
 
-export interface VoiceSettings {
+/** Canlı Sohbet kanalı (sıra önemli: ücretsiz sürümde sadece ilk kanal bağlanır). Rust: livechat/mod.rs ChannelIn */
+export interface LiveChannel {
+  /** YouTube (@handle, /channel/UC…, /watch?v=…), Twitch ya da Kick linki; platform otomatik tanınır */
+  url: string;
+  /** Göz kapalı: mesajları gösterilmez, ankette oy sayılmaz (bağlantı ve izleyici sayısı sürer) */
+  hidden?: boolean;
+  /** Kullanıcı adının önünde [kanal] etiketi: null/yok = otomatik (aynı platformdan birden fazla kanal varsa) */
+  tag?: boolean | null;
+  /** "Benim kanalım" (platform başına bir tane; izleyici çubuğu bunu gösterir) */
+  mine?: boolean;
+  /** Elle verilen ad (boş: platformdan öğrenilen ad) */
+  name?: string;
+}
+
+/** Canlı Sohbet ayarları (`general.livechat`). Rust tarafı aynı alanları okur (livechat/mod.rs cfg_from_settings).
+ *  Gizli bilgiler (Streamlabs Socket API Token) burada DEĞİL, Rust'taki ayrı dosyada. */
+export interface LiveChatSettings {
+  /** Uygulama açılınca sohbete otomatik bağlan */
+  autoStart: boolean;
+  channels: LiveChannel[];
+  /** Varsayılan kanallar bir kez eklendi (kullanıcı silerse geri gelmez) */
+  seeded: boolean;
+  /** YouTube sohbet yoklama aralığı (sn, 1..10) */
+  ytInterval: number;
+  /** YouTube web istemcisi sürümü (boş: otomatik). YouTube değişirse elle güncellemek için. */
+  ytClientVersion: string;
+  moderation: {
+    /** Engellenen kullanıcı adları (küçük harf, @ olmadan) */
+    banned: string[];
+    wordFilter: boolean;
+    /** Virgülle ayrılmış kelimeler; "kelime*" o kelimeyle başlayanlar */
+    words: string;
+    /** mask: k*** şeklinde yıldızla, hide: mesajı gizle */
+    wordMode: "mask" | "hide";
+    blockLinks: boolean;
+    /** Aynı kullanıcının aynı mesajını spamWindow saniye içinde tekrar gösterme */
+    spam: boolean;
+    spamWindow: number;
+    /** Platformdaki silme/yasakları yansıt */
+    mirrorDeletes: boolean;
+  };
+  poll: {
+    /** Hızlı anket şık sayısı (2..9) */
+    options: number;
+    /** Süre (sn; 0 = süresiz, elle bitirilir) */
+    duration: number;
+    /** Sonucun ekranda kalma süresi (sn) */
+    resultDuration: number;
+    /** Oy mesajlarını sohbette gösterme */
+    hideVotes: boolean;
+  };
+  /** Günlük sohbet kaydı: <app_data>/livechat/logs/YYYY-MM-DD.txt */
+  log: boolean;
+  /** Kayıtların saklanma süresi (gün; 0: süresiz). Eski dosyalar kendiliğinden silinir (Rust: livechat/chatlog.rs) */
+  logDays: number;
+  /** Streamlabs uyarıları (anahtar ayrıca kaydedilir) */
+  streamlabs: boolean;
+  /** Altyazı: aynı kaynaktan bu kadar saniye içinde gelen cümleler birleştirilir */
+  captions: { secs: number };
+  /** Sohbeti sesli okuma (PRO: livechat.tts; Windows sesleri). Rust: livechat/tts.rs */
+  tts: LiveChatTts;
+  /** Konuşmayı yazıya çevirme / altyazı (PRO: livechat.stt; Windows konuşma tanıma, mikrofon). Rust: livechat/stt.rs */
+  stt: LiveChatStt;
+  /** Sohbete yaz kutusunun hedefi: "mine" (★ kanallarım) ya da kanal anahtarı */
+  sendTarget: string;
+}
+
+export interface LiveChatTts {
   enabled: boolean;
-  /** CrewChief "Sounds" klasörü (boş: %LOCALAPPDATA%\\CrewChiefV4\\Sounds) */
-  soundsDir: string;
-  /** Mühendis ses paketi: "alt" altındaki klasör adı (boş: varsayılan ses) */
+  /** all: her mesaj, command: sadece komutla başlayanlar (!oku …), alerts: sadece bağış/abone/raid uyarıları */
+  mode: "all" | "command" | "alerts";
+  /** Virgülle ayrılmış okuma komutları */
+  command: string;
+  /** Sadece aboneler / kanal üyeleri (+ listedekiler) */
+  subsOnly: boolean;
+  /** Sadece bu kullanıcılar (virgülle; boş: herkes) */
+  onlyUsers: string;
+  /** "Ali diyor ki: …" */
+  readNames: boolean;
+  /** Bağış / abone / raid uyarıları her modda okunsun */
+  readAlerts: boolean;
+  platforms: { youtube: boolean; twitch: boolean; kick: boolean };
+  skipLinks: boolean;
+  skipEmotes: boolean;
+  maxChars: number;
+  maxQueue: number;
+  /** Bu kadar saniyeden eski mesaj okunmaz */
+  maxDelay: number;
+  /** Windows ses kimliği (boş: varsayılan) */
+  voice: string;
+  /** Çıkış cihazı adı (boş: Windows varsayılanı) */
+  device: string;
+  /** -10..10 */
+  rate: number;
+  /** -10..10 */
+  pitch: number;
+  /** 0..100 */
+  volume: number;
+}
+
+export interface LiveChatStt {
+  enabled: boolean;
+  /** Tanıma dili (ör. "tr-TR"; boş: Windows konuşma dili) */
+  language: string;
+  /** Küfürleri yıldızla (ilk harf kalır) */
+  profanity: boolean;
+  /** Ek kelimeler (virgülle; "kelime*" önek) */
+  profanityWords: string;
+  /** Sesli okuma konuşurken duyulanları yazma */
+  pauseWhileTts: boolean;
+  /** Altyazının önündeki ad (boş: yok) */
+  label: string;
+}
+
+export function defaultLiveChat(): LiveChatSettings {
+  return {
+    autoStart: false,
+    channels: [],
+    seeded: false,
+    ytInterval: 2,
+    ytClientVersion: "",
+    moderation: { banned: [], wordFilter: false, words: "", wordMode: "mask", blockLinks: false, spam: true, spamWindow: 10, mirrorDeletes: true },
+    poll: { options: 2, duration: 60, resultDuration: 15, hideVotes: false },
+    log: false,
+    logDays: 30,
+    streamlabs: false,
+    captions: { secs: 8 },
+    tts: {
+      enabled: false,
+      mode: "all",
+      command: "!oku",
+      subsOnly: false,
+      onlyUsers: "",
+      readNames: true,
+      readAlerts: true,
+      platforms: { youtube: true, twitch: true, kick: true },
+      skipLinks: true,
+      skipEmotes: true,
+      maxChars: 150,
+      maxQueue: 3,
+      maxDelay: 8,
+      voice: "",
+      device: "",
+      rate: 0,
+      pitch: 0,
+      volume: 80,
+    },
+    stt: { enabled: false, language: "", profanity: false, profanityWords: "", pauseWhileTts: true, label: "" },
+    sendTarget: "mine",
+  };
+}
+
+/** Kayıtlı ayarı tamamlar. Eski "Twitch Sohbeti" kanal adı ilk kez Canlı Sohbet listesine taşınır. */
+function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChannel: string | undefined): LiveChatSettings {
+  const d = defaultLiveChat();
+  if (!v || typeof v !== "object") {
+    const ch = (twitchChannel ?? "").trim().replace(/^#/, "");
+    if (ch) d.channels = [{ url: `https://www.twitch.tv/${ch}` }];
+    return seedLiveChannels(d);
+  }
+  const banned = (v.moderation as any)?.banned;
+  return seedLiveChannels({
+    ...d,
+    ...v,
+    channels: Array.isArray(v.channels) ? v.channels.filter((c) => c && typeof c.url === "string") : [],
+    moderation: {
+      ...d.moderation,
+      ...(v.moderation ?? {}),
+      banned: Array.isArray(banned) ? banned.filter((x) => typeof x === "string") : typeof banned === "string" ? banned.split(",").map((x: string) => x.trim()).filter(Boolean) : [],
+    },
+    poll: { ...d.poll, ...(v.poll ?? {}) },
+    captions: { ...d.captions, ...(v.captions ?? {}) },
+    tts: { ...d.tts, ...(v.tts ?? {}), platforms: { ...d.tts.platforms, ...(v.tts?.platforms ?? {}) } },
+    stt: { ...d.stt, ...(v.stt ?? {}) },
+    sendTarget: typeof v.sendTarget === "string" && v.sendTarget ? v.sendTarget : "mine",
+  });
+}
+
+/** İlk kullanımda (kanal listesi boşken) eklenen varsayılan kanallar, bu sırayla */
+export const DEFAULT_LIVE_CHANNELS = ["https://www.youtube.com/@ErkinAzcan", "https://kick.com/erkinazcan", "https://www.twitch.tv/erkinazcan"];
+
+/** Liste boşsa ve daha önce eklenmediyse varsayılan kanalları bir kez ekler (`seeded`; silinince geri gelmez) */
+function seedLiveChannels(x: LiveChatSettings): LiveChatSettings {
+  if (x.seeded === true) return x;
+  if (!x.channels.length) x.channels = DEFAULT_LIVE_CHANNELS.map((url) => ({ url, hidden: false, tag: null, mine: false, name: "" }));
+  x.seeded = true;
+  return x;
+}
+
+export interface VoiceSettings {
+  /** "Sesli mühendis açık": canlı oturum algılanınca kendiliğinden konuşur (PRO) */
+  enabled: boolean;
+  /** Kurulu ses paketi kimliği (<app_data>/voicepacks/<id>); boş: ilk kurulu paket */
   pack: string;
-  /** Spotter klasörü (voice altında, ör. spotter_Erkin) */
-  spotter: string;
+  /** Kendi sesini kaydedenler / test edenler için doğrudan bir klasör; doluysa paketin önüne geçer */
+  customDir: string;
   volume: number;
   spotterVolume: number;
+  /** Argo ifadeler (sweary_ kayıtları) */
+  sweary: boolean;
+  /** Virajda (direksiyon çevrili / sert frende) önemsiz mesajları beklet */
+  quietInCorners: boolean;
   /** Ovallerde sol/sağ yerine iç/dış de */
   ovalInsideOutside: boolean;
+  /** Hangi oturumlarda konuşsun */
+  sessions: { race: boolean; qualify: boolean; practice: boolean };
   categories: Record<string, boolean>;
+  /** Yeni ses sistemine geçiş yapıldı (bir kezlik: sesli mühendis varsayılan açık) */
+  v2?: boolean;
 }
 
 export const VOICE_CATEGORIES: { id: string; name: string; desc: string }[] = [
   { id: "spotter", name: "Spotter", desc: "Solda/sağda araç, üç araç yan yana, temiz, hâlâ orada" },
-  { id: "flags", name: "Bayraklar", desc: "Sarı, mavi, siyah, beyaz, yeşil" },
-  { id: "race", name: "Yarış akışı", desc: "Start, son tur, iki tur kaldı, kalan süre, bitiş" },
-  { id: "position", name: "Pozisyon", desc: "Tur sonunda sıran, sıra kazanma/kaybetme" },
-  { id: "fuel", name: "Yakıt", desc: "Kalan tur yakıtı, yarı mesafede yakıt durumu, bitmek üzere" },
-  { id: "pit", name: "Pit", desc: "Pit penceresi açıldı/kapanıyor" },
-  { id: "laptimes", name: "Tur süreleri", desc: "Kişisel rekor, sınıfın en hızlısı" },
-  { id: "gaps", name: "Aralar", desc: "Öndeki/arkadaki ile aranın açılıp kapanması" },
-  { id: "multiclass", name: "Çok sınıf", desc: "Arkadan daha hızlı sınıf geliyor" },
-  { id: "incidents", name: "Olay puanı", desc: "Olay puanın arttığında" },
+  { id: "radio", name: "Telsiz kontrolü", desc: "Oturuma girince bir kez telsiz testi" },
+  { id: "flags", name: "Bayraklar", desc: "Sarı, çift sarı, güvenlik aracı, yeşil, mavi, döküntü bayrağı" },
+  { id: "race", name: "Yarış akışı", desc: "Grid bilgisi, start, kalan tur/süre, yarı mesafe, son tur, bitiş" },
+  { id: "position", name: "Pozisyon", desc: "Start yorumu, sıra değişimi, geçişler, tur farkı, beklenen sıra" },
+  { id: "laptimes", name: "Tur zamanları", desc: "Kişisel rekor, tur süresi, tempo, istikrar, en hızlıya fark" },
+  { id: "sectors", name: "Sektör farkları", desc: "Antrenman/sıralamada hangi sektörde ne kadar kaybettin" },
+  { id: "gaps", name: "Aralar", desc: "Öndeki/arkadaki ile ara, baskı, takılma, tur bindirme, sicil" },
+  { id: "opponents", name: "Rakipler", desc: "Lider/öndeki/arkadaki pite giriyor, en hızlı tur, öndeki araç bilgisi" },
+  { id: "fuel", name: "Yakıt", desc: "Yakıt durumu, kalan tur, pit penceresi, eklenecek yakıt" },
+  { id: "pit", name: "Pit ve strateji", desc: "Pit limiti, pit hızı, şimdi pite gir, pit kaybı ve çıkış sırası" },
+  { id: "tyres", name: "Lastikler", desc: "Soğuk/sıcak lastik, aşınma, kamber yorumu (veri varsa)" },
+  { id: "engine", name: "Motor", desc: "Su/yağ sıcaklığı, yağ/yakıt basıncı, motor stop" },
+  { id: "damage", name: "Kaza", desc: "Sert kazadan sonra \"iyi misin?\"" },
+  { id: "penalties", name: "Cezalar", desc: "Siyah bayrak, hasar bayrağı, pist sınırı, ters yön" },
+  { id: "incidents", name: "Olay puanı", desc: "iRacing olay puanı ve sınırı" },
+  { id: "conditions", name: "Hava ve pist", desc: "Yağmur başladı/durdu, hava ve pist sıcaklığı" },
+  { id: "multiclass", name: "Çok sınıf", desc: "Arkadan hızlı sınıf, önde yavaş sınıf, yanındaki aracın sınıfı" },
+  { id: "push", name: "Bas!", desc: "Son turlarda bas, pit çıkışı temiz/trafik, rakip pitten çıkıyor" },
+  { id: "rejoin", name: "Piste dönüş", desc: "Pist dışındayken \"bekle, araç geliyor\" / \"yol açık\"" },
+  { id: "pearls", name: "Öğütler", desc: "Ara sıra moral cümleleri (argo açıksa söylenmeler)" },
+  { id: "acknowledge", name: "Ayar onayları", desc: "Bu sayfada bir şeyi açıp kapatınca sesli onay" },
 ];
 
 export interface SoundSettings {
@@ -201,6 +409,104 @@ export interface ScreenshotSettings {
 export type SimChoice = "auto" | "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2";
 export const SIM_CHOICES: SimChoice[] = ["auto", "iracing", "acc", "ac", "lmu", "rf2", "ams2"];
 
+/** Sohbet balonları ve arka planı (Ayarlar → Sohbet) */
+export interface ChatLook {
+  /** Benim balonum ("" = tema rengi) */
+  mine: string;
+  /** Arkadaşın balonu ("" = varsayılan) */
+  friend: string;
+  shape: "rounded" | "square" | "pill";
+  size: "s" | "m" | "l";
+  /** Balon opaklığı (40–100) */
+  opacity: number;
+  bg: "none" | "solid" | "gradient" | "image";
+  bgColor: string;
+  gradient: string;
+  /** Arka planı karart (0–80) ve bulanıklaştır (0–20 px) */
+  dim: number;
+  blur: number;
+  /** Görsel dosyası var mı; rev değişince pencereler yeniden yükler */
+  hasImg: boolean;
+  imgRev: number;
+}
+
+export const DEFAULT_CHAT_LOOK: ChatLook = {
+  mine: "",
+  friend: "",
+  shape: "rounded",
+  size: "m",
+  opacity: 100,
+  bg: "none",
+  bgColor: "#1b2230",
+  gradient: "dusk",
+  dim: 30,
+  blur: 0,
+  hasImg: false,
+  imgRev: 0,
+};
+
+/** Tek bir arkadaş sohbetinin kendi arka planı (sadece bu kullanıcı; görsel ayar klasöründe "conv-<id>") */
+export interface ConvBg {
+  kind: "solid" | "gradient" | "image";
+  /** Renk (#rrggbb) ya da degrade kimliği; görselde boş */
+  value: string;
+  /** Görsel değişince artar (pencereler yeniden yükler) */
+  rev: number;
+}
+
+/** Uygulama arka planı (Ayarlar → Görünüm) */
+export interface AppBg {
+  kind: "none" | "gradient" | "image";
+  gradient: string;
+  /** Karartma (0–85) ve bulanıklık (0–30 px) */
+  dim: number;
+  blur: number;
+  hasImg: boolean;
+  imgRev: number;
+  /** Görseli overlay panellerinin arkasında da göster */
+  overlays: boolean;
+  /** Overlay'lerdeki görünürlüğü (5–60) */
+  overlayOpacity: number;
+}
+
+export const DEFAULT_APP_BG: AppBg = {
+  kind: "none",
+  gradient: "night",
+  dim: 45,
+  blur: 0,
+  hasImg: false,
+  imgRev: 0,
+  overlays: false,
+  overlayOpacity: 25,
+};
+
+/** Ayarlar → VR. Rust tarafı aynı alanları okur (src-tauri/src/vr.rs cfg_from_settings). */
+export interface VrSettings {
+  enabled: boolean;
+  /** windows: her overlay ayrı pencere, board: tüm düzen tek pencere (VR panosu), both: ikisi de */
+  source: "windows" | "board" | "both";
+  /** VR arka planı: alfa kanalını alamayan araçlar için opak renk */
+  background: "transparent" | "black" | "green" | "custom";
+  /** background "custom" iken (#rrggbb) */
+  color: string;
+  /** desktop: seçilen monitörde, offscreen: masaüstünün dışında (görünmez alan) */
+  place: "desktop" | "offscreen";
+  /** VR pencerelerinin konacağı monitör (null: ana monitör) */
+  monitor: number | null;
+  /** Masaüstündeki normal overlay'i gizle (VR'da ayna penceresini kapatmasın) */
+  hideDesktop: boolean;
+}
+
+export const DEFAULT_VR: VrSettings = {
+  enabled: false,
+  source: "windows",
+  background: "black",
+  color: "#00ff00",
+  place: "desktop",
+  monitor: null,
+  hideDesktop: false,
+};
+
 export interface GeneralSettings {
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
@@ -218,7 +524,19 @@ export interface GeneralSettings {
   server: ServerSettings;
   mqtt: MqttSettings;
   /** Genel kısayollar (boş: kısayol yok) */
-  shortcuts: { edit: string; hide: string; panel: string; shot: string };
+  shortcuts: { edit: string; hide: string; panel: string; shot: string; voice: string; poll: string; tts: string; ttsHush: string; stt: string; chat: string };
+  /** Eski varsayılan ekran görüntüsü kısayolu (PrintScreen) bir kez Ctrl+PrintScreen'e taşındı */
+  shotKeyV2?: boolean;
+  /** Eski varsayılanlar (PrintScreen / Ctrl+PrintScreen) bir kez F12'ye taşındı */
+  shotKeyV3?: boolean;
+  /** Tekrar (replay) izlerken overlay'leri gizle */
+  hideInReplay: boolean;
+  /** Sohbet görünümü (sadece bu kullanıcı görür; arka plan görseli ayar klasöründe dosya) */
+  chatLook: ChatLook;
+  /** Sohbete özel arka planlar (arkadaş hesap kimliği → arka plan) */
+  convBg: Record<string, ConvBg>;
+  /** Uygulama (panel) arka planı; istenirse overlay'lerde de */
+  appBg: AppBg;
   /** Arkadaş listesi: rahatsız etme, mesaj kabulü, mesaj sesi */
   social: { dnd: boolean; acceptMessages: boolean; sound: boolean };
   /** Demo açıkken sesli spotter ve bipler sussun */
@@ -232,6 +550,8 @@ export interface GeneralSettings {
   minimizeOnConnect: boolean;
   /** Yarış bitince Olaylar penceresini otomatik aç (Rust `general.eventsAutoOpen` okur) */
   eventsAutoOpen: boolean;
+  /** Telemetri: canlı oturumda tamamlanan turları kaydet ve hesaba yükle (Rust `general.telemetryRecord` okur) */
+  telemetryRecord: boolean;
   returnFocus: boolean;
   timeFormat: "24" | "12";
   /** Arayüz dili (ör. "tr", "en", "pt-BR") */
@@ -241,10 +561,15 @@ export interface GeneralSettings {
   opaque: boolean;
   perf: { telemetryHz: number; inputHz: number; reduceEffects: boolean };
   display: { disableGpu: boolean; disableGpuCompositing: boolean };
+  /** VR modu: overlay'leri VR pencere yakalama araçları için ayrı pencerelerde de aç (Rust: vr.rs) */
+  vr: VrSettings;
   twitch: { channel: string };
+  /** Canlı Sohbet (YouTube / Twitch / Kick) */
+  livechat: LiveChatSettings;
   remote: { enabled: boolean; host: string; port: number };
   engineer: { screens: string[]; cycleSec: number };
-  sharing: { summaries: boolean; keepSessions: number };
+  /** hiddenFriends: verisini takım listesinde görmek istemediğim (bana güvenen) arkadaşlar */
+  sharing: { summaries: boolean; keepSessions: number; hiddenFriends: string[] };
   voice: VoiceSettings;
   sounds: SoundSettings;
 }
@@ -279,13 +604,33 @@ export function defaultInstance(id: string): OverlayInstance {
     enabled: m.defaultEnabled ?? false,
     hideInGarage: false,
     hideOnTrack: false,
-    alwaysShow: false,
+    alwaysShow: m.defaultAlwaysShow ?? false,
     x: m.defaultPosition.x,
     y: m.defaultPosition.y,
     scale: 1,
     opacity: 1,
-    options: defaultOptions(m),
+    options: LOGO_COL_TYPES.includes(m.id) ? { ...defaultOptions(m), logoColV1: true } : defaultOptions(m),
   };
+}
+
+/** Marka logosu sütunu olan overlay türleri */
+const LOGO_COL_TYPES = ["relative", "standings"];
+
+/**
+ * Bir kerelik geçiş (logoColV1): kayıtlı Relative / Sıralama kopyalarında marka logosu sütunu açılır ve
+ * sürücü adının hemen soluna taşınır. Kullanıcı sonradan kapatır ya da taşırsa tekrar dokunulmaz.
+ */
+function logoColMigrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if (!LOGO_COL_TYPES.includes(type) || saved?.logoColV1) return options;
+  const cols = Array.isArray(options.columns) ? (options.columns as { key: string; on: boolean }[]).filter((c) => c && c.key !== "car") : null;
+  if (cols) {
+    const at = cols.findIndex((c) => c.key === "name");
+    cols.splice(at < 0 ? 0 : at, 0, { key: "car", on: true });
+    options.columns = cols;
+  }
+  if (options.carStyle === "text") options.carStyle = "logo";
+  options.logoColV1 = true;
+  return options;
 }
 
 export function newProfile(id: string, name: string): Profile {
@@ -314,7 +659,13 @@ export function defaultSettings(): AppSettings {
       autoSwitch: false,
       server: { enabled: false, port: 8910, lan: false },
       mqtt: defaultMqtt(),
-      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "PrintScreen" },
+      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C" },
+      shotKeyV2: true,
+      shotKeyV3: true,
+      hideInReplay: true,
+      chatLook: { ...DEFAULT_CHAT_LOOK },
+      convBg: {},
+      appBg: { ...DEFAULT_APP_BG },
       allowDuplicates: false,
       demoMute: false,
       social: { dnd: false, acceptMessages: true, sound: true },
@@ -322,6 +673,7 @@ export function defaultSettings(): AppSettings {
       editBackdrop: { enabled: true, opacity: 100, rev: 0, has: false },
       minimizeOnConnect: false,
       eventsAutoOpen: true,
+      telemetryRecord: true,
       returnFocus: true,
       timeFormat: "24",
       language: detectLang(),
@@ -329,19 +681,24 @@ export function defaultSettings(): AppSettings {
       opaque: false,
       perf: { telemetryHz: 60, inputHz: 60, reduceEffects: false },
       display: { disableGpu: false, disableGpuCompositing: false },
+      vr: { ...DEFAULT_VR },
       twitch: { channel: "" },
+      livechat: defaultLiveChat(),
       remote: { enabled: false, host: "", port: 8910 },
       engineer: { screens: ["standings", "relative", "fuel", "battle", "laps", "weather", "session", "inputs"], cycleSec: 10 },
-      sharing: { summaries: true, keepSessions: 200 },
+      sharing: { summaries: true, keepSessions: 200, hiddenFriends: [] },
       voice: {
-        enabled: false,
-        soundsDir: "",
+        enabled: true,
         pack: "",
-        spotter: "",
+        customDir: "",
         volume: 80,
         spotterVolume: 100,
+        sweary: false,
+        quietInCorners: false,
         ovalInsideOutside: false,
+        sessions: { race: true, qualify: true, practice: true },
         categories: Object.fromEntries(VOICE_CATEGORIES.map((c) => [c.id, true])),
+        v2: true,
       },
       sounds: {
         fasterClass: { enabled: false, volume: 70, pitch: 700, seconds: 5, muteSpectating: true },
@@ -357,6 +714,24 @@ export function defaultSettings(): AppSettings {
   };
 }
 
+/** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
+function shotKeyMigrate<T extends { shot: string }>(sc: T, done: boolean | undefined): T {
+  if (!done && (sc.shot === "PrintScreen" || sc.shot === "Ctrl+PrintScreen")) sc.shot = "F12";
+  return sc;
+}
+
+/** Yeni ses sistemi (Crew Chief'ten bağımsız): sesli mühendis bir kez varsayılan açık olur, eski alanlar atılır */
+function voiceMigrate(v: VoiceSettings & { soundsDir?: string; spotter?: string }): VoiceSettings {
+  if (!v.v2) {
+    v.enabled = true;
+    v.pack = "";
+    v.v2 = true;
+  }
+  delete v.soundsDir;
+  delete v.spotter;
+  return v;
+}
+
 /** Eksik alanları tamamlar: yeni eklenen overlay'ler ve yeni ayar anahtarları otomatik gelir. */
 export function normalize(input: unknown): AppSettings {
   const d = defaultSettings();
@@ -370,21 +745,29 @@ export function normalize(input: unknown): AppSettings {
       ...(s.general ?? {}),
       sim: SIM_CHOICES.includes(s.general?.sim as SimChoice) ? (s.general!.sim as SimChoice) : "auto",
       server: { ...d.general.server, ...(s.general?.server ?? {}) },
-      shortcuts: { ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) },
+      shortcuts: shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3),
+      shotKeyV2: true,
+      shotKeyV3: true,
+      chatLook: { ...DEFAULT_CHAT_LOOK, ...(s.general?.chatLook ?? {}) },
+      convBg: s.general?.convBg && typeof s.general.convBg === "object" ? s.general.convBg : {},
+      appBg: { ...DEFAULT_APP_BG, ...(s.general?.appBg ?? {}) },
       screenshots: { ...d.general.screenshots, ...(s.general?.screenshots ?? {}) },
       editBackdrop: { ...d.general.editBackdrop, ...(s.general?.editBackdrop ?? {}) },
       social: { ...d.general.social, ...(s.general?.social ?? {}) },
       perf: { ...d.general.perf, ...(s.general?.perf ?? {}) },
       display: { ...d.general.display, ...(s.general?.display ?? {}) },
+      vr: { ...DEFAULT_VR, ...(s.general?.vr ?? {}) },
       twitch: { ...d.general.twitch, ...(s.general?.twitch ?? {}) },
+      livechat: normalizeLiveChat(s.general?.livechat, s.general?.twitch?.channel),
       remote: { ...d.general.remote, ...(s.general?.remote ?? {}) },
       engineer: { ...d.general.engineer, ...(s.general?.engineer ?? {}) },
       sharing: { ...d.general.sharing, ...(s.general?.sharing ?? {}) },
-      voice: {
+      voice: voiceMigrate({
         ...d.general.voice,
         ...(s.general?.voice ?? {}),
+        sessions: { ...d.general.voice.sessions, ...(s.general?.voice?.sessions ?? {}) },
         categories: { ...d.general.voice.categories, ...(s.general?.voice?.categories ?? {}) },
-      },
+      }),
       sounds: {
         fasterClass: { ...d.general.sounds.fasterClass, ...(s.general?.sounds?.fasterClass ?? {}) },
         alongside: { ...d.general.sounds.alongside, ...(s.general?.sounds?.alongside ?? {}) },
@@ -425,9 +808,10 @@ export function normalize(input: unknown): AppSettings {
     // Kayıtlı kopyalar (anahtar: kopya kimliği; eski ayarlarda anahtar = overlay türü)
     for (const [key, cur] of Object.entries(p?.overlays ?? {})) {
       const type = (cur as OverlayInstance)?.type || key;
+      // Artık var olmayan türler (ör. kaldırılan eski "twitch" sohbet overlay'i) sessizce atılır
       if (!manifests.some((m) => m.id === type)) continue;
       const def = defaultInstance(type);
-      prof.overlays[key] = { ...def, ...cur, type, options: { ...def.options, ...(cur?.options ?? {}) } };
+      prof.overlays[key] = { ...def, ...cur, type, options: logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }) };
     }
     // Her türün bir ana kopyası olsun (yeni eklenen overlay'ler otomatik gelir)
     for (const m of manifests) {

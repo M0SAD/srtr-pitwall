@@ -1,4 +1,4 @@
-// Takım yakıt paylaşımı (MQTT): takım arkadaşlarının araçlarındaki yakıt.
+// Takım yakıt paylaşımı (MQTT takım kodu ya da güvenilir arkadaşlar): takım arkadaşlarının araçlarındaki yakıt.
 import { For, Show } from "solid-js";
 import { useTopic } from "@/sdk/telemetry";
 import { fuel } from "@/sdk/format";
@@ -13,8 +13,11 @@ export function TeamFuel(props: { units: Units; hideMe?: boolean }) {
     <Show when={team()?.enabled}>
       <div class="fuel-team">
         <div class="fuel-team-head">
-          <span>TAKIM · {team()!.team}</span>
-          <span class="fuel-team-dot" classList={{ on: team()!.connected }} title={team()!.connected ? "MQTT bağlı" : "MQTT bağlı değil"} />
+          {/* Takım kodu yoksa veri güvenilir arkadaşlardan geliyordur: boş "TAKIM · " yerine "ARKADAŞLAR" */}
+          <Show when={team()!.team.trim()} fallback={<span>ARKADAŞLAR</span>}>
+            <span>TAKIM · {team()!.team}</span>
+            <span class="fuel-team-dot" classList={{ on: team()!.connected }} title={team()!.connected ? "MQTT bağlı" : "MQTT bağlı değil"} />
+          </Show>
         </div>
         <Show when={members().length > 0} fallback={<div class="fuel-note ov-dim">Takımdan veri yok</div>}>
           <For each={members()}>

@@ -1,8 +1,9 @@
 // Yönetim: sadece yöneticilere (ve moderatörlere) görünen ayrı bölüm.
 // Alt sayfalar: Özet, Gelir, Üyeler, Destek, Abonelikler, Cihazlar, Planlar ve fiyatlar, Ücretsiz PRO,
-// Reklamlar, Görünürlük, Bildirimler, Moderasyon, Medya.
+// Reklamlar, Görünürlük, Bildirimler, Moderasyon, Mesajlar, Medya, Ses paketleri.
+// Moderatörler (reports.view izni): Destek (silme hariç) ve Moderasyon.
 
-import { For, Match, Show, Switch, createResource, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Match, Show, Switch, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import {
   adminDevices,
@@ -23,15 +24,26 @@ import {
   type UserFilter,
   PLAN_LIST,
   type AppConfig,
+  type PlanDef,
+  type ProPricing,
 } from "@/cloud/account";
 import { can, listGroups, ownerSetAdmin, setUserGroup, type PermGroup } from "@/cloud/moderation";
 import { manifests } from "@/sdk/registry";
-import { ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminModeration";
+import { MessageReportsPanel, ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminModeration";
 import { AdminHosting, AdminWatermark } from "../components/AdminMedia";
 import { AdminNotices } from "../components/AdminNotices";
 import { AdminPromo, AdminRevenue, AdminSupport, AdminVisibility, ProEditor } from "../components/AdminExtras";
 import { AdminAds } from "../components/AdminAds";
+import { AdminCoupons } from "../components/AdminCoupons";
+import { AdminProFeatures } from "../components/AdminProFeatures";
+import { AdminMessages } from "../components/AdminMessages";
+import { AdminVoicePacks } from "../components/AdminVoicePacks";
+import { AdminBackdrops, AdminProPromo, AdminTranslations } from "../components/AdminContent";
+import { takeAdminFocus } from "../components/adminFocus";
+import { AdminTrial } from "../components/AdminTrial";
+import { AdminLiveChat } from "../components/AdminLiveChat";
 import { sub } from "../ui";
+import { adminBadgeSeen, refreshAdminBadges, refreshAdminBadgesSoon } from "@/cloud/adminBadges";
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
 const fmtTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString(localeTag()) : "—");
@@ -45,16 +57,25 @@ export function adminSubs(): { id: string; label: string }[] {
     { id: "overview", label: "Özet", need: isAdmin },
     { id: "revenue", label: "Gelir", need: isAdmin },
     { id: "members", label: "Üyeler", need: isAdmin },
-    { id: "support", label: "Destek", need: isAdmin },
+    { id: "support", label: "Destek", need: () => isAdmin() || can("reports.view") },
     { id: "subs", label: "Abonelikler", need: isAdmin },
     { id: "devices", label: "Cihazlar", need: isAdmin },
     { id: "plans", label: "Planlar ve fiyatlar", need: isAdmin },
     { id: "promo", label: "Ücretsiz PRO", need: isAdmin },
+    { id: "trial", label: "Deneme PRO", need: isAdmin },
     { id: "ads", label: "Reklamlar", need: isAdmin },
+    { id: "coupons", label: "Kuponlar", need: isAdmin },
+    { id: "profeatures", label: "PRO özellikleri", need: isAdmin },
     { id: "visibility", label: "Görünürlük", need: isAdmin },
     { id: "notices", label: "Bildirimler", need: isAdmin },
     { id: "moderation", label: "Moderasyon", need: () => isAdmin() || can("reports.view") },
+    { id: "messages", label: "Mesajlar", need: isAdmin },
     { id: "media", label: "Medya", need: isAdmin },
+    { id: "voicepacks", label: "Ses paketleri", need: isAdmin },
+    { id: "livechat", label: "Canlı Sohbet ayarları", need: isAdmin },
+    { id: "propromo", label: "PRO tanıtım mesajı", need: isAdmin },
+    { id: "backdrops", label: "Overlay arka planları", need: isAdmin },
+    { id: "translations", label: "Çeviriler", need: isAdmin },
   ];
   return all.filter((x) => x.need()).map(({ id, label }) => ({ id, label }));
 }
@@ -73,12 +94,27 @@ export function AdminPage() {
     } catch (e) {
       setMsg("Hata: " + String((e as Error).message));
     }
+    // Bir işlemden sonra bekleyen iş sayaçları yenilenir
+    refreshAdminBadgesSoon();
   };
   onCleanup(() => clearTimeout(hide));
   const page = () => {
     const ids = adminSubs().map((s) => s.id);
     return ids.includes(sub()) ? sub() : (ids[0] ?? "");
   };
+  // Yönetim açılınca ve alt sayfa değişince sayaçlar yenilenir; Deneme PRO açılınca şüpheli sayacı "görüldü" olur
+  createEffect(
+    on(page, (p, prev) => {
+      void refreshAdminBadges().then(() => {
+        if (p === "trial") void adminBadgeSeen("trial");
+      });
+      // Destek / Moderasyon gibi kendi işlemini yapan sayfalardan çıkınca da güncel olsun
+      if (prev) refreshAdminBadgesSoon(2500);
+    }),
+  );
+  // Açık kalan sayfada yapılan işlemler (ör. destek talebini yanıtlama) için kısa aralıklı yenileme
+  const iv = window.setInterval(() => void refreshAdminBadges(), 20_000);
+  onCleanup(() => clearInterval(iv));
   return (
     <div class="page">
       <Show when={msg()}>
@@ -96,11 +132,35 @@ export function AdminPage() {
         <Match when={page() === "ads"}>
           <AdminAds run={run} />
         </Match>
+        <Match when={page() === "coupons"}>
+          <AdminCoupons run={run} />
+        </Match>
+        <Match when={page() === "voicepacks"}>
+          <AdminVoicePacks run={run} />
+        </Match>
+        <Match when={page() === "propromo"}>
+          <AdminProPromo run={run} />
+        </Match>
+        <Match when={page() === "backdrops"}>
+          <AdminBackdrops run={run} />
+        </Match>
+        <Match when={page() === "translations"}>
+          <AdminTranslations run={run} />
+        </Match>
+        <Match when={page() === "profeatures"}>
+          <AdminProFeatures run={run} />
+        </Match>
         <Match when={page() === "members"}>
           <Members run={run} />
         </Match>
         <Match when={page() === "support"}>
           <AdminSupport />
+        </Match>
+        <Match when={page() === "trial"}>
+          <AdminTrial run={run} />
+        </Match>
+        <Match when={page() === "livechat"}>
+          <AdminLiveChat run={run} />
         </Match>
         <Match when={page() === "promo"}>
           <AdminPromo run={run} />
@@ -126,12 +186,18 @@ export function AdminPage() {
           <Show when={can("reports.view")}>
             <ModerationPanel />
           </Show>
+          <Show when={isAdmin()}>
+            <MessageReportsPanel />
+          </Show>
           <Show when={isOwner()}>
             <section class="panel admin-panel">
               <OwnerGroups run={run} />
               <ModLogPanel />
             </section>
           </Show>
+        </Match>
+        <Match when={page() === "messages"}>
+          <AdminMessages />
         </Match>
         <Match when={page() === "media"}>
           <section class="panel admin-panel">
@@ -200,7 +266,8 @@ function Overview() {
 // ---------------------------------------------------------------------------
 function Members(props: { run: Run }) {
   const [groups] = createResource(() => listGroups().catch(() => [] as PermGroup[]));
-  const [q, setQ] = createSignal("");
+  // Moderasyon kaydından gelindiyse arama dolu açılır
+  const [q, setQ] = createSignal(takeAdminFocus("members")?.q ?? "");
   const [users, setUsers] = createSignal<AdminUser[]>([]);
   const [filter, setFilter] = createSignal<UserFilter>("all");
   const [more, setMore] = createSignal(false);
@@ -492,6 +559,15 @@ function Plans(props: { run: Run }) {
   const c = () => config();
   const val = (k: PlanKey) => draft()[k] ?? (c()?.[k] as string | undefined) ?? "";
   const set = (k: string, v: string) => setDraft({ ...draft(), [k]: v });
+  // Otomatik fiyatlar (app_config.pro_pricing): taslakta "pp:<plan>:price" / "pp:<plan>:price_tr" / "pp:currency" / "pp:currency_tr"
+  const pp = () => c()?.pro_pricing ?? {};
+  const ppNum = (id: PlanDef["id"], f: "price" | "price_tr") => {
+    const d = draft()[`pp:${id}:${f}`];
+    if (d !== undefined) return d;
+    const n = Number(pp().plans?.[id]?.[f]);
+    return n > 0 ? String(n) : "";
+  };
+  const ppCur = (f: "currency" | "currency_tr") => draft()[`pp:${f}`] ?? pp()[f] ?? (f === "currency" ? "USD" : "TRY");
   const toggle = (id: string, on: boolean) => {
     const cur = new Set(c()?.pro_overlays ?? []);
     on ? cur.add(id) : cur.delete(id);
@@ -500,32 +576,68 @@ function Plans(props: { run: Run }) {
   return (
     <section class="panel admin-panel">
       <h3>Planlar ve fiyatlar</h3>
-      <p class="muted small">{t("Fiyat metni kullanıcıya gösterilir. Ödeme bağlantısı, Lemon Squeezy'de ilgili ürünün Share bölümündeki bağlantıdır; uygulama kullanıcının hesabını otomatik ekler.")}</p>
       <p class="muted small">
-        Türkiye'den kullananlar (saat dilimi Türkiye) TL fiyatını ve TL bağlantısını görür; diğer herkes genel (USD / EUR) fiyatı. Türkiye alanları boşsa
-        herkes genel fiyatı görür.
+        Lemon Squeezy'de tek bir abonelik ürünü (SRTR Pitwall PRO) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant
+        numaraları Supabase'de gizli değer olarak girilir. Tutarlar buradan alınır: ödeme sayfası bu tutarla açılır ve yenilemeler de aynı tutarla olur
+        (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
       </p>
-      <div class="plan-edit plan-edit-head">
-        <span />
-        <small>Fiyat metni</small>
-        <small>Ödeme bağlantısı</small>
+      <p class="muted small">
+        Türkiye'den kullananlar (saat dilimi Türkiye) Türkiye fiyatını (TL) görür ve öder; diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa herkes genel fiyatı
+        görür.
+      </p>
+      <div class="plan-edit plan-price">
+        <b>Para birimi</b>
+        <label class="plan-field">
+          <small>Genel para birimi</small>
+          <input class="input" maxLength={3} value={ppCur("currency")} onInput={(e) => set("pp:currency", e.currentTarget.value)} />
+        </label>
+        <label class="plan-field">
+          <small>Türkiye para birimi</small>
+          <input class="input" maxLength={3} value={ppCur("currency_tr")} onInput={(e) => set("pp:currency_tr", e.currentTarget.value)} />
+        </label>
       </div>
       <For each={PLAN_LIST}>
         {(p) => (
           <div class="plan-group">
-            <div class="plan-edit">
+            <div class="plan-edit plan-price">
               <b>{p.label}</b>
-              <input class="input" placeholder="ör. $4.99 / €4,99" value={val(p.price)} onInput={(e) => set(p.price, e.currentTarget.value)} />
-              <input class="input" placeholder="https://….lemonsqueezy.com/checkout/buy/…" value={val(p.checkout)} onInput={(e) => set(p.checkout, e.currentTarget.value)} />
-            </div>
-            <div class="plan-edit">
-              <small class="muted">Türkiye (TL)</small>
-              <input class="input" placeholder="ör. 149₺" value={val(p.trPrice)} onInput={(e) => set(p.trPrice, e.currentTarget.value)} />
-              <input class="input" placeholder="TL varyantının bağlantısı" value={val(p.trCheckout)} onInput={(e) => set(p.trCheckout, e.currentTarget.value)} />
+              <label class="plan-field">
+                <small>Fiyat (yurt dışı, USD)</small>
+                <input class="input" type="text" inputmode="decimal" placeholder="ör. 4.99" value={ppNum(p.id, "price")} onInput={(e) => set(`pp:${p.id}:price`, e.currentTarget.value)} />
+              </label>
+              <label class="plan-field">
+                <small>Türkiye fiyatı (TL)</small>
+                <input class="input" type="text" inputmode="decimal" placeholder="ör. 149" value={ppNum(p.id, "price_tr")} onInput={(e) => set(`pp:${p.id}:price_tr`, e.currentTarget.value)} />
+              </label>
             </div>
           </div>
         )}
       </For>
+      <details class="notes">
+        <summary>Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)</summary>
+        <p class="muted small">{t("Fiyat metni kullanıcıya gösterilir. Ödeme bağlantısı, Lemon Squeezy'de ilgili ürünün Share bölümündeki bağlantıdır; uygulama kullanıcının hesabını otomatik ekler.")}</p>
+        <div class="plan-edit plan-edit-head">
+          <span />
+          <small>Fiyat metni</small>
+          <small>Ödeme bağlantısı</small>
+        </div>
+        <For each={PLAN_LIST}>
+          {(p) => (
+            <div class="plan-group">
+              <div class="plan-edit">
+                <b>{p.label}</b>
+                <input class="input" placeholder="ör. $4.99 / €4,99" value={val(p.price)} onInput={(e) => set(p.price, e.currentTarget.value)} />
+                <input class="input" placeholder="https://….lemonsqueezy.com/checkout/buy/…" value={val(p.checkout)} onInput={(e) => set(p.checkout, e.currentTarget.value)} />
+              </div>
+              <div class="plan-edit">
+                <small class="muted">Türkiye (TL)</small>
+                <input class="input" placeholder="ör. 149₺" value={val(p.trPrice)} onInput={(e) => set(p.trPrice, e.currentTarget.value)} />
+                <input class="input" placeholder="TL varyantının bağlantısı" value={val(p.trCheckout)} onInput={(e) => set(p.trCheckout, e.currentTarget.value)} />
+              </div>
+            </div>
+          )}
+        </For>
+      </details>
       <div class="row">
         <div>
           <b>PRO açıklaması</b>
@@ -571,7 +683,18 @@ function Plans(props: { run: Run }) {
         disabled={Object.keys(draft()).length === 0}
         onClick={() =>
           props.run(async () => {
-            const d: Record<string, unknown> = { ...draft() };
+            const d: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(draft())) if (!k.startsWith("pp:")) d[k] = v;
+            if (Object.keys(draft()).some((k) => k.startsWith("pp:"))) {
+              const money = (v: string) => {
+                const n = Math.round(parseFloat(v.replace(",", ".")) * 100) / 100;
+                return n > 0 ? n : 0;
+              };
+              const cur = (v: string, def: string) => v.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || def;
+              const plans: NonNullable<ProPricing["plans"]> = {};
+              for (const p of PLAN_LIST) plans[p.id] = { price: money(ppNum(p.id, "price")), price_tr: money(ppNum(p.id, "price_tr")) };
+              d.pro_pricing = { ...pp(), currency: cur(ppCur("currency"), "USD"), currency_tr: cur(ppCur("currency_tr"), "TRY"), plans } satisfies ProPricing;
+            }
             if (d.device_limit !== undefined) d.device_limit = Math.max(1, Math.min(20, Math.round(Number(d.device_limit) || 2)));
             await saveConfig(d);
             setDraft({});
@@ -583,13 +706,8 @@ function Plans(props: { run: Run }) {
 
       <h4>PRO overlay'ler</h4>
       <p class="muted small">İşaretlenen overlay'ler PRO olmayan kullanıcılarda kilitli olur (panelde açılamaz, ekranda görünmez).</p>
+      <p class="muted small">Sesli mühendis buradan değil, PRO özellikleri listesinden (Ses › Sesli mühendis ve spotter) yönetilir.</p>
       <div class="admin-ovs">
-        <label class="check">
-          <input type="checkbox" checked={(c()?.pro_overlays ?? []).includes("voice")} onChange={(e) => toggle("voice", e.currentTarget.checked)} />
-          <span>
-            <b>Sesli mühendis</b>
-          </span>
-        </label>
         <For each={manifests}>
           {(m) => (
             <label class="check">

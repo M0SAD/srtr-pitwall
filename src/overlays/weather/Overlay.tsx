@@ -3,6 +3,7 @@ import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { pct, temp, wind, windUnit } from "@/sdk/format";
 import { WETNESS } from "@/sdk/types";
+import { WxLabel, type WxKind } from "@/sdk/WxIcon";
 import "./style.css";
 
 const DEG = 180 / Math.PI;
@@ -18,12 +19,12 @@ export default function Weather(props: OverlayProps) {
   const rows = () => {
     const d = w()!;
     return [
-      { k: "PİST", v: temp(d.trackTemp, props.units) },
-      { k: "HAVA", v: temp(d.airTemp, props.units) },
-      { k: "RÜZGÂR", v: `${wind(d.windVel, props.units)} ${windUnit(props.units)}` },
-      { k: "NEM", v: pct(d.humidity) },
-      { k: "YAĞIŞ", v: pct(d.precip) },
-    ];
+      { k: "PİST", ic: "track", v: temp(d.trackTemp, props.units) },
+      { k: "HAVA", ic: "air", v: temp(d.airTemp, props.units) },
+      { k: "RÜZGÂR", ic: "wind", v: `${wind(d.windVel, props.units)} ${windUnit(props.units)}` },
+      { k: "NEM", ic: "humidity", v: pct(d.humidity) },
+      { k: "YAĞIŞ", ic: "precip", v: pct(d.precip) },
+    ] as { k: string; ic: WxKind; v: string }[];
   };
 
   return (
@@ -66,7 +67,7 @@ export default function Weather(props: OverlayProps) {
           <For each={rows()}>
             {(r) => (
               <div class="wx-row">
-                <span>{r.k}</span>
+                <WxLabel kind={r.ic} text={r.k} mode={props.options.labelStyle} class="wx-k" />
                 <b>{r.v}</b>
               </div>
             )}
@@ -78,7 +79,7 @@ export default function Weather(props: OverlayProps) {
               <div style={{ width: `${Math.max(0, (w()!.wetness - 1) / 6) * 100}%` }} />
             </div>
             <div class="wx-row">
-              <span>PİST</span>
+              <WxLabel kind="wetness" text="ZEMİN" mode={props.options.labelStyle} class="wx-k" />
               <b>{WETNESS[w()!.wetness] || "—"}</b>
             </div>
           </div>

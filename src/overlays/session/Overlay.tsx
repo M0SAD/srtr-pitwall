@@ -3,6 +3,7 @@ import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { clock, wallClock, temp } from "@/sdk/format";
 import type { FlagName } from "@/sdk/types";
+import { WxLabel } from "@/sdk/WxIcon";
 import "./style.css";
 
 // Önem sırasına göre: listede ilk bulunan gösterilir
@@ -88,10 +89,19 @@ export default function Session(props: OverlayProps) {
             </div>
             <div class="ses-sub">
               <Show when={props.options.showWeather}>
-                <span>Hava {temp(d().airTemp, props.units)}</span>
-                <span>Pist {temp(d().trackTemp, props.units)}</span>
+                <span>
+                  <WxLabel kind="air" text="Hava" mode={props.options.labelStyle} /> {temp(d().airTemp, props.units)}
+                </span>
+                <span>
+                  <WxLabel kind="track" text="Pist" mode={props.options.labelStyle} /> {temp(d().trackTemp, props.units)}
+                </span>
                 <Show when={d().wetness > 1}>
-                  <span class="ses-wet">{WETNESS[d().wetness] ?? "Islak"}</span>
+                  <span class="ses-wet">
+                    <Show when={props.options.labelStyle !== "text"}>
+                      <WxLabel kind="wetness" text="" class="ses-wet-ic" />{" "}
+                    </Show>
+                    {WETNESS[d().wetness] ?? "Islak"}
+                  </span>
                 </Show>
               </Show>
               <Show when={props.options.showIncidents}>

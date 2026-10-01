@@ -1,3 +1,4 @@
+import type { CaptionView, LiveChatTopic, PollView } from "./livechat";
 // Rust tarafındaki src-tauri/src/calc.rs paketleriyle birebir aynı tipler.
 
 export interface Status {
@@ -8,6 +9,8 @@ export interface Status {
   onTrack: boolean;
   inGarage: boolean;
   replay: boolean;
+  /** Gerçek bir tekrar izleniyor (iRacing'de canlı ana yetişmiş izleme hariç) */
+  replayWatch?: boolean;
   /** Oyuncu pistte ve garajda değil: izleyici/spotter */
   spectating: boolean;
   sessionType: string;
@@ -38,6 +41,8 @@ export interface Inputs {
   shiftRpm: number;
   redline: number;
   abs: boolean;
+  /** Çekiş kontrolü şu an kesiyor (ACC/AC; diğer simlerde hep false) */
+  tc?: boolean;
 }
 
 export interface Telemetry {
@@ -63,6 +68,9 @@ export interface Telemetry {
   absActive: boolean;
   tc: number;
   brakeBias: number;
+  /** °C; bilinmiyorsa -1 (sadece iRacing) */
+  oilTemp?: number;
+  waterTemp?: number;
   onPitRoad: boolean;
 }
 
@@ -73,6 +81,11 @@ export interface Delta {
   current: number;
   last: number;
   best: number;
+  /** Oturumun en iyi turuna / optimal tura göre (sadece iRacing) */
+  sessionDelta?: number;
+  sessionValid?: boolean;
+  optimalDelta?: number;
+  optimalValid?: boolean;
 }
 
 export interface RadarCar {
@@ -122,6 +135,8 @@ export interface Row {
   stint: number;
   pits: number;
   tire: number;
+  /** Lastik türü: "S" | "M" | "H" | "I" (ara) | "W" (yağmur) | "D" (kuru, türü bilinmiyor) | "" bilinmiyor */
+  tireKind?: string;
   flag: "" | "BLK" | "DSQ" | "REP" | "BLU";
   posChange: number;
   isMe: boolean;
@@ -307,6 +322,25 @@ export interface TopicMap {
   pit: Pit;
   traffic: Traffic;
   corners: Corners;
+  /** Canlı sohbet (olay tabanlı, iRacing'den bağımsız) */
+  livechat: LiveChatTopic;
+  livepoll: PollView;
+  captions: CaptionView;
+  /** Sesli mühendis altyazısı (olay tabanlı; Rust: voicesub.rs) */
+  voice: VoiceLine;
+}
+
+/** Sesli mühendis / spotter şu an ne diyor */
+export interface VoiceLine {
+  /** Her mesajda artar */
+  id: number;
+  role: "engineer" | "spotter";
+  /** Söylenen cümle (ses paketinin dilinde) */
+  text: string;
+  /** Kayıtların toplam süresi (bilinmiyorsa tahmin) */
+  durationMs: number;
+  /** false: konuşma bitti ya da kesildi */
+  speaking: boolean;
 }
 
 export interface Corner {

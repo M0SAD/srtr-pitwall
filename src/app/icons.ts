@@ -68,3 +68,14 @@ export { default as Palette } from "lucide-solid/icons/palette";
 export { default as House } from "lucide-solid/icons/house";
 
 export { default as LifeBuoy } from "lucide-solid/icons/life-buoy";
+export { default as MessagesSquare } from "lucide-solid/icons/messages-square";
+export { default as ChartBarBig } from "lucide-solid/icons/chart-bar-big";
+export { default as Captions } from "lucide-solid/icons/captions";
+export { default as Square } from "lucide-solid/icons/square";
+export { default as Pause } from "lucide-solid/icons/pause";
+export { default as Ban } from "lucide-solid/icons/ban";
+export { default as Send } from "lucide-solid/icons/send";
+export { default as Tag } from "lucide-solid/icons/tag";
+export { default as MicOff } from "lucide-solid/icons/mic-off";
+export { default as ArrowDownToLine } from "lucide-solid/icons/arrow-down-to-line";
+export { default as SkipForward } from "lucide-solid/icons/skip-forward";

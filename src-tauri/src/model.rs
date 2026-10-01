@@ -19,6 +19,9 @@ pub struct CarState {
     pub f2: f32,
     /// Lastik hamuru (-1 bilinmiyor, 0 kuru, 1+ ıslak/diğer)
     pub tire: i32,
+    /// Hamur türü harfi (sim doğrudan veriyorsa): b'S' yumuşak, b'M' orta, b'H' sert,
+    /// b'I' ara, b'W' yağmur, b'D' kuru (türü bilinmiyor), 0 bilinmiyor
+    pub tire_kind: u8,
     /// Araca özel bayraklar (siyah, mavi, hasar, diskalifiye...)
     pub flags: u32,
 }
@@ -42,6 +45,8 @@ pub struct Frame {
     pub clutch: f32,
     pub steer: f32,
     pub abs_active: bool,
+    /// Çekiş kontrolü şu an devrede (ACC/AC tcInAction; iRacing vermez)
+    pub tc_active: bool,
     pub fuel_level: f32,
     pub fuel_pct: f32,
     pub lap: i32,
@@ -52,18 +57,32 @@ pub struct Frame {
     pub lap_best: f32,
     pub delta_best: f32,
     pub delta_best_ok: bool,
+    /// Oturumun en iyi turuna / optimal tura göre fark (sadece iRacing verir)
+    pub delta_session: f32,
+    pub delta_session_ok: bool,
+    pub delta_optimal: f32,
+    pub delta_optimal_ok: bool,
     pub car_left_right: i32,
     pub on_pit_road: bool,
     pub is_on_track: bool,
     pub is_in_garage: bool,
     pub replay: bool,
+    /// Tekrar modu canlı ana yetişmiş (iRacing'de araçtan inince/izleyiciyken sim tekrar ekranındadır;
+    /// bu gerçek bir tekrar izleme sayılmaz). Sadece iRacing verir (ReplayFrameNumEnd).
+    pub replay_live: bool,
     pub air_temp: f32,
     pub track_temp: f32,
     pub incidents: i32,
+    /// Sim bu turu geçersiz saydı (ACC isValidLap, LMU/rF2 mCountLapFlag, AMS2 mLapsInvalidated).
+    /// iRacing bunu vermez: orada pist dışı ve olay puanından çıkarılır (bkz. laprec.rs)
+    pub lap_invalid: bool,
     pub track_wetness: i32,
     pub brake_bias: f32,
     pub tc: f32,
     pub abs_setting: f32,
+    /// Motor yağı / soğutma suyu sıcaklığı (°C); bilinmiyorsa -1
+    pub oil_temp: f32,
+    pub water_temp: f32,
     pub engine_warnings: u32,
     /// Yön (radyan, kuzeye göre) ve araç yerel hızları (m/s): pist haritası kaydı için
     pub yaw_north: f32,
@@ -105,6 +124,7 @@ impl Default for Frame {
             clutch: 0.0,
             steer: 0.0,
             abs_active: false,
+            tc_active: false,
             fuel_level: 0.0,
             fuel_pct: 0.0,
             lap: 0,
@@ -115,18 +135,26 @@ impl Default for Frame {
             lap_best: -1.0,
             delta_best: 0.0,
             delta_best_ok: false,
+            delta_session: 0.0,
+            delta_session_ok: false,
+            delta_optimal: 0.0,
+            delta_optimal_ok: false,
             car_left_right: 0,
             on_pit_road: false,
             is_on_track: false,
             is_in_garage: false,
             replay: false,
+            replay_live: false,
             air_temp: 0.0,
             track_temp: 0.0,
             incidents: 0,
+            lap_invalid: false,
             track_wetness: 0,
             brake_bias: -1.0,
             tc: -1.0,
             abs_setting: -1.0,
+            oil_temp: -1.0,
+            water_temp: -1.0,
             engine_warnings: 0,
             yaw_north: 0.0,
             vel_x: 0.0,
@@ -172,6 +200,8 @@ pub struct Driver {
     pub orig_class_color: String,
     pub is_spectator: bool,
     pub is_pace_car: bool,
+    /// Yapay zekâ sürücü (iRacing CarIsAI, rF2/LMU mControl = 1)
+    pub is_ai: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -208,6 +238,10 @@ pub struct SessionData {
     pub category: String,
     pub drivers: Vec<Option<Driver>>, // CarIdx ile indekslenir
     pub sessions: Vec<SessionEntry>,
+    /// iRacing DriverInfo.DriverTires: (TireIndex, TireCompoundType) — oyuncunun aracı için
+    pub tire_types: Vec<(i32, String)>,
+    /// Botlara karşı çevrimdışı oturum (sürücü listesinde AI bayrağı olmayan simler için, ör. ACC çevrimdışı)
+    pub ai_session: bool,
 }
 
 impl SessionData {
@@ -221,6 +255,16 @@ impl SessionData {
 
     pub fn is_race(&self, num: i32) -> bool {
         self.session(num).map(|s| s.kind.contains("Race")).unwrap_or(false)
+    }
+
+    /// Rakipler arasında yapay zekâ sürücü var mı (botlarla yarış)
+    pub fn has_ai_opponents(&self) -> bool {
+        self.ai_session
+            || self
+                .drivers
+                .iter()
+                .flatten()
+                .any(|d| d.is_ai && d.car_idx != self.player_idx && !d.is_pace_car && !d.is_spectator)
     }
 
     pub fn player(&self) -> Option<&Driver> {
@@ -241,5 +285,50 @@ impl SessionData {
         ids.sort_unstable();
         ids.dedup();
         ids.len()
+    }
+}
+
+/// Lastik hamuru adından tür harfi ("Soft" → S, "Wet"/"Rain" → W, "Intermediate" → I...).
+pub fn tire_kind_from_name(name: &str) -> u8 {
+    let n = name.to_ascii_lowercase();
+    if n.is_empty() {
+        0
+    } else if n.contains("wet") || n.contains("rain") {
+        b'W'
+    } else if n.contains("inter") {
+        b'I'
+    } else if n.contains("soft") {
+        b'S'
+    } else if n.contains("med") {
+        b'M'
+    } else if n.contains("hard") {
+        b'H'
+    } else {
+        b'D'
+    }
+}
+
+/// Bir aracın lastik türü harfi; bilinmiyorsa 0.
+/// Sim doğrudan verdiyse o; yoksa iRacing lastik listesi (sadece oyuncunun sınıfı için güvenilir);
+/// o da yoksa 0 = kuru, 1+ = yağmur varsayımı.
+pub fn tire_kind(c: &CarState, s: &SessionData, same_class_as_player: bool) -> u8 {
+    if c.tire_kind != 0 {
+        return c.tire_kind;
+    }
+    if c.tire < 0 {
+        return 0;
+    }
+    if same_class_as_player && !s.tire_types.is_empty() {
+        if let Some((_, name)) = s.tire_types.iter().find(|(i, _)| *i == c.tire) {
+            let k = tire_kind_from_name(name);
+            // Tek kuru hamuru olan araçlarda ("Hard" + "Wet") sert yazmak yanıltıcı: sadece "kuru"
+            let dry = s.tire_types.iter().filter(|(_, n)| !matches!(tire_kind_from_name(n), b'W' | b'I')).count();
+            return if dry <= 1 && !matches!(k, b'W' | b'I') { b'D' } else { k };
+        }
+    }
+    if c.tire == 0 {
+        b'D'
+    } else {
+        b'W'
     }
 }

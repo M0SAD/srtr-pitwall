@@ -2,13 +2,19 @@
 
 import { settings } from "./settings";
 
-export type ShortcutAction = "edit" | "hide" | "panel" | "shot";
+export type ShortcutAction = "edit" | "hide" | "panel" | "shot" | "voice" | "poll" | "tts" | "ttsHush" | "stt" | "chat";
 
 export const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
   edit: "Ctrl+Shift+E",
   hide: "Ctrl+Shift+D",
   panel: "Ctrl+Shift+Space",
-  shot: "PrintScreen",
+  shot: "F12",
+  voice: "Ctrl+Shift+V",
+  poll: "F9",
+  tts: "F5",
+  ttsHush: "",
+  stt: "F6",
+  chat: "Ctrl+Shift+C",
 };
 
 export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
@@ -16,10 +22,34 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
   hide: "Overlay'leri gizle / göster",
   panel: "Kontrol panelini öne getir (düzenlerken de)",
   shot: "Ekran görüntüsü al (overlay'lerle)",
+  voice: "Sesli mühendisi aç / kapat (oyundayken)",
+  poll: "Canlı Sohbet: anketi başlat / bitir",
+  tts: "Canlı Sohbet: sesli okumayı aç / kapat",
+  ttsHush: "Canlı Sohbet: okunanı kes ve kuyruğu boşalt",
+  stt: "Canlı Sohbet: konuşma → yazıyı (altyazı) aç / kapat",
+  chat: "Canlı Sohbet: başlat / durdur",
 };
+
+export const SHORTCUT_ACTIONS: ShortcutAction[] = ["edit", "hide", "panel", "shot", "voice", "chat", "poll", "tts", "ttsHush", "stt"];
+
+/** Sadece Canlı Sohbet çalışırken (ya da altyazı açıkken) kaydedilen kısayollar (Rust: lib.rs LIVECHAT_ONLY) */
+export const LIVECHAT_SHORTCUTS: ShortcutAction[] = ["poll", "tts", "ttsHush", "stt"];
 
 export function shortcut(action: ShortcutAction): string {
   return settings().general.shortcuts?.[action] ?? DEFAULT_SHORTCUTS[action];
+}
+
+/** İki kısayol aynı tuş birleşimi mi (değiştirici sırası ve büyük/küçük harf önemsiz) */
+export function sameKey(a: string, b: string): boolean {
+  const norm = (k: string) =>
+    k
+      .split("+")
+      .map((x) => x.trim().toLowerCase())
+      .map((x) => (x === "control" ? "ctrl" : x === "cmd" || x === "meta" || x === "win" ? "super" : x))
+      .filter(Boolean)
+      .sort()
+      .join("+");
+  return !!a && !!b && norm(a) === norm(b);
 }
 
 /** Görünen ad: "Ctrl+Shift+Space" -> "Ctrl + Shift + Boşluk" */
@@ -63,7 +93,8 @@ const CODE_NAMES: Record<string, string> = {
  * F tuşları hariç.
  */
 export function fromEvent(e: KeyboardEvent): string | null {
-  const c = e.code;
+  // Bazı klavyelerde/WebView2'de PrintScreen keyup olayında code boş gelebilir
+  const c = e.code || (e.key === "PrintScreen" ? "PrintScreen" : "");
   let key: string | null = null;
   if (/^Key[A-Z]$/.test(c)) key = c.slice(3);
   else if (/^Digit\d$/.test(c)) key = c.slice(5);

@@ -5,7 +5,7 @@ import { For, Show, createMemo, createResource, createSignal, onCleanup, onMount
 import { invoke } from "@tauri-apps/api/core";
 import { localeTag, t } from "@/sdk/i18n";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { isPro } from "@/cloud/account";
+import { proLocked } from "@/sdk/proFeatures";
 import { can } from "@/cloud/moderation";
 import {
   addShotComment,
@@ -208,7 +208,7 @@ export function CommunityShots() {
 
   const shareBtn = () => (
     <Show
-      when={isPro()}
+      when={!proLocked("community.share.shots")}
       fallback={
         <button class="btn primary" onClick={() => go("pro")} title="Görüntü paylaşmak PRO özelliğidir; görüntülemek, puanlamak ve arka plan yapmak herkese açık">
           <I.Lock /> PRO ile paylaş

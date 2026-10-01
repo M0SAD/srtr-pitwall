@@ -91,3 +91,7 @@
   background: var(--ov-yellow);
   color: #111;
 }
+
+.ses-wet .wxi-wrap {
+  color: inherit;
+}

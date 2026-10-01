@@ -2,10 +2,14 @@ import { Show, createEffect, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { gear, speed, speedUnit } from "@/sdk/format";
+import { overlayValueLocked } from "@/sdk/proFeatures";
+import { FREE_WHEELS, WheelArt, isWheelStyle, wheelForCar, type WheelStyle } from "./wheels";
 import "./style.css";
 
 const W = 240;
 const H = 86;
+const ABS_DEF = "#ffd400";
+const TC_DEF = "#00c8ff";
 
 export default function Inputs(props: OverlayProps) {
   const data = useTopic("inputs");
@@ -16,6 +20,9 @@ export default function Inputs(props: OverlayProps) {
   let thr = new Float32Array(0);
   let brk = new Float32Array(0);
   let clu = new Float32Array(0);
+  // ABS / TC çalışıyor mu (iz grafiğinde o kısımları renklendirmek için)
+  let absB = new Uint8Array(0);
+  let tcB = new Uint8Array(0);
   let head = 0;
   let count = 0;
   let pending = false;
@@ -27,6 +34,8 @@ export default function Inputs(props: OverlayProps) {
       thr = new Float32Array(n);
       brk = new Float32Array(n);
       clu = new Float32Array(n);
+      absB = new Uint8Array(n);
+      tcB = new Uint8Array(n);
       head = 0;
       count = 0;
     }
@@ -48,7 +57,7 @@ export default function Inputs(props: OverlayProps) {
     ctx.stroke();
 
     const smooth = !!props.options.smooth;
-    const line = (buf: Float32Array, color: string) => {
+    const line = (buf: Float32Array, color: string, flags?: Uint8Array, hiColor?: string) => {
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.lineJoin = "round";
@@ -57,6 +66,11 @@ export default function Inputs(props: OverlayProps) {
       const start = (head - count + cap) % cap;
       const at = (i: number) => buf[(start + Math.max(0, Math.min(count - 1, i))) % cap];
       const X = (i: number) => W - ((count - 1 - i) / (cap - 1)) * W;
+      const raw = (i: number) => H - 2 - at(i) * (H - 4);
+      const smoothY = (i: number) => {
+        const v = (at(i - 2) + 2 * at(i - 1) + 3 * at(i) + 2 * at(i + 1) + at(i + 2)) / 9;
+        return H - 2 - v * (H - 4);
+      };
       if (!smooth) {
         for (let i = 0; i < count; i++) {
           const y = H - 2 - at(i) * (H - 4);
@@ -64,10 +78,7 @@ export default function Inputs(props: OverlayProps) {
         }
       } else {
         // Yumuşak: önce 5 örneklik ağırlıklı ortalama, sonra noktalar arası ikinci derece eğriler
-        const Y = (i: number) => {
-          const v = (at(i - 2) + 2 * at(i - 1) + 3 * at(i) + 2 * at(i + 1) + at(i + 2)) / 9;
-          return H - 2 - v * (H - 4);
-        };
+        const Y = smoothY;
         const step = 2; // her 2 örnekte bir kontrol noktası (daha akıcı ve daha az çizim)
         ctx.moveTo(X(0), Y(0));
         let i = step;
@@ -79,10 +90,24 @@ export default function Inputs(props: OverlayProps) {
         ctx.lineTo(X(count - 1), Y(count - 1));
       }
       ctx.stroke();
+      // ABS/TC çalıştığı kısımları üstüne vurgu rengiyle çiz
+      if (flags && hiColor) {
+        const Y = smooth ? smoothY : raw;
+        const fl = (i: number) => flags[(start + i) % cap] === 1;
+        ctx.strokeStyle = hiColor;
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+          if (!fl(i)) continue;
+          if (i === 0 || !fl(i - 1)) ctx.moveTo(X(Math.max(0, i - 1)), Y(Math.max(0, i - 1)));
+          ctx.lineTo(X(i), Y(i));
+        }
+        ctx.stroke();
+      }
     };
     if (props.options.showClutch) line(clu, "#4aa8ff");
-    line(brk, props.options.brakeColor);
-    line(thr, props.options.throttleColor);
+    line(brk, props.options.brakeColor, absBar() ? absB : undefined, props.options.absColor || ABS_DEF);
+    line(thr, props.options.throttleColor, tcBar() ? tcB : undefined, props.options.tcColor || TC_DEF);
   };
 
   createEffect(() => {
@@ -92,6 +117,8 @@ export default function Inputs(props: OverlayProps) {
     thr[head] = d.throttle;
     brk[head] = d.brake;
     clu[head] = d.clutch;
+    absB[head] = d.abs && d.brake > 0.01 ? 1 : 0;
+    tcB[head] = d.tc && d.throttle > 0.01 ? 1 : 0;
     head = (head + 1) % cap;
     count = Math.min(count + 1, cap);
     if (props.options.showTrace && !pending) {
@@ -101,6 +128,35 @@ export default function Inputs(props: OverlayProps) {
   });
 
   onCleanup(() => (pending = true));
+
+  // Direksiyon tasarımı: "auto" sürülen araca göre seçer; tasarımlı direksiyonlar PRO'ya özel
+  const status = useTopic("status");
+  const wheelStyle = (): WheelStyle => {
+    const o = props.options.wheelStyle as string;
+    const st = isWheelStyle(o) ? o : wheelForCar(status());
+    // Yöneticinin PRO özellikleri kararına göre (overlay.inputs.wheelStyle.<tasarım>)
+    return FREE_WHEELS.has(st) || !overlayValueLocked("inputs", "wheelStyle", st) ? st : "round";
+  };
+  const wheelAccent = () => (props.options.wheelAccentOn ? (props.options.wheelAccent as string) : "var(--ov-accent)");
+  const steerDeg = () => Math.round((-(data()?.steer ?? 0) * 180) / Math.PI);
+
+  // ABS / TC göstergesi: "bar" (renk), "frame" (dış çerçeve), "both", "off"
+  const absMode = () => (props.options.absMode as string) ?? "both";
+  const tcMode = () => (props.options.tcMode as string) ?? "both";
+  function absBar() {
+    return absMode() === "bar" || absMode() === "both";
+  }
+  function tcBar() {
+    return tcMode() === "bar" || tcMode() === "both";
+  }
+  const absOn = () => !!data()?.abs && (data()?.brake ?? 0) > 0.01;
+  const tcOn = () => !!data()?.tc && (data()?.throttle ?? 0) > 0.01;
+  const absColor = () => (props.options.absColor as string) || ABS_DEF;
+  const tcColor = () => (props.options.tcColor as string) || TC_DEF;
+  const brakeFill = () => (absOn() && absBar() ? absColor() : props.options.brakeColor);
+  const thrFill = () => (tcOn() && tcBar() ? tcColor() : props.options.throttleColor);
+  const absFrame = () => absOn() && (absMode() === "frame" || absMode() === "both");
+  const tcFrame = () => tcOn() && (tcMode() === "frame" || tcMode() === "both");
 
   const pct = (v: number | undefined) => `${Math.round((v ?? 0) * 100)}%`;
   const shiftOn = () => {
@@ -119,15 +175,11 @@ export default function Inputs(props: OverlayProps) {
             <div class="inp-fill" style={{ height: pct(data()?.clutch), background: "#4aa8ff" }} />
           </div>
         </Show>
-        <div class="inp-bar">
-          <div
-            class="inp-fill"
-            classList={{ abs: data()?.abs }}
-            style={{ height: pct(data()?.brake), background: props.options.brakeColor }}
-          />
+        <div class="inp-bar" classList={{ glow: absFrame() }} style={{ "--glow": absColor() }} title="Fren (ABS)">
+          <div class="inp-fill" style={{ height: pct(data()?.brake), background: brakeFill() }} />
         </div>
-        <div class="inp-bar">
-          <div class="inp-fill" style={{ height: pct(data()?.throttle), background: props.options.throttleColor }} />
+        <div class="inp-bar" classList={{ glow: tcFrame() }} style={{ "--glow": tcColor() }} title="Gaz (TC)">
+          <div class="inp-fill" style={{ height: pct(data()?.throttle), background: thrFill() }} />
         </div>
       </div>
       <Show when={props.options.showGear}>
@@ -136,34 +188,18 @@ export default function Inputs(props: OverlayProps) {
           <span>{speed(data()?.speed ?? 0, props.units)}</span>
           <small>{speedUnit(props.units)}</small>
           <Show when={props.options.showSteer}>
-            <Wheel angle={-(data()?.steer ?? 0)} />
+            <WheelArt
+              style={wheelStyle()}
+              angle={-(data()?.steer ?? 0)}
+              accent={wheelAccent()}
+              size={((props.options.wheelSize as number) ?? 100) / 100}
+            />
+            <Show when={props.options.showSteerDeg}>
+              <small class="inp-deg">{steerDeg()}°</small>
+            </Show>
           </Show>
         </div>
       </Show>
     </div>
-  );
-}
-
-/** Direksiyon: GT tipi, tutma yerleri, üç kol, üstte merkez işareti. */
-function Wheel(props: { angle: number }) {
-  return (
-    <svg class="inp-wheel" viewBox="-24 -24 48 48" style={{ transform: `rotate(${props.angle}rad)` }}>
-      {/* Jant */}
-      <path
-        class="w-rim"
-        d="M -19 -6 C -19 -17 -11 -20 0 -20 C 11 -20 19 -17 19 -6 L 19 6 C 19 15 12 19 7 19 L -7 19 C -12 19 -19 15 -19 6 Z"
-      />
-      {/* Tutma yerleri */}
-      <path class="w-grip" d="M -19 -7 L -19 7" />
-      <path class="w-grip" d="M 19 -7 L 19 7" />
-      {/* Kollar */}
-      <path class="w-spoke" d="M -18 2 L -6 3" />
-      <path class="w-spoke" d="M 18 2 L 6 3" />
-      <path class="w-spoke" d="M 0 8 L 0 18" />
-      {/* Göbek */}
-      <rect class="w-hub" x="-7" y="-4" width="14" height="12" rx="3" />
-      {/* Merkez işareti */}
-      <rect class="w-mark" x="-2" y="-23" width="4" height="7" rx="1" />
-    </svg>
   );
 }

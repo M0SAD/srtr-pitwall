@@ -20,7 +20,7 @@
 
 De flesta overlay-appar stannar vid overlays. SRTR Pitwall är en komplett depåmur för din simrigg:
 
-- 🏎️ **26 overlays, ett genomskinligt fönster** — relative, resultattavla, bränsle, däck, radar, bankarta, delta, pedaler, väder, flaggor och mycket mer. Allt ritas i ett enda fönster per skärm, så det går snabbt även med en fullspäckad layout.
+- 🏎️ **27 overlays, ett genomskinligt fönster** — relative, resultattavla, bränsle, däck, radar, bankarta, delta, pedaler, väder, flaggor och mycket mer. Allt ritas i ett enda fönster per skärm, så det går snabbt även med en fullspäckad layout.
 - 🎙️ **Visuell spotter och röstspotter** — bil till vänster / bil till höger, tre i bredd, flaggor, bränsle- och positionsutrop med ett turkiskt röstpaket, plus varningar för snabbare klass och återinträde på banan.
 - ⛽ **Bränslestrategi med live-delning i teamet** — förbrukning per varv, tankningsmängd, depåfönster och dina lagkamraters bränsle live i din egen overlay.
 - 👥 **Vänner med betrodd live-telemetri** — lägg till vänner, se vem som är online eller kör, och låt förarna du litar på se ditt bränsle och dina varvdata live. Inga koder, ingen konfiguration.

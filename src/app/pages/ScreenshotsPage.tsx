@@ -22,7 +22,8 @@ import {
   type ShotDirs,
 } from "../components/Shots";
 import { go } from "../ui";
-import { isPro } from "@/cloud/account";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ProLockNote, ProLockTag } from "../components/ProLock";
 import * as I from "../icons";
 
 type Src = "pitwall" | "iracing";
@@ -75,17 +76,20 @@ export function ScreenshotsPage() {
           <button
             class="btn primary"
             title="Panel gizlenir, ekran çekilir, panel geri gelir"
+            disabled={proLocked(F.shots)}
             onClick={() => {
               toast("Ekran görüntüsü alınıyor…");
               invoke("shot_take");
             }}
           >
             Şimdi çek
+            <ProLockTag feature={F.shots} />
           </button>
           <button class="btn ghost" onClick={() => go("settings", "keybinds")}>
             Kısayolu değiştir
           </button>
         </div>
+        <ProLockNote feature={F.shots} text="Ekran görüntüsü almak PRO üyelere özel. Önceki görüntülerine bakabilirsin." />
       </section>
 
       <section class="panel cm-bar">
@@ -235,7 +239,7 @@ function LocalShotViewer(props: {
         <div class="btns">
           <Show when={cloudEnabled}>
             <Show
-              when={isPro()}
+              when={!proLocked("community.share.shots")}
               fallback={
                 <button class="btn primary" onClick={() => go("pro")} title="Toplulukta paylaşmak PRO özelliğidir">
                   <I.Lock /> PRO ile paylaş
@@ -408,7 +412,7 @@ function ShotSettings(props: { dirs: ShotDirs | null }) {
       <div class="row">
         <div>
           <b>Kısayol sadece oyundayken çalışsın</b>
-          <small>Oyun kapalıyken Print Screen tuşu Windows'un kendi işlevine kalır.</small>
+          <small>Oyun kapalıyken kısayol tuşu (varsayılan F12) diğer uygulamalara kalır.</small>
         </div>
         <label class="switch">
           <input type="checkbox" checked={sc().onlyInGame} onChange={(e) => set("onlyInGame", e.currentTarget.checked)} />
@@ -446,8 +450,9 @@ function ShotSettings(props: { dirs: ShotDirs | null }) {
         </button>
       </div>
       <p class="muted small">
-        Filigranı yönetici belirler. Windows 11'de "Ekran alıntısı aracını açmak için Print Screen tuşunu kullan" ayarı açıksa tuş
-        çakışabilir; kısayol çalışmazsa bu ayarı kapat ya da Ayarlar → Kısayollar'dan başka bir tuş seç.
+        Filigranı yönetici belirler. Varsayılan kısayol F12'dir; Steam'in ekran görüntüsü tuşu da F12 ise ikisi birlikte çalışabilir.
+        Kısayol çalışmazsa Ayarlar → Kısayollar'dan başka bir tuş seç. Print Screen seçersen Windows 11'deki "Ekran alıntısı aracını
+        açmak için Print Screen tuşunu kullan" ayarını kapat.
       </p>
     </section>
   );

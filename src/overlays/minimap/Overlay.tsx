@@ -2,6 +2,7 @@ import { Show, createEffect, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { headingAt, pointAt, useTrack } from "@/sdk/trackshape";
 import { cssVar, drawCars, drawTrack, type Xf } from "../trackmap/draw";
+import { meMarkerFrom } from "../trackmap/marker";
 import "./style.css";
 
 const S = 220;
@@ -63,6 +64,7 @@ export default function MiniMap(props: OverlayProps) {
         label: props.options.label,
         meColor: props.options.meColor,
         font: cssVar(canvas, "--ov-font", "sans-serif"),
+        me: meMarkerFrom(props.options),
       });
     }
     ctx.restore();
@@ -78,6 +80,7 @@ export default function MiniMap(props: OverlayProps) {
     shape();
     void [props.options.zoom, props.options.headingUp, props.options.mirror, props.options.carSize];
     void [props.options.lineWidth, props.options.label, props.options.meColor];
+    void [props.options.meShape, props.options.meOutline, props.options.meImage, props.options.meScale, props.options.meRotate];
     if (!pending) {
       pending = true;
       requestAnimationFrame(draw);

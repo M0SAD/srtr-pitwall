@@ -5,8 +5,6 @@ import { localeTag, t } from "@/sdk/i18n";
 import { publicUrl } from "@/cloud/supabase";
 import { adminFindUsers, type AdminUser } from "@/cloud/account";
 import {
-  ACTION_LABELS,
-  LOG_TARGETS,
   PERMS,
   PERM_LABELS,
   REPORT_REASONS,
@@ -21,11 +19,18 @@ import {
   type ModLog,
   type PermGroup,
   type ReportRow,
+  adminMessageReportSet,
+  adminMessageReports,
+  type MessageReportAction,
+  type MessageReportRow,
 } from "@/cloud/moderation";
+import { MESSAGE_REPORT_REASONS } from "@/cloud/social";
 import { SHOT_BUCKET, deleteShot, deleteShotComment, getShot, type SharedShot } from "@/cloud/shots";
 import { deleteComment, deleteLayout } from "@/cloud/layouts";
 import { api } from "@/cloud/supabase";
 import { SharedShotDetail } from "../pages/CommunityShots";
+import { formatModLog, logTargetLabel } from "./modLogFormat";
+import { openAdmin } from "./adminFocus";
 
 const fmt = (s: string) => new Date(s).toLocaleString(localeTag(), { dateStyle: "short", timeStyle: "short" });
 const reasonLabel = (id: string) => REPORT_REASONS.find((r) => r.id === id)?.label ?? id;
@@ -154,6 +159,125 @@ export function ModerationPanel() {
       <Show when={viewing()}>
         <SharedShotDetail s={viewing()!} onClose={() => setViewing(null)} onChanged={() => refetch()} />
       </Show>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mesaj raporları (arkadaş mesajları; sadece yöneticiler)
+// ---------------------------------------------------------------------------
+
+const MSG_STATUS: Record<MessageReportRow["status"], string> = {
+  open: "Açık",
+  dismissed: "Yoksayıldı",
+  resolved: "Çözüldü",
+  removed: "Mesaj silindi",
+};
+
+export function MessageReportsPanel() {
+  const [filter, setFilter] = createSignal<"open" | "all">("open");
+  const [msg, setMsg] = createSignal("");
+  const [list, { refetch }] = createResource(filter, (f) => adminMessageReports(f).catch((e) => (setMsg(String(e.message)), [] as MessageReportRow[])));
+  const [confirmDel, setConfirmDel] = createSignal<string | null>(null);
+  const act = async (id: string, a: MessageReportAction) => {
+    setMsg("");
+    setConfirmDel(null);
+    try {
+      await adminMessageReportSet(id, a);
+      refetch();
+    } catch (e) {
+      setMsg(String((e as Error).message));
+    }
+  };
+  const label = (id: string) => MESSAGE_REPORT_REASONS.find((r) => r.id === id)?.label ?? id;
+  return (
+    <section class="panel">
+      <h3>Mesaj raporları</h3>
+      <p class="muted small">Üyelerin arkadaş mesajlarından raporladıkları. Mesaj metni rapor anındaki kopyadır; mesaj silinse de rapor kalır.</p>
+      <div class="cm-tabs">
+        <button classList={{ on: filter() === "open" }} onClick={() => setFilter("open")}>
+          Açık raporlar
+        </button>
+        <button classList={{ on: filter() === "all" }} onClick={() => setFilter("all")}>
+          Tümü
+        </button>
+        <span class="lt-sp" />
+        <button class="btn ghost small" onClick={() => refetch()}>
+          Yenile
+        </button>
+      </div>
+      <Show when={msg()}>
+        <p class="error small">{msg()}</p>
+      </Show>
+      <Show when={!list.loading && (list() ?? []).length === 0}>
+        <p class="muted small">{filter() === "open" ? "Açık mesaj raporu yok." : "Mesaj raporu yok."}</p>
+      </Show>
+      <div class="rep-list">
+        <For each={list() ?? []}>
+          {(r) => (
+            <div class="rep-item" classList={{ closed: r.status !== "open" }}>
+              <div class="rep-body">
+                <div class="rep-top">
+                  <b class="rep-reason">{label(r.reason)}</b>
+                  <span class="chip2">Mesaj</span>
+                  <Show when={r.status !== "open"}>
+                    <span class="chip2 alt">{MSG_STATUS[r.status] ?? r.status}</span>
+                  </Show>
+                  <Show when={r.reported_total > 1}>
+                    <span class="chip2 alt">{t("Bu üye hakkında {0} rapor", r.reported_total)}</span>
+                  </Show>
+                </div>
+                <p class="rep-content" data-no-i18n style={{ "white-space": "pre-line" }}>
+                  {r.body}
+                </p>
+                <small class="muted">
+                  {t("Gönderen: {0}", r.reported_name)} · {t("Raporlayan: {0}", r.reporter_name)} · {fmt(r.created_at)}
+                  <Show when={r.message_at}> · {t("Mesaj tarihi: {0}", fmt(r.message_at!))}</Show>
+                  <Show when={!r.message_exists}> · mesaj silinmiş</Show>
+                  <Show when={r.status !== "open" && r.handled_name}> · {t("İşlem: {0}", r.handled_name)}</Show>
+                </small>
+                <Show when={r.note}>
+                  <p class="rep-note" data-no-i18n>
+                    “{r.note}”
+                  </p>
+                </Show>
+                <div class="btns">
+                  <Show when={r.status === "open"}>
+                    <button class="btn ghost small" onClick={() => act(r.id, "dismiss")}>
+                      Yoksay
+                    </button>
+                    <button class="btn ghost small" onClick={() => act(r.id, "resolve")}>
+                      Çözüldü
+                    </button>
+                  </Show>
+                  <Show when={r.message_exists}>
+                    <Show
+                      when={confirmDel() === r.id}
+                      fallback={
+                        <button class="btn ghost small danger" onClick={() => setConfirmDel(r.id)} title="Mesaj iki taraftan da silinir">
+                          Mesajı sil
+                        </button>
+                      }
+                    >
+                      <button class="btn small danger" onClick={() => act(r.id, "delete_message")}>
+                        Evet, iki taraftan da sil
+                      </button>
+                      <button class="btn ghost small" onClick={() => setConfirmDel(null)}>
+                        Vazgeç
+                      </button>
+                    </Show>
+                  </Show>
+                  <Show when={r.status !== "open"}>
+                    <button class="btn ghost small" onClick={() => act(r.id, "reopen")}>
+                      Yeniden aç
+                    </button>
+                  </Show>
+                </div>
+              </div>
+            </div>
+          )}
+        </For>
+      </div>
     </section>
   );
 }
@@ -312,19 +436,6 @@ export function OwnerGroups(props: { run: (fn: () => Promise<unknown>, ok: strin
 // Moderasyon kayıtları (sadece sahip)
 // ---------------------------------------------------------------------------
 
-function logSummary(l: ModLog): string {
-  const d = l.details ?? {};
-  const src = d.before ?? d;
-  if (l.action === "update" && d.before && d.after) {
-    const a = d.after.title ?? d.after.body ?? "";
-    const b = d.before.title ?? d.before.body ?? "";
-    return `“${String(b).slice(0, 60)}” → “${String(a).slice(0, 60)}”`;
-  }
-  if (d.group) return String(d.group);
-  if (d.reason) return reasonLabel(String(d.reason));
-  return String(src.title ?? src.body ?? "").slice(0, 100);
-}
-
 export function ModLogPanel() {
   const [offset, setOffset] = createSignal(0);
   const [rows, setRows] = createSignal<ModLog[]>([]);
@@ -358,22 +469,29 @@ export function ModLogPanel() {
       <div class="log-list">
         <Show when={rows().length > 0} fallback={<p class="muted small">Henüz kayıt yok.</p>}>
           <For each={rows()}>
-            {(l) => (
-              <div class="log-row">
-                <small class="muted">{fmt(l.created_at)}</small>
-                <b data-no-i18n>{l.actor_name || "?"}</b>
-                <span class="log-act">{ACTION_LABELS[l.action] ?? l.action}</span>
-                <span class="chip2">{LOG_TARGETS[l.target_type] ?? l.target_type}</span>
-                <Show when={l.owner_name}>
-                  <span class="muted small">
-                    → <span data-no-i18n>{l.owner_name}</span>
+            {(l) => {
+              // Okunur cümle + tıklanınca ilgili yönetim bölümü (modLogFormat.ts)
+              const v = formatModLog(l);
+              return (
+                <div
+                  class="log-row"
+                  classList={{ link: !!v.target }}
+                  style={v.target ? { cursor: "pointer" } : undefined}
+                  title={v.target ? "İlgili bölümü aç" : ""}
+                  onClick={() => v.target && openAdmin(v.target)}
+                >
+                  <small class="muted">{fmt(l.created_at)}</small>
+                  <b data-no-i18n>{l.actor_name || "?"}</b>
+                  <span class="chip2">{logTargetLabel(l.target_type)}</span>
+                  <span class="log-act" data-no-i18n>
+                    {v.text}
                   </span>
-                </Show>
-                <span class="log-sum" data-no-i18n>
-                  {logSummary(l)}
-                </span>
-              </div>
-            )}
+                  <Show when={v.target}>
+                    <span class="muted small">›</span>
+                  </Show>
+                </div>
+              );
+            }}
           </For>
         </Show>
       </div>

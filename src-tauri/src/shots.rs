@@ -1,4 +1,4 @@
-// Ekran görüntüleri: oyundayken kısayolla (varsayılan PrintScreen) ekranı overlay'lerle birlikte
+// Ekran görüntüleri: oyundayken kısayolla (varsayılan Ctrl+PrintScreen) ekranı overlay'lerle birlikte
 // yakalar, yöneticinin belirlediği filigranı ekler ve Resimler\SRTR Pitwall klasörüne kaydeder.
 // Ayrıca galeri (SRTR Pitwall + iRacing klasörü), küçük resimler, paylaşım için küçültme ve
 // düzenleme ekranı arka planı buradadır.
@@ -397,6 +397,12 @@ fn take_inner(app: &AppHandle, from_panel: bool) -> Result<ShotInfo, String> {
 
 /// Ekran görüntüsü al (kısayoldan ya da panelden). Sonuç "screenshot-taken" olayıyla bildirilir.
 pub fn take(app: &AppHandle, from_panel: bool) {
+    // Yönetici ekran görüntüsü almayı PRO'ya ayırdıysa (PRO özellikleri: tools.screenshots → kilit "shots")
+    let e = crate::entitlement::view(app);
+    if !e.pro && e.locked.iter().any(|x| x == "shots") {
+        let _ = app.emit("screenshot-error", "Ekran görüntüsü almak PRO üyelik gerektirir".to_string());
+        return;
+    }
     let st = app.state::<ShotState>();
     if st.busy.swap(true, Ordering::Relaxed) {
         return;
@@ -624,9 +630,101 @@ pub fn edit_backdrop_clear(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// Sohbet arka planı (Ayarlar → Sohbet; ayar klasöründe tek dosya, sadece bu bilgisayarda)
+// ---------------------------------------------------------------------------
+
+fn chat_bg_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(config_dir(app)?.join("chat-bg.jpg"))
+}
+
+/// Kullanıcının seçtiği görsel (base64): en fazla 1600 px'e küçültülüp JPEG olarak saklanır
+#[tauri::command]
+pub async fn chat_bg_import(app: AppHandle, data: String) -> Result<(), String> {
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| e.to_string())?;
+    let img = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
+    let img = if img.width() > 1600 || img.height() > 1600 { img.resize(1600, 1600, imageops::FilterType::CatmullRom) } else { img };
+    let out = encode(&img.to_rgba8(), false, 85)?;
+    std::fs::write(chat_bg_path(&app)?, out).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn chat_bg_read(app: AppHandle) -> Result<tauri::ipc::Response, String> {
+    Ok(tauri::ipc::Response::new(std::fs::read(chat_bg_path(&app)?).map_err(|_| "arka plan yok".to_string())?))
+}
+
+#[tauri::command]
+pub fn chat_bg_clear(app: AppHandle) -> Result<(), String> {
+    let p = chat_bg_path(&app)?;
+    if p.exists() {
+        std::fs::remove_file(p).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Diğer arka plan görselleri (ayar klasöründe, sadece bu bilgisayarda):
+//   "app"          → uygulama arka planı (Ayarlar → Görünüm)
+//   "conv-<id>"    → tek bir arkadaş sohbetinin arka planı
+// Görsel arayüzde küçültülüp JPEG'e çevrilmiş gelir; burada sadece biçim/boyut denetlenip yazılır.
+// ---------------------------------------------------------------------------
+
+fn bg_slot_ok(slot: &str) -> bool {
+    slot == "app"
+        || (slot.starts_with("conv-")
+            && slot.len() <= 70
+            && slot.len() > 5
+            && slot[5..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
+}
+
+fn bg_file_path(app: &AppHandle, slot: &str) -> Result<PathBuf, String> {
+    if !bg_slot_ok(slot) {
+        return Err("geçersiz arka plan".into());
+    }
+    let d = config_dir(app)?.join("backgrounds");
+    std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
+    Ok(d.join(format!("{slot}.jpg")))
+}
+
+#[tauri::command]
+pub async fn bg_file_import(app: AppHandle, slot: String, data: String) -> Result<(), String> {
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| e.to_string())?;
+    if bytes.len() > 4 * 1024 * 1024 {
+        return Err("görsel çok büyük".into());
+    }
+    match image::guess_format(&bytes) {
+        Ok(ImageFormat::Jpeg) | Ok(ImageFormat::Png) | Ok(ImageFormat::WebP) => {}
+        _ => return Err("desteklenmeyen görsel".into()),
+    }
+    std::fs::write(bg_file_path(&app, &slot)?, bytes).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn bg_file_read(app: AppHandle, slot: String) -> Result<tauri::ipc::Response, String> {
+    Ok(tauri::ipc::Response::new(std::fs::read(bg_file_path(&app, &slot)?).map_err(|_| "arka plan yok".to_string())?))
+}
+
+#[tauri::command]
+pub fn bg_file_clear(app: AppHandle, slot: String) -> Result<(), String> {
+    let p = bg_file_path(&app, &slot)?;
+    if p.exists() {
+        std::fs::remove_file(p).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bg_slots() {
+        assert!(bg_slot_ok("app"));
+        assert!(bg_slot_ok("conv-3f2a1c9e-0000-4000-8000-123456789abc"));
+        assert!(!bg_slot_ok("conv-"));
+        assert!(!bg_slot_ok("conv-../x"));
+        assert!(!bg_slot_ok("other"));
+    }
 
     #[test]
     fn stamp_format() {

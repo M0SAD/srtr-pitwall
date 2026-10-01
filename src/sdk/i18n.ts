@@ -91,21 +91,86 @@ function buildPatterns() {
   patterns.sort((a, b) => b.re.source.length - a.re.source.length);
 }
 
+// ---------------------------------------------------------------------------
+// Yöneticinin çeviri düzeltmeleri (Yönetim › Çeviriler; sunucuda i18n_overrides).
+// Anahtarlar "app:<Türkçe kaynak metin>"; paketteki çevirinin üstüne yazılır. 'tr' düzeltmeleri Türkçe metnin
+// yerine geçer. Son alınan liste localStorage'da saklanır (açılışta hemen uygulanır), sonra sunucudan tazelenir.
+// ---------------------------------------------------------------------------
+const OV_KEY = (c: string) => `pitwall.i18nOv.${c}`;
+let bundled: Record<string, string> = {};
+let overrides: Record<string, string> = {};
+/** Çevirmen çalışmalı mı (Türkçede sadece düzeltme varsa) */
+let active = false;
+const ovFetched = new Set<string>();
+
+function readOv(c: string): Record<string, string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(OV_KEY(c)) || "null");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function rebuild() {
+  dict = Object.keys(overrides).length ? { ...bundled, ...overrides } : bundled;
+  active = lang() !== "tr" || Object.keys(overrides).length > 0;
+  cache.clear();
+  buildPatterns();
+}
+
+/** Ham düzeltme listesinden (app:/site: anahtarlı) programınkileri seçer */
+function appOverrides(raw: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw ?? {})) if (k.startsWith("app:") && typeof v === "string" && v) out[norm(k.slice(4))] = v;
+  return out;
+}
+
+/** Sunucudan dilin düzeltmelerini alır; değiştiyse uygular. force: önbelleği atla (yönetici kaydedince) */
+export async function refreshOverrides(force = false) {
+  const c = lang();
+  if (!force && ovFetched.has(c)) return;
+  ovFetched.add(c);
+  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!url || !key || typeof fetch === "undefined") return;
+  try {
+    const headers: Record<string, string> = { apikey: key, "Content-Type": "application/json" };
+    if (key.startsWith("eyJ")) headers.Authorization = `Bearer ${key}`;
+    const res = await fetch(`${url}/rest/v1/rpc/i18n_overrides`, { method: "POST", headers, body: JSON.stringify({ p_lang: c }) });
+    if (!res.ok) return;
+    const next = appOverrides((await res.json()) ?? {});
+    try {
+      localStorage.setItem(OV_KEY(c), JSON.stringify(next));
+    } catch {
+      /* depolama yok */
+    }
+    if (lang() !== c || JSON.stringify(next) === JSON.stringify(overrides)) return;
+    overrides = next;
+    rebuild();
+    setReady((n) => n + 1);
+    retranslateAll();
+  } catch {
+    /* çevrimdışı: önbellektekiler kalır */
+  }
+}
+
 /** Dili değiştirir; sözlük yüklenince tüm açık metinler yeniden çevrilir. */
 export async function setLang(code: string) {
   const c = LANGS.some((l) => l.code === code) ? code : "tr";
   if (c === "tr") {
-    dict = {};
+    bundled = {};
   } else {
     const load = loaders[`../locales/${c}.json`];
-    dict = load ? (await load()).default : {};
+    bundled = load ? (await load()).default : {};
   }
-  cache.clear();
-  buildPatterns();
+  overrides = typeof localStorage !== "undefined" ? readOv(c) : {};
   setLangSig(c);
+  rebuild();
   document.documentElement.lang = c;
   setReady((n) => n + 1);
   retranslateAll();
+  void refreshOverrides();
 }
 
 /** Metni çevirir; bulunamazsa null */
@@ -134,13 +199,13 @@ function lookup(src: string): string | null {
 /** Kod içinde çeviri: t("Port {0} açılamadı", 8910) */
 export function t(key: string, ...args: unknown[]): string {
   ready(); // reaktif: dil değişince yeniden hesaplanır
-  const base = dict[key] ?? key;
+  const base = dict[key] ?? (active ? dict[norm(key)] : undefined) ?? key;
   return args.length ? base.replace(/\{(\d)\}/g, (m, n) => (args[+n] !== undefined ? String(args[+n]) : m)) : base;
 }
 
 /** Serbest metni (ör. Rust'tan gelen hata) mümkünse çevirir */
 export function translateText(s: string): string {
-  if (lang() === "tr") return s;
+  if (!active) return s;
   return lookup(s) ?? s;
 }
 
@@ -177,7 +242,7 @@ function translateTextNode(n: Text) {
     return;
   }
   if (skipped(n.parentElement)) return;
-  const tr = lang() === "tr" ? null : lookup(src);
+  const tr = active ? lookup(src) : null;
   let out = src;
   if (tr !== null) {
     const lead = /^\s*/.exec(src)![0];
@@ -196,7 +261,7 @@ function translateAttrs(el: Element) {
     if (cur === null) continue;
     const prev = st?.[a];
     const src = prev && cur === prev.out ? prev.src : cur;
-    const tr = lang() === "tr" ? null : lookup(src);
+    const tr = active ? lookup(src) : null;
     const out = tr ?? src;
     if (!st) {
       st = {};
@@ -238,7 +303,7 @@ function retranslateAll() {
 export function startDomTranslation() {
   if (observer || typeof MutationObserver === "undefined") return;
   observer = new MutationObserver((list) => {
-    if (applying || lang() === "tr") return;
+    if (applying || !active) return;
     applying = true;
     for (const m of list) {
       if (m.type === "characterData") translateTextNode(m.target as Text);
@@ -255,6 +320,14 @@ export function startDomTranslation() {
     attributeFilter: ATTRS,
   });
   retranslateAll();
+  // Türkçede setLang hiç çağrılmayabilir: yöneticinin Türkçe düzeltmeleri yine de uygulansın
+  if (lang() === "tr" && !ovFetched.has("tr") && typeof localStorage !== "undefined") {
+    overrides = readOv("tr");
+    rebuild();
+    setReady((n) => n + 1);
+    retranslateAll();
+    void refreshOverrides();
+  }
   // Onay pencereleri
   const origConfirm = window.confirm.bind(window);
   window.confirm = (m?: string) => origConfirm(m === undefined ? m : translateText(String(m)));

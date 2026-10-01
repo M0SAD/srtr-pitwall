@@ -44,6 +44,11 @@ export function manifestById(id: string): OverlayManifest | undefined {
   return manifests.find((m) => m.id === id);
 }
 
+/** Bu türden bir kopya daha eklenebilir mi: genel izin açıksa ya da manifest `multiInstance` ise */
+export function canDuplicate(type: string, allowDuplicates: boolean): boolean {
+  return allowDuplicates || !!manifestById(type)?.multiInstance;
+}
+
 export function loadComponent(id: string): (() => Promise<{ default: OverlayComponent }>) | undefined {
   const key = `../overlays/${id}/Overlay.tsx`;
   return componentModules[key];

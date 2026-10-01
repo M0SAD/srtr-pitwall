@@ -1,7 +1,7 @@
 // Destek talepleri: üyeler konu açar (kategori, başlık, mesaj, en çok 4 görsel), yöneticiler yanıtlar.
 // Görseller özel "support" kovasında <kullanıcı id>/<zaman>/<dosya> olarak durur; imzalı adresle gösterilir.
 
-import { api, session, storageSignedUrls, storageUpload } from "./supabase";
+import { api, session, storageRemove, storageSignedUrls, storageUpload } from "./supabase";
 
 export const SUPPORT_BUCKET = "support";
 export const SUPPORT_MAX_IMAGES = 4;
@@ -61,6 +61,12 @@ export const ticketThread = (id: string) => api<SupportMessage[]>("POST", "rpc/s
 export const ticketSeen = (id: string) => api("POST", "rpc/support_seen", { body: { p_ticket: id } }).catch(() => {});
 export const setTicketStatus = (id: string, status: SupportStatus) =>
   api("POST", "rpc/support_set_status", { body: { p_ticket: id, p_status: status } });
+
+/** Yönetici: talebi tüm mesajları ve görselleriyle kalıcı sil (görseller Storage API ile kovadan silinir) */
+export async function adminDeleteTicket(id: string) {
+  const paths = (await api<string[]>("POST", "rpc/admin_support_delete", { body: { p_ticket: id } })) ?? [];
+  if (paths.length) await storageRemove(SUPPORT_BUCKET, paths).catch(() => {});
+}
 
 /** Görseli küçült (en çok 1920 px, JPEG) ve kullanıcının klasörüne yükle; yolu döner */
 async function uploadImage(file: File, stamp: string, i: number): Promise<string> {

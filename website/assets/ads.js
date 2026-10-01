@@ -1,8 +1,9 @@
 // Reklam ver: reklam veren yer, fiyat modeli (gösterim paketi / süre), görsel, metin, bağlantı ve hedef dili seçer,
 // canlı önizlemeyi ve toplam fiyatı görür, "Öde" ile Lemon Squeezy ödeme sayfasına gider (ads-checkout).
 // Ödeme gelince reklam kendiliğinden yayına girer. "Reklamlarım": durum, gösterim / tıklama, kalan.
-import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, sb, toast } from "./core.js";
+import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, openCheckout, region, sb, toast } from "./core.js";
 import { AD_PLACES, adHtml, adImg } from "./adslot.js";
+import { couponBox, couponPrice, getCoupon, strikeHtml } from "./coupon.js";
 
 addDict({
   ad_title: ["Reklam ver", "Advertise"],
@@ -99,6 +100,7 @@ addDict({
   ad_st_active: ["Yayında", "Live"],
   ad_st_paused: ["Durduruldu", "Paused"],
   ad_st_paused_reports: ["Durduruldu (raporlar)", "Paused (reports)"],
+  ad_st_paused_owner: ["Senin tarafından durduruldu", "Paused by you"],
   ad_st_ended: ["Bitti", "Ended"],
   ad_st_rejected: ["Reddedildi", "Rejected"],
   ad_st_refunded: ["İade edildi", "Refunded"],
@@ -109,6 +111,23 @@ addDict({
   ad_delete: ["Sil", "Delete"],
   ad_del_q: ["Bu reklam silinsin mi?", "Delete this ad?"],
   ad_note: ["Not: {0}", "Note: {0}"],
+  ad_imp_left: ["{0} gösterim kaldı", "{0} views left"],
+  ad_imp_used: ["{0} / {1} gösterim", "{0} / {1} views"],
+  ad_time_left_d: ["{0} gün {1} saat kaldı", "{0}d {1}h left"],
+  ad_time_left_h: ["{0} saat kaldı", "{0}h left"],
+  ad_time_left_m: ["{0} dakika kaldı", "{0} min left"],
+  ad_time_over: ["Süre doldu", "Time is up"],
+  ad_time_wait: ["Süre yayına girince başlar", "Time starts when the ad goes live"],
+  ad_ends_at: ["Bitiş: {0}", "Ends: {0}"],
+  ad_views_n: ["{0} gösterim", "{0} views"],
+  ad_pause: ["Durdur", "Pause"],
+  ad_resume: ["Devam ettir", "Resume"],
+  ad_paused_ok: ["Reklamın durduruldu; gösterim harcamıyor.", "Your ad is paused and no longer uses views."],
+  ad_resumed_ok: ["Reklamın yeniden yayında.", "Your ad is live again."],
+  ad_pause_note: [
+    "Gösterim paketli reklamlarını istediğin zaman durdurup devam ettirebilirsin; durdurulan reklam gösterilmez ve kalan gösterimlerin harcanmaz. Süreli reklamlar durdurulamaz, süre işlemeye devam eder.",
+    "You can pause and resume impression-package ads at any time; a paused ad is not shown and your remaining views are not used. Time-based ads can't be paused — their time keeps running.",
+  ],
 });
 
 const PLACES = Object.keys(AD_PLACES);
@@ -140,9 +159,18 @@ const st = {
   imgInfo: "",
 };
 
-const place = (id) => pr.placements?.[id] ?? {};
+// Türkiye'deki ziyaretçiye, o yer için TL fiyatı girilmişse TL fiyatları; diğerlerine genel (USD) fiyat.
+// Sunucudaki public.ad_price ile aynı kural.
+const rawPlace = (id) => pr.placements?.[id] ?? {};
+const trPriced = (id) => region === "tr" && (Number(rawPlace(id).cpm_tr) > 0 || Number(rawPlace(id).day_tr) > 0);
+const place = (id) => {
+  const p = rawPlace(id);
+  return trPriced(id)
+    ? { on: p.on, cpm: Number(p.cpm_tr) || 0, day: Number(p.day_tr) || 0, cur: pr.currency_tr || "TRY" }
+    : { on: p.on, cpm: Number(p.cpm) || 0, day: Number(p.day) || 0, cur: pr.currency || "USD" };
+};
 const onSale = (id) => place(id).on !== false && (Number(place(id).cpm) > 0 || Number(place(id).day) > 0);
-const money = (n) => fmtMoney(n, pr.currency || "USD");
+const money = (n, id = st.placement) => fmtMoney(n, place(id).cur);
 function priceOf(pl, model, qty) {
   const p = place(pl);
   const v = model === "impressions" ? (Number(p.cpm) || 0) * (qty / 1000) : (Number(p.day) || 0) * qty;
@@ -203,7 +231,7 @@ function placeCard(id, selectable) {
   const sale = onSale(id);
   const { w, h } = AD_PLACES[id];
   const prices = sale
-    ? `${Number(p.cpm) > 0 ? `<span>${esc(T("ad_per_1000", money(p.cpm)))}</span>` : ""}${Number(p.day) > 0 ? `<span>${esc(T("ad_per_day", money(p.day)))}</span>` : ""}`
+    ? `${Number(p.cpm) > 0 ? `<span>${esc(T("ad_per_1000", money(p.cpm, id)))}</span>` : ""}${Number(p.day) > 0 ? `<span>${esc(T("ad_per_day", money(p.day, id)))}</span>` : ""}`
     : `<span>${esc(T("ad_off"))}</span>`;
   const inner = `<span class="adp-shape" style="aspect-ratio:${w}/${h}"></span>
     <b>${esc(T("ad_pl_" + id))}</b>
@@ -227,6 +255,21 @@ function pkgButtons() {
     .join("");
 }
 
+/** Uygulanan kupon bu reklam modelinde (impressions / days) geçerliyse kupon */
+const adCoupon = (model = st.model) => {
+  const c = getCoupon("ad");
+  return c && (c.ad_models || []).includes(model) ? c : null;
+};
+
+/** Toplam: kupon geçerliyse eski fiyat üstü çizili + indirimli fiyat */
+function totalHtml() {
+  const price = priceOf(st.placement, st.model, st.qty);
+  const c = adCoupon();
+  if (c && price > 0) return `<span class="ad-total">${strikeHtml(money(price), money(couponPrice(price, c.percent)))}</span>`;
+  const bad = getCoupon("ad") && !c ? `<br><span class="muted small">${esc(T("cp_not_here"))}</span>` : "";
+  return `<b class="ad-total">${esc(money(price))}</b>${bad}`;
+}
+
 function drawSide() {
   const pv = $("#ad-pv");
   if (!pv) return;
@@ -240,7 +283,7 @@ function drawSide() {
     : `<div class="ad-pv-empty ad-pv-${st.placement}" style="aspect-ratio:${AD_PLACES[st.placement].w}/${AD_PLACES[st.placement].h}"><span>${esc(T("ad_preview_empty"))}</span></div>`;
   $("#ad-sum").innerHTML = `<dt>${esc(T("ad_sum_place"))}</dt><dd>${esc(T("ad_pl_" + st.placement))}</dd>
     <dt>${esc(T("ad_sum_pkg"))}</dt><dd>${esc(pkgLabel(st.model, st.qty))}</dd>
-    <dt>${esc(T("ad_total"))}</dt><dd><b class="ad-total">${esc(money(priceOf(st.placement, st.model, st.qty)))}</b></dd>`;
+    <dt>${esc(T("ad_total"))}</dt><dd>${totalHtml()}</dd>`;
   const err = validate();
   $("#ad-err").innerHTML = err && (st.title || st.fileUrl || st.image) ? `<div class="msg bad">${esc(err)}</div>` : "";
   $("#ad-payb").disabled = !!err;
@@ -352,6 +395,7 @@ async function render() {
           <h3>${esc(T("ad_preview"))}</h3>
           <div id="ad-pv"></div>
           <dl class="kv" id="ad-sum" style="margin:16px 0"></dl>
+          <div id="ad-cp"></div>
           <div id="ad-err"></div>
           <button class="btn btn-accent btn-lg" id="ad-payb" style="width:100%">${esc(T("ad_pay"))}</button>
           <p class="muted small" style="margin:12px 0 0">${esc(T("ad_side_note"))}</p>
@@ -387,6 +431,7 @@ async function render() {
     }),
   );
   $("#ad-payb").addEventListener("click", pay);
+  couponBox($("#ad-cp"), { product: "ad", onChange: () => drawSide() });
   await checkImage();
   drawForm();
   drawMine();
@@ -396,8 +441,10 @@ async function render() {
 // ---------------------------------------------------------------------------
 // Kaydet + öde
 // ---------------------------------------------------------------------------
-async function checkout(id) {
-  const { data, error } = await sb.functions.invoke("ads-checkout", { body: { ad_id: id } });
+async function checkout(id, coupon = null) {
+  const body = { ad_id: id, embed: true };
+  if (coupon) body.coupon = coupon;
+  const { data, error } = await sb.functions.invoke("ads-checkout", { body });
   if (error) {
     let msg = error.message;
     try {
@@ -407,7 +454,20 @@ async function checkout(id) {
     throw new Error(msg);
   }
   if (!data?.url) throw new Error(T("error"));
-  location.href = data.url;
+  const how = await openCheckout(data.url, () => {
+    toast(T("pay_ok"));
+    // Mevcut ?paid= dönüşü: bilgi mesajı + webhook işlenene kadar liste yenilenir
+    setTimeout(() => (location.href = "reklam.html?paid=" + encodeURIComponent(id)), 2500);
+  });
+  if (how === "overlay") {
+    // Ödeme katmanı sayfanın üstünde açık; vazgeçilirse sayfa kullanılabilir kalsın
+    const btn = $("#ad-payb");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = T("ad_pay");
+    }
+    drawMine();
+  }
 }
 
 async function pay() {
@@ -436,6 +496,7 @@ async function pay() {
       p_url: st.url.trim(),
       p_image: path,
       p_langs: st.langs,
+      p_region: region === "tr" ? "tr" : "intl",
     });
     if (error) throw error;
     // Düzenlenen reklamın eski görseli artık kullanılmıyor
@@ -444,7 +505,7 @@ async function pay() {
     st.image = path;
     st.file = null;
     uploaded = "";
-    await checkout(id);
+    await checkout(id, adCoupon()?.code);
   } catch (e) {
     if (uploaded) sb.storage.from("ads").remove([uploaded]).then(() => {}, () => {});
     toast(e.message || String(e), true);
@@ -458,6 +519,41 @@ async function pay() {
 // Reklamlarım
 // ---------------------------------------------------------------------------
 let mine = [];
+
+// Kalan gösterim ya da kalan süre: metin + ilerleme çubuğu (dolu kısım = harcanan)
+function progress(a) {
+  const bar = (frac, cls = "") =>
+    `<div class="meter ad-meter ${cls}"><i style="width:${(Math.max(0, Math.min(1, frac)) * 100).toFixed(1)}%"></i></div>`;
+  const line = (main, sub = "") => `<div class="ad-prog"><b>${esc(main)}</b>${sub ? `<span class="muted">${esc(sub)}</span>` : ""}`;
+  const notRun = ["unpaid", "pending_review", "rejected"].includes(a.status);
+  const paused = ["paused", "paused_reports", "paused_owner"].includes(a.status);
+  if (a.model === "impressions") {
+    const left = Math.max(0, a.quantity - a.impressions);
+    if (notRun) return line(pkgLabel(a.model, a.quantity)) + "</div>";
+    return (
+      line(a.status === "ended" ? T("ad_st_ended") : T("ad_imp_left", fmtN(left)), T("ad_imp_used", fmtN(a.impressions), fmtN(a.quantity))) +
+      bar(a.quantity ? a.impressions / a.quantity : 1, paused ? "dim" : a.status === "ended" ? "done" : "") +
+      "</div>"
+    );
+  }
+  if (notRun || !a.ends_at) return line(pkgLabel(a.model, a.quantity), notRun ? T("ad_time_wait") : "") + "</div>";
+  const end = new Date(a.ends_at).getTime();
+  const start = a.starts_at ? new Date(a.starts_at).getTime() : end - a.quantity * 86400000;
+  const ms = end - Date.now();
+  const over = ms <= 0 || a.status === "ended" || a.status === "refunded";
+  const h = Math.floor(ms / 3600000);
+  const main = over
+    ? a.status === "ended" ? T("ad_st_ended") : T("ad_time_over")
+    : h >= 24 ? T("ad_time_left_d", fmtN(Math.floor(h / 24)), fmtN(h % 24))
+      : h >= 1 ? T("ad_time_left_h", fmtN(h))
+        : T("ad_time_left_m", fmtN(Math.max(1, Math.ceil(ms / 60000))));
+  return (
+    line(main, `${T("ad_ends_at", fmtDate(a.ends_at, true))} · ${T("ad_views_n", fmtN(a.impressions))}`) +
+    bar(over ? 1 : (Date.now() - start) / Math.max(1, end - start), paused ? "dim" : over ? "done" : "") +
+    "</div>"
+  );
+}
+
 async function drawMine() {
   const el = $("#mine-body");
   if (!el) return;
@@ -465,24 +561,19 @@ async function drawMine() {
   if (error) return (el.innerHTML = `<div class="msg bad">${esc(error.message)}</div>`);
   mine = data || [];
   if (!mine.length) return (el.innerHTML = `<p class="muted small">${esc(T("ad_none"))}</p>`);
-  const tone = { active: "ok", pending_review: "warn", unpaid: "warn", paused: "bad", paused_reports: "bad", rejected: "bad" };
+  const tone = { active: "ok", pending_review: "warn", unpaid: "warn", paused: "bad", paused_reports: "bad", paused_owner: "warn", rejected: "bad" };
   el.innerHTML = `<div class="table-scroll"><table class="list ad-mine"><thead><tr>
       <th>${esc(T("ad_col_ad"))}</th><th>${esc(T("ad_col_status"))}</th><th>${esc(T("ad_col_progress"))}</th><th>${esc(T("ad_col_stats"))}</th><th class="num">${esc(T("ad_col_price"))}</th><th></th>
     </tr></thead><tbody>${mine
       .map((a) => {
         const ctr = a.impressions ? ((a.clicks / a.impressions) * 100).toFixed(2) + "%" : "—";
-        const prog =
-          a.model === "impressions"
-            ? T("ad_left_imp", fmtN(a.impressions), fmtN(a.quantity), fmtN(Math.max(0, a.quantity - a.impressions)))
-            : a.ends_at
-              ? T("ad_left_days", fmtN(a.impressions), fmtDate(a.ends_at, true))
-              : pkgLabel("days", a.quantity);
+        const canPause = a.model === "impressions" && (a.status === "active" || a.status === "paused_owner");
         return `<tr>
           <td><div class="ad-mine-ad"><img src="${esc(adImg(a.image))}" alt="" loading="lazy"><div><b>${esc(a.title)}</b><br><span class="muted small">${esc(
             T("ad_pl_" + a.placement),
           )} · ${esc(pkgLabel(a.model, a.quantity))}</span>${a.review_note ? `<br><span class="muted small">${esc(T("ad_note", a.review_note))}</span>` : ""}</div></div></td>
           <td><span class="badge ${tone[a.status] || ""}">${esc(T("ad_st_" + a.status))}</span></td>
-          <td class="small">${esc(prog)}</td>
+          <td class="small">${progress(a)}</td>
           <td class="small">${esc(T("ad_ctr", fmtN(a.clicks), ctr))}</td>
           <td class="num">${esc(fmtMoney(Number(a.paid_amount ?? a.price), a.currency))}</td>
           <td class="ad-mine-act">${
@@ -490,16 +581,34 @@ async function drawMine() {
               ? `<button class="btn btn-sm btn-accent" data-pay="${a.id}">${esc(T("ad_pay"))}</button>
                  <button class="btn btn-sm" data-edit="${a.id}">${esc(T("ad_edit"))}</button>
                  <button class="btn btn-sm btn-ghost" data-del="${a.id}">${esc(T("ad_delete"))}</button>`
-              : ""
+              : canPause
+                ? a.status === "active"
+                  ? `<button class="btn btn-sm" data-pause="${a.id}">${esc(T("ad_pause"))}</button>`
+                  : `<button class="btn btn-sm btn-accent" data-resume="${a.id}">${esc(T("ad_resume"))}</button>`
+                : ""
           }</td>
         </tr>`;
       })
-      .join("")}</tbody></table></div>`;
+      .join("")}</tbody></table></div>
+    ${mine.some((a) => a.model === "impressions" && !["unpaid", "rejected", "refunded"].includes(a.status)) ? `<p class="muted small ad-mine-note">${esc(T("ad_pause_note"))}</p>` : ""}`;
+  const toggle = async (b, pause) => {
+    b.disabled = true;
+    const { error } = await sb.rpc("ad_owner_pause", { p_ad: pause ? b.dataset.pause : b.dataset.resume, p_pause: pause });
+    if (error) {
+      b.disabled = false;
+      return toast(error.message, true);
+    }
+    toast(T(pause ? "ad_paused_ok" : "ad_resumed_ok"));
+    drawMine();
+  };
+  $$("[data-pause]", el).forEach((b) => b.addEventListener("click", () => toggle(b, true)));
+  $$("[data-resume]", el).forEach((b) => b.addEventListener("click", () => toggle(b, false)));
   $$("[data-pay]", el).forEach((b) =>
     b.addEventListener("click", async () => {
       b.disabled = true;
       try {
-        await checkout(b.dataset.pay);
+        const a = mine.find((x) => x.id === b.dataset.pay);
+        await checkout(b.dataset.pay, a ? adCoupon(a.model)?.code : null);
       } catch (e) {
         toast(e.message || String(e), true);
         b.disabled = false;

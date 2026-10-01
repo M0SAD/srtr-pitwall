@@ -3,7 +3,7 @@
 // PRO üyelere ve oyun içi overlay'lere reklam gösterilmez.
 
 import { lang } from "@/sdk/i18n";
-import { api, publicUrl } from "./supabase";
+import { api, publicUrl, storageRemove } from "./supabase";
 
 /** Reklam verme sayfası (web sitesi) */
 export const AD_SITE = "https://pitwall.simracetr.com/reklam.html";
@@ -25,7 +25,7 @@ export const AD_REPORT_REASONS: { id: string; label: string }[] = [
   { id: "other", label: "Diğer" },
 ];
 
-export type AdStatus = "unpaid" | "pending_review" | "active" | "paused" | "paused_reports" | "ended" | "rejected" | "refunded";
+export type AdStatus = "unpaid" | "pending_review" | "active" | "paused" | "paused_reports" | "paused_owner" | "ended" | "rejected" | "refunded";
 
 export const AD_STATUS: Record<AdStatus, { label: string; tone: "" | "ok" | "warn" | "bad" }> = {
   unpaid: { label: "Ödeme bekliyor", tone: "warn" },
@@ -33,6 +33,7 @@ export const AD_STATUS: Record<AdStatus, { label: string; tone: "" | "ok" | "war
   active: { label: "Yayında", tone: "ok" },
   paused: { label: "Durduruldu", tone: "bad" },
   paused_reports: { label: "Raporlarla gizlendi", tone: "bad" },
+  paused_owner: { label: "Reklam veren durdurdu", tone: "warn" },
   ended: { label: "Bitti", tone: "" },
   rejected: { label: "Reddedildi", tone: "bad" },
   refunded: { label: "İade edildi", tone: "" },
@@ -48,14 +49,18 @@ export interface Ad {
 }
 
 export interface AdPricing {
+  /** Genel (yurt dışı) para birimi */
   currency: string;
+  /** Türkiye'deki reklam verenler için para birimi; yerin cpm_tr / day_tr fiyatı girildiyse kullanılır */
+  currency_tr?: string;
   impressions: number[];
   days: number[];
-  placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number }>>;
+  placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number; cpm_tr?: number; day_tr?: number }>>;
 }
 
 export const DEFAULT_AD_PRICING: AdPricing = {
   currency: "USD",
+  currency_tr: "TRY",
   impressions: [1000, 5000, 10000, 50000],
   days: [1, 3, 7, 14, 30],
   placements: {
@@ -167,3 +172,10 @@ export const adminAds = (status: string) => api<AdCampaign[]>("POST", "rpc/admin
 export const adminAdReports = (id: string) => api<AdReportRow[]>("POST", "rpc/admin_ad_reports", { body: { p_ad: id } });
 export const adminAdSet = (id: string, action: AdAction, note = "", amount = 0) =>
   api("POST", "rpc/admin_ad_set", { body: { p_ad: id, p_action: action, p_note: note, p_amount: amount } });
+
+/** Yönetici: reklamı durumundan bağımsız kalıcı sil (raporlarıyla); görseli başka reklamda yoksa kovadan da silinir */
+export async function adminAdDelete(id: string) {
+  const img = await api<string | null>("POST", "rpc/admin_ad_delete", { body: { p_ad: id } });
+  if (img) await storageRemove("ads", [img]).catch(() => {});
+  forgetAd(id);
+}

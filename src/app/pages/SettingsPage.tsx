@@ -7,20 +7,25 @@ import { invoke } from "@tauri-apps/api/core";
 import { settings, updateSettings, defaultSettings } from "@/sdk/settings";
 import { GeneralPage, About } from "./GeneralPage";
 import { AppearancePage } from "./AppearancePage";
+import { ChatLookPage } from "./ChatLookPage";
 import { ShortcutsPanel } from "../components/ShortcutsPanel";
 import { MqttPanel } from "../components/MqttPanel";
+import { TrustedSharing } from "../components/TrustedSharing";
 import { LogosPanel } from "../components/LogosPanel";
 import { ServerPanel, CopyUrl } from "../components/ServerPanel";
 import { SoundsPanel } from "../components/SoundsPanel";
+import { VrPanel } from "../components/VrPanel";
 import { Switch } from "../components/SettingsForm";
 import { ENGINEER_SCREENS } from "@/window/engineerScreens";
 
 export const SETTINGS_PAGES = [
   { id: "general", label: "Genel" },
   { id: "appearance", label: "Görünüm" },
+  { id: "chat", label: "Sohbet" },
   { id: "sounds", label: "Sesler" },
   { id: "performance", label: "Performans" },
   { id: "display", label: "Ekran" },
+  { id: "vr", label: "VR" },
   { id: "integrations", label: "Entegrasyonlar" },
   { id: "engineer", label: "Mühendis ekranı" },
   { id: "keybinds", label: "Kısayollar" },
@@ -116,17 +121,6 @@ function Integrations() {
     <div class="page narrow">
       <ServerPanel />
       <MqttPanel />
-      <section class="panel">
-        <h3>Twitch</h3>
-        <Row title="Kanal" sub="Twitch Sohbet overlay'i bu kanalın sohbetini gösterir (giriş gerekmez).">
-          <input
-            class="input"
-            placeholder="twitch_kullanici_adi"
-            value={g().twitch.channel}
-            onChange={(e) => updateSettings((d) => (d.general.twitch.channel = e.currentTarget.value.trim().replace(/^#/, "").toLowerCase()))}
-          />
-        </Row>
-      </section>
       <section class="panel">
         <h3>Uzak telemetri</h3>
         <p class="muted small">
@@ -259,6 +253,7 @@ function Sharing() {
           </p>
         </Show>
       </section>
+      <TrustedSharing />
       <section class="panel">
         <h3>Yarış özetleri</h3>
         <Row title="Otomatik oluştur" sub="Yarış bitince sonuçlar, tur süreleri ve olaylar bir özet dosyasına yazılır.">
@@ -371,6 +366,9 @@ export function SettingsPage(props: { page: string }) {
       <Match when={props.page === "appearance"}>
         <AppearancePage />
       </Match>
+      <Match when={props.page === "chat"}>
+        <ChatLookPage />
+      </Match>
       <Match when={props.page === "sounds"}>
         <div class="page narrow">
           <SoundsPanel />
@@ -381,6 +379,9 @@ export function SettingsPage(props: { page: string }) {
       </Match>
       <Match when={props.page === "display"}>
         <Display />
+      </Match>
+      <Match when={props.page === "vr"}>
+        <VrPanel />
       </Match>
       <Match when={props.page === "integrations"}>
         <Integrations />

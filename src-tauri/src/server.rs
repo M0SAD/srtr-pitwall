@@ -7,6 +7,8 @@
 //!   GET /api/settings                   ayarlar (JSON)
 //!   GET /api/logos                      kullanıcının marka logoları (JSON)
 //!   GET /api/stream?topics=a:10,b:2     canlı veri (SSE)
+//!   GET /livechat  /livepoll  /captions  canlı sohbet / anket / altyazı (→ overlay.html?only=<id>; PRO: livechat.obs)
+//!   GET /livechat/state                 canlı sohbet durumu (JSON: chat, poll, captions)
 
 use crate::engine::{Shared, Sink, TopicReq};
 use std::io::Write;
@@ -110,7 +112,11 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                 let path = url.split('?').next().unwrap_or("/").to_string();
 
                 if path == "/api/stream" {
-                    let topics = parse_topics(&url_decode(query_param(&url, "topics").unwrap_or("")));
+                    let mut topics = parse_topics(&url_decode(query_param(&url, "topics").unwrap_or("")));
+                    // Canlı sohbet konuları tarayıcı kaynağına sadece izin varsa (PRO: livechat.obs)
+                    if topics.iter().any(|t| crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str())) && !crate::livechat::allowed(&app, "livechat.obs") {
+                        topics.retain(|t| !crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str()));
+                    }
                     let (tx, rx) = mpsc::channel::<String>();
                     let id = shared.subscribe(Sink::Sse(tx), &topics);
                     let shared3 = shared.clone();
@@ -162,6 +168,42 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                     let v = crate::current_settings(&app).unwrap_or(serde_json::Value::Null);
                     let resp = Response::from_string(v.to_string())
                         .with_header(header("Content-Type", "application/json"))
+                        .with_header(header("Access-Control-Allow-Origin", "*"));
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
+                // Canlı sohbet: OBS tarayıcı kaynağı kısa adresleri → tek overlay'li sayfa
+                let only = match path.trim_end_matches('/') {
+                    "/livechat" | "/chat" | "/sohbet" => Some("livechat"),
+                    "/livepoll" | "/poll" | "/anket" => Some("livepoll"),
+                    "/captions" | "/caption" | "/altyazi" => Some("captions"),
+                    _ => None,
+                };
+                if only.is_some() || path == "/livechat/state" {
+                    if !crate::livechat::allowed(&app, "livechat.obs") {
+                        let mut resp = Response::from_string(
+                            "<!doctype html><meta charset=utf-8><body style='font:16px sans-serif;color:#fff;background:#111;padding:20px'>Canlı sohbet OBS kaynağı PRO üyelere özel · SRTR Pitwall</body>",
+                        )
+                        .with_status_code(403);
+                        resp.add_header(header("Content-Type", "text/html; charset=utf-8"));
+                        let _ = req.respond(resp);
+                        continue;
+                    }
+                }
+                if let Some(id) = only {
+                    let q = url.split_once('?').map(|(_, q)| format!("&{q}")).unwrap_or_default();
+                    let resp = Response::empty(302)
+                        .with_header(header("Location", &format!("/overlay.html?only={id}{q}")))
+                        .with_header(header("Cache-Control", "no-store"));
+                    let _ = req.respond(resp);
+                    continue;
+                }
+                if path == "/livechat/state" {
+                    let v = crate::livechat::state_json(&app);
+                    let resp = Response::from_string(v.to_string())
+                        .with_header(header("Content-Type", "application/json"))
+                        .with_header(header("Cache-Control", "no-store"))
                         .with_header(header("Access-Control-Allow-Origin", "*"));
                     let _ = req.respond(resp);
                     continue;

@@ -7,6 +7,7 @@ const MAP: Record<string, () => JSX.Element> = {
   standings: () => <I.Flag />,
   fuel: () => <I.Fuel />,
   telemetry: () => <I.CircleGauge />,
+  dashboard: () => <I.Gauge />,
   inputs: () => <I.Activity />,
   delta: () => <I.Timer />,
   radar: () => <I.Siren />,
@@ -20,7 +21,6 @@ const MAP: Record<string, () => JSX.Element> = {
   dataframe: () => <I.Box />,
   webview: () => <I.ExternalLink />,
   tires: () => <I.Car />,
-  twitch: () => <I.Tv />,
   scene: () => <I.Clapperboard />,
   laptimes: () => <I.Timer />,
   incidentlog: () => <I.TriangleAlert />,
@@ -29,6 +29,11 @@ const MAP: Record<string, () => JSX.Element> = {
   rejoin: () => <I.TriangleAlert />,
   overtake: () => <I.Siren />,
   corners: () => <I.Map />,
+  messages: () => <I.MessageSquare />,
+  livechat: () => <I.MessagesSquare />,
+  livepoll: () => <I.ChartBarBig />,
+  captions: () => <I.Captions />,
+  voice: () => <I.Volume2 />,
 };
 
 export function overlayIcon(type: string): JSX.Element {

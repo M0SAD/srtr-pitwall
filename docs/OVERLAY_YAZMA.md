@@ -134,6 +134,7 @@ Tipler `src/sdk/types.ts` içinde.
 | `incidents` | oturumdaki olay puanları: saat, tur, sektör, +Nx ve türü; toplam ve sınır |
 | `pit` | hız, pit hız sınırı, sınırlayıcı açık mı, pit yolunda/yaklaşıyor |
 | `traffic` | arkadan yaklaşan/öndeki yakın araçlar: süre ve metre farkı, daha hızlı sınıf mı; pist dışı durumu |
+| `voice` | sesli mühendis altyazısı: konuşan (`engineer` / `spotter`), cümle, süre, konuşuyor mu (olay tabanlı) |
 | `corners` | en iyi turdan bulunan virajlar ve her birinde en iyi/son/bu tur en düşük hız |
 
 Satırlardaki `carName` tam araç adıdır. Marka logosu için `import { CarLogo } from "@/sdk/logos"` ve

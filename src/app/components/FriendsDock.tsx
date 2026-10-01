@@ -1,6 +1,7 @@
 // Arkadaş listesi (iRacing'deki sağ alt köşe listesi gibi): çevrimiçi / yarışta durumu, istekler,
 // anlık mesajlar, güvenilir işaretleme (verilerimi görebilir) ve yarıştaki arkadaşın canlı verisi.
-// Sadece giriş yapanlara görünür. Mesaj göndermek ve güvenilir işaretlemek PRO.
+// Sadece giriş yapanlara görünür. Mesajlaşmak herkese açık; mesajı/sohbeti kendi görünümünden silme ve
+// gelen mesajı raporlama sağ tıkla. Veri paylaşımı (güvenilir işaretleme) ve arkadaş görünümünü özelleştirme PRO.
 
 import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount, type JSX } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
@@ -8,8 +9,12 @@ import { settings, updateSettings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
 import { inTauri } from "@/sdk/platform";
 import { session } from "@/cloud/supabase";
-import { isPro } from "@/cloud/account";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ProLockNote, ProLockTag } from "./ProLock";
 import {
+  EMOJI_PICKS,
+  MESSAGE_REPORT_REASONS,
+  clearConversation,
   conversation,
   emojiOnly,
   emojiParts,
@@ -22,13 +27,17 @@ import {
   friendRespond,
   friendSet,
   hashColor,
+  hideMessage,
   initialOf,
   markRead,
   messageBeep,
+  msgPreview,
   myFriends,
   onMessages,
   recentMessages,
+  reportMessage,
   sendMessage,
+  setFriendPrefs,
   type Friend,
   type Message,
   type Person,
@@ -39,14 +48,31 @@ import { editFriendLook, go } from "../ui";
 import * as I from "../icons";
 import Smile from "lucide-solid/icons/face-slightly-smiling";
 import SendHorizontal from "lucide-solid/icons/send-horizontal";
+import Wallpaper from "lucide-solid/icons/wallpaper";
 import FriendData from "./FriendData";
+import { ProfileDialog, SimBadge, SIM_SHORT } from "./Profile";
+import { TeamChat, TeamLogo, type TeamEvent } from "./TeamChat";
+import { muteTeamChat, myTeams, onTeamChat, setTeamFocus, type MyTeam, type TeamMessage } from "@/cloud/teams";
+import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
+import { BgNote, ConvBgPanel, ConvBgRequest, adoptBg, useConvBg } from "./ConvBg";
+import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
+import { muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
+import { broadcastOvMsg, ovMsgShowsPerson, ovMsgTogglePerson } from "@/sdk/ovmsg";
 import "../friends.css";
+import "../teams.css";
 
-type View = { kind: "list" } | { kind: "chat"; f: Friend } | { kind: "live"; f: Friend } | { kind: "add" };
+type View =
+  | { kind: "list" }
+  | { kind: "chat"; f: Friend }
+  | { kind: "live"; f: Friend }
+  | { kind: "add" }
+  | { kind: "team"; t: MyTeam }
+  | { kind: "group"; g: MyGroup }
+  | { kind: "newgroup" };
 type Presence = "racing" | "online" | "dnd" | "offline" | "pending";
 
 /** Pencere dışından (ayrı arkadaş penceresi) panele yönlendirme */
-function panelGo(what: { sec?: string; sub?: string; friend?: string }) {
+function panelGo(what: { sec?: string; sub?: string; friend?: string; team?: string }) {
   invoke("panel_front").catch(() => {});
   setTimeout(() => emit("panel-go", what).catch(() => {}), 400);
 }
@@ -59,6 +85,8 @@ export function openFriendWindow(f: Friend) {
 export interface Nav {
   pro: () => void;
   look: (id: string) => void;
+  /** Takımlar sayfasında takımı aç */
+  team: (id: string) => void;
 }
 
 function presence(f: Friend): Presence {
@@ -101,6 +129,9 @@ function loadCollapsed(): Record<string, boolean> {
   }
 }
 
+/** Veri paylaşımı kuralı (menü ipuçlarında ve kilitli düğmelerde) */
+export const SHARE_PRO_HINT = "Veri paylaşımı PRO üyelere özel; PRO bir arkadaşın seni güvenilir yaparsa onun verilerini görebilirsin.";
+
 const norm = (s: string) => s.toLocaleLowerCase("tr").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 /** Arkadaş listesi paneli: panelin sağ altındaki kutuda ya da ayrı "Arkadaşlar" penceresinde */
@@ -114,9 +145,11 @@ export function FriendsPanel(props: {
   initialChat?: string;
 }) {
   const nav: Nav = props.standalone
-    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }) }
-    : { pro: () => go("pro"), look: (id) => editFriendLook(id) };
+    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }), team: (id) => panelGo({ sec: "drivers", sub: "teams", team: id }) }
+    : { pro: () => go("pro"), look: (id) => editFriendLook(id), team: (id) => (setTeamFocus(id), go("drivers", "teams")) };
   const [view, setView] = createSignal<View>({ kind: "list" });
+  /** Profil penceresi açık olan üye */
+  const [profileOf, setProfileOf] = createSignal<string | null>(null);
   const [last, setLast] = createSignal<Record<string, Message>>({});
   let lastList: Friend[] = [];
   const [list, { refetch, mutate }] = createResource<Friend[], string | null>(
@@ -142,11 +175,55 @@ export function FriendsPanel(props: {
       return lastList;
     },
   );
+  // Takım odaları (takım sohbetleri): sunucu c30 yoksa boş
+  let lastTeams: MyTeam[] = [];
+  const [teamList, { refetch: refetchTeams, mutate: mutateTeams }] = createResource<MyTeam[], string | null>(
+    () => (session() ? session()!.user.id : null),
+    async () => {
+      try {
+        lastTeams = await myTeams();
+      } catch {
+        /* çevrimdışı ya da takımlar yok */
+      }
+      return lastTeams;
+    },
+  );
+  const teams = () => teamList() ?? [];
+  // Sohbet grupları (c45): sunucu güncel değilse boş
+  let lastGroups: MyGroup[] = [];
+  const [groupList, { refetch: refetchGroups, mutate: mutateGroups }] = createResource<MyGroup[], string | null>(
+    () => (session() ? session()!.user.id : null),
+    async () => {
+      try {
+        lastGroups = await myGroups();
+      } catch {
+        /* çevrimdışı ya da gruplar yok */
+      }
+      return lastGroups;
+    },
+  );
+  const chatGroups = () => groupList() ?? [];
+  const curG = (g: MyGroup) => chatGroups().find((x) => x.group_id === g.group_id) ?? g;
+  const groupG = () => {
+    const v = view();
+    return v.kind === "group" ? curG(v.g) : null;
+  };
+  const patchGroup = (id: string, fn: (g: MyGroup) => MyGroup) => mutateGroups(chatGroups().map((x) => (x.group_id === id ? fn(x) : x)));
+  // Açık olan grup artık listede yoksa (çıkarıldım ya da grup silindi) listeye dön
+  createEffect(() => {
+    const v = view();
+    if (v.kind === "group" && groupList() && !groupList.loading && !chatGroups().some((x) => x.group_id === v.g.group_id)) setView({ kind: "list" });
+  });
+  /** Grup sohbetinin üstündeki panel: üyeler / arka plan */
+  const [groupPanel, setGroupPanel] = createSignal<GroupPanel>("none");
   const [err, setErr] = createSignal("");
   const friends = () => list() ?? [];
   const accepted = () => friends().filter((f) => f.status === "accepted");
   const online = () => accepted().filter((f) => f.online).length;
-  const unread = () => friends().reduce((a, f) => a + (f.unread || 0), 0);
+  const unread = () =>
+    friends().reduce((a, f) => a + (f.unread || 0), 0) +
+    teams().reduce((a, tm) => a + (tm.muted ? 0 : tm.unread || 0), 0) +
+    chatGroups().reduce((a, g) => a + (g.muted ? 0 : g.unread || 0), 0);
   const requests = () => friends().filter((f) => f.status === "pending_in").length;
   createEffect(() => props.onCounts?.(online(), unread() + requests()));
   /** Görünümdeki arkadaşın en güncel hali (durum değişince başlık da güncellensin) */
@@ -155,22 +232,46 @@ export function FriendsPanel(props: {
     const v = view();
     return v.kind === "chat" ? cur(v.f) : null;
   };
+  /** Görünümdeki takımın en güncel hali */
+  const curT = (tm: MyTeam) => teams().find((x) => x.team_id === tm.team_id) ?? tm;
+  const teamT = () => {
+    const v = view();
+    return v.kind === "team" ? curT(v.t) : null;
+  };
+  const patchTeam = (id: string, fn: (tm: MyTeam) => MyTeam) => mutateTeams(teams().map((x) => (x.team_id === id ? fn(x) : x)));
   const noteLast = (m: Message) => {
     const me = session()?.user.id;
     const other = m.sender === me ? m.recipient : m.sender;
     setLast({ ...last(), [other]: m });
   };
+  /** Mesaj silinince / sohbet temizlenince listedeki son mesaj önizlemesi */
+  const setLastFor = (id: string, m: Message | null) => {
+    const c = { ...last() };
+    if (m) c[id] = m;
+    else delete c[id];
+    setLast(c);
+  };
+  // "Sohbeti temizle" onayı (başlıktaki düğme açar, sohbetin üstünde satır içi sorulur)
+  const [clearAsk, setClearAsk] = createSignal(false);
+  createEffect(on(view, () => setClearAsk(false), { defer: true }));
+  // "Sohbet arka planı" paneli (başlıktaki düğme açar)
+  const [bgAsk, setBgAsk] = createSignal(false);
+  createEffect(on(view, () => (setBgAsk(false), setGroupPanel("none")), { defer: true }));
 
   // Liste açıkken 20 sn'de bir, kapalıyken 60 sn'de bir yenile
   onMount(() => {
     let n = 0;
     const iv = setInterval(() => {
       n++;
-      if (props.open() || n % 3 === 0) refetch();
+      if (props.open() || n % 3 === 0) {
+        refetch();
+        refetchTeams();
+        refetchGroups();
+      }
     }, 20_000);
     onCleanup(() => clearInterval(iv));
   });
-  createEffect(on(props.open, (o) => o && (setView({ kind: "list" }), refetch()), { defer: true }));
+  createEffect(on(props.open, (o) => o && (setView({ kind: "list" }), refetch(), refetchTeams(), refetchGroups()), { defer: true }));
 
   // Mesaj açılır penceresinden gelen "şu sohbeti aç" isteği
   const [wantChat, setWantChat] = createSignal(props.initialChat || "");
@@ -192,7 +293,26 @@ export function FriendsPanel(props: {
   }
   createEffect(() => {
     const id = wantChat();
-    if (!id || !list()) return;
+    if (!id) return;
+    // Takım odası: "team:<takım id>"
+    if (id.startsWith("team:")) {
+      if (!teamList()) return;
+      const tm = teams().find((x) => x.team_id === id.slice(5));
+      setWantChat("");
+      if (tm) setView({ kind: "team", t: tm });
+      else refetchTeams();
+      return;
+    }
+    // Grup sohbeti: "group:<grup id>"
+    if (id.startsWith("group:")) {
+      if (!groupList()) return;
+      const g = chatGroups().find((x) => x.group_id === id.slice(6));
+      setWantChat("");
+      if (g) setView({ kind: "group", g });
+      else refetchGroups();
+      return;
+    }
+    if (!list()) return;
     const f = friends().find((x) => x.friend_id === id && x.status === "accepted");
     setWantChat("");
     if (f) setView({ kind: "chat", f });
@@ -213,7 +333,8 @@ export function FriendsPanel(props: {
           const v = view();
           const chatting = props.open() && v.kind === "chat" && v.f.friend_id === m.sender;
           if (!chatting) mutate(friends().map((f) => (f.friend_id === m.sender ? { ...f, unread: (f.unread || 0) + 1 } : f)));
-          const muted = friends().find((f) => f.friend_id === m.sender)?.muted;
+          const fr = friends().find((f) => f.friend_id === m.sender);
+          const muted = fr?.muted || fr?.sound_muted;
           // Bu pencere öndeyken ses burada çalar; arkadaysa sağ alttaki açılır pencere sesi çalar
           // (yarıştayken overlay ekranı gösterir)
           const front = !inTauri || document.hasFocus();
@@ -224,6 +345,92 @@ export function FriendsPanel(props: {
         return cleanup;
       },
     ),
+  );
+
+  // Takım odaları: yeni mesaj (okunmamış sayısı, ses), silinen mesaj, anket sayıları
+  const [teamEvent, setTeamEvent] = createSignal<TeamEvent | null>(null);
+  // Anahtar memo: sadece takım kümesi değişince yeniden abone olunur (her mesajda değil)
+  const teamKey = createMemo(() => teams().map((x) => x.team_id).sort().join(","));
+  createEffect(
+    on(
+      teamKey,
+      (key) => {
+        if (!key) return;
+        let stop = () => {};
+        let dead = false;
+        onTeamChat(key.split(","), {
+          message: (m, kind) => {
+            setTeamEvent({ kind, m });
+            const me = session()?.user.id;
+            if (kind === "update") {
+              if (m.deleted) patchTeam(m.team_id, (x) => (x.last_at === m.created_at ? { ...x, last_body: null, last_poll: false } : x));
+              return;
+            }
+            const v = view();
+            const open = props.open() && v.kind === "team" && v.t.team_id === m.team_id;
+            const tm = teams().find((x) => x.team_id === m.team_id);
+            patchTeam(m.team_id, (x) => ({
+              ...x,
+              last_body: msgPreview(m),
+              last_at: m.created_at,
+              last_poll: !!m.poll_id,
+              last_sender: m.sender === me ? t("Sen") : null,
+              unread: !open && m.sender !== me ? (x.unread || 0) + 1 : x.unread,
+            }));
+            if (m.sender === me || open || !tm || tm.muted) return;
+            const front = !inTauri || document.hasFocus();
+            const soc = settings().general.social;
+            if (front && !props.racing?.() && soc.sound && !soc.dnd) messageBeep();
+          },
+          poll: (p) => setTeamEvent({ kind: "poll", p }),
+        }).then((s) => (dead ? s() : (stop = s)));
+        onCleanup(() => {
+          dead = true;
+          stop();
+        });
+      },
+    ),
+  );
+
+  // Gruplar: yeni mesaj (okunmamış sayısı, ses), silinen mesaj, sistem olayları (üye / ad değişti)
+  const [groupEvent, setGroupEvent] = createSignal<GroupEvent | null>(null);
+  const groupKey = createMemo(() => chatGroups().map((x) => x.group_id).sort().join(","));
+  createEffect(
+    on(groupKey, (key) => {
+      if (!key) return;
+      let stop = () => {};
+      let dead = false;
+      onGroupChat(key.split(","), (m, kind) => {
+        setGroupEvent({ kind, m });
+        const me = session()?.user.id;
+        if (kind === "update") {
+          if (m.deleted) patchGroup(m.group_id, (x) => (x.last_at === m.created_at ? { ...x, last_body: null } : x));
+          return;
+        }
+        const v = view();
+        const open = props.open() && v.kind === "group" && v.g.group_id === m.group_id;
+        const g = chatGroups().find((x) => x.group_id === m.group_id);
+        patchGroup(m.group_id, (x) => ({
+          ...x,
+          last_body: msgPreview(m),
+          last_at: m.created_at,
+          last_sender: m.sender,
+          last_sender_name: m.sender === me ? t("Sen") : null,
+          last_system: !!m.meta,
+          unread: !open && m.sender !== me ? (x.unread || 0) + 1 : x.unread,
+        }));
+        // Üye sayısı / ad / sahiplik değişti (ya da gruptan çıkarıldım): listeyi yenile
+        if (m.meta && m.meta.t !== "bg") refetchGroups();
+        if (m.sender === me || open || !g || g.muted || m.meta) return;
+        const front = !inTauri || document.hasFocus();
+        const soc = settings().general.social;
+        if (front && !props.racing?.() && soc.sound && !soc.dnd) messageBeep();
+      }).then((s) => (dead ? s() : (stop = s)));
+      onCleanup(() => {
+        dead = true;
+        stop();
+      });
+    }),
   );
 
   const act = async (fn: () => Promise<unknown>) => {
@@ -274,9 +481,32 @@ export function FriendsPanel(props: {
     ].filter((g) => g.list.length > 0);
   });
 
+  const groupRows = createMemo(() => {
+    const s = norm(q().trim());
+    return chatGroups().filter((g) => !s || norm(g.name).includes(s));
+  });
+
+  const teamRows = createMemo(() => {
+    const s = norm(q().trim());
+    return teams().filter((tm) => !s || norm(`${tm.name} ${tm.tag}`).includes(s));
+  });
+
   const title = () => {
     const v = view();
     if (v.kind === "add") return <b>Arkadaş ekle</b>;
+    if (v.kind === "newgroup") return <b>Yeni grup</b>;
+    if (v.kind === "group") {
+      const g = curG(v.g);
+      return (
+        <div class="fhead-who">
+          <GroupAvatar group={g} size={30} />
+          <div class="fhead-title">
+            <b data-no-i18n>{g.name}</b>
+            <small>{t("{0} üye", g.member_count)}</small>
+          </div>
+        </div>
+      );
+    }
     if (v.kind === "list")
       return (
         <div class="fhead-title">
@@ -284,12 +514,28 @@ export function FriendsPanel(props: {
           <small>{t("{0} çevrimiçi", online())}</small>
         </div>
       );
+    if (v.kind === "team") {
+      const tm = curT(v.t);
+      return (
+        <div class="fhead-who">
+          <TeamLogo team={tm} size={30} />
+          <div class="fhead-title">
+            <b data-no-i18n>{tm.name}</b>
+            <small>{t("{0} üye", tm.member_count)}</small>
+          </div>
+        </div>
+      );
+    }
     const f = cur(v.f);
     return (
       <div class="fhead-who">
-        <Avatar id={f.friend_id} name={f.display_name} size={30} presence={presence(f)} />
+        <button class="fav-btn" title="Profili gör" onClick={() => setProfileOf(f.friend_id)}>
+          <Avatar id={f.friend_id} name={f.display_name} size={30} presence={presence(f)} />
+        </button>
         <div class="fhead-title">
-          <b data-no-i18n>{v.kind === "live" ? t("{0} · canlı veri", f.display_name) : f.display_name}</b>
+          <b data-no-i18n>
+            {v.kind === "live" ? t("{0} · canlı veri", f.display_name) : f.display_name} <SimBadge sim={f.online ? f.sim : ""} />
+          </b>
           <small classList={{ racing: f.racing }} data-no-i18n={f.racing ? true : undefined}>
             {statusText(f)}
           </small>
@@ -313,6 +559,76 @@ export function FriendsPanel(props: {
             <I.Gauge />
           </button>
         </Show>
+        <Show when={teamT()}>
+          {(tm) => (
+            <>
+              <button
+                class="icon-btn"
+                classList={{ on: tm().muted }}
+                title={tm().muted ? "Oda sessizde: bildirim ve ses yok (açmak için tıkla)" : "Odayı sessize al (bildirim ve ses yok)"}
+                onClick={() => {
+                  const next = !tm().muted;
+                  patchTeam(tm().team_id, (x) => ({ ...x, muted: next }));
+                  muteTeamChat(tm().team_id, next).catch((e) => (setErr(String((e as Error).message)), patchTeam(tm().team_id, (x) => ({ ...x, muted: !next }))));
+                }}
+              >
+                {tm().muted ? <I.BellOff /> : <I.Bell />}
+              </button>
+              <button class="icon-btn" title="Takım sayfası: üyeler ve duyurular" onClick={() => nav.team(tm().team_id)}>
+                <I.Users />
+              </button>
+              <Show when={tm().role === "owner"}>
+                <button class="icon-btn" classList={{ on: bgAsk() }} title="Sohbet arka planı (sadece takım sahibi değiştirebilir)" onClick={() => setBgAsk(!bgAsk())}>
+                  <Wallpaper />
+                </button>
+              </Show>
+            </>
+          )}
+        </Show>
+        <Show when={groupG()}>
+          {(g) => (
+            <>
+              <button
+                class="icon-btn"
+                classList={{ on: g().muted }}
+                title={g().muted ? "Grup sessizde: bildirim ve ses yok (açmak için tıkla)" : "Grubu sessize al (bildirim ve ses yok)"}
+                onClick={() => {
+                  const next = !g().muted;
+                  patchGroup(g().group_id, (x) => ({ ...x, muted: next }));
+                  muteGroup(g().group_id, next).catch((e) => (setErr(String((e as Error).message)), patchGroup(g().group_id, (x) => ({ ...x, muted: !next }))));
+                }}
+              >
+                {g().muted ? <I.BellOff /> : <I.Bell />}
+              </button>
+              <button
+                class="icon-btn"
+                classList={{ on: groupPanel() === "members" }}
+                title="Üyeler: davet et, gruptan ayrıl"
+                onClick={() => setGroupPanel(groupPanel() === "members" ? "none" : "members")}
+              >
+                <I.Users />
+              </button>
+              <Show when={g().is_owner}>
+                <button
+                  class="icon-btn"
+                  classList={{ on: groupPanel() === "bg" }}
+                  title="Sohbet arka planı (sadece grup sahibi değiştirebilir)"
+                  onClick={() => setGroupPanel(groupPanel() === "bg" ? "none" : "bg")}
+                >
+                  <Wallpaper />
+                </button>
+              </Show>
+            </>
+          )}
+        </Show>
+        <Show when={view().kind === "chat"}>
+          <button class="icon-btn" classList={{ on: bgAsk() }} title="Sohbet arka planı" onClick={() => setBgAsk(!bgAsk())}>
+            <Wallpaper />
+          </button>
+          <button class="icon-btn" classList={{ on: clearAsk() }} title="Sohbeti temizle (sadece senin görünümünden)" onClick={() => setClearAsk(!clearAsk())}>
+            <I.Trash />
+          </button>
+        </Show>
         <Show when={view().kind === "live"}>
           <button class="icon-btn" title="Ayrı pencerede aç" onClick={() => openFriendWindow((view() as { f: Friend }).f)}>
             <I.ExternalLink />
@@ -321,6 +637,9 @@ export function FriendsPanel(props: {
         <Show when={view().kind === "list"}>
           <button class="icon-btn" title="Arkadaş ekle" onClick={() => setView({ kind: "add" })}>
             <I.UserPlus />
+          </button>
+          <button class="icon-btn" title="Grup kur: arkadaşlarınla grup sohbeti" onClick={() => setView({ kind: "newgroup" })}>
+            <I.MessagesSquare />
           </button>
           <Show when={!props.standalone}>
             <button class="icon-btn" title="Ayrı pencerede aç (Steam gibi)" onClick={() => (invoke("window_open", { view: "friends" }).catch(() => {}), props.onClose?.())}>
@@ -342,7 +661,7 @@ export function FriendsPanel(props: {
 
       <Show when={view().kind === "list"}>
         <MyStatusBar />
-        <Show when={friends().length > 0}>
+        <Show when={friends().length > 0 || teams().length > 0 || chatGroups().length > 0}>
           <div class="fsearch">
             <I.Search />
             <input
@@ -360,8 +679,30 @@ export function FriendsPanel(props: {
           </div>
         </Show>
         <div class="fdock-list">
+          <Show when={teamRows().length > 0}>
+            <button class="fdock-sec fsec-teams" classList={{ closed: !!collapsed().teams && !q() }} onClick={() => toggle("teams")}>
+              <I.ChevronDown />
+              <span>Takım odaları</span>
+              <i>{teamRows().length}</i>
+            </button>
+            <Show when={!collapsed().teams || q()}>
+              <For each={teamRows()}>
+                {(tm) => <TeamRow t={tm} onOpen={() => setView({ kind: "team", t: tm })} onPage={() => nav.team(tm.team_id)} />}
+              </For>
+            </Show>
+          </Show>
+          <Show when={groupRows().length > 0}>
+            <button class="fdock-sec fsec-teams" classList={{ closed: !!collapsed().groups && !q() }} onClick={() => toggle("groups")}>
+              <I.ChevronDown />
+              <span>Gruplar</span>
+              <i>{groupRows().length}</i>
+            </button>
+            <Show when={!collapsed().groups || q()}>
+              <For each={groupRows()}>{(g) => <GroupRow g={g} onOpen={() => setView({ kind: "group", g })} />}</For>
+            </Show>
+          </Show>
           <Show
-            when={friends().length > 0}
+            when={friends().length > 0 || teams().length > 0 || chatGroups().length > 0}
             fallback={
               <Show when={!list.loading} fallback={<p class="muted small fdock-empty">Yükleniyor…</p>}>
                 <div class="fempty">
@@ -377,7 +718,7 @@ export function FriendsPanel(props: {
               </Show>
             }
           >
-            <Show when={groups().length > 0} fallback={<p class="muted small fdock-empty">Eşleşen arkadaş yok.</p>}>
+            <Show when={groups().length > 0} fallback={<Show when={friends().length > 0 && teamRows().length === 0 && groupRows().length === 0}><p class="muted small fdock-empty">Eşleşen arkadaş yok.</p></Show>}>
               <For each={groups()}>
                 {(g) => (
                   <>
@@ -395,6 +736,7 @@ export function FriendsPanel(props: {
                             nav={nav}
                             onChat={() => setView({ kind: "chat", f })}
                             onLive={() => setView({ kind: "live", f })}
+                            onProfile={() => setProfileOf(f.friend_id)}
                             act={act}
                           />
                         )}
@@ -417,6 +759,12 @@ export function FriendsPanel(props: {
             incoming={incoming()}
             nav={nav}
             onSent={noteLast}
+            onLast={(m) => setLastFor(id, m)}
+            clearAsk={clearAsk()}
+            bgAsk={bgAsk()}
+            onBgDone={() => setBgAsk(false)}
+            onError={setErr}
+            onClearDone={() => setClearAsk(false)}
             onRead={() => mutate(friends().map((x) => (x.friend_id === id ? { ...x, unread: 0 } : x)))}
           />
         )}
@@ -424,6 +772,161 @@ export function FriendsPanel(props: {
       <Show when={view().kind === "live"}>
         <FriendData f={(view() as { f: Friend }).f} />
       </Show>
+      <Show when={profileOf()}>
+        {(id) => <ProfileDialog id={id()} onClose={() => setProfileOf(null)} onTeam={nav.team} />}
+      </Show>
+      <Show when={teamT()?.team_id} keyed>
+        {(id) => (
+          <TeamChat
+            team={teamT() ?? teams().find((x) => x.team_id === id)!}
+            event={teamEvent()}
+            bgAsk={bgAsk()}
+            onBgDone={() => setBgAsk(false)}
+            onRead={() => patchTeam(id, (x) => ({ ...x, unread: 0 }))}
+            onLast={(m: TeamMessage | null) =>
+              patchTeam(id, (x) => ({
+                ...x,
+                last_body: m ? msgPreview(m) : null,
+                last_at: m ? m.created_at : null,
+                last_poll: !!m?.poll_id,
+                last_sender: m && m.sender === session()?.user.id ? t("Sen") : null,
+              }))
+            }
+          />
+        )}
+      </Show>
+      <Show when={view().kind === "newgroup"}>
+        <NewGroup
+          friends={accepted()}
+          onCancel={() => setView({ kind: "list" })}
+          onCreated={(id) => {
+            setView({ kind: "list" });
+            setWantChat(`group:${id}`);
+            refetchGroups();
+          }}
+        />
+      </Show>
+      <Show when={groupG()?.group_id} keyed>
+        {(id) => (
+          <GroupChat
+            group={groupG() ?? chatGroups().find((x) => x.group_id === id)!}
+            event={groupEvent()}
+            friends={accepted()}
+            panel={groupPanel()}
+            onPanel={setGroupPanel}
+            onRead={() => patchGroup(id, (x) => ({ ...x, unread: 0 }))}
+            onChanged={() => refetchGroups()}
+            onGone={() => {
+              setView({ kind: "list" });
+              mutateGroups(chatGroups().filter((x) => x.group_id !== id));
+              refetchGroups();
+            }}
+            onLast={(m: GroupMessage | null) =>
+              patchGroup(id, (x) => ({
+                ...x,
+                last_body: m ? msgPreview(m) : null,
+                last_at: m ? m.created_at : null,
+                last_sender: m?.sender ?? null,
+                last_sender_name: m && m.sender === session()?.user.id ? t("Sen") : null,
+                last_system: !!m?.meta,
+              }))
+            }
+          />
+        )}
+      </Show>
+    </div>
+  );
+}
+
+/** Arkadaş listesindeki grup sohbeti satırı */
+function GroupRow(props: { g: MyGroup; onOpen: () => void }) {
+  const g = () => props.g;
+  const who = () => (g().last_system ? null : g().last_sender === session()?.user.id ? t("Sen") : g().last_sender_name);
+  return (
+    <div class="frow troom" classList={{ unread: g().unread > 0 && !g().muted }} onClick={props.onOpen}>
+      <GroupAvatar group={g()} size={36} />
+      <div class="frow-main">
+        <div class="frow-l1">
+          <b data-no-i18n>{g().name}</b>
+          <Show when={g().is_owner}>
+            <span class="frow-flag" title="Bu grubun sahibisin">
+              <I.Star />
+            </span>
+          </Show>
+          <Show when={g().muted}>
+            <span class="frow-flag" title="Grup sessizde">
+              <I.BellOff />
+            </span>
+          </Show>
+          <span class="lt-sp" />
+          <Show when={g().last_at}>
+            <time>{shortTime(g().last_at!)}</time>
+          </Show>
+        </div>
+        <div class="frow-l2">
+          <small class="frow-prev" data-no-i18n={g().last_body ? true : undefined}>
+            <Show when={g().last_body} fallback={t("{0} üye · henüz mesaj yok", g().member_count)}>
+              <Show when={who()}>
+                <span class="frow-you">{who()}: </span>
+              </Show>
+              <MsgText text={g().last_body!} />
+            </Show>
+          </small>
+          <Show when={g().unread > 0}>
+            <span class="frow-unread" classList={{ muted: g().muted }}>
+              {g().unread}
+            </span>
+          </Show>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Arkadaş listesindeki takım odası satırı */
+function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void }) {
+  const tm = () => props.t;
+  return (
+    <div class="frow troom" classList={{ unread: tm().unread > 0 && !tm().muted }} onClick={props.onOpen}>
+      <TeamLogo team={tm()} size={36} />
+      <div class="frow-main">
+        <div class="frow-l1">
+          <b data-no-i18n>{tm().name}</b>
+          <span class="ttag" style={{ "--tc": tm().color }} data-no-i18n>
+            {tm().tag}
+          </span>
+          <Show when={tm().muted}>
+            <span class="frow-flag" title="Oda sessizde">
+              <I.BellOff />
+            </span>
+          </Show>
+          <span class="lt-sp" />
+          <Show when={tm().last_at}>
+            <time>{shortTime(tm().last_at!)}</time>
+          </Show>
+        </div>
+        <div class="frow-l2">
+          <small class="frow-prev" data-no-i18n={tm().last_body ? true : undefined}>
+            <Show when={tm().last_body} fallback={t("{0} üye · henüz mesaj yok", tm().member_count)}>
+              <Show when={tm().last_sender}>
+                <span class="frow-you">{tm().last_sender}: </span>
+              </Show>
+              {tm().last_poll ? "📊 " : ""}
+              <MsgText text={tm().last_body!} />
+            </Show>
+          </small>
+          <Show when={tm().unread > 0}>
+            <span class="frow-unread" classList={{ muted: tm().muted }}>
+              {tm().unread}
+            </span>
+          </Show>
+        </div>
+      </div>
+      <div class="frow-acts">
+        <button class="icon-btn" title="Takım sayfası" onClick={(e) => (e.stopPropagation(), props.onPage())}>
+          <I.Users />
+        </button>
+      </div>
     </div>
   );
 }
@@ -471,7 +974,7 @@ function MyStatusBar() {
 function statusText(f: Friend) {
   if (f.status === "pending_in") return t("Arkadaşlık isteği gönderdi");
   if (f.status === "pending_out") return t("İstek gönderildi");
-  if (f.racing) return [f.session, f.track, f.car].filter(Boolean).join(" · ") || t("Yarışta");
+  if (f.racing) return [f.session, f.track, f.car].filter(Boolean).join(" · ") || (f.sim && SIM_SHORT[f.sim] ? t("Oyunda: {0}", SIM_SHORT[f.sim]) : t("Yarışta"));
   if (f.online) return f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi");
   return f.last_seen ? t("Son görülme: {0}", ago(f.last_seen)) : t("Çevrimdışı");
 }
@@ -498,7 +1001,15 @@ function shortTime(iso: string) {
   return d.toLocaleDateString(localeTag(), { day: "numeric", month: "short" });
 }
 
-function FriendRow(props: { f: Friend; last?: Message; nav: Nav; onChat: () => void; onLive: () => void; act: (fn: () => Promise<unknown>) => void }) {
+function FriendRow(props: {
+  f: Friend;
+  last?: Message;
+  nav: Nav;
+  onChat: () => void;
+  onLive: () => void;
+  onProfile: () => void;
+  act: (fn: () => Promise<unknown>) => void;
+}) {
   const f = () => props.f;
   const [menu, setMenu] = createSignal(false);
   const [up, setUp] = createSignal(false);
@@ -525,18 +1036,35 @@ function FriendRow(props: { f: Friend; last?: Message; nav: Nav; onChat: () => v
         if (f().status === "accepted") openMenu();
       }}
     >
-      <Avatar id={f().friend_id} name={f().display_name} presence={presence(f())} />
+      <button class="fav-btn" title="Profili gör" onClick={props.onProfile}>
+        <Avatar id={f().friend_id} name={f().display_name} presence={presence(f())} />
+      </button>
       <div class="frow-main" onClick={() => f().status === "accepted" && props.onChat()}>
         <div class="frow-l1">
           <b data-no-i18n>{f().display_name || "?"}</b>
+          <SimBadge sim={f().online ? f().sim : ""} />
           <Show when={f().trusted}>
-            <span class="frow-flag trust" title="Güvenilir: yarışırken verilerini görebilir">
+            <span
+              class="frow-flag trust"
+              classList={{ off: proLocked("social.data_share") }}
+              title={!proLocked("social.data_share") ? "Güvenilir: yarışırken verilerini görebilir" : "Güvenilir, ama verilerin paylaşılmıyor: veri paylaşımı PRO üyelere özel"}
+            >
               <I.ShieldCheck />
             </span>
           </Show>
           <Show when={f().muted}>
             <span class="frow-flag" title="Mesajlarını kapattın">
+              <I.MessageSquare />
+            </span>
+          </Show>
+          <Show when={!f().muted && f().notify_muted}>
+            <span class="frow-flag" title="Bildirimlerini kapattın">
               <I.BellOff />
+            </span>
+          </Show>
+          <Show when={!f().muted && f().sound_muted}>
+            <span class="frow-flag" title="Sesini kapattın">
+              <I.VolumeX />
             </span>
           </Show>
           <span class="lt-sp" />
@@ -557,11 +1085,11 @@ function FriendRow(props: { f: Friend; last?: Message; nav: Nav; onChat: () => v
             }
           >
             {(m) => (
-              <small class="frow-prev" title={m().body} data-no-i18n>
+              <small class="frow-prev" title={msgPreview(m())} data-no-i18n>
                 <Show when={mine()}>
                   <span class="frow-you">{t("Sen:")} </span>
                 </Show>
-                <MsgText text={m().body} />
+                <MsgText text={msgPreview(m())} />
               </small>
             )}
           </Show>
@@ -605,11 +1133,14 @@ function FriendRow(props: { f: Friend; last?: Message; nav: Nav; onChat: () => v
           <button onClick={() => (setMenu(false), props.onChat())}>
             <I.MessageSquare /> Mesaj
           </button>
+          <button onClick={() => (setMenu(false), props.onProfile())}>
+            <I.User /> Profili gör
+          </button>
           <Show
             when={f().trusts_me}
             fallback={
-              <button disabled title="Arkadaşın seni güvenilir işaretleyince yakıtını, turlarını ve pistteki yerini görebilirsin">
-                <I.Gauge /> Canlı veri (seni güvenilir seçmedi)
+              <button disabled title="PRO üye olan arkadaşın seni güvenilir işaretleyince yakıtını, turlarını ve pistteki yerini görebilirsin">
+                <I.Gauge /> Canlı veri (seninle paylaşmıyor)
               </button>
             }
           >
@@ -620,23 +1151,64 @@ function FriendRow(props: { f: Friend; last?: Message; nav: Nav; onChat: () => v
               <I.ExternalLink /> Canlı veriyi ayrı pencerede aç
             </button>
           </Show>
-          <button onClick={() => (setMenu(false), props.nav.look(f().friend_id))} title="Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla">
-            <I.Palette /> Görünümü düzenle
-          </button>
           <Show
-            when={isPro() || f().trusted}
+            when={!proLocked("social.friend_look")}
             fallback={
-              <button onClick={() => props.nav.pro()} title="Kod vermeden güvenilir işaretleme PRO özelliğidir">
-                <I.Lock /> Güvenilir işaretle (PRO)
+              <button onClick={() => (setMenu(false), props.nav.pro())} title="Arkadaş görünümünü (renk, simge, fotoğraf, etiket) özelleştirmek PRO özelliğidir">
+                <I.Palette /> Görünümü düzenle <span class="pro-badge small">PRO</span>
               </button>
+            }
+          >
+            <button onClick={() => (setMenu(false), props.nav.look(f().friend_id))} title="Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla">
+              <I.Palette /> Görünümü düzenle
+            </button>
+          </Show>
+          <Show
+            when={!proLocked("social.data_share")}
+            fallback={
+              <>
+                <Show when={f().trusted}>
+                  <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, false, f().muted)))}>
+                    <I.ShieldCheck /> Güvenilirden çıkar
+                  </button>
+                </Show>
+                <button onClick={() => (setMenu(false), props.nav.pro())} title={SHARE_PRO_HINT}>
+                  <I.Lock /> Verilerimi paylaş <span class="pro-badge small">PRO</span>
+                </button>
+                <p class="frow-menu-note">{SHARE_PRO_HINT}</p>
+              </>
             }
           >
             <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, !f().trusted, f().muted)))}>
               <I.ShieldCheck /> {f().trusted ? "Güvenilirden çıkar" : "Güvenilir işaretle (verilerimi görsün)"}
             </button>
           </Show>
+          <button
+            onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !f().notify_muted, !!f().sound_muted)))}
+            title="Kapalıyken bu arkadaştan gelen mesajlarda açılır pencere ve oyun içi bildirim gösterilmez (mesajlar yine gelir)"
+          >
+            <I.BellOff /> {f().notify_muted ? "Bildirimleri aç" : "Bildirimleri kapat"}
+          </button>
+          <button
+            onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !!f().notify_muted, !f().sound_muted)))}
+            title="Kapalıyken bu arkadaştan gelen mesajlarda ses çalmaz"
+          >
+            {f().sound_muted ? <I.Volume2 /> : <I.VolumeX />} {f().sound_muted ? "Sesi aç" : "Sesi kapat"}
+          </button>
           <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, f().trusted, !f().muted)))}>
-            <I.BellOff /> {f().muted ? "Mesajlarını aç" : "Mesajlarını kapat"}
+            <I.MessageSquare /> {f().muted ? "Mesajlarını aç" : "Mesajlarını kapat"}
+          </button>
+          <button
+            onClick={() => {
+              setMenu(false);
+              ovMsgTogglePerson(
+                f().friend_id,
+                settings().friends.list.map((x) => x.accountId ?? "").filter(Boolean),
+              );
+            }}
+            title="Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)"
+          >
+            <I.Monitor /> {ovMsgShowsPerson(f().friend_id) ? "Mesajlar overlay'inde gizle" : "Mesajlar overlay'inde göster"}
           </button>
           <button
             class="danger"
@@ -707,8 +1279,9 @@ function AddFriend(props: { friends: Friend[]; act: (fn: () => Promise<unknown>)
                 when={!state(p.id)}
                 fallback={<small class="muted">{state(p.id) === "accepted" ? "Arkadaşın" : "İstek bekliyor"}</small>}
               >
-                <button class="btn primary small" onClick={() => props.act(() => friendRequest(p.id))}>
+                <button class="btn primary small" disabled={proLocked(F.friendAdd)} onClick={() => props.act(() => friendRequest(p.id))}>
                   <I.UserPlus /> Ekle
+                  <ProLockTag feature={F.friendAdd} />
                 </button>
               </Show>
             </div>
@@ -716,21 +1289,15 @@ function AddFriend(props: { friends: Friend[]; act: (fn: () => Promise<unknown>)
         </For>
       </div>
       <p class="muted small fadd-help">
-        İstek kabul edilince arkadaşının çevrimiçi ve yarışta olduğunu görürsün. "Güvenilir" işaretlediğin arkadaşların, sen yarışırken yakıt
-        ve tur bilgilerini kod girmeden görebilir.
+        İstek kabul edilince arkadaşının çevrimiçi ve yarışta olduğunu görür, mesajlaşabilirsin. PRO isen "güvenilir" işaretlediğin arkadaşların,
+        sen yarışırken yakıt ve tur bilgilerini kod girmeden görebilir.
       </p>
     </div>
   );
 }
 
 /** Seçilebilen ifadeler */
-const EMOJIS = [
-  "😀", "😄", "😂", "🤣", "😊", "🙂", "😉", "😍",
-  "😘", "😎", "🤔", "😮", "😢", "😭", "😡", "🙁",
-  "😛", "😆", "😅", "🙃", "😴", "🥳", "🤯", "😬",
-  "👍", "👎", "👏", "🙌", "🙏", "💪", "👋", "🤝",
-  "❤️", "🔥", "💯", "🎉", "🏁", "🏆", "🚗", "⛽",
-];
+const EMOJIS = EMOJI_PICKS;
 
 function dayLabel(d: Date) {
   const now = new Date();
@@ -741,8 +1308,26 @@ function dayLabel(d: Date) {
   return d.toLocaleDateString(localeTag(), { weekday: "long", day: "numeric", month: "long", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
 }
 
-function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: () => void; onSent: (m: Message) => void }) {
+function Chat(props: {
+  f: Friend;
+  incoming: Message | null;
+  nav: Nav;
+  onRead: () => void;
+  onSent: (m: Message) => void;
+  /** Listedeki son mesaj önizlemesi değişti (mesaj silindi / sohbet temizlendi) */
+  onLast: (m: Message | null) => void;
+  clearAsk: boolean;
+  onClearDone: () => void;
+  /** "Sohbet arka planı" paneli açık */
+  bgAsk?: boolean;
+  onBgDone?: () => void;
+  onError?: (msg: string) => void;
+}) {
   const [msgs, setMsgs] = createSignal<Message[]>([]);
+  // Mesaja sağ tık menüsü ve raporlama
+  const [ctx, setCtx] = createSignal<{ x: number; y: number; m: Message } | null>(null);
+  const [reporting, setReporting] = createSignal<Message | null>(null);
+  const [clearing, setClearing] = createSignal(false);
   const [loaded, setLoaded] = createSignal(false);
   const [text, setText] = createSignal("");
   const [err, setErr] = createSignal("");
@@ -790,7 +1375,7 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
       const p = list[i - 1];
       const n = list[i + 1];
       const near = (a?: Message, b?: Message) =>
-        !!a && !!b && a.sender === b.sender && Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60_000 && new Date(a.created_at).toDateString() === new Date(b.created_at).toDateString();
+        !!a && !!b && !a.meta && !b.meta && a.sender === b.sender && Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60_000 && new Date(a.created_at).toDateString() === new Date(b.created_at).toDateString();
       out.push({ m, first: !near(p, m), lastOfRun: !near(m, n) });
     });
     return out;
@@ -833,6 +1418,18 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
       const m: Message = { id: String(id), sender: me()!, recipient: props.f.friend_id, body: b, created_at: new Date().toISOString(), read_at: null };
       setMsgs([...msgs(), m]);
       props.onSent(m);
+      // Mesajlar overlay'i: "Kendi mesajlarımı da göster" açıksa
+      broadcastOvMsg({
+        id: `f-${m.id}`,
+        kind: "friend",
+        from: m.sender,
+        peer: props.f.friend_id,
+        name: t("Sen"),
+        color: "#ff8a2a",
+        body: b,
+        mine: true,
+        ts: Date.now(),
+      });
       setText("");
       if (ta) ta.value = "";
       grow();
@@ -845,17 +1442,96 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
       ta?.focus();
     }
   };
-  // Seçici dışına tıklayınca kapanır
+  // Seçici ve sağ tık menüsü dışına tıklayınca kapanır
   const outside = (e: MouseEvent) => {
     if (picker() && !(e.target as HTMLElement).closest(".femo, .femo-btn")) setPicker(false);
+    if (ctx() && !(e.target as HTMLElement).closest(".fmsg-menu")) setCtx(null);
   };
+  const closeCtx = () => setCtx(null);
   document.addEventListener("mousedown", outside);
-  onCleanup(() => document.removeEventListener("mousedown", outside));
+  window.addEventListener("blur", closeCtx);
+  onCleanup(() => {
+    document.removeEventListener("mousedown", outside);
+    window.removeEventListener("blur", closeCtx);
+  });
+
+  const openCtx = (e: MouseEvent, m: Message) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtx({ x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 130), m });
+  };
+  /** Mesajı sadece kendi görünümünden kaldır */
+  const hide = async (m: Message) => {
+    setCtx(null);
+    setErr("");
+    try {
+      await hideMessage(m.id);
+      const rest = msgs().filter((x) => x.id !== m.id);
+      setMsgs(rest);
+      props.onLast(rest[rest.length - 1] ?? null);
+      if (reporting()?.id === m.id) setReporting(null);
+    } catch (e) {
+      setErr(String((e as Error).message));
+    }
+  };
+  const copy = (m: Message) => {
+    setCtx(null);
+    navigator.clipboard?.writeText(msgPreview(m)).catch(() => {});
+  };
+  /** Sohbeti kendi görünümünden temizle (karşı taraf mesajları görmeye devam eder) */
+  const clearAll = async () => {
+    setErr("");
+    setClearing(true);
+    try {
+      await clearConversation(props.f.friend_id);
+      setMsgs([]);
+      setReporting(null);
+      props.onLast(null);
+      props.onClearDone();
+    } catch (e) {
+      setErr(String((e as Error).message));
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const time = (iso: string) => new Date(iso).toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit" });
+  // Sohbete özel arka plan (kendi seçimin ya da kabul edilen ortak arka plan)
+  const conv = useConvBg(() => props.f.friend_id);
   return (
-    <div class="fchat">
-      <div class="fchat-msgs" ref={box}>
+    <div class="fchat" classList={chatLookClass(conv.look())} style={chatLookStyle(conv.look())}>
+      <Show when={props.bgAsk}>
+        <ConvBgPanel
+          f={props.f}
+          st={conv}
+          onClose={() => props.onBgDone?.()}
+          onError={props.onError}
+          onAnnounced={(m) => {
+            // Arka planı değiştirdim: sohbete düşen mesaj (karşı taraf tıklayıp aynısını kullanabilir)
+            if (m.id && !msgs().some((x) => x.id === m.id)) setMsgs([...msgs(), m]);
+            props.onSent(m);
+            scroll();
+          }}
+        />
+      </Show>
+      <ConvBgRequest f={props.f} st={conv} />
+      <Show when={props.clearAsk}>
+        <div class="fclear">
+          <p class="small">
+            {t("Bu sohbetteki tüm mesajlar senin görünümünden silinsin mi? {0} mesajları görmeye devam eder.", props.f.display_name || "?")}
+          </p>
+          <div class="fclear-btns">
+            <button class="btn ghost small" disabled={clearing()} onClick={() => props.onClearDone()}>
+              Vazgeç
+            </button>
+            <button class="btn small danger" disabled={clearing()} onClick={clearAll}>
+              <I.Trash /> {clearing() ? "Temizleniyor…" : "Sohbeti temizle"}
+            </button>
+          </div>
+        </div>
+      </Show>
+      <ChatStage look={conv.look()} img={conv.img()}>
+      <div class="fchat-msgs" ref={box} onScroll={() => ctx() && setCtx(null)}>
         <Show
           when={msgs().length > 0}
           fallback={
@@ -874,11 +1550,22 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
                 <div class="fday">
                   <span>{r.day}</span>
                 </div>
+              ) : r.m.meta?.t === "bg" ? (
+                <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)}>
+                  <BgNote
+                    meta={r.m.meta}
+                    who={props.f.display_name || "?"}
+                    mine={r.m.sender === me()}
+                    time={new Date(r.m.created_at).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" })}
+                    onUse={() => adoptBg(props.f.friend_id, r.m.meta!)}
+                  />
+                </div>
               ) : (
                 <div
                   class="fmsg"
                   classList={{ mine: r.m.sender === me(), first: r.first, tail: r.lastOfRun, jumbo: emojiOnly(emojify(r.m.body)) }}
                   title={new Date(r.m.created_at).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" })}
+                  onContextMenu={(e) => openCtx(e, r.m)}
                 >
                   <p data-no-i18n>
                     <MsgText text={r.m.body} />
@@ -892,19 +1579,34 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
           </For>
         </Show>
       </div>
+      </ChatStage>
       <Show when={err()}>
         <p class="error small">{err()}</p>
       </Show>
-      <Show
-        when={isPro()}
-        fallback={
-          <button class="btn ghost pro-lock" onClick={() => props.nav.pro()}>
-            <I.Lock /> Mesaj göndermek PRO özelliğidir
-          </button>
-        }
-      >
+      <Show when={reporting()}>
+        {(m) => <ReportMessage m={m()} name={props.f.display_name} onHide={() => hide(m())} onClose={() => setReporting(null)} />}
+      </Show>
+      <Show when={ctx()}>
+        {(c) => (
+          <div class="frow-menu fmsg-menu" style={{ left: `${c().x}px`, top: `${c().y}px` }}>
+            <button onClick={() => copy(c().m)}>
+              <I.Copy /> Kopyala
+            </button>
+            <button onClick={() => hide(c().m)} title="Mesaj sadece senin görünümünden silinir; karşı taraf görmeye devam eder">
+              <I.Trash /> Benden sil
+            </button>
+            <Show when={c().m.sender !== me() && !c().m.meta}>
+              <button class="danger" onClick={() => (setReporting(c().m), setCtx(null))}>
+                <I.Flag /> Raporla
+              </button>
+            </Show>
+          </div>
+        )}
+      </Show>
+      <Show when={!reporting()}>
         <Show when={props.f.accept_messages} fallback={<p class="muted small fchat-off">Bu kişi mesajları kapatmış.</p>}>
-          <div class="fcompose">
+          <ProLockNote feature={F.messages} text="Mesaj göndermek PRO üyelere özel. Gelen mesajları okuyabilirsin." class="fchat-prolock" />
+          <div class="fcompose" classList={{ "prolock-dim": proLocked(F.messages) }}>
             <Show when={picker()}>
               <div class="femo" role="dialog">
                 <For each={EMOJIS}>
@@ -926,6 +1628,7 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
               rows={1}
               maxLength={1000}
               placeholder="Mesaj yaz…"
+              disabled={proLocked(F.messages)}
               title="Enter: gönder · Shift+Enter: yeni satır"
               value={text()}
               onInput={(e) => onInput(e.currentTarget)}
@@ -941,6 +1644,100 @@ function Chat(props: { f: Friend; incoming: Message | null; nav: Nav; onRead: ()
             </button>
           </div>
         </Show>
+      </Show>
+    </div>
+  );
+}
+
+/** Gelen mesajı raporla: sebep + isteğe bağlı not (sohbetin altında satır içi) */
+export function ReportMessage(props: {
+  m: { id: string; body: string };
+  name: string;
+  /** Verilmezse "benden sil" düğmesi çıkmaz (grup sohbeti) */
+  onHide?: () => void;
+  onClose: () => void;
+  /** Verilmezse 1:1 mesaj raporu (grup sohbeti kendi RPC'sini verir) */
+  report?: (reason: string, note: string) => Promise<unknown>;
+}) {
+  const [reason, setReason] = createSignal("");
+  const [note, setNote] = createSignal("");
+  const [busy, setBusy] = createSignal(false);
+  const [done, setDone] = createSignal(false);
+  const [err, setErr] = createSignal("");
+  const submit = async () => {
+    if (!reason() || busy()) return;
+    setBusy(true);
+    setErr("");
+    try {
+      await (props.report ? props.report(reason(), note().trim()) : reportMessage(props.m.id, reason(), note().trim()));
+      setDone(true);
+    } catch (e) {
+      setErr(String((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="freport" onKeyDown={(e) => e.key === "Escape" && props.onClose()}>
+      <div class="freport-head">
+        <b>
+          <I.Flag /> Mesajı raporla
+        </b>
+        <span class="lt-sp" />
+        <button class="icon-btn" title="Kapat" onClick={props.onClose}>
+          <I.X />
+        </button>
+      </div>
+      <blockquote class="freport-quote" data-no-i18n>
+        <small>{props.name || "?"}</small>
+        <MsgText text={props.m.body.length > 240 ? `${props.m.body.slice(0, 240)}…` : props.m.body} />
+      </blockquote>
+      <Show
+        when={!done()}
+        fallback={
+          <>
+            <p class="success small">Teşekkürler, raporun yöneticilere iletildi.</p>
+            <div class="freport-btns">
+              <Show when={props.onHide}>
+                <button class="btn ghost small" onClick={() => props.onHide?.()}>
+                  <I.Trash /> Mesajı benden sil
+                </button>
+              </Show>
+              <button class="btn primary small" onClick={props.onClose}>
+                Tamam
+              </button>
+            </div>
+          </>
+        }
+      >
+        <div class="freport-reasons">
+          <For each={MESSAGE_REPORT_REASONS}>
+            {(r) => (
+              <button class="fme-chip" classList={{ on: reason() === r.id }} aria-pressed={reason() === r.id} onClick={() => setReason(r.id)}>
+                {r.label}
+              </button>
+            )}
+          </For>
+        </div>
+        <textarea
+          class="input"
+          rows={2}
+          maxLength={500}
+          placeholder="Not (isteğe bağlı)"
+          value={note()}
+          onInput={(e) => setNote(e.currentTarget.value)}
+        />
+        <Show when={err()}>
+          <p class="error small">{err()}</p>
+        </Show>
+        <div class="freport-btns">
+          <button class="btn ghost small" onClick={props.onClose}>
+            Vazgeç
+          </button>
+          <button class="btn primary small" disabled={!reason() || busy()} onClick={submit}>
+            {busy() ? "Gönderiliyor…" : "Raporla"}
+          </button>
+        </div>
       </Show>
     </div>
   );

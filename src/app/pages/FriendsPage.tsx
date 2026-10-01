@@ -1,6 +1,7 @@
 // Arkadaşlar: hesabınla arkadaş ekle (karşı taraf onaylar), bekleyen istekler ve arkadaşa özel görünüm.
 // Kabul edilen arkadaşlar aynı yarıştayken Relative, Leaderboard, Live Timing ve haritada seçtiğin renk, simge
 // ve fotoğrafla öne çıkar. Bir arkadaşa sağ tıklayıp "Görünümü düzenle" diyerek ayarlarını açabilirsin.
+// Görünümü özelleştirmek (varsayılan renk, yoğunluk, arkadaşa özel renk/simge/fotoğraf/etiket) PRO.
 
 import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { t } from "@/sdk/i18n";
@@ -8,11 +9,27 @@ import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { settings, updateSettings, type Friend } from "@/sdk/settings";
 import { friendColor, resizePhoto, syncAccountFriends } from "@/sdk/friends";
 import { session } from "@/cloud/supabase";
+import { F, proLocked } from "@/sdk/proFeatures";
 import { findPeople, friendRemove, friendRequest, friendRespond, myFriends, type Friend as CloudFriend, type Person } from "@/cloud/social";
 import { friendFocus, go, setFriendFocus } from "../ui";
+import { cachedAvatar } from "@/cloud/profile";
+import { SimBadge } from "../components/Profile";
 import * as I from "../icons";
+import { ProLockNote, ProLockTag } from "../components/ProLock";
+
+/** Arkadaş görünümünü özelleştirebilir mi (PRO özellikleri: social.friend_look) */
+const canLook = () => !proLocked("social.friend_look");
 
 const ICONS = ["", "★", "♥", "⚡", "🔥", "👑", "🏁", "😎", "🐺", "🚀"];
+
+/** PRO olmayana: özelleştirme kilitli ipucu (tıklayınca PRO sayfası) */
+function ProHint(props: { text: string }) {
+  return (
+    <button class="btn ghost small pro-lock fr-prohint" onClick={() => go("pro")} title="PRO üyelik">
+      <I.Lock /> {props.text} <span class="pro-badge small">PRO</span>
+    </button>
+  );
+}
 
 function cloudStatus(f: CloudFriend | undefined) {
   if (!f) return "";
@@ -160,17 +177,47 @@ export function FriendsPage() {
         </div>
         <div class="row">
           <div>
-            <b>Varsayılan renk</b>
+            <b>
+              Varsayılan renk
+              <Show when={!canLook()}>
+                <span class="pro-badge small" onClick={() => go("pro")}>
+                  PRO
+                </span>
+              </Show>
+            </b>
             <small>Kendine özel renk verilmemiş arkadaşlar için</small>
           </div>
-          <input type="color" class="fr-color" value={fs().color} onInput={(e) => updateSettings((d) => (d.friends.color = e.currentTarget.value))} />
+          <input
+            type="color"
+            class="fr-color"
+            disabled={!canLook()}
+            title={canLook() ? "" : "Arkadaş görünümünü özelleştirmek PRO özelliğidir"}
+            value={fs().color}
+            onInput={(e) => updateSettings((d) => (d.friends.color = e.currentTarget.value))}
+          />
         </div>
         <div class="row">
           <div>
-            <b>Satır rengi yoğunluğu</b>
+            <b>
+              Satır rengi yoğunluğu
+              <Show when={!canLook()}>
+                <span class="pro-badge small" onClick={() => go("pro")}>
+                  PRO
+                </span>
+              </Show>
+            </b>
           </div>
           <div class="fr-range">
-            <input type="range" min="10" max="70" step="2" value={fs().strength} onInput={(e) => updateSettings((d) => (d.friends.strength = Number(e.currentTarget.value)))} />
+            <input
+              type="range"
+              min="10"
+              max="70"
+              step="2"
+              disabled={!canLook()}
+              title={canLook() ? "" : "Arkadaş görünümünü özelleştirmek PRO özelliğidir"}
+              value={fs().strength}
+              onInput={(e) => updateSettings((d) => (d.friends.strength = Number(e.currentTarget.value)))}
+            />
             <span>%{fs().strength}</span>
           </div>
         </div>
@@ -212,6 +259,7 @@ export function FriendsPage() {
             Görünen adı ya da iRacing adıyla ara. İstek gönderince karşı taraf bildirim ve e-posta alır; <b>o kabul edince</b> arkadaşın olur ve
             aşağıdaki listede görünür.
           </p>
+          <ProLockNote feature={F.friendAdd} text="Arkadaşlık isteği göndermek PRO üyelere özel. Gelen istekleri kabul edebilirsin." />
           <div class="fr-add">
             <input class="input" placeholder="Görünen ad ya da iRacing adı" value={q()} onInput={(e) => setQ(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && search()} />
             <button class="btn primary" disabled={busy()} onClick={search}>
@@ -247,8 +295,13 @@ export function FriendsPage() {
                           </span>
                         }
                       >
-                        <button class="btn primary small" onClick={() => act(() => friendRequest(p.id), t("{0} kişisine arkadaşlık isteği gönderildi.", p.display_name || "?"))}>
+                        <button
+                          class="btn primary small"
+                          disabled={proLocked(F.friendAdd)}
+                          onClick={() => act(() => friendRequest(p.id), t("{0} kişisine arkadaşlık isteği gönderildi.", p.display_name || "?"))}
+                        >
                           <I.UserPlus /> Arkadaş ekle
+                          <ProLockTag feature={F.friendAdd} />
                         </button>
                       </Show>
                     </div>
@@ -313,7 +366,10 @@ export function FriendsPage() {
           Arkadaşlarım <span class="fr-count">{cards().length}</span>
         </h3>
         <Show when={cards().length > 0} fallback={<p class="muted">Henüz arkadaşın yok. Yukarıdan arayıp ekleyebilirsin.</p>}>
-          <p class="muted small">Bir arkadaşa sağ tıkla ya da "Görünüm" düğmesine bas: rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla.</p>
+          <p class="muted small">
+            Bir arkadaşa sağ tıkla ya da "Görünüm" düğmesine bas: rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla.
+            <Show when={!canLook()}> Görünümü özelleştirmek PRO özelliğidir.</Show>
+          </p>
           <div class="fr-list">
             <For each={cards()}>
               {(f) => {
@@ -332,8 +388,12 @@ export function FriendsPage() {
                   >
                     <div class="fr-summary">
                       <div class="fr-avatar" style={{ background: friendColor(f) }}>
-                        <Show when={f.photo} fallback={<span>{f.icon || (f.name[0] ?? "?").toUpperCase()}</span>}>
-                          <img src={f.photo} alt="" />
+                        {/* Ona özel fotoğraf (PRO) > simge > üyenin kendi profil fotoğrafı > baş harf */}
+                        <Show
+                          when={f.photo || (!f.icon && f.accountId && cachedAvatar(f.accountId))}
+                          fallback={<span>{f.icon || (f.name[0] ?? "?").toUpperCase()}</span>}
+                        >
+                          <img src={f.photo || cachedAvatar(f.accountId!)} alt="" />
                         </Show>
                       </div>
                       <div class="fr-sum-main">
@@ -347,7 +407,8 @@ export function FriendsPage() {
                           <Show when={c()} fallback={<span>{f.accountId ? "" : "Elle eklenmiş (hesapsız)"}</span>}>
                             <span classList={{ "fr-on": !!c()?.online || !!c()?.racing }} data-no-i18n>
                               {cloudStatus(c())}
-                            </span>
+                            </span>{" "}
+                            <SimBadge sim={c()?.online ? c()?.sim : ""} />
                           </Show>
                           <Show when={isHere(f)}>
                             <span class="fr-here">bu oturumda</span>
@@ -381,6 +442,7 @@ export function FriendsPage() {
                             onChange={(e) => edit(f.id, (x) => (x.userId = Number(e.currentTarget.value.replace(/\D/g, "")) || 0))}
                           />
                         </div>
+                        <Show when={canLook()} fallback={<ProHint text="Renk, simge, fotoğraf ve etiket PRO üyelere özel" />}>
                         <div class="fr-line">
                           <label class="check">
                             <input type="checkbox" checked={!!f.color} onChange={(e) => edit(f.id, (x) => (x.color = e.currentTarget.checked ? fs().color : ""))} />
@@ -403,8 +465,11 @@ export function FriendsPage() {
                             </button>
                           </Show>
                         </div>
+                        </Show>
                         <div class="fr-tagrow">
-                          <input class="input fr-tag" placeholder="Etiket" maxLength={12} title="Sürücü etiketi: Relative ve Leaderboard'da adın yanında görünür" value={f.tag ?? ""} onChange={(e) => edit(f.id, (x) => (x.tag = e.currentTarget.value.trim()))} />
+                          <Show when={canLook()}>
+                            <input class="input fr-tag" placeholder="Etiket" maxLength={12} title="Sürücü etiketi: Relative ve Leaderboard'da adın yanında görünür" value={f.tag ?? ""} onChange={(e) => edit(f.id, (x) => (x.tag = e.currentTarget.value.trim()))} />
+                          </Show>
                           <input class="input fr-note" placeholder="Not (ör. takım arkadaşı)" value={f.note} onChange={(e) => edit(f.id, (x) => (x.note = e.currentTarget.value))} />
                         </div>
                         <div

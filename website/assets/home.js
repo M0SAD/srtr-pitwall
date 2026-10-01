@@ -1,5 +1,5 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
-import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, locale, planFor, planName, PLANS } from "./core.js";
+import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, startProCheckout } from "./core.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
@@ -32,7 +32,7 @@ addDict({
   hero_download: ["⬇ Ücretsiz indir", "⬇ Download free"],
   hero_pro: ["PRO'ya bak", "See PRO"],
   hero_meta: ["Windows 10/11 · son sürüm", "Windows 10/11 · latest"],
-  pill_overlays: ["26 overlay", "26 overlays"],
+  pill_overlays: ["27 overlay", "27 overlays"],
   pill_spotter: ["Sesli spotter", "Voice spotter"],
   pill_langs: ["15 dil", "15 languages"],
   pill_free: ["Hesapsız da çalışır", "Works without an account"],
@@ -43,7 +43,7 @@ addDict({
     "Pistte ihtiyacın olan her şey, yarış dışında da işine yarayan araçlarla birlikte.",
     "Everything you need on track, plus tools that help you off track too.",
   ],
-  f1_t: ["26 overlay, tek şeffaf pencere", "26 overlays, one transparent window"],
+  f1_t: ["27 overlay, tek şeffaf pencere", "27 overlays, one transparent window"],
   f1_d: [
     "Relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal girdileri, hava durumu, bayraklar ve daha fazlası.",
     "Relative, leaderboard, fuel, tyres, radar, track map, delta, inputs, weather, flags and more.",
@@ -80,8 +80,8 @@ addDict({
   ],
   f8_t: ["Tek tuşla ekran görüntüsü", "One-key screenshots"],
   f8_d: [
-    "Print Screen oyunu overlay'ler ve filigranla birlikte yakalar; galeride paylaş.",
-    "Print Screen captures the game with overlays and watermark; share it in the gallery.",
+    "F12 oyunu overlay'ler ve filigranla birlikte yakalar; galeride paylaş.",
+    "F12 captures the game with overlays and watermark; share it in the gallery.",
   ],
   f9_t: ["Tema motoru ve düzen yöneticisi", "Theme engine and layout manager"],
   f9_d: [
@@ -238,7 +238,7 @@ const CMP = [
   ["c_r6", 0, 0, 1],
   ["c_r7", 0, 0, 1],
   ["c_r8", 0, 0, 1],
-  ["c_r9", 0, 0, 1],
+  ["c_r9", 0, 1, 1],
   ["c_r10", 0, 0, 1],
 ];
 
@@ -273,17 +273,29 @@ function perMonth(s, n) {
 function renderPlans() {
   const c = cfg || {};
   $("#plans").innerHTML = PLANS.map((p) => {
-    const { price, checkout: link } = planFor(c, p);
-    const n = priceNum(price);
-    const per = p.months > 1 && isFinite(n) ? T("per_month", perMonth(price, n / p.months)) : "";
+    const { price, checkout: link, num, cur } = planFor(c, p);
+    let per = "";
+    if (p.months > 1 && num > 0) per = T("per_month", fmtMoney(num / p.months, cur));
+    else if (p.months > 1 && !num) {
+      const n = priceNum(price);
+      if (isFinite(n)) per = T("per_month", perMonth(price, n / p.months));
+    }
     const tag = p.id === "12m" ? T("best_value") : p.id === "3m" ? T("popular") : "";
-    const href = link ? (user ? checkoutUrl(link, user) : `hesap.html?buy=${p.id}`) : "";
+    const cls = `btn ${p.id === "12m" ? "btn-accent" : ""}`;
+    // Otomatik fiyat (pro-checkout) + giriş yapılmış: düğme; giriş yoksa önce hesap sayfası
+    const dyn = isProCheckout(link);
+    const href = link ? (!user ? `hesap.html?buy=${p.id}` : dyn ? "" : checkoutUrl(link, user)) : "";
+    const btn = !link
+      ? `<button class="btn" disabled>${T("soon")}</button>`
+      : href
+        ? `<a class="${cls}" href="${esc(href)}" data-plan="${p.id}">${T("buy")}</a>`
+        : `<button class="${cls}" data-pro="${p.id}">${T("buy")}</button>`;
     return `<div class="card plan${p.id === "12m" ? " best" : ""}">
       ${tag ? `<span class="tag">${esc(tag)}</span>` : ""}
       <div class="name">${esc(planName(p))}</div>
       <div class="price">${esc(price || T("price_tbd"))}</div>
       <div class="per">${esc(per)}</div>
-      ${href ? `<a class="btn ${p.id === "12m" ? "btn-accent" : ""}" href="${esc(href)}" data-plan="${p.id}">${T("buy")}</a>` : `<button class="btn" disabled>${T("soon")}</button>`}
+      ${btn}
     </div>`;
   }).join("");
   const alt = [];
@@ -298,6 +310,13 @@ async function main() {
   import("./adslot.js").then((m) => m.mountAds(), () => {});
   renderStatic();
   renderPlans();
+  $("#plans").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-pro]");
+    if (!b || b.disabled) return;
+    b.disabled = true;
+    const ok = await startProCheckout(b.dataset.pro);
+    if (!ok) b.disabled = false;
+  });
   document.addEventListener("langchange", () => {
     renderStatic();
     renderPlans();
@@ -305,5 +324,10 @@ async function main() {
   [cfg, user] = await Promise.all([appConfig().catch(() => ({})), currentUser()]);
   renderPlans();
   applyLang();
+  // PRO tanıtım kartı: fiyatların üstünde (PRO olmayanlara; yönetici ayarlar)
+  const pp = document.createElement("div");
+  pp.style.margin = "0 0 18px";
+  $("#plans").before(pp);
+  import("./propromo.js").then((m) => m.mountProPromo(pp), () => {});
 }
 main();

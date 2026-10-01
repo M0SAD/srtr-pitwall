@@ -3,6 +3,194 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-51
+
+- **Olaylar penceresi boş açılıyordu:** demo / overlay önizlemesi açılınca gerçek olay listesi siliniyordu; artık saklanır ve geri dönünce kaldığı yerden sürer. Yeni oturum başlayıp henüz olay yokken bir önceki oturumun olayları ("Önceki oturum") gösterilir. Araçtan inip canlı izlerken de olaylar kaydedilmeye devam eder (yalnızca gerçek tekrar izlemede durur).
+
+## 021026-50
+
+- **Overlay ekle:** eklenen overlay hemen ekranda görünür (oyun kapalıyken de, örnek veriyle) ve Overlay'ler sayfasında seçili kaldığı sürece ekranda kalır.
+- **Mesajlar overlay'i: sesli okuma (PRO):** "Mesajları sesli oku", "Gönderen adını oku", "En fazla karakter". Canlı sohbet okumasıyla aynı konuşma sırasını kullanır, üst üste konuşmaz; sesli mühendis konuşurken bekler. Yönetim › PRO özellikleri: `social.messages_tts`.
+- **Sohbet Anketi ve Altyazı overlay'leri varsayılan PRO** (Yönetim'den değiştirilebilir); "Sürekli göster" ile oyun kapalıyken de çalışır.
+- **Sohbet kaydı (PRO):** Canlı Sohbet › Sohbet kaydı sekmesi: gün listesi, kayıtta arama (seçili gün ya da tüm günler), platform / kanal / kullanıcı süzgeci, kullanıcıya tıklayınca tüm mesajları, kopyala / yasakla, TXT ve CSV dışa aktarma, saklama süresi (varsayılan 30 gün) ve "Kayıtları sil". Yönetim: `livechat.log`.
+- **"Twitch Sohbeti (eski)" overlay'i kaldırıldı** (kayıtlı düzenlerden sessizce çıkarılır).
+- Sohbeti sesli okuma (`livechat.tts`) varsayılan PRO olarak doğrulandı. (c47)
+- Yeni metinler 14 dile çevrildi.
+
+## 011026-49
+
+- **Grup sohbeti:** Arkadaşlar listesinde "Gruplar" bölümü. Grup kur, arkadaşlarını ekle, gruptan ayrıl, (sahibiysen) üye çıkar, adını değiştir ya da grubu sil. Sahip ayrılırsa sahiplik en eski üyeye geçer; grupta kimse kalmayınca grup ve mesajları kendiliğinden silinir. Okunmamış sayacı, sessize alma, mesaj raporlama, bildirim. (c45)
+- **Sohbet arka planları:** her sohbetin kendi arka planı. Bire bir sohbette arka planı değiştirince sohbete "sohbet arka planını değiştirdi" mesajı düşer; karşı taraf mesaja tıklayıp "Bu arka planı kullan" ile aynısını kullanabilir. Grup ve takım sohbetlerinde arka planı yalnızca grup / takım sahibi değiştirir ve herkese uygulanır. (c45)
+- **Yakıt overlay'i:** yalnızca arkadaş verisi varken başlık artık "ARKADAŞLAR"; "TAKIM · ad" sadece takım adı varsa. Ayar adı "Takım yakıtı".
+- **Canlı Sohbet düzeltmeleri:**
+  - Overlay'in birkaç saniyede bir kaybolup yeniden belirmesi düzeltildi (her veri gelişinde tüm liste yeniden çiziliyordu; örnek veriler her saniye yeniden üretiliyordu).
+  - Yeni "Sürekli göster" seçeneği (sohbet, anket, altyazı; varsayılan açık): oyunda değilken, tekrar izlerken ve pist dışında da görünür.
+  - İzleyici çubuğu seçiliyken yayın kapalı olsa da görünür (kapalı platformlar "—").
+  - Varsayılan kanallar: YouTube @ErkinAzcan, Kick erkinazcan, Twitch erkinazcan (kaldırılınca geri gelmez).
+  - Ücretsiz sürüm: istediğin kadar kanal eklenir ama yalnızca en üstteki kanalın mesajları görünür (kanal listesinde bilgi notu). Sesli okuma, altyazı, anket ve sohbete yazma PRO; hepsi Yönetim › PRO özellikleri'nden tek tek yönetilir (c46).
+  - Favori (★): platform başına bir kanal; favorilerin izleyici sayısı ücretsiz sürümde de gösterilir.
+  - "Otomatik başlat" açıksa program açılınca canlı sohbet başlar; kapalıysa kısayolla başlat / durdur (varsayılan Ctrl+Shift+C, Kısayollar sayfasından değişir).
+- Yeni metinler 14 dile çevrildi.
+
+## 011026-48
+
+- **Araç marka logoları:** 46 marka logosu (Cadillac dahil) programa gömüldü. Relative ve Sıralama'da logo sütunu varsayılan olarak açık ve sürücü adının hemen solunda; sabit genişlikli hücrede alt alta hizalı. Koyu logolar (Buick, Ford, Ligier, McLaren, Oreca, Peugeot, Tatuus) açık bir zeminle, Ray beyaza çevrilerek okunur hale getirildi. Mevcut düzenler bir kereliğine güncellenir. iRacing / ACC / LMU / AMS2 araç adları için marka eşleştirme genişletildi.
+- **Yeni overlay: Sesli Mühendis:** konuşurken hoparlör simgesi, "Mühendis" / "Spotter" etiketi ve söylenenin altyazısı; konuşma bitince kaybolur. Ayarlar: mühendis/spotter mesajları, ekranda kalma süresi, simge, etiket, yazı boyutu, genişlik, arka plan, hizalama, renkler.
+- **VR (Ayarlar › VR):** VR modu ile her overlay ayrı, yakalanabilir bir pencerede ("SRTR Pitwall - <Overlay adı>") ve/veya tek "VR Panosu" penceresinde açılır (OpenKneeboard, OVR Toolkit, Desktop+ için). VR arka planı (saydam / siyah / yeşil / özel), pencere yeri (monitör / masaüstü dışı), masaüstü overlay'ini gizleme, arka planda çizimin durmaması için WebView2 ayarları (yeniden başlatma gerekir) ve adım adım VR kurulum rehberi (docs/vr_kurulum.md). Yerel SteamVR/OpenVR overlay'i bu sürümde yok.
+- **Güvenilir arkadaşlar (Ayarlar › Paylaşım):** takım yakıtı / canlı veriyi kod vermeden paylaşma. Arkadaş başına anahtar ya da "Tüm arkadaşlarım"; izleyen tarafta "Arkadaşlarının paylaşımları" listesi (tek tıkla göster/gizle), veri anında gelir. Kodlu (MQTT) akış aynen çalışır; kod arkadaşlara verilmez. (c44)
+- **Yönetim: bekleyen iş sayaçları:** Destek, Moderasyon, Ses paketleri, Deneme PRO, Reklamlar ve Cihazlar bölümlerinin yanında ve Yönetim simgesinde bekleyen iş sayısı. (c44: admin_badge_counts)
+- **PRO tanıtım mesajı: "Diğer dillere çevir":** Türkçe metni 14 dile makine çevirisiyle (MyMemory, ücretsiz) doldurur; her dil sonradan düzenlenebilir, otomatik kaydetmez.
+- "Overlay önizleme arka planları" → "Overlay arka planları".
+- Yeni metinler 14 dile çevrildi.
+
+## 011026-47
+
+- **Yeni: Canlı Sohbet (MultiChatOverlay programın içinde):** YouTube, Twitch ve Kick yayın sohbetleri tek akışta. Uygulamada yeni "Canlı Sohbet" sayfası:
+  - **Sohbet:** birleşik canlı sohbet (platform simgeleri, emojiler, Süper Chat, abonelik/raid/bağış bildirimleri), platform başına ve toplam izleyici sayısı, kullanıcıyı yasakla / mesajı gizle / kopyala, otomatik kaydırmayı durdur, arama.
+  - **Kanallar:** bağlantıları yapıştır (platform otomatik tanınır), sürükleyip sırala, gizle, etiket, ★ kendi kanalım, kanal durumu, başlat / durdur / yeniden bağlan. Ücretsiz sürümde ilk kanal bağlanır.
+  - **Moderasyon:** yasaklı kişiler, kelime süzgeci (gizle ya da yıldızla, "kelime*" ile başlayanlar), bağlantı engeli, tekrar eden mesajları gizleme, platformdaki silme/yasakları yansıtma.
+  - **Anket:** sohbette sayı yazarak oy (kişi başı ilk oy), 2–9 seçenek, soru, süre, beraberlikte animasyonlu kura; F9 kısayolu.
+  - **Sesli okuma:** Windows sesleriyle sohbeti okur; hepsini / sadece !oku komutunu / aboneleri / seçili kişileri okuma, isimleri okuma, sıra sınırları; F5 kısayolu.
+  - **Konuşma → yazı:** Mikrofondan Windows konuşma tanımayla altyazı (Altyazı overlay'i ve OBS); küfür süzgeci; F6 kısayolu.
+  - **Sohbete yaz:** Twitch, YouTube ve Kick'e programdan mesaj gönderme (hesap bağlama; anahtarlar bilgisayarda şifreli saklanır).
+  - **Bildirimler:** Streamlabs bağış, takip, abonelik, bits, raid bildirimleri.
+  - **Kayıt:** günlük sohbet kaydı. **OBS:** sohbet, anket ve altyazı tarayıcı kaynağı adresleri.
+- **Yeni overlay'ler:** Canlı Sohbet, Anket, Altyazı (oyun açık olmasa da gösterilebilir). Eski "Twitch Sohbeti" overlay'i "(eski)" olarak duruyor.
+- **PRO:** Yönetim → PRO özellikleri'nde "Canlı Sohbet" grubu: birden fazla kanal, anket, OBS, sesli okuma, konuşma → yazı, sohbete yaz, bildirimler (varsayılan PRO); tek kanal okuma, moderasyon ve kayıt ücretsiz.
+- **Yönetim → Canlı Sohbet ayarları:** Twitch / YouTube / Kick uygulama kimlikleri (kurulum: docs/canli_sohbet_kurulum.md).
+
+## 011026-46
+
+- **3 günlük deneme PRO:** Yeni kayıt olan üyeye ilk girişte 3 günlük PRO verilir ve "Hoş geldin! 3 günlük PRO denemen başladı" penceresi gösterilir (program ve site). Kötüye kullanım denetimi: aynı bilgisayar, aynı tarayıcı, aynı e-posta (gmail nokta/+ hileleri dahil), aynı IP, aynı ağ + aynı tarayıcı izi ya da geçici e-posta servisi ise deneme verilmez; kullanıcıya hiçbir uyarı gösterilmez, normal ücretsiz hesap açılır, yöneticiye bildirim gider. Yönetim → Deneme PRO: açık/kapalı, gün sayısı, tüm talepler (verildi / reddedildi / şüpheli), eşleşen hesaplar, elle PRO ver / geri al.
+- **Kısayollar:** Ekran görüntüsü varsayılanı artık F12 (Print Screen / Ctrl+Print Screen kullananlar bir kez F12'ye geçer). Yeni kısayol: sesli mühendisi aç/kapat (Ctrl+Shift+V, yarıştayken). Ayarlar → Kısayollar: uygulamadaki tüm kısayollar, değiştirme, çakışma uyarısı, varsayılana dön, uygulama içi tuşlar listesi.
+- **Replay:** Replay izlerken overlay'ler kendiliğinden gizlenir (Genel ayarlardan kapatılabilir). "Yarış bitince Olaylar ekranını aç" (varsayılan açık) replay başlayınca da Olaylar ekranını açar.
+- **Telemetri süzgeçleri:** Oyun, pist, araç, oturum türü (yarış, sıralama, antrenman, ısınma, hızlı tur, diğer) ve "Botlarla yarış / Botsuz".
+- **Overlay'ler:** Relative'de bayrak sütunu sadece bayrak rengini gösterir (üzerine gelince adı). Lastik basıncı varsayılan psi. Relative'in sütunları da Sıralama gibi sıralanabilir listede; "Lastik" (kuru/ıslak/bileşik) ve "Bayrak" sütunları orada. Pedallar & Girdiler'de ABS/TC göstergesi varsayılan "İkisi". Data Frame → "Veri Kutusu"; birden fazla eklenebilir (aynı overlay'den birden fazla ekleme kapalı olsa bile).
+- **Kuponlar:** PRO'da indirim artık Lemon indirim koduyla uygulanır, abonelik fiyatı tam fiyattır: 3/6/12 aylık planlarda indirim sadece ilk ödemede; aylık planda kupon geçerli olduğu sürece, kupon bitince yenilemeler güncel fiyattan.
+- **PRO tanıtım mesajı:** Yönetim → PRO tanıtım mesajı: GIF/görsel, başlık, metin, düğme (dillere göre), aç/kapat, önizleme. PRO olmayanlara programda ve sitede PRO bölümünde görünür; kullanıcı 7 gün gizleyebilir.
+- **Overlay önizleme arka planları:** Yönetim'den pist gündüz / pist gece / kokpit görsellerini değiştirebilir ve varsayılanı seçebilirsin; kendi arka planını seçmemiş herkes bunu görür.
+- **Çeviriler:** Yönetim → Çeviriler: programdaki ya da sitedeki herhangi bir metnin herhangi bir dildeki çevirisini (Türkçe dahil) değiştirebilirsin; herkeste uygulanır.
+- **Moderasyon kayıtları:** Her işlem okunur Türkçe cümleyle yazılır (ör. "PRO özellikleri: 'Overlay › Relative › …' herkese açık yapıldı (önce: PRO)"); tıklayınca ilgili bölüm açılır. Sitede de var.
+- **PRO özellikleri sayfası:** Değişiklik yapınca sayfanın en üste atlaması düzeltildi.
+
+## 011026-45
+
+- **Üst çubukta ikonlar:** Relative, Sıralama ve üst çubuğu olan diğer overlay'lerde oturum türü (yarış: damalı bayrak, sıralama: kronometre, antrenman: bayrak), kalan tur/süre (kum saati), SOF, olay sayısı, tur, pozisyon, saat ve hava bilgileri ikonla gösterilir; üzerine gelince ne olduğu yazar. "Etiket gösterimi: Yazı" ile eski yazılar geri gelir. Yeni isteğe bağlı alan: "Oturum türü".
+- **Lastik sütunu:** Relative ve Sıralama'ya isteğe bağlı "Lastik": yağmur lastiği (mavi damla), ara (I), yumuşak/orta/sert (S/M/H) ya da kuru (D). iRacing'de tüm araçlar, LMU/rF2'de tüm araçlar, ACC/AC'de sadece kendi aracın.
+- **Direksiyon Ekranı – Otomatik:** PRO üyeler "Otomatik (araca göre)" seçince araç bilgisi yokken (önizleme, düzenleme modu) de araba tarzı ekran görünür; yarışta araca göre değişir.
+- **PRO özellikleri çok daha ayrıntılı:** Yönetim → PRO özellikleri'nde her overlay için overlay'in kendisi, her ayarı ve her seçeneği ayrı ayrı PRO / herkese açık yapılabilir. Uygulama özellikleri de eklendi: arkadaş ekleme, özel mesajlaşma, sohbet arka planı, profil fotoğrafı, tanıtım ve sosyal bağlantılar, takım kurma, takıma katılma, takım sohbeti, anket, duyuru, telemetri kaydı, başkalarının telemetrisini görme, tur karşılaştırma, lider tablosu, temalar, uygulama arka planı, sohbet görünümü, ses paketi gönderme, ekran görüntüsü, yayın düzenleri, lig, Pitwall paneli, canlı zamanlama, mühendis ekranı, olaylar. Arama, süzgeçler, grup işlemleri, "Tümünü varsayılana döndür". Sunucu tarafı da bu ayarlara uyar. PRO olmayan üyeler kilitli özellikleri görür (PRO rozeti ve "PRO'ya bak"), kullanamaz.
+- **Windows ile başlat:** Programın ilk kurulumunda varsayılan olarak açık (sonradan kapatırsan kapalı kalır).
+- **Dil seçici:** Arayüzün sağ üst köşesinde geçerli dilin bayrağı; tıklayınca bayraklardan dil seçilir.
+- **Monitör algılama:** Kapalı bir monitör açılınca / takılınca program birkaç saniye içinde tanır; düzenler, overlay monitör seçimi ve monitör pencereleri güncellenir.
+- **Düzenleme modunda düzen değiştirme:** Düzenleme çubuğundaki düzen adı açılır listeye dönüştü; kayıtlı düzenlerden birini seçince hemen o düzene geçer.
+
+## 011026-44
+
+- **Yeni sesli mühendis (Crew Chief gerekmez):** Kendi ses motorumuz; Crew Chief kurulumuna bakmaz. Ses paketleri programın kendi klasöründe (ya da test için seçilen bir klasörde). WAV ve OGG çalar; her ifade klasöründen rastgele bir kayıt seçilir, aynısı art arda tekrarlanmaz. Yarış oturumu algılanınca kendiliğinden başlar; Ayarlar'dan kapatılabilir. PRO'ya özel (Yönetim → PRO özellikleri → "Sesli mühendis" ile herkese açılabilir).
+- **Özellikler:** spotter (solda/sağda/üç araç/temiz), start ve yarış akışı, pozisyon ve sollamalar, kalan tur/süre, son tur, tur zamanları ve kişisel rekor, sektör farkları, öndeki/arkadaki farkı (yaklaşıyor/uzaklaşıyor), rakip pit girişleri, yakıt (kalan tur, eklenecek miktar, pit penceresi), pit limitörü ve pit hızı, lastik sıcaklık/aşınma, motor sıcaklıkları, kaza sonrası "iyi misin", bayraklar ve cezalar, pist sınırı uyarıları, iRacing olay sayısı, yağmur ve sıcaklık değişimleri, çok sınıflı yarışlarda hızlı/yavaş sınıf uyarıları, sayı ve tur zamanı okuma. Özellik grupları ayrı ayrı açılıp kapatılabilir; "Argo ifadeler" seçeneği.
+- **Ses paketleri:** Sesli mühendis sayfasında paket listesi: indir (ilerleme çubuğu), güncelle, kullan, kaldır. Paketler GitHub Releases'ten indirilir, SHA-256 ile doğrulanır.
+- **Kendi dilinde ses paketi yap:** Şablon indir (her ifade klasöründe ne söylenmesi gerektiğini ve ne zaman çaldığını anlatan METIN.txt, Türkçe ve İngilizce), eksik kontrolü (yüzde ve eksik listesi, klasörü oyunda deneme), ses paketi oluşturma (WAV'ları OGG'ye çevirip yaklaşık 10 kat küçültür, tek zip) ve "Paketimi gönder" formu (WeTransfer / Google Drive bağlantısı; yöneticiye bildirim ve e-posta).
+- **Yönetim → Ses paketleri:** Paket ekle/düzenle ("Bağlantıdan doldur" boyut, SHA-256 ve ifade sayılarını kendisi bulur), yayınla, sırala; gelen paket gönderileri (inceleniyor / kabul / ret ve not; gönderene bildirim). Sitedeki yönetim panelinde de var.
+
+## 011026-43
+
+- Sohbet ayarlarında ve uygulama arka planında bulanıklık değerinin yanındaki "px" kaldırıldı.
+
+## 011026-42
+
+- **PRO tasarımlara önizleme:** PRO olmayan üyeler Overlay'ler sayfasında PRO seçenekleri (ör. direksiyon ekranının gerçek araba tasarımları, direksiyon simidi tasarımları) seçip önizlemede görebilir; seçim kaydedilmez ve overlay'de kullanılmaz ("Önizleme: bu seçenek PRO üyelere özel, kaydedilmedi" notu, "Önizlemeyi kapat"). PRO overlay'lere tıklayınca da önizlemede görünür ama eklenemez/açılamaz.
+
+## 011026-41
+
+- **Hava durumu ikonları:** Hava, Relative, Sıralama ve Oturum overlay'lerinde hava/pist sıcaklığı, zemin (ıslaklık), nem, yağış ve rüzgâr yazıları yerine ikonlar; üzerine gelince ne olduğu yazar. "Etiket gösterimi: İkon / Yazı" ayarı.
+- **Pedallar & Girdiler – ABS / TC:** ABS çalışınca fren çubuğu sarıya, TC çalışınca gaz çubuğu maviye döner (renkler ayarlanabilir); gösterim: çubuk rengi / dış çerçeve / ikisi / kapalı. Pedal grafiğinde ABS/TC anları da renkli. (TC bilgisi şimdilik ACC/AC'de var.)
+- **DigiFlags yenilendi:** Gerçek LED paneli görünümü (yanan LED'ler parlak ve ışıltılı). Düzenleme modunda ya da veri yokken tıklayınca 3,5 saniyeliğine rastgele bir bayrak örneği gösterir; sürekli demo yok.
+- **Araç logoları:** Relative ve Sıralama'da logolar daha büyük ("Logo boyutu" ayarı). SVG araç logoları eklenebilecek şekilde hazırlandı.
+- **Bildirimler:** "Tümünü okundu say" ve "Tümünü sil".
+- **Pencere konumları:** Arkadaşlar (ve Pitwall, Canlı Zamanlama, Mühendis, Olaylar) penceresi en son nereye taşındıysa ve hangi boyuttaysa orada açılır; mesaj bildirimine tıklayınca da.
+- **Ctrl + Print Screen düzeltildi:** Windows'un Print Screen → Ekran Alıntısı Aracı ayarı kısayolu engelliyordu; ekran görüntüsü kısayolu artık klavye kancasıyla yakalanıyor.
+- **Geri al / İleri al:** Düzenlemelerde Ctrl+Z, Ctrl+Y (Ctrl+Shift+Z) ve ◀ ▶ düğmeleri: overlay taşıma/boyutlandırma, overlay ayarları, düzenler ve tema.
+- **Sohbete özel arka plan:** Arkadaşınla sohbetin başlığındaki düğmeden o sohbete özel arka plan (renk, degrade, resim). "Arkadaşına öner" ile gönderirsin; arkadaşın kabul ederse ikiniz de görürsünüz.
+- **Uygulama arka planı:** Ayarlar → Görünüm: hazır degradeler ya da kendi resmin (karartma, bulanıklık). İstersen overlay'lerin arkasında da hafifçe görünür.
+- **Yeni overlay: Mesajlar:** Yarışırken arkadaş ve takım mesajlarını ekranda gösterir. Kaynak: tüm arkadaşlar / takım mesajları / seçili kişiler; süre, en fazla mesaj, yazı boyutu, arka plan. Arkadaş listesinde kişiye sağ tık → "Mesajlar overlay'inde göster/gizle".
+- **PRO özellikleri yönetimi:** Yönetim → PRO özellikleri (program ve site): resim / tema / düzen paylaşımı, düzen puanlama/yorum, arkadaş özelleştirme, veri paylaşımı ve overlay'lerdeki tek tek PRO seçenekleri (ör. direksiyon ekranı tasarımları) için "PRO" ya da "Herkese açık" seçimi; arama, grup işlemleri, varsayılana dön. PRO olmayan üyeler kilitli seçenekleri görür ama seçemez. Sunucu tarafındaki denetimler de bu ayara uyar.
+
+## 011026-40
+
+- **Takımın oyunu:** Takım kurarken hangi oyun için kurulduğu seçilir (iRacing varsayılan; ACC, AC, LMU, rF2, AMS2 ya da birden fazla oyun). Takım ayarlarından değiştirilebilir; takım kartlarında oyun rozeti, takımlar listesinde oyun süzgeci (program ve site).
+- **Son aktiviteler:** Takım sayfasında telemetrisi görünen üyelerin son oturumları: kim, hangi pistte, hangi araçla kaç tur attı, en iyi turu, ne zaman; kişisel rekorlarda PB rozeti. Tıklayınca oturum Telemetri sayfasında açılır (sitede yarışçı oturum sayfası). Tek oyunlu takımlarda sadece o oyunun oturumları.
+- **Gerçek araba tarzı direksiyon ekranları (PRO):** Direksiyon Ekranı'na 10 yeni görünüm: Formula (F1 tarzı), Formula alt sınıfları, GT3 Alman / İtalyan / İngiliz-Japon tarzı, Prototip / Hypercar, Stock car / NASCAR (analog göstergeli), Ralli, Touring car (TCR), Yol arabası. Her birinin kendine özgü vites ışıkları ve veri düzeni var. "Otomatik (araca göre)" kullandığın arabayı algılayıp ona benzeyen ekranı gösterir. PRO olmayanlarda Klasik görünüm kullanılır.
+
+## 011026-39
+
+- **Kritik düzeltme – mesaj gelince beyaz ekran / donma:** Mesaj bildirimi penceresi ilk kez açılırken Windows'ta programın ana iş parçacığı kilitleniyordu (bildirim beyaz kalıyor, uygulama yanıt vermiyordu). Pencere artık arka planda oluşturuluyor; donma giderildi.
+- **Sohbet görünümü (Ayarlar → Sohbet):** Kendi ve arkadaşının balon rengi (yazı rengi otomatik), balon şekli (yuvarlak / köşeli / hap), yazı boyutu, saydamlık; arka plan: yok / düz renk / degrade / kendi resmin (bulanıklık ve karartma ayarı). Balonlar her zaman arka planın üstünde ve okunur. Sadece sen görürsün; arkadaş sohbeti ve takım sohbetinde geçerli.
+- **Direksiyon tasarımları (Pedallar ve girdiler overlay'i):** "Otomatik (araca göre)": kullandığın arabaya göre direksiyon değişir (Formula, GT, Prototip, Ralli, Oval/Stock car, Klasik ahşap). "Yuvarlak" herkese açık, diğer tasarımlar PRO. Direksiyon boyutu, vurgu rengi, direksiyon açısı (°).
+- **Pist haritasında kendi aracın:** Şekil seç (daire, ok, üçgen, üstten araç, kare, baklava, altıgen, yıldız) ya da kendi resmini yükle (PNG, ICO, JPG, WEBP, SVG…). Boyut ayarı görüntüyü bozmadan (oran korunur), gidiş yönüne döndürme seçeneği. Pist haritası, mini harita ve düz haritada.
+- **Demo modunda PRO üyeler:** Demo yarışında relative/sıralama gibi tablolarda sahte sürücülerin arasında rastgele PRO üyelerin adları görünür. Hesap → PRO'dan "Demo modunda adım görünebilsin" kapatılabilir.
+- **İndirim kuponları:** Yönetim → Kuponlar (program ve site): kod (ör. ERKIN), yüzde, başlangıç/bitiş tarihi, geçerli paketler (PRO 1/3/6/12 ay, hediye PRO, reklam gösterim/gün), toplam ve kişi başı kullanım sınırı. Aktif ve geçmiş/biten kuponlar, kullanım sayısı ve verilen toplam indirim; biten kupon tarihleri güncellenerek yeniden açılabilir. Kullanıcı PRO / hediye / reklam alırken kodu girer, eski fiyat üstü çizili yeni fiyat görünür; Lemon ödeme sayfasında da indirim adı ve tutarı yazar.
+- **Profil:** Profil fotoğrafı (program ve site; arkadaş listesinde, sohbet başlığında, bildirimde, takımda ve profilde görünür), kısa tanıtım ve 10'a kadar sosyal bağlantı (YouTube, Twitch, Kick, Instagram, X, TikTok, Facebook, Discord, Steam, web sitesi…). iRacing adı ve simlerdeki adlar otomatik. Profili ziyaret eden herkes görür.
+- **Arkadaş listesinde oyun:** Çevrimiçi arkadaşın hangi oyunda olduğu (iRacing / ACC / AC / LMU / rF2 / AMS2) rozetle görünür.
+- **Web sitesi:** Girişte "Beni hatırla" kutucuğu (işaretli değilse tarayıcı kapanınca çıkış yapılır). Giriş yapınca sağ altta arkadaş listesi ve mesajlaşma (istekler, arama, sohbet, emoji, benden sil, raporla).
+- **Ekran görüntüsü kısayolu:** Varsayılan artık Ctrl + Print Screen (eski Print Screen ayarı bir kez otomatik güncellenir).
+- **E-posta tercihleri:** Hesabım'da "E-posta bildirimleri": arkadaşlık istekleri, takım bildirimleri (varsayılan kapalı), destek yanıtları, reklam durumu, PRO hatırlatmaları, ekran görüntüsü temizliği. Ödeme ve hesap e-postaları her zaman gider. Özel mesajlar için e-posta gönderilmez.
+- **Takım e-postaları:** Davet, katılma isteği, kabul, duyuru ve yöneticilik/sahiplik e-postaları (15 dil), tercih açıksa. Duyuru e-postası takım başına saatte en fazla bir tane.
+
+## 011026-38
+
+- **Telemetri (Garage61 benzeri):** Program açıkken canlı oturumda tamamlanan her tur kaydedilir ve hesabına yüklenir (iRacing, ACC, AC, LMU/rF2, AMS2). Yeni "Telemetri" sayfası: son oturumlar, pist ve araç başına tur sayısı, geçersiz turlar/pistten çıkmalar/olaylar, kişisel en iyi turlar, oturum ayrıntısı, en iyi turların hız/gaz/fren/vites izleri ve 4 tura kadar karşılaştırma, pist + araç lider tablosu. İnternet yokken turlar sırada bekler, bağlantı gelince yüklenir. Ayarlar → Genel'den kayıt kapatılabilir.
+- **Gizlilik:** Hesabım'da "Telemetri verilerimi başkaları görebilsin" anahtarı. Kapalıyken verilerini sadece sen ve takım arkadaşların görür.
+- **Yarışçılar sayfası:** En az bir tur kaydı olan üyeler sim başına (iRacing yarışçıları, ACC yarışçıları…) simdeki kullanıcı adlarıyla listelenir; arama, profil ve arkadaş ekleme. Sitede yarisci.html.
+- **Takımlar:** Takım kurma (ad, etiket, açıklama, logo, renk; açık / onaylı / sadece davet), davet ve katılma istekleri, üye çıkarma, sahiplik devri. Sahip üyelere yöneticilik verebilir; yöneticiler duyuru panosunda duyuru paylaşır ve sabitler, üyeler yorum yazar. Takım üyeleri birbirinin telemetrisini görür. Takımlar sayfası programda ve sitede (takimlar.html).
+- **Takım sohbet odası:** Arkadaş listesinde takım odaları; odayı sessize alma, mesajı benden/herkesten silme, süreli anket (tek/çok seçim, canlı sonuçlar, erken bitirme).
+- **Arkadaşa özel sessize alma:** Arkadaş listesinde istediğin kişinin mesaj bildirimlerini ve/veya sesini kapatma.
+- **Destek:** Mesaj kutusuna ifade (emoji) seçici. Yönetici destek taleplerini görselleriyle birlikte kalıcı silebilir. Moderatörler destek taleplerini görür, yanıtlar, kapatıp yeniden açar (silemez, e-posta adresini göremez).
+- **Yönetim → Özel mesajlar:** Yönetici üyeler arasındaki tüm mesajları görür; üye adına/iRacing adına göre (ör. "Erkin" → onunla ilgili tüm konuşmalar), iki üye arasındaki sohbet, metin ve tarih aralığı ile süzer. Her görüntüleme moderasyon kaydına yazılır.
+- **Raporlanan reklamlar:** Yönetici reklamı (yayındaki dahil) kalıcı silebilir.
+
+## 011026-37
+
+- **Hediye PRO:** Üyeler, kayıtlı başka bir üyeye adını arayarak PRO aboneliği hediye edebilir (sitede Hesabım → Hediye PRO, programda PRO bölümünde "Hediye et"). Ödeme hediye edenin kendi e-postasıyla yapılır; abonelik alıcıya işlenir ve alıcının mevcut PRO süresinin üstüne eklenir. Hediye eden "Hediye ettiğim abonelikler" listesinden durumu görür ve istediği zaman sonlandırabilir; alıcı hediyeyi sonlandıramaz. Alıcıya hediye paketi temalı e-posta, hediye edene "Hediyen ulaştı" e-postası, hediye sonlandırılınca alıcıya bilgi e-postası (15 dil).
+- **Arkadaşlar – mesaj silme:** Mesaja sağ tık → "Benden sil" ve "Sohbeti temizle"; sadece kendi ekranından silinir, karşı taraf görmeye devam eder.
+- **Mesaj raporlama:** Gelen mesaja sağ tık → "Raporla", sebep seçilir (hakaret/taciz, spam, uygunsuz içerik, dolandırıcılık, diğer). Raporlar yöneticiye bildirim + e-posta olarak gelir; Yönetim → Moderasyon → Mesaj raporları (sitede yonetim.html#mesajlar): yoksay, çözüldü, mesajı sil.
+- **PRO olmayan üyeler:** Arkadaş ekleyip mesaj gönderebilir; arkadaş görünümünü özelleştirme (renk, simge, fotoğraf, etiket) ve veri paylaşımı PRO'ya özel. PRO bir arkadaş seni güvenilir yaparsa onun verilerini görebilirsin. Arkadaşların canlı verisinin hiç görünmemesine yol açan bir sunucu hatası düzeltildi.
+
+## 011026-36
+
+- **Yeni overlay: Direksiyon Ekranı (Dashboard):** yarış arabası direksiyon ekranı görünümü; vites, hız, pozisyon, delta, sektör, son/en iyi tur ve devir ışıkları. 4 görünüm (Klasik, Minimal, Yarış, Dayanıklılık); vurgu rengi, renk teması, yazı tipi, devir ışığı stili (bloklar / F1 15 LED / çubuk), vites noktasında yanıp sönme, delta referansı, hız ve sıcaklık birimi, alt 3 kutuda gösterilecek veri (TC, ABS, fren dengesi, pist/hava sıcaklığı, RPM, yakıt, yağ/su sıcaklığı, olay sayısı…), logo yazısı.
+- **Tümünü kaldır:** Overlay'ler ekranında açık overlay'lerin hepsini tek seferde kapatma (onaylı).
+- **Sime göre gizleme:** iRacing dışındaki simlerde veri olmadığı için çalışmayan overlay'ler (ör. ACC/AC'de relative, sıralama; olay sayısı sadece iRacing'de) o sim algılandığında listede ve ekranda gizlenir; iRacing'e dönünce geri gelir.
+- iRacing'den yağ/su sıcaklığı ve oturumun en iyisine / optimal tura göre delta okunuyor.
+
+## 011026-35
+
+- **Ödeme sayfası içeride:** Programda PRO ödemesi ayrı bir program penceresinde açılır, ödeme bitince pencere kapanır ve PRO kendiliğinden yenilenir. Sitede ödeme sayfa değiştirmeden, sitenin üstünde açılan bir pencerede yapılır (PRO ve reklam).
+- **Ödeme e-postaları:** Her ödeme ve iadede yöneticiye tutar, üye, plan ve kaynağı gösteren e-posta + bildirim. Ödeyene kendi dilinde (15 dil) teşekkür/makbuz e-postası: PRO'da geçerlilik tarihi ve abonelik bilgisi, reklamda reklam yeri; iadede onay.
+- **Reklam paneli:** "Reklamlarım" listesinde kalan gösterim ya da kalan süre çubukla görünür. Gösterim paketli reklamlar "Durdur" / "Devam ettir" ile durdurulup sürdürülebilir; durdurulan reklam gösterilmez ve gösterim harcamaz.
+- Yönetimde reklam listesine "Reklam veren durdurdu" durumu eklendi.
+
+## 011026-34
+
+- **PRO ödeme sayfası:** başlık artık "SRTR Pitwall PRO (12 aylık)" biçiminde; plan adı iki kez yazılmıyor.
+
+## 011026-33
+
+- **Fiyat kutuları:** Yönetim panelindeki PRO ve reklam fiyatlarına ondalıklı tutar (4,99 ya da 4.99) yazılabiliyor; önce virgül/nokta yazılamıyordu.
+
+## 011026-32
+
+- **Reklam ödemesi:** Lemon'da reklam ürününün varyant numarası yerine ürün numarası da girilebilir (LEMON_AD_PRODUCT_ID / LEMON_USD_AD_PRODUCT_ID); varyant otomatik bulunur.
+
+## 011026-31
+
+- **Ödeme sayfası dili:** Lemon ödeme sayfasındaki ürün adı ve açıklama TL mağazasında Türkçe (ör. "SRTR Pitwall PRO · 3 aylık"), dolar mağazasında İngilizce.
+
+## 011026-30
+
+- **Bölgesel reklam fiyatı:** Yönetim → Reklamlar'da her yer için Türkiye fiyatları (TL) ayrı girilir. Türkiye'den reklam verenler TL fiyatını görür ve TL öder, yurt dışından gelenler genel fiyatı (USD).
+- **PRO ödemesi yönetim panelinden:** Planlar ve fiyatlar'da her plan için yurt dışı (USD) ve Türkiye (TL) tutarı girilir. Lemon Squeezy'de tek abonelik ürünü (4 varyant) yeterli; ödeme sayfası girilen tutarla açılır, yenilemeler aynı tutarla olur. Eski elle bağlantı alanları isteğe bağlı olarak duruyor.
+- Sitede ödeme dönüşünde "ödemen alındı" bildirimi; ödeme bağlantısı olmayan planda hesap sayfasının kendini yenileyip durması düzeltildi.
+
 ## 011026-29
 
 - **Olaylar ekranı:** yarış bitince (damalı bayraktan sonra) olaylar penceresi kendiliğinden açılır; kazalar, geçişler, pit girişleri listelenir. Bir olaya tıklayınca iRacing replay'i o anın 5 sn öncesine gider ve o aracın kamerasına geçer. Tepsi menüsü ve Araçlar'dan da açılır; Ayarlar → Genel'den otomatik açılma kapatılabilir.

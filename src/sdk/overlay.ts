@@ -17,6 +17,18 @@ interface FieldBase {
   /** Ayar panelinde hangi başlık altında (boş: overlay adı) */
   group?: string;
   showIf?: ShowIf;
+  /** Sadece PRO olmayan kullanıcılara gösterilen not (ör. "tasarımlar PRO'ya özel") */
+  proHint?: string;
+  /** Bu ayar bir PRO özelliğine bağlı (src/sdk/proFeatures.ts anahtarı, ör. "social.messages_tts"):
+   *  özellik PRO'ya ayrılmışsa ve kullanıcı PRO değilse ayar varsayılan değerinde kilitli kalır */
+  feature?: string;
+}
+
+/** Seçim seçeneği; `pro` işaretliyse PRO olmayanlar seçemez */
+export interface SelectOption {
+  value: string;
+  label: string;
+  pro?: boolean;
 }
 
 /** Ayar panelinde otomatik form üretmek için alan tanımları. */
@@ -32,9 +44,11 @@ export type SettingField =
       /** "slider" (varsayılan) ya da "stepper" (- / + düğmeleri) */
       ui?: "slider" | "stepper";
     })
-  | (FieldBase & { type: "select"; default: string; options: { value: string; label: string }[] })
+  | (FieldBase & { type: "select"; default: string; options: SelectOption[] })
   | (FieldBase & { type: "color"; default: string })
   | (FieldBase & { type: "text"; default: string; placeholder?: string })
+  /** Diskten resim seçimi: küçültülüp (en fazla `maxSize` px, oran korunur) PNG data URL olarak saklanır; boş = yok */
+  | (FieldBase & { type: "image"; default: string; maxSize?: number })
   /** Çoklu seçim (ör. başlık alanları); `max` en fazla seçim */
   | (FieldBase & { type: "multi"; default: string[]; options: { value: string; label: string }[]; max?: number })
   /** Sıralanabilir ve açılıp kapatılabilir liste (ör. sütunlar) */
@@ -54,6 +68,10 @@ export interface OverlayManifest {
   size: { w: number; h: number };
   defaultPosition: { x: number; y: number };
   defaultEnabled?: boolean;
+  /** Yeni kopyada "iRacing kapalıyken de göster" açık gelsin (ör. canlı sohbet) */
+  defaultAlwaysShow?: boolean;
+  /** Ayarlar → Genel'de "aynı overlay'den birden fazla" kapalı olsa bile birden çok kopya eklenebilir */
+  multiInstance?: boolean;
   settings: SettingField[];
 }
 

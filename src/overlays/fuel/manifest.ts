@@ -21,10 +21,10 @@ export default defineOverlay({
     { key: "showPitWindow", label: "Pit penceresi", type: "boolean", default: true },
     {
       key: "showTeam",
-      label: "Takım yakıtı (MQTT)",
+      label: "Takım yakıtı",
       type: "boolean",
       default: true,
-      hint: "Araçlar sayfasında MQTT istemcisi ve takım adı ayarlıysa takım arkadaşlarının yakıtı görünür.",
+      hint: "Takım kodu (MQTT) ayarlıysa takım arkadaşlarının, güvenilir arkadaşların veri paylaşıyorsa onların yakıtı görünür.",
     },
     { key: "teamHideMe", label: "Takım listesinde kendini gizle", type: "boolean", default: false },
   ],

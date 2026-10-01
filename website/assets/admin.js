@@ -1,8 +1,15 @@
 // Yönetim paneli (sadece yöneticiler): site ve satış istatistikleri, ödemeler, abonelikler,
-// üyeler (PRO süresi verme / uzatma / alma), süre geçmişi, cihaz uyarıları, planlar ve fiyatlar.
+// üyeler (PRO süresi verme / uzatma / alma), süre geçmişi, cihaz uyarıları, planlar ve fiyatlar,
+// mesaj raporları ve tüm özel mesajlar. Moderatörler ("reports.view" izni) sadece Destek bölümünü görür (silemez).
 // Yetkiyi sunucu denetler: admin_* fonksiyonları yönetici olmayana hata döner.
 import { $, $$, PLANS, appConfig, boot, daysLeft, esc, fmtDate, fmtMoney, myProfile, sb, toast } from "./core.js";
 import { reklamlar } from "./ads-admin.js";
+import { kuponlar } from "./coupons-admin.js";
+import { proOzellikleri, setProFeatureQuery } from "./profeatures-admin.js";
+import { kayitlar } from "./modlog-admin.js";
+import { sesPaketleri } from "./voicepacks-admin.js";
+import { denemePro } from "./trial-admin.js";
+import { attachEmoji } from "./emoji.js";
 
 const app = () => $("#app");
 let section = location.hash.slice(1) || "ozet";
@@ -18,8 +25,15 @@ const SECTIONS = [
   ["cihazlar", "Cihazlar"],
   ["planlar", "Planlar ve fiyatlar"],
   ["kampanya", "Ücretsiz PRO"],
+  ["deneme-pro", "Deneme PRO"],
   ["reklamlar", "Reklamlar"],
+  ["kuponlar", "Kuponlar"],
+  ["pro-ozellikleri", "PRO özellikleri"],
+  ["ses-paketleri", "Ses paketleri"],
+  ["mesajlar", "Mesaj raporları"],
+  ["tum-mesajlar", "Tüm mesajlar"],
   ["gorunurluk", "Görünürlük"],
+  ["kayitlar", "Moderasyon kayıtları"],
 ];
 
 // Programdaki overlay'ler (src/overlays/*/manifest.ts); yeni overlay eklenince buraya da eklenmeli.
@@ -27,6 +41,7 @@ const SECTIONS = [
 const OVERLAYS = [
   ["battlebox", "Battle Box"],
   ["corners", "Viraj Analizi"],
+  ["dashboard", "Direksiyon Ekranı"],
   ["dataframe", "Data Frame"],
   ["delta", "Delta Bar"],
   ["digiflags", "DigiFlags"],
@@ -69,6 +84,9 @@ const SUPPORT_CATS = { bug: "Hata bildirimi", overlay: "Overlay / görünüm", p
 const SUPPORT_ST = { open: ["warn", "Açık"], answered: ["ok", "Yanıtlandı"], closed: ["", "Kapalı"] };
 
 const SRC = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: "Yönetici" };
+// Oturumdaki kişi yönetici mi (değilse moderatör: sadece Destek)
+let isAdm = false;
+let sections = SECTIONS;
 
 async function rpc(name, args = {}) {
   const { data, error } = await sb.rpc(name, args);
@@ -485,21 +503,229 @@ async function cihazlar(el) {
   );
 }
 
+// Arkadaş mesajı raporları (programda Yönetim → Moderasyon'da da var)
+const MSG_REASONS = { harassment: "Hakaret / taciz", spam: "Spam", inappropriate: "Uygunsuz içerik", scam: "Dolandırıcılık", other: "Diğer" };
+const MSG_ST = { open: ["warn", "Açık"], dismissed: ["", "Yoksayıldı"], resolved: ["ok", "Çözüldü"], removed: ["bad", "Mesaj silindi"] };
+let msgFilter = "open";
+async function mesajlar(el) {
+  const rows = (await rpc("admin_message_reports", { p_status: msgFilter === "all" ? "" : msgFilter })) || [];
+  el.innerHTML = `<div class="row between" style="margin-bottom:14px"><h2 style="margin:0">Mesaj raporları</h2>
+    <div class="seg" id="mf">${[["open", "Açık"], ["all", "Hepsi"]]
+      .map(([k, l]) => `<button data-f="${k}" class="${k === msgFilter ? "on" : ""}">${l}</button>`)
+      .join("")}</div></div>
+    <p class="muted small">Üyelerin arkadaş mesajlarından raporladıkları. Metin rapor anındaki kopyadır; "Mesajı sil" mesajı iki taraftan da kaldırır.</p>
+    <div class="stack">${
+      rows
+        .map((r) => {
+          const [cls, st] = MSG_ST[r.status] || ["", r.status];
+          return `<div class="card">
+        <div class="row between"><div><b>${esc(MSG_REASONS[r.reason] || r.reason)}</b> <span class="badge ${cls}">${esc(st)}</span>
+          ${r.reported_total > 1 ? `<span class="badge warn">Bu üye hakkında ${r.reported_total} rapor</span>` : ""}</div>
+          <span class="muted small">${fmtDate(r.created_at, true)}</span></div>
+        <div style="margin:10px 0;padding:10px 12px;border-left:3px solid #e5322d;background:rgba(255,255,255,.03);border-radius:6px;white-space:pre-line;overflow-wrap:anywhere">${esc(r.body)}</div>
+        <div class="muted small">Gönderen: <b>${esc(r.reported_name)}</b> · Raporlayan: ${esc(r.reporter_name)}${r.message_at ? ` · Mesaj: ${fmtDate(r.message_at, true)}` : ""}${r.message_exists ? "" : " · mesaj silinmiş"}${r.status !== "open" && r.handled_name ? ` · İşlem: ${esc(r.handled_name)}` : ""}</div>
+        ${r.note ? `<div class="muted small" style="margin-top:6px">Not: “${esc(r.note)}”</div>` : ""}
+        <div class="row" style="margin-top:10px;gap:6px">
+          ${r.status === "open" ? `<button class="btn btn-sm" data-a="dismiss" data-id="${r.id}">Yoksay</button><button class="btn btn-sm" data-a="resolve" data-id="${r.id}">Çözüldü</button>` : `<button class="btn btn-sm" data-a="reopen" data-id="${r.id}">Yeniden aç</button>`}
+          ${r.message_exists ? `<button class="btn btn-sm btn-danger" data-a="delete_message" data-id="${r.id}">Mesajı sil</button>` : ""}
+        </div></div>`;
+        })
+        .join("") || `<div class="card muted">${msgFilter === "open" ? "Açık mesaj raporu yok." : "Mesaj raporu yok."}</div>`
+    }</div>`;
+  $$("#mf button", el).forEach((b) =>
+    b.addEventListener("click", () => {
+      msgFilter = b.dataset.f;
+      show();
+    }),
+  );
+  $$("[data-a]", el).forEach((b) =>
+    b.addEventListener("click", async () => {
+      if (b.dataset.a === "delete_message" && !confirm("Mesaj iki taraftan da silinsin mi?")) return;
+      try {
+        await rpc("admin_message_report_set", { p_id: b.dataset.id, p_action: b.dataset.a });
+        show();
+      } catch (e) {
+        toast(e.message || String(e), true);
+      }
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tüm özel mesajlar (üyeler arası). Her ilk sayfa moderasyon kaydına yazılır (sunucu).
+// ---------------------------------------------------------------------------
+const AM_PAGE = 100;
+const am = { user: "", other: "", text: "", from: "", to: "", offset: 0, view: "conv", pair: null, searched: false };
+const amDay = (v, next = false) => {
+  if (!v) return null;
+  const d = new Date(v + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  if (next) d.setDate(d.getDate() + 1);
+  return d.toISOString();
+};
+const amWho = (n, ir) => (ir && ir !== n ? `${esc(n)} <span class="muted">(${esc(ir)})</span>` : esc(n));
+
+async function tumMesajlar(el) {
+  el.innerHTML = `<h2>Tüm mesajlar</h2>
+    <p class="muted small">Üyeler arasındaki tüm özel mesajlar. Bir üyenin adını ya da iRacing adını yaz: o üyenin dahil olduğu tüm sohbetler gelir.
+      İkinci bir ad yazarsan sadece ikisi arasındaki mesajlar gösterilir. Üyelerin "benden sil" ile kaldırdığı mesajlar da burada görünür. Her arama moderasyon kayıtlarına yazılır.</p>
+    <form id="amf" class="am-filters card">
+      ${
+        am.pair
+          ? `<div class="field"><label>Sohbet</label><div class="row" style="gap:8px"><b>${esc(am.pair.a.name)} ↔ ${esc(am.pair.b.name)}</b><button type="button" class="btn btn-sm" id="am-unpair">Kaldır</button></div></div>`
+          : `<div class="field"><label>Üye adı ya da iRacing adı</label><input name="user" value="${esc(am.user)}" placeholder="ör. Erkin"></div>
+             <div class="field"><label>İkinci üye (isteğe bağlı)</label><input name="other" value="${esc(am.other)}"></div>`
+      }
+      <div class="field"><label>Metinde ara</label><input name="text" value="${esc(am.text)}"></div>
+      <div class="field date"><label>Başlangıç</label><input type="date" name="from" value="${esc(am.from)}"></div>
+      <div class="field date"><label>Bitiş</label><input type="date" name="to" value="${esc(am.to)}"></div>
+      <button class="btn btn-accent">Ara</button>
+    </form>
+    <div id="am-res">${am.searched ? `<p class="muted">Yükleniyor…</p>` : `<p class="muted small">Aramak için süzgeç gir ve Ara'ya bas (boş bırakırsan en yeni mesajlar gelir).</p>`}</div>`;
+  $("#amf", el).addEventListener("submit", (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    if (!am.pair) {
+      am.user = String(f.get("user") || "").trim();
+      am.other = String(f.get("other") || "").trim();
+    }
+    am.text = String(f.get("text") || "").trim();
+    am.from = String(f.get("from") || "");
+    am.to = String(f.get("to") || "");
+    am.offset = 0;
+    am.searched = true;
+    amLoad(el);
+  });
+  $("#am-unpair", el)?.addEventListener("click", () => {
+    am.pair = null;
+    am.offset = 0;
+    tumMesajlar(el);
+  });
+  if (am.searched) amLoad(el);
+}
+
+async function amLoad(el, cached = null) {
+  const res = $("#am-res", el);
+  if (!res) return;
+  let rows = cached;
+  if (!rows) {
+    res.innerHTML = `<p class="muted">Yükleniyor…</p>`;
+    try {
+      rows =
+        (await rpc("admin_messages", {
+          p_user_query: am.pair ? am.pair.a.id : am.user || null,
+          p_other_query: am.pair ? am.pair.b.id : am.other || null,
+          p_text: am.text || null,
+          p_from: amDay(am.from),
+          p_to: amDay(am.to, true),
+          p_limit: AM_PAGE,
+          p_offset: am.offset,
+        })) || [];
+    } catch (e) {
+      res.innerHTML = `<div class="msg bad">${esc(e.message || e)}</div>`;
+      return;
+    }
+  }
+  const total = rows[0]?.total || 0;
+  const msg = (m, compact = false) => `<div class="am-msg ${m.reported ? "rep" : ""}">
+      <div class="head"><b>${amWho(m.sender_name, m.sender_iracing)}</b><span class="muted">→</span><b>${amWho(m.recipient_name, m.recipient_iracing)}</b><span class="muted small">${fmtDate(m.created_at, true)}</span></div>
+      <p>${esc(m.body)}</p>
+      <div class="row small" style="gap:6px">
+        <span class="badge ${m.read_at ? "" : "warn"}">${m.read_at ? `Okundu ${fmtDate(m.read_at, true)}` : "Okunmadı"}</span>
+        ${m.hidden_by_sender ? `<span class="badge">Gönderen kendinden sildi</span>` : ""}
+        ${m.hidden_by_recipient ? `<span class="badge">Alıcı kendinden sildi</span>` : ""}
+        ${m.reported ? `<span class="badge bad">Raporlandı</span>` : ""}
+        ${!compact && !am.pair ? `<button type="button" class="linkbtn" data-pair="${esc(m.id)}">Bu sohbeti aç</button>` : ""}
+      </div>
+    </div>`;
+  const convs = [];
+  const byKey = {};
+  for (const m of rows) {
+    const k = [m.sender, m.recipient].sort().join(":");
+    if (!byKey[k]) convs.push((byKey[k] = { first: m, list: [] }));
+    byKey[k].list.push(m);
+  }
+  res.innerHTML = rows.length
+    ? `<div class="row between" style="margin-bottom:10px">
+        <div class="seg" id="amv">${[["conv", "Sohbetler"], ["flat", "Liste"]].map(([k, l]) => `<button data-v="${k}" class="${k === am.view ? "on" : ""}">${l}</button>`).join("")}</div>
+        <div class="row small" style="gap:6px"><span class="muted">${am.offset + 1}–${am.offset + rows.length} / ${total} mesaj</span>
+          <button class="btn btn-sm" id="am-prev" ${am.offset === 0 ? "disabled" : ""}>Önceki</button>
+          <button class="btn btn-sm" id="am-next" ${am.offset + AM_PAGE >= total ? "disabled" : ""}>Sonraki</button></div>
+      </div>
+      <div class="stack">${
+        am.view === "flat"
+          ? rows.map((m) => msg(m)).join("")
+          : convs
+              .map(
+                (c) => `<details class="card am-conv" ${convs.length <= 3 ? "open" : ""}>
+              <summary><b>${esc(c.first.sender_name)} ↔ ${esc(c.first.recipient_name)}</b><span class="muted small">${c.list.length} mesaj · ${fmtDate(c.first.created_at, true)}</span>
+                ${am.pair ? "" : `<button type="button" class="btn btn-sm" data-pair="${esc(c.first.id)}" style="margin-left:auto">Tüm sohbet</button>`}</summary>
+              <div class="stack">${[...c.list].reverse().map((m) => msg(m, true)).join("")}</div>
+            </details>`,
+              )
+              .join("")
+      }</div>`
+    : `<div class="card muted">Mesaj bulunamadı.</div>`;
+  $$("#amv button", res).forEach((b) =>
+    b.addEventListener("click", () => {
+      am.view = b.dataset.v;
+      amLoad(el, rows);
+    }),
+  );
+  $("#am-prev", res)?.addEventListener("click", () => {
+    am.offset = Math.max(0, am.offset - AM_PAGE);
+    amLoad(el);
+  });
+  $("#am-next", res)?.addEventListener("click", () => {
+    am.offset += AM_PAGE;
+    amLoad(el);
+  });
+  $$("[data-pair]", res).forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.preventDefault();
+      const m = rows.find((r) => r.id === b.dataset.pair);
+      if (!m) return;
+      am.pair = { a: { id: m.sender, name: m.sender_name }, b: { id: m.recipient, name: m.recipient_name } };
+      am.view = "flat";
+      am.offset = 0;
+      tumMesajlar(el);
+    }),
+  );
+}
+
 async function planlar(el) {
   const c = await appConfig();
+  const pp = c.pro_pricing || {};
+  const plans = pp.plans || {};
   const f = (k, label, ph = "", type = "text") =>
     `<div class="field"><label>${label}</label><input name="${k}" type="${type}" value="${esc(c[k] ?? "")}" placeholder="${esc(ph)}"></div>`;
+  const num = (k, label, v, ph = "") =>
+    `<div class="field"><label>${label}</label><input name="${k}" type="text" inputmode="decimal" value="${v > 0 ? esc(v) : ""}" placeholder="${esc(ph)}"></div>`;
   el.innerHTML = `<h2>Planlar ve fiyatlar</h2>
-    <p class="muted small">Buradaki fiyatlar ve ödeme bağlantıları hem sitede hem programda görünür. Ödeme bağlantısı: Lemon Squeezy → ürün → varyant → Share.
-      Türkiye'den girenler (saat dilimi Türkiye olanlar) TL fiyatını ve TL bağlantısını görür, diğer herkes genel fiyatı. Sitede <code>?region=tr</code> ya da <code>?region=intl</code> ekleyerek iki görünümü de deneyebilirsin.</p>
+    <p class="muted small">Buradaki fiyatlar hem sitede hem programda görünür ve ödeme tutarı olarak kullanılır. Lemon Squeezy'de tek bir abonelik ürünü
+      (“SRTR Pitwall PRO”) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant numaraları Supabase'de
+      <code>LEMON_PRO_1M_VARIANT_ID</code> … <code>LEMON_PRO_12M_VARIANT_ID</code> olarak girilir. Tutarlar buradan alınır ve <code>pro-checkout</code>
+      fonksiyonu ödeme sayfasını bu tutarla açar; yenilemeler de aynı tutarla olur (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
+      Türkiye'den girenler (saat dilimi Türkiye olanlar) Türkiye fiyatını (TL) görür ve öder, diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa Türkiye'de de genel fiyat kullanılır.
+      Sitede <code>?region=tr</code> ya da <code>?region=intl</code> ekleyerek iki görünümü de deneyebilirsin.</p>
     <form id="pf" class="stack">
+      <div class="card grid g2">
+        <div class="field" style="margin:0"><label>Genel para birimi</label><input name="pp_currency" maxlength="3" value="${esc(pp.currency || "USD")}"></div>
+        <div class="field" style="margin:0"><label>Türkiye para birimi</label><input name="pp_currency_tr" maxlength="3" value="${esc(pp.currency_tr || "TRY")}"></div>
+      </div>
       <div class="grid g2">
         ${PLANS.map(
           (p) => `<div class="card"><h3>${p.tr}</h3>
-            <p class="small muted" style="margin:0 0 8px"><b>Diğer ülkeler</b> (USD / EUR)</p>
-            ${f(p.price, "Fiyat metni", "ör. $4.99 ya da €4,99")}${f(p.checkout, "Lemon Squeezy ödeme bağlantısı", "https://….lemonsqueezy.com/buy/…")}
-            <p class="small muted" style="margin:6px 0 8px"><b>Türkiye</b> (TL) — boş bırakılırsa Türkiye'de de yukarıdaki kullanılır</p>
-            ${f(p.trPrice, "Fiyat metni (TL)", "ör. 149₺")}${f(p.trCheckout, "Lemon Squeezy ödeme bağlantısı (TL varyantı)", "https://….lemonsqueezy.com/buy/…")}
+            <div class="grid g2">
+              ${num(`pp_price_${p.id}`, "Fiyat (yurt dışı, USD)", plans[p.id]?.price, "ör. 4.99")}
+              ${num(`pp_tr_${p.id}`, "Türkiye fiyatı (TL)", plans[p.id]?.price_tr, "ör. 149")}
+            </div>
+            <details style="margin-top:6px"><summary class="small muted">Elle bağlantı (isteğe bağlı, otomatik fiyat girilmemişse kullanılır)</summary>
+              <p class="small muted" style="margin:6px 0 8px"><b>Diğer ülkeler</b></p>
+              ${f(p.price, "Fiyat metni", "ör. $4.99 ya da €4,99")}${f(p.checkout, "Lemon Squeezy ödeme bağlantısı", "https://….lemonsqueezy.com/buy/…")}
+              <p class="small muted" style="margin:6px 0 8px"><b>Türkiye</b> — boş bırakılırsa Türkiye'de de yukarıdaki kullanılır</p>
+              ${f(p.trPrice, "Fiyat metni (TL)", "ör. 149₺")}${f(p.trCheckout, "Lemon Squeezy ödeme bağlantısı (TL varyantı)", "https://….lemonsqueezy.com/buy/…")}
+            </details>
           </div>`,
         ).join("")}
       </div>
@@ -515,7 +741,18 @@ async function planlar(el) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const patch = { updated_at: new Date().toISOString() };
-    for (const [k, v] of fd.entries()) patch[k] = k === "device_limit" ? Math.max(1, parseInt(String(v), 10) || 2) : String(v).trim();
+    const money = (v) => {
+      const n = Math.round(parseFloat(String(v ?? "").replace(",", ".")) * 100) / 100;
+      return n > 0 ? n : 0;
+    };
+    const cur = (v, d) => (String(v || "").trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || d);
+    const plansOut = {};
+    for (const p of PLANS) plansOut[p.id] = { price: money(fd.get(`pp_price_${p.id}`)), price_tr: money(fd.get(`pp_tr_${p.id}`)) };
+    patch.pro_pricing = { ...pp, currency: cur(fd.get("pp_currency"), "USD"), currency_tr: cur(fd.get("pp_currency_tr"), "TRY"), plans: plansOut };
+    for (const [k, v] of fd.entries()) {
+      if (k.startsWith("pp_")) continue;
+      patch[k] = k === "device_limit" ? Math.max(1, parseInt(String(v), 10) || 2) : String(v).trim();
+    }
     const { data, error } = await sb.from("app_config").update(patch).eq("id", 1).select();
     if (error || !data?.length) return toast(error?.message || "Kaydedilemedi", true);
     toast("Kaydedildi");
@@ -584,8 +821,11 @@ async function thread(t) {
       (data || []).forEach((x) => x.signedUrl && (urls[x.path] = x.signedUrl));
     }
     box.innerHTML = `
-      <div class="row between"><div><b>${esc(t.subject)}</b><br><span class="muted small">${esc(t.display_name || "—")} · ${esc(t.email || "")} · ${esc(SUPPORT_CATS[t.category] || t.category)} · ${proBadge(t.pro_until)}</span></div>
-        <button class="btn btn-sm" id="sp-st">${t.status === "closed" ? "Yeniden aç" : "Talebi kapat"}</button></div>
+      <div class="row between"><div><b>${esc(t.subject)}</b><br><span class="muted small">${esc(t.display_name || "—")}${t.email ? ` · ${esc(t.email)}` : ""} · ${esc(SUPPORT_CATS[t.category] || t.category)} · ${proBadge(t.pro_until)}</span></div>
+        <div class="row" style="gap:6px"><button class="btn btn-sm" id="sp-st">${t.status === "closed" ? "Yeniden aç" : "Talebi kapat"}</button>${
+          isAdm ? `<button class="btn btn-sm btn-danger" id="sp-del" title="Talep, tüm mesajları ve görselleriyle kalıcı silinir">Sil</button>` : ""
+        }</div></div>
+      <div id="sp-delask"></div>
       <div class="sp-msgs">${msgs
         .map(
           (m) => `<div class="sp-msg ${m.is_staff ? "staff mine" : ""}">
@@ -597,10 +837,30 @@ async function thread(t) {
         .join("")}</div>
       <form id="sp-r">
         <div class="field"><textarea name="body" rows="4" maxlength="4000" placeholder="Yanıtın (kullanıcıya bildirim ve kendi dilinde e-posta gider)"></textarea></div>
-        <div class="row between"><input type="file" id="sp-files" accept="image/*" multiple style="width:auto"><button class="btn btn-accent">Yanıtla</button></div>
+        <div class="row between"><div class="sp-tools" id="sp-emo"><input type="file" id="sp-files" accept="image/*" multiple style="width:auto"></div><button class="btn btn-accent">Yanıtla</button></div>
       </form>`;
     const mb = $(".sp-msgs", box);
     mb.scrollTop = mb.scrollHeight;
+    attachEmoji($("#sp-r textarea", box), { host: $("#sp-emo", box), title: "İfade ekle" });
+    $("#sp-del", box)?.addEventListener("click", () => {
+      const ask = $("#sp-delask", box);
+      ask.innerHTML = `<div class="del-ask"><span>Talep tüm mesajları ve görselleriyle kalıcı olarak silinsin mi? Bu geri alınamaz.</span>
+        <button type="button" class="btn btn-sm btn-danger" data-yes>Evet, kalıcı sil</button><button type="button" class="btn btn-sm" data-no>Vazgeç</button></div>`;
+      $("[data-no]", ask).addEventListener("click", () => (ask.innerHTML = ""));
+      $("[data-yes]", ask).addEventListener("click", async (e) => {
+        e.target.disabled = true;
+        try {
+          const paths = (await rpc("admin_support_delete", { p_ticket: t.id })) || [];
+          if (paths.length) await sb.storage.from("support").remove(paths).catch(() => {});
+          spOpen = "";
+          toast("Talep silindi");
+          show();
+        } catch (err) {
+          toast(err.message || String(err), true);
+          e.target.disabled = false;
+        }
+      });
+    });
     $("#sp-st", box).addEventListener("click", async () => {
       try {
         await rpc("support_set_status", { p_ticket: t.id, p_status: t.status === "closed" ? "open" : "closed" });
@@ -709,9 +969,46 @@ async function gorunurluk(el) {
   );
 }
 
-const RENDER = { ozet, satislar, abonelikler, uyeler, destek, gecmis, cihazlar, planlar, kampanya, reklamlar: (el) => reklamlar(el, show), gorunurluk };
+const RENDER = {
+  ozet,
+  satislar,
+  abonelikler,
+  uyeler,
+  destek,
+  gecmis,
+  cihazlar,
+  planlar,
+  kampanya,
+  "deneme-pro": (el) => denemePro(el, show),
+  reklamlar: (el) => reklamlar(el, show),
+  kuponlar: (el) => kuponlar(el, show),
+  "pro-ozellikleri": (el) => proOzellikleri(el, show),
+  "ses-paketleri": (el) => sesPaketleri(el, show),
+  mesajlar,
+  "tum-mesajlar": tumMesajlar,
+  gorunurluk,
+  kayitlar: (el) => kayitlar(el, logNav),
+};
+
+/** Moderasyon kaydından ilgili bölüme git: arama kutusu olanlar dolu açılır, diğerlerinde öğe vurgulanır */
+async function logNav(sec, q) {
+  if (sec === "uyeler") userQ = q || "";
+  if (sec === "pro-ozellikleri") setProFeatureQuery(q);
+  if (!sections.some(([k]) => k === sec)) return;
+  section = sec;
+  await show();
+  if (!q || sec === "uyeler" || sec === "pro-ozellikleri") return;
+  const needle = String(q).toLocaleLowerCase("tr");
+  const hit = [...$$("#content tr, #content .card")].reverse().find((e) => e.textContent.toLocaleLowerCase("tr").includes(needle));
+  if (hit) {
+    hit.scrollIntoView({ block: "center", behavior: "smooth" });
+    hit.style.outline = "2px solid var(--accent)";
+    setTimeout(() => (hit.style.outline = ""), 2600);
+  }
+}
 
 async function show() {
+  if (!sections.some(([k]) => k === section)) section = sections[0][0];
   history.replaceState(null, "", "#" + section);
   $$(".side button").forEach((b) => b.classList.toggle("on", b.dataset.s === section));
   const el = $("#content");
@@ -731,12 +1028,20 @@ async function main() {
     app().innerHTML = `<div class="page"><div class="card auth-box"><h2>Yönetim</h2><p class="muted">Yönetim paneli için giriş yap.</p><a class="btn btn-accent" href="hesap.html">Giriş yap</a></div></div>`;
     return;
   }
-  if (!p.is_admin) {
-    app().innerHTML = `<div class="page"><div class="msg bad">Bu sayfa sadece yöneticiler içindir.</div></div>`;
-    return;
+  isAdm = !!p.is_admin;
+  // Moderasyon kayıtlarını sadece site sahibi okur
+  if (!p.is_owner) sections = sections.filter(([k]) => k !== "kayitlar");
+  if (!isAdm) {
+    // Moderatör: sadece destek talepleri (silme yok; yetkiyi sunucu denetler)
+    const perms = await rpc("my_perms").catch(() => []);
+    if (!(perms || []).includes("reports.view")) {
+      app().innerHTML = `<div class="page"><div class="msg bad">Bu sayfa sadece yöneticiler içindir.</div></div>`;
+      return;
+    }
+    sections = SECTIONS.filter(([k]) => k === "destek");
   }
   app().innerHTML = `<div class="page admin-layout">
-    <aside class="side">${SECTIONS.map(([k, l]) => `<button data-s="${k}">${l}</button>`).join("")}</aside>
+    <aside class="side">${sections.map(([k, l]) => `<button data-s="${k}">${l}</button>`).join("")}</aside>
     <div id="content"></div>
   </div>`;
   $$(".side button").forEach((b) =>
@@ -747,7 +1052,7 @@ async function main() {
   );
   window.addEventListener("hashchange", () => {
     const h = location.hash.slice(1);
-    if (h && h !== section && RENDER[h]) {
+    if (h && h !== section && RENDER[h] && sections.some(([k]) => k === h)) {
       section = h;
       show();
     }

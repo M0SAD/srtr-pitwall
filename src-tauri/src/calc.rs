@@ -21,6 +21,8 @@ pub struct Status {
     pub on_track: bool,
     pub in_garage: bool,
     pub replay: bool,
+    /// Gerçek bir tekrar izleniyor (iRacing'de canlı ana yetişmiş izleme hariç)
+    pub replay_watch: bool,
     /// Oyuncu pistte değil ve garajda değil: izleyici/spotter
     pub spectating: bool,
     pub session_type: String,
@@ -51,6 +53,8 @@ pub struct Inputs {
     pub shift_rpm: f32,
     pub redline: f32,
     pub abs: bool,
+    /// Çekiş kontrolü kesiyor
+    pub tc: bool,
 }
 
 /// Telemetri paneli: vites halkası, devir ışıkları, pozisyon, son tur, yakıt
@@ -80,6 +84,9 @@ pub struct Telemetry {
     pub abs_active: bool,
     pub tc: f32,
     pub brake_bias: f32,
+    /// °C; bilinmiyorsa -1
+    pub oil_temp: f32,
+    pub water_temp: f32,
     pub on_pit_road: bool,
 }
 
@@ -92,6 +99,11 @@ pub struct Delta {
     pub current: f32,
     pub last: f32,
     pub best: f32,
+    /// Oturumun en iyi turuna / optimal tura göre (sadece iRacing; yoksa valid false)
+    pub session_delta: f32,
+    pub session_valid: bool,
+    pub optimal_delta: f32,
+    pub optimal_valid: bool,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -153,6 +165,8 @@ pub struct Row {
     pub stint: i32,
     pub pits: i32,
     pub tire: i32,
+    /// Lastik türü: "S" | "M" | "H" | "I" | "W" | "D" (kuru, türü bilinmiyor) | "" (bilinmiyor)
+    pub tire_kind: String,
     /// "BLK" | "DSQ" | "REP" | "BLU" | ""
     pub flag: String,
     pub pos_change: i32,
@@ -440,6 +454,11 @@ fn base_row(f: &Frame, s: &SessionData, t: &Tracker, i: usize) -> Row {
         stint: tr.stint(c.lap_completed),
         pits: tr.pits,
         tire: c.tire,
+        tire_kind: {
+            let my_class = s.player().map(|p| p.class_id);
+            let k = crate::model::tire_kind(c, s, d.map(|d| d.class_id) == my_class);
+            if k == 0 { String::new() } else { (k as char).to_string() }
+        },
         flag: car_flag(c.flags).into(),
         pos_change: if tr.start_pos > 0 && c.class_position > 0 { tr.start_pos - c.class_position } else { 0 },
         is_me: i as i32 == f.player_idx,
@@ -496,6 +515,11 @@ fn ir_map(f: &Frame, s: &SessionData) -> [i32; MAX_CARS] {
 // Paket üreticileri
 // ---------------------------------------------------------------------------
 
+/// Gerçek bir tekrar izleniyor mu (overlay'leri gizlemek, Olaylar penceresini açmak için)
+pub fn replay_watch(f: &Frame) -> bool {
+    f.replay && !f.replay_live
+}
+
 pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: bool) -> Status {
     let me = s.player();
     Status {
@@ -505,6 +529,7 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         on_track: f.is_on_track,
         in_garage: f.is_in_garage,
         replay: f.replay,
+        replay_watch: replay_watch(f),
         spectating: connected && !demo && !f.is_on_track && !f.is_in_garage,
         session_type: s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default(),
         track: s.track_name.clone(),
@@ -532,6 +557,7 @@ pub fn inputs(f: &Frame, s: &SessionData) -> Inputs {
         shift_rpm: s.shift_rpm,
         redline: s.redline,
         abs: f.abs_active,
+        tc: f.tc_active,
     }
 }
 
@@ -565,6 +591,8 @@ pub fn telemetry(f: &Frame, s: &SessionData, t: &Tracker) -> Telemetry {
         abs_active: f.abs_active,
         tc: f.tc,
         brake_bias: f.brake_bias,
+        oil_temp: f.oil_temp,
+        water_temp: f.water_temp,
         on_pit_road: f.on_pit_road,
     }
 }
@@ -577,6 +605,10 @@ pub fn delta(f: &Frame, t: &Tracker) -> Delta {
         current: f.lap_cur,
         last: f.lap_last,
         best: f.lap_best,
+        session_delta: f.delta_session,
+        session_valid: f.delta_session_ok,
+        optimal_delta: f.delta_optimal,
+        optimal_valid: f.delta_optimal_ok,
     }
 }
 
