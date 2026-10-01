@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-54
+
+- **Sıralama / Relative: lisans rozeti sabit genişlikte.** "Pro 4.4" gibi uzun rozetler artık soldaki marka logosu sütununu kaydırmıyor; logolar tek dikey hizada.
+
+## 021026-53
+
+- **Sıralama Tablosu varsayılan sütunları:** Ülke, Sürücü, Araç markası, (Kazanılan/kaybedilen kapalı), Lisans / SR, iRating, (Pit sayısı kapalı), Fark, (Son 5 tur ortalaması ve Son tur kapalı), En iyi tur, Lastik.
+- **Relative varsayılan sütunları aynı sırada:** Sınıf, Poz, No, Sürücü, Araç markası, Lisans, iRating, Stint, Fark, Son tur, Lastik, Bayrak. Marka logosu artık sürücü adının sağında.
+- Kendi sütun düzenini değiştirmiş olanlar etkilenmez; "Varsayılana döndür" yeni düzeni getirir.
+
 ## 021026-52
 
 - Sürüm yükseltildi (yeniden yayın için); içerik 021026-51 ile aynı.

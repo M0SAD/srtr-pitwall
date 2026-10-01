@@ -7,6 +7,8 @@ import {
   LIVECHAT_SHORTCUTS,
   SHORTCUT_ACTIONS,
   SHORTCUT_LABELS,
+  VR_CONFIG_SHORTCUTS,
+  VR_SHORTCUTS,
   fromEvent,
   prettyKey,
   sameKey,
@@ -97,7 +99,11 @@ export function ShortcutsPanel() {
   };
 
   /** Bu tuş başka bir eylemde kullanılıyor mu */
-  const usedBy = (a: ShortcutAction, k: string) => SHORTCUT_ACTIONS.find((b) => b !== a && k && sameKey(shortcut(b), k));
+  // Yerel VR ile Canlı Sohbet kısayolları aynı tuşu paylaşabilir (ör. F9): ikisi de yalnız kendi özelliği çalışırken
+  // kaydedilir; ikisi birden çalışıyorsa yerel VR önceliklidir (Rust: apply_shortcuts).
+  const mayShare = (a: ShortcutAction, b: ShortcutAction) =>
+    (VR_SHORTCUTS.includes(a) && LIVECHAT_SHORTCUTS.includes(b)) || (VR_SHORTCUTS.includes(b) && LIVECHAT_SHORTCUTS.includes(a));
+  const usedBy = (a: ShortcutAction, k: string) => SHORTCUT_ACTIONS.find((b) => b !== a && k && !mayShare(a, b) && sameKey(shortcut(b), k));
   const reserved = (k: string) => RESERVED.find((r) => sameKey(r.key, k));
 
   /** Ata: başka eylemdeyse reddet (çakışma), ayrılmış tuşsa uyar ama ata */
@@ -130,7 +136,7 @@ export function ShortcutsPanel() {
       setRecording(null);
       return;
     }
-    const k = fromEvent(e);
+    const k = fromEvent(e, VR_SHORTCUTS.includes(a));
     if (!k) return; // değiştirici bekleniyor
     setRecording(null);
     assign(a, k);
@@ -158,6 +164,9 @@ export function ShortcutsPanel() {
       return settings().general.screenshots.onlyInGame ? "Sadece oyundayken çalışır; oyun kapalıyken tuş diğer uygulamalara kalır." : "Her zaman çalışır.";
     if (a === "voice") return "Sadece oyundayken kaydedilir; oyun kapalıyken tuş diğer uygulamalara kalır. Onay sesi ve kısa bir bildirim gelir.";
     if (a === "chat") return "Her zaman kayıtlıdır: \"Otomatik başlat\" kapalıyken canlı sohbeti bu tuşla başlatıp durdurursun. Onay sesi ve kısa bir bildirim gelir.";
+    if (VR_CONFIG_SHORTCUTS.includes(a)) return "Sadece yerel VR yapılandırma modu açıkken kaydedilir; tek tuş olabilir.";
+    if (VR_SHORTCUTS.includes(a))
+      return "Sadece yerel VR (Ayarlar → VR) çalışırken kaydedilir; tek tuş olabilir. Canlı Sohbet ile aynı tuştaysa yerel VR çalışırken VR önceliklidir.";
     if (LIVECHAT_SHORTCUTS.includes(a)) return "Sadece Canlı Sohbet çalışırken (altyazı açıkken) kaydedilir; kapalıyken tuş diğer uygulamalara kalır. Onay sesi gelir.";
     return "";
   };

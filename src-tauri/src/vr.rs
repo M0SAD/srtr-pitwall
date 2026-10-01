@@ -8,8 +8,8 @@
 //! açılır. Bu pencereler görev çubuğunda görünür, her zaman üstte değildir, tıklama geçirmez ve istenirse
 //! opak (siyah / yeşil / özel renk) arka planlıdır. İstenirse masaüstünün dışına (ekranların sağına) konur.
 //!
-//! Yerel OpenVR (SteamVR) overlay'i YOK: openvr_api.dll ve webview karelerinin doku olarak gönderilmesi gerekir;
-//! test edilemeden eklenmedi (bkz. docs/vr_kurulum.md).
+//! Yerel SteamVR (OpenVR) overlay'i ayrı bir modüldedir (deneysel, bkz. `vrnative`): çalışırken buradaki
+//! "ayrı pencereler"i kullanır ve piksellerini doğrudan SteamVR'a gönderir (bkz. `effective_cfg`, `native_targets`).
 //!
 //! Ayarlar: `general.vr` (bkz. src/sdk/settings.ts VrSettings).
 
@@ -28,7 +28,7 @@ static HIDE_DESKTOP: AtomicBool = AtomicBool::new(false);
 static OPEN: Mutex<Option<HashMap<String, String>>> = parking_lot::const_mutex(None);
 
 pub fn hide_desktop() -> bool {
-    HIDE_DESKTOP.load(Ordering::Relaxed)
+    HIDE_DESKTOP.load(Ordering::Relaxed) || crate::vrnative::hides_desktop()
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -75,7 +75,8 @@ pub fn cfg_from_settings(v: &Value) -> VrCfg {
 /// VR modunda WebView2'ye eklenen argümanlar: pencere başka bir pencerenin (ör. tam ekran oyunun) arkasında ya da
 /// ekran dışında kalınca çizimi durdurmasın / yavaşlatmasın. Dönen: (kapatılacak özellik, ek argümanlar)
 pub fn browser_flags(settings: Option<&Value>) -> Option<(&'static str, &'static str)> {
-    let on = settings.map(|v| cfg_from_settings(v).enabled).unwrap_or(false);
+    // Yerel VR de aynı pencereleri yakalar: bir kez kullanıldıysa / otomatik başlatılıyorsa açılışta uygulanır
+    let on = settings.map(|v| cfg_from_settings(v).enabled || crate::vrnative::wants_background_rendering(v)).unwrap_or(false);
     on.then_some((
         "CalculateNativeWinOcclusion",
         "--disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling",
@@ -83,7 +84,7 @@ pub fn browser_flags(settings: Option<&Value>) -> Option<(&'static str, &'static
 }
 
 /// Pencere etiketinde geçerli karakterler (harf, rakam, - ve _)
-fn safe(key: &str) -> String {
+pub fn safe(key: &str) -> String {
     key.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect()
 }
 
@@ -99,6 +100,8 @@ fn hash8(s: &str) -> String {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Wanted {
+    /// Overlay kopya kimliği (pano için boş)
+    pub key: String,
     pub label: String,
     pub url: String,
     pub title: String,
@@ -115,7 +118,7 @@ pub fn wanted(cfg: &VrCfg, settings: &Value) -> Vec<Wanted> {
     let bg = if cfg.bg.is_empty() { String::new() } else { format!("&bg={}", cfg.bg) };
     if cfg.board {
         let url = format!("overlay.html?vr=board{bg}");
-        out.push(Wanted { label: format!("{PREFIX}board-{}", hash8(&format!("{url}|{place}"))), url, title: BOARD_TITLE.into(), board: true });
+        out.push(Wanted { key: String::new(), label: format!("{PREFIX}board-{}", hash8(&format!("{url}|{place}"))), url, title: BOARD_TITLE.into(), board: true });
     }
     if cfg.windows {
         let active = settings.get("activeProfile").and_then(|x| x.as_str()).unwrap_or("default");
@@ -134,17 +137,53 @@ pub fn wanted(cfg: &VrCfg, settings: &Value) -> Vec<Wanted> {
                 crate::server::url_encode(active)
             );
             // Geçici başlık; pencere açılınca overlay'in görünen adıyla değişir (bkz. `vr_fit`)
-            out.push(Wanted { label: format!("{PREFIX}{}-{}", safe(key), hash8(&format!("{url}|{place}"))), url, title: format!("SRTR Pitwall - {key}"), board: false });
+            out.push(Wanted { key: key.clone(), label: format!("{PREFIX}{}-{}", safe(key), hash8(&format!("{url}|{place}"))), url, title: format!("SRTR Pitwall - {key}"), board: false });
         }
     }
     out
 }
 
+/// Yerel VR (vrnative) çalışırken geçerli ayar: VR modu kapalı olsa da her overlay için ayrı pencere açılır ve
+/// arka plan hep düz renktir (saydam seçiliyse siyah): yakalanan karede bu renk alfa=0 yapılır ya da opak kalır.
+pub fn effective_cfg(settings: &Value, native: bool) -> VrCfg {
+    let mut cfg = cfg_from_settings(settings);
+    if native {
+        if !cfg.enabled {
+            cfg.enabled = true;
+            cfg.board = false;
+            cfg.hide_desktop = false;
+        }
+        cfg.windows = true;
+        if cfg.bg.is_empty() {
+            cfg.bg = "000000".into();
+        }
+    }
+    cfg
+}
+
+/// Yerel VR'ın yakalayacağı pencereler: (kopya kimliği, pencere etiketi, görünen ad) ve arka plan rengi (rrggbb)
+pub fn native_targets(app: &AppHandle) -> (Vec<(String, String, String)>, String) {
+    let Some(settings) = crate::current_settings(app) else { return (Vec::new(), String::new()) };
+    let cfg = effective_cfg(&settings, true);
+    let list = wanted(&cfg, &settings)
+        .into_iter()
+        .filter(|w| !w.board)
+        .map(|w| {
+            // Pencere başlığı overlay'in görünen adıdır (bkz. `vr_fit`)
+            let title = app.get_webview_window(&w.label).and_then(|x| x.title().ok()).unwrap_or(w.title);
+            let name = title.strip_prefix("SRTR Pitwall - ").unwrap_or(&title).to_string();
+            (w.key, w.label, name)
+        })
+        .collect();
+    (list, cfg.bg)
+}
+
 /// Ayar değişince / monitör düzeni değişince: VR pencerelerini aç, kapat, yerleştir.
 /// Pencere oluşturduğu için ana iş parçacığında (eşzamanlı komut içinde) çağrılmamalı.
 pub fn sync(app: &AppHandle, settings: &Value) {
-    let cfg = cfg_from_settings(settings);
-    HIDE_DESKTOP.store(cfg.enabled && cfg.hide_desktop, Ordering::Relaxed);
+    let own = cfg_from_settings(settings);
+    HIDE_DESKTOP.store(own.enabled && own.hide_desktop, Ordering::Relaxed);
+    let cfg = effective_cfg(settings, crate::vrnative::running());
     let list = wanted(&cfg, settings);
 
     let mut g = OPEN.lock();
@@ -278,5 +317,26 @@ mod tests {
         // Kapalıyken pencere yok
         let off = settings(json!({ "enabled": false }));
         assert!(wanted(&cfg_from_settings(&off), &off).is_empty());
+        assert!(w[0].key.is_empty() && w[2].key == "relative#2");
+    }
+
+    #[test]
+    fn native_windows() {
+        // VR modu kapalıyken yerel VR çalışıyorsa: yalnız ayrı pencereler, siyah (anahtar renk) arka plan
+        let off = settings(json!({ "enabled": false, "background": "transparent" }));
+        let c = effective_cfg(&off, true);
+        assert!(c.enabled && c.windows && !c.board && c.bg == "000000");
+        let w = wanted(&c, &off);
+        assert_eq!(w.len(), 2);
+        assert!(w.iter().all(|x| !x.board && x.url.contains("&vr=1&bg=000000")));
+        // VR modu "sadece pano" iken de ayrı pencereler eklenir; seçilen renk korunur
+        let board = settings(json!({ "enabled": true, "source": "board", "background": "green" }));
+        let c = effective_cfg(&board, true);
+        assert!(c.board && c.windows && c.bg == "00ff00");
+        assert_eq!(wanted(&c, &board).len(), 3);
+        // Yerel VR çalışmıyorken ayar olduğu gibi
+        assert_eq!(effective_cfg(&board, false), cfg_from_settings(&board));
+        // Bir kez kullanıldıysa WebView2 arka plan çizim ayarı açılışta uygulanır
+        assert!(browser_flags(Some(&json!({ "general": { "vr": { "native": { "used": true } } } }))).is_some());
     }
 }

@@ -132,7 +132,9 @@
 }
 
 .lic b {
-  min-width: 1.35em;
+  /* Sabit genişlik: "Pro" da "A" da aynı yeri kaplar, sütunlar kaymaz */
+  box-sizing: border-box;
+  width: 2.5em;
   padding: 0 3px;
   background: var(--lc);
   color: #fff;
@@ -140,6 +142,9 @@
 }
 
 .lic span {
+  box-sizing: border-box;
+  min-width: 2.6em;
+  text-align: center;
   padding: 0 5px;
   background: color-mix(in srgb, var(--lc) 45%, #111);
   color: #fff;

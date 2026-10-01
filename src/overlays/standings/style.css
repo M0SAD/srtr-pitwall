@@ -202,6 +202,12 @@
 .st-lic {
   color: #fff;
   font-size: 0.72em;
+  /* Sabit genişlik: "Pro 4.4" ile "A 4.0" aynı yeri kaplar, soldaki logo sütunu kaymaz */
+  flex: none;
+  box-sizing: border-box;
+  width: 5.2em;
+  text-align: center;
+  white-space: nowrap;
 }
 .st-pits {
   min-width: 1.8em;

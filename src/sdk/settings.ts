@@ -495,7 +495,65 @@ export interface VrSettings {
   monitor: number | null;
   /** Masaüstündeki normal overlay'i gizle (VR'da ayna penceresini kapatmasın) */
   hideDesktop: boolean;
+  /** Yerel VR (SteamVR overlay'i, deneysel) */
+  native: VrNativeSettings;
 }
+
+/** Yerel VR'da bir overlay'in gözlükteki yeri (Rust: vrnative/place.rs Placement) */
+export interface VrPlacement {
+  /** Metre: x sağ, y yukarı, z öne uzaklık */
+  x: number;
+  y: number;
+  z: number;
+  /** Derece */
+  yaw: number;
+  pitch: number;
+  /** Genişlik (metre) */
+  widthM: number;
+  /** Eğrilik 0..1 */
+  curve: number;
+  /** Opaklık 0.1..1 */
+  alpha: number;
+  /** Hep kullanıcıya dönük, sabit uzaklıkta */
+  faceMe: boolean;
+  /** Sadece bakınca görünür */
+  gaze: boolean;
+}
+
+/** Ayarlar → VR → Yerel VR (SteamVR, deneysel). Rust: src-tauri/src/vrnative/mod.rs cfg_from_settings */
+export interface VrNativeSettings {
+  /** Sim bağlanınca kendiliğinden başlat (SteamVR çalışıyorsa) */
+  autoStart: boolean;
+  /** Yerel VR çalışırken masaüstü overlay'i de görünsün */
+  showDesktop: boolean;
+  /** Overlay'leri 180° çevir */
+  invert: boolean;
+  fps: 10 | 15 | 30;
+  /** key: arka plan rengi saydam yapılır, opaque: arka plan opak kalır */
+  transparency: "key" | "opaque";
+  origin: "seated" | "standing";
+  /** VR günlüğü dosyaya da yazılsın */
+  debug: boolean;
+  /** En az bir kez başlatıldı (arka planda çizim ayarı açılışta uygulanır) */
+  used: boolean;
+  /** "Ortala" ile belirlenen başlangıç noktası (Rust yazar) */
+  base: { x: number; y: number; z: number; yaw: number } | null;
+  /** Kopya kimliği → yerleşim */
+  overlays: Record<string, VrPlacement>;
+}
+
+export const DEFAULT_VR_NATIVE: VrNativeSettings = {
+  autoStart: false,
+  showDesktop: false,
+  invert: false,
+  fps: 15,
+  transparency: "key",
+  origin: "seated",
+  debug: false,
+  used: false,
+  base: null,
+  overlays: {},
+};
 
 export const DEFAULT_VR: VrSettings = {
   enabled: false,
@@ -505,6 +563,7 @@ export const DEFAULT_VR: VrSettings = {
   place: "desktop",
   monitor: null,
   hideDesktop: false,
+  native: { ...DEFAULT_VR_NATIVE },
 };
 
 export interface GeneralSettings {
@@ -524,7 +583,26 @@ export interface GeneralSettings {
   server: ServerSettings;
   mqtt: MqttSettings;
   /** Genel kısayollar (boş: kısayol yok) */
-  shortcuts: { edit: string; hide: string; panel: string; shot: string; voice: string; poll: string; tts: string; ttsHush: string; stt: string; chat: string };
+  shortcuts: {
+    edit: string;
+    hide: string;
+    panel: string;
+    shot: string;
+    voice: string;
+    poll: string;
+    tts: string;
+    ttsHush: string;
+    stt: string;
+    chat: string;
+    vrConfig: string;
+    vrRecenter: string;
+    vrNext: string;
+    vrMode: string;
+    vrSave: string;
+    vrReset: string;
+    vrFace: string;
+    vrGaze: string;
+  };
   /** Eski varsayılan ekran görüntüsü kısayolu (PrintScreen) bir kez Ctrl+PrintScreen'e taşındı */
   shotKeyV2?: boolean;
   /** Eski varsayılanlar (PrintScreen / Ctrl+PrintScreen) bir kez F12'ye taşındı */
@@ -618,14 +696,14 @@ const LOGO_COL_TYPES = ["relative", "standings"];
 
 /**
  * Bir kerelik geçiş (logoColV1): kayıtlı Relative / Sıralama kopyalarında marka logosu sütunu açılır ve
- * sürücü adının hemen soluna taşınır. Kullanıcı sonradan kapatır ya da taşırsa tekrar dokunulmaz.
+ * sürücü adının hemen sağına taşınır. Kullanıcı sonradan kapatır ya da taşırsa tekrar dokunulmaz.
  */
 function logoColMigrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
   if (!LOGO_COL_TYPES.includes(type) || saved?.logoColV1) return options;
   const cols = Array.isArray(options.columns) ? (options.columns as { key: string; on: boolean }[]).filter((c) => c && c.key !== "car") : null;
   if (cols) {
     const at = cols.findIndex((c) => c.key === "name");
-    cols.splice(at < 0 ? 0 : at, 0, { key: "car", on: true });
+    cols.splice(at < 0 ? 0 : at + 1, 0, { key: "car", on: true });
     options.columns = cols;
   }
   if (options.carStyle === "text") options.carStyle = "logo";
@@ -659,7 +737,7 @@ export function defaultSettings(): AppSettings {
       autoSwitch: false,
       server: { enabled: false, port: 8910, lan: false },
       mqtt: defaultMqtt(),
-      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C" },
+      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
       shotKeyV2: true,
       shotKeyV3: true,
       hideInReplay: true,
@@ -756,7 +834,15 @@ export function normalize(input: unknown): AppSettings {
       social: { ...d.general.social, ...(s.general?.social ?? {}) },
       perf: { ...d.general.perf, ...(s.general?.perf ?? {}) },
       display: { ...d.general.display, ...(s.general?.display ?? {}) },
-      vr: { ...DEFAULT_VR, ...(s.general?.vr ?? {}) },
+      vr: {
+        ...DEFAULT_VR,
+        ...(s.general?.vr ?? {}),
+        native: {
+          ...DEFAULT_VR_NATIVE,
+          ...(s.general?.vr?.native ?? {}),
+          overlays: s.general?.vr?.native?.overlays && typeof s.general.vr.native.overlays === "object" ? s.general.vr.native.overlays : {},
+        },
+      },
       twitch: { ...d.general.twitch, ...(s.general?.twitch ?? {}) },
       livechat: normalizeLiveChat(s.general?.livechat, s.general?.twitch?.channel),
       remote: { ...d.general.remote, ...(s.general?.remote ?? {}) },

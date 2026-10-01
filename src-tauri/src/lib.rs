@@ -32,6 +32,7 @@ mod voice_rules;
 mod voicepack;
 mod voicesub;
 mod vr;
+mod vrnative;
 mod voicepack_build;
 mod voicepack_dl;
 mod winstate;
@@ -342,6 +343,20 @@ fn settings_set(app: AppHandle, store: State<'_, SettingsStore>, value: Value, s
     let _ = app.emit("settings-changed", SettingsChanged { value, source });
 }
 
+/// Rust tarafı ayarın bir kısmını değiştirir (ör. yerel VR yerleşimleri): `f` true dönerse kaydedilir ve
+/// pencerelere duyurulur. Ana iş parçacığı dışında çağrılmalı.
+pub(crate) fn settings_patch(app: &AppHandle, source: &str, f: impl FnOnce(&mut Value) -> bool) {
+    let Some(mut v) = current_settings(app) else { return };
+    if !f(&mut v) {
+        return;
+    }
+    if let Some(o) = v.as_object_mut() {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+        o.insert("updatedAt".into(), Value::from(now));
+    }
+    settings_set(app.clone(), app.state::<SettingsStore>(), v, source.into());
+}
+
 /// Ayarlardan Rust tarafının uyguladığı kısımlar: League Builder ve MQTT.
 fn apply_dynamic(app: &AppHandle, value: &Value) {
     let sh = shared(app);
@@ -355,6 +370,7 @@ fn apply_dynamic(app: &AppHandle, value: &Value) {
     }
     push_voice_cfg(app, value);
     livechat::apply_settings(app, value);
+    vrnative::apply_settings(app, value);
     sh.demo_mute.store(value.pointer("/general/demoMute").and_then(|x| x.as_bool()).unwrap_or(false), Ordering::Relaxed);
     {
         let sh2 = value.pointer("/general/sharing");
@@ -766,6 +782,10 @@ pub(crate) fn on_connection_change(app: &AppHandle, connected: bool) {
             let v = current_settings(&app);
             apply_shortcuts(&app, v.as_ref());
         });
+    }
+    // Yerel VR: "Sim bağlanınca otomatik başlat" (demo sayılmaz)
+    if !shared(app).demo.load(Ordering::Relaxed) || !connected {
+        vrnative::on_connection(app, connected);
     }
     if connected && !shared(app).demo.load(Ordering::Relaxed) && general_flag(app, "minimizeOnConnect", false) {
         if let Some(w) = app.get_webview_window("main") {
@@ -1342,7 +1362,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 /// Kısayol eylemleri ve varsayılan tuşları
-const SHORTCUTS: [(&str, &str); 10] = [
+const SHORTCUTS: [(&str, &str); 18] = [
     ("edit", "Ctrl+Shift+E"),
     ("hide", "Ctrl+Shift+D"),
     ("panel", "Ctrl+Shift+Space"),
@@ -1355,7 +1375,22 @@ const SHORTCUTS: [(&str, &str); 10] = [
     ("stt", "F6"),
     // Canlı sohbeti başlat / durdur (her zaman kayıtlı)
     ("chat", "Ctrl+Shift+C"),
+    // Yerel VR (deneysel, bkz. vrnative): sadece yerel VR çalışırken kaydedilir
+    ("vrConfig", "F9"),
+    ("vrRecenter", "End"),
+    // … ve bunlar sadece yapılandırma modu açıkken (tek tuşlar diğer uygulamalardan çalınmasın)
+    ("vrNext", "Space"),
+    ("vrMode", "M"),
+    ("vrSave", "F10"),
+    ("vrReset", "Home"),
+    ("vrFace", "F"),
+    ("vrGaze", "G"),
 ];
+
+/// Sadece yerel VR çalışırken kaydedilen kısayollar
+const VR_ONLY: [&str; 8] = ["vrConfig", "vrRecenter", "vrNext", "vrMode", "vrSave", "vrReset", "vrFace", "vrGaze"];
+/// Sadece yerel VR yapılandırma modunda kaydedilenler
+const VR_CONFIG_ONLY: [&str; 6] = ["vrNext", "vrMode", "vrSave", "vrReset", "vrFace", "vrGaze"];
 
 /// Sadece Canlı Sohbet çalışırken (ya da altyazı açıkken) kaydedilen kısayollar: F5/F6/F9 diğer uygulamalara kalsın
 const LIVECHAT_ONLY: [&str; 4] = ["poll", "tts", "ttsHush", "stt"];
@@ -1446,6 +1481,15 @@ fn apply_shortcuts(app: &AppHandle, v: Option<&Value>) {
     }
     if !livechat::hotkeys_active(app) {
         want.retain(|(a, _)| !LIVECHAT_ONLY.contains(&a.as_str()));
+    }
+    if !vrnative::running() {
+        want.retain(|(a, _)| !VR_ONLY.contains(&a.as_str()));
+    } else {
+        if !vrnative::config_mode() {
+            want.retain(|(a, _)| !VR_CONFIG_ONLY.contains(&a.as_str()));
+        }
+        // Aynı tuş başka bir eylemdeyse (ör. F9: Canlı Sohbet anketi) yerel VR çalışırken VR önceliklidir
+        want.sort_by_key(|(a, _)| !VR_ONLY.contains(&a.as_str()));
     }
     let key = format!("{want:?}");
     let st = app.state::<KeyBindings>();
@@ -1650,6 +1694,7 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 Some("ttsHush") => livechat::tts::hotkey_hush(app),
                 Some("stt") => livechat::stt::hotkey_toggle(app),
                 Some("chat") => livechat::hotkey_chat(app),
+                Some(a) if a.starts_with("vr") => vrnative::hotkey(a),
                 _ => {}
             }
         })
@@ -1728,6 +1773,10 @@ pub fn run() {
             voice_info,
             voice_test,
             vr::vr_fit,
+            vrnative::vr_native_status,
+            vrnative::vr_native_start,
+            vrnative::vr_native_stop,
+            vrnative::vr_native_cmd,
             voicepack::voice_packs_installed,
             voicepack::voice_catalog,
             voicepack::voice_packs_open_dir,

@@ -21,14 +21,14 @@ export const RELATIVE_DEFAULT_COLUMNS = [
   { key: "class", on: true },
   { key: "pos", on: true },
   { key: "num", on: true },
-  { key: "car", on: true },
   { key: "name", on: true },
-  { key: "stint", on: true },
+  { key: "car", on: true },
   { key: "license", on: true },
   { key: "irating", on: true },
-  { key: "last", on: true },
-  { key: "tire", on: false },
+  { key: "stint", on: true },
   { key: "gap", on: true },
+  { key: "last", on: true },
+  { key: "tire", on: true },
   { key: "flag", on: true },
 ];
 

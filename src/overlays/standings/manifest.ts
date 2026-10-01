@@ -19,17 +19,17 @@ export const STANDINGS_COLUMNS = [
 
 export const STANDINGS_DEFAULT_COLUMNS = [
   { key: "flair", on: true },
-  { key: "car", on: true },
   { key: "name", on: true },
+  { key: "car", on: true },
   { key: "change", on: false },
-  { key: "license", on: false },
+  { key: "license", on: true },
   { key: "irating", on: true },
   { key: "pits", on: false },
   { key: "gap", on: true },
-  { key: "avg", on: true },
+  { key: "avg", on: false },
   { key: "last", on: false },
   { key: "best", on: true },
-  { key: "tire", on: false },
+  { key: "tire", on: true },
 ];
 
 export default defineOverlay({
