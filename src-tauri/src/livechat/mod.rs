@@ -29,7 +29,20 @@
 //! Sohbet kaydı görüntüleyici (gün listesi, arama, dışa aktarma, saklama süresi): chatlog.rs (PRO: `livechat.log`).
 //! PRO: arayüz entitlement "locked" listesine `livechat.multi`, `livechat.poll`, `livechat.obs`,
 //! `livechat.alerts`… anahtarlarını (yönetici PRO'ya ayırdıysa) ekler. Ücretsizde sadece listedeki ilk kanalın
-//! mesajları alınır; ★ favori kanallar (platform başına bir tane) yalnızca izleyici sayısı için bağlı kalır.
+//! mesajları ve izleyici sayısı alınır. ★ favori kanallar (platform başına bir tane) `livechat.favorites` (varsayılan PRO)
+//! özelliğidir: açık değilse favoriler bağlanmaz, izleyici sayıları gösterilmez.
+//!
+//! GİRİŞ ZORUNLULUĞU: arayüz, hesaba giriş yapılmışsa "locked" listesine `livechat.signedin`, yönetici giriş
+//! zorunluluğunu kapattıysa (app_config.livechat_require_login = false) `livechat.anon` işaretini ekler. İkisi de yoksa
+//! (`login_ok` yanlış) Canlı Sohbet'in HİÇBİR parçası çalışmaz: başlatılamaz, çalışıyorsa durdurulur, `allowed()` tüm
+//! `livechat.*` anahtarları için yanlış döner (anket, sesli okuma, altyazı, sohbete yazma, kayıt, OBS).
+//!
+//! YAYIN DURUMU (`anyLive`): overlay yalnızca bağlı kanallardan en az biri canlıyken görünür. "Canlı" tanımı:
+//!   Twitch  → GQL izleyici sorgusu yayın döndürüyor (15 sn'de bir yoklanır)
+//!   Kick    → kanal bilgisinde livestream var (15 sn; gizli pencere gerekiyorsa 60 sn)
+//!   YouTube → kanalın /live sayfası canlı bir videoya çözülüyor ve sohbeti okunuyor (yayın yokken 30 sn'de bir yoklanır)
+//!   Yayın durumu hiç öğrenilemediyse (sorgu başarısız; `live == None`) ama sohbet bağlıysa: son 3 dakikada o kanaldan
+//!   mesaj geldiyse canlı sayılır.
 
 pub mod filter;
 pub mod kick;
@@ -235,6 +248,12 @@ pub struct LiveChatStatus {
     /// Birden fazla kanal bağlanabilir mi (PRO)
     pub multi: bool,
     pub log: bool,
+    /// ★ favori kanallar kullanılabilir mi (PRO: livechat.favorites)
+    pub favorites: bool,
+    /// Giriş koşulu sağlanıyor mu (giriş yapılmış ya da yönetici zorunluluğu kapatmış)
+    pub login_ok: bool,
+    /// Bağlı kanallardan en az biri canlı yayında
+    pub any_live: bool,
 }
 
 /// "livechat" konusu
@@ -246,6 +265,10 @@ pub struct LiveChatTopic {
     pub channels: Vec<ChannelStatus>,
     pub viewers: Viewers,
     pub rev: u64,
+    /// Bağlı kanallardan en az biri canlı yayında (overlay yalnızca bu doğruyken görünür)
+    pub any_live: bool,
+    /// Giriş koşulu sağlanıyor mu (yanlışsa overlay'ler ekranda hiçbir şey çizmez)
+    pub login_ok: bool,
 }
 
 #[derive(Serialize, Clone, Debug, Default, PartialEq)]
@@ -274,7 +297,12 @@ struct ChanRt {
     error: Option<String>,
     name: String,
     video: Option<String>,
+    /// Bu kanaldan kabul edilen son mesajın zamanı (unix sn; yayın durumu bilinmiyorken canlılık işareti)
+    last_msg: f64,
 }
+
+/// Yayın durumu bilinmeyen kanal, son mesajından bu kadar saniye sonrasına dek canlı sayılır
+const MSG_LIVE_SECS: f64 = 180.0;
 
 pub type Hook = Arc<dyn Fn(&ChatMsg) + Send + Sync>;
 
@@ -284,6 +312,11 @@ struct Inner {
     cfg: Config,
     multi: bool,
     alerts_ok: bool,
+    /// ★ favoriler açık (livechat.favorites)
+    fav: bool,
+    login_ok: bool,
+    /// Son yayınlanan `any_live` (değişince konu yeniden gönderilir)
+    live_pushed: bool,
     tasks: HashMap<String, Vec<JoinHandle<()>>>,
     sl_task: Option<(String, JoinHandle<()>)>,
     sl_token: String,
@@ -317,6 +350,8 @@ pub struct Hub {
     st: Mutex<Inner>,
     hooks: Mutex<Vec<Hook>>,
     started_once: AtomicBool,
+    /// "Otomatik başlat" açık ama açılışta giriş bilgisi henüz gelmemişti: gelince başlat
+    auto_pending: AtomicBool,
 }
 
 /// Bir kanal görevinin bağlamı
@@ -328,10 +363,26 @@ pub struct Ctx {
 }
 
 /// PRO özelliği bu kullanıcıya açık mı (arayüzün entitlement "locked" listesine bakar)
+/// Canlı Sohbet'in tüm anahtarları (`livechat.*`) ayrıca giriş koşuluna bağlıdır (bkz. `login_ok`).
 pub fn allowed(app: &AppHandle, key: &str) -> bool {
     let e = crate::entitlement::view(app);
+    if key.starts_with("livechat.") && !login_flag(&e.locked) {
+        return false;
+    }
     e.pro || !e.locked.iter().any(|x| x == key)
 }
+
+fn login_flag(locked: &[String]) -> bool {
+    locked.iter().any(|x| x == "livechat.signedin" || x == "livechat.anon")
+}
+
+/// Canlı Sohbet kullanılabilir mi: hesaba giriş yapılmış ya da yönetici giriş zorunluluğunu kapatmış
+/// (arayüz entitlement "locked" listesine `livechat.signedin` / `livechat.anon` işaretini koyar).
+pub fn login_ok(app: &AppHandle) -> bool {
+    login_flag(&crate::entitlement::view(app).locked)
+}
+
+pub const LOGIN_MSG: &str = "Canlı Sohbet için giriş yapmalısın";
 
 fn show_tag(cfg: &Config, ch: &Chan) -> bool {
     match ch.cfg.tag {
@@ -380,15 +431,16 @@ impl Inner {
                     label: label_of(ch, rt),
                     state,
                     chat: self.running && !locked && rt.is_some_and(|r| r.chat),
-                    // Kilitli (ücretsiz) ama ★ favori kanal: sohbeti gösterilmez, izleyici sayısı izlenir
-                    viewers: if state == State::Live || (locked && self.running && ch.cfg.mine && rt.is_some_and(|r| r.live == Some(true))) {
+                    // Kilitli (tek kanal) ama ★ favori ve favoriler açık: sohbeti gösterilmez, izleyici sayısı izlenir
+                    viewers: if state == State::Live || (locked && self.fav && self.running && ch.cfg.mine && rt.is_some_and(|r| r.live == Some(true))) {
                         rt.and_then(|r| r.viewers)
                     } else {
                         None
                     },
                     error: if self.running && !locked { rt.and_then(|r| r.error.clone()) } else { None },
                     hidden: ch.cfg.hidden,
-                    mine: ch.cfg.mine,
+                    // Favoriler kapalıyken (ücretsiz) ★ işareti yok sayılır
+                    mine: ch.cfg.mine && self.fav,
                     tag: ch.cfg.tag,
                     video_id: rt.and_then(|r| r.video.clone()),
                 }
@@ -410,6 +462,24 @@ impl Inner {
         Viewers { youtube: y, twitch: t, kick: k, total: (!all.is_empty()).then(|| all.iter().sum()) }
     }
 
+    /// Bağlı (kilitli olmayan) kanallardan en az biri canlı mı. Yayın durumu öğrenilemeyen (`live == None`) ama
+    /// sohbeti bağlı kanal, son `MSG_LIVE_SECS` içinde mesaj aldıysa canlı sayılır.
+    fn any_live(&self, now: f64) -> bool {
+        if !self.running || !self.login_ok {
+            return false;
+        }
+        self.cfg.channels.iter().enumerate().any(|(i, ch)| {
+            if !self.multi && i > 0 {
+                return false;
+            }
+            match self.rt.get(&ch.link.key) {
+                Some(r) if r.live == Some(true) => true,
+                Some(r) if r.live.is_none() && r.chat => r.last_msg > 0.0 && now - r.last_msg < MSG_LIVE_SECS,
+                _ => false,
+            }
+        })
+    }
+
     fn sl_status(&self) -> SlStatus {
         SlStatus {
             enabled: self.cfg.streamlabs,
@@ -429,6 +499,9 @@ impl Inner {
             streamlabs: self.sl_status(),
             multi: self.multi,
             log: self.cfg.log,
+            favorites: self.fav,
+            login_ok: self.login_ok,
+            any_live: self.any_live(now_s()),
         }
     }
 
@@ -441,6 +514,8 @@ impl Inner {
             viewers: self.viewers(&channels),
             channels,
             rev: self.rev,
+            any_live: self.any_live(now_s()),
+            login_ok: self.login_ok,
         }
     }
 
@@ -463,6 +538,9 @@ impl Inner {
                 // Ücretsiz sürüm: yalnızca en üstteki kanalın mesajları (★ favoriler sadece izleyici sayısı için bağlı)
                 if !g.multi && idx > 0 {
                     return None;
+                }
+                if let Some(r) = g.rt.get_mut(&m.channel) {
+                    r.last_msg = now;
                 }
                 let ch = &g.cfg.channels[idx];
                 if ch.cfg.hidden {
@@ -564,7 +642,7 @@ fn platform_tag(m: &ChatMsg) -> String {
 
 impl Hub {
     fn new(app: AppHandle, shared: Arc<Shared>) -> Hub {
-        Hub { app, shared, st: Mutex::new(Inner { multi: true, alerts_ok: true, ..Default::default() }), hooks: Mutex::new(vec![]), started_once: AtomicBool::new(false) }
+        Hub { app, shared, st: Mutex::new(Inner { multi: true, alerts_ok: true, fav: true, login_ok: true, ..Default::default() }), hooks: Mutex::new(vec![]), started_once: AtomicBool::new(false), auto_pending: AtomicBool::new(false) }
     }
 
     #[allow(dead_code)] // sesli okuma (TTS) modülü kullanacak
@@ -788,15 +866,20 @@ impl Hub {
     fn reconcile(self: &Arc<Self>) {
         let multi = allowed(&self.app, "livechat.multi");
         let alerts_ok = allowed(&self.app, "livechat.alerts");
+        let fav = allowed(&self.app, "livechat.favorites");
+        let login = login_ok(&self.app);
         let mut g = self.st.lock();
-        if g.multi != multi || g.alerts_ok != alerts_ok {
+        if g.multi != multi || g.alerts_ok != alerts_ok || g.fav != fav || g.login_ok != login {
             g.dirty_status = true;
         }
         g.multi = multi;
         g.alerts_ok = alerts_ok;
-        let desired: Vec<(String, Link)> = if g.running {
-            // Ücretsiz: en üstteki kanal + ★ favoriler (favorilerin sadece izleyici sayısı kullanılır; mesajları `accept` atar)
-            g.cfg.channels.iter().enumerate().filter(|(i, c)| multi || *i == 0 || c.cfg.mine).map(|(_, c)| (c.link.key.clone(), c.link.clone())).collect()
+        g.fav = fav;
+        g.login_ok = login;
+        let desired: Vec<(String, Link)> = if g.running && login {
+            // Tek kanal (ücretsiz): yalnızca en üstteki kanal. Favoriler açıksa (livechat.favorites) ★ kanallar da bağlanır
+            // (sadece izleyici sayıları kullanılır; mesajlarını `accept` atar).
+            g.cfg.channels.iter().enumerate().filter(|(i, c)| multi || *i == 0 || (fav && c.cfg.mine)).map(|(_, c)| (c.link.key.clone(), c.link.clone())).collect()
         } else {
             vec![]
         };
@@ -827,7 +910,7 @@ impl Hub {
             g.dirty_status = true;
         }
         // Streamlabs
-        let want = g.running && g.cfg.streamlabs && alerts_ok && !g.sl_token.is_empty();
+        let want = g.running && login && g.cfg.streamlabs && alerts_ok && !g.sl_token.is_empty();
         let same = g.sl_task.as_ref().is_some_and(|(t, _)| *t == g.sl_token);
         if !want || !same {
             if let Some((_, h)) = g.sl_task.take() {
@@ -846,6 +929,7 @@ impl Hub {
     }
 
     fn set_running(self: &Arc<Self>, on: bool) {
+        let on = on && login_ok(&self.app);
         {
             let mut g = self.st.lock();
             if g.running == on {
@@ -912,6 +996,21 @@ impl Hub {
             // PRO durumu değişmiş olabilir (ücretsiz: tek kanal)
             self.reconcile();
             stt::recheck(&self.app);
+            let login = login_ok(&self.app);
+            // Çıkış yapıldı (ya da giriş zorunluluğu açıldı): çalışan sohbeti durdur
+            if !login && self.st.lock().running {
+                self.set_running(false);
+                notice(&self.app, "Canlı sohbet durduruldu: giriş yapmalısın");
+            }
+            // Açılışta giriş bilgisi geç geldi: bekleyen otomatik başlatma (en fazla 2 dk beklenir)
+            if self.auto_pending.load(Ordering::Relaxed) {
+                if login {
+                    self.auto_pending.store(false, Ordering::Relaxed);
+                    self.set_running(true);
+                } else if n > 1200 {
+                    self.auto_pending.store(false, Ordering::Relaxed);
+                }
+            }
         }
         let now = now_s();
         let gen = self.shared.topics_gen.load(Ordering::Relaxed);
@@ -919,6 +1018,14 @@ impl Hub {
             let mut g = self.st.lock();
             let force = gen != g.topics_gen;
             g.topics_gen = gen;
+            // Yayın durumu değişti (yayın açıldı / kapandı / son mesajın süresi doldu): konu ve durum yeniden gönderilsin
+            if n % 10 == 0 || g.dirty_status || g.dirty_chat {
+                let live = g.any_live(now);
+                if live != g.live_pushed {
+                    g.live_pushed = live;
+                    g.dirty_status = true;
+                }
+            }
             if g.poll.tick(now) {
                 g.dirty_poll = true;
             }
@@ -1041,6 +1148,8 @@ pub fn init(app: &AppHandle, shared: Arc<Shared>) {
     {
         let mut g = h.st.lock();
         g.sl_token = secrets::get(app, "streamlabsToken");
+        g.login_ok = login_ok(app);
+        g.fav = allowed(app, "livechat.favorites");
     }
     app.manage(h.clone());
     tts::init(app, &h);
@@ -1071,7 +1180,11 @@ pub fn apply_settings(app: &AppHandle, value: &Value) {
     }
     // Açılışta bir kez: otomatik başlat
     if !h.started_once.swap(true, Ordering::Relaxed) && auto {
-        h.set_running(true);
+        if login_ok(app) {
+            h.set_running(true);
+        } else {
+            h.auto_pending.store(true, Ordering::Relaxed);
+        }
     }
 }
 
@@ -1110,13 +1223,15 @@ pub fn hotkey_chat(app: &AppHandle) {
     let err = |text: &str| {
         crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
         notice(app, text);
-        let _ = app.emit("livechat-toggled", serde_json::json!({ "on": false, "error": true }));
+        let _ = app.emit("livechat-toggled", serde_json::json!({ "on": false, "error": true, "login": text == LOGIN_MSG }));
     };
     if running {
         h.set_running(false);
         beep_onoff(false);
         notice(app, "Canlı sohbet durduruldu");
         let _ = app.emit("livechat-toggled", serde_json::json!({ "on": false, "error": false }));
+    } else if !login_ok(app) {
+        err(LOGIN_MSG);
     } else if n == 0 {
         err("Önce Kanallar'dan en az bir kanal ekle");
     } else {
@@ -1166,16 +1281,21 @@ pub fn state_json(app: &AppHandle) -> Value {
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn livechat_start(app: AppHandle) -> LiveChatStatus {
+pub fn livechat_start(app: AppHandle) -> Result<LiveChatStatus, String> {
+    if !login_ok(&app) {
+        return Err(LOGIN_MSG.into());
+    }
     let h = hub(&app);
     h.started_once.store(true, Ordering::Relaxed);
+    h.auto_pending.store(false, Ordering::Relaxed);
     h.set_running(true);
-    h.status()
+    Ok(h.status())
 }
 
 #[tauri::command]
 pub fn livechat_stop(app: AppHandle) -> LiveChatStatus {
     let h = hub(&app);
+    h.auto_pending.store(false, Ordering::Relaxed);
     h.set_running(false);
     h.status()
 }
@@ -1471,7 +1591,7 @@ mod tests {
 
     #[test]
     fn status_view_and_viewers() {
-        let mut g = Inner { running: true, multi: false, alerts_ok: true, cfg: cfg_from_settings(&cfg_json()), ..Default::default() };
+        let mut g = Inner { running: true, multi: false, alerts_ok: true, fav: true, login_ok: true, cfg: cfg_from_settings(&cfg_json()), ..Default::default() };
         g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(true), viewers: Some(10), ..Default::default() });
         let v = g.channels_view();
         assert_eq!(v[0].state, State::Live);
@@ -1490,6 +1610,26 @@ mod tests {
         g.cfg.channels[0].cfg.mine = false;
         let v = g.channels_view();
         assert_eq!(g.viewers(&v).twitch, Some(15));
+        assert!(g.any_live(0.0));
+        // Favoriler kapalı (ücretsiz): ★ yok sayılır, tek kanalda yalnızca en üstteki kanalın izleyicisi
+        g.cfg.channels[0].cfg.mine = true;
+        g.cfg.channels[2].cfg.mine = true;
+        g.fav = false;
+        g.multi = false;
+        let v = g.channels_view();
+        assert!(!v[0].mine);
+        assert_eq!(v[2].viewers, None);
+        assert_eq!(g.viewers(&v).twitch, Some(10));
+        // Yayın durumu bilinmiyor ama sohbet bağlı: son 3 dakikada mesaj geldiyse canlı
+        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: None, last_msg: 100.0, ..Default::default() });
+        assert!(g.any_live(150.0));
+        assert!(!g.any_live(100.0 + MSG_LIVE_SECS + 1.0));
+        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(false), last_msg: 100.0, ..Default::default() });
+        assert!(!g.any_live(150.0));
+        g.login_ok = false;
+        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(true), ..Default::default() });
+        assert!(!g.any_live(0.0));
+        g.login_ok = true;
         g.running = false;
         assert_eq!(g.channels_view()[0].state, State::Idle);
     }
@@ -1506,7 +1646,7 @@ mod tests {
         v["general"]["livechat"]["moderation"]["wordMode"] = "mask".into();
         v["general"]["livechat"]["moderation"]["words"] = "kötü, salak*".into();
         let cfg = cfg_from_settings(&v);
-        let mut g = Inner { running: true, multi: true, words: WordFilter::new(&cfg.words), cfg, ..Default::default() };
+        let mut g = Inner { running: true, multi: true, login_ok: true, words: WordFilter::new(&cfg.words), cfg, ..Default::default() };
         // Etiket ve kanal adı
         let m = g.accept(chat(Platform::Twitch, "twitch:erkin", "1", "Ali", "selam"), 0.0).unwrap();
         assert!(m.show_tag);

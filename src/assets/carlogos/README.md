@@ -51,9 +51,9 @@ oranı ne olursa olsun ortalanır (`object-fit: contain`), logosu olmayan markad
 
 ## Öncelik
 
-1. Kullanıcının kendi "logos" klasörü (Ayarlar → Marka logoları) — varsa her zaman o kullanılır.
-2. Bu klasördeki paketlenmiş logo (SVG, yoksa PNG).
-3. Hiçbiri yoksa hücre boş kalır (Sıralama Tablosu'nda "Logo ve yazı" / "Sadece yazı" seçiliyse marka adı yazılır).
+1. Bu klasördeki paketlenmiş logo (SVG, yoksa PNG). Herkes bu logoları görür; kullanıcının kendi
+   "logos" klasörü artık okunmaz (Ayarlar'daki "Marka logoları" bölümü kaldırıldı).
+2. Logo yoksa hücre boş kalır (Sıralama Tablosu'nda "Logo ve yazı" / "Sadece yazı" seçiliyse marka adı yazılır).
 
 ## Logo önerileri
 

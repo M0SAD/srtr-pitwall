@@ -1,6 +1,7 @@
 import { For, Show, createMemo } from "solid-js";
 import { orderValue, type OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useRows, useTopic } from "@/sdk/telemetry";
+import { Flag } from "@/sdk/Flag";
 import { irating, lapTime } from "@/sdk/format";
 import type { Row } from "@/sdk/types";
 import { settings } from "@/sdk/settings";
@@ -94,8 +95,10 @@ function legacyColumns(o: Record<string, unknown>) {
 export default function Relative(props: OverlayProps) {
   const data = useTopic("relative");
 
+  // Satır kimliği araç idx'ine göre sabit: her pakette DOM (logo/bayrak resimleri) yeniden kurulmaz
+  const stable = useRows(() => data()?.rows);
   const rows = createMemo(() => {
-    const all = data()?.rows ?? [];
+    const all = stable();
     const n = props.options.rows as number;
     const me = all.findIndex((r) => r.isMe);
     if (me < 0) return all;
@@ -103,9 +106,11 @@ export default function Relative(props: OverlayProps) {
   });
 
   const columns = createMemo(() =>
-    orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options)).filter((c) => c.on),
+    orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options))
+      .filter((c) => c.on)
+      .map((c) => c.key),
   );
-  const isOn = (k: string) => columns().some((c) => c.key === k);
+  const isOn = (k: string) => columns().includes(k);
 
   const cell = (key: string, r: Row) => {
     switch (key) {
@@ -115,6 +120,12 @@ export default function Relative(props: OverlayProps) {
         return <span class="rel-pos">{r.classPos > 0 ? r.classPos : "-"}</span>;
       case "num":
         return <span class="rel-num">{r.number}</span>;
+      case "flair":
+        return (
+          <span class="rel-flair" data-no-i18n>
+            <Flag code={r.flair} />
+          </span>
+        );
       case "name":
         return (
           <span class="rel-name">
@@ -186,7 +197,7 @@ export default function Relative(props: OverlayProps) {
           <For each={rows()}>
             {(r) => (
               <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
-                <For each={columns()}>{(c) => cell(c.key, r)}</For>
+                <For each={columns()}>{(c) => cell(c, r)}</For>
               </div>
             )}
           </For>

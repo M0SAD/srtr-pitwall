@@ -1,5 +1,6 @@
 import { Show, createSignal, onCleanup } from "solid-js";
-import type { OverlayProps } from "@/sdk/overlay";
+import { onScreen, type OverlayProps } from "@/sdk/overlay";
+import { liveChatEntitled } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import type { CaptionView } from "@/sdk/livechat";
 import { CaptionBox, fontStack } from "../livechat/parts";
@@ -21,6 +22,8 @@ export default function Captions(props: OverlayProps) {
   const tick = setInterval(() => setNow(Date.now()), 500);
   onCleanup(() => clearInterval(tick));
   const view = () => {
+    // Giriş koşulu sağlanmıyorsa ekrandaki overlay hiçbir şey çizmez (panel önizlemesinde örnek görünür)
+    if (onScreen() && !liveChatEntitled()) return null;
     const c = caps();
     const live = c && c.lines.some((l) => now() - l.ts < (Number(o().maxAge) || 8) * 1000);
     return live ? c! : props.editing ? SAMPLE : null;

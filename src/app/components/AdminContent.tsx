@@ -1,6 +1,7 @@
 // Yönetim › içerik bölümleri (c42):
 //  - PRO tanıtım mesajı: PRO olmayanlara programdaki ve sitedeki PRO bölümünde gösterilen kart (app_config.pro_promo)
 //  - Overlay arka planları: hazır arka planların görselleri ve varsayılanı (app_config.preview_backdrops)
+//  - Sim seçici: üst çubukta oyun ikonları ya da yazı (app_config.sim_icons, c51; Yönetim › Görünürlük'te gösterilir)
 //  - Çeviriler: programın ve web sitesinin metinlerine dil bazında düzeltme (i18n_overrides)
 // Görseller herkese açık 'site' kovasına yüklenir (promo/…, backdrops/…).
 
@@ -8,7 +9,7 @@ import { For, Show, createMemo, createResource, createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { LANGS, lang, localeTag, refreshOverrides, t } from "@/sdk/i18n";
 import { api, publicUrl, storageUpload } from "@/cloud/supabase";
-import { PLAN_LIST, loadConfig } from "@/cloud/account";
+import { PLAN_LIST, loadConfig, simIconsOn } from "@/cloud/account";
 import { PromoView, proPromo, type ProPromo, type PromoAction } from "./ProPromoCard";
 import { BACKDROPS, BUNDLED_BACKDROPS, previewBackdrops, type PreviewBackdrops } from "./Backdrop";
 import { takeAdminFocus } from "./adminFocus";
@@ -312,6 +313,35 @@ async function shrink(f: File): Promise<Blob> {
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Üst çubuk: sim seçicide oyun ikonları / yazı (app_config.sim_icons, c51)
+// ---------------------------------------------------------------------------
+export function AdminSimIcons(props: { run: Run }) {
+  const set = (on: boolean) =>
+    props.run(async () => {
+      await api("POST", "rpc/admin_set_sim_icons", { body: { p_on: on } });
+      await loadConfig();
+    }, on ? "Sim seçicide oyun ikonları açıldı" : "Sim seçicide yazılı görünüme dönüldü");
+  return (
+    <section class="panel admin-panel">
+      <h3>Üst çubuk: sim seçici</h3>
+      <div class="row">
+        <div>
+          <b>Oyun ikonlarını göster</b>
+          <small>
+            Açıkken üst çubuktaki sim seçicide oyunların ikonları görünür. Kapatınca herkes eski yazılı görünümü (iRacing, ACC, AC, LMU, AMS2) görür.
+            Değişiklik programlara birkaç dakika içinde (en geç açılışta) ulaşır.
+          </small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" checked={simIconsOn()} onChange={(e) => set(e.currentTarget.checked)} />
+          <i />
+        </label>
+      </div>
+    </section>
+  );
 }
 
 export function AdminBackdrops(props: { run: Run }) {

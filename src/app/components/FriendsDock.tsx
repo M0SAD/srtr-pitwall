@@ -8,7 +8,7 @@ import { localeTag, t } from "@/sdk/i18n";
 import { settings, updateSettings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
 import { inTauri } from "@/sdk/platform";
-import { session } from "@/cloud/supabase";
+import { cloudEnabled, session } from "@/cloud/supabase";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote, ProLockTag } from "./ProLock";
 import {
@@ -156,7 +156,10 @@ export function FriendsPanel(props: {
     () => (session() ? session()!.user.id : null),
     async () => {
       try {
+        const uid = session()?.user.id;
         const [l, recent] = await Promise.all([myFriends(), recentMessages().catch(() => null)]);
+        // Yanıt gelene kadar çıkış yapıldıysa / hesap değiştiyse önceki hesabın listesi yazılmaz
+        if (session()?.user.id !== uid) return [];
         lastList = l ?? [];
         // Kabul edilen arkadaşlar Arkadaşlar sayfasındaki listeye (renk/simge ayarıyla) otomatik eklenir
         syncAccountFriends(lastList);
@@ -934,8 +937,46 @@ function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void }) {
 export function FriendsDock(props: { racing?: () => boolean }) {
   const [open, setOpen] = createSignal(false);
   const [counts, setCounts] = createSignal<[number, number]>([0, 0]);
+  // Çıkış yapınca (ya da hesap değişince) panel kapanır ve önceki hesabın sayıları sıfırlanır
+  createEffect(
+    on(
+      () => session()?.user.id ?? "",
+      () => {
+        setOpen(false);
+        setCounts([0, 0]);
+      },
+      { defer: true },
+    ),
+  );
   return (
-    <Show when={session()}>
+    <Show
+      when={session()}
+      fallback={
+        // Giriş yapmamış kullanıcı da düğmeyi görür; tıklayınca giriş yapması istenir
+        <Show when={cloudEnabled}>
+          <div class="fdock" classList={{ open: open() }}>
+            <Show when={open()}>
+              <div class="fdock-login">
+                <I.Lock />
+                <p>Sohbet ve arkadaşlar için giriş yapmalısın</p>
+                <div class="fdock-login-btns">
+                  <button class="btn small" onClick={() => (setOpen(false), go("account"))}>
+                    Giriş yap
+                  </button>
+                  <button class="btn ghost small" onClick={() => setOpen(false)}>
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </Show>
+            <button class="fdock-btn" onClick={() => setOpen(!open())}>
+              <I.Users />
+              <span>Arkadaşlar</span>
+            </button>
+          </div>
+        </Show>
+      }
+    >
       <div class="fdock" classList={{ open: open() }}>
         <div style={{ display: open() ? "contents" : "none" }}>
           <FriendsPanel open={open} onClose={() => setOpen(false)} racing={props.racing} onCounts={(o, b) => setCounts([o, b])} />

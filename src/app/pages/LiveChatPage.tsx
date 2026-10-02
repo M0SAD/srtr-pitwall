@@ -16,20 +16,42 @@ import { LogTab } from "./livechat/LogTab";
 import { PollTab } from "./livechat/PollTab";
 import { SttTab, TtsTab } from "./livechat/VoiceTabs";
 import { SendTab } from "./livechat/SendTab";
+import { F } from "@/sdk/proFeatures";
+import { isHiddenLiveTab, liveChatLoginOk } from "@/cloud/account";
+import { go } from "../ui";
 import "../livechat.css";
 
-export const LIVECHAT_PAGES = [
+export const LIVECHAT_PAGES: { id: string; label: string; feature?: string }[] = [
   { id: "chat", label: "Sohbet" },
   { id: "channels", label: "Kanallar" },
   { id: "moderation", label: "Moderasyon" },
-  { id: "poll", label: "Anket" },
-  { id: "tts", label: "Sesli okuma" },
-  { id: "stt", label: "Konuşma → yazı" },
-  { id: "send", label: "Sohbete yaz" },
-  { id: "alerts", label: "Bildirimler" },
-  { id: "log", label: "Sohbet kaydı" },
-  { id: "obs", label: "OBS" },
+  { id: "poll", label: "Anket", feature: F.livePoll },
+  { id: "tts", label: "Sesli okuma", feature: F.liveTts },
+  { id: "stt", label: "Konuşma → yazı", feature: F.liveStt },
+  { id: "send", label: "Sohbete yaz", feature: F.liveSend },
+  { id: "alerts", label: "Bildirimler", feature: F.liveAlerts },
+  { id: "log", label: "Sohbet kaydı", feature: F.liveLog },
+  { id: "obs", label: "OBS", feature: F.liveObs },
 ];
+
+/** Kullanıcıya görünen sekmeler (yöneticinin gizledikleri hariç; yönetici hepsini görür) */
+export const liveChatPages = () => LIVECHAT_PAGES.filter((p) => !isHiddenLiveTab(p.id));
+
+/** Giriş yapılmamış: sekmeler görünür ama hiçbir şey çalışmaz (ücretsiz bölümler dahil) */
+function LoginGate() {
+  return (
+    <section class="panel">
+      <h3>Canlı Sohbet için giriş yapmalısın</h3>
+      <p class="muted">
+        Canlı Sohbet'i (ücretsiz bölümleri dahil) kullanmak için hesabına giriş yap. Giriş yapmadan sohbet başlatılamaz ve sohbet
+        overlay'leri ekranda görünmez; aşağıdaki ayarlar yalnızca görüntülenir.
+      </p>
+      <button class="btn primary" onClick={() => go("account")}>
+        Giriş yap
+      </button>
+    </section>
+  );
+}
 
 /** Üst durum kartı: çalışıyor mu, kanal sayısı, izleyiciler, başlat / durdur */
 function Head() {
@@ -42,6 +64,7 @@ function Head() {
     try {
       if (running()) await LC.stop();
       else {
+        if (!liveChatLoginOk()) return toast(t("Canlı Sohbet için giriş yapmalısın"), true);
         if (!total()) return toast(t("Önce Kanallar'dan en az bir kanal ekle"), true);
         await LC.start();
       }
@@ -79,7 +102,7 @@ function Head() {
           <I.RotateCcw /> Yeniden bağlan
         </button>
       </Show>
-      <button class={running() ? "btn ghost" : "btn primary"} onClick={toggle}>
+      <button class={running() ? "btn ghost" : "btn primary"} disabled={!running() && !liveChatLoginOk()} onClick={toggle}>
         {running() ? <I.Square /> : <I.Play />}
         {running() ? t("Durdur") : t("Başlat")}
       </button>
@@ -93,38 +116,50 @@ export function LiveChatPage(p: { sub: string }) {
     void LC.onNotice((text) => toast(t(text))).then((u) => (un = u));
     onCleanup(() => un?.());
   });
+  // Yöneticinin gizlediği sekme (ör. doğrudan bağlantıyla) açılmaz: ilk görünür sekme gösterilir
+  const sub = () => (isHiddenLiveTab(p.sub || "chat") ? (liveChatPages()[0]?.id ?? "none") : p.sub || "chat");
   return (
-    <div class="page lcp" classList={{ narrow: p.sub !== "chat" && p.sub !== "log" }}>
+    <div class="page lcp" classList={{ narrow: sub() !== "chat" && sub() !== "log" }}>
       <Head />
-      <Switch fallback={<ChatTab />}>
-        <Match when={p.sub === "channels"}>
-          <ChannelsTab />
-        </Match>
-        <Match when={p.sub === "moderation"}>
-          <ModerationTab />
-        </Match>
-        <Match when={p.sub === "poll"}>
-          <PollTab />
-        </Match>
-        <Match when={p.sub === "tts"}>
-          <TtsTab />
-        </Match>
-        <Match when={p.sub === "stt"}>
-          <SttTab />
-        </Match>
-        <Match when={p.sub === "send"}>
-          <SendTab />
-        </Match>
-        <Match when={p.sub === "alerts"}>
-          <AlertsTab />
-        </Match>
-        <Match when={p.sub === "log"}>
-          <LogTab />
-        </Match>
-        <Match when={p.sub === "obs"}>
-          <ObsTab />
-        </Match>
-      </Switch>
+      <Show when={!liveChatLoginOk()}>
+        <LoginGate />
+      </Show>
+      <div classList={{ "prolock-dim": !liveChatLoginOk() }} inert={!liveChatLoginOk()} aria-disabled={!liveChatLoginOk()} style={{ display: "flex", "flex-direction": "column", flex: "1 1 auto", "min-height": "0" }}>
+        <Switch fallback={<ChatTab />}>
+          <Match when={sub() === "none"}>
+            <section class="panel">
+              <p class="muted">Bu bölüm şu an kapalı.</p>
+            </section>
+          </Match>
+          <Match when={sub() === "channels"}>
+            <ChannelsTab />
+          </Match>
+          <Match when={sub() === "moderation"}>
+            <ModerationTab />
+          </Match>
+          <Match when={sub() === "poll"}>
+            <PollTab />
+          </Match>
+          <Match when={sub() === "tts"}>
+            <TtsTab />
+          </Match>
+          <Match when={sub() === "stt"}>
+            <SttTab />
+          </Match>
+          <Match when={sub() === "send"}>
+            <SendTab />
+          </Match>
+          <Match when={sub() === "alerts"}>
+            <AlertsTab />
+          </Match>
+          <Match when={sub() === "log"}>
+            <LogTab />
+          </Match>
+          <Match when={sub() === "obs"}>
+            <ObsTab />
+          </Match>
+        </Switch>
+      </div>
       <Toast />
     </div>
   );

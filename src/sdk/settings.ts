@@ -687,7 +687,7 @@ export function defaultInstance(id: string): OverlayInstance {
     y: m.defaultPosition.y,
     scale: 1,
     opacity: 1,
-    options: LOGO_COL_TYPES.includes(m.id) ? { ...defaultOptions(m), logoColV1: true } : defaultOptions(m),
+    options: LOGO_COL_TYPES.includes(m.id) ? { ...defaultOptions(m), logoColV1: true, ...(m.id === "relative" ? { relFlairV1: true } : { stFlairV1: true }) } : defaultOptions(m),
   };
 }
 
@@ -708,6 +708,41 @@ function logoColMigrate(type: string, saved: Record<string, any> | undefined, op
   }
   if (options.carStyle === "text") options.carStyle = "logo";
   options.logoColV1 = true;
+  return options;
+}
+
+/**
+ * Bir kerelik geçiş (relFlairV1): kayıtlı Yakındakiler (relative) kopyalarına ülke bayrağı sütunu, Sıralama Tablosu'ndaki
+ * gibi sürücü adının hemen soluna ve açık olarak eklenir. Kullanıcı sonradan kapatır ya da taşırsa tekrar dokunulmaz.
+ */
+function relFlairMigrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if (type !== "relative" || saved?.relFlairV1) return options;
+  if (Array.isArray(options.columns)) {
+    const cols = (options.columns as { key: string; on: boolean }[]).filter((c) => c && c.key !== "flair");
+    const at = cols.findIndex((c) => c.key === "name");
+    cols.splice(at < 0 ? cols.length : at, 0, { key: "flair", on: true });
+    options.columns = cols;
+  }
+  options.relFlairV1 = true;
+  return options;
+}
+
+/**
+ * Bir kerelik geçiş (stFlairV1): kayıtlı Sıralama Tablosu kopyalarında ülke bayrağı sütunu sürücü adının hemen
+ * soluna alınır (eski kayıtlarda sütun listede yoksa ya da adın arkasında kaldıysa). Açık/kapalı durumu korunur;
+ * listede hiç yoksa açık eklenir. Kullanıcı sonradan taşırsa tekrar dokunulmaz.
+ */
+function stFlairMigrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if (type !== "standings" || saved?.stFlairV1) return options;
+  if (Array.isArray(options.columns)) {
+    const all = (options.columns as { key: string; on: boolean }[]).filter((c) => c && typeof c.key === "string");
+    const cur = all.find((c) => c.key === "flair");
+    const cols = all.filter((c) => c.key !== "flair");
+    const at = cols.findIndex((c) => c.key === "name");
+    cols.splice(at < 0 ? 0 : at, 0, { key: "flair", on: cur ? !!cur.on : true });
+    options.columns = cols;
+  }
+  options.stFlairV1 = true;
   return options;
 }
 
@@ -897,7 +932,7 @@ export function normalize(input: unknown): AppSettings {
       // Artık var olmayan türler (ör. kaldırılan eski "twitch" sohbet overlay'i) sessizce atılır
       if (!manifests.some((m) => m.id === type)) continue;
       const def = defaultInstance(type);
-      prof.overlays[key] = { ...def, ...cur, type, options: logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }) };
+      prof.overlays[key] = { ...def, ...cur, type, options: stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }))) };
     }
     // Her türün bir ana kopyası olsun (yeni eklenen overlay'ler otomatik gelir)
     for (const m of manifests) {

@@ -184,6 +184,8 @@ export function formatModLog(l: ModLog): LogView {
           : t("PRO tanıtım mesajı kapatıldı"),
         target: { sub: "propromo" },
       };
+    case "sim_icons_set":
+      return { text: d.on ? t("Sim seçicide oyun ikonları açıldı") : t("Sim seçicide yazılı görünüme dönüldü"), target: { sub: "visibility" } };
     case "preview_backdrops_set":
       return {
         text: t("Overlay arka planları güncellendi (varsayılan: {0}{1})", t(BACKDROP_NAMES[d.default] ?? String(d.default ?? "?")), d.old_default && d.old_default !== d.default ? t(", önce: {0}", t(BACKDROP_NAMES[d.old_default] ?? String(d.old_default))) : ""),

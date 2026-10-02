@@ -418,9 +418,7 @@ static VOICE_TEST: Mutex<Option<voice::Voice>> = parking_lot::const_mutex(None);
 
 #[tauri::command]
 fn voice_test(app: AppHandle, key: String) -> Result<(), String> {
-    if !voice_allowed(&app) {
-        return Err("Sesli mühendis PRO üyelere özel".into());
-    }
+    // "Dene" herkese açık (PRO olmayanlar da sesleri duyabilsin); yarıştaki mühendis voice_allowed ile PRO kalır
     let (vc, sc) = current_settings(&app).map(|v| voice_cfg_of(&app, &v)).unwrap_or_default();
     let mut g = VOICE_TEST.lock();
     let v = g.get_or_insert_with(|| {
@@ -435,9 +433,6 @@ fn voice_test(app: AppHandle, key: String) -> Result<(), String> {
 /// Ayarları değiştirmeden verilen klasördeki (ör. kayıt yapılan şablon klasörü) bir ifadeyi çal
 #[tauri::command]
 fn voice_test_dir(app: AppHandle, dir: String, key: String) -> Result<(), String> {
-    if !voice_allowed(&app) {
-        return Err("Sesli mühendis PRO üyelere özel".into());
-    }
     let (mut vc, sc) = current_settings(&app).map(|v| voice_cfg_of(&app, &v)).unwrap_or_default();
     let (root, meta) = voicepack::resolve(None, "", &dir).ok_or("Bu klasörde ses paketi bulunamadı")?;
     vc.custom_dir = dir;
@@ -1274,6 +1269,22 @@ fn overlay_set_monitor(app: AppHandle, index: usize) {
 #[tauri::command]
 fn preview_set(app: AppHandle, on: bool) {
     shared(&app).preview.store(on, Ordering::Relaxed);
+    if !on {
+        set_preview_frozen(&app, false);
+    }
+}
+
+/// Önizleme örnek verisi birkaç saniye oynadıktan sonra dondurulur (demo saati durur, görüntü sabit kalır).
+/// Kullanıcının açtığı Demo modu ve canlı sim verisi bundan etkilenmez (bkz. engine.rs `frozen`).
+#[tauri::command]
+fn preview_freeze(app: AppHandle, on: bool) {
+    set_preview_frozen(&app, on);
+}
+
+fn set_preview_frozen(app: &AppHandle, on: bool) {
+    if shared(app).preview_frozen.swap(on, Ordering::Relaxed) != on {
+        let _ = app.emit("preview-frozen", on);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1310,6 +1321,7 @@ fn open_panel(app: &AppHandle) {
             let app2 = app.clone();
             w.on_window_event(move |e| {
                 if let tauri::WindowEvent::Destroyed = e {
+                    set_preview_frozen(&app2, false);
                     set_overlay_pin(&app2, None);
                 }
             });
@@ -1760,6 +1772,7 @@ pub fn run() {
             monitors_list,
             overlay_set_monitor,
             preview_set,
+            preview_freeze,
             panel_front,
             panel_focus_overlay,
             panel_take_focus,

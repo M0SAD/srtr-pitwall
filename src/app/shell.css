@@ -2618,6 +2618,32 @@ h3.ur-head {
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 }
+.fdock-login {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #15181f;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.fdock-login > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--muted);
+}
+.fdock-login p {
+  margin: 0;
+  font-weight: 600;
+}
+.fdock-login-btns {
+  display: flex;
+  gap: 8px;
+}
 .fdock-btn svg {
   width: 17px;
   height: 17px;
@@ -3858,4 +3884,39 @@ h3.ur-head {
   line-height: 1.5;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   pointer-events: none;
+}
+
+/* Üst çubuk sim seçici: oyun ikonları ve bağlı (aktif) oyun işareti */
+.seg button {
+  position: relative;
+}
+.seg .sim-ico {
+  display: block;
+  height: 22px;
+  width: auto;
+  max-width: 64px;
+  object-fit: contain;
+  opacity: 0.6;
+  filter: grayscale(0.6);
+  transition: opacity 0.15s, filter 0.15s;
+  pointer-events: none;
+}
+.seg button:hover .sim-ico,
+.seg button.on .sim-ico,
+.seg button.sim-active .sim-ico {
+  opacity: 1;
+  filter: none;
+}
+.seg button.sim-active {
+  box-shadow: inset 0 -2px 0 #3ddc84;
+}
+.seg .sim-live {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3ddc84;
+  box-shadow: 0 0 6px #3ddc84;
 }

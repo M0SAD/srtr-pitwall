@@ -11,7 +11,6 @@ import { ChatLookPage } from "./ChatLookPage";
 import { ShortcutsPanel } from "../components/ShortcutsPanel";
 import { MqttPanel } from "../components/MqttPanel";
 import { TrustedSharing } from "../components/TrustedSharing";
-import { LogosPanel } from "../components/LogosPanel";
 import { ServerPanel, CopyUrl } from "../components/ServerPanel";
 import { SoundsPanel } from "../components/SoundsPanel";
 import { VrPanel } from "../components/VrPanel";
@@ -30,7 +29,6 @@ export const SETTINGS_PAGES = [
   { id: "engineer", label: "Mühendis ekranı" },
   { id: "keybinds", label: "Kısayollar" },
   { id: "sharing", label: "Paylaşım" },
-  { id: "logos", label: "Marka logoları" },
   { id: "about", label: "Hakkında" },
 ];
 
@@ -396,11 +394,6 @@ export function SettingsPage(props: { page: string }) {
       </Match>
       <Match when={props.page === "sharing"}>
         <Sharing />
-      </Match>
-      <Match when={props.page === "logos"}>
-        <div class="page narrow">
-          <LogosPanel />
-        </div>
       </Match>
       <Match when={props.page === "about"}>
         <AboutPage />

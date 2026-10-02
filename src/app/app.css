@@ -906,48 +906,6 @@ p.small {
   white-space: nowrap;
 }
 
-/* ---------- Marka logoları ---------- */
-.logo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.logo-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 8px 4px;
-  border: 1px solid #262b35;
-  border-radius: 6px;
-  font-size: 12px;
-  opacity: 0.55;
-}
-
-.logo-cell.on {
-  opacity: 1;
-  border-color: #3b4658;
-}
-
-.logo-cell img {
-  height: 26px;
-  max-width: 90%;
-  object-fit: contain;
-}
-
-.logo-cell code {
-  font-size: 10px;
-  color: #8a93a3;
-}
-
-.logo-miss {
-  height: 26px;
-  line-height: 26px;
-  color: #555;
-}
-
 /* ---------- MQTT ---------- */
 .mqtt-host {
   display: flex;

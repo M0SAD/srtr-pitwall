@@ -1,4 +1,4 @@
-// Sesli spotter ve yarış mühendisi (PRO). SRTR Pitwall'un kendi motoru: Crew Chief kurulumu gerekmez.
+// Sesli spotter ve yarış mühendisi (yarıştaki mühendis PRO; "Dene" ve ses paketi indirme herkese açık). SRTR Pitwall'un kendi motoru: Crew Chief kurulumu gerekmez.
 // Sesler kurulu ses paketinden (<app_data>/voicepacks/<id>) ya da kullanıcının gösterdiği klasörden okunur.
 // Canlı bir sim oturumu algılanınca mühendis kendiliğinden konuşmaya başlar.
 
@@ -175,7 +175,8 @@ export function VoicePage() {
       <Show when={locked()}>
         <section class="panel warn-panel">
           <p>
-            Sesli mühendis PRO üyelere özel.{" "}
+            Yarışta konuşan sesli mühendis PRO üyelere özel. Ses paketlerini indirip aşağıdaki "Dene" bölümünden sesleri
+            dinleyebilirsin.{" "}
             <button class="link" onClick={() => go("pro")}>
               PRO'ya bak
             </button>
@@ -275,11 +276,11 @@ export function VoicePage() {
               </small>
             </div>
             <div class="voice-pack-stats">
-              <span>
+              <span title="İfade: mühendisin söyleyebildiği bir cümle (paketteki bir klasör). Aynı ifadenin birden fazla ses kaydı olabilir.">
                 <b>{info()!.phrases}</b> ifade
               </span>
-              <span>
-                <b>{info()!.files}</b> kayıt
+              <span title="Bu paketteki ses dosyalarının toplam sayısı">
+                {t("bu pakette toplam {0} ses kaydı (dosya) var", info()!.files)}
               </span>
             </div>
             <button class="btn ghost small" onClick={() => openDir(info()!.path)}>
@@ -354,11 +355,11 @@ export function VoicePage() {
 
       <section class="panel">
         <h3>Dene</h3>
-        <p class="muted small">Seçili ses paketinden örnek cümleler çalar (yarışta değilken de).</p>
+        <p class="muted small">Seçili ses paketinden örnek cümleler çalar (yarışta değilken de). Herkese açık: PRO olmadan da sesleri dinleyebilirsin.</p>
         <div class="voice-tests">
           <For each={TESTS}>
             {(x) => (
-              <button class="btn ghost small" classList={{ spot: !!x.spotter }} disabled={!info()?.found || locked()} onClick={() => test(x.key)}>
+              <button class="btn ghost small" classList={{ spot: !!x.spotter }} disabled={!info()?.found} onClick={() => test(x.key)}>
                 <I.Volume2 /> {x.label}
               </button>
             )}
@@ -401,7 +402,7 @@ export function VoicePage() {
               <For each={rows().slice(0, CATALOG_LIMIT)}>
                 {(x) => (
                   <div class="voice-cat-row" classList={{ unused: !x.used }}>
-                    <button class="icon-btn" title="Çal" disabled={!info()?.found || locked()} onClick={() => test(x.key)}>
+                    <button class="icon-btn" title="Çal" disabled={!info()?.found} onClick={() => test(x.key)}>
                       <I.Volume2 />
                     </button>
                     <div>

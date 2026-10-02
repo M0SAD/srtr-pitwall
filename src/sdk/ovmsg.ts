@@ -8,6 +8,8 @@ import { settings, updateSettings } from "./settings";
 
 export const OVMSG_EVENT = "overlay-message";
 export const OVMSG_TYPE = "messages";
+/** Çıkış yapıldı / hesap değişti: Mesajlar overlay'i ekrandaki mesajları temizler */
+export const OVMSG_CLEAR_EVENT = "overlay-message-clear";
 
 export interface OvMsg {
   id: string;

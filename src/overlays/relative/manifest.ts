@@ -6,8 +6,9 @@ export const RELATIVE_COLUMNS = [
   { value: "class", label: "Sınıf rengi" },
   { value: "pos", label: "Sınıf sırası" },
   { value: "num", label: "Araç numarası" },
-  { value: "car", label: "Araç markası (logo)" },
+  { value: "flair", label: "Ülke" },
   { value: "name", label: "Sürücü" },
+  { value: "car", label: "Araç markası (logo)" },
   { value: "stint", label: "Stint / PIT / OUT" },
   { value: "license", label: "Lisans ve SR" },
   { value: "irating", label: "iRating" },
@@ -21,6 +22,7 @@ export const RELATIVE_DEFAULT_COLUMNS = [
   { key: "class", on: true },
   { key: "pos", on: true },
   { key: "num", on: true },
+  { key: "flair", on: true },
   { key: "name", on: true },
   { key: "car", on: true },
   { key: "license", on: true },
@@ -34,9 +36,9 @@ export const RELATIVE_DEFAULT_COLUMNS = [
 
 export default defineOverlay({
   id: "relative",
-  name: "Relative",
+  name: "Yakındakiler",
   description:
-    "Pistte önündeki ve arkandaki araçlar: fark, stint, lisans/SR, iRating ve tahmini değişimi, son tur, bayraklar. Üstte hava, altta SOF ve olay puanı.",
+    "Pistte önündeki ve arkandaki araçlar (Relative): fark, stint, lisans/SR, ülke bayrağı, iRating ve tahmini değişimi, son tur, bayraklar. Üstte hava, altta SOF ve olay puanı.",
   category: "race",
   topics: [
     { name: "relative", hz: 10 },

@@ -1,20 +1,16 @@
 // Araç markası logoları.
 //
-// Marka logoları tescilli olduğu için uygulamayla gelmez. Kullanıcı logo dosyalarını
-// uygulamanın "logos" klasörüne koyar (ör. porsche.png, aston-martin.svg). Burada iRacing'deki
-// tam araç adından marka bulunur ve dosya adıyla eşleştirilir. Logo yoksa marka adı yazılır.
-//
-// Ek olarak uygulamayla birlikte paketlenen logolar: src/assets/carlogos/<marka-kimliği>.png / .svg
-// (Vite import.meta.glob ile derlemeye otomatik girer, bkz. o klasördeki README.md).
-// Öncelik: kullanıcının "logos" klasörü > paketlenmiş logo > marka adı yazısı.
+// 46 markanın logosu uygulamayla birlikte paketlenir: src/assets/carlogos/<marka-kimliği>.png / .svg
+// (Vite import.meta.glob ile derlemeye otomatik girer, bkz. o klasördeki README.md). Burada sim'deki
+// tam araç adından marka bulunur ve paketlenmiş logoyla eşleştirilir. Herkes aynı logoları görür:
+// kullanıcının kendi "logos" klasörü artık OKUNMAZ (Ayarlar'daki "Marka logoları" bölümü kaldırıldı).
+// Öncelik: paketlenmiş logo > marka adı yazısı.
 
-import { createSignal, Show } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
-import { apiBase, inTauri } from "./platform";
+import { createMemo, Show } from "solid-js";
 import logoMeta from "../assets/carlogos/meta.json";
 
 export interface Brand {
-  /** Dosya adı önerisi: <id>.png / <id>.svg */
+  /** Paketlenmiş logonun dosya adı: <id>.png / <id>.svg */
   id: string;
   name: string;
   /** Araç adında aranacak kelimeler (küçük harf) */
@@ -124,47 +120,6 @@ export function brandOf(carName: string): Brand | null {
   return best;
 }
 
-export interface LogoFile {
-  name: string;
-  file: string;
-  dataUrl: string;
-}
-
-const [files, setFiles] = createSignal<LogoFile[]>([]);
-const [map, setMap] = createSignal<Map<string, string>>(new Map());
-let loaded: Promise<void> | null = null;
-
-export const logoFiles = files;
-
-async function fetchLogos(): Promise<LogoFile[]> {
-  try {
-    if (inTauri) return await invoke<LogoFile[]>("logos_list");
-    const r = await fetch(`${apiBase}/api/logos`);
-    return r.ok ? await r.json() : [];
-  } catch {
-    return [];
-  }
-}
-
-export async function reloadLogos() {
-  const list = await fetchLogos();
-  const m = new Map<string, string>();
-  for (const f of list) m.set(normKey(f.name), f.dataUrl);
-  setFiles(list);
-  setMap(m);
-}
-
-/** İlk kullanımda bir kez yükle. Uygulamada diğer pencereler "logos-changed" ile yenilenir. */
-export function ensureLogos() {
-  if (!loaded) {
-    loaded = reloadLogos();
-    if (inTauri) {
-      import("@tauri-apps/api/event").then(({ listen }) => listen("logos-changed", () => reloadLogos()));
-    }
-  }
-  return loaded;
-}
-
 // Paketlenmiş logolar: dosya adı (uzantısız) = marka kimliği (ör. aston-martin.png / .svg).
 // Aynı marka için hem SVG hem PNG varsa SVG kullanılır.
 interface Bundled {
@@ -195,33 +150,16 @@ const BUNDLED: Map<string, Bundled> = (() => {
 /** Paketlenmiş logosu olan marka kimlikleri (normKey) */
 export const bundledLogoKeys = () => [...BUNDLED.keys()];
 
-/** Marka için logo ve görünüm bilgisi: önce kullanıcı klasörü (data URL), sonra paketlenmiş dosya */
+/** Marka için paketlenmiş logo ve görünüm bilgisi */
 export function logoInfo(brand: Brand | null): { src: string; dark: boolean; mono: boolean } | undefined {
   if (!brand) return undefined;
-  const m = map();
-  const id = normKey(brand.id);
-  const nm = normKey(brand.name);
-  const user = m.get(id) ?? m.get(nm);
-  if (user) return { src: user, dark: false, mono: false };
-  const b = BUNDLED.get(id) ?? BUNDLED.get(nm);
+  const b = BUNDLED.get(normKey(brand.id)) ?? BUNDLED.get(normKey(brand.name));
   return b ? { src: b.url, dark: b.dark, mono: b.mono } : undefined;
 }
 
 /** Marka için logo adresi */
 export function logoFor(brand: Brand | null): string | undefined {
   return logoInfo(brand)?.src;
-}
-
-export async function openLogosFolder() {
-  if (inTauri) await invoke("logos_open_dir");
-}
-
-export async function notifyLogosChanged() {
-  await reloadLogos();
-  if (inTauri) {
-    const { emit } = await import("@tauri-apps/api/event");
-    await emit("logos-changed");
-  }
 }
 
 /**
@@ -238,11 +176,11 @@ export function CarLogo(props: {
   /** Logo boyutu çarpanı (1 = eski boyut); overlay ayarındaki "Logo boyutu" */
   scale?: number;
 }) {
-  ensureLogos();
   // Tam ad bulunamazsa kısa ad / yol ile de dene ("porsche992cup" gibi)
-  const brand = () => brandOf(props.carName) ?? (props.fallback ? brandOf(props.fallback) : null);
-  const info = () => (props.mode === "text" ? undefined : logoInfo(brand()));
-  const src = () => info()?.src;
+  // Memo: veri her geldiğinde aynı marka/adres yeniden hesaplanıp <img> yeniden kurulmasın (logo titremesi)
+  const brand = createMemo(() => brandOf(props.carName) ?? (props.fallback ? brandOf(props.fallback) : null));
+  const info = createMemo(() => (props.mode === "text" ? undefined : logoInfo(brand())));
+  const src = createMemo(() => info()?.src);
   const label = () => props.fallback ?? brand()?.name ?? props.carName.split(" ")[0] ?? "";
   return (
     <span

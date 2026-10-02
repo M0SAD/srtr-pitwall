@@ -7,8 +7,8 @@
 
 import { createSignal, type Accessor } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { api, cloudEnabled, session } from "@/cloud/supabase";
+import { emit, listen } from "@tauri-apps/api/event";
+import { api, cloudEnabled, refreshSession, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
 import type { Status } from "@/sdk/types";
@@ -35,7 +35,7 @@ import {
 } from "@/cloud/social";
 import { myTeams, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } from "@/cloud/teams";
 import { groupChatKey, myGroups, onGroupChat, type MyGroup } from "@/cloud/groups";
-import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
+import { broadcastOvMsg, ovMsgShown, OVMSG_CLEAR_EVENT, type OvMsg } from "@/sdk/ovmsg";
 
 /** Mesajlar overlay'ine giden kayıt: takım mesajı */
 function teamOv(m: { id: string; team_id: string; sender: string | null; body: string; poll_id?: string | null; meta?: MsgMeta | null }, tm: MyTeam, who: string, mine: boolean): OvMsg {
@@ -158,7 +158,48 @@ export function startSocial(status: Accessor<Status | undefined>) {
     setMyStatus(st);
   };
   setInterval(() => pushStatus(true), 45_000);
+
+  // Çıkış yapıldı / hesap değişti: önceki hesabın arkadaşları, takım ve grup odaları, canlı verisi, okunmamış
+  // sayacı ve ekrandaki bildirimi hemen bırakılır; Realtime abonelikleri kapatılır (yeni hesap için yeniden kurulur).
+  let accountUid = session()?.user.id ?? "";
+  const resetAccount = () => {
+    friends = [];
+    trustAll = false;
+    teams = [];
+    groups = [];
+    teamNames.clear();
+    setToast(null);
+    setPending(0);
+    lastKey = "";
+    linkedFor = "";
+    stopLive();
+    stopLive = () => {};
+    liveKey = "";
+    for (const uid of liveIds) invoke("team_remote_set", { key: uid, fuel: null }).catch(() => {});
+    liveIds = [];
+    stopTeams();
+    stopTeams = () => {};
+    teamKey = "";
+    stopGroups();
+    stopGroups = () => {};
+    groupKey = "";
+    stopMsg();
+    stopMsg = () => {};
+    msgUser = "";
+    void emit(OVMSG_CLEAR_EVENT).catch(() => {});
+  };
   setInterval(() => {
+    // Çıkış ana pencerede yapılır: bu penceredeki oturum bilgisini güncelle
+    refreshSession();
+    const uidNow = session()?.user.id ?? "";
+    if (uidNow !== accountUid) {
+      accountUid = uidNow;
+      resetAccount();
+      if (uidNow) {
+        void refreshFriends();
+        void subscribeMessages();
+      }
+    }
     pushStatus(false);
     if (hiddenKey() !== lastHidden) {
       lastHidden = hiddenKey();
@@ -178,7 +219,10 @@ export function startSocial(status: Accessor<Status | undefined>) {
     }
     try {
       const prev = friends;
-      friends = (await myFriends()) ?? [];
+      const uid = session()!.user.id;
+      const got = (await myFriends()) ?? [];
+      if (session()?.user.id !== uid) return; // yanıt gelene kadar çıkış yapıldı
+      friends = got;
       trustAll = await shareTrustGet().then((r) => !!r?.trust_all).catch(() => false);
       // Açılır pencere: beni güvenilir seçen ya da istek gönderen yeni arkadaş (yarıştayken oyun içi bildirim)
       if (prev.length && !soc().dnd) {
@@ -208,9 +252,12 @@ export function startSocial(status: Accessor<Status | undefined>) {
       }
       // Kabul edilen arkadaşlar panel kapalıyken de renk/simge listesine eklenir
       syncAccountFriends(friends);
-      teams = await myTeams().catch(() => teams);
+      const gotTeams = await myTeams().catch(() => teams);
+      const gotGroups = await myGroups().catch(() => groups);
+      if (session()?.user.id !== uid) return;
+      teams = gotTeams;
       void subscribeTeams();
-      groups = await myGroups().catch(() => groups);
+      groups = gotGroups;
       void subscribeGroups();
     } catch {
       return;

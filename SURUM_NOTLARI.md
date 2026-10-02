@@ -3,6 +3,44 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-62
+
+- **Üst çubukta oyun ikonları:** iRacing, ACC, AC, LMU ve AMS2 ikonları eklendi; bağlı oyun yeşil nokta ve alt çizgiyle belli olur. Yönetim › Görünürlük'teki "Oyun ikonlarını göster" anahtarıyla herkes için yazılı görünüme dönülebilir. (c51)
+- **Kurulum dosyası özelleştirildi:** karşılama / bitiş sayfasında yan görsel, sayfa başlığında logo, kurulum dili seçimi (12 dil), İngilizce açıklama, yayıncı ve telif bilgisi, başlat menüsü klasörü. Görseller `src-tauri/installer/` içinde (şimdilik uygulama simgesinden üretilmiş yer tutucular).
+- **Çıkış yapınca arkadaşlar gizlenir:** arkadaş listesi, sayaçlar ve overlay'lerdeki arkadaş vurguları yalnızca giriş yapılmışken görünür. Sağ alttaki sohbet düğmesi giriş yapmayanlara da gösterilir; tıklayınca "giriş yapmalısın" uyarısı çıkar.
+- **Canlı Sohbet:**
+  - Giriş zorunlu: giriş yapmayanlar sekmeleri görür ama hiçbir bölüm (ücretsiz olanlar dahil) çalışmaz, overlay'ler ekranda görünmez. Yönetim › Canlı Sohbet ayarlarından kapatılabilir; aynı yerden sekmeler gizlenebilir. (c52)
+  - Ücretsiz sürüm: yalnızca en üstteki kanalın sohbeti ve izleyici sayısı. Favori kanallar (★, platform başına bir tane) PRO: `livechat.favorites`.
+  - Overlay yalnızca yayın canlıyken görünür; yayın açılınca kendiliğinden belirir ("Sürekli göster" açıksa oyun dışında da).
+  - Önizleme kısaldı: 5 örnek mesaj, ardından ekrandan kaybolur.
+- **Sesli Mühendis:** "Dene" bölümü ve ses paketi indirme herkese açık (yarışta konuşan mühendis PRO). Paket kartında "N ifade · bu pakette toplam M ses kaydı (dosya) var".
+- **Araç logoları:** 46 logonun tamamı programda; Ayarlar'daki "Araç logoları" bölümü kaldırıldı, herkes gömülü logoları kullanır.
+- Yeni metinler 14 dile çevrildi.
+
+## 021026-61
+
+- **Üst çubuk sim seçici:** bağlı (aktif) oyun yeşil nokta ve alt çizgiyle belli olur. Oyun ikonları için altyapı hazır: `src/assets/simlogos/` klasörüne `iracing`, `acc`, `ac`, `lmu`, `ams2` adlı png/svg konunca adların yerine ikon gösterilir (ikon yoksa kısa ad yazılır).
+
+## 021026-60
+
+- **Canlı Sohbet: Bildirimler (Streamlabs uyarıları) ve OBS tarayıcı kaynağı varsayılan olarak ücretsiz.** Yönetim › PRO özellikleri'nden yeniden PRO'ya ayrılabilir. (c50)
+
+## 021026-59
+
+- **Sıralama Tablosu: ülke bayrağı sürücü adından önce.** Yeni eklenenlerde zaten böyleydi; kayıtlı (eski) Sıralama Tablosu kopyalarında da bayrak sütunu bir kereliğine sürücü adının hemen soluna alınır.
+
+## 021026-58
+
+- **Canlı Sohbet sekme başlıklarında PRO rozeti:** Anket, Sesli okuma, Konuşma → yazı, Sohbete yaz, Bildirimler, Sohbet kaydı ve OBS sekmelerinin yanında "PRO" yazar (yönetici bir özelliği herkese açarsa rozet kalkar).
+
+## 021026-57
+
+- **Yönetici üst çubuğu:** yönetici girişinde üst çubuğun en solunda üye sayısı (üzerine gelince çevrimiçi / çevrimdışı), ★ PRO üye sayısı (deneme ayrı), yarışta olanların sayısı ve yanıt bekleyen destek talepleri. Tıklayınca "Üyeler" penceresi: Tümü / Çevrimiçi / Yarışta / PRO / Çevrimdışı, arama; yarışta olanların oyunu, pisti, aracı ve oturumu. (c49)
+- **Relative → "Yakındakiler":** ülke bayrağı sütunu eklendi (varsayılan açık, sürücü adının hemen solunda; Sıralama Tablosu ile aynı sıra). Mevcut düzenlere bir kereliğine eklenir.
+- **Logo / bayrak titremesi düzeltildi:** Yakındakiler ve Sıralama'da satırlar her veri gelişinde yeniden çiziliyordu; artık araç bazında sabit kalır (gerçek sürüşte de).
+- **Önizlemeler oynayıp duruyor:** overlay önizlemeleri ~8 sn örnek veriyle oynar, sonra görüntü sabit kalır. Başka overlay seçince, ayar değiştirince ya da "▶ Önizlemeyi oynat" ile yeniden oynar. Demo modu ve gerçek sim verisi etkilenmez.
+- Yeni metinler 14 dile çevrildi.
+
 ## 021026-56
 
 - **Sohbet arka planı: "Bu arka planı kullan" hatası düzeltildi** ("Failed to fetch"): görsel artık güvenlik kuralına takılmadan kopyalanır.

@@ -1,11 +1,12 @@
-// Canlı sohbet benzetimi: sohbet çalışmıyorken demo modunda ya da önizleme / düzenleme / sabitleme sırasında
-// overlay'in boş kalmaması için akan sahte bir sohbet üretir.
+// Canlı sohbet benzetimi: canlı yayın yokken demo modunda ya da önizleme / düzenleme / sabitleme sırasında
+// overlay'in nasıl göründüğünü gösteren KISA bir sahte sohbet (5 mesaj, ~5 sn) üretir; ekrandaki overlay'de sonra kaybolur.
 //
 // Tamamen bu bileşenin içinde yaşar: Rust'a hiçbir şey gönderilmez; kayda yazılmaz, sesli okunmaz, moderasyona girmez.
 // Mesajlar listeye EKLENİR (nesneler kimliğini korur); liste baştan kurulmaz, bu yüzden satırlar yanıp sönmez.
 
 import { createEffect, createSignal, on, onCleanup, type Accessor } from "solid-js";
 import { lang, t } from "@/sdk/i18n";
+import { previewFrozen } from "@/sdk/overlay";
 import type { ChatMsg, MsgKind, Platform, Viewers, AlertInfo } from "@/sdk/livechat";
 
 type SimPlatform = "youtube" | "twitch" | "kick";
@@ -190,62 +191,75 @@ function makeViewers(): Record<SimPlatform, number> {
   return { youtube: 180 + rnd(240), twitch: 90 + rnd(170), kick: 20 + rnd(70) };
 }
 
+/** Kısa gösterim: bu kadar mesaj, bu aralıkla eklenir (toplam ≈ 4,5 sn) */
+const DEMO_MSGS = 5;
+const DEMO_STEP = 1100;
+/** Son mesajdan sonra ekranda kalma süresi (ekrandaki overlay'de; sonra tamamen kaybolur) */
+const DEMO_LINGER = 1600;
+
 /**
- * Benzetilmiş sohbet. `active` doğruyken 1,5–4 sn'de bir mesaj ekler; yanlış olunca durur ve listeyi boşaltır.
- * Pencere görünmüyorken (document.hidden) mesaj üretmez.
+ * Benzetilmiş sohbet: KISA bir gösterim. `active` doğru olunca ~1 sn arayla 5 mesaj ekler (≈ 4,5 sn) ve durur.
+ * `stay()` doğruysa (panel önizlemesi, düzenleme modu) son hali sabit bir örnek olarak kalır; yanlışsa (ekrandaki
+ * overlay: sabitlenmiş önizleme, demo modu) ~1,5 sn sonra liste boşalır ve overlay ekrandan kaybolur.
+ * Önizleme yeniden oynatılınca (previewFrozen yanlışa dönünce), `stay` ya da dil değişince gösterim baştan oynar.
+ * `shown()`: şu an gösterilecek örnek var mı (izleyici çubuğu da buna bağlı).
  */
-export function createChatSim(active: Accessor<boolean>, cap = 40): { msgs: Accessor<ChatMsg[]>; viewers: Accessor<Viewers> } {
+export function createChatSim(
+  active: Accessor<boolean>,
+  stay: Accessor<boolean> = () => true,
+): { msgs: Accessor<ChatMsg[]>; viewers: Accessor<Viewers>; shown: Accessor<boolean> } {
   const [msgs, setMsgs] = createSignal<ChatMsg[]>([]);
   const [counts, setCounts] = createSignal(makeViewers());
   const lastLine = { i: -1 };
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let drift: ReturnType<typeof setInterval> | undefined;
 
-  const seed = () => {
-    const now = Date.now();
-    setMsgs([4, 3, 2, 1, 0].map((k) => makeMsg(now - k * 2200, lastLine)));
-  };
-  const next = () => {
-    timer = setTimeout(
-      () => {
-        if (typeof document === "undefined" || !document.hidden) setMsgs((l) => [...l, makeMsg(Date.now(), lastLine)].slice(-cap));
-        next();
-      },
-      1500 + rnd(2500),
-    );
-  };
   const stop = () => {
     clearTimeout(timer);
-    clearInterval(drift);
-    timer = drift = undefined;
+    timer = undefined;
+  };
+  const step = () => {
+    timer = setTimeout(() => {
+      if (msgs().length < DEMO_MSGS) {
+        setMsgs((l) => [...l, makeMsg(Date.now(), lastLine)]);
+        // İzleyici sayıları gösterim boyunca biraz oynar
+        setCounts((c) => {
+          const mv = (v: number, min: number) => Math.max(min, Math.round(v + (Math.random() - 0.48) * Math.max(2, v * 0.03)));
+          return { youtube: mv(c.youtube, 40), twitch: mv(c.twitch, 20), kick: mv(c.kick, 5) };
+        });
+        step();
+      } else if (!stay()) {
+        timer = setTimeout(() => setMsgs([]), DEMO_LINGER);
+      }
+    }, DEMO_STEP);
+  };
+  const play = () => {
+    stop();
+    if (!active()) {
+      setMsgs([]);
+      return;
+    }
+    loadNames();
+    setMsgs([makeMsg(Date.now(), lastLine)]);
+    step();
   };
 
+  createEffect(on([active, stay], play));
+  // "▶ Önizlemeyi oynat": donma kalkınca kısa gösterim baştan oynar
   createEffect(
-    on(active, (on_) => {
-      stop();
-      if (!on_) {
-        setMsgs([]);
-        return;
-      }
-      loadNames();
-      seed();
-      next();
-      // İzleyici sayıları yavaşça oynar
-      drift = setInterval(() => {
-        if (typeof document !== "undefined" && document.hidden) return;
-        setCounts((c) => {
-          const step = (v: number, min: number) => Math.max(min, Math.round(v + (Math.random() - 0.48) * Math.max(2, v * 0.03)));
-          return { youtube: step(c.youtube, 40), twitch: step(c.twitch, 20), kick: step(c.kick, 5) };
-        });
-      }, 5000);
-    }),
+    on(
+      previewFrozen,
+      (frozen) => {
+        if (!frozen && active()) play();
+      },
+      { defer: true },
+    ),
   );
   // Dil değişince eski dildeki satırlar kalmasın
   createEffect(
     on(
       lang,
       () => {
-        if (active()) seed();
+        if (active()) play();
       },
       { defer: true },
     ),
@@ -256,5 +270,5 @@ export function createChatSim(active: Accessor<boolean>, cap = 40): { msgs: Acce
     const c = counts();
     return { ...c, total: c.youtube + c.twitch + c.kick };
   };
-  return { msgs, viewers };
+  return { msgs, viewers, shown: () => msgs().length > 0 };
 }

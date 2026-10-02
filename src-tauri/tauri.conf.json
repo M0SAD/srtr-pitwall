@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SRTR Pitwall",
-  "version": "1.0.56",
+  "version": "1.0.62",
   "identifier": "com.pitwall.overlay",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -29,7 +29,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "shortDescription": "iRacing overlay",
+    "shortDescription": "Sim racing overlays for iRacing, ACC, AC, LMU and AMS2",
     "resources": {
       "resources/openvr/openvr_api.dll": "openvr/openvr_api.dll",
       "resources/openvr/LICENSE.txt": "openvr/LICENSE.txt"
@@ -39,8 +39,36 @@
         "type": "downloadBootstrapper"
       },
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "headerImage": "installer/nsis-header.bmp",
+        "sidebarImage": "installer/nsis-sidebar.bmp",
+        "installerIcon": "icons/icon.ico",
+        "displayLanguageSelector": true,
+        "languages": [
+          "English",
+          "Turkish",
+          "German",
+          "Spanish",
+          "PortugueseBR",
+          "French",
+          "Italian",
+          "Dutch",
+          "Swedish",
+          "Russian",
+          "SimpChinese",
+          "Japanese"
+        ],
+        "startMenuFolder": "SRTR Pitwall"
+      },
+      "wix": {
+        "bannerPath": "installer/wix-banner.bmp",
+        "dialogImagePath": "installer/wix-dialog.bmp"
       }
-    }
+    },
+    "publisher": "SRTR",
+    "copyright": "© 2026 SRTR Pitwall",
+    "category": "Utility",
+    "longDescription": "SRTR Pitwall is an overlay suite for sim racing: relative, standings, fuel, inputs, track map, dashboards, voice engineer, live stream chat and more. Works with iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2 and Automobilista 2.",
+    "homepage": "https://m0sad.github.io/srtr-pitwall/"
   }
 }

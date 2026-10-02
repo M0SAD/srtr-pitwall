@@ -3,6 +3,8 @@
 // sadece chat-oauth edge function'ı kullanır. Ayrıntılı kurulum: docs/canli_sohbet_kurulum.md
 
 import { For, createSignal } from "solid-js";
+import { Switch } from "./SettingsForm";
+import { LIVECHAT_PAGES } from "../pages/LiveChatPage";
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "@/sdk/i18n";
 import { config, saveConfig, type AppConfig } from "@/cloud/account";
@@ -37,6 +39,16 @@ export function AdminLiveChat(p: { run: Run }) {
     livechat_youtube_client_id: config()?.livechat_youtube_client_id ?? "",
     livechat_kick_client_id: config()?.livechat_kick_client_id ?? "",
   });
+  // Erişim kuralları (c52): giriş zorunluluğu ve üyelerden gizlenen sekmeler. PRO kararları Yönetim › PRO özellikleri'nde.
+  const requireLogin = () => config()?.livechat_require_login !== false;
+  const hiddenTabs = () => config()?.livechat_hidden_tabs ?? [];
+  const setRequireLogin = (on: boolean) =>
+    p.run(() => saveConfig({ livechat_require_login: on }), on ? t("Canlı Sohbet için giriş zorunlu") : t("Canlı Sohbet girişsiz de kullanılabilir"));
+  const toggleTab = (id: string, hidden: boolean) => {
+    const next = hiddenTabs().filter((x) => x !== id);
+    if (hidden) next.push(id);
+    return p.run(() => saveConfig({ livechat_hidden_tabs: next }), t("Canlı Sohbet sekmeleri kaydedildi"));
+  };
   const save = () => {
     const v = vals();
     const patch: Partial<AppConfig> = {};
@@ -90,6 +102,38 @@ export function AdminLiveChat(p: { run: Run }) {
         </button>
       </div>
       <p class="muted small">Adım adım kurulum: docs/canli_sohbet_kurulum.md</p>
+
+      <h3 style={{ "margin-top": "18px" }}>Canlı Sohbet erişimi</h3>
+      <p class="muted small">
+        Kimin neyi göreceğini buradan, neyin PRO olacağını Yönetim › PRO özellikleri › Canlı Sohbet grubundan belirlersin (birden fazla kanal,
+        favori kanallar ve izleyici sayıları, anket, sesli okuma, konuşma → yazı, sohbete yazma, bildirimler, sohbet kaydı, OBS).
+      </p>
+      <div class="row">
+        <div>
+          <b>Canlı Sohbet için giriş zorunlu</b>
+          <small>
+            Açıkken giriş yapmamış kullanıcıda Canlı Sohbet'in hiçbir bölümü (ücretsiz olanlar dahil) çalışmaz: sekmeler görünür ama kilitlidir,
+            sohbet başlatılamaz, sohbet overlay'leri ekranda görünmez. Çıkış yapılınca çalışan sohbet durur.
+          </small>
+        </div>
+        <Switch checked={requireLogin()} onChange={setRequireLogin} />
+      </div>
+      <div class="row" style={{ "align-items": "flex-start" }}>
+        <div>
+          <b>Görünen sekmeler</b>
+          <small>İşareti kaldırılan sekme üyelerin menüsünden gizlenir (yöneticiler hepsini görmeye devam eder). Özellik kapanmaz, sadece sayfası gizlenir.</small>
+        </div>
+        <div style={{ display: "grid", "grid-template-columns": "repeat(2, auto)", gap: "4px 18px" }}>
+          <For each={LIVECHAT_PAGES}>
+            {(pg) => (
+              <label style={{ display: "flex", gap: "6px", "align-items": "center", "white-space": "nowrap" }}>
+                <input type="checkbox" checked={!hiddenTabs().includes(pg.id)} onChange={(e) => void toggleTab(pg.id, !e.currentTarget.checked)} />
+                {pg.label}
+              </label>
+            )}
+          </For>
+        </div>
+      </div>
     </section>
   );
 }

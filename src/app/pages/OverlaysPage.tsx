@@ -149,9 +149,10 @@ export function OverlaysPage() {
     const k = selected();
     return k ? profile().overlays[k]?.type ?? "" : "";
   };
-  useSnapshot(
+  const snap = useSnapshot(
     () => manifestById(previewType())?.topics ?? [],
-    () => [selected(), previewType()],
+    // Seçim ya da önizlenen overlay'in ayarı değişince bir tur daha oynar
+    () => [selected(), previewType(), JSON.stringify(profile().overlays[selected() ?? ""]?.options ?? null)],
     () => appState().demo,
   );
 
@@ -425,6 +426,16 @@ export function OverlaysPage() {
               </Show>
             );
           }}
+        </Show>
+        <Show when={!snap() && !appState().demo && previewType()}>
+          <button
+            class="btn ghost"
+            style={{ position: "absolute", top: "12px", right: "12px", "z-index": 3 }}
+            title="Örnek veri birkaç saniye oynar, sonra görüntü sabit kalır"
+            onClick={() => snap.replay()}
+          >
+            ▶ Önizlemeyi oynat
+          </button>
         </Show>
         <div class="ovpreview-bar">
           <For each={BACKDROPS.filter((b) => b.id !== "custom")}>

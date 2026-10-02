@@ -1,5 +1,6 @@
 import { Show } from "solid-js";
-import type { OverlayProps } from "@/sdk/overlay";
+import { onScreen, type OverlayProps } from "@/sdk/overlay";
+import { liveChatEntitled } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { PollBox, SAMPLE_POLL, fontStack } from "../livechat/parts";
 import "../livechat/style.css";
@@ -8,6 +9,8 @@ export default function LivePoll(props: OverlayProps) {
   const o = () => props.options;
   const poll = useTopic("livepoll");
   const view = () => {
+    // Giriş koşulu sağlanmıyorsa ekrandaki overlay hiçbir şey çizmez (panel önizlemesinde örnek görünür)
+    if (onScreen() && !liveChatEntitled()) return null;
     const p = poll();
     if (p && p.state !== "idle") return p;
     return props.editing ? SAMPLE_POLL : null;

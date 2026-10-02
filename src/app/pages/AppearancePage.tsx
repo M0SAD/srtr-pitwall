@@ -6,7 +6,6 @@ import { loadComponent, manifestById } from "@/sdk/registry";
 import { defaultOptions } from "@/sdk/overlay";
 import { injectSamples } from "@/sdk/samples";
 import { SettingsForm, Switch } from "../components/SettingsForm";
-import { LogosPanel } from "../components/LogosPanel";
 import { AppBgPanel } from "../components/AppBgPanel";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockNote } from "../components/ProLock";
@@ -169,7 +168,7 @@ export function AppearancePage() {
           <div class="ap-row">
             <span>
               Lisans ve iRating tek rozette
-              <small class="muted"> · Relative'de yer kazandırır</small>
+              <small class="muted"> · Yakındakiler'de yer kazandırır</small>
             </span>
             <Switch checked={t().combineLicense} onChange={(v) => updateTheme((th) => (th.combineLicense = v))} />
           </div>
@@ -201,7 +200,6 @@ export function AppearancePage() {
               Varsayılana sıfırla
             </button>
           </div>
-          <LogosPanel />
           <ProLockBox feature={F.appBg} text="Uygulama arka planı PRO üyelere özel.">
             <AppBgPanel />
           </ProLockBox>

@@ -1,4 +1,4 @@
-import type { Component } from "solid-js";
+import { createSignal, type Component } from "solid-js";
 import type { TopicName } from "./types";
 
 /** Alanı sadece başka bir ayar belirli değerdeyken göster */
@@ -85,6 +85,21 @@ export interface OverlayProps {
 }
 
 export type OverlayComponent = Component<OverlayProps>;
+
+/**
+ * Panel önizlemesi donduruldu: örnek veri bir süre oynar, sonra akış durur ve görüntü sabit kalır
+ * (bkz. telemetry.ts useSnapshot). Kendi zamanlayıcısı / benzetimi olan overlay'ler bu doğruyken yeni içerik
+ * üretmemeli. Ekrandaki gerçek overlay pencerelerinde her zaman yanlıştır.
+ */
+export const [previewFrozen, setPreviewFrozen] = createSignal(false);
+
+/**
+ * Overlay gerçek overlay penceresinde (ya da OBS sayfasında; Host) mı çiziliyor. Yanlış: kontrol panelinin içinde
+ * (Overlay'ler sayfası önizlemesi, düzen tuvali). Host açılışta doğru yapar.
+ */
+export const [onScreen, setOnScreen] = createSignal(false);
+/** Overlay penceresi düzenleme modunda mı (Host günceller; panelde her zaman yanlış) */
+export const [screenEditing, setScreenEditing] = createSignal(false);
 
 /** Manifest yazarken tip denetimi için yardımcı. */
 export function defineOverlay(m: OverlayManifest): OverlayManifest {

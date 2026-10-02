@@ -1,3 +1,4 @@
+import { onScreen, previewFrozen, screenEditing } from "@/sdk/overlay";
 import { For, Show, createMemo, createSignal, onCleanup, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
@@ -54,7 +55,7 @@ export default function LiveChat(props: OverlayProps) {
   const poll = useTopic("livepoll");
   const caps = useTopic("captions");
   const [now, setNow] = createSignal(Date.now());
-  const tick = setInterval(() => setNow(Date.now()), 1000);
+  const tick = setInterval(() => !previewFrozen() && setNow(Date.now()), 1000);
   onCleanup(() => clearInterval(tick));
 
   const bots = createMemo(() =>
@@ -67,17 +68,24 @@ export default function LiveChat(props: OverlayProps) {
 
   // Silinen mesaj "mesaj silindi" olarak 6 sn kalır, sonra kaldırılır
   const delAt = new Map<string, number>();
-  // GERÇEK: sohbet motoru çalışıyor → sadece gerçek mesajlar (henüz mesaj yoksa boş; düzenlemede "bekleniyor" notu).
-  // BENZETİM: sohbet çalışmıyor ve demo modu açık ya da overlay önizleniyor / düzenleniyor / sabitlenmiş → akan sahte sohbet
-  // (sadece bu bileşende; kayda, sesli okumaya, moderasyona girmez). Diğer durumda (normal oturum, sohbet kapalı) boş.
+  // GİRİŞ: ekrandaki overlay (gerçek pencere / OBS) giriş koşulu sağlanmıyorsa hiçbir şey çizmez (Rust: loginOk).
+  //   Panel içindeki önizlemede örnek yine görünür.
+  // GERÇEK: sohbet çalışıyor VE bağlı kanallardan en az biri canlı yayında (Rust: anyLive) → sadece gerçek mesajlar.
+  //   Yayın yokken overlay ekranda görünmez; yayın açılınca kendiliğinden belirir.
+  // ÖRNEK: canlı yayın yokken, overlay önizleniyor / düzenleniyor / sabitlenmiş ya da demo modu açıksa kısa bir sahte
+  //   sohbet oynar (5 mesaj, ~5 sn; sadece bu bileşende, kayda / sesli okumaya / moderasyona girmez). Panel önizlemesinde
+  //   ve düzenleme modunda sabit örnek olarak kalır; ekranda (sabitlenmiş önizleme, demo) sonra tamamen kaybolur.
   const running = () => !!topic()?.running;
   const status = useTopic("status");
   const demo = () => !!status()?.demo || !!settings().general.demo;
-  const simOn = createMemo(() => !running() && (props.editing || demo()));
-  const sim = createChatSim(simOn);
+  const loginOk = () => !onScreen() || !!topic()?.loginOk;
+  const anyLive = () => running() && !!topic()?.anyLive;
+  const wantSample = createMemo(() => loginOk() && !anyLive() && (props.editing || demo()));
+  const sim = createChatSim(wantSample, () => !onScreen() || screenEditing());
+  const simOn = () => wantSample() && sim.shown();
   /** En az bir kanala bağlı mı (yayın açık, sohbet okunuyor) */
   const connected = () => (topic()?.channels ?? []).some((c) => c.state === "live" || c.chat);
-  const waiting = () => running() && props.editing && !live().length;
+  const waiting = () => anyLive() && props.editing && !live().length;
   // Konu her gönderimde yeni nesnelerle gelir: aynı mesajın eski nesnesi korunur ki liste baştan çizilmesin
   // (aksi halde her yeni mesajda / izleyici sayısı değişiminde tüm satırlar kaybolup yeniden belirir).
   let cache = new Map<string, ChatMsg>();
@@ -93,7 +101,7 @@ export default function LiveChat(props: OverlayProps) {
     return out;
   });
   const shown = createMemo(() => {
-    let l = running() ? live() : simOn() ? sim.msgs() : [];
+    let l = !loginOk() ? [] : anyLive() ? live() : simOn() ? sim.msgs() : [];
     const fade = Number(o().fade) * 1000;
     const n = now();
     l = l.filter((m) => {
@@ -180,15 +188,15 @@ export default function LiveChat(props: OverlayProps) {
 
   // İzleyici çubuğu
   const barSize = () => ({ small: 11, normal: 15, large: 21 })[o().viewerBar as string] ?? 0;
-  const viewers = () => (running() ? topic()?.viewers : simOn() ? sim.viewers() : undefined);
+  const viewers = () => (anyLive() ? topic()?.viewers : simOn() ? sim.viewers() : undefined);
   /** Çubukta gösterilecek platformlar: bağlı (kilitli olmayan) ya da ★ favori kanalı olanlar. Yayın kapalıysa "—". */
   const barPlatforms = createMemo(() => {
-    const chans = running() ? (topic()?.channels ?? []) : [];
+    const chans = anyLive() ? (topic()?.channels ?? []) : [];
     const set = new Set<string>();
     for (const c of chans) if (c.platform && (c.state !== "locked" || c.mine)) set.add(c.platform);
     return (["youtube", "twitch", "kick"] as const).filter((p) => set.has(p));
   });
-  const barOn = () => barSize() > 0 && (simOn() || running());
+  const barOn = () => barSize() > 0 && loginOk() && (simOn() || anyLive());
   const sample = simOn;
   const clock = () => new Date(now()).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
@@ -225,10 +233,10 @@ export default function LiveChat(props: OverlayProps) {
           </Show>
         </div>
       </Show>
-      <Show when={o().showPoll && running() && (poll()?.state ?? "idle") !== "idle"}>
+      <Show when={o().showPoll && loginOk() && running() && (poll()?.state ?? "idle") !== "idle"}>
         <PollBox poll={poll()!} />
       </Show>
-      <Show when={o().showCaptions && caps()}>
+      <Show when={o().showCaptions && loginOk() && caps()}>
         <CaptionBox captions={caps()!} now={now()} maxAge={10} />
       </Show>
       <div class="lc-list" data-no-i18n>

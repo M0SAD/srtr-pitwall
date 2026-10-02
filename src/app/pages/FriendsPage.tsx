@@ -7,7 +7,7 @@ import { For, Show, createEffect, createMemo, createResource, createSignal, on, 
 import { t } from "@/sdk/i18n";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { settings, updateSettings, type Friend } from "@/sdk/settings";
-import { friendColor, resizePhoto, syncAccountFriends } from "@/sdk/friends";
+import { friendColor, resizePhoto, syncAccountFriends, visibleFriends } from "@/sdk/friends";
 import { session } from "@/cloud/supabase";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { findPeople, friendRemove, friendRequest, friendRespond, myFriends, type Friend as CloudFriend, type Person } from "@/cloud/social";
@@ -56,6 +56,7 @@ export function FriendsPage() {
   const [cloud, { refetch }] = createResource<CloudFriend[], string | null>(
     () => (session() ? session()!.user.id : null),
     async () => {
+      last = []; // hesap değişti / yeniden giriş: önceki hesabın listesi yedek olarak kalmasın
       try {
         last = (await myFriends()) ?? [];
         syncAccountFriends(last);
@@ -65,7 +66,8 @@ export function FriendsPage() {
       return last;
     },
   );
-  const all = () => cloud() ?? [];
+  // Çıkış yapınca kaynak (resource) son değerini korur: oturum yoksa önceki hesabın listesi gösterilmez
+  const all = () => (session() ? cloud() ?? [] : []);
   const incoming = () => all().filter((f) => f.status === "pending_in");
   const outgoing = () => all().filter((f) => f.status === "pending_out");
   const cloudOf = (id?: string) => (id ? all().find((f) => f.friend_id === id) : undefined);
@@ -152,7 +154,7 @@ export function FriendsPage() {
   // Listede gösterilenler: kabul edilmiş hesap arkadaşları + eski (hesapsız) kayıtlar
   const cards = createMemo(() => {
     const accepted = new Set(all().filter((f) => f.status === "accepted").map((f) => f.friend_id));
-    return fs().list.filter((f) => !f.accountId || accepted.has(f.accountId) || !cloud());
+    return visibleFriends().filter((f) => !f.accountId || accepted.has(f.accountId) || !cloud());
   });
 
   const removeFriend = (f: Friend) => {
@@ -226,7 +228,7 @@ export function FriendsPage() {
             <b>Nerede gösterilsin</b>
           </div>
           <div class="fr-where">
-            <For each={[["relative", "Relative"], ["standings", "Sıralama Tablosu"], ["timing", "Live Timing"], ["map", "Haritalar"]] as const}>
+            <For each={[["relative", "Yakındakiler"], ["standings", "Sıralama Tablosu"], ["timing", "Live Timing"], ["map", "Haritalar"]] as const}>
               {([k, label]) => (
                 <label class="check">
                   <input type="checkbox" checked={fs().where[k]} onChange={(e) => updateSettings((d) => (d.friends.where[k] = e.currentTarget.checked))} />

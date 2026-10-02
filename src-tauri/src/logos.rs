@@ -1,8 +1,9 @@
 //! Araç markası logoları.
 //!
-//! Marka logoları tescilli olduğu için uygulamayla gelmez; kullanıcı kendi logo dosyalarını
-//! uygulama klasöründeki `logos` klasörüne koyar (ör. porsche.png, bmw.svg). Dosya adı markayı
-//! belirtir; arayüz iRacing'deki araç adından markayı bulup eşleşen logoyu gösterir.
+//! ESKİ / KULLANILMIYOR: logolar artık uygulamayla paketlenir (src/assets/carlogos, bkz. src/sdk/logos.tsx)
+//! ve arayüz bu modülü çağırmaz. Eskiden kullanıcı kendi logo dosyalarını uygulama klasöründeki `logos`
+//! klasörüne koyardı; komutlar (logos_list, logos_open_dir, GET /api/logos) eski pencereler/OBS sayfaları
+//! bozulmasın diye yerinde duruyor.
 
 use base64::Engine;
 use serde::Serialize;

@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { OverlayProps } from "@/sdk/overlay";
 import { inTauri } from "@/sdk/platform";
-import { OVMSG_EVENT, ovMsgAccepts, registerOvMsgFilter, type OvMsg } from "@/sdk/ovmsg";
+import { OVMSG_CLEAR_EVENT, OVMSG_EVENT, ovMsgAccepts, registerOvMsgFilter, type OvMsg } from "@/sdk/ovmsg";
 import "./style.css";
 
 interface Item {
@@ -45,9 +45,13 @@ export default function Messages(props: OverlayProps) {
       setNow(t);
       setItems([...items(), { m, at: t }].slice(-maxN()));
     }).then((f) => (dead ? f() : (un = f)));
+    // Çıkış yapıldı / hesap değişti: önceki hesabın mesajları ekranda kalmasın
+    let unClear: (() => void) | undefined;
+    void listen(OVMSG_CLEAR_EVENT, () => setItems([])).then((f) => (dead ? f() : (unClear = f)));
     onCleanup(() => {
       dead = true;
       un?.();
+      unClear?.();
     });
   });
 

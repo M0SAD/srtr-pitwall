@@ -17,7 +17,7 @@ Hafif ve hızlı iRacing overlay uygulaması. **Tauri 2 + Rust + SolidJS** ile y
 
 | Overlay | İçerik |
 |---|---|
-| Relative | Önündeki/arkandaki araçlar: fark, stint/PIT/OUT, lisans+SR, iRating ve tahmini değişim, son tur, bayraklar; hava ve SOF satırları |
+| Yakındakiler (Relative) | Önündeki/arkandaki araçlar: fark, stint/PIT/OUT, lisans+SR, iRating ve tahmini değişim, son tur, bayraklar; hava ve SOF satırları |
 | Leaderboard | Çok sınıflı sıralama, sınıf SOF'u, ülke, marka, iRating, fark/aralık, 5 tur ort., en iyi tur |
 | Yakıt Hesaplayıcı | Son/ort.5/ort.10 tüketim tablosu, ikmal, hedef tüketim, kalan tur, pit penceresi |
 | Telemetri Paneli | Vites halkası, devir ışıkları, hız, pozisyon değişimi, son tur, yakıt, sıcaklık, ABS/TC/BB |
@@ -100,9 +100,8 @@ Derleme bitince:
   dışına çıkmadan) şekli kendisi çıkarır ve saklar. Harita ters görünürse overlay ayarlarındaki "Aynala"yı aç.
   Kayıtlar: `%APPDATA%\com.pitwall.overlay\tracks\`
 - **OBS:** Araçlar → Web sunucusu'nu aç, verilen adresi OBS'te Tarayıcı Kaynağı olarak ekle (1920×1080).
-- **Marka logoları:** logolar tescilli olduğu için uygulamayla gelmez. Görünüm → Araç markası logoları →
-  "Logo klasörünü aç" ile açılan klasöre `porsche.png`, `aston-martin.svg` gibi dosyalar koy
-  (`%APPDATA%\com.pitwall.overlay\logos\`). Logo yoksa marka adı yazılır.
+- **Marka logoları:** 46 markanın logosu uygulamayla birlikte gelir (`src/assets/carlogos/`); kullanıcının ayrıca
+  dosya koyması gerekmez (eski `logos` klasörü artık okunmaz). Logosu olmayan markada marka adı yazılır.
 - **Takım yakıt paylaşımı (MQTT):** Araçlar → MQTT. Takımdan biri "MQTT sunucusunu çalıştır"ı açar (port 1883,
   internetten bağlanılacaksa modemde port yönlendirmesi gerekir) ya da ortak bir MQTT sunucusu kullanılır. Herkes
   istemciyi açıp aynı sunucu adresini ve aynı **takım adını** yazar. Sürüş yapanın yakıtı Yakıt overlay'inin

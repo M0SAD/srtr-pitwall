@@ -1,3 +1,4 @@
+import { previewFrozen } from "@/sdk/overlay";
 import { Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
@@ -29,7 +30,7 @@ export default function Session(props: OverlayProps) {
   const data = useTopic("session");
   const [now, setNow] = createSignal(new Date());
   let timer: number | undefined;
-  onMount(() => (timer = window.setInterval(() => props.options.showClock && setNow(new Date()), 1000)));
+  onMount(() => (timer = window.setInterval(() => props.options.showClock && !previewFrozen() && setNow(new Date()), 1000)));
   onCleanup(() => clearInterval(timer));
 
   const flag = createMemo(() => {

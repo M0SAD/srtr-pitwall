@@ -79,6 +79,7 @@ export const F = {
   engineer: "tools.engineer",
   events: "tools.events",
   liveMulti: "livechat.multi",
+  liveFav: "livechat.favorites",
   livePoll: "livechat.poll",
   liveObs: "livechat.obs",
   liveTts: "livechat.tts",
@@ -90,7 +91,7 @@ export const F = {
 
 /** Rust'ın da denetlediği Canlı Sohbet anahtarları: PRO'ya ayrılmışsa entitlement "locked" listesine aynı adla girer
  *  (bkz. cloud/account.ts withVoiceLock, src-tauri/src/livechat/mod.rs allowed). Varsayılanları aşağıdaki katalogda. */
-export const LIVECHAT_LOCK_KEYS = [F.liveMulti, F.livePoll, F.liveObs, F.liveTts, F.liveStt, F.liveSend, F.liveAlerts, F.liveLog] as const;
+export const LIVECHAT_LOCK_KEYS = [F.liveMulti, F.liveFav, F.livePoll, F.liveObs, F.liveTts, F.liveStt, F.liveSend, F.liveAlerts, F.liveLog] as const;
 /** Rust'ın denetlediği diğer anahtarlar (aynı adla "locked" listesine girer): Mesajlar overlay'inde sesli okuma (livechat/tts.rs) */
 export const RUST_LOCK_KEYS = [F.msgTts] as const;
 
@@ -142,14 +143,16 @@ const STATIC: ProFeature[] = [
   { key: F.timing, label: "Live Timing penceresi", group: "Araçlar", defaultPro: false },
   { key: F.engineer, label: "Mühendis Ekranı penceresi", group: "Araçlar", defaultPro: false },
   { key: F.events, label: "Olaylar penceresi", group: "Araçlar", defaultPro: false },
-  // Canlı Sohbet (tek kanal okuma, moderasyon, görünüm ve kayıt tutmak herkese açık)
-  { key: F.liveMulti, label: "Birden fazla kanal (ücretsiz: yalnızca en üstteki kanalın mesajları)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kanal eklemek ve ★ favorilerin izleyici sayısı her zaman açık" },
+  // Canlı Sohbet (tek kanal okuma, moderasyon, görünüm ve kayıt tutmak herkese açık). Giriş zorunluluğu ve sekme gizleme
+  // PRO kararı değildir: Yönetim › Canlı Sohbet ayarları (app_config.livechat_require_login / livechat_hidden_tabs).
+  { key: F.liveMulti, label: "Birden fazla kanal (ücretsiz: yalnızca en üstteki kanalın sohbeti ve izleyici sayısı)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kanal eklemek her zaman açık; PRO değilse sadece en üstteki kanal bağlanır" },
+  { key: F.liveFav, label: "Favori kanallar ve izleyici sayıları (★, platform başına bir tane)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · PRO değilse ★ işaretlenemez, favorilerin izleyici sayısı gösterilmez" },
   { key: F.livePoll, label: "Sohbet anketi", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · anket başlatmak (düğme ve kısayol)" },
-  { key: F.liveObs, label: "OBS tarayıcı kaynağı (sohbet, anket, altyazı sayfaları)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
+  { key: F.liveObs, label: "OBS tarayıcı kaynağı (sohbet, anket, altyazı sayfaları)", group: "Canlı Sohbet", defaultPro: false, hint: "Rust da denetler" },
   { key: F.liveTts, label: "Sohbeti sesli okuma (TTS)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveStt, label: "Konuşmayı yazıya çevirme (altyazı)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveSend, label: "Sohbete yazma (Twitch / Kick / YouTube)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
-  { key: F.liveAlerts, label: "Streamlabs uyarıları", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
+  { key: F.liveAlerts, label: "Streamlabs uyarıları", group: "Canlı Sohbet", defaultPro: false, hint: "Rust da denetler" },
   { key: F.liveLog, label: "Sohbet kaydını görüntüleme (arama, süzme, dışa aktarma)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kayıt tutmak ve silmek her zaman açık" },
 ];
 

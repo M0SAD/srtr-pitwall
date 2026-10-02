@@ -6,10 +6,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { t } from "@/sdk/i18n";
 import * as LC from "@/sdk/livechat";
 import type { LiveChannel } from "@/sdk/settings";
-import { F } from "@/sdk/proFeatures";
+import { F, proLocked } from "@/sdk/proFeatures";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { PlatformIcon } from "@/overlays/livechat/parts";
-import { ProLockNote } from "../../components/ProLock";
+import { ProLockNote, ProTag } from "../../components/ProLock";
 import { Slider, Switch } from "../../components/SettingsForm";
 import * as I from "../../icons";
 import { STATE_TEXT, errText, lc, setLc, toast } from "./common";
@@ -25,6 +25,8 @@ export function ChannelsTab() {
   const statusOf = (c: LiveChannel) => store.status()?.channels.find((s) => s.url === c.url);
   const platformOf = (c: LiveChannel) => statusOf(c)?.platform ?? LC.detectPlatform(c.url);
   const multi = () => store.status()?.multi ?? true;
+  /** ★ favoriler PRO'ya ayrılmış ve kullanıcı PRO değil: işaretlenemez, izleyici sayıları gösterilmez */
+  const favLocked = () => proLocked(F.liveFav);
 
   const save = (next: LiveChannel[]) => {
     // Platform başına tek "benim kanalım"
@@ -100,6 +102,7 @@ export function ChannelsTab() {
 
   /** ★ favori: platform başına bir tane. Aynı platformdan başka bir kanal işaretlenirse eskisinin yerini alır. */
   const toggleMine = (i: number) => {
+    if (favLocked() && !list()[i].mine) return toast(t("Favori kanallar PRO üyelere özel"), true);
     const next = list().map((c) => ({ ...c }));
     const on = !next[i].mine;
     if (on) {
@@ -180,11 +183,16 @@ export function ChannelsTab() {
           <h3>Kanallar</h3>
           <span class="lcp-sp" />
           <Show when={list().length}>
-            <small class="muted">Sürükleyerek sırala · ★ favori kanalın (platform başına bir tane; izleyici sayısı ve sohbete yazma)</small>
+            <small class="muted">
+              Sürükleyerek sırala · ★ favori kanalın (platform başına bir tane; izleyici sayısı ve sohbete yazma) <ProTag feature={F.liveFav} />
+            </small>
           </Show>
         </div>
         <Show when={list().length > 1}>
-          <ProLockNote feature={F.liveMulti} text={t("Ücretsiz sürümde yalnızca en üstteki kanalın mesajları görünür. Başka bir kanala geçmek için onu en üste sürükle; ★ favori kanalların izleyici sayısı yine gösterilir.")} />
+          <ProLockNote feature={F.liveMulti} text={t("Ücretsiz sürümde yalnızca en üstteki kanalın sohbeti ve izleyici sayısı gösterilir. Başka bir kanala geçmek için onu en üste sürükle.")} />
+        </Show>
+        <Show when={list().length}>
+          <ProLockNote feature={F.liveFav} text={t("★ favori kanallar (platform başına bir tane) ve izleyici sayıları PRO üyelere özel.")} />
         </Show>
         <Show when={list().length} fallback={<p class="muted">Henüz kanal yok. Yukarıya bir link yapıştır.</p>}>
           <div class="lcp-chans" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
@@ -238,8 +246,8 @@ export function ChannelsTab() {
                     </div>
                     <span class="lcp-ch-state">
                       <Show when={locked()} fallback={stateLine(c, i())}>
-                        <Show when={c.mine && s()?.viewers != null}>{stateLine(c, i())} </Show>
-                        <span class="pro-badge small" title={t("Ücretsiz sürümde yalnızca en üstteki kanalın mesajları görünür")}>
+                        <Show when={c.mine && !favLocked() && s()?.viewers != null}>{stateLine(c, i())} </Show>
+                        <span class="pro-badge small" title={t("Ücretsiz sürümde yalnızca en üstteki kanalın sohbeti ve izleyici sayısı gösterilir")}>
                           PRO
                         </span>
                       </Show>
@@ -260,8 +268,9 @@ export function ChannelsTab() {
                       </button>
                       <button
                         class="star"
-                        classList={{ on: !!c.mine }}
-                        title={c.mine ? t("Favori kanalım (platform başına bir tane)") : t("Favori kanalım olarak işaretle")}
+                        classList={{ on: !!c.mine && !favLocked(), locked: favLocked() }}
+                        style={favLocked() ? { opacity: "0.45" } : undefined}
+                        title={favLocked() ? t("Favori kanallar PRO üyelere özel") : c.mine ? t("Favori kanalım (platform başına bir tane)") : t("Favori kanalım olarak işaretle")}
                         onClick={() => toggleMine(i())}
                       >
                         <I.Star />

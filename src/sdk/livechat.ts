@@ -127,6 +127,12 @@ export interface LiveChatStatus {
   /** Birden fazla kanal bağlanabilir (PRO) */
   multi: boolean;
   log: boolean;
+  /** ★ favori kanallar kullanılabilir (PRO: livechat.favorites) */
+  favorites: boolean;
+  /** Giriş koşulu sağlanıyor (giriş yapılmış ya da yönetici zorunluluğu kapatmış) */
+  loginOk: boolean;
+  /** Bağlı kanallardan en az biri canlı yayında */
+  anyLive: boolean;
 }
 
 /** "livechat" konusu */
@@ -137,6 +143,10 @@ export interface LiveChatTopic {
   channels: ChannelStatus[];
   viewers: Viewers;
   rev: number;
+  /** Bağlı kanallardan en az biri canlı yayında (overlay yalnızca bu doğruyken görünür) */
+  anyLive: boolean;
+  /** Giriş koşulu sağlanıyor (yanlışsa overlay'ler ekranda hiçbir şey çizmez) */
+  loginOk: boolean;
 }
 
 export interface PollView {

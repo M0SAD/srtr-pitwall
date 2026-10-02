@@ -4,6 +4,17 @@
 
 import { createMemo } from "solid-js";
 import { settings, updateSettings, type Friend } from "./settings";
+import { session } from "@/cloud/supabase";
+
+/**
+ * Gösterilecek arkadaş kayıtları: hesap arkadaşları (accountId) sadece giriş yapılmışken sayılır.
+ * Çıkış yapınca listeden silinmezler (renk/simge ayarı kaybolmasın, tekrar girişte geri gelir) ama hiçbir
+ * yerde gösterilmez ve overlay'lerde vurgulanmazlar. Hesapsız (elle eklenmiş eski) kayıtlar hep görünür.
+ */
+export function visibleFriends(): Friend[] {
+  const list = settings().friends.list;
+  return session() ? list : list.filter((x) => !x.accountId);
+}
 
 export type FriendPlace = "relative" | "standings" | "timing" | "map";
 
@@ -16,7 +27,7 @@ const index = createMemo(() => {
   const byId = new Map<number, Friend>();
   const byName = new Map<string, Friend>();
   if (f.enabled) {
-    for (const x of f.list) {
+    for (const x of visibleFriends()) {
       if (x.userId > 0) byId.set(x.userId, x);
       if (x.name) byName.set(normName(x.name), x);
     }

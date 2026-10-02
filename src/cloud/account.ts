@@ -1,6 +1,6 @@
 // Hesap profili, uygulama yapılandırması (PRO overlay'ler, destek bağlantıları) ve PRO durumu.
 
-import { createSignal } from "solid-js";
+import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { api, callFunction, cloudEnabled, session } from "./supabase";
 import { apiBase, inTauri } from "@/sdk/platform";
@@ -55,6 +55,8 @@ export interface AppConfig {
   /** Yöneticinin gizlediği sol menü bölümleri ve overlay'ler (yöneticiler yine görür) */
   hidden_sections?: string[];
   hidden_overlays?: string[];
+  /** Üst çubuktaki sim seçicide oyun ikonları (c51); false: eski yazılı görünüm. Sütun yoksa (eski sunucu) açık sayılır */
+  sim_icons?: boolean;
   /** Herkese ücretsiz PRO kampanyası: bu tarihe kadar giriş yapmış herkes PRO */
   promo_pro_until?: string | null;
   promo_note?: string;
@@ -73,6 +75,10 @@ export interface AppConfig {
   livechat_twitch_client_id?: string;
   livechat_youtube_client_id?: string;
   livechat_kick_client_id?: string;
+  /** Canlı Sohbet (c52): kullanmak için hesaba giriş zorunlu mu (yoksa: evet) */
+  livechat_require_login?: boolean;
+  /** Canlı Sohbet (c52): yönetici olmayanlardan gizlenen sekmeler (LIVECHAT_PAGES kimlikleri: "poll", "tts"…) */
+  livechat_hidden_tabs?: string[];
 }
 
 export interface ProPricing {
@@ -141,9 +147,21 @@ export const isPro = () => !freeView() && (entitlement().pro || isAdmin() || pro
 export const isProOverlay = (id: string) => entitlement().locked.includes(id) || (config()?.pro_overlays ?? []).includes(id);
 
 /** Yöneticinin gizlediği overlay (yöneticiler gizlenenleri de görür) */
+/** Üst çubuktaki sim seçicide oyun ikonları gösterilsin mi (Yönetim › Görünürlük; varsayılan açık) */
+export const simIconsOn = () => config()?.sim_icons !== false;
 export const isHiddenOverlay = (id: string) => !isAdmin() && (config()?.hidden_overlays ?? []).includes(id);
 /** Yöneticinin gizlediği sol menü bölümü */
 export const isHiddenSection = (id: string) => !isAdmin() && (config()?.hidden_sections ?? []).includes(id);
+/** Canlı Sohbet için giriş zorunlu mu (yönetici kapatmadıysa evet; bulut yoksa zorunluluk uygulanamaz) */
+export const liveChatRequiresLogin = () => cloudEnabled && config()?.livechat_require_login !== false;
+/** Canlı Sohbet bu kullanıcıya açık mı (giriş yapılmış ya da zorunluluk kapalı). Panel bununla kilit gösterir. */
+export const liveChatLoginOk = () => !liveChatRequiresLogin() || !!session();
+/** Aynı bilgi, Rust'a bildirilmiş haliyle (entitlement "locked" işaretleri): overlay pencereleri ve OBS sayfaları bunu kullanır */
+export const liveChatEntitled = () => entitlement().locked.some((x) => x === "livechat.signedin" || x === "livechat.anon");
+/** Yöneticinin gizlediği Canlı Sohbet sekmesi (yöneticiler hepsini görür) */
+export const isHiddenLiveTab = (id: string) => !isAdmin() && (config()?.livechat_hidden_tabs ?? []).includes(id);
+export const markedHiddenLiveTab = (id: string) => (config()?.livechat_hidden_tabs ?? []).includes(id);
+
 /** Gizli işaretli mi (yönetici "gizli" rozeti için) */
 export const markedHiddenOverlay = (id: string) => (config()?.hidden_overlays ?? []).includes(id);
 export const markedHiddenSection = (id: string) => (config()?.hidden_sections ?? []).includes(id);
@@ -493,12 +511,15 @@ function withVoiceLock(list: string[]): string[] {
   if (voiceRequiresPro()) rest.push("voice");
   if (shotsRequirePro()) rest.push("shots");
   rest.push(...livechatLocks());
+  // Canlı Sohbet giriş koşulu (kilit değil, işaret; Rust: livechat/mod.rs login_ok): ikisi de yoksa Canlı Sohbet çalışmaz
+  if (session()) rest.push("livechat.signedin");
+  if (!liveChatRequiresLogin()) rest.push("livechat.anon");
   return rest;
 }
 
 /** Canlı Sohbet: PRO'ya ayrılmış özellikler (yönetici kararı, yoksa varsayılan PRO). Rust aynı adlarla denetler. */
 // "social.messages_tts": Mesajlar overlay'inde sesli okuma (aynı düzen; Rust: livechat/tts.rs social_tts_speak)
-const LIVECHAT_LOCKS = ["livechat.multi", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts"];
+const LIVECHAT_LOCKS = ["livechat.multi", "livechat.favorites", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts"];
 function livechatLocks(): string[] {
   let v: Record<string, unknown> = {};
   try {
@@ -506,7 +527,9 @@ function livechatLocks(): string[] {
   } catch {
     /* önbellek yok */
   }
-  return LIVECHAT_LOCKS.filter((k) => (typeof v[k] === "boolean" ? v[k] : true));
+  // Varsayılanda herkese açık olanlar (proFeatures.ts kataloğuyla aynı): OBS tarayıcı kaynağı ve Streamlabs uyarıları
+  const free = ["livechat.obs", "livechat.alerts"];
+  return LIVECHAT_LOCKS.filter((k) => (typeof v[k] === "boolean" ? v[k] : !free.includes(k)));
 }
 
 /** Yönetici sesli mühendis kararını değiştirdi: Rust tarafındaki kilidi hemen güncelle */
@@ -526,6 +549,8 @@ export async function refreshEntitlement() {
   if (!cloudEnabled || !inTauri) {
     await readEntitlement();
     if (inTauri) syncWatermark(normalizeWatermark(null), "");
+    // Bulut yok: Canlı Sohbet giriş işareti ("livechat.anon") yine de Rust'a bildirilsin
+    await syncVoiceLock();
     return;
   }
   try {
@@ -564,6 +589,13 @@ export function startEntitlement() {
   });
   readEntitlement().then(refreshEntitlement);
   setInterval(refreshEntitlement, 6 * 3600_000);
+  // Giriş / çıkış ya da "giriş zorunlu" ayarı değişti: Canlı Sohbet giriş işaretini Rust'a hemen bildir
+  // (çıkış yapılınca çalışan sohbet durur, overlay'ler ekrandan kalkar)
+  createRoot(() =>
+    createEffect(
+      on([() => !!session(), liveChatRequiresLogin], () => void syncVoiceLock(), { defer: true }),
+    ),
+  );
   if (inTauri) {
     import("@tauri-apps/api/event").then(({ listen }) => listen<Entitlement>("entitlement", (e) => setEntitlement(e.payload)));
   } else {

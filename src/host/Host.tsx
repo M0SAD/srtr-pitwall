@@ -31,7 +31,7 @@ import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
-import type { OverlayComponent, OverlayManifest } from "@/sdk/overlay";
+import { previewFrozen, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
 import {
   clampRect,
   effectiveScale,
@@ -53,6 +53,8 @@ let peekTimer: number | undefined;
 // Overlay'ler sayfasında yeni eklenen overlay: kullanıcı o sayfada kaldıkça (oyun kapalıyken) örnek veriyle ekranda tutulur.
 // Panel bırakınca (sayfadan çıkış, başka overlay seçimi, panel kapanışı) ya da oyun bağlanınca normal kurallara dönülür.
 const [pinId, setPinId] = createSignal<string | null>(null);
+/** Panel önizlemeyi dondurdu (Rust: preview_freeze); sadece önizleme verisi akarken dikkate alınır */
+const [frozenEvt, setFrozenEvt] = createSignal(false);
 
 // Ekran görüntüsü bildirimi
 const [shotToast, setShotToast] = createSignal<{ text: string; err: boolean } | null>(null);
@@ -126,6 +128,7 @@ export function Host() {
     });
     await listen<string>("edit-layout", (e) => setEditPick(e.payload || null));
     await listen<{ id: string | null }>("overlay-pin", (e) => setPinId(e.payload?.id || null));
+    await listen<boolean>("preview-frozen", (e) => setFrozenEvt(!!e.payload));
     // Pencere sonradan açıldıysa (ör. başka monitörün penceresi) o anki durumu al
     invoke<string | null>("overlay_pin_get")
       .then((id) => setPinId(id || null))
@@ -147,9 +150,9 @@ export function Host() {
       await listen<{ name: string }>("screenshot-taken", () => showShotToast("Ekran görüntüsü kaydedildi", false));
       await listen<string>("screenshot-error", (e) => showShotToast(t("Ekran görüntüsü alınamadı: {0}", e.payload), true));
       // Canlı sohbet kısayolla başlatıldı/durduruldu
-      await listen<{ on: boolean; error: boolean }>("livechat-toggled", (e) =>
+      await listen<{ on: boolean; error: boolean; login?: boolean }>("livechat-toggled", (e) =>
         showShotToast(
-          t(e.payload.error ? "Canlı sohbet başlatılamadı: önce kanal ekle" : e.payload.on ? "Canlı sohbet başlatıldı" : "Canlı sohbet durduruldu"),
+          t(e.payload.login ? "Canlı Sohbet için giriş yapmalısın" : e.payload.error ? "Canlı sohbet başlatılamadı: önce kanal ekle" : e.payload.on ? "Canlı sohbet başlatıldı" : "Canlı sohbet durduruldu"),
           e.payload.error,
         ),
       );
@@ -196,6 +199,14 @@ export function Host() {
     const st = status();
     return !st?.connected || !!st.preview;
   };
+  // Overlay'ler nerede çizildiklerini bilsin (canlı sohbet örneği ekranda kısa oynayıp kaybolur, düzenlemede kalır)
+  setOnScreen(true);
+  createEffect(() => setScreenEditing(app().editMode));
+  // Ekranda tutulan önizleme de panelle birlikte donar; canlı veri ya da Demo modunda asla
+  createEffect(() => {
+    const st = status();
+    setPreviewFrozen(frozenEvt() && pinActive() && !!st?.preview && !st.demo);
+  });
   // Tutulan overlay panelde düzenlenen (etkin) düzendedir: o düzen gösterilir
   const pick = () => forced ?? (app().editMode ? editPick() : pinActive() ? settings().activeProfile : null);
   setShown(resolveProfile(status(), !inTauri, pick()));
@@ -289,7 +300,7 @@ export function Host() {
   return (
     <div
       class="host ov-theme"
-      classList={{ editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
+      classList={{ "ov-frozen": previewFrozen(), editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
       style={{ ...vars(), "--grid": `${g().gridSize}px`, ...(overlayBgUrl() ? { "--ov-appbg": `url("${overlayBgUrl()}")` } : {}), ...(vrBg ? { "background-color": vrBg } : {}) }}
     >
       <Show when={app().editMode && editBg()}>

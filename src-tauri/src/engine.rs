@@ -142,6 +142,9 @@ pub struct Shared {
     pub peek_gen: AtomicU64,
     /// Overlay'ler sayfasında yeni eklenen overlay: kullanıcı sayfadayken ekranda (örnek veriyle) tutulur
     pub pin: Mutex<Option<String>>,
+    /// Önizleme donduruldu: örnek veri birkaç saniye oynadıktan sonra demo saati durur, görüntü sabit kalır.
+    /// Sadece önizleme verisini etkiler; kullanıcının açtığı Demo ve canlı sim verisi hiç donmaz.
+    pub preview_frozen: AtomicBool,
     /// Olaylar ekranı: oturumun olay listesi (bkz. events.rs)
     pub events: Mutex<crate::events::EventLog>,
     /// Abonelikler her değiştiğinde artar: olay tabanlı konular (canlı sohbet) yeni aboneye anlık görüntüyü yeniden gönderir
@@ -364,6 +367,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             && !shared.edit_mode.load(Ordering::Relaxed)
             && !live_recent;
         let demo_on = user_demo || preview;
+        // Dondurma yalnızca önizleme verisinde geçerli (Demo modu ve canlı veri sürekli akar)
+        let frozen = preview && shared.preview_frozen.load(Ordering::Relaxed);
         let mut connected = false;
         let mut new_frame = false;
 
@@ -416,10 +421,13 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     st.raw = d.session().clone();
                     st.league_ver = u64::MAX;
                 }
-                d.step(dt, &mut st.frame);
+                // Dondurulmuş önizleme: demo saati ilerlemez, son kare olduğu gibi kalır (ilk kare her zaman üretilir)
+                if !frozen || st.frame.player_idx < 0 {
+                    d.step(dt, &mut st.frame);
+                    new_frame = true;
+                }
             }
             connected = true;
-            new_frame = true;
         } else {
             if demo.take().is_some() {
                 st.history = Default::default();
@@ -629,8 +637,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         }
 
         if demo_on {
-            // Demo 60 Hz
-            std::thread::sleep(Duration::from_millis(16));
+            // Demo 60 Hz; dondurulmuş önizlemede sadece aboneler için ara ara yayın
+            std::thread::sleep(Duration::from_millis(if frozen { 100 } else { 16 }));
         }
     }
 }

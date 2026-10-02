@@ -38,7 +38,7 @@ import { AdminCoupons } from "../components/AdminCoupons";
 import { AdminProFeatures } from "../components/AdminProFeatures";
 import { AdminMessages } from "../components/AdminMessages";
 import { AdminVoicePacks } from "../components/AdminVoicePacks";
-import { AdminBackdrops, AdminProPromo, AdminTranslations } from "../components/AdminContent";
+import { AdminBackdrops, AdminProPromo, AdminSimIcons, AdminTranslations } from "../components/AdminContent";
 import { takeAdminFocus } from "../components/adminFocus";
 import { AdminTrial } from "../components/AdminTrial";
 import { AdminLiveChat } from "../components/AdminLiveChat";
@@ -167,6 +167,7 @@ export function AdminPage() {
         </Match>
         <Match when={page() === "visibility"}>
           <AdminVisibility run={run} />
+          <AdminSimIcons run={run} />
         </Match>
         <Match when={page() === "subs"}>
           <Subscriptions />

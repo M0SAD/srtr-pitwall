@@ -56,7 +56,7 @@ const OVERLAYS = [
   ["pitspeed", "Pit Hızı"],
   ["radar", "Görsel Spotter"],
   ["rejoin", "Piste Dönüş"],
-  ["relative", "Relative"],
+  ["relative", "Yakındakiler (Relative)"],
   ["scene", "Yayın Sahnesi"],
   ["session", "Oturum & Bayraklar"],
   ["standings", "Sıralama Tablosu"],

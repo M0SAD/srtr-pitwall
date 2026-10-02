@@ -43,6 +43,20 @@ const [conflict, setConflict] = createSignal<{ remote: AppSettings; remoteAt: nu
 
 export { session, syncState, syncError, lastSync, conflict };
 
+/**
+ * Oturumu depodan yeniden oku: başka bir pencere (ana pencere) çıkış yaptıysa / giriş yaptıysa bu
+ * penceredeki `session()` de hemen güncellensin (arkadaş listesi, sohbet, bildirimler çıkıştan sonra kalmasın).
+ */
+export function refreshSession() {
+  const stored = loadSession();
+  if ((stored?.access_token ?? "") !== (session()?.access_token ?? "")) setSession(stored);
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === null || e.key === SESSION_KEY) refreshSession();
+  });
+}
+
 function saveSession(s: StoredSession | null) {
   if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
   else localStorage.removeItem(SESSION_KEY);

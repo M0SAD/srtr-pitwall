@@ -33,13 +33,15 @@ import { SimPicker } from "./components/SimPicker";
 import { LangPicker } from "./components/LangPicker";
 import { loadNotices } from "@/cloud/moderation";
 import { VoicePage } from "./pages/VoicePage";
-import { LiveChatPage, LIVECHAT_PAGES } from "./pages/LiveChatPage";
+import { LiveChatPage, LIVECHAT_PAGES, liveChatPages } from "./pages/LiveChatPage";
+import { ProTag } from "./components/ProLock";
 import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TelemetryPage } from "./pages/TelemetryPage";
 import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
 import { AppBgLayer, appBgActive } from "./appBg";
+import { AdminTopStats } from "./components/AdminTopStats";
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 
@@ -183,7 +185,7 @@ export function App() {
     return { cls: "off", text: "Bağlı değil" };
   };
 
-  const subs = () => (section() === "admin" ? adminSubs() : SUBS[section()]);
+  const subs = () => (section() === "admin" ? adminSubs() : section() === "livechat" ? liveChatPages() : SUBS[section()]);
 
   return (
     <div class="shell2" classList={{ "has-appbg": appBgActive() }}>
@@ -213,6 +215,7 @@ export function App() {
         </div>
       </Show>
       <header class="top2">
+        <AdminTopStats />
         <h1>{TITLES[section()]}</h1>
         <div class="top2-right">
           <Show when={proExpiringSoon()}>
@@ -272,6 +275,9 @@ export function App() {
               {(s) => (
                 <button classList={{ active: sub() === s.id }} onClick={() => go(section(), s.id)}>
                   {s.label}
+                  <Show when={(s as { feature?: string }).feature}>
+                    <ProTag feature={(s as { feature?: string }).feature} />
+                  </Show>
                   <Show when={section() === "admin" && adminBadge(s.id) > 0}>
                     <i class="sub-count" data-no-i18n>{badgeText(adminBadge(s.id))}</i>
                   </Show>

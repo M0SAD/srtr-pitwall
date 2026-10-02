@@ -232,7 +232,7 @@ export function VoicePacksSection(props: { onChanged?: () => void }) {
       </div>
       <Show when={locked()}>
         <p class="muted small">
-          Ses paketlerini indirmek ve kullanmak PRO üyelere özel.{" "}
+          Ses paketlerini indirip sesleri "Dene" bölümünden dinleyebilirsin; yarışta konuşan mühendis PRO üyelere özel.{" "}
           <button class="link" onClick={() => go("pro")}>
             PRO'ya bak
           </button>
@@ -308,17 +308,17 @@ export function VoicePacksSection(props: { onChanged?: () => void }) {
                         }
                       >
                         <Show when={r.remote && !inst()}>
-                          <button class="btn small" disabled={locked()} onClick={() => install(r.remote!)}>
+                          <button class="btn small" onClick={() => install(r.remote!)}>
                             <I.Download /> İndir
                           </button>
                         </Show>
                         <Show when={update()}>
-                          <button class="btn small" disabled={locked()} onClick={() => install(r.remote!)}>
+                          <button class="btn small" onClick={() => install(r.remote!)}>
                             <I.RefreshCw /> Güncelle
                           </button>
                         </Show>
                         <Show when={inst() && !active()}>
-                          <button class="btn ghost small" disabled={locked()} onClick={() => use(r.id)}>
+                          <button class="btn ghost small" onClick={() => use(r.id)}>
                             <I.Check /> Kullan
                           </button>
                         </Show>

@@ -1,7 +1,7 @@
 import { For, Show, createMemo, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { orderValue } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useRows, useTopic } from "@/sdk/telemetry";
 import { clock, irating, lapTime } from "@/sdk/format";
 import type { ClassInfo, Row } from "@/sdk/types";
 import { CarLogo } from "@/sdk/logos";
@@ -62,27 +62,37 @@ export default function Standings(props: OverlayProps) {
     orderValue(
       { options: STANDINGS_COLUMNS, default: STANDINGS_DEFAULT_COLUMNS },
       props.options.columns ?? legacyColumns(props.options),
-    ).filter((c) => c.on),
+    )
+      .filter((c) => c.on)
+      .map((c) => c.key),
   );
+
+  // Satır kimliği araç idx'ine göre sabit: her pakette DOM (logo/bayrak resimleri) yeniden kurulmaz
+  const stable = useRows(() => data()?.rows);
 
   const groups = createMemo<Group[]>(() => {
     const d = data();
     if (!d) return [];
     const smart = (props.options.drivers ?? "all") === "smart";
     const max = props.options.maxRows as number;
-    const myClass = d.rows.find((r) => r.isMe)?.classId;
+    const all = stable();
+    const myClass = all.find((r) => r.isMe)?.classId;
     const sel = (rows: Row[], mine: boolean) =>
       smart
         ? pick(rows, mine ? (props.options.topOwn as number) : (props.options.topOther as number), props.options.around as number, mine)
         : trim(rows, max);
     if (!d.multiclass) {
-      const info = d.classes[0] ?? { id: 0, name: "", color: "#888", count: d.rows.length, sof: 0 };
-      return [{ info, rows: sel(d.rows, true) }];
+      const info = d.classes[0] ?? { id: 0, name: "", color: "#888", count: all.length, sof: 0 };
+      return [{ info, rows: sel(all, true) }];
     }
     return d.classes
-      .map((c) => ({ info: c, rows: sel(d.rows.filter((r) => r.classId === c.id), c.id === myClass || myClass === undefined) }))
+      .map((c) => ({ info: c, rows: sel(all.filter((r) => r.classId === c.id), c.id === myClass || myClass === undefined) }))
       .filter((g) => g.rows.length > 0);
   });
+
+  // Gruplar sınıf kimliğine göre anahtarlanır (değerce): grup nesnesi her pakette yenilense de DOM yerinde kalır
+  const groupIds = createMemo(() => groups().map((g) => g.info.id));
+  const groupOf = (id: number) => groups().find((g) => g.info.id === id);
 
   const mySof = () => {
     const d = data();
@@ -201,23 +211,23 @@ export default function Standings(props: OverlayProps) {
         </div>
       </Show>
       <Show when={groups().length > 0} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
-        <For each={groups()}>
-          {(g) => (
+        <For each={groupIds()}>
+          {(id) => (
             <div class="st-group">
-              <Show when={data()?.multiclass}>
+              <Show when={data()?.multiclass && groupOf(id)}>
                 <div class="st-class">
-                  <span class="st-ribbon" style={{ background: g.info.color || "#888" }}>
-                    {g.info.name || "Sınıf"}
+                  <span class="st-ribbon" style={{ background: groupOf(id)?.info.color || "#888" }}>
+                    {groupOf(id)?.info.name || "Sınıf"}
                   </span>
-                  <span class="ov-dim st-count" title={t("{0} araç", g.info.count)}>
-                    <Helmet /> {g.info.count}
+                  <span class="ov-dim st-count" title={t("{0} araç", groupOf(id)?.info.count ?? 0)}>
+                    <Helmet /> {groupOf(id)?.info.count ?? 0}
                   </span>
                   <span>
-                    <span class="ov-tag st-sof">SOF</span> {irating(g.info.sof)}
+                    <span class="ov-tag st-sof">SOF</span> {irating(groupOf(id)?.info.sof ?? 0)}
                   </span>
                 </div>
               </Show>
-              <For each={g.rows}>
+              <For each={groupOf(id)?.rows ?? []}>
                 {(r) =>
                   r === null ? (
                     <div class="st-gap-row">⋯</div>
@@ -225,7 +235,7 @@ export default function Standings(props: OverlayProps) {
                     <div class="st-row" classList={{ me: r.isMe, pit: r.onPit }} style={r.isMe ? undefined : friendRowStyle("standings", r.userId, r.name)}>
                       <span class="st-accent" style={{ background: r.classColor || "#888" }} />
                       <span class="st-pos">{data()?.multiclass ? r.classPos : r.pos}</span>
-                      <For each={columns()}>{(c) => cell(c.key, r)}</For>
+                      <For each={columns()}>{(c) => cell(c, r)}</For>
                     </div>
                   )
                 }
