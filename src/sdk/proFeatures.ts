@@ -145,11 +145,11 @@ const STATIC: ProFeature[] = [
   // Canlı Sohbet (tek kanal okuma, moderasyon, görünüm ve kayıt tutmak herkese açık)
   { key: F.liveMulti, label: "Birden fazla kanal (ücretsiz: yalnızca en üstteki kanalın mesajları)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kanal eklemek ve ★ favorilerin izleyici sayısı her zaman açık" },
   { key: F.livePoll, label: "Sohbet anketi", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · anket başlatmak (düğme ve kısayol)" },
-  { key: F.liveObs, label: "OBS tarayıcı kaynağı (sohbet, anket, altyazı sayfaları)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
+  { key: F.liveObs, label: "OBS tarayıcı kaynağı (sohbet, anket, altyazı sayfaları)", group: "Canlı Sohbet", defaultPro: false, hint: "Rust da denetler" },
   { key: F.liveTts, label: "Sohbeti sesli okuma (TTS)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveStt, label: "Konuşmayı yazıya çevirme (altyazı)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveSend, label: "Sohbete yazma (Twitch / Kick / YouTube)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
-  { key: F.liveAlerts, label: "Streamlabs uyarıları", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
+  { key: F.liveAlerts, label: "Streamlabs uyarıları", group: "Canlı Sohbet", defaultPro: false, hint: "Rust da denetler" },
   { key: F.liveLog, label: "Sohbet kaydını görüntüleme (arama, süzme, dışa aktarma)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kayıt tutmak ve silmek her zaman açık" },
 ];
 

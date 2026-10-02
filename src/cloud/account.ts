@@ -506,7 +506,9 @@ function livechatLocks(): string[] {
   } catch {
     /* önbellek yok */
   }
-  return LIVECHAT_LOCKS.filter((k) => (typeof v[k] === "boolean" ? v[k] : true));
+  // Varsayılanda herkese açık olanlar (proFeatures.ts kataloğuyla aynı): OBS tarayıcı kaynağı ve Streamlabs uyarıları
+  const free = ["livechat.obs", "livechat.alerts"];
+  return LIVECHAT_LOCKS.filter((k) => (typeof v[k] === "boolean" ? v[k] : !free.includes(k)));
 }
 
 /** Yönetici sesli mühendis kararını değiştirdi: Rust tarafındaki kilidi hemen güncelle */

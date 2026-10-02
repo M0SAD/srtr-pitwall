@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-60
+
+- **Canlı Sohbet: Bildirimler (Streamlabs uyarıları) ve OBS tarayıcı kaynağı varsayılan olarak ücretsiz.** Yönetim › PRO özellikleri'nden yeniden PRO'ya ayrılabilir. (c50)
+
+## 021026-59
+
+- **Sıralama Tablosu: ülke bayrağı sürücü adından önce.** Yeni eklenenlerde zaten böyleydi; kayıtlı (eski) Sıralama Tablosu kopyalarında da bayrak sütunu bir kereliğine sürücü adının hemen soluna alınır.
+
 ## 021026-58
 
 - **Canlı Sohbet sekme başlıklarında PRO rozeti:** Anket, Sesli okuma, Konuşma → yazı, Sohbete yaz, Bildirimler, Sohbet kaydı ve OBS sekmelerinin yanında "PRO" yazar (yönetici bir özelliği herkese açarsa rozet kalkar).
