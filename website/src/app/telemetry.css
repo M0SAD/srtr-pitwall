@@ -1,0 +1,348 @@
+/* Telemetri ve Yarışçılar sayfası */
+.tele .tele-back {
+  margin-bottom: 10px;
+}
+.tele-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.tele-head h3 {
+  margin: 0 0 4px;
+}
+.tele-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tele-tools .chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.tele-ids {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 6px;
+}
+.tele-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.tele-tag b {
+  color: var(--muted);
+  font-weight: 600;
+}
+.tele-tag.ok {
+  border-color: color-mix(in srgb, #3ddc84 45%, transparent);
+  color: #9ff0c2;
+}
+.tele-tag.bad {
+  border-color: color-mix(in srgb, #ff5c5c 45%, transparent);
+  color: #ffb0b0;
+}
+.tele-tag + .tele-tag {
+  margin-left: 4px;
+}
+.tele-scroll {
+  overflow-x: auto;
+}
+.tele-scroll.short {
+  max-height: 260px;
+  overflow-y: auto;
+}
+.tele-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tele-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.tele-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  vertical-align: middle;
+}
+.tele-table.compact td,
+.tele-table.compact th {
+  padding: 4px 8px;
+}
+.tele-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tele-table .act {
+  text-align: right;
+}
+.tele-table .act > * + * {
+  margin-left: 6px;
+}
+.tele-table .nowrap {
+  white-space: nowrap;
+}
+.tele-table tr.click {
+  cursor: pointer;
+}
+.tele-table tr.click:hover td {
+  background: var(--bg-3);
+}
+.tele-table tr.me td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.tele-table tr.invalid td {
+  color: var(--muted);
+}
+.tele-table tr.best-row td {
+  background: color-mix(in srgb, #3ddc84 6%, transparent);
+}
+.tele-table td.best {
+  color: #3ddc84;
+  font-weight: 700;
+}
+.tele-table td.purple {
+  color: #c58bff;
+  font-weight: 700;
+}
+.tele-table tr.diff td {
+  font-weight: 600;
+}
+.tele-table .bad {
+  color: #ff8f8f;
+}
+.tele .mono {
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  font-variant-numeric: tabular-nums;
+}
+.tele button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tele button.link:hover {
+  color: var(--accent);
+}
+.tele-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 240px;
+  color: var(--muted);
+}
+.tele-search svg {
+  width: 16px;
+  height: 16px;
+}
+.tele-search .input {
+  flex: 1;
+}
+
+/* Analiz: tur kartları */
+.lap-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.lap-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--c);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.lap-card .sw {
+  display: none;
+}
+.lap-card > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lap-card small {
+  color: var(--muted);
+}
+.lap-card .lap-time {
+  font-size: 18px;
+  font-weight: 700;
+}
+.lap-picker {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* Grafikler */
+.tcharts .tchart + .tchart {
+  margin-top: 10px;
+}
+.tchart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+.tchart-head > b {
+  color: var(--muted);
+  font-weight: 600;
+}
+.tchart-read {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+}
+.tchart-read span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tchart-read i {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+}
+.tchart-read b {
+  color: var(--text);
+  min-width: 44px;
+  text-align: right;
+}
+.tchart-plot {
+  position: relative;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  cursor: crosshair;
+  touch-action: none;
+}
+.tchart-plot svg {
+  display: block;
+}
+.tchart-plot .ln {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.tchart-plot .grid {
+  stroke: color-mix(in srgb, var(--line) 70%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.tchart-plot .zero {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+.tchart-axis {
+  position: absolute;
+  left: 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.tchart-axis.top {
+  top: 3px;
+}
+.tchart-axis.bottom {
+  bottom: 3px;
+}
+.tchart-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--text);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Oturum süzgeçleri */
+.tele-filters {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.tele-filters .tf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tele-filters .tf-label {
+  min-width: 78px;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.tele-filters .chip {
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.tele-filters .tf-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.tele-filters .tf-selects {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tele-filters .tf-selects select {
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.tele-tag.ai {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.tele-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}

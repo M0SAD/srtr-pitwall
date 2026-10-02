@@ -1,0 +1,79 @@
+.dl {
+  width: 360px;
+}
+
+.dl-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.dl-bar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.dl-mid {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: color-mix(in srgb, var(--ov-text) 50%, transparent);
+  z-index: 1;
+}
+
+.dl-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.dl-fill.fast {
+  background: var(--ov-green);
+}
+
+.dl-fill.slow {
+  background: var(--ov-red);
+}
+
+.dl-value {
+  width: 5.846em;
+  text-align: right;
+  font-size: 1.692em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.dl-trend {
+  display: inline-block;
+  width: 0.923em;
+  margin-left: 2px;
+  font-size: 0.846em;
+  vertical-align: middle;
+}
+
+.dl-times {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px 7px;
+  border-top: 1px solid var(--ov-divider);
+  font-size: 1em;
+}
+
+.dl-times label {
+  margin-right: 5px;
+  font-family: var(--ov-font);
+  font-size: 0.769em;
+  color: var(--ov-dim);
+  text-transform: uppercase;
+}
+
+.dl-best {
+  color: var(--ov-purple);
+}

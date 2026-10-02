@@ -1,0 +1,93 @@
+.fm {
+  height: 56px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+}
+.fm-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ov-text) 14%, transparent);
+}
+.fm-sec {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 1px;
+  background: var(--ov-divider);
+}
+.fm-sf {
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  width: 3px;
+  margin-left: -1px;
+  background: repeating-linear-gradient(0deg, #fff 0 3px, #111 3px 6px);
+}
+.fm-car {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: var(--cc);
+  border: 2px solid rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.1s linear;
+}
+.fm-car span {
+  font-size: 0.68em;
+  font-weight: var(--ov-weight-strong);
+  color: #111;
+  text-shadow: none;
+}
+.fm-car.pit {
+  opacity: 0.45;
+}
+.fm-car.me {
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border: 3px solid #fff;
+  z-index: 2;
+}
+.fm-car.friend {
+  box-shadow: 0 0 0 2px var(--cc), 0 0 10px var(--cc);
+  z-index: 1;
+}
+.fm-car.me {
+  width: var(--ms, 28px);
+  height: var(--ms, 28px);
+  margin: calc(var(--ms, 28px) / -2) 0 0 calc(var(--ms, 28px) / -2);
+}
+/* Senin aracının özel işareti (şekil ya da resim) */
+.fm-me {
+  position: absolute;
+  top: 50%;
+  width: var(--ms, 28px);
+  height: var(--ms, 28px);
+  margin: calc(var(--ms, 28px) / -2) 0 0 calc(var(--ms, 28px) / -2);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.1s linear;
+}
+.fm-me.pit {
+  opacity: 0.45;
+}
+.fm-me svg,
+.fm-me img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.fm-me img {
+  object-fit: contain;
+}

@@ -1,0 +1,151 @@
+/* Düzenleme arka planı seçici (panelde ve düzenleme ekranında) */
+.bp-back {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+  font: 14px Inter, "Segoe UI", system-ui, sans-serif;
+  color: #eceff4;
+}
+.bp {
+  width: min(860px, 92vw);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #2a2f3a;
+  background: #181b21;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.bp header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bp header b {
+  font-size: 16px;
+}
+.bp-sp {
+  flex: 1;
+}
+.bp-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid #2a2f3a;
+  background: #1f232b;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.bp-btn:hover:not(:disabled) {
+  border-color: #ff8a2a;
+}
+.bp-btn.primary {
+  background: #ff8a2a;
+  border-color: #ff8a2a;
+  color: #1a0f05;
+  font-weight: 700;
+}
+.bp-btn.danger {
+  color: #ff7b7f;
+}
+.bp-tabs {
+  display: flex;
+  gap: 6px;
+}
+.bp-tabs button {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #2a2f3a;
+  background: transparent;
+  color: #8b93a3;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.bp-tabs button.on {
+  color: #eceff4;
+  border-color: #ff8a2a;
+}
+.bp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 120px;
+  padding-right: 4px;
+}
+.bp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1f232b;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bp-card:hover:not(:disabled) {
+  border-color: #ff8a2a;
+}
+.bp-card small {
+  padding: 5px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #8b93a3;
+}
+.bp .shot-thumb {
+  aspect-ratio: 16 / 9;
+  background: #262b35;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.bp .shot-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.bp-src {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(20, 12, 4, 0.8);
+  color: #ffb35c;
+}
+.bp-src.iracing {
+  color: #9cc0ff;
+}
+.bp-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 0;
+}
+.bp-muted {
+  color: #8b93a3;
+  font-size: 13px;
+  margin: 0;
+}
+.bp-err {
+  color: #ff7b7f;
+  font-size: 13px;
+  margin: 0;
+}

@@ -1,0 +1,79 @@
+.scene {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--acc) 22%, #0b0d12), #07080b 70%);
+  color: #fff;
+  font-family: var(--ov-font);
+}
+
+.scene.transparent {
+  background: none;
+}
+
+.scene-stripes {
+  position: absolute;
+  inset: -20%;
+  background: repeating-linear-gradient(115deg, transparent 0 80px, color-mix(in srgb, var(--acc) 7%, transparent) 80px 84px);
+  opacity: 0.8;
+}
+
+.scene.transparent .scene-stripes {
+  display: none;
+}
+
+.scene-box {
+  position: relative;
+  padding: 60px 90px;
+  text-align: center;
+}
+
+.scene-kicker {
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 6px 18px;
+  background: var(--acc);
+  color: #111;
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  font-size: 22px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+}
+
+.scene h1 {
+  margin: 0;
+  font-size: 96px;
+  font-weight: 800;
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+}
+
+.scene p {
+  margin: 24px 0 0;
+  font-size: 34px;
+  color: #cfd5e0;
+}
+
+.scene-count {
+  margin-top: 40px;
+  font-size: 120px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--acc);
+}
+
+.scene-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10px;
+  background: linear-gradient(90deg, var(--acc), transparent);
+}
+
+.scene-garage h1 {
+  font-size: 72px;
+}

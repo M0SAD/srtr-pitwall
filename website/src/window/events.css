@@ -1,0 +1,319 @@
+/* Olaylar penceresi (app.css + shell.css değişkenleri üzerine) */
+
+.evw {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.evw svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+.evw-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+
+.evw-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.evw-title b {
+  font-size: 17px;
+  letter-spacing: 0.2px;
+}
+
+.evw-title small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.evw-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.evw-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--line);
+}
+
+.evw-sum {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+.evw-sum em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.evw-sum em.bad {
+  color: var(--red);
+}
+.evw-sum em.good {
+  color: var(--green);
+}
+.evw-sum em.warn {
+  color: var(--yellow);
+}
+
+.evw-sp {
+  flex: 1;
+}
+
+.evw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+}
+
+.evw-chip {
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.evw-chip:hover {
+  color: var(--text);
+}
+
+.evw-chip.on {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-2);
+}
+
+.evw-chip.me {
+  margin-left: auto;
+}
+
+.evw-note,
+.evw-msg {
+  margin: 0 16px 8px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: #1d2b44;
+  color: #a9c4ff;
+}
+
+.evw-msg {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+
+.evw-msg.err {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  color: var(--red);
+}
+
+.evw-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 10px 16px;
+}
+
+.evw-lap h4 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 10px 6px 6px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.evw-row {
+  --tone: var(--muted);
+  display: grid;
+  grid-template-columns: 28px 52px minmax(120px, 190px) 1fr 22px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--tone);
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.evw-row:hover {
+  background: var(--bg-2);
+}
+
+.evw-row.sel {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-left-color: var(--tone);
+}
+
+.evw-row.me .evw-name {
+  color: var(--accent-2);
+}
+
+.evw-ic {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 15%, transparent);
+}
+
+.evw-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.evw-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.evw-num {
+  flex: none;
+  padding: 0 5px;
+  border-left: 3px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-3);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.evw-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.evw-txt {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evw-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--tone);
+  color: #15100a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.evw-go {
+  color: var(--muted);
+  opacity: 0;
+}
+
+.evw-row:hover .evw-go,
+.evw-row.sel .evw-go {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.evw-row.t-bad {
+  --tone: var(--red);
+}
+.evw-row.t-warn {
+  --tone: #ff9f43;
+}
+.evw-row.t-good {
+  --tone: var(--green);
+}
+.evw-row.t-yellow {
+  --tone: var(--yellow);
+}
+.evw-row.t-blue {
+  --tone: #4d8dff;
+}
+.evw-row.t-purple {
+  --tone: #b26bff;
+}
+.evw-row.t-info {
+  --tone: #5fb8d9;
+}
+.evw-row.t-mono {
+  --tone: #d7dbe3;
+}
+
+.evw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 60px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.evw-empty svg {
+  width: 28px;
+  height: 28px;
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .evw-row {
+    grid-template-columns: 26px 46px 1fr 18px;
+  }
+  .evw-who {
+    display: none;
+  }
+  .evw-auto span:first-child {
+    display: none;
+  }
+}

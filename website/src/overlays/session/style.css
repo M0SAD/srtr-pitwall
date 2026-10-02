@@ -1,0 +1,97 @@
+.ses {
+  width: 300px;
+}
+
+.ses-flag {
+  padding: 7px 10px;
+  font-weight: var(--ov-weight-strong);
+  font-size: 1.077em;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.flag-yellow {
+  background: #ffcc00;
+  color: #111;
+}
+.flag-blue {
+  background: #1e6fff;
+  color: #fff;
+}
+.flag-red {
+  background: #e02424;
+  color: #fff;
+}
+.flag-black {
+  background: #000;
+  color: #fff;
+  border-bottom: 2px solid #fff;
+}
+.flag-white {
+  background: #f4f4f4;
+  color: #111;
+}
+.flag-green {
+  background: #1fb35a;
+  color: #fff;
+}
+.flag-meatball {
+  background: #000;
+  color: var(--ov-accent);
+}
+.flag-checkered {
+  color: #111;
+  background: repeating-conic-gradient(#fff 0 25%, #ddd 0 50%) 0 0 / 16px 16px;
+}
+
+.ses-main {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 7px 10px;
+}
+
+.ses-main label {
+  display: block;
+  font-size: 0.769em;
+  color: var(--ov-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ses-main b {
+  font-size: 1.538em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.ses-main small {
+  font-size: 0.923em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+}
+
+.ses-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--ov-divider);
+  font-size: 0.923em;
+  color: var(--ov-dim);
+}
+
+.ses-sub b {
+  color: var(--ov-text);
+}
+
+.ses-wet {
+  color: var(--ov-blue);
+}
+
+.ses-pit {
+  background: var(--ov-yellow);
+  color: #111;
+}
+
+.ses-wet .wxi-wrap {
+  color: inherit;
+}

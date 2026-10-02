@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Kontrol paneli ve overlay penceresi için izinler",
+  "windows": [
+    "main",
+    "overlay",
+    "pitwall",
+    "timing", "engineer", "overlay-m*", "friends", "friend-*", "toast", "vr-*"
+  ],
+  "permissions": [
+    "core:default",
+    "notification:default",
+    "dialog:default"
+  ]
+}

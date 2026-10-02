@@ -1,0 +1,213 @@
+.inp {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  min-height: 102px;
+  box-sizing: border-box;
+}
+
+.inp.shift {
+  border-color: var(--ov-blue);
+}
+
+.inp-trace {
+  width: 240px;
+  height: 86px;
+  flex: none;
+  background: color-mix(in srgb, var(--ov-bg-solid) 60%, transparent);
+  border-radius: 4px;
+}
+
+.inp-bars {
+  display: flex;
+  gap: 7px;
+  padding: 0 2px;
+}
+
+.inp-bar {
+  position: relative;
+  width: 14px;
+  height: 86px;
+  background: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.inp-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* ABS / TC çalışırken çubuğun dışında renkli çerçeve */
+.inp-bar.glow {
+  overflow: visible;
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 0 8px 1px var(--glow);
+}
+.inp-bar.glow .inp-fill {
+  border-radius: 3px;
+}
+
+.inp-gear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 5.4em;
+  line-height: 1;
+}
+
+.inp-gear b {
+  font-size: 2.4em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.inp.shift .inp-gear b {
+  color: var(--ov-blue);
+}
+
+.inp-gear span {
+  margin-top: 4px;
+  font-size: 1.231em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.inp-gear small {
+  font-size: 0.769em;
+  color: var(--ov-dim);
+}
+
+.inp-wheel {
+  width: 2.5em;
+  height: 2.5em;
+  margin-top: 4px;
+  overflow: visible;
+}
+
+.w-rim {
+  fill: none;
+  stroke: var(--ov-dim);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+
+.w-grip {
+  stroke: var(--ov-text);
+  stroke-width: 5.5;
+  stroke-linecap: round;
+}
+
+.w-spoke {
+  stroke: var(--ov-dim);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.w-hub {
+  fill: color-mix(in srgb, var(--ov-text) 25%, var(--ov-bg-solid));
+}
+
+.w-mark {
+  fill: var(--wa, var(--ov-accent));
+}
+
+/* Tasarımlı direksiyonlar (wheels.tsx) */
+.inp-wheel {
+  --wh-body: color-mix(in srgb, var(--ov-text) 20%, var(--ov-bg-solid));
+  --wh-grip: color-mix(in srgb, var(--ov-text) 58%, var(--ov-bg-solid));
+  --wh-metal: color-mix(in srgb, var(--ov-text) 48%, var(--ov-bg-solid));
+  --wh-dark: color-mix(in srgb, var(--ov-bg-solid) 70%, #000);
+}
+.inp-wheel .wb {
+  fill: var(--wh-body);
+  stroke: color-mix(in srgb, var(--ov-text) 35%, transparent);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+.inp-wheel .wg {
+  fill: var(--wh-grip);
+}
+.inp-wheel .wd {
+  fill: var(--wh-dark);
+  stroke: color-mix(in srgb, var(--ov-text) 30%, transparent);
+  stroke-width: 0.6;
+}
+.inp-wheel .wdim {
+  fill: color-mix(in srgb, var(--ov-text) 45%, transparent);
+}
+.inp-wheel .wa {
+  fill: var(--wa, var(--ov-accent));
+}
+.inp-wheel .wbtn {
+  fill: color-mix(in srgb, var(--ov-text) 75%, var(--ov-bg-solid));
+}
+.inp-wheel .wknob {
+  fill: var(--wh-dark);
+  stroke: var(--wh-metal);
+  stroke-width: 1;
+}
+.inp-wheel .wr {
+  fill: none;
+  stroke: var(--ov-dim);
+  stroke-width: 4.2;
+  stroke-linejoin: round;
+}
+.inp-wheel .wr.suede {
+  stroke: var(--wh-grip);
+  stroke-width: 5.2;
+}
+.inp-wheel .wr.thin {
+  stroke: var(--wh-grip);
+  stroke-width: 3.2;
+}
+.inp-wheel .wgs {
+  stroke: var(--ov-text);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.inp-wheel .wring {
+  fill: none;
+  stroke: var(--wh-dark);
+  stroke-width: 1.4;
+}
+.inp-wheel .wring2 {
+  fill: none;
+  stroke: var(--wa, var(--ov-accent));
+  stroke-width: 1.3;
+}
+.inp-wheel .wsp {
+  stroke: var(--wh-metal);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.inp-wheel .wsp.wide {
+  stroke-width: 3.6;
+}
+.inp-wheel .wm {
+  fill: var(--wh-metal);
+  stroke: color-mix(in srgb, var(--ov-text) 30%, transparent);
+  stroke-width: 0.5;
+}
+.inp-wheel .whole {
+  fill: var(--wh-dark);
+}
+.inp-wheel .wwood {
+  fill: none;
+  stroke: #8a5a2b;
+  stroke-width: 3.6;
+}
+.inp-wheel .wwood-hi {
+  fill: none;
+  stroke: #c08a4e;
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+}
+
+.inp-deg {
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}

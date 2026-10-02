@@ -1,0 +1,357 @@
+/* Yönetici üst çubuk özeti (üye / PRO / yarışta / destek) ve canlı üye paneli */
+.ats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  margin-left: -8px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.ats-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-3);
+  color: var(--muted, #8a93a3);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.ats-chip:hover {
+  border-color: color-mix(in srgb, var(--ac, var(--accent, #ff8a2a)) 60%, transparent);
+  color: var(--text, #eef1f6);
+}
+
+.ats-chip svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--ac, currentColor);
+}
+
+.ats-chip b {
+  color: var(--text, #eef1f6);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ats-chip.pro {
+  --ac: #f5c542;
+}
+
+.ats-chip.pro svg {
+  fill: color-mix(in srgb, #f5c542 35%, transparent);
+}
+
+.ats-chip.race.live {
+  --ac: #3ddc84;
+}
+
+.ats-chip.sup {
+  --ac: #ff6b5e;
+  border-color: color-mix(in srgb, #ff6b5e 45%, transparent);
+}
+
+.ats-tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid #2a303b;
+  border-radius: 8px;
+  background: #14171d;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color: #eef1f6;
+  font-size: 12px;
+  text-align: left;
+  pointer-events: none;
+}
+
+.ats-chip:hover .ats-tip,
+.ats-chip:focus-visible .ats-tip {
+  display: flex;
+}
+
+.ats-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ats-tip small {
+  margin-top: 2px;
+  color: #8a93a3;
+}
+
+.ats-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5b6373;
+}
+
+.ats-dot.on {
+  background: #3ddc84;
+}
+
+/* Dar pencerede yazılar gizlenir, simge + sayı kalır */
+@media (max-width: 1500px) {
+  .ats-lbl {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .ats-chip {
+    gap: 3px;
+    padding: 0 5px;
+  }
+  .ats {
+    gap: 3px;
+  }
+}
+
+/* ---------- Panel ---------- */
+.modal.ats-modal {
+  width: min(760px, 100%);
+}
+
+.ats-modal > header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ats-modal > header h3 svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ats-head-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.ats-head-btns svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ats-tabs {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ats-tabs button i {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.ats-search {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.ats-search svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  transform: translateY(-50%);
+  color: #8a93a3;
+  pointer-events: none;
+}
+
+.ats-search .input {
+  width: 100%;
+  padding-left: 32px;
+}
+
+.ats-err {
+  color: #ff6b5e;
+  font-size: 13px;
+}
+
+.ats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(62vh, 640px);
+  overflow: auto;
+}
+
+.ats-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ats-row:hover {
+  border-color: #2a303b;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ats-row.racing {
+  border-color: color-mix(in srgb, #3ddc84 30%, transparent);
+  background: color-mix(in srgb, #3ddc84 7%, transparent);
+}
+
+.ats-row:not(.online) .ats-av {
+  opacity: 0.6;
+}
+
+.ats-pres {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid #14171d;
+  border-radius: 50%;
+  background: #5b6373;
+}
+
+.ats-pres.on {
+  background: #3ddc84;
+}
+
+.ats-pres.race {
+  background: #ff8a2a;
+}
+
+.ats-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ats-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ats-name b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ats-star {
+  display: inline-flex;
+  flex: none;
+  color: #f5c542;
+}
+
+.ats-star svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+.ats-mail {
+  overflow: hidden;
+  color: #8a93a3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ats-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 1 46%;
+  min-width: 0;
+  font-size: 12px;
+  text-align: right;
+}
+
+.ats-race,
+.ats-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.ats-on {
+  color: #3ddc84;
+}
+
+.ats-race {
+  color: #ff8a2a;
+  font-weight: 600;
+}
+
+.ats-race svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.ats-race em {
+  overflow: hidden;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ats-where {
+  max-width: 100%;
+  overflow: hidden;
+  color: #c3c9d4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ats-empty {
+  padding: 18px 4px;
+  text-align: center;
+}
+
+.ats-more {
+  align-self: center;
+  margin: 6px 0 2px;
+}
+
+@media (max-width: 640px) {
+  .ats-row {
+    flex-wrap: wrap;
+  }
+  .ats-state {
+    flex: 1 1 100%;
+    align-items: flex-start;
+    padding-left: 44px;
+    text-align: left;
+  }
+}

@@ -1,0 +1,740 @@
+/* Arkadaş listesi ve sohbet (panelin sağ altındaki kutu + ayrı "Arkadaşlar" penceresi).
+   shell.css'teki temel .fdock-* kurallarının üstüne yazar (.fx kapsamı). */
+
+.fx {
+  --f-racing: var(--accent, #ff8a2a);
+  --f-online: #3ddc84;
+  --f-dnd: #e5484d;
+  --f-off: #596070;
+  --f-pending: #ffc53d;
+  --f-card: #1a1e26;
+  background: #14171d;
+}
+
+/* ---------- Başlık ---------- */
+.fx > header {
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 8px 10px 8px 12px;
+  background: linear-gradient(180deg, #191d25, #15181f);
+}
+.fx .fhead-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.fx .fhead-title b {
+  font-size: 14.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fx .fhead-title small {
+  font-size: 11.5px;
+  color: var(--f-online);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fx .fhead-who {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.fx .fhead-who .fhead-title small {
+  color: var(--muted);
+}
+.fx .fhead-who .fhead-title small.racing {
+  color: var(--accent-2, #ffb35c);
+}
+.fx > header .icon-btn {
+  flex: none;
+}
+
+/* ---------- Avatar ---------- */
+.fav {
+  --sz: 36px;
+  --fc: #6b7385;
+  position: relative;
+  flex: none;
+  width: var(--sz);
+  height: var(--sz);
+  border-radius: 30%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--fc) 100%, #fff 12%), color-mix(in srgb, var(--fc) 78%, #000));
+  color: #fff;
+  font-weight: 700;
+  font-size: calc(var(--sz) * 0.46);
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+.fav img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.fav-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: calc(var(--sz) * 0.3);
+  height: calc(var(--sz) * 0.3);
+  min-width: 9px;
+  min-height: 9px;
+  border-radius: 50%;
+  border: 2.5px solid #14171d;
+  background: var(--f-off);
+  box-sizing: content-box;
+}
+.fav.p-online .fav-dot {
+  background: var(--f-online);
+}
+.fav.p-racing .fav-dot {
+  background: var(--f-racing);
+  box-shadow: 0 0 8px var(--f-racing);
+}
+.fav.p-dnd .fav-dot {
+  background: var(--f-dnd);
+}
+.fav.p-pending .fav-dot {
+  background: var(--f-pending);
+}
+.fav.p-offline {
+  filter: saturate(0.35) brightness(0.8);
+}
+.fav.p-racing {
+  box-shadow: 0 0 0 2px #14171d, 0 0 0 3.5px var(--f-racing);
+}
+
+/* ---------- Durum çipleri ---------- */
+.fx .fdock-me {
+  gap: 6px;
+  padding: 8px 10px;
+  background: #15181f;
+}
+.fme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px 4px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.fme-chip svg {
+  width: 13px;
+  height: 13px;
+}
+.fme-chip:hover {
+  color: var(--text);
+  border-color: #3a4150;
+}
+.fme-chip.on {
+  color: var(--text);
+  background: #222733;
+  border-color: #353c4a;
+}
+.fme-chip.c-dnd.on {
+  color: #ffb3b5;
+  background: color-mix(in srgb, var(--f-dnd) 18%, transparent);
+  border-color: color-mix(in srgb, var(--f-dnd) 55%, transparent);
+}
+.fme-chip.c-acceptMessages.on svg,
+.fme-chip.c-sound.on svg {
+  color: var(--f-online);
+}
+
+/* ---------- Arama ---------- */
+.fsearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px;
+}
+.fsearch > svg {
+  position: absolute;
+  left: 20px;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.fsearch .input {
+  flex: 1;
+  min-width: 0;
+  padding-left: 30px;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 8px;
+}
+.fsearch .icon-btn {
+  position: absolute;
+  right: 14px;
+}
+.fsearch .icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.fdock-add .fsearch {
+  padding: 0;
+}
+.fdock-add .fsearch > svg {
+  left: 10px;
+}
+
+/* ---------- Gruplar ---------- */
+.fx .fdock-list {
+  padding: 4px 6px 10px;
+  gap: 1px;
+}
+.fx .fdock-sec {
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 10px 8px 5px;
+  text-align: left;
+}
+.fx .fdock-sec:hover {
+  color: var(--text);
+}
+.fx .fdock-sec svg {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.15s;
+}
+.fx .fdock-sec.closed svg {
+  transform: rotate(-90deg);
+}
+.fx .fdock-sec i {
+  background: #262b36;
+  color: var(--text);
+  letter-spacing: 0;
+}
+.fx .fsec-racing i {
+  background: var(--f-racing);
+  color: var(--accent-ink, #111);
+}
+.fx .fsec-online i {
+  background: color-mix(in srgb, var(--f-online) 25%, transparent);
+  color: var(--f-online);
+}
+.fx .fsec-pending i {
+  background: color-mix(in srgb, var(--f-pending) 25%, transparent);
+  color: var(--f-pending);
+}
+
+/* ---------- Satır ---------- */
+.fx .frow {
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  transition: background 0.1s;
+}
+.fx .frow:hover,
+.fx .frow.menu {
+  background: #1d212a;
+}
+.fx .frow.unread {
+  background: color-mix(in srgb, #4ea1ff 7%, transparent);
+}
+.fx .frow-main {
+  gap: 2px;
+}
+.frow-l1,
+.frow-l2 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.fx .frow-l1 b {
+  font-size: 13.5px;
+  min-width: 0;
+}
+.fx .frow.unread .frow-l1 b {
+  color: #fff;
+}
+.frow-l1 time {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.fx .frow.unread .frow-l1 time {
+  color: #4ea1ff;
+  font-weight: 600;
+}
+.frow-flag {
+  flex: none;
+  display: grid;
+  color: var(--muted);
+}
+.frow-flag.trust {
+  color: var(--f-online);
+}
+.frow-flag svg {
+  width: 12.5px;
+  height: 12.5px;
+}
+.fx .frow-l2 small {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.frow-status svg {
+  width: 11px;
+  height: 11px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+.fx .frow.racing .frow-l2 small {
+  color: var(--accent-2, #ffb35c);
+}
+.fx .frow.unread .frow-prev {
+  color: #d5dbe5;
+}
+.frow-you {
+  color: #6f7788;
+}
+.frow-prev .emo {
+  font-size: 1.1em;
+}
+.fx .frow-unread {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: #4ea1ff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #4ea1ff 20%, transparent);
+}
+.frow-req {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+/* Satır üzerindeki hızlı işlemler (fare üstündeyken) */
+.frow-acts {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px 0 26px;
+  border-radius: 0 9px 9px 0;
+  background: linear-gradient(90deg, transparent, #1d212a 24px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.fx .frow:hover .frow-acts,
+.fx .frow.menu .frow-acts {
+  opacity: 1;
+  pointer-events: auto;
+}
+.frow-acts .icon-btn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #262b36;
+}
+.frow-acts .icon-btn:hover {
+  background: #313746;
+}
+.frow-acts .icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.frow-acts .icon-btn.live {
+  color: var(--accent-2, #ffb35c);
+}
+.frow-acts .icon-btn.live.idle {
+  opacity: 0.8;
+}
+.fx .frow-menu {
+  top: calc(100% - 2px);
+  z-index: 6;
+}
+.fx .frow-menu.up {
+  top: auto;
+  bottom: calc(100% - 2px);
+}
+
+/* ---------- Boş durumlar ---------- */
+.fempty {
+  margin: auto;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.fempty p {
+  margin: 0;
+  max-width: 260px;
+}
+.fempty-ico {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: #1d212a;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.fempty-ico svg {
+  width: 26px;
+  height: 26px;
+}
+.fempty-ico.wave {
+  font-size: 28px;
+  background: none;
+  animation: fwave 1.6s ease-in-out 1 0.2s;
+  transform-origin: 70% 70%;
+}
+@keyframes fwave {
+  20%,
+  60% {
+    transform: rotate(14deg);
+  }
+  40%,
+  80% {
+    transform: rotate(-8deg);
+  }
+}
+.fempty .btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------- Sohbet ---------- */
+.fx .fchat {
+  padding: 0;
+  gap: 0;
+  background: #121419;
+}
+.fx .fchat-msgs {
+  padding: 10px 12px 12px;
+  gap: 2px;
+}
+.fday {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.fday::before,
+.fday::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.fx .fmsg {
+  position: relative;
+  max-width: 78%;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: #22262f;
+  line-height: 1.35;
+}
+.fx .fmsg.first {
+  margin-top: 6px;
+}
+.fx .fmsg:not(.mine).first {
+  border-top-left-radius: 14px;
+}
+.fx .fmsg:not(.mine) {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+.fx .fmsg:not(.mine).first {
+  border-top-left-radius: 14px;
+}
+.fx .fmsg:not(.mine).tail {
+  border-bottom-left-radius: 4px;
+}
+.fx .fmsg.mine {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 88%, #fff 6%), color-mix(in srgb, var(--accent) 80%, #b3400a));
+  color: #1b0f05;
+  border-radius: 14px 5px 5px 14px;
+}
+.fx .fmsg.mine.first {
+  border-top-right-radius: 14px;
+}
+.fx .fmsg.mine.tail {
+  border-bottom-right-radius: 4px;
+}
+.fx .fmsg p {
+  white-space: pre-wrap;
+  font-size: 13.5px;
+}
+.fx .fmsg small {
+  margin-top: 2px;
+  font-size: 10px;
+  color: #8a93a4;
+}
+.fx .fmsg.mine small {
+  color: rgba(40, 20, 5, 0.65);
+}
+.fx .fmsg .emo {
+  font-size: 1.3em;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.fx .fmsg.jumbo {
+  background: none;
+  padding: 0 2px;
+}
+.fx .fmsg.jumbo .emo {
+  font-size: 2.3em;
+  line-height: 1.15;
+}
+.fx .fmsg.jumbo small,
+.fx .fmsg.mine.jumbo small {
+  color: var(--muted);
+}
+
+/* Yazma alanı */
+.fcompose {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--line);
+  background: #15181f;
+}
+.fcompose textarea.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  max-height: 110px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border-radius: 10px;
+  resize: none;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.35;
+  overflow-y: auto;
+}
+.fcompose .femo-btn {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--muted);
+}
+.fcompose .femo-btn:hover,
+.fcompose .femo-btn.on {
+  color: var(--accent-2, #ffb35c);
+  background: #1f232b;
+}
+.fcompose .femo-btn svg {
+  width: 19px;
+  height: 19px;
+}
+.fsend {
+  flex: none;
+  width: 36px;
+  height: 34px;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center;
+  border-radius: 10px !important;
+}
+.fsend svg {
+  width: 17px;
+  height: 17px;
+}
+.fsend:disabled {
+  opacity: 0.45;
+}
+.femo {
+  position: absolute;
+  left: 8px;
+  bottom: calc(100% + 6px);
+  z-index: 10;
+  width: 296px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #1c2029;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+  animation: femo-in 0.14s ease-out;
+}
+@keyframes femo-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.femo button {
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.08s, background 0.08s;
+}
+.femo button:hover {
+  background: #2a303c;
+  transform: scale(1.15);
+}
+.femo small {
+  grid-column: 1 / -1;
+  padding: 6px 4px 0;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+.fx .pro-lock,
+.fchat-off {
+  margin: 8px 10px 10px;
+  text-align: center;
+}
+
+.fadd-help {
+  margin: 0;
+}
+
+/* ---------- Mesaj menüsü, raporlama, sohbeti temizleme ---------- */
+.frow-flag.trust.off {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.fx .frow-menu .pro-badge.small {
+  margin-left: auto;
+}
+.frow-menu-note {
+  margin: 2px 9px 6px;
+  max-width: 250px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.fx .fmsg-menu {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  min-width: 170px;
+  z-index: 50;
+}
+.fx header .icon-btn.on {
+  color: #ff7b7f;
+}
+.fclear {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, #e5322d 10%, #15181f);
+}
+.fclear p {
+  margin: 0;
+  line-height: 1.45;
+}
+.fclear-btns,
+.freport-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.fclear-btns svg,
+.freport-btns svg {
+  width: 13px;
+  height: 13px;
+}
+.freport {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: #15181f;
+}
+.freport-head {
+  display: flex;
+  align-items: center;
+}
+.freport-head b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.freport-head svg {
+  width: 14px;
+  height: 14px;
+}
+.freport-quote {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid #ff7b7f;
+  border-radius: 6px;
+  background: #1c2029;
+  font-size: 12.5px;
+  max-height: 84px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.freport-quote small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.freport-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.freport textarea {
+  resize: none;
+  font-size: 12.5px;
+}
+.freport .success,
+.freport .error {
+  margin: 0;
+}
+.fr-prohint {
+  align-self: flex-start;
+}
+.fr-prohint .pro-badge.small {
+  margin-left: 6px;
+}

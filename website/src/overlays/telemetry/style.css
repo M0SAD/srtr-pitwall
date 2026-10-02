@@ -1,0 +1,161 @@
+.tel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 520px;
+  height: 104px;
+  user-select: none;
+}
+
+.tel-gear {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: 104px;
+  height: 104px;
+}
+
+.tel-gear svg {
+  position: absolute;
+  inset: 0;
+}
+
+.tel-gear-bg {
+  fill: var(--ov-bg-solid);
+  stroke: var(--ov-line);
+  stroke-width: 1;
+}
+
+.tel-ring-track,
+.tel-ring {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.tel-ring-track {
+  stroke: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+
+.tel-g {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-52%);
+  text-align: center;
+  font-size: 3.1em;
+  font-weight: var(--ov-weight-strong);
+  line-height: 1;
+}
+
+.tel-g-prev,
+.tel-g-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ov-dim);
+  font-size: 0.95em;
+}
+
+.tel-g-prev {
+  left: 22px;
+}
+
+.tel-g-next {
+  right: 22px;
+}
+
+.tel-body {
+  flex: 1 0 auto;
+  margin-left: -18px;
+  padding: 6px 12px 6px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tel-top,
+.tel-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tel-bottom {
+  gap: 14px;
+  padding-top: 5px;
+  border-top: 1px solid var(--ov-divider);
+}
+
+.tel-lbl {
+  color: var(--ov-dim);
+  font-size: 0.75em;
+  letter-spacing: 0.05em;
+}
+
+.tel-speed {
+  width: 2.2em;
+  font-size: 1.15em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.tel-rpm {
+  width: 2.6em;
+  text-align: right;
+  font-weight: var(--ov-weight-strong);
+}
+
+.tel-leds {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 3px;
+}
+
+.tel-leds i {
+  flex: 1;
+  max-width: 11px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ov-text) 14%, transparent);
+}
+
+/* Vites değiştirme anı: yanıp sönme (sadece bu durumda animasyon çalışır) */
+.tel-leds.blink {
+  animation: tel-blink 0.16s steps(2) infinite;
+}
+
+@keyframes tel-blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+.tel-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.tel-chg {
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  font-weight: var(--ov-weight-strong);
+}
+
+.tel-chg.up {
+  color: var(--ov-green);
+  background: color-mix(in srgb, var(--ov-green) 18%, transparent);
+}
+
+.tel-chg.down {
+  color: var(--ov-red);
+  background: color-mix(in srgb, var(--ov-red) 18%, transparent);
+}
+
+.tel-abs {
+  color: var(--ov-yellow);
+}
