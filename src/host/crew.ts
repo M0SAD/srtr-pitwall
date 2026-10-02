@@ -2,22 +2,26 @@
 //  - ekibimde izleyen varsa canlı veriye "crew" alanını ekler (bkz. social.ts team-fuel-local)
 //  - ekip üyelerinin gönderdiği komutları alır (Realtime + yoklama), denetler, iRacing'e uygular ve sonucu yazar
 //  - uygulanan her komutu oyun içi bildirim olarak gösterir ("Ali: yakıt 45 L")
+//  - Ekip Pitwall'ı (c58): ekipten biri paneli açıkken çevredeki araçları, tur / delta / bayrak / hava bilgisini ve
+//    spotter durumunu saniyede bir sunucuya yazar (crew_wall_push). Kimse izlemiyorken telemetri aboneliği de
+//    veri gönderimi de kapalıdır; 5 sn'de bir yalnızca "izleyen var mı" diye sorulur.
 //  - "Ekip kontrolünü durdur" kısayolu: ana anahtarı kapatır (bekleyen komutlar da reddedilir)
 // Komutlar sadece sim'e bağlıyken ve ana anahtar açıkken uygulanır; aksi halde sebebiyle reddedilir.
 
 import type { Accessor } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
-import type { Status } from "@/sdk/types";
+import type { Packet, Status, TopicMap } from "@/sdk/types";
 import { t } from "@/sdk/i18n";
 import { messageBeep } from "@/cloud/social";
-import { crewCommandText, crewControlSet, crewDone, crewList, crewPending, crewSimOk, crewState, onCrewCommands, type CrewCommand, type CrewLive, type CrewMember } from "@/cloud/crew";
+import { crewCommandText, crewControlSet, crewDone, crewList, crewPending, crewSimOk, crewState, crewWallPush, onCrewCommands, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
 import { showMsgToast } from "./social";
 
 let members: CrewMember[] = [];
 let controlOn = false;
+let wallOn = true;
 let extra: CrewLive | null = null;
 let started = false;
 
@@ -63,6 +67,7 @@ export function startCrew(status: Accessor<Status | undefined>) {
       if (session()?.user.id !== me) return;
       members = list;
       controlOn = !!st?.control_on;
+      wallOn = st?.wall_on !== false;
     } catch {
       return; // eski sunucu (c53 yok) ya da ağ hatası: mevcut durum kalır
     }
@@ -134,6 +139,239 @@ export function startCrew(status: Accessor<Status | undefined>) {
     if (!members.length || !session()) return;
     if (racing() || tick % 5 === 0) void process();
   }, 2000);
+
+  // ---- Ekip Pitwall'ı ----
+  // Kendi telemetri kanalı (overlay'lerin aboneliğinden bağımsız): sadece izleyen varken açık
+  const latest: Partial<TopicMap> = {};
+  let streamId: number | null = null;
+  let streamBusy = false;
+  /** Son gönderimden beri görülen yan araçlar (radar 5 Hz, gönderim 1 Hz: kısa süren yan yana an kaçmasın) */
+  let seenL = false;
+  let seenR = false;
+  const startStream = async () => {
+    if (streamId !== null || streamBusy) return;
+    streamBusy = true;
+    try {
+      const channel = new Channel<Packet>();
+      channel.onmessage = (p) => {
+        if (p.t === "settings") return;
+        if (p.t === "captions") return void onCaptions(p.d);
+        if (p.t === "voice") return void onVoice(p.d);
+        (latest as Record<string, unknown>)[p.t] = p.d;
+        if (p.t === "radar") {
+          const st = p.d.state;
+          if (st === 2 || st === 4 || st === 5) seenL = true;
+          if (st === 3 || st === 4 || st === 6) seenR = true;
+        }
+      };
+      streamId = await invoke<number>("stream_start", {
+        channel,
+        topics: [
+          { name: "relative", hz: 2 },
+          { name: "standings", hz: 1 },
+          { name: "session", hz: 1 },
+          { name: "weather", hz: 1 },
+          { name: "delta", hz: 2 },
+          { name: "telemetry", hz: 1 },
+          { name: "radar", hz: 5 },
+          { name: "pit", hz: 1 },
+          { name: "fuel", hz: 1 },
+          // Konuşma altyazısı (c60): sürücünün tanınan cümleleri ekibe altyazı olarak gider
+          { name: "captions", hz: 2 },
+          { name: "voice", hz: 5 },
+        ],
+      });
+    } catch {
+      streamId = null;
+    } finally {
+      streamBusy = false;
+    }
+  };
+  const stopStream = () => {
+    if (streamId === null) return;
+    const id = streamId;
+    streamId = null;
+    invoke("stream_stop", { id }).catch(() => {});
+    for (const k of Object.keys(latest)) delete (latest as Record<string, unknown>)[k];
+    seenL = seenR = false;
+    speech.length = 0;
+    micPrev = "";
+    micTs = 0;
+    voiceId = -1;
+  };
+  // ---- Konuşma altyazısı (c60) ----
+  // Kaynaklar: "captions" konusundaki mikrofon satırı (Konuşma → yazı; tek satır, yeni sözler sonuna eklenir) ve
+  // "voice" konusundaki sürücü sorusu (sesli komut). Yalnızca pitwall akışı açıkken (ekipten biri izlerken) toplanır.
+  /** t: ilk söz, u: son ekleme (ms) */
+  const speech: { t: number; u: number; text: string }[] = [];
+  let micPrev = "";
+  let micTs = 0;
+  let voiceId = -1;
+  const addSpeech = (text: string, now: number) => {
+    const x = text.replace(/\s+/g, " ").trim();
+    if (!x) return;
+    const last = speech[speech.length - 1];
+    // Aynı cümle iki kaynaktan da gelebilir (altyazı + sesli komut)
+    if (last && now - last.u < 6000 && last.text.toLowerCase().endsWith(x.toLowerCase())) return;
+    if (last && now - last.u < 4000 && last.text.length + x.length < 160) {
+      last.text = `${last.text} ${x}`;
+      last.u = now;
+    } else speech.push({ t: now, u: now, text: x.slice(0, 180) });
+    while (speech.length > 12) speech.shift();
+  };
+  const onCaptions = (c: TopicMap["captions"] | undefined) => {
+    const mic = c?.lines?.find((l) => l.src === "mic");
+    if (!mic || !mic.ts || mic.ts === micTs) return;
+    const first = micTs === 0;
+    micTs = mic.ts;
+    const cur = String(mic.text ?? "").replace(/^…/, "").trim();
+    const prev = micPrev;
+    micPrev = cur;
+    // Akış açıldığında ekranda kalmış eski satır: yalnızca tazeyse al
+    if (first && Date.now() - mic.ts > 8000) return;
+    let add = cur;
+    if (prev) {
+      if (cur.startsWith(prev)) add = cur.slice(prev.length);
+      else {
+        // Satır baştan kırpılmış olabilir (180 karakter sınırı): eski metnin sonunu yeni metinde ara
+        const tail = prev.slice(-30);
+        const at = cur.lastIndexOf(tail);
+        if (at >= 0) add = cur.slice(at + tail.length);
+      }
+    }
+    addSpeech(add, Date.now());
+  };
+  const onVoice = (v: TopicMap["voice"] | undefined) => {
+    if (!v || v.id === voiceId) return;
+    const first = voiceId === -1;
+    voiceId = v.id;
+    if (v.role !== "driver" || (first && !v.speaking)) return;
+    addSpeech(String(v.text ?? ""), Date.now());
+  };
+  /** Anlık görüntüye girecek satırlar: son 60 sn, en fazla 6 satır / 400 karakter (en yeniler) */
+  const buildSpeech = (): CrewSpeech[] | undefined => {
+    if (settings().general.social.crewSpeech === false) return undefined;
+    const now = Date.now();
+    const out: CrewSpeech[] = [];
+    let chars = 0;
+    for (let i = speech.length - 1; i >= 0 && out.length < 6; i--) {
+      const s = speech[i];
+      if (now - s.u > 60_000) break;
+      const text = s.text.slice(0, 400 - chars);
+      if (!text) break;
+      chars += text.length;
+      out.unshift({ t: s.t, text, final: now - s.u > 2500 });
+    }
+    return out.length ? out : undefined;
+  };
+  const r1 = (x: number | undefined | null, d = 1) => (typeof x === "number" && isFinite(x) ? Math.round(x * 10 ** d) / 10 ** d : 0);
+  const buildWall = (): CrewWall | null => {
+    const rel = latest.relative;
+    const ses = latest.session;
+    if (!rel || !ses) return null;
+    const all = rel.rows ?? [];
+    const mi = all.findIndex((r) => r.isMe);
+    const near = mi < 0 ? all.slice(0, 11) : all.slice(Math.max(0, mi - 5), mi + 6);
+    const rows: WallRow[] = near.map((r) => ({
+      i: r.idx,
+      p: r.pos,
+      cp: r.classPos,
+      n: String(r.number ?? "").slice(0, 4),
+      nm: String(r.name ?? "").slice(0, 28),
+      c: r.classColor,
+      g: r.isMe ? 0 : r1(r.gap, 2),
+      l: r1(r.last, 3),
+      b: r1(r.best, 3),
+      ...(r.onPit ? { pit: true } : {}),
+      ...(r.isMe ? { me: true } : {}),
+      ...(r.lapRel ? { lr: r.lapRel } : {}),
+    }));
+    // Sınıfın ilk üçü (yakında değillerse ayrıca eklenir). Yarışta fark: lidere farkların farkı.
+    const st = latest.standings;
+    const mine = st?.rows.find((r) => r.isMe);
+    if (st && mine) {
+      for (const r of st.rows) {
+        if (r.classId !== mine.classId || r.classPos < 1 || r.classPos > 3 || r.isMe || rows.some((x) => x.i === r.idx)) continue;
+        const sameLap = r.lapsDown === mine.lapsDown;
+        rows.push({
+          i: r.idx,
+          p: r.pos,
+          cp: r.classPos,
+          n: String(r.number ?? "").slice(0, 4),
+          nm: String(r.name ?? "").slice(0, 28),
+          c: r.classColor,
+          g: st.race && sameLap ? r1(mine.gap - r.gap, 1) : null,
+          l: r1(r.last, 3),
+          b: r1(r.best, 3),
+          ...(r.onPit ? { pit: true } : {}),
+          top: true,
+        });
+      }
+    }
+    const dl = latest.delta;
+    const tel = latest.telemetry;
+    const wx = latest.weather;
+    const rd = latest.radar;
+    const pit = latest.pit;
+    const fu = latest.fuel;
+    const sp = !rd || rd.state === 0 ? 0 : seenL && seenR ? 4 : seenL ? 2 : seenR ? 3 : 1;
+    seenL = seenR = false;
+    const sph = buildSpeech();
+    return {
+      ...(sph ? { speech: sph } : {}),
+      ts: Date.now(),
+      ses: ses.sessionType ?? "",
+      rows,
+      me: {
+        pos: ses.position,
+        cp: ses.classPosition,
+        cars: ses.carCount,
+        lap: ses.lap,
+        last: r1(tel?.last ?? dl?.last, 3),
+        best: r1(tel?.best ?? dl?.best, 3),
+        cur: r1(dl?.current, 1),
+        d: dl?.valid ? r1(dl.delta, 2) : null,
+      },
+      flags: (ses.flags ?? []).slice(0, 8),
+      wx: wx ? { air: r1(wx.airTemp), track: r1(wx.trackTemp), wet: wx.wetness, rain: r1(wx.precip, 2), wind: r1(wx.windVel) } : null,
+      sp,
+      ahead: rd?.aheadM != null ? r1(rd.aheadM) : null,
+      behind: rd?.behindM != null ? r1(rd.behindM) : null,
+      pit: { road: !!(pit?.onPitRoad ?? ses.onPitRoad), stall: !!pit?.inStall, lim: !!pit?.limiter },
+      inc: ses.incidents,
+      incMax: ses.incidentLimit,
+      fuel: fu ? { lvl: r1(fu.level), laps: r1(fu.avg5?.laps), use: r1(fu.avg5?.usage, 2) } : null,
+      rem: { t: Math.round(ses.timeRemain), l: ses.lapsRemain },
+    };
+  };
+  let watchers = 0;
+  let wallTick = 0;
+  let wallBusy = false;
+  setInterval(() => {
+    wallTick++;
+    const can = wallOn && !!session() && racing() && members.some((m) => m.can_view || m.can_control);
+    if (!can) {
+      watchers = 0;
+      stopStream();
+      return;
+    }
+    if (watchers > 0) void startStream();
+    else stopStream();
+    // İzleyen yokken 5 sn'de bir sor; varken saniyede bir gönder
+    if (wallBusy || (watchers === 0 && wallTick % 5 !== 0)) return;
+    const data = watchers > 0 ? buildWall() : null;
+    wallBusy = true;
+    crewWallPush(data)
+      .then((r) => {
+        watchers = Math.max(0, Number(r?.watchers) || 0);
+        if (r && r.wall_on === false) wallOn = false;
+      })
+      .catch(() => {
+        /* eski sunucu (c58 yok) ya da ağ hatası: bir sonraki turda */
+        if (watchers === 0) wallTick = 1; // 5 sn sonra yeniden
+      })
+      .finally(() => (wallBusy = false));
+  }, 1000);
 
   // "Ekip kontrolünü durdur" kısayolu
   void listen("crew-stop", () => {

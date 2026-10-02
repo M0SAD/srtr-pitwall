@@ -8,6 +8,7 @@ import { DEFAULT_THEME, themeVars, type Theme } from "@/sdk/theme";
 import type { Profile } from "@/sdk/settings";
 import { isLocked } from "@/cloud/account";
 import { OverlayView } from "./OverlayView";
+import { normalizeLook } from "@/sdk/look";
 
 export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w: number; h: number; stream?: boolean }) {
   let box: HTMLDivElement | undefined;
@@ -41,7 +42,7 @@ export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w:
                 opacity: Math.min(it.o.opacity ?? 1, theme().opacity / 100),
               }}
             >
-              <OverlayView type={it.o.type} options={{ ...defaultOptions(it.m), ...(it.o.options ?? {}) }} themed={false} />
+              <OverlayView type={it.o.type} options={{ ...defaultOptions(it.m), ...(it.o.options ?? {}) }} look={normalizeLook(it.o.look)} themed={false} />
             </div>
           )}
         </For>

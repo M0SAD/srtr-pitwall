@@ -70,8 +70,10 @@ export const F = {
   appBg: "appearance.app_bg",
   chatLook: "appearance.chat_look",
   themes: "appearance.themes",
+  overlayLook: "appearance.overlay_look",
   voice: VOICE_FEATURE,
   voicePackSubmit: "voice.pack_submit",
+  voiceCommands: "voice.commands",
   shots: "tools.screenshots",
   streaming: "tools.streaming",
   league: "tools.league",
@@ -79,6 +81,8 @@ export const F = {
   timing: "tools.timing",
   engineer: "tools.engineer",
   events: "tools.events",
+  dashDesigner: "dashboard.designer",
+  dashRemote: "dashboard.remote",
   liveMulti: "livechat.multi",
   liveFav: "livechat.favorites",
   livePoll: "livechat.poll",
@@ -94,7 +98,7 @@ export const F = {
  *  (bkz. cloud/account.ts withVoiceLock, src-tauri/src/livechat/mod.rs allowed). Varsayılanları aşağıdaki katalogda. */
 export const LIVECHAT_LOCK_KEYS = [F.liveMulti, F.liveFav, F.livePoll, F.liveObs, F.liveTts, F.liveStt, F.liveSend, F.liveAlerts, F.liveLog] as const;
 /** Rust'ın denetlediği diğer anahtarlar (aynı adla "locked" listesine girer): Mesajlar overlay'inde sesli okuma (livechat/tts.rs) */
-export const RUST_LOCK_KEYS = [F.msgTts] as const;
+export const RUST_LOCK_KEYS = [F.msgTts, F.voiceCommands, F.dashRemote] as const;
 
 /** Elle tanımlı özellikler (overlay'ler aşağıda manifestlerden toplanır) */
 const STATIC: ProFeature[] = [
@@ -134,8 +138,10 @@ const STATIC: ProFeature[] = [
   { key: F.themes, label: "Tema düzenlemek (renkler, yazı tipi, kenarlık, gölge)", group: "Görünüm", defaultPro: false },
   { key: F.appBg, label: "Uygulama arka planı (resim / renk)", group: "Görünüm", defaultPro: false },
   { key: F.chatLook, label: "Sohbet görünümü (balonlar ve sohbet arka planı)", group: "Görünüm", defaultPro: false },
+  { key: F.overlayLook, label: "Overlay'e özel görünüm: gelişmiş seçenekler (yazı tipi, kenarlık, gölge, yoğunluk, hazır görünümler)", group: "Görünüm", defaultPro: false, hint: "Arka plan, yazı ve vurgu rengi, köşe ve yazı boyutu her zaman açık" },
   // Ses
   { key: VOICE_FEATURE, label: "Sesli mühendis ve spotter", group: "Ses", defaultPro: true },
+  { key: F.voiceCommands, label: "Sesli komut (bas-konuş: mühendise sesle soru sormak)", group: "Ses", defaultPro: true, hint: "Rust da denetler · sesli mühendis de açık olmalı" },
   { key: F.voicePackSubmit, label: "Ses paketi göndermek (kendi kaydını paylaşmak)", group: "Ses", defaultPro: false, server: true },
   // Araçlar
   { key: F.shots, label: "Ekran görüntüsü almak", group: "Araçlar", defaultPro: false },
@@ -145,6 +151,8 @@ const STATIC: ProFeature[] = [
   { key: F.timing, label: "Live Timing penceresi", group: "Araçlar", defaultPro: false },
   { key: F.engineer, label: "Mühendis Ekranı penceresi", group: "Araçlar", defaultPro: false },
   { key: F.events, label: "Olaylar penceresi", group: "Araçlar", defaultPro: false },
+  { key: F.dashDesigner, label: "Dashboard tasarımcısı (Direksiyon Ekranı için kendi tasarımını yapmak)", group: "Araçlar", defaultPro: true, hint: "Tasarımı overlay'de kullanmak ayrıca: Overlay'ler › Direksiyon Ekranı › Görünüm › Özel tasarım" },
+  { key: F.dashRemote, label: "Uzak gösterge (direksiyon ekranını telefon / tabletten açmak: /dash)", group: "Araçlar", defaultPro: true, hint: "Rust da denetler · yerel web sunucusundaki /dash sayfası ve verisi" },
   // Canlı Sohbet (tek kanal okuma, moderasyon, görünüm ve kayıt tutmak herkese açık). Giriş zorunluluğu ve sekme gizleme
   // PRO kararı değildir: Yönetim › Canlı Sohbet ayarları (app_config.livechat_require_login / livechat_hidden_tabs).
   { key: F.liveMulti, label: "Birden fazla kanal (ücretsiz: yalnızca en üstteki kanalın sohbeti ve izleyici sayısı)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kanal eklemek her zaman açık; PRO değilse sadece en üstteki kanal bağlanır" },
@@ -188,6 +196,7 @@ function manifestFeatures(): ProFeature[] {
   for (const m of manifests) {
     out.push({ key: overlayKey(m.id), label: "Overlay'in kendisi", group: "Overlay'ler", sub: m.name, defaultPro: false, kind: "overlay", hint: "PRO değilse overlay açılamaz, ekranda görünmez" });
     for (const f of m.settings) {
+      if (f.dynamic) continue;
       if (f.type === "select") {
         for (const o of f.options) {
           const key = optionKey(m.id, f.key, o.value);

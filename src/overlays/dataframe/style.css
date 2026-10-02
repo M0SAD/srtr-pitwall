@@ -2,14 +2,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 10px 8px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(8px * var(--ov-pad-k, 1));
   box-sizing: border-box;
 }
 
 .df-title {
   font-size: 0.75em;
   color: var(--ov-dim);
-  text-transform: uppercase;
+  text-transform: var(--ov-label-tt, uppercase);
   letter-spacing: 0.06em;
 }
 

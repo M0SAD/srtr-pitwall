@@ -1,5 +1,5 @@
 .ot {
-  width: 280px;
+  width: calc(280px * var(--ov-fs-k, 1));
   overflow: hidden;
 }
 .ot-row {
@@ -8,13 +8,13 @@
   align-items: center;
   gap: 8px;
   height: calc(var(--ov-row-h) + 4px);
-  padding: 0 10px;
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
   border-left: 4px solid var(--cc);
   border-bottom: 1px solid var(--ov-divider);
   white-space: nowrap;
 }
 .ot-cls {
-  padding: 0 5px;
+  padding: 0 calc(5px * var(--ov-pad-k, 1));
   border-radius: 3px;
   background: var(--cc);
   color: #111;

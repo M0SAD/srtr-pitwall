@@ -31,6 +31,7 @@ import { liveProfile } from "@/sdk/streamLink";
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
+import { lookStyle } from "@/sdk/lookStyle";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
 import { previewFrozen, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
@@ -55,6 +56,8 @@ let peekTimer: number | undefined;
 // Overlay'ler sayfasında yeni eklenen overlay: kullanıcı o sayfada kaldıkça (oyun kapalıyken) örnek veriyle ekranda tutulur.
 // Panel bırakınca (sayfadan çıkış, başka overlay seçimi, panel kapanışı) ya da oyun bağlanınca normal kurallara dönülür.
 const [pinId, setPinId] = createSignal<string | null>(null);
+// Tutulan overlay'in düzeni: Overlay'ler sayfasında düzenlenen düzen (yoksa etkin düzen)
+const [pinProfile, setPinProfile] = createSignal<string | null>(null);
 /** Panel önizlemeyi dondurdu (Rust: preview_freeze); sadece önizleme verisi akarken dikkate alınır */
 const [frozenEvt, setFrozenEvt] = createSignal(false);
 
@@ -129,11 +132,17 @@ export function Host() {
       if (!e.payload.editMode) setEditPick(null);
     });
     await listen<string>("edit-layout", (e) => setEditPick(e.payload || null));
-    await listen<{ id: string | null }>("overlay-pin", (e) => setPinId(e.payload?.id || null));
+    await listen<{ id: string | null; profile?: string | null }>("overlay-pin", (e) => {
+      setPinProfile(e.payload?.profile || null);
+      setPinId(e.payload?.id || null);
+    });
     await listen<boolean>("preview-frozen", (e) => setFrozenEvt(!!e.payload));
     // Pencere sonradan açıldıysa (ör. başka monitörün penceresi) o anki durumu al
     invoke<string | null>("overlay_pin_get")
       .then((id) => setPinId(id || null))
+      .catch(() => {});
+    invoke<string | null>("overlay_pin_profile_get")
+      .then((id) => setPinProfile(id || null))
       .catch(() => {});
     await listen<{ id: string; ms: number }>("overlay-peek", (e) => {
       setPeekId(e.payload.id);
@@ -210,8 +219,8 @@ export function Host() {
     const st = status();
     setPreviewFrozen(frozenEvt() && pinActive() && !!st?.preview && !st.demo);
   });
-  // Tutulan overlay panelde düzenlenen (etkin) düzendedir: o düzen gösterilir
-  const pick = () => forced ?? (app().editMode ? editPick() : pinActive() ? settings().activeProfile : null);
+  // Tutulan overlay panelde düzenlenen düzendedir (Overlay'ler sayfasında seçili düzen; yoksa etkin düzen): o gösterilir
+  const pick = () => forced ?? (app().editMode ? editPick() : pinActive() ? pinProfile() ?? settings().activeProfile : null);
   // Bağlı yayın düzeni: kaynak düzenin overlay'leri yayın çözünürlüğüne oranlanmış hâliyle (canlı)
   setShown(liveProfile(resolveProfile(status(), !inTauri, pick()), status()));
   createEffect(() => setShown(liveProfile(resolveProfile(status(), !inTauri, pick()), status())));
@@ -618,6 +627,8 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       class="frame"
       classList={{ dragging: !!drag(), peek: peekId() === id }}
       style={{
+        // Kopyaya özel görünüm: tema değişkenlerinin üstüne (yoksa boş)
+        ...lookStyle(inst().look, settings().theme),
         transform: `translate(${view().x}px, ${view().y}px) scale(${view().eff})`,
         // Genel opaklık bir tavandır: overlay'in kendi opaklığı ondan düşükse aynen kalır
         opacity: Math.min(inst().opacity, globalOpacity()),

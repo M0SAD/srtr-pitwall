@@ -3,10 +3,23 @@
 
 import { For, Match, Show, Switch, type JSX } from "solid-js";
 import { lapTime } from "@/sdk/format";
-import type { CarFamily } from "@/sdk/cars";
+import type { CarFamily, CarModel } from "@/sdk/cars";
+import { CarDash2, type CarStyle2 } from "./carstyles2";
 import "./carstyles.css";
+import "./carstyles2.css";
 
-export type CarStyle = "carF1" | "carFjr" | "carGtDe" | "carGtIt" | "carGtUk" | "carProto" | "carStock" | "carRally" | "carTouring" | "carRoad";
+export type CarStyle =
+  | "carF1"
+  | "carFjr"
+  | "carGtDe"
+  | "carGtIt"
+  | "carGtUk"
+  | "carProto"
+  | "carStock"
+  | "carRally"
+  | "carTouring"
+  | "carRoad"
+  | CarStyle2;
 
 export const CAR_STYLES: CarStyle[] = [
   "carF1",
@@ -19,6 +32,16 @@ export const CAR_STYLES: CarStyle[] = [
   "carRally",
   "carTouring",
   "carRoad",
+  // Belirli araçların ekran yerleşimleri (carstyles2.tsx)
+  "carFormula",
+  "carMercW13",
+  "carFer296",
+  "carMcl720",
+  "carPor992",
+  "carPor963",
+  "carCadV",
+  "carFer499",
+  "carLmp2",
 ];
 export const isCarStyle = (v: unknown): v is CarStyle => CAR_STYLES.includes(v as CarStyle);
 
@@ -36,6 +59,50 @@ export const STYLE_FOR_FAMILY: Record<CarFamily, CarStyle> = {
   road: "carRoad",
   classic: "carRoad",
 };
+
+/** Belirli araç modeli -> o aracın ekran yerleşimi (aile tarzından önce gelir) */
+export const STYLE_FOR_MODEL: Record<CarModel, CarStyle> = {
+  mercW13: "carMercW13",
+  formulaGen: "carFormula",
+  fer296: "carFer296",
+  mcl720: "carMcl720",
+  por992: "carPor992",
+  por963: "carPor963",
+  cadV: "carCadV",
+  fer499: "carFer499",
+  lmp2: "carLmp2",
+};
+
+/** ABS / TC kutusu kendi yerleşiminde olan tarzlar ("Otomatik"te bunlarda görünür) */
+const NATIVE_AIDS: Partial<Record<CarStyle, boolean>> = {
+  carF1: true,
+  carGtDe: true,
+  carGtIt: true,
+  carGtUk: true,
+  carProto: true,
+  carRally: true,
+  carTouring: true,
+  carFormula: true,
+  carFer296: true,
+  carMcl720: true,
+  carPor992: true,
+  carPor963: true,
+  carCadV: true,
+  carFer499: true,
+  carLmp2: true,
+};
+/** Batarya / hibrit alanları kendi yerleşiminde olan tarzlar (alt şeritte tekrar edilmez) */
+export const NATIVE_HYBRID: Partial<Record<CarStyle, boolean>> = { carMercW13: true, carPor963: true, carCadV: true, carFer499: true };
+
+export type AidMode = "auto" | "on" | "off";
+
+/** Kullanıcının seçtiği renkler ("Özel renkler kullan") */
+export interface DashPalette {
+  low: string;
+  mid: string;
+  high: string;
+  shift: string;
+}
 
 export interface TyreInfo {
   /** Ortalama yüzey sıcaklığı °C (renk için) */
@@ -92,6 +159,43 @@ export interface DashCtx {
   sector: () => { n: number; t: number };
   onPit: () => boolean;
   lapPct: () => number | undefined;
+  // --- ABS / TC ---
+  tcActive: () => boolean;
+  absMode: () => AidMode;
+  tcMode: () => AidMode;
+  // --- Hibrit / ERS / DRS / P2P (ayar "Kapalı" ise hepsi boş döner) ---
+  /** Batarya doluluğu 0..1; yoksa undefined */
+  soc: () => number | undefined;
+  /** MGU-K gücü kW (+ harcama, - geri kazanım); sim vermiyorsa undefined */
+  mguk: () => number | undefined;
+  /** Harcama modu (araç içi ayar); yoksa undefined */
+  mode: () => number | undefined;
+  /** Bu turda kalan harcama hakkı 0..1 */
+  deployLeft: () => number | undefined;
+  /** -1 yok, 0 kapalı, 1 yaklaşan bölge, 2 açılabilir, 3 açık */
+  drs: () => number;
+  /** Kalan P2P hakkı; yoksa -1 */
+  p2p: () => number;
+  p2pActive: () => boolean;
+  /** Geri kazanım kazancı (araç içi ayar); yoksa undefined */
+  regen: () => number | undefined;
+  /** Alt şeritte batarya bölümü gösterilsin mi */
+  hyBattery: () => boolean;
+  // --- Ek alanlar (yeni araç ekranları) ---
+  /** Tahmini tur süresi (en iyi tur + delta) */
+  pred: () => number | undefined;
+  /** Güncel (yoksa son) turun sektör süreleri */
+  sectors: () => (number | undefined)[];
+  /** Tur başına yakıt (seçilen birimde) */
+  fuelPerLap: () => string;
+  /** Son turda harcanan yakıt */
+  fuelLast: () => string;
+  /** Oturum adı (RACE / QUALI / PRACTICE...) */
+  session: () => string;
+  /** Lastik hamuru: DRY / WET / "—" */
+  compound: () => string;
+  /** Özel renkler açıksa devir ışığı paleti */
+  pal: () => DashPalette | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,10 +208,15 @@ const R = "#ff2a1f";
 const B = "#2f7dff";
 const M = "#c93cff";
 
-type LedMode = "ltr" | "outin" | "centerout";
+export type LedMode = "ltr" | "outin" | "centerout";
 
 /** n LED'in renkleri; palet dolma adımlarına eşit dağıtılır. Sönük LED: undefined */
 function ledList(c: DashCtx, n: number, mode: LedMode, palette: string[], shiftColor: string, blinkColor = shiftColor) {
+  const pal = c.pal();
+  if (pal) {
+    palette = [pal.low, pal.mid, pal.high];
+    shiftColor = blinkColor = pal.shift;
+  }
   const steps = mode === "ltr" ? n : Math.ceil(n / 2);
   if (c.blink()) return Array<string | undefined>(n).fill(blinkColor);
   if (c.shift() && c.frac() >= 1) return Array<string | undefined>(n).fill(shiftColor);
@@ -119,7 +228,7 @@ function ledList(c: DashCtx, n: number, mode: LedMode, palette: string[], shiftC
   });
 }
 
-function Leds(p: { c: DashCtx; n: number; mode: LedMode; palette: string[]; shift: string; blink?: string; class?: string }) {
+export function Leds(p: { c: DashCtx; n: number; mode: LedMode; palette: string[]; shift: string; blink?: string; class?: string }) {
   return (
     <div class={`cd-leds ${p.class ?? ""}`}>
       <For each={ledList(p.c, p.n, p.mode, p.palette, p.shift, p.blink)}>
@@ -129,18 +238,18 @@ function Leds(p: { c: DashCtx; n: number; mode: LedMode; palette: string[]; shif
   );
 }
 
-const fin = (v: number | undefined): v is number => v != null && isFinite(v) && v >= 0;
-const n0 = (v: number | undefined, d = 0) => (fin(v) ? v.toFixed(d) : "—");
-const posTxt = (c: DashCtx) => (c.pos() > 0 ? String(c.pos()) : "—");
-const lapTxt = (c: DashCtx) => (c.lap() > 0 ? String(c.lap()) : "—");
-const hasTotal = (c: DashCtx) => c.totalLaps() > 0 && c.totalLaps() < 32767;
+export const fin = (v: number | undefined): v is number => v != null && isFinite(v) && v >= 0;
+export const n0 = (v: number | undefined, d = 0) => (fin(v) ? v.toFixed(d) : "—");
+export const posTxt = (c: DashCtx) => (c.pos() > 0 ? String(c.pos()) : "—");
+export const lapTxt = (c: DashCtx) => (c.lap() > 0 ? String(c.lap()) : "—");
+export const hasTotal = (c: DashCtx) => c.totalLaps() > 0 && c.totalLaps() < 32767;
 
-function deltaTxt(v: number | undefined) {
+export function deltaTxt(v: number | undefined) {
   if (v == null || !isFinite(v)) return "-.--";
   if (Math.abs(v) < 0.005) return "0.00";
   return (v > 0 ? "+" : "-") + Math.min(99.99, Math.abs(v)).toFixed(2);
 }
-const deltaCls = (v: number | undefined) => (v == null ? "" : v < -0.004 ? "cd-fast" : v > 0.004 ? "cd-slow" : "");
+export const deltaCls = (v: number | undefined) => (v == null ? "" : v < -0.004 ? "cd-fast" : v > 0.004 ? "cd-slow" : "");
 
 /** Lastik sıcaklığına göre renk (°C) */
 export function tyreColor(c: number | undefined) {
@@ -153,7 +262,7 @@ export function tyreColor(c: number | undefined) {
 }
 
 /** Merkezi sıfır olan delta çubuğu: hızlıysa yeşil sola, yavaşsa kırmızı sağa (±range sn) */
-function DeltaBar(p: { v: number | undefined; range?: number; class?: string }) {
+export function DeltaBar(p: { v: number | undefined; range?: number; class?: string }) {
   const w = () => (p.v == null ? 0 : Math.min(1, Math.abs(p.v) / (p.range ?? 1)) * 50);
   return (
     <div class={`cd-dbar ${p.class ?? ""}`}>
@@ -167,7 +276,7 @@ function DeltaBar(p: { v: number | undefined; range?: number; class?: string }) 
 }
 
 /** Basit hücre: etiket + değer */
-function Cell(p: { l: string; v: JSX.Element; class?: string }) {
+export function Cell(p: { l: string; v: JSX.Element; class?: string }) {
   return (
     <div class={`cd-cell ${p.class ?? ""}`}>
       <span class="cd-l">{p.l}</span>
@@ -176,8 +285,20 @@ function Cell(p: { l: string; v: JSX.Element; class?: string }) {
   );
 }
 
+/** ABS / TC kutusu: ayar "Kapalı" ise yer tutar ama görünmez; sistem devredeyken yanar */
+export function Aid(p: { c: DashCtx; k: "abs" | "tc"; l?: string; class?: string }) {
+  const off = () => (p.k === "abs" ? p.c.absMode() : p.c.tcMode()) === "off";
+  const act = () => (p.k === "abs" ? p.c.absActive() : p.c.tcActive());
+  return (
+    <div class={`cd-cell cd-aid ${p.class ?? ""}`} classList={{ "cd-hid": off(), "cd-act": act() }}>
+      <span class="cd-l">{p.l ?? (p.k === "abs" ? "ABS" : "TC")}</span>
+      <b class="cd-v">{n0(p.k === "abs" ? p.c.abs() : p.c.tc())}</b>
+    </div>
+  );
+}
+
 /** Lastik sıcaklıkları (2x2) — veri yoksa hiç çizilmez */
-function TyreGrid(p: { c: DashCtx; class?: string; press?: boolean }) {
+export function TyreGrid(p: { c: DashCtx; class?: string; press?: boolean }) {
   return (
     <Show when={p.c.tyres()}>
       {(ty) => (
@@ -303,7 +424,7 @@ function F1(p: { c: DashCtx }) {
         </div>
         <div class="cd-f1-col">
           <Cell l="BBAL" v={n0(c.bb(), 1)} class="k-magenta" />
-          <Cell l="TC" v={n0(c.tc())} class="k-green" />
+          <Aid c={c} k="tc" class="k-green" />
           <Cell l="FUEL" v={c.fuelLaps()} class="k-orange" />
         </div>
       </div>
@@ -311,7 +432,7 @@ function F1(p: { c: DashCtx }) {
         <TyreGrid c={c} class="cd-f1-tyres" />
         <Cell l="LAST" v={lapTime(c.last())} />
         <Cell l="BEST" v={lapTime(c.best())} class="cd-purple" />
-        <Cell l="ABS" v={n0(c.abs())} />
+        <Aid c={c} k="abs" />
       </div>
     </>
   );
@@ -370,8 +491,8 @@ function GtDe(p: { c: DashCtx }) {
       <Leds c={c} n={12} mode="outin" palette={[G, Y, R]} shift={B} blink={B} class="cd-rect" />
       <div class="cd-screen">
         <div class="cd-de-grid">
-          <Cell l="TC" v={n0(c.tc())} class="a1" />
-          <Cell l="ABS" v={n0(c.abs())} class={`a2 ${c.absActive() ? "cd-warn" : ""}`} />
+          <Aid c={c} k="tc" class="a1" />
+          <Aid c={c} k="abs" class="a2" />
           <Cell l="BB %" v={n0(c.bb(), 1)} class="a3" />
           <div class="cd-de-gear">
             <div class="cd-gear">{c.gear()}</div>
@@ -429,8 +550,8 @@ function GtIt(p: { c: DashCtx }) {
           </div>
         </div>
         <div class="cd-it-tiles">
-          <Cell l="TC" v={n0(c.tc())} />
-          <Cell l="ABS" v={n0(c.abs())} />
+          <Aid c={c} k="tc" />
+          <Aid c={c} k="abs" />
           <Cell l="BB" v={n0(c.bb(), 1)} />
           <Cell l={`FUEL ${c.fuelUnit()}`} v={c.fuel()} />
           <Cell l="LAST" v={lapTime(c.last())} class="w2" />
@@ -468,12 +589,16 @@ function GtUk(p: { c: DashCtx }) {
           </div>
         </div>
         <div class="cd-uk-bot">
-          <span>
-            TC <b>{n0(c.tc())}</b>
-          </span>
-          <span>
-            ABS <b>{n0(c.abs())}</b>
-          </span>
+          <Show when={c.tcMode() !== "off"}>
+            <span classList={{ "cd-act": c.tcActive() }}>
+              TC <b>{n0(c.tc())}</b>
+            </span>
+          </Show>
+          <Show when={c.absMode() !== "off"}>
+            <span classList={{ "cd-act": c.absActive() }}>
+              ABS <b>{n0(c.abs())}</b>
+            </span>
+          </Show>
           <span>
             BB <b>{n0(c.bb(), 1)}</b>
           </span>
@@ -531,8 +656,8 @@ function Proto(p: { c: DashCtx }) {
           <div class="cd-pr-right">
             <TyreGrid c={c} press />
             <div class="cd-pr-sys">
-              <Cell l="TC" v={n0(c.tc())} />
-              <Cell l="ABS" v={n0(c.abs())} />
+              <Aid c={c} k="tc" />
+              <Aid c={c} k="abs" />
               <Cell l="BB" v={n0(c.bb(), 1)} />
             </div>
           </div>
@@ -642,8 +767,8 @@ function Rally(p: { c: DashCtx }) {
       <div class="cd-row cd-ra-row">
         <Cell l={`OIL${c.tUnit()}`} v={c.oil()} />
         <Cell l={`H2O${c.tUnit()}`} v={c.water()} />
-        <Cell l="TC" v={n0(c.tc())} />
-        <Cell l="ABS" v={n0(c.abs())} />
+        <Aid c={c} k="tc" />
+        <Aid c={c} k="abs" />
         <Cell l={`FUEL`} v={c.fuel()} />
       </div>
     </div>
@@ -670,10 +795,10 @@ function Touring(p: { c: DashCtx }) {
           <Cell l="LAST" v={lapTime(c.last())} class="w2" />
           <Cell l="BEST" v={lapTime(c.best())} class="w2" />
           <Cell l={`FUEL ${c.fuelUnit()}`} v={c.fuel()} />
-          <Cell l="ABS" v={n0(c.abs())} />
+          <Aid c={c} k="abs" />
           <Cell l="BB" v={n0(c.bb(), 1)} />
           <Cell l={`OIL ${c.tUnit()}`} v={c.oil()} />
-          <Cell l="TC" v={n0(c.tc())} />
+          <Aid c={c} k="tc" />
           <Cell l={`H2O ${c.tUnit()}`} v={c.water()} />
         </div>
       </div>
@@ -723,9 +848,82 @@ function Road(p: { c: DashCtx }) {
   );
 }
 
-export function CarDash(p: { style: CarStyle; c: DashCtx; flash: boolean; opacity: number }) {
+/**
+ * Ek bilgi şeridi: ABS / TC (ayar "Her zaman" ise ve tarzın kendi kutusu yoksa) ve hibrit bilgisi
+ * (batarya çubuğu, harcama modu, MGU-K gücü, DRS, P2P). Gösterilecek bir şey yoksa hiç çizilmez.
+ * Klasik görünümler de bunu kullanır (style verilmez).
+ */
+export function DashExtras(p: { c: DashCtx; style?: CarStyle }) {
+  const c = p.c;
+  const native = () => !!(p.style && NATIVE_AIDS[p.style]);
+  const abs = () => c.absMode() === "on" && !native();
+  const tc = () => c.tcMode() === "on" && !native();
+  const batt = () => c.hyBattery() && !(p.style && NATIVE_HYBRID[p.style]);
+  const drs = () => c.drs() >= 0;
+  const p2p = () => c.p2p() >= 0;
+  const kw = () => c.mguk();
   return (
-    <div class={`cd cd-${p.style}`} classList={{ "cd-flash": p.flash }} style={{ "--cd-a": String(p.opacity) }} data-no-i18n>
+    <Show when={abs() || tc() || batt() || drs() || p2p()}>
+      <div class="dx el-extras" data-no-i18n>
+        <Show when={abs()}>
+          <span class="dx-chip" classList={{ "dx-act": c.absActive() }}>
+            ABS <b>{n0(c.abs())}</b>
+          </span>
+        </Show>
+        <Show when={tc()}>
+          <span class="dx-chip" classList={{ "dx-act": c.tcActive() }}>
+            TC <b>{n0(c.tc())}</b>
+          </span>
+        </Show>
+        <Show when={batt()}>
+          <div class="dx-batt" classList={{ "dx-low": (c.soc() ?? 1) < 0.15 }}>
+            <i style={{ width: `${Math.max(0, Math.min(1, c.soc() ?? 0)) * 100}%` }} />
+            <Show when={fin(c.deployLeft())}>
+              <u style={{ width: `${(c.deployLeft() ?? 0) * 100}%` }} />
+            </Show>
+            <b>{fin(c.soc()) ? `${Math.round(c.soc()! * 100)}%` : "—"}</b>
+          </div>
+          <Show when={fin(c.mode())}>
+            <span class="dx-chip">
+              MODE <b>{c.mode()}</b>
+            </span>
+          </Show>
+          <Show when={kw() != null}>
+            <span class="dx-chip dx-kw" classList={{ "dx-dep": kw()! > 1, "dx-reg": kw()! < -1 }}>
+              <b>{kwTxt(kw())}</b> kW
+            </span>
+          </Show>
+        </Show>
+        <Show when={drs()}>
+          <span class="dx-chip dx-drs" classList={{ "dx-on": c.drs() === 3, "dx-rdy": c.drs() === 1 || c.drs() === 2 }}>
+            DRS
+          </span>
+        </Show>
+        <Show when={p2p()}>
+          <span class="dx-chip dx-p2p" classList={{ "dx-on": c.p2pActive() }}>
+            P2P <b>{c.p2p()}</b>
+          </span>
+        </Show>
+      </div>
+    </Show>
+  );
+}
+
+/** "+85" / "-120" / "0" (kW) */
+export function kwTxt(v: number | undefined) {
+  if (v == null || !isFinite(v)) return "—";
+  const r = Math.round(v);
+  return r > 0 ? `+${r}` : String(r);
+}
+
+export function CarDash(p: { style: CarStyle; c: DashCtx; flash: boolean; opacity: number; custom?: Record<string, string>; vars?: Record<string, string> }) {
+  return (
+    <div
+      class={`cd cd-${p.style}`}
+      classList={{ "cd-flash": p.flash, "cd-custom": !!p.custom }}
+      style={{ "--cd-a": String(p.opacity), ...(p.vars ?? {}), ...(p.custom ?? {}) }}
+      data-no-i18n
+    >
       <Switch>
         <Match when={p.style === "carF1"}>
           <F1 c={p.c} />
@@ -757,7 +955,11 @@ export function CarDash(p: { style: CarStyle; c: DashCtx; flash: boolean; opacit
         <Match when={p.style === "carRoad"}>
           <Road c={p.c} />
         </Match>
+        <Match when={true}>
+          <CarDash2 style={p.style as CarStyle2} c={p.c} />
+        </Match>
       </Switch>
+      <DashExtras c={p.c} style={p.style} />
     </div>
   );
 }

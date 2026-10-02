@@ -23,7 +23,8 @@ Hafif ve hızlı iRacing overlay uygulaması. **Tauri 2 + Rust + SolidJS** ile y
 | Telemetri Paneli | Vites halkası, devir ışıkları, hız, pozisyon değişimi, son tur, yakıt, sıcaklık, ABS/TC/BB |
 | Pedallar & Girdi | Gaz/fren/debriyaj izi (yumuşak grafik seçeneği), vites, hız, direksiyon |
 | Delta Bar | En iyi tura göre fark, eğilim, tur süreleri |
-| Görsel Spotter | Radar ya da spotter çubukları; araç blokları boyuna konuma göre hareket eder |
+| Radar | Kuşbakışı radar; araç blokları boyuna konuma göre hareket eder |
+| Çubuk Spotter | Sol / sağ ince çubuklar: sadece yanında araç olan taraf yanar, işaret aracın arkadan öne ilerleyişini gösterir |
 | Pist Haritası / Mini Harita | Otomatik kaydedilen pist şekli üzerinde araçlar |
 | Canlı Hava | Rüzgâr pusulası, sıcaklıklar, nem, yağış, pist ıslaklığı |
 | Oturum & Bayraklar, DigiFlags | Bayrak uyarıları, kalan süre/tur, LED matris bayrak |

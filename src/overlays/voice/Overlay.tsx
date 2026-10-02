@@ -25,7 +25,8 @@ export default function Voice(props: OverlayProps) {
   };
   onCleanup(clear);
 
-  const wanted = (l: VoiceLine) => (l.role === "spotter" ? o().showSpotter !== false : o().showEngineer !== false);
+  const wanted = (l: VoiceLine) =>
+    l.role === "spotter" ? o().showSpotter !== false : l.role === "driver" ? o().showDriver !== false : o().showEngineer !== false;
 
   /** Konuşma bitti: `hold` saniye bekle, sonra solarak kaldır */
   const finish = () => {
@@ -70,7 +71,12 @@ export default function Voice(props: OverlayProps) {
 
   const view = () => shown() ?? (props.editing ? SAMPLE : null);
   const active = () => (shown() ? speaking() : true);
-  const color = () => (view()?.role === "spotter" ? String(o().spotterColor || "#2ec4b6") : String(o().engineerColor || "#ff8a2a"));
+  const color = () =>
+    view()?.role === "spotter"
+      ? String(o().spotterColor || "#2ec4b6")
+      : view()?.role === "driver"
+        ? String(o().driverColor || "#8ab4f8")
+        : String(o().engineerColor || "#ff8a2a");
   const align = () => (o().align === "left" ? "flex-start" : o().align === "right" ? "flex-end" : "center");
 
   return (
@@ -95,7 +101,7 @@ export default function Voice(props: OverlayProps) {
             </Show>
             <div class="vo-body">
               <Show when={o().showRole !== false}>
-                <div class="vo-role">{v().role === "spotter" ? "Spotter" : "Mühendis"}</div>
+                <div class="vo-role">{v().role === "spotter" ? "Spotter" : v().role === "driver" ? "Sen" : "Mühendis"}</div>
               </Show>
               {/* Cümle ses paketinin dilindedir; arayüz çevirisi dokunmasın */}
               <div class="vo-text" data-no-i18n>

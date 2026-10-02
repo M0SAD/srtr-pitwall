@@ -1,0 +1,1396 @@
+/* Direksiyon Ekranı: ek bilgi şeridi (hibrit / ABS / TC), özel renkler ve belirli araçların ekran yerleşimleri. */
+
+/* ---------- ABS / TC kutuları ---------- */
+.cd-hid {
+  visibility: hidden;
+}
+.cd-aid.cd-act,
+.cx-box.cd-act,
+span.cd-act {
+  background: var(--cu-warn, #ffd014) !important;
+  color: #000 !important;
+}
+.cd-aid.cd-act .cd-l,
+.cd-aid.cd-act .cd-v,
+.cx-box.cd-act b,
+span.cd-act b {
+  color: #000 !important;
+}
+
+/* ---------- Ek bilgi şeridi: klasik görünümlerde de kullanılır ---------- */
+.dx {
+  --dx-fg: var(--cd-fg, var(--dash-text, #f2f4f6));
+  --dx-dim: var(--cd-dim, var(--dash-dim, #8d949c));
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--dx-dim);
+}
+.dx b {
+  color: var(--dx-fg);
+  font-size: 13px;
+}
+.dx-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28);
+  letter-spacing: 0.04em;
+}
+.dx-chip.dx-act,
+.dx-chip.dx-on {
+  background: var(--cu-warn, #ffd014);
+  color: #000;
+}
+.dx-chip.dx-act b,
+.dx-chip.dx-on b {
+  color: #000;
+}
+.dx-drs.dx-rdy {
+  box-shadow: inset 0 0 0 1.5px #2bdc4f;
+  color: #2bdc4f;
+}
+.dx-drs.dx-on {
+  background: #2bdc4f;
+}
+.dx-p2p.dx-on {
+  background: #c93cff;
+  color: #fff;
+}
+.dx-p2p.dx-on b {
+  color: #fff;
+}
+.dx-kw.dx-dep b {
+  color: #ffb020;
+}
+.dx-kw.dx-reg b {
+  color: #2bdc4f;
+}
+.dx-batt {
+  position: relative;
+  flex: 1;
+  min-width: 70px;
+  border-radius: 3px;
+  background: rgba(127, 127, 127, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.4);
+  overflow: hidden;
+}
+.dx-batt i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #12a150, #2bdc4f);
+  transition: width 0.25s linear;
+}
+.dx-batt.dx-low i {
+  background: var(--cu-warn, #ff3b30);
+}
+.dx-batt u {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #35c8ff;
+}
+.dx-batt b {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 0 3px #000, 0 0 2px #000;
+}
+.cd-carRoad .dx,
+.cd-carStock .dx {
+  margin-top: 4px;
+}
+
+/* ---------- Özel renkler: araç tarzı ekranların paletini ezer ---------- */
+.cd.cd-custom,
+.cd.cd-custom .cd-screen {
+  background: var(--cu-bg) !important;
+}
+.cd.cd-custom .cd-gear {
+  color: var(--cu-accent) !important;
+}
+.cd.cd-custom .cd-screen,
+.cd.cd-custom .cx-frame:not([style]) {
+  border-color: color-mix(in srgb, var(--cu-accent) 70%, #000) !important;
+}
+.cd.cd-custom .cd-v,
+.cd.cd-custom .cx-box b {
+  color: var(--cd-fg);
+}
+.cd.cd-custom .cd-fast,
+.cd.cd-custom .cd-fast .cd-v {
+  color: var(--cd-fast);
+}
+.cd.cd-custom .cd-slow,
+.cd.cd-custom .cd-slow .cd-v {
+  color: var(--cd-slow);
+}
+
+.cd.cd-custom .cx-fill b,
+.cd.cd-custom .cx-light b {
+  color: #0d0f12;
+}
+/* Aydınlık ekranlı tarz: ekran açık kalır, yazı koyu */
+.cd-carTouring.cd-custom {
+  --cd-fg: #101418 !important;
+  --cd-dim: #5b6670 !important;
+}
+.cd-carTouring.cd-custom .cd-screen {
+  background: #eef0f2 !important;
+}
+
+/* ---------- Ortak parçalar ---------- */
+.cx-box {
+  --k: #4a515a;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1.5px solid var(--k);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cx-box span {
+  padding: 1px 0;
+  background: var(--k);
+  color: #000;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+}
+.cx-box b {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 1px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.cx-box.cx-fill {
+  background: var(--k);
+}
+.cx-box.cx-fill b {
+  color: #000;
+}
+.cx-box.cx-grey {
+  border-color: transparent;
+}
+.cx-box.cx-grey span {
+  background: linear-gradient(#5c636b, #3b4046);
+  color: #fff;
+}
+.cx-box.cx-light {
+  border-color: #d5d9dd;
+  background: #d5d9dd;
+}
+.cx-box.cx-light span {
+  background: none;
+  color: #30353b;
+}
+.cx-box.cx-light b {
+  color: #0d0f12;
+  font-size: 20px;
+}
+.cx-box.cx-plain {
+  border: none;
+}
+.cx-box.cx-plain span {
+  background: none;
+  color: var(--k-l, var(--cd-dim));
+}
+.cx-box.cx-row {
+  flex-direction: row;
+  align-items: stretch;
+}
+.cx-box.cx-row span {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 9.5px;
+}
+.cx-title {
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.cx-frame {
+  --k: #7f8ca8;
+  position: relative;
+  min-width: 0;
+  border: 1.5px solid var(--k);
+  border-radius: 2px;
+}
+.cx-frame > span {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  padding: 1px 4px;
+  background: var(--k);
+  color: #000;
+  font-size: 8.5px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+}
+.cx-quad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 6px;
+  padding: 11px 4px 3px;
+  text-align: center;
+}
+.cx-quad b {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+}
+.cx-quad small {
+  font-size: 9px;
+  color: var(--cd-dim);
+}
+.cx-seg {
+  display: flex;
+  gap: 1.5px;
+  height: 9px;
+}
+.cx-seg i {
+  flex: 1;
+  background: color-mix(in srgb, var(--sc) 22%, #0b0c0e);
+}
+.cx-seg i.on {
+  background: var(--sc);
+}
+
+/* ===================================================================== Formula (genel) */
+.cd-carFormula {
+  --cd-font: "Barlow Condensed", "Rajdhani", system-ui, sans-serif;
+  --cd-dim: #9aa3ad;
+  background: rgba(16, 17, 19, var(--cd-a));
+  border: 1px solid #2c2f34;
+  border-radius: 12px;
+  padding: 7px 8px 8px;
+}
+.cx-fo-leds {
+  height: 9px;
+  gap: 4px;
+}
+.cx-fo-main {
+  display: grid;
+  grid-template-columns: 1fr 108px 1fr;
+  gap: 4px;
+}
+.cx-fo-col {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+}
+.cx-tile {
+  background: linear-gradient(#26292d, #1b1d20);
+  border-radius: 4px;
+  padding: 4px 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.cx-fo-col .cd-v {
+  font-size: 20px;
+}
+.cx-yel .cd-v {
+  color: #ffd014;
+}
+.cx-fo-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.cx-fo-mid .cd-gear {
+  font-size: 92px;
+}
+.cx-fo-speed {
+  font-size: 22px;
+}
+.cx-fo-speed small {
+  font-size: 10px;
+  color: var(--cd-dim);
+}
+.cx-fo-bot {
+  display: grid;
+  grid-template-columns: 78px repeat(4, 1fr);
+  gap: 4px;
+}
+.cx-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+.cx-mini i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: #000;
+  font-style: normal;
+  font-size: 11px;
+  min-height: 15px;
+}
+.cx-fo-bot .cx-k {
+  gap: 1px;
+  padding: 3px 2px;
+}
+.cx-fo-bot .cx-k .cd-v,
+.cx-fo-bot .cx-k b {
+  font-size: 17px;
+}
+.cx-fo-bot .cx-box.cx-plain span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.cx-fo-bot .cx-box.cx-plain b {
+  color: var(--k);
+  padding: 0;
+}
+.cx-fo-bot .cd-cell.cx-k .cd-v {
+  color: #ff5a4a;
+}
+
+/* ===================================================================== F1 hibrit (W13) */
+.cd-carMercW13 {
+  --cd-font: "Inter Variable", "Inter", system-ui, sans-serif;
+  --cd-dim: #58d6c8;
+  background: rgba(9, 10, 12, var(--cd-a));
+  border: 1px solid #25282c;
+  border-radius: 10px;
+  padding: 7px 9px 9px;
+}
+.cx-w-leds i {
+  width: 12px;
+  height: 12px;
+}
+.cx-w-leds {
+  height: 12px;
+  padding: 0 34px;
+}
+.cd-carMercW13 .cd-screen {
+  display: grid;
+  grid-template-columns: 1fr 104px 1.15fr;
+  gap: 8px;
+  padding: 8px;
+  background: #000;
+  border: 1px solid #3a3e44;
+}
+.cx-w-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+}
+.cx-w-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #1c2024;
+}
+.cx-w-kv b {
+  font-size: 19px;
+  font-weight: 600;
+}
+.cx-w-kv b small {
+  font-size: 11px;
+  color: #8d949c;
+}
+.cx-w-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cx-w-gear {
+  border: 1px solid #6a7079;
+  padding: 6px 0 8px;
+}
+.cx-w-gear .cd-gear {
+  font-size: 74px;
+  font-weight: 600;
+}
+.cx-w-bat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.cx-w-batbar {
+  flex: 1;
+  height: 9px;
+  border: 1px solid #58d6c8;
+  padding: 1px;
+}
+.cx-w-batbar i {
+  display: block;
+  height: 100%;
+  background: #58d6c8;
+}
+.cx-w-mode {
+  margin-right: auto;
+  color: #ffb020;
+}
+.cx-w-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 7px;
+  border: 1px solid #6a7079;
+}
+.cx-w-delta {
+  font-size: 26px;
+  font-weight: 600;
+}
+.cx-w-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+.cx-w-time em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--cd-dim);
+}
+.cx-w-water {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid #6a7079;
+  font-size: 14px;
+}
+.cx-w-water b {
+  margin-right: auto;
+}
+.cd-carMercW13 .cd-dbar {
+  height: 5px;
+}
+
+/* ===================================================================== İtalyan GT3 (296) */
+.cd-carFer296 {
+  --cd-font: "Rajdhani", "Barlow Condensed", system-ui, sans-serif;
+  --cd-dim: #b5bcc4;
+  background: rgba(20, 21, 23, var(--cd-a));
+  border: 1px solid #34383d;
+  border-radius: 6px;
+  padding: 6px 7px;
+}
+.cd-carFer296 .cd-screen {
+  gap: 5px;
+}
+.cx-296-top {
+  display: grid;
+  grid-template-columns: auto 40px 1fr 62px;
+  gap: 5px;
+  align-items: stretch;
+}
+.cx-296-top .cx-title {
+  align-self: start;
+  padding: 2px 8px;
+  border: 1px solid #555b63;
+  font-size: 14px;
+}
+.cx-296-rpm {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2px;
+  min-width: 0;
+}
+.cx-296-rpm .cd-leds {
+  height: 8px;
+  padding: 0 4px;
+}
+.cx-296-rpm .cd-leds i {
+  width: 8px;
+  height: 8px;
+}
+.cx-296-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  padding: 0 1px;
+}
+.cx-296-scale .red {
+  color: #ff2a1f;
+}
+.cx-296-rpm .cx-seg {
+  height: 6px;
+}
+.cx-296-mid {
+  display: grid;
+  grid-template-columns: 1fr 82px 1fr;
+  gap: 8px;
+}
+.cx-296-quad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 6px;
+}
+.cx-296-quad .cx-box b {
+  font-size: 16px;
+}
+.cx-296-gear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  border-radius: 2px;
+}
+.cx-296-gear .cd-gear {
+  color: #111 !important;
+  font-size: 80px;
+  padding-bottom: 4px;
+}
+.cx-296-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+}
+.cx-296-row .cx-box b {
+  font-size: 16px;
+}
+.cx-296-bot {
+  display: grid;
+  grid-template-columns: 1fr 0.7fr 1fr;
+  gap: 6px;
+}
+.cx-296-bot .cd-cell {
+  gap: 2px;
+  border-top: 2px solid #555b63;
+  padding-top: 2px;
+}
+.cx-296-bot .cd-v {
+  font-size: 17px;
+}
+
+/* ===================================================================== İngiliz GT3 (720S) */
+.cd-carMcl720 {
+  --cd-font: "Rajdhani", "Barlow Condensed", system-ui, sans-serif;
+  --cd-fg: #f4f1ea;
+  --cd-dim: #ff9d1a;
+  --amber: #ffa91f;
+  background: rgba(13, 12, 11, var(--cd-a));
+  border: 1px solid #33291a;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+.cx-mc-top {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--amber);
+}
+.cx-mc-top .cx-box span {
+  font-size: 10px;
+  color: var(--amber);
+}
+.cx-mc-top .cx-box b {
+  font-size: 16px;
+}
+.cx-mc-main {
+  display: grid;
+  grid-template-columns: 1fr 96px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.cx-mc-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cx-mc-side.r {
+  align-items: flex-end;
+}
+.cx-mc-cur {
+  font-size: 13px;
+  color: #b8b2a6;
+  text-align: center;
+}
+.cx-mc-time {
+  font-size: 23px;
+}
+.cx-mc-delta {
+  font-size: 15px;
+}
+.cx-mc-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.cx-mc-mid .cd-gear {
+  color: var(--amber);
+  font-size: 96px;
+  line-height: 0.8;
+  text-shadow: 0 0 12px rgba(255, 169, 31, 0.35);
+}
+.cx-mc-num {
+  font-size: 16px;
+}
+.cx-mc-tyres {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  gap: 3px 6px;
+  align-items: baseline;
+  font-size: 15px;
+}
+.cx-mc-tyres span {
+  color: var(--amber);
+  font-size: 12px;
+}
+.cx-mc-fuel {
+  font-size: 11px;
+  color: var(--amber);
+}
+.cx-mc-fuel b {
+  color: var(--cd-fg);
+  font-size: 14px;
+}
+.cx-mc-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--amber);
+  font-size: 13px;
+}
+.cx-mc-foot i {
+  flex: 1;
+  height: 1px;
+  background: var(--amber);
+}
+.cx-mc-foot span b {
+  color: var(--cd-fg);
+}
+
+/* ===================================================================== Alman GT3 (992) */
+.cd-carPor992 {
+  --cd-font: "Barlow Condensed", "Rajdhani", system-ui, sans-serif;
+  --cd-dim: #9aa7b2;
+  background: rgba(15, 17, 20, var(--cd-a));
+  border: 1px solid #2b3036;
+  border-radius: 6px;
+  padding: 6px 8px 7px;
+}
+.cx-92-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cx-92-top .cx-title {
+  color: #ff3b30;
+}
+.cx-92-top .cd-leds {
+  height: 9px;
+  gap: 5px;
+}
+.cx-92-top .cd-leds i {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+}
+.cx-92-main {
+  display: grid;
+  grid-template-columns: 1.15fr 90px 1fr;
+  gap: 8px;
+}
+.cx-92-lamps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cx-lamp {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 15px;
+}
+.cx-lamp span {
+  padding: 3px 6px;
+  min-width: 74px;
+  background: #5d7f77;
+  color: #eef6f4;
+  font-size: 11px;
+  border-radius: 1px;
+}
+.cx-lamp.warn span {
+  background: var(--cu-warn, #ff3b30);
+  color: #fff;
+}
+.cx-92-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cx-92-speed {
+  border: 1px solid #7b8690;
+  text-align: center;
+  padding: 2px 0;
+  font-size: 17px;
+}
+.cx-92-speed small {
+  font-size: 9px;
+  color: var(--cd-dim);
+}
+.cx-92-gear {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #7b8690;
+}
+.cx-92-gear .cd-gear {
+  font-size: 70px;
+}
+.cx-92-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.cx-92-right .cd-cell {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.cx-92-right .cd-v {
+  font-size: 18px;
+}
+.cx-92-delta .cd-v {
+  font-size: 24px;
+}
+.cx-92-bot {
+  display: grid;
+  grid-template-columns: 1fr 104px;
+  gap: 8px;
+}
+.cx-92-boxes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  align-content: space-between;
+}
+.cx-92-boxes .cx-box {
+  border-radius: 4px;
+}
+.cx-92-bot .cx-quad {
+  padding-top: 12px;
+}
+
+/* ===================================================================== LMDh (963) */
+.cd-carPor963 {
+  --cd-font: "Barlow Condensed", "Rajdhani", system-ui, sans-serif;
+  --cd-dim: #aab4c8;
+  background: rgba(9, 10, 13, var(--cd-a));
+  border: 1px solid #2a2e38;
+  border-radius: 5px;
+  padding: 6px;
+}
+.cx-63-top {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) 46px repeat(4, 1fr);
+  gap: 3px;
+}
+.cx-63-top .cx-box {
+  border-radius: 4px;
+}
+.cx-63-rpm {
+  align-self: center;
+  text-align: center;
+  font-size: 15px;
+}
+.cx-63-mid {
+  display: grid;
+  grid-template-columns: 88px 50px 62px 1fr;
+  gap: 4px;
+}
+.cx-63-bias {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cx-63-bias b {
+  font-size: 34px;
+  padding-top: 8px;
+}
+.cx-63-small {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+}
+.cx-63-small .cx-frame {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 11px 0 2px;
+  font-size: 15px;
+}
+.cx-63-gear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.cx-63-gear .cd-gear {
+  font-size: 64px;
+}
+.cx-63-gear span {
+  font-size: 10px;
+  color: var(--cd-dim);
+  white-space: nowrap;
+}
+.cx-63-gear span.dep {
+  color: #ffb020;
+}
+.cx-63-gear span.reg {
+  color: #2bdc4f;
+}
+.cx-63-pred {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3px;
+  padding: 11px 4px 3px;
+}
+.cx-63-predrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.cx-63-predrow b {
+  font-size: 19px;
+}
+.cx-63-predrow em {
+  padding: 1px 5px;
+  background: #2f3540;
+  font-style: normal;
+  font-size: 14px;
+  border-radius: 2px;
+}
+.cx-63-predrow em.cd-fast {
+  background: #12a13a;
+  color: #fff;
+}
+.cx-63-predrow em.cd-slow {
+  background: #c2261c;
+  color: #fff;
+}
+.cx-63-sec {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid #3c4352;
+  padding-top: 2px;
+  text-align: center;
+}
+.cx-63-sec small {
+  display: block;
+  font-size: 8px;
+  color: var(--cd-dim);
+}
+.cx-63-sec b {
+  font-size: 13px;
+}
+.cx-63-bot {
+  display: grid;
+  grid-template-columns: 92px 1fr 78px 78px;
+  gap: 4px;
+}
+.cx-63-fuel dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 6px;
+  margin: 0;
+  padding: 11px 5px 3px;
+  font-size: 14px;
+}
+.cx-63-fuel dt {
+  font-size: 10px;
+  color: var(--cd-dim);
+  align-self: center;
+}
+.cx-63-fuel dd {
+  margin: 0;
+  text-align: right;
+}
+.cx-63-fuel dd.soc {
+  color: #2bdc4f;
+}
+.cx-63-last {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding-top: 9px;
+}
+.cx-63-last b {
+  font-size: 19px;
+}
+.cx-63-last small {
+  font-size: 9px;
+  color: var(--cd-dim);
+}
+.cx-63-last small i {
+  font-style: normal;
+  font-size: 12px;
+  color: #c77dff;
+}
+
+/* ===================================================================== LMDh (V-Series.R) */
+.cd-carCadV {
+  --cd-font: "Barlow Condensed", "Rajdhani", system-ui, sans-serif;
+  --cd-dim: #b8bfc9;
+  background: rgba(7, 8, 10, var(--cd-a));
+  border: 1px solid #2b2e33;
+  border-radius: 5px;
+  padding: 6px;
+  font-style: italic;
+}
+.cd-carCadV .cd-gear {
+  font-style: normal;
+}
+.cx-cv-top {
+  display: grid;
+  grid-template-columns: 1fr 44px 1fr;
+  gap: 4px;
+  align-items: center;
+}
+.cx-cv-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 5px;
+  border: 1px solid #555b66;
+  font-size: 9px;
+  color: var(--cd-dim);
+  white-space: nowrap;
+}
+.cx-cv-strip b {
+  color: var(--cd-fg);
+  font-size: 13px;
+}
+.cx-cv-strip.e {
+  border-color: #2aa8a0;
+  color: #39d3c9;
+  justify-content: space-between;
+}
+.cx-cv-rpm {
+  text-align: center;
+  font-size: 14px;
+}
+.cx-cv-main {
+  display: grid;
+  grid-template-columns: 1fr 104px 1fr;
+  gap: 5px;
+}
+.cx-cv-left,
+.cx-cv-right,
+.cx-cv-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cx-cv-fuel {
+  flex: 1;
+  align-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 2px;
+  padding: 3px 2px;
+}
+.cx-cv-fuel .cd-cell,
+.cx-cv-lap .cd-cell {
+  gap: 1px;
+}
+.cx-cv-fuel .cd-v,
+.cx-cv-lap .cd-v {
+  font-size: 17px;
+}
+.cx-cv-best {
+  grid-column: 1 / -1;
+  padding-top: 3px;
+  border-top: 1px solid #55501f;
+  text-align: center;
+  font-size: 19px;
+  color: #ff5ad6;
+}
+.cx-cv-bb {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 3px 6px;
+  font-size: 17px;
+}
+.cx-cv-bb em,
+.cx-cv-arb em {
+  font-size: 9px;
+  color: var(--cd-dim);
+}
+.cx-cv-gear {
+  display: grid;
+  grid-template-columns: 22px 1fr 22px;
+  grid-template-rows: auto auto;
+  align-items: center;
+}
+.cx-cv-gear .cd-gear {
+  grid-area: 1 / 2 / 3 / 3;
+  font-size: 72px;
+}
+.cx-cv-gear i {
+  font-size: 12px;
+  text-align: center;
+}
+.cx-cv-gear i:nth-of-type(1) {
+  grid-area: 1 / 1;
+  align-self: start;
+}
+.cx-cv-gear i:nth-of-type(2) {
+  grid-area: 1 / 3;
+  align-self: start;
+}
+.cx-cv-gear i:nth-of-type(3) {
+  grid-area: 2 / 1;
+  align-self: end;
+}
+.cx-cv-gear i:nth-of-type(4) {
+  grid-area: 2 / 3;
+  align-self: end;
+}
+.cx-cv-tyre {
+  flex: 1;
+}
+.cx-cv-tyre > span {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.cx-cv-lap {
+  display: grid;
+  grid-template-columns: 0.6fr 1fr;
+  gap: 2px;
+  padding: 3px 2px;
+}
+.cx-cv-cur {
+  grid-column: 1 / -1;
+  padding-top: 3px;
+  border-top: 1px solid #3a3470;
+  text-align: center;
+  font-size: 19px;
+}
+.cx-cv-soc {
+  position: relative;
+  overflow: hidden;
+  padding: 5px 0;
+  text-align: center;
+  font-size: 19px;
+}
+.cx-cv-soc i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(255, 208, 20, 0.22);
+}
+.cx-cv-soc b {
+  position: relative;
+}
+.cx-cv-soc u {
+  text-decoration: none;
+  color: #ffd014;
+}
+.cx-cv-arb {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 2px 6px;
+}
+.cx-cv-arb em {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.cx-cv-arb b {
+  font-size: 13px;
+}
+.cx-cv-bot {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cx-cv-bot .w2 {
+  grid-column: span 2;
+}
+.cx-cv-bot .cx-box b {
+  font-size: 14px;
+}
+
+/* ===================================================================== LMH (499P) */
+.cd-carFer499 {
+  --cd-font: "Barlow Condensed", "Rajdhani", system-ui, sans-serif;
+  --cd-dim: #c9ced4;
+  background: rgba(22, 22, 23, var(--cd-a));
+  border: 1px solid #333;
+  border-radius: 5px;
+  padding: 6px 8px;
+}
+.cd-carFer499 .cd-cell {
+  gap: 1px;
+}
+.cd-carFer499 .cd-l,
+.cd-carFer499 .cx-box.cx-plain span {
+  font-size: 8px;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  padding: 0;
+  color: var(--cd-dim);
+}
+.cx-49-top {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 16px 1fr 0.8fr;
+  gap: 6px;
+  align-items: center;
+}
+.cx-49-top .cd-v {
+  font-size: 20px;
+}
+.cx-49-cell,
+.cx-49-bar {
+  position: relative;
+  width: 10px;
+  border: 1.5px solid #e6e8ea;
+}
+.cx-49-cell {
+  height: 22px;
+  justify-self: center;
+}
+.cx-49-cell i,
+.cx-49-bar i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #2bdc4f;
+}
+.cx-49-bar.f i {
+  background: #ffb020;
+}
+.cx-49-main {
+  display: grid;
+  grid-template-columns: 1fr 100px 1fr;
+  gap: 6px;
+}
+.cx-49-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cx-49-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.cx-49-pair .cd-v,
+.cx-49-pair .cx-box b {
+  font-size: 18px;
+  padding: 0;
+}
+.cx-49-pair .sm .cd-v {
+  font-size: 14px;
+  line-height: 18px;
+}
+.cx-49-tyres {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  background: #1f2022;
+}
+.cx-49-tyres div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.cx-49-tyres b {
+  font-size: 17px;
+}
+.cx-49-tyres small {
+  font-size: 10px;
+  color: var(--cd-dim);
+}
+.cx-49-tyres.br span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 8px;
+  color: var(--cd-dim);
+}
+.cx-49-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cx-49-gear {
+  display: grid;
+  grid-template-columns: 10px 1fr 10px;
+  gap: 6px;
+  padding: 4px 6px;
+  background: #1f2022;
+}
+.cx-49-gear .cd-gear {
+  font-size: 66px;
+}
+.cx-49-bar {
+  height: auto;
+}
+.cx-49-arb {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.cx-49-arb .cd-v {
+  font-size: 15px;
+}
+.cx-49-bot {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  padding-top: 3px;
+  border-top: 1px solid #3a3a3c;
+}
+.cx-49-bot .cd-v,
+.cx-49-bot .cx-box b {
+  font-size: 17px;
+  padding: 0;
+}
+.cx-49-strip {
+  height: 5px;
+  gap: 3px;
+}
+
+/* ===================================================================== LMP2 */
+.cd-carLmp2 {
+  --cd-font: "Barlow Condensed", "Rajdhani", system-ui, sans-serif;
+  background: rgba(0, 0, 0, var(--cd-a));
+  border: 1px solid #2c2c2c;
+  border-radius: 4px;
+  padding: 5px 7px 7px;
+  font-style: italic;
+}
+.cd-carLmp2 .cd-gear {
+  font-style: normal;
+}
+.cx-l2-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  font-size: 13px;
+}
+.cx-l2-top b {
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+.cx-l2-top span:last-child {
+  text-align: right;
+}
+.cx-l2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 78px 1fr 1fr;
+  grid-template-areas:
+    "a b gear c d"
+    "e e gear f f"
+    "g h gear i i";
+  gap: 0 6px;
+}
+.cx-l2-grid .cd-cell {
+  align-items: flex-end;
+  gap: 1px;
+  padding: 2px 0 3px;
+  border-top: 1.5px solid #d8dde2;
+}
+.cx-l2-grid .cd-l {
+  color: var(--k);
+  font-size: 9px;
+}
+.cx-l2-grid .cd-v {
+  font-size: 23px;
+}
+.cx-l2-grid .a { grid-area: a; }
+.cx-l2-grid .b { grid-area: b; }
+.cx-l2-grid .c { grid-area: c; }
+.cx-l2-grid .d { grid-area: d; }
+.cx-l2-grid .e { grid-area: e; }
+.cx-l2-grid .f { grid-area: f; }
+.cx-l2-grid .g { grid-area: g; }
+.cx-l2-grid .h { grid-area: h; }
+.cx-l2-grid .i { grid-area: i; }
+.cx-l2-grid .k-y { --k: #ffd014; }
+.cx-l2-grid .k-o { --k: #ff8a1a; }
+.cx-l2-grid .k-g { --k: #2bdc4f; }
+.cx-l2-grid .k-r { --k: #ff3b30; }
+.cx-l2-grid .k-b { --k: #4d8dff; }
+.cx-l2-grid .k-m { --k: #e93cff; }
+.cx-l2-gear {
+  grid-area: gear;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 3px solid #ffe600;
+}
+.cx-l2-gear small {
+  font-size: 13px;
+}
+.cx-l2-gear .cd-gear {
+  font-size: 84px;
+  line-height: 0.8;
+}
+.cx-l2-bot {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  padding: 2px 14px 0;
+}
+.cx-l2-bot .cx-box {
+  border-width: 2.5px;
+}
+.cx-l2-bot .cx-box span {
+  background: #000;
+  color: var(--k);
+  font-size: 8px;
+}
+.cx-l2-bot .cx-box b {
+  background: #4a4e54;
+}

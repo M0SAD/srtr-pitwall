@@ -1,12 +1,12 @@
 .st {
-  width: 560px;
+  width: calc(560px * var(--ov-fs-k, 1));
 }
 
 .st-head {
-  display: flex;
+  display: var(--ov-hdr-display, flex);
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   border-bottom: 1px solid var(--ov-divider);
 }
 
@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 10px 0 0;
+  padding: 0 calc(10px * var(--ov-pad-k, 1)) 0 0;
   height: calc(var(--ov-row-h) - 2px);
   background: color-mix(in srgb, var(--ov-text) 4%, transparent);
   font-size: 0.92em;
@@ -29,10 +29,10 @@
   display: flex;
   align-items: center;
   min-width: 7em;
-  padding: 0 18px 0 10px;
+  padding: 0 calc(18px * var(--ov-pad-k, 1)) 0 calc(10px * var(--ov-pad-k, 1));
   color: #111;
   font-weight: var(--ov-weight-strong);
-  text-transform: uppercase;
+  text-transform: var(--ov-label-tt, uppercase);
   letter-spacing: 0.04em;
   text-shadow: none;
   clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
@@ -48,7 +48,7 @@
   align-items: center;
   gap: 8px;
   height: calc(var(--ov-row-h) - 2px);
-  padding: 0 10px 0 0;
+  padding: 0 calc(10px * var(--ov-pad-k, 1)) 0 0;
   border-bottom: 1px solid var(--ov-divider);
 }
 
@@ -162,7 +162,7 @@
 
 .st-ir {
   min-width: 3.4em;
-  padding: 0 5px;
+  padding: 0 calc(5px * var(--ov-pad-k, 1));
   border-radius: 0.7em;
   background: color-mix(in srgb, var(--ov-text) 88%, transparent);
   color: var(--ov-bg-solid);

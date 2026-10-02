@@ -14,6 +14,7 @@ import {
   deleteGroupMessage,
   groupChat,
   groupMembers,
+  hideGroupMessage,
   inviteToGroup,
   kickFromGroup,
   leaveGroup,
@@ -34,6 +35,7 @@ import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
 import { BgNote, RoomBgPanel, SysNote, useRoomBg } from "./ConvBg";
 import { Avatar, ReportMessage } from "./FriendsDock";
+import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import "../teams.css";
 
 /** Odaya gelen anlık olay (FriendsPanel'deki Realtime aboneliğinden) */
@@ -322,8 +324,23 @@ export function GroupChat(props: {
   const openCtx = (e: MouseEvent, m: GroupMessage) => {
     e.preventDefault();
     e.stopPropagation();
-    if (m.deleted || m.meta) return;
-    setCtx({ x: Math.min(e.clientX, window.innerWidth - 210), y: Math.min(e.clientY, window.innerHeight - 140), m });
+    setCtx({ ...msgMenuPos(e), m });
+  };
+  /** Sol tık da menüyü açar (bağlantıya tıklanmadıysa, metin seçilmiyorsa) */
+  const clickCtx = (e: MouseEvent, m: GroupMessage) => msgClickOpens(e) && openCtx(e, m);
+  /** Mesajı sadece kendi görünümünden kaldır (c55) */
+  const hide = async (m: GroupMessage) => {
+    setCtx(null);
+    setErr("");
+    try {
+      await hideGroupMessage(m.id);
+      const rest = msgs().filter((x) => x.id !== m.id);
+      setMsgs(rest);
+      props.onLast(lastVisible(rest));
+      if (reporting()?.id === m.id) setReporting(null);
+    } catch (e) {
+      setErr(String((e as Error).message));
+    }
   };
   const lastVisible = (list: GroupMessage[]) => [...list].reverse().find((x) => !x.deleted) ?? null;
   const remove = async (m: GroupMessage) => {
@@ -395,17 +412,20 @@ export function GroupChat(props: {
                     <span>{r.day}</span>
                   </div>
                 ) : r.m.meta && !r.m.deleted ? (
-                  r.m.meta.t === "bg" ? (
-                    <BgNote meta={r.m.meta} who={nameOf(r.m)} mine={r.m.sender === me()} time={full(r.m.created_at)} />
-                  ) : (
-                    <SysNote text={sysText(r.m)} time={full(r.m.created_at)} />
-                  )
+                  <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)}>
+                    {r.m.meta.t === "bg" ? (
+                      <BgNote meta={r.m.meta} who={nameOf(r.m)} mine={r.m.sender === me()} time={full(r.m.created_at)} />
+                    ) : (
+                      <SysNote text={sysText(r.m)} time={full(r.m.created_at)} />
+                    )}
+                  </div>
                 ) : (
                   <div
                     class="fmsg tmsg"
                     classList={{ mine: r.m.sender === me(), first: r.first, tail: r.lastOfRun, gone: r.m.deleted, jumbo: !r.m.deleted && emojiOnly(emojify(r.m.body)) }}
                     title={full(r.m.created_at)}
                     onContextMenu={(e) => openCtx(e, r.m)}
+                    onClick={(e) => clickCtx(e, r.m)}
                   >
                     <Show when={r.first && r.m.sender !== me()}>
                       <b class="tmsg-who" style={{ color: hashColor(r.m.sender ?? "?") }} data-no-i18n>
@@ -438,27 +458,22 @@ export function GroupChat(props: {
             m={m()}
             name={nameOf(m())}
             report={(reason, note) => reportGroupMessage(m().id, reason, note)}
+            onHide={() => hide(m())}
             onClose={() => setReporting(null)}
           />
         )}
       </Show>
       <Show when={ctx()}>
         {(c) => (
-          <div class="frow-menu fmsg-menu" style={{ left: `${c().x}px`, top: `${c().y}px` }}>
-            <button onClick={() => copy(c().m)}>
-              <I.Copy /> Kopyala
-            </button>
-            <Show when={c().m.sender === me() || isOwner()}>
-              <button class="danger" onClick={() => remove(c().m)} title="Mesaj gruptaki herkesten silinir">
-                <I.Trash /> Herkesten sil
-              </button>
-            </Show>
-            <Show when={c().m.sender !== me()}>
-              <button class="danger" onClick={() => (setReporting(c().m), setCtx(null))}>
-                <I.Flag /> Raporla
-              </button>
-            </Show>
-          </div>
+          <MsgMenu
+            pos={c()}
+            onCopy={c().m.deleted || c().m.meta ? undefined : () => copy(c().m)}
+            onHide={() => hide(c().m)}
+            hideTitle={t("Mesaj sadece senin görünümünden silinir")}
+            onDelete={!c().m.deleted && !c().m.meta && (c().m.sender === me() || isOwner()) ? () => remove(c().m) : undefined}
+            deleteTitle={t("Mesaj gruptaki herkesten silinir")}
+            onReport={!c().m.deleted && !c().m.meta && c().m.sender !== me() ? () => (setReporting(c().m), setCtx(null)) : undefined}
+          />
         )}
       </Show>
       <Show when={!reporting()}>

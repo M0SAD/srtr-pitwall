@@ -2,6 +2,10 @@
 // Programdaki Arkadaşlar paneliyle aynı sunucu işlevlerini kullanır (src/cloud/social.ts):
 // my_friends, friend_request / friend_respond / friend_remove, send_message, mark_read,
 // hide_message ("benden sil"), clear_conversation, message_report ve messages tablosu (Realtime).
+// Gruplar (c45: my_groups, group_chat / group_send / group_read / group_mute / group_members / group_leave) ve
+// takım sohbetleri (c30: my_teams, team_chat / team_send / team_chat_read / team_chat_mute) de burada listelenir.
+// Mesaja tıklayınca (sağ tık / basılı tutma) menü: Kopyala, Benden sil, Herkesten sil, Raporla (c55).
+// Ekibinde olduğum arkadaşlar (c53: crew_drivers) "Ekip" düğmesi ve canlı satır alır; panel crewpanel.js'ten gelir.
 // Site kendini "çevrimiçi / yarışta" olarak bildirmez (user_status'a yazmaz): bu durum programa aittir.
 import { $, SUPABASE_URL, T, addDict, esc, lang, locale, sb, toast } from "./core.js";
 import { attachEmoji } from "./emoji.js";
@@ -68,6 +72,48 @@ addDict({
   fr_yesterday: ["Dün", "Yesterday"],
   fr_new_msg: ["Yeni mesaj", "New message"],
   fr_bg_changed: ["🖼️ Sohbet arka planını değiştirdi", "🖼️ Changed the chat background"],
+  fr_bg_removed: ["🖼️ Sohbet arka planını kaldırdı", "🖼️ Removed the chat background"],
+  fr_groups: ["Gruplar", "Groups"],
+  fr_teams: ["Takımlar", "Teams"],
+  fr_members_n: ["{0} üye", "{0} members"],
+  fr_members: ["Üyeler", "Members"],
+  fr_owner: ["Sahip", "Owner"],
+  fr_role_admin: ["Yönetici", "Admin"],
+  fr_mute: ["Sessize al", "Mute"],
+  fr_unmute: ["Sesi aç", "Unmute"],
+  fr_muted: ["Sessizde", "Muted"],
+  fr_leave_group: ["Gruptan ayrıl", "Leave group"],
+  fr_leave_group_ask: ["\"{0}\" grubundan ayrılmak istiyor musun?", "Leave the group \"{0}\"?"],
+  fr_leave_team: ["Takımdan ayrıl", "Leave team"],
+  fr_leave_team_ask: ["\"{0}\" takımından ayrılmak istiyor musun?", "Leave the team \"{0}\"?"],
+  fr_team_page: ["Takım sayfası", "Team page"],
+  fr_copy: ["Kopyala", "Copy"],
+  fr_copied: ["Kopyalandı", "Copied"],
+  fr_del_all: ["Herkesten sil", "Delete for everyone"],
+  fr_del_all_ask: ["Bu mesaj herkesten silinsin mi?", "Delete this message for everyone?"],
+  fr_deleted: ["Bu mesaj silindi", "This message was deleted"],
+  fr_poll_last: ["📊 Anket", "📊 Poll"],
+  fr_poll_votes: ["{0} oy", "{0} votes"],
+  fr_poll_ended: ["Anket bitti", "Poll ended"],
+  fr_poll_app: ["Oy vermek için SRTR Pitwall programını kullan", "Use the SRTR Pitwall app to vote"],
+  fr_sys_join: ["{0}, {1} adlı kişiyi gruba ekledi", "{0} added {1} to the group"],
+  fr_sys_leave: ["{0} gruptan ayrıldı", "{0} left the group"],
+  fr_sys_kick: ["{0} gruptan çıkarıldı", "{0} was removed from the group"],
+  fr_sys_owner: ["{0} grubun yeni sahibi oldu", "{0} is the new group owner"],
+  fr_sys_rename: ["Grubun adı değişti: {0}", "The group was renamed: {0}"],
+  fr_sys_bg: ["{0} sohbet arka planını değiştirdi", "{0} changed the chat background"],
+  fr_sys_bg_none: ["{0} sohbet arka planını kaldırdı", "{0} removed the chat background"],
+  fr_room_app: [
+    "Grup kurma, davet etme ve üye çıkarma SRTR Pitwall programından yapılır.",
+    "Creating groups, inviting and removing members is done in the SRTR Pitwall app.",
+  ],
+  fr_crew: ["Ekip", "Crew"],
+  fr_crew_open: ["Ekip paneli: yarışını canlı izle, izin verdiyse pit ayarlarını değiştir", "Crew panel: watch their race live and change pit settings if allowed"],
+  fr_crew_fuel: ["{0} tur yakıt", "{0} laps of fuel"],
+  fr_crew_view: ["Ekibe ekle (görebilir)", "Add to crew (can view)"],
+  fr_crew_ctl: ["Pit ayarlarını değiştirebilir", "Can change pit settings"],
+  fr_crew_out: ["Ekipten çıkar", "Remove from crew"],
+  fr_crew_pro: ["Ekibe değiştirme yetkisi vermek PRO üyelere özel", "Letting your crew change pit settings is for PRO members"],
   fr_app_note: [
     "Çevrimiçi durumu SRTR Pitwall programından gelir; site seni çevrimiçi göstermez.",
     "Online status comes from the SRTR Pitwall app; the website does not show you as online.",
@@ -96,9 +142,12 @@ const emojifyTyped = (t) => t.replace(EMO_TYPED, (_m, pre, k) => pre + (EMO_MAP.
 const EMOJI_RE = /(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*)/gu;
 // Uygulamadan gelen "sohbet arka planını değiştirdi" sistem mesajı (c45): gövdesi sabit Türkçe metindir, burada
 // ziyaretçinin dilinde gösterilir (arka planı uygulamak sadece masaüstü uygulamasında).
+const BG_RE = /^🖼️? ?Sohbet arka planını (değiştirdi|kaldırdı)$/u;
+const isBg = (m) => BG_RE.test((m && m.body) || "");
 function bodyOf(m) {
   const b = (m && m.body) || "";
-  return /^🖼️? ?Sohbet arka planını değiştirdi$/u.test(b) ? T("fr_bg_changed") : b;
+  const x = BG_RE.exec(b);
+  return x ? T(x[1] === "kaldırdı" ? "fr_bg_removed" : "fr_bg_changed") : b;
 }
 
 function emojiOnly(text) {
@@ -151,7 +200,7 @@ const IC = {
 const S = {
   me: null,
   open: false,
-  view: "list", // list | add | chat
+  view: "list", // list | add | chat (1:1) | room (grup / takım) | crew (ekip paneli)
   friends: [],
   loaded: false,
   last: {}, // arkadaş → son mesaj
@@ -164,6 +213,18 @@ const S = {
   q: "",
   found: null,
   inbox: null,
+  groups: [], // my_groups()
+  teams: [], // my_teams()
+  crew: [], // crew_drivers(): ekibinde olduğum sürücüler
+  room: null, // açık grup / takım sohbeti: { kind: "group" | "team", id }
+  members: null, // null: kapalı | "loading" | üye listesi
+  crewId: null, // ekip paneli açık olan arkadaş
+  mine: [], // crew_list(): benim ekibim (sohbet menüsündeki "Ekibime ekle" maddeleri)
+  crewLock: true, // crew_state().needs_pro: PRO değilim (maddeler görünür ama tıklanamaz)
+  crewPanel: null,
+  crewTimer: 0,
+  roomCh: null,
+  roomKey: "",
   timer: 0,
   tick: 0,
   peek: 0,
@@ -181,8 +242,67 @@ const errMsg = (e) => e?.message || T("error");
 
 const friend = (id) => S.friends.find((f) => f.friend_id === id) || null;
 const accepted = () => S.friends.filter((f) => f.status === "accepted");
+// Sessize alınan grup / takım toplam rozete sayılmaz (satırında sayısı görünür)
+const roomUnread = () => [...S.groups, ...S.teams].reduce((a, r) => a + (r.muted ? 0 : r.unread || 0), 0);
 const badgeCount = () =>
-  S.friends.reduce((a, f) => a + (f.status === "accepted" ? f.unread || 0 : 0), 0) + S.friends.filter((f) => f.status === "pending_in").length;
+  S.friends.reduce((a, f) => a + (f.status === "accepted" ? f.unread || 0 : 0), 0) +
+  S.friends.filter((f) => f.status === "pending_in").length +
+  roomUnread();
+
+// Grup ve takım sohbeti aynı akışı kullanır; sadece sunucu işlevlerinin adı farklıdır
+const ROOM = {
+  group: {
+    chat: "group_chat", send: "group_send", read: "group_read", mute: "group_mute", hide: "group_message_hide",
+    del: "group_message_delete", report: "group_message_report", leave: "group_leave", arg: "p_group",
+    table: "group_messages", col: "group_id",
+  },
+  team: {
+    chat: "team_chat", send: "team_send", read: "team_chat_read", mute: "team_chat_mute", hide: "team_message_hide",
+    del: "team_message_delete", report: "team_message_report", leave: "team_leave", arg: "p_team",
+    table: "team_messages", col: "team_id",
+  },
+};
+const roomId = (kind, r) => (kind === "group" ? r.group_id : r.team_id);
+const roomOf = (kind, id) => (kind === "group" ? S.groups.find((g) => g.group_id === id) : S.teams.find((t) => t.team_id === id)) || null;
+const curRoom = () => (S.room ? roomOf(S.room.kind, S.room.id) : null);
+const inRoom = () => S.view === "room" && !!S.room;
+const crewOf = (id) => S.crew.find((d) => d.owner_id === id) || null;
+const visible = () => document.visibilityState === "visible";
+
+/** Gruplarım, takımlarım ve ekibinde olduğum sürücüler (sunucu güncel değilse / ağ yoksa eski liste kalır) */
+async function loadRooms() {
+  if (!S.me) return;
+  const get = (fn) => rpc(fn).then((r) => (Array.isArray(r) ? r : [])).catch(() => null);
+  const [g, t, c, mine, st] = await Promise.all([get("my_groups"), get("my_teams"), get("crew_drivers"), get("crew_list"), rpc("crew_state").catch(() => null)]);
+  if (mine) S.mine = mine;
+  if (st && typeof st === "object") S.crewLock = !!st.needs_pro;
+  if (g) S.groups = g;
+  if (t) S.teams = t;
+  if (c) S.crew = c;
+  // Açık sohbetin grubu / takımı artık yoksa (çıkarıldım, silindi) listeye dön
+  if (inRoom() && g && t && !curRoom()) {
+    S.view = "list";
+    S.room = null;
+    S.members = null;
+  }
+  // Açık odanın okunmamışı sayılmasın
+  const r = curRoom();
+  if (r && S.open && inRoom() && r.unread) {
+    r.unread = 0;
+    rpc(ROOM[S.room.kind].read, { [ROOM[S.room.kind].arg]: S.room.id }).catch(() => {});
+  }
+  syncRoomSub();
+}
+/** Ekip satırı (5 sn'de bir, sadece panel açıkken): değişiklik varsa listeyi yeniden çizer */
+async function loadCrew() {
+  try {
+    const c = await rpc("crew_drivers");
+    if (!Array.isArray(c)) return;
+    const before = S.crew.map((d) => d.owner_id + crewLine(d)).join("|");
+    S.crew = c;
+    if (S.open && S.view === "list" && before !== c.map((d) => d.owner_id + crewLine(d)).join("|")) render();
+  } catch {}
+}
 
 async function loadFriends() {
   if (!S.me) return;
@@ -208,6 +328,7 @@ async function loadFriends() {
     }
     S.last = map;
   } catch {}
+  await loadRooms();
   // Açık sohbetteki arkadaşın okunmamışı sayılmasın
   if (S.open && S.view === "chat" && S.chat) {
     const f = friend(S.chat);
@@ -269,6 +390,45 @@ function renderFab() {
   fab.classList.toggle("on", S.open);
 }
 
+/** Ekibinde olduğum sürücünün canlı satırı: pist · sıra · yakıtla kaç tur. Veri güvenilmez: sayı olmayan atlanır. */
+function crewLine(d) {
+  const x = d && d.live ? d.data : null;
+  if (!x || typeof x !== "object") return "";
+  const num = (v) => (typeof v === "number" && isFinite(v) ? v : 0);
+  const track = typeof x.track === "string" && x.track ? x.track : typeof d.track === "string" ? d.track : "";
+  return [track, num(x.position) > 0 ? `P${Math.round(num(x.position))}` : "", num(x.lapsLeft) > 0 ? T("fr_crew_fuel", num(x.lapsLeft).toFixed(1)) : ""]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+const safeColor = (c) => (/^#[0-9a-fA-F]{6}$/.test(c || "") ? c : "");
+/** Grup: adının baş harfi; takım: etiketi (ve varsa logosu) */
+function roomAvatar(kind, r, size = "") {
+  const id = String(roomId(kind, r));
+  if (kind === "group")
+    return `<span class="fr-av fr-rav${size ? " " + size : ""}" style="background:${hashColor(id)}" aria-hidden="true">${esc(initialOf(r.name))}</span>`;
+  const logo = r.logo_path && typeof r.logo_path === "string" ? `${SUPABASE_URL}/storage/v1/object/public/teams/${r.logo_path.split("/").map(encodeURIComponent).join("/")}` : "";
+  return `<span class="fr-av fr-rav team${size ? " " + size : ""}" style="background:${safeColor(r.color) || hashColor(id)}" aria-hidden="true">${esc(String(r.tag || "?").slice(0, 4))}${
+    logo ? `<img src="${esc(logo)}" alt="" loading="lazy" onerror="this.remove()">` : ""
+  }</span>`;
+}
+
+function roomRowHtml(kind, r) {
+  const id = roomId(kind, r);
+  let sub = T("fr_members_n", r.member_count || 0);
+  if (r.last_at) {
+    if (kind === "team") sub = `${r.last_sender || "?"}: ${r.last_poll ? T("fr_poll_last") : bodyOf({ body: r.last_body })}`;
+    else if (!r.last_system) sub = r.last_sender === S.me.id ? T("fr_you", r.last_body || "") : `${r.last_sender_name || "?"}: ${r.last_body || ""}`;
+    else if (isBg({ body: r.last_body })) sub = bodyOf({ body: r.last_body });
+  }
+  const right = r.unread ? `<span class="fr-count${r.muted ? " muted" : ""}">${r.unread > 99 ? "99+" : r.unread}</span>` : r.last_at ? `<span class="fr-when">${esc(ago(r.last_at))}</span>` : "";
+  return `<button class="fr-row${r.unread ? " unread" : ""}" type="button" data-act="room" data-kind="${kind}" data-id="${esc(id)}">
+    ${roomAvatar(kind, r)}
+    <span class="fr-main"><b>${esc(r.name || "?")}${r.muted ? ` <i class="fr-mute" title="${esc(T("fr_muted"))}">🔕</i>` : ""}</b><small>${esc(sub)}</small></span>
+    ${right}
+  </button>`;
+}
+
 function rowHtml(f) {
   const p = presence(f);
   const lm = S.last[f.friend_id];
@@ -293,12 +453,19 @@ function rowHtml(f) {
     right = `<button class="fr-ib" data-act="cancel" data-id="${esc(f.friend_id)}" title="${esc(T("fr_cancel_req"))}" aria-label="${esc(T("fr_cancel_req"))}">${IC.x}</button>`;
   else if (f.unread) right = `<span class="fr-count">${f.unread > 99 ? "99+" : f.unread}</span>`;
   else if (lm) right = `<span class="fr-when">${esc(ago(lm.created_at))}</span>`;
-  const tag = f.status === "accepted" ? "button" : "div";
-  return `<${tag} class="fr-row${f.unread ? " unread" : ""}${f.status !== "accepted" ? " pend" : ""}"${
-    f.status === "accepted" ? ` type="button" data-act="chat" data-id="${esc(f.friend_id)}"` : ""
+  // Ekibinde olduğum arkadaş: "Ekip" düğmesi + yarıştayken canlı satır (satır div olur: içinde düğme var)
+  const cw = f.status === "accepted" ? crewOf(f.friend_id) : null;
+  const live = cw ? crewLine(cw) : "";
+  if (cw)
+    right += `<button type="button" class="fr-crewb${cw.live ? " live" : ""}" data-act="crew" data-id="${esc(f.friend_id)}" title="${esc(T("fr_crew_open"))}">${esc(T("fr_crew"))}</button>`;
+  const tag = f.status === "accepted" && !cw ? "button" : "div";
+  return `<${tag} class="fr-row${f.unread ? " unread" : ""}${f.status !== "accepted" ? " pend" : ""}${cw ? " fr-click" : ""}"${
+    f.status === "accepted" ? `${cw ? ' role="button" tabindex="0"' : ' type="button"'} data-act="chat" data-id="${esc(f.friend_id)}"` : ""
   }>
     ${avatarHtml(f.friend_id, f.display_name, f, f.status === "accepted" ? p.dot || "off" : "")}
-    <span class="fr-main"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small></span>
+    <span class="fr-main"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
+      live ? `<small class="fr-live">${esc(live)}</small>` : ""
+    }</span>
     ${right}
   </${tag}>`;
 }
@@ -308,6 +475,7 @@ function listView() {
   const out = S.friends.filter((f) => f.status === "pending_out");
   const acc = accepted();
   const on = acc.filter((f) => f.online).length;
+  const rooms = S.groups.length + S.teams.length > 0;
   const sec = (title, arr) => (arr.length ? `<div class="fr-sec">${esc(title)} <span>${arr.length}</span></div>${arr.map(rowHtml).join("")}` : "");
   return `<div class="fr-head">
       <div class="fr-ttl"><b>${esc(T("fr_title"))}</b><small>${esc(T("fr_online_n", on))}</small></div>
@@ -317,9 +485,11 @@ function listView() {
     <div class="fr-body fr-list">
       ${!S.loaded ? `<p class="fr-empty">${esc(T("loading"))}</p>` : ""}
       ${sec(T("fr_requests"), inc)}
-      ${acc.length ? `${inc.length || out.length ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${acc.map(rowHtml).join("")}` : ""}
+      ${acc.length ? `${inc.length || out.length || rooms ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${acc.map(rowHtml).join("")}` : ""}
+      ${S.groups.length ? `<div class="fr-sec">${esc(T("fr_groups"))} <span>${S.groups.length}</span></div>${S.groups.map((g) => roomRowHtml("group", g)).join("")}` : ""}
+      ${S.teams.length ? `<div class="fr-sec">${esc(T("fr_teams"))} <span>${S.teams.length}</span></div>${S.teams.map((t) => roomRowHtml("team", t)).join("")}` : ""}
       ${sec(T("fr_sent"), out)}
-      ${S.loaded && !S.friends.length ? `<div class="fr-empty"><p>${esc(T("fr_empty"))}</p><button class="btn btn-sm btn-accent" data-act="add">${IC.add}${esc(T("fr_add"))}</button></div>` : ""}
+      ${S.loaded && !S.friends.length && !rooms ? `<div class="fr-empty"><p>${esc(T("fr_empty"))}</p><button class="btn btn-sm btn-accent" data-act="add">${IC.add}${esc(T("fr_add"))}</button></div>` : ""}
     </div>
     <div class="fr-foot">${esc(T("fr_app_note"))}</div>`;
 }
@@ -354,9 +524,49 @@ function addView() {
     <div class="fr-body fr-list" id="fr-found">${res}</div>`;
 }
 
+/** Grup / takım sistem mesajı (meta) ziyaretçinin dilinde */
+function sysTextOf(m) {
+  const x = m.meta && typeof m.meta === "object" ? m.meta : {};
+  const who = m.sender_name || "?";
+  switch (x.t) {
+    case "bg":
+      return T(x.kind === "none" ? "fr_sys_bg_none" : "fr_sys_bg", who);
+    case "join":
+      return T("fr_sys_join", x.by_name || who, x.name || "?");
+    case "leave":
+      return T("fr_sys_leave", x.name || who);
+    case "kick":
+      return T("fr_sys_kick", x.name || "?");
+    case "owner":
+      return T("fr_sys_owner", x.name || who);
+    case "rename":
+      return T("fr_sys_rename", x.name || "");
+    default:
+      return bodyOf(m);
+  }
+}
+
+/** Takım sohbetindeki anket: sitede sadece okunur (oy vermek programdan) */
+function pollHtml(p) {
+  const counts = Array.isArray(p.counts) ? p.counts.map((c) => Number(c) || 0) : [];
+  const total = counts.reduce((a, b) => a + b, 0);
+  const mine = Array.isArray(p.mine) ? p.mine : [];
+  const ended = new Date(p.ends_at).getTime() <= Date.now();
+  const opts = (Array.isArray(p.options) ? p.options : [])
+    .map((o, i) => {
+      const c = counts[i] || 0;
+      const pct = total ? Math.round((c * 100) / total) : 0;
+      return `<span class="fr-popt${mine.includes(i) ? " mine" : ""}"><i style="width:${pct}%"></i><span>${esc(o)}</span><em>${c}</em></span>`;
+    })
+    .join("");
+  return `<span class="fr-poll"><b>📊 ${esc(p.question || "")}</b>${opts}<small>${esc(T("fr_poll_votes", Number(p.voters) || 0))} · ${esc(T(ended ? "fr_poll_ended" : "fr_poll_app"))}</small></span>`;
+}
+
 function msgsHtml() {
   if (!S.msgs.length) return `<p class="fr-empty">${esc(T("fr_no_msgs"))}</p>`;
   const me = S.me.id;
+  const room = inRoom();
+  const isSys = (m) => room && !!m.meta && !m.deleted;
   let out = S.more ? `<div class="fr-older"><button class="linkbtn small" data-act="older">${esc(T("fr_older"))}</button></div>` : "";
   let day = "";
   S.msgs.forEach((m, i) => {
@@ -365,17 +575,21 @@ function msgsHtml() {
       day = d;
       out += `<div class="fr-day"><span>${esc(d)}</span></div>`;
     }
-    const mine = m.sender === me;
-    const prev = S.msgs[i - 1];
-    const cont = prev && prev.sender === m.sender && new Date(m.created_at) - new Date(prev.created_at) < 5 * 60000 && dayOf(prev.created_at) === d;
-    const big = emojiOnly(bodyOf(m));
-    out += `<div class="fr-msg ${mine ? "me" : "them"}${cont ? " cont" : ""}" data-mid="${esc(m.id)}">
-      <div class="fr-bub${big ? " big" : ""}">${msgHtml(bodyOf(m))}<time>${esc(timeOf(m.created_at))}</time></div>
-      <span class="fr-mact">
-        <button type="button" data-act="hide" data-id="${esc(m.id)}">${esc(T("fr_hide"))}</button>
-        ${mine ? "" : `<button type="button" data-act="report" data-id="${esc(m.id)}">${esc(T("fr_report"))}</button>`}
-      </span>
+    if (isSys(m)) {
+      // Sistem mesajı: ortada küçük not (tıklayınca menü: Benden sil)
+      out += `<div class="fr-sys" data-mid="${esc(m.id)}"><span title="${esc(timeOf(m.created_at))}">${esc(sysTextOf(m))}</span></div>`;
+    } else {
+      const mine = m.sender === me;
+      const prev = S.msgs[i - 1];
+      const cont = prev && !isSys(prev) && prev.sender === m.sender && new Date(m.created_at) - new Date(prev.created_at) < 5 * 60000 && dayOf(prev.created_at) === d;
+      const text = bodyOf(m);
+      const big = !m.deleted && !m.poll && emojiOnly(text);
+      const who = room && !mine && !cont ? `<b class="fr-who" style="color:${hashColor(String(m.sender || "?"))}">${esc(m.sender_name || "?")}</b>` : "";
+      const inner = m.deleted ? `<i class="fr-gone">${esc(T("fr_deleted"))}</i>` : m.poll ? pollHtml(m.poll) : msgHtml(text);
+      out += `<div class="fr-msg ${mine ? "me" : "them"}${cont ? " cont" : ""}" data-mid="${esc(m.id)}">
+      <div class="fr-bub${big ? " big" : ""}">${who}${inner}<time>${esc(timeOf(m.created_at))}</time></div>
     </div>`;
+    }
     if (S.report === m.id) {
       out += `<form class="fr-report" id="fr-report">
         <b>${esc(T("fr_report_t"))}</b>
@@ -386,6 +600,88 @@ function msgsHtml() {
     }
   });
   return out;
+}
+
+const composerHtml = () => `<form class="fr-comp" id="fr-comp">
+      <span id="fr-emo"></span>
+      <textarea id="fr-text" rows="1" maxlength="1000" placeholder="${esc(T("fr_msg_ph"))}"></textarea>
+      <button class="fr-send" title="${esc(T("fr_send"))}" aria-label="${esc(T("fr_send"))}">${IC.send}</button>
+    </form>`;
+
+/** Grup / takım sohbeti */
+function roomView() {
+  const kind = S.room.kind;
+  const r = curRoom() || { name: "?", member_count: 0 };
+  const ask = S.ask
+    ? `<div class="fr-ask"><span>${esc(T(kind === "group" ? "fr_leave_group_ask" : "fr_leave_team_ask", r.name))}</span><span class="fr-acts"><button class="btn btn-sm btn-ghost" data-act="ask-x">${esc(
+        T("fr_no"),
+      )}</button><button class="btn btn-sm btn-danger" data-act="ask-ok">${esc(T("fr_yes"))}</button></span></div>`
+    : "";
+  const menu = S.menu
+    ? `<span class="fr-menu"><button data-act="members">${esc(T("fr_members"))}</button><button data-act="room-mute">${esc(T(r.muted ? "fr_unmute" : "fr_mute"))}</button>${
+        kind === "team" ? `<a href="takimlar.html?id=${encodeURIComponent(S.room.id)}">${esc(T("fr_team_page"))}</a>` : ""
+      }<button class="bad" data-act="ask-leave">${esc(T(kind === "group" ? "fr_leave_group" : "fr_leave_team"))}</button></span>`
+    : "";
+  let body;
+  if (S.members !== null) {
+    const list = Array.isArray(S.members) ? S.members : null;
+    body = `<div class="fr-body fr-list">
+      <div class="fr-sec">${esc(T("fr_members"))}${list ? ` <span>${list.length}</span>` : ""}<button class="linkbtn small fr-sec-x" data-act="members">${esc(T("fr_back"))}</button></div>
+      ${
+        list
+          ? list
+              .map((m) => {
+                const role = m.is_owner || m.role === "owner" ? T("fr_owner") : m.role === "admin" ? T("fr_role_admin") : "";
+                return `<a class="fr-row fr-click" href="yarisci.html?u=${encodeURIComponent(m.user_id)}">${avatarHtml(m.user_id, m.display_name, m)}<span class="fr-main"><b>${esc(
+                  m.display_name || "?",
+                )}</b></span>${role ? `<span class="badge">${esc(role)}</span>` : ""}</a>`;
+              })
+              .join("")
+          : `<p class="fr-empty">${esc(T("loading"))}</p>`
+      }
+      ${kind === "group" ? `<p class="fr-note">${esc(T("fr_room_app"))}</p>` : ""}
+    </div>`;
+  } else {
+    body = `<div class="fr-body fr-msgs" id="fr-msgs">${S.msgs === null ? `<p class="fr-empty">${esc(T("loading"))}</p>` : msgsHtml()}</div>${composerHtml()}`;
+  }
+  return `<div class="fr-head">
+      <button class="fr-ib" data-act="list" title="${esc(T("fr_back"))}" aria-label="${esc(T("fr_back"))}">${IC.back}</button>
+      ${roomAvatar(kind, r, "sm")}
+      <div class="fr-ttl"><b>${esc(r.name || "?")}</b><small>${esc(T("fr_members_n", r.member_count || 0))}${r.muted ? ` · ${esc(T("fr_muted"))}` : ""}</small></div>
+      <span class="fr-menu-w">
+        <button class="fr-ib" data-act="menu" title="${esc(T("fr_more"))}" aria-label="${esc(T("fr_more"))}">${IC.more}</button>
+        ${menu}
+      </span>
+      <button class="fr-ib" data-act="close" title="${esc(T("fr_close"))}" aria-label="${esc(T("fr_close"))}">${IC.x}</button>
+    </div>
+    ${ask}
+    ${body}`;
+}
+
+/** Sohbet menüsü: arkadaşı ekibime ekle (görebilir / değiştirebilir) ya da çıkar. İzleme yetkisi ücretsiz; PRO değilse "değiştirebilir" görünür ama kilitli. */
+function crewMenu(f) {
+  if (f.status !== "accepted") return "";
+  const m = S.mine.find((x) => x.member_id === f.friend_id);
+  const ctl = !!m?.can_control;
+  const item = (act, on, label, lock, pro) =>
+    `<button data-act="${act}"${lock ? ` disabled title="${esc(T("fr_crew_pro"))}"` : ""}>${on ? "✓ " : ""}${esc(label)}${pro ? ' <span class="fr-pro">PRO</span>' : ""}</button>`;
+  return (
+    item("crew-view", !!m, T("fr_crew_view"), false, false) +
+    item("crew-ctl", ctl, T("fr_crew_ctl"), S.crewLock && !ctl, S.crewLock) +
+    (m ? `<button data-act="crew-out">${esc(T("fr_crew_out"))}</button>` : "")
+  );
+}
+
+/** Ekip paneli (crewpanel.js bu kaba kurulur; panel kendi kendini yeniler) */
+function crewView() {
+  const f = friend(S.crewId) || { friend_id: S.crewId, display_name: "?" };
+  return `<div class="fr-head">
+      <button class="fr-ib" data-act="list" title="${esc(T("fr_back"))}" aria-label="${esc(T("fr_back"))}">${IC.back}</button>
+      ${avatarHtml(f.friend_id, f.display_name, f, "", "sm")}
+      <div class="fr-ttl"><b>${esc(f.display_name || "?")}</b><small>${esc(T("fr_crew"))}</small></div>
+      <button class="fr-ib" data-act="close" title="${esc(T("fr_close"))}" aria-label="${esc(T("fr_close"))}">${IC.x}</button>
+    </div>
+    <div class="fr-body fr-crew" id="fr-crew"><p class="fr-empty">${esc(T("loading"))}</p></div>`;
 }
 
 function chatView() {
@@ -403,7 +699,7 @@ function chatView() {
       <div class="fr-ttl"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" ? "race" : ""}">${esc(p.text)}</small></div>
       <span class="fr-menu-w">
         <button class="fr-ib" data-act="menu" title="${esc(T("fr_more"))}" aria-label="${esc(T("fr_more"))}">${IC.more}</button>
-        ${S.menu ? `<span class="fr-menu"><button data-act="ask-clear">${esc(T("fr_clear"))}</button><button class="bad" data-act="ask-remove">${esc(T("fr_remove"))}</button></span>` : ""}
+        ${S.menu ? `<span class="fr-menu">${crewMenu(f)}<button data-act="ask-clear">${esc(T("fr_clear"))}</button><button class="bad" data-act="ask-remove">${esc(T("fr_remove"))}</button></span>` : ""}
       </span>
       <button class="fr-ib" data-act="close" title="${esc(T("fr_close"))}" aria-label="${esc(T("fr_close"))}">${IC.x}</button>
     </div>
@@ -412,11 +708,7 @@ function chatView() {
     ${
       closed
         ? `<div class="fr-closed">${esc(T("fr_closed_msgs"))}</div>`
-        : `<form class="fr-comp" id="fr-comp">
-      <span id="fr-emo"></span>
-      <textarea id="fr-text" rows="1" maxlength="1000" placeholder="${esc(T("fr_msg_ph"))}"></textarea>
-      <button class="fr-send" title="${esc(T("fr_send"))}" aria-label="${esc(T("fr_send"))}">${IC.send}</button>
-    </form>`
+        : composerHtml()
     }`;
 }
 
@@ -427,6 +719,12 @@ function render() {
   root.hidden = !S.open;
   document.documentElement.classList.toggle("fr-lock", S.open);
   if (!S.open) return;
+  // Ekip paneli kendi kabını kendisi çizer: üstüne yazma
+  if (S.view === "crew" && S.crewPanel && $("#fr-crew", root)) return;
+  // Mesaj menüsü: mesajı hâlâ ekrandaysa arka plandaki yenilemeler kapatmasın
+  if (ctxEl && !((S.view === "chat" || S.view === "room") && msgById(ctxEl.dataset.id))) closeCtx();
+  const rep = $("#fr-report", root);
+  const repKeep = rep ? { reason: rep.elements.reason.value, note: rep.elements.note.value, focus: document.activeElement === rep.elements.note } : null;
   const ta = $("#fr-text", root);
   const draft = ta ? ta.value : null;
   const hadFocus = ta && document.activeElement === ta;
@@ -438,9 +736,16 @@ function render() {
   const listBox = $(".fr-list", root);
   const listTop = listBox ? listBox.scrollTop : 0;
 
-  root.innerHTML = S.view === "add" ? addView() : S.view === "chat" ? chatView() : listView();
+  root.innerHTML =
+    S.view === "add" ? addView() : S.view === "chat" ? chatView() : S.view === "room" && S.room ? roomView() : S.view === "crew" ? crewView() : listView();
+  const nrep = $("#fr-report", root);
+  if (nrep && repKeep) {
+    nrep.elements.reason.value = repKeep.reason;
+    nrep.elements.note.value = repKeep.note;
+    if (repKeep.focus) nrep.elements.note.focus();
+  }
 
-  if (S.view === "chat") {
+  if (S.view === "chat" || S.view === "room") {
     const nta = $("#fr-text", root);
     if (nta) {
       if (draft != null) nta.value = draft;
@@ -475,16 +780,22 @@ function grow(ta) {
 // ---------------------------------------------------------------------------
 function setOpen(o) {
   S.open = o;
+  closeCrewPanel();
+  closeCtx();
   if (o) {
-    S.view = S.view === "chat" && S.chat ? "chat" : "list";
+    S.view = S.view === "chat" && S.chat ? "chat" : S.view === "room" && S.room ? "room" : "list";
     loadFriends();
+    if (S.view === "room") reloadRoom();
     hidePeek();
-  }
+  } else if (S.view === "crew") S.view = "list";
   S.menu = false;
   render();
 }
 
 async function openChat(id) {
+  closeCrewPanel();
+  S.room = null;
+  S.members = null;
   S.view = "chat";
   S.chat = id;
   S.msgs = null;
@@ -510,6 +821,163 @@ async function openChat(id) {
   if (!matchMedia("(max-width: 560px)").matches) $("#fr-text", root)?.focus();
 }
 
+// ---- Grup / takım sohbeti ----
+async function fetchRoom(kind, id, before = null) {
+  const R = ROOM[kind];
+  const rows = await rpc(R.chat, { [R.arg]: id, p_before: before, p_limit: PAGE });
+  return Array.isArray(rows) ? rows : [];
+}
+const isTmp = (m) => String(m.id).startsWith("tmp-");
+/** Açık odanın son sayfasını sunucudan yeniden okur (yeni mesaj, silinme, anket oyları) ve okundu yazar */
+async function reloadRoom(first = false) {
+  const r = S.room;
+  if (!r) return;
+  try {
+    const rows = await fetchRoom(r.kind, r.id);
+    if (S.room !== r) return;
+    if (first || !Array.isArray(S.msgs)) {
+      S.msgs = rows;
+      S.more = rows.length >= PAGE;
+      S._scrollEnd = true;
+    } else {
+      // Daha önce yüklenen eski sayfalar ve henüz sunucuya ulaşmamış kendi mesajım korunur
+      const t0 = rows.length >= PAGE ? new Date(rows[0].created_at).getTime() : 0;
+      const older = t0 ? S.msgs.filter((m) => !isTmp(m) && new Date(m.created_at).getTime() < t0) : [];
+      const pending = S.msgs.filter((m) => isTmp(m) && !rows.some((x) => x.sender === m.sender && x.body === m.body && new Date(x.created_at) >= new Date(m.created_at) - 5000));
+      S.msgs = [...older, ...rows, ...pending];
+    }
+  } catch (e) {
+    if (S.room !== r) return;
+    if (first) {
+      S.msgs = [];
+      toast(errMsg(e), true);
+    }
+  }
+  const row = curRoom();
+  if (S.open && visible()) {
+    if (row) row.unread = 0;
+    rpc(ROOM[r.kind].read, { [ROOM[r.kind].arg]: r.id }).catch(() => {});
+  }
+  render();
+}
+let roomT = 0;
+const scheduleRoom = () => {
+  clearTimeout(roomT);
+  roomT = setTimeout(() => reloadRoom(), 250);
+};
+let roomsT = 0;
+const scheduleRooms = () => {
+  clearTimeout(roomsT);
+  roomsT = setTimeout(() => loadRooms().then(render), 500);
+};
+
+async function openRoom(kind, id) {
+  closeCrewPanel();
+  Object.assign(S, { view: "room", room: { kind, id }, chat: null, msgs: null, more: false, ask: "", menu: false, report: null, members: null, open: true });
+  render();
+  await reloadRoom(true);
+  if (!matchMedia("(max-width: 560px)").matches) $("#fr-text", root)?.focus();
+}
+
+async function loadMembers() {
+  const r = S.room;
+  if (!r) return;
+  S.members = "loading";
+  render();
+  try {
+    let list;
+    if (r.kind === "group") list = await rpc("group_members", { p_group: r.id });
+    else list = (await rpc("team_profile", { p_team: r.id }))?.members;
+    if (S.room !== r || S.members === null) return;
+    S.members = Array.isArray(list) ? list : [];
+  } catch (e) {
+    if (S.room !== r) return;
+    S.members = null;
+    toast(errMsg(e), true);
+  }
+  render();
+}
+
+// ---- Ekip paneli ----
+function closeCrewPanel() {
+  try {
+    S.crewPanel?.destroy();
+  } catch {}
+  S.crewPanel = null;
+}
+function ensureCrewCss() {
+  if (document.querySelector('link[rel="stylesheet"][href*="crew.css"]')) return;
+  const l = document.createElement("link");
+  l.rel = "stylesheet";
+  l.href = new URL("./crew.css", import.meta.url).href;
+  document.head.append(l);
+}
+async function openCrew(id) {
+  closeCrewPanel();
+  Object.assign(S, { view: "crew", crewId: id, chat: null, room: null, members: null, menu: false, ask: "", report: null, open: true });
+  render();
+  ensureCrewCss();
+  try {
+    const mod = await import("./crewpanel.js");
+    const host = $("#fr-crew", root);
+    if (S.view !== "crew" || S.crewId !== id || !host || S.crewPanel) return;
+    host.textContent = "";
+    S.crewPanel = mod.mountCrewPanel(host, id, {
+      // Ekipten çıkarıldım: listeye dön
+      onGone: () => S.view === "crew" && S.crewId === id && act("list"),
+    });
+  } catch (e) {
+    toast(errMsg(e), true);
+    act("list");
+  }
+}
+
+// ---- Mesaj menüsü (tıkla / sağ tık / basılı tut): Kopyala · Benden sil · Herkesten sil · Raporla ----
+let ctxEl = null;
+function closeCtx() {
+  ctxEl?.remove();
+  ctxEl = null;
+}
+const msgById = (id) => (Array.isArray(S.msgs) ? S.msgs.find((m) => String(m.id) === String(id)) : null) || null;
+/** Herkesten sil: grup → kendi mesajım ya da grup sahibi; takım → kendi mesajım ya da sahip / yönetici. 1:1'de yok. */
+function canDeleteAll(m) {
+  if (!inRoom() || m.deleted) return false;
+  const r = curRoom();
+  if (!r) return false;
+  if (S.room.kind === "group") return !m.meta && (m.sender === S.me.id || !!r.is_owner);
+  return m.sender === S.me.id || r.role === "owner" || r.role === "admin";
+}
+function openCtx(id, x, y) {
+  closeCtx();
+  const m = msgById(id);
+  if (!m || isTmp(m)) return;
+  const sys = inRoom() ? !!m.meta : isBg(m);
+  const items = [];
+  if (!m.deleted && !(inRoom() && m.meta) && m.body) items.push(["m-copy", T("fr_copy"), ""]);
+  items.push(["m-hide", T("fr_hide"), ""]);
+  if (canDeleteAll(m)) items.push(["m-del", T("fr_del_all"), "bad"]);
+  if (m.sender !== S.me.id && !sys && !m.deleted) items.push(["m-report", T("fr_report"), "bad"]);
+  const el = document.createElement("div");
+  el.className = "fr-menu fr-ctx";
+  el.setAttribute("role", "menu");
+  el.dataset.id = String(id);
+  el.innerHTML = items.map(([a, l, c]) => `<button type="button" role="menuitem" class="${c}" data-act="${a}">${esc(l)}</button>`).join("");
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    closeCtx();
+    act(b.dataset.act, id, null);
+  });
+  el.addEventListener("contextmenu", (e) => e.preventDefault());
+  document.body.append(el);
+  el.style.left = Math.max(6, Math.min(x, innerWidth - el.offsetWidth - 6)) + "px";
+  el.style.top = Math.max(6, Math.min(y, innerHeight - el.offsetHeight - 6)) + "px";
+  ctxEl = el;
+}
+const onDocDown = (e) => {
+  if (ctxEl && !ctxEl.contains(e.target)) closeCtx();
+};
+
 async function fetchMsgs(id, before = null) {
   const me = S.me.id;
   let q = sb
@@ -527,7 +995,8 @@ async function fetchMsgs(id, before = null) {
 
 async function sendMsg() {
   const ta = $("#fr-text", root);
-  if (!ta || !S.chat) return;
+  if (!ta || !(S.chat || inRoom())) return;
+  if (inRoom()) return sendRoomMsg(ta);
   const body = emojify(ta.value).trim();
   if (!body) return;
   const to = S.chat;
@@ -541,6 +1010,32 @@ async function sendMsg() {
   try {
     const id = await rpc("send_message", { p_to: to, p_body: body });
     tmp.id = id || tmp.id;
+    render();
+  } catch (e) {
+    S.msgs = (S.msgs || []).filter((m) => m !== tmp);
+    const nta = $("#fr-text", root);
+    if (nta && !nta.value) nta.value = body;
+    render();
+    toast(errMsg(e), true);
+  }
+}
+
+async function sendRoomMsg(ta) {
+  const body = emojify(ta.value).trim();
+  if (!body) return;
+  const r = S.room;
+  const R = ROOM[r.kind];
+  ta.value = "";
+  grow(ta);
+  const tmp = { id: "tmp-" + Date.now(), sender: S.me.id, sender_name: "", body: body.slice(0, 1000), deleted: false, created_at: new Date().toISOString() };
+  S.msgs = [...(S.msgs || []), tmp];
+  S._scrollEnd = true;
+  render();
+  try {
+    const id = await rpc(R.send, { [R.arg]: r.id, p_body: body });
+    if (id && Array.isArray(S.msgs) && S.msgs.some((m) => m !== tmp && m.id === id)) S.msgs = S.msgs.filter((m) => m !== tmp);
+    else tmp.id = id || tmp.id;
+    scheduleRooms();
     render();
   } catch (e) {
     S.msgs = (S.msgs || []).filter((m) => m !== tmp);
@@ -581,17 +1076,73 @@ function search(q) {
   }, 300);
 }
 
-async function act(a, id, el) {
+async function act(a, id, el, src = null) {
   try {
     switch (a) {
       case "close":
         return setOpen(false);
       case "list":
+        closeCrewPanel();
         S.view = "list";
         S.chat = null;
+        S.room = null;
+        S.members = null;
+        S.crewId = null;
+        S.ask = "";
+        S.report = null;
         S.menu = false;
         loadFriends();
         return render();
+      case "room":
+        return openRoom(src?.dataset.kind === "team" ? "team" : "group", id);
+      case "crew":
+        return openCrew(id);
+      case "members":
+        S.menu = false;
+        if (S.members !== null) {
+          S.members = null;
+          S._scrollEnd = true;
+          return render();
+        }
+        return loadMembers();
+      case "room-mute": {
+        const r = curRoom();
+        if (!r || !S.room) return;
+        const R = ROOM[S.room.kind];
+        S.menu = false;
+        await rpc(R.mute, { [R.arg]: S.room.id, p_muted: !r.muted });
+        r.muted = !r.muted;
+        return render();
+      }
+      case "ask-leave":
+        S.ask = "leave";
+        S.menu = false;
+        return render();
+      case "m-copy": {
+        const m = msgById(id);
+        if (!m) return;
+        await navigator.clipboard?.writeText(bodyOf(m));
+        return toast(T("fr_copied"));
+      }
+      case "m-hide": {
+        // Benden sil: sadece benim görünümümden kalkar
+        await rpc(inRoom() ? ROOM[S.room.kind].hide : "hide_message", { p_id: id });
+        S.msgs = (S.msgs || []).filter((m) => m.id !== id);
+        if (S.report === id) S.report = null;
+        if (inRoom()) scheduleRooms();
+        return render();
+      }
+      case "m-del": {
+        if (!inRoom() || !confirm(T("fr_del_all_ask"))) return;
+        await rpc(ROOM[S.room.kind].del, { p_id: id });
+        S.msgs = (S.msgs || []).map((m) => (m.id === id ? { ...m, deleted: true, body: "", meta: null, poll: null } : m));
+        scheduleRooms();
+        return render();
+      }
+      case "m-report":
+        S.report = id;
+        render();
+        return $("#fr-report", root)?.scrollIntoView({ block: "nearest" });
       case "add":
         S.view = "add";
         S._focusQ = true;
@@ -619,25 +1170,45 @@ async function act(a, id, el) {
       }
       case "older": {
         if (!S.msgs?.length) return;
+        if (inRoom()) {
+          const r = S.room;
+          const rows = await fetchRoom(r.kind, r.id, S.msgs[0].created_at);
+          if (S.room !== r) return;
+          S.more = rows.length >= PAGE;
+          S.msgs = [...rows, ...S.msgs];
+          S._scrollOld = true;
+          return render();
+        }
         const older = await fetchMsgs(S.chat, S.msgs[0].created_at);
         S.msgs = [...older, ...S.msgs];
         S._scrollOld = true;
         return render();
       }
-      case "hide": {
-        await rpc("hide_message", { p_id: id });
-        S.msgs = (S.msgs || []).filter((m) => m.id !== id);
-        return render();
-      }
-      case "report":
-        S.report = S.report === id ? null : id;
-        return render();
       case "report-x":
         S.report = null;
         return render();
       case "menu":
         S.menu = !S.menu;
         return render();
+      case "crew-view":
+      case "crew-ctl":
+      case "crew-out": {
+        const fid = S.chat;
+        if (!fid) return;
+        const m = S.mine.find((x) => x.member_id === fid);
+        // Görebilir: yoksa ekle, sadece izleyiciyse çıkar, değiştirebiliyorsa izleyiciye indir. Değiştirebilir: aç / kapat.
+        const view = a === "crew-out" ? false : a === "crew-view" ? !m || !!m.can_control : true;
+        const ctl = a === "crew-ctl" && !m?.can_control;
+        S.menu = false;
+        try {
+          await rpc("crew_set", { p_friend: fid, p_view: view, p_control: ctl });
+          const l = await rpc("crew_list");
+          if (Array.isArray(l)) S.mine = l;
+        } catch (e) {
+          toast(errMsg(e), true);
+        }
+        return render();
+      }
       case "ask-clear":
       case "ask-remove":
         S.ask = a === "ask-clear" ? "clear" : "remove";
@@ -647,6 +1218,13 @@ async function act(a, id, el) {
         S.ask = "";
         return render();
       case "ask-ok": {
+        if (S.ask === "leave" && S.room) {
+          const r = S.room;
+          await rpc(ROOM[r.kind].leave, { [ROOM[r.kind].arg]: r.id });
+          if (r.kind === "group") S.groups = S.groups.filter((g) => g.group_id !== r.id);
+          else S.teams = S.teams.filter((t) => t.team_id !== r.id);
+          return act("list");
+        }
         const f = S.chat;
         if (S.ask === "clear") {
           await rpc("clear_conversation", { p_friend: f });
@@ -684,6 +1262,64 @@ function onIncoming(m) {
   render();
 }
 
+/** Grup / takım mesajı (Realtime): açık odaysa yeniden oku; değilse listeyi (okunmamış, son mesaj) tazele */
+function onRoomMsg(kind, m, ev) {
+  if (!m || !S.me) return;
+  const id = m[ROOM[kind].col];
+  const row = roomOf(kind, id);
+  const open = inRoom() && S.room.kind === kind && S.room.id === id;
+  if (open) scheduleRoom();
+  if (ev === "INSERT" && row && m.sender !== S.me.id && !(open && S.open && visible())) {
+    row.unread = (row.unread || 0) + 1;
+    if (!row.muted && !m.meta && m.body) showRoomPeek(kind, row, m);
+    renderFab();
+  }
+  scheduleRooms();
+}
+/** Gruplarımın / takımlarımın mesajlarına abone ol (liste değişince yeniden). Okuma kuralı sunucuda: sadece üyeler. */
+function syncRoomSub() {
+  if (!S.me) return;
+  const gs = S.groups.map((g) => g.group_id).sort();
+  const ts = S.teams.map((t) => t.team_id).sort();
+  const key = gs.join(",") + "|" + ts.join(",");
+  if (key === S.roomKey && S.roomCh) return;
+  dropRoomSub();
+  S.roomKey = key;
+  if (!gs.length && !ts.length) return;
+  let ch = sb.channel(`site-rooms-${S.me.id}-${Math.random().toString(36).slice(2, 7)}`);
+  for (const [kind, ids] of [["group", gs], ["team", ts]]) {
+    if (!ids.length) continue;
+    const R = ROOM[kind];
+    const filter = `${R.col}=in.(${ids.slice(0, 100).join(",")})`;
+    for (const event of ["INSERT", "UPDATE"])
+      ch = ch.on("postgres_changes", { event, schema: "public", table: R.table, filter }, (p) => onRoomMsg(kind, p.new, event));
+  }
+  // Anket oyları: açık takım sohbetindeki sayılar tazelensin
+  if (ts.length)
+    ch = ch.on("postgres_changes", { event: "UPDATE", schema: "public", table: "team_polls", filter: `team_id=in.(${ts.slice(0, 100).join(",")})` }, (p) => {
+      if (inRoom() && S.room.kind === "team" && S.room.id === p.new?.team_id) scheduleRoom();
+    });
+  S.roomCh = ch.subscribe();
+}
+function dropRoomSub() {
+  if (S.roomCh) {
+    try {
+      sb.removeChannel(S.roomCh);
+    } catch {}
+    S.roomCh = null;
+  }
+  S.roomKey = "";
+}
+function showRoomPeek(kind, row, m) {
+  if (!peekEl || S.open) return;
+  peekEl.innerHTML = `${roomAvatar(kind, row, "sm")}<span class="fr-main"><b>${esc(row.name || "?")}</b><small>${esc(bodyOf(m))}</small></span>`;
+  peekEl.dataset.id = roomId(kind, row);
+  peekEl.dataset.kind = kind;
+  peekEl.classList.add("show");
+  clearTimeout(S.peek);
+  S.peek = setTimeout(hidePeek, 6000);
+}
+
 function hidePeek() {
   clearTimeout(S.peek);
   peekEl?.classList.remove("show");
@@ -693,6 +1329,7 @@ function showPeek(f, m) {
   const name = f?.display_name || T("fr_new_msg");
   peekEl.innerHTML = `${avatarHtml(m.sender, name, f || {}, "", "sm")}<span class="fr-main"><b>${esc(name)}</b><small>${esc(bodyOf(m))}</small></span>`;
   peekEl.dataset.id = m.sender;
+  peekEl.dataset.kind = "";
   peekEl.classList.add("show");
   clearTimeout(S.peek);
   S.peek = setTimeout(hidePeek, 6000);
@@ -719,6 +1356,14 @@ function unsubscribe() {
 // ---------------------------------------------------------------------------
 // Kurulum
 // ---------------------------------------------------------------------------
+const onLang = () => {
+  if (!root) return;
+  root.setAttribute("aria-label", T("fr_title"));
+  // Ekip paneli açıksa başlığıyla birlikte yeniden kurulur
+  if (S.view === "crew" && S.crewId && S.open) return void openCrew(S.crewId);
+  render();
+};
+
 function mount() {
   if (fab) return;
   fab = document.createElement("button");
@@ -732,7 +1377,9 @@ function mount() {
   peekEl.className = "fr-peek";
   peekEl.addEventListener("click", () => {
     hidePeek();
-    if (peekEl.dataset.id) openChat(peekEl.dataset.id);
+    const { id, kind } = peekEl.dataset;
+    if (id && kind) openRoom(kind, id);
+    else if (id) openChat(id);
   });
 
   root = document.createElement("div");
@@ -741,6 +1388,14 @@ function mount() {
   root.setAttribute("role", "dialog");
   root.setAttribute("aria-label", T("fr_title"));
   root.addEventListener("click", (e) => {
+    // Mesaja tıklayınca menü (bağlantıya tıklanmadıysa, metin seçilmiyorsa)
+    const bub = e.target.closest(".fr-bub, .fr-sys span");
+    if (bub && root.contains(bub) && !e.target.closest("a, [data-act]")) {
+      const sel = window.getSelection?.();
+      const row = bub.closest("[data-mid]");
+      if (row && (!sel || sel.isCollapsed)) openCtx(row.dataset.mid, e.clientX, e.clientY);
+      return;
+    }
     const b = e.target.closest("[data-act]");
     if (!b || !root.contains(b)) {
       if (S.menu && !e.target.closest(".fr-menu-w")) {
@@ -750,8 +1405,17 @@ function mount() {
       return;
     }
     e.preventDefault();
-    act(b.dataset.act, b.dataset.id, b.tagName === "BUTTON" ? b : null);
+    act(b.dataset.act, b.dataset.id, b.tagName === "BUTTON" ? b : null, b);
   });
+  // Sağ tık / dokunmatikte basılı tutma: aynı menü
+  root.addEventListener("contextmenu", (e) => {
+    const row = e.target.closest("[data-mid]");
+    if (!row || !root.contains(row) || e.target.closest("a")) return;
+    e.preventDefault();
+    openCtx(row.dataset.mid, e.clientX, e.clientY);
+  });
+  root.addEventListener("scroll", closeCtx, true);
+  document.addEventListener("pointerdown", onDocDown, true);
   root.addEventListener("input", (e) => {
     if (e.target.id === "fr-q") search(e.target.value);
     if (e.target.id === "fr-text") {
@@ -771,8 +1435,13 @@ function mount() {
       e.preventDefault();
       sendMsg();
     }
+    if (e.key === "Enter" && e.target.matches?.(".fr-click[data-act]")) {
+      e.preventDefault();
+      return void act(e.target.dataset.act, e.target.dataset.id, null, e.target);
+    }
     if (e.key === "Escape" && !document.querySelector(".emo-pop")) {
-      if (S.report || S.ask || S.menu) {
+      if (ctxEl) closeCtx();
+      else if (S.report || S.ask || S.menu) {
         S.report = null;
         S.ask = "";
         S.menu = false;
@@ -788,7 +1457,7 @@ function mount() {
       const btn = e.target.querySelector(".btn-danger");
       btn.disabled = true;
       try {
-        await rpc("message_report", { p_message: S.report, p_reason: String(fd.get("reason")), p_note: String(fd.get("note") || "") });
+        await rpc(inRoom() ? ROOM[S.room.kind].report : "message_report", { p_message: S.report, p_reason: String(fd.get("reason")), p_note: String(fd.get("note") || "") });
         toast(T("fr_report_ok"));
         S.report = null;
         render();
@@ -799,14 +1468,19 @@ function mount() {
     }
   });
   document.body.append(peekEl, root, fab);
-  document.addEventListener("langchange", () => {
-    root.setAttribute("aria-label", T("fr_title"));
-    render();
-  });
+  document.addEventListener("langchange", onLang);
 }
 
 function unmount() {
   unsubscribe();
+  dropRoomSub();
+  closeCrewPanel();
+  closeCtx();
+  clearTimeout(roomT);
+  clearTimeout(roomsT);
+  clearInterval(S.crewTimer);
+  document.removeEventListener("pointerdown", onDocDown, true);
+  document.removeEventListener("langchange", onLang);
   clearInterval(S.timer);
   hidePeek();
   fab?.remove();
@@ -814,7 +1488,7 @@ function unmount() {
   peekEl?.remove();
   fab = root = peekEl = null;
   document.documentElement.classList.remove("fr-lock");
-  Object.assign(S, { open: false, view: "list", friends: [], loaded: false, last: {}, chat: null, msgs: [], ask: "", menu: false, report: null, q: "", found: null });
+  Object.assign(S, { open: false, view: "list", friends: [], loaded: false, last: {}, chat: null, msgs: [], ask: "", menu: false, report: null, q: "", found: null, groups: [], teams: [], crew: [], room: null, members: null, crewId: null });
 }
 
 async function start(user) {
@@ -832,7 +1506,13 @@ async function start(user) {
     if (document.visibilityState !== "visible") return;
     S.tick++;
     if (S.open || S.tick % 3 === 0) loadFriends();
+    // Realtime kaçırdıysa: açık grup / takım sohbeti de tazelenir
+    if (S.open && inRoom() && Array.isArray(S.msgs) && S.members === null) reloadRoom();
   }, 20000);
+  // Ekibinde olduğum arkadaşların canlı satırı: sadece panel ve liste açıkken 5 sn'de bir
+  S.crewTimer = setInterval(() => {
+    if (S.open && S.view === "list" && visible() && S.crew.length) loadCrew();
+  }, 5000);
 }
 
 /** Sayfa iskeleti (boot: dil + üst menü) hazır olunca başla */
@@ -857,6 +1537,9 @@ whenBooted().then(async () => {
     setTimeout(() => start(session?.user ?? null), 0);
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && S.me) loadFriends();
+    if (document.visibilityState === "visible" && S.me) {
+      loadFriends();
+      if (S.open && inRoom()) reloadRoom();
+    }
   });
 });

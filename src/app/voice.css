@@ -638,3 +638,87 @@
   gap: 8px;
   font-size: 13px;
 }
+
+/* ---------- Sesli komut (bas-konuş) ---------- */
+.voice-cmd .voice-status {
+  margin: 0;
+}
+
+.voice-cmd-bound {
+  display: block;
+  color: #ffb86b;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.voice-cmd-rec {
+  margin: -2px 0 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #aab3c2;
+}
+
+.voice-cmd-rec.warn {
+  border-color: #6b4a1a;
+  background: rgba(255, 138, 42, 0.08);
+  color: #ffcf9a;
+}
+
+.voice-cmd-beeps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voice-cmd-test {
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--line);
+}
+
+.voice-cmd-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid #5b6474;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.voice-cmd-result.ok {
+  border-left-color: #2ec4b6;
+}
+
+.voice-cmd-result.bad {
+  border-left-color: #ff8a80;
+}
+
+.voice-cmd-ex-head {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.voice-cmd-examples {
+  display: grid;
+  gap: 6px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.voice-cmd-ex {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.voice-cmd-ex span {
+  color: #aab3c2;
+}

@@ -57,6 +57,8 @@ export interface AppConfig {
   hidden_overlays?: string[];
   /** Üst çubuktaki sim seçicide oyun ikonları (c51); false: eski yazılı görünüm. Sütun yoksa (eski sunucu) açık sayılır */
   sim_icons?: boolean;
+  /** Üst çubuk bağlantıları (c61); bkz. cloud/topLinks.ts */
+  top_links?: unknown;
   /** Herkese ücretsiz PRO kampanyası: bu tarihe kadar giriş yapmış herkes PRO */
   promo_pro_until?: string | null;
   promo_note?: string;
@@ -507,7 +509,7 @@ function shotsRequirePro(): boolean {
 /** Rust'a giden kilit listesi: "voice" sadece sesli mühendis PRO'ya ayrılmışsa (eski pro_overlays işareti yok sayılır),
  *  "shots" ekran görüntüsü almak PRO'ya ayrılmışsa, "livechat.*" Canlı Sohbet özellikleri PRO'ya ayrılmışsa */
 function withVoiceLock(list: string[]): string[] {
-  const rest = list.filter((x) => x !== "voice" && x !== "shots" && !x.startsWith("livechat.") && !x.startsWith("social."));
+  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "shots" && !x.startsWith("livechat.") && !x.startsWith("social."));
   if (voiceRequiresPro()) rest.push("voice");
   if (shotsRequirePro()) rest.push("shots");
   rest.push(...livechatLocks());
@@ -519,7 +521,8 @@ function withVoiceLock(list: string[]): string[] {
 
 /** Canlı Sohbet: PRO'ya ayrılmış özellikler (yönetici kararı, yoksa varsayılan PRO). Rust aynı adlarla denetler. */
 // "social.messages_tts": Mesajlar overlay'inde sesli okuma (aynı düzen; Rust: livechat/tts.rs social_tts_speak)
-const LIVECHAT_LOCKS = ["livechat.multi", "livechat.favorites", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts"];
+// "voice.commands": sesli komut / bas-konuş (aynı düzen; Rust: voicecmd.rs allowed)
+const LIVECHAT_LOCKS = ["livechat.multi", "livechat.favorites", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts", "voice.commands", "dashboard.remote"];
 function livechatLocks(): string[] {
   let v: Record<string, unknown> = {};
   try {

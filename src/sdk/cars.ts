@@ -65,3 +65,32 @@ export function carFamily(st: CarInfo | undefined): CarFamily | undefined {
   if (cat === "dirtroad" || cat === "dirt_road") return "rally";
   return "road";
 }
+
+/** Kendi ekran yerleşimi olan belirli araç modelleri (Direksiyon Ekranı'nın "Otomatik" görünümü) */
+export type CarModel = "mercW13" | "formulaGen" | "fer296" | "mcl720" | "por992" | "por963" | "cadV" | "fer499" | "lmp2";
+
+// iRacing araç adı / yolu (ör. "ferrari296gt3", "porsche963gtp", "cadillacvseriesrgtp", "dallarap217",
+// "porsche992rgt3", "mercedesw13"), ACC model adı (ör. "ferrari_296_gt3", "mclaren_720s_gt3_evo",
+// "porsche_992_gt3_r") ve LMU araç adları (499P, 963, V-Series.R, Oreca 07 LMP2).
+const MODELS: [CarModel, RegExp][] = [
+  ["fer499", /499 ?p\b/],
+  ["por963", /porsche ?963|\b963\b/],
+  ["cadV", /v-?series[. ]?r|cadillac ?v-?(series|lmdh)|cadillacvseries/],
+  ["lmp2", /p217|oreca ?0?7|\blm ?p ?2\b|lmp2/],
+  ["mercW13", /mercedes(-amg)? ?(f1 )?w1\d|\bw1[0-9]\b|mercedesw1\d/],
+  ["fer296", /296 ?gt3|ferrari ?296|ferrari296/],
+  ["mcl720", /720s/],
+  ["por992", /992 ?r? ?gt3 ?r\b|gt3 ?r ?\(?992|porsche992rgt3|911 ?gt3 ?r\b/],
+];
+/** F1 araçları (F1 tarzı ekran); diğer üst seviye tek kişilikler genel "Formula" ekranını alır */
+const F1_CAR = /\bf-?1\b|formula ?(1|one)\b|mp4|williams ?fw|\bfw\d\d\b|mercedes ?w\d\d|\bw\d\d\b|lotus ?(49|79)|f-?ultimate|f-?hitech|f-?reiza|f-?v1[02]|f-?classic|f-?retro|f-?vintage/;
+
+/** Sürülen araç, kendi ekran yerleşimi olan modellerden biri mi */
+export function carModel(st: CarInfo | undefined): CarModel | undefined {
+  if (!st || !(st.carName || st.carPath || st.className)) return undefined;
+  const text = carText(st);
+  for (const [m, re] of MODELS) if (re.test(text)) return m;
+  // Üst seviye formula (Super Formula, IndyCar, F2...) ama F1 değil
+  if (carFamily(st) === "formula" && !F1_CAR.test(text)) return "formulaGen";
+  return undefined;
+}

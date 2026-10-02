@@ -1,9 +1,9 @@
 .rj {
-  width: 260px;
+  width: calc(260px * var(--ov-fs-k, 1));
   overflow: hidden;
 }
 .rj-state {
-  padding: 8px 10px;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   text-align: center;
   font-size: 1.35em;
   font-weight: var(--ov-weight-strong);
@@ -31,7 +31,7 @@
   align-items: center;
   gap: 8px;
   height: var(--ov-row-h);
-  padding: 0 10px;
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
   border-bottom: 1px solid var(--ov-divider);
   white-space: nowrap;
 }

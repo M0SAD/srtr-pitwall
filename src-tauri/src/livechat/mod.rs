@@ -41,8 +41,13 @@
 //!   Twitch  → GQL izleyici sorgusu yayın döndürüyor (15 sn'de bir yoklanır)
 //!   Kick    → kanal bilgisinde livestream var (15 sn; gizli pencere gerekiyorsa 60 sn)
 //!   YouTube → kanalın /live sayfası canlı bir videoya çözülüyor ve sohbeti okunuyor (yayın yokken 30 sn'de bir yoklanır)
-//!   Yayın durumu hiç öğrenilemediyse (sorgu başarısız; `live == None`) ama sohbet bağlıysa: son 3 dakikada o kanaldan
-//!   mesaj geldiyse canlı sayılır.
+//!   Sohbeti bağlı bir kanal son 3 dakikada mesaj aldıysa, yayın sorgusu ne derse desin (bilinmiyor ya da "kapalı")
+//!   canlı sayılır: mesaj geliyorsa yayın vardır (Twitch / Kick sohbeti yayın kapalıyken de bağlanır; sorgu yanılabilir).
+//!   Ücretsizde (tek kanal) en üstteki kanal ya da — favoriler açıksa — ★ favori kanal canlıysa canlı sayılır.
+//!
+//! OVERLAY KAPISI (`LiveGate`, bkz. `live_gate`): overlay'in ne göstereceğine UYGULAMA karar verir ve kararı `status`
+//! konusunun `chat` alanında (ayrıca `livechat` konusu ve `livechat-status` olayında `gate`) her aboneye — OBS tarayıcı
+//! kaynağı dahil — gönderir. Tarayıcı kaynağı giriş / PRO durumunu kendisi tahmin etmez.
 
 pub mod filter;
 pub mod kick;
@@ -254,6 +259,8 @@ pub struct LiveChatStatus {
     pub login_ok: bool,
     /// Bağlı kanallardan en az biri canlı yayında
     pub any_live: bool,
+    /// Overlay kapısı (overlay ne gösteriyor / neden gizli)
+    pub gate: LiveGate,
 }
 
 /// "livechat" konusu
@@ -269,6 +276,53 @@ pub struct LiveChatTopic {
     pub any_live: bool,
     /// Giriş koşulu sağlanıyor mu (yanlışsa overlay'ler ekranda hiçbir şey çizmez)
     pub login_ok: bool,
+    /// Overlay kapısı (overlay ne gösteriyor / neden gizli)
+    pub gate: LiveGate,
+}
+
+/// Overlay kapısı: Canlı Sohbet overlay'leri (sohbet, anket, altyazı) ne göstersin. Karar uygulamada verilir;
+/// overlay penceresi `app`, OBS tarayıcı kaynağı `obs` alanına bakar:
+///   "demo"    → benzetilmiş sohbet akışı (Demo modu açık; gerçek mesajlar karışmaz)
+///   "real"    → gerçek mesajlar
+///   "offline" → sohbet çalışıyor ama yayın canlı değil (overlay'in "Yalnızca yayın canlıyken göster" seçeneği
+///               kapalıysa yine gerçek mesajlar gösterilir)
+///   "stopped" → sohbet durdurulmuş (boş)
+///   "login"   → giriş yapılmamış (boş)
+///   "pro"     → OBS tarayıcı kaynağı PRO'ya ayrılmış ve kullanıcı PRO değil (yalnızca `obs`)
+#[derive(Serialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveGate {
+    /// Kullanıcının açtığı Demo modu (panel önizlemesi değil)
+    pub demo: bool,
+    pub running: bool,
+    pub live: bool,
+    pub login_ok: bool,
+    pub obs_ok: bool,
+    pub app: &'static str,
+    pub obs: &'static str,
+}
+
+/// Kapı kararı (saf işlev). Öncelik: giriş → (OBS: PRO) → demo → durdurulmuş → yayın canlı değil → gerçek.
+pub fn live_gate(demo: bool, running: bool, live: bool, login_ok: bool, obs_ok: bool) -> LiveGate {
+    let app = if !login_ok {
+        "login"
+    } else if demo {
+        "demo"
+    } else if !running {
+        "stopped"
+    } else if !live {
+        "offline"
+    } else {
+        "real"
+    };
+    let obs = if !login_ok {
+        "login"
+    } else if !obs_ok {
+        "pro"
+    } else {
+        app
+    };
+    LiveGate { demo, running, live, login_ok, obs_ok, app, obs }
 }
 
 #[derive(Serialize, Clone, Debug, Default, PartialEq)]
@@ -315,6 +369,9 @@ struct Inner {
     /// ★ favoriler açık (livechat.favorites)
     fav: bool,
     login_ok: bool,
+    /// Demo modu açık / OBS kaynağı izinli (zamanlayıcı günceller; kapı için)
+    demo: bool,
+    obs_ok: bool,
     /// Son yayınlanan `any_live` (değişince konu yeniden gönderilir)
     live_pushed: bool,
     tasks: HashMap<String, Vec<JoinHandle<()>>>,
@@ -469,15 +526,22 @@ impl Inner {
             return false;
         }
         self.cfg.channels.iter().enumerate().any(|(i, ch)| {
-            if !self.multi && i > 0 {
+            // Ücretsiz (tek kanal): en üstteki kanal; favoriler açıksa ★ favori kanalın yayını da sayılır
+            // (mesajları gösterilmez ama izleyici çubuğu görünür; overlay boş kalmasın diye değil, yayın var diye).
+            if !self.multi && i > 0 && !(self.fav && ch.cfg.mine) {
                 return false;
             }
             match self.rt.get(&ch.link.key) {
                 Some(r) if r.live == Some(true) => true,
-                Some(r) if r.live.is_none() && r.chat => r.last_msg > 0.0 && now - r.last_msg < MSG_LIVE_SECS,
+                // Sohbet bağlı ve mesaj geliyor: yayın sorgusu "kapalı" dese de (ya da hiç öğrenilemese de) canlı
+                Some(r) if r.chat => r.last_msg > 0.0 && now - r.last_msg < MSG_LIVE_SECS,
                 _ => false,
             }
         })
+    }
+
+    fn gate(&self, now: f64) -> LiveGate {
+        live_gate(self.demo, self.running, self.any_live(now), self.login_ok, self.obs_ok)
     }
 
     fn sl_status(&self) -> SlStatus {
@@ -502,6 +566,7 @@ impl Inner {
             favorites: self.fav,
             login_ok: self.login_ok,
             any_live: self.any_live(now_s()),
+            gate: self.gate(now_s()),
         }
     }
 
@@ -516,6 +581,7 @@ impl Inner {
             rev: self.rev,
             any_live: self.any_live(now_s()),
             login_ok: self.login_ok,
+            gate: self.gate(now_s()),
         }
     }
 
@@ -642,7 +708,7 @@ fn platform_tag(m: &ChatMsg) -> String {
 
 impl Hub {
     fn new(app: AppHandle, shared: Arc<Shared>) -> Hub {
-        Hub { app, shared, st: Mutex::new(Inner { multi: true, alerts_ok: true, fav: true, login_ok: true, ..Default::default() }), hooks: Mutex::new(vec![]), started_once: AtomicBool::new(false), auto_pending: AtomicBool::new(false) }
+        Hub { app, shared, st: Mutex::new(Inner { multi: true, alerts_ok: true, fav: true, login_ok: true, obs_ok: true, ..Default::default() }), hooks: Mutex::new(vec![]), started_once: AtomicBool::new(false), auto_pending: AtomicBool::new(false) }
     }
 
     #[allow(dead_code)] // sesli okuma (TTS) modülü kullanacak
@@ -868,10 +934,12 @@ impl Hub {
         let alerts_ok = allowed(&self.app, "livechat.alerts");
         let fav = allowed(&self.app, "livechat.favorites");
         let login = login_ok(&self.app);
+        let obs_ok = allowed(&self.app, "livechat.obs") || !login;
         let mut g = self.st.lock();
-        if g.multi != multi || g.alerts_ok != alerts_ok || g.fav != fav || g.login_ok != login {
+        if g.multi != multi || g.alerts_ok != alerts_ok || g.fav != fav || g.login_ok != login || g.obs_ok != obs_ok {
             g.dirty_status = true;
         }
+        g.obs_ok = obs_ok;
         g.multi = multi;
         g.alerts_ok = alerts_ok;
         g.fav = fav;
@@ -1014,10 +1082,25 @@ impl Hub {
         }
         let now = now_s();
         let gen = self.shared.topics_gen.load(Ordering::Relaxed);
+        let demo = self.shared.demo.load(Ordering::Relaxed);
         let (msgs, deleted, cleared, status, topic, poll, captions, logs) = {
             let mut g = self.st.lock();
             let force = gen != g.topics_gen;
             g.topics_gen = gen;
+            // Demo modu açıldı / kapandı: kapı değişti
+            if g.demo != demo {
+                g.demo = demo;
+                g.dirty_status = true;
+            }
+            // Kapı `status` konusuyla her aboneye (OBS dahil) gider
+            if n % 5 == 0 || g.dirty_status {
+                let gate = g.gate(now);
+                let mut cur = self.shared.live_gate.lock();
+                if *cur != gate {
+                    *cur = gate;
+                    g.dirty_status = true;
+                }
+            }
             // Yayın durumu değişti (yayın açıldı / kapandı / son mesajın süresi doldu): konu ve durum yeniden gönderilsin
             if n % 10 == 0 || g.dirty_status || g.dirty_chat {
                 let live = g.any_live(now);
@@ -1624,14 +1707,62 @@ mod tests {
         g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: None, last_msg: 100.0, ..Default::default() });
         assert!(g.any_live(150.0));
         assert!(!g.any_live(100.0 + MSG_LIVE_SECS + 1.0));
+        // Yayın sorgusu "kapalı" diyor ama sohbet bağlı ve mesaj geliyor: canlı (süre dolunca değil)
         g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(false), last_msg: 100.0, ..Default::default() });
+        assert!(g.any_live(150.0));
+        assert!(!g.any_live(100.0 + MSG_LIVE_SECS + 1.0));
+        // Sohbet bağlı değilse eski mesaj canlılık sayılmaz
+        g.rt.insert("twitch:erkin".into(), ChanRt { chat: false, live: Some(false), last_msg: 100.0, ..Default::default() });
         assert!(!g.any_live(150.0));
+        // Ücretsiz + favoriler açık: en üstteki kanal kapalı, ★ favori canlı → canlı; favoriler kapalıysa değil
+        let fav_key = g.cfg.channels[2].link.key.clone();
+        g.rt.insert(fav_key.clone(), ChanRt { chat: true, live: Some(true), ..Default::default() });
+        assert!(!g.any_live(150.0));
+        g.fav = true;
+        assert!(g.any_live(150.0));
+        g.fav = false;
+        g.rt.remove(&fav_key);
         g.login_ok = false;
         g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(true), ..Default::default() });
         assert!(!g.any_live(0.0));
         g.login_ok = true;
         g.running = false;
         assert_eq!(g.channels_view()[0].state, State::Idle);
+    }
+
+    #[test]
+    fn gate_decisions() {
+        // (demo, running, live, login, obs) → (app, obs)
+        let g = |d, r, l, lo, ob| {
+            let x = live_gate(d, r, l, lo, ob);
+            (x.app, x.obs)
+        };
+        // Giriş yok: demo açık olsa da her yerde gizli
+        assert_eq!(g(true, true, true, false, true), ("login", "login"));
+        assert_eq!(g(false, false, false, false, false), ("login", "login"));
+        // Demo: sohbet dursa da çalışsa da, yayın canlı olsa da benzetim
+        assert_eq!(g(true, false, false, true, true), ("demo", "demo"));
+        assert_eq!(g(true, true, true, true, true), ("demo", "demo"));
+        // Demo kapalı: gerçek kurallar
+        assert_eq!(g(false, false, false, true, true), ("stopped", "stopped"));
+        assert_eq!(g(false, true, false, true, true), ("offline", "offline"));
+        assert_eq!(g(false, true, true, true, true), ("real", "real"));
+        // OBS kaynağı PRO'ya ayrılmış: uygulama içi overlay etkilenmez
+        assert_eq!(g(false, true, true, true, false), ("real", "pro"));
+        assert_eq!(g(true, false, false, true, false), ("demo", "pro"));
+        // Alanlar JSON'da camelCase
+        let v = serde_json::to_value(live_gate(true, false, false, true, true)).unwrap();
+        assert_eq!(v["loginOk"], true);
+        assert_eq!(v["obsOk"], true);
+        assert_eq!(v["app"], "demo");
+        // Inner::gate alanları taşır
+        let mut i = Inner { running: true, multi: true, login_ok: true, obs_ok: true, cfg: cfg_from_settings(&cfg_json()), ..Default::default() };
+        assert_eq!(i.gate(0.0).app, "offline");
+        i.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(false), last_msg: 10.0, ..Default::default() });
+        assert_eq!(i.gate(20.0).app, "real");
+        i.demo = true;
+        assert_eq!(i.gate(20.0).app, "demo");
+        assert_eq!(i.topic().gate.demo, true);
     }
 
     fn chat(platform: Platform, channel: &str, id: &str, user: &str, text: &str) -> ChatMsg {

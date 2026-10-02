@@ -238,6 +238,7 @@ pub fn parse(yaml: &str) -> SessionData {
                         sd.track_length_km = num_prefix(v).unwrap_or(0.0) as f32
                     }
                     ("DriverInfo", "DriverCarIdx") => sd.player_idx = v.parse().unwrap_or(-1),
+                    ("DriverInfo", "DriverUserID") => sd.player_user_id = v.parse().unwrap_or(0),
                     ("DriverInfo", "DriverCarFuelMaxLtr") => {
                         sd.fuel_max_ltr = num_prefix(v).unwrap_or(0.0) as f32
                     }

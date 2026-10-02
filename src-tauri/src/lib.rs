@@ -31,6 +31,11 @@ mod voice;
 mod voice_rules;
 mod voicepack;
 mod voicesub;
+mod voicecmd;
+#[cfg(windows)]
+mod voicecmd_win;
+#[cfg(windows)]
+mod ptt_win;
 mod vr;
 mod vrnative;
 mod voicepack_build;
@@ -404,6 +409,8 @@ fn voice_cfg_of(app: &AppHandle, value: &Value) -> (voice::VoiceCfg, voice::Soun
 pub(crate) fn push_voice_cfg(app: &AppHandle, value: &Value) {
     let (vc, sc) = voice_cfg_of(app, value);
     *shared(app).voice_cfg.lock() = Some((vc, sc, voice_allowed(app)));
+    // Sesli komut (bas-konuş) ayarları ve PRO izni de aynı anda yenilenir
+    voicecmd::apply_settings(app, value);
 }
 
 #[tauri::command]
@@ -730,6 +737,29 @@ fn server_status(app: AppHandle) -> ServerInfo {
     server_info(&app)
 }
 
+/// "Başka cihazda aç" paneli: sunucu ağa açıkken bu bilgisayarın yerel IPv4 adreslerine göre adresler
+/// (http://<ip>:<port>). Sunucu kapalıysa ya da yalnızca bu bilgisayara açıksa boş liste.
+#[tauri::command]
+fn server_lan_urls(app: AppHandle) -> Vec<String> {
+    let st = app.state::<ServerState>();
+    let guard = st.server.lock();
+    let Some(srv) = guard.as_ref() else { return Vec::new() };
+    if !st.lan.load(Ordering::Relaxed) {
+        return Vec::new();
+    }
+    let port = srv.addr.port();
+    server::lan_ips().into_iter().map(|ip| format!("http://{ip}:{port}")).collect()
+}
+
+/// Dashboard tasarımını (JSON) kullanıcının kaydetme penceresinde seçtiği dosyaya yazar.
+#[tauri::command]
+fn dash_export(path: String, text: String) -> Result<(), String> {
+    if !path.to_lowercase().ends_with(".json") {
+        return Err("Dosya uzantısı .json olmalı".into());
+    }
+    std::fs::write(&path, text).map_err(|e| e.to_string())
+}
+
 // ---------------------------------------------------------------------------
 // Uygulama durumu
 // ---------------------------------------------------------------------------
@@ -824,20 +854,26 @@ async fn panel_front(app: AppHandle) {
 
 /// Düzenleme ekranında sağ tık > "Ayarlarını aç": paneli öne getir ve o overlay'in kartını aç.
 #[derive(Default)]
-struct PendingFocus(Mutex<Option<String>>);
+struct PendingFocus(Mutex<Option<serde_json::Value>>);
 
+/// `profile`: sağ tıklanan overlay'in bulunduğu düzen (ekranda o an düzenlenen düzen; etkin düzenden farklı olabilir).
 #[tauri::command]
-async fn panel_focus_overlay(app: AppHandle, id: String) {
-    *app.state::<PendingFocus>().0.lock() = Some(id.clone());
+async fn panel_focus_overlay(app: AppHandle, id: String, profile: Option<String>) {
+    let payload = serde_json::json!({ "id": id, "profile": profile.filter(|x| !x.is_empty()) });
+    *app.state::<PendingFocus>().0.lock() = Some(payload.clone());
     bring_panel_front(&app);
-    let _ = app.emit("focus-overlay", id);
+    let _ = app.emit("focus-overlay", payload);
 }
 
-/// Panel yeni açıldıysa olay kaçmış olabilir; açılışta bekleyen isteği alır.
+/// Panel yeni açıldıysa olay kaçmış olabilir; açılışta bekleyen isteği alır ({ id, profile }).
 #[tauri::command]
-fn panel_take_focus(state: State<'_, PendingFocus>) -> Option<String> {
+fn panel_take_focus(state: State<'_, PendingFocus>) -> Option<serde_json::Value> {
     state.0.lock().take()
 }
+
+/// Ekranda tutulan (pin) overlay'in düzeni: Overlay'ler sayfasında düzenlenen düzen (None → etkin düzen).
+#[derive(Default)]
+struct PinProfile(Mutex<Option<String>>);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1042,8 +1078,10 @@ fn team_remote_set(app: AppHandle, key: String, fuel: Option<mqtt::TeamFuel>) {
 /// çıkınca / başka overlay seçince / panel kapanınca bırakılır. Tutulurken oyun kapalıysa örnek (demo) veri üretilir
 /// (engine.rs: preview), overlay pencereleri gizli olsa da açılır.
 #[tauri::command]
-fn overlay_pin(app: AppHandle, id: Option<String>) {
-    set_overlay_pin(&app, id.filter(|x| !x.is_empty()));
+fn overlay_pin(app: AppHandle, id: Option<String>, profile: Option<String>) {
+    let id = id.filter(|x| !x.is_empty());
+    let profile = if id.is_some() { profile.filter(|x| !x.is_empty()) } else { None };
+    set_overlay_pin(&app, id, profile);
 }
 
 #[tauri::command]
@@ -1051,16 +1089,25 @@ fn overlay_pin_get(app: AppHandle) -> Option<String> {
     shared(&app).pin.lock().clone()
 }
 
-fn set_overlay_pin(app: &AppHandle, id: Option<String>) {
+/// Sonradan açılan overlay penceresi için: tutulan overlay'in düzeni
+#[tauri::command]
+fn overlay_pin_profile_get(state: State<'_, PinProfile>) -> Option<String> {
+    state.0.lock().clone()
+}
+
+fn set_overlay_pin(app: &AppHandle, id: Option<String>, profile: Option<String>) {
     let s = shared(app);
     {
+        let pp = app.state::<PinProfile>();
         let mut g = s.pin.lock();
-        if *g == id {
+        let mut gp = pp.0.lock();
+        if *g == id && *gp == profile {
             return;
         }
         *g = id.clone();
+        *gp = profile.clone();
     }
-    let _ = app.emit("overlay-pin", serde_json::json!({ "id": id }));
+    let _ = app.emit("overlay-pin", serde_json::json!({ "id": id, "profile": profile }));
     sync_overlay_visibility(app);
 }
 
@@ -1103,10 +1150,15 @@ fn toggle_voice(app: &AppHandle) {
         let _ = app.emit("voice-toggled", serde_json::json!({ "on": false, "error": true }));
         return;
     }
-    let Some(mut v) = current_settings(app) else { return };
-    let cur = v.pointer("/general/voice/enabled").and_then(|x| x.as_bool()).unwrap_or(true);
-    let on = !cur;
-    let Some(vo) = v.pointer_mut("/general/voice").and_then(|x| x.as_object_mut()) else { return };
+    let cur = current_settings(app).and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool())).unwrap_or(true);
+    set_voice_enabled(app, !cur, true);
+}
+
+/// Sesli mühendisi aç / kapat (kısayol ve "sus" / "konuşabilirsin" sesli komutları). Onay ifadesi ses paketinden
+/// çalındıysa true; `beep_fallback`: paket yoksa bip çal (sesli komut kendi cevabını Windows sesiyle söyler).
+pub(crate) fn set_voice_enabled(app: &AppHandle, on: bool, beep_fallback: bool) -> bool {
+    let Some(mut v) = current_settings(app) else { return false };
+    let Some(vo) = v.pointer_mut("/general/voice").and_then(|x| x.as_object_mut()) else { return false };
     vo.insert("enabled".into(), Value::Bool(on));
     if let Some(o) = v.as_object_mut() {
         let now = std::time::SystemTime::now()
@@ -1129,7 +1181,7 @@ fn toggle_voice(app: &AppHandle) {
         t.set_cfg(vc, sc, true);
         t.test(if on { "acknowledge/keepQuietDisabled" } else { "acknowledge/keepQuietEnabled" }).is_ok()
     };
-    if !said {
+    if !said && beep_fallback {
         // Ses paketi/kaydı yok: açılınca iki tiz, kapanınca bir pes bip
         let beeps: &'static [f32] = if on { &[880.0, 1320.0] } else { &[440.0] };
         std::thread::spawn(move || {
@@ -1143,6 +1195,7 @@ fn toggle_voice(app: &AppHandle) {
     }
     // Overlay kısa bir bildirim gösterir (metin arayüz dilinde, bkz. Host.tsx)
     let _ = app.emit("voice-toggled", serde_json::json!({ "on": on, "error": false }));
+    said
 }
 
 #[tauri::command]
@@ -1339,7 +1392,7 @@ fn open_panel(app: &AppHandle) {
             w.on_window_event(move |e| {
                 if let tauri::WindowEvent::Destroyed = e {
                     set_preview_frozen(&app2, false);
-                    set_overlay_pin(&app2, None);
+                    set_overlay_pin(&app2, None, None);
                 }
             });
         });
@@ -1391,7 +1444,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 /// Kısayol eylemleri ve varsayılan tuşları
-const SHORTCUTS: [(&str, &str); 19] = [
+const SHORTCUTS: [(&str, &str); 20] = [
     ("edit", "Ctrl+Shift+E"),
     ("hide", "Ctrl+Shift+D"),
     ("panel", "Ctrl+Shift+Space"),
@@ -1406,6 +1459,8 @@ const SHORTCUTS: [(&str, &str); 19] = [
     ("chat", "Ctrl+Shift+C"),
     // Ekip (uzaktan pit) kontrolünü durdur (varsayılan: kısayol yok)
     ("crewStop", ""),
+    // Direksiyon Ekranı (özel tasarım): sonraki sayfa (varsayılan: kısayol yok)
+    ("dashPage", ""),
     // Yerel VR (deneysel, bkz. vrnative): sadece yerel VR çalışırken kaydedilir
     ("vrConfig", "F9"),
     ("vrRecenter", "End"),
@@ -1682,6 +1737,18 @@ fn demo_set_names(names: Vec<String>) -> usize {
     demo::set_showcase_names(names)
 }
 
+/// Demo vitrini: adlarla birlikte üyenin gerçek bayrağı / iRating / lisansı (SQL c56 demo_pro_drivers)
+#[tauri::command]
+fn demo_set_drivers(drivers: Vec<demo::ShowcaseDriver>) -> usize {
+    demo::set_showcase_drivers(drivers)
+}
+
+/// Oyuncunun kendi iRacing bilgileri (son iRacing oturum bilgisinden; yoksa null)
+#[tauri::command]
+fn player_iracing() -> Option<demo::PlayerIracing> {
+    demo::player_iracing()
+}
+
 /// Panel kısayol kaydederken PrintScreen kancasını duraklatır (tuş arayüze ulaşsın)
 #[tauri::command]
 fn shortcuts_pause(paused: bool) {
@@ -1728,6 +1795,9 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 Some("crewStop") => {
                     let _ = app.emit("crew-stop", ());
                 }
+                Some("dashPage") => {
+                    let _ = app.emit("dash-page", ());
+                }
                 Some(a) if a.starts_with("vr") => vrnative::hotkey(a),
                 _ => {}
             }
@@ -1756,6 +1826,7 @@ pub fn run() {
         ))
         .manage(shared_state.clone())
         .manage(PendingFocus::default())
+        .manage(PinProfile::default())
         .manage(updater::UpdateState::default())
         .manage(ServerState::default())
         .manage(SettingsStore::default())
@@ -1784,12 +1855,15 @@ pub fn run() {
             toast::friends_take_chat,
             server_apply,
             server_status,
+            dash_export,
+            server_lan_urls,
             state_get,
             demo_set,
             edit_mode_set,
             overlay_peek,
             overlay_pin,
             overlay_pin_get,
+            overlay_pin_profile_get,
             team_remote_set,
             hidden_set,
             monitors_list,
@@ -1824,6 +1898,12 @@ pub fn run() {
             voicepack_build::voice_pack_template,
             voicepack_build::voice_pack_check,
             voice_test_dir,
+            voicecmd::voicecmd_status,
+            voicecmd::voicecmd_examples,
+            voicecmd::voicecmd_capture_button,
+            voicecmd::voicecmd_capture_cancel,
+            voicecmd::voicecmd_test_text,
+            voicecmd::voicecmd_listen,
             sound_test,
             mqtt_status,
             translate::translate_text,
@@ -1857,6 +1937,8 @@ pub fn run() {
             shots::bg_file_read,
             shots::bg_file_clear,
             demo_set_names,
+            demo_set_drivers,
+            player_iracing,
             entitlement::entitlement_get,
             entitlement::entitlement_set,
             device::device_info,

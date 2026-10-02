@@ -308,6 +308,8 @@ pub struct SessionData {
     pub tire_types: Vec<(i32, String)>,
     /// Botlara karşı çevrimdışı oturum (sürücü listesinde AI bayrağı olmayan simler için, ör. ACC çevrimdışı)
     pub ai_session: bool,
+    /// iRacing DriverInfo.DriverUserID: bu bilgisayardaki hesabın üye no (takım yarışında araçtaki sürücüden farklı olabilir)
+    pub player_user_id: i64,
 }
 
 impl SessionData {

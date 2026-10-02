@@ -1,0 +1,182 @@
+/* ---- Çubuk Spotter: sol / sağ ince çubuklar ---- */
+.sbar {
+  display: flex;
+  align-items: stretch;
+  pointer-events: none;
+}
+
+.sb-bar {
+  position: relative;
+  flex: none;
+  height: 100%;
+  opacity: 0;
+  color: var(--c);
+  transition: opacity var(--sb-fade) ease-out;
+}
+
+.sb-bar.on {
+  opacity: var(--sb-op);
+}
+
+.sb-bar.guide {
+  opacity: calc(var(--sb-op) * 0.28);
+}
+
+.sb-bar svg {
+  display: block;
+  overflow: visible;
+}
+
+.sb-bar.glow.on svg {
+  filter: drop-shadow(
+    0 0 var(--sb-glow) color-mix(in srgb, var(--c) 70%, transparent)
+  );
+}
+
+.sb-track,
+.sb-car,
+.sb-chev {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.12s linear;
+}
+
+.sb-track.dim {
+  stroke-opacity: 0.3;
+}
+
+.sb-car {
+  stroke-linecap: butt;
+  stroke: color-mix(in srgb, var(--c) 82%, #fff);
+}
+
+rect.sb-unit {
+  fill: currentColor;
+  transition: fill 0.12s linear;
+}
+
+/* Yay ve soluk uçlu: uçlar saydamlaşır */
+.sb-arc svg,
+.sb-fade svg {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 30%,
+    #000 70%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 30%,
+    #000 70%,
+    transparent 100%
+  );
+}
+
+/* Maske parlamayı da kestiği için bu görünümlerde parlama sarmalayıcıya verilir */
+.sb-arc.glow.on svg,
+.sb-fade.glow.on svg {
+  filter: none;
+}
+
+.sb-arc.glow.on,
+.sb-fade.glow.on {
+  filter: drop-shadow(
+    0 0 var(--sb-glow) color-mix(in srgb, var(--c) 75%, transparent)
+  );
+}
+
+.sb-fade.glow.on {
+  filter: drop-shadow(
+    0 0 calc(var(--sb-glow) * 1.4) color-mix(in srgb, var(--c) 80%, transparent)
+  );
+}
+
+/* Neon: çok ince çizgi, güçlü çift parlama */
+.sb-neon svg {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 12%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 12%,
+    #000 88%,
+    transparent 100%
+  );
+}
+
+.sb-neon.on svg,
+.sb-neon.glow.on svg {
+  filter: none;
+}
+
+.sb-neon.on {
+  filter: drop-shadow(0 0 3px var(--c))
+    drop-shadow(0 0 calc(var(--sb-glow) * 1.2) var(--c));
+}
+
+.sb-neon .sb-car {
+  stroke: #fff;
+}
+
+.sb-neon .sb-track.dim {
+  stroke-opacity: 0.55;
+}
+
+/* Ok uçlu: araç yaklaşırken dışa doğru akan nabız */
+.sb-chevron.closing svg {
+  animation: sb-pulse 0.7s ease-in-out infinite;
+}
+
+@keyframes sb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Tehlikeli yakınlık / iki yanda araç: bütün görünümlerde nabız */
+.sb-bar.pulse svg {
+  animation: sb-pulse 0.55s ease-in-out infinite;
+}
+
+.ov-frozen .sb-chevron.closing svg,
+.ov-frozen .sb-bar.pulse svg {
+  animation: none;
+}
+
+.sb-dist {
+  position: absolute;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+  white-space: nowrap;
+  color: var(--ov-text);
+  font: var(--ov-weight-strong) 12px var(--ov-font);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.sb-dist.r {
+  left: auto;
+  right: calc(100% + 8px);
+}
+
+/* Köşe: ince çerçeve köşeleri, araç işareti ortada yuvarlak uçlu kısa çizgi */
+.sb-corner .sb-track {
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.sb-corner .sb-car {
+  stroke: currentColor;
+}

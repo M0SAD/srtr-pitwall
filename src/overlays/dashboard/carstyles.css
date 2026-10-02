@@ -1305,3 +1305,11 @@
   font-size: 9px;
   color: var(--cd-dim);
 }
+
+/* Araç tarzı ekranlar: genel ölçek ve devir ışığı boyutu (ayarlar: carScale, carRpmSize) */
+.cd {
+  zoom: var(--cd-zoom, 1);
+}
+.cd .cd-leds {
+  zoom: var(--cd-led-z, 1);
+}

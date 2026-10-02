@@ -1,7 +1,7 @@
 // Düzenler: monitör seçerek overlay yerleşimi. Solda düzenler, üstte monitör haritası,
 // ortada seçili monitörün tuvali (gerçek overlay görüntüleriyle sürükle-bırak).
 
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { ShareDialog } from "./CommunityPage";
 import { appState } from "../App";
 import { t } from "@/sdk/i18n";
@@ -25,6 +25,7 @@ import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type M
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
 import { UndoRedo } from "@/sdk/UndoRedo";
+import { LayoutList, layoutFocus, setLayoutFocus, sortProfiles } from "../components/LayoutList";
 import { copyLayoutToStream, setStreamFocus } from "@/sdk/streamLink";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { Switch } from "../components/SettingsForm";
@@ -188,8 +189,15 @@ function belongsToMonitor(instMon: string, m: MonitorInfo) {
 export function LayoutsPage() {
   loadMonitors(true);
   const status = useTopic("status");
-  const layouts = () => Object.values(settings().profiles).filter((p) => p.rules.mode !== "stream");
+  const layouts = () => sortProfiles(Object.values(settings().profiles).filter((p) => p.rules.mode !== "stream"));
   const [selId, setSelId] = createSignal(settings().activeProfile);
+  // Yayın sayfasından "Düzene kopyala" ile gelindiyse o düzen açılır
+  createEffect(() => {
+    const f = layoutFocus();
+    if (!f) return;
+    setSelId(f);
+    setLayoutFocus(null);
+  });
   const p = () => settings().profiles[selId()] ?? layouts()[0];
   const [mon, setMon] = createSignal<string>("");
   const [sel, setSel] = createSignal<string | null>(null);
@@ -236,24 +244,6 @@ export function LayoutsPage() {
     () => appState().demo,
   );
 
-  // Düzenlerim listesinde sağ tık menüsü
-  const [lmenu, setLmenu] = createSignal<{ x: number; y: number; id: string } | null>(null);
-  onMount(() => {
-    const close = () => setLmenu(null);
-    window.addEventListener("pointerdown", close);
-    onCleanup(() => window.removeEventListener("pointerdown", close));
-  });
-  const removeId = (id: string) => {
-    if (layouts().length <= 1) return;
-    const prof = settings().profiles[id];
-    if (!prof || !confirm(t('"{0}" düzeni silinsin mi?', prof.name))) return;
-    updateSettings((d) => {
-      delete d.profiles[id];
-      if (!d.profiles[d.activeProfile]) d.activeProfile = Object.keys(d.profiles).find((x) => d.profiles[x].rules.mode !== "stream") ?? Object.keys(d.profiles)[0];
-    });
-    if (selId() === id) setSelId(settings().activeProfile);
-  };
-
   const addHere = (type: string) => {
     const m = monitor();
     updateSettings((d) => {
@@ -293,39 +283,6 @@ export function LayoutsPage() {
 
   return (
     <div class="lpage">
-      <Show when={lmenu()}>
-        {(() => {
-          const m = lmenu()!;
-          const prof = () => settings().profiles[m.id];
-          const run = (fn: () => void) => (e: PointerEvent) => {
-            e.stopPropagation();
-            setLmenu(null);
-            fn();
-          };
-          return (
-            <div class="ovmenu" style={{ left: `${Math.min(m.x, window.innerWidth - 230)}px`, top: `${Math.min(m.y, window.innerHeight - 220)}px` }} onPointerDown={(e) => e.stopPropagation()}>
-              <button onPointerUp={run(() => (setSelId(m.id), setRenaming(true)))}>
-                <I.Pencil /> Adını değiştir
-              </button>
-              <button onPointerUp={run(() => (setSelId(m.id), setSharing(true)))}>
-                <I.Share2 /> Toplulukta paylaş
-              </button>
-              <button onPointerUp={run(() => setSelId(newLayout(prof().rules.mode, `${prof().name} (kopya)`, prof())))}>
-                <I.Copy /> Kopyala
-              </button>
-              <button onPointerUp={run(() => copyToStream(prof()))}>
-                <I.Radio /> Yayın düzenine kopyala
-              </button>
-              <button disabled={settings().activeProfile === m.id} onPointerUp={run(() => updateSettings((d) => (d.activeProfile = m.id)))}>
-                <I.Play /> Varsayılan yap
-              </button>
-              <button class="danger" disabled={layouts().length <= 1} onPointerUp={run(() => removeId(m.id))}>
-                <I.Trash /> Sil
-              </button>
-            </div>
-          );
-        })()}
-      </Show>
       <aside class="llist">
         <div class="ovlist-cap">Varsayılan düzen</div>
         <select class="f2-select" value={settings().activeProfile} onChange={(e) => updateSettings((d) => (d.activeProfile = e.currentTarget.value))}>
@@ -336,27 +293,15 @@ export function LayoutsPage() {
         </small>
         <div class="ovlist-cap">Düzenlerim</div>
         <div class="llist-items">
-          <For each={layouts()}>
-            {(x) => (
-              <button
-                class="ovitem"
-                classList={{ sel: p()?.id === x.id }}
-                onClick={() => setSelId(x.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setLmenu({ x: e.clientX, y: e.clientY, id: x.id });
-                }}
-              >
-                <span class="ovitem-ic">
-                  <I.LayoutDashboard />
-                </span>
-                <span class="ovitem-name">{x.name}</span>
-                <Show when={settings().activeProfile === x.id}>
-                  <span class="chip2 small">varsayılan</span>
-                </Show>
-              </button>
-            )}
-          </For>
+          <LayoutList
+            kind="layout"
+            list={layouts()}
+            selId={p()?.id}
+            onSelect={setSelId}
+            onShare={() => setSharing(true)}
+            onCopyOther={(id) => settings().profiles[id] && copyToStream(settings().profiles[id])}
+            icon={() => <I.LayoutDashboard />}
+          />
         </div>
         <button class="btn primary wide" onClick={() => setSelId(newLayout("driving", `Düzen ${layouts().length + 1}`))}>
           <I.Plus /> Düzen ekle

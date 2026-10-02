@@ -9,6 +9,8 @@
 //!   GET /api/stream?topics=a:10,b:2     canlı veri (SSE)
 //!   GET /livechat  /livepoll  /captions  canlı sohbet / anket / altyazı (→ overlay.html?only=<id>; PRO: livechat.obs)
 //!   GET /livechat/state                 canlı sohbet durumu (JSON: chat, poll, captions)
+//!   GET /dash  /dash/<tasarım>          uzak gösterge: direksiyon ekranı telefon / tablette (→ dash.html; PRO: dashboard.remote)
+//!   GET /api/dash                       uzak gösterge verisi (JSON: tasarımlar, birim; PRO: dashboard.remote)
 
 use crate::engine::{Shared, Sink, TopicReq};
 use std::io::Write;
@@ -209,8 +211,44 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                     continue;
                 }
 
+                // Uzak gösterge (telefon / tablet): /dash tasarım listesi, /dash/<kimlik> tek tasarım. Sayfa da verisi de
+                // aynı kilide bağlı (PRO: dashboard.remote); kilitliyken sayfa 403 döner, /api/dash veri vermez.
+                // "/dash.html" doğrudan istenirse de aynı kilit geçerli (kısa adresi atlayıp kilidi aşmasın)
+                let dash_page = is_dash_page(&path) || path == "/dash.html";
+                if dash_page || path == "/api/dash" {
+                    if !crate::livechat::allowed(&app, "dashboard.remote") {
+                        let (body, mime) = if dash_page {
+                            (DASH_LOCKED_HTML.to_string(), "text/html; charset=utf-8")
+                        } else {
+                            ("{\"ok\":false,\"error\":\"pro\"}".to_string(), "application/json")
+                        };
+                        let resp = Response::from_string(body)
+                            .with_status_code(403)
+                            .with_header(header("Content-Type", mime))
+                            .with_header(header("Cache-Control", "no-store"))
+                            .with_header(header("Access-Control-Allow-Origin", "*"));
+                        let _ = req.respond(resp);
+                        continue;
+                    }
+                }
+                if path == "/api/dash" {
+                    let v = dash_json(crate::current_settings(&app).as_ref());
+                    let resp = Response::from_string(v.to_string())
+                        .with_header(header("Content-Type", "application/json"))
+                        .with_header(header("Cache-Control", "no-store"))
+                        .with_header(header("Access-Control-Allow-Origin", "*"));
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
                 // Statik dosyalar: uygulamanın kendi arayüzü
-                let file = if path == "/" { "/overlay.html".to_string() } else { path.clone() };
+                let file = if path == "/" {
+                    "/overlay.html".to_string()
+                } else if dash_page {
+                    "/dash.html".to_string()
+                } else {
+                    path.clone()
+                };
                 match app.asset_resolver().get(file.trim_start_matches('/').to_string()) {
                     Some(asset) => {
                         let mime = asset.mime_type().to_string();
@@ -231,11 +269,60 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
     Ok(WebServer { stop, addr })
 }
 
+const DASH_LOCKED_HTML: &str = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><body style='font:16px sans-serif;color:#fff;background:#111;padding:20px'>Uzak gösterge PRO üyelere özel · SRTR Pitwall</body>";
+
+/// /dash, /dash/ ya da /dash/<kimlik> (alt yol tek parça; "/dash.html" ve "/dashx" değil)
+fn is_dash_page(path: &str) -> bool {
+    match path.strip_prefix("/dash") {
+        Some("") | Some("/") => true,
+        Some(rest) => rest.starts_with('/') && !rest[1..].contains('/') && !rest[1..].contains('.'),
+        None => false,
+    }
+}
+
+/// Uzak gösterge sayfasının verisi: kullanıcının tasarımları ve birim tercihi
+fn dash_json(settings: Option<&serde_json::Value>) -> serde_json::Value {
+    let dashes = settings.and_then(|s| s.get("dashes")).filter(|d| d.is_array()).cloned().unwrap_or_else(|| serde_json::json!([]));
+    let units = settings.and_then(|s| s.pointer("/general/units")).and_then(|u| u.as_str()).unwrap_or("metric");
+    serde_json::json!({ "ok": true, "units": units, "dashes": dashes })
+}
+
 /// Yerel ağ adresini bulur (sunucu LAN'a açıkken bağlantı adresi göstermek için).
 pub fn lan_ip() -> Option<String> {
     let sock = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
     sock.connect("10.255.255.255:1").ok()?;
     sock.local_addr().ok().map(|a| a.ip().to_string())
+}
+
+/// Bu bilgisayarın yerel ağ (IPv4) adresleri: önce varsayılan çıkış arayüzü, sonra bilgisayar adının çözdüğü
+/// diğer adresler (ör. hem kablo hem Wi-Fi takılıysa). Döngü (127.x) ve bağlantı-yerel (169.254.x) adresler alınmaz.
+pub fn lan_ips() -> Vec<String> {
+    use std::net::{IpAddr, ToSocketAddrs};
+    let mut out: Vec<String> = Vec::new();
+    if let Some(ip) = lan_ip() {
+        out.push(ip);
+    }
+    let host = std::env::var("COMPUTERNAME").or_else(|_| std::env::var("HOSTNAME")).unwrap_or_default();
+    if !host.is_empty() {
+        if let Ok(addrs) = (host.as_str(), 0u16).to_socket_addrs() {
+            for a in addrs {
+                if let IpAddr::V4(v4) = a.ip() {
+                    if usable_lan_v4(&v4) {
+                        let s = v4.to_string();
+                        if !out.contains(&s) {
+                            out.push(s);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out.retain(|s| s.parse::<std::net::Ipv4Addr>().map(|v| usable_lan_v4(&v)).unwrap_or(false));
+    out
+}
+
+fn usable_lan_v4(ip: &std::net::Ipv4Addr) -> bool {
+    !ip.is_loopback() && !ip.is_link_local() && !ip.is_unspecified() && !ip.is_broadcast()
 }
 
 #[cfg(test)]
@@ -250,5 +337,27 @@ mod tests {
         assert_eq!(query_param("/api/stream?a=1&topics=x:1", "topics"), Some("x:1"));
         assert_eq!(url_decode("a%3A1%2Cb%3A2"), "a:1,b:2");
         assert_eq!(url_decode("100%"), "100%");
+    }
+
+    #[test]
+    fn dash_routes() {
+        for p in ["/dash", "/dash/", "/dash/dabc123", "/dash/classic"] {
+            assert!(is_dash_page(p), "{p}");
+        }
+        for p in ["/dash.html", "/dashboard", "/dash/a/b", "/dash/x.js", "/assets/dash.js", "/"] {
+            assert!(!is_dash_page(p), "{p}");
+        }
+        let s = serde_json::json!({ "general": { "units": "imperial" }, "dashes": [{ "id": "d1" }] });
+        let v = dash_json(Some(&s));
+        assert_eq!(v["ok"], true);
+        assert_eq!(v["units"], "imperial");
+        assert_eq!(v["dashes"][0]["id"], "d1");
+        assert!(!usable_lan_v4(&"127.0.0.1".parse().unwrap()));
+        assert!(!usable_lan_v4(&"169.254.10.2".parse().unwrap()));
+        assert!(usable_lan_v4(&"192.168.1.20".parse().unwrap()));
+        assert!(lan_ips().iter().all(|s| !s.starts_with("127.")));
+        let v = dash_json(None);
+        assert_eq!(v["units"], "metric");
+        assert_eq!(v["dashes"].as_array().map(|a| a.len()), Some(0));
     }
 }

@@ -1,5 +1,7 @@
 // Demo vitrini: demo yarışındaki sahte sürücülerin bir kısmı gerçek PRO üyelerin görünen adlarını taşır.
-// Adlar buluttan (demo_pro_names, giriş gerekmez) alınır, karıştırılır ve Rust'a verilir (demo_set_names);
+// Adlar buluttan (demo_pro_drivers; eski sunucuda demo_pro_names; giriş gerekmez) alınır, karıştırılır ve Rust'a
+// verilir (demo_set_drivers / demo_set_names). Üye izin verdiyse gerçek ülke bayrağı, iRating ve lisansı da gelir;
+// bilgisi olmayan üyeye bayrak gösterilmez, iR/SR demo tarafından üretilir.
 // Rust her demo oturumunun başında rastgele birkaçını seçer, oturum boyunca değişmez.
 // Çevrimdışıysa sessizce sadece sahte adlar kullanılır.
 
@@ -8,6 +10,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "@/sdk/platform";
 import { settings } from "@/sdk/settings";
 import { api, cloudEnabled, session } from "./supabase";
+
+interface ShowcaseDriver {
+  name: string;
+  country: string | null;
+  irating: number | null;
+  license: string | null;
+  lic_color: string | null;
+}
 
 const REFRESH_MS = 30 * 60_000;
 let lastOk = 0;
@@ -26,13 +36,36 @@ async function pushNames() {
   if (lastOk && Date.now() - lastOk < REFRESH_MS) return;
   busy = true;
   try {
-    const rows = await api<unknown[]>("POST", "rpc/demo_pro_names", { body: { p_limit: 40 }, auth: "optional" });
-    // PostgREST "setof text" için düz dizi ya da {demo_pro_names: "..."} nesneleri dönebilir
-    const names = (rows ?? [])
-      .map((r) => (typeof r === "string" ? r : r && typeof r === "object" ? String(Object.values(r)[0] ?? "") : ""))
-      .map((s) => s.trim())
-      .filter(Boolean);
-    await invoke("demo_set_names", { names: shuffle(names) });
+    // Yeni sunucu (c56): adla birlikte üyenin gerçek bayrağı / iRating / lisansı (izin verdiyse; yoksa null)
+    let drivers: ShowcaseDriver[] | null = null;
+    try {
+      const r = await api<unknown>("POST", "rpc/demo_pro_drivers", { body: { p_limit: 40 }, auth: "optional" });
+      if (Array.isArray(r)) {
+        drivers = r
+          .filter((x): x is Record<string, unknown> => !!x && typeof x === "object")
+          .map((x) => ({
+            name: String(x.name ?? "").trim(),
+            country: typeof x.country === "string" && x.country ? x.country : null,
+            irating: typeof x.irating === "number" && x.irating > 0 ? Math.round(x.irating) : null,
+            license: typeof x.license === "string" && x.license ? x.license : null,
+            lic_color: typeof x.lic_color === "string" && x.lic_color ? x.lic_color : null,
+          }))
+          .filter((x) => x.name);
+      }
+    } catch {
+      drivers = null; // eski sunucu: aşağıda sadece adlar
+    }
+    if (drivers) {
+      await invoke("demo_set_drivers", { drivers: shuffle(drivers) });
+    } else {
+      const rows = await api<unknown[]>("POST", "rpc/demo_pro_names", { body: { p_limit: 40 }, auth: "optional" });
+      // PostgREST "setof text" için düz dizi ya da {demo_pro_names: "..."} nesneleri dönebilir
+      const names = (rows ?? [])
+        .map((r) => (typeof r === "string" ? r : r && typeof r === "object" ? String(Object.values(r)[0] ?? "") : ""))
+        .map((s) => s.trim())
+        .filter(Boolean);
+      await invoke("demo_set_names", { names: shuffle(names) });
+    }
     lastOk = Date.now();
   } catch {
     /* çevrimdışı ya da RPC yok: sahte adlar yeterli */

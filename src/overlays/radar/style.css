@@ -1,4 +1,4 @@
-/* ---- Radar (görsel spotter) ---- */
+/* ---- Radar ---- */
 .radar {
   display: block;
   width: 220px;
@@ -42,58 +42,4 @@
   fill: var(--ov-text);
   font: var(--ov-weight-strong) 12px var(--ov-font);
   text-anchor: middle;
-}
-
-/* ---- Spotter çubukları ---- */
-.rbars {
-  display: flex;
-  justify-content: space-between;
-  width: calc(var(--gap) + var(--bw) * 2);
-  height: var(--bh);
-}
-
-.rbar {
-  position: relative;
-  width: var(--bw);
-  height: 100%;
-  border-radius: 6px;
-  background: var(--ov-bg);
-  border: 1px solid var(--ov-line);
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.rbar-tick {
-  position: absolute;
-  left: 20%;
-  right: 20%;
-  height: 0;
-  border-top: 1px dashed color-mix(in srgb, var(--ov-text) 40%, transparent);
-}
-
-.rbar-tick.t {
-  top: 8%;
-}
-
-.rbar-tick.m {
-  top: 50%;
-  border-top-style: solid;
-}
-
-.rbar-tick.b {
-  top: 92%;
-}
-
-.rbar-car {
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  transform: translateY(-50%);
-  border-radius: 4px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 80%, #ffd000), var(--rc));
-}
-
-.rbar.on {
-  border-color: var(--rc);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rc) 45%, transparent);
 }

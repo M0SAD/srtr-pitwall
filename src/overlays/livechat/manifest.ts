@@ -29,6 +29,14 @@ export default defineOverlay({
       hint: "Oyunda / seansta değilken de (oyun kapalı, tekrar izlerken, pist dışında) görünür.",
       group: G_LOOK,
     },
+    {
+      key: "onlyLive",
+      label: "Yalnızca yayın canlıyken göster",
+      type: "boolean",
+      default: true,
+      hint: "Açık: sohbet çalışsa da yayın canlı değilken overlay görünmez (mesaj gelmeye başlayınca canlı sayılır). Kapalı: sohbet çalıştığı sürece mesajlar gösterilir.",
+      group: G_LOOK,
+    },
     { key: "width", label: "Genişlik", type: "number", default: 360, min: 220, max: 900, step: 10, unit: "px", group: G_LOOK },
     { key: "maxMessages", label: "En fazla mesaj", type: "number", default: 12, min: 3, max: 60, step: 1, group: G_LOOK },
     {

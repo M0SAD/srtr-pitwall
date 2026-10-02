@@ -122,7 +122,7 @@ export function ContextMenu(props: {
       hint: props.onOpenSettings ? undefined : prettyKey(shortcut("panel")),
       run: () => {
         if (props.onOpenSettings) props.onOpenSettings(s().id);
-        else invoke("panel_focus_overlay", { id: s().id });
+        else invoke("panel_focus_overlay", { id: s().id, profile: s().profileId });
         props.onClose();
       },
     },

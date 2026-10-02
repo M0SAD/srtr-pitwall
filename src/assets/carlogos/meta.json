@@ -112,11 +112,11 @@
   "w": 95
  },
  "ford": {
-  "dark": true,
-  "darkFrac": 0.64,
-  "edgeDark": 0.85,
+  "dark": false,
+  "darkFrac": 0.2,
+  "edgeDark": 0.22,
   "h": 48,
-  "lum": 94,
+  "lum": 114,
   "w": 128
  },
  "genesis": {

@@ -18,5 +18,5 @@ export const ENGINEER_SCREENS: EngineerScreen[] = [
   { id: "session", name: "Oturum", desc: "Bayraklar, kalan süre, pozisyon", overlays: [{ type: "session" }] },
   { id: "car", name: "Araç ayarları", desc: "Vites, BB, TC, ABS", overlays: [{ type: "telemetry", options: { showElectronics: true } }] },
   { id: "inputs", name: "Girdiler", desc: "Pedal izi", overlays: [{ type: "inputs" }] },
-  { id: "proximity", name: "Yakındaki araçlar", desc: "Görsel spotter", overlays: [{ type: "radar" }] },
+  { id: "proximity", name: "Yakındaki araçlar", desc: "Radar", overlays: [{ type: "radar" }] },
 ];

@@ -1803,3 +1803,46 @@ button.adp:disabled {
   max-height: 480px;
   overflow: auto;
 }
+
+/* Üst çubuk bağlantıları (app_config.top_links): alt bilgide küçük yuvarlak simgeler */
+.foot-tl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.foot-tl[hidden] {
+  display: none;
+}
+.foot-tl .tl-btn {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.foot-tl .tl-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+}
+.foot-tl .tl-ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.foot-tl .tl-ico svg {
+  width: 18px;
+  height: 18px;
+}
+.foot-tl .tl-ico.img {
+  background: var(--bg-3, #1a1f29);
+  border: 1px solid var(--line);
+}
+.foot-tl .tl-ico.img img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+}

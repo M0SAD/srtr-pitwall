@@ -46,15 +46,18 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { editFriendLook, go } from "../ui";
 import * as I from "../icons";
+import Wrench from "lucide-solid/icons/wrench";
 import Smile from "lucide-solid/icons/face-slightly-smiling";
 import SendHorizontal from "lucide-solid/icons/send-horizontal";
 import Wallpaper from "lucide-solid/icons/wallpaper";
 import FriendData from "./FriendData";
 import { ProfileDialog, SimBadge, SIM_SHORT } from "./Profile";
 import { TeamChat, TeamLogo, type TeamEvent } from "./TeamChat";
+import { crewDrivers, crewList as myCrewList, crewSet, setCrewFocus, type CrewMember } from "@/cloud/crew";
 import { muteTeamChat, myTeams, onTeamChat, setTeamFocus, type MyTeam, type TeamMessage } from "@/cloud/teams";
 import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
 import { BgNote, ConvBgPanel, ConvBgRequest, adoptBg, useConvBg } from "./ConvBg";
+import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
 import { muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
 import { broadcastOvMsg, ovMsgShowsPerson, ovMsgTogglePerson } from "@/sdk/ovmsg";
@@ -72,7 +75,7 @@ type View =
 type Presence = "racing" | "online" | "dnd" | "offline" | "pending";
 
 /** Pencere dışından (ayrı arkadaş penceresi) panele yönlendirme */
-function panelGo(what: { sec?: string; sub?: string; friend?: string; team?: string }) {
+function panelGo(what: { sec?: string; sub?: string; friend?: string; team?: string; crew?: string }) {
   invoke("panel_front").catch(() => {});
   setTimeout(() => emit("panel-go", what).catch(() => {}), 400);
 }
@@ -87,6 +90,8 @@ export interface Nav {
   look: (id: string) => void;
   /** Takımlar sayfasında takımı aç */
   team: (id: string) => void;
+  /** Sürücüler › Ekip sayfasında bu sürücünün panelini aç */
+  crew: (id: string) => void;
 }
 
 function presence(f: Friend): Presence {
@@ -145,8 +150,8 @@ export function FriendsPanel(props: {
   initialChat?: string;
 }) {
   const nav: Nav = props.standalone
-    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }), team: (id) => panelGo({ sec: "drivers", sub: "teams", team: id }) }
-    : { pro: () => go("pro"), look: (id) => editFriendLook(id), team: (id) => (setTeamFocus(id), go("drivers", "teams")) };
+    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }), team: (id) => panelGo({ sec: "drivers", sub: "teams", team: id }), crew: (id) => panelGo({ sec: "drivers", sub: "crew", crew: id }) }
+    : { pro: () => go("pro"), look: (id) => editFriendLook(id), team: (id) => (setTeamFocus(id), go("drivers", "teams")), crew: (id) => (setCrewFocus(id), go("drivers", "crew")) };
   const [view, setView] = createSignal<View>({ kind: "list" });
   /** Profil penceresi açık olan üye */
   const [profileOf, setProfileOf] = createSignal<string | null>(null);
@@ -192,6 +197,37 @@ export function FriendsPanel(props: {
     },
   );
   const teams = () => teamList() ?? [];
+  // Ekibinde olduğum sürücüler (c53): arkadaş satırında "Ekip" düğmesi. Sunucu güncel değilse boş.
+  let lastCrew: string[] = [];
+  const [crewList, { refetch: refetchCrew }] = createResource<string[], string | null>(
+    () => (session() ? session()!.user.id : null),
+    async () => {
+      try {
+        lastCrew = (await crewDrivers()).map((d) => d.owner_id);
+      } catch {
+        /* çevrimdışı ya da ekip yok */
+      }
+      return lastCrew;
+    },
+  );
+  const crewOf = (id: string) => (crewList() ?? []).includes(id);
+  // Benim ekibim (c53): arkadaşın sağ tık menüsündeki "Ekibime ekle" maddelerinin durumu
+  let lastMine: CrewMember[] = [];
+  const [mineCrew, { refetch: refetchMine, mutate: setMineCrew }] = createResource<CrewMember[], string | null>(
+    () => (session() ? session()!.user.id : null),
+    async () => {
+      try {
+        lastMine = await myCrewList();
+      } catch {
+        /* çevrimdışı ya da sunucu güncel değil */
+      }
+      return lastMine;
+    },
+  );
+  const crewRoleOf = (id: string): "view" | "control" | null => {
+    const m = (mineCrew() ?? []).find((x) => x.member_id === id);
+    return m ? (m.can_control ? "control" : "view") : null;
+  };
   // Sohbet grupları (c45): sunucu güncel değilse boş
   let lastGroups: MyGroup[] = [];
   const [groupList, { refetch: refetchGroups, mutate: mutateGroups }] = createResource<MyGroup[], string | null>(
@@ -270,11 +306,12 @@ export function FriendsPanel(props: {
         refetch();
         refetchTeams();
         refetchGroups();
+        if (n % 3 === 0) refetchCrew();
       }
     }, 20_000);
     onCleanup(() => clearInterval(iv));
   });
-  createEffect(on(props.open, (o) => o && (setView({ kind: "list" }), refetch(), refetchTeams(), refetchGroups()), { defer: true }));
+  createEffect(on(props.open, (o) => o && (setView({ kind: "list" }), refetch(), refetchTeams(), refetchGroups(), refetchCrew(), refetchMine()), { defer: true }));
 
   // Mesaj açılır penceresinden gelen "şu sohbeti aç" isteği
   const [wantChat, setWantChat] = createSignal(props.initialChat || "");
@@ -444,6 +481,26 @@ export function FriendsPanel(props: {
     } catch (e) {
       setErr(String((e as Error).message));
     }
+  };
+
+  // Sağ tık menüsü: arkadaşı ekibime ekle / yetkisini değiştir / çıkar (crew_set; değiştirebilir => görebilir)
+  const setCrewRole = async (f: Friend, view: boolean, control: boolean) => {
+    setErr("");
+    setMineCrew((l) => {
+      const rest = (l ?? []).filter((m) => m.member_id !== f.friend_id);
+      if (!view && !control) return rest;
+      const cur = (l ?? []).find((m) => m.member_id === f.friend_id);
+      return [...rest, { member_id: f.friend_id, display_name: f.display_name, avatar_path: f.avatar_path ?? null, can_view: true, can_control: control, watching: !!cur?.watching, seen_at: cur?.seen_at ?? null }];
+    });
+    try {
+      await crewSet(f.friend_id, view || control, control);
+    } catch (e) {
+      setErr(String((e as Error).message));
+    }
+    // Overlay penceresindeki ekip servisi ve Ayarlar › Paylaşım › Ekip yenilensin
+    void emit("crew-refresh").catch(() => {});
+    void emit("crew-changed").catch(() => {});
+    void refetchMine();
   };
 
   // Liste: arama ve gruplar
@@ -737,6 +794,9 @@ export function FriendsPanel(props: {
                             f={f}
                             last={last()[f.friend_id]}
                             nav={nav}
+                            crew={crewOf(f.friend_id)}
+                            crewRole={crewRoleOf(f.friend_id)}
+                            onCrewRole={(v, c) => void setCrewRole(f, v, c)}
                             onChat={() => setView({ kind: "chat", f })}
                             onLive={() => setView({ kind: "live", f })}
                             onProfile={() => setProfileOf(f.friend_id)}
@@ -1046,6 +1106,11 @@ function FriendRow(props: {
   f: Friend;
   last?: Message;
   nav: Nav;
+  /** Bu arkadaşın ekibindeyim (c53): "Ekip" düğmesi çıkar */
+  crew?: boolean;
+  /** Bu arkadaş BENİM ekibimde mi ve yetkisi (sağ tık menüsü) */
+  crewRole?: "view" | "control" | null;
+  onCrewRole?: (view: boolean, control: boolean) => void;
   onChat: () => void;
   onLive: () => void;
   onProfile: () => void;
@@ -1058,7 +1123,7 @@ function FriendRow(props: {
   const openMenu = () => {
     // Listenin altındaysa menü yukarı açılır
     const r = el?.getBoundingClientRect();
-    setUp(!!r && r.bottom + 300 > window.innerHeight && r.top > 300);
+    setUp(!!r && r.bottom + 380 > window.innerHeight && r.top > 300);
     setMenu(true);
   };
   const mine = () => props.last && props.last.sender !== f().friend_id;
@@ -1164,6 +1229,16 @@ function FriendRow(props: {
               <I.Gauge />
             </button>
           </Show>
+          <Show when={props.crew}>
+            <button
+              class="icon-btn live"
+              classList={{ idle: !f().racing }}
+              title="Ekip paneli: yarışını izle, izin verdiyse pit ayarlarını değiştir"
+              onClick={() => props.nav.crew(f().friend_id)}
+            >
+              <Wrench />
+            </button>
+          </Show>
           <button class="icon-btn" title="Seçenekler" onClick={() => (menu() ? setMenu(false) : openMenu())}>
             <I.MoreVertical />
           </button>
@@ -1223,6 +1298,33 @@ function FriendRow(props: {
             <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, !f().trusted, f().muted)))}>
               <I.ShieldCheck /> {f().trusted ? "Güvenilirden çıkar" : "Güvenilir işaretle (verilerimi görsün)"}
             </button>
+          </Show>
+          <Show when={props.crew}>
+            <button onClick={() => (setMenu(false), props.nav.crew(f().friend_id))} title="Ekip Pitwall'ı: çevresindeki araçları, farkları ve spotter durumunu canlı izle, hazır mesaj gönder">
+              <I.Gauge /> Pitwall'ını izle
+            </button>
+          </Show>
+          <Show when={props.onCrewRole}>
+            <button
+              classList={{ on: !!props.crewRole }}
+              onClick={() => (setMenu(false), props.crewRole === "view" ? props.onCrewRole!(false, false) : props.onCrewRole!(true, false))}
+              title="Ekibine ekle: sen yarışırken yarış bilgilerini (yakıt, tur, pit servisi) ve canlı pitwall'ını izleyebilir. İzleme yetkisi ücretsizdir."
+            >
+              {props.crewRole ? <I.Check /> : <I.Eye />} Ekibe ekle (görebilir)
+            </button>
+            <button
+              classList={{ on: props.crewRole === "control" }}
+              disabled={proLocked(F.crew) && props.crewRole !== "control"}
+              onClick={() => (setMenu(false), props.crewRole === "control" ? props.onCrewRole!(true, false) : props.onCrewRole!(true, true))}
+              title="Ekibine ekle: izleyebilir ve pit ayarlarını (yakıt, lastik, hızlı tamir) senin yerine değiştirebilir. PRO üyelere özel."
+            >
+              {props.crewRole === "control" ? <I.Check /> : <Wrench />} Pit ayarlarını değiştirebilir <ProLockTag feature={F.crew} />
+            </button>
+            <Show when={props.crewRole}>
+              <button onClick={() => (setMenu(false), props.onCrewRole!(false, false))}>
+                <I.UserMinus /> Ekipten çıkar
+              </button>
+            </Show>
           </Show>
           <button
             onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !f().notify_muted, !!f().sound_muted)))}
@@ -1499,8 +1601,10 @@ function Chat(props: {
   const openCtx = (e: MouseEvent, m: Message) => {
     e.preventDefault();
     e.stopPropagation();
-    setCtx({ x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 130), m });
+    setCtx({ ...msgMenuPos(e), m });
   };
+  /** Sol tık da menüyü açar (bağlantıya tıklanmadıysa, metin seçilmiyorsa) */
+  const clickCtx = (e: MouseEvent, m: Message) => msgClickOpens(e) && openCtx(e, m);
   /** Mesajı sadece kendi görünümünden kaldır */
   const hide = async (m: Message) => {
     setCtx(null);
@@ -1592,7 +1696,7 @@ function Chat(props: {
                   <span>{r.day}</span>
                 </div>
               ) : r.m.meta?.t === "bg" ? (
-                <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)}>
+                <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)} onClick={(e) => clickCtx(e, r.m)}>
                   <BgNote
                     meta={r.m.meta}
                     who={props.f.display_name || "?"}
@@ -1607,6 +1711,7 @@ function Chat(props: {
                   classList={{ mine: r.m.sender === me(), first: r.first, tail: r.lastOfRun, jumbo: emojiOnly(emojify(r.m.body)) }}
                   title={new Date(r.m.created_at).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" })}
                   onContextMenu={(e) => openCtx(e, r.m)}
+                  onClick={(e) => clickCtx(e, r.m)}
                 >
                   <p data-no-i18n>
                     <MsgText text={r.m.body} />
@@ -1629,19 +1734,13 @@ function Chat(props: {
       </Show>
       <Show when={ctx()}>
         {(c) => (
-          <div class="frow-menu fmsg-menu" style={{ left: `${c().x}px`, top: `${c().y}px` }}>
-            <button onClick={() => copy(c().m)}>
-              <I.Copy /> Kopyala
-            </button>
-            <button onClick={() => hide(c().m)} title="Mesaj sadece senin görünümünden silinir; karşı taraf görmeye devam eder">
-              <I.Trash /> Benden sil
-            </button>
-            <Show when={c().m.sender !== me() && !c().m.meta}>
-              <button class="danger" onClick={() => (setReporting(c().m), setCtx(null))}>
-                <I.Flag /> Raporla
-              </button>
-            </Show>
-          </div>
+          <MsgMenu
+            pos={c()}
+            onCopy={() => copy(c().m)}
+            onHide={() => hide(c().m)}
+            hideTitle={t("Mesaj sadece senin görünümünden silinir; karşı taraf görmeye devam eder")}
+            onReport={c().m.sender !== me() && !c().m.meta ? () => (setReporting(c().m), setCtx(null)) : undefined}
+          />
         )}
       </Show>
       <Show when={!reporting()}>

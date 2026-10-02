@@ -921,3 +921,19 @@
   flex-wrap: wrap;
   font-size: 12px;
 }
+
+/* Tanı satırı: overlay ne gösteriyor / neden gizli */
+.lcp-gate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 0 4px;
+  margin-top: -4px;
+}
+.lcp-gate b {
+  color: #ffb454;
+  font-weight: 600;
+}
+.lcp-gate.ok b {
+  color: #53d67a;
+}

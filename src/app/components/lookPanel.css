@@ -1,0 +1,71 @@
+/* "Görünüm (bu overlay)" bölümü (LookPanel.tsx) */
+.look .look-sub {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+.look .look-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.look .f2-row .f2-label {
+  flex: 1;
+  min-width: 0;
+}
+.look .f2-colorrow {
+  cursor: default;
+}
+.look-theme {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--muted);
+}
+.look-reset {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.look-reset:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.look-presets,
+.look-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.look-actions {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.look-off {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.look .f2-locked .f2-colorpick,
+.look .f2-locked .f2-select {
+  opacity: 0.5;
+}
+.look-note {
+  color: var(--accent);
+}

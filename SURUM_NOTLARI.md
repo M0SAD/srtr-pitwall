@@ -3,6 +3,57 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-70
+
+- **Üst çubuk bağlantıları:** Yönetim › Üst çubuk bağlantıları bölümünden üst çubuğun soluna bağlantı düğmeleri eklenebiliyor (en fazla 12). Varsayılan olarak SimRaceTR web sitesi, Discord ve WhatsApp bağlantıları ekli.
+- Her bağlantıyı kimin göreceği ayrı ayrı seçilebiliyor: giriş yapmamış (free), üye, PRO. Bağlantılar tek tek kapatılıp sıralanabiliyor.
+- Hazır simgeler yerine kendi png / ico dosyan yüklenebiliyor.
+- Bağlantılar web sitesinin alt bölümünde de gösteriliyor.
+- Veritabanı: c61 (app_config.top_links, admin_set_top_links, site kovasında ico desteği).
+
+## 021026-69
+
+- **Canlı Sohbet overlay'i düzeltmeleri:**
+  - Demo modu açıkken (yayın canlı olsa bile) overlay sürekli akan örnek sohbeti gösterir; OBS tarayıcı kaynağında da. Önceden demo, 5 mesajlık kısa önizlemeyi gösterip kayboluyor, yayın canlıyken hiç çalışmıyordu.
+  - OBS sayfası artık giriş / PRO / demo kararını programdan alır (tahmin etmez).
+  - Canlı algılama: sohbet bağlıyken son 3 dakikada mesaj geldiyse yayın canlı sayılır (Twitch / Kick'te durum sorgusu "kapalı" dese bile).
+  - Yeni seçenek "Yalnızca yayın canlıyken göster" (varsayılan açık). Canlı Sohbet sayfasında "Overlay durumu" satırı: gösteriliyor / neden gizli.
+  - Anket ve Altyazı overlay'leri de demo modunda örnek gösterir.
+- **Ekip paneli görselleştirildi (program + site):** üstten araç çizimi üzerinde dokunulabilir 4 lastik (kalan diş dolgusu, sıcaklık, "değişecek" işareti), yakıt deposu grafiği (seviye, bitiş işareti, pit sonrası seviye, kaydırıcı ve hızlı düğmeler: Bitişe kadar, +5 L, +10 L, Dolu, Yakıt ekleme), simgeli pit servisi şeridi, yarış durumu başlığı (sıra rozeti, tur halkası, bayrak), araçlı spotter göstergesi; komut gönderilince ilgili öğede bekliyor / uygulandı / reddedildi animasyonu.
+- **Ford logosu** yenilendi.
+- Yeni metinler programda 14, sitede 13 dile çevrildi.
+
+## 021026-68
+
+- **Direksiyon Ekranı (dashboard):**
+  - 9 yeni PRO araç ekranı, araca göre otomatik: Ferrari 296 GT3, McLaren 720S GT3 Evo, Porsche 911 GT3 R (992), Porsche 963 GTP, Cadillac V-Series.R, Ferrari 499P, Dallara P217 LMP2, Mercedes W13, Formula (genel). Özgün çizim; marka yazısı / logosu yok.
+  - Hibrit araçlarda batarya, harcama modu, MGU-K gücü; DRS / P2P olan araçlarda durumları otomatik gösterilir ("Hibrit bilgisini göster").
+  - İsteğe bağlı ABS ve TC bilgisi; özel renkler (yazı, etiket, arka plan, devir renkleri, uyarı).
+  - Öğe özelleştirme: devir ışıkları varsayılan %70 boyutta; vites, hız, delta, tur süreleri, yakıt, lastik, sıcaklıklar için göster / boyut / renk; köşe, boşluk, çerçeve, etiketler. Araç ekranlarında ölçek.
+  - **Dashboard Tasarımcısı (PRO):** Araçlar › Dashboard Tasarımcısı'nda kendi ekranını tasarla (sürükle-bırak, ~75 veri alanı, koşullu renk, 8 sayfaya kadar, şablonlar, dışa / içe aktar); Direksiyon Ekranı'nda "Özel tasarım" olarak overlay'e eklenir.
+  - **Başka cihazda aç (PRO):** direksiyon ekranını aynı ağdaki telefon / tabletten aç (adres + QR kod; "Ağdaki cihazlara izin ver" açık olmalı).
+- **Sesli komut (bas-konuş, PRO):** Sesli Mühendis › Sesli komut. Klavye tuşu ya da direksiyon düğmesi ata; basılı tutup sor: yakıt, yakıtla kaç tur, bitişe gereken yakıt, olay puanı, sıra, öndeki / arkadaki fark, son / en iyi tur, kalan süre, lastik, hava, öndeki / arkadaki sürücü, "tekrarla", "sus / konuş", "radyo kontrol" (24 komut, 15 dil; arayüz dilinde dinler). Cevabı mühendis sesle verir; altyazı overlay'inde sorun "Sen" etiketiyle görünür.
+- **Ekip:**
+  - "Ekibim pit ayarlarımı değiştirebilsin" PRO üyede varsayılan açık (elle kapattıysan kapalı kalır).
+  - Arkadaşa sağ tık: "Ekibe ekle (görebilir)", "Pit ayarlarını değiştirebilir" (PRO), "Ekipten çıkar", "Pitwall'ını izle".
+  - **Ekip Pitwall'ı:** ekibinde olduğun sürücünün çevresindeki araçlar, farklar ve eğilimi, tur / delta, bayraklar, hava, yakıt, pit servisi ve yanında araç göstergesi (~1–2 sn gecikmeli); hazır spotter mesajları. Programda Sürücüler › Ekip'te, sitede Ekip panelinde.
+  - **Sürücünün konuşma altyazısı (PRO):** sürücüde Konuşma → yazı açıksa söyledikleri, ekibin mesaj yazdığı yerde altyazı olarak görünür.
+- **Radar ve Çubuk Spotter:** "Görsel Spotter" artık "Radar" (görünüm seçeneği kaldırıldı). Yeni overlay "Çubuk Spotter": yalnızca sağ / sol yan yana gelişleri gösterir; kalınlık 24 px, yükseklik 180 px, çubuklar arası 600 px, eklenince ekran ortasında. Görünümler: Düz çubuk (ücretsiz); Yay (uçları soluk), Soluk uçlu, Segmentli, Ok uçlu, Neon çizgi, Parantez (PRO).
+- **Her overlay'de özel görünüm:** "Görünüm (bu overlay)" bölümü: renkler (yazı, vurgu, arka plan, satır, kenarlık, olumlu / olumsuz / uyarı), opaklık, köşe, yazı tipi ve boyutu, yoğunluk, gölge, hazır görünümler (Koyu cam, Düz siyah, Açık, Yüksek kontrast, Neon…), görünümü kopyala / yapıştır, tüm overlay'lere uygula.
+- **Düzenler:** Düzenlerim ve Yayın düzenleri'nde düzen adına sağ tık: yeniden adlandır, kopyasını oluştur, yayın düzenine / düzene kopyala, varsayılan yap, toplulukta paylaş, yukarı / aşağı taşı, OBS adresini kopyala, bağlantıyı kopar, sil (F2 / Delete).
+- **Overlay'ler sayfası düzeltmesi:** sayfa artık seçtiğin düzeni düzenler ("Düzen:" seçici); ekrandaki "Ayarlarını aç" o an gösterilen düzenin overlay'ini açar (önceden hep etkin düzene gidiyordu). Toplam overlay sayısı ve açık olanlar başlıkta.
+- **Demo ve profil:** demo modunda PRO üyeler kendi bayrağı, iRating ve lisansıyla görünür (üye iRacing'de bu sürümle en az bir kez sürdüyse; bilgisi olmayanda bayrak gösterilmez). Profilde iRating ve lisans / SR; "iRacing bilgilerimi profilimde göster" ayarı.
+- **Web sitesi:** Özellikler sayfası güncellendi (34 overlay, Radar / Çubuk Spotter, yeni araç ekranları, tasarımcı, uzak ekran, sesli komut, Ekip Pitwall'ı, özel görünüm); profilde iRacing bilgileri.
+- Sunucu: c56–c60. Yeni metinler programda 14, sitede 13 dile çevrildi.
+
+## 021026-67
+
+- **Web sitesi sohbeti: gruplar ve takımlar.** Arkadaşlar panelinde "Gruplar" ve "Takımlar" bölümleri: grup ve takım sohbetlerini okuma / yazma, okunmamış sayaçları, üyeler, sessize alma, gruptan / takımdan ayrılma; takım anketleri salt okunur. (Grup kurma, davet, anket oylama programda.)
+- **Mesaj menüsü her yerde aynı (program + site):** mesaja tıklayınca (sağ tık / uzun basma) Kopyala, Benden sil, Raporla; kendi mesajında ya da yetkin varsa Herkesten sil. Yeni: grup sohbetinde "Benden sil", takım sohbetinde "Raporla". (c55)
+- **Ekip, arkadaş listesinden:** ekibinde olduğun arkadaşların yanında sitede "Ekip" düğmesi ve yarışırken canlı satır (pist · sıra · yakıtla gidilecek tur); tıklayınca canlı ekip paneli (izin varsa pit kontrolleriyle) panelin içinde açılır. Programda aynı arkadaşlarda Ekip düğmesi Sürücüler › Ekip sayfasını o sürücüyle açar.
+- Sitede giriş yaptıktan sonra geldiğin sayfaya (ör. Ekip) geri dönülür.
+- Yeni metinler programda 14, sitede 13 dile çevrildi.
+
 ## 021026-66
 
 - **Derleme düzeltmesi:** projeden kaldırılan ama depoda kalan dosyalar (ör. `LogosPanel.tsx`) derlemeyi bozuyordu. Derleme ve site yayını artık önce `scripts/temizle.mjs` ile bu eski dosyaları siler (yanlışlıkla `website/` içine kopyalanmış proje dosyaları dahil).

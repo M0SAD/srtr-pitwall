@@ -37,6 +37,7 @@ import { myTeams, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } 
 import { groupChatKey, myGroups, onGroupChat, type MyGroup } from "@/cloud/groups";
 import { broadcastOvMsg, ovMsgShown, OVMSG_CLEAR_EVENT, type OvMsg } from "@/sdk/ovmsg";
 import { crewLiveExtra } from "./crew";
+import { syncIracingStats } from "@/cloud/iracingStats";
 
 /** Mesajlar overlay'ine giden kayıt: takım mesajı */
 function teamOv(m: { id: string; team_id: string; sender: string | null; body: string; poll_id?: string | null; meta?: MsgMeta | null }, tm: MyTeam, who: string, mine: boolean): OvMsg {
@@ -308,6 +309,8 @@ export function startSocial(status: Accessor<Status | undefined>) {
     const s = status();
     const uid = session()?.user.id;
     if (!uid || !racing() || !s || !(s.userId > 0) || (s.sim && s.sim !== "iracing")) return;
+    // Kendi iRating / lisans / ülke bilgim profilime (c56; sadece değişince, kendi içinde sınırlı)
+    void syncIracingStats();
     const key = `${uid}:${s.userId}`;
     if (linkedFor === key) return;
     linkedFor = key;

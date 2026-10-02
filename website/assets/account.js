@@ -339,12 +339,24 @@ async function onSubmit(e) {
   }
 }
 
+/** ?next= : sadece aynı sitedeki basit bir sayfa adı (ör. "crew.html?d=…"); şema, eğik çizgi, başka alan adı kabul edilmez */
+function safeNext() {
+  const n = new URLSearchParams(location.search).get("next") || "";
+  return /^[a-z0-9_-]+\.html(\?[A-Za-z0-9_=&%.-]*)?$/.test(n) && !n.startsWith("hesap.html") ? n : "";
+}
+
 async function afterLogin() {
   const { data } = await sb.auth.getSession();
   const u = data.session?.user;
   // Reklam ver sayfasından gelindiyse oraya dön
   if (u && new URLSearchParams(location.search).get("next") === "reklam") {
     location.href = "reklam.html";
+    return;
+  }
+  // Başka bir sayfadan (ör. crew.html) girişe gönderildiyse oraya dön
+  const nextPage = safeNext();
+  if (u && nextPage) {
+    location.href = nextPage;
     return;
   }
   // Fiyatlardan gelindiyse doğrudan ödemeye
@@ -1031,7 +1043,7 @@ async function render() {
   const { data } = await sb.auth.getSession();
   const u = data.session?.user;
   if (!u) return authView();
-  if (buyPlan || new URLSearchParams(location.search).get("next") === "reklam") return afterLogin();
+  if (buyPlan || new URLSearchParams(location.search).get("next") === "reklam" || safeNext()) return afterLogin();
   app().innerHTML = `<p class="muted page">${T("loading")}</p>`;
   try {
     await dashboard(u);

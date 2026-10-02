@@ -150,6 +150,8 @@ pub struct Shared {
     pub events: Mutex<crate::events::EventLog>,
     /// Abonelikler her değiştiğinde artar: olay tabanlı konular (canlı sohbet) yeni aboneye anlık görüntüyü yeniden gönderir
     pub topics_gen: AtomicU64,
+    /// Canlı Sohbet overlay kapısı (livechat/mod.rs günceller): `status` konusuyla her aboneye — OBS dahil — gider
+    pub live_gate: Mutex<crate::livechat::LiveGate>,
 }
 
 const KNOWN: [&str; 25] = [
@@ -463,6 +465,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     if src.connected() {
                         if let Some(sd) = src.session_update() {
                             st.raw = sd;
+                            crate::demo::note_player(src.kind().id(), &st.raw);
                             st.league_ver = u64::MAX;
                             let key = src.map_key(&st.raw);
                             st.map.set_track(&key);
@@ -579,6 +582,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             let muted = user_demo && shared.demo_mute.load(Ordering::Relaxed);
             voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted, st.sim);
         }
+        // Sesli komut (bas-konuş): bekleyen soruları son kareden cevapla (bkz. voicecmd.rs)
+        crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim);
 
         let visible = connected && !preview;
         if visible != was_connected {
@@ -731,6 +736,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                         if connected && !demo && !preview {
                             x.sim = st.sim.to_string();
                         }
+                        x.chat = shared.live_gate.lock().clone();
                         Packet::Status(x)
                     }
                     "inputs" => Packet::Inputs(calc::inputs(f, s)),

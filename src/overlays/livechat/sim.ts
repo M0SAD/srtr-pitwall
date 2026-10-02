@@ -1,5 +1,6 @@
-// Canlı sohbet benzetimi: canlı yayın yokken demo modunda ya da önizleme / düzenleme / sabitleme sırasında
-// overlay'in nasıl göründüğünü gösteren KISA bir sahte sohbet (5 mesaj, ~5 sn) üretir; ekrandaki overlay'de sonra kaybolur.
+// Canlı sohbet benzetimi. İki kip:
+//   - KISA örnek (önizleme / düzenleme / sabitleme): 5 mesaj, ~5 sn; panelde ve düzenlemede sabit kalır.
+//   - SÜREKLİ akış (Demo modu; ekrandaki overlay ve OBS tarayıcı kaynağı): Demo açık kaldıkça mesaj gelmeye devam eder.
 //
 // Tamamen bu bileşenin içinde yaşar: Rust'a hiçbir şey gönderilmez; kayda yazılmaz, sesli okunmaz, moderasyona girmez.
 // Mesajlar listeye EKLENİR (nesneler kimliğini korur); liste baştan kurulmaz, bu yüzden satırlar yanıp sönmez.
@@ -196,6 +197,8 @@ const DEMO_MSGS = 5;
 const DEMO_STEP = 1100;
 /** Son mesajdan sonra ekranda kalma süresi (ekrandaki overlay'de; sonra tamamen kaybolur) */
 const DEMO_LINGER = 1600;
+/** Sürekli akışta tutulan en fazla mesaj */
+const FLOW_KEEP = 60;
 
 /**
  * Benzetilmiş sohbet: KISA bir gösterim. `active` doğru olunca ~1 sn arayla 5 mesaj ekler (≈ 4,5 sn) ve durur.
@@ -207,6 +210,8 @@ const DEMO_LINGER = 1600;
 export function createChatSim(
   active: Accessor<boolean>,
   stay: Accessor<boolean> = () => true,
+  /** Sürekli akış (Demo modu): mesajlar durmadan gelir, liste son `FLOW_KEEP` mesajla sınırlanır */
+  flow: Accessor<boolean> = () => false,
 ): { msgs: Accessor<ChatMsg[]>; viewers: Accessor<Viewers>; shown: Accessor<boolean> } {
   const [msgs, setMsgs] = createSignal<ChatMsg[]>([]);
   const [counts, setCounts] = createSignal(makeViewers());
@@ -218,6 +223,23 @@ export function createChatSim(
     timer = undefined;
   };
   const step = () => {
+    if (flow()) {
+      timer = setTimeout(
+        () => {
+          // Dondurulmuş panel önizlemesinde yeni içerik üretilmez (Demo'da hiç donmaz; yalnızca güvenlik)
+          if (!previewFrozen()) {
+            setMsgs((l) => [...l, makeMsg(Date.now(), lastLine)].slice(-FLOW_KEEP));
+            setCounts((c) => {
+              const mv = (v: number, min: number) => Math.max(min, Math.round(v + (Math.random() - 0.48) * Math.max(2, v * 0.03)));
+              return { youtube: mv(c.youtube, 40), twitch: mv(c.twitch, 20), kick: mv(c.kick, 5) };
+            });
+          }
+          step();
+        },
+        msgs().length < 4 ? 700 : 900 + rnd(2200),
+      );
+      return;
+    }
     timer = setTimeout(() => {
       if (msgs().length < DEMO_MSGS) {
         setMsgs((l) => [...l, makeMsg(Date.now(), lastLine)]);
@@ -243,7 +265,7 @@ export function createChatSim(
     step();
   };
 
-  createEffect(on([active, stay], play));
+  createEffect(on([active, stay, flow], play));
   // "▶ Önizlemeyi oynat": donma kalkınca kısa gösterim baştan oynar
   createEffect(
     on(

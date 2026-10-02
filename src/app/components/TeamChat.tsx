@@ -15,6 +15,7 @@ import {
   markTeamRead,
   pollEnded,
   pollWinners,
+  reportTeamMessage,
   sendTeamMessage,
   teamChat,
   teamLogo,
@@ -33,6 +34,8 @@ import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
 import { BgNote, RoomBgPanel, useRoomBg } from "./ConvBg";
+import { ReportMessage } from "./FriendsDock";
+import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import "../teams.css";
 
 /** Odaya gelen anlık olay (FriendsPanel'deki Realtime aboneliğinden) */
@@ -103,6 +106,7 @@ export function TeamChat(props: {
   const [sending, setSending] = createSignal(false);
   const [polling, setPolling] = createSignal(false);
   const [ctx, setCtx] = createSignal<{ x: number; y: number; m: TeamMessage } | null>(null);
+  const [reporting, setReporting] = createSignal<TeamMessage | null>(null);
   const now = useNow();
   let box: HTMLDivElement | undefined;
   let ta: HTMLTextAreaElement | undefined;
@@ -288,9 +292,10 @@ export function TeamChat(props: {
   const openCtx = (e: MouseEvent, m: TeamMessage) => {
     e.preventDefault();
     e.stopPropagation();
-    if (m.deleted) return;
-    setCtx({ x: Math.min(e.clientX, window.innerWidth - 210), y: Math.min(e.clientY, window.innerHeight - 140), m });
+    setCtx({ ...msgMenuPos(e), m });
   };
+  /** Sol tık da menüyü açar (bağlantıya tıklanmadıysa, metin seçilmiyorsa). Ankette sol tık oy vermek içindir. */
+  const clickCtx = (e: MouseEvent, m: TeamMessage) => msgClickOpens(e) && openCtx(e, m);
   const lastVisible = (list: TeamMessage[]) => [...list].reverse().find((x) => !x.deleted) ?? null;
   const hide = async (m: TeamMessage) => {
     setCtx(null);
@@ -300,6 +305,7 @@ export function TeamChat(props: {
       const rest = msgs().filter((x) => x.id !== m.id);
       setMsgs(rest);
       props.onLast(lastVisible(rest));
+      if (reporting()?.id === m.id) setReporting(null);
     } catch (e) {
       setErr(String((e as Error).message));
     }
@@ -376,12 +382,14 @@ export function TeamChat(props: {
                   <span>{r.day}</span>
                 </div>
               ) : r.m.meta?.t === "bg" && !r.m.deleted ? (
-                <BgNote
-                  meta={r.m.meta}
-                  who={nameOf(r.m)}
-                  mine={r.m.sender === me()}
-                  time={new Date(r.m.created_at).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" })}
-                />
+                <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)}>
+                  <BgNote
+                    meta={r.m.meta}
+                    who={nameOf(r.m)}
+                    mine={r.m.sender === me()}
+                    time={new Date(r.m.created_at).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" })}
+                  />
+                </div>
               ) : (
                 <Show
                   when={r.m.poll && !r.m.deleted}
@@ -391,6 +399,7 @@ export function TeamChat(props: {
                       classList={{ mine: r.m.sender === me(), first: r.first, tail: r.lastOfRun, gone: r.m.deleted, jumbo: !r.m.deleted && emojiOnly(emojify(r.m.body)) }}
                       title={new Date(r.m.created_at).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" })}
                       onContextMenu={(e) => openCtx(e, r.m)}
+                      onClick={(e) => clickCtx(e, r.m)}
                     >
                       <Show when={r.first && r.m.sender !== me()}>
                         <b class="tmsg-who" style={{ color: hashColor(r.m.sender ?? "?") }} data-no-i18n>
@@ -431,27 +440,34 @@ export function TeamChat(props: {
           {err()}
         </p>
       </Show>
+      <Show when={reporting()}>
+        {(m) => (
+          <ReportMessage
+            m={{ id: m().id, body: m().body || (m().poll ? `📊 ${m().poll!.question}` : "") }}
+            name={nameOf(m())}
+            report={(reason, note) => reportTeamMessage(m().id, reason, note)}
+            onHide={() => hide(m())}
+            onClose={() => setReporting(null)}
+          />
+        )}
+      </Show>
       <Show when={ctx()}>
         {(c) => (
-          <div class="frow-menu fmsg-menu" style={{ left: `${c().x}px`, top: `${c().y}px` }}>
-            <button onClick={() => copy(c().m)}>
-              <I.Copy /> Kopyala
-            </button>
-            <button onClick={() => hide(c().m)} title="Mesaj sadece senin görünümünden silinir">
-              <I.EyeOff /> Benden sil
-            </button>
-            <Show when={c().m.sender === me() || isAdmin()}>
-              <button class="danger" onClick={() => remove(c().m)} title="Mesaj odadaki herkesten silinir">
-                <I.Trash /> Herkesten sil
-              </button>
-            </Show>
-          </div>
+          <MsgMenu
+            pos={c()}
+            onCopy={c().m.deleted || c().m.meta || !c().m.body ? undefined : () => copy(c().m)}
+            onHide={() => hide(c().m)}
+            hideTitle={t("Mesaj sadece senin görünümünden silinir")}
+            onDelete={!c().m.deleted && (c().m.sender === me() || isAdmin()) ? () => remove(c().m) : undefined}
+            deleteTitle={t("Mesaj odadaki herkesten silinir")}
+            onReport={!c().m.deleted && !c().m.meta && c().m.sender !== me() ? () => (setReporting(c().m), setCtx(null)) : undefined}
+          />
         )}
       </Show>
       <Show when={polling()}>
         <PollForm team={props.team.team_id} onClose={() => setPolling(false)} onCreated={() => (setPolling(false), reload())} />
       </Show>
-      <Show when={!polling()}>
+      <Show when={!polling() && !reporting()}>
         <ProLockNote feature={F.teamChat} text="Takım sohbetine yazmak PRO üyelere özel. Mesajları okuyabilir, anketlere oy verebilirsin." />
         <div class="fcompose">
           <Show when={picker()}>

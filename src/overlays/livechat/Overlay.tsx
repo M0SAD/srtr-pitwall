@@ -3,8 +3,7 @@ import { For, Show, createMemo, createSignal, onCleanup, type JSX } from "solid-
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { t } from "@/sdk/i18n";
-import { fmtCount, shortName, type ChatMsg, type Platform } from "@/sdk/livechat";
-import { settings } from "@/sdk/settings";
+import { fmtCount, gateMode, shortName, type ChatMsg, type GateMode, type Platform } from "@/sdk/livechat";
 import { createChatSim } from "./sim";
 import { CaptionBox, PlatformIcon, PollBox, fontStack } from "./parts";
 import "./style.css";
@@ -68,24 +67,32 @@ export default function LiveChat(props: OverlayProps) {
 
   // Silinen mesaj "mesaj silindi" olarak 6 sn kalır, sonra kaldırılır
   const delAt = new Map<string, number>();
-  // GİRİŞ: ekrandaki overlay (gerçek pencere / OBS) giriş koşulu sağlanmıyorsa hiçbir şey çizmez (Rust: loginOk).
-  //   Panel içindeki önizlemede örnek yine görünür.
-  // GERÇEK: sohbet çalışıyor VE bağlı kanallardan en az biri canlı yayında (Rust: anyLive) → sadece gerçek mesajlar.
-  //   Yayın yokken overlay ekranda görünmez; yayın açılınca kendiliğinden belirir.
-  // ÖRNEK: canlı yayın yokken, overlay önizleniyor / düzenleniyor / sabitlenmiş ya da demo modu açıksa kısa bir sahte
+  // NE GÖSTERİLİR: karar UYGULAMADA verilir (Rust: livechat/mod.rs live_gate) ve `status` konusunun `chat` alanıyla
+  // gelir; overlay penceresi de OBS tarayıcı kaynağı da aynı karara bakar (tarayıcı giriş / PRO durumunu tahmin etmez).
+  //   demo    → Demo modu açık: SÜREKLİ benzetilmiş akış (sohbet çalışsa / yayın canlı olsa da; gerçek mesaj karışmaz)
+  //   real    → sohbet çalışıyor ve yayın canlı (ya da "Yalnızca yayın canlıyken göster" kapalı): gerçek mesajlar
+  //   offline / stopped / login / pro / wait → ekranda hiçbir şey çizilmez
+  // ÖRNEK: gerçek / demo akışı yokken overlay panelde önizleniyor, düzenleniyor ya da sabitlenmişse kısa bir sahte
   //   sohbet oynar (5 mesaj, ~5 sn; sadece bu bileşende, kayda / sesli okumaya / moderasyona girmez). Panel önizlemesinde
-  //   ve düzenleme modunda sabit örnek olarak kalır; ekranda (sabitlenmiş önizleme, demo) sonra tamamen kaybolur.
-  const running = () => !!topic()?.running;
+  //   ve düzenleme modunda sabit kalır; sabitlenmiş önizlemede sonra kaybolur. Giriş yoksa ekranda örnek de çizilmez.
   const status = useTopic("status");
-  const demo = () => !!status()?.demo || !!settings().general.demo;
-  const loginOk = () => !onScreen() || !!topic()?.loginOk;
-  const anyLive = () => running() && !!topic()?.anyLive;
-  const wantSample = createMemo(() => loginOk() && !anyLive() && (props.editing || demo()));
-  const sim = createChatSim(wantSample, () => !onScreen() || screenEditing());
+  const gate = () => status()?.chat ?? topic()?.gate;
+  const mode = createMemo<GateMode | "sample">(() => {
+    const m = gateMode(gate(), o().onlyLive !== false);
+    if (m === "real" || m === "demo") return m;
+    // Panel içi önizleme (ekranda değil): her zaman örnek
+    if (!onScreen()) return "sample";
+    if (props.editing && m !== "login" && m !== "pro") return "sample";
+    return m;
+  });
+  const real = () => mode() === "real";
+  const blocked = () => mode() === "login" || mode() === "pro" || mode() === "wait";
+  const wantSample = createMemo(() => mode() === "sample" || mode() === "demo");
+  const sim = createChatSim(wantSample, () => !onScreen() || screenEditing(), () => mode() === "demo");
   const simOn = () => wantSample() && sim.shown();
   /** En az bir kanala bağlı mı (yayın açık, sohbet okunuyor) */
   const connected = () => (topic()?.channels ?? []).some((c) => c.state === "live" || c.chat);
-  const waiting = () => anyLive() && props.editing && !live().length;
+  const waiting = () => real() && props.editing && !live().length;
   // Konu her gönderimde yeni nesnelerle gelir: aynı mesajın eski nesnesi korunur ki liste baştan çizilmesin
   // (aksi halde her yeni mesajda / izleyici sayısı değişiminde tüm satırlar kaybolup yeniden belirir).
   let cache = new Map<string, ChatMsg>();
@@ -101,7 +108,7 @@ export default function LiveChat(props: OverlayProps) {
     return out;
   });
   const shown = createMemo(() => {
-    let l = !loginOk() ? [] : anyLive() ? live() : simOn() ? sim.msgs() : [];
+    let l = real() ? live() : simOn() ? sim.msgs() : [];
     const fade = Number(o().fade) * 1000;
     const n = now();
     l = l.filter((m) => {
@@ -188,15 +195,15 @@ export default function LiveChat(props: OverlayProps) {
 
   // İzleyici çubuğu
   const barSize = () => ({ small: 11, normal: 15, large: 21 })[o().viewerBar as string] ?? 0;
-  const viewers = () => (anyLive() ? topic()?.viewers : simOn() ? sim.viewers() : undefined);
+  const viewers = () => (real() ? topic()?.viewers : simOn() ? sim.viewers() : undefined);
   /** Çubukta gösterilecek platformlar: bağlı (kilitli olmayan) ya da ★ favori kanalı olanlar. Yayın kapalıysa "—". */
   const barPlatforms = createMemo(() => {
-    const chans = anyLive() ? (topic()?.channels ?? []) : [];
+    const chans = real() ? (topic()?.channels ?? []) : [];
     const set = new Set<string>();
     for (const c of chans) if (c.platform && (c.state !== "locked" || c.mine)) set.add(c.platform);
     return (["youtube", "twitch", "kick"] as const).filter((p) => set.has(p));
   });
-  const barOn = () => barSize() > 0 && loginOk() && (simOn() || anyLive());
+  const barOn = () => barSize() > 0 && (simOn() || real());
   const sample = simOn;
   const clock = () => new Date(now()).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
@@ -233,10 +240,10 @@ export default function LiveChat(props: OverlayProps) {
           </Show>
         </div>
       </Show>
-      <Show when={o().showPoll && loginOk() && running() && (poll()?.state ?? "idle") !== "idle"}>
+      <Show when={o().showPoll && real() && (poll()?.state ?? "idle") !== "idle"}>
         <PollBox poll={poll()!} />
       </Show>
-      <Show when={o().showCaptions && loginOk() && caps()}>
+      <Show when={o().showCaptions && !blocked() && mode() !== "demo" && caps()}>
         <CaptionBox captions={caps()!} now={now()} maxAge={10} />
       </Show>
       <div class="lc-list" data-no-i18n>

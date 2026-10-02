@@ -1,5 +1,5 @@
 .lpt {
-  width: 330px;
+  width: calc(330px * var(--ov-fs-k, 1));
   overflow: hidden;
 }
 .lpt-best {
@@ -17,7 +17,7 @@
   align-items: center;
   gap: 6px;
   height: var(--ov-row-h);
-  padding: 0 10px;
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
   border-bottom: 1px solid var(--ov-divider);
 }
 .lpt.nosec .lpt-row {
@@ -67,7 +67,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 6px 10px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   font-size: 0.92em;
 }
 .lpt-foot span:last-child {

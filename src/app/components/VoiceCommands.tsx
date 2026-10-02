@@ -1,0 +1,475 @@
+// Sesli komut (bas-konuş, PRO: voice.commands): bir direksiyon düğmesini ya da klavye tuşunu basılı tutup mühendise
+// sesle soru sorma ("ne kadar yakıtım var", "kaç olay puanım var"…). Rust: src-tauri/src/voicecmd.rs
+// (giriş: ptt_win.rs, tanıma: voicecmd_win.rs, cümleler: voice_commands.json).
+
+import { For, Show, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { settings, updateSettings, type VoiceCommandButton, type VoiceCommandSettings } from "@/sdk/settings";
+import { F, proLocked, requiresPro, VOICE_FEATURE } from "@/sdk/proFeatures";
+import { SHORTCUT_ACTIONS, SHORTCUT_LABELS, fromEvent, prettyKey, sameKey, shortcut } from "@/sdk/shortcuts";
+import { t } from "@/sdk/i18n";
+import { Slider, Switch } from "./SettingsForm";
+import { go } from "../ui";
+import * as I from "../icons";
+
+interface CmdStatus {
+  supported: boolean;
+  allowed: boolean;
+  uiLang: string;
+  wantLang: string;
+  wantTag: string;
+  wantName: string;
+  grammarLangs: string[];
+  topicLangs: string[];
+  recTag: string;
+  mode: "list" | "dictation" | "";
+  fallback: boolean;
+}
+
+interface CmdEvent {
+  state: "listening" | "heard" | "idle" | "error" | "";
+  heard: string;
+  intent: string;
+  score: number;
+  confidence: number;
+  ok: boolean;
+  error: string;
+  recTag: string;
+  mode: string;
+  fallback: boolean;
+}
+
+interface Example {
+  intent: string;
+  phrases: string[];
+}
+
+/** Tanıma dilleri (uygulamanın 15 dili; adlar kendi dillerinde) */
+const LANGS: { id: string; name: string }[] = [
+  { id: "tr", name: "Türkçe" },
+  { id: "en", name: "English" },
+  { id: "de", name: "Deutsch" },
+  { id: "es", name: "Español" },
+  { id: "pt-BR", name: "Português (Brasil)" },
+  { id: "pt-PT", name: "Português (Portugal)" },
+  { id: "fr", name: "Français" },
+  { id: "it", name: "Italiano" },
+  { id: "nl", name: "Nederlands" },
+  { id: "pl", name: "Polski" },
+  { id: "sv", name: "Svenska" },
+  { id: "fi", name: "Suomi" },
+  { id: "ru", name: "Русский" },
+  { id: "zh-CN", name: "简体中文" },
+  { id: "ja", name: "日本語" },
+];
+
+/** Komutların (niyetlerin) görünen adları */
+const INTENT_LABELS: Record<string, string> = {
+  fuel_level: "Yakıt miktarı",
+  fuel_laps: "Yakıt kaç tur yeter",
+  fuel_to_end: "Bitişe gereken yakıt",
+  fuel_per_lap: "Tur başı tüketim",
+  incidents: "Olay puanı (ve sınırı)",
+  position: "Sıra (genel ve sınıf)",
+  gap_ahead: "Öndekiyle fark",
+  gap_behind: "Arkadakiyle fark",
+  last_lap: "Son tur zamanı",
+  best_lap: "En iyi tur zamanı",
+  remaining: "Kalan tur / süre",
+  tyre_temps: "Lastik sıcaklıkları",
+  tyre_wear: "Lastik aşınması",
+  track_temp: "Pist sıcaklığı",
+  air_temp: "Hava sıcaklığı",
+  weather: "Hava durumu",
+  clock: "Saat",
+  driver_ahead: "Öndeki sürücü",
+  driver_behind: "Arkadaki sürücü",
+  damage: "Hasar ve hızlı tamir",
+  repeat: "Son mesajı tekrarla",
+  quiet: "Sus (mühendis ve spotter kapanır)",
+  talk: "Konuş (mühendis ve spotter açılır)",
+  radio_check: "Telsiz kontrolü",
+};
+
+/** Rust'tan gelen hata kodlarının açıklaması */
+const ERRORS: Record<string, string> = {
+  privacy: "Windows'ta çevrimiçi konuşma tanıma kapalı: Windows Ayarları › Gizlilik ve güvenlik › Konuşma › “Çevrimiçi konuşma tanıma”yı aç.",
+  mic_access: "Mikrofon izni yok: Windows Ayarları › Gizlilik ve güvenlik › Mikrofon › “Masaüstü uygulamalarının mikrofona erişmesine izin ver”i aç.",
+  no_mic: "Mikrofon bulunamadı: Windows ses ayarlarında bir kayıt cihazını varsayılan yap.",
+  network: "Ağ hatası: Windows konuşma tanıma hizmetine ulaşılamadı.",
+  no_recognizer: "Windows'ta kurulu bir konuşma tanıma dili bulunamadı.",
+  pro: "Sesli komut PRO üyelere özel.",
+};
+
+const cmd = () => settings().general.voice.commands;
+const setCmd = (fn: (x: VoiceCommandSettings) => void) => updateSettings((d) => fn(d.general.voice.commands));
+
+/** Bas-konuş klavye tuşu satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak) */
+export function PttKeyRow(props: { label?: string }) {
+  const [rec, setRec] = createSignal(false);
+  // Kaydederken PrintScreen kancası duraklar (bkz. ShortcutsPanel)
+  const setRecording = (on: boolean) => {
+    setRec(on);
+    invoke("shortcuts_pause", { paused: on }).catch(() => {});
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (!rec()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.code === "Escape") {
+      setRecording(false);
+      return;
+    }
+    // Bas-konuşta tek tuş da olabilir (basılı tutulur)
+    const k = fromEvent(e, true);
+    if (!k) return;
+    setRecording(false);
+    setCmd((x) => (x.key = k));
+  };
+  onMount(() => {
+    window.addEventListener("keydown", onKey, true);
+    onCleanup(() => {
+      if (rec()) invoke("shortcuts_pause", { paused: false }).catch(() => {});
+      window.removeEventListener("keydown", onKey, true);
+    });
+  });
+  const clash = () => SHORTCUT_ACTIONS.find((a) => cmd().key && sameKey(shortcut(a), cmd().key));
+  return (
+    <div class="row">
+      <div>
+        <span>{props.label ?? "Klavye tuşu"}</span>
+        <small>
+          Basılı tutarken dinler, bırakınca cevaplar. Tek tuş da olabilir (ör. F13 ya da klavyeye atanmış bir direksiyon düğmesi). Tuş
+          yutulmaz: oyun ve diğer uygulamalar da görür.
+        </small>
+        <Show when={clash()}>{(a) => <small class="sc-err">{t("Çakışma: “{0}” ile aynı tuş", t(SHORTCUT_LABELS[a()]))}</small>}</Show>
+      </div>
+      <div class="sc-keys">
+        <button class="sc-key" classList={{ rec: rec() }} onClick={() => setRecording(!rec())}>
+          {rec() ? "Tuşlara bas…" : cmd().key ? prettyKey(cmd().key) : "Tuş ata"}
+        </button>
+        <button class="btn ghost small" title="Tuşu kaldır" disabled={!cmd().key} onClick={() => setCmd((x) => (x.key = ""))}>
+          Kaldır
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function VoiceCommandsSection() {
+  const locked = () => proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE);
+  const proOnly = () => requiresPro(F.voiceCommands) || requiresPro(VOICE_FEATURE);
+  const [status, { refetch }] = createResource(
+    () => [cmd().language, settings().general.language, locked()] as const,
+    () => invoke<CmdStatus>("voicecmd_status").catch(() => null),
+  );
+  const [showExamples, setShowExamples] = createSignal(false);
+  const [examples] = createResource(
+    () => (showExamples() ? ([cmd().language, settings().general.language] as const) : null),
+    () => invoke<Example[]>("voicecmd_examples", { language: null }).catch(() => [] as Example[]),
+  );
+  const [last, setLast] = createSignal<CmdEvent | null>(null);
+  const [capturing, setCapturing] = createSignal(false);
+  const [captureMsg, setCaptureMsg] = createSignal("");
+  const [text, setText] = createSignal("");
+  const [msg, setMsg] = createSignal("");
+
+  onMount(() => {
+    const un = listen<CmdEvent>("voicecmd", (e) => setLast(e.payload)).catch(() => null);
+    onCleanup(() => {
+      void un.then((f) => f?.());
+      if (capturing()) invoke("voicecmd_capture_cancel").catch(() => {});
+    });
+  });
+
+  const captureButton = async () => {
+    if (capturing()) {
+      invoke("voicecmd_capture_cancel").catch(() => {});
+      return;
+    }
+    setCapturing(true);
+    setCaptureMsg("");
+    try {
+      const b = await invoke<VoiceCommandButton | null>("voicecmd_capture_button", { seconds: 10 });
+      if (b) setCmd((x) => (x.button = b));
+      else setCaptureMsg("Düğme algılanmadı. Direksiyon bağlı mı? Tekrar deneyip düğmeye bas.");
+    } catch (e) {
+      setCaptureMsg(String(e));
+    }
+    setCapturing(false);
+  };
+
+  const listenNow = async () => {
+    setMsg("");
+    try {
+      await invoke("voicecmd_listen");
+    } catch (e) {
+      setMsg(ERRORS[String(e)] ? t(ERRORS[String(e)]) : String(e));
+    }
+  };
+
+  const sendText = async () => {
+    const v = text().trim();
+    if (!v) return;
+    setMsg("");
+    try {
+      setLast(await invoke<CmdEvent>("voicecmd_test_text", { text: v, speak: true }));
+    } catch (e) {
+      setMsg(String(e));
+    }
+  };
+
+  const errorText = (code: string) => (ERRORS[code] ? t(ERRORS[code]) : code.startsWith("compile:") || code.startsWith("status:") ? t("Windows konuşma tanıma başlatılamadı ({0}).", code) : code);
+  const wantName = () => status()?.wantName || LANGS.find((l) => l.id === (cmd().language || settings().general.language))?.name || "";
+  const bound = () => cmd().button;
+  const ready = createMemo(() => cmd().enabled && !locked() && (!!cmd().key || !!cmd().button));
+
+  return (
+    <section class="panel voice-cmd">
+      <div class="voice-panel-head">
+        <h3>
+          Sesli komut (bas-konuş)
+          <Show when={proOnly()}>
+            {" "}
+            <span class="pro-badge">PRO</span>
+          </Show>
+        </h3>
+        <div class={`voice-status ${ready() ? "on" : "off"}`}>
+          <span class="dot" />
+          {locked() ? "PRO gerekli" : !cmd().enabled ? "Kapalı" : ready() ? "Hazır" : "Tuş atanmadı"}
+        </div>
+      </div>
+      <p class="muted small">
+        Direksiyondaki bir düğmeyi ya da bir klavye tuşunu basılı tut ve sor: “ne kadar yakıtım var”, “kaç olay puanım var”,
+        “öndekiyle fark ne kadar”. Mühendis sesli cevap verir; soru ve cevap Sesli Mühendis altyazısında da görünür. Komutlar
+        arayüz dilinde anlaşılır.
+      </p>
+      <Show when={locked()}>
+        <p class="muted small">
+          Sesli komut PRO üyelere özel.{" "}
+          <button class="link" onClick={() => go("pro")}>
+            PRO'ya bak
+          </button>
+        </p>
+      </Show>
+      <Show when={status() && !status()!.supported}>
+        <p class="error">Sesli komut yalnızca Windows'ta çalışır (Windows konuşma tanıma kullanılır).</p>
+      </Show>
+
+      <div class="row">
+        <div>
+          <b>Sesli komut açık</b>
+          <small>Sesli mühendis kapalıyken de çalışır: “konuşabilirsin” diyerek mühendisi yeniden açabilirsin.</small>
+        </div>
+        <Switch checked={cmd().enabled && !locked()} disabled={locked()} onChange={(on) => setCmd((x) => (x.enabled = on))} />
+      </div>
+
+      <div class="row">
+        <div>
+          <b>Nasıl dinlesin</b>
+          <small>
+            {cmd().mode === "toggle"
+              ? "Dokun-başlat: düğmeye bir kez bas, sor; sustuğunda kendiliğinden biter (tekrar basarsan hemen biter)."
+              : "Basılı tut: düğme basılıyken dinler, bırakınca cevaplar."}
+          </small>
+        </div>
+        <div class="seg small">
+          <button classList={{ on: cmd().mode !== "toggle" }} onClick={() => setCmd((x) => (x.mode = "hold"))}>
+            Basılı tut
+          </button>
+          <button classList={{ on: cmd().mode === "toggle" }} onClick={() => setCmd((x) => (x.mode = "toggle"))}>
+            Dokun-başlat
+          </button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <span>Direksiyon / kumanda düğmesi</span>
+          <small>
+            “Direksiyon tuşu ata”ya tıkla, sonra direksiyondaki (ya da düğme kutusundaki) düğmeye bas. Oyun öndeyken de çalışır.
+          </small>
+          <Show when={bound()}>
+            {(b) => (
+              <small class="voice-cmd-bound" data-no-i18n>
+                {b().name} · {t("Düğme {0}", b().button + 1)}
+              </small>
+            )}
+          </Show>
+          <Show when={captureMsg()}>
+            <small class="sc-err">{captureMsg()}</small>
+          </Show>
+        </div>
+        <div class="sc-keys">
+          <button class="sc-key" classList={{ rec: capturing() }} disabled={locked()} onClick={captureButton}>
+            {capturing() ? "Düğmeye bas…" : "Direksiyon tuşu ata"}
+          </button>
+          <button class="btn ghost small" title="Düğmeyi kaldır" disabled={!bound()} onClick={() => setCmd((x) => (x.button = null))}>
+            Kaldır
+          </button>
+        </div>
+      </div>
+
+      <PttKeyRow />
+
+      <div class="row">
+        <div>
+          <b>Tanıma dili</b>
+          <small>Otomatik: komutlar arayüz dilinde dinlenir. Cevaplar her zaman arayüz dilinde (ya da ses paketinin dilinde) verilir.</small>
+        </div>
+        <select
+          class="f2-select"
+          value={cmd().language}
+          onChange={(e) => {
+            setCmd((x) => (x.language = e.currentTarget.value));
+            setTimeout(refetch, 400);
+          }}
+        >
+          <option value="">Otomatik (arayüz dili)</option>
+          <For each={LANGS}>
+            {(l) => (
+              <option value={l.id} data-no-i18n>
+                {l.name}
+              </option>
+            )}
+          </For>
+        </select>
+      </div>
+      <Show when={status()?.supported}>
+        <div class="voice-cmd-rec" classList={{ warn: !!status()!.fallback || !status()!.recTag }}>
+          <Show
+            when={status()!.recTag}
+            fallback={
+              <span>
+                {t(
+                  "Windows'ta kurulu bir konuşma tanıma dili bulunamadı. Windows Ayarları › Saat ve dil › Dil ve bölge › {0} › Dil seçenekleri › Konuşma tanıma › İndir yolundan dil paketini kur, sonra SRTR Pitwall'u yeniden başlat.",
+                  wantName(),
+                )}
+              </span>
+            }
+          >
+            <Show
+              when={!status()!.fallback}
+              fallback={
+                <span>
+                  {t(
+                    "Windows'ta {0} konuşma tanıma paketi kurulu değil: şimdilik İngilizce komutlar dinleniyor ({1}). Kurmak için Windows Ayarları › Saat ve dil › Dil ve bölge › {0} › Dil seçenekleri › Konuşma tanıma › İndir; sonra SRTR Pitwall'u yeniden başlat.",
+                    wantName(),
+                    status()!.recTag,
+                  )}
+                </span>
+              }
+            >
+              <span>
+                {status()!.mode === "list"
+                  ? t("Tanıyıcı: {0} · komut listesi (çevrimdışı çalışır, en isabetlisi)", status()!.recTag)
+                  : t("Tanıyıcı: {0} · dikte (Windows'ta “Çevrimiçi konuşma tanıma” açık olmalı; komut listesi bu dilde yok)", status()!.recTag)}
+              </span>
+            </Show>
+          </Show>
+        </div>
+      </Show>
+
+      <div class="row">
+        <div>
+          <b>Mikrofon</b>
+          <small>
+            Windows'un varsayılan kayıt cihazı kullanılır. Başka bir mikrofon için Windows ses ayarlarında onu varsayılan yap
+            (Ayarlar › Sistem › Ses › Giriş).
+          </small>
+        </div>
+      </div>
+
+      <div class="voice-sliders">
+        <div class="f2">
+          <div class="f2-cap">Güven eşiği</div>
+          <Slider value={cmd().confidence} min={10} max={90} step={5} unit="%" onInput={(n) => setCmd((x) => (x.confidence = n))} />
+          <small class="muted">Düşük: daha kolay anlar ama yanlış komut çalışabilir. Yüksek: emin olmadıkça “anlayamadım” der.</small>
+        </div>
+        <div class="f2 voice-cmd-beeps">
+          <div>
+            <div class="f2-cap">Bipler</div>
+            <small class="muted">Dinlemeye başlarken kısa bip, anlaşılınca çift bip, anlaşılmayınca pes bip.</small>
+          </div>
+          <Switch checked={cmd().beeps} onChange={(on) => setCmd((x) => (x.beeps = on))} />
+        </div>
+      </div>
+
+      <div class="voice-cmd-test">
+        <div class="voice-panel-head">
+          <b>Dene</b>
+          <button class="btn ghost small" disabled={locked() || !status()?.supported} onClick={listenNow}>
+            <I.Mic /> {last()?.state === "listening" ? "Dinliyor… (bitirmek için tıkla)" : "Mikrofonu dinle"}
+          </button>
+        </div>
+        <div class="voice-dir">
+          <input
+            class="input"
+            placeholder="Ya da komutu yaz: ne kadar yakıtım var"
+            value={text()}
+            onInput={(e) => setText(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendText()}
+          />
+          <button class="btn ghost small" disabled={locked() || !text().trim()} onClick={sendText}>
+            <I.Send /> Sor
+          </button>
+        </div>
+        <Show when={msg()}>
+          <p class="error">{msg()}</p>
+        </Show>
+        <Show when={last()}>
+          {(ev) => (
+            <div class="voice-cmd-result" classList={{ ok: ev().ok, bad: ev().state === "heard" && !ev().ok }}>
+              <Show when={ev().state === "listening"}>
+                <span>Dinliyor… şimdi konuş.</span>
+              </Show>
+              <Show when={ev().state === "idle"}>
+                <span>Bir şey duyulmadı.</span>
+              </Show>
+              <Show when={ev().state === "error"}>
+                <span class="sc-err">{errorText(ev().error)}</span>
+              </Show>
+              <Show when={ev().state === "heard"}>
+                <span>
+                  Duyulan: <b data-no-i18n>“{ev().heard}”</b>
+                </span>
+                <span>
+                  {ev().intent
+                    ? t("Eşleşen komut: {0} (benzerlik %{1})", t(INTENT_LABELS[ev().intent] ?? ev().intent), Math.round(ev().score * 100))
+                    : "Eşleşen komut yok"}
+                </span>
+                <span>{t("Tanıyıcı güveni: %{0}", Math.round(ev().confidence * 100))}</span>
+                <Show when={ev().intent && !ev().ok}>
+                  <span class="sc-err">Güven eşiğin altında kaldı: komut çalıştırılmadı.</span>
+                </Show>
+              </Show>
+            </div>
+          )}
+        </Show>
+      </div>
+
+      <div class="voice-panel-head voice-cmd-ex-head">
+        <b>Örnek komutlar</b>
+        <button class="btn ghost small" onClick={() => setShowExamples(!showExamples())}>
+          {showExamples() ? "Gizle" : "Göster"}
+        </button>
+      </div>
+      <Show when={showExamples()}>
+        <p class="muted small">
+          {t("Seçili tanıma dilindeki ({0}) cümleler. Aynı komutun birkaç söylenişi var; birebir söylemen gerekmez.", wantName())}
+        </p>
+        <div class="voice-cmd-examples">
+          <For each={examples() ?? []}>
+            {(ex) => (
+              <div class="voice-cmd-ex">
+                <b>{INTENT_LABELS[ex.intent] ?? ex.intent}</b>
+                <span data-no-i18n>{ex.phrases.map((p) => `“${p}”`).join(" · ")}</span>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+    </section>
+  );
+}

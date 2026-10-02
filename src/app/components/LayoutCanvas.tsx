@@ -101,10 +101,8 @@ export function LayoutCanvas(props: CanvasProps) {
             state={menu()!}
             screen={{ w: props.width, h: props.height }}
             monitors={props.globalScale !== false}
-            onOpenSettings={(id) => {
-              if (settings().profiles[props.profileId]?.rules.mode !== "stream") updateSettings((d) => (d.activeProfile = props.profileId));
-              focusOverlay(id);
-            }}
+            // Bu tuvaldeki düzenin ayarları açılır (etkin düzen değiştirilmez)
+            onOpenSettings={(id) => focusOverlay(id, props.profileId)}
             onClose={() => setMenu(null)}
           />
         </Portal>
@@ -270,7 +268,7 @@ function CanvasItem(props: {
         }}
       >
         <div ref={el} class="citem-inner">
-          <OverlayView type={inst()!.type} options={inst()!.options} themed={false} />
+          <OverlayView type={inst()!.type} options={inst()!.options} look={inst()!.look} themed={false} />
         </div>
         <div class="citem-label" style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
           {instanceName(props.key, inst()!)}

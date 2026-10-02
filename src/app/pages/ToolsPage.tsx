@@ -1,12 +1,42 @@
 // Araçlar: ayrı pencerelerde açılan ekranlar.
 
-import { Show } from "solid-js";
+import { Show, Suspense, lazy } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { settings } from "@/sdk/settings";
 import * as I from "../icons";
-import { go } from "../ui";
+import { go, sub } from "../ui";
 import { F, proLocked } from "@/sdk/proFeatures";
-import { ProLockNote, ProLockTag } from "../components/ProLock";
+import { ProLockBox, ProLockNote, ProLockTag } from "../components/ProLock";
+
+// Dashboard Tasarımcısı ayrı parça: Araçlar sayfası açılırken yüklenmez
+const DashDesigner = lazy(() => import("@/dash/Designer").then((m) => ({ default: m.DashDesigner })));
+const DashRemotePanel = lazy(() => import("@/dash/RemotePanel").then((m) => ({ default: m.DashRemotePanel })));
+
+/** Araçlar › Dashboard Tasarımcısı (go("tools", "dash")) */
+function DashTool() {
+  return (
+    <div class="page">
+      <div class="dt-tabs">
+        <button class="btn ghost small" onClick={() => go("tools")}>
+          ‹ Araçlar
+        </button>
+        <button class="btn small" classList={{ on: sub() === "dash" }} onClick={() => go("tools", "dash")}>
+          Tasarımcı
+        </button>
+        <button class="btn small" classList={{ on: sub() === "dashremote" }} onClick={() => go("tools", "dashremote")}>
+          Başka cihazda aç
+        </button>
+      </div>
+      <Suspense>
+        <Show when={sub() === "dash"} fallback={<DashRemotePanel />}>
+          <ProLockBox feature={F.dashDesigner} text="Kendi direksiyon ekranını tasarlamak PRO üyelere özel.">
+            <DashDesigner />
+          </ProLockBox>
+        </Show>
+      </Suspense>
+    </div>
+  );
+}
 
 export function ToolsPage() {
   const Tool = (p: { icon: any; title: string; text: string; view: string; badge?: string; feature: string }) => (
@@ -32,6 +62,7 @@ export function ToolsPage() {
     </button>
   );
   return (
+    <Show when={sub() !== "dash" && sub() !== "dashremote"} fallback={<DashTool />}>
     <div class="page">
       <Show when={[F.pitwall, F.timing, F.engineer, F.events].some((k) => proLocked(k))}>
         <ProLockNote text="PRO rozetli araçlar PRO üyelere özel." />
@@ -67,6 +98,21 @@ export function ToolsPage() {
         />
       </div>
       <section class="panel">
+        <h3>Direksiyon Ekranı</h3>
+        <p class="muted">
+          Kendi direksiyon ekranını tasarla (vites, devir, delta, yakıt, lastikler… her bileşenin yeri, boyutu ve rengi sende) ve ister overlay
+          olarak ekranda, ister telefon ya da tablette aç.
+        </p>
+        <div style={{ display: "flex", gap: "8px", "flex-wrap": "wrap" }}>
+          <button class="btn" onClick={() => go("tools", "dash")}>
+            <I.Pencil /> Dashboard Tasarımcısı <ProLockTag feature={F.dashDesigner} />
+          </button>
+          <button class="btn" onClick={() => go("tools", "dashremote")}>
+            <I.Monitor /> Başka cihazda aç <ProLockTag feature={F.dashRemote} />
+          </button>
+        </div>
+      </section>
+      <section class="panel">
         <h3>Başka cihazdan</h3>
         <p class="muted">
           Bu ekranları tablet ya da ikinci bilgisayarda açmak için Ayarlar → Entegrasyonlar'dan HTTP sunucusunu ve uzaktan
@@ -79,5 +125,6 @@ export function ToolsPage() {
         </p>
       </section>
     </div>
+    </Show>
   );
 }

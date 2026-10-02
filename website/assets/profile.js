@@ -42,6 +42,18 @@ addDict({
   pf_website: ["İnternet sitesi", "Website"],
   pf_other: ["Diğer", "Other"],
   pf_edit: ["Profili düzenle", "Edit profile"],
+  pf_ir_lic: ["iRacing lisansı ve Safety Rating", "iRacing licence and Safety Rating"],
+  pf_ir_updated: ["güncellendi: {0}", "updated: {0}"],
+  pf_ir_only_me: ["(sadece sen görüyorsun)", "(only you can see this)"],
+  pf_ir_public: ["iRacing bilgilerimi profilimde göster", "Show my iRacing stats on my profile"],
+  pf_ir_public_d: [
+    "iRating, lisans (Safety Rating) ve ülken; SRTR Pitwall ile iRacing'de sürdükçe kendiliğinden güncellenir. Açıkken profilinde ve demo modundaki adının yanında görünür.",
+    "Your iRating, licence (Safety Rating) and country; updated automatically whenever you drive in iRacing with SRTR Pitwall. When on, they appear on your profile and next to your name in demo mode.",
+  ],
+  pf_ir_none: [
+    "Henüz bilgi yok: programda hesabınla giriş yapıp iRacing'de bir oturuma gir.",
+    "No data yet: sign in to the app and join an iRacing session.",
+  ],
 });
 
 export const AVATAR_BUCKET = "avatars";
@@ -181,6 +193,25 @@ export async function loadAvatars(ids) {
   return Object.fromEntries((data || []).map((r) => [r.id, r.avatar_path]));
 }
 
+const IR_CATS = { road: "Road", sportscar: "Sports Car", formulacar: "Formula", oval: "Oval", dirtroad: "Dirt Road", dirtoval: "Dirt Oval" };
+
+/** iRacing bilgileri (SQL c56): ülke kodu, lisans rozeti (sınıf rengi + SR), iRating, kategori ve güncellenme tarihi */
+export function iracingHtml(ir, note = true) {
+  if (!ir || !(ir.irating > 0) || !ir.license) return "";
+  const col = /^#[0-9a-f]{6}$/i.test(ir.lic_color || "") ? ir.lic_color : "#666666";
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(col.slice(i, i + 2), 16));
+  const dark = r * 0.299 + g * 0.587 + b * 0.114 > 150;
+  const cat = ir.category ? IR_CATS[ir.category] || ir.category : "";
+  return `<div class="pf-irx">
+    ${ir.country ? `<span class="pf-cty" translate="no">${esc(ir.country)}</span>` : ""}
+    <span class="pf-lic${dark ? " dark" : ""}" style="background:${col}" title="${esc(T("pf_ir_lic"))}" translate="no">${esc(ir.license)}</span>
+    <span class="pf-irating" title="iRating" translate="no"><b>iR</b> ${Number(ir.irating).toLocaleString(lang)}</span>
+    ${cat ? `<span class="muted small" translate="no">${esc(cat)}</span>` : ""}
+    <span class="muted small">${esc(T("pf_ir_updated", fmtDate(ir.updated_at)))}</span>
+    ${note && ir.public === false ? `<span class="muted small">${esc(T("pf_ir_only_me"))}</span>` : ""}
+  </div>`;
+}
+
 /** Başlık: büyük avatar, ad, PRO, iRacing adı ve simlerdeki adlar; `extra` sağ tarafa (düğmeler) */
 export function profileHero(p, extra = "", title = "") {
   injectCss();
@@ -193,6 +224,7 @@ export function profileHero(p, extra = "", title = "") {
         ${p.iracing_name ? `<span class="pill" translate="no"><b>iRacing</b> ${esc(p.iracing_name)}</span>` : ""}
         ${sims.map((s) => `<span class="pill" translate="no"><b>${esc(SIM_SHORT[s.sim] || s.sim)}</b> ${esc(s.sim_name)}</span>`).join("")}
       </div>
+      ${iracingHtml(p.iracing)}
       <span class="muted small">${esc(T("pf_member_since", fmtDate(p.created_at)))}</span>
     </div>
     ${extra ? `<div class="pf-hero-acts">${extra}</div>` : ""}
@@ -298,10 +330,37 @@ export async function mountProfileEditor(el, user) {
       <div id="pf-links" class="pf-links"></div>
       <button type="button" class="btn btn-sm btn-ghost" id="pf-add" style="margin-top:6px">${esc(T("pf_add_link"))}</button>
       <p class="muted small" style="margin:6px 0 0">${esc(T("pf_links_note"))}</p></div>
+    <div class="field" id="pf-irx-set" hidden>
+      <label class="row between" style="gap:14px;cursor:pointer">
+        <span><b>${esc(T("pf_ir_public"))}</b><br><span class="muted small">${esc(T("pf_ir_public_d"))}</span></span>
+        <input type="checkbox" id="pf-ir-public" style="width:auto">
+      </label>
+      <div style="margin-top:8px">${iracingHtml(p.iracing, false) || `<span class="muted small">${esc(T("pf_ir_none"))}</span>`}</div>
+    </div>
     <div class="row between"><a class="btn btn-sm btn-ghost" href="yarisci.html?u=${esc(p.id)}">${esc(T("pf_view"))}</a>
       <button type="button" class="btn btn-accent btn-sm" id="pf-save">${esc(T("save"))}</button></div>`;
   drawPhoto();
   drawLinks();
+  // iRacing bilgileri gizlilik ayarı (profiles.ir_public; sütun yoksa — c56 uygulanmadı — bölüm gizli kalır)
+  sb.from("profiles")
+    .select("ir_public")
+    .eq("id", user.id)
+    .maybeSingle()
+    .then(({ data, error }) => {
+      const box = $("#pf-irx-set", el);
+      const chk = $("#pf-ir-public", el);
+      if (error || !data || !box || !chk) return;
+      chk.checked = data.ir_public !== false;
+      box.hidden = false;
+      chk.addEventListener("change", async () => {
+        const on = chk.checked;
+        const { error: e2 } = await sb.rpc("profile_iracing_public_set", { p_on: on });
+        if (e2) {
+          chk.checked = !on;
+          toast(e2.message, true);
+        } else toast(T("saved"));
+      });
+    });
   const bio = $("#pf-bio", el);
   const bcount = () => ($("#pf-bcount", el).textContent = `${bio.value.length}/${MAX_BIO}`);
   bio.addEventListener("input", bcount);
@@ -415,6 +474,12 @@ function injectCss() {
 .pf-hero-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pf-hero-title h1{margin:0;overflow-wrap:anywhere}
 .pf-ids{display:flex;flex-wrap:wrap;gap:6px}
+.pf-irx{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.pf-cty{padding:1px 6px;border-radius:5px;border:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.pf-lic{padding:2px 8px;border-radius:6px;font-size:12.5px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pf-lic.dark{color:#111}
+.pf-irating{padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg-3);font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pf-irating b{color:var(--muted);margin-right:2px}
 .pf-ids .pill b{color:var(--muted);font-weight:600;margin-right:4px}
 .pf-hero-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .pf-card{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}

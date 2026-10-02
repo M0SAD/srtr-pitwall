@@ -1,5 +1,5 @@
 .fuel {
-  width: 320px;
+  width: calc(320px * var(--ov-fs-k, 1));
 }
 
 .fuel-title {
@@ -14,13 +14,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 10px;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   border-bottom: 1px solid var(--ov-divider);
 }
 
 .fuel-bar {
   height: 1.9em;
-  padding: 3px;
+  padding: calc(3px * var(--ov-pad-k, 1));
   border-radius: 6px;
   border: 1px solid var(--ov-divider);
   background: color-mix(in srgb, var(--ov-bg-solid) 70%, transparent);
@@ -52,7 +52,7 @@
   grid-template-columns: 3.9em 1fr 1fr 1fr 1.2fr;
   align-items: center;
   gap: 4px;
-  padding: 0 10px;
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
   text-align: center;
 }
 
@@ -77,7 +77,7 @@
 
 .fuel-refuel {
   justify-self: center;
-  padding: 0 7px;
+  padding: 0 calc(7px * var(--ov-pad-k, 1));
   border-radius: 0.7em;
   background: color-mix(in srgb, var(--ov-red) 22%, transparent);
   color: var(--ov-red);
@@ -104,7 +104,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 6px 4px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
   background: var(--ov-bg);
 }
 
@@ -121,7 +121,7 @@
 }
 
 .fuel-sub {
-  padding: 6px 10px 4px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
   font-size: 0.72em;
   color: var(--ov-dim);
   letter-spacing: 0.05em;
@@ -159,7 +159,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 7px 10px;
+  padding: calc(7px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   border-top: 1px solid var(--ov-divider);
   box-shadow: inset 3px 0 0 var(--ov-accent);
 }
@@ -179,14 +179,14 @@
 }
 
 .fuel-note {
-  padding: 6px 10px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   font-size: 0.846em;
   border-top: 1px solid var(--ov-divider);
 }
 
 .fuel-team {
   border-top: 1px solid var(--ov-divider);
-  padding: 6px 10px 8px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(8px * var(--ov-pad-k, 1));
 }
 
 .fuel-team-head {

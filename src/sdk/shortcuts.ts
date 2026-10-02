@@ -14,6 +14,7 @@ export type ShortcutAction =
   | "stt"
   | "chat"
   | "crewStop"
+  | "dashPage"
   | "vrConfig"
   | "vrRecenter"
   | "vrNext"
@@ -35,6 +36,7 @@ export const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
   stt: "F6",
   chat: "Ctrl+Shift+C",
   crewStop: "",
+  dashPage: "",
   vrConfig: "F9",
   vrRecenter: "End",
   vrNext: "Space",
@@ -57,6 +59,7 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
   stt: "Canlı Sohbet: konuşma → yazıyı (altyazı) aç / kapat",
   chat: "Canlı Sohbet: başlat / durdur",
   crewStop: "Ekip: uzaktan pit kontrolünü durdur",
+  dashPage: "Direksiyon Ekranı: özel tasarımda sonraki sayfa",
   vrConfig: "Yerel VR: yapılandırma modunu aç / kapat",
   vrRecenter: "Yerel VR: ortala (overlay'leri baktığın yöne al)",
   vrNext: "Yerel VR: sonraki overlay'i seç",
@@ -75,6 +78,7 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "voice",
   "chat",
   "crewStop",
+  "dashPage",
   "poll",
   "tts",
   "ttsHush",

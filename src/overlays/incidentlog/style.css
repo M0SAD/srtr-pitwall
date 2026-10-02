@@ -1,5 +1,5 @@
 .il {
-  width: 320px;
+  width: calc(320px * var(--ov-fs-k, 1));
   overflow: hidden;
 }
 .il-total {
@@ -28,7 +28,7 @@
   align-items: center;
   gap: 8px;
   height: var(--ov-row-h);
-  padding: 0 10px;
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
   border-bottom: 1px solid var(--ov-divider);
   white-space: nowrap;
 }
@@ -54,7 +54,7 @@
   min-width: 2em;
 }
 .il-pts {
-  padding: 0 5px;
+  padding: 0 calc(5px * var(--ov-pad-k, 1));
   border-radius: 3px;
   color: #111;
   font-weight: var(--ov-weight-strong);

@@ -15,6 +15,7 @@ import {
   shortcut,
   type ShortcutAction,
 } from "@/sdk/shortcuts";
+import { PttKeyRow } from "./VoiceCommands";
 
 /** Genel kısayol olarak atanırsa başka uygulamalarda/uygulama içinde sorun çıkaran tuşlar */
 const RESERVED: { key: string; why: string }[] = [
@@ -221,6 +222,8 @@ export function ShortcutsPanel() {
             </div>
           )}
         </For>
+        {/* Bas-konuş tuşu genel kısayol olarak kaydedilmez (basılı tutma algılanır): ayarı Sesli Mühendis › Sesli komut'ta */}
+        <PttKeyRow label="Sesli komut: bas-konuş tuşu (basılı tut)" />
       </section>
       <section class="panel">
         <h3>Uygulama içi tuşlar</h3>

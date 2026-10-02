@@ -1,5 +1,8 @@
 // Ayarlar › Paylaşım: Ekip (uzaktan pit ekibi, c53) — sürücü tarafı.
-//  - Ana anahtar "Ekibim pit ayarlarımı değiştirebilsin" (varsayılan kapalı; sunucuda crew_prefs.control_on)
+//  - Ana anahtar "Ekibim pit ayarlarımı değiştirebilsin" (sunucuda crew_prefs.control_on; satır yoksa PRO üyede
+//    varsayılan AÇIK, değilse kapalı: c58. crew_state() etkin değeri döner)
+//  - "Ekibim canlı pitwall'ımı izleyebilsin" (crew_prefs.wall_on, varsayılan açık: c58): Ekip Pitwall'ı için
+//    çevredeki araçlar / spotter durumu saniyede bir gönderilir; yalnızca ekipten biri paneli açıkken.
 //  - Arkadaş başına Görebilir / Değiştirebilir (crew_set). Şu an paneli açık olan ekip üyesi "bağlı" görünür.
 //  - "Ekip kontrolünü durdur": ana anahtarı hemen kapatır (bekleyen komutlar da reddedilir); kısayolu da var.
 //  - Son komutlar: ekibin gönderdiği son komutlar ve sonuçları.
@@ -10,9 +13,11 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { myFriends, type Friend } from "@/cloud/social";
-import { crewCommandText, crewControlSet, crewHistory, crewList, crewSet, crewState, crewStatusText, type CrewCommand, type CrewMember, type CrewState } from "@/cloud/crew";
+import { crewCommandText, crewControlSet, crewHistory, crewList, crewSet, crewState, crewStatusText, crewWallSet, type CrewCommand, type CrewMember, type CrewState } from "@/cloud/crew";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { F } from "@/sdk/proFeatures";
+import { settings, updateSettings } from "@/sdk/settings";
+import { go } from "../ui";
 import { Switch } from "./SettingsForm";
 import { ProTag } from "./ProLock";
 
@@ -58,8 +63,13 @@ export function CrewSettings() {
   };
   const on = () => !!state()?.control_on;
   const setOn = (v: boolean) => {
-    setState((x) => ({ needs_pro: !!x?.needs_pro, count: x?.count ?? 0, max: x?.max ?? 10, control_on: v }));
+    setState((x) => ({ needs_pro: !!x?.needs_pro, count: x?.count ?? 0, max: x?.max ?? 10, wall_on: x?.wall_on, control_on: v, control_default: false }));
     void act(() => crewControlSet(v));
+  };
+  const wallOn = () => state()?.wall_on !== false;
+  const setWall = (v: boolean) => {
+    setState((x) => ({ needs_pro: !!x?.needs_pro, count: x?.count ?? 0, max: x?.max ?? 10, control_on: !!x?.control_on, control_default: x?.control_default, wall_on: v }));
+    void act(() => crewWallSet(v));
   };
   const member = (id: string) => (crew() ?? []).find((m) => m.member_id === id);
   const setRole = (f: Friend, view: boolean, control: boolean) => {
@@ -96,6 +106,9 @@ export function CrewSettings() {
           <div>
             <b>Ekibim pit ayarlarımı değiştirebilsin</b>
             <small>Kapalıyken ekip sadece izler; gelen pit komutları reddedilir. Komutlar yalnızca oyuna bağlıyken uygulanır.</small>
+            <Show when={on() && state()?.control_default}>
+              <small>PRO üyelerde varsayılan olarak açık. Kapatırsan kapalı kalır.</small>
+            </Show>
           </div>
           <Switch checked={on()} disabled={!!state()?.needs_pro && !on()} onChange={setOn} />
         </div>
@@ -112,6 +125,41 @@ export function CrewSettings() {
             </button>
           </div>
         </Show>
+        <div class="row">
+          <div>
+            <b>Ekibim canlı pitwall'ımı izleyebilsin</b>
+            <small>
+              Ekip Pitwall'ı: ekibin çevrendeki araçları, farkları, tur sürelerini, bayrakları, havayı ve yanında araç olup olmadığını saniyede bir
+              izler; sana hazır spotter mesajları gönderebilir. Veri yalnızca ekipten biri paneli açıkken gönderilir. Kapalıyken ekip sadece 3
+              saniyede bir yenilenen özet paneli görür.
+            </small>
+          </div>
+          <Switch checked={wallOn()} onChange={setWall} />
+        </div>
+        <div class="row">
+          <div>
+            <b>
+              Konuşmalarımı (altyazı) ekibimle paylaş <ProTag feature={F.liveStt} />
+            </b>
+            <small>
+              Konuşma → yazı açıkken söylediklerin (ve sesli komut soruların) Ekip Pitwall'ında, ekibinin sana mesaj yazdığı yerde altyazı olarak
+              görünür. Yalnızca son bir dakikanın cümleleri, ekipten biri paneli açıkken gönderilir; altyazıyı görmek için ekip üyesi de PRO olmalı.
+            </small>
+            <small>
+              <Show when={settings().general.livechat.stt.enabled} fallback={t("Konuşma → yazı şu an kapalı: ekibin altyazı görmez.")}>
+                {t("Konuşma → yazı açık.")}
+              </Show>{" "}
+              <button class="link" onClick={() => go("livechat", "stt")}>
+                Canlı Sohbet › Konuşma → yazı
+              </button>
+            </small>
+          </div>
+          <Switch
+            checked={settings().general.social.crewSpeech !== false}
+            disabled={!wallOn()}
+            onChange={(v) => updateSettings((d) => void (d.general.social.crewSpeech = v))}
+          />
+        </div>
         <div class="row">
           <div>
             <b>Şu an bağlı</b>

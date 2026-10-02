@@ -322,6 +322,15 @@ export function SettingsForm(props: {
                   </span>
                   <Switch checked={!!val(f)} disabled={locked(f)} onChange={(v) => change(f, v)} />
                 </div>
+                <Show when={f.resetKeys?.length && val(f)}>
+                  <button
+                    class="btn ghost small"
+                    disabled={locked(f)}
+                    onClick={() => props.fields.filter((g) => f.resetKeys!.includes(g.key)).forEach((g) => change(g, g.default))}
+                  >
+                    {f.resetLabel ?? "Varsayılana dön"}
+                  </button>
+                </Show>
               </Show>
               <Show when={f.type === "number" && (f as Of<"number">)}>
                 {(nf) => (

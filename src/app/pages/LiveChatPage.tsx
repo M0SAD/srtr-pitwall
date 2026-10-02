@@ -19,6 +19,7 @@ import { SendTab } from "./livechat/SendTab";
 import { F } from "@/sdk/proFeatures";
 import { isHiddenLiveTab, liveChatLoginOk } from "@/cloud/account";
 import { go } from "../ui";
+import { settings } from "@/sdk/settings";
 import "../livechat.css";
 
 export const LIVECHAT_PAGES: { id: string; label: string; feature?: string }[] = [
@@ -110,6 +111,63 @@ function Head() {
   );
 }
 
+/** Kapı kararının açıklaması (overlay neden görünüyor / gizli) */
+function gateText(m: LC.GateMode): string {
+  switch (m) {
+    case "real":
+      return t("gösteriliyor (gerçek sohbet)");
+    case "demo":
+      return t("gösteriliyor (Demo modu: örnek sohbet)");
+    case "stopped":
+      return t("gizli çünkü: sohbet durdurulmuş");
+    case "offline":
+      return t("gizli çünkü: yayın canlı değil");
+    case "login":
+      return t("gizli çünkü: giriş yapılmamış");
+    case "pro":
+      return t("gizli çünkü: PRO gerekli");
+    default:
+      return t("bilinmiyor");
+  }
+}
+
+/**
+ * Tanı satırı: overlay'in şu an ne gösterdiği / neden gizli olduğu. Overlay'in kullandığı kapı kararının (Rust:
+ * live_gate) aynısından hesaplanır; "Yalnızca yayın canlıyken göster" seçeneği etkin düzendeki sohbet overlay'inden okunur.
+ */
+function GateLine() {
+  const store = LC.useLiveChat(300);
+  const gate = () => store.status()?.gate;
+  const inst = () => {
+    const s = settings();
+    const all = Object.values(s.profiles[s.activeProfile]?.overlays ?? {}).filter((i) => i.type === "livechat");
+    return all.find((i) => i.enabled) ?? null;
+  };
+  const onlyLive = () => inst()?.options?.onlyLive !== false;
+  const app = () => LC.gateMode(gate(), onlyLive(), false);
+  const obs = () => LC.gateMode(gate(), onlyLive(), true);
+  return (
+    <Show when={gate()}>
+      <div class="lcp-gate muted small" classList={{ ok: app() === "real" || app() === "demo" }}>
+        <span>
+          {t("Overlay durumu")}: <b>{gateText(app())}</b>
+        </span>
+        <Show when={obs() !== app()}>
+          <span>
+            {t("OBS kaynağı")}: <b>{gateText(obs())}</b>
+          </span>
+        </Show>
+        <Show when={!inst()}>
+          <span>{t("Etkin düzende Canlı Sohbet overlay'i açık değil")}</span>
+        </Show>
+        <Show when={app() === "offline"}>
+          <span>{t("Mesaj gelince ya da yayın açılınca kendiliğinden görünür")}</span>
+        </Show>
+      </div>
+    </Show>
+  );
+}
+
 export function LiveChatPage(p: { sub: string }) {
   onMount(() => {
     let un: (() => void) | undefined;
@@ -121,6 +179,7 @@ export function LiveChatPage(p: { sub: string }) {
   return (
     <div class="page lcp" classList={{ narrow: sub() !== "chat" && sub() !== "log" }}>
       <Head />
+      <GateLine />
       <Show when={!liveChatLoginOk()}>
         <LoginGate />
       </Show>

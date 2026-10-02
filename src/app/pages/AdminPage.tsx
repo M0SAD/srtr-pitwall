@@ -38,6 +38,7 @@ import { AdminCoupons } from "../components/AdminCoupons";
 import { AdminProFeatures } from "../components/AdminProFeatures";
 import { AdminMessages } from "../components/AdminMessages";
 import { AdminVoicePacks } from "../components/AdminVoicePacks";
+import { AdminTopLinks } from "../components/AdminTopLinks";
 import { AdminBackdrops, AdminProPromo, AdminSimIcons, AdminTranslations } from "../components/AdminContent";
 import { takeAdminFocus } from "../components/adminFocus";
 import { AdminTrial } from "../components/AdminTrial";
@@ -75,6 +76,7 @@ export function adminSubs(): { id: string; label: string }[] {
     { id: "livechat", label: "Canlı Sohbet ayarları", need: isAdmin },
     { id: "propromo", label: "PRO tanıtım mesajı", need: isAdmin },
     { id: "backdrops", label: "Overlay arka planları", need: isAdmin },
+    { id: "toplinks", label: "Üst çubuk bağlantıları", need: isAdmin },
     { id: "translations", label: "Çeviriler", need: isAdmin },
   ];
   return all.filter((x) => x.need()).map(({ id, label }) => ({ id, label }));
@@ -143,6 +145,9 @@ export function AdminPage() {
         </Match>
         <Match when={page() === "backdrops"}>
           <AdminBackdrops run={run} />
+        </Match>
+        <Match when={page() === "toplinks"}>
+          <AdminTopLinks run={run} />
         </Match>
         <Match when={page() === "translations"}>
           <AdminTranslations run={run} />

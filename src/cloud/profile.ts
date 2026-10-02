@@ -74,7 +74,47 @@ export interface PublicProfile {
   friend: "pending_out" | "pending_in" | "accepted" | null;
   sims: { sim: string; sim_name: string }[];
   teams: { id: string; name: string; tag: string; color: string; logo_path: string; role: string }[];
+  /** Üyenin kendi iRacing bilgileri (SQL c56): program iRacing oturumundan okur; veri yoksa / gizliyse null ya da yok */
+  iracing?: IracingInfo | null;
 }
+
+export interface IracingInfo {
+  irating: number;
+  /** "A 3.42" */
+  license: string;
+  lic_color: string | null;
+  /** iRacing "flair" kısa kodu (TR, DE…) */
+  country: string | null;
+  /** road | oval | dirtroad | dirtoval … (son sürülen serinin kategorisi) */
+  category: string | null;
+  updated_at: string;
+  /** false: sadece sahibi görür (gizlilik ayarı kapalı) */
+  public: boolean;
+}
+
+const IR_CATEGORIES: Record<string, string> = {
+  road: "Road",
+  sportscar: "Sports Car",
+  formulacar: "Formula",
+  oval: "Oval",
+  dirtroad: "Dirt Road",
+  dirtoval: "Dirt Oval",
+};
+export const iracingCategory = (c: string | null | undefined) => (c ? (IR_CATEGORIES[c] ?? c) : "");
+
+/** "iRacing bilgilerimi profilimde göster" (profiles.ir_public). Sütun yoksa (c56 uygulanmadı) null. */
+export async function loadIracingPublic(): Promise<boolean | null> {
+  const uid = session()?.user.id;
+  if (!uid) return null;
+  try {
+    const rows = await api<{ ir_public?: boolean }[]>("GET", `profiles?id=eq.${uid}&select=ir_public`);
+    return rows?.[0]?.ir_public ?? true;
+  } catch {
+    return null;
+  }
+}
+
+export const setIracingPublic = (on: boolean) => api("POST", "rpc/profile_iracing_public_set", { body: { p_on: on } });
 
 export const publicProfile = (id: string) =>
   api<PublicProfile | null>("POST", "rpc/public_profile", { body: { p_user: id }, auth: "optional" }).then((p) => {

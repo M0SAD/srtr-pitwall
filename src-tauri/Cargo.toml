@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.66"
+version = "1.0.70"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -54,6 +54,11 @@ windows-sys = { version = "0.59", features = [
   "Win32_System_Registry",
   "Win32_System_Diagnostics_ToolHelp",
   "Win32_Security_Cryptography",
+  # Sesli komut (bas-konuş): direksiyon / kumanda düğmesi (Raw Input HID + WinMM joystick), bkz. src/ptt_win.rs
+  "Win32_UI_Input",
+  "Win32_Devices_HumanInterfaceDevice",
+  "Win32_Media_Multimedia",
+  "Win32_Storage_FileSystem",
 ] }
 # Canlı sohbet: Windows sesleriyle sesli okuma (SpeechSynthesis) ve konuşmayı yazıya çevirme (SpeechRecognition)
 windows = { version = "0.62", features = [
@@ -67,6 +72,8 @@ windows = { version = "0.62", features = [
   "Storage",
   "Storage_Streams",
 ] }
+# Sesli komut: komut listesi kısıtı için IIterable<HSTRING> (windows crate'inin zaten kullandığı sürüm)
+windows-collections = "0.3"
 
 # En hızlı ve en küçük exe için sürüm profili.
 [profile.release]

@@ -3,6 +3,7 @@
 import { t } from "@/sdk/i18n";
 import { createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { settings } from "@/sdk/settings";
 
 /** Sol ikon menüsündeki bölümler */
 export type Section =
@@ -60,6 +61,16 @@ export const page = () => section();
 
 /** Overlay'ler sayfasında açık olan ayar kartı */
 export const [openCard, setOpenCard] = createSignal<string | null>(null);
+/**
+ * Overlay'ler sayfasında düzenlenen düzen. null = "Etkin düzeni izle" (etkin düzen değişince sayfa da onu izler);
+ * bir kimlik = o düzen sabit (otomatik geçiş ya da etkin düzen değişse de seçim yerinden oynamaz).
+ */
+export const [ovProfile, setOvProfile] = createSignal<string | null>(null);
+/** Overlay'ler sayfasını belirli bir düzene çevir (zaten izlenen etkin düzen ise izleme korunur) */
+export function editLayout(profileId: string) {
+  if (ovProfile() === null && settings().activeProfile === profileId) return;
+  if (settings().profiles[profileId]) setOvProfile(profileId);
+}
 
 export interface VersionInfo {
   display: string;
@@ -159,7 +170,8 @@ export async function installUpdate() {
 }
 
 /** Sağ tık > "Ayarlarını aç": Overlay'ler sayfasında o kopyayı seçer. */
-export function focusOverlay(id: string) {
+export function focusOverlay(id: string, profileId?: string | null) {
+  if (profileId) editLayout(profileId);
   go("overlays");
   setOpenCard(id);
 }

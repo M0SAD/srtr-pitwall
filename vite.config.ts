@@ -33,6 +33,8 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         overlay: resolve(__dirname, "overlay.html"),
         window: resolve(__dirname, "window.html"),
+        // Uzak gösterge (telefon / tablet): yerel sunucu /dash adresinde sunar
+        dash: resolve(__dirname, "dash.html"),
       },
     },
   },

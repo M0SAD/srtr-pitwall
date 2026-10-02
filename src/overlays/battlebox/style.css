@@ -1,7 +1,7 @@
 .bbox {
   display: flex;
   align-items: center;
-  width: 470px;
+  width: calc(470px * var(--ov-fs-k, 1));
 }
 
 .bbox-empty {
@@ -21,7 +21,7 @@
   align-items: center;
   gap: 8px;
   height: calc(var(--ov-row-h) + 6px);
-  padding: 0 34px 0 0;
+  padding: 0 calc(34px * var(--ov-pad-k, 1)) 0 0;
 }
 
 .bbox-accent {
@@ -42,7 +42,7 @@
 
 .bbox-num {
   min-width: 2.3em;
-  padding: 0 3px;
+  padding: 0 calc(3px * var(--ov-pad-k, 1));
   border-radius: 3px;
   border: 1px solid var(--ov-divider);
   text-align: center;

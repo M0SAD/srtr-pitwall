@@ -7,6 +7,10 @@ import type { RealtimeChannel } from "@supabase/realtime-js";
 import { api, session } from "./supabase";
 import { realtime, type LiveData } from "./social";
 import { t } from "@/sdk/i18n";
+import { createSignal } from "solid-js";
+
+/** Sürücüler › Ekip sayfasında açılacak sürücü (Arkadaşlar listesindeki "Ekip" düğmesi) */
+export const [crewFocus, setCrewFocus] = createSignal<string | null>(null);
 
 export type CrewKind = "fuel_set" | "fuel_clear" | "tyres_all" | "tyres" | "tyres_clear" | "fast_repair" | "tearoff" | "clear_all" | "message";
 export type CrewStatus = "pending" | "applied" | "rejected" | "expired";
@@ -57,11 +61,82 @@ export interface CrewMember {
 export interface CrewState {
   /** Ana anahtar: ekibim pit ayarlarımı değiştirebilsin */
   control_on: boolean;
+  /** Anahtara hiç dokunulmadı: değer varsayılandır (PRO üyede açık, c58) */
+  control_default?: boolean;
   /** Özellik PRO'ya özel ve ben PRO değilim */
   needs_pro: boolean;
   count: number;
   max: number;
+  /** Ekibim canlı pitwall'ımı izleyebilsin (c58; varsayılan açık) */
+  wall_on?: boolean;
 }
+
+/** Ekip Pitwall'ı satırı: sürücünün çevresindeki bir araç (kısa adlar: saniyede bir gönderilir) */
+export interface WallRow {
+  /** Araç idx */
+  i: number;
+  /** Genel / sınıf sırası */
+  p: number;
+  cp: number;
+  /** Numara, isim, sınıf rengi */
+  n: string;
+  nm: string;
+  c: string;
+  /** Sürücüye fark (sn): + önde, − arkada; bilinmiyorsa null */
+  g: number | null;
+  /** Son / en iyi tur (sn) */
+  l: number;
+  b: number;
+  pit?: boolean;
+  me?: boolean;
+  /** Tur farkı: 1 bir tur önde, −1 bir tur geride */
+  lr?: number;
+  /** Sınıfın ilk üçünden (pistte yakında olmayabilir) */
+  top?: boolean;
+}
+
+/** Ekip Pitwall'ı verisi (host/crew.ts üretir, crew_wall_push ile yazılır, crew_wall ile okunur) */
+export interface CrewWall {
+  /** Gönderim anı (ms) */
+  ts: number;
+  ses: string;
+  rows: WallRow[];
+  me: { pos: number; cp: number; cars: number; lap: number; last: number; best: number; cur: number; d: number | null };
+  /** Oturum bayrakları (FlagName) */
+  flags: string[];
+  wx: { air: number; track: number; wet: number; rain: number; wind: number } | null;
+  /** Spotter: 0 kapalı, 1 temiz, 2 solda, 3 sağda, 4 iki yanda */
+  sp: number;
+  /** Öndeki / arkadaki araca mesafe (m) */
+  ahead: number | null;
+  behind: number | null;
+  pit: { road: boolean; stall: boolean; lim: boolean };
+  inc: number;
+  incMax: number;
+  fuel: { lvl: number; laps: number; use: number } | null;
+  rem: { t: number; l: number };
+  /** Sürücünün konuşma altyazısı (c60): son 60 sn'nin tanınan cümleleri. Sunucu, PRO olmayan izleyiciye göndermez. */
+  speech?: CrewSpeech[];
+}
+
+/** Sürücünün tanınan bir cümlesi. t: söylendiği an (ms), final: cümle bitti (false: hâlâ konuşuyor) */
+export interface CrewSpeech {
+  t: number;
+  text: string;
+  final: boolean;
+}
+
+export interface CrewWallState {
+  /** Sürücü pitwall'ı açık tutuyor */
+  on: boolean;
+  age_ms: number | null;
+  data: CrewWall | null;
+  /** c60: konuşma altyazısı PRO'ya özel ve izleyen PRO değil (sunucu `speech` alanını çıkardı) */
+  speech_locked?: boolean;
+}
+
+/** Hazır spotter mesajları (ekip üyesi tek dokunuşla gönderir; sürücüde bildirim + sesli okuma) */
+export const WALL_MSGS = ["Solunda araç", "Sağında araç", "Temiz", "Arkandan hızlı araç geliyor", "Bu tur pit", "Yakıt tasarrufu yap"] as const;
 
 export interface CrewDriver {
   owner_id: string;
@@ -105,12 +180,16 @@ export const crewState = () => api<CrewState>("POST", "rpc/crew_state", { body: 
 export const crewList = () => api<CrewMember[]>("POST", "rpc/crew_list", { body: {} }).then((r) => r ?? []);
 export const crewHistory = (limit = 20) => api<CrewCommand[]>("POST", "rpc/crew_history", { body: { p_limit: limit } }).then((r) => r ?? []);
 export const crewPending = () => api<CrewCommand[]>("POST", "rpc/crew_commands_pending", { body: {} }).then((r) => r ?? []);
+export const crewWallSet = (on: boolean) => api("POST", "rpc/crew_wall_set", { body: { p_on: on } });
+/** Pitwall verisini yaz (null: yalnızca izleyen var mı diye sor) */
+export const crewWallPush = (data: CrewWall | null) => api<{ watchers: number; wall_on: boolean }>("POST", "rpc/crew_wall_push", { body: { p_data: data } });
 export const crewDone = (id: string, status: "applied" | "rejected", result: string) =>
   api("POST", "rpc/crew_command_done", { body: { p_id: id, p_status: status, p_result: result } });
 
 // ---- Ekip üyesi tarafı ----
 export const crewDrivers = () => api<CrewDriver[]>("POST", "rpc/crew_drivers", { body: {} }).then((r) => r ?? []);
 export const crewDriver = (owner: string) => api<CrewDriver>("POST", "rpc/crew_driver", { body: { p_owner: owner } });
+export const crewWall = (owner: string) => api<CrewWallState>("POST", "rpc/crew_wall", { body: { p_owner: owner } });
 export const crewCommand = (owner: string, kind: CrewKind, args: Record<string, unknown> = {}) =>
   api<string>("POST", "rpc/crew_command", { body: { p_owner: owner, p_kind: kind, p_args: args } });
 export const crewCommandGet = (id: string) => api<CrewCommand | null>("POST", "rpc/crew_command_get", { body: { p_id: id } });

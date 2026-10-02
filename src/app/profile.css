@@ -317,3 +317,65 @@
 .tmem-link:hover b {
   color: var(--accent-2);
 }
+
+/* iRacing bilgileri (c56): bayrak, lisans rozeti (sınıf rengi + SR), iRating, güncellenme tarihi */
+.pf-irx {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.pf-irx-flag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.pf-irx-flag img {
+  height: 14px;
+  width: auto;
+  border-radius: 2px;
+}
+.pf-lic {
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pf-lic.dark {
+  color: #111;
+}
+.pf-irating {
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pf-irating b {
+  color: var(--muted);
+  font-weight: 700;
+  margin-right: 2px;
+}
+.pf-irx-set {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.pf-irx-set > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}

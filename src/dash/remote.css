@@ -1,0 +1,119 @@
+/* Uzak gösterge sayfası (telefon / tablet) */
+
+.rd {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #f4f4f4;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+.rd-fit {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.rd-fit-in {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max-content;
+  transform-origin: center center;
+}
+.rd-btn {
+  position: absolute;
+  right: calc(6px + env(safe-area-inset-right));
+  top: calc(6px + env(safe-area-inset-top));
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.55);
+  font: 700 18px/1 system-ui, sans-serif;
+  opacity: 0.5;
+}
+.rd-menu {
+  position: absolute;
+  right: calc(8px + env(safe-area-inset-right));
+  top: calc(46px + env(safe-area-inset-top));
+  width: min(300px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #2a2f3a;
+  border-radius: 12px;
+  background: rgba(18, 20, 26, 0.97);
+  font: 15px/1.3 system-ui, "Segoe UI", sans-serif;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+.rd-menu label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rd-menu label span,
+.rd-menu small {
+  color: #8a93a4;
+  font-size: 12.5px;
+}
+.rd-menu select,
+.rd-menu button {
+  font: inherit;
+  color: #e9ecf2;
+  background: #1c2029;
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.rd-menu small i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff5a5f;
+}
+.rd-menu small i.ok {
+  background: #33d17a;
+}
+.rd-banner {
+  position: absolute;
+  left: 50%;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(200, 40, 40, 0.92);
+  font: 600 13px/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rd-banner.dim {
+  background: rgba(40, 44, 54, 0.85);
+  color: #b6bdca;
+}
+.rd-dots {
+  position: absolute;
+  left: 50%;
+  top: calc(4px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  pointer-events: none;
+}
+.rd-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+.rd-dots i.on {
+  background: rgba(255, 255, 255, 0.75);
+}

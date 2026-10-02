@@ -4,7 +4,7 @@
   flex-direction: column;
   justify-content: flex-end;
   gap: 6px;
-  width: 340px;
+  width: calc(340px * var(--ov-fs-k, 1));
   /* Alttan dolsun: yükseklik en fazla mesaj sayısına göre sabit (boş alan saydam) */
   min-height: calc(var(--ovmsg-max, 4) * 3.3em);
   font-family: var(--ov-font);

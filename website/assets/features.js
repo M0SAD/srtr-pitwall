@@ -5,9 +5,10 @@
 // Yeni overlay eklenince OVERLAYS'e ve ov_<id>_n/_d/_h anahtarlarına da eklenmeli.
 import { $, $$, T, addDict, appConfig, applyLang, boot, esc } from "./core.js";
 import { applyCachedImages, initSiteImages } from "./siteimages.js";
+import { OVERLAY_COUNT as SHARED_OVERLAY_COUNT } from "./counts.js";
 
 /** voice_catalog.json: toplam ifade, mühendisin kullandığı, bunların içindeki sayı/süre parçaları, kullanılan ifadelerin kayıt sayısı */
-const VOICE = { catalog: 2255, used: 1493, numbers: 942, spoken: 551, recordings: 3685, categories: 22 };
+const VOICE = { catalog: 2255, used: 1501, numbers: 944, spoken: 557, recordings: 3739, categories: 22 };
 const LOGOS = 46;
 const LANGS = 15;
 
@@ -24,6 +25,7 @@ const OVERLAYS = [
       ["flatmap", "➖", "free"],
       ["minimap", "🧭", "free"],
       ["radar", "📡", "free"],
+      ["spotterbar", "🚦", "mixed"],
       ["overtake", "⏩", "free"],
       ["rejoin", "↩️", "free"],
     ],
@@ -73,6 +75,7 @@ const OVERLAYS = [
   ],
 ];
 const OVERLAY_COUNT = OVERLAYS.reduce((n, g) => n + g[1].length, 0);
+if (OVERLAY_COUNT !== SHARED_OVERLAY_COUNT) console.warn(`counts.js OVERLAY_COUNT=${SHARED_OVERLAY_COUNT}, features.js=${OVERLAY_COUNT}`);
 
 // simSupport.ts: 1 = çalışır, 2 = kısmen, 0 = çalışmaz. Sıra: iRacing, ACC, AC, LMU/rF2, AMS2
 const SIMS = [
@@ -155,8 +158,8 @@ addDict({
     "Each overlay receives only the data it needs at its own rate; closed ones cost nothing. All of them can be dragged, resized and customised from their own settings page.",
   ],
   fx_ov_common: [
-    "Kontrol panelinde gerçek pist üstünde canlı önizleme; demo moduyla oyunu açmadan düzen kur|Tema motoru: yazı tipi, renk, opaklık, kenarlık ve gölge tek hamlede|Araç markası logoları, ülke bayrakları, sınıf renkleri|Oyun desteklemiyorsa overlay kendiliğinden gizlenir, ayarın bozulmaz",
-    "Live preview on a real track in the control panel; build layouts in demo mode without starting the game|Theme engine: font, colours, opacity, border and shadow in one go|Car brand logos, country flags, class colours|Overlays hide themselves in sims that can't feed them, without touching your settings",
+    "Kontrol panelinde gerçek pist üstünde canlı önizleme; demo moduyla oyunu açmadan düzen kur|Tema motoru: yazı tipi, renk, opaklık, kenarlık ve gölge tek hamlede|Her overlay'in kendi görünümü: renk, yazı tipi, köşe, kenarlık ve yoğunluk overlay başına ayrı ayarlanır; hazır görünümler ve kopyala / yapıştır|Araç markası logoları, ülke bayrakları, sınıf renkleri|Oyun desteklemiyorsa overlay kendiliğinden gizlenir, ayarın bozulmaz",
+    "Live preview on a real track in the control panel; build layouts in demo mode without starting the game|Theme engine: font, colours, opacity, border and shadow in one go|Every overlay has its own look: colours, typography, corners, border and density per overlay, with quick presets and copy / paste|Car brand logos, country flags, class colours|Overlays hide themselves in sims that can't feed them, without touching your settings",
   ],
   fx_ov_note: [
     "Etiketler varsayılan ayrımı gösterir. “ÜCRETSİZ + PRO seçenekler”: overlay herkese açık, bazı tasarımları ya da ek işlevleri PRO.",
@@ -212,11 +215,20 @@ addDict({
   ov_minimap_n: ["Mini Harita", "Mini Map"],
   ov_minimap_d: ["Aracını merkeze alan, yakınlaştırılmış yuvarlak pist görünümü.", "A zoomed, round track view centred on your car."],
   ov_minimap_h: ["Yakındaki araçları gösterir|İstersen gidiş yönü hep yukarıda|20 Hz akıcı hareket", "Shows nearby cars|Optional heading-up rotation|Smooth 20 Hz motion"],
-  ov_radar_n: ["Görsel Spotter", "Visual Spotter"],
-  ov_radar_d: ["Yanındaki ve yakınındaki araçları gösteren radar ya da iki yan çubuk.", "A radar, or two side bars, showing cars beside and near you."],
+  ov_radar_n: ["Radar", "Radar"],
+  ov_radar_d: ["Yanındaki ve yakınındaki araçları kuşbakışı gösteren radar.", "A top-down radar showing the cars beside and near you."],
   ov_radar_h: [
-    "İki görünüm: radar ya da sol / sağ spotter çubukları|Araç blokları boyuna konumlarına göre hareket eder|Görüş mesafesi ayarı, isteğe bağlı mesafe yazısı|Kimse yokken kendiliğinden gizlenir",
-    "Two views: radar, or left / right spotter bars|Car blocks move with their longitudinal position|Adjustable range, optional distance read-out|Hides itself when nobody is near",
+    "Araç blokları boyuna konumlarına göre hareket eder|Yanında araç varken o taraf kırmızıya döner|Görüş mesafesi ayarı, isteğe bağlı mesafe yazısı|Kimse yokken kendiliğinden gizlenir",
+    "Car blocks move with their longitudinal position|The side turns red while a car is alongside|Adjustable range, optional distance read-out|Hides itself when nobody is near",
+  ],
+  ov_spotterbar_n: ["Çubuk Spotter", "Spotter Bars"],
+  ov_spotterbar_d: [
+    "Ekranın solunda ve sağında ince birer çubuk: sadece yanında araç olan taraf yanar.",
+    "A thin bar on the left and right of the screen: only the side with a car alongside lights up.",
+  ],
+  ov_spotterbar_h: [
+    "İşaret, yandaki aracın arkadan öne ilerleyişini gösterir|Tek araç, iki yanda araç ve tehlikeli yakınlık için ayrı renkler|Kalınlık, yükseklik ve çubuklar arası mesafe ayarlanır; eklenince ekranın ortasına yerleşir|7 görünüm: Düz çubuk ücretsiz; Yay, Soluk uçlu, Segmentli, Ok uçlu, Neon çizgi ve Parantez PRO",
+    "A marker shows the car beside you moving from rear to front|Separate colours for one car, cars on both sides and dangerously close|Adjustable thickness, height and gap; lands at the screen centre when added|7 views: Flat bar is free; Arc, Faded ends, Segmented, Chevrons, Neon line and Bracket are PRO",
   ],
   ov_overtake_n: ["Hızlı Sınıf Uyarısı", "Faster Class Warning"],
   ov_overtake_d: ["Çok sınıflı yarışlarda arkadan yaklaşan daha hızlı sınıftaki araçlar.", "Faster-class cars catching you in multi-class races."],
@@ -231,8 +243,8 @@ addDict({
   ov_dashboard_n: ["Direksiyon Ekranı", "Steering Wheel Display"],
   ov_dashboard_d: ["Yarış direksiyonlarındaki ekranlar gibi bir gösterge paneli.", "A dash like the screens on racing steering wheels."],
   ov_dashboard_h: [
-    "Klasik, Minimal, Yarış ve Dayanıklılık görünümleri + araca göre otomatik seçim|PRO: gerçek yarış araçlarından esinlenen 10 araç tarzı ekran (F1, F3/F4/FR, üç GT3 tarzı, LMDh/LMH, stock car, ralli, TCR, yol arabası)|Devir ışıkları: bloklar, F1 (15 LED) ya da çubuk; vites noktasında yanıp söner|Delta referansı (kendi en iyin / oturumun en iyisi / optimal) ve seçilebilir alt kutular",
-    "Classic, Minimal, Race and Endurance views + automatic selection by car|PRO: 10 car-style displays inspired by real race cars (F1, F3/F4/FR, three GT3 styles, LMDh/LMH, stock car, rally, TCR, road car)|Shift lights: blocks, F1 (15 LEDs) or bar; flashes at the shift point|Delta reference (your best / session best / optimal) and selectable bottom boxes",
+    "Klasik, Minimal, Yarış ve Dayanıklılık görünümleri + araca göre otomatik seçim|PRO: gerçek yarış araçlarından esinlenen 10 araç tarzı ekran (F1, F3/F4/FR, üç GT3 tarzı, LMDh/LMH, stock car, ralli, TCR, yol arabası)|Devir ışıkları: bloklar, F1 (15 LED) ya da çubuk; vites noktasında yanıp söner|Delta referansı (kendi en iyin / oturumun en iyisi / optimal) ve seçilebilir alt kutular|Her öğe ayrı ayarlanır: göster / gizle, boyut ve renk (devir ışıkları, vites, hız, delta, tur süreleri, yakıt, lastikler…)|PRO: Dashboard Tasarımcısı – bileşenleri tuvale sürükleyip kendi ekranını tasarla, overlay olarak ekle|PRO: uzak gösterge – ekranı aynı ağdaki telefon ya da tablette aç (QR kodla)",
+    "Classic, Minimal, Race and Endurance views + automatic selection by car|PRO: 10 car-style displays inspired by real race cars (F1, F3/F4/FR, three GT3 styles, LMDh/LMH, stock car, rally, TCR, road car)|Shift lights: blocks, F1 (15 LEDs) or bar; flashes at the shift point|Delta reference (your best / session best / optimal) and selectable bottom boxes|Every element is adjustable: show / hide, size and colour (shift lights, gear, speed, delta, lap times, fuel, tyres…)|PRO: Dashboard Designer – drag widgets onto a canvas to build your own display and add it as an overlay|PRO: remote dash – open the display on a phone or tablet in the same network (QR code)",
   ],
   ov_inputs_n: ["Pedallar & Girdi", "Pedals & Inputs"],
   ov_inputs_d: ["Gaz / fren / debriyaj izi, pedal çubukları, vites, hız ve direksiyon.", "Throttle / brake / clutch trace, pedal bars, gear, speed and steering."],
@@ -345,8 +357,8 @@ addDict({
   ov_voice_n: ["Sesli Mühendis altyazısı", "Voice Engineer subtitles"],
   ov_voice_d: ["Mühendis ya da spotter konuşurken ne dediğini yazıyla gösterir.", "Shows what the engineer or spotter is saying, as text."],
   ov_voice_h: [
-    "Mühendis ve spotter ayrı renk ve etiketle|Sustuğunda kendiliğinden kaybolur|Sesli Mühendis (PRO) ile çalışır",
-    "Engineer and spotter in separate colours and labels|Disappears when they stop talking|Works with the Voice Engineer (PRO)",
+    "Mühendis ve spotter ayrı renk ve etiketle|Sustuğunda kendiliğinden kaybolur|Sesli Mühendis (PRO) ile çalışır|Sesli komutta sorduğun soru da \"Sen\" etiketiyle görünür",
+    "Engineer and spotter in separate colours and labels|Disappears when they stop talking|Works with the Voice Engineer (PRO)|Your voice-command question is shown too, labelled \"You\"",
   ],
 
   // ---- Canlı Sohbet ----
@@ -383,8 +395,8 @@ addDict({
   fx_vo_s3: ["ses kaydı (varyasyonlarla)", "recordings (with variations)"],
   fx_vo_s4: ["aç / kapat kategori", "toggleable categories"],
   fx_vo_points: [
-    "{0} ifadelik katalogdan {1} tanesi kullanılıyor: {2} konuşma ifadesi + {3} sayı ve süre parçası (sayılar, tur zamanları ve farklar bunlardan birleştirilir)|Her ifadenin birden çok kaydı var; aynı cümle her seferinde aynı tonda gelmez|İndirilebilir ses paketleri: programın içinden tek tıkla indir, kur, değiştir|Kendi paketini yap: program hazır şablon klasörü ve her ifade için metin verir, eksikleri denetler, WAV kayıtlarını OGG'ye çevirip paketler; istersen toplulukla paylaşmak için gönder|Crew Chief v4 klasör düzeniyle uyumlu|Mühendis ve spotter için ayrı ses düzeyi, virajda önemsiz mesajları bekletme, ovalde iç / dış, hangi oturumlarda konuşacağı|Altyazı overlay'i: söylenen her şey ekranda yazıyla da görünür",
-    "{1} of the {0} catalogue phrases are in use: {2} spoken phrases + {3} number and time fragments (numbers, lap times and gaps are assembled from these)|Every phrase has several recordings, so the same call doesn't always sound the same|Downloadable voice packs: download, install and switch in one click inside the app|Make your own pack: the app gives you a template folder with the text for each phrase, checks what's missing, converts WAV recordings to OGG and builds the pack; submit it to share with the community|Compatible with the Crew Chief v4 folder layout|Separate volumes for engineer and spotter, holds minor messages in corners, inside / outside on ovals, choose which sessions it talks in|Subtitle overlay: everything that is said also appears as text on screen",
+    "{0} ifadelik katalogdan {1} tanesi kullanılıyor: {2} konuşma ifadesi + {3} sayı ve süre parçası (sayılar, tur zamanları ve farklar bunlardan birleştirilir)|Her ifadenin birden çok kaydı var; aynı cümle her seferinde aynı tonda gelmez|İndirilebilir ses paketleri: programın içinden tek tıkla indir, kur, değiştir|Kendi paketini yap: program hazır şablon klasörü ve her ifade için metin verir, eksikleri denetler, WAV kayıtlarını OGG'ye çevirip paketler; istersen toplulukla paylaşmak için gönder|Crew Chief v4 klasör düzeniyle uyumlu|Mühendis ve spotter için ayrı ses düzeyi, virajda önemsiz mesajları bekletme, ovalde iç / dış, hangi oturumlarda konuşacağı|Altyazı overlay'i: söylenen her şey ekranda yazıyla da görünür|Sesli komut (bas-konuş): direksiyondaki bir düğmeyi ya da klavyeden bir tuşu basılı tutup sor — \"ne kadar yakıtım var\", \"kaç olay puanım var\", \"öndeki fark\" — mühendis sesle yanıtlar|24 komut, 15 dilde; arayüz dilinde dinler",
+    "{1} of the {0} catalogue phrases are in use: {2} spoken phrases + {3} number and time fragments (numbers, lap times and gaps are assembled from these)|Every phrase has several recordings, so the same call doesn't always sound the same|Downloadable voice packs: download, install and switch in one click inside the app|Make your own pack: the app gives you a template folder with the text for each phrase, checks what's missing, converts WAV recordings to OGG and builds the pack; submit it to share with the community|Compatible with the Crew Chief v4 folder layout|Separate volumes for engineer and spotter, holds minor messages in corners, inside / outside on ovals, choose which sessions it talks in|Subtitle overlay: everything that is said also appears as text on screen|Voice commands (push-to-talk): hold a wheel button or a keyboard key and ask — \"how much fuel do I have\", \"how many incidents\", \"gap ahead\" — the engineer answers by voice|24 commands in 15 languages; listens in the interface language",
   ],
   fx_vo_cat_t: ["Neler söyler?", "What does it say?"],
   fx_vo_cat_lead: ["{0} kategori; her birini ayrı ayrı açıp kapatabilirsin.", "{0} categories; each can be switched on or off."],
@@ -442,8 +454,8 @@ addDict({
   ],
   fx_so5_t: ["Güvenilir arkadaşla canlı veri", "Live data with trusted friends"],
   fx_so5_d: [
-    "Bir arkadaşını “güvenilir” işaretle; yakıtını, kalan turunu, en iyi / son turunu, son 10 turunu ve pistteki konumunu ayrı bir pencerede canlı izlesin. Dayanıklılık yarışlarında pit duvarı gibi. (PRO)",
-    "Mark a friend as “trusted” and they can watch your fuel, laps left, best / last lap, last 10 laps and track position live in a separate window — a pit wall for endurance races. (PRO)",
+    "Bir arkadaşını “güvenilir” işaretle; yakıtını, kalan turunu, en iyi / son turunu, son 10 turunu ve pistteki konumunu ayrı bir pencerede canlı izlesin. Dayanıklılık yarışlarında pit duvarı gibi. (PRO) Ekibine eklediğin arkadaşların Ekip Pitwall'ını uygulamadan ya da siteden açar: çevrendeki araçlar, farklar, bayraklar, yan araç göstergesi ve tek dokunuşla spotter mesajları. Konuşma → yazı açıksa ekibin söylediklerini altyazı olarak okur.",
+    "Mark a friend as “trusted” and they can watch your fuel, laps left, best / last lap, last 10 laps and track position live in a separate window — a pit wall for endurance races. (PRO) Friends on your crew open the Crew pit wall in the app or on the website: the cars around you, gaps, flags, a car-alongside indicator and one-tap spotter messages. With speech-to-text on, your crew reads what you say as subtitles.",
   ],
   fx_so6_t: ["Sürücü profili", "Driver profile"],
   fx_so6_d: ["Profil fotoğrafı, tanıtım yazısı ve sosyal bağlantılar; sitedeki Yarışçılar sayfasında turların ve istatistiklerin.", "Profile photo, bio and social links; your laps and stats on the website's Drivers page."],
@@ -510,7 +522,7 @@ addDict({
   fx_si_r3: ["Hava <span class=\"muted\">(AC: yağış / ıslaklık yok)</span>", "Weather <span class=\"muted\">(AC: no rain / wetness)</span>"],
   fx_si_r4: ["Lastikler <span class=\"muted\">(ACC: aşınma yok, AMS2: basınç yok)</span>", "Tyres <span class=\"muted\">(ACC: no wear, AMS2: no pressure)</span>"],
   fx_si_r5: ["Rakipler: Yakındakiler, Sıralama, Battle Box, Yakın Takip, Düz Harita", "Opponents: Relative, Standings, Battle Box, Close Battle, Flat Map"],
-  fx_si_r6: ["Görsel Spotter (radar)", "Visual Spotter (radar)"],
+  fx_si_r6: ["Radar ve Çubuk Spotter", "Radar and Spotter Bars"],
   fx_si_r7: ["Piste Dönüş", "Rejoin Helper"],
   fx_si_r8: ["Delta Bar", "Delta Bar"],
   fx_si_r9: ["Pit Hızı <span class=\"muted\">(iRacing dışında hız sınırı bilinmiyor; hız ve sınırlayıcı uyarısı çalışır)</span>", "Pit Speed <span class=\"muted\">(limit unknown outside iRacing; speed and limiter warning work)</span>"],
@@ -535,8 +547,8 @@ addDict({
   ],
   fx_pr_pro_t: ["PRO", "PRO"],
   fx_pr_pro: [
-    "Sesli mühendis ve spotter|Sohbet Anketi ve Altyazı overlay'leri|Canlı Sohbet: çoklu kanal, sesli okuma, altyazı, sohbete yazma, kayıt görüntüleyici|Araç tarzı direksiyon ekranları ve PRO pedal / direksiyon tasarımları|Güvenilir arkadaşlarla canlı veri paylaşımı|Topluluk düzenlerini ve temalarını kullanma, puanlama, yorum|Ekran görüntüsü ve tema paylaşma|Mesajları sesli okuma, arkadaş görünümünü özelleştirme|Aynı anda 2 bilgisayarda kullanım",
-    "Voice engineer and spotter|Chat Poll and Captions overlays|Live Chat: multiple channels, read-aloud, captions, writing to chat, log viewer|Car-style wheel displays and PRO pedal / steering wheel designs|Live data sharing with trusted friends|Using, rating and commenting on community layouts and themes|Sharing screenshots and themes|Message read-aloud, customising how friends look|Use on 2 computers at the same time",
+    "Sesli mühendis, spotter ve sesli komut (bas-konuş)|Sohbet Anketi ve Altyazı overlay'leri|Canlı Sohbet: çoklu kanal, sesli okuma, altyazı, sohbete yazma, kayıt görüntüleyici|Araç tarzı direksiyon ekranları ve PRO pedal / direksiyon tasarımları|Güvenilir arkadaşlarla canlı veri paylaşımı|Topluluk düzenlerini ve temalarını kullanma, puanlama, yorum|Ekran görüntüsü ve tema paylaşma|Mesajları sesli okuma, arkadaş görünümünü özelleştirme|Aynı anda 2 bilgisayarda kullanım",
+    "Voice engineer, spotter and voice commands (push-to-talk)|Chat Poll and Captions overlays|Live Chat: multiple channels, read-aloud, captions, writing to chat, log viewer|Car-style wheel displays and PRO pedal / steering wheel designs|Live data sharing with trusted friends|Using, rating and commenting on community layouts and themes|Sharing screenshots and themes|Message read-aloud, customising how friends look|Use on 2 computers at the same time",
   ],
   fx_pr_trial: [
     "Yeni hesaplara {0} günlük PRO denemesi: deneme süresince bütün PRO özellikleri açık, kart bilgisi gerekmez.",

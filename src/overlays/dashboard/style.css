@@ -13,6 +13,11 @@
   /* Yazı tipine göre rakam boyutu çarpanı (geniş fontlar taşmasın) */
   --dash-k: 1;
   --dash-red: #ff1f1f;
+  /* Devir ışığı renkleri ("Özel renkler kullan" bunları değiştirir) */
+  --dash-rpm-lo: var(--dash-green);
+  --dash-rpm-mid: var(--dash-yellow);
+  --dash-rpm-hi: var(--dash-accent);
+  --dash-rpm-shift: var(--dash-blue);
   --dash-font: "Rajdhani", "Barlow Condensed", "DIN Alternate", "Bahnschrift", system-ui, sans-serif;
 
   position: relative;
@@ -21,7 +26,7 @@
   padding: 6px 7px 5px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--dash-gap, 5px);
   background: rgba(4, 4, 5, var(--dash-bg-a));
   border: 1px solid #262626;
   border-radius: 6px;
@@ -77,7 +82,7 @@
   grid-template-columns: 1fr 40px 1fr;
   align-items: center;
   gap: 6px;
-  height: 18px;
+  height: calc(18px * var(--z-rpm, 1));
 }
 
 .dash-leds {
@@ -93,11 +98,11 @@
 }
 
 .dash-leds.blocks {
-  height: 16px;
+  height: calc(16px * var(--z-rpm, 1));
 }
 
 .dash-f1 {
-  height: 15px;
+  height: calc(15px * var(--z-rpm, 1));
   gap: 3px;
   padding: 0 4px;
 }
@@ -114,7 +119,7 @@
 
 .dash-bar {
   position: relative;
-  height: 12px;
+  height: calc(12px * var(--z-rpm, 1));
   border-radius: 2px;
   background: var(--dash-off);
   overflow: hidden;
@@ -148,11 +153,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 18px;
+  height: calc(18px * var(--z-rpm, 1));
 }
 
 .dash-emblem span {
-  font-size: 21px;
+  font-size: calc(21px * var(--z-rpm, 1));
   font-style: italic;
   font-weight: 700;
   color: var(--dash-text);
@@ -214,7 +219,7 @@
 }
 
 .dash-l {
-  font-size: 9.5px;
+  font-size: calc(9.5px * var(--z-label, 1));
   font-weight: 600;
   color: var(--dash-dim);
   letter-spacing: 0.04em;
@@ -248,6 +253,12 @@
 }
 .tone-neg {
   color: var(--dash-accent);
+}
+.el-delta .tone-pos {
+  color: var(--c-delta-fast, var(--dash-green));
+}
+.el-delta .tone-neg {
+  color: var(--c-delta-slow, var(--dash-accent));
 }
 
 .dash-gear {
@@ -339,8 +350,7 @@
 }
 
 .dash-row4 {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr 1.2fr 0.8fr;
+  display: flex;
   gap: 4px;
   padding: 6px 4px;
   border-top: 1px solid #262626;
@@ -386,4 +396,105 @@
 
 .dash-tyres .dash-v {
   font-size: calc(16px * var(--dash-k));
+}
+
+.dash-row4 > .dash-cell {
+  flex: 0.8 1 0;
+}
+.dash-row4 > .el-laps {
+  flex: 1.2 1 0;
+}
+
+/* ---------------------------------------------------------------- Öğe ayarları (boyut / renk / gizle) */
+
+.dash-gear {
+  zoom: var(--z-gear, 1);
+}
+.dash .el-speed {
+  zoom: var(--z-speed, 1);
+}
+.dash .el-delta {
+  zoom: var(--z-delta, 1);
+}
+.dash .el-laps {
+  zoom: var(--z-laps, 1);
+}
+.dash .el-pos {
+  zoom: var(--z-pos, 1);
+}
+.dash .el-boxes {
+  zoom: var(--z-boxes, 1);
+}
+.dash .el-fuel {
+  zoom: var(--z-fuel, 1);
+}
+.dash .el-tyres {
+  zoom: var(--z-tyres, 1);
+}
+.dash .el-temps {
+  zoom: var(--z-temps, 1);
+}
+.dash .el-extras {
+  zoom: var(--z-extras, 1);
+}
+.dash .el-speed .dash-v {
+  color: var(--c-speed, inherit);
+}
+.dash .el-laps,
+.dash .el-laps .dash-v {
+  color: var(--c-laps, inherit);
+}
+.dash .el-pos .dash-v {
+  color: var(--c-pos, inherit);
+}
+.dash .el-boxes .dash-v {
+  color: var(--c-boxes, inherit);
+}
+.dash .el-fuel .dash-v {
+  color: var(--c-fuel, inherit);
+}
+.dash .el-temps .dash-v,
+.dash .el-tyres .dash-v {
+  color: var(--c-temps, inherit);
+}
+.dash .dash-l.el-laps {
+  color: var(--dash-dim);
+}
+
+.dash.no-speed .el-speed,
+.dash.no-delta .el-delta,
+.dash.no-laps .el-laps,
+.dash.no-pos .el-pos,
+.dash.no-boxes .el-boxes,
+.dash.no-fuel .el-fuel,
+.dash.no-tyres .el-tyres,
+.dash.no-temps .el-temps,
+.dash.no-gear .dash-gear,
+.dash.no-labels .dash-l {
+  display: none;
+}
+/* Ana ızgaranın doğrudan hücreleri gizlenince yerleri korunur (vites ortada kalsın) */
+.dash.no-speed .dash-main > .el-speed,
+.dash.no-delta .dash-main > .el-delta,
+.dash.no-pos .dash-main > .el-pos {
+  display: flex;
+  visibility: hidden;
+}
+.dash.no-gear .dash-main {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.dash.no-frames .dash-main,
+.dash.no-frames .dash-box,
+.dash.no-frames .dash-grid6 .dash-cell {
+  border-color: transparent;
+  background: none;
+}
+.dash.no-border {
+  border-color: transparent;
+}
+
+/* Özel tasarım (Dashboard Tasarımcısı): tuval overlay genişliğine ölçeklenir */
+.dash-custom {
+  position: relative;
+  overflow: hidden;
 }

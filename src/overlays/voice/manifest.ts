@@ -14,6 +14,7 @@ export default defineOverlay({
   settings: [
     { key: "showEngineer", label: "Mühendis mesajlarını göster", type: "boolean", default: true },
     { key: "showSpotter", label: "Spotter mesajlarını göster", type: "boolean", default: true },
+    { key: "showDriver", label: "Sesli komutta sorduğun soruyu göster", type: "boolean", default: true },
     { key: "hold", label: "Konuşma bitince ekranda kalma süresi", type: "number", default: 2, min: 0, max: 15, step: 0.5, unit: "sn" },
     { key: "showIcon", label: "Hoparlör simgesi", type: "boolean", default: true, group: "Görünüm" },
     { key: "showRole", label: "Konuşan etiketi (Mühendis / Spotter)", type: "boolean", default: true, group: "Görünüm" },
@@ -34,5 +35,6 @@ export default defineOverlay({
     },
     { key: "engineerColor", label: "Mühendis rengi", type: "color", default: "#ff8a2a", group: "Görünüm" },
     { key: "spotterColor", label: "Spotter rengi", type: "color", default: "#2ec4b6", group: "Görünüm" },
+    { key: "driverColor", label: "Senin sorunun rengi", type: "color", default: "#8ab4f8", group: "Görünüm" },
   ],
 });

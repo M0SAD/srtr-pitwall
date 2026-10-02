@@ -10793,3 +10793,868 @@ create policy "site admin update" on storage.objects for update to authenticated
 drop policy if exists "site admin delete" on storage.objects;
 create policy "site admin delete" on storage.objects for delete to authenticated
   using (bucket_id = 'site' and public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- c55: Mesaj menüsü her sohbette aynı: "Benden sil" ve "Raporla" (1:1, grup, takım — uygulama ve site).
+--
+-- 1) Grup mesajında "Benden sil" (c45'te yoktu; takım sohbetindeki team_message_hidden düzeninin aynısı):
+--      group_message_hidden (user_id, message_id)   kişiye özel gizlenen grup mesajları (sadece kendi satırını okur)
+--      group_message_hidden_for(mesaj)              çağıran için gizli mi (security definer; RLS ve RPC'ler kullanır)
+--      group_message_hide(mesaj)                    grubun üyesi mesajı kendi görünümünden kaldırır (sistem mesajı da olur)
+--    group_messages okuma kuralı, group_chat() ve my_groups() (okunmamış sayısı + son mesaj) çağıranın gizlediği
+--    mesajları artık saymaz / döndürmez.
+--
+-- 2) Takım sohbeti mesajını raporlama (c30'da yoktu; group_message_report'un aynısı):
+--      message_reports.team_message_id / team_name
+--      team_message_report(mesaj, sebep, not)       takımındaki BAŞKASININ mesajını yöneticilere raporla
+--                                                   (silinmiş mesaj ve sistem mesajı raporlanamaz; anket mesajında
+--                                                   metin olarak anket sorusu saklanır). Günde 20 rapor sınırı ortak.
+--    admin_message_reports() takım raporlarını da döndürür (team_message_id, team_name; message_exists takım için de
+--    hesaplanır); admin_message_report_set(…, 'delete_message') takım mesajını "herkesten silindi" yapar
+--    (anket varsa kapatılır — team_message_delete ile aynı).
+-- Sıra: c30 (takımlar), c45 (sohbet grupları) sonrasında.
+-- ---------------------------------------------------------------------------
+
+-- ===========================================================================
+-- 1) Grup mesajı: benden sil
+-- ===========================================================================
+create table if not exists public.group_message_hidden (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  message_id uuid not null references public.group_messages (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, message_id)
+);
+create index if not exists group_message_hidden_message on public.group_message_hidden (message_id);
+alter table public.group_message_hidden enable row level security;
+drop policy if exists "own hidden group messages" on public.group_message_hidden;
+create policy "own hidden group messages" on public.group_message_hidden for select using (auth.uid() = user_id);
+grant select on public.group_message_hidden to authenticated;
+grant all on public.group_message_hidden to service_role;
+
+create or replace function public.group_message_hidden_for(p_id uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.group_message_hidden h where h.user_id = auth.uid() and h.message_id = p_id);
+$$;
+revoke all on function public.group_message_hidden_for(uuid) from public, anon;
+grant execute on function public.group_message_hidden_for(uuid) to authenticated, service_role;
+
+drop policy if exists "group messages members" on public.group_messages;
+create policy "group messages members" on public.group_messages for select using (
+  public.is_group_member(group_id) and not public.group_message_hidden_for(id));
+
+-- Mesajı sadece kendi görünümünden kaldır
+create or replace function public.group_message_hide(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  m public.group_messages;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  select * into m from public.group_messages where id = p_id;
+  if m.id is null or not public.is_group_member(m.group_id) then
+    raise exception 'Mesaj bulunamadı';
+  end if;
+  insert into public.group_message_hidden (user_id, message_id) values (auth.uid(), p_id) on conflict do nothing;
+end $$;
+revoke all on function public.group_message_hide(uuid) from public, anon;
+grant execute on function public.group_message_hide(uuid) to authenticated;
+
+-- group_chat (c45): çağıranın gizlediği mesajlar gelmez
+create or replace function public.group_chat(p_group uuid, p_before timestamptz default null, p_limit int default 80) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_group_member(p_group) then
+    raise exception 'Bu grupta değilsin';
+  end if;
+  return coalesce((
+    select jsonb_agg(x.j order by x.created_at) from (
+      select m.created_at, jsonb_build_object('id', m.id, 'group_id', m.group_id, 'sender', m.sender,
+               'sender_name', coalesce(p.display_name, '?'), 'body', m.body, 'meta', m.meta, 'deleted', m.deleted,
+               'created_at', m.created_at) as j
+      from public.group_messages m
+      left join public.profiles p on p.id = m.sender
+      where m.group_id = p_group and (p_before is null or m.created_at < p_before)
+        and not public.group_message_hidden_for(m.id)
+      order by m.created_at desc
+      limit least(greatest(coalesce(p_limit, 80), 1), 200)
+    ) x), '[]'::jsonb);
+end $$;
+
+-- my_groups (c45): okunmamış sayısı ve son mesaj, gizlenen mesajları saymaz (dönüş sütunları aynı)
+create or replace function public.my_groups()
+returns table (group_id uuid, name text, owner_id uuid, is_owner boolean, muted boolean, unread int,
+               last_body text, last_at timestamptz, last_sender uuid, last_sender_name text, last_system boolean,
+               member_count int, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select g.id, g.name, g.owner_id, g.owner_id = auth.uid(), m.muted,
+         (select count(*)::int from public.group_messages x
+          where x.group_id = g.id and x.created_at > m.last_read_at
+            and x.sender is distinct from auth.uid() and not x.deleted
+            and not public.group_message_hidden_for(x.id)),
+         lm.body, lm.created_at, lm.sender, lm.sender_name, coalesce(lm.is_system, false),
+         (select count(*)::int from public.chat_group_members c where c.group_id = g.id),
+         g.created_at
+  from public.chat_group_members m
+  join public.chat_groups g on g.id = m.group_id
+  left join lateral (
+    select x.body, x.created_at, x.sender, coalesce(p.display_name, '?') as sender_name, x.meta is not null as is_system
+    from public.group_messages x left join public.profiles p on p.id = x.sender
+    where x.group_id = g.id and not x.deleted and not public.group_message_hidden_for(x.id)
+    order by x.created_at desc limit 1) lm on true
+  where m.user_id = auth.uid()
+  order by coalesce(lm.created_at, g.created_at) desc, g.name;
+$$;
+revoke all on function public.group_chat(uuid, timestamptz, int), public.my_groups() from public, anon;
+grant execute on function public.group_chat(uuid, timestamptz, int), public.my_groups() to authenticated;
+
+-- ===========================================================================
+-- 2) Takım mesajı raporu
+-- ===========================================================================
+alter table public.message_reports add column if not exists team_message_id uuid references public.team_messages (id) on delete set null;
+alter table public.message_reports add column if not exists team_name text;
+create unique index if not exists message_reports_team_once on public.message_reports (reporter, team_message_id)
+  where team_message_id is not null;
+
+create or replace function public.team_message_report(p_message uuid, p_reason text, p_note text default '') returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  m public.team_messages;
+  rid uuid;
+  t_name text;
+  v_body text;
+begin
+  if me is null then
+    raise exception 'Raporlamak için giriş yapmalısın';
+  end if;
+  if p_reason not in ('harassment', 'spam', 'inappropriate', 'scam', 'other') then
+    raise exception 'Geçersiz sebep';
+  end if;
+  select * into m from public.team_messages where id = p_message;
+  if m.id is null or m.deleted or m.meta is not null or not public.is_team_member(m.team_id) or m.sender is not distinct from me then
+    raise exception 'Sadece takımındaki başkasının mesajını raporlayabilirsin';
+  end if;
+  if (select count(*) from public.message_reports where reporter = me and created_at > now() - interval '1 day') >= 20 then
+    raise exception 'Bugün çok fazla rapor gönderdin';
+  end if;
+  if exists (select 1 from public.message_reports where reporter = me and team_message_id = p_message) then
+    raise exception 'Bu mesajı zaten raporladın';
+  end if;
+  select name into t_name from public.teams where id = m.team_id;
+  -- Anket mesajının gövdesi boş olabilir: rapora anket sorusu yazılır
+  v_body := m.body;
+  if coalesce(v_body, '') = '' and m.poll_id is not null then
+    select '📊 ' || question into v_body from public.team_polls where id = m.poll_id;
+  end if;
+  v_body := coalesce(v_body, '');
+  insert into public.message_reports (team_message_id, team_name, reporter, reported, reason, note, body, message_at)
+    values (p_message, t_name, me, m.sender, p_reason, left(trim(coalesce(p_note, '')), 500), v_body, m.created_at)
+    returning id into rid;
+  insert into public.notifications (user_id, kind, data)
+    select p.id, 'message_reported', jsonb_build_object(
+      'report', rid, 'reason', p_reason, 'text', left(v_body, 200), 'note', left(trim(coalesce(p_note, '')), 200),
+      'team_name', t_name,
+      'reporter', me, 'reporter_name', coalesce((select display_name from public.profiles where id = me), '?'),
+      'reported', m.sender, 'reported_name', coalesce((select display_name from public.profiles where id = m.sender), '?'))
+    from public.profiles p where p.is_admin;
+  return rid;
+end $$;
+revoke all on function public.team_message_report(uuid, text, text) from public, anon;
+grant execute on function public.team_message_report(uuid, text, text) to authenticated;
+
+-- Yönetici: mesaj raporları (c27, c45) — takım mesajı raporları da gelir (team_name dolu)
+create or replace function public.admin_message_reports(p_status text default 'open') returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return coalesce((
+    select jsonb_agg(to_jsonb(x) order by x.created_at desc) from (
+      select r.id, r.message_id, r.group_message_id, r.group_name, r.team_message_id, r.team_name,
+             r.reason, r.note, r.body, r.message_at, r.status,
+             r.created_at, r.handled_at,
+             r.reporter, coalesce(a.display_name, '?') as reporter_name,
+             r.reported, coalesce(b.display_name, '?') as reported_name,
+             coalesce(h.display_name, '') as handled_name,
+             (r.message_id is not null
+              or exists (select 1 from public.group_messages gm where gm.id = r.group_message_id and not gm.deleted)
+              or exists (select 1 from public.team_messages tm where tm.id = r.team_message_id and not tm.deleted)) as message_exists,
+             (select count(*)::int from public.message_reports o where o.reported = r.reported and r.reported is not null) as reported_total
+      from public.message_reports r
+      left join public.profiles a on a.id = r.reporter
+      left join public.profiles b on b.id = r.reported
+      left join public.profiles h on h.id = r.handled_by
+      where coalesce(p_status, '') = '' or r.status = p_status
+      order by r.created_at desc
+      limit 300
+    ) x), '[]'::jsonb);
+end $$;
+
+-- Yönetici işlemleri (c27, c45): dismiss | resolve | reopen | delete_message — takım mesajı da "herkesten silindi" yapılır
+create or replace function public.admin_message_report_set(p_id uuid, p_action text) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  r public.message_reports;
+  v_poll uuid;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  select * into r from public.message_reports where id = p_id for update;
+  if r.id is null then
+    raise exception 'Rapor bulunamadı';
+  end if;
+  if p_action = 'dismiss' then
+    update public.message_reports set status = 'dismissed', handled_by = auth.uid(), handled_at = now() where id = p_id;
+  elsif p_action = 'resolve' then
+    update public.message_reports set status = 'resolved', handled_by = auth.uid(), handled_at = now() where id = p_id;
+  elsif p_action = 'reopen' then
+    update public.message_reports set status = 'open', handled_by = null, handled_at = null where id = p_id;
+  elsif p_action = 'delete_message' then
+    -- Aynı mesajın tüm raporları kapanır; mesaj silinir (rapordaki kopya kalır)
+    if r.message_id is not null then
+      update public.message_reports set status = 'removed', handled_by = auth.uid(), handled_at = now()
+        where message_id = r.message_id;
+      delete from public.messages where id = r.message_id;
+    elsif r.group_message_id is not null then
+      update public.message_reports set status = 'removed', handled_by = auth.uid(), handled_at = now()
+        where group_message_id = r.group_message_id;
+      update public.group_messages set deleted = true, body = '', meta = null where id = r.group_message_id;
+    elsif r.team_message_id is not null then
+      update public.message_reports set status = 'removed', handled_by = auth.uid(), handled_at = now()
+        where team_message_id = r.team_message_id;
+      update public.team_messages set deleted = true, body = '' where id = r.team_message_id returning poll_id into v_poll;
+      if v_poll is not null then
+        update public.team_polls set ends_at = least(ends_at, now()), updated_at = now() where id = v_poll;
+      end if;
+    else
+      update public.message_reports set status = 'removed', handled_by = auth.uid(), handled_at = now() where id = p_id;
+    end if;
+  else
+    raise exception 'Geçersiz işlem';
+  end if;
+  perform public.log_mod('message_report_' || p_action, 'message',
+    coalesce(r.message_id::text, r.group_message_id::text, r.team_message_id::text, ''), r.reported,
+    jsonb_build_object('reason', r.reason, 'body', left(r.body, 200), 'report', r.id,
+                       'group_name', r.group_name, 'team_name', r.team_name));
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- c56: Üyenin kendi iRacing bilgileri (iRating, lisans + SR, ülke) profilde ve demo vitrininde.
+--      Kaynak: iRacing API'si YOK. Program, giriş yapmış üye iRacing'de bir oturuma girdiğinde oturum bilgisinden
+--      (DriverInfo) SADECE KENDİ aracının değerlerini okur ve profile_set_iracing ile hesabına yazar. Başka
+--      sürücülerin verisi hiçbir zaman gönderilmez. Üye bu sürümle en az bir kez iRacing'e girene kadar değerler boştur.
+--      1) profile_iracing tablosu (üye başına bir satır): irating, license ("A 3.42"), lic_color ("#0153db"),
+--         country (iRacing "flair" kısa kodu, ör. TR / DE; programdaki bayrak bileşeninin beklediği kod), cust_id
+--         (iRacing üye no), category (son sürülen serinin kategorisi: road / oval / dirtroad / dirtoval ...; iRating
+--         ve lisans kategoriye özeldir), updated_at. profiles herkese okunur olduğundan ayrı tabloda ve RLS ile
+--         korunur (sadece sahibi / yönetici doğrudan okur). profiles.ir_public (varsayılan true):
+--         "iRacing bilgilerimi profilimde göster".
+--      2) profile_set_iracing(iRating, lisans, renk, ülke, üye no, kategori): doğrular (aralık, uzunluk, biçim) ve
+--         kaydeder; değer değişmediyse ve son yazım 10 dakikadan yeniyse dokunmaz. jsonb {ok, changed} döner.
+--      3) profile_iracing_public_set(açık): gizlilik ayarı. Kapalıyken değerler public_profile ve demo vitrininde
+--         dönmez (üyenin kendisi kendi profilinde görmeye devam eder; 'public': false ile işaretlenir).
+--      4) public_profile(kullanıcı): c31'deki alanlara ek 'iracing' nesnesi
+--         {irating, license, lic_color, country, category, updated_at, public} (veri yoksa / gizliyse null).
+--      5) demo_pro_drivers(p_limit): demo_pro_names'in (c33) zengin hali. Herkese açık; aktif PRO üyelerden vitrine
+--         izin verenlerin [{name, country, irating, license, lic_color}] listesi (rastgele sıra, en fazla 100).
+--         iRacing bilgisi olmayan ya da gizleyen üyede bu alanlar null döner: program o sürücüye bayrak GÖSTERMEZ
+--         (yanıltıcı rastgele bayrak yok) ve iR/SR'yi eskisi gibi kendisi üretir. demo_pro_names aynen durur
+--         (eski sürümler ve canlı sohbet benzetimi kullanır).
+-- Sıra: c31 (public_profile) ve c33 (demo_showcase) sonrasında.
+-- ---------------------------------------------------------------------------
+
+-- 1) Tablo ve profil ayarı -------------------------------------------------------------
+-- profiles herkese okunur olduğu için değerler AYRI tabloda durur (RLS: sadece sahibi ve yönetici okur);
+-- başkaları yalnızca aşağıdaki RPC'ler üzerinden ve gizlilik ayarına uyularak görür. Yazma sadece RPC ile.
+create table if not exists public.profile_iracing (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  irating int not null check (irating between 1 and 20000),
+  license text not null check (license ~ '^[A-Za-z/]{1,6} [0-9]{1,2}\.[0-9]{2}$'),
+  lic_color text check (lic_color is null or lic_color ~ '^#[0-9a-f]{6}$'),
+  country text check (country is null or country ~ '^[A-Z0-9-]{2,8}$'),
+  cust_id bigint check (cust_id is null or cust_id > 0),
+  category text check (category is null or category ~ '^[a-z]{2,16}$'),
+  updated_at timestamptz not null default now()
+);
+alter table public.profile_iracing enable row level security;
+drop policy if exists "profile_iracing own read" on public.profile_iracing;
+create policy "profile_iracing own read" on public.profile_iracing for select to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+revoke all on public.profile_iracing from anon, authenticated;
+grant select on public.profile_iracing to authenticated;
+grant all on public.profile_iracing to service_role;
+
+alter table public.profiles add column if not exists ir_public boolean not null default true;
+
+-- 2) Kendi iRacing bilgilerini kaydet ------------------------------------------------------
+create or replace function public.profile_set_iracing(
+  p_irating int,
+  p_license text,
+  p_lic_color text default null,
+  p_country text default null,
+  p_cust_id bigint default null,
+  p_category text default null
+) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_lic text := nullif(regexp_replace(trim(coalesce(p_license, '')), '\s+', ' ', 'g'), '');
+  v_col text := nullif(lower(trim(coalesce(p_lic_color, ''))), '');
+  v_cty text := nullif(upper(trim(coalesce(p_country, ''))), '');
+  v_cat text := nullif(lower(regexp_replace(coalesce(p_category, ''), '[^A-Za-z]', '', 'g')), '');
+  v_cust bigint := case when p_cust_id > 0 then p_cust_id end;
+  cur public.profile_iracing;
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if p_irating is null or p_irating < 1 or p_irating > 20000 then
+    raise exception 'Geçersiz iRating';
+  end if;
+  if v_lic is null or v_lic !~ '^[A-Za-z/]{1,6} [0-9]{1,2}\.[0-9]{2}$' then
+    raise exception 'Geçersiz lisans';
+  end if;
+  -- İsteğe bağlı alanlar: biçime uymayan değer hata değil, boş sayılır
+  if v_col is not null and v_col !~ '^#[0-9a-f]{6}$' then
+    v_col := null;
+  end if;
+  if v_cty is not null and v_cty !~ '^[A-Z0-9-]{2,8}$' then
+    v_cty := null;
+  end if;
+  if v_cat is not null and v_cat !~ '^[a-z]{2,16}$' then
+    v_cat := null;
+  end if;
+
+  if not exists (select 1 from public.profiles where id = me) then
+    raise exception 'Profil bulunamadı';
+  end if;
+  select * into cur from public.profile_iracing where user_id = me;
+  if cur.user_id is not null then
+    -- Değişiklik yoksa ve son yazım yeniyse dokunma (istemci de aynı kuralı uygular)
+    if cur.updated_at > now() - interval '10 minutes'
+       and cur.irating = p_irating
+       and cur.license = v_lic
+       and cur.lic_color is not distinct from v_col
+       and cur.country is not distinct from v_cty
+       and cur.cust_id is not distinct from v_cust
+       and cur.category is not distinct from v_cat then
+      return jsonb_build_object('ok', true, 'changed', false);
+    end if;
+    -- Çok sık yazımı sınırla (en çok 20 saniyede bir)
+    if cur.updated_at > now() - interval '20 seconds' then
+      return jsonb_build_object('ok', true, 'changed', false);
+    end if;
+  end if;
+  insert into public.profile_iracing (user_id, irating, license, lic_color, country, cust_id, category, updated_at)
+  values (me, p_irating, v_lic, v_col, v_cty, v_cust, v_cat, now())
+  on conflict (user_id) do update
+    set irating = excluded.irating, license = excluded.license, lic_color = excluded.lic_color,
+        country = excluded.country, cust_id = excluded.cust_id, category = excluded.category,
+        updated_at = excluded.updated_at;
+  return jsonb_build_object('ok', true, 'changed', true);
+end $$;
+revoke all on function public.profile_set_iracing(int, text, text, text, bigint, text) from public, anon;
+grant execute on function public.profile_set_iracing(int, text, text, text, bigint, text) to authenticated, service_role;
+
+-- 3) Gizlilik: "iRacing bilgilerimi profilimde göster" ---------------------------------------
+create or replace function public.profile_iracing_public_set(p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  update public.profiles set ir_public = coalesce(p_on, true) where id = auth.uid();
+end $$;
+revoke all on function public.profile_iracing_public_set(boolean) from public, anon;
+grant execute on function public.profile_iracing_public_set(boolean) to authenticated, service_role;
+
+-- 4) Herkese açık profil (c31 + iRacing bilgileri) ----------------------------------------
+create or replace function public.public_profile(p_user uuid) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  p public.profiles;
+  ir public.profile_iracing;
+  v_me boolean;
+begin
+  select * into p from public.profiles where id = p_user;
+  if p.id is null then
+    return null;
+  end if;
+  v_me := auth.uid() is not null and p.id = auth.uid();
+  select * into ir from public.profile_iracing where user_id = p.id;
+  return jsonb_build_object(
+    'id', p.id,
+    'display_name', p.display_name,
+    'avatar_path', p.avatar_path,
+    'iracing_name', p.iracing_name,
+    'bio', coalesce(p.bio, ''),
+    'socials', coalesce(p.socials, '[]'::jsonb),
+    'is_pro', coalesce(p.is_admin, false) or coalesce(p.pro_until > now(), false),
+    'created_at', p.created_at,
+    'is_me', v_me,
+    'friend', case when auth.uid() is not null then
+      (select f.status from public.friendships f where f.user_id = auth.uid() and f.friend_id = p.id) end,
+    'sims', coalesce((
+      select jsonb_agg(jsonb_build_object('sim', d.sim, 'sim_name', d.sim_name) order by d.last_seen desc)
+      from public.driver_identities d where d.user_id = p.id and d.sim_name <> ''), '[]'::jsonb),
+    'teams', coalesce((
+      select jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name, 'tag', t.tag, 'color', t.color,
+               'logo_path', t.logo_path, 'role', m.role) order by m.joined_at)
+      from public.team_members m join public.teams t on t.id = m.team_id where m.user_id = p.id), '[]'::jsonb),
+    -- iRacing bilgileri: veri varsa ve üye izin veriyorsa (kendi profilinde her zaman; 'public' ayarı gösterir)
+    'iracing', case when ir.user_id is not null and (coalesce(p.ir_public, true) or v_me) then
+      jsonb_build_object('irating', ir.irating, 'license', ir.license, 'lic_color', ir.lic_color,
+                         'country', ir.country, 'category', ir.category, 'updated_at', ir.updated_at,
+                         'public', coalesce(p.ir_public, true)) end);
+end $$;
+grant execute on function public.public_profile(uuid) to anon, authenticated, service_role;
+
+-- 5) Demo vitrini sürücüleri (ad + gerçek bayrak / iRating / lisans) ----------------------------
+create or replace function public.demo_pro_drivers(p_limit int default 40) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'name', x.n, 'country', x.country, 'irating', x.irating, 'license', x.license, 'lic_color', x.lic_color)), '[]'::jsonb)
+  from (
+    select y.* from (
+      select distinct on (lower(trim(p.display_name)))
+             trim(p.display_name) as n,
+             i.country, i.irating, i.license, i.lic_color
+      from public.profiles p
+      left join public.profile_iracing i on i.user_id = p.id and p.ir_public
+      where p.demo_showcase
+        and coalesce(p.pro_until > now(), false)
+        and char_length(trim(p.display_name)) between 2 and 32
+      order by lower(trim(p.display_name)), i.updated_at desc nulls last
+    ) y
+    order by random()
+    limit greatest(1, least(coalesce(p_limit, 40), 100))
+  ) x;
+$$;
+revoke all on function public.demo_pro_drivers(int) from public;
+grant execute on function public.demo_pro_drivers(int) to anon, authenticated, service_role;
+
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- c57: Sesli komut (bas-konuş) PRO özelliği kataloğu (Yönetim › PRO özellikleri).
+--      Sürücü bir direksiyon düğmesini ya da klavye tuşunu basılı tutup sesli mühendise soru sorar
+--      ("ne kadar yakıtım var", "kaç olay puanım var"…); mühendis sesli cevap verir.
+--      Anahtar programda tanımlı (src/sdk/proFeatures.ts) ve Rust tarafında denetleniyor
+--      (src-tauri/src/voicecmd.rs allowed: "voice.commands" kilidi + sesli mühendisin kendi kilidi "voice").
+--      Sunucuda tablo / RPC denetimi yok: özelliğin verisi sunucudan geçmez; karar pro_features tablosunda tutulur,
+--      program pro_features_map() ile okur (c38/c40/c46 ile aynı düzen). Bu dosya yalnızca kataloğu (ad, grup,
+--      varsayılan) önceden yazar; böylece web sitesindeki yönetim paneli, programdaki "kataloğu eşitle" beklenmeden
+--      satırı gösterir. Yöneticinin daha önce verdiği kararlara (pro_features) DOKUNULMAZ.
+--        voice.commands   Sesli komut (bas-konuş) — varsayılan: PRO (sesli mühendisin kendisi de PRO)
+-- Sıra: c38'den sonra (pro_feature_catalog tablosu gerekir). Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+insert into public.pro_feature_catalog (key, label, grp, default_pro, updated_at) values
+  ('voice.commands', 'Sesli komut (bas-konuş: mühendise sesle soru sormak)', 'Ses', true, now())
+on conflict (key) do update
+  set label = excluded.label, grp = excluded.grp, default_pro = excluded.default_pro, updated_at = now();
+
+-- ---------------------------------------------------------------------------
+-- c58: Ekip — (1) ana anahtar PRO üyede varsayılan AÇIK, (2) Ekip Pitwall'ı (uzaktan pit duvarı).
+--
+-- 1) "Ekibim pit ayarlarımı değiştirebilsin" (crew_prefs.control_on)
+--    c53'te crew_prefs satırı olmayan sürücünün ana anahtarı KAPALI sayılıyordu. Artık:
+--      - Sürücü anahtara dokunduysa (control_on true / false) her zaman o geçerli: "Durdur" / kısayol ile
+--        kapattıysa kapalı kalır, PRO olsa bile kendiliğinden açılmaz.
+--      - Hiç dokunmadıysa (satır yok ya da control_on NULL): sürücü PRO ise AÇIK, değilse KAPALI.
+--    Bunun için control_on sütunu NULL olabilir hâle gelir (NULL = "dokunulmadı"); böylece yalnızca pitwall
+--    anahtarı için satır açılması ana anahtarı kapalıya çekmez.
+--    PRO üyeliği biterse dokunmamış sürücünün anahtarı kendiliğinden kapalıya döner; ayrıca özellik PRO'ya
+--    özelken (social.crew) crew_accepts() zaten her komutta sürücünün PRO'sunu arar.
+--
+-- 2) Ekip Pitwall'ı: ekip üyesi sürücünün çevresindeki araçları, tur / delta / bayrak / hava bilgisini ve
+--    spotter durumunu (solda / sağda araç) saniyede bir izler; uygulamadan ya da web sitesinden.
+--    Taşıma: veritabanı. crew_wall (owner, data, updated_at) tek satırlık, UNLOGGED (WAL yazmaz; sunucu
+--    çökerse içerik kaybolur, sorun değil) bir tablodur ve Realtime yayınında DEĞİLDİR.
+--      - Sürücünün uygulaması crew_wall_push(veri) ile saniyede bir yazar; fonksiyon o an paneli açık
+--        olan (seen_at son 45 sn) ekip üyesi sayısını döner. Kimse izlemiyorsa uygulama veri göndermez,
+--        5 sn'de bir crew_wall_push(null) ile yalnızca izleyen var mı diye sorar.
+--      - Ekip üyesi crew_wall(p_owner) ile saniyede bir okur (seen_at'i de yazar). Yetki crew_role() ile
+--        fonksiyonun içinde denetlenir; tabloda kimseye doğrudan okuma / yazma hakkı yoktur.
+--      - Sürücü "Ekibim canlı pitwall'ımı izleyebilsin" anahtarını (crew_prefs.wall_on, varsayılan AÇIK)
+--        kapatırsa veri yazılmaz, saklanan satır silinir ve crew_wall() {on:false} döner. Eski ekip paneli
+--        (live_data.data.crew, 3 sn) bundan etkilenmez.
+--    Sunucu içeriğe bakmaz; yalnızca nesne olduğunu ve 24 KB'ı geçmediğini denetler.
+--
+-- Yeni / değişen:
+--   crew_prefs.control_on        NULL olabilir (dokunulmadı);  crew_prefs.wall_on boolean (varsayılan true)
+--   crew_wall                    tablo (yukarıda)
+--   crew_control_effective(p_owner) -> boolean   (yardımcı; dışarıya kapalı)
+--   crew_accepts(p_owner)        etkin değeri kullanır (crew_drivers / crew_driver / crew_command değişmedi)
+--   crew_state()                 control_on artık ETKİN değer; yeni alanlar control_default, wall_on
+--   crew_wall_set(p_on)          sürücü: pitwall anahtarı
+--   crew_wall_push(p_data) -> jsonb {watchers, wall_on}   sürücünün uygulaması
+--   crew_wall(p_owner) -> jsonb {on, age_ms, data}        ekip üyesi
+-- Sıra: c53 sonrasında. Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+-- ===========================================================================
+-- 1) Ana anahtar: PRO üyede varsayılan açık
+-- ===========================================================================
+alter table public.crew_prefs alter column control_on drop not null;
+alter table public.crew_prefs alter column control_on drop default;
+alter table public.crew_prefs add column if not exists wall_on boolean not null default true;
+
+-- Ana anahtarın etkin değeri: sürücü dokunduysa o, dokunmadıysa PRO üyede açık
+create or replace function public.crew_control_effective(p_owner uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select control_on from public.crew_prefs where user_id = p_owner),
+                  public.user_is_pro(p_owner), false);
+$$;
+revoke all on function public.crew_control_effective(uuid) from public, anon, authenticated;
+grant execute on function public.crew_control_effective(uuid) to service_role;
+
+-- Sürücü şu an uzaktan komut kabul ediyor mu: ana anahtar (etkin değer) açık ve (özellik PRO'ya özelse) sürücü PRO
+create or replace function public.crew_accepts(p_owner uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.crew_control_effective(p_owner)
+     and (not public.feature_requires_pro('social.crew', true) or public.user_is_pro(p_owner));
+$$;
+revoke all on function public.crew_accepts(uuid) from public, anon, authenticated;
+grant execute on function public.crew_accepts(uuid) to service_role;
+
+create or replace function public.crew_state() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'control_on', public.crew_control_effective(auth.uid()),
+    'control_default', not exists (select 1 from public.crew_prefs where user_id = auth.uid() and control_on is not null),
+    'wall_on', coalesce((select wall_on from public.crew_prefs where user_id = auth.uid()), true),
+    'needs_pro', public.feature_requires_pro('social.crew', true) and not public.is_pro(),
+    'count', (select count(*)::int from public.crew_members where owner = auth.uid()),
+    'max', 10);
+$$;
+revoke all on function public.crew_state() from public, anon;
+grant execute on function public.crew_state() to authenticated;
+
+-- ===========================================================================
+-- 2) Ekip Pitwall'ı
+-- ===========================================================================
+create unlogged table if not exists public.crew_wall (
+  owner uuid primary key references public.profiles (id) on delete cascade,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.crew_wall enable row level security;
+-- Kural yok: yalnızca aşağıdaki security definer fonksiyonlar okur / yazar
+revoke all on public.crew_wall from public, anon, authenticated;
+grant all on public.crew_wall to service_role;
+
+-- Sürücü: "Ekibim canlı pitwall'ımı izleyebilsin". Ana anahtara (control_on) dokunmaz.
+create or replace function public.crew_wall_set(p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  insert into public.crew_prefs (user_id, control_on, wall_on, updated_at)
+    values (auth.uid(), null, coalesce(p_on, true), now())
+    on conflict (user_id) do update set wall_on = excluded.wall_on, updated_at = now();
+  if not coalesce(p_on, true) then
+    delete from public.crew_wall where owner = auth.uid();
+  end if;
+end $$;
+revoke all on function public.crew_wall_set(boolean) from public, anon;
+grant execute on function public.crew_wall_set(boolean) to authenticated;
+
+-- Sürücünün uygulaması: pitwall verisini yaz (p_data null: yalnızca "izleyen var mı" sorusu).
+-- Veri yalnızca anahtar açıksa ve o an izleyen varsa saklanır. Dönüş: {watchers, wall_on}.
+create or replace function public.crew_wall_push(p_data jsonb default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_on boolean;
+  n int;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  v_on := coalesce((select wall_on from public.crew_prefs where user_id = auth.uid()), true);
+  select count(*)::int into n
+    from public.crew_members c
+    join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+    where c.owner = auth.uid() and (c.can_view or c.can_control)
+      and c.seen_at > now() - interval '45 seconds';
+  if not v_on then
+    delete from public.crew_wall where owner = auth.uid();
+  elsif p_data is not null and n > 0 then
+    if jsonb_typeof(p_data) <> 'object' or octet_length(p_data::text) > 24000 then
+      raise exception 'Pitwall verisi geçersiz';
+    end if;
+    insert into public.crew_wall as w (owner, data, updated_at) values (auth.uid(), p_data, now())
+      on conflict (owner) do update set data = excluded.data, updated_at = now()
+      where w.updated_at < now() - interval '300 milliseconds';
+  end if;
+  return jsonb_build_object('watchers', n, 'wall_on', v_on);
+end $$;
+revoke all on function public.crew_wall_push(jsonb) from public, anon;
+grant execute on function public.crew_wall_push(jsonb) to authenticated;
+
+-- Ekip üyesi: sürücünün pitwall verisi (saniyede bir). "Bağlı" göstergesi için seen_at'i 10 sn'de bir yazar.
+-- on: sürücü pitwall'ı açık tutuyor; data: 15 sn'den eski değilse son veri; age_ms: verinin yaşı.
+create or replace function public.crew_wall(p_owner uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  c public.crew_members%rowtype;
+  w public.crew_wall%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = auth.uid();
+  if not found or not public.crew_role(p_owner, auth.uid(), false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  if c.seen_at is null or c.seen_at < now() - interval '10 seconds' then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = auth.uid();
+  end if;
+  if not coalesce((select wall_on from public.crew_prefs where user_id = p_owner), true) then
+    return jsonb_build_object('on', false, 'age_ms', null, 'data', null);
+  end if;
+  select * into w from public.crew_wall where owner = p_owner;
+  if not found or w.updated_at < now() - interval '15 seconds' then
+    return jsonb_build_object('on', true, 'age_ms', null, 'data', null);
+  end if;
+  return jsonb_build_object('on', true,
+    'age_ms', (extract(epoch from clock_timestamp() - w.updated_at) * 1000)::int,
+    'data', w.data);
+end $$;
+revoke all on function public.crew_wall(uuid) from public, anon;
+grant execute on function public.crew_wall(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- c59: Dashboard Tasarımcısı ve uzak gösterge PRO özellikleri kataloğu (Yönetim › PRO özellikleri).
+--      Dashboard Tasarımcısı: kullanıcı Direksiyon Ekranı için kendi ekranını tasarlar (Araçlar › Dashboard
+--      Tasarımcısı); tasarım overlay'de "Özel tasarım" görünümü olarak kullanılır.
+--      Uzak gösterge: direksiyon ekranı aynı ağdaki telefon / tablette açılır (yerel web sunucusu: /dash).
+--      Anahtarlar programda tanımlı (src/sdk/proFeatures.ts). "dashboard.remote" Rust tarafında da denetleniyor
+--      (src-tauri/src/server.rs: kilitliyken /dash sayfası ve /api/dash 403 döner).
+--      Sunucuda tablo / RPC denetimi yok: özelliklerin verisi sunucudan geçmez; karar pro_features tablosunda
+--      tutulur, program pro_features_map() ile okur (c38/c40/c46/c57 ile aynı düzen). Bu dosya yalnızca kataloğu
+--      (ad, grup, varsayılan) önceden yazar; böylece web sitesindeki yönetim paneli, programdaki "kataloğu eşitle"
+--      beklenmeden satırları gösterir. Yöneticinin daha önce verdiği kararlara (pro_features) DOKUNULMAZ.
+--        dashboard.designer   Dashboard tasarımcısı — varsayılan: PRO
+--        dashboard.remote     Uzak gösterge (telefon / tablet) — varsayılan: PRO
+--      Not: overlay'deki "Özel tasarım" görünümü ayrı bir seçenek anahtarıdır
+--      (overlay.dashboard.view.custom, varsayılan PRO); program "kataloğu eşitle" ile kendisi yazar.
+-- Sıra: c38'den sonra (pro_feature_catalog tablosu gerekir). Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+insert into public.pro_feature_catalog (key, label, grp, default_pro, updated_at) values
+  ('dashboard.designer', 'Dashboard tasarımcısı (Direksiyon Ekranı için kendi tasarımını yapmak)', 'Araçlar', true, now()),
+  ('dashboard.remote', 'Uzak gösterge (direksiyon ekranını telefon / tabletten açmak: /dash)', 'Araçlar', true, now())
+on conflict (key) do update
+  set label = excluded.label, grp = excluded.grp, default_pro = excluded.default_pro, updated_at = now();
+
+-- ---------------------------------------------------------------------------
+-- c60: "Overlay'e özel görünüm" PRO özelliği kataloğu (Yönetim › PRO özellikleri).
+--      Her overlay kopyasının ayarlarının sonunda "Görünüm (bu overlay)" bölümü var: o kopya için genel temanın
+--      üstüne renk, biçim, yazı ve yoğunluk (programda src/sdk/look.ts, instance.look).
+--      Her zaman açık (ücretsiz) seçenekler: arka plan rengi + opaklığı, yazı rengi, vurgu rengi, köşe yuvarlaklığı,
+--      yazı boyutu. Kalan seçenekler (ikincil yazı / olumlu / olumsuz / kenarlık / satır zemini renkleri, kenarlık
+--      kalınlığı, iç boşluk, gölge, cam bulanıklığı, başlık çubuğu, yazı fontu, kalınlık, harf aralığı, büyük harf,
+--      sabit genişlikli rakamlar, satır yoğunluğu, hazır görünümler) tek anahtara bağlı:
+--        appearance.overlay_look   — varsayılan: PRO
+--      Sunucuda tablo / RPC denetimi yok: görünüm ayarı kullanıcının kendi ayar dosyasında durur; karar pro_features
+--      tablosunda tutulur, program pro_features_map() ile okur (c38/c40/c57 ile aynı düzen). Bu dosya yalnızca kataloğu
+--      (ad, grup, varsayılan) önceden yazar. Yöneticinin daha önce verdiği kararlara (pro_features) DOKUNULMAZ.
+-- Sıra: c38'den sonra (pro_feature_catalog tablosu gerekir). Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+insert into public.pro_feature_catalog (key, label, grp, default_pro, updated_at) values
+  ('appearance.overlay_look', 'Overlay''e özel görünüm: gelişmiş seçenekler (yazı tipi, kenarlık, gölge, yoğunluk, hazır görünümler)', 'Görünüm', false, now())
+on conflict (key) do update
+  set label = excluded.label, grp = excluded.grp, default_pro = excluded.default_pro, updated_at = now();
+
+
+-- ---------------------------------------------------------------------------
+-- c60 (ek): Ekip Pitwall'ı — sürücünün konuşma altyazısı (PRO).
+--      Sürücünün uygulaması, Konuşma → yazı (livechat.stt, PRO) açıkken tanınan son cümleleri pitwall verisine
+--      `speech: [{t, text, final}]` olarak ekler (src/host/crew.ts; son 60 sn, en çok 6 satır / 400 karakter;
+--      sürücü Ayarlar › Paylaşım › Ekip'teki "Konuşmalarımı (altyazı) ekibimle paylaş" anahtarıyla kapatabilir).
+--      Ekip üyesi bunu mesaj yazdığı yerde altyazı olarak görür (uygulama: CrewWall.tsx, site: crewpanel.js).
+--      PRO denetimi SUNUCUDA: crew_wall(p_owner), social.crew özelliği PRO'ya özelken (varsayılan) izleyen PRO
+--      değilse `speech` alanını veriden çıkarır ve yanıta speech_locked:true ekler (istemci PRO notu gösterir).
+--      Yönetici social.crew'u herkese açarsa altyazı da herkese açılır. Gerisi c58'deki tanımın aynısıdır.
+--      crew_wall_push() değişmedi (içeriğe bakmaz; 24 KB sınırı aynı).
+-- Sıra: c58 sonrasında. Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+create or replace function public.crew_wall(p_owner uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  c public.crew_members%rowtype;
+  w public.crew_wall%rowtype;
+  v_locked boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = auth.uid();
+  if not found or not public.crew_role(p_owner, auth.uid(), false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  if c.seen_at is null or c.seen_at < now() - interval '10 seconds' then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = auth.uid();
+  end if;
+  if not coalesce((select wall_on from public.crew_prefs where user_id = p_owner), true) then
+    return jsonb_build_object('on', false, 'age_ms', null, 'data', null);
+  end if;
+  -- Konuşma altyazısı: özellik PRO'ya özelken yalnızca PRO izleyiciye
+  v_locked := public.feature_requires_pro('social.crew', true) and not coalesce(public.user_is_pro(auth.uid()), false);
+  select * into w from public.crew_wall where owner = p_owner;
+  if not found or w.updated_at < now() - interval '15 seconds' then
+    return jsonb_build_object('on', true, 'age_ms', null, 'data', null, 'speech_locked', v_locked);
+  end if;
+  return jsonb_build_object('on', true,
+    'age_ms', (extract(epoch from clock_timestamp() - w.updated_at) * 1000)::int,
+    'data', case when v_locked then w.data - 'speech' else w.data end,
+    'speech_locked', v_locked);
+end $$;
+revoke all on function public.crew_wall(uuid) from public, anon;
+grant execute on function public.crew_wall(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- c61: Üst çubuk bağlantıları (Yönetim › Üst çubuk bağlantıları).
+--      Programın üst çubuğunun en solunda (ve web sitesinin alt bilgisinde) gösterilen bağlantı düğmeleri
+--      (Web sitesi, Discord, WhatsApp…). Yönetici dilediği bağlantıyı ekler, sıralar, kimin göreceğini seçer;
+--      hazır simge yerine kendi simgesini (.png / .ico) yükleyebilir.
+--      1) app_config.top_links (jsonb, sıralı dizi). Herkes okur (app_config zaten herkese açık). Her öğe:
+--           { "id": "web", "label": "SimRaceTR", "url": "https://…",
+--             "icon": "web" | "discord" | "whatsapp" | "youtube" | "twitch" | "kick" | "instagram" | "x" | "facebook"
+--                   | "telegram" | "tiktok" | "github" | "mail" | "link" | "custom",
+--             "image": "https://…/site/toplinks/…",          -- icon = "custom" iken yöneticinin yüklediği simge
+--             "audiences": { "guest": true, "member": true, "pro": true },
+--                                    -- guest: giriş yapmamış, member: PRO olmayan üye, pro: PRO üye
+--             "enabled": true }
+--         Varsayılan (sütun varsayılanı da budur): SimRaceTR, Discord, WhatsApp. Sütun ilk kez eklenirken mevcut
+--         satıra bu üç bağlantı yazılır; sütun zaten varsa dokunulmaz (yönetici listeyi boşalttıysa boş kalır).
+--      2) admin_set_top_links(jsonb): sadece yönetici yazar; biçim denetlenir (en fazla 12 bağlantı, ad 1–40,
+--         adres http(s) ve en fazla 500, simge bilinen anahtarlardan, image https ve en fazla 600, mantıksal
+--         alanlar boolean); moderasyon kaydına 'top_links_set' düşer.
+--      3) 'site' kovasına .ico türleri eklenir (image/x-icon, image/vnd.microsoft.icon); simgeler
+--         toplinks/<id>-<zaman>.<uzantı> adıyla yüklenir (sadece yönetici yazar, herkes okur).
+--         NOT: c42 / c54 yeniden çalıştırılırsa kovanın tür listesi eski haline döner; ardından c61'i yeniden çalıştır.
+-- Sıra: c42'den sonra (is_admin, log_mod, 'site' kovası hazır olmalı). Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+-- Varsayılan bağlantılar
+create or replace function public.top_links_default() returns jsonb
+language sql immutable as $$
+  select jsonb_build_array(
+    jsonb_build_object('id', 'web', 'label', 'SimRaceTR', 'url', 'https://www.simracetr.com/', 'icon', 'web',
+                       'audiences', jsonb_build_object('guest', true, 'member', true, 'pro', true), 'enabled', true),
+    jsonb_build_object('id', 'discord', 'label', 'Discord', 'url', 'https://discord.gg/F6Gxn9Jjen', 'icon', 'discord',
+                       'audiences', jsonb_build_object('guest', true, 'member', true, 'pro', true), 'enabled', true),
+    jsonb_build_object('id', 'whatsapp', 'label', 'WhatsApp', 'url', 'https://chat.whatsapp.com/GDloVXAmyuEEUtHAvlwlw0',
+                       'icon', 'whatsapp',
+                       'audiences', jsonb_build_object('guest', true, 'member', true, 'pro', true), 'enabled', true)
+  );
+$$;
+grant execute on function public.top_links_default() to anon, authenticated, service_role;
+
+-- 1) Sütun + varsayılan bağlantılar ---------------------------------------------------
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'app_config' and column_name = 'top_links'
+  ) then
+    -- Yeni sütun: mevcut satır da varsayılan üç bağlantıyı alır
+    alter table public.app_config add column top_links jsonb not null default public.top_links_default();
+  else
+    -- Sütun zaten var: yöneticinin düzenlediği listeye dokunma; sadece boş (null) kalmışsa doldur
+    alter table public.app_config alter column top_links set default public.top_links_default();
+    update public.app_config set top_links = public.top_links_default() where top_links is null;
+  end if;
+end $$;
+
+-- Tek bağlantı geçerli mi
+create or replace function public.top_link_ok(p jsonb) returns boolean
+language sql immutable as $$
+  select p is not null
+     and jsonb_typeof(p) = 'object'
+     and jsonb_typeof(p -> 'id') = 'string'
+     and (p ->> 'id') ~ '^[a-z0-9][a-z0-9_-]{0,39}$'
+     and jsonb_typeof(p -> 'label') = 'string'
+     and length(btrim(p ->> 'label')) between 1 and 40
+     and length(p ->> 'label') <= 40
+     and jsonb_typeof(p -> 'url') = 'string'
+     and (p ->> 'url') ~* '^https?://[^\s"''<>`\\]+$'
+     and length(p ->> 'url') <= 500
+     and jsonb_typeof(p -> 'icon') = 'string'
+     and (p ->> 'icon') in ('web', 'discord', 'whatsapp', 'youtube', 'twitch', 'kick', 'instagram', 'x', 'facebook',
+                            'telegram', 'tiktok', 'github', 'mail', 'link', 'custom')
+     and (coalesce(jsonb_typeof(p -> 'image'), 'null') = 'null'
+          or (jsonb_typeof(p -> 'image') = 'string'
+              and ((p ->> 'image') = ''
+                   or ((p ->> 'image') ~* '^https://[^\s"''<>`\\]+$' and length(p ->> 'image') <= 600))))
+     and jsonb_typeof(p -> 'audiences') = 'object'
+     and jsonb_typeof(p -> 'audiences' -> 'guest') = 'boolean'
+     and jsonb_typeof(p -> 'audiences' -> 'member') = 'boolean'
+     and jsonb_typeof(p -> 'audiences' -> 'pro') = 'boolean'
+     and jsonb_typeof(p -> 'enabled') = 'boolean';
+$$;
+
+-- 2) Yönetici: listeyi yaz ------------------------------------------------------------
+create or replace function public.admin_set_top_links(p_links jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  before jsonb;
+  item jsonb;
+  n int;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  if p_links is null or jsonb_typeof(p_links) <> 'array' then
+    raise exception 'Geçersiz veri';
+  end if;
+  n := jsonb_array_length(p_links);
+  if n > 12 then
+    raise exception 'En fazla 12 bağlantı eklenebilir';
+  end if;
+  if length(p_links::text) > 20000 then
+    raise exception 'Bağlantı listesi çok uzun';
+  end if;
+  for item in select * from jsonb_array_elements(p_links) loop
+    if not public.top_link_ok(item) then
+      raise exception 'Geçersiz bağlantı: %', left(coalesce(item ->> 'label', item ->> 'id', '?'), 40);
+    end if;
+  end loop;
+  if (select count(distinct e ->> 'id') from jsonb_array_elements(p_links) e) <> n then
+    raise exception 'Bağlantı kimlikleri benzersiz olmalı';
+  end if;
+
+  select coalesce(top_links, '[]'::jsonb) into before from public.app_config where id = 1;
+  update public.app_config set top_links = p_links, updated_at = now() where id = 1;
+
+  if before is distinct from p_links then
+    perform public.log_mod('top_links_set', 'config', 'top_links', null,
+      jsonb_build_object(
+        'count', n,
+        'old_count', case when jsonb_typeof(before) = 'array' then jsonb_array_length(before) else 0 end,
+        'enabled', (select count(*) from jsonb_array_elements(p_links) e where (e ->> 'enabled')::boolean),
+        'labels', (select coalesce(jsonb_agg(left(e ->> 'label', 40)), '[]'::jsonb) from jsonb_array_elements(p_links) e)));
+  end if;
+end $$;
+revoke all on function public.admin_set_top_links(jsonb) from public, anon;
+grant execute on function public.admin_set_top_links(jsonb) to authenticated;
+
+-- 3) 'site' kovası: .ico türleri (eksik olanlar eklenir; diğer ayarlar aynı kalır) ------
+update storage.buckets b
+set allowed_mime_types = (
+  select array_agg(distinct m)
+  from unnest(coalesce(b.allowed_mime_types, array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+              || array['image/x-icon', 'image/vnd.microsoft.icon']) m
+)
+where b.id = 'site';

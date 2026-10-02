@@ -119,6 +119,34 @@ export interface StreamlabsStatus {
   locked: boolean;
 }
 
+/**
+ * Overlay kapısı (Rust: livechat/mod.rs live_gate): Canlı Sohbet overlay'leri ne göstersin.
+ *   demo: benzetilmiş akış · real: gerçek mesajlar · offline: yayın canlı değil · stopped: sohbet durdurulmuş ·
+ *   login: giriş yapılmamış · pro: OBS kaynağı PRO'ya özel · wait: karar henüz gelmedi (hiçbir şey çizilmez)
+ */
+export type GateMode = "demo" | "real" | "offline" | "stopped" | "login" | "pro" | "wait";
+export interface LiveGate {
+  /** Kullanıcının açtığı Demo modu */
+  demo: boolean;
+  running: boolean;
+  live: boolean;
+  loginOk: boolean;
+  obsOk: boolean;
+  /** Uygulama içindeki overlay penceresi için karar */
+  app: GateMode;
+  /** OBS tarayıcı kaynağı için karar */
+  obs: GateMode;
+}
+/**
+ * Bu yüzey (uygulama penceresi / tarayıcı kaynağı) için kapı kararı. Karar uygulamadan gelir; burada yalnızca
+ * overlay'in kendi "Yalnızca yayın canlıyken göster" seçeneği uygulanır (kapalıysa "offline" → "real").
+ */
+export function gateMode(g: LiveGate | null | undefined, onlyLive = true, obs = !inTauri): GateMode {
+  if (!g || !g.app) return "wait";
+  const m = obs ? g.obs : g.app;
+  return m === "offline" && !onlyLive ? "real" : m;
+}
+
 export interface LiveChatStatus {
   running: boolean;
   channels: ChannelStatus[];
@@ -133,6 +161,7 @@ export interface LiveChatStatus {
   loginOk: boolean;
   /** Bağlı kanallardan en az biri canlı yayında */
   anyLive: boolean;
+  gate?: LiveGate;
 }
 
 /** "livechat" konusu */
@@ -147,6 +176,7 @@ export interface LiveChatTopic {
   anyLive: boolean;
   /** Giriş koşulu sağlanıyor (yanlışsa overlay'ler ekranda hiçbir şey çizmez) */
   loginOk: boolean;
+  gate?: LiveGate;
 }
 
 export interface PollView {

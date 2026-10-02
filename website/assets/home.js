@@ -1,6 +1,7 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
 import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, startProCheckout } from "./core.js";
 import { applyCachedImages, initSiteImages } from "./siteimages.js";
+import { OVERLAY_COUNT } from "./counts.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
@@ -33,7 +34,7 @@ addDict({
   hero_download: ["⬇ Ücretsiz indir", "⬇ Download free"],
   hero_pro: ["PRO'ya bak", "See PRO"],
   hero_meta: ["Windows 10/11 · son sürüm", "Windows 10/11 · latest"],
-  pill_overlays: ["33 overlay", "33 overlays"],
+  pill_overlays: ["{0} overlay", "{0} overlays"],
   pill_spotter: ["Sesli spotter", "Voice spotter"],
   pill_langs: ["15 dil", "15 languages"],
   pill_free: ["Hesapsız da çalışır", "Works without an account"],
@@ -47,7 +48,7 @@ addDict({
   feat_more: ["Tüm özellikleri ayrıntılı gör →", "See all features in detail →"],
   gal_eyebrow: ["Galeri", "Gallery"],
   gal_title: ["SRTR Pitwall'dan kareler", "Shots from SRTR Pitwall"],
-  f1_t: ["33 overlay, tek şeffaf pencere", "33 overlays, one transparent window"],
+  f1_t: ["{0} overlay, tek şeffaf pencere", "{0} overlays, one transparent window"],
   f1_d: [
     "Relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal girdileri, hava durumu, bayraklar ve daha fazlası.",
     "Relative, leaderboard, fuel, tyres, radar, track map, delta, inputs, weather, flags and more.",
@@ -249,9 +250,12 @@ const CMP = [
 let cfg = null;
 let user = null;
 
+// Overlay sayısı tek yerden (counts.js): metinlerde {0}; data-t öğeleri data-t-args ile doldurulur (core.js applyLang)
+document.querySelectorAll('[data-t="pill_overlays"]').forEach((el) => (el.dataset.tArgs = String(OVERLAY_COUNT)));
+
 function renderStatic() {
   $("#feat-grid").innerHTML = FEATS.map(
-    ([ic, k]) => `<div class="card feat"><div class="ic">${ic}</div><h3>${T(k + "_t")}</h3><p>${T(k + "_d")}</p></div>`,
+    ([ic, k]) => `<div class="card feat"><div class="ic">${ic}</div><h3>${T(k + "_t", OVERLAY_COUNT)}</h3><p>${T(k + "_d")}</p></div>`,
   ).join("");
   const mark = (v) => (v ? `<span class="y">✓</span>` : `<span class="n">—</span>`);
   $("#cmp-body").innerHTML = CMP.map(([k, a, b, c]) => `<tr><td>${T(k)}</td><td>${mark(a)}</td><td>${mark(b)}</td><td>${mark(c)}</td></tr>`).join("");

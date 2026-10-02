@@ -22,6 +22,12 @@ interface FieldBase {
   /** Bu ayar bir PRO özelliğine bağlı (src/sdk/proFeatures.ts anahtarı, ör. "social.messages_tts"):
    *  özellik PRO'ya ayrılmışsa ve kullanıcı PRO değilse ayar varsayılan değerinde kilitli kalır */
   feature?: string;
+  /** Alanın altında bir "sıfırla" düğmesi: bu anahtarlardaki ayarları varsayılanına döndürür (ör. renkler) */
+  resetKeys?: string[];
+  /** Sıfırlama düğmesinin yazısı */
+  resetLabel?: string;
+  /** Seçenekleri kullanıcı verisinden gelen alan (ör. kendi dashboard tasarımları): PRO kataloğuna girmez */
+  dynamic?: boolean;
 }
 
 /** Seçim seçeneği; `pro` işaretliyse PRO olmayanlar seçemez */
@@ -67,6 +73,8 @@ export interface OverlayManifest {
   /** Ölçek 1'deki yaklaşık boyut (düzenleme modunda çerçeve için). */
   size: { w: number; h: number };
   defaultPosition: { x: number; y: number };
+  /** Ekrana eklenince hedef monitörün tam ortasına yerleşir (bkz. monitors.ts centerInstance); `defaultPosition` 1920×1080 için ortadır */
+  defaultCenter?: boolean;
   defaultEnabled?: boolean;
   /** Yeni kopyada "iRacing kapalıyken de göster" açık gelsin (ör. canlı sohbet) */
   defaultAlwaysShow?: boolean;

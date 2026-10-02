@@ -283,6 +283,9 @@ export const sendTeamMessage = (team: string, body: string) => {
 };
 export const deleteTeamMessage = (id: string) => api("POST", "rpc/team_message_delete", { body: { p_id: id } });
 export const hideTeamMessage = (id: string) => api("POST", "rpc/team_message_hide", { body: { p_id: id } });
+/** Takım mesajını yöneticilere raporla (c55) */
+export const reportTeamMessage = (id: string, reason: string, note: string) =>
+  api<string>("POST", "rpc/team_message_report", { body: { p_message: id, p_reason: reason, p_note: note } });
 export const markTeamRead = (team: string) => api("POST", "rpc/team_chat_read", { body: { p_team: team } }).catch(() => {});
 export const muteTeamChat = (team: string, muted: boolean) => api("POST", "rpc/team_chat_mute", { body: { p_team: team, p_muted: muted } });
 

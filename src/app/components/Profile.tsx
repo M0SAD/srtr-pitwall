@@ -15,18 +15,23 @@ import {
   SOCIAL_TYPES,
   avatarUrl,
   guessSocialType,
+  iracingCategory,
+  loadIracingPublic,
   publicProfile,
   removeAvatar,
   savePublicProfile,
+  setIracingPublic,
   socialMeta,
   socialUrlOk,
   uploadAvatar,
+  type IracingInfo,
   type PublicProfile,
   type SocialLink,
   type SocialType,
 } from "@/cloud/profile";
 import { teamLogo } from "@/cloud/teams";
 import { openUrl } from "../ui";
+import { Flag } from "@/sdk/Flag";
 import * as I from "../icons";
 import "../profile.css";
 
@@ -222,6 +227,7 @@ export function ProfileCard(props: {
                     <b>iRacing</b> {p().iracing_name}
                   </small>
                 </Show>
+                <Show when={p().iracing}>{(ir) => <IracingBadges ir={ir()} />}</Show>
                 <Show when={p().sims.filter((s) => s.sim !== "iracing" || s.sim_name !== p().iracing_name).length > 0}>
                   <div class="pf-sims">
                     <For each={p().sims.filter((s) => s.sim !== "iracing" || s.sim_name !== p().iracing_name)}>
@@ -281,6 +287,85 @@ export function ProfileCard(props: {
         )}
       </Show>
     </div>
+  );
+}
+
+/** iRacing lisans rozeti (sınıf rengi + SR), iRating, ülke bayrağı ve son güncelleme (SQL c56) */
+export function IracingBadges(props: { ir: IracingInfo }) {
+  const dark = () => {
+    const c = (props.ir.lic_color || "").replace("#", "");
+    if (c.length !== 6) return false;
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16));
+    return r * 0.299 + g * 0.587 + b * 0.114 > 150;
+  };
+  return (
+    <div class="pf-irx">
+      <Show when={props.ir.country}>
+        <span class="pf-irx-flag" data-no-i18n>
+          <Flag code={props.ir.country} />
+        </span>
+      </Show>
+      <span class="pf-lic" classList={{ dark: dark() }} style={{ background: props.ir.lic_color || "#666" }} title="iRacing lisansı ve Safety Rating" data-no-i18n>
+        {props.ir.license}
+      </span>
+      <span class="pf-irating" title="iRating" data-no-i18n>
+        <b>iR</b> {props.ir.irating.toLocaleString(localeTag())}
+      </span>
+      <Show when={props.ir.category}>
+        <span class="muted small" data-no-i18n>
+          {iracingCategory(props.ir.category)}
+        </span>
+      </Show>
+      <small class="muted">{t("güncellendi: {0}", new Date(props.ir.updated_at).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" }))}</small>
+      <Show when={!props.ir.public}>
+        <small class="muted">(sadece sen görüyorsun)</small>
+      </Show>
+    </div>
+  );
+}
+
+/** Hesap → Herkese açık profil: "iRacing bilgilerimi profilimde göster" (profiles.ir_public; c56 yoksa gizli) */
+function IracingPublicToggle(props: { ir: IracingInfo | null | undefined; onChange: (on: boolean) => void }) {
+  const [on, setOn] = createSignal<boolean | null>(null);
+  const [err, setErr] = createSignal("");
+  void loadIracingPublic().then(setOn);
+  return (
+    <Show when={on() !== null}>
+      <div class="pf-irx-set">
+        <div>
+          <b>iRacing bilgilerimi profilimde göster</b>
+          <small class="muted">
+            iRating, lisans (Safety Rating) ve ülken; iRacing'de bu programla sürdükçe kendiliğinden güncellenir. Açıkken profilinde ve demo
+            modundaki adının yanında görünür.
+          </small>
+          <Show when={props.ir} fallback={<small class="muted">Henüz bilgi yok: giriş yapmış halde iRacing'de bir oturuma gir.</small>}>
+            {(ir) => <IracingBadges ir={{ ...ir(), public: true }} />}
+          </Show>
+          <Show when={err()}>
+            <small class="error">{err()}</small>
+          </Show>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            checked={!!on()}
+            onChange={(e) => {
+              const v = e.currentTarget.checked;
+              const prev = on();
+              setOn(v);
+              setErr("");
+              setIracingPublic(v)
+                .then(() => props.onChange(v))
+                .catch((x) => {
+                  setOn(prev);
+                  setErr(String(x?.message ?? x));
+                });
+            }}
+          />
+          <i />
+        </label>
+      </div>
+    </Show>
   );
 }
 
@@ -481,6 +566,14 @@ export function PublicProfilePanel() {
               </Show>
             </div>
             <p class="muted small">Sadece https:// ile başlayan adresler. Bağlantı türü adresten kendiliğinden seçilir.</p>
+
+            <IracingPublicToggle
+              ir={p().iracing}
+              onChange={(v) => {
+                const cur = data();
+                if (cur?.iracing) mutate({ ...cur, iracing: { ...cur.iracing, public: v } });
+              }}
+            />
 
             <div class="btns pf-save">
               <button class="btn primary" disabled={busy() || !dirty()} onClick={save}>

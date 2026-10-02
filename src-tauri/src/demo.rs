@@ -115,20 +115,79 @@ const NAMES: [&str; N_CARS] = [
     "Hugo Martin", "Leo Costa", "Kai Weber", "Omar Haddad", "Ben Clarke", "Marco Bianchi",
 ];
 
-/// Demo vitrini: panelin buluttan aldığı PRO üye adları (`demo_set_names`). Her demo oturumu
-/// başında bunlardan rastgele birkaçı sahte sürücülerin yerine geçer; oturum boyunca değişmez.
-static SHOWCASE: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+/// Demo vitrini sürücüsü: PRO üyenin görünen adı ve (üye izin verdiyse, biliniyorsa) gerçek iRacing bilgileri.
+/// `country` boşsa bayrak gösterilmez (yanıltıcı rastgele bayrak yok); `irating` 0 / `license` boşsa
+/// demo kendi ürettiği değerleri kullanır.
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[serde(default)]
+pub struct ShowcaseDriver {
+    pub name: String,
+    pub country: Option<String>,
+    pub irating: Option<i32>,
+    pub license: Option<String>,
+    pub lic_color: Option<String>,
+}
 
-/// Vitrin adlarını ayarla (temizlenir: boşluklar kırpılır, boş/uzun/tekrarlı adlar atılır, en fazla 100)
-pub fn set_showcase_names(names: Vec<String>) -> usize {
-    let mut out: Vec<String> = Vec::new();
-    for n in names {
-        let n: String = n.split_whitespace().collect::<Vec<_>>().join(" ");
+/// iRacing lisans harfinden sınıf rengi (renk gelmediyse)
+fn lic_color_for(license: &str) -> &'static str {
+    match license.chars().next().map(|c| c.to_ascii_uppercase()) {
+        Some('R') => "#fc0706",
+        Some('D') => "#ff8c00",
+        Some('C') => "#fec600",
+        Some('B') => "#00c702",
+        Some('A') => "#0153db",
+        _ => "#000000",
+    }
+}
+
+fn is_hex_color(c: &str) -> bool {
+    c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|x| x.is_ascii_hexdigit())
+}
+
+/// "A 3.42" biçimi: 1–6 harf, boşluk, sayı
+fn is_license(l: &str) -> bool {
+    let mut it = l.splitn(2, ' ');
+    let (Some(cls), Some(sr)) = (it.next(), it.next()) else { return false };
+    (1..=6).contains(&cls.len())
+        && cls.chars().all(|c| c.is_ascii_alphabetic() || c == '/')
+        && sr.len() <= 5
+        && sr.parse::<f32>().map(|v| (0.0..100.0).contains(&v)).unwrap_or(false)
+}
+
+/// Demo vitrini: panelin buluttan aldığı PRO üyeler (`demo_set_drivers`; eski sunucuda sadece adlar,
+/// `demo_set_names`). Her demo oturumu başında bunlardan rastgele birkaçı sahte sürücülerin yerine geçer;
+/// oturum boyunca değişmez.
+static SHOWCASE: std::sync::Mutex<Vec<ShowcaseDriver>> = std::sync::Mutex::new(Vec::new());
+
+/// Vitrin sürücülerini ayarla (temizlenir: boşluklar kırpılır, boş/uzun/tekrarlı adlar atılır, geçersiz
+/// ülke / iRating / lisans değerleri boş sayılır; en fazla 100)
+pub fn set_showcase_drivers(list: Vec<ShowcaseDriver>) -> usize {
+    let mut out: Vec<ShowcaseDriver> = Vec::new();
+    for d in list {
+        let n: String = d.name.split_whitespace().collect::<Vec<_>>().join(" ");
         let len = n.chars().count();
-        if !(2..=32).contains(&len) || out.iter().any(|x| x.eq_ignore_ascii_case(&n)) || NAMES.contains(&n.as_str()) {
+        if !(2..=32).contains(&len) || out.iter().any(|x| x.name.eq_ignore_ascii_case(&n)) || NAMES.contains(&n.as_str()) {
             continue;
         }
-        out.push(n);
+        let country = d
+            .country
+            .map(|c| c.trim().to_ascii_uppercase())
+            .filter(|c| (2..=8).contains(&c.len()) && c.chars().all(|x| x.is_ascii_alphanumeric() || x == '-'));
+        let irating = d.irating.filter(|v| (1..=20000).contains(v));
+        let license = d
+            .license
+            .map(|l| l.split_whitespace().collect::<Vec<_>>().join(" "))
+            .filter(|l| is_license(l));
+        let lic_color = match &license {
+            Some(l) => Some(
+                d.lic_color
+                    .map(|c| c.trim().to_ascii_lowercase())
+                    .filter(|c| is_hex_color(c))
+                    .unwrap_or_else(|| lic_color_for(l).to_string()),
+            ),
+            None => None,
+        };
+        out.push(ShowcaseDriver { name: n, country, irating, license, lic_color });
         if out.len() >= 100 {
             break;
         }
@@ -140,8 +199,72 @@ pub fn set_showcase_names(names: Vec<String>) -> usize {
     k
 }
 
-fn showcase_names() -> Vec<String> {
+/// Sadece adlar (eski sunucu: demo_pro_names). Bayrak / iR / SR bilinmez.
+pub fn set_showcase_names(names: Vec<String>) -> usize {
+    set_showcase_drivers(names.into_iter().map(|name| ShowcaseDriver { name, ..Default::default() }).collect())
+}
+
+fn showcase_drivers() -> Vec<ShowcaseDriver> {
     SHOWCASE.lock().map(|g| g.clone()).unwrap_or_default()
+}
+
+// ---------------------------------------------------------------------------
+// Oyuncunun KENDİ iRacing bilgileri (iRating, lisans, ülke): iRacing oturum bilgisinden alınır, panel
+// `player_iracing` komutuyla okur ve giriş yapmış üyenin profiline yazar (demo vitrini ve profil kartı).
+// Sadece oyuncunun kendisi: takım yarışında araçta takım arkadaşı varsa (UserID != DriverUserID) alınmaz.
+// ---------------------------------------------------------------------------
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerIracing {
+    pub cust_id: i64,
+    pub irating: i32,
+    pub license: String,
+    pub lic_color: String,
+    pub country: String,
+    pub category: String,
+}
+
+static PLAYER_IR: std::sync::Mutex<Option<PlayerIracing>> = std::sync::Mutex::new(None);
+
+/// Oturum bilgisinden oyuncunun kendi değerleri (yoksa / emin değilsek None)
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn player_iracing_from(sim: &str, sd: &SessionData) -> Option<PlayerIracing> {
+    if sim != "iracing" || sd.player_idx < 0 || sd.player_user_id <= 0 {
+        return None;
+    }
+    let d = sd.driver(sd.player_idx as usize)?;
+    if d.is_ai || d.is_pace_car || d.user_id != sd.player_user_id || d.irating < 1 || !is_license(&d.license) {
+        return None;
+    }
+    Some(PlayerIracing {
+        cust_id: d.user_id,
+        irating: d.irating,
+        license: d.license.clone(),
+        lic_color: if is_hex_color(&d.lic_color) { d.lic_color.to_ascii_lowercase() } else { String::new() },
+        country: d.flair.trim().to_ascii_uppercase(),
+        category: sd.category.chars().filter(|c| c.is_ascii_alphabetic()).collect::<String>().to_ascii_lowercase(),
+    })
+}
+
+/// Motor: yeni iRacing oturum bilgisi geldi. Emin olunamayan oturumda (takım arkadaşı sürüyor vb.) son bilinen
+/// değer aynı hesaba aitse korunur.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn note_player(sim: &str, sd: &SessionData) {
+    let cur = player_iracing_from(sim, sd);
+    if let Ok(mut g) = PLAYER_IR.lock() {
+        match cur {
+            Some(p) => *g = Some(p),
+            None => {
+                if sim != "iracing" || g.as_ref().map(|p| p.cust_id != sd.player_user_id).unwrap_or(false) {
+                    *g = None;
+                }
+            }
+        }
+    }
+}
+
+pub fn player_iracing() -> Option<PlayerIracing> {
+    PLAYER_IR.lock().ok().and_then(|g| g.clone())
 }
 
 // SessionFlags bitleri
@@ -228,6 +351,7 @@ impl Demo {
             sessions: vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: Some(RACE_LEN) }],
             tire_types: Vec::new(),
             ai_session: false,
+            player_user_id: 0,
         };
         let player_lap = cars[PLAYER].dist.floor() as i64;
         let air = rng.range(20.0, 27.0);
@@ -277,7 +401,7 @@ impl Demo {
         if self.showcased {
             return false;
         }
-        let mut names = showcase_names();
+        let mut names = showcase_drivers();
         if names.is_empty() {
             return false;
         }
@@ -295,10 +419,19 @@ impl Demo {
         // Sahte adlarla karışık: araçların yaklaşık üçte biri (6–10 araç)
         let want = 6 + (self.rng.next() * 5.0) as usize;
         let k = want.min(names.len()).min(slots.len());
-        for (slot, name) in slots.into_iter().zip(names.into_iter()).take(k) {
+        for (slot, m) in slots.into_iter().zip(names.into_iter()).take(k) {
             if let Some(Some(d)) = self.session.drivers.get_mut(slot) {
-                d.name = name.clone();
-                d.abbrev = name;
+                d.name = m.name.clone();
+                d.abbrev = m.name;
+                // Gerçek üye: bayrağı ya kendi ülkesi ya da hiç (sahte sürücünün rastgele bayrağı kalmaz)
+                d.flair = m.country.unwrap_or_default();
+                if let Some(ir) = m.irating {
+                    d.irating = ir;
+                }
+                if let Some(lic) = m.license {
+                    d.lic_color = m.lic_color.unwrap_or_else(|| lic_color_for(&lic).to_string());
+                    d.license = lic;
+                }
             }
         }
         k > 0
@@ -725,5 +858,45 @@ mod tests {
         // Fake adlar hâlâ çoğunlukta
         assert!(names.iter().filter(|x| NAMES.contains(&x.as_str())).count() >= N_CARS - 10);
         set_showcase_names(Vec::new());
+
+        // Gerçek bilgiler: bayrak / iRating / lisans üyeninki; bilgisi olmayan üyede bayrak boş
+        let n = set_showcase_drivers(vec![
+            ShowcaseDriver {
+                name: "Ayşe Demir".into(),
+                country: Some("tr".into()),
+                irating: Some(3210),
+                license: Some("A  3.42".into()),
+                lic_color: None,
+            },
+            ShowcaseDriver { name: "Zoe Lane".into(), country: Some("??".into()), irating: Some(0), license: Some("x".into()), lic_color: None },
+        ]);
+        assert_eq!(n, 2);
+        let d = Demo::new();
+        let a = d.session.drivers.iter().flatten().find(|x| x.name == "Ayşe Demir").unwrap();
+        assert_eq!((a.flair.as_str(), a.irating, a.license.as_str(), a.lic_color.as_str()), ("TR", 3210, "A 3.42", "#0153db"));
+        let z = d.session.drivers.iter().flatten().find(|x| x.name == "Zoe Lane").unwrap();
+        assert_eq!(z.flair, "");
+        assert!(z.irating >= 1200 && z.license.contains(' '));
+        set_showcase_names(Vec::new());
+    }
+
+    #[test]
+    fn player_iracing_only_self() {
+        let mut sd = SessionData { drivers: vec![None; MAX_CARS], player_idx: 1, player_user_id: 77, category: "DirtOval".into(), ..Default::default() };
+        sd.drivers[1] = Some(Driver {
+            car_idx: 1,
+            user_id: 77,
+            irating: 2450,
+            license: "A 3.45".into(),
+            lic_color: "#0153DB".into(),
+            flair: "tr".into(),
+            ..Default::default()
+        });
+        let p = player_iracing_from("iracing", &sd).unwrap();
+        assert_eq!((p.cust_id, p.irating, p.country.as_str(), p.category.as_str(), p.lic_color.as_str()), (77, 2450, "TR", "dirtoval", "#0153db"));
+        assert!(player_iracing_from("acc", &sd).is_none());
+        // Takım yarışı: araçta başkası
+        sd.drivers[1].as_mut().unwrap().user_id = 99;
+        assert!(player_iracing_from("iracing", &sd).is_none());
     }
 }

@@ -19,24 +19,39 @@ import { defaultOptions, type SettingField } from "@/sdk/overlay";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
-import { loadMonitors, monitorLabel, monitors } from "@/sdk/monitors";
+import { centerInstance, loadMonitors, monitorLabel, monitors } from "@/sdk/monitors";
 import { SettingsForm, Slider, Switch } from "../components/SettingsForm";
 import { OverlayView } from "../components/OverlayView";
+import { LookPanel } from "../components/LookPanel";
 import { BACKDROPS, Backdrop, ScreenshotPicker, backdrop, pickCustomImage, setBackdrop } from "../components/Backdrop";
 import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
-import { go, openCard, setOpenCard } from "../ui";
+import { go, openCard, ovProfile, setOpenCard, setOvProfile } from "../ui";
+import { sortProfiles } from "../components/LayoutList";
+import { LINK_ACTIVE } from "@/sdk/streamLink";
+import { emit } from "@tauri-apps/api/event";
 import * as I from "../icons";
 import { appState } from "../App";
 import { inTauri } from "@/sdk/platform";
 import { UndoRedo } from "@/sdk/UndoRedo";
+import { t } from "@/sdk/i18n";
 
 // Yeni eklenen overlay: bu sayfada seçili kaldıkça ekranda (oyun kapalıyken örnek veriyle) tutulur; ilk 4 sn vurgulanır.
 // Sayfadan çıkınca, başka overlay seçilince, overlay kapatılınca ya da panel kapanınca bırakılır (Rust: overlay_pin).
 const [pinned, setPinned] = createSignal<string | null>(null);
+/** Düzenlenen düzenin kimliği: sayfada seçili düzen; "Etkin düzeni izle"de (ya da seçili düzen silindiyse) etkin düzen */
+const editedId = () => {
+  const o = ovProfile();
+  const s = settings();
+  return o && s.profiles[o] ? o : s.activeProfile;
+};
+// Ekranda tutma, seçili düzenin kopyasını gösterir (overlay penceresi o düzene geçer). Yayın düzenlerinin konumları
+// OBS tuvaline göre olduğundan ekranda tutulmaz; onlar sadece sayfadaki önizlemede görünür.
 function pinOverlay(key: string) {
+  const p = settings().profiles[editedId()];
+  if (!p || p.rules.mode === "stream") return;
   setPinned(key);
   if (!inTauri) return;
-  invoke("overlay_pin", { id: key }).catch(() => {});
+  invoke("overlay_pin", { id: key, profile: p.id }).catch(() => {});
   invoke("overlay_peek", { id: key, ms: 4000 }).catch(() => {});
 }
 function unpinOverlay() {
@@ -62,8 +77,27 @@ function Section(props: { title: string; open?: boolean; children: any }) {
 
 export function OverlaysPage() {
   loadMonitors();
-  const profile = () => activeProfile();
-  const list = createMemo(() => instancesOf(profile()));
+  // Düzenlenen düzen: baştaki "Düzen" seçicisiyle belirlenir; bütün okuma ve yazmalar bu düzene gider
+  const pid = createMemo(editedId);
+  const profile = () => settings().profiles[pid()] ?? activeProfile();
+  const following = () => ovProfile() === null;
+  // Seçili düzen silindiyse etkin düzeni izlemeye dön
+  createEffect(() => {
+    const o = ovProfile();
+    if (o && !settings().profiles[o]) setOvProfile(null);
+  });
+  const isStreamP = () => profile().rules.mode === "stream";
+  /** Bağlı yayın düzeni: overlay'leri kaynak düzenden canlı gelir, burada düzenlenmez */
+  const linked = () => (isStreamP() ? profile().link : undefined);
+  const linkedSrc = () => {
+    const l = linked();
+    if (!l) return undefined;
+    return l.source === LINK_ACTIVE ? activeProfile() : settings().profiles[l.source];
+  };
+  const drivingList = () => sortProfiles(Object.values(settings().profiles).filter((p) => p.rules.mode !== "stream"));
+  const streamList = () => sortProfiles(Object.values(settings().profiles).filter((p) => p.rules.mode === "stream"));
+  const upd = (k: string, fn: Parameters<typeof updateOverlay>[1]) => updateOverlay(k, fn, pid());
+  const list = createMemo(() => (linked() ? [] : instancesOf(profile())));
   // Bağlı (ya da seçili) simde çalışmayan overlay'ler listelerden gizlenir; ayarları korunur
   const status = useTopic("status");
   const sim = createMemo(() => currentSim(status()));
@@ -73,21 +107,37 @@ export function OverlaysPage() {
   const active = () => enabledAll().filter(([, i]) => supported(i.type));
   /** Bu türden açık bir overlay varsa anahtarı */
   const existing = (type: string) => enabledAll().find(([, i]) => i.type === type)?.[0] ?? null;
+  /** Toplam overlay türü sayısı (gizlenenler hariç; simde çalışmayanlar dahil) */
+  const totalTypes = () => manifests.filter((m) => !isHiddenOverlay(m.id)).length;
   /** Bu simde çalışmadığı için gizlenen overlay türü sayısı */
   const hiddenBySim = () => manifests.filter((m) => !isHiddenOverlay(m.id) && !supported(m.id)).length;
 
+  const [adding, setAdding] = createSignal(false);
   // "Tümünü kaldır": listedeki açık overlay'leri tek bir ayar güncellemesiyle kapatır (onaylı)
   const [confirmAll, setConfirmAll] = createSignal(false);
   createEffect(() => {
     if (active().length === 0) setConfirmAll(false);
   });
-  createEffect(on(() => settings().activeProfile, () => setConfirmAll(false), { defer: true }));
+  createEffect(
+    on(
+      pid,
+      () => {
+        setConfirmAll(false);
+        setAdding(false);
+        // Ekranda tutulan overlay önceki düzene aitti
+        unpinOverlay();
+      },
+      { defer: true },
+    ),
+  );
   const removeAll = () => {
     const keys = active().map(([k]) => k);
     setConfirmAll(false);
     if (!keys.length) return;
+    const id = pid();
     updateSettings((d) => {
-      const p = d.profiles[d.activeProfile];
+      const p = d.profiles[id];
+      if (!p) return;
       for (const k of keys) if (p.overlays[k]) p.overlays[k].enabled = false;
     });
   };
@@ -105,7 +155,8 @@ export function OverlaysPage() {
       return;
     }
     const base = profile().overlays[type];
-    const key = base && !base.enabled ? (updateOverlay(type, (o) => (o.enabled = true)), type) : addInstance(type);
+    const key = base && !base.enabled ? (upd(type, (o) => (o.enabled = true)), type) : addInstance(type, pid());
+    centerInstance(key, pid());
     setOpenCard(key);
     pinOverlay(key);
   };
@@ -125,24 +176,26 @@ export function OverlaysPage() {
     if (openCard() !== k || !profile().overlays[k]?.enabled) unpinOverlay();
   });
   onCleanup(unpinOverlay);
-  const [adding, setAdding] = createSignal(false);
   const [shotsOpen, setShotsOpen] = createSignal(false);
 
   // Seçili kopya (sağ tık > "Ayarlarını aç" ile de gelir)
   const selected = () => {
     const k = openCard();
+    if (linked()) return null;
     if (k && profile().overlays[k]) return k;
     return active()[0]?.[0] ?? list()[0]?.[0] ?? null;
   };
   createEffect(() => {
-    if (!openCard() && selected()) setOpenCard(selected());
+    const k = openCard();
+    // Seçili kart bu düzende yoksa (düzen değişti, kopya burada yok) bu düzendeki ilk overlay'e geç
+    if (selected() && (!k || (!profile().overlays[k] && !manifestById(k)))) setOpenCard(selected());
   });
 
   // Önizlenen overlay sabit görüntü: seçilince bir anlık örnek veri, sonra akış durur (Demo açıksa canlı)
   // Profilde olmayan (ör. PRO olmadığı için eklenemeyen) bir overlay'e tıklanınca varsayılan ayarlarla önizleme
   const ghost = () => {
     const k = openCard();
-    return k && !profile().overlays[k] && manifestById(k) ? k : null;
+    return !linked() && k && !profile().overlays[k] && manifestById(k) ? k : null;
   };
   const previewType = () => {
     if (ghost()) return ghost()!;
@@ -152,7 +205,7 @@ export function OverlaysPage() {
   const snap = useSnapshot(
     () => manifestById(previewType())?.topics ?? [],
     // Seçim ya da önizlenen overlay'in ayarı değişince bir tur daha oynar
-    () => [selected(), previewType(), JSON.stringify(profile().overlays[selected() ?? ""]?.options ?? null)],
+    () => [pid(), selected(), previewType(), JSON.stringify(profile().overlays[selected() ?? ""]?.options ?? null)],
     () => appState().demo,
   );
 
@@ -189,7 +242,7 @@ export function OverlaysPage() {
                   </button>
                 }
               >
-                <button onPointerUp={run(() => updateOverlay(m.key, (o) => (o.enabled = false)))}>
+                <button onPointerUp={run(() => upd(m.key, (o) => (o.enabled = false)))}>
                   <I.EyeOff /> Kaldır
                 </button>
                 <Show when={canDuplicate(m.type, settings().general.allowDuplicates)}>
@@ -207,20 +260,84 @@ export function OverlaysPage() {
       </Show>
       <aside class="ovlist">
         <div class="ovlist-profile">
+          <span class="ovlist-plabel">Düzen:</span>
           <select
             class="f2-select"
-            value={settings().activeProfile}
-            title="Düzenlenen düzen"
-            onChange={(e) => updateSettings((d) => (d.activeProfile = e.currentTarget.value))}
+            title={t("Bu sayfada ayarları düzenlenen düzen. Buradaki seçim etkin düzeni değiştirmez.")}
+            onChange={(e) => {
+              const v = e.currentTarget.value;
+              setOvProfile(v === "@follow" ? null : v);
+            }}
           >
-            <For each={Object.values(settings().profiles)}>{(p) => <option value={p.id}>{p.name}</option>}</For>
+            <option value="@follow" selected={following()}>
+              {t("Etkin düzeni izle ({0})", activeProfile().name)}
+            </option>
+            <optgroup label={t("Düzenler")}>
+              <For each={drivingList()}>
+                {(p) => (
+                  <option value={p.id} selected={!following() && pid() === p.id}>
+                    {settings().activeProfile === p.id ? t("{0} (etkin)", p.name) : p.name}
+                  </option>
+                )}
+              </For>
+            </optgroup>
+            <Show when={streamList().length > 0}>
+              <optgroup label={t("Yayın düzenleri")}>
+                <For each={streamList()}>
+                  {(p) => (
+                    <option value={p.id} selected={!following() && pid() === p.id}>
+                      {p.link ? t("{0} (bağlı)", p.name) : p.name}
+                    </option>
+                  )}
+                </For>
+              </optgroup>
+            </Show>
           </select>
           <button class="icon-btn" title="Düzenleri yönet" onClick={() => go("layouts")}>
             <I.LayoutDashboard />
           </button>
           <UndoRedo keys class="ur-panel" />
         </div>
+        <Show when={pid() !== settings().activeProfile}>
+          <div class="ovlist-pnote">
+            <Show
+              when={isStreamP()}
+              fallback={
+                <>
+                  <span>{t("\"{0}\" düzenleniyor · şu an etkin düzen: {1}", profile().name, activeProfile().name)}</span>
+                  <button class="link" onClick={() => { const id = pid(); updateSettings((d) => void (d.profiles[id] && (d.activeProfile = id))); }}>
+                    Etkin yap
+                  </button>
+                </>
+              }
+            >
+              <span>{t("Yayın düzeni (OBS) düzenleniyor: {0}", profile().name)}</span>
+              <button class="link" onClick={() => go("streaming")}>
+                Yayın sayfası
+              </button>
+            </Show>
+          </div>
+        </Show>
+        <Show when={linked()}>
+          <div class="ovlist-scroll">
+            <div class="locked-note ovlist-linked">
+              <Show
+                when={linkedSrc()}
+                fallback={<>Bu yayın düzeni başka bir düzene bağlı; kaynak düzen bulunamadı. Bağlantıyı Yayın sayfasından düzenleyebilirsin.</>}
+              >
+                {t("Bu yayın düzeni \"{0}\" düzenine bağlı: overlay'leri ve ayarları o düzenden canlı gelir, burada düzenlenmez.", linkedSrc()!.name)}{" "}
+                <button class="link" onClick={() => setOvProfile(linked()!.source === LINK_ACTIVE ? null : linkedSrc()!.id)}>
+                  Kaynak düzeni düzenle
+                </button>
+              </Show>
+            </div>
+          </div>
+        </Show>
+        <Show when={!linked()}>
         <div class="ovlist-scroll">
+          <div class="ovlist-total" title={t("Kullanılabilir overlay türü sayısı ve bu düzende açık olanlar")}>
+            {t("{0} overlay · {1} açık", totalTypes(), enabledAll().length)}
+          </div>
           <div class="ovlist-cap ovlist-cap-row">
             <span>Açık overlay'ler</span>
             <Show when={active().length > 0}>
@@ -265,7 +382,7 @@ export function OverlaysPage() {
                     title="Kapat"
                     onClick={(e) => {
                       e.stopPropagation();
-                      updateOverlay(k, (o) => (o.enabled = false));
+                      upd(k, (o) => (o.enabled = false));
                     }}
                   >
                     <I.Eye />
@@ -339,7 +456,8 @@ export function OverlaysPage() {
                         return;
                       }
                       const base = profile().overlays[m.id];
-                      const key = base && !base.enabled ? (updateOverlay(m.id, (o) => (o.enabled = true)), m.id) : addInstance(m.id);
+                      const key = base && !base.enabled ? (upd(m.id, (o) => (o.enabled = true)), m.id) : addInstance(m.id, pid());
+                      centerInstance(key, pid());
                       setOpenCard(key);
                       // Overlay'ler gizli ya da oyun kapalı olsa bile ekranda göster (bu sayfada seçili kaldıkça)
                       pinOverlay(key);
@@ -359,6 +477,7 @@ export function OverlaysPage() {
             </div>
           </Show>
         </div>
+        </Show>
       </aside>
 
       <Show
@@ -388,7 +507,7 @@ export function OverlaysPage() {
           </Show>
         }
       >
-        {(k) => <InstanceSettings key={k} />}
+        {(k) => <InstanceSettings key={k} profileId={pid()} />}
       </Show>
 
       <section class="ovpreview">
@@ -414,7 +533,7 @@ export function OverlaysPage() {
               <Show when={inst()}>
                 <div class="ovpreview-stage" style={{ opacity: Math.min(inst()!.opacity, settings().theme.opacity / 100) }}>
                   <div style={{ transform: `scale(${Math.min(1.4, inst()!.scale * (settings().theme.scale / 100))})` }} class="ovpreview-item">
-                    <OverlayView type={inst()!.type} options={{ ...inst()!.options, ...previewVals(k) }} />
+                    <OverlayView type={inst()!.type} options={{ ...inst()!.options, ...previewVals(k) }} look={inst()!.look} />
                   </div>
                   <Show when={isLocked(inst()!.type) || Object.keys(previewVals(k)).length > 0}>
                     <div class="ovpreview-pro">
@@ -474,15 +593,16 @@ function setPreviewVal(k: string, key: string, value: unknown) {
   setPv({ key: k, vals: cur });
 }
 
-function InstanceSettings(props: { key: string }) {
+function InstanceSettings(props: { key: string; profileId: string }) {
   const k = props.key;
-  const inst = () => activeProfile().overlays[k];
+  // Sayfada seçili düzenin kopyası (etkin düzen değil)
+  const inst = () => settings().profiles[props.profileId]?.overlays[k];
   // Tür değişmedikçe aynı kalsın: ayar değişince form yeniden kurulmasın (kaydırıcı sürüklemesi
   // kopmasın, sütun sıralarken sayfa başa kaymasın)
   const type = createMemo(() => inst()?.type ?? "");
   const m = createMemo(() => manifestById(type()));
   const isCopy = () => inst() && k !== inst()!.type;
-  const upd = (fn: Parameters<typeof updateOverlay>[1]) => updateOverlay(k, fn);
+  const upd = (fn: Parameters<typeof updateOverlay>[1]) => updateOverlay(k, fn, props.profileId);
 
   // Alanları gruplara ayır (grup verilmemişse overlay adı)
   const groups = createMemo(() => {
@@ -564,6 +684,10 @@ function InstanceSettings(props: { key: string }) {
             )}
           </For>
 
+          <Section title="Görünüm (bu overlay)" open={false}>
+            <LookPanel id={k} profileId={props.profileId} />
+          </Section>
+
           <Section title="Ne zaman gizlensin" open={false}>
             <div class="f2">
               <div class="f2-row">
@@ -591,7 +715,7 @@ function InstanceSettings(props: { key: string }) {
               class="btn ghost"
               title="Aynı overlay'den bir tane daha"
               onClick={() => {
-                const key = addInstance(inst()!.type);
+                const key = addInstance(inst()!.type, props.profileId);
                 setOpenCard(key);
                 pinOverlay(key);
               }}
@@ -607,6 +731,7 @@ function InstanceSettings(props: { key: string }) {
               upd((o) => {
                 const d = defaultInstance(o.type);
                 o.options = d.options;
+                delete o.look;
                 o.scale = 1;
                 o.opacity = 1;
                 o.x = d.x;
@@ -616,15 +741,21 @@ function InstanceSettings(props: { key: string }) {
           >
             <I.RotateCcw /> Sıfırla
           </button>
-          <button class="btn ghost" title="Kilidi aç ve ekranda yerleştir" onClick={() => invoke("edit_mode_set", { on: true })}>
+          <button class="btn ghost" title="Kilidi aç ve ekranda yerleştir" onClick={async () => {
+              const id = props.profileId;
+              await invoke("edit_mode_set", { on: true });
+              // Düzenleme ekranı bu sayfada seçili düzeni açsın (etkin düzenden farklı olabilir)
+              if (inTauri && id !== settings().activeProfile) void emit("edit-layout", id).catch(() => {});
+            }}>
             <I.MousePointer2 /> Ekranda
           </button>
           <Show when={isCopy()}>
             <button
               class="btn ghost danger"
               onClick={() => {
-                removeInstance(k);
-                setOpenCard(inst()?.type ?? null);
+                const type = inst()?.type ?? null;
+                removeInstance(k, props.profileId);
+                setOpenCard(type);
               }}
             >
               <I.Trash />

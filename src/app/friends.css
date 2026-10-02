@@ -641,6 +641,17 @@
 .fx .frow-menu .pro-badge.small {
   margin-left: auto;
 }
+/* Ekibime ekle maddeleri: seçili (onay işareti) ve kilitli (PRO değil) */
+.fx .frow-menu button.on svg {
+  color: var(--accent);
+}
+.fx .frow-menu button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.fx .frow-menu button:disabled:hover {
+  background: none;
+}
 .frow-menu-note {
   margin: 2px 9px 6px;
   max-width: 250px;

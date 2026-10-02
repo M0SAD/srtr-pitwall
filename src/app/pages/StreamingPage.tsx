@@ -13,6 +13,7 @@ import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
 import { UndoRedo } from "@/sdk/UndoRedo";
+import { LayoutList, copyStreamToLayout, setLayoutFocus, sortProfiles } from "../components/LayoutList";
 import { Switch } from "../components/SettingsForm";
 import { newLayout } from "./LayoutsPage";
 import * as I from "../icons";
@@ -95,7 +96,7 @@ function createFromPreset(preset: (typeof PRESETS)[number]): string {
 }
 
 export function StreamingPage() {
-  const streams = () => Object.values(settings().profiles).filter((p) => p.rules.mode === "stream");
+  const streams = () => sortProfiles(Object.values(settings().profiles).filter((p) => p.rules.mode === "stream"));
   const [selId, setSelId] = createSignal<string>(streams()[0]?.id ?? "");
   const p = (): Profile | undefined => settings().profiles[selId()] ?? streams()[0];
   // Düzenler sayfasından "Yayın düzenine kopyala" ile gelindiyse o yayın düzeni açılır
@@ -158,10 +159,11 @@ export function StreamingPage() {
     () => appState().demo,
   );
 
-  const url = () => {
+  const urlOf = (id: string) => {
     const base = info()?.lanUrl ?? info()?.url ?? `http://127.0.0.1:${settings().general.server.port}`;
-    return `${base}/overlay.html?layout=${encodeURIComponent(p()?.id ?? "")}`;
+    return `${base}/overlay.html?layout=${encodeURIComponent(id)}`;
   };
+  const url = () => urlOf(p()?.id ?? "");
 
   const enableServer = async () => {
     const s = settings().general.server;
@@ -198,18 +200,27 @@ export function StreamingPage() {
         <aside class="llist">
           <div class="ovlist-cap">Yayın düzenleri</div>
           <div class="llist-items">
-            <Show when={streams().length > 0} fallback={<div class="ovlist-empty">Henüz yok. Aşağıdan hazır bir sahneyle başla.</div>}>
-              <For each={streams()}>
-                {(x) => (
-                  <button class="ovitem" classList={{ sel: p()?.id === x.id }} onClick={() => (setSelId(x.id), setSel(null))}>
-                    <span class="ovitem-ic">
-                      <I.Radio />
-                    </span>
-                    <span class="ovitem-name">{x.name}</span>
-                  </button>
-                )}
-              </For>
-            </Show>
+            <LayoutList
+              kind="stream"
+              list={streams()}
+              selId={p()?.id}
+              onSelect={(id) => (setSelId(id), setSel(null))}
+              onShare={() => setSharing(true)}
+              canShare={(x) => !isSceneOnly(liveProfile(x, status()))}
+              onCopyOther={(id) => {
+                const nid = copyStreamToLayout(id, status());
+                if (!nid) return;
+                setLayoutFocus(nid);
+                go("layouts");
+              }}
+              onCopyUrl={(id) => void navigator.clipboard.writeText(urlOf(id)).catch(() => {})}
+              onUnlink={(id) => {
+                unlinkStream(id, status());
+                if (p()?.id === id) setSel(null);
+              }}
+              icon={() => <I.Radio />}
+              empty={<div class="ovlist-empty">Henüz yok. Aşağıdan hazır bir sahneyle başla.</div>}
+            />
           </div>
           <div class="ovlist-cap">Hazır sahneler</div>
           <div class="presets2">

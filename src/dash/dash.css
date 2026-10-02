@@ -1,0 +1,261 @@
+/* Özel dashboard (tasarımcı, overlay, uzak sayfa ortak) */
+
+.dashc {
+  position: relative;
+  overflow: hidden;
+  color: #f4f4f4;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+.dashc *,
+.dashc *::before {
+  box-sizing: border-box;
+}
+
+.dw {
+  position: absolute;
+  display: flex;
+  overflow: hidden;
+}
+.dw > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dw-value {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.dw-value.lp-top {
+  flex-direction: column-reverse;
+}
+.dw-value.lp-left {
+  flex-direction: row-reverse;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.dw-value.lp-left.al-center {
+  justify-content: center;
+}
+.dw-value.lp-left.al-right {
+  justify-content: flex-start;
+}
+.al-left {
+  text-align: left;
+  align-items: flex-start;
+}
+.al-center {
+  text-align: center;
+  align-items: center;
+}
+.al-right {
+  text-align: right;
+  align-items: flex-end;
+}
+.dw-value.lp-left {
+  align-items: baseline;
+}
+.dw-v {
+  display: block;
+  white-space: nowrap;
+  font-weight: inherit;
+  line-height: 0.9;
+}
+.dw-l {
+  display: block;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #a3a3a3;
+  letter-spacing: 0.05em;
+}
+
+.dw-gear {
+  display: flex;
+  justify-content: center;
+  line-height: 0.82;
+  flex-direction: column;
+}
+.dw-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.dw-bar {
+  position: relative;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dw-bar > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+.dw-bar.vert > i {
+  top: auto;
+  right: 0;
+}
+.dw-bar > u {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.dw-bar.vert > u {
+  top: auto;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: 2px;
+}
+.dw-barwrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dw-barwrap.vert {
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.dw-barwrap .dw-bar {
+  flex: 1;
+  align-self: stretch;
+}
+
+.dw-leds {
+  display: flex;
+  gap: 4px;
+}
+.dw-leds.vert {
+  flex-direction: column-reverse;
+}
+.dw-leds > i {
+  flex: 1;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.dw-radial {
+  position: relative;
+}
+.dw-radial svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.dw-arc-bg,
+.dw-arc {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.dw-arc-bg {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+.dw-radial-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dw-tyres {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 5px;
+}
+.dw-tyre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.dw-tyre b {
+  font-weight: inherit;
+}
+
+.dw-delta {
+  position: relative;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dw-delta > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.dw-delta > u {
+  position: absolute;
+  left: calc(50% - 1px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f4f4f4;
+}
+
+.dw-flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.06em;
+}
+.dw-flag.chk {
+  background-image: repeating-conic-gradient(#111 0 25%, #e8e8e8 0 50%) !important;
+  background-size: 24px 24px !important;
+  color: transparent !important;
+}
+.dw-ghost {
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
+}
+.dw-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.dw-blink,
+.dw-flash > i {
+  animation: dw-blink 0.3s steps(2) infinite;
+}
+@keyframes dw-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* Kaba sığdırma */
+.dash-fit {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.dash-fit-in {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+}

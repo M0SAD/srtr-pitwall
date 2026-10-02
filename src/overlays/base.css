@@ -39,33 +39,45 @@
   background: var(--ov-bg);
   color: var(--ov-text);
   border-radius: var(--ov-radius);
-  border: 1px solid var(--ov-line);
+  border: var(--ov-bw, 1px) solid var(--ov-line);
+  /* Kopyaya özel görünüm (sdk/look.ts): varsayılanları eskisiyle aynı */
+  box-shadow: var(--ov-box-shadow, none);
+  -webkit-backdrop-filter: var(--ov-backdrop, none);
+  backdrop-filter: var(--ov-backdrop, none);
   font-family: var(--ov-font);
   font-size: var(--ov-fs);
   font-weight: var(--ov-weight);
   text-shadow: var(--ov-shadow);
   line-height: 1.25;
   overflow: hidden;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--ov-numeric, tabular-nums);
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
 
 .ov-header {
-  display: flex;
+  display: var(--ov-hdr-display, flex);
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 5px 10px;
+  padding: calc(5px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   font-size: 0.846em;
   color: var(--ov-dim);
-  text-transform: uppercase;
+  text-transform: var(--ov-label-tt, uppercase);
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--ov-divider);
 }
 
+/* Satır başındaki sınıf rengi şeritleri: kopyaya özel görünümde gizlenebilir (yer tutar, hiza bozulmaz) */
+.bbox-accent,
+.rel-class,
+.st-accent,
+.duel-class {
+  visibility: var(--ov-stripe-vis, visible);
+}
+
 .ov-empty {
-  padding: 14px;
+  padding: calc(14px * var(--ov-pad-k, 1));
   color: var(--ov-dim);
   font-size: 0.923em;
   text-align: center;

@@ -61,6 +61,7 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   rejoin: ["ac", "acc"],
   // AC yan araç verisi vermiyor
   radar: ["ac"],
+  spotterbar: ["ac"],
   // Delta sadece iRacing ve ACC'de var; diğerlerinde çubuk hep boş kalır
   delta: ["ac", "lmu", "ams2"],
   // Hibrit / batarya verisi: iRacing, LMU/rF2 ve AC'de var; ACC'de hibrit araç yok, AMS2 alanları okunmuyor

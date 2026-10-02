@@ -1,0 +1,341 @@
+/* Dashboard Tasarımcısı */
+
+.dd {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.dd-bar,
+.dd-tools,
+.dd-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dd-pick {
+  min-width: 180px;
+  max-width: 260px;
+}
+.dd-new {
+  width: auto;
+}
+.dd-msg {
+  color: var(--accent-2);
+  font-size: 12.5px;
+}
+.dd-empty .dd-tpls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dd-body {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 270px;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .dd-body {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+  .dd-props {
+    grid-column: 1 / -1;
+  }
+}
+.dd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.dd-props {
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+}
+.dd-sub {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.dd-f {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 12px;
+}
+.dd-f > span {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dd-f .input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 7px;
+  font-size: 12.5px;
+}
+.dd-col {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.dd-col > span {
+  flex: 1;
+}
+.dd-col input[type="color"],
+.dd-rule input[type="color"] {
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+.dd-col .link svg {
+  width: 12px;
+  height: 12px;
+}
+.dd-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 8px;
+  align-items: end;
+}
+.dd-grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.dd-chk {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dd-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dd-inline .input {
+  padding: 3px 6px;
+  font-size: 12.5px;
+}
+.dd-gap {
+  flex: 1;
+}
+
+.dd-tabs,
+.dd-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.dd-tabs button,
+.dd-pages button {
+  padding: 3px 8px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.dd-tabs button.on,
+.dd-pages button.on {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.dd-pages button svg {
+  width: 12px;
+  height: 12px;
+}
+.dd-pal {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dd-pal .btn {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.dd-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.dd-stage {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.035) 0 25%, transparent 0 50%) 0 0 / 20px 20px,
+    var(--bg-2);
+  overflow: hidden;
+}
+.dd-scale {
+  position: relative;
+  flex: none;
+}
+.dd-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  cursor: default;
+  touch-action: none;
+  outline: calc(1px * var(--dd-k, 1)) solid rgba(255, 255, 255, 0.18);
+}
+.dd-canvas .dw {
+  pointer-events: none;
+}
+.dd-gridlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: var(--dd-grid, 10px) var(--dd-grid, 10px);
+}
+.dd-gridlines.off {
+  display: none;
+}
+.dd-selbox {
+  position: absolute;
+  outline: calc(1.5px * var(--dd-k, 1)) solid #4aa3ff;
+  cursor: move;
+}
+.dd-h {
+  position: absolute;
+  width: calc(9px * var(--dd-k, 1));
+  height: calc(9px * var(--dd-k, 1));
+  margin: calc(-4.5px * var(--dd-k, 1));
+  background: #fff;
+  border: calc(1.5px * var(--dd-k, 1)) solid #4aa3ff;
+  border-radius: 2px;
+}
+.dd-h-nw { left: 0; top: 0; cursor: nwse-resize; }
+.dd-h-n { left: 50%; top: 0; cursor: ns-resize; }
+.dd-h-ne { left: 100%; top: 0; cursor: nesw-resize; }
+.dd-h-e { left: 100%; top: 50%; cursor: ew-resize; }
+.dd-h-se { left: 100%; top: 100%; cursor: nwse-resize; }
+.dd-h-s { left: 50%; top: 100%; cursor: ns-resize; }
+.dd-h-sw { left: 0; top: 100%; cursor: nesw-resize; }
+.dd-h-w { left: 0; top: 50%; cursor: ew-resize; }
+.dd-hint {
+  line-height: 1.5;
+}
+
+.dd-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dd-layers button {
+  display: flex;
+  gap: 8px;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dd-layers button:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+.dd-layers span {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dd-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dd-rule {
+  display: grid;
+  grid-template-columns: 48px 1fr 30px auto auto;
+  gap: 4px;
+  align-items: center;
+}
+.dd-rule .input {
+  padding: 3px 5px;
+  font-size: 12.5px;
+  min-width: 0;
+  width: 100%;
+}
+.dd-align .btn {
+  min-width: 30px;
+  justify-content: center;
+}
+
+/* ---------------- Başka cihazda aç ---------------- */
+.dr-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .dr-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.dr-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.dr-qr svg {
+  width: 190px;
+  height: 190px;
+  background: #fff;
+  border-radius: 8px;
+}
+.dr-qr small {
+  max-width: 200px;
+  text-align: center;
+  color: var(--muted);
+  word-break: break-all;
+}
+.dr-note {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  line-height: 1.6;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.dt-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}

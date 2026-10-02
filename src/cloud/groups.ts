@@ -69,6 +69,8 @@ export const sendGroupMessage = (group: string, body: string) => {
   return api<string>("POST", "rpc/group_send", { body: { p_group: group, p_body: body } });
 };
 export const deleteGroupMessage = (id: string) => api("POST", "rpc/group_message_delete", { body: { p_id: id } });
+/** Mesajı sadece kendi görünümümden kaldır (c55) */
+export const hideGroupMessage = (id: string) => api("POST", "rpc/group_message_hide", { body: { p_id: id } });
 export const markGroupRead = (group: string) => api("POST", "rpc/group_read", { body: { p_group: group } }).catch(() => {});
 export const muteGroup = (group: string, muted: boolean) => api("POST", "rpc/group_mute", { body: { p_group: group, p_muted: muted } });
 export const reportGroupMessage = (id: string, reason: string, note: string) =>

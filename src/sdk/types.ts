@@ -1,4 +1,4 @@
-import type { CaptionView, LiveChatTopic, PollView } from "./livechat";
+import type { CaptionView, LiveChatTopic, LiveGate, PollView } from "./livechat";
 // Rust tarafındaki src-tauri/src/calc.rs paketleriyle birebir aynı tipler.
 
 export interface Status {
@@ -26,6 +26,8 @@ export interface Status {
   userName: string;
   /** Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2", yoksa "" */
   sim?: string;
+  /** Canlı Sohbet overlay kapısı: overlay ne göstersin (uygulama karar verir; OBS sayfası da buradan öğrenir) */
+  chat?: LiveGate;
 }
 
 export interface Inputs {
@@ -91,6 +93,8 @@ export interface Telemetry {
   airTemp: number;
   abs: number;
   absActive: boolean;
+  /** Çekiş kontrolü şu an kesiyor (ACC/AC; diğer simlerde hep false) */
+  tcActive?: boolean;
   tc: number;
   brakeBias: number;
   /** °C; bilinmiyorsa -1 (sadece iRacing) */
@@ -372,7 +376,8 @@ export interface TopicMap {
 export interface VoiceLine {
   /** Her mesajda artar */
   id: number;
-  role: "engineer" | "spotter";
+  /** "driver": sesli komutta sürücünün sorusu (tanınan cümle) */
+  role: "engineer" | "spotter" | "driver";
   /** Söylenen cümle (ses paketinin dilinde) */
   text: string;
   /** Kayıtların toplam süresi (bilinmiyorsa tahmin) */

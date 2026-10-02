@@ -2,7 +2,7 @@
   display: flex;
   align-items: stretch;
   gap: 8px;
-  padding: 8px;
+  padding: calc(8px * var(--ov-pad-k, 1));
   min-height: 102px;
   box-sizing: border-box;
 }
@@ -22,7 +22,7 @@
 .inp-bars {
   display: flex;
   gap: 7px;
-  padding: 0 2px;
+  padding: 0 calc(2px * var(--ov-pad-k, 1));
 }
 
 .inp-bar {

@@ -12,6 +12,7 @@ const MAP: Record<string, () => JSX.Element> = {
   ers: () => <I.BatteryCharging />,
   delta: () => <I.Timer />,
   radar: () => <I.Siren />,
+  spotterbar: () => <I.Pause />,
   trackmap: () => <I.Map />,
   minimap: () => <I.Map />,
   weather: () => <I.Eye />,

@@ -25,6 +25,7 @@ import { FriendsPage } from "./pages/FriendsPage";
 import { TeamsPage } from "./pages/TeamsPage";
 import { CrewPage } from "./pages/CrewPage";
 import { setTeamFocus } from "@/cloud/teams";
+import { setCrewFocus } from "@/cloud/crew";
 import { CommunityPage } from "./pages/CommunityPage";
 import { CommunityShots } from "./pages/CommunityShots";
 import { CommunityHome } from "./pages/CommunityHome";
@@ -45,6 +46,7 @@ import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
 import { AppBgLayer, appBgActive } from "./appBg";
 import { AdminTopStats } from "./components/AdminTopStats";
+import { TopLinks } from "./components/TopLinks";
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 
@@ -166,15 +168,16 @@ export function App() {
     setAppState(await invoke<AppState>("state_get"));
     await listen<AppState>("app-state", (e) => setAppState(e.payload));
     // Düzenleme ekranında sağ tık > "Ayarlarını aç"
-    await listen<string>("focus-overlay", (e) => focusOverlay(e.payload));
+    await listen<{ id: string; profile?: string | null }>("focus-overlay", (e) => focusOverlay(e.payload.id, e.payload.profile));
     // Ayrı arkadaş penceresinden: "PRO'ya bak", "Görünümü düzenle"
-    await listen<{ sec?: string; sub?: string; friend?: string; team?: string }>("panel-go", (e) => {
+    await listen<{ sec?: string; sub?: string; friend?: string; team?: string; crew?: string }>("panel-go", (e) => {
       if (e.payload.team) setTeamFocus(e.payload.team);
+      if (e.payload.crew) setCrewFocus(e.payload.crew);
       if (e.payload.friend) editFriendLook(e.payload.friend);
       else if (e.payload.sec) go(e.payload.sec as Parameters<typeof go>[0], e.payload.sub ?? "");
     });
-    const pending = await invoke<string | null>("panel_take_focus");
-    if (pending) focusOverlay(pending);
+    const pending = await invoke<{ id: string; profile?: string | null } | null>("panel_take_focus");
+    if (pending?.id) focusOverlay(pending.id, pending.profile);
     await loadVersion();
     bindUpdateEvents();
     if (version()?.updateConfigured) {
@@ -222,6 +225,7 @@ export function App() {
         </div>
       </Show>
       <header class="top2">
+        <TopLinks />
         <AdminTopStats />
         <h1>{TITLES[section()]}</h1>
         <div class="top2-right">

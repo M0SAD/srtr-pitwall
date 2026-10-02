@@ -381,6 +381,10 @@ pub struct Voice {
     pub acks: bool,
     last_eng: Instant,
     faster_cd: HashMap<usize, Instant>,
+    /// Sesli komut cevabı (bkz. `voicecmd`): (paket parçaları, metin, ne zaman istendi). Kanal boşalınca söylenir.
+    answer: Option<(Vec<Part>, String, Instant)>,
+    /// Mühendisin son söylediği ("tekrar et" komutu için): paket parçaları ya da Windows sesiyle okunan metin
+    last_said: Option<(Vec<Part>, String)>,
 }
 
 impl Default for Voice {
@@ -403,6 +407,8 @@ impl Default for Voice {
             acks: true,
             last_eng: past,
             faster_cd: HashMap::new(),
+            answer: None,
+            last_said: None,
         }
     }
 }
@@ -518,7 +524,50 @@ impl Voice {
             sub,
         });
         self.sent_at = Instant::now();
+        if !spotter {
+            self.last_said = Some((parts.to_vec(), String::new()));
+        }
         true
+    }
+
+    /// Sesli komut cevabını sıraya koy (yenisi eskisinin yerine geçer)
+    pub fn set_answer(&mut self, parts: Vec<Part>, text: String, now: Instant) {
+        self.answer = Some((parts, text, now));
+    }
+
+    /// Mühendisin son söylediği (spotter hariç)
+    pub fn last_said(&self) -> Option<(Vec<Part>, String)> {
+        self.last_said.clone()
+    }
+
+    /// Bekleyen sesli komut cevabını, ses kanalı boşsa söyle: ses paketinde tüm parçalar varsa paketten,
+    /// yoksa metni Windows sesiyle (aynı mühendis kanalından; spotter yine keser). Sürücü sorduğu için
+    /// "virajlarda sessiz" ve oturum türü ayarları uygulanmaz; 12 sn içinde söylenemezse vazgeçilir.
+    pub fn pump_answer(&mut self, now: Instant) {
+        let Some((_, _, born)) = self.answer.as_ref() else {
+            return;
+        };
+        if now.duration_since(*born) > Duration::from_secs(12) {
+            self.answer = None;
+            return;
+        }
+        if crate::voicecmd::hold() || audio::busy() || now.duration_since(self.sent_at) < Duration::from_millis(350) {
+            self.last_busy = now;
+            return;
+        }
+        let Some((parts, text, _)) = self.answer.take() else {
+            return;
+        };
+        if !parts.is_empty() && self.say_now(&parts, false) {
+            self.last_busy = now;
+            return;
+        }
+        if !text.is_empty() {
+            self.last_said = Some((Vec::new(), text.clone()));
+            crate::voicecmd::speak(text, &crate::voicecmd::answer_lang(), self.cfg.volume / 100.0);
+            self.sent_at = now;
+            self.last_busy = now;
+        }
     }
 
     /// Test düğmeleri: kısa ad, "kategori/ifade" ya da "+" ile birleştirilmiş anahtarlar
@@ -648,6 +697,11 @@ impl Voice {
 
     /// Kanal boşsa kuyruktaki en önemli mesajı çal
     fn flush(&mut self, f: &Frame, now: Instant) {
+        // Sesli komut: mikrofon açıkken ve cevap beklerken / hazırlanırken kuyruk bekler (cevap öne geçer)
+        if self.answer.is_some() || crate::voicecmd::hold() {
+            self.last_busy = now;
+            return;
+        }
         if audio::busy() || now.duration_since(self.sent_at) < Duration::from_millis(350) {
             self.last_busy = now;
             return;

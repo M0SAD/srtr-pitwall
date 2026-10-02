@@ -9,6 +9,7 @@ import { proLocked, requiresPro, VOICE_FEATURE } from "@/sdk/proFeatures";
 import { localeTag, t } from "@/sdk/i18n";
 import { Slider, Switch } from "../components/SettingsForm";
 import { VoicePacksSection } from "../components/VoicePacks";
+import { VoiceCommandsSection } from "../components/VoiceCommands";
 import { appState } from "../App";
 import { go } from "../ui";
 import * as I from "../icons";
@@ -242,6 +243,9 @@ export function VoicePage() {
           <Switch checked={v().ovalInsideOutside} onChange={(on) => set((x) => (x.ovalInsideOutside = on))} />
         </div>
       </section>
+
+      {/* Sesli komut (bas-konuş): components/VoiceCommands.tsx */}
+      <VoiceCommandsSection />
 
       <section class="panel">
         <div class="voice-panel-head">

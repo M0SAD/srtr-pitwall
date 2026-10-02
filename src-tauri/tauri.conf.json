@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SRTR Pitwall",
-  "version": "1.0.66",
+  "version": "1.0.70",
   "identifier": "com.pitwall.overlay",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -56,8 +56,29 @@
           "Swedish",
           "Russian",
           "SimpChinese",
-          "Japanese"
+          "Japanese",
+          "Polish",
+          "Finnish",
+          "Portuguese"
         ],
+        "customLanguageFiles": {
+          "English": "installer/nsis/English.nsh",
+          "Turkish": "installer/nsis/Turkish.nsh",
+          "German": "installer/nsis/German.nsh",
+          "Spanish": "installer/nsis/Spanish.nsh",
+          "PortugueseBR": "installer/nsis/PortugueseBR.nsh",
+          "French": "installer/nsis/French.nsh",
+          "Italian": "installer/nsis/Italian.nsh",
+          "Dutch": "installer/nsis/Dutch.nsh",
+          "Swedish": "installer/nsis/Swedish.nsh",
+          "Russian": "installer/nsis/Russian.nsh",
+          "SimpChinese": "installer/nsis/SimpChinese.nsh",
+          "Japanese": "installer/nsis/Japanese.nsh",
+          "Polish": "installer/nsis/Polish.nsh",
+          "Finnish": "installer/nsis/Finnish.nsh",
+          "Portuguese": "installer/nsis/Portuguese.nsh"
+        },
+        "installerHooks": "installer/nsis/hooks.nsh",
         "startMenuFolder": "SRTR Pitwall"
       },
       "wix": {

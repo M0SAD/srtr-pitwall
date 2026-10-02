@@ -1,9 +1,9 @@
 .ses {
-  width: 300px;
+  width: calc(300px * var(--ov-fs-k, 1));
 }
 
 .ses-flag {
-  padding: 7px 10px;
+  padding: calc(7px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   font-weight: var(--ov-weight-strong);
   font-size: 1.077em;
   letter-spacing: 0.04em;
@@ -47,14 +47,14 @@
 .ses-main {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: 7px 10px;
+  padding: calc(7px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
 }
 
 .ses-main label {
   display: block;
   font-size: 0.769em;
   color: var(--ov-dim);
-  text-transform: uppercase;
+  text-transform: var(--ov-label-tt, uppercase);
   letter-spacing: 0.05em;
 }
 
@@ -73,7 +73,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
-  padding: 6px 10px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
   border-top: 1px solid var(--ov-divider);
   font-size: 0.923em;
   color: var(--ov-dim);

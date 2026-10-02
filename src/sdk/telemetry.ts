@@ -67,6 +67,9 @@ function handle(p: Packet) {
 
 export type Sub = { name: TopicName; hz: number };
 
+/** Tarayıcı modunda (SSE) sunucuya bağlı mıyız; uygulama içinde hep doğru */
+export const [streamOpen, setStreamOpen] = createSignal(true);
+
 let subId: number | null = null;
 let starting: Promise<void> | null = null;
 let es: EventSource | null = null;
@@ -112,8 +115,13 @@ export async function setSubscriptions(topics: Sub[]) {
     // Tarayıcı ya da uzak kaynak: abonelik değişince bağlantı yeniden kurulur
     es?.close();
     es = new EventSource(`${remoteBase ?? apiBase}/api/stream?topics=${key}`);
+    const cur = es;
+    // Bağlantı durumu (uzak gösterge sayfası gösterir); EventSource koparsa kendiliğinden yeniden bağlanır
+    cur.onopen = () => es === cur && setStreamOpen(true);
+    cur.onerror = () => es === cur && setStreamOpen(false);
     es.onmessage = (e) => {
       try {
+        if (es === cur) setStreamOpen(true);
         handle(JSON.parse(e.data));
       } catch {
         /* bozuk paket */

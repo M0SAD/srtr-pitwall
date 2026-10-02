@@ -1,3 +1,4 @@
+import { sanitizeDashes, setDashList, type CustomDash } from "@/dash/model";
 import { detectLang, lang, setLang } from "./i18n";
 import { setRemoteSource } from "./telemetry";
 import { formatPrefs } from "./format";
@@ -14,6 +15,7 @@ import type { Status } from "./types";
 import { manifests } from "./registry";
 import { defaultOptions, type Units } from "./overlay";
 import { DEFAULT_THEME, normalizeTheme, type Theme } from "./theme";
+import { normalizeLook, type OverlayLook } from "./look";
 
 export interface OverlayInstance {
   /** Overlay türü (manifest kimliği). Aynı türden birden fazla kopya olabilir. */
@@ -34,6 +36,8 @@ export interface OverlayInstance {
   scale: number;
   opacity: number;
   options: Record<string, any>;
+  /** Bu kopyaya özel görünüm (renk, biçim, yazı; bkz. sdk/look.ts). Yoksa genel tema. */
+  look?: OverlayLook;
 }
 
 /** Düzenin ne zaman kullanılacağı */
@@ -58,6 +62,8 @@ export interface Profile {
   canvas?: { w: number; h: number };
   /** Yayın düzeni bir düzene bağlıysa: kendi overlay listesi yerine o düzenin overlay'leri canlı çizilir */
   link?: StreamLink;
+  /** Listedeki sıra (sağ tık › Yukarı / Aşağı taşı). Yoksa oluşturulma sırası. */
+  order?: number;
 }
 
 /** Bağlı yayın düzeni: `source` düzen kimliği ya da "@active" (uygulamada o an etkin düzen) */
@@ -373,7 +379,34 @@ export interface VoiceSettings {
   categories: Record<string, boolean>;
   /** Yeni ses sistemine geçiş yapıldı (bir kezlik: sesli mühendis varsayılan açık) */
   v2?: boolean;
+  /** Sesli komut (bas-konuş, PRO: voice.commands). Rust: src-tauri/src/voicecmd.rs */
+  commands: VoiceCommandSettings;
 }
+
+/** Bas-konuşa atanan direksiyon / kumanda düğmesi (USB üretici / ürün numarası + 0'dan başlayan düğme numarası) */
+export interface VoiceCommandButton {
+  vid: number;
+  pid: number;
+  button: number;
+  name: string;
+}
+
+export interface VoiceCommandSettings {
+  enabled: boolean;
+  /** hold: basılı tutarken dinler · toggle: dokununca başlar, susunca kendiliğinden biter */
+  mode: "hold" | "toggle";
+  /** Klavye tuşu ("Ctrl+Shift+T", "F13"…); boş: yok */
+  key: string;
+  button: VoiceCommandButton | null;
+  /** Tanıma dili (dil kodu); boş: arayüz dili */
+  language: string;
+  /** Tanıyıcı güven eşiği (%): altındaki sonuçlar "anlaşılmadı" sayılır */
+  confidence: number;
+  /** Dinleme / anlaşıldı / anlaşılmadı bipleri */
+  beeps: boolean;
+}
+
+export const DEFAULT_VOICE_COMMANDS: VoiceCommandSettings = { enabled: false, mode: "hold", key: "", button: null, language: "", confidence: 40, beeps: true };
 
 export const VOICE_CATEGORIES: { id: string; name: string; desc: string }[] = [
   { id: "spotter", name: "Spotter", desc: "Solda/sağda araç, üç araç yan yana, temiz, hâlâ orada" },
@@ -607,6 +640,8 @@ export interface GeneralSettings {
     stt: string;
     chat: string;
     crewStop: string;
+    /** Direksiyon Ekranı (özel tasarım): sonraki sayfa */
+    dashPage: string;
     vrConfig: string;
     vrRecenter: string;
     vrNext: string;
@@ -629,7 +664,7 @@ export interface GeneralSettings {
   /** Uygulama (panel) arka planı; istenirse overlay'lerde de */
   appBg: AppBg;
   /** Arkadaş listesi: rahatsız etme, mesaj kabulü, mesaj sesi */
-  social: { dnd: boolean; acceptMessages: boolean; sound: boolean };
+  social: { dnd: boolean; acceptMessages: boolean; sound: boolean; /** Konuşma altyazımı ekibimle paylaş (Ekip Pitwall'ı; yok = açık) */ crewSpeech?: boolean };
   /** Demo açıkken sesli spotter ve bipler sussun */
   demoMute: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
@@ -684,6 +719,8 @@ export interface AppSettings {
   savedThemes: SavedTheme[];
   league: LeagueSettings;
   friends: FriendsSettings;
+  /** Dashboard Tasarımcısı: kullanıcının özel direksiyon ekranı tasarımları (bkz. src/dash/model.ts) */
+  dashes: CustomDash[];
 }
 
 export function defaultInstance(id: string): OverlayInstance {
@@ -759,6 +796,37 @@ function stFlairMigrate(type: string, saved: Record<string, any> | undefined, op
   return options;
 }
 
+/**
+ * Bir kerelik geçiş: Radar'ın eski "Spotter çubukları" görünümü ayrı bir overlay (spotterbar, Çubuk Spotter) oldu.
+ * Görünümü çubuk olan kayıtlı radar kopyasından aynı konumda, eşdeğer ayarlarla bir Çubuk Spotter kopyası üretir;
+ * yoksa null. (Radar'dan `style` silindiği için bir daha çalışmaz.)
+ */
+function radarBarsMigrate(cur: OverlayInstance): OverlayInstance | null {
+  const o = cur?.options;
+  if (!o || o.style !== "bars" || !manifests.some((m) => m.id === "spotterbar")) return null;
+  const def = defaultInstance("spotterbar");
+  const num = (v: unknown, d: unknown) => (typeof v === "number" && isFinite(v) ? v : d);
+  return {
+    ...def,
+    ...cur,
+    type: "spotterbar",
+    options: {
+      ...def.options,
+      thickness: num(o.barWidth, 44),
+      height: num(o.barHeight, 180),
+      gap: num(o.barGap, 220),
+      range: Math.min(20, Math.max(4, num(o.range, 12) as number)),
+      hz: num(o.hz, 30),
+      colorCar: typeof o.color === "string" ? o.color : def.options.colorCar,
+      // Eski çubuklar yakında araç varken ikisi birden görünürdü; "kimse yokken gizle" kapalıysa hep görünürdü
+      guides: o.hideWhenClear === false,
+    },
+  };
+}
+
+/** Radar'dan kaldırılan ayarlar (eski çubuk görünümü) */
+const RADAR_DROPPED = ["style", "barGap", "barHeight", "barWidth"];
+
 export function newProfile(id: string, name: string): Profile {
   const overlays: Record<string, OverlayInstance> = {};
   for (const m of manifests) overlays[m.id] = defaultInstance(m.id);
@@ -785,7 +853,7 @@ export function defaultSettings(): AppSettings {
       autoSwitch: false,
       server: { enabled: false, port: 8910, lan: false },
       mqtt: defaultMqtt(),
-      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", crewStop: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
+      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", crewStop: "", dashPage: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
       shotKeyV2: true,
       shotKeyV3: true,
       hideInReplay: true,
@@ -825,6 +893,7 @@ export function defaultSettings(): AppSettings {
         sessions: { race: true, qualify: true, practice: true },
         categories: Object.fromEntries(VOICE_CATEGORIES.map((c) => [c.id, true])),
         v2: true,
+        commands: { ...DEFAULT_VOICE_COMMANDS },
       },
       sounds: {
         fasterClass: { enabled: false, volume: 70, pitch: 700, seconds: 5, muteSpectating: true },
@@ -837,6 +906,7 @@ export function defaultSettings(): AppSettings {
     savedThemes: [],
     league: { active: "", configs: [] },
     friends: defaultFriends(),
+    dashes: [],
   };
 }
 
@@ -901,6 +971,7 @@ export function normalize(input: unknown): AppSettings {
         ...(s.general?.voice ?? {}),
         sessions: { ...d.general.voice.sessions, ...(s.general?.voice?.sessions ?? {}) },
         categories: { ...d.general.voice.categories, ...(s.general?.voice?.categories ?? {}) },
+        commands: { ...DEFAULT_VOICE_COMMANDS, ...(s.general?.voice?.commands ?? {}) },
       }),
       sounds: {
         fasterClass: { ...d.general.sounds.fasterClass, ...(s.general?.sounds?.fasterClass ?? {}) },
@@ -929,6 +1000,7 @@ export function normalize(input: unknown): AppSettings {
       where: { ...d.friends.where, ...(s.friends?.where ?? {}) },
       list: Array.isArray(s.friends?.list) ? s.friends!.list : [],
     },
+    dashes: sanitizeDashes(s.dashes),
   };
   const profiles = s.profiles && typeof s.profiles === "object" ? s.profiles : d.profiles;
   for (const [pid, p] of Object.entries(profiles)) {
@@ -942,12 +1014,31 @@ export function normalize(input: unknown): AppSettings {
     if (p?.link && typeof p.link.source === "string" && p.link.source && prof.rules.mode === "stream")
       prof.link = { source: p.link.source, hidden: Array.isArray(p.link.hidden) ? p.link.hidden.filter((x) => typeof x === "string") : [] };
     // Kayıtlı kopyalar (anahtar: kopya kimliği; eski ayarlarda anahtar = overlay türü)
-    for (const [key, cur] of Object.entries(p?.overlays ?? {})) {
+    for (const [key, saved] of Object.entries(p?.overlays ?? {})) {
+      let cur = saved;
       const type = (cur as OverlayInstance)?.type || key;
       // Artık var olmayan türler (ör. kaldırılan eski "twitch" sohbet overlay'i) sessizce atılır
       if (!manifests.some((m) => m.id === type)) continue;
       const def = defaultInstance(type);
-      prof.overlays[key] = { ...def, ...cur, type, options: stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }))) };
+      if (type === "radar") {
+        const bar = radarBarsMigrate(cur as OverlayInstance);
+        if (bar) {
+          const taken = (k: string) => !!prof.overlays[k] || !!(p?.overlays as Record<string, unknown>)?.[k];
+          let bk = "spotterbar";
+          for (let n = 2; taken(bk); n++) bk = `spotterbar#${n}`;
+          prof.overlays[bk] = bar;
+          // Ek radar kopyası tümüyle Çubuk Spotter'a dönüşür; ana kopya kapalı olarak radar görünümünde kalır
+          if (key !== type) continue;
+          cur = { ...cur, enabled: false };
+        }
+        if (cur?.options && RADAR_DROPPED.some((k) => k in cur.options)) {
+          const options = { ...cur.options };
+          for (const k of RADAR_DROPPED) delete options[k];
+          cur = { ...cur, options };
+        }
+      }
+      const look = normalizeLook((cur as OverlayInstance)?.look);
+      prof.overlays[key] = { ...def, ...cur, ...(look ? { look } : { look: undefined }), type, options: stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }))) };
     }
     // Her türün bir ana kopyası olsun (yeni eklenen overlay'ler otomatik gelir)
     for (const m of manifests) {
@@ -968,6 +1059,7 @@ function setSettingsSignal(s: AppSettings) {
   if (s.general.language && s.general.language !== lang()) void setLang(s.general.language);
   const r = s.general.remote;
   setRemoteSource(inTauri && r?.enabled && r.host ? `http://${r.host.replace(/^https?:\/\//, "")}:${r.port || 8910}` : null);
+  setDashList(s.dashes);
   setSettingsRaw(s);
 }
 export { settings };

@@ -186,6 +186,11 @@ export function formatModLog(l: ModLog): LogView {
       };
     case "sim_icons_set":
       return { text: d.on ? t("Sim seçicide oyun ikonları açıldı") : t("Sim seçicide yazılı görünüme dönüldü"), target: { sub: "visibility" } };
+    case "top_links_set":
+      return {
+        text: t("Üst çubuk bağlantıları güncellendi ({0} bağlantı, {1} açık{2})", String(d.count ?? 0), String(d.enabled ?? 0), Array.isArray(d.labels) && d.labels.length ? `: ${q(d.labels.join(", "), 120)}` : ""),
+        target: { sub: "toplinks" },
+      };
     case "preview_backdrops_set":
       return {
         text: t("Overlay arka planları güncellendi (varsayılan: {0}{1})", t(BACKDROP_NAMES[d.default] ?? String(d.default ?? "?")), d.old_default && d.old_default !== d.default ? t(", önce: {0}", t(BACKDROP_NAMES[d.old_default] ?? String(d.old_default))) : ""),

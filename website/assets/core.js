@@ -220,7 +220,8 @@ export function T(key, ...args) {
 
 export function applyLang(root = document) {
   document.documentElement.lang = lang;
-  root.querySelectorAll("[data-t]").forEach((el) => (el.innerHTML = T(el.dataset.t)));
+  // data-t-args="a|b": {0}, {1} yerine konacak değerler (ör. overlay sayısı)
+  root.querySelectorAll("[data-t]").forEach((el) => (el.innerHTML = T(el.dataset.t, ...(el.dataset.tArgs ? el.dataset.tArgs.split("|") : []))));
   root.querySelectorAll("[data-t-ph]").forEach((el) => (el.placeholder = T(el.dataset.tPh)));
   root.querySelectorAll("[data-t-title]").forEach((el) => (el.title = T(el.dataset.tTitle)));
   document.querySelectorAll(".lang-sel").forEach((b) => (b.value = lang));
@@ -630,6 +631,7 @@ export function footerHtml() {
       <div>
         <div class="brand" translate="no"><img src="assets/img/logo.png" alt="" width="28" height="28" /><span>SRTR <b>Pitwall</b></span></div>
         <p class="muted small" data-t="footer_made"></p>
+        <div class="foot-tl" role="group" hidden></div>
       </div>
       <div class="foot-links">
         <a href="https://www.youtube.com/@ErkinAzcan" target="_blank" rel="noopener">YouTube</a>
@@ -682,4 +684,6 @@ export async function boot(page, active = "") {
   hit(page);
   await initNav();
   promoBanner();
+  // Üst çubuk bağlantıları (Discord, WhatsApp…): alt bilgide küçük simgeler
+  import("./toplinks.js").then((m) => m.initTopLinks()).catch(() => {});
 }

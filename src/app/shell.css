@@ -757,6 +757,33 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
+.ovlist-profile {
+  align-items: center;
+}
+.ovlist-profile .f2-select {
+  flex: 1;
+  min-width: 0;
+}
+.ovlist-plabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ovlist-pnote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.ovlist-linked {
+  margin: 10px 2px 0;
+}
+
 .ovlist-scroll {
   flex: 1;
   overflow: auto;
@@ -3963,4 +3990,13 @@ h3.ur-head {
 .slink-list .btn.off {
   opacity: 0.5;
   text-decoration: line-through;
+}
+
+/* Overlay'ler: liste başındaki toplam sayaç ("34 overlay · 9 açık") */
+.ovlist-total {
+  margin: 10px 8px -6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }

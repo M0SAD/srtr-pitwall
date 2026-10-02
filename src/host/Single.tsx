@@ -6,7 +6,7 @@ import { Show, Suspense, createEffect, createMemo, lazy, onCleanup, onMount } fr
 import { invoke } from "@tauri-apps/api/core";
 import { Dynamic } from "solid-js/web";
 import { isLocked } from "@/cloud/account";
-import { defaultOptions } from "@/sdk/overlay";
+import { defaultOptions, setOnScreen } from "@/sdk/overlay";
 import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { loadComponent, manifestById } from "@/sdk/registry";
 import { instanceName, settings } from "@/sdk/settings";
@@ -14,30 +14,36 @@ import { inTauri, query } from "@/sdk/platform";
 import { t } from "@/sdk/i18n";
 import { setSubscriptions } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
+import { lookStyle } from "@/sdk/lookStyle";
 
 export function Single(props: { type: string }) {
   const m = manifestById(props.type);
   const loader = loadComponent(props.type);
   const Comp = loader ? lazy(loader) : undefined;
 
-  const options = createMemo(() => {
+  const instance = createMemo(() => {
     const s = settings();
     const key = query.get("key");
     const layout = query.get("layout");
     const profiles = layout && s.profiles[layout] ? [s.profiles[layout]] : [s.profiles[s.activeProfile], ...Object.values(s.profiles)].filter(Boolean);
     for (const p of profiles) {
-      if (key && p.overlays[key]?.type === props.type) return p.overlays[key].options;
+      if (key && p.overlays[key]?.type === props.type) return p.overlays[key];
       const inst = Object.values(p.overlays).find((i) => i.type === props.type && i.enabled) ?? p.overlays[props.type];
-      if (inst) return inst.options;
+      if (inst) return inst;
     }
-    return m ? defaultOptions(m) : {};
+    return undefined;
   });
+  const options = createMemo(() => instance()?.options ?? (m ? defaultOptions(m) : {}));
 
+  // Tek overlay sayfası da gerçek bir yüzeydir (OBS tarayıcı kaynağı / VR penceresi): overlay'ler panel önizlemesi
+  // gibi davranmasın (ör. Canlı Sohbet kapı kararını uygular, örnek veriyi kendiliğinden göstermez)
+  setOnScreen(true);
   createEffect(() => {
     if (m) void setSubscriptions(m.topics);
   });
 
-  const vars = createMemo(() => themeVars(settings().theme));
+  // Tema + bu kopyanın kendi görünümü (sdk/look.ts)
+  const vars = createMemo(() => ({ ...themeVars(settings().theme), ...lookStyle(instance()?.look, settings().theme) }));
 
   // VR modu penceresi (?vr=1, Rust: vr.rs): içerik sol üstte; pencere içeriğe sığdırılır ve başlığı overlay'in
   // adı olur ("SRTR Pitwall - Relative"), böylece VR pencere yakalama araçlarında ayırt edilir.

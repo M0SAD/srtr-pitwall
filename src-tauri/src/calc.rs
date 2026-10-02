@@ -38,6 +38,8 @@ pub struct Status {
     pub user_name: String,
     /// Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "" (yok/demo)
     pub sim: String,
+    /// Canlı Sohbet overlay kapısı (motor doldurur; bkz. livechat::LiveGate)
+    pub chat: crate::livechat::LiveGate,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -130,6 +132,8 @@ pub struct Telemetry {
     pub air_temp: f32,
     pub abs: f32,
     pub abs_active: bool,
+    /// Çekiş kontrolü şu an kesiyor (ACC/AC; diğer simlerde hep false)
+    pub tc_active: bool,
     pub tc: f32,
     pub brake_bias: f32,
     /// °C; bilinmiyorsa -1
@@ -592,6 +596,7 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         car_path: me.map(|d| d.car_path.clone()).unwrap_or_default(),
         class_name: me.map(|d| d.class_name.clone()).unwrap_or_default(),
         sim: String::new(),
+        chat: Default::default(),
     }
 }
 
@@ -639,6 +644,7 @@ pub fn telemetry(f: &Frame, s: &SessionData, t: &Tracker) -> Telemetry {
         air_temp: f.air_temp,
         abs: f.abs_setting,
         abs_active: f.abs_active,
+        tc_active: f.tc_active,
         tc: f.tc,
         brake_bias: f.brake_bias,
         oil_temp: f.oil_temp,

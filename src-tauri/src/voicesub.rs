@@ -16,7 +16,7 @@ use std::sync::{Arc, OnceLock};
 pub struct VoiceLine {
     /// Her mesajda artar (0: henüz hiç konuşulmadı)
     pub id: u64,
-    /// "engineer" | "spotter"
+    /// "engineer" | "spotter" | "driver" (sesli komutta sürücünün sorusu)
     pub role: &'static str,
     pub text: String,
     /// Kayıtların toplam süresi (biliniyorsa), yoksa metin uzunluğundan tahmin
@@ -46,10 +46,24 @@ pub fn estimate_ms(text: &str) -> u32 {
 
 /// Yeni mesaj çalınmaya başladı. Dönen kimlik `audio::Cmd::Say` ile ses iş parçacığına verilir.
 pub fn start(spotter: bool, text: String) -> u64 {
+    start_role(if spotter { "spotter" } else { "engineer" }, text)
+}
+
+/// Sesi olmayan satır (ör. sesli komutta sürücünün sorusu): `ms` sonra kendiliğinden biter
+pub fn note(role: &'static str, text: String, ms: u32) {
+    let id = start_role(role, text);
+    duration(id, ms);
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(ms as u64));
+        end(id);
+    });
+}
+
+fn start_role(role: &'static str, text: String) -> u64 {
     let id = NEXT.fetch_add(1, Ordering::Relaxed) + 1;
     let line = VoiceLine {
         id,
-        role: if spotter { "spotter" } else { "engineer" },
+        role,
         duration_ms: estimate_ms(&text),
         text,
         speaking: true,
