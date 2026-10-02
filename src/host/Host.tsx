@@ -26,6 +26,7 @@ import { manifests, loadComponent } from "@/sdk/registry";
 import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
+import { liveProfile } from "@/sdk/streamLink";
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
@@ -209,8 +210,9 @@ export function Host() {
   });
   // Tutulan overlay panelde düzenlenen (etkin) düzendedir: o düzen gösterilir
   const pick = () => forced ?? (app().editMode ? editPick() : pinActive() ? settings().activeProfile : null);
-  setShown(resolveProfile(status(), !inTauri, pick()));
-  createEffect(() => setShown(resolveProfile(status(), !inTauri, pick())));
+  // Bağlı yayın düzeni: kaynak düzenin overlay'leri yayın çözünürlüğüne oranlanmış hâliyle (canlı)
+  setShown(liveProfile(resolveProfile(status(), !inTauri, pick()), status()));
+  createEffect(() => setShown(liveProfile(resolveProfile(status(), !inTauri, pick()), status())));
 
   // Bağlı (ya da seçili) sim: o simde çalışmayan overlay'ler çizilmez (ayarları korunur)
   const sim = createMemo(() => currentSim(status()));
@@ -373,7 +375,7 @@ function EditBar(props: { demo: boolean }) {
         value={shown()?.id ?? ""}
         onChange={(e) => switchLayout(e.currentTarget.value)}
       >
-        <For each={Object.values(settings().profiles)}>
+        <For each={Object.values(settings().profiles).filter((p) => !p.link)}>
           {(p) => (
             <option value={p.id} selected={p.id === shown()?.id}>
               {p.name}

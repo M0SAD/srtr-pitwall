@@ -3,7 +3,7 @@
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { manifestById } from "@/sdk/registry";
-import { instanceName, settings, updateSettings, type OverlayInstance } from "@/sdk/settings";
+import { instanceName, settings, updateSettings, type OverlayInstance, type Profile } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
 import { isLocked } from "@/cloud/account";
 import { clampRect, effectiveScale, layoutRect, snapMove, unlayoutPos, type Guides, type Rect } from "@/host/snap";
@@ -27,6 +27,10 @@ export interface CanvasProps {
   globalScale?: boolean;
   /** Düzenleme arka planı görseli gösterilsin (monitör düzenlerinde) */
   backdrop?: boolean;
+  /** Overlay'ler ayarlardaki düzen yerine bu (türetilmiş) düzenden okunur: bağlı yayın düzeni önizlemesi */
+  source?: Profile;
+  /** Salt okunur: taşıma/boyutlandırma/sağ tık yok, sadece seçim */
+  readOnly?: boolean;
 }
 
 // Tuvaldeki overlay'lerin mantıksal dikdörtgenleri (yapıştırma için)
@@ -81,6 +85,8 @@ export function LayoutCanvas(props: CanvasProps) {
               onSelect={() => props.onSelect(key)}
               setGuides={setGuides}
               useGlobal={props.globalScale !== false}
+              source={props.source}
+              readOnly={props.readOnly}
               onMenu={(m) => {
                 props.onSelect(key);
                 setMenu(m);
@@ -117,8 +123,10 @@ function CanvasItem(props: {
   setGuides: (g: Guides) => void;
   useGlobal: boolean;
   onMenu: (m: MenuState) => void;
+  source?: Profile;
+  readOnly?: boolean;
 }) {
-  const inst = (): OverlayInstance | undefined => settings().profiles[props.profileId]?.overlays[props.key];
+  const inst = (): OverlayInstance | undefined => (props.source ?? settings().profiles[props.profileId])?.overlays[props.key];
   const m = () => manifestById(inst()?.type ?? "");
   let el: HTMLDivElement | undefined;
   const [size, setSize] = createSignal({ w: m()?.size.w ?? 200, h: m()?.size.h ?? 100 });
@@ -173,6 +181,7 @@ function CanvasItem(props: {
     if (e.button !== 0) return;
     e.preventDefault();
     props.onSelect();
+    if (props.readOnly) return;
     const t = e.currentTarget as HTMLElement;
     t.setPointerCapture(e.pointerId);
     const o = view();
@@ -245,6 +254,7 @@ function CanvasItem(props: {
         onPointerDown={startMove}
         onContextMenu={(e) => {
           e.preventDefault();
+          if (props.readOnly) return;
           const v = view();
           props.onMenu({
             x: e.clientX,
@@ -265,7 +275,7 @@ function CanvasItem(props: {
         <div class="citem-label" style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
           {instanceName(props.key, inst()!)}
         </div>
-        <Show when={props.selected}>
+        <Show when={props.selected && !props.readOnly}>
           <div class="citem-resize" style={{ transform: `scale(${1 / (view().eff * props.k)})` }} onPointerDown={startResize} />
         </Show>
       </div>

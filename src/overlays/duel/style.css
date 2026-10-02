@@ -1,0 +1,269 @@
+/* Yakın Takip: makara (slot makinesi tamburu) görünümü. Hareket yalnızca transform / opacity ile. */
+
+@property --duel-c {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.duel {
+  position: relative;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  transition: opacity 0.35s ease;
+}
+
+.duel.duel-off {
+  opacity: 0;
+}
+
+.duel-reel {
+  position: relative;
+  overflow: hidden;
+  /* Tamburun üst ve alt kenarı karanlığa döner */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 13%, #000 87%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 13%, #000 87%, transparent 100%);
+}
+
+.duel-flat .duel-reel {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.duel-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+}
+
+.duel-row {
+  --duel-c: 0;
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 0;
+  height: var(--duel-h);
+  margin-top: calc(var(--duel-h) / -2);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0 0.6em 0 0;
+  overflow: hidden;
+  border-radius: var(--ov-radius);
+  border: 1px solid var(--ov-line);
+  background: color-mix(in srgb, var(--ov-bg-solid) var(--duel-bga), transparent);
+  color: var(--ov-text);
+  text-shadow: var(--ov-shadow);
+  white-space: nowrap;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  /* Sıra değişince satır yeni yuvasına makara gibi döner; yakınlık değişimi yumuşak akar */
+  transition:
+    transform 0.42s cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 0.25s linear,
+    filter 0.25s linear,
+    --duel-c 0.25s linear;
+}
+
+/* Yakınlık vurgusu: eşik içine girdikçe renk dolar */
+.duel-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc(var(--duel-c) * 0.42);
+  background: linear-gradient(90deg, var(--duel-near), transparent 78%);
+}
+
+.duel-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--duel-c);
+  box-shadow: inset 0 0 0 1px var(--duel-near);
+}
+
+.duel-row > * {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+.duel-row.me {
+  left: 14%;
+  right: 14%;
+  z-index: 20;
+  font-size: 0.86em;
+  font-weight: var(--ov-weight-strong);
+  background: color-mix(in srgb, var(--ov-bg-solid) var(--duel-bga), transparent);
+  border-color: color-mix(in srgb, var(--ov-yellow) 55%, transparent);
+  transition: none;
+}
+
+.duel-row.me::before {
+  opacity: 1;
+  background: var(--ov-bg-me);
+}
+
+.duel-row.me::after {
+  display: none;
+}
+
+.duel-line {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ov-yellow);
+  opacity: 0.7;
+}
+
+.duel-row.pit .duel-name,
+.duel-row.pit .duel-pos,
+.duel-row.pit .duel-num {
+  opacity: 0.55;
+}
+
+/* Tur farkı: tur önde mavi, tur geride kırmızı (Yakındakiler ile aynı anlam) */
+.duel-row.lap-ahead .duel-name,
+.duel-row.lap-ahead .duel-gap {
+  color: var(--ov-blue);
+}
+
+.duel-row.lap-behind .duel-name,
+.duel-row.lap-behind .duel-gap {
+  color: var(--ov-red);
+}
+
+.duel-class {
+  align-self: stretch;
+  width: 5px;
+}
+
+.duel-pos {
+  min-width: 1.5em;
+  text-align: center;
+  font-weight: var(--ov-weight-strong);
+  font-size: 1.08em;
+}
+
+.duel-class + .duel-pos {
+  margin-left: -0.1em;
+}
+
+.duel-row > :first-child:not(.duel-class) {
+  margin-left: 0.6em;
+}
+
+.duel-flair {
+  width: 1.7em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  color: var(--ov-dim);
+}
+
+.duel-flair img {
+  height: 1.05em;
+  width: auto;
+  border-radius: 2px;
+}
+
+.duel-num {
+  min-width: 2.2em;
+  color: var(--ov-dim);
+  font-size: 0.86em;
+}
+
+.duel-row > .duel-name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--ov-weight-strong);
+}
+
+.duel-car {
+  font-size: 0.9em;
+}
+
+.duel-lic {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  height: 1.4em;
+  padding: 0 0.45em 0 0;
+  border-radius: 0.7em;
+  overflow: hidden;
+  font-size: 0.74em;
+  color: #fff;
+  text-shadow: none;
+  background: color-mix(in srgb, var(--lc) 45%, #111);
+}
+
+.duel-lic b {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.4em;
+  background: var(--lc);
+}
+
+.duel-ir {
+  height: 1.4em;
+  line-height: 1.4em;
+  padding: 0 0.5em;
+  border-radius: 0.7em;
+  font-size: 0.74em;
+  font-weight: 700;
+  text-shadow: none;
+  color: #111;
+  background: color-mix(in srgb, var(--ov-text) 88%, transparent);
+}
+
+.duel-ps {
+  font-size: 0.7em;
+}
+
+.duel-ps-pit {
+  color: var(--ov-accent);
+}
+
+.duel-ps-out {
+  color: var(--ov-yellow);
+}
+
+.duel-trend {
+  width: 0.9em;
+  text-align: center;
+  font-size: 0.78em;
+  color: var(--ov-dim);
+}
+
+.duel-trend.closing {
+  color: var(--ov-green);
+}
+
+.duel-trend.away {
+  color: var(--ov-red);
+}
+
+.duel-gap {
+  min-width: 3.3em;
+  text-align: right;
+  font-weight: var(--ov-weight-strong);
+  font-size: 1.08em;
+}
+
+.duel .ov-empty {
+  font-size: 13px;
+}

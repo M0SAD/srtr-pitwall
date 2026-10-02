@@ -25,6 +25,8 @@ import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type M
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
 import { UndoRedo } from "@/sdk/UndoRedo";
+import { copyLayoutToStream, setStreamFocus } from "@/sdk/streamLink";
+import { F, proLocked } from "@/sdk/proFeatures";
 import { Switch } from "../components/SettingsForm";
 import * as I from "../icons";
 import { overlayIcon } from "../overlayIcons";
@@ -52,6 +54,13 @@ export function newLayout(mode: ProfileMode, name: string, copyOf?: Profile): st
     if (mode !== "stream") d.activeProfile = id;
   });
   return id;
+}
+
+/** Düzeni (açık tüm overlay'leri, aynı ayarlarla) yeni bir yayın düzenine kopyalar ve Yayın sayfasını açar */
+function copyToStream(p: Profile) {
+  // Yayın düzenleri PRO ise sayfa kilit ekranını gösterir; kopya oluşturulmaz
+  if (!proLocked(F.streaming)) setStreamFocus(copyLayoutToStream(p.id, { name: t("{0} (yayın)", p.name) }));
+  go("streaming");
 }
 
 export function RulesChips(props: { p: Profile }) {
@@ -304,6 +313,9 @@ export function LayoutsPage() {
               <button onPointerUp={run(() => setSelId(newLayout(prof().rules.mode, `${prof().name} (kopya)`, prof())))}>
                 <I.Copy /> Kopyala
               </button>
+              <button onPointerUp={run(() => copyToStream(prof()))}>
+                <I.Radio /> Yayın düzenine kopyala
+              </button>
               <button disabled={settings().activeProfile === m.id} onPointerUp={run(() => updateSettings((d) => (d.activeProfile = m.id)))}>
                 <I.Play /> Varsayılan yap
               </button>
@@ -391,6 +403,9 @@ export function LayoutsPage() {
               </button>
               <button class="btn ghost" onClick={() => setSelId(newLayout(p().rules.mode, `${p().name} (kopya)`, p()))}>
                 <I.Copy /> Kopyala
+              </button>
+              <button class="btn ghost" title="Bu düzenin açık overlay'lerini aynı ayarlarla OBS için bir yayın düzenine kopyalar (konumlar yayın çözünürlüğüne oranlanır)" onClick={() => copyToStream(p())}>
+                <I.Radio /> Yayın düzenine kopyala
               </button>
               <button class="btn primary" title="Bu düzeni tüm ayarları ve renkleriyle toplulukta paylaş" onClick={() => setSharing(true)}>
                 <I.Share2 /> Paylaş

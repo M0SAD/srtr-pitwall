@@ -279,7 +279,19 @@ export interface MapData {
   hasShape: boolean;
   progress: number;
   recording: boolean;
+  /** Öğrenilmiş pit yolu; bilinmiyorsa null */
+  pit?: PitLane | null;
   cars: MapCar[];
+}
+
+export interface PitLane {
+  /** Pit girişi / çıkışı (tur yüzdesi 0..1) */
+  entry: number;
+  exit: number;
+  /** Gidiş yönüne göre: 1 sol, -1 sağ, 0 bilinmiyor */
+  side: number;
+  /** Oyuncunun pit kutusu (tur yüzdesi; bilinmiyorsa -1) */
+  stall: number;
 }
 
 export interface RcEvent {

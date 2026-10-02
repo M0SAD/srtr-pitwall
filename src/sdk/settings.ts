@@ -56,6 +56,15 @@ export interface Profile {
   rules: ProfileRules;
   /** Yayın düzenlerinde tuval boyutu (OBS tarayıcı kaynağı) */
   canvas?: { w: number; h: number };
+  /** Yayın düzeni bir düzene bağlıysa: kendi overlay listesi yerine o düzenin overlay'leri canlı çizilir */
+  link?: StreamLink;
+}
+
+/** Bağlı yayın düzeni: `source` düzen kimliği ya da "@active" (uygulamada o an etkin düzen) */
+export interface StreamLink {
+  source: string;
+  /** Yayında gizlenen kopyalar (kaynak düzendeki anahtarlar) */
+  hidden: string[];
 }
 
 export interface ServerSettings {
@@ -580,6 +589,9 @@ export interface GeneralSettings {
   gridSize: number;
   /** Araca/oturuma göre düzeni otomatik seç */
   autoSwitch: boolean;
+  /** Monitörlerin mantıksal boyutları (anahtar: monitör adı, "" = ana overlay monitörü). Panel günceller;
+   * OBS sayfası bağlı yayın düzenlerini bu boyutlardan yayın çözünürlüğüne oranlar. */
+  screens?: Record<string, { w: number; h: number }>;
   server: ServerSettings;
   mqtt: MqttSettings;
   /** Genel kısayollar (boş: kısayol yok) */
@@ -926,6 +938,8 @@ export function normalize(input: unknown): AppSettings {
       rules: { ...defaultRules(), ...(p?.rules ?? {}) },
       canvas: p?.canvas && p.canvas.w > 0 && p.canvas.h > 0 ? p.canvas : undefined,
     };
+    if (p?.link && typeof p.link.source === "string" && p.link.source && prof.rules.mode === "stream")
+      prof.link = { source: p.link.source, hidden: Array.isArray(p.link.hidden) ? p.link.hidden.filter((x) => typeof x === "string") : [] };
     // Kayıtlı kopyalar (anahtar: kopya kimliği; eski ayarlarda anahtar = overlay türü)
     for (const [key, cur] of Object.entries(p?.overlays ?? {})) {
       const type = (cur as OverlayInstance)?.type || key;

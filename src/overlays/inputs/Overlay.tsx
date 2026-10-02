@@ -4,6 +4,7 @@ import { useTopic } from "@/sdk/telemetry";
 import { gear, speed, speedUnit } from "@/sdk/format";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { FREE_WHEELS, WheelArt, isWheelStyle, wheelForCar, type WheelStyle } from "./wheels";
+import { DesignView, isDesign, type Design } from "./designs";
 import "./style.css";
 
 const W = 240;
@@ -11,7 +12,20 @@ const H = 86;
 const ABS_DEF = "#ffd400";
 const TC_DEF = "#00c8ff";
 
+/** Tasarım seçimi: "default" bu dosyadaki ilk görünüm, diğerleri designs.tsx. PRO'ya ayrılmış tasarım kilitliyse varsayılan gösterilir. */
 export default function Inputs(props: OverlayProps) {
+  const design = (): Design | "default" => {
+    const d = props.options.design;
+    return isDesign(d) && !overlayValueLocked("inputs", "design", d) ? d : "default";
+  };
+  return (
+    <Show when={design() !== "default"} fallback={<DefaultDesign {...props} />}>
+      <DesignView {...props} design={design() as Design} />
+    </Show>
+  );
+}
+
+function DefaultDesign(props: OverlayProps) {
   const data = useTopic("inputs");
   let canvas: HTMLCanvasElement | undefined;
 

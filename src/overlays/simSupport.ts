@@ -55,6 +55,7 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   relative: ["ac", "acc"],
   standings: ["ac", "acc"],
   battlebox: ["ac", "acc"],
+  duel: ["ac", "acc"],
   flatmap: ["ac", "acc"], // düz şeritte tek nokta kalır
   // Arkadaki araçları bilemediği için yanlışlıkla "DÖNEBİLİRSİN" der
   rejoin: ["ac", "acc"],

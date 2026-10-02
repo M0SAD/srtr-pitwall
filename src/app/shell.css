@@ -3920,3 +3920,47 @@ h3.ur-head {
   background: #3ddc84;
   box-shadow: 0 0 6px #3ddc84;
 }
+
+/* Yayın düzeni: çözünürlük ve bağlı düzen */
+.sres {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+
+.sres-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sres-row > .f2-cap {
+  min-width: 130px;
+  margin: 0;
+}
+
+.sres-num {
+  width: 84px;
+}
+
+.slink {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slink-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.slink-list .btn.off {
+  opacity: 0.5;
+  text-decoration: line-through;
+}

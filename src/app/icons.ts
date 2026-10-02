@@ -79,3 +79,5 @@ export { default as Tag } from "lucide-solid/icons/tag";
 export { default as MicOff } from "lucide-solid/icons/mic-off";
 export { default as ArrowDownToLine } from "lucide-solid/icons/arrow-down-to-line";
 export { default as SkipForward } from "lucide-solid/icons/skip-forward";
+export { default as Link2 } from "lucide-solid/icons/link-2";
+export { default as Unlink } from "lucide-solid/icons/unlink";

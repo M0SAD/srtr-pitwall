@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-64
+
+- **Yayın düzenleri: kendi düzenini kullan.**
+  - **Bağlı düzen:** "Overlay kaynağı" → "Düzenimi kullan: <ad>" ya da "Etkin düzeni izle". Yayın düzeni o düzenin açık overlay'lerini canlı gösterir; normal düzende yaptığın her değişiklik OBS'e kendiliğinden yansır. Overlay başına "Yayında gizle". "Bağlantıyı kopar" bağımsız kopyaya çevirir.
+  - **Düzenden kopyala:** Yayın sayfasında "Düzenden kopyala…", Düzenler sayfasında "Yayın düzenine kopyala": açık tüm overlay'ler aynı ayar, ölçek ve saydamlıkla, konumları orantılı taşınarak gelir.
+  - **Yayın çözünürlüğü:** monitör yerine 1280×720, 1920×1080, 2560×1440, 3840×2160, 1080×1920 (dikey) ya da Özel. Değiştirince konumlar (istersen overlay boyutları da) orantılı taşınır; OBS kaynağı için önerilen genişlik / yükseklik gösterilir.
+- Yeni metinler 14 dile çevrildi.
+
+## 021026-63
+
+- **Yeni overlay: Yakın Takip.** Önündeki ve arkandaki araçlar makara (slot makinesi) gibi dönen dikey bir şeritte: araç eşik mesafesinin içine girdikçe satırı büyür, netleşir ve parlar; uzaklaştıkça küçülüp silikleşir. Öndekiler aşağı, arkadakiler yukarı doğru döner. 1–5 araç ön / arka, mesafe eşiği (varsayılan 2,0 sn; metre de seçilebilir), ön ve arka için ayrı eşik, gösterilecek bilgiler (sınıf, sıra, ülke, numara, sürücü, marka logosu, lisans, iRating, lastik, PIT/OUT, yaklaşma oku, fark), makara etkisi gücü, bulanıklık, vurgu rengi.
+- **Pist haritası:** pit yolu çizilir (giriş / çıkış, araçlar pite girip çıktıkça öğrenilir ve pist başına saklanır), pit giriş / çıkış işaretleri, kendi pit kutun, pitteki araçlar pit yolunda. Yeni ayarlar: pist (yol) rengi, kenar çizgisi (aç / kapat, kalınlık, renk), dolgu rengi ve opaklığı, başlangıç / bitiş çizgisi, pit yolu rengi / kalınlığı / uzaklığı / tarafı, sınıf renkleri, araç rengi, otomatik döndürme (start çizgisi altta) ve ek açı.
+- **Pedallar / girdi: 6 yeni tasarım** ("Tasarım" seçeneği): Telemetri grafiği + çubuklar, Dikey çubuklar, Kompakt şerit (ücretsiz); Yatay şeritler, Halka göstergeler, Sim tarzı (klasik) (PRO; Yönetim'den değiştirilebilir). Yeni seçenekler: pedal değerlerini sayıyla göster, çubuk kalınlığı, grafikte direksiyon çizgisi.
+- Yeni metinler 14 dile çevrildi.
+
 ## 021026-62
 
 - **Üst çubukta oyun ikonları:** iRacing, ACC, AC, LMU ve AMS2 ikonları eklendi; bağlı oyun yeşil nokta ve alt çizgiyle belli olur. Yönetim › Görünürlük'teki "Oyun ikonlarını göster" anahtarıyla herkes için yazılı görünüme dönülebilir. (c51)

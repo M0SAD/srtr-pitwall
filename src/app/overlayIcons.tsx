@@ -18,6 +18,7 @@ const MAP: Record<string, () => JSX.Element> = {
   incidents: () => <I.TriangleAlert />,
   digiflags: () => <I.Flag />,
   battlebox: () => <I.Users />,
+  duel: () => <I.Layers />,
   dataframe: () => <I.Box />,
   webview: () => <I.ExternalLink />,
   tires: () => <I.Car />,

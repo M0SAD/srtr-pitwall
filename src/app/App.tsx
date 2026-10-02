@@ -1,11 +1,13 @@
 // Kontrol paneli kabuğu: solda ikon menü, üstte durum çubuğu, ortada bölüm.
 
 import { t } from "@/sdk/i18n";
-import { For, Match, Show, Switch, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Match, Show, Switch, createEffect, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { AppState } from "@/sdk/types";
 import { settings, updateSettings } from "@/sdk/settings";
+import { loadMonitors } from "@/sdk/monitors";
+import { syncScreens } from "@/sdk/streamLink";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { freeView, realAdmin, setFreeView, isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
@@ -151,6 +153,9 @@ export function App() {
   useSubscriptions([]);
   // Yönetim: bekleyen iş sayaçları (yetkisi olmayanda boş kalır)
   useAdminBadges();
+  // Monitör boyutları ayarlara yazılır: OBS sayfası bağlı yayın düzenlerini buna göre oranlar
+  void loadMonitors();
+  createEffect(syncScreens);
 
   onMount(async () => {
     // Bildirimler 10 dakikada bir yenilenir

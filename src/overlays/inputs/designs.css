@@ -1,0 +1,378 @@
+/* Pedallar & Girdi — ek tasarımlar (designs.tsx) */
+.inx {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  width: max-content;
+  line-height: 1;
+}
+
+.inx-trace {
+  flex: none;
+  display: block;
+  background: color-mix(in srgb, var(--ov-bg-solid) 60%, transparent);
+  border-radius: 4px;
+}
+
+/* --- dikey çubuklar --- */
+.inx-bars {
+  display: flex;
+  gap: 7px;
+  align-items: flex-end;
+}
+.inx-vcol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.inx-num {
+  font-size: 0.846em;
+  font-weight: var(--ov-weight-strong);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.inx-vbar {
+  position: relative;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.inx-vfill {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.inx-vbar.glow,
+.inx-hbar.glow {
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 0 8px 1px var(--glow);
+}
+
+/* --- vites / hız / direksiyon sütunu --- */
+.inx-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 4.6em;
+}
+.inx-gear {
+  font-size: 2.4em;
+  font-weight: var(--ov-weight-strong);
+}
+.inx.shift .inx-gear,
+.inx.shift .inx-gearbox,
+.inx.shift .inx-simgear {
+  color: var(--ov-blue);
+}
+.inx.shift {
+  border-color: var(--ov-blue);
+}
+.inx-speed {
+  font-size: 1.154em;
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+}
+.inx-speed small,
+.inx-unit,
+.inx-deg {
+  font-size: max(0.65em, 9px);
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+}
+.inx-wheel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.inx-wheel .inp-wheel {
+  margin-top: 0;
+}
+.inx-gearbox {
+  display: grid;
+  place-items: center;
+  min-width: 1.5em;
+  padding: 2px 6px;
+  font-size: 2.3em;
+  font-weight: var(--ov-weight-strong);
+  border: 2px solid color-mix(in srgb, var(--ov-text) 30%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ov-text) 6%, transparent);
+}
+.inx.shift .inx-gearbox {
+  border-color: var(--ov-blue);
+}
+
+/* --- yatay direksiyon göstergesi --- */
+.inx-steerbar {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  margin: 0 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.inx-steermid {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--ov-dim);
+}
+.inx-steerdot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--ov-accent);
+  box-shadow: 0 0 0 1.5px var(--ov-bg-solid);
+}
+
+/* --- Yatay şeritler --- */
+.inx-hz {
+  align-items: center;
+  gap: 12px;
+}
+.inx-hzgear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 3.6em;
+  padding-right: 12px;
+  border-right: 1px solid var(--ov-line);
+}
+.inx-hrows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 250px;
+}
+.inx-hrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.inx-hlabel {
+  width: 5.4em;
+  flex: none;
+  font-size: 0.769em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ov-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inx-hbar {
+  position: relative;
+  flex: 1;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.inx-hfill {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+.inx-hnum {
+  width: 2.8em;
+  flex: none;
+  text-align: right;
+  font-size: 0.923em;
+  font-weight: var(--ov-weight-strong);
+}
+
+/* --- Halka göstergeler --- */
+.inx-rg {
+  padding: 6px;
+  border-radius: 50%;
+}
+.inx-rings {
+  display: block;
+  width: 136px;
+  height: 136px;
+  overflow: visible;
+}
+.inx-arcbg {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 10%, transparent);
+  stroke-linecap: butt;
+}
+.inx-arc {
+  fill: none;
+  stroke-linecap: butt;
+}
+.inx-arc.glow {
+  filter: drop-shadow(0 0 2.5px var(--glow));
+}
+.inx-arctick {
+  stroke: var(--ov-dim);
+  stroke-width: 1;
+}
+.inx-arcmark {
+  fill: var(--ov-accent);
+  stroke: var(--ov-bg-solid);
+  stroke-width: 1;
+}
+.inx-rings text {
+  fill: var(--ov-text);
+  font-family: var(--ov-font);
+  font-variant-numeric: tabular-nums;
+}
+.inx-rings .inx-rgear {
+  font-size: 26px;
+  font-weight: var(--ov-weight-strong);
+}
+.inx.shift .inx-rgear {
+  fill: var(--ov-blue);
+}
+.inx-rings .inx-rspeed {
+  font-size: 11px;
+  font-weight: var(--ov-weight-strong);
+}
+.inx-rings .inx-runit {
+  font-size: 6.5px;
+  fill: var(--ov-dim);
+}
+.inx-rings .inx-rpct {
+  font-size: 8px;
+  font-weight: var(--ov-weight-strong);
+}
+
+/* --- Kompakt şerit --- */
+.inx-st {
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+}
+.inx-st .inx-gear {
+  font-size: 1.6em;
+  min-width: 0.8em;
+  text-align: center;
+}
+.inx-st .inx-speed {
+  min-width: 4.4em;
+  text-align: right;
+}
+.inx-sep {
+  align-self: stretch;
+  width: 1px;
+  margin: 2px 0;
+  background: var(--ov-line);
+}
+.inx-scell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.inx-scell .inx-hbar {
+  flex: none;
+  width: 64px;
+}
+.inx-snum {
+  width: 2em;
+  text-align: right;
+  font-size: 0.846em;
+  font-weight: var(--ov-weight-strong);
+}
+.inx-ssteer {
+  flex: none;
+  width: 64px;
+}
+
+/* --- Sim tarzı (klasik) --- */
+.inx-sim {
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 3px;
+  color: #fff;
+}
+.inx-sim.shift {
+  border-color: var(--ov-blue);
+}
+.inx-simtrace {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0;
+  box-sizing: content-box;
+}
+.inx-sim .inx-bars {
+  gap: 5px;
+}
+.inx-sim .inx-vbar {
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.06);
+  outline: 1px solid rgba(255, 255, 255, 0.28);
+}
+.inx-sim .inx-num {
+  font-size: 0.769em;
+  font-weight: var(--ov-weight);
+}
+.inx-simdial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: center;
+  gap: 3px;
+  min-width: 4.4em;
+}
+.inx-simwheel {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+}
+.inx-simrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.inx-simring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 4;
+}
+.inx-simspoke {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.inx-simgear {
+  position: relative;
+  font-size: 1.7em;
+  font-weight: var(--ov-weight-strong);
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+.inx-simspeed {
+  font-size: 1em;
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+}
+.inx-simspeed small {
+  font-size: 0.75em;
+  font-weight: var(--ov-weight);
+  color: rgba(255, 255, 255, 0.6);
+}
+.inx-sim .inx-deg {
+  color: rgba(255, 255, 255, 0.6);
+}

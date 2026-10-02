@@ -2,6 +2,7 @@
 
 import { localeTag, t } from "@/sdk/i18n";
 import { For, Show, createMemo, createResource, createSignal, onMount } from "solid-js";
+import { independentProfile } from "@/sdk/streamLink";
 import { invoke } from "@tauri-apps/api/core";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isLocked, isPro, profile } from "@/cloud/account";
@@ -608,6 +609,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
     try {
       const d = data() ?? (await getLayoutData(l().id));
       const src: Profile = structuredClone(d.profile);
+      delete src.link;
       const name = `${l().title} (${l().author_name || "paylaşım"})`;
       const mode = props.kind === "stream" ? "stream" : src.rules?.mode && src.rules.mode !== "stream" ? src.rules.mode : "driving";
       const id = newLayout(mode, name, src);
@@ -821,7 +823,11 @@ export function isSceneOnly(p: Profile) {
 export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClose: () => void; onShared: () => void }) {
   const profiles = () => Object.values(settings().profiles).filter((p) => (props.kind === "stream" ? p.rules.mode === "stream" : p.rules.mode !== "stream"));
   const [pid, setPid] = createSignal(props.profileId ?? (props.kind === "stream" ? profiles()[0]?.id : activeProfile().id) ?? "");
-  const prof = () => settings().profiles[pid()] ?? profiles()[0];
+  // Bağlı yayın düzeni bağımsız bir kopya olarak paylaşılır (kaynak düzen karşı tarafta yok)
+  const prof = createMemo(() => {
+    const p = settings().profiles[pid()] ?? profiles()[0];
+    return p?.link ? independentProfile(p) : p;
+  });
   const [title, setTitle] = createSignal(prof()?.name ?? "");
   const [desc, setDesc] = createSignal("");
   const [withTheme, setWithTheme] = createSignal(true);

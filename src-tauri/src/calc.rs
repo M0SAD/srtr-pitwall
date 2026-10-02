@@ -326,6 +326,8 @@ pub struct MapData {
     pub has_shape: bool,
     pub progress: f32,
     pub recording: bool,
+    /// Öğrenilmiş pit yolu (giriş / çıkış tur yüzdesi, yan, pit kutusu); bilinmiyorsa null
+    pub pit: Option<crate::trackmap::PitLane>,
     pub cars: Vec<MapCar>,
 }
 
@@ -1115,6 +1117,7 @@ pub fn map(f: &Frame, s: &SessionData, m: &TrackMap, send_shape: bool) -> MapDat
         has_shape: m.shape.is_some(),
         progress: m.progress(),
         recording: m.recording(),
+        pit: m.pit(),
         cars,
     }
 }
