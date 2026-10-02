@@ -1,7 +1,11 @@
 import { For, Show, createMemo } from "solid-js";
 import { orderValue, type OverlayProps } from "@/sdk/overlay";
+<<<<<<< HEAD
 import { useRows, useTopic } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
+=======
+import { useTopic } from "@/sdk/telemetry";
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 import { irating, lapTime } from "@/sdk/format";
 import type { Row } from "@/sdk/types";
 import { settings } from "@/sdk/settings";
@@ -106,11 +110,17 @@ export default function Relative(props: OverlayProps) {
   });
 
   const columns = createMemo(() =>
+<<<<<<< HEAD
     orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options))
       .filter((c) => c.on)
       .map((c) => c.key),
   );
   const isOn = (k: string) => columns().includes(k);
+=======
+    orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options)).filter((c) => c.on),
+  );
+  const isOn = (k: string) => columns().some((c) => c.key === k);
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 
   const cell = (key: string, r: Row) => {
     switch (key) {
@@ -120,12 +130,15 @@ export default function Relative(props: OverlayProps) {
         return <span class="rel-pos">{r.classPos > 0 ? r.classPos : "-"}</span>;
       case "num":
         return <span class="rel-num">{r.number}</span>;
+<<<<<<< HEAD
       case "flair":
         return (
           <span class="rel-flair" data-no-i18n>
             <Flag code={r.flair} />
           </span>
         );
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
       case "name":
         return (
           <span class="rel-name">
@@ -197,7 +210,11 @@ export default function Relative(props: OverlayProps) {
           <For each={rows()}>
             {(r) => (
               <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
+<<<<<<< HEAD
                 <For each={columns()}>{(c) => cell(c, r)}</For>
+=======
+                <For each={columns()}>{(c) => cell(c.key, r)}</For>
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
               </div>
             )}
           </For>

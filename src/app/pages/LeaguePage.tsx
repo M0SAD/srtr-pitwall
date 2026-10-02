@@ -177,7 +177,11 @@ export function LeaguePage() {
             <div>
               <b>3. Etkinleştir</b>
               <span>
+<<<<<<< HEAD
                 Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu
+=======
+                Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
                 kategorilere göre gösterilir.
               </span>
             </div>

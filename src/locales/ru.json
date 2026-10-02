@@ -37,6 +37,10 @@
   "· pit": "· пит",
   "· PNG, JPEG ya da WebP; küçültülüp sadece bu bilgisayarda saklanır": "· PNG, JPEG или WebP; уменьшается и хранится только на этом компьютере",
   "· PRO": "· PRO",
+<<<<<<< HEAD
+=======
+  "· Relative'de yer kazandırır": "· экономит место в Relative",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "· seçili": "· выбран",
   "· Son eşitleme {0}": "· Последняя синхронизация {0}",
   "· sunucu": "· сервер",
@@ -46,7 +50,10 @@
   "· Web": "· Веб",
   "· Windows ölçeği %{0}": "· Масштаб Windows {0}%",
   "· y": "· y",
+<<<<<<< HEAD
   "· Yakındakiler'de yer kazandırır": "· экономит место в Relative",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "'nu aç.": ".",
   "› “Çevrimiçi konuşma tanıma” açık olmalı; Gizlilik ›": "› должно быть включено «Распознавание голоса в сети»; Конфиденциальность ›",
   "› masaüstü uygulamalarının erişimine izin verilmeli; dil için Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri ›": "› нужно разрешить доступ классическим приложениям; для языка: Параметры › Время и язык › Язык и регион › язык › Параметры языка ›",
@@ -109,10 +116,15 @@
   "{0} bir arka plan önerdi; sohbetin üstünden yanıtlayabilirsin.": "{0} предлагает фон; ответить можно вверху чата.",
   "{0} bir ses paketi gönderdi: \"{1}\" ({2})": "{0} отправил голосовой пакет: \"{1}\" ({2})",
   "{0} bu sohbet için bir arka plan önerdi": "{0} предлагает фон для этого чата",
+<<<<<<< HEAD
   "{0} çevrimdışı": "{0} не в сети",
   "{0} çevrimiçi": "{0} онлайн",
   "{0} davet edildi.": "{0}: приглашение отправлено.",
   "{0} destek talebi yanıt bekliyor": "Обращений в поддержку без ответа: {0}",
+=======
+  "{0} çevrimiçi": "{0} онлайн",
+  "{0} davet edildi.": "{0}: приглашение отправлено.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} destek talebine yazdı: \"{1}\"": "{0} написал(а) в обращении: \"{1}\"",
   "{0} desteklenmeyen dosya kurulumda atlanır.": "Неподдерживаемых файлов: {0} — при установке они будут пропущены.",
   "{0} dk": "{0} мин",
@@ -185,8 +197,11 @@
   "{0} önerini reddetti.": "{0} отклонил(а) твоё предложение.",
   "{0} özellik güncellendi": "Обновлено функций: {0}",
   "{0} pist": "Трасс: {0}",
+<<<<<<< HEAD
   "{0} PRO üye": "PRO-участников: {0}",
   "{0} PRO üye · {1} deneme": "Участников PRO: {0} · пробных: {1}",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} PRO üyelik gerektirir": "{0} требует PRO-подписки",
   "{0} rapor": "{0} жалоб",
   "{0} raporu {1} — sebep: {2}{3}": "Жалоба ({0}) {1} — причина: {2}{3}",
@@ -268,7 +283,10 @@
   "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>",
+<<<<<<< HEAD
   "▶ Önizlemeyi oynat": "▶ Воспроизвести предпросмотр",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "★ benim kanalım": "★ мой канал",
   "★ Kanallarım ({0})": "★ Мои каналы ({0})",
   "✉ {0} yeni mesaj": "✉ {0} новых сообщ.",
@@ -1048,7 +1066,10 @@
   "Depo durumu, bitişe gereken yakıt, son tur / 5 / 10 tur ortalamasıyla tüketim-tur-stint-ikmal tablosu, hedef tüketim, kalan tur ve pit penceresi.": "Состояние бака, топливо до финиша, таблица расход-круги-стинт-дозаправка по последнему кругу / среднему за 5 / 10 кругов, целевой расход, оставшиеся круги и пит-окно.",
   "Depolama hatası {0}": "Ошибка хранилища {0}",
   "Desktop+ (Steam, ücretsiz)": "Desktop+ (Steam, бесплатно)",
+<<<<<<< HEAD
   "destek": "поддержка",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Destek": "Поддержка",
   "Destek ekibi": "Команда поддержки",
   "Destek mesajını gönder": "Отправить сообщение в поддержку",
@@ -1430,7 +1451,11 @@
   "Geri sayım": "Обратный отсчёт",
   "Geri sayımlı açılış": "Заставка с отсчётом",
   "gibi yer tutucuları çeviride de aynen bırak. Düzeltmeyi kaldırmak için kutuyu boşaltıp kaydet.": "и подобные подстановки оставляй в переводе как есть. Чтобы удалить исправление, очисти поле и сохрани.",
+<<<<<<< HEAD
   "gibi. Leaderboard, Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "и т. п. Leaderboard, Relative и Live Timing определяют марку по названию машины и показывают логотип; если логотипа нет, пишется название марки. Лучше всего смотрятся светлые логотипы на прозрачном фоне.",
+=======
+  "gibi. Leaderboard, Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "и т. п. Leaderboard, Relative и Live Timing определяют марку по названию машины и показывают логотип; если логотипа нет, пишется название марки. Лучше всего смотрятся светлые логотипы на прозрачном фоне.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Gidiş yönü hep yukarıda": "Направление движения всегда вверху",
   "Gidiş yönüne göre döndür": "Поворачивать по направлению движения",
   "Ginetta": "Ginetta",
@@ -1738,7 +1763,10 @@
   "Hızlı anket şık sayısı": "Число вариантов быстрого опроса",
   "Hızlı Sınıf Uyarısı": "Предупреждение о быстром классе",
   "Hızlı tur": "Быстрый круг",
+<<<<<<< HEAD
   "hiç görülmedi": "ни разу не был в сети",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Hiç oy gelmedi": "Голосов не было",
   "Hiçbir zaman": "Никогда",
   "Hizalama": "Выравнивание",
@@ -2248,7 +2276,11 @@
   "Liste": "Список",
   "Liste okunamadı. Daha sonra tekrar dene.": "Не удалось загрузить список. Попробуй позже.",
   "Listede sadece Windows'ta konuşma paketi kurulu diller görünür.": "В списке только языки, для которых в Windows установлен речевой пакет.",
+<<<<<<< HEAD
   "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Yakındakiler\") seç.": "Выбери в списке \"SRTR Pitwall - VR Panosu\" или окно отдельного оверлея (напр. \"SRTR Pitwall - Yakındakiler\").",
+=======
+  "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Relative\") seç.": "Выбери в списке \"SRTR Pitwall - VR Panosu\" или окно отдельного оверлея (напр. \"SRTR Pitwall - Relative\").",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Listeden sil": "Удалить из списка",
   "Listelenenlerdeki kararları kaldır": "Снять решения для показанных",
   "Listelenenlerin hepsi herkese açık olsun": "Открыть все показанные для всех",
@@ -2841,7 +2873,10 @@
   "Pozisyon ve değişim": "Позиция и изменение",
   "Prime": "Prime",
   "PrintScreen": "PrintScreen",
+<<<<<<< HEAD
   "PRO (deneme)": "PRO (пробный)",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "PRO 1 aylık": "PRO на 1 месяц",
   "PRO 12 aylık": "PRO на 12 месяцев",
   "PRO 3 aylık": "PRO на 3 месяца",
@@ -3022,6 +3057,11 @@
   "Reklamlar açıldı": "Реклама включена",
   "Reklamlar kapatıldı": "Реклама выключена",
   "Reklamsız kullan (PRO)": "Без рекламы (PRO)",
+<<<<<<< HEAD
+=======
+  "Relative": "Relative",
+  "Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative и Позиции: ширина в шлеме около 35–45 см, слева или справа над рулём. Топливо, дельта и ввод: 20–30 см, над приборной панелью.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Renault": "Renault",
   "Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla": "Задайте для него цвет, значок, фото и метку",
   "Renk": "Цвет",
@@ -3265,7 +3305,11 @@
   "Sıralama": "Позиции",
   "SIRALAMA": "ПОЗИЦИИ",
   "Sıralama Tablosu": "Таблица лидеров",
+<<<<<<< HEAD
   "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu kategorilere göre gösterilir.": "Заголовки Таблицы лидеров, цвета классов, позиции в классе, Relative, карта и Live Timing показываются по этим категориям.",
+=======
+  "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu kategorilere göre gösterilir.": "Заголовки Таблицы лидеров, цвета классов, позиции в классе, Relative, карта и Live Timing показываются по этим категориям.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Sıralama turları": "Квалификационные круги",
   "Sıralama turu çok iyiydi": "Квалификационный круг был отличный",
   "Sıralama, relative, pedallar, telemetri, pist haritası": "Позиции, relative, педали, телеметрия, карта трассы",
@@ -3545,7 +3589,10 @@
   "Şimdi yükle": "Установить сейчас",
   "Şimdiki tur": "Текущий круг",
   "Şu an": "Сейчас",
+<<<<<<< HEAD
   "Şu an {0} kişi yarışta": "Сейчас в гонке: {0}",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Şu an {0} oynuyor": "Сейчас играет в {0}",
   "Şu an çevrimiçi": "Сейчас в сети",
   "Şu an düzenlenen düzen · başka bir düzene geçmek için seç": "Редактируемая раскладка · выбери, чтобы переключиться на другую",
@@ -3801,7 +3848,10 @@
   "tüm PRO özelliklerini kullanır (PRO overlay'ler, sesli mühendis, mesajlaşma, paylaşım…). Giriş yapmayanlar yararlanamaz; böylece kampanya hesap açmaya da teşvik eder ve sunucu tarafındaki PRO denetimleri (hesaba bağlı) tutarlı kalır. Sitede ve programda kampanya bitişi gösterilir. Süre bitince her şey kendiliğinden eski haline döner.": "могут пользоваться всеми функциями PRO (PRO-оверлеи, голосовой инженер, сообщения, публикации…). Без входа в аккаунт это недоступно; так акция ещё и мотивирует заводить аккаунт, а серверные проверки PRO (привязанные к аккаунту) остаются согласованными. Окончание акции показывается на сайте и в приложении. По истечении срока всё само вернётся как было.",
   "Tüm sohbet": "Весь чат",
   "Tüm takımlar": "Все команды",
+<<<<<<< HEAD
   "Tüm üyeleri görmek için tıkla": "Нажми, чтобы увидеть всех участников",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Tüm yazı tipleri": "Все шрифты",
   "Tüm zamanlar": "За всё время",
   "Tüm zamanların öne çıkanları": "Лучшее за всё время",
@@ -3884,12 +3934,18 @@
   "Üst satır": "Верхняя строка",
   "Üst satır bilgileri": "Данные верхней строки",
   "Üstteki Başlat düğmesiyle bağlan.": "Подключись кнопкой «Старт» вверху.",
+<<<<<<< HEAD
   "üye": "участников",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye": "Участник",
   "ÜYE": "СПОНСОР",
   "Üye adı ya da iRacing adı": "Имя участника или имя в iRacing",
   "Üye ara (görünen ad ya da iRacing adı)": "Поиск участников (отображаемое имя или имя в iRacing)",
+<<<<<<< HEAD
   "Üye bulunamadı.": "Участники не найдены.",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye davet et": "Пригласить участника",
   "Üye no": "ID участника",
   "Üye no {0}": "ID участника {0}",
@@ -4001,8 +4057,11 @@
   "Yağmur lastiği": "Дождевая шина",
   "Yakalama aracında kare hızını 30 FPS ile sınırla; overlay'i gözlüğün tam ortasına değil, bakış alanının kenarına koy.": "Ограничь частоту кадров в инструменте захвата до 30 FPS; размещай оверлей не по центру шлема, а на краю поля зрения.",
   "Yakalama kaynağı olarak Graphics Capture ile \"SRTR Pitwall - …\" penceresini seç.": "В качестве источника захвата выбери окно \"SRTR Pitwall - …\" через Graphics Capture.",
+<<<<<<< HEAD
   "Yakındakiler": "Relative",
   "Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative и Позиции: ширина в шлеме около 35–45 см, слева или справа над рулём. Топливо, дельта и ввод: 20–30 см, над приборной панелью.",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "yakıt": "топливо",
   "Yakıt": "Топливо",
   "YAKIT": "ТОПЛИВО",
@@ -4051,7 +4110,10 @@
   "Yarışçılar": "Гонщики",
   "Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)": "Показывать ли сообщения этого друга в оверлее сообщений во время гонки (оверлей включается в разделе «Оверлеи»)",
   "Yarışırken gelen arkadaş ve takım mesajlarını ekranda küçük balonlarla gösterir; birkaç saniye sonra kaybolur. İstersen mesajları sesli de okur.": "Показывает сообщения друзей и команды, пришедшие во время гонки, в маленьких облачках на экране; через несколько секунд они исчезают. При желании ещё и читает их вслух.",
+<<<<<<< HEAD
   "yarışta": "в гонке",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Yarışta": "В гонке",
   "Yarışta böyle görünür": "Так это выглядит в гонке",
   "Yarışta bu adla eşleşen sürücü arkadaş olarak öne çıkar": "Пилот с этим именем в гонке будет выделен как друг",
@@ -4210,7 +4272,10 @@
   "Yöneticinin görseli": "Изображение админа",
   "Yönetim": "Администрирование",
   "Yönetim › Cihazlar bölümünden inceleyebilirsin.": "Подробности можно посмотреть в разделе Администрирование › Устройства.",
+<<<<<<< HEAD
   "Yönetim › Üyeler'de aç": "Открыть в Администрирование › Участники",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. Функцию нужно публиковать с ВКЛЮЧЁННОЙ проверкой JWT (пользоваться могут только вошедшие участники). Для Twitch secret не нужен.",
   "Yukarı": "Вверх",
   "Yukarı / aşağı (y)": "Вверх / вниз (y)",

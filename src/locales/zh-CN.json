@@ -37,6 +37,10 @@
   "· pit": "· 进站",
   "· PNG, JPEG ya da WebP; küçültülüp sadece bu bilgisayarda saklanır": "· PNG、JPEG 或 WebP；压缩后仅保存在这台电脑上",
   "· PRO": "· PRO",
+<<<<<<< HEAD
+=======
+  "· Relative'de yer kazandırır": "· 在 Relative 中节省空间",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "· seçili": "· 已选中",
   "· Son eşitleme {0}": "· 上次同步 {0}",
   "· sunucu": "· 服务器",
@@ -46,7 +50,10 @@
   "· Web": "· 网页",
   "· Windows ölçeği %{0}": "· Windows 缩放 {0}%",
   "· y": "· y",
+<<<<<<< HEAD
   "· Yakındakiler'de yer kazandırır": "· 在 Relative 中节省空间",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "'nu aç.": "。",
   "› “Çevrimiçi konuşma tanıma” açık olmalı; Gizlilik ›": "› 必须开启“联机语音识别”；隐私 ›",
   "› masaüstü uygulamalarının erişimine izin verilmeli; dil için Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri ›": "› 必须允许桌面应用访问；语言：设置 › 时间和语言 › 语言和区域 › 语言 › 语言选项 ›",
@@ -109,10 +116,15 @@
   "{0} bir arka plan önerdi; sohbetin üstünden yanıtlayabilirsin.": "{0} 推荐了一个背景，你可以在聊天顶部回复。",
   "{0} bir ses paketi gönderdi: \"{1}\" ({2})": "{0} 提交了一个语音包：“{1}”（{2}）",
   "{0} bu sohbet için bir arka plan önerdi": "{0} 为此聊天推荐了一个背景",
+<<<<<<< HEAD
   "{0} çevrimdışı": "{0} 人离线",
   "{0} çevrimiçi": "{0} 在线",
   "{0} davet edildi.": "已邀请 {0}。",
   "{0} destek talebi yanıt bekliyor": "{0} 个支持请求等待回复",
+=======
+  "{0} çevrimiçi": "{0} 在线",
+  "{0} davet edildi.": "已邀请 {0}。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} destek talebine yazdı: \"{1}\"": "{0} 在支持工单中写道：“{1}”",
   "{0} desteklenmeyen dosya kurulumda atlanır.": "{0} 个不支持的文件将在安装时跳过。",
   "{0} dk": "{0} 分钟",
@@ -185,8 +197,11 @@
   "{0} önerini reddetti.": "{0} 拒绝了你的推荐。",
   "{0} özellik güncellendi": "已更新 {0} 项功能",
   "{0} pist": "{0} 条赛道",
+<<<<<<< HEAD
   "{0} PRO üye": "{0} 位 PRO 会员",
   "{0} PRO üye · {1} deneme": "{0} 位 PRO 会员 · {1} 位试用",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} PRO üyelik gerektirir": "{0}需要 PRO 会员",
   "{0} rapor": "{0} 次举报",
   "{0} raporu {1} — sebep: {2}{3}": "{0}举报{1} — 原因：{2}{3}",
@@ -268,7 +283,10 @@
   "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>",
+<<<<<<< HEAD
   "▶ Önizlemeyi oynat": "▶ 播放预览",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "★ benim kanalım": "★ 我的频道",
   "★ Kanallarım ({0})": "★ 我的频道（{0}）",
   "✉ {0} yeni mesaj": "✉ {0} 条新消息",
@@ -1048,7 +1066,10 @@
   "Depo durumu, bitişe gereken yakıt, son tur / 5 / 10 tur ortalamasıyla tüketim-tur-stint-ikmal tablosu, hedef tüketim, kalan tur ve pit penceresi.": "油箱状态、完赛所需燃油、按上一圈 / 5 圈 / 10 圈平均计算的油耗-圈数-stint-加油表、目标油耗、剩余圈数和进站窗口。",
   "Depolama hatası {0}": "存储错误 {0}",
   "Desktop+ (Steam, ücretsiz)": "Desktop+（Steam，免费）",
+<<<<<<< HEAD
   "destek": "支持",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Destek": "支持",
   "Destek ekibi": "支持团队",
   "Destek mesajını gönder": "发送支持消息",
@@ -1430,7 +1451,11 @@
   "Geri sayım": "倒计时",
   "Geri sayımlı açılış": "倒计时开场",
   "gibi yer tutucuları çeviride de aynen bırak. Düzeltmeyi kaldırmak için kutuyu boşaltıp kaydet.": "等占位符在翻译中请原样保留。要移除修正，清空输入框并保存即可。",
+<<<<<<< HEAD
   "gibi. Leaderboard, Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "等。Leaderboard、Relative 和 Live Timing 会从车名识别品牌并显示标志；没有标志时显示品牌名。透明背景、浅色的标志效果最好。",
+=======
+  "gibi. Leaderboard, Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "等。Leaderboard、Relative 和 Live Timing 会从车名识别品牌并显示标志；没有标志时显示品牌名。透明背景、浅色的标志效果最好。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Gidiş yönü hep yukarıda": "行驶方向始终朝上",
   "Gidiş yönüne göre döndür": "按行驶方向旋转",
   "Ginetta": "Ginetta",
@@ -1738,7 +1763,10 @@
   "Hızlı anket şık sayısı": "快速投票选项数",
   "Hızlı Sınıf Uyarısı": "快组别警告",
   "Hızlı tur": "快速圈",
+<<<<<<< HEAD
   "hiç görülmedi": "从未上线",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Hiç oy gelmedi": "没有收到投票",
   "Hiçbir zaman": "从不",
   "Hizalama": "对齐",
@@ -2248,7 +2276,11 @@
   "Liste": "列表",
   "Liste okunamadı. Daha sonra tekrar dene.": "无法读取列表。请稍后再试。",
   "Listede sadece Windows'ta konuşma paketi kurulu diller görünür.": "列表中只显示 Windows 已安装语音包的语言。",
+<<<<<<< HEAD
   "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Yakındakiler\") seç.": "从列表中选择“SRTR Pitwall - VR Panosu”或单个 Overlay 窗口（例如“SRTR Pitwall - Yakındakiler”）。",
+=======
+  "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Relative\") seç.": "从列表中选择“SRTR Pitwall - VR Panosu”或单个 Overlay 窗口（例如“SRTR Pitwall - Relative”）。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Listeden sil": "从列表中删除",
   "Listelenenlerdeki kararları kaldır": "取消所列项的设置",
   "Listelenenlerin hepsi herkese açık olsun": "将所列项全部公开",
@@ -2841,7 +2873,10 @@
   "Pozisyon ve değişim": "名次与变化",
   "Prime": "Prime",
   "PrintScreen": "PrintScreen",
+<<<<<<< HEAD
   "PRO (deneme)": "PRO（试用）",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "PRO 1 aylık": "PRO 1 个月",
   "PRO 12 aylık": "PRO 12 个月",
   "PRO 3 aylık": "PRO 3 个月",
@@ -3022,6 +3057,11 @@
   "Reklamlar açıldı": "广告已开启",
   "Reklamlar kapatıldı": "广告已关闭",
   "Reklamsız kullan (PRO)": "去广告（PRO）",
+<<<<<<< HEAD
+=======
+  "Relative": "Relative",
+  "Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative 和排名：头显中宽约 35–45 cm，放在方向盘左上或右上方。燃油、delta 和输入：20–30 cm，放在仪表板上方。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Renault": "Renault",
   "Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla": "为其单独设置颜色、图标、照片和标签",
   "Renk": "颜色",
@@ -3265,7 +3305,11 @@
   "Sıralama": "排名",
   "SIRALAMA": "排位赛",
   "Sıralama Tablosu": "排行榜",
+<<<<<<< HEAD
   "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu kategorilere göre gösterilir.": "排行榜标题、组别颜色、组内排名、Relative、地图和 Live Timing 都会按这些类别显示。",
+=======
+  "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu kategorilere göre gösterilir.": "排行榜标题、组别颜色、组内排名、Relative、地图和 Live Timing 都会按这些类别显示。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Sıralama turları": "排位赛圈",
   "Sıralama turu çok iyiydi": "排位圈跑得真好",
   "Sıralama, relative, pedallar, telemetri, pist haritası": "排名、relative、踏板、遥测、赛道地图",
@@ -3545,7 +3589,10 @@
   "Şimdi yükle": "立即安装",
   "Şimdiki tur": "当前圈",
   "Şu an": "当前",
+<<<<<<< HEAD
   "Şu an {0} kişi yarışta": "当前 {0} 人正在比赛",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Şu an {0} oynuyor": "正在玩 {0}",
   "Şu an çevrimiçi": "当前在线",
   "Şu an düzenlenen düzen · başka bir düzene geçmek için seç": "当前编辑的布局 · 选择以切换到其他布局",
@@ -3801,7 +3848,10 @@
   "tüm PRO özelliklerini kullanır (PRO overlay'ler, sesli mühendis, mesajlaşma, paylaşım…). Giriş yapmayanlar yararlanamaz; böylece kampanya hesap açmaya da teşvik eder ve sunucu tarafındaki PRO denetimleri (hesaba bağlı) tutarlı kalır. Sitede ve programda kampanya bitişi gösterilir. Süre bitince her şey kendiliğinden eski haline döner.": "可使用全部 PRO 功能（PRO overlay、语音工程师、消息、分享…）。未登录者无法享受；这样活动也能鼓励注册账号，服务器端的 PRO 校验（与账号绑定）也能保持一致。网站和应用中会显示活动结束时间。到期后一切会自动恢复原状。",
   "Tüm sohbet": "全部聊天",
   "Tüm takımlar": "所有车队",
+<<<<<<< HEAD
   "Tüm üyeleri görmek için tıkla": "点击查看所有会员",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Tüm yazı tipleri": "所有字体",
   "Tüm zamanlar": "全部时间",
   "Tüm zamanların öne çıkanları": "历史精选",
@@ -3884,12 +3934,18 @@
   "Üst satır": "顶行",
   "Üst satır bilgileri": "顶行信息",
   "Üstteki Başlat düğmesiyle bağlan.": "用顶部的“启动”按钮连接。",
+<<<<<<< HEAD
   "üye": "会员",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye": "会员",
   "ÜYE": "会员",
   "Üye adı ya da iRacing adı": "会员名或 iRacing 名称",
   "Üye ara (görünen ad ya da iRacing adı)": "搜索会员（显示名或 iRacing 名称）",
+<<<<<<< HEAD
   "Üye bulunamadı.": "未找到会员。",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye davet et": "邀请成员",
   "Üye no": "会员号",
   "Üye no {0}": "会员号 {0}",
@@ -4001,8 +4057,11 @@
   "Yağmur lastiği": "雨胎",
   "Yakalama aracında kare hızını 30 FPS ile sınırla; overlay'i gözlüğün tam ortasına değil, bakış alanının kenarına koy.": "在捕获工具中将帧率限制为 30 FPS；不要把 Overlay 放在头显正中央，而是放在视野边缘。",
   "Yakalama kaynağı olarak Graphics Capture ile \"SRTR Pitwall - …\" penceresini seç.": "使用 Graphics Capture 选择“SRTR Pitwall - …”窗口作为捕获源。",
+<<<<<<< HEAD
   "Yakındakiler": "Relative",
   "Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative 和排名：头显中宽约 35–45 cm，放在方向盘左上或右上方。燃油、delta 和输入：20–30 cm，放在仪表板上方。",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "yakıt": "燃油",
   "Yakıt": "燃油",
   "YAKIT": "燃油",
@@ -4051,7 +4110,10 @@
   "Yarışçılar": "车手",
   "Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)": "比赛时是否在消息叠加层中显示该好友的消息（可在“叠加层”中开启该叠加层）",
   "Yarışırken gelen arkadaş ve takım mesajlarını ekranda küçük balonlarla gösterir; birkaç saniye sonra kaybolur. İstersen mesajları sesli de okur.": "比赛时收到的好友和车队消息会以小气泡显示在屏幕上，几秒后消失。你也可以让它朗读消息。",
+<<<<<<< HEAD
   "yarışta": "比赛中",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Yarışta": "比赛中",
   "Yarışta böyle görünür": "比赛中会这样显示",
   "Yarışta bu adla eşleşen sürücü arkadaş olarak öne çıkar": "比赛中与此名称匹配的车手将作为好友突出显示",
@@ -4210,7 +4272,10 @@
   "Yöneticinin görseli": "管理员的图片",
   "Yönetim": "管理",
   "Yönetim › Cihazlar bölümünden inceleyebilirsin.": "你可以在 管理 › 设备 中查看详情。",
+<<<<<<< HEAD
   "Yönetim › Üyeler'de aç": "在 管理 › 会员 中打开",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET。函数发布时必须开启 JWT 验证（仅登录会员可用）。Twitch 不需要 secret。",
   "Yukarı": "上",
   "Yukarı / aşağı (y)": "上 / 下 (y)",

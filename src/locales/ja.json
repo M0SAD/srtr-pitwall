@@ -37,6 +37,10 @@
   "· pit": "· ピット",
   "· PNG, JPEG ya da WebP; küçültülüp sadece bu bilgisayarda saklanır": "· PNG、JPEG、WebP。縮小してこのPCにのみ保存されます",
   "· PRO": "· PRO",
+<<<<<<< HEAD
+=======
+  "· Relative'de yer kazandırır": "· Relativeで場所を節約",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "· seçili": "· 選択中",
   "· Son eşitleme {0}": "· 最終同期 {0}",
   "· sunucu": "· サーバー",
@@ -46,7 +50,10 @@
   "· Web": "· Web",
   "· Windows ölçeği %{0}": "· Windows拡大率 {0}%",
   "· y": "· y",
+<<<<<<< HEAD
   "· Yakındakiler'de yer kazandırır": "· Relativeで場所を節約",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "'nu aç.": "をオンにしてください。",
   "› “Çevrimiçi konuşma tanıma” açık olmalı; Gizlilik ›": "› 「オンライン音声認識」をオンにする必要があります。プライバシー ›",
   "› masaüstü uygulamalarının erişimine izin verilmeli; dil için Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri ›": "› デスクトップアプリのアクセスを許可する必要があります。言語は 設定 › 時刻と言語 › 言語と地域 › 言語 › 言語のオプション › の",
@@ -109,10 +116,15 @@
   "{0} bir arka plan önerdi; sohbetin üstünden yanıtlayabilirsin.": "{0}さんが背景を提案しました。チャット上部から返答できます。",
   "{0} bir ses paketi gönderdi: \"{1}\" ({2})": "{0} さんがボイスパックを送信しました：「{1}」（{2}）",
   "{0} bu sohbet için bir arka plan önerdi": "{0}さんがこのチャットの背景を提案しました",
+<<<<<<< HEAD
   "{0} çevrimdışı": "{0} 人がオフライン",
   "{0} çevrimiçi": "{0}人オンライン",
   "{0} davet edildi.": "{0} を招待しました。",
   "{0} destek talebi yanıt bekliyor": "{0} 件のサポート依頼が返信待ち",
+=======
+  "{0} çevrimiçi": "{0}人オンライン",
+  "{0} davet edildi.": "{0} を招待しました。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} destek talebine yazdı: \"{1}\"": "{0}がサポートチケットに書き込みました:「{1}」",
   "{0} desteklenmeyen dosya kurulumda atlanır.": "未対応のファイル {0}件はインストール時にスキップされます。",
   "{0} dk": "{0}分",
@@ -185,8 +197,11 @@
   "{0} önerini reddetti.": "{0}さんが提案を断りました。",
   "{0} özellik güncellendi": "{0} 件の機能を更新しました",
   "{0} pist": "{0}コース",
+<<<<<<< HEAD
   "{0} PRO üye": "PRO会員 {0} 人",
   "{0} PRO üye · {1} deneme": "PRO会員 {0} · トライアル {1}",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} PRO üyelik gerektirir": "{0}にはPRO会員が必要です",
   "{0} rapor": "{0} 件の報告",
   "{0} raporu {1} — sebep: {2}{3}": "{0}の報告: {1} — 理由: {2}{3}",
@@ -268,7 +283,10 @@
   "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>",
+<<<<<<< HEAD
   "▶ Önizlemeyi oynat": "▶ プレビューを再生",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "★ benim kanalım": "★ 自分のチャンネル",
   "★ Kanallarım ({0})": "★ 自分のチャンネル（{0}）",
   "✉ {0} yeni mesaj": "✉ 新着メッセージ {0}件",
@@ -1048,7 +1066,10 @@
   "Depo durumu, bitişe gereken yakıt, son tur / 5 / 10 tur ortalamasıyla tüketim-tur-stint-ikmal tablosu, hedef tüketim, kalan tur ve pit penceresi.": "タンク状態、フィニッシュまでに必要な燃料、前周/5周/10周平均による消費・周回・スティント・給油の表、目標消費量、残り周回とピットウィンドウ。",
   "Depolama hatası {0}": "ストレージエラー {0}",
   "Desktop+ (Steam, ücretsiz)": "Desktop+（Steam、無料）",
+<<<<<<< HEAD
   "destek": "サポート",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Destek": "サポート",
   "Destek ekibi": "サポートチーム",
   "Destek mesajını gönder": "サポートにメッセージを送信",
@@ -1430,7 +1451,11 @@
   "Geri sayım": "カウントダウン",
   "Geri sayımlı açılış": "カウントダウン付きオープニング",
   "gibi yer tutucuları çeviride de aynen bırak. Düzeltmeyi kaldırmak için kutuyu boşaltıp kaydet.": "などのプレースホルダーは翻訳でもそのまま残してください。修正を削除するには欄を空にして保存します。",
+<<<<<<< HEAD
   "gibi. Leaderboard, Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "など。Leaderboard、Relative、Live Timingは車名からメーカーを判別してロゴを表示し、ロゴがなければメーカー名を表示します。透過背景の明るい色のロゴが最もきれいに見えます。",
+=======
+  "gibi. Leaderboard, Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "など。Leaderboard、Relative、Live Timingは車名からメーカーを判別してロゴを表示し、ロゴがなければメーカー名を表示します。透過背景の明るい色のロゴが最もきれいに見えます。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Gidiş yönü hep yukarıda": "進行方向を常に上に",
   "Gidiş yönüne göre döndür": "進行方向に合わせて回転",
   "Ginetta": "Ginetta",
@@ -1738,7 +1763,10 @@
   "Hızlı anket şık sayısı": "クイック投票の選択肢数",
   "Hızlı Sınıf Uyarısı": "速いクラス警告",
   "Hızlı tur": "ホットラップ",
+<<<<<<< HEAD
   "hiç görülmedi": "未確認",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Hiç oy gelmedi": "投票はありませんでした",
   "Hiçbir zaman": "表示しない",
   "Hizalama": "配置",
@@ -2248,7 +2276,11 @@
   "Liste": "リスト",
   "Liste okunamadı. Daha sonra tekrar dene.": "リストを読み込めませんでした。後でもう一度お試しください。",
   "Listede sadece Windows'ta konuşma paketi kurulu diller görünür.": "Windows に音声パックがインストールされた言語のみ表示されます。",
+<<<<<<< HEAD
   "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Yakındakiler\") seç.": "リストから「SRTR Pitwall - VR Panosu」または個別のオーバーレイウィンドウ（例：「SRTR Pitwall - Yakındakiler」）を選択します。",
+=======
+  "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Relative\") seç.": "リストから「SRTR Pitwall - VR Panosu」または個別のオーバーレイウィンドウ（例：「SRTR Pitwall - Relative」）を選択します。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Listeden sil": "リストから削除",
   "Listelenenlerdeki kararları kaldır": "表示中の設定を解除",
   "Listelenenlerin hepsi herkese açık olsun": "表示中をすべて全員に公開",
@@ -2841,7 +2873,10 @@
   "Pozisyon ve değişim": "ポジションと変動",
   "Prime": "Prime",
   "PrintScreen": "PrintScreen",
+<<<<<<< HEAD
   "PRO (deneme)": "PRO（トライアル）",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "PRO 1 aylık": "PRO 1か月",
   "PRO 12 aylık": "PRO 12か月",
   "PRO 3 aylık": "PRO 3か月",
@@ -3022,6 +3057,11 @@
   "Reklamlar açıldı": "広告をオンにしました",
   "Reklamlar kapatıldı": "広告をオフにしました",
   "Reklamsız kullan (PRO)": "広告なしで使う（PRO）",
+<<<<<<< HEAD
+=======
+  "Relative": "Relative",
+  "Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative と順位：ヘッドセット内で幅およそ 35–45 cm、ステアリングの左上または右上。燃料、デルタ、入力：20–30 cm、メーターパネルの上。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Renault": "Renault",
   "Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla": "色・アイコン・写真・ラベルを個別に設定",
   "Renk": "色",
@@ -3265,7 +3305,11 @@
   "Sıralama": "順位",
   "SIRALAMA": "順位",
   "Sıralama Tablosu": "リーダーボード",
+<<<<<<< HEAD
   "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu kategorilere göre gösterilir.": "リーダーボードの見出し、クラス色、クラス内順位、Relative、マップ、Live Timingがこれらのカテゴリーに従って表示されます。",
+=======
+  "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu kategorilere göre gösterilir.": "リーダーボードの見出し、クラス色、クラス内順位、Relative、マップ、Live Timingがこれらのカテゴリーに従って表示されます。",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Sıralama turları": "予選周回",
   "Sıralama turu çok iyiydi": "予選ラップ良かったね",
   "Sıralama, relative, pedallar, telemetri, pist haritası": "順位、Relative、ペダル、テレメトリー、トラックマップ",
@@ -3545,7 +3589,10 @@
   "Şimdi yükle": "今すぐインストール",
   "Şimdiki tur": "現在の周",
   "Şu an": "現在",
+<<<<<<< HEAD
   "Şu an {0} kişi yarışta": "現在 {0} 人がレース中",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Şu an {0} oynuyor": "{0} をプレイ中",
   "Şu an çevrimiçi": "現在オンライン",
   "Şu an düzenlenen düzen · başka bir düzene geçmek için seç": "編集中のレイアウト · 選択して別のレイアウトに切り替え",
@@ -3801,7 +3848,10 @@
   "tüm PRO özelliklerini kullanır (PRO overlay'ler, sesli mühendis, mesajlaşma, paylaşım…). Giriş yapmayanlar yararlanamaz; böylece kampanya hesap açmaya da teşvik eder ve sunucu tarafındaki PRO denetimleri (hesaba bağlı) tutarlı kalır. Sitede ve programda kampanya bitişi gösterilir. Süre bitince her şey kendiliğinden eski haline döner.": "がすべてのPRO機能(PROオーバーレイ、音声エンジニア、メッセージ、共有…)を使えます。ログインしていない人は利用できません。これによりキャンペーンがアカウント作成の促進にもなり、サーバー側のPROチェック(アカウント単位)も一貫性が保たれます。サイトとアプリにはキャンペーン終了日が表示されます。期間が終わるとすべて自動で元に戻ります。",
   "Tüm sohbet": "チャット全体",
   "Tüm takımlar": "すべてのチーム",
+<<<<<<< HEAD
   "Tüm üyeleri görmek için tıkla": "クリックして全会員を表示",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Tüm yazı tipleri": "すべてのフォント",
   "Tüm zamanlar": "全期間",
   "Tüm zamanların öne çıkanları": "全期間の注目",
@@ -3884,12 +3934,18 @@
   "Üst satır": "上段",
   "Üst satır bilgileri": "上段の情報",
   "Üstteki Başlat düğmesiyle bağlan.": "上部の「開始」ボタンで接続してください。",
+<<<<<<< HEAD
   "üye": "会員",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye": "メンバー",
   "ÜYE": "メンバー",
   "Üye adı ya da iRacing adı": "メンバー名または iRacing 名",
   "Üye ara (görünen ad ya da iRacing adı)": "メンバーを検索（表示名またはiRacing名）",
+<<<<<<< HEAD
   "Üye bulunamadı.": "会員が見つかりません。",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye davet et": "メンバーを招待",
   "Üye no": "会員番号",
   "Üye no {0}": "メンバーID {0}",
@@ -4001,8 +4057,11 @@
   "Yağmur lastiği": "レインタイヤ",
   "Yakalama aracında kare hızını 30 FPS ile sınırla; overlay'i gözlüğün tam ortasına değil, bakış alanının kenarına koy.": "キャプチャツールでフレームレートを 30 FPS に制限し、オーバーレイはヘッドセットの中央ではなく視野の端に置きます。",
   "Yakalama kaynağı olarak Graphics Capture ile \"SRTR Pitwall - …\" penceresini seç.": "キャプチャソースとして Graphics Capture で「SRTR Pitwall - …」ウィンドウを選択します。",
+<<<<<<< HEAD
   "Yakındakiler": "Relative",
   "Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative と順位：ヘッドセット内で幅およそ 35–45 cm、ステアリングの左上または右上。燃料、デルタ、入力：20–30 cm、メーターパネルの上。",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "yakıt": "燃料",
   "Yakıt": "燃料",
   "YAKIT": "燃料",
@@ -4051,7 +4110,10 @@
   "Yarışçılar": "ドライバー",
   "Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)": "レース中にこのフレンドのメッセージをメッセージオーバーレイに表示するか（オーバーレイは「オーバーレイ」から開けます）",
   "Yarışırken gelen arkadaş ve takım mesajlarını ekranda küçük balonlarla gösterir; birkaç saniye sonra kaybolur. İstersen mesajları sesli de okur.": "レース中に届いたフレンドやチームのメッセージを画面に小さな吹き出しで表示し、数秒後に消えます。必要ならメッセージを読み上げることもできます。",
+<<<<<<< HEAD
   "yarışta": "レース中",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Yarışta": "レース中",
   "Yarışta böyle görünür": "レースではこのように表示されます",
   "Yarışta bu adla eşleşen sürücü arkadaş olarak öne çıkar": "レースでこの名前に一致するドライバーはフレンドとして強調表示されます",
@@ -4210,7 +4272,10 @@
   "Yöneticinin görseli": "管理者の画像",
   "Yönetim": "管理",
   "Yönetim › Cihazlar bölümünden inceleyebilirsin.": "詳細は 管理 › デバイス で確認できます。",
+<<<<<<< HEAD
   "Yönetim › Üyeler'de aç": "管理 › 会員 で開く",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET。関数は JWT 検証をオンにしてデプロイする必要があります（ログイン済みメンバーのみ使用可）。Twitch には secret は不要です。",
   "Yukarı": "上",
   "Yukarı / aşağı (y)": "上下 (y)",

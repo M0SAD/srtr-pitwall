@@ -3,7 +3,11 @@
 import { Show, Suspense, createMemo, lazy, type Component } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { loadComponent, manifestById } from "@/sdk/registry";
+<<<<<<< HEAD
 import { defaultOptions, previewFrozen } from "@/sdk/overlay";
+=======
+import { defaultOptions } from "@/sdk/overlay";
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { settings } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";

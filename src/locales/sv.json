@@ -37,6 +37,10 @@
   "· pit": "· pit",
   "· PNG, JPEG ya da WebP; küçültülüp sadece bu bilgisayarda saklanır": "· PNG, JPEG eller WebP; förminskas och sparas bara på den här datorn",
   "· PRO": "· PRO",
+<<<<<<< HEAD
+=======
+  "· Relative'de yer kazandırır": "· sparar plats i Relative",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "· seçili": "· vald",
   "· Son eşitleme {0}": "· Senast synkad {0}",
   "· sunucu": "· server",
@@ -46,7 +50,10 @@
   "· Web": "· Webb",
   "· Windows ölçeği %{0}": "· Windows-skalning {0} %",
   "· y": "· y",
+<<<<<<< HEAD
   "· Yakındakiler'de yer kazandırır": "· sparar plats i Relative",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "'nu aç.": ".",
   "› “Çevrimiçi konuşma tanıma” açık olmalı; Gizlilik ›": "› ”Taligenkänning online” måste vara på; Sekretess ›",
   "› masaüstü uygulamalarının erişimine izin verilmeli; dil için Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri ›": "› skrivbordsappar måste få åtkomst; för språk: Inställningar › Tid och språk › Språk och region › språk › Språkalternativ ›",
@@ -109,10 +116,15 @@
   "{0} bir arka plan önerdi; sohbetin üstünden yanıtlayabilirsin.": "{0} föreslog en bakgrund; du kan svara högst upp i chatten.",
   "{0} bir ses paketi gönderdi: \"{1}\" ({2})": "{0} skickade in ett röstpaket: \"{1}\" ({2})",
   "{0} bu sohbet için bir arka plan önerdi": "{0} föreslog en bakgrund för den här chatten",
+<<<<<<< HEAD
   "{0} çevrimdışı": "{0} offline",
   "{0} çevrimiçi": "{0} online",
   "{0} davet edildi.": "{0} har bjudits in.",
   "{0} destek talebi yanıt bekliyor": "{0} supportärenden väntar på svar",
+=======
+  "{0} çevrimiçi": "{0} online",
+  "{0} davet edildi.": "{0} har bjudits in.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} destek talebine yazdı: \"{1}\"": "{0} skrev i supportärendet: \"{1}\"",
   "{0} desteklenmeyen dosya kurulumda atlanır.": "{0} filer som inte stöds hoppas över vid installationen.",
   "{0} dk": "{0} min",
@@ -185,8 +197,11 @@
   "{0} önerini reddetti.": "{0} avböjde ditt förslag.",
   "{0} özellik güncellendi": "{0} funktioner uppdaterades",
   "{0} pist": "{0} banor",
+<<<<<<< HEAD
   "{0} PRO üye": "{0} PRO-medlemmar",
   "{0} PRO üye · {1} deneme": "{0} PRO-medlemmar · {1} på prov",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} PRO üyelik gerektirir": "{0} kräver PRO-medlemskap",
   "{0} rapor": "{0} rapporter",
   "{0} raporu {1} — sebep: {2}{3}": "Rapport om {0} {1} — orsak: {2}{3}",
@@ -268,7 +283,10 @@
   "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>",
+<<<<<<< HEAD
   "▶ Önizlemeyi oynat": "▶ Spela upp förhandsvisning",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "★ benim kanalım": "★ min kanal",
   "★ Kanallarım ({0})": "★ Mina kanaler ({0})",
   "✉ {0} yeni mesaj": "✉ {0} nya meddelanden",
@@ -1048,7 +1066,10 @@
   "Depo durumu, bitişe gereken yakıt, son tur / 5 / 10 tur ortalamasıyla tüketim-tur-stint-ikmal tablosu, hedef tüketim, kalan tur ve pit penceresi.": "Tanknivå, bränsle som krävs till mål, tabell för förbrukning/varv/stint/påfyllning med senaste varv / snitt 5 / 10 varv, målförbrukning, varv kvar och depåfönster.",
   "Depolama hatası {0}": "Lagringsfel {0}",
   "Desktop+ (Steam, ücretsiz)": "Desktop+ (Steam, gratis)",
+<<<<<<< HEAD
   "destek": "support",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Destek": "Support",
   "Destek ekibi": "Supportteamet",
   "Destek mesajını gönder": "Skicka supportmeddelande",
@@ -1430,7 +1451,11 @@
   "Geri sayım": "Nedräkning",
   "Geri sayımlı açılış": "Intro med nedräkning",
   "gibi yer tutucuları çeviride de aynen bırak. Düzeltmeyi kaldırmak için kutuyu boşaltıp kaydet.": "och liknande platshållare ska stå kvar oförändrade i översättningen. Töm rutan och spara för att ta bort korrigeringen.",
+<<<<<<< HEAD
   "gibi. Leaderboard, Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "o.s.v. Leaderboard, Relative och Live Timing hittar märket i bilnamnet och visar loggan; finns ingen logga skrivs märkesnamnet. Ljusa loggor med transparent bakgrund ser bäst ut.",
+=======
+  "gibi. Leaderboard, Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "o.s.v. Leaderboard, Relative och Live Timing hittar märket i bilnamnet och visar loggan; finns ingen logga skrivs märkesnamnet. Ljusa loggor med transparent bakgrund ser bäst ut.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Gidiş yönü hep yukarıda": "Färdriktningen alltid uppåt",
   "Gidiş yönüne göre döndür": "Rotera efter körriktningen",
   "Ginetta": "Ginetta",
@@ -1738,7 +1763,10 @@
   "Hızlı anket şık sayısı": "Antal alternativ i snabbomröstning",
   "Hızlı Sınıf Uyarısı": "Varning för snabb klass",
   "Hızlı tur": "Hotlap",
+<<<<<<< HEAD
   "hiç görülmedi": "aldrig sedd",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Hiç oy gelmedi": "Inga röster kom in",
   "Hiçbir zaman": "Aldrig",
   "Hizalama": "Justering",
@@ -2248,7 +2276,11 @@
   "Liste": "Lista",
   "Liste okunamadı. Daha sonra tekrar dene.": "Listan kunde inte läsas. Försök igen senare.",
   "Listede sadece Windows'ta konuşma paketi kurulu diller görünür.": "Listan visar bara språk med installerat talpaket i Windows.",
+<<<<<<< HEAD
   "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Yakındakiler\") seç.": "Välj \"SRTR Pitwall - VR Panosu\" eller ett enskilt overlay-fönster (t.ex. \"SRTR Pitwall - Yakındakiler\") i listan.",
+=======
+  "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Relative\") seç.": "Välj \"SRTR Pitwall - VR Panosu\" eller ett enskilt overlay-fönster (t.ex. \"SRTR Pitwall - Relative\") i listan.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Listeden sil": "Ta bort från listan",
   "Listelenenlerdeki kararları kaldır": "Ta bort besluten för de listade",
   "Listelenenlerin hepsi herkese açık olsun": "Gör alla listade öppna för alla",
@@ -2841,7 +2873,10 @@
   "Pozisyon ve değişim": "Position och förändring",
   "Prime": "Prime",
   "PrintScreen": "PrintScreen",
+<<<<<<< HEAD
   "PRO (deneme)": "PRO (prov)",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "PRO 1 aylık": "PRO 1 månad",
   "PRO 12 aylık": "PRO 12 månader",
   "PRO 3 aylık": "PRO 3 månader",
@@ -3022,6 +3057,11 @@
   "Reklamlar açıldı": "Annonser aktiverade",
   "Reklamlar kapatıldı": "Annonser avstängda",
   "Reklamsız kullan (PRO)": "Utan annonser (PRO)",
+<<<<<<< HEAD
+=======
+  "Relative": "Relative",
+  "Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative och Ställning: cirka 35–45 cm bredd i headsetet, uppe till vänster eller höger om ratten. Bränsle, delta och inputs: 20–30 cm, ovanför instrumentpanelen.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Renault": "Renault",
   "Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla": "Ställ in färg, ikon, foto och etikett just för hen",
   "Renk": "Färg",
@@ -3265,7 +3305,11 @@
   "Sıralama": "Ställning",
   "SIRALAMA": "STÄLLNING",
   "Sıralama Tablosu": "Resultatlista",
+<<<<<<< HEAD
   "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu kategorilere göre gösterilir.": "Resultatlistans rubriker, klassfärger, placeringar i klassen, Relative, kartan och Live Timing visas enligt dessa kategorier.",
+=======
+  "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu kategorilere göre gösterilir.": "Resultatlistans rubriker, klassfärger, placeringar i klassen, Relative, kartan och Live Timing visas enligt dessa kategorier.",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Sıralama turları": "Kvalvarv",
   "Sıralama turu çok iyiydi": "Kvalvarvet var riktigt bra",
   "Sıralama, relative, pedallar, telemetri, pist haritası": "Resultat, relative, pedaler, telemetri, bankarta",
@@ -3545,7 +3589,10 @@
   "Şimdi yükle": "Installera nu",
   "Şimdiki tur": "Nuvarande varv",
   "Şu an": "Just nu",
+<<<<<<< HEAD
   "Şu an {0} kişi yarışta": "{0} tävlar just nu",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Şu an {0} oynuyor": "Spelar {0} nu",
   "Şu an çevrimiçi": "Online nu",
   "Şu an düzenlenen düzen · başka bir düzene geçmek için seç": "Layouten du redigerar nu · välj för att byta till en annan layout",
@@ -3801,7 +3848,10 @@
   "tüm PRO özelliklerini kullanır (PRO overlay'ler, sesli mühendis, mesajlaşma, paylaşım…). Giriş yapmayanlar yararlanamaz; böylece kampanya hesap açmaya da teşvik eder ve sunucu tarafındaki PRO denetimleri (hesaba bağlı) tutarlı kalır. Sitede ve programda kampanya bitişi gösterilir. Süre bitince her şey kendiliğinden eski haline döner.": "använda alla PRO-funktioner (PRO-overlays, röstingenjör, meddelanden, delning…). Den som inte är inloggad kan inte ta del av det; så uppmuntrar kampanjen också till att skapa konto, och PRO-kontrollerna på servern (kopplade till kontot) förblir konsekventa. Kampanjens slut visas på webbplatsen och i appen. När tiden går ut återgår allt automatiskt.",
   "Tüm sohbet": "Hela chatten",
   "Tüm takımlar": "Alla team",
+<<<<<<< HEAD
   "Tüm üyeleri görmek için tıkla": "Klicka för att se alla medlemmar",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Tüm yazı tipleri": "Alla typsnitt",
   "Tüm zamanlar": "Genom tiderna",
   "Tüm zamanların öne çıkanları": "Höjdpunkter genom tiderna",
@@ -3884,12 +3934,18 @@
   "Üst satır": "Övre rad",
   "Üst satır bilgileri": "Info på övre rad",
   "Üstteki Başlat düğmesiyle bağlan.": "Anslut med Starta-knappen högst upp.",
+<<<<<<< HEAD
   "üye": "medlemmar",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye": "Medlem",
   "ÜYE": "MEDLEM",
   "Üye adı ya da iRacing adı": "Medlemsnamn eller iRacing-namn",
   "Üye ara (görünen ad ya da iRacing adı)": "Sök medlemmar (visningsnamn eller iRacing-namn)",
+<<<<<<< HEAD
   "Üye bulunamadı.": "Ingen medlem hittades.",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye davet et": "Bjud in medlem",
   "Üye no": "Medlemsnr",
   "Üye no {0}": "Medlem nr {0}",
@@ -4001,8 +4057,11 @@
   "Yağmur lastiği": "Regndäck",
   "Yakalama aracında kare hızını 30 FPS ile sınırla; overlay'i gözlüğün tam ortasına değil, bakış alanının kenarına koy.": "Begränsa bildfrekvensen till 30 FPS i fångstverktyget; placera overlayn i kanten av synfältet, inte mitt i headsetet.",
   "Yakalama kaynağı olarak Graphics Capture ile \"SRTR Pitwall - …\" penceresini seç.": "Välj fönstret \"SRTR Pitwall - …\" med Graphics Capture som fångstkälla.",
+<<<<<<< HEAD
   "Yakındakiler": "Relative",
   "Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative och Ställning: cirka 35–45 cm bredd i headsetet, uppe till vänster eller höger om ratten. Bränsle, delta och inputs: 20–30 cm, ovanför instrumentpanelen.",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "yakıt": "bränsle",
   "Yakıt": "Bränsle",
   "YAKIT": "BRÄNSLE",
@@ -4051,7 +4110,10 @@
   "Yarışçılar": "Förare",
   "Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)": "Ska den här väns meddelanden visas i Meddelanden-overlayen när du kör (overlayen slår du på under Overlays)",
   "Yarışırken gelen arkadaş ve takım mesajlarını ekranda küçük balonlarla gösterir; birkaç saniye sonra kaybolur. İstersen mesajları sesli de okur.": "Visar meddelanden från vänner och team som kommer medan du kör som små bubblor på skärmen; de försvinner efter några sekunder. Om du vill läses de också upp.",
+<<<<<<< HEAD
   "yarışta": "tävlar",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Yarışta": "Kör",
   "Yarışta böyle görünür": "Så här ser det ut i loppet",
   "Yarışta bu adla eşleşen sürücü arkadaş olarak öne çıkar": "Föraren som matchar det här namnet framhävs som vän i loppet",
@@ -4210,7 +4272,10 @@
   "Yöneticinin görseli": "Admins bild",
   "Yönetim": "Administration",
   "Yönetim › Cihazlar bölümünden inceleyebilirsin.": "Du kan granska det under Administration › Enheter.",
+<<<<<<< HEAD
   "Yönetim › Üyeler'de aç": "Öppna i Administration › Medlemmar",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. Funktionen måste driftsättas med JWT-verifiering PÅ (bara inloggade medlemmar kan använda den). Twitch behöver ingen secret.",
   "Yukarı": "Upp",
   "Yukarı / aşağı (y)": "Upp / ner (y)",

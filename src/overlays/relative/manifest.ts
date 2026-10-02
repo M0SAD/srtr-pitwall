@@ -6,9 +6,14 @@ export const RELATIVE_COLUMNS = [
   { value: "class", label: "Sınıf rengi" },
   { value: "pos", label: "Sınıf sırası" },
   { value: "num", label: "Araç numarası" },
+<<<<<<< HEAD
   { value: "flair", label: "Ülke" },
   { value: "name", label: "Sürücü" },
   { value: "car", label: "Araç markası (logo)" },
+=======
+  { value: "car", label: "Araç markası (logo)" },
+  { value: "name", label: "Sürücü" },
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   { value: "stint", label: "Stint / PIT / OUT" },
   { value: "license", label: "Lisans ve SR" },
   { value: "irating", label: "iRating" },
@@ -22,7 +27,10 @@ export const RELATIVE_DEFAULT_COLUMNS = [
   { key: "class", on: true },
   { key: "pos", on: true },
   { key: "num", on: true },
+<<<<<<< HEAD
   { key: "flair", on: true },
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   { key: "name", on: true },
   { key: "car", on: true },
   { key: "license", on: true },

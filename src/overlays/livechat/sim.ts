@@ -6,7 +6,10 @@
 
 import { createEffect, createSignal, on, onCleanup, type Accessor } from "solid-js";
 import { lang, t } from "@/sdk/i18n";
+<<<<<<< HEAD
 import { previewFrozen } from "@/sdk/overlay";
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 import type { ChatMsg, MsgKind, Platform, Viewers, AlertInfo } from "@/sdk/livechat";
 
 type SimPlatform = "youtube" | "twitch" | "kick";
@@ -209,7 +212,11 @@ export function createChatSim(active: Accessor<boolean>, cap = 40): { msgs: Acce
   const next = () => {
     timer = setTimeout(
       () => {
+<<<<<<< HEAD
         if ((typeof document === "undefined" || !document.hidden) && !previewFrozen()) setMsgs((l) => [...l, makeMsg(Date.now(), lastLine)].slice(-cap));
+=======
+        if (typeof document === "undefined" || !document.hidden) setMsgs((l) => [...l, makeMsg(Date.now(), lastLine)].slice(-cap));
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
         next();
       },
       1500 + rnd(2500),
@@ -233,7 +240,11 @@ export function createChatSim(active: Accessor<boolean>, cap = 40): { msgs: Acce
       next();
       // İzleyici sayıları yavaşça oynar
       drift = setInterval(() => {
+<<<<<<< HEAD
         if ((typeof document !== "undefined" && document.hidden) || previewFrozen()) return;
+=======
+        if (typeof document !== "undefined" && document.hidden) return;
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
         setCounts((c) => {
           const step = (v: number, min: number) => Math.max(min, Math.round(v + (Math.random() - 0.48) * Math.max(2, v * 0.03)));
           return { youtube: step(c.youtube, 40), twitch: step(c.twitch, 20), kick: step(c.kick, 5) };

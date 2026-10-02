@@ -285,9 +285,12 @@
   background-position: center;
   background-repeat: no-repeat;
 }
+<<<<<<< HEAD
 
 /* Panel önizlemesi donduruldu (bkz. sdk/overlay.ts previewFrozen): yanıp sönen/dönen animasyonlar da dursun */
 .ov-frozen,
 .ov-frozen * {
   animation-play-state: paused !important;
 }
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044

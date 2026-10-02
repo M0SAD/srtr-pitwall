@@ -37,6 +37,10 @@
  "· pit": "src/overlays/tires/Overlay.tsx",
  "· PNG, JPEG ya da WebP; küçültülüp sadece bu bilgisayarda saklanır": "src/app/components/AppBgPanel.tsx",
  "· PRO": "src/app/components/SettingsForm.tsx",
+<<<<<<< HEAD
+=======
+ "· Relative'de yer kazandırır": "src/app/pages/AppearancePage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "· seçili": "src/app/components/VrPanel.tsx",
  "· Son eşitleme {0}": "src/app/pages/AccountPage.tsx",
  "· sunucu": "src/app/pages/SettingsPage.tsx",
@@ -46,7 +50,10 @@
  "· Web": "src/app/components/AdminTrial.tsx",
  "· Windows ölçeği %{0}": "src/app/pages/LayoutsPage.tsx",
  "· y": "src/app/pages/LayoutsPage.tsx",
+<<<<<<< HEAD
  "· Yakındakiler'de yer kazandırır": "src/app/pages/AppearancePage.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "'nu aç.": "src/app/pages/livechat/SettingsTabs.tsx",
  "› “Çevrimiçi konuşma tanıma” açık olmalı; Gizlilik ›": "src/app/pages/livechat/VoiceTabs.tsx",
  "› masaüstü uygulamalarının erişimine izin verilmeli; dil için Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri ›": "src/app/pages/livechat/VoiceTabs.tsx",
@@ -70,7 +77,11 @@
  "“Yönetici ayarı eksik” görünen platformlar SRTR Pitwall yöneticisi uygulama kimliğini girince kullanılabilir.": "src/app/pages/livechat/SendTab.tsx",
  "({0} adlı üyenin)": "src/app/components/modLogFormat.ts",
  "({0} oy)": "src/app/pages/CommunityPage.tsx, src-tauri",
+<<<<<<< HEAD
  "(adsız)": "src/app/components/AdminExtras.tsx, src/app/components/AdminTopStats.tsx, src/app/pages/AdminPage.tsx",
+=======
+ "(adsız)": "src/app/components/AdminExtras.tsx, src/app/pages/AdminPage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "(hesap silinmiş)": "src/app/components/AdminTrial.tsx",
  "(https://…)": "src/overlays/webview/Overlay.tsx",
  "(İçerik silinmiş)": "src/app/components/AdminModeration.tsx",
@@ -109,10 +120,15 @@
  "{0} bir arka plan önerdi; sohbetin üstünden yanıtlayabilirsin.": "src/app/components/ConvBg.tsx",
  "{0} bir ses paketi gönderdi: \"{1}\" ({2})": "src/app/components/Moderation.tsx",
  "{0} bu sohbet için bir arka plan önerdi": "src/app/components/ConvBg.tsx",
+<<<<<<< HEAD
  "{0} çevrimdışı": "src/app/components/AdminTopStats.tsx",
  "{0} çevrimiçi": "src/app/components/AdminTopStats.tsx, src/app/components/FriendsDock.tsx",
  "{0} davet edildi.": "src/app/pages/TeamsPage.tsx",
  "{0} destek talebi yanıt bekliyor": "src/app/components/AdminTopStats.tsx",
+=======
+ "{0} çevrimiçi": "src/app/components/FriendsDock.tsx",
+ "{0} davet edildi.": "src/app/pages/TeamsPage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "{0} destek talebine yazdı: \"{1}\"": "src/app/components/Moderation.tsx",
  "{0} desteklenmeyen dosya kurulumda atlanır.": "src/app/components/AdminVoicePacks.tsx",
  "{0} dk": "src/app/pages/TelemetryPage.tsx, src/app/pages/livechat/PollTab.tsx",
@@ -185,8 +201,11 @@
  "{0} önerini reddetti.": "src/app/components/ConvBg.tsx",
  "{0} özellik güncellendi": "src/app/components/AdminProFeatures.tsx",
  "{0} pist": "src/app/pages/CommunityShots.tsx",
+<<<<<<< HEAD
  "{0} PRO üye": "src/app/components/AdminTopStats.tsx",
  "{0} PRO üye · {1} deneme": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "{0} PRO üyelik gerektirir": "src/sdk/proFeatures.ts",
  "{0} rapor": "src/app/components/AdminAds.tsx",
  "{0} raporu {1} — sebep: {2}{3}": "src/app/components/modLogFormat.ts",
@@ -268,7 +287,10 @@
  "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>": "src/app/components/Profile.tsx",
  "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>": "src/app/components/Profile.tsx",
  "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>": "src/app/components/Profile.tsx",
+<<<<<<< HEAD
  "▶ Önizlemeyi oynat": "src/app/pages/OverlaysPage.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "★ benim kanalım": "src/app/pages/livechat/SendTab.tsx",
  "★ Kanallarım ({0})": "src/app/pages/livechat/ChatTab.tsx",
  "✉ {0} yeni mesaj": "src/host/Host.tsx",
@@ -939,7 +961,11 @@
  "Çevirisi olmayanlar": "src/app/components/AdminContent.tsx",
  "Çevrilecek boş alan yok. Üzerine yazmak için \"Dolu olanların üzerine yaz\" seçeneğini işaretle.": "src/app/components/AdminContent.tsx",
  "Çevriliyor… {0}/{1} ({2})": "src/app/components/AdminContent.tsx",
+<<<<<<< HEAD
  "Çevrimdışı": "src/app/components/AdminTopStats.tsx, src/app/components/FriendsDock.tsx, src/app/components/TrustedSharing.tsx, src/app/pages/FriendsPage.tsx, src/window/Friends.tsx",
+=======
+ "Çevrimdışı": "src/app/components/FriendsDock.tsx, src/app/components/TrustedSharing.tsx, src/app/pages/FriendsPage.tsx, src/window/Friends.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Çevrimdışı · son veri": "src/app/components/FriendData.tsx",
  "çevrimiçi": "src/app/pages/AdminPage.tsx",
  "Çevrimiçi": "src/app/components/AdminTopStats.tsx, src/app/components/FriendsDock.tsx, src/app/pages/AdminPage.tsx, src/app/pages/FriendsPage.tsx, src/window/Friends.tsx",
@@ -971,7 +997,11 @@
  "Daha eski mesajlar": "src/app/components/GroupChat.tsx, src/app/components/TeamChat.tsx",
  "Daha fazla": "src/app/components/AdminModeration.tsx, src/app/pages/AdminPage.tsx",
  "Daha fazla (": "src/app/components/AdminContent.tsx",
+<<<<<<< HEAD
  "Daha fazla göster": "src/app/components/AdminTopStats.tsx, src/app/pages/CommunityKit.tsx",
+=======
+ "Daha fazla göster": "src/app/pages/CommunityKit.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Daha fazla göster ({0} satır daha)": "src/app/pages/livechat/LogTab.tsx",
  "Daha fazla yükle": "src/app/pages/TelemetryPage.tsx",
  "Daha hızlı sınıftan bir araç arkandan yaklaşınca tek bip.": "src/app/components/SoundsPanel.tsx",
@@ -1048,7 +1078,10 @@
  "Depo durumu, bitişe gereken yakıt, son tur / 5 / 10 tur ortalamasıyla tüketim-tur-stint-ikmal tablosu, hedef tüketim, kalan tur ve pit penceresi.": "src/overlays/fuel/manifest.ts",
  "Depolama hatası {0}": "src/cloud/supabase.ts",
  "Desktop+ (Steam, ücretsiz)": "src/app/components/VrPanel.tsx",
+<<<<<<< HEAD
  "destek": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Destek": "src/app/App.tsx, src/app/components/AdminExtras.tsx, src/app/pages/AdminPage.tsx, src/app/pages/SupportPage.tsx",
  "Destek ekibi": "src/app/components/Support.tsx",
  "Destek mesajını gönder": "src/app/components/ShortcutsPanel.tsx",
@@ -1430,7 +1463,11 @@
  "Geri sayım": "src/overlays/scene/manifest.ts",
  "Geri sayımlı açılış": "src/app/pages/StreamingPage.tsx",
  "gibi yer tutucuları çeviride de aynen bırak. Düzeltmeyi kaldırmak için kutuyu boşaltıp kaydet.": "src/app/components/AdminContent.tsx",
+<<<<<<< HEAD
  "gibi. Leaderboard, Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "src/app/components/LogosPanel.tsx",
+=======
+ "gibi. Leaderboard, Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "src/app/components/LogosPanel.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Gidiş yönü hep yukarıda": "src/overlays/minimap/manifest.ts",
  "Gidiş yönüne göre döndür": "src/overlays/trackmap/marker.ts",
  "Ginetta": "src/sdk/logos.tsx",
@@ -1738,7 +1775,10 @@
  "Hızlı anket şık sayısı": "src/app/pages/livechat/PollTab.tsx",
  "Hızlı Sınıf Uyarısı": "src/overlays/overtake/manifest.ts",
  "Hızlı tur": "src/cloud/telemetry.ts",
+<<<<<<< HEAD
  "hiç görülmedi": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Hiç oy gelmedi": "src/app/pages/livechat/PollTab.tsx, src/overlays/livechat/parts.tsx",
  "Hiçbir zaman": "src/overlays/livechat/manifest.ts",
  "Hizalama": "src/overlays/captions/manifest.ts, src/overlays/voice/manifest.ts",
@@ -1941,7 +1981,11 @@
  "Kapalıysa emote adı okunur (ör. “Kappa”).": "src/app/pages/livechat/VoiceTabs.tsx",
  "Kapalıysa ödenen reklam önce senin onayını bekler": "src/app/components/AdminAds.tsx",
  "Kapanış ekranı": "src/app/pages/StreamingPage.tsx",
+<<<<<<< HEAD
  "Kapat": "src/app/App.tsx, src/app/components/AdSlot.tsx, src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/components/AdminTopStats.tsx, src/app/components/BackdropPicker.tsx, src/app/components/ConvBg.tsx, src/app/components/FriendsDock.tsx, src/app/components/GroupChat.tsx, src/app/components/Moderation.tsx, src/app/components/Profile.tsx, src/app/components/Shots.tsx, src/app/components/TeamChat.tsx, src/app/components/UpdateDialog.tsx, src/app/pages/AccountPage.tsx, src/app/pages/CommunityPage.tsx, src/app/pages/CommunityShots.tsx, src/app/pages/LeaguePage.tsx, src/app/pages/OverlaysPage.tsx, src/app/pages/ScreenshotsPage.tsx, src/host/ContextMenu.tsx, src/window/Toast.tsx",
+=======
+ "Kapat": "src/app/App.tsx, src/app/components/AdSlot.tsx, src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/components/BackdropPicker.tsx, src/app/components/ConvBg.tsx, src/app/components/FriendsDock.tsx, src/app/components/GroupChat.tsx, src/app/components/Moderation.tsx, src/app/components/Profile.tsx, src/app/components/Shots.tsx, src/app/components/TeamChat.tsx, src/app/components/UpdateDialog.tsx, src/app/pages/AccountPage.tsx, src/app/pages/CommunityPage.tsx, src/app/pages/CommunityShots.tsx, src/app/pages/LeaguePage.tsx, src/app/pages/OverlaysPage.tsx, src/app/pages/ScreenshotsPage.tsx, src/host/ContextMenu.tsx, src/window/Toast.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "kapatıldı": "src/app/components/modLogFormat.ts",
  "Kapatıldı": "src/app/components/AdminCoupons.tsx",
  "kapatıldı (çözüldü)": "src/app/components/modLogFormat.ts",
@@ -2248,7 +2292,11 @@
  "Liste": "src/app/components/AdminMessages.tsx",
  "Liste okunamadı. Daha sonra tekrar dene.": "src/app/components/TrustedSharing.tsx",
  "Listede sadece Windows'ta konuşma paketi kurulu diller görünür.": "src/app/pages/livechat/VoiceTabs.tsx",
+<<<<<<< HEAD
  "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Yakındakiler\") seç.": "src/app/components/VrPanel.tsx",
+=======
+ "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Relative\") seç.": "src/app/components/VrPanel.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Listeden sil": "src/app/pages/FriendsPage.tsx",
  "Listelenenlerdeki kararları kaldır": "src/app/components/AdminProFeatures.tsx",
  "Listelenenlerin hepsi herkese açık olsun": "src/app/components/AdminProFeatures.tsx",
@@ -2841,7 +2889,10 @@
  "Pozisyon ve değişim": "src/overlays/telemetry/manifest.ts",
  "Prime": "src/overlays/livechat/Overlay.tsx",
  "PrintScreen": "src/sdk/shortcuts.ts",
+<<<<<<< HEAD
  "PRO (deneme)": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "PRO 1 aylık": "src/app/components/AdminCoupons.tsx",
  "PRO 12 aylık": "src/app/components/AdminCoupons.tsx",
  "PRO 3 aylık": "src/app/components/AdminCoupons.tsx",
@@ -3022,6 +3073,11 @@
  "Reklamlar açıldı": "src/app/components/AdminAds.tsx",
  "Reklamlar kapatıldı": "src/app/components/AdminAds.tsx",
  "Reklamsız kullan (PRO)": "src/app/components/AdSlot.tsx",
+<<<<<<< HEAD
+=======
+ "Relative": "src/app/components/MqttPanel.tsx, src/app/pages/FriendsPage.tsx, src/overlays/relative/manifest.ts",
+ "Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "src/app/components/VrPanel.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Renault": "src/sdk/logos.tsx",
  "Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla": "src/app/components/FriendsDock.tsx",
  "Renk": "src/app/components/AdminMedia.tsx, src/app/pages/ChatLookPage.tsx, src/app/pages/TeamsPage.tsx",
@@ -3265,7 +3321,11 @@
  "Sıralama": "src/app/components/FriendData.tsx, src/app/components/MqttPanel.tsx, src/app/pages/LayoutsPage.tsx, src/app/pages/TelemetryPage.tsx, src/app/pages/VoicePage.tsx, src/cloud/telemetry.ts, src/window/Events.tsx",
  "SIRALAMA": "src/window/Timing.tsx",
  "Sıralama Tablosu": "src/app/pages/FriendsPage.tsx, src/overlays/standings/manifest.ts",
+<<<<<<< HEAD
  "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu kategorilere göre gösterilir.": "src/app/pages/LeaguePage.tsx",
+=======
+ "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu kategorilere göre gösterilir.": "src/app/pages/LeaguePage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Sıralama turları": "src/sdk/WxIcon.tsx",
  "Sıralama turu çok iyiydi": "src/overlays/livechat/sim.ts",
  "Sıralama, relative, pedallar, telemetri, pist haritası": "src/app/pages/StreamingPage.tsx",
@@ -3367,7 +3427,11 @@
  "Son duyulan:": "src/app/pages/livechat/VoiceTabs.tsx",
  "Son eşitlemeden sonra hem bu bilgisayarda hem bulutta değişiklik yapılmış (bulut:": "src/app/pages/AccountPage.tsx",
  "Son etkinlik": "src/app/pages/TelemetryPage.tsx",
+<<<<<<< HEAD
  "son görülme: {0}": "src/app/components/AdminTopStats.tsx, src/app/pages/AdminPage.tsx",
+=======
+ "son görülme: {0}": "src/app/pages/AdminPage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Son görülme: {0}": "src/app/components/FriendsDock.tsx",
  "Son güncellenen": "src/app/pages/CommunityPage.tsx",
  "Son öneriyi reddettin.": "src/app/components/ConvBg.tsx",
@@ -3545,7 +3609,10 @@
  "Şimdi yükle": "src/app/App.tsx, src/app/pages/TelemetryPage.tsx",
  "Şimdiki tur": "src/overlays/dataframe/metrics.ts",
  "Şu an": "src/app/pages/AppearancePage.tsx",
+<<<<<<< HEAD
  "Şu an {0} kişi yarışta": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Şu an {0} oynuyor": "src/app/components/Profile.tsx",
  "Şu an çevrimiçi": "src/app/pages/AdminPage.tsx",
  "Şu an düzenlenen düzen · başka bir düzene geçmek için seç": "src/host/Host.tsx",
@@ -3801,11 +3868,18 @@
  "tüm PRO özelliklerini kullanır (PRO overlay'ler, sesli mühendis, mesajlaşma, paylaşım…). Giriş yapmayanlar yararlanamaz; böylece kampanya hesap açmaya da teşvik eder ve sunucu tarafındaki PRO denetimleri (hesaba bağlı) tutarlı kalır. Sitede ve programda kampanya bitişi gösterilir. Süre bitince her şey kendiliğinden eski haline döner.": "src/app/components/AdminExtras.tsx",
  "Tüm sohbet": "src/app/components/AdminMessages.tsx",
  "Tüm takımlar": "src/app/pages/TeamsPage.tsx",
+<<<<<<< HEAD
  "Tüm üyeleri görmek için tıkla": "src/app/components/AdminTopStats.tsx",
  "Tüm yazı tipleri": "src/app/pages/CommunityThemes.tsx",
  "Tüm zamanlar": "src/app/pages/CommunityHome.tsx",
  "Tüm zamanların öne çıkanları": "src/app/pages/CommunityHome.tsx",
  "Tümü": "src/app/components/AdminContent.tsx, src/app/components/AdminModeration.tsx, src/app/components/AdminProFeatures.tsx, src/app/components/AdminTopStats.tsx, src/app/components/Shots.tsx, src/app/pages/AdminPage.tsx, src/app/pages/CommunityKit.tsx, src/app/pages/TelemetryPage.tsx, src/window/Events.tsx, src/window/Timing.tsx",
+=======
+ "Tüm yazı tipleri": "src/app/pages/CommunityThemes.tsx",
+ "Tüm zamanlar": "src/app/pages/CommunityHome.tsx",
+ "Tüm zamanların öne çıkanları": "src/app/pages/CommunityHome.tsx",
+ "Tümü": "src/app/components/AdminContent.tsx, src/app/components/AdminModeration.tsx, src/app/components/AdminProFeatures.tsx, src/app/components/Shots.tsx, src/app/pages/AdminPage.tsx, src/app/pages/CommunityKit.tsx, src/app/pages/TelemetryPage.tsx, src/window/Events.tsx, src/window/Timing.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Tümünü gör": "src/app/pages/CommunityHome.tsx",
  "Tümünü göster ({0})": "src/app/pages/TeamsPage.tsx",
  "Tümünü kaldır": "src/app/pages/OverlaysPage.tsx",
@@ -3884,18 +3958,28 @@
  "Üst satır": "src/overlays/relative/manifest.ts",
  "Üst satır bilgileri": "src/overlays/relative/manifest.ts",
  "Üstteki Başlat düğmesiyle bağlan.": "src/app/pages/livechat/ChatTab.tsx",
+<<<<<<< HEAD
  "üye": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Üye": "src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/pages/CommunityHome.tsx, src/app/pages/CommunityPage.tsx, src/app/pages/CommunityThemes.tsx, src/cloud/teams.ts",
  "ÜYE": "src/app/pages/livechat/ChatTab.tsx, src/overlays/livechat/Overlay.tsx",
  "Üye adı ya da iRacing adı": "src/app/components/AdminMessages.tsx",
  "Üye ara (görünen ad ya da iRacing adı)": "src/app/pages/AccountPage.tsx",
+<<<<<<< HEAD
  "Üye bulunamadı.": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Üye davet et": "src/app/pages/TeamsPage.tsx",
  "Üye no": "src/app/pages/AccountPage.tsx, src/app/pages/FriendsPage.tsx",
  "Üye no {0}": "src/app/pages/TelemetryPage.tsx",
  "üye oldu": "src/app/pages/livechat/common.tsx, src/overlays/livechat/Overlay.tsx",
  "üye: {0}": "src/app/components/modLogFormat.ts",
+<<<<<<< HEAD
  "Üyeler": "src/app/components/AdminTopStats.tsx, src/app/pages/AdminPage.tsx",
+=======
+ "Üyeler": "src/app/pages/AdminPage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Üyeler ({0})": "src/app/pages/TeamsPage.tsx",
  "Üyeler ({0}/{1})": "src/app/components/GroupChat.tsx",
  "Üyeler arasındaki tüm özel mesajlar. Bir üyenin adını ya da iRacing adını yaz: o üyenin dahil olduğu tüm sohbetler gelir. İkinci bir ad yazarsan sadece ikisi arasındaki mesajlar gösterilir. Üyelerin \"benden sil\" ile kaldırdığı mesajlar da burada görünür. Her arama moderasyon kayıtlarına yazılır.": "src/app/components/AdminMessages.tsx",
@@ -4001,8 +4085,11 @@
  "Yağmur lastiği": "src/sdk/TireBadge.tsx",
  "Yakalama aracında kare hızını 30 FPS ile sınırla; overlay'i gözlüğün tam ortasına değil, bakış alanının kenarına koy.": "src/app/components/VrPanel.tsx",
  "Yakalama kaynağı olarak Graphics Capture ile \"SRTR Pitwall - …\" penceresini seç.": "src/app/components/VrPanel.tsx",
+<<<<<<< HEAD
  "Yakındakiler": "src/app/components/MqttPanel.tsx, src/app/pages/FriendsPage.tsx, src/overlays/relative/manifest.ts",
  "Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "src/app/components/VrPanel.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "yakıt": "src-tauri",
  "Yakıt": "src/app/components/FriendData.tsx, src/app/components/MqttPanel.tsx, src/app/pages/TelemetryPage.tsx, src/overlays/dashboard/manifest.ts, src/overlays/dataframe/metrics.ts, src/overlays/fuel/Overlay.tsx, src/overlays/laptimes/manifest.ts, src/overlays/telemetry/manifest.ts, src/sdk/settings.ts, src/window/Pitwall.tsx",
  "YAKIT": "src/overlays/telemetry/Overlay.tsx",
@@ -4051,8 +4138,12 @@
  "Yarışçılar": "src/app/App.tsx",
  "Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)": "src/app/components/FriendsDock.tsx",
  "Yarışırken gelen arkadaş ve takım mesajlarını ekranda küçük balonlarla gösterir; birkaç saniye sonra kaybolur. İstersen mesajları sesli de okur.": "src/overlays/messages/manifest.ts",
+<<<<<<< HEAD
  "yarışta": "src/app/components/AdminTopStats.tsx",
  "Yarışta": "src/app/components/AdminTopStats.tsx, src/app/components/FriendsDock.tsx, src/app/components/TrustedSharing.tsx, src/app/pages/FriendsPage.tsx",
+=======
+ "Yarışta": "src/app/components/FriendsDock.tsx, src/app/components/TrustedSharing.tsx, src/app/pages/FriendsPage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Yarışta böyle görünür": "src/app/pages/FriendsPage.tsx",
  "Yarışta bu adla eşleşen sürücü arkadaş olarak öne çıkar": "src/app/pages/FriendsPage.tsx",
  "Yatay dönüş (yaw)": "src/app/components/VrPanel.tsx",
@@ -4136,7 +4227,11 @@
  "Yeniden bağlan": "src/app/pages/LiveChatPage.tsx",
  "yeniden yayına alındı": "src/app/components/modLogFormat.ts",
  "Yeniden yükle": "src/app/components/LogosPanel.tsx",
+<<<<<<< HEAD
  "Yenile": "src/app/components/AdminAds.tsx, src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/components/AdminMedia.tsx, src/app/components/AdminModeration.tsx, src/app/components/AdminTopStats.tsx, src/app/components/AdminTrial.tsx, src/app/components/TrustedSharing.tsx, src/app/components/VoicePacks.tsx, src/app/pages/AdminPage.tsx, src/app/pages/ScreenshotsPage.tsx, src/app/pages/VoicePage.tsx, src/app/pages/livechat/LogTab.tsx",
+=======
+ "Yenile": "src/app/components/AdminAds.tsx, src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/components/AdminMedia.tsx, src/app/components/AdminModeration.tsx, src/app/components/AdminTrial.tsx, src/app/components/TrustedSharing.tsx, src/app/components/VoicePacks.tsx, src/app/pages/AdminPage.tsx, src/app/pages/ScreenshotsPage.tsx, src/app/pages/VoicePage.tsx, src/app/pages/livechat/LogTab.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Yenilenen abonelik": "src/app/pages/AdminPage.tsx",
  "Yenilenenler": "src/app/pages/AdminPage.tsx",
  "yenileniyor": "src/app/components/AdminExtras.tsx",
@@ -4189,7 +4284,11 @@
  "YouTube etiket rengi": "src/overlays/livechat/manifest.ts",
  "YouTube sohbet yenileme aralığı": "src/app/pages/livechat/ChannelsTab.tsx",
  "YouTube, Twitch ve Kick sohbetini tek akışta gösterir (emote'lar, rozetler, Super Chat, abonelik ve raid uyarıları, izleyici sayıları). Kanallar Canlı Sohbet sayfasından eklenir; OBS'te de kullanılabilir.": "src/overlays/livechat/manifest.ts",
+<<<<<<< HEAD
  "yönetici": "src/app/components/AdminTopStats.tsx, src/app/pages/AdminPage.tsx",
+=======
+ "yönetici": "src/app/pages/AdminPage.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Yönetici": "src/app/components/AdminExtras.tsx, src/app/pages/AccountPage.tsx, src/app/pages/AdminPage.tsx, src/cloud/teams.ts",
  "Yönetici ayarı eksik": "src/app/pages/livechat/SendTab.tsx",
  "Yönetici geri aldı: {0}": "src/app/components/AdminTrial.tsx",
@@ -4210,7 +4309,10 @@
  "Yöneticinin görseli": "src/app/components/AdminContent.tsx",
  "Yönetim": "src/app/App.tsx",
  "Yönetim › Cihazlar bölümünden inceleyebilirsin.": "src/app/pages/AdminPage.tsx",
+<<<<<<< HEAD
  "Yönetim › Üyeler'de aç": "src/app/components/AdminTopStats.tsx",
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "src/app/components/AdminLiveChat.tsx",
  "Yukarı": "src/app/components/SettingsForm.tsx, src/app/pages/LeaguePage.tsx",
  "Yukarı / aşağı (y)": "src/app/components/VrPanel.tsx",
@@ -4224,7 +4326,11 @@
  "Yüklenecek tur yok": "src/app/pages/TelemetryPage.tsx",
  "Yüklenen görüntü bu genişliğe küçültülür": "src/app/components/AdminMedia.tsx",
  "Yüklenen oturumlarda eşleşme yok; daha fazlasını yükle.": "src/app/pages/TelemetryPage.tsx",
+<<<<<<< HEAD
  "Yükleniyor…": "src/app/components/AdminAds.tsx, src/app/components/AdminContent.tsx, src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/components/AdminMedia.tsx, src/app/components/AdminMessages.tsx, src/app/components/AdminProFeatures.tsx, src/app/components/AdminTopStats.tsx, src/app/components/AdminVoicePacks.tsx, src/app/components/AppBgPanel.tsx, src/app/components/BackdropPicker.tsx, src/app/components/EmailPrefsPanel.tsx, src/app/components/FriendData.tsx, src/app/components/FriendsDock.tsx, src/app/components/Profile.tsx, src/app/components/Shots.tsx, src/app/components/Support.tsx, src/app/components/VoicePacks.tsx, src/app/pages/AdminPage.tsx, src/app/pages/ChatLookPage.tsx, src/app/pages/CommunityKit.tsx, src/app/pages/ScreenshotsPage.tsx, src/app/pages/SettingsPage.tsx, src/app/pages/SupportPage.tsx, src/app/pages/TeamsPage.tsx, src/app/pages/TelemetryPage.tsx, src/app/pages/VoicePage.tsx, src/app/pages/livechat/LogTab.tsx",
+=======
+ "Yükleniyor…": "src/app/components/AdminAds.tsx, src/app/components/AdminContent.tsx, src/app/components/AdminCoupons.tsx, src/app/components/AdminExtras.tsx, src/app/components/AdminMedia.tsx, src/app/components/AdminMessages.tsx, src/app/components/AdminProFeatures.tsx, src/app/components/AdminVoicePacks.tsx, src/app/components/AppBgPanel.tsx, src/app/components/BackdropPicker.tsx, src/app/components/EmailPrefsPanel.tsx, src/app/components/FriendData.tsx, src/app/components/FriendsDock.tsx, src/app/components/Profile.tsx, src/app/components/Shots.tsx, src/app/components/Support.tsx, src/app/components/VoicePacks.tsx, src/app/pages/AdminPage.tsx, src/app/pages/ChatLookPage.tsx, src/app/pages/CommunityKit.tsx, src/app/pages/ScreenshotsPage.tsx, src/app/pages/SettingsPage.tsx, src/app/pages/SupportPage.tsx, src/app/pages/TeamsPage.tsx, src/app/pages/TelemetryPage.tsx, src/app/pages/VoicePage.tsx, src/app/pages/livechat/LogTab.tsx",
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
  "Yüksek Kontrast": "src/sdk/theme.ts",
  "Yükseklik": "src/overlays/scene/manifest.ts, src/overlays/trackmap/manifest.ts, src/overlays/webview/manifest.ts",
  "Yüzler": "src/app/components/EmojiPicker.tsx",

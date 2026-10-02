@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import { previewFrozen } from "@/sdk/overlay";
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 import { For, Show, createMemo, createSignal, onCleanup, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
@@ -55,7 +58,11 @@ export default function LiveChat(props: OverlayProps) {
   const poll = useTopic("livepoll");
   const caps = useTopic("captions");
   const [now, setNow] = createSignal(Date.now());
+<<<<<<< HEAD
   const tick = setInterval(() => !previewFrozen() && setNow(Date.now()), 1000);
+=======
+  const tick = setInterval(() => setNow(Date.now()), 1000);
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   onCleanup(() => clearInterval(tick));
 
   const bots = createMemo(() =>

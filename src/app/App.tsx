@@ -40,7 +40,10 @@ import { TelemetryPage } from "./pages/TelemetryPage";
 import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
 import { AppBgLayer, appBgActive } from "./appBg";
+<<<<<<< HEAD
 import { AdminTopStats } from "./components/AdminTopStats";
+=======
+>>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 
