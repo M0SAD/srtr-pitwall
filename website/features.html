@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Özellikler — SRTR Pitwall</title>
+    <meta
+      name="description"
+      content="SRTR Pitwall özellikleri: 32 overlay, YouTube/Twitch/Kick canlı sohbet, sesli mühendis ve spotter, düzen / tema / ekran görüntüsü paylaşımı, arkadaşlar ve takımlar, telemetri, VR."
+    />
+    <meta property="og:title" content="SRTR Pitwall — Features" />
+    <meta property="og:description" content="32 overlays, live chat, voice engineer and spotter, community sharing, friends and teams, telemetry, VR." />
+    <meta property="og:image" content="assets/img/layout.jpg" />
+    <link rel="icon" href="assets/img/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/site.css" />
+    <link rel="stylesheet" href="assets/friends.css" />
+    <link rel="stylesheet" href="assets/features.css" />
+  </head>
+  <body>
+    <main class="fx">
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <span class="eyebrow" data-t="fx_hero_eyebrow"></span>
+            <h1 data-t="fx_hero_title"></h1>
+            <p class="lead" data-t="fx_hero_lead"></p>
+            <div class="fx-stats" id="fx-stats"></div>
+            <div class="hero-cta">
+              <a href="#" class="btn btn-accent btn-lg" data-download><span data-t="fx_download"></span></a>
+              <a href="index.html#pricing" class="btn btn-lg" data-t="fx_see_pro"></a>
+            </div>
+          </div>
+          <div class="hero-shot"><img data-slot="feat.hero" src="assets/img/layout.jpg" alt="SRTR Pitwall overlays" width="1100" height="566" /></div>
+        </div>
+      </section>
+
+      <nav class="fx-toc" aria-label="Sections">
+        <div class="wrap fx-toc-in" id="fx-toc"></div>
+      </nav>
+
+      <section id="overlays" class="band">
+        <div class="wrap">
+          <div class="split fx-head">
+            <div class="sec-head">
+              <span class="eyebrow" data-t="fx_ov_eyebrow"></span>
+              <h2 data-t="fx_ov_title"></h2>
+              <p class="muted" data-t="fx_ov_lead"></p>
+              <ul class="checks" data-tl="fx_ov_common"></ul>
+            </div>
+            <img data-slot="feat.overlays" src="assets/img/panel.jpg" alt="" loading="lazy" width="1400" height="803" />
+          </div>
+          <div id="fx-overlays"></div>
+          <p class="muted small fx-note" data-t="fx_ov_note"></p>
+        </div>
+      </section>
+
+      <section id="livechat">
+        <div class="wrap">
+          <div class="split">
+            <div>
+              <span class="eyebrow" data-t="fx_lc_eyebrow"></span>
+              <h2 data-t="fx_lc_title"></h2>
+              <p class="muted" data-t="fx_lc_lead"></p>
+              <ul class="checks" data-tl="fx_lc_points"></ul>
+            </div>
+            <div class="slot-box" data-slot="feat.livechat">
+              <div class="mock mock-chat" aria-hidden="true">
+                <div class="mc-bar"><span class="p yt">YouTube 128</span><span class="p tw">Twitch 342</span><span class="p kk">Kick 57</span><b>527</b></div>
+                <div class="mc-line"><i class="p yt">▶</i><b style="color: #ff6b6b">Deniz</b><span>P3! 🔥🔥</span></div>
+                <div class="mc-line"><i class="p tw">◆</i><b style="color: #b28cff">mika_gt3</b><span>box this lap?</span></div>
+                <div class="mc-line"><i class="p kk">●</i><b style="color: #53fc18">Rapha</b><span>1</span></div>
+                <div class="mc-alert">★ Super Chat · €5</div>
+                <div class="mc-poll"><span>1 · Soft</span><em style="width: 62%"></em><span>2 · Medium</span><em style="width: 38%"></em></div>
+                <div class="mc-cap">“…pit this lap, fuel is fine.”</div>
+              </div>
+            </div>
+          </div>
+          <div class="grid fx-two">
+            <div class="card fx-list"><h3><span class="tag free" data-t="fx_tag_free"></span> <span data-t="fx_lc_free_t"></span></h3><ul class="checks" data-tl="fx_lc_free"></ul></div>
+            <div class="card fx-list pro"><h3><span class="tag pro">PRO</span> <span data-t="fx_lc_pro_t"></span></h3><ul class="checks" data-tl="fx_lc_pro"></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="voice" class="band">
+        <div class="wrap">
+          <div class="split rev">
+            <div>
+              <span class="eyebrow" data-t="fx_vo_eyebrow"></span>
+              <h2><span data-t="fx_vo_title"></span> <span class="tag pro">PRO</span></h2>
+              <p class="muted" data-t="fx_vo_lead"></p>
+              <div class="fx-stats" id="fx-voice-stats"></div>
+              <ul class="checks" data-tl="fx_vo_points"></ul>
+            </div>
+            <div class="slot-box" data-slot="feat.voice">
+              <div class="mock mock-voice" aria-hidden="true">
+                <div class="mv-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="mv-sub eng"><b>ENGINEER</b><span>“Fuel for 6 laps. Box in 3.”</span></div>
+                <div class="mv-sub spo"><b>SPOTTER</b><span>“Car left… clear.”</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="sec-head fx-sub"><h3 data-t="fx_vo_cat_t"></h3><p class="muted small" data-t="fx_vo_cat_lead"></p></div>
+          <div class="fx-chips" data-tl="fx_vo_cats" data-tl-tag="span"></div>
+        </div>
+      </section>
+
+      <section id="community">
+        <div class="wrap">
+          <div class="split">
+            <div>
+              <span class="eyebrow" data-t="fx_co_eyebrow"></span>
+              <h2 data-t="fx_co_title"></h2>
+              <p class="muted" data-t="fx_co_lead"></p>
+            </div>
+            <div class="slot-box" data-slot="feat.community">
+              <div class="mock mock-cards" aria-hidden="true">
+                <div><u></u><b>GT3 Endurance</b><span>★★★★★ · 214</span></div>
+                <div><u class="b"></u><b>Stream 1440p</b><span>★★★★☆ · 96</span></div>
+                <div><u class="c"></u><b>Neon theme</b><span>★★★★★ · 58</span></div>
+                <div><u class="d"></u><b>Spa · sunset</b><span>♥ 131</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="grid g4 fx-cards" id="fx-community"></div>
+        </div>
+      </section>
+
+      <section id="social" class="band">
+        <div class="wrap">
+          <div class="split rev">
+            <div>
+              <span class="eyebrow" data-t="fx_so_eyebrow"></span>
+              <h2 data-t="fx_so_title"></h2>
+              <p class="muted" data-t="fx_so_lead"></p>
+            </div>
+            <div class="slot-box" data-slot="feat.social">
+              <div class="mock mock-social" aria-hidden="true">
+                <div class="ms-row"><i class="on"></i><b>Kaan</b><span>Spa · GT3 · P4</span></div>
+                <div class="ms-row"><i class="on"></i><b>Elif</b><span>Online</span></div>
+                <div class="ms-row"><i></i><b>Jonas</b><span>Offline</span></div>
+                <div class="ms-live"><span>FUEL 31.4 L</span><span>LAPS 11.2</span><span>BEST 2:17.482</span></div>
+                <div class="ms-bub">Box box, rain incoming 🌧️</div>
+              </div>
+            </div>
+          </div>
+          <div class="grid g3 fx-cards" id="fx-social"></div>
+        </div>
+      </section>
+
+      <section id="tools">
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow" data-t="fx_to_eyebrow"></span>
+            <h2 data-t="fx_to_title"></h2>
+            <p class="muted" data-t="fx_to_lead"></p>
+          </div>
+          <div class="fx-tools" id="fx-tools"></div>
+        </div>
+      </section>
+
+      <section id="sims" class="band">
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow" data-t="fx_si_eyebrow"></span>
+            <h2 data-t="fx_si_title"></h2>
+            <p class="muted" data-t="fx_si_lead"></p>
+          </div>
+          <div class="card table-scroll">
+            <table class="compare fx-sims">
+              <thead>
+                <tr><th></th><th>iRacing</th><th>ACC</th><th>AC</th><th>LMU / rF2</th><th>AMS2</th></tr>
+              </thead>
+              <tbody id="fx-sims"></tbody>
+            </table>
+          </div>
+          <p class="muted small fx-note" data-t="fx_si_note"></p>
+        </div>
+      </section>
+
+      <section id="pro">
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow" data-t="fx_pr_eyebrow"></span>
+            <h2 data-t="fx_pr_title"></h2>
+            <p class="muted" data-t="fx_pr_lead"></p>
+          </div>
+          <div class="grid fx-two">
+            <div class="card fx-list"><h3><span class="tag free" data-t="fx_tag_free"></span> <span data-t="fx_pr_free_t"></span></h3><ul class="checks" data-tl="fx_pr_free"></ul></div>
+            <div class="card fx-list pro"><h3><span class="tag pro">PRO</span> <span data-t="fx_pr_pro_t"></span></h3><ul class="checks" data-tl="fx_pr_pro"></ul></div>
+          </div>
+          <p class="muted small fx-note" id="fx-trial"></p>
+        </div>
+      </section>
+
+      <section class="cta-band">
+        <div class="wrap">
+          <h2 data-t="fx_cta_title"></h2>
+          <p class="muted" data-t="fx_cta_lead"></p>
+          <div class="row" style="justify-content: center">
+            <a href="#" class="btn btn-accent btn-lg" data-download data-t="fx_download"></a>
+            <a href="index.html#pricing" class="btn btn-lg" data-t="fx_see_pro"></a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="assets/features.js"></script>
+    <script type="module" src="assets/friends.js"></script>
+  </body>
+</html>

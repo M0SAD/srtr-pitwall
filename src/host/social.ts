@@ -36,6 +36,7 @@ import {
 import { myTeams, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } from "@/cloud/teams";
 import { groupChatKey, myGroups, onGroupChat, type MyGroup } from "@/cloud/groups";
 import { broadcastOvMsg, ovMsgShown, OVMSG_CLEAR_EVENT, type OvMsg } from "@/sdk/ovmsg";
+import { crewLiveExtra } from "./crew";
 
 /** Mesajlar overlay'ine giden kayıt: takım mesajı */
 function teamOv(m: { id: string; team_id: string; sender: string | null; body: string; poll_id?: string | null; meta?: MsgMeta | null }, tm: MyTeam, who: string, mine: boolean): OvMsg {
@@ -70,6 +71,11 @@ export interface MsgToast {
 const [toast, setToast] = createSignal<MsgToast | null>(null);
 const [pending, setPending] = createSignal(0);
 export { toast as msgToast, pending as msgPending };
+/** Oyun içi bildirim kutusunu göster (ekip komutları da bunu kullanır) */
+export function showMsgToast(x: MsgToast, ms = 7000) {
+  setToast(x);
+  setTimeout(() => setToast((c) => (c?.id === x.id ? null : c)), ms);
+}
 export const clearPending = () => setPending(0);
 
 let friends: Friend[] = [];
@@ -323,12 +329,15 @@ export function startSocial(status: Accessor<Status | undefined>) {
   // Veri paylaşımı PRO üyelere özel; PRO olmayan, onu güvenilir seçen PRO arkadaşının verisini görebilir.
   let lastPush = 0;
   listen<LiveData>("team-fuel-local", (e) => {
-    if (!session() || proLocked("social.data_share") || !friends.some((f) => f.status === "accepted" && (f.trusted || trustAll))) return;
+    // Ekip (c53): ekibimde izleyen varsa veri paylaşımı kapalı / PRO olmasa da gönderilir (sadece ekip görür)
+    const share = !proLocked("social.data_share") && friends.some((f) => f.status === "accepted" && (f.trusted || trustAll));
+    const crew = crewLiveExtra();
+    if (!session() || (!share && !crew)) return;
     const now = Date.now();
     if (now - lastPush < 3000) return;
     lastPush = now;
     const s = status();
-    pushLive({ ...e.payload, track: s?.track ?? "", session: s?.sessionType ?? "" });
+    pushLive({ ...e.payload, track: s?.track ?? "", session: s?.sessionType ?? "", ...(crew ? { crew } : {}) }, !share);
   });
 
   // Takım odaları: sessize alınmamış odadaki yeni mesaj açılır pencere / oyun içi bildirim + ses

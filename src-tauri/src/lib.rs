@@ -556,6 +556,23 @@ fn replay_seek(state: State<'_, Arc<Shared>>, session_num: i32, session_time: f6
     broadcast::replay_seek(session_num, session_time, &car_number, 5.0)
 }
 
+/// Ekip (uzaktan pit): ekip üyesinin gönderdiği pit komutunu iRacing'e uygular. Yetki ve ana anahtar
+/// sunucuda ve arayüzde (host/crew.ts) denetlenir; burada sadece izinli pit komutları çalışır.
+#[tauri::command]
+fn crew_pit_command(state: State<'_, Arc<Shared>>, kind: String, args: Value) -> Result<(), String> {
+    let (sim, demo) = {
+        let ev = state.events.lock();
+        (ev.sim, ev.demo)
+    };
+    if demo || !state.connected.load(Ordering::Relaxed) {
+        return Err("Sürücü oyunda değil".into());
+    }
+    if !sim.is_empty() && sim != "iracing" {
+        return Err("Bu oyunda desteklenmiyor".into());
+    }
+    broadcast::crew_apply(&kind, &args)
+}
+
 // ---- Ek pencereler: Pitwall ve Live Timing ----
 
 #[tauri::command]
@@ -1374,7 +1391,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 /// Kısayol eylemleri ve varsayılan tuşları
-const SHORTCUTS: [(&str, &str); 18] = [
+const SHORTCUTS: [(&str, &str); 19] = [
     ("edit", "Ctrl+Shift+E"),
     ("hide", "Ctrl+Shift+D"),
     ("panel", "Ctrl+Shift+Space"),
@@ -1387,6 +1404,8 @@ const SHORTCUTS: [(&str, &str); 18] = [
     ("stt", "F6"),
     // Canlı sohbeti başlat / durdur (her zaman kayıtlı)
     ("chat", "Ctrl+Shift+C"),
+    // Ekip (uzaktan pit) kontrolünü durdur (varsayılan: kısayol yok)
+    ("crewStop", ""),
     // Yerel VR (deneysel, bkz. vrnative): sadece yerel VR çalışırken kaydedilir
     ("vrConfig", "F9"),
     ("vrRecenter", "End"),
@@ -1706,6 +1725,9 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 Some("ttsHush") => livechat::tts::hotkey_hush(app),
                 Some("stt") => livechat::stt::hotkey_toggle(app),
                 Some("chat") => livechat::hotkey_chat(app),
+                Some("crewStop") => {
+                    let _ = app.emit("crew-stop", ());
+                }
                 Some(a) if a.starts_with("vr") => vrnative::hotkey(a),
                 _ => {}
             }
@@ -1751,6 +1773,7 @@ pub fn run() {
             camera_car,
             replay_to,
             replay_live,
+            crew_pit_command,
             events_get,
             replay_seek,
             window_open,

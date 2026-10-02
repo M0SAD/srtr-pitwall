@@ -63,6 +63,8 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   radar: ["ac"],
   // Delta sadece iRacing ve ACC'de var; diğerlerinde çubuk hep boş kalır
   delta: ["ac", "lmu", "ams2"],
+  // Hibrit / batarya verisi: iRacing, LMU/rF2 ve AC'de var; ACC'de hibrit araç yok, AMS2 alanları okunmuyor
+  ers: ["acc", "ams2"],
   // Olay puanı sadece iRacing'de
   incidents: ["acc", "ac", "lmu", "ams2"],
   incidentlog: ["acc", "ac", "lmu", "ams2"],

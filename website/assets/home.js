@@ -1,5 +1,6 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
 import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, startProCheckout } from "./core.js";
+import { applyCachedImages, initSiteImages } from "./siteimages.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
@@ -32,7 +33,7 @@ addDict({
   hero_download: ["⬇ Ücretsiz indir", "⬇ Download free"],
   hero_pro: ["PRO'ya bak", "See PRO"],
   hero_meta: ["Windows 10/11 · son sürüm", "Windows 10/11 · latest"],
-  pill_overlays: ["27 overlay", "27 overlays"],
+  pill_overlays: ["33 overlay", "33 overlays"],
   pill_spotter: ["Sesli spotter", "Voice spotter"],
   pill_langs: ["15 dil", "15 languages"],
   pill_free: ["Hesapsız da çalışır", "Works without an account"],
@@ -43,7 +44,10 @@ addDict({
     "Pistte ihtiyacın olan her şey, yarış dışında da işine yarayan araçlarla birlikte.",
     "Everything you need on track, plus tools that help you off track too.",
   ],
-  f1_t: ["27 overlay, tek şeffaf pencere", "27 overlays, one transparent window"],
+  feat_more: ["Tüm özellikleri ayrıntılı gör →", "See all features in detail →"],
+  gal_eyebrow: ["Galeri", "Gallery"],
+  gal_title: ["SRTR Pitwall'dan kareler", "Shots from SRTR Pitwall"],
+  f1_t: ["33 overlay, tek şeffaf pencere", "33 overlays, one transparent window"],
   f1_d: [
     "Relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal girdileri, hava durumu, bayraklar ve daha fazlası.",
     "Relative, leaderboard, fuel, tyres, radar, track map, delta, inputs, weather, flags and more.",
@@ -310,6 +314,7 @@ async function main() {
   import("./adslot.js").then((m) => m.mountAds(), () => {});
   renderStatic();
   renderPlans();
+  applyCachedImages();
   $("#plans").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-pro]");
     if (!b || b.disabled) return;
@@ -322,6 +327,7 @@ async function main() {
     renderPlans();
   });
   [cfg, user] = await Promise.all([appConfig().catch(() => ({})), currentUser()]);
+  initSiteImages(cfg && Object.keys(cfg).length ? cfg : null);
   renderPlans();
   applyLang();
   // PRO tanıtım kartı: fiyatların üstünde (PRO olmayanlara; yönetici ayarlar)

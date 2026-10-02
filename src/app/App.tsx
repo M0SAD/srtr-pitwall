@@ -23,6 +23,7 @@ import { ToolsPage } from "./pages/ToolsPage";
 import { LeaguePage } from "./pages/LeaguePage";
 import { FriendsPage } from "./pages/FriendsPage";
 import { TeamsPage } from "./pages/TeamsPage";
+import { CrewPage } from "./pages/CrewPage";
 import { setTeamFocus } from "@/cloud/teams";
 import { CommunityPage } from "./pages/CommunityPage";
 import { CommunityShots } from "./pages/CommunityShots";
@@ -110,6 +111,7 @@ const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
   drivers: [
     { id: "friends", label: "Arkadaşlar ve etiketler" },
     { id: "teams", label: "Takımlar" },
+    { id: "crew", label: "Ekip" },
     { id: "league", label: "Lig Kategorileri" },
   ],
   community: [
@@ -320,6 +322,9 @@ export function App() {
             </Match>
             <Match when={section() === "drivers" && sub() === "teams"}>
               <TeamsPage />
+            </Match>
+            <Match when={section() === "drivers" && sub() === "crew"}>
+              <CrewPage />
             </Match>
             <Match when={section() === "drivers" && sub() === "league"}>
               <LeaguePage />

@@ -81,3 +81,4 @@ export { default as ArrowDownToLine } from "lucide-solid/icons/arrow-down-to-lin
 export { default as SkipForward } from "lucide-solid/icons/skip-forward";
 export { default as Link2 } from "lucide-solid/icons/link-2";
 export { default as Unlink } from "lucide-solid/icons/unlink";
+export { default as BatteryCharging } from "lucide-solid/icons/battery-charging";

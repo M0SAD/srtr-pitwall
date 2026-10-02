@@ -6,7 +6,7 @@
     <title>SRTR Pitwall — iRacing overlay, spotter ve strateji</title>
     <meta
       name="description"
-      content="SRTR Pitwall: iRacing için hepsi bir arada yardımcı. 27 overlay, sesli spotter, yakıt stratejisi, arkadaşlarla canlı veri, OBS yayın düzenleri ve topluluk."
+      content="SRTR Pitwall: iRacing için hepsi bir arada yardımcı. 32 overlay, canlı sohbet, sesli mühendis ve spotter, yakıt stratejisi, arkadaşlarla canlı veri, OBS yayın düzenleri ve topluluk."
     />
     <meta property="og:title" content="SRTR Pitwall" />
     <meta property="og:description" content="iRacing overlay, spotter, strategy, streaming and community in one lightweight app." />
@@ -17,6 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="assets/site.css" />
     <link rel="stylesheet" href="assets/friends.css" />
+    <link rel="stylesheet" href="assets/features.css" />
   </head>
   <body>
     <main>
@@ -39,7 +40,7 @@
               <span class="pill" data-t="pill_free"></span>
             </div>
           </div>
-          <div class="hero-shot"><img src="assets/img/layout.jpg" alt="SRTR Pitwall overlays" width="1100" height="566" /></div>
+          <div class="hero-shot"><img data-slot="home.hero" src="assets/img/layout.jpg" alt="SRTR Pitwall overlays" width="1100" height="566" /></div>
         </div>
       </section>
 
@@ -51,6 +52,17 @@
             <p class="muted" data-t="feat_lead"></p>
           </div>
           <div class="grid g3" id="feat-grid"></div>
+          <div class="feat-more"><a href="features.html" class="btn btn-accent btn-lg" data-t="feat_more"></a></div>
+        </div>
+      </section>
+
+      <section id="gallery" data-gallery-host hidden>
+        <div class="wrap">
+          <div class="sec-head">
+            <span class="eyebrow" data-t="gal_eyebrow"></span>
+            <h2 data-t="gal_title"></h2>
+          </div>
+          <div class="gallery-strip" data-slot="home.gallery" data-gallery></div>
         </div>
       </section>
 
@@ -69,7 +81,7 @@
               <li data-t="panel_c4"></li>
             </ul>
           </div>
-          <img src="assets/img/panel.jpg" alt="" loading="lazy" width="1400" height="803" />
+          <img data-slot="home.panel" src="assets/img/panel.jpg" alt="" loading="lazy" width="1400" height="803" />
         </div>
       </section>
 
@@ -86,7 +98,7 @@
               <li data-t="friends_c4"></li>
             </ul>
           </div>
-          <img class="narrow" src="assets/img/friend.jpg" alt="" loading="lazy" width="360" height="836" />
+          <img class="narrow" data-slot="home.friends" src="assets/img/friend.jpg" alt="" loading="lazy" width="360" height="836" />
         </div>
       </section>
 

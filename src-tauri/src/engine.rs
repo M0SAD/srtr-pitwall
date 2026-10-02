@@ -24,6 +24,7 @@ use tauri::{AppHandle, Manager};
 pub enum Packet {
     Status(calc::Status),
     Inputs(calc::Inputs),
+    Ers(calc::Ers),
     Telemetry(calc::Telemetry),
     Delta(calc::Delta),
     Radar(calc::Radar),
@@ -151,9 +152,10 @@ pub struct Shared {
     pub topics_gen: AtomicU64,
 }
 
-const KNOWN: [&str; 24] = [
+const KNOWN: [&str; 25] = [
     "status",
     "inputs",
+    "ers",
     "telemetry",
     "delta",
     "radar",
@@ -630,6 +632,39 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     // Arkadaş listesi: güvenilir arkadaşlara gönderilmek üzere arayüze (demo verisi gitmez)
                     if !demo_on {
                         use tauri::Emitter;
+                        // Ekip (uzaktan pit) için ek veri: canlı veriye "crew" alanı olarak eklenir (bkz. host/crew.ts).
+                        // team-fuel-local'dan ÖNCE gönderilir ki aynı pakete girsin.
+                        let avg = |a: &[f32; 3]| (a[0] + a[1] + a[2]) / 3.0;
+                        let r1 = |x: f32| (x * 10.0).round() / 10.0;
+                        let car = f.cars.get(me.car_idx as usize);
+                        // Lastik: kalan diş % (bilinmiyorsa -1) ve yüzey sıcaklığı °C — LF, RF, LR, RR
+                        let wear = [0, 1, 2, 3].map(|i| {
+                            let x = avg(&f.tire_wear[i]);
+                            if x < 0.0 { -1.0 } else { (x * 100.0).round() }
+                        });
+                        let temp = [0, 1, 2, 3].map(|i| avg(&f.tire_temp[i]).round());
+                        let crew = serde_json::json!({
+                            "sim": st.sim,
+                            "timeRemain": f.session_time_remain.round(),
+                            "lapsRemain": f.session_laps_remain,
+                            "classPos": car.map(|c| c.class_position).unwrap_or(0),
+                            "raceLaps": r1(fu.race_laps_left),
+                            "toFinish": r1(row.refuel.max(0.0)),
+                            "needed": r1(fu.race_needed),
+                            "inc": f.incidents,
+                            "flags": f.session_flags,
+                            "stall": car.map(|c| c.surface == 1).unwrap_or(false),
+                            "pit": {
+                                "flags": f.pit_sv_flags,
+                                "fuel": r1(f.pit_sv_fuel),
+                                "compound": f.pit_sv_compound,
+                                "fr": f.fast_repairs,
+                            },
+                            "wear": wear,
+                            "temp": temp,
+                            "compound": f.tire_compound,
+                        });
+                        let _ = app.emit("crew-live-local", &crew);
                         let _ = app.emit("team-fuel-local", &tf);
                     }
                 }
@@ -699,6 +734,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                         Packet::Status(x)
                     }
                     "inputs" => Packet::Inputs(calc::inputs(f, s)),
+                    "ers" => Packet::Ers(calc::ers(f)),
                     "telemetry" => Packet::Telemetry(calc::telemetry(f, s, t)),
                     "delta" => Packet::Delta(calc::delta(f, t)),
                     "radar" => Packet::Radar(calc::radar(f, s)),

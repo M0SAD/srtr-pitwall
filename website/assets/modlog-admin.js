@@ -158,6 +158,11 @@ export function formatLog(l) {
       return { text: `Ses paketi silindi: ${q(d.name, 50)} (${q(d.language, 30)}, sürüm ${d.version ?? "?"})`, go: ["ses-paketleri", ""] };
     case "pro_promo_set":
       return { text: d.enabled ? `PRO tanıtım mesajı kaydedildi${d.title ? `: “${q(d.title, 60)}”` : ""}${d.old_enabled ? "" : " ve açıldı"}` : "PRO tanıtım mesajı kapatıldı", go: null };
+    case "site_images_set":
+      return {
+        text: `Site görselleri güncellendi${Array.isArray(d.changed) && d.changed.length ? `: ${q(d.changed.join(", "), 120)}` : ""}${d.gallery ? ` (galeri: ${d.gallery})` : ""}`,
+        go: ["site-gorselleri", ""],
+      };
     case "preview_backdrops_set":
       return {
         text: `Overlay önizleme arka planları güncellendi (varsayılan: ${BACKDROPS[d.default] || d.default}${d.old_default && d.old_default !== d.default ? `, önce: ${BACKDROPS[d.old_default] || d.old_default}` : ""})`,

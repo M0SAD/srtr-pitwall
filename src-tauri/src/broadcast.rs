@@ -7,6 +7,8 @@ mod msg {
     pub const REPLAY_SET_PLAY_SPEED: u16 = 3;
     pub const REPLAY_SEARCH: u16 = 5;
     pub const REPLAY_SEARCH_SESSION_TIME: u16 = 12;
+    /// PitCommand(mode, var): pit servisi seçimleri (sadece sürücü araçtayken etkili)
+    pub const PIT_COMMAND: u16 = 9;
     /// ReplaySearch modu: canlıya dön
     pub const RPY_SRCH_TO_END: u16 = 1;
 }
@@ -91,9 +93,103 @@ pub fn replay_live() -> Result<(), String> {
     send(msg::REPLAY_SET_PLAY_SPEED, 1, 0)
 }
 
+/// irsdk_PitCommandMode
+#[allow(dead_code)]
+pub mod pit {
+    /// Bütün pit servisi seçimlerini kaldır
+    pub const CLEAR: u16 = 0;
+    /// Vizör filmi (tear-off)
+    pub const WS: u16 = 1;
+    /// Yakıt ekle; var = litre (0: mevcut miktar kalsın)
+    pub const FUEL: u16 = 2;
+    /// Lastik değiştir; var = basınç kPa (0: mevcut basınç kalsın)
+    pub const LF: u16 = 3;
+    pub const RF: u16 = 4;
+    pub const LR: u16 = 5;
+    pub const RR: u16 = 6;
+    pub const CLEAR_TIRES: u16 = 7;
+    /// Hızlı tamir
+    pub const FR: u16 = 8;
+    pub const CLEAR_WS: u16 = 9;
+    pub const CLEAR_FR: u16 = 10;
+    pub const CLEAR_FUEL: u16 = 11;
+}
+
+/// irsdk_BroadcastPitCommand: wParam = MAKELONG(PitCommand, mode), lParam = MAKELONG(var, 0)
+pub fn pit_command(mode: u16, var: u16) -> Result<(), String> {
+    send(msg::PIT_COMMAND, mode, make_long(var, 0))
+}
+
+/// Ekip (uzaktan pit) komutunu iRacing pit komutlarına çevirir: [(mod, değer)].
+/// Sadece burada sayılan türler kabul edilir; `message` bir pit komutu değildir (arayüz gösterir).
+pub fn crew_plan(kind: &str, args: &serde_json::Value) -> Result<Vec<(u16, u16)>, String> {
+    let flag = |k: &str, d: bool| args.get(k).and_then(|x| x.as_bool()).unwrap_or(d);
+    Ok(match kind {
+        "fuel_set" => {
+            let l = args.get("liters").and_then(|x| x.as_f64()).unwrap_or(0.0);
+            if !l.is_finite() || l <= 0.0 || l > 1000.0 {
+                return Err("Geçersiz yakıt miktarı".into());
+            }
+            // iRacing tam litre alır: eksik kalmasın diye yukarı yuvarlanır
+            vec![(pit::FUEL, l.ceil() as u16)]
+        }
+        "fuel_clear" => vec![(pit::CLEAR_FUEL, 0)],
+        "tyres_all" => vec![(pit::LF, 0), (pit::RF, 0), (pit::LR, 0), (pit::RR, 0)],
+        "tyres" => {
+            // Tek tek kaldırma komutu yok: önce hepsi kaldırılır, sonra seçilenler işaretlenir
+            let mut v = vec![(pit::CLEAR_TIRES, 0)];
+            for (k, m) in [("lf", pit::LF), ("rf", pit::RF), ("lr", pit::LR), ("rr", pit::RR)] {
+                if flag(k, false) {
+                    v.push((m, 0));
+                }
+            }
+            v
+        }
+        "tyres_clear" => vec![(pit::CLEAR_TIRES, 0)],
+        "fast_repair" => vec![(if flag("on", true) { pit::FR } else { pit::CLEAR_FR }, 0)],
+        "tearoff" => vec![(if flag("on", true) { pit::WS } else { pit::CLEAR_WS }, 0)],
+        "clear_all" => vec![(pit::CLEAR, 0)],
+        _ => return Err("Bilinmeyen komut".into()),
+    })
+}
+
+/// Ekip komutunu iRacing'e gönder.
+pub fn crew_apply(kind: &str, args: &serde_json::Value) -> Result<(), String> {
+    for (mode, var) in crew_plan(kind, args)? {
+        pit_command(mode, var)?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn crew_commands() {
+        use serde_json::json;
+        // PitCommand = 9, mod wParam'ın üst sözcüğünde; litre lParam'ın alt sözcüğünde
+        assert_eq!(pack(msg::PIT_COMMAND, pit::FUEL), 0x0002_0009);
+        assert_eq!(make_long(45, 0), 45);
+        assert_eq!(crew_plan("fuel_set", &json!({ "liters": 44.2 })).unwrap(), vec![(pit::FUEL, 45)]);
+        assert!(crew_plan("fuel_set", &json!({ "liters": 0 })).is_err());
+        assert!(crew_plan("fuel_set", &json!({ "liters": 5000 })).is_err());
+        assert!(crew_plan("fuel_set", &json!({})).is_err());
+        assert_eq!(crew_plan("fuel_clear", &json!({})).unwrap(), vec![(pit::CLEAR_FUEL, 0)]);
+        assert_eq!(crew_plan("tyres_all", &json!({})).unwrap().len(), 4);
+        assert_eq!(
+            crew_plan("tyres", &json!({ "lf": true, "rr": true })).unwrap(),
+            vec![(pit::CLEAR_TIRES, 0), (pit::LF, 0), (pit::RR, 0)]
+        );
+        assert_eq!(crew_plan("tyres", &json!({})).unwrap(), vec![(pit::CLEAR_TIRES, 0)]);
+        assert_eq!(crew_plan("fast_repair", &json!({ "on": false })).unwrap(), vec![(pit::CLEAR_FR, 0)]);
+        assert_eq!(crew_plan("fast_repair", &json!({})).unwrap(), vec![(pit::FR, 0)]);
+        assert_eq!(crew_plan("tearoff", &json!({ "on": true })).unwrap(), vec![(pit::WS, 0)]);
+        assert_eq!(crew_plan("clear_all", &json!({})).unwrap(), vec![(pit::CLEAR, 0)]);
+        // Pit komutu olmayan hiçbir şey çalıştırılamaz
+        assert!(crew_plan("message", &json!({ "text": "x" })).is_err());
+        assert!(crew_plan("settings_set", &json!({})).is_err());
+    }
     #[test]
     fn car_numbers() {
         assert_eq!(pad_car_num("7"), 7);

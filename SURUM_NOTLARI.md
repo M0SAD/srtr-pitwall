@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-66
+
+- **Derleme düzeltmesi:** projeden kaldırılan ama depoda kalan dosyalar (ör. `LogosPanel.tsx`) derlemeyi bozuyordu. Derleme ve site yayını artık önce `scripts/temizle.mjs` ile bu eski dosyaları siler (yanlışlıkla `website/` içine kopyalanmış proje dosyaları dahil).
+
+## 021026-65
+
+- **Yeni: Ekip (uzaktan pit ekibi).** Ayarlar › Paylaşım › "Ekip (uzaktan pit)": arkadaşlarına Görebilir / Değiştirebilir yetkisi ver (en fazla 10). Ekip üyesi programdaki Sürücüler › Ekip sayfasından ya da telefondan web sitesindeki Ekip sayfasından (crew.html) canlı yarış verini izler: sıra, tur, kalan süre, yakıt ve bitişe gereken yakıt, ayarlı pit servisi, lastikler, bayraklar. "Ekibim pit ayarlarımı değiştirebilsin" açıksa (varsayılan kapalı) iRacing'de yakıt miktarı, lastik değişimi (4'ü / tek tek / hiçbiri), hızlı tamir, vizör filmi ve "tümünü temizle" komutlarını uzaktan gönderir, kısa mesaj yazar. Her komut ekranında bildirim olarak görünür; "Ekip kontrolünü durdur" düğmesi / kısayolu anında keser. Değiştirme yetkisi vermek PRO (`social.crew`), izlemek ücretsiz. Diğer oyunlarda yalnızca izleme. (c53)
+- **Yeni overlay: ERS ve Batarya.** Hibrit araçlarda batarya doluluğu, tur başı işareti, bu turdaki net fark, tur ortalaması, boşalmaya / dolmaya kalan tur, MGU-K / MGU-H gücü, harcama modu, tur harcama hakkı, P2P ve DRS. 5 tasarım: Yatay çubuk, Dikey pil, Kompakt (ücretsiz); Halka gösterge, Detaylı panel (PRO). Düşük / dolu batarya uyarısı; hibrit olmayan araçta kendiliğinden gizlenir. iRacing tam; LMU / rF2 ve AC kısmi; ACC ve AMS2 yok.
+- **Web sitesi: Özellikler sayfası (features.html).** 33 overlay'in tamamı öne çıkan özellikleri ve ÜCRETSİZ / PRO etiketiyle; Canlı Sohbet, Sesli Mühendis (1.493 ifade, 3.685 ses kaydı, 22 kategori), Topluluk (düzen, yayın düzeni, ekran görüntüsü, tema paylaşımı), arkadaşlar / gruplar / takımlar, araçlar (telemetri, ekran görüntüsü, düzenler, yayın düzenleri, VR), oyun uyumluluk tablosu, ücretsiz ve PRO.
+- **Web sitesi yönetim paneli: "Ana sayfa görselleri".** Ana sayfa ve Özellikler sayfasındaki 14 görsel yuvası için görsel yükle / alt metin / varsayılana dön; ana sayfa galerisi (ekle, sil, sırala; en fazla 24). (c54)
+- Yeni metinler programda 14, sitede 13 dile çevrildi.
+
 ## 021026-64
 
 - **Yayın düzenleri: kendi düzenini kullan.**

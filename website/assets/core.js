@@ -390,6 +390,7 @@ addDict({
   nav_ads: ["Reklam ver", "Advertise"],
   nav_drivers: ["Yarışçılar", "Drivers"],
   nav_teams: ["Takımlar", "Teams"],
+  nav_crew: ["Ekip", "Crew"],
   footer_made: [
     "<b>Erkin Azcan</b> tarafından <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> topluluğu için geliştirildi.",
     "Built by <b>Erkin Azcan</b> for the <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> community.",
@@ -589,6 +590,7 @@ export async function initNav() {
       a.innerHTML = T(a.dataset.t);
     });
     $$(".nav-admin").forEach((a) => (a.hidden = !p?.is_admin));
+    $$(".nav-crew").forEach((a) => (a.hidden = !u));
   };
   await refresh();
   sb.auth.onAuthStateChange(() => {
@@ -603,12 +605,13 @@ export function headerHtml(active = "") {
     <div class="wrap top-in">
       <a class="brand" translate="no" href="index.html"><img src="assets/img/logo.png" alt="" width="34" height="34" /><span>SRTR <b>Pitwall</b></span></a>
       <nav class="nav">
-        <a href="index.html#features" data-t="nav_features"></a>
+        <a href="features.html" class="${active === "features" ? "on" : ""}" data-t="nav_features"></a>
         <a href="index.html#pricing" data-t="nav_pricing"></a>
         <a href="index.html#faq" data-t="nav_faq"></a>
         <a href="takimlar.html" class="${active === "teams" ? "on" : ""}" data-t="nav_teams"></a>
         <a href="yarisci.html" class="${active === "drivers" ? "on" : ""}" data-t="nav_drivers"></a>
         <a href="reklam.html" class="${active === "ads" ? "on" : ""}" data-t="nav_ads"></a>
+        <a href="crew.html" class="nav-crew${active === "crew" ? " on" : ""}" hidden data-t="nav_crew"></a>
         <a href="yonetim.html" class="nav-admin${active === "admin" ? " on" : ""}" hidden data-t="nav_admin"></a>
         <a href="hesap.html" class="nav-login${active === "account" ? " on" : ""}" data-t="nav_login"></a>
         <a href="#" class="btn btn-accent btn-sm" data-download data-t="nav_download"></a>

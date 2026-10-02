@@ -3,6 +3,7 @@
 
 import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
+import { startCrew } from "./crew";
 import { startTelemetryUpload } from "@/cloud/telemetry";
 import { t } from "@/sdk/i18n";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
@@ -146,6 +147,7 @@ export function Host() {
         .then((v) => startPing(() => v.display, () => !!status()?.connected && !status()?.demo && !status()?.preview))
         .catch(() => {});
       startSocial(status);
+      startCrew(status);
       // Telemetri: kaydedilen turları (giriş yapılmışsa) buluta yükle
       startTelemetryUpload();
       await listen<{ name: string }>("screenshot-taken", () => showShotToast("Ekran görüntüsü kaydedildi", false));

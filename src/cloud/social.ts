@@ -105,6 +105,8 @@ export interface LiveData {
   best?: number;
   last?: number;
   laps?: { lap: number; time: number; valid: boolean; pit: boolean }[];
+  /** Ekip (uzaktan pit) için ek veri (c53; bkz. cloud/crew.ts CrewLive) */
+  crew?: import("./crew").CrewLive;
 }
 
 /** Arkadaşa özel bildirim / ses kapatma (friendships.notify_muted / sound_muted, sunucu c30) */
@@ -250,9 +252,10 @@ export function setMyStatus(s: MyStatus) {
 }
 
 /** Canlı verimi gönder: veri paylaşımı PRO üyelere özel (sunucu da PRO olmayanın yüklemesini reddeder) */
-export function pushLive(data: LiveData) {
+export function pushLive(data: LiveData, crewOnly = false) {
   const uid = session()?.user.id;
-  if (!uid || proLocked("social.data_share")) return Promise.resolve();
+  // crewOnly: veri paylaşımı kapalı ama ekibimde izleyen var (c53; izlemek PRO istemez, sunucu denetler)
+  if (!uid || (!crewOnly && proLocked("social.data_share"))) return Promise.resolve();
   return api("POST", "live_data?on_conflict=user_id", {
     body: { user_id: uid, data, updated_at: new Date().toISOString() },
     prefer: "resolution=merge-duplicates,return=minimal",

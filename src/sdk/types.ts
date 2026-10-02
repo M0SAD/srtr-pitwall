@@ -45,6 +45,31 @@ export interface Inputs {
   tc?: boolean;
 }
 
+/** ERS ve batarya (Rust: calc::Ers). Bilinmeyen sayılar -1, sim vermeyen güçler null. */
+export interface Ers {
+  hasHybrid: boolean;
+  /** 0..1 */
+  batteryPct: number;
+  batteryMj: number;
+  /** Bu turda kalan harcama hakkı 0..1 */
+  lapDeployLeft: number;
+  /** kW: + harcama, - geri kazanım */
+  mgukKw: number | null;
+  mguhKw: number | null;
+  mode: number;
+  /** 0 genel ("Mod N"), 1 demo adları */
+  modeSet: number;
+  regenGain: number;
+  p2pCount: number;
+  p2pActive: boolean;
+  /** -1 yok, 0 kapalı, 1 yaklaşan bölgede, 2 açılabilir, 3 açık */
+  drs: number;
+  lap: number;
+  lapPct: number;
+  onPitRoad: boolean;
+  onTrack: boolean;
+}
+
 export interface Telemetry {
   gear: number;
   speed: number;
@@ -316,6 +341,7 @@ export interface RaceControl {
 export interface TopicMap {
   status: Status;
   inputs: Inputs;
+  ers: Ers;
   telemetry: Telemetry;
   delta: Delta;
   radar: Radar;

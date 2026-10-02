@@ -1,0 +1,157 @@
+/* Sürücüler › Ekip (uzaktan pit paneli) */
+.crewp .crew-wrap {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.crew-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.crew-drv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.crew-drv small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.crew-drv.live b::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.crew-drv.on {
+  border-color: var(--accent);
+}
+.crew-live {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.crew-live.on {
+  color: var(--green);
+  border-color: var(--green);
+}
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.crew-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-3);
+}
+.crew-stat small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.crew-stat b {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.crew-stat b i {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.crew-stat.warn b {
+  color: var(--yellow);
+}
+.crew-stat.onb {
+  border-color: var(--accent);
+}
+.crew-tyres {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  max-width: 420px;
+}
+.crew-tyres div {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-3);
+}
+.crew-tyres small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.crew-ctl {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.crew-ctl:disabled {
+  opacity: 0.5;
+}
+.crew-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+}
+.crew-line > span {
+  width: 64px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.crew-num {
+  width: 84px;
+  text-align: center;
+}
+.crew-msg {
+  flex: 1;
+  min-width: 180px;
+}
+.crew-cmd {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.crew-cmd b {
+  color: var(--muted);
+  font-weight: 500;
+}
+.crew-cmd.applied b {
+  color: var(--green);
+}
+.crew-cmd.rejected b,
+.crew-cmd.expired b {
+  color: var(--red);
+}
+@media (max-width: 760px) {
+  .crewp .crew-wrap {
+    grid-template-columns: 1fr;
+  }
+}

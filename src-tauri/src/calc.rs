@@ -57,6 +57,54 @@ pub struct Inputs {
     pub tc: bool,
 }
 
+/// ERS ve batarya overlay'i. Tur başı / tur ortalaması gibi türev değerler arayüzde hesaplanır.
+#[derive(Serialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Ers {
+    pub has_hybrid: bool,
+    /// 0..1; bilinmiyorsa -1
+    pub battery_pct: f32,
+    /// MJ; bilinmiyorsa -1
+    pub battery_mj: f32,
+    /// Bu turda kalan harcama hakkı 0..1; yoksa -1
+    pub lap_deploy_left: f32,
+    /// kW: + harcama, - geri kazanım; sim vermiyorsa null
+    pub mguk_kw: Option<f32>,
+    pub mguh_kw: Option<f32>,
+    pub mode: i32,
+    pub mode_set: u8,
+    pub regen_gain: f32,
+    pub p2p_count: i32,
+    pub p2p_active: bool,
+    pub drs: i32,
+    pub lap: i32,
+    pub lap_pct: f32,
+    pub on_pit_road: bool,
+    pub on_track: bool,
+}
+
+pub fn ers(f: &Frame) -> Ers {
+    let h = &f.hybrid;
+    Ers {
+        has_hybrid: h.has,
+        battery_pct: if h.battery_pct >= 0.0 { h.battery_pct.clamp(0.0, 1.0) } else { -1.0 },
+        battery_mj: if h.battery_j >= 0.0 { h.battery_j / 1.0e6 } else { -1.0 },
+        lap_deploy_left: if h.lap_deploy_left >= 0.0 { h.lap_deploy_left.clamp(0.0, 1.0) } else { -1.0 },
+        mguk_kw: h.mguk_ok.then_some(h.mguk_kw),
+        mguh_kw: h.mguh_ok.then_some(h.mguh_kw),
+        mode: h.mode,
+        mode_set: h.mode_set,
+        regen_gain: h.regen_gain,
+        p2p_count: h.p2p_count,
+        p2p_active: h.p2p_active,
+        drs: h.drs,
+        lap: f.lap,
+        lap_pct: f.lap_dist_pct,
+        on_pit_road: f.on_pit_road,
+        on_track: f.is_on_track,
+    }
+}
+
 /// Telemetri paneli: vites halkası, devir ışıkları, pozisyon, son tur, yakıt
 #[derive(Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]

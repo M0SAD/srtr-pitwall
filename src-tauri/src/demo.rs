@@ -85,6 +85,11 @@ pub struct Demo {
     shape: Vec<[f32; 2]>,
     /// Lastiklerin bu takımla attığı tur (pitte sıfırlanır)
     tire_age: f64,
+    /// Demo hibrit: batarya doluluğu 0..1, bu turda harcanan enerji (MJ), mod ve modun seçildiği tur
+    battery: f32,
+    lap_deployed: f32,
+    ers_mode: i32,
+    ers_lap: i32,
     /// Lastik ısısı (yavaş yumuşatılmış yük)
     tire_heat: [f32; 4],
     /// Bu oturumda vitrin adları yerleştirildi mi (bir kez; sonra sabit kalır)
@@ -254,6 +259,10 @@ impl Demo {
             car_flag_until: 0.0,
             shape: crate::trackmap::demo_shape(),
             tire_age: 3.4,
+            battery: 0.62,
+            lap_deployed: 0.0,
+            ers_mode: 2,
+            ers_lap: -1,
             tire_heat: [0.8; 4],
             showcased: false,
             rng,
@@ -560,6 +569,61 @@ impl Demo {
         }
         f.fuel_level = self.fuel;
         f.fuel_pct = self.fuel / TANK;
+
+        // Hibrit: 4 MJ batarya, turda en çok 4 MJ harcama. Frende geri kazanım, tam gazda harcama;
+        // mod her tur batarya seviyesine göre değişir, böylece doluluk inip çıkar.
+        {
+            const CAP_MJ: f32 = 4.0;
+            const LAP_LIMIT_MJ: f32 = 4.0;
+            if f.lap != self.ers_lap {
+                self.ers_lap = f.lap;
+                self.lap_deployed = 0.0;
+                self.ers_mode = if self.battery > 0.72 {
+                    3
+                } else if self.battery < 0.3 {
+                    0
+                } else {
+                    1 + (f.lap.rem_euclid(2))
+                };
+            }
+            let factor = [0.35f32, 0.65, 0.95, 1.25][self.ers_mode.clamp(0, 3) as usize];
+            let mut k_kw = 0.0f32;
+            let mut h_kw = 0.0f32;
+            if !player_in_pit {
+                if brk > 0.05 {
+                    k_kw = -(60.0 + 110.0 * brk);
+                } else if f.throttle > 0.85 && self.lap_deployed < LAP_LIMIT_MJ && self.battery > 0.01 {
+                    k_kw = 62.0 * factor;
+                }
+                if f.throttle > 0.5 {
+                    h_kw = 10.0 + 12.0 * f.throttle;
+                }
+                if self.battery >= 1.0 && k_kw < 0.0 {
+                    k_kw = 0.0;
+                }
+            }
+            let d_mj = dt as f32 * k_kw / 1000.0;
+            if d_mj > 0.0 {
+                self.lap_deployed += d_mj;
+            }
+            self.battery = (self.battery - (d_mj - dt as f32 * h_kw / 1000.0) / CAP_MJ).clamp(0.0, 1.0);
+            f.hybrid = crate::model::Hybrid {
+                has: true,
+                battery_pct: self.battery,
+                battery_j: self.battery * CAP_MJ * 1.0e6,
+                lap_deploy_left: (1.0 - self.lap_deployed / LAP_LIMIT_MJ).clamp(0.0, 1.0),
+                mguk_kw: k_kw,
+                mguk_ok: true,
+                mguh_kw: h_kw,
+                mguh_ok: true,
+                mode: self.ers_mode,
+                regen_gain: 6.0,
+                p2p_count: -1,
+                p2p_active: false,
+                drs: if player_in_pit { 0 } else if f.throttle > 0.95 && sf > 0.9 { 3 } else if sf > 0.75 { 1 } else { 0 },
+                mode_set: 1,
+            };
+        }
 
         // Kör nokta
         let (state, side_list) = self.side_traffic(dt as f32);

@@ -175,6 +175,21 @@ pub struct VarIndex {
     pub tire_wear: [[Option<VarRef>; 3]; 4],
     pub tire_press: [Option<VarRef>; 4],
     pub tire_compound: Option<VarRef>,
+    pub pit_sv_flags: Option<VarRef>,
+    pub pit_sv_fuel: Option<VarRef>,
+    pub pit_sv_compound: Option<VarRef>,
+    pub fast_repairs: Option<VarRef>,
+    // Hibrit / ERS (sadece bu sistemi olan araçlarda bulunur)
+    pub ers_pct: Option<VarRef>,
+    pub ers_j: Option<VarRef>,
+    pub mguk_lap_deploy_pct: Option<VarRef>,
+    pub power_mguk: Option<VarRef>,
+    pub power_mguh: Option<VarRef>,
+    pub mguk_mode: Option<VarRef>,
+    pub mguk_regen_gain: Option<VarRef>,
+    pub p2p_count: Option<VarRef>,
+    pub p2p_status: Option<VarRef>,
+    pub drs_status: Option<VarRef>,
 }
 
 impl VarIndex {
@@ -261,6 +276,20 @@ impl VarIndex {
                 "Precipitation" => ix.precip = r,
                 "ShiftIndicatorPct" => ix.shift_pct = r,
                 "PlayerTireCompound" => ix.tire_compound = r,
+                "PitSvFlags" => ix.pit_sv_flags = r,
+                "PitSvFuel" => ix.pit_sv_fuel = r,
+                "PitSvTireCompound" => ix.pit_sv_compound = r,
+                "FastRepairAvailable" => ix.fast_repairs = r,
+                "EnergyERSBatteryPct" => ix.ers_pct = r,
+                "EnergyERSBattery" => ix.ers_j = r,
+                "EnergyMGU_KLapDeployPct" => ix.mguk_lap_deploy_pct = r,
+                "PowerMGU_K" => ix.power_mguk = r,
+                "PowerMGU_H" => ix.power_mguh = r,
+                "dcMGUKDeployMode" => ix.mguk_mode = r,
+                "dcMGUKRegenGain" => ix.mguk_regen_gain = r,
+                "P2P_Count" => ix.p2p_count = r,
+                "P2P_Status" => ix.p2p_status = r,
+                "DRS_Status" => ix.drs_status = r,
                 _ => {
                     // LFtempCL, RRwearM, LRcoldPressure ...
                     const CORNERS: [&str; 4] = ["LF", "RF", "LR", "RR"];
@@ -399,6 +428,26 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
         f.tire_press[c] = f32_or(buf, ix.tire_press[c], 0.0);
     }
     f.tire_compound = i32_or(buf, ix.tire_compound, -1);
+    f.pit_sv_flags = if ix.pit_sv_flags.is_some() { (u32_bits(buf, ix.pit_sv_flags) & 0x7f) as i32 } else { -1 };
+    f.pit_sv_fuel = f32_or(buf, ix.pit_sv_fuel, 0.0);
+    f.pit_sv_compound = i32_or(buf, ix.pit_sv_compound, -1);
+    f.fast_repairs = i32_or(buf, ix.fast_repairs, -1);
+    // Hibrit: değişkenler araca özeldir; batarya değişkeni yoksa araçta hibrit yok sayılır
+    let hy = &mut f.hybrid;
+    hy.has = ix.ers_pct.is_some() || ix.ers_j.is_some();
+    hy.battery_pct = f32_or(buf, ix.ers_pct, -1.0);
+    hy.battery_j = f32_or(buf, ix.ers_j, -1.0);
+    hy.lap_deploy_left = f32_or(buf, ix.mguk_lap_deploy_pct, -1.0);
+    hy.mguk_ok = ix.power_mguk.is_some();
+    hy.mguk_kw = f32_or(buf, ix.power_mguk, 0.0) / 1000.0;
+    hy.mguh_ok = ix.power_mguh.is_some();
+    hy.mguh_kw = f32_or(buf, ix.power_mguh, 0.0) / 1000.0;
+    hy.mode = i32_or(buf, ix.mguk_mode, -1);
+    hy.regen_gain = f32_or(buf, ix.mguk_regen_gain, -1.0);
+    hy.p2p_count = i32_or(buf, ix.p2p_count, -1);
+    hy.p2p_active = bool_of(buf, ix.p2p_status);
+    hy.drs = i32_or(buf, ix.drs_status, -1);
+    hy.mode_set = 0;
     f.demo_side_cars = None;
 
     for i in 0..MAX_CARS {
@@ -633,5 +682,8 @@ mod tests {
         assert_eq!(f.cars[8].pct, 0.0);
         // Olmayan değişken varsayılan değeri alır
         assert_eq!(f.cars[0].position, 0);
+        // Hibrit değişkeni olmayan araç
+        assert!(!f.hybrid.has);
+        assert_eq!(f.hybrid.drs, -1);
     }
 }

@@ -188,6 +188,8 @@ pub struct Motion {
 }
 
 pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
+    // Hibrit / ERS alanları okunmuyor (yapının sonundaki konumlar doğrulanmadı)
+    f.hybrid = crate::model::Hybrid::default();
     let tail = tail_ok(b);
     let n = num(b);
     let me = viewed(b);

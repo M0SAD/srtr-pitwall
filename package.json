@@ -1,12 +1,12 @@
 {
   "name": "pitwall",
   "private": true,
-  "version": "1.0.64",
+  "version": "1.0.66",
   "type": "module",
   "description": "Hafif ve hızlı iRacing overlay uygulaması (Tauri 2 + Rust + SolidJS)",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/temizle.mjs && tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
     "app:dev": "tauri dev",

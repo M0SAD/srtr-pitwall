@@ -1,0 +1,434 @@
+/* ERS ve Batarya. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.ers {
+  box-sizing: border-box;
+  padding: 0.6em 0.75em;
+  border-radius: var(--ov-radius);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  --ers-level: var(--ov-green);
+  --ers-deploy: var(--ov-accent);
+  --ers-regen: var(--ov-blue);
+  --ers-flow: var(--ov-dim);
+}
+.ers-frozen,
+.ers-frozen * {
+  animation-play-state: paused !important;
+}
+
+.ers-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+  min-width: 0;
+}
+.ers-spacer {
+  flex: 1;
+}
+.ers-ico {
+  align-self: center;
+  display: inline-flex;
+  color: var(--ers-level);
+}
+.ers-bolt {
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+}
+.ers-pct {
+  font-size: 1.7em;
+  font-weight: var(--ov-weight-strong);
+  line-height: 1;
+}
+.ers-pct small {
+  font-size: 0.5em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+  margin-left: 0.1em;
+}
+.ers-mj {
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.ers-delta {
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+  color: var(--ov-dim);
+}
+.ers-pos {
+  color: var(--ers-regen);
+}
+.ers-neg {
+  color: var(--ers-deploy);
+}
+.ers-badge {
+  align-self: center;
+  padding: 0.15em 0.5em;
+  border-radius: 0.3em;
+  font-size: 0.8em;
+  font-weight: var(--ov-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.ers-mode {
+  background: color-mix(in srgb, var(--ers-deploy) 24%, transparent);
+}
+.ers-badge.ers-ready {
+  box-shadow: inset 0 0 0 1px var(--ov-green);
+}
+.ers-badge.ers-on {
+  background: var(--ov-green);
+  color: #06170d;
+  text-shadow: none;
+}
+
+/* Yatay batarya çubuğu */
+.ers-track {
+  position: relative;
+  height: 0.95em;
+  margin-top: 0.5em;
+  border-radius: 0.25em;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.ers-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ers-level);
+  box-shadow: inset 0 -0.3em 0.4em rgba(0, 0, 0, 0.22);
+}
+.ers-tick {
+  position: absolute;
+  top: -0.2em;
+  bottom: -0.2em;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ov-text);
+  border-radius: 1px;
+}
+.ers-dep {
+  height: 0.22em;
+  margin-top: 0.3em;
+  border-radius: 0.11em;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.ers-dep > div {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ers-deploy);
+}
+.ers-foot {
+  margin-top: 0.45em;
+  font-size: 0.86em;
+}
+.ers-power {
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.ers-power i {
+  font-style: normal;
+  font-size: 0.85em;
+  margin-right: 0.35em;
+}
+.ers-power i.ers-gap {
+  margin-left: 0.8em;
+}
+.ers-power b {
+  color: var(--ov-text);
+  font-weight: var(--ov-weight-strong);
+}
+.ers-warn {
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+}
+.ers-warn-low {
+  color: var(--ov-red);
+}
+.ers-warn-full {
+  color: var(--ers-regen);
+}
+
+/* Düşük batarya: yanıp sönme (yalnızca opaklık) */
+@keyframes ers-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+.ers-low .ers-fill,
+.ers-low .ers-cellbody,
+.ers-low .ers-ring-fg,
+.ers-low .ers-under > div,
+.ers-low .ers-warn-low {
+  animation: ers-blink 0.9s steps(2, jump-none) infinite;
+}
+
+/* Hibrit yok */
+.ers-nohybrid {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.ers.ers-none {
+  width: max-content !important;
+}
+
+/* --- Dikey pil --- */
+.ers-cell {
+  display: flex;
+  gap: 0.8em;
+  width: max-content;
+  align-items: stretch;
+}
+.ers-cellwrap {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto 1fr;
+  column-gap: 0.3em;
+}
+.ers-cap {
+  grid-column: 1;
+  justify-self: center;
+  width: 1.1em;
+  height: 0.3em;
+  border-radius: 0.15em 0.15em 0 0;
+  background: color-mix(in srgb, var(--ov-text) 45%, transparent);
+}
+.ers-cellbody {
+  grid-column: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16em;
+  width: 2.6em;
+  min-height: 8.6em;
+  padding: 0.22em;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, var(--ov-text) 45%, transparent);
+  border-radius: 0.4em;
+}
+.ers-seg {
+  flex: 1;
+  border-radius: 0.14em;
+}
+.ers-vtick {
+  position: absolute;
+  left: -0.35em;
+  right: -0.35em;
+  height: 2px;
+  margin-bottom: -1px;
+  background: var(--ov-text);
+  border-radius: 1px;
+}
+.ers-vdep {
+  grid-column: 2;
+  grid-row: 2;
+  width: 0.25em;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 0.12em;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.ers-vdep > div {
+  width: 100%;
+  border-radius: inherit;
+  background: var(--ers-deploy);
+}
+.ers-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35em;
+}
+.ers-col .ers-badge {
+  align-self: flex-start;
+}
+.ers-flow {
+  display: inline-flex;
+  width: 1.3em;
+  height: 1.3em;
+  color: var(--ov-dim);
+  opacity: 0.35;
+}
+.ers-flow svg {
+  width: 100%;
+  height: 100%;
+}
+@keyframes ers-rise {
+  from {
+    transform: translateY(0.25em);
+    opacity: 0.3;
+  }
+  to {
+    transform: translateY(-0.25em);
+    opacity: 1;
+  }
+}
+.ers-flow.ers-up {
+  color: var(--ers-regen);
+  opacity: 1;
+}
+.ers-flow.ers-up svg {
+  animation: ers-rise 0.7s ease-out infinite;
+}
+.ers-flow.ers-down {
+  color: var(--ers-deploy);
+  opacity: 1;
+  transform: rotate(180deg);
+}
+.ers-flow.ers-down svg {
+  animation: ers-rise 0.7s ease-out infinite;
+}
+
+/* --- Kompakt --- */
+.ers-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  width: max-content;
+  padding: 0.4em 0.7em 0.55em;
+  overflow: hidden;
+}
+.ers-chip .ers-pct {
+  font-size: 1.25em;
+}
+.ers-under {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.22em;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.ers-under > div {
+  height: 100%;
+  background: var(--ers-level);
+}
+.ers-under .ers-tick {
+  top: 0;
+  bottom: 0;
+}
+
+/* --- Halka --- */
+.ers-ring {
+  width: max-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45em;
+}
+.ers-ringwrap {
+  position: relative;
+  width: 9em;
+  height: 9em;
+}
+.ers-ringsvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ers-ringsvg circle {
+  fill: none;
+}
+.ers-ring-bg {
+  stroke: color-mix(in srgb, var(--ov-text) 10%, transparent);
+  stroke-width: 8;
+}
+.ers-ring-fg {
+  stroke: var(--ers-level);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.ers-ring-tick {
+  stroke: var(--ov-text);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.ers-ring-in {
+  stroke: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  stroke-width: 4;
+}
+.ers-ring-pow {
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.ers-ring-dep {
+  stroke: var(--ers-deploy);
+  stroke-width: 2;
+  opacity: 0.8;
+}
+.ers-ringmid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15em;
+}
+.ers-ringmid .ers-delta,
+.ers-ringmid .ers-power {
+  font-size: 0.86em;
+}
+.ers-ringfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  max-width: 11em;
+}
+
+/* --- Detaylı panel --- */
+.ers-title {
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.08em;
+}
+.ers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.15em 1em;
+  margin-top: 0.55em;
+}
+.ers-kv {
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.18em 0;
+  border-bottom: 1px solid var(--ov-line);
+}
+.ers-kv > span {
+  color: var(--ov-dim);
+  font-size: 0.86em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ers-kv > b {
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+}
+.ers-spark {
+  display: block;
+  width: 100%;
+  height: 2.4em;
+  margin-top: 0.5em;
+}
+.ers-spark polyline {
+  fill: none;
+  stroke: var(--ers-level);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.ers-spark-mid {
+  stroke: var(--ov-line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}

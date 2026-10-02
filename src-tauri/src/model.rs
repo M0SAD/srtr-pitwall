@@ -26,6 +26,56 @@ pub struct CarState {
     pub flags: u32,
 }
 
+/// Hibrit / ERS durumu (oyuncu aracı). Bilinmeyen sayısal alanlar -1; güçler için `*_ok` bayrağı.
+#[derive(Debug, Clone, Copy)]
+pub struct Hybrid {
+    /// Araçta batarya / hibrit sistem var (sim bu veriyi veriyor)
+    pub has: bool,
+    /// Batarya doluluğu 0..1
+    pub battery_pct: f32,
+    /// Bataryadaki enerji (J)
+    pub battery_j: f32,
+    /// Bu turda kalan harcama hakkı 0..1 (tur başına harcama sınırı olan araçlar)
+    pub lap_deploy_left: f32,
+    /// MGU-K gücü (kW): + harcama (deploy), - geri kazanım (regen)
+    pub mguk_kw: f32,
+    pub mguk_ok: bool,
+    /// MGU-H gücü (kW)
+    pub mguh_kw: f32,
+    pub mguh_ok: bool,
+    /// Harcama modu (araç içi ayar), sabit harcama ve geri kazanım kazancı
+    pub mode: i32,
+    pub regen_gain: f32,
+    /// Push-to-pass: kalan hak ve şu an açık mı
+    pub p2p_count: i32,
+    pub p2p_active: bool,
+    /// DRS: -1 yok, 0 kapalı, 1 yaklaşan bölgede kullanılabilir, 2 şimdi açılabilir, 3 açık
+    pub drs: i32,
+    /// Mod adları kümesi: 0 genel ("Mod N"), 1 demo adları
+    pub mode_set: u8,
+}
+
+impl Default for Hybrid {
+    fn default() -> Self {
+        Hybrid {
+            has: false,
+            battery_pct: -1.0,
+            battery_j: -1.0,
+            lap_deploy_left: -1.0,
+            mguk_kw: 0.0,
+            mguk_ok: false,
+            mguh_kw: 0.0,
+            mguh_ok: false,
+            mode: -1,
+            regen_gain: -1.0,
+            p2p_count: -1,
+            p2p_active: false,
+            drs: -1,
+            mode_set: 0,
+        }
+    }
+}
+
 /// Tek bir telemetri karesi. Sabit boyutlu, her karede bellek ayırmaz.
 #[derive(Debug, Clone)]
 pub struct Frame {
@@ -100,6 +150,17 @@ pub struct Frame {
     /// Soğuk basınç (kPa)
     pub tire_press: [f32; 4],
     pub tire_compound: i32,
+    /// Pit servisi seçimleri (iRacing PitSvFlags: 1 LF, 2 RF, 4 LR, 8 RR lastik, 0x10 yakıt, 0x20 vizör filmi,
+    /// 0x40 hızlı tamir); sim vermiyorsa -1
+    pub pit_sv_flags: i32,
+    /// Pitte eklenecek yakıt (L; iRacing PitSvFuel)
+    pub pit_sv_fuel: f32,
+    /// Pitte takılacak lastik hamuru (iRacing PitSvTireCompound), bilinmiyorsa -1
+    pub pit_sv_compound: i32,
+    /// Kalan hızlı tamir hakkı (iRacing FastRepairAvailable), bilinmiyorsa -1
+    pub fast_repairs: i32,
+    /// Hibrit / ERS / batarya (bkz. `Hybrid`)
+    pub hybrid: Hybrid,
     /// Sadece demo: kör noktadaki sanal araçlar (taraf -1 sol / 1 sağ / 0 orta, boyuna mesafe m)
     pub demo_side_cars: Option<Vec<(i8, f32)>>,
     pub cars: [CarState; MAX_CARS],
@@ -168,6 +229,11 @@ impl Default for Frame {
             tire_wear: [[-1.0; 3]; 4],
             tire_press: [0.0; 4],
             tire_compound: -1,
+            pit_sv_flags: -1,
+            pit_sv_fuel: 0.0,
+            pit_sv_compound: -1,
+            fast_repairs: -1,
+            hybrid: Hybrid::default(),
             demo_side_cars: None,
             cars: [CarState { surface: -1, pct: -1.0, tire: -1, ..Default::default() }; MAX_CARS],
         }

@@ -13,6 +13,7 @@ export type ShortcutAction =
   | "ttsHush"
   | "stt"
   | "chat"
+  | "crewStop"
   | "vrConfig"
   | "vrRecenter"
   | "vrNext"
@@ -33,6 +34,7 @@ export const DEFAULT_SHORTCUTS: Record<ShortcutAction, string> = {
   ttsHush: "",
   stt: "F6",
   chat: "Ctrl+Shift+C",
+  crewStop: "",
   vrConfig: "F9",
   vrRecenter: "End",
   vrNext: "Space",
@@ -54,6 +56,7 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
   ttsHush: "Canlı Sohbet: okunanı kes ve kuyruğu boşalt",
   stt: "Canlı Sohbet: konuşma → yazıyı (altyazı) aç / kapat",
   chat: "Canlı Sohbet: başlat / durdur",
+  crewStop: "Ekip: uzaktan pit kontrolünü durdur",
   vrConfig: "Yerel VR: yapılandırma modunu aç / kapat",
   vrRecenter: "Yerel VR: ortala (overlay'leri baktığın yöne al)",
   vrNext: "Yerel VR: sonraki overlay'i seç",
@@ -71,6 +74,7 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "shot",
   "voice",
   "chat",
+  "crewStop",
   "poll",
   "tts",
   "ttsHush",

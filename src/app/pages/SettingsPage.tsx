@@ -11,6 +11,7 @@ import { ChatLookPage } from "./ChatLookPage";
 import { ShortcutsPanel } from "../components/ShortcutsPanel";
 import { MqttPanel } from "../components/MqttPanel";
 import { TrustedSharing } from "../components/TrustedSharing";
+import { CrewSettings } from "../components/CrewSettings";
 import { ServerPanel, CopyUrl } from "../components/ServerPanel";
 import { SoundsPanel } from "../components/SoundsPanel";
 import { VrPanel } from "../components/VrPanel";
@@ -252,6 +253,7 @@ function Sharing() {
         </Show>
       </section>
       <TrustedSharing />
+      <CrewSettings />
       <section class="panel">
         <h3>Yarış özetleri</h3>
         <Row title="Otomatik oluştur" sub="Yarış bitince sonuçlar, tur süreleri ve olaylar bir özet dosyasına yazılır.">

@@ -29,7 +29,17 @@ pub mod ph {
     pub const WHEELS_PRESSURE: usize = 88; // float[4] psi
     pub const TYRE_WEAR: usize = 120; // float[4]
     pub const TYRE_CORE_TEMP: usize = 152; // float[4]
+    pub const DRS: usize = 200; // AC: kanat açıklığı 0..1
     pub const PIT_LIMITER_ON: usize = 248;
+    // AC (ACC'de kullanılmaz): KERS/ERS
+    pub const KERS_CHARGE: usize = 256; // 0..1
+    pub const KERS_INPUT: usize = 260; // 0..1
+    pub const ERS_RECOVERY_LEVEL: usize = 320;
+    pub const ERS_POWER_LEVEL: usize = 324;
+    pub const ERS_IS_CHARGING: usize = 332;
+    pub const KERS_CURRENT_KJ: usize = 336; // bu turda harcanan (kJ)
+    pub const DRS_AVAILABLE: usize = 340;
+    pub const DRS_ENABLED: usize = 344;
     pub const AIR_TEMP: usize = 288;
     pub const ROAD_TEMP: usize = 292;
     pub const CLUTCH: usize = 364;
@@ -101,6 +111,12 @@ pub mod stc {
     pub const PLAYER_NICK: usize = 332;
     pub const MAX_RPM: usize = 412;
     pub const MAX_FUEL: usize = 416;
+    // AC: hibrit bilgisi
+    pub const HAS_DRS: usize = 496;
+    pub const HAS_ERS: usize = 500;
+    pub const HAS_KERS: usize = 504;
+    pub const KERS_MAX_J: usize = 508;
+    pub const ERS_MAX_J: usize = 592; // tur başına harcama sınırı
     pub const TRACK_SPLINE_LENGTH: usize = 520;
     pub const TRACK_CONFIGURATION: usize = 524; // wchar_t[33]
     /// ACC: çevrimiçi oturum (int). ersMaxJ 592, isTimedRace 596, hasExtraLap 600, carSkin 604 (wchar_t[33]),
@@ -113,6 +129,42 @@ pub const STATUS_OFF: i32 = 0;
 pub const STATUS_REPLAY: i32 = 1;
 pub const STATUS_LIVE: i32 = 2;
 pub const STATUS_PAUSE: i32 = 3;
+
+/// Assetto Corsa (ACC değil): KERS/ERS ve DRS. `stat` SPageFileStatic. ACC bu alanları doldurmaz.
+pub fn hybrid(kind: SimKind, phys: &[u8], stat: &[u8]) -> crate::model::Hybrid {
+    let mut h = crate::model::Hybrid::default();
+    if kind != SimKind::Ac || stat.len() < stc::ERS_MAX_J + 4 {
+        return h;
+    }
+    if rd_i32(stat, stc::HAS_DRS) != 0 {
+        h.drs = if rd_i32(phys, ph::DRS_ENABLED) != 0 || rd_f32(phys, ph::DRS) > 0.5 {
+            3
+        } else if rd_i32(phys, ph::DRS_AVAILABLE) != 0 {
+            2
+        } else {
+            0
+        };
+    }
+    let ers = rd_i32(stat, stc::HAS_ERS) != 0;
+    if !ers && rd_i32(stat, stc::HAS_KERS) == 0 {
+        return h;
+    }
+    h.has = true;
+    h.battery_pct = rd_f32(phys, ph::KERS_CHARGE).clamp(0.0, 1.0);
+    let kers_max = rd_f32(stat, stc::KERS_MAX_J);
+    if kers_max > 0.0 {
+        h.battery_j = h.battery_pct * kers_max;
+    }
+    let lap_max = rd_f32(stat, stc::ERS_MAX_J);
+    if lap_max > 0.0 {
+        h.lap_deploy_left = (1.0 - rd_f32(phys, ph::KERS_CURRENT_KJ) * 1000.0 / lap_max).clamp(0.0, 1.0);
+    }
+    if ers {
+        h.mode = rd_i32(phys, ph::ERS_POWER_LEVEL);
+        h.regen_gain = rd_i32(phys, ph::ERS_RECOVERY_LEVEL) as f32;
+    }
+    h
+}
 
 /// Exe adlarına, yoksa graphics sayfasının düzenine göre AC mi ACC mi?
 pub fn detect(gfx: &[u8], exes: &[String]) -> Option<SimKind> {
@@ -584,6 +636,7 @@ mod win {
             frame.tick = self.tick;
             frame.session_time = self.t0.elapsed().as_secs_f64();
             extract(kind, &self.pb, &self.gb, &self.session, &mut self.motion, frame);
+            frame.hybrid = hybrid(kind, &self.pb, &self.sb);
             true
         }
 

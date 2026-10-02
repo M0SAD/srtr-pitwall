@@ -46,7 +46,15 @@ pub mod tv {
     pub const FUEL_CAPACITY: usize = 608;
     pub const FRONT_TIRE_COMPOUND_NAME: usize = 620; // char[18]
     pub const REAR_BRAKE_BIAS: usize = 664;
+    pub const REAR_FLAP_ACTIVATED: usize = 617;
+    /// 0 yasak, 1 algılandı ama henüz izinli değil, 2 izinli
+    pub const REAR_FLAP_LEGAL_STATUS: usize = 618;
     pub const PHYSICAL_STEERING_WHEEL_RANGE: usize = 692;
+    pub const BATTERY_CHARGE_FRACTION: usize = 696; // 0..1
+    pub const ELECTRIC_BOOST_MOTOR_TORQUE: usize = 704; // Nm (rejenerasyonda negatif)
+    pub const ELECTRIC_BOOST_MOTOR_RPM: usize = 712;
+    /// 0 yok, 1 beklemede, 2 itiş, 3 rejenerasyon
+    pub const ELECTRIC_BOOST_MOTOR_STATE: usize = 736;
     pub const WHEELS: usize = 848;
     pub const WHEEL_SIZE: usize = 260;
     pub const W_PRESSURE: usize = 120; // kPa
@@ -436,6 +444,35 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         f.engine_warnings = if rd_u8(tele, o + tv::SPEED_LIMITER) != 0 { EW_PIT_LIMITER } else { 0 };
         let rear = rd_f64(tele, o + tv::REAR_BRAKE_BIAS);
         f.brake_bias = if rear > 0.0 && rear < 1.0 { ((1.0 - rear) * 100.0) as f32 } else { -1.0 };
+        // Hibrit: elektrik motoru durumu 0 ise araçta sistem yok
+        let ms = rd_u8(tele, o + tv::ELECTRIC_BOOST_MOTOR_STATE);
+        let mut hy = crate::model::Hybrid::default();
+        if (1..=3).contains(&ms) {
+            hy.has = true;
+            hy.battery_pct = rd_f64(tele, o + tv::BATTERY_CHARGE_FRACTION).clamp(0.0, 1.0) as f32;
+            // Güç = tork x açısal hız; yön motor durumundan (itiş +, rejenerasyon -)
+            let kw = (rd_f64(tele, o + tv::ELECTRIC_BOOST_MOTOR_TORQUE)
+                * rd_f64(tele, o + tv::ELECTRIC_BOOST_MOTOR_RPM)
+                * std::f64::consts::TAU
+                / 60.0
+                / 1000.0)
+                .abs() as f32;
+            hy.mguk_ok = true;
+            hy.mguk_kw = match ms {
+                2 => kw,
+                3 => -kw,
+                _ => 0.0,
+            };
+        }
+        let legal = rd_u8(tele, o + tv::REAR_FLAP_LEGAL_STATUS);
+        if rd_u8(tele, o + tv::REAR_FLAP_ACTIVATED) != 0 {
+            hy.drs = 3;
+        } else if legal == 2 {
+            hy.drs = 2;
+        } else if legal == 1 {
+            hy.drs = 1;
+        }
+        f.hybrid = hy;
         for c in 0..4 {
             let w = o + tv::WHEELS + c * tv::WHEEL_SIZE;
             for k in 0..3 {

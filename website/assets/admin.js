@@ -9,6 +9,7 @@ import { proOzellikleri, setProFeatureQuery } from "./profeatures-admin.js";
 import { kayitlar } from "./modlog-admin.js";
 import { sesPaketleri } from "./voicepacks-admin.js";
 import { denemePro } from "./trial-admin.js";
+import { siteGorselleri } from "./siteimages-admin.js";
 import { attachEmoji } from "./emoji.js";
 
 const app = () => $("#app");
@@ -30,6 +31,7 @@ const SECTIONS = [
   ["kuponlar", "Kuponlar"],
   ["pro-ozellikleri", "PRO özellikleri"],
   ["ses-paketleri", "Ses paketleri"],
+  ["site-gorselleri", "Ana sayfa görselleri"],
   ["mesajlar", "Mesaj raporları"],
   ["tum-mesajlar", "Tüm mesajlar"],
   ["gorunurluk", "Görünürlük"],
@@ -984,6 +986,7 @@ const RENDER = {
   kuponlar: (el) => kuponlar(el, show),
   "pro-ozellikleri": (el) => proOzellikleri(el, show),
   "ses-paketleri": (el) => sesPaketleri(el, show),
+  "site-gorselleri": siteGorselleri,
   mesajlar,
   "tum-mesajlar": tumMesajlar,
   gorunurluk,

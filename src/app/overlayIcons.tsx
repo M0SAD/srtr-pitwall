@@ -9,6 +9,7 @@ const MAP: Record<string, () => JSX.Element> = {
   telemetry: () => <I.CircleGauge />,
   dashboard: () => <I.Gauge />,
   inputs: () => <I.Activity />,
+  ers: () => <I.BatteryCharging />,
   delta: () => <I.Timer />,
   radar: () => <I.Siren />,
   trackmap: () => <I.Map />,
