@@ -1326,10 +1326,7 @@ fn open_panel(app: &AppHandle) {
             let app2 = app.clone();
             w.on_window_event(move |e| {
                 if let tauri::WindowEvent::Destroyed = e {
-<<<<<<< HEAD
                     set_preview_frozen(&app2, false);
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
                     set_overlay_pin(&app2, None);
                 }
             });

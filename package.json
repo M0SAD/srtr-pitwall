@@ -1,11 +1,7 @@
 {
   "name": "pitwall",
   "private": true,
-<<<<<<< HEAD
-  "version": "1.0.57",
-=======
-  "version": "1.0.56",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
+  "version": "1.0.58",
   "type": "module",
   "description": "Hafif ve hızlı iRacing overlay uygulaması (Tauri 2 + Rust + SolidJS)",
   "scripts": {

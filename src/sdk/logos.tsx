@@ -240,16 +240,10 @@ export function CarLogo(props: {
 }) {
   ensureLogos();
   // Tam ad bulunamazsa kısa ad / yol ile de dene ("porsche992cup" gibi)
-<<<<<<< HEAD
   // Memo: veri her geldiğinde aynı marka/adres yeniden hesaplanıp <img> yeniden kurulmasın (logo titremesi)
   const brand = createMemo(() => brandOf(props.carName) ?? (props.fallback ? brandOf(props.fallback) : null));
   const info = createMemo(() => (props.mode === "text" ? undefined : logoInfo(brand())));
   const src = createMemo(() => info()?.src);
-=======
-  const brand = () => brandOf(props.carName) ?? (props.fallback ? brandOf(props.fallback) : null);
-  const info = () => (props.mode === "text" ? undefined : logoInfo(brand()));
-  const src = () => info()?.src;
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   const label = () => props.fallback ?? brand()?.name ?? props.carName.split(" ")[0] ?? "";
   return (
     <span

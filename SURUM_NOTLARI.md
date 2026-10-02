@@ -3,7 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
-<<<<<<< HEAD
+## 021026-58
+
+- **Canlı Sohbet sekme başlıklarında PRO rozeti:** Anket, Sesli okuma, Konuşma → yazı, Sohbete yaz, Bildirimler, Sohbet kaydı ve OBS sekmelerinin yanında "PRO" yazar (yönetici bir özelliği herkese açarsa rozet kalkar).
+
 ## 021026-57
 
 - **Yönetici üst çubuğu:** yönetici girişinde üst çubuğun en solunda üye sayısı (üzerine gelince çevrimiçi / çevrimdışı), ★ PRO üye sayısı (deneme ayrı), yarışta olanların sayısı ve yanıt bekleyen destek talepleri. Tıklayınca "Üyeler" penceresi: Tümü / Çevrimiçi / Yarışta / PRO / Çevrimdışı, arama; yarışta olanların oyunu, pisti, aracı ve oturumu. (c49)
@@ -12,8 +15,6 @@ En yeni sürüm en üstte.
 - **Önizlemeler oynayıp duruyor:** overlay önizlemeleri ~8 sn örnek veriyle oynar, sonra görüntü sabit kalır. Başka overlay seçince, ayar değiştirince ya da "▶ Önizlemeyi oynat" ile yeniden oynar. Demo modu ve gerçek sim verisi etkilenmez.
 - Yeni metinler 14 dile çevrildi.
 
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 ## 021026-56
 
 - **Sohbet arka planı: "Bu arka planı kullan" hatası düzeltildi** ("Failed to fetch"): görsel artık güvenlik kuralına takılmadan kopyalanır.

@@ -687,11 +687,7 @@ export function defaultInstance(id: string): OverlayInstance {
     y: m.defaultPosition.y,
     scale: 1,
     opacity: 1,
-<<<<<<< HEAD
     options: LOGO_COL_TYPES.includes(m.id) ? { ...defaultOptions(m), logoColV1: true, ...(m.id === "relative" ? { relFlairV1: true } : {}) } : defaultOptions(m),
-=======
-    options: LOGO_COL_TYPES.includes(m.id) ? { ...defaultOptions(m), logoColV1: true } : defaultOptions(m),
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   };
 }
 
@@ -715,7 +711,6 @@ function logoColMigrate(type: string, saved: Record<string, any> | undefined, op
   return options;
 }
 
-<<<<<<< HEAD
 /**
  * Bir kerelik geçiş (relFlairV1): kayıtlı Yakındakiler (relative) kopyalarına ülke bayrağı sütunu, Sıralama Tablosu'ndaki
  * gibi sürücü adının hemen soluna ve açık olarak eklenir. Kullanıcı sonradan kapatır ya da taşırsa tekrar dokunulmaz.
@@ -732,8 +727,6 @@ function relFlairMigrate(type: string, saved: Record<string, any> | undefined, o
   return options;
 }
 
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 export function newProfile(id: string, name: string): Profile {
   const overlays: Record<string, OverlayInstance> = {};
   for (const m of manifests) overlays[m.id] = defaultInstance(m.id);
@@ -920,11 +913,7 @@ export function normalize(input: unknown): AppSettings {
       // Artık var olmayan türler (ör. kaldırılan eski "twitch" sohbet overlay'i) sessizce atılır
       if (!manifests.some((m) => m.id === type)) continue;
       const def = defaultInstance(type);
-<<<<<<< HEAD
       prof.overlays[key] = { ...def, ...cur, type, options: relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) })) };
-=======
-      prof.overlays[key] = { ...def, ...cur, type, options: logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }) };
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
     }
     // Her türün bir ana kopyası olsun (yeni eklenen overlay'ler otomatik gelir)
     for (const m of manifests) {

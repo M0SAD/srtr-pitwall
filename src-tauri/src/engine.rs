@@ -142,12 +142,9 @@ pub struct Shared {
     pub peek_gen: AtomicU64,
     /// Overlay'ler sayfasında yeni eklenen overlay: kullanıcı sayfadayken ekranda (örnek veriyle) tutulur
     pub pin: Mutex<Option<String>>,
-<<<<<<< HEAD
     /// Önizleme donduruldu: örnek veri birkaç saniye oynadıktan sonra demo saati durur, görüntü sabit kalır.
     /// Sadece önizleme verisini etkiler; kullanıcının açtığı Demo ve canlı sim verisi hiç donmaz.
     pub preview_frozen: AtomicBool,
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
     /// Olaylar ekranı: oturumun olay listesi (bkz. events.rs)
     pub events: Mutex<crate::events::EventLog>,
     /// Abonelikler her değiştiğinde artar: olay tabanlı konular (canlı sohbet) yeni aboneye anlık görüntüyü yeniden gönderir
@@ -424,15 +421,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     st.raw = d.session().clone();
                     st.league_ver = u64::MAX;
                 }
-<<<<<<< HEAD
                 // Dondurulmuş önizleme: demo saati ilerlemez, son kare olduğu gibi kalır (ilk kare her zaman üretilir)
                 if !frozen || st.frame.player_idx < 0 {
                     d.step(dt, &mut st.frame);
                     new_frame = true;
                 }
-=======
-                d.step(dt, &mut st.frame);
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
             }
             connected = true;
         } else {

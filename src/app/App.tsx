@@ -34,16 +34,14 @@ import { LangPicker } from "./components/LangPicker";
 import { loadNotices } from "@/cloud/moderation";
 import { VoicePage } from "./pages/VoicePage";
 import { LiveChatPage, LIVECHAT_PAGES } from "./pages/LiveChatPage";
+import { ProTag } from "./components/ProLock";
 import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TelemetryPage } from "./pages/TelemetryPage";
 import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
 import { AppBgLayer, appBgActive } from "./appBg";
-<<<<<<< HEAD
 import { AdminTopStats } from "./components/AdminTopStats";
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 
@@ -277,6 +275,9 @@ export function App() {
               {(s) => (
                 <button classList={{ active: sub() === s.id }} onClick={() => go(section(), s.id)}>
                   {s.label}
+                  <Show when={(s as { feature?: string }).feature}>
+                    <ProTag feature={(s as { feature?: string }).feature} />
+                  </Show>
                   <Show when={section() === "admin" && adminBadge(s.id) > 0}>
                     <i class="sub-count" data-no-i18n>{badgeText(adminBadge(s.id))}</i>
                   </Show>

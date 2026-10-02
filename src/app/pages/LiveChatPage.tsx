@@ -16,19 +16,20 @@ import { LogTab } from "./livechat/LogTab";
 import { PollTab } from "./livechat/PollTab";
 import { SttTab, TtsTab } from "./livechat/VoiceTabs";
 import { SendTab } from "./livechat/SendTab";
+import { F } from "@/sdk/proFeatures";
 import "../livechat.css";
 
-export const LIVECHAT_PAGES = [
+export const LIVECHAT_PAGES: { id: string; label: string; feature?: string }[] = [
   { id: "chat", label: "Sohbet" },
   { id: "channels", label: "Kanallar" },
   { id: "moderation", label: "Moderasyon" },
-  { id: "poll", label: "Anket" },
-  { id: "tts", label: "Sesli okuma" },
-  { id: "stt", label: "Konuşma → yazı" },
-  { id: "send", label: "Sohbete yaz" },
-  { id: "alerts", label: "Bildirimler" },
-  { id: "log", label: "Sohbet kaydı" },
-  { id: "obs", label: "OBS" },
+  { id: "poll", label: "Anket", feature: F.livePoll },
+  { id: "tts", label: "Sesli okuma", feature: F.liveTts },
+  { id: "stt", label: "Konuşma → yazı", feature: F.liveStt },
+  { id: "send", label: "Sohbete yaz", feature: F.liveSend },
+  { id: "alerts", label: "Bildirimler", feature: F.liveAlerts },
+  { id: "log", label: "Sohbet kaydı", feature: F.liveLog },
+  { id: "obs", label: "OBS", feature: F.liveObs },
 ];
 
 /** Üst durum kartı: çalışıyor mu, kanal sayısı, izleyiciler, başlat / durdur */

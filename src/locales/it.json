@@ -37,10 +37,6 @@
   "· pit": "· pit",
   "· PNG, JPEG ya da WebP; küçültülüp sadece bu bilgisayarda saklanır": "· PNG, JPEG o WebP; viene ridimensionata e salvata solo su questo computer",
   "· PRO": "· PRO",
-<<<<<<< HEAD
-=======
-  "· Relative'de yer kazandırır": "· fa risparmiare spazio nella Relative",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "· seçili": "· selezionato",
   "· Son eşitleme {0}": "· Ultima sincronizzazione {0}",
   "· sunucu": "· server",
@@ -50,10 +46,7 @@
   "· Web": "· Web",
   "· Windows ölçeği %{0}": "· Scala di Windows {0}%",
   "· y": "· y",
-<<<<<<< HEAD
   "· Yakındakiler'de yer kazandırır": "· fa risparmiare spazio nella Relative",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "'nu aç.": ".",
   "› “Çevrimiçi konuşma tanıma” açık olmalı; Gizlilik ›": "› “Riconoscimento vocale online” deve essere attivo; Privacy ›",
   "› masaüstü uygulamalarının erişimine izin verilmeli; dil için Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri ›": "› deve essere consentito l'accesso alle app desktop; per la lingua: Impostazioni › Data/ora e lingua › Lingua e area geografica › lingua › Opzioni lingua ›",
@@ -116,15 +109,10 @@
   "{0} bir arka plan önerdi; sohbetin üstünden yanıtlayabilirsin.": "{0} ha proposto uno sfondo; puoi rispondere in cima alla chat.",
   "{0} bir ses paketi gönderdi: \"{1}\" ({2})": "{0} ha inviato un pacchetto voce: \"{1}\" ({2})",
   "{0} bu sohbet için bir arka plan önerdi": "{0} ha proposto uno sfondo per questa chat",
-<<<<<<< HEAD
   "{0} çevrimdışı": "{0} offline",
   "{0} çevrimiçi": "{0} online",
   "{0} davet edildi.": "{0} è stato invitato.",
   "{0} destek talebi yanıt bekliyor": "{0} richieste di supporto in attesa di risposta",
-=======
-  "{0} çevrimiçi": "{0} online",
-  "{0} davet edildi.": "{0} è stato invitato.",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} destek talebine yazdı: \"{1}\"": "{0} ha scritto nel ticket di supporto: \"{1}\"",
   "{0} desteklenmeyen dosya kurulumda atlanır.": "{0} file non supportati verranno saltati durante l'installazione.",
   "{0} dk": "{0} min",
@@ -197,11 +185,8 @@
   "{0} önerini reddetti.": "{0} ha rifiutato la tua proposta.",
   "{0} özellik güncellendi": "{0} funzioni aggiornate",
   "{0} pist": "{0} circuiti",
-<<<<<<< HEAD
   "{0} PRO üye": "{0} membri PRO",
   "{0} PRO üye · {1} deneme": "{0} membri PRO · {1} in prova",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "{0} PRO üyelik gerektirir": "{0} richiede l'abbonamento PRO",
   "{0} rapor": "{0} segnalazioni",
   "{0} raporu {1} — sebep: {2}{3}": "Segnalazione {0} {1} — motivo: {2}{3}",
@@ -283,10 +268,7 @@
   "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"2.5\" y=\"5.5\" width=\"19\" height=\"13\" rx=\"4\"/><path d=\"M10.2 9.4v5.2l4.5-2.6z\" fill=\"currentColor\" stroke=\"none\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"3\"/><path d=\"M9 7.5v9M15 7.5l-4.5 4.5 4.5 4.5\"/>",
   "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>": "<rect x=\"3.5\" y=\"3.5\" width=\"17\" height=\"17\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"3.8\"/><circle cx=\"17\" cy=\"7\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\"/>",
-<<<<<<< HEAD
   "▶ Önizlemeyi oynat": "▶ Riproduci anteprima",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "★ benim kanalım": "★ il mio canale",
   "★ Kanallarım ({0})": "★ I miei canali ({0})",
   "✉ {0} yeni mesaj": "✉ {0} nuovi messaggi",
@@ -1066,10 +1048,7 @@
   "Depo durumu, bitişe gereken yakıt, son tur / 5 / 10 tur ortalamasıyla tüketim-tur-stint-ikmal tablosu, hedef tüketim, kalan tur ve pit penceresi.": "Stato serbatoio, carburante necessario all'arrivo, tabella consumo-giri-stint-rifornimento con media ultimo giro / 5 / 10 giri, consumo obiettivo, giri rimanenti e finestra pit.",
   "Depolama hatası {0}": "Errore di archiviazione {0}",
   "Desktop+ (Steam, ücretsiz)": "Desktop+ (Steam, gratuito)",
-<<<<<<< HEAD
   "destek": "supporto",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Destek": "Supporto",
   "Destek ekibi": "Team di supporto",
   "Destek mesajını gönder": "Invia messaggio al supporto",
@@ -1451,11 +1430,7 @@
   "Geri sayım": "Conto alla rovescia",
   "Geri sayımlı açılış": "Apertura con conto alla rovescia",
   "gibi yer tutucuları çeviride de aynen bırak. Düzeltmeyi kaldırmak için kutuyu boşaltıp kaydet.": "e segnaposto simili vanno lasciati invariati nella traduzione. Per rimuovere una correzione, svuota il campo e salva.",
-<<<<<<< HEAD
   "gibi. Leaderboard, Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "e simili. Leaderboard, Relative e Live Timing ricavano la marca dal nome dell'auto e mostrano il logo; se non c'è il logo, viene scritto il nome della marca. I loghi chiari su sfondo trasparente rendono meglio.",
-=======
-  "gibi. Leaderboard, Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf arka planlı, açık renkli logolar en iyi görünür.": "e simili. Leaderboard, Relative e Live Timing ricavano la marca dal nome dell'auto e mostrano il logo; se non c'è il logo, viene scritto il nome della marca. I loghi chiari su sfondo trasparente rendono meglio.",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Gidiş yönü hep yukarıda": "Direzione di marcia sempre in alto",
   "Gidiş yönüne göre döndür": "Ruota secondo la direzione di marcia",
   "Ginetta": "Ginetta",
@@ -1763,10 +1738,7 @@
   "Hızlı anket şık sayısı": "Opzioni sondaggio rapido",
   "Hızlı Sınıf Uyarısı": "Avviso classe veloce",
   "Hızlı tur": "Giro veloce",
-<<<<<<< HEAD
   "hiç görülmedi": "mai visto",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Hiç oy gelmedi": "Nessun voto ricevuto",
   "Hiçbir zaman": "Mai",
   "Hizalama": "Allineamento",
@@ -2276,11 +2248,7 @@
   "Liste": "Elenco",
   "Liste okunamadı. Daha sonra tekrar dene.": "Impossibile leggere l'elenco. Riprova più tardi.",
   "Listede sadece Windows'ta konuşma paketi kurulu diller görünür.": "Nell'elenco compaiono solo le lingue con pacchetto vocale di Windows installato.",
-<<<<<<< HEAD
   "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Yakındakiler\") seç.": "Dall'elenco scegli \"SRTR Pitwall - VR Panosu\" oppure la finestra di un singolo overlay (es. \"SRTR Pitwall - Yakındakiler\").",
-=======
-  "Listeden \"SRTR Pitwall - VR Panosu\" ya da tek bir overlay penceresini (ör. \"SRTR Pitwall - Relative\") seç.": "Dall'elenco scegli \"SRTR Pitwall - VR Panosu\" oppure la finestra di un singolo overlay (es. \"SRTR Pitwall - Relative\").",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Listeden sil": "Rimuovi dall'elenco",
   "Listelenenlerdeki kararları kaldır": "Rimuovi decisioni degli elementi elencati",
   "Listelenenlerin hepsi herkese açık olsun": "Rendi pubblici tutti gli elementi elencati",
@@ -2873,10 +2841,7 @@
   "Pozisyon ve değişim": "Posizione e variazione",
   "Prime": "Prime",
   "PrintScreen": "PrintScreen",
-<<<<<<< HEAD
   "PRO (deneme)": "PRO (prova)",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "PRO 1 aylık": "PRO 1 mese",
   "PRO 12 aylık": "PRO 12 mesi",
   "PRO 3 aylık": "PRO 3 mesi",
@@ -3057,11 +3022,6 @@
   "Reklamlar açıldı": "Annunci attivati",
   "Reklamlar kapatıldı": "Annunci disattivati",
   "Reklamsız kullan (PRO)": "Usa senza pubblicità (PRO)",
-<<<<<<< HEAD
-=======
-  "Relative": "Relative",
-  "Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative e Classifica: circa 35–45 cm di larghezza nel visore, in alto a sinistra o a destra del volante. Carburante, delta e input: 20–30 cm, sopra il cruscotto.",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Renault": "Renault",
   "Rengini, simgesini, fotoğrafını ve etiketini ona özel ayarla": "Imposta colore, icona, foto ed etichetta solo per lui",
   "Renk": "Colore",
@@ -3305,11 +3265,7 @@
   "Sıralama": "Qualifica",
   "SIRALAMA": "QUALIFICA",
   "Sıralama Tablosu": "Classifica",
-<<<<<<< HEAD
   "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu kategorilere göre gösterilir.": "Intestazioni della classifica, colori delle classi, posizioni di classe, Relative, mappa e Live Timing seguono queste categorie.",
-=======
-  "Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu kategorilere göre gösterilir.": "Intestazioni della classifica, colori delle classi, posizioni di classe, Relative, mappa e Live Timing seguono queste categorie.",
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Sıralama turları": "Giri di qualifica",
   "Sıralama turu çok iyiydi": "Gran giro di qualifica",
   "Sıralama, relative, pedallar, telemetri, pist haritası": "Classifica, relative, pedali, telemetria, mappa pista",
@@ -3589,10 +3545,7 @@
   "Şimdi yükle": "Installa ora",
   "Şimdiki tur": "Giro attuale",
   "Şu an": "Al momento stai usando un tema",
-<<<<<<< HEAD
   "Şu an {0} kişi yarışta": "{0} in gara adesso",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Şu an {0} oynuyor": "Sta giocando a {0}",
   "Şu an çevrimiçi": "Online ora",
   "Şu an düzenlenen düzen · başka bir düzene geçmek için seç": "Layout in modifica · seleziona per passare a un altro layout",
@@ -3848,10 +3801,7 @@
   "tüm PRO özelliklerini kullanır (PRO overlay'ler, sesli mühendis, mesajlaşma, paylaşım…). Giriş yapmayanlar yararlanamaz; böylece kampanya hesap açmaya da teşvik eder ve sunucu tarafındaki PRO denetimleri (hesaba bağlı) tutarlı kalır. Sitede ve programda kampanya bitişi gösterilir. Süre bitince her şey kendiliğinden eski haline döner.": "possono usare tutte le funzioni PRO (overlay PRO, ingegnere vocale, messaggi, condivisione…). Chi non ha effettuato l'accesso ne resta escluso; così la promozione invoglia anche a creare un account e i controlli PRO lato server (legati all'account) restano coerenti. La fine della promozione è mostrata sul sito e nell'app. Alla scadenza tutto torna automaticamente com'era.",
   "Tüm sohbet": "Tutta la chat",
   "Tüm takımlar": "Tutti i team",
-<<<<<<< HEAD
   "Tüm üyeleri görmek için tıkla": "Clicca per vedere tutti i membri",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Tüm yazı tipleri": "Tutti i caratteri",
   "Tüm zamanlar": "Sempre",
   "Tüm zamanların öne çıkanları": "In evidenza di sempre",
@@ -3934,18 +3884,12 @@
   "Üst satır": "Riga superiore",
   "Üst satır bilgileri": "Info riga superiore",
   "Üstteki Başlat düğmesiyle bağlan.": "Collegati con il pulsante Avvia in alto.",
-<<<<<<< HEAD
   "üye": "membri",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye": "Membro",
   "ÜYE": "MEMBRO",
   "Üye adı ya da iRacing adı": "Nome membro o nome iRacing",
   "Üye ara (görünen ad ya da iRacing adı)": "Cerca membri (nome visualizzato o nome iRacing)",
-<<<<<<< HEAD
   "Üye bulunamadı.": "Nessun membro trovato.",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Üye davet et": "Invita membro",
   "Üye no": "N. membro",
   "Üye no {0}": "Membro n. {0}",
@@ -4057,11 +4001,8 @@
   "Yağmur lastiği": "Gomma da pioggia",
   "Yakalama aracında kare hızını 30 FPS ile sınırla; overlay'i gözlüğün tam ortasına değil, bakış alanının kenarına koy.": "Nello strumento di cattura limita il frame rate a 30 FPS; metti l'overlay al bordo del campo visivo, non al centro del visore.",
   "Yakalama kaynağı olarak Graphics Capture ile \"SRTR Pitwall - …\" penceresini seç.": "Come sorgente di cattura scegli la finestra \"SRTR Pitwall - …\" con Graphics Capture.",
-<<<<<<< HEAD
   "Yakındakiler": "Relative",
   "Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.": "Relative e Classifica: circa 35–45 cm di larghezza nel visore, in alto a sinistra o a destra del volante. Carburante, delta e input: 20–30 cm, sopra il cruscotto.",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "yakıt": "carburante",
   "Yakıt": "Carburante",
   "YAKIT": "CARBURANTE",
@@ -4110,10 +4051,7 @@
   "Yarışçılar": "Piloti",
   "Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)": "Mostrare i messaggi di questo amico nell'overlay Messaggi mentre corri (puoi attivare l'overlay nella sezione Overlay)",
   "Yarışırken gelen arkadaş ve takım mesajlarını ekranda küçük balonlarla gösterir; birkaç saniye sonra kaybolur. İstersen mesajları sesli de okur.": "Mostra sullo schermo, in piccoli fumetti, i messaggi di amici e team che arrivano mentre corri; scompaiono dopo qualche secondo. Se vuoi, li legge anche ad alta voce.",
-<<<<<<< HEAD
   "yarışta": "in gara",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "Yarışta": "In gara",
   "Yarışta böyle görünür": "Così appare in gara",
   "Yarışta bu adla eşleşen sürücü arkadaş olarak öne çıkar": "Il pilota con questo nome viene messo in evidenza come amico in gara",
@@ -4272,10 +4210,7 @@
   "Yöneticinin görseli": "Immagine dell'admin",
   "Yönetim": "Amministrazione",
   "Yönetim › Cihazlar bölümünden inceleyebilirsin.": "Puoi controllare in Amministrazione › Dispositivi.",
-<<<<<<< HEAD
   "Yönetim › Üyeler'de aç": "Apri in Amministrazione › Membri",
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.": "YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. La funzione deve essere pubblicata con la verifica JWT ATTIVA (solo i membri che hanno effettuato l'accesso possono usarla). Per Twitch non serve un secret.",
   "Yukarı": "Su",
   "Yukarı / aşağı (y)": "Su / giù (y)",

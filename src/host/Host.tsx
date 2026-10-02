@@ -53,11 +53,8 @@ let peekTimer: number | undefined;
 // Overlay'ler sayfasında yeni eklenen overlay: kullanıcı o sayfada kaldıkça (oyun kapalıyken) örnek veriyle ekranda tutulur.
 // Panel bırakınca (sayfadan çıkış, başka overlay seçimi, panel kapanışı) ya da oyun bağlanınca normal kurallara dönülür.
 const [pinId, setPinId] = createSignal<string | null>(null);
-<<<<<<< HEAD
 /** Panel önizlemeyi dondurdu (Rust: preview_freeze); sadece önizleme verisi akarken dikkate alınır */
 const [frozenEvt, setFrozenEvt] = createSignal(false);
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
 
 // Ekran görüntüsü bildirimi
 const [shotToast, setShotToast] = createSignal<{ text: string; err: boolean } | null>(null);
@@ -131,10 +128,7 @@ export function Host() {
     });
     await listen<string>("edit-layout", (e) => setEditPick(e.payload || null));
     await listen<{ id: string | null }>("overlay-pin", (e) => setPinId(e.payload?.id || null));
-<<<<<<< HEAD
     await listen<boolean>("preview-frozen", (e) => setFrozenEvt(!!e.payload));
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
     // Pencere sonradan açıldıysa (ör. başka monitörün penceresi) o anki durumu al
     invoke<string | null>("overlay_pin_get")
       .then((id) => setPinId(id || null))
@@ -205,14 +199,11 @@ export function Host() {
     const st = status();
     return !st?.connected || !!st.preview;
   };
-<<<<<<< HEAD
   // Ekranda tutulan önizleme de panelle birlikte donar; canlı veri ya da Demo modunda asla
   createEffect(() => {
     const st = status();
     setPreviewFrozen(frozenEvt() && pinActive() && !!st?.preview && !st.demo);
   });
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
   // Tutulan overlay panelde düzenlenen (etkin) düzendedir: o düzen gösterilir
   const pick = () => forced ?? (app().editMode ? editPick() : pinActive() ? settings().activeProfile : null);
   setShown(resolveProfile(status(), !inTauri, pick()));
@@ -306,11 +297,7 @@ export function Host() {
   return (
     <div
       class="host ov-theme"
-<<<<<<< HEAD
       classList={{ "ov-frozen": previewFrozen(), editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
-=======
-      classList={{ editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
       style={{ ...vars(), "--grid": `${g().gridSize}px`, ...(overlayBgUrl() ? { "--ov-appbg": `url("${overlayBgUrl()}")` } : {}), ...(vrBg ? { "background-color": vrBg } : {}) }}
     >
       <Show when={app().editMode && editBg()}>

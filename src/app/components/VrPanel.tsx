@@ -447,11 +447,7 @@ export function VrPanel() {
           <ol class="muted">
             <li>OpenKneeboard'u kur ve aç. iRacing OpenXR ile çalışıyorsa ek ayar gerekmez; SteamVR/OpenVR kullanıyorsan Settings → VR bölümünden SteamVR desteğini aç.</li>
             <li>Settings → Tabs → Add a tab → Window Capture seç.</li>
-<<<<<<< HEAD
             <li>Listeden "SRTR Pitwall - VR Panosu" ya da tek bir overlay penceresini (ör. "SRTR Pitwall - Yakındakiler") seç.</li>
-=======
-            <li>Listeden "SRTR Pitwall - VR Panosu" ya da tek bir overlay penceresini (ör. "SRTR Pitwall - Relative") seç.</li>
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
             <li>Pencere eşleştirmede başlığın tam eşleşmesini (Exact title) seç; SRTR Pitwall her açılışta pencereyi kendiliğinden bulur.</li>
             <li>"Capture client area only" seçeneğini aç, imleç yakalamayı kapat.</li>
             <li>Settings → VR bölümünden panonun konumunu, boyutunu ve opaklığını ayarla. Birden fazla overlay için her birine ayrı View ekle.</li>
@@ -484,11 +480,7 @@ export function VrPanel() {
             <b>Önerilen boyutlar ve performans</b>
           </summary>
           <ul class="muted">
-<<<<<<< HEAD
             <li>Yakındakiler ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.</li>
-=======
-            <li>Relative ve Sıralama: gözlükte yaklaşık 35–45 cm genişlik, direksiyonun sol ya da sağ üstü. Yakıt, delta ve girdiler: 20–30 cm, gösterge panelinin üstü.</li>
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
             <li>Yazılar küçük kalıyorsa pencereyi büyütmek yerine Görünüm sayfasından yazı boyutunu artır: yakalanan görüntü daha net olur.</li>
             <li>Tek tek pencereler yerine VR panosu daha az kaynak kullanır (tek yakalama); ama gözlükte tek parça olarak yerleşir.</li>
             <li>Ayarlar → Performans'tan telemetri hızını 30 Hz yap ve "Görsel efektleri azalt"ı aç.</li>

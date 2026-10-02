@@ -9982,7 +9982,6 @@ begin
   end if;
   return null;
 end $$;
-<<<<<<< HEAD
 
 -- ---------------------------------------------------------------------------
 -- c49: Yönetici üst çubuk özeti (üye / PRO / çevrimiçi / yarışta / bekleyen destek) ve canlı üye listesi.
@@ -10104,5 +10103,3 @@ revoke all on function public.admin_members_live(text, text, int, int) from publ
 grant execute on function public.admin_members_live(text, text, int, int) to authenticated;
 
 notify pgrst, 'reload schema';
-=======
->>>>>>> 325d8c04093ce39f66572348391ed80bd7d7d044
