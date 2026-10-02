@@ -236,3 +236,16 @@
     grid-template-columns: 1fr;
   }
 }
+.ads-admin .ads-del {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.ads-admin .ads-del span {
+  flex: 1;
+  min-width: 180px;
+}

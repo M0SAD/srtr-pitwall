@@ -3,7 +3,7 @@
 
 import { For, Show, createMemo, createResource, createSignal } from "solid-js";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { isPro } from "@/cloud/account";
+import { proLocked } from "@/sdk/proFeatures";
 import { can } from "@/cloud/moderation";
 import { communityStats, deleteTheme, queryThemes, shareTheme, themeDownloaded, type SharedTheme, type ThemeSortX } from "@/cloud/community";
 import { settings, updateSettings } from "@/sdk/settings";
@@ -165,7 +165,7 @@ export function ThemeCard(p: { t: SharedTheme; compact?: boolean; onChanged?: ()
               <I.Trash />
             </button>
           </Show>
-          <ProGate label="PRO">
+          <ProGate label="PRO" feature="community.themes.use">
             <button
               class="btn small"
               classList={{ primary: !saved() }}
@@ -275,7 +275,7 @@ export function CommunityThemes() {
             { n: stats()?.members, label: "Üye" },
           ]}
           actions={
-            <ProGate label="PRO ile paylaş">
+            <ProGate label="PRO ile paylaş" feature="community.share.themes">
               <button class="btn primary" onClick={() => setSharing(true)}>
                 <I.Share2 /> Temamı paylaş
               </button>
@@ -441,7 +441,7 @@ export function ShareThemeDialog(props: { onClose: () => void; onShared: () => v
         </header>
         <Show when={session()} fallback={<p class="muted">Paylaşmak için giriş yapmalısın.</p>}>
           <Show
-            when={isPro()}
+            when={!proLocked("community.share.themes")}
             fallback={
               <p class="muted">
                 Tema paylaşmak PRO özelliğidir.{" "}

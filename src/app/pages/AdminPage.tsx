@@ -1,8 +1,9 @@
 // Yönetim: sadece yöneticilere (ve moderatörlere) görünen ayrı bölüm.
 // Alt sayfalar: Özet, Gelir, Üyeler, Destek, Abonelikler, Cihazlar, Planlar ve fiyatlar, Ücretsiz PRO,
-// Reklamlar, Görünürlük, Bildirimler, Moderasyon, Medya.
+// Reklamlar, Görünürlük, Bildirimler, Moderasyon, Mesajlar, Medya, Ses paketleri.
+// Moderatörler (reports.view izni): Destek (silme hariç) ve Moderasyon.
 
-import { For, Match, Show, Switch, createResource, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Match, Show, Switch, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import {
   adminDevices,
@@ -28,12 +29,21 @@ import {
 } from "@/cloud/account";
 import { can, listGroups, ownerSetAdmin, setUserGroup, type PermGroup } from "@/cloud/moderation";
 import { manifests } from "@/sdk/registry";
-import { ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminModeration";
+import { MessageReportsPanel, ModLogPanel, ModerationPanel, OwnerGroups } from "../components/AdminModeration";
 import { AdminHosting, AdminWatermark } from "../components/AdminMedia";
 import { AdminNotices } from "../components/AdminNotices";
 import { AdminPromo, AdminRevenue, AdminSupport, AdminVisibility, ProEditor } from "../components/AdminExtras";
 import { AdminAds } from "../components/AdminAds";
+import { AdminCoupons } from "../components/AdminCoupons";
+import { AdminProFeatures } from "../components/AdminProFeatures";
+import { AdminMessages } from "../components/AdminMessages";
+import { AdminVoicePacks } from "../components/AdminVoicePacks";
+import { AdminBackdrops, AdminProPromo, AdminTranslations } from "../components/AdminContent";
+import { takeAdminFocus } from "../components/adminFocus";
+import { AdminTrial } from "../components/AdminTrial";
+import { AdminLiveChat } from "../components/AdminLiveChat";
 import { sub } from "../ui";
+import { adminBadgeSeen, refreshAdminBadges, refreshAdminBadgesSoon } from "@/cloud/adminBadges";
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
 const fmtTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString(localeTag()) : "—");
@@ -47,16 +57,25 @@ export function adminSubs(): { id: string; label: string }[] {
     { id: "overview", label: "Özet", need: isAdmin },
     { id: "revenue", label: "Gelir", need: isAdmin },
     { id: "members", label: "Üyeler", need: isAdmin },
-    { id: "support", label: "Destek", need: isAdmin },
+    { id: "support", label: "Destek", need: () => isAdmin() || can("reports.view") },
     { id: "subs", label: "Abonelikler", need: isAdmin },
     { id: "devices", label: "Cihazlar", need: isAdmin },
     { id: "plans", label: "Planlar ve fiyatlar", need: isAdmin },
     { id: "promo", label: "Ücretsiz PRO", need: isAdmin },
+    { id: "trial", label: "Deneme PRO", need: isAdmin },
     { id: "ads", label: "Reklamlar", need: isAdmin },
+    { id: "coupons", label: "Kuponlar", need: isAdmin },
+    { id: "profeatures", label: "PRO özellikleri", need: isAdmin },
     { id: "visibility", label: "Görünürlük", need: isAdmin },
     { id: "notices", label: "Bildirimler", need: isAdmin },
     { id: "moderation", label: "Moderasyon", need: () => isAdmin() || can("reports.view") },
+    { id: "messages", label: "Mesajlar", need: isAdmin },
     { id: "media", label: "Medya", need: isAdmin },
+    { id: "voicepacks", label: "Ses paketleri", need: isAdmin },
+    { id: "livechat", label: "Canlı Sohbet ayarları", need: isAdmin },
+    { id: "propromo", label: "PRO tanıtım mesajı", need: isAdmin },
+    { id: "backdrops", label: "Overlay arka planları", need: isAdmin },
+    { id: "translations", label: "Çeviriler", need: isAdmin },
   ];
   return all.filter((x) => x.need()).map(({ id, label }) => ({ id, label }));
 }
@@ -75,12 +94,27 @@ export function AdminPage() {
     } catch (e) {
       setMsg("Hata: " + String((e as Error).message));
     }
+    // Bir işlemden sonra bekleyen iş sayaçları yenilenir
+    refreshAdminBadgesSoon();
   };
   onCleanup(() => clearTimeout(hide));
   const page = () => {
     const ids = adminSubs().map((s) => s.id);
     return ids.includes(sub()) ? sub() : (ids[0] ?? "");
   };
+  // Yönetim açılınca ve alt sayfa değişince sayaçlar yenilenir; Deneme PRO açılınca şüpheli sayacı "görüldü" olur
+  createEffect(
+    on(page, (p, prev) => {
+      void refreshAdminBadges().then(() => {
+        if (p === "trial") void adminBadgeSeen("trial");
+      });
+      // Destek / Moderasyon gibi kendi işlemini yapan sayfalardan çıkınca da güncel olsun
+      if (prev) refreshAdminBadgesSoon(2500);
+    }),
+  );
+  // Açık kalan sayfada yapılan işlemler (ör. destek talebini yanıtlama) için kısa aralıklı yenileme
+  const iv = window.setInterval(() => void refreshAdminBadges(), 20_000);
+  onCleanup(() => clearInterval(iv));
   return (
     <div class="page">
       <Show when={msg()}>
@@ -98,11 +132,35 @@ export function AdminPage() {
         <Match when={page() === "ads"}>
           <AdminAds run={run} />
         </Match>
+        <Match when={page() === "coupons"}>
+          <AdminCoupons run={run} />
+        </Match>
+        <Match when={page() === "voicepacks"}>
+          <AdminVoicePacks run={run} />
+        </Match>
+        <Match when={page() === "propromo"}>
+          <AdminProPromo run={run} />
+        </Match>
+        <Match when={page() === "backdrops"}>
+          <AdminBackdrops run={run} />
+        </Match>
+        <Match when={page() === "translations"}>
+          <AdminTranslations run={run} />
+        </Match>
+        <Match when={page() === "profeatures"}>
+          <AdminProFeatures run={run} />
+        </Match>
         <Match when={page() === "members"}>
           <Members run={run} />
         </Match>
         <Match when={page() === "support"}>
           <AdminSupport />
+        </Match>
+        <Match when={page() === "trial"}>
+          <AdminTrial run={run} />
+        </Match>
+        <Match when={page() === "livechat"}>
+          <AdminLiveChat run={run} />
         </Match>
         <Match when={page() === "promo"}>
           <AdminPromo run={run} />
@@ -128,12 +186,18 @@ export function AdminPage() {
           <Show when={can("reports.view")}>
             <ModerationPanel />
           </Show>
+          <Show when={isAdmin()}>
+            <MessageReportsPanel />
+          </Show>
           <Show when={isOwner()}>
             <section class="panel admin-panel">
               <OwnerGroups run={run} />
               <ModLogPanel />
             </section>
           </Show>
+        </Match>
+        <Match when={page() === "messages"}>
+          <AdminMessages />
         </Match>
         <Match when={page() === "media"}>
           <section class="panel admin-panel">
@@ -202,7 +266,8 @@ function Overview() {
 // ---------------------------------------------------------------------------
 function Members(props: { run: Run }) {
   const [groups] = createResource(() => listGroups().catch(() => [] as PermGroup[]));
-  const [q, setQ] = createSignal("");
+  // Moderasyon kaydından gelindiyse arama dolu açılır
+  const [q, setQ] = createSignal(takeAdminFocus("members")?.q ?? "");
   const [users, setUsers] = createSignal<AdminUser[]>([]);
   const [filter, setFilter] = createSignal<UserFilter>("all");
   const [more, setMore] = createSignal(false);
@@ -538,11 +603,11 @@ function Plans(props: { run: Run }) {
               <b>{p.label}</b>
               <label class="plan-field">
                 <small>Fiyat (yurt dışı, USD)</small>
-                <input class="input" type="number" min="0" step="0.01" placeholder="ör. 4.99" value={ppNum(p.id, "price")} onInput={(e) => set(`pp:${p.id}:price`, e.currentTarget.value)} />
+                <input class="input" type="text" inputmode="decimal" placeholder="ör. 4.99" value={ppNum(p.id, "price")} onInput={(e) => set(`pp:${p.id}:price`, e.currentTarget.value)} />
               </label>
               <label class="plan-field">
                 <small>Türkiye fiyatı (TL)</small>
-                <input class="input" type="number" min="0" step="0.01" placeholder="ör. 149" value={ppNum(p.id, "price_tr")} onInput={(e) => set(`pp:${p.id}:price_tr`, e.currentTarget.value)} />
+                <input class="input" type="text" inputmode="decimal" placeholder="ör. 149" value={ppNum(p.id, "price_tr")} onInput={(e) => set(`pp:${p.id}:price_tr`, e.currentTarget.value)} />
               </label>
             </div>
           </div>
@@ -641,13 +706,8 @@ function Plans(props: { run: Run }) {
 
       <h4>PRO overlay'ler</h4>
       <p class="muted small">İşaretlenen overlay'ler PRO olmayan kullanıcılarda kilitli olur (panelde açılamaz, ekranda görünmez).</p>
+      <p class="muted small">Sesli mühendis buradan değil, PRO özellikleri listesinden (Ses › Sesli mühendis ve spotter) yönetilir.</p>
       <div class="admin-ovs">
-        <label class="check">
-          <input type="checkbox" checked={(c()?.pro_overlays ?? []).includes("voice")} onChange={(e) => toggle("voice", e.currentTarget.checked)} />
-          <span>
-            <b>Sesli mühendis</b>
-          </span>
-        </label>
         <For each={manifests}>
           {(m) => (
             <label class="check">

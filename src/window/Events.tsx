@@ -64,6 +64,7 @@ interface EventsInfo {
   sessionKind: string;
   sessionNum: number;
   replayOk: boolean;
+  previous?: boolean;
   events: RaceEvent[];
 }
 
@@ -316,9 +317,13 @@ export function Events() {
               {" · "}
               {kindLabel(info()!.sessionKind)}
             </Show>
+            <Show when={info()?.previous}>
+              {" · "}
+              {t("Önceki oturum")}
+            </Show>
           </small>
         </div>
-        <label class="evw-auto" title={t("Yarış bitince bu pencere kendiliğinden açılır")}>
+        <label class="evw-auto" title={t("Yarış bitince ve tekrar başlayınca bu pencere kendiliğinden açılır")}>
           <span>Yarış sonunda aç</span>
           <span class="switch">
             <input

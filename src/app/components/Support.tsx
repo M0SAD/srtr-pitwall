@@ -5,6 +5,7 @@ import { Portal } from "solid-js/web";
 import { localeTag, t } from "@/sdk/i18n";
 import {
   SUPPORT_CATEGORIES,
+  adminDeleteTicket,
   SUPPORT_MAX_IMAGES,
   STATUS_LABELS,
   categoryLabel,
@@ -18,6 +19,7 @@ import {
   type SupportStatus,
 } from "@/cloud/support";
 import * as I from "../icons";
+import { EmojiPicker } from "./EmojiPicker";
 import "../support.css";
 
 export const fmtWhen = (v: string) => new Date(v).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" });
@@ -89,6 +91,7 @@ export function NewTicketForm(p: { onCreated: (id: string) => void; onCancel?: (
   const [files, setFiles] = createSignal<File[]>([]);
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
+  let bodyEl: HTMLTextAreaElement | undefined;
   const submit = async () => {
     if (!subject().trim() || !body().trim()) return setErr(t("Başlık ve mesaj gerekli."));
     setBusy(true);
@@ -120,6 +123,7 @@ export function NewTicketForm(p: { onCreated: (id: string) => void; onCancel?: (
       <input class="input" maxLength={120} placeholder="Kısaca ne oldu?" value={subject()} onInput={(e) => setSubject(e.currentTarget.value)} />
       <label class="sp-label">Mesaj</label>
       <textarea
+        ref={bodyEl}
         class="input sp-text"
         rows={6}
         maxLength={4000}
@@ -128,7 +132,10 @@ export function NewTicketForm(p: { onCreated: (id: string) => void; onCancel?: (
         onInput={(e) => setBody(e.currentTarget.value)}
         onPaste={(e) => pasteImages(e, files(), setFiles)}
       />
-      <ImagePicker files={files()} setFiles={setFiles} />
+      <div class="sp-compose-tools">
+        <EmojiPicker target={() => bodyEl} onInsert={setBody} up={false} />
+        <ImagePicker files={files()} setFiles={setFiles} />
+      </div>
       <Show when={err()}>
         <p class="error small">{err()}</p>
       </Show>
@@ -153,6 +160,9 @@ export function TicketThread(p: {
   /** Yönetici görünümü: talep sahibinin adı */
   owner?: string;
   onChanged: () => void;
+  /** Sadece yönetici: talebi kalıcı silme düğmesi */
+  canDelete?: boolean;
+  onDeleted?: () => void;
 }) {
   const [msgs, { refetch }] = createResource(
     () => p.ticket.id,
@@ -168,7 +178,10 @@ export function TicketThread(p: {
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
   const [zoom, setZoom] = createSignal<string | null>(null);
+  const [askDel, setAskDel] = createSignal(false);
+  const [deleting, setDeleting] = createSignal(false);
   let listEl: HTMLDivElement | undefined;
+  let replyEl: HTMLTextAreaElement | undefined;
 
   createEffect(() => {
     msgs();
@@ -203,6 +216,25 @@ export function TicketThread(p: {
     }
   };
 
+  const remove = async () => {
+    setDeleting(true);
+    setErr("");
+    try {
+      await adminDeleteTicket(p.ticket.id);
+      setAskDel(false);
+      p.onDeleted?.();
+    } catch (e) {
+      setErr(String((e as Error).message));
+    } finally {
+      setDeleting(false);
+    }
+  };
+  // Başka talebe geçilince silme onayı kapansın
+  createEffect(() => {
+    p.ticket.id;
+    setAskDel(false);
+  });
+
   return (
     <div class="sp-thread">
       <header class="sp-thread-head">
@@ -229,7 +261,23 @@ export function TicketThread(p: {
             Talebi kapat
           </button>
         </Show>
+        <Show when={p.canDelete && !askDel()}>
+          <button class="btn ghost small danger" title="Talep, tüm mesajları ve görselleriyle kalıcı silinir" onClick={() => setAskDel(true)}>
+            <I.Trash /> Sil
+          </button>
+        </Show>
       </header>
+      <Show when={p.canDelete && askDel()}>
+        <div class="sp-del-ask">
+          <span>Talep tüm mesajları ve görselleriyle kalıcı olarak silinsin mi? Bu geri alınamaz.</span>
+          <button class="btn small danger" disabled={deleting()} onClick={remove}>
+            {deleting() ? "Siliniyor…" : "Evet, kalıcı sil"}
+          </button>
+          <button class="btn ghost small" disabled={deleting()} onClick={() => setAskDel(false)}>
+            Vazgeç
+          </button>
+        </div>
+      </Show>
       <div class="sp-msgs" ref={listEl}>
         <Show when={!msgs.loading || msgs()} fallback={<p class="muted small">Yükleniyor…</p>}>
           <For each={msgs()?.list ?? []}>
@@ -265,6 +313,7 @@ export function TicketThread(p: {
           <p class="muted small">Bu talep kapalı. Yazarsan yeniden açılır.</p>
         </Show>
         <textarea
+          ref={replyEl}
           class="input sp-text"
           rows={3}
           maxLength={4000}
@@ -277,7 +326,10 @@ export function TicketThread(p: {
           }}
         />
         <div class="sp-reply-bar">
-          <ImagePicker files={files()} setFiles={setFiles} />
+          <div class="sp-compose-tools">
+            <EmojiPicker target={() => replyEl} onInsert={setBody} />
+            <ImagePicker files={files()} setFiles={setFiles} />
+          </div>
           <button class="btn primary" disabled={busy() || !body().trim()} onClick={send}>
             {busy() ? "Gönderiliyor…" : p.staff ? "Yanıtla" : "Gönder"}
           </button>

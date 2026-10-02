@@ -132,7 +132,9 @@
 }
 
 .lic b {
-  min-width: 1.35em;
+  /* Sabit genişlik: "Pro" da "A" da aynı yeri kaplar, sütunlar kaymaz */
+  box-sizing: border-box;
+  width: 2.5em;
   padding: 0 3px;
   background: var(--lc);
   color: #fff;
@@ -140,6 +142,9 @@
 }
 
 .lic span {
+  box-sizing: border-box;
+  min-width: 2.6em;
+  text-align: center;
   padding: 0 5px;
   background: color-mix(in srgb, var(--lc) 45%, #111);
   color: #fff;
@@ -185,31 +190,71 @@
 }
 
 .rel-flag {
-  width: 2.6em;
-  text-align: center;
+  width: 1.9em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: none;
 }
 
-.fb {
-  color: #fff;
+/* Bayrak sütunu: yazısız renkli bayrak (ad ipucunda) */
+.fsw {
+  display: inline-block;
+  position: relative;
+  width: 1.45em;
+  height: 0.95em;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  background: #888;
 }
 
-.fb-blk {
+.fsw-black,
+.fsw-dsq,
+.fsw-meatball {
   background: #000;
-  border: 1px solid #fff;
 }
 
-.fb-dsq {
+.fsw-dsq {
+  background:
+    linear-gradient(45deg, transparent 44%, #e02424 44% 56%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, #e02424 44% 56%, transparent 56%),
+    #000;
+}
+
+.fsw-meatball {
+  background: radial-gradient(circle at 50% 50%, #ff8a2a 0 30%, #000 31%);
+}
+
+.fsw-blue {
+  background: #1e6fff;
+}
+
+.fsw-yellow {
+  background: #ffd400;
+}
+
+.fsw-green {
+  background: #19b34a;
+}
+
+.fsw-white {
+  background: #fff;
+}
+
+.fsw-red {
   background: #e02424;
 }
 
-.fb-rep {
-  background: #000;
-  color: #ff8a2a;
-  border: 1px solid #ff8a2a;
+.fsw-checkered {
+  background: repeating-conic-gradient(#000 0 25%, #fff 0 50%) 0 0 / 0.48em 0.48em;
 }
 
-.fb-blu {
-  background: #1e6fff;
+.fsw-debris {
+  background: repeating-linear-gradient(90deg, #ffd400 0 0.24em, #e02424 0.24em 0.48em);
+}
+
+.fsw-slow {
+  background: linear-gradient(135deg, #ffd400 50%, #000 50%);
 }
 
 .rel-head i,
@@ -221,7 +266,6 @@
 }
 
 .rel-car {
-  width: 3.4em;
   font-size: 0.82em;
 }
 
@@ -249,4 +293,32 @@
 }
 .lic.combo i.down {
   color: #ff9a9a;
+}
+
+.rel-tire {
+  width: 1.6em;
+  display: inline-flex;
+  justify-content: center;
+}
+
+/* Ülke bayrağı sütunu: sabit genişlik (bayrak olsa da olmasa da sütunlar kaymaz) */
+.rel-flair {
+  width: 1.8em;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: center;
+  font-size: 0.72em;
+  color: var(--ov-dim);
+  line-height: 1.3;
+}
+
+.rel-flair .ov-flag {
+  width: 1.9em;
+  height: 1.42em;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }

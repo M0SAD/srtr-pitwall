@@ -8,6 +8,18 @@
 //   {"type":"support_reply","id":"<bildirim id>"}  Kullanıcıya: destek talebine yanıt geldi (kendi dilinde)
 //   {"type":"ad_live" | "ad_rejected" | "ad_ended","id":"<bildirim id>"}  Reklam verene: reklam yayında / reddedildi-durduruldu / bitti
 //   {"type":"ad_reported" | "ad_pending","id":"<bildirim id>"}  Yöneticiye: reklam raporlandı (gizlendi) / onay bekliyor
+//   {"type":"payment_new","id":"<bildirim id>"}  Yöneticiye: yeni ödeme ya da iade (PRO, reklam, Patreon, Ko-fi)
+//   {"type":"payment_receipt","id":"<bildirim id>"}  Ödeyene: ödeme makbuzu / teşekkür ya da iade onayı (kendi dilinde);
+//                                        hediye PRO ödemesinde hediye edene "hediye ödemen alındı" makbuzu
+//   {"type":"pro_gift","id":"<bildirim id>"}  Alıcıya: bir üye sana PRO hediye etti (hediye paketi temalı; plan, geçerlilik)
+//   {"type":"pro_gift_sent","id":"<bildirim id>"}  Hediye edene: hediyen ulaştı (alıcı, plan, sonraki yenileme)
+//   {"type":"pro_gift_ended","id":"<bildirim id>"}  Alıcıya: hediye eden aboneliği sonlandırdı, PRO şu tarihe kadar sürer
+//   {"type":"message_reported","id":"<bildirim id>"}  Yöneticiye: bir üye arkadaş mesajını raporladı (sebep, metin, kişiler)
+//   {"type":"voice_submission","id":"<bildirim id>"}  Yöneticiye: bir üye ses paketi gönderdi (dil, paket adı, bağlantı, mesaj)
+//   {"type":"team_invite" | "team_request" | "team_accepted" | "team_announcement" | "team_role","id":"<bildirim id>"}
+//                                        Takım bildirimleri (kendi dilinde; "teams" e-posta tercihi açıksa)
+//   Kullanıcı e-postaları profiles.email_prefs tercihine uyar (c35: friends, teams, support, ads, pro, shots);
+//   ödeme, hediye PRO, PRO değişikliği ve yönetici e-postaları her zaman gider.
 //   {"type":"cleanup"}                   6 aydır açılmayan ekran görüntülerini siler,
 //                                        sahibine uygulama içi bildirim ve e-posta gönderir
 //
@@ -49,7 +61,17 @@ function esc(s: unknown) {
 }
 
 // Tüm e-postalar aynı temada: koyu arka plan, turuncu vurgu, pist kerbi şeridi
-function page(title: string, body: string, preheader = "") {
+// Kullanıcı e-postalarının altındaki "E-posta tercihleri" bağlantısı (web hesap sayfası → #eposta)
+const PREFS_LINK: Record<string, string> = {
+  tr: "E-posta tercihleri", en: "E-mail preferences", de: "E-Mail-Einstellungen", es: "Preferencias de correo",
+  fr: "Préférences e-mail", it: "Preferenze e-mail", "pt-BR": "Preferências de e-mail", "pt-PT": "Preferências de e-mail",
+  nl: "E-mailvoorkeuren", pl: "Preferencje e-mail", sv: "E-postinställningar", fi: "Sähköpostiasetukset",
+  ru: "Настройки писем", "zh-CN": "邮件偏好设置", ja: "メール設定",
+};
+
+/** lang verilirse (kullanıcı e-postası) alt bilgiye e-posta tercihleri bağlantısı eklenir; yönetici e-postalarında yok */
+function page(title: string, body: string, preheader = "", lang = "") {
+  const prefs = lang ? PREFS_LINK[lang] ?? PREFS_LINK[lang.split("-")[0]] ?? PREFS_LINK.en : "";
   const kerb = Array.from(
     { length: 24 },
     (_, i) => `<td style="height:6px;background:${i % 2 ? "#ffffff" : "#e5322d"};font-size:0;line-height:0">&nbsp;</td>`,
@@ -73,7 +95,9 @@ function page(title: string, body: string, preheader = "") {
     </div>
   </td></tr>
   <tr><td style="padding:16px 8px 0;text-align:center;font:12px/1.5 'Segoe UI',Arial,Helvetica,sans-serif;color:#6b7383">
-    SRTR Pitwall &middot; <a href="https://pitwall.simracetr.com" style="color:#8a93a4;text-decoration:none">pitwall.simracetr.com</a>
+    SRTR Pitwall &middot; <a href="https://pitwall.simracetr.com" style="color:#8a93a4;text-decoration:none">pitwall.simracetr.com</a>${
+      prefs ? ` &middot; <a href="https://pitwall.simracetr.com/hesap.html#eposta" style="color:#8a93a4;text-decoration:underline">${esc(prefs)}</a>` : ""
+    }
   </td></tr>
 </table></td></tr></table></body></html>`;
 }
@@ -93,6 +117,14 @@ async function sendMail(to: string[], subject: string, html: string) {
   const text = html.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&middot;/g, "·").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
   await tr.sendMail({ from: `SRTR Pitwall <${SMTP_USER}>`, to: to.join(", "), subject, html, text });
   return true;
+}
+
+// E-posta tercihi (c35: profiles.email_prefs; anahtar yoksa varsayılan: takımlar kapalı, diğerleri açık).
+// friends | teams | support | ads | pro | shots. Ödeme, hediye PRO, hesap ve yönetici e-postaları her zaman gider.
+async function emailPrefOn(userId: string, cat: string) {
+  const { data, error } = await db.rpc("email_pref_on", { p_user: userId, p_cat: cat });
+  if (error || typeof data !== "boolean") return cat !== "teams";
+  return data;
 }
 
 async function userInfo(id: string) {
@@ -262,6 +294,7 @@ async function friendRequest(id: string) {
   const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
   if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
   if (n.kind !== "friend_request") return { ok: true, skipped: true };
+  if (!(await emailPrefOn(n.user_id, "friends"))) return { ok: true, skipped: "tercih" };
   const u = await userInfo(n.user_id);
   if (!u.email) return { ok: true, skipped: "e-posta yok" };
   const { data: from } = await db.from("profiles").select("display_name,iracing_name").eq("id", n.data?.from).maybeSingle();
@@ -281,7 +314,7 @@ async function friendRequest(id: string) {
     <div style="margin:0 0 14px;padding:12px 14px;background:#10131a;border:1px solid #262b36;border-left:3px solid #ff8a2a;border-radius:8px;color:#cfd5e1;font-size:14px">${esc(m.how)}</div>
     <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.note)}</p>`;
   const subject = fill(m.subject);
-  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, fill(m.line)));
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, fill(m.line), u.lang));
   return { ok: true, sent };
 }
 
@@ -424,6 +457,7 @@ async function proExpiring(id: string) {
   const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
   if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
   if (n.kind !== "pro_expiring") return { ok: true, skipped: true };
+  if (!(await emailPrefOn(n.user_id, "pro"))) return { ok: true, skipped: "tercih" };
   const u = await userInfo(n.user_id);
   if (!u.email) return { ok: true, skipped: "e-posta yok" };
   const until = new Date(n.data?.until ?? Date.now());
@@ -443,7 +477,7 @@ async function proExpiring(id: string) {
     <div style="${BOX}">${esc(m.how)}</div>
     <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.note)}</p>`;
   const subject = fill(last ? lm.subject : m.subject);
-  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line));
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line, u.lang));
   return { ok: true, sent };
 }
 
@@ -654,7 +688,7 @@ async function proChanged(id: string) {
     ${!ended && !forever ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(m.until.replace("{0}", fmtDay(nu!, u.lang)))}</b></p>` : ""}
     ${d.note ? `<div style="${BOX}"><div style="font-size:12px;color:#8a93a4;margin-bottom:4px">${esc(m.note)}</div>${esc(d.note)}</div>` : ""}
     <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.foot)}</p>`;
-  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line || subject));
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line || subject, u.lang));
   return { ok: true, sent };
 }
 
@@ -753,6 +787,7 @@ async function supportReply(id: string) {
   const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
   if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
   if (n.kind !== "support_reply") return { ok: true, skipped: true };
+  if (!(await emailPrefOn(n.user_id, "support"))) return { ok: true, skipped: "tercih" };
   const u = await userInfo(n.user_id);
   if (!u.email) return { ok: true, skipped: "e-posta yok" };
   const m = pick(SUPPORT_REPLY, u.lang);
@@ -766,7 +801,7 @@ async function supportReply(id: string) {
     <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.how)}</p>
     ${button(`${SITE}/hesap.html#destek`, m.button)}`;
   const subject = m.subject.replace("{0}", subj);
-  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, m.line.replace("{0}", subj)));
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, m.line.replace("{0}", subj), u.lang));
   return { ok: true, sent };
 }
 
@@ -935,6 +970,7 @@ async function adOwner(id: string) {
   const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
   if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
   if (!["ad_live", "ad_rejected", "ad_ended"].includes(n.kind)) return { ok: true, skipped: true };
+  if (!(await emailPrefOn(n.user_id, "ads"))) return { ok: true, skipped: "tercih" };
   const u = await userInfo(n.user_id);
   if (!u.email) return { ok: true, skipped: "e-posta yok" };
   const m = pick(AD_MAIL, u.lang);
@@ -970,7 +1006,7 @@ async function adOwner(id: string) {
     ${extra ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(extra)}</b></p>` : ""}
     ${d.note ? `<div style="${BOX}"><div style="font-size:12px;color:#8a93a4;margin-bottom:4px">${esc(m.note)}</div>${esc(d.note)}</div>` : ""}
     ${button(`${SITE}/reklam.html`, m.button)}`;
-  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line));
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line, u.lang));
   return { ok: true, sent };
 }
 
@@ -1006,6 +1042,1092 @@ async function adAdmin(id: string) {
     }</p>
     ${button(`${SITE}/yonetim.html#reklamlar`, L === "tr" ? "Yönetim panelinde aç" : "Open in admin panel")}`;
   const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.title ?? ""}`, page(title, body, String(d.title ?? "")));
+  return { ok: true, sent };
+}
+
+// Yöneticiye: bir üye arkadaşından gelen mesajı raporladı
+const MSG_REASONS: Record<string, { tr: string; en: string }> = {
+  harassment: { tr: "Hakaret / taciz", en: "Harassment / abuse" },
+  spam: { tr: "Spam", en: "Spam" },
+  inappropriate: { tr: "Uygunsuz içerik", en: "Inappropriate content" },
+  scam: { tr: "Dolandırıcılık", en: "Scam / fraud" },
+  other: { tr: "Diğer", en: "Other" },
+};
+
+async function messageReportAdmin(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "message_reported") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const reason = MSG_REASONS[d.reason]?.[L] ?? String(d.reason ?? "?");
+  const title = L === "tr" ? "Mesaj raporlandı" : "Message reported";
+  const row = (k: string, v: string) =>
+    `<tr><td style="color:#8b93a3;padding:4px 12px 4px 0;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0">${v}</td></tr>`;
+  const body = `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid #262b36;border-left:3px solid #e5322d;border-radius:10px">
+      <div style="font-size:12px;color:#8a93a4;margin-bottom:6px">${esc(d.reported_name ?? "?")}</div>
+      <div style="font-size:15px;line-height:1.5;color:#ffffff;white-space:pre-line;word-break:break-word">${esc(d.text ?? "")}</div>
+    </div>
+    <table style="font-size:14px;border-collapse:collapse;margin:0 0 14px">
+      ${row(L === "tr" ? "Sebep" : "Reason", `<b style="color:#ffb35c">${esc(reason)}</b>`)}
+      ${row(L === "tr" ? "Gönderen" : "Sender", esc(d.reported_name ?? "?"))}
+      ${row(L === "tr" ? "Raporlayan" : "Reported by", esc(d.reporter_name ?? "?"))}
+      ${d.note ? row(L === "tr" ? "Not" : "Note", esc(d.note)) : ""}
+    </table>
+    <p style="color:#8b93a3;font-size:13px;margin:0">${
+      L === "tr"
+        ? "Raporu yönetim panelinde ya da uygulamada Yönetim → Moderasyon → Mesaj raporları bölümünde inceleyebilir, yoksayabilir ya da mesajı silebilirsin."
+        : "Review it in the admin panel or in the app under Admin → Moderation → Message reports, where you can dismiss it or delete the message."
+    }</p>
+    ${button(`${SITE}/yonetim.html#mesajlar`, L === "tr" ? "Yönetim panelinde aç" : "Open in admin panel")}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${reason}`, page(title, body, String(d.text ?? "").slice(0, 120)));
+  return { ok: true, sent };
+}
+
+// Yöneticiye: yeni ödeme / iade (PRO, reklam, Patreon, Ko-fi)
+const PAY_SOURCES: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi" };
+// pro-webhook reklam planı: "Reklam: <yer>" (yer adları pro-webhook AD_PLACES ile aynı)
+const AD_PLAN_KEYS: Record<string, string> = {
+  "Uygulama banner": "panel_banner", "Uygulama kart": "panel_card", "Site ana sayfa": "site_home", "Site hesap sayfası": "site_account",
+};
+function adPlanPlace(plan: unknown, L: "tr" | "en") {
+  const raw = String(plan ?? "").replace(/^Reklam:\s*/, "");
+  return AD_PLACES[AD_PLAN_KEYS[raw] ?? raw]?.[L] ?? raw;
+}
+function fmtMoney(amount: unknown, currency: unknown, lang: string) {
+  const loc = LOCALES[lang] ?? LOCALES[lang.split("-")[0]] ?? "en-GB";
+  const n = Number(amount ?? 0);
+  const cur = String(currency ?? "").toUpperCase();
+  try {
+    return n.toLocaleString(loc, { style: "currency", currency: cur || "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } catch {
+    return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
+  }
+}
+const infoRow = (k: string, v: string) =>
+  `<tr><td style="color:#8b93a3;padding:6px 14px 6px 0;vertical-align:top;white-space:nowrap;font-size:13px">${esc(k)}</td><td style="padding:6px 0;color:#e9ecf2;font-size:14px">${v}</td></tr>`;
+// Büyük tutar kutusu (yeşil: ödeme, kırmızı: iade)
+const amountBox = (label: string, money: string, refund: boolean, sub = "") =>
+  `<div style="margin:0 0 18px;padding:16px 18px;background:#10131a;border:1px solid #262b36;border-left:3px solid ${refund ? "#e5322d" : "#3ddc84"};border-radius:10px">
+      <div style="font-size:12px;color:#8a93a4;text-transform:uppercase;letter-spacing:.6px">${esc(label)}</div>
+      <div style="font:800 30px/1.2 'Segoe UI',Arial,Helvetica,sans-serif;color:${refund ? "#ff6b66" : "#3ddc84"};margin-top:4px">${refund ? "&minus;" : ""}${esc(money)}</div>
+      ${sub ? `<div style="font-size:13px;color:#cfd5e1;margin-top:6px">${sub}</div>` : ""}
+    </div>`;
+
+async function paymentAdmin(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data,created_at").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "payment_new") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const refund = d.kind === "refund";
+  const ad = d.ad === true || /^Reklam:/.test(String(d.plan ?? ""));
+  const money = fmtMoney(d.amount, d.currency, L);
+  const type = ad ? (L === "tr" ? "Reklam" : "Advertising") : L === "tr" ? "PRO üyelik" : "PRO membership";
+  const title = refund
+    ? L === "tr" ? `İade yapıldı · ${type}` : `Refund issued · ${type}`
+    : L === "tr" ? `Yeni satış · ${type}` : `New sale · ${type}`;
+  const plan = ad ? adPlanPlace(d.plan, L) : String(d.plan ?? "");
+  const body = `
+    ${amountBox(refund ? (L === "tr" ? "İade tutarı" : "Refunded") : L === "tr" ? "Tutar" : "Amount", money, refund,
+      esc(fmtDay(new Date(n.created_at ?? Date.now()), L, true)))}
+    <table role="presentation" style="border-collapse:collapse;margin:0 0 6px;width:100%">
+      ${infoRow(L === "tr" ? "Üye" : "Member", d.name ? `<b>${esc(d.name)}</b>` : `<span style="color:#8b93a3">${L === "tr" ? "(hesap eşleşmedi)" : "(no linked account)"}</span>`)}
+      ${infoRow(L === "tr" ? "E-posta" : "Email", esc(d.email || "—"))}
+      ${infoRow(ad ? (L === "tr" ? "Reklam yeri" : "Ad placement") : "Plan", esc(plan || "—"))}
+      ${d.gift ? infoRow(L === "tr" ? "Hediye" : "Gift", `🎁 <b>${esc(d.gift_name || "?")}</b>`) : ""}
+      ${infoRow(L === "tr" ? "Kaynak" : "Source", esc(PAY_SOURCES[d.source] ?? d.source ?? "—"))}
+      ${infoRow(L === "tr" ? "Kayıt" : "Record", `<span style="font-family:Consolas,monospace;font-size:12px;color:#8b93a3">${esc(d.payment ?? "—")}</span>`)}
+    </table>
+    ${button(`${SITE}/yonetim.html#satislar`, L === "tr" ? "Satışları aç" : "Open sales")}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${refund ? "−" : "+"}${money}`, page(title, body, `${title}: ${money}`));
+  return { ok: true, sent };
+}
+
+// Yöneticiye: bir üye kendi dilinde kaydettiği ses paketini gönderdi ("Paketimi gönder")
+async function voiceSubmissionAdmin(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data,created_at").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "voice_submission") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const title = L === "tr" ? "Yeni ses paketi gönderildi" : "New voice pack submitted";
+  const link = String(d.link ?? "");
+  const safeLink = /^https:\/\//i.test(link) ? link : "";
+  const body = `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid #262b36;border-left:3px solid #e5322d;border-radius:10px">
+      <div style="font-size:12px;color:#8a93a4;text-transform:uppercase;letter-spacing:.6px">${esc(d.language ?? "?")}</div>
+      <div style="font:700 20px/1.3 'Segoe UI',Arial,Helvetica,sans-serif;color:#ffffff;margin-top:4px">${esc(d.pack_name ?? "?")}</div>
+    </div>
+    <table role="presentation" style="border-collapse:collapse;margin:0 0 14px;width:100%">
+      ${infoRow(L === "tr" ? "Gönderen" : "Sent by", `<b>${esc(d.name || "?")}</b>`)}
+      ${infoRow(L === "tr" ? "Dil" : "Language", esc(d.language ?? "?"))}
+      ${infoRow(L === "tr" ? "Bağlantı" : "Link", safeLink ? `<a href="${esc(safeLink)}" style="color:#ff6b66;word-break:break-all">${esc(safeLink)}</a>` : esc(link))}
+      ${d.message ? infoRow(L === "tr" ? "Mesaj" : "Message", `<span style="white-space:pre-line">${esc(d.message)}</span>`) : ""}
+    </table>
+    <p style="color:#8b93a3;font-size:13px;margin:0">${
+      L === "tr"
+        ? "Paketi indirip uygulamada Sesli Mühendis → Kendi dilinde ses paketi yap → Eksik kontrolü ile inceleyebilirsin. Uygunsa zip'i GitHub Releases'e yükleyip Yönetim → Ses paketleri bölümünden ekle ve gönderiyi \"Kabul edildi\" yap."
+        : "Download it and review it in the app under Voice Engineer → Make a voice pack in your language → Missing check. If it's good, upload the zip to GitHub Releases, add it under Admin → Voice packs and mark the submission \"Accepted\"."
+    }</p>
+    ${button(`${SITE}/yonetim.html#ses-paketleri`, L === "tr" ? "Yönetim panelinde aç" : "Open in admin panel")}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.pack_name ?? ""} (${d.language ?? ""})`, page(title, body, `${d.name ?? ""}: ${d.pack_name ?? ""}`));
+  return { ok: true, sent };
+}
+
+// Ödeyene: ödeme makbuzu / teşekkür (PRO, reklam) ya da iade onayı — kendi dilinde
+type PayMail = {
+  proTitle: string; proLine: string; payTitle: string; payLine: string; adTitle: string; adLine: string;
+  refundTitle: string; refundLine: string; paid: string; refunded: string; plan: string; place: string; until: string;
+  renew: string; account: string; ads: string;
+};
+const PAY_MAIL: Record<string, PayMail> = {
+  "tr": {
+    proTitle: "PRO üyeliğin aktif — teşekkürler!", proLine: "Ödemen alındı ve PRO üyeliğin aktif. Desteğin için çok teşekkür ederiz!",
+    payTitle: "Ödemen alındı — teşekkürler!", payLine: "Ödemen alındı. Desteğin için çok teşekkür ederiz!",
+    adTitle: "Reklam ödemen alındı", adLine: "Reklam ödemen alındı, teşekkürler! Reklamının durumunu reklam panelinden takip edebilirsin.",
+    refundTitle: "İaden yapıldı", refundLine: "İaden işleme alındı. Tutarın hesabına yansıması bankana göre birkaç iş günü sürebilir.",
+    paid: "Ödenen tutar", refunded: "İade tutarı", plan: "Plan", place: "Reklam yeri", until: "PRO geçerlilik: {0}",
+    renew: "Aboneliğin her dönemin sonunda otomatik olarak yenilenir. İptal etmek ya da aboneliğini yönetmek için hesap sayfanı kullanabilirsin.",
+    account: "Hesabımı aç", ads: "Reklamlarımı gör",
+  },
+  "en": {
+    proTitle: "Your PRO membership is active — thank you!", proLine: "We received your payment and your PRO membership is active. Thank you so much for your support!",
+    payTitle: "Payment received — thank you!", payLine: "We received your payment. Thank you so much for your support!",
+    adTitle: "Your ad payment was received", adLine: "We received your ad payment, thank you! You can follow your ad's status in the advertiser panel.",
+    refundTitle: "Your refund has been issued", refundLine: "Your refund has been processed. Depending on your bank, it may take a few business days to appear on your account.",
+    paid: "Amount paid", refunded: "Amount refunded", plan: "Plan", place: "Ad placement", until: "PRO valid until: {0}",
+    renew: "Your subscription renews automatically at the end of each period. You can cancel or manage it from your account page.",
+    account: "Open my account", ads: "View my ads",
+  },
+  "de": {
+    proTitle: "Deine PRO-Mitgliedschaft ist aktiv — danke!", proLine: "Wir haben deine Zahlung erhalten und deine PRO-Mitgliedschaft ist aktiv. Vielen Dank für deine Unterstützung!",
+    payTitle: "Zahlung erhalten — danke!", payLine: "Wir haben deine Zahlung erhalten. Vielen Dank für deine Unterstützung!",
+    adTitle: "Deine Anzeigenzahlung ist eingegangen", adLine: "Wir haben deine Anzeigenzahlung erhalten, danke! Den Status deiner Anzeige kannst du im Werbe-Bereich verfolgen.",
+    refundTitle: "Deine Erstattung wurde veranlasst", refundLine: "Deine Erstattung wurde bearbeitet. Je nach Bank kann es einige Werktage dauern, bis sie auf deinem Konto erscheint.",
+    paid: "Gezahlter Betrag", refunded: "Erstatteter Betrag", plan: "Plan", place: "Anzeigenplatz", until: "PRO gültig bis: {0}",
+    renew: "Dein Abo verlängert sich am Ende jedes Zeitraums automatisch. Kündigen oder verwalten kannst du es auf deiner Kontoseite.",
+    account: "Mein Konto öffnen", ads: "Meine Anzeigen ansehen",
+  },
+  "es": {
+    proTitle: "Tu membresía PRO está activa — ¡gracias!", proLine: "Hemos recibido tu pago y tu membresía PRO está activa. ¡Muchas gracias por tu apoyo!",
+    payTitle: "Pago recibido — ¡gracias!", payLine: "Hemos recibido tu pago. ¡Muchas gracias por tu apoyo!",
+    adTitle: "Hemos recibido el pago de tu anuncio", adLine: "Hemos recibido el pago de tu anuncio, ¡gracias! Puedes seguir el estado de tu anuncio en el panel de anunciante.",
+    refundTitle: "Tu reembolso se ha emitido", refundLine: "Tu reembolso se ha procesado. Según tu banco, puede tardar unos días hábiles en aparecer en tu cuenta.",
+    paid: "Importe pagado", refunded: "Importe reembolsado", plan: "Plan", place: "Ubicación del anuncio", until: "PRO válido hasta: {0}",
+    renew: "Tu suscripción se renueva automáticamente al final de cada periodo. Puedes cancelarla o gestionarla desde la página de tu cuenta.",
+    account: "Abrir mi cuenta", ads: "Ver mis anuncios",
+  },
+  "pt-BR": {
+    proTitle: "Sua assinatura PRO está ativa — obrigado!", proLine: "Recebemos seu pagamento e sua assinatura PRO está ativa. Muito obrigado pelo apoio!",
+    payTitle: "Pagamento recebido — obrigado!", payLine: "Recebemos seu pagamento. Muito obrigado pelo apoio!",
+    adTitle: "Recebemos o pagamento do seu anúncio", adLine: "Recebemos o pagamento do seu anúncio, obrigado! Você pode acompanhar o status do anúncio no painel do anunciante.",
+    refundTitle: "Seu reembolso foi emitido", refundLine: "Seu reembolso foi processado. Dependendo do seu banco, pode levar alguns dias úteis para aparecer na sua conta.",
+    paid: "Valor pago", refunded: "Valor reembolsado", plan: "Plano", place: "Posição do anúncio", until: "PRO válido até: {0}",
+    renew: "Sua assinatura é renovada automaticamente no fim de cada período. Você pode cancelá-la ou gerenciá-la na página da sua conta.",
+    account: "Abrir minha conta", ads: "Ver meus anúncios",
+  },
+  "pt-PT": {
+    proTitle: "A tua subscrição PRO está ativa — obrigado!", proLine: "Recebemos o teu pagamento e a tua subscrição PRO está ativa. Muito obrigado pelo apoio!",
+    payTitle: "Pagamento recebido — obrigado!", payLine: "Recebemos o teu pagamento. Muito obrigado pelo apoio!",
+    adTitle: "Recebemos o pagamento do teu anúncio", adLine: "Recebemos o pagamento do teu anúncio, obrigado! Podes acompanhar o estado do anúncio no painel do anunciante.",
+    refundTitle: "O teu reembolso foi emitido", refundLine: "O teu reembolso foi processado. Consoante o teu banco, pode demorar alguns dias úteis a aparecer na tua conta.",
+    paid: "Valor pago", refunded: "Valor reembolsado", plan: "Plano", place: "Posição do anúncio", until: "PRO válido até: {0}",
+    renew: "A tua subscrição renova-se automaticamente no fim de cada período. Podes cancelá-la ou geri-la na página da tua conta.",
+    account: "Abrir a minha conta", ads: "Ver os meus anúncios",
+  },
+  "fr": {
+    proTitle: "Ton abonnement PRO est actif — merci !", proLine: "Nous avons bien reçu ton paiement et ton abonnement PRO est actif. Merci beaucoup pour ton soutien !",
+    payTitle: "Paiement reçu — merci !", payLine: "Nous avons bien reçu ton paiement. Merci beaucoup pour ton soutien !",
+    adTitle: "Le paiement de ton annonce a été reçu", adLine: "Nous avons bien reçu le paiement de ton annonce, merci ! Tu peux suivre son statut dans l'espace annonceur.",
+    refundTitle: "Ton remboursement a été effectué", refundLine: "Ton remboursement a été traité. Selon ta banque, il peut falloir quelques jours ouvrés pour qu'il apparaisse sur ton compte.",
+    paid: "Montant payé", refunded: "Montant remboursé", plan: "Formule", place: "Emplacement de l'annonce", until: "PRO valable jusqu'au : {0}",
+    renew: "Ton abonnement se renouvelle automatiquement à la fin de chaque période. Tu peux le résilier ou le gérer depuis la page de ton compte.",
+    account: "Ouvrir mon compte", ads: "Voir mes annonces",
+  },
+  "it": {
+    proTitle: "Il tuo abbonamento PRO è attivo — grazie!", proLine: "Abbiamo ricevuto il tuo pagamento e il tuo abbonamento PRO è attivo. Grazie mille per il supporto!",
+    payTitle: "Pagamento ricevuto — grazie!", payLine: "Abbiamo ricevuto il tuo pagamento. Grazie mille per il supporto!",
+    adTitle: "Abbiamo ricevuto il pagamento del tuo annuncio", adLine: "Abbiamo ricevuto il pagamento del tuo annuncio, grazie! Puoi seguirne lo stato nel pannello inserzionista.",
+    refundTitle: "Il tuo rimborso è stato emesso", refundLine: "Il tuo rimborso è stato elaborato. A seconda della banca, potrebbero servire alcuni giorni lavorativi prima che compaia sul conto.",
+    paid: "Importo pagato", refunded: "Importo rimborsato", plan: "Piano", place: "Posizione dell'annuncio", until: "PRO valido fino al: {0}",
+    renew: "Il tuo abbonamento si rinnova automaticamente alla fine di ogni periodo. Puoi annullarlo o gestirlo dalla pagina del tuo account.",
+    account: "Apri il mio account", ads: "Vedi i miei annunci",
+  },
+  "nl": {
+    proTitle: "Je PRO-lidmaatschap is actief — bedankt!", proLine: "We hebben je betaling ontvangen en je PRO-lidmaatschap is actief. Heel erg bedankt voor je steun!",
+    payTitle: "Betaling ontvangen — bedankt!", payLine: "We hebben je betaling ontvangen. Heel erg bedankt voor je steun!",
+    adTitle: "Je advertentiebetaling is ontvangen", adLine: "We hebben je advertentiebetaling ontvangen, bedankt! Je kunt de status van je advertentie volgen in het adverteerderspaneel.",
+    refundTitle: "Je terugbetaling is uitgevoerd", refundLine: "Je terugbetaling is verwerkt. Afhankelijk van je bank kan het enkele werkdagen duren voordat deze op je rekening staat.",
+    paid: "Betaald bedrag", refunded: "Terugbetaald bedrag", plan: "Abonnement", place: "Advertentieplek", until: "PRO geldig tot: {0}",
+    renew: "Je abonnement wordt aan het einde van elke periode automatisch verlengd. Opzeggen of beheren kan via je accountpagina.",
+    account: "Mijn account openen", ads: "Mijn advertenties bekijken",
+  },
+  "pl": {
+    proTitle: "Twoje członkostwo PRO jest aktywne — dziękujemy!", proLine: "Otrzymaliśmy Twoją płatność i Twoje członkostwo PRO jest aktywne. Bardzo dziękujemy za wsparcie!",
+    payTitle: "Płatność otrzymana — dziękujemy!", payLine: "Otrzymaliśmy Twoją płatność. Bardzo dziękujemy za wsparcie!",
+    adTitle: "Otrzymaliśmy płatność za reklamę", adLine: "Otrzymaliśmy płatność za Twoją reklamę, dziękujemy! Status reklamy możesz śledzić w panelu reklamodawcy.",
+    refundTitle: "Zwrot został zlecony", refundLine: "Twój zwrot został przetworzony. W zależności od banku pojawienie się środków na koncie może potrwać kilka dni roboczych.",
+    paid: "Zapłacona kwota", refunded: "Zwrócona kwota", plan: "Plan", place: "Miejsce reklamy", until: "PRO ważne do: {0}",
+    renew: "Twoja subskrypcja odnawia się automatycznie na koniec każdego okresu. Możesz ją anulować lub nią zarządzać na stronie konta.",
+    account: "Otwórz moje konto", ads: "Zobacz moje reklamy",
+  },
+  "sv": {
+    proTitle: "Ditt PRO-medlemskap är aktivt — tack!", proLine: "Vi har tagit emot din betalning och ditt PRO-medlemskap är aktivt. Stort tack för ditt stöd!",
+    payTitle: "Betalning mottagen — tack!", payLine: "Vi har tagit emot din betalning. Stort tack för ditt stöd!",
+    adTitle: "Din annonsbetalning har tagits emot", adLine: "Vi har tagit emot din annonsbetalning, tack! Du kan följa annonsens status i annonsörspanelen.",
+    refundTitle: "Din återbetalning är genomförd", refundLine: "Din återbetalning har behandlats. Beroende på din bank kan det ta några bankdagar innan den syns på ditt konto.",
+    paid: "Betalt belopp", refunded: "Återbetalt belopp", plan: "Plan", place: "Annonsplats", until: "PRO giltigt till: {0}",
+    renew: "Din prenumeration förnyas automatiskt i slutet av varje period. Du kan avsluta eller hantera den på din kontosida.",
+    account: "Öppna mitt konto", ads: "Visa mina annonser",
+  },
+  "fi": {
+    proTitle: "PRO-jäsenyytesi on voimassa — kiitos!", proLine: "Maksusi on vastaanotettu ja PRO-jäsenyytesi on voimassa. Kiitos paljon tuestasi!",
+    payTitle: "Maksu vastaanotettu — kiitos!", payLine: "Maksusi on vastaanotettu. Kiitos paljon tuestasi!",
+    adTitle: "Mainosmaksusi on vastaanotettu", adLine: "Mainosmaksusi on vastaanotettu, kiitos! Voit seurata mainoksesi tilaa mainostajan paneelissa.",
+    refundTitle: "Hyvityksesi on maksettu", refundLine: "Hyvityksesi on käsitelty. Pankista riippuen sen näkyminen tililläsi voi kestää muutaman arkipäivän.",
+    paid: "Maksettu summa", refunded: "Hyvitetty summa", plan: "Tilaus", place: "Mainospaikka", until: "PRO voimassa: {0} asti",
+    renew: "Tilauksesi uusiutuu automaattisesti jokaisen jakson lopussa. Voit perua tai hallita sitä tilisivullasi.",
+    account: "Avaa tilini", ads: "Näytä mainokseni",
+  },
+  "ru": {
+    proTitle: "Подписка PRO активна — спасибо!", proLine: "Мы получили твой платёж, подписка PRO активна. Большое спасибо за поддержку!",
+    payTitle: "Платёж получен — спасибо!", payLine: "Мы получили твой платёж. Большое спасибо за поддержку!",
+    adTitle: "Оплата рекламы получена", adLine: "Мы получили оплату твоей рекламы, спасибо! Статус объявления можно отслеживать в кабинете рекламодателя.",
+    refundTitle: "Возврат средств оформлен", refundLine: "Возврат обработан. В зависимости от банка средства могут поступить на счёт в течение нескольких рабочих дней.",
+    paid: "Оплачено", refunded: "Возвращено", plan: "Тариф", place: "Место размещения", until: "PRO действует до: {0}",
+    renew: "Подписка автоматически продлевается в конце каждого периода. Отменить её или управлять ею можно на странице аккаунта.",
+    account: "Открыть мой аккаунт", ads: "Мои объявления",
+  },
+  "zh-CN": {
+    proTitle: "你的 PRO 会员已生效 — 谢谢！", proLine: "我们已收到你的付款，你的 PRO 会员已生效。非常感谢你的支持！",
+    payTitle: "已收到付款 — 谢谢！", payLine: "我们已收到你的付款。非常感谢你的支持！",
+    adTitle: "已收到你的广告付款", adLine: "我们已收到你的广告付款，谢谢！你可以在广告主面板中查看广告状态。",
+    refundTitle: "你的退款已发放", refundLine: "你的退款已处理。根据银行不同，可能需要几个工作日才会到账。",
+    paid: "支付金额", refunded: "退款金额", plan: "套餐", place: "广告位置", until: "PRO 有效期至：{0}",
+    renew: "你的订阅会在每个周期结束时自动续订。你可以在账户页面取消或管理订阅。",
+    account: "打开我的账户", ads: "查看我的广告",
+  },
+  "ja": {
+    proTitle: "PRO メンバーシップが有効になりました — ありがとうございます！", proLine: "お支払いを確認し、PRO メンバーシップが有効になりました。ご支援ありがとうございます！",
+    payTitle: "お支払いを受け付けました — ありがとうございます！", payLine: "お支払いを確認しました。ご支援ありがとうございます！",
+    adTitle: "広告のお支払いを受け付けました", adLine: "広告のお支払いを確認しました。ありがとうございます！広告のステータスは広告主パネルで確認できます。",
+    refundTitle: "返金が完了しました", refundLine: "返金を処理しました。銀行によっては、口座に反映されるまで数営業日かかる場合があります。",
+    paid: "お支払い金額", refunded: "返金額", plan: "プラン", place: "広告枠", until: "PRO 有効期限：{0}",
+    renew: "サブスクリプションは各期間の終わりに自動更新されます。解約や管理はアカウントページから行えます。",
+    account: "アカウントを開く", ads: "自分の広告を見る",
+  },
+};
+
+async function paymentReceipt(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data,created_at").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "payment_receipt") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(PAY_MAIL, u.lang);
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const refund = d.kind === "refund";
+  const ad = d.ad === true || /^Reklam:/.test(String(d.plan ?? ""));
+  // Hediye PRO ödemesi: ödeyen hediye edendir; kendi PRO süresi yazılmaz, alıcının adı gösterilir
+  const gift = d.gift === true;
+  const gm = pick(PRO_GIFT, u.lang);
+  const giftName = String(d.gift_name || "").trim() || "?";
+  const money = fmtMoney(d.amount, d.currency, u.lang);
+  let title: string;
+  let line: string;
+  let until: Date | null = null;
+  if (!ad && !refund && !gift) {
+    // Ödeme kaydı abonelik olayından önce gelebilir: PRO süresinin güncellenmesi için kısa bekle, sonra güncel değeri oku
+    // (pg_net isteği 5 sn'de zaman aşımına uğrar; bekleme + gönderim bunun altında kalmalı). Süre bulunamazsa genel teşekkür gider.
+    await new Promise((r) => setTimeout(r, 2500));
+    const { data: p } = await db.from("profiles").select("pro_until").eq("id", n.user_id).maybeSingle();
+    const times = [p?.pro_until, d.pro_until].filter(Boolean).map((x) => new Date(String(x)).getTime()).filter((x) => !isNaN(x));
+    const best = times.length ? Math.max(...times) : 0;
+    if (best > Date.now()) until = new Date(best);
+  }
+  if (refund) {
+    title = m.refundTitle;
+    line = m.refundLine;
+  } else if (ad) {
+    title = m.adTitle;
+    line = m.adLine;
+  } else if (gift) {
+    title = gm.payTitle;
+    line = gm.payLine.replace("{0}", giftName);
+  } else if (until) {
+    title = m.proTitle;
+    line = m.proLine;
+  } else {
+    title = m.payTitle;
+    line = m.payLine;
+  }
+  const plan = ad ? adPlanPlace(d.plan, L) : String(d.plan ?? "");
+  const body = `
+    <p style="margin:0 0 16px">${esc(line)}</p>
+    ${amountBox(refund ? m.refunded : m.paid, money, refund, esc(fmtDay(new Date(n.created_at ?? Date.now()), u.lang)))}
+    ${plan || gift ? `<table role="presentation" style="border-collapse:collapse;margin:0 0 12px">${plan ? infoRow(ad ? m.place : m.plan, `<b>${esc(plan)}</b>`) : ""}${gift ? infoRow(gm.to, `<b>🎁 ${esc(giftName)}</b>`) : ""}</table>` : ""}
+    ${until ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(m.until.replace("{0}", fmtDay(until, u.lang)))}</b></p>` : ""}
+    ${!ad && !refund && d.source === "lemon" ? `<div style="${BOX}">${esc(gift ? gm.renew : m.renew)}</div>` : ""}
+    ${button(ad ? `${SITE}/reklam.html` : `${SITE}/hesap.html`, ad ? m.ads : m.account)}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}`, page(title, body, line, u.lang));
+  return { ok: true, sent };
+}
+
+// ---------------------------------------------------------------------------
+// Hediye PRO (15 dil): alıcıya hediye paketi temalı e-posta, hediye edene makbuz ve "hediyen ulaştı", alıcıya "hediye sonlandırıldı"
+// ---------------------------------------------------------------------------
+
+type GiftMail = {
+  // Alıcıya: hediye geldi
+  subject: string; heading: string; line: string; tag: string; from: string; until: string;
+  perksTitle: string; perks: [string, string, string]; note: string; button: string;
+  // Hediye edene: makbuz (payment_receipt)
+  payTitle: string; payLine: string; to: string; renew: string;
+  // Hediye edene: hediye ulaştı (pro_gift_sent)
+  sentSubject: string; sentLine: string; sentNext: string; sentManage: string; sentButton: string;
+  // Alıcıya: hediye sonlandırıldı (pro_gift_ended)
+  endSubject: string; endLine: string; endLineNow: string; endHint: string; endButton: string;
+};
+const PRO_GIFT: Record<string, GiftMail> = {
+  "tr": {
+    subject: "{0} sana bir hediye gönderdi! 🎁", heading: "{0} sana bir hediye gönderdi!",
+    line: "{0} sana SRTR Pitwall PRO üyeliği hediye etti. Tüm PRO özellikleri hesabında açıldı — iyi yarışlar!",
+    tag: "Hediye", from: "Kimden: {0}", until: "Geçerlilik: {0} tarihine kadar",
+    perksTitle: "Hediyende neler var?",
+    perks: ["PRO overlay'ler, sesli spotter ve yarış mühendisi", "Reklamsız SRTR Pitwall", "SRTR Pitwall'un geliştirilmesine destek"],
+    note: "Hediye aboneliği hediye eden tarafından yönetilir; senden hiçbir ödeme alınmaz.", button: "Hediyemi gör",
+    payTitle: "Hediye PRO ödemen alındı — teşekkürler!", payLine: "{0} için hediye PRO ödemen alındı. Bu güzel jest için teşekkür ederiz!", to: "Hediye edilen",
+    renew: "Hediye aboneliği her dönemin sonunda senin ödeme yönteminden otomatik yenilenir. İstediğin zaman hesap sayfandaki \"Hediye ettiğim abonelikler\" bölümünden sonlandırabilirsin; ödenen dönem bitene kadar PRO sürer.",
+    sentSubject: "Hediyen ulaştı! 🎁", sentLine: "{0} adlı üyeye hediye ettiğin PRO aboneliği başladı; tüm PRO özellikleri onun hesabında açıldı. Bu güzel jest için teşekkürler!",
+    sentNext: "Sonraki yenileme: {0}", sentManage: "Hediyeyi hesap sayfandaki \"Hediye ettiğim abonelikler\" bölümünden istediğin zaman sonlandırabilirsin.", sentButton: "Hediyelerimi gör",
+    endSubject: "{0} hediye PRO aboneliğini sonlandırdı", endLine: "{0} hediye ettiği PRO aboneliğini sonlandırdı. PRO {1} tarihine kadar devam eder.",
+    endLineNow: "{0} hediye ettiği PRO aboneliğini sonlandırdı.", endHint: "Süre bitince istersen PRO'yu kendin de alabilirsin. Ayarların ve verilerin silinmez.", endButton: "Hesabımı aç",
+  },
+  "en": {
+    subject: "{0} sent you a gift! 🎁", heading: "{0} sent you a gift!",
+    line: "{0} gifted you an SRTR Pitwall PRO membership. Every PRO feature is now unlocked on your account — enjoy the races!",
+    tag: "Gift", from: "From: {0}", until: "Valid until {0}",
+    perksTitle: "What's inside your gift?",
+    perks: ["PRO overlays, voice spotter and race engineer", "Ad-free SRTR Pitwall", "Support for SRTR Pitwall's development"],
+    note: "The gift subscription is managed by the person who gave it; you won't be charged anything.", button: "See my gift",
+    payTitle: "Your PRO gift payment was received — thank you!", payLine: "We received your PRO gift payment for {0}. Thank you for such a kind gesture!", to: "Gift for",
+    renew: "The gift subscription renews automatically from your payment method at the end of each period. You can end it anytime under \"Subscriptions I gifted\" on your account page; PRO lasts until the paid period ends.",
+    sentSubject: "Your gift has arrived! 🎁", sentLine: "The PRO subscription you gifted to {0} has started, and every PRO feature is now unlocked on their account. Thank you for such a kind gesture!",
+    sentNext: "Next renewal: {0}", sentManage: "You can end the gift anytime under \"Subscriptions I gifted\" on your account page.", sentButton: "View my gifts",
+    endSubject: "{0} ended your PRO gift subscription", endLine: "{0} ended the PRO subscription they gifted you. Your PRO continues until {1}.",
+    endLineNow: "{0} ended the PRO subscription they gifted you.", endHint: "When it ends you can get PRO yourself anytime. Your settings and data are kept.", endButton: "Open my account",
+  },
+  "de": {
+    subject: "{0} hat dir ein Geschenk geschickt! 🎁", heading: "{0} hat dir ein Geschenk geschickt!",
+    line: "{0} hat dir eine SRTR Pitwall PRO-Mitgliedschaft geschenkt. Alle PRO-Funktionen sind jetzt in deinem Konto freigeschaltet — viel Spaß beim Rennen!",
+    tag: "Geschenk", from: "Von: {0}", until: "Gültig bis {0}",
+    perksTitle: "Was steckt in deinem Geschenk?",
+    perks: ["PRO-Overlays, Sprach-Spotter und Renningenieur", "SRTR Pitwall ohne Werbung", "Unterstützung der Weiterentwicklung von SRTR Pitwall"],
+    note: "Das Geschenk-Abo wird von der schenkenden Person verwaltet; dir wird nichts berechnet.", button: "Mein Geschenk ansehen",
+    payTitle: "Deine PRO-Geschenkzahlung ist eingegangen — danke!", payLine: "Wir haben deine PRO-Geschenkzahlung für {0} erhalten. Danke für diese tolle Geste!", to: "Geschenk für",
+    renew: "Das Geschenk-Abo verlängert sich am Ende jedes Zeitraums automatisch über deine Zahlungsmethode. Du kannst es jederzeit auf deiner Kontoseite unter \"Verschenkte Abos\" beenden; PRO bleibt bis zum Ende des bezahlten Zeitraums aktiv.",
+    sentSubject: "Dein Geschenk ist angekommen! 🎁", sentLine: "Das PRO-Abo, das du {0} geschenkt hast, hat begonnen; alle PRO-Funktionen sind in seinem Konto freigeschaltet. Danke für diese tolle Geste!",
+    sentNext: "Nächste Verlängerung: {0}", sentManage: "Du kannst das Geschenk jederzeit auf deiner Kontoseite unter \"Verschenkte Abos\" beenden.", sentButton: "Meine Geschenke ansehen",
+    endSubject: "{0} hat dein PRO-Geschenk-Abo beendet", endLine: "{0} hat das PRO-Abo beendet, das er/sie dir geschenkt hat. Dein PRO läuft noch bis {1}.",
+    endLineNow: "{0} hat das PRO-Abo beendet, das er/sie dir geschenkt hat.", endHint: "Danach kannst du PRO jederzeit selbst holen. Deine Einstellungen und Daten bleiben erhalten.", endButton: "Mein Konto öffnen",
+  },
+  "es": {
+    subject: "¡{0} te ha enviado un regalo! 🎁", heading: "¡{0} te ha enviado un regalo!",
+    line: "{0} te ha regalado una membresía SRTR Pitwall PRO. Todas las funciones PRO ya están activas en tu cuenta. ¡Disfruta de las carreras!",
+    tag: "Regalo", from: "De: {0}", until: "Válido hasta el {0}",
+    perksTitle: "¿Qué incluye tu regalo?",
+    perks: ["Overlays PRO, spotter por voz e ingeniero de carrera", "SRTR Pitwall sin anuncios", "Apoyo al desarrollo de SRTR Pitwall"],
+    note: "La suscripción de regalo la gestiona quien te la regaló; no se te cobrará nada.", button: "Ver mi regalo",
+    payTitle: "Hemos recibido el pago de tu regalo PRO — ¡gracias!", payLine: "Hemos recibido el pago de tu regalo PRO para {0}. ¡Gracias por este bonito gesto!", to: "Regalo para",
+    renew: "La suscripción de regalo se renueva automáticamente con tu método de pago al final de cada periodo. Puedes finalizarla cuando quieras en \"Suscripciones que regalé\" en la página de tu cuenta; el PRO dura hasta el final del periodo pagado.",
+    sentSubject: "¡Tu regalo ha llegado! 🎁", sentLine: "La suscripción PRO que regalaste a {0} ya ha comenzado y todas las funciones PRO están activas en su cuenta. ¡Gracias por este bonito gesto!",
+    sentNext: "Próxima renovación: {0}", sentManage: "Puedes finalizar el regalo cuando quieras en \"Suscripciones que regalé\" en la página de tu cuenta.", sentButton: "Ver mis regalos",
+    endSubject: "{0} ha finalizado tu suscripción PRO de regalo", endLine: "{0} ha finalizado la suscripción PRO que te regaló. Tu PRO sigue activo hasta el {1}.",
+    endLineNow: "{0} ha finalizado la suscripción PRO que te regaló.", endHint: "Cuando termine, puedes conseguir PRO tú mismo cuando quieras. Tus ajustes y datos se conservan.", endButton: "Abrir mi cuenta",
+  },
+  "pt-BR": {
+    subject: "{0} te enviou um presente! 🎁", heading: "{0} te enviou um presente!",
+    line: "{0} te deu de presente uma assinatura SRTR Pitwall PRO. Todos os recursos PRO já estão liberados na sua conta — boas corridas!",
+    tag: "Presente", from: "De: {0}", until: "Válido até {0}",
+    perksTitle: "O que vem no seu presente?",
+    perks: ["Overlays PRO, spotter por voz e engenheiro de corrida", "SRTR Pitwall sem anúncios", "Apoio ao desenvolvimento do SRTR Pitwall"],
+    note: "A assinatura de presente é gerenciada por quem a deu; você não será cobrado.", button: "Ver meu presente",
+    payTitle: "Recebemos o pagamento do seu presente PRO — obrigado!", payLine: "Recebemos o pagamento do presente PRO para {0}. Obrigado por esse gesto tão legal!", to: "Presente para",
+    renew: "A assinatura de presente é renovada automaticamente no seu método de pagamento ao fim de cada período. Você pode encerrá-la quando quiser em \"Assinaturas que presenteei\" na página da sua conta; o PRO dura até o fim do período pago.",
+    sentSubject: "Seu presente chegou! 🎁", sentLine: "A assinatura PRO que você deu para {0} começou, e todos os recursos PRO estão liberados na conta. Obrigado por esse gesto tão legal!",
+    sentNext: "Próxima renovação: {0}", sentManage: "Você pode encerrar o presente quando quiser em \"Assinaturas que presenteei\" na página da sua conta.", sentButton: "Ver meus presentes",
+    endSubject: "{0} encerrou sua assinatura PRO de presente", endLine: "{0} encerrou a assinatura PRO que te deu de presente. Seu PRO continua até {1}.",
+    endLineNow: "{0} encerrou a assinatura PRO que te deu de presente.", endHint: "Quando terminar, você pode assinar o PRO por conta própria quando quiser. Suas configurações e dados são mantidos.", endButton: "Abrir minha conta",
+  },
+  "pt-PT": {
+    subject: "{0} enviou-te um presente! 🎁", heading: "{0} enviou-te um presente!",
+    line: "{0} ofereceu-te uma subscrição SRTR Pitwall PRO. Todas as funcionalidades PRO já estão ativas na tua conta — boas corridas!",
+    tag: "Presente", from: "De: {0}", until: "Válido até {0}",
+    perksTitle: "O que traz o teu presente?",
+    perks: ["Overlays PRO, spotter por voz e engenheiro de corrida", "SRTR Pitwall sem anúncios", "Apoio ao desenvolvimento do SRTR Pitwall"],
+    note: "A subscrição oferecida é gerida por quem a ofereceu; não te será cobrado nada.", button: "Ver o meu presente",
+    payTitle: "Recebemos o pagamento da tua oferta PRO — obrigado!", payLine: "Recebemos o pagamento da oferta PRO para {0}. Obrigado por este gesto tão simpático!", to: "Oferta para",
+    renew: "A subscrição oferecida renova-se automaticamente no teu método de pagamento no fim de cada período. Podes terminá-la quando quiseres em \"Subscrições que ofereci\" na página da tua conta; o PRO dura até ao fim do período pago.",
+    sentSubject: "O teu presente chegou! 🎁", sentLine: "A subscrição PRO que ofereceste a {0} começou, e todas as funcionalidades PRO estão ativas na conta. Obrigado por este gesto tão simpático!",
+    sentNext: "Próxima renovação: {0}", sentManage: "Podes terminar a oferta quando quiseres em \"Subscrições que ofereci\" na página da tua conta.", sentButton: "Ver as minhas ofertas",
+    endSubject: "{0} terminou a tua subscrição PRO oferecida", endLine: "{0} terminou a subscrição PRO que te ofereceu. O teu PRO continua até {1}.",
+    endLineNow: "{0} terminou a subscrição PRO que te ofereceu.", endHint: "Quando terminar, podes subscrever o PRO tu mesmo quando quiseres. As tuas definições e dados mantêm-se.", endButton: "Abrir a minha conta",
+  },
+  "fr": {
+    subject: "{0} t'a envoyé un cadeau ! 🎁", heading: "{0} t'a envoyé un cadeau !",
+    line: "{0} t'a offert un abonnement SRTR Pitwall PRO. Toutes les fonctions PRO sont maintenant débloquées sur ton compte — bonnes courses !",
+    tag: "Cadeau", from: "De la part de : {0}", until: "Valable jusqu'au {0}",
+    perksTitle: "Que contient ton cadeau ?",
+    perks: ["Overlays PRO, spotter vocal et ingénieur de course", "SRTR Pitwall sans publicité", "Un soutien au développement de SRTR Pitwall"],
+    note: "L'abonnement offert est géré par la personne qui te l'a offert ; rien ne te sera facturé.", button: "Voir mon cadeau",
+    payTitle: "Le paiement de ton cadeau PRO a été reçu — merci !", payLine: "Nous avons bien reçu le paiement de ton cadeau PRO pour {0}. Merci pour ce joli geste !", to: "Cadeau pour",
+    renew: "L'abonnement offert se renouvelle automatiquement avec ton moyen de paiement à la fin de chaque période. Tu peux y mettre fin à tout moment dans « Abonnements offerts » sur la page de ton compte ; le PRO reste actif jusqu'à la fin de la période payée.",
+    sentSubject: "Ton cadeau est arrivé ! 🎁", sentLine: "L'abonnement PRO que tu as offert à {0} a commencé, et toutes les fonctions PRO sont débloquées sur son compte. Merci pour ce joli geste !",
+    sentNext: "Prochain renouvellement : {0}", sentManage: "Tu peux mettre fin au cadeau à tout moment dans « Abonnements offerts » sur la page de ton compte.", sentButton: "Voir mes cadeaux",
+    endSubject: "{0} a mis fin à ton abonnement PRO offert", endLine: "{0} a mis fin à l'abonnement PRO qu'il/elle t'a offert. Ton PRO continue jusqu'au {1}.",
+    endLineNow: "{0} a mis fin à l'abonnement PRO qu'il/elle t'a offert.", endHint: "Ensuite, tu peux prendre PRO toi-même quand tu veux. Tes réglages et données sont conservés.", endButton: "Ouvrir mon compte",
+  },
+  "it": {
+    subject: "{0} ti ha mandato un regalo! 🎁", heading: "{0} ti ha mandato un regalo!",
+    line: "{0} ti ha regalato un abbonamento SRTR Pitwall PRO. Tutte le funzioni PRO sono ora attive sul tuo account — buone gare!",
+    tag: "Regalo", from: "Da: {0}", until: "Valido fino al {0}",
+    perksTitle: "Cosa contiene il tuo regalo?",
+    perks: ["Overlay PRO, spotter vocale e ingegnere di gara", "SRTR Pitwall senza pubblicità", "Supporto allo sviluppo di SRTR Pitwall"],
+    note: "L'abbonamento regalo è gestito da chi te l'ha regalato; non ti verrà addebitato nulla.", button: "Vedi il mio regalo",
+    payTitle: "Abbiamo ricevuto il pagamento del tuo regalo PRO — grazie!", payLine: "Abbiamo ricevuto il pagamento del regalo PRO per {0}. Grazie per questo bel gesto!", to: "Regalo per",
+    renew: "L'abbonamento regalo si rinnova automaticamente con il tuo metodo di pagamento alla fine di ogni periodo. Puoi terminarlo quando vuoi in \"Abbonamenti regalati\" nella pagina del tuo account; il PRO dura fino alla fine del periodo pagato.",
+    sentSubject: "Il tuo regalo è arrivato! 🎁", sentLine: "L'abbonamento PRO che hai regalato a {0} è iniziato e tutte le funzioni PRO sono attive sul suo account. Grazie per questo bel gesto!",
+    sentNext: "Prossimo rinnovo: {0}", sentManage: "Puoi terminare il regalo quando vuoi in \"Abbonamenti regalati\" nella pagina del tuo account.", sentButton: "Vedi i miei regali",
+    endSubject: "{0} ha terminato il tuo abbonamento PRO regalo", endLine: "{0} ha terminato l'abbonamento PRO che ti aveva regalato. Il tuo PRO continua fino al {1}.",
+    endLineNow: "{0} ha terminato l'abbonamento PRO che ti aveva regalato.", endHint: "Alla scadenza puoi attivare PRO tu stesso quando vuoi. Impostazioni e dati restano.", endButton: "Apri il mio account",
+  },
+  "nl": {
+    subject: "{0} heeft je een cadeau gestuurd! 🎁", heading: "{0} heeft je een cadeau gestuurd!",
+    line: "{0} heeft je een SRTR Pitwall PRO-lidmaatschap cadeau gegeven. Alle PRO-functies zijn nu ontgrendeld op je account — veel raceplezier!",
+    tag: "Cadeau", from: "Van: {0}", until: "Geldig tot {0}",
+    perksTitle: "Wat zit er in je cadeau?",
+    perks: ["PRO-overlays, gesproken spotter en race-engineer", "SRTR Pitwall zonder advertenties", "Steun voor de ontwikkeling van SRTR Pitwall"],
+    note: "Het cadeau-abonnement wordt beheerd door de gever; jij betaalt niets.", button: "Mijn cadeau bekijken",
+    payTitle: "Je PRO-cadeaubetaling is ontvangen — bedankt!", payLine: "We hebben je PRO-cadeaubetaling voor {0} ontvangen. Bedankt voor dit mooie gebaar!", to: "Cadeau voor",
+    renew: "Het cadeau-abonnement wordt aan het einde van elke periode automatisch verlengd via jouw betaalmethode. Je kunt het altijd beëindigen onder \"Cadeau-abonnementen\" op je accountpagina; PRO blijft tot het einde van de betaalde periode.",
+    sentSubject: "Je cadeau is aangekomen! 🎁", sentLine: "Het PRO-abonnement dat je aan {0} hebt gegeven is gestart; alle PRO-functies zijn ontgrendeld op diens account. Bedankt voor dit mooie gebaar!",
+    sentNext: "Volgende verlenging: {0}", sentManage: "Je kunt het cadeau altijd beëindigen onder \"Cadeau-abonnementen\" op je accountpagina.", sentButton: "Mijn cadeaus bekijken",
+    endSubject: "{0} heeft je PRO-cadeau-abonnement beëindigd", endLine: "{0} heeft het PRO-abonnement beëindigd dat je cadeau kreeg. Je PRO loopt door tot {1}.",
+    endLineNow: "{0} heeft het PRO-abonnement beëindigd dat je cadeau kreeg.", endHint: "Daarna kun je PRO altijd zelf nemen. Je instellingen en gegevens blijven bewaard.", endButton: "Mijn account openen",
+  },
+  "pl": {
+    subject: "{0} wysłał(a) Ci prezent! 🎁", heading: "{0} wysłał(a) Ci prezent!",
+    line: "{0} podarował(a) Ci członkostwo SRTR Pitwall PRO. Wszystkie funkcje PRO są już odblokowane na Twoim koncie — udanych wyścigów!",
+    tag: "Prezent", from: "Od: {0}", until: "Ważne do {0}",
+    perksTitle: "Co jest w Twoim prezencie?",
+    perks: ["Overlaye PRO, głosowy spotter i inżynier wyścigowy", "SRTR Pitwall bez reklam", "Wsparcie rozwoju SRTR Pitwall"],
+    note: "Podarowaną subskrypcją zarządza osoba, która ją podarowała; nic nie zapłacisz.", button: "Zobacz mój prezent",
+    payTitle: "Otrzymaliśmy płatność za prezent PRO — dziękujemy!", payLine: "Otrzymaliśmy płatność za prezent PRO dla {0}. Dziękujemy za ten miły gest!", to: "Prezent dla",
+    renew: "Podarowana subskrypcja odnawia się automatycznie z Twojej metody płatności na koniec każdego okresu. Możesz ją zakończyć w dowolnej chwili w sekcji \"Podarowane subskrypcje\" na stronie konta; PRO trwa do końca opłaconego okresu.",
+    sentSubject: "Twój prezent dotarł! 🎁", sentLine: "Subskrypcja PRO, którą podarowałeś(-aś) {0}, wystartowała — wszystkie funkcje PRO są odblokowane na tym koncie. Dziękujemy za ten miły gest!",
+    sentNext: "Następne odnowienie: {0}", sentManage: "Możesz zakończyć prezent w dowolnej chwili w sekcji \"Podarowane subskrypcje\" na stronie konta.", sentButton: "Zobacz moje prezenty",
+    endSubject: "{0} zakończył(a) podarowaną Ci subskrypcję PRO", endLine: "{0} zakończył(a) podarowaną Ci subskrypcję PRO. Twoje PRO trwa do {1}.",
+    endLineNow: "{0} zakończył(a) podarowaną Ci subskrypcję PRO.", endHint: "Potem możesz w każdej chwili wykupić PRO samodzielnie. Ustawienia i dane zostają.", endButton: "Otwórz moje konto",
+  },
+  "sv": {
+    subject: "{0} har skickat en present till dig! 🎁", heading: "{0} har skickat en present till dig!",
+    line: "{0} har gett dig ett SRTR Pitwall PRO-medlemskap i present. Alla PRO-funktioner är nu upplåsta på ditt konto — lycka till på banan!",
+    tag: "Present", from: "Från: {0}", until: "Giltigt till {0}",
+    perksTitle: "Vad ingår i din present?",
+    perks: ["PRO-overlays, röst-spotter och tävlingsingenjör", "SRTR Pitwall utan annonser", "Stöd för utvecklingen av SRTR Pitwall"],
+    note: "Presentprenumerationen hanteras av den som gav den; du debiteras ingenting.", button: "Visa min present",
+    payTitle: "Din PRO-presentbetalning har tagits emot — tack!", payLine: "Vi har tagit emot din PRO-presentbetalning för {0}. Tack för en fin gest!", to: "Present till",
+    renew: "Presentprenumerationen förnyas automatiskt via din betalmetod i slutet av varje period. Du kan avsluta den när som helst under \"Prenumerationer jag gett bort\" på din kontosida; PRO gäller till slutet av den betalda perioden.",
+    sentSubject: "Din present har kommit fram! 🎁", sentLine: "PRO-prenumerationen du gav till {0} har startat, och alla PRO-funktioner är upplåsta på kontot. Tack för en fin gest!",
+    sentNext: "Nästa förnyelse: {0}", sentManage: "Du kan avsluta presenten när som helst under \"Prenumerationer jag gett bort\" på din kontosida.", sentButton: "Visa mina presenter",
+    endSubject: "{0} har avslutat din PRO-presentprenumeration", endLine: "{0} har avslutat PRO-prenumerationen du fick i present. Ditt PRO gäller till {1}.",
+    endLineNow: "{0} har avslutat PRO-prenumerationen du fick i present.", endHint: "Därefter kan du skaffa PRO själv när du vill. Dina inställningar och data finns kvar.", endButton: "Öppna mitt konto",
+  },
+  "fi": {
+    subject: "{0} lähetti sinulle lahjan! 🎁", heading: "{0} lähetti sinulle lahjan!",
+    line: "{0} antoi sinulle SRTR Pitwall PRO -jäsenyyden lahjaksi. Kaikki PRO-ominaisuudet ovat nyt käytössä tililläsi — hyviä kisoja!",
+    tag: "Lahja", from: "Lähettäjä: {0}", until: "Voimassa {0} asti",
+    perksTitle: "Mitä lahjasi sisältää?",
+    perks: ["PRO-overlayt, puhuva spotteri ja kilpainsinööri", "Mainokseton SRTR Pitwall", "Tukea SRTR Pitwallin kehitykselle"],
+    note: "Lahjatilausta hallinnoi sen antaja; sinulta ei veloiteta mitään.", button: "Katso lahjani",
+    payTitle: "PRO-lahjasi maksu on vastaanotettu — kiitos!", payLine: "Olemme vastaanottaneet PRO-lahjan maksun käyttäjälle {0}. Kiitos hienosta eleestä!", to: "Lahja käyttäjälle",
+    renew: "Lahjatilaus uusiutuu automaattisesti maksutavallasi jokaisen jakson lopussa. Voit lopettaa sen milloin tahansa tilisivusi kohdasta \"Lahjoittamani tilaukset\"; PRO on voimassa maksetun jakson loppuun.",
+    sentSubject: "Lahjasi on perillä! 🎁", sentLine: "Käyttäjälle {0} lahjoittamasi PRO-tilaus on alkanut, ja kaikki PRO-ominaisuudet ovat käytössä hänen tilillään. Kiitos hienosta eleestä!",
+    sentNext: "Seuraava uusinta: {0}", sentManage: "Voit lopettaa lahjan milloin tahansa tilisivusi kohdasta \"Lahjoittamani tilaukset\".", sentButton: "Katso lahjani",
+    endSubject: "{0} lopetti sinulle lahjoittamansa PRO-tilauksen", endLine: "{0} lopetti sinulle lahjoittamansa PRO-tilauksen. PRO jatkuu {1} asti.",
+    endLineNow: "{0} lopetti sinulle lahjoittamansa PRO-tilauksen.", endHint: "Sen jälkeen voit hankkia PRO:n itse milloin tahansa. Asetukset ja tiedot säilyvät.", endButton: "Avaa tilini",
+  },
+  "ru": {
+    subject: "{0} отправил(а) тебе подарок! 🎁", heading: "{0} отправил(а) тебе подарок!",
+    line: "{0} подарил(а) тебе подписку SRTR Pitwall PRO. Все PRO-функции уже открыты в твоём аккаунте — удачных гонок!",
+    tag: "Подарок", from: "От: {0}", until: "Действует до {0}",
+    perksTitle: "Что в твоём подарке?",
+    perks: ["PRO-оверлеи, голосовой споттер и гоночный инженер", "SRTR Pitwall без рекламы", "Поддержка развития SRTR Pitwall"],
+    note: "Подарочной подпиской управляет тот, кто её подарил; с тебя ничего не спишут.", button: "Посмотреть подарок",
+    payTitle: "Оплата подарка PRO получена — спасибо!", payLine: "Мы получили оплату подарка PRO для {0}. Спасибо за такой приятный жест!", to: "Подарок для",
+    renew: "Подарочная подписка автоматически продлевается с твоего способа оплаты в конце каждого периода. Ты можешь завершить её в любой момент в разделе \"Подаренные подписки\" на странице аккаунта; PRO действует до конца оплаченного периода.",
+    sentSubject: "Твой подарок доставлен! 🎁", sentLine: "Подписка PRO, которую ты подарил(а) {0}, началась — все PRO-функции открыты в его аккаунте. Спасибо за такой приятный жест!",
+    sentNext: "Следующее продление: {0}", sentManage: "Ты можешь завершить подарок в любой момент в разделе \"Подаренные подписки\" на странице аккаунта.", sentButton: "Мои подарки",
+    endSubject: "{0} завершил(а) подаренную тебе подписку PRO", endLine: "{0} завершил(а) подаренную тебе подписку PRO. PRO действует до {1}.",
+    endLineNow: "{0} завершил(а) подаренную тебе подписку PRO.", endHint: "После этого ты можешь в любой момент оформить PRO сам(а). Настройки и данные сохраняются.", endButton: "Открыть мой аккаунт",
+  },
+  "zh-CN": {
+    subject: "{0} 给你送来了一份礼物！🎁", heading: "{0} 给你送来了一份礼物！",
+    line: "{0} 送了你一份 SRTR Pitwall PRO 会员。你的账户已解锁所有 PRO 功能——祝你比赛愉快！",
+    tag: "礼物", from: "来自：{0}", until: "有效期至 {0}",
+    perksTitle: "你的礼物包含什么？",
+    perks: ["PRO 叠加层、语音观察员和比赛工程师", "无广告的 SRTR Pitwall", "支持 SRTR Pitwall 的持续开发"],
+    note: "礼物订阅由赠送者管理，你无需支付任何费用。", button: "查看我的礼物",
+    payTitle: "已收到你的 PRO 礼物付款 — 谢谢！", payLine: "我们已收到你赠送给 {0} 的 PRO 礼物付款。感谢你的这份心意！", to: "赠送给",
+    renew: "礼物订阅会在每个周期结束时通过你的付款方式自动续订。你可以随时在账户页面的“我赠送的订阅”中终止；PRO 会持续到已付费周期结束。",
+    sentSubject: "你的礼物已送达！🎁", sentLine: "你赠送给 {0} 的 PRO 订阅已开始，对方账户已解锁所有 PRO 功能。感谢你的这份心意！",
+    sentNext: "下次续订：{0}", sentManage: "你可以随时在账户页面的“我赠送的订阅”中终止这份礼物。", sentButton: "查看我的礼物",
+    endSubject: "{0} 终止了赠送给你的 PRO 订阅", endLine: "{0} 终止了赠送给你的 PRO 订阅。你的 PRO 将持续到 {1}。",
+    endLineNow: "{0} 终止了赠送给你的 PRO 订阅。", endHint: "到期后你可以随时自行订阅 PRO。你的设置和数据会保留。", endButton: "打开我的账户",
+  },
+  "ja": {
+    subject: "{0} さんからギフトが届きました！🎁", heading: "{0} さんからギフトが届きました！",
+    line: "{0} さんから SRTR Pitwall PRO メンバーシップがプレゼントされました。アカウントですべての PRO 機能が使えるようになりました。レースを楽しんでください！",
+    tag: "ギフト", from: "贈り主：{0}", until: "有効期限：{0}",
+    perksTitle: "ギフトの中身",
+    perks: ["PRO オーバーレイ、音声スポッターとレースエンジニア", "広告なしの SRTR Pitwall", "SRTR Pitwall の開発支援"],
+    note: "ギフトのサブスクリプションは贈り主が管理します。あなたに請求されることはありません。", button: "ギフトを見る",
+    payTitle: "PRO ギフトのお支払いを受け付けました — ありがとうございます！", payLine: "{0} さんへの PRO ギフトのお支払いを確認しました。素敵な贈り物をありがとうございます！", to: "贈り先",
+    renew: "ギフトのサブスクリプションは各期間の終わりにあなたのお支払い方法で自動更新されます。アカウントページの「贈ったサブスクリプション」からいつでも終了でき、PRO は支払い済み期間の終わりまで続きます。",
+    sentSubject: "ギフトが届きました！🎁", sentLine: "{0} さんに贈った PRO サブスクリプションが始まり、相手のアカウントですべての PRO 機能が使えるようになりました。素敵な贈り物をありがとうございます！",
+    sentNext: "次回更新：{0}", sentManage: "アカウントページの「贈ったサブスクリプション」からいつでもギフトを終了できます。", sentButton: "贈ったギフトを見る",
+    endSubject: "{0} さんがギフトの PRO サブスクリプションを終了しました", endLine: "{0} さんが贈った PRO サブスクリプションを終了しました。PRO は {1} まで続きます。",
+    endLineNow: "{0} さんが贈った PRO サブスクリプションを終了しました。", endHint: "終了後はいつでもご自身で PRO に登録できます。設定とデータは保持されます。", endButton: "アカウントを開く",
+  },
+};
+
+// Hediye kutusu başlığı (e-posta istemcilerinde güvenli: sadece tablo + satır içi stil, kırmızı kutu, altın kurdele)
+function giftBox(label: string) {
+  const red = "#c62a24";
+  const redDark = "#9e1f1a";
+  const gold = "#ffc94a";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
+  <tr><td align="center" style="font:400 46px/1 Arial,Helvetica,sans-serif;padding:0 0 2px">🎀</td></tr>
+  <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td style="background:${red};height:24px;border-radius:10px 0 0 0;border-bottom:3px solid ${redDark};font-size:0;line-height:0">&nbsp;</td>
+    <td width="34" style="width:34px;background:${gold};border-bottom:3px solid #c9971c;font-size:0;line-height:0">&nbsp;</td>
+    <td style="background:${red};border-radius:0 10px 0 0;border-bottom:3px solid ${redDark};font-size:0;line-height:0">&nbsp;</td>
+  </tr></table></td></tr>
+  <tr><td style="padding:0 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td width="50%" align="center" style="background:${redDark};padding:22px 8px;border-radius:0 0 0 10px">
+      <div style="font:700 11px/1 Arial,Helvetica,sans-serif;letter-spacing:3px;text-transform:uppercase;color:#ffe3a3">${esc(label)}</div>
+      <div style="font:900 34px/1.15 Arial,Helvetica,sans-serif;color:${gold};margin-top:6px;letter-spacing:2px">PRO</div>
+    </td>
+    <td width="34" style="width:34px;background:${gold};font-size:0;line-height:0">&nbsp;</td>
+    <td width="50%" align="center" style="background:${redDark};padding:22px 8px;border-radius:0 0 10px 0;font:400 44px/1 Arial,Helvetica,sans-serif">🎁</td>
+  </tr></table></td></tr>
+</table>`;
+}
+
+// Hediye etiketi kartı: "SRTR Pitwall PRO · <plan>", kimden, geçerlilik
+function giftTag(title: string, lines: string[]) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;background:#1b1610;border:1px dashed #ffc94a;border-radius:12px">
+  <tr><td style="padding:14px 18px;font-family:'Segoe UI',Arial,Helvetica,sans-serif">
+    <div style="font:700 11px/1 Arial,Helvetica,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#ffc94a">🏷️ &nbsp;SRTR Pitwall</div>
+    <div style="font:800 20px/1.3 'Segoe UI',Arial,Helvetica,sans-serif;color:#ffffff;margin-top:6px">${title}</div>
+    ${lines.map((l) => `<div style="font-size:13px;color:#e8d9b5;margin-top:4px">${l}</div>`).join("")}
+  </td></tr></table>`;
+}
+
+async function giftNotice(id: string, kind: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { n: null, res: { ok: false, error: error?.message ?? "bildirim yok" } };
+  if (n.kind !== kind) return { n: null, res: { ok: true, skipped: true } };
+  return { n, res: null };
+}
+
+// Alıcıya: bir üye PRO hediye etti (hediye paketi temalı)
+async function proGift(id: string) {
+  const { n, res } = await giftNotice(id, "pro_gift");
+  if (!n) return res!;
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(PRO_GIFT, u.lang);
+  const d = n.data ?? {};
+  const name = String(d.name || "").trim() || "SRTR Pitwall";
+  const until = d.until ? new Date(d.until) : null;
+  const valid = !!until && !isNaN(until.getTime()) && until.getTime() > Date.now();
+  const forever = valid && until!.getTime() - Date.now() > 3000 * 86400000;
+  const subject = m.subject.replace("{0}", name);
+  const heading = m.heading.replace("{0}", name);
+  const line = m.line.replace("{0}", name);
+  const tagLines = [esc(m.from.replace("{0}", name))];
+  if (valid && !forever) tagLines.push(`<b style="color:#ffb35c">${esc(m.until.replace("{0}", fmtDay(until!, u.lang)))}</b>`);
+  const perks = m.perks
+    .map((p) => `<tr><td width="26" valign="top" style="width:26px;color:#ffc94a;font:700 15px/1.5 Arial,Helvetica,sans-serif">✦</td><td style="color:#e9ecf2;font-size:14px;line-height:1.5;padding:0 0 6px">${esc(p)}</td></tr>`)
+    .join("");
+  const body = `
+    ${giftBox(m.tag)}
+    <p style="margin:0 0 16px;font-size:15px">${esc(line)}</p>
+    ${giftTag(`SRTR Pitwall PRO${d.plan ? ` · ${esc(d.plan)}` : ""}`, tagLines)}
+    <div style="margin:0 0 6px;font:700 13px/1.4 'Segoe UI',Arial,Helvetica,sans-serif;letter-spacing:.5px;color:#ffc94a">${esc(m.perksTitle)}</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px">${perks}</table>
+    <p style="margin:0 0 4px;color:#8a93a4;font-size:13px">${esc(m.note)}</p>
+    ${button(`${SITE}/hesap.html`, `🎁 ${m.button}`)}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(heading, body, line, u.lang));
+  return { ok: true, sent };
+}
+
+// Hediye edene: hediyen ulaştı
+async function proGiftSent(id: string) {
+  const { n, res } = await giftNotice(id, "pro_gift_sent");
+  if (!n) return res!;
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(PRO_GIFT, u.lang);
+  const d = n.data ?? {};
+  const name = String(d.name || "").trim() || "?";
+  const renews = d.renews_at ? new Date(d.renews_at) : null;
+  const line = m.sentLine.replace("{0}", name);
+  const tagLines = [`🎁 ${esc(name)}`];
+  if (renews && !isNaN(renews.getTime())) tagLines.push(esc(m.sentNext.replace("{0}", fmtDay(renews, u.lang))));
+  const body = `
+    <div style="text-align:center;font:400 48px/1 Arial,Helvetica,sans-serif;margin:0 0 14px">🎁</div>
+    <p style="margin:0 0 16px">${esc(line)}</p>
+    ${giftTag(`SRTR Pitwall PRO${d.plan ? ` · ${esc(d.plan)}` : ""}`, tagLines)}
+    <div style="${BOX}">${esc(m.sentManage)}</div>
+    ${button(`${SITE}/hesap.html#hediye`, m.sentButton)}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${m.sentSubject}`, page(m.sentSubject, body, line, u.lang));
+  return { ok: true, sent };
+}
+
+// Alıcıya: hediye eden aboneliği sonlandırdı (PRO ödenen dönemin sonuna kadar sürer)
+async function proGiftEnded(id: string) {
+  const { n, res } = await giftNotice(id, "pro_gift_ended");
+  if (!n) return res!;
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(PRO_GIFT, u.lang);
+  const d = n.data ?? {};
+  const name = String(d.name || "").trim() || "?";
+  // Güncel PRO bitişi (bildirimdeki değer ya da şimdiki)
+  const { data: p } = await db.from("profiles").select("pro_until").eq("id", n.user_id).maybeSingle();
+  const times = [p?.pro_until, d.until].filter(Boolean).map((x) => new Date(String(x)).getTime()).filter((x) => !isNaN(x));
+  const best = times.length ? Math.max(...times) : 0;
+  const until = best > Date.now() ? new Date(best) : null;
+  const subject = m.endSubject.replace("{0}", name);
+  const line = until ? m.endLine.replace("{0}", name).replace("{1}", fmtDay(until, u.lang)) : m.endLineNow.replace("{0}", name);
+  const days = until ? Math.max(1, Math.ceil((until.getTime() - Date.now()) / 86400000)) : 0;
+  const body = `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#10131a;border:1px solid #262b36;border-radius:10px;text-align:center">
+      <div style="font:400 34px/1 Arial,Helvetica,sans-serif">🎁</div>
+      <div style="font:800 34px/1.2 Arial,Helvetica,sans-serif;color:#ff8a2a;margin-top:6px">${until ? esc(String(days)) : "—"}</div>
+      <div style="font-size:12px;letter-spacing:1px;color:#8a93a4;text-transform:uppercase;margin-top:4px">PRO${d.plan ? ` · ${esc(d.plan)}` : ""}</div>
+    </div>
+    <div style="${BOX}">${esc(line)}</div>
+    <p style="margin:0;color:#8a93a4;font-size:13px">${esc(m.endHint)}</p>
+    ${button(`${SITE}/hesap.html`, m.endButton)}`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line, u.lang));
+  return { ok: true, sent };
+}
+
+// ---------------------------------------------------------------------------
+// Takım bildirimleri (c30 türleri; kullanıcının "teams" tercihi açıksa, kendi dilinde):
+//   team_invite (davet edilene), team_request (sahip/yöneticilere), team_accepted (katılma isteği onaylanana),
+//   team_announcement (üyelere; tetikleyici takım başına saatte en fazla bir e-posta gönderir), team_role (yönetici/sahip yapılana)
+// {0}: kişi adı, {1}: "[ETİKET] Takım adı"
+// ---------------------------------------------------------------------------
+
+type TeamMail = {
+  invite: string; inviteLine: string; inviteHow: string;
+  request: string; requestLine: string; requestMore: string; requestHow: string;
+  accepted: string; acceptedLine: string;
+  announce: string; announceLine: string; announceMore: string;
+  roleAdmin: string; roleAdminLine: string; roleOwner: string; roleOwnerLine: string;
+  button: string; why: string;
+};
+const TEAM_MAIL: Record<string, TeamMail> = {
+  "tr": {
+    invite: "{0} seni {1} takımına davet etti",
+    inviteLine: "{0}, SRTR Pitwall'da seni {1} takımına davet etti.",
+    inviteHow: "SRTR Pitwall'u aç ve Takımlar sayfasından (ya da üstteki zil simgesinden) daveti kabul et ya da reddet.",
+    request: "{0} {1} takımına katılmak istiyor",
+    requestLine: "{0}, yönettiğin {1} takımına katılmak istiyor.",
+    requestMore: "Onay bekleyen katılma isteği: {0}",
+    requestHow: "SRTR Pitwall'u aç, Takımlar sayfasında takımını seç ve isteği onayla ya da reddet.",
+    accepted: "{1} takımına hoş geldin",
+    acceptedLine: "Katılma isteğin onaylandı; artık {1} takımının üyesisin. Duyuruları, takım sohbetini ve anketleri SRTR Pitwall'daki Takımlar sayfasında bulabilirsin.",
+    announce: "{1}: yeni duyuru",
+    announceLine: "{0}, {1} takımında yeni bir duyuru paylaştı:",
+    announceMore: "Gelen kutunu doldurmamak için her takımdan saatte en fazla bir duyuru e-postası gönderiyoruz; diğer duyuruları uygulamada görebilirsin.",
+    roleAdmin: "Artık {1} takımının yöneticisisin",
+    roleAdminLine: "{0} seni {1} takımına yönetici yaptı. Artık üye davet edebilir, katılma isteklerini onaylayabilir ve duyuru yazabilirsin.",
+    roleOwner: "{1} takımının sahibi artık sensin",
+    roleOwnerLine: "{0}, {1} takımının sahipliğini sana devretti. Takımın ayarları, yöneticileri ve üyeleri artık senin elinde.",
+    button: "Takımı görüntüle",
+    why: "Takım e-postalarını açtığın için bu e-postayı alıyorsun. İstediğin zaman e-posta tercihlerinden kapatabilirsin.",
+  },
+  "en": {
+    invite: "{0} invited you to join {1}",
+    inviteLine: "{0} invited you to join the team {1} on SRTR Pitwall.",
+    inviteHow: "Open SRTR Pitwall and accept or decline the invite on the Teams page (or via the bell icon at the top).",
+    request: "{0} wants to join {1}",
+    requestLine: "{0} wants to join {1}, a team you manage.",
+    requestMore: "Join requests waiting for approval: {0}",
+    requestHow: "Open SRTR Pitwall, pick your team on the Teams page and approve or decline the request.",
+    accepted: "Welcome to {1}",
+    acceptedLine: "Your join request was approved, you're now a member of {1}. Find announcements, the team chat and polls on the Teams page in SRTR Pitwall.",
+    announce: "{1}: new announcement",
+    announceLine: "{0} posted a new announcement in {1}:",
+    announceMore: "To keep your inbox tidy we send at most one announcement e-mail per team per hour; see the rest in the app.",
+    roleAdmin: "You're now an admin of {1}",
+    roleAdminLine: "{0} made you an admin of {1}. You can now invite members, approve join requests and post announcements.",
+    roleOwner: "You're now the owner of {1}",
+    roleOwnerLine: "{0} transferred ownership of {1} to you. The team's settings, admins and members are now in your hands.",
+    button: "View team",
+    why: "You're receiving this because team e-mails are turned on. You can turn them off any time in your e-mail preferences.",
+  },
+  "de": {
+    invite: "{0} hat dich zu {1} eingeladen",
+    inviteLine: "{0} hat dich in SRTR Pitwall in das Team {1} eingeladen.",
+    inviteHow: "Öffne SRTR Pitwall und nimm die Einladung auf der Seite Teams (oder über die Glocke oben) an oder lehne sie ab.",
+    request: "{0} möchte {1} beitreten",
+    requestLine: "{0} möchte dem Team {1} beitreten, das du verwaltest.",
+    requestMore: "Offene Beitrittsanfragen: {0}",
+    requestHow: "Öffne SRTR Pitwall, wähle auf der Seite Teams dein Team und nimm die Anfrage an oder lehne sie ab.",
+    accepted: "Willkommen bei {1}",
+    acceptedLine: "Deine Beitrittsanfrage wurde angenommen, du bist jetzt Mitglied von {1}. Ankündigungen, Team-Chat und Umfragen findest du in SRTR Pitwall auf der Seite Teams.",
+    announce: "{1}: neue Ankündigung",
+    announceLine: "{0} hat in {1} eine neue Ankündigung veröffentlicht:",
+    announceMore: "Damit dein Postfach übersichtlich bleibt, senden wir pro Team höchstens eine Ankündigungs-E-Mail pro Stunde; alle weiteren findest du in der App.",
+    roleAdmin: "Du bist jetzt Admin von {1}",
+    roleAdminLine: "{0} hat dich zum Admin von {1} gemacht. Du kannst jetzt Mitglieder einladen, Beitrittsanfragen annehmen und Ankündigungen schreiben.",
+    roleOwner: "Du bist jetzt Besitzer von {1}",
+    roleOwnerLine: "{0} hat dir die Besitzerrechte an {1} übertragen. Einstellungen, Admins und Mitglieder des Teams liegen jetzt in deiner Hand.",
+    button: "Team ansehen",
+    why: "Du erhältst diese E-Mail, weil Team-E-Mails aktiviert sind. Du kannst sie jederzeit in deinen E-Mail-Einstellungen abschalten.",
+  },
+  "es": {
+    invite: "{0} te ha invitado a unirte a {1}",
+    inviteLine: "{0} te ha invitado a unirte al equipo {1} en SRTR Pitwall.",
+    inviteHow: "Abre SRTR Pitwall y acepta o rechaza la invitación en la página Equipos (o desde la campana de arriba).",
+    request: "{0} quiere unirse a {1}",
+    requestLine: "{0} quiere unirse a {1}, un equipo que administras.",
+    requestMore: "Solicitudes pendientes de aprobación: {0}",
+    requestHow: "Abre SRTR Pitwall, elige tu equipo en la página Equipos y acepta o rechaza la solicitud.",
+    accepted: "Bienvenido a {1}",
+    acceptedLine: "Tu solicitud ha sido aprobada: ya eres miembro de {1}. Encontrarás los anuncios, el chat del equipo y las encuestas en la página Equipos de SRTR Pitwall.",
+    announce: "{1}: nuevo anuncio",
+    announceLine: "{0} ha publicado un nuevo anuncio en {1}:",
+    announceMore: "Para no llenar tu bandeja de entrada, enviamos como máximo un correo de anuncios por equipo cada hora; el resto lo verás en la app.",
+    roleAdmin: "Ahora eres administrador de {1}",
+    roleAdminLine: "{0} te ha nombrado administrador de {1}. Ahora puedes invitar miembros, aprobar solicitudes y publicar anuncios.",
+    roleOwner: "Ahora eres el propietario de {1}",
+    roleOwnerLine: "{0} te ha transferido la propiedad de {1}. Los ajustes, administradores y miembros del equipo quedan en tus manos.",
+    button: "Ver equipo",
+    why: "Recibes este correo porque tienes activados los correos de equipos. Puedes desactivarlos cuando quieras en tus preferencias de correo.",
+  },
+  "fr": {
+    invite: "{0} t'invite à rejoindre {1}",
+    inviteLine: "{0} t'invite à rejoindre l'équipe {1} sur SRTR Pitwall.",
+    inviteHow: "Ouvre SRTR Pitwall et accepte ou refuse l'invitation sur la page Équipes (ou via la cloche en haut).",
+    request: "{0} souhaite rejoindre {1}",
+    requestLine: "{0} souhaite rejoindre {1}, une équipe que tu gères.",
+    requestMore: "Demandes en attente d'approbation : {0}",
+    requestHow: "Ouvre SRTR Pitwall, choisis ton équipe sur la page Équipes et accepte ou refuse la demande.",
+    accepted: "Bienvenue dans {1}",
+    acceptedLine: "Ta demande a été acceptée : tu es maintenant membre de {1}. Annonces, discussion d'équipe et sondages t'attendent sur la page Équipes de SRTR Pitwall.",
+    announce: "{1} : nouvelle annonce",
+    announceLine: "{0} a publié une nouvelle annonce dans {1} :",
+    announceMore: "Pour ne pas encombrer ta boîte mail, nous envoyons au maximum un e-mail d'annonce par équipe et par heure ; retrouve les autres dans l'application.",
+    roleAdmin: "Tu es maintenant administrateur de {1}",
+    roleAdminLine: "{0} t'a nommé administrateur de {1}. Tu peux désormais inviter des membres, accepter les demandes et publier des annonces.",
+    roleOwner: "Tu es maintenant propriétaire de {1}",
+    roleOwnerLine: "{0} t'a transféré la propriété de {1}. Les réglages, les administrateurs et les membres de l'équipe sont désormais entre tes mains.",
+    button: "Voir l'équipe",
+    why: "Tu reçois cet e-mail car les e-mails d'équipe sont activés. Tu peux les désactiver à tout moment dans tes préférences e-mail.",
+  },
+  "it": {
+    invite: "{0} ti ha invitato a entrare in {1}",
+    inviteLine: "{0} ti ha invitato a entrare nel team {1} su SRTR Pitwall.",
+    inviteHow: "Apri SRTR Pitwall e accetta o rifiuta l'invito nella pagina Team (o dalla campanella in alto).",
+    request: "{0} vuole entrare in {1}",
+    requestLine: "{0} vuole entrare in {1}, un team che gestisci.",
+    requestMore: "Richieste in attesa di approvazione: {0}",
+    requestHow: "Apri SRTR Pitwall, scegli il tuo team nella pagina Team e accetta o rifiuta la richiesta.",
+    accepted: "Benvenuto in {1}",
+    acceptedLine: "La tua richiesta è stata accettata: ora fai parte di {1}. Annunci, chat del team e sondaggi ti aspettano nella pagina Team di SRTR Pitwall.",
+    announce: "{1}: nuovo annuncio",
+    announceLine: "{0} ha pubblicato un nuovo annuncio in {1}:",
+    announceMore: "Per non intasare la tua casella inviamo al massimo un'e-mail di annunci per team ogni ora; gli altri li trovi nell'app.",
+    roleAdmin: "Ora sei amministratore di {1}",
+    roleAdminLine: "{0} ti ha nominato amministratore di {1}. Ora puoi invitare membri, accettare richieste e pubblicare annunci.",
+    roleOwner: "Ora sei il proprietario di {1}",
+    roleOwnerLine: "{0} ti ha trasferito la proprietà di {1}. Impostazioni, amministratori e membri del team sono ora nelle tue mani.",
+    button: "Vedi il team",
+    why: "Ricevi questa e-mail perché le e-mail dei team sono attive. Puoi disattivarle quando vuoi nelle preferenze e-mail.",
+  },
+  "pt-BR": {
+    invite: "{0} convidou você para entrar em {1}",
+    inviteLine: "{0} convidou você para entrar na equipe {1} no SRTR Pitwall.",
+    inviteHow: "Abra o SRTR Pitwall e aceite ou recuse o convite na página Equipes (ou pelo sino no topo).",
+    request: "{0} quer entrar em {1}",
+    requestLine: "{0} quer entrar em {1}, uma equipe que você administra.",
+    requestMore: "Pedidos aguardando aprovação: {0}",
+    requestHow: "Abra o SRTR Pitwall, escolha sua equipe na página Equipes e aprove ou recuse o pedido.",
+    accepted: "Agora você faz parte de {1}",
+    acceptedLine: "Seu pedido foi aprovado: agora você é membro de {1}. Anúncios, chat da equipe e enquetes estão na página Equipes do SRTR Pitwall.",
+    announce: "{1}: novo anúncio",
+    announceLine: "{0} publicou um novo anúncio em {1}:",
+    announceMore: "Para não lotar sua caixa de entrada, enviamos no máximo um e-mail de anúncio por equipe a cada hora; veja os demais no app.",
+    roleAdmin: "Agora você é administrador de {1}",
+    roleAdminLine: "{0} tornou você administrador de {1}. Agora você pode convidar membros, aprovar pedidos e publicar anúncios.",
+    roleOwner: "Agora você é o dono de {1}",
+    roleOwnerLine: "{0} transferiu a propriedade de {1} para você. As configurações, os administradores e os membros da equipe agora estão nas suas mãos.",
+    button: "Ver equipe",
+    why: "Você recebe este e-mail porque os e-mails de equipes estão ativados. Desative quando quiser nas suas preferências de e-mail.",
+  },
+  "pt-PT": {
+    invite: "{0} convidou-te para entrares em {1}",
+    inviteLine: "{0} convidou-te para entrares na equipa {1} no SRTR Pitwall.",
+    inviteHow: "Abre o SRTR Pitwall e aceita ou recusa o convite na página Equipas (ou no sino no topo).",
+    request: "{0} quer entrar em {1}",
+    requestLine: "{0} quer entrar em {1}, uma equipa que geres.",
+    requestMore: "Pedidos a aguardar aprovação: {0}",
+    requestHow: "Abre o SRTR Pitwall, escolhe a tua equipa na página Equipas e aprova ou recusa o pedido.",
+    accepted: "Agora fazes parte de {1}",
+    acceptedLine: "O teu pedido foi aprovado: agora és membro de {1}. Anúncios, chat da equipa e sondagens estão na página Equipas do SRTR Pitwall.",
+    announce: "{1}: novo anúncio",
+    announceLine: "{0} publicou um novo anúncio em {1}:",
+    announceMore: "Para não encher a tua caixa de correio, enviamos no máximo um e-mail de anúncios por equipa a cada hora; vê os restantes na aplicação.",
+    roleAdmin: "Agora és administrador de {1}",
+    roleAdminLine: "{0} tornou-te administrador de {1}. Agora podes convidar membros, aprovar pedidos e publicar anúncios.",
+    roleOwner: "Agora és o dono de {1}",
+    roleOwnerLine: "{0} transferiu para ti a propriedade de {1}. As definições, os administradores e os membros da equipa estão agora nas tuas mãos.",
+    button: "Ver equipa",
+    why: "Recebes este e-mail porque os e-mails de equipas estão ativados. Podes desativá-los quando quiseres nas tuas preferências de e-mail.",
+  },
+  "nl": {
+    invite: "{0} heeft je uitgenodigd voor {1}",
+    inviteLine: "{0} heeft je in SRTR Pitwall uitgenodigd voor het team {1}.",
+    inviteHow: "Open SRTR Pitwall en accepteer of weiger de uitnodiging op de pagina Teams (of via de bel bovenaan).",
+    request: "{0} wil lid worden van {1}",
+    requestLine: "{0} wil lid worden van {1}, een team dat jij beheert.",
+    requestMore: "Verzoeken die op goedkeuring wachten: {0}",
+    requestHow: "Open SRTR Pitwall, kies je team op de pagina Teams en accepteer of weiger het verzoek.",
+    accepted: "Welkom bij {1}",
+    acceptedLine: "Je verzoek is goedgekeurd: je bent nu lid van {1}. Aankondigingen, teamchat en polls vind je op de pagina Teams in SRTR Pitwall.",
+    announce: "{1}: nieuwe aankondiging",
+    announceLine: "{0} heeft een nieuwe aankondiging geplaatst in {1}:",
+    announceMore: "Om je inbox overzichtelijk te houden sturen we per team hooguit één aankondigingsmail per uur; de rest zie je in de app.",
+    roleAdmin: "Je bent nu beheerder van {1}",
+    roleAdminLine: "{0} heeft je beheerder van {1} gemaakt. Je kunt nu leden uitnodigen, verzoeken goedkeuren en aankondigingen plaatsen.",
+    roleOwner: "Je bent nu eigenaar van {1}",
+    roleOwnerLine: "{0} heeft het eigenaarschap van {1} aan jou overgedragen. Instellingen, beheerders en leden van het team liggen nu in jouw handen.",
+    button: "Team bekijken",
+    why: "Je ontvangt deze e-mail omdat team-e-mails aan staan. Je kunt ze altijd uitzetten in je e-mailvoorkeuren.",
+  },
+  "pl": {
+    invite: "{0} zaprasza Cię do {1}",
+    inviteLine: "{0} zaprasza Cię do zespołu {1} w SRTR Pitwall.",
+    inviteHow: "Otwórz SRTR Pitwall i zaakceptuj lub odrzuć zaproszenie na stronie Zespoły (albo przez dzwonek u góry).",
+    request: "{0} chce dołączyć do {1}",
+    requestLine: "{0} chce dołączyć do {1} – zespołu, którym zarządzasz.",
+    requestMore: "Prośby czekające na zatwierdzenie: {0}",
+    requestHow: "Otwórz SRTR Pitwall, wybierz swój zespół na stronie Zespoły i zaakceptuj lub odrzuć prośbę.",
+    accepted: "Witaj w {1}",
+    acceptedLine: "Twoja prośba została zaakceptowana – jesteś teraz członkiem {1}. Ogłoszenia, czat zespołu i ankiety znajdziesz na stronie Zespoły w SRTR Pitwall.",
+    announce: "{1}: nowe ogłoszenie",
+    announceLine: "{0} opublikował(a) nowe ogłoszenie w {1}:",
+    announceMore: "Aby nie zapychać Twojej skrzynki, wysyłamy najwyżej jeden e-mail z ogłoszeniem na zespół na godzinę; pozostałe zobaczysz w aplikacji.",
+    roleAdmin: "Jesteś teraz administratorem {1}",
+    roleAdminLine: "{0} mianował(a) Cię administratorem {1}. Możesz teraz zapraszać członków, zatwierdzać prośby i publikować ogłoszenia.",
+    roleOwner: "Jesteś teraz właścicielem {1}",
+    roleOwnerLine: "{0} przekazał(a) Ci własność {1}. Ustawienia, administratorzy i członkowie zespołu są teraz w Twoich rękach.",
+    button: "Zobacz zespół",
+    why: "Otrzymujesz ten e-mail, ponieważ masz włączone e-maile zespołów. Możesz je wyłączyć w dowolnej chwili w preferencjach e-mail.",
+  },
+  "sv": {
+    invite: "{0} har bjudit in dig till {1}",
+    inviteLine: "{0} har bjudit in dig till teamet {1} i SRTR Pitwall.",
+    inviteHow: "Öppna SRTR Pitwall och godkänn eller avvisa inbjudan på sidan Team (eller via klockan högst upp).",
+    request: "{0} vill gå med i {1}",
+    requestLine: "{0} vill gå med i {1}, ett team som du administrerar.",
+    requestMore: "Förfrågningar som väntar på godkännande: {0}",
+    requestHow: "Öppna SRTR Pitwall, välj ditt team på sidan Team och godkänn eller avvisa förfrågan.",
+    accepted: "Välkommen till {1}",
+    acceptedLine: "Din förfrågan har godkänts – du är nu medlem i {1}. Meddelanden, teamchatt och omröstningar hittar du på sidan Team i SRTR Pitwall.",
+    announce: "{1}: nytt meddelande",
+    announceLine: "{0} har publicerat ett nytt meddelande i {1}:",
+    announceMore: "För att inte fylla din inkorg skickar vi högst ett meddelandemejl per team och timme; resten ser du i appen.",
+    roleAdmin: "Du är nu administratör för {1}",
+    roleAdminLine: "{0} har gjort dig till administratör för {1}. Du kan nu bjuda in medlemmar, godkänna förfrågningar och publicera meddelanden.",
+    roleOwner: "Du är nu ägare av {1}",
+    roleOwnerLine: "{0} har överlåtit ägarskapet av {1} till dig. Teamets inställningar, administratörer och medlemmar ligger nu i dina händer.",
+    button: "Visa teamet",
+    why: "Du får det här mejlet eftersom team-mejl är aktiverade. Du kan stänga av dem när som helst i dina e-postinställningar.",
+  },
+  "fi": {
+    invite: "{0} kutsui sinut tiimiin {1}",
+    inviteLine: "{0} kutsui sinut SRTR Pitwallissa tiimiin {1}.",
+    inviteHow: "Avaa SRTR Pitwall ja hyväksy tai hylkää kutsu Tiimit-sivulla (tai ylhäällä olevasta kellosta).",
+    request: "{0} haluaa liittyä tiimiin {1}",
+    requestLine: "{0} haluaa liittyä tiimiin {1}, jota sinä hallinnoit.",
+    requestMore: "Hyväksyntää odottavat liittymispyynnöt: {0}",
+    requestHow: "Avaa SRTR Pitwall, valitse tiimisi Tiimit-sivulla ja hyväksy tai hylkää pyyntö.",
+    accepted: "Tervetuloa tiimiin {1}",
+    acceptedLine: "Liittymispyyntösi hyväksyttiin – olet nyt tiimin {1} jäsen. Tiedotteet, tiimin chatin ja kyselyt löydät SRTR Pitwallin Tiimit-sivulta.",
+    announce: "{1}: uusi tiedote",
+    announceLine: "{0} julkaisi uuden tiedotteen tiimissä {1}:",
+    announceMore: "Jotta postilaatikkosi ei täyty, lähetämme kustakin tiimistä enintään yhden tiedotesähköpostin tunnissa; loput näet sovelluksessa.",
+    roleAdmin: "Olet nyt tiimin {1} ylläpitäjä",
+    roleAdminLine: "{0} teki sinusta tiimin {1} ylläpitäjän. Voit nyt kutsua jäseniä, hyväksyä liittymispyyntöjä ja julkaista tiedotteita.",
+    roleOwner: "Olet nyt tiimin {1} omistaja",
+    roleOwnerLine: "{0} siirsi tiimin {1} omistajuuden sinulle. Tiimin asetukset, ylläpitäjät ja jäsenet ovat nyt sinun käsissäsi.",
+    button: "Näytä tiimi",
+    why: "Saat tämän viestin, koska tiimisähköpostit ovat käytössä. Voit poistaa ne käytöstä milloin tahansa sähköpostiasetuksista.",
+  },
+  "ru": {
+    invite: "{0} приглашает тебя в команду {1}",
+    inviteLine: "{0} приглашает тебя в команду {1} в SRTR Pitwall.",
+    inviteHow: "Открой SRTR Pitwall и прими или отклони приглашение на странице «Команды» (или через колокольчик вверху).",
+    request: "{0} хочет вступить в {1}",
+    requestLine: "{0} хочет вступить в команду {1}, которой ты управляешь.",
+    requestMore: "Заявок ждут одобрения: {0}",
+    requestHow: "Открой SRTR Pitwall, выбери свою команду на странице «Команды» и одобри или отклони заявку.",
+    accepted: "Добро пожаловать в {1}",
+    acceptedLine: "Твоя заявка одобрена — теперь ты участник команды {1}. Объявления, командный чат и опросы ждут тебя на странице «Команды» в SRTR Pitwall.",
+    announce: "{1}: новое объявление",
+    announceLine: "{0} опубликовал(а) новое объявление в команде {1}:",
+    announceMore: "Чтобы не засорять почту, мы отправляем не больше одного письма с объявлениями от каждой команды в час; остальные смотри в приложении.",
+    roleAdmin: "Теперь ты администратор команды {1}",
+    roleAdminLine: "{0} назначил(а) тебя администратором команды {1}. Теперь ты можешь приглашать участников, одобрять заявки и публиковать объявления.",
+    roleOwner: "Теперь ты владелец команды {1}",
+    roleOwnerLine: "{0} передал(а) тебе права владельца команды {1}. Настройки, администраторы и участники команды теперь в твоих руках.",
+    button: "Открыть команду",
+    why: "Ты получаешь это письмо, потому что включены письма о командах. Отключить их можно в любой момент в настройках писем.",
+  },
+  "zh-CN": {
+    invite: "{0} 邀请你加入 {1}",
+    inviteLine: "{0} 在 SRTR Pitwall 中邀请你加入车队 {1}。",
+    inviteHow: "打开 SRTR Pitwall，在“车队”页面（或顶部的铃铛图标）接受或拒绝邀请。",
+    request: "{0} 申请加入 {1}",
+    requestLine: "{0} 申请加入你管理的车队 {1}。",
+    requestMore: "待审批的加入申请：{0}",
+    requestHow: "打开 SRTR Pitwall，在“车队”页面选择你的车队，然后批准或拒绝申请。",
+    accepted: "欢迎加入 {1}",
+    acceptedLine: "你的加入申请已通过，现在你是 {1} 的成员了。公告、车队聊天和投票都在 SRTR Pitwall 的“车队”页面。",
+    announce: "{1}：新公告",
+    announceLine: "{0} 在 {1} 发布了一条新公告：",
+    announceMore: "为避免打扰，每个车队每小时最多发送一封公告邮件；其余公告请在应用中查看。",
+    roleAdmin: "你已成为 {1} 的管理员",
+    roleAdminLine: "{0} 已将你设为 {1} 的管理员。现在你可以邀请成员、批准加入申请并发布公告。",
+    roleOwner: "你已成为 {1} 的所有者",
+    roleOwnerLine: "{0} 已将 {1} 的所有权转让给你。车队的设置、管理员和成员现在都由你掌管。",
+    button: "查看车队",
+    why: "你收到这封邮件是因为你开启了车队邮件。你可以随时在邮件偏好设置中关闭。",
+  },
+  "ja": {
+    invite: "{0} さんから {1} への招待が届きました",
+    inviteLine: "{0} さんが SRTR Pitwall でチーム {1} にあなたを招待しました。",
+    inviteHow: "SRTR Pitwall を開き、「チーム」ページ（または上部のベルアイコン）から招待を承認または拒否してください。",
+    request: "{0} さんが {1} への参加を希望しています",
+    requestLine: "{0} さんが、あなたが管理するチーム {1} への参加を希望しています。",
+    requestMore: "承認待ちの参加リクエスト：{0} 件",
+    requestHow: "SRTR Pitwall を開き、「チーム」ページで自分のチームを選んでリクエストを承認または拒否してください。",
+    accepted: "{1} へようこそ",
+    acceptedLine: "参加リクエストが承認され、{1} のメンバーになりました。お知らせ、チームチャット、投票は SRTR Pitwall の「チーム」ページにあります。",
+    announce: "{1}：新しいお知らせ",
+    announceLine: "{0} さんが {1} に新しいお知らせを投稿しました：",
+    announceMore: "受信トレイがあふれないよう、お知らせメールは 1 チームにつき 1 時間に最大 1 通です。そのほかのお知らせはアプリで確認できます。",
+    roleAdmin: "{1} の管理者になりました",
+    roleAdminLine: "{0} さんがあなたを {1} の管理者に任命しました。メンバーの招待、参加リクエストの承認、お知らせの投稿ができるようになりました。",
+    roleOwner: "{1} のオーナーになりました",
+    roleOwnerLine: "{0} さんが {1} のオーナー権限をあなたに譲渡しました。チームの設定、管理者、メンバーの管理はあなたに任されています。",
+    button: "チームを見る",
+    why: "チームメールをオンにしているため、このメールが届いています。メール設定からいつでもオフにできます。",
+  },
+};
+
+const TEAM_KINDS = ["team_invite", "team_request", "team_accepted", "team_announcement", "team_role"];
+
+/** Takım rozeti: logo (varsa) ya da takım renginde etiket kutusu, yanında ad ve etiket */
+function teamBadge(t: { name: string; tag: string; color: string; logo_path: string }) {
+  const color = /^#[0-9a-fA-F]{6}$/.test(t.color) ? t.color : "#4ea1ff";
+  const r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
+  const ink = r * 0.299 + g * 0.587 + b * 0.114 > 150 ? "#111111" : "#ffffff";
+  const logo = t.logo_path ? `${SUPABASE_URL}/storage/v1/object/public/teams/${t.logo_path}` : "";
+  const mark = logo
+    ? `<img src="${esc(logo)}" alt="" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;object-fit:cover">`
+    : esc(t.tag);
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;width:100%;background:#10131a;border:1px solid #262b36;border-left:3px solid ${color};border-radius:10px"><tr>
+      <td style="padding:12px 0 12px 14px;width:52px">
+        <div style="width:52px;height:52px;background:${color};border-radius:12px;text-align:center;font:800 15px/52px Arial,Helvetica,sans-serif;color:${ink};letter-spacing:.5px;overflow:hidden">${mark}</div>
+      </td>
+      <td style="padding:12px 14px;vertical-align:middle">
+        <div style="font:700 17px/1.3 'Segoe UI',Arial,Helvetica,sans-serif;color:#ffffff">${esc(t.name)}</div>
+        <div style="font-size:13px;color:#8a93a4;margin-top:2px">[${esc(t.tag)}]</div>
+      </td>
+    </tr></table>`;
+}
+
+async function teamMail(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (!TEAM_KINDS.includes(n.kind)) return { ok: true, skipped: true };
+  if (!(await emailPrefOn(n.user_id, "teams"))) return { ok: true, skipped: "tercih" };
+  const d = n.data ?? {};
+  const teamId = String(d.team ?? "");
+  const { data: t } = await db.from("teams").select("id,name,tag,color,logo_path").eq("id", teamId).maybeSingle();
+  if (!t) return { ok: true, skipped: "takım yok" };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const m = pick(TEAM_MAIL, u.lang);
+  const who = String(d.name || "").trim() || "?";
+  const label = `[${t.tag}] ${t.name}`;
+  const fill = (s: string) => s.replace("{0}", who).replace("{1}", label);
+  let subject = "";
+  let line = "";
+  let extra = "";
+  if (n.kind === "team_invite") {
+    subject = fill(m.invite);
+    line = fill(m.inviteLine);
+    extra = `<div style="${BOX}">${esc(m.inviteHow)}</div>`;
+  } else if (n.kind === "team_request") {
+    subject = fill(m.request);
+    line = fill(m.requestLine);
+    const { count } = await db.from("team_invites").select("id", { count: "exact", head: true }).eq("team_id", t.id).eq("kind", "request");
+    extra = `${(count ?? 0) > 1 ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(m.requestMore.replace("{0}", String(count)))}</b></p>` : ""}
+      <div style="${BOX}">${esc(m.requestHow)}</div>`;
+  } else if (n.kind === "team_accepted") {
+    subject = fill(m.accepted);
+    line = fill(m.acceptedLine);
+  } else if (n.kind === "team_announcement") {
+    // Duyurunun güncel metni (silindiyse e-posta gönderilmez); uzunsa kısaltılır
+    const { data: post } = await db.from("team_posts").select("body").eq("id", String(d.post ?? "")).maybeSingle();
+    if (!post) return { ok: true, skipped: "duyuru yok" };
+    const text = String(post.body ?? d.text ?? "");
+    subject = fill(m.announce);
+    line = fill(m.announceLine);
+    extra = `${quote(text.length > 700 ? `${text.slice(0, 700).trimEnd()}…` : text)}
+      <p style="margin:0 0 4px;color:#8a93a4;font-size:12px">${esc(m.announceMore)}</p>`;
+  } else {
+    const owner = d.role === "owner";
+    subject = fill(owner ? m.roleOwner : m.roleAdmin);
+    line = fill(owner ? m.roleOwnerLine : m.roleAdminLine);
+  }
+  const body = `
+    ${teamBadge({ name: String(t.name ?? ""), tag: String(t.tag ?? ""), color: String(t.color ?? ""), logo_path: String(t.logo_path ?? "") })}
+    <p style="margin:0 0 14px">${esc(line)}</p>
+    ${extra}
+    ${button(`${SITE}/takimlar.html?id=${encodeURIComponent(t.id)}`, m.button)}
+    <p style="margin:14px 0 0;color:#6b7383;font-size:12px">${esc(m.why)}</p>`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${subject}`, page(subject, body, line, u.lang));
   return { ok: true, sent };
 }
 
@@ -1115,6 +2237,7 @@ async function cleanup() {
   for (const r of rows) byUser.set(r.user_id, [...(byUser.get(r.user_id) ?? []), r]);
   let mails = 0;
   for (const [uid, list] of byUser) {
+    if (!(await emailPrefOn(uid, "shots"))) continue;
     const u = await userInfo(uid);
     if (!u.email) continue;
     const m = EXPIRED[u.lang] ?? EXPIRED[u.lang.split("-")[0]] ?? EXPIRED.en;
@@ -1122,7 +2245,7 @@ async function cleanup() {
     const body = `<p style="margin:0 0 8px">${esc(m.line)}</p><ul style="padding-left:18px;margin:0 0 12px">${items}</ul>
       <p style="color:#8b93a3;font-size:13px;margin:0">${esc(m.hint)}</p>`;
     try {
-      if (await sendMail([u.email], `SRTR Pitwall · ${m.subject}`, page(m.subject, body))) mails++;
+      if (await sendMail([u.email], `SRTR Pitwall · ${m.subject}`, page(m.subject, body, "", u.lang))) mails++;
     } catch (e) {
       console.error("mail", uid, e);
     }
@@ -1158,6 +2281,22 @@ Deno.serve(async (req) => {
                       ? await adOwner(body.id)
                       : (body.type === "ad_reported" || body.type === "ad_pending") && body.id
                         ? await adAdmin(body.id)
+                        : body.type === "payment_new" && body.id
+                          ? await paymentAdmin(body.id)
+                          : body.type === "payment_receipt" && body.id
+                            ? await paymentReceipt(body.id)
+                            : body.type === "pro_gift" && body.id
+                              ? await proGift(body.id)
+                              : body.type === "pro_gift_sent" && body.id
+                                ? await proGiftSent(body.id)
+                                : body.type === "pro_gift_ended" && body.id
+                                  ? await proGiftEnded(body.id)
+                                  : body.type === "message_reported" && body.id
+                                    ? await messageReportAdmin(body.id)
+                                  : body.type === "voice_submission" && body.id
+                                    ? await voiceSubmissionAdmin(body.id)
+                                    : TEAM_KINDS.includes(String(body.type)) && body.id
+                                      ? await teamMail(body.id)
           : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
     return Response.json(res, { status: res.ok ? 200 : 400 });
   } catch (e) {

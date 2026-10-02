@@ -20,7 +20,7 @@
 
 De meeste overlay-apps houden op bij overlays. SRTR Pitwall is een complete pitmuur voor je simrig:
 
-- 🏎️ **26 overlays, één transparant venster**: relative, klassement, brandstof, banden, radar, circuitkaart, delta, inputs, weer, vlaggen en nog veel meer. Alles wordt in één venster per monitor getekend, dus het blijft snel, zelfs met een volle layout.
+- 🏎️ **27 overlays, één transparant venster**: relative, klassement, brandstof, banden, radar, circuitkaart, delta, inputs, weer, vlaggen en nog veel meer. Alles wordt in één venster per monitor getekend, dus het blijft snel, zelfs met een volle layout.
 - 🎙️ **Visuele en gesproken spotter**: auto links / auto rechts, drie naast elkaar, vlaggen, brandstof en positie met een Turks stempakket, plus waarschuwingen voor snellere klassen en bij het terugkeren op de baan.
 - ⛽ **Brandstofstrategie met live delen in je team**: verbruik per ronde, tankhoeveelheden, pitvensters en de brandstof van je teamgenoten, live in je eigen overlay.
 - 👥 **Vrienden met vertrouwde live telemetrie**: voeg vrienden toe, zie wie online is of aan het racen, en laat coureurs die je vertrouwt live je brandstof en rondedata zien. Geen codes, geen gedoe.

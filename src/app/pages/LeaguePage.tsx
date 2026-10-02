@@ -6,6 +6,8 @@ import { For, Show, createMemo, createSignal } from "solid-js";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { settings, updateSettings, type LeagueConfig } from "@/sdk/settings";
 import type { Entry } from "@/sdk/types";
+import { F } from "@/sdk/proFeatures";
+import { ProLockBox } from "../components/ProLock";
 
 const COLORS = ["#ffda59", "#33ceff", "#ff5c8a", "#7dff6b", "#b76cff", "#ff9a3c"];
 const AUTO = "__auto";
@@ -153,277 +155,279 @@ export function LeaguePage() {
   };
 
   return (
-    <div class="page league">
-      <section class="panel">
-        <h3>Lig Kategorileri (League Builder)</h3>
-        <p class="muted small">
-          Lig yarışlarında sürücüler çoğu zaman iRacing'in araç sınıflarına göre değil, ligin kendi kategorilerine göre
-          yarışır: ör. aynı GT3 araçlarıyla <b>Pro</b>, <b>Pro-Am</b> ve <b>Am</b> ayrı sıralanır. iRacing bunu bilmediği
-          için overlay'ler herkesi tek sınıf gösterir. Bu bölümde ligin kategorilerini tanımlayıp sürücüleri (ya da
-          araç sınıflarını) kategorilere atarsın; SRTR Pitwall da overlay'leri buna göre çizer.
-        </p>
-        <div class="lg-help">
-          <div>
-            <b>1. Kategorileri oluştur</b>
-            <span>Ad ve renk ver (ör. Pro kırmızı, Am yeşil).</span>
+    <ProLockBox feature={F.league} text="Lig kategorileri (League Builder) PRO üyelere özel.">
+      <div class="page league">
+        <section class="panel">
+          <h3>Lig Kategorileri (League Builder)</h3>
+          <p class="muted small">
+            Lig yarışlarında sürücüler çoğu zaman iRacing'in araç sınıflarına göre değil, ligin kendi kategorilerine göre
+            yarışır: ör. aynı GT3 araçlarıyla <b>Pro</b>, <b>Pro-Am</b> ve <b>Am</b> ayrı sıralanır. iRacing bunu bilmediği
+            için overlay'ler herkesi tek sınıf gösterir. Bu bölümde ligin kategorilerini tanımlayıp sürücüleri (ya da
+            araç sınıflarını) kategorilere atarsın; SRTR Pitwall da overlay'leri buna göre çizer.
+          </p>
+          <div class="lg-help">
+            <div>
+              <b>1. Kategorileri oluştur</b>
+              <span>Ad ve renk ver (ör. Pro kırmızı, Am yeşil).</span>
+            </div>
+            <div>
+              <b>2. Sürücüleri ata</b>
+              <span>Oturumdaki sürücüleri tek tek ya da araç sınıfına göre toplu olarak bir kategoriye koy.</span>
+            </div>
+            <div>
+              <b>3. Etkinleştir</b>
+              <span>
+                Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Yakındakiler, harita ve Live Timing bu
+                kategorilere göre gösterilir.
+              </span>
+            </div>
+            <div>
+              <b>4. Ligle sınırla (isteğe bağlı)</b>
+              <span>Lig kimliğini yazarsan sadece o ligin oturumlarında devreye girer; diğer yarışlar normal görünür.</span>
+            </div>
           </div>
-          <div>
-            <b>2. Sürücüleri ata</b>
-            <span>Oturumdaki sürücüleri tek tek ya da araç sınıfına göre toplu olarak bir kategoriye koy.</span>
-          </div>
-          <div>
-            <b>3. Etkinleştir</b>
-            <span>
-              Sıralama Tablosu başlıkları, sınıf renkleri, sınıf içi sıralar, Relative, harita ve Live Timing bu
-              kategorilere göre gösterilir.
-            </span>
-          </div>
-          <div>
-            <b>4. Ligle sınırla (isteğe bağlı)</b>
-            <span>Lig kimliğini yazarsan sadece o ligin oturumlarında devreye girer; diğer yarışlar normal görünür.</span>
-          </div>
-        </div>
-        <p class="muted small">Yapılandırmayı dışa aktarıp lig arkadaşlarınla paylaşabilir, onların yapılandırmasını içe aktarabilirsin.</p>
-        <div class="lg-bar">
-          <select class="input" value={selId()} onChange={(e) => setSelId(e.currentTarget.value)}>
-            <Show when={league().configs.length === 0}>
-              <option value="">Yapılandırma yok</option>
-            </Show>
-            <For each={league().configs}>
-              {(c) => (
-                <option value={c.id}>
-                  {c.name}
-                  {league().active === c.id ? " (etkin)" : ""}
-                </option>
-              )}
-            </For>
-          </select>
-          <button class="btn" onClick={create}>
-            Yeni
-          </button>
-          <Show when={cfg()}>
-            <button class="btn ghost" onClick={doExport}>
-              Dışa aktar
-            </button>
-          </Show>
-          <button class="btn ghost" onClick={() => (setIo(io() === "import" ? "" : "import"), setIoText(""), setIoErr(""))}>
-            İçe aktar
-          </button>
-          <Show when={cfg()}>
-            <button class="btn ghost danger" onClick={remove}>
-              Sil
-            </button>
-          </Show>
-        </div>
-
-        <Show when={io()}>
-          <div class="lg-io">
-            <Show when={io() === "export"}>
-              <small class="muted">Panoya kopyalandı. Lig arkadaşlarınla paylaşabilirsin.</small>
-            </Show>
-            <Show when={io() === "import"}>
-              <small class="muted">Dışa aktarılan yapılandırmayı yapıştır.</small>
-            </Show>
-            <textarea class="input" rows={8} value={ioText()} onInput={(e) => setIoText(e.currentTarget.value)} readOnly={io() === "export"} />
-            <div class="btns">
-              <Show when={io() === "import"}>
-                <button class="btn primary" onClick={doImport}>
-                  Ekle
-                </button>
+          <p class="muted small">Yapılandırmayı dışa aktarıp lig arkadaşlarınla paylaşabilir, onların yapılandırmasını içe aktarabilirsin.</p>
+          <div class="lg-bar">
+            <select class="input" value={selId()} onChange={(e) => setSelId(e.currentTarget.value)}>
+              <Show when={league().configs.length === 0}>
+                <option value="">Yapılandırma yok</option>
               </Show>
-              <button class="btn ghost" onClick={() => setIo("")}>
-                Kapat
+              <For each={league().configs}>
+                {(c) => (
+                  <option value={c.id}>
+                    {c.name}
+                    {league().active === c.id ? " (etkin)" : ""}
+                  </option>
+                )}
+              </For>
+            </select>
+            <button class="btn" onClick={create}>
+              Yeni
+            </button>
+            <Show when={cfg()}>
+              <button class="btn ghost" onClick={doExport}>
+                Dışa aktar
+              </button>
+            </Show>
+            <button class="btn ghost" onClick={() => (setIo(io() === "import" ? "" : "import"), setIoText(""), setIoErr(""))}>
+              İçe aktar
+            </button>
+            <Show when={cfg()}>
+              <button class="btn ghost danger" onClick={remove}>
+                Sil
+              </button>
+            </Show>
+          </div>
+
+          <Show when={io()}>
+            <div class="lg-io">
+              <Show when={io() === "export"}>
+                <small class="muted">Panoya kopyalandı. Lig arkadaşlarınla paylaşabilirsin.</small>
+              </Show>
+              <Show when={io() === "import"}>
+                <small class="muted">Dışa aktarılan yapılandırmayı yapıştır.</small>
+              </Show>
+              <textarea class="input" rows={8} value={ioText()} onInput={(e) => setIoText(e.currentTarget.value)} readOnly={io() === "export"} />
+              <div class="btns">
+                <Show when={io() === "import"}>
+                  <button class="btn primary" onClick={doImport}>
+                    Ekle
+                  </button>
+                </Show>
+                <button class="btn ghost" onClick={() => setIo("")}>
+                  Kapat
+                </button>
+              </div>
+              <Show when={ioErr()}>
+                <p class="error">{ioErr()}</p>
+              </Show>
+            </div>
+          </Show>
+        </section>
+
+        <Show
+          when={cfg()}
+          fallback={
+            <section class="panel">
+              <p class="muted">Başlamak için "Yeni" ile bir lig yapılandırması oluştur.</p>
+            </section>
+          }
+        >
+          <section class="panel">
+            <div class="row">
+              <div>
+                <b>Bu yapılandırmayı uygula</b>
+                <small>
+                  <Show when={entries()} fallback="Oturum bekleniyor (Demo ile deneyebilirsin).">
+                    Oturumun lig kimliği: {entries()!.leagueId || "yok (lig oturumu değil)"} ·{" "}
+                    <span classList={{ "lg-on": entries()!.active }}>{entries()!.active ? "şu an uygulanıyor" : "uygulanmıyor"}</span>
+                  </Show>
+                </small>
+              </div>
+              <label class="switch">
+                <input type="checkbox" checked={isActive()} onChange={(e) => setActive(e.currentTarget.checked)} />
+                <i />
+              </label>
+            </div>
+            <div class="row">
+              <div>
+                <b>Ad</b>
+              </div>
+              <input class="input" value={cfg()!.name} onChange={(e) => edit((c) => (c.name = e.currentTarget.value.trim() || c.name))} />
+            </div>
+            <div class="row">
+              <div>
+                <b>iRacing lig kimliği</b>
+                <small>0: her oturumda uygula. Lig sayfasının adresindeki league_id.</small>
+              </div>
+              <div class="mqtt-host">
+                <input class="input port" type="number" min="0" value={cfg()!.leagueId} onChange={(e) => edit((c) => (c.leagueId = Math.max(0, Number(e.currentTarget.value) || 0)))} />
+                <Show when={entries()?.leagueId}>
+                  <button class="btn ghost small" onClick={() => edit((c) => (c.leagueId = entries()!.leagueId))}>
+                    Bu oturumu kullan ({entries()!.leagueId})
+                  </button>
+                </Show>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h4>Kategoriler</h4>
+            <div class="lg-tiers">
+              <For each={cfg()!.tiers}>
+                {(t, i) => (
+                  <div class="lg-tier">
+                    <input type="color" value={t.color} onInput={(e) => edit((c) => (c.tiers[i()].color = e.currentTarget.value))} />
+                    <input class="input" value={t.name} onChange={(e) => edit((c) => (c.tiers[i()].name = e.currentTarget.value.trim() || t.name))} />
+                    <button class="btn ghost small" disabled={i() === 0} title="Yukarı" onClick={() => edit((c) => c.tiers.splice(i() - 1, 0, c.tiers.splice(i(), 1)[0]))}>
+                      ↑
+                    </button>
+                    <button
+                      class="btn ghost small danger"
+                      onClick={() =>
+                        edit((c) => {
+                          c.tiers.splice(i(), 1);
+                          for (const [k, v] of Object.entries(c.assignments)) if (v === t.id) delete c.assignments[k];
+                          for (const [k, v] of Object.entries(c.classDefaults)) if (v === t.id) delete c.classDefaults[k];
+                        })
+                      }
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                )}
+              </For>
+            </div>
+            <button
+              class="btn ghost"
+              onClick={() => edit((c) => c.tiers.push({ id: uid(), name: `Kategori ${c.tiers.length + 1}`, color: COLORS[c.tiers.length % COLORS.length] }))}
+            >
+              Kategori ekle
+            </button>
+
+            <h4>iRacing sınıfına göre varsayılan</h4>
+            <p class="muted small">Tek tek atanmamış sürücüler, iRacing sınıflarına göre buradaki kategoriye girer.</p>
+            <Show when={classes().length > 0} fallback={<p class="muted small">Oturumda sınıf bilgisi yok.</p>}>
+              <For each={classes()}>
+                {([name, color]) => (
+                  <div class="row">
+                    <div class="lg-class">
+                      <i style={{ background: color || "#888" }} />
+                      <b>{name}</b>
+                    </div>
+                    <select
+                      class="input"
+                      value={cfg()!.classDefaults[name] ?? ""}
+                      onChange={(e) =>
+                        edit((c) => {
+                          if (e.currentTarget.value) c.classDefaults[name] = e.currentTarget.value;
+                          else delete c.classDefaults[name];
+                        })
+                      }
+                    >
+                      <option value="">iRacing sınıfı kalsın</option>
+                      <For each={cfg()!.tiers}>{(t) => <option value={t.id}>{t.name}</option>}</For>
+                    </select>
+                  </div>
+                )}
+              </For>
+            </Show>
+          </section>
+
+          <section class="panel">
+            <h4>Sürücü atamaları</h4>
+            <p class="muted small">
+              Sürücüleri sütunlar arasında sürükle. Atamalar araç numarasına göre saklanır; oturumda olmayan numaraları
+              elle ekleyebilirsin.
+            </p>
+            <div class="lg-manual">
+              <input class="input port" placeholder="#no" value={manNum()} onInput={(e) => setManNum(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && addManual()} />
+              <select class="input" value={manTier() || cfg()!.tiers[0]?.id || ""} onChange={(e) => setManTier(e.currentTarget.value)}>
+                <For each={cfg()!.tiers}>{(t) => <option value={t.id}>{t.name}</option>}</For>
+              </select>
+              <button class="btn" onClick={addManual} disabled={cfg()!.tiers.length === 0}>
+                Ekle
               </button>
             </div>
-            <Show when={ioErr()}>
-              <p class="error">{ioErr()}</p>
-            </Show>
-          </div>
-        </Show>
-      </section>
-
-      <Show
-        when={cfg()}
-        fallback={
-          <section class="panel">
-            <p class="muted">Başlamak için "Yeni" ile bir lig yapılandırması oluştur.</p>
-          </section>
-        }
-      >
-        <section class="panel">
-          <div class="row">
-            <div>
-              <b>Bu yapılandırmayı uygula</b>
-              <small>
-                <Show when={entries()} fallback="Oturum bekleniyor (Demo ile deneyebilirsin).">
-                  Oturumun lig kimliği: {entries()!.leagueId || "yok (lig oturumu değil)"} ·{" "}
-                  <span classList={{ "lg-on": entries()!.active }}>{entries()!.active ? "şu an uygulanıyor" : "uygulanmıyor"}</span>
-                </Show>
-              </small>
-            </div>
-            <label class="switch">
-              <input type="checkbox" checked={isActive()} onChange={(e) => setActive(e.currentTarget.checked)} />
-              <i />
-            </label>
-          </div>
-          <div class="row">
-            <div>
-              <b>Ad</b>
-            </div>
-            <input class="input" value={cfg()!.name} onChange={(e) => edit((c) => (c.name = e.currentTarget.value.trim() || c.name))} />
-          </div>
-          <div class="row">
-            <div>
-              <b>iRacing lig kimliği</b>
-              <small>0: her oturumda uygula. Lig sayfasının adresindeki league_id.</small>
-            </div>
-            <div class="mqtt-host">
-              <input class="input port" type="number" min="0" value={cfg()!.leagueId} onChange={(e) => edit((c) => (c.leagueId = Math.max(0, Number(e.currentTarget.value) || 0)))} />
-              <Show when={entries()?.leagueId}>
-                <button class="btn ghost small" onClick={() => edit((c) => (c.leagueId = entries()!.leagueId))}>
-                  Bu oturumu kullan ({entries()!.leagueId})
-                </button>
-              </Show>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h4>Kategoriler</h4>
-          <div class="lg-tiers">
-            <For each={cfg()!.tiers}>
-              {(t, i) => (
-                <div class="lg-tier">
-                  <input type="color" value={t.color} onInput={(e) => edit((c) => (c.tiers[i()].color = e.currentTarget.value))} />
-                  <input class="input" value={t.name} onChange={(e) => edit((c) => (c.tiers[i()].name = e.currentTarget.value.trim() || t.name))} />
-                  <button class="btn ghost small" disabled={i() === 0} title="Yukarı" onClick={() => edit((c) => c.tiers.splice(i() - 1, 0, c.tiers.splice(i(), 1)[0]))}>
-                    ↑
-                  </button>
-                  <button
-                    class="btn ghost small danger"
-                    onClick={() =>
-                      edit((c) => {
-                        c.tiers.splice(i(), 1);
-                        for (const [k, v] of Object.entries(c.assignments)) if (v === t.id) delete c.assignments[k];
-                        for (const [k, v] of Object.entries(c.classDefaults)) if (v === t.id) delete c.classDefaults[k];
-                      })
-                    }
-                  >
-                    Kaldır
-                  </button>
-                </div>
-              )}
-            </For>
-          </div>
-          <button
-            class="btn ghost"
-            onClick={() => edit((c) => c.tiers.push({ id: uid(), name: `Kategori ${c.tiers.length + 1}`, color: COLORS[c.tiers.length % COLORS.length] }))}
-          >
-            Kategori ekle
-          </button>
-
-          <h4>iRacing sınıfına göre varsayılan</h4>
-          <p class="muted small">Tek tek atanmamış sürücüler, iRacing sınıflarına göre buradaki kategoriye girer.</p>
-          <Show when={classes().length > 0} fallback={<p class="muted small">Oturumda sınıf bilgisi yok.</p>}>
-            <For each={classes()}>
-              {([name, color]) => (
-                <div class="row">
-                  <div class="lg-class">
-                    <i style={{ background: color || "#888" }} />
-                    <b>{name}</b>
-                  </div>
-                  <select
-                    class="input"
-                    value={cfg()!.classDefaults[name] ?? ""}
-                    onChange={(e) =>
-                      edit((c) => {
-                        if (e.currentTarget.value) c.classDefaults[name] = e.currentTarget.value;
-                        else delete c.classDefaults[name];
-                      })
-                    }
-                  >
-                    <option value="">iRacing sınıfı kalsın</option>
-                    <For each={cfg()!.tiers}>{(t) => <option value={t.id}>{t.name}</option>}</For>
-                  </select>
-                </div>
-              )}
-            </For>
-          </Show>
-        </section>
-
-        <section class="panel">
-          <h4>Sürücü atamaları</h4>
-          <p class="muted small">
-            Sürücüleri sütunlar arasında sürükle. Atamalar araç numarasına göre saklanır; oturumda olmayan numaraları
-            elle ekleyebilirsin.
-          </p>
-          <div class="lg-manual">
-            <input class="input port" placeholder="#no" value={manNum()} onInput={(e) => setManNum(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && addManual()} />
-            <select class="input" value={manTier() || cfg()!.tiers[0]?.id || ""} onChange={(e) => setManTier(e.currentTarget.value)}>
-              <For each={cfg()!.tiers}>{(t) => <option value={t.id}>{t.name}</option>}</For>
-            </select>
-            <button class="btn" onClick={addManual} disabled={cfg()!.tiers.length === 0}>
-              Ekle
-            </button>
-          </div>
-          <div class="lg-board">
-            <For each={columns()}>
-              {(col) => (
-                <div
-                  class="lg-col"
-                  classList={{ over: over() === col.id }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setOver(col.id);
-                  }}
-                  onDragLeave={() => setOver("")}
-                  onDrop={(e) => onDrop(e, col.id)}
-                >
-                  <header style={{ "border-top-color": col.color }}>
-                    <b>{col.name}</b>
-                    <span class="muted">{col.items.length}</span>
-                  </header>
-                  <For each={col.items}>
-                    {(it) => {
-                      const auto = () => (col.id === AUTO && it.d ? tierOf(cfg()!.classDefaults[it.d.origClass] ?? "") : undefined);
-                      return (
-                        <div
-                          class="lg-card"
-                          classList={{ ghost: !it.d }}
-                          draggable={true}
-                          onDragStart={(e) => {
-                            e.dataTransfer?.setData("text/plain", it.num);
-                            if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-                          }}
-                        >
-                          <span class="lg-num">#{it.num}</span>
-                          <span class="lg-name">{it.d?.name ?? "oturumda değil"}</span>
-                          <Show when={it.d}>
-                            <span class="lg-meta" style={{ color: it.d!.origColor || undefined }}>
-                              {it.d!.origClass}
-                            </span>
-                            <span class="lg-meta">{it.d!.irating}</span>
-                          </Show>
-                          <Show when={col.id === AUTO}>
-                            <span class="lg-meta" style={{ color: auto()?.color }}>
-                              → {auto()?.name ?? "iRacing sınıfı"}
-                            </span>
-                          </Show>
-                          <Show when={col.id !== AUTO}>
-                            <button class="lg-x" title="Atamayı kaldır" onClick={() => assign(it.num, AUTO)}>
-                              ×
-                            </button>
-                          </Show>
-                        </div>
-                      );
+            <div class="lg-board">
+              <For each={columns()}>
+                {(col) => (
+                  <div
+                    class="lg-col"
+                    classList={{ over: over() === col.id }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setOver(col.id);
                     }}
-                  </For>
-                </div>
-              )}
-            </For>
-          </div>
-        </section>
-      </Show>
-    </div>
+                    onDragLeave={() => setOver("")}
+                    onDrop={(e) => onDrop(e, col.id)}
+                  >
+                    <header style={{ "border-top-color": col.color }}>
+                      <b>{col.name}</b>
+                      <span class="muted">{col.items.length}</span>
+                    </header>
+                    <For each={col.items}>
+                      {(it) => {
+                        const auto = () => (col.id === AUTO && it.d ? tierOf(cfg()!.classDefaults[it.d.origClass] ?? "") : undefined);
+                        return (
+                          <div
+                            class="lg-card"
+                            classList={{ ghost: !it.d }}
+                            draggable={true}
+                            onDragStart={(e) => {
+                              e.dataTransfer?.setData("text/plain", it.num);
+                              if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+                            }}
+                          >
+                            <span class="lg-num">#{it.num}</span>
+                            <span class="lg-name">{it.d?.name ?? "oturumda değil"}</span>
+                            <Show when={it.d}>
+                              <span class="lg-meta" style={{ color: it.d!.origColor || undefined }}>
+                                {it.d!.origClass}
+                              </span>
+                              <span class="lg-meta">{it.d!.irating}</span>
+                            </Show>
+                            <Show when={col.id === AUTO}>
+                              <span class="lg-meta" style={{ color: auto()?.color }}>
+                                → {auto()?.name ?? "iRacing sınıfı"}
+                              </span>
+                            </Show>
+                            <Show when={col.id !== AUTO}>
+                              <button class="lg-x" title="Atamayı kaldır" onClick={() => assign(it.num, AUTO)}>
+                                ×
+                              </button>
+                            </Show>
+                          </div>
+                        );
+                      }}
+                    </For>
+                  </div>
+                )}
+              </For>
+            </div>
+          </section>
+        </Show>
+      </div>
+    </ProLockBox>
   );
 }

@@ -3,6 +3,7 @@
 
 import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
+import { startTelemetryUpload } from "@/cloud/telemetry";
 import { t } from "@/sdk/i18n";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import {
@@ -20,15 +21,17 @@ import {
 } from "solid-js";
 import { Dynamic, Portal } from "solid-js/web";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { manifests, loadComponent } from "@/sdk/registry";
+import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
+import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
-import type { OverlayComponent, OverlayManifest } from "@/sdk/overlay";
+import { previewFrozen, setPreviewFrozen, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
 import {
   clampRect,
   effectiveScale,
@@ -41,10 +44,17 @@ import {
 import { ContextMenu, type MenuState } from "./ContextMenu";
 import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 import { BackdropPicker } from "@/app/components/BackdropPicker";
+import { overlayBgUrl } from "@/app/appBg";
+import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
 // Panelden yeni eklenen overlay: kısa süre gösterilir ve vurgulanır
 const [peekId, setPeekId] = createSignal<string | null>(null);
 let peekTimer: number | undefined;
+// Overlay'ler sayfasında yeni eklenen overlay: kullanıcı o sayfada kaldıkça (oyun kapalıyken) örnek veriyle ekranda tutulur.
+// Panel bırakınca (sayfadan çıkış, başka overlay seçimi, panel kapanışı) ya da oyun bağlanınca normal kurallara dönülür.
+const [pinId, setPinId] = createSignal<string | null>(null);
+/** Panel önizlemeyi dondurdu (Rust: preview_freeze); sadece önizleme verisi akarken dikkate alınır */
+const [frozenEvt, setFrozenEvt] = createSignal(false);
 
 // Ekran görüntüsü bildirimi
 const [shotToast, setShotToast] = createSignal<{ text: string; err: boolean } | null>(null);
@@ -75,11 +85,17 @@ const [menu, setMenu] = createSignal<MenuState | null>(null);
 
 // Bu pencerenin monitörü (boş: ana overlay penceresi)
 const windowMonitor = query.get("monitor") ?? "";
+// VR panosu (?vr=board, Rust: vr.rs): tüm düzeni gösteren sıradan bir pencere; VR pencere yakalama araçları için.
+// Düzenleme modu, bildirimler ve arka plan işleri (ping, sosyal, yükleme) bu pencerede çalışmaz.
+const vrBoard = query.get("vr") === "board";
+const vrBg = vrBoard && /^[0-9a-f]{6}$/i.test(query.get("bg") ?? "") ? `#${query.get("bg")}` : "";
 
 // Gösterilen düzen (Layout Manager kurallarına göre). Düzenleme de bu düzen üzerinde yapılır.
 const [shown, setShown] = createSignal<Profile | null>(null);
 export const shownProfile = () => shown()!;
 const editOverlay = (id: string, fn: Parameters<typeof updateOverlay>[1]) => updateOverlay(id, fn, shown()?.id);
+// Düzenleme modunda üst şeritten seçilen düzen (tüm overlay pencerelerine "edit-layout" olayıyla iletilir)
+const [editPick, setEditPick] = createSignal<string | null>(null);
 
 // Şeffaf pencerelerde bazı sürücüler, silinen/taşınan içeriğin eski görüntüsünü ekranda
 // bırakabiliyor. Düzen değişince tüm pencereyi bir kare boyunca yeniden çizdiriyoruz.
@@ -91,8 +107,12 @@ function nudgeRepaint() {
   });
 }
 
+/** "Sürekli göster" ayarı (options.always) olan overlay türleri. Rust: lib.rs sync_monitor_windows */
+const ALWAYS_TYPES = ["livechat", "livepoll", "captions"];
+
 export function Host() {
-  const [app, setApp] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
+  const [appRaw, setApp] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
+  const app = (): AppState => (vrBoard ? { ...appRaw(), editMode: false, hidden: false } : appRaw());
   const status = useTopic("status");
 
   onMount(async () => {
@@ -102,21 +122,47 @@ export function Host() {
     onCleanup(() => window.removeEventListener("resize", onResize));
     if (!inTauri) return; // Tarayıcı kaynağı: düzenleme/gizleme yok
     setApp(await invoke<AppState>("state_get"));
-    await listen<AppState>("app-state", (e) => setApp(e.payload));
+    await listen<AppState>("app-state", (e) => {
+      setApp(e.payload);
+      if (!e.payload.editMode) setEditPick(null);
+    });
+    await listen<string>("edit-layout", (e) => setEditPick(e.payload || null));
+    await listen<{ id: string | null }>("overlay-pin", (e) => setPinId(e.payload?.id || null));
+    await listen<boolean>("preview-frozen", (e) => setFrozenEvt(!!e.payload));
+    // Pencere sonradan açıldıysa (ör. başka monitörün penceresi) o anki durumu al
+    invoke<string | null>("overlay_pin_get")
+      .then((id) => setPinId(id || null))
+      .catch(() => {});
     await listen<{ id: string; ms: number }>("overlay-peek", (e) => {
       setPeekId(e.payload.id);
       clearTimeout(peekTimer);
       peekTimer = window.setTimeout(() => setPeekId(null), e.payload.ms);
     });
     // Ekran görüntüsü alındı: kısa bir bildirim (görüntüye girmez, çekimden sonra gösterilir)
-    if (windowMonitor === "") {
+    if (windowMonitor === "" && !vrBoard) {
       // Kullanım sayacı ve arkadaş listesi durumu (bu pencere uygulama açık olduğu sürece çalışır)
       invoke<{ display: string }>("app_version")
         .then((v) => startPing(() => v.display, () => !!status()?.connected && !status()?.demo && !status()?.preview))
         .catch(() => {});
       startSocial(status);
+      // Telemetri: kaydedilen turları (giriş yapılmışsa) buluta yükle
+      startTelemetryUpload();
       await listen<{ name: string }>("screenshot-taken", () => showShotToast("Ekran görüntüsü kaydedildi", false));
       await listen<string>("screenshot-error", (e) => showShotToast(t("Ekran görüntüsü alınamadı: {0}", e.payload), true));
+      // Canlı sohbet kısayolla başlatıldı/durduruldu
+      await listen<{ on: boolean; error: boolean }>("livechat-toggled", (e) =>
+        showShotToast(
+          t(e.payload.error ? "Canlı sohbet başlatılamadı: önce kanal ekle" : e.payload.on ? "Canlı sohbet başlatıldı" : "Canlı sohbet durduruldu"),
+          e.payload.error,
+        ),
+      );
+      // Sesli mühendis kısayolla açıldı/kapandı
+      await listen<{ on: boolean; error: boolean }>("voice-toggled", (e) =>
+        showShotToast(
+          t(e.payload.error ? "Sesli mühendis PRO üyelere özel" : e.payload.on ? "Sesli mühendis açıldı" : "Sesli mühendis kapatıldı"),
+          e.payload.error,
+        ),
+      );
     }
   });
 
@@ -147,16 +193,40 @@ export function Host() {
 
   // Adreste ?layout=<id> ile belirli bir düzen istenebilir (OBS)
   const forced = query.get("layout");
-  setShown(resolveProfile(status(), !inTauri, forced));
-  createEffect(() => setShown(resolveProfile(status(), !inTauri, forced)));
+  /** Yeni eklenen overlay ekranda tutuluyor mu (oyun kapalı ya da panel önizleme verisi akarken) */
+  const pinActive = () => {
+    if (!pinId() || app().editMode) return false;
+    const st = status();
+    return !st?.connected || !!st.preview;
+  };
+  // Ekranda tutulan önizleme de panelle birlikte donar; canlı veri ya da Demo modunda asla
+  createEffect(() => {
+    const st = status();
+    setPreviewFrozen(frozenEvt() && pinActive() && !!st?.preview && !st.demo);
+  });
+  // Tutulan overlay panelde düzenlenen (etkin) düzendedir: o düzen gösterilir
+  const pick = () => forced ?? (app().editMode ? editPick() : pinActive() ? settings().activeProfile : null);
+  setShown(resolveProfile(status(), !inTauri, pick()));
+  createEffect(() => setShown(resolveProfile(status(), !inTauri, pick())));
+
+  // Bağlı (ya da seçili) sim: o simde çalışmayan overlay'ler çizilmez (ayarları korunur)
+  const sim = createMemo(() => currentSim(status()));
 
   // Bu pencerede gösterilecek kopyalar: [anahtar, manifest]
   const enabled = createMemo(
     () => {
       const p = shown()!;
+      const cur = sim();
       monitors();
       return instancesOf(p)
-        .filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type) && belongsTo(i.monitor, windowMonitor))
+        .filter(
+          ([, i]) =>
+            i.enabled &&
+            !isLocked(i.type) &&
+            !isHiddenOverlay(i.type) &&
+            overlaySupportsSim(i.type, cur) &&
+            belongsTo(i.monitor, windowMonitor),
+        )
         .map(([k, i]) => [k, manifests.find((m) => m.id === i.type)!] as [string, OverlayManifest])
         .filter(([, m]) => !!m);
     },
@@ -194,10 +264,21 @@ export function Host() {
       if (peekId() === key) return true;
       if (app().hidden) return false;
     }
+    // Overlay'ler sayfasında yeni eklenen overlay: sayfada kalındıkça ekranda (örnek veriyle)
+    if (pinActive()) {
+      if (pinId() === key) return true;
+      if (app().hidden) return false;
+    }
     const inst = shown()!.overlays[key];
     if (!inst) return false;
     const st = status();
-    if (!st?.connected || st.preview) return !!inst.alwaysShow;
+    // Canlı sohbet overlay'leri "Sürekli göster": oyun kapalıyken, tekrar izlerken ve pist dışında da görünür
+    // (kopyanın kendi "garajda / pistte gizle" seçenekleri yine geçerli)
+    const always = ALWAYS_TYPES.includes(inst.type) && inst.options?.always !== false;
+    if (!st?.connected || st.preview) return always || !!inst.alwaysShow;
+    if (always) return !(inst.hideInGarage && st.inGarage) && !(inst.hideOnTrack && st.onTrack && !st.replay);
+    // Tekrar (replay) izlenirken overlay'ler gizlenir (ayar; canlı ana yetişmiş izleme hariç)
+    if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch) return false;
     if (settings().general.hideWhenOffTrack && !st.demo && (!st.onTrack || st.replay)) return false;
     if (inst.hideInGarage && st.inGarage) return false;
     if (inst.hideOnTrack && st.onTrack && !st.replay) return false;
@@ -216,8 +297,8 @@ export function Host() {
   return (
     <div
       class="host ov-theme"
-      classList={{ editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque }}
-      style={{ ...vars(), "--grid": `${g().gridSize}px` }}
+      classList={{ "ov-frozen": previewFrozen(), editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
+      style={{ ...vars(), "--grid": `${g().gridSize}px`, ...(overlayBgUrl() ? { "--ov-appbg": `url("${overlayBgUrl()}")` } : {}), ...(vrBg ? { "background-color": vrBg } : {}) }}
     >
       <Show when={app().editMode && editBg()}>
         <img class="edit-bg" src={editBg()!} alt="" draggable={false} style={{ opacity: g().editBackdrop.opacity / 100 }} />
@@ -235,7 +316,7 @@ export function Host() {
       <For each={enabled()}>
         {([k, m]) => (
           <Show when={frameVisible(k)}>
-            <OverlayFrame key={k} manifest={m} editing={app().editMode} />
+            <OverlayFrame key={k} manifest={m} editing={app().editMode} sample={pinActive() && pinId() === k} />
           </Show>
         )}
       </For>
@@ -264,6 +345,15 @@ export function Host() {
   );
 }
 
+/** Düzenleme modunda başka düzene anında geç (yayın düzenleri seçili düzeni değiştirmez, sadece gösterilir) */
+function switchLayout(id: string) {
+  const p = settings().profiles[id];
+  if (!p) return;
+  if (p.rules.mode !== "stream") updateSettings((d) => (d.activeProfile = id));
+  setEditPick(id);
+  if (inTauri) void emit("edit-layout", id).catch(() => {});
+}
+
 function EditBar(props: { demo: boolean }) {
   const g = () => settings().general;
   const [picking, setPicking] = createSignal(false);
@@ -274,7 +364,21 @@ function EditBar(props: { demo: boolean }) {
   return (
     <div class="edit-banner">
       <b>Düzenleme modu</b>
-      <span class="edit-layout" title="Şu an düzenlenen düzen">{shown()?.name}</span>
+      <select
+        class="edit-layout"
+        title="Şu an düzenlenen düzen · başka bir düzene geçmek için seç"
+        value={shown()?.id ?? ""}
+        onChange={(e) => switchLayout(e.currentTarget.value)}
+      >
+        <For each={Object.values(settings().profiles)}>
+          {(p) => (
+            <option value={p.id} selected={p.id === shown()?.id}>
+              {p.name}
+            </option>
+          )}
+        </For>
+      </select>
+      <UndoRedo keys />
       <span class="edit-hint">
         Sürükle · köşeden boyutlandır · sağ tık: konum · <kbd>Alt</kbd> yapıştırmadan taşı
       </span>
@@ -343,7 +447,7 @@ function EditBar(props: { demo: boolean }) {
   );
 }
 
-function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: boolean }) {
+function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: boolean; sample?: boolean }) {
   const id = props.key;
   const inst = () => shownProfile().overlays[id];
   const Comp = componentFor(props.manifest.id);
@@ -541,7 +645,7 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       </Show>
       <Suspense>
         <Show when={Comp} fallback={<div class="ov-panel ov-empty">Overlay.tsx bulunamadı</div>}>
-          <Dynamic component={Comp} options={inst().options} units={settings().general.units} editing={props.editing} />
+          <Dynamic component={Comp} options={sanitizeOverlayOptions(props.manifest.id, inst().options)} units={settings().general.units} editing={props.editing || !!props.sample} />
         </Show>
       </Suspense>
     </div>

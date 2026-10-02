@@ -1,0 +1,735 @@
+/* Takımlar sayfası, arkadaş listesindeki takım odaları, takım sohbeti ve anketler. */
+
+/* ---------- Logo, etiket, rol ---------- */
+.tlogo {
+  --sz: 44px;
+  --tc: #4ea1ff;
+  flex: none;
+  width: var(--sz);
+  height: var(--sz);
+  border-radius: calc(var(--sz) * 0.24);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--tc) 92%, #fff 8%), color-mix(in srgb, var(--tc) 70%, #000));
+  color: #fff;
+  font-weight: 800;
+  font-size: calc(var(--sz) * 0.3);
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.tlogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ttag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--tc, #4ea1ff) 22%, transparent);
+  color: color-mix(in srgb, var(--tc, #4ea1ff) 70%, #fff);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.ttag.big {
+  font-size: 13px;
+  padding: 2px 8px;
+}
+.trole {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #262b36;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.trole svg {
+  width: 12px;
+  height: 12px;
+}
+.trole.r-owner {
+  background: color-mix(in srgb, #ffc53d 20%, transparent);
+  color: #ffd56b;
+}
+.trole.r-admin {
+  background: color-mix(in srgb, #3ddc84 18%, transparent);
+  color: #63e49e;
+}
+.trole.r-pending {
+  background: color-mix(in srgb, #4ea1ff 18%, transparent);
+  color: #7cb9ff;
+}
+
+/* ---------- Sayfa: liste ---------- */
+.tpage .tback {
+  margin-bottom: 10px;
+}
+.tlist-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.tsearch {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+.tsearch > svg {
+  position: absolute;
+  left: 10px;
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.tsearch .input {
+  flex: 1;
+  padding-left: 32px;
+}
+.tsec-title {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.tgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.tcard {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tc);
+  border-radius: 10px;
+  background: var(--bg-2, #181b21);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+}
+.tcard:hover {
+  background: var(--bg-3, #1f232b);
+  transform: translateY(-1px);
+}
+.tcard-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.tcard-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.tcard-top b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tcard-desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: #c4cad6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tcard > .trole {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.tinv h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tinv h3 svg {
+  width: 16px;
+  height: 16px;
+}
+.tinv-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.tinv-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Sayfa: profil ---------- */
+.thero {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--tc) 22%, transparent), transparent 60%),
+    var(--bg-2, #181b21);
+  margin-bottom: 12px;
+}
+.thero-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.thero-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.thero-title h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.thero-desc {
+  margin: 0;
+  white-space: pre-wrap;
+  color: #c9cfda;
+  line-height: 1.45;
+}
+.thero-acts {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 170px;
+}
+.thero-acts .btn svg {
+  width: 15px;
+  height: 15px;
+}
+.tcols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .tcols {
+    grid-template-columns: 1fr;
+  }
+}
+.tcol-main,
+.tcol-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.tcols .panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tcols .panel h3 svg {
+  width: 16px;
+  height: 16px;
+}
+.tmem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 0;
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.tmem:first-of-type {
+  border-top: 0;
+}
+.tmem-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tmem-main b,
+.tmem-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tmem .icon-btn svg,
+.tmem-fs svg {
+  width: 15px;
+  height: 15px;
+}
+.tmem-fs {
+  display: grid;
+  padding: 0 6px;
+}
+.tmem-menu-wrap {
+  position: relative;
+}
+.tmem-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 2px);
+  z-index: 10;
+  min-width: 190px;
+}
+.tmembers .tsearch {
+  margin-bottom: 6px;
+}
+
+/* Duyurular */
+.twall-new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.twall-new textarea {
+  resize: vertical;
+}
+.twall-new-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tpost {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.tpost.pinned {
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border-top: 0;
+  background: color-mix(in srgb, #ffc53d 7%, transparent);
+  box-shadow: inset 3px 0 0 #ffc53d;
+}
+.tpost > header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.tpost-who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.tpost header .icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.tpin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffd56b;
+}
+.tpin svg {
+  width: 12px;
+  height: 12px;
+}
+.tpost-body {
+  margin: 8px 0 6px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.tpost-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 39px;
+}
+.tcomment {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+.tcomment span {
+  overflow-wrap: anywhere;
+}
+.tcomment small {
+  font-size: 10.5px;
+}
+.tcomment .icon-btn {
+  padding: 0;
+  opacity: 0.6;
+}
+.tcomment .icon-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.tcomment-new {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.tcomment-new .input {
+  flex: 1;
+  font-size: 12.5px;
+}
+
+/* Kurma / düzenleme formu */
+.tform {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+.tform-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.tform-logo .btn svg {
+  width: 14px;
+  height: 14px;
+}
+.tform-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 560px;
+}
+.tfield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tfield > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.tfield textarea {
+  resize: vertical;
+}
+.ttag-input {
+  max-width: 120px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.tcolors {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tswatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.tswatch.on {
+  border-color: #fff;
+}
+.tcolors input[type="color"] {
+  width: 32px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.tform-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- Arkadaş listesinde takım odaları ---------- */
+.fx .fsec-teams i {
+  background: color-mix(in srgb, #4ea1ff 25%, transparent);
+  color: #7cb9ff;
+}
+.fx .frow.troom .tlogo {
+  border-radius: 10px;
+}
+
+/* ---------- Takım sohbeti ---------- */
+.tmsg-who {
+  display: block;
+  font-size: 11.5px;
+  margin-bottom: 1px;
+}
+.fx .fmsg.gone {
+  opacity: 0.6;
+}
+.tmsg-gone {
+  font-style: italic;
+  color: var(--muted);
+}
+.tchat-more {
+  align-self: center;
+  margin: 4px 0 8px;
+}
+.tchat-err {
+  margin: 0 12px 6px;
+  cursor: pointer;
+}
+
+/* Anket kartı */
+.tpoll {
+  align-self: flex-start;
+  width: min(330px, 92%);
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #2b3140;
+  background: #1b1f28;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.tpoll.mine {
+  align-self: flex-end;
+  border-color: color-mix(in srgb, var(--accent) 45%, #2b3140);
+}
+.tpoll-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tpoll-head svg {
+  width: 13px;
+  height: 13px;
+  color: var(--accent);
+}
+.tpoll-head small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.tpoll-q {
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.tpoll-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tpoll-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid #2d3341;
+  border-radius: 9px;
+  background: #20252f;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.tpoll-opt:hover:not(:disabled) {
+  border-color: #3b4354;
+}
+.tpoll-opt:disabled {
+  cursor: default;
+}
+.tpoll-opt.on {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.tpoll-opt.win {
+  border-color: #ffc53d;
+}
+.tpoll-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, #4ea1ff 18%, transparent);
+  transition: width 0.35s ease;
+  pointer-events: none;
+}
+.tpoll-opt.on .tpoll-bar {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.tpoll-opt.win .tpoll-bar {
+  background: color-mix(in srgb, #ffc53d 24%, transparent);
+}
+.tpoll-mark,
+.tpoll-label,
+.tpoll-pct,
+.tpoll-opt svg {
+  position: relative;
+}
+.tpoll-mark {
+  flex: none;
+  width: 14px;
+  color: var(--muted);
+}
+.tpoll-opt.on .tpoll-mark {
+  color: var(--accent);
+}
+.tpoll-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tpoll-opt svg {
+  width: 14px;
+  height: 14px;
+  color: #ffc53d;
+}
+.tpoll-pct {
+  flex: none;
+  font-weight: 700;
+  font-size: 12px;
+}
+.tpoll-pct small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.tpoll-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tpoll-done {
+  color: #ffc53d;
+}
+.tpoll-foot .link {
+  font-size: 11.5px;
+}
+.tpoll-form .input {
+  font-size: 13px;
+}
+.tpoll-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.tpoll-row .input {
+  flex: 1;
+}
+.tpoll-row .icon-btn svg,
+.tpoll-add svg {
+  width: 13px;
+  height: 13px;
+}
+.tpoll-add {
+  align-self: flex-start;
+}
+.tpoll-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.fx .frow-unread.muted {
+  background: #3a404d;
+  box-shadow: none;
+}
+
+/* c36: takımın oyunu ve son aktiviteler */
+.tsim-filter {
+  flex: none;
+  width: auto;
+  min-width: 150px;
+}
+.sim-badge.tsim {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+.sim-badge.s-multi {
+  --sc: #a4adbd;
+}
+.tact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.tact-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tact-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tact-line {
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.tact-pb {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #a77bff 22%, transparent);
+  border: 1px solid color-mix(in srgb, #a77bff 60%, transparent);
+  color: #d6c4ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.tact-more {
+  margin-top: 6px;
+}

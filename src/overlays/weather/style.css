@@ -91,3 +91,14 @@
 .wx-wet .wx-row {
   border-bottom: 0;
 }
+
+.wx-row .wx-k {
+  font-size: 0.78em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.05em;
+  color: var(--ov-dim);
+}
+
+.wx-row .wx-k.wxi-wrap {
+  font-size: 1em;
+}

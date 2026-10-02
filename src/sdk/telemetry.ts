@@ -3,7 +3,9 @@
 // Tarayıcıda (OBS/ağ): yerel web sunucusundan Server-Sent Events ile gelir.
 // Her konu için ayrı bir sinyal tutulur; bir overlay sadece kendi konusunun sinyalini okur.
 
-import { createSignal, type Accessor } from "solid-js";
+import { createComputed, createMemo, createSignal, type Accessor } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
+import { setPreviewFrozen } from "./overlay";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type { Packet, TopicMap, TopicName } from "./types";
 import { apiBase, inTauri } from "./platform";
@@ -23,6 +25,23 @@ function slot<K extends TopicName>(name: K) {
 /** Bir overlay içinden veri okumak için: `const rel = useTopic("relative")` */
 export function useTopic<K extends TopicName>(name: K): Accessor<TopicMap[K] | undefined> {
   return slot(name)[0];
+}
+
+/**
+ * Satır listesi için sabit kimlik: her veri paketinde satır nesneleri yeniden oluşur; doğrudan <For>'a verilirse
+ * her pakette tüm satırların DOM'u (logo ve bayrak <img>'leri dahil) silinip yeniden kurulur ve titrer.
+ * Burada satırlar `key` alanına (araç idx) göre bir store'da birleştirilir: aynı araç aynı nesne olarak kalır,
+ * sadece değişen alanlar güncellenir, sıra değişince DOM düğümü taşınır.
+ */
+export function useRows<T extends object>(src: Accessor<T[] | undefined>, key = "idx"): Accessor<T[]> {
+  const [st, set] = createStore<{ rows: T[] }>({ rows: [] });
+  createComputed(() => {
+    const list = (src() ?? []) as T[];
+    // Anahtar benzersiz değilse (ör. örnek veride hepsi idx 0) konuma göre birleştir
+    const uniq = new Set(list.map((r) => (r as Record<string, unknown>)[key])).size === list.length;
+    set("rows", reconcile(list, uniq ? { key } : { key: null, merge: true }));
+  });
+  return () => st.rows;
 }
 
 const settingsListeners = new Set<(v: unknown) => void>();
@@ -117,10 +136,13 @@ export async function setSubscriptions(topics: Sub[]) {
   }
 }
 
+const LIVE_TOPICS: TopicName[] = ["livechat", "livepoll", "captions", "voice"];
+
 /** Bağlantı koptuğunda eski verinin ekranda kalmaması için. */
 export function clearData() {
   for (const k of Object.keys(store) as TopicName[]) {
-    if (k !== "status") (store[k][1] as (v: unknown) => void)(undefined);
+    // Canlı sohbet konuları iRacing'den bağımsız (bağlantı kopunca silinmez)
+    if (k !== "status" && !LIVE_TOPICS.includes(k)) (store[k][1] as (v: unknown) => void)(undefined);
   }
 }
 
@@ -168,10 +190,11 @@ export function usePreview() {
 
 /**
  * Panel önizlemeleri için sabit görüntü: seçim/ayar değişince kısa bir süre örnek (ya da canlı) veri alınır,
- * sonra akış ve demo üretimi durur; overlay son hâliyle ekranda kalır (işlemci ve bellek harcamaz).
+ * sonra akış ve demo saati durur (Rust: preview_freeze); overlay son hâliyle ekranda kalır.
+ * Dondurma yalnızca önizleme verisine uygulanır: Demo modu ve canlı sim verisi motor tarafında hiç donmaz.
  * `keepLive` true iken (ör. kullanıcı Demo'yu açtıysa) akış sürer.
  */
-export function useSnapshot(topics: () => Sub[], trigger: () => unknown, keepLive: () => boolean = () => false, ms = 5000) {
+export function useSnapshot(topics: () => Sub[], trigger: () => unknown, keepLive: () => boolean = () => false, ms = 8000) {
   const setSubs = useSubscriptions([]);
   let holding = false;
   const hold = (on: boolean) => {
@@ -183,23 +206,37 @@ export function useSnapshot(topics: () => Sub[], trigger: () => unknown, keepLiv
   };
   const [live, setLive] = createSignal(true);
   let timer: number | undefined;
-  _createEffect(
-    _on(trigger, () => {
-      setLive(true);
-      clearTimeout(timer);
-      timer = window.setTimeout(() => setLive(false), ms);
-    }),
-  );
+  /** Önizlemeyi `ms` kadar yeniden oynat, sonra dondur */
+  const replay = () => {
+    setLive(true);
+    clearTimeout(timer);
+    timer = window.setTimeout(() => setLive(false), ms);
+  };
+  // Tetikleyici değerce karşılaştırılır: sadece seçim gerçekten değişince yeniden oynar. (Eskiden her ayar
+  // değişikliği yeni bir dizi üretip önizlemeyi baştan başlatıyordu; her seferinde yeni bir demo yarışı kuruluyordu.)
+  const trig = createMemo(() => {
+    const v = trigger();
+    return Array.isArray(v) ? v.map((x) => String(x)).join("\u0001") : v;
+  });
+  _createEffect(_on(trig, replay));
+  // Demo yarışı sayfa açıkken yaşar (hold); dondurma sadece demo saatini durdurur. Böylece yeniden oynatınca
+  // yarış baştan kurulmaz, kaldığı yerden sürer; ekranda tutulan (pin) overlay de aynı anda donar.
+  const freeze = (on: boolean) => {
+    setPreviewFrozen(on);
+    if (inTauri) invoke("preview_freeze", { on }).catch(() => {});
+  };
+  hold(true);
   _createEffect(() => {
     const on = live() || keepLive();
+    if (on) freeze(false);
     setSubs(on ? topics() : []);
-    // Önce abonelik kalksın, sonra demo üretimi dursun (son kare ekranda kalır)
-    if (on) hold(true);
-    else window.setTimeout(() => !(live() || keepLive()) && hold(false), 100);
+    // Önce abonelik kalksın (son kare ekranda kalır), sonra demo saati dursun
+    if (!on) window.setTimeout(() => !(live() || keepLive()) && freeze(true), 100);
   });
   _onCleanup(() => {
     clearTimeout(timer);
+    freeze(false);
     hold(false);
   });
-  return live;
+  return Object.assign(live, { replay });
 }

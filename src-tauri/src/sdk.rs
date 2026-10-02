@@ -128,11 +128,16 @@ pub struct VarIndex {
     pub lap_best: Option<VarRef>,
     pub delta_best: Option<VarRef>,
     pub delta_best_ok: Option<VarRef>,
+    pub delta_session: Option<VarRef>,
+    pub delta_session_ok: Option<VarRef>,
+    pub delta_optimal: Option<VarRef>,
+    pub delta_optimal_ok: Option<VarRef>,
     pub car_left_right: Option<VarRef>,
     pub on_pit_road: Option<VarRef>,
     pub is_on_track: Option<VarRef>,
     pub is_in_garage: Option<VarRef>,
     pub replay: Option<VarRef>,
+    pub replay_end: Option<VarRef>,
     pub air_temp: Option<VarRef>,
     pub track_temp: Option<VarRef>,
     pub incidents: Option<VarRef>,
@@ -140,6 +145,8 @@ pub struct VarIndex {
     pub brake_bias: Option<VarRef>,
     pub tc: Option<VarRef>,
     pub abs_setting: Option<VarRef>,
+    pub oil_temp: Option<VarRef>,
+    pub water_temp: Option<VarRef>,
     pub pit_limiter: Option<VarRef>,
     pub engine_warnings: Option<VarRef>,
     pub c_lap: Option<VarRef>,
@@ -211,11 +218,16 @@ impl VarIndex {
                 "LapBestLapTime" => ix.lap_best = r,
                 "LapDeltaToBestLap" => ix.delta_best = r,
                 "LapDeltaToBestLap_OK" => ix.delta_best_ok = r,
+                "LapDeltaToSessionBestLap" => ix.delta_session = r,
+                "LapDeltaToSessionBestLap_OK" => ix.delta_session_ok = r,
+                "LapDeltaToOptimalLap" => ix.delta_optimal = r,
+                "LapDeltaToOptimalLap_OK" => ix.delta_optimal_ok = r,
                 "CarLeftRight" => ix.car_left_right = r,
                 "OnPitRoad" => ix.on_pit_road = r,
                 "IsOnTrack" => ix.is_on_track = r,
                 "IsInGarage" => ix.is_in_garage = r,
                 "IsReplayPlaying" => ix.replay = r,
+                "ReplayFrameNumEnd" => ix.replay_end = r,
                 "AirTemp" => ix.air_temp = r,
                 "TrackTempCrew" => ix.track_temp = r,
                 "PlayerCarMyIncidentCount" => ix.incidents = r,
@@ -223,6 +235,8 @@ impl VarIndex {
                 "dcBrakeBias" => ix.brake_bias = r,
                 "dcTractionControl" => ix.tc = r,
                 "dcABS" => ix.abs_setting = r,
+                "OilTemp" => ix.oil_temp = r,
+                "WaterTemp" => ix.water_temp = r,
                 "EngineWarnings" => ix.engine_warnings = r,
                 "dcPitSpeedLimiterToggle" => ix.pit_limiter = r,
                 "CarIdxLap" => ix.c_lap = r,
@@ -348,11 +362,17 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.lap_best = f32_or(buf, ix.lap_best, -1.0);
     f.delta_best = f32_or(buf, ix.delta_best, 0.0);
     f.delta_best_ok = bool_of(buf, ix.delta_best_ok);
+    f.delta_session = f32_or(buf, ix.delta_session, 0.0);
+    f.delta_session_ok = bool_of(buf, ix.delta_session_ok);
+    f.delta_optimal = f32_or(buf, ix.delta_optimal, 0.0);
+    f.delta_optimal_ok = bool_of(buf, ix.delta_optimal_ok);
     f.car_left_right = i32_or(buf, ix.car_left_right, 0);
     f.on_pit_road = bool_of(buf, ix.on_pit_road);
     f.is_on_track = bool_of(buf, ix.is_on_track);
     f.is_in_garage = bool_of(buf, ix.is_in_garage);
     f.replay = bool_of(buf, ix.replay);
+    // Kasetin sonuna (canlı ana) 1 saniyeden yakın: izleyici/araç dışı görünüm, gerçek tekrar değil
+    f.replay_live = f.replay && ix.replay_end.is_some() && i32_or(buf, ix.replay_end, 0) <= 60;
     f.air_temp = f32_or(buf, ix.air_temp, 0.0);
     f.track_temp = f32_or(buf, ix.track_temp, 0.0);
     f.incidents = i32_or(buf, ix.incidents, 0);
@@ -360,6 +380,8 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.brake_bias = f32_or(buf, ix.brake_bias, -1.0);
     f.tc = f32_or(buf, ix.tc, -1.0);
     f.abs_setting = f32_or(buf, ix.abs_setting, -1.0);
+    f.oil_temp = f32_or(buf, ix.oil_temp, -1.0);
+    f.water_temp = f32_or(buf, ix.water_temp, -1.0);
     f.engine_warnings = u32_bits(buf, ix.engine_warnings);
     f.yaw_north = f32_or(buf, ix.yaw_north, 0.0);
     f.vel_x = f32_or(buf, ix.vel_x, 0.0);

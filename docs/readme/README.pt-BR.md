@@ -20,7 +20,7 @@
 
 A maioria dos apps para por aí, nos overlays. O SRTR Pitwall é um pit wall completo para o seu simulador:
 
-- 🏎️ **26 overlays, uma única janela transparente**: relative, classificação, combustível, pneus, radar, mapa da pista, delta, inputs, clima, bandeiras e muito mais. Tudo é desenhado em uma só janela por monitor, então continua rápido mesmo com um layout lotado.
+- 🏎️ **27 overlays, uma única janela transparente**: relative, classificação, combustível, pneus, radar, mapa da pista, delta, inputs, clima, bandeiras e muito mais. Tudo é desenhado em uma só janela por monitor, então continua rápido mesmo com um layout lotado.
 - 🎙️ **Spotter visual e por voz**: carro à esquerda / à direita, três lado a lado, bandeiras, combustível e posição com pacote de voz em turco, além de alertas de classe mais rápida e de retorno à pista.
 - ⛽ **Estratégia de combustível com compartilhamento ao vivo na equipe**: consumo por volta, quantidade de reabastecimento, janelas de pit e o combustível dos seus colegas de equipe, ao vivo no seu próprio overlay.
 - 👥 **Amigos com telemetria ao vivo confiável**: adicione amigos, veja quem está online ou correndo e deixe os pilotos em quem você confia verem seu combustível e suas voltas em tempo real. Sem códigos, sem configuração.

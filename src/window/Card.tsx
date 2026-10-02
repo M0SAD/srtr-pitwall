@@ -5,6 +5,7 @@ import { Show, Suspense, createMemo, lazy, type Component, type JSX } from "soli
 import { Dynamic } from "solid-js/web";
 import { loadComponent, manifestById } from "@/sdk/registry";
 import { defaultOptions } from "@/sdk/overlay";
+import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { settings } from "@/sdk/settings";
 import { isLocked } from "@/cloud/account";
 
@@ -26,7 +27,7 @@ export function OverlayCard(props: {
 }) {
   const m = manifestById(props.id);
   const C = comp(props.id);
-  const options = createMemo(() => ({ ...(m ? defaultOptions(m) : {}), ...(props.options ?? {}) }));
+  const options = createMemo(() => sanitizeOverlayOptions(props.id, { ...(m ? defaultOptions(m) : {}), ...(props.options ?? {}) }));
   return (
     <section class={`pw-card ${props.class ?? ""}`}>
       <Show when={props.title}>

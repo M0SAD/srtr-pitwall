@@ -10,6 +10,13 @@
 //                           LEMON_USD_AD_VARIANT_ID gibi para birimi mağazalarının varyantları da kabul edilir.
 // PRO abonelikleri pro-checkout'un açtığı ödeme sayfasından gelir (custom_data.user_id + custom_data.plan);
 // plan adı Lemon'daki varyant adından alınır (ör. "Monthly" / "Yearly"), yoksa custom_data.plan ("1m" …).
+// Hediye PRO (pro-checkout gift_to): custom_data.user_id = alıcı, custom_data.gifter = hediye eden (ödeyen).
+// Abonelik alıcıya işlenir (apply_subscription p_gifter); fatura/ödeme kaydı ise hediye edene yazılır
+// (makbuz ona gider), alıcı payments.gift_to'da tutulur. Önce c26_guncelleme.sql çalıştırılmalı.
+// İndirim kuponu (c34): pro-checkout / ads-checkout custom_data'ya coupon_id, coupon_before, coupon_after,
+// coupon_currency ekler; ödeme gelince kullanım coupon_redeem ile kaydedilir (abonelik / sipariş başına bir kez).
+// PRO'da indirim Lemon indirim koduyla (checkout_data.discount_code) uygulanır, custom_price tam fiyattır; kullanımın
+// indirimli tutarı (amount_after) ilk abonelik faturasının toplamından (total) alınır.
 // Kurulum: docs/PRO.md
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -46,7 +53,10 @@ async function grant(email: string, until: Date, source: string) {
 }
 
 /** Ödemeyi istatistik için kaydeder (hata olursa PRO işlemini durdurmaz) */
-async function record(p: { id: string; source: string; email: string; user?: string | null; amount: number; currency: string; plan: string; kind?: string }) {
+async function record(p: {
+  id: string; source: string; email: string; user?: string | null; amount: number; currency: string; plan: string; kind?: string;
+  giftTo?: string | null;
+}) {
   const { error } = await supabase.rpc("record_payment", {
     p_id: p.id,
     p_source: p.source,
@@ -56,8 +66,28 @@ async function record(p: { id: string; source: string; email: string; user?: str
     p_currency: p.currency,
     p_plan: p.plan,
     p_kind: p.kind ?? "payment",
+    p_gift_to: p.giftTo ?? null,
   });
   if (error) console.error("record_payment", error.message);
+}
+
+/** Kupon kullanımını kaydeder (c34; aynı ref bir kez sayılır, hata olursa ödeme işlemini durdurmaz) */
+// deno-lint-ignore no-explicit-any
+async function redeemCoupon(custom: any, p: { ref: string; user: string | null; product: string; plan: string; after?: number; currency?: string }) {
+  const id = custom?.coupon_id;
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return;
+  const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const { error } = await supabase.rpc("coupon_redeem", {
+    p_coupon: id,
+    p_user: p.user,
+    p_ref: p.ref,
+    p_product: p.product,
+    p_plan: p.plan,
+    p_before: num(custom?.coupon_before),
+    p_after: p.after ?? num(custom?.coupon_after),
+    p_currency: String(p.currency || custom?.coupon_currency || ""),
+  });
+  if (error) console.error("coupon_redeem", error.message);
 }
 
 function ok(body: unknown) {
@@ -159,6 +189,9 @@ async function lemon(req: Request) {
   const event = String(j?.meta?.event_name ?? "");
   const custom = j?.meta?.custom_data?.user_id;
   const customUser = typeof custom === "string" && /^[0-9a-f-]{36}$/i.test(custom) ? custom : null;
+  // Hediye: ödeyen (hediye eden) hesap
+  const gifterRaw = j?.meta?.custom_data?.gifter;
+  const customGifter = typeof gifterRaw === "string" && /^[0-9a-f-]{36}$/i.test(gifterRaw) ? gifterRaw : null;
   // Reklam ödemesi (ads-checkout'un açtığı tek seferlik sipariş): order_created → yayına al, order_refunded → durdur
   const adId = j?.meta?.custom_data?.ad_id;
   if (j?.data?.type === "orders" && typeof adId === "string" && /^[0-9a-f-]{36}$/i.test(adId)) {
@@ -167,18 +200,47 @@ async function lemon(req: Request) {
   // Ödeme / iade (abonelik faturası): sadece kayıt, PRO süresini abonelik olayı ayarlar
   if (j?.data?.type === "subscription-invoices") {
     const a = j.data.attributes ?? {};
-    const { data: sub } = await supabase.from("subscriptions").select("plan,user_id").eq("lemon_id", String(a.subscription_id ?? "")).maybeSingle();
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("plan,user_id,gifted_by,is_gift")
+      .eq("lemon_id", String(a.subscription_id ?? ""))
+      .maybeSingle();
     const refund = event.includes("refund") || a.status === "refunded";
+    // Hediye faturası: ödeme hediye edene (yoksa ödeme e-postasıyla eşlenir), alıcı gift_to
+    const gift = !!customGifter || !!sub?.is_gift || j?.meta?.custom_data?.gift === "1";
     await record({
       id: `lemon-inv-${j.data.id}${refund ? "-refund" : ""}`,
       source: "lemon",
       email: String(a.user_email ?? ""),
-      user: customUser ?? sub?.user_id ?? null,
+      user: gift ? customGifter ?? sub?.gifted_by ?? null : customUser ?? sub?.user_id ?? null,
+      giftTo: gift ? customUser ?? sub?.user_id ?? null : null,
       amount: (Number(refund ? a.refunded_amount || a.total : a.total) || 0) / 100,
       currency: String(a.currency ?? "USD"),
-      plan: String(sub?.plan ?? ""),
+      plan: String(sub?.plan || j?.meta?.custom_data?.plan || ""),
       kind: refund ? "refund" : "payment",
     });
+    // Kuponlu abonelik: kullanım abonelik başına bir kez (subscription_created ile aynı ref). İndirim Lemon indirim
+    // koduyla uygulandığı için indirimli tutar ilk faturanın toplamından okunur; kayıt subscription_created ile
+    // önceden açıldıysa tutarı bu faturayla düzeltilir. Yenileme faturaları kullanım saymaz.
+    const initial = !a.billing_reason || String(a.billing_reason) === "initial";
+    if (!refund && initial && a.subscription_id && typeof j?.meta?.custom_data?.coupon_id === "string") {
+      const ref = `lemon-sub-${a.subscription_id}`;
+      const paid = (Number(a.total) || 0) / 100;
+      const cur = String(a.currency ?? "");
+      await redeemCoupon(j?.meta?.custom_data, {
+        ref,
+        user: gift ? customGifter ?? sub?.gifted_by ?? null : customUser ?? sub?.user_id ?? null,
+        product: gift ? "gift" : "pro",
+        plan: String(j?.meta?.custom_data?.plan || sub?.plan || ""),
+        after: paid,
+        currency: cur,
+      });
+      const { error: ue } = await supabase
+        .from("coupon_redemptions")
+        .update({ amount_after: paid, ...(cur ? { currency: cur.toUpperCase() } : {}) })
+        .eq("ref", ref);
+      if (ue) console.error("coupon amount", ue.message);
+    }
     return ok({ ok: true, event });
   }
   if (j?.data?.type !== "subscriptions") return ok({ ignored: event });
@@ -208,8 +270,18 @@ async function lemon(req: Request) {
     p_ends: ends ? ends.toISOString() : null,
     p_portal: String(a.urls?.customer_portal ?? ""),
     p_until: until ? until.toISOString() : null,
+    p_gifter: customGifter,
   });
   if (error) throw new Error(error.message);
+  // Kuponlu abonelik başladı: kullanım kaydı (ödeyen: hediyede hediye eden)
+  if (event === "subscription_created") {
+    await redeemCoupon(j?.meta?.custom_data, {
+      ref: `lemon-sub-${j.data.id}`,
+      user: customGifter ?? customUser,
+      product: customGifter ? "gift" : "pro",
+      plan: String(j?.meta?.custom_data?.plan || ""),
+    });
+  }
   return ok({ ok: true, event, status, user: data });
 }
 
@@ -274,6 +346,14 @@ async function lemonAdOrder(j: any, event: string, adId: string, customUser: str
     amount,
     currency: String(a.currency ?? "USD"),
     plan: `Reklam: ${AD_PLACES[data?.placement] ?? data?.placement ?? ""}`,
+  });
+  await redeemCoupon(j?.meta?.custom_data, {
+    ref: `lemon-ad-${orderId}`,
+    user: customUser ?? data?.user_id ?? null,
+    product: "ad",
+    plan: String(data?.placement ?? ""),
+    after: amount,
+    currency: String(a.currency ?? ""),
   });
   return ok({ ok: true, event, ad: adId, status: data?.status });
 }

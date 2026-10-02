@@ -65,6 +65,7 @@ pub mod o {
     // Katılımcı dizileri (çalışırken doğrulanır)
     pub const FASTEST_LAP_TIMES: usize = 8896;
     pub const LAST_LAP_TIMES: usize = 9152;
+    pub const LAPS_INVALIDATED: usize = 9408; // bool[64]
     pub const PIT_MODES: usize = 9728;
     pub const CAR_NAMES: usize = 11008; // char[64][64]
     pub const CAR_CLASS_NAMES: usize = 15104;
@@ -226,6 +227,7 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     }
 
     // Oyuncu (izlenen katılımcı)
+    f.lap_invalid = tail && me.map(|i| rd_u8(b, o::LAPS_INVALIDATED + i) != 0).unwrap_or(false);
     f.speed = rd_f32(b, o::SPEED);
     f.rpm = rd_f32(b, o::RPM);
     f.gear = rd_i32(b, o::GEAR);

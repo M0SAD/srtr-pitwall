@@ -10,6 +10,7 @@ import {
   AD_STATUS,
   DEFAULT_AD_PRICING,
   adImageUrl,
+  adminAdDelete,
   adminAdReports,
   adminAdSet,
   adminAds,
@@ -34,6 +35,7 @@ const FILTERS: { id: string; label: string }[] = [
   { id: "active", label: "Yayında" },
   { id: "paused_reports", label: "Raporlarla gizlenen" },
   { id: "paused", label: "Durdurulan" },
+  { id: "paused_owner", label: "Reklam veren durdurdu" },
   { id: "unpaid", label: "Ödeme bekleyen" },
   { id: "ended", label: "Biten" },
   { id: "rejected", label: "Reddedilen" },
@@ -48,6 +50,12 @@ function pricing(): AdPricing {
     placements: { ...DEFAULT_AD_PRICING.placements, ...(p?.placements ?? {}) },
   };
 }
+
+/** "4,99" ya da "4.99" → 4.99 */
+const toNum = (v: string) => {
+  const n = Math.round(parseFloat(String(v).replace(/\s/g, "").replace(",", ".")) * 100) / 100;
+  return n > 0 ? n : 0;
+};
 
 const numList = (s: string) =>
   [...new Set(s.split(/[,\s;]+/).map((x) => parseInt(x, 10)).filter((x) => x > 0))].sort((a, b) => a - b);
@@ -134,16 +142,16 @@ function AdSettings(p: { run: Run }) {
                   <input type="checkbox" checked={pr().placements[id]?.on !== false} onChange={(e) => setPlace(id, "on", e.currentTarget.checked)} />
                 </td>
                 <td>
-                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.cpm ?? 0} onInput={(e) => setPlace(id, "cpm", Number(e.currentTarget.value) || 0)} />
+                  <input class="input" type="text" inputmode="decimal" value={pr().placements[id]?.cpm ?? 0} onChange={(e) => setPlace(id, "cpm", toNum(e.currentTarget.value))} />
                 </td>
                 <td>
-                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.day ?? 0} onInput={(e) => setPlace(id, "day", Number(e.currentTarget.value) || 0)} />
+                  <input class="input" type="text" inputmode="decimal" value={pr().placements[id]?.day ?? 0} onChange={(e) => setPlace(id, "day", toNum(e.currentTarget.value))} />
                 </td>
                 <td>
-                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.cpm_tr ?? 0} onInput={(e) => setPlace(id, "cpm_tr", Number(e.currentTarget.value) || 0)} />
+                  <input class="input" type="text" inputmode="decimal" value={pr().placements[id]?.cpm_tr ?? 0} onChange={(e) => setPlace(id, "cpm_tr", toNum(e.currentTarget.value))} />
                 </td>
                 <td>
-                  <input class="input" type="number" min="0" step="0.01" value={pr().placements[id]?.day_tr ?? 0} onInput={(e) => setPlace(id, "day_tr", Number(e.currentTarget.value) || 0)} />
+                  <input class="input" type="text" inputmode="decimal" value={pr().placements[id]?.day_tr ?? 0} onChange={(e) => setPlace(id, "day_tr", toNum(e.currentTarget.value))} />
                 </td>
               </tr>
             )}
@@ -196,6 +204,16 @@ function AdCampaigns(p: { run: Run }) {
   const [all, { refetch: refetchAll }] = createResource(() => adminAds("").catch(() => [] as AdCampaign[]));
   const [openReports, setOpenReports] = createSignal<string | null>(null);
   const [reports] = createResource(openReports, (id) => adminAdReports(id).catch(() => []));
+  // Kalıcı silme onayı (raporlar bölümünde; yayındaki reklam dahil)
+  const [askDel, setAskDel] = createSignal<string | null>(null);
+  const forceDelete = (a: AdCampaign) =>
+    p.run(async () => {
+      await adminAdDelete(a.id);
+      setAskDel(null);
+      setOpenReports(null);
+      refetch();
+      refetchAll();
+    }, t("Reklam kalıcı olarak silindi"));
   const act = (a: AdCampaign, action: AdAction, ok: string, ask?: string) => {
     let note = "";
     let amount = 0;
@@ -329,27 +347,27 @@ function AdCampaigns(p: { run: Run }) {
                     Onayla
                   </button>
                 </Show>
-                <Show when={["pending_review", "active", "paused", "paused_reports", "unpaid"].includes(a.status)}>
+                <Show when={["pending_review", "active", "paused", "paused_reports", "paused_owner", "unpaid"].includes(a.status)}>
                   <button class="btn small danger" onClick={() => act(a, "reject", t("Reklam reddedildi"), t("Reddetme sebebi (reklam verene gider):"))}>
                     Reddet
                   </button>
                 </Show>
-                <Show when={a.status === "active"}>
+                <Show when={a.status === "active" || a.status === "paused_owner"}>
                   <button class="btn small" onClick={() => act(a, "pause", t("Reklam durduruldu"), t("Durdurma notu (reklam verene gider, isteğe bağlı):"))}>
                     Durdur
                   </button>
                 </Show>
-                <Show when={a.status === "paused" || a.status === "paused_reports"}>
+                <Show when={["paused", "paused_reports", "paused_owner"].includes(a.status)}>
                   <button class="btn small primary" onClick={() => act(a, "resume", t("Reklam yeniden yayında"))}>
                     Sürdür
                   </button>
                 </Show>
-                <Show when={["active", "paused", "paused_reports", "ended", "pending_review"].includes(a.status)}>
+                <Show when={["active", "paused", "paused_reports", "paused_owner", "ended", "pending_review"].includes(a.status)}>
                   <button class="btn small" onClick={() => act(a, "extend", t("Reklam uzatıldı"))}>
                     Uzat
                   </button>
                 </Show>
-                <Show when={["active", "paused", "paused_reports", "pending_review"].includes(a.status)}>
+                <Show when={["active", "paused", "paused_reports", "paused_owner", "pending_review"].includes(a.status)}>
                   <button class="btn small ghost" onClick={() => act(a, "end", t("Reklam bitirildi"), t("Reklam şimdi bitirilsin mi?"))}>
                     Bitir
                   </button>
@@ -375,6 +393,28 @@ function AdCampaigns(p: { run: Run }) {
                       </div>
                     )}
                   </For>
+                  <div class="ads-del">
+                    <Show
+                      when={askDel() === a.id}
+                      fallback={
+                        <button class="btn small danger" title="Reklam, raporları ve görseliyle kalıcı silinir (yayındaysa da)" onClick={() => setAskDel(a.id)}>
+                          Reklamı sil
+                        </button>
+                      }
+                    >
+                      <span>
+                        {a.status === "active" || a.paid_at
+                          ? t("Reklam yayından kalkar, raporları ve görseliyle kalıcı silinir. Emin misin?")
+                          : t("Reklam kalıcı olarak silinsin mi?")}
+                      </span>
+                      <button class="btn small danger" onClick={() => forceDelete(a)}>
+                        Evet, kalıcı sil
+                      </button>
+                      <button class="btn small ghost" onClick={() => setAskDel(null)}>
+                        Vazgeç
+                      </button>
+                    </Show>
+                  </div>
                 </div>
               </Show>
             </div>

@@ -23,7 +23,7 @@ const MAX_QUEUE: usize = 20;
 
 /// Sayfa henüz yüklenmemişken gelen kartlar burada bekler
 static QUEUE: Mutex<Vec<Value>> = Mutex::new(Vec::new());
-/// Arkadaşlar penceresi açılınca gösterilecek sohbet (arkadaş kimliği)
+/// Arkadaşlar penceresi açılınca gösterilecek sohbet (arkadaş kimliği ya da "team:<takım id>")
 static PENDING_CHAT: Mutex<Option<String>> = Mutex::new(None);
 
 fn ensure_window(app: &AppHandle) -> Result<WebviewWindow, String> {
@@ -101,8 +101,12 @@ fn hide(w: &WebviewWindow) {
 }
 
 /// Yeni kart göster (mesaj, arkadaşlık isteği, güvenilir işaretleme)
+///
+/// ÖNEMLİ: async olmak zorunda. Senkron Tauri komutları ana iş parçacığında çalışır; Windows'ta
+/// (WebView2) ana iş parçacığında komut içinden pencere oluşturmak kilitlenmeye yol açar:
+/// açılır pencere beyaz kalır ve tüm uygulama yanıt vermez.
 #[tauri::command]
-pub fn toast_show(app: AppHandle, payload: Value) -> Result<(), String> {
+pub async fn toast_show(app: AppHandle, payload: Value) -> Result<(), String> {
     {
         let mut q = QUEUE.lock();
         q.push(payload);
@@ -124,7 +128,7 @@ pub fn toast_take() -> Vec<Value> {
 
 /// Kartların toplam yüksekliğine (mantıksal px) göre pencereyi sağ alta yerleştir; 0 ise gizle
 #[tauri::command]
-pub fn toast_layout(app: AppHandle, height: f64) -> Result<(), String> {
+pub async fn toast_layout(app: AppHandle, height: f64) -> Result<(), String> {
     let Some(w) = app.get_webview_window(LABEL) else { return Ok(()) };
     if !(height > 0.0) {
         hide(&w);
@@ -145,7 +149,11 @@ pub fn toast_layout(app: AppHandle, height: f64) -> Result<(), String> {
 /// Karta tıklanınca: Arkadaşlar penceresini aç ve (varsa) o arkadaşla sohbeti göster
 #[tauri::command]
 pub async fn toast_open_chat(app: AppHandle, friend: Option<String>) -> Result<(), String> {
-    let friend = friend.filter(|id| !id.is_empty() && id.len() <= 40 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-'));
+    // Arkadaş kimliği (uuid), takım odası ("team:<uuid>") ya da grup sohbeti ("group:<uuid>")
+    let friend = friend.filter(|id| {
+        let rest = id.strip_prefix("team:").or_else(|| id.strip_prefix("group:")).unwrap_or(id);
+        !rest.is_empty() && rest.len() <= 40 && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+    });
     *PENDING_CHAT.lock() = friend;
     crate::window_open(app.clone(), "friends".into()).await?;
     // Pencere zaten açıksa olayı dinler; yeni açılıyorsa yüklenince `friends_take_chat` ile alır

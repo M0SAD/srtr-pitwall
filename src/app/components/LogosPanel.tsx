@@ -19,7 +19,7 @@ export function LogosPanel() {
       <p class="muted">
         Marka logoları tescilli olduğu için uygulamayla gelmez. Logo dosyalarını (PNG, SVG veya WEBP, en fazla 512 KB)
         logo klasörüne marka adıyla koy: <code>porsche.png</code>, <code>aston-martin.svg</code> gibi. Leaderboard,
-        Relative ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf
+        Yakındakiler ve Live Timing araç adından markayı bulup logoyu gösterir; logo yoksa marka adı yazılır. Şeffaf
         arka planlı, açık renkli logolar en iyi görünür.
       </p>
       <div class="btns">

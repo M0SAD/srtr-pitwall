@@ -3,7 +3,7 @@ import { METRICS } from "./metrics";
 
 export default defineOverlay({
   id: "dataframe",
-  name: "Data Frame",
+  name: "Veri Kutusu",
   description: "Seçtiğin tek bir değeri büyük gösteren kutu: hız, vites, yakıt, delta, pozisyon, tur, sıcaklık, BB ve daha fazlası.",
   category: "info",
   topics: [
@@ -15,6 +15,7 @@ export default defineOverlay({
   size: { w: 150, h: 70 },
   defaultPosition: { x: 1200, y: 900 },
   defaultEnabled: false,
+  multiInstance: true,
   settings: [
     {
       key: "metric",

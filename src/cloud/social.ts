@@ -4,6 +4,9 @@
 import { RealtimeClient, type RealtimeChannel } from "@supabase/realtime-js";
 import { api, cloudEnabled, session, token } from "./supabase";
 import { settings } from "@/sdk/settings";
+import { F, assertFeature, proLocked } from "@/sdk/proFeatures";
+import { cachedAvatar, noteAvatars } from "./profile";
+import { t } from "@/sdk/i18n";
 
 export interface Friend {
   friend_id: string;
@@ -14,7 +17,7 @@ export interface Friend {
   trusted: boolean;
   /** Ondan mesaj almıyorum */
   muted: boolean;
-  /** O bana güveniyor: onun verilerini görebilirim */
+  /** O bana güveniyor ve PRO: onun verilerini görebilirim (PRO olmayanın verisi paylaşılmaz) */
   trusts_me: boolean;
   online: boolean;
   racing: boolean;
@@ -25,12 +28,36 @@ export interface Friend {
   accept_messages: boolean;
   last_seen: string | null;
   unread: number;
+  /** Bu arkadaştan gelen mesajlarda açılır pencere/bildirim gösterme (c30) */
+  notify_muted?: boolean;
+  /** Bu arkadaştan gelen mesajlarda ses çalma (c30) */
+  sound_muted?: boolean;
+  /** Arkadaşın kendi profil fotoğrafı ("avatars" kovasındaki yol, c31) */
+  avatar_path?: string | null;
+  /** Çevrimiçiyse şu an bağlı olduğu sim: iracing | acc | ac | lmu | rf2 | ams2, yoksa "" (c31) */
+  sim?: string;
 }
 
 export interface Person {
   id: string;
   display_name: string;
   iracing_name: string | null;
+}
+
+/**
+ * Sistem mesajı bilgisi (c45): "bg" = sohbet arka planı değişti; grup sohbetinde ayrıca
+ * join / leave / kick / owner / rename. Normal mesajda yoktur.
+ */
+export interface MsgMeta {
+  t: "bg" | "join" | "leave" | "kick" | "owner" | "rename";
+  /** bg: arka plan türü ("none" = kaldırıldı) */
+  kind?: "solid" | "gradient" | "image" | "none";
+  value?: string;
+  /** bg: "chatbg" kovasındaki görsel yolu (eski görsel silinince düşer) */
+  image?: string;
+  user?: string;
+  name?: string;
+  by_name?: string;
 }
 
 export interface Message {
@@ -40,6 +67,20 @@ export interface Message {
   body: string;
   created_at: string;
   read_at: string | null;
+  meta?: MsgMeta | null;
+}
+
+/** Liste önizlemesi / bildirim metni: sistem mesajı kullanıcının dilinde, normal mesaj olduğu gibi */
+export function msgPreview(m: { body: string; meta?: MsgMeta | null }): string {
+  const x = m.meta;
+  if (!x) return m.body;
+  if (x.t === "bg") return x.kind === "none" ? `🖼️ ${t("Sohbet arka planını kaldırdı")}` : `🖼️ ${t("Sohbet arka planını değiştirdi")}`;
+  if (x.t === "join") return `➕ ${t("{0} gruba eklendi", x.name ?? "?")}`;
+  if (x.t === "leave") return `🚪 ${t("{0} gruptan ayrıldı", x.name ?? "?")}`;
+  if (x.t === "kick") return `➖ ${t("{0} gruptan çıkarıldı", x.name ?? "?")}`;
+  if (x.t === "owner") return `👑 ${t("{0} artık grubun sahibi", x.name ?? "?")}`;
+  if (x.t === "rename") return `✏️ ${t("Grubun adı değişti: {0}", x.name ?? "?")}`;
+  return m.body;
 }
 
 /** Arkadaşın paylaştığı canlı veri (yakıt hesaplayıcının özeti + pist bilgisi) */
@@ -66,7 +107,30 @@ export interface LiveData {
   laps?: { lap: number; time: number; valid: boolean; pit: boolean }[];
 }
 
-export const myFriends = () => api<Friend[]>("POST", "rpc/my_friends", { body: {} });
+/** Arkadaşa özel bildirim / ses kapatma (friendships.notify_muted / sound_muted, sunucu c30) */
+export interface FriendPrefs {
+  notify_muted: boolean;
+  sound_muted: boolean;
+}
+async function friendPrefs(): Promise<Record<string, FriendPrefs>> {
+  const me = session()?.user.id;
+  if (!me) return {};
+  try {
+    const rows = await api<({ friend_id: string } & FriendPrefs)[]>("GET", `friendships?user_id=eq.${me}&select=friend_id,notify_muted,sound_muted`);
+    return Object.fromEntries((rows ?? []).map((r) => [r.friend_id, { notify_muted: !!r.notify_muted, sound_muted: !!r.sound_muted }]));
+  } catch {
+    return {}; // sunucu güncellenmemişse (c30 yok) hepsi açık sayılır
+  }
+}
+
+/** Arkadaş listesi (+ arkadaşa özel bildirim/ses ayarları) */
+export async function myFriends() {
+  const [list, prefs] = await Promise.all([api<Friend[]>("POST", "rpc/my_friends", { body: {} }), friendPrefs()]);
+  noteAvatars((list ?? []).map((f) => ({ id: f.friend_id, avatar_path: f.avatar_path })));
+  return (list ?? []).map((f) => ({ ...f, notify_muted: !!prefs[f.friend_id]?.notify_muted, sound_muted: !!prefs[f.friend_id]?.sound_muted }));
+}
+export const setFriendPrefs = (id: string, notifyMuted: boolean, soundMuted: boolean) =>
+  api("POST", "rpc/friend_prefs", { body: { p_user: id, p_notify_muted: notifyMuted, p_sound_muted: soundMuted } });
 
 export function findPeople(q: string) {
   const t = encodeURIComponent(q.replace(/[(),*]/g, " ").trim());
@@ -77,14 +141,65 @@ export function findPeople(q: string) {
   );
 }
 
-export const friendRequest = (id: string) => api<string>("POST", "rpc/friend_request", { body: { p_user: id } });
+/** accepting: karşı taraf zaten istek göndermişse (kabul etmek her zaman serbest) */
+export const friendRequest = (id: string, accepting = false) => {
+  if (!accepting) assertFeature(F.friendAdd, "Arkadaş eklemek");
+  return api<string>("POST", "rpc/friend_request", { body: { p_user: id } });
+};
 export const friendRespond = (id: string, accept: boolean) => api("POST", "rpc/friend_respond", { body: { p_user: id, p_accept: accept } });
 export const friendRemove = (id: string) => api("POST", "rpc/friend_remove", { body: { p_user: id } });
 export const friendSet = (id: string, trusted: boolean, muted: boolean) =>
   api("POST", "rpc/friend_set", { body: { p_user: id, p_trusted: trusted, p_muted: muted } });
 
-export const sendMessage = (to: string, body: string) => api<string>("POST", "rpc/send_message", { body: { p_to: to, p_body: body } });
+// Güvenilir arkadaşlar (c44): canlı veriyi (takım yakıtı) kod vermeden paylaşma
+/** Sadece güvenilir işaretini değiştirir (sessiz ayarına dokunmaz) */
+export const friendTrustSet = (id: string, trusted: boolean) => api("POST", "rpc/friend_trust_set", { body: { p_user: id, p_trusted: trusted } });
+export interface ShareTrust {
+  /** Kabul edilmiş tüm arkadaşlarım verimi görebilir */
+  trust_all: boolean;
+  /** Veri paylaşımı PRO'ya özel ve ben PRO değilim */
+  needs_pro: boolean;
+}
+export const shareTrustGet = () => api<ShareTrust>("POST", "rpc/share_trust_get", { body: {} });
+export const shareTrustAllSet = (on: boolean) => api("POST", "rpc/share_trust_all_set", { body: { p_on: on } });
+/** Bana güvenen (verisini görebildiğim) arkadaş ve son canlı verisi */
+export interface FriendShare {
+  friend_id: string;
+  display_name: string;
+  avatar_path: string | null;
+  online: boolean;
+  racing: boolean;
+  track: string;
+  car: string;
+  /** Son 2 dakikada veri göndermiş */
+  live: boolean;
+  data: LiveData | null;
+  updated_at: string | null;
+}
+export const friendShares = () => api<FriendShare[]>("POST", "rpc/friend_shares", { body: {} });
+
+export const sendMessage = (to: string, body: string) => {
+  assertFeature(F.messages, "Mesaj göndermek");
+  return api<string>("POST", "rpc/send_message", { body: { p_to: to, p_body: body } });
+};
 export const markRead = (from: string) => api("POST", "rpc/mark_read", { body: { p_from: from } }).catch(() => {});
+
+/** Mesajı sadece kendi görünümünden kaldır (karşı taraf görmeye devam eder) */
+export const hideMessage = (id: string) => api("POST", "rpc/hide_message", { body: { p_id: id } });
+/** Sohbetin şu ana kadarki tüm mesajlarını kendi görünümünden kaldır (karşı tarafta kalır) */
+export const clearConversation = (friend: string) => api("POST", "rpc/clear_conversation", { body: { p_friend: friend } });
+
+/** Mesaj raporlama sebepleri (sunucudaki message_reports.reason ile aynı) */
+export const MESSAGE_REPORT_REASONS: { id: string; label: string }[] = [
+  { id: "harassment", label: "Hakaret / taciz" },
+  { id: "spam", label: "Spam" },
+  { id: "inappropriate", label: "Uygunsuz içerik" },
+  { id: "scam", label: "Dolandırıcılık" },
+  { id: "other", label: "Diğer" },
+];
+/** Sana gelen bir mesajı yöneticilere raporla */
+export const reportMessage = (id: string, reason: string, note: string) =>
+  api<string>("POST", "rpc/message_report", { body: { p_message: id, p_reason: reason, p_note: note } });
 
 export function conversation(friend: string) {
   const me = session()?.user.id;
@@ -100,7 +215,7 @@ export function recentMessages(limit = 200) {
   if (!me) return Promise.resolve([] as Message[]);
   return api<Message[]>(
     "GET",
-    `messages?select=id,sender,recipient,body,created_at,read_at&or=(sender.eq.${me},recipient.eq.${me})&order=created_at.desc&limit=${limit}`,
+    `messages?select=*&or=(sender.eq.${me},recipient.eq.${me})&order=created_at.desc&limit=${limit}`,
   ).then((r) => r ?? []);
 }
 
@@ -111,20 +226,33 @@ export interface MyStatus {
   session: string;
   dnd: boolean;
   accept_messages: boolean;
+  /** Bağlı sim (arkadaş listesinde "iRacing'de"), yoksa "" (sunucu c31) */
+  sim?: string;
 }
 
+/** Sunucuda user_status.sim yoksa (c31 kurulmadan) durum sim olmadan gönderilir */
+let statusNoSim = false;
 export function setMyStatus(s: MyStatus) {
   const uid = session()?.user.id;
   if (!uid) return Promise.resolve();
-  return api("POST", "user_status?on_conflict=user_id", {
-    body: { user_id: uid, ...s, updated_at: new Date().toISOString() },
-    prefer: "resolution=merge-duplicates,return=minimal",
-  }).catch(() => {});
+  const send = (body: Partial<MyStatus>) =>
+    api("POST", "user_status?on_conflict=user_id", {
+      body: { user_id: uid, ...body, updated_at: new Date().toISOString() },
+      prefer: "resolution=merge-duplicates,return=minimal",
+    });
+  const { sim, ...rest } = s;
+  if (statusNoSim) return send(rest).catch(() => {});
+  return send({ ...rest, sim: sim ?? "" }).catch((e) => {
+    if (!/\bsim\b/.test(String((e as Error)?.message ?? ""))) return;
+    statusNoSim = true;
+    return send(rest).catch(() => {});
+  });
 }
 
+/** Canlı verimi gönder: veri paylaşımı PRO üyelere özel (sunucu da PRO olmayanın yüklemesini reddeder) */
 export function pushLive(data: LiveData) {
   const uid = session()?.user.id;
-  if (!uid) return Promise.resolve();
+  if (!uid || proLocked("social.data_share")) return Promise.resolve();
   return api("POST", "live_data?on_conflict=user_id", {
     body: { user_id: uid, data, updated_at: new Date().toISOString() },
     prefer: "resolution=merge-duplicates,return=minimal",
@@ -143,6 +271,11 @@ export async function getLive(user: string) {
 const URL_ = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 let rt: RealtimeClient | null = null;
+
+/** Ortak Realtime bağlantısı (takım sohbeti de kullanır) */
+export async function realtime() {
+  return client();
+}
 
 async function client() {
   if (!cloudEnabled || !URL_ || !KEY) return null;
@@ -216,6 +349,15 @@ export function messageBeep(volume = 0.25) {
 // ---------------------------------------------------------------------------
 // İfadeler (emoji) ve avatar rengi: panel, Arkadaşlar penceresi ve mesaj açılır penceresi ortak kullanır
 // ---------------------------------------------------------------------------
+
+/** Seçilebilen ifadeler (emoji seçici: özel sohbet ve takım sohbeti) */
+export const EMOJI_PICKS = [
+  "😀", "😄", "😂", "🤣", "😊", "🙂", "😉", "😍",
+  "😘", "😎", "🤔", "😮", "😢", "😭", "😡", "🙁",
+  "😛", "😆", "😅", "🙃", "😴", "🥳", "🤯", "😬",
+  "👍", "👎", "👏", "🙌", "🙏", "💪", "👋", "🤝",
+  "❤️", "🔥", "💯", "🎉", "🏁", "🏆", "🚗", "⛽",
+];
 
 /** Yazı ifadeleri → emoji. "gg" gibi kısaltmalar yazı olarak kalır. */
 export const EMOTICONS: [string, string][] = [
@@ -293,7 +435,8 @@ export function initialOf(name: string) {
 /** Mesaj açılır penceresine (toast) giden kart */
 export interface ToastPayload {
   id: string;
-  kind: "message" | "request" | "trusted";
+  kind: "message" | "request" | "trusted" | "team" | "group";
+  /** Arkadaş kimliği; takım sohbetinde "team:<takım id>", grup sohbetinde "group:<grup id>" */
   friendId: string;
   name: string;
   body: string;
@@ -302,8 +445,11 @@ export interface ToastPayload {
   ts: number;
 }
 
-/** Arkadaşın avatarı: Arkadaşlar sayfasında ona özel seçilen renk/fotoğraf, yoksa kimlikten renk */
+/**
+ * Arkadaşın avatarı: Arkadaşlar sayfasında ona özel seçilen renk/fotoğraf (PRO), yoksa üyenin kendi profil
+ * fotoğrafı (c31), o da yoksa kimlikten renk + baş harf
+ */
 export function friendLook(id: string): { color: string; photo: string } {
   const e = settings().friends?.list?.find((x) => x.accountId === id);
-  return { color: e?.color || hashColor(id), photo: e?.photo || "" };
+  return { color: e?.color || hashColor(id), photo: e?.photo || cachedAvatar(id) };
 }

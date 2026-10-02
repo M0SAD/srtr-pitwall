@@ -3,7 +3,7 @@
 // PRO üyelere ve oyun içi overlay'lere reklam gösterilmez.
 
 import { lang } from "@/sdk/i18n";
-import { api, publicUrl } from "./supabase";
+import { api, publicUrl, storageRemove } from "./supabase";
 
 /** Reklam verme sayfası (web sitesi) */
 export const AD_SITE = "https://pitwall.simracetr.com/reklam.html";
@@ -25,7 +25,7 @@ export const AD_REPORT_REASONS: { id: string; label: string }[] = [
   { id: "other", label: "Diğer" },
 ];
 
-export type AdStatus = "unpaid" | "pending_review" | "active" | "paused" | "paused_reports" | "ended" | "rejected" | "refunded";
+export type AdStatus = "unpaid" | "pending_review" | "active" | "paused" | "paused_reports" | "paused_owner" | "ended" | "rejected" | "refunded";
 
 export const AD_STATUS: Record<AdStatus, { label: string; tone: "" | "ok" | "warn" | "bad" }> = {
   unpaid: { label: "Ödeme bekliyor", tone: "warn" },
@@ -33,6 +33,7 @@ export const AD_STATUS: Record<AdStatus, { label: string; tone: "" | "ok" | "war
   active: { label: "Yayında", tone: "ok" },
   paused: { label: "Durduruldu", tone: "bad" },
   paused_reports: { label: "Raporlarla gizlendi", tone: "bad" },
+  paused_owner: { label: "Reklam veren durdurdu", tone: "warn" },
   ended: { label: "Bitti", tone: "" },
   rejected: { label: "Reddedildi", tone: "bad" },
   refunded: { label: "İade edildi", tone: "" },
@@ -171,3 +172,10 @@ export const adminAds = (status: string) => api<AdCampaign[]>("POST", "rpc/admin
 export const adminAdReports = (id: string) => api<AdReportRow[]>("POST", "rpc/admin_ad_reports", { body: { p_ad: id } });
 export const adminAdSet = (id: string, action: AdAction, note = "", amount = 0) =>
   api("POST", "rpc/admin_ad_set", { body: { p_ad: id, p_action: action, p_note: note, p_amount: amount } });
+
+/** Yönetici: reklamı durumundan bağımsız kalıcı sil (raporlarıyla); görseli başka reklamda yoksa kovadan da silinir */
+export async function adminAdDelete(id: string) {
+  const img = await api<string | null>("POST", "rpc/admin_ad_delete", { body: { p_ad: id } });
+  if (img) await storageRemove("ads", [img]).catch(() => {});
+  forgetAd(id);
+}

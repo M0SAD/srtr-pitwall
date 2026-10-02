@@ -36,6 +36,7 @@ export function sampleRow(p: Partial<Row>): Row {
     stint: 6,
     pits: 0,
     tire: 0,
+    tireKind: "M",
     flag: "",
     posChange: 0,
     isMe: false,
@@ -54,10 +55,10 @@ const fr = (usage: number, level: number, max: number, left: number): FuelRow =>
 export function injectSamples() {
   injectTopic("relative", {
     rows: [
-      sampleRow({ classPos: 3, number: "44", name: "Luca Rossi", gap: 2.4, lapRel: 1, classColor: "#ffda59", licLetter: "P", sr: 4.2, licColor: "#222", irating: 6100, irDelta: 12 }),
+      sampleRow({ classPos: 3, number: "44", name: "Luca Rossi", gap: 2.4, lapRel: 1, classColor: "#ffda59", licLetter: "P", sr: 4.2, licColor: "#222", irating: 6100, irDelta: 12, tire: 1, tireKind: "W" }),
       sampleRow({ classPos: 11, number: "12", name: "Emre Kaya", gap: 0.9, irating: 1800, licLetter: "B", sr: 2.8, licColor: "#00c702", irDelta: 38, pitState: "OUT" }),
       sampleRow({ classPos: 12, number: "59", name: "Sen", isMe: true, irating: 2450, sr: 3.45, irDelta: -6, lastPb: true }),
-      sampleRow({ classPos: 13, number: "3", name: "Noah Fischer", gap: -1.3, irating: 3200, sr: 4.1, irDelta: -22, flag: "BLU" }),
+      sampleRow({ classPos: 13, number: "3", name: "Noah Fischer", gap: -1.3, irating: 3200, sr: 4.1, irDelta: -22, flag: "BLU", tireKind: "S" }),
       sampleRow({ classPos: 18, number: "71", name: "Finn Larsen", gap: -3.1, lapRel: -1, licLetter: "C", sr: 3.0, licColor: "#fec600", irDelta: 51 }),
     ],
     airTemp: 22.5,

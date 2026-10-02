@@ -371,3 +371,108 @@
   max-height: 100%;
   border-radius: 8px;
 }
+
+/* İfade seçici + yazma araçları */
+.sp-compose-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sp-compose-tools .sp-pick {
+  margin-top: 0;
+}
+.sp-form .sp-compose-tools {
+  margin-top: 6px;
+}
+.emo-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.emo-btn {
+  height: 64px;
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+}
+.emo-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.emo-btn.on {
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+.emo-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  width: 316px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #1c2029;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+}
+.emo-pop.up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+.emo-tabs {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.emo-tabs button,
+.emo-grid button {
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.emo-tabs button {
+  flex: 1;
+  opacity: 0.55;
+}
+.emo-tabs button.on {
+  opacity: 1;
+  background: #2a303c;
+}
+.emo-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 210px;
+  overflow: auto;
+}
+.emo-grid button:hover {
+  background: #2a303c;
+  transform: scale(1.12);
+}
+
+/* Talep silme onayı */
+.sp-del-ask {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #e5322d 50%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, #e5322d 10%, transparent);
+  font-size: 13px;
+}
+.sp-del-ask span {
+  flex: 1;
+  min-width: 200px;
+}
+.sp-thread-head .btn svg {
+  width: 14px;
+  height: 14px;
+}

@@ -225,3 +225,109 @@
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* Yönetim › Mesajlar (tüm özel mesajlar) */
+.amsg-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.amsg-filters > .input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.amsg-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.amsg-date small {
+  margin: 0;
+  font-size: 11px;
+}
+.amsg-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 2 1 260px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-weight: 600;
+}
+.amsg-pair span {
+  flex: 1;
+}
+.amsgs .cm-tabs {
+  align-items: center;
+  gap: 6px;
+}
+.amsg-convs,
+.amsg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.amsg-conv {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.amsg-conv > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.amsg-conv > summary::-webkit-details-marker {
+  display: none;
+}
+.amsg-conv > summary small {
+  margin: 0;
+}
+.amsg-conv[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+.amsg-conv > .amsg-list {
+  padding: 10px 12px;
+  max-height: 480px;
+  overflow: auto;
+}
+.amsg {
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2, var(--bg));
+}
+.amsg.reported {
+  border-color: color-mix(in srgb, #e5322d 50%, var(--line));
+}
+.amsg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+.amsg-head small {
+  margin: 0;
+  font-size: 11.5px;
+}
+.amsg p {
+  margin: 4px 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.amsg-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.amsg-rep {
+  color: #ff8a8a;
+}

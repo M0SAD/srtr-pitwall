@@ -87,6 +87,8 @@ pub struct Demo {
     tire_age: f64,
     /// Lastik ısısı (yavaş yumuşatılmış yük)
     tire_heat: [f32; 4],
+    /// Bu oturumda vitrin adları yerleştirildi mi (bir kez; sonra sabit kalır)
+    showcased: bool,
 }
 
 const CARS: [&str; 7] = [
@@ -107,6 +109,35 @@ const NAMES: [&str; N_CARS] = [
     "Pierre Blanc", "Sam Porter", "Sen (Demo)", "Ivan Petrov", "Diego Ruiz", "Finn Larsen",
     "Hugo Martin", "Leo Costa", "Kai Weber", "Omar Haddad", "Ben Clarke", "Marco Bianchi",
 ];
+
+/// Demo vitrini: panelin buluttan aldığı PRO üye adları (`demo_set_names`). Her demo oturumu
+/// başında bunlardan rastgele birkaçı sahte sürücülerin yerine geçer; oturum boyunca değişmez.
+static SHOWCASE: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+/// Vitrin adlarını ayarla (temizlenir: boşluklar kırpılır, boş/uzun/tekrarlı adlar atılır, en fazla 100)
+pub fn set_showcase_names(names: Vec<String>) -> usize {
+    let mut out: Vec<String> = Vec::new();
+    for n in names {
+        let n: String = n.split_whitespace().collect::<Vec<_>>().join(" ");
+        let len = n.chars().count();
+        if !(2..=32).contains(&len) || out.iter().any(|x| x.eq_ignore_ascii_case(&n)) || NAMES.contains(&n.as_str()) {
+            continue;
+        }
+        out.push(n);
+        if out.len() >= 100 {
+            break;
+        }
+    }
+    let k = out.len();
+    if let Ok(mut g) = SHOWCASE.lock() {
+        *g = out;
+    }
+    k
+}
+
+fn showcase_names() -> Vec<String> {
+    SHOWCASE.lock().map(|g| g.clone()).unwrap_or_default()
+}
 
 // SessionFlags bitleri
 const F_WHITE: u32 = 0x0002;
@@ -190,11 +221,13 @@ impl Demo {
             category: "Road".into(),
             drivers,
             sessions: vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: Some(RACE_LEN) }],
+            tire_types: Vec::new(),
+            ai_session: false,
         };
         let player_lap = cars[PLAYER].dist.floor() as i64;
         let air = rng.range(20.0, 27.0);
         let track = air + rng.range(8.0, 14.0);
-        Demo {
+        let mut d = Demo {
             cars,
             t: START_T,
             fuel: rng.range(38.0, 48.0),
@@ -222,8 +255,44 @@ impl Demo {
             shape: crate::trackmap::demo_shape(),
             tire_age: 3.4,
             tire_heat: [0.8; 4],
+            showcased: false,
             rng,
+        };
+        d.apply_showcase();
+        d
+    }
+
+    /// Vitrin adları henüz yerleştirilmediyse ve artık varsa yerleştirir. Adlar değiştiyse true
+    /// (çağıran oturum verisini yeniden yayınlamalı). Bir oturumda en fazla bir kez çalışır.
+    pub fn apply_showcase(&mut self) -> bool {
+        if self.showcased {
+            return false;
         }
+        let mut names = showcase_names();
+        if names.is_empty() {
+            return false;
+        }
+        self.showcased = true;
+        // Karıştır (Fisher-Yates)
+        for i in (1..names.len()).rev() {
+            let j = ((self.rng.next() * (i + 1) as f32) as usize).min(i);
+            names.swap(i, j);
+        }
+        let mut slots: Vec<usize> = (0..N_CARS).filter(|&i| i != PLAYER).collect();
+        for i in (1..slots.len()).rev() {
+            let j = ((self.rng.next() * (i + 1) as f32) as usize).min(i);
+            slots.swap(i, j);
+        }
+        // Sahte adlarla karışık: araçların yaklaşık üçte biri (6–10 araç)
+        let want = 6 + (self.rng.next() * 5.0) as usize;
+        let k = want.min(names.len()).min(slots.len());
+        for (slot, name) in slots.into_iter().zip(names.into_iter()).take(k) {
+            if let Some(Some(d)) = self.session.drivers.get_mut(slot) {
+                d.name = name.clone();
+                d.abbrev = name;
+            }
+        }
+        k > 0
     }
 
     pub fn session(&self) -> &SessionData {
@@ -469,6 +538,8 @@ impl Demo {
         let gear_lo = (f.gear - 1) as f32 * 76.0 / 5.0;
         f.rpm = 4200.0 + ((f.speed - gear_lo) / (76.0 / 5.0)).clamp(0.0, 1.0) * 4600.0;
         f.steer = ((pct * std::f32::consts::TAU * 4.0).sin()) * 0.9 * (1.0 - sf * 0.8);
+        // Demo: düşük viteste tam gazda çekiş kontrolü devreye girer
+        f.tc_active = !player_in_pit && f.throttle > 0.9 && f.gear <= 2;
         f.lap = me.dist.floor() as i32 + 1;
         f.lap_completed = (me.dist.floor() as i32).max(0);
         f.lap_dist_pct = pct;
@@ -477,6 +548,10 @@ impl Demo {
         f.lap_best = me.best;
         f.delta_best = ((t * 0.4).sin() as f32) * 0.35 + (pct - 0.5) * 0.2;
         f.delta_best_ok = me.best > 0.0;
+        f.delta_session = f.delta_best + 0.42;
+        f.delta_session_ok = f.delta_best_ok;
+        f.delta_optimal = f.delta_best + 0.61;
+        f.delta_optimal_ok = f.delta_best_ok;
 
         // Yakıt: tur başına ~2.85 L, gaza ve turdan tura değişen çarpana bağlı
         if !player_in_pit {
@@ -506,13 +581,23 @@ impl Demo {
         f.vel_x = f.speed;
         f.shift_pct = 0.0;
         for i in 0..N_CARS {
-            f.cars[i].tire = if self.wetness >= 4 { 1 } else { 0 };
+            // Karışık lastikler: pist ıslaksa herkes yağmur lastiğinde; değilse birkaç araç
+            // yağmur/ara lastiğinde, diğerleri yumuşak/orta/sert
+            let wet = self.wetness >= 4 || i % 5 == 2;
+            f.cars[i].tire = if wet { 1 } else { 0 };
+            f.cars[i].tire_kind = if wet {
+                if i % 10 == 7 { b'I' } else { b'W' }
+            } else {
+                [b'S', b'M', b'H'][i % 3]
+            };
             f.cars[i].flags = if i == self.car_flag_idx && t < self.car_flag_until { self.car_flag } else { 0 };
         }
         self.tires(dt, player_in_pit, sf, brk, f);
         f.brake_bias = 54.5;
         f.tc = 4.0;
         f.abs_setting = 6.0;
+        f.oil_temp = 94.0 + f.speed * 0.06;
+        f.water_temp = 82.0 + f.speed * 0.04;
         f.session_flags = if t >= RACE_LEN { F_CHECKERED } else { F_GREEN | self.flag };
     }
 
@@ -550,5 +635,31 @@ impl Demo {
             f.tire_press[i] = if i < 2 { 172.0 } else { 165.0 };
         }
         f.tire_compound = if self.wetness >= 4 { 1 } else { 0 };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn showcase_names_mixed_in() {
+        let n = set_showcase_names(vec![
+            "  Ayşe   Demir ".into(),
+            "ayşe demir".into(),
+            "A".into(),
+            "Max Brenner".into(),
+            "Can Öztürk".into(),
+            "Zoe Lane".into(),
+        ]);
+        assert_eq!(n, 3);
+        let d = Demo::new();
+        let names: Vec<String> = d.session.drivers.iter().flatten().map(|x| x.name.clone()).collect();
+        assert_eq!(names.len(), N_CARS);
+        assert!(names.iter().any(|x| x == "Ayşe Demir"));
+        assert_eq!(names[PLAYER], "Sen (Demo)");
+        // Fake adlar hâlâ çoğunlukta
+        assert!(names.iter().filter(|x| NAMES.contains(&x.as_str())).count() >= N_CARS - 10);
+        set_showcase_names(Vec::new());
     }
 }

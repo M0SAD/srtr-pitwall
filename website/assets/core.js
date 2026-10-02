@@ -7,8 +7,77 @@ export const SUPABASE_URL = "https://xiofxqlpuyotojjeamld.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_UAOgy6GVD1AC8rcODCHMBA_6mokhs0B";
 export const REPO = "M0SAD/srtr-pitwall";
 
+// "Beni hatırla": işaretliyse oturum localStorage'da (tarayıcı kapansa da kalır), değilse sessionStorage'da
+// (sekme/tarayıcı kapanınca biter). Bayrak yoksa (eski girişler) localStorage kullanılır: kimsenin oturumu düşmez.
+const REMEMBER_KEY = "pw_remember";
+function safeStore(kind) {
+  try {
+    const s = window[kind];
+    const k = "__pw_t";
+    s.setItem(k, "1");
+    s.removeItem(k);
+    return s;
+  } catch {
+    return null;
+  }
+}
+const LS = safeStore("localStorage");
+const SS = safeStore("sessionStorage");
+const MEM = new Map();
+/** Beni hatırla seçili mi (bayrak yoksa evet) */
+export function rememberMe() {
+  try {
+    return LS?.getItem(REMEMBER_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+/** Son "Beni hatırla" seçimi (giriş formundaki kutu için; seçim yapılmadıysa işaretsiz) */
+export function rememberChoice() {
+  try {
+    return LS?.getItem(REMEMBER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+/** Girişten ÖNCE çağrılır: oturumun nerede saklanacağını belirler */
+export function setRememberMe(on) {
+  try {
+    LS?.setItem(REMEMBER_KEY, on ? "1" : "0");
+  } catch {}
+}
+const authStorage = {
+  getItem(k) {
+    const s = rememberMe() ? LS : SS;
+    if (!s) return MEM.get(k) ?? null;
+    return s.getItem(k);
+  },
+  setItem(k, v) {
+    const s = rememberMe() ? LS : SS;
+    const other = s === LS ? SS : LS;
+    try {
+      other?.removeItem(k);
+    } catch {}
+    if (!s) return void MEM.set(k, v);
+    try {
+      s.setItem(k, v);
+    } catch {
+      MEM.set(k, v);
+    }
+  },
+  removeItem(k) {
+    MEM.delete(k);
+    try {
+      LS?.removeItem(k);
+    } catch {}
+    try {
+      SS?.removeItem(k);
+    } catch {}
+  },
+};
+
 export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, storageKey: "pitwall.site.auth" },
+  auth: { persistSession: true, storageKey: "pitwall.site.auth", storage: authStorage },
 });
 
 // ---------------------------------------------------------------------------
@@ -101,6 +170,7 @@ function pickLang() {
 export let lang = pickLang();
 
 async function loadLang(l) {
+  loadOverrides(l);
   if (DICT[l]) return;
   try {
     const r = await fetch(`assets/lang/${l}.json`);
@@ -110,12 +180,41 @@ async function loadLang(l) {
   }
 }
 
+// Yöneticinin çeviri düzeltmeleri (programda Yönetim › Çeviriler › Web sitesi; i18n_overrides, "site:<anahtar>").
+// Önbellekteki liste hemen uygulanır, sunucudan gelen değişmişse sayfa metinleri yenilenir.
+const OVR = {};
+const ovrDone = new Set();
+function loadOverrides(l) {
+  if (ovrDone.has(l)) return;
+  ovrDone.add(l);
+  const ck = `pitwall.site.i18nOv.${l}`;
+  try {
+    OVR[l] = JSON.parse(localStorage.getItem(ck) || "null") || {};
+  } catch {
+    OVR[l] = {};
+  }
+  sb.rpc("i18n_overrides", { p_lang: l }).then(({ data, error }) => {
+    if (error || !data || typeof data !== "object") return;
+    const next = {};
+    for (const [k, v] of Object.entries(data)) if (k.startsWith("site:") && typeof v === "string" && v) next[k.slice(5)] = v;
+    const changed = JSON.stringify(next) !== JSON.stringify(OVR[l] || {});
+    OVR[l] = next;
+    try {
+      localStorage.setItem(ck, JSON.stringify(next));
+    } catch {}
+    if (changed && l === lang) {
+      applyLang();
+      document.dispatchEvent(new CustomEvent("langchange"));
+    }
+  });
+}
+
 /** Tarih/sayı biçimi için yerel ayar */
 export const locale = () => (lang === "zh-CN" ? "zh-CN" : lang);
 
 /** Çeviri; {0}, {1} yerine değerler konur. Eksik çeviride İngilizce kullanılır. */
 export function T(key, ...args) {
-  const s = DICT[lang]?.[key] ?? DICT.en[key] ?? DICT.tr[key] ?? key;
+  const s = OVR[lang]?.[key] ?? DICT[lang]?.[key] ?? DICT.en[key] ?? DICT.tr[key] ?? key;
   return s.replace(/\{(\d)\}/g, (_, i) => String(args[+i] ?? ""));
 }
 
@@ -179,10 +278,82 @@ export function planFor(cfg, p) {
   };
 }
 
-/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar */
-export async function startProCheckout(planId) {
+// ---------------------------------------------------------------------------
+// Ödeme sayfası: Lemon Squeezy katmanı (lemon.js) ile sitenin içinde açılır.
+// lemon.js yüklenemezse (engelleyici, ağ) ~6 sn sonra tam sayfa yönlendirmeye düşülür.
+// ---------------------------------------------------------------------------
+const LEMON_JS = "https://assets.lemonsqueezy.com/lemon.js";
+let lemonLoad = null;
+let lemonDone = null; // açık ödemenin başarı geri çağrısı
+
+function loadLemon() {
+  if (window.LemonSqueezy?.Url?.Open) return Promise.resolve(window.LemonSqueezy);
+  if (!lemonLoad) {
+    lemonLoad = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("lemon.js timeout")), 6000);
+      const fail = (e) => {
+        clearTimeout(timer);
+        reject(e instanceof Error ? e : new Error("lemon.js"));
+      };
+      const ready = () => {
+        try {
+          if (typeof window.createLemonSqueezy === "function") window.createLemonSqueezy();
+          const ls = window.LemonSqueezy;
+          if (!ls?.Url?.Open) return fail(new Error("lemon.js"));
+          ls.Setup?.({
+            eventHandler: (e) => {
+              if (e?.event === "Checkout.Success" && lemonDone) {
+                const cb = lemonDone;
+                lemonDone = null;
+                try {
+                  cb(e);
+                } catch {}
+              }
+            },
+          });
+          clearTimeout(timer);
+          resolve(ls);
+        } catch (e) {
+          fail(e);
+        }
+      };
+      const el = document.createElement("script");
+      el.src = LEMON_JS;
+      el.defer = true;
+      el.onload = ready;
+      el.onerror = fail;
+      document.head.appendChild(el);
+    }).catch((e) => {
+      lemonLoad = null; // sonraki denemede yeniden yükle
+      throw e;
+    });
+  }
+  return lemonLoad;
+}
+
+/** Ödeme bağlantısını sitenin içinde (Lemon katmanı) açar; olmazsa sayfayı ödemeye yönlendirir.
+ *  onSuccess ödeme tamamlanınca çağrılır. Dönüş: "overlay" ya da "redirect". */
+export async function openCheckout(url, onSuccess) {
   try {
-    const { data, error } = await sb.functions.invoke("pro-checkout", { body: { plan: planId, region } });
+    const ls = await loadLemon();
+    lemonDone = typeof onSuccess === "function" ? onSuccess : null;
+    ls.Url.Open(url);
+    return "overlay";
+  } catch {
+    location.href = url;
+    return "redirect";
+  }
+}
+
+/** Otomatik fiyatlı PRO ödemesi: pro-checkout fonksiyonu Lemon Squeezy ödeme sayfasını açar.
+ *  giftTo: hediye PRO için alıcının hesap kimliği (ödeme sayfasında ödeyenin kendi e-postası kullanılır).
+ *  coupon: indirim kuponu kodu (sunucuda yeniden doğrulanır). */
+export async function startProCheckout(planId, giftTo = null, coupon = null) {
+  try {
+    const body = { plan: planId, region, embed: true };
+    if (giftTo) body.gift_to = giftTo;
+    if (coupon) body.coupon = coupon;
+    const { data, error } = await sb.functions.invoke("pro-checkout", { body });
     if (error) {
       let msg = error.message;
       try {
@@ -192,8 +363,12 @@ export async function startProCheckout(planId) {
       throw new Error(msg);
     }
     if (!data?.url) throw new Error(T("error"));
-    location.href = data.url;
-    return true;
+    const how = await openCheckout(data.url, () => {
+      toast(T(giftTo ? "gift_pay_ok" : "pay_ok"));
+      setTimeout(() => (location.href = `hesap.html?paid=${giftTo ? "gift" : "pro"}`), 3000);
+    });
+    // Katman açıldıysa sayfa yerinde kalır (false: düğme yeniden etkinleşir); tam sayfa yönlendirmede true
+    return how === "redirect";
   } catch (e) {
     toast(e?.message || T("error"), true);
     return false;
@@ -213,6 +388,8 @@ addDict({
   nav_account: ["Hesabım", "My account"],
   nav_admin: ["Yönetim", "Admin"],
   nav_ads: ["Reklam ver", "Advertise"],
+  nav_drivers: ["Yarışçılar", "Drivers"],
+  nav_teams: ["Takımlar", "Teams"],
   footer_made: [
     "<b>Erkin Azcan</b> tarafından <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> topluluğu için geliştirildi.",
     "Built by <b>Erkin Azcan</b> for the <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> community.",
@@ -223,6 +400,14 @@ addDict({
   ],
   loading: ["Yükleniyor…", "Loading…"],
   error: ["Hata", "Error"],
+  pay_ok: [
+    "Ödemen alındı, teşekkürler! Birkaç saniye içinde hesabına işlenir.",
+    "Payment received, thank you! It will be applied to your account within a few seconds.",
+  ],
+  gift_pay_ok: [
+    "Hediye ödemen alındı, teşekkürler! PRO birkaç saniye içinde alıcının hesabına işlenir.",
+    "Gift payment received, thank you! PRO will be applied to the recipient's account within a few seconds.",
+  ],
   save: ["Kaydet", "Save"],
   cancel: ["Vazgeç", "Cancel"],
   saved: ["Kaydedildi", "Saved"],
@@ -421,6 +606,8 @@ export function headerHtml(active = "") {
         <a href="index.html#features" data-t="nav_features"></a>
         <a href="index.html#pricing" data-t="nav_pricing"></a>
         <a href="index.html#faq" data-t="nav_faq"></a>
+        <a href="takimlar.html" class="${active === "teams" ? "on" : ""}" data-t="nav_teams"></a>
+        <a href="yarisci.html" class="${active === "drivers" ? "on" : ""}" data-t="nav_drivers"></a>
         <a href="reklam.html" class="${active === "ads" ? "on" : ""}" data-t="nav_ads"></a>
         <a href="yonetim.html" class="nav-admin${active === "admin" ? " on" : ""}" hidden data-t="nav_admin"></a>
         <a href="hesap.html" class="nav-login${active === "account" ? " on" : ""}" data-t="nav_login"></a>
@@ -447,6 +634,7 @@ export function footerHtml() {
         <a href="https://kick.com/erkinazcan" target="_blank" rel="noopener">Kick</a>
         <a href="https://www.instagram.com/erkinazcan" target="_blank" rel="noopener">Instagram</a>
         <a href="https://github.com/${REPO}" target="_blank" rel="noopener">GitHub</a>
+        <a href="yarisci.html" data-t="nav_drivers"></a>
         <a href="reklam.html" data-t="nav_ads"></a>
       </div>
     </div>

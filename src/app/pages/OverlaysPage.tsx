@@ -1,9 +1,9 @@
 // Overlay'ler: solda liste (açık kopyalar + tüm overlay'ler), ortada seçilenin ayarları,
 // sağda oyun üstünde canlı önizleme.
 
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { manifestById, manifests } from "@/sdk/registry";
+import { canDuplicate, manifestById, manifests } from "@/sdk/registry";
 import {
   activeProfile,
   addInstance,
@@ -17,7 +17,8 @@ import {
 } from "@/sdk/settings";
 import { defaultOptions, type SettingField } from "@/sdk/overlay";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
-import { useSnapshot } from "@/sdk/telemetry";
+import { useSnapshot, useTopic } from "@/sdk/telemetry";
+import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 import { loadMonitors, monitorLabel, monitors } from "@/sdk/monitors";
 import { SettingsForm, Slider, Switch } from "../components/SettingsForm";
 import { OverlayView } from "../components/OverlayView";
@@ -27,6 +28,22 @@ import { go, openCard, setOpenCard } from "../ui";
 import * as I from "../icons";
 import { appState } from "../App";
 import { inTauri } from "@/sdk/platform";
+import { UndoRedo } from "@/sdk/UndoRedo";
+
+// Yeni eklenen overlay: bu sayfada seçili kaldıkça ekranda (oyun kapalıyken örnek veriyle) tutulur; ilk 4 sn vurgulanır.
+// Sayfadan çıkınca, başka overlay seçilince, overlay kapatılınca ya da panel kapanınca bırakılır (Rust: overlay_pin).
+const [pinned, setPinned] = createSignal<string | null>(null);
+function pinOverlay(key: string) {
+  setPinned(key);
+  if (!inTauri) return;
+  invoke("overlay_pin", { id: key }).catch(() => {});
+  invoke("overlay_peek", { id: key, ms: 4000 }).catch(() => {});
+}
+function unpinOverlay() {
+  if (!pinned()) return;
+  setPinned(null);
+  if (inTauri) invoke("overlay_pin", { id: null }).catch(() => {});
+}
 
 function Section(props: { title: string; open?: boolean; children: any }) {
   const [open, setOpen] = createSignal(props.open ?? true);
@@ -47,9 +64,33 @@ export function OverlaysPage() {
   loadMonitors();
   const profile = () => activeProfile();
   const list = createMemo(() => instancesOf(profile()));
-  const active = () => list().filter(([, i]) => i.enabled && !isHiddenOverlay(i.type));
+  // Bağlı (ya da seçili) simde çalışmayan overlay'ler listelerden gizlenir; ayarları korunur
+  const status = useTopic("status");
+  const sim = createMemo(() => currentSim(status()));
+  const supported = (type: string) => overlaySupportsSim(type, sim());
+  /** Açık kopyaların hepsi (simde gizlenenler dahil) */
+  const enabledAll = () => list().filter(([, i]) => i.enabled && !isHiddenOverlay(i.type));
+  const active = () => enabledAll().filter(([, i]) => supported(i.type));
   /** Bu türden açık bir overlay varsa anahtarı */
-  const existing = (type: string) => active().find(([, i]) => i.type === type)?.[0] ?? null;
+  const existing = (type: string) => enabledAll().find(([, i]) => i.type === type)?.[0] ?? null;
+  /** Bu simde çalışmadığı için gizlenen overlay türü sayısı */
+  const hiddenBySim = () => manifests.filter((m) => !isHiddenOverlay(m.id) && !supported(m.id)).length;
+
+  // "Tümünü kaldır": listedeki açık overlay'leri tek bir ayar güncellemesiyle kapatır (onaylı)
+  const [confirmAll, setConfirmAll] = createSignal(false);
+  createEffect(() => {
+    if (active().length === 0) setConfirmAll(false);
+  });
+  createEffect(on(() => settings().activeProfile, () => setConfirmAll(false), { defer: true }));
+  const removeAll = () => {
+    const keys = active().map(([k]) => k);
+    setConfirmAll(false);
+    if (!keys.length) return;
+    updateSettings((d) => {
+      const p = d.profiles[d.activeProfile];
+      for (const k of keys) if (p.overlays[k]) p.overlays[k].enabled = false;
+    });
+  };
 
   // Listede sağ tık: ekle / kaldır / ayarlar
   const [menu, setMenu] = createSignal<{ x: number; y: number; key: string; type: string } | null>(null);
@@ -59,14 +100,14 @@ export function OverlaysPage() {
   };
   const addOverlay = (type: string) => {
     const ex = existing(type);
-    if (ex && !settings().general.allowDuplicates) {
+    if (ex && !canDuplicate(type, settings().general.allowDuplicates)) {
       setOpenCard(ex);
       return;
     }
     const base = profile().overlays[type];
     const key = base && !base.enabled ? (updateOverlay(type, (o) => (o.enabled = true)), type) : addInstance(type);
     setOpenCard(key);
-    if (inTauri) invoke("overlay_peek", { id: key, ms: 4000 }).catch(() => {});
+    pinOverlay(key);
   };
   onMount(() => {
     const close = () => setMenu(null);
@@ -77,6 +118,13 @@ export function OverlaysPage() {
       window.removeEventListener("blur", close);
     });
   });
+  // Ekranda tutulan overlay: seçim değişince ya da overlay kapatılınca / silinince bırak
+  createEffect(() => {
+    const k = pinned();
+    if (!k) return;
+    if (openCard() !== k || !profile().overlays[k]?.enabled) unpinOverlay();
+  });
+  onCleanup(unpinOverlay);
   const [adding, setAdding] = createSignal(false);
   const [shotsOpen, setShotsOpen] = createSignal(false);
 
@@ -91,20 +139,27 @@ export function OverlaysPage() {
   });
 
   // Önizlenen overlay sabit görüntü: seçilince bir anlık örnek veri, sonra akış durur (Demo açıksa canlı)
+  // Profilde olmayan (ör. PRO olmadığı için eklenemeyen) bir overlay'e tıklanınca varsayılan ayarlarla önizleme
+  const ghost = () => {
+    const k = openCard();
+    return k && !profile().overlays[k] && manifestById(k) ? k : null;
+  };
   const previewType = () => {
+    if (ghost()) return ghost()!;
     const k = selected();
     return k ? profile().overlays[k]?.type ?? "" : "";
   };
-  useSnapshot(
+  const snap = useSnapshot(
     () => manifestById(previewType())?.topics ?? [],
-    () => [selected(), previewType()],
+    // Seçim ya da önizlenen overlay'in ayarı değişince bir tur daha oynar
+    () => [selected(), previewType(), JSON.stringify(profile().overlays[selected() ?? ""]?.options ?? null)],
     () => appState().demo,
   );
 
   const byCat = createMemo(() => {
     const g = new Map<string, typeof manifests>();
     for (const m of manifests) {
-      if (isHiddenOverlay(m.id)) continue;
+      if (isHiddenOverlay(m.id) || !supported(m.id)) continue;
       const c = m.category;
       if (!g.has(c)) g.set(c, []);
       g.get(c)!.push(m);
@@ -137,7 +192,7 @@ export function OverlaysPage() {
                 <button onPointerUp={run(() => updateOverlay(m.key, (o) => (o.enabled = false)))}>
                   <I.EyeOff /> Kaldır
                 </button>
-                <Show when={settings().general.allowDuplicates}>
+                <Show when={canDuplicate(m.type, settings().general.allowDuplicates)}>
                   <button disabled={isLocked(m.type)} onPointerUp={run(() => addOverlay(m.type))}>
                     <I.Copy /> Aynısından ekle
                   </button>
@@ -163,9 +218,32 @@ export function OverlaysPage() {
           <button class="icon-btn" title="Düzenleri yönet" onClick={() => go("layouts")}>
             <I.LayoutDashboard />
           </button>
+          <UndoRedo keys class="ur-panel" />
         </div>
         <div class="ovlist-scroll">
-          <div class="ovlist-cap">Açık overlay'ler</div>
+          <div class="ovlist-cap ovlist-cap-row">
+            <span>Açık overlay'ler</span>
+            <Show when={active().length > 0}>
+              <Show
+                when={confirmAll()}
+                fallback={
+                  <button class="ovlist-capbtn" title="Bu düzendeki açık overlay'lerin hepsini kapat" onClick={() => setConfirmAll(true)}>
+                    Tümünü kaldır
+                  </button>
+                }
+              >
+                <span class="ovlist-confirm">
+                  Emin misin?
+                  <button class="ovlist-capbtn danger" onClick={removeAll}>
+                    Evet
+                  </button>
+                  <button class="ovlist-capbtn" onClick={() => setConfirmAll(false)}>
+                    Vazgeç
+                  </button>
+                </span>
+              </Show>
+            </Show>
+          </div>
           <Show when={active().length > 0} fallback={<div class="ovlist-empty">Açık overlay yok</div>}>
             <For each={active()}>
               {([k, inst]) => (
@@ -230,6 +308,11 @@ export function OverlaysPage() {
               </>
             )}
           </For>
+          <Show when={sim() && hiddenBySim() > 0}>
+            <div class="ovlist-simnote">
+              {hiddenBySim()} overlay bu simde çalışmadığı için gizlendi ({SIM_NAMES[sim()!]})
+            </div>
+          </Show>
         </div>
         <div class="ovlist-foot">
           <button class="btn primary wide" onClick={() => setAdding(!adding())}>
@@ -237,13 +320,13 @@ export function OverlaysPage() {
           </button>
           <Show when={adding()}>
             <div class="addmenu">
-              <For each={manifests.filter((m) => !isHiddenOverlay(m.id))}>
+              <For each={manifests.filter((m) => !isHiddenOverlay(m.id) && supported(m.id))}>
                 {(m) => (
                   <button
                     disabled={isLocked(m.id)}
-                    classList={{ added: !settings().general.allowDuplicates && !!existing(m.id) }}
+                    classList={{ added: !canDuplicate(m.id, settings().general.allowDuplicates) && !!existing(m.id) }}
                     title={
-                      !settings().general.allowDuplicates && existing(m.id)
+                      !canDuplicate(m.id, settings().general.allowDuplicates) && existing(m.id)
                         ? "Zaten ekli. Aynı overlay'den birden fazla eklemek için Ayarlar → Genel'den izin ver."
                         : undefined
                     }
@@ -251,20 +334,20 @@ export function OverlaysPage() {
                       setAdding(false);
                       const ex = existing(m.id);
                       // Birden fazla eklemeye izin yoksa var olanı aç
-                      if (ex && !settings().general.allowDuplicates) {
+                      if (ex && !canDuplicate(m.id, settings().general.allowDuplicates)) {
                         setOpenCard(ex);
                         return;
                       }
                       const base = profile().overlays[m.id];
                       const key = base && !base.enabled ? (updateOverlay(m.id, (o) => (o.enabled = true)), m.id) : addInstance(m.id);
                       setOpenCard(key);
-                      // Overlay'ler gizli ya da oyun kapalı olsa bile kısa süre göster, eklendiği belli olsun
-                      if (inTauri) invoke("overlay_peek", { id: key, ms: 4000 }).catch(() => {});
+                      // Overlay'ler gizli ya da oyun kapalı olsa bile ekranda göster (bu sayfada seçili kaldıkça)
+                      pinOverlay(key);
                     }}
                   >
                     <span class="ovitem-ic">{overlayIcon(m.id)}</span>
                     {m.name}
-                    <Show when={!settings().general.allowDuplicates && existing(m.id)}>
+                    <Show when={!canDuplicate(m.id, settings().general.allowDuplicates) && existing(m.id)}>
                       <span class="added-tag">ekli</span>
                     </Show>
                     <Show when={isProOverlay(m.id)}>
@@ -278,27 +361,81 @@ export function OverlaysPage() {
         </div>
       </aside>
 
-      <Show when={selected()} keyed fallback={<div class="ovset" />}>
+      <Show
+        when={!ghost() && selected()}
+        keyed
+        fallback={
+          <Show when={ghost()} keyed fallback={<div class="ovset" />}>
+            {(g) => (
+              <aside class="ovset">
+                <header class="ovset-head">
+                  <span class="ovset-ic">{overlayIcon(g)}</span>
+                  <div>
+                    <b>{manifestById(g)!.name}</b>
+                    <small>{manifestById(g)!.description}</small>
+                  </div>
+                </header>
+                <Show when={isLocked(g)}>
+                  <div class="locked-note">
+                    Bu overlay PRO üyelere özel. Önizlemede görebilirsin, eklemek için PRO gerekir.{" "}
+                    <button class="link" onClick={() => go("pro")}>
+                      PRO'ya bak
+                    </button>
+                  </div>
+                </Show>
+              </aside>
+            )}
+          </Show>
+        }
+      >
         {(k) => <InstanceSettings key={k} />}
       </Show>
 
       <section class="ovpreview">
         <Backdrop />
-        <Show when={selected()} keyed>
+        <Show when={ghost()} keyed>
+          {(g) => (
+            <div class="ovpreview-stage" style={{ opacity: settings().theme.opacity / 100 }}>
+              <div style={{ transform: `scale(${Math.min(1.4, settings().theme.scale / 100)})` }} class="ovpreview-item">
+                <OverlayView type={g} options={defaultOptions(manifestById(g)!)} />
+              </div>
+              <div class="ovpreview-pro">
+                <Show when={isLocked(g)} fallback={<>Önizleme — eklemek için "Overlay ekle"yi kullan</>}>
+                  <span class="pro-badge small">PRO</span> Önizleme — bu overlay PRO üyelere özel
+                </Show>
+              </div>
+            </div>
+          )}
+        </Show>
+        <Show when={!ghost() && selected()} keyed>
           {(k) => {
             const inst = () => profile().overlays[k];
             return (
               <Show when={inst()}>
                 <div class="ovpreview-stage" style={{ opacity: Math.min(inst()!.opacity, settings().theme.opacity / 100) }}>
                   <div style={{ transform: `scale(${Math.min(1.4, inst()!.scale * (settings().theme.scale / 100))})` }} class="ovpreview-item">
-                    <Show when={!isLocked(inst()!.type)} fallback={<div class="ov-panel ov-empty">PRO üyelere özel</div>}>
-                      <OverlayView type={inst()!.type} options={inst()!.options} />
-                    </Show>
+                    <OverlayView type={inst()!.type} options={{ ...inst()!.options, ...previewVals(k) }} />
                   </div>
+                  <Show when={isLocked(inst()!.type) || Object.keys(previewVals(k)).length > 0}>
+                    <div class="ovpreview-pro">
+                      <span class="pro-badge small">PRO</span>{" "}
+                      {isLocked(inst()!.type) ? "Önizleme — bu overlay PRO üyelere özel" : "Önizleme — seçtiğin tasarım PRO üyelere özel, kaydedilmedi"}
+                    </div>
+                  </Show>
                 </div>
               </Show>
             );
           }}
+        </Show>
+        <Show when={!snap() && !appState().demo && previewType()}>
+          <button
+            class="btn ghost"
+            style={{ position: "absolute", top: "12px", right: "12px", "z-index": 3 }}
+            title="Örnek veri birkaç saniye oynar, sonra görüntü sabit kalır"
+            onClick={() => snap.replay()}
+          >
+            ▶ Önizlemeyi oynat
+          </button>
         </Show>
         <div class="ovpreview-bar">
           <For each={BACKDROPS.filter((b) => b.id !== "custom")}>
@@ -325,6 +462,16 @@ export function OverlaysPage() {
       </section>
     </div>
   );
+}
+
+// PRO olmayan üyenin seçtiği kilitli (PRO) seçenekler: kaydedilmez, sadece önizlemede gösterilir
+const [pv, setPv] = createSignal<{ key: string; vals: Record<string, unknown> }>({ key: "", vals: {} });
+const previewVals = (k: string) => (pv().key === k ? pv().vals : {});
+function setPreviewVal(k: string, key: string, value: unknown) {
+  const cur = pv().key === k ? { ...pv().vals } : {};
+  if (value === undefined) delete cur[key];
+  else cur[key] = value;
+  setPv({ key: k, vals: cur });
 }
 
 function InstanceSettings(props: { key: string }) {
@@ -408,7 +555,10 @@ function InstanceSettings(props: { key: string }) {
                 <SettingsForm
                   fields={fields}
                   values={inst()!.options}
+                  overlayId={inst()!.type}
                   onChange={(key, value) => upd((o) => (o.options[key] = value))}
+                  onPreview={(key, value) => setPreviewVal(k, key, value)}
+                  previewValues={previewVals(k)}
                 />
               </Section>
             )}
@@ -436,14 +586,14 @@ function InstanceSettings(props: { key: string }) {
           </Section>
         </div>
         <footer class="ovset-foot">
-          <Show when={settings().general.allowDuplicates}>
+          <Show when={canDuplicate(inst()!.type, settings().general.allowDuplicates)}>
             <button
               class="btn ghost"
               title="Aynı overlay'den bir tane daha"
               onClick={() => {
                 const key = addInstance(inst()!.type);
                 setOpenCard(key);
-                if (inTauri) invoke("overlay_peek", { id: key, ms: 4000 }).catch(() => {});
+                pinOverlay(key);
               }}
               disabled={isLocked(inst()!.type)}
             >
@@ -456,7 +606,7 @@ function InstanceSettings(props: { key: string }) {
             onClick={() =>
               upd((o) => {
                 const d = defaultInstance(o.type);
-                o.options = defaultOptions(m()!);
+                o.options = d.options;
                 o.scale = 1;
                 o.opacity = 1;
                 o.x = d.x;

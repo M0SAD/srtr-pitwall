@@ -56,6 +56,8 @@ pub struct EventsInfo {
     pub session_num: i32,
     /// Tekrara atlama mümkün mü (iRacing, demo değil, bağlı)
     pub replay_ok: bool,
+    /// Liste, biten bir önceki oturuma ait (yeni oturumda henüz olay yok)
+    pub previous: bool,
     pub events: Vec<RaceEvent>,
 }
 
@@ -98,6 +100,10 @@ pub struct EventLog {
     checkered_seen: bool,
     checkered_lap: i32,
     finished: bool,
+    /// Diğer kaynağın (demo ↔ canlı) listesi: önizleme/demo açılınca gerçek olaylar silinmez
+    stash: Option<Box<EventLog>>,
+    /// Bir önceki oturumun olayları (yeni oturum boşken gösterilir)
+    prev: Option<(String, String, i32, Vec<RaceEvent>)>,
 }
 
 impl Default for EventLog {
@@ -126,6 +132,8 @@ impl Default for EventLog {
             checkered_seen: false,
             checkered_lap: 0,
             finished: false,
+            stash: None,
+            prev: None,
         }
     }
 }
@@ -136,6 +144,21 @@ impl EventLog {
     }
 
     pub fn info(&self, connected: bool) -> EventsInfo {
+        if self.list.is_empty() && !self.demo {
+            if let Some((track, kind, num, list)) = &self.prev {
+                return EventsInfo {
+                    sim: self.sim.to_string(),
+                    demo: false,
+                    connected,
+                    track: track.clone(),
+                    session_kind: kind.clone(),
+                    session_num: *num,
+                    replay_ok: connected && self.sim == "iracing",
+                    previous: true,
+                    events: list.clone(),
+                };
+            }
+        }
         EventsInfo {
             sim: self.sim.to_string(),
             demo: self.demo,
@@ -144,14 +167,26 @@ impl EventLog {
             session_kind: self.session_kind.clone(),
             session_num: if self.session_num == i32::MIN { -1 } else { self.session_num },
             replay_ok: connected && !self.demo && self.sim == "iracing",
+            previous: false,
             events: self.events(),
         }
     }
 
     /// Veri kaynağı değişti (demo ↔ canlı, başka sim): liste sıfırlanır
     pub fn set_source(&mut self, sim: &'static str, demo: bool) {
-        if demo != self.demo || (!sim.is_empty() && !self.sim.is_empty() && sim != self.sim) {
-            *self = EventLog { sim, demo, ..EventLog::default() };
+        if demo != self.demo {
+            // Demo / önizleme açılıp kapanınca diğer liste saklanır, geri dönünce kaldığı yerden sürer
+            let back = self.stash.take().map(|b| *b).filter(|l| l.demo == demo);
+            let mut cur = std::mem::take(self);
+            cur.stash = None;
+            let mut next = back.unwrap_or_else(|| EventLog { sim: if demo { sim } else { "" }, demo, ..EventLog::default() });
+            next.rebase = true;
+            next.stash = Some(Box::new(cur));
+            *self = next;
+        }
+        if !sim.is_empty() && !self.sim.is_empty() && sim != self.sim {
+            let stash = self.stash.take();
+            *self = EventLog { sim, demo, stash, ..EventLog::default() };
         }
         if !sim.is_empty() || demo {
             self.sim = sim;
@@ -160,7 +195,13 @@ impl EventLog {
 
     fn reset_session(&mut self, f: &Frame, s: &SessionData) {
         let (sim, demo, next_id) = (self.sim, self.demo, self.next_id);
-        *self = EventLog { sim, demo, next_id, ..EventLog::default() };
+        let stash = self.stash.take();
+        let prev = if !demo && !self.list.is_empty() {
+            Some((self.track.clone(), self.session_kind.clone(), self.session_num, self.events()))
+        } else {
+            self.prev.take()
+        };
+        *self = EventLog { sim, demo, next_id, stash, prev, ..EventLog::default() };
         self.session_num = f.session_num;
         self.track = if s.track_config.is_empty() {
             s.track_name.clone()
@@ -223,7 +264,7 @@ impl EventLog {
         if rc_max < self.last_rc_id {
             self.last_rc_id = 0;
         }
-        if f.replay {
+        if f.replay && !f.replay_live {
             // Tekrar oynatılıyor: geçmiş anlardan olay üretme, dönünce yeniden taban al
             self.last_rc_id = rc_max;
             self.rebase = true;
@@ -599,6 +640,18 @@ mod tests {
         f.session_num = 3;
         log.update(&f, &s, &t);
         assert!(log.events().is_empty());
-        assert_eq!(log.info(true).session_num, 3);
+        // Yeni oturum boşken önceki oturumun olayları gösterilir
+        let i = log.info(true);
+        assert!(i.previous && i.session_num == 2 && i.events.len() == MAX_EVENTS);
+        f.session_time += 1.0;
+        f.incidents += 1;
+        log.update(&f, &s, &t);
+        let i = log.info(true);
+        assert!(!i.previous && i.session_num == 3 && i.events.len() == 1);
+        // Demo açılıp kapanınca gerçek liste korunur
+        log.set_source("iracing", true);
+        assert!(log.events().is_empty());
+        log.set_source("iracing", false);
+        assert_eq!(log.events().len(), 1);
     }
 }

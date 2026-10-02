@@ -8,7 +8,7 @@ import { listen } from "@tauri-apps/api/event";
 import { settings, updateSettings } from "@/sdk/settings";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { encodeForShare, shareShot, shotLimits } from "@/cloud/shots";
+import { encodeForShare, shareShot, sharedLocalPaths, shotLimits } from "@/cloud/shots";
 import { useScreenshotBytes } from "../components/Backdrop";
 import {
   IracingShotHelp,
@@ -22,7 +22,8 @@ import {
   type ShotDirs,
 } from "../components/Shots";
 import { go } from "../ui";
-import { isPro } from "@/cloud/account";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ProLockNote, ProLockTag } from "../components/ProLock";
 import * as I from "../icons";
 
 type Src = "pitwall" | "iracing";
@@ -32,6 +33,7 @@ export function ScreenshotsPage() {
   const [ver, setVer] = createSignal(0);
   const [list] = createResource(() => ({ s: src(), v: ver() }), (k) => listShots(k.s));
   const [dirs] = createResource(() => invoke<ShotDirs>("shots_dirs").catch(() => null));
+  const [shared] = createResource(() => ({ v: ver(), u: session()?.user.id }), () => sharedLocalPaths());
   const [open, setOpen] = createSignal<number | null>(null);
   const [sharing, setSharing] = createSignal<LocalShot | null>(null);
   const [msg, setMsg] = createSignal<{ text: string; err?: boolean } | null>(null);
@@ -75,17 +77,20 @@ export function ScreenshotsPage() {
           <button
             class="btn primary"
             title="Panel gizlenir, ekran çekilir, panel geri gelir"
+            disabled={proLocked(F.shots)}
             onClick={() => {
               toast("Ekran görüntüsü alınıyor…");
               invoke("shot_take");
             }}
           >
             Şimdi çek
+            <ProLockTag feature={F.shots} />
           </button>
           <button class="btn ghost" onClick={() => go("settings", "keybinds")}>
             Kısayolu değiştir
           </button>
         </div>
+        <ProLockNote feature={F.shots} text="Ekran görüntüsü almak PRO üyelere özel. Önceki görüntülerine bakabilirsin." />
       </section>
 
       <section class="panel cm-bar">
@@ -135,6 +140,11 @@ export function ScreenshotsPage() {
           {(s, i) => (
             <button class="shot-card" onClick={() => setOpen(i())}>
               <ShotThumb shot={s} />
+              <Show when={shared()?.has(s.path)}>
+                <span class="shot-shared" title={t("Bu görüntüyü toplulukta paylaştın")}>
+                  ✓ {t("Paylaşıldı")}
+                </span>
+              </Show>
               <span class="shot-cap">
                 <b>{s.track || s.name}</b>
                 <small>
@@ -170,6 +180,7 @@ export function ScreenshotsPage() {
           onShared={() => {
             setSharing(null);
             setOpen(null);
+            setVer(ver() + 1);
             go("community", "shots");
           }}
         />
@@ -235,7 +246,7 @@ function LocalShotViewer(props: {
         <div class="btns">
           <Show when={cloudEnabled}>
             <Show
-              when={isPro()}
+              when={!proLocked("community.share.shots")}
               fallback={
                 <button class="btn primary" onClick={() => go("pro")} title="Toplulukta paylaşmak PRO özelliğidir">
                   <I.Lock /> PRO ile paylaş
@@ -408,7 +419,7 @@ function ShotSettings(props: { dirs: ShotDirs | null }) {
       <div class="row">
         <div>
           <b>Kısayol sadece oyundayken çalışsın</b>
-          <small>Oyun kapalıyken Print Screen tuşu Windows'un kendi işlevine kalır.</small>
+          <small>Oyun kapalıyken kısayol tuşu (varsayılan F12) diğer uygulamalara kalır.</small>
         </div>
         <label class="switch">
           <input type="checkbox" checked={sc().onlyInGame} onChange={(e) => set("onlyInGame", e.currentTarget.checked)} />
@@ -446,8 +457,9 @@ function ShotSettings(props: { dirs: ShotDirs | null }) {
         </button>
       </div>
       <p class="muted small">
-        Filigranı yönetici belirler. Windows 11'de "Ekran alıntısı aracını açmak için Print Screen tuşunu kullan" ayarı açıksa tuş
-        çakışabilir; kısayol çalışmazsa bu ayarı kapat ya da Ayarlar → Kısayollar'dan başka bir tuş seç.
+        Filigranı yönetici belirler. Varsayılan kısayol F12'dir; Steam'in ekran görüntüsü tuşu da F12 ise ikisi birlikte çalışabilir.
+        Kısayol çalışmazsa Ayarlar → Kısayollar'dan başka bir tuş seç. Print Screen seçersen Windows 11'deki "Ekran alıntısı aracını
+        açmak için Print Screen tuşunu kullan" ayarını kapat.
       </p>
     </section>
   );

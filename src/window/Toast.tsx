@@ -32,12 +32,14 @@ interface Card {
   setOut: Setter<boolean>;
 }
 
-const KIND_ICON: Record<ToastPayload["kind"], string> = { message: "💬", request: "➕", trusted: "🛡️" };
+const KIND_ICON: Record<ToastPayload["kind"], string> = { message: "💬", request: "➕", trusted: "🛡️", team: "👥", group: "👥" };
 
 const KIND_LABEL: Record<ToastPayload["kind"], string> = {
   message: "Yeni mesaj",
   request: "Arkadaşlık isteği",
   trusted: "Seni güvenilir seçti",
+  team: "Takım sohbeti",
+  group: "Grup sohbeti",
 };
 
 function makeCard(p: ToastPayload): Card {
@@ -68,7 +70,9 @@ export function Toast() {
     for (const p of list) {
       if (!p || !p.id || next.some((c) => c.ids.has(p.id))) continue;
       // Aynı arkadaştan art arda gelen mesajlar tek kartta birleşir (Steam gibi)
-      const same = p.kind === "message" ? next.find((c) => c.kind === "message" && c.friendId === p.friendId && !c.out()) : undefined;
+      // Aynı takım odasından gelenler de birleşir
+      const same =
+        p.kind === "message" || p.kind === "team" || p.kind === "group" ? next.find((c) => c.kind === p.kind && c.friendId === p.friendId && !c.out()) : undefined;
       if (same) {
         same.ids.add(p.id);
         same.setData((d) => ({ ...p, count: d.count + 1 }));
@@ -161,7 +165,7 @@ export function Toast() {
                   ×
                 </button>
               </div>
-              <p data-no-i18n={c.kind === "message" ? true : undefined}>
+              <p data-no-i18n={c.kind === "message" || c.kind === "team" || c.kind === "group" ? true : undefined}>
                 <For each={emojiParts(c.data().body)}>{(p) => (p.emo ? <span class="emo">{p.t}</span> : p.t)}</For>
               </p>
             </div>

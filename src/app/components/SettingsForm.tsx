@@ -1,8 +1,12 @@
 // Manifestteki ayar şemasından otomatik form üretir (anahtar, kaydırıcı, seçim, çoklu seçim,
-// sıralanabilir liste, renk, metin).
+// sıralanabilir liste, renk, metin, resim).
 
 import { For, Show, createSignal } from "solid-js";
 import { fieldVisible, orderValue, type SettingField } from "@/sdk/overlay";
+import { isPro } from "@/cloud/account";
+import { optionLocked, optionRequiresPro, settingLocked, settingRequiresPro } from "@/sdk/proFeatures";
+import { ProLockNote } from "./ProLock";
+import { go } from "../ui";
 
 type Of<T extends SettingField["type"]> = Extract<SettingField, { type: T }>;
 
@@ -175,21 +179,148 @@ function MultiList(props: { f: Of<"multi">; value: unknown; onChange: (v: unknow
   );
 }
 
+/** Seçilen resmi oranını koruyarak en fazla `max` piksele küçültür, PNG data URL döner (ICO/SVG dahil tarayıcının açabildiği her biçim). */
+export function shrinkImage(file: File, max = 128): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > 20 * 1024 * 1024) return reject(new Error("too-big"));
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        // Boyutu olmayan SVG'ler 0 döner: kare kabul et
+        let w = img.naturalWidth || max;
+        let h = img.naturalHeight || max;
+        const k = Math.min(1, max / Math.max(w, h));
+        const tw = Math.max(1, Math.round(w * k));
+        const th = Math.max(1, Math.round(h * k));
+        // Büyük resimleri adım adım yarıya indir (tek seferde küçültmek tırtıklı olur)
+        let src: CanvasImageSource = img;
+        while (w / 2 >= tw * 1.5 && h / 2 >= th * 1.5) {
+          const c = document.createElement("canvas");
+          c.width = Math.round(w / 2);
+          c.height = Math.round(h / 2);
+          const cx = c.getContext("2d")!;
+          cx.imageSmoothingQuality = "high";
+          cx.drawImage(src, 0, 0, c.width, c.height);
+          src = c;
+          w = c.width;
+          h = c.height;
+        }
+        const c = document.createElement("canvas");
+        c.width = tw;
+        c.height = th;
+        const cx = c.getContext("2d")!;
+        cx.imageSmoothingQuality = "high";
+        cx.drawImage(src, 0, 0, tw, th);
+        resolve(c.toDataURL("image/png"));
+      } catch (e) {
+        reject(e);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("decode"));
+    };
+    img.src = url;
+  });
+}
+
+function ImagePick(props: { f: Of<"image">; value: unknown; onChange: (v: unknown) => void }) {
+  const [err, setErr] = createSignal("");
+  const [busy, setBusy] = createSignal(false);
+  let input: HTMLInputElement | undefined;
+  const val = () => (typeof props.value === "string" ? props.value : "");
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setErr("");
+    setBusy(true);
+    try {
+      props.onChange(await shrinkImage(file, props.f.maxSize ?? 128));
+    } catch (e) {
+      setErr(
+        e instanceof Error && e.message === "too-big"
+          ? "Dosya çok büyük (en fazla 20 MB)."
+          : "Bu dosya açılamadı. PNG, JPG, WEBP, ICO ya da SVG dene.",
+      );
+    } finally {
+      setBusy(false);
+      if (input) input.value = "";
+    }
+  };
+  return (
+    <div class="f2-image">
+      <div class="f2-image-prev" classList={{ empty: !val() }}>
+        <Show when={val()} fallback={<span>—</span>}>
+          <img src={val()} alt="" />
+        </Show>
+      </div>
+      <div class="f2-image-btns">
+        <button class="btn small" disabled={busy()} onClick={() => input?.click()}>
+          {busy() ? "Hazırlanıyor…" : val() ? "Değiştir" : "Resim seç"}
+        </button>
+        <Show when={val()}>
+          <button class="btn ghost small" onClick={() => props.onChange("")}>
+            Kaldır
+          </button>
+        </Show>
+      </div>
+      <input
+        ref={input}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.png,.jpg,.jpeg,.webp,.gif,.bmp,.svg,.ico"
+        style={{ display: "none" }}
+        onChange={(e) => pick(e.currentTarget.files?.[0])}
+      />
+      <Show when={err()}>
+        <small class="f2-hint f2-err">{err()}</small>
+      </Show>
+    </div>
+  );
+}
+
 export function SettingsForm(props: {
   fields: SettingField[];
   values: Record<string, any>;
   onChange: (key: string, value: unknown) => void;
+  /** Overlay kimliği: PRO seçenekler yöneticinin PRO özellikleri kararına göre (overlay.<id>.<ayar>.<değer>) */
+  overlayId?: string;
+  /** Verilirse kilitli (PRO) seçenekler seçilebilir ama kaydedilmez: sadece önizlemede gösterilir */
+  onPreview?: (key: string, value: unknown) => void;
+  /** Önizlemede gösterilen (kaydedilmemiş) değerler */
+  previewValues?: Record<string, unknown>;
 }) {
+  // PRO notu: seçim alanında en az bir seçenek hâlâ kilitliyse (yönetici hepsini açtıysa gösterme)
+  // Ayarın tamamı PRO'ya ayrılmış ve kullanıcı PRO değil: varsayılan değerde kilitli gösterilir
+  const locked = (f: SettingField) => settingLocked(props.overlayId, f);
+  const val = (f: SettingField): any => (locked(f) ? f.default : props.values[f.key]);
+  const change = (f: SettingField, v: unknown) => {
+    if (!locked(f)) props.onChange(f.key, v);
+  };
+  const Tag = (t: { f: SettingField }) => (
+    <Show when={settingRequiresPro(props.overlayId, t.f)}>
+      {" "}
+      <span class="pro-badge small" title="PRO üyelere özel">
+        PRO
+      </span>
+    </Show>
+  );
+  const showProHint = (f: SettingField) =>
+    !!f.proHint && !isPro() && (f.type !== "select" || f.options.some((o) => optionLocked(props.overlayId, f.key, o)));
   return (
     <div class="form2">
       <For each={props.fields}>
         {(f) => (
           <Show when={fieldVisible(f, props.values)}>
-            <div class={`f2 f2-${f.type}`}>
+            <div class={`f2 f2-${f.type}`} classList={{ "f2-locked": locked(f) }}>
               <Show when={f.type === "boolean"}>
                 <div class="f2-row">
-                  <span class="f2-label">{f.label}</span>
-                  <Switch checked={!!props.values[f.key]} onChange={(v) => props.onChange(f.key, v)} />
+                  <span class="f2-label">
+                    {f.label}
+                    <Tag f={f} />
+                  </span>
+                  <Switch checked={!!val(f)} disabled={locked(f)} onChange={(v) => change(f, v)} />
                 </div>
               </Show>
               <Show when={f.type === "number" && (f as Of<"number">)}>
@@ -198,21 +329,27 @@ export function SettingsForm(props: {
                     when={nf().ui === "stepper"}
                     fallback={
                       <>
-                        <div class="f2-cap">{nf().label}</div>
+                        <div class="f2-cap">
+                          {nf().label}
+                          <Tag f={f} />
+                        </div>
                         <Slider
-                          value={props.values[f.key]}
+                          value={val(f)}
                           min={nf().min}
                           max={nf().max}
                           step={nf().step}
                           unit={nf().unit}
-                          onInput={(v) => props.onChange(f.key, v)}
+                          onInput={(v) => change(f, v)}
                         />
                       </>
                     }
                   >
                     <div class="f2-row">
-                      <span class="f2-label">{nf().label}</span>
-                      <Stepper value={props.values[f.key]} min={nf().min} max={nf().max} step={nf().step} onChange={(v) => props.onChange(f.key, v)} />
+                      <span class="f2-label">
+                        {nf().label}
+                        <Tag f={f} />
+                      </span>
+                      <Stepper value={val(f)} min={nf().min} max={nf().max} step={nf().step} onChange={(v) => change(f, v)} />
                     </div>
                   </Show>
                 )}
@@ -221,34 +358,84 @@ export function SettingsForm(props: {
                 {(sf) => (
                   <>
                     <div class="f2-cap">{sf().label}</div>
-                    <select class="f2-select" value={props.values[f.key]} onChange={(e) => props.onChange(f.key, e.currentTarget.value)}>
+                    <select
+                      class="f2-select"
+                      value={(props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key]}
+                      onChange={(e) => {
+                        const v = e.currentTarget.value;
+                        const o = sf().options.find((x) => x.value === v);
+                        if (o && optionLocked(props.overlayId, f.key, o) && props.onPreview) {
+                          // PRO tasarım: görsün ama kaydedilmesin
+                          props.onPreview(f.key, v);
+                          return;
+                        }
+                        props.onPreview?.(f.key, undefined);
+                        props.onChange(f.key, v);
+                      }}
+                    >
                       <For each={sf().options}>
                         {(o) => (
-                          <option value={o.value} selected={props.values[f.key] === o.value}>
+                          <option
+                            value={o.value}
+                            selected={((props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key]) === o.value}
+                            disabled={!props.onPreview && optionLocked(props.overlayId, f.key, o)}
+                          >
                             {o.label}
+                            {optionRequiresPro(props.overlayId, f.key, o) ? " · PRO" : ""}
                           </option>
                         )}
                       </For>
                     </select>
+                    <Show when={props.previewValues?.[f.key] !== undefined}>
+                      <div class="f2-preview-note">
+                        <span class="pro-badge small">PRO</span> Önizleme: bu seçenek PRO üyelere özel, kaydedilmedi. Overlay'de kullanmak için PRO
+                        gerekir.{" "}
+                        <button class="link" onClick={() => props.onPreview?.(f.key, undefined)}>
+                          Önizlemeyi kapat
+                        </button>
+                        {" · "}
+                        <button class="link" onClick={() => go("pro")}>
+                          PRO'ya bak
+                        </button>
+                      </div>
+                    </Show>
                   </>
                 )}
               </Show>
               <Show when={f.type === "text"}>
-                <div class="f2-cap">{f.label}</div>
+                <div class="f2-cap">
+                  {f.label}
+                  <Tag f={f} />
+                </div>
                 <input
                   class="input f2-text"
                   type="text"
-                  value={props.values[f.key] ?? ""}
+                  value={val(f) ?? ""}
+                  disabled={locked(f)}
                   placeholder={(f as Of<"text">).placeholder ?? ""}
-                  onChange={(e) => props.onChange(f.key, e.currentTarget.value.trim())}
+                  onChange={(e) => change(f, e.currentTarget.value.trim())}
                 />
+              </Show>
+              <Show when={f.type === "image" && (f as Of<"image">)}>
+                {(imf) => (
+                  <>
+                    <div class="f2-cap">
+                      {imf().label}
+                      <Tag f={f} />
+                    </div>
+                    <ImagePick f={imf()} value={val(f)} onChange={(v) => change(f, v)} />
+                  </>
+                )}
               </Show>
               <Show when={f.type === "color"}>
                 <label class="f2-row f2-colorrow">
-                  <span class="f2-label">{f.label}</span>
+                  <span class="f2-label">
+                    {f.label}
+                    <Tag f={f} />
+                  </span>
                   <span class="f2-colorpick">
-                    <input type="color" value={props.values[f.key]} onInput={(e) => props.onChange(f.key, e.currentTarget.value)} />
-                    <code data-no-i18n>{String(props.values[f.key] ?? "").toUpperCase()}</code>
+                    <input type="color" value={val(f)} disabled={locked(f)} onInput={(e) => change(f, e.currentTarget.value)} />
+                    <code data-no-i18n>{String(val(f) ?? "").toUpperCase()}</code>
                   </span>
                 </label>
               </Show>
@@ -259,23 +446,35 @@ export function SettingsForm(props: {
                       {mf().label}
                       <Show when={mf().max}>
                         {" "}
-                        ({(Array.isArray(props.values[f.key]) ? props.values[f.key] : mf().default).length}/{mf().max})
+                        ({(Array.isArray(val(f)) ? val(f) : mf().default).length}/{mf().max})
                       </Show>
+                      <Tag f={f} />
                     </div>
-                    <MultiList f={mf()} value={props.values[f.key]} onChange={(v) => props.onChange(f.key, v)} />
+                    <MultiList f={mf()} value={val(f)} onChange={(v) => change(f, v)} />
                   </>
                 )}
               </Show>
               <Show when={f.type === "order" && (f as Of<"order">)}>
                 {(of) => (
                   <>
-                    <div class="f2-cap">{of().label}</div>
-                    <OrderList f={of()} value={props.values[f.key]} onChange={(v) => props.onChange(f.key, v)} />
+                    <div class="f2-cap">
+                      {of().label}
+                      <Tag f={f} />
+                    </div>
+                    <OrderList f={of()} value={val(f)} onChange={(v) => change(f, v)} />
                   </>
                 )}
               </Show>
               <Show when={f.hint}>
                 <small class="f2-hint">{f.hint}</small>
+              </Show>
+              <Show when={locked(f)}>
+                <ProLockNote text="Bu ayarı değiştirmek PRO üyelere özel; overlay varsayılan değeri kullanır." />
+              </Show>
+              <Show when={showProHint(f)}>
+                <small class="f2-hint f2-prohint">
+                  <span class="pro-badge small">PRO</span> {f.proHint}
+                </small>
               </Show>
             </div>
           </Show>

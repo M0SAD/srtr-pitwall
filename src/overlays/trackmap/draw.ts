@@ -3,6 +3,7 @@
 import type { MapCar } from "@/sdk/types";
 import { pointAt, type Shape } from "@/sdk/trackshape";
 import { friendColor, friendOf, friendsOn } from "@/sdk/friends";
+import { drawMeMarker, type MeMarker } from "./marker";
 
 const images = new Map<string, HTMLImageElement>();
 function image(src: string) {
@@ -101,7 +102,7 @@ export function drawCars(
   s: Shape,
   xf: Xf,
   cars: MapCar[],
-  o: { size: number; label: string; meColor: string; font: string },
+  o: { size: number; label: string; meColor: string; font: string; me?: MeMarker },
 ) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -115,6 +116,15 @@ export function drawCars(
     const fr = showFriends && !c.me ? friendOf(c.userId, c.name) : null;
     const r = c.me ? o.size * 1.25 : fr ? o.size * 1.2 : o.size;
     ctx.globalAlpha = c.pit ? 0.45 : 1;
+
+    if (c.me && o.me) {
+      // Senin aracın: seçilen şekil ya da resim, gidiş yönüne göre döndürülebilir
+      const a = xf(pointAt(s, c.pct + 0.004));
+      const ang = Math.atan2(a[0] - x, -(a[1] - y));
+      const txt = o.label === "number" ? c.number : o.label === "pos" && c.classPos > 0 ? String(c.classPos) : "";
+      drawMeMarker(ctx, x, y, r * o.me.scale, ang, o.me, { text: txt, font: o.font });
+      continue;
+    }
 
     const photo = fr?.photo ? image(fr.photo) : null;
     if (fr && photo) {

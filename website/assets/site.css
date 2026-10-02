@@ -1487,6 +1487,30 @@ button.adp:disabled {
 .ad-mine-act .btn {
   margin: 2px;
 }
+.ad-prog {
+  min-width: 170px;
+}
+.ad-prog b {
+  display: block;
+  color: var(--text);
+}
+.ad-prog .muted {
+  display: block;
+  font-size: 12px;
+}
+.ad-meter {
+  height: 6px;
+  margin-top: 6px;
+}
+.meter.dim i {
+  background: var(--muted);
+}
+.meter.done i {
+  background: var(--green);
+}
+.ad-mine-note {
+  margin: 12px 0 0;
+}
 
 /* Yönetim › Reklamlar */
 .ad-arow {
@@ -1561,4 +1585,221 @@ button.adp:disabled {
 .ad-grid input[type="file"] {
   max-width: 100%;
   min-width: 0;
+}
+
+/* Hediye PRO (hesap sayfası) */
+.gift-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.gift-search input {
+  flex: 1;
+  min-width: 0;
+}
+.gift-list {
+  display: flex;
+  flex-direction: column;
+}
+.gift-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.gift-row:last-child {
+  border-bottom: 0;
+}
+.gift-row .grow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gift-row .grow b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gift-av {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 30%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.gift-sel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 138, 42, 0.45);
+  border-radius: 10px;
+  background: rgba(255, 138, 42, 0.06);
+}
+.gift-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.gift-from {
+  margin-top: 10px;
+}
+
+/* İfade seçici (destek yazışmaları) */
+.sp-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.field > .sp-tools {
+  margin-top: 6px;
+}
+.emo-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.emo-btn {
+  min-width: 42px;
+  font-size: 18px;
+  line-height: 1;
+}
+.emo-btn.on {
+  border-color: var(--accent);
+}
+.emo-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  width: 316px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #1c2029;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+}
+.emo-pop.up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+.emo-tabs {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.emo-tabs button,
+.emo-grid button {
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.emo-tabs button {
+  flex: 1;
+  opacity: 0.55;
+}
+.emo-tabs button.on {
+  opacity: 1;
+  background: #2a303c;
+}
+.emo-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 210px;
+  overflow: auto;
+}
+.emo-grid button:hover {
+  background: #2a303c;
+}
+
+/* Yönetim: inline onay ve tüm mesajlar */
+.del-ask {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(229, 50, 45, 0.5);
+  border-radius: 8px;
+  background: rgba(229, 50, 45, 0.1);
+  font-size: 13.5px;
+}
+.del-ask span {
+  flex: 1;
+  min-width: 200px;
+}
+.am-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.am-filters .field {
+  margin: 0;
+  flex: 1 1 170px;
+}
+.am-filters .field.date {
+  flex: 0 1 160px;
+}
+.am-msg {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.am-msg.rep {
+  border-color: rgba(229, 50, 45, 0.5);
+}
+.am-msg .head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 13px;
+}
+.am-msg .head .muted:last-child {
+  margin-left: auto;
+}
+.am-msg p {
+  margin: 4px 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.am-conv > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+.am-conv > summary::-webkit-details-marker {
+  display: none;
+}
+.am-conv .stack {
+  margin-top: 10px;
+  max-height: 480px;
+  overflow: auto;
 }

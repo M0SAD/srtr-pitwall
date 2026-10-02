@@ -1,11 +1,12 @@
 import { defineOverlay } from "@/sdk/overlay";
 import { NAME_FORMATS, headerField } from "@/sdk/HeaderStats";
+import { labelStyleField } from "@/sdk/WxIcon";
 
 export const STANDINGS_COLUMNS = [
   { value: "flair", label: "Ülke" },
+  { value: "car", label: "Araç markası" },
   { value: "name", label: "Sürücü" },
   { value: "change", label: "Kazanılan/kaybedilen sıra" },
-  { value: "car", label: "Araç markası" },
   { value: "license", label: "Lisans / SR" },
   { value: "irating", label: "iRating" },
   { value: "pits", label: "Pit sayısı" },
@@ -13,20 +14,22 @@ export const STANDINGS_COLUMNS = [
   { value: "avg", label: "Son 5 tur ortalaması" },
   { value: "last", label: "Son tur" },
   { value: "best", label: "En iyi tur" },
+  { value: "tire", label: "Lastik" },
 ];
 
 export const STANDINGS_DEFAULT_COLUMNS = [
   { key: "flair", on: true },
   { key: "name", on: true },
-  { key: "change", on: false },
   { key: "car", on: true },
-  { key: "license", on: false },
+  { key: "change", on: false },
+  { key: "license", on: true },
   { key: "irating", on: true },
   { key: "pits", on: false },
   { key: "gap", on: true },
-  { key: "avg", on: true },
+  { key: "avg", on: false },
   { key: "last", on: false },
   { key: "best", on: true },
+  { key: "tire", on: true },
 ];
 
 export default defineOverlay({
@@ -86,14 +89,16 @@ export default defineOverlay({
       type: "select",
       default: "logo",
       options: [
-        { value: "logo", label: "Logo (yoksa yazı)" },
+        { value: "logo", label: "Logo" },
         { value: "both", label: "Logo ve yazı" },
         { value: "text", label: "Sadece yazı" },
       ],
       group: "Sütunlar",
     },
+    { key: "logoSize", label: "Logo boyutu", type: "number", default: 150, min: 80, max: 220, step: 10, unit: "%", group: "Sütunlar", showIf: { key: "carStyle", not: ["text"] } },
     { key: "showHeader", label: "Başlık satırı", type: "boolean", default: true, group: "Başlık" },
     headerField("headerFields", "Başlık bilgileri", ["remaining", "sof"]),
+    labelStyleField("Başlık"),
     { key: "rowOpacity", label: "Satır arka planı", type: "number", default: 100, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm" },
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 3, min: 1, max: 10, step: 1, unit: "Hz", group: "Görünüm" },
   ],

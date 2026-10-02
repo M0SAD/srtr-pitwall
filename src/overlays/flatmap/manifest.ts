@@ -1,4 +1,10 @@
 import { defineOverlay } from "@/sdk/overlay";
+import { meMarkerFields } from "../trackmap/marker";
+
+// Daire varsayılan görünümdür (sınıf rengi + beyaz halka); renkler diğer şekillerde kullanılır
+const meFields = meMarkerFields({ color: "#ffffff" }).map((f) =>
+  f.key === "meColor" || f.key === "meOutline" ? { ...f, showIf: { key: "meShape", not: ["circle", "image"] } } : f,
+);
 
 export default defineOverlay({
   id: "flatmap",
@@ -25,5 +31,6 @@ export default defineOverlay({
     { key: "numbers", label: "Araç numaraları", type: "boolean", default: true },
     { key: "hidePit", label: "Pitteki araçları gizle", type: "boolean", default: true },
     { key: "sectors", label: "Sektör çizgileri", type: "boolean", default: true },
+    ...meFields,
   ],
 });

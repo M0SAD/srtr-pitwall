@@ -38,11 +38,25 @@ import {
   planFor,
   isProCheckout,
   startProCheckout,
+  checkoutPaid,
+  checkoutGift,
+  myGifts,
+  cancelGift,
+  SUB_LIVE,
+  type AppConfig,
+  type GiftSent,
 } from "@/cloud/account";
+import { findPeople, hashColor, initialOf, type Person } from "@/cloud/social";
 import { useTopic } from "@/sdk/telemetry";
 import { manifests } from "@/sdk/registry";
 import { openUrl } from "../ui";
 import { AdSlot } from "../components/AdSlot";
+import { TelemetryPrivacyPanel } from "./TelemetryPage";
+import { EmailPrefsPanel } from "../components/EmailPrefsPanel";
+import { PublicProfilePanel } from "../components/Profile";
+import { DemoShowcaseToggle } from "../components/DemoShowcaseToggle";
+import { CouponBox, CouponPrice, couponFor } from "../components/CouponBox";
+import { ProPromoCard } from "../components/ProPromoCard";
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
 
@@ -255,7 +269,10 @@ function Signed() {
   return (
     <>
       <ProfilePanel />
+      <PublicProfilePanel />
       <IracingPanel />
+      <TelemetryPrivacyPanel />
+      <EmailPrefsPanel />
       <ProPanel />
       <section class="panel">
         <h3>Bulut yedeği</h3>
@@ -413,7 +430,7 @@ function ProPanel() {
     if (!isProCheckout(link)) return openUrl(checkoutUrl(link));
     setBuying(id);
     try {
-      await startProCheckout(id);
+      await startProCheckout(id, undefined, couponFor(id)?.code);
     } catch (e) {
       setBuyErr(String((e as Error).message ?? e));
     } finally {
@@ -426,6 +443,7 @@ function ProPanel() {
       <h3>
         PRO üyelik <span class="pro-badge">PRO</span>
       </h3>
+      <ProPromoCard />
       <Show when={promoActive()}>
         <p class="pro-promo" style={{ padding: "10px 12px", border: "1px solid #3ddc84", "border-radius": "8px", background: "color-mix(in srgb, #3ddc84 8%, transparent)", color: "#bff5d5" }}>
           <b>{t("Ücretsiz PRO kampanyası: {0} tarihine kadar tüm PRO özellikleri herkese açık!", new Date(promoUntil()).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" }))}</b>
@@ -484,10 +502,20 @@ function ProPanel() {
                 </Show>
               </p>
             </Show>
+            <Show when={proInfo()?.gift}>
+              <p class="gift-from">
+                {t("🎁 {0} tarafından hediye edildi", proInfo()!.gift!.gifted_by_name || "?")}
+                <Show when={proInfo()!.gift!.status === "cancelled"}>
+                  <br />
+                  <small class="muted">{t("Hediye sonlandırıldı; PRO {0} tarihine kadar sürer.", fmtDate(entitlement().proUntil))}</small>
+                </Show>
+              </p>
+            </Show>
             <Show when={proExpiringSoon()}>
               <p class="pro-warn">PRO üyeliğin yakında bitiyor. Aşağıdan yenileyebilirsin.</p>
             </Show>
           </Show>
+          <DemoShowcaseToggle />
         </div>
       </Show>
 
@@ -502,12 +530,15 @@ function ProPanel() {
           </p>
         </Show>
         <Show when={plans().length > 0}>
+          <Show when={session() && plans().some((p) => isProCheckout(p.checkout))}>
+            <CouponBox />
+          </Show>
           <div class="pro-plans">
             <For each={plans()}>
               {(p) => (
                 <div class="pro-plan">
                   <small>{p.label}</small>
-                  <b>{p.price || "—"}</b>
+                  <CouponPrice plan={p.id} price={p.price} />
                   <button
                     class="btn primary small"
                     disabled={!session() || !p.checkout || !!buying()}
@@ -522,6 +553,13 @@ function ProPanel() {
           </div>
           <Show when={buyErr()}>
             <p class="error">{buyErr()}</p>
+          </Show>
+          <Show when={checkoutPaid()}>
+            <p class="ok" style={{ color: "#3ddc84" }}>
+              {checkoutGift()
+                ? t("Hediye ödemen alındı, teşekkürler! PRO birkaç saniye içinde alıcının hesabına işlenir.")
+                : t("Ödemen alındı, teşekkürler! PRO birkaç saniye içinde hesabına işlenir.")}
+            </p>
           </Show>
         </Show>
         <div class="btns">
@@ -546,6 +584,9 @@ function ProPanel() {
           </button>
         </div>
       </div>
+      <Show when={session()}>
+        <GiftPanel cfg={c} />
+      </Show>
       <Show when={sub()?.portal_url}>
         <div class="btns">
           <button class="btn ghost" onClick={() => openUrl(sub()!.portal_url)}>
@@ -584,6 +625,221 @@ function ProPanel() {
         </button>
       </Show>
     </section>
+  );
+}
+
+/** Hediye PRO: üye ara, plan seç, öde; hediye ettiklerimi listele ve sonlandır */
+function GiftPanel(props: { cfg: () => AppConfig | null | undefined }) {
+  const [open, setOpen] = createSignal(false);
+  const [q, setQ] = createSignal("");
+  const [res, setRes] = createSignal<Person[] | null>(null);
+  const [to, setTo] = createSignal<Person | null>(null);
+  const [searching, setSearching] = createSignal(false);
+  const [buying, setBuying] = createSignal("");
+  const [err, setErr] = createSignal("");
+  const [ask, setAsk] = createSignal<string | null>(null);
+  const [ending, setEnding] = createSignal("");
+  const [gifts, { refetch }] = createResource(
+    () => session()?.user.id,
+    () => myGifts().catch(() => [] as GiftSent[]),
+  );
+  const me = () => session()?.user.id ?? "";
+  const plans = () => PLAN_LIST.map((p) => ({ ...p, ...planFor(props.cfg(), p) })).filter((p) => isProCheckout(p.checkout));
+
+  // Hediye ödemesi bitince listeyi birkaç kez yenile (webhook gecikmesi)
+  createEffect(() => {
+    if (checkoutPaid() && checkoutGift()) for (const ms of [3000, 8000, 14000]) setTimeout(() => refetch(), ms);
+  });
+
+  const search = async () => {
+    const v = q().trim();
+    if (v.length < 2) return;
+    setSearching(true);
+    setErr("");
+    try {
+      setRes(((await findPeople(v)) ?? []).filter((p) => p.id !== me()));
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+    } finally {
+      setSearching(false);
+    }
+  };
+  const buy = async (id: (typeof PLAN_LIST)[number]["id"]) => {
+    const r = to();
+    if (!r) return;
+    setErr("");
+    setBuying(id);
+    try {
+      await startProCheckout(id, r.id, couponFor(id, true)?.code);
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+    } finally {
+      setBuying("");
+    }
+  };
+  const end = async (g: GiftSent) => {
+    setEnding(g.lemon_id);
+    setErr("");
+    try {
+      await cancelGift(g.lemon_id);
+      setAsk(null);
+      await refetch();
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+    } finally {
+      setEnding("");
+    }
+  };
+  const Avatar = (p: { id: string | null; name: string }) => (
+    <span class="gift-av" style={{ background: hashColor(p.id || "?") }} data-no-i18n>
+      {initialOf(p.name)}
+    </span>
+  );
+
+  return (
+    <div class="gift-box">
+      <div class="row">
+        <div>
+          <b>🎁 Hediye PRO</b>
+          <small>Kayıtlı bir üyeye PRO aboneliği hediye et. Ödemeyi sen yaparsın, istediğin zaman sonlandırabilirsin.</small>
+        </div>
+        <button class="btn ghost" onClick={() => setOpen(!open())}>
+          {open() ? "Kapat" : "Hediye et"}
+        </button>
+      </div>
+      <Show when={open()}>
+        <div class="gift-inline">
+          <Show when={plans().length > 0} fallback={<p class="muted small">Hediye PRO şu an kullanılamıyor.</p>}>
+            <Show
+              when={to()}
+              fallback={
+                <>
+                  <div class="fr-add">
+                    <input
+                      class="input"
+                      placeholder="Üye ara (görünen ad ya da iRacing adı)"
+                      maxLength={40}
+                      value={q()}
+                      ref={(el) => setTimeout(() => el.focus())}
+                      onInput={(e) => setQ(e.currentTarget.value)}
+                      onKeyDown={(e) => e.key === "Enter" && search()}
+                    />
+                    <button class="btn small" disabled={searching() || q().trim().length < 2} onClick={search}>
+                      Ara
+                    </button>
+                  </div>
+                  <Show when={res() && res()!.length === 0}>
+                    <p class="muted small">Kimse bulunamadı. Adın en az 2 harfini yaz.</p>
+                  </Show>
+                  <div class="gift-list">
+                    <For each={res() ?? []}>
+                      {(p) => (
+                        <div class="gift-row">
+                          <Avatar id={p.id} name={p.display_name} />
+                          <div class="gift-main">
+                            <b data-no-i18n>{p.display_name || "?"}</b>
+                            <Show when={p.iracing_name}>
+                              <small class="muted" data-no-i18n>
+                                iRacing: {p.iracing_name}
+                              </small>
+                            </Show>
+                          </div>
+                          <button class="btn primary small" onClick={() => setTo(p)}>
+                            Seç
+                          </button>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </>
+              }
+            >
+              <div class="gift-row gift-sel">
+                <Avatar id={to()!.id} name={to()!.display_name} />
+                <div class="gift-main">
+                  <small class="muted">Alıcı</small>
+                  <b data-no-i18n>{to()!.display_name || "?"}</b>
+                </div>
+                <button class="btn ghost small" disabled={!!buying()} onClick={() => setTo(null)}>
+                  Değiştir
+                </button>
+              </div>
+              <div class="pro-plans">
+                <For each={plans()}>
+                  {(p) => (
+                    <div class="pro-plan">
+                      <small>{p.label}</small>
+                      <CouponPrice plan={p.id} price={p.price} gift />
+                      <button class="btn primary small" disabled={!!buying()} onClick={() => buy(p.id)}>
+                        {buying() === p.id ? "Açılıyor…" : "Hediye et"}
+                      </button>
+                    </div>
+                  )}
+                </For>
+              </div>
+              <p class="muted small">
+                Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle
+                paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.
+              </p>
+            </Show>
+          </Show>
+        </div>
+      </Show>
+      <Show when={err()}>
+        <p class="error">{err()}</p>
+      </Show>
+      <Show when={(gifts() ?? []).length > 0}>
+        <h4 class="gift-h">Hediye ettiğim abonelikler</h4>
+        <div class="gift-list">
+          <For each={gifts() ?? []}>
+            {(g) => {
+              const live = () => SUB_LIVE.includes(g.status);
+              return (
+                <div class="gift-row">
+                  <Avatar id={g.recipient} name={g.recipient_name} />
+                  <div class="gift-main">
+                    <b data-no-i18n>{g.recipient_name || "?"}</b>
+                    <small>
+                      <span data-no-i18n>{g.plan || "—"}</span>
+                      {" · "}
+                      <Show
+                        when={live()}
+                        fallback={
+                          <span class="muted">
+                            {g.status === "cancelled" ? t("İptal edildi – bitiş {0}", fmtDate(g.ends_at ?? g.until)) : "Sona erdi"}
+                          </span>
+                        }
+                      >
+                        <span class="gift-ok">aktif</span>
+                      </Show>
+                    </small>
+                    <Show when={live() && g.renews_at}>
+                      <small class="muted">{t("Sonraki yenileme: {0}", fmtDate(g.renews_at))}</small>
+                    </Show>
+                    <Show when={ask() === g.lemon_id}>
+                      <small>{t("Hediye sonlandırılsın mı? Artık yenilenmez; {0} ödenen dönemin sonuna kadar PRO kalır.", g.recipient_name || "?")}</small>
+                      <div class="btns">
+                        <button class="btn ghost danger small" disabled={ending() === g.lemon_id} onClick={() => end(g)}>
+                          {ending() === g.lemon_id ? "Bekleyin…" : "Evet, sonlandır"}
+                        </button>
+                        <button class="btn ghost small" disabled={ending() === g.lemon_id} onClick={() => setAsk(null)}>
+                          Vazgeç
+                        </button>
+                      </div>
+                    </Show>
+                  </div>
+                  <Show when={live() && ask() !== g.lemon_id}>
+                    <button class="btn ghost small" onClick={() => setAsk(g.lemon_id)}>
+                      Sonlandır
+                    </button>
+                  </Show>
+                </div>
+              );
+            }}
+          </For>
+        </div>
+      </Show>
+    </div>
   );
 }
 

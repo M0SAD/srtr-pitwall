@@ -33,12 +33,12 @@ export default function Tires(props: OverlayProps) {
   const press = (kpa: number) => {
     if (kpa <= 0) return "-";
     switch (props.options.pressUnit) {
-      case "psi":
-        return (kpa * 0.145038).toFixed(1);
+      case "kpa":
+        return kpa.toFixed(0);
       case "bar":
         return (kpa / 100).toFixed(2);
       default:
-        return kpa.toFixed(0);
+        return (kpa * 0.145038).toFixed(1);
     }
   };
   const avgWear = (c: TireCorner) => (c.wear[1] < 0 ? -1 : (c.wear[0] + c.wear[1] + c.wear[2]) / 3);
@@ -83,7 +83,7 @@ export default function Tires(props: OverlayProps) {
                   </Show>
                   <Show when={props.options.showPressure}>
                     <div class="ty-press ov-dim">
-                      <span class="ov-mono">{press(c.press)}</span> {UNIT[props.options.pressUnit as string] ?? "kPa"}
+                      <span class="ov-mono">{press(c.press)}</span> {UNIT[props.options.pressUnit as string] ?? "psi"}
                     </div>
                   </Show>
                 </div>

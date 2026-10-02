@@ -44,6 +44,14 @@ pub enum Packet {
     Traffic(crate::extras::Traffic),
     /// Sadece tarayıcı kaynakları: ayarlar değişti
     Settings(serde_json::Value),
+    /// Canlı sohbet (bkz. livechat): son mesajlar + kanal durumları. Olay tabanlı (`Shared::push_topic`)
+    Livechat(serde_json::Value),
+    /// Canlı sohbet anketi
+    Livepoll(serde_json::Value),
+    /// Altyazı (konuşmadan yazıya)
+    Captions(serde_json::Value),
+    /// Sesli mühendis altyazısı (bkz. voicesub): kim konuşuyor, ne diyor
+    Voice(serde_json::Value),
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -111,6 +119,8 @@ pub struct Shared {
     /// Ses ayarları değişti: (ses, bipler, izin verildi mi)
     pub voice_cfg: Mutex<Option<(crate::voice::VoiceCfg, crate::voice::SoundsCfg, bool)>>,
     pub voice_active: AtomicBool,
+    /// Sesli mühendis kısayolla açılıp kapatıldı: onayı kısayol kendisi çaldı, motor tekrar söylemesin
+    pub voice_skip_ack: AtomicBool,
     subs: Mutex<Vec<Subscriber>>,
     next_id: AtomicU64,
     /// Haritayı unut isteği (arayüzden)
@@ -130,11 +140,18 @@ pub struct Shared {
     /// Demo açıkken sesli spotter/bipler sussun
     pub demo_mute: AtomicBool,
     pub peek_gen: AtomicU64,
+    /// Overlay'ler sayfasında yeni eklenen overlay: kullanıcı sayfadayken ekranda (örnek veriyle) tutulur
+    pub pin: Mutex<Option<String>>,
+    /// Önizleme donduruldu: örnek veri birkaç saniye oynadıktan sonra demo saati durur, görüntü sabit kalır.
+    /// Sadece önizleme verisini etkiler; kullanıcının açtığı Demo ve canlı sim verisi hiç donmaz.
+    pub preview_frozen: AtomicBool,
     /// Olaylar ekranı: oturumun olay listesi (bkz. events.rs)
     pub events: Mutex<crate::events::EventLog>,
+    /// Abonelikler her değiştiğinde artar: olay tabanlı konular (canlı sohbet) yeni aboneye anlık görüntüyü yeniden gönderir
+    pub topics_gen: AtomicU64,
 }
 
-const KNOWN: [&str; 20] = [
+const KNOWN: [&str; 24] = [
     "status",
     "inputs",
     "telemetry",
@@ -155,7 +172,17 @@ const KNOWN: [&str; 20] = [
     "pit",
     "traffic",
     "corners",
+    "livechat",
+    "livepoll",
+    "captions",
+    "voice",
 ];
+
+/// Telemetri döngüsünde hesaplanmayan, değişince kendi modülünün gönderdiği konular
+/// (canlı sohbet, sesli mühendis altyazısı; iRacing bağlı olmasa da akar). Bkz. `Shared::push_topic`.
+pub const PUSHED: [&str; 4] = ["livechat", "livepoll", "captions", "voice"];
+/// `PUSHED` içinde canlı sohbete ait olanlar (tarayıcı kaynağında PRO: livechat.obs)
+pub const LIVECHAT_TOPICS: [&str; 3] = ["livechat", "livepoll", "captions"];
 
 fn build_topics(reqs: &[TopicReq]) -> Vec<Topic> {
     let now = Instant::now();
@@ -189,6 +216,7 @@ impl Shared {
             map_version: u32::MAX,
             status_key: (false, false, false, true),
         });
+        self.topics_gen.fetch_add(1, Ordering::Relaxed);
         id
     }
 
@@ -197,6 +225,14 @@ impl Shared {
             s.topics = build_topics(reqs);
             s.map_version = u32::MAX;
         }
+        self.topics_gen.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Olay tabanlı bir konuyu (bkz. `PUSHED`) bu konuya abone olan herkese hemen gönderir.
+    /// Kapanmış aboneler listeden çıkarılır.
+    pub fn push_topic(&self, name: &str, p: &Packet) {
+        let mut subs = self.subs.lock();
+        subs.retain(|s| !s.topics.iter().any(|t| t.name == name) || s.send(p));
     }
 
     pub fn set_league(&self, cfg: Option<crate::league::LeagueConfig>) {
@@ -240,6 +276,26 @@ struct State {
     history: crate::history::History,
     /// Bağlı sim kısa adı (`status.sim`), bağlı değilse boş
     sim: &'static str,
+    /// Telemetri kaydı (tur özetleri + izler), bkz. laprec.rs
+    laprec: crate::laprec::Recorder,
+}
+
+/// Tamamlanan turu arka planda yerel kuyruğa yazar ve arayüze haber verir (yükleme JS tarafında).
+fn save_lap(app: &AppHandle, dir: Option<&std::path::Path>, lap: crate::laprec::LapRecord) {
+    let Some(dir) = dir.map(|d| d.to_path_buf()) else { return };
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let path = crate::laprec::queue_path(&dir);
+        if let Err(e) = crate::laprec::append(&path, &lap) {
+            eprintln!("tur kaydı yazılamadı: {e}");
+            return;
+        }
+        use tauri::Emitter;
+        let _ = app.emit(
+            "telemetry-lap",
+            serde_json::json!({ "id": lap.id, "lap": lap.lap, "time": lap.lap_time, "valid": lap.valid, "sim": lap.sim }),
+        );
+    });
 }
 
 /// Bitmiş oturum kaydını arka planda diske yazar.
@@ -267,15 +323,22 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         league_active: false,
         league_ver: u64::MAX,
         tracker: Tracker::default(),
-        map: TrackMap::new(map_dir),
+        map: TrackMap::new(map_dir.clone()),
         history: Default::default(),
         sim: "",
+        laprec: Default::default(),
     };
+    let app_data = map_dir.clone();
+    // Telemetri kaydı ayarı (general.telemetryRecord, varsayılan açık); saniyede bir okunur
+    let mut rec_enabled = true;
+    let mut last_rec_check = Instant::now() - Duration::from_secs(10);
     let mut demo: Option<Demo> = None;
     let mut last_demo_step = Instant::now();
     let mut was_connected = false;
     let mut last_team = Instant::now();
     let mut voice = crate::voice::Voice::default();
+    // Tekrar izleme başladı mı (Olaylar penceresini bir kez açmak için)
+    let mut was_replay = false;
 
     // Canlı sim bağlantısı (iRacing, ACC/AC, LMU/rF2, AMS2). Bkz. sims/mod.rs
     #[cfg(windows)]
@@ -300,10 +363,12 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         // Önizleme: panelde düzen editörü açık ve iRacing yok -> demo verisi, overlay'ler gizli kalır
         // Düzenleme modu (kilit açık) kendi başına demo verisi başlatmaz: demo sadece Demo düğmesiyle açılır
         let preview = !user_demo
-            && shared.preview.load(Ordering::Relaxed)
+            && (shared.preview.load(Ordering::Relaxed) || shared.pin.lock().is_some())
             && !shared.edit_mode.load(Ordering::Relaxed)
             && !live_recent;
         let demo_on = user_demo || preview;
+        // Dondurma yalnızca önizleme verisinde geçerli (Demo modu ve canlı veri sürekli akar)
+        let frozen = preview && shared.preview_frozen.load(Ordering::Relaxed);
         let mut connected = false;
         let mut new_frame = false;
 
@@ -335,6 +400,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             if demo.is_none() {
                 save_record(&shared, st.history.take());
                 st.history = Default::default();
+                st.laprec.reset();
                 let mut d = Demo::new();
                 st.raw = d.session().clone();
                 st.league_ver = u64::MAX;
@@ -350,10 +416,18 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             let dt = (now - last_demo_step).as_secs_f64().min(0.1);
             last_demo_step = now;
             if let Some(d) = demo.as_mut() {
-                d.step(dt, &mut st.frame);
+                // Vitrin adları demo başladıktan sonra geldiyse bir kez yerleştir
+                if d.apply_showcase() {
+                    st.raw = d.session().clone();
+                    st.league_ver = u64::MAX;
+                }
+                // Dondurulmuş önizleme: demo saati ilerlemez, son kare olduğu gibi kalır (ilk kare her zaman üretilir)
+                if !frozen || st.frame.player_idx < 0 {
+                    d.step(dt, &mut st.frame);
+                    new_frame = true;
+                }
             }
             connected = true;
-            new_frame = true;
         } else {
             if demo.take().is_some() {
                 st.history = Default::default();
@@ -405,6 +479,10 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 }
                 if drop_live {
                     save_record(&shared, st.history.take());
+                    // Bekleyen tur (süresi bekleniyordu) ölçülen süreyle kaydedilir, süren tur bırakılır
+                    if let Some(lap) = st.laprec.update(&st.frame, &st.raw, st.sim, false) {
+                        save_lap(&app, app_data.as_deref(), lap);
+                    }
                     live = None;
                     st.sim = "";
                     st.frame = Frame::default();
@@ -440,7 +518,12 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         }
 
         if let Some((vc, sc, allowed)) = shared.voice_cfg.lock().take() {
+            let acks = voice.acks;
+            if shared.voice_skip_ack.swap(false, Ordering::Relaxed) {
+                voice.acks = false;
+            }
             voice.set_cfg(vc, sc, allowed);
+            voice.acks = acks;
             shared.voice_active.store(voice.active(), Ordering::Relaxed);
         }
 
@@ -463,14 +546,36 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     crate::open_events(&app);
                 }
             }
+            // Tekrar izlenmeye başlandı: olaylara atlayabilmek için Olaylar penceresini aç (açık değilse)
+            let replay = connected && !demo_on && !preview && crate::calc::replay_watch(&st.frame);
+            if replay && !was_replay {
+                let auto = crate::current_settings(&app)
+                    .and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool()))
+                    .unwrap_or(true);
+                if auto {
+                    crate::open_events_if_closed(&app);
+                }
+            }
+            was_replay = replay;
             let done = st.history.update(&st.frame, &st.session, !demo_on && connected);
             save_record(&shared, done);
+            // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
+            if last_rec_check.elapsed() > Duration::from_secs(1) {
+                last_rec_check = Instant::now();
+                rec_enabled = crate::current_settings(&app)
+                    .and_then(|v| v.pointer("/general/telemetryRecord").and_then(|x| x.as_bool()))
+                    .unwrap_or(true);
+            }
+            let rec_on = rec_enabled && !demo_on && !preview && connected && demo.is_none();
+            if let Some(lap) = st.laprec.update(&st.frame, &st.raw, st.sim, rec_on) {
+                save_lap(&app, app_data.as_deref(), lap);
+            }
             if demo.is_none() {
                 st.map.update(&st.frame);
             }
             // Sesli spotter/mühendis ve bipler (önizleme verisinde susar)
             let muted = user_demo && shared.demo_mute.load(Ordering::Relaxed);
-            voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted);
+            voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted, st.sim);
         }
 
         let visible = connected && !preview;
@@ -532,8 +637,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         }
 
         if demo_on {
-            // Demo 60 Hz
-            std::thread::sleep(Duration::from_millis(16));
+            // Demo 60 Hz; dondurulmuş önizlemede sadece aboneler için ara ara yayın
+            std::thread::sleep(Duration::from_millis(if frozen { 100 } else { 16 }));
         }
     }
 }
@@ -568,7 +673,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
         // Önce gönderilecek konuları seç, sonra paketleri üretip gönder
         let mut due: Vec<&'static str> = Vec::new();
         for tp in sub.topics.iter_mut() {
-            if now < tp.next || (tp.name != "status" && tp.name != "team" && !has_data) {
+            if now < tp.next || (tp.name != "status" && tp.name != "team" && !has_data) || PUSHED.contains(&tp.name.as_str()) {
                 continue;
             }
             tp.next = now + tp.interval;

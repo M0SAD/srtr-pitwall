@@ -44,6 +44,7 @@ enum List {
     None,
     Drivers,
     Sessions,
+    Tires,
 }
 
 pub fn parse(yaml: &str) -> SessionData {
@@ -58,6 +59,7 @@ pub fn parse(yaml: &str) -> SessionData {
     let mut dash_col = usize::MAX;
     let mut cur_driver: Option<Driver> = None;
     let mut cur_sess: Option<SessionEntry> = None;
+    let mut cur_tire: Option<(i32, String)> = None;
 
     let flush_driver = |d: Option<Driver>, sd: &mut SessionData| {
         if let Some(d) = d {
@@ -82,6 +84,9 @@ pub fn parse(yaml: &str) -> SessionData {
             if let Some(s) = cur_sess.take() {
                 sd.sessions.push(s);
             }
+            if let Some(t) = cur_tire.take() {
+                sd.tire_types.push(t);
+            }
             list = List::None;
             section = if body.ends_with(':') { &body[..body.len() - 1] } else { "" };
             if section.is_empty() {
@@ -99,6 +104,12 @@ pub fn parse(yaml: &str) -> SessionData {
                     if section == "DriverInfo" && k == "Drivers" {
                         flush_driver(cur_driver.take(), &mut sd);
                         list = List::Drivers;
+                        dash_col = usize::MAX;
+                        continue;
+                    }
+                    if section == "DriverInfo" && k == "DriverTires" {
+                        flush_driver(cur_driver.take(), &mut sd);
+                        list = List::Tires;
                         dash_col = usize::MAX;
                         continue;
                     }
@@ -134,6 +145,12 @@ pub fn parse(yaml: &str) -> SessionData {
                         }
                         cur_sess = Some(SessionEntry::default());
                     }
+                    List::Tires => {
+                        if let Some(t) = cur_tire.take() {
+                            sd.tire_types.push(t);
+                        }
+                        cur_tire = Some((-1, String::new()));
+                    }
                     List::None => {}
                 }
             } else if dash_col != usize::MAX && kv_col < dash_col + 2 && ind <= dash_col {
@@ -141,6 +158,9 @@ pub fn parse(yaml: &str) -> SessionData {
                 flush_driver(cur_driver.take(), &mut sd);
                 if let Some(s) = cur_sess.take() {
                     sd.sessions.push(s);
+                }
+                if let Some(t) = cur_tire.take() {
+                    sd.tire_types.push(t);
                 }
                 list = List::None;
             }
@@ -173,6 +193,7 @@ pub fn parse(yaml: &str) -> SessionData {
                                     "TeamName" => d.team_name = v.to_string(),
                                     "IsSpectator" => d.is_spectator = v == "1",
                                     "CarIsPaceCar" => d.is_pace_car = v == "1",
+                                    "CarIsAI" => d.is_ai = v == "1",
                                     _ => {}
                                 }
                             }
@@ -184,6 +205,15 @@ pub fn parse(yaml: &str) -> SessionData {
                                     "SessionType" => s.kind = v.to_string(),
                                     "SessionLaps" => s.laps = v.parse().ok(),
                                     "SessionTime" => s.time = num_prefix(v),
+                                    _ => {}
+                                }
+                            }
+                        }
+                        List::Tires => {
+                            if let Some(t) = cur_tire.as_mut() {
+                                match k {
+                                    "TireIndex" => t.0 = v.parse().unwrap_or(-1),
+                                    "TireCompoundType" => t.1 = v.to_string(),
                                     _ => {}
                                 }
                             }
@@ -244,6 +274,10 @@ pub fn parse(yaml: &str) -> SessionData {
     if let Some(s) = cur_sess.take() {
         sd.sessions.push(s);
     }
+    if let Some(t) = cur_tire.take() {
+        sd.tire_types.push(t);
+    }
+    sd.tire_types.retain(|(i, _)| *i >= 0);
     sd
 }
 
@@ -281,6 +315,11 @@ DriverInfo:
  DriverCarFuelMaxLtr: 120.000
  DriverCarRedLine: 7500.000
  DriverCarSLShiftRPM: 7200.000
+ DriverTires:
+ - TireIndex: 0
+   TireCompoundType: \"Hard\"
+ - TireIndex: 1
+   TireCompoundType: \"Wet\"
  Drivers:
  - CarIdx: 0
    UserName: Pace Car
@@ -335,5 +374,15 @@ SplitTimeInfo:
         assert_eq!(sd.driver(3).unwrap().name, "Other Driver");
         // İç içe ResultsPositions içindeki CarIdx sürücü oluşturmamalı
         assert!(sd.driver(2).is_none());
+        assert_eq!(sd.tire_types, vec![(0, "Hard".to_string()), (1, "Wet".to_string())]);
+        // Tek kuru hamur: "Hard" yerine kuru (D); 1 = yağmur
+        let mut c = crate::model::CarState { tire: 0, ..Default::default() };
+        assert_eq!(crate::model::tire_kind(&c, &sd, true), b'D');
+        c.tire = 1;
+        assert_eq!(crate::model::tire_kind(&c, &sd, true), b'W');
+        c.tire = -1;
+        assert_eq!(crate::model::tire_kind(&c, &sd, true), 0);
+        c.tire_kind = b'S';
+        assert_eq!(crate::model::tire_kind(&c, &sd, false), b'S');
     }
 }

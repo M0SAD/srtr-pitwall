@@ -4,16 +4,20 @@ import { For, Show, createMemo, createResource, createSignal } from "solid-js";
 import { ShareDialog, isSceneOnly } from "./CommunityPage";
 import { go } from "../ui";
 import { invoke } from "@tauri-apps/api/core";
-import { manifestById, manifests } from "@/sdk/registry";
+import { canDuplicate, manifestById, manifests } from "@/sdk/registry";
 import { instanceName, instancesOf, settings, updateSettings, type Profile } from "@/sdk/settings";
-import { useSnapshot } from "@/sdk/telemetry";
+import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
+import { UndoRedo } from "@/sdk/UndoRedo";
 import { Switch } from "../components/SettingsForm";
 import { newLayout } from "./LayoutsPage";
 import * as I from "../icons";
+import { F } from "@/sdk/proFeatures";
+import { ProLockBox } from "../components/ProLock";
 import { overlayIcon } from "../overlayIcons";
+import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
 interface ServerInfo {
   running: boolean;
@@ -98,7 +102,15 @@ export function StreamingPage() {
   const [sharing, setSharing] = createSignal(false);
   const canvas = () => p()?.canvas ?? { w: 1920, h: 1080 };
 
-  const keys = createMemo(() => (p() ? instancesOf(p()!).filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type)).map(([k]) => k) : []));
+  const status = useTopic("status");
+  const sim = createMemo(() => currentSim(status()));
+  const keys = createMemo(() =>
+    p()
+      ? instancesOf(p()!)
+          .filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type) && overlaySupportsSim(i.type, sim()))
+          .map(([k]) => k)
+      : [],
+  );
   // Tuvaldeki overlay'ler sabit görüntü (Demo açıksa canlı)
   useSnapshot(
     () => {
@@ -131,7 +143,7 @@ export function StreamingPage() {
       if (!base.enabled) {
         base.enabled = true;
         setSel(type);
-      } else if (ex && !d.general.allowDuplicates) {
+      } else if (ex && !canDuplicate(type, d.general.allowDuplicates)) {
         // Birden fazla eklemeye izin yok: var olanı seç
         setSel(ex);
       } else {
@@ -144,166 +156,169 @@ export function StreamingPage() {
   };
 
   return (
-    <div class="lpage">
-      <aside class="llist">
-        <div class="ovlist-cap">Yayın düzenleri</div>
-        <div class="llist-items">
-          <Show when={streams().length > 0} fallback={<div class="ovlist-empty">Henüz yok. Aşağıdan hazır bir sahneyle başla.</div>}>
-            <For each={streams()}>
-              {(x) => (
-                <button class="ovitem" classList={{ sel: p()?.id === x.id }} onClick={() => (setSelId(x.id), setSel(null))}>
-                  <span class="ovitem-ic">
-                    <I.Radio />
-                  </span>
-                  <span class="ovitem-name">{x.name}</span>
+    <ProLockBox feature={F.streaming} text="Yayın düzenleri (OBS) PRO üyelere özel.">
+      <div class="lpage">
+        <aside class="llist">
+          <div class="ovlist-cap">Yayın düzenleri</div>
+          <div class="llist-items">
+            <Show when={streams().length > 0} fallback={<div class="ovlist-empty">Henüz yok. Aşağıdan hazır bir sahneyle başla.</div>}>
+              <For each={streams()}>
+                {(x) => (
+                  <button class="ovitem" classList={{ sel: p()?.id === x.id }} onClick={() => (setSelId(x.id), setSel(null))}>
+                    <span class="ovitem-ic">
+                      <I.Radio />
+                    </span>
+                    <span class="ovitem-name">{x.name}</span>
+                  </button>
+                )}
+              </For>
+            </Show>
+          </div>
+          <div class="ovlist-cap">Hazır sahneler</div>
+          <div class="presets2">
+            <For each={PRESETS}>
+              {(pr) => (
+                <button class="preset2" onClick={() => setSelId(createFromPreset(pr))} title={pr.desc}>
+                  <b>{pr.name}</b>
+                  <small>{pr.desc}</small>
                 </button>
               )}
             </For>
-          </Show>
-        </div>
-        <div class="ovlist-cap">Hazır sahneler</div>
-        <div class="presets2">
-          <For each={PRESETS}>
-            {(pr) => (
-              <button class="preset2" onClick={() => setSelId(createFromPreset(pr))} title={pr.desc}>
-                <b>{pr.name}</b>
-                <small>{pr.desc}</small>
-              </button>
-            )}
-          </For>
-        </div>
-        <button class="btn primary wide" onClick={() => setSelId(createFromPreset({ id: "empty", name: `Yayın ${streams().length + 1}`, desc: "", items: [] }))}>
-          <I.Plus /> Boş yayın düzeni
-        </button>
-      </aside>
+          </div>
+          <button class="btn primary wide" onClick={() => setSelId(createFromPreset({ id: "empty", name: `Yayın ${streams().length + 1}`, desc: "", items: [] }))}>
+            <I.Plus /> Boş yayın düzeni
+          </button>
+        </aside>
 
-      <Show
-        when={p()}
-        fallback={
-          <section class="lmain empty-state">
-            <I.Radio />
-            <h2>OBS için yayın düzenleri</h2>
-            <p class="muted">
-              Oyunda gördüğünden farklı bir yerleşimi yayında göstermek için buradan bir yayın düzeni oluştur. Her düzenin
-              kendi OBS adresi olur. Soldan hazır bir sahne seçerek başlayabilirsin.
-            </p>
-          </section>
-        }
-      >
-        <section class="lmain">
-          <header class="lhead">
-            <div>
-              <input class="input lname-input flat" value={p()!.name} onChange={(e) => updateSettings((d) => (d.profiles[p()!.id].name = e.currentTarget.value || "Yayın"))} />
-              <small class="muted">
-                {canvas().w}×{canvas().h} · {keys().length} overlay
-              </small>
-            </div>
-            <div class="lhead-btns">
-              <select class="f2-select small" value={`${canvas().w}x${canvas().h}`} onChange={(e) => {
-                const [w, h] = e.currentTarget.value.split("x").map(Number);
-                updateSettings((d) => (d.profiles[p()!.id].canvas = { w, h }));
-              }}>
-                <For each={["1920x1080", "2560x1440", "1280x720", "3840x2160", "1080x1920"]}>{(r) => <option value={r}>{r.replace("x", "×")}</option>}</For>
-              </select>
-              <select
-                class="f2-select small"
-                value=""
-                onChange={(e) => {
-                  if (e.currentTarget.value) add(e.currentTarget.value);
-                  e.currentTarget.value = "";
-                }}
-              >
-                <option value="">+ Overlay ekle…</option>
-                <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
-              </select>
-              <Show when={!isSceneOnly(p()!)}>
-                <button class="btn ghost" title="Bu yayın düzenini tüm ayarları ve renkleriyle toplulukta paylaş" onClick={() => setSharing(true)}>
-                  <I.Share2 /> Toplulukta paylaş
-                </button>
-              </Show>
-              <button class="btn ghost" title="Bu yayın düzeninin bir kopyasını oluştur" onClick={() => setSelId(newLayout("stream", `${p()!.name} (kopya)`, p()!))}>
-                <I.Copy /> Kopyala
-              </button>
-              <button
-                class="btn ghost danger"
-                onClick={() => {
-                  if (!confirm(`"${p()!.name}" silinsin mi?`)) return;
-                  const id = p()!.id;
-                  updateSettings((d) => delete d.profiles[id]);
-                  setSelId(streams()[0]?.id ?? "");
-                }}
-              >
-                <I.Trash /> Sil
-              </button>
-            </div>
-          </header>
-
-          <div class="obs-url">
-            <div class="f2-cap">OBS tarayıcı kaynağı adresi</div>
-            <Show
-              when={info()?.running}
-              fallback={
-                <div class="obs-off">
-                  <span>Web sunucusu kapalı.</span>
-                  <button class="btn primary small" onClick={enableServer}>
-                    Aç
-                  </button>
-                </div>
-              }
-            >
-              <div class="obs-row">
-                <code>{url()}</code>
-                <button
-                  class="btn ghost small"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(url()).catch(() => {});
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
+        <Show
+          when={p()}
+          fallback={
+            <section class="lmain empty-state">
+              <I.Radio />
+              <h2>OBS için yayın düzenleri</h2>
+              <p class="muted">
+                Oyunda gördüğünden farklı bir yerleşimi yayında göstermek için buradan bir yayın düzeni oluştur. Her düzenin
+                kendi OBS adresi olur. Soldan hazır bir sahne seçerek başlayabilirsin.
+              </p>
+            </section>
+          }
+        >
+          <section class="lmain">
+            <header class="lhead">
+              <div>
+                <input class="input lname-input flat" value={p()!.name} onChange={(e) => updateSettings((d) => (d.profiles[p()!.id].name = e.currentTarget.value || "Yayın"))} />
+                <small class="muted">
+                  {canvas().w}×{canvas().h} · {keys().length} overlay
+                </small>
+              </div>
+              <div class="lhead-btns">
+                <UndoRedo keys class="ur-panel" />
+                <select class="f2-select small" value={`${canvas().w}x${canvas().h}`} onChange={(e) => {
+                  const [w, h] = e.currentTarget.value.split("x").map(Number);
+                  updateSettings((d) => (d.profiles[p()!.id].canvas = { w, h }));
+                }}>
+                  <For each={["1920x1080", "2560x1440", "1280x720", "3840x2160", "1080x1920"]}>{(r) => <option value={r}>{r.replace("x", "×")}</option>}</For>
+                </select>
+                <select
+                  class="f2-select small"
+                  value=""
+                  onChange={(e) => {
+                    if (e.currentTarget.value) add(e.currentTarget.value);
+                    e.currentTarget.value = "";
                   }}
                 >
-                  <I.Copy /> {copied() ? "Kopyalandı" : "Kopyala"}
+                  <option value="">+ Overlay ekle…</option>
+                  <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id) && overlaySupportsSim(m.id, sim()))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
+                </select>
+                <Show when={!isSceneOnly(p()!)}>
+                  <button class="btn ghost" title="Bu yayın düzenini tüm ayarları ve renkleriyle toplulukta paylaş" onClick={() => setSharing(true)}>
+                    <I.Share2 /> Toplulukta paylaş
+                  </button>
+                </Show>
+                <button class="btn ghost" title="Bu yayın düzeninin bir kopyasını oluştur" onClick={() => setSelId(newLayout("stream", `${p()!.name} (kopya)`, p()!))}>
+                  <I.Copy /> Kopyala
+                </button>
+                <button
+                  class="btn ghost danger"
+                  onClick={() => {
+                    if (!confirm(`"${p()!.name}" silinsin mi?`)) return;
+                    const id = p()!.id;
+                    updateSettings((d) => delete d.profiles[id]);
+                    setSelId(streams()[0]?.id ?? "");
+                  }}
+                >
+                  <I.Trash /> Sil
                 </button>
               </div>
-              <small class="muted">
-                OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik {canvas().w}, yükseklik {canvas().h}. Arka plan şeffaftır.
-              </small>
-            </Show>
-          </div>
+            </header>
 
-          <LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} />
-
-          <Show when={sel() && p()!.overlays[sel()!]}>
-            <div class="lsel">
-              <span class="ovitem-ic">{overlayIcon(p()!.overlays[sel()!].type)}</span>
-              <b>{instanceName(sel()!, p()!.overlays[sel()!])}</b>
-              <span class="lt-sp" />
-              <span class="muted small">iRacing kapalıyken de göster</span>
-              <Switch
-                checked={p()!.overlays[sel()!].alwaysShow}
-                onChange={(v) => updateSettings((d) => (d.profiles[p()!.id].overlays[sel()!].alwaysShow = v))}
-              />
-              <button
-                class="btn ghost small danger"
-                onClick={() => {
-                  const k = sel()!;
-                  updateSettings((d) => {
-                    const o = d.profiles[p()!.id].overlays[k];
-                    if (k === o.type) o.enabled = false;
-                    else delete d.profiles[p()!.id].overlays[k];
-                  });
-                  setSel(null);
-                }}
+            <div class="obs-url">
+              <div class="f2-cap">OBS tarayıcı kaynağı adresi</div>
+              <Show
+                when={info()?.running}
+                fallback={
+                  <div class="obs-off">
+                    <span>Web sunucusu kapalı.</span>
+                    <button class="btn primary small" onClick={enableServer}>
+                      Aç
+                    </button>
+                  </div>
+                }
               >
-                <I.X /> Kaldır
-              </button>
+                <div class="obs-row">
+                  <code>{url()}</code>
+                  <button
+                    class="btn ghost small"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(url()).catch(() => {});
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                  >
+                    <I.Copy /> {copied() ? "Kopyalandı" : "Kopyala"}
+                  </button>
+                </div>
+                <small class="muted">
+                  OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik {canvas().w}, yükseklik {canvas().h}. Arka plan şeffaftır.
+                </small>
+              </Show>
             </div>
-          </Show>
-          <small class="muted lhint">Overlay ayarlarını (renk, sütunlar vb.) Overlay'ler sayfasında bu düzeni seçerek değiştirebilirsin.</small>
-          <Show when={sharing()}>
-            <ShareDialog kind="stream" profileId={p()!.id} onClose={() => setSharing(false)} onShared={() => (setSharing(false), go("community", "stream"))} />
-          </Show>
-        </section>
-      </Show>
-    </div>
+
+            <LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} />
+
+            <Show when={sel() && p()!.overlays[sel()!]}>
+              <div class="lsel">
+                <span class="ovitem-ic">{overlayIcon(p()!.overlays[sel()!].type)}</span>
+                <b>{instanceName(sel()!, p()!.overlays[sel()!])}</b>
+                <span class="lt-sp" />
+                <span class="muted small">iRacing kapalıyken de göster</span>
+                <Switch
+                  checked={p()!.overlays[sel()!].alwaysShow}
+                  onChange={(v) => updateSettings((d) => (d.profiles[p()!.id].overlays[sel()!].alwaysShow = v))}
+                />
+                <button
+                  class="btn ghost small danger"
+                  onClick={() => {
+                    const k = sel()!;
+                    updateSettings((d) => {
+                      const o = d.profiles[p()!.id].overlays[k];
+                      if (k === o.type) o.enabled = false;
+                      else delete d.profiles[p()!.id].overlays[k];
+                    });
+                    setSel(null);
+                  }}
+                >
+                  <I.X /> Kaldır
+                </button>
+              </div>
+            </Show>
+            <small class="muted lhint">Overlay ayarlarını (renk, sütunlar vb.) Overlay'ler sayfasında bu düzeni seçerek değiştirebilirsin.</small>
+            <Show when={sharing()}>
+              <ShareDialog kind="stream" profileId={p()!.id} onClose={() => setSharing(false)} onShared={() => (setSharing(false), go("community", "stream"))} />
+            </Show>
+          </section>
+        </Show>
+      </div>
+    </ProLockBox>
   );
 }

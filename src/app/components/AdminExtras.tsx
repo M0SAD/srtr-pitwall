@@ -9,6 +9,7 @@ import {
   adminProMembers,
   adminRevenue,
   config,
+  isAdmin,
   markedHiddenOverlay,
   markedHiddenSection,
   saveConfig,
@@ -285,8 +286,15 @@ export function AdminSupport() {
           <TicketThread
             ticket={picked()!}
             staff
-            owner={`${picked()!.display_name ?? "?"} · ${picked()!.email ?? ""}`}
+            owner={[picked()!.display_name ?? "?", picked()!.email].filter(Boolean).join(" · ")}
             onChanged={() => {
+              refetch();
+              loadNotices();
+            }}
+            canDelete={isAdmin()}
+            onDeleted={() => {
+              setOpen("");
+              setPicked(null);
               refetch();
               loadNotices();
             }}
@@ -306,10 +314,12 @@ export const HIDEABLE_SECTIONS: { id: string; label: string }[] = [
   { id: "layouts", label: "Düzenler" },
   { id: "streaming", label: "Yayın" },
   { id: "drivers", label: "Sürücüler" },
+  { id: "telemetry", label: "Telemetri" },
   { id: "community", label: "Topluluk" },
   { id: "shots", label: "Ekran Görüntüleri" },
   { id: "tools", label: "Araçlar" },
   { id: "voice", label: "Sesli Mühendis" },
+  { id: "livechat", label: "Canlı Sohbet" },
   { id: "support", label: "Destek" },
   { id: "pro", label: "PRO" },
 ];

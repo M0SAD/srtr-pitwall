@@ -5,6 +5,7 @@ import { For, Show, createMemo, createResource, createSignal, onMount } from "so
 import { invoke } from "@tauri-apps/api/core";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isLocked, isPro, profile } from "@/cloud/account";
+import { proLocked } from "@/sdk/proFeatures";
 import { manifestById } from "@/sdk/registry";
 import { useSnapshot } from "@/sdk/telemetry";
 import { SharedLayoutPreview, ThemeSwatches } from "../components/SharedLayoutPreview";
@@ -141,10 +142,10 @@ export function LoginWall(props: { what: string }) {
 }
 
 /** PRO gerektiren işlem düğmesi: PRO değilse kilitli görünür ve PRO sayfasına götürür */
-export function ProGate(props: { children: any; label?: string }) {
+export function ProGate(props: { children: any; label?: string; /** PRO özellikleri anahtarı (yönetici herkese açabilir) */ feature?: string }) {
   return (
     <Show
-      when={isPro()}
+      when={props.feature ? !proLocked(props.feature) : isPro()}
       fallback={
         <button class="btn ghost pro-lock" title="Bu özellik PRO üyelere açık" onClick={() => go("pro")}>
           <I.Lock /> {props.label ?? "PRO"}
@@ -735,7 +736,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
         </div>
 
         <div class="btns">
-          <ProGate label="Kullanmak için PRO">
+          <ProGate label="Kullanmak için PRO" feature="community.layouts.use">
             <button class="btn primary" onClick={use}>
               <I.Download /> Kullan
             </button>
@@ -748,7 +749,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
           </ProGate>
           <span class="lt-sp" />
           <Show when={!mine()}>
-            <ProGate label="Puan vermek için PRO">
+            <ProGate label="Puan vermek için PRO" feature="community.layouts.rate">
               <span class="cm-rate">
                 Puanın: <Stars value={0} mine={stars() ?? 0} onRate={doRate} big />
               </span>
@@ -794,7 +795,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
           }}
           onError={setMsg}
         />
-        <ProGate label="Yorum yazmak için PRO">
+        <ProGate label="Yorum yazmak için PRO" feature="community.layouts.comment">
           <div class="fr-add">
             <input class="input" maxLength={1000} placeholder="Yorum yaz" value={text()} onInput={(e) => setText(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
             <button class="btn" onClick={send}>
@@ -828,6 +829,8 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
   const boxes = () => (prof() ? layoutBoxes(prof()!) : []);
+  // Paylaşmak varsayılan herkese açık; yönetici PRO yapabilir (PRO özellikleri)
+  const shareLocked = () => proLocked(props.kind === "stream" ? "community.share.streams" : "community.share.layouts", false);
 
   onMount(async () => {
     if (props.kind === "stream") {
@@ -924,7 +927,15 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
             <Show when={prof() && isSceneOnly(prof()!)}>
               <p class="error">Hazır sahneler toplulukta paylaşılamaz.</p>
             </Show>
-            <button class="btn primary" disabled={busy() || (!!prof() && isSceneOnly(prof()!))} onClick={submit}>
+            <Show when={shareLocked()}>
+              <p class="muted">
+                <span class="pro-badge small">PRO</span> {props.kind === "stream" ? "Yayın düzeni paylaşmak PRO özelliğidir." : "Düzen paylaşmak PRO özelliğidir."}{" "}
+                <button class="link" onClick={() => go("pro")}>
+                  PRO'ya geç
+                </button>
+              </p>
+            </Show>
+            <button class="btn primary" disabled={busy() || shareLocked() || (!!prof() && isSceneOnly(prof()!))} onClick={submit}>
               {busy() ? "Paylaşılıyor…" : "Paylaş"}
             </button>
           </>

@@ -20,7 +20,7 @@
 
 Useimmat overlay-sovellukset jäävät overlayhin. SRTR Pitwall on täydellinen varikkomuuri simulaattoriisi:
 
-- 🏎️ **26 overlayta, yksi läpinäkyvä ikkuna** — relative, tulostaulu, polttoaine, renkaat, tutka, ratakartta, delta, polkimet, sää, liput ja paljon muuta. Kaikki piirretään yhteen ikkunaan näyttöä kohden, joten meno pysyy nopeana täydelläkin asettelulla.
+- 🏎️ **27 overlayta, yksi läpinäkyvä ikkuna** — relative, tulostaulu, polttoaine, renkaat, tutka, ratakartta, delta, polkimet, sää, liput ja paljon muuta. Kaikki piirretään yhteen ikkunaan näyttöä kohden, joten meno pysyy nopeana täydelläkin asettelulla.
 - 🎙️ **Visuaalinen ja puhuva spotteri** — auto vasemmalla / oikealla, kolme rinnakkain, liput, polttoaine- ja sijoitusilmoitukset turkkilaisella äänipaketilla sekä varoitukset nopeammasta luokasta ja radalle palaamisesta.
 - ⛽ **Polttoainestrategia ja reaaliaikainen jakaminen tiimissä** — kulutus per kierros, tankkausmäärät, varikkoikkunat ja tiimikavereidesi polttoaine livenä omassa overlayssasi.
 - 👥 **Kaverit ja luotettu live-telemetria** — lisää kavereita, näe kuka on paikalla tai ajamassa ja anna luottamiesi kuljettajien nähdä polttoaineesi ja kierrostietosi livenä. Ei koodeja, ei säätämistä.

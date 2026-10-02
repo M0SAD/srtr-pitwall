@@ -9,7 +9,7 @@ export interface EngineerScreen {
 
 export const ENGINEER_SCREENS: EngineerScreen[] = [
   { id: "standings", name: "Sıralama", desc: "Sınıf sıralaması", overlays: [{ type: "standings", options: { maxRows: 14 } }] },
-  { id: "relative", name: "Relative", desc: "Öndeki ve arkadaki araçlar", overlays: [{ type: "relative", options: { rows: 4 } }] },
+  { id: "relative", name: "Yakındakiler", desc: "Öndeki ve arkadaki araçlar", overlays: [{ type: "relative", options: { rows: 4 } }] },
   { id: "fuel", name: "Yakıt", desc: "Yakıt stratejisi", overlays: [{ type: "fuel" }] },
   { id: "stint", name: "Stint", desc: "Lastikler ve yakıt", overlays: [{ type: "tires" }, { type: "fuel", options: { showTable: false } }] },
   { id: "battle", name: "Mücadele", desc: "Öndeki ve arkadaki rakip", overlays: [{ type: "battlebox" }] },

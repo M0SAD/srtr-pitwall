@@ -32,7 +32,7 @@ addDict({
   hero_download: ["⬇ Ücretsiz indir", "⬇ Download free"],
   hero_pro: ["PRO'ya bak", "See PRO"],
   hero_meta: ["Windows 10/11 · son sürüm", "Windows 10/11 · latest"],
-  pill_overlays: ["26 overlay", "26 overlays"],
+  pill_overlays: ["27 overlay", "27 overlays"],
   pill_spotter: ["Sesli spotter", "Voice spotter"],
   pill_langs: ["15 dil", "15 languages"],
   pill_free: ["Hesapsız da çalışır", "Works without an account"],
@@ -43,7 +43,7 @@ addDict({
     "Pistte ihtiyacın olan her şey, yarış dışında da işine yarayan araçlarla birlikte.",
     "Everything you need on track, plus tools that help you off track too.",
   ],
-  f1_t: ["26 overlay, tek şeffaf pencere", "26 overlays, one transparent window"],
+  f1_t: ["27 overlay, tek şeffaf pencere", "27 overlays, one transparent window"],
   f1_d: [
     "Relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal girdileri, hava durumu, bayraklar ve daha fazlası.",
     "Relative, leaderboard, fuel, tyres, radar, track map, delta, inputs, weather, flags and more.",
@@ -80,8 +80,8 @@ addDict({
   ],
   f8_t: ["Tek tuşla ekran görüntüsü", "One-key screenshots"],
   f8_d: [
-    "Print Screen oyunu overlay'ler ve filigranla birlikte yakalar; galeride paylaş.",
-    "Print Screen captures the game with overlays and watermark; share it in the gallery.",
+    "F12 oyunu overlay'ler ve filigranla birlikte yakalar; galeride paylaş.",
+    "F12 captures the game with overlays and watermark; share it in the gallery.",
   ],
   f9_t: ["Tema motoru ve düzen yöneticisi", "Theme engine and layout manager"],
   f9_d: [
@@ -238,7 +238,7 @@ const CMP = [
   ["c_r6", 0, 0, 1],
   ["c_r7", 0, 0, 1],
   ["c_r8", 0, 0, 1],
-  ["c_r9", 0, 0, 1],
+  ["c_r9", 0, 1, 1],
   ["c_r10", 0, 0, 1],
 ];
 
@@ -324,5 +324,10 @@ async function main() {
   [cfg, user] = await Promise.all([appConfig().catch(() => ({})), currentUser()]);
   renderPlans();
   applyLang();
+  // PRO tanıtım kartı: fiyatların üstünde (PRO olmayanlara; yönetici ayarlar)
+  const pp = document.createElement("div");
+  pp.style.margin = "0 0 18px";
+  $("#plans").before(pp);
+  import("./propromo.js").then((m) => m.mountProPromo(pp), () => {});
 }
 main();

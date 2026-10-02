@@ -3,6 +3,7 @@
 
 import { createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { inTauri } from "./platform";
 import { settings } from "./settings";
 
@@ -21,8 +22,14 @@ const [monitors, setMonitors] = createSignal<MonitorInfo[]>([]);
 export { monitors };
 
 let loading: Promise<void> | null = null;
+let watching = false;
 export function loadMonitors(force = false) {
   if (!inTauri) return Promise.resolve();
+  if (!watching) {
+    watching = true;
+    // Monitör takıldı/çıkarıldı (Rust 2 sn'de bir kontrol eder): listeyi hemen yenile
+    void listen("monitors-changed", () => void loadMonitors(true)).catch(() => {});
+  }
   if (!loading || force) {
     loading = invoke<MonitorInfo[]>("monitors_list")
       .then((m) => void setMonitors(m))

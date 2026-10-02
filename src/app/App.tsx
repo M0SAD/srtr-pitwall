@@ -11,6 +11,7 @@ import { freeView, realAdmin, setFreeView, isAdmin, isHiddenSection, isPro, mark
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
+import { TrialWelcome } from "./components/TrialWelcome";
 import * as I from "./icons";
 import { OverlaysPage } from "./pages/OverlaysPage";
 import { LayoutsPage } from "./pages/LayoutsPage";
@@ -19,6 +20,8 @@ import { AccountPage, ProPage } from "./pages/AccountPage";
 import { ToolsPage } from "./pages/ToolsPage";
 import { LeaguePage } from "./pages/LeaguePage";
 import { FriendsPage } from "./pages/FriendsPage";
+import { TeamsPage } from "./pages/TeamsPage";
+import { setTeamFocus } from "@/cloud/teams";
 import { CommunityPage } from "./pages/CommunityPage";
 import { CommunityShots } from "./pages/CommunityShots";
 import { CommunityHome } from "./pages/CommunityHome";
@@ -27,11 +30,17 @@ import { ScreenshotsPage } from "./pages/ScreenshotsPage";
 import { NoticeBell } from "./components/Moderation";
 import { FriendsDock } from "./components/FriendsDock";
 import { SimPicker } from "./components/SimPicker";
+import { LangPicker } from "./components/LangPicker";
 import { loadNotices } from "@/cloud/moderation";
 import { VoicePage } from "./pages/VoicePage";
+import { LiveChatPage, LIVECHAT_PAGES } from "./pages/LiveChatPage";
 import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
 import { SupportPage } from "./pages/SupportPage";
+import { TelemetryPage } from "./pages/TelemetryPage";
 import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
+import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
+import { AppBgLayer, appBgActive } from "./appBg";
+import { AdminTopStats } from "./components/AdminTopStats";
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 
@@ -52,10 +61,12 @@ const TOP: NavItem[] = [
   { id: "layouts", label: "Düzenler", icon: () => <I.LayoutDashboard /> },
   { id: "streaming", label: "Yayın", icon: () => <I.Radio /> },
   { id: "drivers", label: "Sürücüler", icon: () => <I.Users /> },
+  { id: "telemetry", label: "Telemetri", icon: () => <I.Activity /> },
   { id: "community", label: "Topluluk", icon: () => <I.Share2 /> },
   { id: "shots", label: "Ekran Görüntüleri", icon: () => <I.Camera /> },
   { id: "tools", label: "Araçlar", icon: () => <I.Gauge /> },
   { id: "voice", label: "Sesli Mühendis", icon: () => <I.Mic />, badge: () => "PRO" },
+  { id: "livechat", label: "Canlı Sohbet", icon: () => <I.MessageSquare /> },
 ];
 
 const BOTTOM: NavItem[] = [
@@ -71,10 +82,12 @@ const TITLES: Record<Section, string> = {
   layouts: "Düzenler",
   streaming: "Yayın",
   drivers: "Sürücüler",
+  telemetry: "Telemetri",
   community: "Topluluk",
   shots: "Ekran Görüntüleri",
   tools: "Araçlar",
   voice: "Sesli Mühendis",
+  livechat: "Canlı Sohbet",
   pro: "PRO Üyelik",
   account: "Hesap",
   admin: "Yönetim",
@@ -87,8 +100,13 @@ const railVisible = (id: Section) => !isHiddenSection(id) && (id !== "support" |
 
 /** Alt menüsü olan bölümler */
 const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
+  telemetry: [
+    { id: "overview", label: "Telemetrim" },
+    { id: "racers", label: "Yarışçılar" },
+  ],
   drivers: [
     { id: "friends", label: "Arkadaşlar ve etiketler" },
+    { id: "teams", label: "Takımlar" },
     { id: "league", label: "Lig Kategorileri" },
   ],
   community: [
@@ -98,6 +116,7 @@ const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
     { id: "shots", label: "Ekran Görüntüleri" },
     { id: "themes", label: "Temalar" },
   ],
+  livechat: LIVECHAT_PAGES,
   settings: SETTINGS_PAGES,
 };
 
@@ -107,6 +126,9 @@ function RailButton(p: { item: NavItem }) {
       {p.item.icon()}
       <Show when={p.item.badge}>
         <i class="rail-badge">{p.item.badge!()}</i>
+      </Show>
+      <Show when={p.item.id === "admin" && adminBadgeTotal() > 0}>
+        <i class="rail-count" data-no-i18n>{badgeText(adminBadgeTotal())}</i>
       </Show>
     </button>
   );
@@ -126,6 +148,8 @@ export function App() {
   const status = useTopic("status");
   // Panel her zaman durum bilgisini dinler
   useSubscriptions([]);
+  // Yönetim: bekleyen iş sayaçları (yetkisi olmayanda boş kalır)
+  useAdminBadges();
 
   onMount(async () => {
     // Bildirimler 10 dakikada bir yenilenir
@@ -136,7 +160,8 @@ export function App() {
     // Düzenleme ekranında sağ tık > "Ayarlarını aç"
     await listen<string>("focus-overlay", (e) => focusOverlay(e.payload));
     // Ayrı arkadaş penceresinden: "PRO'ya bak", "Görünümü düzenle"
-    await listen<{ sec?: string; sub?: string; friend?: string }>("panel-go", (e) => {
+    await listen<{ sec?: string; sub?: string; friend?: string; team?: string }>("panel-go", (e) => {
+      if (e.payload.team) setTeamFocus(e.payload.team);
       if (e.payload.friend) editFriendLook(e.payload.friend);
       else if (e.payload.sec) go(e.payload.sec as Parameters<typeof go>[0], e.payload.sub ?? "");
     });
@@ -162,7 +187,8 @@ export function App() {
   const subs = () => (section() === "admin" ? adminSubs() : SUBS[section()]);
 
   return (
-    <div class="shell2">
+    <div class="shell2" classList={{ "has-appbg": appBgActive() }}>
+      <AppBgLayer />
       <nav class="rail">
         <div class="rail-logo" title="SRTR Pitwall" />
         <For each={TOP.filter((it) => railVisible(it.id))}>{(it) => <RailButton item={it} />}</For>
@@ -188,6 +214,7 @@ export function App() {
         </div>
       </Show>
       <header class="top2">
+        <AdminTopStats />
         <h1>{TITLES[section()]}</h1>
         <div class="top2-right">
           <Show when={proExpiringSoon()}>
@@ -235,6 +262,7 @@ export function App() {
             tone={appState().editMode ? "warn" : ""}
             onChange={(v) => invoke("edit_mode_set", { on: !v })}
           />
+          <LangPicker />
         </div>
       </header>
 
@@ -246,6 +274,9 @@ export function App() {
               {(s) => (
                 <button classList={{ active: sub() === s.id }} onClick={() => go(section(), s.id)}>
                   {s.label}
+                  <Show when={section() === "admin" && adminBadge(s.id) > 0}>
+                    <i class="sub-count" data-no-i18n>{badgeText(adminBadge(s.id))}</i>
+                  </Show>
                 </button>
               )}
             </For>
@@ -278,6 +309,9 @@ export function App() {
             <Match when={section() === "streaming"}>
               <StreamingPage />
             </Match>
+            <Match when={section() === "drivers" && sub() === "teams"}>
+              <TeamsPage />
+            </Match>
             <Match when={section() === "drivers" && sub() === "league"}>
               <LeaguePage />
             </Match>
@@ -305,8 +339,14 @@ export function App() {
             <Match when={section() === "tools"}>
               <ToolsPage />
             </Match>
+            <Match when={section() === "telemetry"}>
+              <TelemetryPage sub={sub()} />
+            </Match>
             <Match when={section() === "voice"}>
               <VoicePage />
+            </Match>
+            <Match when={section() === "livechat"}>
+              <LiveChatPage sub={sub() || "chat"} />
             </Match>
             <Match when={section() === "pro"}>
               <ProPage />
@@ -324,6 +364,7 @@ export function App() {
         </main>
         <FriendsDock racing={() => appState().connected} />
         <UpdateDialog />
+        <TrialWelcome />
       </div>
     </div>
   );

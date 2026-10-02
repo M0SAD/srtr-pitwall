@@ -17,7 +17,7 @@ Hafif ve hızlı iRacing overlay uygulaması. **Tauri 2 + Rust + SolidJS** ile y
 
 | Overlay | İçerik |
 |---|---|
-| Relative | Önündeki/arkandaki araçlar: fark, stint/PIT/OUT, lisans+SR, iRating ve tahmini değişim, son tur, bayraklar; hava ve SOF satırları |
+| Yakındakiler (Relative) | Önündeki/arkandaki araçlar: fark, stint/PIT/OUT, lisans+SR, iRating ve tahmini değişim, son tur, bayraklar; hava ve SOF satırları |
 | Leaderboard | Çok sınıflı sıralama, sınıf SOF'u, ülke, marka, iRating, fark/aralık, 5 tur ort., en iyi tur |
 | Yakıt Hesaplayıcı | Son/ort.5/ort.10 tüketim tablosu, ikmal, hedef tüketim, kalan tur, pit penceresi |
 | Telemetri Paneli | Vites halkası, devir ışıkları, hız, pozisyon değişimi, son tur, yakıt, sıcaklık, ABS/TC/BB |

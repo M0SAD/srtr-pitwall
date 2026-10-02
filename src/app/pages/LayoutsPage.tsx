@@ -8,7 +8,7 @@ import { t } from "@/sdk/i18n";
 import { go } from "../ui";
 import { BackdropPicker } from "../components/BackdropPicker";
 import { invoke } from "@tauri-apps/api/core";
-import { manifestById, manifests } from "@/sdk/registry";
+import { canDuplicate, manifestById, manifests } from "@/sdk/registry";
 import {
   instanceName,
   instancesOf,
@@ -24,9 +24,11 @@ import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
+import { UndoRedo } from "@/sdk/UndoRedo";
 import { Switch } from "../components/SettingsForm";
 import * as I from "../icons";
 import { overlayIcon } from "../overlayIcons";
+import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
 const SESSIONS: { v: SessionKind; label: string }[] = [
   { v: "practice", label: "Antrenman" },
@@ -197,12 +199,20 @@ export function LayoutsPage() {
   };
 
   // Bu monitördeki açık kopyalar
+  const sim = createMemo(() => currentSim(status()));
   const keys = createMemo(() => {
     const prof = p();
     const m = monitor();
     if (!prof) return [];
     return instancesOf(prof)
-      .filter(([, i]) => i.enabled && !isLocked(i.type) && !isHiddenOverlay(i.type) && (m ? belongsToMonitor(i.monitor, m) : belongsTo(i.monitor, "")))
+      .filter(
+        ([, i]) =>
+          i.enabled &&
+          !isLocked(i.type) &&
+          !isHiddenOverlay(i.type) &&
+          overlaySupportsSim(i.type, sim()) &&
+          (m ? belongsToMonitor(i.monitor, m) : belongsTo(i.monitor, "")),
+      )
       .map(([k]) => k);
   });
 
@@ -242,7 +252,7 @@ export function LayoutsPage() {
       const base = prof.overlays[type];
       const monName = m && m.name !== defaultMonitor()?.name ? m.name : "";
       const ex = Object.entries(prof.overlays).find(([, o]) => o.type === type && o.enabled)?.[0];
-      if (ex && !d.general.allowDuplicates) {
+      if (ex && !canDuplicate(type, d.general.allowDuplicates)) {
         // Birden fazla eklemeye izin yok: var olanı seç
         setSel(ex);
       } else if (base && !base.enabled) {
@@ -372,6 +382,7 @@ export function LayoutsPage() {
               <RulesChips p={p()} />
             </div>
             <div class="lhead-btns">
+              <UndoRedo keys class="ur-panel" />
               <button class="btn ghost" classList={{ on: rules() }} onClick={() => setRules(!rules())}>
                 <I.Flag /> Kurallar
               </button>
@@ -453,7 +464,7 @@ export function LayoutsPage() {
                     }}
                   >
                     <option value="">+ Bu monitöre ekle…</option>
-                    <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
+                    <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id) && overlaySupportsSim(m.id, sim()))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
                   </select>
                   <button class="btn ghost small" onClick={() => invoke("edit_mode_set", { on: true })} title="Oyunun üstünde gerçek boyutta düzenle">
                     <I.MousePointer2 /> Ekranda düzenle

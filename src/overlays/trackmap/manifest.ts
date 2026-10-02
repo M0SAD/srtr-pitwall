@@ -1,4 +1,5 @@
 import { defineOverlay } from "@/sdk/overlay";
+import { meMarkerFields } from "./marker";
 
 export default defineOverlay({
   id: "trackmap",
@@ -40,7 +41,7 @@ export default defineOverlay({
     },
     { key: "mirror", label: "Aynala (harita ters görünüyorsa)", type: "boolean", default: false },
     { key: "fill", label: "Pist içini doldur", type: "boolean", default: true },
-    { key: "meColor", label: "Senin aracın rengi", type: "color", default: "#ffffff" },
+    ...meMarkerFields({ color: "#ffffff" }),
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 10, min: 2, max: 30, step: 1, unit: "Hz" },
   ],
 });

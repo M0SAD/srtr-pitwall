@@ -38,6 +38,7 @@ pub mod ph {
     pub const TYRE_TEMP_O: usize = 400; // dış
     pub const BRAKE_BIAS: usize = 564;
     pub const CURRENT_MAX_RPM: usize = 588;
+    pub const TC_IN_ACTION: usize = 672;
     pub const ABS_IN_ACTION: usize = 676;
     pub const SIZE: usize = 800;
 }
@@ -79,6 +80,7 @@ pub mod gr {
     pub const I_DELTA_LAP_TIME: usize = 1360;
     pub const I_ESTIMATED_LAP_TIME: usize = 1396;
     pub const IS_DELTA_POSITIVE: usize = 1400;
+    pub const IS_VALID_LAP: usize = 1408;
     pub const GLOBAL_YELLOW: usize = 1500;
     pub const GLOBAL_WHITE: usize = 1516;
     pub const GLOBAL_GREEN: usize = 1520;
@@ -101,6 +103,9 @@ pub mod stc {
     pub const MAX_FUEL: usize = 416;
     pub const TRACK_SPLINE_LENGTH: usize = 520;
     pub const TRACK_CONFIGURATION: usize = 524; // wchar_t[33]
+    /// ACC: çevrimiçi oturum (int). ersMaxJ 592, isTimedRace 596, hasExtraLap 600, carSkin 604 (wchar_t[33]),
+    /// reversedGridPositions 672, PitWindowStart 676, PitWindowEnd 680, isOnline 684
+    pub const IS_ONLINE: usize = 684;
     pub const SIZE: usize = 820;
 }
 
@@ -137,6 +142,8 @@ pub struct StaticInfo {
     pub max_rpm: i32,
     pub max_fuel: f32,
     pub track_len_m: f32,
+    /// Sadece ACC: çevrimiçi oturum mu
+    pub is_online: bool,
 }
 
 pub fn parse_static(b: &[u8]) -> StaticInfo {
@@ -151,6 +158,7 @@ pub fn parse_static(b: &[u8]) -> StaticInfo {
         max_rpm: rd_i32(b, stc::MAX_RPM),
         max_fuel: rd_f32(b, stc::MAX_FUEL),
         track_len_m: rd_f32(b, stc::TRACK_SPLINE_LENGTH),
+        is_online: rd_i32(b, stc::IS_ONLINE) == 1,
     }
 }
 
@@ -191,6 +199,8 @@ pub fn build_session(kind: SimKind, gfx: &[u8], phys: &[u8], si: &StaticInfo) ->
     sd.fuel_max_ltr = si.max_fuel.max(0.0);
     let max_rpm = if si.max_rpm > 0 { si.max_rpm } else { rd_i32(phys, ph::CURRENT_MAX_RPM) };
     sd.redline = max_rpm.max(0) as f32;
+    // ACC çevrimdışı ve pistte başka araçlar var: botlara karşı
+    sd.ai_session = kind == SimKind::Acc && !si.is_online && rd_i32(gfx, gr::ACTIVE_CARS) > 1;
     let st = rd_i32(gfx, gr::SESSION);
     let kind_s = session_kind(st);
     let laps = rd_i32(gfx, gr::NUMBER_OF_LAPS);
@@ -248,6 +258,7 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     f.clutch = if acc { clutch } else { 1.0 - clutch };
     f.steer = steer_rad(rd_f32(phys, ph::STEER_ANGLE), 0.0);
     f.abs_active = rd_u32(phys, ph::ABS_IN_ACTION) != 0;
+    f.tc_active = rd_u32(phys, ph::TC_IN_ACTION) != 0;
     f.fuel_level = rd_f32(phys, ph::FUEL).max(0.0);
     f.fuel_pct = if sd.fuel_max_ltr > 0.0 { (f.fuel_level / sd.fuel_max_ltr).clamp(0.0, 1.0) } else { 0.0 };
     f.air_temp = rd_f32(phys, ph::AIR_TEMP);
@@ -265,6 +276,8 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
         }
     };
     f.tc = if acc { rd_i32(gfx, gr::TC) as f32 } else { -1.0 };
+    // ACC: tur geçersiz mi (pist sınırı vb.); AC bu bilgiyi vermez
+    f.lap_invalid = acc && gfx.len() >= gr::IS_VALID_LAP + 4 && rd_i32(gfx, gr::IS_VALID_LAP) == 0;
     f.abs_setting = if acc { rd_i32(gfx, gr::ABS) as f32 } else { -1.0 };
 
     // Lastikler: FL, FR, RL, RR = LF, RF, LR, RR. iRacing sırası araç soldan sağa (L/M/R):
@@ -394,7 +407,10 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     } else {
         3
     };
-    me.tire = 0;
+    // Lastik hamuru adı (ACC: "dry_compound"/"wet_compound", AC: "Soft (S)" vb.)
+    let kind = crate::model::tire_kind_from_name(&rd_wstr(gfx, gr::TYRE_COMPOUND, 33));
+    me.tire = if kind == b'W' { 1 } else { 0 };
+    me.tire_kind = if kind == 0 { b'D' } else { kind };
 
     // ACC: rakiplerin dünya koordinatlarından yan araç radarı
     m.rel.clear();
@@ -652,6 +668,7 @@ mod tests {
         put_f32(&mut p, ph::AIR_TEMP, 22.0);
         put_i32(&mut p, ph::PIT_LIMITER_ON, 1);
         put_i32(&mut p, ph::ABS_IN_ACTION, 1);
+        put_f32(&mut p, ph::TC_IN_ACTION, 1.0);
         put_i32(&mut g, gr::STATUS, STATUS_LIVE);
         put_i32(&mut g, gr::SESSION, 2);
         put_i32(&mut g, gr::COMPLETED_LAPS, 3);
@@ -693,6 +710,7 @@ mod tests {
         assert_eq!(f.tire_temp[0], [85.0; 3]);
         assert!((f.tire_press[1] - 189.6).abs() < 0.1);
         assert!(f.abs_active);
+        assert!(f.tc_active);
         assert_eq!(f.engine_warnings, EW_PIT_LIMITER);
         assert_eq!(f.session_flags & flags::BLUE, flags::BLUE);
         assert_eq!(f.tc, 3.0);

@@ -108,6 +108,35 @@ body {
   font-style: normal;
 }
 
+/* Yönetim simgesi: bekleyen iş sayısı (arkadaş listesi rozetiyle aynı görünüm) */
+.rail-count,
+.sub-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e5484d;
+  color: #fff;
+  font: 700 10px/16px Inter, sans-serif;
+  font-style: normal;
+  text-align: center;
+}
+.rail-count {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+}
+.sub-count {
+  float: right;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font: 700 11px/18px Inter, sans-serif;
+  font-style: normal;
+}
+
 /* ---------- Üst çubuk ---------- */
 .top2 {
   display: flex;
@@ -450,6 +479,46 @@ body {
 .f2-hint {
   color: var(--muted);
   font-size: 12px;
+}
+.f2-hint.f2-err {
+  color: #ff6b6b;
+}
+.f2-prohint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Resim seçici (ayar formu) */
+.f2-image {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.f2-image-prev {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: repeating-conic-gradient(#1a1d23 0 25%, #24282f 0 50%) 0 0 / 12px 12px;
+  color: var(--muted);
+}
+.f2-image-prev img {
+  max-width: 40px;
+  max-height: 40px;
+  object-fit: contain;
+}
+.f2-image-btns {
+  display: flex;
+  gap: 6px;
+}
+.f2-image .f2-err {
+  flex-basis: 100%;
 }
 
 .f2-select,
@@ -1100,6 +1169,37 @@ body {
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+/* Geri al / yinele (◀ ▶) */
+.undo-redo.ur-panel {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+.undo-redo.ur-panel .ur-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+.undo-redo.ur-panel .ur-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.undo-redo.ur-panel .ur-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+h3.ur-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .rules2 {
@@ -2100,6 +2200,16 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.notice-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0 8px;
+}
+.notice-bulk.confirm span {
+  flex: 1 1 100%;
 }
 .notice-item {
   padding: 8px 10px;
@@ -3651,4 +3761,101 @@ body {
   font-weight: 700;
   font-size: 13px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* Overlay listesi: "Açık overlay'ler" başlığındaki "Tümünü kaldır" */
+.ovlist-cap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 18px;
+}
+.ovlist-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+.ovlist-capbtn {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+.ovlist-capbtn:hover {
+  background: var(--bg-3, rgba(255, 255, 255, 0.06));
+  color: var(--text, inherit);
+}
+.ovlist-capbtn.danger {
+  color: var(--red);
+}
+.ovlist-capbtn.danger:hover {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red);
+}
+.ovlist-simnote {
+  margin: 16px 8px 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* PRO önizleme: kilitli tasarım/overlay görünür ama kaydedilmez */
+.ovpreview-pro {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border: 1px solid #5a3f1c;
+  border-radius: 999px;
+  background: rgba(31, 24, 16, 0.92);
+  color: #ffd9a0;
+  font-size: 12.5px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+.f2-preview-note {
+  margin-top: 6px;
+  padding: 7px 10px;
+  border: 1px solid #5a3f1c;
+  border-radius: 7px;
+  background: #1f1810;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* Ekran görüntüleri: toplulukta paylaşılmış olanların işareti */
+.shot-card {
+  position: relative;
+}
+.shot-card:has(.shot-shared) {
+  outline: 2px solid var(--accent, #ff8a1f);
+  outline-offset: -2px;
+}
+.shot-shared {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent, #ff8a1f);
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }

@@ -2,6 +2,7 @@ import { Show, createEffect, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTrack } from "@/sdk/trackshape";
 import { cssVar, drawCars, drawTrack, fitTransform } from "./draw";
+import { meMarkerFrom } from "./marker";
 import "./style.css";
 
 export default function TrackMap(props: OverlayProps) {
@@ -45,6 +46,7 @@ export default function TrackMap(props: OverlayProps) {
       label: props.options.label,
       meColor: props.options.meColor,
       font: cssVar(canvas, "--ov-font", "sans-serif"),
+      me: meMarkerFrom(props.options),
     });
   };
 
@@ -54,6 +56,7 @@ export default function TrackMap(props: OverlayProps) {
     shape();
     void [props.options.rotate, props.options.mirror, props.options.lineWidth, props.options.fill];
     void [props.options.carSize, props.options.label, props.options.meColor, W(), H()];
+    void [props.options.meShape, props.options.meOutline, props.options.meImage, props.options.meScale, props.options.meRotate];
     if (!pending) {
       pending = true;
       requestAnimationFrame(draw);

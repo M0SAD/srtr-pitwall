@@ -1,10 +1,11 @@
 import { LANGS, t } from "@/sdk/i18n";
 import { EditBackdropSettings } from "../components/Shots";
 import { setUserLang } from "@/cloud/supabase";
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createResource, createSignal, For, onCleanup, Show } from "solid-js";
 import notesRaw from "../../../SURUM_NOTLARI.md?raw";
 import { checkUpdate, checking, setUpdateDialog, update, updateError, version } from "../ui";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { settings, updateSettings } from "@/sdk/settings";
 import { appState, setDemo } from "../App";
 import { freeView, realAdmin, setFreeView } from "@/cloud/account";
@@ -22,7 +23,10 @@ interface MonitorInfo {
 
 export function GeneralPage() {
   const props = { get demo() { return appState().demo; }, setDemo };
-  const [monitors] = createResource(() => invoke<MonitorInfo[]>("monitors_list"));
+  const [monitors, { refetch: refetchMonitors }] = createResource(() => invoke<MonitorInfo[]>("monitors_list"));
+  // Monitör takılıp çıkarılınca liste kendiliğinden yenilenir
+  const unMon = listen("monitors-changed", () => void refetchMonitors()).catch(() => undefined);
+  onCleanup(() => void unMon.then((f) => f?.()));
   const g = () => settings().general;
   const [autostart, { mutate: setAutostart }] = createResource(() => invoke<boolean>("autostart_get"));
   const [autoErr, setAutoErr] = createSignal("");
@@ -120,6 +124,20 @@ export function GeneralPage() {
               type="checkbox"
               checked={g().hideWhenOffTrack}
               onChange={(e) => updateSettings((d) => (d.general.hideWhenOffTrack = e.currentTarget.checked))}
+            />
+            <i />
+          </label>
+        </div>
+        <div class="row">
+          <div>
+            <b>Replay izlerken overlay'leri gizle</b>
+            <small>Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.</small>
+          </div>
+          <label class="switch">
+            <input
+              type="checkbox"
+              checked={g().hideInReplay !== false}
+              onChange={(e) => updateSettings((d) => (d.general.hideInReplay = e.currentTarget.checked))}
             />
             <i />
           </label>
@@ -330,7 +348,7 @@ function GeneralExtra() {
       />
       <Row
         title="Yarış bitince Olaylar ekranını aç"
-        sub="Damalı bayraktan sonra olay listesi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider."
+        sub="Yarış bitince ve tekrar (replay) başlayınca Olaylar penceresi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider."
         on={g().eventsAutoOpen}
         onChange={(v) => set((x) => (x.eventsAutoOpen = v))}
       />

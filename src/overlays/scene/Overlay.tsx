@@ -1,3 +1,4 @@
+import { previewFrozen } from "@/sdk/overlay";
 import { Show, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
@@ -14,7 +15,7 @@ export default function Scene(props: OverlayProps) {
   const status = useTopic("status");
   const [now, setNow] = createSignal(Date.now());
   const start = Date.now();
-  const t = setInterval(() => setNow(Date.now()), 1000);
+  const t = setInterval(() => !previewFrozen() && setNow(Date.now()), 1000);
   onCleanup(() => clearInterval(t));
 
   const style = () => props.options.style as string;

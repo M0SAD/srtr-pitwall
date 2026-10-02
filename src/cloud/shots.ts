@@ -198,6 +198,7 @@ export async function shareShot(v: { path: string; title: string; description: s
       },
       prefer: "return=representation",
     });
+    markShared(v.path, id);
     return rows?.[0];
   } catch (e) {
     // Kayıt eklenemediyse yüklenen dosyaları geri al
@@ -253,4 +254,52 @@ export function shotViewed(id: string) {
 export async function getShot(id: string) {
   const rows = await api<SharedShot[]>("GET", `shot_list?select=*&id=eq.${id}`, { auth: "optional" });
   return rows?.[0] ?? null;
+}
+
+// ---- Yerel "paylaşıldı" işareti: hangi yerel dosya hangi topluluk görseli olarak paylaşıldı ----
+const SHARED_KEY = "pw.sharedShots";
+
+function readShared(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(SHARED_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeShared(m: Record<string, string>) {
+  try {
+    localStorage.setItem(SHARED_KEY, JSON.stringify(m));
+  } catch {
+    /* yok say */
+  }
+}
+
+function markShared(localPath: string, id: string) {
+  const m = readShared();
+  m[localPath] = id;
+  writeShared(m);
+}
+
+/** Paylaşılmış yerel dosya yolları. Giriş yapılmışsa toplulukta artık olmayanlar (silinmiş) listeden düşer. */
+export async function sharedLocalPaths(): Promise<Set<string>> {
+  const m = readShared();
+  const uid = session()?.user.id;
+  if (uid && Object.keys(m).length) {
+    try {
+      const rows = await api<{ id: string }[]>("GET", `screenshots?select=id&user_id=eq.${uid}`);
+      const live = new Set((rows ?? []).map((r) => r.id));
+      let changed = false;
+      for (const [p, id] of Object.entries(m)) {
+        if (!live.has(id)) {
+          delete m[p];
+          changed = true;
+        }
+      }
+      if (changed) writeShared(m);
+    } catch {
+      /* çevrimdışı: yerel bilgiyle devam */
+    }
+  }
+  return new Set(Object.keys(m));
 }

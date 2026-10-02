@@ -20,7 +20,7 @@
 
 Większość aplikacji z overlayami kończy się na overlayach. SRTR Pitwall to kompletny pit wall dla Twojego stanowiska:
 
-- 🏎️ **26 overlayów, jedno przezroczyste okno** — relative, tabela wyników, paliwo, opony, radar, mapa toru, delta, pedały, pogoda, flagi i wiele więcej. Wszystko rysowane jest w jednym oknie na monitor, więc działa błyskawicznie nawet przy pełnym układzie.
+- 🏎️ **27 overlayów, jedno przezroczyste okno** — relative, tabela wyników, paliwo, opony, radar, mapa toru, delta, pedały, pogoda, flagi i wiele więcej. Wszystko rysowane jest w jednym oknie na monitor, więc działa błyskawicznie nawet przy pełnym układzie.
 - 🎙️ **Spotter wizualny i głosowy** — auto z lewej / z prawej, jazda trzema w rzędzie, flagi, paliwo i pozycja z tureckim pakietem głosowym, do tego ostrzeżenia o szybszej klasie i powrocie na tor.
 - ⛽ **Strategia paliwowa z udostępnianiem w zespole na żywo** — spalanie na okrążenie, ilość do zatankowania, okna pit stopów i paliwo Twoich kolegów z zespołu na żywo w Twoim własnym overlayu.
 - 👥 **Znajomi z zaufaną telemetrią na żywo** — dodawaj znajomych, sprawdzaj, kto jest online lub właśnie się ściga, i pozwól zaufanym kierowcom widzieć Twoje paliwo i czasy okrążeń na żywo. Bez kodów, bez konfiguracji.

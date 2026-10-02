@@ -18,7 +18,7 @@ const PUBLISHABLE: { id: string; label: string }[] = [
   { id: "status", label: "Durum" },
   { id: "session", label: "Oturum ve bayraklar" },
   { id: "standings", label: "Sıralama" },
-  { id: "relative", label: "Relative" },
+  { id: "relative", label: "Yakındakiler" },
   { id: "fuel", label: "Yakıt" },
   { id: "telemetry", label: "Araç (hız, devir, vites)" },
   { id: "inputs", label: "Girdiler" },

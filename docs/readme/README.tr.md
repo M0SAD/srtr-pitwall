@@ -20,7 +20,7 @@
 
 Çoğu overlay uygulaması overlay'de kalır. SRTR Pitwall ise sim kokpitin için eksiksiz bir pit duvarı:
 
-- 🏎️ **26 overlay, tek şeffaf pencere** — relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal/direksiyon girdileri, hava durumu, bayraklar ve daha fazlası. Her monitörde her şey tek pencerede çizilir; dolu bir düzende bile akıcı kalır.
+- 🏎️ **27 overlay, tek şeffaf pencere** — relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal/direksiyon girdileri, hava durumu, bayraklar ve daha fazlası. Her monitörde her şey tek pencerede çizilir; dolu bir düzende bile akıcı kalır.
 - 🎙️ **Görsel ve sesli spotter** — solda araç / sağda araç, üçlü yan yana, bayrak, yakıt ve pozisyon anonsları Türkçe ses paketiyle; üstüne daha hızlı sınıf ve piste dönüş uyarıları.
 - ⛽ **Canlı takım paylaşımlı yakıt stratejisi** — tur başı tüketim, doldurulacak yakıt, pit pencereleri ve takım arkadaşlarının yakıtı canlı olarak kendi overlay'inde.
 - 👥 **Güvenilir canlı telemetrili arkadaşlar** — arkadaş ekle, kim çevrimiçi ya da yarışta gör, güvendiğin pilotlar canlı yakıt ve tur verini görsün. Kod yok, kurulum yok.
