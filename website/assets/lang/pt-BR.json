@@ -1038,5 +1038,9 @@
   "cw_sp_L": "ESQ.",
   "cw_sp_R": "DIR.",
   "cw_locked": "Bloqueado",
-  "toplinks_title": "Links"
+  "toplinks_title": "Links",
+  "cw_fit": "Ajustar à tela",
+  "cw_fit_h": "Redimensiona todo o painel para caber na tela sem rolagem",
+  "cw_full": "Tela cheia",
+  "cw_full_exit": "Sair da tela cheia"
 }

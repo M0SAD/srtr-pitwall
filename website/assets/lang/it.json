@@ -1038,5 +1038,9 @@
   "cw_sp_L": "SX",
   "cw_sp_R": "DX",
   "cw_locked": "Bloccato",
-  "toplinks_title": "Link"
+  "toplinks_title": "Link",
+  "cw_fit": "Adatta allo schermo",
+  "cw_fit_h": "Ridimensiona l'intero pannello in modo che entri nello schermo senza scorrere",
+  "cw_full": "Schermo intero",
+  "cw_full_exit": "Esci da schermo intero"
 }

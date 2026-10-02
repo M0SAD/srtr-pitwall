@@ -3,6 +3,19 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 021026-72
+
+- **Ekip sayfası: Ekrana sığdır.** Açıldığında panelin tamamı (yarış durumu, Ekip Pitwall'ı, pit kontrolü) kaydırmaya gerek kalmadan ekrana sığacak şekilde ölçeklenir; geniş ekranda iki sütuna dizilir. Pencere boyutu ya da içerik değiştikçe kendiliğinden yeniden ayarlanır. Tercih hatırlanır.
+- **Ekip sayfası: Tam ekran.** Menüler gizlenir, ekip paneli tüm ekranı kaplar; Esc ile çıkılır. İkisi birlikte kullanılabilir (ikinci monitör / tablet için).
+- Aynı iki düğme web sitesindeki ekip panelinde de var (Ekip sayfası ve arkadaş listesinden açılan panel).
+
+## 021026-71
+
+- **Ekip ekranı artık "yenilenmiyor":** uygulamada ekip listesi her 12 saniyede yeniden yüklenirken sayfanın tamamı baştan kuruluyordu; liste artık yerinde güncelleniyor.
+- Web sitesindeki ekip paneli (Ekip sayfası ve arkadaş listesinden açılan panel) her yenilemede içeriği silip baştan yazıyordu; artık yalnızca değişen değerler güncelleniyor. Kırpışma yok, kaydırma konumu, odak ve animasyonlar korunuyor.
+- **Arkadaş listesi sağ tık menüsü** artık liste başlığının ya da kaydırma alanının altında kalmıyor: en üst katmanda, tıkladığın noktada açılıyor ve pencereden taşmıyor (sığmazsa kendi içinde kayar). Dışarı tıklayınca, kaydırınca ya da Esc ile kapanır.
+- Geçici bağlantı hatasında ekip listesi kaybolmuyor, eldeki liste gösterilmeye devam ediyor.
+
 ## 021026-70
 
 - **Üst çubuk bağlantıları:** Yönetim › Üst çubuk bağlantıları bölümünden üst çubuğun soluna bağlantı düğmeleri eklenebiliyor (en fazla 12). Varsayılan olarak SimRaceTR web sitesi, Discord ve WhatsApp bağlantıları ekli.

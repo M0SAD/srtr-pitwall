@@ -21,6 +21,10 @@ addDict({
   cw_error: ["Ekip listesi okunamadı. Daha sonra tekrar dene.", "Could not load the crew list. Try again later."],
   cw_pick: ["Sürücü seç", "Pick a driver"],
   cw_back: ["← Sürücüler", "← Drivers"],
+  cw_fit: ["Ekrana sığdır", "Fit to screen"],
+  cw_fit_h: ["Kaydırmaya gerek kalmadan tüm panel ekrana sığacak şekilde ölçeklenir", "Scales the whole panel so it fits the screen without scrolling"],
+  cw_full: ["Tam ekran", "Full screen"],
+  cw_full_exit: ["Tam ekrandan çık", "Exit full screen"],
   cw_live: ["Canlı", "Live"],
   cw_racing: ["Yarışta", "Racing"],
   cw_online: ["Çevrimiçi", "Online"],
@@ -395,6 +399,39 @@ const stat = (label, value, cls = "") => `<div class="cw-stat ${cls}"><small>${l
  * Sürücü panelini `host` içine kurar. opts.onGone: yetki kalktığında (ekipten çıkarıldın) çağrılır.
  * Dönüş: { destroy(), redraw() }. Aynı anda birden çok panel olabilir (durum kapanışta tutulur).
  */
+/** İçeriği silip baştan yazmak yerine yerinde günceller: yalnızca değişen düğümler / nitelikler dokunulur.
+ *  Böylece her yenilemede panel "sayfa yenileniyor" gibi kırpışmaz; odak, kaydırma ve animasyonlar korunur. */
+function morphNode(a, b) {
+  if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) return void a.replaceWith(b.cloneNode(true));
+  if (a.nodeType !== 1) {
+    if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue;
+    return;
+  }
+  for (const at of [...a.attributes]) if (!b.hasAttribute(at.name)) a.removeAttribute(at.name);
+  for (const at of b.attributes) if (a.getAttribute(at.name) !== at.value) a.setAttribute(at.name, at.value);
+  // Yazı / sayı kutuları: kullanıcı o an yazmıyorsa değer de eşitlenir
+  if ((a.nodeName === "INPUT" || a.nodeName === "TEXTAREA") && document.activeElement !== a) {
+    const v = b.getAttribute("value");
+    if (v !== null && a.value !== v) a.value = v;
+  }
+  morphKids(a, b);
+}
+function morphKids(a, b) {
+  const an = [...a.childNodes];
+  const bn = [...b.childNodes];
+  for (let i = 0; i < bn.length; i++) {
+    if (i < an.length) morphNode(an[i], bn[i]);
+    else a.appendChild(bn[i].cloneNode(true));
+  }
+  for (let i = bn.length; i < an.length; i++) an[i].remove();
+}
+function morph(el, html) {
+  if (!el.firstChild) return void (el.innerHTML = html);
+  const tpl = document.createElement("template");
+  tpl.innerHTML = html;
+  morphKids(el, tpl.content);
+}
+
 export function mountCrewPanel(host, ownerId, opts = {}) {
   let alive = true;
   let drv = null;
@@ -402,6 +439,88 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   let litersTouched = false;
   let sent = []; // son komutlar (yeni başta)
   const q = (s) => host.querySelector(s);
+  // ---- Görünüm: ekrana sığdır / tam ekran ----
+  // box: ölçeklenmeyen sarmalayıcı (görünen yükseklik buradan ölçülür); body: içerik (CSS zoom burada)
+  host.textContent = "";
+  const box = document.createElement("div");
+  box.className = "cw-box";
+  const bar = document.createElement("div");
+  bar.className = "cw-view";
+  const body = document.createElement("div");
+  body.className = "cw-body";
+  box.append(bar, body);
+  host.append(box);
+  const ls = (k, v) => {
+    try {
+      if (v === undefined) return localStorage.getItem(k) === "1";
+      localStorage.setItem(k, v ? "1" : "0");
+    } catch {}
+    return false;
+  };
+  let fit = ls("crew.fit");
+  let full = false;
+  let zoom = 1;
+  let fitRaf = 0;
+  const isFs = () => document.fullscreenElement === host;
+  function drawBar() {
+    morph(
+      bar,
+      `<button type="button" class="cw-vb${fit ? " on" : ""}" data-view="fit" title="${esc(T("cw_fit_h"))}">${T("cw_fit")}</button>` +
+        `<button type="button" class="cw-vb${full ? " on" : ""}" data-view="full">${T(full ? "cw_full_exit" : "cw_full")}</button>`,
+    );
+    host.classList.toggle("cw-fit", fit);
+    host.classList.toggle("cw-full", full);
+  }
+  function runFit() {
+    fitRaf = 0;
+    if (!alive) return;
+    if (!fit) {
+      zoom = 1;
+      body.style.removeProperty("zoom");
+      box.classList.remove("cols2");
+      return;
+    }
+    box.classList.toggle("cols2", box.clientWidth >= 900);
+    // Tam ekranda tüm ekran; sayfada ise panelin sayfadaki konumundan ekranın altına kadar
+    const top = full ? box.getBoundingClientRect().top : box.getBoundingClientRect().top + window.scrollY;
+    const avail = Math.max(240, window.innerHeight - Math.min(top, window.innerHeight * 0.5) - 12);
+    for (let i = 0; i < 8; i++) {
+      body.style.zoom = String(zoom);
+      const h = box.getBoundingClientRect().height;
+      if (h < 1) break;
+      const nz = Math.max(0.4, Math.min(1, (zoom * avail) / h));
+      if (Math.abs(nz - zoom) < 0.012 || (nz > zoom && nz - zoom < 0.03)) break;
+      zoom = nz;
+    }
+    body.style.zoom = String(zoom);
+  }
+  const kickFit = () => {
+    if (!fitRaf) fitRaf = requestAnimationFrame(runFit);
+  };
+  const fitRo = new ResizeObserver(kickFit);
+  fitRo.observe(body);
+  fitRo.observe(box);
+  window.addEventListener("resize", kickFit);
+  const setFull = (v) => {
+    full = v;
+    try {
+      if (v && !isFs()) host.requestFullscreen?.()?.catch?.(() => {});
+      else if (!v && isFs()) document.exitFullscreen?.()?.catch?.(() => {});
+    } catch {}
+    drawBar();
+    kickFit();
+  };
+  let wasFs = false;
+  const onFsChange = () => {
+    if (wasFs && !isFs() && full) setFull(false);
+    wasFs = isFs();
+    kickFit();
+  };
+  const onFsKey = (e) => {
+    if (e.key === "Escape" && full && !isFs()) setFull(false);
+  };
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("keydown", onFsKey);
   // Ekip Pitwall'ı durumu
   let wall = null; // crew_wall() yanıtı {on, age_ms, data}; null: henüz yok / okunamadı
   let wallBusy = false;
@@ -515,9 +634,9 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
 
   function drawWall() {
     const sp = q("#cw-speech");
-    if (sp) sp.innerHTML = speechHtml();
+    if (sp) morph(sp, speechHtml());
     const el = q("#cw-wall");
-    if (el) el.innerHTML = wallHtml();
+    if (el) morph(el, wallHtml());
   }
 
   async function loadDriver() {
@@ -834,12 +953,13 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   function drawSent() {
     const el = q("#cw-sent");
     if (!el) return;
-    el.innerHTML = sent
-      .map(
+    morph(
+      el,
+      sent.map(
         (c) => `<div class="cw-cmd ${c.status}"><span>${esc(cmdText(c.kind, c.args))}</span>
           <b>${T("cw_st_" + c.status)}${c.result ? ` · ${esc(tr(c.result))}` : ""}</b></div>`,
-      )
-      .join("");
+      ).join(""),
+    );
   }
 
 
@@ -851,7 +971,9 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     if (litF || dragging) return; // litre yazılırken / sürgü çekilirken çizme (bir sonraki yenilemede güncellenir)
     const act = document.activeElement;
     const fid = act && act.id && act.id !== "cw-text" && host.contains(act) ? act.id : "";
-    host.innerHTML = dashHtml();
+    drawBar();
+    morph(body, dashHtml());
+    kickFit();
     drawSent();
     if (fid) host.querySelector("#" + CSS.escape(fid))?.focus({ preventScroll: true });
     if (keep) {
@@ -872,6 +994,13 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   const onClick = (e) => {
     const t = e.target.closest("button");
     if (!t || t.disabled) return;
+    if (t.dataset.view === "fit") {
+      fit = !fit;
+      ls("crew.fit", fit);
+      drawBar();
+      return void kickFit();
+    }
+    if (t.dataset.view === "full") return void setFull(!full);
     if (t.dataset.quick && QUICK.includes(t.dataset.quick)) return void send("message", { text: T(t.dataset.quick) });
     if (t.dataset.l) {
       liters = Math.min(1000, Math.max(1, liters + Number(t.dataset.l)));
@@ -982,6 +1111,13 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       alive = false;
       clearInterval(timer);
       clearInterval(wallTimer);
+      fitRo.disconnect();
+      if (fitRaf) cancelAnimationFrame(fitRaf);
+      window.removeEventListener("resize", kickFit);
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("keydown", onFsKey);
+      if (isFs()) document.exitFullscreen?.()?.catch?.(() => {});
+      host.classList.remove("cw-fit", "cw-full");
       document.removeEventListener("visibilitychange", onVis);
       host.removeEventListener("click", onClick);
       host.removeEventListener("input", onInput);

@@ -1038,5 +1038,9 @@
   "cw_sp_L": "IZQ.",
   "cw_sp_R": "DER.",
   "cw_locked": "Bloqueado",
-  "toplinks_title": "Enlaces"
+  "toplinks_title": "Enlaces",
+  "cw_fit": "Ajustar a la pantalla",
+  "cw_fit_h": "Escala todo el panel para que quepa en la pantalla sin desplazarse",
+  "cw_full": "Pantalla completa",
+  "cw_full_exit": "Salir de pantalla completa"
 }

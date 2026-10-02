@@ -1038,5 +1038,9 @@
   "cw_sp_L": "VASEN",
   "cw_sp_R": "OIKEA",
   "cw_locked": "Lukittu",
-  "toplinks_title": "Linkit"
+  "toplinks_title": "Linkit",
+  "cw_fit": "Sovita näyttöön",
+  "cw_fit_h": "Skaalaa koko paneelin niin, että se mahtuu näytölle vierittämättä",
+  "cw_full": "Koko näyttö",
+  "cw_full_exit": "Poistu koko näytöstä"
 }

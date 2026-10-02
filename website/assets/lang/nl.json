@@ -1038,5 +1038,9 @@
   "cw_sp_L": "LINKS",
   "cw_sp_R": "RECHTS",
   "cw_locked": "Vergrendeld",
-  "toplinks_title": "Links"
+  "toplinks_title": "Links",
+  "cw_fit": "Aanpassen aan scherm",
+  "cw_fit_h": "Schaalt het hele paneel zodat het zonder scrollen op het scherm past",
+  "cw_full": "Volledig scherm",
+  "cw_full_exit": "Volledig scherm verlaten"
 }

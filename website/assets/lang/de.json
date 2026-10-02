@@ -1038,5 +1038,9 @@
   "cw_sp_L": "LINKS",
   "cw_sp_R": "RECHTS",
   "cw_locked": "Gesperrt",
-  "toplinks_title": "Links"
+  "toplinks_title": "Links",
+  "cw_fit": "An Bildschirm anpassen",
+  "cw_fit_h": "Skaliert das gesamte Panel, sodass es ohne Scrollen auf den Bildschirm passt",
+  "cw_full": "Vollbild",
+  "cw_full_exit": "Vollbild beenden"
 }

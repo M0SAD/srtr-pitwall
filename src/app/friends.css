@@ -749,3 +749,19 @@
 .fr-prohint .pro-badge.small {
   margin-left: 6px;
 }
+
+/* Arkadaş satırı menüsü: en üst katmanda, ekran koordinatlarıyla (liste başlığının altında kalmaz) */
+.frow-menu-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
+}
+.fx .frow-menu.floating {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  pointer-events: auto;
+  overflow-y: auto;
+  z-index: 1;
+}

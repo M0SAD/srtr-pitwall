@@ -3,6 +3,7 @@
 // Sadece giriş yapanlara görünür. Mesajlaşmak herkese açık; mesajı/sohbeti kendi görünümünden silme ve
 // gelen mesajı raporlama sağ tıkla. Veri paylaşımı (güvenilir işaretleme) ve arkadaş görünümünü özelleştirme PRO.
 
+import { Portal } from "solid-js/web";
 import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount, type JSX } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { settings, updateSettings } from "@/sdk/settings";
@@ -1118,14 +1119,56 @@ function FriendRow(props: {
 }) {
   const f = () => props.f;
   const [menu, setMenu] = createSignal(false);
-  const [up, setUp] = createSignal(false);
   let el: HTMLDivElement | undefined;
-  const openMenu = () => {
-    // Listenin altındaysa menü yukarı açılır
+  // Menü sayfanın en üst katmanında (Portal) ve ekran koordinatlarıyla açılır: liste başlığının / kaydırma alanının
+  // altında kalmaz, pencereden taşmaz. at: sağ tık noktası; yoksa satırın sağ altı (⋯ düğmesi).
+  const [pos, setPos] = createSignal<{ x: number; y: number; h: number } | null>(null);
+  let anchor: { x: number; y: number; right: boolean } = { x: 0, y: 0, right: false };
+  const openMenu = (at?: { x: number; y: number }) => {
     const r = el?.getBoundingClientRect();
-    setUp(!!r && r.bottom + 380 > window.innerHeight && r.top > 300);
+    anchor = at ? { ...at, right: false } : { x: (r?.right ?? 0) - 8, y: (r?.bottom ?? 0) - 2, right: true };
+    setPos(null);
     setMenu(true);
   };
+  const placeMenu = (m: HTMLDivElement) => {
+    requestAnimationFrame(() => {
+      if (!m.isConnected) return;
+      const pad = 6;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const w = m.offsetWidth;
+      const h = Math.min(m.scrollHeight, vh - pad * 2);
+      let x = anchor.right ? anchor.x - w : anchor.x;
+      let y = anchor.y;
+      if (y + h > vh - pad) y = Math.max(pad, vh - pad - h);
+      x = Math.max(pad, Math.min(x, vw - pad - w));
+      setPos({ x, y, h: vh - pad * 2 });
+    });
+  };
+  createEffect(() => {
+    if (!menu()) return;
+    const close = (e: Event) => {
+      if (e.target instanceof Node && (e.target as Element).closest?.(".frow-menu")) return;
+      setMenu(false);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    // Bir sonraki tıkta / kaydırmada / pencere boyutu değişince kapanır
+    const tm = window.setTimeout(() => {
+      document.addEventListener("pointerdown", close, true);
+      document.addEventListener("wheel", close, true);
+    }, 0);
+    window.addEventListener("resize", close);
+    window.addEventListener("blur", close);
+    document.addEventListener("keydown", key);
+    onCleanup(() => {
+      clearTimeout(tm);
+      document.removeEventListener("pointerdown", close, true);
+      document.removeEventListener("wheel", close, true);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("blur", close);
+      document.removeEventListener("keydown", key);
+    });
+  });
   const mine = () => props.last && props.last.sender !== f().friend_id;
   const second = () => {
     if (f().status !== "accepted" || f().racing || !props.last) return null;
@@ -1139,7 +1182,7 @@ function FriendRow(props: {
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (f().status === "accepted") openMenu();
+        if (f().status === "accepted") openMenu({ x: e.clientX, y: e.clientY });
       }}
     >
       <button class="fav-btn" title="Profili gör" onClick={props.onProfile}>
@@ -1245,7 +1288,13 @@ function FriendRow(props: {
         </div>
       </Show>
       <Show when={menu()}>
-        <div class="frow-menu" classList={{ up: up() }} onMouseLeave={() => setMenu(false)}>
+        <Portal>
+          <div class="fx frow-menu-layer" onContextMenu={(e) => e.preventDefault()}>
+        <div
+          ref={placeMenu}
+          class="frow-menu floating"
+          style={{ left: `${pos()?.x ?? 0}px`, top: `${pos()?.y ?? 0}px`, "max-height": pos() ? `${pos()!.h}px` : undefined, visibility: pos() ? "visible" : "hidden" }}
+        >
           <button onClick={() => (setMenu(false), props.onChat())}>
             <I.MessageSquare /> Mesaj
           </button>
@@ -1363,6 +1412,8 @@ function FriendRow(props: {
             <I.UserMinus /> Arkadaşlıktan çıkar
           </button>
         </div>
+          </div>
+        </Portal>
       </Show>
     </div>
   );

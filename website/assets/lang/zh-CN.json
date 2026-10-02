@@ -1038,5 +1038,9 @@
   "cw_sp_L": "左",
   "cw_sp_R": "右",
   "cw_locked": "已锁定",
-  "toplinks_title": "链接"
+  "toplinks_title": "链接",
+  "cw_fit": "适应屏幕",
+  "cw_fit_h": "缩放整个面板，使其无需滚动即可完整显示",
+  "cw_full": "全屏",
+  "cw_full_exit": "退出全屏"
 }

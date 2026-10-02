@@ -1354,3 +1354,13 @@
 .pg h4.pg-h2 {
   margin: 6px 0 -2px;
 }
+
+/* ---- Ekip paneli görünümü: ekrana sığdır / tam ekran ---- */
+.cw-view{display:flex;justify-content:flex-end;gap:6px;margin:0 0 8px}
+.cw-vb{padding:5px 10px;border:1px solid var(--line,#333);border-radius:8px;background:none;color:inherit;font:inherit;font-size:12px;cursor:pointer}
+.cw-vb:hover{background:rgba(255,255,255,.06)}
+.cw-vb.on{border-color:var(--accent,#ff8a2a);color:var(--accent,#ff8a2a)}
+.cw-fit .cw-box.cols2 .cw-body{column-count:2;column-gap:16px}
+.cw-fit .cw-body>*{break-inside:avoid}
+.cw-full{position:fixed;inset:0;z-index:9000;margin:0;padding:14px 18px 16px;background:var(--bg,#0f1218);overflow:auto;box-sizing:border-box}
+.cw-full.cw-fit{overflow:hidden}

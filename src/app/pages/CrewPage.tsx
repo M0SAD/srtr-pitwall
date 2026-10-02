@@ -3,18 +3,33 @@
 // En üstte Ekip Pitwall'ı (c58, components/CrewWall.tsx): çevredeki araçlar, spotter durumu, hazır mesajlar.
 // Aynı panelin telefon sürümü web sitesindedir (website/crew.html).
 
-import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
 import { CrewWall } from "../components/CrewWall";
 import { FuelCard, Ic, RaceHeader, ServiceStrip, TyreCard, fxKeys, type Fx } from "../components/CrewGfx";
+import { crewFit } from "../crewFit";
 import "../crew.css";
 
 const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "AMS2" };
 export function CrewPage() {
   const uid = () => session()?.user.id;
-  const [list, { refetch }] = createResource(uid, () => crewDrivers().catch(() => null as CrewDriver[] | null));
+  // Liste elle yüklenir (createResource değil): her yenilemede Suspense tetiklenip sayfa baştan kurulmasın.
+  // Satırlar kimliğe göre yerinde güncellenir (reconcile), böylece düğmeler de yeniden oluşturulmaz.
+  const [listSt, setListSt] = createStore<{ v: CrewDriver[] | null | undefined }>({ v: undefined });
+  const list = () => listSt.v;
+  const refetch = async () => {
+    const id = uid();
+    if (!id) return void setListSt("v", undefined);
+    const l = await crewDrivers().catch(() => null as CrewDriver[] | null);
+    if (uid() !== id) return;
+    // Geçici ağ hatasında eldeki liste korunur
+    if (l === null && listSt.v) return;
+    setListSt("v", reconcile(l, { key: "owner_id" }));
+  };
+  createEffect(on(uid, () => void refetch()));
   const [sel, setSel] = createSignal("");
   const [drv, setDrv] = createSignal<CrewDriver | null>(null);
   const [err, setErr] = createSignal("");
@@ -29,6 +44,65 @@ export function CrewPage() {
     litersTouched = true;
     setLiters(n);
   };
+
+  // Görünüm: tam ekran (uygulama çerçevesi gizlenir) ve ekrana sığdır (kaydırmadan tümü görünsün diye ölçeklenir)
+  const lsGet = (k: string) => {
+    try {
+      return localStorage.getItem(k) === "1";
+    } catch {
+      return false;
+    }
+  };
+  const lsSet = (k: string, v: boolean) => {
+    try {
+      localStorage.setItem(k, v ? "1" : "0");
+    } catch {}
+  };
+  const [fit, setFit] = createSignal(lsGet("crew.fit"));
+  const [full, setFull] = createSignal(false);
+  const toggleFit = () => {
+    setFit(!fit());
+    lsSet("crew.fit", fit());
+  };
+  const toggleFull = () => {
+    const v = !full();
+    setFull(v);
+    try {
+      if (v) void document.documentElement.requestFullscreen?.().catch(() => {});
+      else if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => {});
+    } catch {}
+  };
+  const onFsKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && full() && !document.fullscreenElement) setFull(false);
+  };
+  // Esc ile gerçek tam ekrandan çıkılınca sayfa da normale döner
+  let wasFs = false;
+  const onFsChange = () => {
+    if (wasFs && !document.fullscreenElement) setFull(false);
+    wasFs = !!document.fullscreenElement;
+  };
+  document.addEventListener("keydown", onFsKey);
+  document.addEventListener("fullscreenchange", onFsChange);
+  onCleanup(() => {
+    document.removeEventListener("keydown", onFsKey);
+    document.removeEventListener("fullscreenchange", onFsChange);
+    if (full() && document.fullscreenElement) void document.exitFullscreen?.().catch(() => {});
+  });
+  let fitCtl: ReturnType<typeof crewFit> | undefined;
+  let fitOuter: HTMLDivElement | undefined;
+  const mountFit = (inner: HTMLDivElement) => {
+    queueMicrotask(() => {
+      if (!fitOuter) return;
+      fitCtl?.destroy();
+      fitCtl = crewFit(fitOuter, inner, fit);
+    });
+  };
+  onCleanup(() => fitCtl?.destroy());
+  createEffect(() => {
+    fit();
+    full();
+    fitCtl?.update();
+  });
 
   const ivList = window.setInterval(() => void refetch(), 12_000);
   onCleanup(() => clearInterval(ivList));
@@ -127,12 +201,12 @@ export function CrewPage() {
   };
 
   return (
-    <div class="page crewp">
+    <div class="page crewp" classList={{ fit: fit(), full: full() }}>
       <Show when={session()} fallback={<p class="muted">Bu özellik için hesabına giriş yapmalısın.</p>}>
         <Show when={list() === null}>
           <p class="muted">Ekip listesi okunamadı. Daha sonra tekrar dene.</p>
         </Show>
-        <Show when={!list.loading && list() && list()!.length === 0}>
+        <Show when={list() && list()!.length === 0}>
           <section class="panel">
             <h3>Ekip</h3>
             <p class="muted">
@@ -155,7 +229,16 @@ export function CrewPage() {
                 )}
               </For>
             </div>
-            <div class="crew-main">
+            <div class="crew-fitbox" ref={fitOuter}>
+              <div class="crew-view">
+                <button class="btn ghost small" classList={{ on: fit() }} onClick={toggleFit} title="Kaydırmaya gerek kalmadan tüm panel ekrana sığacak şekilde ölçeklenir">
+                  Ekrana sığdır
+                </button>
+                <button class="btn ghost small" classList={{ on: full() }} onClick={toggleFull} title="Menüler gizlenir, ekip paneli tüm ekranı kaplar (çıkmak için Esc)">
+                  {full() ? t("Tam ekrandan çık") : t("Tam ekran")}
+                </button>
+              </div>
+            <div class="crew-main" ref={mountFit}>
               <Show when={drv()} fallback={<p class="muted">{err() ? t(err()) : t("Yükleniyor…")}</p>}>
                 {(d) => (
                   <>
@@ -238,6 +321,7 @@ export function CrewPage() {
                   </>
                 )}
               </Show>
+            </div>
             </div>
           </div>
         </Show>

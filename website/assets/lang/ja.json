@@ -1038,5 +1038,9 @@
   "cw_sp_L": "左",
   "cw_sp_R": "右",
   "cw_locked": "ロック中",
-  "toplinks_title": "リンク"
+  "toplinks_title": "リンク",
+  "cw_fit": "画面に合わせる",
+  "cw_fit_h": "スクロールせずに全体が画面に収まるようパネルを拡大縮小します",
+  "cw_full": "全画面",
+  "cw_full_exit": "全画面を終了"
 }

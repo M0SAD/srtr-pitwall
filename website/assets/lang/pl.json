@@ -1038,5 +1038,9 @@
   "cw_sp_L": "LEWA",
   "cw_sp_R": "PRAWA",
   "cw_locked": "Zablokowane",
-  "toplinks_title": "Linki"
+  "toplinks_title": "Linki",
+  "cw_fit": "Dopasuj do ekranu",
+  "cw_fit_h": "Skaluje cały panel tak, aby mieścił się na ekranie bez przewijania",
+  "cw_full": "Pełny ekran",
+  "cw_full_exit": "Zamknij pełny ekran"
 }

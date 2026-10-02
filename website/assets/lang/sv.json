@@ -1038,5 +1038,9 @@
   "cw_sp_L": "VÄNSTER",
   "cw_sp_R": "HÖGER",
   "cw_locked": "Låst",
-  "toplinks_title": "Länkar"
+  "toplinks_title": "Länkar",
+  "cw_fit": "Anpassa till skärmen",
+  "cw_fit_h": "Skalar hela panelen så att den får plats på skärmen utan rullning",
+  "cw_full": "Helskärm",
+  "cw_full_exit": "Avsluta helskärm"
 }

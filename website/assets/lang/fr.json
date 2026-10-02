@@ -1038,5 +1038,9 @@
   "cw_sp_L": "GAUCHE",
   "cw_sp_R": "DROITE",
   "cw_locked": "Verrouillé",
-  "toplinks_title": "Liens"
+  "toplinks_title": "Liens",
+  "cw_fit": "Ajuster à l'écran",
+  "cw_fit_h": "Met tout le panneau à l'échelle pour qu'il tienne à l'écran sans défilement",
+  "cw_full": "Plein écran",
+  "cw_full_exit": "Quitter le plein écran"
 }

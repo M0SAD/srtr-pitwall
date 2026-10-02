@@ -1414,3 +1414,40 @@
 .pg h4.pg-h2 {
   margin: 6px 0 -2px;
 }
+
+/* ---- Ekip sayfası görünümü: ekrana sığdır / tam ekran ---- */
+.crew-fitbox {
+  min-width: 0;
+}
+.crew-view {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.crew-view .btn.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.crewp.fit .crew-fitbox.cols2 .crew-main {
+  column-count: 2;
+  column-gap: 16px;
+}
+.crewp.fit .crew-main > * {
+  break-inside: avoid;
+}
+.crewp.fit .crew-view {
+  margin-bottom: 6px;
+}
+.crewp.full {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  margin: 0;
+  padding: 14px 18px 16px;
+  background: var(--bg, #0f1218);
+  overflow: auto;
+}
+.crewp.full.fit {
+  overflow: hidden;
+}
