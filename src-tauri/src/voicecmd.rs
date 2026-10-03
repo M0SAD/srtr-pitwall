@@ -831,7 +831,7 @@ fn tts_tx() -> &'static Sender<(String, String, f32)> {
                         }
                         if let Some(sy) = synth.as_mut() {
                             let voice = tts_voice(&lang);
-                            if let Ok(bytes) = sy.wav(&text, &voice, 1.0, 1.0, 1.0) {
+                            if let Ok(bytes) = sy.wav(&text, &voice, 0.0, 0.0, 1.0, 1.0) {
                                 let p = std::env::temp_dir().join(format!("srtr-pitwall-voicecmd-{n}.wav"));
                                 if std::fs::write(&p, bytes).is_ok() {
                                     wav = Some(p);

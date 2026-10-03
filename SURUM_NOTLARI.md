@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-75
+
+- Windows derleme hatası giderildi (E0061): sesli komutların sesli yanıtı, yeni ses motorunun 6 parametreli çağrısına uyarlandı. Başka değişiklik yok.
+
 ## 031026-74
 
 **Düzenler ve overlay'ler**
