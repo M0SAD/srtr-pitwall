@@ -4536,3 +4536,13 @@ body.ov-dragging * {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
+
+/* Üst çubuk: canlı sohbeti başlat / durdur */
+.top-toggle.top-chat.on {
+  border-color: #3ddc84;
+  color: #3ddc84;
+}
+.top-toggle.top-chat:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

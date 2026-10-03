@@ -1411,24 +1411,107 @@ pub fn hotkey_poll(app: &AppHandle) {
         notice(app, "Sohbet anketi PRO üyelere özel");
         return;
     }
+    // Tuş basılı tutulurken (yineleme) ikinci kez tetiklenmesin
+    if POLL_DICT.lock().is_some() {
+        return;
+    }
     let h = hub(app);
-    let active = h.st.lock().poll.active();
+    let (active, running) = {
+        let g = h.st.lock();
+        (g.poll.active(), g.running)
+    };
     if active {
         livechat_poll_stop(app.clone());
         beep_onoff(false);
         notice(app, "Anket bitirildi");
-    } else {
-        match livechat_poll_start(app.clone(), None, None, None, None) {
-            Ok(_) => {
-                beep_onoff(true);
-                notice(app, "Anket başladı");
-            }
-            Err(e) => {
-                crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
-                notice(app, &e);
-            }
+        return;
+    }
+    // Konuşma → yazı açıksa: tuş basılı tutulurken söylenenler anket sorusu olur, tuş bırakılınca anket başlar.
+    // Kısa bir dokunuş (soru söylenmeden) eskisi gibi sorusuz anketi başlatır.
+    if running && stt::is_enabled(app) {
+        let now = std::time::Instant::now();
+        *POLL_DICT.lock() = Some(PollDict { started: now, updated: now, text: String::new() });
+        let _ = app.emit("livechat-poll-dictation", serde_json::json!({ "active": true, "text": "" }));
+        crate::audio::send(crate::audio::Cmd::Beep { freq: 1320.0, ms: 70, volume: 0.4, pan: 0.0 });
+        return;
+    }
+    start_poll_hotkey(app, None);
+}
+
+fn start_poll_hotkey(app: &AppHandle, question: Option<String>) {
+    match livechat_poll_start(app.clone(), None, None, question, None) {
+        Ok(_) => {
+            beep_onoff(true);
+            notice(app, "Anket başladı");
+        }
+        Err(e) => {
+            crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+            notice(app, &e);
         }
     }
+}
+
+/// Anket kısayolu basılıyken söylenen soru (konuşma → yazı açıkken)
+struct PollDict {
+    started: std::time::Instant,
+    updated: std::time::Instant,
+    text: String,
+}
+
+static POLL_DICT: Mutex<Option<PollDict>> = Mutex::new(None);
+
+/// Konuşma tanıyıcıdan gelen metin: anket sorusu dikte ediliyorsa soruya eklenir (altyazıya yazılmaz) ve true döner.
+pub fn poll_dict_take(app: &AppHandle, text: &str) -> bool {
+    let cur = {
+        let mut g = POLL_DICT.lock();
+        let Some(d) = g.as_mut() else { return false };
+        let t = text.trim();
+        if !t.is_empty() {
+            if !d.text.is_empty() {
+                d.text.push(' ');
+            }
+            d.text.push_str(t);
+            // Soru alanı en fazla 200 karakter
+            if d.text.chars().count() > 200 {
+                d.text = d.text.chars().take(200).collect();
+            }
+            d.updated = std::time::Instant::now();
+        }
+        d.text.clone()
+    };
+    let _ = app.emit("livechat-poll-dictation", serde_json::json!({ "active": true, "text": cur }));
+    true
+}
+
+/// Anket kısayolu bırakıldı: dikte sürüyorsa son sözün yazıya dökülmesi kısa bir süre beklenir, sonra anket başlar.
+pub fn hotkey_poll_up(app: &AppHandle) {
+    let Some(started) = POLL_DICT.lock().as_ref().map(|d| d.started) else { return };
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let released = std::time::Instant::now();
+        let tap = released.duration_since(started) < Duration::from_millis(350);
+        if !tap {
+            // Tanıyıcı cümleyi duraklamadan sonra bitirir: en az 0,8 sn, son metinden sonra 0,7 sn sessizlik, en çok 3,5 sn
+            loop {
+                std::thread::sleep(Duration::from_millis(100));
+                let waited = released.elapsed();
+                let (has, quiet) = match POLL_DICT.lock().as_ref() {
+                    Some(d) => (!d.text.is_empty(), d.updated.elapsed()),
+                    None => return,
+                };
+                if waited >= Duration::from_millis(3500) {
+                    break;
+                }
+                if waited >= Duration::from_millis(800) && has && quiet >= Duration::from_millis(700) {
+                    break;
+                }
+            }
+        }
+        let Some(d) = POLL_DICT.lock().take() else { return };
+        let q = d.text.trim().to_string();
+        let _ = app.emit("livechat-poll-dictation", serde_json::json!({ "active": false, "text": q }));
+        start_poll_hotkey(&app, if q.is_empty() { None } else { Some(q) });
+    });
 }
 
 /// Web sunucusu (OBS) için tüm durum

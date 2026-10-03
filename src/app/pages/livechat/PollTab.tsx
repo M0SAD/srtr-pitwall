@@ -84,6 +84,26 @@ export function PollTab() {
   onCleanup(() => clearInterval(tick));
 
   const [question, setQuestion] = createSignal("");
+  // Anket kısayolu basılı tutulup soru söylenirken metin buraya canlı yazılır
+  const [dictating, setDictating] = createSignal(false);
+  {
+    let off: (() => void) | undefined;
+    let dead = false;
+    void Promise.resolve(
+      LC.onPollDictation((d) => {
+        setDictating(d.active);
+        if (d.active || d.text) setQuestion(d.text);
+      }),
+    ).then((u) => {
+      if (typeof u !== "function") return;
+      if (dead) u();
+      else off = u;
+    });
+    onCleanup(() => {
+      dead = true;
+      off?.();
+    });
+  }
   const [answers, setAnswers] = createSignal<string[]>(Array.from({ length: Math.max(2, lc().poll.options) }, () => ""));
   const [duration, setDuration] = createSignal(lc().poll.duration);
   const locked = () => proLocked(F.livePoll);
@@ -150,7 +170,7 @@ export function PollTab() {
           </Show>
           <div class="lcp-field">
             <label>Soru (isteğe bağlı; anket sürerken sohbetin ve OBS'nin üstünde görünür)</label>
-            <input class="input" style={{ width: "100%" }} maxLength={200} placeholder={t("Örn. Bu yarışı kim kazanır?")} value={question()} onInput={(e) => setQuestion(e.currentTarget.value)} />
+            <input class="input" style={{ width: "100%" }} maxLength={200} placeholder={dictating() ? t("Dinleniyor… soruyu söyle, tuşu bırakınca anket başlar") : t("Örn. Bu yarışı kim kazanır?")} value={question()} onInput={(e) => setQuestion(e.currentTarget.value)} />
           </div>
           <div class="lcp-field">
             <label>Şıklar (cevaplar isteğe bağlı; boş bırakılırsa sadece numara görünür)</label>
@@ -238,6 +258,7 @@ export function PollTab() {
           <div>
             <b>Kısayol: anketi başlat / bitir</b>
             <small>Oyundayken de çalışır (Canlı Sohbet çalışırken).</small>
+            <small>Konuşma → yazı açıksa: tuşu basılı tutup soruyu söyle, bırakınca anket o soruyla başlar.</small>
           </div>
           <div class="lcp-inline">
             <span class="lcp-kbd">{prettyKey(shortcut("poll"))}</span>

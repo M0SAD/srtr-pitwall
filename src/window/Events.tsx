@@ -1,13 +1,26 @@
-// Olaylar ekranı: oturumun kazaları, geçişleri, pitleri, en hızlı turları ve bayrakları.
+// Olaylar ekranı: oturumun kazaları, geçişleri, pitleri, en hızlı turları, bayrakları ve cezaları.
 // Yarış bitince (damalı bayrak) kendiliğinden açılır; bir olaya tıklayınca iRacing tekrarı
 // olayın ~5 sn öncesine sarılır, kamera o araca döner ve 1x oynatılır.
+//
+// Veri akışı: pencere açılınca listenin TAMAMINI `events_get` ile çeker (olaylar Rust'ta birikir,
+// pencere sonradan açılsa da hiçbiri kaçmaz), sonra `events-changed` olayını dinler ve ayrıca
+// 2 sn'de bir yeniden çeker (bağlantı durumu ve özet için). Güncel oturum boşsa Rust bir önceki
+// oturumu verir (`previous`); "Bu oturum / Önceki oturum" düğmesiyle elle de seçilebilir.
 
 import { For, Show, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { inTauri } from "@/sdk/platform";
 import { settings, updateSettings } from "@/sdk/settings";
-import { clock } from "@/sdk/format";
-import { t } from "@/sdk/i18n";
+import { clock, lapTime } from "@/sdk/format";
+import { localeTag, t, translateText } from "@/sdk/i18n";
+import Ban from "lucide-solid/icons/ban";
+import Gavel from "lucide-solid/icons/gavel";
+import Wrench from "lucide-solid/icons/wrench";
+import SettingsIcon from "lucide-solid/icons/settings";
+import Copy from "lucide-solid/icons/copy";
+import Download from "lucide-solid/icons/download";
 import TriangleAlert from "lucide-solid/icons/triangle-alert";
 import CircleAlert from "lucide-solid/icons/circle-alert";
 import TrendingUp from "lucide-solid/icons/trending-up";
@@ -27,6 +40,7 @@ import "./events.css";
 type Kind =
   | "incident"
   | "offTrack"
+  | "invalid"
   | "pass"
   | "passed"
   | "lead"
@@ -34,9 +48,11 @@ type Kind =
   | "lost"
   | "pitIn"
   | "pitOut"
+  | "repair"
   | "fastest"
   | "best"
   | "flag"
+  | "penalty"
   | "start"
   | "finish";
 
@@ -65,14 +81,37 @@ interface EventsInfo {
   sessionNum: number;
   replayOk: boolean;
   previous?: boolean;
+  hasPrevious?: boolean;
+  hasCurrent?: boolean;
+  rev?: number;
+  summary?: Summary;
   events: RaceEvent[];
 }
 
-type Cat = "crash" | "pass" | "pit" | "fast" | "flag";
+/** Oturum özeti (Rust events.rs Summary) */
+interface Summary {
+  car: string;
+  startedAt: number;
+  duration: number;
+  laps: number;
+  bestLap: number;
+  position: number;
+  startPosition: number;
+  incidents: number;
+  incidentLimit: number;
+  hasIncidents: boolean;
+}
 
-const CAT: Record<Kind, Cat> = {
+type View = "auto" | "current" | "previous";
+
+type Cat = "crash" | "pass" | "pit" | "fast" | "flag";
+type RecKey = Cat | "others";
+
+/** Süzgeç grubu; start/bitiş hiçbir gruba girmez (her zaman görünür). Rust `events::category` ile aynı. */
+const CAT: Record<Kind, Cat | null> = {
   incident: "crash",
   offTrack: "crash",
+  invalid: "crash",
   pass: "pass",
   passed: "pass",
   lead: "pass",
@@ -80,11 +119,13 @@ const CAT: Record<Kind, Cat> = {
   lost: "pass",
   pitIn: "pit",
   pitOut: "pit",
+  repair: "pit",
   fastest: "fast",
   best: "fast",
   flag: "flag",
-  start: "flag",
-  finish: "flag",
+  penalty: "flag",
+  start: null,
+  finish: null,
 };
 
 const CATS: { id: Cat; label: string }[] = [
@@ -92,12 +133,22 @@ const CATS: { id: Cat; label: string }[] = [
   { id: "pass", label: "Geçişler" },
   { id: "pit", label: "Pit" },
   { id: "fast", label: "En hızlı tur" },
-  { id: "flag", label: "Bayraklar" },
+  { id: "flag", label: "Bayraklar/Cezalar" },
+];
+
+const REC: { id: RecKey; label: string }[] = [
+  { id: "crash", label: "Olay puanı, pist dışı, geçersiz tur" },
+  { id: "pass", label: "Geçişler ve sıra değişimleri" },
+  { id: "pit", label: "Pit giriş/çıkış, tamir" },
+  { id: "fast", label: "En hızlı ve kişisel en iyi turlar" },
+  { id: "flag", label: "Bayraklar ve cezalar" },
+  { id: "others", label: "Diğer sürücülerin olayları" },
 ];
 
 const ICON: Record<Kind, () => JSX.Element> = {
   incident: () => <TriangleAlert />,
   offTrack: () => <CircleAlert />,
+  invalid: () => <Ban />,
   pass: () => <TrendingUp />,
   passed: () => <TrendingDown />,
   lead: () => <Crown />,
@@ -105,11 +156,34 @@ const ICON: Record<Kind, () => JSX.Element> = {
   lost: () => <ChevronsDown />,
   pitIn: () => <LogIn />,
   pitOut: () => <LogOut />,
+  repair: () => <Wrench />,
   fastest: () => <Timer />,
   best: () => <Star />,
   flag: () => <Flag />,
+  penalty: () => <Gavel />,
   start: () => <Play />,
   finish: () => <Flag />,
+};
+
+/** Tür adı (dışa aktarma ve ipucu) */
+const KIND_LABEL: Record<Kind, string> = {
+  incident: "Olay puanı",
+  offTrack: "Pist dışı",
+  invalid: "Geçersiz tur",
+  pass: "Geçiş",
+  passed: "Geçildin",
+  lead: "Liderlik",
+  gained: "Sıra kazandı",
+  lost: "Sıra kaybetti",
+  pitIn: "Pit girişi",
+  pitOut: "Pit çıkışı",
+  repair: "Tamir",
+  fastest: "En hızlı tur",
+  best: "Kişisel en iyi",
+  flag: "Bayrak",
+  penalty: "Ceza",
+  start: "Start",
+  finish: "Bitiş",
 };
 
 /** Olay rengi (sınıf adı): kaza kırmızı, geçiş yeşil/turuncu, bayrak türüne göre */
@@ -117,7 +191,10 @@ function tone(e: RaceEvent): string {
   switch (e.kind) {
     case "incident":
       return e.sub === "1x" ? "warn" : "bad";
+    case "penalty":
+      return "bad";
     case "offTrack":
+    case "invalid":
     case "passed":
     case "lost":
       return "warn";
@@ -132,6 +209,7 @@ function tone(e: RaceEvent): string {
       return "good";
     case "pitIn":
     case "pitOut":
+    case "repair":
       return "info";
     case "finish":
       return "mono";
@@ -142,6 +220,8 @@ function tone(e: RaceEvent): string {
           string
         >
       )[e.sub] ?? "info";
+    default:
+      return "info";
   }
 }
 
@@ -163,6 +243,7 @@ function sampleEvents(): EventsInfo {
   add(150.2, 2, "incident", "7", "Erkin Azcan", "Temas", true, "4x");
   add(163.9, 2, "lost", "18", "Pierre Lacroix", "3 sıra kaybetti");
   add(188.0, 3, "pitIn", "7", "Erkin Azcan", "pite girdi", true);
+  add(201.3, 3, "repair", "7", "Erkin Azcan", "hızlı tamir kullanıldı", true);
   add(214.6, 3, "pitOut", "7", "Erkin Azcan", "pitten çıktı", true);
   add(230.1, 3, "flag", "7", "Erkin Azcan", "mavi bayrak", true, "blue");
   add(262.7, 3, "pass", "7", "Erkin Azcan", "#12 Marco Rossi geçildi · P5", true, "P5");
@@ -178,34 +259,97 @@ function sampleEvents(): EventsInfo {
     sessionKind: "Race",
     sessionNum: 2,
     replayOk: false,
+    hasCurrent: true,
+    rev: 1,
+    summary: {
+      car: "BMW M4 GT3",
+      startedAt: Date.now() - 480_000,
+      duration: 470,
+      laps: 5,
+      bestLap: 93.052,
+      position: 5,
+      startPosition: 6,
+      incidents: 5,
+      incidentLimit: 17,
+      hasIncidents: true,
+    },
     events: ev,
   };
 }
 
+const csvCell = (v: string | number) => {
+  const s = String(v);
+  return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
 export function Events() {
+  // Başlık/özet her yenilemede güncellenir; olay listesi yalnızca gerçekten değişince (satırlar baştan çizilmesin)
   const [info, setInfo] = createSignal<EventsInfo | null>(null);
+  const [events, setEvents] = createSignal<RaceEvent[]>([]);
+  const [failed, setFailed] = createSignal("");
+  const [view, setView] = createSignal<View>("auto");
   const [cats, setCats] = createSignal<Set<Cat>>(new Set(CATS.map((c) => c.id)));
   const [onlyMe, setOnlyMe] = createSignal(false);
   const [sel, setSel] = createSignal<number | null>(null);
   const [msg, setMsg] = createSignal<{ ok: boolean; text: string } | null>(null);
+  const [showCfg, setShowCfg] = createSignal(false);
   let listEl: HTMLDivElement | undefined;
+  let listKey = "";
+  let msgTimer: number | undefined;
 
+  const say = (ok: boolean, text: string) => {
+    setMsg({ ok, text });
+    clearTimeout(msgTimer);
+    msgTimer = window.setTimeout(() => setMsg(null), 6000);
+  };
+
+  const apply = (i: EventsInfo) => {
+    setInfo(i);
+    setFailed("");
+    const key = `${i.rev ?? ""}|${i.demo}|${!!i.previous}|${i.sessionNum}|${i.events.length}|${i.events[i.events.length - 1]?.id ?? 0}`;
+    if (key !== listKey) {
+      listKey = key;
+      setEvents(i.events);
+    }
+  };
+
+  let seq = 0;
   const load = async () => {
     if (!inTauri) {
-      setInfo(sampleEvents());
+      apply(sampleEvents());
       return;
     }
+    const n = ++seq;
     try {
-      setInfo(await invoke<EventsInfo>("events_get"));
-    } catch {
-      /* pencere kapanırken */
+      const i = await invoke<EventsInfo>("events_get", { view: view() });
+      if (n === seq) apply(i);
+    } catch (err) {
+      // İlk yükleme başarısızsa boş sayfa yerine nedeni göster
+      if (!info()) setFailed(String(err));
     }
   };
   onMount(() => {
     load();
     const h = setInterval(load, 2000);
     onCleanup(() => clearInterval(h));
+    if (inTauri) {
+      let un: (() => void) | undefined;
+      let gone = false;
+      listen("events-changed", () => load())
+        .then((u) => (gone ? u() : (un = u)))
+        .catch(() => {});
+      onCleanup(() => {
+        gone = true;
+        un?.();
+      });
+    }
   });
+
+  const pick = (v: View) => {
+    setView(v);
+    setSel(null);
+    load();
+  };
 
   const toggleCat = (c: Cat) =>
     setCats((s) => {
@@ -217,9 +361,11 @@ export function Events() {
   const allOn = () => cats().size === CATS.length;
 
   const filtered = createMemo(() => {
-    const list = info()?.events ?? [];
     const cs = cats();
-    return list.filter((e) => cs.has(CAT[e.kind]) && (!onlyMe() || e.isMe));
+    return events().filter((e) => {
+      const c = CAT[e.kind];
+      return (c == null || cs.has(c)) && (!onlyMe() || e.isMe);
+    });
   });
 
   const groups = createMemo(() => {
@@ -232,26 +378,54 @@ export function Events() {
     return out;
   });
 
+  const counts = createMemo(() => {
+    const m: Record<Cat, number> = { crash: 0, pass: 0, pit: 0, fast: 0, flag: 0 };
+    for (const e of events()) {
+      const c = CAT[e.kind];
+      if (c) m[c]++;
+    }
+    return m;
+  });
+
   const summary = createMemo(() => {
-    const l = info()?.events ?? [];
-    const mine = l.filter((e) => e.isMe);
+    const mine = events().filter((e) => e.isMe);
     const inc = mine.filter((e) => e.kind === "incident");
     const pts = inc.reduce((a, e) => a + (parseInt(e.sub) || 0), 0);
     return {
       inc: inc.length,
       pts,
+      invalid: mine.filter((e) => e.kind === "invalid").length,
+      penalties: mine.filter((e) => e.kind === "penalty").length,
       gained: mine.filter((e) => e.kind === "pass").length,
       lost: mine.filter((e) => e.kind === "passed").length,
       pits: mine.filter((e) => e.kind === "pitIn").length,
     };
   });
 
+  const sum = () => info()?.summary;
+  const isRace = () => (info()?.sessionKind ?? "").includes("Race");
+  /** Sim olay puanı veriyor mu (iRacing/demo); vermiyorsa puan yerine geçersiz tur ve ceza sayılır */
+  const hasInc = () => sum()?.hasIncidents ?? true;
+  /** Toplam olay puanı: simin bildirdiği toplam (kayıt başlamadan önce alınanlar dahil) */
+  const totalPts = () => Math.max(sum()?.incidents ?? 0, summary().pts);
+  const untracked = () => (hasInc() ? Math.max(0, (sum()?.incidents ?? 0) - summary().pts) : 0);
+  const gainedPos = () => {
+    const s = sum();
+    return s && isRace() && s.startPosition > 0 && s.position > 0 ? s.startPosition - s.position : null;
+  };
+  const dateText = () => {
+    const ms = sum()?.startedAt ?? 0;
+    return ms > 0 ? new Date(ms).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" }) : "";
+  };
+  const hasSession = () => !!info() && (info()!.sessionNum >= 0 || !!info()!.track);
+
   const note = createMemo(() => {
     const i = info();
     if (!inTauri) return t("Tarayıcı önizlemesi: örnek olaylar gösteriliyor.");
     if (!i) return "";
     if (i.demo) return t("Demo verisi: tekrara atlama yalnızca iRacing'de çalışır.");
-    if (i.sim && i.sim !== "iracing") return t("Replay bu oyunda desteklenmiyor");
+    if (i.sim && i.sim !== "iracing")
+      return t("Bu oyun olay puanı ve tekrar komutu vermiyor: geçersiz turlar, cezalar, bayraklar, pit ve sıra değişimleri kaydedilir.");
     if (!i.connected) return t("iRacing bağlı değil: tekrara atlamak için oturumda (yarış sonrası dahil) iRacing açık olmalı.");
     return "";
   });
@@ -259,14 +433,16 @@ export function Events() {
   const seek = async (e: RaceEvent) => {
     setSel(e.id);
     if (!inTauri) {
-      setMsg({ ok: true, text: t("Tekrar {0} anına sarılıyor", clock(Math.max(0, e.time - 5))) });
+      say(true, t("Tekrar {0} anına sarılıyor", clock(Math.max(0, e.time - 5))));
       return;
     }
+    // Tekrar yalnızca iRacing bağlıyken var; değilse satır sadece seçilir
+    if (!info()?.replayOk) return;
     try {
       await invoke("replay_seek", { sessionNum: e.sessionNum, sessionTime: e.time, carNumber: e.focus || e.number });
-      setMsg({ ok: true, text: t("Tekrar {0} anına sarıldı", clock(Math.max(0, e.time - 5))) });
+      say(true, t("Tekrar {0} anına sarıldı", clock(Math.max(0, e.time - 5))));
     } catch (err) {
-      setMsg({ ok: false, text: t(String(err)) });
+      say(false, t(String(err)));
     }
   };
 
@@ -275,15 +451,16 @@ export function Events() {
     if (!inTauri) return;
     try {
       await invoke("replay_live");
-      setMsg({ ok: true, text: t("Canlı yayına dönüldü") });
+      say(true, t("Canlı yayına dönüldü"));
     } catch (err) {
-      setMsg({ ok: false, text: t(String(err)) });
+      say(false, t(String(err)));
     }
   };
 
   // Klavye: ↑/↓ ile olaylar arasında gez, Enter ile tekrara git
   const onKey = (ev: KeyboardEvent) => {
     if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp" && ev.key !== "Enter") return;
+    if ((ev.target as HTMLElement | null)?.closest("input, button.evw-tool, .evw-cfg")) return;
     const l = filtered();
     if (!l.length) return;
     ev.preventDefault();
@@ -302,7 +479,84 @@ export function Events() {
   });
 
   const kindLabel = (k: string) =>
-    ({ Race: t("Yarış"), Practice: t("Antrenman"), "Open Qualify": t("Sıralama"), "Lone Qualify": t("Sıralama"), Qualify: t("Sıralama") })[k] ?? k;
+    ({
+      Race: t("Yarış"),
+      Practice: t("Antrenman"),
+      "Open Qualify": t("Sıralama"),
+      "Lone Qualify": t("Sıralama"),
+      Qualify: t("Sıralama"),
+      Warmup: t("Isınma"),
+    })[k] ?? k;
+
+  // ---- Dışa aktarma (süzgeçten geçen olaylar) ----
+  const headerLines = () => {
+    const i = info();
+    const s = sum();
+    const out: string[] = [`SRTR Pitwall – ${t("Olaylar")}`];
+    if (!i) return out;
+    const line1 = [i.track, s?.car, kindLabel(i.sessionKind), dateText()].filter(Boolean).join(" · ");
+    if (line1) out.push(line1);
+    const parts: string[] = [];
+    if (s) {
+      parts.push(`${t("Tur")}: ${s.laps}`);
+      if (s.bestLap > 0) parts.push(`${t("En iyi tur")}: ${lapTime(s.bestLap)}`);
+      if (s.position > 0) parts.push(`${t("Sıra")}: P${s.position}${gainedPos() != null && gainedPos() !== 0 ? ` (${gainedPos()! > 0 ? "+" : ""}${gainedPos()})` : ""}`);
+      if (hasInc()) parts.push(`${t("Olay puanı")}: ${totalPts()}x${s.incidentLimit > 0 ? ` / ${s.incidentLimit}x` : ""}`);
+    }
+    if (parts.length) out.push(parts.join(" · "));
+    return out;
+  };
+  const asText = () => {
+    const rows = filtered().map((e) => {
+      const who = [e.number ? `#${e.number}` : "", e.name].filter(Boolean).join(" ");
+      const badge = e.kind === "incident" ? `[${e.sub}] ` : "";
+      return `${e.lap > 0 ? t("Tur {0}", e.lap) : t("Start öncesi")}\t${clock(e.time)}\t${who}\t${badge}${translateText(e.text)}`;
+    });
+    return [...headerLines(), "", ...(rows.length ? rows : [t("Bu oturumda olay kaydedilmedi")])].join("\n");
+  };
+  const asCsv = () => {
+    const head = [t("Tur"), t("Oturum zamanı"), t("Saniye"), t("Tür"), t("Puan"), t("No"), t("Sürücü"), t("Açıklama"), t("Ben")];
+    const rows = filtered().map((e) =>
+      [e.lap, clock(e.time), e.time.toFixed(1), t(KIND_LABEL[e.kind] ?? e.kind), e.kind === "incident" ? e.sub : "", e.number, e.name, translateText(e.text), e.isMe ? "1" : ""]
+        .map(csvCell)
+        .join(";"),
+    );
+    // BOM: Excel Türkçe karakterleri doğru açsın
+    return "﻿" + [...headerLines().map((l) => csvCell(l)), "", head.map(csvCell).join(";"), ...rows].join("\r\n");
+  };
+  const copyText = async () => {
+    try {
+      await navigator.clipboard.writeText(asText());
+      say(true, t("Kopyalandı"));
+    } catch (err) {
+      say(false, String(err));
+    }
+  };
+  const saveCsv = async () => {
+    const d = new Date(sum()?.startedAt || Date.now());
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const fname = `pitwall-olaylar-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+    const text = asCsv();
+    try {
+      if (!inTauri) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return;
+      }
+      const path = await saveDialog({ defaultPath: fname, filters: [{ name: "CSV", extensions: ["csv"] }] });
+      if (!path) return;
+      await invoke("events_export", { path, text });
+      say(true, t("Kaydedildi"));
+    } catch (err) {
+      say(false, t(String(err)));
+    }
+  };
+
+  const g = () => settings().general;
+  const rec = (k: RecKey) => g().eventsRecord?.[k] ?? true;
 
   return (
     <div class="evw">
@@ -310,7 +564,7 @@ export function Events() {
         <div class="evw-title">
           <b>Olaylar</b>
           <small class="muted">
-            <Show when={info()?.track} fallback={t("Oturum bekleniyor")}>
+            <Show when={info()?.track} fallback={failed() ? t("Olaylar okunamadı") : t("Oturum bekleniyor")}>
               <span data-no-i18n>{info()!.track}</span>
             </Show>
             <Show when={info()?.sessionKind}>
@@ -323,29 +577,147 @@ export function Events() {
             </Show>
           </small>
         </div>
-        <label class="evw-auto" title={t("Yarış bitince ve tekrar başlayınca bu pencere kendiliğinden açılır")}>
-          <span>Yarış sonunda aç</span>
-          <span class="switch">
-            <input
-              type="checkbox"
-              checked={settings().general.eventsAutoOpen}
-              onChange={(e) => {
-                const v = e.currentTarget.checked;
-                updateSettings((s) => (s.general.eventsAutoOpen = v));
-              }}
-            />
-            <i />
-          </span>
-        </label>
-        <button class="btn small evw-live" onClick={live} disabled={!!info() && !info()!.replayOk && inTauri}>
+        <button class="btn small evw-tool" onClick={copyText} title={t("Listeyi metin olarak panoya kopyala")}>
+          <Copy /> Kopyala
+        </button>
+        <button class="btn small evw-tool" onClick={saveCsv} title={t("Listeyi CSV dosyası olarak kaydet")}>
+          <Download /> CSV
+        </button>
+        <button class="btn small evw-tool evw-live" onClick={live} disabled={!!info() && !info()!.replayOk && inTauri} title={t("iRacing tekrarını canlı ana getir")}>
           <RadioTower /> Canlıya dön
+        </button>
+        <button class="btn small evw-tool evw-gear" classList={{ on: showCfg() }} onClick={() => setShowCfg(!showCfg())} title={t("Olaylar ekranı ayarları")}>
+          <SettingsIcon />
         </button>
       </header>
 
+      <Show when={showCfg()}>
+        <section class="evw-cfg">
+          <label class="evw-cfg-row">
+            <span>
+              <b>Yarış sonunda aç</b>
+              <small class="muted">Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır</small>
+            </span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                checked={g().eventsAutoOpen}
+                onChange={(e) => {
+                  const v = e.currentTarget.checked;
+                  updateSettings((s) => (s.general.eventsAutoOpen = v));
+                }}
+              />
+              <i />
+            </span>
+          </label>
+          <label class="evw-cfg-row">
+            <span>
+              <b>En az olay sayısı</b>
+              <small class="muted">Oturumda bundan az olay varsa pencere kendiliğinden açılmaz (0: her yarıştan sonra aç)</small>
+            </span>
+            <input
+              type="number"
+              class="evw-num-in"
+              min="0"
+              max="50"
+              value={g().eventsMinCount ?? 0}
+              disabled={!g().eventsAutoOpen}
+              onChange={(e) => {
+                const v = Math.max(0, Math.min(50, Math.round(Number(e.currentTarget.value) || 0)));
+                e.currentTarget.value = String(v);
+                updateSettings((s) => (s.general.eventsMinCount = v));
+              }}
+            />
+          </label>
+          <div class="evw-cfg-rec">
+            <b>Kaydedilecek olaylar</b>
+            <small class="muted">Kapatılan türler bundan sonra listeye yazılmaz; start ve bitiş her zaman yazılır</small>
+            <div class="evw-cfg-grid">
+              <For each={REC}>
+                {(r) => (
+                  <label class="check">
+                    <input
+                      type="checkbox"
+                      checked={rec(r.id)}
+                      onChange={(e) => {
+                        const v = e.currentTarget.checked;
+                        updateSettings((s) => {
+                          s.general.eventsRecord = { ...s.general.eventsRecord, [r.id]: v };
+                        });
+                      }}
+                    />
+                    <span>{t(r.label)}</span>
+                  </label>
+                )}
+              </For>
+            </div>
+          </div>
+        </section>
+      </Show>
+
+      <Show when={hasSession()}>
+        <section class="evw-head">
+          <div class="evw-cell wide">
+            <small>Pist</small>
+            <b data-no-i18n>{info()!.track || "–"}</b>
+          </div>
+          <div class="evw-cell wide">
+            <small>Araç</small>
+            <b data-no-i18n>{sum()?.car || "–"}</b>
+          </div>
+          <div class="evw-cell">
+            <small>Oturum</small>
+            <b>{info()!.sessionKind ? kindLabel(info()!.sessionKind) : "–"}</b>
+          </div>
+          <div class="evw-cell">
+            <small>Tarih</small>
+            <b data-no-i18n>{dateText() || "–"}</b>
+          </div>
+          <div class="evw-cell">
+            <small>Tur</small>
+            <b data-no-i18n>{sum()?.laps ?? 0}</b>
+          </div>
+          <div class="evw-cell">
+            <small>En iyi tur</small>
+            <b data-no-i18n>{(sum()?.bestLap ?? 0) > 0 ? lapTime(sum()!.bestLap) : "–"}</b>
+          </div>
+          <div class="evw-cell">
+            <small>{isRace() ? t("Bitiş sırası") : t("Sıra")}</small>
+            <b data-no-i18n>
+              {(sum()?.position ?? 0) > 0 ? `P${sum()!.position}` : "–"}
+              <Show when={gainedPos() != null && gainedPos() !== 0}>
+                <em class={gainedPos()! > 0 ? "good" : "warn"}>
+                  {gainedPos()! > 0 ? "+" : "−"}
+                  {Math.abs(gainedPos()!)}
+                </em>
+              </Show>
+            </b>
+          </div>
+          <div class="evw-cell">
+            <small>Olay puanı</small>
+            <b data-no-i18n classList={{ bad: hasInc() && totalPts() > 0 }}>
+              {hasInc() ? `${totalPts()}x` : "–"}
+              <Show when={hasInc() && (sum()?.incidentLimit ?? 0) > 0}>
+                <em class="muted">/ {sum()!.incidentLimit}x</em>
+              </Show>
+            </b>
+          </div>
+        </section>
+      </Show>
+
       <div class="evw-sum">
-        <span>
-          <em class="bad">{summary().inc}</em> kaza · <em class="bad">{summary().pts}x</em>
-        </span>
+        <Show
+          when={hasInc()}
+          fallback={
+            <span>
+              <em class="warn">{summary().invalid}</em> geçersiz tur · <em class="bad">{summary().penalties}</em> ceza
+            </span>
+          }
+        >
+          <span>
+            <em class="bad">{summary().inc}</em> kaza · <em class="bad">{summary().pts}x</em>
+          </span>
+        </Show>
         <span>
           <em class="good">+{summary().gained}</em> / <em class="warn">−{summary().lost}</em> geçiş
         </span>
@@ -353,6 +725,16 @@ export function Events() {
           <em>{summary().pits}</em> pit
         </span>
         <span class="evw-sp" />
+        <Show when={info()?.hasPrevious}>
+          <span class="seg evw-seg">
+            <button classList={{ on: !info()!.previous }} onClick={() => pick("current")}>
+              Bu oturum
+            </button>
+            <button classList={{ on: !!info()!.previous }} onClick={() => pick("previous")}>
+              Önceki oturum
+            </button>
+          </span>
+        </Show>
         <span class="muted">{t("{0} olay", filtered().length)}</span>
       </div>
 
@@ -362,8 +744,9 @@ export function Events() {
         </button>
         <For each={CATS}>
           {(c) => (
-            <button class={`evw-chip c-${c.id}`} classList={{ on: cats().has(c.id) }} onClick={() => toggleCat(c.id)}>
+            <button class={`evw-chip c-${c.id}`} classList={{ on: cats().has(c.id), zero: counts()[c.id] === 0 }} onClick={() => toggleCat(c.id)}>
               {t(c.label)}
+              <i data-no-i18n>{counts()[c.id]}</i>
             </button>
           )}
         </For>
@@ -374,6 +757,9 @@ export function Events() {
 
       <Show when={note()}>
         <div class="evw-note">{note()}</div>
+      </Show>
+      <Show when={untracked() > 0 && events().length > 0}>
+        <div class="evw-note">{t("{0}x olay puanı listede yok: kayıt başlamadan önce alındı ya da o tür kayıt dışı bırakıldı.", untracked())}</div>
       </Show>
       <Show when={msg()}>
         <div class="evw-msg" classList={{ err: !msg()!.ok }}>
@@ -387,7 +773,60 @@ export function Events() {
           fallback={
             <div class="evw-empty">
               <Flag />
-              <p>{(info()?.events.length ?? 0) > 0 ? t("Bu filtreye uyan olay yok") : t("Henüz olay yok. Yarış sürerken olaylar burada birikir.")}</p>
+              <Show
+                when={!failed()}
+                fallback={
+                  <>
+                    <p>{t("Olaylar okunamadı")}</p>
+                    <small data-no-i18n>{failed()}</small>
+                    <button class="btn small" onClick={load}>
+                      Yeniden dene
+                    </button>
+                  </>
+                }
+              >
+                <Show
+                  when={events().length === 0}
+                  fallback={
+                    <>
+                      <p>{t("Bu filtreye uyan olay yok")}</p>
+                      <button
+                        class="btn small"
+                        onClick={() => {
+                          setCats(new Set(CATS.map((c) => c.id)));
+                          setOnlyMe(false);
+                        }}
+                      >
+                        Süzgeçleri temizle
+                      </button>
+                    </>
+                  }
+                >
+                  <Show
+                    when={hasSession()}
+                    fallback={
+                      <>
+                        <p>{t("Oturum bekleniyor")}</p>
+                        <small>{t("Bir oyuna bağlanınca oturumun olayları burada birikir. Görmek için Demo modunu da açabilirsin.")}</small>
+                      </>
+                    }
+                  >
+                    <p>{t("Bu oturumda olay kaydedilmedi")}</p>
+                    <small>
+                      {untracked() > 0
+                        ? t("{0}x olay puanı kayıt başlamadan önce alındı (uygulama oturumun ortasında açıldı).", untracked())
+                        : info()?.connected
+                          ? t("Temiz sürüş. Oturum sürerken yeni olaylar burada birikir.")
+                          : t("Bu oturumda kaydedilecek bir olay olmadı.")}
+                    </small>
+                    <Show when={info()?.hasPrevious && !info()?.previous}>
+                      <button class="btn small" onClick={() => pick("previous")}>
+                        Önceki oturumu göster
+                      </button>
+                    </Show>
+                  </Show>
+                </Show>
+              </Show>
             </div>
           }
         >
@@ -399,13 +838,15 @@ export function Events() {
                   {(e) => (
                     <button
                       class={`evw-row t-${tone(e)}`}
-                      classList={{ sel: sel() === e.id, me: e.isMe }}
+                      classList={{ sel: sel() === e.id, me: e.isMe, nogo: inTauri && !info()?.replayOk }}
                       data-ev={e.id}
                       onClick={() => seek(e)}
-                      title={t("Tekrarda bu ana git")}
+                      title={!inTauri || info()?.replayOk ? t("Tekrarda bu ana git") : t(KIND_LABEL[e.kind] ?? "")}
                     >
-                      <span class="evw-ic">{ICON[e.kind]()}</span>
-                      <span class="evw-time">{clock(e.time)}</span>
+                      <span class="evw-ic">{(ICON[e.kind] ?? ICON.flag)()}</span>
+                      <span class="evw-time" data-no-i18n>
+                        {clock(e.time)}
+                      </span>
                       <span class="evw-who">
                         <Show when={e.number}>
                           <span class="evw-num" style={{ "border-color": e.classColor || "var(--line)" }} data-no-i18n>
@@ -418,7 +859,9 @@ export function Events() {
                       </span>
                       <span class="evw-txt">
                         <Show when={e.kind === "incident"}>
-                          <span class="evw-badge">{e.sub}</span>
+                          <span class="evw-badge" data-no-i18n>
+                            {e.sub}
+                          </span>
                         </Show>
                         {e.text}
                       </span>

@@ -33,6 +33,8 @@ export interface CanvasProps {
   readOnly?: boolean;
   /** Yakınlaştırma (1 = sığdır). 1'den büyükse tuval kaydırılabilir olur */
   zoom?: number;
+  /** Space basılıyken fare tekeri: yakınlaştır / uzaklaştır (verilmezse kapalı) */
+  onZoom?: (zoom: number) => void;
 }
 
 // Tuvaldeki overlay'lerin mantıksal dikdörtgenleri (yapıştırma için)
@@ -46,6 +48,45 @@ export function LayoutCanvas(props: CanvasProps) {
     const ro = new ResizeObserver(() => box && setBoxW(box.clientWidth));
     ro.observe(box!);
     onCleanup(() => ro.disconnect());
+  });
+  // Space + fare tekeri: tuvali yakınlaştır / uzaklaştır (imleç tuvalin üstündeyken)
+  onMount(() => {
+    let space = false;
+    let over = false;
+    const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || typing(e.target)) return;
+      space = true;
+      // İmleç tuvaldeyken Space sayfayı kaydırmasın / odaktaki düğmeyi tetiklemesin
+      if (over && props.onZoom) e.preventDefault();
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code === "Space") space = false;
+    };
+    const blur = () => (space = false);
+    const enter = () => (over = true);
+    const leave = () => (over = false);
+    const wheel = (e: WheelEvent) => {
+      if (!space || !props.onZoom || e.deltaY === 0) return;
+      e.preventDefault();
+      const cur = props.zoom ?? 1;
+      const next = Math.min(3, Math.max(0.5, Math.round((cur + (e.deltaY < 0 ? 0.1 : -0.1)) * 20) / 20));
+      if (next !== cur) props.onZoom(next);
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+    box!.addEventListener("pointerenter", enter);
+    box!.addEventListener("pointerleave", leave);
+    box!.addEventListener("wheel", wheel, { passive: false });
+    onCleanup(() => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+      box?.removeEventListener("pointerenter", enter);
+      box?.removeEventListener("pointerleave", leave);
+      box?.removeEventListener("wheel", wheel);
+    });
   });
   // Tuval pikseli / mantıksal piksel
   const k = createMemo(() => Math.min(boxW() / props.width, 620 / props.height) * (props.zoom ?? 1));

@@ -7,6 +7,7 @@ import { t } from "@/sdk/i18n";
 import * as LC from "@/sdk/livechat";
 import type { LiveChannel } from "@/sdk/settings";
 import { F, proLocked } from "@/sdk/proFeatures";
+import { isPro } from "@/cloud/account";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { PlatformIcon } from "@/overlays/livechat/parts";
 import { ProLockNote, ProTag } from "../../components/ProLock";
@@ -314,6 +315,15 @@ export function ChannelsTab() {
             </small>
           </div>
           <Switch checked={lc().autoStart} onChange={(v) => setLc((x) => (x.autoStart = v))} />
+        </div>
+        <div class="row">
+          <div>
+            <b>
+              Üst çubuğa başlatma düğmesi ekle <span class="pro-badge small">PRO</span>
+            </b>
+            <small>Üst çubukta oyun seçicinin solunda bir sohbet düğmesi çıkar: tek tıkla canlı sohbeti başlatır, tekrar tıklayınca durdurur.</small>
+          </div>
+          <Switch checked={!!lc().topButton && isPro()} disabled={!isPro()} onChange={(v) => setLc((x) => (x.topButton = v))} />
         </div>
         <div class="row">
           <div>

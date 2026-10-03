@@ -355,6 +355,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     let mut voice = crate::voice::Voice::default();
     // Tekrar izleme başladı mı (Olaylar penceresini bir kez açmak için)
     let mut was_replay = false;
+    // Olaylar penceresine son bildirilen liste sürümü ve kayıt ayarının son okunma anı
+    let mut events_rev = 0u64;
+    let mut last_events_cfg = Instant::now() - Duration::from_secs(10);
 
     // Canlı sim bağlantısı (iRacing, ACC/AC, LMU/rF2, AMS2). Bkz. sims/mod.rs
     #[cfg(windows)]
@@ -550,28 +553,43 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             }
             st.tracker.update(&st.frame, &st.session);
             // Olaylar ekranı: olayları topla; oyuncu yarışı bitirince pencereyi bir kez aç
-            let finished = {
+            // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
+            let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
+                last_events_cfg = Instant::now();
+                Some(crate::events::Record::from_settings(crate::current_settings(&app).as_ref().and_then(|v| v.pointer("/general/eventsRecord"))))
+            } else {
+                None
+            };
+            let (finished, ev_count, ev_rev) = {
                 let mut ev = shared.events.lock();
                 ev.set_source(st.sim, demo_on);
-                ev.update(&st.frame, &st.session, &st.tracker)
-            };
-            if finished && !demo_on && connected {
-                let auto = crate::current_settings(&app)
-                    .and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool()))
-                    .unwrap_or(true);
-                if auto {
-                    crate::open_events(&app);
+                if let Some(r) = record {
+                    ev.set_record(r);
                 }
+                let fin = ev.update(&st.frame, &st.session, &st.tracker);
+                (fin, ev.auto_count(), ev.rev)
+            };
+            // Açık Olaylar penceresi beklemeden yenilensin (pencere ayrıca açılışta ve aralıklarla kendi çeker)
+            if ev_rev != events_rev {
+                events_rev = ev_rev;
+                use tauri::Emitter;
+                let _ = app.emit("events-changed", ev_rev);
+            }
+            // Otomatik açılış: general.eventsAutoOpen açık ve en az general.eventsMinCount olay varsa
+            let auto_open = |need: usize| {
+                let v = crate::current_settings(&app);
+                let auto = v.as_ref().and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool())).unwrap_or(true);
+                let min = v.as_ref().and_then(|v| v.pointer("/general/eventsMinCount").and_then(|x| x.as_u64())).unwrap_or(0) as usize;
+                auto && ev_count >= min.max(need)
+            };
+            if finished && !demo_on && connected && auto_open(0) {
+                crate::open_events(&app);
             }
             // Tekrar izlenmeye başlandı: olaylara atlayabilmek için Olaylar penceresini aç (açık değilse)
             let replay = connected && !demo_on && !preview && crate::calc::replay_watch(&st.frame);
-            if replay && !was_replay {
-                let auto = crate::current_settings(&app)
-                    .and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool()))
-                    .unwrap_or(true);
-                if auto {
-                    crate::open_events_if_closed(&app);
-                }
+            // Atlanacak olay yoksa açılmaz (boş pencere açmanın anlamı yok)
+            if replay && !was_replay && auto_open(1) {
+                crate::open_events_if_closed(&app);
             }
             was_replay = replay;
             let done = st.history.update(&st.frame, &st.session, !demo_on && connected);

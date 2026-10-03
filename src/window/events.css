@@ -317,3 +317,182 @@
     display: none;
   }
 }
+
+/* ---- Oturum özeti, araçlar, ayarlar, boş durum (c74) ---- */
+.evw-top {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.evw-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--line);
+  white-space: nowrap;
+}
+
+.evw-gear.on {
+  color: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.evw-head {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.evw-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 14px;
+  background: var(--bg);
+}
+
+.evw-cell.wide {
+  grid-column: span 2;
+}
+
+.evw-cell small {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.evw-cell b {
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.evw-cell b.bad {
+  color: var(--red);
+}
+
+.evw-cell b em {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.evw-cell b em.good {
+  color: var(--green);
+}
+.evw-cell b em.warn {
+  color: #ff9f43;
+}
+.evw-cell b em.muted {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.evw-sum {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.evw-seg button {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.evw-chip i {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.evw-chip.zero {
+  opacity: 0.55;
+}
+
+.evw-cfg {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+  font-size: 13px;
+}
+
+.evw-cfg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.evw-cfg-row > span:first-child,
+.evw-cfg-rec {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.evw-cfg small {
+  font-size: 12px;
+}
+
+.evw-num-in {
+  width: 64px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.evw-cfg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 14px;
+  margin-top: 6px;
+}
+
+.evw-row.nogo {
+  cursor: default;
+}
+
+.evw-row.nogo .evw-go {
+  display: none;
+}
+
+.evw-empty p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.evw-empty small {
+  max-width: 420px;
+  font-size: 12.5px;
+}
+
+@media (max-width: 600px) {
+  .evw-head {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .evw-cfg-grid {
+    grid-template-columns: 1fr;
+  }
+  .evw-tool {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}

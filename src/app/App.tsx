@@ -34,6 +34,7 @@ import { CommunityDashes } from "./pages/CommunityDashes";
 import { ScreenshotsPage } from "./pages/ScreenshotsPage";
 import { NoticeBell } from "./components/Moderation";
 import { FriendsDock } from "./components/FriendsDock";
+import * as LC from "@/sdk/livechat";
 import { SimPicker } from "./components/SimPicker";
 import { LangPicker } from "./components/LangPicker";
 import { loadNotices } from "@/cloud/moderation";
@@ -61,6 +62,31 @@ interface NavItem {
   label: string;
   icon: () => JSX.Element;
   badge?: () => string;
+}
+
+/** Üst çubuk: canlı sohbeti başlat / durdur (Canlı Sohbet › Kanallar'daki seçenekle açılır; PRO) */
+function ChatStartButton() {
+  const chat = LC.useLiveChat();
+  const running = () => !!chat.status()?.running;
+  const [busy, setBusy] = createSignal(false);
+  const toggle = async () => {
+    if (busy()) return;
+    setBusy(true);
+    try {
+      await (running() ? LC.stop() : LC.start());
+    } catch {
+      // Başlatılamadıysa (kanal yok, giriş gerekli…) nedenini Canlı Sohbet sayfası gösterir
+      go("livechat");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button class="top-toggle top-chat" classList={{ on: running() }} disabled={busy()} title={running() ? "Canlı sohbet çalışıyor · durdurmak için tıkla" : "Canlı sohbeti başlat"} onClick={toggle}>
+      <I.MessageCircle />
+      <span>{running() ? t("Sohbet açık") : t("Sohbeti başlat")}</span>
+    </button>
+  );
 }
 
 const TOP: NavItem[] = [
@@ -248,6 +274,9 @@ export function App() {
                 <I.RefreshCw />
               </span>
             </button>
+          </Show>
+          <Show when={isPro() && settings().general.livechat.topButton}>
+            <ChatStartButton />
           </Show>
           <SimPicker />
           <NoticeBell />

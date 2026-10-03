@@ -200,6 +200,8 @@ export interface LiveChatSettings {
   channels: LiveChannel[];
   /** Varsayılan kanallar bir kez eklendi (kullanıcı silerse geri gelmez) */
   seeded: boolean;
+  /** Üst çubukta (Otomatik'in solunda) sohbeti başlat / durdur düğmesi (PRO) */
+  topButton?: boolean;
   /** Bir kerelik geçiş: kanal listesi boş kalmış eski kurulumlara varsayılan kanallar yeniden eklendi, sıra düzeltildi */
   seedV2?: boolean;
   /** YouTube sohbet yoklama aralığı (sn, 1..10) */
@@ -777,6 +779,10 @@ export interface GeneralSettings {
   minimizeOnConnect: boolean;
   /** Yarış bitince Olaylar penceresini otomatik aç (Rust `general.eventsAutoOpen` okur) */
   eventsAutoOpen: boolean;
+  /** Olaylar penceresinin kendiliğinden açılması için gereken en az olay sayısı (start/bitiş hariç; Rust okur) */
+  eventsMinCount: number;
+  /** Olaylar ekranına hangi türler kaydedilsin (Rust `general.eventsRecord` okur); others = diğer sürücülerin olayları */
+  eventsRecord: { crash: boolean; pass: boolean; pit: boolean; fast: boolean; flag: boolean; others: boolean };
   /** Telemetri: canlı oturumda tamamlanan turları kaydet ve hesaba yükle (Rust `general.telemetryRecord` okur) */
   telemetryRecord: boolean;
   returnFocus: boolean;
@@ -1100,6 +1106,8 @@ export function defaultSettings(): AppSettings {
       editBackdrop: { enabled: true, opacity: 100, rev: 0, has: false },
       minimizeOnConnect: false,
       eventsAutoOpen: true,
+      eventsMinCount: 0,
+      eventsRecord: { crash: true, pass: true, pit: true, fast: true, flag: true, others: true },
       telemetryRecord: true,
       returnFocus: true,
       timeFormat: "24",
@@ -1189,7 +1197,9 @@ export function normalize(input: unknown): AppSettings {
       appBg: { ...DEFAULT_APP_BG, ...(s.general?.appBg ?? {}) },
       screenshots: { ...d.general.screenshots, ...(s.general?.screenshots ?? {}) },
       editBackdrop: { ...d.general.editBackdrop, ...(s.general?.editBackdrop ?? {}) },
-      social: { ...d.general.social, ...(s.general?.social ?? {}) },
+      eventsRecord: { ...d.general.eventsRecord, ...(s.general?.eventsRecord ?? {}) },
+      // Mesaj almayı kapatma seçeneği kaldırıldı: her zaman açık
+      social: { ...d.general.social, ...(s.general?.social ?? {}), acceptMessages: true },
       perf: { ...d.general.perf, ...(s.general?.perf ?? {}) },
       display: { ...d.general.display, ...(s.general?.display ?? {}) },
       vr: {
@@ -1360,7 +1370,7 @@ export async function initSettings(windowName: string) {
     const s = normalize(e.payload.value);
     setSettingsSignal(s);
     changeListeners.forEach((fn) => fn(s, false));
-  });
+  }).catch((e) => console.error("Ayar değişiklikleri dinlenemedi (pencere izinlerde tanımlı mı?)", e));
 }
 
 // Değişiklikler bir kare (~16 ms) içinde birleştirilip hemen gönderilir.

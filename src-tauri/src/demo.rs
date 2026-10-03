@@ -74,6 +74,9 @@ pub struct Demo {
     next_weather_at: f64,
     incidents: i32,
     next_incident_at: f64,
+    /// Kısa süreliğine pist dışına çıkan rakip (Olaylar ekranı önizlemesi için)
+    off_idx: usize,
+    off_until: f64,
     humidity: f32,
     precip: f32,
     wetness: i32,
@@ -390,6 +393,8 @@ impl Demo {
             track,
             next_weather_at: START_T + 15.0,
             incidents: 0,
+            off_idx: usize::MAX,
+            off_until: 0.0,
             next_incident_at: START_T + rng.range(15.0, 60.0) as f64,
             humidity: rng.range(0.45, 0.75),
             precip: rng.range(0.0, 0.3),
@@ -559,6 +564,12 @@ impl Demo {
             self.car_flag = if r < 0.5 { 0x0020 } else if r < 0.8 { 0x0010_0000 } else { 0x0001_0000 };
             self.car_flag_until = t + self.rng.range(6.0, 12.0) as f64;
         }
+        // Ara sıra bir rakip pist dışına çıkar (yaklaşık dakikada bir, 2 – 4 sn)
+        if t >= self.off_until + 25.0 && self.rng.chance(0.0005) {
+            let i = (self.rng.next() * N_CARS as f32) as usize % N_CARS;
+            self.off_idx = if i == PLAYER { (i + 1) % N_CARS } else { i };
+            self.off_until = t + self.rng.range(2.0, 4.0) as f64;
+        }
         // Olay puanı: 1 – 4 dk arası rastgele (temiz turlar da olsun); iRacing'deki gibi 1x/2x/4x
         if t >= self.next_incident_at {
             let r = self.rng.next();
@@ -682,7 +693,13 @@ impl Demo {
             cs.est_time = cs.pct * lap_t;
             cs.last = c.last;
             cs.best = c.best;
-            cs.surface = if cs.on_pit { 1 } else { 3 };
+            cs.surface = if cs.on_pit {
+                1
+            } else if i == self.off_idx && t < self.off_until {
+                0
+            } else {
+                3
+            };
             cs.f2 = ((leader - c.dist) * 104.0) as f32;
         }
 

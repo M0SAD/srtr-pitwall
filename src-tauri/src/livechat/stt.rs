@@ -502,6 +502,10 @@ impl Stt {
             Some(f) => f.mask(&text),
             None => text,
         };
+        // Anket kısayolu basılıyken söylenenler anket sorusudur; altyazıya yazılmaz
+        if src == Src::Mic && super::poll_dict_take(&self.app, &text) {
+            return;
+        }
         super::hub(&self.app).push_caption(if src == Src::Mic { "mic" } else { "remote" }, &label, &text);
         self.st.lock().last = Some(text);
         self.emit();

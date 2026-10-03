@@ -16,6 +16,8 @@ use crate::model::{Frame, SessionData, MAX_CARS};
 use crate::tracker::{fmt_lap, Tracker, CF_BLUE};
 use serde::Serialize;
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 
 /// En fazla tutulan olay sayısı
 pub const MAX_EVENTS: usize = 500;
@@ -28,8 +30,8 @@ pub struct RaceEvent {
     /// Oturum zamanı (sn)
     pub time: f64,
     pub lap: i32,
-    /// incident | offTrack | pass | passed | lead | gained | lost | pitIn | pitOut |
-    /// fastest | best | flag | start | finish
+    /// incident | offTrack | invalid | pass | passed | lead | gained | lost | pitIn | pitOut |
+    /// repair | fastest | best | flag | penalty | start | finish
     pub kind: &'static str,
     /// Ek bilgi: olay puanı ("4x"), bayrak adı ("yellow") vb.
     pub sub: String,
@@ -42,6 +44,140 @@ pub struct RaceEvent {
     pub is_me: bool,
     /// Tekrarda kameranın odaklanacağı araç numarası
     pub focus: String,
+}
+
+/// Oturum özeti (Olaylar penceresinin başlığı): her canlı karede güncellenir, oturum bitince
+/// olaylarla birlikte saklanır.
+#[derive(Serialize, Clone, Default, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Summary {
+    pub car: String,
+    /// Kaydın başladığı an (Unix ms); uygulama oturumun ortasında açıldıysa oturumun başı değildir
+    pub started_at: u64,
+    /// Son karedeki oturum zamanı (sn)
+    pub duration: f64,
+    /// Oyuncunun tamamladığı tur
+    pub laps: i32,
+    /// Oyuncunun en iyi turu (sn), yoksa 0
+    pub best_lap: f32,
+    /// Sınıf içi sıra (son kare), bilinmiyorsa 0
+    pub position: i32,
+    /// Başlangıç sırası (sınıf içi), bilinmiyorsa 0
+    pub start_position: i32,
+    /// Simin bildirdiği toplam olay puanı (kayıt başlamadan önce alınanlar dahil)
+    pub incidents: i32,
+    /// Oturumun olay puanı sınırı, yoksa 0
+    pub incident_limit: i32,
+    /// Sim olay puanı veriyor mu (yalnızca iRacing ve demo)
+    pub has_incidents: bool,
+}
+
+/// Hangi olay türleri kaydedilsin (ayar: `general.eventsRecord`). Start/bitiş her zaman kaydedilir.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Record {
+    pub crash: bool,
+    pub pass: bool,
+    pub pit: bool,
+    pub fast: bool,
+    pub flag: bool,
+    /// Diğer sürücülerin olayları (kapalıysa yalnızca oyuncununkiler)
+    pub others: bool,
+}
+
+impl Default for Record {
+    fn default() -> Self {
+        Record { crash: true, pass: true, pit: true, fast: true, flag: true, others: true }
+    }
+}
+
+impl Record {
+    /// `general.eventsRecord` nesnesinden okur; eksik alanlar açık sayılır
+    pub fn from_settings(v: Option<&serde_json::Value>) -> Record {
+        let g = |k: &str| v.and_then(|v| v.get(k)).and_then(|x| x.as_bool()).unwrap_or(true);
+        Record { crash: g("crash"), pass: g("pass"), pit: g("pit"), fast: g("fast"), flag: g("flag"), others: g("others") }
+    }
+
+    fn allows(&self, ev: &RaceEvent) -> bool {
+        let cat = match category(ev.kind) {
+            "crash" => self.crash,
+            "pass" => self.pass,
+            "pit" => self.pit,
+            "fast" => self.fast,
+            "flag" => self.flag,
+            _ => return true,
+        };
+        cat && (self.others || ev.is_me)
+    }
+}
+
+/// Olay türünün süzgeç grubu (arayüzdeki çiplerle aynı): crash | pass | pit | fast | flag | session
+pub fn category(kind: &str) -> &'static str {
+    match kind {
+        "incident" | "offTrack" | "invalid" => "crash",
+        "pass" | "passed" | "lead" | "gained" | "lost" => "pass",
+        "pitIn" | "pitOut" | "repair" => "pit",
+        "fastest" | "best" => "fast",
+        "flag" | "penalty" => "flag",
+        _ => "session",
+    }
+}
+
+/// iRacing olay puanı artışının türü. Tek karede birden çok olay birleşebilir (ör. 3x = 1x + 2x).
+pub fn incident_text(delta: i32) -> &'static str {
+    match delta {
+        3 => "Pist dışı + kontrol kaybı",
+        d => crate::history::incident_kind(d),
+    }
+}
+
+/// Bekleyen ceza kodunun (Frame::penalty) açıklaması
+fn penalty_text(code: u8) -> (&'static str, &'static str) {
+    match code {
+        1 => ("driveThrough", "pit geçişi cezası"),
+        2 => ("stopGo", "dur-kalk cezası"),
+        3 => ("dq", "diskalifiye"),
+        4 => ("time", "süre cezası"),
+        _ => ("penalty", "ceza aldın"),
+    }
+}
+
+static REV: AtomicU64 = AtomicU64::new(1);
+fn next_rev() -> u64 {
+    REV.fetch_add(1, Ordering::Relaxed)
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+}
+
+/// Biten bir oturumun saklanan kopyası
+#[derive(Clone)]
+struct Snapshot {
+    sim: &'static str,
+    track: String,
+    session_kind: String,
+    session_num: i32,
+    summary: Summary,
+    events: Vec<RaceEvent>,
+}
+
+/// Olaylar penceresinin hangi oturumu istediği
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum View {
+    /// Güncel oturum; boşsa (ve varsa) önceki oturum
+    Auto,
+    Current,
+    Previous,
+}
+
+impl View {
+    pub fn parse(s: Option<&str>) -> View {
+        match s {
+            Some("current") => View::Current,
+            Some("previous") => View::Previous,
+            _ => View::Auto,
+        }
+    }
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -58,8 +194,18 @@ pub struct EventsInfo {
     pub replay_ok: bool,
     /// Liste, biten bir önceki oturuma ait (yeni oturumda henüz olay yok)
     pub previous: bool,
+    /// Saklanan bir önceki oturum var (pencerede "Önceki oturum" düğmesi)
+    pub has_previous: bool,
+    /// Güncel oturumda en az bir olay var
+    pub has_current: bool,
+    /// Liste her değiştiğinde artar (pencere gereksiz yeniden çizmesin)
+    pub rev: u64,
+    pub summary: Summary,
     pub events: Vec<RaceEvent>,
 }
+
+/// Bu kadar süre kare gelmezse (oyun kapandı/yeniden bağlandı) eski değerlerle kıyaslama yapılmaz
+const GAP: Duration = Duration::from_secs(10);
 
 // Oturum bayrakları (irsdk_Flags)
 const F_CHECKERED: u32 = 0x0001;
@@ -103,7 +249,18 @@ pub struct EventLog {
     /// Diğer kaynağın (demo ↔ canlı) listesi: önizleme/demo açılınca gerçek olaylar silinmez
     stash: Option<Box<EventLog>>,
     /// Bir önceki oturumun olayları (yeni oturum boşken gösterilir)
-    prev: Option<(String, String, i32, Vec<RaceEvent>)>,
+    prev: Option<Snapshot>,
+    summary: Summary,
+    record: Record,
+    /// Liste sürümü (bkz. EventsInfo::rev)
+    pub rev: u64,
+    /// Son karenin geldiği an (kare akışındaki kopukluğu yakalamak için)
+    last_wall: Option<Instant>,
+    prev_penalty: u8,
+    prev_repairs: i32,
+    prev_invalid: bool,
+    /// Geçersiz tur olayının yazıldığı son tur (tur başına bir kez)
+    invalid_lap: i32,
 }
 
 impl Default for EventLog {
@@ -134,6 +291,14 @@ impl Default for EventLog {
             finished: false,
             stash: None,
             prev: None,
+            summary: Summary::default(),
+            record: Record::default(),
+            rev: next_rev(),
+            last_wall: None,
+            prev_penalty: 0,
+            prev_repairs: -1,
+            prev_invalid: false,
+            invalid_lap: i32::MIN,
         }
     }
 }
@@ -143,21 +308,36 @@ impl EventLog {
         self.list.iter().cloned().collect()
     }
 
+    #[cfg(test)]
     pub fn info(&self, connected: bool) -> EventsInfo {
-        if self.list.is_empty() && !self.demo {
-            if let Some((track, kind, num, list)) = &self.prev {
-                return EventsInfo {
-                    sim: self.sim.to_string(),
-                    demo: false,
-                    connected,
-                    track: track.clone(),
-                    session_kind: kind.clone(),
-                    session_num: *num,
-                    replay_ok: connected && self.sim == "iracing",
-                    previous: true,
-                    events: list.clone(),
-                };
-            }
+        self.info_view(connected, View::Auto)
+    }
+
+    pub fn info_view(&self, connected: bool, view: View) -> EventsInfo {
+        let prev = if self.demo { None } else { self.prev.as_ref() };
+        let has_current = !self.list.is_empty();
+        let use_prev = match view {
+            View::Auto => !has_current,
+            View::Current => false,
+            View::Previous => true,
+        };
+        if let (true, Some(p)) = (use_prev, prev) {
+            return EventsInfo {
+                sim: p.sim.to_string(),
+                demo: false,
+                connected,
+                track: p.track.clone(),
+                session_kind: p.session_kind.clone(),
+                session_num: p.session_num,
+                // Aynı sim hâlâ bağlıysa önceki oturumun anlarına da sarılabilir (tekrar bütün etkinliği kapsar)
+                replay_ok: connected && p.sim == "iracing" && self.sim == "iracing",
+                previous: true,
+                has_previous: true,
+                has_current,
+                rev: self.rev,
+                summary: p.summary.clone(),
+                events: p.events.clone(),
+            };
         }
         EventsInfo {
             sim: self.sim.to_string(),
@@ -168,8 +348,42 @@ impl EventLog {
             session_num: if self.session_num == i32::MIN { -1 } else { self.session_num },
             replay_ok: connected && !self.demo && self.sim == "iracing",
             previous: false,
+            has_previous: prev.is_some(),
+            has_current,
+            rev: self.rev,
+            summary: self.summary.clone(),
             events: self.events(),
         }
+    }
+
+    /// Otomatik açılışta pencerede görünecek (start/bitiş dışındaki) olay sayısı
+    pub fn auto_count(&self) -> usize {
+        let n = self.list.iter().filter(|e| category(e.kind) != "session").count();
+        if n == 0 && self.list.is_empty() && !self.demo {
+            return self.prev.as_ref().map(|p| p.events.iter().filter(|e| category(e.kind) != "session").count()).unwrap_or(0);
+        }
+        n
+    }
+
+    pub fn set_record(&mut self, r: Record) {
+        self.record = r;
+        if let Some(s) = self.stash.as_mut() {
+            s.record = r;
+        }
+    }
+
+    fn snapshot(&self) -> Option<Snapshot> {
+        if self.demo || self.list.is_empty() {
+            return None;
+        }
+        Some(Snapshot {
+            sim: self.sim,
+            track: self.track.clone(),
+            session_kind: self.session_kind.clone(),
+            session_num: self.session_num,
+            summary: self.summary.clone(),
+            events: self.events(),
+        })
     }
 
     /// Veri kaynağı değişti (demo ↔ canlı, başka sim): liste sıfırlanır
@@ -179,14 +393,20 @@ impl EventLog {
             let back = self.stash.take().map(|b| *b).filter(|l| l.demo == demo);
             let mut cur = std::mem::take(self);
             cur.stash = None;
+            let record = cur.record;
             let mut next = back.unwrap_or_else(|| EventLog { sim: if demo { sim } else { "" }, demo, ..EventLog::default() });
             next.rebase = true;
+            next.record = record;
+            next.rev = next_rev();
             next.stash = Some(Box::new(cur));
             *self = next;
         }
         if !sim.is_empty() && !self.sim.is_empty() && sim != self.sim {
+            // Başka sime geçildi: biten oturum silinmez, "önceki oturum" olarak kalır
             let stash = self.stash.take();
-            *self = EventLog { sim, demo, stash, ..EventLog::default() };
+            let prev = self.snapshot().or_else(|| self.prev.take());
+            let (record, next_id) = (self.record, self.next_id);
+            *self = EventLog { sim, demo, stash, prev, record, next_id, ..EventLog::default() };
         }
         if !sim.is_empty() || demo {
             self.sim = sim;
@@ -196,13 +416,11 @@ impl EventLog {
     fn reset_session(&mut self, f: &Frame, s: &SessionData) {
         let (sim, demo, next_id) = (self.sim, self.demo, self.next_id);
         let stash = self.stash.take();
-        let prev = if !demo && !self.list.is_empty() {
-            Some((self.track.clone(), self.session_kind.clone(), self.session_num, self.events()))
-        } else {
-            self.prev.take()
-        };
-        *self = EventLog { sim, demo, next_id, stash, prev, ..EventLog::default() };
+        let prev = self.snapshot().or_else(|| self.prev.take());
+        let (record, last_wall) = (self.record, self.last_wall);
+        *self = EventLog { sim, demo, next_id, stash, prev, record, last_wall, ..EventLog::default() };
         self.session_num = f.session_num;
+        self.summary.started_at = now_ms();
         self.track = if s.track_config.is_empty() {
             s.track_name.clone()
         } else {
@@ -211,7 +429,11 @@ impl EventLog {
     }
 
     fn push_ev(&mut self, ev: RaceEvent) {
+        if !self.record.allows(&ev) {
+            return;
+        }
         let mut ev = ev;
+        self.rev = next_rev();
         ev.id = self.next_id;
         self.next_id += 1;
         self.list.push_back(ev);
@@ -264,15 +486,26 @@ impl EventLog {
         if rc_max < self.last_rc_id {
             self.last_rc_id = 0;
         }
+        // Kare akışı koptu mu (oyun kapanıp açıldı, bağlantı gitti geldi)? O arada olanlar bilinmez:
+        // eski değerlerle kıyaslayıp sahte olay üretme. Zaman geri gittiyse bu yeni bir oturumdur
+        // (aynı pistte aynı oturum numarasıyla yeniden başlayan antrenman eskisine karışmasın).
+        let now = Instant::now();
+        let gap = self.last_wall.map(|w| now.saturating_duration_since(w) > GAP).unwrap_or(false);
+        self.last_wall = Some(now);
+        if gap {
+            self.rebase = true;
+            self.last_rc_id = rc_max;
+        }
         if f.replay && !f.replay_live {
             // Tekrar oynatılıyor: geçmiş anlardan olay üretme, dönünce yeniden taban al
             self.last_rc_id = rc_max;
             self.rebase = true;
             return false;
         }
+        let restarted = gap && self.session_num != i32::MIN && f.session_time + 1.0 < self.last_time;
         let track_changed = !s.track_name.is_empty() && !self.track.is_empty() && !self.track.starts_with(&s.track_name);
         // Oturum değişti, pist değişti ya da zaman belirgin geri gitti (yeni yarış etkinliği)
-        if f.session_num != self.session_num || track_changed || f.session_time + 30.0 < self.last_time {
+        if f.session_num != self.session_num || track_changed || restarted || f.session_time + 30.0 < self.last_time {
             self.reset_session(f, s);
             self.last_rc_id = rc_max;
         }
@@ -285,6 +518,30 @@ impl EventLog {
         let me = if f.player_idx >= 0 && (f.player_idx as usize) < MAX_CARS { Some(f.player_idx as usize) } else { None };
         let my_car = me.map(|i| f.cars[i]);
 
+        // Oturum özeti (pencere başlığı)
+        self.summary.duration = f.session_time;
+        self.summary.incident_limit = s.incident_limit.max(0);
+        self.summary.has_incidents = self.demo || self.sim == "iracing" || f.incidents > 0;
+        if let (Some(mi), Some(c)) = (me, my_car) {
+            if let Some(d) = s.driver(mi) {
+                if !d.car_name.is_empty() {
+                    self.summary.car = d.car_name.clone();
+                }
+            }
+            self.summary.laps = c.lap_completed.max(f.lap_completed).max(0);
+            if f.lap_best > 0.0 {
+                self.summary.best_lap = f.lap_best;
+            }
+            if c.class_position > 0 {
+                self.summary.position = c.class_position;
+            }
+            let sp = t.cars.get(mi).map(|x| x.start_pos).unwrap_or(0);
+            if race && sp > 0 {
+                self.summary.start_position = sp;
+            }
+            self.summary.incidents = f.incidents.max(0);
+        }
+
         if self.rebase {
             self.rebase = false;
             self.prev_inc = f.incidents;
@@ -293,6 +550,9 @@ impl EventLog {
             self.prev_flags = f.session_flags;
             self.prev_state = f.session_state;
             self.prev_lap_completed = my_car.map(|c| c.lap_completed).unwrap_or(0);
+            self.prev_penalty = f.penalty;
+            self.prev_repairs = f.fast_repairs;
+            self.prev_invalid = f.lap_invalid;
             for i in 0..MAX_CARS {
                 self.prev_surface[i] = f.cars[i].surface;
             }
@@ -338,11 +598,28 @@ impl EventLog {
         if let Some(mi) = me {
             if f.incidents > self.prev_inc {
                 let d = f.incidents - self.prev_inc;
-                let text = crate::history::incident_kind(d).to_string();
+                let text = incident_text(d).to_string();
                 self.push(f, s, mi, "incident", &format!("{d}x"), text, mi);
+            }
+            // Olay puanı vermeyen simler (ACC, LMU/rF2, AMS2): turun geçersiz sayılması (tur başına bir kez)
+            if f.lap_invalid && !self.prev_invalid && f.is_on_track && f.lap != self.invalid_lap {
+                self.invalid_lap = f.lap;
+                self.push(f, s, mi, "invalid", "", "tur geçersiz sayıldı".into(), mi);
+            }
+            // Bekleyen ceza (ACC / AMS2 / LMU-rF2)
+            if f.penalty != 0 && f.penalty != self.prev_penalty {
+                let (sub, text) = penalty_text(f.penalty);
+                self.push(f, s, mi, "penalty", sub, text.into(), mi);
+            }
+            // Hızlı tamir hakkı kullanıldı (iRacing)
+            if self.prev_repairs > 0 && f.fast_repairs >= 0 && f.fast_repairs < self.prev_repairs {
+                self.push(f, s, mi, "repair", "", "hızlı tamir kullanıldı".into(), mi);
             }
         }
         self.prev_inc = f.incidents;
+        self.prev_invalid = f.lap_invalid;
+        self.prev_penalty = f.penalty;
+        self.prev_repairs = f.fast_repairs;
 
         // 3) Diğer araçların pist dışına çıkması (sadece yarışta; antrenmanda çok gürültülü)
         for i in 0..MAX_CARS {
@@ -653,5 +930,232 @@ mod tests {
         assert!(log.events().is_empty());
         log.set_source("iracing", false);
         assert_eq!(log.events().len(), 1);
+    }
+
+    #[test]
+    fn incident_delta_classification() {
+        assert_eq!(incident_text(1), "Pist dışı");
+        assert_eq!(incident_text(2), "Kontrol kaybı / duvar");
+        assert_eq!(incident_text(3), "Pist dışı + kontrol kaybı");
+        assert_eq!(incident_text(4), "Temas");
+        assert_eq!(incident_text(6), "Ağır temas");
+        // Her artış ayrı olay; azalma ya da aynı değer olay üretmez
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        let mut f = frame(10.0);
+        f.incidents = 5; // kayıt başlamadan önce alınmış puan
+        log.update(&f, &s, &t);
+        for (k, inc) in [6, 6, 8, 12, 12, 15].into_iter().enumerate() {
+            f.session_time = 11.0 + k as f64;
+            f.incidents = inc;
+            log.update(&f, &s, &t);
+        }
+        let subs: Vec<String> = log.events().iter().map(|e| e.sub.clone()).collect();
+        assert_eq!(subs, ["1x", "2x", "4x", "3x"]);
+        let i = log.info(true);
+        assert_eq!(i.summary.incidents, 15, "özet simin toplamını gösterir (kayıt öncesi dahil)");
+        assert!(i.summary.has_incidents);
+    }
+
+    #[test]
+    fn rollover_keeps_previous_with_summary_and_views() {
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        log.set_source("iracing", false);
+        let mut f = frame(100.0);
+        f.lap_completed = 7;
+        f.cars[0].lap_completed = 7;
+        f.lap_best = 91.25;
+        log.update(&f, &s, &t);
+        f.session_time = 101.0;
+        f.incidents = 2;
+        log.update(&f, &s, &t);
+        let cur = log.info_view(true, View::Auto);
+        assert!(!cur.previous && !cur.has_previous && cur.has_current && cur.replay_ok);
+        assert_eq!((cur.summary.laps, cur.summary.position), (7, 1));
+        assert!((cur.summary.best_lap - 91.25).abs() < 1e-4);
+
+        // Yeni oturum (boş): otomatik görünüm önceki oturumu özetiyle birlikte verir
+        f.session_num = 3;
+        f.session_time = 5.0;
+        f.incidents = 0;
+        f.cars[0].lap_completed = 0;
+        f.lap_completed = 0;
+        log.update(&f, &s, &t);
+        let a = log.info_view(true, View::Auto);
+        assert!(a.previous && a.has_previous && !a.has_current);
+        assert_eq!((a.session_num, a.events.len(), a.summary.laps, a.summary.incidents), (2, 1, 7, 2));
+        assert_eq!(log.auto_count(), 1);
+        // "Güncel" istenirse boş güncel oturum döner, önceki hâlâ erişilebilir
+        let c = log.info_view(true, View::Current);
+        assert!(!c.previous && c.has_previous && c.events.is_empty() && c.session_num == 3);
+        // Güncel oturumda olay olunca otomatik görünüm ona döner, "önceki" hâlâ istenebilir
+        f.session_time = 6.0;
+        f.incidents = 1;
+        log.update(&f, &s, &t);
+        assert!(!log.info_view(true, View::Auto).previous);
+        let p = log.info_view(true, View::Previous);
+        assert!(p.previous && p.session_num == 2 && p.events.len() == 1);
+        // Olaysız bir oturum daha: en son olaylı oturum (3) önceki olur, 2 düşer
+        f.session_num = 4;
+        f.session_time = 1.0;
+        log.update(&f, &s, &t);
+        assert_eq!(log.info(true).session_num, 3);
+        // Kimlikler oturumlar arasında tekrar etmez
+        let ids: Vec<u64> = log.info(true).events.iter().map(|e| e.id).collect();
+        assert!(ids.iter().all(|&i| i >= 2));
+    }
+
+    #[test]
+    fn sim_change_keeps_finished_session_as_previous() {
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        log.set_source("iracing", false);
+        let mut f = frame(10.0);
+        log.update(&f, &s, &t);
+        f.session_time = 11.0;
+        f.incidents = 4;
+        log.update(&f, &s, &t);
+        log.set_source("acc", false);
+        let i = log.info(true);
+        assert!(i.previous && i.sim == "iracing" && i.events.len() == 1);
+        assert!(!i.replay_ok, "başka sim bağlıyken iRacing tekrarına sarılamaz");
+    }
+
+    #[test]
+    fn demo_is_isolated_from_live_log() {
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        log.set_source("iracing", false);
+        let mut f = frame(10.0);
+        log.update(&f, &s, &t);
+        f.session_time = 11.0;
+        f.incidents = 1;
+        log.update(&f, &s, &t);
+        let live_rev = log.rev;
+
+        // Demo açıldı: demo olayları ayrı listede birikir, canlı liste görünmez
+        log.set_source("iracing", true);
+        assert_ne!(log.rev, live_rev, "kaynak değişimi pencereyi yeniler");
+        let mut d = frame(500.0);
+        d.session_num = 0;
+        log.update(&d, &s, &t);
+        d.session_time = 501.0;
+        d.incidents = 2;
+        log.update(&d, &s, &t);
+        d.session_time = 502.0;
+        d.incidents = 6;
+        log.update(&d, &s, &t);
+        let i = log.info(true);
+        assert!(i.demo && !i.previous && !i.has_previous && !i.replay_ok);
+        assert_eq!(i.events.len(), 2);
+
+        // Demo kapandı: canlı liste olduğu gibi, demo olayı yok; ilk kare yalnızca taban alır
+        log.set_source("iracing", false);
+        let i = log.info(true);
+        assert!(!i.demo && i.events.len() == 1 && i.events[0].sub == "1x");
+        f.session_time = 60.0;
+        f.incidents = 1;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().len(), 1);
+        // Demo yeniden açılınca kendi listesi kaldığı yerden sürer; canlıya hiç karışmaz
+        log.set_source("iracing", true);
+        assert_eq!(log.events().len(), 2);
+        log.set_source("iracing", false);
+        assert!(log.events().iter().all(|e| e.sub == "1x"));
+    }
+
+    #[test]
+    fn gap_rebases_and_restart_starts_new_session() {
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        let mut f = frame(600.0);
+        log.update(&f, &s, &t);
+        f.session_time = 601.0;
+        f.incidents = 4;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().len(), 1);
+
+        // Bağlantı koptu, aynı oturuma dönüldü (zaman ilerlemiş): liste sürer, aradaki fark olay sayılmaz
+        log.last_wall = Instant::now().checked_sub(Duration::from_secs(20));
+        f.session_time = 700.0;
+        f.incidents = 9;
+        f.cars[0].class_position = 3;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().len(), 1);
+        assert!(!log.info(true).previous);
+
+        // Oyun kapanıp aynı pistte aynı oturum numarasıyla yeniden açıldı (zaman baştan): yeni oturum
+        log.last_wall = Instant::now().checked_sub(Duration::from_secs(20));
+        f.session_time = 690.0;
+        f.incidents = 0;
+        log.update(&f, &s, &t);
+        assert!(log.events().is_empty());
+        let i = log.info(true);
+        assert!(i.previous && i.events.len() == 1);
+        // Kopukluk yokken küçük geri gidiş yeni oturum sayılmaz
+        f.session_time = 691.0;
+        f.incidents = 1;
+        log.update(&f, &s, &t);
+        f.session_time = 689.0;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().len(), 1);
+    }
+
+    #[test]
+    fn record_mask_and_other_sim_events() {
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        log.set_source("acc", false);
+        let mut f = frame(10.0);
+        log.update(&f, &s, &t);
+        // ACC: olay puanı yok; geçersiz tur (tur başına bir kez) ve ceza kaydedilir
+        f.session_time = 11.0;
+        f.lap_invalid = true;
+        log.update(&f, &s, &t);
+        f.session_time = 12.0;
+        f.lap_invalid = false;
+        log.update(&f, &s, &t);
+        f.session_time = 13.0;
+        f.lap_invalid = true;
+        log.update(&f, &s, &t);
+        f.session_time = 14.0;
+        f.penalty = 1;
+        log.update(&f, &s, &t);
+        f.session_time = 15.0;
+        log.update(&f, &s, &t);
+        let kinds: Vec<&str> = log.events().iter().map(|e| e.kind).collect();
+        assert_eq!(kinds, ["invalid", "penalty"]);
+        assert_eq!(log.events()[1].sub, "driveThrough");
+        assert!(!log.info(true).summary.has_incidents);
+        assert!(!log.info(true).replay_ok);
+
+        // Kayıt süzgeci: kaza grubu kapalıyken yazılmaz, diğer sürücüler kapalıyken yalnızca oyuncu
+        log.set_record(Record { crash: false, others: false, ..Record::default() });
+        f.session_time = 20.0;
+        f.lap = 4;
+        f.lap_invalid = false;
+        log.update(&f, &s, &t);
+        f.session_time = 21.0;
+        f.lap_invalid = true;
+        f.cars[2].surface = 0;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().len(), 2);
+        f.session_time = 22.0;
+        f.lap_best = 90.0;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().last().unwrap().kind, "best");
+        // Ayar nesnesi: eksik alan açık sayılır
+        let r = Record::from_settings(Some(&serde_json::json!({ "pit": false })));
+        assert!(!r.pit && r.crash && r.others);
+        assert_eq!(Record::from_settings(None), Record::default());
+        assert_eq!(category("finish"), "session");
+        assert_eq!(category("repair"), "pit");
     }
 }

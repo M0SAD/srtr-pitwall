@@ -336,6 +336,8 @@ export const onDelete = (fn: (ids: string[]) => void) => on<{ ids: string[] }>("
 export const onClear = (fn: () => void) => on("livechat-clear", () => fn());
 export const onStatus = (fn: (s: LiveChatStatus) => void) => on("livechat-status", fn);
 export const onPoll = (fn: (p: PollView) => void) => on("livechat-poll", fn);
+/** Anket kısayolu basılıyken dikte edilen soru (konuşma → yazı açıkken); active=false: tuş bırakıldı, anket başlıyor */
+export const onPollDictation = (fn: (d: { active: boolean; text: string }) => void) => on("livechat-poll-dictation", fn);
 export const onCaptions = (fn: (c: CaptionView) => void) => on("livechat-captions", fn);
 
 /**

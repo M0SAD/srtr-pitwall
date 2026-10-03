@@ -1256,7 +1256,6 @@ function MyStatusBar() {
           </div>
         </Show>
       </div>
-      {chip("acceptMessages", <I.MessageSquare />, "Mesajlar açık", "Kapalıyken kimse sana mesaj gönderemez")}
       {chip("sound", soc().sound ? <I.Volume2 /> : <I.VolumeX />, "Ses", "Yeni mesajda kısa bir ses çal")}
     </div>
   );

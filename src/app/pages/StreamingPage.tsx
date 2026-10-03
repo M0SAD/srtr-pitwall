@@ -353,9 +353,9 @@ export function StreamingPage() {
             </div>
             <Show
               when={linked()}
-              fallback={<LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={(k) => (setSel(k), k && setGhost(null))} globalScale={false} zoom={zoom()} backdrop readOnly={locked()} />}
+              fallback={<LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={(k) => (setSel(k), k && setGhost(null))} globalScale={false} zoom={zoom()} onZoom={setZoom} backdrop readOnly={locked()} />}
             >
-              <LayoutCanvas profileId={p()!.id} source={view()} readOnly backdrop width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} zoom={zoom()} />
+              <LayoutCanvas profileId={p()!.id} source={view()} readOnly backdrop width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} zoom={zoom()} onZoom={setZoom} />
               <div class="slink">
                 <div class="f2-cap">Yayında gizle</div>
                 <div class="slink-list">

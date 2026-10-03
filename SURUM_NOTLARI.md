@@ -3,6 +3,19 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-78
+
+- **Kurulum:** kurulum arayüzü artık sadece İngilizce (dil seçme penceresi kaldırıldı).
+- **Anket kısayolu (F9) ile sesli soru:** Konuşma → yazı açıkken kısayolu basılı tutup soruyu söylediğinde metin Canlı Sohbet › Anket'teki soru alanına yazılır; tuşu bırakınca anket o soruyla başlar. Kısa dokunuş eskisi gibi sorusuz anketi başlatır; anket sürerken basmak bitirir. Dikte edilen soru altyazıya yazılmaz.
+
+## 031026-77
+
+- **Düzenleme tuvali:** imleç tuvalin üstündeyken Space basılı tutup fare tekeriyle yakınlaştırma / uzaklaştırma (Düzenler ve Yayın sayfaları).
+- **Yarış sonrası Olaylar penceresi:** pencerenin boş açılmasının asıl nedeni (pencere izin listesinde yoktu, ayarları yükleyemeyip hiç çizilmiyordu) giderildi. Ayrıca: oturum özeti başlığı (pist, araç, oturum, tur, en iyi tur, bitiş sırası, olay puanı), "Bu oturum / Önceki oturum" geçişi, sayılı süzgeçler, metin kopyalama ve CSV kaydı, ayar paneli (kendiliğinden açılma, en az olay sayısı, kaydedilecek türler). Olay olmayan oturumda replay başlayınca boş pencere açılmıyor; oyun değiştirince biten oturum silinmiyor; bağlantı kopup gelince sahte olay yazılmıyor.
+- **Arkadaşlar:** "Mesajlar açık" düğmesi kaldırıldı; mesaj alma her zaman açık.
+- **Windows başlangıcı:** uygulama varsayılan olarak Windows açılışında sistem tepsisinde başlar (mevcut kurulumlarda da bir kez açılır; Ayarlar › Genel'den kapatılabilir).
+- **Canlı Sohbet (PRO):** Kanallar sekmesinde "Üst çubuğa başlatma düğmesi ekle" seçeneği; açılınca üst çubukta oyun seçicinin solunda sohbeti başlatan / durduran düğme çıkar.
+
 ## 031026-76
 
 - **Overlaylarım:** overlay sırası artık fareyle sürükleyip bırakarak değiştiriliyor (oklar kaldırıldı; sağ tık menüsü duruyor).

@@ -544,9 +544,20 @@ fn replay_live() -> Result<(), String> {
 // ---- Olaylar ekranı ----
 
 #[tauri::command]
-fn events_get(state: State<'_, Arc<Shared>>) -> events::EventsInfo {
+fn events_get(state: State<'_, Arc<Shared>>, view: Option<String>) -> events::EventsInfo {
     let connected = state.connected.load(Ordering::Relaxed);
-    state.events.lock().info(connected)
+    // view: "current" | "previous" | yok (güncel oturum boşsa önceki oturum)
+    state.events.lock().info_view(connected, events::View::parse(view.as_deref()))
+}
+
+/// Olay listesini (metin ya da CSV) kullanıcının kaydetme penceresinde seçtiği dosyaya yazar.
+#[tauri::command]
+fn events_export(path: String, text: String) -> Result<(), String> {
+    let low = path.to_lowercase();
+    if !low.ends_with(".csv") && !low.ends_with(".txt") {
+        return Err("Dosya uzantısı .csv ya da .txt olmalı".into());
+    }
+    std::fs::write(&path, text).map_err(|e| e.to_string())
 }
 
 /// Olayın ~5 sn öncesine iRacing tekrarını sarar, kamerayı araca çevirir ve 1x oynatır.
@@ -1331,18 +1342,20 @@ fn spawn_monitor_watch(app: AppHandle) {
     });
 }
 
-/// İlk kurulumda (daha önce ayar dosyası yoksa) "Windows ile başlat" bir kez açılır.
-/// İşaret dosyası sayesinde kullanıcı sonradan kapatırsa tekrar açılmaz; mevcut kullanıcılara dokunulmaz.
-fn autostart_first_run(app: &AppHandle, had_settings: bool) {
+/// "Windows ile başlat" (sistem tepsisinde, --tray) varsayılan olarak açıktır: ilk kurulumda ve bu varsayılanın
+/// geldiği sürüme güncellenen mevcut kurulumlarda bir kez açılır. İşaret dosyası sayesinde kullanıcı sonradan
+/// kapatırsa tekrar açılmaz.
+fn autostart_first_run(app: &AppHandle, _had_settings: bool) {
     let Ok(dir) = app.path().app_config_dir() else { return };
-    let marker = dir.join("autostart.init");
+    // v2: mevcut kurulumlar da bir kez açılır (eski "autostart.init" sadece yeni kurulumları açıyordu)
+    let marker = dir.join("autostart.v2");
     if marker.exists() {
         return;
     }
     let _ = std::fs::create_dir_all(&dir);
     let _ = std::fs::write(&marker, b"1");
     // Geliştirme derlemesi kendini başlangıca eklemesin
-    if had_settings || cfg!(debug_assertions) {
+    if cfg!(debug_assertions) {
         return;
     }
     use tauri_plugin_autostart::ManagerExt;
@@ -1902,9 +1915,6 @@ fn shortcuts_status(app: AppHandle) -> Vec<ShortcutError> {
 fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
     let plugin = tauri_plugin_global_shortcut::Builder::new()
         .with_handler(move |app, shortcut, event| {
-            if event.state() != ShortcutState::Pressed {
-                return;
-            }
             let action = app
                 .state::<KeyBindings>()
                 .bound
@@ -1912,6 +1922,13 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 .iter()
                 .find(|(_, s)| s.id() == shortcut.id())
                 .map(|(a, _)| a.clone());
+            if event.state() != ShortcutState::Pressed {
+                // Tuş bırakıldı: sadece anket kısayolu kullanır (basılı tutup soruyu söyle, bırakınca anket başlar)
+                if event.state() == ShortcutState::Released && action.as_deref() == Some("poll") {
+                    livechat::hotkey_poll_up(app);
+                }
+                return;
+            }
             match action.as_deref() {
                 Some("edit") => {
                     let on = !shared(app).edit_mode.load(Ordering::Relaxed);
@@ -1980,6 +1997,7 @@ pub fn run() {
             replay_live,
             crew_pit_command,
             events_get,
+            events_export,
             replay_seek,
             window_open,
             crew_window_open,

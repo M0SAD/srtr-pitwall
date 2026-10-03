@@ -426,6 +426,7 @@ export function LayoutsPage() {
               if (k) setGhost(null);
             }}
             zoom={zoom()}
+            onZoom={setZoom}
             backdrop
             readOnly={locked()}
           />
@@ -507,7 +508,7 @@ export function CanvasTools(props: { zoom: number; setZoom: (z: number) => void 
         <button type="button" class="ur-btn" title="Uzaklaştır" disabled={props.zoom <= 0.5} onClick={() => step(-0.25)}>
           <ZoomOut />
         </button>
-        <button type="button" class="ctools-pct" title="Sığdır (%100)" onClick={() => props.setZoom(1)} data-no-i18n>
+        <button type="button" class="ctools-pct" title="Sığdır (%100) · Space + fare tekeri: yakınlaştır / uzaklaştır" onClick={() => props.setZoom(1)} data-no-i18n>
           %{Math.round(props.zoom * 100)}
         </button>
         <button type="button" class="ur-btn" title="Yakınlaştır" disabled={props.zoom >= 3} onClick={() => step(0.25)}>
