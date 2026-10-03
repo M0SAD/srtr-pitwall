@@ -2,7 +2,7 @@
 // sıralanabilir liste, renk, metin, resim).
 
 import { For, Show, createSignal } from "solid-js";
-import { fieldVisible, orderValue, type SettingField } from "@/sdk/overlay";
+import { fieldVisible, orderValue, selectOptions, type SettingField } from "@/sdk/overlay";
 import { isPro } from "@/cloud/account";
 import { optionLocked, optionRequiresPro, settingLocked, settingRequiresPro } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
@@ -107,7 +107,30 @@ export function Stepper(props: { value: number; min: number; max: number; step?:
   );
 }
 
-function OrderList(props: { f: Of<"order">; value: unknown; onChange: (v: unknown) => void }) {
+function OrderList(props: {
+  f: Of<"order">;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  /** Sütun genişlikleri (f.widths varsa): Record<sütun, px>; kayıt yoksa sütun varsayılan genişliğinde */
+  widths?: unknown;
+  onWidths?: (v: Record<string, number>) => void;
+}) {
+  const wc = () => props.f.widths;
+  const wmap = () => (props.widths && typeof props.widths === "object" ? (props.widths as Record<string, number>) : {});
+  const wOf = (k: string) => {
+    const v = Number(wmap()[k]);
+    return Number.isFinite(v) && v > 0 ? v : undefined;
+  };
+  const wMin = (k: string) => wc()?.mins?.[k] ?? wc()?.min ?? 16;
+  const wMax = () => wc()?.max ?? 400;
+  const wStep = () => wc()?.step ?? 2;
+  const setW = (k: string, v: number | undefined) => {
+    const m = { ...wmap() };
+    if (v === undefined || !Number.isFinite(v)) delete m[k];
+    else m[k] = Math.max(wMin(k), Math.min(wMax(), Math.round(v)));
+    props.onWidths?.(m);
+  };
+  const bump = (k: string, dir: number) => setW(k, (wOf(k) ?? wc()?.start[k] ?? 40) + dir * wStep());
   const list = () => orderValue(props.f, props.value);
   const label = (k: string) => props.f.options.find((o) => o.value === k)?.label ?? k;
   const [drag, setDrag] = createSignal<number | null>(null);
@@ -140,6 +163,29 @@ function OrderList(props: { f: Of<"order">; value: unknown; onChange: (v: unknow
           >
             <span class="olist-grip">⠿</span>
             <span class="olist-name">{label(it.key)}</span>
+            <Show when={wc() && props.onWidths}>
+              <span class="olist-w" classList={{ set: wOf(it.key) !== undefined }} draggable={true} onDragStart={(e) => (e.preventDefault(), e.stopPropagation())}>
+                <button onClick={() => bump(it.key, -1)} disabled={(wOf(it.key) ?? Infinity) <= wMin(it.key)} title="Sütunu daralt">
+                  −
+                </button>
+                <input
+                  type="number"
+                  min={wMin(it.key)}
+                  max={wMax()}
+                  step={wStep()}
+                  value={wOf(it.key) ?? ""}
+                  placeholder="oto"
+                  title="Sütun genişliği (px)"
+                  onChange={(e) => setW(it.key, e.currentTarget.value.trim() === "" ? undefined : Number(e.currentTarget.value))}
+                />
+                <button onClick={() => bump(it.key, 1)} disabled={(wOf(it.key) ?? 0) >= wMax()} title="Sütunu genişlet">
+                  +
+                </button>
+                <button class="olist-w-reset" disabled={wOf(it.key) === undefined} onClick={() => setW(it.key, undefined)} title="Varsayılan genişlik">
+                  ↺
+                </button>
+              </span>
+            </Show>
             <button class="olist-arrow" disabled={i() === 0} onClick={() => move(i(), i() - 1)} title="Yukarı">
               ▲
             </button>
@@ -150,6 +196,14 @@ function OrderList(props: { f: Of<"order">; value: unknown; onChange: (v: unknow
           </div>
         )}
       </For>
+      <Show when={wc() && props.onWidths}>
+        <div class="olist-wfoot">
+          <small>Genişlik px cinsindendir; boş (oto) = varsayılan genişlik.</small>
+          <button class="btn ghost small" disabled={Object.keys(wmap()).length === 0} onClick={() => props.onWidths?.({})}>
+            Sütun genişliklerini sıfırla
+          </button>
+        </div>
+      </Show>
     </div>
   );
 }
@@ -307,7 +361,7 @@ export function SettingsForm(props: {
     </Show>
   );
   const showProHint = (f: SettingField) =>
-    !!f.proHint && !isPro() && (f.type !== "select" || f.options.some((o) => optionLocked(props.overlayId, f.key, o)));
+    !!f.proHint && !isPro() && (f.type !== "select" || selectOptions(f).some((o) => optionLocked(props.overlayId, f.key, o)));
   return (
     <div class="form2">
       <For each={props.fields}>
@@ -372,7 +426,7 @@ export function SettingsForm(props: {
                       value={(props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key]}
                       onChange={(e) => {
                         const v = e.currentTarget.value;
-                        const o = sf().options.find((x) => x.value === v);
+                        const o = selectOptions(sf()).find((x) => x.value === v);
                         if (o && optionLocked(props.overlayId, f.key, o) && props.onPreview) {
                           // PRO tasarım: görsün ama kaydedilmesin
                           props.onPreview(f.key, v);
@@ -382,7 +436,7 @@ export function SettingsForm(props: {
                         props.onChange(f.key, v);
                       }}
                     >
-                      <For each={sf().options}>
+                      <For each={selectOptions(sf())}>
                         {(o) => (
                           <option
                             value={o.value}
@@ -470,7 +524,13 @@ export function SettingsForm(props: {
                       {of().label}
                       <Tag f={f} />
                     </div>
-                    <OrderList f={of()} value={val(f)} onChange={(v) => change(f, v)} />
+                    <OrderList
+                      f={of()}
+                      value={val(f)}
+                      onChange={(v) => change(f, v)}
+                      widths={of().widths && !locked(f) ? props.values[of().widths!.key] : undefined}
+                      onWidths={of().widths && !locked(f) ? (m) => props.onChange(of().widths!.key, m) : undefined}
+                    />
                   </>
                 )}
               </Show>

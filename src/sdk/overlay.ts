@@ -8,6 +8,10 @@ export interface ShowIf {
   is?: unknown[];
   /** Bu değerlerden birine eşitse gizle */
   not?: unknown[];
+  /** `is` ile birlikte: değer (yazı) bu öneklerden biriyle başlıyorsa da göster (ör. "dash:" = kullanıcının tasarımı) */
+  isPrefix?: string[];
+  /** Değer (yazı) bu öneklerden biriyle başlıyorsa gizle */
+  notPrefix?: string[];
 }
 
 interface FieldBase {
@@ -35,6 +39,8 @@ export interface SelectOption {
   value: string;
   label: string;
   pro?: boolean;
+  /** Kilit kuralı (PRO özellikleri kararı) bu seçenek değerininkiyle aynı; `optionsFrom` ile gelen seçenekler için */
+  lockAs?: string;
 }
 
 /** Ayar panelinde otomatik form üretmek için alan tanımları. */
@@ -50,7 +56,14 @@ export type SettingField =
       /** "slider" (varsayılan) ya da "stepper" (- / + düğmeleri) */
       ui?: "slider" | "stepper";
     })
-  | (FieldBase & { type: "select"; default: string; options: SelectOption[] })
+  | (FieldBase & {
+      type: "select";
+      default: string;
+      options: SelectOption[];
+      /** Kullanıcı verisinden gelen EK seçenekler (ör. kendi dashboard tasarımları): sabit seçeneklerin sonuna eklenir,
+       *  PRO kataloğuna girmez. Ayar formu `selectOptions()` ile okur. */
+      optionsFrom?: () => SelectOption[];
+    })
   | (FieldBase & { type: "color"; default: string })
   | (FieldBase & { type: "text"; default: string; placeholder?: string })
   /** Diskten resim seçimi: küçültülüp (en fazla `maxSize` px, oran korunur) PNG data URL olarak saklanır; boş = yok */
@@ -58,7 +71,14 @@ export type SettingField =
   /** Çoklu seçim (ör. başlık alanları); `max` en fazla seçim */
   | (FieldBase & { type: "multi"; default: string[]; options: { value: string; label: string }[]; max?: number })
   /** Sıralanabilir ve açılıp kapatılabilir liste (ör. sütunlar) */
-  | (FieldBase & { type: "order"; default: { key: string; on: boolean }[]; options: { value: string; label: string }[] });
+  | (FieldBase & {
+      type: "order";
+      default: { key: string; on: boolean }[];
+      options: { value: string; label: string }[];
+      /** Sütun genişliği ayarı: `key` adlı seçenekte Record<sütun, px> saklanır (yoksa = varsayılan genişlik).
+       * `start`: varsayılandan ilk kez değiştirilirken başlanacak yaklaşık px; `mins`: sütuna özel alt sınır. */
+      widths?: { key: string; start: Record<string, number>; min?: number; max?: number; step?: number; mins?: Record<string, number> };
+    });
 
 export type OverlayCategory = "race" | "driving" | "info" | "stream";
 
@@ -169,7 +189,15 @@ export function fieldVisible(f: { showIf?: ShowIf }, values: Record<string, unkn
   const c = f.showIf;
   if (!c) return true;
   const v = values[c.key];
-  if (c.is && !c.is.includes(v)) return false;
+  const pre = (list?: string[]) => typeof v === "string" && !!list?.some((x) => v.startsWith(x));
+  if (c.is && !c.is.includes(v) && !pre(c.isPrefix)) return false;
   if (c.not && c.not.includes(v)) return false;
+  if (pre(c.notPrefix)) return false;
   return true;
+}
+
+/** Seçim alanının geçerli seçenekleri: sabit olanlar + kullanıcı verisinden gelenler (`optionsFrom`) */
+export function selectOptions(f: { options: SelectOption[]; optionsFrom?: () => SelectOption[] }): SelectOption[] {
+  const extra = f.optionsFrom?.();
+  return extra?.length ? [...f.options, ...extra] : f.options;
 }

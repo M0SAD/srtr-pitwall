@@ -97,12 +97,19 @@ export default function Relative(props: OverlayProps) {
     return all.slice(Math.max(0, me - n), me + n + 1);
   });
 
+  /** Elle ayarlanmış sütun genişliği (px); 0 = varsayılan */
+  const colW = (key: string) => {
+    const v = Number((props.options.colWidths as Record<string, unknown> | undefined)?.[key]);
+    return Number.isFinite(v) && v > 0 ? Math.max(2, Math.min(600, v)) : 0;
+  };
+
   const columns = createMemo(() =>
     orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options))
       .filter((c) => c.on)
-      .map((c) => c.key),
+      // Genişliği elle ayarlanmış sütun "*" ile işaretlenir: hücre sabit genişlikli sarmalayıcıya girer
+      .map((c) => (colW(c.key) ? c.key + "*" : c.key)),
   );
-  const isOn = (k: string) => columns().includes(k);
+  const isOn = (k: string) => columns().includes(k) || columns().includes(k + "*");
   /** Tahmini iRating değişimi yalnızca yarışta dolu gelir: diğer oturumlarda yer ayrılmaz */
   const delta = createMemo(() => props.options.showIrDelta !== false && (data()?.rows ?? []).some((r) => r.irDelta !== 0));
 
@@ -176,6 +183,19 @@ export default function Relative(props: OverlayProps) {
     return null;
   };
 
+  const col = (c: string, r: Row) => {
+    if (!c.endsWith("*")) return cell(c, r);
+    const key = c.slice(0, -1);
+    return (
+      // Tek rozet açıkken iRating sütunu lisans rozetine taşınır: boş sarmalayıcı yer kaplamasın
+      <Show when={!(key === "irating" && settings().theme.combineLicense && isOn("license"))}>
+        <span class="rel-cw" classList={{ "rel-cw-name": key === "name" }} style={{ "--cw": String(colW(key)) }}>
+          {cell(key, r)}
+        </span>
+      </Show>
+    );
+  };
+
   const rowClass = (r: Row) =>
     r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
 
@@ -191,7 +211,7 @@ export default function Relative(props: OverlayProps) {
           <For each={rows()}>
             {(r) => (
               <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
-                <For each={columns()}>{(c) => cell(c, r)}</For>
+                <For each={columns()}>{(c) => col(c, r)}</For>
               </div>
             )}
           </For>

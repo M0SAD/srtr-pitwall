@@ -754,10 +754,10 @@
   "ov_rejoin_h": "Écart de temps avec les voitures les plus proches qui arrivent de derrière|T'indique si tu peux reprendre la piste en sécurité|N'occupe aucune place à l'écran quand il n'est pas nécessaire",
   "ov_dashboard_n": "Écran du volant",
   "ov_dashboard_d": "Un tableau de bord comme les écrans des volants de course.",
-  "ov_dashboard_h": "Vues Classique, Minimal, Course et Endurance + sélection automatique selon la voiture|PRO : 10 écrans façon voiture inspirés de vraies voitures de course (F1, F3/F4/FR, trois styles GT3, LMDh/LMH, stock car, rallye, TCR, voiture de route)|LED de régime : blocs, F1 (15 LED) ou barre ; clignotent au point de passage|Référence du delta (ton meilleur / meilleur de la session / optimal) et cases du bas au choix|Chaque élément est réglable : afficher / masquer, taille et couleur (LED de régime, rapport, vitesse, delta, temps au tour, carburant, pneus…)|PRO : Designer de dashboard – glisse des composants sur un canevas pour concevoir ton propre écran et l'ajouter en overlay|PRO : dash à distance – ouvre l'écran sur un téléphone ou une tablette du même réseau (QR code)",
+  "ov_dashboard_h": "Vues Classique, Minimal, Course et Endurance + sélection automatique selon la voiture|PRO : 10 écrans façon voiture inspirés de vraies voitures de course (F1, F3/F4/FR, trois styles GT3, LMDh/LMH, stock car, rallye, TCR, voiture de route)|LED de régime : blocs, F1 (15 LED) ou barre ; clignotent au point de passage|Référence du delta (ton meilleur / meilleur de la session / optimal) et cases du bas au choix|Chaque élément est réglable : afficher / masquer, taille et couleur (LED de régime, rapport, vitesse, delta, temps au tour, carburant, pneus…)|PRO : Designer de dashboard – glisse des composants sur un canevas pour concevoir ton propre écran, l'ajouter en overlay et le partager avec la communauté (notes et commentaires)|PRO : dash à distance – ouvre l'écran sur un téléphone ou une tablette du même réseau (QR code)",
   "ov_inputs_n": "Pédales & Entrées",
   "ov_inputs_d": "Tracé accélérateur / frein / embrayage, barres de pédales, rapport, vitesse et direction.",
-  "ov_inputs_h": "7 designs : par défaut, graphique de télémétrie + barres, barres verticales, bande compacte|Designs PRO : bandes horizontales, jauges en anneau, style sim (classique)|Volant assorti à la voiture ; PRO : volants Formule, GT, prototype, rallye, ovale et classique en bois|60 Hz ; témoins ABS / TC, ligne de direction sur le graphique",
+  "ov_inputs_h": "4 designs : par défaut, graphique de télémétrie + barres, graphique large ; PRO : style sim (classique)|Volant assorti à la voiture ou au volant connecté ; PRO : volants Formule, GT, prototype, rallye, ovale et classique en bois|Pourcentages accélérateur / frein et lignes dernier tour et meilleur tour en option|60 Hz ; témoins ABS / TC, ligne de direction sur le graphique",
   "ov_telemetry_n": "Panneau télémétrie",
   "ov_telemetry_d": "Anneau de rapport et compte-tours dans une seule bande.",
   "ov_telemetry_h": "Vitesse et shift lights|Position et dernier tour|Carburant et température de piste",
@@ -1064,5 +1064,8 @@
   "fr_kick_ask": "Retirer {0} du groupe ?",
   "fr_leave_owner_ask": "Si tu quittes \"{0}\", la propriété passe au membre le plus ancien. Quitter ?",
   "fr_hiding": "se cache",
-  "fr_hiding_tip": "Ce membre a choisi d'apparaître hors ligne ; seuls les administrateurs le voient."
+  "fr_hiding_tip": "Ce membre a choisi d'apparaître hors ligne ; seuls les administrateurs le voient.",
+  "ov_pedals_n": "Pédalier",
+  "ov_pedals_d": "Affichage des pédales sans graphique : accélérateur / frein / embrayage, pourcentages, rapport, vitesse et volant.",
+  "ov_pedals_h": "8 designs : pédalier, barres verticales, bande compacte, segments LED, tour verticale ; PRO : bandes horizontales, jauges en anneau, HUD sans cadre|Étiquettes de pourcentage, indication ABS / TC par couleur et cadre|Ligne dernier tour / meilleur tour en option|Couleurs d'accélérateur et de frein personnalisables"
 }

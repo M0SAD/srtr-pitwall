@@ -12,6 +12,8 @@ export interface CommunityStats {
   layouts: number;
   streams: number;
   themes: number;
+  /** Direksiyon ekranı tasarımları (c66 öncesi sunucuda yok) */
+  dashes?: number;
   comments: number;
   ratings: number;
   downloads: number;

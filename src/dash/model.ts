@@ -100,6 +100,8 @@ export interface CustomDash {
   font: "digital" | "mono" | "sans";
   radius: number;
   pages: DashPage[];
+  /** Toplulukta paylaşıldıysa paylaşımın kimliği (yerel işaret; paylaşılan veriye girmez). Sonraki paylaşımda "öncekini güncelle" sorulur. */
+  sharedId?: string;
 }
 
 export const MAX_DASHES = 20;
@@ -498,6 +500,7 @@ export function cloneDash(d: CustomDash, name: string): CustomDash {
   const c = structuredClone(d);
   c.id = newId("d");
   c.name = name;
+  delete c.sharedId;
   for (const p of c.pages) {
     p.id = newId("p");
     for (const w of p.widgets) w.id = newId();
@@ -713,6 +716,7 @@ export function sanitizeDash(input: unknown): CustomDash | null {
     font: s.font === "mono" || s.font === "sans" ? s.font : "digital",
     radius: num(s.radius, 10, 0, 200),
     pages,
+    ...(typeof s.sharedId === "string" && /^[0-9a-f-]{36}$/i.test(s.sharedId) ? { sharedId: s.sharedId } : {}),
   };
 }
 
@@ -740,4 +744,9 @@ export function rgba(hex: string | undefined, a: number): string {
  *  "Tasarım" seçeneklerini buradan okur; manifest ayar modülünü içe aktarmasın diye (döngü) burada durur. */
 export const [dashList, setDashList] = createSignal<CustomDash[]>([]);
 /** Ayarlardaki kimliğe göre tasarım; yoksa ilki */
+/** Direksiyon Ekranı "Görünüm" değerinde kullanıcının tasarımı: "dash:<kimlik>" */
+export const DASH_VIEW = "dash:";
+export const dashView = (id: string) => DASH_VIEW + id;
+/** Görünüm değeri bir kullanıcı tasarımıysa kimliği */
+export const dashViewId = (view: unknown) => (typeof view === "string" && view.startsWith(DASH_VIEW) ? view.slice(DASH_VIEW.length) : undefined);
 export const dashById = (list: CustomDash[], id: string | undefined) => list.find((d) => d.id === id) ?? list[0];

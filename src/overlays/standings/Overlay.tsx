@@ -59,13 +59,20 @@ function legacyColumns(o: Record<string, unknown>) {
 export default function Standings(props: OverlayProps) {
   const data = useTopic("standings");
 
+  /** Elle ayarlanmış sütun genişliği (px); 0 = varsayılan */
+  const colW = (key: string) => {
+    const v = Number((props.options.colWidths as Record<string, unknown> | undefined)?.[key]);
+    return Number.isFinite(v) && v > 0 ? Math.max(2, Math.min(600, v)) : 0;
+  };
+
   const columns = createMemo(() =>
     orderValue(
       { options: STANDINGS_COLUMNS, default: STANDINGS_DEFAULT_COLUMNS },
       props.options.columns ?? legacyColumns(props.options),
     )
       .filter((c) => c.on)
-      .map((c) => c.key),
+      // Genişliği elle ayarlanmış sütun "*" ile işaretlenir: hücre sabit genişlikli sarmalayıcıya girer
+      .map((c) => (colW(c.key) ? c.key + "*" : c.key)),
   );
 
   // Satır kimliği araç idx'ine göre sabit: her pakette DOM (logo/bayrak resimleri) yeniden kurulmaz
@@ -190,6 +197,19 @@ export default function Standings(props: OverlayProps) {
     return null;
   };
 
+  const col = (c: string, r: Row): JSX.Element => {
+    if (!c.endsWith("*")) return cell(c, r);
+    const key = c.slice(0, -1);
+    return (
+      // irDelta yalnızca yarışta yer kaplar
+      <Show when={key !== "irDelta" || data()?.race}>
+        <span class="st-cw" classList={{ "st-cw-name": key === "name" }} style={{ "--cw": String(colW(key)) }}>
+          {cell(key, r)}
+        </span>
+      </Show>
+    );
+  };
+
   const rowBg = () => (props.options.rowOpacity as number) ?? 100;
 
   return (
@@ -241,7 +261,7 @@ export default function Standings(props: OverlayProps) {
                     <div class="st-row" classList={{ me: r.isMe, pit: r.onPit }} style={r.isMe ? undefined : friendRowStyle("standings", r.userId, r.name)}>
                       <span class="st-accent" style={{ background: r.classColor || "#888" }} />
                       <span class="st-pos">{data()?.multiclass ? r.classPos : r.pos}</span>
-                      <For each={columns()}>{(c) => cell(c, r)}</For>
+                      <For each={columns()}>{(c) => col(c, r)}</For>
                     </div>
                   )
                 }

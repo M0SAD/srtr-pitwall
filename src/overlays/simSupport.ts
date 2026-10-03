@@ -40,7 +40,7 @@ export const SIM_NAMES: Record<SimFamily, string> = {
 
 /**
  * Overlay'in ÇALIŞMADIĞI simler. Listede olmayan overlay her simde çalışır
- * (scene, webview, corners, inputs, telemetry, fuel, laptimes, tires, weather,
+ * (scene, webview, corners, inputs, pedals, telemetry, fuel, laptimes, tires, weather,
  * session, digiflags, dataframe, dashboard, trackmap, minimap, pitspeed, gforce...).
  *
  * Kısmen çalışıp yine de işe yarayanlar bilerek listede değil:

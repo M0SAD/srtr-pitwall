@@ -3,6 +3,20 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-76
+
+- **Overlaylarım:** overlay sırası artık fareyle sürükleyip bırakarak değiştiriliyor (oklar kaldırıldı; sağ tık menüsü duruyor).
+- **Sıralama Tablosu ve Yakındakiler:** her sütunun genişliği ayarlanabiliyor (sütun listesinde − / px / + / ↺; "Sütun genişliklerini sıfırla").
+- **Seslendirme: Edge doğal sesleri.** Python sohbet uygulamandaki ses motoru (Microsoft Edge çevrimiçi nöral sesleri; Ahmet, Emel ve diğer diller) eklendi ve varsayılan yapıldı. İnternet gerekir; ulaşılamazsa o mesaj Windows sesiyle okunur.
+- **Direksiyon Ekranı: Mercedes W13.** Gönderdiğin iki sayfalı ekran düzeniyle yeniden yapıldı ("Sayfa" ayarı; sonraki sayfa kısayolu da çalışır).
+- **Dashboard Tasarımcısı:** tasarımların Direksiyon Ekranı › Görünüm listesinde "Tasarımlarım: …" olarak doğrudan seçilebiliyor; tasarımcıya "Direksiyon Ekranı'nda kullan" ve "Paylaş" düğmeleri eklendi.
+- **Topluluk › Direksiyon Ekranları:** tasarımlar önizlemeyle paylaşılır, indirilir, puanlanır ve yorumlanır; şikâyet ve moderasyon diğer paylaşımlarla aynı.
+- **Yeni overlay: Pedal Seti.** Dikey çubuklar, kompakt şerit, yatay şeritler, halka göstergeler, LED segmentler, dikey kule, pedal seti ve çerçevesiz HUD tasarımları Pedallar & Girdi'den buraya taşındı; varsayılan görünüm Pedal Seti. Bu tasarımları kullanan ekli overlay'ler kendiliğinden Pedal Seti'ne çevrilir (konum korunur).
+- **Logolar:** Ford biraz küçültüldü; McLaren logosu gönderdiğin görselle değiştirildi.
+- **Sohbete yaz (YouTube / Kick):** Client ID uyuşmazlığı, IPv6 localhost dinleyicisi ve gizlenen hata nedenleri düzeltildi; her platforma "Bağlantıyı test et" eklendi. chat-oauth işlevi güncellendi.
+- **Ekip:** sohbet odası ve Ekip Pitwall'ı her 3 saniyede sıfırlanıp yeniden yükleniyordu; artık yerinde güncelleniyor, kaydırma konumu korunuyor (web sitesi paneli dahil).
+- Veritabanı: c66 (paylaşılan direksiyon ekranları, puan ve yorumları).
+
 ## 031026-75
 
 - Windows derleme hatası giderildi (E0061): sesli komutların sesli yanıtı, yeni ses motorunun 6 parametreli çağrısına uyarlandı. Başka değişiklik yok.

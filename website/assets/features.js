@@ -35,6 +35,7 @@ const OVERLAYS = [
     [
       ["dashboard", "🎛️", "mixed"],
       ["inputs", "🦶", "mixed"],
+      ["pedals", "🎚️", "mixed"],
       ["ers", "🔋", "mixed"],
       ["gforce", "🌀", "free"],
       ["telemetry", "⚙️", "free"],
@@ -243,14 +244,23 @@ addDict({
   ov_dashboard_n: ["Direksiyon Ekranı", "Steering Wheel Display"],
   ov_dashboard_d: ["Yarış direksiyonlarındaki ekranlar gibi bir gösterge paneli.", "A dash like the screens on racing steering wheels."],
   ov_dashboard_h: [
-    "Klasik, Minimal, Yarış ve Dayanıklılık görünümleri + araca göre otomatik seçim|PRO: gerçek yarış araçlarından esinlenen 10 araç tarzı ekran (F1, F3/F4/FR, üç GT3 tarzı, LMDh/LMH, stock car, ralli, TCR, yol arabası)|Devir ışıkları: bloklar, F1 (15 LED) ya da çubuk; vites noktasında yanıp söner|Delta referansı (kendi en iyin / oturumun en iyisi / optimal) ve seçilebilir alt kutular|Her öğe ayrı ayarlanır: göster / gizle, boyut ve renk (devir ışıkları, vites, hız, delta, tur süreleri, yakıt, lastikler…)|PRO: Dashboard Tasarımcısı – bileşenleri tuvale sürükleyip kendi ekranını tasarla, overlay olarak ekle|PRO: uzak gösterge – ekranı aynı ağdaki telefon ya da tablette aç (QR kodla)",
-    "Classic, Minimal, Race and Endurance views + automatic selection by car|PRO: 10 car-style displays inspired by real race cars (F1, F3/F4/FR, three GT3 styles, LMDh/LMH, stock car, rally, TCR, road car)|Shift lights: blocks, F1 (15 LEDs) or bar; flashes at the shift point|Delta reference (your best / session best / optimal) and selectable bottom boxes|Every element is adjustable: show / hide, size and colour (shift lights, gear, speed, delta, lap times, fuel, tyres…)|PRO: Dashboard Designer – drag widgets onto a canvas to build your own display and add it as an overlay|PRO: remote dash – open the display on a phone or tablet in the same network (QR code)",
+    "Klasik, Minimal, Yarış ve Dayanıklılık görünümleri + araca göre otomatik seçim|PRO: gerçek yarış araçlarından esinlenen 10 araç tarzı ekran (F1, F3/F4/FR, üç GT3 tarzı, LMDh/LMH, stock car, ralli, TCR, yol arabası)|Devir ışıkları: bloklar, F1 (15 LED) ya da çubuk; vites noktasında yanıp söner|Delta referansı (kendi en iyin / oturumun en iyisi / optimal) ve seçilebilir alt kutular|Her öğe ayrı ayarlanır: göster / gizle, boyut ve renk (devir ışıkları, vites, hız, delta, tur süreleri, yakıt, lastikler…)|PRO: Dashboard Tasarımcısı – bileşenleri tuvale sürükleyip kendi ekranını tasarla, overlay olarak ekle ve toplulukta paylaş (puan ve yorum)|PRO: uzak gösterge – ekranı aynı ağdaki telefon ya da tablette aç (QR kodla)",
+    "Classic, Minimal, Race and Endurance views + automatic selection by car|PRO: 10 car-style displays inspired by real race cars (F1, F3/F4/FR, three GT3 styles, LMDh/LMH, stock car, rally, TCR, road car)|Shift lights: blocks, F1 (15 LEDs) or bar; flashes at the shift point|Delta reference (your best / session best / optimal) and selectable bottom boxes|Every element is adjustable: show / hide, size and colour (shift lights, gear, speed, delta, lap times, fuel, tyres…)|PRO: Dashboard Designer – drag widgets onto a canvas to build your own display, add it as an overlay and share it with the community (ratings and comments)|PRO: remote dash – open the display on a phone or tablet in the same network (QR code)",
   ],
   ov_inputs_n: ["Pedallar & Girdi", "Pedals & Inputs"],
   ov_inputs_d: ["Gaz / fren / debriyaj izi, pedal çubukları, vites, hız ve direksiyon.", "Throttle / brake / clutch trace, pedal bars, gear, speed and steering."],
   ov_inputs_h: [
-    "7 tasarım: varsayılan, telemetri grafiği + çubuklar, dikey çubuklar, kompakt şerit|PRO tasarımlar: yatay şeritler, halka göstergeler, sim tarzı (klasik)|Araca göre direksiyon görünümü; PRO: Formula, GT, prototip, ralli, oval ve klasik ahşap direksiyonlar|60 Hz; ABS / TC göstergesi, grafikte direksiyon çizgisi",
-    "7 designs: default, telemetry graph + bars, vertical bars, compact strip|PRO designs: horizontal strips, ring gauges, sim style (classic)|Steering wheel matched to the car; PRO: Formula, GT, prototype, rally, oval and classic wooden wheels|60 Hz; ABS / TC indicators, steering line on the graph",
+    "4 tasarım: varsayılan, telemetri grafiği + çubuklar, geniş grafik; PRO: sim tarzı (klasik)|Araca ya da bağlı direksiyona göre direksiyon görünümü; PRO: Formula, GT, prototip, ralli, oval ve klasik ahşap direksiyonlar|İsteğe bağlı gaz / fren yüzdesi, son tur ve en iyi tur satırı|60 Hz; ABS / TC göstergesi, grafikte direksiyon çizgisi",
+    "4 designs: default, telemetry graph + bars, wide graph; PRO: sim style (classic)|Steering wheel matched to the car or to the connected wheel; PRO: Formula, GT, prototype, rally, oval and classic wooden wheels|Optional throttle / brake percentages, last-lap and best-lap lines|60 Hz; ABS / TC indicators, steering line on the graph",
+  ],
+  ov_pedals_n: ["Pedal Seti", "Pedal Set"],
+  ov_pedals_d: [
+    "Grafiksiz pedal göstergesi: gaz / fren / debriyaj, yüzdeler, vites, hız ve direksiyon.",
+    "Graph-free pedal display: throttle / brake / clutch, percentages, gear, speed and steering wheel.",
+  ],
+  ov_pedals_h: [
+    "8 tasarım: pedal seti, dikey çubuklar, kompakt şerit, LED segmentler, dikey kule; PRO: yatay şeritler, halka göstergeler, çerçevesiz HUD|Yüzde etiketleri, ABS / TC renk ve çerçeve göstergesi|İsteğe bağlı son tur / en iyi tur satırı|Gaz ve fren renkleri değiştirilebilir",
+    "8 designs: pedal set, vertical bars, compact strip, LED segments, vertical tower; PRO: horizontal strips, ring gauges, frameless HUD|Percentage labels, ABS / TC colour and frame indication|Optional last-lap / best-lap line|Custom throttle and brake colours",
   ],
   ov_ers_n: ["ERS ve Batarya", "ERS & Battery"],
   ov_ers_d: [

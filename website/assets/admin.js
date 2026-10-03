@@ -52,6 +52,8 @@ const OVERLAYS = [
   ["incidentlog", "Olay Günlüğü"],
   ["incidents", "Olay Sayacı"],
   ["inputs", "Pedallar & Girdi"],
+  ["pedals", "Pedal Seti"],
+  ["gforce", "G-Force"],
   ["laptimes", "Tur Süreleri"],
   ["minimap", "Mini Harita"],
   ["overtake", "Hızlı Sınıf Uyarısı"],

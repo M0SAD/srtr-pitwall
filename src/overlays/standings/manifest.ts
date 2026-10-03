@@ -34,6 +34,11 @@ export const STANDINGS_DEFAULT_COLUMNS = [
   { key: "tire", on: true },
 ];
 
+/** Sütun genişliği ayarında varsayılandan ilk değişiklikte başlanan yaklaşık değerler (px) */
+export const STANDINGS_COL_START: Record<string, number> = {
+  flair: 26, car: 44, name: 130, change: 30, license: 52, irating: 46, irDelta: 34, pits: 24, gap: 50, avg: 62, last: 62, best: 62, tire: 22,
+};
+
 export default defineOverlay({
   id: "standings",
   name: "Sıralama Tablosu",
@@ -71,6 +76,7 @@ export default defineOverlay({
       type: "order",
       default: STANDINGS_DEFAULT_COLUMNS,
       options: STANDINGS_COLUMNS,
+      widths: { key: "colWidths", start: STANDINGS_COL_START, min: 16, max: 400, step: 2 },
       group: "Sütunlar",
       hint: "Tahmini iRating değişimi: sınıfındaki sürücülerin iRating'lerinden ve o anki sıralamadan hesaplanır; sadece yarışta görünür, kesin sonuç değildir.",
     },

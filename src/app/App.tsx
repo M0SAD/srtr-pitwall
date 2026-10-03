@@ -30,6 +30,7 @@ import { CommunityPage } from "./pages/CommunityPage";
 import { CommunityShots } from "./pages/CommunityShots";
 import { CommunityHome } from "./pages/CommunityHome";
 import { CommunityThemes } from "./pages/CommunityThemes";
+import { CommunityDashes } from "./pages/CommunityDashes";
 import { ScreenshotsPage } from "./pages/ScreenshotsPage";
 import { NoticeBell } from "./components/Moderation";
 import { FriendsDock } from "./components/FriendsDock";
@@ -122,6 +123,7 @@ const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
     { id: "stream", label: "Yayın düzenleri" },
     { id: "shots", label: "Ekran Görüntüleri" },
     { id: "themes", label: "Temalar" },
+    { id: "dashes", label: "Direksiyon Ekranları" },
   ],
   livechat: LIVECHAT_PAGES,
   settings: SETTINGS_PAGES,
@@ -344,6 +346,9 @@ export function App() {
             </Match>
             <Match when={section() === "community" && sub() === "themes"}>
               <CommunityThemes />
+            </Match>
+            <Match when={section() === "community" && sub() === "dashes"}>
+              <CommunityDashes />
             </Match>
             <Match when={section() === "community" && sub() === "layouts"}>
               <CommunityPage kind="layout" />

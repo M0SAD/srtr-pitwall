@@ -2,7 +2,7 @@
 // Twitch: cihaz kodu (twitch.tv/activate); YouTube ve Kick: tarayıcıda giriş, anahtar değişimi SRTR sunucusu (chat-oauth) üzerinden.
 // Anahtarlar bu bilgisayarda Windows hesabına bağlı şifrelenir (DPAPI); arayüze ve buluta gelmez.
 
-import { Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "@/sdk/i18n";
 import * as LC from "@/sdk/livechat";
@@ -35,6 +35,7 @@ export function SendTab() {
 
   const connect = async (p: P) => {
     setBusy(p);
+    setFails((x) => ({ ...x, [p]: undefined }));
     try {
       if (p === "twitch") setSt(await LC.twitchLogin(clientId(p)));
       else {
@@ -43,6 +44,7 @@ export function SendTab() {
       }
     } catch (e) {
       toast(errText(e), true);
+      setFails((x) => ({ ...x, [p]: errText(e) }));
       LC.sendStatus().then(setSt).catch(() => {});
     } finally {
       setBusy(null);
@@ -56,6 +58,24 @@ export function SendTab() {
     }
   };
   const cancel = async () => setSt(await LC.authCancel().catch(() => st()));
+
+  // Son bağlanma denemesinin hatası (platform başına; kart içinde kalıcı görünür) ve "Bağlantıyı test et" sonuçları
+  const [fails, setFails] = createSignal<Partial<Record<P, string>>>({});
+  const [tests, setTests] = createSignal<Partial<Record<P, LC.AuthTestStep[]>>>({});
+  const [testing, setTesting] = createSignal<P | null>(null);
+  const runTest = async (p: P) => {
+    setTesting(p);
+    try {
+      const steps = await LC.authTest(p, clientId(p));
+      setTests((x) => ({ ...x, [p]: steps }));
+    } catch (e) {
+      setTests((x) => ({ ...x, [p]: [{ name: t("Test"), state: "fail", detail: errText(e) }] }));
+    } finally {
+      setTesting(null);
+      LC.sendStatus().then(setSt).catch(() => {});
+    }
+  };
+  const redirectOf = (p: P) => (p === "youtube" ? st()?.ytRedirect : p === "kick" ? st()?.kickRedirect : "") ?? "";
 
   const pill = (p: P) => {
     if (acc(p)?.connected) return { cls: "on" as const, text: t("Bağlı") };
@@ -100,6 +120,15 @@ export function SendTab() {
         </Show>
         <Show when={st()?.pending === c.p}>
           <small class="muted">Tarayıcıda açılan sayfada izin ver; tamamlanınca burası kendiliğinden güncellenir (en fazla 5 dakika).</small>
+          <small class="muted">
+            {t("Tarayıcı izin ekranı yerine bir hata sayfası gösteriyorsa (redirect_uri_mismatch, invalid_client, access blocked…) Vazgeç'e bas: sebep sağlayıcıdaki uygulama ayarındadır. Programın dönüş adresi:")}{" "}
+            <code data-no-i18n>{redirectOf(c.p)}</code>
+          </small>
+        </Show>
+        <Show when={fails()[c.p] && !acc(c.p)?.connected && !waiting()}>
+          <div class="lcp-err" data-no-i18n>
+            {fails()[c.p]}
+          </div>
         </Show>
         <Show when={needCloud() && !acc(c.p)?.connected}>
           <small class="muted">{t("Bağlamak için SRTR Pitwall hesabına giriş yapmalısın (Hesap).")}</small>
@@ -127,7 +156,25 @@ export function SendTab() {
               Bağlantıyı kes
             </button>
           </Show>
+          <button class="btn ghost small" disabled={testing() !== null || waiting()} title={t("Giriş zincirini adım adım dener; mesaj göndermez")} onClick={() => runTest(c.p)}>
+            {testing() === c.p ? t("Test ediliyor…") : t("Bağlantıyı test et")}
+          </button>
         </div>
+        <Show when={tests()[c.p]}>
+          <ul class="lcp-test">
+            <For each={tests()[c.p]}>
+              {(s) => (
+                <li class={s.state}>
+                  <span class="lcp-test-mark">{s.state === "ok" ? "✓" : s.state === "fail" ? "✕" : s.state === "warn" ? "!" : "–"}</span>
+                  <span>
+                    <b data-no-i18n>{s.name}</b>
+                    <small data-no-i18n>{s.detail}</small>
+                  </span>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
       </div>
     );
   };
@@ -147,7 +194,7 @@ export function SendTab() {
           <Card p="youtube" note={t("Yayın canlıyken gönderilir. En fazla 200 karakter. YouTube'un günlük mesaj kotası vardır.")} />
           <Card p="kick" note={t("Kick hesabınla izin ver. En fazla 500 karakter.")} />
         </div>
-        <Show when={st()?.error}>
+        <Show when={st()?.error && !Object.values(fails()).includes(st()!.error!)}>
           <div class="lcp-err" data-no-i18n>
             {st()!.error}
           </div>

@@ -329,7 +329,7 @@ export function assertFeature(key: string, what: string) {
 /** Seçim seçeneği PRO'ya ayrılmış mı (overlayId yoksa manifestteki `pro` işareti) */
 export function optionRequiresPro(overlayId: string | undefined, settingKey: string, o: SelectOption): boolean {
   if (!overlayId) return !!o.pro;
-  const key = optionKey(overlayId, settingKey, o.value);
+  const key = optionKey(overlayId, settingKey, o.lockAs ?? o.value);
   const ov = overrides()[key];
   if (typeof ov === "boolean") return ov;
   return !!o.pro;

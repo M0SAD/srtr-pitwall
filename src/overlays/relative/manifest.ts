@@ -34,6 +34,11 @@ export const RELATIVE_DEFAULT_COLUMNS = [
   { key: "flag", on: true },
 ];
 
+/** Sütun genişliği ayarında varsayılandan ilk değişiklikte başlanan yaklaşık değerler (px) */
+export const RELATIVE_COL_START: Record<string, number> = {
+  class: 4, pos: 24, num: 40, flair: 26, name: 130, car: 44, stint: 40, license: 60, irating: 54, last: 62, tire: 22, gap: 46, flag: 26,
+};
+
 export default defineOverlay({
   id: "relative",
   name: "Yakındakiler",
@@ -62,6 +67,7 @@ export default defineOverlay({
       type: "order",
       default: RELATIVE_DEFAULT_COLUMNS,
       options: RELATIVE_COLUMNS,
+      widths: { key: "colWidths", start: RELATIVE_COL_START, min: 16, max: 400, step: 2, mins: { class: 2 } },
       group: "Sütunlar",
       hint: "Lastik: her aracın taktığı lastik — yağmur (mavi), ara (yeşil I), yumuşak (kırmızı S), orta (sarı M), sert (beyaz H), kuru (gri D). Bayrak: araca gösterilen bayrağın rengi.",
     },

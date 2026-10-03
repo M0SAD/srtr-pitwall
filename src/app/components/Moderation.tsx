@@ -215,6 +215,8 @@ function noticeText(n: Notice): string {
       : t("{0} sohbetiniz için bir arka plan önerdi. Sohbeti açıp yanıtlayabilirsin.", n.data.name ?? "?");
   if (n.kind === "group_added") return t("{0} seni \"{1}\" grubuna ekledi. Arkadaşlar listesindeki Gruplar bölümünden açabilirsin.", n.data.name ?? "?", n.data.group_name ?? "?");
   if (n.kind === "group_removed") return t("\"{0}\" grubundan çıkarıldın.", n.data.group_name ?? "?");
+  if (n.kind === "dash_removed") return t('"{0}" adlı direksiyon ekranı tasarımın bir moderatör tarafından kaldırıldı.', n.data.title ?? "?");
+  if (n.kind === "dash_hidden") return t('"{0}" adlı direksiyon ekranı tasarımın bir moderatör tarafından gizlendi.', n.data.title ?? "?");
   if (n.kind === "layout_removed") return t('"{0}" adlı düzenin bir moderatör tarafından kaldırıldı.', n.data.title ?? "?");
   if (n.kind === "pro_expiring") {
     const until = new Date(n.data.until);

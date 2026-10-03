@@ -754,10 +754,10 @@
   "ov_rejoin_h": "Diferença de tempo para os carros mais próximos vindo por trás|Diz se é seguro voltar à pista|Não ocupa espaço na tela quando não é necessário",
   "ov_dashboard_n": "Display do volante",
   "ov_dashboard_d": "Um painel como os displays dos volantes de corrida.",
-  "ov_dashboard_h": "Visualizações Clássico, Mínimo, Corrida e Endurance + seleção automática conforme o carro|PRO: 10 telas estilo carro inspiradas em carros de corrida reais (F1, F3/F4/FR, três estilos GT3, LMDh/LMH, stock car, rali, TCR, carro de rua)|Luzes de troca: blocos, F1 (15 LEDs) ou barra; piscam no ponto de troca|Referência de delta (sua melhor / melhor da sessão / ótima) e caixas inferiores selecionáveis|Cada item é ajustado separadamente: mostrar / ocultar, tamanho e cor (luzes de troca, marcha, velocidade, delta, tempos de volta, combustível, pneus…)|PRO: Designer de Dashboard – arraste componentes para uma tela e crie seu próprio display, adicionando-o como overlay|PRO: dashboard remoto – abra o display em um celular ou tablet na mesma rede (QR code)",
+  "ov_dashboard_h": "Visualizações Clássico, Mínimo, Corrida e Endurance + seleção automática conforme o carro|PRO: 10 telas estilo carro inspiradas em carros de corrida reais (F1, F3/F4/FR, três estilos GT3, LMDh/LMH, stock car, rali, TCR, carro de rua)|Luzes de troca: blocos, F1 (15 LEDs) ou barra; piscam no ponto de troca|Referência de delta (sua melhor / melhor da sessão / ótima) e caixas inferiores selecionáveis|Cada item é ajustado separadamente: mostrar / ocultar, tamanho e cor (luzes de troca, marcha, velocidade, delta, tempos de volta, combustível, pneus…)|PRO: Designer de Dashboard – arraste componentes para uma tela e crie seu próprio display, adicione-o como overlay e compartilhe com a comunidade (avaliações e comentários)|PRO: dashboard remoto – abra o display em um celular ou tablet na mesma rede (QR code)",
   "ov_inputs_n": "Pedais & Entradas",
   "ov_inputs_d": "Traço de acelerador / freio / embreagem, barras de pedais, marcha, velocidade e volante.",
-  "ov_inputs_h": "7 visuais: padrão, gráfico de telemetria + barras, barras verticais, faixa compacta|Visuais PRO: faixas horizontais, mostradores em anel, estilo sim (clássico)|Volante de acordo com o carro; PRO: volantes Formula, GT, protótipo, rali, oval e clássico de madeira|60 Hz; indicadores de ABS / TC, linha do volante no gráfico",
+  "ov_inputs_h": "4 visuais: padrão, gráfico de telemetria + barras, gráfico largo; PRO: estilo sim (clássico)|Volante de acordo com o carro ou com o volante conectado; PRO: volantes Formula, GT, protótipo, rali, oval e clássico de madeira|Porcentagens opcionais de acelerador / freio, linhas de última volta e melhor volta|60 Hz; indicadores de ABS / TC, linha do volante no gráfico",
   "ov_telemetry_n": "Painel de Telemetria",
   "ov_telemetry_d": "Anel de marchas e conta-giros em uma única faixa.",
   "ov_telemetry_h": "Velocidade e luzes de troca|Posição e última volta|Combustível e temperatura da pista",
@@ -1064,5 +1064,8 @@
   "fr_kick_ask": "Remover {0} do grupo?",
   "fr_leave_owner_ask": "Se você sair de \"{0}\", a propriedade passa para o membro mais antigo. Quer sair?",
   "fr_hiding": "oculto",
-  "fr_hiding_tip": "Este membro escolheu aparecer offline; só os administradores veem isto."
+  "fr_hiding_tip": "Este membro escolheu aparecer offline; só os administradores veem isto.",
+  "ov_pedals_n": "Pedaleira",
+  "ov_pedals_d": "Display de pedais sem gráfico: acelerador / freio / embreagem, porcentagens, marcha, velocidade e volante.",
+  "ov_pedals_h": "8 visuais: pedaleira, barras verticais, faixa compacta, segmentos de LED, torre vertical; PRO: faixas horizontais, mostradores em anel, HUD sem moldura|Rótulos de porcentagem, indicação de ABS / TC por cor e moldura|Linha opcional de última volta / melhor volta|Cores de acelerador e freio personalizáveis"
 }

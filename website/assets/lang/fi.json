@@ -754,10 +754,10 @@
   "ov_rejoin_h": "Aikaero lähimpiin takaa tuleviin autoihin|Kertoo, onko radalle turvallista palata|Ei vie ruututilaa, kun sitä ei tarvita",
   "ov_dashboard_n": "Ratin näyttö",
   "ov_dashboard_d": "Mittaristo kilparattien näyttöjen tyyliin.",
-  "ov_dashboard_h": "Classic-, Minimal-, Race- ja Endurance-näkymät + automaattinen valinta auton mukaan|PRO: 10 autotyylistä näyttöä oikeiden kilpa-autojen innoittamina (F1, F3/F4/FR, kolme GT3-tyyliä, LMDh/LMH, stock car, ralli, TCR, katuauto)|Vaihtovalot: palikat, F1 (15 LEDiä) tai palkki; vilkkuu vaihtokohdassa|Delta-vertailu (oma paras / session paras / optimi) ja valittavat alalaatikot|Jokainen elementti säädetään erikseen: näytä / piilota, koko ja väri (vaihtovalot, vaihde, nopeus, delta, kierrosajat, polttoaine, renkaat…)|PRO: Dashboard-suunnittelija – vedä komponentit pohjalle, suunnittele oma näyttösi ja lisää se overlayna|PRO: etänäyttö – avaa näyttö samassa verkossa olevalla puhelimella tai tabletilla (QR-koodilla)",
+  "ov_dashboard_h": "Classic-, Minimal-, Race- ja Endurance-näkymät + automaattinen valinta auton mukaan|PRO: 10 autotyylistä näyttöä oikeiden kilpa-autojen innoittamina (F1, F3/F4/FR, kolme GT3-tyyliä, LMDh/LMH, stock car, ralli, TCR, katuauto)|Vaihtovalot: palikat, F1 (15 LEDiä) tai palkki; vilkkuu vaihtokohdassa|Delta-vertailu (oma paras / session paras / optimi) ja valittavat alalaatikot|Jokainen elementti säädetään erikseen: näytä / piilota, koko ja väri (vaihtovalot, vaihde, nopeus, delta, kierrosajat, polttoaine, renkaat…)|PRO: Dashboard-suunnittelija – vedä komponentit pohjalle, suunnittele oma näyttösi, lisää se overlayna ja jaa se yhteisössä (arviot ja kommentit)|PRO: etänäyttö – avaa näyttö samassa verkossa olevalla puhelimella tai tabletilla (QR-koodilla)",
   "ov_inputs_n": "Polkimet & syötteet",
   "ov_inputs_d": "Kaasu- / jarru- / kytkinkäyrä, poljinpalkit, vaihde, nopeus ja ohjaus.",
-  "ov_inputs_h": "7 ulkoasua: oletus, telemetriakäyrä + palkit, pystypalkit, kompakti nauha|PRO-ulkoasut: vaakanauhat, rengasmittarit, simityyli (klassinen)|Autoon sovitettu ratti; PRO: formula-, GT-, prototyyppi-, ralli-, ovaali- ja klassiset puuratit|60 Hz; ABS- / TC-merkkivalot, ohjausviiva käyrässä",
+  "ov_inputs_h": "4 ulkoasua: oletus, telemetriakäyrä + palkit, leveä käyrä; PRO: simityyli (klassinen)|Autoon tai kytkettyyn rattiin sovitettu ratti; PRO: formula-, GT-, prototyyppi-, ralli-, ovaali- ja klassiset puuratit|Valinnaiset kaasu- / jarruprosentit sekä viimeisen ja parhaan kierroksen rivit|60 Hz; ABS- / TC-merkkivalot, ohjausviiva käyrässä",
   "ov_telemetry_n": "Telemetriapaneeli",
   "ov_telemetry_d": "Vaihderengas ja kierroslukumittari yhdessä nauhassa.",
   "ov_telemetry_h": "Nopeus ja vaihtovalot|Sijoitus ja viimeisin kierros|Polttoaine ja radan lämpötila",
@@ -1064,5 +1064,8 @@
   "fr_kick_ask": "Poistetaanko {0} ryhmästä?",
   "fr_leave_owner_ask": "Jos poistut ryhmästä \"{0}\", omistajuus siirtyy pitkäaikaisimmalle jäsenelle. Poistutaanko?",
   "fr_hiding": "piilossa",
-  "fr_hiding_tip": "Tämä jäsen valitsi näkyä poissa olevana; tämän näkevät vain ylläpitäjät."
+  "fr_hiding_tip": "Tämä jäsen valitsi näkyä poissa olevana; tämän näkevät vain ylläpitäjät.",
+  "ov_pedals_n": "Poljinsarja",
+  "ov_pedals_d": "Poljinnäyttö ilman käyrää: kaasu / jarru / kytkin, prosentit, vaihde, nopeus ja ratti.",
+  "ov_pedals_h": "8 ulkoasua: poljinsarja, pystypalkit, kompakti nauha, LED-segmentit, pystytorni; PRO: vaakanauhat, rengasmittarit, kehyksetön HUD|Prosenttilukemat, ABS- / TC-ilmaisu värillä ja kehyksellä|Valinnainen viimeisen / parhaan kierroksen rivi|Kaasun ja jarrun värit vaihdettavissa"
 }

@@ -110,6 +110,9 @@ export function ToolsPage() {
           <button class="btn" onClick={() => go("tools", "dashremote")}>
             <I.Monitor /> Başka cihazda aç <ProLockTag feature={F.dashRemote} />
           </button>
+          <button class="btn ghost" onClick={() => go("community", "dashes")}>
+            <I.Share2 /> Topluluk tasarımları
+          </button>
         </div>
       </section>
       <section class="panel">

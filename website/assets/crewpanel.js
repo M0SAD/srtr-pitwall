@@ -763,12 +763,25 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     return `<span class="cw-badge${n > 0 ? " live" : ""}">${esc(T("cw_room_n", n))}</span>`;
   }
   function drawRoom() {
-    const n = q("#cw-room-n");
-    if (n) morph(n, roomCount());
-    const m = q("#cw-members");
-    if (m) morph(m, membersHtml());
+    // Yerinde güncelleme: içerik aynıysa DOM'a hiç dokunulmaz; sohbet kutusunun kaydırma konumu korunur
+    // (kullanıcı en alttaysa altta kalır, yukarıda eski mesajlara bakıyorsa yerinden oynamaz).
+    const put = (sel, html) => {
+      const el = q(sel);
+      if (!el || el.__crmHtml === html) return;
+      morph(el, html);
+      el.__crmHtml = html;
+    };
+    put("#cw-room-n", roomCount());
+    put("#cw-members", membersHtml());
     const c = q("#cw-chat");
-    if (c) morph(c, chatHtml());
+    if (!c) return;
+    const html = chatHtml();
+    if (c.__crmHtml === html) return;
+    const top = c.scrollTop;
+    const atBottom = c.scrollHeight - c.scrollTop - c.clientHeight <= 80;
+    morph(c, html);
+    c.__crmHtml = html;
+    c.scrollTop = atBottom ? c.scrollHeight : top;
   }
 
   async function loadDriver() {

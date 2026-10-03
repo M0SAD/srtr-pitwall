@@ -268,8 +268,10 @@ export interface LiveChatTts {
   maxQueue: number;
   /** Bu kadar saniyeden eski mesaj okunmaz */
   maxDelay: number;
-  /** Windows ses kimliği (boş: varsayılan) */
+  /** Ses kimliği: "edge:tr-TR-AhmetNeural" (Edge çevrimiçi sesi), Windows ses kimliği ya da boş (Windows varsayılanı) */
   voice: string;
+  /** Bir kerelik geçiş: hiç ses seçilmemiş kurulumlara arayüz diline uygun Edge sesi atandı */
+  edgeDefV1?: boolean;
   /** Çıkış cihazı adı (boş: Windows varsayılanı) */
   device: string;
   /** -10..10 */
@@ -316,6 +318,28 @@ export interface LiveChatStt {
 /** Varsayılan Canlı Sohbet kanalları, bu sırayla (YouTube ilk: ücretsiz sürümde yalnızca ilk kanal bağlanır) */
 export const DEFAULT_LIVE_CHANNELS = ["https://www.youtube.com/@ErkinAzcan", "https://kick.com/erkinazcan", "https://www.twitch.tv/erkinazcan"];
 
+/** Arayüz diline uygun varsayılan Edge çevrimiçi sesi (Türkçe: Ahmet). Rust: livechat/tts_edge.rs */
+const EDGE_DEFAULT_VOICES: Record<string, string> = {
+  tr: "tr-TR-AhmetNeural",
+  en: "en-US-AriaNeural",
+  de: "de-DE-ConradNeural",
+  es: "es-ES-AlvaroNeural",
+  fi: "fi-FI-HarriNeural",
+  fr: "fr-FR-HenriNeural",
+  it: "it-IT-DiegoNeural",
+  ja: "ja-JP-KeitaNeural",
+  nl: "nl-NL-MaartenNeural",
+  pl: "pl-PL-MarekNeural",
+  "pt-BR": "pt-BR-AntonioNeural",
+  "pt-PT": "pt-PT-DuarteNeural",
+  ru: "ru-RU-DmitryNeural",
+  sv: "sv-SE-MattiasNeural",
+  "zh-CN": "zh-CN-YunxiNeural",
+};
+export function edgeDefaultVoice(langCode: string): string {
+  return `edge:${EDGE_DEFAULT_VOICES[langCode] ?? EDGE_DEFAULT_VOICES[(langCode || "").split("-")[0]] ?? EDGE_DEFAULT_VOICES.en}`;
+}
+
 export function defaultLiveChat(): LiveChatSettings {
   return {
     autoStart: false,
@@ -344,7 +368,8 @@ export function defaultLiveChat(): LiveChatSettings {
       maxChars: 150,
       maxQueue: 3,
       maxDelay: 8,
-      voice: "",
+      voice: edgeDefaultVoice(detectLang()),
+      edgeDefV1: true,
       device: "",
       rate: 0,
       pitch: 0,
@@ -371,7 +396,7 @@ export function defaultLiveChat(): LiveChatSettings {
 }
 
 /** Kayıtlı ayarı tamamlar. Eski "Twitch Sohbeti" kanal adı ilk kez Canlı Sohbet listesine taşınır. */
-function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChannel: string | undefined): LiveChatSettings {
+function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChannel: string | undefined, uiLang?: string): LiveChatSettings {
   const d = defaultLiveChat();
   if (!v || typeof v !== "object") {
     const ch = (twitchChannel ?? "").trim().replace(/^#/, "");
@@ -391,7 +416,14 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
     },
     poll: { ...d.poll, ...(v.poll ?? {}) },
     captions: { ...d.captions, ...(v.captions ?? {}) },
-    tts: { ...d.tts, ...(v.tts ?? {}), platforms: { ...d.tts.platforms, ...(v.tts?.platforms ?? {}) } },
+    tts: {
+      ...d.tts,
+      ...(v.tts ?? {}),
+      platforms: { ...d.tts.platforms, ...(v.tts?.platforms ?? {}) },
+      // edgeDefV1: hiç ses seçmemiş (boş) kayıtlı kurulumlar bir kez arayüz diline uygun Edge sesine geçer
+      voice: v.tts && !v.tts.edgeDefV1 && !v.tts.voice ? edgeDefaultVoice(uiLang || detectLang()) : (v.tts?.voice ?? d.tts.voice),
+      edgeDefV1: true,
+    },
     stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) } },
     sendTarget: typeof v.sendTarget === "string" && v.sendTarget ? v.sendTarget : "mine",
   });
@@ -968,6 +1000,26 @@ function radarBarsMigrate(cur: OverlayInstance): OverlayInstance | null {
   };
 }
 
+/** Pedallar & Girdi'den (inputs) Pedal Seti'ne (pedals) taşınan tasarımlar */
+const PEDALS_MOVED = ["bars", "strip", "horizontal", "rings", "segments", "tower", "pedals", "hud"];
+
+/**
+ * Bir kerelik geçiş: Pedallar & Girdi'nin grafiksiz tasarımları ayrı bir overlay (pedals, Pedal Seti) oldu.
+ * Tasarımı taşınanlardan biri olan kayıtlı inputs kopyası için: "move" = açık kopyadan aynı konum / ölçek / tasarım ve
+ * aynı ayarlarla üretilen Pedal Seti kopyası (kapalıysa null); "reset" = tasarımı varsayılana dönmüş inputs kopyası.
+ * Tasarım taşınanlardan değilse null. (inputs'ta bu tasarım değerleri kalmadığı için bir daha çalışmaz.)
+ */
+function inputsPedalsMigrate<T extends Partial<OverlayInstance>>(cur: T | undefined): { move: OverlayInstance | null; reset: T } | null {
+  const o = cur?.options;
+  if (!cur || !o || !PEDALS_MOVED.includes(o.design) || !manifests.some((m) => m.id === "pedals")) return null;
+  const reset = { ...cur, options: { ...o, design: "default" } };
+  if (!cur.enabled) return { move: null, reset };
+  const def = defaultInstance("pedals");
+  const options = { ...def.options };
+  for (const k of Object.keys(options)) if (k in o) options[k] = o[k];
+  return { move: { ...def, ...cur, type: "pedals", options } as OverlayInstance, reset };
+}
+
 /** Radar'dan kaldırılan ayarlar (eski çubuk görünümü) */
 const RADAR_DROPPED = ["style", "barGap", "barHeight", "barWidth"];
 
@@ -1150,7 +1202,7 @@ export function normalize(input: unknown): AppSettings {
         },
       },
       twitch: { ...d.general.twitch, ...(s.general?.twitch ?? {}) },
-      livechat: normalizeLiveChat(s.general?.livechat, s.general?.twitch?.channel),
+      livechat: normalizeLiveChat(s.general?.livechat, s.general?.twitch?.channel, s.general?.language),
       remote: { ...d.general.remote, ...(s.general?.remote ?? {}) },
       engineer: { ...d.general.engineer, ...(s.general?.engineer ?? {}) },
       sharing: { ...d.general.sharing, ...(s.general?.sharing ?? {}) },
@@ -1230,6 +1282,19 @@ export function normalize(input: unknown): AppSettings {
           cur = { ...cur, options };
         }
       }
+      if (type === "inputs") {
+        const mg = inputsPedalsMigrate(cur as OverlayInstance);
+        if (mg?.move) {
+          // Ana Pedal Seti kopyası boşsa o kullanılır; ek inputs kopyası tümüyle Pedal Seti'ne dönüşür,
+          // ana inputs kopyası kapalı olarak varsayılan tasarımıyla kalır
+          const taken = (k: string) => !!prof.overlays[k] || !!(p?.overlays as Record<string, unknown>)?.[k];
+          let pk = "pedals";
+          for (let n = 2; taken(pk); n++) pk = `pedals#${n}`;
+          prof.overlays[pk] = mg.move;
+          if (key !== type) continue;
+          cur = { ...mg.reset, enabled: false };
+        } else if (mg) cur = mg.reset;
+      }
       const look = normalizeLook((cur as OverlayInstance)?.look);
       prof.overlays[key] = { ...def, ...cur, ...(look ? { look } : { look: undefined }), type, options: c63Migrate(type, cur?.options, mapMeMigrate(type, cur?.options, stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, lcDefMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) })))))) };
     }
@@ -1245,7 +1310,7 @@ export function normalize(input: unknown): AppSettings {
   // o güne kadar Overlay'ler sayfasında yaptığı ayarlar kaybolmasın.
   const savedDef = s.defaults && typeof s.defaults === "object" ? (s.defaults as Record<string, Partial<OverlayInstance>>) : null;
   const seed = savedDef ? null : s.profiles && typeof s.profiles === "object" ? out.profiles[out.activeProfile] : null;
-  for (const m of manifests) out.defaults[m.id] = defaultFrom(m.id, savedDef ? savedDef[m.id] : seed?.overlays[m.id]);
+  for (const m of manifests) out.defaults[m.id] = defaultFrom(m.id, savedDef ? (m.id === "inputs" ? (inputsPedalsMigrate(savedDef[m.id])?.reset ?? savedDef[m.id]) : savedDef[m.id]) : seed?.overlays[m.id]);
   return out;
 }
 

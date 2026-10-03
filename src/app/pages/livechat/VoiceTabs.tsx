@@ -85,6 +85,9 @@ export function TtsTab() {
     return [...l].sort((a, b) => Number(LC.voiceMatchesLang(b, lang())) - Number(LC.voiceMatchesLang(a, lang())) || a.name.localeCompare(b.name));
   });
   const genderText = () => ({ female: t("Kadın"), male: t("Erkek") });
+  const edgeList = () => voiceList().filter((x) => x.engine === "edge");
+  const winList = () => voiceList().filter((x) => x.engine !== "edge");
+  const edgeSelected = () => v().voice.startsWith(LC.EDGE_VOICE_PREFIX);
 
   return (
     <ProLockBox feature={F.liveTts} text={t("Sohbeti sesli okuma PRO üyelere özel.")}>
@@ -114,6 +117,11 @@ export function TtsTab() {
         <Show when={st()?.error}>
           <div class="lcp-err" data-no-i18n>
             {st()!.error}
+          </div>
+        </Show>
+        <Show when={!st()?.error && st()?.notice}>
+          <div class="lcp-note lcp-warnnote" data-no-i18n>
+            {st()!.notice}
           </div>
         </Show>
       </section>
@@ -244,18 +252,33 @@ export function TtsTab() {
         </div>
         <div class="lcp-grid2">
           <div class="f2">
-            <div class="f2-cap">{t("Ses ({0} / {1} kurulu ses)", voiceList().length, allVoices().length)}</div>
+            <div class="f2-cap">{t("Ses ({0} / {1} ses)", voiceList().length, allVoices().length)}</div>
             <select class="f2-select" value={v().voice} onChange={(e) => setTts((x) => (x.voice = e.currentTarget.value))}>
               <option value="">{t("Windows varsayılanı")}</option>
-              <For each={voiceList()}>
-                {(vo) => (
-                  <option value={vo.id} selected={vo.id === v().voice} data-no-i18n>
-                    {LC.voiceLabel(vo, genderText())}
-                  </option>
-                )}
-              </For>
+              <Show when={edgeList().length}>
+                <optgroup label={t("Edge (çevrimiçi, doğal ses)")}>
+                  <For each={edgeList()}>
+                    {(vo) => (
+                      <option value={vo.id} selected={vo.id === v().voice} data-no-i18n>
+                        {LC.voiceLabel(vo, genderText())}
+                      </option>
+                    )}
+                  </For>
+                </optgroup>
+              </Show>
+              <Show when={winList().length}>
+                <optgroup label={t("Windows (çevrimdışı)")}>
+                  <For each={winList()}>
+                    {(vo) => (
+                      <option value={vo.id} selected={vo.id === v().voice} data-no-i18n>
+                        {LC.voiceLabel(vo, genderText())}
+                      </option>
+                    )}
+                  </For>
+                </optgroup>
+              </Show>
               <Show when={v().voice && !voices.loading && !allVoices().some((x) => x.id === v().voice)}>
-                <option value={v().voice}>{t("Seçili ses kurulu değil")}</option>
+                <option value={v().voice}>{edgeSelected() ? `${v().voice.slice(LC.EDGE_VOICE_PREFIX.length)} · Edge` : t("Seçili ses kurulu değil")}</option>
               </Show>
             </select>
           </div>
@@ -279,9 +302,14 @@ export function TtsTab() {
             <Slider value={v().pitch} min={-10} max={10} onInput={(n) => setTts((x) => (x.pitch = n))} />
           </div>
         </div>
-        <Show when={supported() && voices() && !voices()!.length}>
-          <div class="lcp-err">Kurulu Windows sesi bulunamadı.</div>
+        <Show when={supported() && voices() && !allVoices().some((x) => x.engine !== "edge")}>
+          <div class="lcp-note">Kurulu Windows sesi bulunamadı: Edge çevrimiçi seslerini kullanabilirsin.</div>
         </Show>
+        <div class="lcp-note" classList={{ "lcp-warnnote": edgeSelected() }}>
+          <b>Edge (çevrimiçi, doğal ses):</b> Microsoft Edge'in “Sesli Oku” sesleri (Türkçe: Ahmet ve Emel) çok daha doğal konuşur ama{" "}
+          <b>internet bağlantısı gerekir</b>. Bağlantı yoksa ya da ses 10 saniyede gelmezse o mesaj kendiliğinden Windows sesiyle okunur;
+          sıra beklemez.
+        </div>
         <Show when={supported() && langOnly() && allVoices().length > 0 && !langHas()}>
           <div class="lcp-note">Programın diline uygun kurulu ses yok: Windows'ta kurulu tüm sesler gösteriliyor.</div>
         </Show>

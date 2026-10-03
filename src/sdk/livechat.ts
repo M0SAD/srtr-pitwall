@@ -17,6 +17,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { createSignal } from "solid-js";
+import { lang } from "./i18n";
 import { inTauri } from "./platform";
 import type { LiveChannel } from "./settings";
 
@@ -406,7 +407,12 @@ export interface TtsStatus {
   speaking: boolean;
   queue: number;
   error: string | null;
+  /** Engellemeyen bilgi (ör. Edge sesi kullanılamadı, Windows sesiyle okundu) */
+  notice?: string | null;
 }
+
+/** Edge çevrimiçi ses kimliklerinin ön eki (ör. "edge:tr-TR-EmelNeural"). Rust: livechat/tts_edge.rs */
+export const EDGE_VOICE_PREFIX = "edge:";
 
 export interface TtsVoice {
   /** Ses kimliği (ayarlara / `speak`e bu verilir; SAPI5 seslerinde "sapi:" ön ekli) */
@@ -418,14 +424,26 @@ export interface TtsVoice {
   languageName: string;
   female: boolean;
   gender: "female" | "male";
-  /** onecore: Windows Ayarları › Konuşma sesleri · sapi: klasik SAPI5 masaüstü sesleri */
-  engine: "onecore" | "sapi";
+  /** edge: Edge çevrimiçi doğal sesleri (internet gerekir) · onecore: Windows Ayarları › Konuşma sesleri · sapi: klasik SAPI5 masaüstü sesleri */
+  engine: "edge" | "onecore" | "sapi";
 }
 
 /** Kurulu Windows sesleri (Windows değilse hata) */
 export const ttsVoices = () => invoke<TtsVoice[]>("livechat_tts_voices");
 
 // ---- Yeniden kullanılabilir ses yardımcıları (ekip sohbeti, Mesajlar overlay'i… başka özellikler de çağırabilir) ----
+
+/** Edge seslerinde dil adı arayüz dilinde üretilir ("tr-TR" → "Türkçe (Türkiye)"); olmazsa sunucudan gelen ad / dil kodu kalır */
+function edgeLangName(v: TtsVoice): TtsVoice {
+  if (v.engine !== "edge" || !v.language) return v;
+  try {
+    const n = new Intl.DisplayNames([lang()], { type: "language" }).of(v.language.split("-").slice(0, 2).join("-"));
+    if (n && n !== v.language) return { ...v, languageName: n.charAt(0).toLocaleUpperCase(lang()) + n.slice(1) };
+  } catch {
+    // eski tarayıcı motoru: sunucudan gelen ad kalır
+  }
+  return v;
+}
 
 let voiceCache: Promise<TtsVoice[]> | null = null;
 /**
@@ -435,7 +453,7 @@ let voiceCache: Promise<TtsVoice[]> | null = null;
 export function listVoices(force = false): Promise<TtsVoice[]> {
   if (!voiceCache || force)
     voiceCache = (inTauri ? ttsVoices() : Promise.resolve([] as TtsVoice[]))
-      .then((l) => [...l].sort((a, b) => a.name.localeCompare(b.name)))
+      .then((l) => l.map(edgeLangName).sort((a, b) => a.name.localeCompare(b.name)))
       .catch(() => {
         voiceCache = null;
         return [] as TtsVoice[];
@@ -456,7 +474,7 @@ export function filterVoices(voices: TtsVoice[], lang = "", gender: "any" | "fem
 
 /** Seçim kutusu etiketi: "Microsoft Tolga · Erkek · Türkçe (Türkiye)" (cinsiyet metni çağırandan gelir: çeviri için) */
 export function voiceLabel(v: TtsVoice, genderText: { female: string; male: string }): string {
-  return `${v.name} · ${v.gender === "female" ? genderText.female : genderText.male} · ${v.languageName || v.language}${v.engine === "sapi" ? " · SAPI5" : ""}`;
+  return `${v.name} · ${v.gender === "female" ? genderText.female : genderText.male} · ${v.languageName || v.language}${v.engine === "sapi" ? " · SAPI5" : v.engine === "edge" ? " · Edge" : ""}`;
 }
 
 export interface SpeakOptions {
@@ -597,6 +615,15 @@ export const twitchLogin = (clientId: string) => invoke<SendStatus>("livechat_tw
 /** YouTube / Kick: tarayıcıda giriş (PKCE), anahtar değişimi chat-oauth edge function üzerinden */
 export const oauthLogin = async (provider: "youtube" | "kick", clientId: string) =>
   invoke<SendStatus>("livechat_oauth_login", { provider, clientId, cloud: await cloudAuth() });
+/** "Bağlantıyı test et" adımı (Rust: send.rs TestStep). `detail`: HTTP kodu + sağlayıcının hata metni; anahtar içermez */
+export interface AuthTestStep {
+  name: string;
+  state: "ok" | "fail" | "warn" | "skip";
+  detail: string;
+}
+/** Platformun giriş zincirini adım adım dener (Client ID, SRTR oturumu, sunucu işlevi, yerel dönüş adresi, hesap oturumu). Mesaj göndermez. */
+export const authTest = async (platform: "twitch" | "youtube" | "kick", clientId: string) =>
+  invoke<AuthTestStep[]>("livechat_auth_test", { platform, clientId, cloud: await cloudAuth() });
 export const authCancel = () => invoke<SendStatus>("livechat_auth_cancel");
 export const authLogout = (platform: "twitch" | "youtube" | "kick") => invoke<SendStatus>("livechat_auth_logout", { platform });
 /** Mesaj gönder: target "mine" (★ kanallarım) ya da kanal anahtarı */

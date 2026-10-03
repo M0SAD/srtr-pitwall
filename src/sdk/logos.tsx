@@ -128,7 +128,17 @@ interface Bundled {
   dark: boolean;
   /** Düz siyah tek renk logo: çip yerine beyaza çevrilir */
   mono: boolean;
+  /** Logoya özel boyut çarpanı (1 = değişiklik yok) */
+  scale: number;
 }
+/**
+ * Elle verilen logo boyutu düzeltmeleri (marka kimliği -> çarpan). Bazı logolar hücreyi tam doldurduğu için
+ * tablolarda diğerlerinden iri görünür. meta.json betikle yeniden üretildiğinden (scripts/carlogos_meta.py)
+ * elle ayarlar BURADA tutulur; betik bunlara dokunmaz.
+ */
+const LOGO_SCALE: Record<string, number> = {
+  ford: 0.82,
+};
 const BUNDLED: Map<string, Bundled> = (() => {
   const out = new Map<string, Bundled>();
   const meta = logoMeta as Record<string, { dark?: boolean; mono?: boolean }>;
@@ -142,7 +152,7 @@ const BUNDLED: Map<string, Bundled> = (() => {
     const file = path.split("/").pop()!;
     const name = file.replace(/\.(svg|png)$/i, "");
     const m = /\.png$/i.test(file) ? meta[name] : undefined;
-    out.set(normKey(name), { url, dark: !!m?.dark, mono: !!m?.mono });
+    out.set(normKey(name), { url, dark: !!m?.dark, mono: !!m?.mono, scale: LOGO_SCALE[name.toLowerCase()] ?? 1 });
   }
   return out;
 })();
@@ -151,10 +161,10 @@ const BUNDLED: Map<string, Bundled> = (() => {
 export const bundledLogoKeys = () => [...BUNDLED.keys()];
 
 /** Marka için paketlenmiş logo ve görünüm bilgisi */
-export function logoInfo(brand: Brand | null): { src: string; dark: boolean; mono: boolean } | undefined {
+export function logoInfo(brand: Brand | null): { src: string; dark: boolean; mono: boolean; scale: number } | undefined {
   if (!brand) return undefined;
   const b = BUNDLED.get(normKey(brand.id)) ?? BUNDLED.get(normKey(brand.name));
-  return b ? { src: b.url, dark: b.dark, mono: b.mono } : undefined;
+  return b ? { src: b.url, dark: b.dark, mono: b.mono, scale: b.scale } : undefined;
 }
 
 /** Marka için logo adresi */
@@ -190,7 +200,12 @@ export function CarLogo(props: {
       style={props.scale ? { "--logo-k": String(props.scale) } : undefined}
     >
       <Show when={src()} fallback={<Show when={!props.cell || props.mode === "text"}><span class="car-logo-txt">{label()}</span></Show>}>
-        <img src={src()} alt={label()} draggable={false} />
+        <img
+          src={src()}
+          alt={label()}
+          draggable={false}
+          style={info()?.scale && info()!.scale !== 1 ? { transform: `scale(${info()!.scale})` } : undefined}
+        />
         <Show when={props.mode === "both"}>
           <span class="car-logo-txt">{label()}</span>
         </Show>

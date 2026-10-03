@@ -2124,6 +2124,7 @@ pub fn run() {
             livechat::stt::livechat_stt_status,
             livechat::stt::livechat_stt_restart,
             livechat::send::livechat_send_status,
+            livechat::send::livechat_auth_test,
             livechat::send::livechat_twitch_login,
             livechat::send::livechat_oauth_login,
             livechat::send::livechat_auth_cancel,

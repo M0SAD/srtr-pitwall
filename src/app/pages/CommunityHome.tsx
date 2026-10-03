@@ -8,6 +8,8 @@ import type { SharedShot } from "@/cloud/shots";
 import { LayoutCard, LayoutDetail, LoginWall } from "./CommunityPage";
 import { SharedShotDetail, ShotCard } from "./CommunityShots";
 import { ThemeCard } from "./CommunityThemes";
+import { DashCard, DashDetail } from "./CommunityDashes";
+import { topDashes, type DashSummary } from "@/cloud/dashes";
 import { Tabs, compact } from "./CommunityKit";
 import { go } from "../ui";
 import * as I from "../icons";
@@ -50,6 +52,7 @@ export function CommunityHome() {
   const [version, setVersion] = createSignal(0);
   const [openShot, setOpenShot] = createSignal<SharedShot | null>(null);
   const [openLayout, setOpenLayout] = createSignal<LayoutTop | null>(null);
+  const [openDash, setOpenDash] = createSignal<DashSummary | null>(null);
 
   const [stats] = createResource(() => (session() ? version() + 1 : null), () => communityStats());
 
@@ -88,6 +91,7 @@ export function CommunityHome() {
           <Stat icon={<I.LayoutDashboard />} n={stats()?.layouts} label="Düzen" onClick={() => go("community", "layouts")} />
           <Stat icon={<I.Radio />} n={stats()?.streams} label="Yayın düzeni" onClick={() => go("community", "stream")} />
           <Stat icon={<I.Palette />} n={stats()?.themes} label="Tema" onClick={() => go("community", "themes")} />
+          <Stat icon={<I.Gauge />} n={stats()?.dashes ?? (stats() ? 0 : undefined)} label="Direksiyon ekranı" onClick={() => go("community", "dashes")} />
         </div>
         <div class="cx-statgrid small">
           <Stat icon={<I.Download />} n={stats()?.downloads} label="İndirme" />
@@ -101,6 +105,7 @@ export function CommunityHome() {
         <ShotRow title="En çok görüntülenen görseller" icon={<I.Eye />} k={key} by="views" onOpen={setOpenShot} more={() => go("community", "shots")} />
         <LayoutRow title="En çok kullanılan düzenler" icon={<I.Download />} k={key} by="downloads" kind="layout" onOpen={setOpenLayout} more={() => go("community", "layouts")} />
         <LayoutRow title="En çok kullanılan yayın düzenleri" icon={<I.Radio />} k={key} by="downloads" kind="stream" onOpen={setOpenLayout} more={() => go("community", "stream")} />
+        <DashRow title="En çok indirilen direksiyon ekranları" icon={<I.Gauge />} k={key} by="downloads" onOpen={setOpenDash} more={() => go("community", "dashes")} />
         <Tabbed
           title="En çok puan alanlar"
           icon={<I.Trophy />}
@@ -108,6 +113,7 @@ export function CommunityHome() {
             { id: "shots", label: "Görseller", render: () => <ShotRow bare k={key} by="rating" onOpen={setOpenShot} /> },
             { id: "layouts", label: "Düzenler", render: () => <LayoutRow bare k={key} by="rating" kind="layout" onOpen={setOpenLayout} /> },
             { id: "stream", label: "Yayın düzenleri", render: () => <LayoutRow bare k={key} by="rating" kind="stream" onOpen={setOpenLayout} /> },
+            { id: "dashes", label: "Direksiyon ekranları", render: () => <DashRow bare k={key} by="rating" onOpen={setOpenDash} /> },
           ]}
         />
         <Tabbed
@@ -117,12 +123,16 @@ export function CommunityHome() {
             { id: "shots", label: "Görseller", render: () => <ShotRow bare k={key} by="comments" onOpen={setOpenShot} /> },
             { id: "layouts", label: "Düzenler", render: () => <LayoutRow bare k={key} by="comments" kind="layout" onOpen={setOpenLayout} /> },
             { id: "stream", label: "Yayın düzenleri", render: () => <LayoutRow bare k={key} by="comments" kind="stream" onOpen={setOpenLayout} /> },
+            { id: "dashes", label: "Direksiyon ekranları", render: () => <DashRow bare k={key} by="comments" onOpen={setOpenDash} /> },
           ]}
         />
         <ThemeRow k={key} />
 
         <Show when={openShot()}>
           <SharedShotDetail s={openShot()!} onClose={() => setOpenShot(null)} onChanged={() => setVersion(version() + 1)} />
+        </Show>
+        <Show when={openDash()}>
+          <DashDetail d={openDash()!} onClose={() => setOpenDash(null)} onChanged={() => setVersion(version() + 1)} />
         </Show>
         <Show when={openLayout()}>
           <LayoutDetail
@@ -247,6 +257,28 @@ function LayoutRow(p: {
       <Show when={(list.latest ?? []).length > 0} fallback={<Empty />}>
         <div class="cx-row">
           <For each={list.latest ?? []}>{(l, i) => <LayoutCard l={l} rank={i() + 1} onOpen={() => p.onOpen(l)} />}</For>
+        </div>
+      </Show>
+    </Show>
+  );
+  return p.bare ? body : <Section title={p.title!} icon={p.icon!} more={p.more} children={body} />;
+}
+
+function DashRow(p: {
+  title?: string;
+  icon?: JSX.Element;
+  bare?: boolean;
+  k: () => { p: Period; v: number } | null;
+  by: "downloads" | "rating" | "comments";
+  onOpen: (d: DashSummary) => void;
+  more?: () => void;
+}) {
+  const [list] = createResource(p.k, (k) => topDashes(k.p, p.by, 8).catch(() => [] as DashSummary[]));
+  const body = (
+    <Show when={list.latest || !list.loading} fallback={<RowSkel />}>
+      <Show when={(list.latest ?? []).length > 0} fallback={<Empty />}>
+        <div class="cx-row">
+          <For each={list.latest ?? []}>{(d, i) => <DashCard d={d} rank={i() + 1} onOpen={() => p.onOpen(d)} />}</For>
         </div>
       </Show>
     </Show>

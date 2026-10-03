@@ -372,6 +372,8 @@ struct St {
     /// Son okunan sosyal mesaj kimlikleri (aynı mesaj birden fazla overlay kopyasından / pencereden gelirse bir kez okunur)
     ext_seen: VecDeque<String>,
     error: Option<String>,
+    /// Engellemeyen bilgi: son okumada Edge sesi yerine Windows sesi kullanıldı
+    notice: Option<String>,
     speaking: bool,
     /// Çalışan okumayı kes
     skip: bool,
@@ -386,6 +388,8 @@ pub struct TtsStatus {
     pub speaking: bool,
     pub queue: usize,
     pub error: Option<String>,
+    /// Engellemeyen bilgi (ör. "Edge sesi kullanılamadı, Windows sesiyle okundu")
+    pub notice: Option<String>,
 }
 
 pub struct Tts {
@@ -409,6 +413,7 @@ impl Tts {
             speaking: g.speaking,
             queue: g.queue.len(),
             error: g.error.clone(),
+            notice: g.notice.clone(),
         }
     }
 
@@ -530,6 +535,8 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
 
     let mut synth: Option<super::tts_win::Synth> = None;
     let mut out: Option<(String, OutputStream, OutputStreamHandle)> = None;
+    // Edge sesi çalışmazsa kullanılacak Windows sesi (dil kodu → ses kimliği; boş: Windows varsayılanı)
+    let mut win_fallback: std::collections::HashMap<String, String> = std::collections::HashMap::new();
     loop {
         // Sıradaki mesaj (20 sn boşta kalınca ses akışı kapatılır)
         let item = {
@@ -564,8 +571,34 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
         if let Some(v) = item.voice.as_ref().filter(|v| !v.is_empty()) {
             ov.voice = v.clone();
         }
+        // Edge çevrimiçi sesi (edge:…): olmazsa bu mesaj aynı dildeki Windows sesiyle okunur, sıra beklemez
+        let mut edge_wav: Option<Vec<u8>> = None;
+        let mut notice: Option<String> = None;
+        if let Some(short) = ov.voice.strip_prefix(super::tts_edge::PREFIX).map(str::to_string) {
+            t.st.lock().skip = false;
+            match super::tts_edge::synth_wav_blocking(&item.text, &short, ov.rate, ov.pitch) {
+                Ok(w) => edge_wav = Some(w),
+                Err(e) => {
+                    notice = Some(format!("Edge sesi kullanılamadı, Windows sesiyle okundu ({e})"));
+                    let lang = short.split('-').next().unwrap_or("").to_lowercase();
+                    let fb = win_fallback.entry(lang.clone()).or_insert_with(|| {
+                        super::tts_win::voices()
+                            .ok()
+                            .and_then(|l| l.into_iter().find(|v| !lang.is_empty() && v.language.to_lowercase().split('-').next() == Some(lang.as_str())))
+                            .map(|v| v.id)
+                            .unwrap_or_default()
+                    });
+                    ov.voice = fb.clone();
+                }
+            }
+            // Beklerken susturulduysa / sıra boşaltıldıysa okuma
+            if std::mem::take(&mut t.st.lock().skip) {
+                t.emit();
+                continue;
+            }
+        }
         // Sentez
-        if synth.is_none() {
+        if edge_wav.is_none() && synth.is_none() {
             match super::tts_win::Synth::new() {
                 Ok(s) => synth = Some(s),
                 Err(e) => {
@@ -576,14 +609,17 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
                 }
             }
         }
-        let wav = match synth.as_mut().unwrap().wav(&item.text, &ov.voice, ov.rate, ov.pitch, win_rate(ov.rate), win_pitch(ov.pitch)) {
-            Ok(w) => w,
-            Err(e) => {
-                synth = None;
-                t.st.lock().error = Some(format!("Ses üretilemedi: {e}"));
-                t.emit();
-                continue;
-            }
+        let wav = match edge_wav {
+            Some(w) => w,
+            None => match synth.as_mut().unwrap().wav(&item.text, &ov.voice, ov.rate, ov.pitch, win_rate(ov.rate), win_pitch(ov.pitch)) {
+                Ok(w) => w,
+                Err(e) => {
+                    synth = None;
+                    t.st.lock().error = Some(format!("Ses üretilemedi: {e}"));
+                    t.emit();
+                    continue;
+                }
+            },
         };
         // Çıkış cihazı (boş: Windows varsayılanı)
         if out.as_ref().map(|(d, _, _)| d != &ov.device).unwrap_or(true) {
@@ -639,6 +675,7 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
             g.speaking = true;
             g.skip = false;
             g.error = None;
+            g.notice = notice;
         }
         t.speaking.store(true, Ordering::Relaxed);
         t.emit();
@@ -719,23 +756,43 @@ pub struct VoiceOut {
     pub female: bool,
     /// "female" | "male"
     pub gender: &'static str,
-    /// "onecore" (Windows Ayarları › Konuşma sesleri) | "sapi" (klasik SAPI5 sesleri)
+    /// "edge" (Edge çevrimiçi doğal sesleri) | "onecore" (Windows Ayarları › Konuşma sesleri) | "sapi" (klasik SAPI5 sesleri)
     pub engine: &'static str,
+}
+
+/// Edge çevrimiçi sesleri (liste alınamazsa yerleşik liste). Kimlik: `edge:<kısa ad>`
+async fn edge_voice_list() -> Vec<VoiceOut> {
+    let (list, _) = super::tts_edge::voices().await;
+    list.into_iter()
+        .map(|v| VoiceOut {
+            id: format!("{}{}", super::tts_edge::PREFIX, v.short),
+            name: v.display(),
+            language: v.locale.clone(),
+            language_name: v.language_name.clone(),
+            female: v.female,
+            gender: if v.female { "female" } else { "male" },
+            engine: "edge",
+        })
+        .collect()
 }
 
 #[tauri::command]
 pub async fn livechat_tts_voices() -> Result<Vec<VoiceOut>, String> {
     #[cfg(windows)]
     {
-        let list = tauri::async_runtime::spawn_blocking(super::tts_win::voices).await.map_err(|e| e.to_string())??;
-        Ok(list
-            .into_iter()
-            .filter(|v| !v.id.is_empty())
-            .map(|v| VoiceOut { id: v.id, name: v.name, language: v.language, language_name: v.language_name, female: v.female, gender: if v.female { "female" } else { "male" }, engine: v.engine })
-            .collect())
+        // Windows sesleri okunamasa da Edge sesleri listelenir
+        let list = tauri::async_runtime::spawn_blocking(super::tts_win::voices).await.map_err(|e| e.to_string())?.unwrap_or_default();
+        let mut out = edge_voice_list().await;
+        out.extend(
+            list.into_iter()
+                .filter(|v| !v.id.is_empty())
+                .map(|v| VoiceOut { id: v.id, name: v.name, language: v.language, language_name: v.language_name, female: v.female, gender: if v.female { "female" } else { "male" }, engine: v.engine }),
+        );
+        Ok(out)
     }
     #[cfg(not(windows))]
     {
+        let _ = edge_voice_list;
         Err("Sesli okuma sadece Windows'ta çalışır".into())
     }
 }

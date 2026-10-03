@@ -37,6 +37,8 @@ import {
 } from "./model";
 import { DashCanvas, pageOf } from "./Render";
 import { DASH_TOPICS, useDemoDash, useLiveDash } from "./data";
+import { DashShareDialog, useDashInOverlay } from "@/app/pages/CommunityDashes";
+import { cloudEnabled } from "@/cloud/supabase";
 import "./designer.css";
 
 type Handle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
@@ -97,6 +99,7 @@ export function DashDesigner() {
   const [msg, setMsg] = createSignal("");
   const [palGroup, setPalGroup] = createSignal(PALETTE[0].group);
   const [k, setK] = createSignal(1);
+  const [sharing, setSharing] = createSignal(false);
   let stage: HTMLDivElement | undefined;
   let fileIn!: HTMLInputElement;
   let imgIn!: HTMLInputElement;
@@ -111,7 +114,11 @@ export function DashDesigner() {
     dirty = false;
     updateSettings((s) => {
       const i = s.dashes.findIndex((x) => x.id === d.id);
-      if (i >= 0) s.dashes[i] = structuredClone(d);
+      if (i < 0) return;
+      // Paylaşım kimliği ayarlarda durur (paylaşım penceresi yazar): eski bir yerel kopya onu silmesin
+      const sid = d.sharedId ?? s.dashes[i].sharedId;
+      s.dashes[i] = structuredClone(d);
+      if (sid) s.dashes[i].sharedId = sid;
     });
   };
   onCleanup(flush);
@@ -756,6 +763,20 @@ export function DashDesigner() {
         }}
       />
 
+      <Show when={sharing() && draft()}>
+        <DashShareDialog
+          dashId={draft()!.id}
+          onClose={() => setSharing(false)}
+          onShared={() => {
+            setSharing(false);
+            // Paylaşım kimliği ayarlara yazıldı: yerel kopyaya da işlensin (sonraki kayıtta silinmesin)
+            const sid = dashes().find((x) => x.id === draft()?.id)?.sharedId;
+            if (sid && draft()) setDraft({ ...draft()!, sharedId: sid });
+            flash(t("Tasarım toplulukta paylaşıldı (Topluluk › Direksiyon Ekranları)"));
+          }}
+        />
+      </Show>
+
       {/* ---------------- Üst şerit: tasarımlar ---------------- */}
       <div class="dd-bar">
         <select class="input dd-pick" value={curId()} onChange={(e) => setCurId(e.currentTarget.value)} disabled={!dashes().length}>
@@ -798,6 +819,22 @@ export function DashDesigner() {
           İçe aktar
         </button>
         <Show when={draft()}>
+          <button
+            class="btn small"
+            title="Bu tasarımı Direksiyon Ekranı overlay'inin görünümü yap (Overlaylarım)"
+            onClick={() => {
+              flush();
+              const also = useDashInOverlay(draft()!.id);
+              flash(also ? t("Direksiyon Ekranı'nın varsayılan görünümü ve etkin düzendeki kopyası bu tasarım oldu") : t("Direksiyon Ekranı'nın varsayılan görünümü bu tasarım oldu (Overlaylarım)"));
+            }}
+          >
+            <I.Gauge /> Direksiyon Ekranı'nda kullan
+          </button>
+          <Show when={cloudEnabled}>
+            <button class="btn small" title="Tasarımı toplulukta herkesle paylaş" onClick={() => (flush(), setSharing(true))}>
+              <I.Share2 /> Paylaş
+            </button>
+          </Show>
           <button class="btn ghost small danger" onClick={removeDash}>
             <I.Trash /> Sil
           </button>
@@ -811,8 +848,8 @@ export function DashDesigner() {
           <section class="panel dd-empty">
             <h3>İlk tasarımını oluştur</h3>
             <p class="muted">
-              Bir şablonla başla ya da boş tuvale bileşenleri kendin yerleştir. Tasarımını Overlay'ler › Direksiyon Ekranı › Görünüm › “Özel
-              tasarım” ile ekrana, “Başka cihazda aç” ile telefon ya da tablete alırsın.
+              Bir şablonla başla ya da boş tuvale bileşenleri kendin yerleştir. Tasarımını “Direksiyon Ekranı'nda kullan” düğmesiyle (ya da Direksiyon
+              Ekranı › Görünüm listesindeki “Tasarımlarım” ile) ekrana, “Başka cihazda aç” ile telefon ya da tablete alırsın.
             </p>
             <div class="dd-tpls">
               <For each={TEMPLATES}>

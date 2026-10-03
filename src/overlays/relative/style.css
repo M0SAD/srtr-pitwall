@@ -401,3 +401,28 @@
 .licb.combo i.down {
   color: #ff9a9a;
 }
+
+/* --- Elle ayarlanan sütun genişliği (colWidths): hücre sabit genişlikli sarmalayıcıda; sığmayan içerik kırpılır/"…" olur.
+   Genişlik yazı boyutu ölçeğiyle (--ov-fs-k) birlikte büyür. Ad sütununda değer taban genişliktir, kalan boşluğu yine doldurur. --- */
+.rel-row > .rel-cw {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: calc(var(--cw, 40) * 1px * var(--ov-fs-k, 1));
+  min-width: 0;
+  overflow: hidden;
+}
+.rel-row > .rel-cw.rel-cw-name {
+  flex: 1 1 auto;
+}
+.rel-row > .rel-cw > * {
+  flex: 1 1 auto;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -369,123 +369,316 @@ span.cd-act b {
   color: #ff5a4a;
 }
 
-/* ===================================================================== F1 hibrit (W13) */
+/* ===================================================================== F1 hibrit (W13), iki sayfa */
 .cd-carMercW13 {
   --cd-font: "Inter Variable", "Inter", system-ui, sans-serif;
-  --cd-dim: #58d6c8;
-  background: rgba(9, 10, 12, var(--cd-a));
+  --cd-dim: #c9ced4;
+  --w-ln: #4a4f56;
+  --w-grey: #b9bec4;
+  --w-teal: #1fa6a0;
+  --w-grn: #1fc23c;
+  --w-org: #d9772b;
+  --w-yel: #c8c81e;
+  background: rgba(0, 0, 0, var(--cd-a));
   border: 1px solid #25282c;
-  border-radius: 10px;
-  padding: 7px 9px 9px;
+  border-radius: 6px;
+  padding: 6px 8px 8px;
+  font-weight: 500;
 }
-.cx-w-leds i {
-  width: 12px;
-  height: 12px;
+.cd-carMercW13 .cd-l {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-style: normal;
 }
-.cx-w-leds {
-  height: 12px;
-  padding: 0 34px;
+.cd-carMercW13 .cd-gear {
+  color: var(--w-grey);
+  font-weight: 500;
 }
-.cd-carMercW13 .cd-screen {
-  display: grid;
-  grid-template-columns: 1fr 104px 1.15fr;
-  gap: 8px;
-  padding: 8px;
-  background: #000;
-  border: 1px solid #3a3e44;
-}
-.cx-w-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 5px;
-}
-.cx-w-kv {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 6px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid #1c2024;
-}
-.cx-w-kv b {
-  font-size: 19px;
-  font-weight: 600;
-}
-.cx-w-kv b small {
-  font-size: 11px;
-  color: #8d949c;
-}
-.cx-w-mid {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.cx-w-gear {
-  border: 1px solid #6a7079;
-  padding: 6px 0 8px;
-}
-.cx-w-gear .cd-gear {
-  font-size: 74px;
-  font-weight: 600;
-}
-.cx-w-bat {
+.cx-w-top {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 6px;
+  height: 22px;
 }
-.cx-w-batbar {
+.cx-w-top > b {
+  font-size: 22px;
+  color: var(--w-grey);
+  min-width: 34px;
+  text-align: right;
+}
+.cx-w-segs {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  height: calc(20px * var(--cd-led-z, 1));
   flex: 1;
-  height: 9px;
-  border: 1px solid #58d6c8;
-  padding: 1px;
 }
-.cx-w-batbar i {
-  display: block;
-  height: 100%;
-  background: #58d6c8;
+.cx-w-segs i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-size: calc(17px * var(--cd-led-z, 1));
+  line-height: 1;
+  color: color-mix(in srgb, var(--sc) 55%, #000);
+  background: #17090b;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc) 35%, #000);
 }
-.cx-w-mode {
-  margin-right: auto;
-  color: #ffb020;
+.cx-w-segs i.on {
+  background: var(--sc);
+  color: #3a0509;
 }
-.cx-w-panel {
-  flex: 1;
+.cd-flash .cx-w-segs i.on {
+  animation: cd-flash 0.22s steps(2) infinite;
+}
+.cx-w-gear {
+  border: 1px solid var(--w-ln);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cx-w-pit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #b8b414;
+  color: #15150a;
+  font-size: 24px;
+  white-space: nowrap;
+}
+.cx-w-bal {
+  font-size: 17px;
+  color: var(--w-grey);
+  white-space: nowrap;
+}
+.cx-w-batv {
+  color: var(--w-grn);
+}
+
+/* --- sayfa 1 --- */
+.cd-screen.cx-w1 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: 22px 70px 66px 18px 26px;
+  gap: 4px;
+}
+.cx-w1 .cx-w-top {
+  grid-column: 1 / 5;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 1fr auto 1.22fr;
+}
+.cx-w1 .cx-w-top .cd-l {
+  justify-self: end;
+}
+.cx-w1 .cx-w-gear {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  justify-self: center;
+  width: 96px;
+}
+.cx-w1 .cx-w-gear .cd-gear {
+  font-size: 74px;
+}
+.cx-w-ty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+.cx-w-ty.tr,
+.cx-w-ty.br {
+  flex-direction: row-reverse;
+}
+.cx-w-ty.tl {
+  grid-area: 2 / 1;
+}
+.cx-w-ty.tr {
+  grid-area: 2 / 4;
+}
+.cx-w-ty.bl {
+  grid-area: 4 / 1 / 6 / 2;
+}
+.cx-w-ty.br {
+  grid-area: 4 / 4 / 6 / 5;
+}
+.cx-w-ty b {
+  font-size: 36px;
+  color: var(--w-grey);
+  font-weight: 400;
+}
+.cx-w-ty i {
+  font-style: normal;
+  font-size: 19px;
+  color: var(--w-teal);
+  align-self: flex-start;
+}
+.cx-w1 .cx-w-pit {
+  grid-area: 3 / 1;
+  margin: 8px 0;
+  font-size: 21px;
+}
+.cx-w-ctr {
+  grid-area: 3 / 2;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 5px 7px;
-  border: 1px solid #6a7079;
+  white-space: nowrap;
+  min-width: 0;
 }
-.cx-w-delta {
-  font-size: 26px;
-  font-weight: 600;
-}
-.cx-w-time {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 600;
-}
-.cx-w-time em {
-  font-style: normal;
-  font-size: 9px;
-  color: var(--cd-dim);
-}
-.cx-w-water {
+.cx-w-ctr span {
   display: flex;
   align-items: baseline;
   gap: 5px;
-  padding: 3px 7px;
-  border: 1px solid #6a7079;
+}
+.cx-w-ctr .cx-w-batv {
+  font-size: 20px;
+}
+.cx-w-ctr .cx-w-bal {
+  font-size: 16px;
+}
+.cx-w-dl {
   font-size: 14px;
+  color: var(--w-grey);
 }
-.cx-w-water b {
-  margin-right: auto;
+.cx-w-bb {
+  grid-area: 3 / 3 / 4 / 5;
+  border: 1px solid var(--w-ln);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
 }
-.cd-carMercW13 .cd-dbar {
-  height: 5px;
+.cx-w-bb b {
+  font-size: 38px;
+  color: var(--w-org);
+  font-weight: 500;
+  line-height: 0.95;
+}
+.cx-w-bb i {
+  font-style: normal;
+  font-size: 18px;
+  color: var(--w-yel);
+}
+.cx-w-wat {
+  grid-area: 5 / 2 / 6 / 4;
+  justify-self: center;
+  width: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  border: 1px solid var(--w-ln);
+}
+.cx-w-wat b {
+  font-size: 20px;
+  color: #c8202c;
+}
+
+/* --- sayfa 2 --- */
+.cd-screen.cx-w2 {
+  gap: 4px;
+}
+.cx-w2 .cx-w-top > b {
+  min-width: 0;
+}
+.cx-w2 .cx-w-top > b.r {
+  min-width: 40px;
+}
+.cx-w2-body {
+  display: grid;
+  grid-template-columns: 1fr 0.62fr 1fr 16px;
+  height: 196px;
+  border: 1px solid var(--w-ln);
+}
+.cx-w2-body > div + div {
+  border-left: 1px solid var(--w-ln);
+}
+.cx-w2-left {
+  display: grid;
+  grid-template-rows: 26fr 74fr;
+}
+.cx-w2-left .cx-w-pit {
+  grid-row: 2;
+  align-items: flex-start;
+  padding-top: 14px;
+  font-size: 30px;
+}
+.cx-w2-mid,
+.cx-w2-right {
+  display: grid;
+}
+.cx-w2-mid {
+  grid-template-rows: 1fr 30px 0.9fr;
+}
+.cx-w2-mid .cx-w-gear {
+  border: 0;
+}
+.cx-w2-mid .cx-w-gear .cd-gear {
+  font-size: 86px;
+}
+.cx-w2-mid .cx-w-bal {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--w-ln);
+  border-width: 1px 0;
+}
+.cx-w2-right {
+  grid-template-rows: repeat(4, 1fr);
+}
+.cx-w2-right > div + div {
+  border-top: 1px solid var(--w-ln);
+}
+.cx-w2-cell {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 2px 6px;
+  min-width: 0;
+}
+.cx-w2-cell .cd-l {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+}
+.cx-w2-cell b {
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cx-w2-cell.bb b {
+  color: var(--w-org);
+}
+.cx-w2-cell.g b {
+  color: var(--w-grn);
+}
+.cx-w2-cell.t b {
+  color: var(--w-teal);
+  font-size: 26px;
+}
+.cx-w2-mid .cx-w-batv {
+  color: var(--w-yel);
+}
+.cx-w2-scale {
+  position: relative;
+  background: repeating-linear-gradient(to bottom, #6a7079 0 1px, transparent 1px 12px) right / 6px 100% no-repeat;
+}
+.cx-w2-scale i {
+  position: absolute;
+  left: 2px;
+  right: 0;
+  height: 3px;
+  margin-bottom: -1px;
+  background: var(--w-grey);
 }
 
 /* ===================================================================== İtalyan GT3 (296) */

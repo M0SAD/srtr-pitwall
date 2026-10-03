@@ -754,10 +754,10 @@
   "ov_rejoin_h": "Tidsavstånd till de närmaste bilarna som kommer bakifrån|Säger om det är säkert att köra ut på banan igen|Tar ingen plats på skärmen när den inte behövs",
   "ov_dashboard_n": "Rattdisplay",
   "ov_dashboard_d": "En display som skärmarna på racingrattar.",
-  "ov_dashboard_h": "Vyerna Klassisk, Minimal, Lopp och Endurance + automatiskt val efter bil|PRO: 10 displayer i bilstil inspirerade av riktiga racerbilar (F1, F3/F4/FR, tre GT3-stilar, LMDh/LMH, stock car, rally, TCR, gatbil)|Växellampor: block, F1 (15 LED) eller stapel; blinkar vid växlingspunkten|Deltareferens (ditt bästa / sessionens bästa / optimalt) och valbara rutor nederst|Varje element kan justeras: visa / dölj, storlek och färg (växlingslampor, växel, hastighet, delta, varvtider, bränsle, däck…)|PRO: Dashboarddesigner – dra komponenter till en arbetsyta, bygg din egen display och lägg till den som overlay|PRO: fjärrdisplay – öppna displayen på en mobil eller surfplatta i samma nätverk (QR-kod)",
+  "ov_dashboard_h": "Vyerna Klassisk, Minimal, Lopp och Endurance + automatiskt val efter bil|PRO: 10 displayer i bilstil inspirerade av riktiga racerbilar (F1, F3/F4/FR, tre GT3-stilar, LMDh/LMH, stock car, rally, TCR, gatbil)|Växellampor: block, F1 (15 LED) eller stapel; blinkar vid växlingspunkten|Deltareferens (ditt bästa / sessionens bästa / optimalt) och valbara rutor nederst|Varje element kan justeras: visa / dölj, storlek och färg (växlingslampor, växel, hastighet, delta, varvtider, bränsle, däck…)|PRO: Dashboarddesigner – dra komponenter till en arbetsyta, bygg din egen display, lägg till den som overlay och dela den med communityn (betyg och kommentarer)|PRO: fjärrdisplay – öppna displayen på en mobil eller surfplatta i samma nätverk (QR-kod)",
   "ov_inputs_n": "Pedaler & input",
   "ov_inputs_d": "Kurva för gas / broms / koppling, pedalstaplar, växel, hastighet och ratt.",
-  "ov_inputs_h": "7 designer: standard, telemetrigraf + staplar, vertikala staplar, kompakt remsa|PRO-designer: horisontella remsor, ringmätare, simstil (klassisk)|Rattvy som matchar bilen; PRO: Formula-, GT-, prototyp-, rally-, oval- och klassisk träratt|60 Hz; ABS / TC-indikator, rattlinje i grafen",
+  "ov_inputs_h": "4 designer: standard, telemetrigraf + staplar, bred graf; PRO: simstil (klassisk)|Rattvy som matchar bilen eller den anslutna ratten; PRO: Formula-, GT-, prototyp-, rally-, oval- och klassisk träratt|Valfria gas- / bromsprocent, rader för senaste och bästa varv|60 Hz; ABS / TC-indikator, rattlinje i grafen",
   "ov_telemetry_n": "Telemetripanel",
   "ov_telemetry_d": "Växelring och varvräknare i en remsa.",
   "ov_telemetry_h": "Hastighet och växellampor|Position och senaste varv|Bränsle och bantemperatur",
@@ -1064,5 +1064,8 @@
   "fr_kick_ask": "Ta bort {0} från gruppen?",
   "fr_leave_owner_ask": "Om du lämnar \"{0}\" går ägarskapet över till den äldsta medlemmen. Vill du lämna?",
   "fr_hiding": "gömmer sig",
-  "fr_hiding_tip": "Den här medlemmen har valt statusen \"Offline\"; bara admins ser detta."
+  "fr_hiding_tip": "Den här medlemmen har valt statusen \"Offline\"; bara admins ser detta.",
+  "ov_pedals_n": "Pedalset",
+  "ov_pedals_d": "Pedalvisning utan graf: gas / broms / koppling, procent, växel, hastighet och ratt.",
+  "ov_pedals_h": "8 designer: pedalset, vertikala staplar, kompakt remsa, LED-segment, vertikalt torn; PRO: horisontella remsor, ringmätare, ramlös HUD|Procentetiketter, ABS / TC-indikering med färg och ram|Valfri rad för senaste / bästa varv|Valbara färger för gas och broms"
 }

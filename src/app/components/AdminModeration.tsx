@@ -27,6 +27,7 @@ import {
 import { MESSAGE_REPORT_REASONS } from "@/cloud/social";
 import { SHOT_BUCKET, deleteShot, deleteShotComment, getShot, type SharedShot } from "@/cloud/shots";
 import { deleteComment, deleteLayout } from "@/cloud/layouts";
+import { deleteDash, deleteDashComment } from "@/cloud/dashes";
 import { api } from "@/cloud/supabase";
 import { SharedShotDetail } from "../pages/CommunityShots";
 import { formatModLog, logTargetLabel } from "./modLogFormat";
@@ -63,6 +64,8 @@ export function ModerationPanel() {
         if (r.target_type === "shot") await deleteShot({ id: r.target_id, path: tg.path ?? "", thumb_path: tg.thumb_path ?? "" });
         else if (r.target_type === "shot_comment") await deleteShotComment(r.target_id);
         else if (r.target_type === "layout") await deleteLayout(r.target_id);
+        else if (r.target_type === "dash") await deleteDash(r.target_id);
+        else if (r.target_type === "dash_comment") await deleteDashComment(r.target_id);
         else await deleteComment(r.target_id);
       }
       await setReportStatus(r.id, "resolved");

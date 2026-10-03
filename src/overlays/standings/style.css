@@ -299,3 +299,28 @@
   width: auto;
   font-size: 0.8em;
 }
+
+/* --- Elle ayarlanan sütun genişliği (colWidths): hücre sabit genişlikli sarmalayıcıda; sığmayan içerik kırpılır/"…" olur.
+   Genişlik yazı boyutu ölçeğiyle (--ov-fs-k) birlikte büyür. Ad sütununda değer taban genişliktir, kalan boşluğu yine doldurur. --- */
+.st-row > .st-cw {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: calc(var(--cw, 40) * 1px * var(--ov-fs-k, 1));
+  min-width: 0;
+  overflow: hidden;
+}
+.st-row > .st-cw.st-cw-name {
+  flex: 1 1 auto;
+}
+.st-row > .st-cw > * {
+  flex: 1 1 auto;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

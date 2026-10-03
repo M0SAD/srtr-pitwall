@@ -754,10 +754,10 @@
   "ov_rejoin_h": "Tijdsverschil tot de dichtstbijzijnde auto's die van achteren komen|Vertelt je of het veilig is om terug te keren|Neemt geen schermruimte in als het niet nodig is",
   "ov_dashboard_n": "Stuurdisplay",
   "ov_dashboard_d": "Een dash zoals de schermen op racesturen.",
-  "ov_dashboard_h": "Weergaven Classic, Minimal, Race en Endurance + automatische keuze per auto|PRO: 10 displays in autostijl, geïnspireerd op echte raceauto's (F1, F3/F4/FR, drie GT3-stijlen, LMDh/LMH, stockcar, rally, TCR, straatauto)|Schakellampjes: blokken, F1 (15 LED's) of balk; knipperen op het schakelpunt|Delta-referentie (jouw beste / sessiebeste / optimaal) en zelf te kiezen vakken onderaan|Elk element is instelbaar: tonen / verbergen, grootte en kleur (schakellampjes, versnelling, snelheid, delta, rondetijden, brandstof, banden…)|PRO: Dashboard Designer – sleep componenten op een canvas om je eigen display te bouwen en voeg het toe als overlay|PRO: remote dashboard – open het display op een telefoon of tablet in hetzelfde netwerk (QR-code)",
+  "ov_dashboard_h": "Weergaven Classic, Minimal, Race en Endurance + automatische keuze per auto|PRO: 10 displays in autostijl, geïnspireerd op echte raceauto's (F1, F3/F4/FR, drie GT3-stijlen, LMDh/LMH, stockcar, rally, TCR, straatauto)|Schakellampjes: blokken, F1 (15 LED's) of balk; knipperen op het schakelpunt|Delta-referentie (jouw beste / sessiebeste / optimaal) en zelf te kiezen vakken onderaan|Elk element is instelbaar: tonen / verbergen, grootte en kleur (schakellampjes, versnelling, snelheid, delta, rondetijden, brandstof, banden…)|PRO: Dashboard Designer – sleep componenten op een canvas om je eigen display te bouwen, voeg het toe als overlay en deel het met de community (beoordelingen en reacties)|PRO: remote dashboard – open het display op een telefoon of tablet in hetzelfde netwerk (QR-code)",
   "ov_inputs_n": "Pedalen & Input",
   "ov_inputs_d": "Verloop van gas / rem / koppeling, pedaalbalken, versnelling, snelheid en stuur.",
-  "ov_inputs_h": "7 designs: standaard, telemetriegrafiek + balken, verticale balken, compacte strook|PRO-designs: horizontale stroken, ringmeters, sim-stijl (klassiek)|Stuur passend bij de auto; PRO: Formule-, GT-, prototype-, rally-, oval- en klassieke houten sturen|60 Hz; ABS- / TC-indicatoren, stuurlijn in de grafiek",
+  "ov_inputs_h": "4 designs: standaard, telemetriegrafiek + balken, brede grafiek; PRO: sim-stijl (klassiek)|Stuur passend bij de auto of bij het aangesloten stuur; PRO: Formule-, GT-, prototype-, rally-, oval- en klassieke houten sturen|Optionele gas- / rempercentages, regels voor laatste en beste ronde|60 Hz; ABS- / TC-indicatoren, stuurlijn in de grafiek",
   "ov_telemetry_n": "Telemetriepaneel",
   "ov_telemetry_d": "Versnellingsring en toerenteller in één strook.",
   "ov_telemetry_h": "Snelheid en schakellampjes|Positie en laatste ronde|Brandstof en baantemperatuur",
@@ -1064,5 +1064,8 @@
   "fr_kick_ask": "{0} uit de groep verwijderen?",
   "fr_leave_owner_ask": "Als je \"{0}\" verlaat, gaat het eigendom naar het lid dat er het langst bij is. Verlaten?",
   "fr_hiding": "verborgen",
-  "fr_hiding_tip": "Dit lid heeft ervoor gekozen offline te lijken; alleen beheerders zien dit."
+  "fr_hiding_tip": "Dit lid heeft ervoor gekozen offline te lijken; alleen beheerders zien dit.",
+  "ov_pedals_n": "Pedaalset",
+  "ov_pedals_d": "Pedaalweergave zonder grafiek: gas / rem / koppeling, percentages, versnelling, snelheid en stuur.",
+  "ov_pedals_h": "8 designs: pedaalset, verticale balken, compacte strook, LED-segmenten, verticale toren; PRO: horizontale stroken, ringmeters, HUD zonder kader|Percentagelabels, ABS- / TC-indicatie met kleur en kader|Optionele regel laatste / beste ronde|Gas- en remkleuren aanpasbaar"
 }

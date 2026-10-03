@@ -4410,3 +4410,129 @@ h3.ur-head {
 .rail-logo.link {
   cursor: pointer;
 }
+
+/* Sütun listesi: sütun başına genişlik ayarı (− px + ve varsayılana dön) */
+.olist-row {
+  flex-wrap: wrap;
+}
+.olist-w {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0f1115;
+  overflow: hidden;
+  cursor: default;
+}
+.olist-w button {
+  width: 20px;
+  height: 22px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.olist-w button:hover:not(:disabled) {
+  color: var(--text, #fff);
+}
+.olist-w button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.olist-w input {
+  width: 34px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.olist-w.set input {
+  color: inherit;
+  font-weight: 600;
+}
+.olist-w input::-webkit-outer-spin-button,
+.olist-w input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.olist-w input:focus {
+  outline: none;
+  background: #1a1e25;
+}
+.olist-wfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.olist-wfoot small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+/* === Overlaylarım: fareyle sürükleyerek sıralama === */
+.ovlist-hint {
+  margin: 6px 8px 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.ovlist-scroll .ovitem {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ovitem.dragging {
+  opacity: 0.35;
+  outline: 1px dashed var(--line);
+}
+body.ov-dragging,
+body.ov-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+.ovdrop-line {
+  position: fixed;
+  z-index: 60;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  pointer-events: none;
+}
+.ovdrop-line::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.ovdrag-ghost {
+  position: fixed;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 240px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--bg-2, #171a20);
+  color: var(--text, #fff);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}

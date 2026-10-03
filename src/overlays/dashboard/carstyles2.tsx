@@ -6,7 +6,6 @@ import { For, Match, Show, Switch, type JSX } from "solid-js";
 import { lapTime } from "@/sdk/format";
 import {
   Cell,
-  DeltaBar,
   Leds,
   deltaCls,
   deltaTxt,
@@ -143,70 +142,145 @@ function Formula(p: { c: DashCtx }) {
   );
 }
 
-/** F1 hibrit direksiyon ekranı: sade; hız, kutu içinde vites, batarya, delta paneli, su sıcaklığı */
-function MercW13(p: { c: DashCtx }) {
+/** 1..8 numaralı devir dilimleri: devirle soldan sağa yanar, vites noktasında hepsi yanıp söner */
+function W13Segs(p: { c: DashCtx }) {
+  const c = p.c;
+  const all = () => c.blink() || (c.shift() && c.frac() >= 1);
+  const lit = () => (all() ? 8 : Math.ceil(c.frac() * 8 - 1e-6));
+  const col = () => {
+    const pal = c.pal();
+    return all() ? (pal?.shift ?? "#ff2a6a") : (pal?.high ?? "#e0182d");
+  };
+  return (
+    <div class="cx-w-segs" style={{ "--sc": col() }}>
+      <For each={[1, 2, 3, 4, 5, 6, 7, 8]}>{(n) => <i classList={{ on: n <= lit() }}>{n}</i>}</For>
+    </div>
+  );
+}
+
+/** Köşe lastik çifti. Telemetride lastik başına iki değer var: BÜYÜK gri = yüzey sıcaklığı (seçilen birim),
+ *  küçük turkuaz = basınç (psi). Veri yoksa "—". */
+function W13Tyre(p: { c: DashCtx; i: number; class: string }) {
+  return (
+    <div class={`cx-w-ty ${p.class}`}>
+      <b>{tT(p.c, p.i)}</b>
+      <i>{tP(p.c, p.i)}</i>
+    </div>
+  );
+}
+
+const w13Bat = (c: DashCtx) => <b class="cx-w-batv">{socTxt(c)}</b>;
+/** "<harcama modu> BALCD" satırı: sim yalnızca harcama modunu verir (fren şekli / diferansiyel yok) */
+const w13Bal = (c: DashCtx) => `${n0(c.mode())} BALCD`;
+
+/** F1 hibrit direksiyon ekranı, sayfa 1: hız + numaralı devir dilimleri, kutu içinde vites, dört köşede lastik çiftleri,
+ *  solda PIT LIM bloğu, ortada batarya / ayar satırı / delta, sağda fren dengesi kutusu, altta su sıcaklığı */
+function MercW13P1(p: { c: DashCtx }) {
   const c = p.c;
   return (
-    <>
-      <Leds c={c} n={15} mode="ltr" palette={[G, R, B]} shift={B} blink={M} class="cd-round cx-w-leds" />
-      <div class="cd-screen">
-        <div class="cx-w-col">
-          <div class="cx-w-kv">
-            <span class="cd-l">SPEED</span>
-            <b>{c.speed()}</b>
-          </div>
-          <div class="cx-w-kv">
-            <span class="cd-l">LAP</span>
-            <b>{lapOf(c)}</b>
-          </div>
-          <div class="cx-w-kv">
-            <span class="cd-l">POS</span>
-            <b>P{posTxt(c)}</b>
-          </div>
-          <div class="cx-w-kv">
-            <span class="cd-l">FUEL</span>
-            <b>{c.fuelLaps()}</b>
+    <div class="cd-screen cx-w1">
+      <div class="cx-w-top">
+        <span class="cd-l">SPEED</span>
+        <b>{c.speed()}</b>
+        <W13Segs c={c} />
+      </div>
+      <W13Tyre c={c} i={0} class="tl" />
+      <W13Tyre c={c} i={1} class="tr" />
+      <W13Tyre c={c} i={2} class="bl" />
+      <W13Tyre c={c} i={3} class="br" />
+      <div class="cx-w-gear">
+        <div class="cd-gear">{c.gear()}</div>
+      </div>
+      <div class="cx-w-pit" classList={{ "cd-hid": !c.pitLim() }}>
+        PIT LIM
+      </div>
+      <div class="cx-w-ctr">
+        <span>
+          <em class="cd-l">BATT:-</em>
+          {w13Bat(c)}
+        </span>
+        <b class="cx-w-bal">{w13Bal(c)}</b>
+        <span>
+          <em class="cd-l">DELTA</em>
+          <b class={`cx-w-dl ${deltaCls(c.delta())}`}>{deltaTxt(c.delta())}</b>
+        </span>
+      </div>
+      <div class="cx-w-bb">
+        <b>{n0(c.bb(), 1)}</b>
+        {/* İkinci (sarı-yeşil) değer: fren migrasyonu / tepe dengesi — sim vermiyor */}
+        <i>{DASH}</i>
+      </div>
+      <div class="cx-w-wat">
+        <span class="cd-l">TWATER</span>
+        <b>{c.water()}</b>
+      </div>
+    </div>
+  );
+}
+
+/** Sayfa 2: üstte DEPLOY + dilimler + tur, solda büyük PIT LIM bloğu, ortada vites / ayar satırı / batarya,
+ *  sağda üst üste fren dengesi, LL (son tur yakıtı), TAR (hedef tur başı yakıt), LAST; en sağda ince skala */
+function MercW13P2(p: { c: DashCtx }) {
+  const c = p.c;
+  // Skala: bu turda kalan harcama hakkı (yoksa batarya doluluğu); ikisi de yoksa işaretçi gizli
+  const lvl = () => c.deployLeft() ?? c.soc();
+  return (
+    <div class="cd-screen cx-w2">
+      <div class="cx-w-top">
+        <span class="cd-l">DEPLOY</span>
+        <b>{n0(c.mode())}</b>
+        <W13Segs c={c} />
+        <b class="r">{lapTxt(c)}</b>
+        <span class="cd-l">LAP</span>
+      </div>
+      <div class="cx-w2-body">
+        <div class="cx-w2-left">
+          <div class="cx-w-pit" classList={{ "cd-hid": !c.pitLim() }}>
+            PIT LIM
           </div>
         </div>
-        <div class="cx-w-mid">
+        <div class="cx-w2-mid">
           <div class="cx-w-gear">
             <div class="cd-gear">{c.gear()}</div>
           </div>
-          <div class="cx-w-bat">
-            <span class="cd-l">BAT</span>
-            <div class="cx-w-batbar">
-              <i style={{ width: `${clamp01(c.soc()) * 100}%` }} />
-            </div>
-            <b>{socTxt(c)}</b>
-          </div>
-          <div class="cx-w-bat">
-            <span class="cd-l">MODE</span>
-            <b class="cx-w-mode">{n0(c.mode())}</b>
-            <span class="cd-l">MGU-K</span>
-            <b class="cx-w-mode">{kwTxt(c.mguk())}</b>
+          <b class="cx-w-bal">{w13Bal(c)}</b>
+          <div class="cx-w2-cell">
+            <span class="cd-l">BATT:-</span>
+            {w13Bat(c)}
           </div>
         </div>
-        <div class="cx-w-col r">
-          <div class="cx-w-panel">
-            <span class="cd-l">{c.deltaLabel()}</span>
-            <b class={`cx-w-delta ${deltaCls(c.delta())}`}>{deltaTxt(c.delta())}</b>
-            <DeltaBar v={c.delta()} />
-            <span class="cx-w-time">
-              <em>LAST</em> {lapTime(c.last())}
-            </span>
-            <span class="cx-w-time">
-              <em>BEST</em> {lapTime(c.best())}
-            </span>
-          </div>
-          <div class="cx-w-water">
-            <span class="cd-l">T WATER</span>
-            <b>{c.water()}</b>
-            <span class="cd-l">BBAL</span>
+        <div class="cx-w2-right">
+          <div class="cx-w2-cell bb">
             <b>{n0(c.bb(), 1)}</b>
           </div>
+          <div class="cx-w2-cell g">
+            <span class="cd-l">LL:-</span>
+            <b>{c.fuelLast()}</b>
+          </div>
+          <div class="cx-w2-cell g">
+            <span class="cd-l">TAR:-</span>
+            <b>{c.fuelTarget()}</b>
+          </div>
+          <div class="cx-w2-cell t">
+            <span class="cd-l">LAST:-</span>
+            <b>{lapTime(c.last())}</b>
+          </div>
+        </div>
+        <div class="cx-w2-scale">
+          <Show when={fin(lvl())}>
+            <i style={{ bottom: `${clamp01(lvl()) * 100}%` }} />
+          </Show>
         </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+function MercW13(p: { c: DashCtx }) {
+  return (
+    <Show when={p.c.page() % 2 === 1} fallback={<MercW13P1 c={p.c} />}>
+      <MercW13P2 c={p.c} />
+    </Show>
   );
 }
 

@@ -63,7 +63,10 @@ pub mod stt;
 pub mod stt_cloud;
 #[cfg(windows)]
 pub mod stt_win;
+#[cfg(windows)]
+pub mod mp3_win;
 pub mod tts;
+pub mod tts_edge;
 #[cfg(windows)]
 pub mod tts_win;
 pub mod twitch;

@@ -1,5 +1,5 @@
 import { defineOverlay, type SettingField } from "@/sdk/overlay";
-import { dashList } from "@/dash/model";
+import { DASH_VIEW, dashList } from "@/dash/model";
 
 // Alt kutularda gösterilebilecek değerler (Overlay.tsx'teki BOX_VALUES ile aynı anahtarlar)
 const BOX_OPTIONS = [
@@ -43,11 +43,15 @@ const CAR_VIEWS = [
   "carFer499",
   "carLmp2",
 ];
-const NOT_CAR = { key: "view", not: [...CAR_VIEWS, "custom"] };
+const NOT_CAR = { key: "view", not: [...CAR_VIEWS, "custom"], notPrefix: [DASH_VIEW] };
 // Hazır görünümler (Klasik, Minimal, Yarış, Dayanıklılık): öğe ayarları sadece bunlarda
 const GENERIC = { key: "view", is: ["classic", "minimal", "race", "endurance"] };
 const CAR_ONLY = { key: "view", is: [...CAR_VIEWS, "auto"] };
+// Eski "Özel tasarım" seçeneği (+ ayrı "Tasarım" alanı) kayıtlı ayarlar için çalışmaya devam eder
 const IS_CUSTOM = { key: "view", is: ["custom"] };
+// Özel tasarım: eski "custom" ya da doğrudan listedeki "Tasarımlarım: …" (değer "dash:<kimlik>")
+const ANY_CUSTOM = { key: "view", is: ["custom"], isPrefix: [DASH_VIEW] };
+const NOT_CUSTOM = { key: "view", not: ["custom"], notPrefix: [DASH_VIEW] };
 
 /** Bir öğenin ayarları: göster, boyut, (istenirse) renk */
 function element(id: string, name: string, group: string, opts: { show?: string; color?: string; views?: string[]; hint?: string } = {}): SettingField[] {
@@ -80,6 +84,8 @@ export default defineOverlay({
     { name: "session", hz: 2 },
     { name: "tires", hz: 1 },
     { name: "ers", hz: 10 },
+    // W13 ekranındaki PIT LIM bloğu (pit hız sınırlayıcı)
+    { name: "pit", hz: 5 },
     // Özel tasarımdaki gaz / fren, öndeki-arkadaki fark ve hava alanları
     { name: "inputs", hz: 30 },
     { name: "relative", hz: 2 },
@@ -121,7 +127,10 @@ export default defineOverlay({
         { value: "carFer499", label: "Ferrari 499P", pro: true },
         { value: "carLmp2", label: "Dallara P217 LMP2", pro: true },
       ],
-      hint: "Minimal: vites, hız, delta ve devir ışıkları. Yarış: büyük pozisyon ve delta, tur bilgisi, yakıtın yeteceği tur. Dayanıklılık: yakıt, kalan tur, stint süresi, lastik ve motor sıcaklıkları. Otomatik: sürdüğün araca (formula, GT, prototip, stock car, ralli, touring, yol arabası) uygun araç tarzı ekranı seçer; kendi ekranı olan araçlarda (ör. Ferrari 296 GT3, Porsche 963, Ferrari 499P) o aracın ekranı açılır.",
+      // Kullanıcının kendi tasarımları (Araçlar › Dashboard Tasarımcısı) listede ayrı birer görünüm olarak durur.
+      // Kilit kuralı "Özel tasarım" seçeneğiyle aynıdır (overlay.dashboard.view.custom).
+      optionsFrom: () => dashList().map((d) => ({ value: DASH_VIEW + d.id, label: `Tasarımlarım: ${d.name}`, pro: true, lockAs: "custom" })),
+      hint: "Tasarımlarım: Dashboard Tasarımcısı'nda yaptığın (ya da topluluktan indirdiğin) ekranlar. Minimal: vites, hız, delta ve devir ışıkları. Yarış: büyük pozisyon ve delta, tur bilgisi, yakıtın yeteceği tur. Dayanıklılık: yakıt, kalan tur, stint süresi, lastik ve motor sıcaklıkları. Otomatik: sürdüğün araca (formula, GT, prototip, stock car, ralli, touring, yol arabası) uygun araç tarzı ekranı seçer; kendi ekranı olan araçlarda (ör. Ferrari 296 GT3, Porsche 963, Ferrari 499P) o aracın ekranı açılır.",
       proHint: "Araç tarzı ekranlar ve özel tasarım PRO üyelere özel; otomatik modda sana Klasik görünüm gösterilir.",
     },
     {
@@ -138,9 +147,21 @@ export default defineOverlay({
         return list.length ? list.map((d) => ({ value: d.id, label: `Özel: ${d.name}` })) : [{ value: "", label: "Henüz tasarım yok" }];
       },
     },
-    { key: "customWidth", label: "Genişlik", type: "number", default: 380, min: 160, max: 1600, step: 10, unit: "px", showIf: IS_CUSTOM, hint: "Tasarım bu genişliğe oranını koruyarak sığdırılır." },
-    { key: "customPage", label: "Başlangıç sayfası", type: "number", default: 1, min: 1, max: 8, step: 1, ui: "stepper", showIf: IS_CUSTOM, hint: "Sayfalar arasında Ayarlar › Kısayollar'daki “sonraki sayfa” kısayoluyla geçilir." },
-    { key: "accent", label: "Vurgu rengi", type: "color", default: "#e8101a", group: "Görünüş", showIf: { key: "view", not: ["custom"] } },
+    { key: "customWidth", label: "Genişlik", type: "number", default: 380, min: 160, max: 1600, step: 10, unit: "px", showIf: ANY_CUSTOM, hint: "Tasarım bu genişliğe oranını koruyarak sığdırılır." },
+    { key: "customPage", label: "Başlangıç sayfası", type: "number", default: 1, min: 1, max: 8, step: 1, ui: "stepper", showIf: ANY_CUSTOM, hint: "Sayfalar arasında Ayarlar › Kısayollar'daki “sonraki sayfa” kısayoluyla geçilir." },
+    {
+      key: "carPage",
+      label: "Sayfa",
+      type: "select",
+      default: "1",
+      showIf: { key: "view", is: ["carMercW13", "auto"] },
+      hint: "Mercedes W13 ekranının iki sayfası vardır. Yarış sırasında Ayarlar › Kısayollar'daki “sonraki sayfa” kısayoluyla da geçilir.",
+      options: [
+        { value: "1", label: "Sayfa 1 (lastikler, fren dengesi, su sıcaklığı)" },
+        { value: "2", label: "Sayfa 2 (deploy, yakıt, son tur)" },
+      ],
+    },
+    { key: "accent", label: "Vurgu rengi", type: "color", default: "#e8101a", group: "Görünüş", showIf: NOT_CUSTOM },
     {
       key: "theme",
       label: "Renk teması",
@@ -182,7 +203,7 @@ export default defineOverlay({
         { value: "theme", label: "Tema yazı tipi" },
       ],
     },
-    { key: "opacity", label: "Arka plan opaklığı", type: "number", default: 100, min: 30, max: 100, step: 5, unit: "%", group: "Görünüş", showIf: { key: "view", not: ["custom"] } },
+    { key: "opacity", label: "Arka plan opaklığı", type: "number", default: 100, min: 30, max: 100, step: 5, unit: "%", group: "Görünüş", showIf: NOT_CUSTOM },
     { key: "radius", label: "Köşe yuvarlaklığı", type: "number", default: 6, min: 0, max: 30, step: 1, unit: "px", group: "Görünüş", showIf: GENERIC },
     { key: "gap", label: "Öğeler arası boşluk", type: "number", default: 5, min: 0, max: 20, step: 1, unit: "px", group: "Görünüş", showIf: GENERIC },
     { key: "showBorder", label: "Dış çerçeve", type: "boolean", default: true, group: "Görünüş", showIf: GENERIC },

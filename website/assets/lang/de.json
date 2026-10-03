@@ -754,10 +754,10 @@
   "ov_rejoin_h": "Zeitabstand zu den nächsten Autos von hinten|Sagt dir, ob die Rückkehr auf die Strecke sicher ist|Belegt keinen Platz, wenn es nicht gebraucht wird",
   "ov_dashboard_n": "Lenkrad-Display",
   "ov_dashboard_d": "Ein Dash wie die Displays an Rennlenkrädern.",
-  "ov_dashboard_h": "Ansichten Klassisch, Minimal, Rennen und Langstrecke + automatische Auswahl nach Auto|PRO: 10 Displays im Fahrzeugstil, inspiriert von echten Rennwagen (F1, F3/F4/FR, drei GT3-Stile, LMDh/LMH, Stock Car, Rallye, TCR, Straßenauto)|Schaltlichter: Blöcke, F1 (15 LEDs) oder Balken; blinkt am Schaltpunkt|Delta-Referenz (deine Beste / Session-Beste / Optimal) und wählbare untere Felder|Jedes Element ist einstellbar: ein- / ausblenden, Größe und Farbe (Schaltlichter, Gang, Tempo, Delta, Rundenzeiten, Sprit, Reifen…)|PRO: Dashboard-Designer – zieh Widgets auf eine Leinwand, bau dein eigenes Display und füge es als Overlay hinzu|PRO: Remote-Dash – öffne das Display auf einem Handy oder Tablet im selben Netzwerk (QR-Code)",
+  "ov_dashboard_h": "Ansichten Klassisch, Minimal, Rennen und Langstrecke + automatische Auswahl nach Auto|PRO: 10 Displays im Fahrzeugstil, inspiriert von echten Rennwagen (F1, F3/F4/FR, drei GT3-Stile, LMDh/LMH, Stock Car, Rallye, TCR, Straßenauto)|Schaltlichter: Blöcke, F1 (15 LEDs) oder Balken; blinkt am Schaltpunkt|Delta-Referenz (deine Beste / Session-Beste / Optimal) und wählbare untere Felder|Jedes Element ist einstellbar: ein- / ausblenden, Größe und Farbe (Schaltlichter, Gang, Tempo, Delta, Rundenzeiten, Sprit, Reifen…)|PRO: Dashboard-Designer – zieh Widgets auf eine Leinwand, bau dein eigenes Display, füge es als Overlay hinzu und teile es mit der Community (Bewertungen und Kommentare)|PRO: Remote-Dash – öffne das Display auf einem Handy oder Tablet im selben Netzwerk (QR-Code)",
   "ov_inputs_n": "Pedale & Inputs",
   "ov_inputs_d": "Verlauf von Gas / Bremse / Kupplung, Pedalbalken, Gang, Tempo und Lenkung.",
-  "ov_inputs_h": "7 Designs: Standard, Telemetriegraph + Balken, vertikale Balken, kompakter Streifen|PRO-Designs: horizontale Streifen, Ringanzeigen, Sim-Stil (klassisch)|Lenkrad passend zum Auto; PRO: Formel-, GT-, Prototypen-, Rallye-, Oval- und klassische Holzlenkräder|60 Hz; ABS- / TC-Anzeigen, Lenklinie im Graphen",
+  "ov_inputs_h": "4 Designs: Standard, Telemetriegraph + Balken, breiter Graph; PRO: Sim-Stil (klassisch)|Lenkrad passend zum Auto oder zum angeschlossenen Lenkrad; PRO: Formel-, GT-, Prototypen-, Rallye-, Oval- und klassische Holzlenkräder|Optionale Gas- / Brems-Prozentwerte, Zeilen für letzte und beste Runde|60 Hz; ABS- / TC-Anzeigen, Lenklinie im Graphen",
   "ov_telemetry_n": "Telemetrie-Panel",
   "ov_telemetry_d": "Gangring und Drehzahlmesser in einem Streifen.",
   "ov_telemetry_h": "Tempo und Schaltlichter|Position und letzte Runde|Sprit und Streckentemperatur",
@@ -1064,5 +1064,8 @@
   "fr_kick_ask": "{0} aus der Gruppe entfernen?",
   "fr_leave_owner_ask": "Wenn du \"{0}\" verlässt, geht die Eigentümerschaft an das dienstälteste Mitglied über. Verlassen?",
   "fr_hiding": "versteckt",
-  "fr_hiding_tip": "Dieses Mitglied hat den Status \"Offline\" gewählt; das sehen nur Admins."
+  "fr_hiding_tip": "Dieses Mitglied hat den Status \"Offline\" gewählt; das sehen nur Admins.",
+  "ov_pedals_n": "Pedal-Set",
+  "ov_pedals_d": "Pedalanzeige ohne Graph: Gas / Bremse / Kupplung, Prozentwerte, Gang, Tempo und Lenkrad.",
+  "ov_pedals_h": "8 Designs: Pedal-Set, vertikale Balken, kompakter Streifen, LED-Segmente, vertikaler Turm; PRO: horizontale Streifen, Ringanzeigen, rahmenloses HUD|Prozentanzeigen, ABS- / TC-Anzeige per Farbe und Rahmen|Optionale Zeile für letzte / beste Runde|Gas- und Bremsfarbe frei wählbar"
 }

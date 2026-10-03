@@ -66,6 +66,8 @@ const BACKDROP_NAMES: Record<string, string> = { track: "Pist (gündüz)", night
 
 const MORE_TARGETS: Record<string, string> = {
   theme: "Paylaşılan tema",
+  dash: "Paylaşılan direksiyon ekranı",
+  dash_comment: "Direksiyon ekranı yorumu",
   pro_feature: "PRO özelliği",
   coupon: "Kupon",
   voice_pack: "Ses paketi",
@@ -105,6 +107,13 @@ export function formatModLog(l: ModLog): LogView {
   }
 
   switch (a) {
+    // Topluluk › Direksiyon Ekranları: moderatör paylaşımı gizledi / yeniden gösterdi (dash_set_hidden)
+    case "dash_hide":
+    case "dash_show":
+      return {
+        text: t(a === "dash_hide" ? "Paylaşılan direksiyon ekranı gizlendi{0}{1}" : "Paylaşılan direksiyon ekranı yeniden gösterildi{0}{1}", who ? t(" ({0} adlı üyenin)", who) : "", d.title ? `: “${q(d.title, 80)}”` : ""),
+        target: user(),
+      };
     case "admin_grant":
       return { text: t("{0} yönetici yapıldı", who || "?"), target: user() };
     case "admin_revoke":

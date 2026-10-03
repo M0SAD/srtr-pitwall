@@ -224,11 +224,11 @@
   "w": 128
  },
  "mclaren": {
-  "dark": true,
-  "darkFrac": 0.34,
-  "edgeDark": 0.72,
-  "h": 84,
-  "lum": 58,
+  "dark": false,
+  "darkFrac": 0.0,
+  "edgeDark": 0.0,
+  "h": 73,
+  "lum": 148,
   "w": 128
  },
  "mercedes": {

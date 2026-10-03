@@ -38,7 +38,7 @@ export async function loadPerms() {
 // Raporlar
 // ---------------------------------------------------------------------------
 
-export type ReportTarget = "shot" | "shot_comment" | "layout" | "layout_comment";
+export type ReportTarget = "shot" | "shot_comment" | "layout" | "layout_comment" | "dash" | "dash_comment";
 
 export const REPORT_REASONS: { id: string; label: string }[] = [
   { id: "inappropriate", label: "Uygunsuz içerik" },
@@ -54,6 +54,8 @@ export const TARGET_LABELS: Record<ReportTarget, string> = {
   shot_comment: "Ekran görüntüsü yorumu",
   layout: "Paylaşılan düzen",
   layout_comment: "Düzen yorumu",
+  dash: "Paylaşılan direksiyon ekranı",
+  dash_comment: "Direksiyon ekranı yorumu",
 };
 
 export interface ReportRow {
@@ -77,6 +79,7 @@ export interface ReportRow {
     author?: string;
     screenshot_id?: string;
     layout_id?: string;
+    dash_id?: string;
   } | null;
 }
 

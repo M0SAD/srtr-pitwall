@@ -4,6 +4,7 @@
 // Aynı odanın web sürümü website/assets/crewpanel.js içindedir.
 
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { CREW_CHAT_MAX, WALL_MSGS, crewChatSend, crewRoom, onCrewChat, type CrewChatMsg, type CrewRoom as Room } from "@/cloud/crew";
@@ -23,8 +24,13 @@ export function CrewRoom(props: {
   /** Sunucuda oda yoksa (c64 kurulmamış) eski tek yönlü mesaj komutu */
   legacySend?: (text: string) => void;
 }) {
-  const [room, setRoom] = createSignal<Room | null>(null);
-  const [msgs, setMsgs] = createSignal<CrewChatMsg[]>([]);
+  // Oda durumu ve mesajlar store'da tutulur ve kimliğe göre yerinde güncellenir (reconcile): her yoklamada
+  // diziler baştan kurulmaz, üye / mesaj satırlarının DOM'u yeniden oluşturulmaz (kırpışma ve kaydırma sıçraması olmaz).
+  const [st, setSt] = createStore<{ room: Omit<Room, "messages" | "now"> | null; msgs: CrewChatMsg[] }>({ room: null, msgs: [] });
+  const room = () => st.room;
+  const msgs = () => st.msgs;
+  // props.owner üst bileşende 3 sn'de bir yenilenen sürücü nesnesinden okunur: değer aynı kaldıkça oda sıfırlanmamalı
+  const owner = createMemo(() => props.owner);
   const [failed, setFailed] = createSignal(false);
   const [err, setErr] = createSignal("");
   const [text, setText] = createSignal("");
@@ -45,14 +51,17 @@ export function CrewRoom(props: {
   };
 
   const load = async (force = false) => {
-    if (busy || (!force && document.hidden) || !props.owner || !me()) return;
+    if (busy || (!force && document.hidden) || !owner() || !me()) return;
     busy = true;
-    const id = props.owner;
+    const id = owner();
     try {
       const r = await crewRoom(id, last || null);
-      if (!alive || id !== props.owner || !r) return;
+      if (!alive || id !== owner() || !r) return;
       setFailed(false);
-      setRoom(r);
+      setSt(
+        "room",
+        reconcile({ driver: r.driver ?? null, control_on: !!r.control_on, members: Array.isArray(r.members) ? r.members : [] }, { key: "id" }),
+      );
       const add = r.messages ?? [];
       if (add.length) {
         const first = !last;
@@ -60,8 +69,14 @@ export function CrewRoom(props: {
         const fresh = add.filter((m) => !known.has(m.id));
         last = add[add.length - 1].at;
         if (fresh.length) {
-          setMsgs([...msgs(), ...fresh].slice(-200));
-          scrollDown(first || fresh.some((m) => m.sender === me()));
+          // Kaydırma konumu eklemeden ÖNCE ölçülür (ekledikten sonra "altta mıydı" bilinemez)
+          const el = listEl;
+          const atBottom = !el || el.scrollHeight - el.scrollTop - el.clientHeight <= 80;
+          setSt("msgs", (l) => {
+            const next = [...l, ...fresh];
+            return next.length > 200 ? next.slice(-200) : next;
+          });
+          if (first || atBottom || fresh.some((m) => m.sender === me())) scrollDown(true);
         }
       }
     } catch {
@@ -76,11 +91,10 @@ export function CrewRoom(props: {
   onCleanup(() => stopRt());
   createEffect(
     on(
-      () => props.owner,
+      owner,
       (owner) => {
         last = "";
-        setRoom(null);
-        setMsgs([]);
+        setSt({ room: null, msgs: [] });
         setErr("");
         stopRt();
         stopRt = () => {};
@@ -101,7 +115,7 @@ export function CrewRoom(props: {
     if (failed() && !room() && props.legacySend) return props.legacySend(body.slice(0, 120));
     setSending(true);
     try {
-      await crewChatSend(props.owner, body);
+      await crewChatSend(owner(), body);
       await load(true);
       scrollDown(true);
     } catch (e) {

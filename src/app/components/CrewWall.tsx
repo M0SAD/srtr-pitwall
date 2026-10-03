@@ -48,13 +48,15 @@ export function CrewWall(props: { owner: string; live: boolean }) {
   let lastTs = 0;
   onCleanup(() => (alive = false));
 
+  // props.owner üst bileşende her yoklamada yenilenen bir nesneden okunur; değer aynıysa tetiklenmesin diye memo
+  const owner = createMemo(() => props.owner);
   const load = async () => {
     if (busy || document.hidden) return;
     busy = true;
-    const id = props.owner;
+    const id = owner();
     try {
       const r = await crewWall(id);
-      if (!alive || id !== props.owner) return;
+      if (!alive || id !== owner()) return;
       setFailed(false);
       setSt(r);
       const d = r?.data;
@@ -85,7 +87,7 @@ export function CrewWall(props: { owner: string; live: boolean }) {
   onCleanup(() => clearInterval(iv));
   createEffect(
     on(
-      () => props.owner,
+      owner,
       () => {
         hist.clear();
         lastTs = 0;

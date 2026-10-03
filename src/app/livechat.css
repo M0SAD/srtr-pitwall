@@ -976,3 +976,53 @@
 .row > div:first-child:has(+ .lcp-noshrink) {
   min-width: 0;
 }
+/* Sesli okuma: Edge çevrimiçi sesi seçiliyken / Windows sesine düşüldüğünde vurgulu not */
+.lcp-note.lcp-warnnote {
+  border-left: 3px solid #e0a52e;
+  padding-left: 9px;
+}
+/* Sohbete yaz: "Bağlantıyı test et" adımları */
+.lcp-test {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.lcp-test li {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+}
+.lcp-test li small {
+  display: block;
+  opacity: 0.75;
+  overflow-wrap: anywhere;
+}
+.lcp-test-mark {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.12);
+}
+.lcp-test li.ok .lcp-test-mark {
+  background: #1f8f4e;
+  color: #fff;
+}
+.lcp-test li.fail .lcp-test-mark {
+  background: #c93b3b;
+  color: #fff;
+}
+.lcp-test li.warn .lcp-test-mark {
+  background: #c98a1b;
+  color: #fff;
+}
+.lcp-acc .lcp-err {
+  overflow-wrap: anywhere;
+}

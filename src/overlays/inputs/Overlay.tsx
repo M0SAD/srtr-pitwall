@@ -1,10 +1,11 @@
 import { Show, createEffect, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
-import { gear, lapTime, speed, speedUnit } from "@/sdk/format";
+import { gear, speed, speedUnit } from "@/sdk/format";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { FREE_WHEELS, WheelArt, resolveWheel, type WheelStyle } from "./wheels";
 import { DesignView, isDesign, type Design } from "./designs";
+import { LapLines } from "./shared";
 import "./style.css";
 
 const W = 240;
@@ -25,29 +26,6 @@ export default function Inputs(props: OverlayProps) {
       </Show>
       <LapLines {...props} />
     </div>
-  );
-}
-
-/** Göstergenin altındaki isteğe bağlı tur süresi satırları (son tur / en iyi tur) */
-function LapLines(props: OverlayProps) {
-  const data = useTopic("inputs");
-  return (
-    <Show when={props.options.showLastLap || props.options.showBestLap}>
-      <div class="ov-panel inp-laps">
-        <Show when={props.options.showLastLap}>
-          <div class="inp-lap">
-            <label>Son tur</label>
-            <b>{lapTime(data()?.lastLap)}</b>
-          </div>
-        </Show>
-        <Show when={props.options.showBestLap}>
-          <div class="inp-lap best">
-            <label>En iyi tur</label>
-            <b>{lapTime(data()?.bestLap)}</b>
-          </div>
-        </Show>
-      </div>
-    </Show>
   );
 }
 

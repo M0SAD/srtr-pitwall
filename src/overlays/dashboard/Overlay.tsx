@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
 import { inTauri } from "@/sdk/platform";
-import { dashById, dashList } from "@/dash/model";
+import { dashById, dashList, dashViewId } from "@/dash/model";
 import { DashCanvas } from "@/dash/Render";
 import { demoData, useLiveDash } from "@/dash/data";
 import type { OverlayProps, Units } from "@/sdk/overlay";
@@ -96,6 +96,7 @@ const DEMO_FUEL: Partial<Fuel> = {
   stintTime: 1845,
   avg5: { usage: 2.86, laps: 13.4, stint: 38.4, refuel: 12.1 },
   last: { usage: 2.91, laps: 13.2, stint: 38.4, refuel: 12.4 },
+  targets: [[14, 2.74]],
 };
 const DEMO_TIRES: Tires = {
   corners: [
@@ -212,6 +213,7 @@ export default function Dashboard(props: OverlayProps) {
   const sesT = useTopic("session");
   const tiresT = useTopic("tires");
   const ersT = useTopic("ers");
+  const pitT = useTopic("pit");
 
   // Veri yoksa düzenleme modunda / panel önizlemesinde örnek değerler
   const demo = () => props.editing && !telT();
@@ -242,13 +244,17 @@ export default function Dashboard(props: OverlayProps) {
   });
   const view = () => {
     const o = (props.options.view as string) || "classic";
-    return o === "auto" || o === "custom" || isCarStyle(o) ? "classic" : o;
+    return o === "auto" || o === "custom" || dashViewId(o) !== undefined || isCarStyle(o) ? "classic" : o;
   };
 
   // --- Özel tasarım (Dashboard Tasarımcısı; PRO) ---------------------------------
   const customDash = createMemo(() => {
-    if (props.options.view !== "custom" || overlayValueLocked("dashboard", "view", "custom")) return undefined;
+    // Listeden doğrudan seçilen tasarım ("dash:<kimlik>") ya da eski "Özel tasarım" + "Tasarım" alanı
+    const own = dashViewId(props.options.view);
+    if ((own === undefined && props.options.view !== "custom") || overlayValueLocked("dashboard", "view", "custom")) return undefined;
     const list = dashList();
+    // Silinmiş tasarım: Klasik görünüme düşer
+    if (own !== undefined) return list.find((d) => d.id === own);
     return list.length ? dashById(list, props.options.design as string) : undefined;
   });
   const liveDash = useLiveDash();
@@ -725,6 +731,12 @@ export default function Dashboard(props: OverlayProps) {
       custom()
         ? { low: col("rpmLow", "#34e05c"), mid: col("rpmMid", "#ffd21f"), high: col("rpmHigh", "#e8101a"), shift: col("rpmShift", "#2f8bff") }
         : undefined,
+    page: () => (Number(props.options.carPage) || 1) - 1 + pageOff(),
+    pitLim: () => (demo() ? true : !!pitT()?.limiter),
+    fuelTarget: () => {
+      const per = src().fuel?.targets?.[0]?.[1] ?? 0;
+      return per > 0 ? fuel(per, props.units, 2) : "—";
+    },
   };
 
   /** Araç tarzı ekranlar: genel ölçek ve devir ışığı boyutu */

@@ -196,6 +196,13 @@ export interface DashCtx {
   compound: () => string;
   /** Özel renkler açıksa devir ışığı paleti */
   pal: () => DashPalette | undefined;
+  // --- Çok sayfalı araç ekranları (W13) ---
+  /** Gösterilen sayfa (0'dan başlar; ayar + "sonraki sayfa" kısayolu) */
+  page: () => number;
+  /** Pit hız sınırlayıcı açık mı */
+  pitLim: () => boolean;
+  /** Hedef tur başı yakıt (bir tur daha fazla gidebilmek için); yoksa "—" */
+  fuelTarget: () => string;
 }
 
 // ---------------------------------------------------------------------------

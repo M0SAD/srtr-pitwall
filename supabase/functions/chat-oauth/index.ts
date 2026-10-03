@@ -4,6 +4,9 @@
 // İstek (POST, JSON):
 //   { "provider": "youtube" | "kick", "action": "exchange", "code": "...", "code_verifier": "...", "redirect_uri": "http://127.0.0.1:8767/callback" }
 //   { "provider": "youtube" | "kick", "action": "refresh", "refresh_token": "..." }
+//   { "provider": "youtube" | "kick", "action": "check", "client_id": "..." }   ("Bağlantıyı test et": sağlayıcıya gitmez)
+// "exchange" ve "check" isteğindeki client_id (isteğe bağlı, gizli değil): programın giriş adresinde kullandığı kimlik.
+// Secret'taki CLIENT_ID ile aynı değilse sağlayıcının anlaşılmaz "invalid_grant" hatası yerine açık bir hata döner.
 // Yanıt: sağlayıcının token yanıtı (access_token, refresh_token?, expires_in, scope, token_type) ya da { "error": "..." }.
 //
 // Neden sunucuda: Google ve Kick bu akışta istemci gizli anahtarı (client_secret) ister; anahtar programın içine konamaz.
@@ -81,11 +84,20 @@ Deno.serve(async (req) => {
   const { id, secret } = creds(provider);
   if (!id || !secret) return reply(503, { error: `${provider === "youtube" ? "YouTube" : "Kick"} girişi sunucuda yapılandırılmadı` });
 
+  // Programın (Yönetim › Canlı Sohbet ayarları) kullandığı Client ID, secret'taki ile aynı olmalı
+  const sentId = str(body.client_id, 200).trim();
+  const idMatch = sentId ? sentId === id.trim() : null;
+  if (action === "check") return reply(200, { ok: true, configured: true, client_id_match: idMatch, version: 2 });
+  const pname = provider === "youtube" ? "YouTube" : "Kick";
+  if (action === "exchange" && idMatch === false) {
+    return reply(400, { error: `Yönetim'deki ${pname} Client ID ile Supabase secret ${provider === "youtube" ? "YT" : "KICK"}_CLIENT_ID aynı değil; ikisine de aynı Client ID yazılmalı` });
+  }
+
   const form = new URLSearchParams();
   form.set("client_id", id);
   form.set("client_secret", secret);
   if (action === "exchange") {
-    const code = str(body.code, 2048);
+    const code = str(body.code, 4096);
     const verifier = str(body.code_verifier, 256);
     const redirect = str(body.redirect_uri, 200);
     if (!code || !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier)) return reply(400, { error: "Eksik ya da geçersiz kod" });
@@ -114,12 +126,16 @@ Deno.serve(async (req) => {
     try {
       j = text ? JSON.parse(text) : {};
     } catch {
-      j = { error: text.slice(0, 200) };
+      // JSON değil (ör. güvenlik duvarı / bakım sayfası): HTML gövdesi yerine kısa bir açıklama
+      j = { error: /^\s*</.test(text) ? "sağlayıcı JSON yerine bir web sayfası döndürdü (istek engellenmiş olabilir)" : text.slice(0, 200) };
     }
     if (!r.ok || typeof j.access_token !== "string") {
-      const err = String(j.error_description ?? j.error ?? j.message ?? `HTTP ${r.status}`);
-      // invalid_grant: kod kullanılmış / yenileme anahtarı iptal → program yeniden giriş ister
-      return reply(r.status >= 500 ? 502 : 400, { error: j.error === "invalid_grant" ? `invalid_grant: ${err}` : err });
+      const code = typeof j.error === "string" ? j.error : "";
+      const desc = String(j.error_description ?? j.message ?? "");
+      const err = [code, desc].filter((x, i, a) => x && a.indexOf(x) === i).join(": ") || "yanıtta access_token yok";
+      // Sağlayıcının durum kodu ve hata metni olduğu gibi iletilir (gizli değer içermez).
+      // invalid_grant: kod kullanılmış / süresi dolmuş / yenileme anahtarı iptal → program yeniden giriş ister
+      return reply(r.status >= 500 ? 502 : 400, { error: `${pname} HTTP ${r.status}: ${err}` });
     }
     // Sadece programın ihtiyaç duyduğu alanlar
     return reply(200, {
