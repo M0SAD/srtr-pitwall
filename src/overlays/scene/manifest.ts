@@ -9,6 +9,8 @@ export default defineOverlay({
   size: { w: 1920, h: 1080 },
   defaultPosition: { x: 0, y: 0 },
   defaultEnabled: false,
+  // Şimdilik gereksiz: listelerde gizli (var olan düzenlerdeki kopyalar çalışır). Geri açmak için bu satırı sil.
+  hidden: true,
   settings: [
     {
       key: "style",

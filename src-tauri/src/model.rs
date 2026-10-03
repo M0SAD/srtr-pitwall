@@ -97,6 +97,12 @@ pub struct Frame {
     pub abs_active: bool,
     /// Çekiş kontrolü şu an devrede (ACC/AC tcInAction; iRacing vermez)
     pub tc_active: bool,
+    /// Yanal / boyuna ivme (g). lat_g + = sağa (sağ viraj), long_g + = ileri (hızlanma), fren negatif
+    pub lat_g: f32,
+    pub long_g: f32,
+    /// Oyuncunun bekleyen cezası (0 yok, 1 pit geçişi, 2 dur-kalk, 3 diskalifiye, 4 süre cezası, 5 belirsiz ceza).
+    /// ACC / AMS2 / LMU-rF2 doldurur; iRacing'de ceza siyah bayrak bitinden anlaşılır
+    pub penalty: u8,
     pub fuel_level: f32,
     pub fuel_pct: f32,
     pub lap: i32,
@@ -186,6 +192,9 @@ impl Default for Frame {
             steer: 0.0,
             abs_active: false,
             tc_active: false,
+            lat_g: 0.0,
+            long_g: 0.0,
+            penalty: 0,
             fuel_level: 0.0,
             fuel_pct: 0.0,
             lap: 0,

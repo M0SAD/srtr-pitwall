@@ -3,7 +3,7 @@
 
 import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
-import { startCrew } from "./crew";
+import { crewBox, startCrew } from "./crew";
 import { startTelemetryUpload } from "@/cloud/telemetry";
 import { t } from "@/sdk/i18n";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
@@ -34,13 +34,18 @@ import { themeVars } from "@/sdk/theme";
 import { lookStyle } from "@/sdk/lookStyle";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
-import { previewFrozen, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
+import { clampField, previewFrozen, resizeFields, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
 import {
+  CORNERS,
   clampRect,
+  cornerResize,
+  edgeResize,
   effectiveScale,
   layoutRect,
   snapMove,
   unlayoutPos,
+  type Corner,
+  type Edge,
   type Guides,
   type Rect,
 } from "./snap";
@@ -336,7 +341,7 @@ export function Host() {
           </Show>
         )}
       </For>
-      <Show when={app().editMode && menu()}>
+      <Show when={app().editMode && menu() && !shown()?.locked}>
         <ContextMenu state={menu()!} screen={screen()} onClose={() => setMenu(null)} />
       </Show>
       <Show when={msgToast()}>
@@ -346,6 +351,12 @@ export function Host() {
             <b>{msgToast()!.from}</b>
             <p>{msgToast()!.body}</p>
           </div>
+        </div>
+      </Show>
+      <Show when={crewBox()}>
+        <div class="crew-box" classList={{ out: !!crewBox()!.out }} data-no-i18n>
+          <b>{crewBox()!.from}</b>
+          <p>{crewBox()!.body}</p>
         </div>
       </Show>
       <Show when={msgPending() > 0}>
@@ -386,7 +397,7 @@ function EditBar(props: { demo: boolean }) {
         value={shown()?.id ?? ""}
         onChange={(e) => switchLayout(e.currentTarget.value)}
       >
-        <For each={Object.values(settings().profiles).filter((p) => !p.link)}>
+        <For each={Object.values(settings().profiles).filter((p) => p.rules.mode !== "stream" || p.id === shown()?.id)}>
           {(p) => (
             <option value={p.id} selected={p.id === shown()?.id}>
               {p.name}
@@ -395,9 +406,21 @@ function EditBar(props: { demo: boolean }) {
         </For>
       </select>
       <UndoRedo keys />
-      <span class="edit-hint">
-        Sürükle · köşeden boyutlandır · sağ tık: konum · <kbd>Alt</kbd> yapıştırmadan taşı
-      </span>
+      <Show
+        when={!shown()?.locked}
+        fallback={
+          <span class="edit-hint edit-locked">
+            Bu düzen kilitli: overlay'ler taşınamaz.
+            <button class="ghost" title="Düzenin kilidini aç" onClick={() => updateSettings((d) => void (d.profiles[shown()!.id] && delete d.profiles[shown()!.id].locked))}>
+              Kilidi aç
+            </button>
+          </span>
+        }
+      >
+        <span class="edit-hint">
+          Sürükle · köşelerden boyutlandır · sağ tık: konum · <kbd>Alt</kbd> yapıştırmadan taşı
+        </span>
+      </Show>
       <label title="iRacing olmadan örnek veriyle göster">
         <input type="checkbox" checked={props.demo} onChange={(e) => setDemo(e.currentTarget.checked)} />
         Demo
@@ -484,7 +507,13 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
 
   // Sürükleme/boyutlandırma sırasında geçici durum: ekrandaki sol üst köşe ve overlay'in kendi ölçeği.
   // Ayarlar sadece bırakınca kaydedilir.
-  const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number } | null>(null);
+  const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number; opts?: Record<string, number> } | null>(null);
+  /** Kilitli düzen: taşınamaz, boyutlandırılamaz, kapatılamaz */
+  const locked = () => !!shown()?.locked;
+  /** Kenardan boyutlandırılabilen genişlik / yükseklik ayarları */
+  const rz = resizeFields(props.manifest);
+  /** Sürükleme sırasında (burada ya da panelde) geçici ayar değerleri */
+  const liveOpts = () => drag()?.opts ?? remoteDrag(shown()?.id, id)?.opts;
 
   // Ekranda gösterilen dikdörtgen: kayıtlı (%100) yerleşim, genel boyuta göre çapalı ölçeklenir
   // ve her zaman ekran içine sıkıştırılır (ör. monitör değişince dışarıda kalmaz).
@@ -516,25 +545,27 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   const others = () => [...rects.entries()].filter(([k]) => k !== id).map(([, r]) => r);
 
   /** Ekrandaki dikdörtgeni %100 yerleşime çevirip kaydeder. */
-  const livePos = (r: Rect, own: number) => {
+  const livePos = (r: Rect, own: number, opts?: Record<string, number>) => {
     const eff = effectiveScale(own, globalScale());
     const pos = unlayoutPos(r, eff / own, screen());
-    return { profile: shown()?.id ?? "", key: id, x: Math.round(pos.x), y: Math.round(pos.y), scale: own };
+    return { profile: shown()?.id ?? "", key: id, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) };
   };
-  const commit = (r: Rect, own: number) => {
+  const commit = (r: Rect, own: number, opts?: Record<string, number>) => {
+    if (locked()) return;
     const eff = effectiveScale(own, globalScale());
     const pos = unlayoutPos(r, eff / own, screen());
-    endDrag({ profile: shown()?.id ?? "", key: id, x: Math.round(pos.x), y: Math.round(pos.y), scale: own });
+    endDrag({ profile: shown()?.id ?? "", key: id, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) });
     editOverlay(id, (i) => {
       i.x = Math.round(pos.x);
       i.y = Math.round(pos.y);
       i.scale = own;
+      if (opts) Object.assign(i.options, opts);
     });
     nudgeRepaint();
   };
 
   const startMove = (e: PointerEvent) => {
-    if (!props.editing || e.button !== 0) return;
+    if (!props.editing || e.button !== 0 || locked()) return;
     e.preventDefault();
     setMenu(null);
     const target = e.currentTarget as HTMLElement;
@@ -568,35 +599,13 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     target.addEventListener("pointercancel", up);
   };
 
-  const startResize = (e: PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-    const o = view();
-    const sx = e.clientX;
-    const g0 = globalScale();
-    // Ekrandan taşmadan izin verilen en büyük etkin ölçek
-    const maxEff = Math.min((screen().w - o.x) / size().w, (screen().h - o.y) / size().h, 3 * g0);
-    const move = (ev: PointerEvent) => {
-      const g = settings().general;
-      let right = o.x + o.w + ev.clientX - sx;
-      if (g.snapToGrid && !ev.altKey) right = Math.round(right / g.gridSize) * g.gridSize;
-      const eff = Math.min(maxEff, Math.max(0.2, (right - o.x) / size().w));
-      const own = Math.min(3, Math.max(0.4, Math.round((eff / g0) * 100) / 100));
-      setDrag({ x: o.x, y: o.y, scale: own });
-      const e2 = effectiveScale(own, g0);
-      sendDrag(livePos({ x: o.x, y: o.y, w: size().w * e2, h: size().h * e2 }, own));
-    };
+  /** Sürükleme bitişi: dinleyicileri kaldırır, son durumu kaydeder */
+  const track = (target: HTMLElement, move: (ev: PointerEvent) => void, done: () => void) => {
     const up = () => {
       target.removeEventListener("pointermove", move);
       target.removeEventListener("pointerup", up);
       target.removeEventListener("pointercancel", up);
-      const d = drag();
-      if (d) {
-        const eff = effectiveScale(d.scale, g0);
-        commit({ x: d.x, y: d.y, w: size().w * eff, h: size().h * eff }, d.scale);
-      }
+      done();
       setDrag(null);
     };
     target.addEventListener("pointermove", move);
@@ -604,9 +613,60 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     target.addEventListener("pointercancel", up);
   };
 
+  /** Köşeden boyutlandır (ölçek): overlay sürüklenen köşeye doğru büyür, karşı köşe yerinde kalır */
+  const startResize = (c: Corner) => (e: PointerEvent) => {
+    if (e.button !== 0 || locked()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const o = view();
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const g0 = globalScale();
+    const base = size();
+    let last: (Rect & { scale: number }) | null = null;
+    track(
+      target,
+      (ev) => {
+        const g = settings().general;
+        last = cornerResize(o, c, ev.clientX - sx, ev.clientY - sy, base, g0, { grid: g.snapToGrid && !ev.altKey ? g.gridSize : 0, screen: screen() });
+        setDrag({ x: last.x, y: last.y, scale: last.scale });
+        sendDrag(livePos(last, last.scale));
+      },
+      () => last && commit(last, last.scale),
+    );
+  };
+
+  /** Kenardan boyutlandır: overlay'in genişlik / yükseklik ayarı değişir (ölçek aynı kalır) */
+  const startEdge = (edge: Edge) => (e: PointerEvent) => {
+    const f = edge === "e" || edge === "w" ? rz.w : rz.h;
+    if (e.button !== 0 || locked() || !f) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const o = view();
+    const s0 = edge === "e" || edge === "w" ? e.clientX : e.clientY;
+    const cur = Number(inst().options[f.key]) || f.default;
+    let last: (Rect & { value: number }) | null = null;
+    track(
+      target,
+      (ev) => {
+        const d = (edge === "e" || edge === "w" ? ev.clientX : ev.clientY) - s0;
+        last = edgeResize(o, edge, d, o.eff, cur, (v) => clampField(f, v));
+        const opts = { [f.key]: last.value };
+        setDrag({ x: last.x, y: last.y, scale: o.scale, opts });
+        sendDrag(livePos(last, o.scale, opts));
+      },
+      () => last && commit(last, o.scale, { [f.key]: last.value }),
+    );
+  };
+
   const onContext = (e: MouseEvent) => {
     if (!props.editing) return;
     e.preventDefault();
+    if (locked()) return;
     const v = view();
     setMenu({
       x: e.clientX,
@@ -625,15 +685,15 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     <div
       ref={el}
       class="frame"
-      classList={{ dragging: !!drag(), peek: peekId() === id }}
+      classList={{ dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked() }}
       style={{
         // Kopyaya özel görünüm: tema değişkenlerinin üstüne (yoksa boş)
-        ...lookStyle(inst().look, settings().theme),
+        ...lookStyle(inst().look, settings().theme, inst().bgOpacity),
         transform: `translate(${view().x}px, ${view().y}px) scale(${view().eff})`,
         // Genel opaklık bir tavandır: overlay'in kendi opaklığı ondan düşükse aynen kalır
         opacity: Math.min(inst().opacity, globalOpacity()),
-        "min-width": props.editing ? `${props.manifest.size.w}px` : undefined,
-        "min-height": props.editing ? `${Math.min(props.manifest.size.h, 60)}px` : undefined,
+        "min-width": props.editing && !rz.w ? `${props.manifest.size.w}px` : undefined,
+        "min-height": props.editing && !rz.h ? `${Math.min(props.manifest.size.h, 60)}px` : undefined,
       }}
       onPointerDown={startMove}
       onContextMenu={onContext}
@@ -645,25 +705,33 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
           style={{ transform: `scale(${1 / view().eff})` }}
         >
           <span>
+            <Show when={locked()}>🔒 </Show>
             {instanceName(id, inst())} · {Math.round(view().scale * 100)}%
             <Show when={Math.abs(view().eff - view().scale) > 0.005}>
               <small> (ekranda {Math.round(view().eff * 100)}%)</small>
             </Show>
           </span>
-          <button
-            class="frame-close"
-            title="Bu overlay'i kapat"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => editOverlay(id, (i) => (i.enabled = false))}
-          >
-            ✕
-          </button>
+          <Show when={!locked()}>
+            <button
+              class="frame-close"
+              title="Bu overlay'i kapat"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => editOverlay(id, (i) => (i.enabled = false))}
+            >
+              ✕
+            </button>
+          </Show>
         </div>
-        <div class="frame-resize" style={{ transform: `scale(${1 / view().eff})` }} onPointerDown={startResize} />
+        <Show when={!locked()}>
+          <For each={(rz.w ? (["w", "e"] as Edge[]) : []).concat(rz.h ? (["n", "s"] as Edge[]) : [])}>
+            {(ed) => <div class={`rz-edge ${ed}`} style={{ "--hk": String(1 / view().eff) }} title="Kenardan sürükle: genişlik / yükseklik" onPointerDown={startEdge(ed)} />}
+          </For>
+          <For each={CORNERS}>{(c) => <div class={`frame-resize ${c}`} style={{ transform: `scale(${1 / view().eff})` }} onPointerDown={startResize(c)} />}</For>
+        </Show>
       </Show>
       <Suspense>
         <Show when={Comp} fallback={<div class="ov-panel ov-empty">Overlay.tsx bulunamadı</div>}>
-          <Dynamic component={Comp} options={sanitizeOverlayOptions(props.manifest.id, inst().options)} units={settings().general.units} editing={props.editing || !!props.sample} />
+          <Dynamic component={Comp} options={sanitizeOverlayOptions(props.manifest.id, liveOpts() ? { ...inst().options, ...liveOpts() } : inst().options)} units={settings().general.units} editing={props.editing || !!props.sample} />
         </Show>
       </Suspense>
     </div>

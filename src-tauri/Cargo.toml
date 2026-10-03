@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.72"
+version = "1.0.74"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -69,8 +69,17 @@ windows = { version = "0.62", features = [
   "Media_Core",
   "Media_SpeechSynthesis",
   "Media_SpeechRecognition",
+  # Sesli komut: mikrofon listesi ve varsayılan kayıt cihazı
+  "Media_Devices",
+  "Devices_Enumeration",
   "Storage",
   "Storage_Streams",
+  # Sesli okuma: klasik SAPI5 sesleri (ISpVoice → bellek akışı), bkz. src/livechat/tts_win.rs
+  "Win32_Media_Speech",
+  "Win32_Media_Audio",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_Globalization",
 ] }
 # Sesli komut: komut listesi kısıtı için IIterable<HSTRING> (windows crate'inin zaten kullandığı sürüm)
 windows-collections = "0.3"

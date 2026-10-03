@@ -84,6 +84,13 @@ addDict({
   fr_muted: ["Sessizde", "Muted"],
   fr_leave_group: ["Gruptan ayrıl", "Leave group"],
   fr_leave_group_ask: ["\"{0}\" grubundan ayrılmak istiyor musun?", "Leave the group \"{0}\"?"],
+  fr_delete_group: ["Grubu sil", "Delete group"],
+  fr_delete_group_ask: ["\"{0}\" grubu ve tüm mesajları herkes için silinsin mi? Bu işlem geri alınamaz.", "Delete the group \"{0}\" and all its messages for everyone? This cannot be undone."],
+  fr_kick: ["Gruptan çıkar", "Remove from group"],
+  fr_kick_ask: ["{0} gruptan çıkarılsın mı?", "Remove {0} from the group?"],
+  fr_leave_owner_ask: ["\"{0}\" grubundan ayrılırsan sahiplik en eski üyeye geçer. Ayrılmak istiyor musun?", "If you leave \"{0}\", ownership passes to the longest-standing member. Leave?"],
+  fr_hiding: ["gizleniyor", "hiding"],
+  fr_hiding_tip: ["Bu üye \"Çevrimdışı\" durumunu seçti; bunu sadece yöneticiler görür.", "This member chose to appear offline; only admins can see this."],
   fr_leave_team: ["Takımdan ayrıl", "Leave team"],
   fr_leave_team_ask: ["\"{0}\" takımından ayrılmak istiyor musun?", "Leave the team \"{0}\"?"],
   fr_team_page: ["Takım sayfası", "Team page"],
@@ -104,8 +111,8 @@ addDict({
   fr_sys_bg: ["{0} sohbet arka planını değiştirdi", "{0} changed the chat background"],
   fr_sys_bg_none: ["{0} sohbet arka planını kaldırdı", "{0} removed the chat background"],
   fr_room_app: [
-    "Grup kurma, davet etme ve üye çıkarma SRTR Pitwall programından yapılır.",
-    "Creating groups, inviting and removing members is done in the SRTR Pitwall app.",
+    "Grup kurma ve davet etme SRTR Pitwall programından yapılır.",
+    "Creating groups and inviting members is done in the SRTR Pitwall app.",
   ],
   fr_crew: ["Ekip", "Crew"],
   fr_crew_open: ["Ekip paneli: yarışını canlı izle, izin verdiyse pit ayarlarını değiştir", "Crew panel: watch their race live and change pit settings if allowed"],
@@ -367,10 +374,12 @@ function dayOf(v) {
   return d.toLocaleDateString(locale(), { dateStyle: "medium" });
 }
 function presence(f) {
-  if (f.racing) return { dot: "race", text: [T("fr_racing"), f.track].filter(Boolean).join(" · ") };
+  // invisible: sadece yöneticiye gelir (c65) — çevrimiçi ama "Çevrimdışı" durumunu seçmiş
+  const hid = f.invisible ? T("fr_hiding") : "";
+  if (f.racing) return { dot: "race", text: [T("fr_racing"), f.track, hid].filter(Boolean).join(" · ") };
   if (f.online) {
     const sim = f.sim ? SIM_LABEL[f.sim] || f.sim : "";
-    return { dot: f.dnd ? "dnd" : "on", text: f.dnd ? T("fr_dnd") : [T("fr_online"), sim].filter(Boolean).join(" · ") };
+    return { dot: f.dnd ? "dnd" : "on", text: (f.dnd ? [T("fr_dnd"), hid] : [T("fr_online"), sim, hid]).filter(Boolean).join(" · ") };
   }
   return { dot: "", text: f.last_seen ? T("fr_last_seen", ago(f.last_seen)) : T("fr_offline") };
 }
@@ -612,15 +621,25 @@ const composerHtml = () => `<form class="fr-comp" id="fr-comp">
 function roomView() {
   const kind = S.room.kind;
   const r = curRoom() || { name: "?", member_count: 0 };
+  const kickId = S.ask.startsWith("kick:") ? S.ask.slice(5) : "";
+  const askText = kickId
+    ? T("fr_kick_ask", (Array.isArray(S.members) && S.members.find((m) => m.user_id === kickId)?.display_name) || "?")
+    : S.ask === "delete"
+      ? T("fr_delete_group_ask", r.name)
+      : kind === "group"
+        ? T(r.is_owner && (r.member_count || 0) > 1 ? "fr_leave_owner_ask" : "fr_leave_group_ask", r.name)
+        : T("fr_leave_team_ask", r.name);
   const ask = S.ask
-    ? `<div class="fr-ask"><span>${esc(T(kind === "group" ? "fr_leave_group_ask" : "fr_leave_team_ask", r.name))}</span><span class="fr-acts"><button class="btn btn-sm btn-ghost" data-act="ask-x">${esc(
+    ? `<div class="fr-ask"><span>${esc(askText)}</span><span class="fr-acts"><button class="btn btn-sm btn-ghost" data-act="ask-x">${esc(
         T("fr_no"),
       )}</button><button class="btn btn-sm btn-danger" data-act="ask-ok">${esc(T("fr_yes"))}</button></span></div>`
     : "";
   const menu = S.menu
     ? `<span class="fr-menu"><button data-act="members">${esc(T("fr_members"))}</button><button data-act="room-mute">${esc(T(r.muted ? "fr_unmute" : "fr_mute"))}</button>${
         kind === "team" ? `<a href="takimlar.html?id=${encodeURIComponent(S.room.id)}">${esc(T("fr_team_page"))}</a>` : ""
-      }<button class="bad" data-act="ask-leave">${esc(T(kind === "group" ? "fr_leave_group" : "fr_leave_team"))}</button></span>`
+      }<button class="bad" data-act="ask-leave">${esc(T(kind === "group" ? "fr_leave_group" : "fr_leave_team"))}</button>${
+        kind === "group" && r.is_owner ? `<button class="bad" data-act="ask-delete">${esc(T("fr_delete_group"))}</button>` : ""
+      }</span>`
     : "";
   let body;
   if (S.members !== null) {
@@ -632,6 +651,13 @@ function roomView() {
           ? list
               .map((m) => {
                 const role = m.is_owner || m.role === "owner" ? T("fr_owner") : m.role === "admin" ? T("fr_role_admin") : "";
+                // Grup sahibi: üyeyi çıkarabilir (satır bağlantı yerine düğmeli)
+                if (kind === "group" && r.is_owner && m.user_id !== S.me.id)
+                  return `<div class="fr-row">${avatarHtml(m.user_id, m.display_name, m)}<span class="fr-main"><a href="yarisci.html?u=${encodeURIComponent(m.user_id)}"><b>${esc(
+                    m.display_name || "?",
+                  )}</b></a></span>${role ? `<span class="badge">${esc(role)}</span>` : ""}<button type="button" class="fr-ib" data-act="ask-kick" data-id="${esc(m.user_id)}" title="${esc(T("fr_kick"))}" aria-label="${esc(
+                    T("fr_kick"),
+                  )}">${IC.x}</button></div>`;
                 return `<a class="fr-row fr-click" href="yarisci.html?u=${encodeURIComponent(m.user_id)}">${avatarHtml(m.user_id, m.display_name, m)}<span class="fr-main"><b>${esc(
                   m.display_name || "?",
                 )}</b></span>${role ? `<span class="badge">${esc(role)}</span>` : ""}</a>`;
@@ -1217,7 +1243,30 @@ async function act(a, id, el, src = null) {
       case "ask-x":
         S.ask = "";
         return render();
+      case "ask-delete":
+        S.ask = "delete";
+        S.menu = false;
+        return render();
+      case "ask-kick":
+        S.ask = "kick:" + id;
+        return render();
       case "ask-ok": {
+        if (S.ask === "delete" && S.room?.kind === "group") {
+          const r = S.room;
+          await rpc("group_delete", { p_group: r.id });
+          S.groups = S.groups.filter((g) => g.group_id !== r.id);
+          return act("list");
+        }
+        if (S.ask.startsWith("kick:") && S.room?.kind === "group") {
+          const r = S.room;
+          const u = S.ask.slice(5);
+          S.ask = "";
+          await rpc("group_kick", { p_group: r.id, p_user: u });
+          if (Array.isArray(S.members)) S.members = S.members.filter((m) => m.user_id !== u);
+          const g = S.groups.find((x) => x.group_id === r.id);
+          if (g && g.member_count) g.member_count -= 1;
+          return render();
+        }
         if (S.ask === "leave" && S.room) {
           const r = S.room;
           await rpc(ROOM[r.kind].leave, { [ROOM[r.kind].arg]: r.id });

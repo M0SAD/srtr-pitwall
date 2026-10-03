@@ -115,9 +115,25 @@ const NAMES: [&str; N_CARS] = [
     "Hugo Martin", "Leo Costa", "Kai Weber", "Omar Haddad", "Ben Clarke", "Marco Bianchi",
 ];
 
+/// Vitrin üyesinin ülkesi bilinmiyorsa seçilecek makul ülkeler (flag-icons kodları)
+const SHOWCASE_FLAIRS: [&str; 24] = [
+    "TR", "DE", "GB", "US", "IT", "ES", "FR", "NL", "BR", "PT", "SE", "FI", "PL", "BE", "AT", "CA", "AU", "JP", "DK", "NO",
+    "CH", "CZ", "AR", "MX",
+];
+
+/// Ada bağlı sabit sayı (FNV-1a): bilinmeyen değerler her demo oturumunda aynı çıkar
+fn name_hash(name: &str) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for b in name.to_lowercase().bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h ^ (h >> 29)
+}
+
 /// Demo vitrini sürücüsü: PRO üyenin görünen adı ve (üye izin verdiyse, biliniyorsa) gerçek iRacing bilgileri.
-/// `country` boşsa bayrak gösterilmez (yanıltıcı rastgele bayrak yok); `irating` 0 / `license` boşsa
-/// demo kendi ürettiği değerleri kullanır.
+/// Bilinmeyen (`None`) ülke / iRating / lisans için demo, ada bağlı makul bir rastgele değer üretir
+/// (satırda boş hücre kalmaz).
 #[derive(Debug, Clone, Default, serde::Deserialize)]
 #[serde(default)]
 pub struct ShowcaseDriver {
@@ -172,7 +188,9 @@ pub fn set_showcase_drivers(list: Vec<ShowcaseDriver>) -> usize {
         let country = d
             .country
             .map(|c| c.trim().to_ascii_uppercase())
-            .filter(|c| (2..=8).contains(&c.len()) && c.chars().all(|x| x.is_ascii_alphanumeric() || x == '-'));
+            .filter(|c| (2..=8).contains(&c.len()) && c.chars().all(|x| x.is_ascii_alphanumeric() || x == '-'))
+            // "Bayrak yok" anlamındaki iRacing değerleri (ör. "--") ülke sayılmaz
+            .filter(|c| c.chars().any(|x| x.is_ascii_alphabetic()));
         let irating = d.irating.filter(|v| (1..=20000).contains(v));
         let license = d
             .license
@@ -423,15 +441,17 @@ impl Demo {
             if let Some(Some(d)) = self.session.drivers.get_mut(slot) {
                 d.name = m.name.clone();
                 d.abbrev = m.name;
-                // Gerçek üye: bayrağı ya kendi ülkesi ya da hiç (sahte sürücünün rastgele bayrağı kalmaz)
-                d.flair = m.country.unwrap_or_default();
-                if let Some(ir) = m.irating {
-                    d.irating = ir;
-                }
-                if let Some(lic) = m.license {
-                    d.lic_color = m.lic_color.unwrap_or_else(|| lic_color_for(&lic).to_string());
-                    d.license = lic;
-                }
+                // Gerçek üye: biliniyorsa kendi ülkesi / iRating'i / lisansı. Bilinmeyen değer boş bırakılmaz:
+                // ada bağlı (her oturumda aynı) makul bir rastgele değer üretilir, satırda boş hücre kalmaz.
+                let h = name_hash(&d.name);
+                d.flair = m.country.unwrap_or_else(|| SHOWCASE_FLAIRS[(h % SHOWCASE_FLAIRS.len() as u64) as usize].to_string());
+                d.irating = m.irating.unwrap_or(1350 + ((h >> 8) % 3900) as i32);
+                let lic = m.license.unwrap_or_else(|| {
+                    let cls = ["D", "C", "C", "B", "B", "A", "A"][((h >> 24) % 7) as usize];
+                    format!("{} {:.2}", cls, 1.6 + ((h >> 32) % 330) as f32 / 100.0)
+                });
+                d.lic_color = m.lic_color.unwrap_or_else(|| lic_color_for(&lic).to_string());
+                d.license = lic;
             }
         }
         k > 0
@@ -680,6 +700,16 @@ impl Demo {
         let gear_lo = (f.gear - 1) as f32 * 76.0 / 5.0;
         f.rpm = 4200.0 + ((f.speed - gear_lo) / (76.0 / 5.0)).clamp(0.0, 1.0) * 4600.0;
         f.steer = ((pct * std::f32::consts::TAU * 4.0).sin()) * 0.9 * (1.0 - sf * 0.8);
+        // Demo ivmeleri (g): gaz/fren ve direksiyondan türetilir, önceki kareyle yumuşatılır
+        {
+            let k = (dt as f32 * 7.0).min(1.0);
+            let v = (f.speed / 76.0).clamp(0.0, 1.0);
+            let long_t = if player_in_pit { 0.0 } else { f.throttle * (1.15 - 0.75 * v) - brk * (1.6 + 1.3 * v) };
+            let lat_t = if player_in_pit { 0.0 } else { (-f.steer / 0.9 * 3.4 * (0.35 + 0.65 * v)).clamp(-2.9, 2.9) };
+            let jit = (self.rng.next() - 0.5) * 0.08;
+            f.long_g += (long_t + jit - f.long_g) * k;
+            f.lat_g += (lat_t - jit - f.lat_g) * k;
+        }
         // Demo: düşük viteste tam gazda çekiş kontrolü devreye girer
         f.tc_active = !player_in_pit && f.throttle > 0.9 && f.gear <= 2;
         f.lap = me.dist.floor() as i32 + 1;
@@ -859,7 +889,7 @@ mod tests {
         assert!(names.iter().filter(|x| NAMES.contains(&x.as_str())).count() >= N_CARS - 10);
         set_showcase_names(Vec::new());
 
-        // Gerçek bilgiler: bayrak / iRating / lisans üyeninki; bilgisi olmayan üyede bayrak boş
+        // Gerçek bilgiler: bayrak / iRating / lisans üyeninki; bilgisi olmayan üyede rastgele (boş değil)
         let n = set_showcase_drivers(vec![
             ShowcaseDriver {
                 name: "Ayşe Demir".into(),
@@ -875,7 +905,8 @@ mod tests {
         let a = d.session.drivers.iter().flatten().find(|x| x.name == "Ayşe Demir").unwrap();
         assert_eq!((a.flair.as_str(), a.irating, a.license.as_str(), a.lic_color.as_str()), ("TR", 3210, "A 3.42", "#0153db"));
         let z = d.session.drivers.iter().flatten().find(|x| x.name == "Zoe Lane").unwrap();
-        assert_eq!(z.flair, "");
+        // Bilgisi olmayan üye: boş kalmaz, makul rastgele bayrak
+        assert!(SHOWCASE_FLAIRS.contains(&z.flair.as_str()));
         assert!(z.irating >= 1200 && z.license.contains(' '));
         set_showcase_names(Vec::new());
     }

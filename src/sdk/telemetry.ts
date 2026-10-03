@@ -53,9 +53,19 @@ export function onRemoteSettings(fn: (v: unknown) => void) {
 // Pist şekli sadece sürüm değişince gelir; sonradan açılan overlay'ler de görsün diye saklanır
 let lastShape: { version: number; shape: [number, number][] } | null = null;
 
+const dragListeners = new Set<(v: unknown) => void>();
+/** Tarayıcı modunda (OBS sayfası) canlı taşıma konumlarını dinle (bkz. sdk/livedrag.ts) */
+export function onRemoteDrag(fn: (v: unknown) => void) {
+  dragListeners.add(fn);
+}
+
 function handle(p: Packet) {
   if (p.t === "settings") {
     settingsListeners.forEach((fn) => fn(p.d));
+    return;
+  }
+  if (p.t === "drag") {
+    dragListeners.forEach((fn) => fn(p.d));
     return;
   }
   if (p.t === "map") {

@@ -45,6 +45,8 @@ pub enum Packet {
     Traffic(crate::extras::Traffic),
     /// Sadece tarayıcı kaynakları: ayarlar değişti
     Settings(serde_json::Value),
+    /// Sadece tarayıcı kaynakları: panelde / düzenleme modunda sürüklenen overlay'in anlık konumu (canlı taşıma)
+    Drag(serde_json::Value),
     /// Canlı sohbet (bkz. livechat): son mesajlar + kanal durumları. Olay tabanlı (`Shared::push_topic`)
     Livechat(serde_json::Value),
     /// Canlı sohbet anketi
@@ -246,6 +248,16 @@ impl Shared {
 
     pub fn unsubscribe(&self, id: u64) {
         self.subs.lock().retain(|s| s.id != id);
+    }
+
+    /// Canlı taşıma konumunu ("overlay-live-drag" olayı) tarayıcı kaynaklarına (OBS sayfası) iletir.
+    pub fn broadcast_drag(&self, value: serde_json::Value) {
+        let p = Packet::Drag(value);
+        let mut subs = self.subs.lock();
+        subs.retain(|s| match &s.sink {
+            Sink::Sse(_) => s.send(&p),
+            Sink::Channel(_) | Sink::Mqtt { .. } => true,
+        });
     }
 
     /// Ayar değişikliğini tarayıcı kaynaklarına iletir.

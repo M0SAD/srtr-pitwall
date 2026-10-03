@@ -42,7 +42,7 @@ export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w:
                 opacity: Math.min(it.o.opacity ?? 1, theme().opacity / 100),
               }}
             >
-              <OverlayView type={it.o.type} options={{ ...defaultOptions(it.m), ...(it.o.options ?? {}) }} look={normalizeLook(it.o.look)} themed={false} />
+              <OverlayView type={it.o.type} options={{ ...defaultOptions(it.m), ...(it.o.options ?? {}) }} look={normalizeLook(it.o.look)} bgOpacity={it.o.bgOpacity} themed={false} />
             </div>
           )}
         </For>

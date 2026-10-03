@@ -237,6 +237,39 @@ export async function shareLayout(v: {
   return rows?.[0];
 }
 
+/**
+ * Daha önce paylaştığım düzeni yerinde günceller: kimlik, puanlar, indirme sayısı ve yorumlar korunur
+ * (satır düzeyi yetki: sadece sahibi güncelleyebilir; sayaçları protect_layout tetikleyicisi korur).
+ */
+export async function updateSharedLayout(
+  id: string,
+  v: { title: string; description: string; screen_w: number; screen_h: number; cars: string[]; data: LayoutData },
+) {
+  const rows = await api<LayoutSummary[]>("PATCH", `shared_layouts?id=eq.${encodeURIComponent(id)}`, {
+    body: { ...v, overlay_count: v.data.boxes.length },
+    prefer: "return=representation",
+  });
+  if (!rows?.[0]) throw new Error("Önceki paylaşım bulunamadı");
+  return rows[0];
+}
+
+/**
+ * Bu düzenin daha önce yaptığım paylaşımı: önce kayıtlı paylaşım kimliğiyle (Profile.sharedId), yoksa aynı
+ * başlıklı kendi paylaşımımla eşleşir. Yoksa null.
+ */
+export async function findMyShare(kind: "layout" | "stream", sharedId: string | undefined, title: string): Promise<LayoutSummary | null> {
+  const uid = session()?.user.id;
+  if (!uid) return null;
+  if (sharedId && /^[0-9a-f-]{36}$/i.test(sharedId)) {
+    const rows = await api<LayoutSummary[]>("GET", `layout_list?select=*&id=eq.${sharedId}&user_id=eq.${uid}&kind=eq.${kind}&limit=1`).catch(() => null);
+    if (rows?.[0]) return rows[0];
+  }
+  const name = title.trim().toLocaleLowerCase();
+  if (!name) return null;
+  const mine = await myLayouts(kind).catch(() => [] as LayoutSummary[]);
+  return (mine ?? []).find((l) => l.title.trim().toLocaleLowerCase() === name) ?? null;
+}
+
 export function deleteLayout(id: string) {
   return api("DELETE", `shared_layouts?id=eq.${id}`);
 }

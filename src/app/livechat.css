@@ -937,3 +937,42 @@
 .lcp-gate.ok b {
   color: #53d67a;
 }
+
+/* Konuşma → yazı: ses düzeyi göstergesi ve kaynak satırındaki uyarılar */
+.lcp-level {
+  display: inline-block;
+  width: 64px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  overflow: hidden;
+  opacity: 0.5;
+  flex: 0 0 auto;
+}
+.lcp-level.on {
+  opacity: 1;
+}
+.lcp-level > i {
+  display: block;
+  height: 100%;
+  background: #37d67a;
+  transition: width 0.25s linear;
+}
+.lcp-inline .f2-select.small {
+  max-width: 300px;
+}
+/* Streamlabs: deneme uyarısı düğmeleri */
+.lcp-tests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+/* Satırın sağındaki denetim (düğme grubu, cihaz seçici) daralıp kırpılmasın; açıklama metni daralır */
+.lcp-noshrink {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.row > div:first-child:has(+ .lcp-noshrink) {
+  min-width: 0;
+}

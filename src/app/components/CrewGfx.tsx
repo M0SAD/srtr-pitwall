@@ -28,6 +28,7 @@ const IC = {
   drop: '<path d="M12 3.5c3 4 5.5 6.8 5.5 10a5.5 5.5 0 0 1-11 0c0-3.2 2.5-6 5.5-10z"/>',
   road: '<path d="M8 4 5 20M16 4l3 16M12 5v3M12 11v3M12 17v3"/>',
   send: '<path d="M4 12 20 5l-5 15-3-6z"/>',
+  helmet: '<path d="M4 14a8 8 0 0 1 16 0v3a2 2 0 0 1-2 2H9l-5-3z"/><path d="M11 12h9M11 12l1.5 3.5H20"/>',
 } as const;
 export type IconName = keyof typeof IC;
 export const Ic = (p: { n: IconName }) => <svg class="pg-ic" viewBox="0 0 24 24" aria-hidden="true" innerHTML={IC[p.n]} />;

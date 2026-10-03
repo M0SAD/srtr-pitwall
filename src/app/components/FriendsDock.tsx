@@ -60,7 +60,8 @@ import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
 import { BgNote, ConvBgPanel, ConvBgRequest, adoptBg, useConvBg } from "./ConvBg";
 import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
-import { muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
+import { deleteGroup, leaveGroup, muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
+import { clearRoomBg } from "@/cloud/chatBg";
 import { broadcastOvMsg, ovMsgShowsPerson, ovMsgTogglePerson } from "@/sdk/ovmsg";
 import "../friends.css";
 import "../teams.css";
@@ -73,12 +74,21 @@ type View =
   | { kind: "team"; t: MyTeam }
   | { kind: "group"; g: MyGroup }
   | { kind: "newgroup" };
-type Presence = "racing" | "online" | "dnd" | "offline" | "pending";
+type Presence = "racing" | "online" | "dnd" | "offline" | "pending" | "hidden";
 
 /** Pencere dışından (ayrı arkadaş penceresi) panele yönlendirme */
 function panelGo(what: { sec?: string; sub?: string; friend?: string; team?: string; crew?: string }) {
   invoke("panel_front").catch(() => {});
   setTimeout(() => emit("panel-go", what).catch(() => {}), 400);
+}
+
+/**
+ * Arkadaşın Ekip Pitwall'ını ayrı pencerede aç (crew_window_open). Program dışında (tarayıcı) ya da komut
+ * yoksa / hata verirse verilen yedek (panel içi gezinme) çalışır.
+ */
+export function openCrewWindow(owner: string, fallback: () => void) {
+  if (!inTauri) return fallback();
+  invoke("crew_window_open", { owner }).catch(() => fallback());
 }
 
 /** Arkadaşın canlı verisini ayrı pencerede aç */
@@ -97,6 +107,8 @@ export interface Nav {
 
 function presence(f: Friend): Presence {
   if (f.status !== "accepted") return "pending";
+  // Sadece yöneticiye gelir: çevrimiçi ama "Çevrimdışı" durumunu seçmiş
+  if (f.invisible) return "hidden";
   if (f.racing) return "racing";
   if (f.online) return f.dnd ? "dnd" : "online";
   return "offline";
@@ -759,7 +771,20 @@ export function FriendsPanel(props: {
               <i>{groupRows().length}</i>
             </button>
             <Show when={!collapsed().groups || q()}>
-              <For each={groupRows()}>{(g) => <GroupRow g={g} onOpen={() => setView({ kind: "group", g })} />}</For>
+              <For each={groupRows()}>{(g) => (
+                  <GroupRow
+                    g={g}
+                    onOpen={() => setView({ kind: "group", g })}
+                    onMembers={() => (setView({ kind: "group", g }), setGroupPanel("members"))}
+                    onMute={() => {
+                      const next = !g.muted;
+                      patchGroup(g.group_id, (x) => ({ ...x, muted: next }));
+                      muteGroup(g.group_id, next).catch((e) => (setErr(String((e as Error).message)), patchGroup(g.group_id, (x) => ({ ...x, muted: !next }))));
+                    }}
+                    onGone={() => (mutateGroups(chatGroups().filter((x) => x.group_id !== g.group_id)), refetchGroups())}
+                    onErr={setErr}
+                  />
+                )}</For>
             </Show>
           </Show>
           <Show
@@ -903,11 +928,115 @@ export function FriendsPanel(props: {
 }
 
 /** Arkadaş listesindeki grup sohbeti satırı */
-function GroupRow(props: { g: MyGroup; onOpen: () => void }) {
+function GroupRow(props: { g: MyGroup; onOpen: () => void; onMembers: () => void; onMute: () => void; onGone: () => void; onErr: (m: string) => void }) {
   const g = () => props.g;
   const who = () => (g().last_system ? null : g().last_sender === session()?.user.id ? t("Sen") : g().last_sender_name);
+  // Sağ tık menüsü: arkadaş satırındaki gibi en üst katmanda (Portal), ekran koordinatlarıyla
+  const [menu, setMenu] = createSignal<{ x: number; y: number } | null>(null);
+  const [pos, setPos] = createSignal<{ x: number; y: number } | null>(null);
+  const placeMenu = (m: HTMLDivElement) => {
+    requestAnimationFrame(() => {
+      const at = menu();
+      if (!m.isConnected || !at) return;
+      const pad = 6;
+      const x = Math.max(pad, Math.min(at.x, window.innerWidth - pad - m.offsetWidth));
+      const y = Math.max(pad, Math.min(at.y, window.innerHeight - pad - m.offsetHeight));
+      setPos({ x, y });
+    });
+  };
+  createEffect(() => {
+    if (!menu()) return;
+    const close = (e: Event) => {
+      if (e.target instanceof Node && (e.target as Element).closest?.(".frow-menu")) return;
+      setMenu(null);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setMenu(null);
+    const tm = window.setTimeout(() => {
+      document.addEventListener("pointerdown", close, true);
+      document.addEventListener("wheel", close, true);
+    }, 0);
+    window.addEventListener("resize", close);
+    window.addEventListener("blur", close);
+    document.addEventListener("keydown", key);
+    onCleanup(() => {
+      clearTimeout(tm);
+      document.removeEventListener("pointerdown", close, true);
+      document.removeEventListener("wheel", close, true);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("blur", close);
+      document.removeEventListener("keydown", key);
+    });
+  });
+  const run = (fn: () => Promise<unknown>) =>
+    fn().then(
+      () => props.onGone(),
+      (e) => props.onErr(String((e as Error)?.message ?? e)),
+    );
+  const leave = () => {
+    setMenu(null);
+    const alone = g().member_count <= 1;
+    const q = alone
+      ? t("Grupta başka kimse yok; ayrılırsan grup ve mesajları silinir. Ayrılmak istiyor musun?")
+      : g().is_owner
+        ? t("Gruptan ayrılırsan sahiplik en eski üyeye geçer. Ayrılmak istiyor musun?")
+        : t("{0} grubundan ayrılmak istiyor musun?", g().name);
+    if (!confirm(q)) return;
+    void run(async () => {
+      // Son üye ayrılınca grup silinir: ortak arka plan görseli önce kovadan temizlenir
+      if (alone) await clearRoomBg("group", g().group_id, true).catch(() => {});
+      await leaveGroup(g().group_id);
+    });
+  };
+  const remove = () => {
+    setMenu(null);
+    if (!confirm(t("{0} grubu ve tüm mesajları herkes için silinsin mi? Bu işlem geri alınamaz.", g().name))) return;
+    void run(async () => {
+      await clearRoomBg("group", g().group_id, true).catch(() => {});
+      await deleteGroup(g().group_id);
+    });
+  };
   return (
-    <div class="frow troom" classList={{ unread: g().unread > 0 && !g().muted }} onClick={props.onOpen}>
+    <div
+      class="frow troom"
+      classList={{ unread: g().unread > 0 && !g().muted, menu: !!menu() }}
+      onClick={props.onOpen}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setPos(null);
+        setMenu({ x: e.clientX, y: e.clientY });
+      }}
+    >
+      <Show when={menu()}>
+        <Portal>
+          <div class="fx frow-menu-layer" onContextMenu={(e) => e.preventDefault()}>
+            <div
+              ref={placeMenu}
+              class="frow-menu floating"
+              style={{ left: `${pos()?.x ?? 0}px`, top: `${pos()?.y ?? 0}px`, visibility: pos() ? "visible" : "hidden" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button onClick={() => (setMenu(null), props.onOpen())}>
+                <I.MessageSquare /> Sohbeti aç
+              </button>
+              <button onClick={() => (setMenu(null), props.onMembers())}>
+                <I.Users /> Üyeler
+              </button>
+              <button onClick={() => (setMenu(null), props.onMute())}>
+                {g().muted ? <I.Bell /> : <I.BellOff />} {g().muted ? "Sessizden çıkar" : "Sessize al"}
+              </button>
+              <button class="danger" onClick={leave} title="Sohbet listenden kalkar; grup diğer üyeler için sürer">
+                <I.UserMinus /> Gruptan ayrıl
+              </button>
+              <Show when={g().is_owner}>
+                <button class="danger" onClick={remove} title="Grup ve tüm mesajları herkes için silinir">
+                  <I.Trash /> Grubu sil
+                </button>
+              </Show>
+            </div>
+          </div>
+        </Portal>
+      </Show>
       <GroupAvatar group={g()} size={36} />
       <div class="frow-main">
         <div class="frow-l1">
@@ -1055,10 +1184,42 @@ export function FriendsDock(props: { racing?: () => boolean }) {
   );
 }
 
+type MyMode = "online" | "dnd" | "offline";
+const MY_MODES: { id: MyMode; label: string; hint: string }[] = [
+  { id: "online", label: "Çevrimiçi", hint: "Arkadaşların seni çevrimiçi görür; mesaj bildirimleri ve sesleri açık" },
+  { id: "dnd", label: "Rahatsız Etme", hint: "Mesaj bildirimi gösterilmez ve ses çalmaz; yarışta sadece alt köşede sayaç görünür" },
+  { id: "offline", label: "Çevrimdışı", hint: "Çevrimdışı görünürsün: arkadaşların seni çevrimdışı görür, mesajlar yine gelir" },
+];
+
 function MyStatusBar() {
   const soc = () => settings().general.social;
-  const set = (k: "dnd" | "acceptMessages" | "sound", v: boolean) => updateSettings((d) => (d.general.social[k] = v));
-  const chip = (k: "dnd" | "acceptMessages" | "sound", icon: JSX.Element, label: string, title: string) => (
+  const set = (k: "acceptMessages" | "sound", v: boolean) => updateSettings((d) => (d.general.social[k] = v));
+  const mode = (): MyMode => (soc().invisible ? "offline" : soc().dnd ? "dnd" : "online");
+  const setMode = (m: MyMode) =>
+    updateSettings((d) => {
+      d.general.social.dnd = m === "dnd";
+      d.general.social.invisible = m === "offline";
+    });
+  const cur = () => MY_MODES.find((x) => x.id === mode())!;
+  const [open, setOpen] = createSignal(false);
+  let box: HTMLDivElement | undefined;
+  createEffect(() => {
+    if (!open()) return;
+    const close = (e: Event) => {
+      if (e.target instanceof Node && box?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", close, true);
+    document.addEventListener("keydown", key);
+    window.addEventListener("blur", close);
+    onCleanup(() => {
+      document.removeEventListener("pointerdown", close, true);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("blur", close);
+    });
+  });
+  const chip = (k: "acceptMessages" | "sound", icon: JSX.Element, label: string, title: string) => (
     <button class={`fme-chip c-${k}`} classList={{ on: soc()[k] }} aria-pressed={soc()[k]} title={title} onClick={() => set(k, !soc()[k])}>
       {icon}
       <span>{label}</span>
@@ -1066,7 +1227,35 @@ function MyStatusBar() {
   );
   return (
     <div class="fdock-me">
-      {chip("dnd", <I.BellOff />, "Rahatsız etme", "Açıkken mesaj bildirimi gösterilmez ve ses çalmaz; yarışta sadece alt köşede sayaç görünür")}
+      <div class="fme-status" ref={box}>
+        <button
+          class={`fme-chip fme-mode m-${mode()}`}
+          classList={{ open: open() }}
+          aria-haspopup="menu"
+          aria-expanded={open()}
+          title={t("Durumun: {0}", t(cur().label))}
+          onClick={() => setOpen(!open())}
+        >
+          <i class="fme-dot" />
+          <span>{t(cur().label)}</span>
+          <I.ChevronDown />
+        </button>
+        <Show when={open()}>
+          <div class="fme-menu" role="menu">
+            <For each={MY_MODES}>
+              {(m) => (
+                <button role="menuitemradio" aria-checked={mode() === m.id} class={`m-${m.id}`} classList={{ on: mode() === m.id }} onClick={() => (setMode(m.id), setOpen(false))}>
+                  <i class="fme-dot" />
+                  <span>
+                    <b>{t(m.label)}</b>
+                    <small>{t(m.hint)}</small>
+                  </span>
+                </button>
+              )}
+            </For>
+          </div>
+        </Show>
+      </div>
       {chip("acceptMessages", <I.MessageSquare />, "Mesajlar açık", "Kapalıyken kimse sana mesaj gönderemez")}
       {chip("sound", soc().sound ? <I.Volume2 /> : <I.VolumeX />, "Ses", "Yeni mesajda kısa bir ses çal")}
     </div>
@@ -1076,8 +1265,9 @@ function MyStatusBar() {
 function statusText(f: Friend) {
   if (f.status === "pending_in") return t("Arkadaşlık isteği gönderdi");
   if (f.status === "pending_out") return t("İstek gönderildi");
-  if (f.racing) return [f.session, f.track, f.car].filter(Boolean).join(" · ") || (f.sim && SIM_SHORT[f.sim] ? t("Oyunda: {0}", SIM_SHORT[f.sim]) : t("Yarışta"));
-  if (f.online) return f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi");
+  const hid = f.invisible ? ` · ${t("gizleniyor")}` : "";
+  if (f.racing) return ([f.session, f.track, f.car].filter(Boolean).join(" · ") || (f.sim && SIM_SHORT[f.sim] ? t("Oyunda: {0}", SIM_SHORT[f.sim]) : t("Yarışta"))) + hid;
+  if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + hid;
   return f.last_seen ? t("Son görülme: {0}", ago(f.last_seen)) : t("Çevrimdışı");
 }
 
@@ -1192,6 +1382,11 @@ function FriendRow(props: {
         <div class="frow-l1">
           <b data-no-i18n>{f().display_name || "?"}</b>
           <SimBadge sim={f().online ? f().sim : ""} />
+          <Show when={f().invisible}>
+            <span class="frow-flag hidden-flag" title="Gizleniyor: bu üye &quot;Çevrimdışı&quot; durumunu seçti. Diğer üyeler onu çevrimdışı görür; bunu sadece yöneticiler görür.">
+              <I.EyeOff />
+            </span>
+          </Show>
           <Show when={f().trusted}>
             <span
               class="frow-flag trust"
@@ -1349,7 +1544,7 @@ function FriendRow(props: {
             </button>
           </Show>
           <Show when={props.crew}>
-            <button onClick={() => (setMenu(false), props.nav.crew(f().friend_id))} title="Ekip Pitwall'ı: çevresindeki araçları, farkları ve spotter durumunu canlı izle, hazır mesaj gönder">
+            <button onClick={() => (setMenu(false), openCrewWindow(f().friend_id, () => props.nav.crew(f().friend_id)))} title="Ekip Pitwall'ı: çevresindeki araçları, farkları ve spotter durumunu canlı izle, hazır mesaj gönder">
               <I.Gauge /> Pitwall'ını izle
             </button>
           </Show>

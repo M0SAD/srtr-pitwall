@@ -85,7 +85,7 @@ export interface IracingInfo {
   lic_color: string | null;
   /** iRacing "flair" kısa kodu (TR, DE…) */
   country: string | null;
-  /** road | oval | dirtroad | dirtoval … (son sürülen serinin kategorisi) */
+  /** sportscar | formulacar | oval | dirtroad | dirtoval | road … (değerin alındığı oturumun kategorisi) */
   category: string | null;
   updated_at: string;
   /** false: sadece sahibi görür (gizlilik ayarı kapalı) */
@@ -111,6 +111,26 @@ export async function loadIracingPublic(): Promise<boolean | null> {
     return rows?.[0]?.ir_public ?? true;
   } catch {
     return null;
+  }
+}
+
+/** Bir kategorideki (Sports Car, Oval…) iRating / lisans: o kategoride sürülen son oturumdan (SQL c63) */
+export interface IracingCat {
+  category: string;
+  irating: number;
+  license: string;
+  lic_color: string | null;
+  updated_at: string;
+}
+
+/** Üyenin kategori başına iRacing değerleri (en son güncellenen önce). Eski sunucuda (c63 yok) ya da gizliyse boş. */
+export async function loadIracingCats(userId: string): Promise<IracingCat[]> {
+  try {
+    const r = await api<unknown>("POST", "rpc/profile_iracing_cats", { body: { p_user: userId }, auth: "optional" });
+    if (!Array.isArray(r)) return [];
+    return (r as IracingCat[]).filter((x) => x && typeof x.category === "string" && x.irating > 0 && typeof x.license === "string");
+  } catch {
+    return [];
   }
 }
 

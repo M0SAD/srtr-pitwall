@@ -26,6 +26,7 @@ pub mod ph {
     pub const STEER_ANGLE: usize = 24;
     pub const SPEED_KMH: usize = 28;
     pub const VELOCITY: usize = 32; // float[3], dünya koordinatları
+    pub const ACC_G: usize = 44; // float[3] g: x yanal, y dikey, z boyuna
     pub const WHEELS_PRESSURE: usize = 88; // float[4] psi
     pub const TYRE_WEAR: usize = 120; // float[4]
     pub const TYRE_CORE_TEMP: usize = 152; // float[4]
@@ -81,6 +82,7 @@ pub mod gr {
     pub const CAR_ID: usize = 976; // int[60]
     pub const PLAYER_CAR_ID: usize = 1216;
     pub const FLAG: usize = 1224;
+    pub const PENALTY: usize = 1228; // ACC_PENALTY_TYPE
     pub const IS_IN_PIT_LANE: usize = 1236;
     pub const WIND_SPEED: usize = 1248;
     pub const WIND_DIRECTION: usize = 1252;
@@ -310,6 +312,8 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     f.clutch = if acc { clutch } else { 1.0 - clutch };
     f.steer = steer_rad(rd_f32(phys, ph::STEER_ANGLE), 0.0);
     f.abs_active = rd_u32(phys, ph::ABS_IN_ACTION) != 0;
+    f.lat_g = rd_f32(phys, ph::ACC_G);
+    f.long_g = rd_f32(phys, ph::ACC_G + 8);
     f.tc_active = rd_u32(phys, ph::TC_IN_ACTION) != 0;
     f.fuel_level = rd_f32(phys, ph::FUEL).max(0.0);
     f.fuel_pct = if sd.fuel_max_ltr > 0.0 { (f.fuel_level / sd.fuel_max_ltr).clamp(0.0, 1.0) } else { 0.0 };
@@ -405,6 +409,18 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
             bits |= flags::RED;
         }
     }
+    // ACC ceza türü (ACC_PENALTY_TYPE): pit geçişi / dur-kalk / diskalifiye / yarış sonu süre cezası
+    f.penalty = if acc {
+        match rd_i32(gfx, gr::PENALTY) {
+            1 | 7 | 19 => 1,
+            2..=4 | 8..=10 => 2,
+            5 | 11 | 13 | 15..=18 | 20 | 21 => 3,
+            14 => 4,
+            _ => 0,
+        }
+    } else {
+        0
+    };
     f.session_flags = bits;
     f.session_state = if bits & flags::CHECKERED != 0 { STATE_CHECKERED } else { STATE_RACING };
 

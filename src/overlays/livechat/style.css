@@ -283,3 +283,29 @@
 .lc-cap-line + .lc-cap-line {
   margin-top: 3px;
 }
+
+/* Alta yaslı liste: overlay sabit yükseklikte bir kutudur (ayar: Yükseklik). İzleyici çubuğu / anket / altyazı üstte
+   durur; mesaj listesi kalan alanı doldurur ve mesajlar ALT kenardan başlayıp yukarı doğru birikir (tek mesaj da en
+   altta görünür). Sığmayan eski mesajlar üst kenardan kırpılır. "Yeni mesaj üstte" açıkken liste üste yaslanır. */
+.lc {
+  justify-content: flex-start;
+  box-sizing: border-box;
+  max-height: calc(100vh - 16px);
+}
+.lc > .lc-bar,
+.lc > .lc-poll,
+.lc > .lc-cap {
+  flex: 0 0 auto;
+}
+.lc-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.lc.top .lc-list {
+  justify-content: flex-start;
+}
+.lc-list > .lc-msg {
+  flex: 0 0 auto;
+}

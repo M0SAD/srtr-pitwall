@@ -361,6 +361,8 @@ struct Item {
     test: Option<Override>,
     /// "Mesajlar" overlay'inden (sohbet okuması kapalıyken de okunur)
     ext: bool,
+    /// Bu mesaja özel ses (boş / yok: ayarlardaki ses). Ekip sohbeti / Mesajlar overlay'i kendi sesini seçebilsin diye.
+    voice: Option<String>,
 }
 
 #[derive(Default)]
@@ -450,7 +452,7 @@ impl Tts {
             return;
         }
         if let Some(text) = decide(&cfg, m) {
-            self.push(Item { id: Some(m.id.clone()), text, at: Instant::now(), test: None, ext: false }, false);
+            self.push(Item { id: Some(m.id.clone()), text, at: Instant::now(), test: None, ext: false, voice: None }, false);
         }
     }
 
@@ -558,7 +560,10 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
                 continue;
             }
         }
-        let ov = item.test.clone().unwrap_or(Override { voice: cfg.voice.clone(), device: cfg.device.clone(), rate: cfg.rate, pitch: cfg.pitch, volume: cfg.volume });
+        let mut ov = item.test.clone().unwrap_or(Override { voice: cfg.voice.clone(), device: cfg.device.clone(), rate: cfg.rate, pitch: cfg.pitch, volume: cfg.volume });
+        if let Some(v) = item.voice.as_ref().filter(|v| !v.is_empty()) {
+            ov.voice = v.clone();
+        }
         // Sentez
         if synth.is_none() {
             match super::tts_win::Synth::new() {
@@ -571,7 +576,7 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
                 }
             }
         }
-        let wav = match synth.as_mut().unwrap().wav(&item.text, &ov.voice, win_rate(ov.rate), win_pitch(ov.pitch), 1.0) {
+        let wav = match synth.as_mut().unwrap().wav(&item.text, &ov.voice, ov.rate, ov.pitch, win_rate(ov.rate), win_pitch(ov.pitch)) {
             Ok(w) => w,
             Err(e) => {
                 synth = None;
@@ -704,10 +709,18 @@ pub fn hotkey_hush(app: &AppHandle) {
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VoiceOut {
+    /// Ses kimliği (ayarlara bu yazılır; SAPI5 seslerinde `sapi:` ön ekli)
     pub id: String,
     pub name: String,
+    /// BCP-47 (ör. "tr-TR")
     pub language: String,
+    /// Dilin Windows arayüz dilindeki adı
+    pub language_name: String,
     pub female: bool,
+    /// "female" | "male"
+    pub gender: &'static str,
+    /// "onecore" (Windows Ayarları › Konuşma sesleri) | "sapi" (klasik SAPI5 sesleri)
+    pub engine: &'static str,
 }
 
 #[tauri::command]
@@ -715,7 +728,11 @@ pub async fn livechat_tts_voices() -> Result<Vec<VoiceOut>, String> {
     #[cfg(windows)]
     {
         let list = tauri::async_runtime::spawn_blocking(super::tts_win::voices).await.map_err(|e| e.to_string())??;
-        Ok(list.into_iter().map(|v| VoiceOut { id: v.id, name: v.name, language: v.language, female: v.female }).collect())
+        Ok(list
+            .into_iter()
+            .filter(|v| !v.id.is_empty())
+            .map(|v| VoiceOut { id: v.id, name: v.name, language: v.language, language_name: v.language_name, female: v.female, gender: if v.female { "female" } else { "male" }, engine: v.engine })
+            .collect())
     }
     #[cfg(not(windows))]
     {
@@ -759,7 +776,7 @@ pub fn livechat_tts_test(app: AppHandle, text: String, voice: String, device: St
     }
     let ov = Override { voice, device, rate: rate.clamp(-10.0, 10.0), pitch: pitch.clamp(-10.0, 10.0), volume: volume.clamp(0.0, 100.0) };
     t.st.lock().error = None;
-    t.push(Item { id: None, text, at: Instant::now(), test: Some(ov), ext: false }, true);
+    t.push(Item { id: None, text, at: Instant::now(), test: Some(ov), ext: false, voice: None }, true);
     Ok(())
 }
 
@@ -777,7 +794,7 @@ pub fn social_text(name: &str, body: &str, read_name: bool, max_chars: usize) ->
 /// Sohbet okumasıyla aynı kuyruğa girer (üst üste konuşmaz). Aynı kimlik ikinci kez gelirse yok sayılır.
 /// Döner: sıraya alındı mı.
 #[tauri::command]
-pub fn social_tts_speak(app: AppHandle, id: String, name: String, text: String, read_name: Option<bool>, max_chars: Option<usize>) -> Result<bool, String> {
+pub fn social_tts_speak(app: AppHandle, id: String, name: String, text: String, read_name: Option<bool>, max_chars: Option<usize>, voice: Option<String>) -> Result<bool, String> {
     if !SUPPORTED {
         return Err("Sesli okuma sadece Windows'ta çalışır".into());
     }
@@ -798,7 +815,47 @@ pub fn social_tts_speak(app: AppHandle, id: String, name: String, text: String, 
             }
         }
     }
-    t.push(Item { id: None, text, at: Instant::now(), test: None, ext: true }, false);
+    t.push(Item { id: None, text, at: Instant::now(), test: None, ext: true, voice: voice.filter(|v| !v.trim().is_empty()) }, false);
+    Ok(true)
+}
+
+/// Verilen metni seçilen sesle oku (ekip sohbeti, Mesajlar overlay'i gibi başka özellikler için genel komut).
+/// Sohbet okumasıyla aynı kuyruğa girer (üst üste konuşmaz); sohbet okuması kapalıyken de çalışır.
+/// Verilmeyen değerler Canlı Sohbet › Sesli okuma ayarlarından alınır (cihaz, hız, ton, ses düzeyi).
+/// PRO: `livechat.tts` ya da `social.messages_tts` açık olmalı. Döner: sıraya alındı mı.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub fn tts_speak(
+    app: AppHandle,
+    text: String,
+    voice: Option<String>,
+    device: Option<String>,
+    rate: Option<f64>,
+    pitch: Option<f64>,
+    volume: Option<f64>,
+    max_chars: Option<usize>,
+) -> Result<bool, String> {
+    if !SUPPORTED {
+        return Err("Sesli okuma sadece Windows'ta çalışır".into());
+    }
+    if !allowed(&app, FEATURE) && !allowed(&app, SOCIAL_FEATURE) {
+        return Err("Sesli okuma PRO üyelere özel".into());
+    }
+    let t = tts(&app).ok_or("hazır değil")?;
+    let text = clean_text(&text, max_chars.unwrap_or(300).clamp(20, 1000), true);
+    if text.is_empty() {
+        return Ok(false);
+    }
+    let cfg = t.st.lock().cfg.clone();
+    let ov = Override {
+        voice: voice.map(|v| v.trim().to_string()).filter(|v| !v.is_empty()).unwrap_or(cfg.voice),
+        device: device.unwrap_or(cfg.device),
+        rate: rate.unwrap_or(cfg.rate).clamp(-10.0, 10.0),
+        pitch: pitch.unwrap_or(cfg.pitch).clamp(-10.0, 10.0),
+        volume: volume.unwrap_or(cfg.volume).clamp(0.0, 100.0),
+    };
+    t.st.lock().error = None;
+    t.push(Item { id: None, text, at: Instant::now(), test: Some(ov), ext: false, voice: None }, false);
     Ok(true)
 }
 

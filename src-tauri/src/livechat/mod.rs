@@ -60,6 +60,7 @@ pub mod chatlog;
 pub mod send;
 pub mod streamlabs;
 pub mod stt;
+pub mod stt_cloud;
 #[cfg(windows)]
 pub mod stt_win;
 pub mod tts;
@@ -241,6 +242,14 @@ pub struct SlStatus {
     pub error: Option<String>,
     /// PRO kilidi
     pub locked: bool,
+    /// Bağlantı durumu: "off" (kapalı) | "notoken" | "locked" (PRO) | "login" (giriş gerekli) | "connecting" |
+    /// "connected" | "auth" (anahtar geçersiz) | "error" (koptu, yeniden denenecek)
+    pub state: &'static str,
+    /// Bu oturumda alınan uyarı sayısı ve sonuncusunun zamanı (unix ms)
+    pub events: u64,
+    pub last_event: Option<u64>,
+    /// Canlı sohbet çalışıyor (uyarılar yalnızca çalışırken sohbet akışına girer)
+    pub chat_running: bool,
 }
 
 #[derive(Serialize, Clone, Debug, Default)]
@@ -379,6 +388,10 @@ struct Inner {
     sl_token: String,
     sl_connected: bool,
     sl_error: Option<String>,
+    /// Anahtar reddedildi (görev durdu; anahtar değişince ya da "Yeniden bağlan" ile sıfırlanır)
+    sl_auth: bool,
+    sl_events: u64,
+    sl_last_event: Option<u64>,
     rt: HashMap<String, ChanRt>,
     ring: VecDeque<ChatMsg>,
     new_msgs: Vec<ChatMsg>,
@@ -549,8 +562,28 @@ impl Inner {
             enabled: self.cfg.streamlabs,
             has_token: !self.sl_token.is_empty(),
             connected: self.sl_task.is_some() && self.sl_connected,
-            error: if self.sl_task.is_some() || !self.sl_token.is_empty() { self.sl_error.clone() } else { None },
+            error: if self.cfg.streamlabs && (self.sl_task.is_some() || !self.sl_token.is_empty()) { self.sl_error.clone() } else { None },
             locked: !self.alerts_ok,
+            state: if !self.cfg.streamlabs {
+                "off"
+            } else if !self.alerts_ok {
+                "locked"
+            } else if self.sl_token.is_empty() {
+                "notoken"
+            } else if !self.login_ok {
+                "login"
+            } else if self.sl_auth {
+                "auth"
+            } else if self.sl_task.is_some() && self.sl_connected {
+                "connected"
+            } else if self.sl_error.is_some() {
+                "error"
+            } else {
+                "connecting"
+            },
+            events: self.sl_events,
+            last_event: self.sl_last_event,
+            chat_running: self.running,
         }
     }
 
@@ -785,6 +818,29 @@ impl Hub {
         g.dirty_status = true;
     }
 
+    /// Streamlabs anahtarı reddetti (görev kendini durdurur)
+    pub fn set_streamlabs_auth(&self, error: String) {
+        let mut g = self.st.lock();
+        if g.sl_task.is_none() {
+            return;
+        }
+        g.sl_auth = true;
+        g.sl_connected = false;
+        g.sl_error = Some(error);
+        g.dirty_status = true;
+    }
+
+    /// Streamlabs'ten `n` uyarı geldi (durum göstergesi için sayaç)
+    pub fn streamlabs_events(&self, n: usize) {
+        if n == 0 {
+            return;
+        }
+        let mut g = self.st.lock();
+        g.sl_events += n as u64;
+        g.sl_last_event = Some(now_ms());
+        g.dirty_status = true;
+    }
+
     // ---- Mesaj hattı (MCO update_chat ile aynı sıra) ----
 
     pub fn ingest(&self, m: ChatMsg) {
@@ -977,17 +1033,20 @@ impl Hub {
             g.rt.insert(key, ChanRt::default());
             g.dirty_status = true;
         }
-        // Streamlabs
-        let want = g.running && login && g.cfg.streamlabs && alerts_ok && !g.sl_token.is_empty();
+        // Streamlabs: sohbet çalışmasa da bağlanır (anahtar hemen doğrulansın, durum görünsün); uyarılar sohbet
+        // akışına yalnızca sohbet çalışırken girer (bkz. `accept`).
+        let want = login && g.cfg.streamlabs && alerts_ok && !g.sl_token.is_empty();
         let same = g.sl_task.as_ref().is_some_and(|(t, _)| *t == g.sl_token);
         if !want || !same {
             if let Some((_, h)) = g.sl_task.take() {
                 h.abort();
                 g.sl_connected = false;
+                g.sl_auth = false;
                 g.dirty_status = true;
             }
         }
         if want && g.sl_task.is_none() {
+            g.sl_auth = false;
             let token = g.sl_token.clone();
             let h = tauri::async_runtime::spawn(streamlabs::run(self.clone(), token.clone()));
             g.sl_task = Some((token, h));
@@ -1032,6 +1091,22 @@ impl Hub {
                 h.abort();
             }
             g.sl_connected = false;
+            g.sl_auth = false;
+            g.dirty_status = true;
+        }
+        self.reconcile();
+    }
+
+    /// Streamlabs bağlantısını baştan kur ("Yeniden bağlan")
+    fn restart_streamlabs(self: &Arc<Self>) {
+        {
+            let mut g = self.st.lock();
+            if let Some((_, h)) = g.sl_task.take() {
+                h.abort();
+            }
+            g.sl_connected = false;
+            g.sl_auth = false;
+            g.sl_error = None;
             g.dirty_status = true;
         }
         self.reconcile();
@@ -1607,6 +1682,7 @@ pub fn livechat_streamlabs_token_set(app: AppHandle, token: String) -> Result<Sl
         let mut g = h.st.lock();
         g.sl_token = t;
         g.sl_error = None;
+        g.sl_auth = false;
         g.dirty_status = true;
     }
     h.reconcile();
@@ -1617,6 +1693,42 @@ pub fn livechat_streamlabs_token_set(app: AppHandle, token: String) -> Result<Sl
 #[tauri::command]
 pub fn livechat_streamlabs_status(app: AppHandle) -> SlStatus {
     hub(&app).st.lock().sl_status()
+}
+
+/// Streamlabs bağlantısını yeniden kur (hata / geçersiz anahtar sonrası "Yeniden bağlan")
+#[tauri::command]
+pub fn livechat_streamlabs_reconnect(app: AppHandle) -> SlStatus {
+    let h = hub(&app);
+    h.restart_streamlabs();
+    let s = h.st.lock().sl_status();
+    s
+}
+
+/// Yerel deneme uyarısı: Streamlabs'e gitmeden, gerçek olayla aynı yoldan (ayrıştırıcı → sohbet akışı → overlay /
+/// sesli okuma) geçer. `kind`: donation | follow | subscription | resub | bits | raid | host | superchat | membershipGift.
+/// Uyarılar sohbet akışında gösterildiği için canlı sohbet çalışıyor olmalıdır. PRO: livechat.alerts
+#[tauri::command]
+pub fn livechat_streamlabs_test(app: AppHandle, kind: Option<String>) -> Result<(), String> {
+    if !login_ok(&app) {
+        return Err(LOGIN_MSG.into());
+    }
+    if !allowed(&app, "livechat.alerts") {
+        return Err("Streamlabs uyarıları PRO üyelere özel".into());
+    }
+    let h = hub(&app);
+    if !h.st.lock().running {
+        return Err("Önce canlı sohbeti başlat: uyarılar sohbet akışında (ve overlay'de) gösterilir.".into());
+    }
+    let frame = streamlabs::test_frame(kind.as_deref().unwrap_or("donation"));
+    match streamlabs::parse_frame(&frame) {
+        streamlabs::SlFrame::Event(list) if !list.is_empty() => {
+            for m in list {
+                h.ingest(m);
+            }
+            Ok(())
+        }
+        _ => Err("Deneme uyarısı üretilemedi".into()),
+    }
 }
 
 /// Altyazı satırı ekle (konuşmadan yazıya modülü ve test için). src: "mic" | "remote"

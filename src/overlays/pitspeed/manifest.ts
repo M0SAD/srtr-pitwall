@@ -12,6 +12,21 @@ export default defineOverlay({
   defaultEnabled: false,
   settings: [
     {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "default",
+      options: [
+        { value: "default", label: "Varsayılan" },
+        { value: "big", label: "Büyük sayı" },
+        { value: "strip", label: "Kompakt şerit" },
+        { value: "diff", label: "Sınıra fark (±)" },
+        { value: "sign", label: "Hız sınırı levhası", pro: true },
+        { value: "gauge", label: "Yay gösterge", pro: true },
+      ],
+      proHint: "Hız sınırı levhası ve yay gösterge PRO üyelere özel.",
+    },
+    {
       key: "show",
       label: "Ne zaman görünsün",
       type: "select",

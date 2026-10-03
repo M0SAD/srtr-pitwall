@@ -3,7 +3,7 @@
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { For, onCleanup, onMount, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { addInstance, defaultInstance, removeInstance, settings, updateOverlay } from "@/sdk/settings";
+import { addToLayout, defaultInstance, removeInstance, settings, updateOverlay } from "@/sdk/settings";
 import { monitorLabel, monitors, monitorOf } from "@/sdk/monitors";
 import { canDuplicate } from "@/sdk/registry";
 import "./context-menu.css";
@@ -110,7 +110,7 @@ export function ContextMenu(props: {
             label: "Aynısından ekle",
             hint: "aynı overlay'den bir tane daha",
             run: () => {
-              addInstance(s().type, s().profileId);
+              addToLayout(s().profileId, s().type, (settings().profiles[s().profileId]?.overlays ?? {})[s().id]?.monitor ?? "");
               props.onClose();
             },
           },

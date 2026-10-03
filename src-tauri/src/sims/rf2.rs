@@ -32,6 +32,7 @@ pub mod tv {
     pub const LAP_START_ET: usize = 24;
     pub const POS: usize = 160;
     pub const LOCAL_VEL: usize = 184;
+    pub const LOCAL_ACCEL: usize = 208; // double[3] m/s²: x sol, y yukarı, z geri
     pub const ORI: usize = 232; // 3 satır x 3 double
     pub const GEAR: usize = 352;
     pub const ENGINE_RPM: usize = 356;
@@ -95,6 +96,7 @@ pub mod vs {
     pub const LAP_DIST: usize = 104;
     pub const BEST_LAP_TIME: usize = 144;
     pub const LAST_LAP_TIME: usize = 168;
+    pub const NUM_PENALTIES: usize = 194; // short: bekleyen ceza sayısı
     pub const IS_PLAYER: usize = 196;
     pub const CONTROL: usize = 197;
     pub const IN_PITS: usize = 198;
@@ -134,6 +136,7 @@ pub struct Veh {
     pub est_lap: f64,
     pub flag: u8,
     pub count_lap_flag: u8,
+    pub num_penalties: i16,
     pub in_garage: bool,
     pub finish_status: i8,
 }
@@ -213,6 +216,7 @@ pub fn parse_scoring(b: &[u8]) -> Scoring {
             est_lap: rd_f64(b, o + vs::ESTIMATED_LAP_TIME),
             flag: rd_u8(b, o + vs::FLAG),
             count_lap_flag: rd_u8(b, o + vs::COUNT_LAP_FLAG),
+            num_penalties: rd_i16(b, o + vs::NUM_PENALTIES),
             in_garage: rd_u8(b, o + vs::IN_GARAGE_STALL) != 0,
             finish_status: rd_u8(b, o + vs::FINISH_STATUS) as i8,
         });
@@ -424,12 +428,17 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
     f.lap_best = pc.best;
     f.on_pit_road = v.in_pits;
     f.is_in_garage = v.in_garage;
+    // Tür bilinmiyor (pit geçişi / dur-kalk): genel ceza; diskalifiye finish_status 3
+    f.penalty = if v.finish_status == 3 { 3 } else if v.num_penalties > 0 { 5 } else { 0 };
     f.is_on_track = !v.in_garage && v.control >= 0;
     f.delta_best = 0.0;
     f.delta_best_ok = false;
 
     if let Some(o) = me_t {
         f.speed = len3(rd_vec3(tele, o + tv::LOCAL_VEL)) as f32;
+        let la = rd_vec3(tele, o + tv::LOCAL_ACCEL);
+        f.lat_g = (-la[0] / 9.80665) as f32;
+        f.long_g = (-la[2] / 9.80665) as f32;
         f.rpm = rd_f64(tele, o + tv::ENGINE_RPM) as f32;
         f.gear = rd_i32(tele, o + tv::GEAR);
         f.throttle = rd_f64(tele, o + tv::UNF_THROTTLE).clamp(0.0, 1.0) as f32;

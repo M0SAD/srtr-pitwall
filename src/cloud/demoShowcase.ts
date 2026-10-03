@@ -1,7 +1,7 @@
 // Demo vitrini: demo yarışındaki sahte sürücülerin bir kısmı gerçek PRO üyelerin görünen adlarını taşır.
 // Adlar buluttan (demo_pro_drivers; eski sunucuda demo_pro_names; giriş gerekmez) alınır, karıştırılır ve Rust'a
 // verilir (demo_set_drivers / demo_set_names). Üye izin verdiyse gerçek ülke bayrağı, iRating ve lisansı da gelir;
-// bilgisi olmayan üyeye bayrak gösterilmez, iR/SR demo tarafından üretilir.
+// bilgisi olmayan (ya da gizleyen) üye için Rust, ada bağlı makul rastgele bayrak / iR / SR üretir (boş hücre kalmaz).
 // Rust her demo oturumunun başında rastgele birkaçını seçer, oturum boyunca değişmez.
 // Çevrimdışıysa sessizce sadece sahte adlar kullanılır.
 

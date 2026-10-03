@@ -3,6 +3,67 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-74
+
+**Düzenler ve overlay'ler**
+- Düzen kilitleme: satırdaki kilit simgesiyle (ya da sağ tık) düzen kilitlenir; kilitli düzen değiştirilemez, silinemez, ekranda da taşınmaz. Sabit "Varsayılan" düzen artık iğne simgesiyle gösteriliyor.
+- "Düzenlerim" başlığındaki "+" düğmesinin boşluğu düzeltildi.
+- Daha önce paylaşılan düzen yeniden paylaşılırken "Öncekini güncelle" / "Yeni olarak paylaş" sorulur.
+- Düzenleme modunda yayın düzenleri listelenmiyor. Overlay'ler dört köşeden o yöne doğru büyütülür; genişlik / yükseklik ayarı olan overlay'ler (sohbet, mesajlar, altyazı, webview, veri kutusu, pist haritası) kenarlarından tutulup genişletilir.
+- Sol üstteki logoya tıklayınca pitwall.simracetr.com açılır.
+- Düzene eklenen overlay'ler listenin başında, eklenme sırasıyla alt alta durur. Overlaylarım'da overlay sırası değiştirilebilir (oklar ya da sağ tık; "Sıralamayı sıfırla").
+- Her overlay'e "Arka plan opaklığı" ayarı eklendi. "Görünüm (bu overlay)" bölümü kaldırıldı (kayıtlı görünümler çalışmaya devam eder).
+- Yayın düzenleri: "Overlay kaynağı" kaldırıldı (bağlı düzenlerde sadece "Bağlantıyı kopar" kalır); ızgara, kenarlar ve arka plan seçenekleri eklendi; overlay taşınırken OBS'te de anlık hareket eder.
+- Web sunucusu varsayılan olarak açık (mevcut kurulumlarda bir kez açılır).
+
+**Overlay'ler**
+- Yeni overlay: **G-Force** (g-çemberi, çubuklar, sayısal, sürtünme çemberi). Yayın Sahnesi listelerden gizlendi.
+- Sıralama Tablosu: sınıfımın ilk 8'i; olay puanı, pozisyon ve fren dengesi açık; "Tahmini iRating değişimi (yarış)" sütunu. Aynı ayarlar Yakındakiler'de. İkisinde de sütun genişlikleri elden geçirildi.
+- Lisans / SR rozeti yeniden tasarlandı (C ve B dahil okunaklı).
+- Demo: PRO üyelerin bayrağı, iRating ve SR'si gösterilir; veri yoksa rastgele doldurulur.
+- Profilde iRacing iR / SR artık kategori başına (Sports Car, Formula, Oval…) saklanıp etiketli gösterilir.
+- Yakın Takip: eşik türü Süre / Mesafe / Sınırsız; tur farkı +1T / −1T; yeni varsayılanlar (kendi satırım kapalı, lisans ve lastik açık, bulanıklık kapalı, 560 px, %90).
+- Yakıt: SON / ORT 5 / ORT 10 ayrı ayrı açılıp kapanır; sade varsayılan görünüm ve yeni tasarımlar (ibreli ve kompakt çubuk PRO).
+- Delta, Lastikler, Pit Hızı, Canlı Hava, Oturum & Bayraklar, Pedallar & Girdi: yeni tasarımlar.
+- Pedallar & Girdi: son tur / en iyi tur satırları (kapalı), gaz / fren yüzdesi (açık), bağlı direksiyona göre otomatik direksiyon görseli (genel çizim).
+- Çubuk Spotter: ok uçlu görünüm kaldırıldı.
+- Pist Haritası ve Mini Harita: kendi aracın kırmızı ok; pist içi dolgusu kapalı.
+- DigiFlags: sarı bayrağın yeşil görünmesi düzeltildi; ceza uyarısı satırı eklendi.
+- Oturum & Bayraklar: bayrak uyarısı pencereyi aşağı kaydırmıyor.
+- Mesajlar: birden fazla eklenebilir; kaynak olarak grup sohbetleri ve ekip odası seçilebilir; ekranda kalma süresi elle girilir (varsayılan 3 dk); genişlik ayarı; ekip mesajlarını ayrı sesle okuma.
+
+**Canlı sohbet ve ses**
+- Canlı Sohbet varsayılanları: 480 px, 10 mesaj, 16 px, izleyici çubuğu normal, saat açık. Mesajlar alttan dizilir.
+- Varsayılan kanallar: YouTube, Kick, Twitch (bu sırayla).
+- Altyazı: kaynak Mikrofon / Bilgisayar sesi (Discord vb.) / İkisi, cihaz seçimi ve konuşmacı etiketi. Bilgisayar sesi ve Türkçe için çevrimiçi (Whisper) motoru gerekir.
+- Konuşma → yazı: "Eleman bulunamadı (0x80070490)" hatası giderildi (kurulu dile düşer, anlaşılır mesaj verir); mikrofon seçimi eklendi.
+- Streamlabs: düşen uyarı türleri, bağlantı kopması ve "sohbet açıkken bağlanma" sorunu düzeltildi; durum göstergesi ve test düğmeleri eklendi.
+- Seslendirme: Windows'taki bütün sesler (kadın / erkek, dile göre süzme).
+- Ses mühendisi: mikrofon seçimi; sesli komut varsayılan açık; bas-konuş kısayolları Ayarlar › Kısayollar'da da var.
+- Demo açılınca ses varsayılan olarak kapalı.
+
+**Ekip ve arkadaşlar**
+- Ekip Pitwall'ı: odadaki üyeler ve pit yetkilisi görünür; tek mesaj kutusu ve ekip sohbet odası; 16:9'a uygun üç sütunlu yerleşim; ayrı pencerede açılır (arkadaş listesinden "Pitwall'ını izle").
+- Ekip mesajları sağ üst yerine ekranın alt ortasında kutucukta görünür (Ayarlar › Paylaşım › Ekip'ten kapatılabilir).
+- Arkadaşlar: sağ tık menüsünde uygulamanın düz renge dönmesi düzeltildi. Grup satırında sağ tık menüsü (ayrıl, sil), sahiplik devri; sitede grubu silme ve üye çıkarma.
+- Durum menüsü: Çevrimiçi / Rahatsız Etme / Çevrimdışı. Çevrimdışı görünen üyeyi yöneticiler "gizleniyor" olarak görür.
+
+**Diğer**
+- Filigran logosu (PNG) artık uygulanıyor; sayfada önizlemesi var.
+- Güncellemeden sonra panel açıksa yine açık başlar.
+- Pitwall Paneli penceresinde göstergeler kartlara sığacak şekilde ölçeklenir.
+- Veritabanı: c63 (kategori başına iRacing verisi), c64 (ekip sohbet odası), c65 (görünmez durum, grup sahipliği devri).
+
+## 031026-73
+
+- **Overlaylarım genel bir sekme oldu.** Düzen seçici, "Açık overlay'ler" bölümü ve "Tümünü kaldır" kaldırıldı. Buradaki ayarlar her overlay'in **varsayılanı**: bir overlay bir düzene eklendiğinde bu ayarlarla gelir. "Sıfırla" fabrika ayarlarına döner. Alttaki düğme artık "+ Düzen oluştur" ve Düzenler sayfasını açar. Güncellemede varsayılanlar, o an etkin düzendeki ayarlarından alınır (yaptığın ayarlar kaybolmaz).
+- **Düzenler sayfası yeniden düzenlendi.** Solda en üstte düzenler alt alta: başlıkta "+" (yeni düzen), her satırda çöp kutusu (onay sorar). "Varsayılan" düzen sabit: adı çift tıkla değişir, silinemez. Sağ tık: Düzeni kopyala. Delete tuşu onay sorarak siler. Listede seçtiğin düzen ekranda etkin olan düzendir.
+- **Düzenlerin altında bütün overlay'ler.** Tıklayınca ayarları sağda açılır ve o düzene özel değiştirilir. Çift tık ya da "+" overlay'i seçili düzene ekler; ekli olanlar yeşil görünür, çift tık ya da "−" ile çıkarılır. Sadece Veri Kutusu ve Webview birden fazla eklenebilir (Ayarlar › Genel'deki "birden fazla eklenebilsin" seçeneği kaldırıldı).
+- **Tuval araçları:** "+ Bu monitöre ekle" yerine geri al / yinele (yeni ikonlar; düz oklar kaldırıldı) ve yakınlaştır / uzaklaştır. **"Ekranda düzenle" artık çalışıyor:** kilidi açar, Görünür'ü ve (oyun bağlı değilse) Demo'yu kendiliğinden açar, seçili düzeni ekranda taşınabilir hâle getirir.
+- **Yayın düzenleri aynı mantıkta:** solda yayın düzenleri ("+", çöp kutusu, sabit "Varsayılan") ve overlay listesi, sağda ayarlar. Hazır sahneler kaldırıldı (Sahne overlay'i listeden eklenebilir). Düzenler artık yayın düzenlerine, yayın düzenleri de düzenlere kopyalanmıyor.
+- **Uygulama penceresi:** ilk açılışta daha geniş; sonraki açılışlarda en son bırakıldığı konumda ve boyutta (ekranı kaplamışsa öyle) açılır.
+- Düzen sırası (yukarı / aşağı taşı) artık yeniden başlatınca korunuyor.
+
 ## 021026-72
 
 - **Ekip sayfası: Ekrana sığdır.** Açıldığında panelin tamamı (yarış durumu, Ekip Pitwall'ı, pit kontrolü) kaydırmaya gerek kalmadan ekrana sığacak şekilde ölçeklenir; geniş ekranda iki sütuna dizilir. Pencere boyutu ya da içerik değiştikçe kendiliğinden yeniden ayarlanır. Tercih hatırlanır.

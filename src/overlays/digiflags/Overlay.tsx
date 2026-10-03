@@ -18,6 +18,8 @@ const O = "#ff8a00";
 const FLAGS: { names: FlagName[]; pattern: Pattern; blink?: boolean; label: string }[] = [
   // Siyah: kenarlar beyaz yanar, içi sönük
   { names: ["disqualify", "black"], label: "Siyah", pattern: (x, y, n) => (x === 0 || y === 0 || x === n - 1 || y === n - 1 ? W : OFF) },
+  // Sarılı siyah (uyarı): köşegenin bir yanı beyaz
+  { names: ["furled"], label: "Uyarı (sarılı siyah)", pattern: (x, y, n) => (x + y < n - 1 ? W : OFF) },
   { names: ["red"], label: "Kırmızı", pattern: () => R },
   {
     names: ["repair"],
@@ -28,7 +30,7 @@ const FLAGS: { names: FlagName[]; pattern: Pattern; blink?: boolean; label: stri
     },
   },
   { names: ["checkered"], label: "Damalı", pattern: (x, y) => ((x + y) % 2 === 0 ? W : OFF) },
-  { names: ["cautionWaving"], label: "Sarı (dalgalanan)", pattern: () => Y, blink: true },
+  { names: ["cautionWaving", "yellowWaving"], label: "Sarı (dalgalanan)", pattern: () => Y, blink: true },
   { names: ["caution", "yellow"], label: "Sarı", pattern: () => Y },
   { names: ["debris"], label: "Enkaz", pattern: (x) => (x % 2 === 0 ? Y : R) },
   // Mavi: köşegen şerit
@@ -39,6 +41,20 @@ const FLAGS: { names: FlagName[]; pattern: Pattern; blink?: boolean; label: stri
 
 type FlagDef = (typeof FLAGS)[number];
 const SAMPLE_MS = 3500;
+
+/** Sürücünün cezası (session.penalty) -> panelin altındaki uyarı satırı */
+const PENALTY: Record<string, string> = {
+  driveThrough: "PİT GEÇİŞ CEZASI",
+  stopGo: "DUR-KALK CEZASI",
+  disqualify: "DİSKALİFİYE",
+  timePenalty: "SÜRE CEZASI",
+  penalty: "CEZA – PİTE GİR",
+  black: "SİYAH BAYRAK – CEZA",
+  repair: "HASAR – PİTE GİR",
+  furled: "UYARI – YAVAŞLA",
+};
+/** Örnek bayrak gösterilirken (düzenleme) ceza satırının da örneği */
+const SAMPLE_PENALTY: Record<string, string> = { Siyah: "black", "Hasar (meatball)": "repair", "Uyarı (sarılı siyah)": "furled" };
 
 export default function DigiFlags(props: OverlayProps) {
   const s = useTopic("session");
@@ -75,6 +91,15 @@ export default function DigiFlags(props: OverlayProps) {
     window.addEventListener("pointerup", up, true);
   };
 
+  // Ceza uyarısı: canlı veride session.penalty; örnek bayrakta o bayrağın cezası
+  const penalty = createMemo(() => {
+    if (props.options.showPenalty === false) return undefined;
+    const live_ = s()?.penalty;
+    if (live_) return PENALTY[live_];
+    const smp = !live() ? sample() : null;
+    return smp ? PENALTY[SAMPLE_PENALTY[smp.label]] : undefined;
+  });
+
   const n = () => props.options.size as number;
   const cells = createMemo(() => {
     const a = active();
@@ -85,7 +110,8 @@ export default function DigiFlags(props: OverlayProps) {
   });
 
   return (
-    <Show when={props.editing || !props.options.hideWhenNone || active()}>
+    <Show when={props.editing || !props.options.hideWhenNone || active() || penalty()}>
+      <div class="dflag-wrap">
       <div
         class="dflag"
         classList={{ blink: !!active()?.blink && props.options.blink, idle: !active() }}
@@ -97,6 +123,13 @@ export default function DigiFlags(props: OverlayProps) {
         <Show when={props.editing}>
           <span class="dflag-cap">{sample() && !live() ? sample()!.label : "Örnek için tıkla"}</span>
         </Show>
+      </div>
+      <Show when={penalty()}>
+        <div class="dflag-pen">
+          <i />
+          <span>{penalty()}</span>
+        </div>
+      </Show>
       </div>
     </Show>
   );

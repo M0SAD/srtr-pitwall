@@ -95,3 +95,218 @@
 .ses-wet .wxi-wrap {
   color: inherit;
 }
+
+/* --- Bayrak uyarısı başlığın içinde: yükseklik sabit ------------------------------------------------- */
+.ses-head {
+  transition:
+    background-color 0.18s,
+    color 0.18s;
+}
+.ses-head.ses-flagged {
+  justify-content: center;
+  border-bottom-color: transparent;
+}
+.ses-flagtxt {
+  flex: 1;
+  text-align: center;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
+}
+.ses-head.ses-flagged {
+  /* Başlıklar görünüm ayarından gizlenmiş olsa bile bayrak görünsün */
+  display: flex;
+}
+.ses-head.flag-yellow,
+.ses-head.flag-white,
+.ses-head.flag-checkered {
+  color: #111;
+}
+.ses-head.flag-blue,
+.ses-head.flag-red,
+.ses-head.flag-green,
+.ses-head.flag-black {
+  color: #fff;
+}
+.ses-head.flag-meatball {
+  color: var(--ov-accent);
+}
+.ses-head.flag-black {
+  border-bottom: 1px solid #fff;
+}
+
+/* --- Tasarım: Yan başlık ------------------------------------------------------------------------------ */
+.ses-d-side {
+  display: grid;
+  grid-template-columns: calc(96px * var(--ov-fs-k, 1)) 1fr;
+  width: calc(380px * var(--ov-fs-k, 1));
+}
+.ses-d-side .ses-head {
+  grid-row: 1 / span 4;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  border-bottom: 0;
+  border-right: 1px solid var(--ov-divider);
+  box-shadow: inset 3px 0 0 var(--ov-accent);
+  white-space: normal;
+  overflow: hidden;
+}
+.ses-d-side .ses-head > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ses-d-side .ses-head.ses-flagged {
+  align-items: center;
+  box-shadow: none;
+}
+.ses-d-side .ses-flagtxt {
+  flex: none;
+  white-space: normal;
+  line-height: 1.2;
+}
+.ses-d-side .ses-main,
+.ses-d-side .ses-sub {
+  grid-column: 2;
+}
+
+/* --- Tasarım: Yayın tarzı ----------------------------------------------------------------------------- */
+.ses-d-broadcast {
+  width: calc(320px * var(--ov-fs-k, 1));
+  border-radius: 4px;
+  border-top: 3px solid var(--ov-accent);
+}
+.ses-d-broadcast .ses-head {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.846em;
+}
+.ses-d-broadcast .ses-main {
+  grid-template-columns: 1fr 1.5fr 1fr;
+  align-items: end;
+  text-align: center;
+}
+.ses-d-broadcast .ses-main > div:nth-child(3) {
+  order: 2;
+}
+.ses-d-broadcast .ses-main > div:nth-child(2) {
+  order: 3;
+}
+.ses-d-broadcast .ses-main > div:nth-child(3) b {
+  font-size: 2.154em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ses-d-broadcast .ses-sub {
+  justify-content: center;
+}
+.ses-d-broadcast.flagged {
+  border-top-color: transparent;
+}
+
+/* --- Tasarım: Minimal (çerçevesiz) -------------------------------------------------------------------- */
+.ses-d-minimal {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 6px rgba(0, 0, 0, 0.6);
+}
+.ses-d-minimal .ses-head {
+  background: transparent;
+  border-bottom: 2px solid color-mix(in srgb, var(--ov-text) 35%, transparent);
+}
+.ses-d-minimal .ses-head.ses-flagged {
+  border-radius: 4px;
+  border-bottom-color: transparent;
+  text-shadow: none;
+}
+.ses-d-minimal .ses-head.flag-yellow {
+  background: #ffcc00;
+}
+.ses-d-minimal .ses-head.flag-blue {
+  background: #1e6fff;
+}
+.ses-d-minimal .ses-head.flag-red {
+  background: #e02424;
+}
+.ses-d-minimal .ses-head.flag-black,
+.ses-d-minimal .ses-head.flag-meatball {
+  background: #000;
+}
+.ses-d-minimal .ses-head.flag-white {
+  background: #f4f4f4;
+}
+.ses-d-minimal .ses-head.flag-green {
+  background: #1fb35a;
+}
+.ses-d-minimal .ses-head.flag-checkered {
+  background: repeating-conic-gradient(#fff 0 25%, #ddd 0 50%) 0 0 / 16px 16px;
+}
+.ses-d-minimal .ses-sub {
+  border-top: 0;
+  padding-top: 0;
+  color: var(--ov-text);
+}
+
+/* --- Tasarım: Kartlar --------------------------------------------------------------------------------- */
+.ses-d-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+.ses-d-cards .ses-head,
+.ses-d-cards .ses-sub,
+.ses-d-cards .ses-main > div {
+  background: var(--ov-bg);
+  border: 1px solid var(--ov-line);
+  border-radius: var(--ov-radius);
+}
+.ses-d-cards .ses-head.ses-flagged.flag-yellow {
+  background: #ffcc00;
+}
+.ses-d-cards .ses-head.ses-flagged.flag-blue {
+  background: #1e6fff;
+}
+.ses-d-cards .ses-head.ses-flagged.flag-red {
+  background: #e02424;
+}
+.ses-d-cards .ses-head.ses-flagged.flag-black,
+.ses-d-cards .ses-head.ses-flagged.flag-meatball {
+  background: #000;
+}
+.ses-d-cards .ses-head.ses-flagged.flag-white {
+  background: #f4f4f4;
+}
+.ses-d-cards .ses-head.ses-flagged.flag-green {
+  background: #1fb35a;
+}
+.ses-d-cards .ses-head.ses-flagged.flag-checkered {
+  background: repeating-conic-gradient(#fff 0 25%, #ddd 0 50%) 0 0 / 16px 16px;
+}
+.ses-d-cards .ses-main {
+  gap: 4px;
+  padding: 0;
+}
+.ses-d-cards .ses-main > div {
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(9px * var(--ov-pad-k, 1));
+  text-align: center;
+}
+.ses-d-cards .ses-main > div:first-child {
+  box-shadow: inset 0 2px 0 var(--ov-accent);
+}
+.ses-d-cards .ses-sub {
+  border-top: 1px solid var(--ov-line);
+}

@@ -1,9 +1,9 @@
 import { Show, createEffect, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
-import { gear, speed, speedUnit } from "@/sdk/format";
+import { gear, lapTime, speed, speedUnit } from "@/sdk/format";
 import { overlayValueLocked } from "@/sdk/proFeatures";
-import { FREE_WHEELS, WheelArt, isWheelStyle, wheelForCar, type WheelStyle } from "./wheels";
+import { FREE_WHEELS, WheelArt, resolveWheel, type WheelStyle } from "./wheels";
 import { DesignView, isDesign, type Design } from "./designs";
 import "./style.css";
 
@@ -19,8 +19,34 @@ export default function Inputs(props: OverlayProps) {
     return isDesign(d) && !overlayValueLocked("inputs", "design", d) ? d : "default";
   };
   return (
-    <Show when={design() !== "default"} fallback={<DefaultDesign {...props} />}>
-      <DesignView {...props} design={design() as Design} />
+    <div class="inp-stack">
+      <Show when={design() !== "default"} fallback={<DefaultDesign {...props} />}>
+        <DesignView {...props} design={design() as Design} />
+      </Show>
+      <LapLines {...props} />
+    </div>
+  );
+}
+
+/** Göstergenin altındaki isteğe bağlı tur süresi satırları (son tur / en iyi tur) */
+function LapLines(props: OverlayProps) {
+  const data = useTopic("inputs");
+  return (
+    <Show when={props.options.showLastLap || props.options.showBestLap}>
+      <div class="ov-panel inp-laps">
+        <Show when={props.options.showLastLap}>
+          <div class="inp-lap">
+            <label>Son tur</label>
+            <b>{lapTime(data()?.lastLap)}</b>
+          </div>
+        </Show>
+        <Show when={props.options.showBestLap}>
+          <div class="inp-lap best">
+            <label>En iyi tur</label>
+            <b>{lapTime(data()?.bestLap)}</b>
+          </div>
+        </Show>
+      </div>
     </Show>
   );
 }
@@ -147,7 +173,7 @@ function DefaultDesign(props: OverlayProps) {
   const status = useTopic("status");
   const wheelStyle = (): WheelStyle => {
     const o = props.options.wheelStyle as string;
-    const st = isWheelStyle(o) ? o : wheelForCar(status());
+    const st = resolveWheel(o, status());
     // Yöneticinin PRO özellikleri kararına göre (overlay.inputs.wheelStyle.<tasarım>)
     return FREE_WHEELS.has(st) || !overlayValueLocked("inputs", "wheelStyle", st) ? st : "round";
   };
@@ -172,6 +198,7 @@ function DefaultDesign(props: OverlayProps) {
   const absFrame = () => absOn() && (absMode() === "frame" || absMode() === "both");
   const tcFrame = () => tcOn() && (tcMode() === "frame" || tcMode() === "both");
 
+  const showPct = () => props.options.showPct !== false;
   const pct = (v: number | undefined) => `${Math.round((v ?? 0) * 100)}%`;
   const shiftOn = () => {
     const d = data();
@@ -185,15 +212,30 @@ function DefaultDesign(props: OverlayProps) {
       </Show>
       <div class="inp-bars">
         <Show when={props.options.showClutch}>
-          <div class="inp-bar">
-            <div class="inp-fill" style={{ height: pct(data()?.clutch), background: "#4aa8ff" }} />
+          <div class="inp-col">
+            <Show when={showPct()}>
+              <span class="inp-pct">{pct(data()?.clutch)}</span>
+            </Show>
+            <div class="inp-bar">
+              <div class="inp-fill" style={{ height: pct(data()?.clutch), background: "#4aa8ff" }} />
+            </div>
           </div>
         </Show>
-        <div class="inp-bar" classList={{ glow: absFrame() }} style={{ "--glow": absColor() }} title="Fren (ABS)">
-          <div class="inp-fill" style={{ height: pct(data()?.brake), background: brakeFill() }} />
+        <div class="inp-col">
+          <Show when={showPct()}>
+            <span class="inp-pct">{pct(data()?.brake)}</span>
+          </Show>
+          <div class="inp-bar" classList={{ glow: absFrame() }} style={{ "--glow": absColor() }} title="Fren (ABS)">
+            <div class="inp-fill" style={{ height: pct(data()?.brake), background: brakeFill() }} />
+          </div>
         </div>
-        <div class="inp-bar" classList={{ glow: tcFrame() }} style={{ "--glow": tcColor() }} title="Gaz (TC)">
-          <div class="inp-fill" style={{ height: pct(data()?.throttle), background: thrFill() }} />
+        <div class="inp-col">
+          <Show when={showPct()}>
+            <span class="inp-pct">{pct(data()?.throttle)}</span>
+          </Show>
+          <div class="inp-bar" classList={{ glow: tcFrame() }} style={{ "--glow": tcColor() }} title="Gaz (TC)">
+            <div class="inp-fill" style={{ height: pct(data()?.throttle), background: thrFill() }} />
+          </div>
         </div>
       </div>
       <Show when={props.options.showGear}>

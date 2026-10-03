@@ -36,6 +36,7 @@ const OVERLAYS = [
       ["dashboard", "🎛️", "mixed"],
       ["inputs", "🦶", "mixed"],
       ["ers", "🔋", "mixed"],
+      ["gforce", "🌀", "free"],
       ["telemetry", "⚙️", "free"],
       ["delta", "⏱️", "free"],
       ["laptimes", "📋", "free"],
@@ -62,7 +63,6 @@ const OVERLAYS = [
       ["livechat", "💬", "mixed"],
       ["livepoll", "📊", "pro"],
       ["captions", "🔤", "pro"],
-      ["scene", "🎬", "free"],
       ["webview", "🌐", "free"],
     ],
   ],
@@ -260,6 +260,15 @@ addDict({
   ov_ers_h: [
     "5 tasarım: yatay çubuk, dikey pil, kompakt; PRO: halka gösterge ve detaylı panel|Tur başı işareti, bu turdaki net fark, tur ortalaması ve boşalmaya / dolmaya kalan tur tahmini|MGU-K / MGU-H gücü, harcama modu, tur başına harcama hakkı, P2P ve DRS|Düşük ve dolu batarya uyarısı; hibrit olmayan araçta kendiliğinden gizlenir",
     "5 designs: horizontal bar, vertical cell, compact; PRO: ring gauge and detailed panel|Lap-start marker, net change this lap, per-lap average and estimated laps until empty / full|MGU-K / MGU-H power, deploy mode, per-lap deploy allowance, P2P and DRS|Low and full battery warnings; hides itself in cars without a hybrid system",
+  ],
+  ov_gforce_n: ["G-Force", "G-Force"],
+  ov_gforce_d: [
+    "Yanal ve boyuna g kuvveti: fren, hızlanma ve viraj yükünü anlık gösterir.",
+    "Lateral and longitudinal g-force: shows braking, acceleration and cornering load live.",
+  ],
+  ov_gforce_h: [
+    "4 tasarım: iz bırakan klasik g-çemberi, yanal / boyuna çubuklar, sayısal minimal, sürtünme çemberi|Tepe değer işaretleri ve ayarlanabilir tutma süresi|En yüksek g ölçeği, iz uzunluğu ve yumuşatma ayarı|Desteklenen bütün oyunlarda çalışır",
+    "4 designs: classic g-circle with trail, lateral / longitudinal bars, numeric minimal, friction circle|Peak markers with adjustable hold time|Max g scale, trail length and smoothing settings|Works in every supported sim",
   ],
   ov_telemetry_n: ["Telemetri Paneli", "Telemetry Panel"],
   ov_telemetry_d: ["Vites halkası ve devir göstergesi tek şeritte.", "Gear ring and rev gauge in one strip."],

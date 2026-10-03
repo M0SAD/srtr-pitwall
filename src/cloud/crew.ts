@@ -261,3 +261,51 @@ export function crewStatusText(s: CrewStatus | undefined): string {
 
 /** Sim uzaktan pit komutunu destekliyor mu (şimdilik sadece iRacing) */
 export const crewSimOk = (sim: string | undefined | null) => !sim || sim === "iracing";
+
+// ---- Ekip odası (c64): sürücü + ekip üyeleri arasında sohbet ve "odada kimler var" ----
+export interface CrewRoomMember {
+  id: string;
+  name: string;
+  avatar_path: string | null;
+  /** Pit ayarlarını (yakıt / lastik) değiştirme yetkisi var */
+  can_control: boolean;
+  /** Paneli şu an açık (son 45 sn) */
+  present: boolean;
+  me: boolean;
+}
+export interface CrewChatMsg {
+  id: string;
+  sender: string;
+  name: string;
+  /** driver: sürücü, control: pit yetkili ekip üyesi, view: izleyen ekip üyesi, gone: artık ekipte değil */
+  role: "driver" | "control" | "view" | "gone";
+  body: string;
+  at: string;
+}
+export interface CrewRoom {
+  driver: { id: string; name: string; avatar_path: string | null; online: boolean; racing: boolean } | null;
+  /** Sürücü şu an pit komutu kabul ediyor */
+  control_on: boolean;
+  members: CrewRoomMember[];
+  /** Eskiden yeniye */
+  messages: CrewChatMsg[];
+  now: string;
+}
+export const CREW_CHAT_MAX = 300;
+/** Oda durumu; `after` verilirse yalnızca o andan sonraki mesajlar */
+export const crewRoom = (owner: string, after?: string | null, limit = 60) =>
+  api<CrewRoom>("POST", "rpc/crew_room", { body: { p_owner: owner, p_after: after ?? null, p_limit: limit } });
+export const crewChatSend = (owner: string, body: string) => api<string>("POST", "rpc/crew_chat_send", { body: { p_owner: owner, p_body: body } });
+
+/** Bir sürücünün odasına yazılan yeni mesajlar (Realtime; okuma kuralı sunucuda). Yoklama ayrıca çağıranda. */
+export async function onCrewChat(owner: string, cb: () => void): Promise<() => void> {
+  const c = await realtime();
+  if (!c || !owner) return () => {};
+  const ch: RealtimeChannel = c
+    .channel(`crewchat-${owner}-${Math.random().toString(36).slice(2, 7)}`)
+    .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "crew_chat", filter: `owner=eq.${owner}` }, () => cb())
+    .subscribe();
+  return () => {
+    c.removeChannel(ch);
+  };
+}

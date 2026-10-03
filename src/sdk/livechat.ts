@@ -111,13 +111,23 @@ export interface Viewers {
   total: number | null;
 }
 
+export type StreamlabsState = "off" | "notoken" | "locked" | "login" | "connecting" | "connected" | "auth" | "error";
 export interface StreamlabsStatus {
   enabled: boolean;
   hasToken: boolean;
   connected: boolean;
+  /** Son hata (Türkçe; anahtar içermez) */
   error: string | null;
   locked: boolean;
+  /** Bağlantı durumu (auth: anahtar geçersiz · error: koptu, yeniden denenecek) */
+  state: StreamlabsState;
+  /** Bu oturumda alınan uyarı sayısı ve sonuncusunun zamanı (unix ms) */
+  events: number;
+  lastEvent: number | null;
+  /** Canlı sohbet çalışıyor (uyarılar yalnızca çalışırken sohbet akışına girer) */
+  chatRunning: boolean;
 }
+export type StreamlabsTestKind = "donation" | "follow" | "subscription" | "resub" | "bits" | "raid" | "host" | "superchat" | "membershipGift";
 
 /**
  * Overlay kapısı (Rust: livechat/mod.rs live_gate): Canlı Sohbet overlay'leri ne göstersin.
@@ -305,6 +315,10 @@ export const logExport = (date: string, format: "txt" | "csv") => invoke<string>
 /** Streamlabs Socket API Token (boş: sil). Anahtar geri okunamaz. PRO: livechat.alerts */
 export const setStreamlabsToken = (token: string) => invoke<StreamlabsStatus>("livechat_streamlabs_token_set", { token });
 export const streamlabsStatus = () => invoke<StreamlabsStatus>("livechat_streamlabs_status");
+/** Streamlabs bağlantısını baştan kur (hata / geçersiz anahtar sonrası) */
+export const streamlabsReconnect = () => invoke<StreamlabsStatus>("livechat_streamlabs_reconnect");
+/** Yerel deneme uyarısı (Streamlabs'e gitmez; sohbet çalışıyor olmalı). PRO: livechat.alerts */
+export const streamlabsTest = (kind: StreamlabsTestKind = "donation") => invoke<void>("livechat_streamlabs_test", { kind });
 /** Altyazı satırı (konuşmadan yazıya modülü için / test) */
 export const pushCaption = (text: string, src: "mic" | "remote" = "mic", label = "") => invoke<void>("livechat_caption_push", { src, label, text });
 export const clearCaptions = () => invoke<void>("livechat_caption_clear");
@@ -395,15 +409,77 @@ export interface TtsStatus {
 }
 
 export interface TtsVoice {
+  /** Ses kimliği (ayarlara / `speak`e bu verilir; SAPI5 seslerinde "sapi:" ön ekli) */
   id: string;
   name: string;
   /** ör. "tr-TR" */
   language: string;
+  /** Dilin Windows arayüz dilindeki adı (ör. "Türkçe (Türkiye)") */
+  languageName: string;
   female: boolean;
+  gender: "female" | "male";
+  /** onecore: Windows Ayarları › Konuşma sesleri · sapi: klasik SAPI5 masaüstü sesleri */
+  engine: "onecore" | "sapi";
 }
 
 /** Kurulu Windows sesleri (Windows değilse hata) */
 export const ttsVoices = () => invoke<TtsVoice[]>("livechat_tts_voices");
+
+// ---- Yeniden kullanılabilir ses yardımcıları (ekip sohbeti, Mesajlar overlay'i… başka özellikler de çağırabilir) ----
+
+let voiceCache: Promise<TtsVoice[]> | null = null;
+/**
+ * Windows'ta kurulu TÜM sesler (OneCore + SAPI5), ada göre sıralı. Sonuç pencere boyunca önbelleğe alınır;
+ * `force` ile yeniden okunur (kullanıcı Windows'a yeni ses ekledikten sonra). Windows dışında / hata olursa boş liste.
+ */
+export function listVoices(force = false): Promise<TtsVoice[]> {
+  if (!voiceCache || force)
+    voiceCache = (inTauri ? ttsVoices() : Promise.resolve([] as TtsVoice[]))
+      .then((l) => [...l].sort((a, b) => a.name.localeCompare(b.name)))
+      .catch(() => {
+        voiceCache = null;
+        return [] as TtsVoice[];
+      });
+  return voiceCache;
+}
+
+/** Ses bu dile uygun mu ("tr", "tr-TR", "pt-BR"…): ana dil kodu eşleşmesi */
+export function voiceMatchesLang(v: TtsVoice, langCode: string): boolean {
+  const p = (x: string) => x.toLowerCase().split(/[-_]/)[0];
+  return !!langCode && p(v.language) === p(langCode);
+}
+
+/** Listeyi dile ve cinsiyete göre süz (`lang` boş: dil süzülmez; `gender` "any": cinsiyet süzülmez) */
+export function filterVoices(voices: TtsVoice[], lang = "", gender: "any" | "female" | "male" = "any"): TtsVoice[] {
+  return voices.filter((v) => (!lang || voiceMatchesLang(v, lang)) && (gender === "any" || v.gender === gender));
+}
+
+/** Seçim kutusu etiketi: "Microsoft Tolga · Erkek · Türkçe (Türkiye)" (cinsiyet metni çağırandan gelir: çeviri için) */
+export function voiceLabel(v: TtsVoice, genderText: { female: string; male: string }): string {
+  return `${v.name} · ${v.gender === "female" ? genderText.female : genderText.male} · ${v.languageName || v.language}${v.engine === "sapi" ? " · SAPI5" : ""}`;
+}
+
+export interface SpeakOptions {
+  /** `TtsVoice.id` (boş / yok: Canlı Sohbet › Sesli okuma ayarındaki ses, o da boşsa Windows varsayılanı) */
+  voice?: string;
+  /** Çıkış cihazı adı (yok: sesli okuma ayarındaki cihaz) */
+  device?: string;
+  /** -10..10 (yok: sesli okuma ayarı) */
+  rate?: number;
+  /** -10..10 (yok: sesli okuma ayarı) */
+  pitch?: number;
+  /** 0..100 (yok: sesli okuma ayarı) */
+  volume?: number;
+  /** En fazla karakter (20..1000; varsayılan 300) */
+  maxChars?: number;
+}
+/**
+ * Metni seçilen Windows sesiyle oku. Sohbet okumasıyla aynı kuyruğa girer (üst üste konuşmaz), sohbet okuması
+ * kapalıyken de çalışır. Döner: sıraya alındı mı (boş metin → false). Windows değilse ya da PRO yoksa
+ * (`livechat.tts` veya `social.messages_tts` gerekir) hata fırlatır. Rust: `tts_speak`.
+ */
+export const speak = (text: string, o: SpeakOptions = {}) =>
+  invoke<boolean>("tts_speak", { text, voice: o.voice ?? null, device: o.device ?? null, rate: o.rate ?? null, pitch: o.pitch ?? null, volume: o.volume ?? null, maxChars: o.maxChars ?? null });
 /** Ses çıkış cihazlarının adları */
 export const audioOutputs = () => invoke<string[]>("livechat_audio_outputs");
 export const ttsStatus = () => invoke<TtsStatus>("livechat_tts_status");
@@ -417,17 +493,57 @@ export const onTts = (fn: (s: TtsStatus) => void) => on("livechat-tts", fn);
 // Konuşmayı yazıya çevirme (STT, PRO: livechat.stt) — Rust: livechat/stt.rs
 // ---------------------------------------------------------------------------
 
+/** Bir ses kaynağının (mikrofon / bilgisayar sesi) durumu */
+export interface SttSource {
+  /** Ayarda bu kaynak seçili */
+  wanted: boolean;
+  listening: boolean;
+  /** Kullanılan cihazın adı (biliniyorsa) */
+  device: string | null;
+  /** Ses düzeyi 0..100 (yalnızca çevrimiçi motor) */
+  level: number;
+  error: string | null;
+}
+
 export interface SttStatus {
   enabled: boolean;
   allowed: boolean;
   supported: boolean;
   listening: boolean;
   language: string;
+  /** Hata (Türkçe, ne yapılacağını söyler) */
   error: string | null;
   last: string | null;
+  engine: "windows" | "cloud";
+  /** Gerçekte kullanılan tanıma dili (ör. "English (United States) · en-US"; çevrimiçi motorda dil kodu ya da "auto") */
+  activeLanguage: string | null;
+  /** Uyarı (dinleme sürer): yedek dile düşüldü, geçici sunucu hatası… */
+  notice: string | null;
+  /** Çevrimiçi motorun API anahtarı kayıtlı */
+  hasKey: boolean;
+  mic: SttSource;
+  system: SttSource;
 }
 
-export const sttLanguages = () => invoke<{ languages: [string, string][]; system: string | null; error: string | null }>("livechat_stt_languages");
+export interface SttLanguages {
+  /** Windows'ta konuşma tanıma paketi kurulu diller: [etiket, ad] */
+  languages: [string, string][];
+  system: string | null;
+  /** "Windows konuşma dili" seçiliyken gerçekte kullanılacak dil (kurulu değilse yedek) */
+  effective: string | null;
+  error: string | null;
+}
+export const sttLanguages = () => invoke<SttLanguages>("livechat_stt_languages");
+/** Çevrimiçi (Whisper) motorunun API anahtarı (boş: sil). Şifreli saklanır, geri okunamaz. */
+export const sttSetKey = (key: string) => invoke<SttStatus>("livechat_stt_key_set", { key });
+export interface AudioDevices {
+  inputs: string[];
+  outputs: string[];
+  defaultInput: string | null;
+  defaultOutput: string | null;
+}
+/** Kayıt ve çıkış cihazları (çevrimiçi motorun cihaz seçicileri) */
+export const audioDevices = () => invoke<AudioDevices>("livechat_audio_devices");
 export const sttStatus = () => invoke<SttStatus>("livechat_stt_status");
 export const sttRestart = () => invoke<SttStatus>("livechat_stt_restart");
 export const onStt = (fn: (s: SttStatus) => void) => on("livechat-stt", fn);

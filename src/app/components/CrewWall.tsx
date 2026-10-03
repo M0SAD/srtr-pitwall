@@ -1,16 +1,15 @@
 // Ekip Pitwall'ı (c58): ekibinde olduğum sürücünün uzaktan pit duvarı. Sürücünün uygulaması, ekipten biri bu
 // paneli açıkken çevresindeki araçları, tur / delta / bayrak / hava bilgisini ve spotter durumunu saniyede bir
 // sunucuya yazar (src/host/crew.ts); burada crew_wall() ile saniyede bir okunur. Aynı panelin web sürümü
-// website/assets/crewpanel.js içindedir. Hazır spotter mesajları ekip "message" komutu olarak gider (sürücüde
-// oyun içi bildirim + sesli okuma). Veri birkaç saniye gecikebilir: yan araç göstergesi bilgi amaçlıdır.
+// website/assets/crewpanel.js içindedir. Mesajlar ve hazır spotter mesajları Ekip odasındadır (CrewRoom.tsx, c64). Veri birkaç saniye gecikebilir: yan araç göstergesi bilgi amaçlıdır.
 
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { lapTime } from "@/sdk/format";
-import { WALL_MSGS, crewWall, type CrewWallState, type WallRow } from "@/cloud/crew";
+import { crewWall, type CrewWallState, type WallRow } from "@/cloud/crew";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
-import { Ic, QUICK_ICONS, SpotterView } from "./CrewGfx";
+import { SpotterView } from "./CrewGfx";
 
 const FLAGS: Record<string, { label: string; cls: string }> = {
   checkered: { label: "Damalı bayrak", cls: "chk" },
@@ -38,10 +37,9 @@ const gapText = (r: WallRow) => {
   return `${r.g > 0 ? "−" : "+"}${Math.abs(r.g).toFixed(1)}`;
 };
 
-export function CrewWall(props: { owner: string; live: boolean; onMsg: (text: string) => void }) {
+export function CrewWall(props: { owner: string; live: boolean }) {
   const [st, setSt] = createSignal<CrewWallState | null>(null);
   const [failed, setFailed] = createSignal(false);
-  const [custom, setCustom] = createSignal("");
   // Fark eğilimi: araç başına son farklar (yaklaşıyor / uzaklaşıyor)
   const hist = new Map<number, { ts: number; g: number }[]>();
   const [trend, setTrend] = createSignal<Record<number, number>>({});
@@ -115,12 +113,6 @@ export function CrewWall(props: { owner: string; live: boolean; onMsg: (text: st
   const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   /** Eski satırlar solar (yaş sürücünün saatine göre: gönderim anı − söylendiği an) */
   const fade = (ms: number) => Math.max(0.4, 1 - Math.max(0, (d()?.ts ?? ms) - ms) / 75_000);
-  const sendCustom = () => {
-    const text = custom().trim();
-    if (!text) return;
-    setCustom("");
-    props.onMsg(text);
-  };
 
   const Row = (p: { r: WallRow }) => (
     <tr classList={{ me: !!p.r.me, pit: !!p.r.pit, top: !!p.r.top }} data-no-i18n>
@@ -258,36 +250,6 @@ export function CrewWall(props: { owner: string; live: boolean; onMsg: (text: st
           </Show>
         </Show>
       </div>
-      <fieldset class="crew-ctl" disabled={!props.live}>
-        <p class="muted small" style={{ margin: "10px 0 2px" }}>
-          Hızlı spotter mesajları (sürücünün ekranında görünür ve sesli okunur)
-        </p>
-        <div class="pg">
-          <div class="pg-quick">
-            <For each={WALL_MSGS}>
-              {(m, i) => (
-                <button type="button" class="pg-b" onClick={() => props.onMsg(t(m))}>
-                  <Ic n={QUICK_ICONS[i()]} />
-                  <span>{t(m)}</span>
-                </button>
-              )}
-            </For>
-          </div>
-        </div>
-        <div class="crew-line">
-          <input
-            class="input crew-msg"
-            maxLength={120}
-            placeholder={t("Kendi mesajın")}
-            value={custom()}
-            onInput={(e) => setCustom(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendCustom()}
-          />
-          <button class="btn ghost small" onClick={sendCustom}>
-            Gönder
-          </button>
-        </div>
-      </fieldset>
       <p class="muted small">Veri yaklaşık 1–2 saniye gecikmeyle gelir; yan araç göstergesi anlık spotter yerine geçmez. Sesli görüşme bu panelde yoktur.</p>
     </section>
   );

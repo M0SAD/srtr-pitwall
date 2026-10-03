@@ -134,3 +134,65 @@ export function unlayoutPos(eff: Rect, factor: number, screen: { w: number; h: n
 export function effectiveScale(own: number, global: number): number {
   return Math.max(MIN_EFFECTIVE_SCALE, own * global);
 }
+
+// ---------------------------------------------------------------------------
+// Boyutlandırma: köşeler (ölçek) ve kenarlar (genişlik / yükseklik ayarı)
+// ---------------------------------------------------------------------------
+
+export type Corner = "nw" | "ne" | "sw" | "se";
+export const CORNERS: Corner[] = ["nw", "ne", "sw", "se"];
+export type Edge = "n" | "s" | "e" | "w";
+
+/**
+ * Köşeden boyutlandırma: karşı köşe yerinde kalır, overlay sürüklenen köşeye doğru büyür / küçülür (en-boy oranı sabit).
+ * `o` başlangıç dikdörtgeni, `dx`/`dy` imlecin başlangıçtan farkı (aynı birimde), `base` ölçeklenmemiş içerik boyutu,
+ * `g0` genel boyut çarpanı. Dönen `scale` overlay'in kendi ölçeğidir (0.4..3).
+ */
+export function cornerResize(
+  o: Rect,
+  c: Corner,
+  dx: number,
+  dy: number,
+  base: { w: number; h: number },
+  g0: number,
+  opts: { grid?: number; screen?: { w: number; h: number } } = {},
+): Rect & { scale: number } {
+  const east = c[1] === "e";
+  const south = c[0] === "s";
+  const ax = east ? o.x : o.x + o.w;
+  const ay = south ? o.y : o.y + o.h;
+  let mx = (east ? o.x + o.w : o.x) + dx;
+  let my = (south ? o.y + o.h : o.y) + dy;
+  if (opts.grid && opts.grid > 0) {
+    mx = Math.round(mx / opts.grid) * opts.grid;
+    my = Math.round(my / opts.grid) * opts.grid;
+  }
+  const bw = Math.max(1, base.w);
+  const bh = Math.max(1, base.h);
+  const rw = (east ? mx - ax : ax - mx) / bw;
+  const rh = (south ? my - ay : ay - my) / bh;
+  // Hangi eksende daha çok sürüklendiyse ölçeği o belirler
+  let eff = Math.abs(dx) / bw >= Math.abs(dy) / bh ? rw : rh;
+  let maxEff = 3 * g0;
+  if (opts.screen) maxEff = Math.min(maxEff, (east ? opts.screen.w - ax : ax) / bw, (south ? opts.screen.h - ay : ay) / bh);
+  eff = Math.min(maxEff, Math.max(0.2, eff));
+  const scale = Math.min(3, Math.max(0.4, Math.round((eff / g0) * 100) / 100));
+  const e2 = effectiveScale(scale, g0);
+  const w = base.w * e2;
+  const h = base.h * e2;
+  return { x: east ? ax : ax - w, y: south ? ay : ay - h, w, h, scale };
+}
+
+/**
+ * Kenardan boyutlandırma: overlay'in genişlik / yükseklik AYARI değişir (ölçek değil); karşı kenar yerinde kalır.
+ * `d` imlecin o eksendeki farkı, `eff` etkin ölçek, `cur` ayarın başlangıç değeri, `clamp` ayarın sınır/adım kuralı.
+ */
+export function edgeResize(o: Rect, edge: Edge, d: number, eff: number, cur: number, clamp: (v: number) => number): Rect & { value: number } {
+  const grow = edge === "e" || edge === "s" ? d : -d;
+  const value = clamp(cur + grow / eff);
+  const applied = (value - cur) * eff;
+  if (edge === "e") return { ...o, w: o.w + applied, value };
+  if (edge === "w") return { ...o, x: o.x - applied, w: o.w + applied, value };
+  if (edge === "s") return { ...o, h: o.h + applied, value };
+  return { ...o, y: o.y - applied, h: o.h + applied, value };
+}

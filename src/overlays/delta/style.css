@@ -77,3 +77,162 @@
 .dl-best {
   color: var(--ov-purple);
 }
+
+/* ---- Tasarımlar (design) ---- */
+/* Ortalı çubuk: sayı üstte, tam genişlik çubuk altta */
+.dl-d-center {
+  width: calc(320px * var(--ov-fs-k, 1));
+}
+.dl-c {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  padding: calc(7px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1)) calc(6px * var(--ov-pad-k, 1));
+}
+.dl-c .dl-value,
+.dl-n .dl-value,
+.dl-a .dl-value,
+.dl-s .dl-value {
+  width: auto;
+  text-align: center;
+}
+.dl-c .dl-value {
+  font-size: 2em;
+  line-height: 1.05;
+}
+.dl-c .dl-bar {
+  flex: none;
+  height: 10px;
+  border-radius: 5px;
+}
+.dl-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72em;
+}
+
+/* Sadece büyük sayı */
+.dl-d-number {
+  width: calc(230px * var(--ov-fs-k, 1));
+}
+.dl-n {
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1));
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--ov-text) 14%, transparent);
+}
+.dl.fast .dl-n {
+  box-shadow: inset 0 -3px 0 var(--ov-green);
+}
+.dl.slow .dl-n {
+  box-shadow: inset 0 -3px 0 var(--ov-red);
+}
+.dl-n .dl-value {
+  font-size: 3em;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+/* İnce çizgi + sayı */
+.dl-d-line {
+  width: calc(300px * var(--ov-fs-k, 1));
+}
+.dl-l {
+  display: flex;
+  flex-direction: column;
+}
+.dl-l .dl-value {
+  width: auto;
+  text-align: center;
+  font-size: 1.5em;
+  padding: calc(4px * var(--ov-pad-k, 1)) 0 calc(3px * var(--ov-pad-k, 1));
+}
+.dl-l .dl-bar {
+  flex: none;
+  height: 3px;
+  border-radius: 0;
+}
+.dl-l .dl-mid {
+  width: 1px;
+  margin-left: 0;
+}
+
+/* İki parçalı: sayı ortada, kayıp sola (kırmızı), kazanç sağa (yeşil) */
+.dl-d-split {
+  width: calc(420px * var(--ov-fs-k, 1));
+}
+.dl-s {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
+}
+.dl-s .dl-value {
+  min-width: 4.4em;
+}
+.dl-half {
+  display: flex;
+  height: 12px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ov-text) 9%, transparent) 0 calc(10% - 2px),
+    transparent calc(10% - 2px) 10%
+  );
+  overflow: hidden;
+}
+.dl-half.l {
+  justify-content: flex-end;
+}
+.dl-half > div {
+  height: 100%;
+  transition: width 0.08s linear;
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+}
+.dl-half.l > div {
+  background: var(--ov-red);
+}
+.dl-half.r > div {
+  background: var(--ov-green);
+}
+
+/* Yay gösterge */
+.dl-d-arc {
+  width: calc(230px * var(--ov-fs-k, 1));
+}
+.dl-a {
+  position: relative;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
+}
+.dl-a svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.dl-a-track,
+.dl-a-fill {
+  fill: none;
+  stroke-width: 11;
+}
+.dl-a-track {
+  stroke: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.dl-a-fill.fast {
+  stroke: var(--ov-green);
+}
+.dl-a-fill.slow {
+  stroke: var(--ov-red);
+}
+.dl-a-mid {
+  stroke: var(--ov-text);
+  stroke-width: 2;
+}
+.dl-a .dl-value {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(4px * var(--ov-pad-k, 1));
+  font-size: 2em;
+  line-height: 1.1;
+}

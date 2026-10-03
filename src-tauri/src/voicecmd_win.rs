@@ -231,3 +231,147 @@ impl Drop for Recognizer {
         let _ = self.rec.Close();
     }
 }
+
+// ---------------------------------------------------------------------------
+// Mikrofon seçimi
+// ---------------------------------------------------------------------------
+//
+// WinRT `SpeechRecognizer` ses girişini seçtirmez: her zaman bu sürecin "varsayılan kayıt cihazını" paylaşımlı
+// (WASAPI shared) kipte açar; yani Discord vb. aynı mikrofonu kullanırken de çalışır, özel (exclusive) erişim istemez.
+// Başka bir mikrofon seçilebilsin diye Windows'un "uygulama başına ses cihazı" tercihini (Ayarlar › Ses › Ses
+// karıştırıcısı ile aynı şey) yalnızca KENDİ sürecimiz için ayarlıyoruz: `IAudioPolicyConfig`
+// (Windows.Media.Internal.AudioPolicyConfig; belgelenmemiş ama Windows 10 1803+ / 11'de kararlı, EarTrumpet de bunu kullanır).
+// Başarısız olursa (eski Windows, arayüz değişmiş) sessizce varsayılan mikrofona düşülür.
+
+use std::ffi::c_void;
+use windows::core::{GUID, HRESULT};
+use windows::Devices::Enumeration::{DeviceClass, DeviceInformation};
+use windows::Media::Devices::{AudioDeviceRole, MediaDevice};
+
+/// Bir kayıt (mikrofon) cihazı
+#[derive(Clone, Debug, PartialEq)]
+pub struct Mic {
+    /// Cihaz arayüz yolu (`\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{…}#{2eef81be-…}`)
+    pub id: String,
+    pub name: String,
+    pub is_default: bool,
+}
+
+#[link(name = "combase", kind = "raw-dylib")]
+extern "system" {
+    fn RoGetActivationFactory(class: *mut c_void, iid: *const GUID, factory: *mut *mut c_void) -> HRESULT;
+}
+
+/// IAudioPolicyConfig: Windows 10 21H2+ / 11 ve öncesi
+const IID_POLICY_NEW: GUID = GUID::from_u128(0xab3d4648_e242_459f_b02f_541c70306324);
+const IID_POLICY_OLD: GUID = GUID::from_u128(0x2a59116d_6c4f_45e0_a74f_707e3fef9258);
+/// vtable sırası: IUnknown (3) + IInspectable (3) + 19 başka yöntem → SetPersistedDefaultAudioEndpoint
+const SLOT_SET: usize = 25;
+const E_CAPTURE: u32 = 1; // EDataFlow::eCapture
+
+type SetFn = unsafe extern "system" fn(this: *mut c_void, pid: u32, flow: u32, role: u32, device: *mut c_void) -> HRESULT;
+type ReleaseFn = unsafe extern "system" fn(this: *mut c_void) -> u32;
+
+/// Bu sürecin kayıt cihazı tercihini ayarla (boş kimlik: tercihi sil → Windows varsayılanı)
+fn set_process_capture(id: &str) -> Result<(), String> {
+    let class = HSTRING::from("Windows.Media.Internal.AudioPolicyConfig");
+    let dev = HSTRING::from(id);
+    // HSTRING tek işaretçidir (repr(transparent)); boş HSTRING = null
+    let class_raw: *mut c_void = unsafe { std::mem::transmute_copy(&class) };
+    let dev_raw: *mut c_void = unsafe { std::mem::transmute_copy(&dev) };
+    let mut p: *mut c_void = std::ptr::null_mut();
+    let mut hr = unsafe { RoGetActivationFactory(class_raw, &IID_POLICY_NEW, &mut p) };
+    if hr.is_err() || p.is_null() {
+        p = std::ptr::null_mut();
+        hr = unsafe { RoGetActivationFactory(class_raw, &IID_POLICY_OLD, &mut p) };
+    }
+    if hr.is_err() || p.is_null() {
+        return Err(format!("AudioPolicyConfig (0x{:08X})", hr.0 as u32));
+    }
+    let pid = std::process::id();
+    let mut res = Ok(());
+    unsafe {
+        let vtbl = *(p as *const *const usize);
+        let set: SetFn = std::mem::transmute(*vtbl.add(SLOT_SET));
+        // Roller: eConsole, eMultimedia, eCommunications (tanıyıcı hangisini isterse)
+        for role in 0..3u32 {
+            let h = set(p, pid, E_CAPTURE, role, dev_raw);
+            if h.is_err() {
+                res = Err(format!("SetPersistedDefaultAudioEndpoint (0x{:08X})", h.0 as u32));
+            }
+        }
+        let release: ReleaseFn = std::mem::transmute(*vtbl.add(2));
+        release(p);
+    }
+    res
+}
+
+/// Şu an uygulanmış süreç tercihi ("" : yok). `None`: henüz bilinmiyor (Windows önceki çalıştırmadan kalan tercihi
+/// saklamış olabilir), ilk kullanımda mutlaka yazılır.
+static APPLIED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+fn default_capture_id() -> String {
+    MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default).map(|h| h.to_string()).unwrap_or_default()
+}
+
+fn list_raw() -> Result<Vec<(String, String)>, String> {
+    let all = DeviceInformation::FindAllAsyncDeviceClass(DeviceClass::AudioCapture).map_err(|e| err(&e))?.join().map_err(|e| err(&e))?;
+    let mut out = Vec::new();
+    for d in all {
+        if !d.IsEnabled().unwrap_or(true) {
+            continue;
+        }
+        let id = d.Id().map(|x| x.to_string()).unwrap_or_default();
+        if id.is_empty() {
+            continue;
+        }
+        let name = d.Name().map(|x| x.to_string()).unwrap_or_default();
+        out.push((id, name));
+    }
+    Ok(out)
+}
+
+/// Etkin kayıt cihazları; önce `want` tercihi uygulanır. "Varsayılan" işareti Windows'un gerçek varsayılanını gösterir
+/// (bizim süreç tercihimizi değil): tercih uygulanmışsa kısa süreliğine kaldırılıp sorulur.
+pub fn microphones(want: &str) -> Result<Vec<Mic>, String> {
+    let list = list_raw()?;
+    let used = use_microphone(want);
+    let def = if used.is_empty() {
+        default_capture_id()
+    } else {
+        let mut applied = APPLIED.lock().unwrap_or_else(|e| e.into_inner());
+        let _ = set_process_capture("");
+        let d = default_capture_id();
+        if set_process_capture(&used).is_err() {
+            let _ = set_process_capture("");
+            *applied = Some(String::new());
+        }
+        d
+    };
+    Ok(list.into_iter().map(|(id, name)| Mic { is_default: !def.is_empty() && id.eq_ignore_ascii_case(&def), id, name }).collect())
+}
+
+/// Seçilen mikrofonu uygula. Boş kimlik ya da cihaz artık yoksa Windows varsayılanına dönülür.
+/// Dönen: gerçekten kullanılan cihaz kimliği ("" : Windows varsayılanı). Tercih değiştiyse tanıyıcı yeniden kurulmalıdır.
+pub fn use_microphone(want: &str) -> String {
+    // Cihaz hâlâ takılı mı (WinRT çağrısı ayrıca süreçte COM/MTA'yı hazırlar)
+    let present = !want.is_empty() && list_raw().map(|l| l.iter().any(|(id, _)| id.eq_ignore_ascii_case(want))).unwrap_or(false);
+    let target = if present { want } else { "" };
+    let mut applied = APPLIED.lock().unwrap_or_else(|e| e.into_inner());
+    if applied.as_deref() == Some(target) {
+        return target.to_string();
+    }
+    if want.is_empty() && applied.is_none() {
+        // MTA hazır olsun (RoGetActivationFactory öncesi)
+        let _ = default_capture_id();
+    }
+    match set_process_capture(target) {
+        Ok(()) => *applied = Some(target.to_string()),
+        Err(_) => {
+            // Ayarlanamadı: yarım kalmış tercihi temizle, varsayılanla devam et
+            let _ = set_process_capture("");
+            *applied = Some(String::new());
+        }
+    }
+    applied.clone().unwrap_or_default()
+}

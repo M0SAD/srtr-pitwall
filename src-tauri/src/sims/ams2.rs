@@ -40,6 +40,7 @@ pub mod o {
     pub const EVENT_TIME_REMAINING: usize = 6740;
     pub const HIGHEST_FLAG_COLOUR: usize = 6800;
     pub const PIT_MODE: usize = 6808;
+    pub const PIT_SCHEDULE: usize = 6812; // 5 pit geçişi cezası, 6 dur-kalk cezası
     pub const CAR_FLAGS: usize = 6816;
     pub const FUEL_LEVEL: usize = 6840; // 0..1
     pub const FUEL_CAPACITY: usize = 6844; // litre
@@ -53,6 +54,7 @@ pub mod o {
     pub const GEAR: usize = 6876;
     pub const ANTI_LOCK_ACTIVE: usize = 6888;
     pub const WORLD_VELOCITY: usize = 6932;
+    pub const LOCAL_ACCELERATION: usize = 6956; // float[3] m/s²: x sağ, y yukarı, z geri
     pub const TYRE_TEMP: usize = 7056; // float[4] °C
     pub const TYRE_WEAR: usize = 7088; // float[4] 0 = yeni
     pub const AMBIENT_TEMP: usize = 7244;
@@ -238,6 +240,13 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     f.clutch = rd_f32(b, o::CLUTCH).clamp(0.0, 1.0);
     f.steer = steer_rad(rd_f32(b, o::STEERING), 0.0);
     f.abs_active = rd_u8(b, o::ANTI_LOCK_ACTIVE) != 0;
+    f.lat_g = rd_f32(b, o::LOCAL_ACCELERATION) / 9.80665;
+    f.long_g = -rd_f32(b, o::LOCAL_ACCELERATION + 8) / 9.80665;
+    f.penalty = match rd_u32(b, o::PIT_SCHEDULE) {
+        5 => 1,
+        6 => 2,
+        _ => 0,
+    };
     let cap = rd_f32(b, o::FUEL_CAPACITY);
     f.fuel_pct = rd_f32(b, o::FUEL_LEVEL).clamp(0.0, 1.0);
     f.fuel_level = f.fuel_pct * cap.max(0.0);

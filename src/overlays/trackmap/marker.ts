@@ -88,7 +88,7 @@ export function meMarkerFrom(o: Record<string, any>): MeMarker {
 }
 
 /** Ayar alanları (trackmap / minimap / flatmap ortak). meColor her overlay'de zaten varsa `withColor` false verilir. */
-export function meMarkerFields(o: { color?: string; withColor?: boolean } = {}): SettingField[] {
+export function meMarkerFields(o: { color?: string; withColor?: boolean; shape?: MeShape } = {}): SettingField[] {
   const group = "Senin aracının işareti";
   const notImage = { key: "meShape", not: ["image"] };
   const fields: SettingField[] = [
@@ -96,7 +96,7 @@ export function meMarkerFields(o: { color?: string; withColor?: boolean } = {}):
       key: "meShape",
       label: "Şekil",
       type: "select",
-      default: "circle",
+      default: o.shape ?? "circle",
       group,
       options: [
         { value: "circle", label: "Daire" },

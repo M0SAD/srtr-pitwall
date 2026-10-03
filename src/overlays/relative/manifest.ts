@@ -54,7 +54,7 @@ export default defineOverlay({
     { key: "showHeader", label: "Üst satır", type: "boolean", default: true, group: "Başlık" },
     headerField("headerFields", "Üst satır bilgileri", ["air", "track", "wetness", "humidity", "precip"]),
     { key: "showFooter", label: "Alt satır", type: "boolean", default: true, group: "Başlık" },
-    headerField("footerFields", "Alt satır bilgileri", ["sof", "incidents", "remaining", "clock"]),
+    headerField("footerFields", "Alt satır bilgileri", ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]),
     labelStyleField("Başlık"),
     {
       key: "columns",

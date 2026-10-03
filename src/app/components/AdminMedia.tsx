@@ -4,8 +4,8 @@ import { For, Show, createResource, createSignal } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { adminStorageUsage, config, profile, saveConfig } from "@/cloud/account";
-import { projectRef, publicUrl, storageUpload } from "@/cloud/supabase";
-import { DEFAULT_WATERMARK, WM_POSITIONS, composePreview, normalizeWatermark, type WatermarkCfg, type WmPosition } from "@/sdk/watermark";
+import { projectRef } from "@/cloud/supabase";
+import { DEFAULT_WATERMARK, WM_POSITIONS, composePreview, logoDataUrl, normalizeWatermark, type WatermarkCfg, type WmPosition } from "@/sdk/watermark";
 import cockpitImg from "@/assets/backdrops/cockpit.jpg";
 import dayImg from "@/assets/backdrops/day.jpg";
 import { fmtSize } from "./Shots";
@@ -30,13 +30,13 @@ export function AdminWatermark(props: { run: Run }) {
   );
   let file: HTMLInputElement | undefined;
 
+  // Logo küçültülüp (≤256 px yükseklik, saydamlık korunur) ayarın içine veri adresi olarak gömülür: depolama kovası,
+  // 1 MB sınırı ya da CORS yüzünden logonun hiç uygulanmaması sorunu olmaz. Kaydet'e basınca tüm uygulamalara gider.
   const upload = async (f: File) => {
     setUploading(true);
     try {
-      const ext = f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg";
-      const path = `watermark-logo-${Date.now()}.${ext}`;
-      await storageUpload("branding", path, f, f.type || "image/png", true);
-      setWm({ ...wm(), logo: "custom", logo_url: publicUrl("branding", path) });
+      const url = await logoDataUrl(f);
+      setWm({ ...wm(), logo: "custom", logo_url: url });
       setDirty(true);
     } finally {
       setUploading(false);
@@ -90,12 +90,18 @@ export function AdminWatermark(props: { run: Run }) {
                 hidden
                 onChange={(e) => {
                   const f = e.currentTarget.files?.[0];
-                  if (f) props.run(() => upload(f), "Logo yüklendi");
+                  if (f) props.run(() => upload(f), "Logo seçildi: uygulanması için Kaydet'e bas");
                   e.currentTarget.value = "";
                 }}
               />
             </div>
           </div>
+          <Show when={wm().logo === "custom" && !wm().logo_url}>
+            <p class="error">Henüz logo seçilmedi: “Logo yükle” ile bir PNG seç (saydam arka planlı olabilir).</p>
+          </Show>
+          <Show when={dirty()}>
+            <p class="muted small">Kaydedilmemiş değişiklik var: filigran ancak “Kaydet”e basınca uygulanır.</p>
+          </Show>
           <div class="row">
             <b>Konum</b>
             <select value={wm().position} onChange={(e) => set("position", e.currentTarget.value as WmPosition)}>

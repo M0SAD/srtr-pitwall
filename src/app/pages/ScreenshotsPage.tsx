@@ -8,6 +8,9 @@ import { listen } from "@tauri-apps/api/event";
 import { settings, updateSettings } from "@/sdk/settings";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { cloudEnabled, session } from "@/cloud/supabase";
+import { config, profile } from "@/cloud/account";
+import { composePreview, normalizeWatermark } from "@/sdk/watermark";
+import cockpitImg from "@/assets/backdrops/cockpit.jpg";
 import { encodeForShare, shareShot, sharedLocalPaths, shotLimits } from "@/cloud/shots";
 import { useScreenshotBytes } from "../components/Backdrop";
 import {
@@ -456,11 +459,32 @@ function ShotSettings(props: { dirs: ShotDirs | null }) {
           Klasörü aç
         </button>
       </div>
+      <WatermarkPreview />
       <p class="muted small">
         Filigranı yönetici belirler. Varsayılan kısayol F12'dir; Steam'in ekran görüntüsü tuşu da F12 ise ikisi birlikte çalışabilir.
         Kısayol çalışmazsa Ayarlar → Kısayollar'dan başka bir tuş seç. Print Screen seçersen Windows 11'deki "Ekran alıntısı aracını
         açmak için Print Screen tuşunu kullan" ayarını kapat.
       </p>
     </section>
+  );
+}
+
+/** Geçerli filigranın (yazı + logo) görüntüde nasıl duracağı: Rust'ın bindirdiğiyle aynı kuralla çizilir */
+function WatermarkPreview() {
+  const wm = () => normalizeWatermark(config()?.watermark);
+  const [preview] = createResource(
+    () => ({ c: wm(), user: profile()?.display_name ?? "" }),
+    (k) => composePreview(cockpitImg, k.c, k.user, 360).catch(() => ""),
+  );
+  return (
+    <div class="row">
+      <div>
+        <b>Filigran önizlemesi</b>
+        <small>{wm().enabled ? "Çektiğin ve paylaştığın görüntülere bu filigran (yazı ve logo) eklenir." : "Filigran şu an kapalı."}</small>
+      </div>
+      <Show when={preview()}>
+        <img src={preview()!} alt="" style={{ width: "min(360px, 45%)", "border-radius": "8px", display: "block" }} />
+      </Show>
+    </div>
   );
 }

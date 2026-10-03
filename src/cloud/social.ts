@@ -36,6 +36,8 @@ export interface Friend {
   avatar_path?: string | null;
   /** Çevrimiçiyse şu an bağlı olduğu sim: iracing | acc | ac | lmu | rf2 | ams2, yoksa "" (c31) */
   sim?: string;
+  /** Sadece yöneticiye gelir (c65): arkadaş çevrimiçi ama "Çevrimdışı görün" seçmiş */
+  invisible?: boolean;
 }
 
 export interface Person {
@@ -230,11 +232,15 @@ export interface MyStatus {
   accept_messages: boolean;
   /** Bağlı sim (arkadaş listesinde "iRacing'de"), yoksa "" (sunucu c31) */
   sim?: string;
+  /** Çevrimdışı görün: başkaları beni çevrimdışı görür, yöneticiler gerçek durumu görür (sunucu c65) */
+  invisible?: boolean;
 }
 
+/** Sunucuda user_status.invisible yoksa (c65 kurulmadan) durum bu alan olmadan gönderilir */
+let statusNoInvisible = false;
 /** Sunucuda user_status.sim yoksa (c31 kurulmadan) durum sim olmadan gönderilir */
 let statusNoSim = false;
-export function setMyStatus(s: MyStatus) {
+export function setMyStatus(s: MyStatus): Promise<unknown> {
   const uid = session()?.user.id;
   if (!uid) return Promise.resolve();
   const send = (body: Partial<MyStatus>) =>
@@ -242,10 +248,16 @@ export function setMyStatus(s: MyStatus) {
       body: { user_id: uid, ...body, updated_at: new Date().toISOString() },
       prefer: "resolution=merge-duplicates,return=minimal",
     });
-  const { sim, ...rest } = s;
+  const { sim, invisible, ...rest0 } = s;
+  const rest: Partial<MyStatus> = statusNoInvisible ? rest0 : { ...rest0, invisible: !!invisible };
   if (statusNoSim) return send(rest).catch(() => {});
   return send({ ...rest, sim: sim ?? "" }).catch((e) => {
-    if (!/\bsim\b/.test(String((e as Error)?.message ?? ""))) return;
+    const msg = String((e as Error)?.message ?? "");
+    if (!statusNoInvisible && /\binvisible\b/.test(msg)) {
+      statusNoInvisible = true;
+      return setMyStatus(s);
+    }
+    if (!/\bsim\b/.test(msg)) return;
     statusNoSim = true;
     return send(rest).catch(() => {});
   });

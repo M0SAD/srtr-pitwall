@@ -61,16 +61,8 @@ export const page = () => section();
 
 /** Overlay'ler sayfasında açık olan ayar kartı */
 export const [openCard, setOpenCard] = createSignal<string | null>(null);
-/**
- * Overlay'ler sayfasında düzenlenen düzen. null = "Etkin düzeni izle" (etkin düzen değişince sayfa da onu izler);
- * bir kimlik = o düzen sabit (otomatik geçiş ya da etkin düzen değişse de seçim yerinden oynamaz).
- */
-export const [ovProfile, setOvProfile] = createSignal<string | null>(null);
-/** Overlay'ler sayfasını belirli bir düzene çevir (zaten izlenen etkin düzen ise izleme korunur) */
-export function editLayout(profileId: string) {
-  if (ovProfile() === null && settings().activeProfile === profileId) return;
-  if (settings().profiles[profileId]) setOvProfile(profileId);
-}
+/** Düzenler / Yayın sayfasında açılacak düzen ve seçilecek overlay (sağ tık > "Ayarlarını aç") */
+export const [overlayFocus, setOverlayFocus] = createSignal<{ profile: string; key: string } | null>(null);
 
 export interface VersionInfo {
   display: string;
@@ -169,11 +161,12 @@ export async function installUpdate() {
   }
 }
 
-/** Sağ tık > "Ayarlarını aç": Overlay'ler sayfasında o kopyayı seçer. */
+/** Sağ tık > "Ayarlarını aç": overlay'in bulunduğu düzeni (Düzenler ya da Yayın sayfasında) açar ve o kopyayı seçer. */
 export function focusOverlay(id: string, profileId?: string | null) {
-  if (profileId) editLayout(profileId);
-  go("overlays");
-  setOpenCard(id);
+  const s = settings();
+  const pid = profileId && s.profiles[profileId] ? profileId : s.activeProfile;
+  setOverlayFocus({ profile: pid, key: id });
+  go(s.profiles[pid]?.rules.mode === "stream" ? "streaming" : "layouts");
 }
 
 /** Harici bağlantıyı varsayılan tarayıcıda aç */

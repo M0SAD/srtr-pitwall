@@ -346,3 +346,39 @@
   justify-content: center;
   margin-top: 10px;
 }
+
+/* Dar panelde (1280×720, sol alt menü açıkken) taşmasın: başlıklar ve okuma değerleri sarar / kısalır */
+.tele-head > * {
+  min-width: 0;
+}
+.tele-tools {
+  flex-wrap: wrap;
+}
+.tchart-head {
+  flex-wrap: wrap;
+}
+.tchart-read {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 2px;
+  min-width: 0;
+}
+.tchart-plot {
+  min-width: 0;
+  overflow: hidden;
+}
+.lap-cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+}
+.lap-card small,
+.lap-card b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tele-search {
+  min-width: min(240px, 100%);
+}
+.tele-filters .tf-selects select {
+  min-width: min(180px, 100%);
+}

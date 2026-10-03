@@ -158,20 +158,6 @@ export function GeneralPage() {
         <h3>Düzenleme ekranı</h3>
         <div class="row">
           <div>
-            <b>Aynı overlay'den birden fazla eklenebilsin</b>
-            <small>Açıkken bir overlay'in kopyası eklenebilir (panelde "Kopya", düzenleme ekranında sağ tık → "Aynısından ekle").</small>
-          </div>
-          <label class="switch">
-            <input
-              type="checkbox"
-              checked={g().allowDuplicates}
-              onChange={(e) => updateSettings((d) => (d.general.allowDuplicates = e.currentTarget.checked))}
-            />
-            <i />
-          </label>
-        </div>
-        <div class="row">
-          <div>
             <b>Izgaraya yapıştır</b>
             <small>Taşırken overlay'ler ızgara çizgilerine hizalanır.</small>
           </div>

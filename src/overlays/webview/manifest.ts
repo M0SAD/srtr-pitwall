@@ -9,6 +9,7 @@ export default defineOverlay({
   size: { w: 400, h: 300 },
   defaultPosition: { x: 760, y: 380 },
   defaultEnabled: false,
+  multiInstance: true,
   settings: [
     {
       key: "url",

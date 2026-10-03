@@ -42,20 +42,21 @@ export function Pitwall() {
       </div>
       <div class="pw-grid">
         <OverlayCard
+          fit
           id="standings"
           title="Sınıf sıralaması"
           class="pw-lb"
           options={{ maxRows: 40, showHeader: true, showLast: true, showChange: true }}
         />
-        <OverlayCard id="trackmap" title="Pist haritası" class="pw-map" options={{ width: 560, height: 400, carSize: 10 }} />
-        <OverlayCard id="weather" title="Hava" class="pw-wx" options={{ showCompass: true }} />
-        <OverlayCard id="inputs" title="Girdiler" class="pw-in" options={{ seconds: 8 }} />
-        <OverlayCard id="fuel" title="Yakıt" class="pw-fuel" />
-        <OverlayCard id="delta" title="Tur süreleri" class="pw-lap" />
-        <OverlayCard id="telemetry" title="Araç" class="pw-veh" options={{ showElectronics: true, showFuel: false }} />
-        <OverlayCard id="battlebox" title="Mücadele" class="pw-bat" />
-        <OverlayCard id="session" title="Oturum" class="pw-ses" />
-        <OverlayCard id="tires" title="Lastikler" class="pw-tyr" />
+        <OverlayCard fit id="trackmap" title="Pist haritası" class="pw-map" options={{ width: 560, height: 400, carSize: 10 }} />
+        <OverlayCard fit id="weather" title="Hava" class="pw-wx" options={{ showCompass: true }} />
+        <OverlayCard fit id="inputs" title="Girdiler" class="pw-in" options={{ seconds: 8 }} />
+        <OverlayCard fit id="fuel" title="Yakıt" class="pw-fuel" />
+        <OverlayCard fit id="delta" title="Tur süreleri" class="pw-lap" />
+        <OverlayCard fit id="telemetry" title="Araç" class="pw-veh" options={{ showElectronics: true, showFuel: false }} />
+        <OverlayCard fit id="battlebox" title="Mücadele" class="pw-bat" />
+        <OverlayCard fit id="session" title="Oturum" class="pw-ses" />
+        <OverlayCard fit id="tires" title="Lastikler" class="pw-tyr" />
       </div>
     </div>
   );

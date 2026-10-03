@@ -6,12 +6,12 @@ import { manifestById } from "@/sdk/registry";
 import { instanceName, settings, updateSettings, type OverlayInstance, type Profile } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
 import { isLocked } from "@/cloud/account";
-import { clampRect, effectiveScale, layoutRect, snapMove, unlayoutPos, type Guides, type Rect } from "@/host/snap";
+import { CORNERS, clampRect, cornerResize, edgeResize, effectiveScale, layoutRect, snapMove, unlayoutPos, type Corner, type Edge, type Guides, type Rect } from "@/host/snap";
+import { clampField, resizeFields } from "@/sdk/overlay";
 import { OverlayView } from "./OverlayView";
 import { useEditBackdrop } from "./BackdropPicker";
 import { Portal } from "solid-js/web";
 import { ContextMenu, type MenuState } from "@/host/ContextMenu";
-import { focusOverlay } from "../ui";
 import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 
 export interface CanvasProps {
@@ -31,6 +31,8 @@ export interface CanvasProps {
   source?: Profile;
   /** Salt okunur: taşıma/boyutlandırma/sağ tık yok, sadece seçim */
   readOnly?: boolean;
+  /** Yakınlaştırma (1 = sığdır). 1'den büyükse tuval kaydırılabilir olur */
+  zoom?: number;
 }
 
 // Tuvaldeki overlay'lerin mantıksal dikdörtgenleri (yapıştırma için)
@@ -46,7 +48,7 @@ export function LayoutCanvas(props: CanvasProps) {
     onCleanup(() => ro.disconnect());
   });
   // Tuval pikseli / mantıksal piksel
-  const k = createMemo(() => Math.min(boxW() / props.width, 620 / props.height));
+  const k = createMemo(() => Math.min(boxW() / props.width, 620 / props.height) * (props.zoom ?? 1));
   const g = () => settings().general;
   const vars = createMemo(() => themeVars(settings().theme));
   const bg = useEditBackdrop(() => !!props.backdrop);
@@ -54,7 +56,7 @@ export function LayoutCanvas(props: CanvasProps) {
   const [menu, setMenu] = createSignal<MenuState | null>(null);
 
   return (
-    <div class="lcanvas-wrap" ref={box}>
+    <div class="lcanvas-wrap" classList={{ zoomed: (props.zoom ?? 1) > 1 }} ref={box}>
       <div
         class="lcanvas ov-theme"
         classList={{ "grid-on": g().snapToGrid }}
@@ -102,7 +104,7 @@ export function LayoutCanvas(props: CanvasProps) {
             screen={{ w: props.width, h: props.height }}
             monitors={props.globalScale !== false}
             // Bu tuvaldeki düzenin ayarları açılır (etkin düzen değiştirilmez)
-            onOpenSettings={(id) => focusOverlay(id, props.profileId)}
+            onOpenSettings={(id) => props.onSelect(id)}
             onClose={() => setMenu(null)}
           />
         </Portal>
@@ -136,7 +138,11 @@ function CanvasItem(props: {
   onCleanup(() => rects.delete(props.key));
 
   const gScale = () => (props.useGlobal ? settings().theme.scale / 100 : 1);
-  const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number } | null>(null);
+  const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number; opts?: Record<string, number> } | null>(null);
+  /** Kenardan boyutlandırılabilen genişlik / yükseklik ayarları */
+  const rz = createMemo(() => resizeFields(m()));
+  /** Sürükleme sırasında (burada ya da ekrandaki düzenleme modunda) geçici ayar değerleri */
+  const liveOpts = () => drag()?.opts ?? remoteDrag(props.profileId, props.key)?.opts;
 
   const view = createMemo(() => {
     const i = inst();
@@ -157,21 +163,23 @@ function CanvasItem(props: {
     rects.set(props.key, { x: v.x, y: v.y, w: v.w, h: v.h });
   });
 
-  const livePos = (r: Rect, own: number) => {
+  const livePos = (r: Rect, own: number, opts?: Record<string, number>) => {
     const eff = effectiveScale(own, gScale());
     const pos = unlayoutPos(r, eff / own, props.screen);
-    return { profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own };
+    return { profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) };
   };
-  const commit = (r: Rect, own: number) => {
+  const commit = (r: Rect, own: number, opts?: Record<string, number>) => {
+    if (props.readOnly) return;
     const eff = effectiveScale(own, gScale());
     const pos = unlayoutPos(r, eff / own, props.screen);
-    endDrag({ profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own });
+    endDrag({ profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) });
     updateSettings((d) => {
       const o = d.profiles[props.profileId]?.overlays[props.key];
       if (!o) return;
       o.x = Math.round(pos.x);
       o.y = Math.round(pos.y);
       o.scale = own;
+      if (opts) Object.assign(o.options, opts);
     });
   };
 
@@ -201,6 +209,7 @@ function CanvasItem(props: {
     const up = () => {
       t.removeEventListener("pointermove", move);
       t.removeEventListener("pointerup", up);
+      t.removeEventListener("pointercancel", up);
       const d = drag();
       if (d) commit({ x: d.x, y: d.y, w: o.w, h: o.h }, o.scale);
       setDrag(null);
@@ -208,36 +217,70 @@ function CanvasItem(props: {
     };
     t.addEventListener("pointermove", move);
     t.addEventListener("pointerup", up);
+    t.addEventListener("pointercancel", up);
   };
 
-  const startResize = (e: PointerEvent) => {
+  const track = (t: HTMLElement, move: (ev: PointerEvent) => void, done: () => void) => {
+    const up = () => {
+      t.removeEventListener("pointermove", move);
+      t.removeEventListener("pointerup", up);
+      t.removeEventListener("pointercancel", up);
+      done();
+      setDrag(null);
+    };
+    t.addEventListener("pointermove", move);
+    t.addEventListener("pointerup", up);
+    t.addEventListener("pointercancel", up);
+  };
+
+  /** Köşeden boyutlandır (ölçek): overlay sürüklenen köşeye doğru büyür, karşı köşe yerinde kalır */
+  const startResize = (c: Corner) => (e: PointerEvent) => {
+    if (e.button !== 0 || props.readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     const t = e.currentTarget as HTMLElement;
     t.setPointerCapture(e.pointerId);
     const o = view();
     const sx = e.clientX;
+    const sy = e.clientY;
     const g0 = gScale();
-    const move = (ev: PointerEvent) => {
-      const right = o.x + o.w + (ev.clientX - sx) / props.k;
-      const eff = Math.max(0.2, (right - o.x) / size().w);
-      const own = Math.min(3, Math.max(0.4, Math.round((eff / g0) * 100) / 100));
-      setDrag({ x: o.x, y: o.y, scale: own });
-      const e2 = effectiveScale(own, g0);
-      sendDrag(livePos({ x: o.x, y: o.y, w: size().w * e2, h: size().h * e2 }, own));
-    };
-    const up = () => {
-      t.removeEventListener("pointermove", move);
-      t.removeEventListener("pointerup", up);
-      const d = drag();
-      if (d) {
-        const eff = effectiveScale(d.scale, g0);
-        commit({ x: d.x, y: d.y, w: size().w * eff, h: size().h * eff }, d.scale);
-      }
-      setDrag(null);
-    };
-    t.addEventListener("pointermove", move);
-    t.addEventListener("pointerup", up);
+    const base = size();
+    let last: (Rect & { scale: number }) | null = null;
+    track(
+      t,
+      (ev) => {
+        last = cornerResize(o, c, (ev.clientX - sx) / props.k, (ev.clientY - sy) / props.k, base, g0, { screen: props.screen });
+        setDrag({ x: last.x, y: last.y, scale: last.scale });
+        sendDrag(livePos(last, last.scale));
+      },
+      () => last && commit(last, last.scale),
+    );
+  };
+
+  /** Kenardan boyutlandır: overlay'in genişlik / yükseklik ayarı değişir (ölçek aynı kalır) */
+  const startEdge = (edge: Edge) => (e: PointerEvent) => {
+    const horiz = edge === "e" || edge === "w";
+    const f = horiz ? rz().w : rz().h;
+    const i = inst();
+    if (e.button !== 0 || props.readOnly || !f || !i) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const t = e.currentTarget as HTMLElement;
+    t.setPointerCapture(e.pointerId);
+    const o = view();
+    const s0 = horiz ? e.clientX : e.clientY;
+    const cur = Number(i.options[f.key]) || f.default;
+    let last: (Rect & { value: number }) | null = null;
+    track(
+      t,
+      (ev) => {
+        last = edgeResize(o, edge, ((horiz ? ev.clientX : ev.clientY) - s0) / props.k, o.eff, cur, (v) => clampField(f, v));
+        const opts = { [f.key]: last.value };
+        setDrag({ x: last.x, y: last.y, scale: o.scale, opts });
+        sendDrag(livePos(last, o.scale, opts));
+      },
+      () => last && commit(last, o.scale, { [f.key]: last.value }),
+    );
   };
 
   return (
@@ -268,13 +311,16 @@ function CanvasItem(props: {
         }}
       >
         <div ref={el} class="citem-inner">
-          <OverlayView type={inst()!.type} options={inst()!.options} look={inst()!.look} themed={false} />
+          <OverlayView type={inst()!.type} options={liveOpts() ? { ...inst()!.options, ...liveOpts() } : inst()!.options} look={inst()!.look} bgOpacity={inst()!.bgOpacity} themed={false} />
         </div>
         <div class="citem-label" style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
           {instanceName(props.key, inst()!)}
         </div>
         <Show when={props.selected && !props.readOnly}>
-          <div class="citem-resize" style={{ transform: `scale(${1 / (view().eff * props.k)})` }} onPointerDown={startResize} />
+          <For each={(rz().w ? (["w", "e"] as Edge[]) : []).concat(rz().h ? (["n", "s"] as Edge[]) : [])}>
+            {(ed) => <div class={`rz-edge ${ed}`} style={{ "--hk": String(1 / (view().eff * props.k)) }} title="Kenardan sürükle: genişlik / yükseklik" onPointerDown={startEdge(ed)} />}
+          </For>
+          <For each={CORNERS}>{(c) => <div class={`citem-resize ${c}`} style={{ transform: `scale(${1 / (view().eff * props.k)})` }} onPointerDown={startResize(c)} />}</For>
         </Show>
       </div>
     </Show>

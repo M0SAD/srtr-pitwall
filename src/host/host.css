@@ -393,3 +393,132 @@
 .host.editing:not(.grid-on) .center-line {
   display: none;
 }
+
+.edit-banner button.ur-btn svg {
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+}
+
+/* Dört köşeden boyutlandırma (ölçek) */
+.frame-resize.nw,
+.frame-resize.sw {
+  right: auto;
+  left: -8px;
+}
+.frame-resize.nw,
+.frame-resize.ne {
+  bottom: auto;
+  top: -8px;
+}
+.frame-resize.ne,
+.frame-resize.sw {
+  cursor: nesw-resize;
+}
+
+/* Kenardan boyutlandırma (genişlik / yükseklik ayarı): --hk = 1 / etkin ölçek */
+.rz-edge {
+  position: absolute;
+  z-index: 1;
+  background: transparent;
+}
+.rz-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 3px;
+  background: #ff8a2a;
+  opacity: 0.55;
+}
+.rz-edge:hover::after {
+  opacity: 1;
+}
+.rz-edge.e,
+.rz-edge.w {
+  top: 0;
+  bottom: 0;
+  width: calc(10px * var(--hk, 1));
+  cursor: ew-resize;
+}
+.rz-edge.e {
+  right: calc(-6px * var(--hk, 1));
+}
+.rz-edge.w {
+  left: calc(-6px * var(--hk, 1));
+}
+.rz-edge.e::after,
+.rz-edge.w::after {
+  width: calc(4px * var(--hk, 1));
+  height: min(40%, calc(36px * var(--hk, 1)));
+}
+.rz-edge.n,
+.rz-edge.s {
+  left: 0;
+  right: 0;
+  height: calc(10px * var(--hk, 1));
+  cursor: ns-resize;
+}
+.rz-edge.s {
+  bottom: calc(-6px * var(--hk, 1));
+}
+.rz-edge.n {
+  top: calc(-6px * var(--hk, 1));
+}
+.rz-edge.n::after,
+.rz-edge.s::after {
+  height: calc(4px * var(--hk, 1));
+  width: min(40%, calc(36px * var(--hk, 1)));
+}
+
+/* Kilitli düzen: overlay'ler taşınamaz */
+.editing .frame.locked {
+  cursor: not-allowed;
+  outline-color: rgba(160, 170, 185, 0.8);
+}
+.edit-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffcc33;
+}
+
+/* Ekip kutucuğu (c64): ekip odası mesajları ve uygulanan pit komutları — alt ortada, birkaç saniye sonra solar */
+.crew-box {
+  position: fixed;
+  left: 50%;
+  bottom: 8vh;
+  transform: translateX(-50%);
+  max-width: min(560px, 80vw);
+  padding: 9px 16px 10px;
+  border-radius: 10px;
+  background: rgba(14, 17, 22, 0.92);
+  border: 1px solid rgba(255, 138, 42, 0.75);
+  color: #fff;
+  font: 15px Inter, "Segoe UI", sans-serif;
+  text-align: center;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+  animation: crew-box-in 0.2s ease-out;
+}
+.crew-box.out {
+  opacity: 0;
+}
+.crew-box b {
+  display: block;
+  color: #ffb066;
+  font-size: 12px;
+  font-weight: 600;
+}
+.crew-box p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+@keyframes crew-box-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}

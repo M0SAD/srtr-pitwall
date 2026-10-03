@@ -11,6 +11,20 @@ export default defineOverlay({
   defaultPosition: { x: 1580, y: 60 },
   defaultEnabled: true,
   settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "default",
+      options: [
+        { value: "default", label: "Varsayılan" },
+        { value: "side", label: "Yan başlık" },
+        { value: "broadcast", label: "Yayın tarzı" },
+        { value: "minimal", label: "Minimal (çerçevesiz)" },
+        { value: "cards", label: "Kartlar" },
+      ],
+      hint: "Kutunun genel görünümü. Bayrak uyarısı her tasarımda başlık alanının içinde gösterilir; kutu büyümez, pencere kaymaz.",
+    },
     { key: "showFlags", label: "Bayrak uyarısı", type: "boolean", default: true },
     { key: "showWeather", label: "Hava ve pist", type: "boolean", default: true },
     { ...labelStyleField(), showIf: { key: "showWeather", is: [true] } },

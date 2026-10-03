@@ -153,11 +153,58 @@ export function AlertsTab() {
   };
   const pill = () => {
     const s = st();
-    if (!s?.hasToken) return { cls: "off" as const, text: t("Anahtar yok") };
     if (!lc().streamlabs) return { cls: "off" as const, text: t("Kapalı") };
-    if (s.connected) return { cls: "on" as const, text: t("Bağlı") };
-    if (s.error) return { cls: "err" as const, text: t("Bağlanamadı") };
-    return { cls: store.status()?.running ? ("busy" as const) : ("off" as const), text: store.status()?.running ? t("Bağlanıyor…") : t("Sohbet başlayınca bağlanır") };
+    switch (s?.state) {
+      case "connected":
+        return { cls: "on" as const, text: t("Bağlı") };
+      case "auth":
+        return { cls: "err" as const, text: t("Token geçersiz") };
+      case "error":
+        return { cls: "err" as const, text: t("Bağlantı koptu · yeniden deneniyor") };
+      case "notoken":
+        return { cls: "warn" as const, text: t("Token girilmedi") };
+      case "locked":
+        return { cls: "off" as const, text: "PRO" };
+      case "login":
+        return { cls: "warn" as const, text: t("Giriş gerekli") };
+      case "off":
+        return { cls: "off" as const, text: t("Kapalı") };
+      default:
+        return { cls: "busy" as const, text: t("Bağlanıyor…") };
+    }
+  };
+  const [busy, setBusy] = createSignal(false);
+  const reconnect = async () => {
+    try {
+      setSl(await LC.streamlabsReconnect());
+    } catch (e) {
+      toast(errText(e), true);
+    }
+  };
+  const TESTS: [LC.StreamlabsTestKind, string][] = [
+    ["donation", t("Bağış")],
+    ["follow", t("Takip")],
+    ["subscription", t("Abonelik")],
+    ["resub", t("Yeniden abonelik")],
+    ["bits", "Bits"],
+    ["raid", "Raid"],
+    ["superchat", "Super Chat"],
+    ["membershipGift", t("Hediye üyelik")],
+  ];
+  const test = async (kind: LC.StreamlabsTestKind) => {
+    setBusy(true);
+    try {
+      await LC.streamlabsTest(kind);
+      toast(t("Deneme uyarısı gönderildi: sohbette ve overlay'de görünmeli"));
+    } catch (e) {
+      toast(errText(e), true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const lastEvent = () => {
+    const ts = st()?.lastEvent;
+    return ts ? new Date(ts).toLocaleTimeString() : "";
   };
   return (
     <ProLockBox feature={F.liveAlerts} text={t("Streamlabs uyarıları PRO üyelere özel.")}>
@@ -165,6 +212,12 @@ export function AlertsTab() {
         <div class="lcp-panel-head">
           <h3>Streamlabs uyarıları</h3>
           <StatusPill cls={pill().cls} text={pill().text} />
+          <Show when={lc().streamlabs && st()?.hasToken && (st()?.state === "auth" || st()?.state === "error")}>
+            <span class="lcp-sp" />
+            <button class="btn ghost small" onClick={reconnect}>
+              <I.RotateCcw /> Yeniden bağlan
+            </button>
+          </Show>
         </div>
         <p class="muted small">
           Bağış, abone, takip, bits, raid, üyelik ve ödül uyarıları sohbette renkli satır olarak görünür, overlay'e ve OBS sayfasına düşer, sesli
@@ -197,12 +250,38 @@ export function AlertsTab() {
             </Show>
           </div>
         </div>
-        <Show when={st()?.error}>
+        <Show when={lc().streamlabs && st()?.error}>
           <div class="lcp-err" data-no-i18n>
             {st()!.error}
           </div>
         </Show>
+        <Show when={lc().streamlabs && st()?.state === "connected"}>
+          <div class="lcp-note">
+            <Show when={st()!.events > 0} fallback={<>Streamlabs'e bağlı; henüz uyarı gelmedi.</>}>
+              {t("Bu oturumda {0} uyarı alındı (son: {1}).", st()!.events, lastEvent())}
+            </Show>
+            <Show when={!st()!.chatRunning}>
+              {" "}
+              <b>Canlı sohbet durdurulmuş:</b> uyarılar sohbet akışında gösterildiği için görünmesi için sohbeti başlat.
+            </Show>
+          </div>
+        </Show>
+        <div class="lcp-field">
+          <label>Deneme uyarısı (Streamlabs'e gitmeden, bu programda üretilir; sohbet çalışıyor olmalı)</label>
+          <div class="lcp-tests">
+            <For each={TESTS}>
+              {([kind, label]) => (
+                <button class="btn small" disabled={busy()} onClick={() => test(kind)}>
+                  {label}
+                </button>
+              )}
+            </For>
+          </div>
+        </div>
         <div class="lcp-note">
+          Gerçek bağlantıyı denemek için Streamlabs › Alert Box › <b>Test</b> düğmelerini (Test Follow, Test Donation…) kullan: bağlantı
+          çalışıyorsa uyarı birkaç saniye içinde buraya düşer.
+          <br />
           Streamlabs › Ayarlar › API Settings › <b>API Tokens</b> sekmesindeki <b>Your Socket API Token</b> değerini yapıştır (Widget Token
           değil).{" "}
           <button class="link" onClick={() => invoke("open_url", { url: "https://streamlabs.com/dashboard#/settings/api-settings" }).catch(() => {})}>

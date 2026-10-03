@@ -72,6 +72,8 @@ pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Re
     let update = state.0.lock().take().ok_or("Önce güncellemeleri denetle")?;
     // Kurulumdan önce ayarları diske yaz
     app.state::<crate::SettingsStore>().flush(&app);
+    // Panel açıkken güncelleniyorsa yeni sürüm de panel açık başlasın (tepsiye küçülmüş değil)
+    mark_reopen_panel(&app);
     let mut downloaded: u64 = 0;
     let emitter = app.clone();
     let done = app.clone();
@@ -88,6 +90,55 @@ pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Re
             },
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            // Kurulum olmadı: işaret sonraki (ilgisiz) açılışı etkilemesin
+            clear_reopen_panel(&app);
+            e.to_string()
+        })?;
     app.restart();
+}
+
+// ---------------------------------------------------------------------------
+// Güncellemeden sonra paneli yeniden aç
+// ---------------------------------------------------------------------------
+//
+// Uygulama Windows başlangıcından `--tray` ile açıldıysa kurulum programı / yeniden başlatma aynı bağımsız
+// değişkenlerle açar ve yeni sürüm yalnızca tepside başlardı. Güncelleme başlarken panel penceresi açıksa ayar
+// klasörüne `reopen-panel` işareti yazılır; açılışta işaret varsa (ve tazeyse) panel gösterilir, işaret silinir.
+
+const REOPEN_FILE: &str = "reopen-panel";
+/// İşaret bundan eskiyse (yarım kalmış kurulum) yok sayılır
+const REOPEN_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(30 * 60);
+
+fn reopen_path(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join(REOPEN_FILE))
+}
+
+fn mark_reopen_panel(app: &AppHandle) {
+    // Panel penceresi var ve görünür mü (simge durumunda olsa da "açık" sayılır; tepsiye kapatılmışsa pencere gizlidir)
+    let open = app.get_webview_window("main").map(|w| w.is_visible().unwrap_or(false)).unwrap_or(false);
+    let Some(p) = reopen_path(app) else { return };
+    if !open {
+        let _ = std::fs::remove_file(p);
+        return;
+    }
+    if let Some(dir) = p.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::write(p, b"1");
+}
+
+fn clear_reopen_panel(app: &AppHandle) {
+    if let Some(p) = reopen_path(app) {
+        let _ = std::fs::remove_file(p);
+    }
+}
+
+/// Açılışta: işaret varsa siler ve tazeyse true döner (panel `--tray` olsa da açılmalı)
+pub fn take_reopen_panel(app: &AppHandle) -> bool {
+    let Some(p) = reopen_path(app) else { return false };
+    let Ok(meta) = std::fs::metadata(&p) else { return false };
+    let fresh = meta.modified().ok().and_then(|t| t.elapsed().ok()).map(|age| age <= REOPEN_MAX_AGE).unwrap_or(true);
+    let _ = std::fs::remove_file(&p);
+    fresh
 }

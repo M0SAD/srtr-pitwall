@@ -11,6 +11,7 @@ mod extras;
 mod history;
 mod laprec;
 mod i18n;
+mod irating;
 mod shots;
 mod league;
 mod livechat;
@@ -37,6 +38,7 @@ mod voicecmd_win;
 #[cfg(windows)]
 mod ptt_win;
 mod vr;
+mod wheeldev;
 mod vrnative;
 mod voicepack_build;
 mod voicepack_dl;
@@ -376,7 +378,7 @@ fn apply_dynamic(app: &AppHandle, value: &Value) {
     push_voice_cfg(app, value);
     livechat::apply_settings(app, value);
     vrnative::apply_settings(app, value);
-    sh.demo_mute.store(value.pointer("/general/demoMute").and_then(|x| x.as_bool()).unwrap_or(false), Ordering::Relaxed);
+    sh.demo_mute.store(value.pointer("/general/demoMute").and_then(|x| x.as_bool()).unwrap_or(true), Ordering::Relaxed);
     {
         let sh2 = value.pointer("/general/sharing");
         let summaries = sh2.and_then(|x| x.get("summaries")).and_then(|x| x.as_bool()).unwrap_or(true);
@@ -581,6 +583,29 @@ fn crew_pit_command(state: State<'_, Arc<Shared>>, kind: String, args: Value) ->
 }
 
 // ---- Ek pencereler: Pitwall ve Live Timing ----
+
+/// Ekip Pitwall'ı penceresi: bir sürücünün (owner) canlı pitwall'ı ve ekip odası (her sürücü için ayrı pencere)
+#[tauri::command]
+async fn crew_window_open(app: AppHandle, owner: String) -> Result<(), String> {
+    if owner.is_empty() || owner.len() > 40 || !owner.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+        return Err("geçersiz sürücü".into());
+    }
+    let label = format!("crew-{owner}");
+    if let Some(w) = app.get_webview_window(&label) {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(format!("window.html?view=crew&owner={owner}").into()))
+        .title(format!("SRTR Pitwall – {}", tr(&app, "Ekip Pitwall'ı")))
+        .inner_size(1280.0, 720.0)
+        .min_inner_size(720.0, 480.0)
+        .additional_browser_args(browser_args())
+        .build()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
@@ -1361,6 +1386,94 @@ fn set_preview_frozen(app: &AppHandle, on: bool) {
 // Kontrol paneli penceresi
 // ---------------------------------------------------------------------------
 
+/// Kontrol panelinin son konumu ve boyutu (fiziksel piksel). Pencere taşındıkça / boyutlandıkça bellekte tutulur,
+/// kapanırken (ve en çok 2 sn'de bir) `panel-window.json` dosyasına yazılır; panel bir sonraki açılışta aynı yerde açılır.
+#[derive(Clone, Copy, PartialEq)]
+struct PanelGeom {
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    max: bool,
+}
+
+static PANEL_GEOM: Mutex<Option<PanelGeom>> = Mutex::new(None);
+static PANEL_GEOM_SAVED: Mutex<Option<std::time::Instant>> = Mutex::new(None);
+
+fn panel_geom_path(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("panel-window.json"))
+}
+
+fn load_panel_geom(app: &AppHandle) -> Option<PanelGeom> {
+    if let Some(g) = *PANEL_GEOM.lock() {
+        return Some(g);
+    }
+    let v: Value = serde_json::from_slice(&std::fs::read(panel_geom_path(app)?).ok()?).ok()?;
+    let n = |k: &str| v.get(k).and_then(|x| x.as_i64());
+    let g = PanelGeom {
+        x: n("x")? as i32,
+        y: n("y")? as i32,
+        w: n("w")?.clamp(0, 20000) as u32,
+        h: n("h")?.clamp(0, 20000) as u32,
+        max: v.get("max").and_then(|x| x.as_bool()).unwrap_or(false),
+    };
+    (g.w >= 600 && g.h >= 400).then_some(g)
+}
+
+fn save_panel_geom(app: &AppHandle, force: bool) {
+    let Some(g) = *PANEL_GEOM.lock() else { return };
+    {
+        let mut last = PANEL_GEOM_SAVED.lock();
+        if !force && last.is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(2)) {
+            return;
+        }
+        *last = Some(std::time::Instant::now());
+    }
+    let Some(path) = panel_geom_path(app) else { return };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::write(path, serde_json::json!({ "x": g.x, "y": g.y, "w": g.w, "h": g.h, "max": g.max }).to_string());
+}
+
+/// Pencerenin o anki konumunu / boyutunu kaydeder. Simge durumundayken dokunulmaz; ekranı kaplamışken sadece
+/// "kaplamış" bilgisi güncellenir (normal boyut korunur ki geri küçültünce eski yerine dönsün).
+fn record_panel_geom(app: &AppHandle, w: &tauri::WebviewWindow) {
+    if w.is_minimized().unwrap_or(false) {
+        return;
+    }
+    let max = w.is_maximized().unwrap_or(false);
+    let mut cur = PANEL_GEOM.lock();
+    if max {
+        if let Some(g) = cur.as_mut() {
+            g.max = true;
+        } else if let (Ok(p), Ok(sz)) = (w.outer_position(), w.inner_size()) {
+            *cur = Some(PanelGeom { x: p.x, y: p.y, w: sz.width, h: sz.height, max: true });
+        }
+    } else if let (Ok(p), Ok(sz)) = (w.outer_position(), w.inner_size()) {
+        // Simge durumuna geçerken Windows (-32000, -32000) bildirir
+        if sz.width < 300 || sz.height < 200 || p.x <= -30000 || p.y <= -30000 {
+            return;
+        }
+        *cur = Some(PanelGeom { x: p.x, y: p.y, w: sz.width, h: sz.height, max: false });
+    }
+    drop(cur);
+    save_panel_geom(app, false);
+}
+
+/// Kayıtlı konum hâlâ bir monitörün üstünde mi (monitör çıkarılmış / çözünürlük değişmiş olabilir)
+fn panel_geom_visible(app: &AppHandle, g: &PanelGeom) -> bool {
+    let Ok(mons) = app.available_monitors() else { return false };
+    mons.iter().any(|m| {
+        let (mx, my) = (m.position().x as i64, m.position().y as i64);
+        let (mw, mh) = (m.size().width as i64, m.size().height as i64);
+        let ix = ((g.x as i64 + g.w as i64).min(mx + mw) - (g.x as i64).max(mx)).max(0);
+        // Başlık çubuğu ekranda kalmalı: üst kenar monitörün içinde olsun
+        let top_in = (g.y as i64) >= my - 8 && (g.y as i64) < my + mh - 60;
+        ix >= 200 && top_in
+    })
+}
+
 /// Kontrol paneli kapatılınca tamamen yok edilir (RAM boşalır); tepsiden yeniden açılır.
 fn open_panel(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
@@ -1369,31 +1482,52 @@ fn open_panel(app: &AppHandle) {
         let _ = w.set_focus();
         return;
     }
-    // Ekranın ~%85'i kadar (en fazla 1600×1000), küçük ekranlarda en az 1000×680
+    // İlk açılış: ekranın ~%92'si kadar (en fazla 1760×1000), küçük ekranlarda en az 1200×680.
+    // Sonraki açılışlarda son bırakılan konum ve boyut kullanılır.
     let (w, h) = app
         .primary_monitor()
         .ok()
         .flatten()
         .map(|m| {
             let sz = m.size().to_logical::<f64>(m.scale_factor());
-            ((sz.width * 0.85).clamp(1000.0, 1600.0).min(sz.width), (sz.height * 0.85).clamp(680.0, 1000.0).min(sz.height - 40.0))
+            ((sz.width * 0.92).clamp(1200.0, 1760.0).min(sz.width), (sz.height * 0.85).clamp(680.0, 1000.0).min(sz.height - 40.0))
         })
-        .unwrap_or((1400.0, 880.0));
+        .unwrap_or((1560.0, 880.0));
+    let geom = load_panel_geom(app).filter(|g| panel_geom_visible(app, g));
     let _ = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .title(format!("SRTR Pitwall {}", display_version()))
         .inner_size(w, h)
         .min_inner_size(900.0, 600.0)
         .center()
+        .visible(geom.is_none())
         .additional_browser_args(browser_args())
         .build()
         .map(|w| {
+            if let Some(g) = geom {
+                let _ = w.set_size(PhysicalSize::new(g.w, g.h));
+                let _ = w.set_position(PhysicalPosition::new(g.x, g.y));
+                *PANEL_GEOM.lock() = Some(g);
+                if g.max {
+                    let _ = w.maximize();
+                }
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
             // Panel kapanınca (pencere yok edilir) ekranda tutulan yeni overlay bırakılır
             let app2 = app.clone();
-            w.on_window_event(move |e| {
-                if let tauri::WindowEvent::Destroyed = e {
+            w.on_window_event(move |e| match e {
+                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                    if let Some(w) = app2.get_webview_window("main") {
+                        record_panel_geom(&app2, &w);
+                    }
+                }
+                tauri::WindowEvent::CloseRequested { .. } => save_panel_geom(&app2, true),
+                tauri::WindowEvent::Destroyed => {
+                    save_panel_geom(&app2, true);
                     set_preview_frozen(&app2, false);
                     set_overlay_pin(&app2, None, None);
                 }
+                _ => {}
             });
         });
 }
@@ -1848,6 +1982,7 @@ pub fn run() {
             events_get,
             replay_seek,
             window_open,
+            crew_window_open,
             toast::toast_show,
             toast::toast_take,
             toast::toast_layout,
@@ -1904,6 +2039,7 @@ pub fn run() {
             voicecmd::voicecmd_capture_cancel,
             voicecmd::voicecmd_test_text,
             voicecmd::voicecmd_listen,
+            voicecmd::voicecmd_microphones,
             sound_test,
             mqtt_status,
             translate::translate_text,
@@ -1942,6 +2078,7 @@ pub fn run() {
             entitlement::entitlement_get,
             entitlement::entitlement_set,
             device::device_info,
+            wheeldev::wheel_detect,
             updater::update_check,
             updater::update_install,
             livechat::livechat_start,
@@ -1968,6 +2105,11 @@ pub fn run() {
             livechat::chatlog::livechat_log_delete,
             livechat::chatlog::livechat_log_export,
             livechat::tts::social_tts_speak,
+            livechat::tts::tts_speak,
+            livechat::livechat_streamlabs_reconnect,
+            livechat::livechat_streamlabs_test,
+            livechat::stt::livechat_stt_key_set,
+            livechat::stt::livechat_audio_devices,
             livechat::livechat_streamlabs_token_set,
             livechat::livechat_streamlabs_status,
             livechat::livechat_caption_push,
@@ -2001,7 +2143,10 @@ pub fn run() {
             let demo = general.and_then(|g| g.get("demo")).and_then(|v| v.as_bool()).unwrap_or(false);
             let monitor = general.and_then(|g| g.get("monitor")).and_then(|v| v.as_u64()).map(|v| v as usize);
             let srv = general.and_then(|g| g.get("server"));
-            let srv_on = srv.and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
+            // Web sunucusu varsayılan olarak açık: yeni kurulumda ve bir kereliğine (general.serverOnV1 işareti yokken)
+            // eski kurulumlarda da başlatılır; kullanıcı sonradan kapatırsa (işaret kaydedilmiştir) kapalı kalır.
+            let srv_migrated = general.and_then(|g| g.get("serverOnV1")).and_then(|v| v.as_bool()).unwrap_or(false);
+            let srv_on = !srv_migrated || srv.and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(true);
             let srv_port = srv.and_then(|v| v.get("port")).and_then(|v| v.as_u64()).unwrap_or(8910) as u16;
             let srv_lan = srv.and_then(|v| v.get("lan")).and_then(|v| v.as_bool()).unwrap_or(false);
             shared_state.demo.store(demo, Ordering::Relaxed);
@@ -2016,8 +2161,10 @@ pub fn run() {
             }
 
             // Windows başlangıcında (--tray) sadece tepside başla; elle açılınca paneli göster.
+            // Güncelleme kurulurken panel açıktıysa (işaret dosyası) --tray ile yeniden başlasa bile panel açılır.
             let from_autostart = std::env::args().any(|a| a == TRAY_ARG);
-            if !from_autostart {
+            let reopen = updater::take_reopen_panel(&handle);
+            if !from_autostart || reopen {
                 open_panel(&handle);
             }
 
@@ -2029,6 +2176,24 @@ pub fn run() {
             livechat::init(&handle, shared_state.clone());
             if srv_on {
                 apply_server(&handle, true, srv_port, srv_lan);
+            }
+            // Canlı taşıma: pencereler arası "overlay-live-drag" olayı OBS sayfasına da (SSE) iletilir, ~30/sn
+            {
+                use tauri::Listener;
+                let drag_shared = shared_state.clone();
+                let last = Mutex::new(std::time::Instant::now());
+                handle.listen("overlay-live-drag", move |ev| {
+                    let Ok(v) = serde_json::from_str::<Value>(ev.payload()) else { return };
+                    let end = v.get("end").and_then(|e| e.as_bool()).unwrap_or(false);
+                    if !end {
+                        let mut t = last.lock();
+                        if t.elapsed() < std::time::Duration::from_millis(30) {
+                            return;
+                        }
+                        *t = std::time::Instant::now();
+                    }
+                    drag_shared.broadcast_drag(v);
+                });
             }
             if let Some(v) = saved.as_ref() {
                 apply_dynamic(&handle, v);

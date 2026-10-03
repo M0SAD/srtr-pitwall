@@ -38,6 +38,10 @@ export interface OverlayInstance {
   options: Record<string, any>;
   /** Bu kopyaya özel görünüm (renk, biçim, yazı; bkz. sdk/look.ts). Yoksa genel tema. */
   look?: OverlayLook;
+  /** Arka plan (panel) opaklığı çarpanı 0..1 (yok = 1: temadaki gibi). Yazılar opak kalır. Bkz. sdk/lookStyle.ts */
+  bgOpacity?: number;
+  /** Düzene eklendiği an (ms): overlay listesinde ekli olanlar bu sırayla gösterilir */
+  addedAt?: number;
 }
 
 /** Düzenin ne zaman kullanılacağı */
@@ -64,6 +68,10 @@ export interface Profile {
   link?: StreamLink;
   /** Listedeki sıra (sağ tık › Yukarı / Aşağı taşı). Yoksa oluşturulma sırası. */
   order?: number;
+  /** Kilitli düzen: yerleşimi ve overlay ayarları değiştirilemez, silinemez (listeden kilit açılır) */
+  locked?: boolean;
+  /** Toplulukta paylaşıldıysa paylaşımın kimliği (yeniden paylaşırken "öncekini güncelle" için) */
+  sharedId?: string;
 }
 
 /** Bağlı yayın düzeni: `source` düzen kimliği ya da "@active" (uygulamada o an etkin düzen) */
@@ -192,6 +200,8 @@ export interface LiveChatSettings {
   channels: LiveChannel[];
   /** Varsayılan kanallar bir kez eklendi (kullanıcı silerse geri gelmez) */
   seeded: boolean;
+  /** Bir kerelik geçiş: kanal listesi boş kalmış eski kurulumlara varsayılan kanallar yeniden eklendi, sıra düzeltildi */
+  seedV2?: boolean;
   /** YouTube sohbet yoklama aralığı (sn, 1..10) */
   ytInterval: number;
   /** YouTube web istemcisi sürümü (boş: otomatik). YouTube değişirse elle güncellemek için. */
@@ -272,7 +282,26 @@ export interface LiveChatTts {
 
 export interface LiveChatStt {
   enabled: boolean;
-  /** Tanıma dili (ör. "tr-TR"; boş: Windows konuşma dili) */
+  /**
+   * Motor. windows: Windows konuşma tanıma (anahtarsız; yalnızca mikrofon; yalnızca konuşma paketi kurulu diller, Türkçe yok).
+   * cloud: Çevrimiçi Whisper (OpenAI uyumlu sunucu; API anahtarı ister; Türkçe, cihaz seçimi ve bilgisayar sesi).
+   */
+  engine: "windows" | "cloud";
+  /** Ses kaynağı: mikrofon / bilgisayar sesi (Discord vb.; yalnızca cloud motoru) / ikisi */
+  source: "mic" | "system" | "both";
+  /** cloud: mikrofonun (kayıt cihazının) adı; boş: Windows varsayılanı */
+  micDevice: string;
+  /** cloud: bilgisayar sesinin alınacağı çıkış cihazının adı (geri döngü); boş: Windows varsayılanı */
+  systemDevice: string;
+  /** Bilgisayar sesinden gelen altyazının önündeki ad (ör. "Discord"; boş bırakılabilir) */
+  remoteLabel: string;
+  /** cloud: dil kodu (ör. "tr"); boş: arayüz dili, "auto": otomatik algıla */
+  cloudLanguage: string;
+  /** cloud: sunucu. Anahtar burada DEĞİL (Rust'ta şifreli dosyada). */
+  cloud: { provider: "groq" | "openai" | "custom"; url: string; model: string };
+  /** cloud: konuşma algılama hassasiyeti 1..10 */
+  sensitivity: number;
+  /** Windows motoru: tanıma dili (ör. "en-US"; boş: Windows konuşma dili) */
   language: string;
   /** Küfürleri yıldızla (ilk harf kalır) */
   profanity: boolean;
@@ -284,11 +313,15 @@ export interface LiveChatStt {
   label: string;
 }
 
+/** Varsayılan Canlı Sohbet kanalları, bu sırayla (YouTube ilk: ücretsiz sürümde yalnızca ilk kanal bağlanır) */
+export const DEFAULT_LIVE_CHANNELS = ["https://www.youtube.com/@ErkinAzcan", "https://kick.com/erkinazcan", "https://www.twitch.tv/erkinazcan"];
+
 export function defaultLiveChat(): LiveChatSettings {
   return {
     autoStart: false,
-    channels: [],
-    seeded: false,
+    channels: defaultLiveChannels(),
+    seeded: true,
+    seedV2: true,
     ytInterval: 2,
     ytClientVersion: "",
     moderation: { banned: [], wordFilter: false, words: "", wordMode: "mask", blockLinks: false, spam: true, spamWindow: 10, mirrorDeletes: true },
@@ -317,7 +350,22 @@ export function defaultLiveChat(): LiveChatSettings {
       pitch: 0,
       volume: 80,
     },
-    stt: { enabled: false, language: "", profanity: false, profanityWords: "", pauseWhileTts: true, label: "" },
+    stt: {
+      enabled: false,
+      engine: "windows",
+      source: "mic",
+      micDevice: "",
+      systemDevice: "",
+      remoteLabel: "Discord",
+      cloudLanguage: "",
+      cloud: { provider: "groq", url: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
+      sensitivity: 5,
+      language: "",
+      profanity: false,
+      profanityWords: "",
+      pauseWhileTts: true,
+      label: "",
+    },
     sendTarget: "mine",
   };
 }
@@ -327,8 +375,9 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
   const d = defaultLiveChat();
   if (!v || typeof v !== "object") {
     const ch = (twitchChannel ?? "").trim().replace(/^#/, "");
-    if (ch) d.channels = [{ url: `https://www.twitch.tv/${ch}` }];
-    return seedLiveChannels(d);
+    // Eski "Twitch Sohbeti" kanalı (varsayılanlardan biri değilse) çalışmaya devam etsin diye listenin başına gelir
+    if (ch && !DEFAULT_LIVE_CHANNELS.some((u) => u.toLowerCase() === `https://www.twitch.tv/${ch}`.toLowerCase())) d.channels.unshift({ url: `https://www.twitch.tv/${ch}` });
+    return d;
   }
   const banned = (v.moderation as any)?.banned;
   return seedLiveChannels({
@@ -343,19 +392,29 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
     poll: { ...d.poll, ...(v.poll ?? {}) },
     captions: { ...d.captions, ...(v.captions ?? {}) },
     tts: { ...d.tts, ...(v.tts ?? {}), platforms: { ...d.tts.platforms, ...(v.tts?.platforms ?? {}) } },
-    stt: { ...d.stt, ...(v.stt ?? {}) },
+    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) } },
     sendTarget: typeof v.sendTarget === "string" && v.sendTarget ? v.sendTarget : "mine",
   });
 }
 
-/** İlk kullanımda (kanal listesi boşken) eklenen varsayılan kanallar, bu sırayla */
-export const DEFAULT_LIVE_CHANNELS = ["https://www.youtube.com/@ErkinAzcan", "https://kick.com/erkinazcan", "https://www.twitch.tv/erkinazcan"];
+function defaultLiveChannels(): LiveChannel[] {
+  return DEFAULT_LIVE_CHANNELS.map((url) => ({ url, hidden: false, tag: null, mine: false, name: "" }));
+}
 
-/** Liste boşsa ve daha önce eklenmediyse varsayılan kanalları bir kez ekler (`seeded`; silinince geri gelmez) */
+/**
+ * Varsayılan kanallar: yeni kurulumda `defaultLiveChat` ile gelir. Kayıtlı ayarda liste boşsa bir kez eklenir
+ * (`seedV2`: eski sürümde `seeded` işaretlenip listesi boş kalmış kurulumlar da bir kez daha tohumlanır; kullanıcı
+ * sonra silerse geri gelmez). Liste tam olarak varsayılan üç kanaldan oluşuyorsa sıra YouTube, Kick, Twitch yapılır.
+ */
 function seedLiveChannels(x: LiveChatSettings): LiveChatSettings {
-  if (x.seeded === true) return x;
-  if (!x.channels.length) x.channels = DEFAULT_LIVE_CHANNELS.map((url) => ({ url, hidden: false, tag: null, mine: false, name: "" }));
+  if (x.seeded === true && x.seedV2 === true) return x;
+  if (!x.channels.length) x.channels = defaultLiveChannels();
+  else if (x.seedV2 !== true && x.channels.length === DEFAULT_LIVE_CHANNELS.length) {
+    const idx = (c: LiveChannel) => DEFAULT_LIVE_CHANNELS.findIndex((u) => u.toLowerCase() === c.url.trim().replace(/\/+$/, "").toLowerCase());
+    if (x.channels.every((c) => idx(c) >= 0) && new Set(x.channels.map(idx)).size === x.channels.length) x.channels = [...x.channels].sort((a, b) => idx(a) - idx(b));
+  }
   x.seeded = true;
+  x.seedV2 = true;
   return x;
 }
 
@@ -404,9 +463,15 @@ export interface VoiceCommandSettings {
   confidence: number;
   /** Dinleme / anlaşıldı / anlaşılmadı bipleri */
   beeps: boolean;
+  /** Mikrofon (Windows kayıt cihazı kimliği); boş: Windows varsayılanı. Cihaz yoksa varsayılana düşülür. */
+  mic: string;
+  /** Seçilen mikrofonun adı (cihaz çıkarılmışsa göstermek için) */
+  micName: string;
+  /** Bir kerelik geçiş: sesli komut varsayılan olarak açık (kullanıcı sonra kapatırsa kapalı kalır) */
+  onV1?: boolean;
 }
 
-export const DEFAULT_VOICE_COMMANDS: VoiceCommandSettings = { enabled: false, mode: "hold", key: "", button: null, language: "", confidence: 40, beeps: true };
+export const DEFAULT_VOICE_COMMANDS: VoiceCommandSettings = { enabled: true, mode: "hold", key: "", button: null, language: "", confidence: 40, beeps: true, mic: "", micName: "", onV1: true };
 
 export const VOICE_CATEGORIES: { id: string; name: string; desc: string }[] = [
   { id: "spotter", name: "Spotter", desc: "Solda/sağda araç, üç araç yan yana, temiz, hâlâ orada" },
@@ -626,6 +691,8 @@ export interface GeneralSettings {
    * OBS sayfası bağlı yayın düzenlerini bu boyutlardan yayın çözünürlüğüne oranlar. */
   screens?: Record<string, { w: number; h: number }>;
   server: ServerSettings;
+  /** Web sunucusu bir kez varsayılan olarak açıldı (kullanıcı sonra kapatabilir). Rust açılışta aynı işarete bakar. */
+  serverOnV1?: boolean;
   mqtt: MqttSettings;
   /** Genel kısayollar (boş: kısayol yok) */
   shortcuts: {
@@ -664,9 +731,11 @@ export interface GeneralSettings {
   /** Uygulama (panel) arka planı; istenirse overlay'lerde de */
   appBg: AppBg;
   /** Arkadaş listesi: rahatsız etme, mesaj kabulü, mesaj sesi */
-  social: { dnd: boolean; acceptMessages: boolean; sound: boolean; /** Konuşma altyazımı ekibimle paylaş (Ekip Pitwall'ı; yok = açık) */ crewSpeech?: boolean };
+  social: { dnd: boolean; /** Çevrimdışı görün (c65; yok = kapalı) */ invisible?: boolean; acceptMessages: boolean; sound: boolean; /** Konuşma altyazımı ekibimle paylaş (Ekip Pitwall'ı; yok = açık) */ crewSpeech?: boolean; /** Ekip mesajlarını ekranın alt ortasında kutucukta göster (yok = açık) */ crewBox?: boolean };
   /** Demo açıkken sesli spotter ve bipler sussun */
   demoMute: boolean;
+  /** Bir kerelik geçiş: demo sesi varsayılan olarak kapalı (kullanıcı sonra açarsa açık kalır) */
+  demoMuteV1?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
   allowDuplicates: boolean;
   /** Ekran görüntüleri */
@@ -713,6 +782,13 @@ export interface AppSettings {
   general: GeneralSettings;
   activeProfile: string;
   profiles: Record<string, Profile>;
+  /**
+   * "Overlaylarım" sayfasında ayarlanan, overlay türü başına varsayılanlar: bir overlay bir düzene eklendiğinde
+   * bu ayarlarla (seçenekler, özel görünüm, boyut, opaklık, gizleme kuralları) gelir. Konum ve monitör düzene aittir.
+   */
+  defaults: Record<string, OverlayInstance>;
+  /** "Overlaylarım"da kullanıcının verdiği overlay sırası (tür kimlikleri). Boş: kategorilere göre varsayılan sıra. */
+  overlayOrder: string[];
   /** Tüm overlay'lerin ortak görünümü */
   theme: Theme;
   /** Topluluktan indirilen temalar (Görünüm'de hazır temaların yanında) */
@@ -737,8 +813,27 @@ export function defaultInstance(id: string): OverlayInstance {
     y: m.defaultPosition.y,
     scale: 1,
     opacity: 1,
+    ...(typeof m.defaultBgOpacity === "number" ? { bgOpacity: m.defaultBgOpacity } : {}),
     options: LOGO_COL_TYPES.includes(m.id) ? { ...defaultOptions(m), logoColV1: true, ...(m.id === "relative" ? { relFlairV1: true } : { stFlairV1: true }) } : defaultOptions(m),
   };
+}
+
+/**
+ * Bir kerelik geçiş (lcDefV1): Canlı Sohbet overlay'inin yeni varsayılanları (genişlik 480, en fazla 10 mesaj, yazı 16 px,
+ * izleyici çubuğu Normal, saat açık) eski varsayılanında bırakılmış kayıtlı kopyalara da uygulanır; kullanıcının
+ * değiştirdiği değerlere dokunulmaz.
+ */
+function lcDefMigrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if (type !== "livechat" || saved?.lcDefV1) return options;
+  if (saved) {
+    if ((saved.width ?? 360) === 360) options.width = 480;
+    if ((saved.maxMessages ?? 12) === 12) options.maxMessages = 10;
+    if ((saved.fontSize ?? 15) === 15) options.fontSize = 16;
+    if ((saved.viewerBar ?? "off") === "off") options.viewerBar = "normal";
+    if ((saved.showClock ?? false) === false) options.showClock = true;
+  }
+  options.lcDefV1 = true;
+  return options;
 }
 
 /** Marka logosu sütunu olan overlay türleri */
@@ -797,6 +892,55 @@ function stFlairMigrate(type: string, saved: Record<string, any> | undefined, op
 }
 
 /**
+ * Bir kerelik geçiş (c63V1): Sıralama Tablosu / Yakındakiler / Yakın Takip yeni varsayılanları. Yalnızca hâlâ ESKİ
+ * varsayılanında duran değerler yeni varsayılana alınır; kullanıcının değiştirdiği değerlere dokunulmaz.
+ */
+function c63Migrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if ((type !== "standings" && type !== "relative" && type !== "duel") || saved?.c63V1) return options;
+  const same = (v: unknown, old: string[]) => Array.isArray(v) && v.length === old.length && old.every((k, i) => v[i] === k);
+  if (saved && type === "standings") {
+    if ((saved.topOwn ?? 3) === 3) options.topOwn = 8;
+    if (same(saved.headerFields, ["remaining", "sof"])) options.headerFields = ["remaining", "sof", "incidents", "position", "brakeBias"];
+    if (Array.isArray(options.columns) && !(options.columns as { key: string }[]).some((c) => c?.key === "irDelta")) {
+      const cols = [...(options.columns as { key: string; on: boolean }[])];
+      const at = cols.findIndex((c) => c?.key === "irating");
+      cols.splice(at < 0 ? cols.length : at + 1, 0, { key: "irDelta", on: true });
+      options.columns = cols;
+    }
+  }
+  if (saved && type === "relative" && same(saved.footerFields, ["sof", "incidents", "remaining", "clock"]))
+    options.footerFields = ["sof", "incidents", "position", "brakeBias", "remaining", "clock"];
+  if (saved && type === "duel") {
+    // Eşik türü eskiden fark birimiyle aynıydı
+    if (saved.thresholdMode === undefined) options.thresholdMode = saved.gapUnit === "m" ? "m" : "s";
+    if ((saved.showMe ?? true) === true) options.showMe = false;
+    if ((saved.blur ?? true) === true) options.blur = false;
+    if ((saved.width ?? 380) === 380) options.width = 560;
+    if ((saved.bgOpacity ?? 80) === 80) options.bgOpacity = 90;
+    if (same(saved.fields, ["class", "pos", "flair", "num", "name", "car", "irating", "pit", "trend", "gap"]))
+      options.fields = ["class", "pos", "flair", "num", "name", "car", "license", "irating", "tire", "pit", "trend", "gap"];
+  }
+  options.c63V1 = true;
+  return options;
+}
+
+/**
+ * Bir kerelik geçiş (mapMeV1): Pist Haritası ve Mini Harita'da kendi aracının işareti varsayılanı kırmızı ok oldu,
+ * Pist Haritası'nda "Pist içini doldur" kapalı geliyor. Eski varsayılanında (daire / beyaz / dolgu açık) kalmış kayıtlı
+ * kopyalar yeni varsayılana alınır; kullanıcının değiştirdiği değerlere ve sonraki seçimlerine dokunulmaz.
+ */
+function mapMeMigrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if ((type !== "trackmap" && type !== "minimap") || saved?.mapMeV1) return options;
+  if (saved) {
+    if ((saved.meShape ?? "circle") === "circle") options.meShape = "arrow";
+    if (String(saved.meColor ?? "#ffffff").toLowerCase() === "#ffffff") options.meColor = "#ff3b30";
+    if (type === "trackmap" && saved.fill !== false) options.fill = false;
+  }
+  options.mapMeV1 = true;
+  return options;
+}
+
+/**
  * Bir kerelik geçiş: Radar'ın eski "Spotter çubukları" görünümü ayrı bir overlay (spotterbar, Çubuk Spotter) oldu.
  * Görünümü çubuk olan kayıtlı radar kopyasından aynı konumda, eşdeğer ayarlarla bir Çubuk Spotter kopyası üretir;
  * yoksa null. (Radar'dan `style` silindiği için bir daha çalışmaz.)
@@ -833,6 +977,41 @@ export function newProfile(id: string, name: string): Profile {
   return { id, name, overlays, rules: defaultRules() };
 }
 
+/** "Overlaylarım" varsayılanlarının sözde düzen kimliği (updateOverlay / profileById ile kullanılır) */
+export const DEFAULTS_ID = "@defaults";
+
+/** Fabrika varsayılanları: her tür için bir kopya */
+export function factoryDefaults(): Record<string, OverlayInstance> {
+  const out: Record<string, OverlayInstance> = {};
+  for (const m of manifests) out[m.id] = { ...defaultInstance(m.id), enabled: false };
+  return out;
+}
+
+/** Bir düzen kopyasından varsayılana taşınan alanlar (konum, monitör, ad ve açık/kapalı düzene aittir) */
+function defaultFrom(type: string, src: Partial<OverlayInstance> | undefined): OverlayInstance {
+  const def = defaultInstance(type);
+  const look = normalizeLook(src?.look);
+  const num = (v: unknown, d: number, lo: number, hi: number) => (typeof v === "number" && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d);
+  return {
+    ...def,
+    enabled: false,
+    hideInGarage: typeof src?.hideInGarage === "boolean" ? src.hideInGarage : def.hideInGarage,
+    hideOnTrack: typeof src?.hideOnTrack === "boolean" ? src.hideOnTrack : def.hideOnTrack,
+    alwaysShow: typeof src?.alwaysShow === "boolean" ? src.alwaysShow : def.alwaysShow,
+    scale: num(src?.scale, 1, 0.2, 3),
+    opacity: num(src?.opacity, 1, 0.2, 1),
+    ...(typeof (src?.bgOpacity ?? def.bgOpacity) === "number" ? { bgOpacity: num(src?.bgOpacity, def.bgOpacity ?? 1, 0, 1) } : {}),
+    options: c63Migrate(type, src?.options, mapMeMigrate(type, src?.options, lcDefMigrate(type, src?.options, { ...def.options, ...(src?.options && typeof src.options === "object" ? structuredClone(src.options) : {}) }))),
+    ...(look ? { look } : {}),
+  };
+}
+
+/** Düzen ya da "Overlaylarım" varsayılanları (DEFAULTS_ID) */
+export function profileById(id: string | undefined | null, s: AppSettings = settings()): Profile | undefined {
+  if (id === DEFAULTS_ID) return { id: DEFAULTS_ID, name: "", overlays: s.defaults, rules: defaultRules() };
+  return id ? s.profiles[id] : undefined;
+}
+
 export function defaultRules(): ProfileRules {
   return { mode: "driving", cars: [], sessions: [] };
 }
@@ -851,7 +1030,8 @@ export function defaultSettings(): AppSettings {
       snapToEdges: true,
       gridSize: 20,
       autoSwitch: false,
-      server: { enabled: false, port: 8910, lan: false },
+      server: { enabled: true, port: 8910, lan: false },
+      serverOnV1: true,
       mqtt: defaultMqtt(),
       shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", crewStop: "", dashPage: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
       shotKeyV2: true,
@@ -861,7 +1041,8 @@ export function defaultSettings(): AppSettings {
       convBg: {},
       appBg: { ...DEFAULT_APP_BG },
       allowDuplicates: false,
-      demoMute: false,
+      demoMute: true,
+      demoMuteV1: true,
       social: { dnd: false, acceptMessages: true, sound: true },
       screenshots: { includeOverlays: true, onlyInGame: true, format: "jpg", quality: 92 },
       editBackdrop: { enabled: true, opacity: 100, rev: 0, has: false },
@@ -902,6 +1083,8 @@ export function defaultSettings(): AppSettings {
     },
     activeProfile: "default",
     profiles: { default: newProfile("default", "Varsayılan") },
+    defaults: factoryDefaults(),
+    overlayOrder: [],
     theme: { ...DEFAULT_THEME },
     savedThemes: [],
     league: { active: "", configs: [] },
@@ -940,7 +1123,12 @@ export function normalize(input: unknown): AppSettings {
       ...d.general,
       ...(s.general ?? {}),
       sim: SIM_CHOICES.includes(s.general?.sim as SimChoice) ? (s.general!.sim as SimChoice) : "auto",
-      server: { ...d.general.server, ...(s.general?.server ?? {}) },
+      // Bir kerelik geçiş (serverOnV1): web sunucusu varsayılan olarak açılır; kullanıcı sonra kapatırsa kapalı kalır
+      server: { ...d.general.server, ...(s.general?.server ?? {}), ...(s.general?.serverOnV1 ? {} : { enabled: true }) },
+      serverOnV1: true,
+      // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
+      demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,
+      demoMuteV1: true,
       shortcuts: shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3),
       shotKeyV2: true,
       shotKeyV3: true,
@@ -971,7 +1159,7 @@ export function normalize(input: unknown): AppSettings {
         ...(s.general?.voice ?? {}),
         sessions: { ...d.general.voice.sessions, ...(s.general?.voice?.sessions ?? {}) },
         categories: { ...d.general.voice.categories, ...(s.general?.voice?.categories ?? {}) },
-        commands: { ...DEFAULT_VOICE_COMMANDS, ...(s.general?.voice?.commands ?? {}) },
+        commands: { ...DEFAULT_VOICE_COMMANDS, ...(s.general?.voice?.commands ?? {}), ...(s.general?.voice?.commands?.onV1 ? {} : { enabled: true }), onV1: true },
       }),
       sounds: {
         fasterClass: { ...d.general.sounds.fasterClass, ...(s.general?.sounds?.fasterClass ?? {}) },
@@ -984,6 +1172,8 @@ export function normalize(input: unknown): AppSettings {
     },
     activeProfile: typeof s.activeProfile === "string" ? s.activeProfile : "default",
     profiles: {},
+    defaults: {},
+    overlayOrder: Array.isArray(s.overlayOrder) ? [...new Set(s.overlayOrder.filter((x) => typeof x === "string"))] : [],
     theme: normalizeTheme(s.theme),
     savedThemes: Array.isArray(s.savedThemes)
       ? s.savedThemes
@@ -1011,6 +1201,9 @@ export function normalize(input: unknown): AppSettings {
       rules: { ...defaultRules(), ...(p?.rules ?? {}) },
       canvas: p?.canvas && p.canvas.w > 0 && p.canvas.h > 0 ? p.canvas : undefined,
     };
+    if (typeof p?.order === "number" && isFinite(p.order)) prof.order = p.order;
+    if (p?.locked === true) prof.locked = true;
+    if (typeof p?.sharedId === "string" && p.sharedId) prof.sharedId = p.sharedId;
     if (p?.link && typeof p.link.source === "string" && p.link.source && prof.rules.mode === "stream")
       prof.link = { source: p.link.source, hidden: Array.isArray(p.link.hidden) ? p.link.hidden.filter((x) => typeof x === "string") : [] };
     // Kayıtlı kopyalar (anahtar: kopya kimliği; eski ayarlarda anahtar = overlay türü)
@@ -1038,7 +1231,7 @@ export function normalize(input: unknown): AppSettings {
         }
       }
       const look = normalizeLook((cur as OverlayInstance)?.look);
-      prof.overlays[key] = { ...def, ...cur, ...(look ? { look } : { look: undefined }), type, options: stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }))) };
+      prof.overlays[key] = { ...def, ...cur, ...(look ? { look } : { look: undefined }), type, options: c63Migrate(type, cur?.options, mapMeMigrate(type, cur?.options, stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, lcDefMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) })))))) };
     }
     // Her türün bir ana kopyası olsun (yeni eklenen overlay'ler otomatik gelir)
     for (const m of manifests) {
@@ -1048,6 +1241,11 @@ export function normalize(input: unknown): AppSettings {
   }
   if (Object.keys(out.profiles).length === 0) out.profiles = d.profiles;
   if (!out.profiles[out.activeProfile]) out.activeProfile = Object.keys(out.profiles)[0];
+  // Overlay varsayılanları. İlk geçişte (kayıtta yoksa) etkin düzendeki ayarlardan alınır: kullanıcının
+  // o güne kadar Overlay'ler sayfasında yaptığı ayarlar kaybolmasın.
+  const savedDef = s.defaults && typeof s.defaults === "object" ? (s.defaults as Record<string, Partial<OverlayInstance>>) : null;
+  const seed = savedDef ? null : s.profiles && typeof s.profiles === "object" ? out.profiles[out.activeProfile] : null;
+  for (const m of manifests) out.defaults[m.id] = defaultFrom(m.id, savedDef ? savedDef[m.id] : seed?.overlays[m.id]);
   return out;
 }
 
@@ -1189,8 +1387,63 @@ export function removeInstance(key: string, profileId?: string) {
 /** Overlay ayarını değiştir. `profileId` verilmezse panelde seçili düzen. */
 export function updateOverlay(id: string, fn: (o: OverlayInstance) => void, profileId?: string) {
   updateSettings((d) => {
+    if (profileId === DEFAULTS_ID) {
+      if (d.defaults[id]) fn(d.defaults[id]);
+      return;
+    }
     const pid = profileId && d.profiles[profileId] ? profileId : d.activeProfile;
-    fn(d.profiles[pid].overlays[id]);
+    const o = d.profiles[pid].overlays[id];
+    if (o) fn(o);
+  });
+}
+
+/**
+ * Overlay'i düzene ekler: "Overlaylarım"daki varsayılan ayarlarla gelir. Tek kopyalı türlerde zaten ekliyse
+ * var olanın anahtarını döner; çok kopyalı türlerde (veri kutusu, webview) yeni bir kopya açar.
+ */
+export function addToLayout(profileId: string, type: string, monitor = ""): string | null {
+  const man = manifests.find((m) => m.id === type);
+  if (!man) return null;
+  let key: string | null = null;
+  updateSettings((d) => {
+    const p = d.profiles[profileId];
+    if (!p) return;
+    const def = d.defaults[type] ?? defaultInstance(type);
+    const fresh = (): OverlayInstance => ({ ...structuredClone(def), type, name: "", enabled: true, addedAt: Date.now(), monitor, x: man.defaultPosition.x, y: man.defaultPosition.y });
+    const base = p.overlays[type];
+    if (!base || !base.enabled) {
+      p.overlays[type] = fresh();
+      key = type;
+    } else if (man.multiInstance) {
+      let n = 2;
+      while (p.overlays[`${type}#${n}`]) n++;
+      const count = Object.values(p.overlays).filter((o) => o.type === type && o.enabled).length;
+      const inst = fresh();
+      inst.x += 40 * count;
+      inst.y += 40 * count;
+      key = `${type}#${n}`;
+      p.overlays[key] = inst;
+    } else key = type;
+  });
+  return key;
+}
+
+/** Düzendeki kopyayı "Overlaylarım" varsayılanlarına döndürür (konum, monitör ve ad korunur) */
+export function resetToDefaults(profileId: string, key: string) {
+  updateSettings((d) => {
+    const o = d.profiles[profileId]?.overlays[key];
+    if (!o) return;
+    const def = d.defaults[o.type] ?? defaultInstance(o.type);
+    o.options = structuredClone(def.options);
+    if (def.look) o.look = structuredClone(def.look);
+    else delete o.look;
+    o.scale = def.scale;
+    o.opacity = def.opacity;
+    if (typeof def.bgOpacity === "number") o.bgOpacity = def.bgOpacity;
+    else delete o.bgOpacity;
+    o.hideInGarage = def.hideInGarage;
+    o.hideOnTrack = def.hideOnTrack;
+    o.alwaysShow = def.alwaysShow;
   });
 }
 

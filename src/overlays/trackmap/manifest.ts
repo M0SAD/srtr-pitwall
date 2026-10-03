@@ -41,7 +41,7 @@ export default defineOverlay({
       ],
     },
     { key: "mirror", label: "Aynala (harita ters görünüyorsa)", type: "boolean", default: false },
-    { key: "fill", label: "Pist içini doldur", type: "boolean", default: true },
+    { key: "fill", label: "Pist içini doldur", type: "boolean", default: false },
     { key: "rotateFine", label: "Ek döndürme açısı", type: "number", default: 0, min: 0, max: 355, step: 5, unit: "°", group: "Pist görünümü" },
     {
       key: "fillOpacity",
@@ -111,7 +111,7 @@ export default defineOverlay({
     { key: "classColors", label: "Sınıf renklerini kullan", type: "boolean", default: true, group: "Araçlar" },
     { key: "carColor", label: "Araç rengi", type: "color", default: "#e03b3b", group: "Araçlar", showIf: { key: "classColors", is: [false] } },
     { key: "dimPit", label: "Pitteki araçları soluk göster", type: "boolean", default: true, group: "Araçlar" },
-    ...meMarkerFields({ color: "#ffffff" }),
+    ...meMarkerFields({ color: "#ff3b30", shape: "arrow" }),
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 10, min: 2, max: 30, step: 1, unit: "Hz" },
   ],
 });

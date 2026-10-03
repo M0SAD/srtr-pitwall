@@ -76,11 +76,38 @@ export interface OverlayManifest {
   /** Ekrana eklenince hedef monitörün tam ortasına yerleşir (bkz. monitors.ts centerInstance); `defaultPosition` 1920×1080 için ortadır */
   defaultCenter?: boolean;
   defaultEnabled?: boolean;
+  /** Overlay listelerinde (Overlay'ler sayfası, düzen paleti) hiç gösterilmez; var olan düzenlerdeki kopyalar çalışmaya devam eder */
+  hidden?: boolean;
   /** Yeni kopyada "iRacing kapalıyken de göster" açık gelsin (ör. canlı sohbet) */
   defaultAlwaysShow?: boolean;
   /** Ayarlar → Genel'de "aynı overlay'den birden fazla" kapalı olsa bile birden çok kopya eklenebilir */
   multiInstance?: boolean;
+  /** Yeni kopyanın arka plan opaklığı çarpanı (0..1; yok = 1). Ayarlarda "Arka plan opaklığı" ile değiştirilir. */
+  defaultBgOpacity?: number;
+  /**
+   * Düzenlemede pencere KENARLARINDAN sürükleyince değişecek ayar anahtarları (px cinsinden sayı alanları):
+   * w = genişlik, h = yükseklik. Verilmezse "width" / "height" adlı px sayı alanları kendiliğinden kullanılır;
+   * `false`: kenardan boyutlandırma yok. (Köşeler her zaman ölçeği değiştirir.)
+   */
+  resize?: { w?: string; h?: string } | false;
   settings: SettingField[];
+}
+
+type NumField = Extract<SettingField, { type: "number" }>;
+/** Kenardan boyutlandırılabilen genişlik / yükseklik ayar alanları (bkz. OverlayManifest.resize) */
+export function resizeFields(m: OverlayManifest | undefined): { w?: NumField; h?: NumField } {
+  if (!m || m.resize === false) return {};
+  const find = (key: string | undefined, auto: string) => {
+    const f = m.settings.find((x) => x.key === (key ?? auto));
+    return f && f.type === "number" && (key !== undefined || f.unit === "px") ? f : undefined;
+  };
+  return { w: find(m.resize?.w, "width"), h: find(m.resize?.h, "height") };
+}
+
+/** Kenar sürüklemesinde ayar değerini alanın sınırlarına ve adımına oturtur */
+export function clampField(f: NumField, v: number): number {
+  const step = f.step || 1;
+  return Math.min(f.max, Math.max(f.min, Math.round(v / step) * step));
 }
 
 export type Units = "metric" | "imperial";

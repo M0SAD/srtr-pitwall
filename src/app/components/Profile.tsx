@@ -16,6 +16,7 @@ import {
   avatarUrl,
   guessSocialType,
   iracingCategory,
+  loadIracingCats,
   loadIracingPublic,
   publicProfile,
   removeAvatar,
@@ -32,6 +33,7 @@ import {
 import { teamLogo } from "@/cloud/teams";
 import { openUrl } from "../ui";
 import { Flag } from "@/sdk/Flag";
+import { LicenseBadge, parseLicense } from "@/sdk/LicenseBadge";
 import * as I from "../icons";
 import "../profile.css";
 
@@ -227,7 +229,7 @@ export function ProfileCard(props: {
                     <b>iRacing</b> {p().iracing_name}
                   </small>
                 </Show>
-                <Show when={p().iracing}>{(ir) => <IracingBadges ir={ir()} />}</Show>
+                <Show when={p().iracing}>{(ir) => <IracingBadges ir={ir()} user={p().id} />}</Show>
                 <Show when={p().sims.filter((s) => s.sim !== "iracing" || s.sim_name !== p().iracing_name).length > 0}>
                   <div class="pf-sims">
                     <For each={p().sims.filter((s) => s.sim !== "iracing" || s.sim_name !== p().iracing_name)}>
@@ -290,14 +292,21 @@ export function ProfileCard(props: {
   );
 }
 
-/** iRacing lisans rozeti (sınıf rengi + SR), iRating, ülke bayrağı ve son güncelleme (SQL c56) */
-export function IracingBadges(props: { ir: IracingInfo }) {
-  const dark = () => {
-    const c = (props.ir.lic_color || "").replace("#", "");
-    if (c.length !== 6) return false;
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16));
-    return r * 0.299 + g * 0.587 + b * 0.114 > 150;
+/**
+ * iRacing bilgileri: ülke bayrağı ve KATEGORİ BAŞINA lisans rozeti (sınıf + SR) ve iRating (SQL c56 + c63).
+ * iRacing bu değerleri oturumun kategorisi için verir (yol serisinde yol lisansı, ovalde oval lisansı); bu yüzden
+ * her değer alındığı kategorinin adıyla gösterilir. Eski sunucuda (c63 yok) sadece son sürülen kategori görünür.
+ */
+export function IracingBadges(props: { ir: IracingInfo; user?: string }) {
+  const [cats] = createResource(
+    () => props.user || null,
+    (u) => loadIracingCats(u),
+  );
+  const list = () => {
+    const c = cats();
+    return c && c.length > 0 ? c : [{ category: props.ir.category ?? "", irating: props.ir.irating, license: props.ir.license, lic_color: props.ir.lic_color, updated_at: props.ir.updated_at }];
   };
+  const day = (iso: string) => new Date(iso).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" });
   return (
     <div class="pf-irx">
       <Show when={props.ir.country}>
@@ -305,18 +314,24 @@ export function IracingBadges(props: { ir: IracingInfo }) {
           <Flag code={props.ir.country} />
         </span>
       </Show>
-      <span class="pf-lic" classList={{ dark: dark() }} style={{ background: props.ir.lic_color || "#666" }} title="iRacing lisansı ve Safety Rating" data-no-i18n>
-        {props.ir.license}
-      </span>
-      <span class="pf-irating" title="iRating" data-no-i18n>
-        <b>iR</b> {props.ir.irating.toLocaleString(localeTag())}
-      </span>
-      <Show when={props.ir.category}>
-        <span class="muted small" data-no-i18n>
-          {iracingCategory(props.ir.category)}
-        </span>
-      </Show>
-      <small class="muted">{t("güncellendi: {0}", new Date(props.ir.updated_at).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" }))}</small>
+      <div class="pf-irx-cats">
+        <For each={list()}>
+          {(c) => (
+            <span class="pf-irx-cat" title={t("güncellendi: {0}", day(c.updated_at))}>
+              <Show when={c.category}>
+                <span class="pf-irx-catname" data-no-i18n>
+                  {iracingCategory(c.category)}
+                </span>
+              </Show>
+              <LicenseBadge class="pf-licb" letter={parseLicense(c.license)[0]} sr={parseLicense(c.license)[1]} color={c.lic_color} title="iRacing lisansı ve Safety Rating" />
+              <span class="pf-irating" title="iRating" data-no-i18n>
+                <b>iR</b> {c.irating.toLocaleString(localeTag())}
+              </span>
+            </span>
+          )}
+        </For>
+      </div>
+      <small class="muted">{t("güncellendi: {0}", day(list()[0].updated_at))}</small>
       <Show when={!props.ir.public}>
         <small class="muted">(sadece sen görüyorsun)</small>
       </Show>
@@ -339,7 +354,7 @@ function IracingPublicToggle(props: { ir: IracingInfo | null | undefined; onChan
             modundaki adının yanında görünür.
           </small>
           <Show when={props.ir} fallback={<small class="muted">Henüz bilgi yok: giriş yapmış halde iRacing'de bir oturuma gir.</small>}>
-            {(ir) => <IracingBadges ir={{ ...ir(), public: true }} />}
+            {(ir) => <IracingBadges ir={{ ...ir(), public: true }} user={session()?.user.id} />}
           </Show>
           <Show when={err()}>
             <small class="error">{err()}</small>

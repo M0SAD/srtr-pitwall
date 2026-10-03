@@ -5,7 +5,7 @@ export default defineOverlay({
   id: "captions",
   name: "Altyazı",
   description:
-    "Konuşmadan yazıya çevrilen metni (mikrofon ve isteğe bağlı uzak ses, ör. Discord) altyazı olarak gösterir. Canlı Sohbet sayfasındaki altyazı özelliğiyle çalışır.",
+    "Konuşmadan yazıya çevrilen metni altyazı olarak gösterir: kendi mikrofonun ve isteğe bağlı olarak bilgisayar sesi (ör. Discord'da konuşanlar), her biri kendi etiketi ve rengiyle. Kaynak ve cihazlar Canlı Sohbet › Konuşma → yazı sekmesinden seçilir.",
   category: "stream",
   topics: [{ name: "captions", hz: 5 }],
   size: { w: 900, h: 120 },
@@ -24,7 +24,7 @@ export default defineOverlay({
     { key: "font", label: "Yazı tipi", type: "select", default: "", options: FONT_OPTIONS },
     { key: "fontSize", label: "Yazı boyutu", type: "number", default: 36, min: 12, max: 160, step: 2, unit: "px" },
     { key: "color", label: "Yazı rengi", type: "color", default: "#FFFFFF" },
-    { key: "remoteColor", label: "Uzak ses rengi", type: "color", default: "#5fd3ff" },
+    { key: "remoteColor", label: "Bilgisayar sesi (Discord) rengi", type: "color", default: "#5fd3ff" },
     { key: "bg", label: "Arka plan", type: "boolean", default: true },
     { key: "align", label: "Hizalama", type: "select", default: "center", options: [
       { value: "left", label: "Sol" },

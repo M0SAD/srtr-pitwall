@@ -155,6 +155,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       car: racing() ? s?.carName ?? "" : "",
       session: racing() ? s?.sessionType ?? "" : "",
       dnd: soc().dnd,
+      invisible: !!soc().invisible,
       accept_messages: soc().acceptMessages,
       // Arkadaş listesinde "iRacing'de" rozeti (PRO gerekmez; canlı veri değil, sadece oyun)
       sim: racing() && SIM_IDS.includes(s?.sim ?? "") ? s!.sim! : racing() && !s?.sim ? "iracing" : "",

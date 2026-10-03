@@ -40,6 +40,12 @@ interface CmdEvent {
   fallback: boolean;
 }
 
+interface Mic {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
 interface Example {
   intent: string;
   phrases: string[];
@@ -96,7 +102,7 @@ const INTENT_LABELS: Record<string, string> = {
 const ERRORS: Record<string, string> = {
   privacy: "Windows'ta çevrimiçi konuşma tanıma kapalı: Windows Ayarları › Gizlilik ve güvenlik › Konuşma › “Çevrimiçi konuşma tanıma”yı aç.",
   mic_access: "Mikrofon izni yok: Windows Ayarları › Gizlilik ve güvenlik › Mikrofon › “Masaüstü uygulamalarının mikrofona erişmesine izin ver”i aç.",
-  no_mic: "Mikrofon bulunamadı: Windows ses ayarlarında bir kayıt cihazını varsayılan yap.",
+  no_mic: "Mikrofon bulunamadı: yukarıdan bir mikrofon seç ya da Windows ses ayarlarında bir kayıt cihazını varsayılan yap.",
   network: "Ağ hatası: Windows konuşma tanıma hizmetine ulaşılamadı.",
   no_recognizer: "Windows'ta kurulu bir konuşma tanıma dili bulunamadı.",
   pro: "Sesli komut PRO üyelere özel.",
@@ -157,32 +163,38 @@ export function PttKeyRow(props: { label?: string }) {
   );
 }
 
-export function VoiceCommandsSection() {
-  const locked = () => proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE);
-  const proOnly = () => requiresPro(F.voiceCommands) || requiresPro(VOICE_FEATURE);
-  const [status, { refetch }] = createResource(
-    () => [cmd().language, settings().general.language, locked()] as const,
-    () => invoke<CmdStatus>("voicecmd_status").catch(() => null),
+/** Bas-konuş dinleme kipi satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak) */
+export function PttModeRow() {
+  return (
+    <div class="row">
+      <div>
+        <b>Nasıl dinlesin</b>
+        <small>
+          {cmd().mode === "toggle"
+            ? "Dokun-başlat: düğmeye bir kez bas, sor; sustuğunda kendiliğinden biter (tekrar basarsan hemen biter)."
+            : "Basılı tut: düğme basılıyken dinler, bırakınca cevaplar."}
+        </small>
+      </div>
+      <div class="seg small">
+        <button classList={{ on: cmd().mode !== "toggle" }} onClick={() => setCmd((x) => (x.mode = "hold"))}>
+          Basılı tut
+        </button>
+        <button classList={{ on: cmd().mode === "toggle" }} onClick={() => setCmd((x) => (x.mode = "toggle"))}>
+          Dokun-başlat
+        </button>
+      </div>
+    </div>
   );
-  const [showExamples, setShowExamples] = createSignal(false);
-  const [examples] = createResource(
-    () => (showExamples() ? ([cmd().language, settings().general.language] as const) : null),
-    () => invoke<Example[]>("voicecmd_examples", { language: null }).catch(() => [] as Example[]),
-  );
-  const [last, setLast] = createSignal<CmdEvent | null>(null);
+}
+
+/** Bas-konuş direksiyon / kumanda düğmesi satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak; aynı ayar) */
+export function PttButtonRow(props: { disabled?: boolean }) {
   const [capturing, setCapturing] = createSignal(false);
   const [captureMsg, setCaptureMsg] = createSignal("");
-  const [text, setText] = createSignal("");
-  const [msg, setMsg] = createSignal("");
-
-  onMount(() => {
-    const un = listen<CmdEvent>("voicecmd", (e) => setLast(e.payload)).catch(() => null);
-    onCleanup(() => {
-      void un.then((f) => f?.());
-      if (capturing()) invoke("voicecmd_capture_cancel").catch(() => {});
-    });
+  const bound = () => cmd().button;
+  onCleanup(() => {
+    if (capturing()) invoke("voicecmd_capture_cancel").catch(() => {});
   });
-
   const captureButton = async () => {
     if (capturing()) {
       invoke("voicecmd_capture_cancel").catch(() => {});
@@ -199,6 +211,63 @@ export function VoiceCommandsSection() {
     }
     setCapturing(false);
   };
+  return (
+    <div class="row">
+      <div>
+        <span>Direksiyon / kumanda düğmesi</span>
+        <small>
+          “Direksiyon tuşu ata”ya tıkla, sonra direksiyondaki (ya da düğme kutusundaki) düğmeye bas. Oyun öndeyken de çalışır.
+        </small>
+        <Show when={bound()}>
+          {(b) => (
+            <small class="voice-cmd-bound" data-no-i18n>
+              {b().name} · {t("Düğme {0}", b().button + 1)}
+            </small>
+          )}
+        </Show>
+        <Show when={captureMsg()}>
+          <small class="sc-err">{captureMsg()}</small>
+        </Show>
+      </div>
+      <div class="sc-keys">
+        <button class="sc-key" classList={{ rec: capturing() }} disabled={props.disabled} onClick={captureButton}>
+          {capturing() ? "Düğmeye bas…" : "Direksiyon tuşu ata"}
+        </button>
+        <button class="btn ghost small" title="Düğmeyi kaldır" disabled={!bound()} onClick={() => setCmd((x) => (x.button = null))}>
+          Kaldır
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function VoiceCommandsSection() {
+  const locked = () => proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE);
+  const proOnly = () => requiresPro(F.voiceCommands) || requiresPro(VOICE_FEATURE);
+  const [status, { refetch }] = createResource(
+    () => [cmd().language, settings().general.language, locked()] as const,
+    () => invoke<CmdStatus>("voicecmd_status").catch(() => null),
+  );
+  const [showExamples, setShowExamples] = createSignal(false);
+  const [examples] = createResource(
+    () => (showExamples() ? ([cmd().language, settings().general.language] as const) : null),
+    () => invoke<Example[]>("voicecmd_examples", { language: null }).catch(() => [] as Example[]),
+  );
+  // Kayıt cihazları (Rust: voicecmd_microphones). ★ = Windows'un varsayılan kayıt cihazı
+  const [mics, { refetch: refetchMics }] = createResource(() => invoke<Mic[]>("voicecmd_microphones").catch(() => [] as Mic[]));
+  const micList = () => (mics.error ? [] : (mics() ?? []));
+  const defaultMic = () => micList().find((m) => m.isDefault);
+  const micMissing = () => !!cmd().mic && !mics.loading && micList().length > 0 && !micList().some((m) => m.id === cmd().mic);
+  const [last, setLast] = createSignal<CmdEvent | null>(null);
+  const [text, setText] = createSignal("");
+  const [msg, setMsg] = createSignal("");
+
+  onMount(() => {
+    const un = listen<CmdEvent>("voicecmd", (e) => setLast(e.payload)).catch(() => null);
+    onCleanup(() => {
+      void un.then((f) => f?.());
+    });
+  });
 
   const listenNow = async () => {
     setMsg("");
@@ -222,7 +291,6 @@ export function VoiceCommandsSection() {
 
   const errorText = (code: string) => (ERRORS[code] ? t(ERRORS[code]) : code.startsWith("compile:") || code.startsWith("status:") ? t("Windows konuşma tanıma başlatılamadı ({0}).", code) : code);
   const wantName = () => status()?.wantName || LANGS.find((l) => l.id === (cmd().language || settings().general.language))?.name || "";
-  const bound = () => cmd().button;
   const ready = createMemo(() => cmd().enabled && !locked() && (!!cmd().key || !!cmd().button));
 
   return (
@@ -265,51 +333,8 @@ export function VoiceCommandsSection() {
         <Switch checked={cmd().enabled && !locked()} disabled={locked()} onChange={(on) => setCmd((x) => (x.enabled = on))} />
       </div>
 
-      <div class="row">
-        <div>
-          <b>Nasıl dinlesin</b>
-          <small>
-            {cmd().mode === "toggle"
-              ? "Dokun-başlat: düğmeye bir kez bas, sor; sustuğunda kendiliğinden biter (tekrar basarsan hemen biter)."
-              : "Basılı tut: düğme basılıyken dinler, bırakınca cevaplar."}
-          </small>
-        </div>
-        <div class="seg small">
-          <button classList={{ on: cmd().mode !== "toggle" }} onClick={() => setCmd((x) => (x.mode = "hold"))}>
-            Basılı tut
-          </button>
-          <button classList={{ on: cmd().mode === "toggle" }} onClick={() => setCmd((x) => (x.mode = "toggle"))}>
-            Dokun-başlat
-          </button>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <span>Direksiyon / kumanda düğmesi</span>
-          <small>
-            “Direksiyon tuşu ata”ya tıkla, sonra direksiyondaki (ya da düğme kutusundaki) düğmeye bas. Oyun öndeyken de çalışır.
-          </small>
-          <Show when={bound()}>
-            {(b) => (
-              <small class="voice-cmd-bound" data-no-i18n>
-                {b().name} · {t("Düğme {0}", b().button + 1)}
-              </small>
-            )}
-          </Show>
-          <Show when={captureMsg()}>
-            <small class="sc-err">{captureMsg()}</small>
-          </Show>
-        </div>
-        <div class="sc-keys">
-          <button class="sc-key" classList={{ rec: capturing() }} disabled={locked()} onClick={captureButton}>
-            {capturing() ? "Düğmeye bas…" : "Direksiyon tuşu ata"}
-          </button>
-          <button class="btn ghost small" title="Düğmeyi kaldır" disabled={!bound()} onClick={() => setCmd((x) => (x.button = null))}>
-            Kaldır
-          </button>
-        </div>
-      </div>
+      <PttModeRow />
+      <PttButtonRow disabled={locked()} />
 
       <PttKeyRow />
 
@@ -375,9 +400,43 @@ export function VoiceCommandsSection() {
         <div>
           <b>Mikrofon</b>
           <small>
-            Windows'un varsayılan kayıt cihazı kullanılır. Başka bir mikrofon için Windows ses ayarlarında onu varsayılan yap
-            (Ayarlar › Sistem › Ses › Giriş).
+            Sesli komutların dinleneceği mikrofon. Mikrofon paylaşımlı açılır: Discord ya da başka bir uygulama aynı mikrofonu
+            kullanırken de çalışır. Seçilen cihaz çıkarılırsa Windows'un varsayılan mikrofonuna dönülür.
           </small>
+          <Show when={micMissing()}>
+            <small class="sc-err">{t("Seçili mikrofon bulunamadı ({0}): Windows varsayılanı kullanılıyor.", cmd().micName || "?")}</small>
+          </Show>
+          <Show when={mics.error}>
+            <small class="sc-err">Mikrofon listesi alınamadı.</small>
+          </Show>
+        </div>
+        <div class="sc-keys">
+          <select
+            class="f2-select voice-cmd-mic"
+            value={micMissing() ? "" : cmd().mic}
+            disabled={!status()?.supported}
+            onChange={(e) => {
+              const id = e.currentTarget.value;
+              const m = micList().find((x) => x.id === id);
+              setCmd((x) => {
+                x.mic = id;
+                x.micName = m?.name ?? "";
+              });
+              setTimeout(refetchMics, 600);
+            }}
+          >
+            <option value="">{defaultMic() ? t("Windows varsayılanı ({0})", defaultMic()!.name) : "Windows varsayılanı"}</option>
+            <For each={micList()}>
+              {(m) => (
+                <option value={m.id} data-no-i18n>
+                  {m.name + (m.isDefault ? " ★" : "")}
+                </option>
+              )}
+            </For>
+          </select>
+          <button class="btn ghost small" title="Mikrofon listesini yenile" disabled={!status()?.supported} onClick={() => refetchMics()}>
+            Yenile
+          </button>
         </div>
       </div>
 

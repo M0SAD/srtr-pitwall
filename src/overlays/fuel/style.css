@@ -232,3 +232,272 @@
 .fuel-team-age {
   font-size: 0.8em;
 }
+
+/* ---- Tasarımlar (design) ---- */
+.fuel-d-simple {
+  width: calc(250px * var(--ov-fs-k, 1));
+}
+.fuel-d-bar {
+  width: calc(300px * var(--ov-fs-k, 1));
+}
+.fuel-d-gauge {
+  width: calc(230px * var(--ov-fs-k, 1));
+}
+.fuel-d-line {
+  width: max-content;
+}
+
+.fuel-low,
+.fuel-low b {
+  color: var(--ov-red);
+}
+
+/* Basit */
+.fuel-s-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(5px * var(--ov-pad-k, 1));
+}
+.fuel-s-big {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+.fuel-s-big b {
+  font-size: 1.85em;
+  line-height: 1;
+  font-weight: var(--ov-weight-strong);
+}
+.fuel-s-big.r b {
+  font-size: 1.4em;
+}
+.fuel-s-big.low b {
+  color: var(--ov-red);
+}
+.fuel-s-bar {
+  height: 5px;
+  margin: 0 calc(10px * var(--ov-pad-k, 1));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+  overflow: hidden;
+}
+.fuel-s-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ov-accent);
+  transition: width 0.4s linear;
+}
+.fuel-s-bar > div.low {
+  background: var(--ov-red);
+}
+.fuel-s-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: calc(7px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
+}
+.fuel-s-cons {
+  border-top: 1px solid var(--ov-divider);
+  padding: calc(3px * var(--ov-pad-k, 1)) 0;
+}
+.fuel-s-cons > div {
+  display: grid;
+  grid-template-columns: 4.2em 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  height: calc(var(--ov-row-h) * 0.9);
+  line-height: calc(var(--ov-row-h) * 0.9);
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
+}
+.fuel-s-cons .fuel-rl {
+  color: var(--ov-dim);
+  letter-spacing: 0.04em;
+}
+.fuel-s-cons small {
+  font-size: 0.78em;
+  font-weight: var(--ov-weight);
+}
+
+/* Ortak: tüketim kutucukları */
+.fuel-chips {
+  display: flex;
+  gap: 1px;
+  background: var(--ov-divider);
+  border-top: 1px solid var(--ov-divider);
+}
+.fuel-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: calc(5px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
+  background: var(--ov-bg);
+}
+.fuel-chip small {
+  font-size: 0.7em;
+  color: var(--ov-dim);
+  letter-spacing: 0.05em;
+}
+
+/* Tek satır */
+.fuel-l {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1));
+  white-space: nowrap;
+}
+.fuel-l > i {
+  width: 1px;
+  height: 1.1em;
+  background: var(--ov-divider);
+}
+.fuel-l small {
+  font-size: 0.75em;
+  letter-spacing: 0.04em;
+  font-weight: var(--ov-weight);
+}
+.fuel-l > b:first-of-type {
+  font-size: 1.15em;
+}
+.fuel-l-ic {
+  width: 1.15em;
+  height: 1.15em;
+  fill: var(--ov-accent);
+}
+.fuel-l-ic.low {
+  fill: var(--ov-red);
+}
+
+/* Kompakt çubuk */
+.fuel-b {
+  padding: calc(6px * var(--ov-pad-k, 1));
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--ov-pad-k, 1));
+}
+.fuel-b-bar {
+  position: relative;
+  height: 2.3em;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+  overflow: hidden;
+}
+.fuel-b-txt {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.8em;
+  box-sizing: border-box;
+  font-size: 1.15em;
+  white-space: nowrap;
+}
+.fuel-b-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  background: var(--ov-accent);
+  border-radius: 5px 0 0 5px;
+  transition: width 0.4s linear;
+}
+.fuel-b-fill.low {
+  background: var(--ov-red);
+}
+.fuel-b-fill .fuel-b-txt {
+  color: #0b0d11;
+  text-shadow: none;
+}
+.fuel-b .fuel-chips {
+  border-top: 0;
+  background: none;
+  gap: calc(5px * var(--ov-pad-k, 1));
+}
+.fuel-b .fuel-chip {
+  flex-direction: row;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.4em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ov-text) 6%, transparent);
+}
+
+/* İbreli gösterge */
+.fuel-g {
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1)) calc(8px * var(--ov-pad-k, 1));
+}
+.fuel-g svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.fuel-g-track,
+.fuel-g-fill,
+.fuel-g-res {
+  fill: none;
+  stroke-width: 10;
+}
+.fuel-g-track {
+  stroke: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.fuel-g-fill {
+  stroke: var(--ov-accent);
+  transition: stroke-dasharray 0.4s linear;
+}
+.fuel-g .low .fuel-g-fill {
+  stroke: var(--ov-red);
+}
+.fuel-g-res {
+  stroke: color-mix(in srgb, var(--ov-red) 45%, transparent);
+}
+.fuel-g-tick {
+  stroke: var(--ov-dim);
+  stroke-width: 1.5;
+}
+.fuel-g-tick.major {
+  stroke: var(--ov-text);
+  stroke-width: 2;
+}
+.fuel-g-lbl {
+  fill: var(--ov-dim);
+  font: var(--ov-weight-strong) 12px var(--ov-font);
+  text-anchor: middle;
+}
+.fuel-g-needle {
+  transform-origin: 100px 104px;
+  transition: transform 0.4s ease-out;
+}
+.fuel-g-needle path {
+  fill: var(--ov-text);
+}
+.fuel-g-hub {
+  fill: var(--ov-bg-solid);
+  stroke: var(--ov-text);
+  stroke-width: 2.5;
+}
+.fuel-g-read {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: calc(6px * var(--ov-pad-k, 1));
+  text-align: center;
+}
+.fuel-g-read > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.fuel-g-read b {
+  font-size: 1.3em;
+  line-height: 1.1;
+}
+.fuel-g-read small {
+  font-size: 0.72em;
+  letter-spacing: 0.05em;
+  text-transform: var(--ov-label-tt, uppercase);
+}

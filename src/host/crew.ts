@@ -1,23 +1,42 @@
 // Ekip (uzaktan pit ekibi, c53) — sürücü tarafı. Overlay penceresinde (uygulama açık olduğu sürece) çalışır:
 //  - ekibimde izleyen varsa canlı veriye "crew" alanını ekler (bkz. social.ts team-fuel-local)
 //  - ekip üyelerinin gönderdiği komutları alır (Realtime + yoklama), denetler, iRacing'e uygular ve sonucu yazar
-//  - uygulanan her komutu oyun içi bildirim olarak gösterir ("Ali: yakıt 45 L")
+//  - uygulanan her komutu ekranın alt ortasındaki ekip kutucuğunda gösterir ("Ali: yakıt 45 L")
+//  - Ekip odası (c64): odama yazılan mesajları Mesajlar overlay'ine yayınlar; ayar açıksa kutucukta da gösterir
 //  - Ekip Pitwall'ı (c58): ekipten biri paneli açıkken çevredeki araçları, tur / delta / bayrak / hava bilgisini ve
 //    spotter durumunu saniyede bir sunucuya yazar (crew_wall_push). Kimse izlemiyorken telemetri aboneliği de
 //    veri gönderimi de kapalıdır; 5 sn'de bir yalnızca "izleyen var mı" diye sorulur.
 //  - "Ekip kontrolünü durdur" kısayolu: ana anahtarı kapatır (bekleyen komutlar da reddedilir)
 // Komutlar sadece sim'e bağlıyken ve ana anahtar açıkken uygulanır; aksi halde sebebiyle reddedilir.
 
-import type { Accessor } from "solid-js";
+import { createSignal, type Accessor } from "solid-js";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
 import type { Packet, Status, TopicMap } from "@/sdk/types";
 import { t } from "@/sdk/i18n";
-import { messageBeep } from "@/cloud/social";
-import { crewCommandText, crewControlSet, crewDone, crewList, crewPending, crewSimOk, crewState, crewWallPush, onCrewCommands, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
-import { showMsgToast } from "./social";
+import { friendLook, messageBeep } from "@/cloud/social";
+import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
+import { crewCommandText, crewControlSet, crewDone, crewList, crewPending, crewRoom, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
+
+/** Ekip kutucuğu: ekranın alt ortasında birkaç saniye görünüp solan kısa bildirim (Host.tsx çizer) */
+export interface CrewBox {
+  id: string;
+  from: string;
+  body: string;
+  /** Solmaya başladı */
+  out?: boolean;
+}
+const [box, setBox] = createSignal<CrewBox | null>(null);
+export { box as crewBox };
+function showCrewBox(x: CrewBox, ms = 6000) {
+  setBox(x);
+  setTimeout(() => setBox((c) => (c?.id === x.id ? { ...c, out: true } : c)), ms);
+  setTimeout(() => setBox((c) => (c?.id === x.id ? null : c)), ms + 700);
+}
+/** Ayar: "Ekip mesajlarını kutucukta göster" (yok = açık) */
+const boxOn = () => settings().general.social.crewBox !== false;
 
 let members: CrewMember[] = [];
 let controlOn = false;
@@ -100,10 +119,11 @@ export function startCrew(status: Accessor<Status | undefined>) {
     if (c.kind === "message") {
       const text = String(c.args?.text ?? "").slice(0, 120);
       if (!text) return finish(c, false, "Mesaj boş");
-      showMsgToast({ id: `crew-${c.id}`, from: t("Ekip · {0}", who), body: text }, 9000);
+      // Eski tek yönlü mesaj komutu (güncellenmemiş uygulama / site): oda mesajı gibi gösterilir
+      const ov: OvMsg = { id: `crew-${c.id}`, kind: "crew", from: c.sender, peer: uid, name: who, color: friendLook(c.sender).color, team: t("Ekip"), body: text, mine: false, ts: Date.now() };
+      broadcastOvMsg(ov);
+      if (boxOn() && !ovMsgShown(ov)) showCrewBox({ id: ov.id, from: t("Ekip · {0}", who), body: text }, 7000);
       if (settings().general.social.sound) messageBeep();
-      // Sesli okuma (PRO: social.messages_tts; yoksa sessizce atlanır)
-      invoke("social_tts_speak", { id: `crew-${c.id}`, name: who, text, readName: true, maxChars: 120 }).catch(() => {});
       return finish(c, true, "");
     }
     if (!controlOn) return finish(c, false, "Sürücü şu an ekip kontrolünü kabul etmiyor");
@@ -113,7 +133,7 @@ export function startCrew(status: Accessor<Status | undefined>) {
     } catch (e) {
       return finish(c, false, String((e as Error)?.message ?? e).slice(0, 200));
     }
-    showMsgToast({ id: `crew-${c.id}`, from: t("Ekip"), body: `${who}: ${crewCommandText(c.kind, c.args)}` }, 6000);
+    showCrewBox({ id: `crew-${c.id}`, from: t("Ekip"), body: `${who}: ${crewCommandText(c.kind, c.args)}` }, 5000);
     finish(c, true, "");
   };
   async function process() {
@@ -139,6 +159,74 @@ export function startCrew(status: Accessor<Status | undefined>) {
     if (!members.length || !session()) return;
     if (racing() || tick % 5 === 0) void process();
   }, 2000);
+
+  // ---- Ekip odası (c64) ----
+  // Odama (sürücü = ben) yazılan mesajlar: Mesajlar overlay'ine yayınlanır (overlay kendi ayarına göre gösterir /
+  // sesli okur) ve ayar açıksa alt ortadaki kutucukta gösterilir. Realtime + yoklama (yarışta 4 sn, değilken 20 sn).
+  let chatLast = "";
+  let chatFor = "";
+  let chatBusy = false;
+  let stopChat: () => void = () => {};
+  let chatRt = "";
+  const chatSeen = new Set<string>();
+  const onChatMsg = (m: CrewChatMsg, me: string) => {
+    if (chatSeen.has(m.id)) return;
+    chatSeen.add(m.id);
+    if (chatSeen.size > 400) chatSeen.clear();
+    const mine = m.sender === me;
+    const look = friendLook(m.sender);
+    const ov: OvMsg = { id: `crew-${m.id}`, kind: "crew", from: m.sender, peer: me, name: m.name || "?", color: look.color, photo: look.photo || undefined, team: t("Ekip"), body: m.body, mine, ts: Date.now() };
+    broadcastOvMsg(ov);
+    if (mine) return;
+    if (boxOn() && !ovMsgShown(ov)) showCrewBox({ id: ov.id, from: t("Ekip · {0}", m.name || "?"), body: m.body }, 7000);
+    if (settings().general.social.sound) messageBeep();
+  };
+  const pollChat = async () => {
+    const me = session()?.user.id ?? "";
+    if (!me || !members.length || chatBusy) return;
+    if (chatFor !== me) {
+      chatFor = me;
+      chatLast = "";
+      chatSeen.clear();
+    }
+    chatBusy = true;
+    try {
+      // İlk çağrı: geçmiş gösterilmez, yalnızca "şu andan sonrası" için saat alınır
+      const r = await crewRoom(me, chatLast || null, chatLast ? 30 : 1);
+      if (session()?.user.id !== me || !r) return;
+      if (!chatLast) {
+        chatLast = r.messages?.[r.messages.length - 1]?.at ?? r.now;
+        if (r.now > chatLast) chatLast = r.now;
+        return;
+      }
+      for (const m of r.messages ?? []) {
+        chatLast = m.at;
+        onChatMsg(m, me);
+      }
+    } catch {
+      /* eski sunucu (c64 yok) ya da ağ hatası: sonraki yoklamada */
+    } finally {
+      chatBusy = false;
+    }
+  };
+  const chatChannel = async () => {
+    const want = members.length ? (session()?.user.id ?? "") : "";
+    if (want === chatRt) return;
+    chatRt = want;
+    stopChat();
+    stopChat = () => {};
+    if (!want) return;
+    const stop = await onCrewChat(want, () => void pollChat());
+    if (chatRt === want) stopChat = stop;
+    else stop();
+  };
+  let chatTick = 0;
+  setInterval(() => {
+    chatTick++;
+    void chatChannel();
+    if (!members.length || !session()) return;
+    if (!chatLast || racing() || chatTick % 5 === 0) void pollChat();
+  }, 4000);
 
   // ---- Ekip Pitwall'ı ----
   // Kendi telemetri kanalı (overlay'lerin aboneliğinden bağımsız): sadece izleyen varken açık
@@ -381,6 +469,6 @@ export function startCrew(status: Accessor<Status | undefined>) {
     void crewControlSet(false)
       .catch(() => {})
       .then(() => emit("crew-changed").catch(() => {}));
-    showMsgToast({ id: `crew-stop-${Date.now()}`, from: t("Ekip"), body: was ? t("Ekip kontrolü durduruldu") : t("Ekip kontrolü zaten kapalı") }, 5000);
+    showCrewBox({ id: `crew-stop-${Date.now()}`, from: t("Ekip"), body: was ? t("Ekip kontrolü durduruldu") : t("Ekip kontrolü zaten kapalı") }, 5000);
   });
 }

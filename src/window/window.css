@@ -61,7 +61,8 @@ body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(540px, 1.15fr) minmax(460px, 1fr) 330px;
+  /* Sütunlar içerikten bağımsız daralır: göstergeler kartına sığacak şekilde ölçeklenir (bkz. .pw-fit, Card.tsx) */
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 330px);
   grid-template-areas:
     "lb map wx"
     "lb map fuel"
@@ -166,9 +167,9 @@ body {
   width: 100%;
 }
 
-@media (max-width: 1300px) {
+@media (max-width: 1000px) {
   .pw-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: none;
   }
   .pw-card {
@@ -456,4 +457,60 @@ body {
 .eng-card .pw-body {
   align-items: center;
   zoom: 1.35;
+}
+
+/* ---------- Pitwall: göstergeler karta sığsın ---------- */
+/* Overlay'ler sabit piksel genişliğinde çizilir; dar pencerede (1280×720 vb.) kartlardan taşıyor / kırpılıyordu.
+   .pw-fit sarmalayıcısı Card.tsx içinde ölçülür ve gerekirse CSS zoom ile orantılı küçültülür. */
+.pw-body.pw-fitbody {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.pw-body.pw-fitbody > .pw-fit {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+/* Ölçerken sola yasla: ortalanmış taşmanın sol yarısı scrollWidth'e girmez */
+.pw-body.pw-fitbody > .pw-fit.measuring {
+  justify-content: flex-start;
+}
+
+/* Gösterge kendi doğal genişliğinde kalsın (esneyip sıkışmasın); sığmıyorsa bütün olarak küçültülür */
+.pw-body.pw-fitbody > .pw-fit > * {
+  flex: none;
+  max-width: none;
+}
+
+.pw-top {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  min-width: 0;
+}
+
+.pw-top > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pw-card > header > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .pw-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

@@ -11,7 +11,7 @@ import { syncScreens } from "@/sdk/streamLink";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { freeView, realAdmin, setFreeView, isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
-import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
+import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, openUrl, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
 import { TrialWelcome } from "./components/TrialWelcome";
 import * as I from "./icons";
@@ -63,7 +63,7 @@ interface NavItem {
 }
 
 const TOP: NavItem[] = [
-  { id: "overlays", label: "Overlay'ler", icon: () => <I.Box /> },
+  { id: "overlays", label: "Overlaylarım", icon: () => <I.Box /> },
   { id: "layouts", label: "Düzenler", icon: () => <I.LayoutDashboard /> },
   { id: "streaming", label: "Yayın", icon: () => <I.Radio /> },
   { id: "drivers", label: "Sürücüler", icon: () => <I.Users /> },
@@ -84,7 +84,7 @@ const BOTTOM: NavItem[] = [
 ];
 
 const TITLES: Record<Section, string> = {
-  overlays: "Overlay'ler",
+  overlays: "Overlaylarım",
   layouts: "Düzenler",
   streaming: "Yayın",
   drivers: "Sürücüler",
@@ -201,7 +201,7 @@ export function App() {
     <div class="shell2" classList={{ "has-appbg": appBgActive() }}>
       <AppBgLayer />
       <nav class="rail">
-        <div class="rail-logo" title="SRTR Pitwall" />
+        <div class="rail-logo link" role="link" tabindex="0" title="SRTR Pitwall · pitwall.simracetr.com" onClick={() => openUrl("https://pitwall.simracetr.com")} onKeyDown={(e) => e.key === "Enter" && openUrl("https://pitwall.simracetr.com")} />
         <For each={TOP.filter((it) => railVisible(it.id))}>{(it) => <RailButton item={it} />}</For>
         <div class="rail-sp" />
         <For each={BOTTOM.filter((it) => (it.id !== "admin" || canSeeAdmin()) && railVisible(it.id))}>{(it) => <RailButton item={it} />}</For>

@@ -722,3 +722,10 @@
 .voice-cmd-ex span {
   color: #aab3c2;
 }
+
+/* Sesli komut: mikrofon seçimi */
+.voice-cmd-mic {
+  max-width: 300px;
+  min-width: 0;
+  text-overflow: ellipsis;
+}

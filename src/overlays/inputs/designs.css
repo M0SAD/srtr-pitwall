@@ -376,3 +376,222 @@
 .inx-sim .inx-deg {
   color: rgba(255, 255, 255, 0.6);
 }
+
+/* --- LED segmentler --- */
+.inx-sg {
+  align-items: center;
+  gap: 12px;
+}
+.inx-segrows {
+  width: 270px;
+}
+.inx-seglabel {
+  width: 4.6em;
+}
+.inx-seg {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 2px;
+  border-radius: 3px;
+}
+.inx-seg i {
+  display: block;
+  border-radius: 1.5px;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.inx-seg i.on {
+  background: var(--seg);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--seg) 55%, transparent);
+}
+.inx-seg.glow {
+  box-shadow:
+    0 0 0 2px var(--glow),
+    0 0 8px 1px var(--glow);
+}
+
+/* --- Dikey kule --- */
+.inx-tw {
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 9px;
+  min-width: 4.6em;
+}
+.inx-tw .inx-bars {
+  margin-top: 2px;
+}
+.inx-twsep {
+  width: 100%;
+  height: 1px;
+  margin: 3px 0;
+  background: var(--ov-line);
+}
+
+/* --- Geniş grafik --- */
+.inx-wd {
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px;
+}
+.inx-wdbox {
+  position: relative;
+}
+.inx-wdleg {
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  display: flex;
+  gap: 12px;
+  font-size: 0.769em;
+  font-weight: var(--ov-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 2px var(--ov-bg-solid);
+}
+.inx-wdleg b {
+  margin-left: 5px;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+.inx-wdleg span.glow {
+  text-shadow: 0 0 6px currentColor;
+}
+.inx-wdgear {
+  position: absolute;
+  right: 8px;
+  top: 5px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  text-shadow: 0 1px 2px var(--ov-bg-solid);
+}
+.inx-wdgear b {
+  font-size: 1.692em;
+  font-weight: var(--ov-weight-strong);
+}
+.inx.shift .inx-wdgear b {
+  color: var(--ov-blue);
+}
+.inx-wdgear span {
+  font-weight: var(--ov-weight-strong);
+}
+.inx-wdgear small {
+  font-size: max(0.65em, 9px);
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+}
+.inx-wdsteer {
+  flex: none;
+  margin: 2px 6px 3px;
+}
+
+/* --- Pedal seti --- */
+.inx-pd {
+  align-items: center;
+  gap: 12px;
+}
+.inx-pedset {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+.inx-pedal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.inx-pedalsvg {
+  display: block;
+  width: 40px;
+  height: 90px;
+  overflow: visible;
+}
+.inx-pedplate {
+  fill: color-mix(in srgb, var(--ov-text) 10%, var(--ov-bg-solid));
+}
+.inx-pedline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 45%, transparent);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+.inx-pedgrip path {
+  stroke: color-mix(in srgb, var(--ov-bg-solid) 55%, transparent);
+  stroke-width: 1.6;
+}
+.inx-pedarm {
+  fill: color-mix(in srgb, var(--ov-text) 30%, var(--ov-bg-solid));
+}
+.inx-pedbase {
+  fill: color-mix(in srgb, var(--ov-text) 42%, var(--ov-bg-solid));
+}
+.inx-pedalsvg.glow .inx-pedline {
+  stroke: var(--glow);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+.inx-pednum {
+  min-width: 3em;
+  text-align: center;
+  font-size: 0.846em;
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+.inx-pedlabel {
+  font-size: 0.692em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ov-dim);
+}
+
+/* --- HUD (çerçevesiz) --- */
+.inx-hud {
+  align-items: flex-end;
+  gap: 10px;
+  padding: 4px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  overflow: visible;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.7);
+}
+.inx-hud.shift {
+  border-color: transparent;
+}
+.inx-hudcol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.inx-hud .inx-vbar {
+  background: rgba(0, 0, 0, 0.45);
+  outline: 1px solid color-mix(in srgb, var(--ov-text) 40%, transparent);
+  border-radius: 4px;
+}
+.inx-hudnum {
+  min-width: 3em;
+  text-align: center;
+  font-size: 0.846em;
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+.inx-hudmid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 5em;
+  padding-bottom: 1.2em;
+}
+.inx-hudmid .inx-gear {
+  font-size: 3.4em;
+  line-height: 0.9;
+}

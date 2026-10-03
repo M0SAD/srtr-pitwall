@@ -30,7 +30,6 @@ export default defineOverlay({
         { value: "arc", label: "Yay (uçları soluk)", pro: true },
         { value: "fade", label: "Soluk uçlu", pro: true },
         { value: "segments", label: "Segmentli", pro: true },
-        { value: "chevron", label: "Ok uçlu", pro: true },
         { value: "neon", label: "Neon çizgi", pro: true },
         { value: "corner", label: "Parantez", pro: true },
       ],

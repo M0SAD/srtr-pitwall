@@ -437,7 +437,7 @@ export function VrPanel() {
       <section class="panel">
         <h3>VR kurulumu (pencere yakalama)</h3>
         <p class="muted small">
-          Önce yukarıdan VR modunu aç, uygulamayı yeniden başlat ve göstermek istediğin overlay'leri Overlay'ler sayfasından aç.
+          Önce yukarıdan VR modunu aç, uygulamayı yeniden başlat ve göstermek istediğin overlay'leri Düzenler sayfasından düzenine ekle.
           Pencereleri görmek için Demo'yu açabilirsin.
         </p>
         <details open>

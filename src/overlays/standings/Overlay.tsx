@@ -12,6 +12,7 @@ import { WxLabel } from "@/sdk/WxIcon";
 import { TireBadge } from "@/sdk/TireBadge";
 import { STANDINGS_COLUMNS, STANDINGS_DEFAULT_COLUMNS } from "./manifest";
 import { Flag } from "@/sdk/Flag";
+import { LicenseBadge } from "@/sdk/LicenseBadge";
 import { Helmet } from "@/sdk/Helmet";
 import { t } from "@/sdk/i18n";
 import "./style.css";
@@ -79,7 +80,7 @@ export default function Standings(props: OverlayProps) {
     const myClass = all.find((r) => r.isMe)?.classId;
     const sel = (rows: Row[], mine: boolean) =>
       smart
-        ? pick(rows, mine ? (props.options.topOwn as number) : (props.options.topOther as number), props.options.around as number, mine)
+        ? pick(rows, mine ? ((props.options.topOwn as number) ?? 8) : ((props.options.topOther as number) ?? 3), (props.options.around as number) ?? 2, mine)
         : trim(rows, max);
     if (!d.multiclass) {
       const info = d.classes[0] ?? { id: 0, name: "", color: "#888", count: all.length, sof: 0 };
@@ -149,13 +150,18 @@ export default function Standings(props: OverlayProps) {
       case "car":
         return <CarLogo class="st-car" cell={(props.options.carStyle ?? "logo") === "logo"} carName={r.carName || r.car} fallback={r.car} mode={props.options.carStyle as "logo" | "text" | "both"} scale={((props.options.logoSize as number) ?? 150) / 100} />;
       case "license":
-        return (
-          <span class="ov-tag st-lic" style={{ background: r.licColor || "#666" }}>
-            {r.licLetter} {r.sr.toFixed(1)}
-          </span>
-        );
+        return <LicenseBadge class="st-lic" letter={r.licLetter} sr={r.sr} color={r.licColor} />;
       case "irating":
         return <span class="st-ir">{irating(r.irating)}</span>;
+      case "irDelta":
+        // Sadece yarışta: diğer oturumlarda sütun hiç yer kaplamaz
+        return (
+          <Show when={data()?.race}>
+            <span class="st-ird ov-mono" classList={{ up: r.irDelta > 0, down: r.irDelta < 0 }} data-no-i18n>
+              {r.irDelta === 0 ? "" : (r.irDelta > 0 ? "+" : "−") + Math.abs(r.irDelta)}
+            </span>
+          </Show>
+        );
       case "pits":
         return <span class="st-pits ov-dim">{r.pits > 0 ? `${r.pits}P` : ""}</span>;
       case "gap":
@@ -187,7 +193,7 @@ export default function Standings(props: OverlayProps) {
   const rowBg = () => (props.options.rowOpacity as number) ?? 100;
 
   return (
-    <div class="ov-panel st" style={{ "--st-bg": `${rowBg()}%` }}>
+    <div class="ov-panel st" style={{ "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
       <Show when={props.options.showHeader && data()}>
         <div class="st-head">
           <Show

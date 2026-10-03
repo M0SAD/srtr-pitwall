@@ -11,26 +11,21 @@ import { HeaderStats, formatName } from "@/sdk/HeaderStats";
 import { FriendBadge } from "@/sdk/FriendBadge";
 import { TireBadge } from "@/sdk/TireBadge";
 import { t } from "@/sdk/i18n";
+import { LicenseBadge } from "@/sdk/LicenseBadge";
 import { RELATIVE_COLUMNS, RELATIVE_DEFAULT_COLUMNS } from "./manifest";
 import "./style.css";
 
 export function LicensePill(props: { r: Row }) {
-  return (
-    <span class="lic" style={{ "--lc": props.r.licColor || "#555" }}>
-      <b>{props.r.licLetter || "–"}</b>
-      <span>{props.r.sr > 0 ? props.r.sr.toFixed(2) : "–"}</span>
-    </span>
-  );
+  return <LicenseBadge letter={props.r.licLetter} sr={props.r.sr} color={props.r.licColor} />;
 }
 
 export function IrPill(props: { r: Row; delta: boolean }) {
   return (
-    <span class="irp">
+    <span class="irp" classList={{ "irp-d": props.delta }} data-no-i18n>
       <b>{irating(props.r.irating)}</b>
-      <Show when={props.delta && props.r.irDelta !== 0}>
+      <Show when={props.delta}>
         <span classList={{ up: props.r.irDelta > 0, down: props.r.irDelta < 0 }}>
-          {props.r.irDelta > 0 ? "▲" : "▼"}
-          {Math.abs(props.r.irDelta)}
+          {props.r.irDelta === 0 ? "" : (props.r.irDelta > 0 ? "▲" : "▼") + Math.abs(props.r.irDelta)}
         </span>
       </Show>
     </span>
@@ -40,15 +35,12 @@ export function IrPill(props: { r: Row; delta: boolean }) {
 /** Lisans, SR ve iRating tek rozette (Görünüm → tek rozet) */
 export function ComboPill(props: { r: Row; delta: boolean }) {
   return (
-    <span class="lic combo" style={{ "--lc": props.r.licColor || "#555" }}>
-      <b>{props.r.licLetter || "–"}</b>
-      <span>
-        {props.r.sr > 0 ? props.r.sr.toFixed(1) : "–"} · {irating(props.r.irating)}
-        <Show when={props.delta && props.r.irDelta !== 0}>
-          <i classList={{ up: props.r.irDelta > 0, down: props.r.irDelta < 0 }}>{props.r.irDelta > 0 ? "▲" : "▼"}</i>
-        </Show>
-      </span>
-    </span>
+    <LicenseBadge class="combo" letter={props.r.licLetter} sr={props.r.sr} color={props.r.licColor} digits={1}>
+      {irating(props.r.irating)}
+      <Show when={props.delta && props.r.irDelta !== 0}>
+        <i classList={{ up: props.r.irDelta > 0, down: props.r.irDelta < 0 }}>{props.r.irDelta > 0 ? "▲" : "▼"}</i>
+      </Show>
+    </LicenseBadge>
   );
 }
 
@@ -111,6 +103,8 @@ export default function Relative(props: OverlayProps) {
       .map((c) => c.key),
   );
   const isOn = (k: string) => columns().includes(k);
+  /** Tahmini iRating değişimi yalnızca yarışta dolu gelir: diğer oturumlarda yer ayrılmaz */
+  const delta = createMemo(() => props.options.showIrDelta !== false && (data()?.rows ?? []).some((r) => r.irDelta !== 0));
 
   const cell = (key: string, r: Row) => {
     switch (key) {
@@ -148,14 +142,14 @@ export default function Relative(props: OverlayProps) {
         );
       case "license":
         return (
-          <Show when={!settings().theme.combineLicense} fallback={<ComboPill r={r} delta={props.options.showIrDelta} />}>
+          <Show when={!settings().theme.combineLicense} fallback={<ComboPill r={r} delta={delta()} />}>
             <LicensePill r={r} />
           </Show>
         );
       case "irating":
         return (
-          <Show when={!settings().theme.combineLicense} fallback={<Show when={!isOn("license")}><ComboPill r={r} delta={props.options.showIrDelta} /></Show>}>
-            <IrPill r={r} delta={props.options.showIrDelta} />
+          <Show when={!settings().theme.combineLicense} fallback={<Show when={!isOn("license")}><ComboPill r={r} delta={delta()} /></Show>}>
+            <IrPill r={r} delta={delta()} />
           </Show>
         );
       case "last":
@@ -205,7 +199,7 @@ export default function Relative(props: OverlayProps) {
       </Show>
       <Show when={props.options.showFooter && data()}>
         <div class="rel-foot">
-          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "remaining", "clock"]} units={props.units} sof={data()!.sof} />
+          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]} units={props.units} sof={data()!.sof} />
         </div>
       </Show>
     </div>

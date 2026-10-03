@@ -35,6 +35,8 @@ export interface LiveMember {
   car: string;
   session: string;
   last_seen: string | null;
+  /** Çevrimiçi ama "Çevrimdışı görün" seçmiş (c65) */
+  invisible?: boolean;
 }
 
 const [overview, setOverview] = createSignal<AdminOverview | null>(null);

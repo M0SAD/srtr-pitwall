@@ -207,6 +207,11 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
                         <span class="ats-on">
                           <SimBadge sim={m.sim} />
                           <span>Çevrimiçi</span>
+                          <Show when={m.invisible}>
+                            <small class="muted" title="Bu üye &quot;Çevrimdışı&quot; durumunu seçti: diğer üyeler onu çevrimdışı görür">
+                              · {t("gizleniyor")}
+                            </small>
+                          </Show>
                         </span>
                       </Show>
                     }

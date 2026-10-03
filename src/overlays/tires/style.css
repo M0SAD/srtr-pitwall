@@ -65,3 +65,137 @@
 .ty-press {
   font-size: 0.85em;
 }
+
+/* ---- Tasarımlar (design) ---- */
+.ty-big {
+  font-size: 1.45em;
+  line-height: 1;
+  font-weight: var(--ov-weight-strong);
+}
+
+/* Kompakt kartlar */
+.ty-d-cards {
+  width: calc(220px * var(--ov-fs-k, 1));
+}
+.ty-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(6px * var(--ov-pad-k, 1));
+  padding: calc(8px * var(--ov-pad-k, 1));
+}
+.ty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: calc(6px * var(--ov-pad-k, 1));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ov-text) 5%, transparent);
+  overflow: hidden;
+}
+.ty-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  height: 5px;
+}
+.ty-strip i {
+  display: block;
+}
+.ty-card-top,
+.ty-card-bot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 calc(8px * var(--ov-pad-k, 1));
+}
+.ty-card-bot {
+  font-size: 0.85em;
+}
+
+/* Minimal aşınma çubukları */
+.ty-d-bars {
+  width: calc(240px * var(--ov-fs-k, 1));
+}
+.ty-rows {
+  padding: calc(4px * var(--ov-pad-k, 1)) 0;
+}
+.ty-rowl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--ov-row-h);
+  padding: 0 calc(10px * var(--ov-pad-k, 1));
+}
+.ty-rowl .ty-name {
+  width: 2.6em;
+}
+.ty-rowl .ty-bar {
+  height: 4px;
+}
+.ty-num {
+  min-width: 2.8em;
+  text-align: right;
+  white-space: nowrap;
+}
+.ty-dot {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+}
+
+/* Araç üstten */
+.ty-d-car {
+  width: calc(250px * var(--ov-fs-k, 1));
+}
+.ty-car {
+  display: grid;
+  grid-template-columns: 1fr 38% 1fr;
+  align-items: stretch;
+  gap: 4px;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
+}
+.ty-car svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ty-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+.ty-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 0.88em;
+  white-space: nowrap;
+}
+.ty-info.r {
+  align-items: flex-start;
+}
+.ty-info .ty-big {
+  font-size: 1.6em;
+}
+.ty-body {
+  fill: color-mix(in srgb, var(--ov-text) 12%, transparent);
+  stroke: color-mix(in srgb, var(--ov-text) 40%, transparent);
+  stroke-width: 1.5;
+}
+.ty-glass {
+  fill: color-mix(in srgb, var(--ov-text) 16%, transparent);
+}
+.ty-axle {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 28%, transparent);
+  stroke-width: 3;
+}
+.ty-rim {
+  fill: none;
+  stroke: var(--ov-bg-solid);
+  stroke-width: 1.5;
+}

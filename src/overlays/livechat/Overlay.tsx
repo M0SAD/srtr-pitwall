@@ -123,7 +123,7 @@ export default function LiveChat(props: OverlayProps) {
       if (fade > 0 && n - m.ts > fade && !props.editing) return false;
       return true;
     });
-    l = l.slice(-Math.max(1, Number(o().maxMessages) || 12));
+    l = l.slice(-Math.max(1, Number(o().maxMessages) || 10));
     if (delAt.size > 500) for (const k of [...delAt.keys()].slice(0, 250)) delAt.delete(k);
     return o().newestTop ? [...l].reverse() : l;
   });
@@ -179,7 +179,7 @@ export default function LiveChat(props: OverlayProps) {
   const Name = (b: { m: ChatMsg }) => (
     <>
       <Show when={o().showIcons}>
-        <PlatformIcon platform={b.m.platform} size={Math.round((Number(o().fontSize) || 15) * 1.1)} />
+        <PlatformIcon platform={b.m.platform} size={Math.round((Number(o().fontSize) || 16) * 1.1)} />
       </Show>
       <Show when={tagShown(b.m)}>
         <span class="lc-tag" style={{ color: tagColor(b.m.platform) }}>
@@ -212,8 +212,10 @@ export default function LiveChat(props: OverlayProps) {
       class="lc"
       classList={{ top: !!o().newestTop }}
       style={{
-        width: `${Number(o().width) || 360}px`,
-        "font-size": `${Number(o().fontSize) || 15}px`,
+        width: `${Number(o().width) || 480}px`,
+        // Sabit yükseklik: liste alta yaslı kalır, tek mesaj da kutunun alt kenarında görünür (bkz. style.css)
+        height: `${Math.max(120, Number(o().height) || 600)}px`,
+        "font-size": `${Number(o().fontSize) || 16}px`,
         "font-family": fontStack(String(o().font ?? "")),
         "--lc-emote": emote(),
         "--lc-msg": o().messageColor,

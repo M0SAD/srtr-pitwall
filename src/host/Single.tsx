@@ -43,7 +43,7 @@ export function Single(props: { type: string }) {
   });
 
   // Tema + bu kopyanın kendi görünümü (sdk/look.ts)
-  const vars = createMemo(() => ({ ...themeVars(settings().theme), ...lookStyle(instance()?.look, settings().theme) }));
+  const vars = createMemo(() => ({ ...themeVars(settings().theme), ...lookStyle(instance()?.look, settings().theme, instance()?.bgOpacity) }));
 
   // VR modu penceresi (?vr=1, Rust: vr.rs): içerik sol üstte; pencere içeriğe sığdırılır ve başlığı overlay'in
   // adı olur ("SRTR Pitwall - Relative"), böylece VR pencere yakalama araçlarında ayırt edilir.

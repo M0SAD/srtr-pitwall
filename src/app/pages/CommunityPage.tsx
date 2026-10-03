@@ -1,8 +1,9 @@
 // Topluluk: paylaşılan overlay düzenleri. Ara, önizle, profil olarak indir, puan ver, yorum yaz.
 
 import { localeTag, t } from "@/sdk/i18n";
-import { For, Show, createMemo, createResource, createSignal, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal, onMount } from "solid-js";
 import { independentProfile } from "@/sdk/streamLink";
+import { findMyShare, updateSharedLayout } from "@/cloud/layouts";
 import { invoke } from "@tauri-apps/api/core";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isLocked, isPro, profile } from "@/cloud/account";
@@ -610,6 +611,8 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       const d = data() ?? (await getLayoutData(l().id));
       const src: Profile = structuredClone(d.profile);
       delete src.link;
+      delete src.locked;
+      delete src.sharedId;
       const name = `${l().title} (${l().author_name || "paylaşım"})`;
       const mode = props.kind === "stream" ? "stream" : src.rules?.mode && src.rules.mode !== "stream" ? src.rules.mode : "driving";
       const id = newLayout(mode, name, src);
@@ -619,7 +622,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       setMsg(
         props.kind === "stream"
           ? `"${name}" yayın düzeni eklendi. Yayın sayfasından OBS adresini alabilirsin.`
-          : `"${name}" düzeni eklendi ve seçildi. Overlay'ler sayfasından değiştirebilirsin.`,
+          : `"${name}" düzeni eklendi ve seçildi. Düzenler sayfasından değiştirebilirsin.`,
       );
       props.onChanged();
     } catch (e) {
@@ -834,6 +837,20 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
   const [screen, setScreen] = createSignal({ w: 1920, h: 1080, scale: 1 });
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
+  // Bu düzen daha önce paylaşıldıysa: öncekini güncelle (kimlik, puanlar, indirmeler, yorumlar kalır) ya da yeni paylaşım
+  const [prev] = createResource(
+    () => (session() ? ([pid(), settings().profiles[pid()]?.sharedId ?? "", settings().profiles[pid()]?.name ?? ""] as const) : null),
+    ([, sid, name]) => findMyShare(props.kind, sid || undefined, name).catch(() => null),
+  );
+  const [mode, setMode] = createSignal<"replace" | "new">("replace");
+  const replacing = () => !!prev() && mode() === "replace";
+  // Önceki paylaşım bulununca başlık ve açıklaması forma gelir
+  createEffect(() => {
+    const x = prev();
+    if (!x) return;
+    setTitle(x.title);
+    setDesc(x.description ?? "");
+  });
   const boxes = () => (prof() ? layoutBoxes(prof()!) : []);
   // Paylaşmak varsayılan herkese açık; yönetici PRO yapabilir (PRO özellikleri)
   const shareLocked = () => proLocked(props.kind === "stream" ? "community.share.streams" : "community.share.layouts", false);
@@ -863,21 +880,28 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
     if (isSceneOnly(prof()!)) return setErr("Hazır sahneler toplulukta paylaşılamaz.");
     setBusy(true);
     try {
-      const p = prof()!;
-      await shareLayout({
+      // Yerel işaretler (kilit, paylaşım kimliği, liste sırası) paylaşıma girmez
+      const p: Profile = structuredClone(prof()!);
+      delete p.locked;
+      delete p.sharedId;
+      delete p.order;
+      const v = {
         title: title().trim().slice(0, 60),
         description: desc().trim().slice(0, 1000),
         screen_w: screen().w,
         screen_h: screen().h,
         cars: p.rules?.cars ?? [],
-        kind: props.kind,
         data: {
           profile: p,
           theme: withTheme() ? settings().theme : undefined,
           boxes: boxes(),
           scale: screen().scale,
         },
-      });
+      };
+      const row = replacing() ? await updateSharedLayout(prev()!.id, v) : await shareLayout({ ...v, kind: props.kind });
+      // Hangi paylaşım olduğu yerel düzende saklanır: sonraki paylaşımda "öncekini güncelle" sorulur
+      const local = pid();
+      if (row?.id && settings().profiles[local]) updateSettings((d) => (d.profiles[local].sharedId = row.id));
       props.onShared();
     } catch (e) {
       setErr(String((e as Error).message));
@@ -923,6 +947,24 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
               <input type="checkbox" checked={withTheme()} onChange={(e) => setWithTheme(e.currentTarget.checked)} />
               <span>Renklerimi ve yazı tipimi de ekle</span>
             </label>
+            <Show when={prev()}>
+              <div class="row">
+                <div>
+                  <b>Bu düzeni daha önce paylaştın</b>
+                  <small>
+                    <span data-no-i18n>"{prev()!.title}"</span> · {new Date(prev()!.created_at).toLocaleDateString(localeTag())}. Öncekini güncellersen puanları, indirme sayısı ve yorumları korunur.
+                  </small>
+                </div>
+                <div class="seg">
+                  <button classList={{ on: mode() === "replace" }} onClick={() => setMode("replace")}>
+                    Öncekini güncelle
+                  </button>
+                  <button classList={{ on: mode() === "new" }} onClick={() => setMode("new")}>
+                    Yeni olarak paylaş
+                  </button>
+                </div>
+              </div>
+            </Show>
             <LayoutPreview boxes={boxes()} w={screen().w} h={screen().h} scale={screen().scale} labels />
             <p class="muted small">
               {t("{0} açık overlay tüm ayarlarıyla paylaşılacak.", boxes().length)} Görünen adın{profile()?.iracing_name ? " ve iRacing adın" : ""} düzenle birlikte görünür.
@@ -942,7 +984,7 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
               </p>
             </Show>
             <button class="btn primary" disabled={busy() || shareLocked() || (!!prof() && isSceneOnly(prof()!))} onClick={submit}>
-              {busy() ? "Paylaşılıyor…" : "Paylaş"}
+              {busy() ? "Paylaşılıyor…" : replacing() ? "Paylaşımı güncelle" : "Paylaş"}
             </button>
           </>
         </Show>

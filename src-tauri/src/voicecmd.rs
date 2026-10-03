@@ -296,6 +296,8 @@ pub struct CmdCfg {
     /// 0..1
     pub confidence: f32,
     pub beeps: bool,
+    /// Seçilen mikrofonun cihaz kimliği ("" : Windows varsayılanı)
+    pub mic: String,
     /// PRO izni
     pub allowed: bool,
 }
@@ -304,7 +306,7 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     let ui = v.pointer("/general/language").and_then(|x| x.as_str()).unwrap_or("tr");
     let ui_lang = lang_key(ui).to_string();
     let Some(c) = v.pointer("/general/voice/commands") else {
-        return CmdCfg { rec_lang: ui_lang.clone(), ui_lang, confidence: 0.4, beeps: true, allowed, ..Default::default() };
+        return CmdCfg { enabled: true, rec_lang: ui_lang.clone(), ui_lang, confidence: 0.4, beeps: true, allowed, ..Default::default() };
     };
     let s = |p: &str| c.get(p).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
     let (vk, mods) = parse_key(&s("key")).unwrap_or((0, 0));
@@ -314,7 +316,7 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     });
     let want = s("language");
     CmdCfg {
-        enabled: c.get("enabled").and_then(|x| x.as_bool()).unwrap_or(false),
+        enabled: c.get("enabled").and_then(|x| x.as_bool()).unwrap_or(true),
         toggle: s("mode") == "toggle",
         vk,
         mods,
@@ -323,6 +325,7 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         ui_lang,
         confidence: (c.get("confidence").and_then(|x| x.as_f64()).unwrap_or(40.0) as f32 / 100.0).clamp(0.0, 1.0),
         beeps: c.get("beeps").and_then(|x| x.as_bool()).unwrap_or(true),
+        mic: s("mic"),
         allowed,
     }
 }
@@ -1054,6 +1057,8 @@ mod imp {
     fn rec_loop(rx: std::sync::mpsc::Receiver<Ev>) {
         // (istenen dil, tanıyıcı, veri dili, İngilizceye düşüldü mü)
         let mut cache: Option<(String, Recognizer, String, bool)> = None;
+        // Mikrofon tercihi: (istenen, kullanılan, son denetim). Seçili cihaz çıkarılmışsa varsayılana düşülür.
+        let mut mic: Option<(String, String, Instant)> = None;
         while let Ok(Ev::Listen { manual }) = rx.recv() {
             let c = cfg();
             if !c.allowed {
@@ -1062,6 +1067,18 @@ mod imp {
             }
             LISTENING.store(true, Ordering::Relaxed);
             STOP.store(false, Ordering::Relaxed);
+            let recheck = match mic.as_ref() {
+                Some((want, _, at)) => *want != c.mic || (!c.mic.is_empty() && at.elapsed() > Duration::from_secs(10)),
+                None => true,
+            };
+            if recheck {
+                let used = win::use_microphone(&c.mic);
+                if mic.as_ref().map(|m| m.1 != used).unwrap_or(true) {
+                    // Tanıyıcı ses girişini kurulurken seçer: yeniden kur
+                    cache = None;
+                }
+                mic = Some((c.mic.clone(), used, Instant::now()));
+            }
             if cache.as_ref().map(|x| x.0 != c.rec_lang).unwrap_or(true) {
                 cache = None;
                 match open(&c.rec_lang) {
@@ -1101,8 +1118,9 @@ mod imp {
                 }
                 Heard::Error(e) => {
                     beep(2);
-                    // Tanıyıcı bozulmuş olabilir: sonraki basışta yeniden kur
+                    // Tanıyıcı bozulmuş olabilir: sonraki basışta yeniden kur (mikrofon da yeniden denetlenir)
                     cache = None;
+                    mic = None;
                     emit(CmdEvent { state: "error", error: e, ..base });
                 }
             }
@@ -1115,6 +1133,10 @@ mod imp {
 
     pub fn pick(installed: &[String], want: &str) -> Option<String> {
         win::best_tag(installed, want)
+    }
+
+    pub fn microphones(want: &str) -> Result<Vec<MicInfo>, String> {
+        Ok(win::microphones(want)?.into_iter().map(|m| MicInfo { id: m.id, name: m.name, is_default: m.is_default }).collect())
     }
 }
 
@@ -1131,6 +1153,9 @@ mod imp {
     }
     pub fn pick(_installed: &[String], _want: &str) -> Option<String> {
         None
+    }
+    pub fn microphones(_want: &str) -> Result<Vec<MicInfo>, String> {
+        Ok(vec![])
     }
 }
 
@@ -1182,6 +1207,22 @@ pub fn voicecmd_status(app: AppHandle) -> CmdStatus {
         },
         fallback: p.map(|x| x.2).unwrap_or(false),
     }
+}
+
+/// Bir kayıt cihazı (mikrofon)
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MicInfo {
+    pub id: String,
+    pub name: String,
+    pub is_default: bool,
+}
+
+/// Kayıt cihazları (ad + Windows varsayılanı işareti). Ayardaki seçim önce uygulanır; cihaz yoksa varsayılana düşülür.
+#[tauri::command]
+pub async fn voicecmd_microphones(app: AppHandle) -> Result<Vec<MicInfo>, String> {
+    let c = cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), allowed(&app));
+    tauri::async_runtime::spawn_blocking(move || imp::microphones(&c.mic)).await.map_err(|e| e.to_string())?
 }
 
 #[derive(Serialize)]
@@ -1403,7 +1444,7 @@ mod tests {
         // PRO değilse çalışmaz; ayar yoksa kapalı
         assert!(!cfg_from_settings(&v, false).active());
         let d = cfg_from_settings(&serde_json::json!({"general": {"language": "tr"}}), true);
-        assert!(!d.enabled && !d.active() && d.beeps && d.rec_lang == "tr");
+        assert!(d.enabled && !d.active() && d.beeps && d.rec_lang == "tr");
         // Tanıma dili ayrı seçilebilir
         let v2 = serde_json::json!({"general": {"language": "tr", "voice": {"commands": {"enabled": true, "language": "en", "key": "F13"}}}});
         let c2 = cfg_from_settings(&v2, true);

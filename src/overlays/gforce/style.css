@@ -1,0 +1,237 @@
+/* G-Force overlay'i */
+.gf {
+  width: max-content;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.gf label {
+  display: block;
+  font-size: 0.692em;
+  color: var(--ov-dim);
+  text-transform: var(--ov-label-tt, uppercase);
+  letter-spacing: 0.06em;
+}
+.gf b {
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+.gf small {
+  font-size: 0.769em;
+  color: var(--gf-peak, var(--ov-purple));
+  font-variant-numeric: tabular-nums;
+}
+.gf i {
+  font-style: normal;
+}
+
+/* --- g-çemberi / sürtünme çemberi --- */
+.gf-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 8px 9px;
+}
+.gf-canvas {
+  display: block;
+}
+.gf-read {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  align-items: end;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: 1px solid var(--ov-divider);
+  text-align: center;
+}
+.gf-read > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.gf-read b {
+  font-size: 1.154em;
+}
+.gf-read .gf-tot b {
+  font-size: 1.615em;
+}
+.gf-read .gf-tot b i {
+  margin-left: 2px;
+  font-size: 0.5em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+}
+
+/* --- çubuklar --- */
+.gf-bars {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 9px 12px 9px 10px;
+}
+.gf-vwrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.gf-cap {
+  font-size: 0.615em;
+  color: var(--ov-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.gf-vbar,
+.gf-hbar {
+  position: relative;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+}
+.gf-vbar {
+  flex: 1;
+  width: 16px;
+  min-height: 96px;
+}
+.gf-hbar {
+  width: 170px;
+  height: 16px;
+}
+.gf-fill {
+  position: absolute;
+  background: var(--gf-dot, var(--ov-accent));
+  border-radius: 2px;
+}
+.gf-vbar .gf-fill {
+  left: 0;
+  right: 0;
+}
+.gf-hbar .gf-fill {
+  top: 0;
+  bottom: 0;
+}
+.gf-fill.brake {
+  background: var(--ov-red);
+}
+.gf-mid {
+  position: absolute;
+  background: var(--ov-dim);
+  z-index: 1;
+}
+.gf-vbar .gf-mid {
+  left: -3px;
+  right: -3px;
+  top: 50%;
+  height: 1px;
+}
+.gf-hbar .gf-mid {
+  top: -3px;
+  bottom: -3px;
+  left: 50%;
+  width: 1px;
+}
+.gf-pk {
+  position: absolute;
+  background: var(--gf-peak, var(--ov-purple));
+  border-radius: 1px;
+  z-index: 2;
+}
+.gf-vbar .gf-pk {
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  margin-top: -1px;
+}
+.gf-hbar .gf-pk {
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+}
+.gf-hside {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+}
+.gf-big {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.gf-big b {
+  font-size: 2.308em;
+}
+.gf-big i {
+  color: var(--ov-dim);
+}
+.gf-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.gf-rows > div {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: 3px 6px;
+}
+.gf-rows label {
+  grid-column: 1 / -1;
+}
+.gf-rows b {
+  font-size: 1.154em;
+}
+
+/* --- sayısal --- */
+.gf-num {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 9.5em;
+  padding: 9px 12px;
+}
+.gf-numtot {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--ov-divider);
+}
+.gf-numtot b {
+  font-size: 2.462em;
+}
+.gf-numtot i {
+  color: var(--ov-dim);
+}
+.gf-arrow {
+  align-self: center;
+  width: 1.7em;
+  height: 1.7em;
+  margin-right: 4px;
+  flex: none;
+}
+.gf-arrow path {
+  fill: none;
+  stroke: var(--gf-dot, var(--ov-accent));
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gf-numrow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.gf-numrow label {
+  flex: 1;
+}
+.gf-numrow b {
+  font-size: 1.154em;
+}
+.gf-numrow small {
+  min-width: 2em;
+  text-align: right;
+}

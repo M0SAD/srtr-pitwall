@@ -1,15 +1,18 @@
-// Düzen listesi ("Düzenlerim" ve "Yayın düzenleri"): iki sayfada aynı satırlar ve aynı sağ tık menüsü.
-//  Sağ tık: Yeniden adlandır (satırda), Kopyasını oluştur, Yayın düzenine kopyala / Düzene kopyala,
-//           Varsayılan yap (düzenler), OBS adresini kopyala / Bağlantıyı kopar (yayın), Toplulukta paylaş, Yukarı / Aşağı taşı, Sil.
-//  Klavye (satır odaktayken): F2 = yeniden adlandır, Delete = sil.
+// Düzen listesi ("Düzenlerim" ve "Yayın düzenleri"): iki sayfada aynı başlık, satırlar ve sağ tık menüsü.
+//  Başlık: liste adı + "+" (yeni düzen). Satır: ad (çift tık: yeniden adlandır) + çöp kutusu (onay sorar).
+//  İlk düzen ("Varsayılan") sabittir: adı değiştirilebilir ama silinemez.
+//  Kilit: satırdaki kilit simgesi (ya da sağ tık › Kilitle) düzeni kilitler: yerleşimi ve overlay ayarları değiştirilemez,
+//  yeniden adlandırılamaz, silinemez. Sabit düzen iğne simgesiyle gösterilir (kilitle karışmasın).
+//  Sağ tık: Düzeni kopyala, Yeniden adlandır, Kilitle / Kilidi aç, OBS adresini kopyala / Bağlantıyı kopar (yayın), Toplulukta paylaş,
+//           Yukarı / Aşağı taşı, Sil.
+//  Klavye (satır odaktayken): F2 = yeniden adlandır, Delete = sil (onay sorar).
 
 import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import ArrowUp from "lucide-solid/icons/arrow-up";
 import ArrowDown from "lucide-solid/icons/arrow-down";
+import Pin from "lucide-solid/icons/pin";
 import { t } from "@/sdk/i18n";
 import { settings, updateSettings, type Profile } from "@/sdk/settings";
-import { canvasOf, independentProfile, mapInstance, screenOf } from "@/sdk/streamLink";
-import type { Status } from "@/sdk/types";
 import * as I from "../icons";
 
 export type LayoutKind = "layout" | "stream";
@@ -51,42 +54,42 @@ export function duplicateProfile(id: string): string | null {
     p.id = nid;
     p.name = t("{0} (kopya)", src.name);
     delete p.order;
+    // Kopya kilitsiz ve paylaşılmamış başlar
+    delete p.locked;
+    delete p.sharedId;
     d.profiles[nid] = p;
   });
   return nid;
 }
 
-/**
- * Yayın düzenini normal bir düzene kopyalar: açık overlay'ler aynı ayarlarla, konumları yayın çözünürlüğünden
- * ana overlay monitörüne oranlanarak. Bağlı yayın düzeninde o an görünen (kaynak düzenden gelen) hâli kopyalanır.
- */
-export function copyStreamToLayout(id: string, st?: Status): string | null {
-  const src = settings().profiles[id];
-  if (!src) return null;
-  const ind = independentProfile(src, st);
-  const from = canvasOf(src);
-  const to = screenOf("");
-  const nid = `p${Date.now().toString(36)}`;
+/** Sabit ("Varsayılan") düzenlerin kimlikleri */
+export const FIXED_LAYOUT = "default";
+export const FIXED_STREAM = "stream-default";
+
+/** Silinemeyen sabit düzen: "Varsayılan" (yoksa listenin ilki) */
+export function fixedProfileId(stream: boolean): string | undefined {
+  const s = settings();
+  const pref = stream ? FIXED_STREAM : FIXED_LAYOUT;
+  if (s.profiles[pref] && isStream(s.profiles[pref]) === stream) return pref;
+  return sortProfiles(Object.values(s.profiles).filter((p) => isStream(p) === stream))[0]?.id;
+}
+
+/** Düzeni kilitler / kilidini açar */
+export function toggleProfileLock(id: string) {
   updateSettings((d) => {
-    const p = structuredClone(ind);
-    p.id = nid;
-    p.name = t("{0} (düzen)", src.name);
-    p.rules = { mode: "driving", cars: [], sessions: [] };
-    delete p.canvas;
-    delete p.link;
-    delete p.order;
-    for (const [k, i] of Object.entries(p.overlays)) p.overlays[k] = i.enabled ? { ...mapInstance(i, from, to), monitor: "" } : { ...i, monitor: "" };
-    d.profiles[nid] = p;
+    const p = d.profiles[id];
+    if (!p) return;
+    if (p.locked) delete p.locked;
+    else p.locked = true;
   });
-  return nid;
 }
 
-/** Siler (onay sorar). Son kalan normal düzen silinemez. Silindiyse true. */
+/** Siler (onay sorar). Sabit "Varsayılan" düzen ve kilitli düzenler silinemez. Silindiyse true. */
 export function removeProfile(id: string): boolean {
   const p = settings().profiles[id];
   if (!p) return false;
   const stream = isStream(p);
-  if (!stream && Object.values(settings().profiles).filter((x) => !isStream(x)).length <= 1) return false;
+  if (fixedProfileId(stream) === id || p.locked) return false;
   if (!confirm(stream ? t('"{0}" yayın düzeni silinsin mi?', p.name) : t('"{0}" düzeni silinsin mi?', p.name))) return false;
   updateSettings((d) => {
     delete d.profiles[id];
@@ -104,8 +107,10 @@ export function LayoutList(props: {
   /** Toplulukta paylaş (verilmezse madde çıkmaz); canShare false ise madde devre dışı */
   onShare?: (id: string) => void;
   canShare?: (p: Profile) => boolean;
-  /** Düzen -> yayın düzeni ya da yayın düzeni -> düzen kopyası */
-  onCopyOther: (id: string) => void;
+  /** Liste başlığı ("Düzenlerim" / "Yayın düzenleri") */
+  title: string;
+  /** Başlıktaki "+" düğmesi: yeni düzen */
+  onAdd: () => void;
   /** Yayın düzenleri: OBS tarayıcı kaynağı adresini panoya kopyalar */
   onCopyUrl?: (id: string) => void;
   /** Yayın düzenleri: bağlı düzenle bağlantıyı koparır (sadece bağlı olanlarda görünür) */
@@ -126,7 +131,11 @@ export function LayoutList(props: {
     });
   });
   const stream = () => props.kind === "stream";
-  const canRemove = () => stream() || props.list.length > 1;
+  const fixed = () => fixedProfileId(stream());
+  const isFixed = (id: string) => fixed() === id;
+  const isLockedP = (id: string) => !!settings().profiles[id]?.locked;
+  const canRemove = (id: string) => !isFixed(id) && !isLockedP(id);
+  const startRename = (id: string) => !isLockedP(id) && setRenaming(id);
   const remove = (id: string) => {
     const i = props.list.findIndex((p) => p.id === id);
     const next = props.list[i + 1]?.id ?? props.list[i - 1]?.id ?? "";
@@ -159,34 +168,22 @@ export function LayoutList(props: {
                 onPointerDown={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
               >
-                <button onPointerUp={run(() => (props.onSelect(m.id), setRenaming(m.id)))}>
-                  <I.Pencil /> Yeniden adlandır
-                </button>
                 <button
                   onPointerUp={run(() => {
                     const id = duplicateProfile(m.id);
                     if (id) props.onSelect(id);
                   })}
                 >
-                  <I.Copy /> Kopyasını oluştur
+                  <I.Copy /> Düzeni kopyala
                 </button>
-                <Show
-                  when={stream()}
-                  fallback={
-                    <button onPointerUp={run(() => props.onCopyOther(m.id))} title="Açık overlay'leri aynı ayarlarla OBS için bir yayın düzenine kopyalar (konumlar yayın çözünürlüğüne oranlanır)">
-                      <I.Radio /> Yayın düzenine kopyala
-                    </button>
-                  }
-                >
-                  <button onPointerUp={run(() => props.onCopyOther(m.id))} title="Açık overlay'leri aynı ayarlarla normal bir düzene kopyalar (konumlar ana monitöre oranlanır)">
-                    <I.LayoutDashboard /> Düzene kopyala
-                  </button>
-                </Show>
-                <Show when={!stream()}>
-                  <button disabled={settings().activeProfile === m.id} onPointerUp={run(() => updateSettings((d) => (d.activeProfile = m.id)))}>
-                    <I.Play /> Varsayılan yap
-                  </button>
-                </Show>
+                <button disabled={!!prof().locked} onPointerUp={run(() => (props.onSelect(m.id), startRename(m.id)))}>
+                  <I.Pencil /> Yeniden adlandır
+                </button>
+                <button onPointerUp={run(() => toggleProfileLock(m.id))} title="Kilitli düzenin yerleşimi ve overlay ayarları değiştirilemez, düzen silinemez">
+                  <Show when={prof().locked} fallback={<><I.Lock /> Kilitle</>}>
+                    <I.LockOpen /> Kilidi aç
+                  </Show>
+                </button>
                 <Show when={props.onShare}>
                   <button disabled={props.canShare ? !props.canShare(prof()) : false} onPointerUp={run(() => (props.onSelect(m.id), props.onShare!(m.id)))}>
                     <I.Share2 /> Toplulukta paylaş
@@ -197,7 +194,7 @@ export function LayoutList(props: {
                     <I.Link2 /> OBS adresini kopyala
                   </button>
                 </Show>
-                <Show when={props.onUnlink && prof().link}>
+                <Show when={props.onUnlink && prof().link && !prof().locked}>
                   <button onPointerUp={run(() => props.onUnlink!(m.id))} title="Şu anki görünümü bu yayın düzenine kopyalar; artık düzendeki değişiklikleri izlemez ve burada serbestçe düzenlenebilir">
                     <I.Unlink /> Bağlantıyı kopar
                   </button>
@@ -208,7 +205,7 @@ export function LayoutList(props: {
                 <button disabled={idx() < 0 || idx() >= props.list.length - 1} onPointerUp={run(() => moveProfile(m.id, 1))}>
                   <ArrowDown /> Aşağı taşı
                 </button>
-                <button class="danger" disabled={!canRemove()} onPointerUp={run(() => remove(m.id))}>
+                <button class="danger" disabled={!canRemove(m.id)} onPointerUp={run(() => remove(m.id))}>
                   <I.Trash /> Sil
                 </button>
               </div>
@@ -216,6 +213,12 @@ export function LayoutList(props: {
           );
         })()}
       </Show>
+      <div class="llist-head">
+        <span>{props.title}</span>
+        <button class="llist-add" title={stream() ? "Yeni yayın düzeni" : "Yeni düzen"} onClick={() => props.onAdd()}>
+          <I.Plus />
+        </button>
+      </div>
       <Show when={props.list.length > 0} fallback={props.empty}>
         <For each={props.list}>
           {(x) => (
@@ -240,12 +243,14 @@ export function LayoutList(props: {
                 </div>
               }
             >
-              <button
-                class="ovitem"
+              <div
+                class="ovitem llist-row"
                 classList={{ sel: props.selId === x.id }}
-                title="Sağ tık: yeniden adlandır, kopyala, taşı, sil · F2: yeniden adlandır · Delete: sil"
+                tabindex="0"
+                role="button"
+                title={x.locked ? "Kilitli düzen: değiştirilemez · kilidi açmak için kilit simgesine tıkla" : "Çift tık: yeniden adlandır · Sağ tık: kopyala, kilitle, taşı, sil · Delete: sil"}
                 onClick={() => props.onSelect(x.id)}
-                onDblClick={() => setRenaming(x.id)}
+                onDblClick={() => startRename(x.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   const r = e.currentTarget.getBoundingClientRect();
@@ -255,8 +260,11 @@ export function LayoutList(props: {
                 onKeyDown={(e) => {
                   if (e.key === "F2") {
                     e.preventDefault();
-                    setRenaming(x.id);
-                  } else if (e.key === "Delete" && canRemove()) {
+                    startRename(x.id);
+                  } else if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    props.onSelect(x.id);
+                  } else if (e.key === "Delete" && canRemove(x.id)) {
                     e.preventDefault();
                     remove(x.id);
                   }
@@ -264,10 +272,44 @@ export function LayoutList(props: {
               >
                 <span class="ovitem-ic">{props.icon()}</span>
                 <span class="ovitem-name">{x.name}</span>
-                <Show when={!stream() && settings().activeProfile === x.id}>
-                  <span class="chip2 small">varsayılan</span>
+                <Show when={x.link}>
+                  <span class="llist-tag" title="Başka bir düzene bağlı">
+                    <I.Link2 />
+                  </span>
                 </Show>
-              </button>
+                <button
+                  class="llist-lock"
+                  classList={{ on: !!x.locked }}
+                  title={x.locked ? "Kilitli: değiştirilemez · kilidi aç" : "Düzeni kilitle (değiştirilemez, silinemez)"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleProfileLock(x.id);
+                  }}
+                  onDblClick={(e) => e.stopPropagation()}
+                >
+                  <Show when={x.locked} fallback={<I.LockOpen />}>
+                    <I.Lock />
+                  </Show>
+                </button>
+                <Show when={isFixed(x.id)}>
+                  <span class="llist-fixed" title="Sabit düzen: adı değiştirilebilir, silinemez">
+                    <Pin />
+                  </span>
+                </Show>
+                <Show when={canRemove(x.id)}>
+                  <button
+                    class="llist-del"
+                    title="Sil"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      remove(x.id);
+                    }}
+                    onDblClick={(e) => e.stopPropagation()}
+                  >
+                    <I.Trash />
+                  </button>
+                </Show>
+              </div>
             </Show>
           )}
         </For>

@@ -21,6 +21,7 @@
 //   Hava (sıcaklık, rüzgâr)       ✓        ✓     ✓     ✓        ✓      (AC: yağış/ıslaklık yok)
 //   Lastik                        ✓        ✓     ✓     ✓        ✓      (ACC: aşınma yok, AMS2: basınç yok)
 //   Pedallar, vites, yakıt, tur   ✓        ✓     ✓     ✓        ✓
+//   Yanal / boyuna ivme (g)       ✓        ✓     ✓     ✓        ✓      (gforce; inputs konusunda latG / longG)
 //   Pist haritası (şekil kaydı)   ✓        ✓     ✓     ✓        ✓      (AC/ACC: haritada sadece oyuncu)
 
 import { settings } from "@/sdk/settings";
@@ -40,7 +41,7 @@ export const SIM_NAMES: Record<SimFamily, string> = {
 /**
  * Overlay'in ÇALIŞMADIĞI simler. Listede olmayan overlay her simde çalışır
  * (scene, webview, corners, inputs, telemetry, fuel, laptimes, tires, weather,
- * session, digiflags, dataframe, dashboard, trackmap, minimap, pitspeed...).
+ * session, digiflags, dataframe, dashboard, trackmap, minimap, pitspeed, gforce...).
  *
  * Kısmen çalışıp yine de işe yarayanlar bilerek listede değil:
  *  - pitspeed: iRacing dışında hız sınırı bilinmiyor ("—"), ama pit hızı ve

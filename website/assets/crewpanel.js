@@ -1,6 +1,7 @@
 // Ekip paneli (tek sürücünün canlı verisi + pit kontrolleri). crew.html (crew.js) ve Arkadaşlar paneli (friends.js)
 // aynı paneli kullanır: mountCrewPanel(kap, sürücü) paneli kaba çizer, 3 sn'de bir yeniler; destroy() durdurur.
 // Sunucu: supabase/c53_guncelleme.sql (crew_driver, crew_command, crew_command_get).
+// Ekip odası (c64: crew_room, crew_chat_send): sağ sütunda odadakiler (kim pit yetkilisi) + sohbet; mesajlar buradan yazılır.
 // Ekip Pitwall'ı (c58: crew_wall): panelin üstünde, saniyede bir yenilenen uzaktan pit duvarı — sürücünün çevresindeki
 // araçlar, farklar, tur / delta, bayraklar, hava ve spotter durumu (solda / sağda araç) + hazır spotter mesajları.
 // Sürücüden gelen veri güvenilmezdir: metinler esc() ile, sayılar n0() ile, renkler desenle süzülür.
@@ -189,10 +190,24 @@ addDict({
   cw_sp_L: ["SOL", "LEFT"],
   cw_sp_R: ["SAĞ", "RIGHT"],
   cw_locked: ["Kilitli", "Locked"],
+  // Ekip odası (c64): odadakiler + sohbet
+  cw_room: ["Ekip odası", "Crew room"],
+  cw_room_n: ["{0} kişi odada", "{0} in the room"],
+  cw_room_driver: ["Sürücü", "Driver"],
+  cw_room_ctl: ["Pit yetkilisi", "Pit control"],
+  cw_room_ctl_h: ["Yakıt ve lastik ayarlarını değiştirebilir", "Can change fuel and tyre settings"],
+  cw_room_ctl_idle: ["Yetkili, ancak sürücü ekip kontrolünü kapattı", "Authorised, but the driver turned crew control off"],
+  cw_room_watch: ["İzliyor", "Watching"],
+  cw_room_away: ["Odada değil", "Not in the room"],
+  cw_room_empty: ["Henüz mesaj yok. Buraya yazılanları sürücü ve odadaki tüm ekip görür.", "No messages yet. Everything written here is seen by the driver and the whole crew in the room."],
+  cw_room_ph: ["Ekip odasına yaz (sürücü ve ekip görür)", "Write to the crew room (seen by the driver and crew)"],
+  cw_room_err: ["Ekip odası okunamadı. Daha sonra tekrar dene.", "Could not load the crew room. Try again later."],
+  cw_r_chat_fast: ["Çok hızlı: dakikada en fazla 20 mesaj gönderebilirsin", "Too fast: you can send at most 20 messages per minute"],
 });
 
 /** Sunucudan / programdan gelen Türkçe metin -> çeviri anahtarı */
 const RESULT_KEYS = {
+  "Çok hızlı: dakikada en fazla 20 mesaj gönderebilirsin": "cw_r_chat_fast",
   "Sürücü ekip kontrolünü durdurdu": "cw_r_stopped",
   "Sürücü şu an ekip kontrolünü kabul etmiyor": "cw_r_not_accept",
   "Sürücü oyunda değil": "cw_r_not_in_game",
@@ -360,6 +375,7 @@ const IC = {
   drop: '<path d="M12 3.5c3 4 5.5 6.8 5.5 10a5.5 5.5 0 0 1-11 0c0-3.2 2.5-6 5.5-10z"/>',
   road: '<path d="M8 4 5 20M16 4l3 16M12 5v3M12 11v3M12 17v3"/>',
   send: '<path d="M4 12 20 5l-5 15-3-6z"/>',
+  helmet: '<path d="M4 14a8 8 0 0 1 16 0v3a2 2 0 0 1-2 2H9l-5-3z"/><path d="M11 12h9M11 12l1.5 3.5H20"/>',
 };
 const ic = (n) => `<svg class="pg-ic" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
 /** Üstten araç silueti (burun yukarıda); lastikler ayrı çizilir */
@@ -637,6 +653,122 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     if (sp) morph(sp, speechHtml());
     const el = q("#cw-wall");
     if (el) morph(el, wallHtml());
+  }
+
+  // ---- Ekip odası (c64): odadakiler + sohbet. crew_room() 2,5 sn'de bir; yeni mesajlar p_after ile istenir ----
+  let room = null; // son crew_room() yanıtı
+  let roomFail = false; // sunucuda oda yok (c64 kurulmamış) ya da okunamadı: eski tek yönlü mesaj komutu kullanılır
+  let roomBusy = false;
+  let roomSkip = 0;
+  let chat = []; // eskiden yeniye
+  let chatLast = "";
+  let chatSending = false;
+  const myId = () => room?.members?.find((m) => m.me)?.id || "";
+  function chatDown(force) {
+    const el = q("#cw-chat");
+    if (!el) return;
+    if (!force && el.scrollHeight - el.scrollTop - el.clientHeight > 80) return;
+    requestAnimationFrame(() => (el.scrollTop = el.scrollHeight));
+  }
+  async function loadRoom(force) {
+    if (!alive || roomBusy || (!force && document.hidden)) return;
+    if (roomSkip > 0 && !force) return void roomSkip--;
+    roomBusy = true;
+    try {
+      const { data, error } = await sb.rpc("crew_room", { p_owner: ownerId, p_after: chatLast || null, p_limit: 60 });
+      if (!alive) return;
+      if (error || !data) {
+        roomFail = true;
+        roomSkip = 4;
+        if (!room) drawRoom();
+        return;
+      }
+      roomFail = false;
+      room = data;
+      const add = Array.isArray(data.messages) ? data.messages.filter((m) => m && typeof m === "object") : [];
+      let down = false;
+      if (add.length) {
+        const first = !chatLast;
+        const known = new Set(chat.map((m) => m.id));
+        const fresh = add.filter((m) => !known.has(m.id));
+        chatLast = add[add.length - 1].at;
+        chat = [...chat, ...fresh].slice(-200);
+        down = first || fresh.some((m) => m.sender === myId());
+        if (fresh.length && !down) {
+          const el = q("#cw-chat");
+          down = !!el && el.scrollHeight - el.scrollTop - el.clientHeight <= 80;
+        }
+      }
+      drawRoom();
+      if (down) chatDown(true);
+    } finally {
+      roomBusy = false;
+    }
+  }
+  async function sendChat(text) {
+    const body = String(text || "").trim().slice(0, 300);
+    if (!alive || !body || chatSending) return;
+    // Oda sunucuda yoksa eski yol: sürücünün ekranına tek yönlü mesaj
+    if (roomFail && !room) return void send("message", { text: body.slice(0, 120) });
+    chatSending = true;
+    try {
+      const { error } = await sb.rpc("crew_chat_send", { p_owner: ownerId, p_body: body });
+      if (error) return void toast(tr(error.message), true);
+      if (navigator.vibrate) navigator.vibrate(15);
+      await loadRoom(true);
+      chatDown(true);
+    } finally {
+      chatSending = false;
+    }
+  }
+  function membersHtml() {
+    if (!room) return `<p class="muted small">${T(roomFail ? "cw_room_err" : "loading")}</p>`;
+    const d = room.driver;
+    const ms = Array.isArray(room.members) ? room.members : [];
+    const here = ms.filter((m) => m.present);
+    const away = ms.filter((m) => !m.present);
+    let h = "";
+    if (d)
+      h += `<div class="crm-m drv${d.online ? "" : " off"}"><i class="crm-dot"></i><b translate="no">${esc(d.name || "?")}</b><em class="crm-tag drv">${ic("helmet")}${T("cw_room_driver")}</em></div>`;
+    for (const m of here) {
+      h += `<div class="crm-m${m.me ? " me" : ""}"><i class="crm-dot"></i><b translate="no">${esc(m.name || "?")}</b>${
+        m.can_control
+          ? `<em class="crm-tag ctl${room.control_on ? "" : " idle"}" title="${esc(T(room.control_on ? "cw_room_ctl_h" : "cw_room_ctl_idle"))}">${ic("wrench")}${T("cw_room_ctl")}</em>`
+          : `<em class="crm-tag">${T("cw_room_watch")}</em>`
+      }</div>`;
+    }
+    if (away.length)
+      h += `<p class="crm-away">${T("cw_room_away")}: <span translate="no">${esc(away.map((m) => `${m.name || "?"}${m.can_control ? ` (${T("cw_room_ctl")})` : ""}`).join(", "))}</span></p>`;
+    return h;
+  }
+  function chatHtml() {
+    if (!chat.length) return `<p class="crm-empty">${T("cw_room_empty")}</p>`;
+    const me = myId();
+    return chat
+      .map((m) => {
+        const role = ["driver", "control", "view"].includes(m.role) ? m.role : "gone";
+        const dt = new Date(m.at);
+        const tm = isNaN(dt.getTime()) ? "" : dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const rt = role === "driver" ? T("cw_room_driver") : role === "control" ? T("cw_room_ctl") : "";
+        const nm = String(m.name || "?");
+        return `<div class="crm-msg ${role}${m.sender === me ? " mine" : ""}"><span class="crm-av" translate="no">${esc((Array.from(nm.trim())[0] || "?").toLocaleUpperCase())}</span><div>
+          <div class="crm-meta"><b translate="no">${esc(nm)}</b>${rt ? `<em>${rt}</em>` : ""}<time>${esc(tm)}</time></div>
+          <p translate="no">${esc(String(m.body || "").slice(0, 300))}</p></div></div>`;
+      })
+      .join("");
+  }
+  function roomCount() {
+    if (!room) return "";
+    const n = (Array.isArray(room.members) ? room.members.filter((m) => m.present).length : 0) + (room.driver?.online ? 1 : 0);
+    return `<span class="cw-badge${n > 0 ? " live" : ""}">${esc(T("cw_room_n", n))}</span>`;
+  }
+  function drawRoom() {
+    const n = q("#cw-room-n");
+    if (n) morph(n, roomCount());
+    const m = q("#cw-members");
+    if (m) morph(m, membersHtml());
+    const c = q("#cw-chat");
+    if (c) morph(c, chatHtml());
   }
 
   async function loadDriver() {
@@ -918,7 +1050,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     const c = x?.crew || null;
     const pf = c?.pit?.flags ?? -1;
     const b = blocked();
-    let h = `<div class="cw-head">
+    let h = `<div class="cw-c3"><div class="cw-col cw-col-a"><div class="cw-head">
         <div><h2 translate="no">${esc(d.display_name || "?")}</h2>
         <p class="muted small">${esc([SIMS[c?.sim || d.sim] || "", x?.track || d.track, x?.car || d.car, x?.session || d.session].filter(Boolean).join(" · ") || "—")}</p></div>
         <span class="cw-badge${d.live ? " live" : ""}">${statusText(d)}</span>
@@ -926,6 +1058,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     if (x) h += `<div class="pg${d.live ? "" : " stale"}">${raceHtml(d, x, c)}</div>`;
     h += `<div class="cw-wall" id="cw-wall">${wallHtml()}</div>`;
     if (!x) h += `<div class="card cw-empty"><p>${T("cw_no_data")}</p></div>`;
+    h += `<div class="cw-speech" id="cw-speech">${speechHtml()}</div></div><div class="cw-col cw-col-b">`;
     // Pit: görseller her zaman (izleme yetkisinde kilitli); kontroller sadece yetki varsa
     h += `<h3 class="cw-h">${T("cw_control")}</h3>`;
     if (b.trim()) h += `<p class="cw-blocked pg-lock">${ic("lock")}<span>${esc(b)}</span></p>`;
@@ -938,15 +1071,15 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
         ${d.can_control ? `<fieldset class="pg-ctl" ${b ? "disabled" : ""}><button type="button" class="pg-b dng" data-cmd="clear_all">${T("cw_clear")}</button></fieldset>` : ""}
       </div>`;
     }
-    h += `<div class="cw-speech" id="cw-speech">${speechHtml()}</div>
-      <fieldset class="cw-ctl pg" ${d.live ? "" : "disabled"}>
-        <h4 class="cw-h4">${T("cw_quick")}</h4>
-        <div class="pg-quick">${QUICK.map((k) => `<button type="button" class="pg-b" data-quick="${k}">${ic(QUICK_IC[k])}<span>${T(k)}</span></button>`).join("")}</div>
-        <h4 class="cw-h4">${T("cw_msg")}</h4>
-        <form class="cw-msg" id="cw-msg"><input id="cw-text" maxlength="120" autocomplete="off" placeholder="${esc(T("cw_msg_ph"))}" />
-        <button type="submit" class="cw-btn accent">${ic("send")}<span class="sr">${T("cw_send")}</span></button></form>
-      </fieldset>
-      <div id="cw-sent"></div>`;
+    // Sağ sütun: ekip odası (odadakiler, sohbet, hazır spotter mesajları, tek mesaj kutusu)
+    h += `<div id="cw-sent"></div></div><div class="cw-col cw-col-c">
+      <h3 class="cw-h crm-h">${T("cw_room")}<span id="cw-room-n">${roomCount()}</span></h3>
+      <div class="crm-members" id="cw-members">${membersHtml()}</div>
+      <div class="crm-chat" id="cw-chat">${chatHtml()}</div>
+      <div class="pg crm-quick"><div class="pg-quick">${QUICK.map((k) => `<button type="button" class="pg-b" data-quick="${k}">${ic(QUICK_IC[k])}<span>${T(k)}</span></button>`).join("")}</div></div>
+      <form class="cw-msg" id="cw-msg"><input id="cw-text" maxlength="300" autocomplete="off" placeholder="${esc(T("cw_room_ph"))}" />
+      <button type="submit" class="cw-btn accent">${ic("send")}<span class="sr">${T("cw_send")}</span></button></form>
+    </div></div>`;
     return h;
   }
 
@@ -1001,7 +1134,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       return void kickFit();
     }
     if (t.dataset.view === "full") return void setFull(!full);
-    if (t.dataset.quick && QUICK.includes(t.dataset.quick)) return void send("message", { text: T(t.dataset.quick) });
+    if (t.dataset.quick && QUICK.includes(t.dataset.quick)) return void sendChat(T(t.dataset.quick));
     if (t.dataset.l) {
       liters = Math.min(1000, Math.max(1, liters + Number(t.dataset.l)));
       litersTouched = true;
@@ -1086,7 +1219,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     const text = (inp?.value || "").trim();
     if (!text) return;
     inp.value = "";
-    void send("message", { text });
+    void sendChat(text);
   };
 
   host.addEventListener("click", onClick);
@@ -1100,17 +1233,20 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   };
   const timer = setInterval(tick, opts.interval || 3000);
   const wallTimer = setInterval(() => void loadWall(), 1000);
-  const onVis = () => !document.hidden && (tick(), void loadWall());
+  const roomTimer = setInterval(() => void loadRoom(), 2500);
+  const onVis = () => !document.hidden && (tick(), void loadWall(), void loadRoom());
   document.addEventListener("visibilitychange", onVis);
   drawDash();
   void loadDriver();
   void loadWall();
+  void loadRoom(true);
   return {
     redraw: drawDash,
     destroy() {
       alive = false;
       clearInterval(timer);
       clearInterval(wallTimer);
+      clearInterval(roomTimer);
       fitRo.disconnect();
       if (fitRaf) cancelAnimationFrame(fitRaf);
       window.removeEventListener("resize", kickFit);

@@ -211,3 +211,62 @@
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Gösterge + altındaki tur süresi satırları */
+.inp-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+}
+
+/* Varsayılan tasarım: çubukların üstünde yüzde */
+.inp-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 2.7em;
+}
+.inp-col .inp-bar {
+  flex: 1;
+  height: auto;
+  min-height: 60px;
+}
+.inp-pct {
+  font-size: 0.769em;
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.inp-laps {
+  display: flex;
+  flex-direction: column;
+}
+.inp-lap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: calc(4px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
+}
+.inp-lap + .inp-lap {
+  border-top: 1px solid var(--ov-divider);
+}
+.inp-lap label {
+  font-size: 0.769em;
+  color: var(--ov-dim);
+  text-transform: var(--ov-label-tt, uppercase);
+  letter-spacing: 0.06em;
+}
+.inp-lap b {
+  font-size: 1.077em;
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+.inp-lap.best b {
+  color: var(--ov-purple);
+}

@@ -323,3 +323,81 @@
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
+
+/* --- c63: sütun genişlikleri. Sabit sütunlar sabit, sayılar sağa yaslı ve eş genişlikli rakamlı; ad sütunu esner.
+   Bütün sütunlar açıkken panel taşmak yerine genişler (ad en az ~9em kalır). --- */
+.rel {
+  width: max-content;
+  min-width: calc(560px * var(--ov-fs-k, 1));
+  font-variant-numeric: tabular-nums;
+}
+.rel-row > * {
+  flex: none;
+}
+.rel-row > .rel-name {
+  flex: 1 1 auto;
+  width: 9em;
+  min-width: 0;
+}
+.rel-pos {
+  width: 1.8em;
+}
+.rel-num {
+  box-sizing: border-box;
+  width: 2.9em;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rel-stint {
+  width: 2.9em;
+  white-space: nowrap;
+}
+.rel-car {
+  text-align: center;
+}
+/* iRating rozeti: değer sağa yaslı; tahmini değişim (yarışta) sabit genişlikli ikinci bölmede */
+.irp {
+  box-sizing: border-box;
+  width: 3.9em;
+  min-width: 0;
+  justify-content: flex-end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.irp.irp-d {
+  width: 7.3em;
+}
+.irp b {
+  flex: 1;
+  text-align: right;
+}
+.irp.irp-d > span {
+  width: 3.1em;
+  text-align: left;
+}
+.irp .up {
+  color: #0f7a37;
+}
+.irp .down {
+  color: #c42626;
+}
+.rel-last {
+  width: 8.4ch;
+  white-space: nowrap;
+}
+.rel-gap {
+  width: 6.2ch;
+  white-space: nowrap;
+}
+.licb.combo i {
+  margin-left: 3px;
+  font-style: normal;
+  font-size: 0.85em;
+}
+.licb.combo i.up {
+  color: #7dffb0;
+}
+.licb.combo i.down {
+  color: #ff9a9a;
+}

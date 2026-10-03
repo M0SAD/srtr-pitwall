@@ -3,7 +3,7 @@
 // Her satırda değer temadan geliyorsa "tema" yazar; değiştirilince yanında "temaya dön" (↺) düğmesi çıkar.
 
 import { For, Show, createSignal, type JSX } from "solid-js";
-import { activeProfile, settings, updateOverlay as updateOverlayIn, updateSettings } from "@/sdk/settings";
+import { DEFAULTS_ID, activeProfile, profileById, settings, updateOverlay as updateOverlayIn, updateSettings } from "@/sdk/settings";
 import { FONTS } from "@/sdk/theme";
 import { LOOK_FREE, LOOK_PRESETS, lookHasValues, lookClipboard, setLookClipboard, type LookKey, type OverlayLook } from "@/sdk/look";
 import { F, proLocked, requiresPro } from "@/sdk/proFeatures";
@@ -14,7 +14,7 @@ import "./lookPanel.css";
 
 export function LookPanel(props: { id: string; profileId?: string }) {
   /** Düzenlenen düzen (verilmezse etkin düzen) */
-  const prof = () => (props.profileId && settings().profiles[props.profileId]) || activeProfile();
+  const prof = () => profileById(props.profileId) ?? activeProfile();
   const inst = () => prof().overlays[props.id];
   const updateOverlay = (id: string, fn: Parameters<typeof updateOverlayIn>[1]) => updateOverlayIn(id, fn, prof().id);
   const look = (): OverlayLook => inst()?.look ?? {};
@@ -55,7 +55,7 @@ export function LookPanel(props: { id: string; profileId?: string }) {
     if (!confirm(t("Bu görünüm, bu düzendeki bütün overlay'lere uygulansın mı? Diğer overlay'lerin kendi özel görünümleri silinir."))) return;
     const pid = prof().id;
     updateSettings((d) => {
-      for (const o of Object.values((d.profiles[pid] ?? d.profiles[d.activeProfile]).overlays)) {
+      for (const o of Object.values(pid === DEFAULTS_ID ? d.defaults : (d.profiles[pid] ?? d.profiles[d.activeProfile]).overlays)) {
         if (l && Object.keys(l).length) o.look = { ...l };
         else delete o.look;
       }

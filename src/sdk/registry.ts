@@ -44,9 +44,9 @@ export function manifestById(id: string): OverlayManifest | undefined {
   return manifests.find((m) => m.id === id);
 }
 
-/** Bu türden bir kopya daha eklenebilir mi: genel izin açıksa ya da manifest `multiInstance` ise */
-export function canDuplicate(type: string, allowDuplicates: boolean): boolean {
-  return allowDuplicates || !!manifestById(type)?.multiInstance;
+/** Bu türden bir kopya daha eklenebilir mi: sadece manifesti `multiInstance` olanlar (veri kutusu, webview) */
+export function canDuplicate(type: string, _allowDuplicates?: boolean): boolean {
+  return !!manifestById(type)?.multiInstance;
 }
 
 export function loadComponent(id: string): (() => Promise<{ default: OverlayComponent }>) | undefined {

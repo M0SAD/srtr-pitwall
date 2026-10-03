@@ -57,6 +57,12 @@ pub struct Inputs {
     pub abs: bool,
     /// Çekiş kontrolü kesiyor
     pub tc: bool,
+    /// Yanal (+ sağ) / boyuna (+ hızlanma) ivme, g
+    pub lat_g: f32,
+    pub long_g: f32,
+    /// Son / en iyi tur (sn; yoksa -1)
+    pub last_lap: f32,
+    pub best_lap: f32,
 }
 
 /// ERS ve batarya overlay'i. Tur başı / tur ortalaması gibi türev değerler arayüzde hesaplanır.
@@ -204,7 +210,7 @@ pub struct Row {
     pub gap: f32,
     pub interval: f32,
     pub laps_down: i32,
-    /// Relative: 1 = bir tur önde (seni turluyor), -1 = turlanıyor, 0 = aynı tur
+    /// Relative: +N = N tur önde (seni turluyor), -N = turlanıyor, 0 = aynı tur
     pub lap_rel: i32,
     pub last: f32,
     pub best: f32,
@@ -334,6 +340,9 @@ pub struct Session {
     pub session_type: String,
     pub track: String,
     pub flags: Vec<&'static str>,
+    /// Oyuncunun cezası: "" yok, driveThrough, stopGo, disqualify, timePenalty, penalty (türü bilinmiyor),
+    /// black (siyah bayrak), repair (hasar), furled (uyarı: yavaşla)
+    pub penalty: &'static str,
     pub time_remain: f64,
     pub laps_remain: i32,
     pub total_laps: i32,
@@ -445,6 +454,7 @@ pub fn sof(irs: &[i32]) -> i32 {
 
 /// Topluluğun yaygın kullandığı iRating tahmin formülü. `field` sınıf içi sıraya göre
 /// (iRating, bitiş sırası 1..N) listesidir; aynı sırada tahmini değişimleri döner.
+#[allow(dead_code)]
 pub fn ir_deltas(field: &[(i32, i32)]) -> Vec<i32> {
     let n = field.len();
     if n < 2 {
@@ -540,25 +550,38 @@ fn ir_map(f: &Frame, s: &SessionData) -> [i32; MAX_CARS] {
     if !s.is_race(f.session_num) {
         return out;
     }
+    // Sınıftaki bütün kayıtlı sürücüler (pistten çıkmış olsa da): sıralaması olan başlamış, olmayan başlamamış sayılır
+    let in_field = |i: usize| s.driver(i).map(|d| !d.is_pace_car && !d.is_spectator).unwrap_or(false);
     let mut class_ids: Vec<i32> = Vec::new();
     for i in 0..MAX_CARS {
         if let Some(d) = s.driver(i) {
-            if active(f, s, i) && !class_ids.contains(&d.class_id) {
+            if in_field(i) && !class_ids.contains(&d.class_id) {
                 class_ids.push(d.class_id);
             }
         }
     }
     for cid in class_ids {
-        let mut idxs: Vec<usize> = (0..MAX_CARS)
-            .filter(|&i| active(f, s, i) && s.driver(i).map(|d| d.class_id == cid).unwrap_or(false) && f.cars[i].class_position > 0)
-            .collect();
-        idxs.sort_by_key(|&i| f.cars[i].class_position);
-        let field: Vec<(i32, i32)> = idxs
+        let mut idxs: Vec<usize> =
+            (0..MAX_CARS).filter(|&i| in_field(i) && s.driver(i).map(|d| d.class_id == cid).unwrap_or(false)).collect();
+        // Başlayanlar sınıf sırasına göre önde, başlamayanlar sonda
+        idxs.sort_by_key(|&i| {
+            let p = f.cars[i].class_position;
+            if p > 0 {
+                p
+            } else {
+                i32::MAX
+            }
+        });
+        let field: Vec<crate::irating::Entry> = idxs
             .iter()
             .enumerate()
-            .map(|(n, &i)| (s.driver(i).map(|d| d.irating).unwrap_or(0), n as i32 + 1))
+            .map(|(n, &i)| crate::irating::Entry {
+                irating: s.driver(i).map(|d| d.irating).unwrap_or(0),
+                pos: n as i32 + 1,
+                started: f.cars[i].class_position > 0,
+            })
             .collect();
-        for (k, d) in ir_deltas(&field).into_iter().enumerate() {
+        for (k, d) in crate::irating::estimate(&field).into_iter().enumerate() {
             out[idxs[k]] = d;
         }
     }
@@ -613,6 +636,10 @@ pub fn inputs(f: &Frame, s: &SessionData) -> Inputs {
         redline: s.redline,
         abs: f.abs_active,
         tc: f.tc_active,
+        lat_g: f.lat_g,
+        long_g: f.long_g,
+        last_lap: f.lap_last,
+        best_lap: f.lap_best,
     }
 }
 
@@ -723,10 +750,9 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         }
         let lap_rel = if race && i != me {
             let diff = (c.lap as f32 + c.pct) - (my.lap as f32 + my.pct);
-            if diff > 0.5 {
-                1
-            } else if diff < -0.5 {
-                -1
+            // Tam tur farkı: +1/+2 beni turlayanlar, −1/−2 turladıklarım
+            if diff.abs() > 0.5 {
+                diff.round() as i32
             } else {
                 0
             }
@@ -1085,7 +1111,7 @@ pub fn tires(f: &Frame) -> Tires {
 }
 
 pub fn decode_flags(bits: u32) -> Vec<&'static str> {
-    const TABLE: [(u32, &str); 14] = [
+    const TABLE: [(u32, &str); 16] = [
         (0x0001, "checkered"),
         (0x0002, "white"),
         (0x0004, "green"),
@@ -1093,14 +1119,20 @@ pub fn decode_flags(bits: u32) -> Vec<&'static str> {
         (0x0010, "red"),
         (0x0020, "blue"),
         (0x0040, "debris"),
-        (0x0100, "greenHeld"),
-        (0x0400, "oneLapToGreen"),
+        // irsdk_Flags: 0x0100 yellowWaving, 0x0200 oneLapToGreen, 0x0400 greenHeld
+        // (eskiden 0x0100 yanlışlıkla "greenHeld" sayılıyordu: dalgalanan sarı yeşil görünüyordu)
+        (0x0100, "yellowWaving"),
+        (0x0200, "oneLapToGreen"),
+        (0x0400, "greenHeld"),
         (0x4000, "caution"),
         (0x8000, "cautionWaving"),
         (0x0001_0000, "black"),
         (0x0002_0000, "disqualify"),
+        (0x0008_0000, "furled"),
         (0x0010_0000, "repair"),
     ];
+    // Dalgalanan sarı aynı zamanda "yellow" olarak da bildirilir (bu adı bilmeyen tüketiciler için)
+    let bits = if bits & 0x0100 != 0 { bits | 0x0008 } else { bits };
     TABLE.iter().filter(|(b, _)| bits & b != 0).map(|(_, n)| *n).collect()
 }
 
@@ -1111,12 +1143,27 @@ pub fn session(f: &Frame, s: &SessionData) -> Session {
     // Oyuncuya özel bayraklar (siyah, hasar) oturum bayraklarına eklenir
     let mut bits = f.session_flags;
     if let Some(c) = f.cars.get(me) {
-        bits |= c.flags & (CF_BLACK | CF_DQ | CF_REPAIR);
+        bits |= c.flags & (CF_BLACK | CF_DQ | CF_REPAIR | CF_FURLED);
     }
+    let penalty = if bits & CF_DQ != 0 || f.penalty == 3 {
+        "disqualify"
+    } else {
+        match f.penalty {
+            1 => "driveThrough",
+            2 => "stopGo",
+            4 => "timePenalty",
+            5 => "penalty",
+            _ if bits & CF_BLACK != 0 => "black",
+            _ if bits & CF_REPAIR != 0 => "repair",
+            _ if bits & CF_FURLED != 0 => "furled",
+            _ => "",
+        }
+    };
     Session {
         session_type: entry.map(|e| e.kind.clone()).unwrap_or_default(),
         track: s.track_name.clone(),
         flags: decode_flags(bits),
+        penalty,
         time_remain: f.session_time_remain,
         laps_remain: f.session_laps_remain,
         total_laps: entry.and_then(|e| e.laps).unwrap_or(0),
@@ -1136,6 +1183,9 @@ pub fn session(f: &Frame, s: &SessionData) -> Session {
         on_pit_road: f.on_pit_road,
     }
 }
+
+/// iRacing irsdk_furled: sarılı siyah bayrak (uyarı)
+const CF_FURLED: u32 = 0x0008_0000;
 
 /// Harita paketi. Şekil sadece `send_shape` true iken eklenir (her abone kendi takibini yapar).
 pub fn map(f: &Frame, s: &SessionData, m: &TrackMap, send_shape: bool) -> MapData {

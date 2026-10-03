@@ -4000,3 +4000,413 @@ h3.ur-head {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Düzenler / Yayın: yeni yerleşim (solda düzenler + overlay listesi, ortada tuval, sağda ayarlar) ---------- */
+.lpage.with-set {
+  grid-template-columns: 250px minmax(0, 1fr) 300px;
+}
+.lpage > .ovset {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+.lpage > .ovset .btn.wide {
+  width: calc(100% - 28px);
+  margin: 0 14px;
+  justify-content: center;
+}
+.llist .llist-items {
+  flex: 0 1 auto;
+  max-height: 36%;
+  min-height: 74px;
+}
+.llist-pal {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.llist-pal .locked-note {
+  margin: 4px 0 6px;
+  font-size: 12px;
+}
+.llist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 4px 2px 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.llist-head small {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.llist-add {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #111;
+  cursor: pointer;
+  transition: transform 0.12s, filter 0.12s;
+}
+.llist-add:hover {
+  filter: brightness(1.1);
+  transform: scale(1.06);
+}
+.llist-add svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 3;
+}
+.llist-row {
+  user-select: none;
+}
+.llist-row:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.llist-del,
+.llist-fixed,
+.llist-tag {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+}
+.llist-del {
+  cursor: pointer;
+  opacity: 0.55;
+}
+.llist-row:hover .llist-del,
+.llist-row.sel .llist-del {
+  opacity: 1;
+}
+.llist-del:hover {
+  background: color-mix(in srgb, #ff5a5f 18%, transparent);
+  color: #ff7b7f;
+}
+.llist-fixed {
+  opacity: 0.45;
+}
+.llist-del svg,
+.llist-fixed svg,
+.llist-tag svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Overlay listesi: + düzene ekle, − düzenden çıkar; ekli olanlar yeşil */
+.ovpal-row {
+  padding: 5px 6px 5px 8px;
+  user-select: none;
+}
+.ovpal-row .ovitem-name {
+  flex: 1;
+  min-width: 0;
+}
+.ovpal-sub {
+  margin-left: 16px;
+  width: calc(100% - 16px);
+  font-size: 13px;
+}
+.ovpal-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-3);
+  color: #cfd5df;
+  cursor: pointer;
+}
+.ovpal-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.6;
+}
+.ovpal-btn.add:hover:not(:disabled) {
+  border-color: #3ddc84;
+  color: #3ddc84;
+}
+.ovpal-btn.rem {
+  border-color: color-mix(in srgb, #3ddc84 45%, var(--line));
+  color: #3ddc84;
+}
+.ovpal-btn.rem:hover:not(:disabled) {
+  border-color: #ff7b7f;
+  color: #ff7b7f;
+  background: color-mix(in srgb, #ff5a5f 14%, transparent);
+}
+.ovpal-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ovpal.disabled .ovpal-row {
+  cursor: default;
+}
+
+/* Tuval araçları: geri al / yinele + yakınlaştırma */
+.ur-btn svg {
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+}
+.ctools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.ctools-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.ctools .ur-btn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.ctools .ur-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.ctools .ur-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ctools-pct {
+  min-width: 46px;
+  height: 30px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.ctools-pct:hover {
+  color: var(--text);
+}
+.lcanvas-wrap.zoomed {
+  overflow: auto;
+  max-height: 72vh;
+}
+.lcanvas-wrap.zoomed .lcanvas {
+  margin: 0;
+}
+.ovset-note {
+  margin: 12px 14px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.ovlist-profile {
+  align-items: center;
+}
+.ovlist-profile .ovlist-total {
+  margin: 0 0 0 2px;
+}
+
+/* Sağ alttaki "Arkadaşlar" düğmesi ayar panelinin alt düğmelerini örtmesin */
+.lpage > .ovset .ovset-foot {
+  padding-right: 132px;
+}
+
+/* === 74: düzen tuvali — dört köşeden boyutlandırma, kenardan genişlik / yükseklik === */
+.citem-resize.se {
+  transform-origin: 50% 50%;
+}
+.citem-resize.nw,
+.citem-resize.ne,
+.citem-resize.sw {
+  transform-origin: 50% 50%;
+}
+.citem-resize.nw,
+.citem-resize.sw {
+  right: auto;
+  left: -7px;
+}
+.citem-resize.nw,
+.citem-resize.ne {
+  bottom: auto;
+  top: -7px;
+}
+.citem-resize.ne,
+.citem-resize.sw {
+  cursor: nesw-resize;
+}
+.citem .rz-edge {
+  position: absolute;
+  z-index: 1;
+}
+.citem .rz-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 3px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+.citem .rz-edge:hover::after {
+  opacity: 1;
+}
+.citem .rz-edge.e,
+.citem .rz-edge.w {
+  top: 0;
+  bottom: 0;
+  width: calc(10px * var(--hk, 1));
+  cursor: ew-resize;
+}
+.citem .rz-edge.e {
+  right: calc(-6px * var(--hk, 1));
+}
+.citem .rz-edge.w {
+  left: calc(-6px * var(--hk, 1));
+}
+.citem .rz-edge.e::after,
+.citem .rz-edge.w::after {
+  width: calc(4px * var(--hk, 1));
+  height: min(40%, calc(30px * var(--hk, 1)));
+}
+.citem .rz-edge.n,
+.citem .rz-edge.s {
+  left: 0;
+  right: 0;
+  height: calc(10px * var(--hk, 1));
+  cursor: ns-resize;
+}
+.citem .rz-edge.s {
+  bottom: calc(-6px * var(--hk, 1));
+}
+.citem .rz-edge.n {
+  top: calc(-6px * var(--hk, 1));
+}
+.citem .rz-edge.n::after,
+.citem .rz-edge.s::after {
+  height: calc(4px * var(--hk, 1));
+  width: min(40%, calc(30px * var(--hk, 1)));
+}
+
+/* === 74: düzen listesi başlığı, kilit, sabit düzen iğnesi === */
+.llist-items > .llist-head {
+  padding: 2px 2px 8px 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-2);
+}
+.llist-lock {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+.llist-lock svg {
+  width: 13px;
+  height: 13px;
+}
+.llist-row:hover .llist-lock,
+.llist-row.sel .llist-lock,
+.llist-lock.on {
+  opacity: 1;
+}
+.llist-lock.on {
+  color: var(--accent);
+}
+.llist-lock:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text, #fff);
+}
+.lock-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lock-note svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.ovset.ro .ovset-scroll > *:not(.locked-note) {
+  pointer-events: none;
+  opacity: 0.55;
+}
+/* === 74: overlay listesi — ekli olanlar üstte, Overlaylarım'da sıralama === */
+.ovlist-cap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.ovlist-cap-row .link {
+  font-size: 11px;
+}
+.ovitem .ovord {
+  display: none;
+  flex: none;
+  gap: 2px;
+}
+.ovitem:hover .ovord,
+.ovitem.sel .ovord {
+  display: inline-flex;
+}
+.ovord span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.ovord span:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text, #fff);
+}
+.ovord span.off {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.ovord svg {
+  width: 12px;
+  height: 12px;
+}
+.rail-logo.link {
+  cursor: pointer;
+}

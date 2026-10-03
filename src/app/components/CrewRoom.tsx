@@ -1,0 +1,224 @@
+// Ekip odası (c64): bir sürücünün ekibi ve sürücünün kendisi arasındaki sohbet + odada kimler var.
+// crew_room() 2,5 sn'de bir yoklanır (yeni mesaj Realtime ile anında tetikler); mesajlar crew_chat_send() ile yazılır.
+// Sürücünün uygulaması odadaki mesajları Mesajlar overlay'inde / alt ortadaki kutucukta gösterir (src/host/crew.ts).
+// Aynı odanın web sürümü website/assets/crewpanel.js içindedir.
+
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { t } from "@/sdk/i18n";
+import { session } from "@/cloud/supabase";
+import { CREW_CHAT_MAX, WALL_MSGS, crewChatSend, crewRoom, onCrewChat, type CrewChatMsg, type CrewRoom as Room } from "@/cloud/crew";
+import { Ic, QUICK_ICONS } from "./CrewGfx";
+import "../crew.css";
+
+const initial = (s: string) => (Array.from((s || "?").trim())[0] ?? "?").toLocaleUpperCase("tr");
+const clock = (iso: string) => {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
+
+export function CrewRoom(props: {
+  owner: string;
+  /** Hazır spotter mesajları gösterilsin (sürücünün kendi odasında gerekmez) */
+  quick?: boolean;
+  /** Sunucuda oda yoksa (c64 kurulmamış) eski tek yönlü mesaj komutu */
+  legacySend?: (text: string) => void;
+}) {
+  const [room, setRoom] = createSignal<Room | null>(null);
+  const [msgs, setMsgs] = createSignal<CrewChatMsg[]>([]);
+  const [failed, setFailed] = createSignal(false);
+  const [err, setErr] = createSignal("");
+  const [text, setText] = createSignal("");
+  const [sending, setSending] = createSignal(false);
+  const me = () => session()?.user.id ?? "";
+  let alive = true;
+  let busy = false;
+  let last = "";
+  let listEl: HTMLDivElement | undefined;
+  onCleanup(() => (alive = false));
+
+  const scrollDown = (force = false) => {
+    const el = listEl;
+    if (!el) return;
+    // Kullanıcı yukarı kaydırıp eski mesajlara bakıyorsa yerinden oynatma
+    if (!force && el.scrollHeight - el.scrollTop - el.clientHeight > 80) return;
+    requestAnimationFrame(() => (el.scrollTop = el.scrollHeight));
+  };
+
+  const load = async (force = false) => {
+    if (busy || (!force && document.hidden) || !props.owner || !me()) return;
+    busy = true;
+    const id = props.owner;
+    try {
+      const r = await crewRoom(id, last || null);
+      if (!alive || id !== props.owner || !r) return;
+      setFailed(false);
+      setRoom(r);
+      const add = r.messages ?? [];
+      if (add.length) {
+        const first = !last;
+        const known = new Set(msgs().map((m) => m.id));
+        const fresh = add.filter((m) => !known.has(m.id));
+        last = add[add.length - 1].at;
+        if (fresh.length) {
+          setMsgs([...msgs(), ...fresh].slice(-200));
+          scrollDown(first || fresh.some((m) => m.sender === me()));
+        }
+      }
+    } catch {
+      if (alive) setFailed(true); // eski sunucu (c64 yok) ya da ağ hatası
+    } finally {
+      busy = false;
+    }
+  };
+  const iv = window.setInterval(() => void load(), 2500);
+  onCleanup(() => clearInterval(iv));
+  let stopRt: () => void = () => {};
+  onCleanup(() => stopRt());
+  createEffect(
+    on(
+      () => props.owner,
+      (owner) => {
+        last = "";
+        setRoom(null);
+        setMsgs([]);
+        setErr("");
+        stopRt();
+        stopRt = () => {};
+        void load(true);
+        void onCrewChat(owner, () => void load(true)).then((f) => {
+          if (!alive || owner !== props.owner) return f();
+          stopRt = f;
+        });
+      },
+    ),
+  );
+
+  const send = async (raw: string) => {
+    const body = raw.trim().slice(0, CREW_CHAT_MAX);
+    if (!body || sending()) return;
+    setErr("");
+    // Oda sunucuda yoksa (c64 kurulmamış) eski yol: sürücünün ekranına tek yönlü mesaj
+    if (failed() && !room() && props.legacySend) return props.legacySend(body.slice(0, 120));
+    setSending(true);
+    try {
+      await crewChatSend(props.owner, body);
+      await load(true);
+      scrollDown(true);
+    } catch (e) {
+      setErr(String((e as Error)?.message ?? e));
+    } finally {
+      setSending(false);
+    }
+  };
+  const submit = () => {
+    const v = text();
+    if (!v.trim()) return;
+    setText("");
+    void send(v);
+  };
+
+  const present = createMemo(() => (room()?.members ?? []).filter((m) => m.present));
+  const away = createMemo(() => (room()?.members ?? []).filter((m) => !m.present));
+  const roleText = (r: CrewChatMsg["role"]) => (r === "driver" ? t("Sürücü") : r === "control" ? t("Pit yetkilisi") : "");
+
+  return (
+    <section class="panel crm">
+      <h3>
+        Ekip odası
+        <Show when={room()}>
+          <span class="crew-live" classList={{ on: present().length > 0 }}>
+            {t("{0} kişi odada", String(present().length + (room()!.driver?.online ? 1 : 0)))}
+          </span>
+        </Show>
+      </h3>
+      <Show when={room()} fallback={<p class="muted small">{failed() ? t("Ekip odası okunamadı. Daha sonra tekrar dene.") : t("Yükleniyor…")}</p>}>
+        {(r) => (
+          <div class="crm-members">
+            <Show when={r().driver}>
+              {(d) => (
+                <div class="crm-m drv" classList={{ off: !d().online }} title={d().racing ? t("Yarışta") : d().online ? t("Çevrimiçi") : t("Çevrimdışı")}>
+                  <i class="crm-dot" />
+                  <b data-no-i18n>{d().name || "?"}</b>
+                  <em class="crm-tag drv">
+                    <Ic n="helmet" />
+                    {t("Sürücü")}
+                  </em>
+                </div>
+              )}
+            </Show>
+            <For each={present()}>
+              {(m) => (
+                <div class="crm-m" classList={{ me: m.me }}>
+                  <i class="crm-dot" />
+                  <b data-no-i18n>{m.name || "?"}</b>
+                  <Show when={m.can_control} fallback={<em class="crm-tag">{t("İzliyor")}</em>}>
+                    <em class="crm-tag ctl" classList={{ idle: !r().control_on }} title={r().control_on ? t("Yakıt ve lastik ayarlarını değiştirebilir") : t("Yetkili, ancak sürücü ekip kontrolünü kapattı")}>
+                      <Ic n="wrench" />
+                      {t("Pit yetkilisi")}
+                    </em>
+                  </Show>
+                </div>
+              )}
+            </For>
+            <Show when={away().length > 0}>
+              <p class="crm-away" data-no-i18n>
+                {t("Odada değil")}: {away().map((m) => `${m.name || "?"}${m.can_control ? ` (${t("Pit yetkilisi")})` : ""}`).join(", ")}
+              </p>
+            </Show>
+          </div>
+        )}
+      </Show>
+      <div class="crm-chat" ref={listEl} data-no-i18n>
+        <Show when={msgs().length > 0} fallback={<p class="crm-empty">{t("Henüz mesaj yok. Buraya yazılanları sürücü ve odadaki tüm ekip görür.")}</p>}>
+          <For each={msgs()}>
+            {(m) => (
+              <div class="crm-msg" classList={{ mine: m.sender === me(), [m.role]: true }}>
+                <span class="crm-av">{initial(m.name)}</span>
+                <div>
+                  <div class="crm-meta">
+                    <b>{m.name || "?"}</b>
+                    <Show when={roleText(m.role)}>
+                      <em>{roleText(m.role)}</em>
+                    </Show>
+                    <time>{clock(m.at)}</time>
+                  </div>
+                  <p>{m.body}</p>
+                </div>
+              </div>
+            )}
+          </For>
+        </Show>
+      </div>
+      <Show when={props.quick}>
+        <div class="pg crm-quick">
+          <div class="pg-quick">
+            <For each={WALL_MSGS}>
+              {(m, i) => (
+                <button type="button" class="pg-b" disabled={sending()} onClick={() => void send(t(m))}>
+                  <Ic n={QUICK_ICONS[i()]} />
+                  <span>{t(m)}</span>
+                </button>
+              )}
+            </For>
+          </div>
+        </div>
+      </Show>
+      <div class="crm-input">
+        <input
+          class="input"
+          maxLength={CREW_CHAT_MAX}
+          placeholder={t("Ekip odasına yaz (sürücü ve ekip görür)")}
+          value={text()}
+          onInput={(e) => setText(e.currentTarget.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+        />
+        <button class="btn small" disabled={sending() || !text().trim()} onClick={submit}>
+          Gönder
+        </button>
+      </div>
+      <Show when={err()}>
+        <p class="error">{t(err())}</p>
+      </Show>
+    </section>
+  );
+}

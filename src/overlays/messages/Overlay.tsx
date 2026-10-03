@@ -14,8 +14,25 @@ interface Item {
 const SAMPLE: OvMsg[] = [
   { id: "s1", kind: "friend", from: "a", peer: "a", name: "Örnek Arkadaş", color: "#2ec4b6", body: "Pitte görüşürüz 👍", mine: false, ts: 0 },
   { id: "s2", kind: "team", from: "b", peer: "t", name: "Takım Arkadaşı", color: "#a970ff", team: "[SRTR]", body: "Yakıt 2 tur daha yetiyor", mine: false, ts: 0 },
+  { id: "s4", kind: "crew", from: "c", peer: "me", name: "Pit Ekibi", color: "#ffb341", team: "Ekip", body: "Bu tur pit, yakıt ayarlandı", mine: false, ts: 0 },
   { id: "s3", kind: "friend", from: "me", peer: "a", name: "Sen", color: "#ff8a2a", body: "Tamam, bu tur giriyorum", mine: true, ts: 0 },
 ];
+
+/**
+ * Ekip odası mesajını sesli oku: canlı sohbetin sesli okuma kuyruğu, ama ayrı seçilen sesle (`voice`; boş: canlı
+ * sohbetin sesi). Ses seçimi Rust tarafında social_tts_speak komutunun `voice` parametresiyle uygulanır; komut
+ * değişirse yalnızca burası uyarlanır.
+ */
+function speakCrew(m: OvMsg, o: Record<string, any>) {
+  invoke("social_tts_speak", {
+    id: m.id,
+    name: m.name,
+    text: m.body,
+    readName: o.ttsName !== false,
+    maxChars: Number(o.ttsMax) || 200,
+    voice: String(o.crewVoice ?? "") || null,
+  }).catch(() => {});
+}
 
 const initial = (s: string) => (Array.from(s.trim())[0] ?? "?").toLocaleUpperCase("tr");
 
@@ -23,7 +40,12 @@ export default function Messages(props: OverlayProps) {
   const o = () => props.options;
   const [items, setItems] = createSignal<Item[]>([]);
   const [now, setNow] = createSignal(Date.now());
-  const life = () => Math.max(3, Math.min(60, Number(o().lifetime) || 12)) * 1000;
+  // Ekranda kalma süresi: elle yazılan sayı + birim (varsayılan 3 dakika); 3 sn – 60 dk
+  const life = () => {
+    const n = parseFloat(String(o().lifeValue ?? "3").replace(",", "."));
+    const sec = (isFinite(n) && n > 0 ? n : 3) * (o().lifeUnit === "sec" ? 1 : 60);
+    return Math.max(3, Math.min(3600, sec)) * 1000;
+  };
   const maxN = () => Math.max(1, Math.min(10, Number(o().maxVisible) || 4));
 
   // Ayara uyan mesajlar burada gösterilir; oyun içi bildirim kutusu ayrıca çıkmaz
@@ -38,7 +60,9 @@ export default function Messages(props: OverlayProps) {
       if (!m || !ovMsgAccepts(o(), m)) return;
       if (items().some((x) => x.m.id === m.id)) return;
       // Sesli okuma (PRO: social.messages_tts; Rust canlı sohbetle aynı kuyruğa alır, aynı mesaj bir kez okunur)
-      if (o().tts && !m.mine) {
+      if (m.kind === "crew") {
+        if (o().crewTts && !m.mine) speakCrew(m, o());
+      } else if (o().tts && !m.mine) {
         invoke("social_tts_speak", { id: m.id, name: m.name, text: m.body, readName: o().ttsName !== false, maxChars: Number(o().ttsMax) || 200 }).catch(() => {});
       }
       const t = Date.now();
@@ -78,6 +102,7 @@ export default function Messages(props: OverlayProps) {
       classList={{ top: !!o().newestTop }}
       style={{
         "font-size": `${Math.max(10, Math.min(24, Number(o().fontSize) || 13))}px`,
+        "--ovmsg-w": `${Math.max(220, Math.min(900, Number(o().width) || 340))}px`,
         "--ovmsg-bg": `color-mix(in srgb, var(--ov-bg-solid) ${bgA()}%, transparent)`,
         "--ovmsg-lines": String(Math.max(1, Math.min(8, Number(o().lines) || 3))),
         "--ovmsg-max": String(maxN()),

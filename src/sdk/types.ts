@@ -45,6 +45,13 @@ export interface Inputs {
   abs: boolean;
   /** Çekiş kontrolü şu an kesiyor (ACC/AC; diğer simlerde hep false) */
   tc?: boolean;
+  /** Yanal ivme (g): + sağa (sağ viraj) */
+  latG?: number;
+  /** Boyuna ivme (g): + hızlanma, - fren */
+  longG?: number;
+  /** Son / en iyi tur (sn; yoksa -1) */
+  lastLap?: number;
+  bestLap?: number;
 }
 
 /** ERS ve batarya (Rust: calc::Ers). Bilinmeyen sayılar -1, sim vermeyen güçler null. */
@@ -257,6 +264,8 @@ export type FlagName =
   | "red"
   | "blue"
   | "debris"
+  | "yellowWaving"
+  | "furled"
   | "greenHeld"
   | "oneLapToGreen"
   | "caution"
@@ -269,6 +278,8 @@ export interface Session {
   sessionType: string;
   track: string;
   flags: FlagName[];
+  /** Oyuncunun cezası: "" yok, driveThrough, stopGo, disqualify, timePenalty, penalty, black, repair, furled */
+  penalty?: string;
   timeRemain: number;
   lapsRemain: number;
   totalLaps: number;
@@ -544,7 +555,7 @@ export interface Entries {
 
 export type TopicName = keyof TopicMap;
 
-export type Packet = { [K in TopicName]: { t: K; d: TopicMap[K] } }[TopicName] | { t: "settings"; d: unknown };
+export type Packet = { [K in TopicName]: { t: K; d: TopicMap[K] } }[TopicName] | { t: "settings"; d: unknown } | { t: "drag"; d: unknown };
 
 export interface AppState {
   demo: boolean;

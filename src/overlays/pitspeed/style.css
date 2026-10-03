@@ -82,3 +82,178 @@
     opacity: 0.35;
   }
 }
+
+/* ---- Tasarımlar (design) ---- */
+.pspd-over .pspd-speed b,
+.pspd-over .pspd-huge b {
+  color: #fff;
+}
+
+/* Büyük sayı / sınıra fark */
+.pspd-d-big,
+.pspd-d-diff {
+  width: calc(200px * var(--ov-fs-k, 1));
+}
+.pspd-huge {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px;
+}
+.pspd-huge b {
+  font-size: 4.2em;
+  line-height: 1;
+  font-family: var(--ov-mono);
+  letter-spacing: -0.02em;
+  color: var(--ov-green);
+}
+.pspd-huge span {
+  color: var(--ov-dim);
+}
+.pspd-near .pspd-huge b {
+  color: var(--ov-yellow);
+}
+.pspd-d-big {
+  box-shadow: inset 0 -4px 0 var(--ov-green);
+}
+.pspd-d-big.pspd-near {
+  box-shadow: inset 0 -4px 0 var(--ov-yellow);
+}
+.pspd-d-big.pspd-over {
+  box-shadow: inset 0 -4px 0 #fff;
+}
+
+/* Kompakt şerit */
+.pspd-d-strip {
+  width: calc(300px * var(--ov-fs-k, 1));
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1));
+}
+.pspd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pspd-row .pspd-cap {
+  font-size: 0.85em;
+  color: var(--ov-dim);
+}
+.pspd-now {
+  min-width: 2.2em;
+  text-align: right;
+  font-size: 1.7em;
+  line-height: 1;
+  font-family: var(--ov-mono);
+}
+.pspd-near .pspd-now {
+  color: var(--ov-yellow);
+}
+.pspd-row .pspd-bar {
+  flex: 1;
+}
+.pspd-row .pspd-lim {
+  font-size: 0.85em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+
+/* Hız sınırı levhası */
+.pspd-d-sign {
+  width: calc(210px * var(--ov-fs-k, 1));
+  gap: 7px;
+}
+.pspd-signrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pspd-sign {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.3em;
+  height: 4.3em;
+  border-radius: 50%;
+  border: 0.5em solid #e0222b;
+  background: #fff;
+  color: #111;
+  text-shadow: none;
+  box-sizing: border-box;
+}
+.pspd-sign b {
+  font-size: 1.55em;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.pspd-signval {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pspd-signval .pspd-cap {
+  font-size: 0.85em;
+  color: var(--ov-dim);
+}
+
+/* Yay gösterge */
+.pspd-d-gauge {
+  width: calc(200px * var(--ov-fs-k, 1));
+}
+.pspd-gauge {
+  position: relative;
+}
+.pspd-gauge svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pspd-g-track,
+.pspd-g-fill {
+  fill: none;
+  stroke-width: 12;
+}
+.pspd-g-track {
+  stroke: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.pspd-g-fill {
+  stroke: var(--ov-green);
+}
+.pspd-near .pspd-g-fill {
+  stroke: var(--ov-yellow);
+}
+.pspd-over .pspd-g-fill {
+  stroke: #fff;
+}
+.pspd-g-mark {
+  stroke: var(--ov-text);
+  stroke-width: 3;
+}
+.pspd-g-read {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pspd-g-read b {
+  font-size: 2.9em;
+  line-height: 1;
+  font-family: var(--ov-mono);
+}
+.pspd-near .pspd-g-read b {
+  color: var(--ov-yellow);
+}
+.pspd-g-read span {
+  font-size: 0.8em;
+  color: var(--ov-dim);
+}
+.pspd-over .pspd-g-read span,
+.pspd-over .pspd-top,
+.pspd-over .pspd-huge span,
+.pspd-over .pspd-row .pspd-cap,
+.pspd-over .pspd-row .pspd-lim,
+.pspd-over .pspd-signval .pspd-cap {
+  color: color-mix(in srgb, #fff 80%, transparent);
+}

@@ -102,3 +102,150 @@
 .wx-row .wx-k.wxi-wrap {
   font-size: 1em;
 }
+
+/* ---- Tasarımlar (design) ---- */
+.wx-warrow {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  fill: var(--ov-blue);
+  transition: transform 0.3s ease-out;
+}
+.wx .wxi {
+  flex: none;
+}
+
+/* Kompakt şerit */
+.wx-d-strip {
+  width: max-content;
+}
+.wx-strip {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.wx-strip > span {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(11px * var(--ov-pad-k, 1));
+}
+.wx-strip > span + span {
+  border-left: 1px solid var(--ov-divider);
+}
+.wx-strip .wx-k {
+  font-size: 0.78em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.05em;
+  color: var(--ov-dim);
+}
+.wx-strip .wx-k.wxi-wrap {
+  font-size: 1em;
+}
+
+/* Sıcaklık kartı */
+.wx-d-card {
+  width: calc(250px * var(--ov-fs-k, 1));
+}
+.wx-card2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.wx-t {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: calc(10px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1));
+}
+.wx-t + .wx-t {
+  border-left: 1px solid var(--ov-divider);
+}
+.wx-t > .wxi {
+  width: 1.7em;
+  height: 1.7em;
+  color: var(--ov-accent);
+}
+.wx-t > div {
+  display: flex;
+  flex-direction: column;
+}
+.wx-t b {
+  font-size: 1.45em;
+  line-height: 1.1;
+}
+.wx-t small {
+  font-size: 0.75em;
+  color: var(--ov-dim);
+  letter-spacing: 0.05em;
+  text-transform: var(--ov-label-tt, uppercase);
+}
+.wx-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(12px * var(--ov-pad-k, 1));
+  border-top: 1px solid var(--ov-divider);
+  font-size: 0.92em;
+  white-space: nowrap;
+}
+.wx-foot > span {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+}
+.wx-foot .wxi {
+  width: 1.1em;
+  height: 1.1em;
+  color: var(--ov-dim);
+}
+.wx-foot-wet {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ayrıntılı kart */
+.wx-d-tiles {
+  width: calc(280px * var(--ov-fs-k, 1));
+}
+.wx-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--ov-divider);
+}
+.wx-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: calc(9px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
+  background: var(--ov-bg);
+  white-space: nowrap;
+}
+.wx-tile > .wxi,
+.wx-tile > .wx-warrow {
+  width: 1.5em;
+  height: 1.5em;
+}
+.wx-tile > .wxi {
+  color: var(--ov-accent);
+}
+.wx-tile b {
+  font-size: 1.1em;
+}
+.wx-tile small {
+  font-size: 0.68em;
+  color: var(--ov-dim);
+  letter-spacing: 0.06em;
+}
+.wx-wetline {
+  height: 4px;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+}
+.wx-wetline > div {
+  height: 100%;
+  background: var(--ov-blue);
+  transition: width 0.4s linear;
+}

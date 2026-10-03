@@ -27,7 +27,7 @@ export default defineOverlay({
         { value: "none", label: "Yok" },
       ],
     },
-    ...meMarkerFields({ color: "#ffffff" }),
+    ...meMarkerFields({ color: "#ff3b30", shape: "arrow" }),
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 20, min: 5, max: 60, step: 5, unit: "Hz" },
   ],
 });

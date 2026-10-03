@@ -15,7 +15,8 @@ import {
   shortcut,
   type ShortcutAction,
 } from "@/sdk/shortcuts";
-import { PttKeyRow } from "./VoiceCommands";
+import { PttButtonRow, PttKeyRow, PttModeRow } from "./VoiceCommands";
+import { F, proLocked, VOICE_FEATURE } from "@/sdk/proFeatures";
 
 /** Genel kısayol olarak atanırsa başka uygulamalarda/uygulama içinde sorun çıkaran tuşlar */
 const RESERVED: { key: string; why: string }[] = [
@@ -222,8 +223,17 @@ export function ShortcutsPanel() {
             </div>
           )}
         </For>
-        {/* Bas-konuş tuşu genel kısayol olarak kaydedilmez (basılı tutma algılanır): ayarı Sesli Mühendis › Sesli komut'ta */}
-        <PttKeyRow label="Sesli komut: bas-konuş tuşu (basılı tut)" />
+      </section>
+      {/* Sesli Mühendis › Sesli komut'taki atamaların aynısı (aynı ayar: general.voice.commands); iki yerden de değiştirilebilir */}
+      <section class="panel">
+        <h3>Sesli komut (bas-konuş)</h3>
+        <p class="muted small">
+          Mühendise sesle soru sormak için basılı tutulan düğme ve tuş. Sesli Mühendis sayfasındaki atamalarla aynıdır: birinde
+          değiştirirsen diğerinde de değişir. Genel kısayol olarak kaydedilmez (basılı tutma algılanır), tuş oyuna da ulaşır.
+        </p>
+        <PttModeRow />
+        <PttButtonRow disabled={proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE)} />
+        <PttKeyRow label="Klavye tuşu" />
       </section>
       <section class="panel">
         <h3>Uygulama içi tuşlar</h3>

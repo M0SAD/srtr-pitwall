@@ -8,7 +8,8 @@ import "./style.css";
 /** Araç boyu (m) */
 const CAR_LEN = 4.8;
 
-const DESIGNS = ["flat", "arc", "fade", "segments", "chevron", "neon", "corner"] as const;
+// Kaldırılan görünümler (ör. eski "chevron" / ok uçlu) ve bilinmeyen değerler düz çubuğa düşer
+const DESIGNS = ["flat", "arc", "fade", "segments", "neon", "corner"] as const;
 type Design = (typeof DESIGNS)[number];
 
 /** Düzenleme / önizlemede yanında kimse yokken gösterilen örnek: solda yaklaşan tek araç, sağda tam yan yana araç */
@@ -97,23 +98,6 @@ export default function SpotterBar(props: OverlayProps) {
   const left = createMemo(() => lift(rawL()));
   const right = createMemo(() => lift(rawR()));
 
-  // Yaklaşma (ok uçlu görünümde nabız): en yakın aracın boyuna mesafesi küçülüyor mu
-  const closing = (st: () => SideState) => {
-    let prev: number | null = null;
-    return createMemo<boolean>((was) => {
-      const n = st().near;
-      const cur = n == null ? null : Math.abs(n);
-      const p = prev;
-      prev = cur;
-      if (cur == null || p == null) return false;
-      if (cur < p - 0.01) return true;
-      if (cur > p + 0.01) return false;
-      return was;
-    }, false);
-  };
-  const closeL = closing(left);
-  const closeR = closing(right);
-
   const color = (lv: number) =>
     lv === 3
       ? o().colorDanger
@@ -151,12 +135,9 @@ export default function SpotterBar(props: OverlayProps) {
     50 - ((o().flip ? -off : off) / range()) * 50;
   const carLen = () => (CAR_LEN / (range() * 2)) * 100;
 
-  // Segment / ok dizilimi
-  const unit = () =>
-    design() === "chevron"
-      ? Math.max(8, t() * 0.75)
-      : Math.max(5, Math.min(14, t() * 0.45));
-  const unitGap = () => (design() === "chevron" ? Math.max(2, t() * 0.2) : 3);
+  // Segment dizilimi
+  const unit = () => Math.max(5, Math.min(14, t() * 0.45));
+  const unitGap = () => 3;
   const units = createMemo(() => {
     const n = Math.max(3, Math.floor((h() + unitGap()) / (unit() + unitGap())));
     const pad = (h() - (n * unit() + (n - 1) * unitGap())) / 2;
@@ -177,19 +158,12 @@ export default function SpotterBar(props: OverlayProps) {
     }
     return Math.max(best, 0.16);
   };
-  const chevron = (y: number) => {
-    const x1 = w() - Math.max(1.5, t() * 0.12);
-    const x0 = Math.max(1.5, t() * 0.12);
-    return `M${x1} ${y} L${x0} ${y + unit() / 2} L${x1} ${y + unit()}`;
-  };
-
   const Bar = (p: {
     s: number;
     st: () => SideState;
-    closing: () => boolean;
   }) => {
     const on = () => p.st().level > 0;
-    const stroked = () => design() !== "segments" && design() !== "chevron";
+    const stroked = () => design() !== "segments";
     const marker = () => on() && !!o().showMarker && p.st().cars.length > 0;
     return (
       <div
@@ -198,7 +172,6 @@ export default function SpotterBar(props: OverlayProps) {
           on: on(),
           guide: !on() && !!o().guides,
           glow: !!o().glow,
-          closing: on() && p.closing(),
           pulse: on() && o().pulse !== false && (p.st().level === 3 || both()),
           [`lv${p.st().level}`]: true,
         }}
@@ -212,26 +185,17 @@ export default function SpotterBar(props: OverlayProps) {
               when={stroked()}
               fallback={
                 <For each={units()}>
-                  {(y) =>
-                    design() === "segments" ? (
-                      <rect
-                        class="sb-unit"
-                        x="0"
-                        y={y}
-                        width={w()}
-                        height={unit()}
-                        rx={Math.min(3, unit() / 3)}
-                        style={{ opacity: on() ? lit(p.st(), y) : 1 }}
-                      />
-                    ) : (
-                      <path
-                        class="sb-unit sb-chev"
-                        d={chevron(y)}
-                        stroke-width={Math.max(2, t() * 0.16)}
-                        style={{ opacity: on() ? lit(p.st(), y) : 1 }}
-                      />
-                    )
-                  }
+                  {(y) => (
+                    <rect
+                      class="sb-unit"
+                      x="0"
+                      y={y}
+                      width={w()}
+                      height={unit()}
+                      rx={Math.min(3, unit() / 3)}
+                      style={{ opacity: on() ? lit(p.st(), y) : 1 }}
+                    />
+                  )}
                 </For>
               }
             >
@@ -287,8 +251,8 @@ export default function SpotterBar(props: OverlayProps) {
         "--sb-glow": `${Math.max(4, t() * 0.5)}px`,
       }}
     >
-      <Bar s={-1} st={left} closing={closeL} />
-      <Bar s={1} st={right} closing={closeR} />
+      <Bar s={-1} st={left} />
+      <Bar s={1} st={right} />
     </div>
   );
 }

@@ -5,19 +5,24 @@
 //   rings      → Halka göstergeler
 //   strip      → Kompakt şerit
 //   sim        → Sim tarzı (klasik)
+//   segments   → LED segmentler
+//   tower      → Dikey kule
+//   wide       → Geniş grafik
+//   pedals     → Pedal seti
+//   hud        → HUD (çerçevesiz)
 // Hepsi aynı ortak ayarları kullanır (debriyaj, direksiyon, vites/hız, renkler, ABS/TC, iz süresi).
 // İz grafiği tuvale (canvas) çizilir; veri gelmedikçe (önizleme dondurulunca) yeni örnek eklenmez, çizim de durur.
 
-import { Match, Show, Switch, createEffect, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Match, Show, Switch, createEffect, createUniqueId, onCleanup, onMount, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { gear, speed, speedUnit } from "@/sdk/format";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { t } from "@/sdk/i18n";
-import { FREE_WHEELS, WheelArt, isWheelStyle, wheelForCar, type WheelStyle } from "./wheels";
+import { FREE_WHEELS, WheelArt, resolveWheel, type WheelStyle } from "./wheels";
 import "./designs.css";
 
-export const DESIGNS = ["trace", "bars", "horizontal", "rings", "strip", "sim"] as const;
+export const DESIGNS = ["trace", "bars", "horizontal", "rings", "strip", "sim", "segments", "tower", "wide", "pedals", "hud"] as const;
 export type Design = (typeof DESIGNS)[number];
 export const isDesign = (v: unknown): v is Design => DESIGNS.includes(v as Design);
 
@@ -167,7 +172,7 @@ function createModel(props: OverlayProps) {
 
   const wheelStyle = (): WheelStyle => {
     const w = o.wheelStyle as string;
-    const st = isWheelStyle(w) ? w : wheelForCar(status());
+    const st = resolveWheel(w, status());
     return FREE_WHEELS.has(st) || !overlayValueLocked("inputs", "wheelStyle", st) ? st : "round";
   };
 
@@ -534,6 +539,236 @@ function SimDesign(props: { m: Model }) {
   );
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// LED segmentler: gaz / fren (debriyaj) satırları ayrı ayrı yanan bloklardan oluşur
+// ---------------------------------------------------------------------------------------------------------
+const SEGS = Array.from({ length: 14 }, (_, i) => i);
+
+function SegRow(props: { label: string; v: number; color: string; h: number; glow?: boolean; glowColor?: string; num: boolean }) {
+  const lit = () => Math.round(clamp(props.v, 0, 1) * SEGS.length);
+  return (
+    <div class="inx-hrow">
+      <span class="inx-hlabel inx-seglabel">{props.label}</span>
+      <div class="inx-seg" classList={{ glow: !!props.glow }} style={{ height: `${props.h}px`, "--glow": props.glowColor, "--seg": props.color }}>
+        <For each={SEGS}>{(i) => <i classList={{ on: i < lit() }} />}</For>
+      </div>
+      <Show when={props.num}>
+        <span class="inx-hnum">{n100(props.v)}%</span>
+      </Show>
+    </div>
+  );
+}
+
+function SegmentsDesign(props: { m: Model }) {
+  const m = props.m;
+  const h = () => clamp(m.barW() + 2, 8, 26);
+  return (
+    <div class="ov-panel inx inx-sg" classList={{ shift: m.shiftOn() }}>
+      <Show when={m.o.showGear}>
+        <div class="inx-hzgear">
+          <b class="inx-gearbox">{m.gear()}</b>
+          <span class="inx-speed">
+            {m.speed()} <small>{m.unit()}</small>
+          </span>
+        </div>
+      </Show>
+      <div class="inx-hrows inx-segrows">
+        <SegRow label={t("Gaz")} v={m.throttle()} color={m.thrFill()} h={h()} num={m.showPct()} glow={m.tcFrame()} glowColor={m.tcColor()} />
+        <SegRow label={t("Fren")} v={m.brake()} color={m.brakeFill()} h={h()} num={m.showPct()} glow={m.absFrame()} glowColor={m.absColor()} />
+        <Show when={m.o.showClutch}>
+          <SegRow label={t("Debriyaj")} v={m.clutch()} color={CLUTCH} h={h()} num={m.showPct()} />
+        </Show>
+        <Show when={m.o.showSteer}>
+          <div class="inx-hrow">
+            <span class="inx-hlabel inx-seglabel">{t("Direksiyon")}</span>
+            <SteerBar m={m} />
+            <Show when={m.showPct()}>
+              <span class="inx-hnum">{m.steerDeg()}°</span>
+            </Show>
+          </div>
+        </Show>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Dikey kule: ekranın kenarına yaslanan dar sütun (vites, hız, çubuklar, direksiyon)
+// ---------------------------------------------------------------------------------------------------------
+function TowerDesign(props: { m: Model }) {
+  const m = props.m;
+  return (
+    <div class="ov-panel inx inx-tw" classList={{ shift: m.shiftOn() }}>
+      <Show when={m.o.showGear}>
+        <b class="inx-gear">{m.gear()}</b>
+        <span class="inx-speed">{m.speed()}</span>
+        <small class="inx-unit">{m.unit()}</small>
+        <i class="inx-twsep" />
+      </Show>
+      <Bars m={m} h={96} />
+      <Show when={m.o.showSteer}>
+        <i class="inx-twsep" />
+        <Wheel m={m} />
+      </Show>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Geniş grafik: tek parça geniş iz; değerler grafiğin üstünde, vites / hız köşede
+// ---------------------------------------------------------------------------------------------------------
+function WideDesign(props: { m: Model }) {
+  const m = props.m;
+  return (
+    <div class="ov-panel inx inx-wd" classList={{ shift: m.shiftOn() }}>
+      <div class="inx-wdbox">
+        <Trace m={m} w={420} h={78} grid="sim" />
+        <div class="inx-wdleg">
+          <span style={{ color: m.thrFill() }} classList={{ glow: m.tcFrame() }}>
+            {t("Gaz")}
+            <Show when={m.showPct()}>
+              <b>{n100(m.throttle())}%</b>
+            </Show>
+          </span>
+          <span style={{ color: m.brakeFill() }} classList={{ glow: m.absFrame() }}>
+            {t("Fren")}
+            <Show when={m.showPct()}>
+              <b>{n100(m.brake())}%</b>
+            </Show>
+          </span>
+          <Show when={m.o.showClutch}>
+            <span style={{ color: CLUTCH }}>
+              {t("Debriyaj")}
+              <Show when={m.showPct()}>
+                <b>{n100(m.clutch())}%</b>
+              </Show>
+            </span>
+          </Show>
+        </div>
+        <Show when={m.o.showGear}>
+          <div class="inx-wdgear">
+            <b>{m.gear()}</b>
+            <span>
+              {m.speed()} <small>{m.unit()}</small>
+            </span>
+          </div>
+        </Show>
+      </div>
+      <Show when={m.o.showSteer}>
+        <SteerBar m={m} class="inx-wdsteer" />
+      </Show>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Pedal seti: özgün pedal çizimleri; pedala basıldıkça plaka alttan dolar
+// ---------------------------------------------------------------------------------------------------------
+const PLATE_THR = "M 11 3 Q 11 1 13 1 L 21 1 Q 23 1 23.2 3 L 26 56 Q 26.2 60 22.5 60 L 11.5 60 Q 7.8 60 8 56 Z";
+const PLATE_BRK = "M 4.5 13 Q 4.5 10 7.5 10 L 26.5 10 Q 29.5 10 29.6 13 L 31 49 Q 31 53 27 53 L 7 53 Q 3 53 3 49 Z";
+const PLATE_CLU = "M 7 15 Q 7 12 10 12 L 24 12 Q 27 12 27.1 15 L 28.5 49 Q 28.5 53 24.5 53 L 9.5 53 Q 5.5 53 5.5 49 Z";
+
+function Pedal(props: { d: string; top: number; bottom: number; v: number; color: string; glow?: boolean; glowColor?: string; num: boolean; label: string }) {
+  const id = createUniqueId();
+  const hgt = () => props.bottom - props.top;
+  const v = () => clamp(props.v, 0, 1);
+  return (
+    <div class="inx-pedal">
+      <svg viewBox="0 0 34 76" class="inx-pedalsvg" classList={{ glow: !!props.glow }} style={{ "--glow": props.glowColor } as JSX.CSSProperties}>
+        <defs>
+          <clipPath id={id}>
+            <path d={props.d} />
+          </clipPath>
+        </defs>
+        {/* pedal kolu ve mafsal */}
+        <rect x="15" y={props.bottom - 2} width="4" height={72 - props.bottom} rx="1.5" class="inx-pedarm" />
+        <rect x="9" y="70" width="16" height="4.5" rx="2" class="inx-pedbase" />
+        <path d={props.d} class="inx-pedplate" />
+        <rect clip-path={`url(#${id})`} x="0" width="34" y={props.bottom - v() * hgt()} height={v() * hgt() + 1} fill={props.color} />
+        {/* kaymaz çizgiler */}
+        <g clip-path={`url(#${id})`} class="inx-pedgrip">
+          <For each={[0.2, 0.4, 0.6, 0.8]}>{(k) => <path d={`M 0 ${props.top + k * hgt()} L 34 ${props.top + k * hgt()}`} />}</For>
+        </g>
+        <path d={props.d} class="inx-pedline" />
+      </svg>
+      <Show when={props.num} fallback={<span class="inx-pedlabel">{props.label}</span>}>
+        <span class="inx-pednum">{n100(props.v)}%</span>
+      </Show>
+    </div>
+  );
+}
+
+function PedalsDesign(props: { m: Model }) {
+  const m = props.m;
+  return (
+    <div class="ov-panel inx inx-pd" classList={{ shift: m.shiftOn() }}>
+      <div class="inx-pedset">
+        <Show when={m.o.showClutch}>
+          <Pedal d={PLATE_CLU} top={12} bottom={53} v={m.clutch()} color={CLUTCH} num={m.showPct()} label={t("Debriyaj")} />
+        </Show>
+        <Pedal d={PLATE_BRK} top={10} bottom={53} v={m.brake()} color={m.brakeFill()} glow={m.absFrame()} glowColor={m.absColor()} num={m.showPct()} label={t("Fren")} />
+        <Pedal d={PLATE_THR} top={1} bottom={60} v={m.throttle()} color={m.thrFill()} glow={m.tcFrame()} glowColor={m.tcColor()} num={m.showPct()} label={t("Gaz")} />
+      </div>
+      <Show when={m.o.showGear || m.o.showSteer}>
+        <div class="inx-side">
+          <Show when={m.o.showGear}>
+            <b class="inx-gear">{m.gear()}</b>
+            <span class="inx-speed">
+              {m.speed()} <small>{m.unit()}</small>
+            </span>
+          </Show>
+          <Show when={m.o.showSteer}>
+            <Wheel m={m} />
+          </Show>
+        </div>
+      </Show>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// HUD (çerçevesiz): arka plansız; ortada vites / hız, iki yanında fren ve gaz çubukları
+// ---------------------------------------------------------------------------------------------------------
+function HudDesign(props: { m: Model }) {
+  const m = props.m;
+  const num = (v: number) => (
+    <Show when={m.showPct()}>
+      <span class="inx-hudnum">{n100(v)}%</span>
+    </Show>
+  );
+  return (
+    <div class="ov-panel inx inx-hud" classList={{ shift: m.shiftOn() }}>
+      <Show when={m.o.showClutch}>
+        <div class="inx-hudcol">
+          <VBar v={m.clutch()} color={CLUTCH} h={84} w={m.barW()} />
+          {num(m.clutch())}
+        </div>
+      </Show>
+      <div class="inx-hudcol">
+        <VBar v={m.brake()} color={m.brakeFill()} h={84} w={m.barW()} glow={m.absFrame()} glowColor={m.absColor()} />
+        {num(m.brake())}
+      </div>
+      <Show when={m.o.showGear || m.o.showSteer}>
+        <div class="inx-hudmid">
+          <Show when={m.o.showGear}>
+            <b class="inx-gear">{m.gear()}</b>
+            <span class="inx-speed">
+              {m.speed()} <small>{m.unit()}</small>
+            </span>
+          </Show>
+          <Show when={m.o.showSteer}>
+            <Wheel m={m} />
+          </Show>
+        </div>
+      </Show>
+      <div class="inx-hudcol">
+        <VBar v={m.throttle()} color={m.thrFill()} h={84} w={m.barW()} glow={m.tcFrame()} glowColor={m.tcColor()} />
+        {num(m.throttle())}
+      </div>
+    </div>
+  );
+}
+
 export function DesignView(props: OverlayProps & { design: Design }) {
   const m = createModel(props);
   return (
@@ -555,6 +790,21 @@ export function DesignView(props: OverlayProps & { design: Design }) {
       </Match>
       <Match when={props.design === "sim"}>
         <SimDesign m={m} />
+      </Match>
+      <Match when={props.design === "segments"}>
+        <SegmentsDesign m={m} />
+      </Match>
+      <Match when={props.design === "tower"}>
+        <TowerDesign m={m} />
+      </Match>
+      <Match when={props.design === "wide"}>
+        <WideDesign m={m} />
+      </Match>
+      <Match when={props.design === "pedals"}>
+        <PedalsDesign m={m} />
+      </Match>
+      <Match when={props.design === "hud"}>
+        <HudDesign m={m} />
       </Match>
     </Switch>
   );

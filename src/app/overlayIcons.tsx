@@ -10,6 +10,7 @@ const MAP: Record<string, () => JSX.Element> = {
   dashboard: () => <I.Gauge />,
   inputs: () => <I.Activity />,
   ers: () => <I.BatteryCharging />,
+  gforce: () => <I.CircleGauge />,
   delta: () => <I.Timer />,
   radar: () => <I.Siren />,
   spotterbar: () => <I.Pause />,

@@ -9,7 +9,7 @@ import "../livechat/style.css";
 const SAMPLE: CaptionView = {
   lines: [
     { src: "remote", label: "Discord", text: "Pite gir, lastikler bitti", ts: Number.MAX_SAFE_INTEGER },
-    { src: "mic", label: "", text: "Tamam, bu tur giriyorum", ts: Number.MAX_SAFE_INTEGER },
+    { src: "mic", label: "Ben", text: "Tamam, bu tur giriyorum", ts: Number.MAX_SAFE_INTEGER },
   ],
   rev: 0,
 };

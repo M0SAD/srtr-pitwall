@@ -1,14 +1,16 @@
 // Pedallar & Girdi overlay'i için direksiyon çizimleri (özgün tasarımlar, marka logosu yok).
 // Hepsi aynı kutuda (merkez 0,0) çizilir ve direksiyon açısıyla birlikte döner.
 
-import { For, Match, Switch } from "solid-js";
+import { For, Match, Switch, createSignal } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
+import { inTauri } from "@/sdk/platform";
 import { carFamily, type CarFamily, type CarInfo } from "@/sdk/cars";
 
-export type WheelStyle = "round" | "formula" | "gt" | "proto" | "rally" | "oval" | "classic";
+export type WheelStyle = "round" | "formula" | "gt" | "proto" | "rally" | "oval" | "classic" | "truck";
 
 /** Ücretsiz olan tek tasarım klasik yuvarlak direksiyondur */
 export const FREE_WHEELS = new Set<WheelStyle>(["round"]);
-const ALL: WheelStyle[] = ["round", "formula", "gt", "proto", "rally", "oval", "classic"];
+const ALL: WheelStyle[] = ["round", "formula", "gt", "proto", "rally", "oval", "classic", "truck"];
 export const isWheelStyle = (v: unknown): v is WheelStyle => ALL.includes(v as WheelStyle);
 
 // Araç ailesi -> direksiyon tasarımı (araç tanıma ortak: src/sdk/cars.ts)
@@ -30,6 +32,49 @@ const BY_FAMILY: Record<CarFamily, WheelStyle> = {
 export function wheelForCar(st: CarInfo | undefined): WheelStyle {
   const f = carFamily(st);
   return f ? BY_FAMILY[f] : "round";
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Bilgisayara bağlı direksiyon (Rust: wheeldev::wheel_detect). Aygıtın adı / USB üreticisinden direksiyonun
+// TÜRÜ tahmin edilir (yuvarlak, GT, formula, kamyon) ve o türün özgün çizimi gösterilir; ürünün kendi görseli değil.
+// OBS tarayıcı kaynağında (Tauri yok) algılama yapılamaz: araca göre seçime düşülür.
+// ---------------------------------------------------------------------------------------------------------
+interface WheelDev {
+  name: string;
+  vid: number;
+  pid: number;
+  shape: string;
+  wheel: boolean;
+}
+const [device, setDevice] = createSignal<WheelDev | null>(null);
+let polling = false;
+const POLL_MS = 20000;
+
+function pollDevice() {
+  invoke<WheelDev[]>("wheel_detect")
+    .then((list) => setDevice(list.find((d) => d.wheel) ?? null))
+    .catch(() => setDevice(null));
+}
+
+/** Bağlı direksiyonun türü (bulunamadıysa null). İlk çağrıda algılamayı başlatır; takıp çıkarma için arada yeniler. */
+export function wheelForDevice(): WheelStyle | null {
+  if (!polling && inTauri) {
+    polling = true;
+    pollDevice();
+    setInterval(pollDevice, POLL_MS);
+  }
+  const s = device()?.shape;
+  return isWheelStyle(s) ? s : null;
+}
+
+/** Algılanan direksiyonun adı (bilgi için) */
+export const detectedWheelName = () => device()?.name ?? "";
+
+/** Ayardaki değere göre çizilecek direksiyon: sabit tasarım, "device" (bağlı direksiyon) ya da "auto" (araca göre) */
+export function resolveWheel(opt: unknown, st: CarInfo | undefined): WheelStyle {
+  if (isWheelStyle(opt)) return opt;
+  if (opt === "device") return wheelForDevice() ?? wheelForCar(st);
+  return wheelForCar(st);
 }
 
 const LEDS = ["#33d17a", "#33d17a", "#ffd23f", "#ff4d4f", "#4aa8ff"];
@@ -64,6 +109,9 @@ export function WheelArt(props: { style: WheelStyle; angle: number; accent: stri
         </Match>
         <Match when={props.style === "classic"}>
           <Classic />
+        </Match>
+        <Match when={props.style === "truck"}>
+          <Truck />
         </Match>
       </Switch>
     </svg>
@@ -221,6 +269,25 @@ function Classic() {
       <circle class="wm" cx="0" cy="1" r="5.5" />
       <circle class="wa" cx="0" cy="1" r="2.6" />
       <rect class="wa" x="-1.4" y="-22.6" width="2.8" height="5" rx="0.6" />
+    </>
+  );
+}
+
+/** Kamyon / otobüs: büyük çaplı ince simit, alçak iki geniş kol, geniş göbek yastığı */
+function Truck() {
+  return (
+    <>
+      <circle class="wr thin" cx="0" cy="0" r="22.5" />
+      <circle class="wring" cx="0" cy="0" r="20" />
+      <path class="wm" d="M -21.5 2 L -8 0.5 L -8 8 L -19.5 10.5 Z" />
+      <path class="wm" d="M 21.5 2 L 8 0.5 L 8 8 L 19.5 10.5 Z" />
+      <path class="wm" d="M -9 9 L -4.5 9 L -8 21 L -12.5 19 Z" />
+      <path class="wm" d="M 9 9 L 4.5 9 L 8 21 L 12.5 19 Z" />
+      <rect class="wb" x="-9.5" y="-3.5" width="19" height="13.5" rx="4" />
+      <rect class="wd" x="-5.5" y="0" width="11" height="6" rx="1.6" />
+      <circle class="wbtn" cx="-13.5" cy="5" r="1.5" />
+      <circle class="wbtn" cx="13.5" cy="5" r="1.5" />
+      <rect class="wa" x="-2" y="-25.5" width="4" height="6.5" rx="1" />
     </>
   );
 }

@@ -13,7 +13,8 @@ export const OVMSG_CLEAR_EVENT = "overlay-message-clear";
 
 export interface OvMsg {
   id: string;
-  kind: "friend" | "team";
+  /** friend: arkadaş mesajı, team: takım ya da grup sohbeti (grup: id "g-" ile başlar), crew: ekip odası (c64) */
+  kind: "friend" | "team" | "crew";
   /** Yazanın hesap kimliği */
   from: string;
   /** Sohbet: arkadaş mesajında karşıdaki arkadaş, takım mesajında takım kimliği */
@@ -34,12 +35,22 @@ export function broadcastOvMsg(m: OvMsg) {
   void emit(OVMSG_EVENT, m).catch(() => {});
 }
 
+/** Arkadaşlar bölümünde kurulan grup sohbetinin mesajı (host/social.ts: id "g-<mesaj>", peer = grup kimliği) */
+export const ovMsgIsGroup = (m: OvMsg) => m.kind === "team" && m.id.startsWith("g-");
+
 /** Overlay ayarlarına göre bu mesaj gösterilir mi */
 export function ovMsgAccepts(o: Record<string, any>, m: OvMsg): boolean {
   if (m.mine && !o.mine) return false;
   const src = o.source ?? "all";
+  if (m.kind === "crew") return o.crew !== false;
+  if (ovMsgIsGroup(m)) {
+    const g = o.groups ?? "all";
+    if (g === "none") return false;
+    if (g === "selected") return Array.isArray(o.groupList) && o.groupList.includes(m.peer);
+    return true;
+  }
   if (m.kind === "team") return src === "team" || !!o.includeTeams;
-  if (src === "team") return false;
+  if (src === "team" || src === "none") return false;
   if (src === "selected") return Array.isArray(o.people) && o.people.includes(m.peer);
   return true;
 }
@@ -66,7 +77,7 @@ export function ovMsgShowsPerson(friendId: string): boolean {
   const o = firstInstance()?.options ?? {};
   const src = o.source ?? "all";
   if (src === "all") return true;
-  if (src === "team") return false;
+  if (src === "team" || src === "none") return false;
   return Array.isArray(o.people) && o.people.includes(friendId);
 }
 

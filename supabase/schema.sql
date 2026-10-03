@@ -11658,3 +11658,524 @@ set allowed_mime_types = (
               || array['image/x-icon', 'image/vnd.microsoft.icon']) m
 )
 where b.id = 'site';
+
+-- ---------------------------------------------------------------------------
+-- c63 — iRacing bilgileri KATEGORİ BAŞINA (Sports Car / Formula / Oval / Dirt Road / Dirt Oval)
+-- Sorun: iRacing, oturum bilgisinde sürücünün iRating / lisans + SR değerini O OTURUMUN kategorisi için verir
+--        (yol serisinde yol lisansı, ovalde oval lisansı). c56 üye başına TEK değer tutuyordu; üye en son hangi
+--        kategoride sürdüyse onun değeri öncekinin üstüne yazılıyor, profilde "yanlış iR / SR" gibi görünüyordu.
+-- Çözüm: 1) profile_iracing.cats (jsonb): kategori -> {irating, license, lic_color, updated_at}. Eski tek değer
+--           alanları (irating, license, …) "en son sürülen kategori" olarak kalır (demo vitrini ve eski sürümler).
+--        2) profile_set_iracing: aynı imza; değeri ilgili kategorinin altına da yazar.
+--        3) profile_iracing_cats(p_user): profilde gösterilecek kategori listesi (gizlilik ayarına uyar;
+--           sahibi her zaman görür). public_profile DEĞİŞMEDİ.
+-- Sıra: c56 sonrasında. Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+alter table public.profile_iracing add column if not exists cats jsonb not null default '{}'::jsonb;
+
+-- Var olan tek değer, kategorisi biliniyorsa o kategorinin ilk kaydı olur
+update public.profile_iracing
+   set cats = jsonb_build_object(category, jsonb_build_object(
+         'irating', irating, 'license', license, 'lic_color', lic_color, 'updated_at', updated_at))
+ where cats = '{}'::jsonb and category is not null;
+
+create or replace function public.profile_set_iracing(
+  p_irating int,
+  p_license text,
+  p_lic_color text default null,
+  p_country text default null,
+  p_cust_id bigint default null,
+  p_category text default null
+) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_lic text := nullif(regexp_replace(trim(coalesce(p_license, '')), '\s+', ' ', 'g'), '');
+  v_col text := nullif(lower(trim(coalesce(p_lic_color, ''))), '');
+  v_cty text := nullif(upper(trim(coalesce(p_country, ''))), '');
+  v_cat text := nullif(lower(regexp_replace(coalesce(p_category, ''), '[^A-Za-z]', '', 'g')), '');
+  v_cust bigint := case when p_cust_id > 0 then p_cust_id end;
+  cur public.profile_iracing;
+  v_cats jsonb;
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if p_irating is null or p_irating < 1 or p_irating > 20000 then
+    raise exception 'Geçersiz iRating';
+  end if;
+  if v_lic is null or v_lic !~ '^[A-Za-z/]{1,6} [0-9]{1,2}\.[0-9]{2}$' then
+    raise exception 'Geçersiz lisans';
+  end if;
+  -- İsteğe bağlı alanlar: biçime uymayan değer hata değil, boş sayılır
+  if v_col is not null and v_col !~ '^#[0-9a-f]{6}$' then
+    v_col := null;
+  end if;
+  if v_cty is not null and v_cty !~ '^[A-Z0-9-]{2,8}$' then
+    v_cty := null;
+  end if;
+  if v_cat is not null and v_cat !~ '^[a-z]{2,16}$' then
+    v_cat := null;
+  end if;
+
+  if not exists (select 1 from public.profiles where id = me) then
+    raise exception 'Profil bulunamadı';
+  end if;
+  select * into cur from public.profile_iracing where user_id = me;
+  if cur.user_id is not null then
+    -- Değişiklik yoksa ve son yazım yeniyse dokunma (istemci de aynı kuralı uygular)
+    if cur.updated_at > now() - interval '10 minutes'
+       and cur.irating = p_irating
+       and cur.license = v_lic
+       and cur.lic_color is not distinct from v_col
+       and cur.country is not distinct from v_cty
+       and cur.cust_id is not distinct from v_cust
+       and cur.category is not distinct from v_cat then
+      return jsonb_build_object('ok', true, 'changed', false);
+    end if;
+    -- Çok sık yazımı sınırla (en çok 20 saniyede bir)
+    if cur.updated_at > now() - interval '20 seconds' then
+      return jsonb_build_object('ok', true, 'changed', false);
+    end if;
+  end if;
+  -- Kategori başına değer: başka iRacing hesabına geçildiyse eski hesabın kategorileri silinir
+  v_cats := case when cur.user_id is not null and cur.cust_id is not distinct from v_cust
+                 then coalesce(cur.cats, '{}'::jsonb) else '{}'::jsonb end;
+  if v_cat is not null then
+    v_cats := v_cats || jsonb_build_object(v_cat, jsonb_build_object(
+      'irating', p_irating, 'license', v_lic, 'lic_color', v_col, 'updated_at', now()));
+  end if;
+  insert into public.profile_iracing (user_id, irating, license, lic_color, country, cust_id, category, cats, updated_at)
+  values (me, p_irating, v_lic, v_col, v_cty, v_cust, v_cat, v_cats, now())
+  on conflict (user_id) do update
+    set irating = excluded.irating, license = excluded.license, lic_color = excluded.lic_color,
+        country = excluded.country, cust_id = excluded.cust_id, category = excluded.category,
+        cats = excluded.cats, updated_at = excluded.updated_at;
+  return jsonb_build_object('ok', true, 'changed', true);
+end $$;
+revoke all on function public.profile_set_iracing(int, text, text, text, bigint, text) from public, anon;
+grant execute on function public.profile_set_iracing(int, text, text, text, bigint, text) to authenticated, service_role;
+
+-- Profilde gösterilecek kategori listesi (en son güncellenen önce). Gizliyse (ir_public kapalı) sadece sahibi görür.
+create or replace function public.profile_iracing_cats(p_user uuid) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'category', c.key,
+             'irating', (c.value ->> 'irating')::int,
+             'license', c.value ->> 'license',
+             'lic_color', c.value ->> 'lic_color',
+             'updated_at', c.value ->> 'updated_at')
+           order by c.value ->> 'updated_at' desc)
+    from public.profile_iracing i
+    join public.profiles p on p.id = i.user_id
+    cross join lateral jsonb_each(i.cats) c
+    where i.user_id = p_user
+      and (coalesce(p.ir_public, true) or (auth.uid() is not null and p.id = auth.uid()))
+  ), '[]'::jsonb);
+$$;
+revoke all on function public.profile_iracing_cats(uuid) from public;
+grant execute on function public.profile_iracing_cats(uuid) to anon, authenticated, service_role;
+
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- c64: Ekip odası (sohbet) + odada kimler var.
+--
+-- Ekip Pitwall'ı artık gerçek bir sohbet odasıdır: her sürücünün (owner) bir odası vardır; odayı sürücünün
+-- kendisi ve ekibindeki (crew_members: görebilir / değiştirebilir, arkadaşlığı süren) üyeler okur ve yazar.
+-- Eski tek yönlü "message" komutu (crew_command) yerinde durur (eski uygulama / site sürümleri için).
+--
+--   crew_chat (id, owner, sender, body, created_at)   oda mesajları. Realtime yayınında (sürücünün uygulaması
+--        yeni mesajı anında alır); okuma kuralı: sürücü ya da ekip üyesi. Doğrudan yazma hakkı yoktur.
+--   crew_chat_visible(p_owner) -> boolean             okuma kuralı yardımcısı (ben sürücüyüm ya da ekibindeyim)
+--   crew_chat_send(p_owner, p_body) -> uuid           mesaj yaz (1–300 karakter; dakikada en fazla 20 mesaj).
+--        Her yazışta bakım: odanın 24 saatten eski mesajları ve son 200 mesajın dışındakiler silinir.
+--   crew_room(p_owner, p_after, p_limit) -> jsonb     oda durumu (panel 2–3 sn'de bir çağırır):
+--        { driver:  { id, name, avatar_path, online, racing },
+--          control_on: sürücü şu an pit komutu kabul ediyor,
+--          members: [ { id, name, avatar_path, can_control, present, me } ]   (present: paneli son 45 sn'de açık)
+--          messages: [ { id, sender, name, role: 'driver' | 'control' | 'view' | 'gone', body, at } ]  (eskiden yeniye)
+--          now: sunucu saati }
+--        p_after verilirse yalnızca o andan sonraki mesajlar döner. Ekip üyesi çağırırsa seen_at'i de yazar
+--        (10 sn'de bir), yani oda açıkken "bağlı" görünür.
+-- Sıra: c53 / c58 sonrasında. Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.crew_chat (
+  id uuid primary key default gen_random_uuid(),
+  owner uuid not null references public.profiles (id) on delete cascade,
+  sender uuid not null references public.profiles (id) on delete cascade,
+  body text not null check (char_length(body) between 1 and 300),
+  created_at timestamptz not null default now()
+);
+create index if not exists crew_chat_owner on public.crew_chat (owner, created_at desc);
+create index if not exists crew_chat_sender on public.crew_chat (sender, created_at desc);
+alter table public.crew_chat enable row level security;
+
+-- Okuma kuralı yardımcısı (crew_role dışarıya kapalı olduğu için security definer sarmalayıcı)
+create or replace function public.crew_chat_visible(p_owner uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null and (auth.uid() = p_owner or public.crew_role(p_owner, auth.uid(), false));
+$$;
+revoke all on function public.crew_chat_visible(uuid) from public, anon;
+grant execute on function public.crew_chat_visible(uuid) to authenticated, service_role;
+
+drop policy if exists "crew chat read" on public.crew_chat;
+create policy "crew chat read" on public.crew_chat for select using (public.crew_chat_visible(owner));
+revoke all on public.crew_chat from public, anon, authenticated;
+grant select on public.crew_chat to authenticated;
+grant all on public.crew_chat to service_role;
+
+do $$ begin
+  alter publication supabase_realtime add table public.crew_chat;
+exception when others then null; end $$;
+
+-- Mesaj yaz: sürücü kendi odasına, ekip üyesi sürücünün odasına
+create or replace function public.crew_chat_send(p_owner uuid, p_body text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  txt text;
+  new_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  if p_owner is null or not public.crew_chat_visible(p_owner) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  txt := btrim(regexp_replace(coalesce(p_body, ''), '[[:cntrl:]]+', ' ', 'g'));
+  txt := left(regexp_replace(txt, '\s+', ' ', 'g'), 300);
+  if txt = '' then
+    raise exception 'Mesaj boş';
+  end if;
+  -- Hız sınırı
+  if (select count(*) from public.crew_chat
+      where sender = auth.uid() and created_at > now() - interval '1 minute') >= 20 then
+    raise exception 'Çok hızlı: dakikada en fazla 20 mesaj gönderebilirsin';
+  end if;
+  -- Bakım: 24 saatten eski mesajlar ve son 200 mesajın dışındakiler
+  delete from public.crew_chat where owner = p_owner and created_at < now() - interval '24 hours';
+  delete from public.crew_chat where owner = p_owner and id in (
+    select id from public.crew_chat where owner = p_owner order by created_at desc offset 200);
+
+  insert into public.crew_chat (owner, sender, body) values (p_owner, auth.uid(), txt) returning id into new_id;
+  return new_id;
+end $$;
+revoke all on function public.crew_chat_send(uuid, text) from public, anon;
+grant execute on function public.crew_chat_send(uuid, text) to authenticated;
+
+-- Oda durumu: sürücü, yetkililer (kim odada, kim pit ayarlarını değiştirebilir) ve mesajlar
+create or replace function public.crew_room(p_owner uuid, p_after timestamptz default null, p_limit int default 60) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  lim int := least(greatest(coalesce(p_limit, 60), 1), 200);
+  v_driver jsonb;
+  v_members jsonb;
+  v_msgs jsonb;
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  if p_owner is null or not public.crew_chat_visible(p_owner) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  -- Ekip üyesi: oda açıkken "bağlı" görünür
+  if me <> p_owner then
+    update public.crew_members set seen_at = now()
+      where owner = p_owner and member = me and (seen_at is null or seen_at < now() - interval '10 seconds');
+  end if;
+
+  select jsonb_build_object(
+      'id', p.id, 'name', p.display_name, 'avatar_path', p.avatar_path,
+      'online', coalesce(s.updated_at > now() - interval '3 minutes', false),
+      'racing', coalesce(s.updated_at > now() - interval '3 minutes' and s.racing, false))
+    into v_driver
+    from public.profiles p
+    left join public.user_status s on s.user_id = p.id
+    where p.id = p_owner;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'id', c.member, 'name', p.display_name, 'avatar_path', p.avatar_path,
+      'can_control', c.can_control,
+      'present', coalesce(c.seen_at > now() - interval '45 seconds', false),
+      'me', c.member = me)
+      order by coalesce(c.seen_at > now() - interval '45 seconds', false) desc, c.can_control desc, p.display_name), '[]'::jsonb)
+    into v_members
+    from public.crew_members c
+    join public.profiles p on p.id = c.member
+    join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+    where c.owner = p_owner and (c.can_view or c.can_control);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'id', x.id, 'sender', x.sender, 'name', x.display_name, 'role', x.role, 'body', x.body, 'at', x.created_at)
+      order by x.created_at), '[]'::jsonb)
+    into v_msgs
+    from (
+      select m.id, m.sender, m.body, m.created_at, p.display_name,
+             case when m.sender = p_owner then 'driver'
+                  when c.member is null then 'gone'
+                  when c.can_control then 'control' else 'view' end as role
+      from public.crew_chat m
+      join public.profiles p on p.id = m.sender
+      left join public.crew_members c on c.owner = m.owner and c.member = m.sender
+      where m.owner = p_owner and (p_after is null or m.created_at > p_after)
+      order by m.created_at desc
+      limit lim) x;
+
+  return jsonb_build_object(
+    'driver', v_driver,
+    'control_on', public.crew_accepts(p_owner),
+    'members', v_members,
+    'messages', v_msgs,
+    'now', now());
+end $$;
+revoke all on function public.crew_room(uuid, timestamptz, int) from public, anon;
+grant execute on function public.crew_room(uuid, timestamptz, int) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- c65: (1) Durum seçici: Çevrimiçi / Rahatsız Etme / Çevrimdışı (görünmez), (2) Grup sahipliğini devretme.
+--
+-- 1) Görünmez durum ("Çevrimdışı görün"):
+--      user_status.invisible (boolean) ve user_status.invisible_at (görünmez olunan an; tetikleyici yazar).
+--      Görünmez üye başkalarına ÇEVRİMDIŞI döner: online / racing false, pist / araç / oturum / oyun boş,
+--      dnd false, last_seen = görünmez olduğu an (durum her 45 sn'de yenilendiği için updated_at verilmez).
+--      YÖNETİCİ (is_admin) gerçek durumu ve ayrıca invisible = true işaretini görür ("gizleniyor").
+--      Kural sunucuda uygulanır:
+--        - user_status okuma kuralı ("status friends read"): arkadaş, görünmez üyenin satırını okuyamaz
+--          (kendisi ve yönetici okur).
+--        - presence_masked(boolean): "bu satır çağırana gizlenmeli mi" (görünmez VE çağıran yönetici değil).
+--        - my_friends(): maskeleme + yeni dönüş sütunu invisible (sadece yöneticiye true döner). Sıralama da
+--          maskelenmiş değerlerle yapılır (sıradan anlaşılmasın).
+--        - friend_shares(): maskeleme; görünmez üyenin canlı verisi de dönmez (sütunlar aynı).
+--        - live_visible(): görünmez üyenin canlı verisini güvenilir ARKADAŞ okuyamaz (live_data okuma kuralı ve
+--          Realtime bunu kullanır). EKİP üyesi (crew_role) okumaya devam eder.
+--        - admin_members_live(): yeni dönüş sütunu invisible (çevrimiçi ama gizlenen üye). Gerçek durum döner.
+--      Bilerek DEĞİŞMEYENLER:
+--        - crew_drivers() / crew_driver(): ekip üyesini sürücü kendisi atar ve Ekip Pitwall'ı canlı veriye dayanır;
+--          gizlenirse panel çalışmaz. Ekip üyesi gerçek durumu görmeye devam eder.
+--        - admin_overview(): sadece yönetici; sayaçlar gerçek durumu sayar.
+--        - send_message / chat_group_add …: sadece accept_messages'a bakar, durum sızdırmaz.
+--        - telemetry_drivers / public_profile / takım işlevleri: çevrimiçi durumu döndürmez.
+-- 2) group_transfer(p_group, p_user): grup sahibi sahipliği bir üyeye devreder (sohbete "yeni sahip" sistem
+--      mesajı düşer; meta.t = 'owner'). Ayrılma (group_leave), üye çıkarma (group_kick), grubu silme
+--      (group_delete), üye listesi (group_members) ve sahip ayrılınca en eski üyeye devir / boş grubun silinmesi
+--      (chat_group_member_gone) c45'te zaten var; aynen kalır.
+-- Sıra: c31 (user_status.sim), c45 (gruplar), c49 (admin_members_live), c53 (ekip, live_visible) sonrasında.
+-- Tekrar çalıştırılabilir. my_friends ve admin_members_live dönüş sütunu değiştiği için önce düşürülür.
+-- ---------------------------------------------------------------------------
+
+-- ===========================================================================
+-- 1) Görünmez durum
+-- ===========================================================================
+alter table public.user_status add column if not exists invisible boolean not null default false;
+alter table public.user_status add column if not exists invisible_at timestamptz;
+
+-- invisible_at: görünmez olunan an (başkalarına "son görülme" olarak verilir); görünür olunca boşalır
+create or replace function public.user_status_invisible_at() returns trigger
+language plpgsql as $$
+begin
+  if not new.invisible then
+    new.invisible_at := null;
+  elsif tg_op = 'INSERT' or not coalesce(old.invisible, false) then
+    new.invisible_at := now();
+  else
+    new.invisible_at := old.invisible_at; -- istemci değiştiremesin
+  end if;
+  return new;
+end $$;
+drop trigger if exists user_status_invisible_at on public.user_status;
+create trigger user_status_invisible_at before insert or update on public.user_status
+  for each row execute function public.user_status_invisible_at();
+
+-- Bu durum satırı çağırana gizlenmeli mi: görünmez VE çağıran yönetici değil
+create or replace function public.presence_masked(p_invisible boolean) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce(p_invisible, false) and not coalesce(public.is_admin(), false);
+$$;
+revoke all on function public.presence_masked(boolean) from public, anon;
+grant execute on function public.presence_masked(boolean) to authenticated, service_role;
+
+-- Tabloyu doğrudan okuma: arkadaş görünmez üyenin satırını göremez
+drop policy if exists "status friends read" on public.user_status;
+create policy "status friends read" on public.user_status for select using (
+  auth.uid() = user_id
+  or public.is_admin()
+  or (not invisible and public.are_friends(auth.uid(), user_id)));
+
+-- Canlı veri: görünmez üyenin verisini güvenilir arkadaş okuyamaz; ekip üyesi okur (c53 tanımı + görünmezlik)
+create or replace function public.live_visible(p_owner uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null and (
+    auth.uid() = p_owner
+    or (public.live_trusts(p_owner, auth.uid())
+        and (not public.feature_requires_pro('social.data_share', true) or public.user_is_pro(p_owner))
+        and not coalesce((select s.invisible from public.user_status s where s.user_id = p_owner), false))
+    or public.crew_role(p_owner, auth.uid(), false));
+$$;
+revoke all on function public.live_visible(uuid) from public, anon;
+grant execute on function public.live_visible(uuid) to authenticated, service_role;
+
+-- Arkadaş listesi: c44'teki tanım + görünmezlik. Yeni sütun: invisible (sadece yöneticiye true dönebilir).
+drop function if exists public.my_friends();
+create or replace function public.my_friends()
+returns table (friend_id uuid, display_name text, iracing_name text, status text, trusted boolean, muted boolean,
+               trusts_me boolean, online boolean, racing boolean, track text, car text, session text, dnd boolean,
+               accept_messages boolean, last_seen timestamptz, unread int, avatar_path text, sim text,
+               invisible boolean)
+language sql stable security definer set search_path = public as $$
+  select x.friend_id, x.display_name, x.iracing_name, x.status, x.trusted, x.muted, x.trusts_me,
+         x.online, x.racing, x.track, x.car, x.session, x.dnd, x.accept_messages, x.last_seen, x.unread,
+         x.avatar_path, x.sim, x.invisible
+  from (
+    select f.friend_id, p.display_name, p.iracing_name, f.status, f.trusted, f.muted,
+           f.status = 'accepted' and public.live_trusts(f.friend_id, f.user_id)
+             and (not public.feature_requires_pro('social.data_share', true) or public.user_is_pro(f.friend_id)) as trusts_me,
+           v.real_on and not v.hid and f.status = 'accepted' as online,
+           v.real_on and not v.hid and coalesce(s.racing, false) and f.status = 'accepted' as racing,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.track, '') else '' end as track,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.car, '') else '' end as car,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.session, '') else '' end as session,
+           coalesce(s.dnd, false) and not v.hid as dnd,
+           coalesce(s.accept_messages, true) as accept_messages,
+           case when f.status = 'accepted'
+                then case when v.hid then coalesce(s.invisible_at, s.updated_at) else s.updated_at end end as last_seen,
+           (select count(*)::int from public.messages m
+            where m.recipient = auth.uid() and m.sender = f.friend_id and m.read_at is null
+              and not public.message_hidden_for(m.id, m.sender, m.recipient, m.created_at)) as unread,
+           p.avatar_path,
+           case when f.status = 'accepted' and v.real_on and not v.hid then coalesce(s.sim, '') else '' end as sim,
+           -- yöneticiye: çevrimiçi ama gizleniyor
+           f.status = 'accepted' and v.real_on and coalesce(s.invisible, false) and not v.hid as invisible
+    from public.friendships f
+    join public.profiles p on p.id = f.friend_id
+    left join public.user_status s on s.user_id = f.friend_id
+    cross join lateral (
+      select coalesce(s.updated_at > now() - interval '3 minutes', false) as real_on,
+             public.presence_masked(s.invisible) as hid) v
+    where f.user_id = auth.uid()
+  ) x
+  order by (x.status = 'pending_in') desc, x.racing desc, x.last_seen desc nulls last, x.display_name;
+$$;
+revoke all on function public.my_friends() from public, anon;
+grant execute on function public.my_friends() to authenticated, service_role;
+
+-- Verisini görebildiğim arkadaşlar: c44'teki tanım + görünmezlik (görünmez üyenin canlı verisi de dönmez)
+create or replace function public.friend_shares()
+returns table (friend_id uuid, display_name text, avatar_path text, online boolean, racing boolean,
+               track text, car text, live boolean, data jsonb, updated_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select x.friend_id, x.display_name, x.avatar_path, x.online, x.racing, x.track, x.car, x.live, x.data, x.updated_at
+  from (
+    select f.friend_id, p.display_name, p.avatar_path,
+           not v.hid and coalesce(s.updated_at > now() - interval '3 minutes', false) as online,
+           not v.hid and coalesce(s.racing and s.updated_at > now() - interval '3 minutes', false) as racing,
+           case when v.hid then '' else coalesce(s.track, '') end as track,
+           case when v.hid then '' else coalesce(s.car, '') end as car,
+           not v.hid and coalesce(l.updated_at > now() - interval '2 minutes', false) as live,
+           case when not v.hid and l.updated_at > now() - interval '10 minutes' then l.data end as data,
+           case when v.hid then null else l.updated_at end as updated_at,
+           case when v.hid then coalesce(s.invisible_at, s.updated_at) else s.updated_at end as seen
+    from public.friendships f
+    join public.profiles p on p.id = f.friend_id
+    left join public.user_status s on s.user_id = f.friend_id
+    left join public.live_data l on l.user_id = f.friend_id
+    cross join lateral (select public.presence_masked(s.invisible) as hid) v
+    -- görünmez üye listeden düşmesin (çevrimdışı görünsün): live_visible görünmezi eler; güven koşulu ayrıca sayılır, veri yukarıda maskelenir
+    where f.user_id = auth.uid() and f.status = 'accepted'
+      and (public.live_visible(f.friend_id)
+           or (coalesce(s.invisible, false) and public.live_trusts(f.friend_id, auth.uid())
+               and (not public.feature_requires_pro('social.data_share', true) or public.user_is_pro(f.friend_id))))
+  ) x
+  order by x.live desc, x.racing desc, x.seen desc nulls last, x.display_name;
+$$;
+revoke all on function public.friend_shares() from public, anon;
+grant execute on function public.friend_shares() to authenticated;
+
+-- Yönetici canlı üye listesi: c49'daki tanım + invisible sütunu (çevrimiçi ama "Çevrimdışı görün" seçmiş)
+drop function if exists public.admin_members_live(text, text, int, int);
+create or replace function public.admin_members_live(
+  p_filter text default 'all', p_search text default '', p_limit int default 200, p_offset int default 0)
+returns table (id uuid, display_name text, avatar_path text, email text, is_pro boolean, pro_until timestamptz,
+               pro_source text, is_admin boolean, created_at timestamptz, online boolean, racing boolean,
+               sim text, track text, car text, session text, last_seen timestamptz, invisible boolean)
+language plpgsql stable security definer set search_path = public, auth as $$
+declare
+  q text := btrim(coalesce(p_search, ''));
+  f text := lower(coalesce(nullif(btrim(p_filter), ''), 'all'));
+begin
+  if auth.uid() is null or not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  -- ilike joker karakterleri düz metin sayılsın
+  q := replace(replace(replace(q, '\', '\\'), '%', '\%'), '_', '\_');
+  return query
+    select x.id, x.display_name, x.avatar_path, x.email, x.is_pro, x.pro_until, x.pro_source, x.is_admin, x.created_at,
+           x.online, x.racing,
+           case when x.online then x.sim else '' end,
+           case when x.online then x.track else '' end,
+           case when x.online then x.car else '' end,
+           case when x.online then x.session else '' end,
+           x.last_seen,
+           x.online and x.invisible
+    from (
+      select p.id, p.display_name, p.avatar_path, u.email::text as email,
+             coalesce(p.pro_until > now(), false) as is_pro, p.pro_until, coalesce(p.pro_source, '') as pro_source, p.is_admin, p.created_at,
+             coalesce(s.updated_at > now() - interval '3 minutes', false) as online,
+             coalesce(s.racing and s.updated_at > now() - interval '3 minutes', false) as racing,
+             coalesce(s.sim, '') as sim, coalesce(s.track, '') as track, coalesce(s.car, '') as car,
+             coalesce(s.session, '') as session,
+             coalesce(s.invisible, false) as invisible,
+             nullif(greatest(coalesce(s.updated_at, '-infinity'::timestamptz),
+                             coalesce((select max(a.last_seen) from public.app_pings a where a.user_id = p.id),
+                                      '-infinity'::timestamptz)), '-infinity'::timestamptz) as last_seen
+      from public.profiles p
+      join auth.users u on u.id = p.id
+      left join public.user_status s on s.user_id = p.id
+      where q = ''
+         or p.display_name ilike '%' || q || '%'
+         or u.email ilike '%' || q || '%'
+         or coalesce(p.iracing_name, '') ilike '%' || q || '%'
+    ) x
+    where case f
+            when 'online' then x.online
+            when 'racing' then x.racing
+            when 'pro' then x.is_pro
+            when 'offline' then not x.online
+            else true end
+    order by x.racing desc, x.online desc, x.last_seen desc nulls last, x.display_name
+    limit least(greatest(coalesce(p_limit, 200), 1), 500)
+    offset greatest(coalesce(p_offset, 0), 0);
+end $$;
+revoke all on function public.admin_members_live(text, text, int, int) from public, anon;
+grant execute on function public.admin_members_live(text, text, int, int) to authenticated;
+
+-- ===========================================================================
+-- 2) Grup sahipliğini devret
+-- ===========================================================================
+create or replace function public.group_transfer(p_group uuid, p_user uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null or not public.is_group_owner(p_group) then
+    raise exception 'Sadece grup sahibi sahipliği devredebilir';
+  end if;
+  if p_user is null or p_user = me then
+    return; -- zaten sahip
+  end if;
+  if not exists (select 1 from public.chat_group_members where group_id = p_group and user_id = p_user) then
+    raise exception 'Bu kişi grupta değil';
+  end if;
+  update public.chat_groups set owner_id = p_user, updated_at = now() where id = p_group;
+  insert into public.group_messages (group_id, sender, body, meta)
+    values (p_group, p_user, '👑 Grubun yeni sahibi oldu',
+            jsonb_build_object('t', 'owner', 'user', p_user,
+              'name', coalesce((select display_name from public.profiles where id = p_user), '?')));
+end $$;
+revoke all on function public.group_transfer(uuid, uuid) from public, anon;
+grant execute on function public.group_transfer(uuid, uuid) to authenticated;
+
+notify pgrst, 'reload schema';

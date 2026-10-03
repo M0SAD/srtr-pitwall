@@ -55,6 +55,8 @@ export const inviteToGroup = (group: string, users: string[]) =>
 export const leaveGroup = (group: string) => api("POST", "rpc/group_leave", { body: { p_group: group } });
 export const kickFromGroup = (group: string, user: string) => api("POST", "rpc/group_kick", { body: { p_group: group, p_user: user } });
 export const deleteGroup = (group: string) => api("POST", "rpc/group_delete", { body: { p_group: group } });
+/** Sahipliği bir üyeye devret (c65) */
+export const transferGroup = (group: string, user: string) => api("POST", "rpc/group_transfer", { body: { p_group: group, p_user: user } });
 export const renameGroup = (group: string, name: string) => api("POST", "rpc/group_rename", { body: { p_group: group, p_name: name } });
 export async function groupMembers(group: string) {
   const list = (await api<GroupMember[]>("POST", "rpc/group_members", { body: { p_group: group } })) ?? [];

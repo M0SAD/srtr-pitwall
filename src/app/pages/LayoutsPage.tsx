@@ -3,16 +3,17 @@
 
 import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { ShareDialog } from "./CommunityPage";
-import { appState } from "../App";
+import { appState, setDemo } from "../App";
 import { t } from "@/sdk/i18n";
-import { go } from "../ui";
+import { go, overlayFocus, setOpenCard, setOverlayFocus } from "../ui";
 import { BackdropPicker } from "../components/BackdropPicker";
 import { invoke } from "@tauri-apps/api/core";
-import { canDuplicate, manifestById, manifests } from "@/sdk/registry";
+import { manifestById } from "@/sdk/registry";
 import {
-  instanceName,
+  addToLayout,
   instancesOf,
   newProfile,
+  removeInstance,
   resolveProfile,
   settings,
   updateSettings,
@@ -25,12 +26,16 @@ import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type M
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas } from "../components/LayoutCanvas";
 import { UndoRedo } from "@/sdk/UndoRedo";
-import { LayoutList, layoutFocus, setLayoutFocus, sortProfiles } from "../components/LayoutList";
-import { copyLayoutToStream, setStreamFocus } from "@/sdk/streamLink";
-import { F, proLocked } from "@/sdk/proFeatures";
+import { LayoutList, layoutFocus, setLayoutFocus, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { Switch } from "../components/SettingsForm";
 import * as I from "../icons";
 import { overlayIcon } from "../overlayIcons";
+import { OverlayPalette } from "../components/OverlayPalette";
+import { OverlaySettings } from "../components/OverlaySettings";
+import { inTauri } from "@/sdk/platform";
+import { emit } from "@tauri-apps/api/event";
+import ZoomIn from "lucide-solid/icons/zoom-in";
+import ZoomOut from "lucide-solid/icons/zoom-out";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
 const SESSIONS: { v: SessionKind; label: string }[] = [
@@ -50,18 +55,18 @@ export function newLayout(mode: ProfileMode, name: string, copyOf?: Profile): st
     p.id = id;
     p.name = name;
     p.rules.mode = mode;
-    if (!copyOf && mode === "stream") for (const o of Object.values(p.overlays)) o.enabled = false;
+    if (!copyOf) {
+      // Yeni düzen: overlay'ler "Overlaylarım"daki varsayılan ayarlarla başlar (konum ve açık/kapalı fabrika değerinde)
+      for (const [k, o] of Object.entries(p.overlays)) {
+        const def = d.defaults[o.type];
+        if (def) p.overlays[k] = { ...structuredClone(def), type: o.type, name: "", monitor: "", x: o.x, y: o.y, enabled: mode === "stream" ? false : o.enabled };
+        else if (mode === "stream") o.enabled = false;
+      }
+    }
     d.profiles[id] = p;
     if (mode !== "stream") d.activeProfile = id;
   });
   return id;
-}
-
-/** Düzeni (açık tüm overlay'leri, aynı ayarlarla) yeni bir yayın düzenine kopyalar ve Yayın sayfasını açar */
-function copyToStream(p: Profile) {
-  // Yayın düzenleri PRO ise sayfa kilit ekranını gösterir; kopya oluşturulmaz
-  if (!proLocked(F.streaming)) setStreamFocus(copyLayoutToStream(p.id, { name: t("{0} (yayın)", p.name) }));
-  go("streaming");
 }
 
 export function RulesChips(props: { p: Profile }) {
@@ -190,21 +195,47 @@ export function LayoutsPage() {
   loadMonitors(true);
   const status = useTopic("status");
   const layouts = () => sortProfiles(Object.values(settings().profiles).filter((p) => p.rules.mode !== "stream"));
-  const [selId, setSelId] = createSignal(settings().activeProfile);
-  // Yayın sayfasından "Düzene kopyala" ile gelindiyse o düzen açılır
+  // Sayfada seçili düzen aynı zamanda etkin düzendir: ekranda görünen ve "Ekranda düzenle"nin açtığı düzen
+  const [selId, setSelIdRaw] = createSignal(settings().activeProfile);
+  const setSelId = (id: string) => {
+    setSelIdRaw(id);
+    setSel(null);
+    setGhost(null);
+    if (settings().profiles[id] && settings().profiles[id].rules.mode !== "stream" && settings().activeProfile !== id) updateSettings((d) => (d.activeProfile = id));
+  };
+  const p = () => {
+    const x = settings().profiles[selId()];
+    return x && x.rules.mode !== "stream" ? x : layouts()[0];
+  };
+  const [mon, setMon] = createSignal<string>("");
+  /** Seçili kopya (tuvalde ve soldaki listede) */
+  const [sel, setSel] = createSignal<string | null>(null);
+  /** Soldaki listede tıklanan, düzene henüz eklenmemiş overlay türü */
+  const [ghost, setGhost] = createSignal<string | null>(null);
+  const [rules, setRules] = createSignal(false);
+  const [sharing, setSharing] = createSignal(false);
+  const [zoom, setZoom] = createSignal(1);
+
+  // Sağ tık > "Ayarlarını aç" ya da başka sayfadan gelindiyse o düzen ve kopya açılır
   createEffect(() => {
     const f = layoutFocus();
     if (!f) return;
-    setSelId(f);
     setLayoutFocus(null);
+    setSelId(f);
   });
-  const p = () => settings().profiles[selId()] ?? layouts()[0];
-  const [mon, setMon] = createSignal<string>("");
-  const [sel, setSel] = createSignal<string | null>(null);
-  const [rules, setRules] = createSignal(false);
-  const [renaming, setRenaming] = createSignal(false);
-  const [picking, setPicking] = createSignal(false);
-  const [sharing, setSharing] = createSignal(false);
+  createEffect(() => {
+    const f = overlayFocus();
+    if (!f) return;
+    const prof = settings().profiles[f.profile];
+    if (!prof || prof.rules.mode === "stream") return;
+    setOverlayFocus(null);
+    setSelId(f.profile);
+    if (prof.overlays[f.key]?.enabled) {
+      setSel(f.key);
+      const m = prof.overlays[f.key].monitor;
+      if (m && monitors().some((x) => x.name === m)) setMon(m);
+    }
+  });
 
   createEffect(() => {
     if (!mon() && monitors().length) setMon(defaultMonitor()?.name ?? monitors()[0].name);
@@ -232,6 +263,11 @@ export function LayoutsPage() {
       )
       .map(([k]) => k);
   });
+  // Seçili kopya düzenden çıktıysa (kaldırıldı, geri alındı) seçim bırakılır
+  createEffect(() => {
+    const k = sel();
+    if (k && !p()?.overlays[k]?.enabled) setSel(null);
+  });
 
   // Demo kapalıyken tuvaldeki overlay'ler sabit durur: bir anlık örnek veri alınır, sonra akış durur
   // (sürekli yeniden çizim yok, işlemci ve bellek harcamaz). Demo açıksa canlı akar.
@@ -244,94 +280,93 @@ export function LayoutsPage() {
     () => appState().demo,
   );
 
-  const addHere = (type: string) => {
+  /** Overlay'i seçili düzene (görüntülenen monitöre) ekler; "Overlaylarım"daki varsayılan ayarlarla gelir */
+  /** Kilitli düzen: yerleşim, overlay listesi ve ayarlar değiştirilemez */
+  const locked = () => !!p()?.locked;
+  const add = (type: string) => {
+    if (locked()) return;
     const m = monitor();
-    updateSettings((d) => {
-      const prof = d.profiles[p().id];
-      const base = prof.overlays[type];
-      const monName = m && m.name !== defaultMonitor()?.name ? m.name : "";
-      const ex = Object.entries(prof.overlays).find(([, o]) => o.type === type && o.enabled)?.[0];
-      if (ex && !canDuplicate(type, d.general.allowDuplicates)) {
-        // Birden fazla eklemeye izin yok: var olanı seç
-        setSel(ex);
-      } else if (base && !base.enabled) {
-        base.enabled = true;
-        base.monitor = monName;
-        setSel(type);
-      } else {
-        let n = 2;
-        while (prof.overlays[`${type}#${n}`]) n++;
-        const key = `${type}#${n}`;
-        prof.overlays[key] = { ...structuredClone(base), enabled: true, monitor: monName, name: "", x: 60, y: 60 };
-        setSel(key);
-      }
-    });
+    const key = addToLayout(p().id, type, m && m.name !== defaultMonitor()?.name ? m.name : "");
+    if (!key) return;
+    setGhost(null);
+    setSel(key);
+    // Zaten ekli (tek kopyalı) bir overlay başka monitördeyse o monitöre geç
+    const im = p().overlays[key]?.monitor;
+    if (im && im !== mon() && monitors().some((x) => x.name === im)) setMon(im);
+  };
+  const remove = (key: string) => {
+    if (locked()) return;
+    const type = p().overlays[key]?.type ?? null;
+    removeInstance(key, p().id);
+    if (sel() === key) {
+      setSel(null);
+      setGhost(type);
+    }
+  };
+  const pick = (key: string | null, type: string) => {
+    if (key) {
+      setGhost(null);
+      setSel(key);
+      const im = p().overlays[key]?.monitor;
+      if (im && im !== mon() && monitors().some((x) => x.name === im)) setMon(im);
+      else if (!im && monitor()?.name !== defaultMonitor()?.name && defaultMonitor()) setMon(defaultMonitor()!.name);
+    } else {
+      setSel(null);
+      setGhost(type);
+    }
   };
 
-  const remove = () => {
-    if (layouts().length <= 1) return;
-    if (!confirm(`"${p().name}" düzeni silinsin mi?`)) return;
-    updateSettings((d) => {
-      delete d.profiles[p().id];
-      if (!d.profiles[d.activeProfile]) d.activeProfile = Object.keys(d.profiles).find((id) => d.profiles[id].rules.mode !== "stream") ?? Object.keys(d.profiles)[0];
-    });
-    setSelId(settings().activeProfile);
+  /** Oyunun üstünde gerçek boyutta düzenle: kilit açılır; overlay'ler taşınabilsin diye Görünür ve (oyun bağlı değilse) Demo açılır */
+  const editOnScreen = async () => {
+    const id = p().id;
+    try {
+      if (appState().hidden) await invoke("hidden_set", { on: false });
+      if (!appState().connected && !appState().demo) setDemo(true);
+      await invoke("edit_mode_set", { on: true });
+      if (inTauri) await emit("edit-layout", id);
+    } catch {
+      /* tarayıcı önizlemesi */
+    }
   };
 
   const shownNow = () => resolveProfile(status());
-  const selInst = () => (sel() ? p()?.overlays[sel()!] : undefined);
 
   return (
-    <div class="lpage">
+    <div class="lpage" classList={{ "with-set": !!(sel() || ghost()) }}>
       <aside class="llist">
-        <div class="ovlist-cap">Varsayılan düzen</div>
-        <select class="f2-select" value={settings().activeProfile} onChange={(e) => updateSettings((d) => (d.activeProfile = e.currentTarget.value))}>
-          <For each={layouts()}>{(x) => <option value={x.id}>{x.name}</option>}</For>
-        </select>
-        <small class="muted llist-now">
-          Ekranda şu an: <b>{shownNow()?.name}</b>
-        </small>
-        <div class="ovlist-cap">Düzenlerim</div>
         <div class="llist-items">
           <LayoutList
             kind="layout"
+            title="Düzenlerim"
             list={layouts()}
             selId={p()?.id}
             onSelect={setSelId}
+            onAdd={() => setSelId(newLayout("driving", t("Düzen {0}", layouts().length + 1)))}
             onShare={() => setSharing(true)}
-            onCopyOther={(id) => settings().profiles[id] && copyToStream(settings().profiles[id])}
             icon={() => <I.LayoutDashboard />}
           />
         </div>
-        <button class="btn primary wide" onClick={() => setSelId(newLayout("driving", `Düzen ${layouts().length + 1}`))}>
-          <I.Plus /> Düzen ekle
-        </button>
+        <Show when={shownNow() && shownNow()!.id !== p()?.id}>
+          <small class="muted llist-now">
+            Ekranda şu an: <b>{shownNow()?.name}</b>
+          </small>
+        </Show>
+        <div class="llist-head">
+          <span>Overlay'ler</span>
+          <small class="muted">{instancesOf(p()).filter(([, i]) => i.enabled).length} ekli</small>
+        </div>
+        <div class="llist-pal">
+          <Show when={p()}>
+            <OverlayPalette profile={p()} selected={sel() ?? ghost()} onSelect={pick} onAdd={add} onRemove={remove} disabled={locked()} />
+          </Show>
+        </div>
       </aside>
 
       <Show when={p()}>
         <section class="lmain">
           <header class="lhead">
             <div>
-              <Show
-                when={!renaming()}
-                fallback={
-                  <input
-                    class="input lname-input"
-                    value={p().name}
-                    autofocus
-                    onBlur={() => setRenaming(false)}
-                    onKeyDown={(e) => (e.key === "Enter" || e.key === "Escape") && setRenaming(false)}
-                    onInput={(e) => {
-                      const v = e.currentTarget.value;
-                      updateSettings((d) => (d.profiles[p().id].name = v || "Düzen"));
-                    }}
-                  />
-                }
-              >
-                <h2 class="lname" onDblClick={() => setRenaming(true)}>
-                  {p().name}
-                </h2>
-              </Show>
+              <h2 class="lname">{p().name}</h2>
               <small class="muted">
                 {monitor() ? `${monitor()!.width}×${monitor()!.height}` : ""} · {keys().length} overlay bu monitörde ·{" "}
                 {instancesOf(p()).filter(([, i]) => i.enabled).length} toplam
@@ -339,33 +374,25 @@ export function LayoutsPage() {
               <RulesChips p={p()} />
             </div>
             <div class="lhead-btns">
-              <UndoRedo keys class="ur-panel" />
-              <button class="btn ghost" classList={{ on: rules() }} onClick={() => setRules(!rules())}>
+              <button class="btn ghost" classList={{ on: rules() && !locked() }} disabled={locked()} onClick={() => setRules(!rules())}>
                 <I.Flag /> Kurallar
-              </button>
-              <button class="btn ghost" onClick={() => setRenaming(true)}>
-                <I.Pencil /> Adı
-              </button>
-              <button class="btn ghost" onClick={() => setSelId(newLayout(p().rules.mode, `${p().name} (kopya)`, p()))}>
-                <I.Copy /> Kopyala
-              </button>
-              <button class="btn ghost" title="Bu düzenin açık overlay'lerini aynı ayarlarla OBS için bir yayın düzenine kopyalar (konumlar yayın çözünürlüğüne oranlanır)" onClick={() => copyToStream(p())}>
-                <I.Radio /> Yayın düzenine kopyala
               </button>
               <button class="btn primary" title="Bu düzeni tüm ayarları ve renkleriyle toplulukta paylaş" onClick={() => setSharing(true)}>
                 <I.Share2 /> Paylaş
               </button>
-              <button class="btn ghost ok" disabled={settings().activeProfile === p().id} onClick={() => updateSettings((d) => (d.activeProfile = p().id))}>
-                <I.Play /> Varsayılan yap
-              </button>
-              <button class="btn ghost danger" disabled={layouts().length <= 1} onClick={remove}>
-                <I.Trash /> Sil
-              </button>
             </div>
           </header>
 
-          <Show when={rules()}>
+          <Show when={rules() && !locked()}>
             <RulesEditor p={p()} />
+          </Show>
+          <Show when={locked()}>
+            <div class="locked-note lock-note">
+              <I.Lock /> Bu düzen kilitli: overlay'ler taşınamaz, eklenip çıkarılamaz, ayarları değiştirilemez.
+              <button class="link" onClick={() => toggleProfileLock(p().id)}>
+                Kilidi aç
+              </button>
+            </div>
           </Show>
 
           <div class="lmon">
@@ -378,55 +405,9 @@ export function LayoutsPage() {
                   {monitor() && monitor()!.scale !== 1 ? ` · Windows ölçeği %${Math.round(monitor()!.scale * 100)}` : ""}
                 </small>
                 <div class="lmon-tools">
-                  <label class="check" title="Taşırken overlay'ler ızgara çizgilerine hizalanır. Kapalıyken ızgara ve orta çizgiler gizlenir, sadece overlay çerçeveleri kalır.">
-                    <input type="checkbox" checked={settings().general.snapToGrid} onChange={(e) => updateSettings((d) => (d.general.snapToGrid = e.currentTarget.checked))} />
-                    <span>Izgara</span>
-                  </label>
-                  <select class="f2-select small" value={settings().general.gridSize} onChange={(e) => updateSettings((d) => (d.general.gridSize = Number(e.currentTarget.value)))}>
-                    <For each={[5, 10, 20, 40]}>{(n) => <option value={n}>{n}px</option>}</For>
-                  </select>
-                  <label class="check" title="Taşırken overlay'ler ekranın ve diğer overlay'lerin kenarlarına ve ortalarına yapışır, hizalama çizgisi gösterir. Alt tuşuna basılıyken geçici olarak kapanır.">
-                    <input type="checkbox" checked={settings().general.snapToEdges} onChange={(e) => updateSettings((d) => (d.general.snapToEdges = e.currentTarget.checked))} />
-                    <span>Kenarlar</span>
-                  </label>
-                  <label
-                    class="check"
-                    title="Tuvalde overlay'lerin arkasında görsel göster · sağ tık: arka planı değiştir"
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setPicking(true);
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={settings().general.editBackdrop.enabled && settings().general.editBackdrop.has}
-                      onChange={(e) => {
-                        const on = e.currentTarget.checked;
-                        if (on && !settings().general.editBackdrop.has) {
-                          e.currentTarget.checked = false;
-                          setPicking(true);
-                          return;
-                        }
-                        updateSettings((d) => (d.general.editBackdrop.enabled = on));
-                      }}
-                    />
-                    <span>Arka plan</span>
-                  </label>
-                  <button class="btn ghost small" onClick={() => setPicking(true)} title="Arka plan görselini değiştir">
-                    <I.ImagePlus />
-                  </button>
-                  <select
-                    class="f2-select small"
-                    value=""
-                    onChange={(e) => {
-                      if (e.currentTarget.value) addHere(e.currentTarget.value);
-                      e.currentTarget.value = "";
-                    }}
-                  >
-                    <option value="">+ Bu monitöre ekle…</option>
-                    <For each={manifests.filter((m) => !isLocked(m.id) && !isHiddenOverlay(m.id) && overlaySupportsSim(m.id, sim()))}>{(m) => <option value={m.id}>{m.name}</option>}</For>
-                  </select>
-                  <button class="btn ghost small" onClick={() => invoke("edit_mode_set", { on: true })} title="Oyunun üstünde gerçek boyutta düzenle">
+                  <CanvasOptions />
+                  <CanvasTools zoom={zoom()} setZoom={setZoom} />
+                  <button class="btn ghost small" onClick={editOnScreen} title="Oyunun üstünde gerçek boyutta düzenle: kilit açılır, Görünür ve (oyun açık değilse) Demo kendiliğinden açılır">
                     <I.MousePointer2 /> Ekranda düzenle
                   </button>
                 </div>
@@ -434,63 +415,144 @@ export function LayoutsPage() {
             </Show>
           </div>
 
-          <LayoutCanvas profileId={p().id} width={logical().w} height={logical().h} keys={keys()} selected={sel()} onSelect={setSel} backdrop />
-          <Show when={picking()}>
-            <BackdropPicker onClose={() => setPicking(false)} />
-          </Show>
+          <LayoutCanvas
+            profileId={p().id}
+            width={logical().w}
+            height={logical().h}
+            keys={keys()}
+            selected={sel()}
+            onSelect={(k) => {
+              setSel(k);
+              if (k) setGhost(null);
+            }}
+            zoom={zoom()}
+            backdrop
+            readOnly={locked()}
+          />
           <Show when={sharing()}>
             <ShareDialog kind="layout" profileId={p().id} onClose={() => setSharing(false)} onShared={() => (setSharing(false), go("community", "layouts"))} />
           </Show>
-
-          <Show when={selInst()}>
-            <div class="lsel">
-              <span class="ovitem-ic">{overlayIcon(selInst()!.type)}</span>
-              <b>{instanceName(sel()!, selInst()!)}</b>
-              <span class="muted small">
-                x {selInst()!.x} · y {selInst()!.y} · %{Math.round(selInst()!.scale * 100)}
-              </span>
-              <span class="lt-sp" />
-              <Show when={monitors().length > 1}>
-                <select
-                  class="f2-select small"
-                  value={selInst()!.monitor}
-                  onChange={(e) => {
-                    const v = e.currentTarget.value;
-                    updateSettings((d) => {
-                      const o = d.profiles[p().id].overlays[sel()!];
-                      o.monitor = v;
-                      o.x = 40;
-                      o.y = 40;
-                    });
-                    const target = monitors().find((m) => m.name === v);
-                    if (target) setMon(target.name);
-                  }}
-                >
-                  <option value="">Ana overlay monitörü</option>
-                  <For each={monitors()}>{(m) => <option value={m.name}>{monitorLabel(m)}</option>}</For>
-                </select>
-              </Show>
-              <button
-                class="btn ghost small danger"
-                onClick={() => {
-                  const k = sel()!;
-                  updateSettings((d) => {
-                    const o = d.profiles[p().id].overlays[k];
-                    if (k === o.type) o.enabled = false;
-                    else delete d.profiles[p().id].overlays[k];
-                  });
-                  setSel(null);
-                }}
-              >
-                <I.X /> Kaldır
-              </button>
-            </div>
-          </Show>
           <small class="muted lhint">
-            Sürükle: taşı · seçiliyken sağ alt köşe: boyutlandır · <kbd>Alt</kbd>: yapıştırmadan taşı · monitörü yukarıdaki haritadan seç
+            Soldaki listede çift tık: overlay'i düzene ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik (destekleyen overlay'lerde) · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
           </small>
         </section>
+
+        <Show when={sel()} keyed>
+          {(k) => <OverlaySettings key={k} profileId={p().id} mode="layout" onRemove={() => remove(k)} readOnly={locked()} />}
+        </Show>
+        <Show when={!sel() && ghost()} keyed>
+          {(g) => <GhostPanel type={g} onAdd={() => add(g)} disabled={locked()} />}
+        </Show>
       </Show>
     </div>
+  );
+}
+
+/** Tuval seçenekleri (Düzenler ve Yayın sayfalarında aynı): ızgara, ızgara aralığı, kenarlara yapıştırma, arka plan görseli */
+export function CanvasOptions() {
+  const [picking, setPicking] = createSignal(false);
+  return (
+    <>
+      <label class="check" title="Taşırken overlay'ler ızgara çizgilerine hizalanır. Kapalıyken ızgara ve orta çizgiler gizlenir, sadece overlay çerçeveleri kalır.">
+        <input type="checkbox" checked={settings().general.snapToGrid} onChange={(e) => updateSettings((d) => (d.general.snapToGrid = e.currentTarget.checked))} />
+        <span>Izgara</span>
+      </label>
+      <select class="f2-select small" value={settings().general.gridSize} onChange={(e) => updateSettings((d) => (d.general.gridSize = Number(e.currentTarget.value)))}>
+        <For each={[5, 10, 20, 40]}>{(n) => <option value={n}>{n}px</option>}</For>
+      </select>
+      <label class="check" title="Taşırken overlay'ler ekranın ve diğer overlay'lerin kenarlarına ve ortalarına yapışır, hizalama çizgisi gösterir. Alt tuşuna basılıyken geçici olarak kapanır.">
+        <input type="checkbox" checked={settings().general.snapToEdges} onChange={(e) => updateSettings((d) => (d.general.snapToEdges = e.currentTarget.checked))} />
+        <span>Kenarlar</span>
+      </label>
+      <label
+        class="check"
+        title="Tuvalde overlay'lerin arkasında görsel göster · sağ tık: arka planı değiştir"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setPicking(true);
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={settings().general.editBackdrop.enabled && settings().general.editBackdrop.has}
+          onChange={(e) => {
+            const on = e.currentTarget.checked;
+            if (on && !settings().general.editBackdrop.has) {
+              e.currentTarget.checked = false;
+              setPicking(true);
+              return;
+            }
+            updateSettings((d) => (d.general.editBackdrop.enabled = on));
+          }}
+        />
+        <span>Arka plan</span>
+      </label>
+      <button class="btn ghost small" onClick={() => setPicking(true)} title="Arka plan görselini değiştir">
+        <I.ImagePlus />
+      </button>
+      <Show when={picking()}>
+        <BackdropPicker onClose={() => setPicking(false)} />
+      </Show>
+    </>
+  );
+}
+
+/** Tuval araçları: geri al / yinele ve yakınlaştırma */
+export function CanvasTools(props: { zoom: number; setZoom: (z: number) => void }) {
+  const step = (d: number) => props.setZoom(Math.min(3, Math.max(0.5, Math.round((props.zoom + d) * 4) / 4)));
+  return (
+    <span class="ctools">
+      <UndoRedo keys class="ur-panel" />
+      <span class="ctools-zoom">
+        <button type="button" class="ur-btn" title="Uzaklaştır" disabled={props.zoom <= 0.5} onClick={() => step(-0.25)}>
+          <ZoomOut />
+        </button>
+        <button type="button" class="ctools-pct" title="Sığdır (%100)" onClick={() => props.setZoom(1)} data-no-i18n>
+          %{Math.round(props.zoom * 100)}
+        </button>
+        <button type="button" class="ur-btn" title="Yakınlaştır" disabled={props.zoom >= 3} onClick={() => step(0.25)}>
+          <ZoomIn />
+        </button>
+      </span>
+    </span>
+  );
+}
+
+/** Düzene henüz eklenmemiş overlay seçilince sağda görünen kısa tanıtım */
+export function GhostPanel(props: { type: string; onAdd: () => void; disabled?: boolean }) {
+  const m = () => manifestById(props.type);
+  return (
+    <Show when={m()}>
+      <aside class="ovset">
+        <header class="ovset-head">
+          <span class="ovset-ic">{overlayIcon(props.type)}</span>
+          <div>
+            <b>{m()!.name}</b>
+            <small>{m()!.description}</small>
+          </div>
+        </header>
+        <div class="ovset-scroll">
+          <Show
+            when={!isLocked(props.type)}
+            fallback={
+              <div class="locked-note">
+                Bu overlay PRO üyelere özel.{" "}
+                <button class="link" onClick={() => go("pro")}>
+                  PRO'ya bak
+                </button>
+              </div>
+            }
+          >
+            <p class="ovset-note">Bu overlay bu düzende yok. Eklediğinde Overlaylarım'daki varsayılan ayarlarıyla gelir; sonra bu düzene özel ayarlarını buradan değiştirebilirsin.</p>
+            <button class="btn primary wide" disabled={props.disabled} onClick={() => props.onAdd()}>
+              <I.Plus /> Düzene ekle
+            </button>
+            <button class="btn ghost wide" style={{ "margin-top": "8px" }} onClick={() => (setOpenCard(props.type), go("overlays"))}>
+              <I.Settings /> Varsayılan ayarlarını aç
+            </button>
+          </Show>
+        </div>
+      </aside>
+    </Show>
   );
 }

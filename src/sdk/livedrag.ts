@@ -6,6 +6,7 @@ import { createSignal } from "solid-js";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { inTauri } from "./platform";
+import { onRemoteDrag } from "./telemetry";
 
 export interface LivePos {
   profile: string;
@@ -13,24 +14,32 @@ export interface LivePos {
   x: number;
   y: number;
   scale: number;
+  /** Kenardan boyutlandırmada değişen ayarlar (genişlik / yükseklik; bkz. OverlayManifest.resize) */
+  opts?: Record<string, number>;
 }
 
 const me = inTauri ? getCurrentWindow().label : "web";
 const [remote, setRemote] = createSignal<Record<string, LivePos>>({});
 const id = (profile: string, key: string) => `${profile}/${key}`;
 
+type DragMsg = { from: string; pos: LivePos; end?: boolean };
+function apply(msg: DragMsg | undefined | null) {
+  const p = msg?.pos;
+  if (!msg || !p || typeof p.profile !== "string" || typeof p.key !== "string" || msg.from === me) return;
+  const k = id(p.profile, p.key);
+  setRemote((m) => {
+    const n = { ...m };
+    if (msg.end) delete n[k];
+    else n[k] = p;
+    return n;
+  });
+}
+
 if (inTauri) {
-  listen<{ from: string; pos: LivePos; end?: boolean }>("overlay-live-drag", (e) => {
-    if (e.payload.from === me) return;
-    const p = e.payload.pos;
-    const k = id(p.profile, p.key);
-    setRemote((m) => {
-      const n = { ...m };
-      if (e.payload.end) delete n[k];
-      else n[k] = p;
-      return n;
-    });
-  }).catch(() => {});
+  listen<DragMsg>("overlay-live-drag", (e) => apply(e.payload)).catch(() => {});
+} else {
+  // OBS sayfası: Rust aynı olayı web sunucusunun canlı veri akışından (SSE, "drag" paketi) iletir
+  onRemoteDrag((v) => apply(v as DragMsg));
 }
 
 /** Başka bir pencerede şu an taşınan overlay'in geçici konumu */

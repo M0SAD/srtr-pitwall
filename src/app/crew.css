@@ -1451,3 +1451,278 @@
 .crewp.full.fit {
   overflow: hidden;
 }
+
+/* ---- Ekip odası (c64): odadakiler + sohbet. Uygulama ve web sitesi aynı kuralları kullanır. ---- */
+.crm-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.crm-m {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border: 1px solid var(--line, #2a3140);
+  border-radius: 999px;
+  background: var(--bg-3, rgba(255, 255, 255, 0.04));
+  font-size: 13px;
+}
+.crm-m b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.crm-m.me {
+  border-color: var(--accent, #ff8a2a);
+}
+.crm-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green, #3ecf8e);
+}
+.crm-m.off .crm-dot {
+  background: var(--muted, #8a93a3);
+  opacity: 0.6;
+}
+.crm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #2a3140);
+  color: var(--muted, #8a93a3);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.crm-tag .pg-ic {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.crm-tag.drv {
+  color: #7fb4ff;
+  border-color: rgba(78, 161, 255, 0.6);
+}
+.crm-tag.ctl {
+  color: var(--accent, #ff8a2a);
+  border-color: var(--accent, #ff8a2a);
+  background: color-mix(in srgb, var(--accent, #ff8a2a) 14%, transparent);
+}
+.crm-tag.ctl.idle {
+  opacity: 0.6;
+  background: none;
+}
+.crm-away {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  color: var(--muted, #8a93a3);
+  font-size: 12px;
+}
+.crm-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: clamp(200px, calc(100vh - 560px), 520px);
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--line, #2a3140);
+  border-radius: 9px;
+  background: var(--bg-3, rgba(255, 255, 255, 0.03));
+}
+.crm-empty {
+  margin: auto;
+  max-width: 260px;
+  text-align: center;
+  color: var(--muted, #8a93a3);
+  font-size: 13px;
+}
+.crm-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.crm-msg:first-child {
+  margin-top: auto;
+}
+.crm-msg > div {
+  min-width: 0;
+}
+.crm-av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--line, #2a3140);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.crm-msg.driver .crm-av {
+  background: #2f6fd0;
+}
+.crm-msg.control .crm-av {
+  background: var(--accent, #ff8a2a);
+  color: #111;
+}
+.crm-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.crm-meta b {
+  font-weight: 600;
+}
+.crm-msg.mine .crm-meta b {
+  color: var(--accent, #ff8a2a);
+}
+.crm-meta em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted, #8a93a3);
+}
+.crm-meta time {
+  color: var(--muted, #8a93a3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.crm-msg p {
+  margin: 1px 0 0;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.crm-quick {
+  margin-top: 8px;
+}
+.crm-quick .pg-quick .pg-b {
+  min-height: 38px;
+  font-size: 12px;
+}
+.crm-input {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.crm-input .input,
+.crm-input input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- 16:9 yerleşim (c64): solda yarış durumu + pitwall, ortada pit kontrolü, sağda ekip odası ---- */
+.page.crewp {
+  max-width: 1900px;
+}
+.crewp .crew-wrap {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.crewp .crew-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.crewp .crew-list.hide {
+  display: none;
+}
+.crewp .crew-list .crew-drv {
+  min-width: 180px;
+  padding: 7px 12px;
+}
+.crew-fitbox {
+  container-type: inline-size;
+}
+.crew-main.c3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.crew-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.crew-col > .panel {
+  margin-bottom: 0;
+}
+.crewp.fit .crew-fitbox.cols2 .crew-main.c3 {
+  column-count: auto;
+}
+@container (min-width: 820px) {
+  .crew-main.c3 {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+  .crew-main.c3 .crew-col-c {
+    grid-column: 1 / -1;
+  }
+}
+@container (min-width: 1180px) {
+  .crew-main.c3 {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(300px, 0.78fr);
+  }
+  .crew-main.c3 .crew-col-c {
+    grid-column: auto;
+    position: sticky;
+    top: 0;
+  }
+  .crew-main.c3 .panel {
+    padding: 12px 14px;
+  }
+  .crew-main.c3 .crm-chat {
+    height: clamp(220px, calc(100vh - 470px), 640px);
+  }
+  .crew-main.c3 .cwl-table td,
+  .crew-main.c3 .cwl-table th {
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .crew-main.c3 .crew-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .crew-main.c3 .crew-stat {
+    padding: 6px 9px;
+  }
+  .crew-main.c3 .crew-stat b {
+    font-size: 16px;
+  }
+}
+/* Ekrana sığdır: sohbet yüksekliği pencereye değil içeriğe göre (ölçek bozulmasın) */
+.crewp.fit .crm-chat {
+  height: 300px;
+}
+/* Ayrı pencere (window.html?view=crew) */
+.crewp.solo {
+  padding: 12px 14px 16px;
+  max-width: none;
+}
+/* Ayarlar › Ekip: sürücünün kendi odası */
+.crew-ownroom {
+  margin-top: 12px;
+}
+.crew-ownroom .panel {
+  margin: 0;
+  background: var(--bg-3);
+}
+.crew-ownroom .crm-chat {
+  height: 240px;
+}

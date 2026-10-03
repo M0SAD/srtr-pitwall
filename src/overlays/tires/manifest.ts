@@ -11,6 +11,19 @@ export default defineOverlay({
   defaultPosition: { x: 1290, y: 780 },
   defaultEnabled: false,
   settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "grid",
+      options: [
+        { value: "grid", label: "Varsayılan (tablo)" },
+        { value: "cards", label: "Kompakt kartlar (2×2)" },
+        { value: "bars", label: "Minimal aşınma çubukları" },
+        { value: "car", label: "Araç üstten görünüm", pro: true },
+      ],
+      proHint: "Araç üstten görünüm PRO üyelere özel.",
+    },
     { key: "showTemp", label: "Sıcaklık", type: "boolean", default: true },
     { key: "showWear", label: "Kalan diş", type: "boolean", default: true },
     { key: "showPressure", label: "Soğuk basınç", type: "boolean", default: true },

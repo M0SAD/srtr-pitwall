@@ -9,12 +9,14 @@ import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
 import { CrewWall } from "../components/CrewWall";
+import { CrewRoom } from "../components/CrewRoom";
 import { FuelCard, Ic, RaceHeader, ServiceStrip, TyreCard, fxKeys, type Fx } from "../components/CrewGfx";
 import { crewFit } from "../crewFit";
 import "../crew.css";
 
 const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "AMS2" };
-export function CrewPage() {
+/** `owner` verilirse (ayrı pencere: window.html?view=crew&owner=…) yalnızca o sürücünün pitwall'ı gösterilir */
+export function CrewPage(props: { owner?: string } = {}) {
   const uid = () => session()?.user.id;
   // Liste elle yüklenir (createResource değil): her yenilemede Suspense tetiklenip sayfa baştan kurulmasın.
   // Satırlar kimliğe göre yerinde güncellenir (reconcile), böylece düğmeler de yeniden oluşturulmaz.
@@ -30,12 +32,11 @@ export function CrewPage() {
     setListSt("v", reconcile(l, { key: "owner_id" }));
   };
   createEffect(on(uid, () => void refetch()));
-  const [sel, setSel] = createSignal("");
+  const [sel, setSel] = createSignal(props.owner ?? "");
   const [drv, setDrv] = createSignal<CrewDriver | null>(null);
   const [err, setErr] = createSignal("");
   const [sent, setSent] = createSignal<CrewCommand[]>([]);
   const [liters, setLiters] = createSignal(40);
-  const [msg, setMsg] = createSignal("");
   /** Komut geri bildirimi (lastik / depo / servis kutusu çizimlerinde): bekliyor → uygulandı / reddedildi */
   const [fx, setFx] = createSignal<Fx>({});
   /** Litre kutusuna dokunuldu mu (dokunulmadıysa ayarlı pit yakıtı ya da bitiş için gereken gösterilir) */
@@ -140,6 +141,7 @@ export function CrewPage() {
     const l = list();
     // Arkadaşlar listesindeki "Ekip" düğmesinden gelindiyse o sürücü açılır
     const want = crewFocus();
+    if (props.owner) return;
     if (l && want) {
       setCrewFocus(null);
       if (l.some((d) => d.owner_id === want)) return void setSel(want);
@@ -187,13 +189,6 @@ export function CrewPage() {
     }
     window.setTimeout(() => alive && setFx((f) => Object.fromEntries(Object.entries(f).filter(([k, v]) => !keys.includes(k) || v === "pend"))), 1600);
   };
-  const sendMsg = () => {
-    const text = msg().trim();
-    if (!text) return;
-    setMsg("");
-    void send("message", { text });
-  };
-
   const sub = (d: CrewDriver) => {
     if (d.live) return t("Canlı") + (d.track ? ` · ${d.track}` : "");
     if (d.racing) return t("Yarışta") + (d.track ? ` · ${d.track}` : "");
@@ -201,12 +196,12 @@ export function CrewPage() {
   };
 
   return (
-    <div class="page crewp" classList={{ fit: fit(), full: full() }}>
+    <div class="page crewp" classList={{ fit: fit(), full: full(), solo: !!props.owner }}>
       <Show when={session()} fallback={<p class="muted">Bu özellik için hesabına giriş yapmalısın.</p>}>
-        <Show when={list() === null}>
+        <Show when={list() === null && !props.owner}>
           <p class="muted">Ekip listesi okunamadı. Daha sonra tekrar dene.</p>
         </Show>
-        <Show when={list() && list()!.length === 0}>
+        <Show when={list() && list()!.length === 0 && !props.owner}>
           <section class="panel">
             <h3>Ekip</h3>
             <p class="muted">
@@ -216,9 +211,9 @@ export function CrewPage() {
             </p>
           </section>
         </Show>
-        <Show when={(list() ?? []).length > 0}>
+        <Show when={(list() ?? []).length > 0 || !!props.owner}>
           <div class="crew-wrap">
-            <div class="crew-list">
+            <div class="crew-list" classList={{ hide: !!props.owner || (list() ?? []).length < 2 }}>
               <For each={list() ?? []}>
                 {(d) => (
                   <button class="crew-drv" classList={{ on: sel() === d.owner_id, live: d.live }} onClick={() => setSel(d.owner_id)}>
@@ -238,10 +233,11 @@ export function CrewPage() {
                   {full() ? t("Tam ekrandan çık") : t("Tam ekran")}
                 </button>
               </div>
-            <div class="crew-main" ref={mountFit}>
+            <div class="crew-main c3" ref={mountFit}>
               <Show when={drv()} fallback={<p class="muted">{err() ? t(err()) : t("Yükleniyor…")}</p>}>
                 {(d) => (
                   <>
+                    <div class="crew-col crew-col-a">
                     <section class="panel">
                       <h3 data-no-i18n>
                         {d().display_name || "?"}
@@ -258,7 +254,9 @@ export function CrewPage() {
                         </div>
                       </Show>
                     </section>
-                    <CrewWall owner={d().owner_id} live={d().live} onMsg={(text) => void send("message", { text })} />
+                    <CrewWall owner={d().owner_id} live={d().live} />
+                    </div>
+                    <div class="crew-col crew-col-b">
                     <section class="panel">
                       <h3>Pit kontrolü</h3>
                       <Show when={blocked()}>
@@ -287,22 +285,6 @@ export function CrewPage() {
                           </Show>
                         </div>
                       </Show>
-                      <fieldset class="crew-ctl" disabled={!d().live}>
-                        <div class="crew-line">
-                          <span>Mesaj</span>
-                          <input
-                            class="input crew-msg"
-                            maxLength={120}
-                            placeholder={t("Sürücüye kısa mesaj (ekranında görünür)")}
-                            value={msg()}
-                            onInput={(e) => setMsg(e.currentTarget.value)}
-                            onKeyDown={(e) => e.key === "Enter" && sendMsg()}
-                          />
-                          <button class="btn ghost small" onClick={sendMsg}>
-                            Gönder
-                          </button>
-                        </div>
-                      </fieldset>
                       <Show when={err()}>
                         <p class="error">{t(err())}</p>
                       </Show>
@@ -318,6 +300,10 @@ export function CrewPage() {
                         )}
                       </For>
                     </section>
+                    </div>
+                    <div class="crew-col crew-col-c">
+                      <CrewRoom owner={d().owner_id} quick legacySend={(text) => void send("message", { text })} />
+                    </div>
                   </>
                 )}
               </Show>

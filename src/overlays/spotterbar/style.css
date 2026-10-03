@@ -34,8 +34,7 @@
 }
 
 .sb-track,
-.sb-car,
-.sb-chev {
+.sb-car {
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -131,11 +130,6 @@ rect.sb-unit {
   stroke-opacity: 0.55;
 }
 
-/* Ok uçlu: araç yaklaşırken dışa doğru akan nabız */
-.sb-chevron.closing svg {
-  animation: sb-pulse 0.7s ease-in-out infinite;
-}
-
 @keyframes sb-pulse {
   0%,
   100% {
@@ -151,7 +145,6 @@ rect.sb-unit {
   animation: sb-pulse 0.55s ease-in-out infinite;
 }
 
-.ov-frozen .sb-chevron.closing svg,
 .ov-frozen .sb-bar.pulse svg {
   animation: none;
 }

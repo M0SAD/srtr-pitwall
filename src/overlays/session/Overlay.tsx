@@ -11,11 +11,13 @@ import "./style.css";
 const FLAG_INFO: [FlagName, string, string][] = [
   ["black", "SİYAH BAYRAK", "black"],
   ["disqualify", "DİSKALİFİYE", "black"],
+  ["furled", "UYARI – YAVAŞLA", "black"],
   ["red", "KIRMIZI BAYRAK", "red"],
   ["repair", "HASAR – PİTE GİR", "meatball"],
   ["checkered", "DAMALI BAYRAK", "checkered"],
   ["caution", "SARI – GÜVENLİK ARACI", "yellow"],
   ["cautionWaving", "SARI – GÜVENLİK ARACI", "yellow"],
+  ["yellowWaving", "SARI BAYRAK", "yellow"],
   ["yellow", "SARI BAYRAK", "yellow"],
   ["debris", "PİSTTE ENKAZ", "yellow"],
   ["blue", "MAVİ – YOL VER", "blue"],
@@ -23,6 +25,8 @@ const FLAG_INFO: [FlagName, string, string][] = [
   ["oneLapToGreen", "BİR TUR SONRA YEŞİL", "green"],
   ["greenHeld", "YEŞİL BEKLENİYOR", "green"],
 ];
+
+const DESIGNS = ["default", "side", "broadcast", "minimal", "cards"];
 
 const WETNESS = ["", "Kuru", "Çoğunlukla kuru", "Çok hafif ıslak", "Hafif ıslak", "Orta ıslak", "Çok ıslak", "Aşırı ıslak"];
 
@@ -38,6 +42,12 @@ export default function Session(props: OverlayProps) {
     return FLAG_INFO.find(([n]) => f.includes(n));
   });
 
+  const shownFlag = () => (props.options.showFlags ? flag() : undefined);
+  const design = () => {
+    const v = props.options.design as string;
+    return DESIGNS.includes(v) ? v : "default";
+  };
+
   const remain = () => {
     const d = data();
     if (!d) return "—";
@@ -49,22 +59,29 @@ export default function Session(props: OverlayProps) {
   const fmt = (v: number, digits = 0) => (v >= 0 ? v.toFixed(digits) : "—");
 
   return (
-    <div class="ov-panel ses">
-      <Show when={props.options.showFlags && flag()}>
-        <div class={`ses-flag flag-${flag()![2]}`}>{flag()![1]}</div>
-      </Show>
+    <div class={`ov-panel ses ses-d-${design()}`} classList={{ flagged: !!shownFlag() }}>
       <Show when={data()} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
         {(d) => (
           <>
-            <div class="ov-header">
-              <span>{d().sessionType || "Oturum"}</span>
-              <span>
-                {d().track}
-                <Show when={props.options.showClock}>
-                  {" · "}
-                  {wallClock(now().getTime())}
-                </Show>
-              </span>
+            {/* Bayrak uyarısı başlık satırının İÇİNDE gösterilir: kutunun yüksekliği değişmez, pencere aşağı kaymaz */}
+            <div class={`ov-header ses-head ${shownFlag() ? `ses-flagged flag-${shownFlag()![2]}` : ""}`}>
+              <Show
+                when={shownFlag()}
+                fallback={
+                  <>
+                    <span>{d().sessionType || "Oturum"}</span>
+                    <span>
+                      {d().track}
+                      <Show when={props.options.showClock}>
+                        {" · "}
+                        {wallClock(now().getTime())}
+                      </Show>
+                    </span>
+                  </>
+                }
+              >
+                <span class="ses-flagtxt">{shownFlag()![1]}</span>
+              </Show>
             </div>
             <div class="ses-main">
               <div>

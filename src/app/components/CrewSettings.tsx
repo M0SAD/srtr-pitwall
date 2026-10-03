@@ -5,6 +5,7 @@
 //    çevredeki araçlar / spotter durumu saniyede bir gönderilir; yalnızca ekipten biri paneli açıkken.
 //  - Arkadaş başına Görebilir / Değiştirebilir (crew_set). Şu an paneli açık olan ekip üyesi "bağlı" görünür.
 //  - "Ekip kontrolünü durdur": ana anahtarı hemen kapatır (bekleyen komutlar da reddedilir); kısayolu da var.
+//  - "Ekip mesajlarını kutucukta göster" (general.social.crewBox, yok = açık) ve sürücünün kendi ekip odası (c64)
 //  - Son komutlar: ekibin gönderdiği son komutlar ve sonuçları.
 // Komutları overlay penceresindeki servis uygular (src/host/crew.ts); bu ekran sadece yetkileri yönetir.
 
@@ -20,6 +21,7 @@ import { settings, updateSettings } from "@/sdk/settings";
 import { go } from "../ui";
 import { Switch } from "./SettingsForm";
 import { ProTag } from "./ProLock";
+import { CrewRoom } from "./CrewRoom";
 
 export function CrewSettings() {
   const [err, setErr] = createSignal("");
@@ -162,6 +164,16 @@ export function CrewSettings() {
         </div>
         <div class="row">
           <div>
+            <b>Ekip mesajlarını kutucukta göster</b>
+            <small>
+              Açıkken ekip odasına yazılan mesajlar ekranın alt ortasında bir kutucukta belirir ve birkaç saniye sonra solar. Mesajlar overlay'i
+              ekip odasını gösteriyorsa kutucuk ayrıca çıkmaz. Sesli okuma ve ekip sesi Mesajlar overlay'inin ayarlarındadır.
+            </small>
+          </div>
+          <Switch checked={settings().general.social.crewBox !== false} onChange={(v) => updateSettings((d) => void (d.general.social.crewBox = v))} />
+        </div>
+        <div class="row">
+          <div>
             <b>Şu an bağlı</b>
             <small classList={{ success: watching().length > 0 }} data-no-i18n>
               {watching().length ? watching().map((m) => m.display_name || "?").join(", ") : t("Ekipten paneli açık olan yok")}
@@ -198,6 +210,11 @@ export function CrewSettings() {
         </For>
         <Show when={err()}>
           <p class="error">{t(err())}</p>
+        </Show>
+        <Show when={(crew() ?? []).length > 0 && uid()}>
+          <div class="crew-ownroom">
+            <CrewRoom owner={uid()!} />
+          </div>
         </Show>
         <h3 style={{ "margin-top": "14px" }}>Son komutlar</h3>
         <Show when={(log() ?? []).length > 0} fallback={<p class="muted small">Henüz komut yok.</p>}>

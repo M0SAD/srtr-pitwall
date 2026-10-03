@@ -232,3 +232,70 @@
 .st-sess .st-sess-ic + .st-sess-ic {
   margin-left: 4px;
 }
+
+/* --- c63: sütun genişlikleri. Sabit sütunlar içeriğine göre sabit, sayılar sağa yaslı ve eş genişlikli rakamlı;
+   ad sütunu esner. Bütün sütunlar açıkken panel taşmak yerine genişler (ad en az ~9em kalır). --- */
+.st {
+  width: max-content;
+  min-width: calc(560px * var(--ov-fs-k, 1));
+  font-variant-numeric: tabular-nums;
+}
+.st-head {
+  gap: 10px;
+}
+.st-row {
+  gap: 7px;
+}
+.st-row > * {
+  flex: none;
+}
+.st-row > .st-name {
+  flex: 1 1 auto;
+  width: 9em;
+  min-width: 0;
+}
+.st-pos {
+  width: 1.8em;
+}
+.st-chg {
+  width: 2.3em;
+  text-align: right;
+  white-space: nowrap;
+}
+.st-ir {
+  box-sizing: border-box;
+  width: 3.9em;
+  min-width: 0;
+  padding: 0 0.5em;
+  text-align: right;
+  white-space: nowrap;
+}
+.st-ird {
+  width: 4.6ch;
+  text-align: right;
+  font-size: 0.85em;
+  white-space: nowrap;
+  color: var(--ov-dim);
+}
+.st-ird.up {
+  color: var(--ov-green);
+}
+.st-ird.down {
+  color: var(--ov-red);
+}
+.st-pits {
+  width: 2em;
+  min-width: 0;
+}
+.st-gap {
+  width: var(--st-gap-w, 6.5ch);
+  white-space: nowrap;
+}
+.st-lap {
+  width: 8.4ch;
+  white-space: nowrap;
+}
+.st-row > .st-lic {
+  width: auto;
+  font-size: 0.8em;
+}

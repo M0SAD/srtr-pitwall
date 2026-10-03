@@ -20,6 +20,7 @@ import {
   leaveGroup,
   markGroupRead,
   renameGroup,
+  transferGroup,
   reportGroupMessage,
   sendGroupMessage,
   type GroupMember,
@@ -575,6 +576,13 @@ function MembersPanel(props: {
       props.onChanged();
     });
   };
+  const transfer = (m: GroupMember) => {
+    if (!confirm(t("Grubun sahipliği {0} adlı üyeye devredilsin mi? Artık üye çıkaramaz ve grubu silemezsin.", m.display_name))) return;
+    void run(async () => {
+      await transferGroup(gid(), m.user_id);
+      props.onChanged();
+    });
+  };
   const rename = () =>
     run(async () => {
       await renameGroup(gid(), name().trim());
@@ -647,6 +655,9 @@ function MembersPanel(props: {
                 </Show>
                 <span class="lt-sp" />
                 <Show when={props.owner && m.user_id !== me()}>
+                  <button class="icon-btn" title="Sahipliği bu üyeye devret" disabled={busy()} onClick={() => transfer(m)}>
+                    <I.Star />
+                  </button>
                   <button class="icon-btn" title="Gruptan çıkar" disabled={busy()} onClick={() => kick(m)}>
                     <I.UserMinus />
                   </button>

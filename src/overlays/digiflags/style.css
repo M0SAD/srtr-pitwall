@@ -70,3 +70,56 @@
 .dflag.idle {
   cursor: pointer;
 }
+
+/* Panel + altındaki ceza uyarısı satırı */
+.dflag-wrap {
+  position: relative;
+  width: 180px;
+}
+
+.dflag-pen {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 26px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: #050608;
+  border: 1px solid #f4f7ff;
+  color: #f4f7ff;
+  font: 700 12px var(--ov-font, sans-serif);
+  letter-spacing: 0.05em;
+  text-align: center;
+  line-height: 1.15;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  animation: dflag-pen-in 0.25s ease-out;
+}
+
+.dflag-pen i {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff8a00;
+  box-shadow: 0 0 6px 1px #ff8a00;
+  animation: dflag-pen-dot 1s steps(2) infinite;
+}
+
+@keyframes dflag-pen-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes dflag-pen-dot {
+  50% {
+    opacity: 0.25;
+  }
+}
