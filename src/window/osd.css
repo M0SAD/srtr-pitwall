@@ -1,0 +1,92 @@
+/* Kısayol bildirimi (üst orta). Pencere saydam; sadece hap görünür. */
+html.toast-root,
+html.toast-root body,
+html.toast-root #root {
+  background: transparent !important;
+  overflow: hidden;
+  user-select: none;
+}
+
+.osd {
+  box-sizing: border-box;
+  height: 100vh;
+  padding: 8px 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font: 600 15.5px/1.25 "Segoe UI", system-ui, sans-serif;
+  color: #eef1f6;
+  pointer-events: none;
+}
+
+.osd-pill {
+  --tc: #ff8a2a;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px 11px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--tc) 38%, rgba(255, 255, 255, 0.1));
+  background: linear-gradient(180deg, rgba(29, 33, 41, 0.97), rgba(20, 23, 29, 0.97));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  animation: osd-in 0.16s ease-out both;
+}
+.osd-pill.out {
+  animation: osd-out 0.18s ease-in both;
+}
+.osd-pill.t-on {
+  --tc: #3ddc84;
+}
+.osd-pill.t-off {
+  --tc: #ff5d5d;
+}
+.osd-pill.t-info {
+  --tc: #ff8a2a;
+}
+.osd-pill.t-warn {
+  --tc: #ffc94d;
+}
+
+.osd-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tc);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--tc) 70%, transparent);
+}
+.osd-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.osd-state {
+  flex: none;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--tc) 72%, #fff);
+}
+.osd-state::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  margin-right: 10px;
+  vertical-align: -2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+@keyframes osd-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+@keyframes osd-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}

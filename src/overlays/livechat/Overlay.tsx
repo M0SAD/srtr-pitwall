@@ -7,6 +7,7 @@ import { fmtCount, gateMode, shortName, type ChatMsg, type GateMode, type Platfo
 import { createChatSim } from "./sim";
 import { inTauri, query } from "@/sdk/platform";
 import { CaptionBox, PlatformIcon, PollBox, PollDictBox, fontStack } from "./parts";
+import { SendBox } from "./SendBox";
 import "./style.css";
 
 const ALERT_COLORS: Record<string, string> = {
@@ -320,6 +321,10 @@ export default function LiveChat(props: OverlayProps) {
           }}
         </For>
       </div>
+      {/* Mesaj yazma satırı: ekranda gerçek sohbet çalışırken yazılabilir; panel önizlemesi / düzenleme modunda sadece görünür */}
+      <Show when={o().sendBox && inTauri && (real() || mode() === "sample")}>
+        <SendBox channels={topic()?.channels ?? []} interactive={onScreen() && !props.editing && real()} bg={o().bubbles ? bubbleBg() : undefined} />
+      </Show>
     </div>
   );
 }

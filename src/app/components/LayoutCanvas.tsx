@@ -13,6 +13,22 @@ import { useEditBackdrop } from "./BackdropPicker";
 import { Portal } from "solid-js/web";
 import { ContextMenu, type MenuState } from "@/host/ContextMenu";
 import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
+import { t } from "@/sdk/i18n";
+import LockIcon from "lucide-solid/icons/lock";
+
+/** Tuvalin üstünde kısa süre görünen bilgi (kilitli düzen / kilitli overlay'de engellenen işlem) */
+const [canvasNotice, setCanvasNotice] = createSignal<{ text: string; n: number } | null>(null);
+let noticeTimer: number | undefined;
+export function sayCanvas(text: string) {
+  setCanvasNotice({ text, n: (canvasNotice()?.n ?? 0) + 1 });
+  clearTimeout(noticeTimer);
+  noticeTimer = window.setTimeout(() => setCanvasNotice(null), 3200);
+}
+/** "Bu düzen kilitli…" bilgisi: kilitli düzende ekleme / çıkarma / taşıma denenince */
+export const sayLayoutLocked = () => sayCanvas(t("Bu düzen kilitli: overlay eklenemez, çıkarılamaz, taşınamaz. Önce düzenin kilidini aç."));
+/** Kilitli overlay taşınmak / silinmek istenince */
+export const sayOverlayLocked = (remove = false) =>
+  sayCanvas(remove ? t("Bu overlay kilitli: silmek için önce kilidini aç (sağ tık > Kilidi aç).") : t("Bu overlay kilitli: konumu değiştirilemez (sağ tık > Kilidi aç)."));
 
 export interface CanvasProps {
   profileId: string;
@@ -98,6 +114,15 @@ export function LayoutCanvas(props: CanvasProps) {
 
   return (
     <div class="lcanvas-wrap" classList={{ zoomed: (props.zoom ?? 1) > 1 }} ref={box}>
+      <div class="lnotice-slot">
+        <Show when={canvasNotice()} keyed>
+          {(n) => (
+            <div class="lnotice" role="status">
+              <LockIcon /> {n.text}
+            </div>
+          )}
+        </Show>
+      </div>
       <div
         class="lcanvas ov-theme"
         classList={{ "grid-on": g().snapToGrid }}
@@ -209,8 +234,14 @@ function CanvasItem(props: {
     const pos = unlayoutPos(r, eff / own, props.screen);
     return { profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) };
   };
+  /** Düzenin kendisi kilitli mi (bağlı yayın önizlemesi de salt okunurdur ama bilgi gösterilmez) */
+  const layoutLocked = () => !!settings().profiles[props.profileId]?.locked;
+  /** Bu kopya kilitli: taşınamaz, boyutlandırılamaz, silinemez (ayarları değiştirilebilir) */
+  const instLocked = () => !!inst()?.locked;
+  const blocked = () => !!props.readOnly || instLocked();
+  const sayBlocked = () => (props.readOnly ? layoutLocked() && sayLayoutLocked() : sayOverlayLocked());
   const commit = (r: Rect, own: number, opts?: Record<string, number>) => {
-    if (props.readOnly) return;
+    if (blocked()) return void sayBlocked();
     const eff = effectiveScale(own, gScale());
     const pos = unlayoutPos(r, eff / own, props.screen);
     endDrag({ profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) });
@@ -227,8 +258,31 @@ function CanvasItem(props: {
   const startMove = (e: PointerEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
+    // Odak düzen listesinde / bir düğmede kalmasın: Delete tuşu seçili overlay'e gitsin
+    const ae = document.activeElement;
+    if (ae instanceof HTMLElement && ae !== document.body) ae.blur();
     props.onSelect();
-    if (props.readOnly) return;
+    if (blocked()) {
+      // Tıklama sadece seçer; sürüklemeye çalışılırsa neden taşınmadığı söylenir
+      const el0 = e.currentTarget as HTMLElement;
+      const x0 = e.clientX;
+      const y0 = e.clientY;
+      const mv = (ev: PointerEvent) => {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        sayBlocked();
+        done();
+      };
+      const done = () => {
+        el0.removeEventListener("pointermove", mv);
+        el0.removeEventListener("pointerup", done);
+        el0.removeEventListener("pointercancel", done);
+      };
+      el0.setPointerCapture(e.pointerId);
+      el0.addEventListener("pointermove", mv);
+      el0.addEventListener("pointerup", done);
+      el0.addEventListener("pointercancel", done);
+      return;
+    }
     const t = e.currentTarget as HTMLElement;
     t.setPointerCapture(e.pointerId);
     const o = view();
@@ -276,7 +330,7 @@ function CanvasItem(props: {
 
   /** Köşeden boyutlandır (ölçek): overlay sürüklenen köşeye doğru büyür, karşı köşe yerinde kalır */
   const startResize = (c: Corner) => (e: PointerEvent) => {
-    if (e.button !== 0 || props.readOnly) return;
+    if (e.button !== 0 || blocked()) return;
     e.preventDefault();
     e.stopPropagation();
     const t = e.currentTarget as HTMLElement;
@@ -303,7 +357,7 @@ function CanvasItem(props: {
     const horiz = edge === "e" || edge === "w";
     const f = horiz ? rz().w : rz().h;
     const i = inst();
-    if (e.button !== 0 || props.readOnly || !f || !i) return;
+    if (e.button !== 0 || blocked() || !f || !i) return;
     e.preventDefault();
     e.stopPropagation();
     const t = e.currentTarget as HTMLElement;
@@ -333,7 +387,7 @@ function CanvasItem(props: {
     <Show when={inst() && m()}>
       <div
         class="citem"
-        classList={{ sel: props.selected, dragging: !!drag(), locked: isLocked(inst()!.type) }}
+        classList={{ sel: props.selected, dragging: !!drag(), locked: isLocked(inst()!.type), pinned: instLocked() }}
         style={{
           transform: `translate(${view().x * props.k}px, ${view().y * props.k}px) scale(${view().eff * props.k})`,
           opacity: Math.min(inst()!.opacity, settings().theme.opacity / 100),
@@ -341,7 +395,7 @@ function CanvasItem(props: {
         onPointerDown={startMove}
         onContextMenu={(e) => {
           e.preventDefault();
-          if (props.readOnly) return;
+          if (props.readOnly) return void (layoutLocked() && sayLayoutLocked());
           const v = view();
           props.onMenu({
             x: e.clientX,
@@ -362,7 +416,12 @@ function CanvasItem(props: {
         <div class="citem-label" style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
           {instanceName(props.key, inst()!)}
         </div>
-        <Show when={props.selected && !props.readOnly}>
+        <Show when={instLocked()}>
+          <div class="citem-lock" title="Kilitli: konumu değiştirilemez · sağ tık: Kilidi aç" style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
+            <LockIcon />
+          </div>
+        </Show>
+        <Show when={props.selected && !blocked()}>
           <For each={(rz().w ? (["w", "e"] as Edge[]) : []).concat(rz().h ? (["n", "s"] as Edge[]) : [])}>
             {(ed) => <div class={`rz-edge ${ed}`} style={{ "--hk": String(1 / (view().eff * props.k)) }} title="Kenardan sürükle: genişlik / yükseklik" onPointerDown={startEdge(ed)} />}
           </For>

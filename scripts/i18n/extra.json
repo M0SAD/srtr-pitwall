@@ -160,5 +160,9 @@
   "Anket başlamadı: tuşu basılı tutup soruyu söyle, bırakınca anket başlar",
   "Anket başlamadı: mikrofon dinlenemedi (Konuşma → yazı ayarlarını kontrol et)",
   "Anket başlamadı: söylenen soru anlaşılamadı. Tuşu basılı tutup biraz daha yüksek sesle söyle",
-  "Ses akışı kapandı"
+  "Ses akışı kapandı",
+  "Bekleyen giriş yok",
+  "Bu Google hesabının YouTube kanalı yok (izin ekranında kanalı olan hesabı / marka hesabını seç)",
+  "Kick hesap bilgisi boş döndü (user:read izni verilmemiş olabilir)",
+  "Bu derlemede bulut bağlantısı yapılandırılmamış"
 ]

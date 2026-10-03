@@ -1,7 +1,7 @@
 // Düzenleme ekranında overlay'e sağ tıklayınca açılan konum menüsü.
 
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
-import { For, onCleanup, onMount, Show } from "solid-js";
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { addToLayout, defaultInstance, removeInstance, settings, updateOverlay } from "@/sdk/settings";
 import { monitorLabel, monitors, monitorOf } from "@/sdk/monitors";
@@ -57,6 +57,11 @@ export function ContextMenu(props: {
   // Köşelere yerleştirirken kenardan boşluk: ızgara açıksa ızgara aralığı, değilse 10px
   const margin = () => (settings().general.snapToGrid ? settings().general.gridSize : 10);
 
+  /** Kilitli kopya: konum / boyut değiştiren seçenekler gizlenir, silinemez */
+  const inst = () => settings().profiles[s().profileId]?.overlays[s().id];
+  const locked = () => !!inst()?.locked;
+  const [note, setNote] = createSignal(false);
+
   const place = (fx: number, fy: number) => {
     const r = s().rect;
     const m = margin();
@@ -74,7 +79,7 @@ export function ContextMenu(props: {
     props.onClose();
   };
 
-  const items = (): Item[] => [
+  const moveItems = (): Item[] => [
     { label: "Yatayda ortala", hint: "dikey konum aynı kalır", run: () => move((props.screen.w - s().rect.w) / 2, null) },
     { label: "Dikeyde ortala", hint: "yatay konum aynı kalır", run: () => move(null, (props.screen.h - s().rect.h) / 2) },
     "sep",
@@ -103,6 +108,9 @@ export function ContextMenu(props: {
           props.onClose();
         },
       })),
+  ];
+  const items = (): Item[] => [
+    ...(locked() ? [] : moveItems()),
     // Ayarlarda "birden fazla eklenebilsin" açıksa
     ...(canDuplicate(s().type, settings().general.allowDuplicates)
       ? [
@@ -116,7 +124,22 @@ export function ContextMenu(props: {
           },
         ]
       : []),
-    "sep",
+    ...(locked() && !canDuplicate(s().type, settings().general.allowDuplicates) ? [] : ["sep" as const]),
+    {
+      label: locked() ? "Kilidi aç" : "Kilitle",
+      hint: locked() ? undefined : "konumu değiştirilemez",
+      run: () => {
+        updateOverlay(
+          s().id,
+          (i) => {
+            if (i.locked) delete i.locked;
+            else i.locked = true;
+          },
+          s().profileId,
+        );
+        props.onClose();
+      },
+    },
     {
       label: "Ayarlarını aç",
       hint: props.onOpenSettings ? undefined : prettyKey(shortcut("panel")),
@@ -127,8 +150,10 @@ export function ContextMenu(props: {
       },
     },
     {
-      label: "Kapat",
+      label: "Sil",
+      hint: props.onOpenSettings ? "Delete" : "düzenden çıkar",
       run: () => {
+        if (locked()) return void setNote(true);
         removeInstance(s().id, s().profileId);
         props.onClose();
       },
@@ -162,6 +187,10 @@ export function ContextMenu(props: {
   return (
     <div ref={el} class="ctx" style={pos()} onContextMenu={(e) => e.preventDefault()}>
       <div class="ctx-title">{s().name}</div>
+      <Show when={locked()}>
+        <div class="ctx-sub">Kilitli: konumu değiştirilemez</div>
+      </Show>
+      <Show when={!locked()}>
       <div class="ctx-sub">Ekranda konumla</div>
       <div class="ctx-grid">
         <For each={GRID}>
@@ -177,6 +206,7 @@ export function ContextMenu(props: {
           )}
         </For>
       </div>
+      </Show>
       <For each={items()}>
         {(it) =>
           it === "sep" ? (
@@ -191,6 +221,9 @@ export function ContextMenu(props: {
           )
         }
       </For>
+      <Show when={note() && locked()}>
+        <div class="ctx-note">Bu overlay kilitli: silmek için önce kilidini aç.</div>
+      </Show>
     </div>
   );
 }

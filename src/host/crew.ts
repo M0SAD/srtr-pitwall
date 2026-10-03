@@ -528,6 +528,8 @@ export function startCrew(status: Accessor<Status | undefined>) {
 
   // "Ekip kontrolünü durdur" kısayolu
   void listen("crew-stop", () => {
+    // Kısayol bildirimi (üst orta): sonuç burada belli olur
+    void invoke("osd_push", { key: "crewStop", on: !!session() && controlOn }).catch(() => {});
     if (!session()) return;
     const was = controlOn;
     controlOn = false;

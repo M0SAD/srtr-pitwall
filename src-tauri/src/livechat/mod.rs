@@ -58,6 +58,7 @@ pub mod poll;
 pub mod secrets;
 pub mod chatlog;
 pub mod send;
+pub mod inputbox;
 pub mod streamlabs;
 pub mod stt;
 pub mod stt_cloud;

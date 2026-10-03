@@ -130,6 +130,15 @@ export default defineOverlay({
     { key: "hideCommands", label: "! komutlarını gizle", type: "boolean", default: false, group: G_CONTENT },
     { key: "hideBots", label: "Gizlenecek botlar (virgülle)", type: "text", default: "nightbot,streamelements,streamlabs,moobot,fossabot", group: G_CONTENT },
     { key: "showReplies", label: "Yanıtlanan mesajı göster", type: "boolean", default: true, group: G_CONTENT },
+    {
+      key: "sendBox",
+      label: "Mesaj yazma kutusu",
+      type: "boolean",
+      default: false,
+      feature: "livechat.send",
+      hint: "En altta hedef kanal ve mesaj kutusu gösterir. Kutuya tıkla, yaz: Tab / Shift+Tab yazılabilir kanallar arasında geçer, Enter seçili kanala gönderir, Esc kutudan çıkar (klavye oyuna döner). Hesaplar Canlı Sohbet › Sohbete yaz'dan bağlanır. OBS tarayıcı kaynağında görünmez; tam ekran (exclusive) oyunlarda çalışmaz.",
+      group: G_CONTENT,
+    },
     { key: "showPoll", label: "Anketi sohbetin üstünde göster", type: "boolean", default: false, group: G_CONTENT },
     { key: "showCaptions", label: "Altyazıyı sohbetin üstünde göster", type: "boolean", default: false, group: G_CONTENT },
     {

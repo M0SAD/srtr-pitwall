@@ -26,6 +26,7 @@ mod session;
 mod strategy;
 mod trackmap;
 mod translate;
+mod osd;
 mod toast;
 mod trayalert;
 mod tracker;
@@ -1950,6 +1951,7 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
             if event.state() != ShortcutState::Pressed {
                 // Tuş bırakıldı: sadece anket kısayolu kullanır (basılı tutup soruyu söyle, bırakınca anket başlar)
                 if event.state() == ShortcutState::Released && action.as_deref() == Some("poll") {
+                    osd::arm_chat();
                     livechat::hotkey_poll_up(app);
                 }
                 return;
@@ -1958,29 +1960,62 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 Some("edit") => {
                     let on = !shared(app).edit_mode.load(Ordering::Relaxed);
                     set_edit_mode(app, on);
+                    osd::show(app, "edit", Some(shared(app).edit_mode.load(Ordering::Relaxed)));
                 }
-                Some("hide") => toggle_hidden(app),
-                Some("panel") => bring_panel_front(app),
-                Some("shot") => shots::take(app, false),
-                Some("voice") => toggle_voice(app),
-                Some("poll") => livechat::hotkey_poll(app),
-                Some("tts") => livechat::tts::hotkey_toggle(app),
-                Some("ttsHush") => livechat::tts::hotkey_hush(app),
-                Some("stt") => livechat::stt::hotkey_toggle(app),
-                Some("chat") => livechat::hotkey_chat(app),
+                Some("hide") => {
+                    toggle_hidden(app);
+                    osd::show(app, "hide", Some(!shared(app).user_hidden.load(Ordering::Relaxed)));
+                }
+                Some("panel") => {
+                    bring_panel_front(app);
+                    osd::show(app, "panel", None);
+                }
+                Some("shot") => {
+                    // Bildirim görüntü alındıktan sonra gösterilir (osd.rs: screenshot-taken / screenshot-error)
+                    osd::arm_shot();
+                    shots::take(app, false)
+                }
+                Some("voice") => {
+                    toggle_voice(app);
+                    if voice_allowed(app) {
+                        let on = current_settings(app).and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool())).unwrap_or(true);
+                        osd::show(app, "voice", Some(on));
+                    } else {
+                        osd::show(app, "voiceLocked", None);
+                    }
+                }
+                // Canlı Sohbet kısayolları sonucu "livechat-notice" ile bildirir; osd.rs onu gösterir
+                Some(a @ ("poll" | "tts" | "ttsHush" | "stt" | "chat")) => {
+                    osd::arm_chat();
+                    match a {
+                        "poll" => livechat::hotkey_poll(app),
+                        "tts" => livechat::tts::hotkey_toggle(app),
+                        "ttsHush" => livechat::tts::hotkey_hush(app),
+                        "stt" => livechat::stt::hotkey_toggle(app),
+                        _ => livechat::hotkey_chat(app),
+                    }
+                }
                 Some("crewStop") => {
+                    // Sonuç overlay sayfasında belli olur (src/host/crew.ts `osd_push` ile bildirir)
                     let _ = app.emit("crew-stop", ());
                 }
                 Some("dashPage") => {
                     let _ = app.emit("dash-page", ());
+                    osd::show(app, "dashPage", None);
                 }
-                Some(a) if a.starts_with("vr") => vrnative::hotkey(a),
+                Some(a) if a.starts_with("vr") => {
+                    vrnative::hotkey(a);
+                    osd::show_vr(app, a);
+                }
                 _ => {}
             }
         })
         .build();
     let hook_app = app.clone();
-    prtsc::set_action(Box::new(move || shots::take(&hook_app, false)));
+    prtsc::set_action(Box::new(move || {
+        osd::arm_shot();
+        shots::take(&hook_app, false)
+    }));
     if app.plugin(plugin).is_ok() {
         apply_shortcuts(app, saved);
     }
@@ -2031,6 +2066,9 @@ pub fn run() {
             toast::toast_layout,
             toast::toast_open_chat,
             toast::friends_take_chat,
+            osd::osd_push,
+            osd::osd_take,
+            osd::osd_visible,
             trayalert::tray_unread,
             trayalert::tray_take_open,
             trayalert::social_log,
@@ -2186,6 +2224,8 @@ pub fn run() {
             livechat::send::livechat_auth_cancel,
             livechat::send::livechat_auth_logout,
             livechat::send::livechat_send,
+            livechat::send::livechat_auth_reopen,
+            livechat::inputbox::livechat_input,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -2227,6 +2267,7 @@ pub fn run() {
 
             setup_tray(&handle)?;
             setup_shortcuts(&handle, saved.as_ref());
+            osd::init(&handle);
             voicesub::init(shared_state.clone());
             engine::spawn(handle.clone(), shared_state.clone());
             // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)

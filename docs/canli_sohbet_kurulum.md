@@ -16,20 +16,44 @@ konuşma → yazı **hiçbir kurulum gerektirmez**. Bu belge sadece üyelerin ke
 > Sadece Supabase › Edge Functions › Secrets'a girilir; onları sadece `chat-oauth` sunucu işlevi kullanır.
 > Yönetim panelindeki alanlar yalnızca herkese açık **Client ID**'ler içindir.
 
+## Kısa kontrol listesi ("Hesabı bağla" bağlanmıyorsa önce buna bak)
+
+Gizli değerleri (client secret) **yönetici**, **yalnızca Supabase**'e girer; programa / Yönetim paneline girilmez.
+
+| | YouTube (Google) | Kick |
+|---|---|---|
+| Uygulama türü | OAuth client: **Desktop app (Masaüstü uygulaması)** | Kick Developer uygulaması |
+| Kayıtlı dönüş adresi | Desktop app'te girilmez. İstemci "Web application" ise **birebir** `http://127.0.0.1:8767/callback` eklenmeli | **birebir** `http://localhost:8767/callback` (`127.0.0.1` değil, sonda `/` yok, `https` değil) |
+| İzinler (scope) | `https://www.googleapis.com/auth/youtube.force-ssl` (izin ekranında / Data access'te ekli) | `user:read`, `channel:read`, `chat:write` (uygulamada işaretli) |
+| Ek koşul | **YouTube Data API v3** etkin; uygulama "Testing" ise giriş yapacak Google hesabı **Test users** listesinde | Hesapta 2FA açık |
+| Yönetim › Canlı Sohbet ayarları | Client ID | Client ID |
+| Supabase › Edge Functions › Secrets (ad) | `YT_CLIENT_ID`, `YT_CLIENT_SECRET` | `KICK_CLIENT_ID`, `KICK_CLIENT_SECRET` |
+
+- Yönetim'deki Client ID ile Supabase'deki `*_CLIENT_ID` **aynı uygulamanın** kimliği olmalı (Client ID ve secret aynı istemciden).
+- `chat-oauth` işlevi yayınlanmış ve güncel olmalı; **Verify JWT kapalı** (işlev oturumu kendi içinde doğrular).
+- Üye SRTR Pitwall hesabına **giriş yapmış** olmalı (YouTube / Kick anahtar değişimi sunucudan geçer). Twitch için gerekmez.
+- Program girişte `127.0.0.1:8767` (ve `[::1]:8767`) adresini dinler; port doluysa YouTube için 8768 / 8769 denenir, Kick'te yedek yoktur.
+- Sorun sürerse: Canlı Sohbet › Sohbete yaz › **Bağlantıyı test et**, ardından **Günlüğü kopyala** → çıkan metni destek ekibine yapıştır
+  (adım adları, HTTP kodları ve sağlayıcı hata kodları vardır; anahtar / kod içermez).
+- YouTube'da "bağlı" olmak için yayının açık olması gerekmez; mesaj **gönderirken** kanalın canlı yayını ve etkin sohbeti olmalı
+  (yoksa "YouTube yayını şu an canlı değil" denir, hesap bağlı kalır).
+
 ---
 
 ## 0. Önce: veritabanı ve sunucu işlevi
 
 1. Supabase › SQL Editor'da `supabase/c43_guncelleme.sql` dosyasını çalıştır
    (app_config'e `livechat_twitch_client_id`, `livechat_youtube_client_id`, `livechat_kick_client_id` sütunlarını ekler).
-2. `chat-oauth` işlevini yayınla — **JWT doğrulaması AÇIK** kalmalı (varsayılan; `--no-verify-jwt` KULLANMA):
+2. `chat-oauth` işlevini yayınla — diğer SRTR işlevleri gibi **Verify JWT KAPALI**:
 
    ```bash
-   supabase functions deploy chat-oauth --project-ref <proje-kimliği>
+   supabase functions deploy chat-oauth --no-verify-jwt --project-ref <proje-kimliği>
    ```
 
-   Panelden yayınlıyorsan: Edge Functions › chat-oauth › Details › **Enforce JWT Verification: açık**.
-   İşlev ayrıca isteğin giriş yapmış bir üyeden geldiğini denetler; anon anahtarıyla çağrılamaz.
+   Panelden yayınlıyorsan: Edge Functions › chat-oauth › Details › **Enforce JWT Verification / Verify JWT: kapalı**.
+   İşlev oturumu **kendi içinde** doğrular (gelen oturum anahtarını Supabase Auth'a sorar); giriş yapmamış biri ya da
+   herkese açık anahtarla çağrılamaz. Ayar açık bırakılırsa ve proje yeni imzalama anahtarlarını kullanıyorsa ağ geçidi
+   geçerli oturumu "Invalid JWT" (HTTP 401) diye reddedebilir; programda bu "Supabase ağ geçidi oturum anahtarını reddetti" diye görünür.
 3. Secrets'ı aşağıdaki adımlarda oluşturduğun değerlerle gir (Supabase › Edge Functions › **Secrets** ya da):
 
    ```bash
@@ -117,6 +141,14 @@ Sorun giderme:
 | Google "Access blocked / app not verified" | Uygulama test aşamasında: hesabı Test users'a ekle ya da doğrulamayı tamamla. |
 | Kick "redirect_uri mismatch" | Kick uygulamasındaki adres tam olarak `http://localhost:8767/callback` olmalı. |
 | "Yerel giriş adresi (127.0.0.1:8767) açılamadı" | Başka bir program 8767 portunu kullanıyor (ör. eski MultiChatOverlay açık); kapatıp tekrar dene. |
+| "Supabase ağ geçidi oturum anahtarını reddetti" (HTTP 401, Invalid JWT) | chat-oauth'ta Verify JWT açık: kapat (Adım 0.2). |
+| "Client ID ile Supabase secret … aynı değil" | Yönetim'deki Client ID ile `YT_CLIENT_ID` / `KICK_CLIENT_ID` farklı uygulamaya ait. |
+| "… HTTP 400: invalid_client" / "unauthorized_client" | Supabase'deki `*_CLIENT_SECRET` bu Client ID'ye ait değil (ya da yenilenmiş). |
+| "… HTTP 400: invalid_grant" | Kod kullanılmış / süresi dolmuş ya da dönüş adresi uyuşmuyor: yeniden "Hesabı bağla". |
+| Google "Error 400: redirect_uri_mismatch" | İstemci "Web application": ya Desktop app istemcisi oluştur ya da `http://127.0.0.1:8767/callback` adresini ekle. |
+| "Giriş 5 dakika içinde tamamlanmadı" | Tarayıcı izin ekranı yerine sağlayıcının hata sayfasını gösterdi ya da sekme kapatıldı. Tarayıcı hiç açılmadıysa kartta "Bağlantıyı kopyala". |
+| "YouTube Data API v3 … etkin değil" | Google Cloud projesinde API etkinleştirilmemiş (Adım 2.2). |
+| "Bu Google hesabının YouTube kanalı yok" | İzin ekranında kanalı olan hesap / marka hesabı seçilmeli. |
 | Twitch "Kodun süresi doldu" | twitch.tv/activate'te kodu 30 dk içinde gir; tekrar "Hesabı bağla". |
 
 ---
@@ -127,5 +159,5 @@ Sorun giderme:
   `%APPDATA%\<uygulama>\livechat_secrets.json` içinde **Windows DPAPI** ile (Windows hesabına bağlı) şifreli saklanır;
   ayar dosyasına, buluta ya da yerel web sunucusuna (OBS / ağ) hiç gitmez. Streamlabs Socket API Token'ı da aynı dosyadadır.
 - `chat-oauth` işlevi anahtarları saklamaz ve kaydetmez; sadece kod → anahtar değişimini ve yenilemeyi gizli anahtarı ekleyerek
-  sağlayıcıya iletir. Sadece programın yerel dönüş adreslerine (`127.0.0.1:8767` / `localhost:8767`) verilen kodları kabul eder.
+  sağlayıcıya iletir. Sadece programın yerel dönüş adreslerine (`127.0.0.1:8767` / `localhost:8767`; YouTube yedeği `127.0.0.1:8768`, `:8769`) verilen kodları kabul eder.
 - Bir üye "Bağlantıyı kes" deyince yerel kayıt silinir; Twitch ve Google anahtarları sağlayıcıda da iptal edilir.

@@ -28,7 +28,9 @@ const events = view === "events";
 const crew = view === "crew";
 // Mesaj açılır penceresi (sağ alt, saydam): kendi küçük görünümü, panel stilleri gerekmez
 const toast = view === "toast";
-if (toast) document.documentElement.classList.add("toast-root");
+// Kısayol bildirimi (üst orta, saydam, tıklama geçirir): bkz. src-tauri/src/osd.rs
+const osd = view === "osd";
+if (toast || osd) document.documentElement.classList.add("toast-root");
 document.title =
   view === "timing"
     ? "SRTR Pitwall – Live Timing"
@@ -40,7 +42,7 @@ document.title =
         ? "SRTR Pitwall – Olaylar"
         : crew
         ? "SRTR Pitwall – Ekip Pitwall'ı"
-        : view === "friend" || view === "toast"
+        : view === "friend" || view === "toast" || osd
           ? "SRTR Pitwall"
           : "SRTR Pitwall – Pitwall Paneli";
 
@@ -53,6 +55,7 @@ initSettings(`window-${view}`).then(async () => {
   }
   const { FriendsWindow, FriendWindow } = social ? await import("./Friends") : ({} as typeof import("./Friends"));
   const { Toast } = toast ? await import("./Toast") : ({} as typeof import("./Toast"));
+  const { Osd } = osd ? await import("./Osd") : ({} as typeof import("./Osd"));
   const { CrewWindow } = crew ? await import("./Crew") : ({} as typeof import("./Crew"));
   const { Events } = events ? await import("./Events") : ({} as typeof import("./Events"));
   root.textContent = "";
@@ -72,6 +75,8 @@ initSettings(`window-${view}`).then(async () => {
       <Show when={!(toolKey && proLocked(toolKey))} fallback={<Locked />}>
         {toast ? (
           <Toast />
+        ) : osd ? (
+          <Osd />
         ) : view === "friends" ? (
           <FriendsWindow chat={query.get("chat") ?? ""} />
         ) : view === "friend" ? (
@@ -92,6 +97,6 @@ initSettings(`window-${view}`).then(async () => {
     root,
   );
   import.meta.hot?.dispose(dispose);
-  if (!toast) startEntitlement();
+  if (!toast && !osd) startEntitlement();
   startProFeatures(false);
 });

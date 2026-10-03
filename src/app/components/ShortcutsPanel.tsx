@@ -185,6 +185,26 @@ export function ShortcutsPanel() {
           Değiştirmek için kısayola tıkla ve yeni tuş birleşimine bas (Ctrl, Alt veya Shift ile; F tuşları ve Print Screen tek başına
           olabilir). Esc vazgeçer. Bu kısayollar oyun açıkken de, panel arka plandayken de çalışır.
         </p>
+        <div class="row">
+          <div>
+            <b>Kısayol bildirimi göster</b>
+            <small>
+              Bir kısayola basınca ekranın üst ortasında, yapılan işlemi ve yeni durumu yazan küçük bir bildirim kısa süre görünür (ör. “Sesli
+              okuma kapatıldı”). Oyunun üstünde durur, tıklamaları engellemez ve oyundan odağı almaz.
+            </small>
+          </div>
+          <label class="switch">
+            <input
+              type="checkbox"
+              checked={settings().general.shortcutOsd !== false}
+              onChange={(e) => {
+                const v = e.currentTarget.checked;
+                updateSettings((d) => (d.general.shortcutOsd = v));
+              }}
+            />
+            <i />
+          </label>
+        </div>
         <For each={SHORTCUT_ACTIONS}>
           {(a) => (
             <div class="row">

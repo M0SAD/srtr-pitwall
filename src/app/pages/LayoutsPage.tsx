@@ -24,7 +24,7 @@ import {
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
-import { LayoutCanvas } from "../components/LayoutCanvas";
+import { LayoutCanvas, sayLayoutLocked, sayOverlayLocked } from "../components/LayoutCanvas";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import { LayoutList, layoutFocus, setLayoutFocus, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { Switch } from "../components/SettingsForm";
@@ -285,7 +285,7 @@ export function LayoutsPage() {
   /** Kilitli düzen: yerleşim, overlay listesi ve ayarlar değiştirilemez */
   const locked = () => !!p()?.locked;
   const add = (type: string) => {
-    if (locked()) return;
+    if (locked()) return void sayLayoutLocked();
     const m = monitor();
     const key = addToLayout(p().id, type, m && m.name !== defaultMonitor()?.name ? m.name : "");
     if (!key) return;
@@ -296,7 +296,8 @@ export function LayoutsPage() {
     if (im && im !== mon() && monitors().some((x) => x.name === im)) setMon(im);
   };
   const remove = (key: string) => {
-    if (locked()) return;
+    if (locked()) return void sayLayoutLocked();
+    if (p().overlays[key]?.locked) return void sayOverlayLocked(true);
     const type = p().overlays[key]?.type ?? null;
     removeInstance(key, p().id);
     if (sel() === key) {
@@ -319,6 +320,7 @@ export function LayoutsPage() {
 
   /** Oyunun üstünde gerçek boyutta düzenle: kilit açılır; overlay'ler taşınabilsin diye Görünür ve (oyun bağlı değilse) Demo açılır */
   const editOnScreen = async () => {
+    if (locked()) return void sayLayoutLocked();
     const id = p().id;
     try {
       if (appState().hidden) await invoke("hidden_set", { on: false });
@@ -333,6 +335,7 @@ export function LayoutsPage() {
   const shownNow = () => resolveProfile(status());
   const closeSet = () => (setSel(null), setGhost(null));
   useEscClose(() => !!(sel() || ghost()), closeSet);
+  useDeleteKey(sel, remove);
 
   return (
     <div class="lpage" classList={{ "with-set": !!(sel() || ghost()) }}>
@@ -440,7 +443,7 @@ export function LayoutsPage() {
             Soldaki listede çift tık: overlay'i düzene ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik (destekleyen overlay'lerde) · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
           </small>
           <small class="muted lhint lkeys">
-            <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele
+            <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle
           </small>
         </section>
 
@@ -540,6 +543,29 @@ export function useEscClose(open: () => boolean, close: () => void) {
   });
 }
 
+/**
+ * Delete: tuvalde / listede seçili overlay'i düzenden siler (yazı alanındayken ve açık bir pencere / menü varken dokunmaz).
+ * Yakalama aşamasında dinlenir: odak düzen listesindeki bir satırda kalmış olsa bile seçili overlay silinir, düzen değil.
+ * Geri al (Ctrl+Z) overlay'i geri getirir. Kilitli düzen / kilitli overlay denetimi `remove` içindedir.
+ */
+export function useDeleteKey(sel: () => string | null, remove: (key: string) => void) {
+  onMount(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" || e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+      const k = sel();
+      if (!k) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      remove(k);
+    };
+    window.addEventListener("keydown", key, true);
+    onCleanup(() => window.removeEventListener("keydown", key, true));
+  });
+}
+
 /** Düzene henüz eklenmemiş overlay seçilince overlay listesinin yanında görünen kısa tanıtım */
 export function GhostPanel(props: { type: string; onAdd: () => void; disabled?: boolean; onClose?: () => void }) {
   const m = () => manifestById(props.type);
@@ -571,7 +597,7 @@ export function GhostPanel(props: { type: string; onAdd: () => void; disabled?: 
             }
           >
             <p class="ovset-note">Bu overlay bu düzende yok. Eklediğinde Overlaylarım'daki varsayılan ayarlarıyla gelir; sonra bu düzene özel ayarlarını buradan değiştirebilirsin.</p>
-            <button class="btn primary wide" disabled={props.disabled} onClick={() => props.onAdd()}>
+            <button class="btn primary wide" classList={{ blocked: !!props.disabled }} onClick={() => props.onAdd()}>
               <I.Plus /> Düzene ekle
             </button>
             <button class="btn ghost wide" style={{ "margin-top": "8px" }} onClick={() => (setOpenCard(props.type), go("overlays"))}>

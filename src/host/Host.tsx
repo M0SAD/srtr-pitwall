@@ -509,7 +509,9 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   // Ayarlar sadece bırakınca kaydedilir.
   const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number; opts?: Record<string, number> } | null>(null);
   /** Kilitli düzen: taşınamaz, boyutlandırılamaz, kapatılamaz */
-  const locked = () => !!shown()?.locked;
+  const layoutLocked = () => !!shown()?.locked;
+  /** Kilitli kopya (sağ tık > Kilitle): taşınamaz, boyutlandırılamaz, kapatılamaz; sağ tık menüsü açılır (kilidi açmak için) */
+  const locked = () => layoutLocked() || !!inst()?.locked;
   /** Kenardan boyutlandırılabilen genişlik / yükseklik ayarları */
   const rz = createMemo(() => resizeFields(props.manifest, inst()?.options));
   /** Satır birimli sürükleme sonucunu (px farkı) ayar değerine çevirir */
@@ -672,7 +674,7 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   const onContext = (e: MouseEvent) => {
     if (!props.editing) return;
     e.preventDefault();
-    if (locked()) return;
+    if (layoutLocked()) return;
     const v = view();
     setMenu({
       x: e.clientX,

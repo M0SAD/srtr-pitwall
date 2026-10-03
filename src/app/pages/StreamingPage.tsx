@@ -12,11 +12,11 @@ import { addToLayout, instanceName, instancesOf, newProfile, removeInstance, set
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
-import { LayoutCanvas } from "../components/LayoutCanvas";
+import { LayoutCanvas, sayLayoutLocked, sayOverlayLocked } from "../components/LayoutCanvas";
 import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
-import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useEscClose } from "./LayoutsPage";
+import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useDeleteKey, useEscClose } from "./LayoutsPage";
 import * as I from "../icons";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockBox } from "../components/ProLock";
@@ -116,7 +116,7 @@ export function StreamingPage() {
     setStreamCanvas(prof.id, { w, h }, rescale, scaleSizes());
   };
   const toggleHidden = (key: string) =>
-    updateSettings((d) => {
+    p()?.locked ? void sayLayoutLocked() : updateSettings((d) => {
       const l = d.profiles[p()!.id].link;
       if (!l || d.profiles[p()!.id].locked) return;
       l.hidden = l.hidden.includes(key) ? l.hidden.filter((x) => x !== key) : [...l.hidden, key];
@@ -154,7 +154,8 @@ export function StreamingPage() {
   /** Overlay'i yayın düzenine ekler; "Overlaylarım"daki varsayılan ayarlarla gelir */
   const add = (type: string) => {
     const prof = p();
-    if (!prof || prof.link || prof.locked) return;
+    if (prof?.locked) return void sayLayoutLocked();
+    if (!prof || prof.link) return;
     const key = addToLayout(prof.id, type);
     if (!key) return;
     setGhost(null);
@@ -162,7 +163,9 @@ export function StreamingPage() {
   };
   const remove = (key: string) => {
     const prof = p();
-    if (!prof || prof.link || prof.locked) return;
+    if (prof?.locked) return void sayLayoutLocked();
+    if (!prof || prof.link) return;
+    if (prof.overlays[key]?.locked) return void sayOverlayLocked(true);
     const type = prof.overlays[key]?.type ?? null;
     removeInstance(key, prof.id);
     if (sel() === key) {
@@ -181,6 +184,7 @@ export function StreamingPage() {
   };
   const closeSet = () => (setSel(null), setGhost(null));
   useEscClose(() => !linked() && !!(sel() || ghost()), closeSet);
+  useDeleteKey(sel, remove);
   // Seçili kopya düzenden çıktıysa seçim bırakılır
   createEffect(() => {
     const k = sel();
@@ -203,7 +207,7 @@ export function StreamingPage() {
               canShare={(x) => !isSceneOnly(liveProfile(x, status()))}
               onCopyUrl={(id) => void navigator.clipboard.writeText(urlOf(id)).catch(() => {})}
               onUnlink={(id) => {
-                if (settings().profiles[id]?.locked) return;
+                if (settings().profiles[id]?.locked) return void (p()?.id === id && sayLayoutLocked());
                 unlinkStream(id, status());
                 if (p()?.id === id) setSel(null);
               }}
@@ -387,7 +391,7 @@ export function StreamingPage() {
             <Show when={!linked()}>
               <small class="muted lhint">Soldaki listede çift tık: overlay'i yayın düzenine ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik · OBS'teki görüntü sürüklerken anında güncellenir</small>
               <small class="muted lhint lkeys">
-                <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
+                <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
               </small>
             </Show>
             <Show when={sharing()}>

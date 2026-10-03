@@ -84,3 +84,14 @@
   background: #2a2e38;
 }
 
+
+/* Kilitli overlay'i silme denemesi: menü içi bilgi */
+.ctx-note {
+  margin: 4px 6px 2px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: rgba(255, 204, 51, 0.12);
+  color: #ffcc33;
+  font-size: 12px;
+  line-height: 1.35;
+}

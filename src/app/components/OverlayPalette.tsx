@@ -4,7 +4,9 @@
 // Çift tık (ya da sağdaki + / −): düzene ekle / düzenden çıkar. Tek tık: sağdaki ayar panelinde açar.
 // Sadece çok kopyalı türler (veri kutusu, webview) birden fazla eklenebilir: ekliyken de aşağıda "+" ile durur.
 
-import { For, Show, createMemo } from "solid-js";
+import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { Portal } from "solid-js/web";
+import "@/host/context-menu.css";
 import Minus from "lucide-solid/icons/minus";
 import { manifests } from "@/sdk/registry";
 import type { OverlayManifest } from "@/sdk/overlay";
@@ -150,10 +152,20 @@ export function OverlayPalette(props: {
     }
     return [...g.entries()];
   });
+  // Salt okunur listede de (kilitli düzen) ekle / çıkar sayfaya iletilir: sayfa neden yapılamadığını söyler
   const stop = (fn: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
-    if (!props.disabled) fn();
+    fn();
   };
+  /** "Düzende" satırına sağ tık: Kilitle / Kilidi aç, Ayarlarını aç, Sil */
+  const [menu, setMenu] = createSignal<{ x: number; y: number; key: string } | null>(null);
+  const toggleLock = (k: string) =>
+    updateSettings((d) => {
+      const o = d.profiles[props.profile.id]?.overlays[k];
+      if (!o) return;
+      if (o.locked) delete o.locked;
+      else o.locked = true;
+    });
 
   return (
     <div class="ovpal" classList={{ disabled: !!props.disabled }}>
@@ -167,16 +179,28 @@ export function OverlayPalette(props: {
                 <div
                   class="ovitem ovpal-row on"
                   classList={{ sel: props.selected === k }}
-                  title="Çift tık: düzenden çıkar"
+                  title={props.profile.overlays[k].locked ? "Kilitli overlay: taşınamaz, silinemez · sağ tık: Kilidi aç" : "Çift tık: düzenden çıkar · sağ tık: kilitle, sil"}
                   onClick={() => props.onSelect(k, type())}
-                  onDblClick={() => !props.disabled && props.onRemove(k)}
+                  onDblClick={() => props.onRemove(k)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    props.onSelect(k, type());
+                    // Kilitli / bağlı düzen: menü yok; silme denemesi gibi sayfaya iletilir (kilitliyse bilgi gösterir)
+                    if (props.disabled) return void props.onRemove(k);
+                    setMenu({ x: e.clientX, y: e.clientY, key: k });
+                  }}
                 >
                   <span class="ovitem-ic">{overlayIcon(type())}</span>
                   <span class="ovitem-name">{instanceName(k, props.profile.overlays[k])}</span>
+                  <Show when={props.profile.overlays[k].locked}>
+                    <span class="ovpal-lock" title="Kilitli: konumu değiştirilemez, silinemez">
+                      <I.Lock />
+                    </span>
+                  </Show>
                   <Show when={isProOverlay(type())}>
                     <span class="pro-badge small" title="PRO overlay">PRO</span>
                   </Show>
-                  <button class="ovpal-btn rem" disabled={props.disabled} title="Düzenden çıkar" onClick={stop(() => props.onRemove(k))} onDblClick={(e) => e.stopPropagation()}>
+                  <button class="ovpal-btn rem" classList={{ blocked: !!props.disabled || !!props.profile.overlays[k].locked }} title="Düzenden çıkar" onClick={stop(() => props.onRemove(k))} onDblClick={(e) => e.stopPropagation()}>
                     <Minus />
                   </button>
                 </div>
@@ -199,7 +223,7 @@ export function OverlayPalette(props: {
                     classList={{ sel: props.selected === m.id, locked: locked() }}
                     title={locked() ? "PRO üyelere özel" : again() ? "Çift tık: düzene bir tane daha ekle" : "Çift tık: düzene ekle"}
                     onClick={() => props.onSelect(null, m.id)}
-                    onDblClick={() => !props.disabled && !locked() && props.onAdd(m.id)}
+                    onDblClick={() => !locked() && props.onAdd(m.id)}
                   >
                     <span class="ovitem-ic">{overlayIcon(m.id)}</span>
                     <span class="ovitem-name">{m.name}</span>
@@ -209,7 +233,7 @@ export function OverlayPalette(props: {
                     <Show when={isProOverlay(m.id)}>
                       <span class="pro-badge small" title={locked() ? "PRO üyelere özel" : "PRO overlay"}>PRO</span>
                     </Show>
-                    <button class="ovpal-btn add" disabled={locked() || props.disabled} title={again() ? "Düzene bir tane daha ekle" : "Düzene ekle"} onClick={stop(() => props.onAdd(m.id))} onDblClick={(e) => e.stopPropagation()}>
+                    <button class="ovpal-btn add" disabled={locked()} classList={{ blocked: !!props.disabled }} title={again() ? "Düzene bir tane daha ekle" : "Düzene ekle"} onClick={stop(() => props.onAdd(m.id))} onDblClick={(e) => e.stopPropagation()}>
                       <I.Plus />
                     </button>
                   </div>
@@ -219,11 +243,71 @@ export function OverlayPalette(props: {
           </>
         )}
       </For>
+      <Show when={menu()} keyed>
+        {(m) => (
+          <Portal>
+            <RowMenu
+              x={m.x}
+              y={m.y}
+              name={props.profile.overlays[m.key] ? instanceName(m.key, props.profile.overlays[m.key]) : ""}
+              locked={!!props.profile.overlays[m.key]?.locked}
+              onLock={() => toggleLock(m.key)}
+              onOpen={() => props.onSelect(m.key, props.profile.overlays[m.key]?.type ?? "")}
+              onRemove={() => props.onRemove(m.key)}
+              onClose={() => setMenu(null)}
+            />
+          </Portal>
+        )}
+      </Show>
       <Show when={sim() && hiddenBySim() > 0}>
         <div class="ovlist-simnote">
           {hiddenBySim()} overlay bu simde çalışmadığı için gizlendi ({SIM_NAMES[sim()!]})
         </div>
       </Show>
+    </div>
+  );
+}
+
+/** "Düzende" listesindeki overlay'in sağ tık menüsü (tuvaldeki menünün kısa hâli) */
+function RowMenu(props: { x: number; y: number; name: string; locked: boolean; onLock: () => void; onOpen: () => void; onRemove: () => void; onClose: () => void }) {
+  let el: HTMLDivElement | undefined;
+  onMount(() => {
+    const down = (e: PointerEvent) => {
+      if (el && !el.contains(e.target as Node)) props.onClose();
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
+    window.addEventListener("pointerdown", down, true);
+    window.addEventListener("keydown", key);
+    onCleanup(() => {
+      window.removeEventListener("pointerdown", down, true);
+      window.removeEventListener("keydown", key);
+    });
+  });
+  const run = (fn: () => void) => () => {
+    fn();
+    props.onClose();
+  };
+  return (
+    <div
+      ref={el}
+      class="ctx"
+      style={{ left: `${Math.max(8, Math.min(props.x, window.innerWidth - 258))}px`, top: `${Math.max(8, Math.min(props.y, window.innerHeight - 150))}px` }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <div class="ctx-title">{props.name}</div>
+      <button class="ctx-item" onClick={run(props.onLock)}>
+        <span>{props.locked ? "Kilidi aç" : "Kilitle"}</span>
+        <Show when={!props.locked}>
+          <small>konumu değiştirilemez</small>
+        </Show>
+      </button>
+      <button class="ctx-item" onClick={run(props.onOpen)}>
+        <span>Ayarlarını aç</span>
+      </button>
+      <button class="ctx-item" onClick={run(props.onRemove)}>
+        <span>Sil</span>
+        <small>Delete</small>
+      </button>
     </div>
   );
 }

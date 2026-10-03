@@ -42,6 +42,8 @@ export interface OverlayInstance {
   bgOpacity?: number;
   /** Düzene eklendiği an (ms): overlay listesinde ekli olanlar bu sırayla gösterilir */
   addedAt?: number;
+  /** Kilitli kopya: konumu / boyutu değiştirilemez, düzenden silinemez (ayarları değiştirilebilir) */
+  locked?: boolean;
 }
 
 /** Düzenin ne zaman kullanılacağı */
@@ -804,6 +806,8 @@ export interface GeneralSettings {
   /** Telemetri: canlı oturumda tamamlanan turları kaydet ve hesaba yükle (Rust `general.telemetryRecord` okur) */
   telemetryRecord: boolean;
   returnFocus: boolean;
+  /** Kısayola basılınca ekranın üst ortasında kısa bildirim göster (Rust `general.shortcutOsd` okur) */
+  shortcutOsd: boolean;
   timeFormat: "24" | "12";
   /** Arayüz dili (ör. "tr", "en", "pt-BR") */
   language: string;
@@ -1149,6 +1153,7 @@ export function defaultSettings(): AppSettings {
       eventsRecord: { crash: true, pass: true, pit: true, fast: true, flag: true, others: true },
       telemetryRecord: true,
       returnFocus: true,
+      shortcutOsd: true,
       timeFormat: "24",
       language: detectLang(),
       speedMph: false,

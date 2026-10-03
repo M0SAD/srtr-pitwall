@@ -12,9 +12,10 @@
 // Neden sunucuda: Google ve Kick bu akışta istemci gizli anahtarı (client_secret) ister; anahtar programın içine konamaz.
 // Program kodu PKCE (S256) ile alır, bu işlev gizli anahtarı ekleyip sağlayıcıya iletir. Anahtarlar SAKLANMAZ / kaydedilmez.
 //
-// Verify JWT: AÇIK yayınlanmalı (supabase functions deploy chat-oauth — varsayılan). Ayrıca işlev içinde JWT'nin
-// "authenticated" rolünde bir üyeye ait olduğu denetlenir (anon anahtarıyla çağrılamaz). Ağ geçidi imzayı doğruladığı için
-// içerik (payload) burada sadece okunur.
+// Verify JWT: KAPALI yayınlanmalı (diğer SRTR işlevleri gibi: supabase functions deploy chat-oauth --no-verify-jwt).
+// Oturum İŞLEV İÇİNDE doğrulanır: gelen anahtar Supabase Auth'a (/auth/v1/user) sorulur; geçerli bir üyeye ait değilse 401.
+// Böylece işlev ağ geçidinin JWT ayarından ve projenin anahtar türünden (yeni imzalama anahtarları / sb_publishable_)
+// bağımsız çalışır; ayar açık kalsa da güvenlidir (o durumda ağ geçidi de ayrıca denetler, reddederse "Invalid JWT" döner).
 //
 // Gizli değerler (Supabase › Edge Functions › Secrets):
 //   YT_CLIENT_ID, YT_CLIENT_SECRET      Google Cloud OAuth istemcisi (Masaüstü uygulaması)
@@ -33,7 +34,8 @@ function reply(status: number, body: unknown): Response {
 
 /** Programın kullandığı yerel dönüş adresleri (başka adrese kod gönderilmesin) */
 const REDIRECTS: Record<string, string[]> = {
-  youtube: ["http://127.0.0.1:8767/callback", "http://localhost:8767/callback"],
+  // 8768 / 8769: 8767 açılamazsa programın YouTube için denediği yedek portlar (Google masaüstü istemcisi her portu kabul eder)
+  youtube: ["http://127.0.0.1:8767/callback", "http://localhost:8767/callback", "http://127.0.0.1:8768/callback", "http://127.0.0.1:8769/callback"],
   kick: ["http://localhost:8767/callback", "http://127.0.0.1:8767/callback"],
 };
 
@@ -47,14 +49,18 @@ function creds(provider: string): { id: string; secret: string } {
   return { id: Deno.env.get(`${p}_CLIENT_ID`) ?? "", secret: Deno.env.get(`${p}_CLIENT_SECRET`) ?? "" };
 }
 
-/** JWT içeriği (imza ağ geçidinde doğrulandı) */
-function jwtPayload(req: Request): Record<string, unknown> | null {
-  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const part = jwt.split(".")[1];
-  if (!part) return null;
+/** Çağıran üye: oturum anahtarı Supabase Auth'a sorulur (imza, süre ve iptal durumu orada denetlenir). Yoksa null. */
+async function callerId(req: Request): Promise<string | null> {
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const base = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
+  // apikey: programın gönderdiği herkese açık anahtar (yoksa işlev ortamındaki)
+  const apikey = req.headers.get("apikey") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  if (!jwt || jwt.split(".").length !== 3 || !base || !apikey) return null;
   try {
-    const b64 = part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=");
-    return JSON.parse(atob(b64));
+    const r = await fetch(`${base}/auth/v1/user`, { headers: { apikey, Authorization: `Bearer ${jwt}` } });
+    if (!r.ok) return null;
+    const u = await r.json();
+    return typeof u?.id === "string" && u.id && (u.role ?? "authenticated") === "authenticated" ? u.id : null;
   } catch {
     return null;
   }
@@ -66,10 +72,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return reply(405, { error: "POST bekleniyor" });
 
-  const claims = jwtPayload(req);
-  if (!claims || claims.role !== "authenticated" || typeof claims.sub !== "string") {
-    return reply(401, { error: "Giriş yapmalısın" });
-  }
+  if (!(await callerId(req))) return reply(401, { error: "Giriş yapmalısın (oturum doğrulanamadı)" });
 
   let body: Record<string, unknown>;
   try {
@@ -87,7 +90,7 @@ Deno.serve(async (req) => {
   // Programın (Yönetim › Canlı Sohbet ayarları) kullandığı Client ID, secret'taki ile aynı olmalı
   const sentId = str(body.client_id, 200).trim();
   const idMatch = sentId ? sentId === id.trim() : null;
-  if (action === "check") return reply(200, { ok: true, configured: true, client_id_match: idMatch, version: 2 });
+  if (action === "check") return reply(200, { ok: true, configured: true, client_id_match: idMatch, version: 3 });
   const pname = provider === "youtube" ? "YouTube" : "Kick";
   if (action === "exchange" && idMatch === false) {
     return reply(400, { error: `Yönetim'deki ${pname} Client ID ile Supabase secret ${provider === "youtube" ? "YT" : "KICK"}_CLIENT_ID aynı değil; ikisine de aynı Client ID yazılmalı` });

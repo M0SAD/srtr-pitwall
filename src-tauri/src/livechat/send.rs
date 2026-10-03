@@ -29,8 +29,10 @@ use tauri::{AppHandle, Emitter};
 
 pub const FEATURE: &str = "livechat.send";
 /// Tek seferlik yerel dönüş sunucusu
-const LOOPBACK: &str = "127.0.0.1:8767";
-const LOOPBACK_V6: &str = "[::1]:8767";
+const PORT: u16 = 8767;
+/// YouTube için yedek portlar (8767 açılamazsa; Google "Masaüstü uygulaması" istemcisi her loopback portunu kabul eder,
+/// chat-oauth işlevi de bu adresleri tanır). Kick'te kayıtlı adres birebir aynı olmalı: yedek yok.
+const YT_ALT_PORTS: [u16; 2] = [8768, 8769];
 /// Google "Masaüstü uygulaması" istemcisi herhangi bir loopback adresini kabul eder
 pub const YT_REDIRECT: &str = "http://127.0.0.1:8767/callback";
 /// Kick'te uygulamaya birebir aynı adres kayıtlı olmalı
@@ -92,10 +94,21 @@ pub struct SendStatus {
     pub error: Option<String>,
     pub yt_redirect: String,
     pub kick_redirect: String,
+    /// Bekleyen YouTube / Kick girişinin izin sayfası (tarayıcı açılmadıysa elle açmak / kopyalamak için; gizli değer içermez)
+    pub auth_url: Option<String>,
+    /// Platform başına son hata ("twitch" | "youtube" | "kick"); başarılı girişte / gönderimde silinir
+    pub last_error: HashMap<String, String>,
+    /// Destek için arındırılmış tanılama günlüğü (adım adları, HTTP kodları, sağlayıcı hata kodları; anahtar / kod yok)
+    pub log: Vec<String>,
 }
 
 #[derive(Default)]
 struct SendState {
+    auth_url: Option<String>,
+    /// Giriş denemesi sayacı: biten eski deneme yenisinin durumunu ezmesin
+    gen: u64,
+    last: HashMap<String, String>,
+    log: Vec<String>,
     device: Option<DeviceView>,
     device_task: Option<JoinHandle<()>>,
     pending: Option<String>,
@@ -142,7 +155,62 @@ pub fn status(app: &AppHandle) -> SendStatus {
         error: g.error.clone(),
         yt_redirect: YT_REDIRECT.into(),
         kick_redirect: KICK_REDIRECT.into(),
+        auth_url: g.auth_url.clone(),
+        last_error: g.last.clone(),
+        log: g.log.clone(),
     }
+}
+
+/// Uzun, anahtar / kod olabilecek dizileri gizler (24+ karakterlik harf-rakam dizisi → "[…]")
+fn scrub(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut run = String::new();
+    let flush = |run: &mut String, out: &mut String| {
+        if run.chars().count() >= 24 {
+            out.push_str("[…]");
+        } else {
+            out.push_str(run);
+        }
+        run.clear();
+    };
+    for c in s.chars() {
+        if c.is_ascii_alphanumeric() || "_-~+=%".contains(c) {
+            run.push(c);
+        } else {
+            flush(&mut run, &mut out);
+            out.push(c);
+        }
+    }
+    flush(&mut run, &mut out);
+    out.chars().take(400).collect()
+}
+
+/// Tanılama günlüğüne satır ekle (UTC saat + arındırılmış metin; en fazla 80 satır)
+fn dlog(line: impl AsRef<str>) {
+    let secs = now_ms() / 1000 % 86_400;
+    let l = format!("{:02}:{:02}:{:02}Z {}", secs / 3600, secs / 60 % 60, secs % 60, scrub(line.as_ref()));
+    let mut g = state().lock();
+    if g.log.len() >= 80 {
+        g.log.remove(0);
+    }
+    g.log.push(l);
+}
+
+fn pkey(p: Platform) -> &'static str {
+    match p {
+        Platform::Twitch => "twitch",
+        Platform::Youtube => "youtube",
+        _ => "kick",
+    }
+}
+
+/// Platformun "son hata" satırı (None: temizle)
+fn set_last(p: Platform, e: Option<&str>) {
+    let mut g = state().lock();
+    match e {
+        Some(e) => g.last.insert(pkey(p).into(), scrub(e)),
+        None => g.last.remove(pkey(p)),
+    };
 }
 
 fn emit(app: &AppHandle) {
@@ -237,8 +305,19 @@ fn token_from(v: &Value, old: Option<&Token>) -> Result<Token, String> {
 // Edge function (YouTube / Kick anahtar değişimi ve yenileme)
 // ---------------------------------------------------------------------------
 
+/// 401 işlevin kendisinden değil Supabase ağ geçidinden mi geldi (işlev hatayı `error` alanıyla döner; ağ geçidi `message` / `msg` ile)
+fn gateway_jwt(v: &Value) -> bool {
+    v.get("error").and_then(|x| x.as_str()).is_none()
+}
+
 async fn cloud_call(cloud: &CloudAuth, body: Value) -> Result<Value, String> {
-    if cloud.url.is_empty() || cloud.jwt.is_empty() {
+    let action = net::json_str(body.get("action"));
+    if cloud.url.is_empty() {
+        dlog(format!("chat-oauth {action}: bulut adresi yok"));
+        return Err("Bu derlemede bulut bağlantısı yapılandırılmamış".into());
+    }
+    if cloud.jwt.is_empty() {
+        dlog(format!("chat-oauth {action}: SRTR oturumu yok"));
         return Err("Bu işlem için SRTR Pitwall hesabına giriş yapmalısın".into());
     }
     let c = net::http()?;
@@ -250,12 +329,18 @@ async fn cloud_call(cloud: &CloudAuth, body: Value) -> Result<Value, String> {
             .header("Content-Type", "application/json")
             .body(body.to_string()),
     )
-    .await?;
+    .await
+    .inspect_err(|e| dlog(format!("chat-oauth {action}: ağ hatası: {e}")))?;
+    dlog(format!("chat-oauth {action}: HTTP {code}{}", if (200..300).contains(&code) { String::new() } else { format!(" · {}", api_error(&v)) }));
     match code {
         200..=299 => Ok(v),
         404 => Err("Sunucu işlevi (chat-oauth) kurulmamış (HTTP 404); yönetici Supabase'e `chat-oauth` işlevini yayınlamalı".into()),
+        401 | 403 if gateway_jwt(&v) => Err(format!(
+            "Supabase ağ geçidi oturum anahtarını reddetti (chat-oauth HTTP {code}: {}). Yönetici chat-oauth işlevinde “Verify JWT” ayarını KAPATMALI (işlev oturumu kendi içinde doğrular; diğer SRTR işlevleri de böyle)",
+            api_error(&v)
+        )),
         401 | 403 => Err(format!(
-            "SRTR sunucusu oturumu kabul etmedi (chat-oauth HTTP {code}: {}). Hesap'tan çıkış yapıp yeniden giriş yap; sürerse yönetici işlevin JWT ayarına bakmalı",
+            "SRTR sunucusu oturumu kabul etmedi (chat-oauth HTTP {code}: {}). Hesap'tan çıkış yapıp yeniden giriş yap",
             api_error(&v)
         )),
         503 => Err(format!("{} (chat-oauth HTTP 503): yönetici Supabase › Edge Functions › Secrets'a CLIENT_ID ve CLIENT_SECRET değerlerini girmeli", api_error(&v))),
@@ -360,11 +445,15 @@ async fn device_poll(app: AppHandle, client_id: String, device_code: String, mut
         g.device_task = None;
         g.error = result.as_ref().err().cloned();
     }
-    if let Ok(t) = result {
-        if let Err(e) = store(&app, Platform::Twitch, Some(&t)) {
-            state().lock().error = Some(e);
+    let result = result.and_then(|t| store(&app, Platform::Twitch, Some(&t)));
+    match &result {
+        Ok(()) => dlog("twitch: bağlandı"),
+        Err(e) => {
+            dlog(format!("twitch: giriş başarısız: {e}"));
+            state().lock().error = Some(e.clone());
         }
     }
+    set_last(Platform::Twitch, result.as_ref().err().map(|e| e.as_str()));
     emit(&app);
 }
 
@@ -379,9 +468,18 @@ pub async fn livechat_twitch_login(app: AppHandle, client_id: String) -> Result<
         return Err("Twitch uygulama kimliği yönetici tarafından henüz girilmedi".into());
     }
     cancel_all();
-    let (code, v) = post_form("https://id.twitch.tv/oauth2/device", &[("client_id", &client_id), ("scopes", TWITCH_SCOPES)]).await?;
+    let r = post_form("https://id.twitch.tv/oauth2/device", &[("client_id", &client_id), ("scopes", TWITCH_SCOPES)]).await;
+    let fail = |e: String| {
+        dlog(format!("twitch: cihaz kodu alınamadı: {e}"));
+        set_last(Platform::Twitch, Some(&e));
+        state().lock().error = Some(e.clone());
+        emit(&app);
+        e
+    };
+    let (code, v) = r.map_err(fail)?;
+    dlog(format!("twitch: cihaz kodu isteği HTTP {code}"));
     if code != 200 {
-        return Err(format!("Twitch: {}", api_error(&v)));
+        return Err(fail(format!("Twitch HTTP {code}: {}. Twitch uygulamasında Client Type “Public” olmalı", api_error(&v))));
     }
     let device_code = net::json_str(v.get("device_code"));
     let user_code = net::json_str(v.get("user_code"));
@@ -442,19 +540,19 @@ fn query_param(url: &str, key: &str) -> Option<String> {
 const DONE_HTML: &str = r#"<!doctype html><html><head><meta charset="utf-8"><title>SRTR Pitwall</title></head><body style="background:#0f1115;color:#eef1f6;font:16px Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h2 style="color:#ff8a2a">SRTR Pitwall</h2><p>Giriş tamamlandı, bu sekmeyi kapatabilirsin.</p><p style="color:#8a93a3">Signed in, you can close this tab.</p></div></body></html>"#;
 const FAIL_HTML: &str = r#"<!doctype html><html><head><meta charset="utf-8"><title>SRTR Pitwall</title></head><body style="background:#0f1115;color:#eef1f6;font:16px Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h2 style="color:#ff5a5a">SRTR Pitwall</h2><p>Giriş tamamlanamadı. Programa dönüp yeniden dene.</p><p style="color:#8a93a3">Sign-in failed, please try again in the app.</p></div></body></html>"#;
 
-/// Yerel dönüş sunucuları: 127.0.0.1:8767 (zorunlu) ve [::1]:8767 (varsa). Kick dönüşü `localhost` adresine gelir;
+/// Yerel dönüş sunucuları: 127.0.0.1:<port> (zorunlu) ve [::1]:<port> (varsa). Kick dönüşü `localhost` adresine gelir;
 /// tarayıcı `localhost`u önce IPv6'ya (::1) çözebildiği için iki adres de dinlenir. Port az önce bırakıldıysa
 /// (iptal edilen önceki giriş) kısa süre yeniden denenir.
-fn bind_loopback(tries: u32) -> Result<Vec<tiny_http::Server>, String> {
+fn bind_loopback(port: u16, tries: u32) -> Result<Vec<tiny_http::Server>, String> {
     let mut last = String::new();
     for i in 0..tries.max(1) {
         if i > 0 {
             std::thread::sleep(Duration::from_millis(300));
         }
-        match tiny_http::Server::http(LOOPBACK) {
+        match tiny_http::Server::http(format!("127.0.0.1:{port}")) {
             Ok(s) => {
                 let mut v = vec![s];
-                if let Ok(s6) = tiny_http::Server::http(LOOPBACK_V6) {
+                if let Ok(s6) = tiny_http::Server::http(format!("[::1]:{port}")) {
                     v.push(s6);
                 }
                 return Ok(v);
@@ -462,12 +560,30 @@ fn bind_loopback(tries: u32) -> Result<Vec<tiny_http::Server>, String> {
             Err(e) => last = e.to_string(),
         }
     }
-    Err(format!("Yerel giriş adresi (127.0.0.1:8767) açılamadı, başka bir program bu portu kullanıyor olabilir (ör. açık kalmış başka bir sohbet programı): {last}"))
+    Err(format!(
+        "Yerel giriş adresi (127.0.0.1:{port}) açılamadı: {last}. Başka bir program bu portu kullanıyor (ör. açık kalmış başka bir sohbet programı) ya da Windows portu ayırmış olabilir (yönetici komut satırında: netsh interface ipv4 show excludedportrange protocol=tcp)"
+    ))
+}
+
+/// Girişten önce yerel sunucuyu aç: (sunucular, port). YouTube'da 8767 açılamazsa yedek portlar denenir.
+fn bind_for(p: Platform) -> Result<(Vec<tiny_http::Server>, u16), String> {
+    match bind_loopback(PORT, 8) {
+        Ok(v) => Ok((v, PORT)),
+        Err(e) => {
+            if p == Platform::Youtube {
+                for alt in YT_ALT_PORTS {
+                    if let Ok(v) = bind_loopback(alt, 1) {
+                        return Ok((v, alt));
+                    }
+                }
+            }
+            Err(e)
+        }
+    }
 }
 
 /// Tarayıcının dönüşünü bekle (en fazla 5 dk); yetkilendirme kodunu döner
-fn wait_code(expect_state: &str, cancel: &AtomicBool) -> Result<String, String> {
-    let servers = bind_loopback(8)?;
+fn wait_code(servers: Vec<tiny_http::Server>, expect_state: &str, cancel: &AtomicBool) -> Result<String, String> {
     let deadline = std::time::Instant::now() + Duration::from_secs(300);
     let wait = Duration::from_millis(if servers.len() > 1 { 150 } else { 300 });
     let mut turn = 0usize;
@@ -476,7 +592,7 @@ fn wait_code(expect_state: &str, cancel: &AtomicBool) -> Result<String, String> 
             return Err("Giriş iptal edildi".into());
         }
         if std::time::Instant::now() > deadline {
-            return Err("Giriş 5 dakika içinde tamamlanmadı (tarayıcı bir hata sayfası gösterdiyse sebep orada yazar)".into());
+            return Err("Giriş 5 dakika içinde tamamlanmadı: tarayıcıdan programa dönüş gelmedi (tarayıcı bir hata sayfası gösterdiyse sebep orada yazar; çoğunlukla sağlayıcıdaki uygulamada dönüş adresi / Client ID / izin ayarı)".into());
         }
         turn += 1;
         let req = match servers[turn % servers.len()].recv_timeout(wait) {
@@ -497,133 +613,193 @@ fn wait_code(expect_state: &str, cancel: &AtomicBool) -> Result<String, String> 
             }
             let _ = req.respond(r);
         };
-        let st = query_param(&url, "state").unwrap_or_default();
-        if st != expect_state {
+        let st = query_param(&url, "state");
+        let err = query_param(&url, "error").filter(|e| !e.is_empty());
+        // Sağlayıcı hata dönüşünde `state` göndermeyebilir: hata yine de gösterilir (sessizce beklenmez).
+        // Kod ise yalnızca bu girişin `state` değeriyle kabul edilir.
+        if st.as_deref() != Some(expect_state) && !(st.is_none() && err.is_some()) {
+            dlog(format!("dönüş: yok sayıldı (state {})", if st.is_some() { "uyuşmuyor: eski / başka bir giriş" } else { "yok" }));
             respond(req, false);
-            continue; // başka / eski bir dönüş
+            continue;
         }
-        if let Some(e) = query_param(&url, "error") {
+        if let Some(e) = err {
             respond(req, false);
             let d = query_param(&url, "error_description").unwrap_or_default();
-            return Err(if e == "access_denied" { "İzin verilmedi (izin ekranında reddedildi ya da hesap bu uygulama için yetkili değil)".into() } else { format!("Sağlayıcı girişi reddetti: {e} {d}").trim().to_string() });
+            dlog(format!("dönüş: error={e} {d}"));
+            return Err(if e == "access_denied" {
+                "İzin verilmedi (izin ekranında reddedildi ya da hesap bu uygulama için yetkili değil; Google'da uygulama test aşamasındaysa hesap “Test users” listesinde olmalı)".into()
+            } else {
+                format!("Sağlayıcı girişi reddetti: {e} {d}").trim().to_string()
+            });
         }
         match query_param(&url, "code") {
             Some(c) if !c.is_empty() => {
                 respond(req, true);
+                dlog("dönüş: yetkilendirme kodu alındı");
                 return Ok(c);
             }
-            _ => respond(req, false),
+            _ => {
+                dlog("dönüş: kod yok");
+                respond(req, false)
+            }
         }
     }
 }
 
 async fn yt_user(access: &str) -> Result<(String, String), String> {
     let (code, v) = get_auth("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", access, None).await?;
+    dlog(format!("youtube: kanal bilgisi HTTP {code}{}", if code == 200 { String::new() } else { format!(" · {}", net::json_str(v.pointer("/error/errors/0/reason"))) }));
     if code != 200 {
-        return Err(format!("YouTube kanal bilgisi okunamadı (HTTP {code}): {}", api_error(&v)));
+        return Err(format!("YouTube kanal bilgisi okunamadı (HTTP {code}): {}", yt_error(&v)));
     }
     let id = net::json_str(v.pointer("/items/0/id"));
     if id.is_empty() {
-        return Err("Bu Google hesabının YouTube kanalı yok".into());
+        return Err("Bu Google hesabının YouTube kanalı yok (izin ekranında kanalı olan hesabı / marka hesabını seç)".into());
     }
     Ok((id, net::json_str(v.pointer("/items/0/snippet/title"))))
 }
 
 async fn kick_user(access: &str) -> Result<(String, String), String> {
     let (code, v) = get_auth("https://api.kick.com/public/v1/users", access, None).await?;
+    dlog(format!("kick: hesap bilgisi HTTP {code}"));
     if code != 200 {
-        return Err(format!("Kick hesap bilgisi okunamadı (HTTP {code}): {}", api_error(&v)));
+        return Err(format!("Kick hesap bilgisi okunamadı (HTTP {code}): {}. Kick uygulamasında user:read izni açık olmalı", api_error(&v)));
     }
     let id = net::json_str(v.pointer("/data/0/user_id"));
+    if id.is_empty() {
+        return Err("Kick hesap bilgisi boş döndü (user:read izni verilmemiş olabilir)".into());
+    }
     Ok((id, net::json_str(v.pointer("/data/0/name"))))
 }
 
 /// YouTube / Kick girişi: tarayıcıda izin → kod → edge function ile anahtar → kullanıcı bilgisi
 #[tauri::command]
 pub async fn livechat_oauth_login(app: AppHandle, provider: String, client_id: String, cloud: CloudAuth) -> Result<SendStatus, String> {
-    if !allowed(&app, FEATURE) {
-        return Err("Sohbete yazma PRO üyelere özel".into());
-    }
     let p = match provider.as_str() {
         "youtube" => Platform::Youtube,
         "kick" => Platform::Kick,
         _ => return Err("Bilinmeyen platform".into()),
     };
     let client_id = client_id.trim().to_string();
-    if client_id.is_empty() {
-        return Err(format!("{} uygulama kimliği yönetici tarafından henüz girilmedi", p.name()));
-    }
-    if cloud.jwt.is_empty() {
-        return Err("Bu işlem için SRTR Pitwall hesabına giriş yapmalısın".into());
+    // Ön koşullar: hata hem döner hem "son hata" / günlükte kalır
+    let pre = if !allowed(&app, FEATURE) {
+        Some("Sohbete yazma PRO üyelere özel".to_string())
+    } else if client_id.is_empty() {
+        Some(format!("{} uygulama kimliği yönetici tarafından henüz girilmedi", p.name()))
+    } else if cloud.url.is_empty() {
+        Some("Bu derlemede bulut bağlantısı yapılandırılmamış".to_string())
+    } else if cloud.jwt.is_empty() {
+        Some("Bu işlem için SRTR Pitwall hesabına giriş yapmalısın".to_string())
+    } else {
+        None
+    };
+    if let Some(e) = pre {
+        dlog(format!("{provider}: giriş başlatılamadı: {e}"));
+        set_last(p, Some(&e));
+        emit(&app);
+        return Err(e);
     }
     cancel_all();
     let verifier = secrets::random_token(48);
     let challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
     let st = secrets::random_token(18);
-    let redirect = if p == Platform::Youtube { YT_REDIRECT } else { KICK_REDIRECT };
-    let url = if p == Platform::Youtube {
-        format!(
-            "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={}&redirect_uri={}&scope={}&code_challenge={}&code_challenge_method=S256&state={}&access_type=offline&prompt=consent",
-            enc(&client_id),
-            enc(redirect),
-            enc(YT_SCOPE),
-            challenge,
-            st
-        )
-    } else {
-        format!(
-            "https://id.kick.com/oauth/authorize?response_type=code&client_id={}&redirect_uri={}&scope={}&code_challenge={}&code_challenge_method=S256&state={}",
-            enc(&client_id),
-            enc(redirect),
-            enc(KICK_SCOPES),
-            challenge,
-            st
-        )
-    };
     let cancel = Arc::new(AtomicBool::new(false));
-    {
+    let my_gen = {
         let mut g = state().lock();
+        g.gen += 1;
         g.pending = Some(provider.clone());
         g.cancel = Some(cancel.clone());
+        g.auth_url = None;
         g.error = None;
-    }
+        g.gen
+    };
+    dlog(format!("{provider}: giriş başladı (Client ID {} karakter)", client_id.chars().count()));
     emit(&app);
     let result: Result<Token, String> = async {
-        // Sunucu tarayıcı açılmadan önce dinlemeye başlasın
+        // Yerel sunucu tarayıcı açılmadan ÖNCE dinlemeye başlar; açılamazsa tarayıcı hiç açılmaz
+        let (servers, port) = tauri::async_runtime::spawn_blocking(move || bind_for(p)).await.map_err(|e| e.to_string())?.inspect_err(|e| dlog(format!("yerel sunucu: {e}")))?;
+        let redirect = if p == Platform::Youtube { format!("http://127.0.0.1:{port}/callback") } else { KICK_REDIRECT.to_string() };
+        dlog(format!("yerel sunucu: açık ({}), dönüş adresi {redirect}", if servers.len() > 1 { "IPv4 + IPv6" } else { "yalnız IPv4" }));
+        let url = if p == Platform::Youtube {
+            format!(
+                "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={}&redirect_uri={}&scope={}&code_challenge={}&code_challenge_method=S256&state={}&access_type=offline&prompt=consent",
+                enc(&client_id),
+                enc(&redirect),
+                enc(YT_SCOPE),
+                challenge,
+                st
+            )
+        } else {
+            format!(
+                "https://id.kick.com/oauth/authorize?response_type=code&client_id={}&redirect_uri={}&scope={}&code_challenge={}&code_challenge_method=S256&state={}",
+                enc(&client_id),
+                enc(&redirect),
+                enc(KICK_SCOPES),
+                challenge,
+                st
+            )
+        };
         let st2 = st.clone();
         let c2 = cancel.clone();
-        let waiter = tauri::async_runtime::spawn_blocking(move || wait_code(&st2, &c2));
-        tokio::time::sleep(Duration::from_millis(150)).await;
-        if let Err(e) = crate::open_url(url) {
-            // Bekleyen yerel sunucu kapansın
-            cancel.store(true, Ordering::Relaxed);
-            let _ = waiter.await;
-            return Err(format!("Tarayıcı açılamadı: {e}"));
+        let waiter = tauri::async_runtime::spawn_blocking(move || wait_code(servers, &st2, &c2));
+        state().lock().auth_url = Some(url.clone());
+        // Tarayıcı açılamazsa giriş iptal edilmez: arayüzdeki "Sayfayı yeniden aç" / "Bağlantıyı kopyala" ile sürdürülebilir
+        match crate::open_url(url) {
+            Ok(()) => dlog("tarayıcı: izin sayfası açıldı"),
+            Err(e) => {
+                dlog(format!("tarayıcı: açılamadı: {e}"));
+                state().lock().error = Some(format!("Tarayıcı kendiliğinden açılamadı ({e}): aşağıdaki “Bağlantıyı kopyala” ile izin sayfasını tarayıcına yapıştır"));
+            }
         }
-        let code = waiter.await.map_err(|e| e.to_string())??;
+        emit(&app);
+        let code = waiter.await.map_err(|e| e.to_string())?.inspect_err(|e| dlog(format!("dönüş bekleme: {e}")))?;
         // client_id: sunucu, giriş adresinde kullanılan kimliğin kendi secret'ıyla aynı olduğunu denetler (gizli değildir)
         let v = cloud_call(&cloud, json!({ "provider": provider, "action": "exchange", "code": code, "code_verifier": verifier, "redirect_uri": redirect, "client_id": client_id }))
             .await
             .map_err(|e| format!("{} anahtar değişimi başarısız: {e}", p.name()))?;
         let mut t = token_from(&v, None).map_err(|e| format!("{} anahtar yanıtı geçersiz: {e}", p.name()))?;
+        if p == Platform::Youtube && t.refresh.is_empty() {
+            dlog("youtube: yanıtta yenileme anahtarı yok (oturum ~1 saat sonra yeniden bağlanma ister)");
+        }
         let (id, login) = if p == Platform::Youtube { yt_user(&t.access).await? } else { kick_user(&t.access).await? };
         t.user_id = id;
         t.login = login;
         Ok(t)
     }
     .await;
+    let r = result.and_then(|t| store(&app, p, Some(&t)));
+    let cancelled = cancel.load(Ordering::Relaxed);
     {
         let mut g = state().lock();
-        g.pending = None;
-        g.cancel = None;
-        g.error = result.as_ref().err().cloned();
+        // Bu sırada yeni bir giriş başladıysa onun durumuna dokunma
+        if g.gen == my_gen {
+            g.pending = None;
+            g.cancel = None;
+            g.auth_url = None;
+            g.error = if cancelled { None } else { r.as_ref().err().cloned() };
+        }
     }
-    let r = match result {
-        Ok(t) => store(&app, p, Some(&t)).map(|_| ()),
-        Err(e) => Err(e),
-    };
+    match &r {
+        Ok(()) => {
+            dlog(format!("{provider}: bağlandı"));
+            set_last(p, None);
+        }
+        Err(e) => {
+            dlog(format!("{provider}: giriş başarısız: {e}"));
+            if !cancelled {
+                set_last(p, Some(e));
+            }
+        }
+    }
     emit(&app);
     r.map(|_| status(&app))
+}
+
+/// Bekleyen YouTube / Kick girişinin izin sayfasını yeniden aç
+#[tauri::command]
+pub fn livechat_auth_reopen() -> Result<(), String> {
+    let url = state().lock().auth_url.clone().ok_or("Bekleyen giriş yok")?;
+    crate::open_url(url).inspect_err(|e| dlog(format!("tarayıcı: yeniden açılamadı: {e}")))
 }
 
 fn cancel_all() {
@@ -636,6 +812,7 @@ fn cancel_all() {
     }
     g.device = None;
     g.pending = None;
+    g.auth_url = None;
 }
 
 #[tauri::command]
@@ -725,11 +902,13 @@ async fn test_cloud(cloud: &CloudAuth, provider: &str, client_id: &str) -> TestS
                 "fail",
                 format!("Yayında ve secret'lar girilmiş, ama Yönetim'deki Client ID ile Supabase secret'ındaki CLIENT_ID aynı değil (HTTP 200). İkisine de aynı Client ID yazılmalı ({provider})"),
             ),
+            _ if v.get("version").and_then(|x| x.as_u64()).unwrap_or(0) < 3 => step(NAME, "warn", "Yayında, secret'lar girilmiş, Client ID eşleşiyor (HTTP 200); ama işlevin eski sürümü yayında: yönetici chat-oauth'u yeniden yayınlamalı (oturumu kendi içinde doğrulayan sürüm)"),
             _ => step(NAME, "ok", "Yayında, secret'lar girilmiş, Client ID eşleşiyor (HTTP 200)"),
         },
         400 if msg.contains("Bilinmeyen işlem") => step(NAME, "warn", "Yayında ve secret'lar girilmiş, ama işlevin eski sürümü yayında (HTTP 400): Client ID eşleşmesi denetlenemedi; yönetici chat-oauth'u yeniden yayınlamalı"),
         404 => step(NAME, "fail", "İşlev yayınlanmamış (HTTP 404): yönetici `supabase functions deploy chat-oauth` çalıştırmalı"),
-        401 | 403 => step(NAME, "fail", format!("Oturum kabul edilmedi (HTTP {code}: {msg}). Çıkış yapıp yeniden giriş yap; sürerse işlevin JWT doğrulama ayarına bakılmalı")),
+        401 | 403 if gateway_jwt(&v) => step(NAME, "fail", format!("Supabase ağ geçidi oturum anahtarını reddetti (HTTP {code}: {msg}). Yönetici chat-oauth işlevinde “Verify JWT” ayarını KAPATMALI (işlev oturumu kendi içinde doğrular)")),
+        401 | 403 => step(NAME, "fail", format!("Oturum kabul edilmedi (HTTP {code}: {msg}). Hesap'tan çıkış yapıp yeniden giriş yap")),
         503 => step(NAME, "fail", format!("{msg} (HTTP 503): Supabase › Edge Functions › Secrets'ta CLIENT_ID / CLIENT_SECRET eksik")),
         _ => step(NAME, "fail", format!("HTTP {code}: {msg}")),
     }
@@ -783,8 +962,8 @@ async fn test_account(app: &AppHandle, p: Platform, cloud: &CloudAuth) -> Vec<Te
             }
             // İzinler (uç yoksa / yanıt beklenmedikse sessizce atlanır)
             if let Ok(c) = net::http() {
-                if let Ok((200, v)) = send_req(c.post("https://api.kick.com/public/v1/token/introspect").header("Authorization", format!("Bearer {}", t.access)).header("Accept", "application/json")).await {
-                    if let Some(sc) = v.pointer("/data/scope").filter(|x| x.as_str().is_some_and(|s| !s.is_empty())) {
+                if let Ok((200, v)) = send_req(c.post("https://id.kick.com/oauth/token/introspect").header("Authorization", format!("Bearer {}", t.access)).header("Accept", "application/json")).await {
+                    if let Some(sc) = v.pointer("/data/scope").or_else(|| v.get("scope")).filter(|x| x.as_str().is_some_and(|s| !s.is_empty())) {
                         let miss = missing_scopes(sc, KICK_SCOPES);
                         if miss.is_empty() {
                             out.push(step("İzinler", "ok", KICK_SCOPES));
@@ -825,7 +1004,7 @@ pub async fn livechat_auth_test(app: AppHandle, platform: String, client_id: Str
         out.push(if busy {
             step("Yerel dönüş adresi", "skip", format!("{redirect} şu an bekleyen giriş için açık"))
         } else {
-            match tauri::async_runtime::spawn_blocking(|| bind_loopback(1).map(|v| v.len())).await {
+            match tauri::async_runtime::spawn_blocking(|| bind_loopback(PORT, 1).map(|v| v.len())).await {
                 Ok(Ok(n)) => step("Yerel dönüş adresi", "ok", format!("{redirect} açılabiliyor ({})", if n > 1 { "IPv4 + IPv6" } else { "IPv4" })),
                 Ok(Err(e)) => step("Yerel dönüş adresi", "fail", e),
                 Err(e) => step("Yerel dönüş adresi", "fail", e.to_string()),
@@ -840,6 +1019,9 @@ pub async fn livechat_auth_test(app: AppHandle, platform: String, client_id: Str
         });
     }
     out.extend(test_account(&app, p, &cloud).await);
+    for s in &out {
+        dlog(format!("test {}: [{}] {}: {}", pkey(p), s.state, s.name, s.detail));
+    }
     emit(&app);
     Ok(out)
 }
@@ -1059,8 +1241,16 @@ pub async fn livechat_send(app: AppHandle, text: String, target: Option<String>,
         } else {
             send_one(&app, p, &ident, c.video_id.as_deref(), &text, cloud.as_ref()).await
         };
+        match &r {
+            Ok(()) => set_last(p, None),
+            Err(e) => {
+                dlog(format!("gönder {}: {e}", pkey(p)));
+                set_last(p, Some(&format!("Gönderilemedi: {e}")));
+            }
+        }
         out.push(SendResult { key: c.key.clone(), platform: p, label: c.label.clone(), ok: r.is_ok(), error: r.err() });
     }
+    emit(&app);
     if out.iter().any(|r| r.ok) {
         let line = format!("[YAZ] {}", text);
         h.st.lock().log(line);
@@ -1088,5 +1278,9 @@ mod tests {
         assert!(missing_scopes(&json!("user:read channel:read chat:write"), KICK_SCOPES).is_empty());
         assert_eq!(missing_scopes(&json!(["user:read:chat"]), TWITCH_SCOPES), vec!["user:write:chat".to_string()]);
         assert_eq!(missing_scopes(&Value::Null, "a b").len(), 2);
+        assert_eq!(scrub("HTTP 400: invalid_grant kod 4/0AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"), "HTTP 400: invalid_grant kod 4/[…]");
+        assert_eq!(scrub("dönüş adresi http://127.0.0.1:8767/callback"), "dönüş adresi http://127.0.0.1:8767/callback");
+        assert!(gateway_jwt(&json!({ "code": 401, "message": "Invalid JWT" })));
+        assert!(!gateway_jwt(&json!({ "error": "Giriş yapmalısın" })));
     }
 }

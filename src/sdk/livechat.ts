@@ -599,6 +599,12 @@ export interface SendStatus {
   error: string | null;
   ytRedirect: string;
   kickRedirect: string;
+  /** Bekleyen YouTube / Kick girişinin izin sayfası (tarayıcı açılmadıysa kopyalamak için; gizli değer içermez) */
+  authUrl?: string | null;
+  /** Platform başına son hata (başarılı giriş / gönderimde silinir) */
+  lastError?: Partial<Record<"twitch" | "youtube" | "kick", string>>;
+  /** Arındırılmış tanılama günlüğü (adım adları, HTTP kodları, sağlayıcı hata kodları; anahtar / kod içermez) */
+  log?: string[];
 }
 
 export interface SendResult {
@@ -633,6 +639,11 @@ export interface AuthTestStep {
 /** Platformun giriş zincirini adım adım dener (Client ID, SRTR oturumu, sunucu işlevi, yerel dönüş adresi, hesap oturumu). Mesaj göndermez. */
 export const authTest = async (platform: "twitch" | "youtube" | "kick", clientId: string) =>
   invoke<AuthTestStep[]>("livechat_auth_test", { platform, clientId, cloud: await cloudAuth() });
+/** Bekleyen YouTube / Kick girişinin izin sayfasını yeniden aç */
+export const authReopen = () => invoke<void>("livechat_auth_reopen");
+/** Overlay'deki mesaj kutusu (Rust: livechat/inputbox.rs): tıklanabilir bölge ve odak. rect: pencere içi fiziksel piksel */
+export const inputBox = (id: string, op: "region" | "remove" | "focus" | "blur", rect?: { x: number; y: number; w: number; h: number } | null) =>
+  invoke<void>("livechat_input", { id, op, rect: rect ?? null });
 export const authCancel = () => invoke<SendStatus>("livechat_auth_cancel");
 export const authLogout = (platform: "twitch" | "youtube" | "kick") => invoke<SendStatus>("livechat_auth_logout", { platform });
 /** Mesaj gönder: target "mine" (★ kanallarım) ya da kanal anahtarı */

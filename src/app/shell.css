@@ -4689,3 +4689,84 @@ body.ov-dragging * {
   letter-spacing: 0;
   opacity: 0.7;
 }
+
+/* Kilitli düzen / kilitli overlay: tuvalin üstünde kısa bilgi, kilit rozeti (b74) */
+.lcanvas-wrap {
+  position: relative;
+}
+.lnotice-slot {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  height: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.lnotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: max-content;
+  max-width: min(92%, 640px);
+  margin-top: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #ffcc33 55%, transparent);
+  background: #2a2410;
+  color: #ffd75a;
+  font: 600 12.5px/1.35 "Inter", sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: lnotice-in 0.16s ease-out;
+}
+.lnotice svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+@keyframes lnotice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.citem.pinned {
+  cursor: default;
+}
+.citem.pinned.sel {
+  outline-style: dashed;
+}
+.citem-lock {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  transform-origin: 100% 0;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 16px;
+  border-radius: 4px;
+  background: #ffcc33;
+  color: #1a1400;
+}
+.citem-lock svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.6;
+}
+.ovpal-lock {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #ffcc33;
+}
+.ovpal-lock svg {
+  width: 13px;
+  height: 13px;
+}
+.ovpal-btn.blocked,
+.btn.blocked {
+  opacity: 0.4;
+  cursor: default;
+}

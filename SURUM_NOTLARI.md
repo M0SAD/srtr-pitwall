@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-95
+
+- **Sohbete yaz (YouTube / Kick) girişi:** chat-oauth işlevi oturumu artık kendisi doğruluyor (sürüm 3; işlevde "Verify JWT" KAPALI olmalı). Sağlayıcıdan dönen hata artık hemen gösteriliyor (önceden 5 dakika sessizce bekliyordu), yerel giriş adresi tarayıcı açılmadan önce açılıyor, YouTube için yedek portlar (8768 / 8769), Kick izin denetimi adresi düzeltildi. Her platformda "Son hata" satırı ve anahtar içermeyen "Günlüğü kopyala".
+- **Canlı Sohbet overlay'i › Mesaj yazma kutusu:** en altta solda kanal, sağında yazma kutusu. Tab / Shift+Tab: sonraki / önceki yazılabilir kanal, Enter: gönder, Esc: çık.
+- **Overlay kilidi:** düzendeki overlay'e sağ tık › Kilitle; kilitli overlay taşınamaz, boyutlandırılamaz, silinemez (tuvalde ve ekranda düzenlemede).
+- **Düzen kilidi:** kilitli düzende ekleme, çıkarma, taşıma, Delete ve "Ekranda düzenle" denenince "Bu düzen kilitli…" uyarısı çıkar.
+- **Delete:** Düzenler ve Yayın düzenleri tuvalinde seçili overlay'i siler (Ctrl+Z geri alır).
+- **Kısayol bildirimi:** bir kısayola basınca ekranın üst ortasında, diğer pencerelerin üstünde yapılan işlem ve yeni durum kısa süre görünür (Kısayollar › "Kısayol bildirimi göster", varsayılan açık).
+
 ## 041026-94
 
 - **Mesajlar overlay'i:** Demo'da yine örnek mesajlar oynar; gerçek bir mesaj geldiği anda örnekler kalkar ve o mesaj ekrandan silinene kadar geri gelmez.

@@ -34,6 +34,19 @@ export function SendTab() {
   const acc = (p: P) => st()?.[p];
 
   const connect = async (p: P) => {
+    // Düğme bu durumlarda zaten kapalıdır; yine de sessiz dönüş olmasın
+    const why = locked()
+      ? t("Sohbete yazma PRO üyelere özel.")
+      : !clientId(p)
+        ? t("Bu platformun uygulama kimliği (Client ID) yönetici tarafından henüz girilmedi.")
+        : p !== "twitch" && (!cloudEnabled || !session())
+          ? t("Bağlamak için SRTR Pitwall hesabına giriş yapmalısın (Hesap).")
+          : "";
+    if (why) {
+      toast(why, true);
+      setFails((x) => ({ ...x, [p]: why }));
+      return;
+    }
     setBusy(p);
     setFails((x) => ({ ...x, [p]: undefined }));
     try {
@@ -75,6 +88,34 @@ export function SendTab() {
       LC.sendStatus().then(setSt).catch(() => {});
     }
   };
+  /** Son hata: bu oturumdaki deneme ya da programın sakladığı (sekme değişse de kalır) */
+  const lastErr = (p: P) => fails()[p] || st()?.lastError?.[p] || "";
+  const copyLog = async () => {
+    const s = st();
+    const sess = cloudEnabled && !!session();
+    const lines = [
+      "SRTR Pitwall · Sohbete yaz tanılama günlüğü",
+      `zaman: ${new Date().toISOString()}`,
+      `PRO izni: ${s?.allowed ? "var" : "yok"} · SRTR oturumu: ${sess ? "var" : "yok"} · bulut: ${cloudEnabled ? "var" : "yok"}`,
+      ...(["twitch", "youtube", "kick"] as P[]).map(
+        (p) => `${p}: Client ID ${clientId(p) ? `girilmiş (${clientId(p).length} karakter)` : "BOŞ"} · hesap ${s?.[p]?.connected ? "bağlı" : "bağlı değil"}${lastErr(p) ? ` · son hata: ${lastErr(p)}` : ""}`,
+      ),
+      `dönüş adresleri: ${s?.ytRedirect ?? ""} (YouTube) · ${s?.kickRedirect ?? ""} (Kick)`,
+      "--- adımlar ---",
+      ...(s?.log?.length ? s.log : ["(kayıt yok: önce “Hesabı bağla” ya da “Bağlantıyı test et” çalıştır)"]),
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      toast(t("Günlük kopyalandı"));
+    } catch (e) {
+      toast(errText(e), true);
+    }
+  };
+  const copyAuthUrl = () =>
+    navigator.clipboard
+      .writeText(st()?.authUrl ?? "")
+      .then(() => toast(t("Kopyalandı")))
+      .catch((e) => toast(errText(e), true));
   const redirectOf = (p: P) => (p === "youtube" ? st()?.ytRedirect : p === "kick" ? st()?.kickRedirect : "") ?? "";
 
   const pill = (p: P) => {
@@ -124,10 +165,22 @@ export function SendTab() {
             {t("Tarayıcı izin ekranı yerine bir hata sayfası gösteriyorsa (redirect_uri_mismatch, invalid_client, access blocked…) Vazgeç'e bas: sebep sağlayıcıdaki uygulama ayarındadır. Programın dönüş adresi:")}{" "}
             <code data-no-i18n>{redirectOf(c.p)}</code>
           </small>
+          <Show when={st()?.authUrl}>
+            <small class="muted">
+              {t("Tarayıcı açılmadıysa:")}{" "}
+              <button class="link" onClick={() => LC.authReopen().catch((e) => toast(errText(e), true))}>
+                Sayfayı yeniden aç
+              </button>
+              {" · "}
+              <button class="link" onClick={copyAuthUrl}>
+                Bağlantıyı kopyala
+              </button>
+            </small>
+          </Show>
         </Show>
-        <Show when={fails()[c.p] && !acc(c.p)?.connected && !waiting()}>
-          <div class="lcp-err" data-no-i18n>
-            {fails()[c.p]}
+        <Show when={lastErr(c.p) && !waiting()}>
+          <div class="lcp-err">
+            <b>{t("Son hata:")}</b> <span data-no-i18n>{lastErr(c.p)}</span>
           </div>
         </Show>
         <Show when={needCloud() && !acc(c.p)?.connected}>
@@ -194,7 +247,7 @@ export function SendTab() {
           <Card p="youtube" note={t("Yayın canlıyken gönderilir. En fazla 200 karakter. YouTube'un günlük mesaj kotası vardır.")} />
           <Card p="kick" note={t("Kick hesabınla izin ver. En fazla 500 karakter.")} />
         </div>
-        <Show when={st()?.error && !Object.values(fails()).includes(st()!.error!)}>
+        <Show when={st()?.error && !(["twitch", "youtube", "kick"] as P[]).some((p) => lastErr(p) === st()!.error)}>
           <div class="lcp-err" data-no-i18n>
             {st()!.error}
           </div>
@@ -202,6 +255,11 @@ export function SendTab() {
         <Show when={!clientId("twitch") || !clientId("youtube") || !clientId("kick")}>
           <div class="lcp-note">“Yönetici ayarı eksik” görünen platformlar SRTR Pitwall yöneticisi uygulama kimliğini girince kullanılabilir.</div>
         </Show>
+        <div class="btns">
+          <button class="btn ghost small" title={t("Giriş adımlarının kaydını panoya kopyalar; anahtar ya da kod içermez. Destek isterken yapıştır.")} onClick={copyLog}>
+            <I.Copy /> {t("Günlüğü kopyala")}
+          </button>
+        </div>
         <div class="lcp-note">
           Oturum anahtarları sadece bu bilgisayarda, Windows hesabına bağlı şifreli olarak saklanır; ayar dosyasına ve buluta yazılmaz.{" "}
           <button class="link" onClick={() => go("livechat", "chat")}>

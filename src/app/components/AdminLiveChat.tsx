@@ -93,8 +93,8 @@ export function AdminLiveChat(p: { run: Run }) {
         <div>
           <b>Supabase secrets (chat-oauth)</b>
           <small>
-            YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlev JWT doğrulaması AÇIK yayınlanmalı (sadece giriş yapmış üyeler
-            kullanabilir). Twitch için secret gerekmez.
+            YT_CLIENT_ID, YT_CLIENT_SECRET, KICK_CLIENT_ID, KICK_CLIENT_SECRET. İşlevde “Verify JWT” ayarı KAPALI olmalı (oturumu işlev kendisi
+            doğrular; sadece giriş yapmış üyeler kullanabilir). Twitch için secret gerekmez.
           </small>
         </div>
         <button class="btn primary" onClick={save}>
