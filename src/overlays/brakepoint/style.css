@@ -1,0 +1,299 @@
+/* Fren ve Vites İşareti. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.bp {
+  box-sizing: border-box;
+  padding: 0.6em 0.75em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  --bp-col: var(--ov-blue);
+}
+.bp-frozen,
+.bp-frozen * {
+  animation-play-state: paused !important;
+}
+.bp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-width: 0;
+}
+.bp-spacer {
+  flex: 1;
+}
+.bp-label {
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.08em;
+  font-size: 0.86em;
+  padding: 0.18em 0.55em;
+  border-radius: 0.3em;
+  color: var(--bp-col);
+  background: color-mix(in srgb, var(--bp-col) 16%, transparent);
+  white-space: nowrap;
+}
+.bp-s0 .bp-label {
+  color: var(--ov-dim);
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+}
+.bp-dist {
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.bp-dist b {
+  font-size: 1.6em;
+  line-height: 1;
+  color: var(--ov-text);
+  font-weight: var(--ov-weight-strong);
+}
+.bp-s0 .bp-dist b {
+  color: var(--ov-dim);
+}
+.bp-now {
+  font-size: 1.6em;
+  line-height: 1;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.06em;
+  color: var(--bp-col);
+}
+.bp-gear {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  white-space: nowrap;
+}
+.bp-gear i,
+.bp-diff i {
+  font-style: normal;
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  color: var(--ov-dim);
+}
+.bp-gear b {
+  min-width: 1.25em;
+  text-align: center;
+  font-size: 1.5em;
+  line-height: 1.2;
+  border-radius: 0.25em;
+  font-weight: var(--ov-weight-strong);
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.bp-min {
+  color: var(--ov-dim);
+  font-size: 0.86em;
+  white-space: nowrap;
+}
+.bp-min b {
+  color: var(--ov-text);
+}
+
+/* Geri sayım çubuğu */
+.bp-track {
+  position: relative;
+  height: 0.9em;
+  margin: 0.55em 0 1.05em;
+  border-radius: 0.3em;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+}
+.bp-fill {
+  position: absolute;
+  inset: 0 0 0 auto;
+  border-radius: 0.3em;
+  background: var(--bp-col);
+  transition: background-color 0.15s linear;
+}
+.bp-tick {
+  position: absolute;
+  top: -0.15em;
+  bottom: -0.15em;
+  width: 2px;
+  margin-left: -1px;
+  background: color-mix(in srgb, var(--ov-text) 55%, transparent);
+}
+.bp-tick em {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.15em;
+  font-style: normal;
+  font-size: 0.68em;
+  color: var(--ov-dim);
+}
+.bp-end {
+  position: absolute;
+  left: -2px;
+  top: -0.3em;
+  bottom: -0.3em;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--ov-text);
+}
+.bp-s4 .bp-track,
+.bp-s4 .bp-vtrack {
+  box-shadow: 0 0 0 2px var(--bp-col);
+}
+.bp-s4 .bp-fill,
+.bp-s4 .bp-vfill,
+.bp-s4 .bp-now {
+  animation: bp-blink 0.28s steps(2, jump-none) infinite;
+}
+@keyframes bp-blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+.bp-foot {
+  min-height: 1.2em;
+  font-size: 0.9em;
+}
+.bp-diff {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-green);
+  white-space: nowrap;
+}
+.bp-diff.bp-late {
+  color: var(--ov-accent);
+}
+.bp-diff.bp-early {
+  color: var(--ov-blue);
+}
+/* Tur şeridi */
+.bp-mini {
+  position: relative;
+  flex: 0 1 45%;
+  height: 0.3em;
+  border-radius: 0.15em;
+  background: color-mix(in srgb, var(--ov-text) 12%, transparent);
+}
+.bp-mini i {
+  position: absolute;
+  top: -0.15em;
+  bottom: -0.15em;
+  width: 2px;
+  background: var(--ov-red);
+}
+.bp-mini i.bp-mini-lift {
+  background: var(--ov-yellow);
+}
+.bp-mini b {
+  position: absolute;
+  top: 50%;
+  width: 0.5em;
+  height: 0.5em;
+  margin: -0.25em 0 0 -0.25em;
+  border-radius: 50%;
+  background: var(--ov-text);
+}
+
+/* Referans yok */
+.bp-waiting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  text-align: center;
+  padding: 0.3em 0.4em;
+}
+.bp-waiting b {
+  font-weight: var(--ov-weight-strong);
+}
+.bp-waiting span {
+  color: var(--ov-dim);
+  font-size: 0.86em;
+}
+.bp-d-vertical.bp-wait {
+  height: auto !important;
+  max-width: 12em;
+}
+
+/* Büyük minimal işaret */
+.bp-d-cue {
+  padding: 0.7em 0.9em;
+}
+.bp-cue-main {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+}
+.bp-lamps {
+  display: flex;
+  gap: 0.35em;
+}
+.bp-lamps i {
+  width: 1.5em;
+  height: 2.6em;
+  border-radius: 0.3em;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.bp-lamps i.bp-on {
+  background: var(--bp-col);
+}
+.bp-s4 .bp-lamps i {
+  background: var(--bp-col);
+  animation: bp-blink 0.28s steps(2, jump-none) infinite;
+}
+.bp-cue-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3em;
+  min-width: 5.2em;
+}
+.bp-d-cue .bp-dist b,
+.bp-d-cue .bp-now {
+  font-size: 2em;
+}
+.bp-gear-big {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+}
+.bp-gear-big b {
+  font-size: 2.6em;
+  line-height: 1.1;
+  min-width: 1.2em;
+}
+.bp-d-cue .bp-foot {
+  margin-top: 0.5em;
+}
+
+/* Dikey çubuk */
+.bp-d-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.6em 0.55em;
+  min-width: 5em;
+}
+.bp-vtrack {
+  position: relative;
+  flex: 1;
+  min-height: 3em;
+  width: 1.5em;
+  border-radius: 0.35em;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+  border-bottom: 3px solid var(--ov-text);
+}
+.bp-vfill {
+  position: absolute;
+  inset: 0 0 auto 0;
+  border-radius: 0.35em 0.35em 0 0;
+  background: var(--bp-col);
+}
+.bp-vtick {
+  position: absolute;
+  left: -0.25em;
+  right: -0.25em;
+  height: 2px;
+  margin-top: -1px;
+  background: color-mix(in srgb, var(--ov-text) 55%, transparent);
+}
+.bp-d-vertical .bp-diff {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+  font-size: 0.86em;
+  text-align: center;
+}

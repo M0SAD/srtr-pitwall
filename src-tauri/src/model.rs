@@ -24,6 +24,8 @@ pub struct CarState {
     pub tire_kind: u8,
     /// Araca özel bayraklar (siyah, mavi, hasar, diskalifiye...)
     pub flags: u32,
+    /// Simin verdiği sektör numarası (0 bilinmiyor; değeri değil DEĞİŞİMİ kullanılır: resmi sektör sınırı, bkz. timing.rs)
+    pub sector: u8,
 }
 
 /// Hibrit / ERS durumu (oyuncu aracı). Bilinmeyen sayısal alanlar -1; güçler için `*_ok` bayrağı.
@@ -86,6 +88,10 @@ pub struct Frame {
     pub session_num: i32,
     pub session_state: i32,
     pub session_flags: u32,
+    /// Start ışıkları (startlights overlay'i): yanan kırmızı ışık sayısı ve toplam; sim vermiyorsa toplam 0
+    /// (LMU/rF2 mStartLight / mNumRedLights). iRacing bunu SessionFlags start bitleriyle verir.
+    pub start_lit: u8,
+    pub start_total: u8,
     pub player_idx: i32,
     pub speed: f32,
     pub rpm: f32,
@@ -167,6 +173,10 @@ pub struct Frame {
     pub fast_repairs: i32,
     /// Hibrit / ERS / batarya (bkz. `Hybrid`)
     pub hybrid: Hybrid,
+    /// Hasar (bkz. drivecues.rs `Damage`): sim ne veriyorsa, yoksa `detail` 0
+    pub damage: crate::drivecues::Damage,
+    /// Pist dışındaki teker sayısı 0..4 (ACC/AC numberOfTyresOut; LMU/rF2 ve AMS2'de zemin türünden), bilinmiyorsa -1
+    pub tyres_out: i8,
     /// Sadece demo: kör noktadaki sanal araçlar (taraf -1 sol / 1 sağ / 0 orta, boyuna mesafe m)
     pub demo_side_cars: Option<Vec<(i8, f32)>>,
     pub cars: [CarState; MAX_CARS],
@@ -182,6 +192,8 @@ impl Default for Frame {
             session_num: 0,
             session_state: 0,
             session_flags: 0,
+            start_lit: 0,
+            start_total: 0,
             player_idx: -1,
             speed: 0.0,
             rpm: 0.0,
@@ -243,6 +255,8 @@ impl Default for Frame {
             pit_sv_compound: -1,
             fast_repairs: -1,
             hybrid: Hybrid::default(),
+            damage: crate::drivecues::Damage::default(),
+            tyres_out: -1,
             demo_side_cars: None,
             cars: [CarState { surface: -1, pct: -1.0, tire: -1, ..Default::default() }; MAX_CARS],
         }
@@ -319,6 +333,8 @@ pub struct SessionData {
     pub ai_session: bool,
     /// iRacing DriverInfo.DriverUserID: bu bilgisayardaki hesabın üye no (takım yarışında araçtaki sürücüden farklı olabilir)
     pub player_user_id: i64,
+    /// Resmi sektör başlangıçları (tur yüzdesi, ilki 0; iRacing SplitTimeInfo). Boş: bilinmiyor
+    pub sector_starts: Vec<f32>,
 }
 
 impl SessionData {

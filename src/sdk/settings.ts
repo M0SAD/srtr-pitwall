@@ -14,7 +14,7 @@ import { onRemoteSettings } from "./telemetry";
 import type { Status } from "./types";
 import { manifests } from "./registry";
 import { defaultOptions, type Units } from "./overlay";
-import { DEFAULT_THEME, normalizeTheme, type Theme } from "./theme";
+import { DEFAULT_THEME, OLD_TEXT_DEFAULTS, normalizeTheme, type Theme } from "./theme";
 import { normalizeLook, type OverlayLook } from "./look";
 
 export interface OverlayInstance {
@@ -770,6 +770,8 @@ export interface GeneralSettings {
   demoMute: boolean;
   /** Bir kerelik geçiş: demo sesi varsayılan olarak kapalı (kullanıcı sonra açarsa açık kalır) */
   demoMuteV1?: boolean;
+  /** Bir kerelik geçiş yapıldı: daha okunaklı varsayılan yazı (Inter, 14 px, orta kalınlık, gölge) */
+  themeReadV1?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
   allowDuplicates: boolean;
   /** Ekran görüntüleri */
@@ -1101,6 +1103,7 @@ export function defaultSettings(): AppSettings {
       allowDuplicates: false,
       demoMute: true,
       demoMuteV1: true,
+      themeReadV1: true,
       social: { dnd: false, acceptMessages: true, sound: true },
       screenshots: { includeOverlays: true, onlyInGame: true, format: "jpg", quality: 92 },
       editBackdrop: { enabled: true, opacity: 100, rev: 0, has: false },
@@ -1172,6 +1175,24 @@ function voiceMigrate(v: VoiceSettings & { soundsDir?: string; spotter?: string 
 }
 
 /** Eksik alanları tamamlar: yeni eklenen overlay'ler ve yeni ayar anahtarları otomatik gelir. */
+/**
+ * Bir kerelik geçiş (themeReadV1): yazı ayarlarına hiç dokunmamış (eski varsayılanlarda kalmış) kurulumlar yeni,
+ * daha okunaklı varsayılanlara geçer. Yazı tipini, boyutunu ya da kalınlığını kendisi değiştirmiş olana dokunulmaz.
+ */
+function themeReadMigrate(t: Theme, run: boolean): Theme {
+  if (!run) return t;
+  const o = OLD_TEXT_DEFAULTS;
+  if (t.font !== o.font || t.fontSize !== o.fontSize || t.bold !== o.bold || t.weight !== o.weight) return t;
+  return {
+    ...t,
+    font: DEFAULT_THEME.font,
+    fontSize: DEFAULT_THEME.fontSize,
+    weight: DEFAULT_THEME.weight,
+    textShadow: t.textShadow === o.textShadow ? DEFAULT_THEME.textShadow : t.textShadow,
+    dim: t.dim === o.dim ? DEFAULT_THEME.dim : t.dim,
+  };
+}
+
 export function normalize(input: unknown): AppSettings {
   const d = defaultSettings();
   if (!input || typeof input !== "object") return d;
@@ -1186,6 +1207,7 @@ export function normalize(input: unknown): AppSettings {
       // Bir kerelik geçiş (serverOnV1): web sunucusu varsayılan olarak açılır; kullanıcı sonra kapatırsa kapalı kalır
       server: { ...d.general.server, ...(s.general?.server ?? {}), ...(s.general?.serverOnV1 ? {} : { enabled: true }) },
       serverOnV1: true,
+      themeReadV1: true,
       // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
       demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,
       demoMuteV1: true,
@@ -1236,7 +1258,7 @@ export function normalize(input: unknown): AppSettings {
     profiles: {},
     defaults: {},
     overlayOrder: Array.isArray(s.overlayOrder) ? [...new Set(s.overlayOrder.filter((x) => typeof x === "string"))] : [],
-    theme: normalizeTheme(s.theme),
+    theme: themeReadMigrate(normalizeTheme(s.theme), !!s.theme && !s.general?.themeReadV1),
     savedThemes: Array.isArray(s.savedThemes)
       ? s.savedThemes
           .filter((x) => x && typeof x.id === "string" && x.theme)

@@ -167,7 +167,7 @@ export default function SpotterBar(props: OverlayProps) {
     const marker = () => on() && !!o().showMarker && p.st().cars.length > 0;
     return (
       <div
-        class={`sb-bar sb-${design()}`}
+        class={`sb-bar sb-d-${design()}`}
         classList={{
           on: on(),
           guide: !on() && !!o().guides,

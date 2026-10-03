@@ -57,8 +57,8 @@ rect.sb-unit {
 }
 
 /* Yay ve soluk uçlu: uçlar saydamlaşır */
-.sb-arc svg,
-.sb-fade svg {
+.sb-d-arc svg,
+.sb-d-fade svg {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -76,26 +76,26 @@ rect.sb-unit {
 }
 
 /* Maske parlamayı da kestiği için bu görünümlerde parlama sarmalayıcıya verilir */
-.sb-arc.glow.on svg,
-.sb-fade.glow.on svg {
+.sb-d-arc.glow.on svg,
+.sb-d-fade.glow.on svg {
   filter: none;
 }
 
-.sb-arc.glow.on,
-.sb-fade.glow.on {
+.sb-d-arc.glow.on,
+.sb-d-fade.glow.on {
   filter: drop-shadow(
     0 0 var(--sb-glow) color-mix(in srgb, var(--c) 75%, transparent)
   );
 }
 
-.sb-fade.glow.on {
+.sb-d-fade.glow.on {
   filter: drop-shadow(
     0 0 calc(var(--sb-glow) * 1.4) color-mix(in srgb, var(--c) 80%, transparent)
   );
 }
 
 /* Neon: çok ince çizgi, güçlü çift parlama */
-.sb-neon svg {
+.sb-d-neon svg {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -112,21 +112,21 @@ rect.sb-unit {
   );
 }
 
-.sb-neon.on svg,
-.sb-neon.glow.on svg {
+.sb-d-neon.on svg,
+.sb-d-neon.glow.on svg {
   filter: none;
 }
 
-.sb-neon.on {
+.sb-d-neon.on {
   filter: drop-shadow(0 0 3px var(--c))
     drop-shadow(0 0 calc(var(--sb-glow) * 1.2) var(--c));
 }
 
-.sb-neon .sb-car {
+.sb-d-neon .sb-car {
   stroke: #fff;
 }
 
-.sb-neon .sb-track.dim {
+.sb-d-neon .sb-track.dim {
   stroke-opacity: 0.55;
 }
 
@@ -165,11 +165,11 @@ rect.sb-unit {
 }
 
 /* Köşe: ince çerçeve köşeleri, araç işareti ortada yuvarlak uçlu kısa çizgi */
-.sb-corner .sb-track {
+.sb-d-corner .sb-track {
   stroke-linecap: square;
   stroke-linejoin: miter;
 }
 
-.sb-corner .sb-car {
+.sb-d-corner .sb-car {
   stroke: currentColor;
 }

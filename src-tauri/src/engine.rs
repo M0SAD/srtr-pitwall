@@ -42,7 +42,14 @@ pub enum Packet {
     Incidents(crate::history::Incidents),
     Pit(crate::extras::Pit),
     Corners(crate::history::Corners),
+    Sectors(crate::timing::Sectors),
+    Gaps(crate::timing::Gaps),
     Traffic(crate::extras::Traffic),
+    /// Fren / vites işareti, pist limiti, hasar (bkz. drivecues.rs)
+    Brakepoint(crate::drivecues::Brakepoint),
+    Tracklimits(crate::drivecues::TrackLimits),
+    Damage(crate::drivecues::DamagePkt),
+    Strategy(crate::strategy::StrategyPacket),
     /// Sadece tarayıcı kaynakları: ayarlar değişti
     Settings(serde_json::Value),
     /// Sadece tarayıcı kaynakları: panelde / düzenleme modunda sürüklenen overlay'in anlık konumu (canlı taşıma)
@@ -156,7 +163,7 @@ pub struct Shared {
     pub live_gate: Mutex<crate::livechat::LiveGate>,
 }
 
-const KNOWN: [&str; 25] = [
+const KNOWN: &[&str] = &[
     "status",
     "inputs",
     "ers",
@@ -177,7 +184,13 @@ const KNOWN: [&str; 25] = [
     "incidents",
     "pit",
     "traffic",
+    "strategy",
     "corners",
+    "sectors",
+    "gaps",
+    "brakepoint",
+    "tracklimits",
+    "damage",
     "livechat",
     "livepoll",
     "captions",
@@ -290,10 +303,16 @@ struct State {
     tracker: Tracker,
     map: TrackMap,
     history: crate::history::History,
+    /// Sektör süreleri ve tur bazlı fark geçmişi (bkz. timing.rs)
+    timing: crate::timing::Timing,
     /// Bağlı sim kısa adı (`status.sim`), bağlı değilse boş
     sim: &'static str,
     /// Telemetri kaydı (tur özetleri + izler), bkz. laprec.rs
     laprec: crate::laprec::Recorder,
+    /// Fren noktası referansı + pist limiti sayaçları, bkz. drivecues.rs
+    cues: crate::drivecues::Cues,
+    /// Stint / takım sürücüsü / pit kaybı takibi (`strategy` konusu), bkz. strategy.rs
+    strategy: crate::strategy::Strategy,
 }
 
 /// Tamamlanan turu arka planda yerel kuyruğa yazar ve arayüze haber verir (yükleme JS tarafında).
@@ -341,8 +360,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         tracker: Tracker::default(),
         map: TrackMap::new(map_dir.clone()),
         history: Default::default(),
+        timing: Default::default(),
         sim: "",
         laprec: Default::default(),
+        cues: Default::default(),
+        strategy: crate::strategy::Strategy::new(map_dir.clone()),
     };
     let app_data = map_dir.clone();
     // Telemetri kaydı ayarı (general.telemetryRecord, varsayılan açık); saniyede bir okunur
@@ -552,6 +574,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 crate::league::reposition(&mut st.frame, &st.session);
             }
             st.tracker.update(&st.frame, &st.session);
+            st.strategy.update(&st.frame, &st.session, st.sim, demo_on);
             // Olaylar ekranı: olayları topla; oyuncu yarışı bitirince pencereyi bir kez aç
             // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
@@ -594,6 +617,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             was_replay = replay;
             let done = st.history.update(&st.frame, &st.session, !demo_on && connected);
             save_record(&shared, done);
+            st.timing.update(&st.frame, &st.session, demo_on);
             // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
@@ -601,6 +625,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     .and_then(|v| v.pointer("/general/telemetryRecord").and_then(|x| x.as_bool()))
                     .unwrap_or(true);
             }
+            // Fren noktası referansı ve pist limiti sayaçları (demo verisinde dosyaya yazılmaz)
+            st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref());
             let rec_on = rec_enabled && !demo_on && !preview && connected && demo.is_none();
             if let Some(lap) = st.laprec.update(&st.frame, &st.raw, st.sim, rec_on) {
                 save_lap(&app, app_data.as_deref(), lap);
@@ -787,7 +813,13 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                     "incidents" => Packet::Incidents(st.history.incidents(f, s)),
                     "pit" => Packet::Pit(crate::extras::pit(f, s)),
                     "corners" => Packet::Corners(st.history.corners(f)),
+                    "sectors" => Packet::Sectors(st.timing.sectors(f, s)),
+                    "gaps" => Packet::Gaps(st.timing.gaps(f, s)),
                     "traffic" => Packet::Traffic(crate::extras::traffic(f, s)),
+                    "brakepoint" => Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)),
+                    "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
+                    "damage" => Packet::Damage(crate::drivecues::damage(f)),
+                    "strategy" => Packet::Strategy(st.strategy.packet(f, s)),
                     _ => continue,
                 };
                 cache.push((name, p.clone()));

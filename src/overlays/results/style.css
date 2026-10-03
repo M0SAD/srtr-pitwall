@@ -1,0 +1,257 @@
+/* Yarış Sonucu. Giriş: pano aşağıdan belirir, basamaklar / satırlar sırayla gelir. */
+.rslt {
+  box-sizing: border-box;
+  user-select: none;
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.rslt.rslt-off {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0) scale(0.97);
+  pointer-events: none;
+}
+.rslt-panel {
+  box-shadow: var(--ov-box-shadow, 0 10px 30px rgba(0, 0, 0, 0.45));
+}
+
+.rslt-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.6em 0.9em;
+  border-bottom: 1px solid var(--ov-divider);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ov-accent) 22%, transparent) 0, transparent 70%);
+}
+/* Damalı desen (bayrak değil, genel desen) */
+.rslt-chk {
+  flex: none;
+  width: 1.5em;
+  height: 1.1em;
+  border-radius: 2px;
+  background:
+    conic-gradient(#fff 25%, #111 0 50%, #fff 0 75%, #111 0) 0 0 / 0.55em 0.55em;
+}
+.rslt-title {
+  flex: 1;
+  font-size: 1.05em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rslt-class {
+  padding: 0.12em 0.55em;
+  border-radius: 3px;
+  color: #0b0d11;
+  font-size: 0.75em;
+  font-weight: 800;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.rslt-flag {
+  display: inline-flex;
+  flex: none;
+  min-width: 1.4em;
+  justify-content: center;
+}
+.rslt-flag img {
+  height: 0.95em;
+  width: auto;
+  border-radius: 2px;
+}
+.rslt-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--ov-weight-strong);
+}
+.rslt-gap {
+  color: var(--ov-dim);
+  font-size: 0.86em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- podyum --- */
+.rslt-podium {
+  display: grid;
+  grid-template-columns: 1fr 1.12fr 1fr;
+  align-items: end;
+  gap: 0.5em;
+  padding: 0.9em 0.8em 0;
+}
+.rslt-step {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.22em;
+  text-align: center;
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.rslt-step .rslt-name {
+  max-width: 100%;
+}
+.rslt-step.me .rslt-name {
+  color: var(--ov-yellow);
+}
+.rslt-block {
+  width: 100%;
+  margin-top: 0.3em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 0.25em;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rs-c) 85%, #fff) 0, var(--rs-c) 16%, color-mix(in srgb, var(--rs-c) 45%, #000) 100%);
+  color: #0b0d11;
+  text-shadow: none;
+}
+.rslt-block b {
+  font-size: 2em;
+  font-weight: 900;
+  line-height: 1.1;
+}
+.rslt-block small {
+  font-size: 0.75em;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.rslt-step.p1 {
+  --rs-c: #f2c230;
+  transition-delay: 0.55s;
+}
+.rslt-step.p2 {
+  --rs-c: #c3cad6;
+  transition-delay: 0.35s;
+}
+.rslt-step.p3 {
+  --rs-c: #cf8a4c;
+  transition-delay: 0.15s;
+}
+.rslt-step.p1 .rslt-block {
+  height: 5.4em;
+}
+.rslt-step.p2 .rslt-block {
+  height: 4.2em;
+}
+.rslt-step.p3 .rslt-block {
+  height: 3.4em;
+}
+.rslt-off .rslt-step {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0);
+  transition-delay: 0s;
+}
+
+/* --- tablo --- */
+.rslt-table {
+  display: flex;
+  flex-direction: column;
+  padding: 0.3em 0;
+}
+.rslt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  height: 2em;
+  padding: 0 0.9em 0 0;
+  transition:
+    opacity 0.4s ease calc(0.12s + var(--i) * 0.07s),
+    transform 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) calc(0.12s + var(--i) * 0.07s);
+}
+.rslt-row:nth-child(even) {
+  background: var(--ov-bg-row);
+}
+.rslt-row.me {
+  background: var(--ov-bg-me);
+}
+.rslt-row.sep {
+  margin-top: 0.3em;
+  border-top: 1px dashed var(--ov-divider);
+}
+.rslt-off .rslt-row {
+  opacity: 0;
+  transform: translate3d(-18px, 0, 0);
+  transition-delay: 0s;
+}
+.rslt-p {
+  flex: none;
+  width: 2.2em;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.rslt-row:nth-child(1) .rslt-p {
+  background: #f2c230;
+  color: #0b0d11;
+  text-shadow: none;
+}
+.rslt-num {
+  flex: none;
+  min-width: 2.4em;
+  color: var(--ov-dim);
+  font-size: 0.86em;
+  font-variant-numeric: tabular-nums;
+}
+.rslt-row .rslt-name {
+  flex: 1;
+}
+
+/* --- kendi sonucum --- */
+.rslt-mine {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--ov-divider);
+  background: color-mix(in srgb, var(--ov-text) 4%, transparent);
+  transition: opacity 0.5s ease 0.75s;
+}
+.rslt-off .rslt-mine {
+  opacity: 0;
+  transition-delay: 0s;
+}
+.rslt-stat {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2em;
+  padding: 0.55em 0.4em;
+  border-left: 1px solid var(--ov-divider);
+  white-space: nowrap;
+}
+.rslt-stat:first-child {
+  border-left: 0;
+}
+.rslt-stat label {
+  color: var(--ov-dim);
+  font-size: 0.68em;
+  letter-spacing: 0.07em;
+  text-transform: var(--ov-label-tt, uppercase);
+}
+.rslt-stat b {
+  font-size: 1.15em;
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+.rslt-stat.big b {
+  font-size: 1.5em;
+  font-weight: 900;
+  color: var(--ov-yellow);
+}
+.rslt-stat b small {
+  font-size: 0.6em;
+  margin-right: 0.08em;
+  opacity: 0.7;
+}

@@ -1,0 +1,186 @@
+/* Ekip Çağrısı: ekranın ortasında büyük duyuru. Animasyonlar yalnızca transform / opacity ile ve sınırlı tekrar. */
+.cc-wrap {
+  box-sizing: border-box;
+  min-height: 2.6em;
+  display: flex;
+  justify-content: center;
+  font-family: var(--ov-font);
+  user-select: none;
+}
+.cc {
+  --cc-c: var(--ov-accent);
+  --cc-bg: var(--ov-bg);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+  min-width: 55%;
+  border-radius: calc(var(--ov-radius) * 1.5);
+  border: 2px solid var(--cc-c);
+  background: var(--cc-bg);
+  color: var(--ov-text);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0.2em 1.2em color-mix(in srgb, var(--cc-c) 45%, transparent);
+  overflow: hidden;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.cc.cc-out {
+  opacity: 0;
+  transform: translateY(-0.3em) scale(0.98);
+}
+.cc-badge {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3em;
+  background: var(--cc-c);
+  color: #0c0e13;
+}
+.cc-ico {
+  width: 1.5em;
+  height: 1.5em;
+  display: block;
+}
+.cc-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1em;
+  padding: 0.32em 0.7em 0.38em 0.6em;
+}
+.cc-from {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-size: 0.4em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cc-c);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cc-from i {
+  font-style: normal;
+  color: var(--ov-dim);
+}
+.cc-from b {
+  color: var(--ov-text);
+  font-weight: var(--ov-weight);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cc-body {
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.cc-up .cc-body {
+  text-transform: uppercase;
+}
+/* Sıradan mesaj ve pit komutu: metin uzun olabilir, biraz küçük */
+.cc-msg .cc-body,
+.cc-command .cc-body {
+  font-size: 0.78em;
+}
+/* Hızlı araç: mavi bayrak hissi veren çapraz şerit */
+.cc-fast .cc-badge {
+  background: repeating-linear-gradient(135deg, var(--cc-c) 0 0.35em, color-mix(in srgb, var(--cc-c) 65%, #fff) 0.35em 0.7em);
+}
+.cc-pit .cc-body {
+  color: var(--cc-c);
+}
+
+/* Dikkat çekme animasyonları */
+@keyframes cc-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cc-pulse {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+@keyframes cc-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes cc-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cc-sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+.cc-a-pulse {
+  animation:
+    cc-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    cc-pulse 0.55s ease-in-out 0.22s 4;
+}
+.cc-a-flash {
+  animation:
+    cc-in 0.18s ease-out,
+    cc-flash 0.36s steps(2, jump-none) 0.18s 5;
+}
+.cc-a-slide {
+  animation: cc-slide 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+/* Çıkışta bir kez geçen ışık süpürmesi */
+.cc::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--cc-c) 38%, transparent), transparent);
+  transform: translateX(-120%);
+  animation: cc-sweep 0.9s ease-out 0.15s 2;
+}
+.cc-a-none::after,
+.cc-still::after {
+  animation: none;
+}
+.cc-still {
+  animation: none;
+}

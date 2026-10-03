@@ -18,6 +18,7 @@ import type { Packet, Status, TopicMap } from "@/sdk/types";
 import { t } from "@/sdk/i18n";
 import { friendLook, messageBeep } from "@/cloud/social";
 import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
+import { CREWCALL_EVENT, type CrewCallEvt } from "@/sdk/crewcall";
 import { crewCommandText, crewControlSet, crewDone, crewList, crewPending, crewRoom, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
 
 /** Ekip kutucuğu: ekranın alt ortasında birkaç saniye görünüp solan kısa bildirim (Host.tsx çizer) */
@@ -134,6 +135,8 @@ export function startCrew(status: Accessor<Status | undefined>) {
       return finish(c, false, String((e as Error)?.message ?? e).slice(0, 200));
     }
     showCrewBox({ id: `crew-${c.id}`, from: t("Ekip"), body: `${who}: ${crewCommandText(c.kind, c.args)}` }, 5000);
+    // Ekip Çağrısı overlay'i: uygulanan pit komutu ekranın ortasında da duyurulur
+    void emit(CREWCALL_EVENT, { id: `crew-${c.id}`, from: who, body: crewCommandText(c.kind, c.args) } satisfies CrewCallEvt).catch(() => {});
     finish(c, true, "");
   };
   async function process() {

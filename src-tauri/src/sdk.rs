@@ -181,6 +181,9 @@ pub struct VarIndex {
     pub pit_sv_fuel: Option<VarRef>,
     pub pit_sv_compound: Option<VarRef>,
     pub fast_repairs: Option<VarRef>,
+    /// Kalan zorunlu / isteğe bağlı tamir süresi (sn)
+    pub pit_repair_left: Option<VarRef>,
+    pub pit_opt_repair_left: Option<VarRef>,
     // Hibrit / ERS (sadece bu sistemi olan araçlarda bulunur)
     pub ers_pct: Option<VarRef>,
     pub ers_j: Option<VarRef>,
@@ -284,6 +287,8 @@ impl VarIndex {
                 "PitSvFuel" => ix.pit_sv_fuel = r,
                 "PitSvTireCompound" => ix.pit_sv_compound = r,
                 "FastRepairAvailable" => ix.fast_repairs = r,
+                "PitRepairLeft" => ix.pit_repair_left = r,
+                "PitOptRepairLeft" => ix.pit_opt_repair_left = r,
                 "EnergyERSBatteryPct" => ix.ers_pct = r,
                 "EnergyERSBattery" => ix.ers_j = r,
                 "EnergyMGU_KLapDeployPct" => ix.mguk_lap_deploy_pct = r,
@@ -439,6 +444,14 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.pit_sv_fuel = f32_or(buf, ix.pit_sv_fuel, 0.0);
     f.pit_sv_compound = i32_or(buf, ix.pit_sv_compound, -1);
     f.fast_repairs = i32_or(buf, ix.fast_repairs, -1);
+    // Hasar: iRacing bölge bazlı veri vermez; sadece kalan tamir süreleri (bkz. drivecues.rs)
+    f.damage = crate::drivecues::Damage {
+        detail: 1,
+        repair: f32_or(buf, ix.pit_repair_left, -1.0),
+        opt_repair: f32_or(buf, ix.pit_opt_repair_left, -1.0),
+        ..Default::default()
+    };
+    f.tyres_out = -1;
     // Hibrit: değişkenler araca özeldir; batarya değişkeni yoksa araçta hibrit yok sayılır
     let hy = &mut f.hybrid;
     hy.has = ix.ers_pct.is_some() || ix.ers_j.is_some();

@@ -1,0 +1,60 @@
+import { defineOverlay } from "@/sdk/overlay";
+import { NAME_FORMATS } from "@/sdk/HeaderStats";
+
+export default defineOverlay({
+  id: "driverswap",
+  name: "Sürücü Değişimi",
+  description:
+    "Takım yarışları için: araçta şu an kim var ve ne kadardır sürüyor, her takım sürücüsünün toplam sürüş süresi ve turu. İstersen en az sürüş süresi ve en uzun kesintisiz stint kurallarına göre kalan / aşılan süreyi de gösterir.",
+  category: "race",
+  topics: [{ name: "strategy", hz: 1 }],
+  size: { w: 320, h: 170 },
+  defaultPosition: { x: 40, y: 600 },
+  defaultEnabled: false,
+  settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "list",
+      options: [
+        { value: "list", label: "Liste (tüm sürücüler)" },
+        { value: "compact", label: "Kompakt (yalnızca araçtaki sürücü)" },
+      ],
+    },
+    { key: "width", label: "Genişlik", type: "number", default: 320, min: 220, max: 700, step: 10, unit: "px" },
+    { key: "nameFormat", label: "Ad biçimi", type: "select", default: "full", options: NAME_FORMATS },
+    {
+      key: "minDrive",
+      label: "Sürücü başına en az sürüş süresi",
+      type: "number",
+      default: 0,
+      min: 0,
+      max: 720,
+      step: 5,
+      unit: "dk",
+      ui: "stepper",
+      group: "Kurallar",
+      hint: "0: kural yok. Girersen her sürücünün yanında eksik kalan süre, tamamlayınca onay işareti görünür.",
+    },
+    {
+      key: "maxStint",
+      label: "En uzun kesintisiz sürüş",
+      type: "number",
+      default: 0,
+      min: 0,
+      max: 480,
+      step: 5,
+      unit: "dk",
+      ui: "stepper",
+      group: "Kurallar",
+      hint: "0: kural yok. Araçtaki sürücünün sürücü değişiminden beri geçen süresi bu sınıra göre izlenir; kalan süre, sınır aşılınca aşım gösterilir.",
+    },
+    { key: "warnBefore", label: "Sınıra şu kadar kala uyar", type: "number", default: 5, min: 1, max: 60, step: 1, unit: "dk", group: "Kurallar", showIf: { key: "maxStint", not: [0] } },
+    { key: "showLaps", label: "Tur sayısı", type: "boolean", default: true, group: "Gösterilecekler" },
+    { key: "showStints", label: "Araca biniş sayısı", type: "boolean", default: false, group: "Gösterilecekler" },
+    { key: "showShare", label: "Süre payı çubuğu", type: "boolean", default: true, group: "Gösterilecekler", hint: "Her sürücünün toplam sürüş süresindeki payı (kural girildiyse en az süreye göre doluluk)." },
+    { key: "showStintTime", label: "Süren stint süresi (pit çıkışından beri)", type: "boolean", default: true, group: "Gösterilecekler" },
+    { key: "hideSolo", label: "Takım yarışı değilse gizle", type: "boolean", default: true, hint: "Tek sürücülü oturumlarda overlay ekranda yer kaplamaz. Düzenleme modunda yine görünür." },
+  ],
+});

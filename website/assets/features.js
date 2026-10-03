@@ -2,81 +2,18 @@
 // araçlar, simülasyon uyumluluğu (src/overlays/simSupport.ts) ve ücretsiz / PRO ayrımı (src/sdk/proFeatures.ts varsayılanları).
 // Metinler Türkçe + İngilizce burada (addDict); diğer diller assets/lang/<kod>.json. "a|b|c" biçimindeki anahtarlar listedir.
 // Sayılar: OVERLAYS.length (manifest sayısı), VOICE (src-tauri/src/voice_catalog.json), 46 marka logosu (src/assets/carlogos).
-// Yeni overlay eklenince OVERLAYS'e ve ov_<id>_n/_d/_h anahtarlarına da eklenmeli.
+// Yeni overlay eklenince overlays.js'e (OVERLAYS, ad, galeri metni) ve buradaki ov_<id>_d/_h anahtarlarına eklenmeli.
 import { $, $$, T, addDict, appConfig, applyLang, boot, esc } from "./core.js";
 import { applyCachedImages, initSiteImages } from "./siteimages.js";
-import { OVERLAY_COUNT as SHARED_OVERLAY_COUNT } from "./counts.js";
+import { OVERLAYS, OVERLAY_ROUND } from "./overlays.js";
 
 /** voice_catalog.json: toplam ifade, mühendisin kullandığı, bunların içindeki sayı/süre parçaları, kullanılan ifadelerin kayıt sayısı */
 const VOICE = { catalog: 2255, used: 1501, numbers: 944, spoken: 557, recordings: 3739, categories: 22 };
 const LOGOS = 46;
 const LANGS = 15;
 
-// [grup, [[overlay kimliği, simge, varsayılan etiket: free | pro | mixed], …]]
-const OVERLAYS = [
-  [
-    "race",
-    [
-      ["relative", "↕️", "free"],
-      ["standings", "🏆", "free"],
-      ["duel", "🎯", "free"],
-      ["battlebox", "⚔️", "free"],
-      ["trackmap", "🗺️", "free"],
-      ["flatmap", "➖", "free"],
-      ["minimap", "🧭", "free"],
-      ["radar", "📡", "free"],
-      ["spotterbar", "🚦", "mixed"],
-      ["overtake", "⏩", "free"],
-      ["rejoin", "↩️", "free"],
-    ],
-  ],
-  [
-    "car",
-    [
-      ["dashboard", "🎛️", "mixed"],
-      ["inputs", "🦶", "mixed"],
-      ["pedals", "🎚️", "mixed"],
-      ["ers", "🔋", "mixed"],
-      ["gforce", "🌀", "free"],
-      ["telemetry", "⚙️", "free"],
-      ["delta", "⏱️", "free"],
-      ["laptimes", "📋", "free"],
-      ["corners", "〰️", "free"],
-      ["tires", "🛞", "free"],
-      ["dataframe", "🔢", "free"],
-      ["pitspeed", "🚧", "free"],
-    ],
-  ],
-  [
-    "strategy",
-    [
-      ["fuel", "⛽", "free"],
-      ["session", "🏁", "free"],
-      ["digiflags", "🚩", "free"],
-      ["weather", "🌦️", "free"],
-      ["incidents", "⚠️", "free"],
-      ["incidentlog", "🧾", "free"],
-    ],
-  ],
-  [
-    "stream",
-    [
-      ["livechat", "💬", "mixed"],
-      ["livepoll", "📊", "pro"],
-      ["captions", "🔤", "pro"],
-      ["webview", "🌐", "free"],
-    ],
-  ],
-  [
-    "social",
-    [
-      ["messages", "✉️", "mixed"],
-      ["voice", "🎙️", "mixed"],
-    ],
-  ],
-];
+// Overlay listesi, adları (ov_<id>_n) ve grup başlıkları: overlays.js (ana sayfa galerisiyle ortak)
 const OVERLAY_COUNT = OVERLAYS.reduce((n, g) => n + g[1].length, 0);
-if (OVERLAY_COUNT !== SHARED_OVERLAY_COUNT) console.warn(`counts.js OVERLAY_COUNT=${SHARED_OVERLAY_COUNT}, features.js=${OVERLAY_COUNT}`);
 
 // simSupport.ts: 1 = çalışır, 2 = kısmen, 0 = çalışmaz. Sıra: iRacing, ACC, AC, LMU/rF2, AMS2
 const SIMS = [
@@ -91,6 +28,11 @@ const SIMS = [
   ["fx_si_r9", 1, 2, 2, 2, 2],
   ["fx_si_r10", 1, 0, 0, 0, 0],
   ["fx_si_r11", 1, 0, 0, 0, 0],
+  ["fx_si_r12", 1, 1, 1, 1, 1],
+  ["fx_si_r13", 1, 2, 2, 2, 2],
+  ["fx_si_r14", 1, 0, 0, 1, 0],
+  ["fx_si_r15", 1, 2, 0, 1, 2],
+  ["fx_si_r16", 1, 0, 0, 0, 0],
 ];
 
 const TOC = ["overlays", "livechat", "voice", "community", "social", "tools", "sims", "pro"];
@@ -99,6 +41,7 @@ const COMMUNITY = [
   ["📺", "fx_co2"],
   ["📸", "fx_co3"],
   ["🎨", "fx_co4"],
+  ["🎛️", "fx_co5"],
 ];
 const SOCIAL = [
   ["👥", "fx_so1"],
@@ -106,6 +49,7 @@ const SOCIAL = [
   ["🗨️", "fx_so3"],
   ["🛡️", "fx_so4"],
   ["📡", "fx_so5"],
+  ["🎧", "fx_so7"],
   ["🪪", "fx_so6"],
 ];
 // [anahtar, görsel yuvası ("" = yok), çizim türü]
@@ -166,30 +110,22 @@ addDict({
     "Etiketler varsayılan ayrımı gösterir. “ÜCRETSİZ + PRO seçenekler”: overlay herkese açık, bazı tasarımları ya da ek işlevleri PRO.",
     "Tags show the default split. “FREE + PRO options”: the overlay is open to everyone, some designs or extra functions are PRO.",
   ],
-  fx_g_race: ["Yarış bilgisi", "Race information"],
-  fx_g_race_d: ["Etrafında kim var, kim nerede, kim yaklaşıyor.", "Who is around you, who is where, who is closing in."],
-  fx_g_car: ["Araç ve telemetri", "Car and telemetry"],
-  fx_g_car_d: ["Gösterge paneli, pedallar, tur süreleri ve sürüş analizi.", "Dash, pedals, lap times and driving analysis."],
-  fx_g_strategy: ["Strateji ve oturum", "Strategy and session"],
-  fx_g_strategy_d: ["Yakıt, bayraklar, hava ve olay puanı.", "Fuel, flags, weather and incident points."],
-  fx_g_stream: ["Yayın ve sohbet", "Streaming and chat"],
-  fx_g_stream_d: ["Yayıncılar için: sohbet, anket, altyazı ve sahneler.", "For streamers: chat, polls, captions and scenes."],
-  fx_g_social: ["Sosyal ve ses", "Social and voice"],
+  fx_g_race_d: ["Etrafında kim var, kim nerede, kim yaklaşıyor; fark grafiği ve rakip takibi.", "Who is around you, who is where, who is closing in; gap chart and rival tracking."],
+  fx_g_car_d: ["Gösterge paneli, pedallar, tur ve sektör süreleri, fren noktaları, pist limiti, hasar ve sürüş analizi.", "Dash, pedals, lap and sector times, braking points, track limits, damage and driving analysis."],
+  fx_g_strategy_d: ["Yakıt, pit penceresi, stint ve sürücü değişimi, ekip çağrıları, bayraklar, hava, rüzgâr ve olay puanı.", "Fuel, pit window, stints and driver swaps, crew calls, flags, weather, wind and incident points."],
+  fx_g_stream_d: ["Yayıncılar için: sohbet, anket, altyazı, start ışıkları, sürücü kartı, kafa kafaya, yarış sonucu ve hedef çubuğu.", "For streamers: chat, polls, captions, start lights, driver card, head to head, race result and goal bar."],
   fx_g_social_d: ["Mesajların ve mühendisinin söyledikleri ekranda.", "Your messages and what your engineer says, on screen."],
 
-  ov_relative_n: ["Yakındakiler (Relative)", "Relative"],
   ov_relative_d: ["Pistte önündeki ve arkandaki araçlar, aradaki farkla.", "The cars ahead of and behind you on track, with the gaps."],
   ov_relative_h: [
     "Fark, stint / PIT / OUT, lisans ve SR, iRating|Yarışta tahmini iRating değişimi|Ülke bayrağı, araç markası logosu, lastik, son tur, bayraklar|Üstte hava, altta SOF ve olay puanı; sütunları sen seçer ve sıralarsın",
     "Gap, stint / PIT / OUT, licence and SR, iRating|Estimated iRating change during the race|Country flag, car brand logo, tyre, last lap, flags|Weather on top, SOF and incident points at the bottom; you choose and order the columns",
   ],
-  ov_standings_n: ["Sıralama Tablosu", "Standings"],
   ov_standings_d: ["Çok sınıflı sıralama tablosu.", "A multi-class leaderboard."],
   ov_standings_h: [
     "Sınıf başlıkları ve sınıf SOF'u|“Liderler + etrafımdakiler” ya da herkes|Kazanılan / kaybedilen sıra, pit sayısı, son 5 tur ortalaması, en iyi tur|Lidere ya da öndekine fark; sütunlar sıralanabilir",
     "Class headers with class SOF|“Leaders + around me” or everyone|Positions gained / lost, pit count, 5-lap average, best lap|Gap to leader or interval; columns can be reordered",
   ],
-  ov_duel_n: ["Yakın Takip", "Close Battle"],
   ov_duel_d: [
     "Önündeki ve arkandaki araçlara farkı makara gibi dönen bir şeritte gösterir.",
     "Shows the gaps to the cars ahead and behind on a reel-like rolling strip.",
@@ -198,31 +134,25 @@ addDict({
     "Araç yaklaştıkça satırı büyür ve netleşir, uzaklaştıkça küçülüp silikleşir|Saniye ya da metre eşiği; ön ve arka için ayrı eşik|Yaklaşma oku ve tur farkı rengi (tur önde mavi, tur geride kırmızı)|Eşik içinde kimse yokken gizlenir; sadece kendi sınıfın / sadece yarış seçenekleri",
     "A row grows and sharpens as the car closes in, shrinks and fades as it drops back|Threshold in seconds or metres; separate front and rear thresholds|Closing arrow and lap-difference tint (a lap up blue, a lap down red)|Hides when nobody is within the threshold; own-class-only and race-only options",
   ],
-  ov_battlebox_n: ["Battle Box", "Battle Box"],
   ov_battlebox_d: ["Sınıfında hemen önündeki ve arkandaki araç.", "The car directly ahead and behind in your class."],
   ov_battlebox_h: ["Numara, isim, son tur ve aradaki fark|Yanında pozisyon rozeti|Küçük ve yayın dostu", "Number, name, last lap and gap|Position badge on the side|Compact and stream-friendly"],
-  ov_trackmap_n: ["Pist Haritası", "Track Map"],
   ov_trackmap_d: ["Tüm pist ve üzerindeki araçlar.", "The whole track with every car on it."],
   ov_trackmap_h: [
     "Pist şekli ilk temiz turunda otomatik kaydedilir|Pit yolu çizimi: giriş / çıkış işaretleri, kendi pit kutun, pitteki araçlar pit yolunda|Sınıf renkleri; araç üstünde numara ya da sınıf pozisyonu|Döndürme, aynalama, dolgu, kenar çizgisi ve özel renkler",
     "The track shape is recorded automatically on your first clean lap|Pit lane drawing: entry / exit marks, your own pit stall, pitted cars shown in the lane|Class colours; car number or class position on each car|Rotation, mirroring, fill, outline and custom colours",
   ],
-  ov_flatmap_n: ["Düz Harita", "Flat Map"],
   ov_flatmap_d: ["Pisti düz bir şerit olarak gösterir.", "Shows the track as a straight strip."],
   ov_flatmap_h: [
     "Tüm araçlar sınıf renkleriyle|Sen ortada ya da başlangıç / bitiş solda|Arkadaşların ayrı renkte",
     "Every car in its class colour|You in the centre, or start / finish on the left|Your friends in a separate colour",
   ],
-  ov_minimap_n: ["Mini Harita", "Mini Map"],
   ov_minimap_d: ["Aracını merkeze alan, yakınlaştırılmış yuvarlak pist görünümü.", "A zoomed, round track view centred on your car."],
   ov_minimap_h: ["Yakındaki araçları gösterir|İstersen gidiş yönü hep yukarıda|20 Hz akıcı hareket", "Shows nearby cars|Optional heading-up rotation|Smooth 20 Hz motion"],
-  ov_radar_n: ["Radar", "Radar"],
   ov_radar_d: ["Yanındaki ve yakınındaki araçları kuşbakışı gösteren radar.", "A top-down radar showing the cars beside and near you."],
   ov_radar_h: [
     "Araç blokları boyuna konumlarına göre hareket eder|Yanında araç varken o taraf kırmızıya döner|Görüş mesafesi ayarı, isteğe bağlı mesafe yazısı|Kimse yokken kendiliğinden gizlenir",
     "Car blocks move with their longitudinal position|The side turns red while a car is alongside|Adjustable range, optional distance read-out|Hides itself when nobody is near",
   ],
-  ov_spotterbar_n: ["Çubuk Spotter", "Spotter Bars"],
   ov_spotterbar_d: [
     "Ekranın solunda ve sağında ince birer çubuk: sadece yanında araç olan taraf yanar.",
     "A thin bar on the left and right of the screen: only the side with a car alongside lights up.",
@@ -231,29 +161,24 @@ addDict({
     "İşaret, yandaki aracın arkadan öne ilerleyişini gösterir|Tek araç, iki yanda araç ve tehlikeli yakınlık için ayrı renkler|Kalınlık, yükseklik ve çubuklar arası mesafe ayarlanır; eklenince ekranın ortasına yerleşir|7 görünüm: Düz çubuk ücretsiz; Yay, Soluk uçlu, Segmentli, Ok uçlu, Neon çizgi ve Parantez PRO",
     "A marker shows the car beside you moving from rear to front|Separate colours for one car, cars on both sides and dangerously close|Adjustable thickness, height and gap; lands at the screen centre when added|7 views: Flat bar is free; Arc, Faded ends, Segmented, Chevrons, Neon line and Bracket are PRO",
   ],
-  ov_overtake_n: ["Hızlı Sınıf Uyarısı", "Faster Class Warning"],
   ov_overtake_d: ["Çok sınıflı yarışlarda arkadan yaklaşan daha hızlı sınıftaki araçlar.", "Faster-class cars catching you in multi-class races."],
   ov_overtake_h: ["Süre farkı ve sınıf rengi|En yakını yaklaştıkça çubuk dolar|iRacing", "Time gap and class colour|A bar fills as the closest one approaches|iRacing"],
-  ov_rejoin_n: ["Piste Dönüş", "Rejoin Helper"],
   ov_rejoin_d: ["Pist dışına çıktığında ya da durduğunda belirir.", "Appears when you go off track or stop."],
   ov_rejoin_h: [
     "Arkadan gelen en yakın araçlara süre farkı|Piste dönmenin güvenli olup olmadığını söyler|Gerekmediğinde ekranda yer kaplamaz",
     "Time gap to the closest cars coming from behind|Tells you whether it is safe to rejoin|Takes no screen space when not needed",
   ],
 
-  ov_dashboard_n: ["Direksiyon Ekranı", "Steering Wheel Display"],
   ov_dashboard_d: ["Yarış direksiyonlarındaki ekranlar gibi bir gösterge paneli.", "A dash like the screens on racing steering wheels."],
   ov_dashboard_h: [
     "Klasik, Minimal, Yarış ve Dayanıklılık görünümleri + araca göre otomatik seçim|PRO: gerçek yarış araçlarından esinlenen 10 araç tarzı ekran (F1, F3/F4/FR, üç GT3 tarzı, LMDh/LMH, stock car, ralli, TCR, yol arabası)|Devir ışıkları: bloklar, F1 (15 LED) ya da çubuk; vites noktasında yanıp söner|Delta referansı (kendi en iyin / oturumun en iyisi / optimal) ve seçilebilir alt kutular|Her öğe ayrı ayarlanır: göster / gizle, boyut ve renk (devir ışıkları, vites, hız, delta, tur süreleri, yakıt, lastikler…)|PRO: Dashboard Tasarımcısı – bileşenleri tuvale sürükleyip kendi ekranını tasarla, overlay olarak ekle ve toplulukta paylaş (puan ve yorum)|PRO: uzak gösterge – ekranı aynı ağdaki telefon ya da tablette aç (QR kodla)",
     "Classic, Minimal, Race and Endurance views + automatic selection by car|PRO: 10 car-style displays inspired by real race cars (F1, F3/F4/FR, three GT3 styles, LMDh/LMH, stock car, rally, TCR, road car)|Shift lights: blocks, F1 (15 LEDs) or bar; flashes at the shift point|Delta reference (your best / session best / optimal) and selectable bottom boxes|Every element is adjustable: show / hide, size and colour (shift lights, gear, speed, delta, lap times, fuel, tyres…)|PRO: Dashboard Designer – drag widgets onto a canvas to build your own display, add it as an overlay and share it with the community (ratings and comments)|PRO: remote dash – open the display on a phone or tablet in the same network (QR code)",
   ],
-  ov_inputs_n: ["Pedallar & Girdi", "Pedals & Inputs"],
   ov_inputs_d: ["Gaz / fren / debriyaj izi, pedal çubukları, vites, hız ve direksiyon.", "Throttle / brake / clutch trace, pedal bars, gear, speed and steering."],
   ov_inputs_h: [
     "4 tasarım: varsayılan, telemetri grafiği + çubuklar, geniş grafik; PRO: sim tarzı (klasik)|Araca ya da bağlı direksiyona göre direksiyon görünümü; PRO: Formula, GT, prototip, ralli, oval ve klasik ahşap direksiyonlar|İsteğe bağlı gaz / fren yüzdesi, son tur ve en iyi tur satırı|60 Hz; ABS / TC göstergesi, grafikte direksiyon çizgisi",
     "4 designs: default, telemetry graph + bars, wide graph; PRO: sim style (classic)|Steering wheel matched to the car or to the connected wheel; PRO: Formula, GT, prototype, rally, oval and classic wooden wheels|Optional throttle / brake percentages, last-lap and best-lap lines|60 Hz; ABS / TC indicators, steering line on the graph",
   ],
-  ov_pedals_n: ["Pedal Seti", "Pedal Set"],
   ov_pedals_d: [
     "Grafiksiz pedal göstergesi: gaz / fren / debriyaj, yüzdeler, vites, hız ve direksiyon.",
     "Graph-free pedal display: throttle / brake / clutch, percentages, gear, speed and steering wheel.",
@@ -262,7 +187,6 @@ addDict({
     "7 tasarım: dikey çubuklar, kompakt şerit, LED segmentler; PRO: pedal seti, yatay şeritler, halka göstergeler, çerçevesiz HUD|Yüzde etiketleri, ABS / TC renk ve çerçeve göstergesi|İsteğe bağlı son tur / en iyi tur satırı|Gaz ve fren renkleri değiştirilebilir",
     "7 designs: vertical bars, compact strip, LED segments; PRO: pedal set, horizontal strips, ring gauges, frameless HUD|Percentage labels, ABS / TC colour and frame indication|Optional last-lap / best-lap line|Custom throttle and brake colours",
   ],
-  ov_ers_n: ["ERS ve Batarya", "ERS & Battery"],
   ov_ers_d: [
     "Hibrit araçlarda batarya doluluğu, turdaki net kazanç / kayıp ve MGU gücü.",
     "Battery charge, net gain / loss this lap and MGU power for hybrid cars.",
@@ -271,7 +195,6 @@ addDict({
     "5 tasarım: yatay çubuk, dikey pil, kompakt; PRO: halka gösterge ve detaylı panel|Tur başı işareti, bu turdaki net fark, tur ortalaması ve boşalmaya / dolmaya kalan tur tahmini|MGU-K / MGU-H gücü, harcama modu, tur başına harcama hakkı, P2P ve DRS|Düşük ve dolu batarya uyarısı; hibrit olmayan araçta kendiliğinden gizlenir",
     "5 designs: horizontal bar, vertical cell, compact; PRO: ring gauge and detailed panel|Lap-start marker, net change this lap, per-lap average and estimated laps until empty / full|MGU-K / MGU-H power, deploy mode, per-lap deploy allowance, P2P and DRS|Low and full battery warnings; hides itself in cars without a hybrid system",
   ],
-  ov_gforce_n: ["G-Force", "G-Force"],
   ov_gforce_d: [
     "Yanal ve boyuna g kuvveti: fren, hızlanma ve viraj yükünü anlık gösterir.",
     "Lateral and longitudinal g-force: shows braking, acceleration and cornering load live.",
@@ -280,81 +203,65 @@ addDict({
     "4 tasarım: iz bırakan klasik g-çemberi, yanal / boyuna çubuklar, sayısal minimal, sürtünme çemberi|Tepe değer işaretleri ve ayarlanabilir tutma süresi|En yüksek g ölçeği, iz uzunluğu ve yumuşatma ayarı|Desteklenen bütün oyunlarda çalışır",
     "4 designs: classic g-circle with trail, lateral / longitudinal bars, numeric minimal, friction circle|Peak markers with adjustable hold time|Max g scale, trail length and smoothing settings|Works in every supported sim",
   ],
-  ov_telemetry_n: ["Telemetri Paneli", "Telemetry Panel"],
   ov_telemetry_d: ["Vites halkası ve devir göstergesi tek şeritte.", "Gear ring and rev gauge in one strip."],
   ov_telemetry_h: ["Hız ve devir ışıkları|Pozisyon ve son tur|Yakıt ve pist sıcaklığı", "Speed and shift lights|Position and last lap|Fuel and track temperature"],
-  ov_delta_n: ["Delta Bar", "Delta Bar"],
   ov_delta_d: ["En iyi turuna göre anlık fark.", "Live difference to your best lap."],
   ov_delta_h: ["Kazanma / kaybetme eğilimi|Tur süreleri|iRacing ve ACC", "Gaining / losing trend|Lap times|iRacing and ACC"],
-  ov_laptimes_n: ["Tur Süreleri", "Lap Times"],
   ov_laptimes_d: ["Son turlarının süreleri ve sektörleri.", "Times and sectors of your recent laps."],
   ov_laptimes_h: [
     "En iyi tura fark ve tur başına harcanan yakıt|Geçersiz (pist dışı / olaylı) ve pit turları işaretlenir|Teorik en iyi tur hesaplanır",
     "Gap to best and fuel used per lap|Invalid (off-track / incident) and pit laps are marked|Theoretical best lap is calculated",
   ],
-  ov_corners_n: ["Viraj Analizi", "Corner Analysis"],
   ov_corners_d: ["En iyi turundaki virajları otomatik bulur.", "Finds the corners of your best lap automatically."],
   ov_corners_h: [
     "Her virajdaki en düşük hızını son turunla ve bu turla karşılaştırır|Nerede zaman kaybettiğini gösterir|Elle pist tanımı gerekmez",
     "Compares your minimum speed in every corner with your last and current lap|Shows where you are losing time|No manual track setup needed",
   ],
-  ov_tires_n: ["Lastikler", "Tyres"],
   ov_tires_d: ["Dört lastiğin durumu.", "The state of all four tyres."],
   ov_tires_h: [
     "İç / orta / dış sıcaklık|Kalan diş ve soğuk basınç|iRacing bu değerleri pitte günceller",
     "Inner / middle / outer temperature|Remaining tread and cold pressure|iRacing updates these values in the pits",
   ],
-  ov_dataframe_n: ["Veri Kutusu", "Data Box"],
   ov_dataframe_d: ["Seçtiğin tek bir değeri büyük gösteren kutu.", "A box showing one value of your choice, big."],
   ov_dataframe_h: [
     "Hız, vites, yakıt, delta, pozisyon, tur, sıcaklık, fren dengesi ve daha fazlası|Kendi gösterge düzenini kutu kutu kur",
     "Speed, gear, fuel, delta, position, lap, temperature, brake bias and more|Build your own dash box by box",
   ],
-  ov_pitspeed_n: ["Pit Hızı", "Pit Speed"],
   ov_pitspeed_d: ["Pit yoluna yaklaşırken ve pit yolundayken hız sınırına göre hızın.", "Your speed against the limit when approaching and driving the pit lane."],
   ov_pitspeed_h: ["Sınırlayıcı kapalıysa uyarır|Sınırı aşınca kırmızı yanar|Sadece gerektiğinde görünür", "Warns when the limiter is off|Turns red when you exceed the limit|Only visible when needed"],
 
-  ov_fuel_n: ["Yakıt Hesaplayıcı", "Fuel Calculator"],
   ov_fuel_d: ["Depo durumu ve bitişe gereken yakıt.", "Tank level and the fuel needed to finish."],
   ov_fuel_h: [
     "Son tur / 5 tur / 10 tur ortalamasıyla tüketim–tur–stint–ikmal tablosu|Hedef tüketim, kalan tur (son / ortalama / en kötü) ve pit penceresi|Ayarlanabilir ikmal emniyet payı|Takım yakıtı: takım arkadaşlarının yakıtı canlı",
     "Usage–laps–stint–refuel table from last lap / 5-lap / 10-lap averages|Target usage, laps left (last / average / worst) and pit window|Adjustable refuel safety margin|Team fuel: your teammates' fuel, live",
   ],
-  ov_session_n: ["Oturum & Bayraklar", "Session & Flags"],
   ov_session_d: ["Oturumun özeti tek kutuda.", "The session at a glance."],
   ov_session_h: [
     "Bayrak uyarıları|Kalan süre / tur, pozisyon, sıcaklıklar|Olay puanı ve araç ayarları (fren dengesi / TC / ABS)",
     "Flag alerts|Time / laps left, position, temperatures|Incident points and car settings (brake bias / TC / ABS)",
   ],
-  ov_digiflags_n: ["DigiFlags", "DigiFlags"],
   ov_digiflags_d: ["Gerçek yarış donanımlarından esinlenen LED matris bayrak paneli.", "An LED-matrix flag panel inspired by real racing hardware."],
   ov_digiflags_h: ["Sarı, mavi, yeşil, beyaz, damalı|Kırmızı, siyah, hasar ve enkaz bayrakları", "Yellow, blue, green, white, chequered|Red, black, meatball and debris flags"],
-  ov_weather_n: ["Canlı Hava", "Live Weather"],
   ov_weather_d: ["Pistteki hava, anlık.", "Track weather, live."],
   ov_weather_h: ["Rüzgâr pusulası: yön ve hız|Pist ve hava sıcaklığı, nem|Yağış ve pist ıslaklığı", "Wind compass: direction and speed|Track and air temperature, humidity|Precipitation and track wetness"],
-  ov_incidents_n: ["Olay Sayacı", "Incident Counter"],
   ov_incidents_d: ["Tamamlanan tur ve olay puanın.", "Laps completed and your incident points."],
   ov_incidents_h: ["Yarışın olay sınırına yaklaştıkça renk değiştiren çubuk|iRacing", "A bar that changes colour as you approach the incident limit|iRacing"],
-  ov_incidentlog_n: ["Olay Günlüğü", "Incident Log"],
   ov_incidentlog_d: ["Bu oturumda aldığın her olay puanı.", "Every incident point you picked up this session."],
   ov_incidentlog_h: [
     "Saat, tur, sektör ve türü (1x pist dışı, 2x kontrol kaybı / duvar, 4x temas)|Yeni olay birkaç saniye vurgulanır|iRacing",
     "Time, lap, sector and type (1x off track, 2x loss of control / wall, 4x contact)|A new incident is highlighted for a few seconds|iRacing",
   ],
 
-  ov_livechat_n: ["Canlı Sohbet", "Live Chat"],
   ov_livechat_d: ["YouTube, Twitch ve Kick sohbetini tek akışta gösterir.", "Shows YouTube, Twitch and Kick chat in a single feed."],
   ov_livechat_h: [
     "Emote'lar, rozetler, Super Chat, abonelik ve raid uyarıları|İzleyici çubuğu: platform başına + toplam|Botları ve ! komutlarını gizleme, silinen mesajları yansıtma|OBS'te de kullanılabilir; birden fazla kanal PRO",
     "Emotes, badges, Super Chat, sub and raid alerts|Viewer bar: per platform + total|Hide bots and ! commands, mirror deleted messages|Works in OBS too; more than one channel is PRO",
   ],
-  ov_livepoll_n: ["Sohbet Anketi", "Chat Poll"],
   ov_livepoll_d: ["Canlı sohbetteki anketi gösterir.", "Shows the poll running in your live chat."],
   ov_livepoll_h: [
     "İzleyiciler şık numarasını yazarak oy verir|Soru, şıklar, oy çubukları ve kalan süre|Beraberlikte rastgele seçim animasyonu|Kısayolla başlat (varsayılan F9)",
     "Viewers vote by typing the option number|Question, options, vote bars and time left|Random-pick animation on a tie|Start with a hotkey (default F9)",
   ],
-  ov_captions_n: ["Altyazı", "Captions"],
   ov_captions_d: ["Konuşmanı yazıya çevirip altyazı olarak gösterir.", "Turns your speech into on-screen captions."],
   ov_captions_h: [
     "Mikrofon ve isteğe bağlı uzak ses (ör. Discord) ayrı renkte|Yazı tipi, boyut, renk ve arka plan|Kısayolla aç / kapat (varsayılan F6)",
@@ -363,21 +270,148 @@ addDict({
   ov_scene_n: ["Yayın Sahnesi", "Stream Scene"],
   ov_scene_d: ["Yayın için tam ekran sahneler.", "Full-screen scenes for your stream."],
   ov_scene_h: ["Başlıyor (geri sayım), Hemen dönerim, Yayın sonu|Garajdayken ekranı kapatan örtü", "Starting soon (countdown), Be right back, Stream ending|A cover that hides the screen while you are in the garage"],
-  ov_webview_n: ["Webview", "Webview"],
   ov_webview_d: ["Herhangi bir web sayfasını overlay olarak gösterir.", "Shows any web page as an overlay."],
   ov_webview_h: ["Sohbet, yayın uyarıları, zamanlayıcı|Kendi panelin ya da aracın", "Chat, stream alerts, timers|Your own dashboard or tool"],
 
-  ov_messages_n: ["Mesajlar", "Messages"],
   ov_messages_d: ["Yarışırken gelen mesajları ekranda küçük balonlarla gösterir.", "Shows incoming messages as small bubbles while you race."],
   ov_messages_h: [
     "Arkadaş, takım ve grup mesajları|Tüm arkadaşlar, takım ya da seçtiğin kişiler|Birkaç saniye sonra kendiliğinden kaybolur|PRO: mesajları sesli okuma",
     "Friend, team and group messages|All friends, team, or only people you pick|Disappears by itself after a few seconds|PRO: reads messages aloud",
   ],
-  ov_voice_n: ["Sesli Mühendis altyazısı", "Voice Engineer subtitles"],
   ov_voice_d: ["Mühendis ya da spotter konuşurken ne dediğini yazıyla gösterir.", "Shows what the engineer or spotter is saying, as text."],
   ov_voice_h: [
     "Mühendis ve spotter ayrı renk ve etiketle|Sustuğunda kendiliğinden kaybolur|Sesli Mühendis (PRO) ile çalışır|Sesli komutta sorduğun soru da \"Sen\" etiketiyle görünür",
     "Engineer and spotter in separate colours and labels|Disappears when they stop talking|Works with the Voice Engineer (PRO)|Your voice-command question is shown too, labelled \"You\"",
+  ],
+
+  // ---- Yeni overlay'ler (16): strateji, zamanlama, sürüş, yayın ----
+  ov_gapchart_d: [
+    "Öndeki ve arkadaki araca (ya da sınıf liderine) olan farkı son turlar boyunca çizgi grafikte gösterir.",
+    "Plots the gap to the car ahead and behind (or to the class leader) over the last laps.",
+  ],
+  ov_gapchart_h: [
+    "Tur başına bir nokta, en sağda anlık fark|Yaklaşma / uzaklaşma eğilimi (sn/tur) ve kaç turda yakalanacağı tahmini|Rakibin ve senin pit girişlerin grafikte işaretlenir|3 tasarım: alt alta iki grafik, sadece sayılar; PRO: tek birleşik grafik",
+    "One point per lap, the live gap on the right|Closing / dropping trend (s/lap) and an estimate of laps until the catch|Your rival's and your own pit stops are marked on the chart|3 designs: two stacked charts, numbers only; PRO: single combined chart",
+  ],
+  ov_target_d: [
+    "Seçtiğin tek bir rakibi yakından izler: sırası, sana farkı, turları, pit durumu ve lastiği.",
+    "Tracks one rival of your choice: position, gap to you, laps, pit status and tyre.",
+  ],
+  ov_target_h: [
+    "Kimi izleyeceğini seç: öndeki, arkadaki, sınıf lideri, belirli bir araç / sürücü ya da işaretli arkadaşın|Son turdaki fark değişimi; son ve en iyi tur seninkiyle karşılaştırmalı|Pit: kaç tur önce / şu an pitte, lastik, iRating ve lisans, mini fark grafiği|Kart ya da kompakt şerit; gösterilecek bilgiler tek tek seçilir",
+    "Choose who to follow: car ahead, car behind, class leader, a specific car / driver or a marked friend|Gap change over the last lap; last and best lap compared with yours|Pit: laps since / in the pits now, tyre, iRating and licence, mini gap chart|Card or compact strip; every field can be switched on or off",
+  ],
+  ov_sectors_d: [
+    "Güncel turun sektör süreleri canlı: mor sınıfın en iyisi, yeşil kişisel en iyi, sarı daha yavaş.",
+    "Live sector times for the current lap: purple best in class, green personal best, yellow slower.",
+  ],
+  ov_sectors_h: [
+    "Son tur, en iyi tur ve teorik en iyi tur (en iyi sektörlerin toplamı)|Fark neye göre: kişisel en iyi, son tur ya da sınıfın en iyi sektörleri|Oyunun resmi sektörleri; yoksa tur üç eşit parçaya bölünür|3 tasarım: kompakt kutular, renkli çubuklar; PRO: tablo",
+    "Last lap, best lap and theoretical best (sum of your best sectors)|Delta reference: personal best, last lap or the class-best sectors|Uses the game's official sectors; otherwise the lap is split into three equal parts|3 designs: compact boxes, coloured bars; PRO: table",
+  ],
+  ov_brakepoint_d: [
+    "En iyi geçerli turundaki fren noktalarına geri sayım, virajın vitesi ve frenleme farkın.",
+    "A countdown to the braking points of your best valid lap, the gear for the corner and your braking difference.",
+  ],
+  ov_brakepoint_h: [
+    "Sıradaki fren noktasına metre metre geri sayım; ŞİMDİ uyarısı için ayarlanabilir tepki payı|Virajın vitesi ve isteğe bağlı en düşük hızı|Son virajda referansa göre kaç metre erken / geç frenlediğin|Gaz kesme noktaları ve tur şeridi|3 tasarım: yatay çubuk, büyük minimal işaret; PRO: dikey çubuk",
+    "Metre-by-metre countdown to the next braking point; adjustable reaction lead for the NOW cue|The gear for the corner and, optionally, its minimum speed|How many metres earlier / later than the reference you braked at the last corner|Lift points and a lap strip|3 designs: horizontal bar, big minimal cue; PRO: vertical bar",
+  ],
+  ov_tracklimits_d: [
+    "Süren tur hâlâ geçerli mi, kaç kez pist dışına çıktın, kaç turun geçersiz sayıldı.",
+    "Is the current lap still valid, how many times you went off track and how many laps were invalidated.",
+  ],
+  ov_tracklimits_h: [
+    "Pist dışına çıkınca ya da tur iptal olunca yanıp söner|iRacing'de olay puanı / sınır ve ayarlanabilir uyarı eşiği|Bekleyen ceza; oyun veriyorsa pist dışındaki teker sayısı|Tur geçerliyken gizlenebilir|2 tasarım: rozet; PRO: şerit",
+    "Flashes when you go off track or the lap is invalidated|Incident points / limit in iRacing, with an adjustable warning threshold|Pending penalty; wheels off track where the game reports it|Can hide while the lap is valid|2 designs: badge; PRO: strip",
+  ],
+  ov_damage_d: [
+    "Aracın üstten şeması: hasarlı bölgeler şiddetine göre renklenir, yanında tamir süresi ve motor uyarıları.",
+    "A top-down diagram of the car: damaged areas are coloured by severity, with repair time and engine warnings.",
+  ],
+  ov_damage_h: [
+    "Hafif / orta / ağır hasar için ayrı renkler|Tahmini tamir süresi (zorunlu + isteğe bağlı)|Motor uyarıları: su / yağ sıcaklığı, basınçlar, aşırı ısınma|Hasar yokken kendini gizler; araç şeması ya da kompakt şerit|Ayrıntı oyuna göre değişir (tamir süresi iRacing, ACC'de tahmin)",
+    "Separate colours for light / medium / heavy damage|Estimated repair time (mandatory + optional)|Engine warnings: water / oil temperature, pressures, overheating|Hides itself when there is no damage; car diagram or compact strip|Detail depends on the game (repair time in iRacing, estimated in ACC)",
+  ],
+  ov_pitwindow_d: [
+    "Şimdi pite girersen nereden çıkarsın? Pit kaybı, aralarına döneceğin araçlar ve pit sonrası sıran.",
+    "If you pit now, where do you come out? Pit loss, the cars you rejoin between and your position afterwards.",
+  ],
+  ov_pitwindow_h: [
+    "Pit kaybı bu pistteki stoplarından kendiliğinden ölçülür; istersen elle ya da piste özel süre gir|Pit çıkışında trafik uyarısı (ayarlanabilir eşik)|Yakıta göre en erken ve en geç pit turu|Yalnızca kendi sınıfın seçeneği|2 tasarım: kompakt şerit; PRO: dönüş çizelgeli detaylı kart",
+    "Pit loss is measured automatically from your stops at this track; or enter a manual or per-track value|Traffic warning for the pit exit (adjustable threshold)|Earliest and latest pit lap based on fuel|Own-class-only option|2 designs: compact strip; PRO: detailed card with a rejoin timeline",
+  ],
+  ov_stint_d: [
+    "Süren stint'in özeti: tur, süre, ortalama ve en iyi tur, tempo eğilimi, lastik yaşı, yakıt ortalaması.",
+    "A summary of the current stint: laps, time, average and best lap, pace trend, tyre age, average fuel.",
+  ],
+  ov_stint_h: [
+    "Stint'ler pit stoplarda kendiliğinden ayrılır|Önceki stint'le karşılaştırma ve tur süresi grafiği|Tablo görünümü: son stint'ler, sürücü ve pit süresi sütunlarıyla|Tempo eğilimi: hızlanıyor musun, yavaşlıyor musun (sn/tur)",
+    "Stints are split automatically at pit stops|Comparison with the previous stint and a lap time sparkline|Table view: the last stints, with driver and pit time columns|Pace trend: are you getting faster or slower (s/lap)",
+  ],
+  ov_driverswap_d: [
+    "Takım yarışları için: araçta kim var, ne kadardır sürüyor, her sürücünün toplam süresi ve turu.",
+    "For team races: who is in the car, for how long, and each driver's total time and laps.",
+  ],
+  ov_driverswap_h: [
+    "Sürücü başına en az sürüş süresi kuralı: eksik kalan süre ve tamamlanınca onay işareti|En uzun kesintisiz sürüş kuralı: kalan süre, sınıra yaklaşınca uyarı, aşım|Süre payı çubuğu, tur ve araca biniş sayısı|Liste ya da kompakt görünüm; takım yarışı değilse gizlenir|iRacing ve LMU / rFactor 2",
+    "Minimum drive time per driver: time still owed and a tick once it is done|Maximum continuous stint: time left, a warning near the limit, overrun|Time-share bar, lap count and number of stints in the car|List or compact view; hides when it isn't a team race|iRacing and LMU / rFactor 2",
+  ],
+  ov_crewcall_d: [
+    "Ekibinin çağrıları, mesajları ve uyguladığı pit komutları ekranın ortasında büyük bir duyuru olarak çıkar.",
+    "Your crew's calls, messages and applied pit commands appear as a big announcement in the middle of the screen.",
+  ],
+  ov_crewcall_h: [
+    "Hazır çağrılar kendi rengi ve simgesiyle: Bu tur pit, Push, Yakıt tasarrufu, Arkandan hızlı araç|Ekibin uzaktan yaptığı pit ayarı (yakıt, lastik, hızlı tamir) uygulanınca duyurulur|Nabız, yanıp sönme ya da kayma animasyonu; isteğe bağlı bip sesi|Yalnızca hazır çağrılar seçeneği: sıradan sohbet ortada görünmez",
+    "Ready-made calls in their own colour and icon: Pit this lap, Push, Save fuel, Faster car behind|Announces a pit setting your crew changed remotely (fuel, tyres, fast repair) once it is applied|Pulse, flash or slide animation; optional beep|Quick-calls-only option: ordinary chat stays out of the middle of the screen",
+  ],
+  ov_windcompass_d: [
+    "Rüzgârın aracına göre yönü: karşıdan mı, arkadan mı, yandan mı esiyor.",
+    "Wind direction relative to your car: headwind, tailwind or crosswind.",
+  ],
+  ov_windcompass_h: [
+    "Pusula (araç ortada) ya da ok ve yazı şeridi|Rüzgâr hızı; isteğe bağlı karşı ve yan bileşenler|Karşıdan / arkadan / yandan için ayrı renkler|Sakin havada gizlenebilir; virajlarda ok yumuşatılır",
+    "Compass (car in the centre) or an arrow-and-text strip|Wind speed; optional head and cross components|Separate colours for headwind / tailwind / crosswind|Can hide in calm air; the arrow is smoothed through corners",
+  ],
+  ov_startlights_d: [
+    "Yarış öncesi start ışıkları: formasyon turu, sırayla yanan ışıklar ve start anında yeşil ışık / GO!",
+    "Start lights before the race: formation lap, lights coming on in sequence and green / GO! at the start.",
+  ],
+  ov_startlights_h: [
+    "3 tasarım: ışık köprüsü (3–7 ışık), trafik ışığı, sade yazı|Start anı: ışıklar yeşile döner ya da söner; kendi start yazın|Aşama yazısı: formasyon turu, grid, hazır|İsteğe bağlı yeşilde bip; start sonrası kendiliğinden kaybolur",
+    "3 designs: light gantry (3–7 lights), traffic light, plain text|At the start the lights turn green or go out; your own start text|Phase text: formation lap, grid, ready|Optional beep on green; disappears by itself after the start",
+  ],
+  ov_drivercard_d: [
+    "Yayın için alt bant: adın, bayrağın, araç numaran, aracın, takımın, iRating ve lisansın, sıran.",
+    "A lower third for streams: your name, flag, car number, car, team, iRating and licence, position.",
+  ],
+  ov_drivercard_h: [
+    "Gösterilecek bilgiler tek tek seçilir; ikinci satıra kendi yazın (ör. sosyal medya adın)|Her zaman, belirli aralıklarla ya da sadece garajda / gridde|Vurgu rengi sınıf renginden gelebilir|3 tasarım: klasik alt bant, küçük etiket; PRO: eğik sport",
+    "Pick every field; put your own text on the second line (e.g. your social handle)|Always, at intervals, or only in the garage / on the grid|Accent colour can follow the class colour|3 designs: classic lower third, small tag; PRO: angled sport",
+  ],
+  ov_h2h_d: [
+    "Seni ve seçtiğin rakibi yan yana karşılaştırır; her satırda iyi olan değer vurgulanır.",
+    "Compares you and a rival of your choice side by side; the better value is highlighted on every row.",
+  ],
+  ov_h2h_h: [
+    "Rakip: sıralamada ya da pistte öndeki / arkadaki, sınıf lideri ya da belirli araç numarası|Sıra, son tur, en iyi tur, pit stop, lastikteki tur, iRating|Bayraklar ve aradaki fark; fark büyükse gizlenebilir|Geniş karşılaştırma bandı ya da üst üste kart",
+    "Rival: ahead / behind in the standings or on track, class leader or a specific car number|Position, last lap, best lap, pit stops, laps on tyres, iRating|Flags and the gap between you; can hide when the gap is large|Wide comparison bar or stacked card",
+  ],
+  ov_results_d: [
+    "Damalı bayraktan sonra yarış sonucu: sınıfının ilk üçü, kendi sonucun ve tahmini iRating değişimi.",
+    "The race result after the chequered flag: your class top three, your own result and the estimated iRating change.",
+  ],
+  ov_results_h: [
+    "Podyum (ilk 3) ya da tablo (ilk N + sen)|Kazanılan / kaybedilen sıra, en iyi tur, olay puanı|Sen çizgiyi geçince ya da damalı bayrak çıkınca görünür|Belirli süre ya da oturum bitene kadar ekranda; kendi başlığın",
+    "Podium (top 3) or table (top N + you)|Positions gained / lost, best lap, incident points|Appears when you cross the line or when the chequered flag comes out|On screen for a set time or until the session ends; your own title",
+  ],
+  ov_goalbar_d: [
+    "Yayıncılar için hedef ilerleme çubuğu: elle sayaç ya da canlı sohbet uyarılarından otomatik sayım.",
+    "A goal progress bar for streamers: a manual counter or automatic counting from live chat alerts.",
+  ],
+  ov_goalbar_h: [
+    "Kaynak: elle, yeni takipçiler, aboneler / üyeler, bağış sayısı ya da tutarı, tüm destekler|Başlık, hedef, yüzde, birim ve “son destekçi” satırı|Hedefe ulaşınca kendi yazın ve rengin|3 tasarım: ince çubuk, ikonlu hap; PRO: büyük hedef panosu",
+    "Source: manual, new followers, subs / members, donation count or amount, all support|Title, target, percentage, unit and a “latest supporter” line|Your own text and colour when the goal is reached|3 designs: slim bar, icon pill; PRO: big milestone board",
   ],
 
   // ---- Canlı Sohbet ----
@@ -428,15 +462,15 @@ addDict({
   fx_co_eyebrow: ["Topluluk", "Community"],
   fx_co_title: ["Paylaş, indir, puanla, yorumla", "Share, download, rate, comment"],
   fx_co_lead: [
-    "Emek verdiğin düzeni, temayı ya da en iyi karesini toplulukla paylaş; başkalarının hazırladıklarını önizleyip tek tıkla kendi programına al.",
-    "Share the layout, theme or best shot you worked on with the community; preview what others made and bring it into your app in one click.",
+    "Emek verdiğin düzeni, temayı ya da en iyi karesini toplulukla paylaş; başkalarının hazırladıklarını önizleyip tek tıkla kendi programına al. Ücretsiz bir hesap yeter: topluluk düzenlerine ve temalarına göz atabilir, onları kullanabilir, puan verebilir ve yorum yazabilirsin; topluluk dashboard'larını da gezip puanlayabilir ve yorumlayabilirsin.",
+    "Share the layout, theme or best shot you worked on with the community; preview what others made and bring it into your app in one click. A free account is enough: you can browse community layouts and themes, use them, rate them and comment — and browse, rate and comment on community dashboards too.",
   ],
   fx_co1_t: ["Düzen paylaşımı", "Layout sharing"],
   fx_co1_d: [
     "Komple overlay düzenini (konumlar + her overlay'in ayarları) paylaş. İndirmeden önce önizle, puan ver, yorum yaz.",
     "Share a complete overlay layout (positions + every overlay's settings). Preview before downloading, rate it, leave a comment.",
   ],
-  fx_co1_n: ["Paylaşmak ücretsiz · kullanmak, puan ve yorum PRO", "Sharing is free · using, rating and commenting are PRO"],
+  fx_co1_n: ["Ücretsiz hesapla: gez, kullan, puan ver, yorum yaz ve paylaş", "With a free account: browse, use, rate, comment and share"],
   fx_co2_t: ["Yayın düzeni paylaşımı", "Stream layout sharing"],
   fx_co2_d: ["OBS için hazırladığın yayın düzenlerini paylaş; başkalarının yayın düzenini kendi yayınına al.", "Share the stream layouts you built for OBS; bring someone else's stream layout into your own broadcast."],
   fx_co2_n: ["Paylaşmak ücretsiz", "Sharing is free"],
@@ -445,14 +479,21 @@ addDict({
   fx_co3_n: ["Paylaşmak PRO · gezinmek ücretsiz", "Sharing is PRO · browsing is free"],
   fx_co4_t: ["Tema paylaşımı", "Theme sharing"],
   fx_co4_d: ["Renk, yazı tipi, kenarlık ve gölge ayarlarından oluşan temanı paylaş; beğendiğin temayı tek tıkla uygula.", "Share your theme — colours, font, border and shadow; apply a theme you like in one click."],
-  fx_co4_n: ["Paylaşmak ve topluluk temasını kullanmak PRO", "Sharing and using community themes are PRO"],
+  fx_co4_n: ["Kullanmak, puan ve yorum ücretsiz hesapla · paylaşmak PRO", "Using, rating and commenting with a free account · sharing is PRO"],
+
+  fx_co5_t: ["Dashboard paylaşımı", "Dashboard sharing"],
+  fx_co5_d: [
+    "Dashboard Tasarımcısı'yla yapılmış direksiyon ekranlarına göz at, canlı önizle, puan ver ve yorum yaz; beğendiğini kendi Direksiyon Ekranı overlay'ine al.",
+    "Browse steering wheel displays made with the Dashboard Designer, preview them live, rate them and comment; bring the one you like into your own Steering Wheel Display overlay.",
+  ],
+  fx_co5_n: ["Gezinmek, puan ve yorum ücretsiz hesapla · overlay'de kullanmak, tasarlamak ve paylaşmak PRO", "Browsing, rating and commenting with a free account · using it in the overlay, designing and sharing are PRO"],
 
   // ---- Sosyal ----
   fx_so_eyebrow: ["Arkadaşlar, mesajlar, gruplar, takımlar", "Friends, messages, groups, teams"],
   fx_so_title: ["Sim yarışçıları için sosyal katman", "A social layer for sim racers"],
   fx_so_lead: [
-    "Kim çevrimiçi, kim yarışta gör; mesajlaş, grup kur, takımınla sohbet et. Güvendiğin arkadaşınla yakıtını ve tur sürelerini canlı paylaş.",
-    "See who is online and who is racing; message, create groups, chat with your team. Share your fuel and lap times live with friends you trust.",
+    "Kim çevrimiçi, kim yarışta gör; mesajlaş, grup kur, takımınla sohbet et. Güvendiğin arkadaşınla yakıtını ve tur sürelerini canlı paylaş; ekibine aldığın arkadaşın uygulamadan ya da telefonundan sana spotter'lık ve yarış mühendisliği yapsın.",
+    "See who is online and who is racing; message, create groups, chat with your team. Share your fuel and lap times live with friends you trust, and let a friend on your crew act as your spotter and race engineer from the app or from their phone.",
   ],
   fx_so1_t: ["Arkadaş listesi", "Friends list"],
   fx_so1_d: [
@@ -473,8 +514,13 @@ addDict({
   ],
   fx_so5_t: ["Güvenilir arkadaşla canlı veri", "Live data with trusted friends"],
   fx_so5_d: [
-    "Bir arkadaşını “güvenilir” işaretle; yakıtını, kalan turunu, en iyi / son turunu, son 10 turunu ve pistteki konumunu ayrı bir pencerede canlı izlesin. Dayanıklılık yarışlarında pit duvarı gibi. (PRO) Ekibine eklediğin arkadaşların Ekip Pitwall'ını uygulamadan ya da siteden açar: çevrendeki araçlar, farklar, bayraklar, yan araç göstergesi ve tek dokunuşla spotter mesajları. Konuşma → yazı açıksa ekibin söylediklerini altyazı olarak okur.",
-    "Mark a friend as “trusted” and they can watch your fuel, laps left, best / last lap, last 10 laps and track position live in a separate window — a pit wall for endurance races. (PRO) Friends on your crew open the Crew pit wall in the app or on the website: the cars around you, gaps, flags, a car-alongside indicator and one-tap spotter messages. With speech-to-text on, your crew reads what you say as subtitles.",
+    "Bir arkadaşını “güvenilir” işaretle; yakıtını, kalan turunu, en iyi / son turunu, son 10 turunu ve pistteki konumunu ayrı bir pencerede canlı izlesin. Dayanıklılık yarışlarında pit duvarı gibi. (PRO)",
+    "Mark a friend as “trusted” and they can watch your fuel, laps left, best / last lap, last 10 laps and track position live in a separate window — a pit wall for endurance races. (PRO)",
+  ],
+  fx_so7_t: ["Ekip: uzaktan spotter ve yarış mühendisi", "Crew: remote spotter and race engineer"],
+  fx_so7_d: [
+    "Arkadaşını ekibine ekle; yarışırken sana uygulamadan ya da telefonundan (sitedeki Ekip sayfası) bağlansın. Ekip Pitwall'ında çevrendeki araçları, farkları, bayrakları, havayı, yan araç göstergesini, yakıtını ve lastiklerini canlı görür; tek dokunuşla “Solunda araç”, “Bu tur pit” gibi spotter mesajları ya da kendi mesajını gönderir. Yetki verdiysen pit ayarlarını uzaktan değiştirir: eklenecek yakıt miktarı, hangi lastiklerin değişeceği, hızlı tamir ve vizör filmi (uzaktan pit ayarı iRacing'de çalışır). İzlemek ücretsiz; pit ayarı yetkisi vermek için sürücünün PRO olması gerekir. Veri 1–2 saniye gecikmeli gelir, sesli görüşme yoktur.",
+    "Add a friend to your crew and they can connect to you while you race, from the app or from their phone (the Crew page on the website). On the Crew pit wall they see the cars around you, gaps, flags, weather, a car-alongside indicator, your fuel and your tyres live, and send one-tap spotter messages such as “Car on your left” or “Pit this lap”, or a message of their own. If you allow it they change your pit settings remotely: the amount of fuel to add, which tyres to change, fast repair and tear-off (remote pit settings work in iRacing). Watching is free; granting pit control requires the driver to be PRO. Data arrives 1–2 seconds late and there is no voice chat.",
   ],
   fx_so6_t: ["Sürücü profili", "Driver profile"],
   fx_so6_d: ["Profil fotoğrafı, tanıtım yazısı ve sosyal bağlantılar; sitedeki Yarışçılar sayfasında turların ve istatistiklerin.", "Profile photo, bio and social links; your laps and stats on the website's Drivers page."],
@@ -540,13 +586,30 @@ addDict({
   fx_si_r2: ["Pist haritası ve mini harita <span class=\"muted\">(AC / ACC: haritada sadece sen)</span>", "Track map and mini map <span class=\"muted\">(AC / ACC: only you on the map)</span>"],
   fx_si_r3: ["Hava <span class=\"muted\">(AC: yağış / ıslaklık yok)</span>", "Weather <span class=\"muted\">(AC: no rain / wetness)</span>"],
   fx_si_r4: ["Lastikler <span class=\"muted\">(ACC: aşınma yok, AMS2: basınç yok)</span>", "Tyres <span class=\"muted\">(ACC: no wear, AMS2: no pressure)</span>"],
-  fx_si_r5: ["Rakipler: Yakındakiler, Sıralama, Battle Box, Yakın Takip, Düz Harita", "Opponents: Relative, Standings, Battle Box, Close Battle, Flat Map"],
+  fx_si_r5: [
+    "Rakipler: Yakındakiler, Sıralama, Battle Box, Yakın Takip, Düz Harita, Fark Grafiği, Rakip Takibi, Pit Penceresi, Kafa Kafaya, Yarış Sonucu",
+    "Opponents: Relative, Standings, Battle Box, Close Battle, Flat Map, Gap Chart, Rival Tracker, Pit Window, Head to Head, Race Result",
+  ],
   fx_si_r6: ["Radar ve Çubuk Spotter", "Radar and Spotter Bars"],
   fx_si_r7: ["Piste Dönüş", "Rejoin Helper"],
   fx_si_r8: ["Delta Bar", "Delta Bar"],
   fx_si_r9: ["Pit Hızı <span class=\"muted\">(iRacing dışında hız sınırı bilinmiyor; hız ve sınırlayıcı uyarısı çalışır)</span>", "Pit Speed <span class=\"muted\">(limit unknown outside iRacing; speed and limiter warning work)</span>"],
   fx_si_r10: ["Olay Sayacı ve Olay Günlüğü", "Incident Counter and Incident Log"],
   fx_si_r11: ["Hızlı Sınıf Uyarısı", "Faster Class Warning"],
+  fx_si_r12: ["Sektör Süreleri, Fren ve Vites İşareti, Rüzgâr Pusulası, Stint Özeti", "Sector Times, Brake & Gear Markers, Wind Compass, Stint Summary"],
+  fx_si_r13: [
+    "Pist Limiti ve Hasar Göstergesi <span class=\"muted\">(ayrıntı oyuna göre değişir; olay puanı ve tamir süresi iRacing)</span>",
+    "Track Limits and Damage Indicator <span class=\"muted\">(detail varies by game; incident points and repair time in iRacing)</span>",
+  ],
+  fx_si_r14: ["Sürücü Değişimi", "Driver Swap"],
+  fx_si_r15: [
+    "Start Işıkları <span class=\"muted\">(ACC: yaklaşık; AMS2: yalnızca grid ve start anı)</span>",
+    "Start Lights <span class=\"muted\">(ACC: approximate; AMS2: grid and start moment only)</span>",
+  ],
+  fx_si_r16: [
+    "Ekipten uzaktan pit ayarı <span class=\"muted\">(diğer oyunlarda ekip yalnızca izler ve mesaj gönderir)</span>",
+    "Remote pit settings from your crew <span class=\"muted\">(in other games the crew can only watch and send messages)</span>",
+  ],
   fx_si_note: [
     "✓ çalışır · ◐ kısmen · — o oyun bu veriyi vermiyor. LMU / rF2 için rF2 Shared Memory eklentisi, AMS2 için oyun ayarlarında Shared Memory: Project CARS 2 gerekir.",
     "✓ works · ◐ partly · — the game doesn't expose this data. LMU / rF2 need the rF2 Shared Memory plugin; AMS2 needs Shared Memory: Project CARS 2 in the game options.",
@@ -556,18 +619,18 @@ addDict({
   fx_pr_eyebrow: ["Ücretsiz ve PRO", "Free and PRO"],
   fx_pr_title: ["Çoğu şey ücretsiz; PRO üstüne koyar", "Most of it is free; PRO adds on top"],
   fx_pr_lead: [
-    "SRTR Pitwall hesap açmadan da çalışır. Ücretsiz hesap sosyal özellikleri, topluluğu ve bulut yedeğini açar. PRO; sesli mühendisi, canlı sohbetin gelişmiş araçlarını ve özel tasarımları ekler.",
-    "SRTR Pitwall works without an account. A free account unlocks the social features, the community and cloud backup. PRO adds the voice engineer, the advanced live chat tools and the special designs.",
+    "SRTR Pitwall hesap açmadan da çalışır. Ücretsiz hesap sosyal özellikleri, topluluğu (düzen ve temaları kullanma, puan ve yorum dahil) ve bulut yedeğini açar. PRO; sesli mühendisi, canlı sohbetin gelişmiş araçlarını ve özel tasarımları ekler.",
+    "SRTR Pitwall works without an account. A free account unlocks the social features, the community (including using, rating and commenting on layouts and themes) and cloud backup. PRO adds the voice engineer, the advanced live chat tools and the special designs.",
   ],
   fx_pr_free_t: ["Ücretsiz", "Free"],
   fx_pr_free: [
-    "{0} overlay'in {1} tanesi|Düzen yöneticisi, profiller, otomatik geçiş, tema düzenleme|OBS yayın düzenleri ve sahneler|Ekran görüntüsü alma|Telemetri kaydı, tur karşılaştırma, lider tablosu|Arkadaşlar, mesajlar, gruplar, takımlar|Canlı Sohbet: bir kanal, moderasyon, OBS kaynağı|Düzen ve yayın düzeni paylaşma|VR modu",
-    "{1} of the {0} overlays|Layout manager, profiles, auto-switch, theme editing|OBS stream layouts and scenes|Taking screenshots|Telemetry recording, lap comparison, leaderboard|Friends, messages, groups, teams|Live Chat: one channel, moderation, OBS source|Sharing layouts and stream layouts|VR mode",
+    "{0} overlay'in {1} tanesi|Düzen yöneticisi, profiller, otomatik geçiş, tema düzenleme|OBS yayın düzenleri ve sahneler|Ekran görüntüsü alma|Telemetri kaydı, tur karşılaştırma, lider tablosu|Arkadaşlar, mesajlar, gruplar, takımlar|Ücretsiz hesapla topluluk düzenlerine ve temalarına göz atma, onları kullanma, puan verme ve yorum yazma (dashboard'larda da puan ve yorum)|Bir arkadaşının ekibinde olup yarışını uygulamadan ya da telefondan canlı izleme|Canlı Sohbet: bir kanal, moderasyon, OBS kaynağı|Düzen ve yayın düzeni paylaşma|VR modu",
+    "{1} of the {0} overlays|Layout manager, profiles, auto-switch, theme editing|OBS stream layouts and scenes|Taking screenshots|Telemetry recording, lap comparison, leaderboard|Friends, messages, groups, teams|With a free account: browse community layouts and themes, use them, rate them and comment (rating and comments on dashboards too)|Being on a friend's crew and watching their race live from the app or a phone|Live Chat: one channel, moderation, OBS source|Sharing layouts and stream layouts|VR mode",
   ],
   fx_pr_pro_t: ["PRO", "PRO"],
   fx_pr_pro: [
-    "Sesli mühendis, spotter ve sesli komut (bas-konuş)|Sohbet Anketi ve Altyazı overlay'leri|Canlı Sohbet: çoklu kanal, sesli okuma, altyazı, sohbete yazma, kayıt görüntüleyici|Araç tarzı direksiyon ekranları ve PRO pedal / direksiyon tasarımları|Güvenilir arkadaşlarla canlı veri paylaşımı|Topluluk düzenlerini ve temalarını kullanma, puanlama, yorum|Ekran görüntüsü ve tema paylaşma|Mesajları sesli okuma, arkadaş görünümünü özelleştirme|Aynı anda 2 bilgisayarda kullanım",
-    "Voice engineer, spotter and voice commands (push-to-talk)|Chat Poll and Captions overlays|Live Chat: multiple channels, read-aloud, captions, writing to chat, log viewer|Car-style wheel displays and PRO pedal / steering wheel designs|Live data sharing with trusted friends|Using, rating and commenting on community layouts and themes|Sharing screenshots and themes|Message read-aloud, customising how friends look|Use on 2 computers at the same time",
+    "Sesli mühendis, spotter ve sesli komut (bas-konuş)|Sohbet Anketi ve Altyazı overlay'leri|Canlı Sohbet: çoklu kanal, sesli okuma, altyazı, sohbete yazma, kayıt görüntüleyici|Araç tarzı direksiyon ekranları, PRO pedal / direksiyon tasarımları ve yeni overlay'lerin PRO tasarımları|Güvenilir arkadaşlarla canlı veri paylaşımı|Ekip: arkadaşlarının pit ayarlarını (yakıt, lastik) uzaktan değiştirmesine izin verme|Ekran görüntüsü ve tema paylaşma, Dashboard Tasarımcısı|Mesajları sesli okuma, arkadaş görünümünü özelleştirme|Aynı anda 2 bilgisayarda kullanım",
+    "Voice engineer, spotter and voice commands (push-to-talk)|Chat Poll and Captions overlays|Live Chat: multiple channels, read-aloud, captions, writing to chat, log viewer|Car-style wheel displays, PRO pedal / steering wheel designs and the PRO designs of the new overlays|Live data sharing with trusted friends|Crew: letting your friends change your pit settings (fuel, tyres) remotely|Sharing screenshots and themes, Dashboard Designer|Message read-aloud, customising how friends look|Use on 2 computers at the same time",
   ],
   fx_pr_trial: [
     "Yeni hesaplara {0} günlük PRO denemesi: deneme süresince bütün PRO özellikleri açık, kart bilgisi gerekmez.",
@@ -658,7 +721,7 @@ function fill() {
   applyLang();
   // {0} içeren başlıklar
   $$("[data-a]").forEach((el) => (el.innerHTML = T(el.dataset.t, el.dataset.a)));
-  $('[data-t="fx_ov_title"]').innerHTML = T("fx_ov_title", OVERLAY_COUNT);
+  $('[data-t="fx_ov_title"]').innerHTML = T("fx_ov_title", OVERLAY_ROUND);
   $('[data-t="fx_vo_cat_lead"]').innerHTML = T("fx_vo_cat_lead", VOICE.categories);
   let proCount = 0;
   $$("[data-ov]").forEach((el) => {
@@ -681,7 +744,7 @@ function fill() {
   });
   const stat = (n, k) => `<div><b>${esc(String(n))}</b><span>${esc(T(k))}</span></div>`;
   $("#fx-stats").innerHTML =
-    stat(OVERLAY_COUNT, "fx_st_overlays") + stat(6, "fx_st_sims") + stat(nf(VOICE.used), "fx_st_phrases") + stat(LOGOS, "fx_st_logos") + stat(LANGS, "fx_st_langs");
+    stat(OVERLAY_ROUND, "fx_st_overlays") + stat(6, "fx_st_sims") + stat(nf(VOICE.used), "fx_st_phrases") + stat(LOGOS, "fx_st_logos") + stat(LANGS, "fx_st_langs");
   $("#fx-voice-stats").innerHTML =
     stat(nf(VOICE.catalog), "fx_vo_s1") + stat(nf(VOICE.used), "fx_vo_s2") + stat(nf(VOICE.recordings), "fx_vo_s3") + stat(VOICE.categories, "fx_vo_s4");
   const days = cfg && cfg.trial_enabled !== false ? Number(cfg.trial_days ?? 3) || 0 : cfg ? 0 : 3;

@@ -1,0 +1,102 @@
+/* Rüzgâr Pusulası. Ölçüler em: yazı boyutu ayarı yazıları ölçekler; pusula boyutu ayrı ayardır. */
+.wc {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.6em 0.7em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  --wc-col: var(--ov-blue);
+  --wc-size: 120px;
+}
+.wc-dial {
+  width: var(--wc-size);
+  height: var(--wc-size);
+  display: block;
+}
+.wc-ring {
+  fill: color-mix(in srgb, var(--ov-text) 4%, transparent);
+  stroke: color-mix(in srgb, var(--ov-text) 22%, transparent);
+  stroke-width: 2;
+}
+.wc-tick {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 55%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.wc-tick-minor {
+  stroke: color-mix(in srgb, var(--ov-text) 25%, transparent);
+  stroke-width: 1.5;
+}
+.wc-north {
+  fill: var(--ov-red);
+}
+.wc-carbody {
+  fill: color-mix(in srgb, var(--ov-text) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ov-text) 70%, transparent);
+  stroke-width: 1.5;
+}
+.wc-carglass {
+  fill: color-mix(in srgb, var(--ov-text) 45%, transparent);
+}
+.wc-wind,
+.wc-arrow-shape {
+  fill: var(--wc-col);
+}
+.wc-cue {
+  font-size: 1.15em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.05em;
+  text-transform: var(--ov-label-tt, uppercase);
+  color: var(--wc-col);
+  white-space: nowrap;
+}
+.wc-speed {
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.wc-speed b {
+  font-size: 1.25em;
+  color: var(--ov-text);
+  font-weight: var(--ov-weight-strong);
+}
+.wc-parts {
+  display: flex;
+  gap: 0.9em;
+  font-size: 0.86em;
+  white-space: nowrap;
+}
+.wc-parts i {
+  font-style: normal;
+  margin-right: 0.35em;
+  color: var(--ov-dim);
+}
+.wc-parts b {
+  font-weight: var(--ov-weight-strong);
+}
+
+/* Ok ve yazı şeridi */
+.wc-d-strip {
+  flex-direction: row;
+  gap: 0.65em;
+  padding: 0.4em 0.75em 0.4em 0.5em;
+}
+.wc-arrow {
+  width: 2.3em;
+  height: 2.3em;
+  flex: none;
+  display: block;
+}
+.wc-arrow-ring {
+  fill: color-mix(in srgb, var(--ov-text) 5%, transparent);
+  stroke: color-mix(in srgb, var(--ov-text) 20%, transparent);
+  stroke-width: 1.5;
+}
+.wc-calm .wc-arrow-shape {
+  fill: var(--ov-dim);
+  opacity: 0.4;
+}

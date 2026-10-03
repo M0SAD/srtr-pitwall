@@ -11,6 +11,7 @@ export default defineOverlay({
   defaultPosition: { x: 640, y: 880 },
   defaultEnabled: false,
   defaultAlwaysShow: true,
+  resize: { w: "maxWidth" },
   settings: [
     { key: "showEngineer", label: "Mühendis mesajlarını göster", type: "boolean", default: true },
     { key: "showSpotter", label: "Spotter mesajlarını göster", type: "boolean", default: true },

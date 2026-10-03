@@ -234,6 +234,7 @@ pub fn parse(yaml: &str) -> SessionData {
                 match (section, k) {
                     ("WeekendInfo", "TrackDisplayName") => sd.track_name = v.to_string(),
                     ("WeekendInfo", "TrackConfigName") => sd.track_config = v.to_string(),
+                    ("SplitTimeInfo", "SectorStartPct") => sd.sector_starts.push(num_prefix(v).unwrap_or(0.0) as f32),
                     ("WeekendInfo", "TrackLength") => {
                         sd.track_length_km = num_prefix(v).unwrap_or(0.0) as f32
                     }

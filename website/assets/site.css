@@ -1846,3 +1846,252 @@ button.adp:disabled {
   object-fit: contain;
   display: block;
 }
+
+/* Overlay Galerisi (ana sayfa): solda kaydırılabilir liste, sağda önizleme + açıklama (home.js › mountGallery) */
+.ovg {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.ovg-list {
+  height: 620px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a4150 transparent;
+}
+.ovg-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.ovg-list::-webkit-scrollbar-thumb {
+  background: #3a4150;
+  border-radius: 8px;
+}
+.ovg-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ovg-grp {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  padding: 8px 4px 6px;
+  background: var(--bg);
+  color: var(--muted);
+  font: 700 11px var(--font);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.ovg-grp:first-child {
+  padding-top: 0;
+}
+.ovg-item {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: #c5cbd8;
+  font: 500 14px/1.25 var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.ovg-item .ic {
+  flex: none;
+  width: 22px;
+  text-align: center;
+  font-size: 16px;
+}
+.ovg-item:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+.ovg-item:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: -2px;
+}
+.ovg-item[aria-selected="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #15100a;
+  font-weight: 700;
+}
+.ovg-view {
+  padding: 0;
+  overflow: hidden;
+}
+.ovg-stage {
+  position: relative;
+  height: 400px;
+  background: #0d1016;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ovg-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ovg-stage img[hidden],
+.ovg-ph[hidden] {
+  display: none;
+}
+/* Görsel yoksa: koyu kart üstünde overlay'in simgesi */
+.ovg-ph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(320px, 70%);
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, var(--bg-3), var(--bg-2));
+  color: var(--muted);
+  font: 600 14px var(--font);
+  text-align: center;
+}
+.ovg-ph span {
+  font-size: 56px;
+  line-height: 1;
+}
+.ovg-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 24px;
+  align-items: start;
+  padding: 22px 24px 24px;
+  min-height: 220px;
+}
+.ovg-info h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+.ovg-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font: 700 11px var(--font);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.ovg-tag.free {
+  color: var(--green);
+  border-color: rgba(62, 207, 142, 0.4);
+}
+.ovg-tag.pro {
+  color: var(--accent);
+  border-color: rgba(255, 138, 42, 0.5);
+}
+.ovg-info p {
+  margin: 0 0 10px;
+  color: #b3bac8;
+  max-width: 68ch;
+}
+.ovg-more {
+  font-size: 14px;
+  font-weight: 600;
+}
+.ovg-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font: 600 13px var(--font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ovg-nav button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ovg-nav button:hover {
+  border-color: #3a4150;
+  background: #1d222d;
+}
+.ovg-nav button:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+.ovg-count {
+  min-width: 54px;
+  text-align: center;
+}
+.ovg-hint {
+  margin: 14px 0 0;
+}
+@media (max-width: 860px) {
+  .ovg {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  /* Telefonda liste yatay kaydırılan bir şerit olur */
+  .ovg-list {
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 10px;
+    scroll-snap-type: x proximity;
+  }
+  .ovg-grp {
+    position: static;
+    padding: 0 2px 0 10px;
+    background: none;
+    white-space: nowrap;
+  }
+  .ovg-grp:first-child {
+    padding-left: 0;
+  }
+  .ovg-item {
+    width: auto;
+    white-space: nowrap;
+    scroll-snap-align: center;
+  }
+  .ovg-stage {
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+  .ovg-info {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px 16px 20px;
+    min-height: 0;
+  }
+  .ovg-nav {
+    justify-content: space-between;
+  }
+  .ovg-hint {
+    display: none;
+  }
+}

@@ -1,0 +1,172 @@
+/* Hasar Göstergesi. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.dmg {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 0.65em 0.85em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  --dmg-ok: color-mix(in srgb, var(--ov-text) 16%, transparent);
+  --dmg-na: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  --dmg-shell: color-mix(in srgb, var(--ov-text) 6%, var(--ov-bg-solid, #0c0e13));
+  --dmg-sev: var(--ov-dim);
+}
+.dmg-car {
+  flex: none;
+  width: 6.4em;
+  height: auto;
+  display: block;
+}
+.dmg-outline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 55%, transparent);
+  stroke-width: 2;
+}
+.dmg-glass {
+  fill: color-mix(in srgb, var(--ov-bg-solid, #0c0e13) 55%, transparent);
+  stroke: color-mix(in srgb, var(--ov-text) 35%, transparent);
+  stroke-width: 1.2;
+}
+.dmg-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ov-text) 25%, transparent);
+  stroke-width: 1.2;
+}
+.dmg-wheel {
+  stroke: color-mix(in srgb, var(--ov-text) 35%, transparent);
+  stroke-width: 1;
+}
+.dmg-wheel.dmg-gone {
+  fill-opacity: 0.35;
+  stroke-dasharray: 3 2;
+}
+.dmg-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  min-width: 8.5em;
+}
+.dmg-overall {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  white-space: nowrap;
+}
+.dmg-dot {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: var(--dmg-sev);
+}
+.dmg-overall b {
+  font-size: 1.1em;
+  font-weight: var(--ov-weight-strong);
+}
+.dmg-overall em {
+  font-style: normal;
+  color: var(--ov-dim);
+}
+.dmg-repair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+.dmg-rep {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8em;
+  white-space: nowrap;
+}
+.dmg-rep i {
+  font-style: normal;
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+  text-transform: var(--ov-label-tt, uppercase);
+  color: var(--ov-dim);
+}
+.dmg-rep b {
+  font-size: 1.25em;
+  font-weight: var(--ov-weight-strong);
+}
+.dmg-rep-opt b {
+  font-size: 1em;
+  color: var(--ov-dim);
+}
+.dmg-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  font-size: 0.86em;
+}
+.dmg-part {
+  display: grid;
+  grid-template-columns: 6.2em 1fr 2.6em;
+  align-items: center;
+  gap: 0.5em;
+}
+.dmg-part span {
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.dmg-part b {
+  text-align: right;
+  font-weight: var(--ov-weight-strong);
+}
+.dmg-meter {
+  height: 0.35em;
+  min-width: 2.5em;
+  border-radius: 0.2em;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.dmg-meter div {
+  height: 100%;
+}
+.dmg-warns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+.dmg-warn {
+  padding: 0.12em 0.45em;
+  border-radius: 0.3em;
+  font-size: 0.8em;
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+  color: var(--ov-red);
+  box-shadow: inset 0 0 0 1px var(--ov-red);
+}
+.dmg-note {
+  max-width: 15em;
+  font-size: 0.74em;
+  color: var(--ov-dim);
+}
+
+/* Kompakt şerit */
+.dmg-d-compact {
+  gap: 0.7em;
+  padding: 0.4em 0.7em;
+}
+.dmg-d-compact .dmg-car {
+  width: 2.3em;
+}
+.dmg-d-compact .dmg-info {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3em 0.9em;
+  min-width: 0;
+}
+.dmg-d-compact .dmg-repair {
+  flex-direction: row;
+  gap: 0.9em;
+}
+.dmg-d-compact .dmg-rep {
+  gap: 0.4em;
+}
+.dmg-d-compact .dmg-rep b {
+  font-size: 1em;
+}

@@ -66,6 +66,7 @@ pub mod gr {
     pub const I_BEST_TIME: usize = 148;
     pub const SESSION_TIME_LEFT: usize = 152;
     pub const IS_IN_PIT: usize = 160;
+    pub const CURRENT_SECTOR_INDEX: usize = 164;
     pub const NUMBER_OF_LAPS: usize = 172;
     pub const TYRE_COMPOUND: usize = 176; // wchar_t[33]
     pub const NORMALIZED_CAR_POSITION: usize = 248;
@@ -320,6 +321,14 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     f.air_temp = rd_f32(phys, ph::AIR_TEMP);
     f.track_temp = rd_f32(phys, ph::ROAD_TEMP);
     f.engine_warnings = if rd_i32(phys, ph::PIT_LIMITER_ON) != 0 { EW_PIT_LIMITER } else { 0 };
+    // Hasar: carDamage[5] (224: ön, arka, sol, sağ, orta), ACC'de ayrıca suspensionDamage[4] (680).
+    // Pist dışındaki teker sayısı: numberOfTyresOut (244)
+    f.damage = crate::drivecues::kunos_damage(
+        acc,
+        [0, 1, 2, 3, 4].map(|i| rd_f32(phys, 224 + i * 4)),
+        (acc && phys.len() >= 696).then(|| [0, 1, 2, 3].map(|i| rd_f32(phys, 680 + i * 4))),
+    );
+    f.tyres_out = rd_i32(phys, 244).clamp(0, 4) as i8;
     f.brake_bias = if acc {
         // ACC'de değer araca göre kaydırılmış gelir; yanlış göstermemek için boş bırakıyoruz
         -1.0
@@ -422,7 +431,21 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
         0
     };
     f.session_flags = bits;
-    f.session_state = if bits & flags::CHECKERED != 0 { STATE_CHECKERED } else { STATE_RACING };
+    // ACC start öncesi (startlights overlay'i; yaklaşık): yarış oturumunda henüz tur tamamlanmamış, tur sayacı
+    // başlamamış ve yeşil bayrak görülmemişse formasyon / grid sayılır. ACC ışıkları ve geri sayımı vermez; AC hiç vermez.
+    let pre_start = acc
+        && race
+        && status == STATUS_LIVE
+        && completed == 0
+        && rd_i32(gfx, gr::I_CURRENT_TIME) <= 0
+        && bits & flags::GREEN == 0;
+    f.session_state = if bits & flags::CHECKERED != 0 {
+        STATE_CHECKERED
+    } else if pre_start {
+        STATE_PARADE
+    } else {
+        STATE_RACING
+    };
 
     // Hava
     if acc {
@@ -479,6 +502,8 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     let kind = crate::model::tire_kind_from_name(&rd_wstr(gfx, gr::TYRE_COMPOUND, 33));
     me.tire = if kind == b'W' { 1 } else { 0 };
     me.tire_kind = if kind == 0 { b'D' } else { kind };
+    // Resmi sektör numarası (0 tabanlı): değişimi sektör sınırıdır (bkz. timing.rs)
+    me.sector = (rd_i32(gfx, gr::CURRENT_SECTOR_INDEX).clamp(-1, 200) + 2) as u8;
 
     // ACC: rakiplerin dünya koordinatlarından yan araç radarı
     m.rel.clear();

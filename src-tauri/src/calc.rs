@@ -33,6 +33,8 @@ pub struct Status {
     pub car_name: String,
     pub car_path: String,
     pub class_name: String,
+    /// Oyuncunun takım adı (sim veriyorsa; sürücü kartı overlay'i)
+    pub team_name: String,
     /// Oyuncunun iRacing hesabı (hesap eşleme için)
     pub user_id: i64,
     pub user_name: String,
@@ -360,6 +362,13 @@ pub struct Session {
     pub tc: f32,
     pub abs: f32,
     pub on_pit_road: bool,
+    /// iRacing SessionState ölçeği: 1 araca bin, 2 ısınma / grid, 3 formasyon turu, 4 yarış, 5 damalı bayrak, 6 soğuma
+    pub state: i32,
+    /// Start ışığı aşaması: -1 sim vermiyor, 0 gizli, 1 hazır (kırmızılar), 2 set, 3 yeşil
+    pub start_lights: i32,
+    /// Yanan kırmızı ışık sayısı / toplam (LMU/rF2); toplam 0: sim ışıkları tek tek vermiyor
+    pub start_lit: i32,
+    pub start_total: i32,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -618,6 +627,7 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         user_name: me.map(|d| d.name.clone()).unwrap_or_default(),
         car_path: me.map(|d| d.car_path.clone()).unwrap_or_default(),
         class_name: me.map(|d| d.class_name.clone()).unwrap_or_default(),
+        team_name: me.map(|d| d.team_name.clone()).unwrap_or_default(),
         sim: String::new(),
         chat: Default::default(),
     }
@@ -1181,6 +1191,27 @@ pub fn session(f: &Frame, s: &SessionData) -> Session {
         tc: f.tc,
         abs: f.abs_setting,
         on_pit_road: f.on_pit_road,
+        state: f.session_state,
+        start_lights: start_lights(f.session_flags),
+        start_lit: f.start_lit as i32,
+        start_total: f.start_total as i32,
+    }
+}
+
+/// Start ışığı aşaması (iRacing SessionFlags: 0x1000_0000 StartHidden, 0x2000_0000 StartReady, 0x4000_0000 StartSet,
+/// 0x8000_0000 StartGo): -1 sim vermiyor, 0 ışıklar gizli, 1 hazır (kırmızılar yanıyor), 2 set, 3 yeşil.
+/// Diğer simler aynı bitleri kendi verilerinden doldurur (bkz. sims/rf2.rs).
+fn start_lights(bits: u32) -> i32 {
+    if bits & 0x8000_0000 != 0 {
+        3
+    } else if bits & 0x4000_0000 != 0 {
+        2
+    } else if bits & 0x2000_0000 != 0 {
+        1
+    } else if bits & 0x1000_0000 != 0 {
+        0
+    } else {
+        -1
     }
 }
 

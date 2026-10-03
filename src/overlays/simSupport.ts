@@ -22,6 +22,7 @@
 //   Lastik                        ✓        ✓     ✓     ✓        ✓      (ACC: aşınma yok, AMS2: basınç yok)
 //   Pedallar, vites, yakıt, tur   ✓        ✓     ✓     ✓        ✓
 //   Yanal / boyuna ivme (g)       ✓        ✓     ✓     ✓        ✓      (gforce; inputs konusunda latG / longG)
+//   Resmi sektör sınırları        ✓        ✓     ✓     ✓        ✓      (sectors; iRacing SplitTimeInfo, diğerleri sektör numarası; yoksa 3 eşit parça)
 //   Pist haritası (şekil kaydı)   ✓        ✓     ✓     ✓        ✓      (AC/ACC: haritada sadece oyuncu)
 
 import { settings } from "@/sdk/settings";
@@ -50,6 +51,11 @@ export const SIM_NAMES: Record<SimFamily, string> = {
  *  - weather: AC'de yağış/ıslaklık yok; sıcaklık ve rüzgâr var.
  *  - tires: ACC'de aşınma, AMS2'de basınç yok; sıcaklıklar var.
  *  - session / dataframe / dashboard: olay (incident) alanı 0 kalır, gerisi çalışır.
+ *  - brakepoint / windcompass: her simde çalışır (pedallar + tur konumu; rüzgâr + araç yönü).
+ *  - tracklimits: her simde çalışır. Olay puanı / sınırı sadece iRacing'de; tur geçerliliğini ACC, LMU/rF2 ve
+ *    AMS2 kendisi bildirir, iRacing ve AC'de pist dışından çıkarılır (AC/ACC: numberOfTyresOut, LMU/AMS2: zemin türü).
+ *  - damage: iRacing'de bölge yok (tamir süreleri + motor uyarıları), ACC/AC'de ön-arka-sol-sağ-orta,
+ *    LMU/rF2'de 8 göçük bölgesi, AMS2'de aero/motor/süspansiyon/fren. Tamir süresi sadece iRacing (ACC: tahmin).
  */
 const UNSUPPORTED: Record<string, SimFamily[]> = {
   // Rakip araç listesi yok (AC/ACC paylaşımlı belleği sadece oyuncu aracını verir)
@@ -57,6 +63,15 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   standings: ["ac", "acc"],
   battlebox: ["ac", "acc"],
   duel: ["ac", "acc"],
+  // Fark Grafiği / Rakip Takibi: rakiplerin çizgi geçişleri gerekir (sectors her simde çalışır: AC/ACC'de sınıf
+  // en iyisi = kendi en iyin)
+  gapchart: ["ac", "acc"],
+  target: ["ac", "acc"],
+  // Pit Penceresi: pit çıkışında aralarına dönülecek araçlar için rakip listesi gerekir
+  pitwindow: ["ac", "acc"],
+  // Sürücü Değişimi: aracı o an kimin sürdüğü iRacing (takım oturumu) ve LMU/rF2 (skorlamadaki sürücü adı) verisinden
+  // izlenir; AC/ACC paylaşımlı belleği ve AMS2 takım sürücüsü bilgisini vermiyor
+  driverswap: ["ac", "acc", "ams2"],
   flatmap: ["ac", "acc"], // düz şeritte tek nokta kalır
   // Arkadaki araçları bilemediği için yanlışlıkla "DÖNEBİLİRSİN" der
   rejoin: ["ac", "acc"],
@@ -73,6 +88,12 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   // Sınıf tempo tahmini (class_est_lap) sadece iRacing'de: "daha hızlı sınıf" hiç tespit edilemez;
   // AC/ACC'de zaten rakip yok
   overtake: ["acc", "ac", "lmu", "ams2"],
+  // Start ışıkları: AC start aşamasını vermiyor. iRacing: start bitleri (hazır / set / yeşil); LMU/rF2: ışıklar tek tek;
+  // AMS2: sadece grid / formasyon ve start anı; ACC: yaklaşık (tur sayacı / yeşil bayrak), ışık verisi yok
+  startlights: ["ac"],
+  // Sınıfın ilk üçü ve rakip karşılaştırması rakip listesi ister (AC/ACC'de yok)
+  results: ["ac", "acc"],
+  h2h: ["ac", "acc"],
 };
 
 /** status.sim / general.sim değerini aileye çevirir; bilinmiyorsa null */

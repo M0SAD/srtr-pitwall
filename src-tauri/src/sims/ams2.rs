@@ -28,6 +28,7 @@ pub mod o {
     pub const P_RACE_POSITION: usize = 84;
     pub const P_LAPS_COMPLETED: usize = 88;
     pub const P_CURRENT_LAP: usize = 92;
+    pub const P_CURRENT_SECTOR: usize = 96;
     pub const CAR_NAME: usize = 6444;
     pub const CAR_CLASS_NAME: usize = 6508;
     pub const LAPS_IN_EVENT: usize = 6572;
@@ -214,6 +215,8 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         c.lap_completed = rd_u32(b, p + o::P_LAPS_COMPLETED) as i32;
         c.lap = rd_u32(b, p + o::P_CURRENT_LAP) as i32;
         c.position = rd_u32(b, p + o::P_RACE_POSITION) as i32;
+        // Resmi sektör numarası: değişimi sektör sınırıdır (bkz. timing.rs)
+        c.sector = (rd_i32(b, p + o::P_CURRENT_SECTOR).clamp(-1, 200) + 2) as u8;
         c.surface = 3;
         if tail {
             let pm = rd_u32(b, o::PIT_MODES + i * 4);
@@ -251,6 +254,16 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     f.fuel_pct = rd_f32(b, o::FUEL_LEVEL).clamp(0.0, 1.0);
     f.fuel_level = f.fuel_pct * cap.max(0.0);
     f.engine_warnings = if rd_u32(b, o::CAR_FLAGS) & CAR_FLAG_SPEED_LIMITER != 0 { EW_PIT_LIMITER } else { 0 };
+    // Hasar: mTyreFlags[4] 6992, mBrakeDamage[4] 7104, mSuspensionDamage[4] 7120, mAeroDamage 7236, mEngineDamage 7240.
+    // Pist dışı: mTerrain[4] 7008 (teker altındaki zemin)
+    f.damage = crate::drivecues::ams2_damage(
+        rd_f32(b, 7236),
+        rd_f32(b, 7240),
+        [0, 1, 2, 3].map(|i| rd_f32(b, 7120 + i * 4)),
+        [0, 1, 2, 3].map(|i| rd_f32(b, 7104 + i * 4)),
+        [0, 1, 2, 3].map(|i| rd_u32(b, 6992 + i * 4)),
+    );
+    f.tyres_out = crate::drivecues::ams2_tyres_out([0, 1, 2, 3].map(|i| rd_u32(b, 7008 + i * 4)));
     let pit = rd_u32(b, o::PIT_MODE);
     f.on_pit_road = matches!(pit, 1..=3 | 5);
     f.is_in_garage = pit == 4;
@@ -283,6 +296,8 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         STATE_RACING
     } else {
         match rd_u32(b, o::RACE_STATE) {
+            // Yarış başlamadı: ısınma turu oturumu (4) formasyon, yarış oturumu (5) grid sayılır (startlights overlay'i)
+            1 if rd_u32(b, o::SESSION_STATE) == 5 => 2,
             0 | 1 => STATE_PARADE,
             2 => STATE_RACING,
             _ => STATE_CHECKERED,

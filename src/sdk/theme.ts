@@ -75,14 +75,17 @@ const FONT_STACK: Record<string, string> = {
 
 // ---- Hazır temalar ----
 
+/** 031026-83'ten önceki varsayılan yazı ayarları (bir kerelik geçiş için: bkz. settings.ts themeReadV1) */
+export const OLD_TEXT_DEFAULTS = { font: "segoe", fontSize: 13, bold: false, textShadow: false, weight: 0, dim: "#8d95a5" } as const;
+
 export const DEFAULT_THEME: Theme = {
   preset: "default",
-  font: "segoe",
+  font: "inter",
   numFont: "same",
-  fontSize: 13,
+  fontSize: 14,
   bold: false,
   text: "#eef1f6",
-  dim: "#8d95a5",
+  dim: "#a3abba",
   bg: "#0c0e13",
   bgOpacity: 86,
   border: true,
@@ -98,10 +101,10 @@ export const DEFAULT_THEME: Theme = {
   highlight: "#ffc440",
   highlightOpacity: 20,
   density: "normal",
-  textShadow: false,
+  textShadow: true,
   scale: 100,
   opacity: 100,
-  weight: 0,
+  weight: 500,
   combineLicense: false,
 };
 
@@ -178,6 +181,7 @@ export const PRESETS: Preset[] = [
       borderColor: "#ffffff",
       borderOpacity: 40,
       bold: true,
+      weight: 0,
       fontSize: 14,
       textShadow: false,
     },
@@ -200,6 +204,7 @@ export const PRESETS: Preset[] = [
       info: "#00f0ff",
       font: "rajdhani",
       bold: true,
+      weight: 0,
       fontSize: 14,
       radius: 12,
     },
@@ -277,9 +282,9 @@ export const THEME_GROUPS: { title: string; fields: SettingField[] }[] = [
     fields: [
       { key: "font", label: "Yazı fontu", type: "select", default: DEFAULT_THEME.font, options: FONTS },
       { key: "numFont", label: "Sayı/süre fontu", type: "select", default: DEFAULT_THEME.numFont, options: NUM_FONTS },
-      { key: "fontSize", label: "Yazı boyutu", type: "number", default: 13, min: 10, max: 18, step: 1, unit: "px" },
+      { key: "fontSize", label: "Yazı boyutu", type: "number", default: DEFAULT_THEME.fontSize, min: 10, max: 18, step: 1, unit: "px" },
       { key: "bold", label: "Kalın yazı", type: "boolean", default: false },
-      { key: "textShadow", label: "Yazı gölgesi (okunabilirlik)", type: "boolean", default: false },
+      { key: "textShadow", label: "Yazı gölgesi (okunabilirlik)", type: "boolean", default: DEFAULT_THEME.textShadow },
     ],
   },
   {

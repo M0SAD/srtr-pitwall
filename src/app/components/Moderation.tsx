@@ -298,8 +298,8 @@ function noticeText(n: Notice): string {
     return n.data.kind === "refund"
       ? t("İade: {0} {1} · {2}", money(n.data.amount), n.data.currency ?? "", n.data.name || n.data.email || "?")
       : n.data.gift
-        ? t("Yeni ödeme: {0} {1} · {2} ({3}) · 🎁 {4}", money(n.data.amount), n.data.currency ?? "", n.data.name || n.data.email || "?", n.data.plan || "?", n.data.gift_name || "?")
-        : t("Yeni ödeme: {0} {1} · {2} ({3})", money(n.data.amount), n.data.currency ?? "", n.data.name || n.data.email || "?", n.data.plan || "?");
+        ? t("Yeni ödeme: {0} {1} · {2} ({3}) · 🎁 {4}", money(n.data.amount), n.data.currency ?? "", n.data.name || n.data.email || "?", n.data.plan || "?", n.data.gift_name || "?") + paySrc(n.data.source)
+        : t("Yeni ödeme: {0} {1} · {2} ({3})", money(n.data.amount), n.data.currency ?? "", n.data.name || n.data.email || "?", n.data.plan || "?") + paySrc(n.data.source);
   if (n.kind === "payment_receipt") {
     if (n.data.kind === "refund") return t("İaden yapıldı: {0} {1}", money(n.data.amount), n.data.currency ?? "");
     if (isAdPayment(n)) return t("Reklam ödemen alındı: {0} {1}. Teşekkürler!", money(n.data.amount), n.data.currency ?? "");
@@ -492,4 +492,10 @@ export function NoticeBell() {
       </div>
     </Show>
   );
+}
+
+/** Ödeme bildiriminin sonuna eklenen kaynak: " · Patreon" */
+function paySrc(src: unknown): string {
+  const name = ({ lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi" } as Record<string, string>)[String(src ?? "")] ?? String(src ?? "");
+  return name ? ` · ${name}` : "";
 }

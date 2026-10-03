@@ -373,6 +373,7 @@ impl Demo {
             tire_types: Vec::new(),
             ai_session: false,
             player_user_id: 0,
+            sector_starts: vec![0.0, 0.29, 0.67],
         };
         let player_lap = cars[PLAYER].dist.floor() as i64;
         let air = rng.range(20.0, 27.0);
@@ -822,6 +823,8 @@ impl Demo {
         f.wind_vel = self.wind_vel;
         // Pist boyunca yön: demo pistinin teğeti (pusula ve mini harita için)
         f.yaw_north = self.heading_at(pct);
+        // Hasar göstergesi: döngüsel örnek hasar (bkz. drivecues.rs)
+        f.damage = crate::drivecues::demo_damage(t);
         f.vel_x = f.speed;
         f.shift_pct = 0.0;
         for i in 0..N_CARS {

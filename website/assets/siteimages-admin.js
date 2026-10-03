@@ -149,7 +149,12 @@ function draw(el) {
     <div class="si-grid">${group("index.html")}</div>
     <div style="margin:18px 0">${galleryHtml()}</div>
     <h3>Özellikler sayfası <a class="muted tiny" href="features.html" target="_blank" rel="noopener">aç ↗</a></h3>
-    <div class="si-grid">${group("features.html")}</div>`;
+    <div class="si-grid">${group("features.html")}</div>
+    <details style="margin-top:18px"${SLOTS.some((x) => x[2] === "gallery" && map[x[0]]) ? " open" : ""}>
+      <summary style="cursor:pointer"><b>Ana sayfa · Overlay Galerisi</b> <span class="muted tiny">her overlay'in önizleme görseli (${SLOTS.filter((x) => x[2] === "gallery").length})</span></summary>
+      <p class="muted small">Galeride overlay seçilince sağda görünen görsel. Koyu zeminli, 16:10 oranında (ör. 720×450) görseller en iyi sonucu verir.</p>
+      <div class="si-grid">${group("gallery")}</div>
+    </details>`;
 }
 
 /** İşlemi sırayla çalıştırır, hata olursa bildirir, sonunda yeniden çizer */

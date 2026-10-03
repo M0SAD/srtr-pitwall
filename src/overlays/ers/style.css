@@ -176,7 +176,7 @@
 }
 
 /* --- Dikey pil --- */
-.ers-cell {
+.ers-d-cell {
   display: flex;
   gap: 0.8em;
   width: max-content;
@@ -284,7 +284,7 @@
 }
 
 /* --- Kompakt --- */
-.ers-chip {
+.ers-d-chip {
   position: relative;
   display: flex;
   align-items: center;
@@ -293,7 +293,7 @@
   padding: 0.4em 0.7em 0.55em;
   overflow: hidden;
 }
-.ers-chip .ers-pct {
+.ers-d-chip .ers-pct {
   font-size: 1.25em;
 }
 .ers-under {
@@ -314,7 +314,7 @@
 }
 
 /* --- Halka --- */
-.ers-ring {
+.ers-d-ring {
   width: max-content;
   display: flex;
   flex-direction: column;

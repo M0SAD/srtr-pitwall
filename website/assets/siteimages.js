@@ -10,6 +10,7 @@
 // Son eşleme localStorage'da saklanır (sonraki açılışta görsel hemen değişir, sunucu yanıtı beklenmez).
 // Dosyalar: 'site' depolama kovası, home/<yuva>-<zaman>.<uzantı> (sadece yöneticiler yükler; bkz. siteimages-admin.js).
 import { SUPABASE_URL, sb } from "./core.js";
+import { NAMES, OVERLAY_LIST, overlayImage, overlaySlot } from "./overlays.js";
 
 export const GALLERY_SLOT = "home.gallery";
 export const SITE_BUCKET = "site";
@@ -31,6 +32,9 @@ export const SLOTS = [
   ["feat.layouts", "Özellikler · Düzenler ve profiller", "features.html", "", "1200×750"],
   ["feat.stream", "Özellikler · Yayın düzenleri", "features.html", "", "1200×750"],
   ["feat.vr", "Özellikler · VR", "features.html", "", "1200×750"],
+  // Ana sayfa › Overlay Galerisi: her overlay'in önizleme görseli (yuva "ov.<kimlik>", varsayılan assets/img/ov/<kimlik>.webp).
+  // Galeri bu yuvaları data-slot ile değil overrideFor() ile okur (tek <img>, seçime göre değişir).
+  ...OVERLAY_LIST.map((o) => [overlaySlot(o.id), `Overlay Galerisi · ${NAMES[o.id]?.[0] ?? o.id}`, "gallery", overlayImage(o.id), "720×450"]),
 ];
 
 const CACHE = "pitwall.site.images";
@@ -146,8 +150,17 @@ function setGallery(el, list) {
   }
 }
 
+let current = {};
+/** Yuvaya yüklenmiş görsel ({url, alt, w, h}) ya da null; tek öğesi seçime göre değişen bileşenler (Overlay Galerisi) kullanır */
+export function overrideFor(slot) {
+  const v = current[slot];
+  return okItem(v) ? v : null;
+}
+
 /** Eşlemeyi sayfaya uygular */
 export function applyImages(map, root = document) {
+  current = map || {};
+  document.dispatchEvent(new CustomEvent("siteimages"));
   root.querySelectorAll("[data-slot]").forEach((el) => {
     const v = map[el.dataset.slot];
     if (el.dataset.slot === GALLERY_SLOT || el.hasAttribute("data-gallery")) setGallery(el, v);

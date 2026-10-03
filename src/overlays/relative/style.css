@@ -328,7 +328,7 @@
    Bütün sütunlar açıkken panel taşmak yerine genişler (ad en az ~9em kalır). --- */
 .rel {
   width: max-content;
-  min-width: calc(560px * var(--ov-fs-k, 1));
+  min-width: calc(var(--ov-w, 560px) * var(--ov-fs-k, 1));
   font-variant-numeric: tabular-nums;
 }
 .rel-row > * {

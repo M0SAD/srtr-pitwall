@@ -238,7 +238,7 @@ export default function ErsOverlay(props: OverlayProps) {
   return (
     <Show when={visible()}>
       <div
-        class={`ers ers-${design()} ov-panel`}
+        class={`ers ers-d-${design()} ov-panel`}
         classList={{ "ers-low": m.low(), "ers-full": m.full(), "ers-frozen": previewFrozen(), "ers-none": noHybrid() }}
         style={style()}
       >

@@ -76,6 +76,8 @@ pub mod si {
     pub const GAME_PHASE: usize = 108;
     pub const YELLOW_FLAG_STATE: usize = 109;
     pub const SECTOR_FLAG: usize = 110;
+    pub const START_LIGHT: usize = 113; // start ışığı karesi (0 = hepsi sönük)
+    pub const NUM_RED_LIGHTS: usize = 114;
     pub const IN_REALTIME: usize = 115;
     pub const PLAYER_NAME: usize = 116;
     pub const RAINING: usize = 220;
@@ -92,6 +94,7 @@ pub mod vs {
     pub const DRIVER_NAME: usize = 4;
     pub const VEHICLE_NAME: usize = 36;
     pub const TOTAL_LAPS: usize = 100;
+    pub const SECTOR: usize = 102; // signed char: 0 = sektör 3, 1 = sektör 1, 2 = sektör 2
     pub const FINISH_STATUS: usize = 103;
     pub const LAP_DIST: usize = 104;
     pub const BEST_LAP_TIME: usize = 144;
@@ -122,6 +125,7 @@ pub struct Veh {
     pub vehicle: String,
     pub class: String,
     pub total_laps: i32,
+    pub sector: u8,
     pub lap_dist: f64,
     pub best: f64,
     pub last: f64,
@@ -152,6 +156,8 @@ pub struct Scoring {
     pub game_phase: u8,
     pub yellow_state: i8,
     pub sector_flags: [i8; 3],
+    pub start_light: u8,
+    pub num_red_lights: u8,
     pub in_realtime: bool,
     pub raining: f64,
     pub ambient: f64,
@@ -178,6 +184,8 @@ pub fn parse_scoring(b: &[u8]) -> Scoring {
         lap_dist: rd_f64(b, i + si::LAP_DIST),
         game_phase: rd_u8(b, i + si::GAME_PHASE),
         yellow_state: rd_u8(b, i + si::YELLOW_FLAG_STATE) as i8,
+        start_light: rd_u8(b, i + si::START_LIGHT),
+        num_red_lights: rd_u8(b, i + si::NUM_RED_LIGHTS),
         sector_flags: [
             rd_u8(b, i + si::SECTOR_FLAG) as i8,
             rd_u8(b, i + si::SECTOR_FLAG + 1) as i8,
@@ -202,6 +210,7 @@ pub fn parse_scoring(b: &[u8]) -> Scoring {
             vehicle: rd_cstr(b, o + vs::VEHICLE_NAME, 64),
             class: rd_cstr(b, o + vs::VEHICLE_CLASS, 32),
             total_laps: rd_i16(b, o + vs::TOTAL_LAPS) as i32,
+            sector: rd_u8(b, o + vs::SECTOR),
             lap_dist: rd_f64(b, o + vs::LAP_DIST),
             best: rd_f64(b, o + vs::BEST_LAP_TIME),
             last: rd_f64(b, o + vs::LAST_LAP_TIME),
@@ -353,6 +362,14 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
     if me.map(|v| v.flag == 6).unwrap_or(false) {
         bits |= flags::BLUE;
     }
+    // Start ışıkları (startlights overlay'i): geri sayım aşamasında (4) iRacing'in StartReady / StartSet bitleri,
+    // yanan ışık sayısı mStartLight / mNumRedLights
+    if sc.game_phase == 4 {
+        let all = sc.num_red_lights > 0 && sc.start_light >= sc.num_red_lights;
+        bits |= if all { 0x4000_0000 } else { 0x2000_0000 };
+        f.start_total = sc.num_red_lights.min(12);
+        f.start_lit = sc.start_light.min(f.start_total);
+    }
     f.session_flags = bits;
     f.air_temp = sc.ambient as f32;
     f.track_temp = sc.track_temp as f32;
@@ -404,6 +421,7 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         };
         c.tire = tire;
         c.tire_kind = tire_kind;
+        c.sector = if v.sector <= 2 { v.sector + 1 } else { 0 };
         c.f2 = if race { v.behind_leader.max(0.0) as f32 } else { 0.0 };
         c.flags = if v.flag == 6 { flags::BLUE } else { 0 } | if v.finish_status == 3 { flags::DQ } else { 0 };
         if v.is_player {
@@ -451,6 +469,15 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         f.fuel_pct = if cap > 0.0 { (f.fuel_level / cap).clamp(0.0, 1.0) } else { 0.0 };
         f.lap_cur = (now - rd_f64(tele, o + tv::LAP_START_ET)).max(0.0) as f32;
         f.engine_warnings = if rd_u8(tele, o + tv::SPEED_LIMITER) != 0 { EW_PIT_LIMITER } else { 0 };
+        // Hasar: mOverheating 541, mDetached 542, mDentSeverity[8] 544; teker: mSurfaceType 176, mFlat 177, mDetached 178
+        let wh = |i: usize, k: usize| rd_u8(tele, o + tv::WHEELS + i * tv::WHEEL_SIZE + k);
+        f.damage = crate::drivecues::rf2_damage(
+            [0, 1, 2, 3, 4, 5, 6, 7].map(|i| rd_u8(tele, o + 544 + i)),
+            rd_u8(tele, o + 541) != 0,
+            rd_u8(tele, o + 542) != 0,
+            [0, 1, 2, 3].map(|i| (wh(i, 177) != 0, wh(i, 178) != 0)),
+        );
+        f.tyres_out = crate::drivecues::rf2_tyres_out([0, 1, 2, 3].map(|i| wh(i, 176)));
         let rear = rd_f64(tele, o + tv::REAR_BRAKE_BIAS);
         f.brake_bias = if rear > 0.0 && rear < 1.0 { ((1.0 - rear) * 100.0) as f32 } else { -1.0 };
         // Hibrit: elektrik motoru durumu 0 ise araçta sistem yok

@@ -108,10 +108,10 @@ const STATIC: ProFeature[] = [
   { key: "community.share.layouts", label: "Düzeni toplulukta paylaşmak", group: "Paylaşım", defaultPro: false, server: true },
   { key: "community.share.streams", label: "Yayın düzenini toplulukta paylaşmak", group: "Paylaşım", defaultPro: false, server: true },
   // Topluluk
-  { key: "community.layouts.use", label: "Topluluk düzenini kullanmak (indirmek)", group: "Topluluk", defaultPro: true },
-  { key: "community.layouts.rate", label: "Düzenlere puan vermek", group: "Topluluk", defaultPro: true, server: true },
-  { key: "community.layouts.comment", label: "Düzenlere yorum yazmak", group: "Topluluk", defaultPro: true, server: true },
-  { key: "community.themes.use", label: "Topluluk temasını kullanmak", group: "Topluluk", defaultPro: true },
+  { key: "community.layouts.use", label: "Topluluk düzenini kullanmak (indirmek)", group: "Topluluk", defaultPro: false },
+  { key: "community.layouts.rate", label: "Düzenlere puan vermek", group: "Topluluk", defaultPro: false, server: true },
+  { key: "community.layouts.comment", label: "Düzenlere yorum yazmak", group: "Topluluk", defaultPro: false, server: true },
+  { key: "community.themes.use", label: "Topluluk temasını kullanmak", group: "Topluluk", defaultPro: false },
   // Sosyal
   { key: F.friendAdd, label: "Arkadaş eklemek (arkadaşlık isteği göndermek)", group: "Sosyal", defaultPro: false, server: true, hint: "Gelen istekleri kabul etmek her zaman açık" },
   { key: F.messages, label: "Özel mesajlaşma (arkadaşa mesaj göndermek)", group: "Sosyal", defaultPro: false, server: true, hint: "Gelen mesajları okumak her zaman açık" },

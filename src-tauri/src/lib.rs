@@ -3,6 +3,7 @@
 mod broadcast;
 mod calc;
 mod demo;
+mod drivecues;
 mod audio;
 mod engine;
 mod entitlement;
@@ -22,10 +23,12 @@ mod sdk;
 mod sims;
 mod server;
 mod session;
+mod strategy;
 mod trackmap;
 mod translate;
 mod toast;
 mod tracker;
+mod timing;
 mod device;
 mod updater;
 mod voice;
@@ -456,6 +459,12 @@ fn voice_test_dir(app: AppHandle, dir: String, key: String) -> Result<(), String
     });
     v.set_cfg(vc, sc, true);
     v.test(&key)
+}
+
+/// Overlay'lerin kısa uyarı bipi (ör. Start Işıkları: yeşilde bip). Sınırlar burada uygulanır.
+#[tauri::command]
+fn overlay_beep(freq: f32, ms: u64, volume: f32) {
+    audio::send(audio::Cmd::Beep { freq: freq.clamp(100.0, 4000.0), ms: ms.clamp(20, 1500), volume: volume.clamp(0.0, 1.0), pan: 0.0 });
 }
 
 #[tauri::command]
@@ -2067,6 +2076,7 @@ pub fn run() {
             voicecmd::voicecmd_listen,
             voicecmd::voicecmd_microphones,
             sound_test,
+            overlay_beep,
             mqtt_status,
             translate::translate_text,
             shortcuts_status,

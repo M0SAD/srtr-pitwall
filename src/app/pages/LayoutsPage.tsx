@@ -436,6 +436,9 @@ export function LayoutsPage() {
           <small class="muted lhint">
             Soldaki listede çift tık: overlay'i düzene ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik (destekleyen overlay'lerde) · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
           </small>
+          <small class="muted lhint lkeys">
+            <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele
+          </small>
         </section>
 
         <Show when={sel()} keyed>

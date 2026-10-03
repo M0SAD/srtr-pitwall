@@ -1,0 +1,220 @@
+/* Hedef Çubuğu. Dolgu genişliği transform ile (scaleX) yumuşakça değişir. */
+.goal {
+  box-sizing: border-box;
+  user-select: none;
+  line-height: 1.2;
+}
+.goal-box {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.55em 0.8em 0.6em;
+  background: var(--ov-bg);
+  color: var(--ov-text);
+  border: var(--ov-bw, 1px) solid var(--ov-line);
+  border-radius: var(--ov-radius);
+  box-shadow: var(--ov-box-shadow, none);
+  animation: goal-in 0.6s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+@keyframes goal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ov-frozen .goal-box {
+  animation: none;
+}
+.goal-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+.goal-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  white-space: nowrap;
+}
+.goal-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.04em;
+  text-transform: var(--ov-label-tt, uppercase);
+}
+.goal-done .goal-title {
+  color: var(--goal-c);
+}
+.goal-nums {
+  color: var(--ov-dim);
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}
+.goal-nums b {
+  color: var(--ov-text);
+  font-weight: var(--ov-weight-strong);
+}
+.goal-pct {
+  min-width: 2.6em;
+  text-align: right;
+  color: var(--goal-c);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-track {
+  position: relative;
+  height: 0.5em;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--ov-text) 12%, transparent);
+  overflow: hidden;
+}
+.goal-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--goal-c) 70%, #000) 0, var(--goal-c) 60%, color-mix(in srgb, var(--goal-c) 70%, #fff) 100%);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--goal-f));
+  transition:
+    transform 0.9s cubic-bezier(0.2, 0.9, 0.25, 1),
+    background-color 0.4s ease;
+}
+.goal-track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ov-bg-solid);
+  opacity: 0.7;
+}
+
+.goal-last {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  font-size: 0.82em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.goal-last label {
+  color: var(--ov-dim);
+  font-size: 0.85em;
+  letter-spacing: 0.07em;
+  text-transform: var(--ov-label-tt, uppercase);
+}
+.goal-last span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--ov-weight-strong);
+}
+
+.goal-ic {
+  flex: none;
+  width: 2.3em;
+  height: 2.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--goal-c);
+  color: #0b0d11;
+  transition: background-color 0.4s ease;
+}
+.goal-ic svg {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+/* --- ikonlu hap: dolgu yazının arkasında --- */
+.goal-d-pill .goal-box {
+  position: relative;
+  padding: 0.3em 1em 0.3em 0.3em;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.goal-d-pill .goal-ic,
+.goal-d-pill .goal-head {
+  position: relative;
+  z-index: 1;
+}
+.goal-d-pill .goal-body {
+  position: static;
+}
+.goal-d-pill .goal-track {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border-radius: 0;
+  background: none;
+}
+.goal-d-pill .goal-fill {
+  border-radius: 0;
+  opacity: 0.32;
+}
+.goal-d-pill.goal-done .goal-title {
+  color: var(--ov-text);
+}
+
+/* --- büyük hedef panosu --- */
+.goal-d-milestone .goal-box {
+  align-items: flex-start;
+  gap: 0.9em;
+  padding: 0.9em 1em 1em;
+  border-top: 0.25em solid var(--goal-c);
+}
+.goal-d-milestone .goal-ic {
+  width: 3em;
+  height: 3em;
+}
+.goal-d-milestone .goal-ic svg {
+  width: 1.7em;
+  height: 1.7em;
+}
+.goal-d-milestone .goal-title {
+  font-size: 0.9em;
+  color: var(--ov-dim);
+  letter-spacing: 0.12em;
+}
+.goal-big {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.goal-big b {
+  font-size: 2.4em;
+  font-weight: 900;
+  line-height: 1;
+}
+.goal-big span {
+  color: var(--ov-dim);
+  font-size: 1.1em;
+}
+.goal-big em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 1.5em;
+  font-weight: 900;
+  color: var(--goal-c);
+}
+.goal-d-milestone .goal-track {
+  height: 0.9em;
+}
+.goal-donetext {
+  color: var(--goal-c);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  animation: goal-in 0.5s ease both;
+}

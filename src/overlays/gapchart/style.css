@@ -1,0 +1,193 @@
+/* Fark Grafiği. Ölçüler em: yazı boyutu ayarı yazıları ölçekler; grafik boyutu ayardan (px). */
+.gc {
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+.gc-block {
+  padding: 0.35em 0 0.1em;
+}
+.gc-block + .gc-block {
+  border-top: 1px solid var(--ov-divider);
+}
+.gc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 0 0.65em 0.15em;
+  min-width: 0;
+  white-space: nowrap;
+}
+.gc-tag {
+  flex: none;
+  align-self: center;
+  padding: 0.1em 0.45em;
+  border-radius: 0.3em;
+  font-size: 0.7em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.06em;
+  color: #0c0e13;
+  background: var(--gc-c, var(--ov-dim));
+  text-shadow: none;
+}
+.gc-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  overflow: hidden;
+}
+.gc-who b {
+  font-weight: var(--ov-weight-strong);
+}
+.gc-num {
+  color: var(--ov-dim);
+}
+.gc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gc-pit {
+  background: var(--ov-yellow);
+  color: #0c0e13;
+}
+.gc-none {
+  flex: 1;
+  color: var(--ov-dim);
+  font-size: 0.9em;
+}
+.gc-gap {
+  flex: none;
+  font-size: 1.25em;
+  font-weight: var(--ov-weight-strong);
+  color: var(--gc-c, var(--ov-text));
+}
+.gc-trend {
+  flex: none;
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-dim);
+}
+.gc-trend small {
+  margin-left: 0.25em;
+  font-size: 0.7em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+}
+.gc-catch {
+  flex: none;
+  font-size: 0.82em;
+  color: var(--ov-dim);
+}
+.gc-good {
+  color: var(--ov-green);
+}
+.gc-bad {
+  color: var(--ov-red);
+}
+.gc-flat {
+  color: var(--ov-dim);
+}
+
+/* --- grafik --- */
+.gc-svg {
+  display: block;
+}
+.gc-grid {
+  fill: none;
+  stroke: var(--ov-line);
+  stroke-width: 1;
+}
+.gc-zero {
+  fill: none;
+  stroke: var(--ov-text);
+  stroke-opacity: 0.45;
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+.gc-ax {
+  fill: var(--ov-dim);
+  font-size: 9px;
+  font-family: var(--ov-mono);
+}
+.gc-line,
+.gc-live {
+  fill: none;
+  stroke: var(--gc-c);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.gc-live {
+  stroke-dasharray: 3 4;
+  stroke-opacity: 0.8;
+}
+.gc-dots {
+  fill: var(--gc-c);
+  stroke: none;
+}
+.gc-pitline {
+  fill: none;
+  stroke: var(--gc-c);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  stroke-opacity: 0.75;
+}
+.gc-mypit {
+  fill: none;
+  stroke: var(--ov-text);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  stroke-opacity: 0.55;
+}
+
+/* --- liste --- */
+.gc-list {
+  padding: 0.3em 0.65em 0.45em;
+}
+.gc-lrow {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr) 3.6em 3.6em auto auto;
+  align-items: baseline;
+  column-gap: 0.55em;
+  padding: 0.2em 0;
+  white-space: nowrap;
+}
+.gc-lrow .gc-tag {
+  justify-self: start;
+}
+.gc-lrow .gc-gap,
+.gc-chg {
+  text-align: right;
+}
+.gc-chg {
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-dim);
+}
+.gc-chg.gc-good {
+  color: var(--ov-green);
+}
+.gc-chg.gc-bad {
+  color: var(--ov-red);
+}
+.gc-lrow .gc-none {
+  grid-column: 2 / -1;
+}
+.gc-note {
+  font-size: 0.82em;
+  color: var(--ov-dim);
+  min-width: 5.5em;
+}
+.gc-note.gc-good {
+  color: var(--ov-green);
+}
+.gc-note.gc-bad {
+  color: var(--ov-red);
+}
+.gc-lhead {
+  font-size: 0.72em;
+  letter-spacing: 0.06em;
+  color: var(--ov-dim);
+  text-transform: var(--ov-label-tt, uppercase);
+  text-align: right;
+  padding-bottom: 0;
+}

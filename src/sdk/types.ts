@@ -21,6 +21,8 @@ export interface Status {
   carName: string;
   carPath: string;
   className: string;
+  /** Oyuncunun takım adı (sim veriyorsa) */
+  teamName?: string;
   /** Oyuncunun iRacing hesabı */
   userId: number;
   userName: string;
@@ -297,6 +299,13 @@ export interface Session {
   tc: number;
   abs: number;
   onPitRoad: boolean;
+  /** iRacing SessionState ölçeği: 1 araca bin, 2 ısınma / grid, 3 formasyon turu, 4 yarış, 5 damalı bayrak, 6 soğuma */
+  state?: number;
+  /** Start ışığı aşaması: -1 sim vermiyor, 0 gizli, 1 hazır (kırmızılar), 2 set, 3 yeşil */
+  startLights?: number;
+  /** Yanan kırmızı ışık sayısı / toplam (LMU/rF2); toplam 0: sim ışıkları tek tek vermiyor */
+  startLit?: number;
+  startTotal?: number;
 }
 
 export interface MapCar {
@@ -374,7 +383,16 @@ export interface TopicMap {
   incidents: Incidents;
   pit: Pit;
   traffic: Traffic;
+  /** Stint'ler, takım sürücüleri, pit kaybı ve pistteki araçların bana göre konumu (Rust: strategy.rs) */
+  strategy: Strategy;
   corners: Corners;
+  /** Fren / vites işareti, pist limiti, hasar (Rust: drivecues.rs; tipler: sdk/drivecues.ts) */
+  brakepoint: import("./drivecues").Brakepoint;
+  tracklimits: import("./drivecues").TrackLimits;
+  damage: import("./drivecues").Damage;
+  /** Sektör süreleri ve tur bazlı fark geçmişi (Rust: timing.rs) */
+  sectors: Sectors;
+  gaps: Gaps;
   /** Canlı sohbet (olay tabanlı, iRacing'den bağımsız) */
   livechat: LiveChatTopic;
   livepoll: PollView;
@@ -397,6 +415,86 @@ export interface VoiceLine {
   speaking: boolean;
 }
 
+/** Bir stint (pit çıkışından pit çıkışına). Bilinmeyen sayılar -1. Rust: strategy::StintRec */
+export interface StratStint {
+  n: number;
+  driver: string;
+  startLap: number;
+  laps: number;
+  /** Pit çıkışından pit girişine (süren stint'te şu ana) kadar süre (sn) */
+  time: number;
+  /** Temiz turların (pit giriş / çıkış turu hariç) ortalaması ve en iyisi */
+  avg: number;
+  best: number;
+  last: number;
+  /** sn/tur: + yavaşlıyor, − hızlanıyor (trendOk yanlışsa yeterli tur yok) */
+  trend: number;
+  trendOk: boolean;
+  fuelAvg: number;
+  fuelUsed: number;
+  /** Bu lastik takımıyla atılan tur; tyreKnown yanlışsa lastiğin değiştiği varsayıldı */
+  tyreLaps: number;
+  tyreKnown: boolean;
+  /** Stint'i bitiren pit ziyaretinde pit yolunda geçen süre */
+  pitTime: number;
+  current: boolean;
+  lapTimes: number[];
+}
+
+export interface StratDriver {
+  name: string;
+  userId: number;
+  time: number;
+  laps: number;
+  stints: number;
+  current: boolean;
+}
+
+export interface StratCar {
+  idx: number;
+  number: string;
+  name: string;
+  className: string;
+  classColor: string;
+  sameClass: boolean;
+  pos: number;
+  classPos: number;
+  /** Pistte benim kaç saniye arkamda (0..tur süresi) */
+  behind: number;
+  /** Yarış sırasına göre fark (sn): + arkamda, − önümde (tur farkı dahil) */
+  raceGap: number;
+  onPit: boolean;
+}
+
+export interface Strategy {
+  race: boolean;
+  multiclass: boolean;
+  lapTime: number;
+  position: number;
+  classPosition: number;
+  onPitRoad: boolean;
+  /** Süren pit ziyaretinde pit yolunda geçen süre; pitte değilse -1 */
+  pitElapsed: number;
+  /** Öğrenilmiş pit kaybı (sn); yoksa -1 */
+  pitLoss: number;
+  pitLossSamples: number;
+  pitLossLast: number;
+  track: string;
+  /** Pistteki sıraya göre (en yakın arkamdaki ilk) */
+  cars: StratCar[];
+  /** Eskiden yeniye; süren stint en sonda */
+  stints: StratStint[];
+  team: boolean;
+  teamName: string;
+  driver: string;
+  /** Şu anki sürücünün araçta kesintisiz geçirdiği süre (sn) */
+  driveTime: number;
+  drivers: StratDriver[];
+  /** Takibin başladığı oturum zamanı (sn): öncesi bilinmiyor */
+  trackedFrom: number;
+  sessionTime: number;
+}
+
 export interface Corner {
   n: number;
   pct: number;
@@ -411,6 +509,53 @@ export interface Corners {
   corners: Corner[];
   bestLap: number;
   lapPct: number;
+}
+
+/** Sektör süreleri (Rust: timing::Sectors). Süreler sn; 0 = yok. */
+export interface Sectors {
+  n: number;
+  /** Simin resmi sektörleri (false: üç eşit mesafe) */
+  official: boolean;
+  /** Sektör sınırları (tur yüzdesi), n - 1 adet; 0 = henüz bilinmiyor */
+  bounds: number[];
+  lap: number;
+  lapPct: number;
+  /** İçinde bulunulan sektör (0 tabanlı) */
+  sector: number;
+  /** Güncel sektörde / turda geçen süre; tur çizgide başlamadıysa sectorTime -1 */
+  sectorTime: number;
+  lapTime: number;
+  current: number[];
+  last: number[];
+  best: number[];
+  /** Tur başlarkenki kişisel en iyiler (fark referansı) */
+  bestPrev: number[];
+  classBest: number[];
+  classBestNo: string[];
+  optimal: number;
+  classOptimal: number;
+  bestLap: number;
+  lastLap: number;
+  onPitRoad: boolean;
+}
+
+export interface GapCar {
+  idx: number;
+  /** Anlık fark (sn): + araç önümde, − arkamda */
+  live: number | null;
+  /** Gaps.laps ile aynı sırada çizgi geçişindeki fark */
+  hist: (number | null)[];
+  /** Pit girişleri: laps içindeki örnek sırası (laps.length = bitmemiş güncel tur) */
+  pits: number[];
+}
+
+/** Tur bazlı fark geçmişi (Rust: timing::Gaps) */
+export interface Gaps {
+  race: boolean;
+  lap: number;
+  laps: number[];
+  myPits: number[];
+  cars: GapCar[];
 }
 
 export interface Pit {

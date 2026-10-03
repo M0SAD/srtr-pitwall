@@ -1,0 +1,152 @@
+/* Pist Limiti. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.tl {
+  box-sizing: border-box;
+  padding: 0.55em 0.8em 0.6em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  --tl-col: var(--ov-green);
+  --tl-warn: var(--ov-yellow);
+  border-left: 0.35em solid var(--tl-col);
+}
+.tl-frozen,
+.tl-frozen * {
+  animation-play-state: paused !important;
+}
+.tl-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  min-width: 0;
+}
+.tl-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  flex: none;
+  border-radius: 50%;
+  color: var(--ov-bg-solid, #0c0e13);
+  background: var(--tl-col);
+}
+.tl-ico {
+  width: 1.1em;
+  height: 1.1em;
+  display: block;
+}
+.tl-title {
+  font-size: 1.35em;
+  font-weight: var(--ov-weight-strong);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--tl-col);
+}
+.tl-pit .tl-title {
+  color: var(--ov-dim);
+}
+.tl-est {
+  align-self: flex-start;
+  font-size: 0.68em;
+  letter-spacing: 0.06em;
+  text-transform: var(--ov-label-tt, uppercase);
+  color: var(--ov-dim);
+}
+.tl-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 1em;
+  margin-top: 0.5em;
+}
+.tl-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+.tl-stat i {
+  font-style: normal;
+  font-size: 0.78em;
+  letter-spacing: 0.05em;
+  text-transform: var(--ov-label-tt, uppercase);
+  color: var(--ov-dim);
+}
+.tl-stat b {
+  font-weight: var(--ov-weight-strong);
+}
+.tl-stat.tl-hot b {
+  color: var(--ov-red);
+}
+.tl-stat.tl-warned b {
+  color: var(--tl-warn);
+}
+.tl-incbar {
+  height: 0.3em;
+  margin-top: 0.5em;
+  border-radius: 0.15em;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+}
+.tl-incbar div {
+  height: 100%;
+  background: var(--ov-dim);
+}
+.tl-incbar.tl-warned div {
+  background: var(--tl-warn);
+}
+.tl-incbar-thin {
+  height: 0.2em;
+  margin-top: 0.4em;
+}
+.tl-penalty {
+  margin-top: 0.5em;
+  padding: 0.2em 0.5em;
+  border-radius: 0.3em;
+  font-weight: var(--ov-weight-strong);
+  text-align: center;
+  color: var(--ov-bg-solid, #0c0e13);
+  background: var(--tl-warn);
+  text-shadow: none;
+}
+
+/* Uyarı: pist dışı / tur iptali */
+.tl-flash {
+  animation: tl-flash 0.5s steps(2, jump-none) infinite;
+}
+@keyframes tl-flash {
+  50% {
+    background: color-mix(in srgb, var(--tl-col) 45%, var(--ov-bg-solid, #0c0e13));
+  }
+}
+.tl-off .tl-mark {
+  animation: tl-pulse 0.5s steps(2, jump-none) infinite;
+}
+@keyframes tl-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Şerit */
+.tl-d-strip {
+  padding: 0.35em 0.7em 0.4em;
+}
+.tl-d-strip .tl-mark {
+  width: 1.3em;
+  height: 1.3em;
+}
+.tl-d-strip .tl-ico {
+  width: 0.85em;
+  height: 0.85em;
+}
+.tl-d-strip .tl-title {
+  font-size: 1.05em;
+}
+.tl-d-strip .tl-head {
+  gap: 0.7em;
+}
+.tl-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--ov-divider);
+}

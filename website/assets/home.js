@@ -1,7 +1,8 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
 import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, startProCheckout } from "./core.js";
-import { applyCachedImages, initSiteImages } from "./siteimages.js";
-import { OVERLAY_COUNT } from "./counts.js";
+import { applyCachedImages, initSiteImages, overrideFor } from "./siteimages.js";
+import { OVERLAY_ROUND as OVERLAY_COUNT } from "./overlays.js";
+import { OVERLAYS, OVERLAY_LIST, OVERLAY_TOTAL, overlayImage, overlaySlot } from "./overlays.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
@@ -50,8 +51,8 @@ addDict({
   gal_title: ["SRTR Pitwall'dan kareler", "Shots from SRTR Pitwall"],
   f1_t: ["{0} overlay, tek şeffaf pencere", "{0} overlays, one transparent window"],
   f1_d: [
-    "Relative, leaderboard, yakıt, lastikler, radar, pist haritası, delta, pedal girdileri, hava durumu, bayraklar ve daha fazlası.",
-    "Relative, leaderboard, fuel, tyres, radar, track map, delta, inputs, weather, flags and more.",
+    "Relative, sıralama, yakıt, lastikler, radar, pist haritası, delta ve pedallar; yeni aileler: strateji (pit penceresi, stint özeti, sürücü değişimi), zamanlama (sektör süreleri, fark grafiği, rakip takibi), sürüş (fren noktaları, pist limiti, hasar) ve yayın (start ışıkları, sürücü kartı, kafa kafaya, yarış sonucu, hedef çubuğu).",
+    "Relative, standings, fuel, tyres, radar, track map, delta and pedals — plus new families: strategy (pit window, stint summary, driver swap), timing (sector times, gap chart, rival tracker), driving (braking points, track limits, damage) and streaming (start lights, driver card, head to head, race result, goal bar).",
   ],
   f2_t: ["Görsel ve sesli spotter", "Visual and voice spotter"],
   f2_d: [
@@ -60,13 +61,18 @@ addDict({
   ],
   f3_t: ["Yakıt stratejisi", "Fuel strategy"],
   f3_d: [
-    "Tur başı tüketim, bitiş için eklenecek yakıt, pit pencereleri ve takım arkadaşlarının yakıtı canlı.",
-    "Per-lap usage, fuel to add to finish, pit windows and your teammates' fuel live.",
+    "Tur başı tüketim, bitiş için eklenecek yakıt ve pit pencereleri; pite girersen nereden çıkacağın, stint özeti, takım yarışlarında sürücü değişimi ve takım arkadaşlarının yakıtı canlı.",
+    "Per-lap usage, fuel to add to finish and pit windows; where you would rejoin if you pit now, a stint summary, driver swaps for team races and your teammates' fuel live.",
   ],
   f4_t: ["Arkadaşlar ve canlı veri", "Friends and live data"],
   f4_d: [
     "Kim çevrimiçi, kim yarışta gör. Güvendiğin arkadaşların yakıtını, turlarını ve pistteki yerini izle.",
     "See who's online or racing. Follow trusted friends' fuel, laps and position on track.",
+  ],
+  f15_t: ["Ekip: uzaktan spotter ve mühendis", "Crew: remote spotter and engineer"],
+  f15_d: [
+    "Yarışan arkadaşına uygulamadan ya da telefonundan bağlan: canlı verisini gör, spotter mesajı gönder; izin verdiyse eklenecek yakıt ve lastik değişimi gibi pit ayarlarını uzaktan değiştir.",
+    "Connect to a friend who is racing, from the app or from your phone: see their live data, send spotter messages and — if they allow it — change pit settings such as fuel to add and tyre changes remotely.",
   ],
   f5_t: ["Yarış içi mesajlar", "In-race messages"],
   f5_d: [
@@ -75,13 +81,13 @@ addDict({
   ],
   f6_t: ["OBS yayın düzenleri", "OBS streaming layouts"],
   f6_d: [
-    "Yayına özel düzenler, hazır sahneler (birazdan başlıyoruz, mola, kapanış) ve Twitch sohbet overlay'i.",
-    "Stream-only layouts, ready scenes (starting soon, be right back, ending) and a Twitch chat overlay.",
+    "Yayına özel düzenler, hazır sahneler (birazdan başlıyoruz, mola, kapanış), canlı sohbet ve yayın overlay'leri: start ışıkları, sürücü kartı, kafa kafaya, yarış sonucu ve hedef çubuğu.",
+    "Stream-only layouts, ready scenes (starting soon, be right back, ending), live chat and broadcast overlays: start lights, driver card, head to head, race result and goal bar.",
   ],
   f7_t: ["Topluluk merkezi", "Community hub"],
   f7_d: [
-    "Komple düzenleri, yayın düzenlerini ve temaları paylaş, indir, puanla, yorumla.",
-    "Share, download, rate and comment on complete layouts, stream layouts and themes.",
+    "Ücretsiz hesapla topluluk düzenlerine ve temalarına göz at, onları kullan, puan ver ve yorum yaz; topluluk dashboard'larını da puanla ve yorumla. Kendi düzenini de paylaş.",
+    "With a free account, browse community layouts and themes, use them, rate them and comment — and rate and comment on community dashboards too. Share your own layout as well.",
   ],
   f8_t: ["Tek tuşla ekran görüntüsü", "One-key screenshots"],
   f8_d: [
@@ -115,16 +121,24 @@ addDict({
   panel_c3: ["Ayarların bulut yedeği", "Cloud backup of your settings"],
   panel_c4: ["İmzalı otomatik güncellemeler", "Signed automatic updates"],
 
-  friends_eyebrow: ["Arkadaşlar", "Friends"],
-  friends_title: ["Takım arkadaşın çevrimdışıyken bile verileri elinde", "Your teammate's data, even when they're offline"],
+  friends_eyebrow: ["Arkadaşlar ve ekip", "Friends and crew"],
+  friends_title: ["Arkadaşının spotter'ı ve yarış mühendisi ol", "Be your friend's spotter and race engineer"],
   friends_lead: [
-    "Seni güvenilir işaretleyen arkadaşının yakıtını, tur sürelerini ve pistteki konumunu gör.",
-    "See the fuel, lap times and track position of friends who marked you as trusted.",
+    "Seni güvenilir işaretleyen ya da ekibine ekleyen arkadaşın yarışırken ona uygulamadan ya da telefonundan (sitedeki Ekip sayfası) bağlan: canlı verisini gör, onu uyar ve izin verdiyse pit ayarlarını uzaktan değiştir.",
+    "When a friend who marked you as trusted or added you to their crew is racing, connect to them from the app or from your phone (the Crew page on this website): see their live data, warn them and — if they allow it — change their pit settings remotely.",
   ],
   friends_c1: ["Yakıt, kalan tur, bitiş için eklenecek", "Fuel, laps left, fuel to add"],
   friends_c2: ["En iyi / son tur ve son 10 tur", "Best / last lap and the last 10 laps"],
   friends_c3: ["Pist haritasında anlık konum", "Live position on the track map"],
   friends_c4: ["Mesajlar ve masaüstü bildirimleri", "Messages and desktop notifications"],
+  friends_c5: [
+    "Ekip Pitwall'ı: çevresindeki araçlar, farklar, bayraklar, yan araç göstergesi ve tek dokunuşla spotter mesajları (“Solunda araç”, “Bu tur pit”)",
+    "Crew pit wall: the cars around them, gaps, flags, a car-alongside indicator and one-tap spotter messages (“Car on your left”, “Pit this lap”)",
+  ],
+  friends_c6: [
+    "Uzaktan pit ayarı: eklenecek yakıt miktarı, hangi lastiklerin değişeceği ve hızlı tamir (iRacing; yetkiyi veren sürücü PRO olmalı, izlemek ücretsiz)",
+    "Remote pit settings: fuel to add, which tyres to change and fast repair (iRacing; the driver granting control must be PRO, watching is free)",
+  ],
 
   perf_eyebrow: ["Performans", "Performance"],
   perf_title: ["GPU'n ve CPU'n simülasyona ait", "Your GPU and CPU belong to the sim"],
@@ -140,21 +154,29 @@ addDict({
   cmp_eyebrow: ["Ücretsiz ve PRO", "Free and PRO"],
   cmp_title: ["Ücretsiz başla, istersen PRO'ya geç", "Start free, go PRO when you want"],
   cmp_lead: [
-    "SRTR Pitwall hesap olmadan da eksiksiz çalışır. Ücretsiz hesap topluluğu ve bulut yedeğini açar; PRO geri kalanını.",
-    "SRTR Pitwall works fully without an account. A free account unlocks community and cloud backup; PRO unlocks the rest.",
+    "SRTR Pitwall hesap olmadan da eksiksiz çalışır. Ücretsiz hesap bulut yedeğini, arkadaşları ve topluluğu açar: topluluk düzenlerine ve temalarına göz atabilir, onları kullanabilir, puan verebilir ve yorum yazabilirsin. PRO geri kalanını açar.",
+    "SRTR Pitwall works fully without an account. A free account unlocks cloud backup, friends and the community: you can browse community layouts and themes, use them, rate them and comment. PRO unlocks the rest.",
   ],
   cmp_free: ["Hesapsız", "No account"],
   cmp_account: ["Ücretsiz hesap", "Free account"],
   c_r1: ["Temel overlay'ler, spotter, yakıt hesaplayıcı", "Core overlays, spotter, fuel calculator"],
   c_r2: ["Düzen yöneticisi, temalar, OBS düzenleri", "Layout manager, themes, OBS layouts"],
   c_r3: ["Ayarların bulut yedeği", "Cloud backup of settings"],
-  c_r4: ["Topluluk: gezin, indir, ekran görüntüsü paylaş", "Community: browse, download, share screenshots"],
+  c_r4: [
+    "Topluluk düzenleri ve temaları: göz at, kullan, puan ver, yorum yaz (dashboard'larda da puan ve yorum)",
+    "Community layouts and themes: browse, use, rate and comment (rating and comments on dashboards too)",
+  ],
   c_r5: ["Arkadaş listesi, çevrimiçi / yarışta durumu", "Friends list, online / racing status"],
   c_r6: ["Premium overlay'ler", "Premium overlays"],
   c_r7: ["Sesli yarış mühendisi", "Voice race engineer"],
   c_r8: ["Güvenilir arkadaşlarla canlı veri paylaşımı", "Live data sharing with trusted friends"],
   c_r9: ["Arkadaşlara mesaj gönderme", "Messaging friends"],
-  c_r10: ["Topluluk düzen ve temalarını kullanma, puanlama, yorum", "Using, rating and commenting on community layouts and themes"],
+  c_r13: ["Ekibine uzaktan pit ayarı yetkisi verme (yakıt, lastik)", "Letting your crew change pit settings remotely (fuel, tyres)"],
+  c_r11: [
+    "Ekip: arkadaşının yarışını uygulamadan ya da telefondan canlı izle, mesaj gönder",
+    "Crew: watch a friend's race live from the app or a phone, send messages",
+  ],
+  c_r12: ["Ekran görüntüsü ve tema paylaşma, Dashboard Tasarımcısı", "Sharing screenshots and themes, Dashboard Designer"],
 
   price_eyebrow: ["Fiyatlar", "Pricing"],
   price_title: ["SRTR Pitwall PRO", "SRTR Pitwall PRO"],
@@ -222,6 +244,7 @@ const FEATS = [
   ["🎙️", "f2"],
   ["⛽", "f3"],
   ["👥", "f4"],
+  ["🎧", "f15"],
   ["💬", "f5"],
   ["📺", "f6"],
   ["🌍", "f7"],
@@ -240,11 +263,13 @@ const CMP = [
   ["c_r3", 0, 1, 1],
   ["c_r4", 0, 1, 1],
   ["c_r5", 0, 1, 1],
+  ["c_r11", 0, 1, 1],
   ["c_r6", 0, 0, 1],
   ["c_r7", 0, 0, 1],
   ["c_r8", 0, 0, 1],
   ["c_r9", 0, 1, 1],
-  ["c_r10", 0, 0, 1],
+  ["c_r13", 0, 0, 1],
+  ["c_r12", 0, 0, 1],
 ];
 
 let cfg = null;
@@ -313,7 +338,145 @@ function renderPlans() {
   $("#pro-note").textContent = c.pro_note || "";
 }
 
+// ---------------------------------------------------------------------------
+// Overlay Galerisi: solda liste (overlays.js ile ortak), sağda önizleme görseli + ayrıntılı açıklama (ovg_<id>).
+// Görsel: assets/img/ov/<id>.webp; yönetici "ov.<id>" yuvasına görsel yüklediyse o (siteimages.js). İkisi de
+// yüklenemezse simgeli yer tutucu. Klavye: listede ↑ ↓ ← → Home End; önceki / sonraki düğmeleri sona gelince başa döner.
+// ---------------------------------------------------------------------------
+let galIndex = 0;
+let galEls = null;
+
+function scrollListTo(list, el) {
+  // Sayfayı kaydırmadan sadece listeyi kaydır
+  const lr = list.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  if (list.scrollWidth > list.clientWidth + 1) {
+    // Telefon: yatay şerit, seçili öğe ortaya gelir
+    list.scrollTo({ left: list.scrollLeft + er.left - lr.left - (lr.width - er.width) / 2, behavior: "smooth" });
+    return;
+  }
+  // Masaüstü: dikey liste, yalnızca görünmüyorsa kaydır (yapışkan grup başlığının altında kalmasın)
+  const head = list.querySelector(".ovg-grp");
+  const sticky = head ? head.offsetHeight : 0;
+  if (er.top < lr.top + sticky) list.scrollTop += er.top - lr.top - sticky - 6;
+  else if (er.bottom > lr.bottom) list.scrollTop += er.bottom - lr.bottom + 6;
+}
+
+function galImage(o) {
+  const { img, ph } = galEls;
+  const def = overlayImage(o.id);
+  const ov = overrideFor(overlaySlot(o.id));
+  const want = ov?.url || def;
+  ph.querySelector("span").textContent = o.icon;
+  if (img.dataset.id === o.id && img.dataset.want === want) return;
+  img.dataset.id = o.id;
+  img.dataset.want = want;
+  const fail = () => {
+    if (img.dataset.id !== o.id) return;
+    if (img.getAttribute("src") !== def && want !== def) {
+      img.src = def; // yüklenen görsel açılmadı: siteyle gelen varsayılan
+      return;
+    }
+    img.hidden = true;
+    ph.hidden = false;
+  };
+  img.onerror = fail;
+  img.onload = () => {
+    if (img.dataset.id !== o.id) return;
+    img.hidden = false;
+    ph.hidden = true;
+  };
+  img.alt = ov?.alt || T(`ov_${o.id}_n`);
+  img.src = want;
+}
+
+function galRender() {
+  if (!galEls) return;
+  const o = OVERLAY_LIST[galIndex];
+  galEls.items.forEach((b, i) => {
+    const on = i === galIndex;
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.tabIndex = on ? 0 : -1;
+  });
+  galEls.name.textContent = T(`ov_${o.id}_n`);
+  galEls.tag.className = `ovg-tag ${o.tag}`;
+  galEls.tag.textContent = T(`ovg_tag_${o.tag}`);
+  galEls.desc.textContent = T(`ovg_${o.id}`);
+  galEls.more.href = `features.html#ov-${o.id}`;
+  galEls.count.textContent = `${galIndex + 1} / ${OVERLAY_TOTAL}`;
+  galEls.ph.querySelector("b").textContent = T(`ov_${o.id}_n`);
+  galEls.prev.setAttribute("aria-label", T("ovg_prev"));
+  galEls.next.setAttribute("aria-label", T("ovg_next"));
+  galEls.list.setAttribute("aria-label", T("ovg_list"));
+  galImage(o);
+}
+
+function galSelect(i, { focus = false, scroll = true } = {}) {
+  galIndex = (i + OVERLAY_TOTAL) % OVERLAY_TOTAL;
+  galRender();
+  const el = galEls.items[galIndex];
+  if (scroll) scrollListTo(galEls.list, el);
+  if (focus) el.focus({ preventScroll: true });
+  // Komşu görseller önceden yüklensin (geçiş anında gelsin)
+  for (const d of [1, -1]) new Image().src = overlayImage(OVERLAY_LIST[(galIndex + d + OVERLAY_TOTAL) % OVERLAY_TOTAL].id);
+}
+
+function mountGallery() {
+  const host = $("#ovg");
+  if (!host) return;
+  document.querySelectorAll("[data-ovg-count]").forEach((el) => (el.dataset.tArgs = String(OVERLAY_TOTAL)));
+  let n = 0;
+  host.innerHTML = `<div class="ovg-list" role="listbox" aria-orientation="vertical">${OVERLAYS.map(
+    ([g, list]) =>
+      `<div class="ovg-grp" role="presentation" data-t="fx_g_${g}"></div>` +
+      list
+        .map(([id, ic]) => `<button type="button" class="ovg-item" role="option" id="ovg-opt-${id}" data-i="${n++}" aria-selected="false" tabindex="-1"><span class="ic" aria-hidden="true">${ic}</span><span data-t="ov_${id}_n"></span></button>`)
+        .join(""),
+  ).join("")}</div>
+  <div class="card ovg-view">
+    <div class="ovg-stage"><img alt="" width="720" height="450" decoding="async" /><div class="ovg-ph" hidden><span aria-hidden="true"></span><b></b></div></div>
+    <div class="ovg-info" aria-live="polite">
+      <div><h3><span class="ovg-name"></span><span class="ovg-tag"></span></h3><p class="ovg-desc"></p><a class="ovg-more" data-t="ovg_more"></a></div>
+      <div class="ovg-nav"><button type="button" class="ovg-prev">‹</button><span class="ovg-count"></span><button type="button" class="ovg-next">›</button></div>
+    </div>
+  </div>`;
+  const q = (s) => host.querySelector(s);
+  galEls = {
+    list: q(".ovg-list"),
+    items: [...host.querySelectorAll(".ovg-item")],
+    img: q(".ovg-stage img"),
+    ph: q(".ovg-ph"),
+    name: q(".ovg-name"),
+    tag: q(".ovg-tag"),
+    desc: q(".ovg-desc"),
+    more: q(".ovg-more"),
+    count: q(".ovg-count"),
+    prev: q(".ovg-prev"),
+    next: q(".ovg-next"),
+  };
+  galEls.list.addEventListener("click", (e) => {
+    const b = e.target.closest(".ovg-item");
+    if (b) galSelect(Number(b.dataset.i));
+  });
+  galEls.list.addEventListener("keydown", (e) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    let i;
+    if (step) i = galIndex + step;
+    else if (e.key === "Home") i = 0;
+    else if (e.key === "End") i = OVERLAY_TOTAL - 1;
+    else return;
+    e.preventDefault();
+    galSelect(i, { focus: true });
+  });
+  galEls.prev.addEventListener("click", () => galSelect(galIndex - 1));
+  galEls.next.addEventListener("click", () => galSelect(galIndex + 1));
+  // Yönetici görseli (önbellekten ya da sunucudan) gelince güncel overlay'in görselini yenile
+  document.addEventListener("siteimages", () => galEls && galImage(OVERLAY_LIST[galIndex]));
+  galSelect(0, { scroll: false });
+}
+
 async function main() {
+  mountGallery();
   await boot("/");
   import("./adslot.js").then((m) => m.mountAds(), () => {});
   renderStatic();
@@ -326,9 +489,11 @@ async function main() {
     const ok = await startProCheckout(b.dataset.pro);
     if (!ok) b.disabled = false;
   });
+  galRender();
   document.addEventListener("langchange", () => {
     renderStatic();
     renderPlans();
+    galRender();
   });
   [cfg, user] = await Promise.all([appConfig().catch(() => ({})), currentUser()]);
   initSiteImages(cfg && Object.keys(cfg).length ? cfg : null);

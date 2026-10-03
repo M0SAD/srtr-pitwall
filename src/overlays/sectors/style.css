@@ -1,0 +1,259 @@
+/* Sektör Süreleri. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.sec {
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+  --sec-class: var(--ov-purple);
+  --sec-best: var(--ov-green);
+  --sec-slow: var(--ov-yellow);
+}
+.sec-body {
+  padding: 0.5em 0.65em 0.55em;
+}
+.sec-approx {
+  color: var(--ov-yellow);
+  font-weight: var(--ov-weight-strong);
+}
+.sec-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6em;
+}
+.sec-gain {
+  color: var(--ov-green);
+}
+.sec-loss {
+  color: var(--ov-red);
+}
+.sec-total {
+  flex: none;
+  align-self: center;
+  min-width: 3.6em;
+  text-align: right;
+  font-size: 1.35em;
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-dim);
+}
+.sec-total.sec-gain {
+  color: var(--ov-green);
+}
+.sec-total.sec-loss {
+  color: var(--ov-red);
+}
+
+/* --- kutular --- */
+.sec-boxes {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.35em;
+}
+.sec-box {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.3em 0.2em 0.25em;
+  border-radius: 0.35em;
+  background: var(--ov-bg-row);
+  border-bottom: 0.2em solid var(--ov-line);
+  --sec-c: var(--ov-dim);
+}
+.sec-lbl {
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  color: var(--ov-dim);
+}
+.sec-time {
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+}
+.sec-box .sec-time {
+  font-size: 1.1em;
+}
+.sec-d {
+  font-size: 0.78em;
+  color: var(--ov-dim);
+}
+.sec-d.sec-gain {
+  color: var(--ov-green);
+}
+.sec-d.sec-loss {
+  color: var(--ov-red);
+}
+.sec-t-class {
+  --sec-c: var(--sec-class);
+}
+.sec-t-best {
+  --sec-c: var(--sec-best);
+}
+.sec-t-slow {
+  --sec-c: var(--sec-slow);
+}
+.sec-box.sec-done {
+  border-bottom-color: var(--sec-c);
+  background: color-mix(in srgb, var(--sec-c) 16%, transparent);
+}
+.sec-box.sec-done .sec-time {
+  color: var(--sec-c);
+}
+.sec-box.sec-live {
+  border-bottom-color: var(--ov-text);
+}
+.sec-box.sec-live .sec-time {
+  color: var(--ov-text);
+  opacity: 0.85;
+}
+.sec-box.sec-wait .sec-time {
+  color: var(--ov-dim);
+  opacity: 0.6;
+}
+.sec-hold .sec-box.sec-done {
+  outline: 1px solid color-mix(in srgb, var(--sec-c) 55%, transparent);
+}
+
+/* --- çubuklar --- */
+.sec-bars {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.25em;
+}
+.sec-seg {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  --sec-c: var(--ov-dim);
+}
+.sec-track {
+  height: 0.5em;
+  border-radius: 0.25em;
+  background: var(--ov-line);
+  overflow: hidden;
+}
+.sec-fill {
+  height: 100%;
+  background: var(--sec-c);
+  border-radius: inherit;
+}
+.sec-seg.sec-live .sec-fill {
+  background: var(--ov-text);
+  opacity: 0.8;
+}
+.sec-seg .sec-time {
+  font-size: 0.86em;
+  text-align: center;
+  color: var(--ov-dim);
+  overflow: hidden;
+  text-overflow: clip;
+}
+.sec-seg.sec-done .sec-time {
+  color: var(--sec-c);
+}
+.sec-seg.sec-live .sec-time {
+  color: var(--ov-text);
+}
+.sec-bars .sec-seg.sec-wait .sec-time {
+  font-weight: var(--ov-weight);
+  opacity: 0.6;
+}
+
+/* --- özet satırı --- */
+.sec-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15em 1em;
+  margin-top: 0.45em;
+  font-size: 0.86em;
+}
+.sec-sum:empty {
+  display: none;
+}
+.sec-kv {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+.sec-kv i {
+  font-style: normal;
+  color: var(--ov-dim);
+  text-transform: var(--ov-label-tt, uppercase);
+  font-size: 0.85em;
+  letter-spacing: 0.05em;
+}
+.sec-kv b {
+  font-weight: var(--ov-weight-strong);
+}
+.sec-opt b {
+  color: var(--sec-best);
+}
+
+/* --- tablo --- */
+.sec-table {
+  display: grid;
+  align-items: baseline;
+  gap: 0.2em 0.5em;
+}
+.sec-th {
+  font-size: 0.75em;
+  letter-spacing: 0.07em;
+  color: var(--ov-dim);
+  text-align: right;
+  text-transform: var(--ov-label-tt, uppercase);
+}
+.sec-rh {
+  font-size: 0.82em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.sec-td {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: var(--ov-weight-strong);
+  color: var(--sec-c, var(--ov-text));
+}
+.sec-td small {
+  margin-left: 0.3em;
+  font-size: 0.68em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-dim);
+}
+.sec-td.sec-t- {
+  color: var(--ov-dim);
+}
+.sec-td.sec-wait {
+  color: var(--ov-dim);
+  opacity: 0.6;
+}
+.sec-td.sec-live {
+  color: var(--ov-text);
+  opacity: 0.85;
+}
+.sec-sumcell {
+  color: var(--ov-text);
+}
+.sec-sumcell.sec-gain {
+  color: var(--ov-green);
+}
+.sec-sumcell.sec-loss {
+  color: var(--ov-red);
+}
+.sec-sumcell.sec-t-class {
+  color: var(--sec-class);
+}
+.sec-sumcell.sec-t-best {
+  color: var(--sec-best);
+}
+.sec-foot {
+  margin-top: 0.2em;
+  padding-top: 0.3em;
+  border-top: 1px solid var(--ov-divider);
+}
+.sec-wide {
+  font-size: 0.82em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-text);
+}

@@ -1,0 +1,66 @@
+import { defineOverlay } from "@/sdk/overlay";
+
+export default defineOverlay({
+  id: "brakepoint",
+  name: "Fren ve Vites İşareti",
+  description:
+    "En iyi geçerli turundaki fren noktalarını referans alır: sıradaki fren noktasına geri sayım, virajın vitesi ve son virajda referansa göre kaç metre erken ya da geç frenlediğin.",
+  category: "driving",
+  topics: [{ name: "brakepoint", hz: 30 }],
+  size: { w: 320, h: 92 },
+  defaultPosition: { x: 800, y: 620 },
+  defaultEnabled: false,
+  settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "bar",
+      options: [
+        { value: "bar", label: "Yatay geri sayım çubuğu" },
+        { value: "cue", label: "Büyük minimal işaret" },
+        { value: "vertical", label: "Dikey çubuk", pro: true },
+      ],
+      hint: "Yatay çubuk: mesafe işaretli geri sayım. Büyük işaret: sadece vites ve üç basamaklı uyarı. Dikey çubuk: göz ucuyla okunan dar sütun.",
+      proHint: "Dikey çubuk tasarımı PRO üyelere özel.",
+    },
+    {
+      key: "range",
+      label: "Geri sayım başlangıcı",
+      type: "number",
+      default: 150,
+      min: 50,
+      max: 400,
+      step: 10,
+      unit: "m",
+      hint: "Fren noktasına bu mesafe kala geri sayım başlar. Çubuktaki işaretler 50 metrede bir konur.",
+    },
+    {
+      key: "lead",
+      label: "Erken uyarı payı",
+      type: "number",
+      default: 0.15,
+      min: 0,
+      max: 1,
+      step: 0.05,
+      unit: "sn",
+      hint: "ŞİMDİ uyarısı, o anki hızınla bu süre kadar önce yanar (tepki süresi payı). 0: tam referans noktasında.",
+    },
+    { key: "showGear", label: "Virajın vitesini göster", type: "boolean", default: true, hint: "Referans turda o virajda kullandığın en düşük vites." },
+    { key: "showSpeed", label: "Virajın en düşük hızını göster", type: "boolean", default: false },
+    { key: "showLift", label: "Gaz kesme noktalarını da işaretle", type: "boolean", default: true, hint: "Fren yapmadan sadece gazı kestiğin virajlar da geri sayımla gösterilir." },
+    { key: "showDiff", label: "Son virajdaki fark (± metre)", type: "boolean", default: true, hint: "Referans tura göre kaç metre erken ya da geç frenlediğin." },
+    { key: "diffHold", label: "Farkın ekranda kalma süresi", type: "number", default: 6, min: 2, max: 30, step: 1, unit: "sn", showIf: { key: "showDiff", is: [true] } },
+    { key: "showMini", label: "Tur şeridi (fren noktaları)", type: "boolean", default: true, showIf: { key: "design", is: ["bar"] }, hint: "Turun tamamını ince bir şeritte, fren noktaları ve konumunla gösterir." },
+    { key: "hideIdle", label: "Fren noktası uzaktayken gizle", type: "boolean", default: false, hint: "Geri sayım başlayana kadar gösterge ekranda yer kaplamaz." },
+    { key: "hidePits", label: "Pitte gizle", type: "boolean", default: true },
+
+    { key: "colFar", label: "Uzak rengi", type: "color", default: "#4aa8ff", group: "Renkler" },
+    { key: "colNear", label: "Yaklaşıyor rengi", type: "color", default: "#ffcc33", group: "Renkler" },
+    { key: "colNow", label: "ŞİMDİ rengi", type: "color", default: "#ff4d4f", group: "Renkler" },
+
+    { key: "fontSize", label: "Yazı boyutu", type: "number", default: 14, min: 10, max: 30, step: 1, unit: "px", group: "Görünüm", hint: "Bütün gösterge yazı boyutuyla birlikte büyür ve küçülür." },
+    { key: "width", label: "Genişlik", type: "number", default: 320, min: 200, max: 700, step: 10, unit: "px", group: "Görünüm", showIf: { key: "design", is: ["bar"] } },
+    { key: "height", label: "Yükseklik", type: "number", default: 220, min: 120, max: 500, step: 10, unit: "px", group: "Görünüm", showIf: { key: "design", is: ["vertical"] } },
+  ],
+});

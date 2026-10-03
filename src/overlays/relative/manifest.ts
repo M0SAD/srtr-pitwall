@@ -61,6 +61,7 @@ export default defineOverlay({
     { key: "showFooter", label: "Alt satır", type: "boolean", default: true, group: "Başlık" },
     headerField("footerFields", "Alt satır bilgileri", ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]),
     labelStyleField("Başlık"),
+    { key: "width", label: "Genişlik (en az)", type: "number", default: 560, min: 300, max: 1600, step: 10, unit: "px", hint: "Tablo en az bu genişlikte olur; ad sütunu boşluğu doldurur. Sütunlar sığmazsa tablo kendiliğinden genişler. Düzenleme modunda pencerenin sağ / sol kenarından sürükleyerek de ayarlanır." },
     { key: "barSize", label: "Bilgi satırı yazı boyutu", type: "number", default: 120, min: 80, max: 200, step: 5, unit: "%", group: "Başlık", hint: "Üst ve alt bilgi satırlarındaki yazı ve simgelerin boyutu." },
     {
       key: "columns",

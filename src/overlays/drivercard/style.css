@@ -1,0 +1,216 @@
+/* Sürücü Kartı (lower third). Giriş / çıkış: soldan kayan bant, içerik biraz gecikmeli belirir. */
+.dcard {
+  width: max-content;
+  box-sizing: border-box;
+  line-height: 1.15;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  clip-path: inset(-20px -20px -20px 0);
+  transition:
+    clip-path 0.6s cubic-bezier(0.2, 0.85, 0.2, 1),
+    opacity 0.35s ease 0.1s;
+}
+.dcard.dcard-off {
+  clip-path: inset(-20px 100% -20px 0);
+  opacity: 0;
+}
+.dcard-in {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: 3.3em;
+  background: var(--ov-bg);
+  color: var(--ov-text);
+  border: var(--ov-bw, 1px) solid var(--ov-line);
+  border-left: 0.36em solid var(--dc-accent);
+  border-radius: var(--ov-radius);
+  box-shadow: var(--ov-box-shadow, 0 6px 20px rgba(0, 0, 0, 0.35));
+  overflow: hidden;
+  transition:
+    transform 0.6s cubic-bezier(0.2, 0.85, 0.2, 1),
+    opacity 0.4s ease;
+}
+.dcard-off .dcard-in {
+  transform: translate3d(-28px, 0, 0);
+}
+.dcard-in > * {
+  transition:
+    opacity 0.4s ease 0.25s,
+    transform 0.5s cubic-bezier(0.2, 0.85, 0.2, 1) 0.2s;
+}
+.dcard-off .dcard-in > * {
+  opacity: 0;
+  transform: translate3d(-14px, 0, 0);
+  transition-delay: 0s;
+}
+
+.dcard-pos,
+.dcard-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.3em;
+  padding: 0 0.5em;
+  font-size: 1.55em;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dcard-pos {
+  background: var(--dc-accent);
+  color: #0b0d11;
+  text-shadow: none;
+}
+.dcard-pos small {
+  font-size: 0.55em;
+  font-weight: 800;
+  margin-right: 0.08em;
+  opacity: 0.75;
+}
+.dcard-num {
+  font-style: italic;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+  border-right: 1px solid var(--ov-divider);
+}
+.dcard-num::before {
+  content: "#";
+  font-size: 0.6em;
+  opacity: 0.6;
+  margin-right: 0.05em;
+}
+
+.dcard-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2em;
+  padding: 0.45em 0.9em;
+}
+.dcard-l1 {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  white-space: nowrap;
+}
+.dcard-flag {
+  display: inline-flex;
+  flex: none;
+}
+.dcard-flag img,
+.dcard-flag .ov-flag {
+  height: 1em;
+  width: auto;
+  border-radius: 2px;
+}
+.dcard-name {
+  font-size: 1.3em;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.dcard-class {
+  padding: 0.1em 0.5em;
+  border-radius: 3px;
+  background: var(--dc-accent);
+  color: #0b0d11;
+  font-size: 0.72em;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-shadow: none;
+}
+.dcard-l2 {
+  color: var(--ov-dim);
+  font-size: 0.86em;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dcard-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.3em;
+  padding: 0.4em 0.8em;
+  border-left: 1px solid var(--ov-divider);
+}
+.dcard-ir {
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dcard-ir small {
+  margin-right: 0.35em;
+  color: var(--ov-dim);
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* --- küçük etiket: tek satır --- */
+.dcard-d-tag .dcard-in {
+  min-height: 2.1em;
+  border-left-width: 0.28em;
+}
+.dcard-d-tag .dcard-pos,
+.dcard-d-tag .dcard-num {
+  font-size: 1.05em;
+  min-width: 1.9em;
+  padding: 0 0.45em;
+}
+.dcard-d-tag .dcard-main {
+  padding: 0.25em 0.7em;
+}
+.dcard-d-tag .dcard-name {
+  font-size: 1em;
+}
+.dcard-d-tag .dcard-side {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.25em 0.7em;
+}
+
+/* --- eğik sport: bant sağa yatık, yazılar düz --- */
+.dcard-d-angled {
+  padding: 0 0.9em;
+  clip-path: inset(-20px -20px -20px -20px);
+}
+.dcard-d-angled.dcard-off {
+  clip-path: inset(-20px 100% -20px -20px);
+}
+.dcard-d-angled .dcard-in {
+  transform: skewX(-14deg);
+  border: 0;
+  border-radius: 4px;
+  border-bottom: 0.22em solid var(--dc-accent);
+  background: linear-gradient(100deg, var(--ov-bg-solid) 0, var(--ov-bg) 70%, color-mix(in srgb, var(--dc-accent) 26%, var(--ov-bg)) 100%);
+}
+.dcard-d-angled.dcard-off .dcard-in {
+  transform: skewX(-14deg) translate3d(-28px, 0, 0);
+}
+.dcard-d-angled .dcard-in > * {
+  transform: skewX(14deg);
+}
+.dcard-d-angled.dcard-off .dcard-in > * {
+  transform: skewX(14deg) translate3d(-14px, 0, 0);
+}
+.dcard-d-angled .dcard-pos {
+  transform: none;
+  padding: 0 0.7em;
+}
+.dcard-d-angled .dcard-pos,
+.dcard-d-angled.dcard-off .dcard-pos {
+  transform: none;
+}
+.dcard-d-angled .dcard-name {
+  font-style: italic;
+  text-transform: uppercase;
+}
+.dcard-d-angled .dcard-num,
+.dcard-d-angled .dcard-side {
+  border: 0;
+  background: none;
+}

@@ -74,18 +74,23 @@ function buildPatterns() {
   for (const [k, v] of Object.entries(dict)) {
     if (!/\{\d\}/.test(k)) continue;
     const order: number[] = [];
+    // Sabit kısmı çok kısa kalıplar ("T{0}" → "L{0}", "+{0}T") yalnızca harf içermeyen değerle (sayı, süre)
+    // eşleşir. Yoksa "T{0}" her "T…" metnini yakalar ve yalnız ilk harfi çevirirdi:
+    // "TUR GEÇERSİZ" → "LUR GEÇERSİZ", "Type an option…" → "Lype an option…".
+    const literal = k.replace(/\{\d\}/g, "");
+    const cap = (literal.match(/\p{L}/gu)?.length ?? 0) < 3 ? "([^\\p{L}]+?)" : "(.+?)";
     const src = k
       .split(/(\{\d\})/)
       .map((p) => {
         const m = /^\{(\d)\}$/.exec(p);
         if (m) {
           order.push(Number(m[1]));
-          return "(.+?)";
+          return cap;
         }
         return escapeRe(p);
       })
       .join("");
-    patterns.push({ re: new RegExp(`^${src}$`, "s"), order, out: v });
+    patterns.push({ re: new RegExp(`^${src}$`, "su"), order, out: v });
   }
   // Uzun kalıplar önce (daha özgül)
   patterns.sort((a, b) => b.re.source.length - a.re.source.length);

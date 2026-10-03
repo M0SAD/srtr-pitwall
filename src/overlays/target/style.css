@@ -1,0 +1,183 @@
+/* Rakip Takibi. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.tg {
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+  --tg-accent: var(--ov-accent);
+}
+.tg-mode {
+  color: var(--tg-accent);
+  font-weight: var(--ov-weight-strong);
+}
+.tg-body {
+  padding: 0.5em 0.7em 0.55em;
+}
+.tg-good {
+  color: var(--ov-green);
+}
+.tg-bad {
+  color: var(--ov-red);
+}
+.tg-top,
+.tg-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  min-width: 0;
+  white-space: nowrap;
+}
+.tg-stripe {
+  flex: none;
+  width: 0.25em;
+  height: 1.3em;
+  border-radius: 0.15em;
+}
+.tg-pos {
+  flex: none;
+  font-weight: var(--ov-weight-strong);
+}
+.tg-num {
+  flex: none;
+  color: var(--ov-dim);
+}
+.tg-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--ov-weight-strong);
+}
+.tg-mid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin-top: 0.35em;
+}
+.tg-gapbox {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  white-space: nowrap;
+}
+.tg-gap {
+  font-size: 1.9em;
+  font-weight: var(--ov-weight-strong);
+  line-height: 1;
+  color: var(--tg-accent);
+}
+.tg-gap small {
+  font-size: 0.6em;
+  margin-right: 0.05em;
+  opacity: 0.8;
+}
+.tg-change {
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.tg-change.tg-good {
+  color: var(--ov-green);
+}
+.tg-change.tg-bad {
+  color: var(--ov-red);
+}
+.tg-grid {
+  display: grid;
+  gap: 0.15em;
+  margin-top: 0.4em;
+}
+.tg-grid:empty {
+  display: none;
+}
+.tg-kv {
+  display: grid;
+  grid-template-columns: 3.4em 1fr auto;
+  align-items: baseline;
+  gap: 0.5em;
+}
+.tg-kv i {
+  font-style: normal;
+  font-size: 0.78em;
+  letter-spacing: 0.05em;
+  color: var(--ov-dim);
+  text-transform: var(--ov-label-tt, uppercase);
+}
+.tg-kv b {
+  font-weight: var(--ov-weight-strong);
+}
+.tg-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.45em;
+  padding-top: 0.4em;
+  border-top: 1px solid var(--ov-divider);
+  font-size: 0.88em;
+  white-space: nowrap;
+}
+.tg-spacer {
+  flex: 1;
+}
+.tg-pit {
+  background: var(--ov-yellow);
+  color: #0c0e13;
+}
+.tg-out {
+  background: var(--ov-blue);
+  color: #0c0e13;
+}
+.tg-pitago {
+  flex: none;
+}
+.tg-ir {
+  font-weight: var(--ov-weight-strong);
+}
+
+/* --- mini grafik --- */
+.tg-spark {
+  flex: none;
+  display: block;
+}
+.tg-line,
+.tg-live {
+  fill: none;
+  stroke: var(--tg-accent);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.tg-live {
+  stroke-dasharray: 2 3;
+  stroke-opacity: 0.8;
+}
+.tg-dots {
+  fill: var(--tg-accent);
+}
+.tg-zero {
+  fill: none;
+  stroke: var(--ov-text);
+  stroke-opacity: 0.4;
+  stroke-dasharray: 4 3;
+}
+.tg-pitline {
+  fill: none;
+  stroke: var(--ov-yellow);
+  stroke-dasharray: 2 2;
+}
+
+/* --- şerit --- */
+.tg-strip {
+  padding: 0.35em 0.6em;
+}
+.tg-strip .tg-gap {
+  flex: none;
+  font-size: 1.25em;
+}
+.tg-strip .tg-last {
+  flex: none;
+  color: var(--ov-dim);
+}
+.tg-strip .tg-pitago {
+  font-size: 0.82em;
+  color: var(--ov-dim);
+}

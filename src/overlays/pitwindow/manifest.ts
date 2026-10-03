@@ -1,0 +1,78 @@
+import { defineOverlay } from "@/sdk/overlay";
+import { NAME_FORMATS } from "@/sdk/HeaderStats";
+
+export default defineOverlay({
+  id: "pitwindow",
+  name: "Pit Penceresi",
+  description:
+    "Şimdi pite girersen nereden çıkarsın? Tahmini pit kaybını, pist üzerinde aralarına döneceğin araçları, pit sonrası sıranı, trafik durumunu ve yakıta göre pit penceresini gösterir.",
+  category: "race",
+  topics: [
+    { name: "strategy", hz: 2 },
+    { name: "fuel", hz: 1 },
+  ],
+  size: { w: 460, h: 150 },
+  defaultPosition: { x: 730, y: 60 },
+  defaultEnabled: false,
+  settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "strip",
+      options: [
+        { value: "strip", label: "Kompakt şerit" },
+        { value: "card", label: "Detaylı kart (dönüş çizelgesi)", pro: true },
+      ],
+      hint: "Kompakt şerit bütün bilgiyi tek satırda verir. Detaylı kart, pit çıkışında çevrende olacak araçları bir zaman çizelgesinde de gösterir.",
+      proHint: "Dönüş çizelgeli detaylı kart PRO üyelere özel.",
+    },
+    { key: "width", label: "Genişlik", type: "number", default: 460, min: 300, max: 900, step: 10, unit: "px" },
+    {
+      key: "lossMode",
+      label: "Pit kaybı",
+      type: "select",
+      default: "auto",
+      options: [
+        { value: "auto", label: "Otomatik (ölçülen, yoksa varsayılan)" },
+        { value: "manual", label: "Her zaman elle girilen" },
+      ],
+      group: "Pit kaybı",
+      hint: "Otomatik: bu pistte yaptığın pit stoplar ölçülür (pit girişi → çıkışı, normal temponla karşılaştırılır) ve son ölçümlerin ortalaması kullanılır. Henüz ölçüm yoksa aşağıdaki varsayılan süre geçerlidir.",
+    },
+    {
+      key: "pitLoss",
+      label: "Varsayılan pit kaybı",
+      type: "number",
+      default: 28,
+      min: 8,
+      max: 120,
+      step: 0.5,
+      unit: "sn",
+      ui: "stepper",
+      group: "Pit kaybı",
+      hint: "Pit yoluna girip servis alıp çıkmanın, pistte kalmaya göre kaybettirdiği toplam süre.",
+    },
+    {
+      key: "trackLoss",
+      label: "Piste özel süreler",
+      type: "text",
+      default: "",
+      placeholder: "Spa=32, Monza=24.5",
+      group: "Pit kaybı",
+      hint: "Virgülle ayır: pist adının bir parçası = saniye. Eşleşen pistte ölçümün ve varsayılanın yerine bu süre kullanılır.",
+    },
+    { key: "classOnly", label: "Yalnızca kendi sınıfımdaki araçlar", type: "boolean", default: false, group: "Dönüş", hint: "Açıkken aralarına döneceğin araçlar yalnızca kendi sınıfından seçilir. Sıra tahmini çok sınıflı yarışta her zaman sınıf içidir." },
+    { key: "trafficGap", label: "Trafik eşiği", type: "number", default: 2.5, min: 0.5, max: 10, step: 0.5, unit: "sn", group: "Dönüş", hint: "Pit çıkışında önündeki araca bu süreden yakın düşeceksen \"TRAFİK\" uyarısı verilir." },
+    { key: "span", label: "Çizelge aralığı", type: "number", default: 15, min: 5, max: 40, step: 1, unit: "sn", group: "Dönüş", showIf: { key: "design", is: ["card"] }, hint: "Dönüş çizelgesinde çıkış noktanın önünde ve arkasında gösterilecek süre." },
+    { key: "nameFormat", label: "Ad biçimi", type: "select", default: "initial", options: NAME_FORMATS, group: "Dönüş" },
+    { key: "showLoss", label: "Pit kaybı", type: "boolean", default: true, group: "Gösterilecekler" },
+    { key: "showRejoin", label: "Aralarına döneceğin araçlar", type: "boolean", default: true, group: "Gösterilecekler" },
+    { key: "showPos", label: "Pit sonrası tahmini sıra", type: "boolean", default: true, group: "Gösterilecekler" },
+    { key: "showTraffic", label: "Trafik göstergesi", type: "boolean", default: true, group: "Gösterilecekler" },
+    { key: "showWindow", label: "Yakıt pit penceresi", type: "boolean", default: true, group: "Gösterilecekler", hint: "Yakıt hesaplayıcının verisinden: bitişe yetişmek için en erken ve en geç pit turu, depodaki yakıtın yeteceği tur." },
+    { key: "raceOnly", label: "Yalnızca yarışta göster", type: "boolean", default: false },
+    { key: "clearColor", label: "Temiz hava rengi", type: "color", default: "#33d17a", group: "Renkler" },
+    { key: "trafficColor", label: "Trafik rengi", type: "color", default: "#ff8a2a", group: "Renkler" },
+  ],
+});

@@ -383,6 +383,9 @@ export function StreamingPage() {
 
             <Show when={!linked()}>
               <small class="muted lhint">Soldaki listede çift tık: overlay'i yayın düzenine ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik · OBS'teki görüntü sürüklerken anında güncellenir</small>
+              <small class="muted lhint lkeys">
+                <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
+              </small>
             </Show>
             <Show when={sharing()}>
               <ShareDialog kind="stream" profileId={p()!.id} onClose={() => setSharing(false)} onShared={() => (setSharing(false), go("community", "stream"))} />

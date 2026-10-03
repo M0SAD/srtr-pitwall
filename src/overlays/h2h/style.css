@@ -1,0 +1,207 @@
+/* Kafa Kafaya. Giriş / çıkış: pano ortadan açılır; iki sürücü bloğu kenarlardan kayar. */
+.h2h {
+  box-sizing: border-box;
+  user-select: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.5s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.h2h.h2h-off {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0) scaleX(0.94);
+}
+.h2h-panel {
+  box-shadow: var(--ov-box-shadow, 0 8px 24px rgba(0, 0, 0, 0.4));
+}
+
+.h2h-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+}
+.h2h-drv {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.55em 0.8em;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--h2h-c) 30%, transparent) 0, transparent 85%);
+  border-bottom: 0.2em solid var(--h2h-c);
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1) 0.1s;
+}
+.h2h-drv.h2h-b {
+  flex-direction: row-reverse;
+  text-align: right;
+  background: linear-gradient(270deg, color-mix(in srgb, var(--h2h-c) 30%, transparent) 0, transparent 85%);
+}
+.h2h-off .h2h-a {
+  transform: translate3d(-30px, 0, 0);
+}
+.h2h-off .h2h-b {
+  transform: translate3d(30px, 0, 0);
+}
+.h2h-pos {
+  flex: none;
+  min-width: 1.5em;
+  padding: 0.05em 0.2em;
+  border-radius: 4px;
+  background: var(--ov-text);
+  color: var(--ov-bg-solid);
+  font-size: 1.5em;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+.h2h-id {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+.h2h-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.15em;
+  font-weight: 800;
+}
+.h2h-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--ov-dim);
+  font-size: 0.82em;
+  white-space: nowrap;
+}
+.h2h-b .h2h-meta {
+  flex-direction: row-reverse;
+}
+.h2h-meta i {
+  font-style: normal;
+}
+.h2h-meta img {
+  height: 0.95em;
+  width: auto;
+  border-radius: 2px;
+}
+
+.h2h-mid {
+  min-width: 6.2em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15em;
+  padding: 0.3em 0.8em;
+  background: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  border-bottom: 0.2em solid var(--ov-divider);
+}
+.h2h-mid label,
+.h2h-row label {
+  color: var(--ov-dim);
+  font-size: 0.68em;
+  letter-spacing: 0.08em;
+  text-transform: var(--ov-label-tt, uppercase);
+  white-space: nowrap;
+}
+.h2h-gap {
+  font-size: 1.5em;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.h2h-vs {
+  font-size: 1.4em;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--ov-accent);
+}
+
+.h2h-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.3em 0.9em;
+}
+.h2h-row:nth-child(even) {
+  background: var(--ov-bg-row);
+}
+.h2h-row label {
+  min-width: 7em;
+  text-align: center;
+}
+.h2h-row b {
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+.h2h-va {
+  text-align: right;
+}
+.h2h-vb {
+  text-align: left;
+}
+.h2h-row b.win {
+  color: var(--h2h-win);
+}
+.h2h-va.win::before {
+  content: "◀ ";
+  font-size: 0.6em;
+  vertical-align: 0.15em;
+}
+.h2h-vb.win::after {
+  content: " ▶";
+  font-size: 0.6em;
+  vertical-align: 0.15em;
+}
+
+/* --- üst üste kart: sürücüler alt alta, değerler iki sütun --- */
+.h2h-d-stack .h2h-top {
+  grid-template-columns: 1fr;
+}
+.h2h-d-stack .h2h-drv.h2h-b {
+  flex-direction: row;
+  text-align: left;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--h2h-c) 30%, transparent) 0, transparent 85%);
+}
+.h2h-d-stack .h2h-b .h2h-meta {
+  flex-direction: row;
+}
+.h2h-d-stack .h2h-mid {
+  flex-direction: row;
+  gap: 0.7em;
+  min-width: 0;
+  padding: 0.15em 0.8em;
+  border-bottom: 0;
+}
+.h2h-d-stack .h2h-gap,
+.h2h-d-stack .h2h-vs {
+  font-size: 1.1em;
+}
+.h2h-d-stack .h2h-row {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.4em;
+}
+.h2h-d-stack .h2h-row label {
+  min-width: 0;
+  order: -1;
+  text-align: left;
+}
+.h2h-d-stack .h2h-va,
+.h2h-d-stack .h2h-vb {
+  text-align: right;
+}
+.h2h-d-stack .h2h-va.win::before,
+.h2h-d-stack .h2h-vb.win::after {
+  content: none;
+}
+.h2h-hdr {
+  display: none;
+}
+.h2h-d-stack .h2h-hdr {
+  display: grid;
+  color: var(--ov-dim);
+  font-size: 0.8em;
+  border-top: 1px solid var(--ov-divider);
+}

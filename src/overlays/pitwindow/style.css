@@ -1,0 +1,268 @@
+/* Pit Penceresi. Ölçüler em: tema yazı boyutu bütün paneli ölçekler. */
+.pw {
+  box-sizing: border-box;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  --pw-clear: var(--ov-green);
+  --pw-traffic: var(--ov-accent);
+}
+.pw-k {
+  display: block;
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  color: var(--ov-dim);
+  text-transform: var(--ov-label-tt, uppercase);
+  white-space: nowrap;
+}
+.pw-main {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75em;
+  padding: 0.5em 0.7em;
+  min-width: 0;
+}
+.pw-cell {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1em;
+}
+.pw-cell > b {
+  font-size: 1.45em;
+  font-weight: var(--ov-weight-strong);
+  white-space: nowrap;
+}
+.pw-cell > b > i {
+  font-style: normal;
+  font-size: 0.55em;
+  color: var(--ov-dim);
+  margin-left: 0.1em;
+}
+.pw-sub {
+  font-size: 0.7em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.pw-pos em {
+  font-style: normal;
+  color: var(--ov-dim);
+  margin: 0 0.2em;
+  font-size: 0.75em;
+}
+.pw-pos .pw-drop {
+  color: var(--ov-yellow);
+}
+.pw-rejoin {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25em;
+  padding-left: 0.75em;
+  border-left: 1px solid var(--ov-divider);
+}
+.pw-near {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  white-space: nowrap;
+}
+.pw-near-l {
+  flex: none;
+  width: 5.2em;
+  font-size: 0.7em;
+  letter-spacing: 0.06em;
+  color: var(--ov-dim);
+}
+.pw-near-none {
+  color: var(--ov-dim);
+  font-size: 0.9em;
+}
+.pw-cls {
+  flex: none;
+  width: 0.25em;
+  height: 1.1em;
+  border-radius: 2px;
+}
+.pw-num {
+  flex: none;
+  font-weight: var(--ov-weight-strong);
+}
+.pw-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pw-lap {
+  flex: none;
+  font-size: 0.75em;
+  padding: 0 0.3em;
+  border-radius: 3px;
+  background: var(--ov-bg-row);
+  color: var(--ov-blue);
+}
+.pw-gap {
+  flex: none;
+  min-width: 2.4em;
+  text-align: right;
+  font-weight: var(--ov-weight-strong);
+}
+.pw-ahead .pw-gap {
+  color: var(--ov-text);
+}
+.pw-traffic {
+  flex: none;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.3em 0.6em;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--pw-clear) 55%, transparent);
+  background: color-mix(in srgb, var(--pw-clear) 16%, transparent);
+  color: var(--pw-clear);
+  font-size: 0.8em;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.pw-traffic > i {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pw-traffic.pw-busy {
+  border-color: color-mix(in srgb, var(--pw-traffic) 60%, transparent);
+  background: color-mix(in srgb, var(--pw-traffic) 18%, transparent);
+  color: var(--pw-traffic);
+}
+/* Yakıt pit penceresi satırı */
+.pw-win {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.35em 0.7em;
+  border-top: 1px solid var(--ov-divider);
+  font-size: 0.9em;
+  white-space: nowrap;
+  min-width: 0;
+}
+.pw-win .pw-k {
+  display: inline;
+}
+.pw-win-r {
+  font-weight: var(--ov-weight-strong);
+}
+.pw-win-t {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--ov-weight-strong);
+}
+.pw-win-f {
+  margin-left: auto;
+  color: var(--ov-dim);
+}
+.pw-win-f b {
+  color: var(--ov-text);
+}
+.pw-win-open .pw-win-t,
+.pw-win-none .pw-win-t {
+  color: var(--ov-green);
+}
+.pw-win-early .pw-win-t {
+  color: var(--ov-dim);
+}
+.pw-win-last .pw-win-t,
+.pw-win-multi .pw-win-t {
+  color: var(--ov-red);
+}
+.pw-win-wait .pw-win-t {
+  color: var(--ov-dim);
+  font-weight: var(--ov-weight);
+}
+/* Kart */
+.pw-head-r {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.pw-inpit {
+  color: var(--ov-yellow);
+}
+.pw-d-card .pw-main {
+  padding: 0.6em 0.75em;
+}
+.pw-tl {
+  padding: 0.2em 0.9em 0.45em;
+}
+.pw-tl-track {
+  position: relative;
+  height: 2.6em;
+  border-radius: 0.4em;
+  background: linear-gradient(to bottom, transparent calc(50% - 1px), var(--ov-line) calc(50% - 1px), var(--ov-line) calc(50% + 1px), transparent calc(50% + 1px));
+}
+.pw-tl-zone {
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  border-radius: 0.3em;
+  background: color-mix(in srgb, var(--pw-traffic) 16%, transparent);
+}
+.pw-tl-car,
+.pw-tl-me {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+  transition: left 0.45s linear;
+}
+.pw-tl-car > i {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: var(--pw-c, var(--ov-dim));
+  border: 1px solid var(--ov-bg-solid);
+}
+.pw-tl-car > b {
+  position: absolute;
+  top: 0.85em;
+  font-size: 0.68em;
+  font-weight: var(--ov-weight);
+  color: var(--ov-text);
+}
+.pw-tl-other {
+  opacity: 0.65;
+}
+.pw-tl-me > i {
+  width: 0.3em;
+  height: 2.2em;
+  border-radius: 2px;
+  background: var(--ov-accent);
+}
+.pw-tl-me > b {
+  position: absolute;
+  top: -0.2em;
+  left: 0.6em;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  color: var(--ov-accent);
+}
+.pw-tl-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68em;
+  color: var(--ov-dim);
+  margin-top: 0.1em;
+}
+.pw-sample {
+  outline: 1px dashed color-mix(in srgb, var(--ov-dim) 40%, transparent);
+  outline-offset: -1px;
+}

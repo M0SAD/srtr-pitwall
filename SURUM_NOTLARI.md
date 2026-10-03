@@ -3,6 +3,33 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-87
+
+- Yöneticiye gelen "Yeni ödeme" bildiriminde ödemenin kaynağı da yazıyor (Lemon Squeezy / Patreon / Ko-fi).
+
+## 031026-86
+
+- Web sitesi: başlıklarda overlay sayısı "50+" olarak yazıyor.
+- Web sitesi: overlay sayısı artık doğrudan overlay listesinden hesaplanıyor (tarayıcı önbelleğinde eski `counts.js` kaldığında ana sayfada 35 yazıyordu).
+
+## 031026-85
+
+- **16 yeni overlay:** Pit Penceresi, Stint Özeti, Sürücü Değişimi, Ekip Çağrısı, Sektör Süreleri, Fark Grafiği, Rakip Takibi, Fren ve Vites İşareti, Pist Limiti, Hasar Göstergesi, Rüzgâr Pusulası, Start Işıkları (ışıklar sönünce yeşil / GO), Sürücü Kartı, Yarış Sonucu, Kafa Kafaya, Hedef Çubuğu.
+- Düzenler ve Yayın düzenleri sayfasında tuvalin altında kısayol bilgisi: Space + fare tekeri (yakınlaştır / uzaklaştır), Ctrl+Z / Ctrl+Y, Alt.
+- Topluluk düzen ve temalarını kullanmak, puan vermek ve yorum yazmak artık varsayılan olarak ücretsiz hesaba açık (c69).
+- Düzeltme: İngilizce arayüzde çevrilmemiş metinlerin ilk harfi değişiyordu ("Type" → "Lype").
+- Düzeltme: bazı yeni overlay tasarımlarında kök sınıf çakışması yerleşimi bozuyordu.
+- Web sitesi: ana sayfada Overlay Galerisi (51 overlay, ekran görüntüsü ve ayrıntılı açıklama), ücretsiz hesap ve ekip (uygulamadan ya da telefondan spotter'lık, uzaktan yakıt / lastik ayarı) metinleri güncellendi; 13 dile çevrildi.
+
+## 031026-84
+
+- **Kenardan genişlik ayarı artık Sıralama Tablosu ve Yakındakiler'de de var:** ikisine "Genişlik (en az)" ayarı eklendi; düzenleme modunda (ve düzen tuvalinde) pencerenin sağ / sol kenarındaki turuncu tutamaçtan sürükleyerek değiştirilir. Sesli Sohbet overlay'inde de kenardan "en fazla genişlik" ayarlanır.
+- Kenardan boyutlandırılabilen overlay'ler: Sıralama Tablosu, Yakındakiler, Yakın Takip, Canlı Sohbet (genişlik + yükseklik), Mesajlar, Altyazı, Anket, Sesli Sohbet, Pist Haritası (genişlik + yükseklik), Düz Harita, Çubuk Spotter (yükseklik), ERS, Veri Kutusu, Webview (genişlik + yükseklik). Köşeler eskisi gibi tümünü ölçekler.
+
+## 031026-83
+
+- **Daha okunaklı varsayılan yazı (bütün overlay'ler):** yazı tipi Inter, boyut 14 px, orta kalınlık, yazı gölgesi açık; soluk (ikincil) yazı rengi biraz açıldı. Yazı ayarlarına hiç dokunmamış kurulumlar bir kez yeni varsayılana geçer; yazı tipini, boyutunu ya da kalınlığını kendisi değiştirmiş olanlara dokunulmaz. Hepsi Görünüm sayfasından değiştirilebilir.
+
 ## 031026-82
 
 - **Sıralama Tablosu ve Yakındakiler:** üst / alt bilgi satırındaki yazı ve simgeler varsayılan olarak %20 büyütüldü; "Bilgi satırı yazı boyutu" ayarıyla (%80–%200) değiştirilebilir.
