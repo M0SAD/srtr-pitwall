@@ -56,6 +56,9 @@ function legacyColumns(o: Record<string, unknown>) {
   return STANDINGS_DEFAULT_COLUMNS.map((c) => ({ key: c.key, on: map[c.key] && typeof o[map[c.key]] === "boolean" ? (o[map[c.key]] as boolean) : c.on }));
 }
 
+/** Üst / alt bilgi satırının yazı ölçeği (ayar: %80–%200) */
+const barK = (v: unknown) => Math.min(2, Math.max(0.8, (Number(v) || 120) / 100));
+
 export default function Standings(props: OverlayProps) {
   const data = useTopic("standings");
 
@@ -215,7 +218,7 @@ export default function Standings(props: OverlayProps) {
   return (
     <div class="ov-panel st" style={{ "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
       <Show when={props.options.showHeader && data()}>
-        <div class="st-head">
+        <div class="st-head" style={{ "font-size": `${barK(props.options.barSize)}em` }}>
           <Show
             when={props.options.labelStyle !== "text"}
             fallback={

@@ -84,6 +84,9 @@ function legacyColumns(o: Record<string, unknown>) {
   return RELATIVE_DEFAULT_COLUMNS.map((c) => ({ key: c.key, on: map[c.key] && typeof o[map[c.key]] === "boolean" ? (o[map[c.key]] as boolean) : c.on }));
 }
 
+/** Üst / alt bilgi satırının yazı ölçeği (ayar: %80–%200) */
+const barK = (v: unknown) => Math.min(2, Math.max(0.8, (Number(v) || 120) / 100));
+
 export default function Relative(props: OverlayProps) {
   const data = useTopic("relative");
 
@@ -202,7 +205,7 @@ export default function Relative(props: OverlayProps) {
   return (
     <div class="ov-panel rel">
       <Show when={props.options.showHeader && data()}>
-        <div class="rel-head">
+        <div class="rel-head" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
           <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()!.sof} />
         </div>
       </Show>
@@ -218,7 +221,7 @@ export default function Relative(props: OverlayProps) {
         </div>
       </Show>
       <Show when={props.options.showFooter && data()}>
-        <div class="rel-foot">
+        <div class="rel-foot" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
           <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]} units={props.units} sof={data()!.sof} />
         </div>
       </Show>

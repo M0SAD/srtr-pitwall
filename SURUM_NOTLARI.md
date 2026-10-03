@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-82
+
+- **Sıralama Tablosu ve Yakındakiler:** üst / alt bilgi satırındaki yazı ve simgeler varsayılan olarak %20 büyütüldü; "Bilgi satırı yazı boyutu" ayarıyla (%80–%200) değiştirilebilir.
+
 ## 031026-81
 
 - **Yönetim › Yedekleme (yeni):** tek tıkla tam yedek. Veritabanı tabloları, üye listesi ve yüklenen bütün dosyalar / görseller bilgisayarda seçilen yere tek bir .zip olarak iner (şema dosyası ve geri yükleme notu içinde). Parolalar ve gizli anahtarlar yedeğe girmez.

@@ -61,6 +61,7 @@ export default defineOverlay({
     { key: "showFooter", label: "Alt satır", type: "boolean", default: true, group: "Başlık" },
     headerField("footerFields", "Alt satır bilgileri", ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]),
     labelStyleField("Başlık"),
+    { key: "barSize", label: "Bilgi satırı yazı boyutu", type: "number", default: 120, min: 80, max: 200, step: 5, unit: "%", group: "Başlık", hint: "Üst ve alt bilgi satırlarındaki yazı ve simgelerin boyutu." },
     {
       key: "columns",
       label: "Sütunlar",
