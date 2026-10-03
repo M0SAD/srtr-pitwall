@@ -209,6 +209,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       }
     }
     pushStatus(false);
+    syncTray();
     if (hiddenKey() !== lastHidden) {
       lastHidden = hiddenKey();
       void applyLive();
@@ -216,6 +217,35 @@ export function startSocial(status: Accessor<Status | undefined>) {
     // Yarış bitince alt köşedeki sayaç kalkar (mesajlar panelde okunur)
     if (!racing() && pending()) setPending(0);
   }, 3000);
+
+  // Tepsi simgesi (Steam gibi): okunmamış arkadaş mesajı varken kırmızı nokta + ipucunda sayı. Rahatsız Etme
+  // açıkken ve sessize alınan arkadaş için gösterilmez (mesaj yine gelir, listede okunmamış sayılır).
+  let trayN = -1;
+  const syncTray = () => {
+    const n = session() && !soc().dnd ? friends.reduce((a, f) => a + (f.status === "accepted" && !f.muted ? f.unread || 0 : 0), 0) : 0;
+    if (n === trayN) return;
+    trayN = n;
+    invoke("tray_unread", { count: n, text: n > 0 ? t("{0} okunmamış mesaj", n) : null }).catch(() => {});
+  };
+  // Okunmamış sayılarını sunucudan tazele (hafif: sadece arkadaş listesi)
+  const refreshUnread = async () => {
+    const uid = session()?.user.id;
+    if (!uid) return;
+    const got = await api<Friend[]>("POST", "rpc/my_friends", { body: {} }).catch(() => null);
+    if (!got || session()?.user.id !== uid) return;
+    const n = new Map(got.map((f) => [f.friend_id, f.unread || 0]));
+    friends = friends.map((f) => (n.has(f.friend_id) ? { ...f, unread: n.get(f.friend_id)! } : f));
+    syncTray();
+  };
+  // Panel ya da Arkadaşlar penceresinde sohbet okundu: işaret hemen kalkar
+  let readTimer = 0;
+  listen<string>("social-read", (e) => {
+    friends = friends.map((f) => (f.friend_id === e.payload ? { ...f, unread: 0 } : f));
+    syncTray();
+    // Aynı anda gelen mesajla yarış olduysa sunucudaki gerçek sayıya dön
+    clearTimeout(readTimer);
+    readTimer = window.setTimeout(() => void refreshUnread(), 2500);
+  });
 
   // Arkadaş listesi (güvenilirler ve bana güvenenler) 2 dakikada bir yenilenir
   let stopLive: () => void = () => {};
@@ -231,6 +261,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       const got = (await myFriends()) ?? [];
       if (session()?.user.id !== uid) return; // yanıt gelene kadar çıkış yapıldı
       friends = got;
+      syncTray();
       trustAll = await shareTrustGet().then((r) => !!r?.trust_all).catch(() => false);
       // Açılır pencere: beni güvenilir seçen ya da istek gönderen yeni arkadaş (yarıştayken oyun içi bildirim)
       if (prev.length && !soc().dnd) {
@@ -470,6 +501,13 @@ export function startSocial(status: Accessor<Status | undefined>) {
     if (!uid) return;
     stopMsg = await onMessages((m) => {
       const f = friends.find((x) => x.friend_id === m.sender);
+      // Tepsi simgesindeki okunmamış işareti (sohbet açıksa "social-read" hemen geri alır)
+      if (f) {
+        friends = friends.map((x) => (x.friend_id === m.sender ? { ...x, unread: (x.unread || 0) + 1 } : x));
+        syncTray();
+      } else {
+        window.setTimeout(() => void refreshUnread(), 3000);
+      }
       // Mesajlar overlay'i: arkadaşa özel bildirim kapatma dikkate alınmaz (overlay kendi seçili kişilerine göre süzer)
       const ov = friendOv(m, f?.display_name ?? "?");
       if (!f?.muted && !soc().dnd && soc().acceptMessages) broadcastOvMsg(ov);

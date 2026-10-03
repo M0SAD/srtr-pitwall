@@ -294,7 +294,7 @@ pub struct LiveChatTopic {
 
 /// Overlay kapısı: Canlı Sohbet overlay'leri (sohbet, anket, altyazı) ne göstersin. Karar uygulamada verilir;
 /// overlay penceresi `app`, OBS tarayıcı kaynağı `obs` alanına bakar:
-///   "demo"    → benzetilmiş sohbet akışı (Demo modu açık; gerçek mesajlar karışmaz)
+///   "demo"    → benzetilmiş sohbet akışı (Demo modu açık VE sohbet çalışmıyor; gerçek mesajlar karışmaz)
 ///   "real"    → gerçek mesajlar
 ///   "offline" → sohbet çalışıyor ama yayın canlı değil (overlay'in "Yalnızca yayın canlıyken göster" seçeneği
 ///               kapalıysa yine gerçek mesajlar gösterilir)
@@ -314,11 +314,12 @@ pub struct LiveGate {
     pub obs: &'static str,
 }
 
-/// Kapı kararı (saf işlev). Öncelik: giriş → (OBS: PRO) → demo → durdurulmuş → yayın canlı değil → gerçek.
+/// Kapı kararı (saf işlev). Öncelik: giriş → (OBS: PRO) → demo (yalnızca sohbet ÇALIŞMIYORKEN) → durdurulmuş →
+/// yayın canlı değil → gerçek. Sohbet çalışırken Demo modu açılsa da gerçek sohbet gösterilmeye devam eder.
 pub fn live_gate(demo: bool, running: bool, live: bool, login_ok: bool, obs_ok: bool) -> LiveGate {
     let app = if !login_ok {
         "login"
-    } else if demo {
+    } else if demo && !running {
         "demo"
     } else if !running {
         "stopped"
@@ -1938,9 +1939,10 @@ mod tests {
         // Giriş yok: demo açık olsa da her yerde gizli
         assert_eq!(g(true, true, true, false, true), ("login", "login"));
         assert_eq!(g(false, false, false, false, false), ("login", "login"));
-        // Demo: sohbet dursa da çalışsa da, yayın canlı olsa da benzetim
+        // Demo: yalnızca sohbet çalışmıyorken benzetim; sohbet çalışıyorsa gerçek kurallar (canlı yayında kalır)
         assert_eq!(g(true, false, false, true, true), ("demo", "demo"));
-        assert_eq!(g(true, true, true, true, true), ("demo", "demo"));
+        assert_eq!(g(true, true, true, true, true), ("real", "real"));
+        assert_eq!(g(true, true, false, true, true), ("offline", "offline"));
         // Demo kapalı: gerçek kurallar
         assert_eq!(g(false, false, false, true, true), ("stopped", "stopped"));
         assert_eq!(g(false, true, false, true, true), ("offline", "offline"));
@@ -1959,6 +1961,8 @@ mod tests {
         i.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(false), last_msg: 10.0, ..Default::default() });
         assert_eq!(i.gate(20.0).app, "real");
         i.demo = true;
+        assert_eq!(i.gate(20.0).app, "real");
+        i.running = false;
         assert_eq!(i.gate(20.0).app, "demo");
         assert_eq!(i.topic().gate.demo, true);
     }

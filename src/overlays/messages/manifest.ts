@@ -27,14 +27,13 @@ function loadVoices() {
     .catch(() => {});
 }
 
-// Arkadaş listesi seçenekleri ayar panelinde canlı gelir (kabul edilen hesap arkadaşları)
+// Kişi süzgeci: arkadaş listesi ayar panelinde canlı gelir (kabul edilen hesap arkadaşları). Boş: herkes.
 const people = {
   key: "people",
-  label: "Seçili kişiler",
+  label: "Yalnızca şu kişiler",
   type: "multi" as const,
   default: [] as string[],
-  showIf: { key: "source", is: ["selected"] },
-  hint: "Arkadaş listesinde bir arkadaşa sağ tıklayıp \"Mesajlar overlay'inde göster\" ile de ekleyebilirsin.",
+  hint: "Boş bırakırsan herkesin mesajı gösterilir. Kişi seçersen bu kopyada yalnızca onların arkadaş ve ekip odası mesajları görünür (takım ve grup sohbetleri etkilenmez). Arkadaş listesinde bir arkadaşa sağ tıklayıp \"Mesajlar overlay'inde göster\" ile de ekleyebilirsin.",
   get options() {
     return (settings().friends?.list ?? [])
       .filter((x) => !!x.accountId)
@@ -46,7 +45,7 @@ export default defineOverlay({
   id: "messages",
   name: "Mesajlar",
   description:
-    "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.",
+    "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen arkadaş ve ekip mesajlarını ayrı ayrı sesli okur. Birden fazla kopya eklenip her birinde arkadaşlar, ekip ya da seçtiğin kişiler ayrı ayrı gösterilebilir.",
   category: "info",
   topics: [],
   size: { w: 340, h: 200 },
@@ -56,19 +55,21 @@ export default defineOverlay({
   multiInstance: true,
   settings: [
     {
-      key: "source",
-      label: "Gösterilecek mesajlar",
-      type: "select",
-      default: "all",
-      options: [
-        { value: "all", label: "Tüm arkadaşlar" },
-        { value: "team", label: "Takım mesajları" },
-        { value: "selected", label: "Seçili kişiler" },
-        { value: "none", label: "Arkadaş mesajlarını gösterme" },
-      ],
+      key: "friends",
+      label: "Arkadaş mesajlarını göster",
+      type: "boolean",
+      default: true,
+      hint: "Arkadaşlarının sana yazdığı özel mesajlar. Birden fazla Mesajlar overlay'i ekleyip her birinde farklı kaynak seçebilirsin (ör. biri arkadaşlar, biri ekip).",
     },
-    { key: "includeTeams", label: "Takım mesajlarını da göster", type: "boolean", default: true, showIf: { key: "source", not: ["team"] } },
+    {
+      key: "crew",
+      label: "Ekip mesajlarını göster",
+      type: "boolean",
+      default: true,
+      hint: "Ekip odasına yazılan mesajlar (ve hazır spotter mesajları): kendi odan ve ekip üyesi olduğun sürücülerin odaları.",
+    },
     people,
+    { key: "includeTeams", label: "Takım mesajlarını göster", type: "boolean", default: true },
     {
       key: "groups",
       label: "Grup sohbetleri",
@@ -92,34 +93,27 @@ export default defineOverlay({
         return groupOpts();
       },
     },
-    {
-      key: "crew",
-      label: "Ekip odası mesajlarını göster",
-      type: "boolean",
-      default: true,
-      hint: "Ekibinin Ekip Pitwall'ındaki odaya yazdığı mesajlar (ve hazır spotter mesajları) bu overlay'de görünür.",
-    },
     { key: "mine", label: "Kendi mesajlarımı da göster", type: "boolean", default: false },
     {
       key: "tts",
-      label: "Mesajları sesli oku",
+      label: "Arkadaş mesajlarını sesli oku",
       type: "boolean",
       default: false,
       group: "Sesli okuma",
       feature: "social.messages_tts",
-      hint: "Bu overlay'de gösterilen gelen mesajlar Windows sesiyle okunur. Canlı sohbetin sesli okumasıyla aynı sırayı kullanır: ikisi üst üste konuşmaz, sesli mühendis konuşurken bekler. Ses, hız ve çıkış cihazı Canlı Sohbet › Sesli okuma ayarlarından alınır. Kendi mesajların okunmaz.",
+      hint: "Bu kopyada gösterilen arkadaş mesajları (gösteriliyorsa takım ve grup mesajları da) sesli okunur. Birden fazla kopya aynı mesajı gösterse de mesaj yalnızca bir kez okunur. Canlı sohbetin sesli okumasıyla aynı sırayı kullanır: ikisi üst üste konuşmaz, sesli mühendis konuşurken bekler. Ses, hız ve çıkış cihazı Canlı Sohbet › Sesli okuma ayarlarından alınır. Kendi mesajların okunmaz.",
     },
-    { key: "ttsName", label: "Gönderen adını oku", type: "boolean", default: true, group: "Sesli okuma", showIf: { key: "tts", is: [true] }, hint: "\"Ali diyor ki: …\" (takım / grup mesajında takım adı okunmaz)." },
-    { key: "ttsMax", label: "En fazla karakter", type: "number", default: 200, min: 40, max: 500, step: 10, group: "Sesli okuma", showIf: { key: "tts", is: [true] }, hint: "Daha uzun mesajlar kelime sınırında kesilir." },
+    { key: "ttsName", label: "Gönderen adını oku", type: "boolean", default: true, group: "Sesli okuma", hint: "\"Ali diyor ki: …\" (takım / grup mesajında takım adı okunmaz)." },
+    { key: "ttsMax", label: "En fazla karakter", type: "number", default: 200, min: 40, max: 500, step: 10, group: "Sesli okuma", hint: "Daha uzun mesajlar kelime sınırında kesilir." },
     {
       key: "crewTts",
-      label: "Ekip odası mesajlarını sesli oku",
+      label: "Ekip mesajlarını sesli oku",
       type: "boolean",
       default: false,
       group: "Sesli okuma",
       feature: "social.messages_tts",
       showIf: { key: "crew", is: [true] },
-      hint: "Ekip odasına yazılan mesajlar, yukarıdaki ayar kapalı olsa bile sesli okunur. Kendi mesajların okunmaz.",
+      hint: "Bu kopyada gösterilen ekip odası mesajları sesli okunur (arkadaş mesajlarından ayrı seçilir). Birden fazla kopya aynı mesajı gösterse de yalnızca bir kez okunur. Kendi mesajların okunmaz.",
     },
     {
       key: "crewVoice",

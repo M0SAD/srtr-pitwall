@@ -9,7 +9,7 @@ import ArrowUpToLine from "lucide-solid/icons/arrow-up-to-line";
 import type { OverlayManifest } from "@/sdk/overlay";
 import { hasOverlayOrder, moveOverlay, orderedOverlays, resetOverlayOrder } from "../components/OverlayPalette";
 import { manifestById, manifests } from "@/sdk/registry";
-import { DEFAULTS_ID, settings, updateSettings } from "@/sdk/settings";
+import { DEFAULTS_ID, addToLayout, defaultProfileId, settings, updateSettings } from "@/sdk/settings";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
@@ -17,7 +17,7 @@ import { OverlayView } from "../components/OverlayView";
 import { OverlaySettings, previewVals } from "../components/OverlaySettings";
 import { BACKDROPS, Backdrop, ScreenshotPicker, backdrop, pickCustomImage, setBackdrop } from "../components/Backdrop";
 import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
-import { go, openCard, setOpenCard } from "../ui";
+import { openCard, setOpenCard } from "../ui";
 import * as I from "../icons";
 import { appState } from "../App";
 import { UndoRedo } from "@/sdk/UndoRedo";
@@ -197,6 +197,44 @@ export function OverlaysPage() {
     onCleanup(() => window.removeEventListener("keydown", nav));
   });
 
+  // --- "+ Overlay Ekle": seçili overlay'i Düzenler sayfasında seçili (etkin) düzene ekler ---
+  const target = () => {
+    const s = settings();
+    const a = s.profiles[s.activeProfile];
+    return a && a.rules.mode !== "stream" ? a : s.profiles[defaultProfileId(false, s) ?? ""];
+  };
+  /** Tek kopyalı overlay düzende zaten açık mı */
+  const inLayout = () => {
+    const k = selected();
+    return !!k && !manifestById(k)?.multiInstance && !!target()?.overlays[k]?.enabled;
+  };
+  const [added, setAdded] = createSignal<string | null>(null);
+  let addedTimer: number | undefined;
+  onCleanup(() => clearTimeout(addedTimer));
+  const say = (text: string) => {
+    setAdded(text);
+    clearTimeout(addedTimer);
+    addedTimer = window.setTimeout(() => setAdded(null), 3500);
+  };
+  const addSelected = () => {
+    const k = selected();
+    const p = target();
+    if (!k || !p) return;
+    if (isLocked(k)) return say(t("Bu overlay PRO üyelere özel"));
+    if (p.locked) return say(t('"{0}" düzeni kilitli: overlay eklenemez. Düzenler sayfasından kilidi aç.', p.name));
+    if (inLayout()) return;
+    if (addToLayout(p.id, k)) say(t('{0}, "{1}" düzenine eklendi', manifestById(k)?.name ?? k, p.name));
+  };
+  const addTitle = () => {
+    const k = selected();
+    const p = target();
+    if (!k || !p) return "";
+    if (isLocked(k)) return t("Bu overlay PRO üyelere özel");
+    if (p.locked) return t('"{0}" düzeni kilitli: overlay eklenemez. Düzenler sayfasından kilidi aç.', p.name);
+    if (inLayout()) return t('Bu overlay "{0}" düzeninde zaten var', p.name);
+    return t('Seçili overlay\'i "{0}" düzenine ekler (Düzenler sayfasında seçili düzen)', p.name);
+  };
+
   // Önizlenen overlay sabit görüntü: seçilince bir anlık örnek veri, sonra akış durur (Demo açıksa canlı)
   const snap = useSnapshot(
     () => manifestById(selected() ?? "")?.topics ?? [],
@@ -324,9 +362,16 @@ export function OverlaysPage() {
           </Show>
         </div>
         <div class="ovlist-foot">
-          <button class="btn primary wide" title="Overlay'leri ekrana yerleştirmek için Düzenler sayfasını açar" onClick={() => go("layouts")}>
-            <I.Plus /> Düzen oluştur
+<button class="btn primary wide" disabled={!selected() || !target() || inLayout() || isLocked(selected() ?? "") || !!target()?.locked} title={addTitle()} onClick={addSelected}>
+            <Show when={inLayout()} fallback={<><I.Plus /> Overlay Ekle</>}>
+              <I.Check /> Düzende var
+            </Show>
           </button>
+          <small class="muted ovlist-addnote" classList={{ ok: !!added() }}>
+            <Show when={added()} fallback={<>Düzen: <b>{target()?.name}</b></>}>
+              {added()}
+            </Show>
+          </small>
         </div>
       </aside>
 

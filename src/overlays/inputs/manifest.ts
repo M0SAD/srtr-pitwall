@@ -9,6 +9,7 @@ export default defineOverlay({
   size: { w: 420, h: 110 },
   defaultPosition: { x: 750, y: 920 },
   defaultEnabled: true,
+  resize: { w: "width", wMin: true },
   settings: [
     {
       key: "design",
@@ -59,6 +60,7 @@ export default defineOverlay({
       default: false,
       hint: "Pedal izini köşeli çizgiler yerine yumuşak eğrilerle çizer.",
     },
+    { key: "width", label: "Genişlik (en az)", type: "number", default: 200, min: 200, max: 1200, step: 10, unit: "px", hint: "Gösterge en az bu genişlikte olur; içerik sığmıyorsa kendiliğinden genişler. Düzenleme modunda pencerenin sağ / sol kenarından sürükleyerek de ayarlanır." },
     { key: "showClutch", label: "Debriyaj", type: "boolean", default: false },
     { key: "showSteer", label: "Direksiyon", type: "boolean", default: true },
     {

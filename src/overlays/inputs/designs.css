@@ -595,3 +595,38 @@
   font-size: 3.4em;
   line-height: 0.9;
 }
+
+/* "Genişlik (en az)" ayarı (Pedallar & Girdi + Pedal Seti): gösterge en az bu kadar geniş olur; iz grafiği ve
+   yatay çubuklar boşluğu doldurur, sabit boyutlu parçalar aralanır */
+.inp-stack {
+  min-width: var(--ov-w, 0px);
+}
+.inp-stack > .inx {
+  width: auto;
+  justify-content: space-between;
+}
+.inp-stack .inp-trace,
+.inp-stack .inx-trace {
+  flex: 1 0 auto;
+}
+.inp-stack .inx-wdbox {
+  display: flex;
+}
+.inp-stack .inp > .inp-gear {
+  margin-left: auto;
+}
+.inp-stack .inx-vb .inx-bars,
+.inp-stack .inx-pedset {
+  flex: 1 0 auto;
+  justify-content: space-evenly;
+}
+.inp-stack .inx-hrows,
+.inp-stack .inx-scell,
+.inp-stack .inx-scell .inx-hbar,
+.inp-stack .inx-ssteer {
+  flex: 1 0 auto;
+}
+/* Halka göstergeler yuvarlak kalır: genişleyen alanda ortalanır */
+.inp-stack > .inx-rg {
+  align-self: center;
+}

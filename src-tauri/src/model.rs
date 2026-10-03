@@ -132,6 +132,13 @@ pub struct Frame {
     /// Tekrar modu canlı ana yetişmiş (iRacing'de araçtan inince/izleyiciyken sim tekrar ekranındadır;
     /// bu gerçek bir tekrar izleme sayılmaz). Sadece iRacing verir (ReplayFrameNumEnd).
     pub replay_live: bool,
+    /// iRacing tekrar kafasının konumu (ReplaySessionNum/Time, ReplayFrameNum, ReplayFrameNumEnd) ve kameranın aracı
+    pub replay_session_num: i32,
+    pub replay_session_time: f64,
+    /// -1: sim vermiyor
+    pub replay_frame: i32,
+    pub replay_frame_end: i32,
+    pub cam_car_idx: i32,
     pub air_temp: f32,
     pub track_temp: f32,
     pub incidents: i32,
@@ -227,6 +234,11 @@ impl Default for Frame {
             is_in_garage: false,
             replay: false,
             replay_live: false,
+            replay_session_num: 0,
+            replay_session_time: 0.0,
+            replay_frame: -1,
+            replay_frame_end: 0,
+            cam_car_idx: -1,
             air_temp: 0.0,
             track_temp: 0.0,
             incidents: 0,

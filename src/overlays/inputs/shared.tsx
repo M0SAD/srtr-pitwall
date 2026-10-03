@@ -211,10 +211,23 @@ export const n100 = (v: number) => Math.round(v * 100);
 
 export function Trace(props: { m: Model; w: number; h: number; grid?: "lines" | "sim"; class?: string }) {
   let canvas: HTMLCanvasElement | undefined;
-  const p = () => props.m.paint(canvas, props.w, props.h, props.grid ?? "lines");
+  // "Genişlik" ayarıyla iz grafiği uzar: tuval çözünürlüğü yerleşim genişliğini izler (en az props.w)
+  let cw = props.w;
+  const p = () => props.m.paint(canvas, cw, props.h, props.grid ?? "lines");
   props.m.setPainter(p);
   // Tampon doluyken (ör. önizleme donmuşken tasarım değişirse) ilk kareyi hemen çiz
-  onMount(p);
+  onMount(() => {
+    p();
+    const ro = new ResizeObserver(() => {
+      if (!canvas) return;
+      const w = Math.max(props.w, Math.round(canvas.clientWidth));
+      cw = w;
+      if (canvas.width !== w * 2) canvas.width = w * 2;
+      p();
+    });
+    ro.observe(canvas!);
+    onCleanup(() => ro.disconnect());
+  });
   onCleanup(() => props.m.clearPainter(p));
   return (
     <canvas

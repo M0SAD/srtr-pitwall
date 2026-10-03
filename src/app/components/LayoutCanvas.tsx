@@ -310,7 +310,8 @@ function CanvasItem(props: {
     t.setPointerCapture(e.pointerId);
     const o = view();
     const s0 = horiz ? e.clientX : e.clientY;
-    const cur = Number(i.options[f.key]) || f.default;
+    const mr = m()?.resize;
+    const cur = Math.max(Number(i.options[f.key]) || f.default, horiz && mr && mr.wMin ? size().w : 0);
     let last: (Rect & { value: number }) | null = null;
     track(
       t,

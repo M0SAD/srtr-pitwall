@@ -1,9 +1,10 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { OverlayProps } from "@/sdk/overlay";
+import { onScreen, type OverlayProps } from "@/sdk/overlay";
+import { useTopic } from "@/sdk/telemetry";
 import { inTauri } from "@/sdk/platform";
-import { OVMSG_CLEAR_EVENT, OVMSG_EVENT, ovMsgAccepts, registerOvMsgFilter, type OvMsg } from "@/sdk/ovmsg";
+import { OVMSG_CLEAR_EVENT, OVMSG_EVENT, ovMsgAccepts, ovMsgSpeaks, registerOvMsgFilter, type OvMsg } from "@/sdk/ovmsg";
 import "./style.css";
 
 interface Item {
@@ -19,18 +20,18 @@ const SAMPLE: OvMsg[] = [
 ];
 
 /**
- * Ekip odası mesajını sesli oku: canlı sohbetin sesli okuma kuyruğu, ama ayrı seçilen sesle (`voice`; boş: canlı
- * sohbetin sesi). Ses seçimi Rust tarafında social_tts_speak komutunun `voice` parametresiyle uygulanır; komut
- * değişirse yalnızca burası uyarlanır.
+ * Mesajı sesli oku: canlı sohbetin sesli okuma kuyruğu (PRO: social.messages_tts). Ekip odası mesajı ayrı seçilen
+ * sesle (`crewVoice`; boş: canlı sohbetin sesi) okunur. Rust (livechat/tts.rs social_tts_speak) aynı mesaj kimliğini
+ * ikinci kez sıraya almaz: birden fazla kopya / pencere aynı mesajı okumak istese de mesaj bir kez okunur.
  */
-function speakCrew(m: OvMsg, o: Record<string, any>) {
+function speak(m: OvMsg, o: Record<string, any>) {
   invoke("social_tts_speak", {
     id: m.id,
     name: m.name,
     text: m.body,
     readName: o.ttsName !== false,
     maxChars: Number(o.ttsMax) || 200,
-    voice: String(o.crewVoice ?? "") || null,
+    voice: m.kind === "crew" ? String(o.crewVoice ?? "") || null : null,
   }).catch(() => {});
 }
 
@@ -59,12 +60,8 @@ export default function Messages(props: OverlayProps) {
       const m = e.payload;
       if (!m || !ovMsgAccepts(o(), m)) return;
       if (items().some((x) => x.m.id === m.id)) return;
-      // Sesli okuma (PRO: social.messages_tts; Rust canlı sohbetle aynı kuyruğa alır, aynı mesaj bir kez okunur)
-      if (m.kind === "crew") {
-        if (o().crewTts && !m.mine) speakCrew(m, o());
-      } else if (o().tts && !m.mine) {
-        invoke("social_tts_speak", { id: m.id, name: m.name, text: m.body, readName: o().ttsName !== false, maxChars: Number(o().ttsMax) || 200 }).catch(() => {});
-      }
+      // Sesli okuma: arkadaş ve ekip mesajları ayrı ayrı seçilir (kopyaya özel)
+      if (ovMsgSpeaks(o(), m)) speak(m, o());
       const t = Date.now();
       setNow(t);
       setItems([...items(), { m, at: t }].slice(-maxN()));
@@ -89,8 +86,13 @@ export default function Messages(props: OverlayProps) {
   }, 500);
   onCleanup(() => clearInterval(tick));
 
+  // Örnek mesajlar yalnızca yerleştirme / önizleme içindir: panel içi önizleme, sabitlenmiş önizleme ve düzenleme
+  // modu. Demo modu mesaj benzetmez: Demo açıkken (düzenleme modunda bile) yalnızca gerçek mesajlar gösterilir;
+  // düzenleme çerçevesi overlay'i taşımaya yeter.
+  const status = useTopic("status");
+  const sample = () => props.editing && (!onScreen() || !status()?.demo);
   const shown = createMemo<Item[]>(() => {
-    const list = items().length ? items().slice(-maxN()) : props.editing ? SAMPLE.slice(-maxN()).map((m) => ({ m, at: now() })) : [];
+    const list = items().length ? items().slice(-maxN()) : sample() ? SAMPLE.slice(-maxN()).map((m) => ({ m, at: now() })) : [];
     return o().newestTop ? [...list].reverse() : list;
   });
   const fading = (x: Item) => !props.editing && now() - x.at > life() - 900;

@@ -7,6 +7,8 @@ import { settings } from "@/sdk/settings";
 import { F, assertFeature, proLocked } from "@/sdk/proFeatures";
 import { cachedAvatar, noteAvatars } from "./profile";
 import { t } from "@/sdk/i18n";
+import { invoke } from "@tauri-apps/api/core";
+import { inTauri } from "@/sdk/platform";
 
 export interface Friend {
   friend_id: string;
@@ -253,11 +255,14 @@ export function setMyStatus(s: MyStatus): Promise<unknown> {
   if (statusNoSim) return send(rest).catch(() => {});
   return send({ ...rest, sim: sim ?? "" }).catch((e) => {
     const msg = String((e as Error)?.message ?? "");
-    if (!statusNoInvisible && /\binvisible\b/.test(msg)) {
+    // Sadece "sütun yok" hatasında (eski sunucu) alan bırakılır. Başka bir hatada bırakılırsa "Çevrimdışı görün"
+    // bir daha sunucuya yazılamaz ve üye, durumunu Çevrimiçi yapsa bile arkadaşlarına gizli kalırdı.
+    const noColumn = /column|schema cache/i.test(msg);
+    if (!statusNoInvisible && noColumn && /\binvisible\b/.test(msg)) {
       statusNoInvisible = true;
       return setMyStatus(s);
     }
-    if (!/\bsim\b/.test(msg)) return;
+    if (!noColumn || !/\bsim\b/.test(msg)) return;
     statusNoSim = true;
     return send(rest).catch(() => {});
   });
@@ -342,6 +347,15 @@ export async function onLive(users: string[], cb: (user: string, d: LiveData) =>
 
 /** Kısa bildirim sesi (dosya gerekmez) */
 export function messageBeep(volume = 0.25) {
+  // Programda ses Rust tarafında çalınır: overlay penceresi hiç tıklanmadığı için tarayıcının otomatik
+  // oynatma kuralı oradaki AudioContext'i askıda bırakır ve bildirim sesi hiç duyulmaz.
+  if (inTauri) {
+    const v = Math.min(1, volume * 2);
+    invoke("overlay_beep", { freq: 880, ms: 100, volume: v })
+      .then(() => invoke("overlay_beep", { freq: 1320, ms: 110, volume: v }))
+      .catch(() => {});
+    return;
+  }
   try {
     const ac = new AudioContext();
     const g = ac.createGain();

@@ -55,6 +55,7 @@ export function newLayout(mode: ProfileMode, name: string, copyOf?: Profile): st
     p.id = id;
     p.name = name;
     p.rules.mode = mode;
+    delete p.isDefault;
     if (!copyOf) {
       // Yeni düzen: overlay'ler "Overlaylarım"daki varsayılan ayarlarla başlar (konum ve açık/kapalı fabrika değerinde)
       for (const [k, o] of Object.entries(p.overlays)) {

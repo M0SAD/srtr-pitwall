@@ -70,6 +70,8 @@ export interface Profile {
   order?: number;
   /** Kilitli düzen: yerleşimi ve overlay ayarları değiştirilemez, silinemez (listeden kilit açılır) */
   locked?: boolean;
+  /** Varsayılan düzen: türünde (düzen / yayın düzeni) tam bir tane olur; silinemez, etkin düzen kaybolunca buna dönülür */
+  isDefault?: boolean;
   /** Toplulukta paylaşıldıysa paylaşımın kimliği (yeniden paylaşırken "öncekini güncelle" için) */
   sharedId?: string;
 }
@@ -876,6 +878,21 @@ function lcDefMigrate(type: string, saved: Record<string, any> | undefined, opti
   return options;
 }
 
+/**
+ * Bir kerelik geçiş: Mesajlar overlay'inin eski tek "Gösterilecek mesajlar" seçimi (`source`) ayrı anahtarlara
+ * çevrilir: "Arkadaş mesajlarını göster" (`friends`) + "Yalnızca şu kişiler" (`people`; boş: herkes). `source`
+ * silindiği için ikinci kez çalışmaz.
+ */
+function msgSrcMigrate(type: string, options: Record<string, any>) {
+  if (type !== "messages" || options.source === undefined) return options;
+  const src = options.source;
+  options.friends = src !== "team" && src !== "none";
+  if (src !== "selected") options.people = [];
+  if (src === "team") options.includeTeams = true;
+  delete options.source;
+  return options;
+}
+
 /** Marka logosu sütunu olan overlay türleri */
 const LOGO_COL_TYPES = ["relative", "standings"];
 
@@ -1061,7 +1078,7 @@ function defaultFrom(type: string, src: Partial<OverlayInstance> | undefined): O
     scale: num(src?.scale, 1, 0.2, 3),
     opacity: num(src?.opacity, 1, 0.2, 1),
     ...(typeof (src?.bgOpacity ?? def.bgOpacity) === "number" ? { bgOpacity: num(src?.bgOpacity, def.bgOpacity ?? 1, 0, 1) } : {}),
-    options: c63Migrate(type, src?.options, mapMeMigrate(type, src?.options, lcDefMigrate(type, src?.options, { ...def.options, ...(src?.options && typeof src.options === "object" ? structuredClone(src.options) : {}) }))),
+    options: c63Migrate(type, src?.options, mapMeMigrate(type, src?.options, msgSrcMigrate(type, lcDefMigrate(type, src?.options, { ...def.options, ...(src?.options && typeof src.options === "object" ? structuredClone(src.options) : {}) })))),
     ...(look ? { look } : {}),
   };
 }
@@ -1287,6 +1304,7 @@ export function normalize(input: unknown): AppSettings {
     };
     if (typeof p?.order === "number" && isFinite(p.order)) prof.order = p.order;
     if (p?.locked === true) prof.locked = true;
+    if (p?.isDefault === true) prof.isDefault = true;
     if (typeof p?.sharedId === "string" && p.sharedId) prof.sharedId = p.sharedId;
     if (p?.link && typeof p.link.source === "string" && p.link.source && prof.rules.mode === "stream")
       prof.link = { source: p.link.source, hidden: Array.isArray(p.link.hidden) ? p.link.hidden.filter((x) => typeof x === "string") : [] };
@@ -1328,7 +1346,7 @@ export function normalize(input: unknown): AppSettings {
         } else if (mg) cur = mg.reset;
       }
       const look = normalizeLook((cur as OverlayInstance)?.look);
-      prof.overlays[key] = { ...def, ...cur, ...(look ? { look } : { look: undefined }), type, options: c63Migrate(type, cur?.options, mapMeMigrate(type, cur?.options, stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, lcDefMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) })))))) };
+      prof.overlays[key] = { ...def, ...cur, ...(look ? { look } : { look: undefined }), type, options: c63Migrate(type, cur?.options, mapMeMigrate(type, cur?.options, stFlairMigrate(type, cur?.options, relFlairMigrate(type, cur?.options, logoColMigrate(type, cur?.options, msgSrcMigrate(type, lcDefMigrate(type, cur?.options, { ...def.options, ...(cur?.options ?? {}) }))))))) };
     }
     // Her türün bir ana kopyası olsun (yeni eklenen overlay'ler otomatik gelir)
     for (const m of manifests) {
@@ -1337,7 +1355,8 @@ export function normalize(input: unknown): AppSettings {
     out.profiles[pid] = prof;
   }
   if (Object.keys(out.profiles).length === 0) out.profiles = d.profiles;
-  if (!out.profiles[out.activeProfile]) out.activeProfile = Object.keys(out.profiles)[0];
+  ensureDefaultFlags(out);
+  if (!out.profiles[out.activeProfile]) out.activeProfile = defaultProfileId(false, out) ?? Object.keys(out.profiles)[0];
   // Overlay varsayılanları. İlk geçişte (kayıtta yoksa) etkin düzendeki ayarlardan alınır: kullanıcının
   // o güne kadar Overlay'ler sayfasında yaptığı ayarlar kaybolmasın.
   const savedDef = s.defaults && typeof s.defaults === "object" ? (s.defaults as Record<string, Partial<OverlayInstance>>) : null;
@@ -1427,6 +1446,43 @@ export function replaceSettings(value: unknown) {
   setSettingsSignal(s);
   scheduleSave(s);
   changeListeners.forEach((l) => l(s, false));
+}
+
+/**
+ * Varsayılan düzenin kimliği (stream: yayın düzenleri). İşaretli (isDefault) düzen; işaret yoksa eski sabit kimlik
+ * ("default" / "stream-default"); o da yoksa listenin ilki.
+ */
+export function defaultProfileId(stream = false, s: Pick<AppSettings, "profiles"> = settings()): string | undefined {
+  const group = Object.values(s.profiles)
+    .filter((p) => (p.rules.mode === "stream") === stream)
+    .map((p, i) => ({ p, k: p.order ?? 1e9 + i }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.p);
+  const legacy = stream ? "stream-default" : "default";
+  return (group.find((p) => p.isDefault) ?? group.find((p) => p.id === legacy) ?? group[0])?.id;
+}
+
+/** Her türde (düzen / yayın düzeni) tam bir varsayılan işareti bırakır */
+export function ensureDefaultFlags(d: Pick<AppSettings, "profiles">) {
+  for (const stream of [false, true]) {
+    const id = defaultProfileId(stream, d);
+    for (const p of Object.values(d.profiles)) {
+      if ((p.rules.mode === "stream") !== stream) continue;
+      if (p.id === id) p.isDefault = true;
+      else delete p.isDefault;
+    }
+  }
+}
+
+/** Düzeni kendi türünün varsayılanı yapar (öncekinin işareti kalkar) */
+export function setDefaultProfile(id: string) {
+  updateSettings((d) => {
+    const me = d.profiles[id];
+    if (!me) return;
+    const stream = me.rules.mode === "stream";
+    for (const p of Object.values(d.profiles)) if ((p.rules.mode === "stream") === stream) delete p.isDefault;
+    me.isDefault = true;
+  });
 }
 
 export function activeProfile(): Profile {
@@ -1593,7 +1649,8 @@ export function resolveProfile(st: Status | undefined, stream = false, forced?: 
       const sc = ruleScore(p, st, m);
       if (sc < 0) continue;
       if (needAuto && !s.general.autoSwitch && sc > 0) continue;
-      if (sc > bestScore) {
+      // Eşitlikte varsayılan düzen öne geçer
+      if (sc > bestScore || (sc === bestScore && !!p.isDefault && !best?.isDefault)) {
         best = p;
         bestScore = sc;
       }

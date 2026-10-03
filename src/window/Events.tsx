@@ -439,8 +439,19 @@ export function Events() {
     // Tekrar yalnızca iRacing bağlıyken var; değilse satır sadece seçilir
     if (!info()?.replayOk) return;
     try {
-      await invoke("replay_seek", { sessionNum: e.sessionNum, sessionTime: e.time, carNumber: e.focus || e.number });
-      say(true, t("Tekrar {0} anına sarıldı", clock(Math.max(0, e.time - 5))));
+      const num = e.focus || e.number;
+      const at = clock(Math.max(0, e.time - 5));
+      say(true, t("Tekrar {0} anına sarılıyor", at));
+      // Kamera doğrulaması için araç sırası: odak başka bir araçsa (ör. geçilen araç) sıra bilinmez
+      const r = await invoke<{ verified: boolean; camera: boolean }>("replay_seek", {
+        sessionNum: e.sessionNum,
+        sessionTime: e.time,
+        carNumber: num,
+        carIdx: num === e.number && e.idx >= 0 ? e.idx : null,
+      });
+      if (!r.verified) say(true, t("Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı", at));
+      else if (!r.camera) say(false, t("Tekrar {0} anına sarıldı ama kamera #{1} aracına geçmedi", at, num));
+      else say(true, t("Tekrar {0} anına sarıldı", at));
     } catch (err) {
       say(false, t(String(err)));
     }

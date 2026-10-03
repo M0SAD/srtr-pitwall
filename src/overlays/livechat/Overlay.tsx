@@ -69,7 +69,8 @@ export default function LiveChat(props: OverlayProps) {
   const delAt = new Map<string, number>();
   // NE GÖSTERİLİR: karar UYGULAMADA verilir (Rust: livechat/mod.rs live_gate) ve `status` konusunun `chat` alanıyla
   // gelir; overlay penceresi de OBS tarayıcı kaynağı da aynı karara bakar (tarayıcı giriş / PRO durumunu tahmin etmez).
-  //   demo    → Demo modu açık: SÜREKLİ benzetilmiş akış (sohbet çalışsa / yayın canlı olsa da; gerçek mesaj karışmaz)
+  //   demo    → Demo modu açık ve sohbet çalışmıyor (ya da çalışıyor ama yayın canlı değil): benzetilmiş akış.
+  //             Sohbet çalışıyor ve yayın canlıyken Demo açılsa da "real" kalır (gerçek sohbet gösterilir).
   //   real    → sohbet çalışıyor ve yayın canlı (ya da "Yalnızca yayın canlıyken göster" kapalı): gerçek mesajlar
   //   offline / stopped / login / pro / wait → ekranda hiçbir şey çizilmez
   // ÖRNEK: gerçek / demo akışı yokken overlay panelde önizleniyor, düzenleniyor ya da sabitlenmişse kısa bir sahte

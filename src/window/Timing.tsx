@@ -166,7 +166,7 @@ export function Timing() {
                     </span>
                     <span class="pw-dim lt-time">{clock(e.time)}</span>
                     <Show when={inTauri}>
-                      <button class="lt-btn small" onClick={() => run("replay_to", { sessionNum: e.sessionNum, time: e.time - 5 })}>
+                      <button class="lt-btn small" onClick={() => run("replay_seek", { sessionNum: e.sessionNum, sessionTime: e.time, carNumber: e.number, carIdx: e.idx >= 0 ? e.idx : null })}>
                         Tekrar
                       </button>
                     </Show>

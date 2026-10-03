@@ -45,6 +45,8 @@ export default function Tires(props: OverlayProps) {
   });
   const d = useTopic("tires");
   const metric = () => props.units === "metric";
+  /** "Sadece pitteyken göster" (varsayılan açık): pistteyken gizli; düzenleme modunda / önizlemede hep görünür */
+  const visible = () => props.editing || props.options.onlyPit === false || !!d()?.onPit;
 
   const t = (c: number) => (c <= 0 ? "-" : metric() ? c.toFixed(0) : (c * 1.8 + 32).toFixed(0));
   const press = (kpa: number) => {
@@ -89,6 +91,7 @@ export default function Tires(props: OverlayProps) {
   );
 
   return (
+    <Show when={visible()}>
     <div class={`ov-panel ty ty-d-${design()}`}>
       <div class="ov-header ty-head">
         <span>Lastikler</span>
@@ -236,5 +239,6 @@ export default function Tires(props: OverlayProps) {
         </Switch>
       </Show>
     </div>
+    </Show>
   );
 }

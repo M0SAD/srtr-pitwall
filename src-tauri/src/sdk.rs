@@ -140,6 +140,10 @@ pub struct VarIndex {
     pub is_in_garage: Option<VarRef>,
     pub replay: Option<VarRef>,
     pub replay_end: Option<VarRef>,
+    pub replay_frame: Option<VarRef>,
+    pub replay_session_num: Option<VarRef>,
+    pub replay_session_time: Option<VarRef>,
+    pub cam_car_idx: Option<VarRef>,
     pub air_temp: Option<VarRef>,
     pub track_temp: Option<VarRef>,
     pub incidents: Option<VarRef>,
@@ -250,6 +254,10 @@ impl VarIndex {
                 "IsInGarage" => ix.is_in_garage = r,
                 "IsReplayPlaying" => ix.replay = r,
                 "ReplayFrameNumEnd" => ix.replay_end = r,
+                "ReplayFrameNum" => ix.replay_frame = r,
+                "ReplaySessionNum" => ix.replay_session_num = r,
+                "ReplaySessionTime" => ix.replay_session_time = r,
+                "CamCarIdx" => ix.cam_car_idx = r,
                 "AirTemp" => ix.air_temp = r,
                 "TrackTempCrew" => ix.track_temp = r,
                 "PlayerCarMyIncidentCount" => ix.incidents = r,
@@ -414,6 +422,11 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.replay = bool_of(buf, ix.replay);
     // Kasetin sonuna (canlı ana) 1 saniyeden yakın: izleyici/araç dışı görünüm, gerçek tekrar değil
     f.replay_live = f.replay && ix.replay_end.is_some() && i32_or(buf, ix.replay_end, 0) <= 60;
+    f.replay_frame = i32_or(buf, ix.replay_frame, -1);
+    f.replay_frame_end = i32_or(buf, ix.replay_end, 0);
+    f.replay_session_num = i32_or(buf, ix.replay_session_num, 0);
+    f.replay_session_time = get_f64(buf, ix.replay_session_time, 0).unwrap_or(0.0);
+    f.cam_car_idx = i32_or(buf, ix.cam_car_idx, -1);
     f.air_temp = f32_or(buf, ix.air_temp, 0.0);
     f.track_temp = f32_or(buf, ix.track_temp, 0.0);
     f.incidents = i32_or(buf, ix.incidents, 0);

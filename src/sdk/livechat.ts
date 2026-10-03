@@ -155,7 +155,10 @@ export interface LiveGate {
 export function gateMode(g: LiveGate | null | undefined, onlyLive = true, obs = !inTauri): GateMode {
   if (!g || !g.app) return "wait";
   const m = obs ? g.obs : g.app;
-  return m === "offline" && !onlyLive ? "real" : m;
+  if (m !== "offline") return m;
+  if (!onlyLive) return "real";
+  // Sohbet çalışıyor ama yayın canlı değil: Demo modu açıksa boş kalmasın, benzetim oynasın
+  return g.demo ? "demo" : m;
 }
 
 export interface LiveChatStatus {

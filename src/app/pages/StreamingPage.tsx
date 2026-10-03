@@ -38,6 +38,7 @@ function newStream(name: string, id?: string): string {
       p.rules.mode = "stream";
       p.canvas = { w: 1920, h: 1080 };
       p.order = -1;
+      p.isDefault = true;
       for (const o of Object.values(p.overlays)) o.enabled = false;
       d.profiles[id] = p;
     });

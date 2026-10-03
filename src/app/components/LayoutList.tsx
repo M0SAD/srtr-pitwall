@@ -1,8 +1,9 @@
 // Düzen listesi ("Düzenlerim" ve "Yayın düzenleri"): iki sayfada aynı başlık, satırlar ve sağ tık menüsü.
 //  Başlık: liste adı + "+" (yeni düzen). Satır: ad (çift tık: yeniden adlandır) + çöp kutusu (onay sorar).
-//  İlk düzen ("Varsayılan") sabittir: adı değiştirilebilir ama silinemez.
+//  Her listede tam bir "varsayılan" düzen vardır (yıldız): silinemez; başka bir düzen yıldızıyla ya da sağ tık › Varsayılan yap
+//  ile varsayılan yapılabilir (eskisi o zaman silinebilir olur). Listedeki son düzen silinemez.
 //  Kilit: satırdaki kilit simgesi (ya da sağ tık › Kilitle) düzeni kilitler: yerleşimi ve overlay ayarları değiştirilemez,
-//  yeniden adlandırılamaz, silinemez. Sabit düzen iğne simgesiyle gösterilir (kilitle karışmasın).
+//  yeniden adlandırılamaz, silinemez.
 //  Sağ tık: Düzeni kopyala, Yeniden adlandır, Kilitle / Kilidi aç, OBS adresini kopyala / Bağlantıyı kopar (yayın), Toplulukta paylaş,
 //           Yukarı / Aşağı taşı, Sil.
 //  Klavye (satır odaktayken): F2 = yeniden adlandır, Delete = sil (onay sorar).
@@ -10,9 +11,8 @@
 import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import ArrowUp from "lucide-solid/icons/arrow-up";
 import ArrowDown from "lucide-solid/icons/arrow-down";
-import Pin from "lucide-solid/icons/pin";
 import { t } from "@/sdk/i18n";
-import { settings, updateSettings, type Profile } from "@/sdk/settings";
+import { defaultProfileId, setDefaultProfile, settings, updateSettings, type Profile } from "@/sdk/settings";
 import * as I from "../icons";
 
 export type LayoutKind = "layout" | "stream";
@@ -57,21 +57,19 @@ export function duplicateProfile(id: string): string | null {
     // Kopya kilitsiz ve paylaşılmamış başlar
     delete p.locked;
     delete p.sharedId;
+    delete p.isDefault;
     d.profiles[nid] = p;
   });
   return nid;
 }
 
-/** Sabit ("Varsayılan") düzenlerin kimlikleri */
+/** İlk oluşturulan varsayılan düzenlerin kimlikleri (eski kayıtlarla uyum: işaret yoksa bunlar varsayılandır) */
 export const FIXED_LAYOUT = "default";
 export const FIXED_STREAM = "stream-default";
 
-/** Silinemeyen sabit düzen: "Varsayılan" (yoksa listenin ilki) */
+/** Silinemeyen varsayılan düzen (işaretli olan; yoksa eski sabit kimlik, o da yoksa listenin ilki) */
 export function fixedProfileId(stream: boolean): string | undefined {
-  const s = settings();
-  const pref = stream ? FIXED_STREAM : FIXED_LAYOUT;
-  if (s.profiles[pref] && isStream(s.profiles[pref]) === stream) return pref;
-  return sortProfiles(Object.values(s.profiles).filter((p) => isStream(p) === stream))[0]?.id;
+  return defaultProfileId(stream);
 }
 
 /** Düzeni kilitler / kilidini açar */
@@ -84,16 +82,17 @@ export function toggleProfileLock(id: string) {
   });
 }
 
-/** Siler (onay sorar). Sabit "Varsayılan" düzen ve kilitli düzenler silinemez. Silindiyse true. */
+/** Siler (onay sorar). Varsayılan düzen, türünün son düzeni ve kilitli düzenler silinemez. Silindiyse true. */
 export function removeProfile(id: string): boolean {
   const p = settings().profiles[id];
   if (!p) return false;
   const stream = isStream(p);
-  if (fixedProfileId(stream) === id || p.locked) return false;
+  const count = Object.values(settings().profiles).filter((x) => isStream(x) === stream).length;
+  if (fixedProfileId(stream) === id || p.locked || count <= 1) return false;
   if (!confirm(stream ? t('"{0}" yayın düzeni silinsin mi?', p.name) : t('"{0}" düzeni silinsin mi?', p.name))) return false;
   updateSettings((d) => {
     delete d.profiles[id];
-    if (!d.profiles[d.activeProfile]) d.activeProfile = Object.keys(d.profiles).find((x) => !isStream(d.profiles[x])) ?? Object.keys(d.profiles)[0];
+    if (!d.profiles[d.activeProfile]) d.activeProfile = defaultProfileId(false, d) ?? Object.keys(d.profiles)[0];
   });
   return true;
 }
@@ -134,7 +133,7 @@ export function LayoutList(props: {
   const fixed = () => fixedProfileId(stream());
   const isFixed = (id: string) => fixed() === id;
   const isLockedP = (id: string) => !!settings().profiles[id]?.locked;
-  const canRemove = (id: string) => !isFixed(id) && !isLockedP(id);
+  const canRemove = (id: string) => !isFixed(id) && !isLockedP(id) && props.list.length > 1;
   const startRename = (id: string) => !isLockedP(id) && setRenaming(id);
   const remove = (id: string) => {
     const i = props.list.findIndex((p) => p.id === id);
@@ -183,6 +182,9 @@ export function LayoutList(props: {
                   <Show when={prof().locked} fallback={<><I.Lock /> Kilitle</>}>
                     <I.LockOpen /> Kilidi aç
                   </Show>
+                </button>
+                <button disabled={isFixed(m.id)} onPointerUp={run(() => setDefaultProfile(m.id))} title="Varsayılan düzen silinemez; seçili düzen kaybolursa buna dönülür">
+                  <I.Star /> {isFixed(m.id) ? "Varsayılan düzen" : "Varsayılan yap"}
                 </button>
                 <Show when={props.onShare}>
                   <button disabled={props.canShare ? !props.canShare(prof()) : false} onPointerUp={run(() => (props.onSelect(m.id), props.onShare!(m.id)))}>
@@ -248,7 +250,7 @@ export function LayoutList(props: {
                 classList={{ sel: props.selId === x.id }}
                 tabindex="0"
                 role="button"
-                title={x.locked ? "Kilitli düzen: değiştirilemez · kilidi açmak için kilit simgesine tıkla" : "Çift tık: yeniden adlandır · Sağ tık: kopyala, kilitle, taşı, sil · Delete: sil"}
+                title={x.locked ? "Kilitli düzen: değiştirilemez · kilidi açmak için kilit simgesine tıkla" : "Çift tık: yeniden adlandır · Sağ tık: kopyala, varsayılan yap, kilitle, taşı, sil · Delete: sil"}
                 onClick={() => props.onSelect(x.id)}
                 onDblClick={() => startRename(x.id)}
                 onContextMenu={(e) => {
@@ -291,11 +293,18 @@ export function LayoutList(props: {
                     <I.Lock />
                   </Show>
                 </button>
-                <Show when={isFixed(x.id)}>
-                  <span class="llist-fixed" title="Sabit düzen: adı değiştirilebilir, silinemez">
-                    <Pin />
-                  </span>
-                </Show>
+                <button
+                  class="llist-def"
+                  classList={{ on: isFixed(x.id) }}
+                  title={isFixed(x.id) ? "Varsayılan düzen: silinemez (başka bir düzeni varsayılan yapabilirsin)" : "Varsayılan yap"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isFixed(x.id)) setDefaultProfile(x.id);
+                  }}
+                  onDblClick={(e) => e.stopPropagation()}
+                >
+                  <I.Star />
+                </button>
                 <Show when={canRemove(x.id)}>
                   <button
                     class="llist-del"

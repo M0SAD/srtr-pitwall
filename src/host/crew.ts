@@ -19,7 +19,7 @@ import { t } from "@/sdk/i18n";
 import { friendLook, messageBeep } from "@/cloud/social";
 import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
 import { CREWCALL_EVENT, type CrewCallEvt } from "@/sdk/crewcall";
-import { crewCommandText, crewControlSet, crewDone, crewList, crewPending, crewRoom, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
+import { crewCommandText, crewControlSet, crewDone, crewDrivers, crewList, crewPending, crewRoom, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
 
 /** Ekip kutucuğu: ekranın alt ortasında birkaç saniye görünüp solan kısa bildirim (Host.tsx çizer) */
 export interface CrewBox {
@@ -164,71 +164,105 @@ export function startCrew(status: Accessor<Status | undefined>) {
   }, 2000);
 
   // ---- Ekip odası (c64) ----
-  // Odama (sürücü = ben) yazılan mesajlar: Mesajlar overlay'ine yayınlanır (overlay kendi ayarına göre gösterir /
-  // sesli okur) ve ayar açıksa alt ortadaki kutucukta gösterilir. Realtime + yoklama (yarışta 4 sn, değilken 20 sn).
-  let chatLast = "";
+  // Odama (sürücü = ben) VE ekip üyesi olduğum sürücülerin odalarına yazılan mesajlar: Mesajlar overlay'ine
+  // yayınlanır (overlay kendi ayarına göre gösterir / sesli okur). Kendi odamın mesajı, ayar açıksa alt ortadaki
+  // kutucukta da gösterilir. Realtime + yoklama (kendi odam: yarışta 4 sn, değilken 20 sn; diğer odalar 20 sn).
+  interface ChatRoom {
+    last: string;
+    busy: boolean;
+    stop: () => void;
+  }
+  const rooms = new Map<string, ChatRoom>();
   let chatFor = "";
-  let chatBusy = false;
-  let stopChat: () => void = () => {};
-  let chatRt = "";
+  /** Ekip üyesi olduğum sürücüler (odalarını görebildiklerim) */
+  let driverIds: string[] = [];
   const chatSeen = new Set<string>();
-  const onChatMsg = (m: CrewChatMsg, me: string) => {
+  const onChatMsg = (m: CrewChatMsg, me: string, owner: string) => {
     if (chatSeen.has(m.id)) return;
     chatSeen.add(m.id);
     if (chatSeen.size > 400) chatSeen.clear();
     const mine = m.sender === me;
     const look = friendLook(m.sender);
-    const ov: OvMsg = { id: `crew-${m.id}`, kind: "crew", from: m.sender, peer: me, name: m.name || "?", color: look.color, photo: look.photo || undefined, team: t("Ekip"), body: m.body, mine, ts: Date.now() };
+    const ov: OvMsg = { id: `crew-${m.id}`, kind: "crew", from: m.sender, peer: owner, name: m.name || "?", color: look.color, photo: look.photo || undefined, team: t("Ekip"), body: m.body, mine, ts: Date.now() };
     broadcastOvMsg(ov);
-    if (mine) return;
+    // Kutucuk ve ses yalnızca kendi odam için (başkasının odasını panel / Ekip Pitwall'ı zaten gösterir)
+    if (mine || owner !== me) return;
     if (boxOn() && !ovMsgShown(ov)) showCrewBox({ id: ov.id, from: t("Ekip · {0}", m.name || "?"), body: m.body }, 7000);
     if (settings().general.social.sound) messageBeep();
   };
-  const pollChat = async () => {
+  const pollChat = async (owner: string) => {
     const me = session()?.user.id ?? "";
-    if (!me || !members.length || chatBusy) return;
-    if (chatFor !== me) {
-      chatFor = me;
-      chatLast = "";
-      chatSeen.clear();
-    }
-    chatBusy = true;
+    const room = rooms.get(owner);
+    if (!me || !room || room.busy) return;
+    room.busy = true;
     try {
       // İlk çağrı: geçmiş gösterilmez, yalnızca "şu andan sonrası" için saat alınır
-      const r = await crewRoom(me, chatLast || null, chatLast ? 30 : 1);
-      if (session()?.user.id !== me || !r) return;
-      if (!chatLast) {
-        chatLast = r.messages?.[r.messages.length - 1]?.at ?? r.now;
-        if (r.now > chatLast) chatLast = r.now;
+      const r = await crewRoom(owner, room.last || null, room.last ? 30 : 1);
+      if (session()?.user.id !== me || rooms.get(owner) !== room || !r) return;
+      if (!room.last) {
+        room.last = r.messages?.[r.messages.length - 1]?.at ?? r.now;
+        if (r.now > room.last) room.last = r.now;
         return;
       }
       for (const m of r.messages ?? []) {
-        chatLast = m.at;
-        onChatMsg(m, me);
+        room.last = m.at;
+        onChatMsg(m, me, owner);
       }
     } catch {
       /* eski sunucu (c64 yok) ya da ağ hatası: sonraki yoklamada */
     } finally {
-      chatBusy = false;
+      room.busy = false;
     }
   };
-  const chatChannel = async () => {
-    const want = members.length ? (session()?.user.id ?? "") : "";
-    if (want === chatRt) return;
-    chatRt = want;
-    stopChat();
-    stopChat = () => {};
-    if (!want) return;
-    const stop = await onCrewChat(want, () => void pollChat());
-    if (chatRt === want) stopChat = stop;
-    else stop();
+  const syncRooms = () => {
+    const me = session()?.user.id ?? "";
+    if (chatFor !== me) {
+      chatFor = me;
+      driverIds = [];
+      chatSeen.clear();
+      for (const r of rooms.values()) r.stop();
+      rooms.clear();
+    }
+    const want = new Set<string>(me ? [...(members.length ? [me] : []), ...driverIds] : []);
+    for (const [id, r] of rooms) {
+      if (want.has(id)) continue;
+      r.stop();
+      rooms.delete(id);
+    }
+    for (const id of want) {
+      if (rooms.has(id)) continue;
+      const room: ChatRoom = { last: "", busy: false, stop: () => {} };
+      rooms.set(id, room);
+      void pollChat(id);
+      void onCrewChat(id, () => void pollChat(id)).then((stop) => {
+        if (rooms.get(id) === room) room.stop = stop;
+        else stop();
+      });
+    }
   };
+  const loadDrivers = async () => {
+    const me = session()?.user.id ?? "";
+    if (!me) return;
+    try {
+      const l = await crewDrivers();
+      if (session()?.user.id !== me) return;
+      driverIds = l.filter((d) => d.can_view !== false && d.owner_id !== me).map((d) => d.owner_id).slice(0, 8);
+    } catch {
+      /* eski sunucu ya da ağ hatası: mevcut liste kalır */
+    }
+  };
+  void listen("crew-refresh", () => void loadDrivers());
+  void listen("social-refresh", () => void loadDrivers());
   let chatTick = 0;
   setInterval(() => {
     chatTick++;
-    void chatChannel();
-    if (!members.length || !session()) return;
-    if (!chatLast || racing() || chatTick % 5 === 0) void pollChat();
+    if (!session()) return syncRooms();
+    if (chatTick % 15 === 2) void loadDrivers();
+    syncRooms();
+    const me = session()?.user.id ?? "";
+    for (const [id, r] of rooms) {
+      if (!r.last || (id === me && racing()) || chatTick % 5 === 0) void pollChat(id);
+    }
   }, 4000);
 
   // ---- Ekip Pitwall'ı ----

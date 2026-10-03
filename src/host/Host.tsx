@@ -648,7 +648,8 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     target.setPointerCapture(e.pointerId);
     const o = view();
     const s0 = edge === "e" || edge === "w" ? e.clientX : e.clientY;
-    const cur = Number(inst().options[f.key]) || f.default;
+    const wMin = (edge === "e" || edge === "w") && props.manifest.resize !== false && !!props.manifest.resize?.wMin;
+    const cur = Math.max(Number(inst().options[f.key]) || f.default, wMin ? size().w : 0);
     let last: (Rect & { value: number }) | null = null;
     track(
       target,

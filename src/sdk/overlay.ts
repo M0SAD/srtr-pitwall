@@ -109,7 +109,12 @@ export interface OverlayManifest {
    * w = genişlik, h = yükseklik. Verilmezse "width" / "height" adlı px sayı alanları kendiliğinden kullanılır;
    * `false`: kenardan boyutlandırma yok. (Köşeler her zaman ölçeği değiştirir.)
    */
-  resize?: { w?: string; h?: string } | false;
+  resize?: {
+    w?: string;
+    h?: string;
+    /** w ayarı bir "en az genişlik": kenardan sürükleme ayar değerinden değil, ölçülen gerçek genişlikten başlar (ölü bölge olmaz) */
+    wMin?: boolean;
+  } | false;
   settings: SettingField[];
 }
 

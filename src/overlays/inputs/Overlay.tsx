@@ -1,4 +1,4 @@
-import { Show, createEffect, onCleanup } from "solid-js";
+import { Show, createEffect, onCleanup, onMount } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { gear, speed, speedUnit } from "@/sdk/format";
@@ -8,7 +8,7 @@ import { DesignView, isDesign, type Design } from "./designs";
 import { LapLines } from "./shared";
 import "./style.css";
 
-const W = 240;
+const W0 = 240;
 const H = 86;
 const ABS_DEF = "#ffd400";
 const TC_DEF = "#00c8ff";
@@ -20,7 +20,7 @@ export default function Inputs(props: OverlayProps) {
     return isDesign(d) && !overlayValueLocked("inputs", "design", d) ? d : "default";
   };
   return (
-    <div class="inp-stack">
+    <div class="inp-stack" style={{ "--ov-w": `${Math.max(0, Number(props.options.width) || 0)}px` }}>
       <Show when={design() !== "default"} fallback={<DefaultDesign {...props} />}>
         <DesignView {...props} design={design() as Design} />
       </Show>
@@ -58,6 +58,23 @@ function DefaultDesign(props: OverlayProps) {
       count = 0;
     }
   };
+
+  // İz grafiği "Genişlik" ayarıyla uzar: tuval çözünürlüğü yerleşim genişliğini izler
+  let W = W0;
+  onMount(() => {
+    const ro = new ResizeObserver(() => {
+      if (!canvas) return;
+      const w = Math.max(W0, Math.round(canvas.clientWidth));
+      W = w;
+      if (canvas.width !== w) canvas.width = w;
+      draw();
+    });
+    createEffect(() => {
+      ro.disconnect();
+      if (props.options.showTrace && canvas) ro.observe(canvas);
+    });
+    onCleanup(() => ro.disconnect());
+  });
 
   const draw = () => {
     pending = false;
@@ -186,7 +203,7 @@ function DefaultDesign(props: OverlayProps) {
   return (
     <div class="ov-panel inp" classList={{ shift: shiftOn() }}>
       <Show when={props.options.showTrace}>
-        <canvas ref={canvas} width={W} height={H} class="inp-trace" />
+        <canvas ref={canvas} width={W0} height={H} class="inp-trace" />
       </Show>
       <div class="inp-bars">
         <Show when={props.options.showClutch}>

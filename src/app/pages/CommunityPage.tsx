@@ -612,6 +612,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       const src: Profile = structuredClone(d.profile);
       delete src.link;
       delete src.locked;
+      delete (src as { isDefault?: boolean }).isDefault;
       delete src.sharedId;
       const name = `${l().title} (${l().author_name || "paylaşım"})`;
       const mode = props.kind === "stream" ? "stream" : src.rules?.mode && src.rules.mode !== "stream" ? src.rules.mode : "driving";
@@ -883,6 +884,7 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
       // Yerel işaretler (kilit, paylaşım kimliği, liste sırası) paylaşıma girmez
       const p: Profile = structuredClone(prof()!);
       delete p.locked;
+      delete (p as { isDefault?: boolean }).isDefault;
       delete p.sharedId;
       delete p.order;
       const v = {

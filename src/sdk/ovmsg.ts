@@ -38,21 +38,47 @@ export function broadcastOvMsg(m: OvMsg) {
 /** Arkadaşlar bölümünde kurulan grup sohbetinin mesajı (host/social.ts: id "g-<mesaj>", peer = grup kimliği) */
 export const ovMsgIsGroup = (m: OvMsg) => m.kind === "team" && m.id.startsWith("g-");
 
-/** Overlay ayarlarına göre bu mesaj gösterilir mi */
+/**
+ * Kopyanın "Yalnızca şu kişiler" listesi (boş: herkes). Eski kayıt (`source` alanı duruyorsa, bkz. settings.ts
+ * msgSrcMigrate) yalnızca "Seçili kişiler" kaynağında listeyi kullanırdı.
+ */
+export function ovMsgPeople(o: Record<string, any>): string[] {
+  if (o.source !== undefined && o.source !== "selected") return [];
+  return Array.isArray(o.people) ? o.people.filter((x: unknown): x is string => typeof x === "string" && !!x) : [];
+}
+/** Kopya arkadaş mesajlarını gösteriyor mu */
+export function ovMsgFriendsOn(o: Record<string, any>): boolean {
+  if (o.source !== undefined && (o.source === "team" || o.source === "none")) return false;
+  return o.friends !== false;
+}
+
+/** Overlay ayarlarına göre bu mesaj gösterilir mi (her kopya kendi ayarıyla bağımsız süzer) */
 export function ovMsgAccepts(o: Record<string, any>, m: OvMsg): boolean {
   if (m.mine && !o.mine) return false;
-  const src = o.source ?? "all";
-  if (m.kind === "crew") return o.crew !== false;
+  if (m.kind === "crew") {
+    if (o.crew === false) return false;
+    const p = ovMsgPeople(o);
+    return m.mine || !p.length || p.includes(m.from);
+  }
   if (ovMsgIsGroup(m)) {
     const g = o.groups ?? "all";
     if (g === "none") return false;
     if (g === "selected") return Array.isArray(o.groupList) && o.groupList.includes(m.peer);
     return true;
   }
-  if (m.kind === "team") return src === "team" || !!o.includeTeams;
-  if (src === "team" || src === "none") return false;
-  if (src === "selected") return Array.isArray(o.people) && o.people.includes(m.peer);
-  return true;
+  if (m.kind === "team") return o.source === "team" || o.includeTeams !== false;
+  if (!ovMsgFriendsOn(o)) return false;
+  const p = ovMsgPeople(o);
+  return !p.length || p.includes(m.peer);
+}
+
+/**
+ * Bu mesaj sesli okunsun mu: ekip odası mesajı "Ekip mesajlarını sesli oku", diğerleri (arkadaş; gösteriliyorsa
+ * takım / grup) "Arkadaş mesajlarını sesli oku" ayarına bakar. Kendi mesajım okunmaz.
+ */
+export function ovMsgSpeaks(o: Record<string, any>, m: OvMsg): boolean {
+  if (m.mine) return false;
+  return m.kind === "crew" ? !!o.crewTts : !!o.tts;
 }
 
 // Bu pencerede ekranda olan Mesajlar overlay'lerinin süzgeçleri (oyun içi bildirimle çift gösterilmesin)
@@ -75,15 +101,15 @@ function firstInstance() {
 /** Arkadaşın mesajları Mesajlar overlay'inde gösteriliyor mu (etkin düzendeki ilk kopyaya göre) */
 export function ovMsgShowsPerson(friendId: string): boolean {
   const o = firstInstance()?.options ?? {};
-  const src = o.source ?? "all";
-  if (src === "all") return true;
-  if (src === "team" || src === "none") return false;
-  return Array.isArray(o.people) && o.people.includes(friendId);
+  if (!ovMsgFriendsOn(o)) return false;
+  const p = ovMsgPeople(o);
+  return !p.length || p.includes(friendId);
 }
 
 /**
- * Arkadaşı tüm düzenlerdeki Mesajlar overlay'lerinde gösterir / gizler: "Seçili kişiler" listesini düzenler
- * (kaynak "Tüm arkadaşlar" iken gizlenirse diğer arkadaşlar listeye eklenip kaynak "Seçili kişiler" olur).
+ * Arkadaşı tüm düzenlerdeki Mesajlar overlay'lerinde gösterir / gizler: "Yalnızca şu kişiler" listesini düzenler
+ * (liste boşken, yani herkes gösterilirken gizlenirse diğer arkadaşlar listeye eklenir; listede kimse kalmazsa
+ * arkadaş mesajları kapatılır, çünkü boş liste "herkes" demektir).
  */
 export function ovMsgTogglePerson(friendId: string, allFriends: string[]) {
   const show = !ovMsgShowsPerson(friendId);
@@ -91,15 +117,19 @@ export function ovMsgTogglePerson(friendId: string, allFriends: string[]) {
     for (const p of Object.values(d.profiles)) {
       for (const i of Object.values(p.overlays)) {
         if (i.type !== OVMSG_TYPE) continue;
-        const src = i.options.source ?? "all";
-        let cur: string[] = Array.isArray(i.options.people) ? i.options.people.filter((x: unknown) => typeof x === "string") : [];
-        if (src === "all") cur = allFriends.slice();
-        cur = show ? (cur.includes(friendId) ? cur : [...cur, friendId]) : cur.filter((x) => x !== friendId);
-        i.options.people = cur;
-        if (src !== "selected") {
-          // Takım mesajları kaynağıyken arkadaş eklenince takım mesajları da gösterilmeye devam etsin
-          if (src === "team") i.options.includeTeams = true;
-          i.options.source = "selected";
+        const on = ovMsgFriendsOn(i.options);
+        let cur = on ? ovMsgPeople(i.options) : [];
+        delete i.options.source;
+        if (show) {
+          // Arkadaş mesajları kapalıydı: yalnızca bu kişi; liste boş (herkes) ise zaten gösteriliyor
+          if (!on || cur.length) cur = cur.includes(friendId) ? cur : [...cur, friendId];
+          i.options.friends = true;
+          i.options.people = cur;
+        } else if (on) {
+          if (!cur.length) cur = allFriends.slice();
+          cur = cur.filter((x) => x !== friendId);
+          i.options.people = cur;
+          i.options.friends = cur.length > 0;
         }
       }
     }

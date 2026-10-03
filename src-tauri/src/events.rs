@@ -496,6 +496,10 @@ impl EventLog {
             self.rebase = true;
             self.last_rc_id = rc_max;
         }
+        if self.sim == "iracing" && !self.demo {
+            // Tekrar kafasının konumu ve canlı andaki kaset karesi (tekrara sarma bunu kullanır)
+            crate::broadcast::observe(f, !f.replay || f.replay_live);
+        }
         if f.replay && !f.replay_live {
             // Tekrar oynatılıyor: geçmiş anlardan olay üretme, dönünce yeniden taban al
             self.last_rc_id = rc_max;

@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-91
+
+- **Girdiler ve Pedal Seti:** "Genişlik (en az)" ayarı; düzenleme modunda kenardan sürükleyerek de ayarlanır.
+- **Lastikler:** varsayılan olarak yalnızca pitteyken görünür ("Sadece pitteyken göster").
+- **Arka plan %0:** çerçeve, gölge ve bulanıklık da tamamen kaybolur (silik çerçeve izi kalmaz).
+- **Canlı Sohbet:** sohbet çalışırken ve yayın canlıyken Demo açılsa da gerçek sohbet gösterilir.
+- **Mesajlar overlay'i:** Demo'da örnek mesaj göstermez; ekip üyesi olduğun sürücülerin odalarındaki mesajlar da gelir; her kopyada arkadaş / ekip / seçili kişiler ayrı seçilir; arkadaş ve ekip mesajları ayrı ayrı sesli okunabilir (aynı mesaj bir kez okunur).
+- **Olaylar ve Live Timing › Tekrar:** araç numarası kodlaması düzeltildi (07 gibi numaralarda kamera geçmiyordu), sarma doğrulanıyor, gerekirse kareyle sarılıyor, kamera sarma bittikten sonra değişiyor; uyarı artık gerçek sonucu yazıyor. Live Timing'deki Tekrar da kamerayı o araca çeviriyor.
+- **Arkadaşlar:** gelen mesaj sesi her pencerede çalar; sistem tepsisi simgesinde okunmamış mesaj işareti ve sayısı (Rahatsız etme'de ses, uyarı ve tepsi işareti gelmez); çevrimiçi / yarışta bilgisi artık sunucu saatine göre (c74); "Çevrimdışı görün"den dönünce gizli kalma hatası düzeltildi.
+- **Overlaylarım:** "Düzen oluştur" yerine "+ Overlay Ekle": seçili overlay'i Düzenler'de seçili düzene ekler.
+- **Düzenler / Yayın düzenleri:** herhangi bir düzen yıldızla ya da sağ tıkla "Varsayılan yap" ile varsayılan yapılabilir; varsayılan ve son kalan düzen silinemez.
+
 ## 031026-90
 
 - Şu overlay'ler artık PRO: Kafa Kafaya, Yarış Sonucu, Sürücü Kartı, Ekip Çağrısı, Fark Grafiği, Yakın Takip, Rakip Takibi, Hasar Göstergesi, Piste Dönüş, Viraj Analizi, Mesajlar (c72).

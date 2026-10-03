@@ -27,6 +27,7 @@ mod strategy;
 mod trackmap;
 mod translate;
 mod toast;
+mod trayalert;
 mod tracker;
 mod timing;
 mod device;
@@ -570,9 +571,16 @@ fn events_export(path: String, text: String) -> Result<(), String> {
     std::fs::write(&path, text).map_err(|e| e.to_string())
 }
 
-/// Olayın ~5 sn öncesine iRacing tekrarını sarar, kamerayı araca çevirir ve 1x oynatır.
+/// Olayın ~5 sn öncesine iRacing tekrarını sarar, kamerayı araca çevirir ve 1x oynatır; tekrarın
+/// gerçekten oraya gittiğini telemetriden doğrular (bekleme içerdiği için ayrı iş parçacığında).
 #[tauri::command]
-fn replay_seek(state: State<'_, Arc<Shared>>, session_num: i32, session_time: f64, car_number: String) -> Result<(), String> {
+async fn replay_seek(
+    state: State<'_, Arc<Shared>>,
+    session_num: i32,
+    session_time: f64,
+    car_number: String,
+    car_idx: Option<i32>,
+) -> Result<broadcast::SeekResult, String> {
     let (sim, demo) = {
         let ev = state.events.lock();
         (ev.sim, ev.demo)
@@ -583,7 +591,9 @@ fn replay_seek(state: State<'_, Arc<Shared>>, session_num: i32, session_time: f6
     if !sim.is_empty() && sim != "iracing" {
         return Err("Replay bu oyunda desteklenmiyor".into());
     }
-    broadcast::replay_seek(session_num, session_time, &car_number, 5.0)
+    tauri::async_runtime::spawn_blocking(move || broadcast::replay_seek(session_num, session_time, &car_number, car_idx, 5.0))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Ekip (uzaktan pit): ekip üyesinin gönderdiği pit komutunu iRacing'e uygular. Yetki ve ana anahtar
@@ -1590,7 +1600,12 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                bring_panel_front(tray.app_handle());
+                // Okunmamış mesaj varken (tepside kırmızı nokta) tıklama Arkadaşlar penceresini açar
+                if trayalert::unread() > 0 {
+                    open_friends(tray.app_handle());
+                } else {
+                    bring_panel_front(tray.app_handle());
+                }
             }
         });
     if let Some(icon) = app.default_window_icon() {
@@ -2016,6 +2031,7 @@ pub fn run() {
             toast::toast_layout,
             toast::toast_open_chat,
             toast::friends_take_chat,
+            trayalert::tray_unread,
             server_apply,
             server_status,
             dash_export,

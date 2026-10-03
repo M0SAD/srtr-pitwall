@@ -27,6 +27,22 @@ export function lookStyle(look: OverlayLook | undefined, t: Theme, bgOpacity?: n
     // Kendi arka planını çizen overlay'ler de aynı çarpanı kullanabilsin
     v["--ov-bg-k"] = String(k);
   }
+  // Arka plan tamamen şeffafken çerçeve izi kalmasın: kenarlık kopyanın opaklık çarpanıyla birlikte solar;
+  // arka plan %0 ise (çarpan, tema ya da görünüm) kenarlık, gölge ve bulanıklık da çizilmez. Görünümde açıkça
+  // seçilmiş kenarlık / gölge / bulanıklık, yalnızca kopyanın kendi çarpanı 0 olduğunda kaldırılır.
+  const on = l && l.on !== false ? l : undefined;
+  const baseOp = on?.bgOpacity ?? t.bgOpacity;
+  const ownBorder = !!on && (on.border !== undefined || on.borderOpacity !== undefined);
+  if (k <= 0 || (baseOp <= 0 && !ownBorder)) {
+    v["--ov-line"] = "transparent";
+  } else if (k < 1) {
+    const a = ownBorder ? (on!.borderOpacity ?? (on!.border ? 100 : t.borderOpacity)) : t.border ? t.borderOpacity : 0;
+    v["--ov-line"] = a > 0 ? hexAlpha(on?.border ?? t.borderColor, a * k) : "transparent";
+  }
+  if (k <= 0 || baseOp <= 0) {
+    if (k <= 0 || on?.shadow === undefined) v["--ov-box-shadow"] = "none";
+    if (k <= 0 || on?.blur === undefined) v["--ov-backdrop"] = "none";
+  }
   return v;
 }
 

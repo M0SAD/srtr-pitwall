@@ -105,6 +105,13 @@ export interface Nav {
   crew: (id: string) => void;
 }
 
+/** Sohbet okundu: sunucuya yaz, sonra overlay penceresindeki servise bildir (tepsi simgesindeki okunmamış işareti kalkar) */
+function markReadSync(id: string) {
+  void markRead(id).then(() => {
+    if (inTauri) emit("social-read", id).catch(() => {});
+  });
+}
+
 function presence(f: Friend): Presence {
   if (f.status !== "accepted") return "pending";
   // Sadece yöneticiye gelir: çevrimiçi ama "Çevrimdışı" durumunu seçmiş
@@ -1728,7 +1735,7 @@ function Chat(props: {
   onMount(async () => {
     setMsgs(await conversation(props.f.friend_id).catch(() => []));
     setLoaded(true);
-    markRead(props.f.friend_id);
+    markReadSync(props.f.friend_id);
     props.onRead();
     scroll();
     ta?.focus();
@@ -1739,7 +1746,7 @@ function Chat(props: {
       (m) => {
         if (m && m.sender === props.f.friend_id && !msgs().some((x) => x.id === m.id)) {
           setMsgs([...msgs(), m]);
-          markRead(props.f.friend_id);
+          markReadSync(props.f.friend_id);
           props.onRead();
           scroll();
         }

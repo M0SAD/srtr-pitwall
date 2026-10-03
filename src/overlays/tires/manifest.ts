@@ -24,6 +24,13 @@ export default defineOverlay({
       ],
       proHint: "Araç üstten görünüm PRO üyelere özel.",
     },
+    {
+      key: "onlyPit",
+      label: "Sadece pitteyken göster",
+      type: "boolean",
+      default: true,
+      hint: "Açıkken overlay yalnızca aracın pit yolunda ya da pit kutusundayken görünür; pistte gizlenir. Düzenleme modunda ve önizlemede her zaman görünür.",
+    },
     { key: "showTemp", label: "Sıcaklık", type: "boolean", default: true },
     { key: "showWear", label: "Kalan diş", type: "boolean", default: true },
     { key: "showPressure", label: "Soğuk basınç", type: "boolean", default: true },

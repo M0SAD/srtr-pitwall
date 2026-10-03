@@ -4546,3 +4546,48 @@ body.ov-dragging * {
   opacity: 0.6;
   cursor: default;
 }
+
+/* Düzen listesi: varsayılan yıldızı; Overlaylarım: "+ Overlay Ekle" altındaki not */
+.llist-def {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+.llist-def svg {
+  width: 14px;
+  height: 14px;
+}
+.llist-row:hover .llist-def,
+.llist-row.sel .llist-def {
+  opacity: 0.55;
+}
+.llist-def:hover {
+  opacity: 1 !important;
+  color: var(--text);
+}
+.llist-def.on {
+  opacity: 1;
+  color: #f5c542;
+  cursor: default;
+}
+.llist-def.on svg {
+  fill: currentColor;
+}
+.ovlist-addnote {
+  display: block;
+  margin-top: 6px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ovlist-addnote.ok {
+  color: var(--accent);
+}

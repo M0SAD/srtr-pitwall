@@ -28,7 +28,7 @@ export default function Pedals(props: OverlayProps) {
     return isDesign(d) && !overlayValueLocked("pedals", "design", d) ? d : "bars";
   };
   return (
-    <div class="inp-stack">
+    <div class="inp-stack" style={{ "--ov-w": `${Math.max(0, Number(props.options.width) || 0)}px` }}>
       <Switch>
         <Match when={design() === "pedals"}>
           <PedalsDesign m={m} />
