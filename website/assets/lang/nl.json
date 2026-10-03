@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Een doelvoortgangsbalk voor streamers: “100 volgers” bijvoorbeeld, of een donatiedoel. Hoog de teller met de hand op of laat hem automatisch tellen via livechat-alerts (nieuwe volgers, abonnees / leden, donaties). Je ziet een titel, het doel, het percentage en desgewenst een regel “laatste supporter”. De designs dunne balk en pil met icoon zijn gratis; het grote doelbord is PRO.",
  "ovg_webview": "Toont elke webpagina als overlay boven op het spel. Gebruik hem voor stream-alerts, een timer, de chat van een andere site of een paneel dat je zelf hebt gemaakt: het adres plakken is genoeg.",
  "ovg_messages": "Toont binnenkomende berichten van vrienden, je team en groepen als kleine ballonnetjes terwijl je rijdt; na een paar seconden verdwijnen ze vanzelf. Je bepaalt zelf wiens berichten verschijnen: alle vrienden, je team of alleen mensen die je kiest. Met PRO worden berichten ook voorgelezen, zodat je ogen op de baan blijven.",
- "ovg_voice": "Toont ook als tekst wat de Gesproken Engineer of de spotter zegt. De engineer en de spotter krijgen een eigen kleur en label, en de tekst verdwijnt als ze stoppen met praten. Handig als je het volume laag houdt, geen call wilt missen of wilt dat kijkers van je stream kunnen meevolgen. Werkt samen met de Gesproken Engineer (PRO)."
+ "ovg_voice": "Toont ook als tekst wat de Gesproken Engineer of de spotter zegt. De engineer en de spotter krijgen een eigen kleur en label, en de tekst verdwijnt als ze stoppen met praten. Handig als je het volume laag houdt, geen call wilt missen of wilt dat kijkers van je stream kunnen meevolgen. Werkt samen met de Gesproken Engineer (PRO).",
+ "cw_none_race": "Geen van de vrienden die je aan hun crew hebben toegevoegd, racet op dit moment. Hier staan alleen vrienden die nu in een race zitten; een coureur die de race verlaat, verdwijnt uit de lijst en de chat van de crewkamer wordt gewist. Een vriend voegt je aan zijn crew toe in de SRTR Pitwall-app via <b>Instellingen › Delen › Crew</b>.",
+ "cw_spot_me": "Spotter: jij",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: geen",
+ "cw_spot_other": "Spotter: {0} — alleen meekijken",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "De enige die de pitinstellingen beheert en in de kamer kan schrijven",
+ "cw_b_spot": "Spotter: {0} — je kijkt alleen mee. Slechts één persoon tegelijk kan de pitinstellingen beheren; zodra de plek vrijkomt, neem jij het over.",
+ "cw_ro_spot": "Spotter: {0} — je kijkt alleen mee. Alleen de spotter kan in de kamer schrijven.",
+ "cw_ro_view": "Alleen de spotter kan in de kamer schrijven. Om spotter te worden heb je toestemming nodig om de pitinstellingen te wijzigen.",
+ "cw_ro_closed": "De crewkamer is alleen open terwijl de coureur racet. Na de race wordt de chat gewist.",
+ "cw_room_closed": "De coureur racet nu niet. De crewkamer gaat open zodra de race begint.",
+ "cw_gone_race": "De coureur heeft de race verlaten: de crewkamer is gesloten.",
+ "cw_r_spot_only": "Alleen de spotter kan berichten schrijven",
+ "cw_r_spot_busy": "Een andere spotter beheert nu de pitinstellingen: je kunt alleen meekijken",
+ "cw_r_not_driving": "De coureur bestuurt de auto nu niet"
 }

@@ -25,18 +25,23 @@ import {
   myFriends,
   onLive,
   onMessages,
+  chatOpenKey,
+  realtimeKeepAlive,
+  socialLog,
+  unreadFrom,
   pushLive,
   setMyStatus,
   shareTrustGet,
   type Friend,
   type LiveData,
+  type Message,
   type MsgMeta,
   type ToastPayload,
 } from "@/cloud/social";
 import { myTeams, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } from "@/cloud/teams";
 import { groupChatKey, myGroups, onGroupChat, type MyGroup } from "@/cloud/groups";
 import { broadcastOvMsg, ovMsgShown, OVMSG_CLEAR_EVENT, type OvMsg } from "@/sdk/ovmsg";
-import { crewLiveExtra } from "./crew";
+import { crewLiveExtra, isDriving } from "./crew";
 import { syncIracingStats } from "@/cloud/iracingStats";
 
 /** Mesajlar overlay'ine giden kayıt: takım mesajı */
@@ -88,6 +93,16 @@ let groups: MyGroup[] = [];
 /** Takım üyelerinin adları (takım id → kullanıcı id → ad) */
 const teamNames = new Map<string, Map<string, string>>();
 let started = false;
+/** Yoklamada okunmamış sayısı artan arkadaşlar: Realtime'ın kaçırdığı mesajı bildir (startSocial içinde kurulur) */
+let catchUp: (ids: string[]) => Promise<void> = async () => {};
+/** Sunucudaki okunmamış sayısı bendeki sayıdan büyük olan (kabul edilmiş) arkadaşlar */
+function grown(prev: Friend[], next: Friend[]): string[] {
+  if (!prev.length) return [];
+  return next
+    .filter((f) => f.status === "accepted" && (f.unread || 0) > 0)
+    .filter((f) => (f.unread || 0) > (prev.find((x) => x.friend_id === f.friend_id)?.unread || 0))
+    .map((f) => f.friend_id);
+}
 /** Sunucunun kabul ettiği sim kimlikleri (user_status.sim, c31) */
 const SIM_IDS = ["iracing", "acc", "ac", "lmu", "rf2", "ams2"];
 
@@ -109,6 +124,23 @@ async function chatVisible(): Promise<boolean> {
  * Steam benzeri açılır pencere (sağ alt köşe, görev çubuğunun üstü). Windows bildirim sistemine
  * bağlı değildir. Açılamazsa (eski sürüm/izin) Windows bildirimine düşer.
  */
+/**
+ * Öndeki sohbet penceresinin (panel ya da Arkadaşlar penceresi) şu an gösterdiği özel sohbet: arkadaş kimliği,
+ * sohbet açık değilse "", hiçbir sohbet penceresi önde değilse null
+ */
+async function focusedChat(): Promise<string | null> {
+  try {
+    const { Window } = await import("@tauri-apps/api/window");
+    for (const label of ["main", "friends"]) {
+      const w = await Window.getByLabel(label);
+      if (w && (await w.isVisible()) && !(await w.isMinimized()) && (await w.isFocused())) return localStorage.getItem(chatOpenKey(label)) ?? "";
+    }
+  } catch {
+    /* pencere bilgisi alınamazsa bildirim gösterilir */
+  }
+  return null;
+}
+
 async function popup(
   kind: ToastPayload["kind"],
   f: Pick<Friend, "friend_id" | "display_name">,
@@ -128,7 +160,8 @@ async function popup(
   };
   try {
     await invoke("toast_show", { payload });
-  } catch {
+  } catch (e) {
+    socialLog(`acilir pencere gosterilemedi (${String((e as Error)?.message ?? e).slice(0, 120)}) -> Windows bildirimi`);
     // Yedek: Windows bildirim merkezi (açılır pencere gösterilemediyse; ikisi birden çıkmasın)
     void osNotify(kind === "message" ? payload.name : "SRTR Pitwall", body);
   }
@@ -142,6 +175,9 @@ export function startSocial(status: Accessor<Status | undefined>) {
     const s = status();
     return !!s?.connected && !s.demo && !s.preview;
   };
+  // Kendi aracımın sürücüsüyüm (izleyici / spotter / tekrar / araçta takım arkadaşı değil): arkadaşlara "yarışta"
+  // durumu ve canlı veri yalnızca bu doğruyken gider. `racing()` ise "simdeyim" demektir (oyun içi bildirimler).
+  const driving = () => isDriving(status());
   const soc = () => settings().general.social;
 
   // Durum: 45 sn'de bir ve yarış durumu değişince
@@ -150,10 +186,10 @@ export function startSocial(status: Accessor<Status | undefined>) {
     if (!session()) return;
     const s = status();
     const st = {
-      racing: racing(),
-      track: racing() ? s?.track ?? "" : "",
-      car: racing() ? s?.carName ?? "" : "",
-      session: racing() ? s?.sessionType ?? "" : "",
+      racing: driving(),
+      track: driving() ? s?.track ?? "" : "",
+      car: driving() ? s?.carName ?? "" : "",
+      session: driving() ? s?.sessionType ?? "" : "",
       dnd: soc().dnd,
       invisible: !!soc().invisible,
       accept_messages: soc().acceptMessages,
@@ -234,8 +270,10 @@ export function startSocial(status: Accessor<Status | undefined>) {
     const got = await api<Friend[]>("POST", "rpc/my_friends", { body: {} }).catch(() => null);
     if (!got || session()?.user.id !== uid) return;
     const n = new Map(got.map((f) => [f.friend_id, f.unread || 0]));
+    const missed = grown(friends, got);
     friends = friends.map((f) => (n.has(f.friend_id) ? { ...f, unread: n.get(f.friend_id)! } : f));
     syncTray();
+    if (missed.length) void catchUp(missed);
   };
   // Panel ya da Arkadaşlar penceresinde sohbet okundu: işaret hemen kalkar
   let readTimer = 0;
@@ -260,8 +298,10 @@ export function startSocial(status: Accessor<Status | undefined>) {
       const uid = session()!.user.id;
       const got = (await myFriends()) ?? [];
       if (session()?.user.id !== uid) return; // yanıt gelene kadar çıkış yapıldı
+      const missed = grown(prev, got);
       friends = got;
       syncTray();
+      if (missed.length) void catchUp(missed);
       trustAll = await shareTrustGet().then((r) => !!r?.trust_all).catch(() => false);
       // Açılır pencere: beni güvenilir seçen ya da istek gönderen yeni arkadaş (yarıştayken oyun içi bildirim)
       if (prev.length && !soc().dnd) {
@@ -340,7 +380,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
   setInterval(async () => {
     const s = status();
     const uid = session()?.user.id;
-    if (!uid || !racing() || !s || !(s.userId > 0) || (s.sim && s.sim !== "iracing")) return;
+    if (!uid || !driving() || !s || !(s.userId > 0) || (s.sim && s.sim !== "iracing")) return;
     // Kendi iRating / lisans / ülke bilgim profilime (c56; sadece değişince, kendi içinde sınırlı)
     void syncIracingStats();
     const key = `${uid}:${s.userId}`;
@@ -367,7 +407,8 @@ export function startSocial(status: Accessor<Status | undefined>) {
     // Ekip (c53): ekibimde izleyen varsa veri paylaşımı kapalı / PRO olmasa da gönderilir (sadece ekip görür)
     const share = !proLocked("social.data_share") && friends.some((f) => f.status === "accepted" && (f.trusted || trustAll));
     const crew = crewLiveExtra();
-    if (!session() || (!share && !crew)) return;
+    // Sürücü değilken (izleyici / spotter / tekrar) veri gönderilmez: sunucu taze live_data'yı "yarışta" sayar (c75)
+    if (!session() || !driving() || (!share && !crew)) return;
     const now = Date.now();
     if (now - lastPush < 3000) return;
     lastPush = now;
@@ -490,54 +531,127 @@ export function startSocial(status: Accessor<Status | undefined>) {
     });
   }
 
-  // Mesajlar: yarıştayken ekranda göster
+  // Mesajlar. Gelen mesajın bildirimi (açılır pencere / oyun içi kutu / ses / tepsi işareti) yalnızca burada,
+  // uygulama açık olduğu sürece yaşayan overlay penceresinde üretilir; panel ve Arkadaşlar penceresi sadece
+  // kendi listelerini günceller. Kaynak: Realtime (anında) + arkadaş listesi yoklaması (kaçan mesaj için yedek).
+  const notified = new Set<string>();
+  const notifyMessage = (m: Message, via: "realtime" | "yoklama") => {
+    if (!m?.id || notified.has(m.id)) return;
+    if (notified.size > 500) notified.clear();
+    notified.add(m.id);
+    const f = friends.find((x) => x.friend_id === m.sender);
+    const tag = `mesaj ${m.id.slice(0, 8)} (${via})`;
+    const dnd = soc().dnd;
+    // Mesajlar overlay'i: arkadaşa özel bildirim kapatma dikkate alınmaz (overlay kendi seçili kişilerine göre süzer)
+    const ov = friendOv(m, f?.display_name ?? "?");
+    if (!f?.muted && !dnd && soc().acceptMessages) broadcastOvMsg(ov);
+    if (f?.muted) return socialLog(`${tag}: bildirim yok (arkadas sessize alinmis)`);
+    // Rahatsız etme: açılır pencere, ses ve tepsi işareti yok; yarışta sadece alt köşedeki sayaç artar
+    if (dnd) {
+      if (racing()) setPending(pending() + 1);
+      return socialLog(`${tag}: bildirim yok (rahatsiz etme acik)`);
+    }
+    if (racing()) {
+      // Yarışta: oyun içi kutu (Mesajlar overlay'i bu mesajı gösteriyorsa kutu ayrıca çıkmaz) + ses
+      const box = !f?.notify_muted && !ovMsgShown(ov);
+      if (box) setToast({ id: m.id, from: f?.display_name ?? "?", body: emojify(msgPreview(m)) });
+      const snd = soc().sound && !f?.sound_muted;
+      if (snd) messageBeep();
+      setTimeout(() => setToast((t) => (t?.id === m.id ? null : t)), 7000);
+      return socialLog(`${tag}: yarista -> oyun ici kutu=${box} ses=${snd}`);
+    }
+    if (!soc().acceptMessages) return socialLog(`${tag}: bildirim yok (mesajlar kapali)`);
+    if (f?.notify_muted) return socialLog(`${tag}: bildirim yok (arkadasin bildirimleri kapali)`);
+    // Steam gibi sağ alt açılır pencere + ses. Yalnızca öndeki pencere zaten bu sohbeti gösteriyorsa çıkmaz
+    // (panel önde ama başka bir sayfadaysa da çıkar: eskiden panel öndeyken hiç bildirim gelmiyordu).
+    void (async () => {
+      if ((await focusedChat()) === m.sender) return socialLog(`${tag}: bildirim yok (sohbet acik ve onde)`);
+      // Yeni eklenen arkadaş listede henüz yoksa adını almak için listeyi yenile
+      let who = f;
+      if (!who) {
+        await refreshFriends();
+        who = friends.find((x) => x.friend_id === m.sender);
+        if (who?.muted || who?.notify_muted) return socialLog(`${tag}: bildirim yok (arkadas sessize alinmis)`);
+      }
+      const snd = soc().sound && !who?.sound_muted;
+      socialLog(`${tag}: acilir pencere isteniyor, ses=${snd}`);
+      if (snd) messageBeep();
+      void popup("message", who ?? { friend_id: m.sender, display_name: "?" }, emojify(msgPreview(m)), m.id);
+    })();
+  };
+  // Yoklamada okunmamış sayısı artmış ama Realtime o mesajı getirmemiş (bağlantı kopuktu): en yeni mesajı bildir
+  catchUp = async (ids) => {
+    for (const id of ids.slice(0, 5)) {
+      const list = await unreadFrom(id).catch(() => [] as Message[]);
+      const fresh = list.filter((m) => !notified.has(m.id) && Date.now() - Date.parse(m.created_at) < 10 * 60_000);
+      if (!fresh.length) continue;
+      socialLog(`yoklama: ${fresh.length} mesaj Realtime ile gelmemis`);
+      // Art arda kart yağmasın: en yenisi bildirilir, eskileri bildirilmiş sayılır
+      for (const m of fresh.slice(1)) notified.add(m.id);
+      notifyMessage(fresh[0], "yoklama");
+    }
+  };
+
   let stopMsg: () => void = () => {};
   let msgUser = "";
+  let subState = "";
+  /** Abonelik ne zamandır kurulu değil (0: kurulu) */
+  let downSince = 0;
   const subscribeMessages = async () => {
     const uid = session()?.user.id ?? "";
+    // Abonelik 90 sn'dir kurulamıyorsa (kanal hatası / zaman aşımı) baştan kur
+    if (uid && uid === msgUser && downSince && Date.now() - downSince > 90_000) {
+      socialLog("abonelik: 90 sn'dir kurulamadi, yeniden kuruluyor");
+      msgUser = "";
+    }
     if (uid === msgUser) return;
     msgUser = uid;
     stopMsg();
+    stopMsg = () => {};
+    subState = "";
+    downSince = uid ? Date.now() : 0;
     if (!uid) return;
-    stopMsg = await onMessages((m) => {
-      const f = friends.find((x) => x.friend_id === m.sender);
-      // Tepsi simgesindeki okunmamış işareti (sohbet açıksa "social-read" hemen geri alır)
-      if (f) {
-        friends = friends.map((x) => (x.friend_id === m.sender ? { ...x, unread: (x.unread || 0) + 1 } : x));
-        syncTray();
-      } else {
-        window.setTimeout(() => void refreshUnread(), 3000);
-      }
-      // Mesajlar overlay'i: arkadaşa özel bildirim kapatma dikkate alınmaz (overlay kendi seçili kişilerine göre süzer)
-      const ov = friendOv(m, f?.display_name ?? "?");
-      if (!f?.muted && !soc().dnd && soc().acceptMessages) broadcastOvMsg(ov);
-      // Steam gibi sağ alt açılır pencere: panel ya da Arkadaşlar penceresi önde değilken (öndeyse
-      // mesajı zaten o gösterir ve sesi o çalar); sessize alınan arkadaştan, mesajlar kapalıyken ve
-      // rahatsız etme açıkken gelmez; yarıştayken bunun yerine oyun içi bildirim gösterilir
-      if (!racing() && !soc().dnd && soc().acceptMessages && !f?.muted && !f?.notify_muted) {
-        void (async () => {
-          if (await chatVisible()) return;
-          // Yeni eklenen arkadaş listede henüz yoksa adını almak için listeyi yenile
-          let who = f;
-          if (!who) {
-            await refreshFriends();
-            who = friends.find((x) => x.friend_id === m.sender);
-            if (who?.muted || who?.notify_muted) return;
-          }
-          void popup("message", who ?? { friend_id: m.sender, display_name: "?" }, emojify(msgPreview(m)), m.id);
-          if (soc().sound && !who?.sound_muted) messageBeep();
-        })();
-      }
-      if (f?.muted || !racing()) return; // yarışta değilken panel gösterir
-      if (soc().dnd) {
-        setPending(pending() + 1);
-        return;
-      }
-      if (!f?.notify_muted && !ovMsgShown(ov)) setToast({ id: m.id, from: f?.display_name ?? "?", body: emojify(msgPreview(m)) });
-      if (soc().sound && !f?.sound_muted) messageBeep();
-      setTimeout(() => setToast((t) => (t?.id === m.id ? null : t)), 7000);
-    });
+    const stop = await onMessages(
+      (m) => {
+        socialLog(`mesaj ${String(m?.id).slice(0, 8)} geldi (realtime)`);
+        if (notified.has(m.id)) return;
+        // Tepsi simgesindeki okunmamış işareti (sohbet açıksa "social-read" hemen geri alır)
+        if (friends.some((x) => x.friend_id === m.sender)) {
+          friends = friends.map((x) => (x.friend_id === m.sender ? { ...x, unread: (x.unread || 0) + 1 } : x));
+          syncTray();
+        } else {
+          window.setTimeout(() => void refreshUnread(), 3000);
+        }
+        notifyMessage(m, "realtime");
+      },
+      (st) => {
+        if (uid !== msgUser || st === subState) return;
+        const was = subState;
+        subState = st;
+        socialLog(`abonelik: ${st}`);
+        if (st === "NO_CLIENT") {
+          // Oturum anahtarı alınamadı (ör. açılışta ağ yok): sonraki denemede yeniden kur
+          msgUser = "";
+        } else if (st === "SUBSCRIBED") {
+          downSince = 0;
+          // Kopukluktan sonra: arada gelen mesajları yakala
+          if (was) void refreshUnread();
+        } else if (!downSince) {
+          downSince = Date.now();
+        }
+      },
+    );
+    if (uid !== msgUser) stop();
+    else stopMsg = stop;
   };
   subscribeMessages();
   setInterval(subscribeMessages, 30_000);
+
+  // Rust tarafındaki saat (15 sn): overlay penceresi gizliyken tarayıcı zamanlayıcıları kısıldığı için
+  // Realtime bağlantısı ve abonelik buradan canlı tutulur
+  invoke("social_tick_start").catch(() => {});
+  listen("social-tick", () => {
+    void realtimeKeepAlive();
+    void subscribeMessages();
+  });
 }

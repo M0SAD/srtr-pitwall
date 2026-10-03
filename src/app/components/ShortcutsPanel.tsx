@@ -15,8 +15,7 @@ import {
   shortcut,
   type ShortcutAction,
 } from "@/sdk/shortcuts";
-import { PttButtonRow, PttKeyRow, PttModeRow } from "./VoiceCommands";
-import { F, proLocked, VOICE_FEATURE } from "@/sdk/proFeatures";
+import { PttButtonRow, PttKeyRow, PttModeRow, voiceCmdLocked } from "./VoiceCommands";
 
 /** Genel kısayol olarak atanırsa başka uygulamalarda/uygulama içinde sorun çıkaran tuşlar */
 const RESERVED: { key: string; why: string }[] = [
@@ -231,9 +230,14 @@ export function ShortcutsPanel() {
           Mühendise sesle soru sormak için basılı tutulan düğme ve tuş. Sesli Mühendis sayfasındaki atamalarla aynıdır: birinde
           değiştirirsen diğerinde de değişir. Genel kısayol olarak kaydedilmez (basılı tutma algılanır), tuş oyuna da ulaşır.
         </p>
-        <PttModeRow />
-        <PttButtonRow disabled={proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE)} />
-        <PttKeyRow label="Klavye tuşu" />
+        <Show when={voiceCmdLocked()}>
+          <p class="pro-locked-note">
+            <span class="pro-badge">PRO</span> Sesli komut PRO üyelere özel: atamalar PRO olmadan değiştirilemez.
+          </p>
+        </Show>
+        <PttModeRow disabled={voiceCmdLocked()} />
+        <PttButtonRow disabled={voiceCmdLocked()} />
+        <PttKeyRow label="Klavye tuşu" disabled={voiceCmdLocked()} />
       </section>
       <section class="panel">
         <h3>Uygulama içi tuşlar</h3>

@@ -53,6 +53,8 @@ export default defineOverlay({
   size: { w: 560, h: 440 },
   defaultPosition: { x: 40, y: 60 },
   defaultEnabled: true,
+  // Alt / üst kenardan sürükleme satır sayısını değiştirir (her sınıf bölümü bir satır büyür)
+  resize: { h: { key: (o) => ((o.drivers ?? "all") === "smart" ? "topOwn" : "maxRows"), row: ".st-row", per: (root) => Number(root.querySelector<HTMLElement>(".st")?.dataset.per) || 1 } },
   settings: [
     {
       key: "drivers",
@@ -65,8 +67,8 @@ export default defineOverlay({
       ],
       group: "Sürücüler",
     },
-    { key: "maxRows", label: "Sınıf başına en fazla satır", type: "number", default: 8, min: 3, max: 60, step: 1, ui: "stepper", group: "Sürücüler", showIf: { key: "drivers", is: ["all"] } },
-    { key: "topOwn", label: "Sınıfımın ilk", type: "number", default: 8, min: 0, max: 20, step: 1, ui: "stepper", unit: "araç", group: "Sürücüler", showIf: { key: "drivers", is: ["smart"] } },
+    { key: "maxRows", label: "Sınıf başına en fazla satır", type: "number", default: 8, min: 3, max: 60, step: 1, ui: "stepper", group: "Sürücüler", showIf: { key: "drivers", is: ["all"] }, hint: "Düzenleme modunda pencerenin alt / üst kenarından sürükleyerek de ayarlanır.", },
+    { key: "topOwn", label: "Sınıfımın ilk", type: "number", default: 8, min: 0, max: 20, step: 1, ui: "stepper", unit: "araç", group: "Sürücüler", showIf: { key: "drivers", is: ["smart"] }, hint: "Düzenleme modunda pencerenin alt / üst kenarından sürükleyerek de ayarlanır.", },
     { key: "around", label: "Önümde/arkamda", type: "number", default: 2, min: 0, max: 10, step: 1, ui: "stepper", unit: "araç", group: "Sürücüler", showIf: { key: "drivers", is: ["smart"] } },
     { key: "topOther", label: "Diğer sınıfların ilk", type: "number", default: 3, min: 0, max: 20, step: 1, ui: "stepper", unit: "araç", group: "Sürücüler", showIf: { key: "drivers", is: ["smart"] } },
     { key: "nameFormat", label: "Ad biçimi", type: "select", default: "full", options: NAME_FORMATS, group: "Sürücüler" },

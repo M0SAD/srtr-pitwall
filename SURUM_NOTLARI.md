@@ -3,6 +3,33 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-94
+
+- **Mesajlar overlay'i:** Demo'da yine örnek mesajlar oynar; gerçek bir mesaj geldiği anda örnekler kalkar ve o mesaj ekrandan silinene kadar geri gelmez.
+- **Yakındakiler ve Sıralama Tablosu:** pencere artık sabit yükseklikte; araç sayısı değişince kaymaz. Yakındakiler'de sen her zaman tam ortadasın (araç azsa boş satır bırakılır). Düzenleme modunda alt / üst kenardan sürükleyince satır sayısı artar / azalır.
+- **Overlaylarım:** sıralama seçimi (En çok kullanılanlara göre — varsayılan, Kategoriye göre, Harf sırasına göre, Kendi sıram); kategori adına tıklayınca altındakiler gizlenir. Sıra Düzenler ve Yayın sayfalarındaki listede de geçerli.
+- **Kullanım istatistiği (c76):** düzenlerde hangi overlay türlerinin açık olduğu (yalnızca tür ve sayı) sunucuda tutulur; "En çok kullanılanlar" sırası buna göre belirlenir.
+
+## 041026-93
+
+- **Overlaylarım:** listede çift tık da overlay'i seçili düzene ekler ("+ Overlay Ekle" ile aynı).
+- **Düzenler / Yayın düzenleri:** overlay ayarları artık overlay listesinin hemen sağında, tuvalin üstünde yüzen panelde açılır; tuval küçülmez. Esc ya da X ile kapanır. Bir kez eklenebilen overlay eklendikten sonra "eklenebilir" listesinde görünmez.
+- **Sürücü algılama:** izleyici, spotter / ekip olarak başkasının aracına katılan ya da tekrar dosyası izleyen üye artık "yarışta" görünmez; canlı verisi yayınlanmaz, pitwall'ı ekip listesinde çıkmaz ve uzaktan pit komutu kabul etmez (iRacing, LMU / rF2; ACC / AC / AMS2'de yalnızca tekrar algılanır).
+- **Sesli komut ve Sesli Mühendis:** PRO olmayanlarda ayarlar açık görünür ama kilitlidir (çalışmaz, değiştirilemez).
+- **Sesli komut tanıma motoru:** Otomatik / Windows / Çevrimiçi (Whisper). Windows'ta Türkçe tanıyıcı olmadığı için Türkçe komutlar çevrimiçi motorla tanınır (API anahtarı gerekir; anahtar alanı sesli komut bölümünde).
+- **Direksiyon tuşuyla bas-konuş:** birden çok HID raporu gönderen direksiyonlarda basılı tutma kesiliyordu; bırakma 80 ms gecikmeyle sayılır; tuş basılıyken "Basılı: dinliyor" göstergesi.
+- **Anket kısayolu (F9):** basılı tutunca mikrofon kendiliğinden dinlenir (altyazı kapalıyken de), söylenen soru alanına yazılır, bırakınca anket başlar; soru anlaşılmazsa ya da kısa dokunuşta anket başlamaz.
+- **Konuşma → yazı / sesli okuma varsayılanları:** motor Çevrimiçi (Whisper), kaynak "ikisi", altyazı ve sesli okuma açık (PRO olmayanlarda kilitli). API anahtarı yoksa Windows motoruna düşer ve uyarı gösterir.
+- **OBS sohbet kaynağı:** önerilen boyut 600 × 400; sohbet kaynağın tamamını doldurur.
+
+## 041026-92
+
+- **Mesaj bildirimi:** gelen arkadaş mesajında sağ alttaki bildirim kartı artık panel öndeyken de çıkar (yalnızca o sohbet açıksa çıkmaz); panel tepsideyken bağlantı 15 saniyede bir canlı tutulur, kaçan mesajlar için yedek denetim var. Bildirim sesi daha belirgin; ses aygıtı açılamazsa Windows sistem sesi çalar. Rahatsız etme'de kart, ses ve tepsi işareti gelmez.
+- **Tepsi simgesi:** sol tık her zaman program arayüzünü açar (okunmamış mesaj varsa arkadaş listesiyle birlikte).
+- Sorun giderme için `social.log` (mesaj metni içermez).
+- **Ekip:** listede yalnızca şu an yarışta olan ve seni ekibine eklemiş arkadaşların görünür; yarıştan çıkınca listeden düşer ve oda sohbeti silinir. Bir sürücünün aynı anda tek spotter'ı olur: pit ayarlarını yalnızca o değiştirir ve odaya yalnızca o yazar; diğerleri sadece izler (c75). Site / telefon ekip sayfası da aynı kurallarla çalışır.
+- İnternet yokken ya da sunucu hatasında oturum artık kapanmıyor (yalnızca sunucu oturumu reddederse kapanır).
+
 ## 041026-91
 
 - **Girdiler ve Pedal Seti:** "Genişlik (en az)" ayarı; düzenleme modunda kenardan sürükleyerek de ayarlanır.

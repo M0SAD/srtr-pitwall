@@ -32,6 +32,7 @@ import {
   initialOf,
   markRead,
   messageBeep,
+  chatOpenKey,
   msgPreview,
   myFriends,
   onMessages,
@@ -378,6 +379,26 @@ export function FriendsPanel(props: {
     if (f) setView({ kind: "chat", f });
   });
 
+  // Bu pencerenin şu an gösterdiği özel sohbet (arkadaş servisi: pencere önde ve bu sohbet açıksa bildirim çıkarmaz)
+  if (inTauri) {
+    const key = chatOpenKey(props.standalone ? "friends" : "main");
+    const put = (id: string) => {
+      try {
+        if (id) localStorage.setItem(key, id);
+        else localStorage.removeItem(key);
+      } catch {
+        /* depo yok */
+      }
+    };
+    createEffect(() => {
+      const v = view();
+      put(props.open() && v.kind === "chat" ? v.f.friend_id : "");
+    });
+    const clear = () => put("");
+    window.addEventListener("pagehide", clear);
+    onCleanup(() => (window.removeEventListener("pagehide", clear), clear()));
+  }
+
   // Gelen mesajlar
   const [incoming, setIncoming] = createSignal<Message | null>(null);
   createEffect(
@@ -395,10 +416,9 @@ export function FriendsPanel(props: {
           if (!chatting) mutate(friends().map((f) => (f.friend_id === m.sender ? { ...f, unread: (f.unread || 0) + 1 } : f)));
           const fr = friends().find((f) => f.friend_id === m.sender);
           const muted = fr?.muted || fr?.sound_muted;
-          // Bu pencere öndeyken ses burada çalar; arkadaysa sağ alttaki açılır pencere sesi çalar
-          // (yarıştayken overlay ekranı gösterir)
-          const front = !inTauri || document.hasFocus();
-          if (front && !props.racing?.() && settings().general.social.sound && !settings().general.social.dnd && !muted && !chatting) messageBeep();
+          // Programda özel mesajın bildirimi (açılır pencere + ses) tek yerden, overlay penceresindeki arkadaş
+          // servisinden gelir (src/host/social.ts); burada çalınırsa ses iki kez duyulur. Tarayıcıda burada çalar.
+          if (!inTauri && !props.racing?.() && settings().general.social.sound && !settings().general.social.dnd && !muted && !chatting) messageBeep();
         }).then((s) => (stop = s));
         const cleanup = () => stop();
         onCleanup(cleanup);
@@ -1134,6 +1154,19 @@ function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void }) {
 export function FriendsDock(props: { racing?: () => boolean }) {
   const [open, setOpen] = createSignal(false);
   const [counts, setCounts] = createSignal<[number, number]>([0, 0]);
+  // Tepsi simgesine okunmamış mesaj varken tıklandı: panel açılır ve arkadaş listesi gösterilir
+  if (inTauri) {
+    const take = () =>
+      invoke<boolean>("tray_take_open")
+        .then((yes) => yes && session() && setOpen(true))
+        .catch(() => {});
+    onMount(() => {
+      take();
+      let un: (() => void) | undefined;
+      listen("tray-open-friends", take).then((u) => (un = u));
+      onCleanup(() => un?.());
+    });
+  }
   // Çıkış yapınca (ya da hesap değişince) panel kapanır ve önceki hesabın sayıları sıfırlanır
   createEffect(
     on(

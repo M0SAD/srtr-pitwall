@@ -153,5 +153,12 @@
   "Ceza",
   "Start",
   "Bitiş",
-  "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı"
+  "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı",
+  "Sadece spotter mesaj yazabilir",
+  "Pit ayarlarını şu an başka bir spotter yönetiyor: sadece izleyebilirsin",
+  "Dinleniyor… soruyu söyle, tuşu bırakınca anket başlar",
+  "Anket başlamadı: tuşu basılı tutup soruyu söyle, bırakınca anket başlar",
+  "Anket başlamadı: mikrofon dinlenemedi (Konuşma → yazı ayarlarını kontrol et)",
+  "Anket başlamadı: söylenen soru anlaşılamadı. Tuşu basılı tutup biraz daha yüksek sesle söyle",
+  "Ses akışı kapandı"
 ]

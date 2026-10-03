@@ -111,7 +111,12 @@ export interface OverlayManifest {
    */
   resize?: {
     w?: string;
-    h?: string;
+    /**
+     * Yükseklik ayarı. Nesne biçimi SATIR sayan ayarlar içindir (px değil): `key` ayar anahtarı (ya da o anki ayarlara göre
+     * seçen işlev), `row` satır yüksekliğinin ölçüleceği öğenin CSS seçicisi, `per` ayarın 1 artışında eklenen satır sayısı
+     * (ör. önde+arkada = 2; işlevse overlay kökünden hesaplanır). Sürükleme tam satırlara oturur.
+     */
+    h?: string | { key: string | ((options: Record<string, any>) => string); row: string; per?: number | ((root: HTMLElement) => number) };
     /** w ayarı bir "en az genişlik": kenardan sürükleme ayar değerinden değil, ölçülen gerçek genişlikten başlar (ölü bölge olmaz) */
     wMin?: boolean;
   } | false;
@@ -120,13 +125,31 @@ export interface OverlayManifest {
 
 type NumField = Extract<SettingField, { type: "number" }>;
 /** Kenardan boyutlandırılabilen genişlik / yükseklik ayar alanları (bkz. OverlayManifest.resize) */
-export function resizeFields(m: OverlayManifest | undefined): { w?: NumField; h?: NumField } {
+export function resizeFields(m: OverlayManifest | undefined, options?: Record<string, any>): { w?: NumField; h?: NumField; rows?: { row: string; per?: number | ((root: HTMLElement) => number) } } {
   if (!m || m.resize === false) return {};
+  const rh = m.resize?.h;
+  if (rh && typeof rh === "object") {
+    const key = typeof rh.key === "function" ? rh.key(options ?? {}) : rh.key;
+    const f = m.settings.find((x) => x.key === key);
+    const wk = m.resize ? m.resize.w : undefined;
+    const w = m.settings.find((x) => x.key === (wk ?? "width"));
+    return { w: w && w.type === "number" && (wk !== undefined || w.unit === "px") ? w : undefined, h: f && f.type === "number" ? f : undefined, rows: { row: rh.row, per: rh.per } };
+  }
   const find = (key: string | undefined, auto: string) => {
     const f = m.settings.find((x) => x.key === (key ?? auto));
     return f && f.type === "number" && (key !== undefined || f.unit === "px") ? f : undefined;
   };
-  return { w: find(m.resize?.w, "width"), h: find(m.resize?.h, "height") };
+  return { w: find(m.resize?.w, "width"), h: find(typeof rh === "string" ? rh : undefined, "height") };
+}
+
+/**
+ * Satır sayan yükseklik ayarı için kenar sürüklemesi: ölçülen satır yüksekliğiyle (ölçeksiz px) ayarın 1 artışının
+ * kaç px ettiğini verir. `root` overlay'in çizildiği öğe.
+ */
+export function rowUnit(root: HTMLElement | undefined, rows: { row: string; per?: number | ((root: HTMLElement) => number) }): number {
+  const h = (root?.querySelector(rows.row) as HTMLElement | null)?.offsetHeight || 28;
+  const per = typeof rows.per === "function" ? (root ? rows.per(root) : 1) : (rows.per ?? 1);
+  return h * Math.max(1, per);
 }
 
 /** Kenar sürüklemesinde ayar değerini alanın sınırlarına ve adımına oturtur */

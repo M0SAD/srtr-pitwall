@@ -298,15 +298,76 @@ pub struct CmdCfg {
     pub beeps: bool,
     /// Seçilen mikrofonun cihaz kimliği ("" : Windows varsayılanı)
     pub mic: String,
+    /// Seçilen mikrofonun adı (çevrimiçi motor cihazı adıyla açar)
+    pub mic_name: String,
+    /// Tanıma motoru seçimi
+    pub engine: Engine,
+    /// Çevrimiçi motor (Canlı Sohbet › Konuşma → yazı ile ortak sunucu ayarı)
+    pub cloud_url: String,
+    pub cloud_model: String,
     /// PRO izni
     pub allowed: bool,
+}
+
+/// Tanıma motoru: Otomatik = dilin Windows tanıyıcısı kuruluysa Windows, değilse çevrimiçi (Whisper)
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub enum Engine {
+    #[default]
+    Auto,
+    Windows,
+    Online,
+}
+
+pub const CLOUD_URL_DEFAULT: &str = "https://api.groq.com/openai/v1";
+pub const CLOUD_MODEL_DEFAULT: &str = "whisper-large-v3-turbo";
+
+/// Gerçekte kullanılacak motor çevrimiçi mi. `native`: istenen dilin Windows tanıyıcısı var mı (İngilizceye düşmeden);
+/// `cloud_ok`: çevrimiçi motor kullanılabilir mi (anahtar / adres hazır).
+pub fn use_online(engine: Engine, native: bool, cloud_ok: bool) -> bool {
+    match engine {
+        Engine::Windows => false,
+        Engine::Online => true,
+        Engine::Auto => !native && cloud_ok,
+    }
+}
+
+/// Çevrimiçi motor neden kullanılamıyor: "cloud_key" (anahtar girilmemiş) | "cloud_url" (adres geçersiz); hazırsa None
+pub fn cloud_problem(c: &CmdCfg, key: &str) -> Option<&'static str> {
+    use crate::livechat::stt_cloud as sc;
+    if sc::check_url(&c.cloud_url).is_err() || c.cloud_model.trim().is_empty() {
+        return Some("cloud_url");
+    }
+    if key.is_empty() && !sc::is_local(&c.cloud_url) {
+        return Some("cloud_key");
+    }
+    None
+}
+
+/// Kayıtlı API anahtarı (şifreli gizli dosyadan; hiçbir yere yazılmaz)
+fn cloud_key(app: &AppHandle) -> String {
+    crate::livechat::secrets::get(app, crate::livechat::stt::KEY_NAME)
+}
+
+/// Whisper'a gönderilecek dil kodu ("tr", "pt", "zh"…)
+pub fn cloud_lang(rec_lang: &str) -> String {
+    rec_lang.split(['-', '_']).next().unwrap_or("").to_lowercase()
 }
 
 pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     let ui = v.pointer("/general/language").and_then(|x| x.as_str()).unwrap_or("tr");
     let ui_lang = lang_key(ui).to_string();
     let Some(c) = v.pointer("/general/voice/commands") else {
-        return CmdCfg { enabled: true, rec_lang: ui_lang.clone(), ui_lang, confidence: 0.4, beeps: true, allowed, ..Default::default() };
+        return CmdCfg {
+            enabled: true,
+            rec_lang: ui_lang.clone(),
+            ui_lang,
+            confidence: 0.4,
+            beeps: true,
+            cloud_url: CLOUD_URL_DEFAULT.into(),
+            cloud_model: CLOUD_MODEL_DEFAULT.into(),
+            allowed,
+            ..Default::default()
+        };
     };
     let s = |p: &str| c.get(p).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
     let (vk, mods) = parse_key(&s("key")).unwrap_or((0, 0));
@@ -315,6 +376,14 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         Some((n("vid")? as u16, n("pid")? as u16, n("button")? as u16))
     });
     let want = s("language");
+    let cloud = |k: &str, def: &str| {
+        let x = v.pointer(&format!("/general/livechat/stt/cloud/{k}")).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+        if x.is_empty() {
+            def.to_string()
+        } else {
+            x
+        }
+    };
     CmdCfg {
         enabled: c.get("enabled").and_then(|x| x.as_bool()).unwrap_or(true),
         toggle: s("mode") == "toggle",
@@ -326,6 +395,14 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         confidence: (c.get("confidence").and_then(|x| x.as_f64()).unwrap_or(40.0) as f32 / 100.0).clamp(0.0, 1.0),
         beeps: c.get("beeps").and_then(|x| x.as_bool()).unwrap_or(true),
         mic: s("mic"),
+        mic_name: s("micName"),
+        engine: match s("engine").as_str() {
+            "windows" => Engine::Windows,
+            "online" => Engine::Online,
+            _ => Engine::Auto,
+        },
+        cloud_url: cloud("url", CLOUD_URL_DEFAULT),
+        cloud_model: cloud("model", CLOUD_MODEL_DEFAULT),
         allowed,
     }
 }
@@ -712,7 +789,7 @@ fn beep(kind: u8) {
 #[derive(Serialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdEvent {
-    /// "listening" | "heard" | "idle" | "error"
+    /// "listening" | "processing" (çevrimiçi: ses gönderildi) | "heard" | "idle" | "error"
     pub state: &'static str,
     pub heard: String,
     pub intent: String,
@@ -728,6 +805,8 @@ pub struct CmdEvent {
     pub mode: &'static str,
     /// Arayüz dilinin tanıyıcısı yok: İngilizce dinleniyor
     pub fallback: bool,
+    /// "windows" | "online"
+    pub engine: &'static str,
 }
 
 fn emit(ev: CmdEvent) {
@@ -887,6 +966,110 @@ pub fn speak(text: String, lang_key: &str, volume: f32) {
 }
 
 // ---------------------------------------------------------------------------
+// Çevrimiçi motor (Whisper): tuş basılıyken kaydet → bırakınca gönder → metni komutlarla eşleştir
+// ---------------------------------------------------------------------------
+// Windows'ta Türkçe konuşma tanıyıcısı yoktur (ne komut listesi ne dikte); Türkçe komutlar bu yoldan tanınır.
+// Sunucu ve anahtar Canlı Sohbet › Konuşma → yazı ile ortaktır (OpenAI uyumlu uç; bkz. livechat/stt_cloud.rs).
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CloudHeard {
+    Text(String),
+    Nothing,
+    Error(String),
+}
+
+/// Mikrofonu kaydet (16 kHz tek kanal). `released()`: basılı tut kipinde tuş bırakıldı / ikinci dokunuş;
+/// `auto_end`: konuşma bitince (sessizlik) kendiliğinden bitir. `on_ready`: mikrofon açılınca bir kez çağrılır.
+/// Dönen: örnekler; konuşma algılanmadıysa None.
+fn cloud_record(c: &CmdCfg, released: impl Fn() -> bool, auto_end: bool, on_ready: impl FnOnce()) -> Result<Option<Vec<f32>>, String> {
+    use crate::livechat::stt_cloud as sc;
+    use rodio::cpal;
+    use rodio::cpal::traits::{DeviceTrait, StreamTrait};
+    const RATE: usize = 16_000;
+    const FRAME: usize = 320; // 20 ms
+    let (dev, scfg, name) = sc::open_device(sc::Src::Mic, &c.mic_name)?;
+    let channels = scfg.channels() as usize;
+    let in_rate = scfg.sample_rate().0;
+    let (tx, rx) = channel::<Vec<f32>>();
+    let on_err = |_e: cpal::StreamError| {};
+    let config: cpal::StreamConfig = scfg.config();
+    let stream = match scfg.sample_format() {
+        cpal::SampleFormat::F32 => {
+            let tx = tx.clone();
+            dev.build_input_stream(&config, move |d: &[f32], _: &cpal::InputCallbackInfo| drop(tx.send(sc::to_mono(d, channels, |s| s))), on_err, None)
+        }
+        cpal::SampleFormat::I16 => {
+            let tx = tx.clone();
+            dev.build_input_stream(&config, move |d: &[i16], _: &cpal::InputCallbackInfo| drop(tx.send(sc::to_mono(d, channels, |s| s as f32 / 32768.0))), on_err, None)
+        }
+        cpal::SampleFormat::U16 => {
+            let tx = tx.clone();
+            dev.build_input_stream(&config, move |d: &[u16], _: &cpal::InputCallbackInfo| drop(tx.send(sc::to_mono(d, channels, |s| (s as f32 - 32768.0) / 32768.0))), on_err, None)
+        }
+        cpal::SampleFormat::I32 => {
+            let tx = tx.clone();
+            dev.build_input_stream(&config, move |d: &[i32], _: &cpal::InputCallbackInfo| drop(tx.send(sc::to_mono(d, channels, |s| s as f32 / 2_147_483_648.0))), on_err, None)
+        }
+        other => return Err(format!("Ses biçimi desteklenmiyor: {other:?}")),
+    }
+    .map_err(|e| format!("Mikrofon açılamadı ({name}): {e}. Cihaz başka bir uygulama tarafından özel kipte kullanılıyor ya da Windows mikrofon izni kapalı olabilir."))?;
+    drop(tx);
+    stream.play().map_err(|e| format!("Ses yakalama başlatılamadı: {e}"))?;
+    on_ready();
+
+    let mut rs = sc::Resampler::new(in_rate);
+    let mut samples: Vec<f32> = Vec::with_capacity(RATE * 6);
+    let threshold = sc::base_threshold(7);
+    let start = Instant::now();
+    let mut scanned = 0usize;
+    let (mut voiced_ms, mut silence_ms) = (0u32, 0u32);
+    let mut released_at: Option<Instant> = None;
+    loop {
+        match rx.recv_timeout(Duration::from_millis(40)) {
+            Ok(chunk) => rs.push(&chunk, &mut samples),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Err("Ses akışı kapandı".into()),
+        }
+        while samples.len() - scanned >= FRAME {
+            if sc::rms(&samples[scanned..scanned + FRAME]) > threshold {
+                voiced_ms += 20;
+                silence_ms = 0;
+            } else if voiced_ms > 0 {
+                silence_ms += 20;
+            }
+            scanned += FRAME;
+        }
+        if released_at.is_none() && released() {
+            released_at = Some(Instant::now());
+        }
+        // Bırakıldıktan sonra kısa bir pay: son hece kesilmesin
+        if released_at.map(|t| t.elapsed() > Duration::from_millis(250)).unwrap_or(false) {
+            break;
+        }
+        if auto_end && ((voiced_ms >= 280 && silence_ms >= 900) || (voiced_ms == 0 && start.elapsed() > Duration::from_secs(6))) {
+            break;
+        }
+        if start.elapsed() > Duration::from_secs(12) {
+            break;
+        }
+    }
+    drop(stream);
+    // Hiç konuşma yok: sunucuya gönderme (Whisper sessizlikte cümle uydurur)
+    Ok((voiced_ms >= 160).then_some(samples))
+}
+
+/// Kaydı yazıya çevir
+fn cloud_transcribe(c: &CmdCfg, key: &str, samples: &[f32]) -> CloudHeard {
+    use crate::livechat::stt_cloud as sc;
+    let ccfg = sc::CloudCfg { url: c.cloud_url.clone(), model: c.cloud_model.clone(), key: key.to_string(), language: cloud_lang(&c.rec_lang), sensitivity: 7 };
+    match tauri::async_runtime::block_on(sc::transcribe(&ccfg, sc::wav16(samples))) {
+        Ok(text) if text.trim().is_empty() || sc::is_hallucination(&text) => CloudHeard::Nothing,
+        Ok(text) => CloudHeard::Text(text),
+        Err((_, e)) => CloudHeard::Error(e),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Giriş ve tanıma iş parçacıkları (Windows)
 // ---------------------------------------------------------------------------
 
@@ -949,6 +1132,7 @@ mod imp {
         let spawned = std::thread::Builder::new().name("voicecmd-input".into()).spawn(|| {
             let mut input = Input::new();
             let mut was_down = false;
+            let mut last_raw: Option<Instant> = None;
             let mut capturing = false;
             let mut idle_since: Option<Instant> = None;
             loop {
@@ -983,10 +1167,21 @@ mod imp {
                     input.capture_end();
                 }
 
-                let down = active
+                let raw = active
                     && cap.is_none()
                     && (ptt_win::key_down(c.vk, c.mods) || c.button.map(|(v, p, b)| input.is_down(v, p, b)).unwrap_or(false));
+                if raw {
+                    last_raw = Some(Instant::now());
+                }
+                // Bırakma 80 ms sürmeli: temas sıçraması ya da rapor titremesi basılı tutmayı erken bitirmesin
+                let down = raw || (was_down && active && cap.is_none() && last_raw.map(|t| t.elapsed() < Duration::from_millis(80)).unwrap_or(false));
                 PTT_DOWN.store(down, Ordering::Relaxed);
+                if down != was_down {
+                    // Arayüzdeki "basılı" göstergesi (atamanın görüldüğünü doğrulamak için)
+                    if let Some(app) = APP.get() {
+                        let _ = app.emit("voicecmd-ptt", down);
+                    }
+                }
                 if down && !was_down {
                     if LISTENING.load(Ordering::Relaxed) {
                         STOP.store(true, Ordering::Relaxed);
@@ -1059,10 +1254,65 @@ mod imp {
         let mut cache: Option<(String, Recognizer, String, bool)> = None;
         // Mikrofon tercihi: (istenen, kullanılan, son denetim). Seçili cihaz çıkarılmışsa varsayılana düşülür.
         let mut mic: Option<(String, String, Instant)> = None;
+        // (istenen dil, o dilin Windows tanıyıcısı var mı)
+        let mut native: Option<(String, bool)> = None;
         while let Ok(Ev::Listen { manual }) = rx.recv() {
             let c = cfg();
             if !c.allowed {
                 emit(CmdEvent { state: "error", error: "pro".into(), ..Default::default() });
+                continue;
+            }
+            // Motor seçimi
+            if native.as_ref().map(|n| n.0 != c.rec_lang).unwrap_or(true) {
+                let (grammar, topic) = (win::grammar_languages(), win::topic_languages());
+                let want_tag = lang(&c.rec_lang).map(|l| l.tag.clone()).unwrap_or_else(|| "en-US".into());
+                let has = plan(&grammar, &topic, &want_tag, win::best_tag).map(|p| !p.2).unwrap_or(false);
+                native = Some((c.rec_lang.clone(), has));
+            }
+            let key = APP.get().map(cloud_key).unwrap_or_default();
+            let problem = cloud_problem(&c, &key);
+            if use_online(c.engine, native.as_ref().map(|n| n.1).unwrap_or(false), problem.is_none()) {
+                let base = CmdEvent { rec_tag: cloud_lang(&c.rec_lang), mode: "dictation", engine: "online", ..Default::default() };
+                if let Some(p) = problem {
+                    beep(2);
+                    emit(CmdEvent { state: "error", error: p.into(), ..base });
+                    continue;
+                }
+                LISTENING.store(true, Ordering::Relaxed);
+                STOP.store(false, Ordering::Relaxed);
+                let hold = !c.toggle && !manual;
+                let recorded = cloud_record(
+                    &c,
+                    || if hold { !PTT_DOWN.load(Ordering::Relaxed) } else { STOP.load(Ordering::Relaxed) },
+                    !hold,
+                    || {
+                        emit(CmdEvent { state: "listening", ..base.clone() });
+                        beep(0);
+                    },
+                );
+                let heard = match recorded {
+                    Ok(Some(samples)) => {
+                        emit(CmdEvent { state: "processing", ..base.clone() });
+                        cloud_transcribe(&c, &key, &samples)
+                    }
+                    Ok(None) => CloudHeard::Nothing,
+                    Err(e) => CloudHeard::Error(e),
+                };
+                LISTENING.store(false, Ordering::Relaxed);
+                match heard {
+                    CloudHeard::Text(text) => {
+                        let ev = handle_text(&text, 1.0, &c.rec_lang, false, base);
+                        emit(ev);
+                    }
+                    CloudHeard::Nothing => {
+                        beep(2);
+                        emit(CmdEvent { state: "idle", ..base });
+                    }
+                    CloudHeard::Error(e) => {
+                        beep(2);
+                        emit(CmdEvent { state: "error", error: e, ..base });
+                    }
+                }
                 continue;
             }
             LISTENING.store(true, Ordering::Relaxed);
@@ -1096,6 +1346,7 @@ mod imp {
                 rec_tag: rec.tag.clone(),
                 mode: if rec.mode == Mode::List { "list" } else { "dictation" },
                 fallback: *fallback,
+                engine: "windows",
                 ..Default::default()
             };
             emit(CmdEvent { state: "listening", ..base.clone() });
@@ -1103,7 +1354,7 @@ mod imp {
             let hold = !c.toggle && !manual;
             let heard = rec.listen(
                 || if hold { !PTT_DOWN.load(Ordering::Relaxed) } else { STOP.load(Ordering::Relaxed) },
-                Duration::from_millis(1500),
+                Duration::from_millis(2500),
                 Duration::from_secs(12),
             );
             LISTENING.store(false, Ordering::Relaxed);
@@ -1181,6 +1432,17 @@ pub struct CmdStatus {
     pub rec_tag: String,
     pub mode: &'static str,
     pub fallback: bool,
+    /// Ayardaki motor ("auto" | "windows" | "online") ve gerçekte kullanılacak olan ("windows" | "online")
+    pub engine: &'static str,
+    pub use_engine: &'static str,
+    /// İstenen dilin Windows tanıyıcısı var mı (İngilizceye düşmeden)
+    pub native: bool,
+    /// Çevrimiçi motor: hazır mı, değilse neden ("cloud_key" | "cloud_url"), anahtar kayıtlı mı, sunucu adı, model
+    pub cloud_ready: bool,
+    pub cloud_problem: &'static str,
+    pub cloud_has_key: bool,
+    pub cloud_host: String,
+    pub cloud_model: String,
 }
 
 #[tauri::command]
@@ -1190,7 +1452,24 @@ pub fn voicecmd_status(app: AppHandle) -> CmdStatus {
     let l = lang(&c.rec_lang);
     let want_tag = l.map(|l| l.tag.clone()).unwrap_or_default();
     let p = plan(&grammar, &topic, &want_tag, imp::pick);
+    let native = p.as_ref().map(|x| !x.2).unwrap_or(false);
+    let key = cloud_key(&app);
+    let problem = cloud_problem(&c, &key);
+    let online = use_online(c.engine, native, problem.is_none());
+    let host = c.cloud_url.split("://").nth(1).unwrap_or("").split('/').next().unwrap_or("").to_string();
     CmdStatus {
+        engine: match c.engine {
+            Engine::Auto => "auto",
+            Engine::Windows => "windows",
+            Engine::Online => "online",
+        },
+        use_engine: if online { "online" } else { "windows" },
+        native,
+        cloud_ready: problem.is_none(),
+        cloud_problem: problem.unwrap_or(""),
+        cloud_has_key: !key.is_empty(),
+        cloud_host: host,
+        cloud_model: c.cloud_model.clone(),
         supported: SUPPORTED,
         allowed: c.allowed,
         ui_lang: c.ui_lang.clone(),

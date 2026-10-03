@@ -324,3 +324,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Sabit pencere boyu: her sınıf bölümü, ayarlanan satır sayısı kadar yer tutar (araç azsa altı boş kalır) */
+.st-group {
+  box-sizing: border-box;
+  min-height: calc((var(--st-cap, 0) + var(--st-hd, 0)) * (var(--ov-row-h) - 2px) + var(--st-sep, 0) * 14px);
+}
+.st-row,
+.st-class,
+.st-gap-row {
+  box-sizing: border-box;
+}

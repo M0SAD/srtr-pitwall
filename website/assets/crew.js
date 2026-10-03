@@ -26,14 +26,23 @@ function pick(id) {
 
 function drawList() {
   if (drivers === null) return `<p class="muted">${T("cw_error")}</p>`;
-  if (!drivers.length) return `<div class="card cw-empty"><p>${T("cw_none")}</p></div>`;
+  // c75: listede yalnızca şu an yarışta olan sürücüler var
+  if (!drivers.length) return `<div class="card cw-empty"><p>${T("cw_none_race")}</p></div>`;
   return `<h2 class="cw-h">${T("cw_pick")}</h2><div class="cw-list">${drivers
     .map(
       (d) => `<button type="button" class="cw-drv${d.live ? " live" : ""}" data-pick="${esc(d.owner_id)}">
         <span class="cw-dot"></span>
         <span class="cw-drv-t"><b translate="no">${esc(d.display_name || "?")}</b>
         <small>${esc([statusText(d), d.track, d.car].filter(Boolean).join(" · "))}</small></span>
-        <span class="cw-role${d.can_control ? " ctl" : ""}">${T(d.can_control ? "cw_role_control" : "cw_role_view")}</span>
+        <span class="cw-role${d.can_control && (d.spotter_me || !d.spotter_id) ? " ctl" : ""}">${
+          !d.can_control
+            ? T("cw_role_view")
+            : d.spotter_me
+              ? T("cw_spot_me")
+              : d.spotter_id
+                ? esc(T("cw_spot_other", String(d.spotter_name || "?")))
+                : T("cw_role_control")
+        }</span>
       </button>`,
     )
     .join("")}</div>`;

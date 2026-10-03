@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Pasek postępu celu dla streamerów: na przykład „100 obserwujących” albo cel darowizn. Licznik możesz zwiększać ręcznie albo pozwolić mu zliczać automatycznie z alertów czatu na żywo (nowy obserwujący, sub / członek, darowizna). Widać tytuł, cel, procent i opcjonalnie linię „ostatni wspierający”. Cienki pasek i pigułka z ikoną są darmowe, duża tablica celu to PRO.",
  "ovg_webview": "Pokazuje dowolną stronę internetową jako overlay nad grą. Możesz jej użyć do alertów streamu, minutnika, czatu z innego serwisu albo własnego panelu; wystarczy wkleić adres.",
  "ovg_messages": "Pokazuje w małych dymkach wiadomości od znajomych, zespołu i grup przychodzące podczas jazdy; po kilku sekundach znikają same. Sam decydujesz, czyje wiadomości będą widoczne (wszyscy znajomi, zespół albo wybrane osoby). Z PRO wiadomości są też czytane na głos, więc nie odrywasz wzroku od toru.",
- "ovg_voice": "Gdy Głosowy inżynier albo spotter mówi, pokazuje jego słowa także jako tekst. Inżynier i spotter mają osobne kolory i etykiety; gdy milkną, tekst znika sam. Przydatne dla tych, którzy mają ściszony dźwięk, nie chcą przegapić komunikatu, oraz dla widzów streamu. Działa razem z Głosowym inżynierem (PRO)."
+ "ovg_voice": "Gdy Głosowy inżynier albo spotter mówi, pokazuje jego słowa także jako tekst. Inżynier i spotter mają osobne kolory i etykiety; gdy milkną, tekst znika sam. Przydatne dla tych, którzy mają ściszony dźwięk, nie chcą przegapić komunikatu, oraz dla widzów streamu. Działa razem z Głosowym inżynierem (PRO).",
+ "cw_none_race": "Żaden ze znajomych, którzy dodali cię do swojej ekipy, nie jest teraz w wyścigu. Na liście są tylko znajomi, którzy właśnie się ścigają; kierowca, który opuści wyścig, znika z listy, a czat pokoju ekipy jest usuwany. Znajomy dodaje cię do swojej ekipy w aplikacji SRTR Pitwall w <b>Ustawienia › Udostępnianie › Ekipa</b>.",
+ "cw_spot_me": "Spotter: ty",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: brak",
+ "cw_spot_other": "Spotter: {0} — tylko podgląd",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "Jedyna osoba, która zarządza ustawieniami pit stopu i może pisać w pokoju",
+ "cw_b_spot": "Spotter: {0} — tylko obserwujesz. Ustawieniami pit stopu może zarządzać naraz tylko jedna osoba; gdy miejsce się zwolni, przejmiesz je ty.",
+ "cw_ro_spot": "Spotter: {0} — tylko obserwujesz. W pokoju może pisać tylko spotter.",
+ "cw_ro_view": "W pokoju może pisać tylko spotter. Aby zostać spotterem, potrzebujesz uprawnienia do zmiany ustawień pit stopu.",
+ "cw_ro_closed": "Pokój ekipy jest otwarty tylko wtedy, gdy kierowca jest w wyścigu. Po wyścigu czat jest usuwany.",
+ "cw_room_closed": "Kierowca nie jest teraz w wyścigu. Pokój ekipy otworzy się, gdy zacznie się wyścig.",
+ "cw_gone_race": "Kierowca opuścił wyścig: pokój ekipy został zamknięty.",
+ "cw_r_spot_only": "Wiadomości może pisać tylko spotter",
+ "cw_r_spot_busy": "Ustawieniami pit stopu zarządza teraz inny spotter: możesz tylko obserwować",
+ "cw_r_not_driving": "Kierowca nie prowadzi teraz auta"
 }

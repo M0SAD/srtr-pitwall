@@ -7,9 +7,10 @@ import ArrowUp from "lucide-solid/icons/arrow-up";
 import ArrowDown from "lucide-solid/icons/arrow-down";
 import ArrowUpToLine from "lucide-solid/icons/arrow-up-to-line";
 import type { OverlayManifest } from "@/sdk/overlay";
-import { hasOverlayOrder, moveOverlay, orderedOverlays, resetOverlayOrder } from "../components/OverlayPalette";
+import ChevronDown from "lucide-solid/icons/chevron-down";
+import { hasOverlayOrder, moveOverlay, orderedOverlays, overlaySort, resetOverlayOrder, setCustomOverlayOrder, setOverlaySort } from "../components/OverlayPalette";
 import { manifestById, manifests } from "@/sdk/registry";
-import { DEFAULTS_ID, addToLayout, defaultProfileId, settings, updateSettings } from "@/sdk/settings";
+import { DEFAULTS_ID, addToLayout, defaultProfileId, settings, type OverlaySort } from "@/sdk/settings";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
@@ -23,12 +24,31 @@ import { appState } from "../App";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import { t } from "@/sdk/i18n";
 
+// Kapatılan (daraltılan) kategoriler: bu bilgisayarda hatırlanır
+const COLLAPSE_KEY = "pw.ovcatCollapsed";
+function loadCollapsed(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+const [collapsed, setCollapsed] = createSignal<string[]>(loadCollapsed());
+function toggleCategory(cat: string) {
+  const next = collapsed().includes(cat) ? collapsed().filter((c) => c !== cat) : [...collapsed(), cat];
+  setCollapsed(next);
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+  } catch {}
+}
+
 export function OverlaysPage() {
   // Bağlı (ya da seçili) simde çalışmayan overlay'ler listeden gizlenir; ayarları korunur
   const status = useTopic("status");
   const sim = createMemo(() => currentSim(status()));
   const supported = (type: string) => overlaySupportsSim(type, sim());
-  // Kullanıcının verdiği sırayla (yoksa kategorilere göre)
+  // Seçili sıralamayla (en çok kullanılan / kategori / harf / kullanıcının kendi sırası)
   const shown = createMemo(() => orderedOverlays(manifests.filter((m) => !m.hidden && !isHiddenOverlay(m.id) && supported(m.id))));
   const shownIds = () => shown().map((m) => m.id);
   const move = (id: string, where: "up" | "down" | "top") => moveOverlay(id, where, shownIds());
@@ -144,7 +164,7 @@ export function OverlaysPage() {
       const target = vis[d.to];
       if (target) rest.splice(rest.indexOf(target), 0, id);
       else rest.splice(rest.indexOf(visRest[visRest.length - 1]) + 1, 0, id);
-      updateSettings((s) => (s.overlayOrder = rest));
+      setCustomOverlayOrder(rest);
     };
     const up = () => finish(true);
     const cancel = () => finish(false);
@@ -184,7 +204,8 @@ export function OverlaysPage() {
       if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || menu() || drag()) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      const ids = shownIds();
+      // Kapalı kategorilerdeki overlay'ler atlanır
+      const ids = groups().flatMap(([cat, ms]) => (cat !== null && isCollapsed(cat) ? [] : ms.map((m) => m.id)));
       const i = ids.indexOf(selected() ?? "");
       const next = ids[Math.min(ids.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))];
       if (!next) return;
@@ -204,8 +225,7 @@ export function OverlaysPage() {
     return a && a.rules.mode !== "stream" ? a : s.profiles[defaultProfileId(false, s) ?? ""];
   };
   /** Tek kopyalı overlay düzende zaten açık mı */
-  const inLayout = () => {
-    const k = selected();
+  const inLayout = (k: string | null = selected()) => {
     return !!k && !manifestById(k)?.multiInstance && !!target()?.overlays[k]?.enabled;
   };
   const [added, setAdded] = createSignal<string | null>(null);
@@ -216,13 +236,13 @@ export function OverlaysPage() {
     clearTimeout(addedTimer);
     addedTimer = window.setTimeout(() => setAdded(null), 3500);
   };
-  const addSelected = () => {
-    const k = selected();
+  /** Düğme ve listede çift tık aynı işi yapar (düzende kapalı duran overlay yeniden açılır) */
+  const addSelected = (k: string | null = selected()) => {
     const p = target();
     if (!k || !p) return;
     if (isLocked(k)) return say(t("Bu overlay PRO üyelere özel"));
     if (p.locked) return say(t('"{0}" düzeni kilitli: overlay eklenemez. Düzenler sayfasından kilidi aç.', p.name));
-    if (inLayout()) return;
+    if (inLayout(k)) return say(t('Bu overlay "{0}" düzeninde zaten var', p.name));
     if (addToLayout(p.id, k)) say(t('{0}, "{1}" düzenine eklendi', manifestById(k)?.name ?? k, p.name));
   };
   const addTitle = () => {
@@ -243,9 +263,10 @@ export function OverlaysPage() {
     () => appState().demo,
   );
 
-  /** Kategori başlıklı gruplar; kullanıcı kendi sırasını verdiyse tek düz liste (başlıksız) */
+  const isCollapsed = (cat: string) => collapsed().includes(cat);
+  /** Kategori başlıklı gruplar yalnızca "Kategoriye göre" sıralamada; diğerlerinde (ve sürüklerken) tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
-    if (hasOverlayOrder() || flat()) return [[null, shown()]];
+    if (overlaySort() !== "category" || flat()) return [[null, shown()]];
     const g = new Map<string, OverlayManifest[]>();
     for (const m of shown()) {
       if (!g.has(m.category)) g.set(m.category, []);
@@ -308,31 +329,50 @@ export function OverlaysPage() {
           <UndoRedo keys class="ur-panel" />
         </div>
         <div class="ovlist-scroll" ref={scrollEl}>
-          <div class="ovlist-hint">Sırayı değiştirmek için sürükle</div>
-          <Show when={hasOverlayOrder()}>
-            <div class="ovlist-cap ovlist-cap-row">
-              <span>Kendi sıran</span>
-              <button class="link" title="Overlay'leri yeniden kategorilere göre sırala" onClick={() => resetOverlayOrder()}>
-                Sıralamayı sıfırla
-              </button>
-            </div>
-          </Show>
+          <div class="ovlist-hint">Çift tık: düzene ekle</div>
+          <label
+            class="ovlist-sort"
+            title={t("Bu sıra Düzenler ve Yayın sayfalarındaki overlay listesinde de kullanılır. Bir overlay'i sürüklersen \"Kendi sıram\" seçilir. \"En çok kullanılanlar\" için yalnızca düzenlerinde hangi overlay türlerinin açık olduğu (tür ve sayı) anonim istatistik olarak gönderilir.")}
+          >
+            <span>Sırala</span>
+            <select value={overlaySort()} onChange={(e) => setOverlaySort(e.currentTarget.value as OverlaySort)}>
+              <option value="popular">En çok kullanılanlara göre</option>
+              <option value="category">Kategoriye göre</option>
+              <option value="alpha">Harf sırasına göre</option>
+              <option value="custom">Kendi sıram</option>
+            </select>
+          </label>
           <For each={groups()}>
             {([cat, ms]) => (
               <>
                 <Show when={cat !== null}>
-                  <div class="ovlist-cap">{CATEGORY_NAMES[cat!] ?? cat}</div>
+                  <button
+                    class="ovlist-cap ovlist-captog"
+                    classList={{ closed: isCollapsed(cat!) }}
+                    aria-expanded={!isCollapsed(cat!)}
+                    title={isCollapsed(cat!) ? t("Kategoriyi aç") : t("Kategoriyi kapat")}
+                    onClick={() => toggleCategory(cat!)}
+                  >
+                    <ChevronDown />
+                    <span>{CATEGORY_NAMES[cat!] ?? cat}</span>
+                    <small>{ms.length}</small>
+                  </button>
                 </Show>
-                <For each={ms}>
+                <For each={cat !== null && isCollapsed(cat) ? [] : ms}>
                   {(m) => {
                     return (
                       <button
                         class="ovitem"
                         classList={{ sel: selected() === m.id, locked: isLocked(m.id), dragging: drag()?.id === m.id }}
                         data-ovid={m.id}
-                        title="Sürükle ya da sağ tık: sırayı değiştir (bu sıra Düzenler ve Yayın sayfalarındaki overlay listesinde de kullanılır)"
+                        title="Çift tık: düzene ekle · Sürükle ya da sağ tık: sırayı değiştir (bu sıra Düzenler ve Yayın sayfalarındaki overlay listesinde de kullanılır)"
                         onPointerDown={(e) => startDrag(m.id, e)}
                         onClick={() => !justDragged && setOpenCard(m.id)}
+                        onDblClick={() => {
+                          if (justDragged || drag()) return;
+                          setOpenCard(m.id);
+                          addSelected(m.id);
+                        }}
                         onContextMenu={(e) => {
                           e.preventDefault();
                           const r = e.currentTarget.getBoundingClientRect();
@@ -362,7 +402,7 @@ export function OverlaysPage() {
           </Show>
         </div>
         <div class="ovlist-foot">
-<button class="btn primary wide" disabled={!selected() || !target() || inLayout() || isLocked(selected() ?? "") || !!target()?.locked} title={addTitle()} onClick={addSelected}>
+<button class="btn primary wide" disabled={!selected() || !target() || inLayout() || isLocked(selected() ?? "") || !!target()?.locked} title={addTitle()} onClick={() => addSelected()}>
             <Show when={inLayout()} fallback={<><I.Plus /> Overlay Ekle</>}>
               <I.Check /> Düzende var
             </Show>

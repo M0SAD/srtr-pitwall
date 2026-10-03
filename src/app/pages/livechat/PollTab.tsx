@@ -169,7 +169,14 @@ export function PollTab() {
             <div class="lcp-note">Anket açmak için önce canlı sohbeti başlat (üstteki Başlat).</div>
           </Show>
           <div class="lcp-field">
-            <label>Soru (isteğe bağlı; anket sürerken sohbetin ve OBS'nin üstünde görünür)</label>
+            <label>
+              Soru (isteğe bağlı; anket sürerken sohbetin ve OBS'nin üstünde görünür)
+              <Show when={dictating()}>
+                <span class="lcp-dict">
+                  <I.Mic /> {t("Dinleniyor…")}
+                </span>
+              </Show>
+            </label>
             <input class="input" style={{ width: "100%" }} maxLength={200} placeholder={dictating() ? t("Dinleniyor… soruyu söyle, tuşu bırakınca anket başlar") : t("Örn. Bu yarışı kim kazanır?")} value={question()} onInput={(e) => setQuestion(e.currentTarget.value)} />
           </div>
           <div class="lcp-field">
@@ -258,7 +265,10 @@ export function PollTab() {
           <div>
             <b>Kısayol: anketi başlat / bitir</b>
             <small>Oyundayken de çalışır (Canlı Sohbet çalışırken).</small>
-            <small>Konuşma → yazı açıksa: tuşu basılı tutup soruyu söyle, bırakınca anket o soruyla başlar.</small>
+            <small>
+              Tuşu basılı tutup soruyu söyle, bırakınca anket o soruyla başlar (mikrofon bu sırada kendiliğinden dinlenir; altyazının açık olması
+              gerekmez). Soru anlaşılmazsa anket başlamaz. Anket sürerken tuşa basmak anketi bitirir.
+            </small>
           </div>
           <div class="lcp-inline">
             <span class="lcp-kbd">{prettyKey(shortcut("poll"))}</span>

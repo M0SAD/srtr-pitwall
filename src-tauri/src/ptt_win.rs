@@ -78,7 +78,15 @@ struct HidDev {
     name: String,
     /// HidP ön çözümleme verisi (u64 hizalı tampon)
     preparsed: Vec<u64>,
-    down: HashSet<u16>,
+    /// Basılı düğmeler, rapor kimliğine göre: çok raporlu aygıtlarda (düğmeleri iki rapora bölünmüş direksiyonlar)
+    /// bir rapor diğerinin düğmelerini silmesin (basılı tutma titremesin)
+    reports: HashMap<u8, HashSet<u16>>,
+}
+
+impl HidDev {
+    fn is_down(&self, button: u16) -> bool {
+        self.reports.values().any(|s| s.contains(&button))
+    }
 }
 
 struct MmDev {
@@ -198,7 +206,7 @@ impl Input {
         if name.is_empty() {
             name = format!("HID {vid:04X}:{pid:04X}");
         }
-        Some(HidDev { vid, pid, name, preparsed, down: HashSet::new() })
+        Some(HidDev { vid, pid, name, preparsed, reports: HashMap::new() })
     }
 
     unsafe fn on_input(&mut self, hraw: HANDLE) {
@@ -240,7 +248,9 @@ impl Input {
             let st = HidP_GetUsages(HidP_Input, 0x09, 0, usages.as_mut_ptr(), &mut n, dev.preparsed.as_ptr() as isize, report as *mut u8, report_len as u32);
             // Bu rapor kimliğinde düğme yoksa (çok raporlu aygıtlar) durum değişmez
             if st == HIDP_STATUS_SUCCESS {
-                dev.down = usages[..(n as usize).min(usages.len())].iter().filter(|&&u| u > 0).map(|&u| u - 1).collect();
+                // İlk bayt rapor kimliğidir (kimliksiz aygıtlarda 0)
+                let id = *report;
+                dev.reports.insert(id, usages[..(n as usize).min(usages.len())].iter().filter(|&&u| u > 0).map(|&u| u - 1).collect());
             }
         }
     }
@@ -292,15 +302,17 @@ impl Input {
 
     /// Bu aygıtın bu düğmesi şu an basılı mı (HID ya da WinMM)
     pub fn is_down(&self, vid: u16, pid: u16, button: u16) -> bool {
-        self.hid.values().any(|d| d.vid == vid && d.pid == pid && d.down.contains(&button))
+        self.hid.values().any(|d| d.vid == vid && d.pid == pid && d.is_down(button))
             || (button < 32 && self.mm.iter().any(|d| d.vid == vid && d.pid == pid && d.buttons & (1 << button) != 0))
     }
 
     fn all_down(&self) -> Vec<Pressed> {
         let mut out: Vec<Pressed> = Vec::new();
         for d in self.hid.values() {
-            for &b in &d.down {
-                out.push(Pressed { vid: d.vid, pid: d.pid, button: b, name: d.name.clone() });
+            for &b in d.reports.values().flatten() {
+                if !out.iter().any(|p| p.vid == d.vid && p.pid == d.pid && p.button == b) {
+                    out.push(Pressed { vid: d.vid, pid: d.pid, button: b, name: d.name.clone() });
+                }
             }
         }
         for d in &self.mm {

@@ -1600,11 +1600,11 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                // Okunmamış mesaj varken (tepside kırmızı nokta) tıklama Arkadaşlar penceresini açar
+                // Sol tık her zaman programın arayüzünü (paneli) açar; okunmamış mesaj varken
+                // (tepside kırmızı nokta) panelde arkadaş listesi de açılır
+                bring_panel_front(tray.app_handle());
                 if trayalert::unread() > 0 {
-                    open_friends(tray.app_handle());
-                } else {
-                    bring_panel_front(tray.app_handle());
+                    trayalert::request_open_friends(tray.app_handle());
                 }
             }
         });
@@ -2032,6 +2032,10 @@ pub fn run() {
             toast::toast_open_chat,
             toast::friends_take_chat,
             trayalert::tray_unread,
+            trayalert::tray_take_open,
+            trayalert::social_log,
+            trayalert::message_beep,
+            trayalert::social_tick_start,
             server_apply,
             server_status,
             dash_export,

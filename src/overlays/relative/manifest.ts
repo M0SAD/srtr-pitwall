@@ -53,8 +53,10 @@ export default defineOverlay({
   size: { w: 560, h: 290 },
   defaultPosition: { x: 40, y: 580 },
   defaultEnabled: true,
+  // Alt / üst kenardan sürükleme önde/arkada araç sayısını değiştirir: her adım 2 satır (oyuncu ortada kalır)
+  resize: { h: { key: "rows", row: ".rel-row", per: 2 } },
   settings: [
-    { key: "rows", label: "Önde/arkada gösterilecek araç", type: "number", default: 3, min: 1, max: 8, step: 1 },
+    { key: "rows", label: "Önde/arkada gösterilecek araç", type: "number", default: 3, min: 1, max: 8, step: 1, hint: "Pencere hep bu kadar satırlık yer tutar; araç azsa sen yine tam ortada kalırsın. Düzenleme modunda pencerenin alt / üst kenarından sürükleyerek de ayarlanır." },
     { key: "nameFormat", label: "Ad biçimi", type: "select", default: "full", options: NAME_FORMATS },
     { key: "showHeader", label: "Üst satır", type: "boolean", default: true, group: "Başlık" },
     headerField("headerFields", "Üst satır bilgileri", ["air", "track", "wetness", "humidity", "precip"]),

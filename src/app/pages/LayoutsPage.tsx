@@ -1,7 +1,7 @@
 // Düzenler: monitör seçerek overlay yerleşimi. Solda düzenler, üstte monitör haritası,
 // ortada seçili monitörün tuvali (gerçek overlay görüntüleriyle sürükle-bırak).
 
-import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { ShareDialog } from "./CommunityPage";
 import { appState, setDemo } from "../App";
 import { t } from "@/sdk/i18n";
@@ -331,6 +331,8 @@ export function LayoutsPage() {
   };
 
   const shownNow = () => resolveProfile(status());
+  const closeSet = () => (setSel(null), setGhost(null));
+  useEscClose(() => !!(sel() || ghost()), closeSet);
 
   return (
     <div class="lpage" classList={{ "with-set": !!(sel() || ghost()) }}>
@@ -424,7 +426,7 @@ export function LayoutsPage() {
             selected={sel()}
             onSelect={(k) => {
               setSel(k);
-              if (k) setGhost(null);
+              setGhost(null);
             }}
             zoom={zoom()}
             onZoom={setZoom}
@@ -443,10 +445,10 @@ export function LayoutsPage() {
         </section>
 
         <Show when={sel()} keyed>
-          {(k) => <OverlaySettings key={k} profileId={p().id} mode="layout" onRemove={() => remove(k)} readOnly={locked()} />}
+          {(k) => <OverlaySettings key={k} profileId={p().id} mode="layout" onRemove={() => remove(k)} readOnly={locked()} onClose={closeSet} />}
         </Show>
         <Show when={!sel() && ghost()} keyed>
-          {(g) => <GhostPanel type={g} onAdd={() => add(g)} disabled={locked()} />}
+          {(g) => <GhostPanel type={g} onAdd={() => add(g)} disabled={locked()} onClose={closeSet} />}
         </Show>
       </Show>
     </div>
@@ -523,8 +525,23 @@ export function CanvasTools(props: { zoom: number; setZoom: (z: number) => void 
   );
 }
 
-/** Düzene henüz eklenmemiş overlay seçilince sağda görünen kısa tanıtım */
-export function GhostPanel(props: { type: string; onAdd: () => void; disabled?: boolean }) {
+/** Esc: tuvalin üstünde yüzen ayar panelini kapatır (yazı alanındayken ve açık bir pencere / menü varken dokunmaz) */
+export function useEscClose(open: () => boolean, close: () => void) {
+  onMount(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || !open()) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (document.querySelector(".modal-back, .bp-back, .ovmenu")) return;
+      close();
+    };
+    window.addEventListener("keydown", key);
+    onCleanup(() => window.removeEventListener("keydown", key));
+  });
+}
+
+/** Düzene henüz eklenmemiş overlay seçilince overlay listesinin yanında görünen kısa tanıtım */
+export function GhostPanel(props: { type: string; onAdd: () => void; disabled?: boolean; onClose?: () => void }) {
   const m = () => manifestById(props.type);
   return (
     <Show when={m()}>
@@ -535,6 +552,11 @@ export function GhostPanel(props: { type: string; onAdd: () => void; disabled?: 
             <b>{m()!.name}</b>
             <small>{m()!.description}</small>
           </div>
+          <Show when={props.onClose}>
+            <button class="ovset-close" title="Kapat (Esc)" onClick={() => props.onClose!()}>
+              <I.X />
+            </button>
+          </Show>
         </header>
         <div class="ovset-scroll">
           <Show

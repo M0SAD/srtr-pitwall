@@ -309,3 +309,13 @@
 .lc-list > .lc-msg {
   flex: 0 0 auto;
 }
+
+/* Anket kısayolu basılıyken "Dinleniyor…" göstergesi (soru dikte ediliyor) */
+.lc-poll-dict .lc-poll-head b {
+  animation: lc-dict-pulse 1.2s ease-in-out infinite;
+}
+@keyframes lc-dict-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

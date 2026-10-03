@@ -1,6 +1,6 @@
 // Düzenler / Yayın sayfalarında sol alttaki overlay listesi.
 // Üstte düzene EKLİ olanlar (yeşil), eklenme sırasıyla alt alta; altında eklenmemiş overlay'ler: kullanıcı
-// "Overlaylarım"da bir sıra verdiyse o sırayla düz liste, vermediyse kategorilere göre.
+// "Overlaylarım"da seçilen sıralamayla (en çok kullanılan / harf / kendi sırası: düz liste; kategori: başlıklı).
 // Çift tık (ya da sağdaki + / −): düzene ekle / düzenden çıkar. Tek tık: sağdaki ayar panelinde açar.
 // Sadece çok kopyalı türler (veri kutusu, webview) birden fazla eklenebilir: ekliyken de aşağıda "+" ile durur.
 
@@ -8,28 +8,72 @@ import { For, Show, createMemo } from "solid-js";
 import Minus from "lucide-solid/icons/minus";
 import { manifests } from "@/sdk/registry";
 import type { OverlayManifest } from "@/sdk/overlay";
-import { instanceName, settings, updateSettings, type Profile } from "@/sdk/settings";
+import { instanceName, settings, updateSettings, type OverlaySort, type Profile } from "@/sdk/settings";
+import { overlayTop } from "@/cloud/overlayStats";
+import { lang, localeTag, translateText } from "@/sdk/i18n";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
 import * as I from "../icons";
 
-/** Kullanıcı "Overlaylarım"da kendi sırasını verdi mi */
-export const hasOverlayOrder = () => settings().overlayOrder.length > 0;
+/** Kullanıcının kendi sırası mı geçerli ("Kendi sıram") */
+export const hasOverlayOrder = () => overlaySort() === "custom";
+export const overlaySort = (): OverlaySort => settings().overlaySort;
 
-/** Varsayılan sıra: kategorilere göre gruplanmış (kategori içinde kayıt sırası) */
+/** Sıralama seçimi. "Kendi sıram" ilk kez seçilirse o an görünen sıra başlangıç olur. */
+export function setOverlaySort(mode: OverlaySort) {
+  if (mode === overlaySort()) return;
+  const cur = orderedOverlays().map((m) => m.id);
+  updateSettings((d) => {
+    if (mode === "custom" && !d.overlayOrder.length) d.overlayOrder = cur;
+    d.overlaySort = mode;
+  });
+}
+
+/** Kategorilere göre gruplanmış sıra (kategori içinde kayıt sırası) */
 export function categoryOrder(list: OverlayManifest[] = manifests): OverlayManifest[] {
   const cats: string[] = [];
   for (const m of list) if (!cats.includes(m.category)) cats.push(m.category);
   return cats.flatMap((c) => list.filter((m) => m.category === c));
 }
 
-/** Overlay'leri kullanıcının sırasına dizer (sırada olmayanlar varsayılan sırayla sonda); sıra yoksa varsayılan sıra */
+/** Kullanım verisi yokken (çevrimdışı, sunucu hazır değil) ve eşitliklerde geçerli yerleşik popülerlik sırası; kalanlar kategorilere göre */
+const BUILTIN_POPULAR = [
+  "relative", "standings", "fuel", "trackmap", "minimap", "inputs", "delta", "radar", "spotterbar", "dashboard",
+  "tires", "session", "weather", "laptimes", "sectors", "pedals", "telemetry", "flatmap", "stint", "pitwindow",
+];
+
+/** En çok kullanılanlar: kullanan kullanıcı sayısı, sonra düzen sayısı, sonra yerleşik sıra */
+function popularOrder(list: OverlayManifest[]): OverlayManifest[] {
+  const top = overlayTop();
+  const base = new Map(categoryOrder(manifests).map((m, i) => [m.id, BUILTIN_POPULAR.length + i]));
+  BUILTIN_POPULAR.forEach((id, i) => base.set(id, i));
+  const rank = (id: string) => base.get(id) ?? 1e6;
+  return [...list].sort(
+    (a, b) =>
+      (top[b.id]?.users ?? 0) - (top[a.id]?.users ?? 0) || (top[b.id]?.layouts ?? 0) - (top[a.id]?.layouts ?? 0) || rank(a.id) - rank(b.id),
+  );
+}
+
+/** Harf sırası: çevrilmiş ada göre, dilin kurallarıyla */
+function alphaOrder(list: OverlayManifest[]): OverlayManifest[] {
+  lang(); // dil değişince yeniden sıralanır
+  const coll = new Intl.Collator(localeTag(), { sensitivity: "base", numeric: true });
+  return list
+    .map((m) => ({ m, n: translateText(m.name) }))
+    .sort((a, b) => coll.compare(a.n, b.n))
+    .map((x) => x.m);
+}
+
+/** Overlay'leri seçili sıralamaya göre dizer ("Kendi sıram"da sırada olmayanlar kategori sırasıyla sonda) */
 export function orderedOverlays(list: OverlayManifest[] = manifests): OverlayManifest[] {
+  const mode = overlaySort();
+  if (mode === "popular") return popularOrder(list);
+  if (mode === "alpha") return alphaOrder(list);
   const base = categoryOrder(list);
   const ord = settings().overlayOrder;
-  if (!ord.length) return base;
+  if (mode !== "custom" || !ord.length) return base;
   const idx = new Map(ord.map((id, i) => [id, i]));
   return base
     .map((m, i) => ({ m, k: idx.get(m.id) ?? 1e6 + i }))
@@ -37,9 +81,17 @@ export function orderedOverlays(list: OverlayManifest[] = manifests): OverlayMan
     .map((x) => x.m);
 }
 
+/** Kullanıcının verdiği sırayı kaydeder ve "Kendi sıram"a geçer */
+export function setCustomOverlayOrder(ids: string[]) {
+  updateSettings((d) => {
+    d.overlayOrder = ids;
+    d.overlaySort = "custom";
+  });
+}
+
 /**
  * Overlay'i sırada taşır: `visible` listede görünen (gizlenmemiş, simde çalışan) türlerin kimlikleri; bir yukarı /
- * aşağı adım görünen komşuya göre atılır. İlk taşımada o anki sıra (kategorilere göre) kayda geçer.
+ * aşağı adım görünen komşuya göre atılır. İlk taşımada o an görünen sıra kayda geçer ve "Kendi sıram" seçilir.
  */
 export function moveOverlay(id: string, where: "up" | "down" | "top", visible: string[]) {
   const full = orderedOverlays().map((m) => m.id);
@@ -50,11 +102,15 @@ export function moveOverlay(id: string, where: "up" | "down" | "top", visible: s
   const rest = full.filter((x) => x !== id);
   const at = rest.indexOf(target);
   rest.splice(where === "down" ? at + 1 : at, 0, id);
-  updateSettings((d) => (d.overlayOrder = rest));
+  setCustomOverlayOrder(rest);
 }
 
+/** Kendi sırasını siler; varsayılan sıralamaya (en çok kullanılanlar) döner */
 export function resetOverlayOrder() {
-  updateSettings((d) => (d.overlayOrder = []));
+  updateSettings((d) => {
+    d.overlayOrder = [];
+    d.overlaySort = "popular";
+  });
 }
 
 export function OverlayPalette(props: {
@@ -86,7 +142,7 @@ export function OverlayPalette(props: {
   const rest = createMemo(() => orderedOverlays(usable()).filter((m) => m.multiInstance || !addedTypes().has(m.id)));
   /** Kategori başlıklı gruplar; kullanıcı sırası varsa tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
-    if (hasOverlayOrder()) return rest().length ? [[null, rest()]] : [];
+    if (overlaySort() !== "category") return rest().length ? [[null, rest()]] : [];
     const g = new Map<string, OverlayManifest[]>();
     for (const m of rest()) {
       if (!g.has(m.category)) g.set(m.category, []);

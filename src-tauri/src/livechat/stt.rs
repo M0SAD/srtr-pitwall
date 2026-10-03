@@ -32,7 +32,7 @@ use tauri::{AppHandle, Emitter, Manager};
 pub const FEATURE: &str = "livechat.stt";
 pub const SUPPORTED: bool = cfg!(windows);
 /// Çevrimiçi motorun API anahtarının gizli dosyadaki adı (bkz. secrets.rs)
-const KEY_NAME: &str = "sttApiKey";
+pub(crate) const KEY_NAME: &str = "sttApiKey";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Engine {
@@ -343,6 +343,8 @@ pub struct SttStatus {
     pub notice: Option<String>,
     /// Çevrimiçi motorun API anahtarı kayıtlı
     pub has_key: bool,
+    /// "Çevrimiçi (Whisper)" seçili ama API anahtarı yok: Windows motoruyla (yalnızca mikrofon) dinleniyor
+    pub fallback: bool,
     pub mic: SrcStatus,
     pub system: SrcStatus,
 }
@@ -369,6 +371,10 @@ struct St {
     notice: Option<String>,
     last: Option<String>,
     filter: Option<Arc<Profanity>>,
+    /// Anket sorusu dikte ediliyor: altyazı kapalı olsa da mikrofon dinlenir (bkz. `dictate`)
+    dictate: bool,
+    /// Çevrimiçi motor seçili ama anahtar yok: Windows motoruna düşüldü
+    fallback: bool,
 }
 
 pub struct Stt {
@@ -404,6 +410,7 @@ impl Stt {
             active_language: g.active_language.clone(),
             notice: g.notice.clone(),
             has_key: !g.key.is_empty(),
+            fallback: g.fallback,
             mic,
             system,
         }
@@ -417,8 +424,21 @@ impl Stt {
     fn reconcile(self: &Arc<Self>) {
         let ok = allowed(&self.app, FEATURE);
         let mut g = self.st.lock();
-        let want = g.cfg.enabled && ok && SUPPORTED;
-        let key = g.cfg.run_key(&g.key);
+        let want = (g.cfg.enabled || g.dictate) && ok && SUPPORTED;
+        // Gerçekte çalıştırılacak ayar: dikte sırasında mikrofon mutlaka dinlenir; çevrimiçi motorun anahtarı
+        // yoksa (yerel sunucu hariç) Windows motoruna düşülür (yalnızca mikrofon) ve arayüzde not gösterilir.
+        let mut eff = g.cfg.clone();
+        if !g.cfg.enabled {
+            eff.source = Source::Mic;
+        } else if g.dictate && eff.source == Source::System {
+            eff.source = Source::Both;
+        }
+        let fallback = eff.engine == Engine::Cloud && g.key.is_empty() && !cloud::is_local(&eff.cloud_url);
+        if fallback {
+            eff.engine = Engine::Windows;
+        }
+        g.fallback = fallback;
+        let key = eff.run_key(&g.key);
         let same = g.run.as_ref().is_some_and(|(_, k, _)| *k == key);
         if !want || !same {
             if let Some((stop, _, _)) = g.run.take() {
@@ -434,10 +454,10 @@ impl Stt {
             let gen = g.gen;
             let stop = Arc::new(AtomicBool::new(false));
             g.run = Some((stop.clone(), key, gen));
-            let cfg = g.cfg.clone();
+            let cfg = eff;
             match cfg.engine {
                 Engine::Windows => {
-                    if cfg.source.system() {
+                    if cfg.source.system() && !fallback {
                         g.sys.error = Some(SYSTEM_NEEDS_CLOUD.into());
                     }
                     if cfg.source.mic() {
@@ -487,12 +507,12 @@ impl Stt {
     }
 
     fn on_text(&self, gen: u64, src: Src, text: String, check_tts: bool) {
-        let (pause, label, filter) = {
+        let (enabled, pause, label, filter) = {
             let g = self.st.lock();
             if g.run.as_ref().map(|r| r.2) != Some(gen) {
                 return;
             }
-            (g.cfg.pause_while_tts, if src == Src::Mic { g.cfg.label.clone() } else { g.cfg.remote_label.clone() }, g.filter.clone())
+            (g.cfg.enabled, g.cfg.pause_while_tts, if src == Src::Mic { g.cfg.label.clone() } else { g.cfg.remote_label.clone() }, g.filter.clone())
         };
         // Sesli okuma konuşurken (ve hemen ardından) duyulanlar yazılmaz
         if check_tts && pause && self.tts_busy() {
@@ -504,6 +524,10 @@ impl Stt {
         };
         // Anket kısayolu basılıyken söylenenler anket sorusudur; altyazıya yazılmaz
         if src == Src::Mic && super::poll_dict_take(&self.app, &text) {
+            return;
+        }
+        // Yalnızca anket dikte etmek için dinleniyordu (altyazı kapalı): altyazıya yazılmaz
+        if !enabled {
             return;
         }
         super::hub(&self.app).push_caption(if src == Src::Mic { "mic" } else { "remote" }, &label, &text);
@@ -713,6 +737,29 @@ pub fn recheck(app: &AppHandle) {
             s.reconcile();
         }
     }
+}
+
+/// Anket sorusu dikte etme: `on` iken altyazı kapalı olsa da mikrofon dinlenir (motor gerekirse başlatılır).
+/// Döner: konuşma tanıma kullanılabilir mi (PRO kilidi yok ve Windows).
+pub fn dictate(app: &AppHandle, on: bool) -> bool {
+    let Some(s) = stt(app) else { return false };
+    let changed = {
+        let mut g = s.st.lock();
+        let c = g.dictate != on;
+        g.dictate = on;
+        c
+    };
+    if changed {
+        s.reconcile();
+    }
+    SUPPORTED && allowed(app, FEATURE)
+}
+
+/// Dikte için: mikrofon dinleniyor mu ve varsa mikrofon hatası
+pub fn dictate_state(app: &AppHandle) -> (bool, Option<String>) {
+    let Some(s) = stt(app) else { return (false, None) };
+    let g = s.st.lock();
+    (g.run.is_some() && g.mic.listening, g.mic.error.clone())
 }
 
 pub fn is_enabled(app: &AppHandle) -> bool {

@@ -729,3 +729,30 @@
   min-width: 0;
   text-overflow: ellipsis;
 }
+
+/* ---------- PRO kilidi: ayarlar görünür ama değiştirilemez ---------- */
+.pro-locked-body {
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pro-locked-note {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border: 1px solid #6b4a1a;
+  border-radius: 8px;
+  background: rgba(255, 138, 42, 0.08);
+  color: #ffcf9a;
+  font-size: 12.5px;
+}
+
+.voice-cmd-held {
+  display: block;
+  color: #5fe08a;
+}
+
+.voice-cmd-key {
+  width: 220px;
+  min-width: 0;
+}

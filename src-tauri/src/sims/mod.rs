@@ -13,6 +13,7 @@
 pub mod ams2;
 pub mod kunos;
 pub mod rf2;
+pub mod role;
 
 #[cfg(windows)]
 pub mod iracing;

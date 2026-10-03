@@ -85,7 +85,7 @@ pub fn default_output_name() -> Option<String> {
     cpal::default_host().default_output_device().and_then(|d| d.name().ok())
 }
 
-fn open_device(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
+pub(crate) fn open_device(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
     let host = cpal::default_host();
     fn find(mut it: impl Iterator<Item = cpal::Device>, want: &str) -> Option<cpal::Device> {
         it.find(|d| d.name().map(|n| n == want).unwrap_or(false))
@@ -119,7 +119,7 @@ fn open_device(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStr
 // ---------------------------------------------------------------------------
 
 /// Çok kanallı örnekleri tek kanala indir
-fn to_mono<T: Copy>(data: &[T], channels: usize, conv: impl Fn(T) -> f32) -> Vec<f32> {
+pub(crate) fn to_mono<T: Copy>(data: &[T], channels: usize, conv: impl Fn(T) -> f32) -> Vec<f32> {
     let ch = channels.max(1);
     data.chunks(ch).map(|c| c.iter().map(|s| conv(*s)).sum::<f32>() / c.len() as f32).collect()
 }
@@ -169,7 +169,7 @@ impl Resampler {
     }
 }
 
-fn rms(frame: &[f32]) -> f32 {
+pub(crate) fn rms(frame: &[f32]) -> f32 {
     if frame.is_empty() {
         return 0.0;
     }
@@ -367,7 +367,7 @@ fn api_message(body: &str) -> String {
     m.chars().take(160).collect()
 }
 
-async fn transcribe(cfg: &CloudCfg, wav: Vec<u8>) -> Result<String, RunErr> {
+pub(crate) async fn transcribe(cfg: &CloudCfg, wav: Vec<u8>) -> Result<String, RunErr> {
     let base = check_url(&cfg.url).map_err(|e| (true, e))?;
     let boundary = format!("----pitwall{:016x}", super::poll::rand_u64());
     let mut fields: Vec<(&str, &str)> = vec![("model", cfg.model.as_str()), ("response_format", "json"), ("temperature", "0")];

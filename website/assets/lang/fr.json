@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Barre de progression d'objectif pour streamers : « 100 followers », par exemple, ou un objectif de dons. Tu peux augmenter le compteur à la main ou le laisser compter tout seul à partir des alertes du chat en direct (nouveau follower, abonné / membre, don). Le titre, l'objectif, le pourcentage et, si tu veux, une ligne « dernier soutien » s'affichent. La barre fine et la pastille avec icône sont gratuites ; le grand panneau d'objectif est PRO.",
  "ovg_webview": "Affiche n'importe quelle page web en overlay par-dessus le jeu. Tu peux t'en servir pour des alertes de stream, un minuteur, le chat d'un autre site ou un panneau que tu as créé toi-même ; il suffit de coller l'adresse.",
  "ovg_messages": "Affiche à l'écran, dans de petites bulles, les messages d'amis, d'équipe et de groupe reçus pendant que tu roules ; ils disparaissent tout seuls après quelques secondes. C'est toi qui décides de qui les messages s'affichent (tous les amis, l'équipe ou les personnes que tu choisis). Avec PRO, les messages sont aussi lus à voix haute et tu gardes les yeux sur la piste.",
- "ovg_voice": "Affiche aussi en texte ce que disent l'Ingénieur vocal ou le spotter pendant qu'ils parlent. L'ingénieur et le spotter ont des couleurs et des étiquettes distinctes ; quand ils se taisent, le texte disparaît tout seul. Utile si tu gardes le volume bas, si tu ne veux pas rater une annonce et pour les spectateurs du stream. Fonctionne avec l'Ingénieur vocal (PRO)."
+ "ovg_voice": "Affiche aussi en texte ce que disent l'Ingénieur vocal ou le spotter pendant qu'ils parlent. L'ingénieur et le spotter ont des couleurs et des étiquettes distinctes ; quand ils se taisent, le texte disparaît tout seul. Utile si tu gardes le volume bas, si tu ne veux pas rater une annonce et pour les spectateurs du stream. Fonctionne avec l'Ingénieur vocal (PRO).",
+ "cw_none_race": "Aucun ami t'ayant ajouté à son équipage n'est en course actuellement. Seuls les amis en course à cet instant sont listés ici ; un pilote qui quitte la course disparaît de la liste et le chat du salon d'équipage est supprimé. Un ami t'ajoute à son équipage dans l'application SRTR Pitwall sous <b>Paramètres › Partage › Équipage</b>.",
+ "cw_spot_me": "Spotter : toi",
+ "cw_spot_is": "Spotter : {0}",
+ "cw_spot_none": "Spotter : aucun",
+ "cw_spot_other": "Spotter : {0} — lecture seule",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "La seule personne qui gère les réglages de stand et peut écrire dans le salon",
+ "cw_b_spot": "Spotter : {0} — tu regardes seulement. Une seule personne à la fois peut gérer les réglages de stand ; quand la place se libère, elle te revient.",
+ "cw_ro_spot": "Spotter : {0} — tu regardes seulement. Seul le spotter peut écrire dans le salon.",
+ "cw_ro_view": "Seul le spotter peut écrire dans le salon. Pour devenir spotter, il faut l'autorisation de modifier les réglages de stand.",
+ "cw_ro_closed": "Le salon d'équipage n'est ouvert que lorsque le pilote est en course. Le chat est supprimé à la fin de la course.",
+ "cw_room_closed": "Le pilote n'est pas en course actuellement. Le salon d'équipage s'ouvre au début de la course.",
+ "cw_gone_race": "Le pilote a quitté la course : le salon d'équipage est fermé.",
+ "cw_r_spot_only": "Seul le spotter peut écrire des messages",
+ "cw_r_spot_busy": "Un autre spotter gère actuellement les réglages de stand : tu peux seulement regarder",
+ "cw_r_not_driving": "Le pilote ne conduit pas la voiture en ce moment"
 }

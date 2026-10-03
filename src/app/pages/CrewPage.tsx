@@ -7,7 +7,7 @@ import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from
 import { createStore, reconcile } from "solid-js/store";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
-import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
+import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewSpotRelease, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
 import { CrewWall } from "../components/CrewWall";
 import { CrewRoom } from "../components/CrewRoom";
 import { FuelCard, Ic, RaceHeader, ServiceStrip, TyreCard, fxKeys, type Fx } from "../components/CrewGfx";
@@ -126,8 +126,14 @@ export function CrewPage(props: { owner?: string } = {}) {
   };
   const ivDrv = window.setInterval(() => void load(), 3000);
   onCleanup(() => clearInterval(ivDrv));
+  // c75: sürücü başına tek spotter — panelden çıkarken / başka sürücüye geçerken spotter yeri hemen bırakılır
+  // (bırakılmazsa sunucu 45 sn sonra kendiliğinden boşaltır)
+  let held = "";
+  onCleanup(() => held && void crewSpotRelease(held).catch(() => {}));
   createEffect(
-    on(sel, () => {
+    on(sel, (id) => {
+      if (held && held !== id) void crewSpotRelease(held).catch(() => {});
+      held = id;
       setDrv(null);
       setSent([]);
       setErr("");
@@ -146,7 +152,8 @@ export function CrewPage(props: { owner?: string } = {}) {
       setCrewFocus(null);
       if (l.some((d) => d.owner_id === want)) return void setSel(want);
     }
-    if (l && l.length && !l.some((d) => d.owner_id === sel())) setSel(l[0].owner_id);
+    // c75: listede yalnızca yarıştaki sürücüler var; seçili sürücü yarıştan çıktıysa panel kapanır
+    if (l && !l.some((d) => d.owner_id === sel())) setSel(l.length ? l[0].owner_id : "");
   });
 
   const data = () => drv()?.data ?? null;
@@ -158,6 +165,9 @@ export function CrewPage(props: { owner?: string } = {}) {
     const d = drv();
     if (!d) return t("Yükleniyor…");
     if (!d.can_control) return t("Bu sürücü sana sadece izleme yetkisi verdi.");
+    // c75: pit ayarlarını aynı anda tek kişi (spotter) yönetir; yer doluysa sadece izlenir
+    if (d.spotter_id && !d.spotter_me) return t("Spotter: {0} — sadece izliyorsun. Pit ayarlarını aynı anda tek kişi yönetebilir; yer boşalınca sana geçer.", d.spotter_name || "?");
+    if (d.spotter_me === false) return t("Sürücü şu an yarışta değil ya da veri göndermiyor.");
     if (!d.live) return t("Sürücü şu an yarışta değil ya da veri göndermiyor.");
     if (!simOk()) return t("Uzaktan pit komutları bu oyunda desteklenmiyor (sadece izleme).");
     if (!d.control_on || cw()?.ctl === false) return t("Sürücü ekip kontrolünü kapattı.");
@@ -205,9 +215,10 @@ export function CrewPage(props: { owner?: string } = {}) {
           <section class="panel">
             <h3>Ekip</h3>
             <p class="muted">
-              Henüz kimsenin ekibinde değilsin. Bir arkadaşın Ayarlar › Paylaşım › Ekip bölümünden seni ekibine eklediğinde burada görünür; yarışırken
-              yakıtını, turlarını ve pit servisini izleyebilir, izin verdiyse pit ayarlarını uzaktan değiştirebilirsin. Aynı panel telefonda web
-              sitesinin Ekip sayfasında da açılır.
+              Şu an yarışta olan ve seni ekibine eklemiş bir arkadaşın yok. Burada yalnızca o an yarışta olan arkadaşların listelenir; yarıştan
+              çıkan sürücü listeden düşer ve ekip odasının sohbeti silinir. Pit ayarlarını değiştirme izni verdiyse girip yakıt ve lastik ayarlarını
+              yönetebilirsin (sürücü başına tek spotter: yer doluysa sadece izlersin). Arkadaşın seni Ayarlar › Paylaşım › Ekip bölümünden ekibine
+              ekler. Aynı panel telefonda web sitesinin Ekip sayfasında da açılır.
             </p>
           </section>
         </Show>
@@ -216,10 +227,18 @@ export function CrewPage(props: { owner?: string } = {}) {
             <div class="crew-list" classList={{ hide: !!props.owner || (list() ?? []).length < 2 }}>
               <For each={list() ?? []}>
                 {(d) => (
-                  <button class="crew-drv" classList={{ on: sel() === d.owner_id, live: d.live }} onClick={() => setSel(d.owner_id)}>
+                  <button class="crew-drv" classList={{ on: sel() === d.owner_id, live: d.live, viewonly: !d.can_control }} onClick={() => setSel(d.owner_id)}>
                     <b data-no-i18n>{d.display_name || "?"}</b>
                     <small data-no-i18n>{sub(d)}</small>
-                    <small>{d.can_control ? t("Pit kontrolü") : t("Sadece izleme")}</small>
+                    <small classList={{ "spot-me": !!d.spotter_me, "spot-other": !!d.spotter_id && !d.spotter_me }} data-no-i18n>
+                      {!d.can_control
+                        ? t("Sadece izleme")
+                        : d.spotter_me
+                          ? t("Spotter: sen")
+                          : d.spotter_id
+                            ? t("Spotter: {0} — sadece izleme", d.spotter_name || "?")
+                            : t("Pit kontrolü")}
+                    </small>
                   </button>
                 )}
               </For>
@@ -259,6 +278,12 @@ export function CrewPage(props: { owner?: string } = {}) {
                     <div class="crew-col crew-col-b">
                     <section class="panel">
                       <h3>Pit kontrolü</h3>
+                      <Show when={d().can_control && d().spotter_me}>
+                        <p class="crm-spot me">
+                          <Ic n="wrench" />
+                          <span>{t("Spotter: sen")}</span>
+                        </p>
+                      </Show>
                       <Show when={blocked()}>
                         <p class="pg-lock">
                           <Ic n="lock" />

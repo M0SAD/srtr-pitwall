@@ -791,6 +791,9 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                         let mut x = calc::status(f, s, connected, demo, preview);
                         if connected && !demo && !preview {
                             x.sim = st.sim.to_string();
+                            let role = crate::sims::role::role(st.sim, f, s);
+                            x.driver = role.is_driver();
+                            x.role = role.id().to_string();
                         }
                         x.chat = shared.live_gate.lock().clone();
                         Packet::Status(x)

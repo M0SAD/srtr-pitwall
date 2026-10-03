@@ -19,7 +19,7 @@ import { t } from "@/sdk/i18n";
 import { friendLook, messageBeep } from "@/cloud/social";
 import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
 import { CREWCALL_EVENT, type CrewCallEvt } from "@/sdk/crewcall";
-import { crewCommandText, crewControlSet, crewDone, crewDrivers, crewList, crewPending, crewRoom, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
+import { crewCommandText, crewControlSet, crewDone, crewDrivers, crewList, crewPending, crewRoom, crewSessionEnd, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
 
 /** Ekip kutucuğu: ekranın alt ortasında birkaç saniye görünüp solan kısa bildirim (Host.tsx çizer) */
 export interface CrewBox {
@@ -51,14 +51,41 @@ export function crewLiveExtra(): CrewLive | null {
   return { ...extra, ctl: controlOn && crewSimOk(extra.sim) };
 }
 
+/**
+ * Kullanıcı gerçek bir simde KENDİ aracının sürücüsü mü (demo / önizleme değil; izleyici, spotter, tekrar dosyası
+ * ya da araçta takım arkadaşı değil). Arkadaşlara "yarışta" durumu, canlı veri ve ekip pitwall'u yalnızca bu
+ * doğruyken açıktır. Karar Rust tarafında verilir (src-tauri/src/sims/role.rs).
+ */
+export function isDriving(s: Status | undefined): boolean {
+  return !!s?.connected && !s.demo && !s.preview && s.driver !== false;
+}
+
 export function startCrew(status: Accessor<Status | undefined>) {
   if (started || !cloudEnabled) return;
   started = true;
 
-  const racing = () => {
+  // Sadece kendi aracımın sürücüsüyken: izlerken / spotter'ken / tekrarda odam kapalıdır (veri yok, komut reddedilir)
+  const racing = () => isDriving(status());
+  const inSim = () => {
     const s = status();
     return !!s?.connected && !s.demo && !s.preview;
   };
+
+  // c75: yarıştan çıkınca (70 sn bekleme payı: oturum geçişi / kısa kopma) odam boşaltılır — sunucu sohbeti siler
+  // ve spotter yerini açar. Sunucu ayrıca kendi ölçütüyle denetler (hâlâ yarışta görünüyorsam hiçbir şey silinmez)
+  // ve uygulama kapanırsa ilk okumada kendisi temizler; bu çağrı yalnızca temizliği geciktirmemek içindir.
+  let wasRacing = false;
+  let endAt = 0;
+  setInterval(() => {
+    const r = racing();
+    if (r) endAt = 0;
+    else if (wasRacing) endAt = Date.now() + 70_000;
+    wasRacing = r;
+    if (endAt && Date.now() >= endAt) {
+      endAt = 0;
+      if (session() && members.length) void crewSessionEnd().catch(() => {});
+    }
+  }, 5000);
 
   void listen<CrewLive>("crew-live-local", (e) => {
     extra = e.payload;
@@ -116,7 +143,8 @@ export function startCrew(status: Accessor<Status | undefined>) {
   const handle = async (c: CrewCommand) => {
     const who = c.sender_name || "?";
     if (c.allowed === false) return finish(c, false, c.kind === "message" ? "Yetki yok" : "Sürücü şu an ekip kontrolünü kabul etmiyor");
-    if (!racing()) return finish(c, false, "Sürücü oyunda değil");
+    if (!inSim()) return finish(c, false, "Sürücü oyunda değil");
+    if (!racing()) return finish(c, false, "Sürücü şu an aracı sürmüyor");
     if (c.kind === "message") {
       const text = String(c.args?.text ?? "").slice(0, 120);
       if (!text) return finish(c, false, "Mesaj boş");

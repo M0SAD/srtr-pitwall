@@ -139,6 +139,9 @@ pub struct Frame {
     pub replay_frame: i32,
     pub replay_frame_end: i32,
     pub cam_car_idx: i32,
+    /// Sürücü koltuğu ipucu (bkz. sims/role.rs): 0 sim bildirmiyor / kendi aracı, 1 oyuncunun aracı yok (izleyici),
+    /// 2 oyuncunun aracını başkası sürüyor (LMU/rF2 mControl = 2: takım arkadaşı)
+    pub seat: u8,
     pub air_temp: f32,
     pub track_temp: f32,
     pub incidents: i32,
@@ -239,6 +242,7 @@ impl Default for Frame {
             replay_frame: -1,
             replay_frame_end: 0,
             cam_car_idx: -1,
+            seat: 0,
             air_temp: 0.0,
             track_temp: 0.0,
             incidents: 0,
@@ -345,6 +349,8 @@ pub struct SessionData {
     pub ai_session: bool,
     /// iRacing DriverInfo.DriverUserID: bu bilgisayardaki hesabın üye no (takım yarışında araçtaki sürücüden farklı olabilir)
     pub player_user_id: i64,
+    /// iRacing WeekendInfo.SimMode: "full" canlı oturum, "replay" kayıtlı tekrar dosyası; diğer simlerde boş
+    pub sim_mode: String,
     /// Resmi sektör başlangıçları (tur yüzdesi, ilki 0; iRacing SplitTimeInfo). Boş: bilinmiyor
     pub sector_starts: Vec<f32>,
 }

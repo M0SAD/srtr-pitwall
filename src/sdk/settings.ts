@@ -206,6 +206,8 @@ export interface LiveChatSettings {
   topButton?: boolean;
   /** Bir kerelik geçiş: kanal listesi boş kalmış eski kurulumlara varsayılan kanallar yeniden eklendi, sıra düzeltildi */
   seedV2?: boolean;
+  /** Bir kerelik geçiş: sesli okuma + altyazı varsayılan açık, motor Çevrimiçi (Whisper), kaynak ikisi (dokunulmamış kurulumlar) */
+  voiceDefV1?: boolean;
   /** YouTube sohbet yoklama aralığı (sn, 1..10) */
   ytInterval: number;
   /** YouTube web istemcisi sürümü (boş: otomatik). YouTube değişirse elle güncellemek için. */
@@ -350,6 +352,7 @@ export function defaultLiveChat(): LiveChatSettings {
     channels: defaultLiveChannels(),
     seeded: true,
     seedV2: true,
+    voiceDefV1: true,
     ytInterval: 2,
     ytClientVersion: "",
     moderation: { banned: [], wordFilter: false, words: "", wordMode: "mask", blockLinks: false, spam: true, spamWindow: 10, mirrorDeletes: true },
@@ -359,7 +362,7 @@ export function defaultLiveChat(): LiveChatSettings {
     streamlabs: false,
     captions: { secs: 8 },
     tts: {
-      enabled: false,
+      enabled: true,
       mode: "all",
       command: "!oku",
       subsOnly: false,
@@ -380,9 +383,9 @@ export function defaultLiveChat(): LiveChatSettings {
       volume: 80,
     },
     stt: {
-      enabled: false,
-      engine: "windows",
-      source: "mic",
+      enabled: true,
+      engine: "cloud",
+      source: "both",
       micDevice: "",
       systemDevice: "",
       remoteLabel: "Discord",
@@ -409,6 +412,13 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
     return d;
   }
   const banned = (v.moderation as any)?.banned;
+  // voiceDefV1: sesli okuma / altyazı ayarlarına hiç dokunmamış (eski varsayılanlarda, kapalı) kurulumlar bir kez yeni
+  // varsayılanlara geçer; kullanıcının değiştirdiği ayarlara dokunulmaz. PRO kilidi varsa özellik yine çalışmaz.
+  const mig = !v.voiceDefV1;
+  const ot = v.tts;
+  const ttsNew = mig && (!ot || (!ot.enabled && (ot.mode ?? "all") === "all" && !ot.subsOnly && !ot.onlyUsers && !ot.device && (ot.volume ?? 80) === 80 && !ot.rate && !ot.pitch));
+  const os = v.stt;
+  const sttNew = mig && (!os || (!os.enabled && (os.engine ?? "windows") === "windows" && (os.source ?? "mic") === "mic" && !os.language && !os.label && !os.profanity));
   return seedLiveChannels({
     ...d,
     ...v,
@@ -427,8 +437,10 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
       // edgeDefV1: hiç ses seçmemiş (boş) kayıtlı kurulumlar bir kez arayüz diline uygun Edge sesine geçer
       voice: v.tts && !v.tts.edgeDefV1 && !v.tts.voice ? edgeDefaultVoice(uiLang || detectLang()) : (v.tts?.voice ?? d.tts.voice),
       edgeDefV1: true,
+      ...(ttsNew ? { enabled: true } : {}),
     },
-    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) } },
+    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },
+    voiceDefV1: true,
     sendTarget: typeof v.sendTarget === "string" && v.sendTarget ? v.sendTarget : "mine",
   });
 }
@@ -495,6 +507,8 @@ export interface VoiceCommandSettings {
   button: VoiceCommandButton | null;
   /** Tanıma dili (dil kodu); boş: arayüz dili */
   language: string;
+  /** Tanıma motoru: auto = dilin Windows tanıyıcısı varsa Windows, yoksa çevrimiçi (Whisper) */
+  engine: "auto" | "windows" | "online";
   /** Tanıyıcı güven eşiği (%): altındaki sonuçlar "anlaşılmadı" sayılır */
   confidence: number;
   /** Dinleme / anlaşıldı / anlaşılmadı bipleri */
@@ -507,7 +521,7 @@ export interface VoiceCommandSettings {
   onV1?: boolean;
 }
 
-export const DEFAULT_VOICE_COMMANDS: VoiceCommandSettings = { enabled: true, mode: "hold", key: "", button: null, language: "", confidence: 40, beeps: true, mic: "", micName: "", onV1: true };
+export const DEFAULT_VOICE_COMMANDS: VoiceCommandSettings = { enabled: true, mode: "hold", key: "", button: null, language: "", engine: "auto", confidence: 40, beeps: true, mic: "", micName: "", onV1: true };
 
 export const VOICE_CATEGORIES: { id: string; name: string; desc: string }[] = [
   { id: "spotter", name: "Spotter", desc: "Solda/sağda araç, üç araç yan yana, temiz, hâlâ orada" },
@@ -818,6 +832,9 @@ export interface SavedTheme {
   theme: Theme;
 }
 
+export type OverlaySort = "category" | "alpha" | "popular" | "custom";
+export const OVERLAY_SORTS: OverlaySort[] = ["popular", "category", "alpha", "custom"];
+
 export interface AppSettings {
   version: 1;
   updatedAt: number;
@@ -831,6 +848,8 @@ export interface AppSettings {
   defaults: Record<string, OverlayInstance>;
   /** "Overlaylarım"da kullanıcının verdiği overlay sırası (tür kimlikleri). Boş: kategorilere göre varsayılan sıra. */
   overlayOrder: string[];
+  /** Overlay listesinin sırası: kategori / harf / en çok kullanılan / kullanıcının kendi sırası (overlayOrder) */
+  overlaySort: OverlaySort;
   /** Tüm overlay'lerin ortak görünümü */
   theme: Theme;
   /** Topluluktan indirilen temalar (Görünüm'de hazır temaların yanında) */
@@ -1165,6 +1184,7 @@ export function defaultSettings(): AppSettings {
     profiles: { default: newProfile("default", "Varsayılan") },
     defaults: factoryDefaults(),
     overlayOrder: [],
+    overlaySort: "popular",
     theme: { ...DEFAULT_THEME },
     savedThemes: [],
     league: { active: "", configs: [] },
@@ -1275,6 +1295,8 @@ export function normalize(input: unknown): AppSettings {
     profiles: {},
     defaults: {},
     overlayOrder: Array.isArray(s.overlayOrder) ? [...new Set(s.overlayOrder.filter((x) => typeof x === "string"))] : [],
+    // Eski kayıt: kendi sırasını vermiş olan onu korur, diğerleri "en çok kullanılan" ile başlar
+    overlaySort: s.overlaySort && OVERLAY_SORTS.includes(s.overlaySort) ? s.overlaySort : Array.isArray(s.overlayOrder) && s.overlayOrder.length ? "custom" : "popular",
     theme: themeReadMigrate(normalizeTheme(s.theme), !!s.theme && !s.general?.themeReadV1),
     savedThemes: Array.isArray(s.savedThemes)
       ? s.savedThemes

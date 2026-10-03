@@ -1026,3 +1026,19 @@
 .lcp-acc .lcp-err {
   overflow-wrap: anywhere;
 }
+
+/* Anket: kısayol basılıyken soru dikte ediliyor göstergesi */
+.lcp-dict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  color: var(--accent, #4ea1ff);
+  font-weight: 600;
+  animation: lcp-dict-pulse 1.2s ease-in-out infinite;
+}
+@keyframes lcp-dict-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

@@ -373,6 +373,7 @@ impl Demo {
             tire_types: Vec::new(),
             ai_session: false,
             player_user_id: 0,
+            sim_mode: String::new(),
             sector_starts: vec![0.0, 0.29, 0.67],
         };
         let player_lap = cars[PLAYER].dist.floor() as i64;

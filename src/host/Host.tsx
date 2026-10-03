@@ -34,7 +34,7 @@ import { themeVars } from "@/sdk/theme";
 import { lookStyle } from "@/sdk/lookStyle";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
-import { clampField, previewFrozen, resizeFields, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
+import { clampField, previewFrozen, resizeFields, rowUnit, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
 import {
   CORNERS,
   clampRect,
@@ -511,7 +511,9 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   /** Kilitli düzen: taşınamaz, boyutlandırılamaz, kapatılamaz */
   const locked = () => !!shown()?.locked;
   /** Kenardan boyutlandırılabilen genişlik / yükseklik ayarları */
-  const rz = resizeFields(props.manifest);
+  const rz = createMemo(() => resizeFields(props.manifest, inst()?.options));
+  /** Satır birimli sürükleme sonucunu (px farkı) ayar değerine çevirir */
+  const rowEdge = <T extends { value: number }>(r: T, cur: number, unit: number): T => (unit === 1 && cur === 0 ? r : { ...r, value: Math.round(cur + r.value / unit) });
   /** Sürükleme sırasında (burada ya da panelde) geçici ayar değerleri */
   const liveOpts = () => drag()?.opts ?? remoteDrag(shown()?.id, id)?.opts;
 
@@ -640,7 +642,7 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
 
   /** Kenardan boyutlandır: overlay'in genişlik / yükseklik ayarı değişir (ölçek aynı kalır) */
   const startEdge = (edge: Edge) => (e: PointerEvent) => {
-    const f = edge === "e" || edge === "w" ? rz.w : rz.h;
+    const f = edge === "e" || edge === "w" ? rz().w : rz().h;
     if (e.button !== 0 || locked() || !f) return;
     e.preventDefault();
     e.stopPropagation();
@@ -650,12 +652,15 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     const s0 = edge === "e" || edge === "w" ? e.clientX : e.clientY;
     const wMin = (edge === "e" || edge === "w") && props.manifest.resize !== false && !!props.manifest.resize?.wMin;
     const cur = Math.max(Number(inst().options[f.key]) || f.default, wMin ? size().w : 0);
+    // Satır sayan yükseklik ayarı: sürükleme px'i ölçülen satır yüksekliğiyle tam satıra çevrilir
+    const rows = edge === "n" || edge === "s" ? rz().rows : undefined;
+    const unit = rows ? rowUnit(el, rows) : 1;
     let last: (Rect & { value: number }) | null = null;
     track(
       target,
       (ev) => {
         const d = (edge === "e" || edge === "w" ? ev.clientX : ev.clientY) - s0;
-        last = edgeResize(o, edge, d, o.eff, cur, (v) => clampField(f, v));
+        last = rowEdge(edgeResize(o, edge, d, o.eff, rows ? 0 : cur, (v) => (rows ? (clampField(f, cur + v / unit) - cur) * unit : clampField(f, v))), rows ? cur : 0, unit);
         const opts = { [f.key]: last.value };
         setDrag({ x: last.x, y: last.y, scale: o.scale, opts });
         sendDrag(livePos(last, o.scale, opts));
@@ -693,8 +698,8 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
         transform: `translate(${view().x}px, ${view().y}px) scale(${view().eff})`,
         // Genel opaklık bir tavandır: overlay'in kendi opaklığı ondan düşükse aynen kalır
         opacity: Math.min(inst().opacity, globalOpacity()),
-        "min-width": props.editing && !rz.w ? `${props.manifest.size.w}px` : undefined,
-        "min-height": props.editing && !rz.h ? `${Math.min(props.manifest.size.h, 60)}px` : undefined,
+        "min-width": props.editing && !rz().w ? `${props.manifest.size.w}px` : undefined,
+        "min-height": props.editing && !rz().h ? `${Math.min(props.manifest.size.h, 60)}px` : undefined,
       }}
       onPointerDown={startMove}
       onContextMenu={onContext}
@@ -724,7 +729,7 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
           </Show>
         </div>
         <Show when={!locked()}>
-          <For each={(rz.w ? (["w", "e"] as Edge[]) : []).concat(rz.h ? (["n", "s"] as Edge[]) : [])}>
+          <For each={(rz().w ? (["w", "e"] as Edge[]) : []).concat(rz().h ? (["n", "s"] as Edge[]) : [])}>
             {(ed) => <div class={`rz-edge ${ed}`} style={{ "--hk": String(1 / view().eff) }} title="Kenardan sürükle: genişlik / yükseklik" onPointerDown={startEdge(ed)} />}
           </For>
           <For each={CORNERS}>{(c) => <div class={`frame-resize ${c}`} style={{ transform: `scale(${1 / view().eff})` }} onPointerDown={startResize(c)} />}</For>

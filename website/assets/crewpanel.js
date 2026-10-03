@@ -113,6 +113,7 @@ addDict({
   cw_r_stopped: ["Sürücü ekip kontrolünü durdurdu", "The driver stopped crew control"],
   cw_r_not_accept: ["Sürücü şu an ekip kontrolünü kabul etmiyor", "The driver is not accepting crew control right now"],
   cw_r_not_in_game: ["Sürücü oyunda değil", "The driver is not in the game"],
+  cw_r_not_driving: ["Sürücü şu an aracı sürmüyor", "The driver is not driving the car right now"],
   cw_r_unsupported: ["Bu oyunda desteklenmiyor", "Not supported in this game"],
   cw_r_expired: ["Süresi doldu (sürücünün uygulaması yanıt vermedi)", "Expired (the driver's app did not respond)"],
   cw_r_no_perm: ["Bu sürücünün pit ayarlarını değiştirme yetkin yok", "You are not allowed to change this driver's pit settings"],
@@ -203,14 +204,45 @@ addDict({
   cw_room_ph: ["Ekip odasına yaz (sürücü ve ekip görür)", "Write to the crew room (seen by the driver and crew)"],
   cw_room_err: ["Ekip odası okunamadı. Daha sonra tekrar dene.", "Could not load the crew room. Try again later."],
   cw_r_chat_fast: ["Çok hızlı: dakikada en fazla 20 mesaj gönderebilirsin", "Too fast: you can send at most 20 messages per minute"],
+  // c75: yalnızca yarıştaki sürücüler, sürücü başına tek spotter, odaya yalnızca spotter yazar
+  cw_none_race: [
+    "Şu an yarışta olan ve seni ekibine eklemiş bir arkadaşın yok. Burada yalnızca o an yarışta olan arkadaşların listelenir; yarıştan çıkan sürücü listeden düşer ve ekip odasının sohbeti silinir. Arkadaşın seni SRTR Pitwall programında <b>Ayarlar › Paylaşım › Ekip</b> bölümünden ekibine ekler.",
+    "None of the friends who added you to their crew is racing right now. Only friends who are currently in a race are listed here; a driver who leaves the race drops off the list and the crew room chat is deleted. A friend adds you to their crew in the SRTR Pitwall app under <b>Settings › Sharing › Crew</b>.",
+  ],
+  cw_spot_me: ["Spotter: sen", "Spotter: you"],
+  cw_spot_is: ["Spotter: {0}", "Spotter: {0}"],
+  cw_spot_none: ["Spotter: yok", "Spotter: none"],
+  cw_spot_other: ["Spotter: {0} — sadece izleme", "Spotter: {0} — view only"],
+  cw_spot_tag: ["Spotter", "Spotter"],
+  cw_spot_tag_h: ["Pit ayarlarını yöneten ve odaya yazabilen tek kişi", "The only person who manages the pit settings and can write in the room"],
+  cw_b_spot: [
+    "Spotter: {0} — sadece izliyorsun. Pit ayarlarını aynı anda tek kişi yönetebilir; yer boşalınca sana geçer.",
+    "Spotter: {0} — you are only watching. Only one person can manage the pit settings at a time; you take over when the seat frees up.",
+  ],
+  cw_ro_spot: ["Spotter: {0} — sadece izliyorsun. Odaya yalnızca spotter yazabilir.", "Spotter: {0} — you are only watching. Only the spotter can write in the room."],
+  cw_ro_view: [
+    "Odaya yalnızca spotter yazabilir. Spotter olmak için pit ayarlarını değiştirme yetkisi gerekir.",
+    "Only the spotter can write in the room. You need permission to change pit settings to become the spotter.",
+  ],
+  cw_ro_closed: [
+    "Ekip odası yalnızca sürücü yarıştayken açıktır. Yarış bitince sohbet silinir.",
+    "The crew room is only open while the driver is racing. The chat is deleted when the race ends.",
+  ],
+  cw_room_closed: ["Sürücü şu an yarışta değil. Ekip odası yarış başlayınca açılır.", "The driver is not racing right now. The crew room opens when a race starts."],
+  cw_gone_race: ["Sürücü yarıştan çıktı: ekip odası kapandı.", "The driver left the race: the crew room is closed."],
+  cw_r_spot_only: ["Sadece spotter mesaj yazabilir", "Only the spotter can write messages"],
+  cw_r_spot_busy: ["Pit ayarlarını şu an başka bir spotter yönetiyor: sadece izleyebilirsin", "Another spotter is managing the pit settings right now: you can only watch"],
 });
 
 /** Sunucudan / programdan gelen Türkçe metin -> çeviri anahtarı */
 const RESULT_KEYS = {
   "Çok hızlı: dakikada en fazla 20 mesaj gönderebilirsin": "cw_r_chat_fast",
+  "Sadece spotter mesaj yazabilir": "cw_r_spot_only",
+  "Pit ayarlarını şu an başka bir spotter yönetiyor: sadece izleyebilirsin": "cw_r_spot_busy",
   "Sürücü ekip kontrolünü durdurdu": "cw_r_stopped",
   "Sürücü şu an ekip kontrolünü kabul etmiyor": "cw_r_not_accept",
   "Sürücü oyunda değil": "cw_r_not_in_game",
+  "Sürücü şu an aracı sürmüyor": "cw_r_not_driving",
   "Bu oyunda desteklenmiyor": "cw_r_unsupported",
   "Süresi doldu (sürücünün uygulaması yanıt vermedi)": "cw_r_expired",
   "Bu sürücünün pit ayarlarını değiştirme yetkin yok": "cw_r_no_perm",
@@ -685,6 +717,17 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       }
       roomFail = false;
       room = data;
+      // c75: sürücü yarıştan çıkınca oda boşalır (sunucu mesajları siler); eldeki mesajlar da atılır
+      if (data.racing === false) {
+        chat = [];
+        chatLast = "";
+        drawRoom();
+        return;
+      }
+      if (data.cleared_at) {
+        const cut = new Date(data.cleared_at).getTime();
+        if (cut > 0) chat = chat.filter((m) => new Date(m.at).getTime() > cut);
+      }
       const add = Array.isArray(data.messages) ? data.messages.filter((m) => m && typeof m === "object") : [];
       let down = false;
       if (add.length) {
@@ -708,12 +751,14 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   async function sendChat(text) {
     const body = String(text || "").trim().slice(0, 300);
     if (!alive || !body || chatSending) return;
+    if (roomRO()) return void toast(roomRO(), true);
     // Oda sunucuda yoksa eski yol: sürücünün ekranına tek yönlü mesaj
     if (roomFail && !room) return void send("message", { text: body.slice(0, 120) });
     chatSending = true;
     try {
-      const { error } = await sb.rpc("crew_chat_send", { p_owner: ownerId, p_body: body });
+      const { data: sentId, error } = await sb.rpc("crew_chat_send", { p_owner: ownerId, p_body: body });
       if (error) return void toast(tr(error.message), true);
+      if (sentId === null) toast(T("cw_room_closed"), true);
       if (navigator.vibrate) navigator.vibrate(15);
       await loadRoom(true);
       chatDown(true);
@@ -728,11 +773,21 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     const here = ms.filter((m) => m.present);
     const away = ms.filter((m) => !m.present);
     let h = "";
+    // c75: o anki spotter (eski sunucu alanı göndermez: satır çizilmez)
+    const sp = room.spotter && typeof room.spotter === "object" ? room.spotter : null;
+    if (room.racing === true)
+      h += `<p class="crm-spot${room.spotter_me ? " me" : sp ? "" : " none"}">${ic("wrench")}<span translate="no">${esc(
+        room.spotter_me ? T("cw_spot_me") : sp ? T("cw_spot_is", String(sp.name || "?")) : T("cw_spot_none"),
+      )}</span></p>`;
     if (d)
       h += `<div class="crm-m drv${d.online ? "" : " off"}"><i class="crm-dot"></i><b translate="no">${esc(d.name || "?")}</b><em class="crm-tag drv">${ic("helmet")}${T("cw_room_driver")}</em></div>`;
     for (const m of here) {
       h += `<div class="crm-m${m.me ? " me" : ""}"><i class="crm-dot"></i><b translate="no">${esc(m.name || "?")}</b>${
-        m.can_control
+        m.spotter
+          ? `<em class="crm-tag ctl spot" title="${esc(T("cw_spot_tag_h"))}">${ic("wrench")}${T("cw_spot_tag")}</em>`
+          : sp
+            ? `<em class="crm-tag">${T("cw_room_watch")}</em>`
+            : m.can_control
           ? `<em class="crm-tag ctl${room.control_on ? "" : " idle"}" title="${esc(T(room.control_on ? "cw_room_ctl_h" : "cw_room_ctl_idle"))}">${ic("wrench")}${T("cw_room_ctl")}</em>`
           : `<em class="crm-tag">${T("cw_room_watch")}</em>`
       }</div>`;
@@ -742,7 +797,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     return h;
   }
   function chatHtml() {
-    if (!chat.length) return `<p class="crm-empty">${T("cw_room_empty")}</p>`;
+    if (!chat.length) return `<p class="crm-empty">${T(room?.racing === false ? "cw_room_closed" : "cw_room_empty")}</p>`;
     const me = myId();
     return chat
       .map((m) => {
@@ -762,7 +817,17 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     const n = (Array.isArray(room.members) ? room.members.filter((m) => m.present).length : 0) + (room.driver?.online ? 1 : 0);
     return `<span class="cw-badge${n > 0 ? " live" : ""}">${esc(T("cw_room_n", n))}</span>`;
   }
+  /** c75: odaya yazamıyorsam sebebi (boş: yazabilirim). Eski sunucu can_write göndermez: herkes yazabilir. */
+  function roomRO() {
+    if (!room || room.can_write !== false) return "";
+    if (room.racing === false) return T("cw_ro_closed");
+    const sp = room.spotter && typeof room.spotter === "object" ? room.spotter : null;
+    return sp ? T("cw_ro_spot", String(sp.name || "?")) : T("cw_ro_view");
+  }
+  let dashRO = "";
   function drawRoom() {
+    // Yazma hakkı değiştiyse (spotter oldum / yer başkasına geçti) mesaj kutusu da yeniden çizilir
+    if (roomRO() !== dashRO) drawDash();
     // Yerinde güncelleme: içerik aynıysa DOM'a hiç dokunulmaz; sohbet kutusunun kaydırma konumu korunur
     // (kullanıcı en alttaysa altta kalır, yukarıda eski mesajlara bakıyorsa yerinden oynamaz).
     const put = (sel, html) => {
@@ -792,6 +857,12 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       // Ekipten çıkarılmış olabilir: paneli kapat (liste / arkadaş listesine dönülür)
       toast(tr(error.message), true);
       opts.onGone?.();
+      return;
+    }
+    // c75: sürücü yarıştan çıktı — panel kapanır (liste / arkadaş listesine dönülür)
+    if (data && data.racing_now === false && opts.onGone) {
+      toast(T("cw_gone_race"), true);
+      opts.onGone();
       return;
     }
     drv = data;
@@ -911,6 +982,9 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     const d = drv;
     if (!d) return " ";
     if (!d.can_control) return T("cw_b_view");
+    // c75: pit ayarlarını aynı anda tek kişi (spotter) yönetir; yer doluysa sadece izlenir
+    if (d.spotter_id && !d.spotter_me) return T("cw_b_spot", String(d.spotter_name || "?"));
+    if (d.spotter_me === false) return T("cw_b_idle");
     if (!d.live) return T("cw_b_idle");
     if (!simOk(d.data?.crew?.sim ?? d.sim)) return T("cw_b_sim");
     if (!d.control_on || d.data?.crew?.ctl === false) return T("cw_b_off");
@@ -1074,6 +1148,9 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     h += `<div class="cw-speech" id="cw-speech">${speechHtml()}</div></div><div class="cw-col cw-col-b">`;
     // Pit: görseller her zaman (izleme yetkisinde kilitli); kontroller sadece yetki varsa
     h += `<h3 class="cw-h">${T("cw_control")}</h3>`;
+    if (d.can_control && d.spotter_me) h += `<p class="crm-spot me">${ic("wrench")}<span>${T("cw_spot_me")}</span></p>`;
+    const ro = roomRO();
+    dashRO = ro;
     if (b.trim()) h += `<p class="cw-blocked pg-lock">${ic("lock")}<span>${esc(b)}</span></p>`;
     if (x || !b) {
       h += `<div class="pg${d.live ? "" : " stale"}${d.can_control ? "" : " ro"}">
@@ -1089,9 +1166,13 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       <h3 class="cw-h crm-h">${T("cw_room")}<span id="cw-room-n">${roomCount()}</span></h3>
       <div class="crm-members" id="cw-members">${membersHtml()}</div>
       <div class="crm-chat" id="cw-chat">${chatHtml()}</div>
-      <div class="pg crm-quick"><div class="pg-quick">${QUICK.map((k) => `<button type="button" class="pg-b" data-quick="${k}">${ic(QUICK_IC[k])}<span>${T(k)}</span></button>`).join("")}</div></div>
+      ${
+        ro
+          ? `<p class="cw-blocked pg-lock crm-ro">${ic("lock")}<span>${esc(ro)}</span></p>`
+          : `<div class="pg crm-quick"><div class="pg-quick">${QUICK.map((k) => `<button type="button" class="pg-b" data-quick="${k}">${ic(QUICK_IC[k])}<span>${T(k)}</span></button>`).join("")}</div></div>
       <form class="cw-msg" id="cw-msg"><input id="cw-text" maxlength="300" autocomplete="off" placeholder="${esc(T("cw_room_ph"))}" />
-      <button type="submit" class="cw-btn accent">${ic("send")}<span class="sr">${T("cw_send")}</span></button></form>
+      <button type="submit" class="cw-btn accent">${ic("send")}<span class="sr">${T("cw_send")}</span></button></form>`
+      }
     </div></div>`;
     return h;
   }
@@ -1249,6 +1330,11 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   const roomTimer = setInterval(() => void loadRoom(), 2500);
   const onVis = () => !document.hidden && (tick(), void loadWall(), void loadRoom());
   document.addEventListener("visibilitychange", onVis);
+  // c75: panel kapanırken spotter yeri hemen bırakılır (bırakılamazsa sunucu 45 sn sonra kendiliğinden boşaltır)
+  const release = () => {
+    if (drv?.spotter_me) void sb.rpc("crew_spot_release", { p_owner: ownerId }).then(() => {}, () => {});
+  };
+  window.addEventListener("pagehide", release);
   drawDash();
   void loadDriver();
   void loadWall();
@@ -1257,6 +1343,8 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     redraw: drawDash,
     destroy() {
       alive = false;
+      release();
+      window.removeEventListener("pagehide", release);
       clearInterval(timer);
       clearInterval(wallTimer);
       clearInterval(roomTimer);

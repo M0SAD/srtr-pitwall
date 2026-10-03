@@ -157,6 +157,13 @@ export interface CrewDriver {
   age?: number | null;
   data: LiveData | null;
   updated_at: string | null;
+  /** c75: sürücünün o anki spotter'ı (pit ayarlarını yöneten tek kişi); yoksa null */
+  spotter_id?: string | null;
+  spotter_name?: string | null;
+  /** Spotter benim */
+  spotter_me?: boolean;
+  /** Sürücü şu an yarışta (sunucu ölçütü) — sadece crew_driver() */
+  racing_now?: boolean;
 }
 
 export interface CrewCommand {
@@ -192,6 +199,10 @@ export const crewDriver = (owner: string) => api<CrewDriver>("POST", "rpc/crew_d
 export const crewWall = (owner: string) => api<CrewWallState>("POST", "rpc/crew_wall", { body: { p_owner: owner } });
 export const crewCommand = (owner: string, kind: CrewKind, args: Record<string, unknown> = {}) =>
   api<string>("POST", "rpc/crew_command", { body: { p_owner: owner, p_kind: kind, p_args: args } });
+/** c75: spotter yerini bırak (panel kapanırken / başka sürücüye geçerken) */
+export const crewSpotRelease = (owner: string) => api("POST", "rpc/crew_spot_release", { body: { p_owner: owner } });
+/** c75: sürücünün uygulaması — yarıştan çıktım, odam (sohbet + spotter yeri) boşaltılsın */
+export const crewSessionEnd = () => api<boolean>("POST", "rpc/crew_session_end", { body: {} });
 export const crewCommandGet = (id: string) => api<CrewCommand | null>("POST", "rpc/crew_command_get", { body: { p_id: id } });
 
 /** Komutu gönder ve sonucunu bekle (en fazla ~35 sn; sunucu 30 sn'de 'expired' yapar) */
@@ -272,6 +283,8 @@ export interface CrewRoomMember {
   /** Paneli şu an açık (son 45 sn) */
   present: boolean;
   me: boolean;
+  /** c75: sürücünün o anki spotter'ı */
+  spotter?: boolean;
 }
 export interface CrewChatMsg {
   id: string;
@@ -286,6 +299,15 @@ export interface CrewRoom {
   driver: { id: string; name: string; avatar_path: string | null; online: boolean; racing: boolean } | null;
   /** Sürücü şu an pit komutu kabul ediyor */
   control_on: boolean;
+  /** c75: sürücü şu an yarışta (değilse oda kapalıdır: sohbet silinmiştir) */
+  racing?: boolean;
+  /** c75: o anki spotter; yoksa null */
+  spotter?: { id: string; name: string } | null;
+  spotter_me?: boolean;
+  /** c75: bu odaya ben yazabilirim (yalnızca spotter) */
+  can_write?: boolean;
+  /** c75: odanın son boşaltıldığı an (bundan eski mesajlar atılır) */
+  cleared_at?: string | null;
   members: CrewRoomMember[];
   /** Eskiden yeniye */
   messages: CrewChatMsg[];
@@ -295,7 +317,7 @@ export const CREW_CHAT_MAX = 300;
 /** Oda durumu; `after` verilirse yalnızca o andan sonraki mesajlar */
 export const crewRoom = (owner: string, after?: string | null, limit = 60) =>
   api<CrewRoom>("POST", "rpc/crew_room", { body: { p_owner: owner, p_after: after ?? null, p_limit: limit } });
-export const crewChatSend = (owner: string, body: string) => api<string>("POST", "rpc/crew_chat_send", { body: { p_owner: owner, p_body: body } });
+export const crewChatSend = (owner: string, body: string) => api<string | null>("POST", "rpc/crew_chat_send", { body: { p_owner: owner, p_body: body } });
 
 /** Bir sürücünün odasına yazılan yeni mesajlar (Realtime; okuma kuralı sunucuda). Yoklama ayrıca çağıranda. */
 export async function onCrewChat(owner: string, cb: () => void): Promise<() => void> {

@@ -115,7 +115,12 @@ pub async fn toast_show(app: AppHandle, payload: Value) -> Result<(), String> {
             q.drain(..n - MAX_QUEUE);
         }
     }
-    ensure_window(&app)?;
+    let fresh = app.get_webview_window(LABEL).is_none();
+    if let Err(e) = ensure_window(&app) {
+        crate::trayalert::log(&app, &format!("toast: pencere acilamadi: {e}"));
+        return Err(e);
+    }
+    crate::trayalert::log(&app, if fresh { "toast: kart kuyruga eklendi (pencere olusturuldu)" } else { "toast: kart kuyruga eklendi" });
     let _ = app.emit_to(LABEL, "toast-new", ());
     Ok(())
 }
@@ -134,7 +139,14 @@ pub async fn toast_layout(app: AppHandle, height: f64) -> Result<(), String> {
         hide(&w);
         return Ok(());
     }
-    if let Some((x, y, cw, ch)) = place(&app, &w, height) {
+    let Some((x, y, cw, ch)) = place(&app, &w, height) else {
+        crate::trayalert::log(&app, "toast: monitor bilgisi alinamadi, pencere gosterilemedi");
+        return Ok(());
+    };
+    {
+        if !w.is_visible().unwrap_or(false) {
+            crate::trayalert::log(&app, &format!("toast: gosteriliyor x={x} y={y} {cw}x{ch}"));
+        }
         // Yeni boyut önce uygulanır ki eski (küçük) boyutta bir kare görünmesin
         #[cfg(windows)]
         {

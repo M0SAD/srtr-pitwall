@@ -75,7 +75,7 @@ async function authRequest(path: string, body: unknown): Promise<any> {
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error_description || json.msg || json.message || `Hata ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(json.error_description || json.msg || json.message || `Hata ${res.status}`), { status: res.status });
   return json;
 }
 
@@ -100,7 +100,11 @@ export async function token(): Promise<string | null> {
     const ns = toSession(j);
     saveSession(ns);
     return ns.access_token;
-  } catch {
+  } catch (e) {
+    // Ağ hatası ya da sunucu sorunu (internet yok, 5xx, 429): oturumu silme, sonraki istekte yeniden denenir.
+    // Sadece sunucu yenileme anahtarını reddederse (400 / 401 / 403) oturum kapanır.
+    const st = (e as { status?: number })?.status;
+    if (st !== 400 && st !== 401 && st !== 403) return null;
     // Diğer pencere aynı anda yenilediyse onun oturumunu kullan
     const again = loadSession();
     if (again && again.refresh_token !== s.refresh_token) {

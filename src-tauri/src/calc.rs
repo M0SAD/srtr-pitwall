@@ -25,6 +25,11 @@ pub struct Status {
     pub replay_watch: bool,
     /// Oyuncu pistte değil ve garajda değil: izleyici/spotter
     pub spectating: bool,
+    /// Oyuncu bu oturumda KENDİ aracının sürücüsü (izleyici / spotter / tekrar dosyası / aracı takım arkadaşı sürüyor değil).
+    /// Arkadaş durumu ("yarışta") ve ekip pitwall'u buna bakar; bkz. sims/role.rs
+    pub driver: bool,
+    /// "driver" | "teammate" | "spectator" | "replay" | "" (bağlı değil)
+    pub role: String,
     pub session_type: String,
     pub track: String,
     pub track_id: i32,
@@ -617,6 +622,9 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         replay: f.replay,
         replay_watch: replay_watch(f),
         spectating: connected && !demo && !f.is_on_track && !f.is_in_garage,
+        // Demo / önizleme: sürücü; canlı simde motor sim kimliğiyle yeniden hesaplar (engine.rs)
+        driver: connected,
+        role: if connected { "driver".into() } else { String::new() },
         session_type: s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default(),
         track: s.track_name.clone(),
         track_id: s.track_id,

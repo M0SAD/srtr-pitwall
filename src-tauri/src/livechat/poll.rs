@@ -83,6 +83,9 @@ pub struct PollView {
     /// Türkçe özet (kayıt ve basit gösterim için; arayüz kendi metnini alanlardan kurabilir)
     pub result_text: String,
     pub rev: u64,
+    /// Anket kısayolu basılıyken dikte edilen soru (dikte sürmüyorsa yok). mod.rs `with_dictation` doldurur.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dictation: Option<String>,
 }
 
 impl Poll {
@@ -256,6 +259,7 @@ impl Poll {
             answers: self.answers.clone(),
             result_text: text,
             rev: self.rev,
+            dictation: None,
         }
     }
 }

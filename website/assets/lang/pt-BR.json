@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Uma barra de progresso de meta para streamers — “100 seguidores”, por exemplo, ou uma meta de doações. Aumente o contador manualmente ou deixe-o contar sozinho pelos alertas do chat ao vivo (novos seguidores, inscritos / membros, doações). Mostra um título, a meta, a porcentagem e, opcionalmente, a linha “último apoiador”. Os designs de barra fina e pílula com ícone são gratuitos; o painel de meta grande é PRO.",
  "ovg_webview": "Mostra qualquer página web como overlay sobre o jogo. Use para alertas de stream, um cronômetro, o chat de outro site ou um painel feito por você — basta colar o endereço.",
  "ovg_messages": "Mostra as mensagens de amigos, equipe e grupos que chegam enquanto você pilota em pequenos balões; eles somem sozinhos depois de alguns segundos. Você decide de quem as mensagens aparecem — todos os amigos, sua equipe ou só as pessoas que escolher. Com o PRO, as mensagens também são lidas em voz alta, para você não tirar os olhos da pista.",
- "ovg_voice": "Mostra também em texto o que o Engenheiro por Voz ou o spotter está dizendo. O engenheiro e o spotter têm cores e etiquetas separadas, e o texto some quando eles param de falar. Útil para quem deixa o volume baixo, não quer perder um aviso ou quer que os espectadores da transmissão acompanhem. Funciona junto com o Engenheiro por Voz (PRO)."
+ "ovg_voice": "Mostra também em texto o que o Engenheiro por Voz ou o spotter está dizendo. O engenheiro e o spotter têm cores e etiquetas separadas, e o texto some quando eles param de falar. Útil para quem deixa o volume baixo, não quer perder um aviso ou quer que os espectadores da transmissão acompanhem. Funciona junto com o Engenheiro por Voz (PRO).",
+ "cw_none_race": "Nenhum amigo que adicionou você à equipe de box está em corrida agora. Aqui só aparecem os amigos que estão em corrida neste momento; o piloto que sai da corrida some da lista e o chat da sala da equipe é apagado. Seu amigo adiciona você à equipe dele no app SRTR Pitwall em <b>Configurações › Compartilhamento › Equipe de box</b>.",
+ "cw_spot_me": "Spotter: você",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: nenhum",
+ "cw_spot_other": "Spotter: {0} — somente assistir",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "A única pessoa que gerencia os ajustes de pit e pode escrever na sala",
+ "cw_b_spot": "Spotter: {0} — você está só assistindo. Só uma pessoa por vez pode gerenciar os ajustes de pit; quando a vaga liberar, ela passa para você.",
+ "cw_ro_spot": "Spotter: {0} — você está só assistindo. Só o spotter pode escrever na sala.",
+ "cw_ro_view": "Só o spotter pode escrever na sala. Para ser spotter, você precisa de permissão para alterar os ajustes de pit.",
+ "cw_ro_closed": "A sala da equipe só fica aberta enquanto o piloto está em corrida. Quando a corrida termina, o chat é apagado.",
+ "cw_room_closed": "O piloto não está em corrida agora. A sala da equipe abre quando a corrida começar.",
+ "cw_gone_race": "O piloto saiu da corrida: a sala da equipe foi fechada.",
+ "cw_r_spot_only": "Só o spotter pode escrever mensagens",
+ "cw_r_spot_busy": "Outro spotter está gerenciando os ajustes de pit agora: você só pode assistir",
+ "cw_r_not_driving": "O piloto não está pilotando o carro agora"
 }

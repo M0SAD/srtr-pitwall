@@ -60,8 +60,30 @@ export function CrewRoom(props: {
       setFailed(false);
       setSt(
         "room",
-        reconcile({ driver: r.driver ?? null, control_on: !!r.control_on, members: Array.isArray(r.members) ? r.members : [] }, { key: "id" }),
+        reconcile(
+          {
+            driver: r.driver ?? null,
+            control_on: !!r.control_on,
+            members: Array.isArray(r.members) ? r.members : [],
+            racing: r.racing,
+            spotter: r.spotter ?? null,
+            spotter_me: !!r.spotter_me,
+            can_write: r.can_write,
+            cleared_at: r.cleared_at ?? null,
+          },
+          { key: "id" },
+        ),
       );
+      // c75: sürücü yarıştan çıkınca oda boşalır (sunucu mesajları siler); eldeki mesajlar da atılır
+      if (r.racing === false) {
+        last = "";
+        if (msgs().length) setSt("msgs", []);
+        return;
+      }
+      if (r.cleared_at && msgs().some((m) => m.at <= r.cleared_at!)) {
+        const cut = new Date(r.cleared_at).getTime();
+        setSt("msgs", (l) => l.filter((m) => new Date(m.at).getTime() > cut));
+      }
       const add = r.messages ?? [];
       if (add.length) {
         const first = !last;
@@ -115,7 +137,8 @@ export function CrewRoom(props: {
     if (failed() && !room() && props.legacySend) return props.legacySend(body.slice(0, 120));
     setSending(true);
     try {
-      await crewChatSend(owner(), body);
+      const id = await crewChatSend(owner(), body);
+      if (id === null) setErr(t("Sürücü şu an yarışta değil: ekip odası kapalı."));
       await load(true);
       scrollDown(true);
     } catch (e) {
@@ -133,6 +156,18 @@ export function CrewRoom(props: {
 
   const present = createMemo(() => (room()?.members ?? []).filter((m) => m.present));
   const away = createMemo(() => (room()?.members ?? []).filter((m) => !m.present));
+  // c75: odaya yalnızca o anki spotter yazar (eski sunucu alanı göndermez: herkes yazabilir)
+  const closed = () => room()?.racing === false;
+  const readOnly = () => !!room() && room()!.can_write === false;
+  const isDriver = () => !!me() && owner() === me();
+  const whyReadOnly = () => {
+    const r = room();
+    if (!r || !readOnly()) return "";
+    if (closed()) return t("Ekip odası yalnızca sürücü yarıştayken açıktır. Yarış bitince sohbet silinir.");
+    if (isDriver()) return r.spotter ? t("Bu odaya yalnızca spotter'ın yazabilir.") : t("Şu an spotter'ın yok. Odaya yalnızca spotter yazabilir.");
+    if (r.spotter) return t("Spotter: {0} — sadece izliyorsun. Odaya yalnızca spotter yazabilir.", r.spotter.name || "?");
+    return t("Odaya yalnızca spotter yazabilir. Spotter olmak için pit ayarlarını değiştirme yetkisi gerekir.");
+  };
   const roleText = (r: CrewChatMsg["role"]) => (r === "driver" ? t("Sürücü") : r === "control" ? t("Pit yetkilisi") : "");
 
   return (
@@ -148,6 +183,12 @@ export function CrewRoom(props: {
       <Show when={room()} fallback={<p class="muted small">{failed() ? t("Ekip odası okunamadı. Daha sonra tekrar dene.") : t("Yükleniyor…")}</p>}>
         {(r) => (
           <div class="crm-members">
+            <Show when={r().racing !== undefined && !closed()}>
+              <p class="crm-spot" classList={{ me: !!r().spotter_me, none: !r().spotter }}>
+                <Ic n="wrench" />
+                <span data-no-i18n>{r().spotter_me ? t("Spotter: sen") : r().spotter ? t("Spotter: {0}", r().spotter!.name || "?") : t("Spotter: yok")}</span>
+              </p>
+            </Show>
             <Show when={r().driver}>
               {(d) => (
                 <div class="crm-m drv" classList={{ off: !d().online }} title={d().racing ? t("Yarışta") : d().online ? t("Çevrimiçi") : t("Çevrimdışı")}>
@@ -165,11 +206,22 @@ export function CrewRoom(props: {
                 <div class="crm-m" classList={{ me: m.me }}>
                   <i class="crm-dot" />
                   <b data-no-i18n>{m.name || "?"}</b>
+                  <Show when={m.spotter}>
+                    <em class="crm-tag ctl spot" title={t("Pit ayarlarını yöneten ve odaya yazabilen tek kişi")}>
+                      <Ic n="wrench" />
+                      {t("Spotter")}
+                    </em>
+                  </Show>
+                  <Show when={!m.spotter && r().spotter}>
+                    <em class="crm-tag">{t("İzliyor")}</em>
+                  </Show>
+                  <Show when={!m.spotter && !r().spotter}>
                   <Show when={m.can_control} fallback={<em class="crm-tag">{t("İzliyor")}</em>}>
                     <em class="crm-tag ctl" classList={{ idle: !r().control_on }} title={r().control_on ? t("Yakıt ve lastik ayarlarını değiştirebilir") : t("Yetkili, ancak sürücü ekip kontrolünü kapattı")}>
                       <Ic n="wrench" />
                       {t("Pit yetkilisi")}
                     </em>
+                  </Show>
                   </Show>
                 </div>
               )}
@@ -183,7 +235,7 @@ export function CrewRoom(props: {
         )}
       </Show>
       <div class="crm-chat" ref={listEl} data-no-i18n>
-        <Show when={msgs().length > 0} fallback={<p class="crm-empty">{t("Henüz mesaj yok. Buraya yazılanları sürücü ve odadaki tüm ekip görür.")}</p>}>
+        <Show when={msgs().length > 0} fallback={<p class="crm-empty">{closed() ? t("Sürücü şu an yarışta değil. Ekip odası yarış başlayınca açılır.") : t("Henüz mesaj yok. Buraya yazılanları sürücü ve odadaki tüm ekip görür.")}</p>}>
           <For each={msgs()}>
             {(m) => (
               <div class="crm-msg" classList={{ mine: m.sender === me(), [m.role]: true }}>
@@ -203,7 +255,7 @@ export function CrewRoom(props: {
           </For>
         </Show>
       </div>
-      <Show when={props.quick}>
+      <Show when={props.quick && !readOnly()}>
         <div class="pg crm-quick">
           <div class="pg-quick">
             <For each={WALL_MSGS}>
@@ -217,16 +269,23 @@ export function CrewRoom(props: {
           </div>
         </div>
       </Show>
-      <div class="crm-input">
+      <Show when={readOnly()}>
+        <p class="pg-lock crm-ro">
+          <Ic n="lock" />
+          <span>{whyReadOnly()}</span>
+        </p>
+      </Show>
+      <div class="crm-input" classList={{ hide: readOnly() }}>
         <input
           class="input"
           maxLength={CREW_CHAT_MAX}
+          disabled={readOnly()}
           placeholder={t("Ekip odasına yaz (sürücü ve ekip görür)")}
           value={text()}
           onInput={(e) => setText(e.currentTarget.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
-        <button class="btn small" disabled={sending() || !text().trim()} onClick={submit}>
+        <button class="btn small" disabled={readOnly() || sending() || !text().trim()} onClick={submit}>
           Gönder
         </button>
       </div>

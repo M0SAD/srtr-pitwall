@@ -16,7 +16,7 @@ import { LayoutCanvas } from "../components/LayoutCanvas";
 import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
-import { CanvasOptions, CanvasTools, GhostPanel, newLayout } from "./LayoutsPage";
+import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useEscClose } from "./LayoutsPage";
 import * as I from "../icons";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockBox } from "../components/ProLock";
@@ -179,6 +179,8 @@ export function StreamingPage() {
       setGhost(type);
     }
   };
+  const closeSet = () => (setSel(null), setGhost(null));
+  useEscClose(() => !linked() && !!(sel() || ghost()), closeSet);
   // Seçili kopya düzenden çıktıysa seçim bırakılır
   createEffect(() => {
     const k = sel();
@@ -354,7 +356,7 @@ export function StreamingPage() {
             </div>
             <Show
               when={linked()}
-              fallback={<LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={(k) => (setSel(k), k && setGhost(null))} globalScale={false} zoom={zoom()} onZoom={setZoom} backdrop readOnly={locked()} />}
+              fallback={<LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={(k) => (setSel(k), setGhost(null))} globalScale={false} zoom={zoom()} onZoom={setZoom} backdrop readOnly={locked()} />}
             >
               <LayoutCanvas profileId={p()!.id} source={view()} readOnly backdrop width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} zoom={zoom()} onZoom={setZoom} />
               <div class="slink">
@@ -393,10 +395,10 @@ export function StreamingPage() {
             </Show>
           </section>
           <Show when={!linked() && sel()} keyed>
-            {(k) => <OverlaySettings key={k} profileId={p()!.id} mode="layout" stream onRemove={() => remove(k)} readOnly={locked()} />}
+            {(k) => <OverlaySettings key={k} profileId={p()!.id} mode="layout" stream onRemove={() => remove(k)} readOnly={locked()} onClose={closeSet} />}
           </Show>
           <Show when={!linked() && !sel() && ghost()} keyed>
-            {(g) => <GhostPanel type={g} onAdd={() => add(g)} disabled={locked()} />}
+            {(g) => <GhostPanel type={g} onAdd={() => add(g)} disabled={locked()} onClose={closeSet} />}
           </Show>
         </Show>
       </div>

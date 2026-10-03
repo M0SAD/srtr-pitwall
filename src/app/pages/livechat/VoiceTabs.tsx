@@ -471,6 +471,12 @@ export function SttTab() {
           </div>
           <Switch checked={v().enabled && !locked()} disabled={locked() || !supported()} onChange={(on) => setStt((x) => (x.enabled = on))} />
         </div>
+        <Show when={cloud() && st() && !st()!.hasKey && !isLocal()}>
+          <div class="lcp-note lcp-warnnote">
+            “Çevrimiçi (Whisper)” motoru için API anahtarı girilmemiş: anahtar girilene kadar <b>Windows motoruyla</b> (yalnızca mikrofon, Windows'ta
+            kurulu konuşma tanıma diliyle) dinlenir; bilgisayar sesi (Discord) yazıya çevrilmez. Anahtarı aşağıdaki <b>Motor</b> bölümüne yapıştır.
+          </div>
+        </Show>
         <Show when={v().enabled && st()?.error}>
           <div class="lcp-err" data-no-i18n style={{ "white-space": "pre-line" }}>
             {st()!.error}

@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "En målstapel för streamare – till exempel “100 följare” eller ett donationsmål. Öka räknaren för hand eller låt den räkna automatiskt från livechattens larm (nya följare, prenumeranter / medlemmar, donationer). Den visar rubrik, mål, procent och om du vill raden “senaste supporter”. Den smala stapeln och pillret med ikon är gratis; den stora måltavlan är PRO.",
  "ovg_webview": "Visar vilken webbsida som helst som overlay ovanpå spelet. Använd den för streamlarm, en timer, en annan sajts chatt eller en panel du byggt själv – klistra bara in adressen.",
  "ovg_messages": "Visar inkommande meddelanden från vänner, team och grupper som små bubblor medan du kör; de försvinner av sig själva efter några sekunder. Du bestämmer vems meddelanden som visas – alla vänner, ditt team eller bara de du väljer. Med PRO läses meddelandena också upp, så att blicken stannar på banan.",
- "ovg_voice": "Visar även som text vad Röstingenjören eller spottern säger. Ingenjören och spottern får egna färger och etiketter, och texten försvinner när de tystnar. Bra om du har låg volym, inte vill missa ett anrop eller vill att tittarna på streamen ska hänga med. Fungerar tillsammans med Röstingenjören (PRO)."
+ "ovg_voice": "Visar även som text vad Röstingenjören eller spottern säger. Ingenjören och spottern får egna färger och etiketter, och texten försvinner när de tystnar. Bra om du har låg volym, inte vill missa ett anrop eller vill att tittarna på streamen ska hänga med. Fungerar tillsammans med Röstingenjören (PRO).",
+ "cw_none_race": "Ingen vän som lagt till dig i sin crew kör lopp just nu. Här listas bara vänner som kör lopp just nu; en förare som lämnar loppet försvinner från listan och crewrummets chatt raderas. En vän lägger till dig i sin crew i SRTR Pitwall-appen under <b>Inställningar › Delning › Crew</b>.",
+ "cw_spot_me": "Spotter: du",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: ingen",
+ "cw_spot_other": "Spotter: {0} — endast visning",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "Den enda som sköter depåinställningarna och kan skriva i rummet",
+ "cw_b_spot": "Spotter: {0} — du tittar bara. Bara en person åt gången kan sköta depåinställningarna; när platsen blir ledig tar du över.",
+ "cw_ro_spot": "Spotter: {0} — du tittar bara. Bara spottern kan skriva i rummet.",
+ "cw_ro_view": "Bara spottern kan skriva i rummet. För att bli spotter krävs behörighet att ändra depåinställningarna.",
+ "cw_ro_closed": "Crewrummet är bara öppet medan föraren kör lopp. Chatten raderas när loppet är slut.",
+ "cw_room_closed": "Föraren kör inte lopp just nu. Crewrummet öppnas när loppet startar.",
+ "cw_gone_race": "Föraren lämnade loppet: crewrummet har stängts.",
+ "cw_r_spot_only": "Bara spottern kan skriva meddelanden",
+ "cw_r_spot_busy": "En annan spotter sköter depåinställningarna just nu: du kan bara titta",
+ "cw_r_not_driving": "Föraren kör inte bilen just nu"
 }

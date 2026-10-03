@@ -333,7 +333,7 @@ export function ObsTab() {
         }
       >
         <div classList={{ "prolock-dim": locked() }}>
-          <CopyUrl label={t("Canlı Sohbet")} url={`${base()}/livechat`} hint={t("Önerilen boyut: 400 × 600")} />
+          <CopyUrl label={t("Canlı Sohbet")} url={`${base()}/livechat`} hint={t("Önerilen boyut: 600 × 400 (sohbet kaynağın tamamını doldurur)")} />
           <CopyUrl label={t("Anket")} url={`${base()}/livepoll`} hint={t("Sadece anket kutusu (anket yokken boş). 500 × 400")} />
           <CopyUrl label={t("Altyazı")} url={`${base()}/captions`} hint={t("Konuşma → yazı altyazısı, alt ortada. 1920 × 300")} />
         </div>

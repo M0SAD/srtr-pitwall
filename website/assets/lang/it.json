@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Una barra di avanzamento dell'obiettivo per streamer: “100 follower”, per esempio, o un obiettivo di donazioni. Aumenta il contatore a mano oppure lascia che conti da solo dagli avvisi della chat live (nuovi follower, abbonati / membri, donazioni). Mostra titolo, obiettivo, percentuale e, se vuoi, la riga “ultimo sostenitore”. I design barra sottile e pillola con icona sono gratis; il grande tabellone obiettivo è PRO.",
  "ovg_webview": "Mostra qualsiasi pagina web come overlay sopra il gioco. Usalo per gli avvisi dello streaming, un timer, la chat di un altro sito o un pannello creato da te: basta incollare l'indirizzo.",
  "ovg_messages": "Mostra in piccoli fumetti i messaggi di amici, team e gruppi che arrivano mentre guidi; scompaiono da soli dopo qualche secondo. Decidi tu di chi mostrare i messaggi: tutti gli amici, il tuo team o solo le persone che scegli. Con PRO i messaggi vengono anche letti ad alta voce, così non stacchi gli occhi dalla pista.",
- "ovg_voice": "Mostra anche come testo ciò che dicono l'Ingegnere vocale o lo spotter. L'ingegnere e lo spotter hanno colori ed etichette separati, e il testo scompare quando smettono di parlare. Utile se tieni il volume basso, non vuoi perderti una chiamata o vuoi che gli spettatori dello streaming possano seguire. Funziona insieme all'Ingegnere vocale (PRO)."
+ "ovg_voice": "Mostra anche come testo ciò che dicono l'Ingegnere vocale o lo spotter. L'ingegnere e lo spotter hanno colori ed etichette separati, e il testo scompare quando smettono di parlare. Utile se tieni il volume basso, non vuoi perderti una chiamata o vuoi che gli spettatori dello streaming possano seguire. Funziona insieme all'Ingegnere vocale (PRO).",
+ "cw_none_race": "Al momento nessun amico che ti ha aggiunto alla sua crew è in gara. Qui compaiono solo gli amici in gara in quel momento; il pilota che esce dalla gara sparisce dall'elenco e la chat della stanza crew viene eliminata. Un amico ti aggiunge alla sua crew nell'app SRTR Pitwall da <b>Impostazioni › Condivisione › Crew</b>.",
+ "cw_spot_me": "Spotter: tu",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: nessuno",
+ "cw_spot_other": "Spotter: {0} — sola visione",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "L'unica persona che gestisce le impostazioni pit e può scrivere nella stanza",
+ "cw_b_spot": "Spotter: {0} — stai solo guardando. Le impostazioni pit possono essere gestite da una sola persona alla volta; quando il posto si libera passa a te.",
+ "cw_ro_spot": "Spotter: {0} — stai solo guardando. Solo lo spotter può scrivere nella stanza.",
+ "cw_ro_view": "Solo lo spotter può scrivere nella stanza. Per diventare spotter serve il permesso di modificare le impostazioni pit.",
+ "cw_ro_closed": "La stanza crew è aperta solo mentre il pilota è in gara. A fine gara la chat viene eliminata.",
+ "cw_room_closed": "Il pilota non è in gara al momento. La stanza crew si apre quando inizia la gara.",
+ "cw_gone_race": "Il pilota è uscito dalla gara: la stanza crew è stata chiusa.",
+ "cw_r_spot_only": "Solo lo spotter può scrivere messaggi",
+ "cw_r_spot_busy": "Un altro spotter sta gestendo le impostazioni pit: puoi solo guardare",
+ "cw_r_not_driving": "Il pilota non sta guidando l'auto in questo momento"
 }

@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { onScreen, type OverlayProps } from "@/sdk/overlay";
+import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { inTauri } from "@/sdk/platform";
 import { OVMSG_CLEAR_EVENT, OVMSG_EVENT, ovMsgAccepts, ovMsgSpeaks, registerOvMsgFilter, type OvMsg } from "@/sdk/ovmsg";
@@ -86,11 +86,12 @@ export default function Messages(props: OverlayProps) {
   }, 500);
   onCleanup(() => clearInterval(tick));
 
-  // Örnek mesajlar yalnızca yerleştirme / önizleme içindir: panel içi önizleme, sabitlenmiş önizleme ve düzenleme
-  // modu. Demo modu mesaj benzetmez: Demo açıkken (düzenleme modunda bile) yalnızca gerçek mesajlar gösterilir;
-  // düzenleme çerçevesi overlay'i taşımaya yeter.
+  // Örnek mesajlar: panel içi önizleme, sabitlenmiş önizleme, düzenleme modu ve Demo modu. Gerçek bir mesaj
+  // geldiği anda örnekler kalkar (aşağıda: items doluysa yalnızca gerçek mesajlar) ve o mesajların ekranda kalma
+  // süresi dolana dek geri gelmez; hepsi silinince, Demo hâlâ açıksa örnekler yeniden gösterilir.
+  // Örnekler hiçbir zaman sesli okunmaz (speak yalnızca gerçek olay dinleyicisinden çağrılır).
   const status = useTopic("status");
-  const sample = () => props.editing && (!onScreen() || !status()?.demo);
+  const sample = () => props.editing || !!status()?.demo;
   const shown = createMemo<Item[]>(() => {
     const list = items().length ? items().slice(-maxN()) : sample() ? SAMPLE.slice(-maxN()).map((m) => ({ m, at: now() })) : [];
     return o().newestTop ? [...list].reverse() : list;

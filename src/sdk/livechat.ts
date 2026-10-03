@@ -211,6 +211,8 @@ export interface PollView {
   /** Türkçe özet (kayıt için) */
   resultText: string;
   rev: number;
+  /** Anket kısayolu basılıyken dikte edilen soru (dikte sürmüyorsa yok) */
+  dictation?: string | null;
 }
 
 export interface CaptionLine {
@@ -544,6 +546,8 @@ export interface SttStatus {
   notice: string | null;
   /** Çevrimiçi motorun API anahtarı kayıtlı */
   hasKey: boolean;
+  /** "Çevrimiçi (Whisper)" seçili ama API anahtarı yok: Windows motoruyla (yalnızca mikrofon) dinleniyor */
+  fallback?: boolean;
   mic: SttSource;
   system: SttSource;
 }

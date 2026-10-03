@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Tavoitteen edistymispalkki striimaajille: esimerkiksi “100 seuraajaa” tai lahjoitustavoite. Voit kasvattaa laskuria käsin tai antaa sen laskea itsestään live-chatin hälytyksistä (uusi seuraaja, tilaaja / jäsen, lahjoitus). Näkyvissä ovat otsikko, tavoite, prosentti ja halutessasi “viimeisin tukija” -rivi. Ohut palkki ja kuvakepilleri ovat ilmaisia, iso tavoitetaulu on PRO.",
  "ovg_webview": "Näyttää minkä tahansa verkkosivun overlayna pelin päällä. Voit käyttää sitä striimihälytyksiin, ajastimeen, toisen sivuston chattiin tai itse tekemääsi paneeliin; riittää, että liität osoitteen.",
  "ovg_messages": "Näyttää ajaessasi saapuvat kaveri-, tiimi- ja ryhmäviestit pieninä kuplina ruudulla; ne katoavat itsestään muutaman sekunnin kuluttua. Päätät itse, kenen viestit näkyvät (kaikki kaverit, tiimi tai valitsemasi henkilöt). PRO:lla viestit luetaan myös ääneen, joten katseesi pysyy radassa.",
- "ovg_voice": "Näyttää myös tekstinä, mitä Puhuva insinööri tai spotter sanoo. Insinööri ja spotter näkyvät omalla värillään ja tunnisteellaan; kun he vaikenevat, teksti katoaa itsestään. Hyödyllinen niille, jotka pitävät äänen hiljaisella, eivät halua missata ilmoitusta, sekä striimin katsojille. Toimii yhdessä Puhuvan insinöörin (PRO) kanssa."
+ "ovg_voice": "Näyttää myös tekstinä, mitä Puhuva insinööri tai spotter sanoo. Insinööri ja spotter näkyvät omalla värillään ja tunnisteellaan; kun he vaikenevat, teksti katoaa itsestään. Hyödyllinen niille, jotka pitävät äänen hiljaisella, eivät halua missata ilmoitusta, sekä striimin katsojille. Toimii yhdessä Puhuvan insinöörin (PRO) kanssa.",
+ "cw_none_race": "Yksikään kaveri, joka on lisännyt sinut miehistöönsä, ei ole nyt kisassa. Tässä näkyvät vain parhaillaan kisassa olevat kaverit; kisasta poistuva kuljettaja putoaa listalta ja miehistöhuoneen chat poistetaan. Kaveri lisää sinut miehistöönsä SRTR Pitwall -sovelluksessa kohdasta <b>Asetukset › Jako › Miehistö</b>.",
+ "cw_spot_me": "Spotter: sinä",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: ei ole",
+ "cw_spot_other": "Spotter: {0} — vain katselu",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "Ainoa henkilö, joka hallitsee varikkoasetuksia ja voi kirjoittaa huoneeseen",
+ "cw_b_spot": "Spotter: {0} — sinä vain katsot. Varikkoasetuksia voi hallita vain yksi kerrallaan; kun paikka vapautuu, se siirtyy sinulle.",
+ "cw_ro_spot": "Spotter: {0} — sinä vain katsot. Huoneeseen voi kirjoittaa vain spotter.",
+ "cw_ro_view": "Huoneeseen voi kirjoittaa vain spotter. Spotteriksi pääsy vaatii luvan muuttaa varikkoasetuksia.",
+ "cw_ro_closed": "Miehistöhuone on auki vain, kun kuljettaja on kisassa. Chat poistetaan kisan päätyttyä.",
+ "cw_room_closed": "Kuljettaja ei ole nyt kisassa. Miehistöhuone aukeaa, kun kisa alkaa.",
+ "cw_gone_race": "Kuljettaja poistui kisasta: miehistöhuone suljettiin.",
+ "cw_r_spot_only": "Vain spotter voi kirjoittaa viestejä",
+ "cw_r_spot_busy": "Varikkoasetuksia hallitsee juuri nyt toinen spotter: voit vain katsoa",
+ "cw_r_not_driving": "Kuljettaja ei aja autoa juuri nyt"
 }

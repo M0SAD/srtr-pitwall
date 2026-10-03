@@ -19,6 +19,8 @@ import "./style.css";
 
 interface Group {
   info: ClassInfo;
+  /** Oyuncunun sınıfı (ya da izleyicide her sınıf): "önümde/arkamda" satırları da ayrılır */
+  mine: boolean;
   rows: (Row | null)[]; // null = "…" ayırıcı
 }
 
@@ -39,6 +41,8 @@ function pick(rows: Row[], top: number, around: number, mine: boolean): (Row | n
   for (let i = 0; i < Math.min(top, rows.length); i++) keep.add(i);
   const me = rows.findIndex((r) => r.isMe);
   if (mine && me >= 0) for (let i = Math.max(0, me - around); i <= Math.min(rows.length - 1, me + around); i++) keep.add(i);
+  // Ayrılan satır sayısı dolsun: oyuncu öndeyse (ya da pist kenarındaysa) boş kalan yere sıradaki araçlar gelir
+  if (mine) for (let i = Math.min(top, rows.length); keep.size < Math.min(top + 2 * around + 1, rows.length) && i < rows.length; i++) keep.add(i);
   const out: (Row | null)[] = [];
   let last = -1;
   for (const i of [...keep].sort((a, b) => a - b)) {
@@ -48,6 +52,13 @@ function pick(rows: Row[], top: number, around: number, mine: boolean): (Row | n
   }
   if (out.length === 0 && rows.length > 0) out.push(rows[0]);
   return out;
+}
+
+/** Bir sınıf bölümünün ayırdığı satır sayısı: pencere boyu araç sayısından bağımsız, hep bu kadar yer tutar */
+function capOf(o: Record<string, any>, mine: boolean): number {
+  if ((o.drivers ?? "all") !== "smart") return Math.max(1, Number(o.maxRows) || 8);
+  const top = mine ? (o.topOwn ?? 8) : (o.topOther ?? 3);
+  return Math.max(1, Number(top) + (mine ? 2 * Number(o.around ?? 2) + 1 : 0));
 }
 
 /** Eski ayarlardan (showFlair vb.) sütun listesi */
@@ -94,10 +105,10 @@ export default function Standings(props: OverlayProps) {
         : trim(rows, max);
     if (!d.multiclass) {
       const info = d.classes[0] ?? { id: 0, name: "", color: "#888", count: all.length, sof: 0 };
-      return [{ info, rows: sel(all, true) }];
+      return [{ info, mine: true, rows: sel(all, true) }];
     }
     return d.classes
-      .map((c) => ({ info: c, rows: sel(all.filter((r) => r.classId === c.id), c.id === myClass || myClass === undefined) }))
+      .map((c) => ({ info: c, mine: c.id === myClass || myClass === undefined, rows: sel(all.filter((r) => r.classId === c.id), c.id === myClass || myClass === undefined) }))
       .filter((g) => g.rows.length > 0);
   });
 
@@ -213,10 +224,18 @@ export default function Standings(props: OverlayProps) {
     );
   };
 
+  /** Bölümün sabit yüksekliği için CSS değişkenleri (satır sayısı, sınıf başlığı, "⋯" ayırıcı payı) */
+  const capStyle = (mine: boolean, head: boolean) => {
+    const smart = (props.options.drivers ?? "all") === "smart";
+    // "Hepsi" kipinde ayırıcı bir satırın yerini alır; akıllı kipte kendi sınıfımda satırlara ek olarak çıkabilir
+    const sep = smart && mine && Number(props.options.topOwn ?? 8) > 0;
+    return { "--st-cap": String(capOf(props.options, mine)), "--st-hd": head ? "1" : "0", "--st-sep": sep ? "1" : "0" };
+  };
+
   const rowBg = () => (props.options.rowOpacity as number) ?? 100;
 
   return (
-    <div class="ov-panel st" style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
+    <div class="ov-panel st" data-per={(props.options.drivers ?? "all") === "smart" ? Math.max(1, groups().filter((g) => g.mine).length) : Math.max(1, groups().length)} style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
       <Show when={props.options.showHeader && data()}>
         <div class="st-head" style={{ "font-size": `${barK(props.options.barSize)}em` }}>
           <Show
@@ -239,10 +258,13 @@ export default function Standings(props: OverlayProps) {
           </span>
         </div>
       </Show>
-      <Show when={groups().length > 0} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
+      <Show when={props.options.showHeader && !data()}>
+        <div class="st-head" style={{ "font-size": `${barK(props.options.barSize)}em` }}>&nbsp;</div>
+      </Show>
+      <Show when={groups().length > 0} fallback={<div class="st-group st-wait mine" style={capStyle(true, false)}><div class="ov-empty">Veri bekleniyor…</div></div>}>
         <For each={groupIds()}>
           {(id) => (
-            <div class="st-group">
+            <div class="st-group" classList={{ mine: !!groupOf(id)?.mine }} style={capStyle(!!groupOf(id)?.mine, !!data()?.multiclass)}>
               <Show when={data()?.multiclass && groupOf(id)}>
                 <div class="st-class">
                   <span class="st-ribbon" style={{ background: groupOf(id)?.info.color || "#888" }}>

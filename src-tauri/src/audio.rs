@@ -25,6 +25,13 @@ static TX: OnceLock<Sender<Cmd>> = OnceLock::new();
 /// Mühendis ya da spotter şu an konuşuyor mu (ses iş parçacığı en geç 100 ms'de bir günceller)
 static BUSY: AtomicBool = AtomicBool::new(false);
 
+/// Varsayılan ses çıkışı açılamadı (ses iş parçacığı komutları sessizce tüketiyor)
+static NO_DEVICE: AtomicBool = AtomicBool::new(false);
+
+pub fn no_device() -> bool {
+    NO_DEVICE.load(Ordering::Relaxed)
+}
+
 /// Ses kanalı meşgul mü: sesli mühendis kuyruğu bir sonraki mesajı bunun bitmesini bekleyerek gönderir
 pub fn busy() -> bool {
     BUSY.load(Ordering::Relaxed)
@@ -54,6 +61,7 @@ fn run(rx: Receiver<Cmd>) {
     // Ses aygıtı yoksa (ör. sunucu) komutları sessizce tüket
     let Ok((_stream, handle)) = OutputStream::try_default() else {
         BUSY.store(false, Ordering::Relaxed);
+        NO_DEVICE.store(true, Ordering::Relaxed);
         while rx.recv().is_ok() {}
         return;
     };

@@ -5,7 +5,8 @@ import { useTopic } from "@/sdk/telemetry";
 import { t } from "@/sdk/i18n";
 import { fmtCount, gateMode, shortName, type ChatMsg, type GateMode, type Platform } from "@/sdk/livechat";
 import { createChatSim } from "./sim";
-import { CaptionBox, PlatformIcon, PollBox, fontStack } from "./parts";
+import { inTauri, query } from "@/sdk/platform";
+import { CaptionBox, PlatformIcon, PollBox, PollDictBox, fontStack } from "./parts";
 import "./style.css";
 
 const ALERT_COLORS: Record<string, string> = {
@@ -47,6 +48,9 @@ function alertLine(m: ChatMsg): { emoji: string; text: string } {
       return { emoji: "", text: "" };
   }
 }
+
+/** Tarayıcıda açılan tek overlay sayfası (OBS tarayıcı kaynağı: /livechat): sohbet kaynağın boyutuna uyar */
+const OBS_FILL = !inTauri && query.get("only") === "livechat";
 
 export default function LiveChat(props: OverlayProps) {
   const o = () => props.options;
@@ -213,9 +217,11 @@ export default function LiveChat(props: OverlayProps) {
       class="lc"
       classList={{ top: !!o().newestTop }}
       style={{
-        width: `${Number(o().width) || 480}px`,
+        // OBS tarayıcı kaynağı: kutu kaynağın tamamını doldurur (önerilen 600 × 400; mesajlar tüm genişliğe yayılır,
+        // alt kenara yaslıdır). Overlay penceresinde ayarlardaki genişlik / yükseklik kullanılır.
+        width: OBS_FILL ? "100%" : `${Number(o().width) || 480}px`,
         // Sabit yükseklik: liste alta yaslı kalır, tek mesaj da kutunun alt kenarında görünür (bkz. style.css)
-        height: `${Math.max(120, Number(o().height) || 600)}px`,
+        height: OBS_FILL ? "calc(100vh - 16px)" : `${Math.max(120, Number(o().height) || 600)}px`,
         "font-size": `${Number(o().fontSize) || 16}px`,
         "font-family": fontStack(String(o().font ?? "")),
         "--lc-emote": emote(),
@@ -242,6 +248,9 @@ export default function LiveChat(props: OverlayProps) {
             <span class="lc-bar-clock">{clock()}</span>
           </Show>
         </div>
+      </Show>
+      <Show when={o().showPoll && real() && (poll()?.state ?? "idle") === "idle" && poll()?.dictation != null}>
+        <PollDictBox text={poll()!.dictation ?? ""} />
       </Show>
       <Show when={o().showPoll && real() && (poll()?.state ?? "idle") !== "idle"}>
         <PollBox poll={poll()!} />

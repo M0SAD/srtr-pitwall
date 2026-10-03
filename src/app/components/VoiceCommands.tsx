@@ -12,6 +12,7 @@ import { t } from "@/sdk/i18n";
 import { Slider, Switch } from "./SettingsForm";
 import { go } from "../ui";
 import * as I from "../icons";
+import "../voice.css";
 
 interface CmdStatus {
   supported: boolean;
@@ -25,10 +26,18 @@ interface CmdStatus {
   recTag: string;
   mode: "list" | "dictation" | "";
   fallback: boolean;
+  engine: "auto" | "windows" | "online";
+  useEngine: "windows" | "online";
+  native: boolean;
+  cloudReady: boolean;
+  cloudProblem: "" | "cloud_key" | "cloud_url";
+  cloudHasKey: boolean;
+  cloudHost: string;
+  cloudModel: string;
 }
 
 interface CmdEvent {
-  state: "listening" | "heard" | "idle" | "error" | "";
+  state: "listening" | "processing" | "heard" | "idle" | "error" | "";
   heard: string;
   intent: string;
   score: number;
@@ -106,13 +115,18 @@ const ERRORS: Record<string, string> = {
   network: "Ağ hatası: Windows konuşma tanıma hizmetine ulaşılamadı.",
   no_recognizer: "Windows'ta kurulu bir konuşma tanıma dili bulunamadı.",
   pro: "Sesli komut PRO üyelere özel.",
+  cloud_key: "Çevrimiçi tanıma için API anahtarı girilmedi: aşağıdaki “Çevrimiçi tanıma anahtarı” alanına anahtarını yapıştır.",
+  cloud_url: "Çevrimiçi tanıma sunucusunun adresi ya da modeli geçersiz: Canlı Sohbet › Konuşma → yazı sayfasından sağlayıcıyı seç.",
 };
+
+/** Sesli komut kilitli mi (PRO değil): ayarlar görünür ama değiştirilemez */
+export const voiceCmdLocked = () => proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE);
 
 const cmd = () => settings().general.voice.commands;
 const setCmd = (fn: (x: VoiceCommandSettings) => void) => updateSettings((d) => fn(d.general.voice.commands));
 
 /** Bas-konuş klavye tuşu satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak) */
-export function PttKeyRow(props: { label?: string }) {
+export function PttKeyRow(props: { label?: string; disabled?: boolean }) {
   const [rec, setRec] = createSignal(false);
   // Kaydederken PrintScreen kancası duraklar (bkz. ShortcutsPanel)
   const setRecording = (on: boolean) => {
@@ -152,10 +166,10 @@ export function PttKeyRow(props: { label?: string }) {
         <Show when={clash()}>{(a) => <small class="sc-err">{t("Çakışma: “{0}” ile aynı tuş", t(SHORTCUT_LABELS[a()]))}</small>}</Show>
       </div>
       <div class="sc-keys">
-        <button class="sc-key" classList={{ rec: rec() }} onClick={() => setRecording(!rec())}>
+        <button class="sc-key" classList={{ rec: rec() }} disabled={props.disabled} onClick={() => setRecording(!rec())}>
           {rec() ? "Tuşlara bas…" : cmd().key ? prettyKey(cmd().key) : "Tuş ata"}
         </button>
-        <button class="btn ghost small" title="Tuşu kaldır" disabled={!cmd().key} onClick={() => setCmd((x) => (x.key = ""))}>
+        <button class="btn ghost small" title="Tuşu kaldır" disabled={props.disabled || !cmd().key} onClick={() => setCmd((x) => (x.key = ""))}>
           Kaldır
         </button>
       </div>
@@ -164,7 +178,7 @@ export function PttKeyRow(props: { label?: string }) {
 }
 
 /** Bas-konuş dinleme kipi satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak) */
-export function PttModeRow() {
+export function PttModeRow(props: { disabled?: boolean }) {
   return (
     <div class="row">
       <div>
@@ -176,10 +190,10 @@ export function PttModeRow() {
         </small>
       </div>
       <div class="seg small">
-        <button classList={{ on: cmd().mode !== "toggle" }} onClick={() => setCmd((x) => (x.mode = "hold"))}>
+        <button classList={{ on: cmd().mode !== "toggle" }} disabled={props.disabled} onClick={() => setCmd((x) => (x.mode = "hold"))}>
           Basılı tut
         </button>
-        <button classList={{ on: cmd().mode === "toggle" }} onClick={() => setCmd((x) => (x.mode = "toggle"))}>
+        <button classList={{ on: cmd().mode === "toggle" }} disabled={props.disabled} onClick={() => setCmd((x) => (x.mode = "toggle"))}>
           Dokun-başlat
         </button>
       </div>
@@ -192,6 +206,14 @@ export function PttButtonRow(props: { disabled?: boolean }) {
   const [capturing, setCapturing] = createSignal(false);
   const [captureMsg, setCaptureMsg] = createSignal("");
   const bound = () => cmd().button;
+  // Atanan düğme / tuş şu an basılı mı (Rust: "voicecmd-ptt"): atamanın gerçekten görüldüğünü doğrulamak için
+  const [held, setHeld] = createSignal(false);
+  onMount(() => {
+    const un = listen<boolean>("voicecmd-ptt", (e) => setHeld(!!e.payload)).catch(() => null);
+    onCleanup(() => {
+      void un.then((f) => f?.());
+    });
+  });
   onCleanup(() => {
     if (capturing()) invoke("voicecmd_capture_cancel").catch(() => {});
   });
@@ -225,6 +247,9 @@ export function PttButtonRow(props: { disabled?: boolean }) {
             </small>
           )}
         </Show>
+        <Show when={held()}>
+          <small class="voice-cmd-held">Basılı: dinliyor</small>
+        </Show>
         <Show when={captureMsg()}>
           <small class="sc-err">{captureMsg()}</small>
         </Show>
@@ -233,7 +258,7 @@ export function PttButtonRow(props: { disabled?: boolean }) {
         <button class="sc-key" classList={{ rec: capturing() }} disabled={props.disabled} onClick={captureButton}>
           {capturing() ? "Düğmeye bas…" : "Direksiyon tuşu ata"}
         </button>
-        <button class="btn ghost small" title="Düğmeyi kaldır" disabled={!bound()} onClick={() => setCmd((x) => (x.button = null))}>
+        <button class="btn ghost small" title="Düğmeyi kaldır" disabled={props.disabled || !bound()} onClick={() => setCmd((x) => (x.button = null))}>
           Kaldır
         </button>
       </div>
@@ -242,12 +267,36 @@ export function PttButtonRow(props: { disabled?: boolean }) {
 }
 
 export function VoiceCommandsSection() {
-  const locked = () => proLocked(F.voiceCommands) || proLocked(VOICE_FEATURE);
+  const locked = voiceCmdLocked;
   const proOnly = () => requiresPro(F.voiceCommands) || requiresPro(VOICE_FEATURE);
   const [status, { refetch }] = createResource(
-    () => [cmd().language, settings().general.language, locked()] as const,
-    () => invoke<CmdStatus>("voicecmd_status").catch(() => null),
+    () => [cmd().language, cmd().engine, settings().general.language, settings().general.livechat.stt.cloud.url, settings().general.livechat.stt.cloud.model, locked()] as const,
+    // Ayar Rust'a ulaşsın diye kısa bir bekleme
+    () => new Promise<CmdStatus | null>((res) => setTimeout(() => invoke<CmdStatus>("voicecmd_status").then(res, () => res(null)), 350)),
   );
+  // Çevrimiçi tanıma anahtarı (Canlı Sohbet › Konuşma → yazı ile ortak; şifreli saklanır, geri okunamaz)
+  const [apiKey, setApiKey] = createSignal("");
+  const [keyMsg, setKeyMsg] = createSignal("");
+  const saveKey = async () => {
+    const k = apiKey().trim();
+    if (!k) return;
+    setKeyMsg("");
+    try {
+      await invoke("livechat_stt_key_set", { key: k });
+      setApiKey("");
+      setKeyMsg(t("Anahtar kaydedildi."));
+      refetch();
+    } catch (e) {
+      setKeyMsg(String(e));
+    }
+  };
+  const openUrl = (url: string) => invoke("open_url", { url }).catch(() => {});
+  const online = () => status()?.useEngine === "online";
+  // Çevrimiçi motor gerekiyor ama hazır değil (anahtar yok): ne yapılacağı gösterilir
+  const needsCloud = () => {
+    const s = status();
+    return !!s && !s.cloudReady && (s.engine === "online" || (s.engine === "auto" && !s.native));
+  };
   const [showExamples, setShowExamples] = createSignal(false);
   const [examples] = createResource(
     () => (showExamples() ? ([cmd().language, settings().general.language] as const) : null),
@@ -314,8 +363,9 @@ export function VoiceCommandsSection() {
         arayüz dilinde anlaşılır.
       </p>
       <Show when={locked()}>
-        <p class="muted small">
-          Sesli komut PRO üyelere özel.{" "}
+        <p class="pro-locked-note">
+          <span class="pro-badge">PRO</span> Sesli komut PRO üyelere özel: ayarlar açık görünür ama PRO olmadan çalışmaz ve
+          değiştirilemez.{" "}
           <button class="link" onClick={() => go("pro")}>
             PRO'ya bak
           </button>
@@ -325,18 +375,20 @@ export function VoiceCommandsSection() {
         <p class="error">Sesli komut yalnızca Windows'ta çalışır (Windows konuşma tanıma kullanılır).</p>
       </Show>
 
+      <div classList={{ "pro-locked-body": locked() }} inert={locked()}>
+
       <div class="row">
         <div>
           <b>Sesli komut açık</b>
           <small>Sesli mühendis kapalıyken de çalışır: “konuşabilirsin” diyerek mühendisi yeniden açabilirsin.</small>
         </div>
-        <Switch checked={cmd().enabled && !locked()} disabled={locked()} onChange={(on) => setCmd((x) => (x.enabled = on))} />
+        <Switch checked={cmd().enabled} disabled={locked()} onChange={(on) => setCmd((x) => (x.enabled = on))} />
       </div>
 
-      <PttModeRow />
+      <PttModeRow disabled={locked()} />
       <PttButtonRow disabled={locked()} />
 
-      <PttKeyRow />
+      <PttKeyRow disabled={locked()} />
 
       <div class="row">
         <div>
@@ -361,38 +413,109 @@ export function VoiceCommandsSection() {
           </For>
         </select>
       </div>
+      <div class="row">
+        <div>
+          <b>Tanıma motoru</b>
+          <small>
+            Otomatik: seçili dilin Windows konuşma tanıyıcısı kuruluysa o kullanılır (çevrimdışı), kurulu değilse çevrimiçi motora
+            geçilir. Windows'ta Türkçe konuşma tanıyıcısı yoktur: Türkçe komutlar çevrimiçi motorla tanınır.
+          </small>
+        </div>
+        <select class="f2-select" value={cmd().engine} onChange={(e) => setCmd((x) => (x.engine = e.currentTarget.value as VoiceCommandSettings["engine"]))}>
+          <option value="auto">Otomatik</option>
+          <option value="windows">Windows konuşma tanıma</option>
+          <option value="online">Çevrimiçi (Whisper)</option>
+        </select>
+      </div>
       <Show when={status()?.supported}>
-        <div class="voice-cmd-rec" classList={{ warn: !!status()!.fallback || !status()!.recTag }}>
-          <Show
-            when={status()!.recTag}
-            fallback={
-              <span>
-                {t(
-                  "Windows'ta kurulu bir konuşma tanıma dili bulunamadı. Windows Ayarları › Saat ve dil › Dil ve bölge › {0} › Dil seçenekleri › Konuşma tanıma › İndir yolundan dil paketini kur, sonra SRTR Pitwall'u yeniden başlat.",
-                  wantName(),
-                )}
-              </span>
-            }
-          >
+        <div class="voice-cmd-rec" classList={{ warn: needsCloud() || (!online() && (!!status()!.fallback || !status()!.recTag)) }}>
+          <Show when={online() && status()!.cloudReady}>
+            <span>
+              {t(
+                "Etkin motor: çevrimiçi (Whisper) · {0} · {1}. Tuşu basılı tutarken kaydeder, bırakınca sesi sunucuya gönderir ve komutu eşleştirir; internet gerekir.",
+                status()!.cloudHost,
+                wantName(),
+              )}
+            </span>
+          </Show>
+          <Show when={needsCloud()}>
+            <span>
+              {status()!.cloudProblem === "cloud_url"
+                ? t(ERRORS.cloud_url)
+                : status()!.engine === "online"
+                  ? t("Çevrimiçi motor seçili ama API anahtarı girilmedi: aşağıya anahtarını yapıştır. Anahtar olmadan komutlar dinlenmez.")
+                  : t(
+                      "Windows'ta {0} konuşma tanıyıcısı kurulu değil; {0} komutların tanınması için çevrimiçi motor gerekir ama API anahtarı girilmedi. Aşağıya anahtarını yapıştır (Groq anahtarı ücretsiz alınır).",
+                      wantName(),
+                    )}{" "}
+            </span>
+          </Show>
+          <Show when={!online()}>
             <Show
-              when={!status()!.fallback}
+              when={status()!.recTag}
               fallback={
                 <span>
                   {t(
-                    "Windows'ta {0} konuşma tanıma paketi kurulu değil: şimdilik İngilizce komutlar dinleniyor ({1}). Kurmak için Windows Ayarları › Saat ve dil › Dil ve bölge › {0} › Dil seçenekleri › Konuşma tanıma › İndir; sonra SRTR Pitwall'u yeniden başlat.",
+                    "Windows'ta kurulu bir konuşma tanıma dili bulunamadı. Windows Ayarları › Saat ve dil › Dil ve bölge › {0} › Dil seçenekleri › Konuşma tanıma › İndir yolundan dil paketini kur, sonra SRTR Pitwall'u yeniden başlat.",
                     wantName(),
-                    status()!.recTag,
                   )}
                 </span>
               }
             >
-              <span>
-                {status()!.mode === "list"
-                  ? t("Tanıyıcı: {0} · komut listesi (çevrimdışı çalışır, en isabetlisi)", status()!.recTag)
-                  : t("Tanıyıcı: {0} · dikte (Windows'ta “Çevrimiçi konuşma tanıma” açık olmalı; komut listesi bu dilde yok)", status()!.recTag)}
-              </span>
+              <Show
+                when={!status()!.fallback}
+                fallback={
+                  <span>
+                    {t(
+                      "Windows'ta {0} konuşma tanıma paketi kurulu değil: şimdilik İngilizce komutlar dinleniyor ({1}). Kurmak için Windows Ayarları › Saat ve dil › Dil ve bölge › {0} › Dil seçenekleri › Konuşma tanıma › İndir; sonra SRTR Pitwall'u yeniden başlat.",
+                      wantName(),
+                      status()!.recTag,
+                    )}
+                  </span>
+                }
+              >
+                <span>
+                  {status()!.mode === "list"
+                    ? t("Tanıyıcı: {0} · komut listesi (çevrimdışı çalışır, en isabetlisi)", status()!.recTag)
+                    : t("Tanıyıcı: {0} · dikte (Windows'ta “Çevrimiçi konuşma tanıma” açık olmalı; komut listesi bu dilde yok)", status()!.recTag)}
+                </span>
+              </Show>
             </Show>
           </Show>
+        </div>
+      </Show>
+      <Show when={status()?.supported && (cmd().engine !== "windows" || !status()!.native)}>
+        <div class="row">
+          <div>
+            <b>Çevrimiçi tanıma anahtarı</b>
+            <small>
+              {t(
+                "Çevrimiçi motorun API anahtarı (sunucu: {0}, model: {1}). Canlı Sohbet › Konuşma → yazı ile ortaktır; sağlayıcı ve model oradan değiştirilir. Anahtar bu bilgisayarda şifreli saklanır.",
+                status()!.cloudHost,
+                status()!.cloudModel,
+              )}{" "}
+              <button class="link" data-no-i18n onClick={() => openUrl("https://console.groq.com/keys")}>
+                console.groq.com/keys
+              </button>
+            </small>
+            <Show when={keyMsg()}>
+              <small class="muted">{keyMsg()}</small>
+            </Show>
+          </div>
+          <div class="sc-keys">
+            <input
+              class="input voice-cmd-key"
+              type="password"
+              autocomplete="off"
+              placeholder={status()!.cloudHasKey ? t("Kayıtlı (değiştirmek için yenisini yapıştır)") : t("API anahtarını yapıştır")}
+              value={apiKey()}
+              onInput={(e) => setApiKey(e.currentTarget.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveKey()}
+            />
+            <button class="btn ghost small" disabled={!apiKey().trim()} onClick={saveKey}>
+              Kaydet
+            </button>
+          </div>
         </div>
       </Show>
 
@@ -483,6 +606,9 @@ export function VoiceCommandsSection() {
               <Show when={ev().state === "listening"}>
                 <span>Dinliyor… şimdi konuş.</span>
               </Show>
+              <Show when={ev().state === "processing"}>
+                <span>Ses gönderildi, çözümleniyor…</span>
+              </Show>
               <Show when={ev().state === "idle"}>
                 <span>Bir şey duyulmadı.</span>
               </Show>
@@ -506,6 +632,8 @@ export function VoiceCommandsSection() {
             </div>
           )}
         </Show>
+      </div>
+
       </div>
 
       <div class="voice-panel-head voice-cmd-ex-head">

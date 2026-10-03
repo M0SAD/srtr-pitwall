@@ -379,6 +379,12 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
     f.wind_vel = (sc.wind[0].powi(2) + sc.wind[2].powi(2)).sqrt() as f32;
     f.wind_dir = sc.wind[0].atan2(sc.wind[2]) as f32;
     f.replay = me.map(|v| v.control == 3).unwrap_or(false);
+    // Sürücü koltuğu (sims/role.rs): oyuncu aracı yok = izleyici; mControl 2 (uzak) = aracı takım arkadaşı sürüyor
+    f.seat = match me {
+        None => 1,
+        Some(v) if v.control == 2 => 2,
+        _ => 0,
+    };
     // Yeşil bayrakta, pistteyken "süre sayılmaz" işareti: tur geçersiz (pist sınırı vb.)
     f.lap_invalid = sc.game_phase == 5 && me.map(|v| v.count_lap_flag < 2 && !v.in_pits && !v.in_garage).unwrap_or(false);
 

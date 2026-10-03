@@ -35,6 +35,23 @@ export function fmtRemaining(s: number): string {
   return m > 0 ? t("{0} dk {1} sn", m, r) : t("{0} sn", r);
 }
 
+/** Anket kısayolu basılıyken: "Dinleniyor…" göstergesi ve o ana kadar söylenen soru */
+export function PollDictBox(props: { text: string }) {
+  return (
+    <div class="lc-poll lc-poll-dict">
+      <div class="lc-poll-head">
+        <b>🎙 {t("Dinleniyor…")}</b>
+        <span>{t("Anket sorusu")}</span>
+      </div>
+      <Show when={props.text}>
+        <div class="lc-poll-q" data-no-i18n>
+          {props.text}
+        </div>
+      </Show>
+    </div>
+  );
+}
+
 /** Anket kutusu (MCO PollBanner görünümü): soru, şıklar, çubuklar, kalan süre, kazanan / beraberlik animasyonu */
 export function PollBox(props: { poll: PollView; showQuestion?: boolean; showAnswers?: boolean; barColor?: string; winColor?: string }) {
   const p = () => props.poll;

@@ -7,7 +7,7 @@ import { instanceName, settings, updateSettings, type OverlayInstance, type Prof
 import { themeVars } from "@/sdk/theme";
 import { isLocked } from "@/cloud/account";
 import { CORNERS, clampRect, cornerResize, edgeResize, effectiveScale, layoutRect, snapMove, unlayoutPos, type Corner, type Edge, type Guides, type Rect } from "@/host/snap";
-import { clampField, resizeFields } from "@/sdk/overlay";
+import { clampField, resizeFields, rowUnit } from "@/sdk/overlay";
 import { OverlayView } from "./OverlayView";
 import { useEditBackdrop } from "./BackdropPicker";
 import { Portal } from "solid-js/web";
@@ -181,7 +181,7 @@ function CanvasItem(props: {
   const gScale = () => (props.useGlobal ? settings().theme.scale / 100 : 1);
   const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number; opts?: Record<string, number> } | null>(null);
   /** Kenardan boyutlandırılabilen genişlik / yükseklik ayarları */
-  const rz = createMemo(() => resizeFields(m()));
+  const rz = createMemo(() => resizeFields(m(), inst()?.options));
   /** Sürükleme sırasında (burada ya da ekrandaki düzenleme modunda) geçici ayar değerleri */
   const liveOpts = () => drag()?.opts ?? remoteDrag(props.profileId, props.key)?.opts;
 
@@ -312,11 +312,15 @@ function CanvasItem(props: {
     const s0 = horiz ? e.clientX : e.clientY;
     const mr = m()?.resize;
     const cur = Math.max(Number(i.options[f.key]) || f.default, horiz && mr && mr.wMin ? size().w : 0);
+    // Satır sayan yükseklik ayarı: sürükleme px'i ölçülen satır yüksekliğiyle tam satıra çevrilir
+    const rows = horiz ? undefined : rz().rows;
+    const unit = rows ? rowUnit(el, rows) : 1;
     let last: (Rect & { value: number }) | null = null;
     track(
       t,
       (ev) => {
-        last = edgeResize(o, edge, ((horiz ? ev.clientX : ev.clientY) - s0) / props.k, o.eff, cur, (v) => clampField(f, v));
+        last = edgeResize(o, edge, ((horiz ? ev.clientX : ev.clientY) - s0) / props.k, o.eff, rows ? 0 : cur, (v) => (rows ? (clampField(f, cur + v / unit) - cur) * unit : clampField(f, v)));
+        if (rows) last = { ...last, value: Math.round(cur + last.value / unit) };
         const opts = { [f.key]: last.value };
         setDrag({ x: last.x, y: last.y, scale: o.scale, opts });
         sendDrag(livePos(last, o.scale, opts));

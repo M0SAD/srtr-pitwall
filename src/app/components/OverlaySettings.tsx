@@ -49,6 +49,8 @@ export function OverlaySettings(props: {
   onRemove?: () => void;
   /** Kilitli düzen: ayarlar görünür ama değiştirilemez */
   readOnly?: boolean;
+  /** Düzenler / Yayın: panel tuvalin üstünde yüzer; × ile kapanır */
+  onClose?: () => void;
 }) {
   const k = props.key;
   const defaults = () => props.mode === "defaults";
@@ -104,6 +106,11 @@ export function OverlaySettings(props: {
             <b>{defaults() ? m()!.name : instanceName(k, inst()!)}</b>
             <small>{m()!.description}</small>
           </div>
+          <Show when={props.onClose}>
+            <button class="ovset-close" title="Kapat (Esc)" onClick={() => props.onClose!()}>
+              <I.X />
+            </button>
+          </Show>
         </header>
         <div class="ovset-scroll">
           <Show when={isLocked(inst()!.type)}>

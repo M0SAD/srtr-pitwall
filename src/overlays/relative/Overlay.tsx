@@ -92,13 +92,26 @@ export default function Relative(props: OverlayProps) {
 
   // Satır kimliği araç idx'ine göre sabit: her pakette DOM (logo/bayrak resimleri) yeniden kurulmaz
   const stable = useRows(() => data()?.rows);
-  const rows = createMemo(() => {
+  /** Önde / arkada gösterilen araç sayısı: pencere her zaman 2n+1 satırlık yer tutar */
+  const span = () => Math.min(8, Math.max(1, Math.round(Number(props.options.rows) || 3)));
+  // Pencere boyu sabit: araç azsa eksik satırlar boş yer olarak kalır, oyuncu hep tam ortadaki satırdadır
+  const view = createMemo(() => {
     const all = stable();
-    const n = props.options.rows as number;
+    const n = span();
     const me = all.findIndex((r) => r.isMe);
-    if (me < 0) return all;
-    return all.slice(Math.max(0, me - n), me + n + 1);
+    if (me < 0) {
+      const list = all.slice(0, 2 * n + 1);
+      return { list, top: 0, bottom: 2 * n + 1 - list.length };
+    }
+    const from = Math.max(0, me - n);
+    const list = all.slice(from, me + n + 1);
+    const top = n - (me - from);
+    return { list, top, bottom: 2 * n + 1 - top - list.length };
   });
+  const rows = () => view().list;
+  const blanks = (k: number) => Array.from({ length: Math.max(0, k) }, (_, i) => i);
+  const padTop = createMemo(() => blanks(view().top).length);
+  const padBottom = createMemo(() => blanks(view().bottom).length);
 
   /** Elle ayarlanmış sütun genişliği (px); 0 = varsayılan */
   const colW = (key: string) => {
@@ -204,25 +217,28 @@ export default function Relative(props: OverlayProps) {
 
   return (
     <div class="ov-panel rel" style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px` }}>
-      <Show when={props.options.showHeader && data()}>
+      <Show when={props.options.showHeader}>
         <div class="rel-head" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
-          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()!.sof} />
+          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()?.sof ?? 0} />
         </div>
       </Show>
-      <Show when={rows().length > 0} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
-        <div class="rel-rows">
-          <For each={rows()}>
-            {(r) => (
-              <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
-                <For each={columns()}>{(c) => col(c, r)}</For>
-              </div>
-            )}
-          </For>
-        </div>
-      </Show>
-      <Show when={props.options.showFooter && data()}>
+      <div class="rel-rows">
+        <For each={blanks(padTop())}>{() => <div class="rel-row rel-blank" />}</For>
+        <For each={rows()}>
+          {(r) => (
+            <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
+              <For each={columns()}>{(c) => col(c, r)}</For>
+            </div>
+          )}
+        </For>
+        <For each={blanks(padBottom())}>{() => <div class="rel-row rel-blank" />}</For>
+        <Show when={rows().length === 0}>
+          <div class="ov-empty rel-wait">Veri bekleniyor…</div>
+        </Show>
+      </div>
+      <Show when={props.options.showFooter}>
         <div class="rel-foot" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
-          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]} units={props.units} sof={data()!.sof} />
+          <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.footerFields as string[]) ?? ["sof", "incidents", "position", "brakeBias", "remaining", "clock"]} units={props.units} sof={data()?.sof ?? 0} />
         </div>
       </Show>
     </div>

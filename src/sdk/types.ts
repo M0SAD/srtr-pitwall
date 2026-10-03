@@ -13,6 +13,10 @@ export interface Status {
   replayWatch?: boolean;
   /** Oyuncu pistte ve garajda değil: izleyici/spotter */
   spectating: boolean;
+  /** Oyuncu bu oturumda kendi aracının sürücüsü (izleyici / spotter / tekrar / araçta takım arkadaşı değil) */
+  driver?: boolean;
+  /** "driver" | "teammate" | "spectator" | "replay" | "" */
+  role?: string;
   sessionType: string;
   track: string;
   trackId: number;

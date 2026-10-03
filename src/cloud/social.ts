@@ -215,6 +215,13 @@ export function conversation(friend: string) {
   ).then((r) => (r ?? []).reverse());
 }
 
+/** Bu arkadaştan gelen, henüz okunmamış son mesajlar (Realtime'ın kaçırdığı mesajın bildirimi için); en yeniden eskiye */
+export function unreadFrom(friend: string, limit = 3) {
+  const me = session()?.user.id;
+  if (!me) return Promise.resolve([] as Message[]);
+  return api<Message[]>("GET", `messages?select=*&sender=eq.${friend}&recipient=eq.${me}&read_at=is.null&order=created_at.desc&limit=${limit}`).then((r) => r ?? []);
+}
+
 /** Son mesajlar (arkadaş listesinde son mesaj önizlemesi için); en yeniden eskiye */
 export function recentMessages(limit = 200) {
   const me = session()?.user.id;
@@ -303,27 +310,77 @@ async function client() {
   if (!t) return null;
   if (!rt) {
     rt = new RealtimeClient(`${URL_.replace(/^http/, "ws")}/realtime/v1`, { params: { apikey: KEY } });
-    // Oturum anahtarı yenilendikçe Realtime'a da ver
-    setInterval(async () => {
-      const nt = await token();
-      if (nt && rt) rt.setAuth(nt);
-    }, 5 * 60_000);
+    rt.onHeartbeat((status) => {
+      if (status === "sent") lastBeat = Date.now();
+      else if (status !== "ok") socialLog(`realtime: kalp atisi ${status}`);
+    });
+    // Oturum anahtarı yenilendikçe Realtime'a da ver. Anahtar bitmeden yenilenmeli: süresi dolan anahtarla
+    // sunucu kanalı kapatır ve yenisi verilene kadar mesaj gelmez (eskiden 5 dk'da bir bakılıyordu).
+    setInterval(() => void syncRealtimeAuth(), 60_000);
   }
+  rtToken = t;
   rt.setAuth(t);
   return rt;
 }
 
+/** Realtime'a en son verilen oturum anahtarı */
+let rtToken = "";
+/** Son kalp atışının gönderildiği an */
+let lastBeat = 0;
+
+async function syncRealtimeAuth() {
+  const nt = await token();
+  if (!nt || !rt || nt === rtToken) return;
+  rtToken = nt;
+  rt.setAuth(nt);
+}
+
+/**
+ * Bağlantıyı canlı tut (overlay penceresindeki arkadaş servisi, Rust tarafındaki saatten 15 sn'de bir çağırır).
+ * Overlay penceresi oyun kapalıyken gizlidir; gizli sayfada tarayıcı zamanlayıcıları dakikada bire kadar
+ * kısılır: kütüphanenin 25 sn'lik kalp atışı gecikir, sunucu bağlantıyı düşürür ve mesaj anında gelmez.
+ * Burada gecikmiş kalp atışı elle gönderilir, kopmuş bağlantı yeniden kurulur, oturum anahtarı tazelenir.
+ */
+export async function realtimeKeepAlive() {
+  if (!rt) return;
+  await syncRealtimeAuth().catch(() => {});
+  if (!rt.isConnected()) {
+    if (!rt.isConnecting() && rt.channels.length) {
+      socialLog("realtime: baglanti kopuk, yeniden baglaniliyor");
+      rt.connect();
+    }
+    return;
+  }
+  // Kütüphanenin kendi zamanlayıcısı çalışıyorsa (25 sn) dokunma; gecikmişse gönder
+  if (Date.now() - lastBeat > 40_000) void rt.sendHeartbeat();
+}
+
+/**
+ * Bildirim günlüğü (uygulama veri klasöründe social.log): mesaj geldi / kart gösterildi / neden gösterilmedi.
+ * Mesaj metni ve oturum anahtarı yazılmaz.
+ */
+export function socialLog(line: string) {
+  if (inTauri) invoke("social_log", { line }).catch(() => {});
+}
+
 /** Bana gelen mesajlar (yeni kayıt geldikçe) */
-export async function onMessages(cb: (m: Message) => void): Promise<() => void> {
+/**
+ * `onStatus`: abonelik durumu (SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED); bağlantı hiç kurulamadıysa
+ * (oturum yok / anahtar alınamadı) "NO_CLIENT" — çağıran daha sonra yeniden denemeli.
+ */
+export async function onMessages(cb: (m: Message) => void, onStatus?: (status: string) => void): Promise<() => void> {
   const c = await client();
   const uid = session()?.user.id;
-  if (!c || !uid) return () => {};
+  if (!c || !uid) {
+    onStatus?.("NO_CLIENT");
+    return () => {};
+  }
   const ch: RealtimeChannel = c
     .channel(`inbox-${uid}-${Math.random().toString(36).slice(2, 7)}`)
     .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "messages", filter: `recipient=eq.${uid}` }, (p: any) =>
       cb(p.new as Message),
     )
-    .subscribe();
+    .subscribe((status) => onStatus?.(String(status)));
   return () => {
     c.removeChannel(ch);
   };
@@ -345,15 +402,20 @@ export async function onLive(users: string[], cb: (user: string, d: LiveData) =>
   };
 }
 
+/**
+ * Pencerenin (panel: "main", Arkadaşlar penceresi: "friends") şu an gösterdiği özel sohbetin arkadaş kimliği.
+ * Pencereler aynı depoyu paylaşır: overlay penceresindeki arkadaş servisi, öndeki pencere zaten o sohbeti
+ * gösteriyorsa açılır pencere / ses çıkarmaz.
+ */
+export const chatOpenKey = (label: string) => `pitwall.chatOpen.${label}`;
+
 /** Kısa bildirim sesi (dosya gerekmez) */
 export function messageBeep(volume = 0.25) {
   // Programda ses Rust tarafında çalınır: overlay penceresi hiç tıklanmadığı için tarayıcının otomatik
   // oynatma kuralı oradaki AudioContext'i askıda bırakır ve bildirim sesi hiç duyulmaz.
   if (inTauri) {
-    const v = Math.min(1, volume * 2);
-    invoke("overlay_beep", { freq: 880, ms: 100, volume: v })
-      .then(() => invoke("overlay_beep", { freq: 1320, ms: 110, volume: v }))
-      .catch(() => {});
+    // 0.25 → 0.6: önceki seviye (0.5) oyun / yayın sesi arasında zor duyuluyordu
+    invoke("message_beep", { volume: Math.min(1, volume * 2.4) }).catch(() => {});
     return;
   }
   try {

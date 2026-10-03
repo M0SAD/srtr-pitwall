@@ -3,17 +3,111 @@
 //! simge eski haline döner. Sayıyı overlay penceresindeki arkadaş servisi (src/host/social.ts) bildirir;
 //! "Rahatsız Etme" durumunda 0 gönderir (tepside uyarı çıkmaz).
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use tauri::image::Image;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
 
 pub const TRAY_ID: &str = "main-tray";
 
 static UNREAD: AtomicU32 = AtomicU32::new(0);
 
-/// Şu an tepside gösterilen okunmamış mesaj sayısı (tepsi simgesine tıklanınca Arkadaşlar penceresi açılsın diye)
+/// Şu an tepside gösterilen okunmamış mesaj sayısı (tepsi simgesine tıklanınca panelde arkadaş listesi de açılsın diye)
 pub fn unread() -> u32 {
     UNREAD.load(Ordering::Relaxed)
+}
+
+/// Tepsi simgesine okunmamış mesaj varken tıklandı: panel açılınca arkadaş listesini de göstersin
+static OPEN_FRIENDS: AtomicBool = AtomicBool::new(false);
+
+/// Tepsi tıklaması (okunmamış mesaj varken): panel açıksa olayı dinler, yeni açılıyorsa `tray_take_open` ile alır
+pub fn request_open_friends(app: &AppHandle) {
+    OPEN_FRIENDS.store(true, Ordering::Relaxed);
+    let _ = app.emit_to("main", "tray-open-friends", ());
+}
+
+/// Panel: tepsiden "arkadaş listesini aç" isteği bekliyor mu (bir kez verilir)
+#[tauri::command]
+pub fn tray_take_open() -> bool {
+    OPEN_FRIENDS.swap(false, Ordering::Relaxed)
+}
+
+// ---- Bildirim günlüğü (social.log) ----
+
+/// Mesaj bildirimi günlüğü: uygulama veri klasöründe `social.log`. Mesaj metni ve oturum anahtarı YAZILMAZ;
+/// sadece "mesaj geldi / kart gösterildi / ses çalındı / neden gösterilmedi" satırları (sorun bildirimi için).
+pub fn log(app: &AppHandle, msg: &str) {
+    use std::io::Write;
+    let Ok(dir) = app.path().app_data_dir() else { return };
+    let _ = std::fs::create_dir_all(&dir);
+    let p = dir.join("social.log");
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let msg: String = msg.chars().filter(|c| !c.is_control()).take(240).collect();
+    // Dosya büyümesin: 256 KB'ı geçince baştan başla
+    let big = std::fs::metadata(&p).map(|m| m.len() > 256 * 1024).unwrap_or(false);
+    static LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
+    let _g = LOCK.lock();
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(!big).write(true).truncate(big).open(&p) {
+        let _ = writeln!(f, "{} {:02}:{:02}:{:02}Z {msg}", secs / 86_400, (secs / 3600) % 24, (secs / 60) % 60, secs % 60);
+    }
+}
+
+/// Arkadaş servisi (overlay penceresi) ve panel günlüğe satır yazar
+#[tauri::command]
+pub fn social_log(app: AppHandle, line: String) {
+    log(&app, &line);
+}
+
+// ---- Mesaj sesi ----
+
+/// Windows'un kendi "bildirim" sesi (uygulamanın ses çıkışı açılamadıysa yedek)
+#[cfg(windows)]
+fn system_sound() {
+    use windows::core::w;
+    use windows::Win32::Media::Audio::{PlaySoundW, SND_ALIAS, SND_ASYNC};
+    unsafe {
+        let _ = PlaySoundW(w!("SystemAsterisk"), None, SND_ALIAS | SND_ASYNC);
+    }
+}
+
+#[cfg(not(windows))]
+fn system_sound() {}
+
+/// Gelen mesaj sesi: iki kısa ton (880 → 1320 Hz), sesli mühendisin kullandığı ses çıkışından. Tarayıcı
+/// tarafında çalınmaz: hiç tıklanmamış (ya da gizli) pencerede otomatik oynatma kuralı sesi engeller.
+/// Ses aygıtı açılamadıysa Windows'un bildirim sesi çalınır.
+#[tauri::command]
+pub fn message_beep(app: AppHandle, volume: f32) {
+    let v = if volume.is_finite() { volume.clamp(0.05, 1.0) } else { 0.6 };
+    crate::audio::send(crate::audio::Cmd::Beep { freq: 880.0, ms: 100, volume: v, pan: 0.0 });
+    crate::audio::send(crate::audio::Cmd::Beep { freq: 1320.0, ms: 130, volume: v, pan: 0.0 });
+    std::thread::spawn(move || {
+        // Ses iş parçacığı ilk komutta açılır: aygıt durumunu öğrenmesi için kısa bekleme
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        if crate::audio::no_device() {
+            system_sound();
+            log(&app, "beep: ses aygiti acilamadi -> Windows bildirim sesi");
+        } else {
+            log(&app, "beep: calindi");
+        }
+    });
+}
+
+// ---- Arkadaş servisi için saat ----
+
+/// Overlay penceresi oyun kapalıyken gizlidir; gizli sayfada tarayıcı zamanlayıcıları kısılır (dakikada bire
+/// kadar) ve Realtime bağlantısının "kalp atışı" gecikip bağlantı düşer, mesaj anında gelmez. Bu yüzden
+/// arkadaş servisi saatini buradan alır: olaylar gizli sayfada da hemen işlenir.
+#[tauri::command]
+pub fn social_tick_start(app: AppHandle) {
+    static STARTED: AtomicBool = AtomicBool::new(false);
+    if STARTED.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    log(&app, &format!("servis basladi (surum {})", crate::display_version()));
+    let _ = std::thread::Builder::new().name("social-tick".into()).spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_secs(15));
+        let _ = app.emit_to("overlay", "social-tick", ());
+    });
 }
 
 /// RGBA simgenin sağ üst köşesine beyaz çerçeveli kırmızı nokta çizer
@@ -52,6 +146,9 @@ fn badge(rgba: &mut [u8], w: u32, h: u32) {
 #[tauri::command]
 pub fn tray_unread(app: AppHandle, count: u32, text: Option<String>) {
     let prev = UNREAD.swap(count, Ordering::Relaxed);
+    if prev != count {
+        log(&app, &format!("tepsi: okunmamis {count}"));
+    }
     let Some(tray) = app.tray_by_id(TRAY_ID) else { return };
     let base = format!("SRTR Pitwall {}", crate::display_version());
     let tip = match text.as_deref().map(str::trim).filter(|t| !t.is_empty() && count > 0) {

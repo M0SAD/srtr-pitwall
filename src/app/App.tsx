@@ -46,6 +46,7 @@ import { SupportPage } from "./pages/SupportPage";
 import { TelemetryPage } from "./pages/TelemetryPage";
 import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
 import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
+import { useOverlayStats } from "@/cloud/overlayStats";
 import { AppBgLayer, appBgActive } from "./appBg";
 import { AdminTopStats } from "./components/AdminTopStats";
 import { TopLinks } from "./components/TopLinks";
@@ -185,6 +186,8 @@ export function App() {
   useSubscriptions([]);
   // Yönetim: bekleyen iş sayaçları (yetkisi olmayanda boş kalır)
   useAdminBadges();
+  // Overlay kullanım istatistiği: "en çok kullanılan" sıralaması
+  useOverlayStats();
   // Monitör boyutları ayarlara yazılır: OBS sayfası bağlı yayın düzenlerini buna göre oranlar
   void loadMonitors();
   createEffect(syncScreens);

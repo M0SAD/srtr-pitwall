@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Ein Ziel-Fortschrittsbalken für Streamer – etwa „100 Follower“ oder ein Spendenziel. Erhöhe den Zähler von Hand oder lass ihn automatisch aus Live-Chat-Alerts zählen (neue Follower, Abos / Mitglieder, Spenden). Er zeigt Titel, Ziel, Prozent und auf Wunsch eine Zeile „Letzter Unterstützer“. Die Designs schmaler Balken und Pille mit Icon sind kostenlos; die große Zieltafel ist PRO.",
  "ovg_webview": "Zeigt jede beliebige Webseite als Overlay über dem Spiel. Nutze es für Stream-Alerts, einen Timer, den Chat einer anderen Seite oder ein selbst gebautes Panel – einfach die Adresse einfügen.",
  "ovg_messages": "Zeigt eingehende Nachrichten von Freunden, Team und Gruppen als kleine Sprechblasen, während du fährst; nach ein paar Sekunden verschwinden sie von selbst. Du bestimmst, wessen Nachrichten erscheinen – alle Freunde, dein Team oder nur ausgewählte Personen. Mit PRO werden Nachrichten auch vorgelesen, sodass dein Blick auf der Strecke bleibt.",
- "ovg_voice": "Zeigt das, was der Sprach-Ingenieur oder der Spotter sagt, zusätzlich als Text. Ingenieur und Spotter bekommen eigene Farben und Labels, und der Text verschwindet, sobald sie verstummen. Nützlich, wenn du die Lautstärke niedrig hältst, keine Ansage verpassen willst oder die Stream-Zuschauer mitlesen sollen. Arbeitet mit dem Sprach-Ingenieur (PRO) zusammen."
+ "ovg_voice": "Zeigt das, was der Sprach-Ingenieur oder der Spotter sagt, zusätzlich als Text. Ingenieur und Spotter bekommen eigene Farben und Labels, und der Text verschwindet, sobald sie verstummen. Nützlich, wenn du die Lautstärke niedrig hältst, keine Ansage verpassen willst oder die Stream-Zuschauer mitlesen sollen. Arbeitet mit dem Sprach-Ingenieur (PRO) zusammen.",
+ "cw_none_race": "Gerade ist kein Freund im Rennen, der dich zu seiner Crew hinzugefügt hat. Hier werden nur Freunde aufgelistet, die gerade im Rennen sind; wer das Rennen verlässt, verschwindet aus der Liste und der Chat des Crew-Raums wird gelöscht. Ein Freund fügt dich in der SRTR Pitwall App unter <b>Einstellungen › Freigabe › Crew</b> zu seiner Crew hinzu.",
+ "cw_spot_me": "Spotter: du",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: keiner",
+ "cw_spot_other": "Spotter: {0} — nur ansehen",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "Die einzige Person, die die Pit-Einstellungen verwaltet und im Raum schreiben kann",
+ "cw_b_spot": "Spotter: {0} — du siehst nur zu. Die Pit-Einstellungen kann immer nur eine Person verwalten; wird der Platz frei, übernimmst du.",
+ "cw_ro_spot": "Spotter: {0} — du siehst nur zu. Nur der Spotter kann im Raum schreiben.",
+ "cw_ro_view": "Nur der Spotter kann im Raum schreiben. Um Spotter zu werden, brauchst du die Berechtigung, die Pit-Einstellungen zu ändern.",
+ "cw_ro_closed": "Der Crew-Raum ist nur offen, solange der Fahrer im Rennen ist. Nach dem Rennen wird der Chat gelöscht.",
+ "cw_room_closed": "Der Fahrer ist gerade nicht im Rennen. Der Crew-Raum öffnet sich, sobald ein Rennen startet.",
+ "cw_gone_race": "Der Fahrer hat das Rennen verlassen: der Crew-Raum ist geschlossen.",
+ "cw_r_spot_only": "Nur der Spotter kann Nachrichten schreiben",
+ "cw_r_spot_busy": "Die Pit-Einstellungen verwaltet gerade ein anderer Spotter: du kannst nur zusehen",
+ "cw_r_not_driving": "Der Fahrer fährt das Auto gerade nicht"
 }

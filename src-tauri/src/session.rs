@@ -264,6 +264,7 @@ pub fn parse(yaml: &str) -> SessionData {
                     ("WeekendInfo", "TrackID") => sd.track_id = v.parse().unwrap_or(0),
                     ("WeekendInfo", "SeriesID") => sd.series_id = v.parse().unwrap_or(0),
                     ("WeekendInfo", "Category") => sd.category = v.to_string(),
+                    ("WeekendInfo", "SimMode") => sd.sim_mode = v.to_ascii_lowercase(),
                     ("DriverInfo", "DriverCarEstLapTime") => {
                         sd.est_lap_time = num_prefix(v).unwrap_or(0.0) as f32
                     }

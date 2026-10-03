@@ -176,8 +176,8 @@ export function VoicePage() {
       <Show when={locked()}>
         <section class="panel warn-panel">
           <p>
-            Yarışta konuşan sesli mühendis PRO üyelere özel. Ses paketlerini indirip aşağıdaki "Dene" bölümünden sesleri
-            dinleyebilirsin.{" "}
+            <span class="pro-badge">PRO</span> Yarışta konuşan sesli mühendis PRO üyelere özel: ayarlar açık görünür ama PRO
+            olmadan çalışmaz ve değiştirilemez. Ses paketlerini indirip aşağıdaki "Dene" bölümünden sesleri dinleyebilirsin.{" "}
             <button class="link" onClick={() => go("pro")}>
               PRO'ya bak
             </button>
@@ -194,8 +194,9 @@ export function VoicePage() {
               konuşmaya başlar, oturum bitince susar.
             </small>
           </div>
-          <Switch checked={v().enabled && !locked()} disabled={locked()} onChange={(on) => set((x) => (x.enabled = on))} />
+          <Switch checked={v().enabled} disabled={locked()} onChange={(on) => set((x) => (x.enabled = on))} />
         </div>
+        <div classList={{ "pro-locked-body": locked() }} inert={locked()}>
         <div class="voice-sliders">
           <div class="f2">
             <div class="f2-cap">Mühendis ses düzeyi</div>
@@ -241,6 +242,7 @@ export function VoicePage() {
             <small>Sol/sağ yerine "içte araç", "dışta araç".</small>
           </div>
           <Switch checked={v().ovalInsideOutside} onChange={(on) => set((x) => (x.ovalInsideOutside = on))} />
+        </div>
         </div>
       </section>
 
@@ -342,7 +344,7 @@ export function VoicePage() {
 
       <section class="panel">
         <h3>Ne söylesin</h3>
-        <div class="voice-groups">
+        <div class="voice-groups" classList={{ "pro-locked-body": locked() }} inert={locked()}>
           <For each={VOICE_CATEGORIES}>
             {(c) => (
               <label class="voice-group" classList={{ off: v().categories[c.id] === false }}>

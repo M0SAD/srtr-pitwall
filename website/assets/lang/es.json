@@ -1177,5 +1177,21 @@
  "ovg_goalbar": "Barra de progreso de objetivo para streamers: como “100 seguidores” o una meta de donaciones. Puedes subir el contador a mano o dejar que cuente solo a partir de las alertas del chat en directo (nuevo seguidor, sub / miembro, donación). Se ven el título, el objetivo, el porcentaje y, si quieres, una línea de “último apoyo”. La barra fina y la píldora con icono son gratis; el panel de objetivo grande es PRO.",
  "ovg_webview": "Muestra cualquier página web como overlay sobre el juego. Puedes usarlo para alertas del directo, un temporizador, el chat de otro sitio o un panel que hayas preparado tú; basta con pegar la dirección.",
  "ovg_messages": "Muestra en pantalla, en pequeños globos, los mensajes de amigos, equipo y grupos que llegan mientras conduces; desaparecen solos a los pocos segundos. Tú decides de quién se ven los mensajes (todos los amigos, el equipo o las personas que elijas). Con PRO los mensajes también se leen en voz alta y no apartas la vista de la pista.",
- "ovg_voice": "Muestra también en texto lo que dicen el Ingeniero por Voz o el spotter mientras hablan. El ingeniero y el spotter aparecen con color y etiqueta distintos; cuando callan, el texto desaparece solo. Útil para quien lleva el volumen bajo, para no perderse un aviso y para los espectadores del directo. Funciona junto con el Ingeniero por Voz (PRO)."
+ "ovg_voice": "Muestra también en texto lo que dicen el Ingeniero por Voz o el spotter mientras hablan. El ingeniero y el spotter aparecen con color y etiqueta distintos; cuando callan, el texto desaparece solo. Útil para quien lleva el volumen bajo, para no perderse un aviso y para los espectadores del directo. Funciona junto con el Ingeniero por Voz (PRO).",
+ "cw_none_race": "Ahora mismo no hay ningún amigo en carrera que te haya añadido a su equipo de boxes. Aquí solo aparecen los amigos que están en carrera en ese momento; el piloto que sale de la carrera desaparece de la lista y se borra el chat de la sala de boxes. Un amigo te añade a su equipo en la app SRTR Pitwall desde <b>Ajustes › Compartir › Equipo de boxes</b>.",
+ "cw_spot_me": "Spotter: tú",
+ "cw_spot_is": "Spotter: {0}",
+ "cw_spot_none": "Spotter: ninguno",
+ "cw_spot_other": "Spotter: {0} — solo lectura",
+ "cw_spot_tag": "Spotter",
+ "cw_spot_tag_h": "La única persona que gestiona los ajustes de boxes y puede escribir en la sala",
+ "cw_b_spot": "Spotter: {0} — solo estás mirando. Solo una persona puede gestionar los ajustes de boxes a la vez; cuando el puesto quede libre, pasará a ti.",
+ "cw_ro_spot": "Spotter: {0} — solo estás mirando. Solo el spotter puede escribir en la sala.",
+ "cw_ro_view": "Solo el spotter puede escribir en la sala. Para ser spotter necesitas permiso para cambiar los ajustes de boxes.",
+ "cw_ro_closed": "La sala de boxes solo está abierta mientras el piloto está en carrera. Al terminar la carrera se borra el chat.",
+ "cw_room_closed": "El piloto no está en carrera ahora. La sala de boxes se abre cuando empieza la carrera.",
+ "cw_gone_race": "El piloto ha salido de la carrera: la sala de boxes se ha cerrado.",
+ "cw_r_spot_only": "Solo el spotter puede escribir mensajes",
+ "cw_r_spot_busy": "Ahora mismo otro spotter gestiona los ajustes de boxes: solo puedes mirar",
+ "cw_r_not_driving": "El piloto no está conduciendo el coche ahora mismo"
 }
