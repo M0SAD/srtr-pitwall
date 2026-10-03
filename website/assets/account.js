@@ -25,6 +25,7 @@ import {
   setRememberMe,
   startProCheckout,
   toast,
+  region,
 } from "./core.js";
 import { attachEmoji } from "./emoji.js";
 import { mountProfileEditor } from "./profile.js";
@@ -110,8 +111,8 @@ addDict({
     "Your account is linked automatically at checkout; PRO turns on within seconds. Existing time is extended.",
   ],
   a_patreon_note: [
-    "Patreon ile ödersen, Patreon e-postan bu hesabın e-postasıyla ya da yukarıdaki ödeme e-postasıyla aynı olmalı.",
-    "If you pay on Patreon, your Patreon e-mail must match this account's e-mail or the payment e-mail above.",
+    "Patreon ile ödersen, Patreon e-postan bu hesabın e-postasıyla ya da yukarıdaki ödeme e-postasıyla aynı olmalı. Patreon ile sadece aylık abonelik alınabilir.",
+    "If you pay on Patreon, your Patreon e-mail must match this account's e-mail or the payment e-mail above. Patreon offers the monthly subscription only.",
   ],
   a_payments: ["Ödeme geçmişi", "Payment history"],
   a_no_payments: ["Henüz ödeme yok.", "No payments yet."],
@@ -451,10 +452,10 @@ async function dashboard(u) {
           ${planBtns.includes("data-pro=") ? `<div id="cp-pro"></div>` : ""}
           <div class="row">${planBtns || `<span class="muted small">${T("soon")}</span>`}</div>
           ${
-            cfg.patreon_url || cfg.kofi_url
+            ((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url) || ((region === "tr" && cfg.kofi_url_tr) || cfg.kofi_url)
               ? `<div class="row" style="margin-top:14px">
-                  ${cfg.patreon_url ? `<a class="btn btn-patreon btn-sm" href="${esc(cfg.patreon_url)}" target="_blank" rel="noopener">Patreon</a>` : ""}
-                  ${cfg.kofi_url ? `<a class="btn btn-sm" href="${esc(cfg.kofi_url)}" target="_blank" rel="noopener">Ko-fi</a>` : ""}
+                  ${(region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url ? `<a class="btn btn-patreon btn-sm" href="${esc((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url)}" target="_blank" rel="noopener">Patreon</a>` : ""}
+                  ${((region === "tr" && cfg.kofi_url_tr) || cfg.kofi_url) ? `<a class="btn btn-sm" href="${esc(((region === "tr" && cfg.kofi_url_tr) || cfg.kofi_url))}" target="_blank" rel="noopener">Ko-fi</a>` : ""}
                 </div><p class="muted small" style="margin:10px 0 0">${T("a_patreon_note")}</p>`
               : ""
           }

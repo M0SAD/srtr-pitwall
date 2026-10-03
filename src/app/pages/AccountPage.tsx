@@ -1,3 +1,4 @@
+import { inTurkey } from "../../cloud/account";
 import { localeTag, t } from "@/sdk/i18n";
 import { For, Match, Show, Switch, createResource, createSignal, onMount, createEffect } from "solid-js";
 import {
@@ -563,19 +564,20 @@ function ProPanel() {
           </Show>
         </Show>
         <div class="btns">
-          <Show when={c()?.patreon_url}>
-            <button class="btn ghost" data-no-i18n onClick={() => openUrl(c()!.patreon_url)}>
+          <Show when={c()?.patreon_url || (inTurkey() && c()?.patreon_url_tr)}>
+            <button class="btn ghost" data-no-i18n onClick={() => openUrl((inTurkey() && c()!.patreon_url_tr) || c()!.patreon_url)}>
               Patreon
             </button>
           </Show>
-          <Show when={c()?.kofi_url}>
-            <button class="btn ghost" data-no-i18n onClick={() => openUrl(c()!.kofi_url)}>
+          <Show when={c()?.kofi_url || (inTurkey() && c()?.kofi_url_tr)}>
+            <button class="btn ghost" data-no-i18n onClick={() => openUrl((inTurkey() && c()!.kofi_url_tr) || c()!.kofi_url)}>
               Ko-fi
             </button>
           </Show>
         </div>
         <p class="muted small">
           Abonelik kendiliğinden yenilenir; istediğin zaman iptal edebilirsin. Ödeme sonrası PRO birkaç dakika içinde otomatik açılır.
+          <Show when={c()?.patreon_url || c()?.patreon_url_tr}> Patreon ile sadece aylık abonelik alınabilir.</Show>
           <Show when={!session()}> Önce hesap oluştur ya da giriş yap.</Show>
         </p>
         <div class="btns">

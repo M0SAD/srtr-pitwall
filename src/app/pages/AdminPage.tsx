@@ -675,7 +675,9 @@ function Plans(props: { run: Run }) {
           each={
             [
               ["patreon_url", "Patreon bağlantısı"],
+              ["patreon_url_tr", "Patreon bağlantısı (Türkiye)"],
               ["kofi_url", "Ko-fi bağlantısı"],
+              ["kofi_url_tr", "Ko-fi bağlantısı (Türkiye)"],
             ] as const
           }
         >

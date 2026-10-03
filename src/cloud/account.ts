@@ -23,7 +23,11 @@ export interface Profile {
 export interface AppConfig {
   pro_overlays: string[];
   patreon_url: string;
+  /** Türkiye'den bağlananlara gösterilen Patreon bağlantısı (boşsa patreon_url) */
+  patreon_url_tr?: string;
   kofi_url: string;
+  /** Türkiye'den bağlananlara gösterilen Ko-fi bağlantısı (boşsa kofi_url) */
+  kofi_url_tr?: string;
   price_monthly: string;
   price_yearly: string;
   price_3m?: string;

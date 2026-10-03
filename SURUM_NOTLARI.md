@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-90
+
+- Şu overlay'ler artık PRO: Kafa Kafaya, Yarış Sonucu, Sürücü Kartı, Ekip Çağrısı, Fark Grafiği, Yakın Takip, Rakip Takibi, Hasar Göstergesi, Piste Dönüş, Viraj Analizi, Mesajlar (c72).
+- Overlaylarım: yukarı / aşağı ok tuşlarıyla listede önceki / sonraki overlay seçilir.
+- Pit Penceresi: "TEMİZ HAVA" etiketi iki satır.
+- Ödeme bölümlerinde (program ve site): "Patreon ile sadece aylık abonelik alınabilir" notu.
+
+## 031026-89
+
+- Yönetim › Planlar ve fiyatlar: "Ko-fi bağlantısı (Türkiye)" alanı. Türkiye'den bağlananlara (site ve program) Ko-fi düğmesi bu bağlantıyı açar; boşsa genel bağlantı kullanılır (c71).
+
+## 031026-88
+
+- Yönetim › Planlar ve fiyatlar: "Patreon bağlantısı (Türkiye)" alanı. Türkiye'den bağlananlara (site ve program) Patreon düğmesi bu bağlantıyı açar; boşsa genel bağlantı kullanılır (c70).
+
 ## 031026-87
 
 - Yöneticiye gelen "Yeni ödeme" bildiriminde ödemenin kaynağı da yazıyor (Lemon Squeezy / Patreon / Ko-fi).

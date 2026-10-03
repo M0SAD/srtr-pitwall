@@ -178,6 +178,24 @@ export function OverlaysPage() {
     if (selected() && openCard() !== selected()) setOpenCard(selected());
   });
   const inst = () => (selected() ? settings().defaults[selected()!] : undefined);
+  // Yukarı / aşağı ok: listede önceki / sonraki overlay (yazı alanı, seçim kutusu ya da kaydırıcıdayken dokunmaz)
+  onMount(() => {
+    const nav = (e: KeyboardEvent) => {
+      if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || menu() || drag()) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const ids = shownIds();
+      const i = ids.indexOf(selected() ?? "");
+      const next = ids[Math.min(ids.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))];
+      if (!next) return;
+      e.preventDefault();
+      if (next === selected()) return;
+      setOpenCard(next);
+      requestAnimationFrame(() => document.querySelector(`[data-ovid="${next}"]`)?.scrollIntoView({ block: "nearest" }));
+    };
+    window.addEventListener("keydown", nav);
+    onCleanup(() => window.removeEventListener("keydown", nav));
+  });
 
   // Önizlenen overlay sabit görüntü: seçilince bir anlık örnek veri, sonra akış durur (Demo açıksa canlı)
   const snap = useSnapshot(

@@ -1,5 +1,5 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
-import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, startProCheckout } from "./core.js";
+import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, region, startProCheckout } from "./core.js";
 import { applyCachedImages, initSiteImages, overrideFor } from "./siteimages.js";
 import { OVERLAY_ROUND as OVERLAY_COUNT } from "./overlays.js";
 import { OVERLAYS, OVERLAY_LIST, OVERLAY_TOTAL, overlayImage, overlaySlot } from "./overlays.js";
@@ -192,8 +192,8 @@ addDict({
   price_tbd: ["—", "—"],
   patreon_title: ["Patreon ya da Ko-fi ile destekle", "Support on Patreon or Ko-fi"],
   patreon_lead: [
-    "İstersen Patreon'dan ödeyebilirsin. Patreon e-postan SRTR Pitwall hesabınla aynı olsun (değilse Hesabım sayfasından ödeme e-postanı yaz); PRO kendiliğinden açılır.",
-    "You can pay on Patreon if you prefer. Use the same e-mail as your SRTR Pitwall account (or set your payment e-mail on My account); PRO turns on automatically.",
+    "İstersen Patreon'dan ödeyebilirsin. Patreon e-postan SRTR Pitwall hesabınla aynı olsun (değilse Hesabım sayfasından ödeme e-postanı yaz); PRO kendiliğinden açılır. Patreon ile sadece aylık abonelik alınabilir.",
+    "You can pay on Patreon if you prefer. Use the same e-mail as your SRTR Pitwall account (or set your payment e-mail on My account); PRO turns on automatically. Patreon offers the monthly subscription only.",
   ],
 
   faq_eyebrow: ["SSS", "FAQ"],
@@ -332,8 +332,10 @@ function renderPlans() {
     </div>`;
   }).join("");
   const alt = [];
-  if (c.patreon_url) alt.push(`<a class="btn btn-patreon" href="${esc(c.patreon_url)}" target="_blank" rel="noopener">Patreon</a>`);
-  if (c.kofi_url) alt.push(`<a class="btn" href="${esc(c.kofi_url)}" target="_blank" rel="noopener">Ko-fi</a>`);
+  const patreon = (region === "tr" && c.patreon_url_tr) || c.patreon_url;
+  if (patreon) alt.push(`<a class="btn btn-patreon" href="${esc(patreon)}" target="_blank" rel="noopener">Patreon</a>`);
+  const kofi = (region === "tr" && c.kofi_url_tr) || c.kofi_url;
+  if (kofi) alt.push(`<a class="btn" href="${esc(kofi)}" target="_blank" rel="noopener">Ko-fi</a>`);
   $("#alt-pay-btns").innerHTML = alt.join("") || `<span class="muted small">${T("soon")}</span>`;
   $("#pro-note").textContent = c.pro_note || "";
 }

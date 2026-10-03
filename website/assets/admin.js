@@ -759,7 +759,9 @@ async function planlar(el) {
       </div>
       <div class="card grid g2">
         ${f("patreon_url", "Patreon bağlantısı", "https://www.patreon.com/…")}
+        ${f("patreon_url_tr", "Patreon bağlantısı (Türkiye)", "https://www.patreon.com/checkout/…")}
         ${f("kofi_url", "Ko-fi bağlantısı", "https://ko-fi.com/…")}
+        ${f("kofi_url_tr", "Ko-fi bağlantısı (Türkiye)", "https://ko-fi.com/…")}
         ${f("device_limit", "Cihaz sınırı (aşılınca uyarı)", "2", "number")}
         <div class="field"><label>PRO notu (sitede ve programda fiyatların altında)</label><textarea name="pro_note" rows="2">${esc(c.pro_note ?? "")}</textarea></div>
       </div>

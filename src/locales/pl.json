@@ -6161,5 +6161,8 @@
   "Zip dosyasını \"Attach binaries\" alanına sürükle, yükleme bitince \"Publish release\".": "Przeciągnij plik zip do pola \"Attach binaries\", a po zakończeniu wysyłania kliknij \"Publish release\".",
   "Zip dosyasını WeTransfer, Google Drive, Dropbox ya da benzeri bir yere yükle ve paylaşım bağlantısını buraya yaz. Paket incelenir; uygunsa herkesin indirebileceği paketler listesine eklenir.": "Wgraj plik zip na WeTransfer, Google Drive, Dropbox lub podobny serwis i wklej tu link do udostępnienia. Pakiet zostanie sprawdzony; jeśli jest w porządku, trafi na listę pakietów do pobrania dla wszystkich.",
   "Zip okundu: {0}, {1} ifade, {2} kayıt ({3}).": "Odczytano zip: {0}, {1} fraz, {2} nagrań ({3}).",
-  "Zorunlu tamir": "Naprawa obowiązkowa"
+  "Zorunlu tamir": "Naprawa obowiązkowa",
+  "Patreon bağlantısı (Türkiye)": "Link Patreon (Turcja)",
+  "Ko-fi bağlantısı (Türkiye)": "Link Ko-fi (Turcja)",
+  "Patreon ile sadece aylık abonelik alınabilir.": "Na Patreonie dostępna jest tylko subskrypcja miesięczna."
 }

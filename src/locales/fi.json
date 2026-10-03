@@ -6161,5 +6161,8 @@
   "Zip dosyasını \"Attach binaries\" alanına sürükle, yükleme bitince \"Publish release\".": "Vedä zip-tiedosto \"Attach binaries\" -kenttään ja valitse latauksen valmistuttua \"Publish release\".",
   "Zip dosyasını WeTransfer, Google Drive, Dropbox ya da benzeri bir yere yükle ve paylaşım bağlantısını buraya yaz. Paket incelenir; uygunsa herkesin indirebileceği paketler listesine eklenir.": "Lataa zip-tiedosto WeTransferiin, Google Driveen, Dropboxiin tai vastaavaan ja liitä jakolinkki tähän. Paketti tarkistetaan; jos se on kunnossa, se lisätään kaikkien ladattavissa olevien pakettien listaan.",
   "Zip okundu: {0}, {1} ifade, {2} kayıt ({3}).": "Zip luettu: {0}, {1} fraasia, {2} nauhoitetta ({3}).",
-  "Zorunlu tamir": "Pakollinen korjaus"
+  "Zorunlu tamir": "Pakollinen korjaus",
+  "Patreon bağlantısı (Türkiye)": "Patreon-linkki (Turkki)",
+  "Ko-fi bağlantısı (Türkiye)": "Ko-fi-linkki (Turkki)",
+  "Patreon ile sadece aylık abonelik alınabilir.": "Patreonin kautta saa vain kuukausitilauksen."
 }

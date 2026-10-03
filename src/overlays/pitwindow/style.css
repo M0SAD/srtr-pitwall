@@ -121,7 +121,7 @@
   align-items: center;
   gap: 0.4em;
   padding: 0.3em 0.6em;
-  border-radius: 999px;
+  border-radius: 0.8em;
   border: 1px solid color-mix(in srgb, var(--pw-clear) 55%, transparent);
   background: color-mix(in srgb, var(--pw-clear) 16%, transparent);
   color: var(--pw-clear);
@@ -129,7 +129,13 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
+.pw-traffic > b {
+  width: min-content;
+  text-align: center;
+  line-height: 1.1;
+}
 .pw-traffic > i {
+  flex: none;
   width: 0.6em;
   height: 0.6em;
   border-radius: 50%;

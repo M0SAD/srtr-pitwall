@@ -13539,3 +13539,22 @@ begin
 end $$;
 update public.pro_feature_catalog set default_pro = false
  where key in ('community.layouts.use', 'community.layouts.rate', 'community.layouts.comment', 'community.themes.use');
+
+-- ---------------------------------------------------------------------------
+-- c70: Türkiye'den bağlananlara gösterilen ayrı Patreon bağlantısı (Türkiye fiyatlı kademe).
+-- ---------------------------------------------------------------------------
+alter table public.app_config add column if not exists patreon_url_tr text not null default '';
+
+-- ---------------------------------------------------------------------------
+-- c71: Türkiye'den bağlananlara gösterilen ayrı Ko-fi bağlantısı.
+-- ---------------------------------------------------------------------------
+alter table public.app_config add column if not exists kofi_url_tr text not null default '';
+
+-- ---------------------------------------------------------------------------
+-- c72: Şu overlay'ler PRO: Kafa Kafaya, Yarış Sonucu, Sürücü Kartı, Ekip Çağrısı, Fark Grafiği, Yakın Takip,
+--      Rakip Takibi, Hasar Göstergesi, Piste Dönüş, Viraj Analizi, Mesajlar (app_config.pro_overlays listesine eklenir).
+-- ---------------------------------------------------------------------------
+update public.app_config
+   set pro_overlays = (select array_agg(distinct x)
+                         from unnest(coalesce(pro_overlays, '{}') || array['h2h', 'results', 'drivercard', 'crewcall', 'gapchart', 'duel', 'target', 'damage', 'rejoin', 'corners', 'messages']) as x)
+ where id = 1;

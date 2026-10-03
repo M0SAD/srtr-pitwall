@@ -6161,5 +6161,8 @@
   "Zip dosyasını \"Attach binaries\" alanına sürükle, yükleme bitince \"Publish release\".": "将 zip 文件拖到“Attach binaries”区域，上传完成后点击“Publish release”。",
   "Zip dosyasını WeTransfer, Google Drive, Dropbox ya da benzeri bir yere yükle ve paylaşım bağlantısını buraya yaz. Paket incelenir; uygunsa herkesin indirebileceği paketler listesine eklenir.": "将 zip 文件上传到 WeTransfer、Google Drive、Dropbox 或类似服务，并在此填写分享链接。语音包会经过审核，合格后将加入所有人可下载的语音包列表。",
   "Zip okundu: {0}, {1} ifade, {2} kayıt ({3}).": "已读取 zip：{0}，{1} 条语句，{2} 条录音（{3}）。",
-  "Zorunlu tamir": "强制维修"
+  "Zorunlu tamir": "强制维修",
+  "Patreon bağlantısı (Türkiye)": "Patreon 链接（土耳其）",
+  "Ko-fi bağlantısı (Türkiye)": "Ko-fi 链接（土耳其）",
+  "Patreon ile sadece aylık abonelik alınabilir.": "Patreon 仅提供按月订阅。"
 }

@@ -6161,5 +6161,8 @@
   "Zip dosyasını \"Attach binaries\" alanına sürükle, yükleme bitince \"Publish release\".": "zip ファイルを「Attach binaries」欄にドラッグし、アップロード完了後に「Publish release」。",
   "Zip dosyasını WeTransfer, Google Drive, Dropbox ya da benzeri bir yere yükle ve paylaşım bağlantısını buraya yaz. Paket incelenir; uygunsa herkesin indirebileceği paketler listesine eklenir.": "zip ファイルを WeTransfer、Google Drive、Dropbox などにアップロードし、共有リンクをここに入力してください。パックは審査され、問題なければ誰でもダウンロードできるパック一覧に追加されます。",
   "Zip okundu: {0}, {1} ifade, {2} kayıt ({3}).": "zip を読み込みました：{0}、{1} フレーズ、{2} 録音（{3}）。",
-  "Zorunlu tamir": "必須修理"
+  "Zorunlu tamir": "必須修理",
+  "Patreon bağlantısı (Türkiye)": "Patreon リンク（トルコ）",
+  "Ko-fi bağlantısı (Türkiye)": "Ko-fi リンク（トルコ）",
+  "Patreon ile sadece aylık abonelik alınabilir.": "Patreon では月額サブスクリプションのみ利用できます。"
 }
