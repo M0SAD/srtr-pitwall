@@ -42,6 +42,7 @@ mod wheeldev;
 mod vrnative;
 mod voicepack_build;
 mod voicepack_dl;
+mod backup;
 mod winstate;
 mod prtsc;
 
@@ -2047,6 +2048,13 @@ pub fn run() {
             voicepack_dl::voice_pack_cancel,
             voicepack_dl::voice_pack_remove,
             voicepack_dl::voice_pack_probe,
+            backup::backup_run,
+            backup::restore_run,
+            backup::backup_inspect,
+            backup::backup_cancel,
+            backup::backup_token,
+            backup::backup_busy,
+            backup::backup_reveal,
             voicepack_build::voice_pack_build,
             voicepack_build::voice_pack_template,
             voicepack_build::voice_pack_check,

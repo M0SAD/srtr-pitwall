@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-81
+
+- **Yönetim › Yedekleme (yeni):** tek tıkla tam yedek. Veritabanı tabloları, üye listesi ve yüklenen bütün dosyalar / görseller bilgisayarda seçilen yere tek bir .zip olarak iner (şema dosyası ve geri yükleme notu içinde). Parolalar ve gizli anahtarlar yedeğe girmez.
+- **Yedekten geri yükleme:** aynı .zip panelden seçilir; dosya doğrulanır, özet gösterilir, onay için GERİ YÜKLE yazılır. İşlemden önce kendiliğinden bir güvenlik yedeği alınır. Tablolar yedekteki hâline döner, dosyalar yeniden yüklenir; üye hesapları (giriş bilgileri) değişmez, sonradan katılan üyelerin profili korunur, yönetici yetkin korunur.
+- Geri yükleme sırasında tablo bağları geçici olarak kaldırılıp sonunda yeniden kurulur; yarıda kalırsa panelde "Onar" düğmesi çıkar.
+- Veritabanı: c67 (yedekleme) uygulandı; c68 (güvenli geri yükleme) uygulanmayı bekliyor. c68 uygulanmadan panel geri yüklemeyi başlatmaz.
+
 ## 031026-80
 
 - **Pedal Seti:** varsayılan görünüm artık "Dikey çubuklar"; "Pedal seti" görünümü PRO oldu; "Dikey kule" görünümü kaldırıldı (seçili olanlar Dikey çubuklar'a döner). Web sitesi ve diller güncellendi.

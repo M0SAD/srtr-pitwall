@@ -195,6 +195,20 @@ export function formatModLog(l: ModLog): LogView {
       };
     case "sim_icons_set":
       return { text: d.on ? t("Sim seçicide oyun ikonları açıldı") : t("Sim seçicide yazılı görünüme dönüldü"), target: { sub: "visibility" } };
+    case "backup_run":
+      return {
+        text: t("Yedek indirildi ({0} tablo, {1} satır, {2} dosya{3})", String(d.tables ?? 0), String(d.rows ?? 0), String(d.files ?? 0), Number(d.errors) > 0 ? t(", {0} hata", String(d.errors)) : ""),
+        target: { sub: "backup" },
+      };
+    case "restore_run":
+      return { text: t("Yedekten geri yükleme başlatıldı ({0})", q(d.file, 80)), target: { sub: "backup" } };
+    case "restore_done":
+      return {
+        text: t("Yedekten geri yükleme tamamlandı ({0} tablo, {1} satır, {2} dosya{3})", String(d.tables ?? 0), String(d.rows ?? 0), String(d.files ?? 0), Number(d.errors) > 0 ? t(", {0} hata", String(d.errors)) : ""),
+        target: { sub: "backup" },
+      };
+    case "restore_failed":
+      return { text: t("Yedekten geri yükleme tamamlanamadı ({0})", d.cancelled ? t("iptal edildi") : q(d.error, 120)), target: { sub: "backup" } };
     case "top_links_set":
       return {
         text: t("Üst çubuk bağlantıları güncellendi ({0} bağlantı, {1} açık{2})", String(d.count ?? 0), String(d.enabled ?? 0), Array.isArray(d.labels) && d.labels.length ? `: ${q(d.labels.join(", "), 120)}` : ""),
