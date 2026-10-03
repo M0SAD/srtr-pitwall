@@ -25,7 +25,14 @@ export const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b
 export function createModel(props: OverlayProps, overlayId = "inputs") {
   const data = useTopic("inputs");
   const status = useTopic("status");
-  const o = props.options;
+  // Seçenekler her ayar değişikliğinde yeni bir nesne olarak gelir: ilk nesneyi saklamak yerine her okumada
+  // güncel props.options'a bakılır (yoksa "direksiyon / vites ve hız göster" gibi anahtarlar kapatılınca etkisiz kalır)
+  const o = new Proxy({} as OverlayProps["options"], {
+    get: (_, k) => (props.options as Record<string | symbol, unknown>)[k],
+    has: (_, k) => k in (props.options as object),
+    ownKeys: () => Reflect.ownKeys(props.options as object),
+    getOwnPropertyDescriptor: (_, k) => Reflect.getOwnPropertyDescriptor(props.options as object, k),
+  });
 
   const absMode = () => (o.absMode as string) ?? "both";
   const tcMode = () => (o.tcMode as string) ?? "both";

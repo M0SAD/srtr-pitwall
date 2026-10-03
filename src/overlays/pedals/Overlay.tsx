@@ -5,7 +5,6 @@
 //   horizontal → Yatay şeritler
 //   rings      → Halka göstergeler
 //   segments   → LED segmentler
-//   tower      → Dikey kule
 //   hud        → HUD (çerçevesiz)
 // Bu tasarımlar eskiden Pedallar & Girdi (inputs) overlay'indeydi; ortak parçalar ve stiller hâlâ oradan gelir
 // (src/overlays/inputs/shared.tsx, designs.css, style.css).
@@ -16,16 +15,17 @@ import { overlayValueLocked } from "@/sdk/proFeatures";
 import { t } from "@/sdk/i18n";
 import { Bars, CLUTCH, LapLines, SteerBar, VBar, Wheel, clamp, createModel, n100, type Model } from "../inputs/shared";
 
-export const DESIGNS = ["pedals", "bars", "strip", "horizontal", "rings", "segments", "tower", "hud"] as const;
+// "tower" (Dikey kule) kaldırıldı: kayıtlı değer varsayılana (Dikey çubuklar) düşer
+export const DESIGNS = ["pedals", "bars", "strip", "horizontal", "rings", "segments", "hud"] as const;
 export type Design = (typeof DESIGNS)[number];
 const isDesign = (v: unknown): v is Design => DESIGNS.includes(v as Design);
 
-/** PRO'ya ayrılmış tasarım kilitliyse varsayılan (Pedal seti) gösterilir. */
+/** PRO'ya ayrılmış tasarım kilitliyse varsayılan (Dikey çubuklar) gösterilir. */
 export default function Pedals(props: OverlayProps) {
   const m = createModel(props, "pedals");
   const design = (): Design => {
     const d = props.options.design;
-    return isDesign(d) && !overlayValueLocked("pedals", "design", d) ? d : "pedals";
+    return isDesign(d) && !overlayValueLocked("pedals", "design", d) ? d : "bars";
   };
   return (
     <div class="inp-stack">
@@ -47,9 +47,6 @@ export default function Pedals(props: OverlayProps) {
         </Match>
         <Match when={design() === "segments"}>
           <SegmentsDesign m={m} />
-        </Match>
-        <Match when={design() === "tower"}>
-          <TowerDesign m={m} />
         </Match>
         <Match when={design() === "hud"}>
           <HudDesign m={m} />
@@ -294,27 +291,6 @@ function SegmentsDesign(props: { m: Model }) {
   );
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// Dikey kule: ekranın kenarına yaslanan dar sütun (vites, hız, çubuklar, direksiyon)
-// ---------------------------------------------------------------------------------------------------------
-function TowerDesign(props: { m: Model }) {
-  const m = props.m;
-  return (
-    <div class="ov-panel inx inx-tw" classList={{ shift: m.shiftOn() }}>
-      <Show when={m.o.showGear}>
-        <b class="inx-gear">{m.gear()}</b>
-        <span class="inx-speed">{m.speed()}</span>
-        <small class="inx-unit">{m.unit()}</small>
-        <i class="inx-twsep" />
-      </Show>
-      <Bars m={m} h={96} />
-      <Show when={m.o.showSteer}>
-        <i class="inx-twsep" />
-        <Wheel m={m} />
-      </Show>
-    </div>
-  );
-}
 // ---------------------------------------------------------------------------------------------------------
 // Pedal seti: özgün pedal çizimleri; pedala basıldıkça plaka alttan dolar
 // ---------------------------------------------------------------------------------------------------------

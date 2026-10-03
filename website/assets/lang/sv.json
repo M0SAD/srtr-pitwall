@@ -1067,5 +1067,5 @@
   "fr_hiding_tip": "Den här medlemmen har valt statusen \"Offline\"; bara admins ser detta.",
   "ov_pedals_n": "Pedalset",
   "ov_pedals_d": "Pedalvisning utan graf: gas / broms / koppling, procent, växel, hastighet och ratt.",
-  "ov_pedals_h": "8 designer: pedalset, vertikala staplar, kompakt remsa, LED-segment, vertikalt torn; PRO: horisontella remsor, ringmätare, ramlös HUD|Procentetiketter, ABS / TC-indikering med färg och ram|Valfri rad för senaste / bästa varv|Valbara färger för gas och broms"
+  "ov_pedals_h": "7 designer: vertikala staplar, kompakt remsa, LED-segment; PRO: pedalset, horisontella remsor, ringmätare, ramlös HUD|Procentetiketter, ABS / TC-indikering med färg och ram|Valfri rad för senaste / bästa varv|Valbara färger för gas och broms"
 }

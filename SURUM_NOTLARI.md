@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 031026-80
+
+- **Pedal Seti:** varsayılan görünüm artık "Dikey çubuklar"; "Pedal seti" görünümü PRO oldu; "Dikey kule" görünümü kaldırıldı (seçili olanlar Dikey çubuklar'a döner). Web sitesi ve diller güncellendi.
+
+## 031026-79
+
+- **Pedal Seti / Pedallar & Girdi:** "Direksiyon", "Vites ve hız" ve diğer aç / kapat seçenekleri kapatılınca overlay'den kalkmıyordu (overlay ilk açıldığındaki ayarları kullanmaya devam ediyordu). Ayar değişiklikleri artık anında uygulanıyor.
+
 ## 031026-78
 
 - **Kurulum:** kurulum arayüzü artık sadece İngilizce (dil seçme penceresi kaldırıldı).

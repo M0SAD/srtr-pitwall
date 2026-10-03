@@ -259,8 +259,8 @@ addDict({
     "Graph-free pedal display: throttle / brake / clutch, percentages, gear, speed and steering wheel.",
   ],
   ov_pedals_h: [
-    "8 tasarım: pedal seti, dikey çubuklar, kompakt şerit, LED segmentler, dikey kule; PRO: yatay şeritler, halka göstergeler, çerçevesiz HUD|Yüzde etiketleri, ABS / TC renk ve çerçeve göstergesi|İsteğe bağlı son tur / en iyi tur satırı|Gaz ve fren renkleri değiştirilebilir",
-    "8 designs: pedal set, vertical bars, compact strip, LED segments, vertical tower; PRO: horizontal strips, ring gauges, frameless HUD|Percentage labels, ABS / TC colour and frame indication|Optional last-lap / best-lap line|Custom throttle and brake colours",
+    "7 tasarım: dikey çubuklar, kompakt şerit, LED segmentler; PRO: pedal seti, yatay şeritler, halka göstergeler, çerçevesiz HUD|Yüzde etiketleri, ABS / TC renk ve çerçeve göstergesi|İsteğe bağlı son tur / en iyi tur satırı|Gaz ve fren renkleri değiştirilebilir",
+    "7 designs: vertical bars, compact strip, LED segments; PRO: pedal set, horizontal strips, ring gauges, frameless HUD|Percentage labels, ABS / TC colour and frame indication|Optional last-lap / best-lap line|Custom throttle and brake colours",
   ],
   ov_ers_n: ["ERS ve Batarya", "ERS & Battery"],
   ov_ers_d: [

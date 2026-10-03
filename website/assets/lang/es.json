@@ -1067,5 +1067,5 @@
   "fr_hiding_tip": "Este miembro eligió aparecer desconectado; esto solo lo ven los administradores.",
   "ov_pedals_n": "Pedalera",
   "ov_pedals_d": "Indicador de pedales sin gráfico: acelerador / freno / embrague, porcentajes, marcha, velocidad y volante.",
-  "ov_pedals_h": "8 estilos: pedalera, barras verticales, tira compacta, segmentos LED, torre vertical; PRO: tiras horizontales, indicadores de anillo, HUD sin marco|Etiquetas de porcentaje, indicación de ABS / TC por color y marco|Línea opcional de última / mejor vuelta|Colores de acelerador y freno personalizables"
+  "ov_pedals_h": "7 estilos: barras verticales, tira compacta, segmentos LED; PRO: pedalera, tiras horizontales, indicadores de anillo, HUD sin marco|Etiquetas de porcentaje, indicación de ABS / TC por color y marco|Línea opcional de última / mejor vuelta|Colores de acelerador y freno personalizables"
 }

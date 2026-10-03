@@ -1067,5 +1067,5 @@
   "fr_hiding_tip": "Este membro escolheu aparecer offline; só os administradores veem isto.",
   "ov_pedals_n": "Pedaleira",
   "ov_pedals_d": "Display de pedais sem gráfico: acelerador / freio / embreagem, porcentagens, marcha, velocidade e volante.",
-  "ov_pedals_h": "8 visuais: pedaleira, barras verticais, faixa compacta, segmentos de LED, torre vertical; PRO: faixas horizontais, mostradores em anel, HUD sem moldura|Rótulos de porcentagem, indicação de ABS / TC por cor e moldura|Linha opcional de última volta / melhor volta|Cores de acelerador e freio personalizáveis"
+  "ov_pedals_h": "7 visuais: barras verticais, faixa compacta, segmentos de LED; PRO: pedaleira, faixas horizontais, mostradores em anel, HUD sem moldura|Rótulos de porcentagem, indicação de ABS / TC por cor e moldura|Linha opcional de última volta / melhor volta|Cores de acelerador e freio personalizáveis"
 }
