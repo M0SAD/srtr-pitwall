@@ -4,6 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { inTauri } from "@/sdk/platform";
+import { t } from "@/sdk/i18n";
+import type { AppState } from "@/sdk/types";
 import { OVMSG_CLEAR_EVENT, OVMSG_EVENT, ovMsgAccepts, ovMsgSpeaks, registerOvMsgFilter, type OvMsg } from "@/sdk/ovmsg";
 import "./style.css";
 
@@ -15,7 +17,7 @@ interface Item {
 const SAMPLE: OvMsg[] = [
   { id: "s1", kind: "friend", from: "a", peer: "a", name: "Örnek Arkadaş", color: "#2ec4b6", body: "Pitte görüşürüz 👍", mine: false, ts: 0 },
   { id: "s2", kind: "team", from: "b", peer: "t", name: "Takım Arkadaşı", color: "#a970ff", team: "[SRTR]", body: "Yakıt 2 tur daha yetiyor", mine: false, ts: 0 },
-  { id: "s4", kind: "crew", from: "c", peer: "me", name: "Pit Ekibi", color: "#ffb341", team: "Ekip", body: "Bu tur pit, yakıt ayarlandı", mine: false, ts: 0 },
+  { id: "s4", kind: "crew", from: "c", peer: "me", name: "İbrahim Turan", color: "#ffb341", body: "Bu tur pit, yakıt ayarlandı", mine: false, ts: 0 },
   { id: "s3", kind: "friend", from: "me", peer: "a", name: "Sen", color: "#ff8a2a", body: "Tamam, bu tur giriyorum", mine: true, ts: 0 },
 ];
 
@@ -27,13 +29,19 @@ const SAMPLE: OvMsg[] = [
 function speak(m: OvMsg, o: Record<string, any>) {
   invoke("social_tts_speak", {
     id: m.id,
-    name: m.name,
+    name: senderLabel(m),
     text: m.body,
     readName: o.ttsName !== false,
     maxChars: Number(o.ttsMax) || 200,
     voice: m.kind === "crew" ? String(o.crewVoice ?? "") || null : null,
   }).catch(() => {});
 }
+
+/**
+ * Görünen gönderen adı: ekip odası mesajı tek etiketle "Pit Ekibi {ad}" (ayrı "Ekip" etiketi yok); kendi mesajımda
+ * ve diğer türlerde yalnızca ad. Sesli okumada da aynı ad okunur.
+ */
+const senderLabel = (m: OvMsg) => (m.kind === "crew" && !m.mine ? t("Pit Ekibi {0}", m.name) : m.name);
 
 const initial = (s: string) => (Array.from(s.trim())[0] ?? "?").toLocaleUpperCase("tr");
 
@@ -86,12 +94,30 @@ export default function Messages(props: OverlayProps) {
   }, 500);
   onCleanup(() => clearInterval(tick));
 
-  // Örnek mesajlar: panel içi önizleme, sabitlenmiş önizleme, düzenleme modu ve Demo modu. Gerçek bir mesaj
+  // Örnek mesajlar: panel içi önizleme, düzenleme modu ve (kullanıcının açtığı) Demo modu; başka hiçbir durumda değil. Gerçek bir mesaj
   // geldiği anda örnekler kalkar (aşağıda: items doluysa yalnızca gerçek mesajlar) ve o mesajların ekranda kalma
   // süresi dolana dek geri gelmez; hepsi silinince, Demo hâlâ açıksa örnekler yeniden gösterilir.
   // Örnekler hiçbir zaman sesli okunmaz (speak yalnızca gerçek olay dinleyicisinden çağrılır).
   const status = useTopic("status");
-  const sample = () => props.editing || !!status()?.demo;
+  // `status.demo` panel önizleme verisi akarken de doğrudur (motor: demo || preview); o yüzden `preview` ayrıca
+  // elenir: panel açıkken sim kapalı diye gerçek ekrandaki (ya da OBS / VR penceresindeki) overlay örnek göstermez.
+  // Demo'dan çıkılınca örnekler hemen kalkar: Demo düğmesinin durumu (app-state) doğrudan dinlenir, çünkü oyun
+  // kapalıyken son `status` paketi (demo: true) bir süre eski kalabilir ve örnekler ekranda asılı kalırdı.
+  const [appDemo, setAppDemo] = createSignal(!inTauri);
+  onMount(() => {
+    if (!inTauri) return;
+    let un: (() => void) | undefined;
+    let dead = false;
+    invoke<AppState>("state_get")
+      .then((a) => !dead && setAppDemo(!!a.demo))
+      .catch(() => {});
+    void listen<AppState>("app-state", (e) => setAppDemo(!!e.payload?.demo)).then((f) => (dead ? f() : (un = f)));
+    onCleanup(() => {
+      dead = true;
+      un?.();
+    });
+  });
+  const sample = () => props.editing || (appDemo() && !!status()?.demo && !status()?.preview);
   const shown = createMemo<Item[]>(() => {
     const list = items().length ? items().slice(-maxN()) : sample() ? SAMPLE.slice(-maxN()).map((m) => ({ m, at: now() })) : [];
     return o().newestTop ? [...list].reverse() : list;
@@ -124,10 +150,10 @@ export default function Messages(props: OverlayProps) {
             </Show>
             <div class="ovmsg-bubble">
               <div class="ovmsg-name">
-                <Show when={x.m.team}>
+                <Show when={x.m.team && x.m.kind !== "crew"}>
                   <i>{x.m.team}</i>
                 </Show>
-                <b>{x.m.name}</b>
+                <b>{senderLabel(x.m)}</b>
               </div>
               <p>{x.m.body}</p>
             </div>

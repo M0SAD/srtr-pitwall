@@ -109,7 +109,7 @@ impl Default for VoiceCfg {
 }
 
 /// Varsayılanı kapalı olan özellik grupları
-const DEFAULT_OFF: &[&str] = &[];
+const DEFAULT_OFF: &[&str] = &["radio"];
 
 impl VoiceCfg {
     pub fn on(&self, group: &str) -> bool {
@@ -135,6 +135,15 @@ pub fn cfg_from_settings(v: &Value, packs_dir: Option<&Path>) -> (VoiceCfg, Soun
         .and_then(|g| g.get("speedMph"))
         .and_then(|x| x.as_bool())
         .unwrap_or(false);
+    // Bir kerelik geçiş (voice.radioOffV1, bkz. src/sdk/settings.ts): telsiz kontrolü varsayılan olarak kapalı.
+    // İşaret henüz kaydedilmemişse (eski kayıt, panel dosyayı yeniden yazmadan önce) eski "açık" değeri sayılmaz.
+    let radio_migrated = g
+        .and_then(|g| g.pointer("/voice/radioOffV1"))
+        .and_then(|x| x.as_bool())
+        .unwrap_or(false);
+    if !radio_migrated {
+        voice.categories.insert("radio".into(), false);
+    }
     if let Some((root, meta)) = voicepack::resolve(packs_dir, &voice.pack, &voice.custom_dir) {
         voice.pack_root = Some(root);
         voice.pack_meta = meta;
@@ -923,6 +932,12 @@ mod tests {
         let (c, _) = cfg_from_settings(&v, None);
         assert!(!c.enabled && c.sweary && c.imperial);
         assert!(!c.on("fuel") && c.on("spotter"));
+        // Telsiz kontrolü varsayılan kapalı; işaret yokken kayıtlı "açık" sayılmaz, işaretliyken kullanıcının seçimi geçerli
+        assert!(!c.on("radio"));
+        let old: Value = serde_json::json!({"general": {"voice": {"categories": {"radio": true}}}});
+        assert!(!cfg_from_settings(&old, None).0.on("radio"));
+        let new: Value = serde_json::json!({"general": {"voice": {"radioOffV1": true, "categories": {"radio": true}}}});
+        assert!(cfg_from_settings(&new, None).0.on("radio"));
         assert!(c.pack_root.is_none());
         let (d, _) = cfg_from_settings(&serde_json::json!({}), None);
         assert!(d.enabled && d.sessions.race);

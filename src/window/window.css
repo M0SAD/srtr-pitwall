@@ -1,17 +1,4 @@
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-}
-
-body {
-  background: #0b0d11;
-  color: var(--ov-text, #eef1f6);
-  font: 14px "Segoe UI", system-ui, sans-serif;
-  color-scheme: dark;
-}
-
+/* Kök kuralları (html, body) window-root.css içindedir: bu dosya panelde de yüklenir (CrewViews.tsx) */
 .pw-dim {
   color: var(--ov-dim);
 }
@@ -513,4 +500,9 @@ body {
   .pw-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Salt okunur mühendis ekranı (Ekip Pitwall'ı: sürücünün gözünden): göstergelerin içi tıklanamaz */
+.eng.ro .eng-card {
+  pointer-events: none;
 }

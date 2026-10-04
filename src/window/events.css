@@ -496,3 +496,9 @@
     padding-right: 8px;
   }
 }
+
+/* Salt okunur (Ekip Pitwall'ı: sürücünün gözünden): satırlar tıklanamaz, tekrar düğmesi yok */
+.evw.ro .evw-row {
+  pointer-events: none;
+  cursor: default;
+}

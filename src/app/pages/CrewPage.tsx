@@ -10,6 +10,7 @@ import { session } from "@/cloud/supabase";
 import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewSpotRelease, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
 import { CrewWall } from "../components/CrewWall";
 import { CrewRoom } from "../components/CrewRoom";
+import { CrewRemote, type CrewViewKind } from "../components/CrewViews";
 import { FuelCard, Ic, RaceHeader, ServiceStrip, TyreCard, fxKeys, type Fx } from "../components/CrewGfx";
 import { crewFit } from "../crewFit";
 import "../crew.css";
@@ -59,6 +60,14 @@ export function CrewPage(props: { owner?: string } = {}) {
       localStorage.setItem(k, v ? "1" : "0");
     } catch {}
   };
+  /** Sekme: pit duvarı (kontroller) ya da sürücünün gözünden salt okunur görünümler (c79) */
+  const [tab, setTab] = createSignal<"wall" | CrewViewKind>("wall");
+  const TABS: { id: "wall" | CrewViewKind; label: string }[] = [
+    { id: "wall", label: "Pitwall" },
+    { id: "timing", label: "Live Timing" },
+    { id: "engineer", label: "Mühendis" },
+    { id: "events", label: "Olaylar" },
+  ];
   const [fit, setFit] = createSignal(lsGet("crew.fit"));
   const [full, setFull] = createSignal(false);
   const toggleFit = () => {
@@ -102,6 +111,7 @@ export function CrewPage(props: { owner?: string } = {}) {
   createEffect(() => {
     fit();
     full();
+    tab();
     fitCtl?.update();
   });
 
@@ -245,6 +255,15 @@ export function CrewPage(props: { owner?: string } = {}) {
             </div>
             <div class="crew-fitbox" ref={fitOuter}>
               <div class="crew-view">
+                <span class="seg crew-tabs">
+                  <For each={TABS}>
+                    {(x) => (
+                      <button classList={{ on: tab() === x.id }} onClick={() => setTab(x.id)} data-no-i18n={x.id === "wall" || x.id === "timing" ? "" : undefined}>
+                        {x.id === "wall" || x.id === "timing" ? x.label : t(x.label)}
+                      </button>
+                    )}
+                  </For>
+                </span>
                 <button class="btn ghost small" classList={{ on: fit() }} onClick={toggleFit} title="Kaydırmaya gerek kalmadan tüm panel ekrana sığacak şekilde ölçeklenir">
                   Ekrana sığdır
                 </button>
@@ -252,8 +271,18 @@ export function CrewPage(props: { owner?: string } = {}) {
                   {full() ? t("Tam ekrandan çık") : t("Tam ekran")}
                 </button>
               </div>
-            <div class="crew-main c3" ref={mountFit}>
-              <Show when={drv()} fallback={<p class="muted">{err() ? t(err()) : t("Yükleniyor…")}</p>}>
+            <Show when={tab() !== "wall" && drv()}>
+              <CrewRemote
+                owner={sel()}
+                name={drv()?.display_name || "?"}
+                view={tab() as CrewViewKind}
+                track={data()?.track || drv()?.track}
+                sim={cw()?.sim || drv()?.sim}
+                car={data()?.car || drv()?.car}
+              />
+            </Show>
+            <div class="crew-main c3" ref={mountFit} style={{ display: tab() === "wall" || !drv() ? undefined : "none" }}>
+              <Show when={tab() === "wall" || !drv() ? drv() : null} fallback={<p class="muted">{err() ? t(err()) : t("Yükleniyor…")}</p>}>
                 {(d) => (
                   <>
                     <div class="crew-col crew-col-a">

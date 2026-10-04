@@ -528,7 +528,7 @@ export function CanvasTools(props: { zoom: number; setZoom: (z: number) => void 
   );
 }
 
-/** Esc: tuvalin üstünde yüzen ayar panelini kapatır (yazı alanındayken ve açık bir pencere / menü varken dokunmaz) */
+/** Esc: tuvalin solundaki ayar panelini kapatır (yazı alanındayken ve açık bir pencere / menü varken dokunmaz) */
 export function useEscClose(open: () => boolean, close: () => void) {
   onMount(() => {
     const key = (e: KeyboardEvent) => {

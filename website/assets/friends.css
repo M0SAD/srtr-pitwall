@@ -776,3 +776,39 @@ button.fr-row:hover {
 .fr-crew .cw-stat b {
   font-size: 18px;
 }
+
+/* Arkadaş listesi Steam gibi: çevrimiçi mavi, yarışta yeşil, çevrimdışı gri */
+.fr-main.st-off b { color: #8b93a3; }
+.fr-main.st-on b, .fr-main.st-on small, .fr-main.st-dnd b { color: #57cbde; }
+.fr-main.st-race b, .fr-main.st-race small, .fr-main small.race { color: #90ba3c; }
+
+/* Steam düzeni: renkler değişkende; avatar çerçevesi/noktası aynı şema (yeşil / mavi / gri); çevrimdışı soluk */
+.fr-panel, .fr-list, .fr-head {
+  --fr-ingame: #90ba3c;
+  --fr-online: #66c0f4;
+  --fr-offline: #8b93a3;
+}
+.fr-main.st-off b { color: var(--fr-offline, #8b93a3); }
+.fr-main.st-off small { color: #6f7787; }
+.fr-main.st-on b, .fr-main.st-on small, .fr-main.st-dnd b { color: var(--fr-online, #66c0f4); }
+.fr-main.st-dnd small { color: #e58a8d; }
+.fr-main.st-race b, .fr-main.st-race small, .fr-main small.race, .fr-ttl small.race { color: var(--fr-ingame, #90ba3c); }
+.fr-row.unread .fr-main small { font-weight: 400; }
+.fr-row.unread .fr-main.st-off small { color: #6f7787; }
+.fr-row.unread .fr-main.st-on small { color: var(--fr-online, #66c0f4); }
+.fr-row.unread .fr-main.st-race small { color: var(--fr-ingame, #90ba3c); }
+.fr-row.unread .fr-main.st-dnd small { color: #e58a8d; }
+.fr-row.rs-off:not(:hover) { opacity: 0.78; }
+.fr-dot.on { background: var(--fr-online, #66c0f4); }
+.fr-dot.race { background: var(--fr-ingame, #90ba3c); }
+.fr-row.rs-on .fr-av, .fr-row.rs-dnd .fr-av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--fr-online, #66c0f4); }
+.fr-row.rs-race .fr-av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--fr-ingame, #90ba3c); }
+.fr-row.rs-off .fr-av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px #3a404c; }
+.fr-sec.fr-st { padding-top: 8px; font-size: 11px; }
+.fr-sec.st-race { color: var(--fr-ingame, #90ba3c); }
+.fr-sec.st-on { color: var(--fr-online, #66c0f4); }
+.fr-sec.fr-st span { color: inherit; opacity: 0.8; }
+
+/* Rahatsız etme: çevrimiçilerin altında ayrı bölüm; ad daha soluk mavi */
+.fr-main.st-dnd b { color: color-mix(in srgb, var(--fr-online, #66c0f4) 68%, #6f7787); }
+.fr-sec.st-dnd { color: color-mix(in srgb, var(--fr-online, #66c0f4) 68%, #6f7787); }

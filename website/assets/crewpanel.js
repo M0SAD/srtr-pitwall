@@ -22,6 +22,39 @@ addDict({
   cw_error: ["Ekip listesi okunamadı. Daha sonra tekrar dene.", "Could not load the crew list. Try again later."],
   cw_pick: ["Sürücü seç", "Pick a driver"],
   cw_back: ["← Sürücüler", "← Drivers"],
+  cw_tab_wall: ["Pitwall", "Pitwall"],
+  cw_tab_timing: ["Live Timing", "Live Timing"],
+  cw_tab_eng: ["Mühendis", "Engineer"],
+  cw_tab_events: ["Olaylar", "Events"],
+  cw_x_head: ["Sürücünün gözünden · {0} · veri {1} sn gecikmeli", "Driver's view · {0} · data delayed {1} s"],
+  cw_x_head0: ["Sürücünün gözünden · {0}", "Driver's view · {0}"],
+  cw_x_stale: ["Veri güncel değil", "Data is stale"],
+  cw_x_ro: ["Salt okunur", "Read-only"],
+  cw_x_wait: [
+    "Sürücünün uygulamasından veri bekleniyor… Birkaç saniye içinde gelmezse sürücünün uygulaması güncel olmayabilir ya da oyun bu veriyi vermiyor.",
+    "Waiting for data from the driver's app… If nothing arrives in a few seconds, the driver's app may be out of date or the game does not provide this data.",
+  ],
+  cw_x_off_race: ["Sürücü şu an yarışta değil.", "The driver is not racing right now."],
+  cw_x_off_share: ["Sürücü pitwall paylaşımını kapattı.", "The driver has turned off pitwall sharing."],
+  cw_x_none: ["Bu görünüm sunucuda henüz etkin değil.", "This view is not enabled on the server yet."],
+  cw_x_nost: ["Bu oyun ya da oturum için sıralama verisi yok.", "No standings data for this game or session."],
+  cw_x_noev: ["Bu oturumda olay kaydedilmedi", "No events recorded in this session"],
+  cw_x_drv: ["Sürücü", "Driver"],
+  cw_x_int: ["Ara", "Int"],
+  cw_x_gap: ["Fark", "Gap"],
+  cw_x_last: ["Son", "Last"],
+  cw_x_best: ["En iyi", "Best"],
+  cw_x_rc: ["Yarış kontrol", "Race control"],
+  cw_x_lap: ["Tur {0}", "Lap {0}"],
+  cw_x_fuel: ["Yakıt", "Fuel"],
+  cw_x_fuel_laps: ["Kalan tur", "Laps left"],
+  cw_x_fuel_use: ["Tur başına", "Per lap"],
+  cw_x_fuel_need: ["Bitiş için gereken", "Needed to finish"],
+  cw_x_tyres: ["Lastikler", "Tyres"],
+  cw_x_laps: ["Tur süreleri", "Lap times"],
+  cw_x_wx: ["Hava", "Weather"],
+  cw_x_air: ["Hava sıcaklığı", "Air temp"],
+  cw_x_track: ["Pist sıcaklığı", "Track temp"],
   cw_fit: ["Ekrana sığdır", "Fit to screen"],
   cw_fit_h: ["Kaydırmaya gerek kalmadan tüm panel ekrana sığacak şekilde ölçeklenir", "Scales the whole panel so it fits the screen without scrolling"],
   cw_full: ["Tam ekran", "Full screen"],
@@ -381,6 +414,32 @@ const WALL_CSS = `
 .cw-quick{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 10px}
 .cw-stat.good b{color:#2fbf71}
 @media (max-width:420px){.cw-table .best{display:none}}
+.cw-tabs{display:inline-flex;margin-right:auto;border:1px solid rgba(255,255,255,.14);border-radius:8px;overflow:hidden}
+.cw-tabs button{border:0;background:none;color:inherit;opacity:.65;padding:6px 10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.cw-tabs button.on{opacity:1;background:rgba(255,255,255,.1)}
+.cw-view{flex-wrap:wrap}
+.cw-x{border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden}
+.cw-x.stale .cw-x-body{opacity:.6}
+.cw-x-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.12);font-size:13px}
+.cw-x-top i{font-style:normal;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.2);opacity:.8}
+.cw-x-top i.st{border-color:#c58a1c;color:#ffb341}
+.cw-x-top i.ro{margin-left:auto}
+.cw-x-body{padding:8px;overflow-x:auto}
+.cw-x-body h4{margin:12px 4px 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.cw-x-t{width:100%;border-collapse:collapse;font-size:13px}
+.cw-x-t th{font-size:11px;text-align:left;opacity:.6;padding:3px 6px;font-weight:600}
+.cw-x-t td{padding:4px 6px;border-top:1px solid rgba(255,255,255,.07);white-space:nowrap}
+.cw-x-t td.nm{white-space:normal;width:60%}
+.cw-x-t td.r,.cw-x-t th.r{text-align:right;font-variant-numeric:tabular-nums}
+.cw-x-t tr.me td{background:rgba(255,179,65,.12);font-weight:600}
+.cw-x-t tr.pit td{opacity:.6}
+.cw-x-t tr.cls td{font-weight:700;font-size:12px;opacity:.85;border-left:3px solid var(--c,#888)}
+.cw-x-p{display:inline-block;min-width:22px;text-align:center;border-radius:4px;padding:0 4px;color:#111;font-weight:700}
+.cw-x-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin:0 4px}
+.cw-x-kv div{border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 8px}
+.cw-x-kv small{display:block;font-size:11px;opacity:.6}
+.cw-x-kv b{font-size:15px;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.cw-x-t .opt{display:none}}
 `;
 function wallStyle() {
   if (document.getElementById("cw-wall-style")) return;
@@ -496,7 +555,12 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   bar.className = "cw-view";
   const body = document.createElement("div");
   body.className = "cw-body";
-  box.append(bar, body);
+  // c79: sürücünün gözünden salt okunur görünümler (Live Timing / Mühendis / Olaylar)
+  const ext = document.createElement("div");
+  ext.className = "cw-ext";
+  ext.hidden = true;
+  box.append(bar, body, ext);
+  let tab = "wall";
   host.append(box);
   const ls = (k, v) => {
     try {
@@ -511,9 +575,11 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   let fitRaf = 0;
   const isFs = () => document.fullscreenElement === host;
   function drawBar() {
+    const tabs = [["wall", "cw_tab_wall"], ["timing", "cw_tab_timing"], ["engineer", "cw_tab_eng"], ["events", "cw_tab_events"]];
     morph(
       bar,
-      `<button type="button" class="cw-vb${fit ? " on" : ""}" data-view="fit" title="${esc(T("cw_fit_h"))}">${T("cw_fit")}</button>` +
+      `<span class="cw-tabs">${tabs.map(([id, k]) => `<button type="button" class="${tab === id ? "on" : ""}" data-tab="${id}">${T(k)}</button>`).join("")}</span>` +
+        `<button type="button" class="cw-vb${fit ? " on" : ""}" data-view="fit" title="${esc(T("cw_fit_h"))}">${T("cw_fit")}</button>` +
         `<button type="button" class="cw-vb${full ? " on" : ""}" data-view="full">${T(full ? "cw_full_exit" : "cw_full")}</button>`,
     );
     host.classList.toggle("cw-fit", fit);
@@ -1217,6 +1283,167 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     }
   }
 
+  // ---- Sürücünün gözünden görünümler (c79): salt okunur tablolar; tekrar / kamera düğmesi yoktur ----
+  let xs = null; // crew_ext() yanıtı
+  let xErr = "";
+  let xAt = 0; // yanıtın alındığı an
+  let xEv = null; // son olaylar parçası (değişmediyse sunucu yeniden göndermez)
+  let xRev = null;
+  let xBusy = false;
+  let xSkip = 0;
+  const xParts = () => (tab === "timing" ? "t" : tab === "engineer" ? "g" : "e");
+  async function loadExt() {
+    if (!alive || tab === "wall" || xBusy || document.hidden) return;
+    if (xSkip > 0) return void xSkip--;
+    xBusy = true;
+    const was = tab;
+    try {
+      const { data, error } = await sb.rpc("crew_ext", { p_owner: ownerId, p_parts: xParts(), p_e_rev: tab === "events" ? xRev : null });
+      if (!alive || was !== tab) return;
+      if (error) {
+        xs = null;
+        xErr = /could not find|PGRST202|not exist/i.test(String(error.message || "")) ? T("cw_x_none") : String(error.message || "");
+        xSkip = 5;
+      } else {
+        xs = data && typeof data === "object" ? data : null;
+        xErr = "";
+        xAt = Date.now();
+        if (was === "events" && xs) {
+          if (xs.e && typeof xs.e === "object") {
+            xEv = xs.e;
+            xRev = typeof xs.e_rev === "string" ? xs.e_rev : null;
+          } else if (!xs.e_same) {
+            xEv = null;
+            xRev = null;
+          }
+        }
+      }
+      drawExt();
+    } finally {
+      xBusy = false;
+    }
+  }
+  const xArr = (v) => (Array.isArray(v) ? v : []);
+  const xCol = (c) => (typeof c === "string" && /^#[0-9a-f]{3,8}$/i.test(c) ? c : "#888");
+  const xClock = (s) => {
+    s = Math.max(0, Math.floor(n0(s)));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    return (h > 0 ? `${h}:${String(m).padStart(2, "0")}` : String(m)) + `:${String(s % 60).padStart(2, "0")}`;
+  };
+  function xTiming(p) {
+    const st = p.st;
+    const rows = xArr(st?.rows);
+    if (!rows.length) return `<p class="muted">${T("cw_x_nost")}</p>`;
+    let h = `<table class="cw-x-t"><thead><tr><th>P</th><th>#</th><th>${T("cw_x_drv")}</th><th class="r">${T("cw_x_int")}</th><th class="r">${T("cw_x_gap")}</th><th class="r opt">${T("cw_x_last")}</th><th class="r opt">${T("cw_x_best")}</th></tr></thead><tbody>`;
+    const classes = xArr(st.classes).length ? xArr(st.classes) : [{ id: null }];
+    for (const c of classes) {
+      const list = c.id == null ? rows : rows.filter((r) => n0(r?.classId) === n0(c.id));
+      if (!list.length) continue;
+      if (classes.length > 1) h += `<tr class="cls" style="--c:${xCol(c.color)}"><td colspan="7">${esc(String(c.name || ""))} · ${n0(c.count)}</td></tr>`;
+      for (const r of list) {
+        if (!r || typeof r !== "object") continue;
+        const first = n0(r.classPos) === 1;
+        const gap = first ? "—" : n0(r.lapsDown) > 0 ? `+${n0(r.lapsDown)}L` : `+${n0(r.gap).toFixed(1)}`;
+        h += `<tr class="${r.isMe ? "me" : ""}${r.onPit ? " pit" : ""}"><td><span class="cw-x-p" style="background:${xCol(r.classColor)}">${n0(r.classPos)}</span></td>
+          <td>#${esc(String(r.number ?? ""))}</td><td class="nm">${esc(String(r.name ?? ""))}${r.pitState ? ` <small>${esc(String(r.pitState))}</small>` : ""}</td>
+          <td class="r">${first ? "—" : `+${n0(r.interval).toFixed(1)}`}</td><td class="r">${gap}</td>
+          <td class="r opt">${lapTime(n0(r.last))}</td><td class="r opt">${lapTime(n0(r.best))}</td></tr>`;
+      }
+    }
+    h += "</tbody></table>";
+    const rc = xArr(p.rc);
+    if (rc.length) {
+      h += `<h4>${T("cw_x_rc")}</h4><table class="cw-x-t"><tbody>`;
+      for (const e of rc.slice(0, 40)) {
+        if (!e || typeof e !== "object") continue;
+        h += `<tr class="${e.isMe ? "me" : ""}"><td>${esc(T("cw_x_lap", n0(e.lap)))}</td><td class="nm"><b>#${esc(String(e.number ?? ""))} ${esc(String(e.name ?? ""))}</b> ${esc(String(e.text ?? ""))}</td><td class="r">${xClock(e.time)}</td></tr>`;
+      }
+      h += "</tbody></table>";
+    }
+    return h;
+  }
+  function xEngineer(p) {
+    const tp = p.topics && typeof p.topics === "object" ? p.topics : {};
+    const kv = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
+    let h = "";
+    const f = tp.fuel;
+    if (f && typeof f === "object") {
+      h += `<h4>${T("cw_x_fuel")}</h4><div class="cw-x-kv">${kv(T("cw_x_fuel"), `${num(f.level)} L`)}${kv(T("cw_x_fuel_laps"), num(f.avg5?.laps))}${kv(T("cw_x_fuel_use"), `${num(f.avg5?.usage, 2)} L`)}${kv(T("cw_x_fuel_need"), `${num(f.raceNeeded)} L`)}</div>`;
+    }
+    const ty = xArr(tp.tires?.corners);
+    if (ty.length === 4) {
+      const avg = (a) => {
+        const l = xArr(a).filter((x) => typeof x === "number" && isFinite(x));
+        return l.length ? l.reduce((x, y) => x + y, 0) / l.length : null;
+      };
+      const cell = (c, name) => {
+        const w = avg(xArr(c?.wear).filter((x) => x >= 0));
+        const tm = avg(c?.temp);
+        return kv(name, `${w == null ? "—" : Math.round(w * 100) + "%"} · ${tm == null ? "—" : Math.round(tm) + "°"}`);
+      };
+      h += `<h4>${T("cw_x_tyres")}</h4><div class="cw-x-kv">${cell(ty[0], "LF")}${cell(ty[1], "RF")}${cell(ty[2], "LR")}${cell(ty[3], "RR")}</div>`;
+    }
+    const w = tp.weather;
+    if (w && typeof w === "object") h += `<h4>${T("cw_x_wx")}</h4><div class="cw-x-kv">${kv(T("cw_x_air"), `${num(w.airTemp)}°`)}${kv(T("cw_x_track"), `${num(w.trackTemp)}°`)}</div>`;
+    const laps = xArr(tp.laps?.laps).slice(-10).reverse();
+    if (laps.length) {
+      h += `<h4>${T("cw_x_laps")}</h4><table class="cw-x-t"><tbody>`;
+      for (const l of laps) if (l && typeof l === "object") h += `<tr class="${l.valid === false ? "pit" : ""}"><td>${esc(T("cw_x_lap", n0(l.lap)))}</td><td class="r">${lapTime(n0(l.time))}</td><td class="r opt">${xArr(l.sectors).map((x) => num(x, 3)).join(" · ")}</td></tr>`;
+      h += "</tbody></table>";
+    }
+    return h || `<p class="muted">${T("cw_x_wait")}</p>`;
+  }
+  function xEvents(p) {
+    const ev = xArr(p.info?.events);
+    if (!ev.length) return `<p class="muted">${T("cw_x_noev")}</p>`;
+    let h = `<table class="cw-x-t"><tbody>`;
+    for (const e of ev) {
+      if (!e || typeof e !== "object") continue;
+      h += `<tr class="${e.isMe ? "me" : ""}"><td>${esc(T("cw_x_lap", n0(e.lap)))}</td><td class="r">${xClock(e.time)}</td><td class="nm"><b>${e.number ? "#" + esc(String(e.number)) + " " : ""}${esc(String(e.name ?? ""))}</b> ${e.kind === "incident" && e.sub ? `<small>${esc(String(e.sub))}</small> ` : ""}${esc(String(e.text ?? ""))}</td></tr>`;
+    }
+    return h + "</tbody></table>";
+  }
+  function drawExt() {
+    if (!alive) return;
+    const on = tab !== "wall";
+    body.style.display = on ? "none" : "";
+    ext.hidden = !on;
+    if (!on) return;
+    const part = tab === "timing" ? xs?.t : tab === "engineer" ? xs?.g : xEv;
+    const age0 = tab === "timing" ? xs?.t_age : tab === "engineer" ? xs?.g_age : xs?.e_age;
+    const age = part && typeof age0 === "number" ? Math.max(0, Math.round((age0 + (Date.now() - xAt)) / 1000)) : null;
+    const stale = !!part && (age == null || age > 10);
+    const name = esc(String(drv?.display_name || "?"));
+    let inner;
+    if (xErr) inner = `<p class="muted">${esc(xErr)}</p>`;
+    else if (!xs) inner = `<p class="muted">${T("loading")}</p>`;
+    else if (!xs.on) inner = `<p class="muted">${T("cw_x_off_share")}</p>`;
+    else if (!xs.racing) inner = `<p class="muted">${T("cw_x_off_race")}</p>`;
+    else if (!part || typeof part !== "object") inner = `<p class="muted">${T("cw_x_wait")}</p>`;
+    else inner = tab === "timing" ? xTiming(part) : tab === "engineer" ? xEngineer(part) : xEvents(part);
+    morph(
+      ext,
+      `<div class="cw-x${stale ? " stale" : ""}"><div class="cw-x-top"><b>${age == null ? T("cw_x_head0", name) : T("cw_x_head", name, age)}</b>${stale ? `<i class="st">${T("cw_x_stale")}</i>` : ""}<i class="ro">${T("cw_x_ro")}</i></div><div class="cw-x-body">${inner}</div></div>`,
+    );
+  }
+  const setTab = (v) => {
+    tab = v;
+    xs = null;
+    xErr = "";
+    xEv = null;
+    xRev = null;
+    xSkip = 0;
+    drawBar();
+    drawExt();
+    if (v === "wall") {
+      drawDash();
+      void loadWall();
+      void loadRoom();
+    } else void loadExt();
+    kickFit();
+  };
+
   // ---- Olaylar (tek dinleyici: içerik sık yeniden çizilir) ----
   const onClick = (e) => {
     const t = e.target.closest("button");
@@ -1228,6 +1455,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       return void kickFit();
     }
     if (t.dataset.view === "full") return void setFull(!full);
+    if (t.dataset.tab && ["wall", "timing", "engineer", "events"].includes(t.dataset.tab)) return void (t.dataset.tab !== tab && setTab(t.dataset.tab));
     if (t.dataset.quick && QUICK.includes(t.dataset.quick)) return void sendChat(T(t.dataset.quick));
     if (t.dataset.l) {
       liters = Math.min(1000, Math.max(1, liters + Number(t.dataset.l)));
@@ -1326,8 +1554,11 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     if (!document.hidden) void loadDriver();
   };
   const timer = setInterval(tick, opts.interval || 3000);
-  const wallTimer = setInterval(() => void loadWall(), 1000);
-  const roomTimer = setInterval(() => void loadRoom(), 2500);
+  // Pitwall sekmesi açık değilken pit duvarı / oda yoklanmaz ("bağlı" göstergesini crew_driver ve crew_ext sürdürür)
+  const wallTimer = setInterval(() => tab === "wall" && void loadWall(), 1000);
+  const roomTimer = setInterval(() => tab === "wall" && void loadRoom(), 2500);
+  const extTimer = setInterval(() => void loadExt(), 3000);
+  const extTick = setInterval(() => tab !== "wall" && drawExt(), 1000);
   const onVis = () => !document.hidden && (tick(), void loadWall(), void loadRoom());
   document.addEventListener("visibilitychange", onVis);
   // c75: panel kapanırken spotter yeri hemen bırakılır (bırakılamazsa sunucu 45 sn sonra kendiliğinden boşaltır)
@@ -1340,7 +1571,10 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   void loadWall();
   void loadRoom(true);
   return {
-    redraw: drawDash,
+    redraw() {
+      drawDash();
+      drawExt();
+    },
     destroy() {
       alive = false;
       release();
@@ -1348,6 +1582,8 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       clearInterval(timer);
       clearInterval(wallTimer);
       clearInterval(roomTimer);
+      clearInterval(extTimer);
+      clearInterval(extTick);
       fitRo.disconnect();
       if (fitRaf) cancelAnimationFrame(fitRaf);
       window.removeEventListener("resize", kickFit);

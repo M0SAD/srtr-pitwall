@@ -10,6 +10,7 @@ import { Timing } from "./Timing";
 import { Engineer } from "./Engineer";
 import "@/sdk/fonts";
 import "@/overlays/base.css";
+import "./window-root.css";
 import "./window.css";
 
 // Tarayıcının kendi sağ tık menüsü (Farklı kaydet, Yazdır…) hiçbir yerde açılmasın

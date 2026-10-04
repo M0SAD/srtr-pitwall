@@ -59,6 +59,8 @@ export interface AppConfig {
   /** Yöneticinin gizlediği sol menü bölümleri ve overlay'ler (yöneticiler yine görür) */
   hidden_sections?: string[];
   hidden_overlays?: string[];
+  /** Gizlenen menü kayıtları (c77): "bölüm" ya da "bölüm.sayfa"; sütun yoksa lig kayıtları gizli sayılır (bkz. app/menu.ts) */
+  hidden_menu?: string[];
   /** Üst çubuktaki sim seçicide oyun ikonları (c51); false: eski yazılı görünüm. Sütun yoksa (eski sunucu) açık sayılır */
   sim_icons?: boolean;
   /** Üst çubuk bağlantıları (c61); bkz. cloud/topLinks.ts */

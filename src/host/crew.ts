@@ -6,6 +6,9 @@
 //  - Ekip Pitwall'ı (c58): ekipten biri paneli açıkken çevredeki araçları, tur / delta / bayrak / hava bilgisini ve
 //    spotter durumunu saniyede bir sunucuya yazar (crew_wall_push). Kimse izlemiyorken telemetri aboneliği de
 //    veri gönderimi de kapalıdır; 5 sn'de bir yalnızca "izleyen var mı" diye sorulur.
+//  - "Sürücünün gözünden" görünümler (c79): ekipten biri Live Timing / Mühendis / Olaylar sekmesini açtıysa (sunucu
+//    crew_ext_push dönüşünde `want` ile bildirir) sıralamanın tamamını, mühendis ekranı konularını ve olay listesini
+//    3 sn'de bir yazar (olaylar yalnızca değişince). Yalnızca veri gider: tekrar / kamera komutu alınmaz.
 //  - "Ekip kontrolünü durdur" kısayolu: ana anahtarı kapatır (bekleyen komutlar da reddedilir)
 // Komutlar sadece sim'e bağlıyken ve ana anahtar açıkken uygulanır; aksi halde sebebiyle reddedilir.
 
@@ -19,7 +22,7 @@ import { t } from "@/sdk/i18n";
 import { friendLook, messageBeep } from "@/cloud/social";
 import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
 import { CREWCALL_EVENT, type CrewCallEvt } from "@/sdk/crewcall";
-import { crewCommandText, crewControlSet, crewDone, crewDrivers, crewList, crewPending, crewRoom, crewSessionEnd, crewSimOk, crewState, crewWallPush, onCrewChat, onCrewCommands, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
+import { crewCommandText, crewControlSet, crewDone, crewDrivers, crewList, crewPending, crewRoom, crewSessionEnd, crewSimOk, crewState, crewWallPush, crewExtPush, packRows, CREW_EXT_MAX, onCrewChat, onCrewCommands, type CrewExtE, type CrewExtG, type CrewExtT, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
 
 /** Ekip kutucuğu: ekranın alt ortasında birkaç saniye görünüp solan kısa bildirim (Host.tsx çizer) */
 export interface CrewBox {
@@ -329,6 +332,10 @@ export function startCrew(status: Accessor<Status | undefined>) {
           { name: "radar", hz: 5 },
           { name: "pit", hz: 1 },
           { name: "fuel", hz: 1 },
+          // c79 (sürücünün gözünden görünümler): yalnızca bu akış açıkken (ekipten biri izlerken) üretilir
+          { name: "tires", hz: 1 },
+          { name: "laps", hz: 1 },
+          { name: "raceControl", hz: 1 },
           // Konuşma altyazısı (c60): sürücünün tanınan cümleleri ekibe altyazı olarak gider
           { name: "captions", hz: 2 },
           { name: "voice", hz: 5 },
@@ -525,6 +532,110 @@ export function startCrew(status: Accessor<Status | undefined>) {
       })
       .finally(() => (wallBusy = false));
   }, 1000);
+
+  // ---- "Sürücünün gözünden" görünümler (c79) ----
+  // 3 sn'de bir: sunucuya hangi parçaların istendiği sorulur (want) ve bir önceki yanıtta istenenler gönderilir.
+  // t: Live Timing (sıralama + oturum + yarış kontrol), g: mühendis ekranı konuları, e: olaylar (değişince).
+  const round = <T,>(v: T): T => JSON.parse(JSON.stringify(v, (_k, x) => (typeof x === "number" ? (isFinite(x) ? Math.round(x * 1000) / 1000 : 0) : x)));
+  const buildT = (): CrewExtT | null => {
+    const st = latest.standings;
+    const ses = latest.session;
+    if (!st && !ses) return null;
+    let rows = st?.rows ?? [];
+    if (rows.length > CREW_EXT_MAX.cars) {
+      // İlk sıradakiler + kendi aracım (kırpılanların arasındaysa)
+      const me = rows.find((r) => r.isMe);
+      rows = rows.slice(0, CREW_EXT_MAX.cars);
+      if (me && !rows.includes(me)) rows[rows.length - 1] = me;
+    }
+    const rc = (latest.raceControl?.events ?? []).slice(0, CREW_EXT_MAX.rc).map((e) => ({ ...e, name: String(e.name ?? "").slice(0, 40), text: String(e.text ?? "").slice(0, 120) }));
+    return { ts: Date.now(), st: st ? { ...round({ ...st, rows: [] }), rows: packRows(rows) } : null, ses: ses ? round(ses) : null, rc: round(rc) };
+  };
+  const buildG = (): CrewExtG | null => {
+    const rel = latest.relative;
+    const all = rel?.rows ?? [];
+    const mi = all.findIndex((r) => r.isMe);
+    const near = mi < 0 ? all.slice(0, 13) : all.slice(Math.max(0, mi - 6), mi + 7);
+    const laps = latest.laps;
+    const topics: CrewExtG["topics"] = {};
+    if (latest.fuel) topics.fuel = round(latest.fuel);
+    if (latest.tires) topics.tires = round(latest.tires);
+    if (latest.weather) topics.weather = round(latest.weather);
+    if (latest.telemetry) topics.telemetry = round(latest.telemetry);
+    if (latest.session) topics.session = round(latest.session);
+    if (laps) topics.laps = round({ ...laps, laps: (laps.laps ?? []).slice(-25) });
+    if (!rel && !Object.keys(topics).length) return null;
+    return { ts: Date.now(), rel: rel ? { ...round({ ...rel, rows: [] }), rows: packRows(near) } : null, topics };
+  };
+  interface EvInfo {
+    demo?: boolean;
+    sessionNum?: number;
+    rev?: number;
+    events: { id?: number; name?: string; text?: string }[];
+  }
+  /** Olay listesi (Rust events.rs; güncel oturum): en yeni 60 olay + oturum özeti. rev: değişiklik anahtarı */
+  const buildE = async (): Promise<{ rev: string; data: CrewExtE } | null> => {
+    try {
+      const i = await invoke<EvInfo>("events_get", { view: "current" });
+      if (!i || i.demo) return null;
+      const all = i.events ?? [];
+      const events = all.slice(-CREW_EXT_MAX.events).map((e) => ({ ...e, name: String(e.name ?? "").slice(0, 40), text: String(e.text ?? "").slice(0, 140) }));
+      const rev = `${i.sessionNum ?? 0}.${i.rev ?? 0}.${all.length}.${all[all.length - 1]?.id ?? 0}`;
+      // Tekrar bilgisi gönderilmez: uzaktan tekrar komutu yoktur
+      return { rev, data: { ts: Date.now(), total: all.length, info: round({ ...i, replayOk: false, previous: false, hasPrevious: false, events }) } };
+    } catch {
+      return null;
+    }
+  };
+  const size = (v: unknown) => (v ? JSON.stringify(v).length : 0);
+  let extWant = "";
+  let extBusy = false;
+  /** Sunucuda saklı olay sürümü ve son tam gönderim anı (özet — tur, sıra — 30 sn'de bir yenilensin) */
+  let extRev: string | null = null;
+  let extEAt = 0;
+  let extSkip = 0;
+  setInterval(() => {
+    if (extBusy) return;
+    if (extSkip > 0) return void extSkip--;
+    const can = watchers > 0 && wallOn && !!session() && racing();
+    if (!can) {
+      extWant = "";
+      return;
+    }
+    extBusy = true;
+    void (async () => {
+      try {
+        let tp = extWant.includes("t") ? buildT() : null;
+        // Sunucu sınırı 64 KB: aşarsa satırlar azaltılır (çok kalabalık ızgara + uzun isimler)
+        while (tp?.st && size(tp) > 60_000 && tp.st.rows.length > 20) tp = { ...tp, st: { ...tp.st, rows: tp.st.rows.slice(0, tp.st.rows.length - 8) } };
+        let g = extWant.includes("g") ? buildG() : null;
+        if (g && size(g) > 30_000) g = { ...g, topics: { ...g.topics, laps: undefined } };
+        if (g && size(g) > 30_000) g = null;
+        let e: CrewExtE | null = null;
+        let rev: string | null = null;
+        if (extWant.includes("e")) {
+          const b = await buildE();
+          if (b) {
+            rev = b.rev;
+            if (b.rev !== extRev || Date.now() - extEAt > 30_000) {
+              e = b.data;
+              while (size(e) > 30_000 && e.info.events.length > 10) e = { ...e, info: { ...e.info, events: e.info.events.slice(10) } };
+            }
+          }
+        }
+        const r = await crewExtPush(tp, g, e, rev);
+        extWant = String(r?.want ?? "");
+        extRev = r?.e_rev ?? null;
+        if (e && extRev === rev) extEAt = Date.now();
+      } catch {
+        /* eski sunucu (c79 yok) ya da ağ hatası: bir dakika sonra yeniden */
+        extWant = "";
+        extSkip = 20;
+      } finally {
+        extBusy = false;
+      }
+    })();
+  }, 3000);
 
   // "Ekip kontrolünü durdur" kısayolu
   void listen("crew-stop", () => {

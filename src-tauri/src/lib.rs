@@ -465,7 +465,11 @@ fn voice_test_dir(app: AppHandle, dir: String, key: String) -> Result<(), String
 
 /// Overlay'lerin kısa uyarı bipi (ör. Start Işıkları: yeşilde bip). Sınırlar burada uygulanır.
 #[tauri::command]
-fn overlay_beep(freq: f32, ms: u64, volume: f32) {
+fn overlay_beep(app: AppHandle, freq: f32, ms: u64, volume: f32) {
+    // Demo modu sessizdir: örnek veriyle çalan overlay bipleri (start ışıkları, örnek ekip çağrısı) çalınmaz
+    if shared(&app).demo.load(Ordering::Relaxed) {
+        return;
+    }
     audio::send(audio::Cmd::Beep { freq: freq.clamp(100.0, 4000.0), ms: ms.clamp(20, 1500), volume: volume.clamp(0.0, 1.0), pan: 0.0 });
 }
 
@@ -1622,7 +1626,7 @@ const SHORTCUTS: [(&str, &str); 20] = [
     ("hide", "Ctrl+Shift+D"),
     ("panel", "Ctrl+Shift+Space"),
     ("shot", "F12"),
-    ("voice", "Ctrl+Shift+V"),
+    ("voice", "Ctrl+Shift+S"),
     // Canlı Sohbet (MultiChatOverlay varsayılanları): anket aç/bitir, sesli okuma aç/kapat, sustur, altyazı aç/kapat
     ("poll", "F9"),
     ("tts", "F5"),
@@ -1664,7 +1668,7 @@ pub(crate) fn refresh_shortcuts(app: &AppHandle) {
 }
 
 /// Sadece oyundayken kaydedilen kısayollar: oyun kapalıyken tuş diğer uygulamalara kalır
-/// (ör. Ctrl+Shift+V "biçimsiz yapıştır"). Ekran görüntüsü ayrıca `screenshots.onlyInGame` ayarına bağlı.
+/// (ör. Ctrl+Shift+S "farklı kaydet"). Ekran görüntüsü ayrıca `screenshots.onlyInGame` ayarına bağlı.
 const IN_GAME_ONLY: [&str; 1] = ["voice"];
 
 #[derive(Default)]
@@ -1695,7 +1699,7 @@ struct ShortcutError {
 
 fn shortcuts_from_settings(v: Option<&Value>) -> Vec<(String, String)> {
     let sc = v.and_then(|v| v.get("general")).and_then(|g| g.get("shortcuts"));
-    SHORTCUTS
+    let mut list: Vec<(String, String)> = SHORTCUTS
         .iter()
         .map(|(a, d)| {
             let mut key = sc.and_then(|s| s.get(*a)).and_then(|x| x.as_str()).unwrap_or(d).trim().to_string();
@@ -1706,7 +1710,20 @@ fn shortcuts_from_settings(v: Option<&Value>) -> Vec<(String, String)> {
             }
             (a.to_string(), key)
         })
-        .collect()
+        .collect();
+    // Bir kerelik geçiş (voiceKeyV1, arayüz: settings.ts voiceKeyMigrate): sesli mühendis kısayolu boşsa ya da eski
+    // varsayılandaysa (Ctrl+Shift+V) Ctrl+Shift+S olur; bu tuş başka bir eylemdeyse dokunulmaz.
+    if !v.and_then(|v| v.pointer("/general/voiceKeyV1")).and_then(|x| x.as_bool()).unwrap_or(false) {
+        let norm = |k: &str| k.replace(' ', "").to_lowercase();
+        let taken = list.iter().any(|(a, k)| a != "voice" && norm(k) == "ctrl+shift+s");
+        if let Some((_, k)) = list.iter_mut().find(|(a, _)| a == "voice") {
+            let cur = norm(k);
+            if !taken && (cur.is_empty() || cur == "ctrl+shift+v") {
+                *k = "Ctrl+Shift+S".to_string();
+            }
+        }
+    }
+    list
 }
 
 fn shot_key_migrated(v: Option<&Value>) -> bool {
@@ -1976,6 +1993,7 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                     shots::take(app, false)
                 }
                 Some("voice") => {
+                    osd::claim(app);
                     toggle_voice(app);
                     if voice_allowed(app) {
                         let on = current_settings(app).and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool())).unwrap_or(true);
@@ -2067,6 +2085,7 @@ pub fn run() {
             toast::toast_open_chat,
             toast::friends_take_chat,
             osd::osd_push,
+            osd::osd_claimed,
             osd::osd_take,
             osd::osd_visible,
             trayalert::tray_unread,

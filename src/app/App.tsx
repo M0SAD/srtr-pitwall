@@ -11,7 +11,7 @@ import { syncScreens } from "@/sdk/streamLink";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { freeView, realAdmin, setFreeView, isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
-import { bindUpdateEvents, checking, checkUpdate, justChecked, updateError, focusOverlay, editFriendLook, go, loadVersion, openUrl, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
+import { bindUpdateEvents, checking, checkUpdate, focusOverlay, editFriendLook, go, loadVersion, openUrl, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
 import { UpdateDialog } from "./components/UpdateDialog";
 import { TrialWelcome } from "./components/TrialWelcome";
 import * as I from "./icons";
@@ -49,6 +49,7 @@ import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/
 import { useOverlayStats } from "@/cloud/overlayStats";
 import { AppBgLayer, appBgActive } from "./appBg";
 import { AdminTopStats } from "./components/AdminTopStats";
+import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
@@ -130,35 +131,22 @@ const TITLES: Record<Section, string> = {
 };
 
 /** Sol menüde gösterilsin mi: yöneticinin gizlediği bölümler (yönetici hepsini görür), Destek sadece giriş yapınca */
-const railVisible = (id: Section) => !isHiddenSection(id) && (id !== "support" || (cloudEnabled && !!session()));
+const railVisible = (id: Section) => !isHiddenSection(id) && !isHiddenMenu(id) && (id !== "support" || (cloudEnabled && !!session()));
 
 /** Alt menüsü olan bölümler */
 const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
-  telemetry: [
-    { id: "overview", label: "Telemetrim" },
-    { id: "racers", label: "Yarışçılar" },
-  ],
-  drivers: [
-    { id: "friends", label: "Arkadaşlar ve etiketler" },
-    { id: "teams", label: "Takımlar" },
-    { id: "crew", label: "Ekip" },
-    { id: "league", label: "Lig Kategorileri" },
-  ],
-  community: [
-    { id: "home", label: "Ana sayfa" },
-    { id: "layouts", label: "Düzenler" },
-    { id: "stream", label: "Yayın düzenleri" },
-    { id: "shots", label: "Ekran Görüntüleri" },
-    { id: "themes", label: "Temalar" },
-    { id: "dashes", label: "Direksiyon Ekranları" },
-  ],
+  // Gizlenebilen alt sayfalar (Yönetim › Görünürlük › Menü görünürlüğü): tanımı menu.ts'te
+  ...MENU_SUBS,
   livechat: LIVECHAT_PAGES,
   settings: SETTINGS_PAGES,
 };
 
+/** Bölümün bu kullanıcıya görünen alt sayfaları (yöneticinin gizledikleri hariç; yönetici hepsini görür) */
+const subsOf = (sec: Section) => (sec === "admin" ? adminSubs() : sec === "livechat" ? liveChatPages() : visibleSubs(sec, SUBS[sec]));
+
 function RailButton(p: { item: NavItem }) {
   return (
-    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro", "hidden-sec": isAdmin() && markedHiddenSection(p.item.id) }} title={p.item.label} onClick={() => go(p.item.id, (p.item.id === "admin" ? adminSubs() : SUBS[p.item.id])?.[0]?.id ?? "")}>
+    <button class="rail-btn" classList={{ active: section() === p.item.id, pro: p.item.id === "pro", "hidden-sec": isAdmin() && (markedHiddenSection(p.item.id) || markedHiddenMenu(p.item.id)) }} title={p.item.label} onClick={() => go(p.item.id, subsOf(p.item.id)?.[0]?.id ?? "")}>
       {p.item.icon()}
       <Show when={p.item.badge}>
         <i class="rail-badge">{p.item.badge!()}</i>
@@ -221,12 +209,25 @@ export function App() {
 
   const conn = () => {
     const a = appState();
-    if (a.demo) return { cls: "demo", text: "Demo" };
-    if (a.connected) return { cls: "on", text: status()?.track ? `Bağlı · ${status()!.track}` : "Bağlı" };
+    // Demo gerçek bir bağlantı değildir: "Bağlı" gibi görünmesin (nötr, içi boş nokta)
+    if (a.demo) return { cls: "demo", text: "Bağlı değil · Demo" };
+    // Demo'dan çıkınca motor bir sonraki turda "bağlı değil"e döner; o ana dek eski demo durumu "Bağlı" görünmesin
+    const st = status();
+    if (a.connected && st?.connected && !st.demo && !st.preview) return { cls: "on", text: status()?.track ? `Bağlı · ${status()!.track}` : "Bağlı" };
     return { cls: "off", text: "Bağlı değil" };
   };
 
-  const subs = () => (section() === "admin" ? adminSubs() : section() === "livechat" ? liveChatPages() : SUBS[section()]);
+  const subs = () => subsOf(section());
+
+  // Açık sayfa üyeden gizlendiyse (ya da gizli bir sayfaya doğrudan gidildiyse) görünen ilk sayfaya geçilir
+  createEffect(() => {
+    const sec = section();
+    const cur = sub() || (sec in MENU_SUBS ? (SUBS[sec]?.[0]?.id ?? "") : "");
+    if (!isHiddenMenu(sec, cur)) return;
+    if (!isHiddenMenu(sec) && !isHiddenSection(sec)) return go(sec, subsOf(sec)?.[0]?.id ?? "");
+    const first = [...TOP, ...BOTTOM].find((it) => it.id !== "admin" && railVisible(it.id))?.id ?? "account";
+    go(first, subsOf(first)?.[0]?.id ?? "");
+  });
 
   return (
     <div class="shell2" classList={{ "has-appbg": appBgActive() }}>
@@ -265,19 +266,6 @@ export function App() {
               <I.Heart /> {t("PRO: {0} gün kaldı", proDaysLeft() ?? 0)}
             </button>
           </Show>
-          <Show when={version()?.updateConfigured && !update()?.available}>
-            <button
-              class="icon-btn update-check"
-              classList={{ ok: justChecked(), err: !!updateError() }}
-              disabled={checking()}
-              title={checking() ? t("Denetleniyor…") : updateError() ? t("Denetlenemedi, tekrar dene") : justChecked() ? t("En güncel sürümdesin") : t("Güncellemeleri denetle")}
-              onClick={() => checkUpdate(true)}
-            >
-              <span classList={{ spin: checking() }} style={{ display: "inline-flex" }}>
-                <I.RefreshCw />
-              </span>
-            </button>
-          </Show>
           <Show when={isPro() && settings().general.livechat.topButton}>
             <ChatStartButton />
           </Show>
@@ -288,17 +276,6 @@ export function App() {
             {conn().text}
           </span>
           <Toggle on={appState().demo} label="Demo" icon={<I.FlaskConical />} title="iRacing olmadan örnek veriyle göster" onChange={setDemo} />
-          <Show when={appState().demo && (settings().general.voice.enabled || settings().general.sounds.fasterClass.enabled || settings().general.sounds.alongside.enabled)}>
-            <button
-              class="top-toggle"
-              classList={{ on: !settings().general.demoMute }}
-              title={settings().general.demoMute ? "Demo sesleri kapalı (spotter ve bipler)" : "Demo sesleri açık (spotter ve bipler)"}
-              onClick={() => updateSettings((d) => (d.general.demoMute = !d.general.demoMute))}
-            >
-              {settings().general.demoMute ? <I.VolumeX /> : <I.Volume2 />}
-              <span>Ses</span>
-            </button>
-          </Show>
           <Toggle on={!appState().hidden} label="Görünür" icon={<I.Eye />} title="Overlay'leri göster/gizle" onChange={(v) => invoke("hidden_set", { on: !v })} />
           <Toggle
             on={!appState().editMode}
@@ -320,6 +297,9 @@ export function App() {
               {(s) => (
                 <button classList={{ active: sub() === s.id }} onClick={() => go(section(), s.id)}>
                   {s.label}
+                  <Show when={markedHiddenMenu(section(), s.id)}>
+                    <span class="hidden-badge" title="Yönetici olmayanlar bu sayfayı görmez">gizli</span>
+                  </Show>
                   <Show when={(s as { feature?: string }).feature}>
                     <ProTag feature={(s as { feature?: string }).feature} />
                   </Show>
@@ -341,7 +321,7 @@ export function App() {
         </Show>
         <main class="content2">
           <Switch>
-            <Match when={isHiddenSection(section())}>
+            <Match when={isHiddenSection(section()) || isHiddenMenu(section(), sub())}>
               <div class="page">
                 <p class="muted">Bu bölüm şu an kullanılamıyor.</p>
               </div>

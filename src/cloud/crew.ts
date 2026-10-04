@@ -331,3 +331,70 @@ export async function onCrewChat(owner: string, cb: () => void): Promise<() => v
     c.removeChannel(ch);
   };
 }
+
+// ---- "Sürücünün gözünden" görünümler (c79): Live Timing, Mühendis ekranı, Olaylar — salt okunur ----
+// Sürücünün uygulaması (host/crew.ts) üç parça yazar; ekip üyesi yalnızca açık sekmesinin parçasını ister.
+import type { RcEvent, Row, TopicMap } from "@/sdk/types";
+
+/** Satırların taşınan hâli: varsayılan değerdeki (0, "", false) alanlar atılır, sayılar 3 haneye yuvarlanır */
+export type PackedRow = Partial<Row>;
+const ROW0: Row = {
+  idx: 0, pos: 0, classPos: 0, classId: 0, className: "", classColor: "", number: "", name: "", car: "", carName: "",
+  userId: 0, flair: "", irating: 0, irDelta: 0, license: "", licLetter: "", sr: 0, licColor: "", gap: 0, interval: 0,
+  lapsDown: 0, lapRel: 0, last: 0, best: 0, avg5: 0, lastPb: false, onPit: false, pitState: "", stint: 0, pits: 0,
+  tire: 0, flag: "", posChange: 0, isMe: false, classBest: false,
+};
+export function packRows(rows: Row[]): PackedRow[] {
+  return rows.map((r) => {
+    const o: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(r)) {
+      if (v == null) continue;
+      const x = typeof v === "number" ? (isFinite(v) ? Math.round(v * 1000) / 1000 : 0) : typeof v === "string" ? v.slice(0, 48) : v;
+      if (x === (ROW0 as unknown as Record<string, unknown>)[k]) continue;
+      o[k] = x;
+    }
+    return o as PackedRow;
+  });
+}
+export const unpackRows = (rows: PackedRow[] | null | undefined): Row[] => (rows ?? []).map((r) => ({ ...ROW0, ...r }));
+
+/** Live Timing parçası */
+export interface CrewExtT {
+  ts: number;
+  /** Sıralama konusu (satırlar paketli) — sim vermiyorsa null */
+  st: (Omit<TopicMap["standings"], "rows"> & { rows: PackedRow[] }) | null;
+  ses: TopicMap["session"] | null;
+  /** Yarış kontrol akışı (en yeni 40) */
+  rc: RcEvent[];
+}
+/** Mühendis ekranı parçası: overlay konularının anlık görüntüsü (hepsi isteğe bağlı) */
+export interface CrewExtG {
+  ts: number;
+  rel?: (Omit<TopicMap["relative"], "rows"> & { rows: PackedRow[] }) | null;
+  topics: Partial<Pick<TopicMap, "fuel" | "tires" | "weather" | "telemetry" | "laps" | "session">>;
+}
+/** Olaylar parçası: events_get çıktısı (en yeni 60 olay); `total`: sürücüdeki toplam olay sayısı */
+export interface CrewExtE {
+  ts: number;
+  total: number;
+  info: Record<string, unknown> & { events: unknown[] };
+}
+export interface CrewExtState {
+  on: boolean;
+  racing: boolean;
+  t?: CrewExtT | null;
+  t_age?: number | null;
+  g?: CrewExtG | null;
+  g_age?: number | null;
+  e?: CrewExtE | null;
+  e_same?: boolean;
+  e_rev?: string | null;
+  e_age?: number | null;
+}
+export const CREW_EXT_MAX = { cars: 64, rc: 40, events: 60 } as const;
+/** Sürücü: parçaları yaz (hepsi null: yalnızca hangi parçalar isteniyor diye sor) */
+export const crewExtPush = (tPart: CrewExtT | null, g: CrewExtG | null, e: CrewExtE | null, eRev: string | null) =>
+  api<{ watchers: number; wall_on: boolean; want: string; e_rev: string | null }>("POST", "rpc/crew_ext_push", { body: { p_t: tPart, p_g: g, p_e: e, p_e_rev: eRev } });
+/** Ekip üyesi: sürücünün görünüm parçaları ("t" Live Timing, "g" Mühendis, "e" Olaylar) */
+export const crewExt = (owner: string, parts: string, eRev?: string | null) =>
+  api<CrewExtState>("POST", "rpc/crew_ext", { body: { p_owner: owner, p_parts: parts, p_e_rev: eRev ?? null } });

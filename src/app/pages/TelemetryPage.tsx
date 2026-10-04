@@ -3,6 +3,8 @@
 // Kayıt ve yükleme: src-tauri/src/laprec.rs + src/cloud/telemetry.ts
 
 import { localeTag, t } from "@/sdk/i18n";
+import { listen } from "@tauri-apps/api/event";
+import { inTauri } from "@/sdk/platform";
 import { For, Match, Show, Switch, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { friendRequest } from "@/cloud/social";
@@ -68,6 +70,13 @@ export function openDriverTelemetry(id: string) {
   setStack([{ kind: "user", id }]);
 }
 
+// Ayrı arkadaş penceresinden "Profil" (panel-go { tele }): panel penceresi bu üyenin telemetri profilini açar
+if (inTauri && !/(window|overlay|dash)\.html$/.test(location.pathname)) {
+  void listen<{ tele?: string }>("panel-go", (e) => {
+    if (e.payload?.tele) openDriverTelemetry(e.payload.tele);
+  }).catch(() => {});
+}
+
 /** Başka sayfadan (Takımlar → Son aktiviteler) bir oturumu aç */
 export function openTelemetrySession(id: string) {
   go("telemetry", "overview");
@@ -125,9 +134,15 @@ export function TelemetryPage(p: { sub: string }) {
             </Match>
             <Match when={view().kind === "user" && (view() as { id: string }).id}>
               {(id) => (
-                <Show when={id() !== session()?.user.id} fallback={<OverviewView user={id()} />}>
+                <Show when={id() !== session()?.user.id && proLocked(F.teleOthers)} fallback={<OverviewView user={id()} />}>
+                  {/* Profil herkese açık; kilitli olan yalnızca telemetri bölümü */}
+                  <section class="panel">
+                    <ProfileCard id={id()} onTeam={(tid) => (setTeamFocus(tid), go("drivers", "teams"))} />
+                  </section>
                   <ProLockBox feature={F.teleOthers} text="Başkalarının telemetrisini görmek PRO üyelere özel.">
-                    <OverviewView user={id()} />
+                    <section class="panel">
+                      <h3>Telemetri</h3>
+                    </section>
                   </ProLockBox>
                 </Show>
               )}
@@ -324,6 +339,12 @@ function OverviewView(p: { user?: string }) {
         <SettingsPanel />
       </Show>
       <Show when={data.error}>
+        {/* Telemetri okunamadı: başka bir üyenin profili yine de görünür */}
+        <Show when={p.user && p.user !== session()?.user.id}>
+          <section class="panel">
+            <ProfileCard id={p.user!} onTeam={(id) => (setTeamFocus(id), go("drivers", "teams"))} />
+          </section>
+        </Show>
         <p class="error">{errText(data.error)}</p>
       </Show>
       <Show when={data.loading && !data()}>
@@ -354,7 +375,7 @@ function OverviewView(p: { user?: string }) {
               </div>
               <Show
                 when={d().visible}
-                fallback={<p class="muted">Bu yarışçı telemetri verilerini paylaşmıyor. Aynı takımdaysanız görebilirsin.</p>}
+                fallback={<p class="muted">Telemetrisi gizli: bu yarışçı telemetri verilerini paylaşmıyor. Aynı takımdaysanız görebilirsin.</p>}
               >
                 <Show
                   when={(d().totals?.laps ?? 0) > 0}
@@ -362,7 +383,7 @@ function OverviewView(p: { user?: string }) {
                     <p class="muted">
                       {isMe()
                         ? "Henüz kayıtlı tur yok. Bir simde birkaç tur at; turların program açıkken kendiliğinden buraya gelir."
-                        : "Henüz kayıtlı tur yok."}
+                        : "Henüz veri yok: bu yarışçının kayıtlı turu yok."}
                     </p>
                   }
                 >

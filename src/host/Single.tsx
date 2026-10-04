@@ -12,7 +12,7 @@ import { loadComponent, manifestById } from "@/sdk/registry";
 import { instanceName, settings } from "@/sdk/settings";
 import { inTauri, query } from "@/sdk/platform";
 import { t } from "@/sdk/i18n";
-import { setSubscriptions } from "@/sdk/telemetry";
+import { setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
 import { lookStyle } from "@/sdk/lookStyle";
 
@@ -34,6 +34,15 @@ export function Single(props: { type: string }) {
     return undefined;
   });
   const options = createMemo(() => instance()?.options ?? (m ? defaultOptions(m) : {}));
+  // Mesajlar overlay'i burada da (OBS kaynağı / VR penceresi) ana overlay penceresindeki kurala uyar (Host.tsx
+  // frameVisible): sim bağlı değilken (ya da yalnızca panel önizleme verisi akarken) kopyanın "iRacing kapalıyken de
+  // göster" seçeneği açık değilse çizilmez. Demo modu bağlı sayılır.
+  const status = useTopic("status");
+  const gated = () => {
+    if (props.type !== "messages") return false;
+    const st = status();
+    return (!st?.connected || st.preview) && !instance()?.alwaysShow;
+  };
 
   // Tek overlay sayfası da gerçek bir yüzeydir (OBS tarayıcı kaynağı / VR penceresi): overlay'ler panel önizlemesi
   // gibi davranmasın (ör. Canlı Sohbet kapı kararını uygular, örnek veriyi kendiliğinden göstermez)
@@ -96,10 +105,12 @@ export function Single(props: { type: string }) {
       }}
     >
       <Show when={m && Comp} fallback={<div class="ov-panel ov-empty">Overlay bulunamadı</div>}>
+        <Show when={!gated()}>
         <Show when={!isLocked(props.type)} fallback={<div class="ov-panel ov-empty">Bu overlay PRO üyelere özel</div>}>
           <Suspense>
             <Dynamic component={Comp} options={sanitizeOverlayOptions(props.type, options())} units={settings().general.units} editing={false} />
           </Suspense>
+        </Show>
         </Show>
       </Show>
     </div>

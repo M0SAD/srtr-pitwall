@@ -13,8 +13,8 @@ import { For, Show, createResource, createSignal, onCleanup } from "solid-js";
 import { emit, listen } from "@tauri-apps/api/event";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
-import { myFriends, type Friend } from "@/cloud/social";
-import { crewCommandText, crewControlSet, crewHistory, crewList, crewSet, crewState, crewStatusText, crewWallSet, type CrewCommand, type CrewMember, type CrewState } from "@/cloud/crew";
+import { friendTrust, myFriends, type Friend } from "@/cloud/social";
+import { crewCommandText, crewControlSet, crewHistory, crewList, crewState, crewStatusText, crewWallSet, type CrewCommand, type CrewMember, type CrewState } from "@/cloud/crew";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { F } from "@/sdk/proFeatures";
 import { settings, updateSettings } from "@/sdk/settings";
@@ -26,7 +26,7 @@ import { CrewRoom } from "./CrewRoom";
 export function CrewSettings() {
   const [err, setErr] = createSignal("");
   const uid = () => session()?.user.id;
-  const [friends] = createResource(uid, () => myFriends().then((l) => (l ?? []).filter((f) => f.status === "accepted")).catch(() => [] as Friend[]));
+  const [friends, { refetch: refetchFriends }] = createResource(uid, () => myFriends().then((l) => (l ?? []).filter((f) => f.status === "accepted")).catch(() => [] as Friend[]));
   const [state, { refetch: refetchState, mutate: setState }] = createResource(uid, () => crewState().catch(() => null as CrewState | null));
   const [crew, { refetch: refetchCrew, mutate: setCrew }] = createResource(uid, () => crewList().catch(() => null as CrewMember[] | null));
   const [log, { refetch: refetchLog }] = createResource(uid, () => crewHistory(15).catch(() => [] as CrewCommand[]));
@@ -35,6 +35,7 @@ export function CrewSettings() {
     void refetchState();
     void refetchCrew();
     void refetchLog();
+    void refetchFriends();
   };
   // Kimin bağlı olduğu ve komut listesi sık değişir
   const iv = window.setInterval(() => {
@@ -74,14 +75,16 @@ export function CrewSettings() {
     void act(() => crewWallSet(v));
   };
   const member = (id: string) => (crew() ?? []).find((m) => m.member_id === id);
-  const setRole = (f: Friend, view: boolean, control: boolean) => {
+  // Güvenilir arkadaş = ekip üyesi (c78): arkadaş menüsündeki "Güvenilir yap" ile aynı işlem
+  const setTrusted = (f: Friend, on: boolean) => {
+    const control = !state()?.needs_pro;
     setCrew((l) => {
       const rest = (l ?? []).filter((m) => m.member_id !== f.friend_id);
-      if (!view && !control) return rest;
+      if (!on) return rest;
       const cur = member(f.friend_id);
-      return [...rest, { member_id: f.friend_id, display_name: f.display_name, avatar_path: f.avatar_path ?? null, can_view: true, can_control: control, watching: !!cur?.watching, seen_at: cur?.seen_at ?? null }];
+      return [...rest, { member_id: f.friend_id, display_name: f.display_name, avatar_path: f.avatar_path ?? null, can_view: true, can_control: control || !!cur?.can_control, watching: !!cur?.watching, seen_at: cur?.seen_at ?? null }];
     });
-    void act(() => crewSet(f.friend_id, view || control, control));
+    void act(() => friendTrust(f.friend_id, on));
   };
   const watching = () => (crew() ?? []).filter((m) => m.watching);
   const when = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -92,8 +95,8 @@ export function CrewSettings() {
         Ekip (uzaktan pit) <ProTag feature={F.crew} />
       </h3>
       <p class="muted small">
-        Ekibine eklediğin arkadaşların, sen yarışırken yarış bilgilerini (yakıt, tur, pit servisi) uygulamadan ya da telefondan (web sitesi › Ekip)
-        izler. Değiştirme yetkisi verdiklerin yakıt miktarını, lastik değişimini, hızlı tamiri ve vizör filmini senin yerine ayarlayabilir ve kısa mesaj
+        Güvenilir yaptığın arkadaşların ekibindir: sen yarışırken yarış bilgilerini (yakıt, tur, pit servisi) uygulamadan ya da telefondan (web sitesi › Ekip)
+        izler; yakıt miktarını, lastik değişimini, hızlı tamiri ve vizör filmini senin yerine ayarlayabilir ve kısa mesaj
         gönderebilir. Başka hiçbir ayarına ya da hesabına erişemezler. Uzaktan pit komutları şimdilik sadece iRacing'de çalışır; diğer oyunlarda
         ekip yalnızca izler.
       </p>
@@ -102,7 +105,7 @@ export function CrewSettings() {
           <p class="muted small">Ekip listesi okunamadı. Daha sonra tekrar dene.</p>
         </Show>
         <Show when={state()?.needs_pro}>
-          <p class="muted small">Ekibe değiştirme yetkisi vermek PRO üyelere özel. İzleme yetkisi vermek ve başkasının ekibinde olmak ücretsiz.</p>
+          <p class="muted small">Güvenilir arkadaşının pit ayarlarını değiştirebilmesi PRO üyelere özel. İzleme yetkisi vermek ve başkasının ekibinde olmak ücretsiz.</p>
         </Show>
         <div class="row">
           <div>
@@ -196,12 +199,8 @@ export function CrewSettings() {
                 </div>
                 <div class="btns" style={{ "align-items": "center", gap: "14px", "flex-wrap": "nowrap" }}>
                   <label class="muted small" style={{ display: "flex", "align-items": "center", gap: "6px", margin: "0" }}>
-                    Görebilir
-                    <Switch checked={!!m()} onChange={(v) => setRole(f, v, false)} />
-                  </label>
-                  <label class="muted small" style={{ display: "flex", "align-items": "center", gap: "6px", margin: "0" }}>
-                    Değiştirebilir
-                    <Switch checked={!!m()?.can_control} disabled={!!state()?.needs_pro && !m()?.can_control} onChange={(v) => setRole(f, true, v)} />
+                    Güvenilir
+                    <Switch checked={!!m()} onChange={(v) => setTrusted(f, v)} />
                   </label>
                 </div>
               </div>

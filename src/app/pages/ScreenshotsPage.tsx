@@ -48,12 +48,17 @@ export function ScreenshotsPage() {
     hide = window.setTimeout(() => setMsg(null), 3500);
   };
 
+  // Kısayolla alınan görüntüyü üst ortadaki kısayol bildirimi (OSD, Rust: osd.rs) zaten bildirdi mi?
+  const viaOsd = () => invoke<boolean>("osd_claimed").catch(() => false);
+
   onMount(async () => {
     const un1 = await listen<LocalShot>("screenshot-taken", () => {
       setVer(ver() + 1);
-      toast("Ekran görüntüsü kaydedildi");
+      void viaOsd().then((osd) => !osd && toast("Ekran görüntüsü kaydedildi"));
     });
-    const un2 = await listen<string>("screenshot-error", (e) => toast(t("Ekran görüntüsü alınamadı: {0}", e.payload), true));
+    const un2 = await listen<string>("screenshot-error", (e) => {
+      void viaOsd().then((osd) => !osd && toast(t("Ekran görüntüsü alınamadı: {0}", e.payload), true));
+    });
     onCleanup(() => {
       un1();
       un2();

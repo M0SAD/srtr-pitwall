@@ -1,0 +1,14 @@
+/* Pencere kökü (yalnızca window.html): window.css panelde de kullanıldığı için (Ekip Pitwall'ı görünümleri) ayrı dosyada */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #0b0d11;
+  color: var(--ov-text, #eef1f6);
+  font: 14px "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}

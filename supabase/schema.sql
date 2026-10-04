@@ -14138,3 +14138,277 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.overlay_usage_top() from public;
 grant execute on function public.overlay_usage_top() to anon, authenticated, service_role;
+-- ---------------------------------------------------------------------------
+-- c77: Menü görünürlüğü — yönetici, programın menüsündeki alt sayfaları da gizleyebilir.
+--      app_config.hidden_menu (text[]): yönetici olmayanlardan gizlenen menü kayıtlarının kalıcı kimlikleri.
+--        "bölüm"          → sol menü bölümü (ör. "drivers"); bölümler için asıl liste hâlâ hidden_sections (c21),
+--                           program ikisini birlikte okur.
+--        "bölüm.sayfa"    → bölümün alt sayfası (ör. "drivers.league" = Sürücüler › Lig Kategorileri).
+--      Varsayılan: lig kayıtları gizli ('{drivers.league}'). Varsayılan YALNIZCA sütun ilk eklendiğinde uygulanır
+--      (add column ... default tek ifadede); bu dosya yeniden çalıştırıldığında yöneticinin sonradan açtığı
+--      kayıtlar tekrar gizlenmez (ayrıca bir "update" yoktur).
+--      hidden_sections / hidden_overlays (c21) ve livechat_hidden_tabs (c52) ile aynı düzen: herkes okur, yazma
+--      yetkisi mevcut RLS ile yalnızca yöneticide (ayrı RPC gerekmez). Yöneticiler gizlenenleri "gizli" rozetiyle görür.
+--      Yönetim, Hesap ve Ayarlar gizlenemez (program bu kimlikleri yok sayar).
+--      Değiştirildiği yer: Yönetim › Görünürlük › Menü görünürlüğü (program ve site yönetim paneli).
+-- Sıra: c21'den sonra. Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+alter table public.app_config add column if not exists hidden_menu text[] not null default '{drivers.league}';
+-- ---------------------------------------------------------------------------
+-- c78: "Güvenilir arkadaş" = ekip üyesi. Arkadaş menüsünde artık tek bir anahtar var (Güvenilir yap / Güvenilirden
+-- çıkar); ayrı "Ekibe ekle" ve "Pit ayarlarını değiştirebilir" maddeleri kalktı.
+--
+-- Kural: friendships.trusted (sahibin satırı: user_id = sürücü, friend_id = arkadaş) AÇILINCA arkadaş sürücünün
+-- ekibine (crew_members) izleme + pit değiştirme yetkisiyle eklenir; KAPANINCA ekipten çıkar.
+--
+-- PRO kuralları DEĞİŞMEDİ:
+--   - Değiştirme yetkisi (can_control) yalnızca 'social.crew' PRO'ya özel değilse ya da sürücü PRO ise verilir
+--     (crew_set'teki kuralın aynısı). PRO olmayan sürücünün güvenilir arkadaşı yalnızca İZLER (izleme ücretsizdi).
+--     Komutun uygulanması ayrıca crew_accepts() ile denetlenmeye devam eder (ana anahtar + sürücü PRO).
+--   - Veri paylaşımı (live_data, my_friends.trusts_me) live_visible() içinde sürücünün PRO'luğuna bakmayı sürdürür.
+--     Bu yüzden friend_trust_set artık PRO olmayana hata VERMEZ: işaret konur (pitwall izleme yetkisi ücretsiz),
+--     ama PRO olmayan sürücünün verisi yine paylaşılmaz. friend_set (eski sürümler) olduğu gibi kaldı.
+--   - Güvenilir yoluyla eklenen üyede 10 kişilik ekip sınırı aranmaz (crew_set'te sınır duruyor).
+--
+-- Bu dosyanın oluşturduğu / değiştirdiği:
+--   fonksiyon  friend_trust_crew()            — tetikleyici: trusted değişince crew_members'ı eşitler
+--   tetikleyici friend_trust_crew (friendships, after insert or update of trusted, status)
+--   RPC        friend_trust_set(uuid, boolean) — c44'teki son tanım; yalnızca PRO hatası kaldırıldı
+--   TEK SEFERLİK veri düzeltmeleri (en altta, tekrar çalıştırılabilir)
+-- Sıra: c53 (crew_members), c44 (friend_trust_set) ve c38 (feature_requires_pro, user_is_pro) sonrası.
+-- Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+-- 1) Güvenilir işareti <-> ekip üyeliği
+create or replace function public.friend_trust_crew() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.trusted and new.status = 'accepted' then
+    insert into public.crew_members (owner, member, can_view, can_control)
+      values (new.user_id, new.friend_id, true,
+              not public.feature_requires_pro('social.crew', true) or public.user_is_pro(new.user_id))
+      on conflict (owner, member) do update
+        set can_view = true, can_control = public.crew_members.can_control or excluded.can_control;
+  elsif tg_op = 'UPDATE' and old.trusted and not new.trusted then
+    -- Güvenilirden çıkarıldı: ekip üyeliği ve değiştirme yetkisi de kalkar
+    delete from public.crew_members where owner = new.user_id and member = new.friend_id;
+  end if;
+  return new;
+end $$;
+revoke all on function public.friend_trust_crew() from public, anon, authenticated;
+
+drop trigger if exists friend_trust_crew on public.friendships;
+create trigger friend_trust_crew after insert or update of trusted, status on public.friendships
+  for each row execute function public.friend_trust_crew();
+
+-- 2) Sadece güvenilir işareti (c44'teki son tanım). Değişen tek şey: PRO olmayana hata verilmez (bkz. başlık).
+create or replace function public.friend_trust_set(p_user uuid, p_trusted boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  update public.friendships set trusted = coalesce(p_trusted, false)
+    where user_id = auth.uid() and friend_id = p_user and status = 'accepted';
+  if not found then
+    raise exception 'Arkadaş bulunamadı';
+  end if;
+end $$;
+revoke all on function public.friend_trust_set(uuid, boolean) from public, anon;
+grant execute on function public.friend_trust_set(uuid, boolean) to authenticated;
+
+-- ===========================================================================
+-- TEK SEFERLİK VERİ DÜZELTMELERİ (tekrar çalıştırmak zararsız)
+-- ===========================================================================
+-- a) Zaten güvenilir olan ama ekipte olmayan arkadaşlar ekibe eklenir; ekipte olup değiştirme yetkisi olmayan
+--    güvenilir arkadaşa (sürücü PRO ise / özellik PRO'ya özel değilse) değiştirme yetkisi verilir.
+--    Ekipte olup güvenilir OLMAYAN arkadaşlara dokunulmaz (ekipte kalırlar).
+insert into public.crew_members (owner, member, can_view, can_control)
+  select f.user_id, f.friend_id, true,
+         not public.feature_requires_pro('social.crew', true) or public.user_is_pro(f.user_id)
+  from public.friendships f
+  where f.trusted and f.status = 'accepted' and f.user_id <> f.friend_id
+on conflict (owner, member) do update
+  set can_view = true, can_control = public.crew_members.can_control or excluded.can_control;
+
+-- b) "Mesajlarını kapat" menüden kalktı: sessize alınmış arkadaşlar görünmez biçimde sessiz kalmasın
+update public.friendships set muted = false where muted;
+-- ---------------------------------------------------------------------------
+-- c79: Ekip Pitwall'ı — "sürücünün gözünden" salt okunur görünümler (Live Timing, Mühendis ekranı, Olaylar).
+--
+-- Ekip üyesi (spotter ya da izleyici) arkadaşının pitwall'ına girince sürücünün KENDİ ekranında gördüğü Live Timing,
+-- Mühendis ekranı ve Olaylar listesini de görür. Bunlar yalnızca gösterimdir: tekrar / kamera komutu yoktur
+-- (zaten sunucuda böyle bir komut türü yok; crew_command() yalnızca pit komutlarını kabul eder).
+--
+-- Taşıma: c58'deki crew_wall ile aynı düşünce (UNLOGGED tek satır, yalnızca security definer fonksiyonlar okur/yazar),
+-- ama üç ayrı parça ve "isteyen var mı" işaretiyle:
+--   crew_wall_ext (owner,
+--                  t, t_at            -- Live Timing: sıralama + oturum + yarış kontrol akışı
+--                  g, g_at            -- Mühendis ekranı: yakıt, lastik, hava, araç, tur süreleri, yakındakiler
+--                  e, e_rev, e_at     -- Olaylar: son olaylar + oturum özeti (yalnızca değişince yazılır)
+--                  ask_t, ask_g, ask_e)  -- bir ekip üyesi bu parçayı en son ne zaman istedi
+--   - Ekip üyesi crew_ext(p_owner, p_parts, p_e_rev) ile ~3 sn'de bir okur; istediği parçaların ask_* damgasını
+--     yazar (5 sn'de bir). Olaylar parçası, elindeki sürümle (p_e_rev) aynıysa yeniden gönderilmez (e_same).
+--   - Sürücünün uygulaması crew_ext_push(p_t, p_g, p_e, p_e_rev) ile 3 sn'de bir yazar; dönüşteki `want`
+--     ("t", "g", "e" harfleri) son 20 sn içinde istenen parçalardır — uygulama yalnızca onları üretir ve gönderir.
+--     Kimse bu sekmeleri açmadıysa hiçbir ağır veri yazılmaz. p_e null + p_e_rev: "olaylar değişmedi" (e_at yenilenir).
+--   - Yetki: crew_role(owner, üye, false) (izleme ya da pit yetkisi + kabul edilmiş arkadaşlık) VE sürücü yarışta
+--     (crew_racing) VE sürücünün "ekibim pitwall'ımı izleyebilsin" anahtarı (crew_prefs.wall_on) açık.
+--     Anahtar kapalıysa saklanan veri silinir. Parçalar bayatlayınca (t/g 20 sn, e 60 sn) verilmez.
+--   - Boyut sınırları: t ≤ 64 KB, g ≤ 32 KB, e ≤ 32 KB (uygulama 64 araç / 40 yarış kontrol olayı / 60 olay ile kırpar).
+--   PRO kuralı değişmedi (bu görünümler için ayrı bir PRO denetimi yok; pit komutları c58/c75'teki gibi).
+--
+-- Bu dosyanın oluşturduğu:
+--   tablo  crew_wall_ext
+--   RPC    crew_ext_push(jsonb, jsonb, jsonb, text) -> jsonb {watchers, wall_on, want, e_rev}   sürücünün uygulaması
+--          crew_ext(uuid, text, text) -> jsonb {on, racing, t, t_age, g, g_age, e, e_rev, e_age, e_same}   ekip üyesi
+-- Sıra: c53, c58, c75 sonrasında. Tekrar çalıştırılabilir.
+-- ---------------------------------------------------------------------------
+
+create unlogged table if not exists public.crew_wall_ext (
+  owner uuid primary key references public.profiles (id) on delete cascade,
+  t jsonb,
+  t_at timestamptz,
+  g jsonb,
+  g_at timestamptz,
+  e jsonb,
+  e_rev text,
+  e_at timestamptz,
+  ask_t timestamptz,
+  ask_g timestamptz,
+  ask_e timestamptz
+);
+alter table public.crew_wall_ext enable row level security;
+-- Kural yok: yalnızca aşağıdaki security definer fonksiyonlar okur / yazar
+revoke all on public.crew_wall_ext from public, anon, authenticated;
+grant all on public.crew_wall_ext to service_role;
+
+-- Sürücünün uygulaması: görünüm parçalarını yaz (hepsi null: yalnızca "hangi parçalar isteniyor" sorusu).
+create or replace function public.crew_ext_push(p_t jsonb default null, p_g jsonb default null,
+                                                p_e jsonb default null, p_e_rev text default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_on boolean;
+  n int;
+  w public.crew_wall_ext%rowtype;
+  v_want text := '';
+  v_rev text := left(coalesce(p_e_rev, ''), 80);
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  v_on := coalesce((select wall_on from public.crew_prefs where user_id = me), true);
+  if not v_on then
+    delete from public.crew_wall_ext where owner = me;
+    return jsonb_build_object('watchers', 0, 'wall_on', false, 'want', '', 'e_rev', null);
+  end if;
+  select count(*)::int into n
+    from public.crew_members c
+    join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+    where c.owner = me and (c.can_view or c.can_control)
+      and c.seen_at > now() - interval '45 seconds';
+  if n > 0 and (p_t is not null or p_g is not null or p_e is not null or v_rev <> '') then
+    if (p_t is not null and (jsonb_typeof(p_t) <> 'object' or octet_length(p_t::text) > 64000))
+       or (p_g is not null and (jsonb_typeof(p_g) <> 'object' or octet_length(p_g::text) > 32000))
+       or (p_e is not null and (jsonb_typeof(p_e) <> 'object' or octet_length(p_e::text) > 32000)) then
+      raise exception 'Pitwall verisi geçersiz';
+    end if;
+    insert into public.crew_wall_ext as x (owner, t, t_at, g, g_at, e, e_rev, e_at)
+      values (me, p_t, case when p_t is not null then now() end,
+                  p_g, case when p_g is not null then now() end,
+                  p_e, case when p_e is not null then v_rev end, case when p_e is not null then now() end)
+    on conflict (owner) do update
+      set t = coalesce(excluded.t, x.t),
+          t_at = coalesce(excluded.t_at, x.t_at),
+          g = coalesce(excluded.g, x.g),
+          g_at = coalesce(excluded.g_at, x.g_at),
+          e = coalesce(excluded.e, x.e),
+          e_rev = case when excluded.e is not null then excluded.e_rev else x.e_rev end,
+          -- Olaylar değişmediyse (aynı sürüm) yalnızca tazelik damgası yenilenir
+          e_at = case when excluded.e is not null then now()
+                      when v_rev <> '' and x.e is not null and x.e_rev = v_rev then now()
+                      else x.e_at end;
+  end if;
+  select * into w from public.crew_wall_ext where owner = me;
+  if found and n > 0 then
+    v_want := case when w.ask_t > now() - interval '20 seconds' then 't' else '' end
+           || case when w.ask_g > now() - interval '20 seconds' then 'g' else '' end
+           || case when w.ask_e > now() - interval '20 seconds' then 'e' else '' end;
+  end if;
+  return jsonb_build_object('watchers', n, 'wall_on', true, 'want', v_want,
+                            'e_rev', case when w.e is not null then w.e_rev end);
+end $$;
+revoke all on function public.crew_ext_push(jsonb, jsonb, jsonb, text) from public, anon;
+grant execute on function public.crew_ext_push(jsonb, jsonb, jsonb, text) to authenticated;
+
+-- Ekip üyesi: sürücünün görünüm parçaları. p_parts: istenen parçalar ("t", "g", "e" harfleri);
+-- p_e_rev: elimdeki olaylar sürümü (aynıysa olaylar yeniden gönderilmez: e_same).
+create or replace function public.crew_ext(p_owner uuid, p_parts text default 'tge', p_e_rev text default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  c public.crew_members%rowtype;
+  w public.crew_wall_ext%rowtype;
+  parts text := lower(coalesce(p_parts, ''));
+  wt boolean := position('t' in parts) > 0;
+  wg boolean := position('g' in parts) > 0;
+  we boolean := position('e' in parts) > 0;
+  r jsonb;
+  ok boolean;
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = me;
+  if not found or not public.crew_role(p_owner, me, false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  if c.seen_at is null or c.seen_at < now() - interval '10 seconds' then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = me;
+  end if;
+  if not coalesce((select wall_on from public.crew_prefs where user_id = p_owner), true) then
+    return jsonb_build_object('on', false, 'racing', false);
+  end if;
+  if not public.crew_racing(p_owner) then
+    return jsonb_build_object('on', true, 'racing', false);
+  end if;
+  -- "Bu parçayı isteyen var" işareti (5 sn'de bir yazılır); sürücünün uygulaması crew_ext_push dönüşünde görür
+  if wt or wg or we then
+    insert into public.crew_wall_ext as x (owner, ask_t, ask_g, ask_e)
+      values (p_owner, case when wt then now() end, case when wg then now() end, case when we then now() end)
+    on conflict (owner) do update
+      set ask_t = case when wt then now() else x.ask_t end,
+          ask_g = case when wg then now() else x.ask_g end,
+          ask_e = case when we then now() else x.ask_e end
+      where (wt and (x.ask_t is null or x.ask_t < now() - interval '5 seconds'))
+         or (wg and (x.ask_g is null or x.ask_g < now() - interval '5 seconds'))
+         or (we and (x.ask_e is null or x.ask_e < now() - interval '5 seconds'));
+  end if;
+  select * into w from public.crew_wall_ext where owner = p_owner;
+  r := jsonb_build_object('on', true, 'racing', true);
+  if wt then
+    ok := w.t is not null and w.t_at > now() - interval '20 seconds';
+    r := r || jsonb_build_object('t', case when ok then w.t end,
+      't_age', case when ok then (extract(epoch from clock_timestamp() - w.t_at) * 1000)::int end);
+  end if;
+  if wg then
+    ok := w.g is not null and w.g_at > now() - interval '20 seconds';
+    r := r || jsonb_build_object('g', case when ok then w.g end,
+      'g_age', case when ok then (extract(epoch from clock_timestamp() - w.g_at) * 1000)::int end);
+  end if;
+  if we then
+    ok := w.e is not null and w.e_at > now() - interval '60 seconds';
+    r := r || jsonb_build_object(
+      'e', case when ok and (p_e_rev is null or w.e_rev is distinct from p_e_rev) then w.e end,
+      'e_same', coalesce(ok and p_e_rev is not null and w.e_rev = p_e_rev, false),
+      'e_rev', case when ok then w.e_rev end,
+      'e_age', case when ok then (extract(epoch from clock_timestamp() - w.e_at) * 1000)::int end);
+  end if;
+  return r;
+end $$;
+revoke all on function public.crew_ext(uuid, text, text) from public, anon;
+grant execute on function public.crew_ext(uuid, text, text) to authenticated;
+
+notify pgrst, 'reload schema';

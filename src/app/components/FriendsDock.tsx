@@ -27,6 +27,7 @@ import {
   friendRequest,
   friendRespond,
   friendSet,
+  friendTrust,
   hashColor,
   hideMessage,
   initialOf,
@@ -52,10 +53,9 @@ import Wrench from "lucide-solid/icons/wrench";
 import Smile from "lucide-solid/icons/face-slightly-smiling";
 import SendHorizontal from "lucide-solid/icons/send-horizontal";
 import Wallpaper from "lucide-solid/icons/wallpaper";
-import FriendData from "./FriendData";
-import { ProfileDialog, SimBadge, SIM_SHORT } from "./Profile";
+import { SimBadge, SIM_SHORT } from "./Profile";
 import { TeamChat, TeamLogo, type TeamEvent } from "./TeamChat";
-import { crewDrivers, crewList as myCrewList, crewSet, setCrewFocus, type CrewMember } from "@/cloud/crew";
+import { crewDrivers, crewList as myCrewList, setCrewFocus, type CrewMember } from "@/cloud/crew";
 import { muteTeamChat, myTeams, onTeamChat, setTeamFocus, type MyTeam, type TeamMessage } from "@/cloud/teams";
 import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
 import { BgNote, ConvBgPanel, ConvBgRequest, adoptBg, useConvBg } from "./ConvBg";
@@ -63,14 +63,13 @@ import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
 import { deleteGroup, leaveGroup, muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
 import { clearRoomBg } from "@/cloud/chatBg";
-import { broadcastOvMsg, ovMsgShowsPerson, ovMsgTogglePerson } from "@/sdk/ovmsg";
+import { broadcastOvMsg } from "@/sdk/ovmsg";
 import "../friends.css";
 import "../teams.css";
 
 type View =
   | { kind: "list" }
   | { kind: "chat"; f: Friend }
-  | { kind: "live"; f: Friend }
   | { kind: "add" }
   | { kind: "team"; t: MyTeam }
   | { kind: "group"; g: MyGroup }
@@ -78,7 +77,7 @@ type View =
 type Presence = "racing" | "online" | "dnd" | "offline" | "pending" | "hidden";
 
 /** Pencere dışından (ayrı arkadaş penceresi) panele yönlendirme */
-function panelGo(what: { sec?: string; sub?: string; friend?: string; team?: string; crew?: string }) {
+function panelGo(what: { sec?: string; sub?: string; friend?: string; team?: string; crew?: string; tele?: string }) {
   invoke("panel_front").catch(() => {});
   setTimeout(() => emit("panel-go", what).catch(() => {}), 400);
 }
@@ -104,6 +103,8 @@ export interface Nav {
   team: (id: string) => void;
   /** Sürücüler › Ekip sayfasında bu sürücünün panelini aç */
   crew: (id: string) => void;
+  /** Telemetri sayfasında bu üyenin profilini aç (telemetrisi gizli / boş olsa da profil görünür) */
+  profile: (id: string) => void;
 }
 
 /** Sohbet okundu: sunucuya yaz, sonra overlay penceresindeki servise bildir (tepsi simgesindeki okunmamış işareti kalkar) */
@@ -171,11 +172,11 @@ export function FriendsPanel(props: {
   initialChat?: string;
 }) {
   const nav: Nav = props.standalone
-    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }), team: (id) => panelGo({ sec: "drivers", sub: "teams", team: id }), crew: (id) => panelGo({ sec: "drivers", sub: "crew", crew: id }) }
-    : { pro: () => go("pro"), look: (id) => editFriendLook(id), team: (id) => (setTeamFocus(id), go("drivers", "teams")), crew: (id) => (setCrewFocus(id), go("drivers", "crew")) };
+    ? { pro: () => panelGo({ sec: "pro" }), look: (id) => panelGo({ friend: id }), team: (id) => panelGo({ sec: "drivers", sub: "teams", team: id }), crew: (id) => panelGo({ sec: "drivers", sub: "crew", crew: id }), profile: (id) => panelGo({ tele: id }) }
+    : { pro: () => go("pro"), look: (id) => editFriendLook(id), team: (id) => (setTeamFocus(id), go("drivers", "teams")), crew: (id) => (setCrewFocus(id), go("drivers", "crew")), profile: (id) => (void import("../pages/TelemetryPage").then((m) => m.openDriverTelemetry(id)), props.onClose?.()) };
   const [view, setView] = createSignal<View>({ kind: "list" });
-  /** Profil penceresi açık olan üye */
-  const [profileOf, setProfileOf] = createSignal<string | null>(null);
+  /** Profil: Telemetri sayfasındaki üye profili */
+  const setProfileOf = (id: string) => nav.profile(id);
   const [last, setLast] = createSignal<Record<string, Message>>({});
   let lastList: Friend[] = [];
   const [list, { refetch, mutate }] = createResource<Friend[], string | null>(
@@ -187,6 +188,13 @@ export function FriendsPanel(props: {
         // Yanıt gelene kadar çıkış yapıldıysa / hesap değiştiyse önceki hesabın listesi yazılmaz
         if (session()?.user.id !== uid) return [];
         lastList = l ?? [];
+        // "Mesajlarını kapat" menüden kalktı: eskiden sessize alınmış arkadaş görünmez biçimde sessiz kalmasın
+        for (const f of lastList) {
+          if (f.status === "accepted" && f.muted) {
+            f.muted = false;
+            void friendSet(f.friend_id, f.trusted, false).catch(() => {});
+          }
+        }
         // Kabul edilen arkadaşlar Arkadaşlar sayfasındaki listeye (renk/simge ayarıyla) otomatik eklenir
         syncAccountFriends(lastList);
         if (recent) {
@@ -523,17 +531,19 @@ export function FriendsPanel(props: {
     }
   };
 
-  // Sağ tık menüsü: arkadaşı ekibime ekle / yetkisini değiştir / çıkar (crew_set; değiştirebilir => görebilir)
-  const setCrewRole = async (f: Friend, view: boolean, control: boolean) => {
+  // Sağ tık menüsü: güvenilir yap / güvenilirden çıkar. Güvenilir arkadaş ekibime girer (pitwall'ı izler, pit
+  // ayarlarını değiştirir); güvenilirden çıkınca ekipten de çıkar (c78; friendTrust eski sunucuda da ikisini yazar).
+  const setTrust = async (f: Friend, on: boolean) => {
     setErr("");
+    mutate(friends().map((x) => (x.friend_id === f.friend_id ? { ...x, trusted: on } : x)));
     setMineCrew((l) => {
       const rest = (l ?? []).filter((m) => m.member_id !== f.friend_id);
-      if (!view && !control) return rest;
+      if (!on) return rest;
       const cur = (l ?? []).find((m) => m.member_id === f.friend_id);
-      return [...rest, { member_id: f.friend_id, display_name: f.display_name, avatar_path: f.avatar_path ?? null, can_view: true, can_control: control, watching: !!cur?.watching, seen_at: cur?.seen_at ?? null }];
+      return [...rest, { member_id: f.friend_id, display_name: f.display_name, avatar_path: f.avatar_path ?? null, can_view: true, can_control: !proLocked(F.crew) || !!cur?.can_control, watching: !!cur?.watching, seen_at: cur?.seen_at ?? null }];
     });
     try {
-      await crewSet(f.friend_id, view || control, control);
+      await friendTrust(f.friend_id, on);
     } catch (e) {
       setErr(String((e as Error).message));
     }
@@ -541,6 +551,7 @@ export function FriendsPanel(props: {
     void emit("crew-refresh").catch(() => {});
     void emit("crew-changed").catch(() => {});
     void refetchMine();
+    refetch();
   };
 
   // Liste: arama ve gruplar
@@ -555,29 +566,18 @@ export function FriendsPanel(props: {
       /* depolama yok */
     }
   };
-  const lastTs = (f: Friend) => {
-    const m = last()[f.friend_id];
-    return m ? new Date(m.created_at).getTime() : 0;
-  };
   const groups = createMemo(() => {
     const s = norm(q().trim());
     const match = (f: Friend) => !s || norm(`${f.display_name} ${f.iracing_name ?? ""}`).includes(s);
     const all = friends().filter(match);
-    // Okunmamış mesajı olan ve son yazışılan üstte, sonra ada göre
-    const byName = (a: Friend, b: Friend) => a.display_name.localeCompare(b.display_name, localeTag());
-    const sort = (a: Friend, b: Friend) => Number(b.unread > 0) - Number(a.unread > 0) || lastTs(b) - lastTs(a);
+    // Steam gibi: önce yarışta, sonra çevrimiçi, en altta çevrimdışı; her bölümde ada göre (alfabetik)
+    const byName = (a: Friend, b: Friend) => a.display_name.localeCompare(b.display_name, localeTag(), { sensitivity: "base" });
     const acc = all.filter((f) => f.status === "accepted");
     return [
       { key: "pending", title: "Onay bekleyenler", list: [...all.filter((f) => f.status === "pending_in"), ...all.filter((f) => f.status === "pending_out")] },
-      { key: "racing", title: "Yarışta", list: acc.filter((f) => f.racing).sort((a, b) => sort(a, b) || byName(a, b)) },
-      { key: "online", title: "Çevrimiçi", list: acc.filter((f) => f.online && !f.racing).sort((a, b) => sort(a, b) || byName(a, b)) },
-      {
-        key: "offline",
-        title: "Çevrimdışı",
-        list: acc
-          .filter((f) => !f.online && !f.racing)
-          .sort((a, b) => sort(a, b) || (b.last_seen ?? "").localeCompare(a.last_seen ?? "") || byName(a, b)),
-      },
+      { key: "racing", title: "Yarışta", list: acc.filter((f) => f.racing).sort(byName) },
+      { key: "online", title: "Çevrimiçi", list: acc.filter((f) => f.online && !f.racing).sort((a, b) => Number(!!a.dnd) - Number(!!b.dnd) || byName(a, b)) },
+      { key: "offline", title: "Çevrimdışı", list: acc.filter((f) => !f.online && !f.racing).sort(byName) },
     ].filter((g) => g.list.length > 0);
   });
 
@@ -634,7 +634,7 @@ export function FriendsPanel(props: {
         </button>
         <div class="fhead-title">
           <b data-no-i18n>
-            {v.kind === "live" ? t("{0} · canlı veri", f.display_name) : f.display_name} <SimBadge sim={f.online ? f.sim : ""} />
+            {f.display_name} <SimBadge sim={f.online ? f.sim : ""} />
           </b>
           <small classList={{ racing: f.racing }} data-no-i18n={f.racing ? true : undefined}>
             {statusText(f)}
@@ -654,11 +654,6 @@ export function FriendsPanel(props: {
         </Show>
         {title()}
         <span class="lt-sp" />
-        <Show when={view().kind === "chat" && cur((view() as { f: Friend }).f).trusts_me}>
-          <button class="icon-btn" title="Canlı veri: yakıt, turlar, pistteki yeri" onClick={() => setView({ kind: "live", f: (view() as { f: Friend }).f })}>
-            <I.Gauge />
-          </button>
-        </Show>
         <Show when={teamT()}>
           {(tm) => (
             <>
@@ -727,11 +722,6 @@ export function FriendsPanel(props: {
           </button>
           <button class="icon-btn" classList={{ on: clearAsk() }} title="Sohbeti temizle (sadece senin görünümünden)" onClick={() => setClearAsk(!clearAsk())}>
             <I.Trash />
-          </button>
-        </Show>
-        <Show when={view().kind === "live"}>
-          <button class="icon-btn" title="Ayrı pencerede aç" onClick={() => openFriendWindow((view() as { f: Friend }).f)}>
-            <I.ExternalLink />
           </button>
         </Show>
         <Show when={view().kind === "list"}>
@@ -849,9 +839,8 @@ export function FriendsPanel(props: {
                             nav={nav}
                             crew={crewOf(f.friend_id)}
                             crewRole={crewRoleOf(f.friend_id)}
-                            onCrewRole={(v, c) => void setCrewRole(f, v, c)}
+                            onTrust={(on) => void setTrust(f, on)}
                             onChat={() => setView({ kind: "chat", f })}
-                            onLive={() => setView({ kind: "live", f })}
                             onProfile={() => setProfileOf(f.friend_id)}
                             act={act}
                           />
@@ -884,12 +873,6 @@ export function FriendsPanel(props: {
             onRead={() => mutate(friends().map((x) => (x.friend_id === id ? { ...x, unread: 0 } : x)))}
           />
         )}
-      </Show>
-      <Show when={view().kind === "live"}>
-        <FriendData f={(view() as { f: Friend }).f} />
-      </Show>
-      <Show when={profileOf()}>
-        {(id) => <ProfileDialog id={id()} onClose={() => setProfileOf(null)} onTeam={nav.team} />}
       </Show>
       <Show when={teamT()?.team_id} keyed>
         {(id) => (
@@ -957,7 +940,6 @@ export function FriendsPanel(props: {
 /** Arkadaş listesindeki grup sohbeti satırı */
 function GroupRow(props: { g: MyGroup; onOpen: () => void; onMembers: () => void; onMute: () => void; onGone: () => void; onErr: (m: string) => void }) {
   const g = () => props.g;
-  const who = () => (g().last_system ? null : g().last_sender === session()?.user.id ? t("Sen") : g().last_sender_name);
   // Sağ tık menüsü: arkadaş satırındaki gibi en üst katmanda (Portal), ekran koordinatlarıyla
   const [menu, setMenu] = createSignal<{ x: number; y: number } | null>(null);
   const [pos, setPos] = createSignal<{ x: number; y: number } | null>(null);
@@ -1084,14 +1066,7 @@ function GroupRow(props: { g: MyGroup; onOpen: () => void; onMembers: () => void
           </Show>
         </div>
         <div class="frow-l2">
-          <small class="frow-prev" data-no-i18n={g().last_body ? true : undefined}>
-            <Show when={g().last_body} fallback={t("{0} üye · henüz mesaj yok", g().member_count)}>
-              <Show when={who()}>
-                <span class="frow-you">{who()}: </span>
-              </Show>
-              <MsgText text={g().last_body!} />
-            </Show>
-          </small>
+          <small class="frow-prev">{t("{0} üye", g().member_count)}</small>
           <Show when={g().unread > 0}>
             <span class="frow-unread" classList={{ muted: g().muted }}>
               {g().unread}
@@ -1126,15 +1101,7 @@ function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void }) {
           </Show>
         </div>
         <div class="frow-l2">
-          <small class="frow-prev" data-no-i18n={tm().last_body ? true : undefined}>
-            <Show when={tm().last_body} fallback={t("{0} üye · henüz mesaj yok", tm().member_count)}>
-              <Show when={tm().last_sender}>
-                <span class="frow-you">{tm().last_sender}: </span>
-              </Show>
-              {tm().last_poll ? "📊 " : ""}
-              <MsgText text={tm().last_body!} />
-            </Show>
-          </small>
+          <small class="frow-prev">{t("{0} üye", tm().member_count)}</small>
           <Show when={tm().unread > 0}>
             <span class="frow-unread" classList={{ muted: tm().muted }}>
               {tm().unread}
@@ -1305,8 +1272,8 @@ function statusText(f: Friend) {
   if (f.status === "pending_in") return t("Arkadaşlık isteği gönderdi");
   if (f.status === "pending_out") return t("İstek gönderildi");
   const hid = f.invisible ? ` · ${t("gizleniyor")}` : "";
-  if (f.racing) return ([f.session, f.track, f.car].filter(Boolean).join(" · ") || (f.sim && SIM_SHORT[f.sim] ? t("Oyunda: {0}", SIM_SHORT[f.sim]) : t("Yarışta"))) + hid;
-  if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + hid;
+  if (f.racing) return ([f.sim && SIM_SHORT[f.sim] ? SIM_SHORT[f.sim] : "", f.session, f.track, f.car].filter(Boolean).join(" · ") || (f.sim && SIM_SHORT[f.sim] ? t("Oyunda: {0}", SIM_SHORT[f.sim]) : t("Yarışta"))) + hid;
+  if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + (f.sim && SIM_SHORT[f.sim] ? ` · ${SIM_SHORT[f.sim]}` : "") + hid;
   return f.last_seen ? t("Son görülme: {0}", ago(f.last_seen)) : t("Çevrimdışı");
 }
 
@@ -1340,13 +1307,15 @@ function FriendRow(props: {
   crew?: boolean;
   /** Bu arkadaş BENİM ekibimde mi ve yetkisi (sağ tık menüsü) */
   crewRole?: "view" | "control" | null;
-  onCrewRole?: (view: boolean, control: boolean) => void;
+  /** Güvenilir yap / güvenilirden çıkar (ekip üyeliğini de açar / kapatır) */
+  onTrust: (on: boolean) => void;
   onChat: () => void;
-  onLive: () => void;
   onProfile: () => void;
   act: (fn: () => Promise<unknown>) => void;
 }) {
   const f = () => props.f;
+  // Güvenilir: işaretli ya da (eski sunucu / PRO olmayan) ekibimde
+  const trusted = () => f().trusted || !!props.crewRole;
   const [menu, setMenu] = createSignal(false);
   let el: HTMLDivElement | undefined;
   // Menü sayfanın en üst katmanında (Portal) ve ekran koordinatlarıyla açılır: liste başlığının / kaydırma alanının
@@ -1398,16 +1367,12 @@ function FriendRow(props: {
       document.removeEventListener("keydown", key);
     });
   });
-  const mine = () => props.last && props.last.sender !== f().friend_id;
-  const second = () => {
-    if (f().status !== "accepted" || f().racing || !props.last) return null;
-    return props.last;
-  };
+  // Steam gibi: adın altında her zaman durum yazar (son mesaj gösterilmez; okunmamış sayısı sağda durur)
   return (
     <div
       ref={el}
       class="frow"
-      classList={{ racing: f().racing, online: f().online && !f().racing, pending: f().status !== "accepted", unread: f().unread > 0, menu: menu() }}
+      classList={{ racing: f().racing, online: f().online && !f().racing, dnd: f().online && !f().racing && !!f().dnd, offline: f().status === "accepted" && !f().online && !f().racing, pending: f().status !== "accepted", unread: f().unread > 0, menu: menu() }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1426,56 +1391,33 @@ function FriendRow(props: {
               <I.EyeOff />
             </span>
           </Show>
-          <Show when={f().trusted}>
+          <Show when={trusted()}>
             <span
               class="frow-flag trust"
-              classList={{ off: proLocked("social.data_share") }}
-              title={!proLocked("social.data_share") ? "Güvenilir: yarışırken verilerini görebilir" : "Güvenilir, ama verilerin paylaşılmıyor: veri paylaşımı PRO üyelere özel"}
+              title={props.crewRole === "view" ? "Güvenilir: pitwall'ını izleyebilir" : "Güvenilir: pitwall'ına girebilir ve pit ayarlarını değiştirebilir"}
             >
               <I.ShieldCheck />
             </span>
           </Show>
-          <Show when={f().muted}>
-            <span class="frow-flag" title="Mesajlarını kapattın">
-              <I.MessageSquare />
-            </span>
-          </Show>
-          <Show when={!f().muted && f().notify_muted}>
+          <Show when={f().notify_muted}>
             <span class="frow-flag" title="Bildirimlerini kapattın">
               <I.BellOff />
             </span>
           </Show>
-          <Show when={!f().muted && f().sound_muted}>
+          <Show when={f().sound_muted}>
             <span class="frow-flag" title="Sesini kapattın">
               <I.VolumeX />
             </span>
           </Show>
           <span class="lt-sp" />
-          <Show when={f().status === "accepted" && props.last}>
-            <time>{shortTime(props.last!.created_at)}</time>
-          </Show>
         </div>
         <div class="frow-l2">
-          <Show
-            when={second()}
-            fallback={
-              <small class="frow-status" data-no-i18n={f().racing ? true : undefined} title={statusText(f())}>
-                <Show when={f().racing}>
-                  <I.Flag />
-                </Show>
-                {statusText(f())}
-              </small>
-            }
-          >
-            {(m) => (
-              <small class="frow-prev" title={msgPreview(m())} data-no-i18n>
-                <Show when={mine()}>
-                  <span class="frow-you">{t("Sen:")} </span>
-                </Show>
-                <MsgText text={msgPreview(m())} />
-              </small>
-            )}
-          </Show>
+          <small class="frow-status" data-no-i18n={f().racing ? true : undefined} title={statusText(f())}>
+            <Show when={f().racing}>
+              <I.Flag />
+            </Show>
+            {statusText(f())}
+          </small>
           <Show when={f().unread > 0}>
             <span class="frow-unread">{f().unread}</span>
           </Show>
@@ -1501,11 +1443,6 @@ function FriendRow(props: {
           <button class="icon-btn" title="Mesaj" onClick={props.onChat}>
             <I.MessageSquare />
           </button>
-          <Show when={f().trusts_me}>
-            <button class="icon-btn live" classList={{ idle: !f().racing }} title="Verilerini gör (yakıt, turlar, pistteki yeri)" onClick={props.onLive}>
-              <I.Gauge />
-            </button>
-          </Show>
           <Show when={props.crew}>
             <button
               class="icon-btn live"
@@ -1533,23 +1470,8 @@ function FriendRow(props: {
             <I.MessageSquare /> Mesaj
           </button>
           <button onClick={() => (setMenu(false), props.onProfile())}>
-            <I.User /> Profili gör
+            <I.User /> Profil
           </button>
-          <Show
-            when={f().trusts_me}
-            fallback={
-              <button disabled title="PRO üye olan arkadaşın seni güvenilir işaretleyince yakıtını, turlarını ve pistteki yerini görebilirsin">
-                <I.Gauge /> Canlı veri (seninle paylaşmıyor)
-              </button>
-            }
-          >
-            <button onClick={() => (setMenu(false), props.onLive())}>
-              <I.Gauge /> Canlı veri: yakıt, turlar, pistteki yeri
-            </button>
-            <button onClick={() => (setMenu(false), openFriendWindow(f()))}>
-              <I.ExternalLink /> Canlı veriyi ayrı pencerede aç
-            </button>
-          </Show>
           <Show
             when={!proLocked("social.friend_look")}
             fallback={
@@ -1562,52 +1484,20 @@ function FriendRow(props: {
               <I.Palette /> Görünümü düzenle
             </button>
           </Show>
-          <Show
-            when={!proLocked("social.data_share")}
-            fallback={
-              <>
-                <Show when={f().trusted}>
-                  <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, false, f().muted)))}>
-                    <I.ShieldCheck /> Güvenilirden çıkar
-                  </button>
-                </Show>
-                <button onClick={() => (setMenu(false), props.nav.pro())} title={SHARE_PRO_HINT}>
-                  <I.Lock /> Verilerimi paylaş <span class="pro-badge small">PRO</span>
-                </button>
-                <p class="frow-menu-note">{SHARE_PRO_HINT}</p>
-              </>
-            }
+          <button
+            classList={{ on: trusted() }}
+            onClick={() => (setMenu(false), props.onTrust(!trusted()))}
+            title="Güvenilir arkadaşın sen yarışırken pitwall'ına girebilir ve pit ayarlarını (yakıt, lastik, hızlı tamir) senin yerine değiştirebilir."
           >
-            <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, !f().trusted, f().muted)))}>
-              <I.ShieldCheck /> {f().trusted ? "Güvenilirden çıkar" : "Güvenilir işaretle (verilerimi görsün)"}
-            </button>
+            <I.ShieldCheck /> {trusted() ? "Güvenilirden çıkar" : "Güvenilir yap"}
+          </button>
+          <Show when={proLocked(F.crew)}>
+            <p class="frow-menu-note">Güvenilir arkadaşın pitwall'ını izleyebilir. Pit ayarlarını değiştirebilmesi PRO üyelere özel.</p>
           </Show>
           <Show when={props.crew}>
             <button onClick={() => (setMenu(false), openCrewWindow(f().friend_id, () => props.nav.crew(f().friend_id)))} title="Ekip Pitwall'ı: çevresindeki araçları, farkları ve spotter durumunu canlı izle, hazır mesaj gönder">
               <I.Gauge /> Pitwall'ını izle
             </button>
-          </Show>
-          <Show when={props.onCrewRole}>
-            <button
-              classList={{ on: !!props.crewRole }}
-              onClick={() => (setMenu(false), props.crewRole === "view" ? props.onCrewRole!(false, false) : props.onCrewRole!(true, false))}
-              title="Ekibine ekle: sen yarışırken yarış bilgilerini (yakıt, tur, pit servisi) ve canlı pitwall'ını izleyebilir. İzleme yetkisi ücretsizdir."
-            >
-              {props.crewRole ? <I.Check /> : <I.Eye />} Ekibe ekle (görebilir)
-            </button>
-            <button
-              classList={{ on: props.crewRole === "control" }}
-              disabled={proLocked(F.crew) && props.crewRole !== "control"}
-              onClick={() => (setMenu(false), props.crewRole === "control" ? props.onCrewRole!(true, false) : props.onCrewRole!(true, true))}
-              title="Ekibine ekle: izleyebilir ve pit ayarlarını (yakıt, lastik, hızlı tamir) senin yerine değiştirebilir. PRO üyelere özel."
-            >
-              {props.crewRole === "control" ? <I.Check /> : <Wrench />} Pit ayarlarını değiştirebilir <ProLockTag feature={F.crew} />
-            </button>
-            <Show when={props.crewRole}>
-              <button onClick={() => (setMenu(false), props.onCrewRole!(false, false))}>
-                <I.UserMinus /> Ekipten çıkar
-              </button>
-            </Show>
           </Show>
           <button
             onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !f().notify_muted, !!f().sound_muted)))}
@@ -1620,21 +1510,6 @@ function FriendRow(props: {
             title="Kapalıyken bu arkadaştan gelen mesajlarda ses çalmaz"
           >
             {f().sound_muted ? <I.Volume2 /> : <I.VolumeX />} {f().sound_muted ? "Sesi aç" : "Sesi kapat"}
-          </button>
-          <button onClick={() => (setMenu(false), props.act(() => friendSet(f().friend_id, f().trusted, !f().muted)))}>
-            <I.MessageSquare /> {f().muted ? "Mesajlarını aç" : "Mesajlarını kapat"}
-          </button>
-          <button
-            onClick={() => {
-              setMenu(false);
-              ovMsgTogglePerson(
-                f().friend_id,
-                settings().friends.list.map((x) => x.accountId ?? "").filter(Boolean),
-              );
-            }}
-            title="Yarışırken bu arkadaşın mesajları Mesajlar overlay'inde görünsün mü (overlay'i Overlay'ler bölümünden açabilirsin)"
-          >
-            <I.Monitor /> {ovMsgShowsPerson(f().friend_id) ? "Mesajlar overlay'inde gizle" : "Mesajlar overlay'inde göster"}
           </button>
           <button
             class="danger"

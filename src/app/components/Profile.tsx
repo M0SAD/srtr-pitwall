@@ -15,8 +15,6 @@ import {
   SOCIAL_TYPES,
   avatarUrl,
   guessSocialType,
-  iracingCategory,
-  loadIracingCats,
   loadIracingPublic,
   publicProfile,
   removeAvatar,
@@ -298,14 +296,8 @@ export function ProfileCard(props: {
  * her değer alındığı kategorinin adıyla gösterilir. Eski sunucuda (c63 yok) sadece son sürülen kategori görünür.
  */
 export function IracingBadges(props: { ir: IracingInfo; user?: string }) {
-  const [cats] = createResource(
-    () => props.user || null,
-    (u) => loadIracingCats(u),
-  );
-  const list = () => {
-    const c = cats();
-    return c && c.length > 0 ? c : [{ category: props.ir.category ?? "", irating: props.ir.irating, license: props.ir.license, lic_color: props.ir.lic_color, updated_at: props.ir.updated_at }];
-  };
+  // Kategori adı ("Road" vb.) ve iRating yanlış göründüğü için kaldırıldı: yalnızca son sürülen oturumun lisans rozeti
+  const list = () => [{ license: props.ir.license, lic_color: props.ir.lic_color, updated_at: props.ir.updated_at }];
   const day = (iso: string) => new Date(iso).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" });
   return (
     <div class="pf-irx">
@@ -318,15 +310,7 @@ export function IracingBadges(props: { ir: IracingInfo; user?: string }) {
         <For each={list()}>
           {(c) => (
             <span class="pf-irx-cat" title={t("güncellendi: {0}", day(c.updated_at))}>
-              <Show when={c.category}>
-                <span class="pf-irx-catname" data-no-i18n>
-                  {iracingCategory(c.category)}
-                </span>
-              </Show>
               <LicenseBadge class="pf-licb" letter={parseLicense(c.license)[0]} sr={parseLicense(c.license)[1]} color={c.lic_color} title="iRacing lisansı ve Safety Rating" />
-              <span class="pf-irating" title="iRating" data-no-i18n>
-                <b>iR</b> {c.irating.toLocaleString(localeTag())}
-              </span>
             </span>
           )}
         </For>

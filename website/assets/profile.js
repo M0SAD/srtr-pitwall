@@ -201,12 +201,9 @@ export function iracingHtml(ir, note = true) {
   const col = /^#[0-9a-f]{6}$/i.test(ir.lic_color || "") ? ir.lic_color : "#666666";
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(col.slice(i, i + 2), 16));
   const dark = r * 0.299 + g * 0.587 + b * 0.114 > 150;
-  const cat = ir.category ? IR_CATS[ir.category] || ir.category : "";
   return `<div class="pf-irx">
     ${ir.country ? `<span class="pf-cty" translate="no">${esc(ir.country)}</span>` : ""}
     <span class="pf-lic${dark ? " dark" : ""}" style="background:${col}" title="${esc(T("pf_ir_lic"))}" translate="no">${esc(ir.license)}</span>
-    <span class="pf-irating" title="iRating" translate="no"><b>iR</b> ${Number(ir.irating).toLocaleString(lang)}</span>
-    ${cat ? `<span class="muted small" translate="no">${esc(cat)}</span>` : ""}
     <span class="muted small">${esc(T("pf_ir_updated", fmtDate(ir.updated_at)))}</span>
     ${note && ir.public === false ? `<span class="muted small">${esc(T("pf_ir_only_me"))}</span>` : ""}
   </div>`;

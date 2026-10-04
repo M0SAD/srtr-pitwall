@@ -488,6 +488,8 @@ export interface VoiceSettings {
   categories: Record<string, boolean>;
   /** Yeni ses sistemine geçiş yapıldı (bir kezlik: sesli mühendis varsayılan açık) */
   v2?: boolean;
+  /** Bir kerelik geçiş: telsiz kontrolü (categories.radio) varsayılan kapalı. Rust: voice.rs cfg_from_settings */
+  radioOffV1?: boolean;
   /** Sesli komut (bas-konuş, PRO: voice.commands). Rust: src-tauri/src/voicecmd.rs */
   commands: VoiceCommandSettings;
 }
@@ -784,10 +786,12 @@ export interface GeneralSettings {
   appBg: AppBg;
   /** Arkadaş listesi: rahatsız etme, mesaj kabulü, mesaj sesi */
   social: { dnd: boolean; /** Çevrimdışı görün (c65; yok = kapalı) */ invisible?: boolean; acceptMessages: boolean; sound: boolean; /** Konuşma altyazımı ekibimle paylaş (Ekip Pitwall'ı; yok = açık) */ crewSpeech?: boolean; /** Ekip mesajlarını ekranın alt ortasında kutucukta göster (yok = açık) */ crewBox?: boolean };
-  /** Demo açıkken sesli spotter ve bipler sussun */
+  /** Kullanılmıyor (v75): Demo modunda sesli mühendis / spotter / bipler her zaman susar; eski kayıtlar için duruyor */
   demoMute: boolean;
   /** Bir kerelik geçiş: demo sesi varsayılan olarak kapalı (kullanıcı sonra açarsa açık kalır) */
   demoMuteV1?: boolean;
+  /** Bir kerelik geçiş: sesli mühendis kısayolu varsayılanı Ctrl+Shift+S */
+  voiceKeyV1?: boolean;
   /** Bir kerelik geçiş yapıldı: daha okunaklı varsayılan yazı (Inter, 14 px, orta kalınlık, gölge) */
   themeReadV1?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
@@ -1133,7 +1137,7 @@ export function defaultSettings(): AppSettings {
       server: { enabled: true, port: 8910, lan: false },
       serverOnV1: true,
       mqtt: defaultMqtt(),
-      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+V", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", crewStop: "", dashPage: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
+      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+S", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", crewStop: "", dashPage: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
       shotKeyV2: true,
       shotKeyV3: true,
       hideInReplay: true,
@@ -1143,6 +1147,7 @@ export function defaultSettings(): AppSettings {
       allowDuplicates: false,
       demoMute: true,
       demoMuteV1: true,
+      voiceKeyV1: true,
       themeReadV1: true,
       social: { dnd: false, acceptMessages: true, sound: true },
       screenshots: { includeOverlays: true, onlyInGame: true, format: "jpg", quality: 92 },
@@ -1176,8 +1181,9 @@ export function defaultSettings(): AppSettings {
         quietInCorners: false,
         ovalInsideOutside: false,
         sessions: { race: true, qualify: true, practice: true },
-        categories: Object.fromEntries(VOICE_CATEGORIES.map((c) => [c.id, true])),
+        categories: Object.fromEntries(VOICE_CATEGORIES.map((c) => [c.id, c.id !== "radio"])),
         v2: true,
+        radioOffV1: true,
         commands: { ...DEFAULT_VOICE_COMMANDS },
       },
       sounds: {
@@ -1201,6 +1207,21 @@ export function defaultSettings(): AppSettings {
 /** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
 function shotKeyMigrate<T extends { shot: string }>(sc: T, done: boolean | undefined): T {
   if (!done && (sc.shot === "PrintScreen" || sc.shot === "Ctrl+PrintScreen")) sc.shot = "F12";
+  return sc;
+}
+
+/**
+ * Bir kerelik geçiş (voiceKeyV1): sesli mühendisi sustur / aç kısayolu varsayılan olarak Ctrl+Shift+S olur. Kısayolu
+ * boş olan ya da eski varsayılanda (Ctrl+Shift+V) kalmış kurulumlara uygulanır; kullanıcının kendi seçtiği tuşa
+ * dokunulmaz, Ctrl+Shift+S başka bir eylemde kullanılıyorsa da değiştirilmez. Rust: lib.rs shortcuts_from_settings.
+ */
+function voiceKeyMigrate<T extends Record<string, string>>(sc: T, done: boolean | undefined): T {
+  if (done) return sc;
+  const norm = (k: unknown) => String(k ?? "").replace(/\s+/g, "").toLowerCase();
+  const cur = norm(sc.voice);
+  if (cur !== "" && cur !== "ctrl+shift+v") return sc;
+  if (Object.entries(sc).some(([a, k]) => a !== "voice" && norm(k) === "ctrl+shift+s")) return sc;
+  (sc as Record<string, string>).voice = "Ctrl+Shift+S";
   return sc;
 }
 
@@ -1253,7 +1274,8 @@ export function normalize(input: unknown): AppSettings {
       // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
       demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,
       demoMuteV1: true,
-      shortcuts: shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3),
+      shortcuts: voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1),
+      voiceKeyV1: true,
       shotKeyV2: true,
       shotKeyV3: true,
       chatLook: { ...DEFAULT_CHAT_LOOK, ...(s.general?.chatLook ?? {}) },
@@ -1284,7 +1306,9 @@ export function normalize(input: unknown): AppSettings {
         ...d.general.voice,
         ...(s.general?.voice ?? {}),
         sessions: { ...d.general.voice.sessions, ...(s.general?.voice?.sessions ?? {}) },
-        categories: { ...d.general.voice.categories, ...(s.general?.voice?.categories ?? {}) },
+        // Bir kerelik geçiş (radioOffV1): telsiz kontrolü varsayılan olarak kapalı; kullanıcı sonra açarsa açık kalır
+        categories: { ...d.general.voice.categories, ...(s.general?.voice?.categories ?? {}), ...(s.general?.voice?.radioOffV1 ? {} : { radio: false }) },
+        radioOffV1: true,
         commands: { ...DEFAULT_VOICE_COMMANDS, ...(s.general?.voice?.commands ?? {}), ...(s.general?.voice?.commands?.onV1 ? {} : { enabled: true }), onV1: true },
       }),
       sounds: {

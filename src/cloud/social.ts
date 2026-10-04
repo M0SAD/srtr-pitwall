@@ -160,6 +160,27 @@ export const friendSet = (id: string, trusted: boolean, muted: boolean) =>
 // Güvenilir arkadaşlar (c44): canlı veriyi (takım yakıtı) kod vermeden paylaşma
 /** Sadece güvenilir işaretini değiştirir (sessiz ayarına dokunmaz) */
 export const friendTrustSet = (id: string, trusted: boolean) => api("POST", "rpc/friend_trust_set", { body: { p_user: id, p_trusted: trusted } });
+/**
+ * Güvenilir yap / güvenilirden çıkar (c78): güvenilir arkadaş pitwall'ıma girebilir ve pit ayarlarımı değiştirebilir.
+ * Sunucu c78 ile güvenilir işaretini ekip üyeliğine kendisi çevirir; eski sunucuda da çalışsın diye ekip yetkisi
+ * (crew_set) ayrıca yazılır. Değiştirme yetkisi PRO'ya özelse PRO olmayan sürücünün arkadaşı yalnızca izler.
+ */
+export async function friendTrust(id: string, on: boolean) {
+  const control = on && !proLocked(F.crew);
+  // Eski sunucu (c78 yok) PRO olmayana "güvenilir" işaretini reddeder: ekip yetkisi yine de verilir
+  const trustErr = await friendTrustSet(id, on).then(
+    () => null,
+    (e) => e as Error,
+  );
+  try {
+    await api("POST", "rpc/crew_set", { body: { p_friend: id, p_view: on, p_control: control } });
+  } catch (e) {
+    // c78'li sunucuda üyelik zaten yazıldı (ör. 10 kişilik sınır hatası yok sayılır); ikisi de olmadıysa hata
+    if (trustErr) throw e;
+    return;
+  }
+  if (trustErr && !on) throw trustErr;
+}
 export interface ShareTrust {
   /** Kabul edilmiş tüm arkadaşlarım verimi görebilir */
   trust_all: boolean;

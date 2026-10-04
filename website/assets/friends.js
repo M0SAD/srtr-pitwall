@@ -117,10 +117,11 @@ addDict({
   fr_crew: ["Ekip", "Crew"],
   fr_crew_open: ["Ekip paneli: yarışını canlı izle, izin verdiyse pit ayarlarını değiştir", "Crew panel: watch their race live and change pit settings if allowed"],
   fr_crew_fuel: ["{0} tur yakıt", "{0} laps of fuel"],
-  fr_crew_view: ["Ekibe ekle (görebilir)", "Add to crew (can view)"],
-  fr_crew_ctl: ["Pit ayarlarını değiştirebilir", "Can change pit settings"],
-  fr_crew_out: ["Ekipten çıkar", "Remove from crew"],
-  fr_crew_pro: ["Ekibe değiştirme yetkisi vermek PRO üyelere özel", "Letting your crew change pit settings is for PRO members"],
+  fr_trust_on: ["Güvenilir yap", "Mark as trusted"],
+  fr_trust_off: ["Güvenilirden çıkar", "Remove from trusted"],
+  fr_trust_tip: ["Güvenilir arkadaşın sen yarışırken pitwall'ına girebilir ve pit ayarlarını senin yerine değiştirebilir.", "A trusted friend can open your pitwall while you race and change your pit settings for you."],
+  fr_trust_free: ["Güvenilir arkadaşın pitwall'ını izleyebilir. Pit ayarlarını değiştirebilmesi PRO üyelere özel.", "A trusted friend can watch your pitwall. Letting them change pit settings is for PRO members."],
+  fr_profile: ["Profil", "Profile"],
   fr_app_note: [
     "Çevrimiçi durumu SRTR Pitwall programından gelir; site seni çevrimiçi göstermez.",
     "Online status comes from the SRTR Pitwall app; the website does not show you as online.",
@@ -376,7 +377,7 @@ function dayOf(v) {
 function presence(f) {
   // invisible: sadece yöneticiye gelir (c65) — çevrimiçi ama "Çevrimdışı" durumunu seçmiş
   const hid = f.invisible ? T("fr_hiding") : "";
-  if (f.racing) return { dot: "race", text: [T("fr_racing"), f.track, hid].filter(Boolean).join(" · ") };
+  if (f.racing) return { dot: "race", text: [f.sim ? SIM_LABEL[f.sim] || f.sim : T("fr_racing"), f.session, f.track, f.car, hid].filter(Boolean).join(" · ") };
   if (f.online) {
     const sim = f.sim ? SIM_LABEL[f.sim] || f.sim : "";
     return { dot: f.dnd ? "dnd" : "on", text: (f.dnd ? [T("fr_dnd"), hid] : [T("fr_online"), sim, hid]).filter(Boolean).join(" · ") };
@@ -424,12 +425,8 @@ function roomAvatar(kind, r, size = "") {
 
 function roomRowHtml(kind, r) {
   const id = roomId(kind, r);
-  let sub = T("fr_members_n", r.member_count || 0);
-  if (r.last_at) {
-    if (kind === "team") sub = `${r.last_sender || "?"}: ${r.last_poll ? T("fr_poll_last") : bodyOf({ body: r.last_body })}`;
-    else if (!r.last_system) sub = r.last_sender === S.me.id ? T("fr_you", r.last_body || "") : `${r.last_sender_name || "?"}: ${r.last_body || ""}`;
-    else if (isBg({ body: r.last_body })) sub = bodyOf({ body: r.last_body });
-  }
+  // Ad altında son mesaj gösterilmez (Steam gibi): sadece üye sayısı
+  const sub = T("fr_members_n", r.member_count || 0);
   const right = r.unread ? `<span class="fr-count${r.muted ? " muted" : ""}">${r.unread > 99 ? "99+" : r.unread}</span>` : r.last_at ? `<span class="fr-when">${esc(ago(r.last_at))}</span>` : "";
   return `<button class="fr-row${r.unread ? " unread" : ""}" type="button" data-act="room" data-kind="${kind}" data-id="${esc(id)}">
     ${roomAvatar(kind, r)}
@@ -440,39 +437,29 @@ function roomRowHtml(kind, r) {
 
 function rowHtml(f) {
   const p = presence(f);
-  const lm = S.last[f.friend_id];
   const sub =
     f.status === "pending_in"
       ? T("fr_wants")
       : f.status === "pending_out"
         ? T("fr_waiting")
-        : f.unread && lm && lm.sender === f.friend_id
-          ? bodyOf(lm)
-          : p.dot
-            ? p.text
-            : lm
-              ? lm.sender === S.me.id
-                ? T("fr_you", bodyOf(lm))
-                : bodyOf(lm)
-              : p.text;
+        : p.text;
   let right = "";
   if (f.status === "pending_in")
     right = `<span class="fr-acts"><button class="btn btn-sm btn-accent" data-act="accept" data-id="${esc(f.friend_id)}">${esc(T("fr_accept"))}</button><button class="fr-ib" data-act="decline" data-id="${esc(f.friend_id)}" title="${esc(T("fr_decline"))}" aria-label="${esc(T("fr_decline"))}">${IC.x}</button></span>`;
   else if (f.status === "pending_out")
     right = `<button class="fr-ib" data-act="cancel" data-id="${esc(f.friend_id)}" title="${esc(T("fr_cancel_req"))}" aria-label="${esc(T("fr_cancel_req"))}">${IC.x}</button>`;
   else if (f.unread) right = `<span class="fr-count">${f.unread > 99 ? "99+" : f.unread}</span>`;
-  else if (lm) right = `<span class="fr-when">${esc(ago(lm.created_at))}</span>`;
   // Ekibinde olduğum arkadaş: "Ekip" düğmesi + yarıştayken canlı satır (satır div olur: içinde düğme var)
   const cw = f.status === "accepted" ? crewOf(f.friend_id) : null;
   const live = cw ? crewLine(cw) : "";
   if (cw)
     right += `<button type="button" class="fr-crewb${cw.live ? " live" : ""}" data-act="crew" data-id="${esc(f.friend_id)}" title="${esc(T("fr_crew_open"))}">${esc(T("fr_crew"))}</button>`;
   const tag = f.status === "accepted" && !cw ? "button" : "div";
-  return `<${tag} class="fr-row${f.unread ? " unread" : ""}${f.status !== "accepted" ? " pend" : ""}${cw ? " fr-click" : ""}"${
+  return `<${tag} class="fr-row${f.unread ? " unread" : ""}${f.status !== "accepted" ? " pend" : ` rs-${p.dot || "off"}`}${cw ? " fr-click" : ""}"${
     f.status === "accepted" ? `${cw ? ' role="button" tabindex="0"' : ' type="button"'} data-act="chat" data-id="${esc(f.friend_id)}"` : ""
   }>
     ${avatarHtml(f.friend_id, f.display_name, f, f.status === "accepted" ? p.dot || "off" : "")}
-    <span class="fr-main"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
+    <span class="fr-main st-${f.status === "accepted" ? p.dot || "off" : "pend"}"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
       live ? `<small class="fr-live">${esc(live)}</small>` : ""
     }</span>
     ${right}
@@ -485,6 +472,9 @@ function listView() {
   const acc = accepted();
   const on = acc.filter((f) => f.online).length;
   const rooms = S.groups.length + S.teams.length > 0;
+  // Steam gibi: yarışta (yeşil) üstte, sonra çevrimiçi (mavi), en altta çevrimdışı (gri); bölüm içinde alfabetik
+  const byName = (a, b) => String(a.display_name || "").localeCompare(String(b.display_name || ""), locale(), { sensitivity: "base" });
+  const stSec = (k, title, arr) => (arr.length ? `<div class="fr-sec fr-st st-${k}">${esc(title)} <span>${arr.length}</span></div>${[...arr].sort(byName).map(rowHtml).join("")}` : "");
   const sec = (title, arr) => (arr.length ? `<div class="fr-sec">${esc(title)} <span>${arr.length}</span></div>${arr.map(rowHtml).join("")}` : "");
   return `<div class="fr-head">
       <div class="fr-ttl"><b>${esc(T("fr_title"))}</b><small>${esc(T("fr_online_n", on))}</small></div>
@@ -494,7 +484,7 @@ function listView() {
     <div class="fr-body fr-list">
       ${!S.loaded ? `<p class="fr-empty">${esc(T("loading"))}</p>` : ""}
       ${sec(T("fr_requests"), inc)}
-      ${acc.length ? `${inc.length || out.length || rooms ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${acc.map(rowHtml).join("")}` : ""}
+      ${acc.length ? `${inc.length || out.length || rooms ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${stSec("race", T("fr_racing"), acc.filter((f) => f.racing))}${stSec("on", T("fr_online"), acc.filter((f) => f.online && !f.racing && !f.dnd))}${stSec("dnd", T("fr_dnd"), acc.filter((f) => f.online && !f.racing && f.dnd))}${stSec("off", T("fr_offline"), acc.filter((f) => !f.online && !f.racing))}` : ""}
       ${S.groups.length ? `<div class="fr-sec">${esc(T("fr_groups"))} <span>${S.groups.length}</span></div>${S.groups.map((g) => roomRowHtml("group", g)).join("")}` : ""}
       ${S.teams.length ? `<div class="fr-sec">${esc(T("fr_teams"))} <span>${S.teams.length}</span></div>${S.teams.map((t) => roomRowHtml("team", t)).join("")}` : ""}
       ${sec(T("fr_sent"), out)}
@@ -684,17 +674,14 @@ function roomView() {
     ${body}`;
 }
 
-/** Sohbet menüsü: arkadaşı ekibime ekle (görebilir / değiştirebilir) ya da çıkar. İzleme yetkisi ücretsiz; PRO değilse "değiştirebilir" görünür ama kilitli. */
+/** Sohbet menüsü: Profil + tek "Güvenilir yap / Güvenilirden çıkar" (c78: güvenilir arkadaş ekibime girer: pitwall + pit ayarları). */
+const isTrusted = (f) => !!f.trusted || S.mine.some((x) => x.member_id === f.friend_id);
 function crewMenu(f) {
   if (f.status !== "accepted") return "";
-  const m = S.mine.find((x) => x.member_id === f.friend_id);
-  const ctl = !!m?.can_control;
-  const item = (act, on, label, lock, pro) =>
-    `<button data-act="${act}"${lock ? ` disabled title="${esc(T("fr_crew_pro"))}"` : ""}>${on ? "✓ " : ""}${esc(label)}${pro ? ' <span class="fr-pro">PRO</span>' : ""}</button>`;
+  const on = isTrusted(f);
   return (
-    item("crew-view", !!m, T("fr_crew_view"), false, false) +
-    item("crew-ctl", ctl, T("fr_crew_ctl"), S.crewLock && !ctl, S.crewLock) +
-    (m ? `<button data-act="crew-out">${esc(T("fr_crew_out"))}</button>` : "")
+    `<a href="yarisci.html?u=${encodeURIComponent(f.friend_id)}">${esc(T("fr_profile"))}</a>` +
+    `<button data-act="trust" title="${esc(T(S.crewLock ? "fr_trust_free" : "fr_trust_tip"))}">${on ? "✓ " : ""}${esc(T(on ? "fr_trust_off" : "fr_trust_on"))}</button>`
   );
 }
 
@@ -1216,23 +1203,34 @@ async function act(a, id, el, src = null) {
       case "menu":
         S.menu = !S.menu;
         return render();
-      case "crew-view":
-      case "crew-ctl":
-      case "crew-out": {
+      case "trust": {
         const fid = S.chat;
-        if (!fid) return;
-        const m = S.mine.find((x) => x.member_id === fid);
-        // Görebilir: yoksa ekle, sadece izleyiciyse çıkar, değiştirebiliyorsa izleyiciye indir. Değiştirebilir: aç / kapat.
-        const view = a === "crew-out" ? false : a === "crew-view" ? !m || !!m.can_control : true;
-        const ctl = a === "crew-ctl" && !m?.can_control;
+        const f = fid && friend(fid);
+        if (!f) return;
+        const on = !isTrusted(f);
         S.menu = false;
+        // c78'li sunucu güvenilir işaretini ekip üyeliğine kendisi çevirir; eski sunucu için ekip yetkisi ayrıca yazılır
+        let trustErr = null;
         try {
-          await rpc("crew_set", { p_friend: fid, p_view: view, p_control: ctl });
+          await rpc("friend_trust_set", { p_user: fid, p_trusted: on });
+          f.trusted = on;
+        } catch (e) {
+          trustErr = e;
+        }
+        try {
+          await rpc("crew_set", { p_friend: fid, p_view: on, p_control: on && !S.crewLock });
+          trustErr = on ? null : trustErr;
+        } catch (e) {
+          if (trustErr) trustErr = e;
+        }
+        try {
           const l = await rpc("crew_list");
           if (Array.isArray(l)) S.mine = l;
-        } catch (e) {
-          toast(errMsg(e), true);
+        } catch {
+          /* liste sonraki yenilemede gelir */
         }
+        if (trustErr) toast(errMsg(trustErr), true);
+        else if (on && S.crewLock) toast(T("fr_trust_free"));
         return render();
       }
       case "ask-clear":

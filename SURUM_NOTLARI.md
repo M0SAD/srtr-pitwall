@@ -3,6 +3,35 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-100
+
+- **Ekip pitwall'ı:** yarıştaki arkadaşın pitwall'ında yeni sekmeler: Live Timing, Mühendis, Olaylar — sürücünün kendi gördüğü ekranlar, salt okunur (Tekrar / kamera düğmeleri yok). Veri yaklaşık 3 saniyede bir gelir (c79). Sitedeki / telefondaki ekip sayfasında da sade tablolar olarak var.
+- **Demo:** artık ses çıkarmaz; üst bardaki "Ses" düğmesi kaldırıldı. Durum göstergesi Demo'da "Bağlı değil · Demo" yazar (bağlıymış gibi görünmez).
+- **Sesli mühendisi sustur / aç kısayolu:** varsayılan Ctrl+Shift+S (eski varsayılan Ctrl+Shift+V'de ya da boş olanlar bir kez taşınır).
+- **Mesajlar overlay'i:** Demo kapatılınca örnek mesajlar hemen kalkar; ekip mesajları "Pit Ekibi {ad}" olarak gösterilir ve okunur.
+- Üst bardaki güncelleme düğmesi kaldırıldı (güncelleme kendiliğinden denetlenir).
+
+## 041026-99
+
+- **Arkadaş listesi (Steam gibi):** çevrimiçi olanların adı mavi, yarışta olanlar en üstte ve yeşil; yarışta olanın altında oyun, oturum, pist ve araç yazar. Ad altında sohbet mesajı gösterilmez (grup ve takım odalarında da yalnızca üye sayısı). Sitede de yarış satırına oyun, oturum ve araç eklendi.
+
+## 041026-98
+
+- **Arkadaş listesi (program ve site):** çevrimiçi arkadaşın adı mavi, yarıştaki yeşil, çevrimdışı gri. Adın altında artık son mesaj değil durum yazar (Çevrimiçi, yarıştaysa pist / oturum, çevrimdışıysa son görülme); okunmamış mesaj sayısı sağda kalır.
+
+## 041026-97
+
+- **Kısayol bildirimi:** bir kısayola basınca artık yalnızca üst ortadaki yeni bildirim çıkar; aynı işlem için panelin sağ altındaki bildirim ve overlay penceresindeki eski üst bildirim gösterilmez ("Kısayol bildirimi göster" kapalıysa eskiler çalışmaya devam eder).
+
+## 041026-96
+
+- **Mesajlar overlay'i:** örnek mesajlar artık yalnızca gerçek Demo modunda ya da düzenleme modunda görünür (panel açıkken gelen önizleme verisi Demo sayılıyordu). OBS / VR tekil görünümünde oyun kapalıyken "iRacing kapalıyken de göster" işaretli değilse çizilmez.
+- **Düzenler / Yayın düzenleri:** ayar paneli açılınca tuval küçülüp panelin sağına geçer (panel artık tuvalin üstünü örtmez).
+- **Sesli Mühendis:** telsiz kontrolü varsayılan olarak kapalı (mevcut kurulumlarda da bir kez kapatılır).
+- **Yönetim › Görünürlük › Menü görünürlüğü:** bölümlerin alt sayfaları üyelerden gizlenebilir; Lig Kategorileri varsayılan olarak gizli (c77). Site yönetim panelinde de var.
+- **Arkadaş sağ tık menüsü:** "Canlı veri", "Ekibe ekle", "Pit ayarlarını değiştirebilir", "Mesajlarını kapat" ve "Overlay'de gizle" kaldırıldı. Tek seçenek: "Güvenilir yap" — güvenilir arkadaş pitwall'a girebilir ve pit ayarlarını değiştirebilir (c78). Kapatılmış mesajlar yeniden açıldı.
+- **Profil:** sağ tık › Profil, Telemetri sayfasındaki yarışçı profilini açar; telemetri gizliyse ya da veri yoksa da profil kartı görünür. Profilden kategori (Road vb.) ve iR değeri kaldırıldı (sitede de).
+
 ## 041026-95
 
 - **Sohbete yaz (YouTube / Kick) girişi:** chat-oauth işlevi oturumu artık kendisi doğruluyor (sürüm 3; işlevde "Verify JWT" KAPALI olmalı). Sağlayıcıdan dönen hata artık hemen gösteriliyor (önceden 5 dakika sessizce bekliyordu), yerel giriş adresi tarayıcı açılmadan önce açılıyor, YouTube için yedek portlar (8768 / 8769), Kick izin denetimi adresi düzeltildi. Her platformda "Son hata" satırı ve anahtar içermeyen "Günlüğü kopyala".

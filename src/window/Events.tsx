@@ -7,7 +7,7 @@
 // 2 sn'de bir yeniden çeker (bağlantı durumu ve özet için). Güncel oturum boşsa Rust bir önceki
 // oturumu verir (`previous`); "Bu oturum / Önceki oturum" düğmesiyle elle de seçilebilir.
 
-import { For, Show, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
@@ -72,7 +72,7 @@ export interface RaceEvent {
   focus: string;
 }
 
-interface EventsInfo {
+export interface EventsInfo {
   sim: string;
   demo: boolean;
   connected: boolean;
@@ -282,7 +282,13 @@ const csvCell = (v: string | number) => {
   return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-export function Events() {
+/**
+ * `source`: dış veri kaynağı (Ekip Pitwall'ı: sürücünün uygulamasının gönderdiği olay listesi). Verilirse `events_get`
+ * çağrılmaz. `readOnly`: tekrara atlama / canlıya dönme yoktur (satırlar tıklanamaz), kayıt ayarları ve oturum seçimi
+ * gizlenir; süzgeçler, kopyalama ve CSV çalışır. `note`: listenin üstünde gösterilecek açıklama.
+ */
+export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?: boolean; note?: string } = {}) {
+  const ro = () => !!props.readOnly || !!props.source;
   // Başlık/özet her yenilemede güncellenir; olay listesi yalnızca gerçekten değişince (satırlar baştan çizilmesin)
   const [info, setInfo] = createSignal<EventsInfo | null>(null);
   const [events, setEvents] = createSignal<RaceEvent[]>([]);
@@ -315,6 +321,7 @@ export function Events() {
 
   let seq = 0;
   const load = async () => {
+    if (props.source) return;
     if (!inTauri) {
       apply(sampleEvents());
       return;
@@ -328,7 +335,12 @@ export function Events() {
       if (!info()) setFailed(String(err));
     }
   };
+  createEffect(() => {
+    const i = props.source?.();
+    if (i) apply(i);
+  });
   onMount(() => {
+    if (props.source) return;
     load();
     const h = setInterval(load, 2000);
     onCleanup(() => clearInterval(h));
@@ -421,6 +433,7 @@ export function Events() {
 
   const note = createMemo(() => {
     const i = info();
+    if (ro()) return props.note ?? "";
     if (!inTauri) return t("Tarayıcı önizlemesi: örnek olaylar gösteriliyor.");
     if (!i) return "";
     if (i.demo) return t("Demo verisi: tekrara atlama yalnızca iRacing'de çalışır.");
@@ -431,6 +444,7 @@ export function Events() {
   });
 
   const seek = async (e: RaceEvent) => {
+    if (ro()) return;
     setSel(e.id);
     if (!inTauri) {
       say(true, t("Tekrar {0} anına sarılıyor", clock(Math.max(0, e.time - 5))));
@@ -459,7 +473,7 @@ export function Events() {
 
   const live = async () => {
     setSel(null);
-    if (!inTauri) return;
+    if (!inTauri || ro()) return;
     try {
       await invoke("replay_live");
       say(true, t("Canlı yayına dönüldü"));
@@ -470,7 +484,7 @@ export function Events() {
 
   // Klavye: ↑/↓ ile olaylar arasında gez, Enter ile tekrara git
   const onKey = (ev: KeyboardEvent) => {
-    if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp" && ev.key !== "Enter") return;
+    if (ro() || (ev.key !== "ArrowDown" && ev.key !== "ArrowUp" && ev.key !== "Enter")) return;
     if ((ev.target as HTMLElement | null)?.closest("input, button.evw-tool, .evw-cfg")) return;
     const l = filtered();
     if (!l.length) return;
@@ -570,7 +584,7 @@ export function Events() {
   const rec = (k: RecKey) => g().eventsRecord?.[k] ?? true;
 
   return (
-    <div class="evw">
+    <div class="evw" classList={{ ro: ro() }}>
       <header class="evw-top">
         <div class="evw-title">
           <b>Olaylar</b>
@@ -594,15 +608,17 @@ export function Events() {
         <button class="btn small evw-tool" onClick={saveCsv} title={t("Listeyi CSV dosyası olarak kaydet")}>
           <Download /> CSV
         </button>
-        <button class="btn small evw-tool evw-live" onClick={live} disabled={!!info() && !info()!.replayOk && inTauri} title={t("iRacing tekrarını canlı ana getir")}>
+        <Show when={!ro()}>
+          <button class="btn small evw-tool evw-live" onClick={live} disabled={!!info() && !info()!.replayOk && inTauri} title={t("iRacing tekrarını canlı ana getir")}>
           <RadioTower /> Canlıya dön
-        </button>
-        <button class="btn small evw-tool evw-gear" classList={{ on: showCfg() }} onClick={() => setShowCfg(!showCfg())} title={t("Olaylar ekranı ayarları")}>
+          </button>
+          <button class="btn small evw-tool evw-gear" classList={{ on: showCfg() }} onClick={() => setShowCfg(!showCfg())} title={t("Olaylar ekranı ayarları")}>
           <SettingsIcon />
-        </button>
+          </button>
+        </Show>
       </header>
 
-      <Show when={showCfg()}>
+      <Show when={showCfg() && !ro()}>
         <section class="evw-cfg">
           <label class="evw-cfg-row">
             <span>
@@ -736,7 +752,7 @@ export function Events() {
           <em>{summary().pits}</em> pit
         </span>
         <span class="evw-sp" />
-        <Show when={info()?.hasPrevious}>
+        <Show when={info()?.hasPrevious && !ro()}>
           <span class="seg evw-seg">
             <button classList={{ on: !info()!.previous }} onClick={() => pick("current")}>
               Bu oturum
@@ -830,7 +846,7 @@ export function Events() {
                           ? t("Temiz sürüş. Oturum sürerken yeni olaylar burada birikir.")
                           : t("Bu oturumda kaydedilecek bir olay olmadı.")}
                     </small>
-                    <Show when={info()?.hasPrevious && !info()?.previous}>
+                    <Show when={info()?.hasPrevious && !info()?.previous && !ro()}>
                       <button class="btn small" onClick={() => pick("previous")}>
                         Önceki oturumu göster
                       </button>
@@ -849,10 +865,12 @@ export function Events() {
                   {(e) => (
                     <button
                       class={`evw-row t-${tone(e)}`}
-                      classList={{ sel: sel() === e.id, me: e.isMe, nogo: inTauri && !info()?.replayOk }}
+                      classList={{ sel: sel() === e.id, me: e.isMe, nogo: ro() || (inTauri && !info()?.replayOk) }}
                       data-ev={e.id}
                       onClick={() => seek(e)}
-                      title={!inTauri || info()?.replayOk ? t("Tekrarda bu ana git") : t(KIND_LABEL[e.kind] ?? "")}
+                      tabIndex={ro() ? -1 : undefined}
+                      aria-disabled={ro() ? "true" : undefined}
+                      title={ro() ? t(KIND_LABEL[e.kind] ?? "") : !inTauri || info()?.replayOk ? t("Tekrarda bu ana git") : t(KIND_LABEL[e.kind] ?? "")}
                     >
                       <span class="evw-ic">{(ICON[e.kind] ?? ICON.flag)()}</span>
                       <span class="evw-time" data-no-i18n>
@@ -876,9 +894,11 @@ export function Events() {
                         </Show>
                         {e.text}
                       </span>
-                      <span class="evw-go">
-                        <Play />
-                      </span>
+                      <Show when={!ro()}>
+                        <span class="evw-go">
+                          <Play />
+                        </span>
+                      </Show>
                     </button>
                   )}
                 </For>

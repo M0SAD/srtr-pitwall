@@ -485,3 +485,27 @@ p.bk-alert {
 .bk-orphans {
   font-size: 12.5px;
 }
+
+/* Menü görünürlüğü (c77): bölüm + alt sayfalar */
+.menu-vis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+.menu-vis-cat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.menu-vis-head {
+  font-weight: 600;
+}
+.menu-vis-sub {
+  margin-left: 18px;
+  padding: 5px 10px;
+}
+.subnav button .hidden-badge {
+  margin-left: 6px;
+}

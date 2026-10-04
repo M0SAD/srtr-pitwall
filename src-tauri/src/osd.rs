@@ -32,6 +32,23 @@ static SEQ: AtomicU64 = AtomicU64::new(0);
 static CHAT_UNTIL: AtomicU64 = AtomicU64::new(0);
 static SHOT_UNTIL: AtomicU64 = AtomicU64::new(0);
 
+/// Bu ana kadar (ms) kısayol işleminin bildirimi OSD'ye aittir: aynı işlemin eski bildirimleri
+/// (overlay penceresindeki üst şerit, paneldeki sağ alt bildirim) `osd_claimed` ile sorup kendini göstermez.
+/// OSD ayarı kapalıyken hiç kurulmaz → eski bildirimler yedek olarak çalışmaya devam eder.
+static CLAIM_UNTIL: AtomicU64 = AtomicU64::new(0);
+const CLAIM_MS: u64 = 1_000;
+/// Aynı içerik bu süre içinde yeniden gelirse ikinci kez gösterilmez (ms)
+const DEDUPE_MS: u64 = 300;
+/// Son gösterilen bildirim (seq hariç içerik, zaman)
+static LAST: Mutex<Option<(String, u64)>> = Mutex::new(None);
+
+/// Kısayol işlemi başlıyor: sonucu OSD bildirecek, eski bildirimler sussun (OSD kapalıysa etkisiz)
+pub fn claim(app: &AppHandle) {
+    if enabled(app) {
+        CLAIM_UNTIL.store(now_ms() + CLAIM_MS, Ordering::Relaxed);
+    }
+}
+
 fn now_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -88,6 +105,16 @@ pub fn show_vr(app: &AppHandle, action: &str) {
 fn push(app: &AppHandle, mut payload: Value) {
     if !enabled(app) {
         return;
+    }
+    let now = now_ms();
+    CLAIM_UNTIL.store(now + CLAIM_MS, Ordering::Relaxed);
+    {
+        let body = payload.to_string();
+        let mut last = LAST.lock();
+        if matches!(&*last, Some((b, at)) if *b == body && now.saturating_sub(*at) <= DEDUPE_MS) {
+            return;
+        }
+        *last = Some((body, now));
     }
     payload["seq"] = Value::from(SEQ.fetch_add(1, Ordering::Relaxed) + 1);
     *PENDING.lock() = Some(payload);
@@ -219,6 +246,12 @@ pub fn init(app: &AppHandle) {
 #[tauri::command]
 pub fn osd_push(app: AppHandle, key: String, on: Option<bool>) {
     show(&app, &key, on);
+}
+
+/// Az önceki işlemi OSD bildirdi mi? (overlay / panel: evet ise kendi eski bildirimini göstermez)
+#[tauri::command]
+pub fn osd_claimed() -> bool {
+    now_ms() <= CLAIM_UNTIL.load(Ordering::Relaxed)
 }
 
 /// Bekleyen bildirimi al (sayfa yüklenince ve "osd-new" olayında)

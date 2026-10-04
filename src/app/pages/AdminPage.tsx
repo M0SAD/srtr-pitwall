@@ -33,6 +33,7 @@ import { MessageReportsPanel, ModLogPanel, ModerationPanel, OwnerGroups } from "
 import { AdminHosting, AdminWatermark } from "../components/AdminMedia";
 import { AdminNotices } from "../components/AdminNotices";
 import { AdminPromo, AdminRevenue, AdminSupport, AdminVisibility, ProEditor } from "../components/AdminExtras";
+import { AdminMenu } from "../components/AdminMenu";
 import { AdminAds } from "../components/AdminAds";
 import { AdminCoupons } from "../components/AdminCoupons";
 import { AdminProFeatures } from "../components/AdminProFeatures";
@@ -176,6 +177,7 @@ export function AdminPage() {
           <AdminPromo run={run} />
         </Match>
         <Match when={page() === "visibility"}>
+          <AdminMenu run={run} />
           <AdminVisibility run={run} />
           <AdminSimIcons run={run} />
         </Match>

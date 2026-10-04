@@ -3,7 +3,7 @@
 
 import { For, Show, createMemo, createSignal, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { setSubscriptions, useTopic } from "@/sdk/telemetry";
+import { setSubscriptions, useTopic, useTopicSource } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
 import { settings } from "@/sdk/settings";
 import { inTauri } from "@/sdk/platform";
@@ -23,14 +23,21 @@ const ICON: Record<RcEvent["kind"], string> = {
   flag: "⚑",
 };
 
-export function Timing() {
+/**
+ * `readOnly`: tekrar / kamera düğmeleri çizilmez, sime komut gönderilmez (Ekip Pitwall'ı: sürücünün gözünden görünüm).
+ * Veri kaynağı: üstte bir TopicSourceProvider varsa oradan (uzak anlık görüntü), yoksa yerel sim akışından okunur.
+ */
+export function Timing(props: { readOnly?: boolean } = {}) {
+  const remote = !!useTopicSource();
+  /** Sime komut gönderilebilir mi (yerel pencere, uygulama içinde) */
+  const canCmd = inTauri && !remote && !props.readOnly;
   const st = useTopic("standings");
   const rc = useTopic("raceControl");
   const ses = useTopic("session");
   const [err, setErr] = createSignal("");
   const [filter, setFilter] = createSignal<"all" | "me">("all");
   onMount(() =>
-    setSubscriptions([
+    !remote && setSubscriptions([
       { name: "standings", hz: 2 },
       { name: "raceControl", hz: 1 },
       { name: "session", hz: 1 },
@@ -39,6 +46,7 @@ export function Timing() {
   const vars = createMemo(() => themeVars(settings().theme));
 
   const run = async (cmd: string, args: Record<string, unknown>) => {
+    if (!canCmd) return;
     setErr("");
     try {
       await invoke(cmd, args);
@@ -59,7 +67,7 @@ export function Timing() {
   });
 
   return (
-    <div class="lt ov-theme" style={vars()}>
+    <div class="lt ov-theme" classList={{ ro: !canCmd }} style={vars()}>
       <div class="lt-top">
         <b data-no-i18n>SRTR Pitwall · Live Timing</b>
         <Show when={ses()}>
@@ -69,7 +77,7 @@ export function Timing() {
           </span>
         </Show>
         <span class="lt-sp" />
-        <Show when={inTauri}>
+        <Show when={canCmd}>
           <button class="lt-btn" onClick={() => run("replay_live", {})}>
             Canlıya dön
           </button>
@@ -124,7 +132,7 @@ export function Timing() {
                           {r.classPos === 1 ? "—" : r.lapsDown > 0 ? `+${r.lapsDown}T` : `+${r.gap.toFixed(1)}`}
                         </span>
                         <span>
-                          <Show when={inTauri}>
+                          <Show when={canCmd}>
                             <button class="lt-btn small" onClick={() => run("camera_car", { number: r.number })}>
                               Canlı
                             </button>
@@ -165,7 +173,7 @@ export function Timing() {
                       {e.text}
                     </span>
                     <span class="pw-dim lt-time">{clock(e.time)}</span>
-                    <Show when={inTauri}>
+                    <Show when={canCmd}>
                       <button class="lt-btn small" onClick={() => run("replay_seek", { sessionNum: e.sessionNum, sessionTime: e.time, carNumber: e.number, carIdx: e.idx >= 0 ? e.idx : null })}>
                         Tekrar
                       </button>

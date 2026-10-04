@@ -4592,23 +4592,26 @@ body.ov-dragging * {
   color: var(--accent);
 }
 
-/* === 74: Düzenler / Yayın — overlay ayarları tuvalin ÜSTÜNDE, overlay listesinin hemen sağında yüzer (tuval küçülmez) === */
-.lpage {
-  position: relative;
-}
+/* === 77: Düzenler / Yayın — overlay ayarları overlay listesinin hemen sağında; tuval alanı küçülüp ayarların SAĞINDA kalır (hiçbir şey örtülmez).
+   Dar pencerede önce ayar paneli daralır (290 → 220), tuval 320'nin altına inmez; o da sığmazsa sayfa yatay kayar. === */
 .lpage.with-set {
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 250px minmax(220px, 290px) minmax(320px, 1fr);
+  overflow-x: auto;
+}
+.lpage.with-set > .llist {
+  grid-column: 1;
+  grid-row: 1;
 }
 .lpage > .ovset {
-  position: absolute;
-  z-index: 30;
-  top: 0;
-  bottom: 0;
-  left: 250px;
-  width: min(290px, calc(100% - 250px));
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
   border-left: 0;
   border-right: 1px solid var(--line);
-  box-shadow: 14px 0 34px rgba(0, 0, 0, 0.5);
+}
+.lpage.with-set > .lmain {
+  grid-column: 3;
+  grid-row: 1;
 }
 .lpage > .ovset .ovset-foot {
   padding-right: 12px;
@@ -4639,10 +4642,6 @@ body.ov-dragging * {
   height: 16px;
 }
 
-/* === 74: ayar paneli açıkken tuval araçları (ızgara, geri al, yakınlaştırma) panelin altında kalmasın: sağa yaslanır (tuval boyutu değişmez) === */
-.lpage.with-set .lmain > .lmon-tools {
-  justify-content: flex-end;
-}
 
 /* === 76: Overlaylarım — sıralama seçimi ve açılıp kapanan kategori başlıkları === */
 .ovlist-sort {
@@ -4769,4 +4768,22 @@ body.ov-dragging * {
 .btn.blocked {
   opacity: 0.4;
   cursor: default;
+}
+
+/* === 98: arkadaş listesi Steam gibi — çevrimiçi mavi, yarışta yeşil, çevrimdışı gri === */
+.frow .frow-l1 > b { color: #8b93a3; }
+.frow.online .frow-l1 > b, .frow.online .frow-status { color: #57cbde; }
+.frow.racing .frow-l1 > b, .frow.racing .frow-status { color: #90ba3c; }
+.frow.pending .frow-l1 > b { color: var(--fg, #e8eaf0); }
+
+/* Demo: gerçek bağlantı değil; nötr çip + içi boş nokta ("Bağlı" yeşiliyle karışmasın) */
+.conn-pill.demo {
+  background: var(--bg-3);
+  color: var(--muted, #9aa3ad);
+  border: 1px dashed var(--line);
+  padding: 5px 11px;
+}
+.conn-pill.demo i {
+  background: transparent;
+  border: 1.5px solid #ffc940;
 }

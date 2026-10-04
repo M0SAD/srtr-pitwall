@@ -3,7 +3,7 @@
 // Tarayıcıda (OBS/ağ): yerel web sunucusundan Server-Sent Events ile gelir.
 // Her konu için ayrı bir sinyal tutulur; bir overlay sadece kendi konusunun sinyalini okur.
 
-import { createComputed, createMemo, createSignal, type Accessor } from "solid-js";
+import { createComputed, createContext, createMemo, createSignal, useContext, type Accessor } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { setPreviewFrozen } from "./overlay";
 import { Channel, invoke } from "@tauri-apps/api/core";
@@ -22,8 +22,23 @@ function slot<K extends TopicName>(name: K) {
   return store[name];
 }
 
+/**
+ * Dış veri kaynağı (c79, Ekip Pitwall'ı "sürücünün gözünden" görünümleri): bu sağlayıcının altındaki bileşenler
+ * `useTopic` ile yerel sim akışı yerine verilen kaynağı okur (ör. arkadaşın uygulamasının gönderdiği anlık görüntü).
+ * Kaynağın vermediği konular `undefined` döner; yerel veriyle karışmaz.
+ */
+export interface TopicSource {
+  topic<K extends TopicName>(name: K): Accessor<TopicMap[K] | undefined>;
+}
+const TopicSourceCtx = createContext<TopicSource>();
+export const TopicSourceProvider = TopicSourceCtx.Provider;
+/** Bileşen dış kaynaktan mı besleniyor (öyleyse yerel abonelik açılmaz, sim komutu gönderilmez) */
+export const useTopicSource = () => useContext(TopicSourceCtx);
+
 /** Bir overlay içinden veri okumak için: `const rel = useTopic("relative")` */
 export function useTopic<K extends TopicName>(name: K): Accessor<TopicMap[K] | undefined> {
+  const ext = useContext(TopicSourceCtx);
+  if (ext) return ext.topic(name);
   return slot(name)[0];
 }
 

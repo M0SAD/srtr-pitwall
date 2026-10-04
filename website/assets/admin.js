@@ -108,6 +108,14 @@ const APP_SECTIONS = [
   ["support", "Destek"],
   ["pro", "PRO"],
 ];
+// Menü görünürlüğü (c77): alt sayfaları gizlenebilen bölümler; kimlik "bölüm.sayfa" (programdaki src/app/menu.ts ile aynı olmalı)
+const APP_MENU_SUBS = [
+  ["drivers", "Sürücüler", [["friends", "Arkadaşlar ve etiketler"], ["teams", "Takımlar"], ["crew", "Ekip"], ["league", "Lig Kategorileri"]]],
+  ["telemetry", "Telemetri", [["overview", "Telemetrim"], ["racers", "Yarışçılar"]]],
+  ["community", "Topluluk", [["home", "Ana sayfa"], ["layouts", "Düzenler"], ["stream", "Yayın düzenleri"], ["shots", "Ekran Görüntüleri"], ["themes", "Temalar"], ["dashes", "Direksiyon Ekranları"]]],
+];
+// Sütun yoksa (c77 çalıştırılmamış) programdaki varsayılan: lig kayıtları gizli
+const DEFAULT_HIDDEN_MENU = ["drivers.league"];
 const SUPPORT_CATS = { bug: "Hata bildirimi", overlay: "Overlay / görünüm", payment: "Ödeme / abonelik", account: "Hesap", feature: "Öneri / istek", other: "Diğer" };
 const SUPPORT_ST = { open: ["warn", "Açık"], answered: ["ok", "Yanıtlandı"], closed: ["", "Kapalı"] };
 
@@ -977,6 +985,7 @@ async function gorunurluk(el) {
   const c = await appConfig();
   const hs = new Set(c.hidden_sections || []);
   const ho = new Set(c.hidden_overlays || []);
+  const hm = new Set(Array.isArray(c.hidden_menu) ? c.hidden_menu : DEFAULT_HIDDEN_MENU);
   const known = new Set(OVERLAYS.map((o) => o[0]));
   const extra = [...new Set([...(c.hidden_overlays || []), ...(c.pro_overlays || [])])].filter((id) => id !== "voice" && !known.has(id)).map((id) => [id, id]);
   const box = (key, id, label, hidden) =>
@@ -985,11 +994,20 @@ async function gorunurluk(el) {
     <p class="muted small">İşareti kaldırılan bölümler ve overlay'ler programda yönetici olmayan kullanıcılara görünmez (menüden, overlay listesinden ve ekle menüsünden kalkar,
       açık olanlar ekrana çizilmez). Yöneticiler hepsini "gizli" rozetiyle görmeye devam eder. Yönetim, Ayarlar ve Hesap gizlenemez.</p>
     <div class="card"><h3>Sol menü bölümleri</h3><div class="vis-grid">${APP_SECTIONS.map(([id, l]) => box("hidden_sections", id, l, hs.has(id))).join("")}</div></div>
+    <div class="card" style="margin-top:16px"><h3>Menü görünürlüğü</h3>
+      <p class="muted small">Bölümlerin alt sayfaları. İşareti kaldırılan sayfa üyelerin menüsünden kalkar ve doğrudan da açılamaz. Lig sayfaları varsayılan olarak gizlidir.
+        Bölümün tamamını gizlemek için yukarıdaki listeyi kullan.</p>
+      ${APP_MENU_SUBS.map(
+        ([sid, sl, items]) =>
+          `<h4 style="margin:10px 0 6px">${esc(sl)}${hs.has(sid) ? ` <span class="badge bad">gizli</span>` : ""}</h4><div class="vis-grid">${items
+            .map(([id, l]) => box("hidden_menu", `${sid}.${id}`, l, hm.has(`${sid}.${id}`)))
+            .join("")}</div>`,
+      ).join("")}</div>
     <div class="card" style="margin-top:16px"><h3>Overlay'ler</h3><div class="vis-grid">${[...OVERLAYS, ...extra].map(([id, l]) => box("hidden_overlays", id, l, ho.has(id))).join("")}</div></div>`;
   $$("[data-key]", el).forEach((cb) =>
     cb.addEventListener("change", async () => {
       const key = cb.dataset.key;
-      const set = key === "hidden_sections" ? hs : ho;
+      const set = key === "hidden_sections" ? hs : key === "hidden_menu" ? hm : ho;
       cb.checked ? set.delete(cb.dataset.id) : set.add(cb.dataset.id);
       const { data, error } = await sb.from("app_config").update({ [key]: [...set], updated_at: new Date().toISOString() }).eq("id", 1).select();
       if (error || !data?.length) return toast(error?.message || "Kaydedilemedi", true);

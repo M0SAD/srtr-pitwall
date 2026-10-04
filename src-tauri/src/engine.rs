@@ -634,8 +634,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             if demo.is_none() {
                 st.map.update(&st.frame);
             }
-            // Sesli spotter/mühendis ve bipler (önizleme verisinde susar)
-            let muted = user_demo && shared.demo_mute.load(Ordering::Relaxed);
+            // Sesli spotter/mühendis ve bipler (önizleme verisinde ve Demo modunda susar)
+            // Demo modunda da susar: Demo yalnızca görüntü içindir (eski `general.demoMute` ayarı artık yok sayılır)
+            let muted = user_demo;
             voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted, st.sim);
         }
         // Sesli komut (bas-konuş): bekleyen soruları son kareden cevapla (bkz. voicecmd.rs)

@@ -69,7 +69,10 @@ const [frozenEvt, setFrozenEvt] = createSignal(false);
 // Ekran görüntüsü bildirimi
 const [shotToast, setShotToast] = createSignal<{ text: string; err: boolean } | null>(null);
 let shotToastTimer: number | undefined;
-function showShotToast(text: string, err: boolean) {
+async function showShotToast(text: string, err: boolean) {
+  // Kısayolla yapılan işlemi üst ortadaki kısayol bildirimi (OSD, Rust: osd.rs) zaten gösterdiyse ikinci bir
+  // bildirim çıkarma; OSD ayarı kapalıysa (ya da işlem panelden yapıldıysa) bu bildirim gösterilir
+  if (await invoke<boolean>("osd_claimed").catch(() => false)) return;
   setShotToast({ text, err });
   clearTimeout(shotToastTimer);
   shotToastTimer = window.setTimeout(() => setShotToast(null), err ? 4000 : 1800);

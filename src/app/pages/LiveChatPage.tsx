@@ -5,6 +5,7 @@
 
 import { For, Match, Show, Switch, onCleanup, onMount } from "solid-js";
 import { t } from "@/sdk/i18n";
+import { invoke } from "@tauri-apps/api/core";
 import * as LC from "@/sdk/livechat";
 import { PlatformIcon } from "@/overlays/livechat/parts";
 import * as I from "../icons";
@@ -171,7 +172,14 @@ function GateLine() {
 export function LiveChatPage(p: { sub: string }) {
   onMount(() => {
     let un: (() => void) | undefined;
-    void LC.onNotice((text) => toast(t(text))).then((u) => (un = u));
+    // Kısayol bildirimini üst ortadaki OSD gösterdiyse (Rust: osd.rs) burada ikinci kez gösterme
+    void LC.onNotice((text) => {
+      void invoke<boolean>("osd_claimed")
+        .catch(() => false)
+        .then((claimed) => {
+          if (!claimed) toast(t(text));
+        });
+    }).then((u) => (un = u));
     onCleanup(() => un?.());
   });
   // Yöneticinin gizlediği sekme (ör. doğrudan bağlantıyla) açılmaz: ilk görünür sekme gösterilir
