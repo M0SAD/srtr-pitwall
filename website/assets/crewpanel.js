@@ -249,8 +249,8 @@ addDict({
   cw_spot_tag: ["Spotter", "Spotter"],
   cw_spot_tag_h: ["Pit ayarlarını yöneten ve odaya yazabilen tek kişi", "The only person who manages the pit settings and can write in the room"],
   cw_b_spot: [
-    "Spotter: {0} — sadece izliyorsun. Pit ayarlarını aynı anda tek kişi yönetebilir; yer boşalınca sana geçer.",
-    "Spotter: {0} — you are only watching. Only one person can manage the pit settings at a time; you take over when the seat frees up.",
+    "{0} şu an bu sürücünün spotter'ı. Pit duvarını aynı anda tek kişi izleyebilir; yer boşalınca sana geçer.",
+    "{0} is this driver's spotter right now. Only one person can watch the pit wall at a time; you take over when the seat frees up.",
   ],
   cw_ro_spot: ["Spotter: {0} — sadece izliyorsun. Odaya yalnızca spotter yazabilir.", "Spotter: {0} — you are only watching. Only the spotter can write in the room."],
   cw_ro_view: [
@@ -644,8 +644,75 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   const hist = new Map();
   wallStyle();
 
+  // Canlı yayın (Realtime): sürücü pit duvarını saniyede bir yayınlar; anahtar crew_wall yanıtıyla gelir. Yayın geldiği
+  // sürece sunucu yoklanmaz; 5 sn yayın gelmezse yoklamaya dönülür.
+  let castCh = null;
+  let castKey = "";
+  let castAt = 0;
+  function castJoin(key) {
+    const name = key ? `wall:${ownerId}:${key}` : "";
+    if (name === castKey) return;
+    if (castCh) {
+      try {
+        sb.removeChannel(castCh);
+      } catch {}
+    }
+    castKey = name;
+    castCh = null;
+    if (!name) return;
+    try {
+      castCh = sb
+        .channel(name, { config: { broadcast: { self: false, ack: false } } })
+        .on("broadcast", { event: "wall" }, (m) => {
+          const p = m && m.payload;
+          if (!alive || castKey !== name || !p || typeof p !== "object" || typeof p.ts !== "number") return;
+          castAt = Date.now();
+          const locked = !!(wall && wall.speech_locked);
+          wall = { on: true, age_ms: 0, data: locked ? { ...p, speech: undefined } : p, speech_locked: locked };
+          wallTrend(wall.data);
+          drawWall();
+        })
+        .subscribe();
+    } catch {
+      castCh = null;
+    }
+  }
+  /** "Girdim" haberi: sürücü izleyen var mı diye hemen sorar, ek görünümleri hemen gönderir */
+  function knock() {
+    try {
+      const ch = sb.channel(`cw:${ownerId}`, { config: { broadcast: { self: false, ack: false } } });
+      ch.subscribe((st) => {
+        if (st === "SUBSCRIBED") Promise.resolve(ch.send({ type: "broadcast", event: "ping", payload: {} })).catch(() => {});
+      });
+      setTimeout(() => {
+        try {
+          sb.removeChannel(ch);
+        } catch {}
+      }, 5000);
+    } catch {}
+  }
+  function wallTrend(d) {
+    if (d && typeof d === "object" && d.ts !== wallTs) {
+      wallTs = d.ts;
+      const tr = {};
+      const seen = new Set();
+      for (const r of Array.isArray(d.rows) ? d.rows : []) {
+        if (!r || r.me || typeof r.g !== "number" || r.lr) continue;
+        seen.add(r.i);
+        const h = hist.get(r.i) || [];
+        h.push({ ts: n0(d.ts), g: Math.abs(r.g) });
+        while (h.length > 6) h.shift();
+        hist.set(r.i, h);
+        if (h.length >= 3 && n0(d.ts) - h[0].ts >= 2000) tr[r.i] = Math.abs(r.g) - h[0].g;
+      }
+      for (const k of [...hist.keys()]) if (!seen.has(k)) hist.delete(k);
+      trend = tr;
+    }
+  }
+
   async function loadWall() {
     if (!alive || wallBusy || document.hidden) return;
+    if (Date.now() - castAt < 5000) return;
     // Okunamadıysa (ör. sunucu güncel değil) 10 sn bekle
     if (wallSkip > 0) return void wallSkip--;
     wallBusy = true;
@@ -654,23 +721,8 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       if (!alive) return;
       wall = error ? null : data;
       if (error) wallSkip = 10;
-      const d = wall?.data;
-      if (d && typeof d === "object" && d.ts !== wallTs) {
-        wallTs = d.ts;
-        const tr = {};
-        const seen = new Set();
-        for (const r of Array.isArray(d.rows) ? d.rows : []) {
-          if (!r || r.me || typeof r.g !== "number" || r.lr) continue;
-          seen.add(r.i);
-          const h = hist.get(r.i) || [];
-          h.push({ ts: n0(d.ts), g: Math.abs(r.g) });
-          while (h.length > 6) h.shift();
-          hist.set(r.i, h);
-          if (h.length >= 3 && n0(d.ts) - h[0].ts >= 2000) tr[r.i] = Math.abs(r.g) - h[0].g;
-        }
-        for (const k of [...hist.keys()]) if (!seen.has(k)) hist.delete(k);
-        trend = tr;
-      }
+      castJoin(wall && wall.data && typeof wall.data.ch === "string" ? wall.data.ch : "");
+      wallTrend(wall?.data);
       drawWall();
     } finally {
       wallBusy = false;
@@ -1044,12 +1096,14 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     if (af) af.textContent = `${num(f.g.after)} L`;
   }
 
+  /** c88: yer başkasında → pit duvarı / oda / ek görünümler yoklanmaz */
+  const taken = () => !!drv?.spotter_id && !drv?.spotter_me;
   function blocked() {
     const d = drv;
     if (!d) return " ";
-    if (!d.can_control) return T("cw_b_view");
-    // c75: pit ayarlarını aynı anda tek kişi (spotter) yönetir; yer doluysa sadece izlenir
+    // c88: pit duvarını sürücü başına tek kişi izler
     if (d.spotter_id && !d.spotter_me) return T("cw_b_spot", String(d.spotter_name || "?"));
+    if (!d.can_control) return T("cw_b_view");
     if (d.spotter_me === false) return T("cw_b_idle");
     if (!d.live) return T("cw_b_idle");
     if (!simOk(d.data?.crew?.sim ?? d.sim)) return T("cw_b_sim");
@@ -1429,6 +1483,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   }
   const setTab = (v) => {
     tab = v;
+    knock();
     xs = null;
     xErr = "";
     xEv = null;
@@ -1553,11 +1608,16 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   const tick = () => {
     if (!document.hidden) void loadDriver();
   };
-  const timer = setInterval(tick, opts.interval || 3000);
+  const timer = setInterval(tick, opts.interval || 6000);
   // Pitwall sekmesi açık değilken pit duvarı / oda yoklanmaz ("bağlı" göstergesini crew_driver ve crew_ext sürdürür)
-  const wallTimer = setInterval(() => tab === "wall" && void loadWall(), 1000);
-  const roomTimer = setInterval(() => tab === "wall" && void loadRoom(), 2500);
-  const extTimer = setInterval(() => void loadExt(), 3000);
+  const wallTimer = setInterval(() => {
+    if (taken()) return castJoin("");
+    if (tab === "wall" && !document.hidden) void loadWall();
+  }, 4000);
+  knock();
+  void loadWall();
+  const roomTimer = setInterval(() => tab === "wall" && !document.hidden && !taken() && void loadRoom(), 5000);
+  const extTimer = setInterval(() => !document.hidden && !taken() && void loadExt(), 5000);
   const extTick = setInterval(() => tab !== "wall" && drawExt(), 1000);
   const onVis = () => !document.hidden && (tick(), void loadWall(), void loadRoom());
   document.addEventListener("visibilitychange", onVis);
@@ -1581,6 +1641,7 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       window.removeEventListener("pagehide", release);
       clearInterval(timer);
       clearInterval(wallTimer);
+      castJoin("");
       clearInterval(roomTimer);
       clearInterval(extTimer);
       clearInterval(extTick);

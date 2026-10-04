@@ -1,7 +1,10 @@
 // Mesajlara ifade (reaksiyon): özel, takım ve grup sohbetleri (c81: message_react, message_reactions_for).
-// Canlı yayın yok: açık sohbet ifadeleri birkaç saniyede bir yeniler; kendi ifaden hemen görünür.
+// Canlı: ifade bırakan, sohbetin haber kanalına (rx:<tür>:<sohbet>) "değişti" der; açık sohbetler hemen tazeler.
+// Yedek: pencere öndeyken 3 dk'da bir ve pencereye dönünce.
 import { createEffect, createSignal, on, onCleanup } from "solid-js";
 import { api } from "./supabase";
+import { pingLink, type PingLink } from "./social";
+import { reactChannel } from "./pings";
 
 export type ReactKind = "dm" | "team" | "group";
 export interface Reaction {
@@ -19,12 +22,14 @@ const fetchReactions = (kind: ReactKind, ids: string[]) =>
   api<Reaction[]>("POST", "rpc/message_reactions_for", { body: { p_kind: kind, p_ids: ids.slice(-300) } }).then((r) => r ?? []);
 
 /** Bir sohbetin ifadeleri: `of(id)` ile mesajın ifadeleri, `toggle(id, emoji)` ile aç/kapat */
-export function useReactions(kind: ReactKind, ids: () => string[]) {
+export function useReactions(kind: ReactKind, ids: () => string[], room?: () => string) {
+  let link: PingLink | null = null;
   const [map, setMap] = createSignal<Record<string, Reaction[]>>({});
   let dead = false;
   /** Sunucu c81'i tanımıyorsa (eski kurulum) yoklama durur */
   let off = false;
-  const load = async () => {
+  const load = async (force = true) => {
+    if (!force && !document.hasFocus()) return;
     const list = ids().filter((x) => /^[0-9a-f-]{36}$/i.test(x));
     if (off || !list.length || document.hidden) return;
     try {
@@ -37,12 +42,21 @@ export function useReactions(kind: ReactKind, ids: () => string[]) {
       if (/404|PGRST202|does not exist/i.test(String((e as Error)?.message ?? e))) off = true;
     }
   };
-  // Mesaj listesi değişince (yeni mesaj, eski mesajlar yüklendi) ve 6 sn'de bir
+  // Mesaj listesi değişince (yeni mesaj, eski mesajlar yüklendi) haber gelince; yedek olarak pencere öndeyken 3 dk'da bir ve pencereye dönünce
   createEffect(on(() => ids().length, () => void load()));
-  const iv = setInterval(() => void load(), 6000);
+  createEffect(() => {
+    const r = room?.();
+    link?.close();
+    link = r ? pingLink(reactChannel(kind, r), () => void load()) : null;
+  });
+  const iv = setInterval(() => void load(false), 180_000);
+  const onFocus = () => void load();
+  window.addEventListener("focus", onFocus);
   onCleanup(() => {
     dead = true;
     clearInterval(iv);
+    link?.close();
+    window.removeEventListener("focus", onFocus);
   });
   const toggle = async (id: string, emoji: string) => {
     // Hemen göster, sonra sunucuyla eşitle
@@ -56,6 +70,7 @@ export function useReactions(kind: ReactKind, ids: () => string[]) {
     setMap({ ...map(), [id]: next });
     try {
       await api("POST", "rpc/message_react", { body: { p_kind: kind, p_id: id, p_emoji: emoji } });
+      link?.ping();
     } finally {
       void load();
     }

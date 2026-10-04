@@ -59,7 +59,7 @@ export async function adminBadgeSeen(section: string) {
 export function useAdminBadges() {
   createEffect(on([() => session()?.user.id, isAdmin, () => can("reports.view")], () => void refreshAdminBadges()));
   createEffect(on(() => notices().length, () => refreshAdminBadgesSoon(500), { defer: true }));
-  const iv = window.setInterval(() => void refreshAdminBadges(), 60_000);
+  const iv = window.setInterval(() => !document.hidden && void refreshAdminBadges(), 300_000);
   const onFocus = () => refreshAdminBadgesSoon(300);
   window.addEventListener("focus", onFocus);
   onCleanup(() => {

@@ -15039,3 +15039,427 @@ begin
   end loop;
 end $$;
 notify pgrst, 'reload schema';
+
+-- ============================================================================================
+-- c87: İstek sayısını azaltma + en çok veri kullanan özellikler varsayılan PRO + yeni üyeye 1 gün deneme PRO.
+--   * Ekip (canlı izleme / spotter): izleyen üye PRO olmalı ('social.crew_watch', varsayılan PRO). crew_role tek kapı.
+--   * Telemetriyi buluta yüklemek ve başkalarının telemetrisini görmek: PRO.
+--   * Deneme PRO: açık, 1 gün (ilk girişte kendiliğinden; aynı bilgisayar / e-posta / IP denetimi aynen).
+--   * Web sitesi "çevrimiçi" penceresi 90 sn → 150 sn (site artık 60 sn'de bir haber veriyor).
+create or replace function public.crew_role(p_owner uuid, p_member uuid, p_control boolean) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.crew_members c
+    join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+    where c.owner = p_owner and c.member = p_member
+      and case when p_control then c.can_control else (c.can_view or c.can_control) end)
+    and (not public.feature_requires_pro('social.crew_watch', true) or public.user_is_pro(p_member));
+$$;
+revoke all on function public.crew_role(uuid, uuid, boolean) from public, anon, authenticated;
+grant execute on function public.crew_role(uuid, uuid, boolean) to service_role;
+insert into public.pro_features (key, pro) values
+  ('social.crew_watch', true), ('telemetry.record', true), ('telemetry.others', true)
+on conflict (key) do update set pro = true, updated_at = now();
+alter table public.app_config alter column trial_days set default 1;
+update public.app_config set trial_enabled = true, trial_days = 1 where id = 1;
+drop function if exists public.my_friends();
+create or replace function public.my_friends()
+returns table (friend_id uuid, display_name text, iracing_name text, status text, trusted boolean, muted boolean,
+               trusts_me boolean, online boolean, racing boolean, track text, car text, session text, dnd boolean,
+               accept_messages boolean, last_seen timestamptz, unread int, avatar_path text, sim text,
+               invisible boolean, away boolean, device text)
+language sql stable security definer set search_path = public as $$
+  select x.friend_id, x.display_name, x.iracing_name, x.status, x.trusted, x.muted, x.trusts_me,
+         x.online, x.racing, x.track, x.car, x.session, x.dnd, x.accept_messages, x.last_seen, x.unread,
+         x.avatar_path, x.sim, x.invisible, x.away, x.device
+  from (
+    select f.friend_id, p.display_name, p.iracing_name, f.status, f.trusted, f.muted,
+           f.status = 'accepted' and public.live_trusts(f.friend_id, f.user_id)
+             and (not public.feature_requires_pro('social.data_share', true) or public.user_is_pro(f.friend_id)) as trusts_me,
+           (v.real_on or v.web_on) and not v.hid and f.status = 'accepted' as online,
+           v.real_on and not v.hid and coalesce(s.racing, false) and f.status = 'accepted' as racing,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.track, '') else '' end as track,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.car, '') else '' end as car,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.session, '') else '' end as session,
+           coalesce(s.dnd, false) and not v.hid as dnd,
+           coalesce(s.accept_messages, true) as accept_messages,
+           case when f.status = 'accepted'
+                then case when v.hid then coalesce(s.invisible_at, s.updated_at)
+                          else greatest(s.updated_at, w.seen_at) end end as last_seen,
+           (select count(*)::int from public.messages m
+            where m.recipient = auth.uid() and m.sender = f.friend_id and m.read_at is null
+              and not public.message_hidden_for(m.id, m.sender, m.recipient, m.created_at)) as unread,
+           p.avatar_path,
+           case when f.status = 'accepted' and v.real_on and not v.hid then coalesce(s.sim, '') else '' end as sim,
+           f.status = 'accepted' and v.real_on and coalesce(s.invisible, false) and not v.hid as invisible,
+           f.status = 'accepted' and v.real_on and not v.hid and coalesce(s.away, false) and not coalesce(s.racing, false) as away,
+           case when f.status = 'accepted' and not v.hid and not v.real_on and v.web_on then coalesce(w.device, 'web') else '' end as device
+    from public.friendships f
+    join public.profiles p on p.id = f.friend_id
+    left join public.user_status s on s.user_id = f.friend_id
+    left join public.web_presence w on w.user_id = f.friend_id
+    cross join lateral (
+      select coalesce(s.updated_at > now() - interval '3 minutes', false) as real_on,
+             coalesce(w.seen_at > now() - interval '150 seconds', false) as web_on,
+             public.presence_masked(s.invisible) as hid) v
+    where f.user_id = auth.uid()
+  ) x
+  order by (x.status = 'pending_in') desc, x.racing desc, x.last_seen desc nulls last, x.display_name;
+$$;
+revoke all on function public.my_friends() from public, anon;
+grant execute on function public.my_friends() to authenticated, service_role;
+notify pgrst, 'reload schema';
+
+-- ============================================================================================
+-- c88: Pit duvarını sürücü başına TEK kişi izler: ekipten ilk giren yeri alır (izleme yetkisi yeter), diğerleri göremez.
+--   * Yer (crew_rooms.spotter) artık pit yetkisi olmayan üyeye de verilir; pit komutu için yetki ayrıca aranır.
+--   * crew_wall / crew_ext / crew_driver verisi yalnızca yeri tutan üyeye döner ("busy": yer başkasında).
+--   * Sürücünün "izleyen var" sayacı yalnızca yeri tutan üyeyi sayar (eskiden uygulaması açık her ekip üyesi sayılıyor,
+--     sürücü boşuna saniyede bir veri gönderiyordu).
+
+create or replace function public.crew_spotter_of(p_owner uuid) returns uuid
+language sql stable security definer set search_path = public as $$
+  select r.spotter from public.crew_rooms r
+   where r.owner = p_owner and r.spotter is not null
+     and r.beat_at > now() - interval '45 seconds'
+     and public.crew_role(r.owner, r.spotter, false);
+$$;
+revoke all on function public.crew_spotter_of(uuid) from public, anon, authenticated;
+grant execute on function public.crew_spotter_of(uuid) to service_role;
+
+create or replace function public.crew_driver(p_owner uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  c public.crew_members%rowtype;
+  r jsonb;
+  v_racing boolean;
+  v_spot uuid;
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = me;
+  if not found or not public.crew_role(p_owner, me, false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  -- Sürücü yarıştan çıktıysa oda boşaltılır
+  v_racing := public.crew_room_sweep(p_owner);
+  -- Spotter yeri: pit yetkim varsa ve yer boşsa (ya da zaten bendeyse) al / nabzı yenile (5 sn'de bir yazılır)
+  if v_racing then
+    insert into public.crew_rooms as cr (owner, spotter, claimed_at, beat_at)
+      values (p_owner, me, now(), now())
+    on conflict (owner) do update
+      set spotter = excluded.spotter,
+          claimed_at = case when cr.spotter is not distinct from excluded.spotter and cr.claimed_at is not null
+                            then cr.claimed_at else now() end,
+          beat_at = now()
+      where cr.spotter is null
+         or cr.beat_at is null
+         or cr.beat_at < now() - interval '45 seconds'
+         or not public.crew_role(cr.owner, cr.spotter, false)
+         or (cr.spotter = excluded.spotter and cr.beat_at < now() - interval '5 seconds');
+  end if;
+  v_spot := public.crew_spotter_of(p_owner);
+  if (v_spot is null or v_spot = me) and (c.seen_at is null or c.seen_at < now() - interval '10 seconds') then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = me;
+  end if;
+  select jsonb_build_object(
+      'owner_id', p.id, 'display_name', p.display_name, 'avatar_path', p.avatar_path,
+      'online', coalesce(s.updated_at > now() - interval '3 minutes', false),
+      'racing', coalesce(s.racing and s.updated_at > now() - interval '3 minutes', false),
+      'sim', case when s.updated_at > now() - interval '3 minutes' then coalesce(s.sim, '') else '' end,
+      'track', case when s.updated_at > now() - interval '3 minutes' then coalesce(s.track, '') else '' end,
+      'car', case when s.updated_at > now() - interval '3 minutes' then coalesce(s.car, '') else '' end,
+      'session', case when s.updated_at > now() - interval '3 minutes' then coalesce(s.session, '') else '' end,
+      'can_view', true, 'can_control', c.can_control,
+      'control_on', c.can_control and public.crew_accepts(p_owner) and coalesce(v_spot = me, false),
+      'racing_now', v_racing,
+      'spotter_id', v_spot,
+      'spotter_name', (select sn.display_name from public.profiles sn where sn.id = v_spot),
+      'spotter_me', coalesce(v_spot = me, false),
+      'live', coalesce(l.updated_at > now() - interval '2 minutes', false),
+      'age', case when l.updated_at is null then null else extract(epoch from now() - l.updated_at)::int end,
+      'data', case when (v_spot is null or v_spot = me) and l.updated_at > now() - interval '10 minutes' then l.data end,
+      'updated_at', l.updated_at)
+    into r
+    from public.profiles p
+    left join public.user_status s on s.user_id = p.id
+    left join public.live_data l on l.user_id = p.id
+    where p.id = p_owner;
+  return r;
+end $$;
+revoke all on function public.crew_driver(uuid) from public, anon;
+grant execute on function public.crew_driver(uuid) to authenticated;
+
+create or replace function public.crew_drivers()
+returns table (owner_id uuid, display_name text, avatar_path text, online boolean, racing boolean, sim text,
+               track text, car text, session text, can_view boolean, can_control boolean, control_on boolean,
+               live boolean, data jsonb, updated_at timestamptz,
+               spotter_id uuid, spotter_name text, spotter_me boolean)
+language sql stable security definer set search_path = public as $$
+  select c.owner, p.display_name, p.avatar_path,
+         coalesce(s.updated_at > now() - interval '3 minutes', false),
+         coalesce(s.racing and s.updated_at > now() - interval '3 minutes', false),
+         case when s.updated_at > now() - interval '3 minutes' then coalesce(s.sim, '') else '' end,
+         case when s.updated_at > now() - interval '3 minutes' then coalesce(s.track, '') else '' end,
+         case when s.updated_at > now() - interval '3 minutes' then coalesce(s.car, '') else '' end,
+         case when s.updated_at > now() - interval '3 minutes' then coalesce(s.session, '') else '' end,
+         c.can_view or c.can_control, c.can_control,
+         c.can_control and public.crew_accepts(c.owner),
+         coalesce(l.updated_at > now() - interval '2 minutes', false),
+         case when (sp.id is null or sp.id = auth.uid()) and l.updated_at > now() - interval '10 minutes' then l.data end,
+         l.updated_at,
+         sp.id,
+         (select sn.display_name from public.profiles sn where sn.id = sp.id),
+         coalesce(sp.id = auth.uid(), false)
+  from public.crew_members c
+  join public.profiles p on p.id = c.owner
+  join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+  left join public.user_status s on s.user_id = c.owner
+  left join public.live_data l on l.user_id = c.owner
+  cross join lateral (select public.crew_spotter_of(c.owner) as id) sp
+  where c.member = auth.uid() and (c.can_view or c.can_control)
+    and public.crew_racing(c.owner)
+  order by c.can_control desc,
+           coalesce(l.updated_at > now() - interval '2 minutes', false) desc,
+           s.updated_at desc nulls last, p.display_name;
+$$;
+revoke all on function public.crew_drivers() from public, anon;
+grant execute on function public.crew_drivers() to authenticated;
+
+create or replace function public.crew_wall(p_owner uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  c public.crew_members%rowtype;
+  w public.crew_wall%rowtype;
+  v_locked boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = auth.uid();
+  if not found or not public.crew_role(p_owner, auth.uid(), false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  if public.crew_spotter_of(p_owner) is distinct from auth.uid() then
+    return jsonb_build_object('on', true, 'age_ms', null, 'data', null, 'busy', true);
+  end if;
+  if c.seen_at is null or c.seen_at < now() - interval '10 seconds' then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = auth.uid();
+  end if;
+  if not coalesce((select wall_on from public.crew_prefs where user_id = p_owner), true) then
+    return jsonb_build_object('on', false, 'age_ms', null, 'data', null);
+  end if;
+  -- Konuşma altyazısı: özellik PRO'ya özelken yalnızca PRO izleyiciye
+  v_locked := public.feature_requires_pro('social.crew', true) and not coalesce(public.user_is_pro(auth.uid()), false);
+  select * into w from public.crew_wall where owner = p_owner;
+  if not found or w.updated_at < now() - interval '15 seconds' then
+    return jsonb_build_object('on', true, 'age_ms', null, 'data', null, 'speech_locked', v_locked);
+  end if;
+  return jsonb_build_object('on', true,
+    'age_ms', (extract(epoch from clock_timestamp() - w.updated_at) * 1000)::int,
+    'data', case when v_locked then w.data - 'speech' else w.data end,
+    'speech_locked', v_locked);
+end $$;
+revoke all on function public.crew_wall(uuid) from public, anon;
+grant execute on function public.crew_wall(uuid) to authenticated;
+
+create or replace function public.crew_ext(p_owner uuid, p_parts text default 'tge', p_e_rev text default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  c public.crew_members%rowtype;
+  w public.crew_wall_ext%rowtype;
+  parts text := lower(coalesce(p_parts, ''));
+  wt boolean := position('t' in parts) > 0;
+  wg boolean := position('g' in parts) > 0;
+  we boolean := position('e' in parts) > 0;
+  r jsonb;
+  ok boolean;
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = me;
+  if not found or not public.crew_role(p_owner, me, false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  if public.crew_spotter_of(p_owner) is distinct from me then
+    return jsonb_build_object('on', true, 'racing', true, 'busy', true);
+  end if;
+  if c.seen_at is null or c.seen_at < now() - interval '10 seconds' then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = me;
+  end if;
+  if not coalesce((select wall_on from public.crew_prefs where user_id = p_owner), true) then
+    return jsonb_build_object('on', false, 'racing', false);
+  end if;
+  if not public.crew_racing(p_owner) then
+    return jsonb_build_object('on', true, 'racing', false);
+  end if;
+  -- "Bu parçayı isteyen var" işareti (5 sn'de bir yazılır); sürücünün uygulaması crew_ext_push dönüşünde görür
+  if wt or wg or we then
+    insert into public.crew_wall_ext as x (owner, ask_t, ask_g, ask_e)
+      values (p_owner, case when wt then now() end, case when wg then now() end, case when we then now() end)
+    on conflict (owner) do update
+      set ask_t = case when wt then now() else x.ask_t end,
+          ask_g = case when wg then now() else x.ask_g end,
+          ask_e = case when we then now() else x.ask_e end
+      where (wt and (x.ask_t is null or x.ask_t < now() - interval '5 seconds'))
+         or (wg and (x.ask_g is null or x.ask_g < now() - interval '5 seconds'))
+         or (we and (x.ask_e is null or x.ask_e < now() - interval '5 seconds'));
+  end if;
+  select * into w from public.crew_wall_ext where owner = p_owner;
+  r := jsonb_build_object('on', true, 'racing', true);
+  if wt then
+    ok := w.t is not null and w.t_at > now() - interval '20 seconds';
+    r := r || jsonb_build_object('t', case when ok then w.t end,
+      't_age', case when ok then (extract(epoch from clock_timestamp() - w.t_at) * 1000)::int end);
+  end if;
+  if wg then
+    ok := w.g is not null and w.g_at > now() - interval '20 seconds';
+    r := r || jsonb_build_object('g', case when ok then w.g end,
+      'g_age', case when ok then (extract(epoch from clock_timestamp() - w.g_at) * 1000)::int end);
+  end if;
+  if we then
+    ok := w.e is not null and w.e_at > now() - interval '60 seconds';
+    r := r || jsonb_build_object(
+      'e', case when ok and (p_e_rev is null or w.e_rev is distinct from p_e_rev) then w.e end,
+      'e_same', coalesce(ok and p_e_rev is not null and w.e_rev = p_e_rev, false),
+      'e_rev', case when ok then w.e_rev end,
+      'e_age', case when ok then (extract(epoch from clock_timestamp() - w.e_at) * 1000)::int end);
+  end if;
+  return r;
+end $$;
+revoke all on function public.crew_ext(uuid, text, text) from public, anon;
+grant execute on function public.crew_ext(uuid, text, text) to authenticated;
+
+create or replace function public.crew_wall_push(p_data jsonb default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_on boolean;
+  n int;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  v_on := coalesce((select wall_on from public.crew_prefs where user_id = auth.uid()), true);
+  select count(*)::int into n
+    from public.crew_members c
+    join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+    where c.owner = auth.uid() and (c.can_view or c.can_control)
+      and c.seen_at > now() - interval '45 seconds'
+      and c.member = public.crew_spotter_of(c.owner);
+  if not v_on then
+    delete from public.crew_wall where owner = auth.uid();
+  elsif p_data is not null and n > 0 then
+    if jsonb_typeof(p_data) <> 'object' or octet_length(p_data::text) > 24000 then
+      raise exception 'Pitwall verisi geçersiz';
+    end if;
+    insert into public.crew_wall as w (owner, data, updated_at) values (auth.uid(), p_data, now())
+      on conflict (owner) do update set data = excluded.data, updated_at = now()
+      where w.updated_at < now() - interval '300 milliseconds';
+  end if;
+  return jsonb_build_object('watchers', n, 'wall_on', v_on);
+end $$;
+revoke all on function public.crew_wall_push(jsonb) from public, anon;
+grant execute on function public.crew_wall_push(jsonb) to authenticated;
+
+create or replace function public.crew_ext_push(p_t jsonb default null, p_g jsonb default null,
+                                                p_e jsonb default null, p_e_rev text default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_on boolean;
+  n int;
+  w public.crew_wall_ext%rowtype;
+  v_want text := '';
+  v_rev text := left(coalesce(p_e_rev, ''), 80);
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  v_on := coalesce((select wall_on from public.crew_prefs where user_id = me), true);
+  if not v_on then
+    delete from public.crew_wall_ext where owner = me;
+    return jsonb_build_object('watchers', 0, 'wall_on', false, 'want', '', 'e_rev', null);
+  end if;
+  select count(*)::int into n
+    from public.crew_members c
+    join public.friendships f on f.user_id = c.owner and f.friend_id = c.member and f.status = 'accepted'
+    where c.owner = me and (c.can_view or c.can_control)
+      and c.seen_at > now() - interval '45 seconds'
+      and c.member = public.crew_spotter_of(c.owner);
+  if n > 0 and (p_t is not null or p_g is not null or p_e is not null or v_rev <> '') then
+    if (p_t is not null and (jsonb_typeof(p_t) <> 'object' or octet_length(p_t::text) > 64000))
+       or (p_g is not null and (jsonb_typeof(p_g) <> 'object' or octet_length(p_g::text) > 32000))
+       or (p_e is not null and (jsonb_typeof(p_e) <> 'object' or octet_length(p_e::text) > 32000)) then
+      raise exception 'Pitwall verisi geçersiz';
+    end if;
+    insert into public.crew_wall_ext as x (owner, t, t_at, g, g_at, e, e_rev, e_at)
+      values (me, p_t, case when p_t is not null then now() end,
+                  p_g, case when p_g is not null then now() end,
+                  p_e, case when p_e is not null then v_rev end, case when p_e is not null then now() end)
+    on conflict (owner) do update
+      set t = coalesce(excluded.t, x.t),
+          t_at = coalesce(excluded.t_at, x.t_at),
+          g = coalesce(excluded.g, x.g),
+          g_at = coalesce(excluded.g_at, x.g_at),
+          e = coalesce(excluded.e, x.e),
+          e_rev = case when excluded.e is not null then excluded.e_rev else x.e_rev end,
+          -- Olaylar değişmediyse (aynı sürüm) yalnızca tazelik damgası yenilenir
+          e_at = case when excluded.e is not null then now()
+                      when v_rev <> '' and x.e is not null and x.e_rev = v_rev then now()
+                      else x.e_at end;
+  end if;
+  select * into w from public.crew_wall_ext where owner = me;
+  if found and n > 0 then
+    v_want := case when w.ask_t > now() - interval '20 seconds' then 't' else '' end
+           || case when w.ask_g > now() - interval '20 seconds' then 'g' else '' end
+           || case when w.ask_e > now() - interval '20 seconds' then 'e' else '' end;
+  end if;
+  return jsonb_build_object('watchers', n, 'wall_on', true, 'want', v_want,
+                            'e_rev', case when w.e is not null then w.e_rev end);
+end $$;
+revoke all on function public.crew_ext_push(jsonb, jsonb, jsonb, text) from public, anon;
+grant execute on function public.crew_ext_push(jsonb, jsonb, jsonb, text) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- c89: pit duvarı canlı yayınla gidiyor; veritabanına 15 sn'de bir yazılıyor (yedek + yayın anahtarı) → tazelik sınırı 15 sn → 45 sn
+create or replace function public.crew_wall(p_owner uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  c public.crew_members%rowtype;
+  w public.crew_wall%rowtype;
+  v_locked boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  select * into c from public.crew_members where owner = p_owner and member = auth.uid();
+  if not found or not public.crew_role(p_owner, auth.uid(), false) then
+    raise exception 'Bu sürücünün ekibinde değilsin';
+  end if;
+  if public.crew_spotter_of(p_owner) is distinct from auth.uid() then
+    return jsonb_build_object('on', true, 'age_ms', null, 'data', null, 'busy', true);
+  end if;
+  if c.seen_at is null or c.seen_at < now() - interval '10 seconds' then
+    update public.crew_members set seen_at = now() where owner = p_owner and member = auth.uid();
+  end if;
+  if not coalesce((select wall_on from public.crew_prefs where user_id = p_owner), true) then
+    return jsonb_build_object('on', false, 'age_ms', null, 'data', null);
+  end if;
+  -- Konuşma altyazısı: özellik PRO'ya özelken yalnızca PRO izleyiciye
+  v_locked := public.feature_requires_pro('social.crew', true) and not coalesce(public.user_is_pro(auth.uid()), false);
+  select * into w from public.crew_wall where owner = p_owner;
+  if not found or w.updated_at < now() - interval '45 seconds' then
+    return jsonb_build_object('on', true, 'age_ms', null, 'data', null, 'speech_locked', v_locked);
+  end if;
+  return jsonb_build_object('on', true,
+    'age_ms', (extract(epoch from clock_timestamp() - w.updated_at) * 1000)::int,
+    'data', case when v_locked then w.data - 'speech' else w.data end,
+    'speech_locked', v_locked);
+end $$;
+revoke all on function public.crew_wall(uuid) from public, anon;
+grant execute on function public.crew_wall(uuid) to authenticated;

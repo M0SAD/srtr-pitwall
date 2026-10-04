@@ -9,6 +9,7 @@ import { t } from "@/sdk/i18n";
 import { TopicSourceProvider, type TopicSource } from "@/sdk/telemetry";
 import type { Status, TopicMap, TopicName } from "@/sdk/types";
 import { crewExt, unpackRows, type CrewExtE } from "@/cloud/crew";
+import { crewKnock, knock } from "@/cloud/pings";
 import { Timing } from "@/window/Timing";
 import { Engineer } from "@/window/Engineer";
 import { Events, type EventsInfo } from "@/window/Events";
@@ -119,10 +120,12 @@ export function CrewRemote(props: { owner: string; name: string; view: CrewViewK
       setEvents(null);
       setEvMeta(null);
       clearTopics();
+      // Sürücü ek görünümleri yalnızca istenince gönderir: "girdim" haberiyle hemen başlar
+      knock(crewKnock(owner()));
       void load();
     }),
   );
-  const iv = window.setInterval(() => void load(), 3000);
+  const iv = window.setInterval(() => !document.hidden && void load(), 5000);
   const tick = window.setInterval(() => setNow(Date.now()), 1000);
   onCleanup(() => {
     clearInterval(iv);

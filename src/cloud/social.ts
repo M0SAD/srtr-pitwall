@@ -605,6 +605,105 @@ export function friendLook(id: string): { color: string; photo: string } {
 }
 
 /**
+ * Yüksüz haber kanalı (Realtime BROADCAST): `ping()` kanaldaki diğerlerine "bir şey değişti" der, `onPing` haberi alır.
+ * Kanala katılmadan önce istenen ping, katılınca gönderilir. Bağlantı kurulamazsa sessizce hiçbir şey yapmaz.
+ */
+export interface PingLink {
+  ping: () => void;
+  close: () => void;
+}
+export function pingLink(name: string, onPing?: () => void): PingLink {
+  let ch: RealtimeChannel | null = null;
+  let cl: Awaited<ReturnType<typeof client>> = null;
+  let joined = false;
+  let closed = false;
+  let pending = false;
+  const send = () => {
+    if (!ch || closed) return;
+    if (!joined) return void (pending = true);
+    pending = false;
+    try {
+      void Promise.resolve(ch.send({ type: "broadcast", event: "ping", payload: {} })).catch(() => {});
+    } catch {
+      /* yok say */
+    }
+  };
+  void (async () => {
+    try {
+      const c = await client();
+      if (!c || closed) return;
+      cl = c;
+      ch = c
+        .channel(name, { config: { broadcast: { self: false, ack: false } } })
+        .on("broadcast" as any, { event: "ping" }, () => !closed && onPing?.())
+        .subscribe((status) => {
+          joined = String(status) === "SUBSCRIBED";
+          if (joined && pending) send();
+        });
+      if (closed) void c.removeChannel(ch);
+    } catch {
+      /* Realtime yok */
+    }
+  })();
+  return {
+    ping: () => {
+      if (!ch) pending = true;
+      send();
+    },
+    close: () => {
+      closed = true;
+      if (ch && cl) void cl.removeChannel(ch);
+    },
+  };
+}
+
+/**
+ * Veri taşıyan yayın kanalı (Realtime BROADCAST; veritabanına yazılmaz). Kanala katılmadan gönderilen veri atılır.
+ * Yayın kanalları yetkilendirilmez: gizli kalması gereken veri için kanal adına tahmin edilemez bir anahtar konur
+ * ve anahtar yalnızca yetkili bir çağrıyla (ör. crew_wall) öğrenilir.
+ */
+export interface CastLink {
+  send: (payload: unknown) => void;
+  close: () => void;
+}
+export function castLink(name: string, event: string, onData?: (payload: any) => void): CastLink {
+  let ch: RealtimeChannel | null = null;
+  let cl: Awaited<ReturnType<typeof client>> = null;
+  let joined = false;
+  let closed = false;
+  void (async () => {
+    try {
+      const c = await client();
+      if (!c || closed) return;
+      cl = c;
+      ch = c
+        .channel(name, { config: { broadcast: { self: false, ack: false } } })
+        .on("broadcast" as any, { event }, (m: any) => !closed && onData?.(m?.payload))
+        .subscribe((status) => {
+          joined = String(status) === "SUBSCRIBED";
+        });
+      if (closed) void c.removeChannel(ch);
+    } catch {
+      /* Realtime yok */
+    }
+  })();
+  return {
+    send: (payload) => {
+      if (!ch || !joined || closed) return;
+      try {
+        void Promise.resolve(ch.send({ type: "broadcast", event, payload })).catch(() => {});
+      } catch {
+        /* yok say */
+      }
+    },
+    close: () => {
+      closed = true;
+      if (ch && cl) void cl.removeChannel(ch);
+    },
+  };
+}
+
+/**
  * "Yazıyor…" bildirimi (birebir sohbet): Realtime BROADCAST — veritabanına hiçbir şey yazılmaz.
  * Kanal adı iki kullanıcı kimliğinden türetilir (site ile aynı: `typing:<küçük>:<büyük>`), sadece o sohbet açıkken katılınır.
  * Yayın kanalları kullanıcı bazında yetkilendirilmez: yükte yalnızca gönderenin kimliği vardır ve

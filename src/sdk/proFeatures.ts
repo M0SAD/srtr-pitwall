@@ -58,6 +58,7 @@ export const F = {
   avatar: "social.avatar",
   profilePublic: "social.profile_public",
   crew: "social.crew",
+  crewWatch: "social.crew_watch",
   teamCreate: "teams.create",
   teamJoin: "teams.join",
   teamChat: "teams.chat",
@@ -120,7 +121,8 @@ const STATIC: ProFeature[] = [
   { key: F.dataShare, label: "Canlı veri paylaşımı (arkadaşı güvenilir işaretleyip verilerini göndermek)", group: "Sosyal", defaultPro: true, server: true },
   { key: F.chatBg, label: "Sohbet arka planı önermek (arkadaşla ortak arka plan)", group: "Sosyal", defaultPro: false, server: true },
   { key: F.msgTts, label: "Mesajlar overlay'inde mesajları sesli okuma", group: "Sosyal", defaultPro: true, hint: "Rust da denetler · arkadaş / takım / grup mesajları; canlı sohbet okumasıyla aynı sırayı kullanır" },
-  { key: F.crew, label: "Ekip: arkadaşların pit ayarlarını uzaktan değiştirmesi (izlemek ücretsiz)", group: "Sosyal", defaultPro: true, server: true, hint: "Değiştirme yetkisi veren sürücü PRO olmalı; ekip üyesi olmak ve izlemek ücretsiz" },
+  { key: F.crew, label: "Ekip: arkadaşların pit ayarlarını uzaktan değiştirmesi", group: "Sosyal", defaultPro: true, server: true, hint: "Değiştirme yetkisi veren sürücü PRO olmalı; izlemek ayrı bir özellik (Ekip: canlı izlemek)" },
+  { key: F.crewWatch, label: "Ekip: arkadaşın yarışını canlı izlemek (Ekip paneli, pit duvarı, ekip odası)", group: "Sosyal", defaultPro: true, server: true, hint: "İzleyen / spotter olan üye PRO olmalı; sürücünün PRO olması gerekmez" },
   { key: "overlay.messages", label: "Mesajlar overlay'i (overlay'in tamamı)", group: "Sosyal", defaultPro: false, kind: "overlay", alias: true, hint: "Overlay'ler › Mesajlar ile aynı ayar" },
   { key: F.avatar, label: "Profil fotoğrafı yüklemek", group: "Sosyal", defaultPro: false, server: true, hint: "Fotoğrafı kaldırmak her zaman açık" },
   { key: F.profilePublic, label: "Profil tanıtımı ve sosyal bağlantılar", group: "Sosyal", defaultPro: false, server: true, hint: "Hepsini silmek her zaman açık" },
@@ -131,8 +133,8 @@ const STATIC: ProFeature[] = [
   { key: F.teamPoll, label: "Takımda anket oluşturmak", group: "Takımlar", defaultPro: false, server: true, hint: "Oy vermek her zaman açık" },
   { key: F.teamPost, label: "Takım duyurusu yazmak", group: "Takımlar", defaultPro: false, server: true },
   // Telemetri
-  { key: F.teleRecord, label: "Telemetri kaydını buluta yüklemek", group: "Telemetri", defaultPro: false, server: true, hint: "Kapalıyken turlar bilgisayarda bekler, PRO olunca yüklenir" },
-  { key: F.teleOthers, label: "Başkalarının telemetrisini görmek (Yarışçılar, takım arkadaşları)", group: "Telemetri", defaultPro: false, server: true },
+  { key: F.teleRecord, label: "Telemetri kaydını buluta yüklemek", group: "Telemetri", defaultPro: true, server: true, hint: "Kapalıyken turlar bilgisayarda bekler, PRO olunca yüklenir" },
+  { key: F.teleOthers, label: "Başkalarının telemetrisini görmek (Yarışçılar, takım arkadaşları)", group: "Telemetri", defaultPro: true, server: true },
   { key: F.teleCompare, label: "Tur karşılaştırma (iki turun izleri ve fark)", group: "Telemetri", defaultPro: false },
   { key: F.teleBoard, label: "Pist / araç sıralaması (lider tablosu)", group: "Telemetri", defaultPro: false },
   // Görünüm
@@ -301,12 +303,12 @@ export function startProFeatures(fetch: boolean) {
   const refresh = () => loadProFeatures().catch(() => {});
   let last = 0;
   const maybe = () => {
-    if (Date.now() - last < 60_000) return;
+    if (Date.now() - last < 10 * 60_000) return;
     last = Date.now();
     refresh();
   };
   maybe();
-  setInterval(() => ((last = Date.now()), refresh()), 5 * 60_000);
+  setInterval(() => ((last = Date.now()), refresh()), 30 * 60_000);
   window.addEventListener("focus", maybe);
   document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && maybe());
 }

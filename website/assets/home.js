@@ -136,8 +136,8 @@ addDict({
     "Crew pit wall: the cars around them, gaps, flags, a car-alongside indicator and one-tap spotter messages (“Car on your left”, “Pit this lap”)",
   ],
   friends_c6: [
-    "Uzaktan pit ayarı: eklenecek yakıt miktarı, hangi lastiklerin değişeceği ve hızlı tamir (iRacing; yetkiyi veren sürücü PRO olmalı, izlemek ücretsiz)",
-    "Remote pit settings: fuel to add, which tyres to change and fast repair (iRacing; the driver granting control must be PRO, watching is free)",
+    "Uzaktan pit ayarı: eklenecek yakıt miktarı, hangi lastiklerin değişeceği ve hızlı tamir (iRacing; PRO)",
+    "Remote pit settings: fuel to add, which tyres to change and fast repair (iRacing; PRO)",
   ],
 
   perf_eyebrow: ["Performans", "Performance"],

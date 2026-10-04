@@ -822,9 +822,80 @@ function typingSync(off = false) {
   }
 }
 
+// "Bir şey değişti" haberleri (Realtime BROADCAST, programla aynı kanallar; veritabanına yazılmaz):
+//   st:<üye> → durumu değişti (liste tazelenir) · rx:<tür>:<sohbet> → ifade bırakıldı (açık sohbet tazelenir)
+const PG = { st: new Map(), me: null, meFor: "", rx: null, rxKey: "", t: 0 };
+function pingCh(name, on) {
+  try {
+    let joined = false;
+    let pend = false;
+    const ch = sb.channel(name, { config: { broadcast: { self: false, ack: false } } });
+    const send = () => {
+      if (!joined) return void (pend = true);
+      pend = false;
+      try {
+        Promise.resolve(ch.send({ type: "broadcast", event: "ping", payload: {} })).catch(() => {});
+      } catch {}
+    };
+    ch.on("broadcast", { event: "ping" }, () => on && on()).subscribe((st) => {
+      joined = st === "SUBSCRIBED";
+      if (joined && pend) send();
+    });
+    return {
+      ping: send,
+      close: () => {
+        try {
+          sb.removeChannel(ch);
+        } catch {}
+      },
+    };
+  } catch {
+    return { ping() {}, close() {} };
+  }
+}
+function pingsSync() {
+  const want = new Set(S.me ? (S.friends || []).filter((f) => f.status === "accepted").slice(0, 80).map((f) => "st:" + f.friend_id) : []);
+  for (const [n, l] of PG.st) {
+    if (!want.has(n)) {
+      l.close();
+      PG.st.delete(n);
+    }
+  }
+  for (const n of want) {
+    if (!PG.st.has(n))
+      PG.st.set(
+        n,
+        pingCh(n, () => {
+          clearTimeout(PG.t);
+          PG.t = setTimeout(loadFriends, 1200);
+        }),
+      );
+  }
+  const meId = S.me ? S.me.id : "";
+  if (meId !== PG.meFor) {
+    PG.me?.close();
+    PG.meFor = meId;
+    PG.me = meId ? pingCh("st:" + meId) : null;
+  }
+  const key =
+    S.me && S.open && Array.isArray(S.msgs)
+      ? inRoom()
+        ? `rx:${S.room.kind}:${S.room.id}`
+        : S.view === "chat" && S.chat
+          ? `rx:dm:${[S.me.id, S.chat].sort().join(":")}`
+          : ""
+      : "";
+  if (key !== PG.rxKey) {
+    PG.rx?.close();
+    PG.rxKey = key;
+    PG.rx = key ? pingCh(key, () => loadReacts()) : null;
+  }
+}
+
 /** Paneli yeniden çizer; sohbet yazısı ve kaydırma konumu korunur */
 function render() {
   typingSync();
+  pingsSync();
   renderFab();
   if (!root) return;
   root.hidden = !S.open;
@@ -1496,12 +1567,13 @@ async function toggleReact(id, emoji) {
   if (!emoji || !/^[0-9a-f-]{36}$/i.test(String(id))) return;
   try {
     await rpc("message_react", { p_kind: reactKind(), p_id: id, p_emoji: emoji });
+    PG.rx?.ping();
   } catch (e) {
     toast(errMsg(e), true);
   }
   loadReacts();
 }
-setInterval(loadReacts, 6000);
+setInterval(() => !document.hidden && document.hasFocus() && loadReacts(), 180000);
 
 /** Grup / takım mesajı (Realtime): açık odaysa yeniden oku; değilse listeyi (okunmamış, son mesaj) tazele */
 function onRoomMsg(kind, m, ev) {
@@ -1753,11 +1825,13 @@ async function start(user) {
   // seçiliyse sunucu zaten gizler. Program açıksa program durumu önceliklidir.
   const webDevice = () => (matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? "mobile" : "web");
   const webPing = () => {
-    if (S.me && visible()) rpc("web_ping", { p_device: webDevice() }).catch(() => {});
+    if (S.me && visible()) return rpc("web_ping", { p_device: webDevice() }).catch(() => {});
   };
-  webPing();
+  // Siteye girdim: arkadaşlarımın listesi hemen tazelensin
+  pingsSync();
+  Promise.resolve(webPing()).then(() => PG.me?.ping());
   clearInterval(S.webTimer);
-  S.webTimer = setInterval(webPing, 45000);
+  S.webTimer = setInterval(webPing, 60000);
   if (!S.webBound) {
     S.webBound = true;
     document.addEventListener("visibilitychange", webPing);
@@ -1788,7 +1862,7 @@ async function start(user) {
     },
     () => {},
   );
-  // Panel açıkken 20 sn'de bir, kapalıyken 60 sn'de bir yenile (programdaki gibi)
+  // Durum değişiklikleri haber kanalından gelir; yedek: panel açıkken 60 sn'de bir, kapalıyken 3 dk'da bir
   S.tick = 0;
   S.timer = setInterval(() => {
     if (document.visibilityState !== "visible") return;
@@ -1796,7 +1870,7 @@ async function start(user) {
     if (S.open || S.tick % 3 === 0) loadFriends();
     // Realtime kaçırdıysa: açık grup / takım sohbeti de tazelenir
     if (S.open && inRoom() && Array.isArray(S.msgs) && S.members === null) reloadRoom();
-  }, 20000);
+  }, 60000);
   // Ekibinde olduğum arkadaşların canlı satırı: sadece panel ve liste açıkken 5 sn'de bir
   S.crewTimer = setInterval(() => {
     if (S.open && S.view === "list" && visible() && S.crew.length) loadCrew();

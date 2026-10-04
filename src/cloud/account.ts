@@ -782,5 +782,5 @@ export function startPing(version: () => string, inRace: () => boolean) {
   const ping = () =>
     api("POST", "rpc/app_ping", { body: { p_install: installId(), p_version: version(), p_in_race: inRace() }, auth: "optional" }).catch(() => {});
   setTimeout(ping, 5000);
-  setInterval(ping, 2 * 60_000);
+  setInterval(ping, 3 * 60_000);
 }

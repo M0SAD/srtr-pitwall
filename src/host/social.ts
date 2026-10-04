@@ -32,6 +32,8 @@ import {
   unreadFrom,
   pushLive,
   setMyStatus,
+  pingLink,
+  type PingLink,
   shareTrustGet,
   type Friend,
   type LiveData,
@@ -39,10 +41,11 @@ import {
   type MsgMeta,
   type ToastPayload,
 } from "@/cloud/social";
+import { liveWatch, statusChannel } from "@/cloud/pings";
 import { myTeams, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } from "@/cloud/teams";
 import { groupChatKey, myGroups, onGroupChat, type MyGroup } from "@/cloud/groups";
 import { broadcastOvMsg, ovMsgShown, OVMSG_CLEAR_EVENT, type OvMsg } from "@/sdk/ovmsg";
-import { crewLiveExtra, isDriving } from "./crew";
+import { crewLiveExtra, crewWatching, isDriving } from "./crew";
 import { syncIracingStats } from "@/cloud/iracingStats";
 
 /** Mesajlar overlay'ine giden kayıt: takım mesajı */
@@ -199,8 +202,12 @@ export function startSocial(status: Accessor<Status | undefined>) {
       })
       .catch(() => {});
   }, 30_000);
-  // Durum: 45 sn'de bir ve yarış durumu değişince
+  // Durum: 90 sn'de bir (sunucu 3 dk içinde görüleni çevrimiçi sayar) ve yarış durumu değişince
   let lastKey = "";
+  let stLink: PingLink | null = null;
+  let lvLink: PingLink | null = null;
+  let lvAt = 0;
+  let stFor = "";
   const pushStatus = (force = false) => {
     if (!session()) return;
     const s = status();
@@ -218,10 +225,25 @@ export function startSocial(status: Accessor<Status | undefined>) {
     };
     const key = JSON.stringify(st);
     if (!force && key === lastKey) return;
+    const changed = key !== lastKey;
     lastKey = key;
-    setMyStatus(st);
+    // Durum gerçekten değiştiyse arkadaşlara haber (listelerini hemen tazelerler); 90 sn'lik nabızda haber yok
+    const me = session()!.user.id;
+    if (stFor !== me) {
+      stLink?.close();
+      stLink = pingLink(statusChannel(me));
+      lvLink?.close();
+      lvLink = pingLink(liveWatch(me), () => (lvAt = Date.now()));
+      stFor = me;
+    }
+    void Promise.resolve(setMyStatus(st)).then(() => changed && stLink?.ping());
   };
-  setInterval(() => pushStatus(true), 45_000);
+  // Nabız: yarışta 60 sn (sunucu 2 dk içinde görüleni "yarışta" sayar), değilken 90 sn
+  let hb = 0;
+  setInterval(() => {
+    hb++;
+    if (driving() ? hb % 2 === 0 : hb % 3 === 0) pushStatus(true);
+  }, 30_000);
 
   // Çıkış yapıldı / hesap değişti: önceki hesabın arkadaşları, takım ve grup odaları, canlı verisi, okunmamış
   // sayacı ve ekrandaki bildirimi hemen bırakılır; Realtime abonelikleri kapatılır (yeni hesap için yeniden kurulur).
@@ -366,6 +388,20 @@ export function startSocial(status: Accessor<Status | undefined>) {
   // Bana güvenen arkadaşların verisini dinle -> takım bölümüne (kod gerekmez).
   // Ayarlar › Paylaşım'da gizlenen arkadaşlar (sharing.hiddenFriends) dinlenmez.
   let liveIds: string[] = [];
+  // Simdeyken bana güvenen arkadaşlara "verine bakıyorum" haberi (20 sn'de bir): onlar yalnızca bakan varken gönderir
+  const watchLinks = new Map<string, PingLink>();
+  const syncWatch = () => {
+    for (const [id, l] of watchLinks) {
+      if (!liveIds.includes(id)) {
+        l.close();
+        watchLinks.delete(id);
+      }
+    }
+    for (const id of liveIds.slice(0, 40)) if (!watchLinks.has(id)) watchLinks.set(id, pingLink(liveWatch(id)));
+  };
+  setInterval(() => {
+    if (session() && racing()) for (const l of watchLinks.values()) l.ping();
+  }, 20_000);
   const hiddenKey = () => (settings().general.sharing.hiddenFriends ?? []).join(",");
   let lastHidden = hiddenKey();
   const applyLive = async () => {
@@ -385,6 +421,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       invoke("team_remote_set", { key: uid, fuel: { ...d, sender: d.sender || f?.display_name || "?" } }).catch(() => {});
     };
     stopLive = await onLive(trustsMe, put);
+    syncWatch();
     // İlk durum: şu an paylaşan arkadaşların son verisi (Realtime sadece sonraki değişiklikleri getirir)
     try {
       for (const s of (await friendShares()) ?? []) if (s.live) put(s.friend_id, s.data);
@@ -418,19 +455,20 @@ export function startSocial(status: Accessor<Status | undefined>) {
   }, 20_000);
 
   setTimeout(refreshFriends, 4000);
-  setInterval(refreshFriends, 60_000);
+  setInterval(refreshFriends, 120_000);
 
-  // Yarışırken canlı verimi gönder (sadece PRO isem ve güvendiğim en az bir arkadaş varsa, 3 sn'de bir).
+  // Yarışırken canlı verimi gönder (sadece PRO isem ve güvendiğim en az bir arkadaş varsa, 10 sn'de bir, yalnızca bakan varken).
   // Veri paylaşımı PRO üyelere özel; PRO olmayan, onu güvenilir seçen PRO arkadaşının verisini görebilir.
   let lastPush = 0;
   listen<LiveData>("team-fuel-local", (e) => {
     // Ekip (c53): ekibimde izleyen varsa veri paylaşımı kapalı / PRO olmasa da gönderilir (sadece ekip görür)
-    const share = !proLocked("social.data_share") && friends.some((f) => f.status === "accepted" && (f.trusted || trustAll));
-    const crew = crewLiveExtra();
+    // Yalnızca bakan varken: güvendiğim bir arkadaş "bakıyorum" demişse (lv:<ben>, 20 sn'de bir) ya da pit duvarımı izleyen varsa
+    const share = !proLocked("social.data_share") && Date.now() - lvAt < 50_000 && friends.some((f) => f.status === "accepted" && (f.trusted || trustAll));
+    const crew = crewWatching() ? crewLiveExtra() : null;
     // Sürücü değilken (izleyici / spotter / tekrar) veri gönderilmez: sunucu taze live_data'yı "yarışta" sayar (c75)
     if (!session() || !driving() || (!share && !crew)) return;
     const now = Date.now();
-    if (now - lastPush < 3000) return;
+    if (now - lastPush < 10_000) return;
     lastPush = now;
     const s = status();
     pushLive({ ...e.payload, track: s?.track ?? "", session: s?.sessionType ?? "", ...(crew ? { crew } : {}) }, !share);

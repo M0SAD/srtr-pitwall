@@ -9,6 +9,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { session } from "@/cloud/supabase";
 import { CHAT_FRONT_KEY, myFriends, type Friend } from "@/cloud/social";
+import { statusChannel, usePings } from "@/cloud/pings";
 import { myTeams } from "@/cloud/teams";
 import { myGroups } from "@/cloud/groups";
 import { Avatar, FriendsPanel, shownName, statusText } from "@/app/components/FriendsDock";
@@ -106,10 +107,12 @@ export function ChatWindow(props: { id: string }) {
     if (!rest.length) return void getCurrentWindow().close().catch(() => {});
     if (active() === id) select(rest[rest.length - 1]);
   };
+  // Arkadaşın durumu değişince haber gelir: sekmelerdeki durum yazısı hemen güncellenir
+  usePings(() => (list() ?? []).filter((f) => f.status === "accepted").map((f) => statusChannel(f.friend_id)), () => void refetch());
   onMount(() => {
     void take();
     // Sekmelerdeki durum yazısı güncel kalsın
-    const iv = setInterval(() => !document.hidden && void refetch(), 30_000);
+    const iv = setInterval(() => !document.hidden && void refetch(), 120_000);
     onCleanup(() => clearInterval(iv));
     let un: (() => void) | undefined;
     void listen("chat-tab", take).then((u) => (un = u));

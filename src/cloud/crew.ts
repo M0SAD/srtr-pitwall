@@ -99,6 +99,8 @@ export interface WallRow {
 export interface CrewWall {
   /** Gönderim anı (ms) */
   ts: number;
+  /** Canlı yayın kanalının anahtarı (wall:<sürücü>:<anahtar>); yalnızca yeri tutan izleyici crew_wall ile öğrenir */
+  ch?: string;
   ses: string;
   rows: WallRow[];
   me: { pos: number; cp: number; cars: number; lap: number; last: number; best: number; cur: number; d: number | null };

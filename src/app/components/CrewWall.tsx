@@ -6,7 +6,9 @@
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { lapTime } from "@/sdk/format";
-import { crewWall, type CrewWallState, type WallRow } from "@/cloud/crew";
+import { crewWall, type CrewWall as CrewWall_, type CrewWallState, type WallRow } from "@/cloud/crew";
+import { castLink, type CastLink } from "@/cloud/social";
+import { crewKnock, knock, wallChannel } from "@/cloud/pings";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
 import { SpotterView } from "./CrewGfx";
@@ -59,7 +61,39 @@ export function CrewWall(props: { owner: string; live: boolean }) {
       if (!alive || id !== owner()) return;
       setFailed(false);
       setSt(r);
-      const d = r?.data;
+      join(id, r?.data?.ch);
+      apply(r?.data);
+    } catch {
+      if (alive) setFailed(true); // eski sunucu (c58 yok) ya da ağ hatası
+    } finally {
+      busy = false;
+    }
+  };
+  // Canlı yayın (Realtime): sürücü veriyi saniyede bir yayınlar; anahtar crew_wall yanıtıyla gelir. Yayın geldiği
+  // sürece sunucu yoklanmaz; 5 sn yayın gelmezse (bağlantı yok / anahtar değişti) yoklamaya dönülür.
+  let cast: CastLink | null = null;
+  let castKey = "";
+  let castAt = 0;
+  const join = (id: string, ch?: string) => {
+    const key = ch ? wallChannel(id, ch) : "";
+    if (key === castKey) return;
+    cast?.close();
+    castKey = key;
+    cast = key
+      ? castLink(key, "wall", (p: CrewWall_) => {
+          if (!alive || id !== owner() || !p || typeof p !== "object" || typeof p.ts !== "number") return;
+          castAt = Date.now();
+          const locked = !!st()?.speech_locked;
+          const d = locked ? { ...p, speech: undefined } : p;
+          setFailed(false);
+          setSt({ on: true, age_ms: 0, data: d, speech_locked: locked });
+          apply(d);
+        })
+      : null;
+  };
+  onCleanup(() => cast?.close());
+  const apply = (d: CrewWall_ | null | undefined) => {
+    {
       if (d && d.ts !== lastTs) {
         lastTs = d.ts;
         const tr: Record<number, number> = {};
@@ -77,13 +111,16 @@ export function CrewWall(props: { owner: string; live: boolean }) {
         for (const k of [...hist.keys()]) if (!seen.has(k)) hist.delete(k);
         setTrend(tr);
       }
-    } catch {
-      if (alive) setFailed(true); // eski sunucu (c58 yok) ya da ağ hatası
-    } finally {
-      busy = false;
     }
   };
-  const iv = window.setInterval(() => void load(), 1000);
+  let tickN = 0;
+  const iv = window.setInterval(() => {
+    if (document.hidden) return;
+    tickN++;
+    if (Date.now() - castAt < 5000) return;
+    // Yayın yok: veri gelene kadar 4 sn'de bir, yedek kipte de 4 sn'de bir (sürücü veritabanına 5 sn'de bir yazar)
+    if (tickN % 2 === 0) void load();
+  }, 2000);
   onCleanup(() => clearInterval(iv));
   createEffect(
     on(
@@ -91,6 +128,9 @@ export function CrewWall(props: { owner: string; live: boolean }) {
       () => {
         hist.clear();
         lastTs = 0;
+        castAt = 0;
+        join(owner(), undefined);
+        knock(crewKnock(owner()));
         setSt(null);
         setTrend({});
         void load();

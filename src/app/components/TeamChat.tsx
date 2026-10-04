@@ -100,7 +100,7 @@ export function TeamChat(props: {
   const room = useRoomBg("team", () => props.team.team_id);
   const [msgs, setMsgs] = createSignal<TeamMessage[]>([]);
   const seen = useSeen(() => (void markTeamRead(props.team.team_id), props.onRead()));
-  const reacts = useReactions("team", () => msgs().map((m) => m.id));
+  const reacts = useReactions("team", () => msgs().map((m) => m.id), () => props.team.team_id);
   const [members, setMembers] = createSignal<TeamMember[]>([]);
   const [loaded, setLoaded] = createSignal(false);
   const [more, setMore] = createSignal(false);

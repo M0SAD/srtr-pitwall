@@ -8,6 +8,8 @@ import { createStore, reconcile } from "solid-js/store";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewSpotRelease, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ProLockNote } from "../components/ProLock";
 import { CrewWall } from "../components/CrewWall";
 import { CrewRoom } from "../components/CrewRoom";
 import { CrewRemote, type CrewViewKind } from "../components/CrewViews";
@@ -115,10 +117,10 @@ export function CrewPage(props: { owner?: string } = {}) {
     fitCtl?.update();
   });
 
-  const ivList = window.setInterval(() => void refetch(), 12_000);
+  const ivList = window.setInterval(() => !document.hidden && void refetch(), 30_000);
   onCleanup(() => clearInterval(ivList));
 
-  // Seçili sürücü: 3 sn'de bir (sunucu "bağlı" göstergesini de bununla günceller)
+  // Seçili sürücü: 6 sn'de bir (sunucu "bağlı" göstergesini de bununla günceller)
   let alive = true;
   onCleanup(() => (alive = false));
   const load = async () => {
@@ -134,7 +136,7 @@ export function CrewPage(props: { owner?: string } = {}) {
       if (alive && sel() === id) setErr(String((e as Error)?.message ?? e));
     }
   };
-  const ivDrv = window.setInterval(() => void load(), 3000);
+  const ivDrv = window.setInterval(() => void load(), 6000);
   onCleanup(() => clearInterval(ivDrv));
   // c75: sürücü başına tek spotter — panelden çıkarken / başka sürücüye geçerken spotter yeri hemen bırakılır
   // (bırakılmazsa sunucu 45 sn sonra kendiliğinden boşaltır)
@@ -170,13 +172,14 @@ export function CrewPage(props: { owner?: string } = {}) {
   const cw = () => data()?.crew ?? null;
   const pitFlags = () => cw()?.pit?.flags ?? -1;
   const simOk = () => crewSimOk(cw()?.sim ?? drv()?.sim);
+  /** c88: pit duvarını sürücü başına tek kişi izler; yer başkasındaysa hiçbir şey gösterilmez */
+  const taken = () => !!drv()?.spotter_id && !drv()?.spotter_me;
   /** Komut gönderilemiyorsa sebebi (boş: gönderilebilir) */
   const blocked = createMemo(() => {
     const d = drv();
     if (!d) return t("Yükleniyor…");
+    if (d.spotter_id && !d.spotter_me) return t("{0} şu an bu sürücünün spotter'ı. Pit duvarını aynı anda tek kişi izleyebilir; yer boşalınca sana geçer.", d.spotter_name || "?");
     if (!d.can_control) return t("Bu sürücü sana sadece izleme yetkisi verdi.");
-    // c75: pit ayarlarını aynı anda tek kişi (spotter) yönetir; yer doluysa sadece izlenir
-    if (d.spotter_id && !d.spotter_me) return t("Spotter: {0} — sadece izliyorsun. Pit ayarlarını aynı anda tek kişi yönetebilir; yer boşalınca sana geçer.", d.spotter_name || "?");
     if (d.spotter_me === false) return t("Sürücü şu an yarışta değil ya da veri göndermiyor.");
     if (!d.live) return t("Sürücü şu an yarışta değil ya da veri göndermiyor.");
     if (!simOk()) return t("Uzaktan pit komutları bu oyunda desteklenmiyor (sadece izleme).");
@@ -224,6 +227,9 @@ export function CrewPage(props: { owner?: string } = {}) {
         <Show when={list() && list()!.length === 0 && !props.owner}>
           <section class="panel">
             <h3>Ekip</h3>
+            <Show when={proLocked(F.crewWatch)}>
+              <ProLockNote text="Arkadaşının yarışını canlı izlemek ve spotter olmak PRO üyelere özel." />
+            </Show>
             <p class="muted">
               Şu an yarışta olan ve seni ekibine eklemiş bir arkadaşın yok. Burada yalnızca o an yarışta olan arkadaşların listelenir; yarıştan
               çıkan sürücü listeden düşer ve ekip odasının sohbeti silinir. Pit ayarlarını değiştirme izni verdiyse girip yakıt ve lastik ayarlarını
@@ -241,12 +247,12 @@ export function CrewPage(props: { owner?: string } = {}) {
                     <b data-no-i18n>{d.display_name || "?"}</b>
                     <small data-no-i18n>{sub(d)}</small>
                     <small classList={{ "spot-me": !!d.spotter_me, "spot-other": !!d.spotter_id && !d.spotter_me }} data-no-i18n>
-                      {!d.can_control
-                        ? t("Sadece izleme")
-                        : d.spotter_me
-                          ? t("Spotter: sen")
-                          : d.spotter_id
-                            ? t("Spotter: {0} — sadece izleme", d.spotter_name || "?")
+                      {d.spotter_me
+                        ? t("Spotter: sen")
+                        : d.spotter_id
+                          ? t("Spotter: {0}", d.spotter_name || "?")
+                          : !d.can_control
+                            ? t("Sadece izleme")
                             : t("Pit kontrolü")}
                     </small>
                   </button>
@@ -271,7 +277,16 @@ export function CrewPage(props: { owner?: string } = {}) {
                   {full() ? t("Tam ekrandan çık") : t("Tam ekran")}
                 </button>
               </div>
-            <Show when={tab() !== "wall" && drv()}>
+            <Show when={taken()}>
+              <section class="panel">
+                <h3 data-no-i18n>{drv()?.display_name || "?"}</h3>
+                <p class="pg-lock">
+                  <Ic n="lock" />
+                  <span>{blocked()}</span>
+                </p>
+              </section>
+            </Show>
+            <Show when={tab() !== "wall" && drv() && !taken()}>
               <CrewRemote
                 owner={sel()}
                 name={drv()?.display_name || "?"}
@@ -281,8 +296,8 @@ export function CrewPage(props: { owner?: string } = {}) {
                 car={data()?.car || drv()?.car}
               />
             </Show>
-            <div class="crew-main c3" ref={mountFit} style={{ display: tab() === "wall" || !drv() ? undefined : "none" }}>
-              <Show when={tab() === "wall" || !drv() ? drv() : null} fallback={<p class="muted">{err() ? t(err()) : t("Yükleniyor…")}</p>}>
+            <div class="crew-main c3" ref={mountFit} style={{ display: (tab() === "wall" || !drv()) && !taken() ? undefined : "none" }}>
+              <Show when={(tab() === "wall" || !drv()) && !taken() ? drv() : null} fallback={<p class="muted">{err() ? t(err()) : t("Yükleniyor…")}</p>}>
                 {(d) => (
                   <>
                     <div class="crew-col crew-col-a">

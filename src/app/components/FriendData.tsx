@@ -3,7 +3,8 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { lapTime } from "@/sdk/format";
-import { getLive, onLive, type Friend, type LiveData } from "@/cloud/social";
+import { getLive, onLive, pingLink, type Friend, type LiveData } from "@/cloud/social";
+import { liveWatch } from "@/cloud/pings";
 import { pointAt, useTrack } from "@/sdk/trackshape";
 import { cssVar, drawTrack, fitTransform } from "@/overlays/trackmap/draw";
 
@@ -97,6 +98,11 @@ export default function FriendData(props: { f: Friend }) {
   const [at, setAt] = createSignal(0);
   const [sample, setSample] = createSignal(false);
   const [loaded, setLoaded] = createSignal(false);
+  // "Bakıyorum" haberi: arkadaş yalnızca bakan varken canlı veri gönderir
+  const watch = pingLink(liveWatch(props.f.friend_id));
+  watch.ping();
+  const watchIv = setInterval(() => !document.hidden && watch.ping(), 20_000);
+  onCleanup(() => (clearInterval(watchIv), watch.close()));
   onMount(async () => {
     const r = await getLive(props.f.friend_id).catch(() => null);
     if (r) {

@@ -33,7 +33,7 @@ const isAbuse = (r: string) => r.split(",").some((x) => ABUSE.includes(x));
 export function AdminTrial(p: { run: Run }) {
   const [filter, setFilter] = createSignal<TrialFilter>("all");
   const [rows, { refetch }] = createResource(filter, (f) => adminTrialClaims(f).catch(() => [] as TrialClaimRow[]));
-  const [days, setDays] = createSignal(String(config()?.trial_days ?? 3));
+  const [days, setDays] = createSignal(String(config()?.trial_days ?? 1));
   const [profileOf, setProfileOf] = createSignal<string | null>(null);
   const enabled = () => config()?.trial_enabled !== false;
   const proNow = (r: TrialClaimRow) => !!r.pro_until && new Date(r.pro_until).getTime() > Date.now();
@@ -142,7 +142,7 @@ export function AdminTrial(p: { run: Run }) {
                   <button
                     class="btn ghost small"
                     onClick={() => {
-                      if (!confirm(t("{0} hesabına {1} günlük deneme PRO verilsin mi?", r.display_name || r.email || "?", config()?.trial_days ?? 3))) return;
+                      if (!confirm(t("{0} hesabına {1} günlük deneme PRO verilsin mi?", r.display_name || r.email || "?", config()?.trial_days ?? 1))) return;
                       p.run(async () => (await adminTrialSet(r.user_id, true), refetch()), t("Deneme PRO verildi"));
                     }}
                   >

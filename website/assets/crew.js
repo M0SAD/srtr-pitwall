@@ -85,7 +85,7 @@ if (user) {
   if (!sel && drivers?.length === 1) sel = drivers[0].owner_id;
 }
 draw();
-setInterval(tick, 3000);
+setInterval(tick, 15000);
 document.addEventListener("visibilitychange", () => !document.hidden && tick());
 // Dil değişince: açık panel kendi durumunu koruyarak yeniden çizilir
 document.addEventListener("langchange", () => (panel ? panel.redraw() : draw()));

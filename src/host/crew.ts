@@ -19,7 +19,8 @@ import { cloudEnabled, session } from "@/cloud/supabase";
 import { settings } from "@/sdk/settings";
 import type { Packet, Status, TopicMap } from "@/sdk/types";
 import { t } from "@/sdk/i18n";
-import { friendLook, messageBeep } from "@/cloud/social";
+import { castLink, friendLook, messageBeep, pingLink, type CastLink, type PingLink } from "@/cloud/social";
+import { crewKnock, wallChannel } from "@/cloud/pings";
 import { broadcastOvMsg, ovMsgShown, type OvMsg } from "@/sdk/ovmsg";
 import { CREWCALL_EVENT, type CrewCallEvt } from "@/sdk/crewcall";
 import { crewCommandText, crewControlSet, crewDone, crewDrivers, crewList, crewPending, crewRoom, crewSessionEnd, crewSimOk, crewState, crewWallPush, crewExtPush, packRows, CREW_EXT_MAX, onCrewChat, onCrewCommands, type CrewExtE, type CrewExtG, type CrewExtT, type CrewChatMsg, type CrewCommand, type CrewLive, type CrewMember, type CrewSpeech, type CrewWall, type WallRow } from "@/cloud/crew";
@@ -47,6 +48,10 @@ let controlOn = false;
 let wallOn = true;
 let extra: CrewLive | null = null;
 let started = false;
+
+/** Şu an pit duvarımı izleyen (yeri tutan) biri var mı: canlı veri yalnızca bu doğruyken ekip için gönderilir */
+let watchingNow = false;
+export const crewWatching = () => watchingNow;
 
 /** Canlı veriye eklenecek ekip alanı; ekibimde izleyen yoksa null (veri gönderilmez) */
 export function crewLiveExtra(): CrewLive | null {
@@ -95,6 +100,10 @@ export function startCrew(status: Accessor<Status | undefined>) {
   });
 
   // ---- Ekibim ve ana anahtar ----
+  /** İzleyen "panele girdim" dedi (cw:<ben>): izleyen sayısı ve istenen görünümler beklemeden sorulur */
+  let probeNow = 0;
+  let extKick = 0;
+  let knockLink: PingLink | null = null;
   let uid = "";
   let stopRt: () => void = () => {};
   let rtFor = "";
@@ -127,11 +136,14 @@ export function startCrew(status: Accessor<Status | undefined>) {
       rtFor = want;
       stopRt();
       stopRt = () => {};
+      knockLink?.close();
+      knockLink = want ? pingLink(crewKnock(want), () => ((probeNow = 3), (extKick = 3))) : null;
       if (want) stopRt = await onCrewCommands(() => void process());
     }
   };
   setTimeout(refresh, 5000);
-  setInterval(refresh, 60_000);
+  // Ekip değişikliği "crew-refresh" ile hemen gelir; düzenli yenileme yalnızca yedek
+  setInterval(refresh, 300_000);
   void listen("crew-refresh", () => void refresh());
   void listen("social-refresh", () => void refresh());
 
@@ -189,13 +201,13 @@ export function startCrew(status: Accessor<Status | undefined>) {
       busy = false;
     }
   }
-  // Yoklama (Realtime kaçırırsa): yarışta 2 sn, değilken 10 sn — sadece ekibim varsa
+  // Yoklama (yalnızca Realtime kaçırırsa diye yedek): yarışta 30 sn, değilken 2 dk — sadece ekibim varsa
   let tick = 0;
   setInterval(() => {
     tick++;
     if (!members.length || !session()) return;
-    if (racing() || tick % 5 === 0) void process();
-  }, 2000);
+    if (tick % (racing() ? 3 : 12) === 0) void process();
+  }, 10_000);
 
   // ---- Ekip odası (c64) ----
   // Odama (sürücü = ben) VE ekip üyesi olduğum sürücülerin odalarına yazılan mesajlar: Mesajlar overlay'ine
@@ -293,11 +305,12 @@ export function startCrew(status: Accessor<Status | undefined>) {
   setInterval(() => {
     chatTick++;
     if (!session()) return syncRooms();
-    if (chatTick % 15 === 2) void loadDrivers();
+    if (chatTick % 45 === 2) void loadDrivers();
     syncRooms();
     const me = session()?.user.id ?? "";
     for (const [id, r] of rooms) {
-      if (!r.last || (id === me && racing()) || chatTick % 5 === 0) void pollChat(id);
+      // Realtime asıl kanal; yoklama yedek: kendi odam yarışta 20 sn, diğerleri 60 sn
+      if (!r.last || (id === me && racing() && chatTick % 5 === 0) || chatTick % 15 === 0) void pollChat(id);
     }
   }, 4000);
 
@@ -510,30 +523,54 @@ export function startCrew(status: Accessor<Status | undefined>) {
     };
   };
   let watchers = 0;
+  let wallKey = "";
+  let wallCast: CastLink | null = null;
+  let wallFirst = false;
+  const setWatchers = (n: number) => {
+    if (n > 0 && watchers === 0) {
+      // Yeni izleyici: yeni anahtarla yeni yayın kanalı (eski izleyici eski anahtarla dinleyemez)
+      wallKey = crypto.randomUUID().replace(/-/g, "");
+      wallCast?.close();
+      wallCast = session() ? castLink(wallChannel(session()!.user.id, wallKey), "wall") : null;
+      wallFirst = true;
+    } else if (n === 0 && watchers > 0) {
+      wallCast?.close();
+      wallCast = null;
+      wallKey = "";
+    }
+    watchers = n;
+    watchingNow = n > 0;
+  };
   let wallTick = 0;
   let wallBusy = false;
   setInterval(() => {
     wallTick++;
     const can = wallOn && !!session() && racing() && members.some((m) => m.can_view || m.can_control);
     if (!can) {
-      watchers = 0;
+      setWatchers(0);
       stopStream();
       return;
     }
     if (watchers > 0) void startStream();
     else stopStream();
-    // İzleyen yokken 5 sn'de bir sor; varken saniyede bir gönder
-    if (wallBusy || (watchers === 0 && wallTick % 5 !== 0)) return;
+    // İzleyen varken: veri saniyede bir canlı yayınla (Realtime, veritabanına yazılmaz) gider; veritabanına yalnızca
+    // 15 sn'de bir yazılır (yayın anahtarını taşır + yayını alamayan izleyiciye yedek). İzleyen yokken 30 sn'de bir
+    // (ya da izleyen "girdim" deyince hemen) sorulur.
     const data = watchers > 0 ? buildWall() : null;
+    if (data) wallCast?.send(data);
+    const due = watchers === 0 ? probeNow > 0 || wallTick % 30 === 0 : wallFirst || wallTick % 15 === 0;
+    if (wallBusy || !due) return;
+    if (probeNow > 0) probeNow--;
+    wallFirst = false;
     wallBusy = true;
-    crewWallPush(data)
+    crewWallPush(data ? { ...data, ch: wallKey } : null)
       .then((r) => {
-        watchers = Math.max(0, Number(r?.watchers) || 0);
+        setWatchers(Math.max(0, Number(r?.watchers) || 0));
         if (r && r.wall_on === false) wallOn = false;
       })
       .catch(() => {
         /* eski sunucu (c58 yok) ya da ağ hatası: bir sonraki turda */
-        if (watchers === 0) wallTick = 1; // 5 sn sonra yeniden
+        /* sonraki turda */
       })
       .finally(() => (wallBusy = false));
   }, 1000);
@@ -599,6 +636,7 @@ export function startCrew(status: Accessor<Status | undefined>) {
   let extRev: string | null = null;
   let extEAt = 0;
   let extSkip = 0;
+  let extIdle = 0;
   setInterval(() => {
     if (extBusy) return;
     if (extSkip > 0) return void extSkip--;
@@ -607,6 +645,9 @@ export function startCrew(status: Accessor<Status | undefined>) {
       extWant = "";
       return;
     }
+    // Kimse ek görünüm istemiyorken 15 sn'de bir sorulur (izleyen görünüm açınca "girdim" haberiyle hemen)
+    if (extWant === "" && extKick <= 0 && ++extIdle % 5 !== 0) return;
+    if (extKick > 0) extKick--;
     extBusy = true;
     void (async () => {
       try {

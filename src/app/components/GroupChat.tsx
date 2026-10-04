@@ -165,7 +165,7 @@ export function GroupChat(props: {
   const gid = () => props.group.group_id;
   const [msgs, setMsgs] = createSignal<GroupMessage[]>([]);
   const seen = useSeen(() => (void markGroupRead(gid()), props.onRead()));
-  const reacts = useReactions("group", () => msgs().map((m) => m.id));
+  const reacts = useReactions("group", () => msgs().map((m) => m.id), gid);
   const [members, setMembers] = createSignal<GroupMember[]>([]);
   const [loaded, setLoaded] = createSignal(false);
   const [more, setMore] = createSignal(false);

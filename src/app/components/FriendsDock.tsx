@@ -72,6 +72,7 @@ import { ChatStage, chatFontVars } from "../chatLook";
 import { BgNote, ConvBgPanel, adoptBg, useConvBg } from "./ConvBg";
 import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { useReactions } from "@/cloud/reactions";
+import { dmRoom, statusChannel, usePings } from "@/cloud/pings";
 import { useSeen } from "../chatSeen";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
 import { deleteGroup, leaveGroup, muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
@@ -335,18 +336,20 @@ export function FriendsPanel(props: {
   const [bgAsk, setBgAsk] = createSignal(false);
   createEffect(on(view, () => (setBgAsk(false), setGroupPanel("none")), { defer: true }));
 
-  // Liste açıkken 20 sn'de bir, kapalıyken 60 sn'de bir yenile
+  // Arkadaşın durumu değişince (çevrimiçi, yarışta, uzakta ...) haber gelir ve liste hemen tazelenir
+  usePings(() => (list() ?? []).filter((f) => f.status === "accepted").map((f) => statusChannel(f.friend_id)), () => void refetch());
+  // Yedek: liste açık ve görünürken 2 dk'da bir, kapalı / gizliyken 5 dk'da bir (çevrimdışı olan haber veremez)
   onMount(() => {
     let n = 0;
     const iv = setInterval(() => {
       n++;
-      if (props.open() || n % 3 === 0) {
+      if ((props.open() && !document.hidden && n % 2 === 0) || n % 5 === 0) {
         refetch();
         refetchTeams();
         refetchGroups();
-        if (n % 3 === 0) refetchCrew();
+        if (n % 5 === 0) refetchCrew();
       }
-    }, 20_000);
+    }, 60_000);
     onCleanup(() => clearInterval(iv));
   });
   createEffect(on(props.open, (o) => o && (setView({ kind: "list" }), refetch(), refetchTeams(), refetchGroups(), refetchCrew(), refetchMine()), { defer: true }));
@@ -1985,7 +1988,7 @@ function Chat(props: {
   onError?: (msg: string) => void;
 }) {
   const [msgs, setMsgs] = createSignal<Message[]>([]);
-  const reacts = useReactions("dm", () => msgs().map((m) => m.id));
+  const reacts = useReactions("dm", () => msgs().map((m) => m.id), () => (session() ? dmRoom(session()!.user.id, props.f.friend_id) : ""));
   // Mesaja sağ tık menüsü ve raporlama
   const [ctx, setCtx] = createSignal<{ x: number; y: number; m: Message } | null>(null);
   const [reporting, setReporting] = createSignal<Message | null>(null);

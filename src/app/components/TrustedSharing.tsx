@@ -27,7 +27,7 @@ export function TrustedSharing() {
     () => friendShares().catch(() => null as FriendShare[] | null),
   );
   // Kimin şu an paylaştığı sık değişir
-  const iv = window.setInterval(() => void refetchShares(), 15_000);
+  const iv = window.setInterval(() => !document.hidden && void refetchShares(), 30_000);
   onCleanup(() => clearInterval(iv));
 
   const act = async (fn: () => Promise<unknown>) => {

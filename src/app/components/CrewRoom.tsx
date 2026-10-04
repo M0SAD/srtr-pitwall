@@ -107,7 +107,8 @@ export function CrewRoom(props: {
       busy = false;
     }
   };
-  const iv = window.setInterval(() => void load(), 2500);
+  // Realtime asıl kanal; yoklama yedek
+  const iv = window.setInterval(() => !document.hidden && void load(), 15_000);
   onCleanup(() => clearInterval(iv));
   let stopRt: () => void = () => {};
   onCleanup(() => stopRt());

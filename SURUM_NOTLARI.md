@@ -3,6 +3,37 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-154
+
+- Pit duvarının veritabanı yedeği 5 sn → 15 sn (canlı yayın saniyede bir, değişmedi). Sunucudaki tazelik sınırı buna göre 15 sn → 45 sn (c89, yayında).
+- Canlı veri (arkadaş / ekip paylaşımı) 3 sn → 10 sn; yalnızca bakan varken gönderilir.
+
+## 051026-153
+
+- Canlı veri yalnızca bakan varken gönderilir: eskiden güvenilir arkadaşı olan sürücü yarış boyunca 3 sn'de bir veri yazıyordu (kimse bakmasa da). Artık bakan taraf "bakıyorum" der (simdeyken ya da arkadaşın veri penceresi açıkken, 20 sn'de bir, Realtime); 50 sn haber gelmezse gönderim durur. Ekip için de yalnızca pit duvarını izleyen varken.
+- Pit duvarı Realtime canlı yayına taşındı: sürücü veriyi saniyede bir (eskisi gibi) doğrudan izleyene yayınlar, veritabanına yalnızca 5 sn'de bir yazar (yedek + yayın anahtarı). İzleyen, yayın geldiği sürece sunucuyu hiç yoklamaz; yayın 5 sn gelmezse 4 sn'lik yoklamaya döner. Yayın kanalının adı her izleyici girişinde değişen rastgele anahtar içerir; anahtarı yalnızca yeri tutan kişi alabilir.
+- İzleyen panele girince sürücüye "girdim" haberi gider: sürücü izleyen var mı diye 15 sn'de bir sormak yerine 30 sn'de bir sorar, haber gelince hemen başlar. Ek görünümler (Timing, mühendis) istenmiyorken 3 sn yerine 15 sn'de bir sorulur.
+- Ekip listesi yenilemesi 60 sn → 5 dk, yönetici rozetleri 60 sn → 5 dk (pencere gizliyken hiç), yarışta durum nabzı 60 sn. Sitede ekip listesi 3 sn → 15 sn, sürücü yoklaması 3 sn → 6 sn.
+- Not: sürücü ve izleyen 153 (ve yeni site) olmalı. Eski sürümdeki izleyici yeni sürücüyü 5 sn gecikmeli (yedek) görür; eski sürümdeki bakan "bakıyorum" diyemediği için yeni sürücünün canlı arkadaş verisini göremez.
+
+## 041026-152
+
+- Arkadaş listesi artık canlı: bir arkadaşın durumu değişince (çevrimiçi, yarışa girdi / çıktı, uzakta, rahatsız etmeyin) uygulaması arkadaşlarına haber verir ve liste 1–2 sn içinde güncellenir (Realtime yayını; veritabanına yazılmaz). Düzenli yenileme 30 sn → 2 dk (kapalı / gizliyken 5 dk); sohbet penceresindeki sekme durumu 30 sn → 2 dk.
+- Mesaj ifadeleri canlı: biri ifade bırakınca / kaldırınca açık sohbetlerde hemen görünür; 25 sn'lik yenileme kalktı (yedek: 3 dk).
+- Web sitesi aynı kanalları kullanır (site ↔ program arası da canlı); sitedeki liste yenilemesi 20 sn → 60 sn.
+- Not: iki taraf da 152 (ve yeni site) olmalı; eski sürümdeki arkadaşın değişikliği yedek yenilemeyle (en geç 2 dk) görünür. Programı kapatan arkadaşın çevrimdışı görünmesi 3–5 dk sürer.
+
+## 041026-151
+
+- Pit duvarını sürücü başına tek kişi izler (c88, yayında): ekipten ilk giren yeri alır (izleme yetkisi yeter; pit komutu için yetki ayrıca aranır), diğerleri pit duvarını, ek görünümleri ve canlı veriyi göremez; "… şu an bu sürücünün spotter'ı" notu çıkar. Yer, panel kapanınca hemen, bağlantı koparsa 45 sn içinde boşalır. Web sitesi dahil.
+- Düzeltme: sürücünün "izleyen var" sayacı uygulaması açık her ekip üyesini sayıyordu (arka plandaki sohbet yoklaması yüzünden), sürücü kimse izlemezken de sürekli veri gönderiyordu. Artık yalnızca yeri tutan kişi sayılır.
+
+## 041026-150
+
+- Supabase istek sayısı azaltıldı (log kotası): ekip komut yoklaması 2 sn → 30 sn (yarış dışında 2 dk; asıl kanal Realtime), ekip sohbeti 4 sn → 20/60 sn, pit duvarı gönderimi 1 sn → 2 sn (izleyen yokken 5 sn → 15 sn), izleyici tarafı 1 sn → 2 sn ve pencere gizliyken hiç, ifadeler 6 sn → 25 sn ve yalnızca sohbet penceresi öndeyken, arkadaş listesi 20 sn → 30 sn (kapalı / gizliyken 3 dk), durum bildirimi 45 → 90 sn, uygulama pingi 2 → 3 dk, PRO özellik listesi 5 → 30 dk. Web sitesinde de aynı (pit duvarı, ifadeler, çevrimiçi bildirimi 60 sn).
+- En çok veri kullanan özellikler varsayılan PRO (c87, yayında): telemetriyi buluta yüklemek, başkalarının telemetrisini görmek ve yeni "Ekip: arkadaşın yarışını canlı izlemek" (izleyen / spotter olan üye PRO olmalı; sunucu denetler, site dahil). Yönetim › PRO özellikleri'nden değiştirilebilir.
+- Yeni üyeye deneme PRO artık 1 gün (açık; ilk girişte kendiliğinden verilir, kötüye kullanım denetimleri aynen).
+
 ## 041026-149
 
 - GÜVENLİK (c86, yayında): telemetri yalnızca giriş yapmış üyelere görünür. Giriş yapmadan oturumlar, turlar, sürücü kimlikleri (iRacing numarası dahil), iz dosyaları, yarışçı listesi, sıralamalar, iRating bilgisi ve takım "Son aktiviteler" artık okunamaz. Web sitesindeki Yarışçılar sayfası ziyaretçiye "giriş yapmalısın" gösterir.
