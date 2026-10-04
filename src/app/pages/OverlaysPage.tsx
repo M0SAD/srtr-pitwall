@@ -34,6 +34,13 @@ function toggleCategory(cat: string) {
 }
 // Favori overlay'ler (sağ tık > Favorilere ekle): listenin en üstünde "Favorilerim" altında durur
 const FAV_CAT = "__fav";
+// Sütun genişlikleri (overlay listesi, ayarlar): kenardan sürüklenir, sınırlıdır, hesapla birlikte hatırlanır
+const COL = { list: [250, 420], set: [290, 520] } as const;
+const [colListRaw, setColList] = uiPref<number>("ovColList", COL.list[0]);
+const [colSetRaw, setColSet] = uiPref<number>("ovColSet", COL.set[0]);
+const clampCol = (v: unknown, k: keyof typeof COL) => Math.min(COL[k][1], Math.max(COL[k][0], Math.round(Number(v) || COL[k][0])));
+// En son overlay eklenen düzen: sayfa açılınca hedef düzen olarak seçili gelir
+const [lastTarget, setLastTarget] = uiPref<string>("ovTarget", "");
 const [favsRaw, setFavs] = uiPref<string[]>("ovFavs", [], "pw.ovFavs");
 const favs = () => strList(favsRaw());
 // Sırala > "Sadece favorilerim": liste yalnızca favorileri gösterir (seçili sıralama korunur)
@@ -223,7 +230,7 @@ export function OverlaysPage() {
   const [pick, setPick] = createSignal<string | null>(null);
   const target = () => {
     const s = settings();
-    const chosen = pick() ? s.profiles[pick()!] : undefined;
+    const chosen = s.profiles[pick() ?? lastTarget() ?? ""];
     if (chosen) return chosen;
     const a = s.profiles[s.activeProfile];
     return a && a.rules.mode !== "stream" ? a : s.profiles[defaultProfileId(false, s) ?? ""];
@@ -251,6 +258,7 @@ export function OverlaysPage() {
     if (key) {
       say(t('{0}, "{1}" düzenine eklendi', manifestById(k)?.name ?? k, p.name));
       // Görüntü o düzenin ekranına geçer (yayın düzeniyse Yayın sayfası) ve eklenen overlay seçilir
+      setLastTarget(p.id);
       focusOverlay(key, p.id);
     }
   };
@@ -289,8 +297,35 @@ export function OverlaysPage() {
     return [...g.entries()];
   });
 
+  // Sütun genişletme: sürüklerken yerel değer, bırakınca kaydedilir (çift tık: varsayılana döner)
+  const [dragCol, setDragCol] = createSignal<{ k: keyof typeof COL; v: number } | null>(null);
+  const colW = (k: keyof typeof COL) => (dragCol()?.k === k ? dragCol()!.v : clampCol(k === "list" ? colListRaw() : colSetRaw(), k));
+  const saveCol = (k: keyof typeof COL, v: number) => (k === "list" ? setColList(v) : setColSet(v));
+  const startCol = (k: keyof typeof COL, e: PointerEvent) => {
+    e.preventDefault();
+    const x0 = e.clientX;
+    const w0 = colW(k);
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    setDragCol({ k, v: w0 });
+    const move = (ev: PointerEvent) => setDragCol({ k, v: clampCol(w0 + ev.clientX - x0, k) });
+    const up = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      const v = dragCol()?.v ?? w0;
+      setDragCol(null);
+      if (v !== w0) saveCol(k, v);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  };
+
   return (
-    <div class="ovpage">
+    <div class="ovpage" classList={{ resizing: !!dragCol() }} style={{ "grid-template-columns": `${colW("list")}px ${colW("set")}px minmax(0, 1fr)` }}>
+      <div class="ovcol-grip" classList={{ on: dragCol()?.k === "list" }} style={{ left: `${colW("list") - 4}px` }} title="Genişletmek için sürükle (çift tık: varsayılan)" onPointerDown={(e) => startCol("list", e)} onDblClick={() => saveCol("list", COL.list[0])} />
+      <div class="ovcol-grip" classList={{ on: dragCol()?.k === "set" }} style={{ left: `${colW("list") + colW("set") - 4}px` }} title="Genişletmek için sürükle (çift tık: varsayılan)" onPointerDown={(e) => startCol("set", e)} onDblClick={() => saveCol("set", COL.set[0])} />
       <Show when={menu()}>
         {(() => {
           const m = menu()!;

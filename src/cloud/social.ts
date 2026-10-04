@@ -457,7 +457,13 @@ export const chatOpenKey = (label: string) => `pitwall.chatOpen.${label}`;
  * o sohbetten gelen mesajın bildirim kartını ve sesini bastırır. 5 sn'den eski kayıt geçersizdir.
  */
 export const CHAT_FRONT_KEY = "pitwall.chatFront";
+/** Aynı bilgi pencereler arası olayla da gelir ("chat-front"): localStorage pencereler arasında gecikebilir */
+let frontEvt = { id: "", at: 0 };
+export function noteChatFront(id: string) {
+  frontEvt = { id: id || "", at: Date.now() };
+}
 export function chatFront(): string {
+  if (Date.now() - frontEvt.at < 5000) return frontEvt.id;
   try {
     const [id, at] = (localStorage.getItem(CHAT_FRONT_KEY) ?? "").split("|");
     return id && Date.now() - Number(at) < 5000 ? id : "";

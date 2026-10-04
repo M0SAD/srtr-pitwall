@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-156
+
+- Sohbet penceresi önde ve o kişinin (takımın / grubun) sekmesi açıkken ondan gelen mesajda ses ve bildirim kutusu çıkmaz; simdeyken de. Pencere arkadayken, simge durumundayken ya da başka sekme açıkken ses gelir. Pencerenin öndeki sekmesi artık pencereler arası olayla da bildiriliyor (eskiden yalnızca ortak depo; gecikince ses kaçıyordu).
+
+## 051026-155
+
+- Overlaylarım: overlay listesi ve ayarlar sütunu sağ kenarından sürüklenerek genişletilebilir (liste 250–420 px, ayarlar 290–520 px; çift tık varsayılana döndürür). Genişlik hesapla birlikte hatırlanır.
+- Overlaylarım: hedef düzen olarak en son overlay eklenen düzen seçili gelir (hesapla birlikte hatırlanır; düzen silindiyse etkin düzene döner).
+
 ## 051026-154
 
 - Pit duvarının veritabanı yedeği 5 sn → 15 sn (canlı yayın saniyede bir, değişmedi). Sunucudaki tazelik sınırı buna göre 15 sn → 45 sn (c89, yayında).

@@ -734,7 +734,34 @@ body {
 }
 
 /* ---------- Overlay'ler sayfası (3 sütun) ---------- */
+.ovcol-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+.ovcol-grip::after {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  background: var(--accent, #ff7a1a);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.ovcol-grip:hover::after,
+.ovcol-grip.on::after {
+  opacity: 0.7;
+}
+.ovpage.resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+
 .ovpage {
+  position: relative;
   display: grid;
   grid-template-columns: 250px 290px 1fr;
   height: 100%;

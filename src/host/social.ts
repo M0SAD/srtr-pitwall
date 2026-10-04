@@ -27,6 +27,7 @@ import {
   onMessages,
   chatOpenKey,
   chatFront,
+  noteChatFront,
   realtimeKeepAlive,
   socialLog,
   unreadFrom,
@@ -431,6 +432,8 @@ export function startSocial(status: Accessor<Status | undefined>) {
   };
   // Ayarlar ekranından: güven listesi değişti -> hemen yenile
   listen("social-refresh", () => void refreshFriends());
+  // Sohbet penceresi öndeki sekmesini bildirir (o sohbetten gelen mesajda kutu / ses çıkmaz)
+  listen<string>("chat-front", (e) => noteChatFront(String(e.payload ?? "")));
   // iRacing hesabı: iRacing'e bağlanınca oturumdaki üye no ve ad hesaba kendiliğinden yazılır
   // (hesapta iRacing bilgisi yoksa ya da farklı bir iRacing hesabı açıksa; oturum başına bir kez)
   let linkedFor = "";
@@ -515,6 +518,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
         void (async () => {
           const who = await senderName(m.team_id, m.sender);
           const body = m.poll_id ? `${who}: 📊 ${emojify(m.body)}` : `${who}: ${emojify(msgPreview(m))}`;
+          if (chatFront() === teamChatKey(tm.team_id)) return;
           if (racing()) {
             // Mesajlar overlay'i bu mesajı gösteriyorsa alt köşedeki kutu ayrıca çıkmaz
             if (!ovMsgShown(teamOv(m, tm, who, false))) setToast({ id: m.id, from: `[${tm.tag}] ${tm.name}`, body });
@@ -577,6 +581,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
           return;
         }
         const body = `${who}: ${emojify(m.body)}`;
+        if (chatFront() === groupChatKey(g.group_id)) return;
         if (racing()) {
           if (!ovMsgShown(ov)) setToast({ id: m.id, from: g.name, body });
           messageBeep();
@@ -611,6 +616,8 @@ export function startSocial(status: Accessor<Status | undefined>) {
       if (racing()) setPending(pending() + 1);
       return socialLog(`${tag}: bildirim yok (rahatsiz etme acik)`);
     }
+    // Sohbet penceresi önde ve bu arkadaşın sekmesi açık: kutu da ses de yok (simdeyken de)
+    if (chatFront() === m.sender) return socialLog(`${tag}: bildirim yok (sohbet penceresi onde)`);
     if (racing()) {
       // Yarışta: oyun içi kutu (Mesajlar overlay'i bu mesajı gösteriyorsa kutu ayrıca çıkmaz) + ses
       const box = !f?.notify_muted && !ovMsgShown(ov);

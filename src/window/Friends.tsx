@@ -5,7 +5,7 @@ import "@/app/chatlook.css";
 import "@/app/components/proLock.css";
 import { For, Show, createResource, createSignal, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { session } from "@/cloud/supabase";
 import { CHAT_FRONT_KEY, myFriends, type Friend } from "@/cloud/social";
@@ -67,7 +67,10 @@ export function ChatWindow(props: { id: string }) {
   const select = (id: string) => {
     setActive(id);
     try {
-      if (document.hasFocus() && !document.hidden) localStorage.setItem(CHAT_FRONT_KEY, `${id}|${Date.now()}`);
+      if (document.hasFocus() && !document.hidden) {
+        void emit("chat-front", id).catch(() => {});
+        localStorage.setItem(CHAT_FRONT_KEY, `${id}|${Date.now()}`);
+      }
     } catch {
       /* depo yok */
     }
@@ -126,7 +129,9 @@ export function ChatWindow(props: { id: string }) {
     // Öndeki sekmeyi bildir (bu sohbetten gelen mesajda bildirim kartı / ses çıkmasın)
     const tell = () => {
       try {
-        if (document.hasFocus() && !document.hidden && active()) localStorage.setItem(CHAT_FRONT_KEY, `${active()}|${Date.now()}`);
+        const on = document.hasFocus() && !document.hidden && !!active();
+        void emit("chat-front", on ? active() : "").catch(() => {});
+        if (on) localStorage.setItem(CHAT_FRONT_KEY, `${active()}|${Date.now()}`);
         else localStorage.removeItem(CHAT_FRONT_KEY);
       } catch {
         /* depo yok */

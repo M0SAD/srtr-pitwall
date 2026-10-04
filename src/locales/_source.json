@@ -2202,6 +2202,7 @@
  "Geniş karşılaştırma bandı": "src/overlays/h2h/manifest.ts",
  "Geniş şerit (1280×400)": "src/dash/model.ts",
  "Geniş yüksek (XLT)": "src/app/pages/SettingsPage.tsx",
+ "Genişletmek için sürükle (çift tık: varsayılan)": "src/app/pages/OverlaysPage.tsx",
  "Genişlik": "src/app/components/VrPanel.tsx, src/app/pages/StreamingPage.tsx, src/dash/Designer.tsx, src/overlays/brakepoint/manifest.ts, src/overlays/captions/manifest.ts, src/overlays/crewcall/manifest.ts, src/overlays/dashboard/manifest.ts, src/overlays/dataframe/manifest.ts, src/overlays/driverswap/manifest.ts, src/overlays/duel/manifest.ts, src/overlays/ers/manifest.ts, src/overlays/flatmap/manifest.ts, src/overlays/gapchart/manifest.ts, src/overlays/goalbar/manifest.ts, src/overlays/h2h/manifest.ts, src/overlays/livechat/manifest.ts, src/overlays/livepoll/manifest.ts, src/overlays/messages/manifest.ts, src/overlays/pitwindow/manifest.ts, src/overlays/results/manifest.ts, src/overlays/scene/manifest.ts, src/overlays/sectors/manifest.ts, src/overlays/stint/manifest.ts, src/overlays/target/manifest.ts, src/overlays/trackmap/manifest.ts, src/overlays/webview/manifest.ts",
  "Genişlik (en az)": "src/overlays/inputs/manifest.ts, src/overlays/pedals/manifest.ts, src/overlays/relative/manifest.ts, src/overlays/standings/manifest.ts",
  "Genişlik px cinsindendir; boş (oto) = varsayılan genişlik.": "src/app/components/SettingsForm.tsx",
