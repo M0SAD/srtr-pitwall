@@ -15,7 +15,7 @@ import { ContextMenu, type MenuState } from "@/host/ContextMenu";
 import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 import { t } from "@/sdk/i18n";
 import LockIcon from "lucide-solid/icons/lock";
-import { BADGE, StreamBadgeMark, badgeFactor, badgeRect, pushOutOfBadge, rectsHit } from "@/sdk/streamBadge";
+import { BADGE, StreamBadgeMark, badgeFactor, badgePosOf, badgeRect, pushOutOfBadge, rectsHit, type BadgePos } from "@/sdk/streamBadge";
 
 /** Tuvalin üstünde kısa süre görünen bilgi (kilitli düzen / kilitli overlay'de engellenen işlem) */
 const [canvasNotice, setCanvasNotice] = createSignal<{ text: string; n: number } | null>(null);
@@ -42,6 +42,10 @@ export interface CanvasBadge {
   shown: boolean;
   selected: boolean;
   onPick: () => void;
+  /** Seçilmiş konum (kilitliyken verilmez: varsayılan sağ üst) */
+  pos?: BadgePos;
+  /** Taşındı (sadece kilitli değilken çağrılır) */
+  onMove?: (pos: BadgePos) => void;
 }
 
 export interface CanvasProps {
@@ -167,9 +171,67 @@ export function LayoutCanvas(props: CanvasProps) {
   // Sağ tık menüsü (düzenleme ekranındakiyle aynı)
   const [menu, setMenu] = createSignal<MenuState | null>(null);
   const screen = () => ({ w: props.width, h: props.height });
-  const bRect = createMemo(() => badgeRect(screen()));
+  /** Logo sürüklenirken geçici konum (tuval pikseli) */
+  const [bDrag, setBDrag] = createSignal<{ x: number; y: number } | null>(null);
+  const bPos = () => (props.badge?.forced ? undefined : props.badge?.pos);
+  const bRect = createMemo(() => {
+    const r = badgeRect(screen(), bPos());
+    const d = bDrag();
+    return d ? { ...r, x: d.x, y: d.y } : r;
+  });
+  const bClamp = (x: number, y: number) => {
+    const r = badgeRect(screen(), bPos());
+    return { x: Math.max(0, Math.min(x, props.width - r.w)), y: Math.max(0, Math.min(y, props.height - r.h)) };
+  };
+  /** Logoya basıldı: kilitliyse sadece seçer; değilse sürüklenebilir (tuvalin içinde kalır) */
+  const badgeDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const b = props.badge!;
+    b.onPick();
+    if (b.forced || !b.onMove) return;
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    const o = bRect();
+    const sx = e.clientX;
+    const sy = e.clientY;
+    let moved = false;
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 3) return;
+      moved = true;
+      setBDrag(bClamp(o.x + (ev.clientX - sx) / k(), o.y + (ev.clientY - sy) / k()));
+    };
+    const up = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      const d = bDrag();
+      if (d) b.onMove!(badgePosOf(d.x, d.y, screen()));
+      setBDrag(null);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  };
+  // Ok tuşları: seçili logoyu 1 px (Shift: 10 px) taşır (kilitli değilken)
+  onMount(() => {
+    const key = (e: KeyboardEvent) => {
+      const b = props.badge;
+      if (!b?.selected || b.forced || !b.onMove || bDrag()) return;
+      const d = arrowDelta(e);
+      if (!d || typingTarget(e.target)) return;
+      if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
+      e.preventDefault();
+      const r = bRect();
+      const q = bClamp(r.x + d[0], r.y + d[1]);
+      if (q.x !== r.x || q.y !== r.y) b.onMove(badgePosOf(q.x, q.y, screen()));
+    };
+    window.addEventListener("keydown", key);
+    onCleanup(() => window.removeEventListener("keydown", key));
+  });
   /** Ayrılmış alan: sadece logo gizlenemiyorsa (PRO değil) */
-  const keepOut = () => (props.badge?.forced ? bRect() : undefined);
+  const keepOut = () => (props.badge?.forced ? badgeRect(screen()) : undefined);
   /** Logonun altında kalan overlay var mı */
   const badgeOverlap = createMemo(() => {
     rectsVer();
@@ -238,13 +300,8 @@ export function LayoutCanvas(props: CanvasProps) {
               class="cbadge"
               classList={{ off: !b().shown, sel: b().selected, forced: b().forced, warn: badgeOverlap() }}
               style={{ left: `${bRect().x * k()}px`, top: `${bRect().y * k()}px`, width: `${bRect().w * k()}px`, height: `${bRect().h * k()}px` }}
-              title={b().forced ? t("SRTR Pitwall logosu · PRO ile gizlenebilir") : b().shown ? t("SRTR Pitwall logosu · ayarlar için tıkla") : t("SRTR Pitwall logosu gizli · ayarlar için tıkla")}
-              onPointerDown={(e) => {
-                if (e.button !== 0) return;
-                e.preventDefault();
-                e.stopPropagation();
-                b().onPick();
-              }}
+              title={b().forced ? t("SRTR Pitwall logosu · PRO ile gizlenebilir") : b().shown ? t("SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar") : t("SRTR Pitwall logosu gizli · ayarlar için tıkla")}
+              onPointerDown={badgeDown}
               onContextMenu={(e) => e.preventDefault()}
             >
               <div class="cbadge-mark" style={{ transform: `scale(${badgeFactor(screen()) * k()})`, width: `${BADGE.w}px`, height: `${BADGE.h}px` }}>

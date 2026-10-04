@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "比赛时，以小气泡在屏幕上显示收到的好友、车队、群组和车组房间消息；到你设定的时间后消失。需要的话还能朗读消息。可以添加多个副本，并为每个副本选择不同的来源。",
   "Arka plan yeri": "背景位置",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "每个编辑界面都有各自的背景；下面的图片和设置仅适用于所选界面。",
-  "Ekranda düzenleme": "屏幕上编辑"
+  "Ekranda düzenleme": "屏幕上编辑",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Logo 在所有直播布局中都绘制在 overlay 之上；你可以在画布上拖动或用方向键移动它，大小无法更改。这些设置适用于所有直播布局。",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall Logo · 拖动：移动 · 点击：设置",
+  "Varsayılan konuma döndür": "恢复默认位置",
+  "Yayın düzenlerindeki logo": "直播布局中的 Logo",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "隐藏和移动徽标仅限付费 PRO 会员。",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "OBS 页面也会检查 · 设为仅限 PRO 时，只有付费 PRO 会员（和管理员）可以隐藏和移动；管理员赠送的 PRO、试用 PRO 和活动 PRO 下徽标保持固定"
 }

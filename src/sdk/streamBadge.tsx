@@ -16,6 +16,8 @@ import { settings } from "./settings";
 export const BADGE = { w: 180, h: 40, margin: 24 };
 /** Rust'a giden "locked" listesindeki işaret: logoyu gizlemek PRO'ya ayrılmış */
 export const STREAM_BADGE_LOCK = "stream.badge";
+/** Kullanıcının gizleme / taşıma hakkı var: ücretli PRO ya da yönetici (yöneticinin hediye ettiği PRO'da bu işaret yoktur) */
+export const STREAM_BADGE_PAID = "stream.badge.paid";
 
 export interface BadgeRect {
   x: number;
@@ -27,9 +29,31 @@ type Size = { w: number; h: number };
 
 export const badgeFactor = (c: Size) => Math.max(0.3, Math.min(c.w / 1920, c.h / 1080));
 
-/** Logonun tuvalde kapladığı (ayrılmış) dikdörtgen */
-export function badgeRect(c: Size): BadgeRect {
+/** Logonun konumu: tuvaldeki boş payın oranı (0..1; x=1 sağ kenar, y=0 üst kenar). Tuval boyutu değişse de aynı köşede / kenarda kalır. */
+export interface BadgePos {
+  x: number;
+  y: number;
+}
+const clamp01 = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);
+
+/** Tuval pikseli (sol üst köşe) -> saklanan oran */
+export function badgePosOf(x: number, y: number, c: Size): BadgePos {
   const f = badgeFactor(c);
+  const fw = c.w - BADGE.w * f;
+  const fh = c.h - BADGE.h * f;
+  return { x: fw > 0 ? Math.round(clamp01(x / fw) * 1e4) / 1e4 : 0, y: fh > 0 ? Math.round(clamp01(y / fh) * 1e4) / 1e4 : 0 };
+}
+
+/** Kullanıcının seçtiği konum (ayar; özellik kilitliyken yok sayılır: varsayılan sağ üst) */
+export const badgePosWanted = (): BadgePos | undefined => {
+  const p = settings().general.streamBadgePos;
+  return p && typeof p.x === "number" && typeof p.y === "number" ? p : undefined;
+};
+
+/** Logonun tuvalde kapladığı dikdörtgen. pos verilmezse varsayılan: sağ üst, kenar boşluklu (kilitliyken ayrılmış alan) */
+export function badgeRect(c: Size, pos?: BadgePos): BadgeRect {
+  const f = badgeFactor(c);
+  if (pos) return { x: clamp01(pos.x) * Math.max(0, c.w - BADGE.w * f), y: clamp01(pos.y) * Math.max(0, c.h - BADGE.h * f), w: BADGE.w * f, h: BADGE.h * f };
   return { x: c.w - (BADGE.margin + BADGE.w) * f, y: BADGE.margin * f, w: BADGE.w * f, h: BADGE.h * f };
 }
 
@@ -57,7 +81,7 @@ export const badgeWanted = () => settings().general.streamBadge !== false;
  * OBS sayfası / overlay penceresi: logo zorunlu mu. Rust'ın bildirdiği duruma bakar; durum henüz
  * okunamadıysa zorunlu sayılır (ayar dosyasını elle değiştirmek logoyu gizleyemez).
  */
-export const badgeForcedLive = () => !entitlementLoaded() || (entitlement().locked.includes(STREAM_BADGE_LOCK) && !entitlement().pro);
+export const badgeForcedLive = () => !entitlementLoaded() || (entitlement().locked.includes(STREAM_BADGE_LOCK) && !(entitlement().pro && entitlement().locked.includes(STREAM_BADGE_PAID)));
 
 // Ara sıra geçen ışık süpürmesi: 30 sn'de bir, ~1,2 sn (yalnız transform / opacity; arada hiçbir şey boyanmaz)
 const BADGE_CSS = `

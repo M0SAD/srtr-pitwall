@@ -28,7 +28,7 @@ import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
 import { canvasOf, liveProfile } from "@/sdk/streamLink";
-import { StreamBadgeMark, badgeFactor, badgeForcedLive, badgeRect, badgeWanted } from "@/sdk/streamBadge";
+import { StreamBadgeMark, badgeFactor, badgeForcedLive, badgePosWanted, badgeRect, badgeWanted } from "@/sdk/streamBadge";
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
@@ -360,8 +360,9 @@ export function Host() {
     // Tekrar (replay) izlenirken overlay'ler gizlenir (ayar; canlı ana yetişmiş izleme hariç)
     if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch) return false;
     if (settings().general.hideWhenOffTrack && !st.demo && (!st.onTrack || st.replay)) return false;
-    if (inst.hideInGarage && st.inGarage) return false;
-    if (inst.hideOnTrack && st.onTrack && !st.replay) return false;
+    // Demo'da "garajda gizle" / "pistte gizle" uygulanmaz: yerleşim denenirken her overlay görünsün
+    if (!st.demo && inst.hideInGarage && st.inGarage) return false;
+    if (!st.demo && inst.hideOnTrack && st.onTrack && !st.replay) return false;
     return true;
   };
   const visible = () => enabled().some(([k]) => frameVisible(k));
@@ -406,8 +407,8 @@ export function Host() {
           class="stream-badge"
           style={{
             position: "absolute",
-            left: `${badgeRect(canvasOf(shown()!)).x}px`,
-            top: `${badgeRect(canvasOf(shown()!)).y}px`,
+            left: `${badgeRect(canvasOf(shown()!), badgeForcedLive() ? undefined : badgePosWanted()).x}px`,
+            top: `${badgeRect(canvasOf(shown()!), badgeForcedLive() ? undefined : badgePosWanted()).y}px`,
             "z-index": "2147483000",
             transform: `scale(${badgeFactor(canvasOf(shown()!))})`,
             "transform-origin": "0 0",

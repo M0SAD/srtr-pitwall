@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Показывает на экране небольшими облачками сообщения от друзей, команды, групп и комнаты бригады, пришедшие во время гонки; они исчезают через заданное время. По желанию ещё и озвучивает их. Можно добавить несколько копий и выбрать для каждой свой источник.",
   "Arka plan yeri": "Фон для",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "У каждого экрана редактирования свой фон; изображение и настройки ниже относятся только к выбранному.",
-  "Ekranda düzenleme": "Редактирование на экране"
+  "Ekranda düzenleme": "Редактирование на экране",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Логотип рисуется поверх overlay во всех стрим-раскладках; его можно перемещать, перетаскивая по холсту или стрелками, размер изменить нельзя. Эти настройки действуют для всех стрим-раскладок.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "Логотип SRTR Pitwall · перетащи: переместить · нажми: настройки",
+  "Varsayılan konuma döndür": "Вернуть в положение по умолчанию",
+  "Yayın düzenlerindeki logo": "Логотип в стрим-раскладках",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Скрывать и перемещать логотип могут только платные участники PRO.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Проверяется и на странице OBS · в режиме «только PRO» скрывать и перемещать его могут лишь платные участники PRO (и администраторы); при PRO, подаренном администратором, пробном и акционном логотип остаётся закреплённым"
 }

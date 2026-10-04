@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Shows incoming friend, team, group and crew room messages in small on-screen bubbles while you race; they disappear after the time you set. It can also read messages aloud. You can add several copies and pick a different source for each.",
   "Arka plan yeri": "Backdrop for",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Each editing screen has its own backdrop; the image and settings below apply only to the selected one.",
-  "Ekranda düzenleme": "On-screen editing"
+  "Ekranda düzenleme": "On-screen editing",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "The logo is drawn above the overlays in all stream layouts; you can move it by dragging on the canvas or with the arrow keys, its size cannot be changed. These settings apply to all stream layouts.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall logo · drag: move · click: settings",
+  "Varsayılan konuma döndür": "Reset to default position",
+  "Yayın düzenlerindeki logo": "Logo in stream layouts",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Hiding and moving the logo is for paid PRO members only.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Also enforced on the OBS page · while PRO-only, just paid PRO members (and admins) can hide and move it; with admin-gifted, trial and promo PRO the logo stays fixed"
 }

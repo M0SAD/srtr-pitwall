@@ -14,7 +14,7 @@
 // Karar listesi localStorage'da saklanır (çevrimdışı da geçerli); diğer pencereler "storage" olayıyla güncellenir.
 
 import { createSignal } from "solid-js";
-import { config, isPro, saveConfig, syncVoiceLock } from "@/cloud/account";
+import { config, isPro, saveConfig, streamBadgeEntitled, syncVoiceLock } from "@/cloud/account";
 import { api, cloudEnabled } from "@/cloud/supabase";
 import { manifests } from "./registry";
 import type { SelectOption, SettingField } from "./overlay";
@@ -147,7 +147,7 @@ const STATIC: ProFeature[] = [
   // Araçlar
   { key: F.shots, label: "Ekran görüntüsü almak", group: "Araçlar", defaultPro: false },
   { key: F.streaming, label: "Yayın düzenleri (OBS) sayfası", group: "Araçlar", defaultPro: false },
-  { key: F.streamBadgeHide, label: "Yayın düzeninde SRTR Pitwall logosunu gizleyebilmek", group: "Araçlar", defaultPro: true, hint: "OBS sayfası da denetler · PRO değilse logo her zaman görünür ve üstüne overlay konamaz" },
+  { key: F.streamBadgeHide, label: "Yayın düzeninde SRTR Pitwall logosunu gizleyebilmek", group: "Araçlar", defaultPro: true, hint: "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır" },
   { key: F.league, label: "Lig kategorileri (League Builder)", group: "Araçlar", defaultPro: false },
   { key: F.pitwall, label: "Pitwall Paneli penceresi", group: "Araçlar", defaultPro: false },
   { key: F.timing, label: "Live Timing penceresi", group: "Araçlar", defaultPro: false },
@@ -323,6 +323,8 @@ export function requiresPro(key: string, fallback?: boolean): boolean {
 
 /** Özellik PRO'ya ayrılmış ve kullanıcı PRO değil: kilitli göster / kullanma */
 export const proLocked = (key: string, fallback?: boolean) => requiresPro(key, fallback) && !isPro();
+/** Yayın logosu kilitli mi (gizlenemez / taşınamaz): özellik PRO'ya ayrılmış ve kullanıcı ücretli PRO (ya da yönetici) değil */
+export const streamBadgeLocked = () => requiresPro(F.streamBadgeHide) && !streamBadgeEntitled();
 
 /** Kilitliyse hata fırlatır (bulut çağrılarından önce; sunucu da ayrıca denetler). what: "Mesaj göndermek" gibi. */
 export function assertFeature(key: string, what: string) {

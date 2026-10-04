@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Mientras corres, muestra en pequeños globos los mensajes de amigos, equipo, grupos y sala de boxes; desaparecen tras el tiempo que ajustes. Si quieres, también los lee en voz alta. Puedes añadir varias copias y elegir una fuente distinta para cada una.",
   "Arka plan yeri": "Fondo para",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Cada pantalla de edición tiene su propio fondo; la imagen y los ajustes de abajo solo se aplican a la seleccionada.",
-  "Ekranda düzenleme": "Edición en pantalla"
+  "Ekranda düzenleme": "Edición en pantalla",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "El logo se dibuja encima de los overlays en todos los diseños de stream; puedes moverlo arrastrándolo en el lienzo o con las flechas del teclado, su tamaño no se puede cambiar. Estos ajustes se aplican a todos los diseños de stream.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "Logo de SRTR Pitwall · arrastrar: mover · clic: ajustes",
+  "Varsayılan konuma döndür": "Restablecer posición por defecto",
+  "Yayın düzenlerindeki logo": "Logo en los diseños de stream",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Ocultar y mover el logo es solo para miembros PRO de pago.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "También se aplica en la página de OBS · cuando es solo PRO, únicamente los miembros PRO de pago (y los administradores) pueden ocultarlo y moverlo; con PRO regalado por un administrador, de prueba o de promoción, el logo queda fijo"
 }

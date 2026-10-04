@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Mostra sullo schermo, in piccoli fumetti, i messaggi di amici, team, gruppi e stanza crew che arrivano mentre corri; scompaiono dopo il tempo che hai impostato. Se vuoi, li legge anche ad alta voce. Puoi aggiungere più copie e scegliere una fonte diversa per ciascuna.",
   "Arka plan yeri": "Sfondo per",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Ogni schermata di modifica ha il proprio sfondo; l'immagine e le impostazioni qui sotto valgono solo per quella selezionata.",
-  "Ekranda düzenleme": "Modifica a schermo"
+  "Ekranda düzenleme": "Modifica a schermo",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Il logo viene disegnato sopra gli overlay in tutti i layout streaming; puoi spostarlo trascinandolo sulla tela o con i tasti freccia, la dimensione non si può modificare. Queste impostazioni valgono per tutti i layout streaming.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "Logo SRTR Pitwall · trascina: sposta · clic: impostazioni",
+  "Varsayılan konuma döndür": "Ripristina posizione predefinita",
+  "Yayın düzenlerindeki logo": "Logo nei layout streaming",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Nascondere e spostare il logo è riservato ai membri PRO a pagamento.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Verificato anche nella pagina OBS · quando è solo PRO, soltanto i membri PRO a pagamento (e gli amministratori) possono nasconderlo e spostarlo; con PRO regalato da un amministratore, di prova o promozionale il logo resta fisso"
 }

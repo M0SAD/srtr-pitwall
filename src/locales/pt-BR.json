@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Mostra em pequenos balões na tela as mensagens de amigos, equipe, grupos e sala da equipe recebidas durante a corrida; elas somem após o tempo definido. Se quiser, também lê as mensagens em voz alta. Dá para adicionar várias cópias e escolher uma fonte diferente para cada uma.",
   "Arka plan yeri": "Fundo para",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Cada tela de edição tem seu próprio fundo; a imagem e as configurações abaixo valem só para a selecionada.",
-  "Ekranda düzenleme": "Edição na tela"
+  "Ekranda düzenleme": "Edição na tela",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "O logo é desenhado acima dos overlays em todos os layouts de stream; você pode movê-lo arrastando na tela ou com as setas do teclado, o tamanho não pode ser alterado. Essas configurações valem para todos os layouts de stream.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "Logo do SRTR Pitwall · arrastar: mover · clicar: configurações",
+  "Varsayılan konuma döndür": "Restaurar posição padrão",
+  "Yayın düzenlerindeki logo": "Logo nos layouts de stream",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Ocultar e mover o logo é exclusivo para membros PRO pagos.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Também é verificado na página do OBS · quando é só PRO, apenas membros PRO pagos (e administradores) podem ocultar e mover; com PRO presenteado por um administrador, de teste ou de promoção, o logo fica fixo"
 }

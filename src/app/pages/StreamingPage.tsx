@@ -13,13 +13,13 @@ import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
-import { StreamBadgeMark, badgeRect, badgeWanted, pushOutOfBadge } from "@/sdk/streamBadge";
+import { StreamBadgeMark, badgePosWanted, badgeRect, badgeWanted, pushOutOfBadge } from "@/sdk/streamBadge";
 import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
 import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useDeleteKey, useEscClose } from "./LayoutsPage";
 import * as I from "../icons";
-import { F, proLocked } from "@/sdk/proFeatures";
+import { F, proLocked, streamBadgeLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockNote } from "../components/ProLock";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
@@ -59,11 +59,11 @@ export function StreamingPage() {
     setGhost(null);
   };
   // SRTR Pitwall logosu (sağ üst): gizleyebilmek PRO özelliği; kilitliyken ayar yok sayılır
-  const badgeLocked = () => proLocked(F.streamBadgeHide);
+  const badgeLocked = () => streamBadgeLocked();
   const badgeShown = () => badgeLocked() || badgeWanted();
   const [badgeSel, setBadgeSel] = createSignal(false);
   const setBadge = (on: boolean) => !badgeLocked() && updateSettings((d) => (d.general.streamBadge = on));
-  const badge = (): CanvasBadge => ({ forced: badgeLocked(), shown: badgeShown(), selected: badgeSel() && !sel() && !ghost(), onPick: () => (setSel(null), setGhost(null), setBadgeSel(true)) });
+  const badge = (): CanvasBadge => ({ forced: badgeLocked(), shown: badgeShown(), selected: badgeSel() && !sel() && !ghost(), onPick: () => (setSel(null), setGhost(null), setBadgeSel(true)), pos: badgeLocked() ? undefined : badgePosWanted(), onMove: (pos) => !badgeLocked() && updateSettings((d) => (d.general.streamBadgePos = pos)) });
   const badgeOpen = () => badgeSel() && !sel() && !ghost();
   // Bir overlay seçilince logo paneli kapanır (overlay paneli kapatılınca geri açılmasın)
   createEffect(() => (sel() || ghost()) && setBadgeSel(false));
@@ -437,7 +437,7 @@ export function StreamingPage() {
                 </span>
                 <div>
                   <b data-no-i18n>SRTR Pitwall</b>
-                  <small>Yayın düzenlerinin sağ üst köşesindeki logo</small>
+                  <small>Yayın düzenlerindeki logo</small>
                 </div>
                 <button class="ovset-close" title="Kapat (Esc)" onClick={closeSet}>
                   <I.X />
@@ -447,7 +447,9 @@ export function StreamingPage() {
                 <div class="cbadge-prev">
                   <StreamBadgeMark />
                 </div>
-                <ProLockNote feature={F.streamBadgeHide} text="Logoyu gizleyebilmek PRO üyelere özel." class="cbadge-lock" />
+                <Show when={badgeLocked()}>
+                  <ProLockNote text="Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir." class="cbadge-lock" />
+                </Show>
                 <div class="row cbadge-row">
                   <b>SRTR Pitwall logosunu göster</b>
                   <label class="switch">
@@ -455,7 +457,16 @@ export function StreamingPage() {
                     <i />
                   </label>
                 </div>
-                <p class="ovset-note">Logo tüm yayın düzenlerinde sağ üst köşede, overlay'lerin üstünde çizilir; taşınamaz ve boyutlandırılamaz. Bu ayar bütün yayın düzenleri için geçerlidir.</p>
+                <Show when={!badgeLocked()}>
+                  <button class="btn ghost wide" style={{ "margin-top": "12px" }} disabled={!badgePosWanted()} onClick={() => updateSettings((d) => void delete d.general.streamBadgePos)}>
+                    <I.RotateCcw /> Varsayılan konuma döndür
+                  </button>
+                </Show>
+                <p class="ovset-note">
+                  <Show when={badgeLocked()} fallback="Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.">
+                    Logo tüm yayın düzenlerinde sağ üst köşede, overlay'lerin üstünde çizilir; taşınamaz ve boyutlandırılamaz. Bu ayar bütün yayın düzenleri için geçerlidir.
+                  </Show>
+                </p>
               </div>
             </aside>
           </Show>

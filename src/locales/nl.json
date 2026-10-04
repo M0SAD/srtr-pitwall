@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Toont berichten van vrienden, team, groepen en de crewkamer tijdens het racen in kleine ballonnen op het scherm; ze verdwijnen na de ingestelde tijd. Kan de berichten ook voorlezen. Je kunt meerdere exemplaren toevoegen met elk een eigen bron.",
   "Arka plan yeri": "Achtergrond voor",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Elk bewerkingsscherm heeft een eigen achtergrond; de afbeelding en instellingen hieronder gelden alleen voor het geselecteerde scherm.",
-  "Ekranda düzenleme": "Bewerken op het scherm"
+  "Ekranda düzenleme": "Bewerken op het scherm",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Het logo wordt in alle streamindelingen boven de overlays getekend; je kunt het verplaatsen door te slepen op het canvas of met de pijltjestoetsen, de grootte kan niet worden gewijzigd. Deze instellingen gelden voor alle streamindelingen.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall-logo · slepen: verplaatsen · klikken: instellingen",
+  "Varsayılan konuma döndür": "Terug naar standaardpositie",
+  "Yayın düzenlerindeki logo": "Logo in streamindelingen",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Het logo verbergen en verplaatsen is alleen voor betalende PRO-leden.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Wordt ook op de OBS-pagina gecontroleerd · bij alleen PRO kunnen enkel betalende PRO-leden (en beheerders) het verbergen en verplaatsen; bij door een beheerder cadeau gegeven, proef- en actie-PRO blijft het logo vast staan"
 }

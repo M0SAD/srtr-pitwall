@@ -3,6 +3,22 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-117
+
+- **Demo:** overlay'in "Pistte gizle" / "Garajda gizle" ayarı Demo'da uygulanmaz; Demo açıkken bütün etkin overlay'ler görünür (ekranda ve OBS'te). Lastikler bu yüzden Demo'da gizli kalabiliyordu.
+
+## 041026-116
+
+- **Yayın logosu yalnızca ücretli PRO ile gizlenir / taşınır:** yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sağ üstte sabit kalır (OBS çıktısında da). Ücretli abonelikler (Lemon Squeezy, Patreon, Ko-fi; üyeden üyeye satın alınan hediye dahil) ve yöneticiler gizleyip taşıyabilir.
+
+## 041026-115
+
+- **Yayın düzenlerinde SRTR Pitwall logosu:** PRO üyeler logoyu tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilir ("Varsayılan konuma döndür" düğmesiyle geri alınır). PRO bittiğinde logo yeniden sağ üst köşede görünür; gizlenemez ve taşınamaz.
+
+## 041026-114
+
+- **Bağlantı göstergesi:** noktanın üzerine gelince artık yalnızca tek açıklama kutusu çıkar (tarayıcının ikinci, düz ipucu kaldırıldı).
+
 ## 041026-113
 
 - **Düzenleme arka planları ayrıldı:** Düzenler tuvali, Yayın düzenleri tuvali ve ekranda düzenleme modunun arka plan görseli ve ayarları artık birbirinden bağımsız. Mevcut arka plan üçünün de başlangıç değeri olur; birini değiştirmek ya da kaldırmak diğerlerini etkilemez. Ayarlar › Genel'de "Arka plan yeri" seçimi.

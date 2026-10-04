@@ -779,6 +779,8 @@ export interface GeneralSettings {
   screens?: Record<string, { w: number; h: number }>;
   /** Yayın düzenlerinde SRTR Pitwall logosu (sağ üst). false: gizli; özellik kullanıcıya kilitliyken yok sayılır (sdk/streamBadge.tsx) */
   streamBadge?: boolean;
+  /** Logonun konumu (tuvaldeki boş payın oranı, 0..1). Yoksa varsayılan sağ üst; özellik kilitliyken yok sayılır */
+  streamBadgePos?: { x: number; y: number };
   server: ServerSettings;
   /** Web sunucusu bir kez varsayılan olarak açıldı (kullanıcı sonra kapatabilir). Rust açılışta aynı işarete bakar. */
   serverOnV1?: boolean;

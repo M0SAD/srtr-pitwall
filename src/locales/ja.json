@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "レース中に届くフレンド、チーム、グループ、クルールームのメッセージを画面に小さな吹き出しで表示し、設定した時間が過ぎると消えます。必要ならメッセージの読み上げも可能です。複数追加して、それぞれに別のソースを選べます。",
   "Arka plan yeri": "背景の対象",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "編集画面ごとに背景は別々です。下の画像と設定は選択した画面にのみ適用されます。",
-  "Ekranda düzenleme": "画面上で編集"
+  "Ekranda düzenleme": "画面上で編集",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "ロゴはすべての配信レイアウトでオーバーレイの上に描画されます。キャンバス上でドラッグするか矢印キーで移動できますが、サイズは変更できません。この設定はすべての配信レイアウトに適用されます。",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall ロゴ · ドラッグ: 移動 · クリック: 設定",
+  "Varsayılan konuma döndür": "デフォルト位置に戻す",
+  "Yayın düzenlerindeki logo": "配信レイアウトのロゴ",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "ロゴの非表示と移動は有料PROメンバー限定です。",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "OBSページでも適用されます · PRO限定の場合、有料PROメンバー（と管理者）だけが非表示・移動できます。管理者から贈られたPRO、トライアルPRO、キャンペーンPROではロゴは固定されたままです"
 }

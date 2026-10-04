@@ -530,13 +530,30 @@ function streamBadgeRequiresPro(): boolean {
   return true;
 }
 
+/** Ücretli PRO kaynakları (profiles.pro_source). Üyeden üyeye hediye de Lemon aboneliğidir ('lemon').
+ *  Yöneticinin verdiği ('admin'), deneme ('trial') ve kampanya PRO'su ücretli sayılmaz. */
+const PAID_PRO_SOURCES = ["lemon", "patreon", "kofi"];
+/** Kullanıcının PRO'su ücretli bir kaynaktan mı geliyor (ve sürüyor mu) */
+export const paidPro = () => {
+  const p = profile();
+  return !!p && !!p.pro_until && new Date(p.pro_until).getTime() > Date.now() && PAID_PRO_SOURCES.includes(p.pro_source ?? "");
+};
+/** Yayın logosunu gizleme / taşıma hakkı (özellik PRO'ya ayrılmışken): ücretli PRO ya da yönetici hesabı */
+export const streamBadgeEntitled = () => !freeView() && (realAdmin() || (isPro() && paidPro()));
+
 /** Rust'a giden kilit listesi: "voice" sadece sesli mühendis PRO'ya ayrılmışsa (eski pro_overlays işareti yok sayılır),
  *  "shots" ekran görüntüsü almak PRO'ya ayrılmışsa, "livechat.*" Canlı Sohbet özellikleri PRO'ya ayrılmışsa */
 function withVoiceLock(list: string[]): string[] {
-  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "shots" && x !== "stream.badge" && !x.startsWith("livechat.") && !x.startsWith("social."));
+  // "stream.badge.paid": logoyu gizleme / taşıma hakkı var (ücretli PRO ya da yönetici). İşaret yoksa OBS sayfası logoyu
+  // zorunlu tutar (PRO olsa da). Profil okunamadıysa (çevrimdışı) son bilinen durum korunur; oturum yoksa hak yoktur.
+  const p = profile();
+  const hadPaid = list.includes("stream.badge.paid") || entitlement().locked.includes("stream.badge.paid");
+  const badgePaid = !session() ? false : p ? !!p.is_admin || paidPro() : hadPaid;
+  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "shots" && x !== "stream.badge" && x !== "stream.badge.paid" && !x.startsWith("livechat.") && !x.startsWith("social."));
   if (voiceRequiresPro()) rest.push("voice");
   if (shotsRequirePro()) rest.push("shots");
   if (streamBadgeRequiresPro()) rest.push("stream.badge");
+  if (badgePaid) rest.push("stream.badge.paid");
   rest.push(...livechatLocks());
   // Canlı Sohbet giriş koşulu (kilit değil, işaret; Rust: livechat/mod.rs login_ok): ikisi de yoksa Canlı Sohbet çalışmaz
   if (session()) rest.push("livechat.signedin");

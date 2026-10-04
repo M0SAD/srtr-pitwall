@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Näyttää ajon aikana saapuvat kaveri-, tiimi-, ryhmä- ja miehistöhuoneviestit ruudulla pieninä kuplina; ne katoavat asettamasi ajan kuluttua. Halutessasi viestit myös luetaan ääneen. Voit lisätä useita kopioita ja valita kullekin oman lähteen.",
   "Arka plan yeri": "Taustan kohde",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Jokaisella muokkausnäkymällä on oma taustansa; alla oleva kuva ja asetukset koskevat vain valittua.",
-  "Ekranda düzenleme": "Muokkaus näytöllä"
+  "Ekranda düzenleme": "Muokkaus näytöllä",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Logo piirretään overlayden päälle kaikissa lähetysasetteluissa; voit siirtää sitä vetämällä kankaalla tai nuolinäppäimillä, kokoa ei voi muuttaa. Nämä asetukset koskevat kaikkia lähetysasetteluja.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall -logo · vedä: siirrä · napsauta: asetukset",
+  "Varsayılan konuma döndür": "Palauta oletussijaintiin",
+  "Yayın düzenlerindeki logo": "Logo lähetysasetteluissa",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Logon piilottaminen ja siirtäminen on vain maksaville PRO-jäsenille.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Tarkistetaan myös OBS-sivulla · kun asetus on vain PRO, ainoastaan maksavat PRO-jäsenet (ja ylläpitäjät) voivat piilottaa ja siirtää sen; ylläpitäjän lahjoittamalla, kokeilu- ja kampanja-PRO:lla logo pysyy paikallaan"
 }

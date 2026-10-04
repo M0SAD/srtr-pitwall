@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Zeigt eingehende Nachrichten von Freunden, Team, Gruppen und Crew-Raum beim Fahren als kleine Sprechblasen; sie verschwinden nach der eingestellten Zeit. Auf Wunsch werden sie auch vorgelesen. Du kannst mehrere Kopien hinzufügen und jeder eine eigene Quelle zuweisen.",
   "Arka plan yeri": "Hintergrund für",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Jeder Bearbeitungsbildschirm hat einen eigenen Hintergrund; Bild und Einstellungen unten gelten nur für den ausgewählten.",
-  "Ekranda düzenleme": "Bearbeiten auf dem Bildschirm"
+  "Ekranda düzenleme": "Bearbeiten auf dem Bildschirm",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Das Logo wird in allen Stream-Layouts über den Overlays gezeichnet; du kannst es per Ziehen auf der Leinwand oder mit den Pfeiltasten verschieben, die Größe lässt sich nicht ändern. Diese Einstellungen gelten für alle Stream-Layouts.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall-Logo · ziehen: verschieben · klicken: Einstellungen",
+  "Varsayılan konuma döndür": "Auf Standardposition zurücksetzen",
+  "Yayın düzenlerindeki logo": "Logo in Stream-Layouts",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Das Logo ausblenden und verschieben können nur zahlende PRO-Mitglieder.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Wird auch auf der OBS-Seite geprüft · bei „nur PRO“ können nur zahlende PRO-Mitglieder (und Admins) es ausblenden und verschieben; bei vom Admin geschenktem, Test- und Aktions-PRO bleibt das Logo fest"
 }

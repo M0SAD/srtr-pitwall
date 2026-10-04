@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Affiche à l'écran, dans de petites bulles, les messages d'amis, d'équipe, de groupe et du salon d'équipage reçus pendant que tu roules ; elles disparaissent après la durée que tu as définie. Peut aussi lire les messages à voix haute. Tu peux ajouter plusieurs copies et choisir une source différente pour chacune.",
   "Arka plan yeri": "Arrière-plan pour",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Chaque écran d'édition a son propre arrière-plan ; l'image et les réglages ci-dessous ne s'appliquent qu'à celui sélectionné.",
-  "Ekranda düzenleme": "Édition à l'écran"
+  "Ekranda düzenleme": "Édition à l'écran",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Le logo est dessiné au-dessus des overlays dans toutes les dispositions de stream ; tu peux le déplacer en le faisant glisser sur le canevas ou avec les touches fléchées, sa taille ne peut pas être modifiée. Ces paramètres s'appliquent à toutes les dispositions de stream.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "Logo SRTR Pitwall · glisser : déplacer · cliquer : paramètres",
+  "Varsayılan konuma döndür": "Rétablir la position par défaut",
+  "Yayın düzenlerindeki logo": "Logo dans les dispositions de stream",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Masquer et déplacer le logo est réservé aux membres PRO payants.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Également vérifié sur la page OBS · en mode PRO uniquement, seuls les membres PRO payants (et les admins) peuvent le masquer et le déplacer ; avec un PRO offert par un admin, d'essai ou promotionnel, le logo reste fixe"
 }

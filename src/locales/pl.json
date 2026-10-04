@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Pokazuje w małych dymkach wiadomości od znajomych, zespołu, grup i z pokoju ekipy, które przychodzą podczas jazdy; znikają po ustawionym czasie. Może też czytać je na głos. Można dodać kilka kopii i każdej wybrać inne źródło.",
   "Arka plan yeri": "Tło dla",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Każdy ekran edycji ma własne tło; obraz i ustawienia poniżej dotyczą tylko wybranego.",
-  "Ekranda düzenleme": "Edycja na ekranie"
+  "Ekranda düzenleme": "Edycja na ekranie",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Logo jest rysowane nad overlayami we wszystkich układach streamu; możesz je przesuwać, przeciągając po obszarze roboczym lub strzałkami, rozmiaru nie da się zmienić. Te ustawienia dotyczą wszystkich układów streamu.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "Logo SRTR Pitwall · przeciągnij: przesuń · kliknij: ustawienia",
+  "Varsayılan konuma döndür": "Przywróć domyślną pozycję",
+  "Yayın düzenlerindeki logo": "Logo w układach streamu",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Ukrywanie i przenoszenie logo jest dostępne tylko dla płatnych członków PRO.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Sprawdzane też na stronie OBS · przy opcji tylko PRO jedynie płatni członkowie PRO (i administratorzy) mogą je ukrywać i przenosić; przy PRO podarowanym przez administratora, próbnym i promocyjnym logo pozostaje na stałe"
 }

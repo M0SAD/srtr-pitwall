@@ -299,7 +299,7 @@ export function App() {
           </Show>
           <SimPicker />
           <NoticeBell />
-          <span class={`conn-dot ${conn().cls}`} role="img" tabindex="0" aria-label={conn().lines.join(" · ")} title={conn().lines.join("\n")}>
+          <span class={`conn-dot ${conn().cls}`} role="img" tabindex="0" aria-label={conn().lines.join(" · ")}>
             <i />
             <span class="conn-pop" aria-hidden="true">
               <b>{conn().lines[0]}</b>

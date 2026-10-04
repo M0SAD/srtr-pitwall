@@ -6529,5 +6529,11 @@
   "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Visar meddelanden från vänner, team, grupper och crewrummet i små bubblor på skärmen medan du kör; de försvinner efter den tid du ställt in. Kan också läsa upp meddelandena om du vill. Du kan lägga till flera kopior och välja en egen källa för varje.",
   "Arka plan yeri": "Bakgrund för",
   "Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.": "Varje redigeringsskärm har sin egen bakgrund; bilden och inställningarna nedan gäller bara den valda.",
-  "Ekranda düzenleme": "Redigering på skärmen"
+  "Ekranda düzenleme": "Redigering på skärmen",
+  "Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.": "Logotypen ritas ovanpå overlays i alla streamlayouter; du kan flytta den genom att dra på arbetsytan eller med piltangenterna, storleken kan inte ändras. De här inställningarna gäller för alla streamlayouter.",
+  "SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar": "SRTR Pitwall-logotyp · dra: flytta · klicka: inställningar",
+  "Varsayılan konuma döndür": "Återställ till standardposition",
+  "Yayın düzenlerindeki logo": "Logotyp i streamlayouter",
+  "Logoyu gizlemek ve taşımak ücretli PRO üyelere özeldir.": "Att dölja och flytta logotypen är bara för betalande PRO-medlemmar.",
+  "OBS sayfası da denetler · PRO iken yalnız ücretli PRO üyeler (ve yöneticiler) gizleyip taşıyabilir; yöneticinin hediye ettiği, deneme ve kampanya PRO'sunda logo sabit kalır": "Kontrolleras även på OBS-sidan · vid endast PRO kan bara betalande PRO-medlemmar (och administratörer) dölja och flytta den; med PRO som en administratör gett bort, prov-PRO och kampanj-PRO ligger logotypen fast"
 }

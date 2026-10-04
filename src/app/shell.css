@@ -4972,3 +4972,7 @@ body.ov-dragging * {
 .cbadge-lock {
   margin: 0 14px;
 }
+.cbadge:not(.forced) {
+  cursor: move;
+  touch-action: none;
+}
