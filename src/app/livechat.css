@@ -1063,3 +1063,11 @@
   width: 100%;
   box-sizing: border-box;
 }
+
+/* === 106: hata kutusu dar sütunda kelime kelime alt alta dizilmesin === */
+.lcp-err {
+  overflow-wrap: anywhere;
+  flex: 1 1 100%;
+  min-width: min(100%, 320px);
+  box-sizing: border-box;
+}

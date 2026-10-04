@@ -121,7 +121,9 @@ function probe(){
   for(i=0;i<C.auth.length;i++){if(hasCookie(C.auth[i])){ck=true;break;}}
   var lp=!!find(C.loginSel);
   if(!lp&&!ck){try{var bs=document.querySelectorAll('button,a');for(i=0;i<bs.length&&i<600;i++){var tx=(bs[i].textContent||'').trim();if(tx.length<14&&/^(log in|login|sign in|giriş yap|oturum aç)$/i.test(tx)){lp=true;break;}}}catch(e){}}
-  out.input=f?f.sel:'';out.off=f?off(f.el):false;out.prompt=lp;out.cookie=ck;out.blocked=!!find(C.blocked);out.ready=document.readyState;
+  out.input=f?f.sel:'';out.off=f?off(f.el):false;
+  out.hint='';
+  if(f&&out.off){try{var h=f.el.getAttribute('aria-placeholder')||f.el.getAttribute('placeholder')||'';var box=f.el.closest('form,[id*=chat i],[class*=chat i],[class*=footer i]')||f.el.parentElement;if(box){var tt=(box.innerText||box.textContent||'').replace(/\s+/g,' ').trim();if(tt)h=h?h+' · '+tt:tt;}out.hint=String(h).slice(0,140);}catch(e){}}out.prompt=lp;out.cookie=ck;out.blocked=!!find(C.blocked);out.ready=document.readyState;
   out.logged=ck?true:(lp?false:(f&&C.inputMeansLogged?true:(C.cookieDecides?false:null)));
   var name='';
   try{if(C.nameCookie){var m=document.cookie.match(new RegExp('(?:^|; )'+C.nameCookie+'=([^;]*)'));if(m)name=decodeURIComponent(m[1]);}
@@ -835,7 +837,14 @@ pub async fn test(app: &AppHandle, p: Platform) -> Vec<TestStep> {
     } else if s("input").is_empty() {
         step("Sohbet kutusu", "fail", if v.get("blocked").and_then(|x| x.as_bool()) == Some(true) { "Bu sohbete yazma iznin yok (kısıtlı sohbet)" } else { "Bulunamadı (sohbet kapalı olabilir ya da site düzeni değişmiş)" })
     } else if v.get("off").and_then(|x| x.as_bool()) == Some(true) {
-        step("Sohbet kutusu", "warn", format!("Bulundu ama kapalı ({})", s("input")))
+        step("Sohbet kutusu", "warn", {
+            let hint = s("hint");
+            if hint.is_empty() {
+                format!("Bulundu ama kapalı ({}). Pencereyi aç: sohbet kutusunda ne yazdığına bak (sohbet kurallarını kabul etmen, kanalı takip etmen ya da hesabını doğrulaman gerekiyor olabilir)", s("input"))
+            } else {
+                format!("Bulundu ama kapalı. Sayfada yazan: “{}”. Pencereyi açıp bu adımı tamamla (kuralları kabul et / takip et / hesabı doğrula)", hint)
+            }
+        })
     } else {
         step("Sohbet kutusu", "ok", format!("Bulundu: {}", s("input")))
     });

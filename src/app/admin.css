@@ -509,3 +509,290 @@ p.bk-alert {
 .subnav button .hidden-badge {
   margin-left: 6px;
 }
+
+/* Yönetim › Mesajlar (c80): sohbet listesi + salt okunur döküm */
+.amx-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.amx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1 1 100%;
+}
+.amx-chips button {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.amx-chips button.on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  font-weight: 600;
+}
+.amx-q {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.amx-member {
+  margin-bottom: 10px;
+  max-width: 420px;
+}
+.amx-pick {
+  position: relative;
+}
+.amx-pick > .input {
+  width: 100%;
+}
+.amx-pop {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2, var(--bg));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.amx-pop p {
+  margin: 6px 8px;
+}
+.amx-pop button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.amx-pop button:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.amx-av {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg));
+  font-size: 12px;
+  font-weight: 700;
+}
+.amx-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.amx-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  gap: 10px;
+  height: min(68vh, 720px);
+  min-height: 360px;
+}
+.amx-list,
+.amx-view {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.amx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  overflow: auto;
+}
+.amx-list > p {
+  margin: 8px;
+}
+.amx-list > .btn {
+  align-self: center;
+  margin: 6px 0;
+}
+.amx-th {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.amx-th:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.amx-th.on {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.amx-th-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.amx-th-top,
+.amx-th-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.amx-th-top b,
+.amx-prev {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.amx-th small {
+  margin: 0;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.amx-view {
+  display: flex;
+  flex-direction: column;
+}
+.amx-empty {
+  margin: auto;
+  padding: 20px;
+  text-align: center;
+}
+.amx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.amx-head small {
+  margin: 0;
+}
+.amx-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+.amx-scroll > p {
+  margin: 4px 0;
+}
+.amx-older {
+  align-self: center;
+}
+.amx-day {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 2px;
+}
+.amx-day span {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 60%, transparent);
+  font-size: 11px;
+  opacity: 0.85;
+}
+.amx-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 82%;
+}
+.amx-msg.right {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.amx-msg.sys {
+  align-self: center;
+  opacity: 0.75;
+  font-size: 12px;
+}
+.amx-bub {
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2, var(--bg));
+}
+.amx-msg.right .amx-bub {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.amx-msg.hit .amx-bub {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.amx-who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+.amx-who small {
+  margin: 0;
+  font-size: 10.5px;
+}
+.amx-bub p,
+.amx-hit p {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.amx-del {
+  font-style: italic;
+  opacity: 0.6;
+}
+.amx-hit {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2, var(--bg));
+}
+.amx-hit .link {
+  margin-top: 4px;
+}
+@media (max-width: 820px) {
+  .amx-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .amx-list,
+  .amx-view {
+    height: 60vh;
+  }
+  .amx-grid.open .amx-list {
+    display: none;
+  }
+}

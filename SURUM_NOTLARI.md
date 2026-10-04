@@ -3,6 +3,30 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-107
+
+- **"Yayın bilgisi" kaldırıldı** (başlık, oyun / kategori, kapak ve planlama): sekme, sol menü düğmesi ve ayarları yok. API girişi yeniden yalnızca sohbet izinlerini ister (Twitch ve Kick'te ek izin istenmez).
+
+## 041026-106
+
+- **Yayın bilgisi / Sohbete yaz API istekleri:** ağ hatasında istek bir kez yeniden denenir ve hata metni artık asıl nedeni de yazar (zaman aşımı, bağlanılamadı, TLS…).
+- Hata kutuları dar alanda kelime kelime alt alta dizilmiyor.
+- **Yayın bilgisi:** "Sol menüde ayrı düğme olarak göster" artık diğer ayarlardaki gibi anahtar (aç / kapat) görünümünde; varsayılan kapalı.
+
+## 041026-105
+
+- **Sohbete yaz › Gelişmiş: kendi API uygulamam:** her platformda "Geliştirici sayfasını aç" bağlantısı (Twitch, Google Cloud, Kick); YouTube için "YouTube Data API v3'ü etkinleştir" bağlantısı. YouTube açıklaması düzeltildi: "Masaüstü uygulaması (Desktop app)" türünde dönüş adresi alanı yoktur ve gerekmez.
+- **Yayın bilgisi:** "Sol menüde ayrı düğme olarak göster" kutusu; açıkken Yayın bilgisi sol menüde kendi düğmesiyle açılır ve Canlı Sohbet sekmelerinden kalkar.
+
+## 041026-104
+
+- **Sohbete yaz › Bağlantıyı test et:** sohbet kutusu bulunup kapalıysa artık sayfada yazan neden de gösterilir (ör. kuralları kabul et, takip et, hesabı doğrula) ve pencereyi açıp adımı tamamlaman söylenir.
+
+## 041026-103
+
+- **Canlı Sohbet › Yayın bilgisi (PRO):** bağlı API hesaplarına yayın başlığı ve oyun / kategori uygulanır (Twitch, YouTube, Kick); YouTube için açıklama ve kapak resmi; planlama: YouTube'da planlı yayın oluşturma / düzenleme / silme, Twitch takvimine ekleme; adlandırılmış şablonlar. "Gelişmiş: kendi API uygulamam" ile bağlı hesap gerekir.
+- **Yönetim › Mesajlar:** üyelerin tüm sohbetleri tarihe göre (arkadaş, takım, grup, açık ekip odaları); türe, üyeye, tarihe ve metne göre arama / süzme; salt okunur; her görüntüleme moderasyon kayıtlarına yazılır (c80). Site yönetim panelinde de var.
+
 ## 041026-102
 
 - **Kendiliğinden kapanma düzeltildi:** bilgisayar açıldıktan sonraki ilk 10 dakika içinde program başlatılınca telemetri iş parçacığındaki bir zaman hesabı programı kapatıyordu (Windows açılışında tepside başlatmada sessizce). Ayrıca yayın sürümünde herhangi bir iç hata programı tümden kapatıyordu; artık hatalı kare atlanır, iş parçacıkları yeniden başlar ve ayrıntı `crash.log` dosyasına yazılır (%APPDATA%\com.pitwall.overlay).

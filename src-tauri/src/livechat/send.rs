@@ -40,7 +40,6 @@ pub const KICK_REDIRECT: &str = "http://localhost:8767/callback";
 const TWITCH_SCOPES: &str = "user:read:chat user:write:chat";
 const YT_SCOPE: &str = "https://www.googleapis.com/auth/youtube.force-ssl";
 const KICK_SCOPES: &str = "user:read channel:read chat:write";
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
 struct Token {
@@ -285,7 +284,34 @@ fn form(pairs: &[(&str, &str)]) -> String {
 
 /// (durum kodu, JSON gövde; JSON değilse {"raw": metin})
 async fn send_req(rb: reqwest::RequestBuilder) -> Result<(u16, Value), String> {
-    let r = rb.send().await.map_err(|e| format!("Bağlantı hatası: {e}"))?;
+    // reqwest hatasının görünen metni asıl nedeni içermez: kaynak zinciri de eklenir (zaman aşımı, DNS, TLS, bağlantı kesildi…).
+    fn chain(e: &reqwest::Error) -> String {
+        let kind = if e.is_timeout() { "zaman aşımı" } else if e.is_connect() { "bağlanılamadı" } else if e.is_request() { "istek gönderilemedi" } else if e.is_body() { "gövde okunamadı" } else { "ağ hatası" };
+        let mut out = format!("Bağlantı hatası ({kind}): {e}");
+        let mut src = std::error::Error::source(e);
+        let mut n = 0;
+        while let Some(x) = src {
+            out.push_str(&format!(" ← {x}"));
+            src = x.source();
+            n += 1;
+            if n >= 5 {
+                break;
+            }
+        }
+        out.chars().take(400).collect()
+    }
+    // Geçici ağ hatasında (bağlantı sıfırlandı, bayat HTTP/2 bağlantısı) bir kez yeniden dene
+    let retry = rb.try_clone();
+    let r = match rb.send().await {
+        Ok(r) => r,
+        Err(e) => match retry {
+            Some(rb2) if !e.is_builder() => {
+                tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                rb2.send().await.map_err(|e2| chain(&e2))?
+            }
+            _ => return Err(chain(&e)),
+        },
+    };
     let code = r.status().as_u16();
     let text = r.text().await.unwrap_or_default();
     let v = serde_json::from_str::<Value>(&text).unwrap_or_else(|_| json!({ "raw": text.chars().take(300).collect::<String>() }));

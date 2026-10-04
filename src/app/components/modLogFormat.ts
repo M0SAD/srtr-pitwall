@@ -131,6 +131,9 @@ export function formatModLog(l: ModLog): LogView {
       const parts: string[] = [];
       if (d.user) parts.push(t("üye: {0}", q(d.user, 40)));
       if (d.other) parts.push(t("karşı taraf: {0}", q(d.other, 40)));
+      // c80: tür (dm / team / group / crew) ve oda adı
+      if (d.kind) parts.push(t("tür: {0}", d.kind === "dm" ? t("Arkadaş") : d.kind === "team" ? t("Takım") : d.kind === "group" ? t("Grup") : d.kind === "crew" ? t("Ekip") : String(d.kind)));
+      if (d.room) parts.push(t("oda: {0}", q(d.room, 40)));
       if (d.text) parts.push(t("metin: “{0}”", q(d.text, 40)));
       if (d.from || d.to) parts.push(t("tarih: {0} – {1}", day(d.from) || "…", day(d.to) || "…"));
       return { text: t("Özel mesajlara bakıldı{0}", parts.length ? ` (${parts.join(", ")})` : ""), target: { sub: "messages", q: d.user ? String(d.user) : undefined } };

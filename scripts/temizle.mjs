@@ -8,6 +8,9 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const STALE = [
+  // 041026-74: Canlı Sohbet › Yayın bilgisi özelliği kaldırıldı
+  "src-tauri/src/livechat/streaminfo.rs",
+  "src/app/pages/livechat/StreamInfoTab.tsx",
   // 021026-62: Ayarlar › Araç logoları bölümü kaldırıldı
   "src/app/components/LogosPanel.tsx",
   // 021026-50: eski Twitch sohbet overlay'i kaldırıldı

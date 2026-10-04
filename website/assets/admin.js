@@ -7,6 +7,7 @@ import { reklamlar } from "./ads-admin.js";
 import { kuponlar } from "./coupons-admin.js";
 import { proOzellikleri, setProFeatureQuery } from "./profeatures-admin.js";
 import { kayitlar } from "./modlog-admin.js";
+import { sohbetler } from "./messages-admin.js";
 import { sesPaketleri } from "./voicepacks-admin.js";
 import { denemePro } from "./trial-admin.js";
 import { siteGorselleri } from "./siteimages-admin.js";
@@ -1034,7 +1035,8 @@ const RENDER = {
   "ses-paketleri": (el) => sesPaketleri(el, show),
   "site-gorselleri": siteGorselleri,
   mesajlar,
-  "tum-mesajlar": tumMesajlar,
+  // c80: tüm sohbetler (takım / grup / ekip dahil); sunucuda yoksa eski özel mesaj görünümü
+  "tum-mesajlar": (el) => sohbetler(el, tumMesajlar),
   gorunurluk,
   kayitlar: (el) => kayitlar(el, logNav),
 };

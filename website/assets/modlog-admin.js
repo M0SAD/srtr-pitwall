@@ -108,6 +108,8 @@ export function formatLog(l) {
       const p = [];
       if (d.user) p.push(`üye: ${q(d.user, 40)}`);
       if (d.other) p.push(`karşı taraf: ${q(d.other, 40)}`);
+      if (d.kind) p.push(`tür: ${{ dm: "Arkadaş", team: "Takım", group: "Grup", crew: "Ekip" }[d.kind] || d.kind}`);
+      if (d.room) p.push(`oda: ${q(d.room, 40)}`);
       if (d.text) p.push(`metin: “${q(d.text, 40)}”`);
       if (d.from || d.to) p.push(`tarih: ${day(d.from)} – ${day(d.to)}`);
       return { text: `Özel mesajlara bakıldı${p.length ? ` (${p.join(", ")})` : ""}`, go: ["tum-mesajlar", ""] };

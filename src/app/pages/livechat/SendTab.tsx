@@ -10,7 +10,7 @@ import * as LC from "@/sdk/livechat";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { PlatformIcon } from "@/overlays/livechat/parts";
 import { ProLockBox } from "../../components/ProLock";
-import { go } from "../../ui";
+import { go, openUrl } from "../../ui";
 import * as I from "../../icons";
 import { StatusPill, errText, toast } from "./common";
 
@@ -134,12 +134,26 @@ export function SendTab() {
           {c.p === "twitch"
             ? t("İsteğe bağlı. dev.twitch.tv'de kendi uygulamanı oluştur (Client Type: Public) ve Client ID'sini gir. Bağlanınca bu platformda tarayıcı girişi yerine Twitch API kullanılır.")
             : c.p === "youtube"
-              ? t("İsteğe bağlı. Google Cloud'da kendi projende YouTube Data API v3'ü aç, “Masaüstü uygulaması” türünde OAuth istemcisi oluştur; Client ID ve Client Secret'ını gir. YouTube API'nin günlük mesaj kotası vardır.")
+              ? t("İsteğe bağlı. Google Cloud'da kendi projende YouTube Data API v3'ü etkinleştir, sonra Kimlik bilgileri › OAuth istemci kimliği oluştur; uygulama türü olarak “Masaüstü uygulaması (Desktop app)” seç. Bu türde dönüş adresi girilecek bir alan yoktur ve girmen gerekmez. İzin ekranı “Test” durumundaysa Google hesabını Test kullanıcıları'na ekle. Client ID ve Client Secret'ını gir. YouTube API'nin günlük mesaj kotası vardır.")
               : t("İsteğe bağlı. Kick › Ayarlar › Developer'da kendi uygulamanı oluştur (kapsamlar: user:read, channel:read, chat:write); Client ID ve Client Secret'ını gir.")}
         </small>
+        <small class="muted lcp-adv-links">
+          <button class="link" onClick={() => openUrl(c.p === "twitch" ? "https://dev.twitch.tv/console/apps" : c.p === "youtube" ? "https://console.cloud.google.com/apis/credentials" : "https://kick.com/settings/developer")}>
+            Geliştirici sayfasını aç
+          </button>
+          <Show when={c.p === "youtube"}>
+            {" · "}
+            <button class="link" onClick={() => openUrl("https://console.cloud.google.com/apis/library/youtube.googleapis.com")}>
+              YouTube Data API v3'ü etkinleştir
+            </button>
+          </Show>
+        </small>
+        <Show when={c.p === "twitch"}>
+          <small class="muted">{t("Twitch'te dönüş adresi kullanılmaz (cihaz koduyla bağlanılır). Uygulama formu OAuth Redirect URL'yi zorunlu tutarsa http://localhost yazman yeterlidir.")}</small>
+        </Show>
         <Show when={needSecret}>
           <small class="muted">
-            {t("Uygulamaya kaydedilecek dönüş adresi:")}{" "}
+            {c.p === "youtube" ? t("Yalnızca “Web uygulaması (Web application)” türünü seçtiysen Yetkilendirilmiş yönlendirme URI'leri'ne şu adresi ekle:") : t("Uygulamaya kaydedilecek dönüş adresi:")}{" "}
             <code data-no-i18n>{redirectOf(c.p)}</code>{" "}
             <button class="link" onClick={() => copyText(redirectOf(c.p))}>
               Kopyala
