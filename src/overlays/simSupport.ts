@@ -96,6 +96,24 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   h2h: ["ac", "acc"],
 };
 
+/** Sim aileleri, gösterim sırasıyla */
+export const SIM_FAMILIES: SimFamily[] = ["iracing", "acc", "ac", "lmu", "ams2"];
+
+/** Kısa rozet yazıları (önizleme köşesindeki "desteklenen oyunlar" çipleri) */
+export const SIM_SHORT: Record<SimFamily, string> = {
+  iracing: "iRacing",
+  acc: "ACC",
+  ac: "AC",
+  lmu: "LMU / rF2",
+  ams2: "AMS2",
+};
+
+/** Overlay'in çalıştığı sim aileleri (gösterim sırasıyla) */
+export function supportedSims(overlayId: string): SimFamily[] {
+  const no = UNSUPPORTED[overlayId] ?? [];
+  return SIM_FAMILIES.filter((f) => f === "iracing" || !no.includes(f));
+}
+
 /** status.sim / general.sim değerini aileye çevirir; bilinmiyorsa null */
 export function simFamily(sim: string | null | undefined): SimFamily | null {
   switch (sim) {

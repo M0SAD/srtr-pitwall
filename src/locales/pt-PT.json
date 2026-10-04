@@ -6502,5 +6502,7 @@
   "Takım mesajları": "Mensagens da equipa",
   "Takım mesajlarını da göster": "Mostrar também mensagens da equipa",
   "Tüm arkadaşlar": "Todos os amigos",
-  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Mostra em pequenos balões no ecrã as mensagens de amigos, equipa, grupos e sala da equipa recebidas durante a corrida; desaparecem após o tempo definido. Se quiseres, também lê as mensagens em voz alta. É possível adicionar várias cópias e escolher uma fonte diferente para cada uma."
+  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Mostra em pequenos balões no ecrã as mensagens de amigos, equipa, grupos e sala da equipa recebidas durante a corrida; desaparecem após o tempo definido. Se quiseres, também lê as mensagens em voz alta. É possível adicionar várias cópias e escolher uma fonte diferente para cada uma.",
+  "Bu overlay'in çalıştığı oyunlar": "Jogos em que este overlay funciona",
+  "{0} için kullanılabilir overlay türü sayısı": "Número de tipos de overlay disponíveis para {0}"
 }

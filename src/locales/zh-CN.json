@@ -6502,5 +6502,7 @@
   "Takım mesajları": "车队消息",
   "Takım mesajlarını da göster": "也显示车队消息",
   "Tüm arkadaşlar": "所有好友",
-  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "比赛时，以小气泡在屏幕上显示收到的好友、车队、群组和车组房间消息；到你设定的时间后消失。需要的话还能朗读消息。可以添加多个副本，并为每个副本选择不同的来源。"
+  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "比赛时，以小气泡在屏幕上显示收到的好友、车队、群组和车组房间消息；到你设定的时间后消失。需要的话还能朗读消息。可以添加多个副本，并为每个副本选择不同的来源。",
+  "Bu overlay'in çalıştığı oyunlar": "此 overlay 可用的游戏",
+  "{0} için kullanılabilir overlay türü sayısı": "{0} 可用的 overlay 类型数量"
 }

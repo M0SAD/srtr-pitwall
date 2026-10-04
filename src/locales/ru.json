@@ -6502,5 +6502,7 @@
   "Takım mesajları": "Сообщения команды",
   "Takım mesajlarını da göster": "Показывать и сообщения команды",
   "Tüm arkadaşlar": "Все друзья",
-  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Показывает на экране небольшими облачками сообщения от друзей, команды, групп и комнаты бригады, пришедшие во время гонки; они исчезают через заданное время. По желанию ещё и озвучивает их. Можно добавить несколько копий и выбрать для каждой свой источник."
+  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Показывает на экране небольшими облачками сообщения от друзей, команды, групп и комнаты бригады, пришедшие во время гонки; они исчезают через заданное время. По желанию ещё и озвучивает их. Можно добавить несколько копий и выбрать для каждой свой источник.",
+  "Bu overlay'in çalıştığı oyunlar": "Игры, в которых работает этот оверлей",
+  "{0} için kullanılabilir overlay türü sayısı": "Количество типов оверлеев, доступных для {0}"
 }

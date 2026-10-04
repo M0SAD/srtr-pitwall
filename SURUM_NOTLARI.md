@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-108
+
+- **Overlaylarım:** overlay sayısı artık seçili ya da bağlı oyunda çalışan overlay'leri sayar (Otomatik'te ve oyun bağlı değilken hepsi listelenir ve sayılır).
+- **Önizleme:** sol üst köşede overlay'in çalıştığı oyunlar yazılı etiketlerle gösterilir (iRacing, ACC, AC, LMU / rF2, AMS2; hepsinde çalışıyorsa "Tüm oyunlar").
+
 ## 041026-107
 
 - **"Yayın bilgisi" kaldırıldı** (başlık, oyun / kategori, kapak ve planlama): sekme, sol menü düğmesi ve ayarları yok. API girişi yeniden yalnızca sohbet izinlerini ister (Twitch ve Kick'te ek izin istenmez).

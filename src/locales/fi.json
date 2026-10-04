@@ -6502,5 +6502,7 @@
   "Takım mesajları": "Tiimin viestit",
   "Takım mesajlarını da göster": "Näytä myös tiimin viestit",
   "Tüm arkadaşlar": "Kaikki kaverit",
-  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Näyttää ajon aikana saapuvat kaveri-, tiimi-, ryhmä- ja miehistöhuoneviestit ruudulla pieninä kuplina; ne katoavat asettamasi ajan kuluttua. Halutessasi viestit myös luetaan ääneen. Voit lisätä useita kopioita ja valita kullekin oman lähteen."
+  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Näyttää ajon aikana saapuvat kaveri-, tiimi-, ryhmä- ja miehistöhuoneviestit ruudulla pieninä kuplina; ne katoavat asettamasi ajan kuluttua. Halutessasi viestit myös luetaan ääneen. Voit lisätä useita kopioita ja valita kullekin oman lähteen.",
+  "Bu overlay'in çalıştığı oyunlar": "Pelit, joissa tämä overlay toimii",
+  "{0} için kullanılabilir overlay türü sayısı": "Pelille {0} käytettävissä olevien overlay-tyyppien määrä"
 }

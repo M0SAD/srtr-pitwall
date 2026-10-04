@@ -6502,5 +6502,7 @@
   "Takım mesajları": "チームメッセージ",
   "Takım mesajlarını da göster": "チームメッセージも表示",
   "Tüm arkadaşlar": "すべてのフレンド",
-  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "レース中に届くフレンド、チーム、グループ、クルールームのメッセージを画面に小さな吹き出しで表示し、設定した時間が過ぎると消えます。必要ならメッセージの読み上げも可能です。複数追加して、それぞれに別のソースを選べます。"
+  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "レース中に届くフレンド、チーム、グループ、クルールームのメッセージを画面に小さな吹き出しで表示し、設定した時間が過ぎると消えます。必要ならメッセージの読み上げも可能です。複数追加して、それぞれに別のソースを選べます。",
+  "Bu overlay'in çalıştığı oyunlar": "このオーバーレイが動作するゲーム",
+  "{0} için kullanılabilir overlay türü sayısı": "{0} で使用できるオーバーレイの種類数"
 }

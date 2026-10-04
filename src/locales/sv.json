@@ -6502,5 +6502,7 @@
   "Takım mesajları": "Lagmeddelanden",
   "Takım mesajlarını da göster": "Visa även lagmeddelanden",
   "Tüm arkadaşlar": "Alla vänner",
-  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Visar meddelanden från vänner, team, grupper och crewrummet i små bubblor på skärmen medan du kör; de försvinner efter den tid du ställt in. Kan också läsa upp meddelandena om du vill. Du kan lägga till flera kopior och välja en egen källa för varje."
+  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen mesajları sesli de okur. Birden fazla kopya eklenip her birine ayrı kaynak seçilebilir.": "Visar meddelanden från vänner, team, grupper och crewrummet i små bubblor på skärmen medan du kör; de försvinner efter den tid du ställt in. Kan också läsa upp meddelandena om du vill. Du kan lägga till flera kopior och välja en egen källa för varje.",
+  "Bu overlay'in çalıştığı oyunlar": "Spel där denna overlay fungerar",
+  "{0} için kullanılabilir overlay türü sayısı": "Antal overlaytyper tillgängliga för {0}"
 }

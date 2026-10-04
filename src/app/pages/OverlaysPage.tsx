@@ -13,7 +13,7 @@ import { manifestById, manifests } from "@/sdk/registry";
 import { DEFAULTS_ID, addToLayout, defaultProfileId, settings, type OverlaySort } from "@/sdk/settings";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
-import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
+import { SIM_FAMILIES, SIM_NAMES, SIM_SHORT, currentSim, overlaySupportsSim, supportedSims } from "@/overlays/simSupport";
 import { OverlayView } from "../components/OverlayView";
 import { OverlaySettings, previewVals } from "../components/OverlaySettings";
 import { BACKDROPS, Backdrop, ScreenshotPicker, backdrop, pickCustomImage, setBackdrop } from "../components/Backdrop";
@@ -183,8 +183,8 @@ export function OverlaysPage() {
     stopDrag = () => finish(false);
   };
 
-  /** Toplam overlay türü sayısı (gizlenenler hariç; simde çalışmayanlar dahil) */
-  const totalTypes = () => manifests.filter((m) => !m.hidden && !isHiddenOverlay(m.id)).length;
+  /** Listelenen overlay türü sayısı: gizlenenler ve seçili / bağlı simde çalışmayanlar hariç (Otomatik'te hepsi) */
+  const totalTypes = () => shown().length;
   const hiddenBySim = () => manifests.filter((m) => !m.hidden && !isHiddenOverlay(m.id) && !supported(m.id)).length;
   const [shotsOpen, setShotsOpen] = createSignal(false);
 
@@ -322,7 +322,7 @@ export function OverlaysPage() {
       </Show>
       <aside class="ovlist">
         <div class="ovlist-profile">
-          <span class="ovlist-total" title={t("Kullanılabilir overlay türü sayısı")}>
+          <span class="ovlist-total" title={sim() ? t("{0} için kullanılabilir overlay türü sayısı", SIM_NAMES[sim()!]) : t("Kullanılabilir overlay türü sayısı")}>
             {t("{0} overlay", totalTypes())}
           </span>
           <span class="lt-sp" />
@@ -421,6 +421,27 @@ export function OverlaysPage() {
 
       <section class="ovpreview">
         <Backdrop />
+        <Show when={selected()} keyed>
+          {(k) => {
+            const sims = supportedSims(k);
+            return (
+              <div class="ovpreview-sims" title={t("Bu overlay'in çalıştığı oyunlar")}>
+                <Show
+                  when={sims.length < SIM_FAMILIES.length}
+                  fallback={<span class="ovpreview-sim all" title={SIM_FAMILIES.map((f) => SIM_NAMES[f]).join(" · ")}>{t("Tüm oyunlar")}</span>}
+                >
+                  <For each={sims}>
+                    {(f) => (
+                      <span class="ovpreview-sim" title={SIM_NAMES[f]} data-no-i18n>
+                        {SIM_SHORT[f]}
+                      </span>
+                    )}
+                  </For>
+                </Show>
+              </div>
+            );
+          }}
+        </Show>
         <Show when={selected()} keyed>
           {(k) => (
             <Show when={inst()}>
