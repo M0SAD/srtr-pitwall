@@ -191,3 +191,92 @@ html.toast-root #root {
   transform-origin: left;
   transition: transform 0.2s linear;
 }
+
+/* Steam gibi: art arda gelen mesajlar bitişik kartlar halinde alt alta; üzerine gelinen kart farklı renkte */
+.tst {
+  gap: 2px;
+}
+.tst-card {
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.tst-card:hover {
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--fc) 26%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, #313a48, #272e3a);
+  border-color: color-mix(in srgb, var(--fc) 55%, rgba(255, 255, 255, 0.1));
+}
+
+/* ---------- Sistem tepsisi sağ tık menüsü (TrayMenu.tsx; boyut lib.rs TRAY_MENU_W/H ile aynı) ---------- */
+.trm {
+  box-sizing: border-box;
+  height: 100vh;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  background: #171a21;
+  border: 1px solid #2a2f3a;
+  border-radius: 4px;
+  font: 13.5px/1 "Segoe UI", system-ui, sans-serif;
+  color: #dfe3e8;
+  overflow: hidden;
+  user-select: none;
+}
+.trm-item {
+  flex: none;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.trm-item {
+  transition: background 0.12s, color 0.12s;
+}
+.trm-item:hover {
+  background: linear-gradient(90deg, #ff8a2a, #ff6a3d);
+  color: #14161b;
+}
+.trm-ic {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  color: #ff8a2a;
+}
+.trm-item:hover .trm-ic,
+.trm-item.k-quit:hover .trm-ic {
+  color: #14161b;
+}
+.trm-ic svg {
+  width: 16px;
+  height: 16px;
+}
+.trm-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trm kbd {
+  font: 11px "Segoe UI", system-ui, sans-serif;
+  opacity: 0.6;
+}
+.trm hr {
+  flex: none;
+  width: 100%;
+  height: 1px;
+  margin: 4px 0;
+  border: 0;
+  background: #2a2f3a;
+}
+.trm-item.k-quit .trm-ic {
+  color: #ff6b6b;
+}

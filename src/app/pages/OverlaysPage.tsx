@@ -10,7 +10,7 @@ import type { OverlayManifest } from "@/sdk/overlay";
 import ChevronDown from "lucide-solid/icons/chevron-down";
 import { hasOverlayOrder, moveOverlay, orderedOverlays, overlaySort, resetOverlayOrder, setCustomOverlayOrder, setOverlaySort } from "../components/OverlayPalette";
 import { manifestById, manifests } from "@/sdk/registry";
-import { DEFAULTS_ID, addToLayout, defaultProfileId, settings, type OverlaySort } from "@/sdk/settings";
+import { DEFAULTS_ID, addToLayout, defaultProfileId, settings, uiPref, type OverlaySort } from "@/sdk/settings";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { SIM_FAMILIES, SIM_NAMES, SIM_SHORT, currentSim, overlaySupportsSim, supportedSims } from "@/overlays/simSupport";
@@ -18,29 +18,29 @@ import { OverlayView } from "../components/OverlayView";
 import { OverlaySettings, previewVals } from "../components/OverlaySettings";
 import { BACKDROPS, Backdrop, ScreenshotPicker, backdrop, pickCustomImage, setBackdrop } from "../components/Backdrop";
 import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
-import { openCard, setOpenCard } from "../ui";
+import { focusOverlay, openCard, setOpenCard } from "../ui";
+import { sortProfiles } from "../components/LayoutList";
 import * as I from "../icons";
 import { appState } from "../App";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import { t } from "@/sdk/i18n";
 
-// Kapatılan (daraltılan) kategoriler: bu bilgisayarda hatırlanır
-const COLLAPSE_KEY = "pw.ovcatCollapsed";
-function loadCollapsed(): string[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? "[]");
-    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
-  } catch {
-    return [];
-  }
-}
-const [collapsed, setCollapsed] = createSignal<string[]>(loadCollapsed());
+// Kapatılan (daraltılan) kategoriler, favoriler ve "Sadece favorilerim": hesapla birlikte buluta gider (uiPref)
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);
+const [collapsedRaw, setCollapsed] = uiPref<string[]>("ovCatCollapsed", [], "pw.ovcatCollapsed");
+const collapsed = () => strList(collapsedRaw());
 function toggleCategory(cat: string) {
-  const next = collapsed().includes(cat) ? collapsed().filter((c) => c !== cat) : [...collapsed(), cat];
-  setCollapsed(next);
-  try {
-    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
-  } catch {}
+  setCollapsed(collapsed().includes(cat) ? collapsed().filter((c) => c !== cat) : [...collapsed(), cat]);
+}
+// Favori overlay'ler (sağ tık > Favorilere ekle): listenin en üstünde "Favorilerim" altında durur
+const FAV_CAT = "__fav";
+const [favsRaw, setFavs] = uiPref<string[]>("ovFavs", [], "pw.ovFavs");
+const favs = () => strList(favsRaw());
+// Sırala > "Sadece favorilerim": liste yalnızca favorileri gösterir (seçili sıralama korunur)
+const [favOnlyRaw, setFavOnly] = uiPref<boolean | string>("ovFavOnly", false, "pw.ovFavOnly");
+const favOnly = () => favOnlyRaw() === true || favOnlyRaw() === "1";
+function toggleFav(id: string) {
+  setFavs(favs().includes(id) ? favs().filter((x) => x !== id) : [...favs(), id]);
 }
 
 export function OverlaysPage() {
@@ -219,8 +219,12 @@ export function OverlaysPage() {
   });
 
   // --- "+ Overlay Ekle": seçili overlay'i Düzenler sayfasında seçili (etkin) düzene ekler ---
+  /** Alttaki listeden seçilen hedef düzen (seçilmediyse Düzenler sayfasındaki etkin düzen) */
+  const [pick, setPick] = createSignal<string | null>(null);
   const target = () => {
     const s = settings();
+    const chosen = pick() ? s.profiles[pick()!] : undefined;
+    if (chosen) return chosen;
     const a = s.profiles[s.activeProfile];
     return a && a.rules.mode !== "stream" ? a : s.profiles[defaultProfileId(false, s) ?? ""];
   };
@@ -243,7 +247,12 @@ export function OverlaysPage() {
     if (isLocked(k)) return say(t("Bu overlay PRO üyelere özel"));
     if (p.locked) return say(t('"{0}" düzeni kilitli: overlay eklenemez. Düzenler sayfasından kilidi aç.', p.name));
     if (inLayout(k)) return say(t('Bu overlay "{0}" düzeninde zaten var', p.name));
-    if (addToLayout(p.id, k)) say(t('{0}, "{1}" düzenine eklendi', manifestById(k)?.name ?? k, p.name));
+    const key = addToLayout(p.id, k);
+    if (key) {
+      say(t('{0}, "{1}" düzenine eklendi', manifestById(k)?.name ?? k, p.name));
+      // Görüntü o düzenin ekranına geçer (yayın düzeniyse Yayın sayfası) ve eklenen overlay seçilir
+      focusOverlay(key, p.id);
+    }
   };
   const addTitle = () => {
     const k = selected();
@@ -266,9 +275,14 @@ export function OverlaysPage() {
   const isCollapsed = (cat: string) => collapsed().includes(cat);
   /** Kategori başlıklı gruplar yalnızca "Kategoriye göre" sıralamada; diğerlerinde (ve sürüklerken) tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
-    if (overlaySort() !== "category" || flat()) return [[null, shown()]];
-    const g = new Map<string, OverlayManifest[]>();
-    for (const m of shown()) {
+    if (flat()) return [[null, shown()]];
+    const fv = shown().filter((m) => favs().includes(m.id));
+    if (favOnly()) return [[null, fv]];
+    const rest = fv.length ? shown().filter((m) => !favs().includes(m.id)) : shown();
+    const head: [string | null, OverlayManifest[]][] = fv.length ? [[FAV_CAT, fv]] : [];
+    if (overlaySort() !== "category") return [...head, [null, rest]];
+    const g = new Map<string, OverlayManifest[]>(head as [string, OverlayManifest[]][]);
+    for (const m of rest) {
       if (!g.has(m.category)) g.set(m.category, []);
       g.get(m.category)!.push(m);
     }
@@ -289,10 +303,13 @@ export function OverlaysPage() {
           return (
             <div
               class="ovmenu"
-              style={{ left: `${Math.max(4, Math.min(m.x, window.innerWidth - 240))}px`, top: `${Math.max(4, Math.min(m.y, window.innerHeight - 200))}px` }}
+              style={{ left: `${Math.max(4, Math.min(m.x, window.innerWidth - 240))}px`, top: `${Math.max(4, Math.min(m.y, window.innerHeight - 240))}px` }}
               onPointerDown={(e) => e.stopPropagation()}
               onContextMenu={(e) => e.preventDefault()}
             >
+              <button onPointerUp={run(() => toggleFav(m.id))}>
+                <I.Star /> {favs().includes(m.id) ? "Favorilerden çıkar" : "Favorilere ekle"}
+              </button>
               <button disabled={idx() <= 0} onPointerUp={run(() => move(m.id, "up"))}>
                 <ArrowUp /> Yukarı taşı
               </button>
@@ -335,13 +352,24 @@ export function OverlaysPage() {
             title={t("Bu sıra Düzenler ve Yayın sayfalarındaki overlay listesinde de kullanılır. Bir overlay'i sürüklersen \"Kendi sıram\" seçilir. \"En çok kullanılanlar\" için yalnızca düzenlerinde hangi overlay türlerinin açık olduğu (tür ve sayı) anonim istatistik olarak gönderilir.")}
           >
             <span>Sırala</span>
-            <select value={overlaySort()} onChange={(e) => setOverlaySort(e.currentTarget.value as OverlaySort)}>
+            <select
+              value={favOnly() ? "favs" : overlaySort()}
+              onChange={(e) => {
+                const v = e.currentTarget.value;
+                setFavOnly(v === "favs");
+                if (v !== "favs") setOverlaySort(v as OverlaySort);
+              }}
+            >
               <option value="popular">En çok kullanılanlara göre</option>
               <option value="category">Kategoriye göre</option>
               <option value="alpha">Harf sırasına göre</option>
               <option value="custom">Kendi sıram</option>
+              <option value="favs">{t("Sadece favorilerim ({0})", favs().length)}</option>
             </select>
           </label>
+          <Show when={favOnly() && !shown().some((m) => favs().includes(m.id))}>
+            <div class="ovlist-simnote">Henüz favorin yok. Bir overlay'e sağ tıklayıp "Favorilere ekle"yi seç; başka bir sıralamaya geçince tüm overlay'ler yeniden görünür.</div>
+          </Show>
           <For each={groups()}>
             {([cat, ms]) => (
               <>
@@ -354,7 +382,7 @@ export function OverlaysPage() {
                     onClick={() => toggleCategory(cat!)}
                   >
                     <ChevronDown />
-                    <span>{CATEGORY_NAMES[cat!] ?? cat}</span>
+                    <span>{cat === FAV_CAT ? t("Favorilerim") : CATEGORY_NAMES[cat!] ?? cat}</span>
                     <small>{ms.length}</small>
                   </button>
                 </Show>
@@ -388,6 +416,11 @@ export function OverlaysPage() {
                         <Show when={isProOverlay(m.id)}>
                           <span class="pro-badge small" title={isLocked(m.id) ? "PRO üyelere özel" : "PRO overlay"}>PRO</span>
                         </Show>
+                        <Show when={favs().includes(m.id)}>
+                          <span class="ovitem-fav" title={t("Favorilerim")}>
+                            <I.Star />
+                          </span>
+                        </Show>
                       </button>
                     );
                   }}
@@ -408,7 +441,24 @@ export function OverlaysPage() {
             </Show>
           </button>
           <small class="muted ovlist-addnote" classList={{ ok: !!added() }}>
-            <Show when={added()} fallback={<>Düzen: <b>{target()?.name}</b></>}>
+            <Show
+              when={added()}
+              fallback={
+                <label class="ovlist-pick">
+                  <span>Düzen:</span>
+                  <select class="input" value={target()?.id ?? ""} onChange={(e) => setPick(e.currentTarget.value || null)}>
+                    <optgroup label={t("Düzenler")}>
+                      <For each={sortProfiles(Object.values(settings().profiles).filter((x) => x.rules.mode !== "stream"))}>{(x) => <option value={x.id} data-no-i18n>{x.name}</option>}</For>
+                    </optgroup>
+                    <Show when={Object.values(settings().profiles).some((x) => x.rules.mode === "stream")}>
+                      <optgroup label={t("Yayın düzenleri")}>
+                        <For each={sortProfiles(Object.values(settings().profiles).filter((x) => x.rules.mode === "stream"))}>{(x) => <option value={x.id} data-no-i18n>{x.name}</option>}</For>
+                      </optgroup>
+                    </Show>
+                  </select>
+                </label>
+              }
+            >
               {added()}
             </Show>
           </small>

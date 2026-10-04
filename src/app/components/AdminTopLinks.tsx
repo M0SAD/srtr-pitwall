@@ -163,8 +163,12 @@ export function AdminTopLinks(props: { run: Run }) {
       </div>
 
       <div class="atl-list">
-        <For each={list()}>
-          {(l, i) => {
+        <For each={list().map((x) => x.id)}>
+          {(lid, i) => {
+            // Satır kimliğe göre sabit kalır (yazarken satır yeniden oluşup yazı kutusu odağı kaybetmesin);
+            // `l` her okunuşta listedeki güncel bağlantıyı verir
+            const snap = list().find((x) => x.id === lid)!;
+            const l = new Proxy({} as TopLink, { get: (_, k) => (list().find((x) => x.id === lid) ?? snap)[k as keyof TopLink] });
             let file: HTMLInputElement | undefined;
             return (
               <div class="atl-item" classList={{ off: !l.enabled }}>

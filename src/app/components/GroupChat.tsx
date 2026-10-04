@@ -31,12 +31,14 @@ import { clearRoomBg } from "@/cloud/chatBg";
 import * as I from "../icons";
 import Smile from "lucide-solid/icons/face-slightly-smiling";
 import SendHorizontal from "lucide-solid/icons/send-horizontal";
-import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
+import { ChatStage } from "../chatLook";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
 import { BgNote, RoomBgPanel, SysNote, useRoomBg } from "./ConvBg";
 import { Avatar, ReportMessage } from "./FriendsDock";
-import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
+import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
+import { useReactions } from "@/cloud/reactions";
+import { useSeen } from "../chatSeen";
 import "../teams.css";
 
 /** Odaya gelen anlık olay (FriendsPanel'deki Realtime aboneliğinden) */
@@ -87,9 +89,9 @@ function FriendPicker(props: { friends: Friend[]; picked: string[]; onToggle: (i
 }
 
 /** Yeni grup: ad + davet edilecek arkadaşlar */
-export function NewGroup(props: { friends: Friend[]; onCreated: (id: string) => void; onCancel: () => void }) {
-  const [name, setName] = createSignal("");
-  const [picked, setPicked] = createSignal<string[]>([]);
+export function NewGroup(props: { friends: Friend[]; onCreated: (id: string) => void; onCancel: () => void; preset?: string[]; presetName?: string }) {
+  const [name, setName] = createSignal(props.presetName ?? "");
+  const [picked, setPicked] = createSignal<string[]>(props.preset ?? []);
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
   const toggle = (id: string) => setPicked(picked().includes(id) ? picked().filter((x) => x !== id) : [...picked(), id]);
@@ -157,6 +159,8 @@ export function GroupChat(props: {
   const me = () => session()?.user.id;
   const gid = () => props.group.group_id;
   const [msgs, setMsgs] = createSignal<GroupMessage[]>([]);
+  const seen = useSeen(() => (void markGroupRead(gid()), props.onRead()));
+  const reacts = useReactions("group", () => msgs().map((m) => m.id));
   const [members, setMembers] = createSignal<GroupMember[]>([]);
   const [loaded, setLoaded] = createSignal(false);
   const [more, setMore] = createSignal(false);
@@ -187,8 +191,7 @@ export function GroupChat(props: {
       setErr(String((e as Error).message));
     }
     setLoaded(true);
-    markGroupRead(gid());
-    props.onRead();
+    seen();
     scroll();
     ta?.focus();
   });
@@ -233,8 +236,7 @@ export function GroupChat(props: {
         scroll();
         if (m.meta) onSystem(m);
         if (m.sender !== me()) {
-          markGroupRead(gid());
-          props.onRead();
+          seen();
         }
         if (m.sender && !members().some((x) => x.user_id === m.sender)) void loadMembers();
       },
@@ -372,7 +374,7 @@ export function GroupChat(props: {
   };
 
   return (
-    <div class="fchat tchat" classList={chatLookClass(room.look())} style={chatLookStyle(room.look())}>
+    <div class="fchat tchat stm">
       <Show when={props.panel === "bg"}>
         <RoomBgPanel scope="group" room={gid()} st={room} onClose={() => props.onPanel("none")} />
       </Show>
@@ -387,7 +389,7 @@ export function GroupChat(props: {
           onGone={props.onGone}
         />
       </Show>
-      <ChatStage look={room.look()} img={room.img()}>
+      <ChatStage>
         <div class="fchat-msgs" ref={box} onScroll={() => ctx() && setCtx(null)}>
           <Show when={more()}>
             <button class="btn ghost small tchat-more" onClick={loadOlder}>
@@ -438,6 +440,7 @@ export function GroupChat(props: {
                         <MsgText text={r.m.body} />
                       </p>
                     </Show>
+                    <ReactionRow list={reacts.of(r.m.id)} onToggle={(e) => void reacts.toggle(r.m.id, e).catch(() => {})} />
                     <Show when={r.lastOfRun}>
                       <small>{time(r.m.created_at)}</small>
                     </Show>
@@ -468,6 +471,7 @@ export function GroupChat(props: {
         {(c) => (
           <MsgMenu
             pos={c()}
+            onReact={!c().m.deleted && !c().m.meta ? (e) => (void reacts.toggle(c().m.id, e).catch(() => {}), setCtx(null)) : undefined}
             onCopy={c().m.deleted || c().m.meta ? undefined : () => copy(c().m)}
             onHide={() => hide(c().m)}
             hideTitle={t("Mesaj sadece senin görünümünden silinir")}

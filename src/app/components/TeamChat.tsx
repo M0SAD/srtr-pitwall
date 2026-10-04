@@ -30,12 +30,14 @@ import * as I from "../icons";
 import Smile from "lucide-solid/icons/face-slightly-smiling";
 import SendHorizontal from "lucide-solid/icons/send-horizontal";
 import ChartBar from "lucide-solid/icons/chart-bar";
-import { ChatStage, chatLookClass, chatLookStyle } from "../chatLook";
+import { ChatStage } from "../chatLook";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
 import { BgNote, RoomBgPanel, useRoomBg } from "./ConvBg";
 import { ReportMessage } from "./FriendsDock";
-import { MsgMenu, msgClickOpens, msgMenuPos } from "./MsgMenu";
+import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
+import { useReactions } from "@/cloud/reactions";
+import { useSeen } from "../chatSeen";
 import "../teams.css";
 
 /** Odaya gelen anlık olay (FriendsPanel'deki Realtime aboneliğinden) */
@@ -97,6 +99,8 @@ export function TeamChat(props: {
   // Takım sahibinin seçtiği ortak arka plan (c45); yoksa genel sohbet görünümü
   const room = useRoomBg("team", () => props.team.team_id);
   const [msgs, setMsgs] = createSignal<TeamMessage[]>([]);
+  const seen = useSeen(() => (void markTeamRead(props.team.team_id), props.onRead()));
+  const reacts = useReactions("team", () => msgs().map((m) => m.id));
   const [members, setMembers] = createSignal<TeamMember[]>([]);
   const [loaded, setLoaded] = createSignal(false);
   const [more, setMore] = createSignal(false);
@@ -126,8 +130,7 @@ export function TeamChat(props: {
       setErr(String((e as Error).message));
     }
     setLoaded(true);
-    markTeamRead(props.team.team_id);
-    props.onRead();
+    seen();
     scroll();
     ta?.focus();
   });
@@ -195,8 +198,7 @@ export function TeamChat(props: {
           scroll();
         }
         if (m.sender !== me()) {
-          markTeamRead(props.team.team_id);
-          props.onRead();
+          seen();
         }
         // Yeni katılan üyenin adı listede yoksa üyeler yenilenir
         if (m.sender && !members().some((x) => x.user_id === m.sender)) {
@@ -352,11 +354,11 @@ export function TeamChat(props: {
 
   const time = (iso: string) => new Date(iso).toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit" });
   return (
-    <div class="fchat tchat" classList={chatLookClass(room.look())} style={chatLookStyle(room.look())}>
+    <div class="fchat tchat stm">
       <Show when={props.bgAsk}>
         <RoomBgPanel scope="team" room={props.team.team_id} st={room} onClose={() => props.onBgDone?.()} />
       </Show>
-      <ChatStage look={room.look()} img={room.img()}>
+      <ChatStage>
       <div class="fchat-msgs" ref={box} onScroll={() => ctx() && setCtx(null)}>
         <Show when={more()}>
           <button class="btn ghost small tchat-more" onClick={loadOlder}>
@@ -411,6 +413,7 @@ export function TeamChat(props: {
                           <MsgText text={r.m.body} />
                         </p>
                       </Show>
+                      <ReactionRow list={reacts.of(r.m.id)} onToggle={(e) => void reacts.toggle(r.m.id, e).catch(() => {})} />
                       <Show when={r.lastOfRun}>
                         <small>{time(r.m.created_at)}</small>
                       </Show>
@@ -455,6 +458,7 @@ export function TeamChat(props: {
         {(c) => (
           <MsgMenu
             pos={c()}
+            onReact={!c().m.deleted && !c().m.meta ? (e) => (void reacts.toggle(c().m.id, e).catch(() => {}), setCtx(null)) : undefined}
             onCopy={c().m.deleted || c().m.meta || !c().m.body ? undefined : () => copy(c().m)}
             onHide={() => hide(c().m)}
             hideTitle={t("Mesaj sadece senin görünümünden silinir")}

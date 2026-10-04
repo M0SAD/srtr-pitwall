@@ -781,6 +781,8 @@ export interface GeneralSettings {
   streamBadge?: boolean;
   /** Logonun konumu (tuvaldeki boş payın oranı, 0..1). Yoksa varsayılan sağ üst; özellik kilitliyken yok sayılır */
   streamBadgePos?: { x: number; y: number };
+  /** Küçük arayüz tercihleri (favori overlay'ler, kapalı kategoriler, arkadaş listesi sırası…): hesapla birlikte buluta gider (uiPref) */
+  uiPrefs?: Record<string, unknown>;
   server: ServerSettings;
   /** Web sunucusu bir kez varsayılan olarak açıldı (kullanıcı sonra kapatabilir). Rust açılışta aynı işarete bakar. */
   serverOnV1?: boolean;
@@ -1531,6 +1533,36 @@ function scheduleSave(s: AppSettings) {
 }
 
 /** Ayarları değiştir. `fn` bir kopya üzerinde çalışır. */
+/**
+ * Hesapla taşınan küçük arayüz tercihi: [oku, yaz]. Değer ayarların içinde (general.uiPrefs) durur ve bulutla eşitlenir.
+ * `legacy`: eskiden bu bilgisayarda (localStorage) tutulan anahtar; ayarlarda değer yokken oradan okunur.
+ */
+export function uiPref<T>(key: string, fallback: T, legacy?: string): [() => T, (v: T) => void] {
+  const old = (): T | undefined => {
+    if (!legacy) return undefined;
+    try {
+      const raw = localStorage.getItem(legacy);
+      if (raw == null) return undefined;
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return raw as unknown as T;
+      }
+    } catch {
+      return undefined;
+    }
+  };
+  const get = (): T => {
+    const v = settings().general.uiPrefs?.[key];
+    return (v !== undefined ? (v as T) : old() ?? fallback) as T;
+  };
+  const set = (v: T) =>
+    updateSettings((d) => {
+      d.general.uiPrefs = { ...(d.general.uiPrefs ?? {}), [key]: v };
+    });
+  return [get, set];
+}
+
 export function updateSettings(fn: (draft: AppSettings) => void) {
   const draft = structuredClone(settings());
   fn(draft);

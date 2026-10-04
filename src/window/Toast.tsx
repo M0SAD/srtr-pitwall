@@ -15,7 +15,7 @@ const LIFE = 6000;
 const MAX = 3;
 /** Kart yüksekliği + aradaki boşluk + pencere iç boşluğu (toast.css ile aynı) */
 const CARD_H = 84;
-const GAP = 8;
+const GAP = 2;
 const PAD = 8;
 
 /** Kart nesnesi sabit kalır (DOM yeniden oluşmasın, animasyon tekrar etmesin); değişenler sinyal */
@@ -69,10 +69,10 @@ export function Toast() {
     let next = cards().slice();
     for (const p of list) {
       if (!p || !p.id || next.some((c) => c.ids.has(p.id))) continue;
-      // Aynı arkadaştan art arda gelen mesajlar tek kartta birleşir (Steam gibi)
-      // Aynı takım odasından gelenler de birleşir
+      // Özel mesajlar Steam gibi alt alta ayrı kartlarda görünür (en fazla MAX kart; eskiler kalkar).
+      // Aynı takım / grup odasından art arda gelenler tek kartta birleşir
       const same =
-        p.kind === "message" || p.kind === "team" || p.kind === "group" ? next.find((c) => c.kind === p.kind && c.friendId === p.friendId && !c.out()) : undefined;
+        p.kind === "team" || p.kind === "group" ? next.find((c) => c.kind === p.kind && c.friendId === p.friendId && !c.out()) : undefined;
       if (same) {
         same.ids.add(p.id);
         same.setData((d) => ({ ...p, count: d.count + 1 }));

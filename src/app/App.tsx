@@ -200,7 +200,10 @@ export function App() {
     // Düzenleme ekranında sağ tık > "Ayarlarını aç"
     await listen<{ id: string; profile?: string | null }>("focus-overlay", (e) => focusOverlay(e.payload.id, e.payload.profile));
     // Ayrı arkadaş penceresinden: "PRO'ya bak", "Görünümü düzenle"
-    await listen<{ sec?: string; sub?: string; friend?: string; team?: string; crew?: string }>("panel-go", (e) => {
+    await listen<{ sec?: string; sub?: string; friend?: string; team?: string; crew?: string; tele?: string; teleCmp?: string }>("panel-go", (e) => {
+      if (e.payload.teleCmp) void import("./pages/TelemetryPage").then((m) => m.compareWithDriver(e.payload.teleCmp!));
+      // Telemetri sayfası henüz yüklenmemiş olabilir (tembel yükleme): profil isteğini burada da karşıla
+      if (e.payload.tele) void import("./pages/TelemetryPage").then((m) => m.openDriverTelemetry(e.payload.tele!));
       if (e.payload.team) setTeamFocus(e.payload.team);
       if (e.payload.crew) setCrewFocus(e.payload.crew);
       if (e.payload.friend) editFriendLook(e.payload.friend);

@@ -3,6 +3,91 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-131
+
+- Sohbette "… yazıyor" satırı için mesajların altında her zaman küçük bir boşluk ayrılır; karşı taraf yazmaya başlayınca yazı artık son mesajın üstüne binmez.
+
+## 041026-130
+
+- Düzeltme: mesaj gelince sohbet penceresi "tıklanmış" gibi davranıyor, mesaj okunmuş sayılıyor ve görev çubuğunda renkli görünmüyordu. Pencere artık görev çubuğunda etkinleştirilmeden (odak almadan) açılır ve öne gelene kadar düğmesi renkli / yanıp söner kalır; pencere açıkken başka pencerelerin arkasındaysa da aynısı olur.
+- Görev çubuğundan sohbet penceresine tıklayınca en son mesaj gelen kişinin sekmesi öne gelir, mesaj okunmuş sayılır ve Arkadaşlar listesindeki okunmamış uyarısı kalkar.
+- Sohbet sekmesinde arkadaşın durumu Arkadaşlar penceresindeki gibi yazılır (oyun · oturum · pist · araç, ya da son görülme); 30 saniyede bir güncellenir.
+
+## 041026-129
+
+- Web sitesi: bağlantı paylaşılınca (WhatsApp, Discord, X, Facebook…) görünen önizleme görseli eklendi (website/assets/img/og.jpg, 1200×630). Tüm sayfalara tam adresli og:image, og:url, og:type, twitter:card etiketleri kondu; eski göreli adresli og:image bazı uygulamalarda önizlemenin hiç çıkmamasına yol açıyordu.
+- Sohbet penceresinde seçili sekme belirgin: turuncu üst çizgi ve parlak zemin; diğer sekmeler soluk.
+- Sohbet penceresinde mesaj yalnızca pencere öndeyken (tıklanmış, odakta) okunmuş sayılır. Pencere başka pencerelerin arkasındaysa ya da simge durumundaysa mesaj okunmamış kalır (Arkadaşlar penceresinde "Okunmamış mesajlar"da görünür); pencereye geçince okunur.
+
+## 041026-128
+
+- Düzeltme: Yönetim › Üst çubuk bağlantıları'nda ad ya da adres yazarken her harfte yazı kutusu odağı kaybediyordu; artık kesintisiz yazılır.
+
+## 041026-127
+
+- Sohbette mesaja sol tıklamak artık bir şey yapmaz; mesaj menüsü yalnızca sağ tıkla açılır.
+- Arayüzdeki "Arkadaşlar" düğmesi arkadaş listesini her zaman ayrı pencerede açar (uygulama içinde açılmaz); düğmeye yeniden basınca pencere kapanır. Tepsiden okunmamış mesajla açılınca da ayrı pencere açılır.
+- Sohbet penceresinde özel sohbetin üstündeki çubuk (grup kurma ve "bendeki mesajları sil" düğmeleri) kaldırıldı.
+- Düzeltme: sohbet penceresi simge durumundayken gelen mesajlar okunmuş sayılıyordu; Arkadaşlar penceresindeki "Okunmamış mesajlar" bölümü boş kalıyordu. Artık pencere açılana kadar okunmamış kalır.
+- Kendi gönderdiğin mesajların yanındaki saat de okunur renkte görünür.
+
+## 041026-126
+
+- Mesajlara ifade (reaksiyon): mesaja tıklayınca / sağ tıklayınca açılan menünün üstünde hızlı ifadeler; mesajın altında ifade çipleri (sayı ve kimlerin bıraktığı; tıklayınca sen de eklersin / kaldırırsın). Özel, takım ve grup sohbetlerinde. Başkalarının ifadeleri birkaç saniye içinde görünür. Sunucu: c81 (message_reactions, message_react, message_reactions_for) — yayında.
+- Takım ve grup sohbetleri de sohbet penceresinde sekme olarak açılır (Arkadaşlar penceresinden tıklayınca ya da bildirim kartından). Grup sekmesinde üyeler sağda açık gelir.
+- Yeni mesaj gelen sekme farklı (sarımsı) renkte görünür; takım / grup mesajında da sohbet penceresi görev çubuğunda yanıp söner.
+- Takım / grup odasında zil düğmesi artık "Bildirimler" penceresini açar: "Şu durumlarda bildir" seçimi (Tüm mesajlar / Hiçbiri).
+
+## 041026-125
+
+- Yazışma ekranı Steam tarzında: balon yok; fotoğraf + ad + saat başlığı altında düz satırlar, sakin koyu renkler, üzerine gelinen satır hafifçe vurgulanır. Arkadaş, takım ve grup sohbetlerinin hepsinde geçerli.
+- Sohbet arka planı kaldırıldı: sohbet başlığındaki arka plan düğmeleri, arka plan görseli ve Ayarlar › Sohbet sayfası artık yok.
+- Sohbet penceresi tek pencerede sekmeli (Steam gibi): her arkadaş bir sekme (fotoğraf, ad, durum; × ya da orta tık kapatır). Yeni mesaj gelen sekmede sarı nokta yanar, pencere görev çubuğunda yanıp söner.
+- Özel sohbet başlığında "Sohbete arkadaş ekle": o arkadaş seçili gelen grup kurma ekranı açılır; grup kurulunca grup sohbetine geçilir.
+- Grup sağ tık menüsüne "Favorilere ekle" eklendi: favori gruplar yıldızla en üstte durur (hesapla taşınır).
+
+## 041026-124
+
+- Sohbet pencereleri (Steam gibi): ayrı Arkadaşlar penceresinde bir arkadaşa tıklayınca sohbet kendi penceresinde açılır (başlığı arkadaşın adı, görev çubuğunda ayrı düğme). Yeni mesaj gelince o arkadaşın penceresi görev çubuğunda belirir (yoksa simge durumunda, odak çalmadan açılır) ve yanıp söner; tıklayınca sohbet açılır. Yarıştayken pencere açılmaz. Bildirim kartına tıklamak da sohbet penceresini açar.
+- Mesaj bildirimleri: art arda gelen özel mesajlar tek kartta birleşmek yerine alt alta ayrı kartlarda görünür (en çok 3); üzerine gelinen kart farklı renkte.
+- Arkadaş listesi: en üstte "Okunmamış mesajlar" bölümü (mesaj sayısıyla). Sohbet başka pencerede okununca sayı her pencerede sıfırlanır.
+- Favori arkadaşlar: sağ tık > "Favorilere ekle"; ayrı pencerede profilin altında büyük fotoğraflarla durur (tıkla: sohbet, sağ tık: çıkar).
+- Ayrı pencerede arama "ARKADAŞLAR" çubuğunun içinde yumuşakça sola doğru açılır; kişiler arasında gezinirken yumuşak geçiş.
+- Sistem tepsisi sağ tık menüsü programın kendi tasarımıyla (koyu zemin, simgeler, turuncu vurgu, kısayollar sağda). Açılamazsa Windows'un yerel menüsüne düşer.
+- Üst çubuk sol menü çubuğuyla aynı renkte.
+- Küçük arayüz tercihleri artık hesapla birlikte buluta gidiyor (ayarların içinde): favori overlay'ler, "Sadece favorilerim", kapalı overlay kategorileri, arkadaş listesinde kapalı bölümler, çevrimdışı sırası, Takım sohbetleri bölmesi, favori arkadaşlar. Bu bilgisayardaki eski seçimler ilk değişiklikte hesaba taşınır.
+- Düzeltme: sağ alttaki boyutlandırma noktaları ve pencere başlığı için gereken pencere izinleri eklendi.
+
+## 041026-123
+
+- Overlaylarım: overlay'e sağ tık > "Favorilere ekle" / "Favorilerden çıkar". Favori overlay'lerin sağında yıldız görünür ve her sıralamada listenin en üstünde "Favorilerim" başlığı altında durur (bu bilgisayarda hatırlanır).
+- Sırala listesine "Sadece favorilerim (n)" eklendi: liste yalnızca favorileri gösterir (önceki sıralaman korunur; başka bir sıralamayı seçince tüm overlay'ler geri gelir). Favorin yokken ne yapacağını yazar.
+- Ayrı Arkadaşlar penceresi: üstteki profil ve "ARKADAŞLAR" çubuğu ile alttaki çubuk sabit kalır; yalnızca arkadaş listesi fare tekeriyle kayar (ince kaydırma çubuğu).
+
+## 041026-122
+
+- Overlaylarım: alttaki "Düzen" artık seçilebilir bir liste; normal düzenler ve yayın düzenleri seçilebilir (seçilmezse eskisi gibi etkin düzen).
+- "+ Overlay Ekle" (ve çift tık) overlay'i seçili düzene ekleyip görüntüyü o düzenin ekranına geçirir (yayın düzeniyse Yayın sayfası) ve eklenen overlay seçili gelir.
+
+## 041026-121
+
+- Ayrı Arkadaşlar penceresi: kategori başlıkları Steam'deki gibi ("+ Oyunda (3)" kapalı, "– …" açık), aralarında çizgi.
+- Alttaki çubuk "TAKIM SOHBETLERİ" oldu ve açılıp kapanan bir bölme: takım odaları ve gruplar artık burada listelenir (üst listeden çıktı), + ile grup kurulur. Açık/kapalı durumu hatırlanır.
+- Durum menüsüne (adının altındaki ok) "Profili düzenle" eklendi: arayüzde Hesap sayfasını açar. Fotoğrafa basmak profil sayfasını açmaya devam eder.
+
+## 041026-120
+
+- Arkadaş satırının sağındaki "Mesaj" ve "Seçenekler" (üç nokta) düğmeleri kaldırıldı; satıra tıklamak sohbeti, sağ tık menüyü açar (ekip paneli düğmesi duruyor).
+- Arkadaş sağ tık menüsüne "Telemetri kıyasla" eklendi: ikinizin de aynı pistte (tercihen aynı araçla) telemetri kayıtlı en iyi turu varsa tur analizini iki turla açar; ortak pist yoksa arkadaşın telemetri profilini açıp nedenini yazar.
+
+## 041026-119
+
+- Ayrı Arkadaşlar penceresi Steam arkadaş listesi düzenine geçti: pencere başlığı "SRTR Pitwall - Arkadaşlar"; en üstte fotoğrafın, adın ve durumun; altında "ARKADAŞLAR" çubuğu (arama ve arkadaş ekle); en altta "GRUP SOHBETLERİ" çubuğu (+ ile grup kur); kategoriler arasında çizgi; sağ alt köşede boyutlandırma noktaları.
+- Bu pencerede kendi fotoğrafına basınca arayüzde kendi Telemetri profil sayfan açılır.
+- Çevrimdışı başlığının sağında sıralama düğmesi: A'dan Z'ye ya da en son çevrimiçi olana göre (saat ikonu). Seçim hatırlanır.
+- Oyundaki arkadaşların solunda girdiği oyunun ikonu (src/assets/simlogos'taki dosyalar; ikonu olmayan oyunda eskisi gibi kısa ad yazar).
+- Düzeltme: ayrı pencereden "Profil" istenince Telemetri sayfası henüz hiç açılmamışsa profil açılmıyordu.
+
 ## 041026-118
 
 - Yönetici üye listeleri (üst çubuktaki canlı üye listesi ve Yönetim › Üyeler): üye adına basınca arkadaş listesindeki "Profil" gibi o üyenin Telemetri profil sayfası açılır. Canlı listede satırın geri kalanı eskisi gibi Yönetim › Üyeler'i açar.

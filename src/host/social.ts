@@ -128,9 +128,14 @@ async function chatVisible(): Promise<boolean> {
  * Öndeki sohbet penceresinin (panel ya da Arkadaşlar penceresi) şu an gösterdiği özel sohbet: arkadaş kimliği,
  * sohbet açık değilse "", hiçbir sohbet penceresi önde değilse null
  */
-async function focusedChat(): Promise<string | null> {
+async function focusedChat(sender?: string): Promise<string | null> {
   try {
     const { Window } = await import("@tauri-apps/api/window");
+    // Arkadaşın kendi sohbet penceresi önde mi
+    if (sender) {
+      const c = await Window.getByLabel("chat");
+      if (c && (await c.isVisible()) && !(await c.isMinimized()) && (await c.isFocused()) && localStorage.getItem(chatOpenKey("chat")) === sender) return sender;
+    }
     for (const label of ["main", "friends"]) {
       const w = await Window.getByLabel(label);
       if (w && (await w.isVisible()) && !(await w.isMinimized()) && (await w.isFocused())) return localStorage.getItem(chatOpenKey(label)) ?? "";
@@ -469,6 +474,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
             color: tm.color,
             photo: teamLogo(tm.logo_path),
           });
+          invoke("chat_window_notify", { friend: teamChatKey(tm.team_id) }).catch(() => {});
           messageBeep();
         })();
       },
@@ -526,6 +532,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
         }
         if (await chatVisible()) return;
         void popup("group", { friend_id: groupChatKey(g.group_id), display_name: g.name }, body, m.id, { color: hashColor(g.group_id), photo: "" });
+        invoke("chat_window_notify", { friend: groupChatKey(g.group_id) }).catch(() => {});
         messageBeep();
       })();
     });
@@ -565,7 +572,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
     // Steam gibi sağ alt açılır pencere + ses. Yalnızca öndeki pencere zaten bu sohbeti gösteriyorsa çıkmaz
     // (panel önde ama başka bir sayfadaysa da çıkar: eskiden panel öndeyken hiç bildirim gelmiyordu).
     void (async () => {
-      if ((await focusedChat()) === m.sender) return socialLog(`${tag}: bildirim yok (sohbet acik ve onde)`);
+      if ((await focusedChat(m.sender)) === m.sender) return socialLog(`${tag}: bildirim yok (sohbet acik ve onde)`);
       // Yeni eklenen arkadaş listede henüz yoksa adını almak için listeyi yenile
       let who = f;
       if (!who) {
@@ -577,6 +584,8 @@ export function startSocial(status: Accessor<Status | undefined>) {
       socialLog(`${tag}: acilir pencere isteniyor, ses=${snd}`);
       if (snd) messageBeep();
       void popup("message", who ?? { friend_id: m.sender, display_name: "?" }, emojify(msgPreview(m)), m.id);
+      // Steam gibi: arkadaşın sohbet penceresi görev çubuğunda belirir ve yanıp söner (odak çalmaz; yarışta yapılmaz)
+      invoke("chat_window_notify", { friend: m.sender }).catch(() => {});
     })();
   };
   // Yoklamada okunmamış sayısı artmış ama Realtime o mesajı getirmemiş (bağlantı kopuktu): en yeni mesajı bildir

@@ -4976,3 +4976,32 @@ body.ov-dragging * {
   cursor: move;
   touch-action: none;
 }
+.ovlist-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ovlist-pick select {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+.ovitem-fav {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  margin-left: 4px;
+  color: #ffc24a;
+}
+.ovitem-fav svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+/* Üst çubuk sol menü çubuğuyla aynı renkte */
+.top2 {
+  background: var(--rail);
+  border-bottom-color: #1a1d24;
+}

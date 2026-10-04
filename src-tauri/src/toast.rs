@@ -166,6 +166,10 @@ pub async fn toast_open_chat(app: AppHandle, friend: Option<String>) -> Result<(
         let rest = id.strip_prefix("team:").or_else(|| id.strip_prefix("group:")).unwrap_or(id);
         !rest.is_empty() && rest.len() <= 40 && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
     });
+    // Sohbet penceresinde o sohbetin sekmesi açılır (arkadaş, takım odası ya da grup)
+    if let Some(id) = friend.as_deref() {
+        return crate::window_open(app.clone(), format!("chat:{id}")).await;
+    }
     *PENDING_CHAT.lock() = friend;
     crate::window_open(app.clone(), "friends".into()).await?;
     // Pencere zaten açıksa olayı dinler; yeni açılıyorsa yüklenince `friends_take_chat` ile alır

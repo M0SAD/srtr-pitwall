@@ -25,7 +25,7 @@ const OPTS: Opt[] = [
 
 // Oyun ikonları: src/assets/simlogos/<id>.png / .svg (bkz. o klasördeki README.md). Dosya yoksa kısa ad yazılır.
 // Yönetici Yönetim › Görünürlük'ten ikonları kapatabilir (app_config.sim_icons, c51): o zaman herkes yazılı görünümü görür.
-const ICONS: Record<string, string> = (() => {
+export const ICONS: Record<string, string> = (() => {
   const mods = import.meta.glob(["../../assets/simlogos/*.png", "../../assets/simlogos/*.svg"], { eager: true, query: "?url", import: "default" }) as Record<string, string>;
   const out: Record<string, string> = {};
   // png önce, svg sonra: svg aynı adın üzerine yazar

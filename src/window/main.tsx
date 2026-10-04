@@ -23,7 +23,7 @@ document.addEventListener("contextmenu", (e) => {
 
 const root = document.getElementById("root")!;
 const view = query.get("view") ?? "pitwall";
-const social = view === "friends" || view === "friend";
+const social = view === "friends" || view === "friend" || view === "chat";
 // Olaylar penceresi panelin görünümünü kullanır (app.css + shell.css)
 const events = view === "events";
 // Ekip Pitwall'ı penceresi (tek sürücü): paneldeki Ekip sayfasının aynısı
@@ -32,7 +32,8 @@ const crew = view === "crew";
 const toast = view === "toast";
 // Kısayol bildirimi (üst orta, saydam, tıklama geçirir): bkz. src-tauri/src/osd.rs
 const osd = view === "osd";
-if (toast || osd) document.documentElement.classList.add("toast-root");
+const traymenu = view === "traymenu";
+if (toast || osd || traymenu) document.documentElement.classList.add("toast-root");
 document.title =
   view === "timing"
     ? "SRTR Pitwall – Live Timing"
@@ -44,7 +45,7 @@ document.title =
         ? "SRTR Pitwall – Olaylar"
         : crew
         ? "SRTR Pitwall – Ekip Pitwall'ı"
-        : view === "friend" || view === "toast" || osd
+        : view === "friend" || view === "chat" || view === "toast" || osd || traymenu
           ? "SRTR Pitwall"
           : "SRTR Pitwall – Pitwall Paneli";
 
@@ -55,8 +56,9 @@ initSettings(`window-${view}`).then(async () => {
     await import("@/app/app.css");
     await import("@/app/shell.css");
   }
-  const { FriendsWindow, FriendWindow } = social ? await import("./Friends") : ({} as typeof import("./Friends"));
+  const { FriendsWindow, FriendWindow, ChatWindow } = social ? await import("./Friends") : ({} as typeof import("./Friends"));
   const { Toast } = toast ? await import("./Toast") : ({} as typeof import("./Toast"));
+  const { TrayMenu } = traymenu ? await import("./TrayMenu") : ({} as typeof import("./TrayMenu"));
   const { Osd } = osd ? await import("./Osd") : ({} as typeof import("./Osd"));
   const { CrewWindow } = crew ? await import("./Crew") : ({} as typeof import("./Crew"));
   const { Events } = events ? await import("./Events") : ({} as typeof import("./Events"));
@@ -79,8 +81,12 @@ initSettings(`window-${view}`).then(async () => {
           <Toast />
         ) : osd ? (
           <Osd />
+        ) : traymenu ? (
+          <TrayMenu />
         ) : view === "friends" ? (
           <FriendsWindow chat={query.get("chat") ?? ""} />
+        ) : view === "chat" ? (
+          <ChatWindow id={query.get("id") ?? ""} />
         ) : view === "friend" ? (
           <FriendWindow id={query.get("id") ?? ""} />
         ) : crew ? (
@@ -99,6 +105,6 @@ initSettings(`window-${view}`).then(async () => {
     root,
   );
   import.meta.hot?.dispose(dispose);
-  if (!toast && !osd) startEntitlement();
+  if (!toast && !osd && !traymenu) startEntitlement();
   startProFeatures(false);
 });

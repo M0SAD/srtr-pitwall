@@ -949,3 +949,713 @@
 @media (prefers-reduced-motion: reduce) {
   .ftyping-dots b { animation: none; opacity: 0.7; }
 }
+
+/* ---------- Ayrı Arkadaşlar penceresi: Steam arkadaş listesi düzeni ---------- */
+.fdock-panel.standalone {
+  position: relative;
+  background: #1b2129;
+}
+.fdock-panel.standalone > header.fst-hide {
+  display: none;
+}
+.fst-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #2a3545, #1f2733);
+}
+.fst-me .fav {
+  border-radius: 3px;
+}
+.fst-av {
+  display: inline-flex;
+  flex: none;
+}
+.fst-me-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fst-me-main > b {
+  font-size: 16px;
+  color: #6fc3ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fx .fst-me .fdock-me {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.fst-me .fme-chip {
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+}
+.fst-bar,
+.fst-foot-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 12px;
+  background: #323d4d;
+  color: #dfe6ee;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fst-bar .icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.fst-foot {
+  flex: none;
+  border-top: 1px solid #10141a;
+}
+.fst-foot-btn {
+  width: 100%;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 9px 26px 9px 12px;
+  text-align: left;
+}
+.fst-foot-btn:hover {
+  background: #3b4859;
+}
+.fst-foot-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.fdock-panel.standalone .fdock-list {
+  flex: 1;
+  min-height: 0;
+}
+/* Kategoriler arasında çizgi */
+.fdock-panel.standalone .fdock-list > .fdock-sec:not(:first-child) {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #36506b;
+}
+.fdock-panel.standalone .fdock-sec {
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* Sağ alt köşe: boyutlandırma noktaları */
+.fst-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 5;
+  background-image: radial-gradient(circle, #8b97a6 1px, transparent 1.3px);
+  background-size: 4px 4px;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  opacity: 0.8;
+}
+.fst-av {
+  cursor: pointer;
+}
+.fsec-sort {
+  display: inline-grid;
+  place-items: center;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--muted);
+}
+.fsec-sort:hover {
+  color: var(--text);
+  background: #262b36;
+}
+.fx .fdock-sec .fsec-sort svg {
+  width: 15px;
+  height: 15px;
+  transform: none;
+}
+.frow-sim {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Steam gibi: kapalı/açık kategori başlıkları ("+ Oyunda (3)") ve alttaki Takım sohbetleri bölmesi */
+.fdock-panel.standalone .fdock-sec > svg:first-child {
+  display: none;
+}
+.fdock-panel.standalone .fdock-sec::before {
+  content: "–";
+  width: 8px;
+  margin-left: -6px;
+  color: #6b7785;
+  font-weight: 400;
+}
+.fdock-panel.standalone .fdock-sec.closed::before {
+  content: "+";
+}
+.fdock-panel.standalone .fdock-sec {
+  color: #e6ebf1;
+  font-weight: 600;
+  padding-bottom: 10px;
+}
+.fdock-panel.standalone .fdock-sec > i {
+  background: none;
+  color: #7c8794;
+  padding: 0;
+  font-style: normal;
+  font-weight: 400;
+  box-shadow: none;
+}
+.fdock-panel.standalone .fdock-sec > i::before {
+  content: "(";
+}
+.fdock-panel.standalone .fdock-sec > i::after {
+  content: ")";
+}
+.fst-foot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 14px;
+  background: #232b37;
+}
+.fst-foot.open {
+  max-height: 45%;
+}
+.fst-foot-btn {
+  flex: none;
+  box-sizing: border-box;
+  padding: 5px 8px 5px 6px;
+}
+.fst-foot-btn .fst-chev {
+  width: 14px;
+  height: 14px;
+  color: #8b97a6;
+  transform: rotate(180deg);
+  transition: transform 0.15s;
+}
+.fst-foot.open .fst-chev {
+  transform: none;
+}
+.fdock-panel.standalone .fst-rooms {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.fme-menu .fme-edit {
+  border-top: 1px solid var(--line);
+}
+.fme-menu .fme-edit svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Ayrı pencere: üst bölüm ve alt çubuk sabit, yalnızca liste kayar (fare tekeriyle) */
+.fdock-panel.standalone .fst-me,
+.fdock-panel.standalone .fst-bar,
+.fdock-panel.standalone .fsearch {
+  flex: none;
+}
+.fdock-panel.standalone .fdock-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fdock-panel.standalone .fdock-list > * {
+  flex: none;
+}
+.fdock-panel.standalone .fdock-list::-webkit-scrollbar {
+  width: 8px;
+}
+.fdock-panel.standalone .fdock-list::-webkit-scrollbar-thumb {
+  background: #4a5564;
+  border-radius: 4px;
+}
+.fdock-panel.standalone .fdock-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fdock-panel.standalone .fsec-unread {
+  color: #ffd34d;
+}
+.fx .frow-unread {
+  background: #5a4a12;
+  color: #ffd34d;
+  border-radius: 5px;
+}
+
+/* Arama: ARKADAŞLAR çubuğunun içinde, yumuşakça sola doğru açılır */
+.fst-bar {
+  position: relative;
+  min-height: 30px;
+  box-sizing: border-box;
+}
+.fst-search {
+  position: absolute;
+  right: 34px;
+  top: 3px;
+  bottom: 3px;
+  width: 0;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  overflow: hidden;
+  background: #171c24;
+  border-radius: 3px;
+  transition: width 0.22s ease, opacity 0.18s ease, padding 0.22s ease;
+  pointer-events: none;
+}
+.fst-bar.searching .fst-search {
+  width: calc(100% - 42px);
+  opacity: 1;
+  padding: 0 2px 0 7px;
+  pointer-events: auto;
+}
+.fst-search > svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: #7c8794;
+}
+.fst-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: #e6ebf1;
+  font: inherit;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.fst-search input::placeholder {
+  font-style: italic;
+  color: #6b7785;
+}
+.fst-bar-title {
+  transition: opacity 0.15s;
+}
+.fst-bar.searching .fst-bar-title {
+  opacity: 0;
+}
+/* Favori arkadaşlar şeridi */
+.fst-favs {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 8px 8px 6px;
+  overflow-x: auto;
+  background: #1f2733;
+}
+.fst-fav {
+  flex: none;
+  width: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: #9fd0ff;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.fst-fav .fav {
+  border-radius: 3px;
+}
+.fst-fav > span:last-child {
+  max-width: 54px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fst-fav:hover {
+  color: #fff;
+}
+/* Kişiler arasında gezinirken yumuşak geçiş */
+.fx .frow {
+  transition: background 0.2s ease;
+}
+.fdock-panel.standalone .frow {
+  border-radius: 0;
+}
+.fdock-panel.standalone .frow:hover,
+.fdock-panel.standalone .frow.menu {
+  background: #2c3644;
+}
+
+/* ================= Steam tarzı sohbet (balonsuz, düz liste; sakin renkler) ================= */
+.fx .fchat.stm {
+  background: #1b1f26;
+}
+.fx .fchat.stm .fchat-msgs {
+  padding: 8px 0 10px;
+  gap: 0;
+}
+.fx .fchat.stm .fmsg.fmsg {
+  align-self: stretch;
+  max-width: none;
+  margin: 0;
+  padding: 2px 14px 2px 52px;
+  border-radius: 0;
+  background: none;
+  color: #d5dae1;
+  transition: background 0.15s ease;
+}
+.fx .fchat.stm .fmsg.fmsg.first {
+  margin-top: 10px;
+}
+.fx .fchat.stm .fmsg.fmsg:hover {
+  background: #252b34;
+}
+.fx .fchat.stm .fmsg p {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.fx .fchat.stm .fmsg > small {
+  display: none;
+}
+.fmsg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 1px;
+}
+.fmsg-head .fav {
+  position: absolute;
+  left: 12px;
+  top: 3px;
+  border-radius: 3px;
+}
+.fmsg-head b {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #9ad1ff;
+}
+.fx .fchat.stm .fmsg.mine .fmsg-head b {
+  color: #5fa8d8;
+}
+.fmsg-head small {
+  font-size: 11px;
+  color: #68727f;
+}
+.fx .fchat.stm .tmsg-who {
+  font-size: 14px;
+}
+.fx .fchat.stm .fmsg.tmsg {
+  padding-left: 14px;
+}
+.fx .fchat.stm .fmsg.jumbo {
+  background: none;
+}
+.fx .fchat.stm .fday span {
+  color: #68727f;
+}
+.fx .fchat.stm .fcompose {
+  background: #171a20;
+  border-top: 1px solid #0f1216;
+}
+.fx .fchat.stm .fcompose .input {
+  background: #22272f;
+  border-color: #2c333d;
+  color: #e3e7ec;
+}
+
+/* Sohbet penceresi: sekmeler */
+.cwin {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1b1f26;
+}
+.cwin-tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 4px 4px 0;
+  background: #12151a;
+  overflow-x: auto;
+}
+.cwin-tab {
+  position: relative;
+  flex: 0 1 190px;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 8px;
+  border-radius: 4px 4px 0 0;
+  background: #1a1e25;
+  color: #8fa0b3;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cwin-tab:hover {
+  background: #232831;
+}
+.cwin-tab.on {
+  background: #2a3140;
+  color: #e6ebf1;
+}
+.cwin-tab .fav {
+  border-radius: 3px;
+}
+.cwin-tab-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.cwin-tab-name b {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cwin-tab-name small {
+  font-size: 11px;
+  color: #6f7b89;
+}
+.cwin-dot {
+  display: none;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffd34d;
+  box-shadow: 0 0 6px #ffd34d;
+}
+.cwin-tab.unread .cwin-dot {
+  display: block;
+}
+.cwin-tab.unread b {
+  color: #ffd34d;
+}
+.cwin-x {
+  flex: none;
+  border: 0;
+  background: none;
+  color: #7c8794;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 3px;
+}
+.cwin-x:hover {
+  color: #fff;
+}
+.cwin-body {
+  flex: 1;
+  min-height: 0;
+}
+.cwin-body .fdock-panel.standalone {
+  height: 100%;
+}
+.cwin-body .fdock-panel.standalone > header .fhead-who {
+  display: none;
+}
+.frow-flag.fav-star svg {
+  color: #ffc24a;
+  fill: currentColor;
+}
+
+/* Mesaj ifadeleri */
+.fmsg-reacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 3px 0 2px;
+}
+.fmsg-reacts button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px 1px 5px;
+  border-radius: 10px;
+  border: 1px solid #323a46;
+  background: #232932;
+  color: #b9c2cd;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.fmsg-reacts button:hover {
+  background: #2d3540;
+}
+.fmsg-reacts button.mine {
+  border-color: #4d86b8;
+  background: #213447;
+  color: #cfe6fa;
+}
+.fmsg-reacts .emo {
+  font-size: 14px;
+}
+.fmsg-react-pick {
+  display: flex;
+  gap: 2px;
+  padding: 4px 4px 6px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 3px;
+}
+.frow-menu .fmsg-react-pick button {
+  width: auto;
+  flex: 1;
+  justify-content: center;
+  padding: 4px 0;
+  font-size: 17px;
+  border-radius: 6px;
+}
+
+/* Sohbet penceresi: yeni mesaj gelen sekme farklı renkte; grup sekmesinde üyeler sağda */
+.cwin-tab.unread {
+  background: #4a3d12;
+  color: #ffe9a6;
+}
+.cwin-tab.unread:hover {
+  background: #5a4a16;
+}
+.cwin-body .fchat.tchat {
+  position: relative;
+}
+.cwin-body .fchat.tchat:has(> .cbg-panel) {
+  padding-right: 240px;
+}
+.cwin-body .fchat.tchat > .cbg-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 240px;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  border-left: 1px solid #0f1216;
+  border-radius: 0;
+  background: #1f242c;
+  overflow-y: auto;
+  max-height: none;
+  z-index: 2;
+}
+
+/* Oda bildirim ayarları penceresi */
+.fnotif-back {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 10, 14, 0.6);
+}
+.fdock-panel {
+  position: relative;
+}
+.fnotif {
+  position: relative;
+  width: min(460px, 100%);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px 20px;
+  border-radius: 6px;
+  background: #262d38;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+.fnotif h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.fnotif-sub {
+  margin: -8px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9aa6b4;
+}
+.fnotif label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9aa6b4;
+}
+.fnotif select {
+  padding: 9px 10px;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  background: #333c49;
+  border-color: #3d4756;
+}
+.fnotif-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+/* Kendi mesajlarımda da saat okunur renkte */
+.fx .fchat.stm .fmsg .fmsg-head small,
+.fx .fchat.stm .fmsg.mine .fmsg-head small {
+  display: inline;
+  margin: 0;
+  font-size: 11px;
+  color: #7c8794;
+}
+
+/* Sohbet penceresi: seçili sekme belirgin (turuncu üst çizgi, sohbet zeminiyle birleşen açık renk); diğerleri soluk */
+.cwin-tabs {
+  padding-top: 6px;
+  border-bottom: 2px solid #ff8a2a;
+}
+.cwin-tab {
+  opacity: 0.6;
+  border-top: 2px solid transparent;
+}
+.cwin-tab:hover {
+  opacity: 0.9;
+}
+.cwin-tab.on {
+  opacity: 1;
+  background: linear-gradient(180deg, #3a2a1a, #2a3140 70%);
+  border-top-color: #ff8a2a;
+  box-shadow: 0 -2px 10px rgba(255, 138, 42, 0.25);
+}
+.cwin-tab.on .cwin-tab-name b {
+  color: #fff;
+}
+.cwin-tab.unread {
+  opacity: 1;
+}
+.cwin-tab-name small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cwin-tab {
+  flex-basis: 230px;
+}
+/* "… yazıyor" satırı için her zaman ayrılmış boşluk (mesajların üstüne binmesin) */
+.ftyping {
+  flex: none;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 4px 14px 4px;
+}

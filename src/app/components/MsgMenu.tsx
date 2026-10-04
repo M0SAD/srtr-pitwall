@@ -1,7 +1,8 @@
 // Mesaj menüsü (1:1, grup ve takım sohbetinde aynı): mesaja tıklayınca / sağ tıklayınca / dokunmatikte basılı tutunca açılır.
 // Kopyala · Benden sil · Herkesten sil (kurallar izin veriyorsa) · Raporla (başkasının mesajı).
 // Verilmeyen işlem menüde görünmez. Dışına tıklayınca kapatma, sohbetin kendi "mousedown" dinleyicisindedir (.fmsg-menu).
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
+import { QUICK_REACTIONS, type Reaction } from "@/cloud/reactions";
 import * as I from "../icons";
 
 export interface MsgMenuPos {
@@ -12,18 +13,15 @@ export interface MsgMenuPos {
 /** Menünün pencere içinde kalacağı konum */
 export const msgMenuPos = (e: MouseEvent): MsgMenuPos => ({
   x: Math.max(4, Math.min(e.clientX, window.innerWidth - 210)),
-  y: Math.max(4, Math.min(e.clientY, window.innerHeight - 170)),
+  y: Math.max(4, Math.min(e.clientY, window.innerHeight - 215)),
 });
 
 /**
- * Sol tıkla menü açılsın mı: bağlantıya / düğmeye tıklanmadıysa ve metin seçilmiyorsa.
- * (Sağ tık ve basılı tutma her zaman açar.)
+ * Sol tıkla menü açılsın mı: artık açılmaz (sağ tık ve basılı tutma açar).
  */
-export function msgClickOpens(e: MouseEvent): boolean {
-  if (e.button !== 0 || e.defaultPrevented) return false;
-  if ((e.target as HTMLElement).closest("a, button, input, textarea, .fmsg-menu")) return false;
-  const sel = window.getSelection?.();
-  return !sel || sel.isCollapsed;
+export function msgClickOpens(_e: MouseEvent): boolean {
+  // Sol tık mesaja bir şey yapmaz (metin seçilebilsin); menü yalnızca sağ tıkla açılır
+  return false;
 }
 
 export function MsgMenu(props: {
@@ -37,9 +35,16 @@ export function MsgMenu(props: {
   deleteTitle?: string;
   /** Yöneticilere raporla (başkasının mesajı) */
   onReport?: () => void;
+  /** İfade bırak / kaldır */
+  onReact?: (emoji: string) => void;
 }) {
   return (
     <div class="frow-menu fmsg-menu" style={{ left: `${props.pos.x}px`, top: `${props.pos.y}px` }} onContextMenu={(e) => e.preventDefault()}>
+      <Show when={props.onReact}>
+        <div class="fmsg-react-pick">
+          <For each={QUICK_REACTIONS}>{(e) => <button onClick={() => props.onReact?.(e)}>{e}</button>}</For>
+        </div>
+      </Show>
       <Show when={props.onCopy}>
         <button onClick={() => props.onCopy?.()}>
           <I.Copy /> Kopyala
@@ -61,5 +66,23 @@ export function MsgMenu(props: {
         </button>
       </Show>
     </div>
+  );
+}
+
+/** Mesajın altındaki ifade çipleri (tıkla: sen de ekle / kaldır) */
+export function ReactionRow(props: { list: Reaction[]; onToggle: (emoji: string) => void }) {
+  return (
+    <Show when={props.list.length > 0}>
+      <div class="fmsg-reacts" onClick={(e) => e.stopPropagation()}>
+        <For each={props.list}>
+          {(r) => (
+            <button classList={{ mine: r.mine }} title={r.names.join(", ")} onClick={() => props.onToggle(r.emoji)} data-no-i18n>
+              <span class="emo">{r.emoji}</span>
+              <b>{r.n}</b>
+            </button>
+          )}
+        </For>
+      </div>
+    </Show>
   );
 }

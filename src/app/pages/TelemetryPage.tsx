@@ -67,7 +67,39 @@ const replaceTop = (v: View) => setStack([...stack().slice(0, -1), v]);
 /** Başka sayfadan (Yarışçılar) bir üyenin telemetrisini aç */
 export function openDriverTelemetry(id: string) {
   go("telemetry", "overview");
+  setCmpNote("");
   setStack([{ kind: "user", id }]);
+}
+
+const [cmpNote, setCmpNote] = createSignal("");
+
+/** Arkadaş menüsü › "Telemetri kıyasla": ikimizin de aynı pistte (tercihen aynı araçla) izli en iyi turu varsa
+ *  doğrudan tur analizini açar; yoksa üyenin telemetri profilini açıp nedenini yazar. */
+export async function compareWithDriver(id: string) {
+  openDriverTelemetry(id);
+  setCmpNote("");
+  const me = session()?.user.id;
+  if (!me || me === id || proLocked(F.teleOthers)) return;
+  try {
+    const [mine, theirs] = await Promise.all([telemetryOverview(me), telemetryOverview(id)]);
+    const a = (mine?.bests ?? []).filter((b) => b.has_trace);
+    const b = (theirs?.bests ?? []).filter((x) => x.has_trace);
+    let best: { my: string; their: string; score: number } | null = null;
+    for (const t of b) {
+      for (const m of a) {
+        if (m.sim !== t.sim || m.track_id !== t.track_id || m.track_config !== t.track_config) continue;
+        // Aynı araç önce; sonra en yeni sürülen
+        const score = (m.car_id === t.car_id ? 1e15 : 0) + Math.max(Date.parse(t.driven_at) || 0, Date.parse(m.driven_at) || 0);
+        if (!best || score > best.score) best = { my: m.lap_id, their: t.lap_id, score };
+      }
+    }
+    const cur = view();
+    if (cur.kind !== "user" || cur.id !== id) return; // bu arada başka yere geçildi
+    if (best) push({ kind: "analysis", laps: [best.my, best.their] });
+    else setCmpNote(t("Kıyaslanacak ortak pist bulunamadı: ikinizin de aynı pistte telemetri kaydı olan bir turu olmalı."));
+  } catch {
+    // profil açık kalır
+  }
 }
 
 // Ayrı arkadaş penceresinden "Profil" (panel-go { tele }): panel penceresi bu üyenin telemetri profilini açar
@@ -127,6 +159,11 @@ export function TelemetryPage(p: { sub: string }) {
             <button class="btn ghost small tele-back" onClick={back}>
               <I.ChevronLeft /> Geri
             </button>
+          </Show>
+          <Show when={cmpNote() && view().kind === "user"}>
+            <p class="muted small" onClick={() => setCmpNote("")}>
+              {cmpNote()}
+            </p>
           </Show>
           <Switch>
             <Match when={view().kind === "home"}>

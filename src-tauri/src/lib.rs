@@ -663,14 +663,138 @@ async fn crew_window_open(app: AppHandle, owner: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Araç penceresini aç; zaten açık ve görünürse kapat (arayüzdeki "Arkadaşlar" düğmesi)
+#[tauri::command]
+async fn window_toggle(app: AppHandle, view: String) -> Result<bool, String> {
+    if let Some(w) = app.get_webview_window(&view) {
+        if w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false) {
+            let _ = w.close();
+            return Ok(false);
+        }
+    }
+    window_open(app, view).await?;
+    Ok(true)
+}
+
+fn valid_uuid(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 40 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+}
+
+/// Sohbet penceresine açılması istenen sekmeler (arkadaş kimliği, öne getir mi); sayfa `chat_tabs_take` ile alır
+static CHAT_TABS: Mutex<Vec<(String, bool)>> = Mutex::new(Vec::new());
+const CHAT_WIN: &str = "chat";
+
+/// Sohbet penceresi (Steam gibi tek pencere, her arkadaş bir sekme). `front`: öne getir ve o sekmeyi seç;
+/// değilse (yeni mesaj geldi) pencere yoksa görev çubuğunda simge durumunda, odak çalmadan açılır.
+fn chat_window(app: &AppHandle, id: &str, front: bool) -> Result<(), String> {
+    // Arkadaş kimliği, takım odası ("team:<id>") ya da grup sohbeti ("group:<id>")
+    if !valid_uuid(id.strip_prefix("team:").or_else(|| id.strip_prefix("group:")).unwrap_or(id)) {
+        return Err("geçersiz sohbet".into());
+    }
+    {
+        let mut q = CHAT_TABS.lock();
+        q.push((id.to_string(), front));
+        let n = q.len();
+        if n > 40 {
+            q.drain(..n - 40);
+        }
+    }
+    if let Some(w) = app.get_webview_window(CHAT_WIN) {
+        let _ = app.emit_to(CHAT_WIN, "chat-tab", ());
+        if front {
+            let _ = w.unminimize();
+            let _ = w.show();
+            let _ = w.set_focus();
+        }
+        return Ok(());
+    }
+    let w = WebviewWindowBuilder::new(app, CHAT_WIN, WebviewUrl::App("window.html?view=chat".into()))
+        .title("SRTR Pitwall")
+        .inner_size(740.0, 640.0)
+        .min_inner_size(420.0, 340.0)
+        .focused(front)
+        .visible(front)
+        .additional_browser_args(browser_args())
+        .build()
+        .map_err(|e| e.to_string())?;
+    if !front {
+        show_minimized(&w);
+    }
+    Ok(())
+}
+
+/// Pencereyi görev çubuğunda simge durumunda, ETKİNLEŞTİRMEDEN göster (odak çalınmaz; pencere "tıklanmış" sayılmaz)
+#[cfg(windows)]
+fn show_minimized(w: &tauri::WebviewWindow) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{ShowWindow, SW_SHOWMINNOACTIVE};
+    if let Ok(h) = w.hwnd() {
+        unsafe {
+            ShowWindow(h.0 as _, SW_SHOWMINNOACTIVE);
+        }
+    }
+}
+#[cfg(not(windows))]
+fn show_minimized(w: &tauri::WebviewWindow) {
+    let _ = w.minimize();
+    let _ = w.show();
+}
+
+/// Görev çubuğu düğmesini, pencere öne gelene kadar renkli (yanıp sönen) yap
+#[cfg(windows)]
+fn flash_taskbar(w: &tauri::WebviewWindow) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{FlashWindowEx, FLASHWINFO, FLASHW_TIMERNOFG, FLASHW_TRAY};
+    if let Ok(h) = w.hwnd() {
+        let info = FLASHWINFO {
+            cbSize: std::mem::size_of::<FLASHWINFO>() as u32,
+            hwnd: h.0 as _,
+            dwFlags: FLASHW_TRAY | FLASHW_TIMERNOFG,
+            uCount: u32::MAX,
+            dwTimeout: 0,
+        };
+        unsafe {
+            FlashWindowEx(&info);
+        }
+    }
+}
+#[cfg(not(windows))]
+fn flash_taskbar(w: &tauri::WebviewWindow) {
+    let _ = w.request_user_attention(Some(tauri::UserAttentionType::Informational));
+}
+
+/// Sohbet penceresi: bekleyen sekme istekleri (bir kez verilir)
+#[tauri::command]
+fn chat_tabs_take() -> Vec<(String, bool)> {
+    std::mem::take(&mut *CHAT_TABS.lock())
+}
+
+/// Yeni özel mesaj: sohbet penceresi görev çubuğunda belirir (yoksa simge durumunda açılır), arkadaşın sekmesi
+/// eklenir ve pencere önde değilse görev çubuğu düğmesi yanıp söner (Steam gibi). Odak çalınmaz.
+#[tauri::command]
+async fn chat_window_notify(app: AppHandle, friend: String) -> Result<(), String> {
+    chat_window(&app, &friend, false)?;
+    if let Some(w) = app.get_webview_window(CHAT_WIN) {
+        // Önde ve odakta değilse (simge durumunda ya da başka pencerenin arkasında) görev çubuğunda renkli görünür
+        let front = w.is_focused().unwrap_or(false) && !w.is_minimized().unwrap_or(false) && w.is_visible().unwrap_or(false);
+        if !front {
+            flash_taskbar(&w);
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
     let (label, title, w, h) = match view.as_str() {
         "pitwall" => ("pitwall", "Pitwall Paneli", 1500.0, 900.0),
         "timing" => ("timing", "Live Timing", 1100.0, 800.0),
         "engineer" => ("engineer", "Mühendis Ekranı", 1000.0, 600.0),
-        "friends" => ("friends", "Arkadaşlar", 380.0, 680.0),
+        "friends" => ("friends", "Arkadaşlar", 380.0, 680.0), // başlık aşağıda "SRTR Pitwall - Arkadaşlar"
         "events" => ("events", "Olaylar", 720.0, 760.0),
+        v if v.starts_with("chat:") => {
+            // Bir arkadaşla sohbet (Steam gibi: her sohbet görev çubuğunda ayrı pencere)
+            let id = &v["chat:".len()..];
+            return chat_window(&app, id, true);
+        }
         v if v.starts_with("friend:") => {
             // Bir arkadaşın canlı verisi (her arkadaş için ayrı pencere)
             let id = &v["friend:".len()..];
@@ -704,7 +828,7 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
     // Son kullanılan konum/boyut (bağlı bir monitördeyse); pencere gizli açılıp yerleştirildikten sonra gösterilir
     let saved = winstate::restore(&app, label);
     let win = WebviewWindowBuilder::new(&app, label, WebviewUrl::App(format!("window.html?view={view}").into()))
-        .title(format!("SRTR Pitwall – {}", tr(&app, title)))
+        .title(format!("SRTR Pitwall {} {}", if label == "friends" { "-" } else { "–" }, tr(&app, title)))
         .inner_size(w, h)
         .min_inner_size(
             match label {
@@ -1588,6 +1712,102 @@ fn open_panel(app: &AppHandle) {
         });
 }
 
+fn tray_action(app: &AppHandle, id: &str) {
+    match id {
+        "open" => bring_panel_front(app),
+        "friends" => open_friends(app),
+        "events" => open_events(app),
+        "edit" => {
+            let on = !shared(app).edit_mode.load(Ordering::Relaxed);
+            set_edit_mode(app, on);
+        }
+        "hide" => toggle_hidden(app),
+        "quit" => quit_app(app),
+        _ => {}
+    }
+}
+
+const TRAY_MENU: &str = "traymenu";
+/// Tepsi menüsü penceresinin mantıksal boyutu (src/window/TrayMenu.tsx ile aynı: 6 satır + ayırıcı + iç boşluk)
+const TRAY_MENU_W: f64 = 250.0;
+const TRAY_MENU_H: f64 = 6.0 * 34.0 + 9.0 + 12.0;
+
+/// Tepsi sağ tık menüsü: kenarlıksız, saydam, her zaman üstte küçük pencere (gizli oluşturulur, odak kaybedince gizlenir)
+fn tray_menu_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    if let Some(w) = app.get_webview_window(TRAY_MENU) {
+        return Ok(w);
+    }
+    let w = WebviewWindowBuilder::new(app, TRAY_MENU, WebviewUrl::App("window.html?view=traymenu".into()))
+        .title("SRTR Pitwall")
+        .inner_size(TRAY_MENU_W, TRAY_MENU_H)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .visible(false)
+        .additional_browser_args(browser_args())
+        .build()
+        .map_err(|e| e.to_string())?;
+    let w2 = w.clone();
+    w.on_window_event(move |e| {
+        if let tauri::WindowEvent::Focused(false) = e {
+            let _ = w2.hide();
+        }
+    });
+    Ok(w)
+}
+
+/// Menüyü imlecin (tepsi simgesinin) üstünde, ekranın içinde kalacak şekilde göster
+fn tray_menu_show(app: &AppHandle, x: f64, y: f64) {
+    let Ok(w) = tray_menu_window(app) else { return };
+    let scale = w.scale_factor().unwrap_or(1.0).max(0.5);
+    let (pw, ph) = (TRAY_MENU_W * scale, TRAY_MENU_H * scale);
+    let (mut px, mut py) = (x - pw, y - ph);
+    let mon = app.monitor_from_point(x, y).ok().flatten().or_else(|| app.primary_monitor().ok().flatten());
+    if let Some(m) = mon {
+        let (mx, my) = (m.position().x as f64, m.position().y as f64);
+        let (mw, mh) = (m.size().width as f64, m.size().height as f64);
+        if px < mx {
+            px = x.min(mx + mw - pw);
+        }
+        if py < my {
+            py = y.min(my + mh - ph);
+        }
+    }
+    let _ = w.set_position(tauri::PhysicalPosition::new(px.round() as i32, py.round() as i32));
+    let _ = app.emit_to(TRAY_MENU, "traymenu-open", ());
+    let _ = w.show();
+    let _ = w.set_focus();
+}
+
+/// Menü satırları: (eylem, etiket). Etiketler tepsi öğeleriyle aynıdır (çeviri ve kısayol yazısı dahil).
+#[tauri::command]
+fn tray_menu_items(app: AppHandle) -> Vec<(String, String)> {
+    let st = app.state::<KeyBindings>();
+    let items = st.tray.lock();
+    let mut out: Vec<(String, String)> = Vec::new();
+    for want in ["panel", "friends", "events", "edit", "hide", "quit"] {
+        if let Some((a, it)) = items.iter().find(|(a, _)| a == want) {
+            out.push((a.clone(), it.text().unwrap_or_default()));
+        }
+    }
+    out
+}
+
+#[tauri::command]
+async fn tray_menu_run(app: AppHandle, id: String) {
+    if let Some(w) = app.get_webview_window(TRAY_MENU) {
+        let _ = w.hide();
+    }
+    let id = if id == "panel" { "open".to_string() } else { id };
+    let app2 = app.clone();
+    let _ = app.run_on_main_thread(move || tray_action(&app2, &id));
+}
+
 fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", TRAY_LABELS[2].1, true, None::<&str>)?;
     let edit = MenuItem::with_id(app, "edit", TRAY_LABELS[0].1, true, None::<&str>)?;
@@ -1606,22 +1826,21 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     app.state::<KeyBindings>().tray.lock().push(("quit".into(), quit.clone()));
     let menu = Menu::with_items(app, &[&open, &friends, &events, &edit, &hide, &sep, &quit])?;
 
-    let mut builder = TrayIconBuilder::with_id("main-tray")
-        .tooltip(format!("SRTR Pitwall {}", display_version()))
-        .menu(&menu)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "open" => bring_panel_front(app),
-            "friends" => open_friends(app),
-            "events" => open_events(app),
-            "edit" => {
-                let on = !shared(app).edit_mode.load(Ordering::Relaxed);
-                set_edit_mode(app, on);
+    // Sağ tık menüsü: programın kendi çizdiği pencere (tasarımlı). Açılamazsa Windows'un yerel menüsü kullanılır.
+    let custom = tray_menu_window(app).is_ok();
+    let mut builder = TrayIconBuilder::with_id("main-tray").tooltip(format!("SRTR Pitwall {}", display_version()));
+    if !custom {
+        builder = builder.menu(&menu);
+    }
+    let mut builder = builder
+        .on_menu_event(|app, event| tray_action(app, event.id.as_ref()))
+        .on_tray_icon_event(move |tray, event| {
+            if custom {
+                if let TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Up, position, .. } = event {
+                    tray_menu_show(tray.app_handle(), position.x, position.y);
+                    return;
+                }
             }
-            "hide" => toggle_hidden(app),
-            "quit" => quit_app(app),
-            _ => {}
-        })
-        .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
                 // Sol tık her zaman programın arayüzünü (paneli) açar; okunmamış mesaj varken
                 // (tepside kırmızı nokta) panelde arkadaş listesi de açılır
@@ -2141,6 +2360,11 @@ pub fn run() {
             preview_set,
             preview_freeze,
             panel_front,
+            chat_window_notify,
+            chat_tabs_take,
+            window_toggle,
+            tray_menu_items,
+            tray_menu_run,
             panel_focus_overlay,
             panel_take_focus,
             app_version,

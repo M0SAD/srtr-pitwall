@@ -169,7 +169,6 @@ export function ChatBg(props: { look?: ChatLook; img?: string | null }) {
 export function ChatStage(props: { children: JSX.Element; look?: ChatLook; img?: string | null }) {
   return (
     <div class="fchat-stage">
-      <ChatBg look={props.look} img={props.img} />
       {props.children}
     </div>
   );

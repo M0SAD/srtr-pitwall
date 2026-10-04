@@ -14672,3 +14672,81 @@ grant execute on function
   public.admin_chat_threads(text, uuid, text, timestamptz, timestamptz, timestamptz, int),
   public.admin_chat_messages(text, uuid, uuid, uuid, text, timestamptz, timestamptz, timestamptz, uuid, int),
   public.admin_chat_users(text, int) to authenticated;
+
+-- ============================================================
+-- c81: Mesajlara ifade (reaksiyon) — özel, takım ve grup sohbetlerinde.
+-- Tabloya doğrudan erişim yok; yalnızca o mesajı görebilen kişi ifade bırakabilir / okuyabilir.
+-- ============================================================
+create table if not exists public.message_reactions (
+  kind text not null check (kind in ('dm', 'team', 'group')),
+  message_id uuid not null,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  emoji text not null check (char_length(emoji) between 1 and 16),
+  created_at timestamptz not null default now(),
+  primary key (kind, message_id, user_id, emoji)
+);
+create index if not exists message_reactions_msg on public.message_reactions (kind, message_id);
+alter table public.message_reactions enable row level security;
+revoke all on public.message_reactions from public, anon, authenticated;
+grant all on public.message_reactions to service_role;
+
+-- Çağıran bu mesajı görebiliyor mu
+create or replace function public.message_visible(p_kind text, p_id uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case p_kind
+    when 'dm' then exists (select 1 from public.messages m where m.id = p_id and auth.uid() in (m.sender, m.recipient))
+    when 'team' then exists (select 1 from public.team_messages m join public.team_members tm on tm.team_id = m.team_id and tm.user_id = auth.uid()
+                              where m.id = p_id and not m.deleted)
+    when 'group' then exists (select 1 from public.group_messages m join public.chat_group_members gm on gm.group_id = m.group_id and gm.user_id = auth.uid()
+                               where m.id = p_id and not m.deleted)
+    else false end;
+$$;
+revoke all on function public.message_visible(text, uuid) from public, anon, authenticated;
+
+-- İfadeyi aç / kapat (aynı ifade ikinci kez gönderilirse kaldırılır). Bir kişi bir mesaja en çok 6 farklı ifade bırakabilir.
+create or replace function public.message_react(p_kind text, p_id uuid, p_emoji text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  e text := trim(coalesce(p_emoji, ''));
+begin
+  if me is null then
+    raise exception 'Giriş gerekli';
+  end if;
+  if char_length(e) < 1 or char_length(e) > 16 then
+    raise exception 'Geçersiz ifade';
+  end if;
+  if not public.message_visible(p_kind, p_id) then
+    raise exception 'Mesaj bulunamadı';
+  end if;
+  delete from public.message_reactions where kind = p_kind and message_id = p_id and user_id = me and emoji = e;
+  if found then
+    return false;
+  end if;
+  if (select count(*) from public.message_reactions where kind = p_kind and message_id = p_id and user_id = me) >= 6 then
+    raise exception 'Bir mesaja en çok 6 ifade bırakabilirsin';
+  end if;
+  insert into public.message_reactions (kind, message_id, user_id, emoji) values (p_kind, p_id, me, e);
+  return true;
+end $$;
+revoke all on function public.message_react(text, uuid, text) from public, anon;
+grant execute on function public.message_react(text, uuid, text) to authenticated;
+
+-- Verilen mesajların ifadeleri (yalnızca çağıranın görebildiği mesajlar): ifade başına sayı, benimki var mı, kimler
+create or replace function public.message_reactions_for(p_kind text, p_ids uuid[])
+returns table (message_id uuid, emoji text, n int, mine boolean, names text[])
+language sql stable security definer set search_path = public as $$
+  select r.message_id, r.emoji, count(*)::int, bool_or(r.user_id = auth.uid()),
+         (array_agg(coalesce(p.display_name, '?') order by r.created_at))[1:12]
+    from public.message_reactions r
+    left join public.profiles p on p.id = r.user_id
+   where auth.uid() is not null
+     and r.kind = p_kind
+     and r.message_id = any ((coalesce(p_ids, '{}'::uuid[]))[1:300])
+     and public.message_visible(p_kind, r.message_id)
+   group by r.message_id, r.emoji
+   order by r.message_id, min(r.created_at);
+$$;
+revoke all on function public.message_reactions_for(text, uuid[]) from public, anon;
+grant execute on function public.message_reactions_for(text, uuid[]) to authenticated;
+notify pgrst, 'reload schema';

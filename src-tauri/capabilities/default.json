@@ -6,10 +6,13 @@
     "main",
     "overlay",
     "pitwall",
-    "timing", "engineer", "events", "overlay-m*", "friends", "friend-*", "crew-*", "toast", "osd", "vr-*"
+    "timing", "engineer", "events", "overlay-m*", "friends", "friend-*", "chat", "traymenu", "crew-*", "toast", "osd", "vr-*"
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-start-resize-dragging",
+    "core:window:allow-set-title",
+    "core:window:allow-close",
     "notification:default",
     "dialog:default"
   ]
