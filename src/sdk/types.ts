@@ -8,6 +8,8 @@ export interface Status {
   preview: boolean;
   onTrack: boolean;
   inGarage: boolean;
+  /** Oyuncunun aracı pit yolunda / pit kutusunda */
+  onPit?: boolean;
   replay: boolean;
   /** Gerçek bir tekrar izleniyor (iRacing'de canlı ana yetişmiş izleme hariç) */
   replayWatch?: boolean;

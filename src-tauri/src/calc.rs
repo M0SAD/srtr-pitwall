@@ -20,6 +20,8 @@ pub struct Status {
     pub preview: bool,
     pub on_track: bool,
     pub in_garage: bool,
+    /// Oyuncunun aracı pit yolunda / pit kutusunda (overlay'lerde "Pitteyken gizle")
+    pub on_pit: bool,
     pub replay: bool,
     /// Gerçek bir tekrar izleniyor (iRacing'de canlı ana yetişmiş izleme hariç)
     pub replay_watch: bool,
@@ -619,6 +621,7 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         preview,
         on_track: f.is_on_track,
         in_garage: f.is_in_garage,
+        on_pit: f.on_pit_road,
         replay: f.replay,
         replay_watch: replay_watch(f),
         spectating: connected && !demo && !f.is_on_track && !f.is_in_garage,

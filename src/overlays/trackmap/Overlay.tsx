@@ -127,7 +127,7 @@ export default function TrackMap(props: OverlayProps) {
       <canvas ref={canvas} style={{ width: `${W()}px`, height: `${H()}px` }} />
       <Show when={map() && !shape()}>
         <div class="tmap-rec ov-panel">
-          <b>1 tur attıktan sonra harita görünecek</b>
+          <b>1 tur atınca görünür</b>
           <span class="ov-dim">
             {map()!.recording
               ? `Bu tur %${Math.round(map()!.progress * 100)} — turu pite girmeden tamamla`

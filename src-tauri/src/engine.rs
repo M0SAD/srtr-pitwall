@@ -660,7 +660,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             crate::crashlog::guard(|| voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted, st.sim));
         }
         // Sesli komut (bas-konuş): bekleyen soruları son kareden cevapla (bkz. voicecmd.rs)
-        crate::crashlog::guard(|| crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim));
+        crate::crashlog::guard(|| crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim, shared.demo.load(Ordering::Relaxed)));
 
         let visible = connected && !preview;
         if visible != was_connected {

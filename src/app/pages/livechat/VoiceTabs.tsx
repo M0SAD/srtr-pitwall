@@ -148,9 +148,9 @@ export function TtsTab() {
           <div class="row">
             <div>
               <b>Okuma komutu</b>
-              <small>Virgülle birden fazla yazılabilir. “!oku merhaba” → “merhaba” okunur.</small>
+              <small>Virgülle birden fazla yazılabilir. “!merhaba” → “merhaba” okunur.</small>
             </div>
-            <input class="input" style={{ width: "200px" }} value={v().command} onChange={(e) => setTts((x) => (x.command = e.currentTarget.value.trim() || "!oku"))} />
+            <input class="input" style={{ width: "200px" }} value={v().command} onChange={(e) => setTts((x) => (x.command = e.currentTarget.value.trim() || "!"))} />
           </div>
         </Show>
         <div class="row">

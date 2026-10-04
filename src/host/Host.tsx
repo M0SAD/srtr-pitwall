@@ -361,13 +361,16 @@ export function Host() {
     // (kopyanın kendi "garajda / pistte gizle" seçenekleri yine geçerli)
     const always = ALWAYS_TYPES.includes(inst.type) && inst.options?.always !== false;
     if (!st?.connected || st.preview) return always || !!inst.alwaysShow;
-    if (always) return !(inst.hideInGarage && st.inGarage) && !(inst.hideOnTrack && st.onTrack && !st.replay);
+    // "Pitteyken gizle": garajda ya da pit yolunda / kutusunda. "Pistte sürerken gizle": araçta ve pitte değilken.
+    const inPit = st.inGarage || !!st.onPit;
+    const driving = st.onTrack && !st.replay && !inPit;
+    if (always) return !(inst.hideInGarage && inPit) && !(inst.hideOnTrack && driving);
     // Tekrar (replay) izlenirken overlay'ler gizlenir (ayar; canlı ana yetişmiş izleme hariç)
     if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch) return false;
     if (settings().general.hideWhenOffTrack && !st.demo && (!st.onTrack || st.replay)) return false;
-    // Demo'da "garajda gizle" / "pistte gizle" uygulanmaz: yerleşim denenirken her overlay görünsün
-    if (!st.demo && inst.hideInGarage && st.inGarage) return false;
-    if (!st.demo && inst.hideOnTrack && st.onTrack && !st.replay) return false;
+    // Demo'da "pitteyken gizle" / "pistte gizle" uygulanmaz: yerleşim denenirken her overlay görünsün
+    if (!st.demo && inst.hideInGarage && inPit) return false;
+    if (!st.demo && inst.hideOnTrack && driving) return false;
     return true;
   };
   const visible = () => enabled().some(([k]) => frameVisible(k));

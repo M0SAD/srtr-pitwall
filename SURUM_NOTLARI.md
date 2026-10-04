@@ -3,6 +3,24 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-145
+
+- Overlay ayarları › "Ne zaman gizlensin": "Garajdayken gizle" artık "Pitteyken gizle" ve garajın yanında pit yolunda / pit kutusundayken de gizler (eskiden yalnızca iRacing'in garaj ekranında gizliyordu). "Pistte sürerken gizle" artık yalnızca araçtayken ve pitte değilken gizler (eskiden pitte araçta otururken de gizliyordu; iki seçenek bu yüzden ters çalışıyor gibi görünüyordu).
+- Bölüme açıklama eklendi: Demo modunda ve düzenlerken bu iki seçenek uygulanmaz.
+
+## 041026-144
+
+- Mesajlar overlay'i ayarları: "Takım mesajlarını göster" artık "Grup mesajlarını göster" yazıyor. "Ekip mesajlarını sesli oku" açıklaması: güvenilir olarak seçtiğin arkadaşlarının ekip odasına yazdığı mesajlar sesli okunur.
+- Demo modunda sesli mühendis artık sesli komut (bas-konuş) sorularına da cevap vermez; otomatik anonslar, spotter ve bipler zaten susuyordu. Ayarlardaki "Test" / örnek çalma düğmeleri etkilenmez.
+
+## 041026-143
+
+- Pist Haritası ve Mini Harita: harita henüz çizilmemişken görünen yazı kısaltıldı: "1 tur atınca görünür".
+
+## 041026-142
+
+- Düzeltme: Ekip Pitwall'ında "Pit servisi" kutularındaki onay işareti uzun turuncu / koyu bir kama gibi görünüyor ve yazıları (Açık / Kapalı) örtüyordu. Neden: Sıralama overlay'inin stili panelde yüklüyken bu kutulara sızıyordu. Artık küçük yuvarlak onay işareti olarak görünür.
+
 ## 041026-141
 
 - Sohbet penceresi açık ve öndeyken (odakta), o anda seçili sekmedeki kişiden / odadan gelen mesaj için sağ alttaki bildirim kartı ve bildirim sesi çıkmaz. Başka sekmedeki ya da pencere arkadayken gelen mesajlar eskisi gibi bildirilir. Arkadaş, takım ve grup sohbetlerinde geçerli.

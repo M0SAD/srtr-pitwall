@@ -92,7 +92,7 @@ export default function MiniMap(props: OverlayProps) {
       <canvas ref={canvas} style={{ width: `${S}px`, height: `${S}px` }} />
       <Show when={map() && !shape()}>
         <div class="mmap-msg ov-dim">
-          1 tur attıktan sonra harita görünecek
+          1 tur atınca görünür
           <br />%{Math.round((map()?.progress ?? 0) * 100)}
         </div>
       </Show>

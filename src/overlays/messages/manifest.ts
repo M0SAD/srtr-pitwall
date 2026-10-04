@@ -69,7 +69,7 @@ export default defineOverlay({
       hint: "Ekip odasına yazılan mesajlar (ve hazır spotter mesajları): kendi odan ve ekip üyesi olduğun sürücülerin odaları.",
     },
     people,
-    { key: "includeTeams", label: "Takım mesajlarını göster", type: "boolean", default: true },
+    { key: "includeTeams", label: "Grup mesajlarını göster", type: "boolean", default: true },
     {
       key: "groups",
       label: "Grup sohbetleri",
@@ -113,7 +113,7 @@ export default defineOverlay({
       group: "Sesli okuma",
       feature: "social.messages_tts",
       showIf: { key: "crew", is: [true] },
-      hint: "Bu kopyada gösterilen ekip odası mesajları sesli okunur (arkadaş mesajlarından ayrı seçilir). Birden fazla kopya aynı mesajı gösterse de yalnızca bir kez okunur. Kendi mesajların okunmaz.",
+      hint: "Güvenilir olarak seçtiğin arkadaşlarının ekip odasına yazdığı mesajlar sesli okunur (arkadaş mesajlarından ayrı seçilir). Birden fazla kopya aynı mesajı gösterse de yalnızca bir kez okunur. Kendi mesajların okunmaz.",
     },
     {
       key: "crewVoice",

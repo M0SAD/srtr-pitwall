@@ -1221,6 +1221,9 @@
   white-space: nowrap;
 }
 .pg-sv .st {
+  /* Sıralama overlay'inin ".st" kuralı (min-width 560px, zemin) panelde yüklüyken buraya sızmasın */
+  min-width: 0;
+  background: none;
   position: relative;
   flex: none;
   display: grid;

@@ -862,8 +862,12 @@ fn dispatch(intent: &str) {
 
 /// Motor iş parçacığı her döngüde çağırır: bekleyen soruları telemetriden cevaplar ve cevabı
 /// (ses kanalı boşalınca) söyletir.
-pub fn service(voice: &mut Voice, f: &Frame, s: &SessionData, t: &Tracker, sim: &str) {
+pub fn service(voice: &mut Voice, f: &Frame, s: &SessionData, t: &Tracker, sim: &str, muted: bool) {
     let reqs: Vec<Request> = std::mem::take(&mut *PENDING.lock());
+    // Demo modunda sesli mühendis hiç konuşmaz: sesli komut soruları da cevapsız bırakılır
+    if muted {
+        return;
+    }
     let now = Instant::now();
     if !reqs.is_empty() {
         let lang = answer_lang();

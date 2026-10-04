@@ -282,6 +282,8 @@ export interface LiveChatTts {
   voice: string;
   /** Bir kerelik geçiş: hiç ses seçilmemiş kurulumlara arayüz diline uygun Edge sesi atandı */
   edgeDefV1?: boolean;
+  /** Bir kerelik geçiş yapıldı: varsayılan mod "Sadece komutla", komut "!" */
+  cmdDefV1?: boolean;
   /** Çıkış cihazı adı (boş: Windows varsayılanı) */
   device: string;
   /** -10..10 */
@@ -368,8 +370,9 @@ export function defaultLiveChat(): LiveChatSettings {
     captions: { secs: 8 },
     tts: {
       enabled: true,
-      mode: "all",
-      command: "!oku",
+      mode: "command",
+      command: "!",
+      cmdDefV1: true,
       subsOnly: false,
       onlyUsers: "",
       readNames: true,
@@ -454,6 +457,10 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
       // edgeDefV1: hiç ses seçmemiş (boş) kayıtlı kurulumlar bir kez arayüz diline uygun Edge sesine geçer
       voice: v.tts && !v.tts.edgeDefV1 && !v.tts.voice ? edgeDefaultVoice(uiLang || detectLang()) : (v.tts?.voice ?? d.tts.voice),
       edgeDefV1: true,
+      // Bir kerelik geçiş (cmdDefV1): eski varsayılanda (Tüm mesajlar + "!oku") duran kurulumlar yeni varsayılana geçer:
+      // "Sadece komutla" ve komut "!". Kullanıcının kendi seçtiği mod / komut korunur.
+      ...(v.tts && !v.tts.cmdDefV1 && (v.tts.mode ?? "all") === "all" && (v.tts.command ?? "!oku") === "!oku" ? { mode: "command" as const, command: "!" } : {}),
+      cmdDefV1: true,
       ...(ttsNew ? { enabled: true } : {}),
     },
     stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },

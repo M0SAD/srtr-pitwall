@@ -182,9 +182,10 @@ export function OverlaySettings(props: {
           </For>
 
           <Section title="Ne zaman gizlensin" open={false}>
+            <p class="muted small">Pitteyken: garajda, pit yolunda ya da pit kutusunda. Pistte sürerken: araçtasın ve pitte değilsin. Demo modunda ve düzenlerken bu iki seçenek uygulanmaz; overlay her zaman görünür.</p>
             <div class="f2">
               <div class="f2-row">
-                <span class="f2-label">Garajdayken gizle</span>
+                <span class="f2-label">Pitteyken gizle</span>
                 <Switch checked={inst()!.hideInGarage} onChange={(v) => upd((o) => (o.hideInGarage = v))} />
               </div>
             </div>

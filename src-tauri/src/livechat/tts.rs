@@ -80,8 +80,8 @@ impl Default for TtsCfg {
     fn default() -> TtsCfg {
         TtsCfg {
             enabled: false,
-            mode: Mode::All,
-            command: "!oku".into(),
+            mode: Mode::Command,
+            command: "!".into(),
             subs_only: false,
             only_users: HashSet::new(),
             read_names: true,
@@ -111,12 +111,12 @@ pub fn cfg_from_settings(v: &Value) -> TtsCfg {
     let s = |p: &str, def: &str| t.pointer(p).and_then(|x| x.as_str()).unwrap_or(def).to_string();
     TtsCfg {
         enabled: b("/enabled", false),
-        mode: match s("/mode", "all").as_str() {
+        mode: match s("/mode", "command").as_str() {
             "command" => Mode::Command,
             "alerts" => Mode::Alerts,
             _ => Mode::All,
         },
-        command: s("/command", "!oku"),
+        command: s("/command", "!"),
         subs_only: b("/subsOnly", false),
         only_users: s("/onlyUsers", "").split([',', '\n', ' ']).map(norm_user).filter(|x| !x.is_empty()).collect(),
         read_names: b("/readNames", true),
