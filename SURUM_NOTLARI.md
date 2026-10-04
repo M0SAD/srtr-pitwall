@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-141
+
+- Sohbet penceresi açık ve öndeyken (odakta), o anda seçili sekmedeki kişiden / odadan gelen mesaj için sağ alttaki bildirim kartı ve bildirim sesi çıkmaz. Başka sekmedeki ya da pencere arkadayken gelen mesajlar eskisi gibi bildirilir. Arkadaş, takım ve grup sohbetlerinde geçerli.
+
 ## 041026-140
 
 - "iRacing bilgilerimi profilimde göster" ayarı kaldırıldı: programda Hesap › Herkese açık profil bölümünden ve web sitesindeki profil düzenleme sayfasından.

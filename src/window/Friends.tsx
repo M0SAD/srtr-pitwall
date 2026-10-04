@@ -8,7 +8,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { session } from "@/cloud/supabase";
-import { myFriends, type Friend } from "@/cloud/social";
+import { CHAT_FRONT_KEY, myFriends, type Friend } from "@/cloud/social";
 import { myTeams } from "@/cloud/teams";
 import { myGroups } from "@/cloud/groups";
 import { Avatar, FriendsPanel, shownName, statusText } from "@/app/components/FriendsDock";
@@ -65,6 +65,11 @@ export function ChatWindow(props: { id: string }) {
   };
   const select = (id: string) => {
     setActive(id);
+    try {
+      if (document.hasFocus() && !document.hidden) localStorage.setItem(CHAT_FRONT_KEY, `${id}|${Date.now()}`);
+    } catch {
+      /* depo yok */
+    }
     if (unread()[id]) setUnread({ ...unread(), [id]: false });
   };
   const take = async () => {
@@ -115,6 +120,21 @@ export function ChatWindow(props: { id: string }) {
       lastUnread = "";
     };
     const vis = () => setShown(!document.hidden);
+    // Öndeki sekmeyi bildir (bu sohbetten gelen mesajda bildirim kartı / ses çıkmasın)
+    const tell = () => {
+      try {
+        if (document.hasFocus() && !document.hidden && active()) localStorage.setItem(CHAT_FRONT_KEY, `${active()}|${Date.now()}`);
+        else localStorage.removeItem(CHAT_FRONT_KEY);
+      } catch {
+        /* depo yok */
+      }
+    };
+    tell();
+    const tellIv = setInterval(tell, 2000);
+    window.addEventListener("focus", tell);
+    window.addEventListener("blur", tell);
+    window.addEventListener("pagehide", tell);
+    onCleanup(() => (clearInterval(tellIv), window.removeEventListener("focus", tell), window.removeEventListener("blur", tell), window.removeEventListener("pagehide", tell)));
     window.addEventListener("focus", focus);
     document.addEventListener("visibilitychange", vis);
     onCleanup(() => (un?.(), window.removeEventListener("focus", focus), document.removeEventListener("visibilitychange", vis)));

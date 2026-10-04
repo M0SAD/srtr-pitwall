@@ -26,6 +26,7 @@ import {
   onLive,
   onMessages,
   chatOpenKey,
+  chatFront,
   realtimeKeepAlive,
   socialLog,
   unreadFrom,
@@ -483,7 +484,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
             setTimeout(() => setToast((x) => (x?.id === m.id ? null : x)), 7000);
             return;
           }
-          if (await chatVisible()) return;
+          if (chatFront() === teamChatKey(tm.team_id) || (await chatVisible())) return;
           void popup("team", { friend_id: teamChatKey(tm.team_id), display_name: `[${tm.tag}] ${tm.name}` }, body, m.id, {
             color: tm.color,
             photo: teamLogo(tm.logo_path),
@@ -544,7 +545,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
           setTimeout(() => setToast((x) => (x?.id === m.id ? null : x)), 7000);
           return;
         }
-        if (await chatVisible()) return;
+        if (chatFront() === groupChatKey(g.group_id) || (await chatVisible())) return;
         void popup("group", { friend_id: groupChatKey(g.group_id), display_name: g.name }, body, m.id, { color: hashColor(g.group_id), photo: "" });
         invoke("chat_window_notify", { friend: groupChatKey(g.group_id) }).catch(() => {});
         messageBeep();
@@ -586,7 +587,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
     // Steam gibi sağ alt açılır pencere + ses. Yalnızca öndeki pencere zaten bu sohbeti gösteriyorsa çıkmaz
     // (panel önde ama başka bir sayfadaysa da çıkar: eskiden panel öndeyken hiç bildirim gelmiyordu).
     void (async () => {
-      if ((await focusedChat(m.sender)) === m.sender) return socialLog(`${tag}: bildirim yok (sohbet acik ve onde)`);
+      if (chatFront() === m.sender || (await focusedChat(m.sender)) === m.sender) return socialLog(`${tag}: bildirim yok (sohbet acik ve onde)`);
       // Yeni eklenen arkadaş listede henüz yoksa adını almak için listeyi yenile
       let who = f;
       if (!who) {

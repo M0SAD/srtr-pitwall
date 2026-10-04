@@ -449,6 +449,21 @@ export async function onLive(users: string[], cb: (user: string, d: LiveData) =>
  */
 export const chatOpenKey = (label: string) => `pitwall.chatOpen.${label}`;
 
+/**
+ * Sohbet penceresinin ÖNDE ve odakta gösterdiği sekme: arkadaş kimliği, "team:<id>" ya da "group:<id>".
+ * Sohbet penceresi odaktayken 2 sn'de bir "<sekme>|<zaman>" yazar; arkadaş servisi (overlay penceresi) bununla
+ * o sohbetten gelen mesajın bildirim kartını ve sesini bastırır. 5 sn'den eski kayıt geçersizdir.
+ */
+export const CHAT_FRONT_KEY = "pitwall.chatFront";
+export function chatFront(): string {
+  try {
+    const [id, at] = (localStorage.getItem(CHAT_FRONT_KEY) ?? "").split("|");
+    return id && Date.now() - Number(at) < 5000 ? id : "";
+  } catch {
+    return "";
+  }
+}
+
 /** Kısa bildirim sesi (dosya gerekmez) */
 export function messageBeep(volume = 0.25) {
   // Rahatsız Etme: hiçbir bildirim sesi çalmaz (tek kapı; ayrı "Ses" düğmesi kaldırıldı, ses onun dışında hep açık)
