@@ -60,12 +60,13 @@ import SendHorizontal from "lucide-solid/icons/send-horizontal";
 import Wallpaper from "lucide-solid/icons/wallpaper";
 import ArrowDownAZ from "lucide-solid/icons/arrow-down-a-z";
 import ClockIcon from "lucide-solid/icons/clock";
+import CircleMinus from "lucide-solid/icons/circle-minus";
 import ChevronsDown from "lucide-solid/icons/chevrons-down";
 import { SimBadge, SIM_SHORT } from "./Profile";
 import { TeamChat, TeamLogo, type TeamEvent } from "./TeamChat";
 import { crewDrivers, crewList as myCrewList, setCrewFocus, type CrewMember } from "@/cloud/crew";
 import { muteTeamChat, myTeams, onTeamChat, setTeamFocus, type MyTeam, type TeamMessage } from "@/cloud/teams";
-import { ChatStage } from "../chatLook";
+import { ChatStage, chatFontVars } from "../chatLook";
 import { BgNote, ConvBgPanel, adoptBg, useConvBg } from "./ConvBg";
 import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { useReactions } from "@/cloud/reactions";
@@ -468,6 +469,10 @@ export function FriendsPanel(props: {
           // Programda özel mesajın bildirimi (açılır pencere + ses) tek yerden, overlay penceresindeki arkadaş
           // servisinden gelir (src/host/social.ts); burada çalınırsa ses iki kez duyulur. Tarayıcıda burada çalar.
           if (!inTauri && !props.racing?.() && !settings().general.social.dnd && !muted && !chatting) messageBeep();
+        }, undefined, (m) => {
+          // Kendi mesajım başka bir cihazdan / pencereden gönderildi: açık sohbete anında eklenir, listede son mesaj güncellenir
+          setIncoming(m);
+          noteLast(m);
         }).then((s) => (stop = s));
         const cleanup = () => stop();
         onCleanup(cleanup);
@@ -636,7 +641,10 @@ export function FriendsPanel(props: {
 
   const teamRows = createMemo(() => {
     const s = norm(q().trim());
-    return teams().filter((tm) => !s || norm(`${tm.name} ${tm.tag}`).includes(s));
+    const fav = (tm: MyTeam) => Number(groupFavs().includes(tm.team_id));
+    return teams()
+      .filter((tm) => !s || norm(`${tm.name} ${tm.tag}`).includes(s))
+      .sort((a, b) => fav(b) - fav(a));
   });
 
   const title = () => {
@@ -737,7 +745,15 @@ export function FriendsPanel(props: {
             </Show>
             <Show when={p.plain || !collapsed().teams || q()}>
               <For each={teamRows()}>
-                {(tm) => <TeamRow t={tm} onOpen={() => openRoom(`team:${tm.team_id}`, () => setView({ kind: "team", t: tm }))} onPage={() => nav.team(tm.team_id)} />}
+                {(tm) => <TeamRow t={tm} onOpen={() => openRoom(`team:${tm.team_id}`, () => setView({ kind: "team", t: tm }))} onPage={() => nav.team(tm.team_id)}
+                    fav={groupFavs().includes(tm.team_id)}
+                    onFav={() => toggleGroupFav(tm.team_id)}
+                    onMute={() => {
+                      const next = !tm.muted;
+                      patchTeam(tm.team_id, (x) => ({ ...x, muted: next }));
+                      muteTeamChat(tm.team_id, next).catch((e) => (setErr(String((e as Error).message)), patchTeam(tm.team_id, (x) => ({ ...x, muted: !next }))));
+                    }}
+                  />}
               </For>
             </Show>
           </Show>
@@ -772,7 +788,7 @@ export function FriendsPanel(props: {
   );
   if (props.standalone && session()) void loadAvatars([session()!.user.id]);
   return (
-    <div class="fdock-panel fx" classList={{ standalone: !!props.standalone }} onContextMenu={(e) => e.preventDefault()}>
+    <div class="fdock-panel fx" style={chatFontVars()} classList={{ standalone: !!props.standalone }} onContextMenu={(e) => e.preventDefault()}>
       <header classList={{ "fst-hide": !!props.standalone && (props.chatOnly ? view().kind === "chat" : view().kind === "list") }}>
         <Show when={view().kind !== "list" && !props.chatOnly}>
           <button class="icon-btn" title="Geri" onClick={() => setView({ kind: "list" })}>
@@ -1005,7 +1021,7 @@ export function FriendsPanel(props: {
           <div class="fst-foot" classList={{ open: footOpen() }}>
             <div class="fst-foot-btn" role="button" tabindex="0" onClick={flipFoot}>
               <ChevronsDown class="fst-chev" />
-              <span>Takım sohbetleri</span>
+              <span>Takım ve grup sohbetleri</span>
               <span class="lt-sp" />
               <button class="icon-btn" title="Grup kur: arkadaşlarınla grup sohbeti" onClick={(e) => (e.stopPropagation(), setView({ kind: "newgroup" }))}>
                 <I.Plus />
@@ -1294,10 +1310,60 @@ function GroupRow(props: { g: MyGroup; onOpen: () => void; onMembers: () => void
 }
 
 /** Arkadaş listesindeki takım odası satırı */
-function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void }) {
+function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void; onMute?: () => void; fav?: boolean; onFav?: () => void }) {
   const tm = () => props.t;
+  // Sağ tık menüsü (grup satırındaki gibi, en üst katmanda)
+  const [menu, setMenu] = createSignal<{ x: number; y: number } | null>(null);
+  createEffect(() => {
+    if (!menu()) return;
+    const close = () => setMenu(null);
+    const key = (e: KeyboardEvent) => e.key === "Escape" && close();
+    const t0 = setTimeout(() => document.addEventListener("pointerdown", close), 0);
+    document.addEventListener("keydown", key);
+    window.addEventListener("blur", close);
+    onCleanup(() => {
+      clearTimeout(t0);
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("blur", close);
+    });
+  });
+  const run = (fn?: () => void) => () => (setMenu(null), fn?.());
   return (
-    <div class="frow troom" classList={{ unread: tm().unread > 0 && !tm().muted }} onClick={props.onOpen}>
+    <div
+      class="frow troom"
+      classList={{ unread: tm().unread > 0 && !tm().muted, menu: !!menu() }}
+      onClick={props.onOpen}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenu({ x: Math.max(4, Math.min(e.clientX, window.innerWidth - 230)), y: Math.max(4, Math.min(e.clientY, window.innerHeight - 190)) });
+      }}
+    >
+      <Show when={menu()}>
+        <Portal>
+          <div class="fx frow-menu-layer" onContextMenu={(e) => e.preventDefault()}>
+            <div class="frow-menu floating" style={{ left: `${menu()!.x}px`, top: `${menu()!.y}px` }} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              <button onClick={run(props.onOpen)}>
+                <I.MessageSquare /> Sohbeti aç
+              </button>
+              <button onClick={run(props.onPage)}>
+                <I.Users /> Takım sayfası
+              </button>
+              <Show when={props.onFav}>
+                <button classList={{ on: !!props.fav }} onClick={run(props.onFav)}>
+                  <I.Star /> {props.fav ? "Favorilerden çıkar" : "Favorilere ekle"}
+                </button>
+              </Show>
+              <Show when={props.onMute}>
+                <button onClick={run(props.onMute)}>
+                  {tm().muted ? <I.Bell /> : <I.BellOff />} {tm().muted ? "Sessizden çıkar" : "Sessize al"}
+                </button>
+              </Show>
+            </div>
+          </div>
+        </Portal>
+      </Show>
       <TeamLogo team={tm()} size={36} />
       <div class="frow-main">
         <div class="frow-l1">
@@ -1305,6 +1371,11 @@ function TeamRow(props: { t: MyTeam; onOpen: () => void; onPage: () => void }) {
           <span class="ttag" style={{ "--tc": tm().color }} data-no-i18n>
             {tm().tag}
           </span>
+          <Show when={props.fav}>
+            <span class="frow-flag fav-star" title={t("Favorilerim")}>
+              <I.Star />
+            </span>
+          </Show>
           <Show when={tm().muted}>
             <span class="frow-flag" title="Oda sessizde">
               <I.BellOff />
@@ -1497,6 +1568,7 @@ export function statusText(f: Friend) {
   // Sadece yöneticiye gelir: "Çevrimdışı görün" seçmiş ama programda (yarıştaysa oyun / oturum / pist / araç eklenir)
   if (f.invisible) return [t("Çevrimdışı (gizli)"), ...(f.racing ? [sim, f.session, f.track, f.car] : [sim])].filter(Boolean).join(" · ");
   if (f.racing) return [sim, f.session, f.track, f.car].filter(Boolean).join(" · ") || (sim ? t("Oyunda: {0}", sim) : t("Yarışta"));
+  if (f.online && f.away && !f.dnd) return t("Uzakta") + (sim ? ` · ${sim}` : "");
   if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + (sim ? ` · ${sim}` : "");
   return f.last_seen ? t("Son görülme: {0}", ago(f.last_seen)) : t("Çevrimdışı");
 }
@@ -1600,7 +1672,7 @@ function FriendRow(props: {
     <div
       ref={el}
       class="frow"
-      classList={{ hid: !!f().invisible, racing: f().racing && !f().invisible, online: f().online && !f().racing && !f().invisible, dnd: f().online && !f().racing && !!f().dnd && !f().invisible, offline: f().status === "accepted" && !f().online && !f().racing, pending: f().status !== "accepted", unread: f().unread > 0, menu: menu() }}
+      classList={{ away: !!f().away && f().online && !f().racing && !f().dnd, hid: !!f().invisible, racing: f().racing && !f().invisible, online: f().online && !f().racing && !f().invisible, dnd: f().online && !f().racing && !!f().dnd && !f().invisible, offline: f().status === "accepted" && !f().online && !f().racing, pending: f().status !== "accepted", unread: f().unread > 0, menu: menu() }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1617,6 +1689,19 @@ function FriendRow(props: {
         <div class="frow-l1">
           <b data-no-i18n>{f().display_name || "?"}</b>
           <SimBadge sim={f().online && !simIcon() ? f().sim : ""} />
+          <Show when={f().online && f().dnd && !f().invisible}>
+            <span class="frow-flag dnd-flag" title={t("Rahatsız etme")}>
+              <CircleMinus />
+            </span>
+          </Show>
+          <Show when={f().online && f().away && !f().dnd && !f().racing && !f().invisible}>
+            <span class="frow-zzz" title={t("Uzakta")} aria-hidden="true" data-no-i18n>
+              z<sup>z</sup>
+              <sup>
+                <sup>z</sup>
+              </sup>
+            </span>
+          </Show>
           <Show when={f().invisible}>
             <span class="frow-flag hidden-flag" title="Gizli: bu üye &quot;Çevrimdışı&quot; durumunu seçti ama şu an programda. Diğer üyeler onu çevrimdışı görür; bunu sadece yöneticiler görür.">
               <I.EyeOff />
@@ -1882,6 +1967,11 @@ function Chat(props: {
       () => props.incoming,
       (m) => {
         if (m && m.sender === props.f.friend_id) setTyping(false);
+        // Kendi mesajım (telefondan / siteden / başka pencereden): okundu sayılmadan eklenir
+        if (m && m.sender === me() && m.recipient === props.f.friend_id && !msgs().some((x) => x.id === m.id)) {
+          setMsgs([...msgs(), m]);
+          scroll();
+        }
         if (m && m.sender === props.f.friend_id && !msgs().some((x) => x.id === m.id)) {
           setMsgs([...msgs(), m]);
           seen();
@@ -1950,7 +2040,8 @@ function Chat(props: {
     try {
       const id = await sendMessage(props.f.friend_id, b);
       const m: Message = { id: String(id), sender: me()!, recipient: props.f.friend_id, body: b, created_at: new Date().toISOString(), read_at: null };
-      setMsgs([...msgs(), m]);
+      // Realtime aynı mesajı önce getirmiş olabilir
+      if (!msgs().some((x) => x.id === m.id)) setMsgs([...msgs(), m]);
       props.onSent(m);
       // Mesajlar overlay'i: "Kendi mesajlarımı da göster" açıksa
       broadcastOvMsg({

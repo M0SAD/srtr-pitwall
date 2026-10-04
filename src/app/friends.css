@@ -1659,3 +1659,125 @@
   height: 24px;
   padding: 4px 14px 4px;
 }
+/* Ayarlar › Sohbet: mesaj yazı boyutu (--stm-fs, 14–20 px); ad ve ifadeler orantılı büyür */
+.fx .fchat.stm .fmsg p {
+  font-size: var(--stm-fs, 14px);
+}
+.fx .fchat.stm .fmsg-head b,
+.fx .fchat.stm .tmsg-who {
+  font-size: calc(var(--stm-fs, 14px) + 0.5px);
+}
+.fx .fchat.stm.clp-sample {
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 6px 0 10px;
+}
+/* Yazı tipi ve arkadaş listesinin orantılı büyümesi (Ayarlar › Sohbet) */
+.fdock-panel.fx,
+.fx .fchat.stm {
+  font-family: var(--stm-ff, inherit);
+}
+.fdock-panel.fx .fdock-list {
+  zoom: var(--stm-zoom, 1);
+}
+/* Seçili sekme: altında ince turuncu çizgi (şerit boyunca çizgi ve üst çizgi yok) */
+.cwin-tabs {
+  border-bottom: 0;
+}
+.cwin-tab {
+  border-top: 0;
+  border-bottom: 2px solid transparent;
+}
+.cwin-tab.on {
+  background: #2a3140;
+  box-shadow: none;
+  border-bottom-color: #ff8a2a;
+}
+/* Sekme renkleri arkadaş listesindeki gibi; seçili olmayan biraz sönük */
+.cwin-tab {
+  opacity: 1;
+}
+.cwin-tab.p-online .cwin-tab-name b {
+  color: #6fb6e8;
+}
+.cwin-tab.p-online .cwin-tab-name small {
+  color: #4f8fbd;
+}
+.cwin-tab.p-racing .cwin-tab-name b {
+  color: #a8d66a;
+}
+.cwin-tab.p-racing .cwin-tab-name small {
+  color: #86b34d;
+}
+.cwin-tab.p-offline .cwin-tab-name b {
+  color: #8b929c;
+}
+.cwin-tab.p-offline .cwin-tab-name small {
+  color: #666d77;
+}
+.cwin-tab.p-offline .fav {
+  filter: saturate(0.3) brightness(0.8);
+}
+.cwin-tab:not(.on):not(.unread) .cwin-tab-name,
+.cwin-tab:not(.on):not(.unread) .fav {
+  opacity: 0.6;
+}
+.cwin-tab.on.p-online .cwin-tab-name b {
+  color: #9ad1ff;
+}
+.cwin-tab.on.p-racing .cwin-tab-name b {
+  color: #c4ec8a;
+}
+.cwin-tab.on.p-offline .cwin-tab-name b {
+  color: #c2c8d0;
+}
+.cwin-tab.unread .cwin-tab-name b {
+  color: #ffd34d;
+}
+/* Sekme kapanırken daralır; sağdaki sekmeler yumuşakça sola kayar */
+.cwin-tab {
+  transition: background 0.15s, flex-basis 0.2s ease, min-width 0.2s ease, padding 0.2s ease, opacity 0.18s ease, margin 0.2s ease;
+  overflow: hidden;
+}
+.cwin-tab.closing {
+  flex-basis: 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-right: -2px;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Rahatsız etme ve Uzakta (zzz) işaretleri */
+.frow-flag.dnd-flag svg {
+  color: #e5484d;
+}
+.frow-zzz {
+  flex: none;
+  margin-left: 2px;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #6f8aa3;
+  line-height: 1;
+}
+.frow-zzz sup {
+  font-size: 0.85em;
+}
+.fx .frow.away .frow-main > .frow-l1 > b,
+.fx .frow.away .frow-status {
+  opacity: 0.6;
+}
+.gavatar.img {
+  background: none;
+  overflow: hidden;
+  padding: 0;
+}
+.gavatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}

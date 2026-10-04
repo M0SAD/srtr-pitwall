@@ -3,6 +3,7 @@
 export const SETTINGS_PAGES = [
   { id: "general", label: "Genel" },
   { id: "appearance", label: "Görünüm" },
+  { id: "chat", label: "Sohbet" },
   { id: "sounds", label: "Sesler" },
   { id: "performance", label: "Performans" },
   { id: "display", label: "Ekran" },

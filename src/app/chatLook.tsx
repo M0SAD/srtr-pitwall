@@ -5,7 +5,7 @@
 import { Show, createEffect, createRoot, createSignal, on, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "@/sdk/platform";
-import { DEFAULT_CHAT_LOOK, settings, updateSettings, type ChatLook } from "@/sdk/settings";
+import { DEFAULT_CHAT_LOOK, settings, uiPref, updateSettings, type ChatLook } from "@/sdk/settings";
 import "./chatlook.css";
 
 /** Panelin vurgu rengi (balon varsayılanı) ve sohbet zemini: yazı rengi bunlara göre seçilir */
@@ -166,9 +166,36 @@ export function ChatBg(props: { look?: ChatLook; img?: string | null }) {
 }
 
 /** Mesaj listesini saran sahne: arka plan katmanı + mesajlar */
+/** Sohbet mesajı yazı boyutu (px): en küçük şimdiki boyut; görüntü bozulmasın diye üst sınır var */
+export const CHAT_FONT_MIN = 14;
+export const CHAT_FONT_MAX = 18;
+const [chatFontRaw, setChatFontRaw] = uiPref<number>("chatFont", CHAT_FONT_MIN);
+export const chatFont = () => Math.max(CHAT_FONT_MIN, Math.min(CHAT_FONT_MAX, Math.round(Number(chatFontRaw()) || CHAT_FONT_MIN)));
+export const setChatFont = (v: number) => setChatFontRaw(Math.max(CHAT_FONT_MIN, Math.min(CHAT_FONT_MAX, Math.round(v))));
+/** Sohbet ve arkadaş listesi yazı tipi ("" = programın varsayılanı). Bilgisayarda yoksa sıradaki yazı tipine düşer. */
+export const CHAT_FAMILIES: { id: string; label: string; css: string }[] = [
+  { id: "", label: "Varsayılan", css: "" },
+  { id: "segoe", label: "Segoe UI", css: '"Segoe UI", system-ui, sans-serif' },
+  { id: "inter", label: "Inter", css: 'Inter, "Segoe UI", system-ui, sans-serif' },
+  { id: "arial", label: "Arial", css: "Arial, Helvetica, sans-serif" },
+  { id: "verdana", label: "Verdana", css: "Verdana, Geneva, sans-serif" },
+  { id: "tahoma", label: "Tahoma", css: "Tahoma, Geneva, sans-serif" },
+  { id: "trebuchet", label: "Trebuchet MS", css: '"Trebuchet MS", "Segoe UI", sans-serif' },
+  { id: "georgia", label: "Georgia", css: "Georgia, serif" },
+  { id: "consolas", label: "Consolas", css: 'Consolas, "Cascadia Mono", monospace' },
+];
+const [chatFamilyRaw, setChatFamilyRaw] = uiPref<string>("chatFamily", "");
+export const chatFamily = () => (CHAT_FAMILIES.some((f) => f.id === chatFamilyRaw()) ? chatFamilyRaw() : "");
+export const setChatFamily = (id: string) => setChatFamilyRaw(id);
+/** Sohbet ve arkadaş listesi köklerine konan CSS değişkenleri: --stm-fs (px), --stm-zoom (liste ölçeği), --stm-ff (yazı tipi) */
+export function chatFontVars(): Record<string, string> {
+  const css = CHAT_FAMILIES.find((f) => f.id === chatFamily())?.css ?? "";
+  return { "--stm-fs": `${chatFont()}px`, "--stm-zoom": String(chatFont() / CHAT_FONT_MIN), ...(css ? { "--stm-ff": css } : {}) };
+}
+
 export function ChatStage(props: { children: JSX.Element; look?: ChatLook; img?: string | null }) {
   return (
-    <div class="fchat-stage">
+    <div class="fchat-stage" style={chatFontVars()}>
       {props.children}
     </div>
   );

@@ -3,6 +3,25 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-134
+
+- Grup görseli: grubun sahibi Üyeler panelinden "Grup görseli ekle / Görseli değiştir / Görseli kaldır" ile gruba görsel koyar (kare kırpılır); listede ve sohbet başlığında görünür. Etiket yok. Sunucu: c83 (chat_groups.avatar_path, group_set_avatar, my_groups.avatar_path) — yayında.
+- Başka cihazdan (telefon, web sitesi) ya da başka pencereden gönderdiğin özel mesajlar açık sohbette anında görünür; eskiden sohbeti kapatıp açmak gerekiyordu.
+
+## 041026-133
+
+- "Uzakta" durumu: üye 10 dakikadır klavye / fare kullanmıyorsa (yarışta değilken) arkadaşlarında adının yanında zzz işareti ve "Uzakta" yazısı görünür, satır biraz sönükleşir. Sunucu: c82 (user_status.away, my_friends.away) — yayında. Yalnızca bu sürümü (ve sonrasını) kullanan üyeler için çalışır.
+- "Rahatsız etme" seçen arkadaşın adının yanında kırmızı işaret.
+- Alttaki çubuk artık "TAKIM VE GRUP SOHBETLERİ".
+- Takım odasına sağ tık menüsü: Sohbeti aç, Takım sayfası, Favorilere ekle / çıkar, Sessize al. Favori takımlar da yıldızla en üstte durur.
+
+## 041026-132
+
+- Ayarlar › Sohbet: mesaj yazı boyutu (14–18 px; en küçüğü şimdiki boyut) ve yazı tipi seçimi, canlı örnekle. Arkadaş, takım ve grup sohbetlerinde geçerli; arkadaş listesi de aynı oranda büyür. Hesapla birlikte taşınır.
+- Sohbet penceresinde seçili sekmenin altında ince turuncu çizgi.
+- Sekmeler arkadaş listesindeki renklerle: çevrimiçi mavi, yarışta yeşil, çevrimdışı gri ve sönük; seçili olmayan sekme biraz daha sönük.
+- Sekme kapatılınca sağdaki sekmeler yumuşak bir geçişle sola kayar.
+
 ## 041026-131
 
 - Sohbette "… yazıyor" satırı için mesajların altında her zaman küçük bir boşluk ayrılır; karşı taraf yazmaya başlayınca yazı artık son mesajın üstüne binmez.

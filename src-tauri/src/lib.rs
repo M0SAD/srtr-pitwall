@@ -663,6 +663,26 @@ async fn crew_window_open(app: AppHandle, owner: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Kullanıcının en son klavye / fare kullanımından bu yana geçen süre (sn). Arkadaş listesindeki "Uzakta" için.
+#[cfg(windows)]
+#[tauri::command]
+fn idle_seconds() -> u64 {
+    use windows_sys::Win32::System::SystemInformation::GetTickCount;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
+    let mut info = LASTINPUTINFO { cbSize: std::mem::size_of::<LASTINPUTINFO>() as u32, dwTime: 0 };
+    unsafe {
+        if GetLastInputInfo(&mut info) == 0 {
+            return 0;
+        }
+        (GetTickCount().wrapping_sub(info.dwTime) / 1000) as u64
+    }
+}
+#[cfg(not(windows))]
+#[tauri::command]
+fn idle_seconds() -> u64 {
+    0
+}
+
 /// Araç penceresini aç; zaten açık ve görünürse kapat (arayüzdeki "Arkadaşlar" düğmesi)
 #[tauri::command]
 async fn window_toggle(app: AppHandle, view: String) -> Result<bool, String> {
@@ -2363,6 +2383,7 @@ pub fn run() {
             chat_window_notify,
             chat_tabs_take,
             window_toggle,
+            idle_seconds,
             tray_menu_items,
             tray_menu_run,
             panel_focus_overlay,

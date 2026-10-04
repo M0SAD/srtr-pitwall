@@ -43,6 +43,12 @@ export function ChatWindow(props: { id: string }) {
   const friend = (id: string) => (list() ?? []).find((x) => x.friend_id === id);
   const [teamList] = createResource(async () => (await myTeams().catch(() => [])) ?? []);
   const [groupList, { refetch: refetchGroups }] = createResource(async () => (await myGroups().catch(() => [])) ?? []);
+  /** Sekmenin rengi arkadaş listesindeki gibi: yarışta (yeşil), çevrimiçi (mavi), çevrimdışı (gri); odalar çevrimiçi sayılır */
+  const pres = (id: string) => {
+    if (id.includes(":")) return "online";
+    const f = friend(id);
+    return f?.racing && !f.invisible ? "racing" : f?.online && !f.invisible ? "online" : "offline";
+  };
   /** Sekme başlığı: arkadaş, takım odası ("team:<id>") ya da grup ("group:<id>") */
   const info = (id: string): { name: string; sub: string } => {
     if (id.startsWith("team:")) {
@@ -79,7 +85,17 @@ export function ChatWindow(props: { id: string }) {
       }
     }
   };
+  // Kapanan sekme önce daralır (sağdakiler yumuşakça sola kayar), sonra listeden çıkar
+  const [closing, setClosing] = createSignal<string[]>([]);
   const close = (id: string) => {
+    if (closing().includes(id)) return;
+    setClosing([...closing(), id]);
+    setTimeout(() => {
+      setClosing(closing().filter((x) => x !== id));
+      closeNow(id);
+    }, 200);
+  };
+  const closeNow = (id: string) => {
     const rest = tabs().filter((x) => x !== id);
     setTabs(rest);
     if (!rest.length) return void getCurrentWindow().close().catch(() => {});
@@ -109,7 +125,7 @@ export function ChatWindow(props: { id: string }) {
         <div class="cwin-tabs">
           <For each={tabs()}>
             {(id) => (
-              <div class="cwin-tab" classList={{ on: active() === id, unread: !!unread()[id] }} onClick={() => select(id)} onAuxClick={(e) => e.button === 1 && close(id)}>
+              <div class="cwin-tab" classList={{ on: active() === id, unread: !!unread()[id], [`p-${pres(id)}`]: true, closing: closing().includes(id) }} onClick={() => select(id)} onAuxClick={(e) => e.button === 1 && close(id)}>
                 <Avatar id={id.replace(/^(team|group):/, "")} name={info(id).name.replace(/^\[[^\]]*\]\s*/, "")} size={26} />
                 <span class="cwin-tab-name">
                   <b data-no-i18n>{info(id).name}</b>

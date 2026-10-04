@@ -185,6 +185,19 @@ export function startSocial(status: Accessor<Status | undefined>) {
   const driving = () => isDriving(status());
   const soc = () => settings().general.social;
 
+  // Uzakta: 10 dakikadır klavye / fare kullanılmıyor (yarışta sayılmaz: direksiyon girişi klavye / fare değildir)
+  let away = false;
+  setInterval(() => {
+    invoke<number>("idle_seconds")
+      .then((sec) => {
+        const next = sec >= 600;
+        if (next !== away) {
+          away = next;
+          pushStatus();
+        }
+      })
+      .catch(() => {});
+  }, 30_000);
   // Durum: 45 sn'de bir ve yarış durumu değişince
   let lastKey = "";
   const pushStatus = (force = false) => {
@@ -197,6 +210,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       session: driving() ? s?.sessionType ?? "" : "",
       dnd: soc().dnd,
       invisible: !!soc().invisible,
+      away: away && !driving(),
       accept_messages: soc().acceptMessages,
       // Arkadaş listesinde "iRacing'de" rozeti (PRO gerekmez; canlı veri değil, sadece oyun)
       sim: racing() && SIM_IDS.includes(s?.sim ?? "") ? s!.sim! : racing() && !s?.sim ? "iracing" : "",

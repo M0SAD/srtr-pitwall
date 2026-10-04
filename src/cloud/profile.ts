@@ -195,7 +195,7 @@ export async function loadAvatars(ids: string[]) {
 // ---------------------------------------------------------------------------
 
 /** Görseli ortadan kare kırpıp 256 px'e küçültür (WebP, olmazsa JPEG) */
-async function squareImage(file: File, size = 256): Promise<Blob> {
+export async function squareImage(file: File, size = 256): Promise<Blob> {
   if (!/^image\//.test(file.type)) throw new Error("Bir görsel dosyası seç (JPEG, PNG ya da WebP)");
   if (file.size > 15 * 1024 * 1024) throw new Error("Görsel çok büyük (en çok 15 MB)");
   const bmp = await createImageBitmap(file).catch(() => {

@@ -2,9 +2,9 @@
 // Sahip ayrılırsa sahiplik en eski üyeye geçer; kimse kalmazsa grup sunucuda kendiliğinden silinir.
 
 import type { RealtimeChannel } from "@supabase/realtime-js";
-import { api } from "./supabase";
+import { api, session, storageRemove, storageUpload } from "./supabase";
 import { F, assertFeature } from "@/sdk/proFeatures";
-import { noteAvatars } from "./profile";
+import { AVATAR_BUCKET, avatarUrl, noteAvatars, squareImage } from "./profile";
 import { realtime, type MsgMeta } from "./social";
 
 export const GROUP_MAX_MEMBERS = 50;
@@ -23,6 +23,8 @@ export interface MyGroup {
   last_system: boolean;
   member_count: number;
   created_at: string;
+  /** Grup görseli ("avatars" kovasındaki yol, c83) */
+  avatar_path?: string | null;
 }
 
 export interface GroupMember {
@@ -95,3 +97,32 @@ export async function onGroupChat(groups: string[], cb: (m: GroupMessage, kind: 
 
 /** Grup sohbet kimliği (açılır pencere → Arkadaşlar penceresi) */
 export const groupChatKey = (group: string) => `group:${group}`;
+
+/** Grup görselinin adresi ("" = yok) */
+export const groupAvatarUrl = (path: string | null | undefined) => avatarUrl(path);
+
+/** Grup görseli yükle (yalnızca sahip): kare kırpılıp küçültülür, sahibin "avatars" klasörüne konur */
+export async function uploadGroupAvatar(group: string, file: File): Promise<string> {
+  const uid = session()?.user.id;
+  if (!uid) throw new Error("Giriş yapmalısın");
+  const blob = await squareImage(file);
+  const ext = blob.type === "image/webp" ? "webp" : "jpg";
+  const path = `${uid}/g-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  await storageUpload(AVATAR_BUCKET, path, blob, blob.type);
+  let old: string | null = null;
+  try {
+    old = await api<string | null>("POST", "rpc/group_set_avatar", { body: { p_group: group, p_path: path } });
+  } catch (e) {
+    void storageRemove(AVATAR_BUCKET, [path]).catch(() => {});
+    throw e;
+  }
+  if (old && old.startsWith(`${uid}/`)) void storageRemove(AVATAR_BUCKET, [old]).catch(() => {});
+  return path;
+}
+
+/** Grup görselini kaldır (yalnızca sahip) */
+export async function removeGroupAvatar(group: string) {
+  const uid = session()?.user.id;
+  const old = await api<string | null>("POST", "rpc/group_set_avatar", { body: { p_group: group, p_path: null } });
+  if (uid && old && old.startsWith(`${uid}/`)) void storageRemove(AVATAR_BUCKET, [old]).catch(() => {});
+}

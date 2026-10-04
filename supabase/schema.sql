@@ -14750,3 +14750,112 @@ $$;
 revoke all on function public.message_reactions_for(text, uuid[]) from public, anon;
 grant execute on function public.message_reactions_for(text, uuid[]) to authenticated;
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- c82: "Uzakta" durumu — üye bilgisayar başında değilken (uzun süre klavye / fare yok) arkadaş listesinde zzz.
+-- user_status.away programdan gelir; my_friends yeni `away` sütununu döner (çevrimiçi, gizli değil ve yarışta değilken).
+-- ============================================================
+alter table public.user_status add column if not exists away boolean not null default false;
+
+drop function if exists public.my_friends();
+create or replace function public.my_friends()
+returns table (friend_id uuid, display_name text, iracing_name text, status text, trusted boolean, muted boolean,
+               trusts_me boolean, online boolean, racing boolean, track text, car text, session text, dnd boolean,
+               accept_messages boolean, last_seen timestamptz, unread int, avatar_path text, sim text,
+               invisible boolean, away boolean)
+language sql stable security definer set search_path = public as $$
+  select x.friend_id, x.display_name, x.iracing_name, x.status, x.trusted, x.muted, x.trusts_me,
+         x.online, x.racing, x.track, x.car, x.session, x.dnd, x.accept_messages, x.last_seen, x.unread,
+         x.avatar_path, x.sim, x.invisible, x.away
+  from (
+    select f.friend_id, p.display_name, p.iracing_name, f.status, f.trusted, f.muted,
+           f.status = 'accepted' and public.live_trusts(f.friend_id, f.user_id)
+             and (not public.feature_requires_pro('social.data_share', true) or public.user_is_pro(f.friend_id)) as trusts_me,
+           v.real_on and not v.hid and f.status = 'accepted' as online,
+           v.real_on and not v.hid and coalesce(s.racing, false) and f.status = 'accepted' as racing,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.track, '') else '' end as track,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.car, '') else '' end as car,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.session, '') else '' end as session,
+           coalesce(s.dnd, false) and not v.hid as dnd,
+           coalesce(s.accept_messages, true) as accept_messages,
+           case when f.status = 'accepted'
+                then case when v.hid then coalesce(s.invisible_at, s.updated_at) else s.updated_at end end as last_seen,
+           (select count(*)::int from public.messages m
+            where m.recipient = auth.uid() and m.sender = f.friend_id and m.read_at is null
+              and not public.message_hidden_for(m.id, m.sender, m.recipient, m.created_at)) as unread,
+           p.avatar_path,
+           case when f.status = 'accepted' and v.real_on and not v.hid then coalesce(s.sim, '') else '' end as sim,
+           -- yöneticiye: çevrimiçi ama gizleniyor
+           f.status = 'accepted' and v.real_on and coalesce(s.invisible, false) and not v.hid as invisible,
+           f.status = 'accepted' and v.real_on and not v.hid and coalesce(s.away, false) and not coalesce(s.racing, false) as away
+    from public.friendships f
+    join public.profiles p on p.id = f.friend_id
+    left join public.user_status s on s.user_id = f.friend_id
+    cross join lateral (
+      select coalesce(s.updated_at > now() - interval '3 minutes', false) as real_on,
+             public.presence_masked(s.invisible) as hid) v
+    where f.user_id = auth.uid()
+  ) x
+  order by (x.status = 'pending_in') desc, x.racing desc, x.last_seen desc nulls last, x.display_name;
+$$;
+revoke all on function public.my_friends() from public, anon;
+grant execute on function public.my_friends() to authenticated, service_role;
+notify pgrst, 'reload schema';
+
+-- ============================================================
+-- c83: Grup görseli. Sahip, "avatars" kovasında kendi klasörüne yüklediği görseli gruba atar
+-- (chat_groups.avatar_path); my_groups yeni `avatar_path` sütununu döner.
+-- ============================================================
+alter table public.chat_groups add column if not exists avatar_path text;
+
+-- Görseli ayarla (null: kaldır). Eski yolu döner; istemci eski dosyayı Storage API ile siler.
+create or replace function public.group_set_avatar(p_group uuid, p_path text) returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_old text;
+  v_path text := nullif(trim(coalesce(p_path, '')), '');
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if v_path is not null and (char_length(v_path) > 200 or v_path not like me::text || '/%' or v_path like '%..%') then
+    raise exception 'Geçersiz görsel yolu';
+  end if;
+  select g.avatar_path into v_old from public.chat_groups g where g.id = p_group and g.owner_id = me;
+  if not found then
+    raise exception 'Grup görselini yalnızca grubun sahibi değiştirebilir';
+  end if;
+  update public.chat_groups set avatar_path = v_path, updated_at = now() where id = p_group;
+  return v_old;
+end $$;
+revoke all on function public.group_set_avatar(uuid, text) from public, anon;
+grant execute on function public.group_set_avatar(uuid, text) to authenticated;
+
+drop function if exists public.my_groups();
+create or replace function public.my_groups()
+returns table (group_id uuid, name text, owner_id uuid, is_owner boolean, muted boolean, unread int,
+               last_body text, last_at timestamptz, last_sender uuid, last_sender_name text, last_system boolean,
+               member_count int, created_at timestamptz, avatar_path text)
+language sql stable security definer set search_path = public as $$
+  select g.id, g.name, g.owner_id, g.owner_id = auth.uid(), m.muted,
+         (select count(*)::int from public.group_messages x
+          where x.group_id = g.id and x.created_at > m.last_read_at
+            and x.sender is distinct from auth.uid() and not x.deleted
+            and not public.group_message_hidden_for(x.id)),
+         lm.body, lm.created_at, lm.sender, lm.sender_name, coalesce(lm.is_system, false),
+         (select count(*)::int from public.chat_group_members c where c.group_id = g.id),
+         g.created_at, g.avatar_path
+  from public.chat_group_members m
+  join public.chat_groups g on g.id = m.group_id
+  left join lateral (
+    select x.body, x.created_at, x.sender, coalesce(p.display_name, '?') as sender_name, x.meta is not null as is_system
+    from public.group_messages x left join public.profiles p on p.id = x.sender
+    where x.group_id = g.id and not x.deleted and not public.group_message_hidden_for(x.id)
+    order by x.created_at desc limit 1) lm on true
+  where m.user_id = auth.uid()
+  order by coalesce(lm.created_at, g.created_at) desc, g.name;
+$$;
+revoke all on function public.my_groups() from public, anon;
+grant execute on function public.my_groups() to authenticated;
+notify pgrst, 'reload schema';

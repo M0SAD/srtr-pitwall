@@ -29,6 +29,8 @@ export interface Friend {
   dnd: boolean;
   accept_messages: boolean;
   last_seen: string | null;
+  /** Uzakta: çevrimiçi ama uzun süredir bilgisayar başında değil (c82) */
+  away?: boolean;
   unread: number;
   /** Bu arkadaştan gelen mesajlarda açılır pencere/bildirim gösterme (c30) */
   notify_muted?: boolean;
@@ -264,12 +266,16 @@ export interface MyStatus {
   sim?: string;
   /** Çevrimdışı görün: başkaları beni çevrimdışı görür, yöneticiler gerçek durumu görür (sunucu c65) */
   invisible?: boolean;
+  /** Uzakta: uzun süredir klavye / fare kullanılmıyor (sunucu c82) */
+  away?: boolean;
 }
 
 /** Sunucuda user_status.invisible yoksa (c65 kurulmadan) durum bu alan olmadan gönderilir */
 let statusNoInvisible = false;
 /** Sunucuda user_status.sim yoksa (c31 kurulmadan) durum sim olmadan gönderilir */
 let statusNoSim = false;
+/** Sunucuda user_status.away yoksa (c82 kurulmadan) durum bu alan olmadan gönderilir */
+let statusNoAway = false;
 export function setMyStatus(s: MyStatus): Promise<unknown> {
   const uid = session()?.user.id;
   if (!uid) return Promise.resolve();
@@ -278,7 +284,8 @@ export function setMyStatus(s: MyStatus): Promise<unknown> {
       body: { user_id: uid, ...body, updated_at: new Date().toISOString() },
       prefer: "resolution=merge-duplicates,return=minimal",
     });
-  const { sim, invisible, ...rest0 } = s;
+  const { sim, invisible, away, ...rest1 } = s;
+  const rest0: Partial<MyStatus> = statusNoAway ? rest1 : { ...rest1, away: !!away };
   const rest: Partial<MyStatus> = statusNoInvisible ? rest0 : { ...rest0, invisible: !!invisible };
   if (statusNoSim) return send(rest).catch(() => {});
   return send({ ...rest, sim: sim ?? "" }).catch((e) => {
@@ -286,6 +293,10 @@ export function setMyStatus(s: MyStatus): Promise<unknown> {
     // Sadece "sütun yok" hatasında (eski sunucu) alan bırakılır. Başka bir hatada bırakılırsa "Çevrimdışı görün"
     // bir daha sunucuya yazılamaz ve üye, durumunu Çevrimiçi yapsa bile arkadaşlarına gizli kalırdı.
     const noColumn = /column|schema cache/i.test(msg);
+    if (!statusNoAway && noColumn && /\baway\b/.test(msg)) {
+      statusNoAway = true;
+      return setMyStatus(s);
+    }
     if (!statusNoInvisible && noColumn && /\binvisible\b/.test(msg)) {
       statusNoInvisible = true;
       return setMyStatus(s);
@@ -389,7 +400,12 @@ export function socialLog(line: string) {
  * `onStatus`: abonelik durumu (SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED); bağlantı hiç kurulamadıysa
  * (oturum yok / anahtar alınamadı) "NO_CLIENT" — çağıran daha sonra yeniden denemeli.
  */
-export async function onMessages(cb: (m: Message) => void, onStatus?: (status: string) => void): Promise<() => void> {
+export async function onMessages(
+  cb: (m: Message) => void,
+  onStatus?: (status: string) => void,
+  /** Kendi gönderdiğim mesajlar (başka cihazdan: telefon / web sitesi / diğer pencere) */
+  onOwn?: (m: Message) => void,
+): Promise<() => void> {
   const c = await client();
   const uid = session()?.user.id;
   if (!c || !uid) {
@@ -400,8 +416,11 @@ export async function onMessages(cb: (m: Message) => void, onStatus?: (status: s
     .channel(`inbox-${uid}-${Math.random().toString(36).slice(2, 7)}`)
     .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "messages", filter: `recipient=eq.${uid}` }, (p: any) =>
       cb(p.new as Message),
-    )
-    .subscribe((status) => onStatus?.(String(status)));
+    );
+  if (onOwn) {
+    ch.on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "messages", filter: `sender=eq.${uid}` }, (p: any) => onOwn(p.new as Message));
+  }
+  ch.subscribe((status) => onStatus?.(String(status)));
   return () => {
     c.removeChannel(ch);
   };

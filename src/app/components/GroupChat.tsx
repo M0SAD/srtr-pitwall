@@ -20,6 +20,9 @@ import {
   leaveGroup,
   markGroupRead,
   renameGroup,
+  groupAvatarUrl,
+  removeGroupAvatar,
+  uploadGroupAvatar,
   transferGroup,
   reportGroupMessage,
   sendGroupMessage,
@@ -46,10 +49,12 @@ export type GroupEvent = { kind: "insert" | "update"; m: GroupMessage };
 export type GroupPanel = "none" | "members" | "bg";
 
 /** Grup simgesi: kimlikten renk + adın baş harfi */
-export function GroupAvatar(props: { group: { group_id: string; name: string }; size?: number }) {
+export function GroupAvatar(props: { group: { group_id: string; name: string; avatar_path?: string | null }; size?: number }) {
   return (
-    <span class="gavatar" style={{ "--sz": `${props.size ?? 36}px`, "--fc": hashColor(props.group.group_id) }} data-no-i18n>
-      {initialOf(props.group.name)}
+    <span class="gavatar" classList={{ img: !!props.group.avatar_path }} style={{ "--sz": `${props.size ?? 36}px`, "--fc": hashColor(props.group.group_id) }} data-no-i18n>
+      <Show when={props.group.avatar_path} fallback={initialOf(props.group.name)}>
+        <img src={groupAvatarUrl(props.group.avatar_path)} alt="" loading="lazy" />
+      </Show>
     </span>
   );
 }
@@ -546,6 +551,7 @@ function MembersPanel(props: {
   const [name, setName] = createSignal(props.group.name);
   const toggle = (id: string) => setPicked(picked().includes(id) ? picked().filter((x) => x !== id) : [...picked(), id]);
   const candidates = () => props.friends.filter((f) => !props.members.some((m) => m.user_id === f.friend_id));
+  let imgInput: HTMLInputElement | undefined;
   const run = async (fn: () => Promise<unknown>) => {
     setErr("");
     setNote("");
@@ -686,6 +692,25 @@ function MembersPanel(props: {
             <button class="btn ghost small" disabled={busy()} onClick={() => setRenaming(!renaming())}>
               <I.Pencil /> Adı değiştir
             </button>
+            <input
+              ref={imgInput}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const f = e.currentTarget.files?.[0];
+                e.currentTarget.value = "";
+                if (f && (await run(() => uploadGroupAvatar(gid(), f)))) props.onChanged();
+              }}
+            />
+            <button class="btn ghost small" disabled={busy()} onClick={() => imgInput?.click()}>
+              <I.ImagePlus /> {props.group.avatar_path ? "Görseli değiştir" : "Grup görseli ekle"}
+            </button>
+            <Show when={props.group.avatar_path}>
+              <button class="btn ghost small" disabled={busy()} onClick={async () => (await run(() => removeGroupAvatar(gid()))) && props.onChanged()}>
+                Görseli kaldır
+              </button>
+            </Show>
           </Show>
           <button class="btn ghost small danger" disabled={busy()} onClick={leave}>
             Gruptan ayrıl
