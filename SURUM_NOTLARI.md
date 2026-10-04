@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-140
+
+- "iRacing bilgilerimi profilimde göster" ayarı kaldırıldı: programda Hesap › Herkese açık profil bölümünden ve web sitesindeki profil düzenleme sayfasından.
+
 ## 041026-139
 
 - Düzeltme: sohbet penceresinde sekme değiştirince (ve sohbet açılınca) liste tam en alta inmiyor, son mesaj yarım kalıyordu. Artık son mesaj tam görünür (arkadaş, takım ve grup sohbetlerinde).

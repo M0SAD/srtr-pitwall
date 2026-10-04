@@ -15,11 +15,9 @@ import {
   SOCIAL_TYPES,
   avatarUrl,
   guessSocialType,
-  loadIracingPublic,
   publicProfile,
   removeAvatar,
   savePublicProfile,
-  setIracingPublic,
   socialMeta,
   socialUrlOk,
   uploadAvatar,
@@ -323,51 +321,6 @@ export function IracingBadges(props: { ir: IracingInfo; user?: string }) {
   );
 }
 
-/** Hesap → Herkese açık profil: "iRacing bilgilerimi profilimde göster" (profiles.ir_public; c56 yoksa gizli) */
-function IracingPublicToggle(props: { ir: IracingInfo | null | undefined; onChange: (on: boolean) => void }) {
-  const [on, setOn] = createSignal<boolean | null>(null);
-  const [err, setErr] = createSignal("");
-  void loadIracingPublic().then(setOn);
-  return (
-    <Show when={on() !== null}>
-      <div class="pf-irx-set">
-        <div>
-          <b>iRacing bilgilerimi profilimde göster</b>
-          <small class="muted">
-            iRating, lisans (Safety Rating) ve ülken; iRacing'de bu programla sürdükçe kendiliğinden güncellenir. Açıkken profilinde ve demo
-            modundaki adının yanında görünür.
-          </small>
-          <Show when={props.ir} fallback={<small class="muted">Henüz bilgi yok: giriş yapmış halde iRacing'de bir oturuma gir.</small>}>
-            {(ir) => <IracingBadges ir={{ ...ir(), public: true }} user={session()?.user.id} />}
-          </Show>
-          <Show when={err()}>
-            <small class="error">{err()}</small>
-          </Show>
-        </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            checked={!!on()}
-            onChange={(e) => {
-              const v = e.currentTarget.checked;
-              const prev = on();
-              setOn(v);
-              setErr("");
-              setIracingPublic(v)
-                .then(() => props.onChange(v))
-                .catch((x) => {
-                  setOn(prev);
-                  setErr(String(x?.message ?? x));
-                });
-            }}
-          />
-          <i />
-        </label>
-      </div>
-    </Show>
-  );
-}
-
 /** Profil penceresi (arkadaş listesi, takım üyeleri) */
 export function ProfileDialog(props: { id: string; onClose: () => void; onTelemetry?: (id: string) => void; onTeam?: (id: string) => void }) {
   return (
@@ -565,14 +518,6 @@ export function PublicProfilePanel() {
               </Show>
             </div>
             <p class="muted small">Sadece https:// ile başlayan adresler. Bağlantı türü adresten kendiliğinden seçilir.</p>
-
-            <IracingPublicToggle
-              ir={p().iracing}
-              onChange={(v) => {
-                const cur = data();
-                if (cur?.iracing) mutate({ ...cur, iracing: { ...cur.iracing, public: v } });
-              }}
-            />
 
             <div class="btns pf-save">
               <button class="btn primary" disabled={busy() || !dirty()} onClick={save}>

@@ -327,37 +327,10 @@ export async function mountProfileEditor(el, user) {
       <div id="pf-links" class="pf-links"></div>
       <button type="button" class="btn btn-sm btn-ghost" id="pf-add" style="margin-top:6px">${esc(T("pf_add_link"))}</button>
       <p class="muted small" style="margin:6px 0 0">${esc(T("pf_links_note"))}</p></div>
-    <div class="field" id="pf-irx-set" hidden>
-      <label class="row between" style="gap:14px;cursor:pointer">
-        <span><b>${esc(T("pf_ir_public"))}</b><br><span class="muted small">${esc(T("pf_ir_public_d"))}</span></span>
-        <input type="checkbox" id="pf-ir-public" style="width:auto">
-      </label>
-      <div style="margin-top:8px">${iracingHtml(p.iracing, false) || `<span class="muted small">${esc(T("pf_ir_none"))}</span>`}</div>
-    </div>
     <div class="row between"><a class="btn btn-sm btn-ghost" href="yarisci.html?u=${esc(p.id)}">${esc(T("pf_view"))}</a>
       <button type="button" class="btn btn-accent btn-sm" id="pf-save">${esc(T("save"))}</button></div>`;
   drawPhoto();
   drawLinks();
-  // iRacing bilgileri gizlilik ayarı (profiles.ir_public; sütun yoksa — c56 uygulanmadı — bölüm gizli kalır)
-  sb.from("profiles")
-    .select("ir_public")
-    .eq("id", user.id)
-    .maybeSingle()
-    .then(({ data, error }) => {
-      const box = $("#pf-irx-set", el);
-      const chk = $("#pf-ir-public", el);
-      if (error || !data || !box || !chk) return;
-      chk.checked = data.ir_public !== false;
-      box.hidden = false;
-      chk.addEventListener("change", async () => {
-        const on = chk.checked;
-        const { error: e2 } = await sb.rpc("profile_iracing_public_set", { p_on: on });
-        if (e2) {
-          chk.checked = !on;
-          toast(e2.message, true);
-        } else toast(T("saved"));
-      });
-    });
   const bio = $("#pf-bio", el);
   const bcount = () => ($("#pf-bcount", el).textContent = `${bio.value.length}/${MAX_BIO}`);
   bio.addEventListener("input", bcount);
