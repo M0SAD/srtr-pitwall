@@ -114,7 +114,14 @@ export function TeamChat(props: {
   const now = useNow();
   let box: HTMLDivElement | undefined;
   let ta: HTMLTextAreaElement | undefined;
-  const scroll = () => requestAnimationFrame(() => box && (box.scrollTop = box.scrollHeight));
+  // En alta in: yerleşim (fotoğraflar, yazı tipi, ifadeler) birkaç adımda oturduğu için kısa aralıklarla yinelenir;
+  // geç gelen içerik (ifade çipleri) için son deneme yalnızca kullanıcı hâlâ alta yakınsa yapılır
+  const scroll = () => {
+    const end = () => box && (box.scrollTop = box.scrollHeight);
+    requestAnimationFrame(end);
+    for (const ms of [60, 200, 500]) setTimeout(end, ms);
+    setTimeout(() => box && box.scrollHeight - box.scrollTop - box.clientHeight < 160 && end(), 1600);
+  };
 
   const myRole = () => members().find((m) => m.user_id === me())?.role ?? props.team.role;
   const isAdmin = () => myRole() === "owner" || myRole() === "admin";

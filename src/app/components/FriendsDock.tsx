@@ -1985,7 +1985,14 @@ function Chat(props: {
   const [sending, setSending] = createSignal(false);
   let box: HTMLDivElement | undefined;
   let ta: HTMLTextAreaElement | undefined;
-  const scroll = () => requestAnimationFrame(() => box && (box.scrollTop = box.scrollHeight));
+  // En alta in: yerleşim (fotoğraflar, yazı tipi, ifadeler) birkaç adımda oturduğu için kısa aralıklarla yinelenir;
+  // geç gelen içerik (ifade çipleri) için son deneme yalnızca kullanıcı hâlâ alta yakınsa yapılır
+  const scroll = () => {
+    const end = () => box && (box.scrollTop = box.scrollHeight);
+    requestAnimationFrame(end);
+    for (const ms of [60, 200, 500]) setTimeout(end, ms);
+    setTimeout(() => box && box.scrollHeight - box.scrollTop - box.clientHeight < 160 && end(), 1600);
+  };
   const me = () => session()?.user.id;
   // "yazıyor…" (Realtime yayını; sadece bu sohbet açıkken). "Çevrimdışı görün" seçiliyken kendi yazdığım gönderilmez.
   const [typing, setTyping] = createSignal(false);

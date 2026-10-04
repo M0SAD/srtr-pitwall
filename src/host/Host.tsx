@@ -24,7 +24,7 @@ import { Dynamic, Portal } from "solid-js/web";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { manifests, loadComponent } from "@/sdk/registry";
-import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
+import { sanitizeOverlayOptions, streamBadgeLocked } from "@/sdk/proFeatures";
 import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
 import { canvasOf, liveProfile } from "@/sdk/streamLink";
@@ -164,6 +164,11 @@ const OFFLINE_TOPICS = ["status", "livechat", "livepoll", "captions", "voice", "
 export function Host() {
   const [appRaw, setApp] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
   const app = (): AppState => (vrBoard ? { ...appRaw(), editMode: false, hidden: false } : appRaw());
+  // Overlay penceresinin boyutu (normal düzende logonun köşesi buna göre hesaplanır)
+  const [winSize, setWinSize] = createSignal({ w: window.innerWidth, h: window.innerHeight });
+  const onWinResize = () => setWinSize({ w: window.innerWidth, h: window.innerHeight });
+  window.addEventListener("resize", onWinResize);
+  onCleanup(() => window.removeEventListener("resize", onWinResize));
   const status = useTopic("status");
   // Açılış: uygulama durumu (state_get) ve ilk `status` paketi gelene kadar hiçbir overlay çizilmez
   // (durum bilinmeden çizilen overlay açılışta görünüp kaybolmasın). Tarayıcı kaynağında (OBS) beklenmez.
@@ -415,6 +420,26 @@ export function Host() {
             "pointer-events": "none",
             // Overlay'lerle aynı koşul: sim bağlıyken (ya da Demo açıkken) yumuşakça belirir, yoksa söner
             opacity: status()?.connected && !status()?.preview ? "1" : "0",
+            transition: "opacity 0.8s ease",
+          }}
+        >
+          <StreamBadgeMark />
+        </div>
+      </Show>
+      {/* Normal düzen (oyunun üstündeki overlay penceresi): bu monitörde en az bir overlay varsa: aynı logo, aynı kurallar */}
+      <Show when={inTauri && !vrBoard && shown()?.rules.mode !== "stream" && enabled().length > 0 && (streamBadgeLocked() || badgeWanted())}>
+        <div
+          class="stream-badge"
+          style={{
+            position: "absolute",
+            left: `${badgeRect(winSize(), streamBadgeLocked() ? undefined : badgePosWanted()).x}px`,
+            top: `${badgeRect(winSize(), streamBadgeLocked() ? undefined : badgePosWanted()).y}px`,
+            "z-index": "2147483000",
+            transform: `scale(${badgeFactor(winSize())})`,
+            "transform-origin": "0 0",
+            "pointer-events": "none",
+            // Overlay'lerle birlikte: sim bağlıyken (ya da Demo'da) ve overlay'ler gizli değilken görünür
+            opacity: status()?.connected && !status()?.preview && !app().hidden ? "1" : "0",
             transition: "opacity 0.8s ease",
           }}
         >

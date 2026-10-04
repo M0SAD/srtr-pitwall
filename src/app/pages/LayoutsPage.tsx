@@ -25,7 +25,9 @@ import {
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
-import { LayoutCanvas, sayLayoutLocked, sayOverlayLocked } from "../components/LayoutCanvas";
+import { LayoutCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
+import { badgePosWanted, badgeWanted } from "@/sdk/streamBadge";
+import { streamBadgeLocked } from "@/sdk/proFeatures";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import { LayoutList, layoutFocus, setLayoutFocus, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { Switch } from "../components/SettingsForm";
@@ -214,6 +216,16 @@ export function LayoutsPage() {
   const [sel, setSel] = createSignal<string | null>(null);
   /** Soldaki listede tıklanan, düzene henüz eklenmemiş overlay türü */
   const [ghost, setGhost] = createSignal<string | null>(null);
+  // SRTR Pitwall logosu normal düzenlerde de (en az bir overlay eklenmiş her monitörde) aynı kurallarla: ücretsiz üyede sabit ve
+  // gizlenemez; ücretli PRO gizleyebilir / taşıyabilir (ayar yayın düzenleriyle ortak: general.streamBadge / streamBadgePos)
+  const badge = (): CanvasBadge => ({
+    forced: streamBadgeLocked(),
+    shown: streamBadgeLocked() || badgeWanted(),
+    selected: false,
+    onPick: () => streamBadgeLocked() && sayBadgeArea(),
+    pos: streamBadgeLocked() ? undefined : badgePosWanted(),
+    onMove: (pos) => !streamBadgeLocked() && updateSettings((d) => (d.general.streamBadgePos = pos)),
+  });
   const [rules, setRules] = createSignal(false);
   const [sharing, setSharing] = createSignal(false);
   const [zoom, setZoom] = createSignal(1);
@@ -413,6 +425,10 @@ export function LayoutsPage() {
                 </small>
                 <div class="lmon-tools">
                   <CanvasOptions />
+                  <label class="check ctools-logo" classList={{ off: streamBadgeLocked() }} title={streamBadgeLocked() ? t("SRTR Pitwall logosu ekranda her zaman görünür · PRO ile gizlenebilir") : t("Ekranda SRTR Pitwall logosunu göster")} onClick={() => streamBadgeLocked() && sayBadgeArea()}>
+                    <input type="checkbox" checked={streamBadgeLocked() || badgeWanted()} disabled={streamBadgeLocked()} onChange={(e) => !streamBadgeLocked() && updateSettings((d) => (d.general.streamBadge = e.currentTarget.checked))} />
+                    <span>Logo</span>
+                  </label>
                   <CanvasTools zoom={zoom()} setZoom={setZoom} />
                   <button class="btn ghost small" onClick={editOnScreen} title="Oyunun üstünde gerçek boyutta düzenle: kilit açılır, Görünür ve (oyun açık değilse) Demo kendiliğinden açılır">
                     <I.MousePointer2 /> Ekranda düzenle
@@ -436,6 +452,7 @@ export function LayoutsPage() {
             onZoom={setZoom}
             backdrop="layout"
             readOnly={locked()}
+            badge={keys().length > 0 ? badge() : undefined}
           />
           <Show when={sharing()}>
             <ShareDialog kind="layout" profileId={p().id} onClose={() => setSharing(false)} onShared={() => (setSharing(false), go("community", "layouts"))} />

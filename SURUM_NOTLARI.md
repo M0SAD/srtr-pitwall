@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-139
+
+- Düzeltme: sohbet penceresinde sekme değiştirince (ve sohbet açılınca) liste tam en alta inmiyor, son mesaj yarım kalıyordu. Artık son mesaj tam görünür (arkadaş, takım ve grup sohbetlerinde).
+- SRTR Pitwall logosu normal düzenlerde artık yalnızca ana monitörde değil, düzende en az bir overlay eklenmiş her monitörde çizilir; hiç overlay eklenmemiş monitörde görünmez (Düzenler tuvalinde de aynı).
+
+## 041026-138
+
+- SRTR Pitwall logosu artık normal düzenlerde de (oyunun üstündeki overlay'lerde, ana overlay monitöründe) aynı kurallarla görünür: ücretsiz üyede ve hediye PRO'da sabit (sağ üst) ve gizlenemez; ücretli PRO ve yönetici gizleyebilir / taşıyabilir. Ayar yayın düzenleriyle ortaktır. Logo, sim bağlıyken (ya da Demo'da) ve overlay'ler görünürken çizilir.
+- Düzenler sayfası: tuvalde logo görünür (ücretsiz üyede ayrılmış alan: overlay oraya konamaz), araç çubuğunda "Logo" onay kutusu.
+
 ## 041026-137
 
 - Web sitesi: programda arkadaşa verilen takma ad sitede de görünür (arkadaş listesi, sohbet başlığı, mesaj başlığı, yeni mesaj kutusu); listede adın üzerine gelince gerçek adı yazar. Takma ad programdan verilir / değiştirilir.
