@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-109
+
+- **Overlay sağ tık menüsü (ekranda düzenleme ve düzen tuvali):** "Kilitle / Kilidi aç" artık menünün en üstünde.
+
 ## 041026-108
 
 - **Overlaylarım:** overlay sayısı artık seçili ya da bağlı oyunda çalışan overlay'leri sayar (Otomatik'te ve oyun bağlı değilken hepsi listelenir ve sayılır).

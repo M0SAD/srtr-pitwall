@@ -216,21 +216,7 @@ export function ContextMenu(props: {
       })),
   ];
   const items = (): Item[] => [
-    ...(locked() ? [] : moveItems()),
-    // Ayarlarda "birden fazla eklenebilsin" açıksa
-    ...(canDuplicate(s().type, settings().general.allowDuplicates)
-      ? [
-          {
-            label: "Aynısından ekle",
-            hint: "aynı overlay'den bir tane daha",
-            run: () => {
-              addToLayout(s().profileId, s().type, (settings().profiles[s().profileId]?.overlays ?? {})[s().id]?.monitor ?? "");
-              props.onClose();
-            },
-          },
-        ]
-      : []),
-    ...(locked() && !canDuplicate(s().type, settings().general.allowDuplicates) ? [] : ["sep" as const]),
+    // Kilit en üstte: uzun menüde aşağı kaydırmadan erişilsin
     {
       label: locked() ? "Kilidi aç" : "Kilitle",
       hint: locked() ? undefined : "konumu değiştirilemez",
@@ -246,6 +232,21 @@ export function ContextMenu(props: {
         props.onClose();
       },
     },
+    ...(locked() ? [] : ["sep" as const, ...moveItems()]),
+    // Ayarlarda "birden fazla eklenebilsin" açıksa
+    ...(canDuplicate(s().type, settings().general.allowDuplicates)
+      ? [
+          {
+            label: "Aynısından ekle",
+            hint: "aynı overlay'den bir tane daha",
+            run: () => {
+              addToLayout(s().profileId, s().type, (settings().profiles[s().profileId]?.overlays ?? {})[s().id]?.monitor ?? "");
+              props.onClose();
+            },
+          },
+        ]
+      : []),
+    ...(locked() && !canDuplicate(s().type, settings().general.allowDuplicates) ? [] : ["sep" as const]),
     {
       label: "Ayarlarını aç",
       hint: props.onOpenSettings ? undefined : prettyKey(shortcut("panel")),
