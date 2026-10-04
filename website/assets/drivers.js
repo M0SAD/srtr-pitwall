@@ -8,6 +8,7 @@ import { avatarHtml, loadAvatars, profileDetails, profileHero, publicProfile } f
 
 addDict({
   dr_title: ["Yarışçılar", "Drivers"],
+  dr_login_need: ["Yarışçıları ve telemetriyi görmek için giriş yapmalısın.", "Sign in to see drivers and telemetry."],
   dr_lead: [
     "SRTR Pitwall ile en az bir tur kaydetmiş yarışçılar. Program, simde sürdüğün her turu (süre, geçerlilik, olaylar, sektörler, hız/gaz/fren izi) kaydeder ve hesabına yükler.",
     "Drivers who have recorded at least one lap with SRTR Pitwall. The app records every lap you drive in a sim (time, validity, incidents, sectors, speed/throttle/brake trace) and uploads it to your account.",
@@ -411,6 +412,11 @@ async function boardView(key) {
 
 async function route() {
   const p = params();
+  // Telemetri yalnızca giriş yapmış üyelere görünür (c86)
+  if (!(await currentUser())) {
+    app().innerHTML = `<div class="page"><h1>${esc(T("dr_title"))}</h1><div class="msg">${esc(T("dr_login_need"))} <a href="hesap.html">${esc(T("nav_login"))}</a></div></div>`;
+    return;
+  }
   try {
     if (p.get("u")) await profileView(p.get("u"));
     else if (p.get("s")) await sessionView(p.get("s"));

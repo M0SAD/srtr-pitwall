@@ -357,6 +357,7 @@
  "nav_drivers": "Förare",
  "nav_teams": "Team",
  "dr_title": "Förare",
+ "dr_login_need": "Logga in för att se förare och telemetri.",
  "dr_lead": "Förare som har sparat minst ett varv med SRTR Pitwall. Appen sparar varje varv du kör i en sim (tid, giltighet, incidenter, sektorer, spår för fart/gas/broms) och laddar upp det till ditt konto.",
  "dr_sim_drivers": "Förare i {0}",
  "dr_search": "Sök sim-namn eller användarnamn",

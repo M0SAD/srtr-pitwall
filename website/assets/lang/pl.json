@@ -357,6 +357,7 @@
  "nav_drivers": "Kierowcy",
  "nav_teams": "Zespoły",
  "dr_title": "Kierowcy",
+ "dr_login_need": "Zaloguj się, aby zobaczyć kierowców i telemetrię.",
  "dr_lead": "Kierowcy, którzy zapisali co najmniej jedno okrążenie z SRTR Pitwall. Aplikacja zapisuje każde okrążenie przejechane w simie (czas, ważność, incydenty, sektory, ślad prędkości/gazu/hamulca) i przesyła je na twoje konto.",
  "dr_sim_drivers": "Kierowcy {0}",
  "dr_search": "Szukaj nazwy w simie lub nazwy użytkownika",

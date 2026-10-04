@@ -357,6 +357,7 @@
  "nav_drivers": "车手",
  "nav_teams": "车队",
  "dr_title": "车手",
+ "dr_login_need": "登录后才能查看车手和遥测数据。",
  "dr_lead": "使用 SRTR Pitwall 记录过至少一圈的车手。程序会记录你在模拟器中跑的每一圈（圈时、是否有效、事故、扇区、速度/油门/刹车曲线）并上传到你的账户。",
  "dr_sim_drivers": "{0} 车手",
  "dr_search": "搜索模拟器名称或用户名",

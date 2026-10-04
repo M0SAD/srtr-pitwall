@@ -357,6 +357,7 @@
  "nav_drivers": "Fahrer",
  "nav_teams": "Teams",
  "dr_title": "Fahrer",
+ "dr_login_need": "Melde dich an, um Fahrer und Telemetrie zu sehen.",
  "dr_lead": "Fahrer, die mindestens eine Runde mit SRTR Pitwall aufgezeichnet haben. Die App zeichnet jede Runde auf, die du in einer Sim fährst (Zeit, Gültigkeit, Incidents, Sektoren, Verlauf von Geschwindigkeit/Gas/Bremse), und lädt sie in dein Konto hoch.",
  "dr_sim_drivers": "{0}-Fahrer",
  "dr_search": "Sim-Name oder Benutzername suchen",

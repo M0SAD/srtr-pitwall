@@ -357,6 +357,7 @@
  "nav_drivers": "Pilotos",
  "nav_teams": "Equipes",
  "dr_title": "Pilotos",
+ "dr_login_need": "Entre para ver os pilotos e a telemetria.",
  "dr_lead": "Pilotos que registraram pelo menos uma volta com o SRTR Pitwall. O app registra cada volta que você dá em um sim (tempo, validade, incidentes, setores, traçado de velocidade/acelerador/freio) e envia para sua conta.",
  "dr_sim_drivers": "Pilotos de {0}",
  "dr_search": "Buscar nome no sim ou nome de usuário",

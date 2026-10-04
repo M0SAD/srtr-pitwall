@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-149
+
+- GÜVENLİK (c86, yayında): telemetri yalnızca giriş yapmış üyelere görünür. Giriş yapmadan oturumlar, turlar, sürücü kimlikleri (iRacing numarası dahil), iz dosyaları, yarışçı listesi, sıralamalar, iRating bilgisi ve takım "Son aktiviteler" artık okunamaz. Web sitesindeki Yarışçılar sayfası ziyaretçiye "giriş yapmalısın" gösterir.
+- Yeni araç: `node scripts/guvenlik-tara.mjs` — giriş yapmadan hangi tablolardan satır okunabildiğini listeler; beklenmedik açık tablo varsa uyarır. Yeni tablo / SQL ekledikten sonra çalıştırılmalı.
+
 ## 041026-148
 
 - GÜVENLİK (c85, yayında): `profiles` tablosu artık herkese açık değil. Eskiden herkese açık anahtarla giriş yapmadan tablonun tamamı okunabiliyordu (ödeme e-postası, yönetici bilgisi, PRO tarihleri, iRacing numarası). Artık herkes yalnızca kendi satırını okur (yönetici hepsini). Başkalarının adı / iRacing adı / fotoğrafı yalnızca bu dört sütunu veren `profiles_public` görünümünden gelir; topluluk liste görünümleri (düzen, ekran görüntüsü, tema, gösterge ve yorumları) de onu kullanır.

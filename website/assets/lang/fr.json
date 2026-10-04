@@ -357,6 +357,7 @@
  "nav_drivers": "Pilotes",
  "nav_teams": "Équipes",
  "dr_title": "Pilotes",
+ "dr_login_need": "Connectez-vous pour voir les pilotes et la télémétrie.",
  "dr_lead": "Pilotes ayant enregistré au moins un tour avec SRTR Pitwall. L'app enregistre chaque tour que tu fais dans une simu (temps, validité, incidents, secteurs, trace vitesse/accélérateur/frein) et l'envoie sur ton compte.",
  "dr_sim_drivers": "Pilotes {0}",
  "dr_search": "Rechercher un nom sim ou un pseudo",

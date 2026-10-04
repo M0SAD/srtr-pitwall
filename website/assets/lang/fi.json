@@ -357,6 +357,7 @@
  "nav_drivers": "Kuljettajat",
  "nav_teams": "Tiimit",
  "dr_title": "Kuljettajat",
+ "dr_login_need": "Kirjaudu sisään nähdäksesi kuljettajat ja telemetrian.",
  "dr_lead": "Kuljettajat, jotka ovat tallentaneet vähintään yhden kierroksen SRTR Pitwallilla. Sovellus tallentaa jokaisen simissä ajamasi kierroksen (aika, kelvollisuus, tapahtumat, sektorit, nopeus-/kaasu-/jarrukäyrä) ja lataa sen tilillesi.",
  "dr_sim_drivers": "{0}-kuljettajat",
  "dr_search": "Hae sim-nimeä tai käyttäjänimeä",

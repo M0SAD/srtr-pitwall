@@ -14998,3 +14998,44 @@ create or replace view public.dash_comment_list with (security_invoker = true) a
 drop policy if exists "profiles readable" on public.profiles;
 create policy "profiles readable" on public.profiles for select using (auth.uid() = id or public.is_admin());
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- c86: GÜVENLİK — telemetri (oturumlar, turlar, sürücü kimlikleri, iz dosyaları) yalnızca giriş yapmış üyelere görünür.
+-- Tüm okuma kuralları telemetry_visible() üzerinden geçtiği için tek koşul yeter: oturum yoksa hiçbir şey görünmez.
+-- ============================================================
+create or replace function public.telemetry_visible(p_owner uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select p_owner is not null and auth.uid() is not null and (
+    coalesce(p_owner = auth.uid(), false)
+    or ((coalesce((select p.telemetry_public from public.profiles p where p.id = p_owner), false)
+         or coalesce(public.same_team(p_owner, auth.uid()), false))
+        and (not public.feature_requires_pro('telemetry.others', false) or public.is_pro())));
+$$;
+revoke all on public.telemetry_sessions, public.telemetry_laps, public.driver_identities from anon;
+notify pgrst, 'reload schema';
+-- c86 (devam): telemetri RPC'leri de (security definer oldukları için tablo kurallarından bağımsızdır) yalnızca giriş yapmış üyeye açık
+do $$
+declare r record;
+begin
+  for r in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public'
+              and p.proname in ('telemetry_overview', 'telemetry_session_list', 'telemetry_session', 'telemetry_laps_info',
+                                'telemetry_combo_laps', 'telemetry_leaderboard', 'telemetry_drivers', 'profile_iracing_cats')
+  loop
+    execute format('revoke all on function %s from public, anon', r.sig);
+    execute format('grant execute on function %s to authenticated, service_role', r.sig);
+  end loop;
+end $$;
+notify pgrst, 'reload schema';
+-- c86 (devam): takım etkinliği (üyelerin son oturumları) ve abonelik yenileme bilgisi de yalnızca giriş yapmış üyeye
+do $$
+declare r record;
+begin
+  for r in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname in ('team_activity', 'sub_renewing')
+  loop
+    execute format('revoke all on function %s from public, anon', r.sig);
+    execute format('grant execute on function %s to authenticated, service_role', r.sig);
+  end loop;
+end $$;
+notify pgrst, 'reload schema';

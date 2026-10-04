@@ -357,6 +357,7 @@
  "nav_drivers": "Coureurs",
  "nav_teams": "Teams",
  "dr_title": "Coureurs",
+ "dr_login_need": "Log in om coureurs en telemetrie te zien.",
  "dr_lead": "Coureurs die minstens één ronde met SRTR Pitwall hebben vastgelegd. De app legt elke ronde vast die je in een sim rijdt (tijd, geldigheid, incidenten, sectoren, snelheid/gas/rem-trace) en uploadt die naar je account.",
  "dr_sim_drivers": "{0}-coureurs",
  "dr_search": "Zoek sim-naam of gebruikersnaam",
