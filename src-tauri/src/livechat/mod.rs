@@ -71,6 +71,7 @@ pub mod tts_edge;
 #[cfg(windows)]
 pub mod tts_win;
 pub mod twitch;
+pub mod webchat;
 pub mod youtube;
 
 use crate::engine::{Packet, Shared};
@@ -1317,6 +1318,7 @@ pub fn init(app: &AppHandle, shared: Arc<Shared>) {
     app.manage(h.clone());
     tts::init(app, &h);
     stt::init(app);
+    webchat::init(app);
     tauri::async_runtime::spawn(async move {
         let mut n: u64 = 0;
         let mut iv = tokio::time::interval(Duration::from_millis(100));

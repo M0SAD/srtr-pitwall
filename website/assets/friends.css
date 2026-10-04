@@ -812,3 +812,9 @@ button.fr-row:hover {
 /* Rahatsız etme: çevrimiçilerin altında ayrı bölüm; ad daha soluk mavi */
 .fr-main.st-dnd b { color: color-mix(in srgb, var(--fr-online, #66c0f4) 68%, #6f7787); }
 .fr-sec.st-dnd { color: color-mix(in srgb, var(--fr-online, #66c0f4) 68%, #6f7787); }
+
+/* c80: yöneticiye "Çevrimdışı (gizli)" — ad, durum, nokta, çerçeve ve bölüm başlığı mor */
+.fr-main.st-hid b, .fr-main.st-hid small, .fr-row.unread .fr-main.st-hid small { color: #b9a3ff; }
+.fr-dot.hid { background: transparent; box-shadow: inset 0 0 0 2px #b9a3ff; }
+.fr-row.rs-hid .fr-av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px #b9a3ff; }
+.fr-sec.st-hid { color: #b9a3ff; }

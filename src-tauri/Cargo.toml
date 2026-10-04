@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.100"
+version = "1.0.102"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -91,7 +91,8 @@ windows-collections = "0.3"
 opt-level = 3
 lto = "fat"
 codegen-units = 1
-panic = "abort"
+# "unwind": bir iş parçacığındaki panic tüm programı kapatmasın (catch_unwind + crash.log, bkz. src/crashlog.rs).
+panic = "unwind"
 strip = true
 incremental = false
 

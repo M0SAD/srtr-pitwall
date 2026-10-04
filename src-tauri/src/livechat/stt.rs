@@ -462,7 +462,7 @@ impl Stt {
                     }
                     if cfg.source.mic() {
                         let me = self.clone();
-                        let _ = std::thread::Builder::new().name("livechat-stt".into()).spawn(move || me.win_thread(cfg, stop, gen));
+                        let _ = std::thread::Builder::new().name("livechat-stt".into()).spawn(move || crate::crashlog::supervise("livechat-stt", || me.clone().win_thread(cfg.clone(), stop.clone(), gen)));
                     }
                 }
                 Engine::Cloud => {
@@ -474,7 +474,7 @@ impl Stt {
                         }
                         let me = self.clone();
                         let (c, st) = (ccfg.clone(), stop.clone());
-                        let _ = std::thread::Builder::new().name(name.into()).spawn(move || me.cloud_thread(src, dev, c, st, gen));
+                        let _ = std::thread::Builder::new().name(name.into()).spawn(move || crate::crashlog::supervise(name, || me.clone().cloud_thread(src, dev.clone(), c.clone(), st.clone(), gen)));
                     }
                 }
             }
@@ -868,8 +868,11 @@ pub async fn livechat_audio_devices() -> AudioDevices {
     tauri::async_runtime::spawn_blocking(|| {
         use rodio::cpal::traits::HostTrait;
         use rodio::DeviceTrait;
-        let host = rodio::cpal::default_host();
-        let mut outputs: Vec<String> = host.output_devices().map(|it| it.filter_map(|d| d.name().ok()).collect()).unwrap_or_default();
+        let mut outputs: Vec<String> = crate::crashlog::guard(|| {
+            let host = rodio::cpal::default_host();
+            host.output_devices().map(|it| it.filter_map(|d| d.name().ok()).collect::<Vec<String>>()).unwrap_or_default()
+        })
+        .unwrap_or_default();
         outputs.dedup();
         AudioDevices { inputs: cloud::input_devices(), outputs, default_input: cloud::default_input_name(), default_output: cloud::default_output_name() }
     })

@@ -133,7 +133,7 @@ async function friendPrefs(): Promise<Record<string, FriendPrefs>> {
 export async function myFriends() {
   const [list, prefs] = await Promise.all([api<Friend[]>("POST", "rpc/my_friends", { body: {} }), friendPrefs()]);
   noteAvatars((list ?? []).map((f) => ({ id: f.friend_id, avatar_path: f.avatar_path })));
-  return (list ?? []).map((f) => ({ ...f, notify_muted: !!prefs[f.friend_id]?.notify_muted, sound_muted: !!prefs[f.friend_id]?.sound_muted }));
+  return (list ?? []).map((f) => ({ ...f, notify_muted: !!prefs[f.friend_id]?.notify_muted, sound_muted: false }));
 }
 export const setFriendPrefs = (id: string, notifyMuted: boolean, soundMuted: boolean) =>
   api("POST", "rpc/friend_prefs", { body: { p_user: id, p_notify_muted: notifyMuted, p_sound_muted: soundMuted } });
@@ -432,6 +432,8 @@ export const chatOpenKey = (label: string) => `pitwall.chatOpen.${label}`;
 
 /** Kısa bildirim sesi (dosya gerekmez) */
 export function messageBeep(volume = 0.25) {
+  // Rahatsız Etme: hiçbir bildirim sesi çalmaz (tek kapı; ayrı "Ses" düğmesi kaldırıldı, ses onun dışında hep açık)
+  if (settings().general.social.dnd) return;
   // Programda ses Rust tarafında çalınır: overlay penceresi hiç tıklanmadığı için tarayıcının otomatik
   // oynatma kuralı oradaki AudioContext'i askıda bırakır ve bildirim sesi hiç duyulmaz.
   if (inTauri) {

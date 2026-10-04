@@ -306,7 +306,7 @@ export function ChannelsTab() {
         <h3>Bağlantı</h3>
         <div class="row">
           <div>
-            <b>Otomatik başlat</b>
+            <b>Uygulama açılınca sohbeti başlat</b>
             <small>
               {t(
                 "Program açılınca canlı sohbet kendiliğinden başlar ve sohbet overlay'i görünür. Kapalıyken Başlat düğmesiyle ya da kısayolla ({0}) başlatırsın.",

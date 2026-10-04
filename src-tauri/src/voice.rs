@@ -12,7 +12,7 @@
 use crate::audio::{self, Cmd};
 use crate::model::{Frame, SessionData, MAX_CARS};
 use crate::tracker::Tracker;
-use crate::voice_rules::{Ctx, Eng, Kind};
+use crate::voice_rules::{traffic_msg, Ctx, Eng, Kind, TRAFFIC_TTL};
 use crate::voicepack::{self, k, Pack, PackMeta, Part};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -326,7 +326,7 @@ struct Spot {
 
 impl Default for Spot {
     fn default() -> Self {
-        let past = Instant::now() - Duration::from_secs(600);
+        let past = crate::crashlog::past(600);
         Spot {
             clr: 1,
             pending_clr: 1,
@@ -398,7 +398,7 @@ pub struct Voice {
 
 impl Default for Voice {
     fn default() -> Self {
-        let past = Instant::now() - Duration::from_secs(600);
+        let past = crate::crashlog::past(600);
         Voice {
             cfg: VoiceCfg::default(),
             sounds: SoundsCfg::default(),
@@ -655,6 +655,8 @@ impl Voice {
         if !self.voice_on || !driving || self.cfg.pack_root.is_none() {
             self.spot.clr = 1;
             self.spot.overlap_since = None;
+            // Araçtan inildi / ses kapalı: bekleyen trafik çağrıları sonradan çalmasın
+            self.queue.items.retain(|m| !traffic_msg(m));
             if !live {
                 self.eng = Eng::default();
                 self.queue.items.clear();
@@ -696,7 +698,19 @@ impl Voice {
             self.last_eng = now;
             self.eng.rules(&ctx, &mut out);
         }
-        for m in out {
+        // Pitte (ve pit çıkışından hemen sonra) trafik çağrıları: yenileri atılır, kuyruktakiler silinir;
+        // pistte de kuyrukta birkaç saniyeden fazla bekleyen trafik çağrısı bayattır.
+        let off = self.eng.traffic_off(f, now);
+        if off {
+            self.queue.items.retain(|m| !traffic_msg(m));
+        }
+        for mut m in out {
+            if traffic_msg(&m) {
+                if off {
+                    continue;
+                }
+                m.ttl = m.ttl.min(TRAFFIC_TTL);
+            }
             if self.cfg.on(m.group) {
                 self.queue.push(m, now);
             }
@@ -748,7 +762,8 @@ impl Voice {
         }
 
         let fc = self.sounds.faster_class.clone();
-        if !fc.enabled || !(driving || (live && !fc.mute_spectating)) {
+        // Kendi aracımız pit yolundayken hızlı sınıf bipi de çalmaz
+        if !fc.enabled || !(driving || (live && !fc.mute_spectating)) || (driving && f.on_pit_road) {
             return;
         }
         let me = f.player_idx.max(0) as usize;
@@ -924,6 +939,26 @@ mod tests {
         q.push(Msg::new("x", prio::HIGH, vec![Part::Int(100)]), now);
         assert_eq!(q.items.len(), QUEUE_MAX);
         assert_eq!(q.pop(now, 0).unwrap().parts, vec![Part::Int(100)]);
+    }
+
+    #[test]
+    fn traffic_messages_expire_quickly() {
+        let t0 = Instant::now();
+        let mut q = Queue::default();
+        let mut m = Msg::new("gaps", prio::NORMAL, vec![k("timings/car_behind_is_lapping_us")]);
+        assert!(traffic_msg(&m));
+        m.ttl = m.ttl.min(TRAFFIC_TTL);
+        q.push(m, t0);
+        q.push(Msg::new("fuel", prio::NORMAL, vec![k("fuel/half_distance_good_fuel")]), t0);
+        // pitte: trafik mesajları kuyruktan silinir
+        let mut q2 = Queue::default();
+        q2.items = q.items.clone();
+        q2.items.retain(|m| !traffic_msg(m));
+        assert_eq!(q2.items.len(), 1);
+        // bayat trafik mesajı çalınmaz, diğeri çalınır
+        let got = q.pop(t0 + Duration::from_secs(8), 0).unwrap();
+        assert_eq!(got.group, "fuel");
+        assert!(q.items.is_empty());
     }
 
     #[test]

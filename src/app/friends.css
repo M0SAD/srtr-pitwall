@@ -898,3 +898,12 @@
 
 /* === 100: Steam sırası — rahatsız etme çevrimiçilerin altında; adı daha soluk mavi === */
 .fx .frow.dnd .frow-l1 b { color: color-mix(in srgb, var(--fr-online) 68%, #6f7787); }
+
+/* === c80: yöneticiye "Çevrimdışı (gizli)" — ad, durum, çerçeve ve bölüm başlığı mor (çevrimiçi mavi / yarışta yeşilden ayrı) === */
+.fx { --fr-hidden: #b9a3ff; }
+.fx .frow.hid .frow-l1 b,
+.fx .frow.hid .frow-l2 small,
+.fx .frow.hid .frow-l2 small.frow-status { color: var(--fr-hidden, #b9a3ff); }
+.fav.p-hidden { box-shadow: 0 0 0 2px #14171d, 0 0 0 3.5px var(--fr-hidden, #b9a3ff); }
+.fav.p-hidden .fav-dot { background: #14171d; box-shadow: inset 0 0 0 2px var(--fr-hidden, #b9a3ff); }
+.fx .fsec-hidden span { color: var(--fr-hidden, #b9a3ff); }

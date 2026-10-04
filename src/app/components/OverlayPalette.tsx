@@ -7,6 +7,7 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { Portal } from "solid-js/web";
 import "@/host/context-menu.css";
+import { fitMenu } from "@/host/ContextMenu";
 import Minus from "lucide-solid/icons/minus";
 import { manifests } from "@/sdk/registry";
 import type { OverlayManifest } from "@/sdk/overlay";
@@ -283,6 +284,7 @@ function RowMenu(props: { x: number; y: number; name: string; locked: boolean; o
       window.removeEventListener("keydown", key);
     });
   });
+  fitMenu(() => el, () => ({ x: props.x, y: props.y }));
   const run = (fn: () => void) => () => {
     fn();
     props.onClose();
@@ -291,7 +293,7 @@ function RowMenu(props: { x: number; y: number; name: string; locked: boolean; o
     <div
       ref={el}
       class="ctx"
-      style={{ left: `${Math.max(8, Math.min(props.x, window.innerWidth - 258))}px`, top: `${Math.max(8, Math.min(props.y, window.innerHeight - 150))}px` }}
+      style={{ left: `${props.x}px`, top: `${props.y}px`, visibility: "hidden" }}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div class="ctx-title">{props.name}</div>

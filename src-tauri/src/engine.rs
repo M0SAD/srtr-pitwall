@@ -212,7 +212,8 @@ fn build_topics(reqs: &[TopicReq]) -> Vec<Topic> {
         if !KNOWN.contains(&r.name.as_str()) || r.name == "status" {
             continue;
         }
-        let hz = r.hz.clamp(0.5, 60.0);
+        // NaN `clamp`ten NaN çıkar ve Duration::from_secs_f32 panic yapar (ör. tarayıcı kaynağı adresinde "fuel:nan")
+        let hz = if r.hz.is_finite() { r.hz.clamp(0.5, 60.0) } else { 5.0 };
         let interval = Duration::from_secs_f32(1.0 / hz);
         match out.iter_mut().find(|t| t.name == r.name) {
             // Aynı konuya birden fazla overlay abone olursa en yüksek sıklık kazanır
@@ -287,7 +288,7 @@ impl Shared {
 pub fn spawn(app: AppHandle, shared: Arc<Shared>) {
     std::thread::Builder::new()
         .name("telemetry".into())
-        .spawn(move || run(app, shared))
+        .spawn(move || crate::crashlog::supervise("telemetry", || run(app.clone(), shared.clone())))
         .expect("telemetri iş parçacığı başlatılamadı");
 }
 
@@ -369,7 +370,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     let app_data = map_dir.clone();
     // Telemetri kaydı ayarı (general.telemetryRecord, varsayılan açık); saniyede bir okunur
     let mut rec_enabled = true;
-    let mut last_rec_check = Instant::now() - Duration::from_secs(10);
+    let mut last_rec_check = crate::crashlog::past(10);
     let mut demo: Option<Demo> = None;
     let mut last_demo_step = Instant::now();
     let mut was_connected = false;
@@ -379,7 +380,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     let mut was_replay = false;
     // Olaylar penceresine son bildirilen liste sürümü ve kayıt ayarının son okunma anı
     let mut events_rev = 0u64;
-    let mut last_events_cfg = Instant::now() - Duration::from_secs(10);
+    let mut last_events_cfg = crate::crashlog::past(10);
 
     // Canlı sim bağlantısı (iRacing, ACC/AC, LMU/rF2, AMS2). Bkz. sims/mod.rs
     #[cfg(windows)]
@@ -389,11 +390,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     #[cfg(windows)]
     let mut last_pref_check = Instant::now();
     #[cfg(windows)]
-    let mut last_try = Instant::now() - Duration::from_secs(10);
+    let mut last_try = crate::crashlog::past(10);
     // Son yeni telemetri satırının zamanı. iRacing yarış ekranı kapanınca veya donunca
     // paylaşımlı bellek bir süre "bağlı" görünebilir; veri akmıyorsa bağlı saymıyoruz.
     #[cfg(windows)]
-    let mut last_data = Instant::now() - Duration::from_secs(60);
+    let mut last_data = crate::crashlog::past(60);
 
     loop {
         let user_demo = shared.demo.load(Ordering::Relaxed);
@@ -574,7 +575,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 crate::league::reposition(&mut st.frame, &st.session);
             }
             st.tracker.update(&st.frame, &st.session);
-            st.strategy.update(&st.frame, &st.session, st.sim, demo_on);
+            // Yardımcı hesaplar tek tek korunur: birindeki panic (crash.log'a yazılır) o kareyi atlar, döngü sürer
+            crate::crashlog::guard(|| st.strategy.update(&st.frame, &st.session, st.sim, demo_on));
             // Olaylar ekranı: olayları topla; oyuncu yarışı bitirince pencereyi bir kez aç
             // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
@@ -583,7 +585,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             } else {
                 None
             };
-            let (finished, ev_count, ev_rev) = {
+            let (finished, ev_count, ev_rev) = crate::crashlog::guard(|| {
                 let mut ev = shared.events.lock();
                 ev.set_source(st.sim, demo_on);
                 if let Some(r) = record {
@@ -591,7 +593,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 }
                 let fin = ev.update(&st.frame, &st.session, &st.tracker);
                 (fin, ev.auto_count(), ev.rev)
-            };
+            })
+            .unwrap_or((false, 0, events_rev));
             // Açık Olaylar penceresi beklemeden yenilensin (pencere ayrıca açılışta ve aralıklarla kendi çeker)
             if ev_rev != events_rev {
                 events_rev = ev_rev;
@@ -615,9 +618,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 crate::open_events_if_closed(&app);
             }
             was_replay = replay;
-            let done = st.history.update(&st.frame, &st.session, !demo_on && connected);
+            let done = crate::crashlog::guard(|| st.history.update(&st.frame, &st.session, !demo_on && connected)).flatten();
             save_record(&shared, done);
-            st.timing.update(&st.frame, &st.session, demo_on);
+            crate::crashlog::guard(|| st.timing.update(&st.frame, &st.session, demo_on));
             // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
@@ -626,21 +629,21 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     .unwrap_or(true);
             }
             // Fren noktası referansı ve pist limiti sayaçları (demo verisinde dosyaya yazılmaz)
-            st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref());
+            crate::crashlog::guard(|| st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref()));
             let rec_on = rec_enabled && !demo_on && !preview && connected && demo.is_none();
-            if let Some(lap) = st.laprec.update(&st.frame, &st.raw, st.sim, rec_on) {
+            if let Some(lap) = crate::crashlog::guard(|| st.laprec.update(&st.frame, &st.raw, st.sim, rec_on)).flatten() {
                 save_lap(&app, app_data.as_deref(), lap);
             }
             if demo.is_none() {
-                st.map.update(&st.frame);
+                crate::crashlog::guard(|| st.map.update(&st.frame));
             }
             // Sesli spotter/mühendis ve bipler (önizleme verisinde ve Demo modunda susar)
             // Demo modunda da susar: Demo yalnızca görüntü içindir (eski `general.demoMute` ayarı artık yok sayılır)
             let muted = user_demo;
-            voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted, st.sim);
+            crate::crashlog::guard(|| voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview && !muted, st.sim));
         }
         // Sesli komut (bas-konuş): bekleyen soruları son kareden cevapla (bkz. voicecmd.rs)
-        crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim);
+        crate::crashlog::guard(|| crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim));
 
         let visible = connected && !preview;
         if visible != was_connected {
@@ -787,7 +790,8 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
             } else if let Some((_, p)) = cache.iter().find(|(n, _)| *n == name) {
                 p.clone()
             } else {
-                let p = match name {
+                // Konu hesabı korunur: bir konudaki panic (crash.log'a yazılır) yalnız o konuyu bu karede atlar
+                let made = crate::crashlog::guard(|| Some(match name {
                     "status" => {
                         let mut x = calc::status(f, s, connected, demo, preview);
                         if connected && !demo && !preview {
@@ -824,8 +828,10 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                     "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
                     "damage" => Packet::Damage(crate::drivecues::damage(f)),
                     "strategy" => Packet::Strategy(st.strategy.packet(f, s)),
-                    _ => continue,
-                };
+                    _ => return None,
+                }))
+                .flatten();
+                let Some(p) = made else { continue };
                 cache.push((name, p.clone()));
                 p
             };

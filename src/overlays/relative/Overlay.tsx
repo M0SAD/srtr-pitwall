@@ -178,7 +178,7 @@ export default function Relative(props: OverlayProps) {
       case "last":
         return (
           <span class="rel-last ov-mono" classList={{ pb: r.lastPb }}>
-            {lapTime(r.last)}
+            <span class="rel-v">{lapTime(r.last)}</span>
           </span>
         );
       case "tire":
@@ -188,7 +188,7 @@ export default function Relative(props: OverlayProps) {
           </span>
         );
       case "gap":
-        return <span class="rel-gap ov-mono">{r.isMe ? "" : (r.gap > 0 ? "-" : "+") + Math.abs(r.gap).toFixed(1)}</span>;
+        return <span class="rel-gap ov-mono"><span class="rel-v">{r.isMe ? "" : (r.gap > 0 ? "-" : "+") + Math.abs(r.gap).toFixed(1)}</span></span>;
       case "flag":
         return (
           <span class="rel-flag">

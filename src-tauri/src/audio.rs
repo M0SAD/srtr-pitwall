@@ -43,7 +43,7 @@ pub fn send(cmd: Cmd) {
         let (tx, rx) = channel::<Cmd>();
         std::thread::Builder::new()
             .name("audio".into())
-            .spawn(move || run(rx))
+            .spawn(move || crate::crashlog::supervise("audio", || run(&rx)))
             .expect("ses iş parçacığı başlatılamadı");
         tx
     });
@@ -57,7 +57,7 @@ fn pan_volumes(pan: f32, volume: f32) -> Vec<f32> {
     vec![l, r]
 }
 
-fn run(rx: Receiver<Cmd>) {
+fn run(rx: &Receiver<Cmd>) {
     // Ses aygıtı yoksa (ör. sunucu) komutları sessizce tüket
     let Ok((_stream, handle)) = OutputStream::try_default() else {
         BUSY.store(false, Ordering::Relaxed);

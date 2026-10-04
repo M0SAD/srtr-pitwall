@@ -1,7 +1,7 @@
 // Düzenleme ekranında overlay'e sağ tıklayınca açılan konum menüsü.
 
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { addToLayout, defaultInstance, removeInstance, settings, updateOverlay } from "@/sdk/settings";
 import { monitorLabel, monitors, monitorOf } from "@/sdk/monitors";
@@ -40,13 +40,119 @@ const GRID: [number, number, string][] = [
   [1, 1, "Sağ alt"],
 ];
 
+const EDGE = 8;
+
+export interface MenuArea {
+  x?: number;
+  y?: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Menünün sığabileceği görünür alan (pencere koordinatlarında). Pencerenin tamamı değil, imlecin bulunduğu monitörün
+ * çalışma alanıyla (görev çubuğu hariç) kesişimi: overlay penceresi monitörden büyükse / birden fazla monitöre
+ * yayılıyorsa ya da panel penceresi ekrandan taşıyorsa menü yine görünen kısımda kalır.
+ */
+export function visibleArea(px: number, py: number): Required<MenuArea> {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const full = { x: 0, y: 0, w: W, h: H };
+  try {
+    // Pencere içeriğinin ekrandaki başlangıcı (CSS pikseli): çerçeve ve başlık çubuğu payı düşülür
+    const bw = Math.max(0, (window.outerWidth - W) / 2);
+    const ox = window.screenX + bw;
+    const oy = window.screenY + Math.max(0, window.outerHeight - H - bw);
+    const cut = (l: number, t: number, w: number, h: number) => {
+      if (![l, t, w, h].every(Number.isFinite) || w < 200 || h < 120) return undefined;
+      const L = Math.max(0, l - ox);
+      const T = Math.max(0, t - oy);
+      const R = Math.min(W, l + w - ox);
+      const B = Math.min(H, t + h - oy);
+      // İmleç bu alanın içinde değilse hesap bu pencere için geçerli değil
+      if (R - L < 200 || B - T < 120 || px < L - 1 || px > R + 1 || py < T - 1 || py > B + 1) return undefined;
+      return { x: L, y: T, w: R - L, h: B - T };
+    };
+    const sc = window.screen as Screen & { availLeft?: number; availTop?: number };
+    const work = cut(sc.availLeft ?? 0, sc.availTop ?? 0, sc.availWidth, sc.availHeight);
+    if (work) return work;
+    // Pencere birden fazla monitöre yayılıyor: imlecin üstündeki monitör (Rust listesi fiziksel piksel verir)
+    const dpr = window.devicePixelRatio || 1;
+    for (const m of monitors()) {
+      const r = cut(m.x / dpr, m.y / dpr, m.width / dpr, m.height / dpr);
+      if (r) return r;
+    }
+  } catch {
+    /* ölçülemedi: pencerenin tamamı */
+  }
+  return full;
+}
+
+/**
+ * Sağ tık menüsünü görünür alanın içine yerleştirir: menü çizildikten sonra ölçülür,
+ * altta yer yoksa yukarı, sağda yer yoksa sola açılır, 8px kenar payıyla sıkıştırılır.
+ * Alandan uzunsa yüksekliği sınırlanır (CSS'te overflow-y: auto, tekerlekle kayar).
+ * Pencere ya da menü boyutu / içeriği değişince yeniden hesaplanır.
+ */
+export function fitMenu(
+  el: () => HTMLElement | undefined,
+  anchor: () => { x: number; y: number },
+  viewport?: () => MenuArea | undefined,
+) {
+  const fit = () => {
+    const m = el();
+    if (!m) return;
+    const { x, y } = anchor();
+    const v = viewport?.();
+    const a = v ? { x: v.x ?? 0, y: v.y ?? 0, w: v.w, h: v.h } : visibleArea(x, y);
+    const x0 = a.x + EDGE;
+    const y0 = a.y + EDGE;
+    const x1 = a.x + a.w - EDGE;
+    const y1 = a.y + a.h - EDGE;
+    m.style.maxHeight = `${Math.max(80, y1 - y0)}px`;
+    m.style.maxWidth = `${Math.max(120, x1 - x0)}px`;
+    const w = m.offsetWidth;
+    const h = m.offsetHeight;
+    let left = x + w > x1 ? x - w : x;
+    let top = y + h > y1 ? y - h : y;
+    // Yukarı / sola da sığmıyorsa kenara yasla
+    if (top < y0) top = y1 - h;
+    if (left < x0) left = x1 - w;
+    // Son güvence: tıklanan nokta alanın dışında kalsa bile menü alanın içinde
+    m.style.left = `${Math.max(x0, Math.min(left, x1 - w))}px`;
+    m.style.top = `${Math.max(y0, Math.min(top, y1 - h))}px`;
+    m.style.visibility = "visible";
+  };
+  onMount(() => {
+    fit();
+    window.addEventListener("resize", fit);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fit) : undefined;
+    const m = el();
+    if (ro && m) ro.observe(m);
+    // İçerik değişti (kilitlenince seçenekler azalır, not satırı eklenir): kutu boyu aynı kalsa da yeniden yerleştir
+    const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(fit) : undefined;
+    if (mo && m) mo.observe(m, { childList: true, subtree: true });
+    onCleanup(() => {
+      window.removeEventListener("resize", fit);
+      ro?.disconnect();
+      mo?.disconnect();
+    });
+  });
+  // Menü açıkken başka bir overlay'e sağ tıklanırsa (konum değişir)
+  createEffect(() => {
+    anchor();
+    viewport?.();
+    fit();
+  });
+}
+
 export function ContextMenu(props: {
   state: MenuState;
   /** Overlay'lerin yerleştiği ekran (mantıksal piksel) */
   screen: { w: number; h: number };
   onClose: () => void;
   /** Menünün sığması gereken alan (varsayılan: pencere) */
-  viewport?: { w: number; h: number };
+  viewport?: MenuArea;
   /** Monitöre taşıma seçenekleri (yayın sahnelerinde yok) */
   monitors?: boolean;
   /** "Ayarlarını aç" */
@@ -160,16 +266,8 @@ export function ContextMenu(props: {
     },
   ];
 
-  // Menü ekrandan taşmasın
-  const pos = () => {
-    const w = 250;
-    const h = 420;
-    const vp = props.viewport ?? { w: window.innerWidth, h: window.innerHeight };
-    return {
-      left: `${Math.max(8, Math.min(s().x, vp.w - w - 8))}px`,
-      top: `${Math.max(8, Math.min(s().y, vp.h - h - 8))}px`,
-    };
-  };
+  // Menü ekrandan taşmasın: gerçek boyut ölçülür, gerekirse yukarı / sola açılır
+  fitMenu(() => el, () => ({ x: s().x, y: s().y }), () => props.viewport);
 
   onMount(() => {
     const down = (e: PointerEvent) => {
@@ -185,7 +283,7 @@ export function ContextMenu(props: {
   });
 
   return (
-    <div ref={el} class="ctx" style={pos()} onContextMenu={(e) => e.preventDefault()}>
+    <div ref={el} class="ctx" style={{ left: `${s().x}px`, top: `${s().y}px`, visibility: "hidden" }} onContextMenu={(e) => e.preventDefault()}>
       <div class="ctx-title">{s().name}</div>
       <Show when={locked()}>
         <div class="ctx-sub">Kilitli: konumu değiştirilemez</div>

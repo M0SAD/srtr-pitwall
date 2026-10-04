@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-102
+
+- **Kendiliğinden kapanma düzeltildi:** bilgisayar açıldıktan sonraki ilk 10 dakika içinde program başlatılınca telemetri iş parçacığındaki bir zaman hesabı programı kapatıyordu (Windows açılışında tepside başlatmada sessizce). Ayrıca yayın sürümünde herhangi bir iç hata programı tümden kapatıyordu; artık hatalı kare atlanır, iş parçacıkları yeniden başlar ve ayrıntı `crash.log` dosyasına yazılır (%APPDATA%\com.pitwall.overlay).
+- **Sohbete yaz — tarayıcı girişi:** her üye Twitch / YouTube / Kick'e program içindeki pencerede kendi hesabıyla giriş yapar; yönetici ayarı, uygulama anahtarı ve sunucu işlevi gerekmez. Yönetim'deki Client ID ayarları kaldırıldı. İsteyen için "Gelişmiş: kendi API uygulamam" bölümü duruyor.
+- **Açılışta overlay'lerin görünüp kaybolması:** overlay penceresi artık durum bilinene kadar hiçbir şey çizmez ve panel önizleme verisini ekrana yansıtmaz; Hedef Çubuğu, Start Işıkları ve Yarış Sonucu yalnızca gerçek Demo'da örnek gösterir.
+- **Bağlantı göstergesi:** üst barda tek renkli nokta (kırmızı: bağlı değil, sarı: Demo, yeşil: bağlı); üzerine gelince oyun, pist, oturum ve araç bilgisi.
+- **Canlı Sohbet:** "Uygulama açılınca sohbeti başlat" varsayılan açık; varsayılan üç kanal ★ işaretli.
+
+## 041026-101
+
+- **Sağ tık menüsü (düzen tuvali, ekranda düzenleme):** menü her zaman görünen alanın içinde kalır; aşağıda yer yoksa yukarı açılır, sığmıyorsa fare tekeriyle kayar ("Sil" artık hep erişilebilir).
+- **Sıralama Tablosu ve Yakındakiler:** kendi satırındaki sütunlar diğer satırlarla aynı hizada (kalın yazı sütun genişliğini büyütüyordu).
+- **Sesli Mühendis:** pitteyken (pit yolu, pit kutusu ve çıkıştan sonraki ilk saniyeler) trafik çağrıları susar: tur bindirme, fark, mavi bayrak, geçiş. "Arkadaki araç tur bindiriyor" çağrısı pistte de en çok 75 saniyede bir ve her araç için bir kez söylenir. Pitten çıkınca konum bir kez özetlenir.
+- **Arkadaş listesi:** arkadaş menüsündeki "Sesi kapat" kaldırıldı. Rahatsız etme'de ekip odası mesajlarının sesi ve bildirimi de gelmez. Yöneticinin gördüğü gizli (çevrimdışı görünen ama uygulamada olan) üyeler mor renkte ve "Çevrimdışı (gizli)" olarak görünür.
+
 ## 041026-100
 
 - **Ekip pitwall'ı:** yarıştaki arkadaşın pitwall'ında yeni sekmeler: Live Timing, Mühendis, Olaylar — sürücünün kendi gördüğü ekranlar, salt okunur (Tekrar / kamera düğmeleri yok). Veri yaklaşık 3 saniyede bir gelir (c79). Sitedeki / telefondaki ekip sayfasında da sade tablolar olarak var.

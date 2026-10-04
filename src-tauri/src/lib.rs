@@ -2,6 +2,7 @@
 
 mod broadcast;
 mod calc;
+mod crashlog;
 mod demo;
 mod drivecues;
 mod audio;
@@ -325,7 +326,7 @@ fn spawn_settings_writer(app: AppHandle) {
         .name("settings-writer".into())
         .spawn(move || loop {
             std::thread::sleep(std::time::Duration::from_millis(400));
-            app.state::<SettingsStore>().flush(&app);
+            crashlog::guard(|| app.state::<SettingsStore>().flush(&app));
         })
         .expect("ayar yazıcı başlatılamadı");
 }
@@ -508,6 +509,16 @@ fn league_from_settings(v: &Value) -> Option<league::LeagueConfig> {
 #[tauri::command]
 fn mqtt_status(app: AppHandle) -> mqtt::MqttStatus {
     mqtt::status(&app.state::<mqtt::MqttState>(), &shared(&app))
+}
+
+/// Komut işleyicisini sarar: eşzamanlı (sync) komutlar ana iş parçacığında, WebView2 geri çağrısının içinde çalışır;
+/// oradaki bir panic FFI sınırını aşamayacağı için tüm programı kapatır. Burada yakalanır (crash.log'a yazılmıştır),
+/// yalnızca o çağrı cevapsız kalır.
+fn guard_invoke<F>(f: F) -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static
+where
+    F: Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static,
+{
+    move |invoke| crashlog::guard(|| f(invoke)).unwrap_or(true)
 }
 
 fn quit_app(app: &AppHandle) {
@@ -1341,7 +1352,7 @@ fn monitor_signature(app: &AppHandle) -> Option<String> {
 /// Monitör tak-çıkar takibi: her 2 sn'de bir monitör listesini karşılaştırır (ucuz).
 /// Değişince overlay pencereleri yeniden yerleştirilir ve arayüze "monitors-changed" gönderilir.
 fn spawn_monitor_watch(app: AppHandle) {
-    std::thread::spawn(move || {
+    std::thread::spawn(move || crashlog::supervise("monitor-watch", || {
         let mut last = monitor_signature(&app);
         loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
@@ -1364,7 +1375,7 @@ fn spawn_monitor_watch(app: AppHandle) {
             }
             let _ = app.emit("monitors-changed", ());
         }
-    });
+    }));
 }
 
 /// "Windows ile başlat" (sistem tepsisinde, --tray) varsayılan olarak açıktır: ilk kurulumda ve bu varsayılanın
@@ -1958,6 +1969,8 @@ fn shortcuts_status(app: AppHandle) -> Vec<ShortcutError> {
 fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
     let plugin = tauri_plugin_global_shortcut::Builder::new()
         .with_handler(move |app, shortcut, event| {
+            // Ana iş parçacığında çalışır: panic programı kapatmasın (crash.log'a yazılır)
+            crashlog::guard(|| {
             let action = app
                 .state::<KeyBindings>()
                 .bound
@@ -2027,6 +2040,7 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                 }
                 _ => {}
             }
+            });
         })
         .build();
     let hook_app = app.clone();
@@ -2041,12 +2055,21 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Çökme günlüğü (crash.log) ve panic kancası: her şeyden önce
+    crashlog::install();
     let shared_state = Arc::new(Shared::default());
 
     tauri::Builder::default()
         // Tek örnek: ikinci kez açılmaya çalışılırsa yeni kopya kapanır, mevcut olanın paneli öne gelir.
         // (Eklentiler arasında ilk sırada olmalı.)
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| bring_panel_front(app)))
+        // Geri çağrı ana iş parçacığında, başka sürecin GÖNDERDİĞİ ileti (WM_COPYDATA) işlenirken gelir; o bağlamda
+        // panel penceresi (WebView2) oluşturmak başarısız olabilir / kilitlenebilir. İş ayrı iş parçacığına devredilir.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            let app = app.clone();
+            std::thread::spawn(move || {
+                crashlog::guard(|| bring_panel_front(&app));
+            });
+        }))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
@@ -2063,7 +2086,7 @@ pub fn run() {
         .manage(KeyBindings::default())
         .manage(shots::ShotState::default())
         .manage(entitlement::EntitlementState::default())
-        .invoke_handler(tauri::generate_handler![
+        .invoke_handler(guard_invoke(tauri::generate_handler![
             settings_get,
             settings_set,
             stream_start,
@@ -2244,10 +2267,17 @@ pub fn run() {
             livechat::send::livechat_auth_logout,
             livechat::send::livechat_send,
             livechat::send::livechat_auth_reopen,
+            livechat::send::livechat_api_creds_set,
+            livechat::webchat::livechat_web_open,
+            livechat::webchat::livechat_web_hide,
+            livechat::webchat::livechat_web_logout,
             livechat::inputbox::livechat_input,
-        ])
+        ]))
         .setup(move |app| {
             let handle = app.handle().clone();
+            if let Ok(dir) = handle.path().app_data_dir() {
+                crashlog::set_dir(dir);
+            }
 
             // Kayıtlı genel ayarları uygula (panel açılmadan önce).
             let had_settings = settings_path(&handle).map(|p| p.exists()).unwrap_or(false);

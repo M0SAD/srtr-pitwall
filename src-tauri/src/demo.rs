@@ -666,7 +666,7 @@ impl Demo {
 
         // Pozisyonlar
         let mut order: Vec<usize> = (0..N_CARS).collect();
-        order.sort_by(|&a, &b| self.cars[b].dist.partial_cmp(&self.cars[a].dist).unwrap());
+        order.sort_by(|&a, &b| self.cars[b].dist.total_cmp(&self.cars[a].dist));
         let leader = self.cars[order[0]].dist;
         let mut class_counter = [0i32; 3];
 

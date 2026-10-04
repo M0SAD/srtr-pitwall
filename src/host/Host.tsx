@@ -122,11 +122,17 @@ function nudgeRepaint() {
 
 /** "Sürekli göster" ayarı (options.always) olan overlay türleri. Rust: lib.rs sync_monitor_windows */
 const ALWAYS_TYPES = ["livechat", "livepoll", "captions"];
+/** Simden bağımsız konular (Rust: engine.rs PUSHED + team + status): oyun bağlı değilken de abone kalınır */
+const OFFLINE_TOPICS = ["status", "livechat", "livepoll", "captions", "voice", "team"];
 
 export function Host() {
   const [appRaw, setApp] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
   const app = (): AppState => (vrBoard ? { ...appRaw(), editMode: false, hidden: false } : appRaw());
   const status = useTopic("status");
+  // Açılış: uygulama durumu (state_get) ve ilk `status` paketi gelene kadar hiçbir overlay çizilmez
+  // (durum bilinmeden çizilen overlay açılışta görünüp kaybolmasın). Tarayıcı kaynağında (OBS) beklenmez.
+  const [booted, setBooted] = createSignal(!inTauri);
+  const ready = () => !inTauri || (booted() && status() !== undefined);
 
   onMount(async () => {
     loadMonitors();
@@ -135,6 +141,7 @@ export function Host() {
     onCleanup(() => window.removeEventListener("resize", onResize));
     if (!inTauri) return; // Tarayıcı kaynağı: düzenleme/gizleme yok
     setApp(await invoke<AppState>("state_get"));
+    setBooted(true);
     await listen<AppState>("app-state", (e) => {
       setApp(e.payload);
       if (!e.payload.editMode) setEditPick(null);
@@ -219,6 +226,16 @@ export function Host() {
     const st = status();
     return !st?.connected || !!st.preview;
   };
+  /**
+   * Sim verisi ekrana akıtılsın mı: sadece oyun bağlıyken ya da Demo açıkken. Panel önizleme verisi (status.preview:
+   * panelde Overlay'ler / Düzenler sayfası açıkken üretilen örnek veri) ekrandaki overlay'lere verilmez; yoksa
+   * "iRacing kapalıyken de göster" açık overlay'ler uygulama açılınca örnek veriyle görünüp sayfadan çıkınca kaybolur.
+   */
+  const feedLive = () => {
+    if (!inTauri) return true;
+    const st = status();
+    return !!st?.connected && (!st.preview || pinActive());
+  };
   // Overlay'ler nerede çizildiklerini bilsin (canlı sohbet örneği ekranda kısa oynayıp kaybolur, düzenlemede kalır)
   setOnScreen(true);
   createEffect(() => setScreenEditing(app().editMode));
@@ -265,9 +282,10 @@ export function Host() {
     const prof = shown()!;
     // Performans ayarları: güncelleme sıklığı üst sınırları
     const perf = settings().general.perf;
+    const live = feedLive();
     const topics = enabled().flatMap(([k, m]) => {
       const hzOverride = prof.overlays[k]?.options?.hz;
-      return m.topics.map((t) => {
+      return m.topics.filter((t) => live || OFFLINE_TOPICS.includes(t.name)).map((t) => {
         const hz = typeof hzOverride === "number" ? hzOverride : t.hz;
         const cap = t.name === "inputs" ? perf.inputHz : perf.telemetryHz;
         return { name: t.name, hz: cap > 0 ? Math.min(hz, cap) : hz };
@@ -277,11 +295,13 @@ export function Host() {
   });
 
   createEffect(() => {
-    if (!status()?.connected) clearData();
+    // `status` her pakette tetiklenir: önizleme sürerken yolda kalmış bir veri paketi de sonraki durumda silinir
+    if (!status()?.connected || !feedLive()) clearData();
   });
 
   /** Bu kopya şu an görünsün mü (düzenlemede hepsi görünür) */
   const frameVisible = (key: string) => {
+    if (!ready()) return false;
     if (app().editMode) return true;
     // Yeni eklenen overlay kısa süre her durumda görünür; overlay'ler gizliyken sadece o
     if (peekId()) {

@@ -546,7 +546,7 @@ async fn chat_session(ctx: &Ctx, vid: &str) -> Result<End, String> {
                 }
             }
         }
-        let wait = Duration::from_secs_f64(ctx.hub.yt_interval().max(1.0));
+        let wait = Duration::from_secs_f64(ctx.hub.yt_interval().max(1.0).min(3600.0));
         let spent = started.elapsed();
         tokio::time::sleep(wait.saturating_sub(spent).max(Duration::from_millis(300))).await;
     }

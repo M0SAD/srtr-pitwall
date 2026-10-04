@@ -335,3 +335,15 @@
 .st-gap-row {
   box-sizing: border-box;
 }
+
+/* Oyuncu satırı hizası: "ch" genişlikli sütunlar (fark, tur süreleri, iR farkı) kalın yazıda daha geniş çıkıyor ve
+   solundaki bütün sütunları (araç logosu, lisans, iR) sola itiyordu. Hücre kutusu normal kalınlıkta ölçülür,
+   kalınlık yalnızca içteki yazıya (.st-v) verilir: bütün satırlarda sütunlar aynı x konumunda. */
+.st-row.me .st-gap,
+.st-row.me .st-lap,
+.st-row.me .st-ird {
+  font-weight: var(--ov-weight);
+}
+.st-row.me .st-v {
+  font-weight: var(--ov-weight-strong);
+}

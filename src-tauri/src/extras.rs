@@ -136,7 +136,7 @@ pub fn traffic(f: &Frame, s: &SessionData) -> Traffic {
             on_pit: c.on_pit,
         });
     }
-    out.cars.sort_by(|a, b| a.gap.abs().partial_cmp(&b.gap.abs()).unwrap_or(std::cmp::Ordering::Equal));
+    out.cars.sort_by(|a, b| a.gap.abs().total_cmp(&b.gap.abs()));
     out.cars.truncate(10);
     out
 }

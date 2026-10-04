@@ -324,7 +324,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
             void chatVisible().then((v) => {
               if (v) return;
               void popup(kind, f, text);
-              if (soc().sound && !f.sound_muted) messageBeep();
+              if (!f.sound_muted) messageBeep();
             });
           }
         }
@@ -460,7 +460,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
           if (racing()) {
             // Mesajlar overlay'i bu mesajı gösteriyorsa alt köşedeki kutu ayrıca çıkmaz
             if (!ovMsgShown(teamOv(m, tm, who, false))) setToast({ id: m.id, from: `[${tm.tag}] ${tm.name}`, body });
-            if (soc().sound) messageBeep();
+            messageBeep();
             setTimeout(() => setToast((x) => (x?.id === m.id ? null : x)), 7000);
             return;
           }
@@ -469,7 +469,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
             color: tm.color,
             photo: teamLogo(tm.logo_path),
           });
-          if (soc().sound) messageBeep();
+          messageBeep();
         })();
       },
     });
@@ -520,13 +520,13 @@ export function startSocial(status: Accessor<Status | undefined>) {
         const body = `${who}: ${emojify(m.body)}`;
         if (racing()) {
           if (!ovMsgShown(ov)) setToast({ id: m.id, from: g.name, body });
-          if (soc().sound) messageBeep();
+          messageBeep();
           setTimeout(() => setToast((x) => (x?.id === m.id ? null : x)), 7000);
           return;
         }
         if (await chatVisible()) return;
         void popup("group", { friend_id: groupChatKey(g.group_id), display_name: g.name }, body, m.id, { color: hashColor(g.group_id), photo: "" });
-        if (soc().sound) messageBeep();
+        messageBeep();
       })();
     });
   }
@@ -555,7 +555,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       // Yarışta: oyun içi kutu (Mesajlar overlay'i bu mesajı gösteriyorsa kutu ayrıca çıkmaz) + ses
       const box = !f?.notify_muted && !ovMsgShown(ov);
       if (box) setToast({ id: m.id, from: f?.display_name ?? "?", body: emojify(msgPreview(m)) });
-      const snd = soc().sound && !f?.sound_muted;
+      const snd = !f?.sound_muted;
       if (snd) messageBeep();
       setTimeout(() => setToast((t) => (t?.id === m.id ? null : t)), 7000);
       return socialLog(`${tag}: yarista -> oyun ici kutu=${box} ses=${snd}`);
@@ -573,7 +573,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
         who = friends.find((x) => x.friend_id === m.sender);
         if (who?.muted || who?.notify_muted) return socialLog(`${tag}: bildirim yok (arkadas sessize alinmis)`);
       }
-      const snd = soc().sound && !who?.sound_muted;
+      const snd = !who?.sound_muted;
       socialLog(`${tag}: acilir pencere isteniyor, ses=${snd}`);
       if (snd) messageBeep();
       void popup("message", who ?? { friend_id: m.sender, display_name: "?" }, emojify(msgPreview(m)), m.id);

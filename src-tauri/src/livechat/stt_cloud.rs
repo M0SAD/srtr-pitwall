@@ -71,21 +71,30 @@ const PREROLL: usize = RATE as usize * 3 / 10;
 
 /// Kayıt cihazlarının adları
 pub fn input_devices() -> Vec<String> {
-    let host = cpal::default_host();
-    let mut v: Vec<String> = host.input_devices().map(|it| it.filter_map(|d| d.name().ok()).collect()).unwrap_or_default();
-    v.dedup();
-    v
+    // cpal (WASAPI) cihaz listelenirken cihaz çıkarılırsa içeride panic yapabilir: yakalanır (crash.log'a yazılır)
+    crate::crashlog::guard(|| {
+        let host = cpal::default_host();
+        let mut v: Vec<String> = host.input_devices().map(|it| it.filter_map(|d| d.name().ok()).collect()).unwrap_or_default();
+        v.dedup();
+        v
+    })
+    .unwrap_or_default()
 }
 
 pub fn default_input_name() -> Option<String> {
-    cpal::default_host().default_input_device().and_then(|d| d.name().ok())
+    crate::crashlog::guard(|| cpal::default_host().default_input_device().and_then(|d| d.name().ok())).flatten()
 }
 
 pub fn default_output_name() -> Option<String> {
-    cpal::default_host().default_output_device().and_then(|d| d.name().ok())
+    crate::crashlog::guard(|| cpal::default_host().default_output_device().and_then(|d| d.name().ok())).flatten()
 }
 
 pub(crate) fn open_device(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
+    // cpal içindeki panic (cihaz o anda çıkarıldı vb.) hata olarak döner
+    crate::crashlog::guard(|| open_device_inner(src, want)).unwrap_or_else(|| Err("Ses cihazı açılırken beklenmeyen hata oluştu".into()))
+}
+
+fn open_device_inner(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
     let host = cpal::default_host();
     fn find(mut it: impl Iterator<Item = cpal::Device>, want: &str) -> Option<cpal::Device> {
         it.find(|d| d.name().map(|n| n == want).unwrap_or(false))

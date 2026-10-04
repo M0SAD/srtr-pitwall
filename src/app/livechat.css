@@ -1042,3 +1042,24 @@
     opacity: 0.45;
   }
 }
+
+/* ---------- Sohbete yaz: Gelişmiş (kendi API uygulamam) ---------- */
+.lcp-adv {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.lcp-adv > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted, #8a93a3);
+  user-select: none;
+}
+.lcp-adv[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lcp-adv .input {
+  width: 100%;
+  box-sizing: border-box;
+}

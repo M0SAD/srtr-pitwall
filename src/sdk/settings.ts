@@ -201,6 +201,8 @@ export interface LiveChannel {
 export interface LiveChatSettings {
   /** Uygulama açılınca sohbete otomatik bağlan */
   autoStart: boolean;
+  /** Bir kerelik geçiş: "Uygulama açılınca sohbeti başlat" varsayılan açık oldu (kullanıcı sonra kapatırsa kapalı kalır) */
+  autoStartV1?: boolean;
   channels: LiveChannel[];
   /** Varsayılan kanallar bir kez eklendi (kullanıcı silerse geri gelmez) */
   seeded: boolean;
@@ -350,7 +352,8 @@ export function edgeDefaultVoice(langCode: string): string {
 
 export function defaultLiveChat(): LiveChatSettings {
   return {
-    autoStart: false,
+    autoStart: true,
+    autoStartV1: true,
     channels: defaultLiveChannels(),
     seeded: true,
     seedV2: true,
@@ -404,9 +407,21 @@ export function defaultLiveChat(): LiveChatSettings {
   };
 }
 
+/**
+ * autoStartV1 geçişi bu açılışta uygulandı mı: kayıtlı ayarda otomatik başlatma henüz açık değildi, yani Rust tarafı
+ * açılışta sohbeti başlatmadı. Panel (App.tsx) bunu görünce ayarı bir kez kaydeder ve sohbeti kendisi başlatır.
+ */
+let lcAutoMigrated = false;
+export function takeLiveChatAutoMigrated(): boolean {
+  const v = lcAutoMigrated;
+  lcAutoMigrated = false;
+  return v;
+}
+
 /** Kayıtlı ayarı tamamlar. Eski "Twitch Sohbeti" kanal adı ilk kez Canlı Sohbet listesine taşınır. */
 function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChannel: string | undefined, uiLang?: string): LiveChatSettings {
   const d = defaultLiveChat();
+  if (!v || typeof v !== "object" || (!v.autoStartV1 && !v.autoStart)) lcAutoMigrated = true;
   if (!v || typeof v !== "object") {
     const ch = (twitchChannel ?? "").trim().replace(/^#/, "");
     // Eski "Twitch Sohbeti" kanalı (varsayılanlardan biri değilse) çalışmaya devam etsin diye listenin başına gelir
@@ -443,12 +458,15 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
     },
     stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },
     voiceDefV1: true,
+    // Bir kerelik geçiş (autoStartV1): sohbet uygulama açılınca kendiliğinden başlar; kullanıcı sonra kapatırsa kapalı kalır
+    ...(v.autoStartV1 ? {} : { autoStart: true }),
+    autoStartV1: true,
     sendTarget: typeof v.sendTarget === "string" && v.sendTarget ? v.sendTarget : "mine",
   });
 }
 
 function defaultLiveChannels(): LiveChannel[] {
-  return DEFAULT_LIVE_CHANNELS.map((url) => ({ url, hidden: false, tag: null, mine: false, name: "" }));
+  return DEFAULT_LIVE_CHANNELS.map((url) => ({ url, hidden: false, tag: null, mine: true, name: "" }));
 }
 
 /**
@@ -457,6 +475,15 @@ function defaultLiveChannels(): LiveChannel[] {
  * sonra silerse geri gelmez). Liste tam olarak varsayılan üç kanaldan oluşuyorsa sıra YouTube, Kick, Twitch yapılır.
  */
 function seedLiveChannels(x: LiveChatSettings): LiveChatSettings {
+  // Bir kezlik: varsayılan üç kanal ★ (benim kanalım) işaretlenir; hiç ★ kanalı olmayan kurulumlarda
+  const xs = x as LiveChatSettings & { starV1?: boolean };
+  if (xs.starV1 !== true) {
+    if (!x.channels.some((c) => c.mine)) {
+      const isDef = (c: LiveChannel) => DEFAULT_LIVE_CHANNELS.some((u) => u.toLowerCase() === c.url.trim().replace(/\/+$/, "").toLowerCase());
+      x.channels = x.channels.map((c) => (isDef(c) ? { ...c, mine: true } : c));
+    }
+    xs.starV1 = true;
+  }
   if (x.seeded === true && x.seedV2 === true) return x;
   if (!x.channels.length) x.channels = defaultLiveChannels();
   else if (x.seedV2 !== true && x.channels.length === DEFAULT_LIVE_CHANNELS.length) {

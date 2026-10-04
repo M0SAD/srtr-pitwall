@@ -721,6 +721,10 @@ pub struct Eng {
     last_laps: i32,
     lapped_said: i32,
     lapping_said: i32,
+    /// Bu stintte "tur bindiriyor" diye duyurulan araçlar → o andaki tur farkı
+    lapped_by: HashMap<usize, i32>,
+    /// Pit ziyaretinden sonra sıra / tur farkı özeti bir kez söylenecek
+    pos_after_pit: bool,
     // turlar
     cur_dirty: bool,
     cur_in: bool,
@@ -848,6 +852,8 @@ impl Default for Eng {
             last_laps: 0,
             lapped_said: 0,
             lapping_said: 0,
+            lapped_by: HashMap::new(),
+            pos_after_pit: false,
             cur_dirty: true,
             cur_in: false,
             cur_out: false,
@@ -927,6 +933,65 @@ impl Default for Eng {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Trafik çağrıları kapısı (pit yolu / pit çıkışı) ve sıklık sınırları
+// ---------------------------------------------------------------------------
+
+/// Pit çıkışından sonra trafik çağrıları en az bu kadar susar (sn)
+pub const TRAFFIC_GRACE_MIN: f32 = 6.0;
+/// ...ve yarış hızına dönülmediyse en çok bu kadar (sn)
+pub const TRAFFIC_GRACE_MAX: f32 = 20.0;
+/// "Yarış hızı" eşiği (m/s)
+pub const TRAFFIC_RACING_SPEED: f32 = 25.0;
+/// Kuyrukta bu kadar bekleyen trafik mesajı bayatlamıştır (sn)
+pub const TRAFFIC_TTL: f32 = 6.0;
+/// "Arkadaki araç tur bindiriyor" / "turunu geri alıyor": hangi araç olursa olsun en çok bu sıklıkta (sn)
+pub const LAPPED_CAT_CD: f32 = 75.0;
+
+/// Trafik çağrıları (tur bindiren araç, ön/arka fark, mavi bayrak, hızlı sınıf, geçiş) susturulsun mu?
+/// `in_pit`: pit yolunda / pit kutusunda / garajda; `since_exit`: pitten çıkalı geçen süre (sn).
+pub fn traffic_blocked(in_pit: bool, speed: f32, since_exit: f32) -> bool {
+    in_pit
+        || since_exit < TRAFFIC_GRACE_MIN
+        || (since_exit < TRAFFIC_GRACE_MAX && speed < TRAFFIC_RACING_SPEED)
+}
+
+/// İfade bir trafik çağrısı mı (pitte atılır, kuyrukta çabuk bayatlar)
+pub fn traffic_key(key: &str) -> bool {
+    key.starts_with("timings/")
+        || key.starts_with("multiclass/")
+        || matches!(
+            key,
+            "flags/blue_flag"
+                | "penalties/blue_move_now_or_be_penalized"
+                | "position/overtaking"
+                | "position/being_overtaken"
+        )
+}
+
+pub fn traffic_msg(m: &Msg) -> bool {
+    m.parts
+        .iter()
+        .any(|p| matches!(p, Part::K(s) if traffic_key(s)))
+}
+
+/// "Arkadaki araç tur bindiriyor" kararı: (aracı duyuruldu say, şimdi söyle).
+/// `prev`: bu araç için bu stintte kaydedilen tur farkı; `diff`: şimdiki tur farkı;
+/// `since_cat`: bu tür son çağrıdan beri geçen süre. Aynı araç aynı tur farkıyla bir daha söylenmez;
+/// bekleme süresindeki yeni araçlar da duyurulmuş sayılır (art arda gelenler tek çağrıda toplanır).
+pub fn lapped_call(prev: Option<i32>, diff: i32, since_cat: f32) -> (bool, bool) {
+    if diff < 1 || prev.map(|p| diff <= p).unwrap_or(false) {
+        return (false, false);
+    }
+    (true, since_cat >= LAPPED_CAT_CD)
+}
+
+/// Gerçek tur farkı (pist konumu dahil): tur çizgisi dışında da doğru sonuç verir
+pub fn laps_between(front_lc: i32, front_pct: f32, back_lc: i32, back_pct: f32) -> i32 {
+    let d = (front_lc as f32 + front_pct.clamp(0.0, 1.0)) - (back_lc as f32 + back_pct.clamp(0.0, 1.0));
+    d.floor() as i32
+}
+
 fn secs_since(t: Option<Instant>, now: Instant) -> f32 {
     t.map(|t| now.saturating_duration_since(t).as_secs_f32())
         .unwrap_or(f32::MAX)
@@ -956,6 +1021,14 @@ impl Eng {
         }
         self.cd.insert(key, now);
         true
+    }
+
+    /// Trafik çağrıları şu an kapalı mı (pit yolu / kutu ya da pit çıkışından hemen sonra)
+    pub fn traffic_off(&self, f: &Frame, now: Instant) -> bool {
+        let me = f.player_idx.max(0) as usize;
+        let car = f.cars[me];
+        let in_pit = f.on_pit_road || self.prev_on_pit || car.on_pit || car.surface == 1;
+        traffic_blocked(in_pit, f.speed, secs_since(self.last_pit_exit, now))
     }
 
     fn car_ready(&mut self, kind: u8, i: usize, secs: f32, now: Instant) -> bool {
@@ -1178,7 +1251,7 @@ impl Eng {
             one(out, "flags", prio::CRITICAL, "flags/fc_yellow_green_flag");
         }
         // Mavi bayrak: 25 sn'de bir; uzun sürerse ceza uyarısı
-        if fl & F_BLUE != 0 {
+        if fl & F_BLUE != 0 && !self.traffic_off(c.f, now) {
             let since = *self.blue_since.get_or_insert(now);
             if now.duration_since(since) > Duration::from_secs(15)
                 && self.ready("blue_pen", 40.0, now)
@@ -1650,11 +1723,13 @@ impl Eng {
             return;
         }
         let now = c.now;
+        // Pitteyken sıra / tur farkı söylenmez; pistte hıza dönünce tek özet
+        let off = self.traffic_off(f, now);
         // Anlık geçiş: sıra bir değişti ve iki araç da pistte
         if self.last_pos > 0
             && pos != self.last_pos
             && f.lap_completed >= 1
-            && !f.on_pit_road
+            && !off
             && self.start_reported
         {
             let d = self.last_pos - pos;
@@ -1686,9 +1761,20 @@ impl Eng {
         }
         self.last_pos = pos;
 
-        if !crossed || !self.start_reported {
+        if !self.start_reported {
             return;
         }
+        if off {
+            if f.on_pit_road {
+                self.pos_after_pit = true;
+            }
+            return;
+        }
+        let summary = !crossed && self.pos_after_pit;
+        if !crossed && !summary {
+            return;
+        }
+        self.pos_after_pit = false;
         let lap = f.lap_completed;
         if pos != self.announced_pos {
             self.announced_pos = pos;
@@ -1703,7 +1789,9 @@ impl Eng {
             self.pos_lap = lap;
             out.push(Msg::new("position", prio::LOW, vec![Part::Pos(pos)]).ttl(8.0));
         }
-        if c.field >= 4 && pos >= c.field {
+        if summary {
+            // tur sayaçlarına dokunma
+        } else if c.field >= 4 && pos >= c.field {
             self.last_laps += 1;
             if self.last_laps == 1 {
                 one(out, "position", prio::LOW, "position/last");
@@ -1717,7 +1805,11 @@ impl Eng {
         let my_lc = f.cars[c.me].lap_completed;
         if pos > 1 {
             if let Some(l) = c.class_car(1) {
-                let diff = f.cars[l].lap_completed - my_lc;
+                let diff = if summary {
+                    laps_between(f.cars[l].lap_completed, f.cars[l].pct, my_lc, f.cars[c.me].pct)
+                } else {
+                    f.cars[l].lap_completed - my_lc
+                };
                 if diff >= 1 && diff > self.lapped_said {
                     self.lapped_said = diff;
                     let parts = if diff == 1 {
@@ -1729,7 +1821,11 @@ impl Eng {
                 }
             }
         } else if let Some(p2) = c.class_car(2) {
-            let diff = my_lc - f.cars[p2].lap_completed - 1;
+            let diff = if summary {
+                laps_between(my_lc, f.cars[c.me].pct, f.cars[p2].lap_completed, f.cars[p2].pct)
+            } else {
+                my_lc - f.cars[p2].lap_completed - 1
+            };
             if diff >= 1 && diff > self.lapping_said {
                 self.lapping_said = diff;
                 let parts = if diff == 1 {
@@ -1789,7 +1885,7 @@ impl Eng {
         // Normal tur referansı: son 3 temiz turun ortancası
         if self.laps.len() >= 3 {
             let mut v: Vec<f32> = self.laps.iter().rev().take(3).copied().collect();
-            v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            v.sort_by(|a, b| a.total_cmp(b));
             self.ref_lap = Some(v[1]);
         }
 
@@ -1867,7 +1963,7 @@ impl Eng {
                         .map(|i| c.t.cars[i].avg(3))
                         .filter(|a| *a > 0.0)
                         .collect();
-                    leaders.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                    leaders.sort_by(|a, b| a.total_cmp(b));
                     if let Some(best) = leaders.first() {
                         let d = mine - best;
                         let key = if d <= 0.0 {
@@ -2014,7 +2110,7 @@ impl Eng {
     // ------------------------------------------------------------------ aralar
     fn gaps(&mut self, c: &Ctx, out: &mut Vec<Msg>) {
         let f = c.f;
-        if f.lap_completed < 2 || f.on_pit_road {
+        if f.lap_completed < 2 || self.traffic_off(f, c.now) {
             return;
         }
         let now = c.now;
@@ -2299,6 +2395,11 @@ impl Eng {
             self.reputation(c, i, gap, false, out);
         }
         // Arkamızdan tur bindiren ya da turunu geri alan aynı sınıf araç
+        // Biz pitteyken (ve pit çıkışından hemen sonra) susar: pit kutusunda dururken pistten geçen her
+        // araç "0,3–1,5 sn arkada" görünür. Pistte de tür başına bekleme + araç başına tek duyuru.
+        if self.traffic_off(f, now) {
+            return;
+        }
         for i in 0..MAX_CARS {
             if i == c.me || !c.active(i) || !c.same_class(i) || f.cars[i].on_pit {
                 continue;
@@ -2308,16 +2409,29 @@ impl Eng {
                 continue;
             }
             let (theirs, mine) = (f.cars[i].lap_completed, f.cars[c.me].lap_completed);
-            if theirs > mine && self.car_ready(3, i, 90.0, now) {
-                one(
-                    out,
-                    "gaps",
-                    prio::NORMAL,
-                    "timings/car_behind_is_lapping_us",
-                );
+            if theirs > mine {
+                let since = secs_since(self.cd.get("lapped_cat").copied(), now);
+                let (mark, speak) = lapped_call(self.lapped_by.get(&i).copied(), theirs - mine, since);
+                if mark {
+                    self.lapped_by.insert(i, theirs - mine);
+                }
+                if speak {
+                    self.cd.insert("lapped_cat", now);
+                    one(
+                        out,
+                        "gaps",
+                        prio::NORMAL,
+                        "timings/car_behind_is_lapping_us",
+                    );
+                }
             } else if theirs < mine && Some(i) != behind {
                 let (ta, ma) = (c.t.cars[i].avg(3), c.t.cars[c.me].avg(3));
-                if ta > 0.0 && ma > 0.0 && ta < ma - 0.3 && self.car_ready(4, i, 90.0, now) {
+                if ta > 0.0
+                    && ma > 0.0
+                    && ta < ma - 0.3
+                    && self.car_ready(4, i, 90.0, now)
+                    && self.ready("unlap_cat", LAPPED_CAT_CD, now)
+                {
                     one(
                         out,
                         "gaps",
@@ -2330,7 +2444,11 @@ impl Eng {
     }
 
     fn reputation(&mut self, c: &Ctx, i: usize, gap: f32, ahead: bool, out: &mut Vec<Msg>) {
-        if !c.iracing || !(0.0..1.5).contains(&gap) || self.rep_said.contains(&i) {
+        if !c.iracing
+            || !(0.0..1.5).contains(&gap)
+            || self.rep_said.contains(&i)
+            || self.traffic_off(c.f, c.now)
+        {
             return;
         }
         let (_, sr) = c.licence(i);
@@ -2781,6 +2899,8 @@ impl Eng {
             self.cur_out = true;
             self.pit_exit_at = Some(now);
             self.last_pit_exit = Some(now);
+            // Yeni stint: tur bindiren araçlar yeniden (tür beklemesiyle) duyurulabilir
+            self.lapped_by.clear();
             if c.race() && self.started && !self.finished && f.lap_completed >= 1 {
                 let traffic = (0..MAX_CARS)
                     .filter(|&i| i != c.me && c.active(i) && !f.cars[i].on_pit)
@@ -3385,7 +3505,7 @@ impl Eng {
     fn multiclass(&mut self, c: &Ctx, out: &mut Vec<Msg>) {
         let f = c.f;
         let now = c.now;
-        if f.on_pit_road || f.speed < 10.0 || !self.ready("mc_tick", 1.0, now) {
+        if self.traffic_off(f, now) || f.speed < 10.0 || !self.ready("mc_tick", 1.0, now) {
             return;
         }
         let my_est = c.class_est(c.me);
@@ -3422,7 +3542,7 @@ impl Eng {
             }
             let leader = list.iter().any(|(i, _)| f.cars[*i].class_position == 1);
             let mut gaps: Vec<f32> = list.iter().map(|x| x.1).collect();
-            gaps.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            gaps.sort_by(|a, b| a.total_cmp(b));
             let fighting = list.len() >= 2 && gaps.windows(2).any(|w| w[1] - w[0] < 1.0);
             let class =
                 c.s.driver(list[0].0)
@@ -3822,6 +3942,88 @@ mod tests {
     }
 
     /// Kaynakta geçen her ifade anahtarı sahibin paketinde var ve katalogda "used"
+    #[test]
+    fn traffic_gate_and_cooldowns() {
+        // pitte her zaman kapalı
+        assert!(traffic_blocked(true, 60.0, f32::MAX));
+        // pistte, pit ziyareti yok / çoktan çıkılmış
+        assert!(!traffic_blocked(false, 60.0, f32::MAX));
+        assert!(!traffic_blocked(false, 3.0, f32::MAX));
+        // pit çıkışı: ilk saniyeler hızdan bağımsız kapalı, sonra hıza bağlı, en geç MAX'ta açık
+        assert!(traffic_blocked(false, 60.0, 2.0));
+        assert!(traffic_blocked(false, 15.0, 10.0));
+        assert!(!traffic_blocked(false, 40.0, 10.0));
+        assert!(!traffic_blocked(false, 15.0, TRAFFIC_GRACE_MAX + 1.0));
+
+        assert!(traffic_key("timings/car_behind_is_lapping_us"));
+        assert!(traffic_key("multiclass/faster_car_behind"));
+        assert!(traffic_key("flags/blue_flag"));
+        assert!(!traffic_key("flags/yellow_flag"));
+        assert!(!traffic_key("push_now/pits_exit_traffic_behind"));
+        assert!(!traffic_key("fuel/we_estimate"));
+        assert!(traffic_msg(&Msg::new("gaps", prio::NORMAL, vec![k("timings/gap_behind_is_now"), Part::Secs(1.0)])));
+        assert!(!traffic_msg(&Msg::new("position", prio::NORMAL, vec![Part::Pos(3)])));
+
+        // yeni araç, bekleme dolmuş: söyle
+        assert_eq!(lapped_call(None, 1, f32::MAX), (true, true));
+        // yeni araç, bekleme sürüyor: duyuruldu say ama sus
+        assert_eq!(lapped_call(None, 1, 10.0), (true, false));
+        // aynı araç aynı tur farkı: bir daha asla
+        assert_eq!(lapped_call(Some(1), 1, f32::MAX), (false, false));
+        // tur çizgisinde fark anlık düşerse
+        assert_eq!(lapped_call(Some(1), 0, f32::MAX), (false, false));
+        // aynı araç ikinci kez tur bindiriyor
+        assert_eq!(lapped_call(Some(1), 2, f32::MAX), (true, true));
+
+        assert_eq!(laps_between(10, 0.2, 9, 0.5), 0);
+        assert_eq!(laps_between(10, 0.6, 9, 0.5), 1);
+        assert_eq!(laps_between(12, 0.1, 9, 0.9), 2);
+    }
+
+    #[test]
+    fn lapping_calls_silent_in_pits_and_rate_limited() {
+        let s = session("Race", 6);
+        let mut f = frame(6);
+        f.lap_completed = 5;
+        f.cars[0].lap_completed = 5;
+        // 1..=3: bir tur önde ve pistte hemen arkamızda
+        for i in 1..=3 {
+            f.cars[i].lap_completed = 6;
+            f.cars[i].pct = 0.5 - 0.005;
+        }
+        let t0 = Instant::now();
+        let mut e = Eng {
+            started: true,
+            start_reported: true,
+            ..Eng::default()
+        };
+        let lapping = |out: &[Msg]| {
+            keys(out)
+                .iter()
+                .filter(|x| x.as_str() == "timings/car_behind_is_lapping_us")
+                .count()
+        };
+        // pit yolunda: hiç
+        f.on_pit_road = true;
+        f.speed = 0.0;
+        let out = run(&mut e, &f, &s, t0);
+        assert_eq!(lapping(&out), 0);
+        assert!(!out.iter().any(traffic_msg));
+        // pitten çıkış + ilk saniyeler: yine yok
+        f.on_pit_road = false;
+        f.speed = 40.0;
+        let out = run(&mut e, &f, &s, t0 + Duration::from_secs(1));
+        assert_eq!(lapping(&out), 0);
+        let out = run(&mut e, &f, &s, t0 + Duration::from_secs(3));
+        assert_eq!(lapping(&out), 0);
+        // pistte: üç araç için tek çağrı
+        let out = run(&mut e, &f, &s, t0 + Duration::from_secs(30));
+        assert!(lapping(&out) <= 1);
+        // bekleme dolsa da aynı araçlar bir daha söylenmez
+        let out = run(&mut e, &f, &s, t0 + Duration::from_secs(300));
+        assert_eq!(lapping(&out), 0);
+    }
+
     #[test]
     fn keys_exist_in_catalog() {
         let cat: serde_json::Value = serde_json::from_str(crate::voicepack::CATALOG_JSON).unwrap();

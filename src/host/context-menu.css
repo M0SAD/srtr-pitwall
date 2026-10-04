@@ -95,3 +95,23 @@
   font-size: 12px;
   line-height: 1.35;
 }
+
+/* Menü görünür alandan uzunsa içinde kaydırılır (max-height ContextMenu.tsx'te ölçülerek verilir) */
+.ctx {
+  box-sizing: border-box;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #3a4050 transparent;
+}
+.ctx::-webkit-scrollbar {
+  width: 6px;
+}
+.ctx::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: #3a4050;
+}
+.ctx::-webkit-scrollbar-track {
+  background: transparent;
+}

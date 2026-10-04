@@ -187,7 +187,12 @@ pub async fn livechat_input(app: AppHandle, window: WebviewWindow, id: String, o
             };
             if start {
                 let a = app.clone();
-                std::thread::spawn(move || poll(a));
+                std::thread::spawn(move || {
+                    // Panic olursa (crash.log'a yazılır) izleyici yeniden başlatılabilsin
+                    if crate::crashlog::guard(|| poll(a)).is_none() {
+                        st().lock().running = false;
+                    }
+                });
             }
         }
         "focus" => {

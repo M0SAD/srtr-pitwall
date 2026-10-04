@@ -106,7 +106,9 @@ pub fn social_tick_start(app: AppHandle) {
     log(&app, &format!("servis basladi (surum {})", crate::display_version()));
     let _ = std::thread::Builder::new().name("social-tick".into()).spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_secs(15));
-        let _ = app.emit_to("overlay", "social-tick", ());
+        crate::crashlog::guard(|| {
+            let _ = app.emit_to("overlay", "social-tick", ());
+        });
     });
 }
 

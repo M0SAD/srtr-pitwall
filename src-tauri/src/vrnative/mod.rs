@@ -464,7 +464,7 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
     let mut lock = place::AxisLock::default();
     let mut last_change = Instant::now();
     let mut last_input = Instant::now();
-    let mut last_targets = Instant::now() - Duration::from_secs(10);
+    let mut last_targets = crate::crashlog::past(10);
     let mut last_events = Instant::now();
     let mut last_tick = Instant::now();
     let mut buf: Vec<u8> = Vec::new();

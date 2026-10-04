@@ -579,10 +579,39 @@ export const onStt = (fn: (s: SttStatus) => void) => on("livechat-stt", fn);
 export const onNotice = (fn: (text: string) => void) => on<{ text: string }>("livechat-notice", (p) => fn(p.text));
 
 // ---------------------------------------------------------------------------
-// Sohbete yaz (PRO: livechat.send) — Rust: livechat/send.rs
+// Sohbete yaz (PRO: livechat.send) — Rust: livechat/send.rs + livechat/webchat.rs
+// Varsayılan yöntem "Tarayıcı girişi": program içi tarayıcı penceresinde platformun kendi sayfasında giriş yapılır.
+// İsteğe bağlı "Gelişmiş: kendi API uygulamam": kullanıcının kendi Client ID / Client Secret'ı (yönetici ayarı yok).
 // ---------------------------------------------------------------------------
 
+export type SendPlatform = "twitch" | "youtube" | "kick";
+
 export interface SendAccount {
+  connected: boolean;
+  login: string;
+  /** Kullanılan yöntem ("": bağlı değil) */
+  mode?: "api" | "web" | "";
+}
+
+/** Tarayıcı girişi durumu (Rust: webchat.rs WebView) */
+export interface SendWeb {
+  enabled: boolean;
+  /** true: giriş yapılmış · false: yapılmamış · null: doğrulanamadı */
+  logged: boolean | null;
+  login: string;
+  /** Pencere açık (gizli de olabilir) */
+  window: boolean;
+  visible: boolean;
+  /** Canlı sohbet çalışıyor */
+  running: boolean;
+  /** Yazılabilecek (★ benim kanalım, canlı / bağlı) kanal var */
+  hasTarget: boolean;
+}
+
+/** Gelişmiş yöntem: kullanıcının kendi API uygulaması (Client Secret arayüze gelmez) */
+export interface SendApi {
+  clientId: string;
+  hasSecret: boolean;
   connected: boolean;
   login: string;
 }
@@ -592,19 +621,21 @@ export interface SendStatus {
   twitch: SendAccount;
   youtube: SendAccount;
   kick: SendAccount;
-  /** Twitch cihaz kodu (onay bekleniyor) */
+  /** Twitch cihaz kodu (onay bekleniyor; Gelişmiş yöntem) */
   device: { userCode: string; verificationUri: string; expiresAt: number } | null;
-  /** Tarayıcıda giriş bekleniyor */
+  /** Tarayıcıda API izni bekleniyor (Gelişmiş yöntem) */
   pending: "youtube" | "kick" | null;
   error: string | null;
   ytRedirect: string;
   kickRedirect: string;
-  /** Bekleyen YouTube / Kick girişinin izin sayfası (tarayıcı açılmadıysa kopyalamak için; gizli değer içermez) */
+  /** Bekleyen YouTube / Kick API girişinin izin sayfası (tarayıcı açılmadıysa kopyalamak için; gizli değer içermez) */
   authUrl?: string | null;
   /** Platform başına son hata (başarılı giriş / gönderimde silinir) */
-  lastError?: Partial<Record<"twitch" | "youtube" | "kick", string>>;
-  /** Arındırılmış tanılama günlüğü (adım adları, HTTP kodları, sağlayıcı hata kodları; anahtar / kod içermez) */
+  lastError?: Partial<Record<SendPlatform, string>>;
+  /** Arındırılmış tanılama günlüğü (adımlar, eşleşen seçici, HTTP kodları; mesaj metni / çerez / anahtar içermez) */
   log?: string[];
+  web?: Partial<Record<SendPlatform, SendWeb>>;
+  api?: Partial<Record<SendPlatform, SendApi>>;
 }
 
 export interface SendResult {
@@ -615,38 +646,36 @@ export interface SendResult {
   error: string | null;
 }
 
-/** Edge function (chat-oauth) çağrısı için taze oturum bilgisi; giriş yoksa jwt boş */
-async function cloudAuth() {
-  const { cloudEnabled, token } = await import("@/cloud/supabase");
-  const url = ((import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "").replace(/\/$/, "");
-  const apikey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? "";
-  const jwt = cloudEnabled ? ((await token().catch(() => null)) ?? "") : "";
-  return { url: url ? `${url}/functions/v1` : "", apikey, jwt };
-}
-
 export const sendStatus = () => invoke<SendStatus>("livechat_send_status");
-/** Twitch: cihaz kodu akışı (kod ekranda gösterilir, onay arka planda beklenir) */
-export const twitchLogin = (clientId: string) => invoke<SendStatus>("livechat_twitch_login", { clientId });
-/** YouTube / Kick: tarayıcıda giriş (PKCE), anahtar değişimi chat-oauth edge function üzerinden */
-export const oauthLogin = async (provider: "youtube" | "kick", clientId: string) =>
-  invoke<SendStatus>("livechat_oauth_login", { provider, clientId, cloud: await cloudAuth() });
-/** "Bağlantıyı test et" adımı (Rust: send.rs TestStep). `detail`: HTTP kodu + sağlayıcının hata metni; anahtar içermez */
+/** Tarayıcı girişi: platformun giriş / sohbet penceresini görünür aç */
+export const webOpen = (platform: SendPlatform) => invoke<SendStatus>("livechat_web_open", { platform });
+/** Tarayıcı girişi: pencereyi gizle (arka planda yaşar) */
+export const webHide = (platform: SendPlatform) => invoke<SendStatus>("livechat_web_hide", { platform });
+/** Tarayıcı girişi: çıkış yap (pencere kapanır, o platformun tarayıcı profili silinir) */
+export const webLogout = (platform: SendPlatform) => invoke<SendStatus>("livechat_web_logout", { platform });
+/** Gelişmiş: kendi API uygulamasının bilgilerini kaydet (Client ID boş: sil; Client Secret boş: kayıtlı olan kalır) */
+export const apiCredsSet = (platform: SendPlatform, clientId: string, clientSecret: string) =>
+  invoke<SendStatus>("livechat_api_creds_set", { platform, clientId, clientSecret });
+/** Gelişmiş · Twitch: cihaz kodu akışı (kod ekranda gösterilir, onay arka planda beklenir) */
+export const twitchLogin = () => invoke<SendStatus>("livechat_twitch_login");
+/** Gelişmiş · YouTube / Kick: tarayıcıda izin (PKCE), anahtar değişimi doğrudan sağlayıcıyla */
+export const oauthLogin = (provider: "youtube" | "kick") => invoke<SendStatus>("livechat_oauth_login", { provider });
+/** "Bağlantıyı test et" adımı (Rust: send.rs TestStep); anahtar / çerez içermez */
 export interface AuthTestStep {
   name: string;
   state: "ok" | "fail" | "warn" | "skip";
   detail: string;
 }
-/** Platformun giriş zincirini adım adım dener (Client ID, SRTR oturumu, sunucu işlevi, yerel dönüş adresi, hesap oturumu). Mesaj göndermez. */
-export const authTest = async (platform: "twitch" | "youtube" | "kick", clientId: string) =>
-  invoke<AuthTestStep[]>("livechat_auth_test", { platform, clientId, cloud: await cloudAuth() });
-/** Bekleyen YouTube / Kick girişinin izin sayfasını yeniden aç */
+/** Platformun kullanılan yöntemini adım adım dener (pencere, sayfa, oturum, sohbet kutusu / API oturumu). Mesaj göndermez. */
+export const authTest = (platform: SendPlatform) => invoke<AuthTestStep[]>("livechat_auth_test", { platform });
+/** Bekleyen YouTube / Kick API girişinin izin sayfasını yeniden aç */
 export const authReopen = () => invoke<void>("livechat_auth_reopen");
 /** Overlay'deki mesaj kutusu (Rust: livechat/inputbox.rs): tıklanabilir bölge ve odak. rect: pencere içi fiziksel piksel */
 export const inputBox = (id: string, op: "region" | "remove" | "focus" | "blur", rect?: { x: number; y: number; w: number; h: number } | null) =>
   invoke<void>("livechat_input", { id, op, rect: rect ?? null });
 export const authCancel = () => invoke<SendStatus>("livechat_auth_cancel");
-export const authLogout = (platform: "twitch" | "youtube" | "kick") => invoke<SendStatus>("livechat_auth_logout", { platform });
+/** Gelişmiş: API hesabının bağlantısını kes */
+export const authLogout = (platform: SendPlatform) => invoke<SendStatus>("livechat_auth_logout", { platform });
 /** Mesaj gönder: target "mine" (★ kanallarım) ya da kanal anahtarı */
-export const sendMessage = async (text: string, target: string) =>
-  invoke<SendResult[]>("livechat_send", { text, target, cloud: await cloudAuth() });
+export const sendMessage = (text: string, target: string) => invoke<SendResult[]>("livechat_send", { text, target });
 export const onSend = (fn: (s: SendStatus) => void) => on("livechat-send", fn);

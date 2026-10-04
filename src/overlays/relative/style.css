@@ -450,3 +450,13 @@
   min-height: 1.5em;
   box-sizing: content-box;
 }
+
+/* Oyuncu satırı hizası: "ch" genişlikli sütunlar (fark, son tur) kalın yazıda genişleyip soldaki sütunları kaydırıyordu.
+   Kutu normal kalınlıkta ölçülür, kalınlık içteki yazıya (.rel-v) verilir. */
+.rel-row.me .rel-gap,
+.rel-row.me .rel-last {
+  font-weight: var(--ov-weight);
+}
+.rel-row.me .rel-v {
+  font-weight: var(--ov-weight-strong);
+}

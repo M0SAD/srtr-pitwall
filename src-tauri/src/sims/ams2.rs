@@ -397,7 +397,7 @@ mod win {
                 session: SessionData::default(),
                 motion: Motion::default(),
                 sig: 0,
-                last_sig_check: now - Duration::from_secs(10),
+                last_sig_check: now.checked_sub(Duration::from_secs(10)).unwrap_or(now),
                 last_seq: u32::MAX,
                 tick: 0,
                 t0: now,

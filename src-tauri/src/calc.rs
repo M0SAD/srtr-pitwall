@@ -779,7 +779,7 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         };
         list.push((if i == me { 0.0 } else { dt }, i, lap_rel));
     }
-    list.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    list.sort_by(|a, b| b.0.total_cmp(&a.0));
     let me_pos = list.iter().position(|x| x.1 == me).unwrap_or(0);
     let from = me_pos.saturating_sub(n);
     let to = (me_pos + n + 1).min(list.len());
@@ -816,7 +816,7 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         idxs.sort_by(|&a, &b| {
             let ka = if f.cars[a].best > 0.0 { f.cars[a].best } else { 1e6 - (f.cars[a].lap as f32 + f.cars[a].pct) };
             let kb = if f.cars[b].best > 0.0 { f.cars[b].best } else { 1e6 - (f.cars[b].lap as f32 + f.cars[b].pct) };
-            ka.partial_cmp(&kb).unwrap_or(std::cmp::Ordering::Equal)
+            ka.total_cmp(&kb)
         });
     }
     let irs = ir_map(f, s);
@@ -979,7 +979,7 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
     }
     // iRacing yan araçların yanal konumunu vermez; CarLeftRight'a göre en yakın
     // araçları yanlara, kalanları öne/arkaya yerleştiriyoruz.
-    near.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap_or(std::cmp::Ordering::Equal));
+    near.sort_by(|a, b| a.abs().total_cmp(&b.abs()));
     let (mut left, mut right) = match f.car_left_right {
         2 => (1, 0),
         3 => (0, 1),

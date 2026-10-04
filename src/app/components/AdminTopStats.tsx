@@ -185,7 +185,7 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
                 </span>
                 <span class="ats-main">
                   <span class="ats-name">
-                    <b data-no-i18n>{m.display_name || "(adsız)"}</b>
+                    <b data-no-i18n style={m.invisible ? { color: "#b9a3ff" } : undefined}>{m.display_name || "(adsız)"}</b>
                     <Show when={m.is_pro}>
                       <span class="ats-star" title={(m.pro_source === "trial" ? t("PRO (deneme)") : "PRO") + (m.pro_until ? ` · ${new Date(m.pro_until).toLocaleDateString()}` : "")}>
                         <I.Star />
@@ -206,11 +206,10 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
                       <Show when={m.online} fallback={<small class="muted">{m.last_seen ? t("son görülme: {0}", relTime(m.last_seen)) : "hiç görülmedi"}</small>}>
                         <span class="ats-on">
                           <SimBadge sim={m.sim} />
-                          <span>Çevrimiçi</span>
-                          <Show when={m.invisible}>
-                            <small class="muted" title="Bu üye &quot;Çevrimdışı&quot; durumunu seçti: diğer üyeler onu çevrimdışı görür">
-                              · {t("gizleniyor")}
-                            </small>
+                          <Show when={m.invisible} fallback={<span>Çevrimiçi</span>}>
+                            <span style={{ color: "#b9a3ff" }} title="Bu üye &quot;Çevrimdışı&quot; durumunu seçti: diğer üyeler onu çevrimdışı görür">
+                              {t("Çevrimdışı (gizli)")}
+                            </span>
                           </Show>
                         </span>
                       </Show>

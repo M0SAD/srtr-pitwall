@@ -600,7 +600,7 @@ impl BrakeRec {
             return;
         }
         let mut zones = self.cur.clone();
-        zones.sort_by(|a, b| a.pct.partial_cmp(&b.pct).unwrap_or(std::cmp::Ordering::Equal));
+        zones.sort_by(|a, b| a.pct.total_cmp(&b.pct));
         let r = RefLap { time, len_m, zones };
         if let Some(d) = dir {
             let path = ref_file(d, &self.key);

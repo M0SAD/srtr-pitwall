@@ -1,20 +1,20 @@
 //! Sohbete yazma (PRO: `livechat.send`): Twitch / YouTube / Kick hesabıyla kendi kanal(lar)ının sohbetine mesaj gönderir.
 //!
-//! Giriş:
-//!   - Twitch: OAuth "Device Code Flow" (gizli anahtar yok, "Public" istemci). Kod ekranda gösterilir, twitch.tv/activate
-//!     açılır, Rust arka planda onayı bekler. Yenileme de gizli anahtarsız (public istemci). Kapsamlar:
-//!     `user:read:chat user:write:chat` (gönderme Helix POST /helix/chat/messages).
-//!   - YouTube ve Kick: yetkilendirme kodu + PKCE (S256), tarayıcı dönüşü 127.0.0.1:8767'deki tek seferlik yerel
-//!     sunucuya gelir. Kod → anahtar değişimi ve yenileme Supabase edge function `chat-oauth` üzerinden yapılır
-//!     (istemci gizli anahtarları sadece Supabase secrets'ta; programda yok). Çağrı giriş yapmış üyenin oturum
-//!     anahtarıyla (JWT) yapılır.
-//!   - İstemci kimlikleri (gizli değil) yönetici tarafından app_config'e yazılır; arayüz bunları komutlara verir.
+//! İki yöntem vardır; ikisi de KİŞİYE özeldir (yönetici ayarı, app_config ve sunucu işlevi kullanılmaz):
+//!   1. Tarayıcı girişi (varsayılan, bkz. webchat.rs): program içi tarayıcı penceresinde platformun kendi sayfasında
+//!      giriş yapılır; mesaj o sayfanın sohbet kutusundan gönderilir. Geliştirici uygulaması gerekmez.
+//!   2. Gelişmiş: kendi API uygulamam (isteğe bağlı). Kullanıcı KENDİ geliştirici uygulamasının Client ID'sini (YouTube /
+//!      Kick için Client Secret'ını da) girer; bunlar ve oturum anahtarları `livechat_secrets.json` içinde DPAPI ile
+//!      şifreli saklanır (bkz. secrets.rs), arayüze geri gönderilmez.
+//!        - Twitch: OAuth "Device Code Flow" (gizli anahtar yok, "Public" istemci), gönderme Helix POST /helix/chat/messages.
+//!        - YouTube ve Kick: yetkilendirme kodu + PKCE (S256), tarayıcı dönüşü 127.0.0.1:8767'deki tek seferlik yerel
+//!          sunucuya gelir; kod → anahtar değişimi ve yenileme doğrudan sağlayıcıyla yapılır.
+//!      Bir platformda API hesabı bağlıysa o platformda API kullanılır; değilse tarayıcı girişi.
 //!
-//! Anahtarlar `livechat_secrets.json` içinde DPAPI ile şifreli (bkz. secrets.rs), arayüze hiç gönderilmez.
 //! Olay: "livechat-send" SendStatus
 
 use super::model::{now_ms, ChannelStatus, Platform, State};
-use super::{allowed, hub, net, secrets};
+use super::{allowed, hub, net, secrets, webchat};
 use base64::Engine;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -31,7 +31,7 @@ pub const FEATURE: &str = "livechat.send";
 /// Tek seferlik yerel dönüş sunucusu
 const PORT: u16 = 8767;
 /// YouTube için yedek portlar (8767 açılamazsa; Google "Masaüstü uygulaması" istemcisi her loopback portunu kabul eder,
-/// chat-oauth işlevi de bu adresleri tanır). Kick'te kayıtlı adres birebir aynı olmalı: yedek yok.
+/// ). Kick'te kayıtlı adres birebir aynı olmalı: yedek yok.
 const YT_ALT_PORTS: [u16; 2] = [8768, 8769];
 /// Google "Masaüstü uygulaması" istemcisi herhangi bir loopback adresini kabul eder
 pub const YT_REDIRECT: &str = "http://127.0.0.1:8767/callback";
@@ -54,14 +54,23 @@ struct Token {
     client_id: String,
 }
 
-/// Edge function çağrısı için oturum bilgisi (arayüz her çağrıda taze verir)
-#[derive(Deserialize, Clone, Debug)]
+/// Kullanıcının kendi API uygulaması (Gelişmiş yöntem). `secret` arayüze hiç gönderilmez.
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+struct Creds {
+    client_id: String,
+    secret: String,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct CloudAuth {
-    /// https://<proje>.supabase.co/functions/v1
-    pub url: String,
-    pub apikey: String,
-    pub jwt: String,
+pub struct ApiView {
+    /// Client ID gizli değildir (giriş adresinde açıkça görünür)
+    pub client_id: String,
+    pub has_secret: bool,
+    /// API hesabı bağlı
+    pub connected: bool,
+    pub login: String,
 }
 
 #[derive(Serialize, Clone, Debug, Default)]
@@ -69,6 +78,8 @@ pub struct CloudAuth {
 pub struct AccountView {
     pub connected: bool,
     pub login: String,
+    /// "api" | "web" | "" (bağlı değil)
+    pub mode: &'static str,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -100,6 +111,10 @@ pub struct SendStatus {
     pub last_error: HashMap<String, String>,
     /// Destek için arındırılmış tanılama günlüğü (adım adları, HTTP kodları, sağlayıcı hata kodları; anahtar / kod yok)
     pub log: Vec<String>,
+    /// Tarayıcı girişi durumu (platform başına)
+    pub web: HashMap<String, webchat::WebView>,
+    /// Gelişmiş yöntem: kullanıcının kendi API uygulaması (platform başına)
+    pub api: HashMap<String, ApiView>,
 }
 
 #[derive(Default)]
@@ -142,14 +157,42 @@ fn store(app: &AppHandle, p: Platform, t: Option<&Token>) -> Result<(), String> 
     }
 }
 
+fn creds_key(p: Platform) -> String {
+    format!("api.{}", pkey(p))
+}
+
+fn creds(app: &AppHandle, p: Platform) -> Creds {
+    secrets::get_json(app, &creds_key(p)).and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()
+}
+
+/// API hesabı bağlı mı (webchat: bağlıysa gizli pencere hazırlanmaz)
+pub(super) fn has_api(app: &AppHandle, p: Platform) -> bool {
+    load(app, p).is_some()
+}
+
 pub fn status(app: &AppHandle) -> SendStatus {
-    let acc = |p: Platform| load(app, p).map(|t| AccountView { connected: true, login: t.login }).unwrap_or_default();
+    let mut web = HashMap::new();
+    let mut api = HashMap::new();
+    let mut acc = |p: Platform| {
+        let tok = load(app, p);
+        let c = creds(app, p);
+        let wv = webchat::view(app, p);
+        let a = match &tok {
+            Some(t) => AccountView { connected: true, login: t.login.clone(), mode: "api" },
+            None if webchat::usable(app, p) => AccountView { connected: true, login: wv.login.clone(), mode: "web" },
+            None => AccountView::default(),
+        };
+        api.insert(pkey(p).to_string(), ApiView { has_secret: !c.secret.is_empty(), client_id: c.client_id, connected: tok.is_some(), login: tok.map(|t| t.login).unwrap_or_default() });
+        web.insert(pkey(p).to_string(), wv);
+        a
+    };
+    let (twitch, youtube, kick) = (acc(Platform::Twitch), acc(Platform::Youtube), acc(Platform::Kick));
     let g = state().lock();
     SendStatus {
         allowed: allowed(app, FEATURE),
-        twitch: acc(Platform::Twitch),
-        youtube: acc(Platform::Youtube),
-        kick: acc(Platform::Kick),
+        twitch,
+        youtube,
+        kick,
         device: g.device.clone(),
         pending: g.pending.clone(),
         error: g.error.clone(),
@@ -158,6 +201,8 @@ pub fn status(app: &AppHandle) -> SendStatus {
         auth_url: g.auth_url.clone(),
         last_error: g.last.clone(),
         log: g.log.clone(),
+        web,
+        api,
     }
 }
 
@@ -186,7 +231,7 @@ fn scrub(s: &str) -> String {
 }
 
 /// Tanılama günlüğüne satır ekle (UTC saat + arındırılmış metin; en fazla 80 satır)
-fn dlog(line: impl AsRef<str>) {
+pub(super) fn dlog(line: impl AsRef<str>) {
     let secs = now_ms() / 1000 % 86_400;
     let l = format!("{:02}:{:02}:{:02}Z {}", secs / 3600, secs / 60 % 60, secs % 60, scrub(line.as_ref()));
     let mut g = state().lock();
@@ -196,7 +241,7 @@ fn dlog(line: impl AsRef<str>) {
     g.log.push(l);
 }
 
-fn pkey(p: Platform) -> &'static str {
+pub(super) fn pkey(p: Platform) -> &'static str {
     match p {
         Platform::Twitch => "twitch",
         Platform::Youtube => "youtube",
@@ -205,7 +250,7 @@ fn pkey(p: Platform) -> &'static str {
 }
 
 /// Platformun "son hata" satırı (None: temizle)
-fn set_last(p: Platform, e: Option<&str>) {
+pub(super) fn set_last(p: Platform, e: Option<&str>) {
     let mut g = state().lock();
     match e {
         Some(e) => g.last.insert(pkey(p).into(), scrub(e)),
@@ -213,7 +258,7 @@ fn set_last(p: Platform, e: Option<&str>) {
     };
 }
 
-fn emit(app: &AppHandle) {
+pub(super) fn emit(app: &AppHandle) {
     let _ = app.emit("livechat-send", status(app));
 }
 
@@ -302,57 +347,39 @@ fn token_from(v: &Value, old: Option<&Token>) -> Result<Token, String> {
 }
 
 // ---------------------------------------------------------------------------
-// Edge function (YouTube / Kick anahtar değişimi ve yenileme)
+// YouTube / Kick: anahtar değişimi ve yenileme (doğrudan sağlayıcıyla, kullanıcının kendi uygulaması)
 // ---------------------------------------------------------------------------
 
-/// 401 işlevin kendisinden değil Supabase ağ geçidinden mi geldi (işlev hatayı `error` alanıyla döner; ağ geçidi `message` / `msg` ile)
-fn gateway_jwt(v: &Value) -> bool {
-    v.get("error").and_then(|x| x.as_str()).is_none()
+fn token_url(p: Platform) -> &'static str {
+    if p == Platform::Youtube {
+        "https://oauth2.googleapis.com/token"
+    } else {
+        "https://id.kick.com/oauth/token"
+    }
 }
 
-async fn cloud_call(cloud: &CloudAuth, body: Value) -> Result<Value, String> {
-    let action = net::json_str(body.get("action"));
-    if cloud.url.is_empty() {
-        dlog(format!("chat-oauth {action}: bulut adresi yok"));
-        return Err("Bu derlemede bulut bağlantısı yapılandırılmamış".into());
+/// Anahtar uç noktası çağrısı; `extra`: grant'a özel alanlar. Günlüğe yalnız adım adı ve HTTP kodu yazılır.
+async fn token_call(p: Platform, c: &Creds, what: &str, extra: &[(&str, &str)]) -> Result<Value, String> {
+    let mut pairs: Vec<(&str, &str)> = vec![("client_id", &c.client_id), ("client_secret", &c.secret)];
+    pairs.extend_from_slice(extra);
+    let (code, v) = post_form(token_url(p), &pairs).await.inspect_err(|e| dlog(format!("{} {what}: ağ hatası: {e}", pkey(p))))?;
+    dlog(format!("{} {what}: HTTP {code}{}", pkey(p), if (200..300).contains(&code) { String::new() } else { format!(" · {}", api_error(&v)) }));
+    if (200..300).contains(&code) {
+        return Ok(v);
     }
-    if cloud.jwt.is_empty() {
-        dlog(format!("chat-oauth {action}: SRTR oturumu yok"));
-        return Err("Bu işlem için SRTR Pitwall hesabına giriş yapmalısın".into());
-    }
-    let c = net::http()?;
-    let url = format!("{}/chat-oauth", cloud.url.trim_end_matches('/'));
-    let (code, v) = send_req(
-        c.post(&url)
-            .header("apikey", &cloud.apikey)
-            .header("Authorization", format!("Bearer {}", cloud.jwt))
-            .header("Content-Type", "application/json")
-            .body(body.to_string()),
-    )
-    .await
-    .inspect_err(|e| dlog(format!("chat-oauth {action}: ağ hatası: {e}")))?;
-    dlog(format!("chat-oauth {action}: HTTP {code}{}", if (200..300).contains(&code) { String::new() } else { format!(" · {}", api_error(&v)) }));
-    match code {
-        200..=299 => Ok(v),
-        404 => Err("Sunucu işlevi (chat-oauth) kurulmamış (HTTP 404); yönetici Supabase'e `chat-oauth` işlevini yayınlamalı".into()),
-        401 | 403 if gateway_jwt(&v) => Err(format!(
-            "Supabase ağ geçidi oturum anahtarını reddetti (chat-oauth HTTP {code}: {}). Yönetici chat-oauth işlevinde “Verify JWT” ayarını KAPATMALI (işlev oturumu kendi içinde doğrular; diğer SRTR işlevleri de böyle)",
-            api_error(&v)
-        )),
-        401 | 403 => Err(format!(
-            "SRTR sunucusu oturumu kabul etmedi (chat-oauth HTTP {code}: {}). Hesap'tan çıkış yapıp yeniden giriş yap",
-            api_error(&v)
-        )),
-        503 => Err(format!("{} (chat-oauth HTTP 503): yönetici Supabase › Edge Functions › Secrets'a CLIENT_ID ve CLIENT_SECRET değerlerini girmeli", api_error(&v))),
-        _ => Err(format!("chat-oauth HTTP {code}: {}", api_error(&v))),
-    }
+    let e = api_error(&v);
+    Err(match e.as_str() {
+        "invalid_client" => "Client ID / Client Secret sağlayıcı tarafından kabul edilmedi (invalid_client): Gelişmiş bölümündeki değerleri denetle".into(),
+        "invalid_grant" => "invalid_grant: kod / oturum geçersiz ya da dönüş adresi uygulamadakiyle aynı değil".into(),
+        _ => format!("HTTP {code}: {e}"),
+    })
 }
 
 // ---------------------------------------------------------------------------
 // Geçerli anahtar (gerekirse yenile)
 // ---------------------------------------------------------------------------
 
-async fn refresh(app: &AppHandle, p: Platform, t: &Token, cloud: Option<&CloudAuth>) -> Result<Token, String> {
+async fn refresh(app: &AppHandle, p: Platform, t: &Token) -> Result<Token, String> {
     if t.refresh.is_empty() {
         return Err("Oturumun süresi doldu; hesabı yeniden bağla".into());
     }
@@ -367,15 +394,11 @@ async fn refresh(app: &AppHandle, p: Platform, t: &Token, cloud: Option<&CloudAu
             token_from(&v, Some(t))?
         }
         _ => {
-            let cloud = cloud.ok_or("Oturumun süresi doldu; yenilemek için SRTR Pitwall hesabına giriş yapmalısın")?;
-            let provider = if p == Platform::Youtube { "youtube" } else { "kick" };
-            let v = cloud_call(cloud, json!({ "provider": provider, "action": "refresh", "refresh_token": t.refresh })).await.map_err(|e| {
-                if e.contains("invalid_grant") {
-                    "Oturum geçersiz; hesabı yeniden bağla".to_string()
-                } else {
-                    e
-                }
-            })?;
+            let c = creds(app, p);
+            if c.client_id.is_empty() || c.secret.is_empty() {
+                return Err("Oturumun süresi doldu; yenilemek için Gelişmiş bölümüne kendi Client ID / Client Secret değerlerini gir ya da API bağlantısını kesip tarayıcı girişini kullan".into());
+            }
+            let v = token_call(p, &c, "yenileme", &[("grant_type", "refresh_token"), ("refresh_token", &t.refresh)]).await.map_err(|e| if e.contains("invalid_grant") { "Oturum geçersiz; hesabı yeniden bağla".to_string() } else { e })?;
             token_from(&v, Some(t))?
         }
     };
@@ -383,10 +406,10 @@ async fn refresh(app: &AppHandle, p: Platform, t: &Token, cloud: Option<&CloudAu
     Ok(nt)
 }
 
-async fn token_for(app: &AppHandle, p: Platform, cloud: Option<&CloudAuth>, force: bool) -> Result<Token, String> {
-    let t = load(app, p).ok_or_else(|| format!("{} hesabı bağlı değil (Canlı Sohbet › Sohbete yaz)", p.name()))?;
+async fn token_for(app: &AppHandle, p: Platform, force: bool) -> Result<Token, String> {
+    let t = load(app, p).ok_or_else(|| format!("{} API hesabı bağlı değil (Canlı Sohbet › Sohbete yaz › Gelişmiş)", p.name()))?;
     if force || (t.expires_at > 0 && t.expires_at < now_ms() + 60_000) {
-        return refresh(app, p, &t, cloud).await;
+        return refresh(app, p, &t).await;
     }
     Ok(t)
 }
@@ -459,13 +482,13 @@ async fn device_poll(app: AppHandle, client_id: String, device_code: String, mut
 
 /// Twitch girişini başlat: kodu döner, onay arka planda beklenir ("livechat-send" olayı)
 #[tauri::command]
-pub async fn livechat_twitch_login(app: AppHandle, client_id: String) -> Result<SendStatus, String> {
+pub async fn livechat_twitch_login(app: AppHandle) -> Result<SendStatus, String> {
     if !allowed(&app, FEATURE) {
         return Err("Sohbete yazma PRO üyelere özel".into());
     }
-    let client_id = client_id.trim().to_string();
+    let client_id = creds(&app, Platform::Twitch).client_id;
     if client_id.is_empty() {
-        return Err("Twitch uygulama kimliği yönetici tarafından henüz girilmedi".into());
+        return Err("Önce Gelişmiş bölümüne kendi Twitch uygulamanın Client ID'sini girip kaydet".into());
     }
     cancel_all();
     let r = post_form("https://id.twitch.tv/oauth2/device", &[("client_id", &client_id), ("scopes", TWITCH_SCOPES)]).await;
@@ -674,22 +697,19 @@ async fn kick_user(access: &str) -> Result<(String, String), String> {
 
 /// YouTube / Kick girişi: tarayıcıda izin → kod → edge function ile anahtar → kullanıcı bilgisi
 #[tauri::command]
-pub async fn livechat_oauth_login(app: AppHandle, provider: String, client_id: String, cloud: CloudAuth) -> Result<SendStatus, String> {
+pub async fn livechat_oauth_login(app: AppHandle, provider: String) -> Result<SendStatus, String> {
     let p = match provider.as_str() {
         "youtube" => Platform::Youtube,
         "kick" => Platform::Kick,
         _ => return Err("Bilinmeyen platform".into()),
     };
-    let client_id = client_id.trim().to_string();
+    let cr = creds(&app, p);
+    let client_id = cr.client_id.clone();
     // Ön koşullar: hata hem döner hem "son hata" / günlükte kalır
     let pre = if !allowed(&app, FEATURE) {
         Some("Sohbete yazma PRO üyelere özel".to_string())
-    } else if client_id.is_empty() {
-        Some(format!("{} uygulama kimliği yönetici tarafından henüz girilmedi", p.name()))
-    } else if cloud.url.is_empty() {
-        Some("Bu derlemede bulut bağlantısı yapılandırılmamış".to_string())
-    } else if cloud.jwt.is_empty() {
-        Some("Bu işlem için SRTR Pitwall hesabına giriş yapmalısın".to_string())
+    } else if client_id.is_empty() || cr.secret.is_empty() {
+        Some(format!("Önce Gelişmiş bölümüne kendi {} uygulamanın Client ID ve Client Secret değerlerini girip kaydet", p.name()))
     } else {
         None
     };
@@ -753,8 +773,7 @@ pub async fn livechat_oauth_login(app: AppHandle, provider: String, client_id: S
         }
         emit(&app);
         let code = waiter.await.map_err(|e| e.to_string())?.inspect_err(|e| dlog(format!("dönüş bekleme: {e}")))?;
-        // client_id: sunucu, giriş adresinde kullanılan kimliğin kendi secret'ıyla aynı olduğunu denetler (gizli değildir)
-        let v = cloud_call(&cloud, json!({ "provider": provider, "action": "exchange", "code": code, "code_verifier": verifier, "redirect_uri": redirect, "client_id": client_id }))
+        let v = token_call(p, &cr, "anahtar değişimi", &[("grant_type", "authorization_code"), ("code", &code), ("code_verifier", &verifier), ("redirect_uri", &redirect)])
             .await
             .map_err(|e| format!("{} anahtar değişimi başarısız: {e}", p.name()))?;
         let mut t = token_from(&v, None).map_err(|e| format!("{} anahtar yanıtı geçersiz: {e}", p.name()))?;
@@ -862,7 +881,7 @@ pub struct TestStep {
     pub detail: String,
 }
 
-fn step(name: &str, state: &'static str, detail: impl Into<String>) -> TestStep {
+pub(super) fn step(name: &str, state: &'static str, detail: impl Into<String>) -> TestStep {
     TestStep { name: name.into(), state, detail: detail.into() }
 }
 
@@ -876,53 +895,11 @@ fn missing_scopes(have: &Value, need: &str) -> Vec<String> {
     need.split(' ').filter(|n| !have.iter().any(|h| h == n)).map(String::from).collect()
 }
 
-/// Sunucu işlevi (chat-oauth) denetimi: yayınlanmış mı, secret'lar girilmiş mi, Client ID aynı mı.
-/// Eski sürüm işlev "check" işlemini bilmez (HTTP 400 "Bilinmeyen işlem"): bu da işlevin ve secret'ların var olduğunu gösterir.
-async fn test_cloud(cloud: &CloudAuth, provider: &str, client_id: &str) -> TestStep {
-    const NAME: &str = "SRTR sunucu işlevi (chat-oauth)";
-    if cloud.url.is_empty() {
-        return step(NAME, "fail", "Bu derlemede bulut bağlantısı yapılandırılmamış");
-    }
-    let c = match net::http() {
-        Ok(c) => c,
-        Err(e) => return step(NAME, "fail", e),
-    };
-    let url = format!("{}/chat-oauth", cloud.url.trim_end_matches('/'));
-    let body = json!({ "provider": provider, "action": "check", "client_id": client_id });
-    let r = send_req(c.post(&url).header("apikey", &cloud.apikey).header("Authorization", format!("Bearer {}", cloud.jwt)).header("Content-Type", "application/json").body(body.to_string())).await;
-    let (code, v) = match r {
-        Ok(x) => x,
-        Err(e) => return step(NAME, "fail", e),
-    };
-    let msg = api_error(&v);
-    match code {
-        200 => match v.get("client_id_match").and_then(|x| x.as_bool()) {
-            Some(false) => step(
-                NAME,
-                "fail",
-                format!("Yayında ve secret'lar girilmiş, ama Yönetim'deki Client ID ile Supabase secret'ındaki CLIENT_ID aynı değil (HTTP 200). İkisine de aynı Client ID yazılmalı ({provider})"),
-            ),
-            _ if v.get("version").and_then(|x| x.as_u64()).unwrap_or(0) < 3 => step(NAME, "warn", "Yayında, secret'lar girilmiş, Client ID eşleşiyor (HTTP 200); ama işlevin eski sürümü yayında: yönetici chat-oauth'u yeniden yayınlamalı (oturumu kendi içinde doğrulayan sürüm)"),
-            _ => step(NAME, "ok", "Yayında, secret'lar girilmiş, Client ID eşleşiyor (HTTP 200)"),
-        },
-        400 if msg.contains("Bilinmeyen işlem") => step(NAME, "warn", "Yayında ve secret'lar girilmiş, ama işlevin eski sürümü yayında (HTTP 400): Client ID eşleşmesi denetlenemedi; yönetici chat-oauth'u yeniden yayınlamalı"),
-        404 => step(NAME, "fail", "İşlev yayınlanmamış (HTTP 404): yönetici `supabase functions deploy chat-oauth` çalıştırmalı"),
-        401 | 403 if gateway_jwt(&v) => step(NAME, "fail", format!("Supabase ağ geçidi oturum anahtarını reddetti (HTTP {code}: {msg}). Yönetici chat-oauth işlevinde “Verify JWT” ayarını KAPATMALI (işlev oturumu kendi içinde doğrular)")),
-        401 | 403 => step(NAME, "fail", format!("Oturum kabul edilmedi (HTTP {code}: {msg}). Hesap'tan çıkış yapıp yeniden giriş yap")),
-        503 => step(NAME, "fail", format!("{msg} (HTTP 503): Supabase › Edge Functions › Secrets'ta CLIENT_ID / CLIENT_SECRET eksik")),
-        _ => step(NAME, "fail", format!("HTTP {code}: {msg}")),
-    }
-}
-
-/// Bağlı hesabın anahtarını sağlayıcıda dene (gerekirse yeniler). Anahtarın kendisi hiçbir zaman döndürülmez.
-async fn test_account(app: &AppHandle, p: Platform, cloud: &CloudAuth) -> Vec<TestStep> {
-    const NAME: &str = "Hesap oturumu";
+/// Bağlı API hesabının anahtarını sağlayıcıda dene (gerekirse yeniler). Anahtarın kendisi hiçbir zaman döndürülmez.
+async fn test_account(app: &AppHandle, p: Platform) -> Vec<TestStep> {
+    const NAME: &str = "API hesap oturumu";
     let mut out = Vec::new();
-    if load(app, p).is_none() {
-        out.push(step(NAME, "skip", "Hesap henüz bağlı değil: “Hesabı bağla” ile giriş yap"));
-        return out;
-    }
-    let t = match token_for(app, p, Some(cloud), false).await {
+    let t = match token_for(app, p, false).await {
         Ok(t) => t,
         Err(e) => {
             out.push(step(NAME, "fail", format!("Anahtar yenilenemedi: {e}")));
@@ -978,52 +955,49 @@ async fn test_account(app: &AppHandle, p: Platform, cloud: &CloudAuth) -> Vec<Te
     out
 }
 
-/// "Bağlantıyı test et": platformun giriş zincirini adım adım dener ve her adımın sonucunu (HTTP kodu + sağlayıcının
-/// hata metni) döner. Hiçbir adım anahtar / gizli değer döndürmez. Mesaj göndermez.
+/// "Bağlantıyı test et": platformun kullanılan yöntemini (API hesabı bağlıysa API, değilse tarayıcı girişi) adım adım
+/// dener. Hiçbir adım anahtar / gizli değer döndürmez. Mesaj göndermez.
 #[tauri::command]
-pub async fn livechat_auth_test(app: AppHandle, platform: String, client_id: String, cloud: CloudAuth) -> Result<Vec<TestStep>, String> {
+pub async fn livechat_auth_test(app: AppHandle, platform: String) -> Result<Vec<TestStep>, String> {
     let p = Platform::parse(&platform).filter(|p| matches!(p, Platform::Twitch | Platform::Youtube | Platform::Kick)).ok_or("Bilinmeyen platform")?;
-    let client_id = client_id.trim().to_string();
     let mut out = Vec::new();
     out.push(if allowed(&app, FEATURE) { step("PRO izni", "ok", "Sohbete yazma bu hesapta açık") } else { step("PRO izni", "fail", "Sohbete yazma PRO üyelere özel") });
-    out.push(if client_id.is_empty() {
-        step("Uygulama kimliği (Client ID)", "fail", "Yönetim › Canlı Sohbet ayarları'nda bu platformun Client ID alanı boş")
-    } else {
-        step("Uygulama kimliği (Client ID)", "ok", format!("Girilmiş ({} karakter)", client_id.chars().count()))
-    });
-    if p != Platform::Twitch {
-        let provider = if p == Platform::Youtube { "youtube" } else { "kick" };
-        if cloud.jwt.is_empty() {
-            out.push(step("SRTR Pitwall oturumu", "fail", "Giriş yapılmamış: YouTube / Kick bağlamak için Hesap'tan giriş yap"));
-        } else {
-            out.push(step("SRTR Pitwall oturumu", "ok", "Giriş yapılmış"));
-            out.push(test_cloud(&cloud, provider, &client_id).await);
+    if has_api(&app, p) {
+        out.push(step("Yöntem", "ok", "Gelişmiş: kendi API uygulamam"));
+        let c = creds(&app, p);
+        if p != Platform::Twitch && (c.client_id.is_empty() || c.secret.is_empty()) {
+            out.push(step("Uygulama bilgileri", "warn", "Client ID / Client Secret kayıtlı değil: oturum süresi dolunca yenilenemez"));
         }
-        let redirect = if p == Platform::Youtube { YT_REDIRECT } else { KICK_REDIRECT };
-        let busy = state().lock().pending.is_some();
-        out.push(if busy {
-            step("Yerel dönüş adresi", "skip", format!("{redirect} şu an bekleyen giriş için açık"))
-        } else {
-            match tauri::async_runtime::spawn_blocking(|| bind_loopback(PORT, 1).map(|v| v.len())).await {
-                Ok(Ok(n)) => step("Yerel dönüş adresi", "ok", format!("{redirect} açılabiliyor ({})", if n > 1 { "IPv4 + IPv6" } else { "IPv4" })),
-                Ok(Err(e)) => step("Yerel dönüş adresi", "fail", e),
-                Err(e) => step("Yerel dönüş adresi", "fail", e.to_string()),
-            }
-        });
-    } else if !client_id.is_empty() {
-        // Twitch: istemci kimliği geçerli mi (cihaz kodu istenir; kullanılmadan bırakılır)
-        out.push(match post_form("https://id.twitch.tv/oauth2/device", &[("client_id", &client_id), ("scopes", TWITCH_SCOPES)]).await {
-            Ok((200, _)) => step("Twitch uygulaması", "ok", "Client ID kabul edildi (HTTP 200)"),
-            Ok((code, v)) => step("Twitch uygulaması", "fail", format!("HTTP {code}: {}. Twitch uygulamasında Client Type “Public” olmalı", api_error(&v))),
-            Err(e) => step("Twitch uygulaması", "fail", e),
-        });
+        out.extend(test_account(&app, p).await);
+    } else {
+        out.push(step("Yöntem", "ok", "Tarayıcı girişi"));
+        out.extend(webchat::test(&app, p).await);
     }
-    out.extend(test_account(&app, p, &cloud).await);
     for s in &out {
         dlog(format!("test {}: [{}] {}: {}", pkey(p), s.state, s.name, s.detail));
     }
     emit(&app);
     Ok(out)
+}
+
+/// Gelişmiş yöntem: kullanıcının kendi uygulama bilgilerini kaydet. Client ID boşsa kayıt silinir; Client Secret boş
+/// bırakılırsa kayıtlı olan korunur. Değerler şifreli saklanır, günlüğe yazılmaz.
+#[tauri::command]
+pub fn livechat_api_creds_set(app: AppHandle, platform: String, client_id: String, client_secret: String) -> Result<SendStatus, String> {
+    let p = Platform::parse(&platform).filter(|p| matches!(p, Platform::Twitch | Platform::Youtube | Platform::Kick)).ok_or("Bilinmeyen platform")?;
+    let client_id = client_id.trim().to_string();
+    let secret = client_secret.trim().to_string();
+    if client_id.is_empty() {
+        secrets::set(&app, &creds_key(p), "")?;
+        dlog(format!("{}: API uygulama bilgileri silindi", pkey(p)));
+    } else {
+        let old = creds(&app, p);
+        let c = Creds { secret: if secret.is_empty() && old.client_id == client_id { old.secret } else { secret }, client_id };
+        secrets::set_json(&app, &creds_key(p), &serde_json::to_value(&c).map_err(|e| e.to_string())?)?;
+        dlog(format!("{}: API uygulama bilgileri kaydedildi (Client ID {} karakter, Client Secret {})", pkey(p), c.client_id.chars().count(), if c.secret.is_empty() { "yok" } else { "var" }));
+    }
+    emit(&app);
+    Ok(status(&app))
 }
 
 // ---------------------------------------------------------------------------
@@ -1174,8 +1148,9 @@ async fn kick_send(t: &Token, slug: &str, text: &str) -> Result<(), SendErr> {
     Ok(())
 }
 
-async fn send_one(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>, text: &str, cloud: Option<&CloudAuth>) -> Result<(), String> {
-    let mut tok = token_for(app, p, cloud, false).await?;
+/// API hesabıyla gönder (Gelişmiş yöntem)
+async fn send_api(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>, text: &str) -> Result<(), String> {
+    let mut tok = token_for(app, p, false).await?;
     for attempt in 0..2 {
         let r = match p {
             Platform::Twitch => twitch_send(&tok, ident, text).await,
@@ -1188,12 +1163,21 @@ async fn send_one(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>
         };
         match r {
             Ok(()) => return Ok(()),
-            Err(SendErr::Unauthorized) if attempt == 0 => tok = token_for(app, p, cloud, true).await?,
+            Err(SendErr::Unauthorized) if attempt == 0 => tok = token_for(app, p, true).await?,
             Err(SendErr::Unauthorized) => return Err("Yetki reddedildi; hesabı yeniden bağla".into()),
             Err(SendErr::Other(e)) => return Err(e),
         }
     }
     Err("Gönderilemedi".into())
+}
+
+/// Platformun yöntemiyle gönder: API hesabı bağlıysa API, değilse tarayıcı girişi (varsayılan)
+async fn send_one(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>, text: &str) -> Result<(), String> {
+    if has_api(app, p) {
+        send_api(app, p, ident, video, text).await
+    } else {
+        webchat::send(app, p, ident, video, text).await
+    }
 }
 
 /// Gönderilebilecek kanallar: kanal çalışıyor (kilitli değil) ve sohbete bağlı / canlı
@@ -1203,7 +1187,7 @@ fn sendable(c: &ChannelStatus) -> bool {
 
 /// Mesaj gönder. target: boş / "mine" = ★ ile işaretli tüm kanallar; ya da kanal anahtarı.
 #[tauri::command]
-pub async fn livechat_send(app: AppHandle, text: String, target: Option<String>, cloud: Option<CloudAuth>) -> Result<Vec<SendResult>, String> {
+pub async fn livechat_send(app: AppHandle, text: String, target: Option<String>) -> Result<Vec<SendResult>, String> {
     if !allowed(&app, FEATURE) {
         return Err("Sohbete yazma PRO üyelere özel".into());
     }
@@ -1239,12 +1223,12 @@ pub async fn livechat_send(app: AppHandle, text: String, target: Option<String>,
         let r = if !sendable(&c) {
             Err("Bu kanal şu an bağlı değil".to_string())
         } else {
-            send_one(&app, p, &ident, c.video_id.as_deref(), &text, cloud.as_ref()).await
+            send_one(&app, p, &ident, c.video_id.as_deref(), &text).await
         };
         match &r {
             Ok(()) => set_last(p, None),
             Err(e) => {
-                dlog(format!("gönder {}: {e}", pkey(p)));
+                dlog(format!("gönder {} ({} karakter): {e}", pkey(p), text.chars().count()));
                 set_last(p, Some(&format!("Gönderilemedi: {e}")));
             }
         }
@@ -1280,7 +1264,5 @@ mod tests {
         assert_eq!(missing_scopes(&Value::Null, "a b").len(), 2);
         assert_eq!(scrub("HTTP 400: invalid_grant kod 4/0AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"), "HTTP 400: invalid_grant kod 4/[…]");
         assert_eq!(scrub("dönüş adresi http://127.0.0.1:8767/callback"), "dönüş adresi http://127.0.0.1:8767/callback");
-        assert!(gateway_jwt(&json!({ "code": 401, "message": "Invalid JWT" })));
-        assert!(!gateway_jwt(&json!({ "error": "Giriş yapmalısın" })));
     }
 }

@@ -73,7 +73,8 @@ mod imp {
 
     fn fire() {
         if let Some(f) = ACTION.get() {
-            f();
+            // Klavye kancası (FFI geri çağrısı) içinde çalışır: panic programı kapatmasın
+            crate::crashlog::guard(|| f());
         }
     }
 

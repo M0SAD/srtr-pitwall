@@ -741,7 +741,7 @@ impl Strategy {
                 on_pit: c.on_pit,
             });
         }
-        out.cars.sort_by(|a, b| a.behind.partial_cmp(&b.behind).unwrap_or(std::cmp::Ordering::Equal));
+        out.cars.sort_by(|a, b| a.behind.total_cmp(&b.behind));
         out
     }
 }

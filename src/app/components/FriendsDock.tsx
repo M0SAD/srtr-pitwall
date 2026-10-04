@@ -4,7 +4,7 @@
 // gelen mesajı raporlama sağ tıkla. Veri paylaşımı (güvenilir işaretleme) ve arkadaş görünümünü özelleştirme PRO.
 
 import { Portal } from "solid-js/web";
-import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { settings, updateSettings } from "@/sdk/settings";
 import { syncAccountFriends } from "@/sdk/friends";
@@ -423,10 +423,10 @@ export function FriendsPanel(props: {
           const chatting = props.open() && v.kind === "chat" && v.f.friend_id === m.sender;
           if (!chatting) mutate(friends().map((f) => (f.friend_id === m.sender ? { ...f, unread: (f.unread || 0) + 1 } : f)));
           const fr = friends().find((f) => f.friend_id === m.sender);
-          const muted = fr?.muted || fr?.sound_muted;
+          const muted = fr?.muted;
           // Programda özel mesajın bildirimi (açılır pencere + ses) tek yerden, overlay penceresindeki arkadaş
           // servisinden gelir (src/host/social.ts); burada çalınırsa ses iki kez duyulur. Tarayıcıda burada çalar.
-          if (!inTauri && !props.racing?.() && settings().general.social.sound && !settings().general.social.dnd && !muted && !chatting) messageBeep();
+          if (!inTauri && !props.racing?.() && !settings().general.social.dnd && !muted && !chatting) messageBeep();
         }).then((s) => (stop = s));
         const cleanup = () => stop();
         onCleanup(cleanup);
@@ -468,7 +468,7 @@ export function FriendsPanel(props: {
             if (m.sender === me || open || !tm || tm.muted) return;
             const front = !inTauri || document.hasFocus();
             const soc = settings().general.social;
-            if (front && !props.racing?.() && soc.sound && !soc.dnd) messageBeep();
+            if (front && !props.racing?.() && !soc.dnd) messageBeep();
           },
           poll: (p) => setTeamEvent({ kind: "poll", p }),
         }).then((s) => (dead ? s() : (stop = s)));
@@ -512,7 +512,7 @@ export function FriendsPanel(props: {
         if (m.sender === me || open || !g || g.muted || m.meta) return;
         const front = !inTauri || document.hasFocus();
         const soc = settings().general.social;
-        if (front && !props.racing?.() && soc.sound && !soc.dnd) messageBeep();
+        if (front && !props.racing?.() && !soc.dnd) messageBeep();
       }).then((s) => (dead ? s() : (stop = s)));
       onCleanup(() => {
         dead = true;
@@ -575,9 +575,11 @@ export function FriendsPanel(props: {
     const acc = all.filter((f) => f.status === "accepted");
     return [
       { key: "pending", title: "Onay bekleyenler", list: [...all.filter((f) => f.status === "pending_in"), ...all.filter((f) => f.status === "pending_out")] },
-      { key: "racing", title: "Yarışta", list: acc.filter((f) => f.racing).sort(byName) },
-      { key: "online", title: "Çevrimiçi", list: acc.filter((f) => f.online && !f.racing).sort((a, b) => Number(!!a.dnd) - Number(!!b.dnd) || byName(a, b)) },
-      { key: "offline", title: "Çevrimdışı", list: acc.filter((f) => !f.online && !f.racing).sort(byName) },
+      { key: "racing", title: "Yarışta", list: acc.filter((f) => f.racing && !f.invisible).sort(byName) },
+      { key: "online", title: "Çevrimiçi", list: acc.filter((f) => !f.invisible && f.online && !f.racing).sort((a, b) => Number(!!a.dnd) - Number(!!b.dnd) || byName(a, b)) },
+      // Sadece yöneticide dolar: "Çevrimdışı görün" seçmiş ama programda olanlar (yarışta olanlar üstte)
+      { key: "hidden", title: "Gizli", list: acc.filter((f) => f.invisible).sort((a, b) => Number(!!b.racing) - Number(!!a.racing) || byName(a, b)) },
+      { key: "offline", title: "Çevrimdışı", list: acc.filter((f) => !f.invisible && !f.online && !f.racing).sort(byName) },
     ].filter((g) => g.list.length > 0);
   });
 
@@ -1200,7 +1202,6 @@ const MY_MODES: { id: MyMode; label: string; hint: string }[] = [
 
 function MyStatusBar() {
   const soc = () => settings().general.social;
-  const set = (k: "acceptMessages" | "sound", v: boolean) => updateSettings((d) => (d.general.social[k] = v));
   const mode = (): MyMode => (soc().invisible ? "offline" : soc().dnd ? "dnd" : "online");
   const setMode = (m: MyMode) =>
     updateSettings((d) => {
@@ -1226,12 +1227,6 @@ function MyStatusBar() {
       window.removeEventListener("blur", close);
     });
   });
-  const chip = (k: "acceptMessages" | "sound", icon: JSX.Element, label: string, title: string) => (
-    <button class={`fme-chip c-${k}`} classList={{ on: soc()[k] }} aria-pressed={soc()[k]} title={title} onClick={() => set(k, !soc()[k])}>
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
   return (
     <div class="fdock-me">
       <div class="fme-status" ref={box}>
@@ -1263,7 +1258,6 @@ function MyStatusBar() {
           </div>
         </Show>
       </div>
-      {chip("sound", soc().sound ? <I.Volume2 /> : <I.VolumeX />, "Ses", "Yeni mesajda kısa bir ses çal")}
     </div>
   );
 }
@@ -1271,9 +1265,11 @@ function MyStatusBar() {
 function statusText(f: Friend) {
   if (f.status === "pending_in") return t("Arkadaşlık isteği gönderdi");
   if (f.status === "pending_out") return t("İstek gönderildi");
-  const hid = f.invisible ? ` · ${t("gizleniyor")}` : "";
-  if (f.racing) return ([f.sim && SIM_SHORT[f.sim] ? SIM_SHORT[f.sim] : "", f.session, f.track, f.car].filter(Boolean).join(" · ") || (f.sim && SIM_SHORT[f.sim] ? t("Oyunda: {0}", SIM_SHORT[f.sim]) : t("Yarışta"))) + hid;
-  if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + (f.sim && SIM_SHORT[f.sim] ? ` · ${SIM_SHORT[f.sim]}` : "") + hid;
+  const sim = f.sim && SIM_SHORT[f.sim] ? SIM_SHORT[f.sim] : "";
+  // Sadece yöneticiye gelir: "Çevrimdışı görün" seçmiş ama programda (yarıştaysa oyun / oturum / pist / araç eklenir)
+  if (f.invisible) return [t("Çevrimdışı (gizli)"), ...(f.racing ? [sim, f.session, f.track, f.car] : [sim])].filter(Boolean).join(" · ");
+  if (f.racing) return [sim, f.session, f.track, f.car].filter(Boolean).join(" · ") || (sim ? t("Oyunda: {0}", sim) : t("Yarışta"));
+  if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + (sim ? ` · ${sim}` : "");
   return f.last_seen ? t("Son görülme: {0}", ago(f.last_seen)) : t("Çevrimdışı");
 }
 
@@ -1372,7 +1368,7 @@ function FriendRow(props: {
     <div
       ref={el}
       class="frow"
-      classList={{ racing: f().racing, online: f().online && !f().racing, dnd: f().online && !f().racing && !!f().dnd, offline: f().status === "accepted" && !f().online && !f().racing, pending: f().status !== "accepted", unread: f().unread > 0, menu: menu() }}
+      classList={{ hid: !!f().invisible, racing: f().racing && !f().invisible, online: f().online && !f().racing && !f().invisible, dnd: f().online && !f().racing && !!f().dnd && !f().invisible, offline: f().status === "accepted" && !f().online && !f().racing, pending: f().status !== "accepted", unread: f().unread > 0, menu: menu() }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1387,7 +1383,7 @@ function FriendRow(props: {
           <b data-no-i18n>{f().display_name || "?"}</b>
           <SimBadge sim={f().online ? f().sim : ""} />
           <Show when={f().invisible}>
-            <span class="frow-flag hidden-flag" title="Gizleniyor: bu üye &quot;Çevrimdışı&quot; durumunu seçti. Diğer üyeler onu çevrimdışı görür; bunu sadece yöneticiler görür.">
+            <span class="frow-flag hidden-flag" title="Gizli: bu üye &quot;Çevrimdışı&quot; durumunu seçti ama şu an programda. Diğer üyeler onu çevrimdışı görür; bunu sadece yöneticiler görür.">
               <I.EyeOff />
             </span>
           </Show>
@@ -1402,11 +1398,6 @@ function FriendRow(props: {
           <Show when={f().notify_muted}>
             <span class="frow-flag" title="Bildirimlerini kapattın">
               <I.BellOff />
-            </span>
-          </Show>
-          <Show when={f().sound_muted}>
-            <span class="frow-flag" title="Sesini kapattın">
-              <I.VolumeX />
             </span>
           </Show>
           <span class="lt-sp" />
@@ -1500,16 +1491,10 @@ function FriendRow(props: {
             </button>
           </Show>
           <button
-            onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !f().notify_muted, !!f().sound_muted)))}
+            onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !f().notify_muted, false)))}
             title="Kapalıyken bu arkadaştan gelen mesajlarda açılır pencere ve oyun içi bildirim gösterilmez (mesajlar yine gelir)"
           >
             <I.BellOff /> {f().notify_muted ? "Bildirimleri aç" : "Bildirimleri kapat"}
-          </button>
-          <button
-            onClick={() => (setMenu(false), props.act(() => setFriendPrefs(f().friend_id, !!f().notify_muted, !f().sound_muted)))}
-            title="Kapalıyken bu arkadaştan gelen mesajlarda ses çalmaz"
-          >
-            {f().sound_muted ? <I.Volume2 /> : <I.VolumeX />} {f().sound_muted ? "Sesi aç" : "Sesi kapat"}
           </button>
           <button
             class="danger"

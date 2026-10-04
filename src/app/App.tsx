@@ -5,7 +5,7 @@ import { For, Match, Show, Switch, createEffect, createSignal, onCleanup, onMoun
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { AppState } from "@/sdk/types";
-import { settings, updateSettings } from "@/sdk/settings";
+import { settings, takeLiveChatAutoMigrated, updateSettings } from "@/sdk/settings";
 import { loadMonitors } from "@/sdk/monitors";
 import { syncScreens } from "@/sdk/streamLink";
 import { cloudEnabled, session } from "@/cloud/supabase";
@@ -90,6 +90,9 @@ function ChatStartButton() {
     </button>
   );
 }
+
+/** Bağlantı noktasının açıklamasında gösterilen sim adları (status.sim / general.sim) */
+const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "Assetto Corsa Competizione", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
 
 const TOP: NavItem[] = [
   { id: "overlays", label: "Overlaylarım", icon: () => <I.Box /> },
@@ -210,12 +213,29 @@ export function App() {
   const conn = () => {
     const a = appState();
     // Demo gerçek bir bağlantı değildir: "Bağlı" gibi görünmesin (nötr, içi boş nokta)
-    if (a.demo) return { cls: "demo", text: "Bağlı değil · Demo" };
+    if (a.demo) return { cls: "demo", lines: [t("Demo modu açık"), t("Örnek veri gösteriliyor")] };
     // Demo'dan çıkınca motor bir sonraki turda "bağlı değil"e döner; o ana dek eski demo durumu "Bağlı" görünmesin
     const st = status();
-    if (a.connected && st?.connected && !st.demo && !st.preview) return { cls: "on", text: status()?.track ? `Bağlı · ${status()!.track}` : "Bağlı" };
-    return { cls: "off", text: "Bağlı değil" };
+    if (a.connected && st?.connected && !st.demo && !st.preview) {
+      const lines = [st.sim && SIM_NAMES[st.sim] ? t("Bağlı · {0}", SIM_NAMES[st.sim]) : t("Bağlı")];
+      if (st.track) lines.push(t("Pist: {0}", st.track));
+      if (st.sessionType) lines.push(t("Oturum: {0}", st.sessionType));
+      if (st.carName) lines.push(t("Araç: {0}", st.carName));
+      return { cls: "on", lines };
+    }
+    const want = settings().general.sim ?? "auto";
+    return { cls: "off", lines: [t("Bağlı değil"), want === "auto" ? t("Çalışan bir simülasyon aranıyor") : t("Aranan: {0}", SIM_NAMES[want] ?? want)] };
   };
+
+  // Canlı sohbet varsayılan olarak uygulama açılınca başlar. Ayar yeni açıldıysa (autoStartV1 geçişi / ilk kurulum)
+  // Rust açılışta başlatmamıştır: ayar bir kez kaydedilir ve sohbet buradan başlatılır (kanal yoksa / giriş gerekiyorsa
+  // Rust reddeder, sessizce geçilir). Sonraki açılışlarda Rust kendisi başlatır; elle durdurmak ayarı değiştirmez.
+  onMount(() => {
+    if (!takeLiveChatAutoMigrated()) return;
+    updateSettings(() => {});
+    const lc = settings().general.livechat;
+    if (lc.autoStart && lc.channels.some((c) => !c.hidden && c.url.trim())) void LC.start().catch(() => {});
+  });
 
   const subs = () => subsOf(section());
 
@@ -271,9 +291,12 @@ export function App() {
           </Show>
           <SimPicker />
           <NoticeBell />
-          <span class={`conn-pill ${conn().cls}`}>
+          <span class={`conn-dot ${conn().cls}`} role="img" tabindex="0" aria-label={conn().lines.join(" · ")} title={conn().lines.join("\n")}>
             <i />
-            {conn().text}
+            <span class="conn-pop" aria-hidden="true">
+              <b>{conn().lines[0]}</b>
+              <For each={conn().lines.slice(1)}>{(l) => <span>{l}</span>}</For>
+            </span>
           </span>
           <Toggle on={appState().demo} label="Demo" icon={<I.FlaskConical />} title="iRacing olmadan örnek veriyle göster" onChange={setDemo} />
           <Toggle on={!appState().hidden} label="Görünür" icon={<I.Eye />} title="Overlay'leri göster/gizle" onChange={(v) => invoke("hidden_set", { on: !v })} />

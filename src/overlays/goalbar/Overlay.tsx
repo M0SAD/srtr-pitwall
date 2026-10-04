@@ -135,7 +135,8 @@ export default function GoalBar(props: OverlayProps) {
     if (source() === "manual" || (counted()?.n ?? 0) > 0) return false;
     if (live() > 0) return false;
     const s = status();
-    return props.editing || !onScreen() || !!s?.demo;
+    // Ekrandaki gerçek overlay'de yalnızca gerçek Demo / düzenleme: panel önizleme verisi (demo + preview) örnek göstermez
+    return props.editing || !onScreen() || (!!s?.demo && !s?.preview);
   };
   const value = () => (sample() ? Math.round(target() * 0.64) : Math.max(0, live()));
   const frac = () => (target() > 0 ? clamp(value() / target(), 0, 1) : 0);

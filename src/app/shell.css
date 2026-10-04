@@ -4787,3 +4787,76 @@ body.ov-dragging * {
   background: transparent;
   border: 1.5px solid #ffc940;
 }
+
+/* ---------- Üst çubuk: bağlantı noktası (kırmızı: bağlı değil, sarı: Demo, yeşil: bağlı) + açıklama balonu ---------- */
+.conn-dot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #ff5a5a;
+  cursor: default;
+  outline: none;
+}
+.conn-dot > i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+.conn-dot.demo {
+  color: #ffc940;
+}
+.conn-dot.on {
+  color: #3ddc84;
+}
+.conn-dot:focus-visible {
+  box-shadow: 0 0 0 2px var(--line);
+}
+.conn-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -6px;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 170px;
+  max-width: 320px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: var(--text, #e8ebef);
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.conn-pop b {
+  color: var(--conn-c, inherit);
+  font-weight: 700;
+}
+.conn-pop span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conn-dot.off .conn-pop b {
+  color: #ff6b6b;
+}
+.conn-dot.demo .conn-pop b {
+  color: #ffc940;
+}
+.conn-dot.on .conn-pop b {
+  color: #3ddc84;
+}
+.conn-dot:hover .conn-pop,
+.conn-dot:focus-visible .conn-pop {
+  display: flex;
+}

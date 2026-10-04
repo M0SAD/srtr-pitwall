@@ -153,9 +153,12 @@ export function startCrew(status: Accessor<Status | undefined>) {
       if (!text) return finish(c, false, "Mesaj boş");
       // Eski tek yönlü mesaj komutu (güncellenmemiş uygulama / site): oda mesajı gibi gösterilir
       const ov: OvMsg = { id: `crew-${c.id}`, kind: "crew", from: c.sender, peer: uid, name: who, color: friendLook(c.sender).color, team: t("Ekip"), body: text, mine: false, ts: Date.now() };
-      broadcastOvMsg(ov);
-      if (boxOn() && !ovMsgShown(ov)) showCrewBox({ id: ov.id, from: t("Ekip · {0}", who), body: text }, 7000);
-      if (settings().general.social.sound) messageBeep();
+      // Rahatsız Etme: overlay satırı, kutucuk ve ses yok (mesaj yine teslim edilmiş sayılır)
+      if (!settings().general.social.dnd) {
+        broadcastOvMsg(ov);
+        if (boxOn() && !ovMsgShown(ov)) showCrewBox({ id: ov.id, from: t("Ekip · {0}", who), body: text }, 7000);
+        messageBeep();
+      }
       return finish(c, true, "");
     }
     if (!controlOn) return finish(c, false, "Sürücü şu an ekip kontrolünü kabul etmiyor");
@@ -215,11 +218,13 @@ export function startCrew(status: Accessor<Status | undefined>) {
     const mine = m.sender === me;
     const look = friendLook(m.sender);
     const ov: OvMsg = { id: `crew-${m.id}`, kind: "crew", from: m.sender, peer: owner, name: m.name || "?", color: look.color, photo: look.photo || undefined, team: t("Ekip"), body: m.body, mine, ts: Date.now() };
-    broadcastOvMsg(ov);
+    // Rahatsız Etme: overlay satırı (Ekip çağrısı overlay'inin sesi dahil), kutucuk ve ses yok; kendi mesajım yine görünür
+    const dnd = settings().general.social.dnd;
+    if (mine || !dnd) broadcastOvMsg(ov);
     // Kutucuk ve ses yalnızca kendi odam için (başkasının odasını panel / Ekip Pitwall'ı zaten gösterir)
-    if (mine || owner !== me) return;
+    if (mine || owner !== me || dnd) return;
     if (boxOn() && !ovMsgShown(ov)) showCrewBox({ id: ov.id, from: t("Ekip · {0}", m.name || "?"), body: m.body }, 7000);
-    if (settings().general.social.sound) messageBeep();
+    messageBeep();
   };
   const pollChat = async (owner: string) => {
     const me = session()?.user.id ?? "";

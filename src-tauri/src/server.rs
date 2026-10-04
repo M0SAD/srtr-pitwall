@@ -71,7 +71,8 @@ fn url_decode(s: &str) -> String {
     let mut i = 0;
     while i < b.len() {
         if b[i] == b'%' && i + 2 < b.len() {
-            if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+            // `get`: "%" sonrası çok baytlı (UTF-8) karakterse dilimleme panic yapmasın
+            if let Some(v) = s.get(i + 1..i + 3).and_then(|h| u8::from_str_radix(h, 16).ok()) {
                 out.push(v);
                 i += 3;
                 continue;
@@ -103,7 +104,8 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
     let stop2 = stop.clone();
     std::thread::Builder::new()
         .name("web-server".into())
-        .spawn(move || {
+        // Bir istekteki panic (crash.log'a yazılır) sunucuyu durdurmasın: döngü yeniden başlar
+        .spawn(move || crate::crashlog::supervise("web-server", || {
             while !stop2.load(Ordering::Relaxed) {
                 let req = match server.recv_timeout(Duration::from_millis(500)) {
                     Ok(Some(r)) => r,
@@ -264,7 +266,7 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                     }
                 }
             }
-        })
+        }))
         .map_err(|e| e.to_string())?;
     Ok(WebServer { stop, addr })
 }

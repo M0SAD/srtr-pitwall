@@ -179,20 +179,20 @@ export default function Standings(props: OverlayProps) {
         return (
           <Show when={data()?.race}>
             <span class="st-ird ov-mono" classList={{ up: r.irDelta > 0, down: r.irDelta < 0 }} data-no-i18n>
-              {r.irDelta === 0 ? "" : (r.irDelta > 0 ? "+" : "−") + Math.abs(r.irDelta)}
+              <span class="st-v">{r.irDelta === 0 ? "" : (r.irDelta > 0 ? "+" : "−") + Math.abs(r.irDelta)}</span>
             </span>
           </Show>
         );
       case "pits":
         return <span class="st-pits ov-dim">{r.pits > 0 ? `${r.pits}P` : ""}</span>;
       case "gap":
-        return <span class="st-gap ov-mono">{gapText(r)}</span>;
+        return <span class="st-gap ov-mono"><span class="st-v">{gapText(r)}</span></span>;
       case "avg":
-        return <span class="st-lap ov-mono">{lapTime(r.avg5)}</span>;
+        return <span class="st-lap ov-mono"><span class="st-v">{lapTime(r.avg5)}</span></span>;
       case "last":
         return (
           <span class="st-lap ov-mono" classList={{ pb: r.lastPb }}>
-            {lapTime(r.last)}
+            <span class="st-v">{lapTime(r.last)}</span>
           </span>
         );
       case "tire":
@@ -204,7 +204,7 @@ export default function Standings(props: OverlayProps) {
       case "best":
         return (
           <span class="st-lap ov-mono st-best" classList={{ best: r.classBest }}>
-            {lapTime(r.best)}
+            <span class="st-v">{lapTime(r.best)}</span>
           </span>
         );
     }

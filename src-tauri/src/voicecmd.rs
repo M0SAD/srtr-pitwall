@@ -895,7 +895,9 @@ fn tts_tx() -> &'static Sender<(String, String, f32)> {
         let (tx, rx) = channel::<(String, String, f32)>();
         std::thread::Builder::new()
             .name("voicecmd-tts".into())
-            .spawn(move || {
+            .spawn(move || crate::crashlog::supervise("voicecmd-tts", || {
+                // Panic sonrası yeniden başlangıçta bekleyen işaret takılı kalmasın
+                TTS_PENDING.store(false, Ordering::Relaxed);
                 let mut n = 0u32;
                 #[cfg(windows)]
                 let mut synth: Option<crate::livechat::tts_win::Synth> = None;
@@ -935,7 +937,7 @@ fn tts_tx() -> &'static Sender<(String, String, f32)> {
                     }
                     TTS_PENDING.store(false, Ordering::Relaxed);
                 }
-            })
+            }))
             .expect("sesli komut TTS iş parçacığı başlatılamadı");
         tx
     })
@@ -1118,7 +1120,12 @@ mod imp {
             let (tx, rx) = channel::<Ev>();
             std::thread::Builder::new()
                 .name("voicecmd-rec".into())
-                .spawn(move || rec_loop(rx))
+                .spawn(move || {
+                    crate::crashlog::supervise("voicecmd-rec", || {
+                        LISTENING.store(false, Ordering::Relaxed);
+                        rec_loop(&rx)
+                    })
+                })
                 .expect("sesli komut tanıma iş parçacığı başlatılamadı");
             tx
         })
@@ -1130,6 +1137,8 @@ mod imp {
             return;
         }
         let spawned = std::thread::Builder::new().name("voicecmd-input".into()).spawn(|| {
+            // Gövde korunur: panic (crash.log'a yazılır) iş parçacığını öldürürse işaretler takılı kalmasın
+            let ok = crate::crashlog::guard(|| {
             let mut input = Input::new();
             let mut was_down = false;
             let mut last_raw: Option<Instant> = None;
@@ -1192,8 +1201,13 @@ mod imp {
                 was_down = down;
                 std::thread::sleep(Duration::from_millis(10));
             }
-            PTT_DOWN.store(false, Ordering::Relaxed);
             drop(input);
+            })
+            .is_some();
+            PTT_DOWN.store(false, Ordering::Relaxed);
+            if !ok {
+                std::thread::sleep(Duration::from_millis(500));
+            }
             INPUT_RUNNING.store(false, Ordering::SeqCst);
             // Kapanırken ayar yeniden açıldıysa tekrar başlat
             if cfg().active() || CAPTURE.lock().is_some() {
@@ -1249,7 +1263,7 @@ mod imp {
         Err(last_err)
     }
 
-    fn rec_loop(rx: std::sync::mpsc::Receiver<Ev>) {
+    fn rec_loop(rx: &std::sync::mpsc::Receiver<Ev>) {
         // (istenen dil, tanıyıcı, veri dili, İngilizceye düşüldü mü)
         let mut cache: Option<(String, Recognizer, String, bool)> = None;
         // Mikrofon tercihi: (istenen, kullanılan, son denetim). Seçili cihaz çıkarılmışsa varsayılana düşülür.

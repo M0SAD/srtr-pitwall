@@ -176,7 +176,7 @@ impl MqttShared {
                 me: *k == me,
             })
             .collect();
-        members.sort_by(|a, b| a.age.partial_cmp(&b.age).unwrap_or(std::cmp::Ordering::Equal));
+        members.sort_by(|a, b| a.age.total_cmp(&b.age));
         // Arkadaş listesinden gelen veri varsa takım bölümü kod olmadan da görünür
         let enabled = enabled || !members.is_empty();
         Team { enabled, connected: self.connected.load(Ordering::Relaxed), team, members }

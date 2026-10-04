@@ -512,7 +512,7 @@ pub fn init(app: &AppHandle, hub: &Arc<Hub>) {
     if SUPPORTED {
         let t3 = t.clone();
         let h = hub.clone();
-        let _ = std::thread::Builder::new().name("livechat-tts".into()).spawn(move || worker(t3, h));
+        let _ = std::thread::Builder::new().name("livechat-tts".into()).spawn(move || crate::crashlog::supervise("livechat-tts", || worker(t3.clone(), h.clone())));
     }
 }
 

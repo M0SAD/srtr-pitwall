@@ -75,7 +75,8 @@ export default function Results(props: OverlayProps) {
   // Örnek: Demo modu / önizlemede 10 sn görünür, 4 sn gizli; düzenlemede hep görünür
   const sampleOn = () => {
     if (props.editing || previewFrozen()) return true;
-    if (!sample() && onScreen()) return false;
+    // Ekrandaki gerçek overlay'de yalnızca gerçek Demo: panel önizleme verisi (demo + preview) akarken örnek gösterilmez
+    if (onScreen() && !(status()?.demo && !status()?.preview)) return false;
     return (now() / 1000) % 14 < 10;
   };
   const on = () => liveOn() || sampleOn();

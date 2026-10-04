@@ -89,8 +89,9 @@ addDict({
   fr_kick: ["Gruptan çıkar", "Remove from group"],
   fr_kick_ask: ["{0} gruptan çıkarılsın mı?", "Remove {0} from the group?"],
   fr_leave_owner_ask: ["\"{0}\" grubundan ayrılırsan sahiplik en eski üyeye geçer. Ayrılmak istiyor musun?", "If you leave \"{0}\", ownership passes to the longest-standing member. Leave?"],
-  fr_hiding: ["gizleniyor", "hiding"],
-  fr_hiding_tip: ["Bu üye \"Çevrimdışı\" durumunu seçti; bunu sadece yöneticiler görür.", "This member chose to appear offline; only admins can see this."],
+  fr_hidden_st: ["Çevrimdışı (gizli)", "Offline (hidden)"],
+  fr_hidden_sec: ["Gizli", "Hidden"],
+  fr_hiding_tip: ["Bu üye \"Çevrimdışı\" durumunu seçti ama şu an çevrimiçi. Diğer üyeler onu çevrimdışı görür; bunu sadece yöneticiler görür.", "This member chose to appear offline but is online right now. Other members see them as offline; only admins can see this."],
   fr_leave_team: ["Takımdan ayrıl", "Leave team"],
   fr_leave_team_ask: ["\"{0}\" takımından ayrılmak istiyor musun?", "Leave the team \"{0}\"?"],
   fr_team_page: ["Takım sayfası", "Team page"],
@@ -376,12 +377,10 @@ function dayOf(v) {
 }
 function presence(f) {
   // invisible: sadece yöneticiye gelir (c65) — çevrimiçi ama "Çevrimdışı" durumunu seçmiş
-  const hid = f.invisible ? T("fr_hiding") : "";
-  if (f.racing) return { dot: "race", text: [f.sim ? SIM_LABEL[f.sim] || f.sim : T("fr_racing"), f.session, f.track, f.car, hid].filter(Boolean).join(" · ") };
-  if (f.online) {
-    const sim = f.sim ? SIM_LABEL[f.sim] || f.sim : "";
-    return { dot: f.dnd ? "dnd" : "on", text: (f.dnd ? [T("fr_dnd"), hid] : [T("fr_online"), sim, hid]).filter(Boolean).join(" · ") };
-  }
+  const simL = f.sim ? SIM_LABEL[f.sim] || f.sim : "";
+  if (f.invisible) return { dot: "hid", text: [T("fr_hidden_st"), ...(f.racing ? [simL, f.session, f.track, f.car] : [simL])].filter(Boolean).join(" · "), tip: T("fr_hiding_tip") };
+  if (f.racing) return { dot: "race", text: [simL || T("fr_racing"), f.session, f.track, f.car].filter(Boolean).join(" · ") };
+  if (f.online) return { dot: f.dnd ? "dnd" : "on", text: (f.dnd ? [T("fr_dnd")] : [T("fr_online"), simL]).filter(Boolean).join(" · ") };
   return { dot: "", text: f.last_seen ? T("fr_last_seen", ago(f.last_seen)) : T("fr_offline") };
 }
 
@@ -484,7 +483,7 @@ function listView() {
     <div class="fr-body fr-list">
       ${!S.loaded ? `<p class="fr-empty">${esc(T("loading"))}</p>` : ""}
       ${sec(T("fr_requests"), inc)}
-      ${acc.length ? `${inc.length || out.length || rooms ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${stSec("race", T("fr_racing"), acc.filter((f) => f.racing))}${stSec("on", T("fr_online"), acc.filter((f) => f.online && !f.racing && !f.dnd))}${stSec("dnd", T("fr_dnd"), acc.filter((f) => f.online && !f.racing && f.dnd))}${stSec("off", T("fr_offline"), acc.filter((f) => !f.online && !f.racing))}` : ""}
+      ${acc.length ? `${inc.length || out.length || rooms ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${stSec("race", T("fr_racing"), acc.filter((f) => f.racing && !f.invisible))}${stSec("on", T("fr_online"), acc.filter((f) => !f.invisible && f.online && !f.racing && !f.dnd))}${stSec("dnd", T("fr_dnd"), acc.filter((f) => !f.invisible && f.online && !f.racing && f.dnd))}${stSec("hid", T("fr_hidden_sec"), acc.filter((f) => f.invisible))}${stSec("off", T("fr_offline"), acc.filter((f) => !f.invisible && !f.online && !f.racing))}` : ""}
       ${S.groups.length ? `<div class="fr-sec">${esc(T("fr_groups"))} <span>${S.groups.length}</span></div>${S.groups.map((g) => roomRowHtml("group", g)).join("")}` : ""}
       ${S.teams.length ? `<div class="fr-sec">${esc(T("fr_teams"))} <span>${S.teams.length}</span></div>${S.teams.map((t) => roomRowHtml("team", t)).join("")}` : ""}
       ${sec(T("fr_sent"), out)}

@@ -78,6 +78,9 @@ export default function StartLights(props: OverlayProps) {
     return st == null || st === "" || /race|yarış/i.test(st);
   };
   const sample = () => !!status()?.demo || !!status()?.preview;
+  // Örnek dizi gösterilsin mi: ekrandaki gerçek overlay'de yalnızca gerçek Demo (panel önizleme verisi akarken değil);
+  // panelin kendi önizlemesinde eskisi gibi
+  const showSample = () => (onScreen() ? !!status()?.demo && !status()?.preview : sample());
 
   createEffect(() => {
     const s = session();
@@ -145,7 +148,7 @@ export default function StartLights(props: OverlayProps) {
   const view = createMemo<View>(() => {
     const l = live();
     if (l.stage !== "idle") return l;
-    if (sample() || props.editing || (!onScreen() && !session())) return loopView();
+    if (showSample() || props.editing || (!onScreen() && !session())) return loopView();
     return IDLE;
   });
   // Kaybolurken son görüntü kalsın (çıkış animasyonu boş kutuyla oynamasın)
