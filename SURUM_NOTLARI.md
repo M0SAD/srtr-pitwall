@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-118
+
+- Yönetici üye listeleri (üst çubuktaki canlı üye listesi ve Yönetim › Üyeler): üye adına basınca arkadaş listesindeki "Profil" gibi o üyenin Telemetri profil sayfası açılır. Canlı listede satırın geri kalanı eskisi gibi Yönetim › Üyeler'i açar.
+
 ## 041026-117
 
 - **Demo:** overlay'in "Pistte gizle" / "Garajda gizle" ayarı Demo'da uygulanmaz; Demo açıkken bütün etkin overlay'ler görünür (ekranda ve OBS'te). Lastikler bu yüzden Demo'da gizli kalabiliyordu.

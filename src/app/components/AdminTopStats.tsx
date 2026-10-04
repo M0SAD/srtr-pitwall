@@ -129,6 +129,10 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
     });
   });
 
+  const openProfile = (id: string) => {
+    props.onClose();
+    void import("../pages/TelemetryPage").then((x) => x.openDriverTelemetry(id));
+  };
   const openMember = (m: LiveMember) => {
     props.onClose();
     openAdmin({ sub: "members", q: m.email || m.display_name, id: m.id });
@@ -185,7 +189,7 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
                 </span>
                 <span class="ats-main">
                   <span class="ats-name">
-                    <b data-no-i18n style={m.invisible ? { color: "#b9a3ff" } : undefined}>{m.display_name || "(adsız)"}</b>
+                    <b data-no-i18n class="adm-plink" title={t("Profil")} style={m.invisible ? { color: "#b9a3ff" } : undefined} onClick={(e) => (e.stopPropagation(), openProfile(m.id))}>{m.display_name || "(adsız)"}</b>
                     <Show when={m.is_pro}>
                       <span class="ats-star" title={(m.pro_source === "trial" ? t("PRO (deneme)") : "PRO") + (m.pro_until ? ` · ${new Date(m.pro_until).toLocaleDateString()}` : "")}>
                         <I.Star />

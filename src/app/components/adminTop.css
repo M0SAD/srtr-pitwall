@@ -355,3 +355,6 @@
     text-align: left;
   }
 }
+
+.adm-plink { cursor: pointer; }
+.adm-plink:hover { text-decoration: underline; }

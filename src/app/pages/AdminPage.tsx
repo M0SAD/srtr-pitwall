@@ -287,7 +287,7 @@ function Members(props: { run: Run }) {
             return (
               <div class="admin-user">
                 <div>
-                  <b data-no-i18n>{u.display_name || "(adsız)"}</b>
+                  <b data-no-i18n class="adm-plink" title={t("Profil")} onClick={() => void import("./TelemetryPage").then((x) => x.openDriverTelemetry(u.id))}>{u.display_name || "(adsız)"}</b>
                   <Show when={u.is_owner}>
                     <span class="admin-badge owner">sahip</span>
                   </Show>

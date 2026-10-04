@@ -4266,7 +4266,7 @@
  "PRO'ya bak": "src/app/components/OverlaySettings.tsx, src/app/components/ProLock.tsx, src/app/components/SettingsForm.tsx, src/app/components/VoiceCommands.tsx, src/app/components/VoicePacks.tsx, src/app/pages/LayoutsPage.tsx, src/app/pages/VoicePage.tsx, src/app/pages/livechat/ChatTab.tsx",
  "PRO'ya geç": "src/app/pages/CommunityDashes.tsx, src/app/pages/CommunityPage.tsx, src/app/pages/CommunityThemes.tsx",
  "PRO'yu kaldır": "src/app/components/AdminExtras.tsx, src/app/pages/AdminPage.tsx",
- "Profil": "src/app/components/FriendsDock.tsx, src/app/components/Profile.tsx, src/app/pages/AccountPage.tsx",
+ "Profil": "src/app/components/AdminTopStats.tsx, src/app/components/FriendsDock.tsx, src/app/components/Profile.tsx, src/app/pages/AccountPage.tsx, src/app/pages/AdminPage.tsx",
  "Profil fotoğrafı": "src/app/components/Profile.tsx",
  "Profil fotoğrafı yüklemek": "src/cloud/profile.ts, src/sdk/proFeatures.ts",
  "Profil fotoğrafı yüklemek PRO üyelere özel.": "src/app/components/Profile.tsx",
