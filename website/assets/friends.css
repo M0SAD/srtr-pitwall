@@ -863,3 +863,121 @@ button.fr-row:hover {
 @media (prefers-reduced-motion: reduce) {
   .fr-typing i b { animation: none; opacity: 0.7; }
 }
+
+/* ===== Steam tarzı yazışma (balonsuz): fotoğraf + ad + saat başlığı, altında düz satırlar ===== */
+.fr-msg.stm,
+.fr-msg.stm.me {
+  display: block;
+  position: relative;
+  margin-top: 10px;
+  padding: 1px 8px 1px 44px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+.fr-msg.stm.cont {
+  margin-top: 0;
+}
+.fr-msg.stm:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.fr-msg.stm .fr-bub,
+.fr-msg.stm.me .fr-bub,
+.fr-msg.stm.them .fr-bub {
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  cursor: text;
+}
+.fr-mhead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.fr-mhead .fr-av {
+  position: absolute;
+  left: 6px;
+  top: 3px;
+  border-radius: 4px;
+}
+.fr-mhead b {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ad1ff;
+}
+.fr-msg.stm.me .fr-mhead b {
+  color: #5fa8d8;
+}
+.fr-mhead time {
+  font-size: 11px;
+  color: var(--muted);
+}
+/* Mesaj ifadeleri */
+.fr-reacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 3px 0 2px;
+}
+.fr-reacts button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px 1px 5px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.fr-reacts button.mine {
+  border-color: #4d86b8;
+  background: #213447;
+  color: #cfe6fa;
+}
+.fr-reacts button span {
+  font-size: 14px;
+}
+.fr-rpick {
+  display: flex;
+  gap: 2px;
+  padding: 2px 2px 6px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid var(--line);
+}
+.fr-menu .fr-rpick button {
+  flex: 1;
+  width: auto;
+  padding: 4px 0;
+  text-align: center;
+  font-size: 17px;
+  border-radius: 6px;
+}
+/* Uzakta (zzz) ve Rahatsız etme işaretleri */
+.fr-zzz {
+  margin-left: 3px;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  color: #6f8aa3;
+}
+.fr-dndi {
+  font-style: normal;
+  font-size: 11px;
+}
+.fr-dot.away {
+  background: #6f8aa3;
+}
+.fr-main.st-away b,
+.fr-main.st-away small {
+  color: color-mix(in srgb, var(--fr-online, #66c0f4) 55%, #6f7787);
+}
+.fr-row.rs-away:not(:hover) {
+  opacity: 0.8;
+}
+.fr-row.rs-away .fr-av {
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px #4f6f8a;
+}

@@ -491,6 +491,8 @@
  "fr_is_friend": "フレンド",
  "fr_empty": "まだフレンドがいません。上のボタンから追加できます。",
  "fr_online": "オンライン",
+ "fr_away": "離席中",
+ "fr_me": "あなた",
  "fr_offline": "オフライン",
  "fr_racing": "レース中",
  "fr_dnd": "取り込み中",

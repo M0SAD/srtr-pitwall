@@ -36,6 +36,8 @@ addDict({
     "No friends yet. Use the button above to add friends.",
   ],
   fr_online: ["Çevrimiçi", "Online"],
+  fr_away: ["Uzakta", "Away"],
+  fr_me: ["Sen", "You"],
   fr_offline: ["Çevrimdışı", "Offline"],
   fr_racing: ["Yarışta", "Racing"],
   fr_dnd: ["Rahatsız etmeyin", "Do not disturb"],
@@ -209,6 +211,8 @@ const IC = {
 // ---------------------------------------------------------------------------
 const S = {
   me: null,
+  meP: null, // kendi adım ve fotoğrafım
+  reacts: {}, // mesaj kimliği → ifadeler
   open: false,
   view: "list", // list | add | chat (1:1) | room (grup / takım) | crew (ekip paneli)
   friends: [],
@@ -381,6 +385,7 @@ function presence(f) {
   const simL = f.sim ? SIM_LABEL[f.sim] || f.sim : "";
   if (f.invisible) return { dot: "hid", text: [T("fr_hidden_st"), ...(f.racing ? [simL, f.session, f.track, f.car] : [simL])].filter(Boolean).join(" · "), tip: T("fr_hiding_tip") };
   if (f.racing) return { dot: "race", text: [simL || T("fr_racing"), f.session, f.track, f.car].filter(Boolean).join(" · ") };
+  if (f.online && f.away && !f.dnd) return { dot: "away", text: [T("fr_away"), simL].filter(Boolean).join(" · ") };
   if (f.online) return { dot: f.dnd ? "dnd" : "on", text: (f.dnd ? [T("fr_dnd")] : [T("fr_online"), simL]).filter(Boolean).join(" · ") };
   return { dot: "", text: f.last_seen ? T("fr_last_seen", ago(f.last_seen)) : T("fr_offline") };
 }
@@ -415,8 +420,13 @@ const safeColor = (c) => (/^#[0-9a-fA-F]{6}$/.test(c || "") ? c : "");
 /** Grup: adının baş harfi; takım: etiketi (ve varsa logosu) */
 function roomAvatar(kind, r, size = "") {
   const id = String(roomId(kind, r));
-  if (kind === "group")
-    return `<span class="fr-av fr-rav${size ? " " + size : ""}" style="background:${hashColor(id)}" aria-hidden="true">${esc(initialOf(r.name))}</span>`;
+  if (kind === "group") {
+    // Grup görseli (c83) varsa o, yoksa adının baş harfi
+    const gurl = avatarUrl(r);
+    return `<span class="fr-av fr-rav${size ? " " + size : ""}" style="background:${hashColor(id)}" aria-hidden="true">${esc(initialOf(r.name))}${
+      gurl ? `<img src="${esc(gurl)}" alt="" loading="lazy" onerror="this.remove()">` : ""
+    }</span>`;
+  }
   const logo = r.logo_path && typeof r.logo_path === "string" ? `${SUPABASE_URL}/storage/v1/object/public/teams/${r.logo_path.split("/").map(encodeURIComponent).join("/")}` : "";
   return `<span class="fr-av fr-rav team${size ? " " + size : ""}" style="background:${safeColor(r.color) || hashColor(id)}" aria-hidden="true">${esc(String(r.tag || "?").slice(0, 4))}${
     logo ? `<img src="${esc(logo)}" alt="" loading="lazy" onerror="this.remove()">` : ""
@@ -459,7 +469,9 @@ function rowHtml(f) {
     f.status === "accepted" ? `${cw ? ' role="button" tabindex="0"' : ' type="button"'} data-act="chat" data-id="${esc(f.friend_id)}"` : ""
   }>
     ${avatarHtml(f.friend_id, f.display_name, f, f.status === "accepted" ? p.dot || "off" : "")}
-    <span class="fr-main st-${f.status === "accepted" ? p.dot || "off" : "pend"}"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
+    <span class="fr-main st-${f.status === "accepted" ? p.dot || "off" : "pend"}"><b>${esc(f.display_name || "?")}${
+      f.status === "accepted" && p.dot === "dnd" ? ` <i class="fr-dndi" title="${esc(T("fr_dnd"))}">⛔</i>` : f.status === "accepted" && p.dot === "away" ? ` <i class="fr-zzz" title="${esc(T("fr_away"))}" aria-hidden="true">z<sup>z<sup>z</sup></sup></i>` : ""
+    }</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
       live ? `<small class="fr-live">${esc(live)}</small>` : ""
     }</span>
     ${right}
@@ -583,10 +595,24 @@ function msgsHtml() {
       const cont = prev && !isSys(prev) && prev.sender === m.sender && new Date(m.created_at) - new Date(prev.created_at) < 5 * 60000 && dayOf(prev.created_at) === d;
       const text = bodyOf(m);
       const big = !m.deleted && !m.poll && emojiOnly(text);
-      const who = room && !mine && !cont ? `<b class="fr-who" style="color:${hashColor(String(m.sender || "?"))}">${esc(m.sender_name || "?")}</b>` : "";
+      // Steam tarzı: balon yok; ilk mesajda fotoğraf + ad + saat, altında düz satırlar
+      const fr = !room && !mine ? friend(S.chat) : null;
+      const name = mine ? S.meP?.display_name || T("fr_me") : room ? m.sender_name || "?" : fr?.display_name || "?";
+      const head = cont
+        ? ""
+        : `<div class="fr-mhead">${avatarHtml(String(m.sender || "?"), name, mine ? S.meP : fr, "", "sm")}<b>${esc(name)}</b><time>${esc(timeOf(m.created_at))}</time></div>`;
       const inner = m.deleted ? `<i class="fr-gone">${esc(T("fr_deleted"))}</i>` : m.poll ? pollHtml(m.poll) : msgHtml(text);
-      out += `<div class="fr-msg ${mine ? "me" : "them"}${cont ? " cont" : ""}" data-mid="${esc(m.id)}">
-      <div class="fr-bub${big ? " big" : ""}">${who}${inner}<time>${esc(timeOf(m.created_at))}</time></div>
+      const rs = S.reacts[String(m.id)] || [];
+      const chips = rs.length
+        ? `<div class="fr-reacts">${rs
+            .map(
+              (r) =>
+                `<button type="button" class="${r.mine ? "mine" : ""}" data-act="react" data-id="${esc(m.id)}" data-e="${esc(r.emoji)}" title="${esc((r.names || []).join(", "))}"><span>${esc(r.emoji)}</span><b>${r.n}</b></button>`,
+            )
+            .join("")}</div>`
+        : "";
+      out += `<div class="fr-msg stm ${mine ? "me" : "them"}${cont ? " cont" : ""}" data-mid="${esc(m.id)}">
+      ${head}<div class="fr-bub${big ? " big" : ""}"${cont ? ` title="${esc(timeOf(m.created_at))}"` : ""}>${inner}</div>${chips}
     </div>`;
     }
     if (S.report === m.id) {
@@ -876,6 +902,8 @@ async function openChat(id) {
   S.view = "chat";
   S.chat = id;
   S.msgs = null;
+  S.reacts = {};
+  setTimeout(loadReacts, 1200);
   S.more = false;
   S.ask = "";
   S.menu = false;
@@ -951,8 +979,10 @@ const scheduleRooms = () => {
 async function openRoom(kind, id) {
   closeCrewPanel();
   Object.assign(S, { view: "room", room: { kind, id }, chat: null, msgs: null, more: false, ask: "", menu: false, report: null, members: null, open: true });
+  S.reacts = {};
   render();
   await reloadRoom(true);
+  loadReacts();
   if (!matchMedia("(max-width: 560px)").matches) $("#fr-text", root)?.focus();
 }
 
@@ -1038,12 +1068,13 @@ function openCtx(id, x, y) {
   el.className = "fr-menu fr-ctx";
   el.setAttribute("role", "menu");
   el.dataset.id = String(id);
-  el.innerHTML = items.map(([a, l, c]) => `<button type="button" role="menuitem" class="${c}" data-act="${a}">${esc(l)}</button>`).join("");
+  const canReact = !m.deleted && !sys;
+  el.innerHTML = (canReact ? `<div class="fr-rpick">${QUICK_REACTIONS.map((e) => `<button type="button" data-act="react" data-e="${e}">${e}</button>`).join("")}</div>` : "") + items.map(([a, l, c]) => `<button type="button" role="menuitem" class="${c}" data-act="${a}">${esc(l)}</button>`).join("");
   el.addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]");
     if (!b) return;
     closeCtx();
-    act(b.dataset.act, id, null);
+    act(b.dataset.act, id, null, b);
   });
   el.addEventListener("contextmenu", (e) => e.preventDefault());
   document.body.append(el);
@@ -1087,6 +1118,8 @@ async function sendMsg() {
   render();
   try {
     const id = await rpc("send_message", { p_to: to, p_body: body });
+    // Realtime aynı mesajı bu arada getirmişse geçici kopya kaldırılır
+    if (id && (S.msgs || []).some((m) => m !== tmp && String(m.id) === String(id))) S.msgs = S.msgs.filter((m) => m !== tmp);
     tmp.id = id || tmp.id;
     render();
   } catch (e) {
@@ -1196,6 +1229,8 @@ async function act(a, id, el, src = null) {
         S.ask = "leave";
         S.menu = false;
         return render();
+      case "react":
+        return toggleReact(id, src?.dataset.e || "");
       case "m-copy": {
         const m = msgById(id);
         if (!m) return;
@@ -1375,6 +1410,53 @@ function onIncoming(m) {
   render();
 }
 
+/** Kendi gönderdiğim mesaj (Realtime). Bu sayfadan gönderilen mesajın geçici kopyası varsa yinelenmez. */
+function onOwn(m) {
+  if (!m || m.sender !== S.me?.id) return;
+  S.last[m.recipient] = m;
+  if (S.view !== "chat" || S.chat !== m.recipient || !Array.isArray(S.msgs)) return;
+  if (S.msgs.some((x) => String(x.id) === String(m.id))) return;
+  if (S.msgs.some((x) => isTmp(x) && x.body === m.body)) return;
+  S.msgs = [...S.msgs, m];
+  S._scrollEnd = true;
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// Mesajlara ifade (c81: message_react, message_reactions_for). Açık sohbet 6 sn'de bir yeniler.
+// ---------------------------------------------------------------------------
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🏁"];
+const reactKind = () => (inRoom() ? S.room.kind : "dm");
+let reactsOff = false;
+async function loadReacts() {
+  if (reactsOff || !S.open || !(S.view === "chat" || inRoom()) || !Array.isArray(S.msgs) || !visible()) return;
+  const ids = S.msgs.map((m) => String(m.id)).filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(-300);
+  if (!ids.length) return;
+  const key = `${reactKind()}:${S.chat || S.room?.id}`;
+  try {
+    const rows = await rpc("message_reactions_for", { p_kind: reactKind(), p_ids: ids });
+    if (key !== `${reactKind()}:${S.chat || S.room?.id}`) return;
+    const next = {};
+    for (const r of Array.isArray(rows) ? rows : []) (next[r.message_id] ??= []).push(r);
+    if (JSON.stringify(next) !== JSON.stringify(S.reacts)) {
+      S.reacts = next;
+      render();
+    }
+  } catch (e) {
+    if (/PGRST202|does not exist|404/i.test(String(e?.message || e))) reactsOff = true;
+  }
+}
+async function toggleReact(id, emoji) {
+  if (!emoji || !/^[0-9a-f-]{36}$/i.test(String(id))) return;
+  try {
+    await rpc("message_react", { p_kind: reactKind(), p_id: id, p_emoji: emoji });
+  } catch (e) {
+    toast(errMsg(e), true);
+  }
+  loadReacts();
+}
+setInterval(loadReacts, 6000);
+
 /** Grup / takım mesajı (Realtime): açık odaysa yeniden oku; değilse listeyi (okunmamış, son mesaj) tazele */
 function onRoomMsg(kind, m, ev) {
   if (!m || !S.me) return;
@@ -1454,6 +1536,8 @@ function subscribe() {
   const ch = sb
     .channel(`site-inbox-${S.me.id}-${Math.random().toString(36).slice(2, 7)}`)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `recipient=eq.${S.me.id}` }, (p) => onIncoming(p.new))
+    // Kendi mesajım başka cihazdan / programdan gönderildi: açık sohbette anında görünür
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `sender=eq.${S.me.id}` }, (p) => onOwn(p.new))
     .subscribe();
   S.inbox = ch;
 }
@@ -1504,9 +1588,12 @@ function mount() {
     // Mesaja tıklayınca menü (bağlantıya tıklanmadıysa, metin seçilmiyorsa)
     const bub = e.target.closest(".fr-bub, .fr-sys span");
     if (bub && root.contains(bub) && !e.target.closest("a, [data-act]")) {
-      const sel = window.getSelection?.();
-      const row = bub.closest("[data-mid]");
-      if (row && (!sel || sel.isCollapsed)) openCtx(row.dataset.mid, e.clientX, e.clientY);
+      // Fareyle sol tık mesaja bir şey yapmaz (menü sağ tıkla); dokunmatik ekranda dokunmak menüyü açar
+      if (matchMedia("(pointer: coarse)").matches) {
+        const sel = window.getSelection?.();
+        const row = bub.closest("[data-mid]");
+        if (row && (!sel || sel.isCollapsed)) openCtx(row.dataset.mid, e.clientX, e.clientY);
+      }
       return;
     }
     const b = e.target.closest("[data-act]");
@@ -1615,6 +1702,13 @@ async function start(user) {
   render();
   await loadFriends();
   subscribe();
+  // Kendi adım ve fotoğrafım (mesaj başlıklarında)
+  sb.from("profiles").select("display_name, avatar_path").eq("id", user.id).maybeSingle().then(
+    (r) => {
+      if (S.me?.id === user.id && r && r.data) S.meP = r.data;
+    },
+    () => {},
+  );
   // Programda "Çevrimdışı görün" seçili mi (sütun yoksa / okunamazsa: hayır)
   TY.hidden = false;
   sb.from("user_status").select("invisible").eq("user_id", user.id).maybeSingle().then(

@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-135
+
+- Web sitesi sohbeti programla eşitlendi (website/assets/friends.js, friends.css, 13 dil dosyası):
+  - Steam tarzı balonsuz yazışma: fotoğraf + ad + saat başlığı altında düz satırlar.
+  - Mesajlara ifade: mesaj menüsünün üstünde hızlı ifadeler, mesajın altında ifade çipleri (6 sn'de bir yenilenir).
+  - Grup görseli listede ve sohbet başlığında görünür.
+  - "Uzakta" (zzz) ve "Rahatsız etme" işaretleri arkadaş listesinde.
+  - Başka cihazdan / programdan gönderdiğin özel mesajlar açık sohbette anında görünür.
+  - Fareyle sol tık mesaja bir şey yapmaz (menü sağ tıkla); dokunmatik ekranda dokunmak menüyü açmaya devam eder.
+
 ## 041026-134
 
 - Grup görseli: grubun sahibi Üyeler panelinden "Grup görseli ekle / Görseli değiştir / Görseli kaldır" ile gruba görsel koyar (kare kırpılır); listede ve sohbet başlığında görünür. Etiket yok. Sunucu: c83 (chat_groups.avatar_path, group_set_avatar, my_groups.avatar_path) — yayında.

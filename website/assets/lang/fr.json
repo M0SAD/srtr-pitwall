@@ -491,6 +491,8 @@
  "fr_is_friend": "Ami",
  "fr_empty": "Pas encore d'amis. Utilise le bouton ci-dessus pour en ajouter.",
  "fr_online": "En ligne",
+ "fr_away": "Absent",
+ "fr_me": "Vous",
  "fr_offline": "Hors ligne",
  "fr_racing": "En course",
  "fr_dnd": "Ne pas déranger",
