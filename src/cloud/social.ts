@@ -147,7 +147,7 @@ export function findPeople(q: string) {
   const me = session()?.user.id ?? "";
   return api<Person[]>(
     "GET",
-    `profiles?select=id,display_name,iracing_name&or=(display_name.ilike.*${t}*,iracing_name.ilike.*${t}*)&id=neq.${me}&limit=20`,
+    `profiles_public?select=id,display_name,iracing_name&or=(display_name.ilike.*${t}*,iracing_name.ilike.*${t}*)&id=neq.${me}&limit=20`,
   );
 }
 

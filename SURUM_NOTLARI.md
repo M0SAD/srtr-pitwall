@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-148
+
+- GÜVENLİK (c85, yayında): `profiles` tablosu artık herkese açık değil. Eskiden herkese açık anahtarla giriş yapmadan tablonun tamamı okunabiliyordu (ödeme e-postası, yönetici bilgisi, PRO tarihleri, iRacing numarası). Artık herkes yalnızca kendi satırını okur (yönetici hepsini). Başkalarının adı / iRacing adı / fotoğrafı yalnızca bu dört sütunu veren `profiles_public` görünümünden gelir; topluluk liste görünümleri (düzen, ekran görüntüsü, tema, gösterge ve yorumları) de onu kullanır.
+- Program ve web sitesi: arkadaş arama, fotoğraf ve ad sorguları `profiles_public` görünümüne geçti. Bu sürümden ÖNCEKİ programlarda ve eski sitede arkadaş arama sonuç vermez (güncelleme gerekir); diğer her şey çalışır.
+
+## 041026-147
+
+- Web sitesi (telefon): sohbet paneli artık klavye açıldığında görünen alana tam oturur; yazı kutusu klavyenin hemen üstünde kalır, arkadaki sayfa görünmez ve kaymaz, son mesaj görünür kalır.
+- Web sitesi: mesaj kutusu otomatik doldurma alanı olarak işaretlenmez (iOS'ta klavyenin üstünde çıkan parola / kart / konum çubuğunu azaltmak için).
+
 ## 041026-146
 
 - Web sitesinden bağlı üye artık arkadaşlarına çevrimiçi görünür ve adının yanında cihaz simgesi çıkar: telefondan bağlıysa telefon ("Telefonda"), bilgisayar tarayıcısından bağlıysa dünya ("Web sitesinde"). Program açıksa program durumu önceliklidir (simge çıkmaz). "Çevrimdışı görün" seçen üye siteden de gizli kalır. Site sayfa görünürken 45 sn'de bir bildirir; sayfa kapanınca en geç 90 sn'de çevrimdışına döner.

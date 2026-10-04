@@ -515,7 +515,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       void (async () => {
         let who = friends.find((x) => x.friend_id === m.sender)?.display_name ?? "";
         if (!who && m.sender && m.sender !== me) {
-          who = (await api<{ display_name: string }[]>("GET", `profiles?id=eq.${m.sender}&select=display_name`).catch(() => null))?.[0]?.display_name ?? "?";
+          who = (await api<{ display_name: string }[]>("GET", `profiles_public?id=eq.${m.sender}&select=display_name`).catch(() => null))?.[0]?.display_name ?? "?";
         }
         const look = friendLook(m.sender ?? "");
         const ov: OvMsg = {

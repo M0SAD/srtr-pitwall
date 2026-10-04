@@ -660,7 +660,7 @@ function initGift(u, cfg, gifts) {
 async function findMembers(u, q) {
   const t = q.replace(/[(),*%]/g, " ").trim();
   const { data, error } = await sb
-    .from("profiles")
+    .from("profiles_public")
     .select("id,display_name,iracing_name")
     .or(`display_name.ilike.*${t}*,iracing_name.ilike.*${t}*`)
     .neq("id", u.id)

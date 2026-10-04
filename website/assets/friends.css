@@ -607,6 +607,15 @@ button.fr-row:hover {
   html.fr-lock,
   html.fr-lock body {
     overflow: hidden;
+    /* iOS: klavye açılınca arkadaki sayfa kaymasın / esnemesin */
+    overscroll-behavior: none;
+  }
+  .fr-panel {
+    overscroll-behavior: contain;
+  }
+  .fr-msgs {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
   .fr-comp textarea,
   .fr-search input,

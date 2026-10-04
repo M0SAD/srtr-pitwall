@@ -14942,3 +14942,59 @@ $$;
 revoke all on function public.my_friends() from public, anon;
 grant execute on function public.my_friends() to authenticated, service_role;
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- c85: GÜVENLİK — profiles tablosu artık herkese açık değil.
+-- Eskiden "profiles readable using (true)" kuralı yüzünden herkese açık anahtarla (giriş yapmadan) tablonun tamamı
+-- okunabiliyordu: ödeme e-postası (pay_email), yönetici bilgisi, PRO tarihleri, iRacing numarası.
+-- Yeni kural: herkes yalnızca KENDİ satırını okur (yönetici hepsini). Başkalarının adı / iRacing adı / fotoğrafı
+-- yalnızca güvenli sütunları veren profiles_public görünümünden gelir; topluluk liste görünümleri de onu kullanır.
+-- ============================================================
+create or replace view public.profiles_public as
+  select p.id, p.display_name, p.iracing_name, p.avatar_path from public.profiles p;
+revoke all on public.profiles_public from public;
+grant select on public.profiles_public to anon, authenticated, service_role;
+
+create or replace view public.layout_list with (security_invoker = true) as
+  select l.id, l.user_id, l.title, l.description, l.screen_w, l.screen_h, l.cars, l.overlay_count,
+         l.downloads, l.rating_avg, l.rating_count, l.created_at, l.updated_at,
+         p.display_name as author_name, p.iracing_name as author_iracing,
+         l.data -> 'boxes' as boxes, coalesce((l.data ->> 'scale')::numeric, 1) as ui_scale,
+         l.kind,
+         (select count(*) from public.layout_comments c where c.layout_id = l.id)::int as comment_count
+  from public.shared_layouts l join public.profiles_public p on p.id = l.user_id;
+
+create or replace view public.comment_list with (security_invoker = true) as
+  select c.id, c.layout_id, c.user_id, c.body, c.created_at, p.display_name as author_name, c.edited_at
+  from public.layout_comments c join public.profiles_public p on p.id = c.user_id;
+
+create or replace view public.shot_list with (security_invoker = true) as
+  select s.id, s.user_id, s.title, s.description, s.path, s.thumb_path, s.width, s.height, s.bytes,
+         s.track, s.car, s.rating_avg, s.rating_count, s.comment_count, s.created_at,
+         p.display_name as author_name, p.iracing_name as author_iracing,
+         s.views, s.last_viewed_at, s.edited_at
+  from public.screenshots s join public.profiles_public p on p.id = s.user_id;
+
+create or replace view public.shot_comment_list with (security_invoker = true) as
+  select c.id, c.screenshot_id, c.user_id, c.body, c.created_at, p.display_name as author_name, c.edited_at
+  from public.screenshot_comments c join public.profiles_public p on p.id = c.user_id;
+
+create or replace view public.theme_list with (security_invoker = true) as
+  select t.id, t.user_id, t.name, t.description, t.theme, t.downloads, t.created_at,
+         p.display_name as author_name
+  from public.shared_themes t join public.profiles_public p on p.id = t.user_id;
+
+create or replace view public.dash_list with (security_invoker = true) as
+  select d.id, d.user_id, d.title, d.description, d.data, d.width, d.height, d.page_count, d.widget_count,
+         d.downloads, d.rating_avg, d.rating_count, d.hidden, d.created_at, d.updated_at,
+         p.display_name as author_name, p.iracing_name as author_iracing,
+         (select count(*) from public.dash_comments c where c.dash_id = d.id)::int as comment_count
+  from public.shared_dashes d join public.profiles_public p on p.id = d.user_id;
+
+create or replace view public.dash_comment_list with (security_invoker = true) as
+  select c.*, p.display_name as author_name
+  from public.dash_comments c join public.profiles_public p on p.id = c.user_id;
+
+drop policy if exists "profiles readable" on public.profiles;
+create policy "profiles readable" on public.profiles for select using (auth.uid() = id or public.is_admin());
+notify pgrst, 'reload schema';

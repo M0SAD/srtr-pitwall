@@ -188,7 +188,7 @@ export async function loadAvatars(ids) {
   injectCss();
   const want = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 200);
   if (!want.length) return {};
-  const { data, error } = await sb.from("profiles").select("id,avatar_path").in("id", want);
+  const { data, error } = await sb.from("profiles_public").select("id,avatar_path").in("id", want);
   if (error) return {};
   return Object.fromEntries((data || []).map((r) => [r.id, r.avatar_path]));
 }

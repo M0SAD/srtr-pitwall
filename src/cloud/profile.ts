@@ -181,7 +181,7 @@ export async function loadAvatars(ids: string[]) {
   if (!want.length) return;
   want.forEach((id) => asked.add(id));
   try {
-    const rows = await api<{ id: string; avatar_path: string | null }[]>("GET", `profiles?select=id,avatar_path&id=in.(${want.join(",")})`, {
+    const rows = await api<{ id: string; avatar_path: string | null }[]>("GET", `profiles_public?select=id,avatar_path&id=in.(${want.join(",")})`, {
       auth: "optional",
     });
     noteAvatars(rows ?? []);

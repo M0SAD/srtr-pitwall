@@ -635,9 +635,9 @@ function msgsHtml() {
   return out;
 }
 
-const composerHtml = () => `<form class="fr-comp" id="fr-comp">
+const composerHtml = () => `<form class="fr-comp" id="fr-comp" autocomplete="off">
       <span id="fr-emo"></span>
-      <textarea id="fr-text" rows="1" maxlength="1000" placeholder="${esc(T("fr_msg_ph"))}"></textarea>
+      <textarea id="fr-text" name="chat-message" rows="1" maxlength="1000" placeholder="${esc(T("fr_msg_ph"))}" autocomplete="off" autocapitalize="sentences" enterkeyhint="send" data-1p-ignore data-lpignore="true" data-form-type="other"></textarea>
       <button class="fr-send" title="${esc(T("fr_send"))}" aria-label="${esc(T("fr_send"))}">${IC.send}</button>
     </form>`;
 
@@ -829,6 +829,7 @@ function render() {
   if (!root) return;
   root.hidden = !S.open;
   document.documentElement.classList.toggle("fr-lock", S.open);
+  fitViewport();
   if (!S.open) return;
   // Ekip paneli kendi kabını kendisi çizer: üstüne yazma
   if (S.view === "crew" && S.crewPanel && $("#fr-crew", root)) return;
@@ -889,6 +890,43 @@ function grow(ta) {
 // ---------------------------------------------------------------------------
 // İşlemler
 // ---------------------------------------------------------------------------
+/**
+ * Telefon: panel, klavye açıldığında GÖRÜNEN alana tam oturur (visualViewport). Böylece yazı kutusu klavyenin hemen
+ * üstünde kalır, arkadaki sayfa görünmez ve sayfa kaymaz. Masaüstünde hiçbir şey yapmaz.
+ */
+let fitBound = false;
+function fitViewport() {
+  if (!root) return;
+  const vv = window.visualViewport;
+  const phone = matchMedia("(max-width: 560px)").matches;
+  if (!vv || !phone || !S.open) {
+    root.style.removeProperty("height");
+    root.style.removeProperty("top");
+    root.style.removeProperty("bottom");
+    return;
+  }
+  root.style.top = `${Math.round(vv.offsetTop)}px`;
+  root.style.bottom = "auto";
+  root.style.height = `${Math.round(vv.height)}px`;
+  if (!fitBound) {
+    fitBound = true;
+    let last = 0;
+    const on = () => {
+      fitViewport();
+      // Klavye açıldı / kapandı: son mesaj görünür kalsın, sayfa arkada kaymasın
+      const h = Math.round(window.visualViewport.height);
+      if (S.open && h !== last) {
+        last = h;
+        window.scrollTo(0, 0);
+        const box = $("#fr-msgs", root);
+        if (box) box.scrollTop = box.scrollHeight;
+      }
+    };
+    vv.addEventListener("resize", on);
+    vv.addEventListener("scroll", on);
+  }
+}
+
 function setOpen(o) {
   S.open = o;
   closeCrewPanel();
@@ -1181,7 +1219,7 @@ function search(q) {
   searchT = setTimeout(async () => {
     const run = (cols) =>
       sb
-        .from("profiles")
+        .from("profiles_public")
         .select(cols)
         .or(`display_name.ilike.*${t}*,iracing_name.ilike.*${t}*`)
         .neq("id", S.me.id)
