@@ -31,6 +31,8 @@ export interface Friend {
   last_seen: string | null;
   /** Uzakta: çevrimiçi ama uzun süredir bilgisayar başında değil (c82) */
   away?: boolean;
+  /** Yalnızca web sitesinden bağlı (program kapalı): "mobile" | "web"; program açıkken "" (c84) */
+  device?: string;
   unread: number;
   /** Bu arkadaştan gelen mesajlarda açılır pencere/bildirim gösterme (c30) */
   notify_muted?: boolean;

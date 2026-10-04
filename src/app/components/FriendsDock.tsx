@@ -61,6 +61,8 @@ import Wallpaper from "lucide-solid/icons/wallpaper";
 import ArrowDownAZ from "lucide-solid/icons/arrow-down-a-z";
 import ClockIcon from "lucide-solid/icons/clock";
 import CircleMinus from "lucide-solid/icons/circle-minus";
+import Smartphone from "lucide-solid/icons/smartphone";
+import GlobeIcon from "lucide-solid/icons/globe";
 import ChevronsDown from "lucide-solid/icons/chevrons-down";
 import { SimBadge, SIM_SHORT } from "./Profile";
 import { TeamChat, TeamLogo, type TeamEvent } from "./TeamChat";
@@ -1583,6 +1585,9 @@ export function statusText(f: Friend) {
   // Sadece yöneticiye gelir: "Çevrimdışı görün" seçmiş ama programda (yarıştaysa oyun / oturum / pist / araç eklenir)
   if (f.invisible) return [t("Çevrimdışı (gizli)"), ...(f.racing ? [sim, f.session, f.track, f.car] : [sim])].filter(Boolean).join(" · ");
   if (f.racing) return [sim, f.session, f.track, f.car].filter(Boolean).join(" · ") || (sim ? t("Oyunda: {0}", sim) : t("Yarışta"));
+  // Yalnızca web sitesinden bağlı (program kapalı)
+  if (f.online && f.device === "mobile") return t("Telefonda");
+  if (f.online && f.device === "web") return t("Web sitesinde");
   if (f.online && f.away && !f.dnd) return t("Uzakta") + (sim ? ` · ${sim}` : "");
   if (f.online) return (f.dnd ? t("Çevrimiçi · rahatsız etme") : t("Çevrimiçi")) + (sim ? ` · ${sim}` : "");
   return f.last_seen ? t("Son görülme: {0}", ago(f.last_seen)) : t("Çevrimdışı");
@@ -1727,6 +1732,13 @@ function FriendRow(props: {
             </b>
           </Show>
           <SimBadge sim={f().online && !simIcon() ? f().sim : ""} />
+          <Show when={f().online && f().device}>
+            <span class="frow-flag dev-flag" title={f().device === "mobile" ? t("Telefonda: web sitesinden bağlı") : t("Web sitesinden bağlı")}>
+              <Show when={f().device === "mobile"} fallback={<GlobeIcon />}>
+                <Smartphone />
+              </Show>
+            </span>
+          </Show>
           <Show when={f().online && f().dnd && !f().invisible}>
             <span class="frow-flag dnd-flag" title={t("Rahatsız etme")}>
               <CircleMinus />

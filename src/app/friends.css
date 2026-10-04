@@ -1787,3 +1787,6 @@
   padding: 2px 6px;
   font-size: 13px;
 }
+.frow-flag.dev-flag svg {
+  color: #6fb6e8;
+}

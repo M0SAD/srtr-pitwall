@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-146
+
+- Web sitesinden bağlı üye artık arkadaşlarına çevrimiçi görünür ve adının yanında cihaz simgesi çıkar: telefondan bağlıysa telefon ("Telefonda"), bilgisayar tarayıcısından bağlıysa dünya ("Web sitesinde"). Program açıksa program durumu önceliklidir (simge çıkmaz). "Çevrimdışı görün" seçen üye siteden de gizli kalır. Site sayfa görünürken 45 sn'de bir bildirir; sayfa kapanınca en geç 90 sn'de çevrimdışına döner.
+- Programda: arkadaş listesi ve sohbet sekmesi. Sitede: arkadaş listesi. Sunucu: c84 (web_presence, web_ping, my_friends.device) — yayında.
+
 ## 041026-145
 
 - Overlay ayarları › "Ne zaman gizlensin": "Garajdayken gizle" artık "Pitteyken gizle" ve garajın yanında pit yolunda / pit kutusundayken de gizler (eskiden yalnızca iRacing'in garaj ekranında gizliyordu). "Pistte sürerken gizle" artık yalnızca araçtayken ve pitte değilken gizler (eskiden pitte araçta otururken de gizliyordu; iki seçenek bu yüzden ters çalışıyor gibi görünüyordu).

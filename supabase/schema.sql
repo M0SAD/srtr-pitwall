@@ -14859,3 +14859,86 @@ $$;
 revoke all on function public.my_groups() from public, anon;
 grant execute on function public.my_groups() to authenticated;
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- c84: Web sitesinden (telefon / tarayıcı) bağlı üye — arkadaş listesinde çevrimiçi + cihaz simgesi.
+-- Site, sayfa açık ve görünürken 45 sn'de bir web_ping() çağırır. Program durumu (user_status) ayrı kalır:
+-- program açıkken cihaz boş döner (program önceliklidir). "Çevrimdışı görün" seçen üye siteden de gizlidir.
+-- ============================================================
+create table if not exists public.web_presence (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  seen_at timestamptz not null default now(),
+  device text not null default 'web' check (device in ('mobile', 'web'))
+);
+alter table public.web_presence enable row level security;
+revoke all on public.web_presence from public, anon, authenticated;
+grant all on public.web_presence to service_role;
+
+-- p_device: 'mobile' | 'web'; boş / başka bir değer: kaydı sil (sayfa kapanıyor)
+create or replace function public.web_ping(p_device text) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null then
+    return;
+  end if;
+  if p_device in ('mobile', 'web') then
+    insert into public.web_presence (user_id, seen_at, device) values (me, now(), p_device)
+      on conflict (user_id) do update set seen_at = now(), device = excluded.device;
+  else
+    delete from public.web_presence where user_id = me;
+  end if;
+end $$;
+revoke all on function public.web_ping(text) from public, anon;
+grant execute on function public.web_ping(text) to authenticated;
+
+drop function if exists public.my_friends();
+create or replace function public.my_friends()
+returns table (friend_id uuid, display_name text, iracing_name text, status text, trusted boolean, muted boolean,
+               trusts_me boolean, online boolean, racing boolean, track text, car text, session text, dnd boolean,
+               accept_messages boolean, last_seen timestamptz, unread int, avatar_path text, sim text,
+               invisible boolean, away boolean, device text)
+language sql stable security definer set search_path = public as $$
+  select x.friend_id, x.display_name, x.iracing_name, x.status, x.trusted, x.muted, x.trusts_me,
+         x.online, x.racing, x.track, x.car, x.session, x.dnd, x.accept_messages, x.last_seen, x.unread,
+         x.avatar_path, x.sim, x.invisible, x.away, x.device
+  from (
+    select f.friend_id, p.display_name, p.iracing_name, f.status, f.trusted, f.muted,
+           f.status = 'accepted' and public.live_trusts(f.friend_id, f.user_id)
+             and (not public.feature_requires_pro('social.data_share', true) or public.user_is_pro(f.friend_id)) as trusts_me,
+           (v.real_on or v.web_on) and not v.hid and f.status = 'accepted' as online,
+           v.real_on and not v.hid and coalesce(s.racing, false) and f.status = 'accepted' as racing,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.track, '') else '' end as track,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.car, '') else '' end as car,
+           case when f.status = 'accepted' and not v.hid then coalesce(s.session, '') else '' end as session,
+           coalesce(s.dnd, false) and not v.hid as dnd,
+           coalesce(s.accept_messages, true) as accept_messages,
+           case when f.status = 'accepted'
+                then case when v.hid then coalesce(s.invisible_at, s.updated_at)
+                          else greatest(s.updated_at, w.seen_at) end end as last_seen,
+           (select count(*)::int from public.messages m
+            where m.recipient = auth.uid() and m.sender = f.friend_id and m.read_at is null
+              and not public.message_hidden_for(m.id, m.sender, m.recipient, m.created_at)) as unread,
+           p.avatar_path,
+           case when f.status = 'accepted' and v.real_on and not v.hid then coalesce(s.sim, '') else '' end as sim,
+           -- yöneticiye: çevrimiçi ama gizleniyor
+           f.status = 'accepted' and v.real_on and coalesce(s.invisible, false) and not v.hid as invisible,
+           f.status = 'accepted' and v.real_on and not v.hid and coalesce(s.away, false) and not coalesce(s.racing, false) as away,
+           -- yalnızca siteden bağlı (program kapalı): 'mobile' | 'web'; program açıkken ''
+           case when f.status = 'accepted' and not v.hid and not v.real_on and v.web_on then coalesce(w.device, 'web') else '' end as device
+    from public.friendships f
+    join public.profiles p on p.id = f.friend_id
+    left join public.user_status s on s.user_id = f.friend_id
+    left join public.web_presence w on w.user_id = f.friend_id
+    cross join lateral (
+      select coalesce(s.updated_at > now() - interval '3 minutes', false) as real_on,
+             coalesce(w.seen_at > now() - interval '90 seconds', false) as web_on,
+             public.presence_masked(s.invisible) as hid) v
+    where f.user_id = auth.uid()
+  ) x
+  order by (x.status = 'pending_in') desc, x.racing desc, x.last_seen desc nulls last, x.display_name;
+$$;
+revoke all on function public.my_friends() from public, anon;
+grant execute on function public.my_friends() to authenticated, service_role;
+notify pgrst, 'reload schema';

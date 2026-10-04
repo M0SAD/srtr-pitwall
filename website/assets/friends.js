@@ -37,6 +37,8 @@ addDict({
   ],
   fr_online: ["Çevrimiçi", "Online"],
   fr_away: ["Uzakta", "Away"],
+  fr_on_phone: ["Telefonda", "On phone"],
+  fr_on_web: ["Web sitesinde", "On the website"],
   fr_me: ["Sen", "You"],
   fr_offline: ["Çevrimdışı", "Offline"],
   fr_racing: ["Yarışta", "Racing"],
@@ -389,6 +391,8 @@ function presence(f) {
   const simL = f.sim ? SIM_LABEL[f.sim] || f.sim : "";
   if (f.invisible) return { dot: "hid", text: [T("fr_hidden_st"), ...(f.racing ? [simL, f.session, f.track, f.car] : [simL])].filter(Boolean).join(" · "), tip: T("fr_hiding_tip") };
   if (f.racing) return { dot: "race", text: [simL || T("fr_racing"), f.session, f.track, f.car].filter(Boolean).join(" · ") };
+  // Yalnızca siteden bağlı (program kapalı): cihaz simgesiyle
+  if (f.online && (f.device === "mobile" || f.device === "web")) return { dot: "on", text: T(f.device === "mobile" ? "fr_on_phone" : "fr_on_web"), dev: f.device };
   if (f.online && f.away && !f.dnd) return { dot: "away", text: [T("fr_away"), simL].filter(Boolean).join(" · ") };
   if (f.online) return { dot: f.dnd ? "dnd" : "on", text: (f.dnd ? [T("fr_dnd")] : [T("fr_online"), simL]).filter(Boolean).join(" · ") };
   return { dot: "", text: f.last_seen ? T("fr_last_seen", ago(f.last_seen)) : T("fr_offline") };
@@ -474,7 +478,7 @@ function rowHtml(f) {
   }>
     ${avatarHtml(f.friend_id, f.display_name, f, f.status === "accepted" ? p.dot || "off" : "")}
     <span class="fr-main st-${f.status === "accepted" ? p.dot || "off" : "pend"}"><b${nickOf(f.friend_id) ? ` title="${esc(f.display_name || "")}"` : ""}>${esc(nameOf(f))}${
-      f.status === "accepted" && p.dot === "dnd" ? ` <i class="fr-dndi" title="${esc(T("fr_dnd"))}">⛔</i>` : f.status === "accepted" && p.dot === "away" ? ` <i class="fr-zzz" title="${esc(T("fr_away"))}" aria-hidden="true">z<sup>z<sup>z</sup></sup></i>` : ""
+      f.status === "accepted" && p.dev ? ` <i class="fr-devi" title="${esc(p.text)}">${p.dev === "mobile" ? "📱" : "🌐"}</i>` : f.status === "accepted" && p.dot === "dnd" ? ` <i class="fr-dndi" title="${esc(T("fr_dnd"))}">⛔</i>` : f.status === "accepted" && p.dot === "away" ? ` <i class="fr-zzz" title="${esc(T("fr_away"))}" aria-hidden="true">z<sup>z<sup>z</sup></sup></i>` : ""
     }</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
       live ? `<small class="fr-live">${esc(live)}</small>` : ""
     }</span>
@@ -1688,6 +1692,7 @@ function unmount() {
   document.removeEventListener("pointerdown", onDocDown, true);
   document.removeEventListener("langchange", onLang);
   clearInterval(S.timer);
+  clearInterval(S.webTimer);
   hidePeek();
   fab?.remove();
   root?.remove();
@@ -1706,6 +1711,19 @@ async function start(user) {
   render();
   await loadFriends();
   subscribe();
+  // Sitedeyim: arkadaşlarıma "çevrimiçi + telefon / web" görünürüm (c84). Sayfa görünürken 45 sn'de bir; "Çevrimdışı görün"
+  // seçiliyse sunucu zaten gizler. Program açıksa program durumu önceliklidir.
+  const webDevice = () => (matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? "mobile" : "web");
+  const webPing = () => {
+    if (S.me && visible()) rpc("web_ping", { p_device: webDevice() }).catch(() => {});
+  };
+  webPing();
+  clearInterval(S.webTimer);
+  S.webTimer = setInterval(webPing, 45000);
+  if (!S.webBound) {
+    S.webBound = true;
+    document.addEventListener("visibilitychange", webPing);
+  }
   // Programda arkadaşlara verdiğim takma adlar (ayarlarım: general.uiPrefs.friendNicks)
   sb.from("user_settings").select("nicks:data->general->uiPrefs->friendNicks").eq("user_id", user.id).maybeSingle().then(
     (r) => {
