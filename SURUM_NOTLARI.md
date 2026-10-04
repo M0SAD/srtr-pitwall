@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-137
+
+- Web sitesi: programda arkadaşa verilen takma ad sitede de görünür (arkadaş listesi, sohbet başlığı, mesaj başlığı, yeni mesaj kutusu); listede adın üzerine gelince gerçek adı yazar. Takma ad programdan verilir / değiştirilir.
+
+## 041026-136
+
+- Arkadaşlara takma ad: arkadaşa sağ tık > "Takma ad ver" (ad satırda düzenlenir; Enter kaydeder, Esc vazgeçer, boş bırakınca takma ad kalkar). Takma adı yalnızca sen görürsün; listede, favori şeridinde, sohbet sekmesinde ve mesaj başlığında görünür, üzerine gelince gerçek adı yazar. Arama takma adla da bulur. Hesapla birlikte taşınır.
+
 ## 041026-135
 
 - Web sitesi sohbeti programla eşitlendi (website/assets/friends.js, friends.css, 13 dil dosyası):

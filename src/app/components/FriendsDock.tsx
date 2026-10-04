@@ -379,7 +379,7 @@ export function FriendsPanel(props: {
   if (props.chatOnly && inTauri) {
     createEffect(() => {
       const v = view();
-      const name = v.kind === "chat" ? cur(v.f).display_name : v.kind === "team" ? curT(v.t).name : v.kind === "group" ? curG(v.g).name : "";
+      const name = v.kind === "chat" ? shownName(cur(v.f)) : v.kind === "team" ? curT(v.t).name : v.kind === "group" ? curG(v.g).name : "";
       if (name) void getCurrentWindow().setTitle(name).catch(() => {});
       // Grup sekmesinde üyeler sağda açık gelir (Steam gibi)
       if (v.kind === "group") setGroupPanel("members");
@@ -612,7 +612,7 @@ export function FriendsPanel(props: {
   const flipOffSort = () => setOffSort(offSort() === "name" ? "seen" : "name");
   const groups = createMemo(() => {
     const s = norm(q().trim());
-    const match = (f: Friend) => !s || norm(`${f.display_name} ${f.iracing_name ?? ""}`).includes(s);
+    const match = (f: Friend) => !s || norm(`${nickOf(f.friend_id)} ${f.display_name} ${f.iracing_name ?? ""}`).includes(s);
     const all = friends().filter(match);
     // Steam gibi: önce yarışta, sonra çevrimiçi, en altta çevrimdışı; her bölümde ada göre (alfabetik)
     const byName = (a: Friend, b: Friend) => a.display_name.localeCompare(b.display_name, localeTag(), { sensitivity: "base" });
@@ -899,7 +899,7 @@ export function FriendsPanel(props: {
                 {(f) => (
                   <button class="fst-fav" title={f.display_name} onClick={() => openChat(f)} onContextMenu={(e) => (e.preventDefault(), toggleFriendFav(f.friend_id))}>
                     <Avatar id={f.friend_id} name={f.display_name} size={46} presence={presence(f)} />
-                    <span data-no-i18n>{f.display_name}</span>
+                    <span data-no-i18n>{shownName(f)}</span>
                   </button>
                 )}
               </For>
@@ -1561,6 +1561,21 @@ function MyStatusBar(props: { onEdit?: () => void }) {
   );
 }
 
+// Takma adlar (sağ tık > Takma ad ver): yalnızca ben görürüm; hesapla birlikte taşınır
+const [nicksRaw, setNicksRaw] = uiPref<Record<string, string>>("friendNicks", {});
+const nicks = (): Record<string, string> => (nicksRaw() && typeof nicksRaw() === "object" ? nicksRaw() : {});
+/** Arkadaşın takma adı ("" = yok) */
+export const nickOf = (id: string) => (typeof nicks()[id] === "string" ? nicks()[id] : "");
+/** Gösterilecek ad: takma ad varsa o, yoksa kendi adı */
+export const shownName = (f: { friend_id: string; display_name: string }) => nickOf(f.friend_id) || f.display_name || "?";
+export function setNick(id: string, nick: string) {
+  const next = { ...nicks() };
+  const v = nick.trim().slice(0, 40);
+  if (v) next[id] = v;
+  else delete next[id];
+  setNicksRaw(next);
+}
+
 export function statusText(f: Friend) {
   if (f.status === "pending_in") return t("Arkadaşlık isteği gönderdi");
   if (f.status === "pending_out") return t("İstek gönderildi");
@@ -1615,6 +1630,7 @@ function FriendRow(props: {
   // Güvenilir: işaretli ya da (eski sunucu / PRO olmayan) ekibimde
   const trusted = () => f().trusted || !!props.crewRole;
   const [menu, setMenu] = createSignal(false);
+  const [nickEdit, setNickEdit] = createSignal(false);
   let el: HTMLDivElement | undefined;
   // Menü sayfanın en üst katmanında (Portal) ve ekran koordinatlarıyla açılır: liste başlığının / kaydırma alanının
   // altında kalmaz, pencereden taşmaz. at: sağ tık noktası; yoksa satırın sağ altı (⋯ düğmesi).
@@ -1687,7 +1703,29 @@ function FriendRow(props: {
       </button>
       <div class="frow-main" onClick={() => f().status === "accepted" && props.onChat()}>
         <div class="frow-l1">
-          <b data-no-i18n>{f().display_name || "?"}</b>
+          <Show
+            when={!nickEdit()}
+            fallback={
+              <input
+                class="input frow-nick"
+                maxLength={40}
+                placeholder={f().display_name}
+                value={nickOf(f().friend_id)}
+                ref={(el) => setTimeout(() => (el.focus(), el.select()))}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Enter") (setNick(f().friend_id, e.currentTarget.value), setNickEdit(false));
+                  if (e.key === "Escape") setNickEdit(false);
+                }}
+                onBlur={(e) => nickEdit() && (setNick(f().friend_id, e.currentTarget.value), setNickEdit(false))}
+              />
+            }
+          >
+            <b data-no-i18n title={nickOf(f().friend_id) ? f().display_name : undefined}>
+              {shownName(f())}
+            </b>
+          </Show>
           <SimBadge sim={f().online && !simIcon() ? f().sim : ""} />
           <Show when={f().online && f().dnd && !f().invisible}>
             <span class="frow-flag dnd-flag" title={t("Rahatsız etme")}>
@@ -1776,6 +1814,9 @@ function FriendRow(props: {
           </button>
           <button onClick={() => (setMenu(false), props.onProfile())}>
             <I.User /> Profil
+          </button>
+          <button onClick={() => (setMenu(false), setNickEdit(true))} title="Bu arkadaşa yalnızca senin gördüğün bir ad ver (boş bırakırsan takma ad kalkar)">
+            <I.Pencil /> {nickOf(f().friend_id) ? "Takma adı değiştir" : "Takma ad ver"}
           </button>
           <button classList={{ on: !!props.fav }} onClick={() => (setMenu(false), props.onFav?.())}>
             <I.Star /> {props.fav ? "Favorilerden çıkar" : "Favorilere ekle"}
@@ -2198,7 +2239,7 @@ function Chat(props: {
                   <Show when={r.first}>
                     <div class="fmsg-head">
                       <Avatar id={r.m.sender === me() ? me() ?? "" : props.f.friend_id} name={r.m.sender === me() ? myProfile()?.display_name || "?" : props.f.display_name} size={30} />
-                      <b data-no-i18n>{r.m.sender === me() ? myProfile()?.display_name || t("Sen") : props.f.display_name}</b>
+                      <b data-no-i18n>{r.m.sender === me() ? myProfile()?.display_name || t("Sen") : shownName(props.f)}</b>
                       <small>{time(r.m.created_at)}</small>
                     </div>
                   </Show>

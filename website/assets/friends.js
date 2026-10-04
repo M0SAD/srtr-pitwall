@@ -213,6 +213,7 @@ const S = {
   me: null,
   meP: null, // kendi adım ve fotoğrafım
   reacts: {}, // mesaj kimliği → ifadeler
+  nicks: {}, // arkadaş kimliği → takma ad (programda verilir)
   open: false,
   view: "list", // list | add | chat (1:1) | room (grup / takım) | crew (ekip paneli)
   friends: [],
@@ -254,6 +255,9 @@ const rpc = async (fn, args = {}) => {
 };
 const errMsg = (e) => e?.message || T("error");
 
+/** Programda verilen takma ad varsa o (yalnızca ben görürüm; ayarlarımda durur), yoksa arkadaşın kendi adı */
+const nickOf = (id) => (typeof S.nicks?.[id] === "string" ? S.nicks[id] : "");
+const nameOf = (f) => (f && nickOf(f.friend_id)) || f?.display_name || "?";
 const friend = (id) => S.friends.find((f) => f.friend_id === id) || null;
 const accepted = () => S.friends.filter((f) => f.status === "accepted");
 // Sessize alınan grup / takım toplam rozete sayılmaz (satırında sayısı görünür)
@@ -469,7 +473,7 @@ function rowHtml(f) {
     f.status === "accepted" ? `${cw ? ' role="button" tabindex="0"' : ' type="button"'} data-act="chat" data-id="${esc(f.friend_id)}"` : ""
   }>
     ${avatarHtml(f.friend_id, f.display_name, f, f.status === "accepted" ? p.dot || "off" : "")}
-    <span class="fr-main st-${f.status === "accepted" ? p.dot || "off" : "pend"}"><b>${esc(f.display_name || "?")}${
+    <span class="fr-main st-${f.status === "accepted" ? p.dot || "off" : "pend"}"><b${nickOf(f.friend_id) ? ` title="${esc(f.display_name || "")}"` : ""}>${esc(nameOf(f))}${
       f.status === "accepted" && p.dot === "dnd" ? ` <i class="fr-dndi" title="${esc(T("fr_dnd"))}">⛔</i>` : f.status === "accepted" && p.dot === "away" ? ` <i class="fr-zzz" title="${esc(T("fr_away"))}" aria-hidden="true">z<sup>z<sup>z</sup></sup></i>` : ""
     }</b><small class="${p.dot === "race" && f.status === "accepted" ? "race" : ""}">${esc(sub)}</small>${
       live ? `<small class="fr-live">${esc(live)}</small>` : ""
@@ -597,7 +601,7 @@ function msgsHtml() {
       const big = !m.deleted && !m.poll && emojiOnly(text);
       // Steam tarzı: balon yok; ilk mesajda fotoğraf + ad + saat, altında düz satırlar
       const fr = !room && !mine ? friend(S.chat) : null;
-      const name = mine ? S.meP?.display_name || T("fr_me") : room ? m.sender_name || "?" : fr?.display_name || "?";
+      const name = mine ? S.meP?.display_name || T("fr_me") : room ? m.sender_name || "?" : nameOf(fr);
       const head = cont
         ? ""
         : `<div class="fr-mhead">${avatarHtml(String(m.sender || "?"), name, mine ? S.meP : fr, "", "sm")}<b>${esc(name)}</b><time>${esc(timeOf(m.created_at))}</time></div>`;
@@ -735,7 +739,7 @@ function chatView() {
   return `<div class="fr-head">
       <button class="fr-ib" data-act="list" title="${esc(T("fr_back"))}" aria-label="${esc(T("fr_back"))}">${IC.back}</button>
       ${avatarHtml(f.friend_id, f.display_name, f, p.dot || "off", "sm")}
-      <div class="fr-ttl"><b>${esc(f.display_name || "?")}</b><small class="${p.dot === "race" ? "race" : ""}">${esc(p.text)}</small></div>
+      <div class="fr-ttl"><b>${esc(nameOf(f))}</b><small class="${p.dot === "race" ? "race" : ""}">${esc(p.text)}</small></div>
       <span class="fr-menu-w">
         <button class="fr-ib" data-act="menu" title="${esc(T("fr_more"))}" aria-label="${esc(T("fr_more"))}">${IC.more}</button>
         ${S.menu ? `<span class="fr-menu">${crewMenu(f)}<button data-act="ask-clear">${esc(T("fr_clear"))}</button><button class="bad" data-act="ask-remove">${esc(T("fr_remove"))}</button></span>` : ""}
@@ -1521,7 +1525,7 @@ function hidePeek() {
 }
 function showPeek(f, m) {
   if (!peekEl || S.open) return;
-  const name = f?.display_name || T("fr_new_msg");
+  const name = f ? nameOf(f) : T("fr_new_msg");
   peekEl.innerHTML = `${avatarHtml(m.sender, name, f || {}, "", "sm")}<span class="fr-main"><b>${esc(name)}</b><small>${esc(bodyOf(m))}</small></span>`;
   peekEl.dataset.id = m.sender;
   peekEl.dataset.kind = "";
@@ -1702,6 +1706,17 @@ async function start(user) {
   render();
   await loadFriends();
   subscribe();
+  // Programda arkadaşlara verdiğim takma adlar (ayarlarım: general.uiPrefs.friendNicks)
+  sb.from("user_settings").select("nicks:data->general->uiPrefs->friendNicks").eq("user_id", user.id).maybeSingle().then(
+    (r) => {
+      const n = r && r.data && r.data.nicks;
+      if (S.me?.id === user.id && n && typeof n === "object") {
+        S.nicks = n;
+        render();
+      }
+    },
+    () => {},
+  );
   // Kendi adım ve fotoğrafım (mesaj başlıklarında)
   sb.from("profiles").select("display_name, avatar_path").eq("id", user.id).maybeSingle().then(
     (r) => {

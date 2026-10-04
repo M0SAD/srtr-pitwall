@@ -11,7 +11,7 @@ import { session } from "@/cloud/supabase";
 import { myFriends, type Friend } from "@/cloud/social";
 import { myTeams } from "@/cloud/teams";
 import { myGroups } from "@/cloud/groups";
-import { Avatar, FriendsPanel, statusText } from "@/app/components/FriendsDock";
+import { Avatar, FriendsPanel, shownName, statusText } from "@/app/components/FriendsDock";
 import FriendData from "@/app/components/FriendData";
 import { t } from "@/sdk/i18n";
 
@@ -61,7 +61,7 @@ export function ChatWindow(props: { id: string }) {
     }
     const f = friend(id);
     // Arkadaşlar penceresindeki satırla aynı durum yazısı (oturum · pist, oyun, son çevrimiçi…)
-    return { name: f?.display_name ?? "…", sub: f ? statusText(f) : "" };
+    return { name: f ? shownName(f) : "…", sub: f ? statusText(f) : "" };
   };
   const select = (id: string) => {
     setActive(id);
