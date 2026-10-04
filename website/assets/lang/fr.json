@@ -1228,5 +1228,8 @@
  "cw_x_laps": "Temps au tour",
  "cw_x_wx": "Météo",
  "cw_x_air": "Temp. air",
- "cw_x_track": "Temp. piste"
+ "cw_x_track": "Temp. piste",
+ "fr_typing": "{0} écrit…",
+ "fr_hidden_st": "Hors ligne (masqué)",
+ "fr_hidden_sec": "Masqué"
 }

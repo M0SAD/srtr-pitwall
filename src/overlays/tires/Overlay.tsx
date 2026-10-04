@@ -44,9 +44,11 @@ export default function Tires(props: OverlayProps) {
     return DESIGNS.includes(v) && !overlayValueLocked("tires", "design", v) ? v : "grid";
   });
   const d = useTopic("tires");
+  const st = useTopic("status");
   const metric = () => props.units === "metric";
   /** "Sadece pitteyken göster" (varsayılan açık): pistteyken gizli; düzenleme modunda / önizlemede hep görünür */
-  const visible = () => props.editing || props.options.onlyPit === false || !!d()?.onPit;
+  // Demo'da (ekranda ve OBS'te) pit beklenmeden gösterilir: yerleşim ve görünüm denenebilsin
+  const visible = () => props.editing || props.options.onlyPit === false || !!d()?.onPit || !!st()?.demo;
 
   const t = (c: number) => (c <= 0 ? "-" : metric() ? c.toFixed(0) : (c * 1.8 + 32).toFixed(0));
   const press = (kpa: number) => {

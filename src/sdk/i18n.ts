@@ -54,7 +54,9 @@ const [ready, setReady] = createSignal(0);
 export { lang };
 
 let dict: Record<string, string> = {};
-let patterns: { re: RegExp; order: number[]; out: string }[] = [];
+// `pre` / `suf`: kalıbın ilk yer tutucudan önceki ve son yer tutucudan sonraki sabit kısmı. Metin bunlarla başlayıp
+// bitmiyorsa düzenli ifade zaten eşleşemez; pahalı denemeden önce elenir (sonuç aynı, yalnızca daha hızlı).
+let patterns: { re: RegExp; order: number[]; out: string; pre: string; suf: string }[] = [];
 const cache = new Map<string, string | null>();
 
 export function localeTag(): string {
@@ -79,8 +81,8 @@ function buildPatterns() {
     // "TUR GEÇERSİZ" → "LUR GEÇERSİZ", "Type an option…" → "Lype an option…".
     const literal = k.replace(/\{\d\}/g, "");
     const cap = (literal.match(/\p{L}/gu)?.length ?? 0) < 3 ? "([^\\p{L}]+?)" : "(.+?)";
-    const src = k
-      .split(/(\{\d\})/)
+    const parts = k.split(/(\{\d\})/);
+    const src = parts
       .map((p) => {
         const m = /^\{(\d)\}$/.exec(p);
         if (m) {
@@ -90,7 +92,7 @@ function buildPatterns() {
         return escapeRe(p);
       })
       .join("");
-    patterns.push({ re: new RegExp(`^${src}$`, "su"), order, out: v });
+    patterns.push({ re: new RegExp(`^${src}$`, "su"), order, out: v, pre: parts[0], suf: parts[parts.length - 1] });
   }
   // Uzun kalıplar önce (daha özgül)
   patterns.sort((a, b) => b.re.source.length - a.re.source.length);
@@ -187,6 +189,7 @@ function lookup(src: string): string | null {
   let out: string | null = dict[key] ?? null;
   if (out === null) {
     for (const p of patterns) {
+      if (!key.startsWith(p.pre) || !key.endsWith(p.suf)) continue;
       const m = p.re.exec(key);
       if (!m) continue;
       out = p.out.replace(/\{(\d)\}/g, (_, n) => {

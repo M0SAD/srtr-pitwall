@@ -20,6 +20,7 @@ import {
   type Profile,
   type ProfileMode,
   type SessionKind,
+  type EditBackdropSlot,
 } from "@/sdk/settings";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
@@ -433,7 +434,7 @@ export function LayoutsPage() {
             }}
             zoom={zoom()}
             onZoom={setZoom}
-            backdrop
+            backdrop="layout"
             readOnly={locked()}
           />
           <Show when={sharing()}>
@@ -443,7 +444,7 @@ export function LayoutsPage() {
             Soldaki listede çift tık: overlay'i düzene ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik (destekleyen overlay'lerde) · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
           </small>
           <small class="muted lhint lkeys">
-            <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle
+            <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · Ok tuşları: 1 px taşı (Shift: 10 px)
           </small>
         </section>
 
@@ -459,7 +460,9 @@ export function LayoutsPage() {
 }
 
 /** Tuval seçenekleri (Düzenler ve Yayın sayfalarında aynı): ızgara, ızgara aralığı, kenarlara yapıştırma, arka plan görseli */
-export function CanvasOptions() {
+export function CanvasOptions(props: { backdrop?: EditBackdropSlot }) {
+  /** Arka plan yeri: Düzenler tuvali (varsayılan) ya da Yayın düzenleri tuvali; her birinin görseli ayrı */
+  const eb = () => settings().general.editBackdrops[props.backdrop ?? "layout"];
   const [picking, setPicking] = createSignal(false);
   return (
     <>
@@ -484,15 +487,15 @@ export function CanvasOptions() {
       >
         <input
           type="checkbox"
-          checked={settings().general.editBackdrop.enabled && settings().general.editBackdrop.has}
+          checked={eb().enabled && eb().has}
           onChange={(e) => {
             const on = e.currentTarget.checked;
-            if (on && !settings().general.editBackdrop.has) {
+            if (on && !eb().has) {
               e.currentTarget.checked = false;
               setPicking(true);
               return;
             }
-            updateSettings((d) => (d.general.editBackdrop.enabled = on));
+            updateSettings((d) => (d.general.editBackdrops[props.backdrop ?? "layout"].enabled = on));
           }}
         />
         <span>Arka plan</span>
@@ -501,7 +504,7 @@ export function CanvasOptions() {
         <I.ImagePlus />
       </button>
       <Show when={picking()}>
-        <BackdropPicker onClose={() => setPicking(false)} />
+        <BackdropPicker slot={props.backdrop ?? "layout"} onClose={() => setPicking(false)} />
       </Show>
     </>
   );

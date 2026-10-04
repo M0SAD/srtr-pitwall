@@ -59,15 +59,16 @@ function NativeVr() {
   const nv = () => settings().general.vr.native;
   const set = (fn: (x: VrNativeSettings) => void) => updateSettings((d) => fn(d.general.vr.native));
   const [st, setSt] = createSignal<NativeStatus | null>(null);
-  const refresh = () => {
-    if (!inTauri) return;
+  // `poll`: saniyelik yoklama; panel gizliyken (tepsiye küçültülmüş) atlanır, görünür olunca bir sonraki turda yenilenir
+  const refresh = (poll?: unknown) => {
+    if (!inTauri || (poll === true && document.hidden)) return;
     invoke<NativeStatus>("vr_native_status")
       .then(setSt)
       .catch(() => {});
   };
   onMount(() => {
     refresh();
-    const timer = window.setInterval(refresh, 1000);
+    const timer = window.setInterval(() => refresh(true), 1000);
     onCleanup(() => window.clearInterval(timer));
   });
   const active = () => ["starting", "waiting", "running"].includes(st()?.state ?? "");

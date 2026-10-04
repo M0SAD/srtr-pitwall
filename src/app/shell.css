@@ -4888,3 +4888,87 @@ body.ov-dragging * {
   color: #8fe0b0;
   border-color: rgba(61, 220, 132, 0.35);
 }
+
+/* Kilit rozeti: tıklanınca kilitli overlay'i seçer (gövdesi tıklamayı alttaki overlay'e geçirir) */
+.citem-lock {
+  cursor: pointer;
+}
+/* === 75: yayın düzeni tuvalinde SRTR Pitwall logosu (sabit öğe, sağ üst) === */
+.cbadge {
+  position: absolute;
+  z-index: 5;
+  border-radius: 4px;
+  outline: 1px dashed rgba(255, 255, 255, 0.28);
+  outline-offset: 2px;
+  cursor: pointer;
+}
+.cbadge:hover,
+.cbadge.sel {
+  outline: 1px solid var(--accent);
+}
+.cbadge.forced {
+  cursor: help;
+}
+.cbadge.warn {
+  outline: 1px solid #f5a524;
+}
+.cbadge-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.cbadge.off .cbadge-mark {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+.cbadge-hint {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(10, 12, 16, 0.82);
+  color: #cfd5df;
+  font-family: var(--font, system-ui, sans-serif);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.cbadge-hint svg {
+  width: 11px;
+  height: 11px;
+}
+.cbadge-hint.warn {
+  color: #ffd58a;
+  white-space: normal;
+  width: max-content;
+  max-width: 260px;
+  text-align: right;
+}
+.ctools-logo.off {
+  opacity: 0.6;
+}
+.cbadge-prev {
+  display: flex;
+  justify-content: center;
+  margin: 14px;
+  padding: 18px 10px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2a3140, #151a22);
+}
+.cbadge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 14px 0;
+}
+.cbadge-lock {
+  margin: 0 14px;
+}

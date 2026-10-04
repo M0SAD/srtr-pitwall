@@ -12,14 +12,15 @@ import { addToLayout, instanceName, instancesOf, newProfile, removeInstance, set
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
-import { LayoutCanvas, sayLayoutLocked, sayOverlayLocked } from "../components/LayoutCanvas";
+import { LayoutCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
+import { StreamBadgeMark, badgeRect, badgeWanted, pushOutOfBadge } from "@/sdk/streamBadge";
 import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
 import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useDeleteKey, useEscClose } from "./LayoutsPage";
 import * as I from "../icons";
 import { F, proLocked } from "@/sdk/proFeatures";
-import { ProLockBox } from "../components/ProLock";
+import { ProLockBox, ProLockNote } from "../components/ProLock";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
 interface ServerInfo {
@@ -57,6 +58,15 @@ export function StreamingPage() {
     setSel(null);
     setGhost(null);
   };
+  // SRTR Pitwall logosu (sağ üst): gizleyebilmek PRO özelliği; kilitliyken ayar yok sayılır
+  const badgeLocked = () => proLocked(F.streamBadgeHide);
+  const badgeShown = () => badgeLocked() || badgeWanted();
+  const [badgeSel, setBadgeSel] = createSignal(false);
+  const setBadge = (on: boolean) => !badgeLocked() && updateSettings((d) => (d.general.streamBadge = on));
+  const badge = (): CanvasBadge => ({ forced: badgeLocked(), shown: badgeShown(), selected: badgeSel() && !sel() && !ghost(), onPick: () => (setSel(null), setGhost(null), setBadgeSel(true)) });
+  const badgeOpen = () => badgeSel() && !sel() && !ghost();
+  // Bir overlay seçilince logo paneli kapanır (overlay paneli kapatılınca geri açılmasın)
+  createEffect(() => (sel() || ghost()) && setBadgeSel(false));
   const p = (): Profile | undefined => {
     const x = settings().profiles[selId()];
     return x && x.rules.mode === "stream" ? x : streams()[0];
@@ -158,6 +168,20 @@ export function StreamingPage() {
     if (!prof || prof.link) return;
     const key = addToLayout(prof.id, type);
     if (!key) return;
+    // PRO değilken: yeni overlay SRTR Pitwall logosuna ayrılmış alana düşmesin (yaklaşık boyut: manifest)
+    if (badgeLocked()) {
+      const o = settings().profiles[prof.id]?.overlays[key];
+      const man = manifestById(type);
+      if (o && man) {
+        const r = { x: o.x, y: o.y, w: man.size.w * o.scale, h: man.size.h * o.scale };
+        const q = pushOutOfBadge(r, badgeRect(canvas()), canvas());
+        if (q && q !== r)
+          updateSettings((d) => {
+            const t = d.profiles[prof.id]?.overlays[key];
+            if (t) (t.x = Math.round(q.x)), (t.y = Math.round(q.y));
+          });
+      }
+    }
     setGhost(null);
     setSel(key);
   };
@@ -182,8 +206,8 @@ export function StreamingPage() {
       setGhost(type);
     }
   };
-  const closeSet = () => (setSel(null), setGhost(null));
-  useEscClose(() => !linked() && !!(sel() || ghost()), closeSet);
+  const closeSet = () => (setSel(null), setGhost(null), setBadgeSel(false));
+  useEscClose(() => badgeOpen() || (!linked() && !!(sel() || ghost())), closeSet);
   useDeleteKey(sel, remove);
   // Seçili kopya düzenden çıktıysa seçim bırakılır
   createEffect(() => {
@@ -193,7 +217,7 @@ export function StreamingPage() {
 
   return (
     <ProLockBox feature={F.streaming} text="Yayın düzenleri (OBS) PRO üyelere özel.">
-      <div class="lpage" classList={{ "with-set": !linked() && !!(sel() || ghost()) }}>
+      <div class="lpage" classList={{ "with-set": badgeOpen() || (!linked() && !!(sel() || ghost())) }}>
         <aside class="llist">
           <div class="llist-items">
             <LayoutList
@@ -355,14 +379,18 @@ export function StreamingPage() {
             </div>
 
             <div class="lmon-tools">
-              <CanvasOptions />
+              <CanvasOptions backdrop="stream" />
+              <label class="check ctools-logo" classList={{ off: badgeLocked() }} title={badgeLocked() ? t("SRTR Pitwall logosu yayında her zaman görünür · PRO ile gizlenebilir") : t("Yayında sağ üstte SRTR Pitwall logosunu göster")} onClick={() => badgeLocked() && (sayBadgeArea(), setBadgeSel(true), setSel(null), setGhost(null))}>
+                <input type="checkbox" checked={badgeShown()} disabled={badgeLocked()} onChange={(e) => setBadge(e.currentTarget.checked)} />
+                <span>Logo</span>
+              </label>
               <CanvasTools zoom={zoom()} setZoom={setZoom} />
             </div>
             <Show
               when={linked()}
-              fallback={<LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={(k) => (setSel(k), setGhost(null))} globalScale={false} zoom={zoom()} onZoom={setZoom} backdrop readOnly={locked()} />}
+              fallback={<LayoutCanvas profileId={p()!.id} width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={(k) => (setSel(k), setGhost(null))} globalScale={false} zoom={zoom()} onZoom={setZoom} backdrop="stream" readOnly={locked()} badge={badge()} />}
             >
-              <LayoutCanvas profileId={p()!.id} source={view()} readOnly backdrop width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} zoom={zoom()} onZoom={setZoom} />
+              <LayoutCanvas profileId={p()!.id} source={view()} readOnly backdrop="stream" width={canvas().w} height={canvas().h} keys={keys()} selected={sel()} onSelect={setSel} globalScale={false} zoom={zoom()} onZoom={setZoom} badge={badge()} />
               <div class="slink">
                 <div class="f2-cap">Yayında gizle</div>
                 <div class="slink-list">
@@ -391,7 +419,7 @@ export function StreamingPage() {
             <Show when={!linked()}>
               <small class="muted lhint">Soldaki listede çift tık: overlay'i yayın düzenine ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik · OBS'teki görüntü sürüklerken anında güncellenir</small>
               <small class="muted lhint lkeys">
-                <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
+                <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı · Ok tuşları: 1 px taşı (Shift: 10 px)
               </small>
             </Show>
             <Show when={sharing()}>
@@ -400,6 +428,36 @@ export function StreamingPage() {
           </section>
           <Show when={!linked() && sel()} keyed>
             {(k) => <OverlaySettings key={k} profileId={p()!.id} mode="layout" stream onRemove={() => remove(k)} readOnly={locked()} onClose={closeSet} />}
+          </Show>
+          <Show when={badgeOpen()}>
+            <aside class="ovset">
+              <header class="ovset-head">
+                <span class="ovset-ic">
+                  <I.Radio />
+                </span>
+                <div>
+                  <b data-no-i18n>SRTR Pitwall</b>
+                  <small>Yayın düzenlerinin sağ üst köşesindeki logo</small>
+                </div>
+                <button class="ovset-close" title="Kapat (Esc)" onClick={closeSet}>
+                  <I.X />
+                </button>
+              </header>
+              <div class="ovset-scroll">
+                <div class="cbadge-prev">
+                  <StreamBadgeMark />
+                </div>
+                <ProLockNote feature={F.streamBadgeHide} text="Logoyu gizleyebilmek PRO üyelere özel." class="cbadge-lock" />
+                <div class="row cbadge-row">
+                  <b>SRTR Pitwall logosunu göster</b>
+                  <label class="switch">
+                    <input type="checkbox" checked={badgeShown()} disabled={badgeLocked()} onChange={(e) => setBadge(e.currentTarget.checked)} />
+                    <i />
+                  </label>
+                </div>
+                <p class="ovset-note">Logo tüm yayın düzenlerinde sağ üst köşede, overlay'lerin üstünde çizilir; taşınamaz ve boyutlandırılamaz. Bu ayar bütün yayın düzenleri için geçerlidir.</p>
+              </div>
+            </aside>
           </Show>
           <Show when={!linked() && !sel() && ghost()} keyed>
             {(g) => <GhostPanel type={g} onAdd={() => add(g)} disabled={locked()} onClose={closeSet} />}

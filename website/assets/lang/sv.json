@@ -1228,5 +1228,8 @@
  "cw_x_laps": "Varvtider",
  "cw_x_wx": "Väder",
  "cw_x_air": "Lufttemp",
- "cw_x_track": "Bantemp"
+ "cw_x_track": "Bantemp",
+ "fr_typing": "{0} skriver…",
+ "fr_hidden_st": "Offline (dold)",
+ "fr_hidden_sec": "Dold"
 }

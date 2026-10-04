@@ -522,3 +522,9 @@
     transform: translate(-50%, 8px);
   }
 }
+
+/* Son tıklanan overlay: üst üste binenlerde üstte çizilir, ok tuşlarıyla taşınır */
+.editing .frame.picked {
+  z-index: 4;
+  outline-style: solid;
+}

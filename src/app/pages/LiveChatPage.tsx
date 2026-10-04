@@ -17,27 +17,13 @@ import { LogTab } from "./livechat/LogTab";
 import { PollTab } from "./livechat/PollTab";
 import { SttTab, TtsTab } from "./livechat/VoiceTabs";
 import { SendTab } from "./livechat/SendTab";
-import { F } from "@/sdk/proFeatures";
 import { isHiddenLiveTab, liveChatLoginOk } from "@/cloud/account";
 import { go } from "../ui";
 import { settings } from "@/sdk/settings";
+import { LIVECHAT_PAGES, liveChatPages } from "./liveChatPages";
 import "../livechat.css";
 
-export const LIVECHAT_PAGES: { id: string; label: string; feature?: string }[] = [
-  { id: "chat", label: "Sohbet" },
-  { id: "channels", label: "Kanallar" },
-  { id: "moderation", label: "Moderasyon" },
-  { id: "poll", label: "Anket", feature: F.livePoll },
-  { id: "tts", label: "Sesli okuma", feature: F.liveTts },
-  { id: "stt", label: "Konuşma → yazı", feature: F.liveStt },
-  { id: "send", label: "Sohbete yaz", feature: F.liveSend },
-  { id: "alerts", label: "Bildirimler", feature: F.liveAlerts },
-  { id: "log", label: "Sohbet kaydı", feature: F.liveLog },
-  { id: "obs", label: "OBS", feature: F.liveObs },
-];
-
-/** Kullanıcıya görünen sekmeler (yöneticinin gizledikleri hariç; yönetici hepsini görür) */
-export const liveChatPages = () => LIVECHAT_PAGES.filter((p) => !isHiddenLiveTab(p.id));
+export { LIVECHAT_PAGES, liveChatPages };
 
 /** Giriş yapılmamış: sekmeler görünür ama hiçbir şey çalışmaz (ücretsiz bölümler dahil) */
 function LoginGate() {

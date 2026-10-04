@@ -17,21 +17,9 @@ import { SoundsPanel } from "../components/SoundsPanel";
 import { VrPanel } from "../components/VrPanel";
 import { Switch } from "../components/SettingsForm";
 import { ENGINEER_SCREENS } from "@/window/engineerScreens";
+import { SETTINGS_PAGES } from "./settingsPages";
 
-export const SETTINGS_PAGES = [
-  { id: "general", label: "Genel" },
-  { id: "appearance", label: "Görünüm" },
-  { id: "chat", label: "Sohbet" },
-  { id: "sounds", label: "Sesler" },
-  { id: "performance", label: "Performans" },
-  { id: "display", label: "Ekran" },
-  { id: "vr", label: "VR" },
-  { id: "integrations", label: "Entegrasyonlar" },
-  { id: "engineer", label: "Mühendis ekranı" },
-  { id: "keybinds", label: "Kısayollar" },
-  { id: "sharing", label: "Paylaşım" },
-  { id: "about", label: "Hakkında" },
-];
+export { SETTINGS_PAGES };
 
 function Row(p: { title: string; sub?: string; children: any }) {
   return (

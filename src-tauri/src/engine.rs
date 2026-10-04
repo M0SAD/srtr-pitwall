@@ -95,6 +95,23 @@ struct Subscriber {
 }
 
 impl Subscriber {
+    /// `send` ile aynı; tarayıcı kaynakları (SSE) için JSON metni `json` içinde saklanır ve aynı karede
+    /// aynı paketi alan diğer SSE abonelerinde yeniden üretilmez (çıktı birebir aynıdır).
+    fn send_cached(&self, p: &Packet, json: &mut Option<String>) -> bool {
+        match &self.sink {
+            Sink::Sse(tx) => {
+                if json.is_none() {
+                    *json = serde_json::to_string(p).ok();
+                }
+                match json {
+                    Some(s) => tx.send(s.clone()).is_ok(),
+                    None => true,
+                }
+            }
+            _ => self.send(p),
+        }
+    }
+
     fn send(&self, p: &Packet) -> bool {
         match &self.sink {
             Sink::Channel(c) => c.send(p.clone()).is_ok(),
@@ -386,7 +403,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     #[cfg(windows)]
     let mut live: Option<Box<dyn crate::sims::Source>> = None;
     #[cfg(windows)]
-    let mut sim_pref = crate::sims::SimPref::from_settings(crate::current_settings(&app).as_ref());
+    let mut sim_pref = crate::with_settings(&app, |v| crate::sims::SimPref::from_settings(v));
     #[cfg(windows)]
     let mut last_pref_check = Instant::now();
     #[cfg(windows)]
@@ -486,7 +503,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 let mut drop_live = false;
                 if last_pref_check.elapsed() > Duration::from_secs(1) {
                     last_pref_check = Instant::now();
-                    sim_pref = crate::sims::SimPref::from_settings(crate::current_settings(&app).as_ref());
+                    sim_pref = crate::with_settings(&app, |v| crate::sims::SimPref::from_settings(v));
                     if live.as_ref().map(|l| !sim_pref.accepts(l.kind())).unwrap_or(false) {
                         drop_live = true;
                     }
@@ -581,7 +598,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
                 last_events_cfg = Instant::now();
-                Some(crate::events::Record::from_settings(crate::current_settings(&app).as_ref().and_then(|v| v.pointer("/general/eventsRecord"))))
+                Some(crate::with_settings(&app, |v| crate::events::Record::from_settings(v.and_then(|v| v.pointer("/general/eventsRecord")))))
             } else {
                 None
             };
@@ -603,9 +620,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             }
             // Otomatik açılış: general.eventsAutoOpen açık ve en az general.eventsMinCount olay varsa
             let auto_open = |need: usize| {
-                let v = crate::current_settings(&app);
-                let auto = v.as_ref().and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool())).unwrap_or(true);
-                let min = v.as_ref().and_then(|v| v.pointer("/general/eventsMinCount").and_then(|x| x.as_u64())).unwrap_or(0) as usize;
+                let (auto, min) = crate::with_settings(&app, |v| {
+                    let auto = v.and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool())).unwrap_or(true);
+                    let min = v.and_then(|v| v.pointer("/general/eventsMinCount").and_then(|x| x.as_u64())).unwrap_or(0) as usize;
+                    (auto, min)
+                });
                 auto && ev_count >= min.max(need)
             };
             if finished && !demo_on && connected && auto_open(0) {
@@ -624,9 +643,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
-                rec_enabled = crate::current_settings(&app)
-                    .and_then(|v| v.pointer("/general/telemetryRecord").and_then(|x| x.as_bool()))
-                    .unwrap_or(true);
+                rec_enabled = crate::with_settings(&app, |v| v.and_then(|v| v.pointer("/general/telemetryRecord").and_then(|x| x.as_bool()))).unwrap_or(true);
             }
             // Fren noktası referansı ve pist limiti sayaçları (demo verisinde dosyaya yazılmaz)
             crate::crashlog::guard(|| st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref()));
@@ -760,7 +777,10 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
     let key = (connected, demo || preview, f.is_on_track, f.replay);
 
     // Aynı karede birden fazla aboneye gidecek paketi bir kez hesapla
-    let mut cache: Vec<(&'static str, Packet)> = Vec::new();
+    // (konu, paket, SSE aboneleri için hazır JSON metni)
+    let mut cache: Vec<(&'static str, Packet, Option<String>)> = Vec::new();
+    // Abone başına yeniden ayrılmasın: liste her abonede boşaltılıp yeniden kullanılır
+    let mut due: Vec<&'static str> = Vec::new();
 
     subs.retain_mut(|sub| {
         // Durum değiştiyse hemen gönder
@@ -771,7 +791,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
             }
         }
         // Önce gönderilecek konuları seç, sonra paketleri üretip gönder
-        let mut due: Vec<&'static str> = Vec::new();
+        due.clear();
         for tp in sub.topics.iter_mut() {
             if now < tp.next || (tp.name != "status" && tp.name != "team" && !has_data) || PUSHED.contains(&tp.name.as_str()) {
                 continue;
@@ -781,14 +801,19 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                 due.push(n);
             }
         }
-        for name in due {
-            let p = if name == "map" {
+        for &name in due.iter() {
+            if name == "map" {
                 // Pist şekli büyük: sadece bu abone eski sürümü gördüyse eklenir
                 let send_shape = sub.map_version != st.map.version;
                 sub.map_version = st.map.version;
-                Packet::Map(calc::map(f, s, &st.map, send_shape))
-            } else if let Some((_, p)) = cache.iter().find(|(n, _)| *n == name) {
-                p.clone()
+                if !sub.send(&Packet::Map(calc::map(f, s, &st.map, send_shape))) {
+                    return false;
+                }
+                continue;
+            }
+            // Paket önbellekte tutulur ve oradan gönderilir (fazladan kopya çıkarılmaz)
+            let idx = if let Some(i) = cache.iter().position(|(n, _, _)| *n == name) {
+                i
             } else {
                 // Konu hesabı korunur: bir konudaki panic (crash.log'a yazılır) yalnız o konuyu bu karede atlar
                 let made = crate::crashlog::guard(|| Some(match name {
@@ -832,14 +857,66 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                 }))
                 .flatten();
                 let Some(p) = made else { continue };
-                cache.push((name, p.clone()));
-                p
+                cache.push((name, p, None));
+                cache.len() - 1
             };
-            if !sub.send(&p) {
+            let (_, p, json) = &mut cache[idx];
+            if !sub.send_cached(p, json) {
                 // Pencere yeniden yüklendi/kapandı ya da tarayıcı bağlantısı koptu
                 return false;
             }
         }
         true
     });
+}
+
+#[cfg(test)]
+mod publish_tests {
+    use super::*;
+
+    fn state() -> State {
+        State {
+            frame: Frame::default(),
+            raw: SessionData::default(),
+            session: SessionData::default(),
+            league_active: false,
+            league_ver: 0,
+            tracker: Tracker::default(),
+            map: TrackMap::new(None),
+            history: Default::default(),
+            timing: Default::default(),
+            sim: "",
+            laprec: Default::default(),
+            cues: Default::default(),
+            strategy: crate::strategy::Strategy::new(None),
+        }
+    }
+
+    /// Aynı konuya abone iki tarayıcı kaynağı aynı karede birebir aynı JSON'u alır; paket bir kez üretilir.
+    #[test]
+    fn sse_subscribers_share_one_packet() {
+        let shared = Shared::default();
+        let (tx1, rx1) = std::sync::mpsc::channel::<String>();
+        let (tx2, rx2) = std::sync::mpsc::channel::<String>();
+        let reqs = [TopicReq { name: "team".into(), hz: 1.0 }];
+        shared.subscribe(Sink::Sse(tx1), &reqs);
+        shared.subscribe(Sink::Sse(tx2), &reqs);
+        let st = state();
+        publish(&shared, &st, false, false, false);
+        let a: Vec<String> = rx1.try_iter().collect();
+        let b: Vec<String> = rx2.try_iter().collect();
+        // Bağlı değilken: durum + takım (veri gerektirmeyen iki konu)
+        assert_eq!(a.len(), 2);
+        assert_eq!(a, b);
+        assert!(a[0].starts_with("{\"t\":\"status\""));
+        assert!(a[1].starts_with("{\"t\":\"team\""));
+        let expect = serde_json::to_string(&Packet::Team(shared.mqtt.team_packet())).unwrap();
+        assert_eq!(a[1], expect);
+        // Kapanan abone listeden çıkar, diğeri almaya devam eder
+        drop(rx1);
+        std::thread::sleep(Duration::from_millis(1100));
+        publish(&shared, &st, false, false, false);
+        assert_eq!(shared.subs.lock().len(), 1);
+        assert!(rx2.try_iter().count() >= 1);
+    }
 }

@@ -3,7 +3,7 @@
 
 import { For, Show, createEffect, createResource, createSignal, on, onCleanup } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { settings } from "@/sdk/settings";
+import { settings, type EditBackdropSlot } from "@/sdk/settings";
 import { cloudEnabled } from "@/cloud/supabase";
 import { searchShots, shotThumbUrl, shotUrl, type SharedShot } from "@/cloud/shots";
 import { ShotThumb, clearEditBackdrop, importEditBackdrop, listShots, setEditBackdropFromShot, type LocalShot } from "./Shots";
@@ -11,7 +11,8 @@ import "./backdrop-picker.css";
 
 type Tab = "mine" | "community" | "upload";
 
-export function BackdropPicker(props: { onClose: () => void }) {
+/** slot: hangi düzenleme ekranının arka planı seçiliyor (her birinin görseli ayrıdır) */
+export function BackdropPicker(props: { slot: EditBackdropSlot; onClose: () => void }) {
   const [tab, setTab] = createSignal<Tab>("mine");
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
@@ -39,7 +40,7 @@ export function BackdropPicker(props: { onClose: () => void }) {
     run(async () => {
       const r = await fetch(shotUrl(s));
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      await importEditBackdrop(await r.blob());
+      await importEditBackdrop(await r.blob(), props.slot);
     });
 
   return (
@@ -48,8 +49,8 @@ export function BackdropPicker(props: { onClose: () => void }) {
         <header>
           <b>Arka plan görseli seç</b>
           <span class="bp-sp" />
-          <Show when={settings().general.editBackdrop.has}>
-            <button class="bp-btn danger" disabled={busy()} onClick={() => run(clearEditBackdrop)}>
+          <Show when={settings().general.editBackdrops[props.slot].has}>
+            <button class="bp-btn danger" disabled={busy()} onClick={() => run(() => clearEditBackdrop(props.slot))}>
               Kaldır
             </button>
           </Show>
@@ -76,7 +77,7 @@ export function BackdropPicker(props: { onClose: () => void }) {
             <div class="bp-grid">
               <For each={mine()}>
                 {(s) => (
-                  <button class="bp-card" disabled={busy()} onClick={() => run(() => setEditBackdropFromShot(s.path))}>
+                  <button class="bp-card" disabled={busy()} onClick={() => run(() => setEditBackdropFromShot(s.path, props.slot))}>
                     <ShotThumb shot={s} />
                     <i class={`bp-src ${s.source}`}>{s.source === "iracing" ? "iRacing" : "SRTR"}</i>
                   </button>
@@ -116,7 +117,7 @@ export function BackdropPicker(props: { onClose: () => void }) {
               hidden
               onChange={(e) => {
                 const f = e.currentTarget.files?.[0];
-                if (f) run(() => importEditBackdrop(f));
+                if (f) run(() => importEditBackdrop(f, props.slot));
                 e.currentTarget.value = "";
               }}
             />
@@ -135,7 +136,7 @@ export function BackdropPicker(props: { onClose: () => void }) {
 }
 
 /** Düzenleme arka planı görseli (blob adresi); active false iken yüklenmez */
-export function useEditBackdrop(active: () => boolean) {
+export function useEditBackdrop(slot: () => EditBackdropSlot | undefined) {
   const [url, setUrl] = createSignal<string | null>(null);
   let cur: string | null = null;
   const release = () => {
@@ -145,15 +146,17 @@ export function useEditBackdrop(active: () => boolean) {
   createEffect(
     on(
       () => {
-        const eb = settings().general.editBackdrop;
-        return [active() && eb.enabled && eb.has, eb.rev] as const;
+        const sl = slot();
+        const eb = sl ? settings().general.editBackdrops[sl] : undefined;
+        return [!!eb && eb.enabled && eb.has, eb?.rev, sl] as const;
       },
-      async ([want]) => {
+      async ([want, , sl]) => {
         release();
         setUrl(null);
         if (!want) return;
         try {
-          const buf = await invoke<ArrayBuffer>("edit_backdrop_read");
+          const buf = await invoke<ArrayBuffer>("edit_backdrop_read", { slot: sl });
+          if (sl !== slot()) return;
           cur = URL.createObjectURL(new Blob([buf], { type: "image/jpeg" }));
           setUrl(cur);
         } catch {

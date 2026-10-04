@@ -76,6 +76,7 @@ export const F = {
   voiceCommands: "voice.commands",
   shots: "tools.screenshots",
   streaming: "tools.streaming",
+  streamBadgeHide: "stream.badge.hide",
   league: "tools.league",
   pitwall: "tools.pitwall",
   timing: "tools.timing",
@@ -146,6 +147,7 @@ const STATIC: ProFeature[] = [
   // Araçlar
   { key: F.shots, label: "Ekran görüntüsü almak", group: "Araçlar", defaultPro: false },
   { key: F.streaming, label: "Yayın düzenleri (OBS) sayfası", group: "Araçlar", defaultPro: false },
+  { key: F.streamBadgeHide, label: "Yayın düzeninde SRTR Pitwall logosunu gizleyebilmek", group: "Araçlar", defaultPro: true, hint: "OBS sayfası da denetler · PRO değilse logo her zaman görünür ve üstüne overlay konamaz" },
   { key: F.league, label: "Lig kategorileri (League Builder)", group: "Araçlar", defaultPro: false },
   { key: F.pitwall, label: "Pitwall Paneli penceresi", group: "Araçlar", defaultPro: false },
   { key: F.timing, label: "Live Timing penceresi", group: "Araçlar", defaultPro: false },
@@ -257,6 +259,7 @@ function store(map: Record<string, boolean>) {
   const voiceChanged =
     overrides()[VOICE_FEATURE] !== clean[VOICE_FEATURE] ||
     overrides()[F.shots] !== clean[F.shots] ||
+    overrides()[F.streamBadgeHide] !== clean[F.streamBadgeHide] ||
     LIVECHAT_LOCK_KEYS.some((k) => overrides()[k] !== clean[k]) ||
     RUST_LOCK_KEYS.some((k) => overrides()[k] !== clean[k]);
   setOverrides(clean);

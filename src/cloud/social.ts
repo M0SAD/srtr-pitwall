@@ -567,3 +567,93 @@ export function friendLook(id: string): { color: string; photo: string } {
   const e = settings().friends?.list?.find((x) => x.accountId === id);
   return { color: e?.color || hashColor(id), photo: e?.photo || cachedAvatar(id) };
 }
+
+/**
+ * "Yazıyor…" bildirimi (birebir sohbet): Realtime BROADCAST — veritabanına hiçbir şey yazılmaz.
+ * Kanal adı iki kullanıcı kimliğinden türetilir (site ile aynı: `typing:<küçük>:<büyük>`), sadece o sohbet açıkken katılınır.
+ * Yayın kanalları kullanıcı bazında yetkilendirilmez: yükte yalnızca gönderenin kimliği vardır ve
+ * `from` açık sohbetin arkadaşı değilse olay yok sayılır. Bağlantı kurulamazsa sessizce hiçbir şey yapmaz.
+ */
+export const TYPING_THROTTLE_MS = 2500;
+export const TYPING_EXPIRE_MS = 5000;
+export interface TypingLink {
+  /** Yazıyorum (en çok ~2,5 sn'de bir gönderilir) */
+  ping: () => void;
+  /** Yazmayı bıraktım (kutu boşaldı / mesaj gönderildi) */
+  stop: () => void;
+  close: () => void;
+}
+export function typingLink(friendId: string, onTyping: (on: boolean) => void): TypingLink {
+  let ch: RealtimeChannel | null = null;
+  let cl: Awaited<ReturnType<typeof client>> = null;
+  let joined = false;
+  let closed = false;
+  let lastSent = 0;
+  let sentOn = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const uid = session()?.user.id;
+  const set = (on: boolean) => {
+    clearTimeout(timer);
+    if (on) timer = setTimeout(() => !closed && onTyping(false), TYPING_EXPIRE_MS);
+    if (!closed) onTyping(on);
+  };
+  const push = (payload: Record<string, unknown>) => {
+    if (!ch || !joined || closed) return;
+    try {
+      void Promise.resolve(ch.send({ type: "broadcast", event: "typing", payload })).catch(() => {});
+    } catch {
+      /* yok say */
+    }
+  };
+  if (uid && friendId && uid !== friendId) {
+    void (async () => {
+      try {
+        const c = await client();
+        if (!c || closed) return;
+        cl = c;
+        const [a, b] = [uid, friendId].sort();
+        ch = c
+          .channel(`typing:${a}:${b}`, { config: { broadcast: { self: false, ack: false } } })
+          .on("broadcast" as any, { event: "typing" }, (m: any) => {
+            const p = m?.payload;
+            if (!p || p.from !== friendId) return;
+            set(!p.stop);
+          })
+          .subscribe((status) => {
+            joined = String(status) === "SUBSCRIBED";
+          });
+        if (closed) void c.removeChannel(ch);
+      } catch {
+        /* Realtime yok: bildirim gösterilmez */
+      }
+    })();
+  }
+  return {
+    ping: () => {
+      const now = Date.now();
+      if (now - lastSent < TYPING_THROTTLE_MS) return;
+      lastSent = now;
+      sentOn = true;
+      push({ from: uid, at: now });
+    },
+    stop: () => {
+      if (!sentOn) return;
+      sentOn = false;
+      lastSent = 0;
+      push({ from: uid, stop: true });
+    },
+    close: () => {
+      if (closed) return;
+      if (sentOn) push({ from: uid, stop: true });
+      closed = true;
+      joined = false;
+      clearTimeout(timer);
+      try {
+        if (ch && cl) void cl.removeChannel(ch);
+      } catch {
+        /* yok say */
+      }
+      ch = null;
+    },
+  };
+}

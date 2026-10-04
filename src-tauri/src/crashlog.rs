@@ -198,6 +198,35 @@ mod seh {
         fn CloseHandle(h: *mut c_void) -> i32;
         fn GetModuleHandleW(name: *const u16) -> *mut c_void;
         fn GetCurrentThreadId() -> u32;
+        fn GetModuleHandleExW(flags: u32, addr: *const c_void, module: *mut *mut c_void) -> i32;
+        fn GetModuleFileNameW(module: *mut c_void, buf: *mut u16, size: u32) -> u32;
+        fn RtlCaptureStackBackTrace(skip: u32, count: u32, frames: *mut *mut c_void, hash: *mut u32) -> u16;
+    }
+
+    /// `addr`'ı içeren modülün dosya adını (yol olmadan, ASCII) ve modül içi ofseti `buf`'a yazar: "ad.dll+0x1234".
+    /// Bellek ayırmaz. Modül bulunamazsa ham adresi yazar.
+    unsafe fn write_module(buf: &mut Buf, addr: usize) {
+        use std::fmt::Write;
+        let mut hmod: *mut c_void = std::ptr::null_mut();
+        // 0x4: FROM_ADDRESS, 0x2: UNCHANGED_REFCOUNT
+        if GetModuleHandleExW(0x4 | 0x2, addr as *const c_void, &mut hmod) != 0 && !hmod.is_null() {
+            let mut name = [0u16; 260];
+            let n = GetModuleFileNameW(hmod, name.as_mut_ptr(), name.len() as u32) as usize;
+            let n = n.min(name.len());
+            let mut start = 0;
+            for (i, c) in name[..n].iter().enumerate() {
+                if *c == b'\\' as u16 || *c == b'/' as u16 {
+                    start = i + 1;
+                }
+            }
+            for c in &name[start..n] {
+                let ch = if *c < 128 { *c as u8 as char } else { '?' };
+                let _ = buf.write_char(ch);
+            }
+            let _ = write!(buf, "+0x{:X}", addr.wrapping_sub(hmod as usize));
+        } else {
+            let _ = write!(buf, "0x{:X}", addr);
+        }
     }
 
     const FILE_APPEND_DATA: u32 = 0x0004;
@@ -224,7 +253,7 @@ mod seh {
     }
 
     struct Buf {
-        b: [u8; 320],
+        b: [u8; 2048],
         n: usize,
     }
     impl std::fmt::Write for Buf {
@@ -247,7 +276,7 @@ mod seh {
                 let base = GetModuleHandleW(std::ptr::null()) as usize;
                 let addr = rec.address as usize;
                 let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-                let mut buf = Buf { b: [0u8; 320], n: 0 };
+                let mut buf = Buf { b: [0u8; 2048], n: 0 };
                 let _ = write!(
                     buf,
                     "\r\n==== UNHANDLED EXCEPTION unix={} v{} ====\r\ncode: 0x{:08X}\r\naddress: 0x{:X} (exe base 0x{:X}, offset 0x{:X})\r\nthread id: {}\r\n",
@@ -262,6 +291,17 @@ mod seh {
                 // Erişim ihlali: okuma/yazma türü ve hedef adres
                 if rec.code == 0xC000_0005 && rec.n_params >= 2 {
                     let _ = write!(buf, "access: kind={} target=0x{:X}\r\n", rec.info[0], rec.info[1]);
+                }
+                // Hangi modülde (DLL) çöktü + çağrı yığını (modül+ofset)
+                let _ = buf.write_str("module: ");
+                write_module(&mut buf, addr);
+                let _ = buf.write_str("\r\nstack:\r\n");
+                let mut frames: [*mut c_void; 24] = [std::ptr::null_mut(); 24];
+                let got = RtlCaptureStackBackTrace(0, frames.len() as u32, frames.as_mut_ptr(), std::ptr::null_mut()) as usize;
+                for f in frames.iter().take(got.min(frames.len())) {
+                    let _ = buf.write_str("  ");
+                    write_module(&mut buf, *f as usize);
+                    let _ = buf.write_str("\r\n");
                 }
                 let h = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ_WRITE, std::ptr::null_mut(), OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, std::ptr::null_mut());
                 if !h.is_null() && h as isize != -1 {

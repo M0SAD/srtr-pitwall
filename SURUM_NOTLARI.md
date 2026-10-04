@@ -3,6 +3,28 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 041026-113
+
+- **Düzenleme arka planları ayrıldı:** Düzenler tuvali, Yayın düzenleri tuvali ve ekranda düzenleme modunun arka plan görseli ve ayarları artık birbirinden bağımsız. Mevcut arka plan üçünün de başlangıç değeri olur; birini değiştirmek ya da kaldırmak diğerlerini etkilemez. Ayarlar › Genel'de "Arka plan yeri" seçimi.
+
+## 041026-112
+
+- **Çökme günlüğü:** `crash.log` artık çökmenin hangi modülde (DLL) olduğunu ve çağrı yığınını da yazar (bellek erişim hatalarının yerini bulmak için).
+
+## 041026-111
+
+- **Lastikler:** Demo'dayken pit beklenmeden görünür (ekranda ve OBS'te); gerçek yarışta yine yalnızca pitteyken.
+- **Yayın düzenlerinde SRTR Pitwall logosu:** yayın çıktısının sağ üst köşesinde küçük bir etiket (logo, "SRTR Pitwall", altında pitwall.simracetr.com); 30 saniyede bir hafif parlama efekti. Oyuna girilip overlay'ler etkin olunca (ya da Demo'da) görünür. Taşınamaz, boyutlandırılamaz, silinemez; her zaman overlay'lerin üstünde çizilir.
+- PRO olmayanlar logoyu gizleyemez ve üstüne overlay koyamaz (overlay alanın dışına itilir). PRO üyeler Yayın düzenleri'nde logoya tıklayıp "SRTR Pitwall logosunu göster" anahtarıyla ya da araç satırındaki "Logo" kutusuyla gizleyebilir. Yönetim › PRO özellikleri: "Yayın düzeninde SRTR Pitwall logosunu gizleyebilmek".
+
+## 041026-110
+
+- **Hız ve bellek:** panel artık açılışta sayfaların yalnızca gerekenini yükler (açılışta yüklenen kod 2,03 MB → 0,94 MB; diğer sayfalar ilk açıldıklarında yüklenir). Çeviri araması hızlandı. Motor, ayarları her saniye kopyalamıyor ve aynı veriyi birden çok alıcıya tek seferde hazırlıyor; ses iş parçacığı boştayken uyanmıyor. Görünüm ve davranış değişmedi.
+- **Üst üste overlay'ler (düzen tuvali ve ekranda düzenleme):** kilitli overlay sol tıkı altındaki kilitsiz overlay'e geçirir; aynı noktaya yeniden tıklamak alttaki overlay'i seçer; seçili olan üstte çizilir. Sürükleme 3 px hareketten sonra başlar.
+- **Ok tuşları:** seçili overlay 1 px (Shift ile 10 px) taşınır.
+- **Arkadaş sohbeti:** karşı taraf yazarken "… yazıyor…" görünür (program ve site).
+- **Pist Haritası / Mini Harita:** "1 tur attıktan sonra harita görünecek".
+
 ## 041026-109
 
 - **Overlay sağ tık menüsü (ekranda düzenleme ve düzen tuvali):** "Kilitle / Kilidi aç" artık menünün en üstünde.

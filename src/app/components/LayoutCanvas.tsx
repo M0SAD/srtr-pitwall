@@ -3,7 +3,7 @@
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { manifestById } from "@/sdk/registry";
-import { instanceName, settings, updateSettings, type OverlayInstance, type Profile } from "@/sdk/settings";
+import { instanceName, settings, updateSettings, type EditBackdropSlot, type OverlayInstance, type Profile } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
 import { isLocked } from "@/cloud/account";
 import { CORNERS, clampRect, cornerResize, edgeResize, effectiveScale, layoutRect, snapMove, unlayoutPos, type Corner, type Edge, type Guides, type Rect } from "@/host/snap";
@@ -15,6 +15,7 @@ import { ContextMenu, type MenuState } from "@/host/ContextMenu";
 import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 import { t } from "@/sdk/i18n";
 import LockIcon from "lucide-solid/icons/lock";
+import { BADGE, StreamBadgeMark, badgeFactor, badgeRect, pushOutOfBadge, rectsHit } from "@/sdk/streamBadge";
 
 /** Tuvalin üstünde kısa süre görünen bilgi (kilitli düzen / kilitli overlay'de engellenen işlem) */
 const [canvasNotice, setCanvasNotice] = createSignal<{ text: string; n: number } | null>(null);
@@ -30,6 +31,19 @@ export const sayLayoutLocked = () => sayCanvas(t("Bu düzen kilitli: overlay ekl
 export const sayOverlayLocked = (remove = false) =>
   sayCanvas(remove ? t("Bu overlay kilitli: silmek için önce kilidini aç (sağ tık > Kilidi aç).") : t("Bu overlay kilitli: konumu değiştirilemez (sağ tık > Kilidi aç)."));
 
+/** Overlay, SRTR Pitwall logosuna ayrılmış alana konmak istenince */
+export const sayBadgeArea = () => sayCanvas(t("Bu alan SRTR Pitwall logosuna ayrılmıştır (PRO ile gizlenebilir)"));
+
+/** Yayın düzeni tuvalindeki SRTR Pitwall logosu (sabit öğe; sdk/streamBadge.tsx) */
+export interface CanvasBadge {
+  /** Gizlenemez (özellik kullanıcıya kilitli): overlay'ler ayrılmış alana konamaz */
+  forced: boolean;
+  /** Yayında görünüyor mu (false: PRO kullanıcı gizledi, tuvalde soluk) */
+  shown: boolean;
+  selected: boolean;
+  onPick: () => void;
+}
+
 export interface CanvasProps {
   profileId: string;
   /** Tuvalin mantıksal boyutu (monitör çözünürlüğü / ölçek) */
@@ -41,8 +55,8 @@ export interface CanvasProps {
   onSelect: (key: string | null) => void;
   /** Genel boyut ayarı uygulansın mı (monitör düzenlerinde evet, yayın sahnelerinde hayır) */
   globalScale?: boolean;
-  /** Düzenleme arka planı görseli gösterilsin (monitör düzenlerinde) */
-  backdrop?: boolean;
+  /** Düzenleme arka planı görseli: hangi yerin (Düzenler / Yayın düzenleri) arka planı gösterilsin */
+  backdrop?: EditBackdropSlot;
   /** Overlay'ler ayarlardaki düzen yerine bu (türetilmiş) düzenden okunur: bağlı yayın düzeni önizlemesi */
   source?: Profile;
   /** Salt okunur: taşıma/boyutlandırma/sağ tık yok, sadece seçim */
@@ -51,10 +65,51 @@ export interface CanvasProps {
   zoom?: number;
   /** Space basılıyken fare tekeri: yakınlaştır / uzaklaştır (verilmezse kapalı) */
   onZoom?: (zoom: number) => void;
+  /** Yayın düzeni: sağ üstteki SRTR Pitwall logosu */
+  badge?: CanvasBadge;
 }
+
+/** rects değişince artar: logo ile çakışma uyarısı yeniden hesaplansın */
+const [rectsVer, setRectsVer] = createSignal(0);
 
 // Tuvaldeki overlay'lerin mantıksal dikdörtgenleri (yapıştırma için)
 const rects = new Map<string, Rect>();
+
+// Üst üste binen overlay'lerde tıklamanın kime gideceğini seçmek için: tuvaldeki her kopyanın tutamağı
+interface ItemHandle {
+  locked: () => boolean;
+  selected: () => boolean;
+  select: () => void;
+  begin: (e: PointerEvent, cycle?: string) => void;
+}
+const items = new Map<string, ItemHandle>();
+/** Son tıklamanın yeri: aynı yere sürüklemeden tekrar tıklanınca alttaki overlay'e geçilir */
+let lastClick: { x: number; y: number } | null = null;
+/** İmlecin altındaki kopyalar, üstten alta */
+const stackAt = (x: number, y: number): string[] =>
+  document
+    .elementsFromPoint(x, y)
+    .map((n) => (n instanceof HTMLElement && n.classList.contains("citem") ? n.dataset.ckey : undefined))
+    .filter((k): k is string => !!k && items.has(k));
+
+/** Tuş hedefi yazı alanı mı (ok tuşları oraya aittir) */
+const typingTarget = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+/** Ok tuşu -> (dx, dy); Shift: 10 px */
+function arrowDelta(e: KeyboardEvent): [number, number] | null {
+  if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return null;
+  const n = e.shiftKey ? 10 : 1;
+  switch (e.key) {
+    case "ArrowLeft":
+      return [-n, 0];
+    case "ArrowRight":
+      return [n, 0];
+    case "ArrowUp":
+      return [0, -n];
+    case "ArrowDown":
+      return [0, n];
+  }
+  return null;
+}
 
 export function LayoutCanvas(props: CanvasProps) {
   let box: HTMLDivElement | undefined;
@@ -108,9 +163,23 @@ export function LayoutCanvas(props: CanvasProps) {
   const k = createMemo(() => Math.min(boxW() / props.width, 620 / props.height) * (props.zoom ?? 1));
   const g = () => settings().general;
   const vars = createMemo(() => themeVars(settings().theme));
-  const bg = useEditBackdrop(() => !!props.backdrop);
+  const bg = useEditBackdrop(() => props.backdrop);
   // Sağ tık menüsü (düzenleme ekranındakiyle aynı)
   const [menu, setMenu] = createSignal<MenuState | null>(null);
+  const screen = () => ({ w: props.width, h: props.height });
+  const bRect = createMemo(() => badgeRect(screen()));
+  /** Ayrılmış alan: sadece logo gizlenemiyorsa (PRO değil) */
+  const keepOut = () => (props.badge?.forced ? bRect() : undefined);
+  /** Logonun altında kalan overlay var mı */
+  const badgeOverlap = createMemo(() => {
+    rectsVer();
+    if (!props.badge?.shown) return false;
+    const b = bRect();
+    return props.keys.some((key) => {
+      const r = rects.get(key);
+      return !!r && rectsHit(r, b);
+    });
+  });
 
   return (
     <div class="lcanvas-wrap" classList={{ zoomed: (props.zoom ?? 1) > 1 }} ref={box}>
@@ -135,7 +204,7 @@ export function LayoutCanvas(props: CanvasProps) {
         onPointerDown={(e) => e.target === e.currentTarget && props.onSelect(null)}
       >
         <Show when={bg()}>
-          <img class="lcanvas-bg" src={bg()!} alt="" draggable={false} style={{ opacity: g().editBackdrop.opacity / 100 }} />
+          <img class="lcanvas-bg" src={bg()!} alt="" draggable={false} style={{ opacity: g().editBackdrops[props.backdrop ?? "layout"].opacity / 100 }} />
         </Show>
         <div class="lcanvas-grid" classList={{ on: g().snapToGrid }} />
         <div class="lcanvas-center v" />
@@ -155,6 +224,7 @@ export function LayoutCanvas(props: CanvasProps) {
               useGlobal={props.globalScale !== false}
               source={props.source}
               readOnly={props.readOnly}
+              keepOut={keepOut()}
               onMenu={(m) => {
                 props.onSelect(key);
                 setMenu(m);
@@ -162,6 +232,33 @@ export function LayoutCanvas(props: CanvasProps) {
             />
           )}
         </For>
+        <Show when={props.badge}>
+          {(b) => (
+            <div
+              class="cbadge"
+              classList={{ off: !b().shown, sel: b().selected, forced: b().forced, warn: badgeOverlap() }}
+              style={{ left: `${bRect().x * k()}px`, top: `${bRect().y * k()}px`, width: `${bRect().w * k()}px`, height: `${bRect().h * k()}px` }}
+              title={b().forced ? t("SRTR Pitwall logosu · PRO ile gizlenebilir") : b().shown ? t("SRTR Pitwall logosu · ayarlar için tıkla") : t("SRTR Pitwall logosu gizli · ayarlar için tıkla")}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                e.stopPropagation();
+                b().onPick();
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <div class="cbadge-mark" style={{ transform: `scale(${badgeFactor(screen()) * k()})`, width: `${BADGE.w}px`, height: `${BADGE.h}px` }}>
+                <StreamBadgeMark />
+              </div>
+              <Show when={badgeOverlap()} fallback={<Show when={b().forced}><span class="cbadge-hint"><LockIcon /> PRO ile gizlenebilir</span></Show>}>
+                <span class="cbadge-hint warn">Bir overlay bu alanla çakışıyor: logo yayında üstte çizilir</span>
+              </Show>
+              <Show when={!b().shown}>
+                <span class="cbadge-hint">Logo gizli</span>
+              </Show>
+            </div>
+          )}
+        </Show>
       </div>
       <Show when={menu()}>
         <Portal>
@@ -191,17 +288,20 @@ function CanvasItem(props: {
   onMenu: (m: MenuState) => void;
   source?: Profile;
   readOnly?: boolean;
+  /** SRTR Pitwall logosuna ayrılmış alan (PRO değilken): overlay buraya konamaz */
+  keepOut?: Rect;
 }) {
   const inst = (): OverlayInstance | undefined => (props.source ?? settings().profiles[props.profileId])?.overlays[props.key];
   const m = () => manifestById(inst()?.type ?? "");
   let el: HTMLDivElement | undefined;
+  let root: HTMLDivElement | undefined;
   const [size, setSize] = createSignal({ w: m()?.size.w ?? 200, h: m()?.size.h ?? 100 });
   onMount(() => {
     const ro = new ResizeObserver(() => el && el.offsetWidth > 0 && setSize({ w: el.offsetWidth, h: el.offsetHeight }));
     ro.observe(el!);
     onCleanup(() => ro.disconnect());
   });
-  onCleanup(() => rects.delete(props.key));
+  onCleanup(() => (rects.delete(props.key), setRectsVer((n) => n + 1)));
 
   const gScale = () => (props.useGlobal ? settings().theme.scale / 100 : 1);
   const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number; opts?: Record<string, number> } | null>(null);
@@ -227,7 +327,10 @@ function CanvasItem(props: {
   createEffect(() => {
     const v = view();
     rects.set(props.key, { x: v.x, y: v.y, w: v.w, h: v.h });
+    setRectsVer((n) => n + 1);
   });
+  /** Ayrılmış alana giren dikdörtgeni hemen dışına iter; sığmayacak kadar büyükse olduğu gibi bırakır (logo üstte çizilir) */
+  const outOfBadge = <T extends Rect>(r: T): T => (props.keepOut ? (pushOutOfBadge(r, props.keepOut, props.screen) ?? r) : r);
 
   const livePos = (r: Rect, own: number, opts?: Record<string, number>) => {
     const eff = effectiveScale(own, gScale());
@@ -240,8 +343,11 @@ function CanvasItem(props: {
   const instLocked = () => !!inst()?.locked;
   const blocked = () => !!props.readOnly || instLocked();
   const sayBlocked = () => (props.readOnly ? layoutLocked() && sayLayoutLocked() : sayOverlayLocked());
-  const commit = (r: Rect, own: number, opts?: Record<string, number>) => {
+  const commit = (r0: Rect, own: number, opts?: Record<string, number>) => {
     if (blocked()) return void sayBlocked();
+    // PRO değilken: overlay SRTR Pitwall logosunun alanına bırakılamaz (taşıma, boyutlandırma, ok tuşu, sağ tık > hizala)
+    const r = outOfBadge(r0);
+    if (r !== r0) sayBadgeArea();
     const eff = effectiveScale(own, gScale());
     const pos = unlayoutPos(r, eff / own, props.screen);
     endDrag({ profile: props.profileId, key: props.key, x: Math.round(pos.x), y: Math.round(pos.y), scale: own, ...(opts ? { opts } : {}) });
@@ -255,16 +361,37 @@ function CanvasItem(props: {
     });
   };
 
+  /**
+   * Sol tık: üst üste binen overlay'lerde kimin tutulacağını seçer.
+   * - Kilitli overlay tıklamayı geçirir: altında kilitsiz bir overlay varsa o tutulur.
+   * - Seçili (kilitsiz) overlay imlecin altındaysa öncelik ondadır (tıkla seç, sonra sürükle).
+   * - Aynı yere sürüklemeden tekrar tıklanınca seçim alttaki overlay'e geçer.
+   */
   const startMove = (e: PointerEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
     // Odak düzen listesinde / bir düğmede kalmasın: Delete tuşu seçili overlay'e gitsin
     const ae = document.activeElement;
     if (ae instanceof HTMLElement && ae !== document.body) ae.blur();
+    const free = props.readOnly ? [] : stackAt(e.clientX, e.clientY).filter((k) => !items.get(k)!.locked());
+    let target = props.key;
+    let cycle: string | undefined;
+    if (free.length) {
+      const cur = free.find((k) => items.get(k)!.selected());
+      target = cur ?? free[0];
+      const again = !!lastClick && Math.hypot(lastClick.x - e.clientX, lastClick.y - e.clientY) < 5;
+      if (cur && again && free.length > 1) cycle = free[(free.indexOf(cur) + 1) % free.length];
+    }
+    lastClick = { x: e.clientX, y: e.clientY };
+    (items.get(target) ?? handle).begin(e, cycle);
+  };
+
+  const begin = (e: PointerEvent, cycle?: string) => {
+    if (!root) return;
     props.onSelect();
     if (blocked()) {
       // Tıklama sadece seçer; sürüklemeye çalışılırsa neden taşınmadığı söylenir
-      const el0 = e.currentTarget as HTMLElement;
+      const el0 = root;
       const x0 = e.clientX;
       const y0 = e.clientY;
       const mv = (ev: PointerEvent) => {
@@ -283,13 +410,19 @@ function CanvasItem(props: {
       el0.addEventListener("pointercancel", done);
       return;
     }
-    const t = e.currentTarget as HTMLElement;
+    const t = root;
     t.setPointerCapture(e.pointerId);
     const o = view();
     const sx = e.clientX;
     const sy = e.clientY;
     const others = [...rects.entries()].filter(([k]) => k !== props.key).map(([, r]) => r);
+    let moved = false;
+    let said = false;
     const move = (ev: PointerEvent) => {
+      // Küçük el titremesi sürükleme sayılmaz (tıklama: seç / alttakine geç)
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 3) return;
+      moved = true;
+      lastClick = null;
       const g = settings().general;
       const r = snapMove(
         { x: o.x + (ev.clientX - sx) / props.k, y: o.y + (ev.clientY - sy) / props.k, w: o.w, h: o.h },
@@ -298,8 +431,11 @@ function CanvasItem(props: {
         { grid: g.snapToGrid && !ev.altKey ? g.gridSize : 0, edges: g.snapToEdges && !ev.altKey },
       );
       props.setGuides(r.guides);
-      setDrag({ x: r.x, y: r.y, scale: o.scale });
-      sendDrag(livePos({ x: r.x, y: r.y, w: o.w, h: o.h }, o.scale));
+      const q0 = { x: r.x, y: r.y, w: o.w, h: o.h };
+      const q = outOfBadge(q0);
+      if (q !== q0 && !said) (said = true), sayBadgeArea();
+      setDrag({ x: q.x, y: q.y, scale: o.scale });
+      sendDrag(livePos(q, o.scale));
     };
     const up = () => {
       t.removeEventListener("pointermove", move);
@@ -309,11 +445,33 @@ function CanvasItem(props: {
       if (d) commit({ x: d.x, y: d.y, w: o.w, h: o.h }, o.scale);
       setDrag(null);
       props.setGuides({ v: [], h: [] });
+      if (!moved && cycle) items.get(cycle)?.select();
     };
     t.addEventListener("pointermove", move);
     t.addEventListener("pointerup", up);
     t.addEventListener("pointercancel", up);
   };
+
+  const handle: ItemHandle = { locked: () => blocked(), selected: () => props.selected, select: () => props.onSelect(), begin };
+  items.set(props.key, handle);
+  onCleanup(() => items.get(props.key) === handle && items.delete(props.key));
+
+  // Ok tuşları: seçili overlay'i 1 px (Shift: 10 px) taşır; ızgaraya / kenarlara yapıştırılmaz
+  onMount(() => {
+    const key = (e: KeyboardEvent) => {
+      if (!props.selected || drag()) return;
+      const d = arrowDelta(e);
+      if (!d || typingTarget(e.target)) return;
+      if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
+      e.preventDefault();
+      if (blocked()) return void (e.repeat || sayBlocked());
+      const v = view();
+      const r = clampRect({ x: v.x + d[0], y: v.y + d[1], w: v.w, h: v.h }, props.screen);
+      if (r.x !== v.x || r.y !== v.y) commit({ x: r.x, y: r.y, w: v.w, h: v.h }, v.scale);
+    };
+    window.addEventListener("keydown", key);
+    onCleanup(() => window.removeEventListener("keydown", key));
+  });
 
   const track = (t: HTMLElement, move: (ev: PointerEvent) => void, done: () => void) => {
     const up = () => {
@@ -386,6 +544,8 @@ function CanvasItem(props: {
   return (
     <Show when={inst() && m()}>
       <div
+        ref={root}
+        data-ckey={props.key}
         class="citem"
         classList={{ sel: props.selected, dragging: !!drag(), locked: isLocked(inst()!.type), pinned: instLocked() }}
         style={{
@@ -417,7 +577,17 @@ function CanvasItem(props: {
           {instanceName(props.key, inst()!)}
         </div>
         <Show when={instLocked()}>
-          <div class="citem-lock" title="Kilitli: konumu değiştirilemez · sağ tık: Kilidi aç" style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
+          <div
+            class="citem-lock"
+            title="Kilitli: konumu değiştirilemez · sağ tık: Kilidi aç"
+            onPointerDown={(e) => {
+              if (e.button !== 0) return;
+              // Rozet: kilitli overlay'i (altındakine geçirmeden) seçer
+              e.stopPropagation();
+              e.preventDefault();
+              props.onSelect();
+            }}
+            style={{ transform: `scale(${1 / (view().eff * props.k)})` }}>
             <LockIcon />
           </div>
         </Show>

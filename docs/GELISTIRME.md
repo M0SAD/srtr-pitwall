@@ -130,7 +130,7 @@ Ayarlar şurada saklanır: `%APPDATA%\com.pitwall.overlay\settings.json`
 - Toplulukta paylaşılan görseller Supabase Storage'daki herkese açık `screenshots` kovasında
   (`<kullanıcı id>/<id>.jpg` + `_t.jpg` küçük resim); bilgiler `screenshots`, `screenshot_ratings`,
   `screenshot_comments` tablolarında (`supabase/schema.sql`).
-- Düzenleme ekranı arka planı ayar klasöründe `edit-backdrop.jpg` olarak tutulur.
+- Düzenleme arka planları ayar klasöründe yer başına ayrı tutulur: `edit-backdrop-layout.jpg`, `edit-backdrop-stream.jpg`, `edit-backdrop-screen.jpg` (eski ortak `edit-backdrop.jpg`, yerin kendi dosyası yokken yedek olarak okunur).
 
 ## Diller ve çeviri
 

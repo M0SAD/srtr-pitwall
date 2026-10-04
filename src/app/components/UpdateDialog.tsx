@@ -5,7 +5,7 @@ import { Show } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { installBytes, installError, installPct, installPhase, installUpdate, setUpdateDialog, update, updateDialog, version } from "../ui";
 import { appState } from "../App";
-import { Notes } from "../pages/GeneralPage";
+import { Notes } from "./Notes";
 import * as I from "../icons";
 
 const mb = (n: number) => (n / 1048576).toFixed(1);

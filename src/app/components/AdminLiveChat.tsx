@@ -4,7 +4,7 @@
 
 import { For } from "solid-js";
 import { Switch } from "./SettingsForm";
-import { LIVECHAT_PAGES } from "../pages/LiveChatPage";
+import { LIVECHAT_PAGES } from "../pages/liveChatPages";
 import { t } from "@/sdk/i18n";
 import { config, saveConfig } from "@/cloud/account";
 

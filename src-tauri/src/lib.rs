@@ -336,6 +336,15 @@ pub(crate) fn current_settings(app: &AppHandle) -> Option<Value> {
     app.state::<SettingsStore>().current.lock().clone()
 }
 
+/// Güncel ayarları KOPYALAMADAN okur (büyük JSON ağacı her seferinde klonlanmasın; saniyede bir çalışan
+/// döngüler için). `f` içinde ayar deposuna dokunan başka bir çağrı YAPILMAMALI (kilit yeniden alınamaz):
+/// yalnızca alan okuyan saf işlevler.
+pub(crate) fn with_settings<R>(app: &AppHandle, f: impl FnOnce(Option<&Value>) -> R) -> R {
+    let store = app.state::<SettingsStore>();
+    let g = store.current.lock();
+    f(g.as_ref())
+}
+
 #[tauri::command]
 fn settings_get(store: State<'_, SettingsStore>) -> Option<Value> {
     store.current.lock().clone()
@@ -866,9 +875,7 @@ fn set_edit_mode(app: &AppHandle, on: bool) {
 }
 
 fn general_flag(app: &AppHandle, key: &str, default: bool) -> bool {
-    current_settings(app)
-        .and_then(|v| v.pointer(&format!("/general/{key}")).and_then(|x| x.as_bool()))
-        .unwrap_or(default)
+    with_settings(app, |v| v.and_then(|v| v.get("general")).and_then(|g| g.get(key)).and_then(|x| x.as_bool())).unwrap_or(default)
 }
 
 /// iRacing penceresini öne getirir (düzenleme bitince klavye/fare oyuna dönsün).
@@ -1222,7 +1229,7 @@ fn toggle_voice(app: &AppHandle) {
         let _ = app.emit("voice-toggled", serde_json::json!({ "on": false, "error": true }));
         return;
     }
-    let cur = current_settings(app).and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool())).unwrap_or(true);
+    let cur = with_settings(app, |v| v.and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool()))).unwrap_or(true);
     set_voice_enabled(app, !cur, true);
 }
 
@@ -2009,7 +2016,7 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                     osd::claim(app);
                     toggle_voice(app);
                     if voice_allowed(app) {
-                        let on = current_settings(app).and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool())).unwrap_or(true);
+                        let on = with_settings(app, |v| v.and_then(|v| v.pointer("/general/voice/enabled").and_then(|x| x.as_bool()))).unwrap_or(true);
                         osd::show(app, "voice", Some(on));
                     } else {
                         osd::show(app, "voiceLocked", None);

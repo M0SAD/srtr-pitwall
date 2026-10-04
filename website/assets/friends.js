@@ -43,6 +43,7 @@ addDict({
   fr_you: ["Sen: {0}", "You: {0}"],
   fr_msg_ph: ["Mesaj yaz…", "Write a message…"],
   fr_send: ["Gönder", "Send"],
+  fr_typing: ["{0} yazıyor…", "{0} is typing…"],
   fr_emoji: ["İfade ekle", "Add emoji"],
   fr_no_msgs: ["Henüz mesaj yok. İlk mesajı sen yaz!", "No messages yet. Say hi!"],
   fr_older: ["Daha eski mesajlar", "Older messages"],
@@ -720,12 +721,76 @@ function chatView() {
     ${
       closed
         ? `<div class="fr-closed">${esc(T("fr_closed_msgs"))}</div>`
-        : composerHtml()
+        : `<div class="fr-typing" id="fr-typing" aria-live="polite"${TY.on && TY.id === S.chat ? "" : " hidden"}><i aria-hidden="true"><b></b><b></b><b></b></i><span>${esc(T("fr_typing", f.display_name || "?"))}</span></div>` + composerHtml()
     }`;
+}
+
+// "Yazıyor…" bildirimi (birebir sohbet): Realtime BROADCAST — veritabanına yazılmaz. Kanal adı programla aynı
+// (`typing:<küçük>:<büyük>`), sadece o sohbet ekrandayken katılınır. Yükte yalnızca gönderenin kimliği vardır;
+// `from` açık sohbetin arkadaşı değilse olay yok sayılır. Bağlantı kurulamazsa sessizce hiçbir şey olmaz.
+const TY = { id: null, ch: null, joined: false, on: false, t: 0, last: 0, sent: false, hidden: false };
+function typingShow(on) {
+  clearTimeout(TY.t);
+  if (on) TY.t = setTimeout(() => typingShow(false), 5000);
+  TY.on = on;
+  const el = root && $("#fr-typing", root);
+  if (el) el.hidden = !on;
+}
+function typingPush(payload) {
+  if (!TY.ch || !TY.joined) return;
+  try {
+    Promise.resolve(TY.ch.send({ type: "broadcast", event: "typing", payload })).catch(() => {});
+  } catch {}
+}
+function typingStop() {
+  if (!TY.sent) return;
+  TY.sent = false;
+  TY.last = 0;
+  typingPush({ from: S.me?.id, stop: true });
+}
+function typingPing() {
+  // Programda "Çevrimdışı görün" seçiliyse yazdığım bildirilmez
+  if (TY.hidden) return;
+  const now = Date.now();
+  if (now - TY.last < 2500) return;
+  TY.last = now;
+  TY.sent = true;
+  typingPush({ from: S.me?.id, at: now });
+}
+/** Açık sohbete göre kanala katılır / kanaldan çıkar (render her çağrıldığında) */
+function typingSync(off = false) {
+  const want = !off && S.me && S.open && S.view === "chat" && S.chat && S.chat !== S.me.id ? S.chat : null;
+  if (want === TY.id) return;
+  if (TY.ch) {
+    typingStop();
+    try {
+      sb.removeChannel(TY.ch);
+    } catch {}
+  }
+  clearTimeout(TY.t);
+  Object.assign(TY, { id: want, ch: null, joined: false, on: false, last: 0, sent: false });
+  if (!want) return;
+  try {
+    const [a, b] = [S.me.id, want].sort();
+    const ch = sb
+      .channel(`typing:${a}:${b}`, { config: { broadcast: { self: false, ack: false } } })
+      .on("broadcast", { event: "typing" }, (m) => {
+        const p = m && m.payload;
+        if (TY.ch !== ch || !p || p.from !== TY.id) return;
+        typingShow(!p.stop);
+      })
+      .subscribe((st) => {
+        if (TY.ch === ch) TY.joined = st === "SUBSCRIBED";
+      });
+    TY.ch = ch;
+  } catch {
+    TY.ch = null;
+  }
 }
 
 /** Paneli yeniden çizer; sohbet yazısı ve kaydırma konumu korunur */
 function render() {
+  typingSync();
   renderFab();
   if (!root) return;
   root.hidden = !S.open;
@@ -1012,6 +1077,7 @@ async function sendMsg() {
   const body = emojify(ta.value).trim();
   if (!body) return;
   const to = S.chat;
+  typingStop();
   ta.value = "";
   grow(ta);
   const tmp = { id: "tmp-" + Date.now(), sender: S.me.id, recipient: to, body: body.slice(0, 1000), created_at: new Date().toISOString(), read_at: null };
@@ -1298,6 +1364,7 @@ async function act(a, id, el, src = null) {
 function onIncoming(m) {
   if (!m || m.recipient !== S.me?.id) return;
   S.last[m.sender] = m;
+  if (TY.id === m.sender) typingShow(false);
   const chatting = S.open && S.view === "chat" && S.chat === m.sender && document.visibilityState === "visible";
   if (S.view === "chat" && S.chat === m.sender && Array.isArray(S.msgs) && !S.msgs.some((x) => x.id === m.id)) S.msgs = [...S.msgs, m];
   const f = friend(m.sender);
@@ -1473,6 +1540,7 @@ function mount() {
         const p = v.length - d;
         ta.setSelectionRange(p, p);
       }
+      if (S.view === "chat" && S.chat) ta.value.trim() ? typingPing() : typingStop();
       grow(ta);
     }
   });
@@ -1518,6 +1586,7 @@ function mount() {
 }
 
 function unmount() {
+  typingSync(true);
   unsubscribe();
   dropRoomSub();
   closeCrewPanel();
@@ -1546,6 +1615,14 @@ async function start(user) {
   render();
   await loadFriends();
   subscribe();
+  // Programda "Çevrimdışı görün" seçili mi (sütun yoksa / okunamazsa: hayır)
+  TY.hidden = false;
+  sb.from("user_status").select("invisible").eq("user_id", user.id).maybeSingle().then(
+    (r) => {
+      if (S.me?.id === user.id) TY.hidden = !!(r && r.data && r.data.invisible);
+    },
+    () => {},
+  );
   // Panel açıkken 20 sn'de bir, kapalıyken 60 sn'de bir yenile (programdaki gibi)
   S.tick = 0;
   S.timer = setInterval(() => {

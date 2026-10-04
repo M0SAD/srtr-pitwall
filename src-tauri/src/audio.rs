@@ -82,10 +82,19 @@ fn run(rx: &Receiver<Cmd>) {
             crate::voicesub::end(last_sub);
         }
         was_busy = busy_now;
-        let cmd = match rx.recv_timeout(Duration::from_millis(100)) {
-            Ok(c) => c,
-            Err(RecvTimeoutError::Timeout) => continue,
-            Err(RecvTimeoutError::Disconnected) => return,
+        // Kanal boşken (çalan / sıradaki ses yok) durum ancak yeni bir komutla değişebilir: 100 ms'de bir
+        // uyanmak yerine komut gelene kadar uyu. Ses çalarken bitişi yakalamak için eskisi gibi yoklanır.
+        let cmd = if busy_now {
+            match rx.recv_timeout(Duration::from_millis(100)) {
+                Ok(c) => c,
+                Err(RecvTimeoutError::Timeout) => continue,
+                Err(RecvTimeoutError::Disconnected) => return,
+            }
+        } else {
+            match rx.recv() {
+                Ok(c) => c,
+                Err(_) => return,
+            }
         };
         match cmd {
             Cmd::Say { parts, spotter: is_spotter, volume, sub } => {

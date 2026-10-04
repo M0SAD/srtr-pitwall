@@ -4,7 +4,7 @@
 import { For, Show, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { localeTag } from "@/sdk/i18n";
-import { settings, updateSettings } from "@/sdk/settings";
+import { settings, updateSettings, type EditBackdropSlot } from "@/sdk/settings";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 
 export interface LocalShot {
@@ -222,17 +222,20 @@ export function IracingShotHelp(props: { compact?: boolean }) {
 // Düzenleme ekranı arka planı
 // ---------------------------------------------------------------------------
 
-function bumpBackdrop(has: boolean) {
+// Her yerin (Düzenler tuvali / Yayın düzenleri tuvali / ekranda düzenleme) kendi görseli ve ayarı vardır.
+// Yer verilmeyen kısayollar ("Düzenleme arka planı yap") ekranda düzenleme modunu ayarlar.
+function bumpBackdrop(slot: EditBackdropSlot, has: boolean) {
   updateSettings((d) => {
-    d.general.editBackdrop.has = has;
-    if (has) d.general.editBackdrop.enabled = true;
-    d.general.editBackdrop.rev = (d.general.editBackdrop.rev || 0) + 1;
+    const eb = d.general.editBackdrops[slot];
+    eb.has = has;
+    if (has) eb.enabled = true;
+    eb.rev = (eb.rev || 0) + 1;
   });
 }
 
-export async function setEditBackdropFromShot(path: string) {
-  await invoke("edit_backdrop_set", { path });
-  bumpBackdrop(true);
+export async function setEditBackdropFromShot(path: string, slot: EditBackdropSlot = "screen") {
+  await invoke("edit_backdrop_set", { path, slot });
+  bumpBackdrop(slot, true);
 }
 
 function toBase64(blob: Blob): Promise<string> {
@@ -244,33 +247,35 @@ function toBase64(blob: Blob): Promise<string> {
   });
 }
 
-export async function importEditBackdrop(blob: Blob) {
-  await invoke("edit_backdrop_import", { data: await toBase64(blob) });
-  bumpBackdrop(true);
+export async function importEditBackdrop(blob: Blob, slot: EditBackdropSlot = "screen") {
+  await invoke("edit_backdrop_import", { data: await toBase64(blob), slot });
+  bumpBackdrop(slot, true);
 }
 
-export async function clearEditBackdrop() {
-  await invoke("edit_backdrop_clear");
-  bumpBackdrop(false);
+export async function clearEditBackdrop(slot: EditBackdropSlot = "screen") {
+  await invoke("edit_backdrop_clear", { slot });
+  bumpBackdrop(slot, false);
 }
 
 /** Ayarlar → Genel → Düzenleme ekranı */
 export function EditBackdropSettings() {
-  const eb = () => settings().general.editBackdrop;
+  const [slot, setSlot] = createSignal<EditBackdropSlot>("screen");
+  const eb = () => settings().general.editBackdrops[slot()];
   const [picking, setPicking] = createSignal(false);
   const [err, setErr] = createSignal("");
   const [preview, setPreview] = createSignal<string | null>(null);
   let cur: string | null = null;
   createEffect(
     on(
-      () => [eb().has, eb().rev] as const,
-      async ([has]) => {
+      () => [eb().has, eb().rev, slot()] as const,
+      async ([has, , sl]) => {
         if (cur) URL.revokeObjectURL(cur);
         cur = null;
         setPreview(null);
         if (!has) return;
         try {
-          const buf = await invoke<ArrayBuffer>("edit_backdrop_read");
+          const buf = await invoke<ArrayBuffer>("edit_backdrop_read", { slot: sl });
+          if (sl !== slot()) return;
           cur = URL.createObjectURL(new Blob([buf], { type: "image/jpeg" }));
           setPreview(cur);
         } catch {
@@ -287,6 +292,17 @@ export function EditBackdropSettings() {
     <>
       <div class="row">
         <div>
+          <b>Arka plan yeri</b>
+          <small>Her düzenleme ekranının arka planı ayrıdır; aşağıdaki görsel ve ayarlar sadece seçili yer için geçerlidir.</small>
+        </div>
+        <select class="f2-select small" value={slot()} onChange={(e) => setSlot(e.currentTarget.value as EditBackdropSlot)}>
+          <option value="screen">Ekranda düzenleme</option>
+          <option value="layout">Düzenler</option>
+          <option value="stream">Yayın düzenleri</option>
+        </select>
+      </div>
+      <div class="row">
+        <div>
           <b>Arka plan görseli</b>
           <small>
             Düzenlerken overlay'lerin arkasında bu görsel gösterilir. Örneğin kokpit içinden bir ekran görüntüsü seçersen overlay'leri
@@ -301,7 +317,7 @@ export function EditBackdropSettings() {
             Dosyadan seç
           </button>
           <Show when={eb().has}>
-            <button class="btn ghost small danger" onClick={() => wrap(clearEditBackdrop())}>
+            <button class="btn ghost small danger" onClick={() => wrap(clearEditBackdrop(slot()))}>
               Kaldır
             </button>
           </Show>
@@ -312,7 +328,7 @@ export function EditBackdropSettings() {
             hidden
             onChange={(e) => {
               const f = e.currentTarget.files?.[0];
-              if (f) wrap(importEditBackdrop(f));
+              if (f) wrap(importEditBackdrop(f, slot()));
               e.currentTarget.value = "";
             }}
           />
@@ -327,7 +343,7 @@ export function EditBackdropSettings() {
             <b>Düzenlerken göster</b>
           </div>
           <label class="switch">
-            <input type="checkbox" checked={eb().enabled} onChange={(e) => updateSettings((d) => (d.general.editBackdrop.enabled = e.currentTarget.checked))} />
+            <input type="checkbox" checked={eb().enabled} onChange={(e) => updateSettings((d) => (d.general.editBackdrops[slot()].enabled = e.currentTarget.checked))} />
             <i />
           </label>
         </div>
@@ -342,7 +358,7 @@ export function EditBackdropSettings() {
               max="100"
               step="5"
               value={eb().opacity}
-              onInput={(e) => updateSettings((d) => (d.general.editBackdrop.opacity = Number(e.currentTarget.value)))}
+              onInput={(e) => updateSettings((d) => (d.general.editBackdrops[slot()].opacity = Number(e.currentTarget.value)))}
             />
             <span>{eb().opacity}%</span>
           </div>
@@ -356,7 +372,7 @@ export function EditBackdropSettings() {
         <IracingShotHelp />
       </details>
       <Show when={picking()}>
-        <ShotPicker title="Düzenleme arka planı seç" onPick={(s) => setEditBackdropFromShot(s.path)} onClose={() => setPicking(false)} />
+        <ShotPicker title="Düzenleme arka planı seç" onPick={(s) => setEditBackdropFromShot(s.path, slot())} onClose={() => setPicking(false)} />
       </Show>
     </>
   );

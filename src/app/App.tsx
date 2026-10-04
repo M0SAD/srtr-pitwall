@@ -1,7 +1,8 @@
 // Kontrol paneli kabuğu: solda ikon menü, üstte durum çubuğu, ortada bölüm.
 
+import "./pageStyles";
 import { t } from "@/sdk/i18n";
-import { For, Match, Show, Switch, createEffect, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Match, Show, Switch, createEffect, createSignal, lazy, onCleanup, onMount, type JSX } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { AppState } from "@/sdk/types";
@@ -16,41 +17,48 @@ import { UpdateDialog } from "./components/UpdateDialog";
 import { TrialWelcome } from "./components/TrialWelcome";
 import * as I from "./icons";
 import { OverlaysPage } from "./pages/OverlaysPage";
-import { LayoutsPage } from "./pages/LayoutsPage";
-import { StreamingPage } from "./pages/StreamingPage";
-import { AccountPage, ProPage } from "./pages/AccountPage";
-import { ToolsPage } from "./pages/ToolsPage";
-import { LeaguePage } from "./pages/LeaguePage";
-import { FriendsPage } from "./pages/FriendsPage";
-import { TeamsPage } from "./pages/TeamsPage";
-import { CrewPage } from "./pages/CrewPage";
 import { setTeamFocus } from "@/cloud/teams";
 import { setCrewFocus } from "@/cloud/crew";
-import { CommunityPage } from "./pages/CommunityPage";
-import { CommunityShots } from "./pages/CommunityShots";
-import { CommunityHome } from "./pages/CommunityHome";
-import { CommunityThemes } from "./pages/CommunityThemes";
-import { CommunityDashes } from "./pages/CommunityDashes";
-import { ScreenshotsPage } from "./pages/ScreenshotsPage";
 import { NoticeBell } from "./components/Moderation";
 import { FriendsDock } from "./components/FriendsDock";
 import * as LC from "@/sdk/livechat";
 import { SimPicker } from "./components/SimPicker";
 import { LangPicker } from "./components/LangPicker";
 import { loadNotices } from "@/cloud/moderation";
-import { VoicePage } from "./pages/VoicePage";
-import { LiveChatPage, LIVECHAT_PAGES, liveChatPages } from "./pages/LiveChatPage";
+import { LIVECHAT_PAGES, liveChatPages } from "./pages/liveChatPages";
 import { ProTag } from "./components/ProLock";
-import { SettingsPage, SETTINGS_PAGES } from "./pages/SettingsPage";
-import { SupportPage } from "./pages/SupportPage";
-import { TelemetryPage } from "./pages/TelemetryPage";
-import { AdminPage, adminSubs, canSeeAdmin } from "./pages/AdminPage";
+import { SETTINGS_PAGES } from "./pages/settingsPages";
+import { adminSubs, canSeeAdmin } from "./pages/adminSubs";
 import { adminBadge, adminBadgeTotal, badgeText, useAdminBadges } from "@/cloud/adminBadges";
 import { useOverlayStats } from "@/cloud/overlayStats";
 import { AppBgLayer, appBgActive } from "./appBg";
 import { AdminTopStats } from "./components/AdminTopStats";
 import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
+
+// Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
+// (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)
+const LayoutsPage = lazy(() => import("./pages/LayoutsPage").then((m) => ({ default: m.LayoutsPage })));
+const StreamingPage = lazy(() => import("./pages/StreamingPage").then((m) => ({ default: m.StreamingPage })));
+const ToolsPage = lazy(() => import("./pages/ToolsPage").then((m) => ({ default: m.ToolsPage })));
+const LeaguePage = lazy(() => import("./pages/LeaguePage").then((m) => ({ default: m.LeaguePage })));
+const FriendsPage = lazy(() => import("./pages/FriendsPage").then((m) => ({ default: m.FriendsPage })));
+const TeamsPage = lazy(() => import("./pages/TeamsPage").then((m) => ({ default: m.TeamsPage })));
+const CrewPage = lazy(() => import("./pages/CrewPage").then((m) => ({ default: m.CrewPage })));
+const CommunityPage = lazy(() => import("./pages/CommunityPage").then((m) => ({ default: m.CommunityPage })));
+const CommunityShots = lazy(() => import("./pages/CommunityShots").then((m) => ({ default: m.CommunityShots })));
+const CommunityHome = lazy(() => import("./pages/CommunityHome").then((m) => ({ default: m.CommunityHome })));
+const CommunityThemes = lazy(() => import("./pages/CommunityThemes").then((m) => ({ default: m.CommunityThemes })));
+const CommunityDashes = lazy(() => import("./pages/CommunityDashes").then((m) => ({ default: m.CommunityDashes })));
+const ScreenshotsPage = lazy(() => import("./pages/ScreenshotsPage").then((m) => ({ default: m.ScreenshotsPage })));
+const VoicePage = lazy(() => import("./pages/VoicePage").then((m) => ({ default: m.VoicePage })));
+const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
+const TelemetryPage = lazy(() => import("./pages/TelemetryPage").then((m) => ({ default: m.TelemetryPage })));
+const AccountPage = lazy(() => import("./pages/AccountPage").then((m) => ({ default: m.AccountPage })));
+const LiveChatPage = lazy(() => import("./pages/LiveChatPage").then((m) => ({ default: m.LiveChatPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default: m.AdminPage })));
+const ProPage = lazy(() => import("./pages/AccountPage").then((m) => ({ default: m.ProPage })));
 
 export const [appState, setAppState] = createSignal<AppState>({ demo: false, editMode: false, connected: false, hidden: false });
 

@@ -1228,5 +1228,8 @@
  "cw_x_laps": "Kierrosajat",
  "cw_x_wx": "Sää",
  "cw_x_air": "Ilman lämpö",
- "cw_x_track": "Radan lämpö"
+ "cw_x_track": "Radan lämpö",
+ "fr_typing": "{0} kirjoittaa…",
+ "fr_hidden_st": "Offline (piilotettu)",
+ "fr_hidden_sec": "Piilotettu"
 }

@@ -1228,5 +1228,8 @@
  "cw_x_laps": "ラップタイム",
  "cw_x_wx": "天候",
  "cw_x_air": "気温",
- "cw_x_track": "路面温度"
+ "cw_x_track": "路面温度",
+ "fr_typing": "{0} が入力中…",
+ "fr_hidden_st": "オフライン（非表示）",
+ "fr_hidden_sec": "非表示"
 }

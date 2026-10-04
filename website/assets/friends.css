@@ -818,3 +818,48 @@ button.fr-row:hover {
 .fr-dot.hid { background: transparent; box-shadow: inset 0 0 0 2px #b9a3ff; }
 .fr-row.rs-hid .fr-av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px #b9a3ff; }
 .fr-sec.st-hid { color: #b9a3ff; }
+
+/* "yazıyor…" bildirimi (birebir sohbet, mesaj kutusunun hemen üstünde) */
+.fr-typing {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 14px 4px;
+  font-size: 12px;
+  opacity: 0.7;
+  min-width: 0;
+}
+.fr-typing[hidden] {
+  display: none;
+}
+.fr-typing span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fr-typing i {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+.fr-typing i b {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: fr-typing-dot 1.2s ease-in-out infinite;
+}
+.fr-typing i b:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.fr-typing i b:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes fr-typing-dot {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fr-typing i b { animation: none; opacity: 0.7; }
+}

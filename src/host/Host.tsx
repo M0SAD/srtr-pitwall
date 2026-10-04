@@ -27,7 +27,8 @@ import { manifests, loadComponent } from "@/sdk/registry";
 import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
-import { liveProfile } from "@/sdk/streamLink";
+import { canvasOf, liveProfile } from "@/sdk/streamLink";
+import { StreamBadgeMark, badgeFactor, badgeForcedLive, badgeRect, badgeWanted } from "@/sdk/streamBadge";
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
@@ -95,6 +96,41 @@ const rects = new Map<string, Rect>();
 const [screen, setScreen] = createSignal({ w: window.innerWidth, h: window.innerHeight });
 const [guides, setGuides] = createSignal<Guides>({ v: [], h: [] });
 const [menu, setMenu] = createSignal<MenuState | null>(null);
+
+// Düzenleme modunda üst üste binen overlay'ler: tıklamanın kime gideceğini seçmek için tutamaklar
+interface FrameHandle {
+  locked: () => boolean;
+  begin: (e: PointerEvent, cycle?: string) => void;
+}
+const frames = new Map<string, FrameHandle>();
+/** Son tıklanan overlay: üstte çizilir, sürüklemede önceliklidir, ok tuşlarıyla taşınır */
+const [picked, setPicked] = createSignal<string | null>(null);
+/** Son tıklamanın yeri: aynı yere sürüklemeden tekrar tıklanınca alttaki overlay'e geçilir */
+let lastClick: { x: number; y: number } | null = null;
+const stackAt = (x: number, y: number): string[] =>
+  document
+    .elementsFromPoint(x, y)
+    .map((n) => (n instanceof HTMLElement && n.classList.contains("frame") ? n.dataset.fkey : undefined))
+    .filter((k): k is string => !!k && frames.has(k));
+
+/** Tuş hedefi yazı alanı mı (ok tuşları oraya aittir) */
+const typingTarget = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+/** Ok tuşu -> (dx, dy); Shift: 10 px */
+function arrowDelta(e: KeyboardEvent): [number, number] | null {
+  if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return null;
+  const n = e.shiftKey ? 10 : 1;
+  switch (e.key) {
+    case "ArrowLeft":
+      return [-n, 0];
+    case "ArrowRight":
+      return [n, 0];
+    case "ArrowUp":
+      return [0, -n];
+    case "ArrowDown":
+      return [0, n];
+  }
+  return null;
+}
 
 // Bu pencerenin monitörü (boş: ana overlay penceresi)
 const windowMonitor = query.get("monitor") ?? "";
@@ -199,7 +235,7 @@ export function Host() {
   createEffect(
     on(
       () => {
-        const eb = settings().general.editBackdrop;
+        const eb = settings().general.editBackdrops.screen;
         return [app().editMode && eb.enabled && eb.has && windowMonitor === "" && inTauri, eb.rev] as const;
       },
       async ([want]) => {
@@ -208,7 +244,7 @@ export function Host() {
         setEditBg(null);
         if (!want) return;
         try {
-          const buf = await invoke<ArrayBuffer>("edit_backdrop_read");
+          const buf = await invoke<ArrayBuffer>("edit_backdrop_read", { slot: "screen" });
           bgUrl = URL.createObjectURL(new Blob([buf], { type: "image/jpeg" }));
           setEditBg(bgUrl);
         } catch {
@@ -345,7 +381,7 @@ export function Host() {
       style={{ ...vars(), "--grid": `${g().gridSize}px`, ...(overlayBgUrl() ? { "--ov-appbg": `url("${overlayBgUrl()}")` } : {}), ...(vrBg ? { "background-color": vrBg } : {}) }}
     >
       <Show when={app().editMode && editBg()}>
-        <img class="edit-bg" src={editBg()!} alt="" draggable={false} style={{ opacity: g().editBackdrop.opacity / 100 }} />
+        <img class="edit-bg" src={editBg()!} alt="" draggable={false} style={{ opacity: g().editBackdrops.screen.opacity / 100 }} />
         <Show when={g().snapToGrid}>
           <div class="edit-grid" />
         </Show>
@@ -364,6 +400,26 @@ export function Host() {
           </Show>
         )}
       </For>
+      {/* Yayın düzeni (OBS): SRTR Pitwall logosu her zaman overlay'lerin üstünde; gizlemek PRO'ya bağlı (sdk/streamBadge.tsx) */}
+      <Show when={!inTauri && shown()?.rules.mode === "stream" && (badgeForcedLive() || badgeWanted())}>
+        <div
+          class="stream-badge"
+          style={{
+            position: "absolute",
+            left: `${badgeRect(canvasOf(shown()!)).x}px`,
+            top: `${badgeRect(canvasOf(shown()!)).y}px`,
+            "z-index": "2147483000",
+            transform: `scale(${badgeFactor(canvasOf(shown()!))})`,
+            "transform-origin": "0 0",
+            "pointer-events": "none",
+            // Overlay'lerle aynı koşul: sim bağlıyken (ya da Demo açıkken) yumuşakça belirir, yoksa söner
+            opacity: status()?.connected && !status()?.preview ? "1" : "0",
+            transition: "opacity 0.8s ease",
+          }}
+        >
+          <StreamBadgeMark />
+        </div>
+      </Show>
       <Show when={app().editMode && menu() && !shown()?.locked}>
         <ContextMenu state={menu()!} screen={screen()} onClose={() => setMenu(null)} />
       </Show>
@@ -441,7 +497,7 @@ function EditBar(props: { demo: boolean }) {
         }
       >
         <span class="edit-hint">
-          Sürükle · köşelerden boyutlandır · sağ tık: konum · <kbd>Alt</kbd> yapıştırmadan taşı
+          Sürükle · köşelerden boyutlandır · sağ tık: konum · <kbd>Alt</kbd> yapıştırmadan taşı · ok tuşları: 1 px taşı
         </span>
       </Show>
       <label title="iRacing olmadan örnek veriyle göster">
@@ -482,23 +538,23 @@ function EditBar(props: { demo: boolean }) {
       >
         <input
           type="checkbox"
-          checked={g().editBackdrop.enabled && g().editBackdrop.has}
+          checked={g().editBackdrops.screen.enabled && g().editBackdrops.screen.has}
           onChange={(e) => {
             const on = e.currentTarget.checked;
             // Görsel seçilmemişse önce seçtir
-            if (on && !g().editBackdrop.has) {
+            if (on && !g().editBackdrops.screen.has) {
               e.currentTarget.checked = false;
               setPicking(true);
               return;
             }
-            updateSettings((d) => (d.general.editBackdrop.enabled = on));
+            updateSettings((d) => (d.general.editBackdrops.screen.enabled = on));
           }}
         />
         Arka plan
       </label>
       <Show when={picking()}>
         <Portal>
-          <BackdropPicker onClose={() => setPicking(false)} />
+          <BackdropPicker slot="screen" onClose={() => setPicking(false)} />
         </Portal>
       </Show>
       <button class="ghost" title={`Kontrol panelini öne getir (${prettyKey(shortcut("panel"))})`} onClick={() => invoke("panel_front")}>
@@ -591,16 +647,38 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
     nudgeRepaint();
   };
 
+  /**
+   * Sol tık: kilitli overlay tıklamayı geçirir (altındaki kilitsiz overlay tutulur); son tıklanan overlay
+   * imlecin altındaysa öncelik ondadır; aynı yere sürüklemeden tekrar tıklanınca alttaki overlay'e geçilir.
+   */
   const startMove = (e: PointerEvent) => {
-    if (!props.editing || e.button !== 0 || locked()) return;
+    if (!props.editing || e.button !== 0) return;
     e.preventDefault();
     setMenu(null);
-    const target = e.currentTarget as HTMLElement;
+    if (layoutLocked()) return;
+    const free = stackAt(e.clientX, e.clientY).filter((k) => !frames.get(k)!.locked());
+    if (!free.length) return void setPicked(id);
+    const cur = free.find((k) => k === picked());
+    const again = !!lastClick && Math.hypot(lastClick.x - e.clientX, lastClick.y - e.clientY) < 5;
+    const cycle = cur && again && free.length > 1 ? free[(free.indexOf(cur) + 1) % free.length] : undefined;
+    lastClick = { x: e.clientX, y: e.clientY };
+    frames.get(cur ?? free[0])!.begin(e, cycle);
+  };
+
+  const begin = (e: PointerEvent, cycle?: string) => {
+    if (!el || locked()) return;
+    setPicked(id);
+    const target = el;
     target.setPointerCapture(e.pointerId);
     const sx = e.clientX;
     const sy = e.clientY;
     const o = view();
+    let moved = false;
     const move = (ev: PointerEvent) => {
+      // Küçük el titremesi sürükleme sayılmaz (tıklama: seç / alttakine geç)
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 3) return;
+      moved = true;
+      lastClick = null;
       const g = settings().general;
       const r = snapMove(
         { x: o.x + ev.clientX - sx, y: o.y + ev.clientY - sy, w: o.w, h: o.h },
@@ -620,11 +698,33 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       if (d) commit({ x: d.x, y: d.y, w: o.w, h: o.h }, o.scale);
       setDrag(null);
       setGuides({ v: [], h: [] });
+      if (!moved && cycle && frames.has(cycle)) setPicked(cycle);
     };
     target.addEventListener("pointermove", move);
     target.addEventListener("pointerup", up);
     target.addEventListener("pointercancel", up);
   };
+
+  const handle: FrameHandle = { locked, begin };
+  frames.set(id, handle);
+  onCleanup(() => frames.get(id) === handle && frames.delete(id));
+
+  // Ok tuşları (düzenleme modu): son tıklanan overlay'i 1 px (Shift: 10 px) taşır; yapıştırma uygulanmaz
+  onMount(() => {
+    const key = (e: KeyboardEvent) => {
+      if (!props.editing || picked() !== id || drag()) return;
+      const d = arrowDelta(e);
+      if (!d || typingTarget(e.target)) return;
+      if (document.querySelector(".modal-back, .bp-back, .ctx")) return;
+      e.preventDefault();
+      if (locked()) return;
+      const v = view();
+      const r = clampRect({ x: v.x + d[0], y: v.y + d[1], w: v.w, h: v.h }, screen());
+      if (r.x !== v.x || r.y !== v.y) commit({ x: r.x, y: r.y, w: v.w, h: v.h }, v.scale);
+    };
+    window.addEventListener("keydown", key);
+    onCleanup(() => window.removeEventListener("keydown", key));
+  });
 
   /** Sürükleme bitişi: dinleyicileri kaldırır, son durumu kaydeder */
   const track = (target: HTMLElement, move: (ev: PointerEvent) => void, done: () => void) => {
@@ -715,8 +815,9 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   return (
     <div
       ref={el}
+      data-fkey={id}
       class="frame"
-      classList={{ dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked() }}
+      classList={{ picked: props.editing && picked() === id, dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked() }}
       style={{
         // Kopyaya özel görünüm: tema değişkenlerinin üstüne (yoksa boş)
         ...lookStyle(inst().look, settings().theme, inst().bgOpacity),

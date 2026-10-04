@@ -113,8 +113,14 @@ function cachedConfig(): AppConfig | null {
 
 const [profile, setProfile] = createSignal<Profile | null>(null);
 const [config, setConfig] = createSignal<AppConfig | null>(cachedConfig());
-const [entitlement, setEntitlement] = createSignal<Entitlement>({ pro: false, proUntil: 0, locked: [] });
-export { profile, config, entitlement };
+const [entitlement, setEntitlementRaw] = createSignal<Entitlement>({ pro: false, proUntil: 0, locked: [] });
+/** PRO durumu Rust'tan (ya da OBS sayfasında /api/entitlement'tan) en az bir kez okundu mu */
+const [entitlementLoaded, setEntitlementLoaded] = createSignal(false);
+const setEntitlement = (e: Entitlement) => {
+  setEntitlementRaw(e);
+  setEntitlementLoaded(true);
+};
+export { profile, config, entitlement, entitlementLoaded };
 
 /** Gerçek yönetici yetkisi (PRO olmayan görünüm açıkken de) */
 export const realAdmin = () => !!profile()?.is_admin;
@@ -512,12 +518,25 @@ function shotsRequirePro(): boolean {
   }
 }
 
+/** Yayın düzenindeki SRTR Pitwall logosunu gizlemek PRO'ya ayrılmış mı (stream.badge.hide; varsayılan PRO).
+ *  OBS sayfası "stream.badge" işaretine bakar (sdk/streamBadge.tsx). */
+function streamBadgeRequiresPro(): boolean {
+  try {
+    const v = JSON.parse(localStorage.getItem("pitwall.proFeatures") || "{}");
+    if (v && typeof v["stream.badge.hide"] === "boolean") return v["stream.badge.hide"];
+  } catch {
+    /* önbellek yok */
+  }
+  return true;
+}
+
 /** Rust'a giden kilit listesi: "voice" sadece sesli mühendis PRO'ya ayrılmışsa (eski pro_overlays işareti yok sayılır),
  *  "shots" ekran görüntüsü almak PRO'ya ayrılmışsa, "livechat.*" Canlı Sohbet özellikleri PRO'ya ayrılmışsa */
 function withVoiceLock(list: string[]): string[] {
-  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "shots" && !x.startsWith("livechat.") && !x.startsWith("social."));
+  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "shots" && x !== "stream.badge" && !x.startsWith("livechat.") && !x.startsWith("social."));
   if (voiceRequiresPro()) rest.push("voice");
   if (shotsRequirePro()) rest.push("shots");
+  if (streamBadgeRequiresPro()) rest.push("stream.badge");
   rest.push(...livechatLocks());
   // Canlı Sohbet giriş koşulu (kilit değil, işaret; Rust: livechat/mod.rs login_ok): ikisi de yoksa Canlı Sohbet çalışmaz
   if (session()) rest.push("livechat.signedin");
@@ -576,6 +595,8 @@ export async function refreshEntitlement() {
     setEntitlement(await invoke<Entitlement>("entitlement_set", { value }));
   } catch {
     await readEntitlement();
+    // Çevrimdışı da Rust'a giden işaretler (ör. "stream.badge") güncel kalsın
+    if (inTauri) await syncVoiceLock();
     // Çevrimdışı: son bilinen filigranı kullan
     const cc = config();
     if (cc && inTauri) syncWatermark(normalizeWatermark(cc.watermark), profile()?.display_name ?? "");

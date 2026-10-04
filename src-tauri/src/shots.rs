@@ -589,41 +589,55 @@ pub fn shots_dirs(app: AppHandle) -> ShotDirs {
 }
 
 // ---------------------------------------------------------------------------
-// Düzenleme ekranı arka planı (ayar klasöründe tek dosya)
+// Düzenleme ekranı arka planı (ayar klasöründe; her yer için ayrı dosya)
 // ---------------------------------------------------------------------------
 
-fn backdrop_path(app: &AppHandle) -> Result<PathBuf, String> {
+/// Eski tek dosya: yer (slot) verilmezse bu kullanılır; yerlerin kendi dosyası yokken de buradan okunur
+fn legacy_backdrop_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(config_dir(app)?.join("edit-backdrop.jpg"))
 }
 
-fn save_backdrop(app: &AppHandle, img: DynamicImage) -> Result<(), String> {
+/// slot: "layout" (Düzenler tuvali) | "stream" (Yayın düzenleri tuvali) | "screen" (ekranda düzenleme).
+/// Bilinmeyen/boş değer eski tek dosyaya düşer.
+fn backdrop_path(app: &AppHandle, slot: Option<&str>) -> Result<PathBuf, String> {
+    match slot {
+        Some(s @ ("layout" | "stream" | "screen")) => Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg"))),
+        _ => legacy_backdrop_path(app),
+    }
+}
+
+fn save_backdrop(app: &AppHandle, slot: Option<&str>, img: DynamicImage) -> Result<(), String> {
     let img = if img.width() > 3840 { img.resize(3840, 3840, imageops::FilterType::CatmullRom) } else { img };
     let bytes = encode(&img.to_rgba8(), false, 90)?;
-    std::fs::write(backdrop_path(app)?, bytes).map_err(|e| e.to_string())
+    std::fs::write(backdrop_path(app, slot)?, bytes).map_err(|e| e.to_string())
 }
 
 /// Galerideki bir görüntüyü düzenleme arka planı yap
 #[tauri::command]
-pub async fn edit_backdrop_set(app: AppHandle, path: String) -> Result<(), String> {
+pub async fn edit_backdrop_set(app: AppHandle, path: String, slot: Option<String>) -> Result<(), String> {
     let p = allowed(&app, Path::new(&path))?;
-    save_backdrop(&app, decode(&p)?)
+    save_backdrop(&app, slot.as_deref(), decode(&p)?)
 }
 
 /// Kullanıcının seçtiği dosyadan (base64)
 #[tauri::command]
-pub async fn edit_backdrop_import(app: AppHandle, data: String) -> Result<(), String> {
+pub async fn edit_backdrop_import(app: AppHandle, data: String, slot: Option<String>) -> Result<(), String> {
     let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| e.to_string())?;
-    save_backdrop(&app, image::load_from_memory(&bytes).map_err(|e| e.to_string())?)
+    save_backdrop(&app, slot.as_deref(), image::load_from_memory(&bytes).map_err(|e| e.to_string())?)
 }
 
 #[tauri::command]
-pub async fn edit_backdrop_read(app: AppHandle) -> Result<tauri::ipc::Response, String> {
-    Ok(tauri::ipc::Response::new(std::fs::read(backdrop_path(&app)?).map_err(|_| "arka plan yok".to_string())?))
+pub async fn edit_backdrop_read(app: AppHandle, slot: Option<String>) -> Result<tauri::ipc::Response, String> {
+    // Yerin kendi dosyası yoksa (eski sürümden gelen kurulum) eski ortak görsel okunur
+    let own = backdrop_path(&app, slot.as_deref())?;
+    let p = if own.exists() { own } else { legacy_backdrop_path(&app)? };
+    Ok(tauri::ipc::Response::new(std::fs::read(p).map_err(|_| "arka plan yok".to_string())?))
 }
 
 #[tauri::command]
-pub fn edit_backdrop_clear(app: AppHandle) -> Result<(), String> {
-    let p = backdrop_path(&app)?;
+pub fn edit_backdrop_clear(app: AppHandle, slot: Option<String>) -> Result<(), String> {
+    // Sadece o yerin dosyası silinir; eski ortak dosyaya dokunulmaz (diğer yerler hâlâ onu kullanıyor olabilir)
+    let p = backdrop_path(&app, slot.as_deref())?;
     if p.exists() {
         std::fs::remove_file(p).map_err(|e| e.to_string())?;
     }

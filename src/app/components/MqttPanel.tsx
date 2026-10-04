@@ -43,7 +43,8 @@ export function MqttPanel() {
   };
   onMount(() => {
     poll();
-    const t = setInterval(poll, 1500);
+    // Panel gizliyken (tepsiye küçültülmüş) yoklama atlanır; görünür olunca bir sonraki turda yenilenir
+    const t = setInterval(() => !document.hidden && void poll(), 1500);
     onCleanup(() => clearInterval(t));
   });
 

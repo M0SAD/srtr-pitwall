@@ -1228,5 +1228,8 @@
  "cw_x_laps": "Czasy okrążeń",
  "cw_x_wx": "Pogoda",
  "cw_x_air": "Temp. powietrza",
- "cw_x_track": "Temp. toru"
+ "cw_x_track": "Temp. toru",
+ "fr_typing": "{0} pisze…",
+ "fr_hidden_st": "Offline (ukryty)",
+ "fr_hidden_sec": "Ukryty"
 }

@@ -10,8 +10,9 @@ import { Timing } from "./Timing";
 import { Engineer } from "./Engineer";
 import "@/sdk/fonts";
 import "@/overlays/base.css";
-import "./window-root.css";
+// Sıra önemli: window.css önce, window-root.css sonra (derlenmiş stil sırası eskisiyle aynı kalsın)
 import "./window.css";
+import "./window-root.css";
 
 // Tarayıcının kendi sağ tık menüsü (Farklı kaydet, Yazdır…) hiçbir yerde açılmasın
 document.addEventListener("contextmenu", (e) => {

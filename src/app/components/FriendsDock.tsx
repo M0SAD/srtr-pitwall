@@ -41,6 +41,7 @@ import {
   reportMessage,
   sendMessage,
   setFriendPrefs,
+  typingLink,
   type Friend,
   type Message,
   type Person,
@@ -1625,6 +1626,14 @@ function Chat(props: {
   let ta: HTMLTextAreaElement | undefined;
   const scroll = () => requestAnimationFrame(() => box && (box.scrollTop = box.scrollHeight));
   const me = () => session()?.user.id;
+  // "yazıyor…" (Realtime yayını; sadece bu sohbet açıkken). "Çevrimdışı görün" seçiliyken kendi yazdığım gönderilmez.
+  const [typing, setTyping] = createSignal(false);
+  const tlink = typingLink(props.f.friend_id, setTyping);
+  onCleanup(() => tlink.close());
+  const tellTyping = (v: string) => {
+    if (!v.trim()) tlink.stop();
+    else if (!settings().general.social.invisible) tlink.ping();
+  };
   onMount(async () => {
     setMsgs(await conversation(props.f.friend_id).catch(() => []));
     setLoaded(true);
@@ -1637,6 +1646,7 @@ function Chat(props: {
     on(
       () => props.incoming,
       (m) => {
+        if (m && m.sender === props.f.friend_id) setTyping(false);
         if (m && m.sender === props.f.friend_id && !msgs().some((x) => x.id === m.id)) {
           setMsgs([...msgs(), m]);
           markReadSync(props.f.friend_id);
@@ -1684,6 +1694,7 @@ function Chat(props: {
       el.setSelectionRange(nb.length, nb.length);
     }
     setText(el.value);
+    tellTyping(el.value);
     grow();
   };
   const insert = (emo: string) => {
@@ -1701,6 +1712,7 @@ function Chat(props: {
     if (!b || sending()) return;
     setErr("");
     setSending(true);
+    tlink.stop();
     try {
       const id = await sendMessage(props.f.friend_id, b);
       const m: Message = { id: String(id), sender: me()!, recipient: props.f.friend_id, body: b, created_at: new Date().toISOString(), read_at: null };
@@ -1891,6 +1903,16 @@ function Chat(props: {
       <Show when={!reporting()}>
         <Show when={props.f.accept_messages} fallback={<p class="muted small fchat-off">Bu kişi mesajları kapatmış.</p>}>
           <ProLockNote feature={F.messages} text="Mesaj göndermek PRO üyelere özel. Gelen mesajları okuyabilirsin." class="fchat-prolock" />
+          <Show when={typing()}>
+            <div class="ftyping" aria-live="polite">
+              <i class="ftyping-dots" aria-hidden="true">
+                <b />
+                <b />
+                <b />
+              </i>
+              <span>{t("{0} yazıyor…", props.f.display_name || "?")}</span>
+            </div>
+          </Show>
           <div class="fcompose" classList={{ "prolock-dim": proLocked(F.messages) }}>
             <Show when={picker()}>
               <div class="femo" role="dialog">

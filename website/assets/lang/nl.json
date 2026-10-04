@@ -1228,5 +1228,8 @@
  "cw_x_laps": "Rondetijden",
  "cw_x_wx": "Weer",
  "cw_x_air": "Luchttemp.",
- "cw_x_track": "Baantemp."
+ "cw_x_track": "Baantemp.",
+ "fr_typing": "{0} typt…",
+ "fr_hidden_st": "Offline (verborgen)",
+ "fr_hidden_sec": "Verborgen"
 }

@@ -754,6 +754,12 @@ export const DEFAULT_VR: VrSettings = {
   native: { ...DEFAULT_VR_NATIVE },
 };
 
+/** Düzenleme arka planı (dosya ayar klasöründe; rev değişince yeniden yüklenir) */
+export type EditBackdrop = { enabled: boolean; opacity: number; rev: number; has: boolean };
+/** Arka planın gösterildiği yer: Düzenler tuvali / Yayın düzenleri tuvali / ekranda düzenleme modu */
+export type EditBackdropSlot = "layout" | "stream" | "screen";
+export const EDIT_BACKDROP_SLOTS: EditBackdropSlot[] = ["layout", "stream", "screen"];
+
 export interface GeneralSettings {
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
@@ -771,6 +777,8 @@ export interface GeneralSettings {
   /** Monitörlerin mantıksal boyutları (anahtar: monitör adı, "" = ana overlay monitörü). Panel günceller;
    * OBS sayfası bağlı yayın düzenlerini bu boyutlardan yayın çözünürlüğüne oranlar. */
   screens?: Record<string, { w: number; h: number }>;
+  /** Yayın düzenlerinde SRTR Pitwall logosu (sağ üst). false: gizli; özellik kullanıcıya kilitliyken yok sayılır (sdk/streamBadge.tsx) */
+  streamBadge?: boolean;
   server: ServerSettings;
   /** Web sunucusu bir kez varsayılan olarak açıldı (kullanıcı sonra kapatabilir). Rust açılışta aynı işarete bakar. */
   serverOnV1?: boolean;
@@ -826,7 +834,10 @@ export interface GeneralSettings {
   /** Ekran görüntüleri */
   screenshots: ScreenshotSettings;
   /** Düzenleme ekranının arka plan görseli (dosya ayar klasöründe; rev değişince yeniden yüklenir) */
-  editBackdrop: { enabled: boolean; opacity: number; rev: number; has: boolean };
+  editBackdrop: EditBackdrop;
+  /** Her düzenleme yeri için ayrı arka plan (Düzenler tuvali / Yayın düzenleri tuvali / ekranda düzenleme).
+   *  `editBackdrop` eski tek ayardır: sadece ilk geçişte üç yerin başlangıç değeri olarak okunur. */
+  editBackdrops: Record<EditBackdropSlot, EditBackdrop>;
   minimizeOnConnect: boolean;
   /** Yarış bitince Olaylar penceresini otomatik aç (Rust `general.eventsAutoOpen` okur) */
   eventsAutoOpen: boolean;
@@ -1179,6 +1190,11 @@ export function defaultSettings(): AppSettings {
       social: { dnd: false, acceptMessages: true, sound: true },
       screenshots: { includeOverlays: true, onlyInGame: true, format: "jpg", quality: 92 },
       editBackdrop: { enabled: true, opacity: 100, rev: 0, has: false },
+      editBackdrops: {
+        layout: { enabled: true, opacity: 100, rev: 0, has: false },
+        stream: { enabled: true, opacity: 100, rev: 0, has: false },
+        screen: { enabled: true, opacity: 100, rev: 0, has: false },
+      },
       minimizeOnConnect: false,
       eventsAutoOpen: true,
       eventsMinCount: 0,
@@ -1310,6 +1326,10 @@ export function normalize(input: unknown): AppSettings {
       appBg: { ...DEFAULT_APP_BG, ...(s.general?.appBg ?? {}) },
       screenshots: { ...d.general.screenshots, ...(s.general?.screenshots ?? {}) },
       editBackdrop: { ...d.general.editBackdrop, ...(s.general?.editBackdrop ?? {}) },
+      // Yer başına ayrı arka plan: kayıtlı değeri yoksa eski tek ayar (bayrak + görsel) başlangıç değeri olur
+      editBackdrops: Object.fromEntries(
+        EDIT_BACKDROP_SLOTS.map((k) => [k, { ...d.general.editBackdrop, ...(s.general?.editBackdrop ?? {}), ...(s.general?.editBackdrops?.[k] ?? {}) }]),
+      ) as Record<EditBackdropSlot, EditBackdrop>,
       eventsRecord: { ...d.general.eventsRecord, ...(s.general?.eventsRecord ?? {}) },
       // Mesaj almayı kapatma seçeneği kaldırıldı: her zaman açık
       social: { ...d.general.social, ...(s.general?.social ?? {}), acceptMessages: true },

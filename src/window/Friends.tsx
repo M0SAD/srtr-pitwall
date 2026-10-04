@@ -1,5 +1,8 @@
 // Ayrı pencereler: "Arkadaşlar" listesi (Steam arkadaş listesi gibi, tepsiden de açılır) ve
 // bir arkadaşın canlı verisi (yakıt, turlar, pistteki yeri) penceresi.
+// Stil sırası (hangi kural hangisini ezer) panel sayfaları bölündükten sonra da eskisiyle aynı kalsın diye açıkça yazılır
+import "@/app/chatlook.css";
+import "@/app/components/proLock.css";
 import { Show, createResource, createSignal } from "solid-js";
 import { session } from "@/cloud/supabase";
 import { myFriends, type Friend } from "@/cloud/social";

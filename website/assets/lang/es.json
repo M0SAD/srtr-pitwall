@@ -1228,5 +1228,8 @@
  "cw_x_laps": "Tiempos de vuelta",
  "cw_x_wx": "Clima",
  "cw_x_air": "Temp. aire",
- "cw_x_track": "Temp. pista"
+ "cw_x_track": "Temp. pista",
+ "fr_typing": "{0} está escribiendo…",
+ "fr_hidden_st": "Desconectado (oculto)",
+ "fr_hidden_sec": "Oculto"
 }

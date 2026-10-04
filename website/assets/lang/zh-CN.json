@@ -1228,5 +1228,8 @@
  "cw_x_laps": "圈速",
  "cw_x_wx": "天气",
  "cw_x_air": "气温",
- "cw_x_track": "赛道温度"
+ "cw_x_track": "赛道温度",
+ "fr_typing": "{0} 正在输入…",
+ "fr_hidden_st": "离线（隐身）",
+ "fr_hidden_sec": "隐身"
 }
