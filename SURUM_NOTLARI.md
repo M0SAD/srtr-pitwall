@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-187
+
+- Radar: yeni "Aynala (sol / sağ ters görünüyorsa)" ayarı. iRacing dışındaki bazı oyunlarda yandaki araç ters tarafta görünebiliyor; açılınca sol ve sağ yer değiştirir (yan araçlar ve kırmızı yan bölgeler). Varsayılan kapalı; iRacing'de kapalı kalmalı.
+- Mini Harita: zaten olan "Aynala" ayarına aynı açıklama eklendi (hangi durumda açılacağı).
+
+## 051026-186
+
+- Sesli mühendis / spotter ses düzeyi artık kulağa göre ayarlı: kaydırıcı doğrudan genlik çarpanıydı, bu yüzden ses %10 civarına inene kadar neredeyse hiç kısılmıyordu. Şimdi kare eğrisi kullanılıyor: %50 belirgin biçimde kısık, %100 yine tam ses. Not: %100 altındaki eski ayarlar öncekinden daha kısık duyulur (ör. varsayılan %80); gerekirse kaydırıcıyı biraz yükselt.
+- Web sitesi: Kan Şekeri, Kalp Atışı ve Sosyal Hesaplar overlaylarının galeri görselleri eklendi.
+
 ## 051026-185
 
 - Tuval arka planı artık her düzen için ayrı (Düzenler ve Yayın sayfaları): "Arka plan" kutusu ve görsel seçici yalnızca seçili düzeni etkiler; her düzene başka görsel seçebilir, birinde kapatıp diğerinde açık bırakabilirsin.

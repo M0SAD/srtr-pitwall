@@ -17,6 +17,13 @@ export default defineOverlay({
       type: "boolean",
       default: true,
     },
+    {
+      key: "mirror",
+      label: "Aynala (sol / sağ ters görünüyorsa)",
+      type: "boolean",
+      default: false,
+      hint: "iRacing dışındaki bazı oyunlarda yandaki araç ters tarafta görünebilir; öyleyse bunu aç. iRacing'de kapalı kalmalı.",
+    },
     { key: "color", label: "Araç rengi", type: "color", default: "#ff8a2a" },
     {
       key: "range",

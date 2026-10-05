@@ -11,7 +11,10 @@ export default function Radar(props: OverlayProps) {
 
   const range = () => props.options.range as number;
   const cars = createMemo(() =>
-    (data()?.cars ?? []).filter((c) => Math.abs(c.offset) <= range()),
+    (data()?.cars ?? [])
+      .filter((c) => Math.abs(c.offset) <= range())
+      // Aynala: sol / sağ yer değiştirir (bazı oyunlarda yan taraf ters geliyor)
+      .map((c) => (props.options.mirror && c.side !== 0 ? { ...c, side: -c.side } : c)),
   );
   const side = (s: number) => cars().filter((c) => c.side === s);
   const alongside = (s: number) =>

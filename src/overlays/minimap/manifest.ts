@@ -13,7 +13,13 @@ export default defineOverlay({
   settings: [
     { key: "zoom", label: "Görüş yarıçapı", type: "number", default: 350, min: 100, max: 1500, step: 50, unit: "m" },
     { key: "headingUp", label: "Gidiş yönü hep yukarıda", type: "boolean", default: true },
-    { key: "mirror", label: "Aynala (harita ters görünüyorsa)", type: "boolean", default: false },
+    {
+      key: "mirror",
+      label: "Aynala (harita ters görünüyorsa)",
+      type: "boolean",
+      default: false,
+      hint: "iRacing dışındaki bazı oyunlarda harita sağ-sol ters çizilebilir (sola dönerken pist sağa kıvrılıyorsa); öyleyse bunu aç. iRacing'de kapalı kalmalı.",
+    },
     { key: "carSize", label: "Araç işareti boyutu", type: "number", default: 9, min: 5, max: 16, step: 1, unit: "px" },
     { key: "lineWidth", label: "Pist çizgi kalınlığı", type: "number", default: 4, min: 2, max: 10, step: 1, unit: "px" },
     {

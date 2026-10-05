@@ -50,6 +50,18 @@ pub struct SessionsCfg {
     pub practice: bool,
 }
 
+/// Ses düzeyi (%) -> genlik çarpanı. Kulak ses şiddetini doğrusal duymaz: çarpan doğrudan yüzde olunca kaydırıcı
+/// %10'lara inene kadar ses neredeyse hiç kısılmıyordu. Kare eğrisiyle %50 belirgin biçimde kısık (yaklaşık −12 dB),
+/// %100 yine tam ses; %100 üstü (varsa) doğrusal yükseltme.
+fn loudness(pct: f32) -> f32 {
+    let x = (pct / 100.0).clamp(0.0, 2.0);
+    if x <= 1.0 {
+        x * x
+    } else {
+        x
+    }
+}
+
 impl Default for SessionsCfg {
     fn default() -> Self {
         SessionsCfg {
@@ -519,9 +531,9 @@ impl Voice {
         let vol = if self.silent {
             0.0
         } else if spotter {
-            self.cfg.spotter_volume / 100.0
+            loudness(self.cfg.spotter_volume)
         } else {
-            self.cfg.volume / 100.0
+            loudness(self.cfg.volume)
         };
         let Some(pack) = self.pack() else {
             return false;
