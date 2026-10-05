@@ -9,6 +9,7 @@
 //  Klavye (satır odaktayken): F2 = yeniden adlandır, Delete = sil (onay sorar).
 
 import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { askConfirm } from "../confirm";
 import ArrowUp from "lucide-solid/icons/arrow-up";
 import ArrowDown from "lucide-solid/icons/arrow-down";
 import { t } from "@/sdk/i18n";
@@ -83,13 +84,18 @@ export function toggleProfileLock(id: string) {
 }
 
 /** Siler (onay sorar). Varsayılan düzen, türünün son düzeni ve kilitli düzenler silinemez. Silindiyse true. */
-export function removeProfile(id: string): boolean {
+export async function removeProfile(id: string): Promise<boolean> {
   const p = settings().profiles[id];
   if (!p) return false;
   const stream = isStream(p);
   const count = Object.values(settings().profiles).filter((x) => isStream(x) === stream).length;
   if (fixedProfileId(stream) === id || p.locked || count <= 1) return false;
-  if (!confirm(stream ? t('"{0}" yayın düzeni silinsin mi?', p.name) : t('"{0}" düzeni silinsin mi?', p.name))) return false;
+  const ok = await askConfirm(stream ? t('"{0}" yayın düzeni silinsin mi?', p.name) : t('"{0}" düzeni silinsin mi?', p.name), {
+    note: t("Düzendeki overlay'ler ve ayarları da silinir. Bu işlem geri alınamaz."),
+    ok: t("Sil"),
+    danger: true,
+  });
+  if (!ok || !settings().profiles[id]) return false;
   updateSettings((d) => {
     delete d.profiles[id];
     if (!d.profiles[d.activeProfile]) d.activeProfile = defaultProfileId(false, d) ?? Object.keys(d.profiles)[0];
@@ -135,10 +141,10 @@ export function LayoutList(props: {
   const isLockedP = (id: string) => !!settings().profiles[id]?.locked;
   const canRemove = (id: string) => !isFixed(id) && !isLockedP(id) && props.list.length > 1;
   const startRename = (id: string) => !isLockedP(id) && setRenaming(id);
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     const i = props.list.findIndex((p) => p.id === id);
     const next = props.list[i + 1]?.id ?? props.list[i - 1]?.id ?? "";
-    if (!removeProfile(id)) return;
+    if (!(await removeProfile(id))) return;
     if (props.selId === id) props.onSelect(stream() ? next : next || settings().activeProfile);
   };
   const rename = (id: string, v: string) => {

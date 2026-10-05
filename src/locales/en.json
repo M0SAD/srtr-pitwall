@@ -1761,6 +1761,7 @@
   "Düzen:": "Layout:",
   "Düzende": "In layout",
   "Düzende var": "In layout",
+  "Düzendeki overlay'ler ve ayarları da silinir. Bu işlem geri alınamaz.": "The overlays in this layout and their settings are deleted too. This cannot be undone.",
   "düzenden çıkar": "remove from layout",
   "Düzenden çıkar": "Remove from layout",
   "Düzene bir tane daha ekle": "Add another one to the layout",

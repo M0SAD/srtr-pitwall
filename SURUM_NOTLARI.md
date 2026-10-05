@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-158
+
+- Demo modunda sesli mühendis / spotter sessizce "konuşur": ses ve bip çıkmaz ama mesajlar gerçek süreleriyle sıraya girer, Sesli Mühendis (altyazı) overlay'i canlı yarıştaki gibi dolar. Sesli mühendis ayarı kapalı olsa da demo altyazıları gösterir (ses paketi kurulu olmalı; hangi mesaj türlerinin açık olduğu ayarlardan gelir).
+
+## 051026-157
+
+- Arkadaş listesi: okunmamış mesaj sayısı satırın sağında, yükseklikte tam ortada ve biraz daha büyük (13 punto). Takım ve grup satırlarında da aynı.
+- Güvenilir işareti yeşil yerine altın / turuncu.
+- Düzen (ve yayın düzeni) silerken uygulama içi onay penceresi çıkar: "… düzeni silinsin mi?" + "geri alınamaz" notu, Vazgeç / Sil. Sil düğmesi, sağ tık menüsü ve Delete tuşu için geçerli; varsayılan odak Vazgeç'te, Esc ve dışına tıklama vazgeçer. (Eskiden tarayıcının onay kutusu kullanılıyordu; bazı kurulumlarda görünmüyordu.)
+
 ## 051026-156
 
 - Sohbet penceresi önde ve o kişinin (takımın / grubun) sekmesi açıkken ondan gelen mesajda ses ve bildirim kutusu çıkmaz; simdeyken de. Pencere arkadayken, simge durumundayken ya da başka sekme açıkken ses gelir. Pencerenin öndeki sekmesi artık pencereler arası olayla da bildiriliyor (eskiden yalnızca ortak depo; gecikince ses kaçıyordu).

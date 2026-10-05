@@ -1790,3 +1790,22 @@
 .frow-flag.dev-flag svg {
   color: #6fb6e8;
 }
+
+/* Okunmamış sayısı: satırın sağında, yükseklikte tam ortada ve biraz daha büyük */
+.fx .frow {
+  position: relative;
+}
+.fx .frow .frow-unread {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font: 700 13px/22px Inter, sans-serif;
+}
+.fx .frow:has(.frow-unread) .frow-main {
+  padding-right: 36px;
+}

@@ -375,6 +375,8 @@ pub struct Voice {
     pub sounds: SoundsCfg,
     /// Sesli kısım etkin (PRO ve "Sesli mühendis açık")
     pub voice_on: bool,
+    /// Demo: ses çıkmaz (ses düzeyi 0, bip yok) ama mesajlar gerçek süreleriyle "söylenir": altyazı overlay'i canlı gibi görünür
+    silent: bool,
     pack: Option<Pack>,
     pack_key: Option<PathBuf>,
     /// voicepack::PACK_GEN: paket kurulunca / silinince kayıt önbelleği yenilensin
@@ -403,6 +405,7 @@ impl Default for Voice {
             cfg: VoiceCfg::default(),
             sounds: SoundsCfg::default(),
             voice_on: false,
+            silent: false,
             pack: None,
             pack_key: None,
             pack_gen: 0,
@@ -513,11 +516,13 @@ impl Voice {
 
     /// Kuyruğu atlayıp hemen söyle. Paket ya da bir parça eksikse false.
     fn say_now(&mut self, parts: &[Part], spotter: bool) -> bool {
-        let vol = if spotter {
-            self.cfg.spotter_volume
+        let vol = if self.silent {
+            0.0
+        } else if spotter {
+            self.cfg.spotter_volume / 100.0
         } else {
-            self.cfg.volume
-        } / 100.0;
+            self.cfg.volume / 100.0
+        };
         let Some(pack) = self.pack() else {
             return false;
         };
@@ -646,13 +651,18 @@ impl Voice {
 
     /// Her karede çağrılır. `live`: gerçek sürüş ya da kullanıcının açtığı demo (önizleme değil).
     /// `sim`: bağlı sim kısa adı ("iracing", "acc"…; demo için boş)
-    pub fn tick(&mut self, f: &Frame, s: &SessionData, t: &Tracker, live: bool, sim: &str) {
+    pub fn tick(&mut self, f: &Frame, s: &SessionData, t: &Tracker, live: bool, sim: &str, silent: bool) {
+        if self.silent != silent {
+            // Demo açıldı / kapandı: sıradaki mesajlar diğer kipe taşınmasın
+            self.queue.items.clear();
+        }
+        self.silent = silent;
         let now = Instant::now();
         let driving = live && f.is_on_track && !f.replay && f.player_idx >= 0;
 
-        self.beeps(f, s, driving, live, now);
+        self.beeps(f, s, driving && !silent, live && !silent, now);
 
-        if !self.voice_on || !driving || self.cfg.pack_root.is_none() {
+        if (!self.voice_on && !silent) || !driving || self.cfg.pack_root.is_none() {
             self.spot.clr = 1;
             self.spot.overlap_since = None;
             // Araçtan inildi / ses kapalı: bekleyen trafik çağrıları sonradan çalmasın

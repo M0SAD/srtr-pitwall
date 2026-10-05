@@ -1737,3 +1737,29 @@ p.small {
 .gift-from {
   color: #ffb341;
 }
+
+/* Uygulama içi onay penceresi (askConfirm) */
+.confirm-back {
+  align-items: center;
+  z-index: 9000;
+}
+.modal.confirm-box {
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px 20px 16px;
+}
+.confirm-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.confirm-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.confirm-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
