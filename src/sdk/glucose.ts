@@ -19,6 +19,8 @@ export interface GlucoseState {
   /** [epoch ms, mg/dL], eskiden yeniye */
   hist: [number, number][];
   error: string;
+  /** Hatanın teknik özeti (aşama · HTTP kodu · yol) */
+  detail?: string;
   checkedAt: number;
 }
 export interface GlucoseLogin {

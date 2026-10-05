@@ -15463,3 +15463,8 @@ begin
 end $$;
 revoke all on function public.crew_wall(uuid) from public, anon;
 grant execute on function public.crew_wall(uuid) to authenticated;
+
+-- c90: Kan Şekeri overlay'i varsayılan olarak PRO (app_config.pro_overlays). Yönetim › PRO özellikleri'nden değiştirilebilir.
+update public.app_config
+   set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['glucose']) as x)
+ where id = 1;

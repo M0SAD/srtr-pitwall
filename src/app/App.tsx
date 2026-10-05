@@ -24,6 +24,7 @@ import { FriendsDock } from "./components/FriendsDock";
 import * as LC from "@/sdk/livechat";
 import { SimPicker } from "./components/SimPicker";
 import { LangPicker } from "./components/LangPicker";
+import { WinChrome } from "@/window/chrome";
 import { loadNotices } from "@/cloud/moderation";
 import { LIVECHAT_PAGES, liveChatPages } from "./pages/liveChatPages";
 import { ProTag } from "./components/ProLock";
@@ -320,6 +321,8 @@ export function App() {
             onChange={(v) => invoke("edit_mode_set", { on: !v })}
           />
           <LangPicker />
+          {/* Çerçevesiz pencere: üst çubuktan tutulup taşınır; küçült / büyüt / kapat burada */}
+          <WinChrome inline max drag=".top2" />
         </div>
       </header>
 

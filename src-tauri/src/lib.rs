@@ -11,6 +11,7 @@ mod entitlement;
 mod events;
 mod extras;
 mod glucose;
+mod heartrate;
 mod history;
 mod laprec;
 mod i18n;
@@ -731,6 +732,8 @@ fn chat_window(app: &AppHandle, id: &str, front: bool) -> Result<(), String> {
     }
     let w = WebviewWindowBuilder::new(app, CHAT_WIN, WebviewUrl::App("window.html?view=chat".into()))
         .title("SRTR Pitwall")
+        // Çerçevesiz: sekme çubuğundan tutulup taşınır, düğmeler pencerenin içinde (src/window/chrome.tsx)
+        .decorations(false)
         .inner_size(740.0, 640.0)
         .min_inner_size(420.0, 340.0)
         .focused(front)
@@ -859,6 +862,8 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
             },
             if label == "friends" { 420.0 } else { 500.0 },
         )
+        // Arkadaşlar penceresi çerçevesiz: üstteki profil çubuğundan tutulup taşınır
+        .decorations(label != "friends")
         .visible(saved.is_none())
         .additional_browser_args(browser_args())
         .build()
@@ -1703,6 +1708,8 @@ fn open_panel(app: &AppHandle) {
     let geom = load_panel_geom(app).filter(|g| panel_geom_visible(app, g));
     let _ = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .title(format!("SRTR Pitwall {}", display_version()))
+        // Çerçevesiz: üst çubuktan tutulup taşınır, pencere düğmeleri üst çubuğun sağında (src/window/chrome.tsx)
+        .decorations(false)
         .inner_size(w, h)
         .min_inner_size(900.0, 600.0)
         .center()
@@ -2389,6 +2396,10 @@ pub fn run() {
             glucose::glucose_state,
             glucose::glucose_refresh,
             glucose::glucose_alert,
+            heartrate::heartrate_connect,
+            heartrate::heartrate_disconnect,
+            heartrate::heartrate_state,
+            heartrate::heartrate_alert,
             preview_set,
             preview_freeze,
             panel_front,
@@ -2586,6 +2597,7 @@ pub fn run() {
             // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)
             livechat::init(&handle, shared_state.clone());
             glucose::start(&handle);
+            heartrate::start(&handle);
             if srv_on {
                 apply_server(&handle, true, srv_port, srv_lan);
             }

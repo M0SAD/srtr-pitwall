@@ -55,6 +55,8 @@ pub struct State {
     /// Geçmiş (eskiden yeniye): [epoch ms, mg/dL]
     pub hist: Vec<(i64, f64)>,
     pub error: String,
+    /// Hatanın teknik özeti (aşama · HTTP kodu · yol); çevrilmez
+    pub detail: String,
     /// Son başarılı okuma anı (epoch ms)
     pub checked_at: i64,
 }
@@ -100,10 +102,137 @@ fn client() -> Result<reqwest::Client, String> {
     }
     reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) SRTR-Pitwall")
+        // Resmi uygulamalar gibi HTTP/1.1 (bazı sunucu kuralları HTTP/2 istemcilerini reddediyor)
+        .http1_only()
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(25))
         .build()
         .map_err(|e| e.to_string())
+}
+
+/// Son isteğin teknik özeti (hata iletisinin yanında gösterilir; gizli bilgi içermez): "giriş · HTTP 403 · engellendi"
+static DETAIL: Mutex<String> = parking_lot::const_mutex(String::new());
+
+fn note(stage: &str, code: u16, via: &str, extra: &str) {
+    let mut d = format!("{stage} · HTTP {code} · {via}");
+    if !extra.is_empty() {
+        d.push_str(" · ");
+        d.push_str(extra);
+    }
+    *DETAIL.lock() = d;
+}
+
+/// Yanıt JSON'a benziyor mu (engelleme sayfaları HTML / düz metin döner)
+fn looks_json(b: &[u8]) -> bool {
+    matches!(b.iter().find(|c| !c.is_ascii_whitespace()), Some(b'{') | Some(b'[') | Some(b'"'))
+}
+
+/// curl yapılandırma dosyası (stdin'den okunur: adres, başlıklar ve gövde komut satırında görünmez)
+pub fn curl_config(method: &str, url: &str, headers: &[(String, String)], body: Option<&str>) -> String {
+    let q = |v: &str| v.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n").replace('\r', "\\r").replace('\t', "\\t");
+    let mut c = String::from("silent\nshow-error\nmax-time = 25\nhttp1.1\n");
+    c.push_str(&format!("request = \"{}\"\nurl = \"{}\"\n", q(method), q(url)));
+    for (k, v) in headers {
+        c.push_str(&format!("header = \"{}: {}\"\n", q(k), q(v)));
+    }
+    if let Some(b) = body {
+        c.push_str(&format!("data-binary = \"{}\"\n", q(b)));
+    }
+    c.push_str("write-out = \"\\n%{http_code}\"\n");
+    c
+}
+
+/// İsteği Windows'un kendi curl.exe'siyle (Schannel) gönder: sunucu uygulamanın TLS kitaplığını reddederse yedek yol
+fn curl_send(method: &str, url: &str, headers: &[(String, String)], body: Option<&str>) -> Result<(u16, Vec<u8>), String> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let exe = if cfg!(windows) {
+        let root = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
+        format!("{root}\\System32\\curl.exe")
+    } else {
+        "curl".to_string()
+    };
+    let mut cmd = Command::new(exe);
+    cmd.args(["-K", "-"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+    let mut child = cmd.spawn().map_err(|_| "curl yok".to_string())?;
+    if let Some(mut si) = child.stdin.take() {
+        let _ = si.write_all(curl_config(method, url, headers, body).as_bytes());
+    }
+    let out = child.wait_with_output().map_err(|_| "curl çalışmadı".to_string())?;
+    let o = out.stdout;
+    let cut = o.iter().rposition(|c| *c == b'\n').ok_or_else(|| "curl yanıt vermedi".to_string())?;
+    let code = std::str::from_utf8(&o[cut + 1..]).ok().and_then(|x| x.trim().parse::<u16>().ok()).unwrap_or(0);
+    if code == 0 {
+        return Err("curl bağlanamadı".into());
+    }
+    Ok((code, o[..cut].to_vec()))
+}
+
+/// Taşıyıcı: önce uygulamanın kendi istemcisi; yanıt engellenmiş görünüyorsa (JSON değil / bağlantı hatası) curl.exe ile
+/// yeniden dener ve o oturumda curl'de kalır.
+struct Net {
+    c: reqwest::Client,
+    curl: AtomicBool,
+}
+
+impl Net {
+    fn new() -> Result<Self, String> {
+        Ok(Self { c: client()?, curl: AtomicBool::new(false) })
+    }
+
+    async fn direct(&self, method: &str, url: &str, headers: &[(String, String)], body: Option<&str>) -> Result<(u16, Vec<u8>), String> {
+        let m = if method == "POST" { reqwest::Method::POST } else { reqwest::Method::GET };
+        let mut rq = self.c.request(m, url);
+        for (k, v) in headers {
+            rq = rq.header(k.as_str(), v.as_str());
+        }
+        if let Some(b) = body {
+            rq = rq.body(b.to_string());
+        }
+        let r = rq.send().await.map_err(|e| if e.is_timeout() { "zaman aşımı".to_string() } else if e.is_connect() { "bağlantı kurulamadı".to_string() } else { "istek gönderilemedi".to_string() })?;
+        let code = r.status().as_u16();
+        let b = r.bytes().await.map_err(|_| "yanıt okunamadı".to_string())?;
+        Ok((code, b.to_vec()))
+    }
+
+    /// (HTTP kodu, gövde). `stage` yalnızca tanılama içindir.
+    async fn send(&self, stage: &str, method: &str, url: &str, headers: &[(String, String)], body: Option<&str>) -> Result<(u16, Vec<u8>), String> {
+        if !self.curl.load(Ordering::Relaxed) {
+            match self.direct(method, url, headers, body).await {
+                Ok((code, b)) if looks_json(&b) || (200..300).contains(&code) => {
+                    note(stage, code, "doğrudan", "");
+                    return Ok((code, b));
+                }
+                Ok((code, _)) => note(stage, code, "doğrudan", "JSON değil (engellendi?)"),
+                Err(e) => note(stage, 0, "doğrudan", &e),
+            }
+        }
+        let first = DETAIL.lock().clone();
+        let (m, u, h, bd) = (method.to_string(), url.to_string(), headers.to_vec(), body.map(String::from));
+        let r = tauri::async_runtime::spawn_blocking(move || curl_send(&m, &u, &h, bd.as_deref())).await.map_err(|_| "curl çalışmadı".to_string()).and_then(|x| x);
+        match r {
+            Ok((code, b)) => {
+                if looks_json(&b) || (200..300).contains(&code) {
+                    self.curl.store(true, Ordering::Relaxed);
+                }
+                note(stage, code, "curl", if looks_json(&b) { "" } else { "JSON değil" });
+                Ok((code, b))
+            }
+            Err(e) => {
+                *DETAIL.lock() = format!("{first} · {e}");
+                Err(e)
+            }
+        }
+    }
+}
+
+fn hdr(list: &[(&str, &str)]) -> Vec<(String, String)> {
+    list.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
 }
 
 /// Oturum (yeniden giriş yapmadan sonraki okumalar için)
@@ -183,31 +312,40 @@ fn valid_mgdl(v: f64) -> bool {
     v.is_finite() && (20.0..=600.0).contains(&v)
 }
 
-async fn llu_login(c: &reqwest::Client, cfg: &Cfg) -> Result<(String, String, String, String), String> {
+fn llu_base(region: &str) -> Option<String> {
+    let r = region.to_ascii_lowercase();
+    if r.is_empty() || r.len() > 8 || !r.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+        return None;
+    }
+    Some(match r.as_str() {
+        "us" => "https://api.libreview.io".to_string(),
+        "ru" => "https://api.libreview.ru".to_string(),
+        _ => format!("https://api-{r}.libreview.io"),
+    })
+}
+
+fn llu_headers(auth: Option<(&str, &str)>) -> Vec<(String, String)> {
+    let mut h = hdr(&[("product", "llu.android"), ("version", LLU_VERSION), ("accept", "application/json"), ("content-type", "application/json"), ("cache-control", "no-cache"), ("connection", "Keep-Alive")]);
+    if let Some((token, account)) = auth {
+        h.push(("authorization".into(), format!("Bearer {token}")));
+        h.push(("account-id".into(), account.to_string()));
+    }
+    h
+}
+
+async fn llu_login(c: &Net, cfg: &Cfg) -> Result<(String, String, String, String), String> {
     let mut base = "https://api.libreview.io".to_string();
+    let body = json!({ "email": cfg.user, "password": cfg.password }).to_string();
     for _ in 0..3 {
-        let r = c
-            .post(format!("{base}/llu/auth/login"))
-            .header("product", "llu.android")
-            .header("version", LLU_VERSION)
-            .header("accept", "application/json")
-            .header("cache-control", "no-cache")
-            .json(&json!({ "email": cfg.user, "password": cfg.password }))
-            .send()
-            .await
-            .map_err(|_| "LibreLinkUp sunucusuna ulaşılamadı".to_string())?;
-        if r.status().as_u16() == 429 {
+        let (code, raw) = c.send("giriş", "POST", &format!("{base}/llu/auth/login"), &llu_headers(None), Some(&body)).await.map_err(|_| "LibreLinkUp sunucusuna ulaşılamadı".to_string())?;
+        if code == 429 {
             return Err("Çok fazla deneme yapıldı: birkaç dakika sonra tekrar dene".into());
         }
-        let v: Value = r.json().await.map_err(|_| "LibreLinkUp yanıtı okunamadı".to_string())?;
+        let v: Value = serde_json::from_slice(&raw).map_err(|_| "LibreLinkUp yanıtı okunamadı".to_string())?;
         let status = v.get("status").and_then(|x| x.as_i64()).unwrap_or(-1);
         let data = v.get("data").cloned().unwrap_or(Value::Null);
         if data.get("redirect").and_then(|x| x.as_bool()) == Some(true) {
-            let region = data.get("region").and_then(|x| x.as_str()).unwrap_or("");
-            if region.is_empty() || !region.chars().all(|ch| ch.is_ascii_alphanumeric()) {
-                return Err("LibreLinkUp bölgesi belirlenemedi".into());
-            }
-            base = format!("https://api-{region}.libreview.io");
+            base = llu_base(data.get("region").and_then(|x| x.as_str()).unwrap_or("")).ok_or_else(|| "LibreLinkUp bölgesi belirlenemedi".to_string())?;
             continue;
         }
         if status == 2 {
@@ -216,17 +354,18 @@ async fn llu_login(c: &reqwest::Client, cfg: &Cfg) -> Result<(String, String, St
         if status == 4 || data.get("step").is_some() {
             return Err("LibreLinkUp uygulamasını açıp bekleyen adımı (kullanım koşulları / doğrulama) tamamla, sonra tekrar dene".into());
         }
-        if data.get("lockout").is_some() {
+        if data.get("lockout").is_some() || status == 429 {
             return Err("Hesap geçici olarak kilitlendi: bir süre sonra tekrar dene".into());
         }
         let token = data.pointer("/authTicket/token").and_then(|x| x.as_str()).unwrap_or("");
         let uid = data.pointer("/user/id").and_then(|x| x.as_str()).unwrap_or("");
-        if status != 0 || token.is_empty() || uid.is_empty() {
+        if token.is_empty() || uid.is_empty() {
+            note("giriş", code, if c.curl.load(Ordering::Relaxed) { "curl" } else { "doğrudan" }, &format!("durum {status}"));
             return Err("LibreLinkUp girişi başarısız".into());
         }
         let account: String = Sha256::digest(uid.as_bytes()).iter().map(|b| format!("{b:02x}")).collect();
         // Takip edilen ilk kişi
-        let v: Value = llu_get(c, &base, token, &account, "/llu/connections").await?;
+        let v: Value = llu_get(c, "bağlantılar", &base, token, &account, "/llu/connections").await?;
         let pid = v.pointer("/data/0/patientId").and_then(|x| x.as_str()).unwrap_or("");
         if pid.is_empty() || !pid.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-') {
             return Err("Bu LibreLinkUp hesabı kimseyi takip etmiyor: sensör sahibinin LibreLink uygulamasından davet gönderilmeli".into());
@@ -236,39 +375,28 @@ async fn llu_login(c: &reqwest::Client, cfg: &Cfg) -> Result<(String, String, St
     Err("LibreLinkUp bölgesi belirlenemedi".into())
 }
 
-async fn llu_get(c: &reqwest::Client, base: &str, token: &str, account: &str, path: &str) -> Result<Value, String> {
-    let r = c
-        .get(format!("{base}{path}"))
-        .header("product", "llu.android")
-        .header("version", LLU_VERSION)
-        .header("accept", "application/json")
-        .header("cache-control", "no-cache")
-        .header("authorization", format!("Bearer {token}"))
-        .header("account-id", account)
-        .send()
-        .await
-        .map_err(|_| "LibreLinkUp sunucusuna ulaşılamadı".to_string())?;
-    let code = r.status().as_u16();
-    if code == 401 || code == 403 {
+async fn llu_get(c: &Net, stage: &str, base: &str, token: &str, account: &str, path: &str) -> Result<Value, String> {
+    let (code, raw) = c.send(stage, "GET", &format!("{base}{path}"), &llu_headers(Some((token, account))), None).await.map_err(|_| "LibreLinkUp sunucusuna ulaşılamadı".to_string())?;
+    if code == 401 || (code == 403 && looks_json(&raw)) {
         return Err("AUTH".into());
     }
-    if !r.status().is_success() {
-        return Err(format!("LibreLinkUp hatası ({code})"));
+    if !(200..300).contains(&code) {
+        return Err("LibreLinkUp hatası".into());
     }
-    r.json().await.map_err(|_| "LibreLinkUp yanıtı okunamadı".to_string())
+    serde_json::from_slice(&raw).map_err(|_| "LibreLinkUp yanıtı okunamadı".to_string())
 }
 
-async fn libre(c: &reqwest::Client, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
+async fn libre(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
     if s.libre.is_none() {
         s.libre = Some(llu_login(c, cfg).await?);
     }
     let (base, token, account, pid) = s.libre.clone().unwrap();
-    let v = match llu_get(c, &base, &token, &account, &format!("/llu/connections/{pid}/graph")).await {
+    let v = match llu_get(c, "ölçüm", &base, &token, &account, &format!("/llu/connections/{pid}/graph")).await {
         Err(e) if e == "AUTH" => {
             // Oturum süresi doldu: bir kez yeniden giriş
             s.libre = Some(llu_login(c, cfg).await?);
             let (base, token, account, pid) = s.libre.clone().unwrap();
-            llu_get(c, &base, &token, &account, &format!("/llu/connections/{pid}/graph")).await.map_err(|e| if e == "AUTH" { "LibreLinkUp oturumu açılamadı".to_string() } else { e })?
+            llu_get(c, "ölçüm", &base, &token, &account, &format!("/llu/connections/{pid}/graph")).await.map_err(|e| if e == "AUTH" { "LibreLinkUp oturumu açılamadı".to_string() } else { e })?
         }
         r => r?,
     };
@@ -303,11 +431,10 @@ fn dexcom_base(region: &str) -> &'static str {
     }
 }
 
-async fn dexcom_post(c: &reqwest::Client, url: String, body: Value) -> Result<Value, String> {
-    let r = c.post(url).header("accept", "application/json").json(&body).send().await.map_err(|_| "Dexcom sunucusuna ulaşılamadı".to_string())?;
-    let ok = r.status().is_success();
-    let v: Value = r.json().await.unwrap_or(Value::Null);
-    if ok {
+async fn dexcom_post(c: &Net, url: String, body: Value) -> Result<Value, String> {
+    let (code, raw) = c.send("dexcom", "POST", &url, &hdr(&[("accept", "application/json"), ("content-type", "application/json")]), Some(&body.to_string())).await.map_err(|_| "Dexcom sunucusuna ulaşılamadı".to_string())?;
+    let v: Value = serde_json::from_slice(&raw).unwrap_or(Value::Null);
+    if (200..300).contains(&code) {
         return Ok(v);
     }
     let code = v.get("Code").and_then(|x| x.as_str()).unwrap_or("");
@@ -319,7 +446,7 @@ async fn dexcom_post(c: &reqwest::Client, url: String, body: Value) -> Result<Va
     })
 }
 
-async fn dexcom_login(c: &reqwest::Client, cfg: &Cfg) -> Result<(String, String), String> {
+async fn dexcom_login(c: &Net, cfg: &Cfg) -> Result<(String, String), String> {
     let base = dexcom_base(&cfg.region).to_string();
     let acc = dexcom_post(c, format!("{base}/General/AuthenticatePublisherAccount"), json!({ "accountName": cfg.user, "password": cfg.password, "applicationId": DEXCOM_APP })).await?;
     let acc = acc.as_str().unwrap_or("").to_string();
@@ -359,7 +486,7 @@ fn dexcom_parse(v: &Value) -> Result<Reading, String> {
     Ok(Reading { value: last.1, arrow: dir_arrow(&last.2).to_string(), ts: last.0, hist: hist.into_iter().map(|x| (x.0, x.1)).collect() })
 }
 
-async fn dexcom(c: &reqwest::Client, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
+async fn dexcom(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
     if s.dexcom.is_none() {
         s.dexcom = Some(dexcom_login(c, cfg).await?);
     }
@@ -395,7 +522,7 @@ fn ns_parse(v: &Value) -> Result<Reading, String> {
     Ok(Reading { value: last.1, arrow: dir_arrow(&last.2).to_string(), ts: last.0, hist: hist.into_iter().map(|x| (x.0, x.1)).collect() })
 }
 
-async fn nightscout(c: &reqwest::Client, cfg: &Cfg) -> Result<Reading, String> {
+async fn nightscout(c: &Net, cfg: &Cfg) -> Result<Reading, String> {
     let base = cfg.ns_url.trim().trim_end_matches('/');
     let mut url = format!("{base}/api/v1/entries.json?count={HIST}");
     if !cfg.ns_token.is_empty() {
@@ -403,19 +530,18 @@ async fn nightscout(c: &reqwest::Client, cfg: &Cfg) -> Result<Reading, String> {
         url.push_str("&token=");
         url.push_str(&enc);
     }
-    let r = c.get(url).header("accept", "application/json").send().await.map_err(|_| "Nightscout adresine ulaşılamadı".to_string())?;
-    let code = r.status().as_u16();
+    let (code, raw) = c.send("nightscout", "GET", &url, &hdr(&[("accept", "application/json")]), None).await.map_err(|_| "Nightscout adresine ulaşılamadı".to_string())?;
     if code == 401 || code == 403 {
         return Err("Nightscout erişim belirteci (token) geçersiz ya da gerekli".into());
     }
-    if !r.status().is_success() {
-        return Err(format!("Nightscout hatası ({code})"));
+    if !(200..300).contains(&code) {
+        return Err("Nightscout hatası".into());
     }
-    let v: Value = r.json().await.map_err(|_| "Nightscout yanıtı okunamadı".to_string())?;
+    let v: Value = serde_json::from_slice(&raw).map_err(|_| "Nightscout yanıtı okunamadı".to_string())?;
     ns_parse(&v)
 }
 
-async fn fetch(c: &reqwest::Client, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
+async fn fetch(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
     let mut r = match cfg.source.as_str() {
         "libre" => libre(c, cfg, s).await,
         "dexcom" => dexcom(c, cfg, s).await,
@@ -468,9 +594,9 @@ fn check(cfg: &mut Cfg) -> Result<(), String> {
 
 fn state_of(cfg: &Cfg, r: Result<Reading, String>, prev: &State) -> State {
     match r {
-        Ok(r) => State { logged_in: true, source: cfg.source.clone(), account: mask(cfg), value: Some(r.value), arrow: r.arrow, ts: r.ts, hist: r.hist, error: String::new(), checked_at: now_ms() },
+        Ok(r) => State { logged_in: true, source: cfg.source.clone(), account: mask(cfg), value: Some(r.value), arrow: r.arrow, ts: r.ts, hist: r.hist, error: String::new(), detail: String::new(), checked_at: now_ms() },
         // Hata: son değer ekranda kalır (overlay eskiyince gri gösterir), hata metni eklenir
-        Err(e) => State { logged_in: true, source: cfg.source.clone(), account: mask(cfg), error: e, ..prev.clone() },
+        Err(e) => State { logged_in: true, source: cfg.source.clone(), account: mask(cfg), error: e, detail: DETAIL.lock().clone(), ..prev.clone() },
     }
 }
 
@@ -479,13 +605,15 @@ fn state_of(cfg: &Cfg, r: Result<Reading, String>, prev: &State) -> State {
 pub async fn glucose_login(app: AppHandle, cfg: Cfg) -> Result<State, String> {
     let mut cfg = cfg;
     check(&mut cfg)?;
-    let c = client()?;
+    let c = Net::new()?;
     let mut s = Session::default();
+    DETAIL.lock().clear();
     let r = fetch(&c, &cfg, &mut s).await;
     // "Henüz veri yok" girişin başarısız olduğu anlamına gelmez; kimlik / adres hataları ise kaydedilmez
     if let Err(e) = &r {
         if !e.contains("veri") && !e.contains("ölçüm") {
-            return Err(e.clone());
+            let d = DETAIL.lock().clone();
+            return Err(if d.is_empty() { e.clone() } else { format!("{e}\n{d}") });
         }
     }
     crate::livechat::secrets::set_json(&app, SECRET_KEY, &serde_json::to_value(&cfg).map_err(|e| e.to_string())?)?;
@@ -564,7 +692,7 @@ pub fn start(app: &AppHandle) {
         let mut sess = Session::default();
         let mut last = 0i64;
         let mut fails = 0u32;
-        let Ok(c) = client() else { return };
+        let Ok(c) = Net::new() else { return };
         loop {
             std::thread::sleep(Duration::from_millis(1000));
             let g = GEN.load(Ordering::Relaxed);
@@ -633,6 +761,12 @@ mod tests {
         let r = ns_parse(&n).unwrap();
         assert_eq!((r.value, r.arrow.as_str(), r.hist.len()), (95.0, "↘", 1));
         assert!(dexcom_parse(&json!([])).is_err());
+        assert_eq!(llu_base("eu").as_deref(), Some("https://api-eu.libreview.io"));
+        assert_eq!(llu_base("RU").as_deref(), Some("https://api.libreview.ru"));
+        assert_eq!(llu_base("e/u"), None);
+        assert!(looks_json(b"  {\"a\":1}") && !looks_json(b"<html>"));
+        let c = curl_config("POST", "https://x/y", &hdr(&[("a", "b\"c")]), Some("{\"p\":\"q\\\\\"}"));
+        assert!(c.contains("header = \"a: b\\\"c\"") && c.contains("request = \"POST\"") && c.contains("data-binary = \"{\\\"p\\\":\\\"q\\\\\\\\\\\"}\""));
     }
 
     #[test]

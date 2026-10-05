@@ -356,7 +356,7 @@ export function LayoutsPage() {
   useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), locked);
 
   return (
-    <div class="lpage" classList={{ "with-set": !!(sel() || ghost()), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(!!(sel() || ghost())) }}>
+    <div class="lpage" classList={{ "with-set": !!(sel() || ghost()), "keep-set": cols.keep(), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(!!(sel() || ghost())) }}>
       <cols.Grips withSet={!!(sel() || ghost())} />
       <aside class="llist">
         <div class="llist-items">

@@ -115,6 +115,21 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                 let url = req.url().to_string();
                 let path = url.split('?').next().unwrap_or("/").to_string();
 
+                // Nabız gönderimi (saat / telefon uygulamaları): PUT | POST | GET /hr/<anahtar>, bkz. heartrate.rs
+                if path.starts_with("/hr/") {
+                    let mut req = req;
+                    let mut body = String::new();
+                    {
+                        use std::io::Read;
+                        let _ = req.as_reader().take(4096).read_to_string(&mut body);
+                    }
+                    let q = url_decode(url.split_once('?').map(|x| x.1).unwrap_or(""));
+                    let (code, text) = crate::heartrate::http_push(&path, &q, &body);
+                    let resp = Response::from_string(text).with_status_code(code).with_header(header("Access-Control-Allow-Origin", "*"));
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
                 if path == "/api/stream" {
                     let mut topics = parse_topics(&url_decode(query_param(&url, "topics").unwrap_or("")));
                     // Canlı sohbet konuları tarayıcı kaynağına sadece izin varsa (PRO: livechat.obs)

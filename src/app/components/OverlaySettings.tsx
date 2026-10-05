@@ -13,6 +13,7 @@ import { overlayIcon } from "../overlayIcons";
 import { go } from "../ui";
 import * as I from "../icons";
 import { GlucoseLoginPanel } from "./GlucoseLogin";
+import { HeartRateConnectPanel } from "./HeartRateConnect";
 
 // PRO olmayan üyenin seçtiği kilitli (PRO) seçenekler: kaydedilmez, sadece önizlemede gösterilir
 const [pv, setPv] = createSignal<{ key: string; vals: Record<string, unknown> }>({ key: "", vals: {} });
@@ -129,6 +130,9 @@ export function OverlaySettings(props: {
           </Show>
           <Show when={defaults()}>
             <p class="ovset-note">Buradaki ayarlar bu overlay'in varsayılanıdır: bir düzene eklediğinde bu ayarlarla gelir. Düzendeki kopyanın ayarları Düzenler sayfasından ayrıca değiştirilebilir.</p>
+          </Show>
+          <Show when={inst()!.type === "heartrate"}>
+            <HeartRateConnectPanel />
           </Show>
           <Show when={inst()!.type === "glucose"}>
             <GlucoseLoginPanel />

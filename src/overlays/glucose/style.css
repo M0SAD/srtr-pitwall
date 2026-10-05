@@ -13,7 +13,7 @@
   gap: 12px;
   box-sizing: border-box;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--gl-radius, 14px);
   background: var(--gl-bg);
   color: var(--gl-text);
   border: 1.5px solid color-mix(in srgb, var(--gl-c) 55%, transparent);
@@ -54,7 +54,7 @@
   flex: none;
   width: 22px;
   height: 22px;
-  color: #e5484d;
+  color: var(--gl-drop, #e5484d);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 .gl-dropstatus .gl-drop {
@@ -64,7 +64,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
-  font-size: 38px;
+  font-size: calc(38px * var(--gl-vk, 1));
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--gl-c);
@@ -149,7 +149,7 @@
   gap: 10px;
 }
 .gl-pill .gl-value {
-  font-size: 26px;
+  font-size: calc(26px * var(--gl-vk, 1));
 }
 .gl-pill .gl-drop {
   width: 18px;
@@ -184,7 +184,7 @@
 }
 .gl-circle .gl-value,
 .gl-square .gl-value {
-  font-size: 34px;
+  font-size: calc(34px * var(--gl-vk, 1));
 }
 .gl-circle .gl-drop,
 .gl-square .gl-drop {
@@ -256,7 +256,13 @@
       0 0 24px color-mix(in srgb, var(--gl-c) 60%, transparent);
   }
 }
-.ov-frozen .gl.gl-alert,
+.gl.gl-noborder:not(.gl-alert) {
+  border-color: transparent;
+}
+.gl.gl-noshadow:not(.gl-alert) {
+  box-shadow: none;
+}
+/* Uyarı, değer sınır dışında kaldıkça sürer (önizleme dondurulmuş olsa da); yalnızca "efektleri azalt"ta sabit çerçeve */
 .reduce-fx .gl.gl-alert {
   animation: none;
   border-color: var(--gl-c);
@@ -280,7 +286,7 @@
   height: 140px;
 }
 .gl-circle .gl-value {
-  font-size: 31px;
+  font-size: calc(31px * var(--gl-vk, 1));
 }
 .gl-circle .gl-main {
   gap: 3px;

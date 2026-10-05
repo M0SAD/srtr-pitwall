@@ -24,13 +24,14 @@ const Drop = () => (
 
 export default function Glucose(props: OverlayProps) {
   const o = () => props.options;
-  const live = useGlucose(() => onScreen());
+  // Panel önizlemesi de "bakıyorum" der: giriş yapılmışsa önizlemede de gerçek değer görünür ve güncel kalır
+  const live = useGlucose(() => true);
   const [now, setNow] = createSignal(Date.now());
   const iv = setInterval(() => !previewFrozen() && setNow(Date.now()), 15_000);
   onCleanup(() => clearInterval(iv));
 
-  /** Panelde (önizleme / tuval) her zaman örnek; ekranda giriş yoksa düzenlemede örnek, değilse "giriş yap" */
-  const demo = () => !onScreen() || (!live().loggedIn && props.editing);
+  /** Panelde (önizleme / tuval): giriş yapılmış ve değer varsa gerçek değer, yoksa örnek. Ekranda giriş yoksa düzenlemede örnek, değilse "giriş yap" */
+  const demo = () => (onScreen() ? !live().loggedIn && props.editing : !live().loggedIn || live().value == null);
   const st = createMemo<GlucoseState>(() => (demo() ? sample(now()) : live()));
 
   const n = (k: string, d: number) => {
@@ -64,7 +65,11 @@ export default function Glucose(props: OverlayProps) {
   });
   const vars = () => {
     const p = pal();
-    return p ? { "--gl-normal": p.normal, "--gl-warn": p.warn, "--gl-urgent": p.urgent, "--gl-bg": p.bg, "--gl-text": p.text } : {};
+    const v: Record<string, string> = p ? { "--gl-normal": p.normal, "--gl-warn": p.warn, "--gl-urgent": p.urgent, "--gl-bg": p.bg, "--gl-text": p.text } : {};
+    if (o().dropColor === "custom" && o().cDrop) v["--gl-drop"] = String(o().cDrop);
+    if (design() !== "circle" && design() !== "pill") v["--gl-radius"] = `${n("radius", 14)}px`;
+    v["--gl-vk"] = String(n("valueSize", 100) / 100);
+    return v;
   };
 
   const fmt = (v: number) => (mmol() ? (v / MGDL_PER_MMOL).toFixed(1) : String(Math.round(v)));
@@ -157,7 +162,7 @@ export default function Glucose(props: OverlayProps) {
   return (
     <div
       class={`gl gl-${design()}`}
-      classList={{ "gl-app": !pal(), "gl-stale": stale(), "gl-alert": alerting() && o().flash !== false, [`gl-${tone()}`]: true, "gl-dropstatus": o().dropColor === "status" }}
+      classList={{ "gl-app": !pal(), "gl-stale": stale(), "gl-alert": alerting() && o().flash !== false, [`gl-${tone()}`]: true, "gl-dropstatus": o().dropColor === "status", "gl-noborder": o().border === false, "gl-noshadow": o().shadow === false }}
       style={vars()}
       onDblClick={() => glucoseRefresh()}
       title={st().error ? t(st().error) : undefined}

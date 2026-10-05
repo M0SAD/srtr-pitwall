@@ -221,7 +221,7 @@ export function StreamingPage() {
 
   return (
     <ProLockBox feature={F.streaming} text="Yayın düzenleri (OBS) PRO üyelere özel.">
-      <div class="lpage" classList={{ "with-set": withSet(), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(withSet()) }}>
+      <div class="lpage" classList={{ "with-set": withSet(), "keep-set": cols.keep(), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(withSet()) }}>
         <cols.Grips withSet={withSet()} />
         <aside class="llist">
           <div class="llist-items">

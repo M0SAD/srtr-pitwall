@@ -3,7 +3,7 @@
 import { Show, createSignal } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { inTauri } from "@/sdk/platform";
-import { glucoseLogin, glucoseLogout, useGlucose, type GlucoseSource } from "@/sdk/glucose";
+import { glucoseLogin, glucoseLogout, glucoseRefresh, useGlucose, type GlucoseSource } from "@/sdk/glucose";
 import { Section } from "./OverlaySettings";
 
 const SOURCES: { id: GlucoseSource; label: string }[] = [
@@ -42,6 +42,8 @@ export const GLUCOSE_MESSAGES = [
   "Giriş bilgileri çok uzun",
   "Kaynak seçilmedi",
   "Okuma hatası",
+  "LibreLinkUp hatası",
+  "Nightscout hatası",
 ];
 
 export function GlucoseLoginPanel() {
@@ -92,6 +94,16 @@ export function GlucoseLoginPanel() {
               <small class="f2-hint">
                 {st().error ? t(st().error) : st().value != null ? t("Bağlı: son ölçüm {0}", new Date(st().ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : t("Bağlı: overlay ekrandayken ölçüm okunur")}
               </small>
+              <Show when={st().error && st().detail}>
+                <small class="f2-hint gl-detail" data-no-i18n>
+                  {st().detail}
+                </small>
+              </Show>
+              <div class="gl-acct-row">
+                <button class="btn small" onClick={() => glucoseRefresh()}>
+                  Şimdi yenile
+                </button>
+              </div>
               <button class="btn small" onClick={logout}>
                 Çıkış yap
               </button>
@@ -141,7 +153,12 @@ export function GlucoseLoginPanel() {
               {busy() ? t("Giriş yapılıyor…") : t("Giriş yap")}
             </button>
             <Show when={err()}>
-              <p class="error">{t(err())}</p>
+              <p class="error">{t(err().split("\n")[0])}</p>
+              <Show when={err().includes("\n")}>
+                <small class="f2-hint gl-detail" data-no-i18n>
+                  {err().split("\n").slice(1).join(" ")}
+                </small>
+              </Show>
             </Show>
             <small class="f2-hint">
               <Show when={source() === "libre"}>Sensörü takip eden LibreLinkUp (takipçi) hesabının bilgilerini gir. </Show>

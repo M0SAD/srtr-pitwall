@@ -1809,3 +1809,51 @@
 .fx .frow:has(.frow-unread) .frow-main {
   padding-right: 36px;
 }
+
+/* Çerçevesiz pencere: sağ üstte küçült / kapat (src/window/chrome.tsx) */
+.winbtns {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 400;
+  display: flex;
+}
+.winbtns button {
+  width: 34px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: #aab3c2;
+  cursor: pointer;
+}
+.winbtns button svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+.winbtns button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.winbtns button.x:hover {
+  background: #e5484d;
+}
+.cwin-tabs {
+  padding-right: 74px;
+}
+.fdock-panel.standalone .fst-me {
+  padding-right: 74px;
+}
+.fdock-panel.standalone > header {
+  padding-right: 74px;
+}
+/* Pencere kenarı (çerçevesizken içerik kenara yapışık görünmesin) */
+.cwin,
+.fdock-panel.standalone {
+  box-shadow: inset 0 0 0 1px #2a303b;
+}

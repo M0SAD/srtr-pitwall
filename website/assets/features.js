@@ -230,6 +230,14 @@ addDict({
     "FreeStyle Libre (LibreLinkUp), Dexcom (Share) ve Nightscout desteği|Değer, yön oku, değişim, ölçüm saati ve son 3 saatin mini grafiği|Düşük / yüksek ve çok düşük / çok yüksek için sesli ve görsel uyarı; sınırları sen belirlersin|5 tasarım, 6 hazır renk teması ve kendi renklerin; mg/dL ya da mmol/L|Giriş bilgileri yalnızca kendi bilgisayarında, şifreli saklanır",
     "Works with FreeStyle Libre (LibreLinkUp), Dexcom (Share) and Nightscout|Value, trend arrow, change, reading time and a mini graph of the last 3 hours|Sound and visual alerts for low / high and very low / very high; you set the limits|5 designs, 6 colour themes plus your own colours; mg/dL or mmol/L|Login details are stored encrypted on your own computer only",
   ],
+  ov_heartrate_d: [
+    "Akıllı saatinden ya da göğüs bandından anlık nabzın: atan kalp, BPM ve nabız bölgesi.",
+    "Your live heart rate from a smartwatch or chest strap: beating heart, BPM and heart-rate zone.",
+  ],
+  ov_heartrate_h: [
+    "Pulsoid, HypeRate ya da saatten bilgisayara doğrudan yerel gönderim (Apple Watch, Wear OS, Garmin, Bluetooth bantlar)|Nabızla birlikte atan kalp, BPM, nabız bölgesi ve mini grafik|5 tasarım: kart, şerit, bölge halkalı yuvarlak, EKG çizgisi, yalın büyük sayı|6 renk teması, kendi renklerin ya da bölgeye göre değişen renk|İsteğe bağlı yüksek nabız uyarısı (sesli ve görsel)",
+    "Pulsoid, HypeRate or a direct local push from the watch to your PC (Apple Watch, Wear OS, Garmin, Bluetooth straps)|A heart that beats with your pulse, BPM, heart-rate zone and a mini graph|5 designs: card, strip, circle with zone ring, ECG line, plain big number|6 colour themes, your own colours, or a colour that follows the zone|Optional high heart-rate alert (sound and visual)",
+  ],
   ov_dataframe_d: ["Seçtiğin tek bir değeri büyük gösteren kutu.", "A box showing one value of your choice, big."],
   ov_dataframe_h: [
     "Hız, vites, yakıt, delta, pozisyon, tur, sıcaklık, fren dengesi ve daha fazlası|Kendi gösterge düzenini kutu kutu kur",

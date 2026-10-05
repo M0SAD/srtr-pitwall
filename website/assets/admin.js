@@ -95,6 +95,7 @@ const OVERLAYS = [
   ["tracklimits", "Pist Limiti"],
   ["voice", "Sesli Mühendis altyazısı"],
   ["glucose", "Kan Şekeri"],
+  ["heartrate", "Kalp Atışı"],
   ["windcompass", "Rüzgâr Pusulası"],
 ];
 // Programın sol menüsünde gizlenebilen bölümler (Yönetim, Ayarlar ve Hesap gizlenemez)

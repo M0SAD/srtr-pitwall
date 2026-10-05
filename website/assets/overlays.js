@@ -43,7 +43,8 @@ export const OVERLAYS = [
       ["tires", "🛞", "free"],
       ["damage", "🛠️", "pro"],
       ["dataframe", "🔢", "free"],
-      ["glucose", "🩸", "free"],
+      ["glucose", "🩸", "pro"],
+      ["heartrate", "❤️", "free"],
       ["pitspeed", "🚧", "free"],
     ],
   ],
@@ -126,6 +127,7 @@ export const NAMES = {
   tires: ["Lastikler", "Tyres"],
   damage: ["Hasar Göstergesi", "Damage Indicator"],
   dataframe: ["Veri Kutusu", "Data Box"],
+  heartrate: ["Kalp Atışı", "Heart Rate"],
   glucose: ["Kan Şekeri", "Blood Glucose"],
   pitspeed: ["Pit Hızı", "Pit Speed"],
   fuel: ["Yakıt Hesaplayıcı", "Fuel Calculator"],
@@ -290,6 +292,10 @@ addDict({
   ovg_glucose: [
     "Diyabetli sürücüler için: sürekli şeker ölçüm sensörünün (FreeStyle Libre, Dexcom ya da Nightscout) değerini yarışırken ekranında gösterir. Kan damlası simgesinin yanında anlık değer, yükselip düştüğünü gösteren ok ve küçük bir grafik bulunur; şekerin belirlediğin sınırların altına düşerse ya da üstüne çıkarsa çerçeve yanıp söner ve uyarı sesi çalar. Böylece uzun bir yarışta telefona bakmadan durumunu takip edebilirsin. Giriş bilgilerin yalnızca kendi bilgisayarında saklanır. Tıbbi cihaz değildir.",
     "For drivers with diabetes: shows the reading from your continuous glucose monitor (FreeStyle Libre, Dexcom or Nightscout) on screen while you race. Next to a blood-drop icon you get the current value, an arrow showing whether it is rising or falling, and a small graph; if your glucose drops below or climbs above the limits you set, the frame flashes and an alert sounds. That way you can keep an eye on it during a long race without looking at your phone. Your login details stay on your own computer. Not a medical device.",
+  ],
+  ovg_heartrate: [
+    "Yarışırken nabzını ekranda gösterir: akıllı saatin ya da göğüs bandın kalp atışını ölçer, overlay da dakikadaki atış sayısını (BPM) nabzınla birlikte atan bir kalp simgesiyle çizer. Yanında en yüksek nabzına göre hangi bölgede olduğun ve son dakikaların küçük bir grafiği bulunur; yayın izleyicilerinin de çok sevdiği bir göstergedir. Pulsoid ya da HypeRate uygulamasıyla, ya da saatten bilgisayara doğrudan gönderimle çalışır. Tıbbi cihaz değildir.",
+    "Shows your pulse on screen while you race: your smartwatch or chest strap measures your heartbeat, and the overlay draws the beats per minute (BPM) next to a heart that beats along with it. Beside it you see which zone you are in relative to your maximum heart rate and a small graph of the last few minutes; stream viewers love it too. It works through the Pulsoid or HypeRate apps, or by pushing straight from the watch to your PC. Not a medical device.",
   ],
   ovg_dataframe: [
     "Seçtiğin tek bir değeri büyük ve okunaklı gösteren küçük bir kutu: hız, vites, yakıt, delta, pozisyon, tur, sıcaklık, fren dengesi ve daha fazlası. Birkaç kutuyu yan yana koyarak tam istediğin gösterge düzenini parça parça kurabilirsin.",

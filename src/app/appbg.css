@@ -78,3 +78,23 @@
   border-radius: 6px;
   border: 1px solid var(--line);
 }
+
+/* Açılır listeler ve menüler her zaman opak: uygulama arka planı açıkken paneller yarı saydamdır, ama açılan seçenek
+   listesi (işletim sisteminin çizdiği <option> katmanı) saydam renkle açık zemine düşüp okunmaz hâle geliyordu. */
+select option,
+select optgroup {
+  background-color: #171b22;
+  color: #e9edf3;
+}
+select option:disabled {
+  color: #7d8797;
+}
+.shell2.has-appbg select {
+  background-color: rgba(18, 20, 24, 0.86);
+}
+/* Kabuğun içinde açılan menü / pencere / ipucu katmanları: saydam panel renkleri yerine opak renkler */
+.shell2.has-appbg :is(.ovmenu, .ctx, .modal, .bp-back, .fmenu, .msgmenu, .llist-menu, .emoji-pop, .lnotice, .tooltip, [role="menu"], [role="dialog"], [role="listbox"]) {
+  --bg: #121418;
+  --bg-2: #181b21;
+  --bg-3: #1f232b;
+}

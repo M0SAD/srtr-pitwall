@@ -10,6 +10,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { session } from "@/cloud/supabase";
 import { CHAT_FRONT_KEY, myFriends, type Friend } from "@/cloud/social";
 import { statusChannel, usePings } from "@/cloud/pings";
+import { WinChrome } from "./chrome";
 import { myTeams } from "@/cloud/teams";
 import { myGroups } from "@/cloud/groups";
 import { Avatar, FriendsPanel, shownName, statusText } from "@/app/components/FriendsDock";
@@ -23,9 +24,12 @@ function NeedLogin() {
 export function FriendsWindow(props: { chat?: string }) {
   const [open] = createSignal(true);
   return (
-    <Show when={session()} fallback={<NeedLogin />}>
-      <FriendsPanel standalone open={open} initialChat={props.chat} />
-    </Show>
+    <>
+      <WinChrome drag=".fst-me, .fst-bar, .fdock-panel header, .fdock-empty" />
+      <Show when={session()} fallback={<NeedLogin />}>
+        <FriendsPanel standalone open={open} initialChat={props.chat} />
+      </Show>
+    </>
   );
 }
 
@@ -148,6 +152,8 @@ export function ChatWindow(props: { id: string }) {
     onCleanup(() => (un?.(), window.removeEventListener("focus", focus), document.removeEventListener("visibilitychange", vis)));
   });
   return (
+    <>
+    <WinChrome drag=".cwin-tabs, .cwin-body header, .fdock-empty" />
     <Show when={session()} fallback={<NeedLogin />}>
       <div class="cwin">
         <div class="cwin-tabs">
@@ -174,6 +180,7 @@ export function ChatWindow(props: { id: string }) {
         </div>
       </div>
     </Show>
+    </>
   );
 }
 

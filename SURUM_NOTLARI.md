@@ -3,6 +3,39 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-173
+
+- Ana pencere çerçevesiz: Windows başlık çubuğu yok. Pencere, üst çubuğun (sayfa adının yazdığı çubuk) boş bir yerinden tutulup taşınır; çift tık büyütür / eski boyutuna döndürür. Küçült, büyüt ve kapat düğmeleri üst çubuğun sağ ucunda (dil seçicinin yanında). Kenarlardan boyutlandırma aynen çalışır.
+
+## 051026-172
+
+- Yeni overlay: Kalp Atışı. Akıllı saatten / göğüs bandından anlık nabız: nabızla birlikte atan kalp, BPM, nabız bölgesi (en yüksek nabza göre) ve mini grafik.
+  - Kaynaklar: Pulsoid (erişim belirteciyle; Apple Watch, Wear OS, Garmin, Bluetooth bantlar), HypeRate (API anahtarı + oturum kimliği) ve yerel gönderim (saat / telefon uygulaması nabzı bu bilgisayardaki web sunucusuna yollar: `/hr/<anahtar>`; PUT, POST, GET; `heartRate:72`, `{"bpm":72}`, `?bpm=72`). Bağlantı, overlay ayarlarının başındaki "Nabız kaynağı" bölümünden kurulur; belirteç / anahtar yalnızca bu bilgisayarda şifreli saklanır.
+  - Tasarımlar: Kart, Şerit, Yuvarlak (bölge halkası), EKG çizgisi, Yalın. 6 renk teması, uygulama teması, kendi renklerin ya da bölgeye göre değişen renk. İsteğe bağlı yüksek nabız uyarısı (yanıp sönme + ses).
+  - Etkin ölçüm varsa önizlemede ve Demo modunda da gerçek değer görünür; yoksa önizleme, Demo ve düzenlemede normal aralıkta (yaklaşık 70–150) benzetilir.
+- Kan Şekeri: daha çok özelleştirme — damla için kendi rengin, çerçeve çizgisi aç / kapat, köşe yuvarlaklığı, gölge, değer yazı boyutu ("Kendi renklerim" temasındaki beş renk aynen duruyor). Sınır dışı uyarısı değer normale dönene kadar yanıp söner; önizlemede de durmaz (eskiden önizleme donunca duruyordu). Ayar: "Değer sınır dışındayken çerçeve yanıp sönsün".
+- Düzeltme: uygulama arka planı (degrade / görsel) açıkken açılır listelerin seçenekleri saydam zemine düşüp okunmuyordu; seçenek listeleri ve kabuk içindeki menü / pencere katmanları artık her zaman opak.
+- Web sitesi: Kalp Atışı overlay'i eklendi (13 dil).
+
+## 051026-171
+
+- Düzenler ve Yayın düzenleri: pencere yeterince genişse (1500 px ve üzeri) ayar sütununun yeri panel kapalıyken de ayrılır; ayarları kapatınca tuval ve üstündeki başlık sola kaymaz, yerinde kalır. Daha dar pencerede eskisi gibi tuval boşalan yere genişler.
+- Kan Şekeri: Demo modu açıkken de (ekranda ve önizlemede) giriş yapılmışsa gerçek ölçüm gösterilir; örnek veri yalnızca giriş yokken ya da henüz değer gelmemişken çıkar (170 ile birlikte).
+
+## 051026-170
+
+- Kan Şekeri: giriş yapılmışsa panel önizlemesinde (Overlaylarım, Düzenler / Yayın tuvali) örnek yerine gerçek değer görünür ve önizleme açıkken güncel kalır. Giriş yoksa ya da henüz değer gelmediyse örnek gösterilir. Sesli uyarı yine yalnızca ekrandaki overlay'de çalar.
+
+## 051026-169
+
+- Sohbet ve Arkadaşlar pencereleri çerçevesiz: Windows başlık çubuğu yok. Sohbet penceresi sekme çubuğunun (arkadaşın adının yazdığı çubuk) herhangi bir yerinden, Arkadaşlar penceresi üstteki profil çubuğundan / "Arkadaşlar" başlığından tutulup taşınır. Tıklama aynen çalışır (taşıma, imleç 4 px oynayınca başlar); çubuğa çift tık pencereyi büyütür. Küçült ve kapat düğmeleri pencerenin sağ üstünde. Kenarlardan boyutlandırma aynen çalışır.
+
+## 051026-168
+
+- Kan Şekeri: veri okuma sağlamlaştırıldı. İstekler artık HTTP/1.1 ile ve resmi uygulamadaki başlıklarla gidiyor; sunucu uygulamanın bağlantısını reddederse (JSON yerine engelleme sayfası / bağlantı hatası) aynı istek Windows'un kendi curl.exe'siyle yeniden denenir (bilgiler komut satırına yazılmaz). Rusya bölgesi adresi düzeltildi.
+- Kan Şekeri: hata olduğunda teknik özet de gösterilir (aşama · HTTP kodu · yol; ör. "giriş · HTTP 403 · doğrudan"): giriş kutusunda ve bağlıyken hesap satırının altında. Hesap satırına "Şimdi yenile" düğmesi eklendi (overlay ekranda olmasa da hemen okur).
+- Kan Şekeri overlay'i varsayılan olarak PRO (c90, yayında; Yönetim › PRO özellikleri'nden değiştirilebilir). Web sitesinde de PRO etiketiyle görünür.
+
 ## 051026-167
 
 - Web sitesi artık main dalına yapılan her push'ta yeniden yayınlanır (eskiden yalnızca website/ değişince). Arada push'lanmayan bir sürümün site değişiklikleri sonraki push'ta kendiliğinden yayına girer.
