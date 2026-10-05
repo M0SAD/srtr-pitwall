@@ -1,6 +1,6 @@
 import { For, Show, createMemo } from "solid-js";
 import { onScreen, type OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
 import { formatName } from "@/sdk/HeaderStats";
 import { irating, lapTime } from "@/sdk/format";
@@ -115,7 +115,7 @@ export default function HeadToHead(props: OverlayProps) {
 
   const visible = () => {
     if (!me() || !rival()) return false;
-    if (props.editing || useSample()) return true;
+    if (props.editing || useSample() || demoShow()) return true;
     if (o().raceOnly && !standings()?.race) return false;
     const max = num(o().maxGap, 0);
     const g = gap();

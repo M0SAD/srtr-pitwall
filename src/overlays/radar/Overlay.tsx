@@ -1,6 +1,6 @@
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import "./style.css";
 
 /** Araç boyu (m): yan yana sayılma sınırı */
@@ -24,7 +24,7 @@ export default function Radar(props: OverlayProps) {
   const y = (off: number) => 100 - (off / range()) * 90;
 
   return (
-    <Show when={props.editing || !props.options.hideWhenClear || active()}>
+    <Show when={props.editing || demoShow() || !props.options.hideWhenClear || active()}>
       <svg
         class="radar"
         viewBox="0 0 200 200"

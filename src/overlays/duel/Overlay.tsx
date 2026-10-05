@@ -1,6 +1,6 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useRows, useTopic } from "@/sdk/telemetry";
+import { useRows, useTopic, demoShow } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
 import { irating } from "@/sdk/format";
 import type { Row } from "@/sdk/types";
@@ -192,7 +192,7 @@ export default function Duel(props: OverlayProps) {
     const st = session()?.sessionType;
     return st == null || st === "" || /race|yarış/i.test(st);
   };
-  const visible = () => props.editing || ((!o().raceOnly || isRace()) && (unlimited() || !o().hideWhenAlone || anyoneNear()));
+  const visible = () => props.editing || demoShow() || ((!o().raceOnly || isRace()) && (unlimited() || !o().hideWhenAlone || anyoneNear()));
 
   const content = (r: Row, self: boolean) => (
     <>

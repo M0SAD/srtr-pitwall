@@ -82,6 +82,7 @@ const OVERLAYS = [
   ["ers", "ERS ve Batarya"],
   ["gapchart", "Fark Grafiği"],
   ["goalbar", "Hedef Çubuğu"],
+  ["socials", "Sosyal Hesaplar"],
   ["h2h", "Kafa Kafaya"],
   ["livechat", "Canlı Sohbet"],
   ["livepoll", "Sohbet Anketi"],

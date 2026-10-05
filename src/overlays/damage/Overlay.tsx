@@ -8,7 +8,7 @@
 
 import { For, Show, createMemo, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { t } from "@/sdk/i18n";
 import type { Damage } from "@/sdk/drivecues";
@@ -145,7 +145,7 @@ export default function DamageOverlay(props: OverlayProps) {
   };
   const visible = () => {
     if (!d()) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     return o().hideNone === false || any();
   };
   const style = (): JSX.CSSProperties => ({ "font-size": `${clamp(num(o().fontSize, 14), 10, 28)}px` });

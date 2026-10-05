@@ -1,0 +1,121 @@
+/* Sosyal Hesaplar. Renkler: --so-accent / --so-bg / --so-text; öğe başına --so-c (rozet), --so-ink (rozet yazısı). */
+.so {
+  --so-accent: #ff8a2a;
+  --so-bg: #15171c;
+  --so-text: #f2f4f8;
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  font-family: var(--ov-font, Inter, system-ui, sans-serif);
+  line-height: 1.15;
+  white-space: nowrap;
+  color: var(--so-text);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.so.so-app {
+  --so-accent: var(--ov-accent, #ff8a2a);
+  --so-bg: var(--ov-bg, #15171c);
+  --so-text: var(--ov-text, #f2f4f8);
+}
+.so.so-off {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+.so-a-center { justify-content: center; }
+.so-a-right { justify-content: flex-end; }
+.so-d-list { flex-direction: column; align-items: flex-start; }
+.so-d-list.so-a-center { align-items: center; }
+.so-d-list.so-a-right { align-items: flex-end; }
+
+.so-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  box-sizing: border-box;
+  padding: 0.32em 0.9em 0.32em 0.34em;
+  background: var(--so-bg);
+  border-radius: 999px;
+  flex: none;
+}
+.so-shadow .so-chip { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); }
+.so-s-card .so-chip { border-radius: 0.5em; border-left: 0.22em solid var(--so-c); padding-left: 0.45em; }
+.so-s-line .so-chip { border-radius: 0; background: none; box-shadow: none; border-bottom: 0.14em solid var(--so-c); padding: 0.2em 0.3em 0.3em 0; }
+.so-s-plain .so-chip { background: none; box-shadow: none; padding: 0.1em 0; }
+.so-s-line.so-shadow .so-tx,
+.so-s-plain.so-shadow .so-tx { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); }
+
+.so-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 50%;
+  background: var(--so-c);
+  color: var(--so-ink);
+  font-size: 0.82em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  flex: none;
+  overflow: hidden;
+}
+.so-s-card .so-ic { border-radius: 0.35em; }
+.so-i-outline .so-ic { background: none; color: var(--so-c); box-shadow: inset 0 0 0 0.13em var(--so-c); }
+.so-ic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.so-ic:has(img) { background: none; box-shadow: none; border-radius: 0.2em; }
+
+.so-tx { display: inline-flex; flex-direction: column; min-width: 0; }
+.so-tx small { font-size: 0.58em; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; }
+.so-tx b { font-weight: inherit; color: var(--so-name, inherit); }
+
+/* Sırayla tek hesap */
+.so-stage { position: relative; display: inline-flex; perspective: 600px; }
+.so-out { position: absolute; top: 0; left: 0; }
+.so-a-right .so-out { left: auto; right: 0; }
+.so-a-center .so-out { left: 50%; margin-left: 0; translate: -50% 0; }
+.so-in { animation: so-in-up 0.6s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+.so-out { animation: so-out-up 0.6s cubic-bezier(0.6, 0, 0.8, 0.3) both; }
+.so-t-slideLeft .so-in { animation-name: so-in-left; }
+.so-t-slideLeft .so-out { animation-name: so-out-left; }
+.so-t-fade .so-in { animation-name: so-in-fade; }
+.so-t-fade .so-out { animation-name: so-out-fade; }
+.so-t-flip .so-in { animation-name: so-in-flip; }
+.so-t-flip .so-out { animation-name: so-out-flip; }
+.so-t-zoom .so-in { animation-name: so-in-zoom; }
+.so-t-zoom .so-out { animation-name: so-out-zoom; }
+.so-t-blur .so-in { animation-name: so-in-blur; }
+.so-t-blur .so-out { animation-name: so-out-blur; }
+.so-t-wipe .so-in { animation-name: so-in-wipe; }
+.so-t-wipe .so-out { animation-name: so-out-wipe; }
+/* Rozet, yazıdan hemen önce "zıplayarak" gelir */
+.so-in .so-ic { animation: so-pop 0.55s 0.12s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+
+@keyframes so-pop { from { transform: scale(0) rotate(-90deg); } to { transform: none; } }
+@keyframes so-in-up { from { opacity: 0; transform: translateY(110%); } to { opacity: 1; transform: none; } }
+@keyframes so-out-up { from { opacity: 1; } to { opacity: 0; transform: translateY(-110%); } }
+@keyframes so-in-left { from { opacity: 0; transform: translateX(40%); } to { opacity: 1; transform: none; } }
+@keyframes so-out-left { from { opacity: 1; } to { opacity: 0; transform: translateX(-40%); } }
+@keyframes so-in-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes so-out-fade { from { opacity: 1; } to { opacity: 0; } }
+@keyframes so-in-flip { from { opacity: 0; transform: rotateX(-90deg); } to { opacity: 1; transform: none; } }
+@keyframes so-out-flip { from { opacity: 1; } to { opacity: 0; transform: rotateX(90deg); } }
+@keyframes so-in-zoom { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: none; } }
+@keyframes so-out-zoom { from { opacity: 1; } to { opacity: 0; transform: scale(1.4); } }
+@keyframes so-in-blur { from { opacity: 0; filter: blur(12px); } to { opacity: 1; filter: none; } }
+@keyframes so-out-blur { from { opacity: 1; } to { opacity: 0; filter: blur(12px); } }
+@keyframes so-in-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes so-out-wipe { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 0 100%); } }
+
+/* Simge sırası: yalnızca sıradaki hesabın yazısı açılır */
+.so-d-expand .so-chip { transition: padding 0.5s ease, background 0.5s ease; }
+.so-d-expand .so-tx { max-width: 22em; overflow: hidden; opacity: 1; transition: max-width 0.6s cubic-bezier(0.3, 0.9, 0.3, 1), opacity 0.4s ease; }
+.so-d-expand .so-chip:not(.so-open) { padding: 0.32em 0.34em; gap: 0; }
+.so-d-expand .so-chip:not(.so-open) .so-tx { max-width: 0; opacity: 0; }
+.so-d-expand .so-chip.so-open .so-ic { animation: so-bump 0.5s ease; }
+@keyframes so-bump { 40% { transform: scale(1.25); } }
+
+/* Kayan şerit */
+.so-d-ticker { overflow: hidden; display: block; mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.so-track { display: inline-flex; gap: 1.2em; padding-right: 1.2em; animation: so-marquee 20s linear infinite; }
+@keyframes so-marquee { to { transform: translateX(-50%); } }

@@ -5,7 +5,7 @@
 
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { formatName } from "@/sdk/HeaderStats";
 import { t } from "@/sdk/i18n";
@@ -107,7 +107,7 @@ export default function PitWindow(props: OverlayProps) {
   const visible = () => {
     const d = data();
     if (!d) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     if (o().raceOnly && !d.race) return false;
     return true;
   };

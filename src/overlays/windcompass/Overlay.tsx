@@ -4,7 +4,7 @@
 
 import { Show, createEffect, createMemo, createSignal, on, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { wind, windUnit } from "@/sdk/format";
 import { t } from "@/sdk/i18n";
@@ -87,7 +87,7 @@ export default function WindCompass(props: OverlayProps) {
 
   const visible = () => {
     if (!w()) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     return !(o().hideCalm && calm());
   };
   const style = (): JSX.CSSProperties => ({

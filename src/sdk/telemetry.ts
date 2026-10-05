@@ -273,3 +273,12 @@ export function useSnapshot(topics: () => Sub[], trigger: () => unknown, keepLiv
   });
   return Object.assign(live, { replay });
 }
+
+/**
+ * Kullanıcının açtığı Demo modu (panel önizleme verisi değil). Demoda her overlay görünür olmalı:
+ * "pitte gizle", "yalnızca yarışta", "belirli aralıklarla" gibi gizleme koşulları bu doğruyken uygulanmaz.
+ */
+export function demoShow(): boolean {
+  const s = useTopic("status")();
+  return !!s?.demo && !s?.preview;
+}

@@ -4,7 +4,7 @@
 
 import { Show, createEffect, createMemo, createSignal, on, onCleanup, type JSX } from "solid-js";
 import { previewFrozen, type OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { t } from "@/sdk/i18n";
 import type { TrackLimits } from "@/sdk/drivecues";
@@ -148,7 +148,7 @@ export default function TrackLimitsOverlay(props: OverlayProps) {
   const visible = () => {
     const x = d();
     if (!x) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     if (!x.onTrack) return false;
     if (o().hidePits && x.onPitRoad) return false;
     if (o().hideValid && state() !== "invalid" && state() !== "off" && !flash() && !penalty()) return false;

@@ -4,7 +4,7 @@
 
 import { For, Match, Show, Switch, createEffect, createMemo, createSignal, on, type JSX } from "solid-js";
 import { previewFrozen, type OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { gear as fmtGear, speed, speedUnit } from "@/sdk/format";
 import { t } from "@/sdk/i18n";
@@ -140,7 +140,7 @@ export default function BrakepointOverlay(props: OverlayProps) {
   const visible = () => {
     const d = m.data();
     if (!d) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     if (!d.onTrack) return false;
     if (o().hidePits !== false && d.onPitRoad) return false;
     if (o().hideIdle && d.hasRef && m.stage() === 0 && !m.diff()) return false;

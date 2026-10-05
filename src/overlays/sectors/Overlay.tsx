@@ -5,7 +5,7 @@
 
 import { For, Match, Show, Switch, createMemo, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { lapTime } from "@/sdk/format";
 import { t } from "@/sdk/i18n";
@@ -295,7 +295,7 @@ export default function SectorsOverlay(props: OverlayProps) {
   const visible = () => {
     const x = m.d();
     if (!x) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     return !(o().hidePits && x.onPitRoad);
   };
   const style = (): JSX.CSSProperties => ({

@@ -7,7 +7,7 @@
 
 import { For, Match, Show, Switch, createEffect, createMemo, createSignal, on, type JSX } from "solid-js";
 import { previewFrozen, type OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { t } from "@/sdk/i18n";
 import type { Ers } from "@/sdk/types";
@@ -221,7 +221,7 @@ export default function ErsOverlay(props: OverlayProps) {
   const visible = () => {
     const d = m.data();
     if (!d) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     if (!d.hasHybrid && o().hideNoHybrid !== false) return false;
     if (o().hidePits && d.onPitRoad) return false;
     return true;

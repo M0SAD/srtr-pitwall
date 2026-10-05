@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-180
+
+- Yeni overlay: **Sosyal Hesaplar** (Yayın grubu, ücretsiz). Hesaplarını overlay ayarlarından yazarsın: Twitch, YouTube, Kick, Instagram, TikTok, X, Facebook, Discord, web siten ve adını kendin verdiğin 2 özel hesap; boş bırakılan gösterilmez, sıra sürüklenerek değişir.
+  - 5 gösterim: sırayla tek hesap, simge sırası (sıradaki açılır), yan yana, alt alta, kayan şerit.
+  - 7 geçiş (sırayla tek hesap): yukarı kay, yana kay, yumuşak geçiş, takla, büyüyerek gel, bulanıktan netleş, perde; her hesabın süresi ayarlanır.
+  - 4 biçim (hap, kart, alt çizgili, yalnızca yazı), hizalama, yazı boyutu / kalınlığı, gölge, platform adını gösterme.
+  - Renkler: 5 hazır tema, uygulama teması ya da kendi renklerin; simgeler platformun renginde ya da vurgu renginde.
+  - Simgeler marka logosu değil, platformun kısaltmasını taşıyan renkli rozetlerdir; "Kendi simgelerim" bölümünden her hesap için kendi resmini yükleyebilirsin.
+  - "Belirli aralıklarla" görünme (ör. 5 dakikada bir 20 sn); Demo modunda ve önizlemede hep görünür, hesap girilmemişse örnek hesaplar gösterilir.
+  - Aynı düzende birden çok kopya eklenebilir. Web sitesine eklendi (14 dil).
+
+## 051026-179
+
+- Demo modunda bütün overlay'ler görünür kalır: gizleme koşulları demoda uygulanmaz. Sürücü Kartı "belirli aralıklarla" / "garajda" kipinde bile sürekli görünür. Aynısı şunlar için de geçerli: Hedef, Sürücü Değişimi, Geçiş Uyarısı, Spotter Çubuğu, Sektörler, Pit Penceresi, Pit Hız Limiti, Hasar, Pist Sınırları, Fren Noktası, Fark Grafiği, Stint, ERS, Olay Günlüğü, Düello, Rüzgar Pusulası, Kafa Kafaya, Dijital Bayraklar, Piste Dönüş, Radar (pitte gizle, yalnızca yarışta, boşken gizle, pist dışında gizle vb.). Garaj örtüsü (Sahne) bilerek dışarıda bırakıldı: demoda ekranı kapatmasın.
+
 ## 051026-178
 
 - Canlı Sohbet varsayılan kısayolları: sesli okuma aç / kapat F8 (eskiden F5), altyazı aç / kapat F7 (eskiden F6). Eski varsayılanda kalmış kurulumlar bir kez kendiliğinden yeni tuşlara geçer; kendi seçtiğin tuşa dokunulmaz, yeni tuş başka bir eyleme atanmışsa da değiştirilmez.

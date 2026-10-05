@@ -1,6 +1,6 @@
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import "./style.css";
 
 export default function Overtake(props: OverlayProps) {
@@ -12,7 +12,7 @@ export default function Overtake(props: OverlayProps) {
       .sort((a, b) => a.gap - b.gap)
       .slice(0, props.options.count as number),
   );
-  const show = () => props.editing || !props.options.hideEmpty || cars().length > 0;
+  const show = () => props.editing || demoShow() || !props.options.hideEmpty || cars().length > 0;
 
   return (
     <Show when={show()}>

@@ -4,7 +4,7 @@
 
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { clock } from "@/sdk/format";
 import { formatName } from "@/sdk/HeaderStats";
 import { t } from "@/sdk/i18n";
@@ -23,7 +23,7 @@ export default function DriverSwap(props: OverlayProps) {
   const visible = () => {
     const d = data();
     if (!d) return false;
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     return d.team || o().hideSolo === false;
   };
   const name = (n: string) => formatName(n, o().nameFormat) || "—";

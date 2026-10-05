@@ -5,7 +5,7 @@
 
 import { For, Match, Show, Switch, createMemo, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { t } from "@/sdk/i18n";
 import type { Row } from "@/sdk/types";
@@ -254,6 +254,7 @@ export default function GapChart(props: OverlayProps) {
   const visible = () => {
     if (props.editing) return true;
     if (!m.ready()) return false;
+    if (demoShow()) return true;
     return !(o().raceOnly && !m.race());
   };
   const h = () => clamp(num(o().chartHeight, 70), 40, 240);

@@ -3,7 +3,7 @@
 
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { clock, fuel as fuelFmt, fuelUnit, lapTime } from "@/sdk/format";
 import { t } from "@/sdk/i18n";
 import type { StratStint } from "@/sdk/types";
@@ -29,7 +29,7 @@ export default function Stint(props: OverlayProps) {
     return undefined;
   });
   const inPit = () => !!data()?.onPitRoad;
-  const visible = () => !!data() && (props.editing || !(o().hidePits && inPit()));
+  const visible = () => !!data() && (props.editing || demoShow() || !(o().hidePits && inPit()));
 
   const trendDir = (s: StratStint) => (!s.trendOk ? "none" : s.trend > FLAT ? "slower" : s.trend < -FLAT ? "faster" : "flat");
   const trendArrow = (s: StratStint) => ({ slower: "↗", faster: "↘", flat: "→", none: "·" })[trendDir(s)];

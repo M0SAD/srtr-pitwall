@@ -4,7 +4,7 @@
 
 import { Match, Show, Switch, createMemo, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { t } from "@/sdk/i18n";
 import { irating, lapTime } from "@/sdk/format";
 import { TireBadge } from "@/sdk/TireBadge";
@@ -269,7 +269,7 @@ export default function Target(props: OverlayProps) {
   const design = () => (o().design === "strip" ? "strip" : "card");
   const width = () => clamp(num(o().width, 300), 200, 700);
   const visible = () => {
-    if (props.editing) return true;
+    if (props.editing || demoShow()) return true;
     if (!m.rows()?.some((r) => r.isMe)) return false;
     if (o().raceOnly && !m.race()) return false;
     return !!m.row();

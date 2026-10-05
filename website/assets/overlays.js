@@ -75,6 +75,7 @@ export const OVERLAYS = [
       ["h2h", "🆚", "pro"],
       ["results", "🏅", "pro"],
       ["goalbar", "🥅", "mixed"],
+      ["socials", "📣", "free"],
       ["webview", "🌐", "free"],
     ],
   ],
@@ -149,6 +150,7 @@ export const NAMES = {
   h2h: ["Kafa Kafaya", "Head to Head"],
   results: ["Yarış Sonucu", "Race Result"],
   goalbar: ["Hedef Çubuğu", "Goal Bar"],
+  socials: ["Sosyal Hesaplar","Social Accounts"],
   webview: ["Webview", "Webview"],
   messages: ["Mesajlar", "Messages"],
   voice: ["Sesli Mühendis altyazısı", "Voice Engineer subtitles"],
@@ -377,6 +379,7 @@ addDict({
     "Damalı bayraktan sonra yarış sonucunu ekrana getirir: sınıfının ilk üçü bayrakları ve farklarıyla, altında kendi sonucun (sıra, kazandığın ya da kaybettiğin sıra, en iyi tur, olay puanı) ve tahmini iRating değişimi. Podyum ya da tablo görünümünü seçebilirsin; belirli bir süre ya da oturum bitene kadar ekranda kalır. Yayını güzel bir kapanışla bitirir.",
     "Brings up the race result after the chequered flag: the top three of your class with flags and gaps, then your own result (position, places gained or lost, best lap, incident points) and the estimated iRating change. Choose the podium or the table view; it stays for a set time or until the session ends. A neat way to close out a stream.",
   ],
+  ovg_socials: ["Yayın izleyicilerine seni nerede bulacaklarını gösterir. Overlay ayarlarına hesap adlarını yazarsın (Twitch, YouTube, Instagram, Discord ve diğerleri); overlay bunları ekranda sırayla, hoş geçişlerle döndürür ya da hepsini liste / kayan şerit olarak gösterir. Renkleri, biçimi, yazı boyutunu ve geçişi kendi yayın tasarımına göre ayarlayabilir, her hesap için kendi simgeni yükleyebilirsin. İstersen sürekli ekranda durmaz, belirlediğin aralıklarla kısa süreliğine belirir.","Tells your stream viewers where to find you. You type your account names into the overlay settings (Twitch, YouTube, Instagram, Discord and more); the overlay cycles through them on screen with smooth transitions, or shows them all as a list or scrolling ticker. You can match colours, shape, text size and transition to your stream design and upload your own icon for each account. If you prefer, it does not stay on screen all the time but appears briefly at the interval you set."],
   ovg_goalbar: [
     "Yayıncılar için hedef ilerleme çubuğu: “100 takipçi” ya da bir bağış hedefi gibi. Sayacı elle artırabilir ya da canlı sohbet uyarılarından (yeni takipçi, abone / üye, bağış) kendiliğinden saydırabilirsin. Başlık, hedef, yüzde ve istersen “son destekçi” satırı görünür. İnce çubuk ve ikonlu hap tasarımı ücretsiz, büyük hedef panosu PRO.",
     "A goal progress bar for streamers — “100 followers”, say, or a donation target. Bump the counter by hand or let it count automatically from live chat alerts (new followers, subs / members, donations). It shows a title, the target, the percentage and optionally a “latest supporter” line. The slim bar and icon pill designs are free; the big milestone board is PRO.",

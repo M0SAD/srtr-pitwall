@@ -1,6 +1,6 @@
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import "./style.css";
 
 export default function Rejoin(props: OverlayProps) {
@@ -21,7 +21,7 @@ export default function Rejoin(props: OverlayProps) {
   const label = () => ({ safe: "DÖNEBİLİRSİN", caution: "DİKKAT", wait: "BEKLE" })[state()];
 
   return (
-    <Show when={props.editing || need()}>
+    <Show when={props.editing || demoShow() || need()}>
       <div class={`ov-panel rj rj-${state()}`}>
         <div class="rj-state">{label()}</div>
         <Show when={behind().length > 0} fallback={<div class="ov-empty">Arkada yakın araç yok</div>}>

@@ -1,7 +1,7 @@
 import { Match, Show, Switch, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { overlayValueLocked } from "@/sdk/proFeatures";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { speed, speedUnit } from "@/sdk/format";
 import "./style.css";
 
@@ -15,7 +15,7 @@ export default function PitSpeed(props: OverlayProps) {
     const v = props.options.design as Design;
     return DESIGNS.includes(v) && !overlayValueLocked("pitspeed", "design", v) ? v : "default";
   });
-  const active = () => props.editing || props.options.show === "always" || !!(p()?.onPitRoad || p()?.approaching);
+  const active = () => props.editing || demoShow() || props.options.show === "always" || !!(p()?.onPitRoad || p()?.approaching);
   const limit = () => p()?.limit ?? 0;
   const v = () => p()?.speed ?? 0;
   const margin = () => ((props.options.margin as number) ?? 2) / 3.6;

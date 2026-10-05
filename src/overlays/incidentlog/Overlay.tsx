@@ -1,6 +1,6 @@
 import { For, Show, createMemo, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { clock, wallClock } from "@/sdk/format";
 import "./style.css";
 
@@ -20,7 +20,7 @@ export default function IncidentLog(props: OverlayProps) {
   const total = () => d()?.total ?? 0;
   const ratio = () => (limit() > 0 ? Math.min(1, total() / limit()) : 0);
   const fresh = (ts: number) => (props.options.flashSec as number) > 0 && now() - ts < (props.options.flashSec as number) * 1000;
-  const hidden = () => props.options.hideEmpty && !props.editing && rows().length === 0;
+  const hidden = () => props.options.hideEmpty && !props.editing && !demoShow() && rows().length === 0;
 
   return (
     <Show when={!hidden()}>

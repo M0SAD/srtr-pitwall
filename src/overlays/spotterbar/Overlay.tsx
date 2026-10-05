@@ -1,7 +1,7 @@
 import { For, Show, createMemo } from "solid-js";
 import { onScreen, type OverlayProps } from "@/sdk/overlay";
 import { overlayValueLocked } from "@/sdk/proFeatures";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import type { RadarCar } from "@/sdk/types";
 import "./style.css";
 
@@ -33,7 +33,7 @@ export default function SpotterBar(props: OverlayProps) {
   const inputs = useTopic("inputs");
   /** Pist dışında / düşük hızda gizle (sadece gerçek ekranda ve canlı veride) */
   const muted = () => {
-    if (props.editing || !onScreen()) return false;
+    if (props.editing || !onScreen() || demoShow()) return false;
     const st = status();
     if (!st || st.preview) return false;
     if (o().onlyOnTrack !== false && !st.onTrack) return true;

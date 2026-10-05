@@ -1,6 +1,6 @@
 import { For, Show, createMemo, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import type { FlagName } from "@/sdk/types";
 import "./style.css";
 
@@ -110,7 +110,7 @@ export default function DigiFlags(props: OverlayProps) {
   });
 
   return (
-    <Show when={props.editing || !props.options.hideWhenNone || active() || penalty()}>
+    <Show when={props.editing || demoShow() || !props.options.hideWhenNone || active() || penalty()}>
       <div class="dflag-wrap">
       <div
         class="dflag"

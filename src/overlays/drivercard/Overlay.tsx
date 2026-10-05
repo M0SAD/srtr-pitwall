@@ -1,6 +1,6 @@
 import { Show, createMemo, createSignal, onCleanup } from "solid-js";
 import { onScreen, previewFrozen, type OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { useTopic, demoShow } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
 import { LicenseBadge } from "@/sdk/LicenseBadge";
 import { formatName } from "@/sdk/HeaderStats";
@@ -52,7 +52,7 @@ export default function DriverCard(props: OverlayProps) {
 
   const visible = createMemo(() => {
     if (!me()) return false;
-    if (props.editing || !onScreen()) return true;
+    if (props.editing || !onScreen() || demoShow()) return true;
     const mode = o().mode;
     if (mode === "interval") {
       const every = clamp(num(o().everyMin, 5), 1, 60) * 60;
