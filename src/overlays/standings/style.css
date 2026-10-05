@@ -347,3 +347,8 @@
 .st-row.me .st-v {
   font-weight: var(--ov-weight-strong);
 }
+
+/* Sunucudan çıkmış sürücü: sırada kalır, soluk görünür */
+.st-row.gone {
+  opacity: 0.55;
+}

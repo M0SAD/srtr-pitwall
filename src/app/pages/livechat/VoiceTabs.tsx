@@ -286,7 +286,20 @@ export function TtsTab() {
             <div class="f2-cap">Çıkış cihazı</div>
             <select class="f2-select" value={v().device} onChange={(e) => setTts((x) => (x.device = e.currentTarget.value))}>
               <option value="">{t("Windows varsayılanı")}</option>
-              <For each={outputs() ?? []}>{(d) => <option value={d}>{d}</option>}</For>
+              {/* Cihaz listesi sonradan (eşzamansız) gelir: seçili olan `selected` ile işaretlenmezse kutu açılışta
+                  "Windows varsayılanı"nı gösterir. Kayıtlı cihaz o an takılı değilse de listede görünür. */}
+              <Show when={v().device && !(outputs() ?? []).includes(v().device)}>
+                <option value={v().device} selected data-no-i18n>
+                  {v().device}
+                </option>
+              </Show>
+              <For each={outputs() ?? []}>
+                {(d) => (
+                  <option value={d} selected={d === v().device} data-no-i18n>
+                    {d}
+                  </option>
+                )}
+              </For>
             </select>
           </div>
           <div class="f2">

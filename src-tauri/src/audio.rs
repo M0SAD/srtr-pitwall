@@ -19,6 +19,8 @@ pub enum Cmd {
     Beep { freq: f32, ms: u64, volume: f32, pan: f32 },
     /// Sürekli ton (yanında araç): None durdurur. pan -1 sol, 1 sağ
     Alongside(Option<(f32, f32, f32)>),
+    /// Çıkış cihazı (ad; boş: Windows varsayılanı). Aynı cihaz yeniden gönderilirse hiçbir şey olmaz.
+    Device(String),
 }
 
 static TX: OnceLock<Sender<Cmd>> = OnceLock::new();
@@ -59,15 +61,17 @@ fn pan_volumes(pan: f32, volume: f32) -> Vec<f32> {
 
 fn run(rx: &Receiver<Cmd>) {
     // Ses aygıtı yoksa (ör. sunucu) komutları sessizce tüket
-    let Ok((_stream, handle)) = OutputStream::try_default() else {
+    let Ok((mut _stream, mut handle)) = OutputStream::try_default() else {
         BUSY.store(false, Ordering::Relaxed);
         NO_DEVICE.store(true, Ordering::Relaxed);
         while rx.recv().is_ok() {}
         return;
     };
-    let Ok(voice) = Sink::try_new(&handle) else { return };
-    let Ok(spotter) = Sink::try_new(&handle) else { return };
-    let Ok(fx) = Sink::try_new(&handle) else { return };
+    let Ok(mut voice) = Sink::try_new(&handle) else { return };
+    let Ok(mut spotter) = Sink::try_new(&handle) else { return };
+    let Ok(mut fx) = Sink::try_new(&handle) else { return };
+    // Seçili çıkış cihazı ("" = Windows varsayılanı)
+    let mut device = String::new();
     let mut tone: Option<Sink> = None;
     let mut tone_key: Option<(i32, i32, i32)> = None;
 
@@ -97,6 +101,38 @@ fn run(rx: &Receiver<Cmd>) {
             }
         };
         match cmd {
+            Cmd::Device(name) => {
+                if name == device {
+                    continue;
+                }
+                // Cihaz bulunamazsa / açılamazsa Windows varsayılanına düşülür (ses hiç kesilmesin)
+                let opened = {
+                    use rodio::cpal::traits::HostTrait;
+                    use rodio::DeviceTrait;
+                    let dev = if name.is_empty() {
+                        None
+                    } else {
+                        rodio::cpal::default_host().output_devices().ok().and_then(|mut it| it.find(|d| d.name().map(|n| n == name).unwrap_or(false)))
+                    };
+                    match dev {
+                        Some(d) => OutputStream::try_from_device(&d).or_else(|_| OutputStream::try_default()),
+                        None => OutputStream::try_default(),
+                    }
+                };
+                let Ok((s, h)) = opened else { continue };
+                let (Ok(v), Ok(sp), Ok(f)) = (Sink::try_new(&h), Sink::try_new(&h), Sink::try_new(&h)) else { continue };
+                if let Some(t) = tone.take() {
+                    t.stop();
+                }
+                tone_key = None;
+                // Eski akıştaki sesler akışla birlikte kapanır; yenileri yeni cihazda çalar
+                voice = v;
+                spotter = sp;
+                fx = f;
+                handle = h;
+                _stream = s;
+                device = name;
+            }
             Cmd::Say { parts, spotter: is_spotter, volume, sub } => {
                 let sink = if is_spotter { &spotter } else { &voice };
                 if is_spotter {

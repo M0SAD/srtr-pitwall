@@ -517,6 +517,8 @@ export interface VoiceSettings {
   customDir: string;
   volume: number;
   spotterVolume: number;
+  /** Ses çıkış cihazının adı (boş: Windows varsayılanı) */
+  device: string;
   /** Argo ifadeler (sweary_ kayıtları) */
   sweary: boolean;
   /** Virajda (direksiyon çevrili / sert frende) önemsiz mesajları beklet */
@@ -1240,6 +1242,7 @@ export function defaultSettings(): AppSettings {
         customDir: "",
         volume: 80,
         spotterVolume: 100,
+        device: "",
         sweary: false,
         quietInCorners: false,
         ovalInsideOutside: false,

@@ -238,6 +238,8 @@ pub struct Row {
     pub flag: String,
     pub pos_change: i32,
     pub is_me: bool,
+    /// Sunucudan çıkmış (araç dünyada yok) ama resmi sıralamada duran sürücü: sıralama / sonuç listelerinde kalır
+    pub gone: bool,
     pub class_best: bool,
 }
 
@@ -802,8 +804,11 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
 pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
     let race = s.is_race(f.session_num);
     let entry = s.session(f.session_num);
+    // Sunucudan çıkan sürücüler de listede kalır: araç dünyada yoktur (pct < 0) ama resmi sırası durur. Yoksa yarışı
+    // bitirip çıkanlar tablodan düşer, podyum da "o an sunucuda kim varsa" ona göre dizilirdi.
+    let left = |i: usize| f.cars[i].pct < 0.0 && f.cars[i].position > 0 && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator);
     let mut idxs: Vec<usize> =
-        (0..MAX_CARS).filter(|&i| active(f, s, i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0)).collect();
+        (0..MAX_CARS).filter(|&i| active(f, s, i) || left(i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0)).collect();
     let has_pos = idxs.iter().any(|&i| f.cars[i].position > 0);
     if has_pos {
         idxs.sort_by_key(|&i| {
@@ -848,6 +853,11 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
     for (n, &i) in idxs.iter().enumerate() {
         let mut r = base_row(f, s, t, i);
         r.ir_delta = irs[i];
+        if left(i) {
+            r.gone = true;
+            r.on_pit = false;
+            r.pit_state = String::new();
+        }
         if !has_pos {
             r.pos = n as i32 + 1;
         }

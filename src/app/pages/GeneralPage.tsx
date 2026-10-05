@@ -1,3 +1,4 @@
+import { SimPicker } from "../components/SimPicker";
 import { LANGS, t } from "@/sdk/i18n";
 import { EditBackdropSettings } from "../components/Shots";
 import { setUserLang } from "@/cloud/supabase";
@@ -88,6 +89,13 @@ export function GeneralPage() {
 
       <section class="panel">
         <h3>Görüntü</h3>
+        <div class="row">
+          <div>
+            <b>Oyun</b>
+            <small>Otomatik: açık olan oyun kendiliğinden algılanır. Yalnızca birden çok oyun aynı anda açıksa ya da yanlış oyun algılanıyorsa elle seç.</small>
+          </div>
+          <SimPicker />
+        </div>
         <div class="row">
           <div>
             <b>Overlay monitörü</b>

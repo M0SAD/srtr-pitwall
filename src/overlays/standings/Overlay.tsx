@@ -283,7 +283,7 @@ export default function Standings(props: OverlayProps) {
                   r === null ? (
                     <div class="st-gap-row">⋯</div>
                   ) : (
-                    <div class="st-row" classList={{ me: r.isMe, pit: r.onPit }} style={r.isMe ? undefined : friendRowStyle("standings", r.userId, r.name)}>
+                    <div class="st-row" classList={{ me: r.isMe, pit: r.onPit, gone: !!r.gone }} style={r.isMe ? undefined : friendRowStyle("standings", r.userId, r.name)}>
                       <span class="st-accent" style={{ background: r.classColor || "#888" }} />
                       <span class="st-pos">{data()?.multiclass ? r.classPos : r.pos}</span>
                       <For each={columns()}>{(c) => col(c, r)}</For>

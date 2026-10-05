@@ -170,7 +170,7 @@ export function OverlaySettings(props: {
                 <div class="f2-cap">Monitör</div>
                 <select class="f2-select" value={inst()!.monitor} onChange={(e) => upd((o) => ((o.monitor = e.currentTarget.value), (o.x = 40), (o.y = 40)))}>
                   <option value="">Ana overlay monitörü</option>
-                  <For each={monitors()}>{(mo) => <option value={mo.name}>{monitorLabel(mo)}</option>}</For>
+                  <For each={monitors()}>{(mo) => <option value={mo.name} selected={mo.name === inst()!.monitor}>{monitorLabel(mo)}</option>}</For>
                 </select>
               </div>
             </Show>

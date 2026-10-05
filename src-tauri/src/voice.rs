@@ -83,6 +83,8 @@ pub struct VoiceCfg {
     pub custom_dir: String,
     pub volume: f32,
     pub spotter_volume: f32,
+    /// Ses çıkış cihazının adı (boş: Windows varsayılanı)
+    pub device: String,
     /// "Argo ifadeler": sweary_ kayıtları da çalınsın
     pub sweary: bool,
     /// Virajda (direksiyon çevrili / sert frende) önemsiz mesajları beklet
@@ -108,6 +110,7 @@ impl Default for VoiceCfg {
             custom_dir: String::new(),
             volume: 80.0,
             spotter_volume: 100.0,
+            device: String::new(),
             sweary: false,
             quiet_in_corners: false,
             oval_inside_outside: false,
@@ -543,6 +546,8 @@ impl Voice {
         };
         // Altyazı ("Sesli Mühendis" overlay'i): söylenen ifadelerin katalogdaki metni, paket dilinde
         let sub = crate::voicesub::start(spotter, voicepack::subtitle(parts, pack.turkish()));
+        // Çıkış cihazı: ses iş parçacığı aynı cihaz için hiçbir şey yapmaz
+        audio::send(Cmd::Device(self.cfg.device.clone()));
         audio::send(Cmd::Say {
             parts: files,
             spotter,

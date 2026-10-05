@@ -91,6 +91,7 @@ export function VoicePage() {
     () => [v().pack, v().customDir, v().enabled] as const,
     () => invoke<VoiceInfo>("voice_info").catch((e) => ({ error: String(e) }) as VoiceInfo),
   );
+  const [outputs] = createResource(() => invoke<string[]>("livechat_audio_outputs").catch(() => [] as string[]));
   const [packs, { refetch: refetchPacks }] = createResource(() => invoke<InstalledPack[]>("voice_packs_installed").catch(() => [] as InstalledPack[]));
   const [msg, setMsg] = createSignal("");
   const [dir, setDir] = createSignal(v().customDir);
@@ -206,6 +207,27 @@ export function VoicePage() {
             <div class="f2-cap">Spotter ses düzeyi</div>
             <Slider value={v().spotterVolume} min={0} max={100} step={5} unit="%" onInput={(n) => set((x) => (x.spotterVolume = n))} />
           </div>
+        </div>
+        <div class="row">
+          <div>
+            <b>Ses çıkış cihazı</b>
+            <small>Mühendis ve spotter sesinin çalacağı hoparlör / kulaklık. Bir sonraki konuşmadan itibaren geçerli olur.</small>
+          </div>
+          <select class="f2-select" style={{ "max-width": "320px" }} value={v().device ?? ""} onChange={(e) => set((x) => (x.device = e.currentTarget.value))}>
+            <option value="">{t("Windows varsayılanı")}</option>
+            <Show when={v().device && !(outputs() ?? []).includes(v().device)}>
+              <option value={v().device} selected data-no-i18n>
+                {v().device}
+              </option>
+            </Show>
+            <For each={outputs() ?? []}>
+              {(d) => (
+                <option value={d} selected={d === v().device} data-no-i18n>
+                  {d}
+                </option>
+              )}
+            </For>
+          </select>
         </div>
         <div class="row">
           <div>

@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-188
+
+- Lider Tablosu: sunucudan çıkan sürücüler artık listede kalır (soluk görünür); yarışı bitirip çıkanlar tablodan düşmez. Resmi sırası olan (pozisyonu bilinen) sürücüler için geçerlidir.
+- Yarış Sonucu (podyum): podyum resmi sınıf sırasına göre dizilir (1., 2., 3.); o an sunucuda kalan ilk üç kişiye göre değil. Çıkan sürücüler de sonuç tablosunda yer alır.
+- Sesli Mühendis: yeni "Ses çıkış cihazı" ayarı (mühendis, spotter ve uyarı sesleri seçilen hoparlör / kulaklıkta çalar; boş: Windows varsayılanı; cihaz bulunamazsa varsayılana düşer).
+- Canlı Sohbet › Sesli okuma: seçilen çıkış cihazı uygulama yeniden açılınca kutuda "Windows varsayılanı" görünüyordu (ayar kayıtlıydı, kutu yanlış gösteriyordu); düzeltildi. Kayıtlı cihaz o an takılı değilse de adıyla görünür. Overlay ayarlarındaki "Monitör" kutusunda aynı düzeltme.
+- Üst çubuktaki oyun seçici (Otomatik + oyun simgeleri) kaldırıldı; Ayarlar › Genel › Görüntü › "Oyun" satırına taşındı.
+- Üst çubuk: pencere daralınca düğme yazıları (ör. "Sohbet açık") alt alta kırılmaz; sığmıyorsa punto ve boşluklar pencereyle birlikte küçülür.
+
 ## 051026-187
 
 - Radar: yeni "Aynala (sol / sağ ters görünüyorsa)" ayarı. iRacing dışındaki bazı oyunlarda yandaki araç ters tarafta görünebiliyor; açılınca sol ve sağ yer değiştirir (yan araçlar ve kırmızı yan bölgeler). Varsayılan kapalı; iRacing'de kapalı kalmalı.

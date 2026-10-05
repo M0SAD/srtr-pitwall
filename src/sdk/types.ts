@@ -184,6 +184,8 @@ export interface Row {
   flag: "" | "BLK" | "DSQ" | "REP" | "BLU";
   posChange: number;
   isMe: boolean;
+  /** Sunucudan çıkmış ama resmi sıralamada duran sürücü (yalnızca "standings") */
+  gone?: boolean;
   classBest: boolean;
 }
 

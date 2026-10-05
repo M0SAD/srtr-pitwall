@@ -5194,3 +5194,40 @@ button.ovpal-lock:hover {
 .cbadge.sel .cbadge-grip {
   opacity: 1;
 }
+
+/* Üst çubuk: pencere daralınca yazılar alt alta kırılmaz; sığmıyorsa punto ve boşluklar pencereyle birlikte küçülür */
+.top2 {
+  gap: clamp(6px, 1vw, 16px);
+  padding: 0 clamp(8px, 1.1vw, 18px) 0 clamp(10px, 1.4vw, 22px);
+  min-width: 0;
+}
+.top2 h1 {
+  font-size: clamp(13px, 1.45vw, 21px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.top2-right {
+  gap: clamp(3px, 0.55vw, 8px);
+  flex: none;
+  white-space: nowrap;
+}
+.top2-right .top-toggle,
+.top2-right .btn {
+  white-space: nowrap;
+  flex: none;
+  font-size: clamp(9.5px, 0.86vw, 12.5px);
+  padding: clamp(3px, 0.4vw, 6px) clamp(4px, 0.68vw, 10px);
+  gap: clamp(3px, 0.48vw, 7px);
+}
+.top2-right .top-toggle svg,
+.top2-right .btn svg {
+  width: clamp(11px, 1vw, 15px);
+  height: clamp(11px, 1vw, 15px);
+  flex: none;
+}
+.top2-right .top-switch {
+  flex: none;
+}

@@ -22,7 +22,6 @@ import { setCrewFocus } from "@/cloud/crew";
 import { NoticeBell } from "./components/Moderation";
 import { FriendsDock } from "./components/FriendsDock";
 import * as LC from "@/sdk/livechat";
-import { SimPicker } from "./components/SimPicker";
 import { LangPicker } from "./components/LangPicker";
 import { WinChrome } from "@/window/chrome";
 import { loadNotices } from "@/cloud/moderation";
@@ -301,7 +300,6 @@ export function App() {
           <Show when={isPro() && settings().general.livechat.topButton}>
             <ChatStartButton />
           </Show>
-          <SimPicker />
           <NoticeBell />
           <span class={`conn-dot ${conn().cls}`} role="img" tabindex="0" aria-label={conn().lines.join(" · ")}>
             <i />

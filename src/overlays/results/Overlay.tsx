@@ -95,7 +95,8 @@ export default function Results(props: OverlayProps) {
       .filter((r) => r.classPos > 0 && (!m || r.classId === m.classId))
       .sort((a, b) => a.classPos - b.classPos);
   });
-  const podium = createMemo(() => field().slice(0, 3));
+  // Podyum resmi sınıf sırasına göre: 1., 2., 3. (o an listede olan ilk üç kişi değil)
+  const podium = createMemo(() => field().filter((r) => r.classPos <= 3).slice(0, 3));
   const table = createMemo(() => {
     const n = clamp(Math.round(num(o().topN, 5)), 3, 12);
     const top = field().slice(0, n);
