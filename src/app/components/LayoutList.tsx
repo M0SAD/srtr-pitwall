@@ -16,6 +16,7 @@ import ArrowDown from "lucide-solid/icons/arrow-down";
 import { t } from "@/sdk/i18n";
 import { defaultProfileId, setDefaultProfile, settings, updateSettings, type Profile } from "@/sdk/settings";
 import * as I from "../icons";
+import { copyProfileBackdrop } from "./Shots";
 
 export type LayoutKind = "layout" | "stream";
 
@@ -75,6 +76,8 @@ export function duplicateProfile(id: string): string | null {
     delete p.isDefault;
     d.profiles[nid] = p;
   });
+  // Kopya aynı tuval arka planıyla görünür (kaynağın kendi görseli varsa kopyaya da yazılır)
+  if (src.backdrop?.own) void copyProfileBackdrop(id, nid);
   return nid;
 }
 

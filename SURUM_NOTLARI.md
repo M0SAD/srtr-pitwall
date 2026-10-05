@@ -3,6 +3,35 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-185
+
+- Tuval arka planı artık her düzen için ayrı (Düzenler ve Yayın sayfaları): "Arka plan" kutusu ve görsel seçici yalnızca seçili düzeni etkiler; her düzene başka görsel seçebilir, birinde kapatıp diğerinde açık bırakabilirsin.
+  - Düzende hiç ayar yapılmadıysa eskisi gibi sayfanın ortak arka planı görünür (güncellemeyle hiçbir şey değişmez).
+  - Düzen kopyalanınca (sağ tık › Düzeni kopyala) kopya aynı arka planla gelir; sonra ayrı değiştirilebilir.
+  - Seçicideki "Kaldır" düzenin kendi görselini siler, düzen ortak arka plana döner.
+  - Görseller bu bilgisayarda saklanır (hesapla eşitlenmez); saydamlık ayarı ortak kalır (Ayarlar › Genel › Düzenleme ekranı).
+
+## 051026-184
+
+- Düzen tuvalinde çoklu seçim artık gerçekten birlikte taşınır (ok tuşları ve fareyle sürükleme): ilk taşımadan sonra seçim kendiliğinden siliniyor, sonraki adımlarda hiçbiri ya da yalnızca biri hareket ediyordu. Neden: düzen kimliğini izleyen kod, ayar her değiştiğinde "düzen değişti" sanıp seçimi sıfırlıyordu.
+
+## 051026-183
+
+- SRTR Pitwall logosu artık her düzende (düzenler ve yayın düzenleri) ayrı ayarlanır (ücretli PRO): bir düzende gizleyip diğerinde gösterebilir, her düzende başka yere taşıyabilir ve boyutunu değiştirebilirsin (%50–%250).
+  - Tuvalde sürükle: taşı; sağ alt köşedeki tutamak: boyutlandır; çift tık: varsayılana dön. Yayın sayfasında logo seçiliyken "Logo boyutu" kaydırıcısı ve "Varsayılan konum ve boyuta döndür" düğmesi var.
+  - "Varsayılana döndür" her zaman ilk yere (sağ üst köşe, %100) döner.
+  - Daha önce taşıdığın ortak konum bir kez bütün düzenlere aktarılır (görünüm değişmez); "Logo" kutusu / gizleme ayarı o düzende ayrıca değiştirilene kadar eski ortak ayarı izler.
+  - PRO olmayanlarda değişiklik yok: logo sağ üstte, sabit boyutta görünür.
+
+## 051026-182
+
+- Sosyal Hesaplar: simgeler varsayılan olarak platform logosu (Twitch, YouTube, Kick, Instagram, TikTok, X, Facebook, Discord, Web). "Simge" ayarında yeni "Platform logosu" seçeneği varsayılandır; kısaltmalı dolu / çerçeveli rozet ve "simge yok" duruyor, "Kendi simgelerim"den yüklenen resim yine önceliklidir.
+- Overlaylarım: listenin üstünde arama kutusu. Yazdığın metin adında geçen overlayler kalır (ör. "pit": Pit Penceresi, Pit Hız Limiti…); büyük / küçük harf ve Türkçe karakter farkı gözetilmez, uygulama diliyle ya da Türkçe adıyla aranır. Esc ya da kutuyu boşaltmak listeyi geri getirir.
+
+## 051026-181
+
+- Düzen tuvalinde çoklu seçim ok tuşlarıyla birlikte taşınır (Shift: 10 px): önceden yalnızca bir overlay hareket ediyordu. Kilitli olanlar yerinde kalır.
+
 ## 051026-180
 
 - Yeni overlay: **Sosyal Hesaplar** (Yayın grubu, ücretsiz). Hesaplarını overlay ayarlarından yazarsın: Twitch, YouTube, Kick, Instagram, TikTok, X, Facebook, Discord, web siten ve adını kendin verdiğin 2 özel hesap; boş bırakılan gösterilmez, sıra sürüklenerek değişir.

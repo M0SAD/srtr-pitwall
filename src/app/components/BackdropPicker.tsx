@@ -6,13 +6,22 @@ import { invoke } from "@tauri-apps/api/core";
 import { settings, type EditBackdropSlot } from "@/sdk/settings";
 import { cloudEnabled } from "@/cloud/supabase";
 import { searchShots, shotThumbUrl, shotUrl, type SharedShot } from "@/cloud/shots";
-import { ShotThumb, clearEditBackdrop, importEditBackdrop, listShots, setEditBackdropFromShot, type LocalShot } from "./Shots";
+import { ShotThumb, clearEditBackdrop, importEditBackdrop, listShots, profileBackdropSlot, setEditBackdropFromShot, type BackdropTarget, type LocalShot } from "./Shots";
 import "./backdrop-picker.css";
 
 type Tab = "mine" | "community" | "upload";
 
 /** slot: hangi düzenleme ekranının arka planı seçiliyor (her birinin görseli ayrıdır) */
-export function BackdropPicker(props: { slot: EditBackdropSlot; onClose: () => void }) {
+export function BackdropPicker(props0: { slot: EditBackdropSlot; profileId?: string; onClose: () => void }) {
+  // profileId verilirse görsel yalnızca o düzene yazılır ("p-<kimlik>"); "Kaldır" düzenin kendi görselini siler (ortak görsele döner)
+  const own = () => (props0.profileId ? profileBackdropSlot(props0.profileId) : undefined);
+  const props = {
+    get slot(): BackdropTarget {
+      return own() ?? props0.slot;
+    },
+    onClose: () => props0.onClose(),
+  };
+  const hasImage = () => (own() ? !!settings().profiles[props0.profileId!]?.backdrop?.own : settings().general.editBackdrops[props0.slot].has);
   const [tab, setTab] = createSignal<Tab>("mine");
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
@@ -49,7 +58,7 @@ export function BackdropPicker(props: { slot: EditBackdropSlot; onClose: () => v
         <header>
           <b>Arka plan görseli seç</b>
           <span class="bp-sp" />
-          <Show when={settings().general.editBackdrops[props.slot].has}>
+          <Show when={hasImage()}>
             <button class="bp-btn danger" disabled={busy()} onClick={() => run(() => clearEditBackdrop(props.slot))}>
               Kaldır
             </button>
@@ -136,7 +145,7 @@ export function BackdropPicker(props: { slot: EditBackdropSlot; onClose: () => v
 }
 
 /** Düzenleme arka planı görseli (blob adresi); active false iken yüklenmez */
-export function useEditBackdrop(slot: () => EditBackdropSlot | undefined) {
+export function useEditBackdrop(slot: () => EditBackdropSlot | undefined, profileId?: () => string | undefined) {
   const [url, setUrl] = createSignal<string | null>(null);
   let cur: string | null = null;
   const release = () => {
@@ -148,6 +157,12 @@ export function useEditBackdrop(slot: () => EditBackdropSlot | undefined) {
       () => {
         const sl = slot();
         const eb = sl ? settings().general.editBackdrops[sl] : undefined;
+        // Düzenin kendi görseli / kendi aç-kapa ayarı varsa o geçerli; yoksa ortak yer
+        const pid = profileId?.();
+        const pb = pid ? settings().profiles[pid]?.backdrop : undefined;
+        const ownSlot = pid && pb?.own ? profileBackdropSlot(pid) : undefined;
+        if (sl && pb && (ownSlot || pb.enabled !== undefined))
+          return [(pb.enabled ?? !!eb?.enabled) && (!!ownSlot || !!eb?.has), `${pb.rev ?? 0}:${eb?.rev ?? 0}`, ownSlot ?? sl] as const;
         return [!!eb && eb.enabled && eb.has, eb?.rev, sl] as const;
       },
       async ([want, , sl]) => {
@@ -156,7 +171,7 @@ export function useEditBackdrop(slot: () => EditBackdropSlot | undefined) {
         if (!want) return;
         try {
           const buf = await invoke<ArrayBuffer>("edit_backdrop_read", { slot: sl });
-          if (sl !== slot()) return;
+          if (!sl || (!sl.startsWith("p-") && sl !== slot())) return;
           cur = URL.createObjectURL(new Blob([buf], { type: "image/jpeg" }));
           setUrl(cur);
         } catch {

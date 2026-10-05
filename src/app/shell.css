@@ -5141,3 +5141,56 @@ button.ovpal-lock:hover {
 .shell2 {
   box-shadow: inset 0 0 0 1px #20242c;
 }
+
+/* Overlaylarım: liste üstündeki arama kutusu */
+.ovlist-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 8px 0;
+  padding: 0 8px;
+  height: 32px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--muted);
+  flex: none;
+}
+.ovlist-search:focus-within {
+  border-color: var(--accent);
+}
+.ovlist-search svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.ovlist-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+/* Tuvaldeki logo: sağ alt köşeden boyutlandırma tutamağı (ücretli PRO) */
+.cbadge-grip {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.6);
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+  touch-action: none;
+}
+.cbadge:hover .cbadge-grip,
+.cbadge.sel .cbadge-grip {
+  opacity: 1;
+}

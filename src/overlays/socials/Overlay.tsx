@@ -4,6 +4,11 @@ import { demoShow } from "@/sdk/telemetry";
 import manifest, { SOCIALS, SOCIAL_THEMES } from "./manifest";
 import "./style.css";
 
+// Platform logoları (kullanıcının sağladığı görseller, 128 px): "Simge: Platform logosu" seçiliyken varsayılan simge
+const LOGOS = Object.fromEntries(
+  Object.entries(import.meta.glob("./icons/*.png", { eager: true, import: "default" }) as Record<string, string>).map(([p, url]) => [p.replace(/^.*\/|\.png$/g, ""), url]),
+);
+
 // Sosyal Hesaplar: kullanıcının ayarlardan girdiği hesapları 5 farklı biçimde gösterir.
 // Marka logosu çizilmez: rozet, platform adının kısaltması + platform rengidir; kullanıcı isterse kendi simgesini yükler.
 
@@ -121,12 +126,15 @@ export default function Socials(props: OverlayProps) {
     };
   };
 
+  /** Simge: platform logosu (varsayılan; eski kayıtlarda ayar yoksa da) */
+  const logo = () => !["badge", "outline", "none"].includes(o().iconStyle);
+
   const Chip = (p: { it: Item; open?: boolean; class?: string }) => (
     <div class={`so-chip ${p.class ?? ""}`} classList={{ "so-open": p.open !== false }} style={itemStyle(p.it)}>
       <Show when={o().iconStyle !== "none" || design() === "expand"}>
         <span class="so-ic" data-no-i18n>
-          <Show when={p.it.img} fallback={p.it.tag}>
-            <img src={p.it.img} alt="" />
+          <Show when={p.it.img || (logo() ? LOGOS[p.it.id] : "")} fallback={p.it.tag}>
+            {(src) => <img src={src()} alt="" />}
           </Show>
         </span>
       </Show>

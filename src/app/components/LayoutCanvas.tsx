@@ -15,7 +15,7 @@ import { ContextMenu, type MenuState } from "@/host/ContextMenu";
 import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 import { t } from "@/sdk/i18n";
 import LockIcon from "lucide-solid/icons/lock";
-import { BADGE, StreamBadgeMark, badgeFactor, badgePosOf, badgeRect, pushOutOfBadge, rectsHit, type BadgePos } from "@/sdk/streamBadge";
+import { BADGE, BADGE_SCALE, StreamBadgeMark, badgeFactor, clampBadgeScale, badgePosOf, badgeRect, pushOutOfBadge, rectsHit, type BadgePos } from "@/sdk/streamBadge";
 
 /** Tuvalin üstünde kısa süre görünen bilgi (kilitli düzen / kilitli overlay'de engellenen işlem) */
 const [canvasNotice, setCanvasNotice] = createSignal<{ text: string; n: number } | null>(null);
@@ -46,6 +46,12 @@ export interface CanvasBadge {
   pos?: BadgePos;
   /** Taşındı (sadece kilitli değilken çağrılır) */
   onMove?: (pos: BadgePos) => void;
+  /** Boyut çarpanı (kilitliyken 1) */
+  scale?: number;
+  /** Köşeden boyutlandırıldı: yeni çarpan ve (sol üst köşe yerinde kalsın diye) yeni konum */
+  onScale?: (scale: number, pos: BadgePos) => void;
+  /** Çift tık: varsayılan konum ve boyuta döndür */
+  onReset?: () => void;
 }
 
 export interface CanvasProps {
@@ -272,7 +278,10 @@ export function LayoutCanvas(props: CanvasProps) {
     });
   });
   // Düzen değişince çoklu seçim sıfırlanır; silinen kopyalar seçimden düşer
-  createEffect(on(() => props.profileId, () => setMulti([]), { defer: true }));
+  // (Kimlik bir memo'dan okunur: `on` değeri karşılaştırmaz, ayar her değiştiğinde tetiklenip seçimi siliyordu;
+  //  çoklu seçimde ilk taşımadan sonra seçim kayboluyor, yalnızca bir overlay hareket ediyordu.)
+  const profId = createMemo(() => props.profileId);
+  createEffect(on(profId, () => setMulti([]), { defer: true }));
   createEffect(() => {
     const keys = props.keys;
     const cur = multi();
@@ -331,20 +340,56 @@ export function LayoutCanvas(props: CanvasProps) {
   const k = createMemo(() => Math.min(boxW() / props.width, 620 / props.height) * (props.zoom ?? 1));
   const g = () => settings().general;
   const vars = createMemo(() => themeVars(settings().theme));
-  const bg = useEditBackdrop(() => props.backdrop);
+  const bg = useEditBackdrop(() => props.backdrop, () => props.profileId);
   // Sağ tık menüsü (düzenleme ekranındakiyle aynı)
   const [menu, setMenu] = createSignal<MenuState | null>(null);
   const screen = () => ({ w: props.width, h: props.height });
   /** Logo sürüklenirken geçici konum (tuval pikseli) */
   const [bDrag, setBDrag] = createSignal<{ x: number; y: number } | null>(null);
+  /** Logo köşeden boyutlandırılırken geçici çarpan */
+  const [bSize, setBSize] = createSignal<number | null>(null);
   const bPos = () => (props.badge?.forced ? undefined : props.badge?.pos);
+  const bScale = () => (props.badge?.forced ? 1 : bSize() ?? clampBadgeScale(props.badge?.scale));
   const bRect = createMemo(() => {
-    const r = badgeRect(screen(), bPos());
+    const r = badgeRect(screen(), bPos(), props.badge?.forced ? 1 : clampBadgeScale(props.badge?.scale));
+    const z = bSize();
+    if (z != null) {
+      // Sol üst köşe sabit; tuvale sığacak kadar büyür
+      const f = badgeFactor(screen()) * z;
+      return { x: r.x, y: r.y, w: BADGE.w * f, h: BADGE.h * f };
+    }
     const d = bDrag();
     return d ? { ...r, x: d.x, y: d.y } : r;
   });
+  /** Köşe tutamağı: sürükleyince logo büyür / küçülür (sol üst köşe yerinde) */
+  const badgeResize = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const b = props.badge!;
+    if (b.forced || !b.onScale) return;
+    b.onPick();
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    const o = bRect();
+    const sx = e.clientX;
+    const base = BADGE.w * badgeFactor(screen());
+    const fit = Math.min((props.width - o.x) / base, (props.height - o.y) / (BADGE.h * badgeFactor(screen())));
+    const move = (ev: PointerEvent) => setBSize(Math.max(BADGE_SCALE.min, Math.min(BADGE_SCALE.max, fit, (o.w + (ev.clientX - sx) / k()) / base)));
+    const up = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      const z = bSize();
+      if (z != null) b.onScale!(z, badgePosOf(o.x, o.y, screen(), z));
+      setBSize(null);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  };
   const bClamp = (x: number, y: number) => {
-    const r = badgeRect(screen(), bPos());
+    const r = bRect();
     return { x: Math.max(0, Math.min(x, props.width - r.w)), y: Math.max(0, Math.min(y, props.height - r.h)) };
   };
   /** Logoya basıldı: kilitliyse sadece seçer; değilse sürüklenebilir (tuvalin içinde kalır) */
@@ -371,7 +416,7 @@ export function LayoutCanvas(props: CanvasProps) {
       el.removeEventListener("pointerup", up);
       el.removeEventListener("pointercancel", up);
       const d = bDrag();
-      if (d) b.onMove!(badgePosOf(d.x, d.y, screen()));
+      if (d) b.onMove!(badgePosOf(d.x, d.y, screen(), bScale()));
       setBDrag(null);
     };
     el.addEventListener("pointermove", move);
@@ -389,7 +434,7 @@ export function LayoutCanvas(props: CanvasProps) {
       e.preventDefault();
       const r = bRect();
       const q = bClamp(r.x + d[0], r.y + d[1]);
-      if (q.x !== r.x || q.y !== r.y) b.onMove(badgePosOf(q.x, q.y, screen()));
+      if (q.x !== r.x || q.y !== r.y) b.onMove(badgePosOf(q.x, q.y, screen(), bScale()));
     };
     window.addEventListener("keydown", key);
     onCleanup(() => window.removeEventListener("keydown", key));
@@ -466,11 +511,12 @@ export function LayoutCanvas(props: CanvasProps) {
               class="cbadge"
               classList={{ off: !b().shown, sel: b().selected, forced: b().forced, warn: badgeOverlap() }}
               style={{ left: `${bRect().x * k()}px`, top: `${bRect().y * k()}px`, width: `${bRect().w * k()}px`, height: `${bRect().h * k()}px` }}
-              title={b().forced ? t("SRTR Pitwall logosu · PRO ile gizlenebilir") : b().shown ? t("SRTR Pitwall logosu · sürükle: taşı · tıkla: ayarlar") : t("SRTR Pitwall logosu gizli · ayarlar için tıkla")}
+              title={b().forced ? t("SRTR Pitwall logosu · PRO ile gizlenebilir") : b().shown ? t("SRTR Pitwall logosu · sürükle: taşı · köşeden: boyutlandır · çift tık: varsayılana dön · bu düzene özel") : t("SRTR Pitwall logosu gizli · ayarlar için tıkla")}
               onPointerDown={badgeDown}
+              onDblClick={() => !b().forced && b().onReset?.()}
               onContextMenu={(e) => e.preventDefault()}
             >
-              <div class="cbadge-mark" style={{ transform: `scale(${badgeFactor(screen()) * k()})`, width: `${BADGE.w}px`, height: `${BADGE.h}px` }}>
+              <div class="cbadge-mark" style={{ transform: `scale(${badgeFactor(screen()) * k() * bScale()})`, width: `${BADGE.w}px`, height: `${BADGE.h}px` }}>
                 <StreamBadgeMark />
               </div>
               <Show when={badgeOverlap()} fallback={<Show when={b().forced}><span class="cbadge-hint"><LockIcon /> PRO ile gizlenebilir</span></Show>}>
@@ -478,6 +524,9 @@ export function LayoutCanvas(props: CanvasProps) {
               </Show>
               <Show when={!b().shown}>
                 <span class="cbadge-hint">Logo gizli</span>
+              </Show>
+              <Show when={!b().forced && b().onScale}>
+                <i class="cbadge-grip" title={t("Sürükle: logoyu büyüt / küçült")} onPointerDown={badgeResize} />
               </Show>
             </div>
           )}
@@ -721,11 +770,16 @@ function CanvasItem(props: {
     const key = (e: KeyboardEvent) => {
       const group = inMulti(props.key);
       if ((!props.selected && !group) || (props.selected && multi().length > 1 && !group) || drag()) return;
-      // Çoklu seçimde her kopya kendi dinleyicisiyle taşınır (ilki olayı tüketmiş olsa da)
-      const d = arrowDelta(e, group);
+      // Çoklu seçim: olayı ilk alan kopya bütün grubu taşır. (Her kopya kendi dinleyicisiyle taşınırken ilk taşıma
+      // ayarları değiştirince diğer kopyaların dinleyicisi olay sürerken düşüyor, yalnızca biri hareket ediyordu.)
+      const d = arrowDelta(e);
       if (!d || typingTarget(e.target)) return;
       if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
       e.preventDefault();
+      if (group) {
+        for (const k2 of [...multi()]) items.get(k2)?.nudge(d[0], d[1]);
+        return;
+      }
       if (blocked()) return void (e.repeat || group || sayBlocked());
       const v = view();
       const r = clampRect({ x: v.x + d[0], y: v.y + d[1], w: v.w, h: v.h }, props.screen);

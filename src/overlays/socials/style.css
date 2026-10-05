@@ -63,7 +63,7 @@
 .so-s-card .so-ic { border-radius: 0.35em; }
 .so-i-outline .so-ic { background: none; color: var(--so-c); box-shadow: inset 0 0 0 0.13em var(--so-c); }
 .so-ic img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.so-ic:has(img) { background: none; box-shadow: none; border-radius: 0.2em; }
+.so-ic:has(img) { background: none; box-shadow: none; border-radius: 0; overflow: visible; }
 
 .so-tx { display: inline-flex; flex-direction: column; min-width: 0; }
 .so-tx small { font-size: 0.58em; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; }

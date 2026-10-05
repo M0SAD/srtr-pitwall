@@ -28,7 +28,7 @@ import { sanitizeOverlayOptions, streamBadgeLocked } from "@/sdk/proFeatures";
 import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
 import { canvasOf, liveProfile } from "@/sdk/streamLink";
-import { StreamBadgeMark, badgeFactor, badgeForcedLive, badgePosWanted, badgeRect, badgeWanted } from "@/sdk/streamBadge";
+import { StreamBadgeMark, badgeFactor, badgeCfg, badgeForcedLive, badgeRect } from "@/sdk/streamBadge";
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
@@ -410,15 +410,15 @@ export function Host() {
         )}
       </For>
       {/* Yayın düzeni (OBS): SRTR Pitwall logosu her zaman overlay'lerin üstünde; gizlemek PRO'ya bağlı (sdk/streamBadge.tsx) */}
-      <Show when={!inTauri && shown()?.rules.mode === "stream" && (badgeForcedLive() || badgeWanted())}>
+      <Show when={!inTauri && shown()?.rules.mode === "stream" && (badgeForcedLive() || badgeCfg(shown()).show)}>
         <div
           class="stream-badge"
           style={{
             position: "absolute",
-            left: `${badgeRect(canvasOf(shown()!), badgeForcedLive() ? undefined : badgePosWanted()).x}px`,
-            top: `${badgeRect(canvasOf(shown()!), badgeForcedLive() ? undefined : badgePosWanted()).y}px`,
+            left: `${badgeRect(canvasOf(shown()!), badgeForcedLive() ? undefined : badgeCfg(shown()).pos, badgeForcedLive() ? 1 : badgeCfg(shown()).scale).x}px`,
+            top: `${badgeRect(canvasOf(shown()!), badgeForcedLive() ? undefined : badgeCfg(shown()).pos, badgeForcedLive() ? 1 : badgeCfg(shown()).scale).y}px`,
             "z-index": "2147483000",
-            transform: `scale(${badgeFactor(canvasOf(shown()!))})`,
+            transform: `scale(${badgeFactor(canvasOf(shown()!)) * (badgeForcedLive() ? 1 : badgeCfg(shown()).scale)})`,
             "transform-origin": "0 0",
             "pointer-events": "none",
             // Overlay'lerle aynı koşul: sim bağlıyken (ya da Demo açıkken) yumuşakça belirir, yoksa söner
@@ -430,15 +430,15 @@ export function Host() {
         </div>
       </Show>
       {/* Normal düzen (oyunun üstündeki overlay penceresi): bu monitörde en az bir overlay varsa: aynı logo, aynı kurallar */}
-      <Show when={inTauri && !vrBoard && shown()?.rules.mode !== "stream" && enabled().length > 0 && (streamBadgeLocked() || badgeWanted())}>
+      <Show when={inTauri && !vrBoard && shown()?.rules.mode !== "stream" && enabled().length > 0 && (streamBadgeLocked() || badgeCfg(shown()).show)}>
         <div
           class="stream-badge"
           style={{
             position: "absolute",
-            left: `${badgeRect(winSize(), streamBadgeLocked() ? undefined : badgePosWanted()).x}px`,
-            top: `${badgeRect(winSize(), streamBadgeLocked() ? undefined : badgePosWanted()).y}px`,
+            left: `${badgeRect(winSize(), streamBadgeLocked() ? undefined : badgeCfg(shown()).pos, streamBadgeLocked() ? 1 : badgeCfg(shown()).scale).x}px`,
+            top: `${badgeRect(winSize(), streamBadgeLocked() ? undefined : badgeCfg(shown()).pos, streamBadgeLocked() ? 1 : badgeCfg(shown()).scale).y}px`,
             "z-index": "2147483000",
-            transform: `scale(${badgeFactor(winSize())})`,
+            transform: `scale(${badgeFactor(winSize()) * (streamBadgeLocked() ? 1 : badgeCfg(shown()).scale)})`,
             "transform-origin": "0 0",
             "pointer-events": "none",
             // Overlay'lerle birlikte: sim bağlıyken (ya da Demo'da) ve overlay'ler gizli değilken görünür

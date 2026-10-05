@@ -224,8 +224,24 @@ export function IracingShotHelp(props: { compact?: boolean }) {
 
 // Her yerin (Düzenler tuvali / Yayın düzenleri tuvali / ekranda düzenleme) kendi görseli ve ayarı vardır.
 // Yer verilmeyen kısayollar ("Düzenleme arka planı yap") ekranda düzenleme modunu ayarlar.
-function bumpBackdrop(slot: EditBackdropSlot, has: boolean) {
+/** Arka plan hedefi: ortak yer ya da tek bir düzen ("p-<kimlik>") */
+export type BackdropTarget = EditBackdropSlot | `p-${string}`;
+/** Düzene özel yer adı; kimlik dosya adına uygun değilse (beklenmez) undefined */
+export const profileBackdropSlot = (profileId: string): `p-${string}` | undefined => (/^[A-Za-z0-9_-]{1,64}$/.test(profileId) ? `p-${profileId}` : undefined);
+
+function bumpBackdrop(slot: BackdropTarget, has: boolean) {
   updateSettings((d) => {
+    if (slot.startsWith("p-")) {
+      const p = d.profiles[slot.slice(2)];
+      if (!p) return;
+      const b = { ...(p.backdrop ?? {}) };
+      if (has) (b.own = true), (b.enabled = true);
+      else delete b.own;
+      b.rev = (b.rev || 0) + 1;
+      p.backdrop = b;
+      return;
+    }
+    slot = slot as EditBackdropSlot;
     const eb = d.general.editBackdrops[slot];
     eb.has = has;
     if (has) eb.enabled = true;
@@ -233,7 +249,7 @@ function bumpBackdrop(slot: EditBackdropSlot, has: boolean) {
   });
 }
 
-export async function setEditBackdropFromShot(path: string, slot: EditBackdropSlot = "screen") {
+export async function setEditBackdropFromShot(path: string, slot: BackdropTarget = "screen") {
   await invoke("edit_backdrop_set", { path, slot });
   bumpBackdrop(slot, true);
 }
@@ -247,12 +263,34 @@ function toBase64(blob: Blob): Promise<string> {
   });
 }
 
-export async function importEditBackdrop(blob: Blob, slot: EditBackdropSlot = "screen") {
+export async function importEditBackdrop(blob: Blob, slot: BackdropTarget = "screen") {
   await invoke("edit_backdrop_import", { data: await toBase64(blob), slot });
   bumpBackdrop(slot, true);
 }
 
-export async function clearEditBackdrop(slot: EditBackdropSlot = "screen") {
+/** Düzen kopyalandı: kaynağın kendi arka plan görseli kopyaya da yazılır (kopya aynı arka planla görünür, sonra ayrı değiştirilebilir) */
+export async function copyProfileBackdrop(fromId: string, toId: string) {
+  const from = profileBackdropSlot(fromId);
+  const to = profileBackdropSlot(toId);
+  if (!from || !to || !settings().profiles[fromId]?.backdrop?.own) return;
+  try {
+    const buf = await invoke<ArrayBuffer>("edit_backdrop_read", { slot: from });
+    const enabled = settings().profiles[fromId]?.backdrop?.enabled;
+    await invoke("edit_backdrop_import", { data: await toBase64(new Blob([buf], { type: "image/jpeg" })), slot: to });
+    updateSettings((d) => {
+      const p = d.profiles[toId];
+      if (p) p.backdrop = { own: true, ...(enabled === undefined ? {} : { enabled }), rev: (p.backdrop?.rev || 0) + 1 };
+    });
+  } catch {
+    // Görsel okunamadı: kopya ortak arka plana düşer
+    updateSettings((d) => {
+      const p = d.profiles[toId];
+      if (p?.backdrop) delete p.backdrop.own;
+    });
+  }
+}
+
+export async function clearEditBackdrop(slot: BackdropTarget = "screen") {
   await invoke("edit_backdrop_clear", { slot });
   bumpBackdrop(slot, false);
 }

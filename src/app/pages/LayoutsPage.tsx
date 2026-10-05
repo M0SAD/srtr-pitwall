@@ -27,8 +27,9 @@ import {
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
+import { copyProfileBackdrop } from "../components/Shots";
 import { LayoutCanvas, canvasGeom, mapGeom, canvasMulti, clearCanvasMulti, sayCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
-import { badgePosWanted, badgeWanted } from "@/sdk/streamBadge";
+import { badgeCfg, setBadgeCfg } from "@/sdk/streamBadge";
 import { streamBadgeLocked } from "@/sdk/proFeatures";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import { LayoutList, layoutFocus, setLayoutFocus, sortProfiles, toggleProfileLock } from "../components/LayoutList";
@@ -73,6 +74,8 @@ export function newLayout(mode: ProfileMode, name: string, copyOf?: Profile): st
     d.profiles[id] = p;
     if (mode !== "stream") d.activeProfile = id;
   });
+  // Kopya aynı arka planla görünür: kaynağın kendi görseli kopyaya da yazılır (sonra ayrı değiştirilebilir)
+  if (copyOf?.backdrop?.own) void copyProfileBackdrop(copyOf.id, id);
   return id;
 }
 
@@ -223,11 +226,14 @@ export function LayoutsPage() {
   // gizlenemez; ücretli PRO gizleyebilir / taşıyabilir (ayar yayın düzenleriyle ortak: general.streamBadge / streamBadgePos)
   const badge = (): CanvasBadge => ({
     forced: streamBadgeLocked(),
-    shown: streamBadgeLocked() || badgeWanted(),
+    shown: streamBadgeLocked() || badgeCfg(p()).show,
     selected: false,
     onPick: () => streamBadgeLocked() && sayBadgeArea(),
-    pos: streamBadgeLocked() ? undefined : badgePosWanted(),
-    onMove: (pos) => !streamBadgeLocked() && updateSettings((d) => (d.general.streamBadgePos = pos)),
+    pos: streamBadgeLocked() ? undefined : badgeCfg(p()).pos,
+    scale: streamBadgeLocked() ? 1 : badgeCfg(p()).scale,
+    onMove: (pos) => !streamBadgeLocked() && p() && setBadgeCfg(p()!.id, { pos }),
+    onScale: (scale, pos) => !streamBadgeLocked() && p() && setBadgeCfg(p()!.id, { scale, pos }),
+    onReset: () => !streamBadgeLocked() && p() && setBadgeCfg(p()!.id, { pos: null, scale: null }),
   });
   const [rules, setRules] = createSignal(false);
   const [sharing, setSharing] = createSignal(false);
@@ -430,9 +436,9 @@ export function LayoutsPage() {
                   {monitor() && monitor()!.scale !== 1 ? ` · Windows ölçeği %${Math.round(monitor()!.scale * 100)}` : ""}
                 </small>
                 <div class="lmon-tools">
-                  <CanvasOptions />
-                  <label class="check ctools-logo" classList={{ off: streamBadgeLocked() }} title={streamBadgeLocked() ? t("SRTR Pitwall logosu ekranda her zaman görünür · PRO ile gizlenebilir") : t("Ekranda SRTR Pitwall logosunu göster")} onClick={() => streamBadgeLocked() && sayBadgeArea()}>
-                    <input type="checkbox" checked={streamBadgeLocked() || badgeWanted()} disabled={streamBadgeLocked()} onChange={(e) => !streamBadgeLocked() && updateSettings((d) => (d.general.streamBadge = e.currentTarget.checked))} />
+                  <CanvasOptions profileId={p()?.id} />
+                  <label class="check ctools-logo" classList={{ off: streamBadgeLocked() }} title={streamBadgeLocked() ? t("SRTR Pitwall logosu ekranda her zaman görünür · PRO ile gizlenebilir") : t("Bu düzende SRTR Pitwall logosunu göster (her düzen için ayrı; tuvalde sürükleyip köşesinden boyutlandırabilirsin)")} onClick={() => streamBadgeLocked() && sayBadgeArea()}>
+                    <input type="checkbox" checked={streamBadgeLocked() || badgeCfg(p()).show} disabled={streamBadgeLocked()} onChange={(e) => !streamBadgeLocked() && p() && setBadgeCfg(p()!.id, { show: e.currentTarget.checked })} />
                     <span>Logo</span>
                   </label>
                   <CanvasTools zoom={zoom()} setZoom={setZoom} />
@@ -486,9 +492,11 @@ export function LayoutsPage() {
 }
 
 /** Tuval seçenekleri (Düzenler ve Yayın sayfalarında aynı): ızgara, ızgara aralığı, kenarlara yapıştırma, arka plan görseli */
-export function CanvasOptions(props: { backdrop?: EditBackdropSlot }) {
-  /** Arka plan yeri: Düzenler tuvali (varsayılan) ya da Yayın düzenleri tuvali; her birinin görseli ayrı */
-  const eb = () => settings().general.editBackdrops[props.backdrop ?? "layout"];
+export function CanvasOptions(props: { backdrop?: EditBackdropSlot; profileId?: string }) {
+  /** Arka plan her düzen için ayrıdır (görsel ve aç / kapa); düzende hiç ayarlanmadıysa sayfanın ortak arka planı geçerlidir */
+  const shared = () => settings().general.editBackdrops[props.backdrop ?? "layout"];
+  const pb = () => (props.profileId ? settings().profiles[props.profileId]?.backdrop : undefined);
+  const eb = () => ({ enabled: pb()?.enabled ?? shared().enabled, has: !!pb()?.own || shared().has });
   const [picking, setPicking] = createSignal(false);
   return (
     <>
@@ -505,7 +513,7 @@ export function CanvasOptions(props: { backdrop?: EditBackdropSlot }) {
       </label>
       <label
         class="check"
-        title="Tuvalde overlay'lerin arkasında görsel göster · sağ tık: arka planı değiştir"
+        title="Tuvalde overlay'lerin arkasında görsel göster (her düzen için ayrı) · sağ tık: bu düzenin arka planını değiştir"
         onContextMenu={(e) => {
           e.preventDefault();
           setPicking(true);
@@ -521,16 +529,20 @@ export function CanvasOptions(props: { backdrop?: EditBackdropSlot }) {
               setPicking(true);
               return;
             }
-            updateSettings((d) => (d.general.editBackdrops[props.backdrop ?? "layout"].enabled = on));
+            updateSettings((d) => {
+              const p = props.profileId ? d.profiles[props.profileId] : undefined;
+              if (p) p.backdrop = { ...(p.backdrop ?? {}), enabled: on };
+              else d.general.editBackdrops[props.backdrop ?? "layout"].enabled = on;
+            });
           }}
         />
         <span>Arka plan</span>
       </label>
-      <button class="btn ghost small" onClick={() => setPicking(true)} title="Arka plan görselini değiştir">
+      <button class="btn ghost small" onClick={() => setPicking(true)} title="Bu düzenin arka plan görselini değiştir">
         <I.ImagePlus />
       </button>
       <Show when={picking()}>
-        <BackdropPicker slot={props.backdrop ?? "layout"} onClose={() => setPicking(false)} />
+        <BackdropPicker slot={props.backdrop ?? "layout"} profileId={props.profileId} onClose={() => setPicking(false)} />
       </Show>
     </>
   );

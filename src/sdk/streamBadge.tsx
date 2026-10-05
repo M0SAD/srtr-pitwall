@@ -10,7 +10,7 @@
 
 import appLogo from "@/assets/logo.png";
 import { entitlement, entitlementLoaded } from "@/cloud/account";
-import { settings } from "./settings";
+import { settings, updateSettings, type Profile } from "./settings";
 
 /** 1920×1080 tuvaldeki ölçüler (px); tuval büyüdükçe / küçüldükçe orantılı ölçeklenir */
 export const BADGE = { w: 180, h: 40, margin: 24 };
@@ -37,8 +37,8 @@ export interface BadgePos {
 const clamp01 = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);
 
 /** Tuval pikseli (sol üst köşe) -> saklanan oran */
-export function badgePosOf(x: number, y: number, c: Size): BadgePos {
-  const f = badgeFactor(c);
+export function badgePosOf(x: number, y: number, c: Size, scale = 1): BadgePos {
+  const f = badgeFactor(c) * scale;
   const fw = c.w - BADGE.w * f;
   const fh = c.h - BADGE.h * f;
   return { x: fw > 0 ? Math.round(clamp01(x / fw) * 1e4) / 1e4 : 0, y: fh > 0 ? Math.round(clamp01(y / fh) * 1e4) / 1e4 : 0 };
@@ -51,9 +51,15 @@ export const badgePosWanted = (): BadgePos | undefined => {
 };
 
 /** Logonun tuvalde kapladığı dikdörtgen. pos verilmezse varsayılan: sağ üst, kenar boşluklu (kilitliyken ayrılmış alan) */
-export function badgeRect(c: Size, pos?: BadgePos): BadgeRect {
+export function badgeRect(c: Size, pos?: BadgePos, scale = 1): BadgeRect {
+  if (pos || scale !== 1) {
+    const f0 = badgeFactor(c);
+    const f = f0 * scale;
+    // Konum seçilmemişse (yalnızca boyut değişmişse) varsayılan sağ üst köşe, aynı kenar boşluğuyla
+    if (!pos) return { x: c.w - BADGE.margin * f0 - BADGE.w * f, y: BADGE.margin * f0, w: BADGE.w * f, h: BADGE.h * f };
+    return { x: clamp01(pos.x) * Math.max(0, c.w - BADGE.w * f), y: clamp01(pos.y) * Math.max(0, c.h - BADGE.h * f), w: BADGE.w * f, h: BADGE.h * f };
+  }
   const f = badgeFactor(c);
-  if (pos) return { x: clamp01(pos.x) * Math.max(0, c.w - BADGE.w * f), y: clamp01(pos.y) * Math.max(0, c.h - BADGE.h * f), w: BADGE.w * f, h: BADGE.h * f };
   return { x: c.w - (BADGE.margin + BADGE.w) * f, y: BADGE.margin * f, w: BADGE.w * f, h: BADGE.h * f };
 }
 
@@ -72,6 +78,34 @@ export function pushOutOfBadge<T extends BadgeRect>(r: T, b: BadgeRect, screen: 
   if (!cands.length) return null;
   const dist = (c: T) => Math.abs(c.x - r.x) + Math.abs(c.y - r.y);
   return cands.sort((a, c) => dist(a) - dist(c))[0];
+}
+
+/** Logo boyutu çarpanının sınırları */
+export const BADGE_SCALE = { min: 0.5, max: 2.5 };
+export const clampBadgeScale = (v: unknown) => (typeof v === "number" && isFinite(v) ? Math.max(BADGE_SCALE.min, Math.min(BADGE_SCALE.max, v)) : 1);
+
+/**
+ * Logonun bir düzendeki hali (kilitliyken yok sayılır; çağıran denetler). Her düzen kendi görünürlüğünü, konumunu ve
+ * boyutunu saklar (profile.badge); o düzende hiç ayarlanmamış alan için eski ortak ayar (general) geçerlidir.
+ */
+export function badgeCfg(p?: Pick<Profile, "id"> | null): { show: boolean; pos?: BadgePos; scale: number } {
+  const b = (p && settings().profiles[p.id]?.badge) || undefined;
+  return { show: b?.show ?? badgeWanted(), pos: b?.pos, scale: clampBadgeScale(b?.scale) };
+}
+/** Logonun bu düzendeki ayarını değiştir (null: o alanı varsayılana döndür) */
+export function setBadgeCfg(profileId: string, patch: { show?: boolean; pos?: BadgePos | null; scale?: number | null }) {
+  updateSettings((d) => {
+    const p = d.profiles[profileId];
+    if (!p) return;
+    const b = { ...(p.badge ?? {}) };
+    if (patch.show !== undefined) b.show = patch.show;
+    if (patch.pos === null) delete b.pos;
+    else if (patch.pos) b.pos = patch.pos;
+    if (patch.scale === null) delete b.scale;
+    else if (patch.scale !== undefined) b.scale = Math.round(clampBadgeScale(patch.scale) * 100) / 100;
+    if (Object.keys(b).length) p.badge = b;
+    else delete p.badge;
+  });
 }
 
 /** Kullanıcı logoyu gizlemeyi seçmiş mi (ayar; kilitliyken yok sayılır) */

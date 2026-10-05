@@ -14,7 +14,7 @@ import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
-import { StreamBadgeMark, badgePosWanted, badgeRect, badgeWanted, pushOutOfBadge } from "@/sdk/streamBadge";
+import { BADGE_SCALE, StreamBadgeMark, badgeCfg, badgeRect, pushOutOfBadge, setBadgeCfg } from "@/sdk/streamBadge";
 import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
@@ -61,10 +61,10 @@ export function StreamingPage() {
   };
   // SRTR Pitwall logosu (sağ üst): gizleyebilmek PRO özelliği; kilitliyken ayar yok sayılır
   const badgeLocked = () => streamBadgeLocked();
-  const badgeShown = () => badgeLocked() || badgeWanted();
+  const badgeShown = () => badgeLocked() || badgeCfg(p()).show;
   const [badgeSel, setBadgeSel] = createSignal(false);
-  const setBadge = (on: boolean) => !badgeLocked() && updateSettings((d) => (d.general.streamBadge = on));
-  const badge = (): CanvasBadge => ({ forced: badgeLocked(), shown: badgeShown(), selected: badgeSel() && !sel() && !ghost(), onPick: () => (setSel(null), setGhost(null), setBadgeSel(true)), pos: badgeLocked() ? undefined : badgePosWanted(), onMove: (pos) => !badgeLocked() && updateSettings((d) => (d.general.streamBadgePos = pos)) });
+  const setBadge = (on: boolean) => !badgeLocked() && p() && setBadgeCfg(p()!.id, { show: on });
+  const badge = (): CanvasBadge => ({ forced: badgeLocked(), shown: badgeShown(), selected: badgeSel() && !sel() && !ghost(), onPick: () => (setSel(null), setGhost(null), setBadgeSel(true)), pos: badgeLocked() ? undefined : badgeCfg(p()).pos, scale: badgeLocked() ? 1 : badgeCfg(p()).scale, onMove: (pos) => !badgeLocked() && p() && setBadgeCfg(p()!.id, { pos }), onScale: (scale, pos) => !badgeLocked() && p() && setBadgeCfg(p()!.id, { scale, pos }), onReset: () => !badgeLocked() && p() && setBadgeCfg(p()!.id, { pos: null, scale: null }) });
   const badgeOpen = () => badgeSel() && !sel() && !ghost();
   // Bir overlay seçilince logo paneli kapanır (overlay paneli kapatılınca geri açılmasın)
   createEffect(() => (sel() || ghost()) && setBadgeSel(false));
@@ -384,7 +384,7 @@ export function StreamingPage() {
             </div>
 
             <div class="lmon-tools">
-              <CanvasOptions backdrop="stream" />
+              <CanvasOptions backdrop="stream" profileId={p()?.id} />
               <label class="check ctools-logo" classList={{ off: badgeLocked() }} title={badgeLocked() ? t("SRTR Pitwall logosu yayında her zaman görünür · PRO ile gizlenebilir") : t("Yayında sağ üstte SRTR Pitwall logosunu göster")} onClick={() => badgeLocked() && (sayBadgeArea(), setBadgeSel(true), setSel(null), setGhost(null))}>
                 <input type="checkbox" checked={badgeShown()} disabled={badgeLocked()} onChange={(e) => setBadge(e.currentTarget.checked)} />
                 <span>Logo</span>
@@ -466,12 +466,17 @@ export function StreamingPage() {
                   </label>
                 </div>
                 <Show when={!badgeLocked()}>
-                  <button class="btn ghost wide" style={{ "margin-top": "12px" }} disabled={!badgePosWanted()} onClick={() => updateSettings((d) => void delete d.general.streamBadgePos)}>
-                    <I.RotateCcw /> Varsayılan konuma döndür
+                  <div class="row cbadge-row">
+                    <b>Logo boyutu</b>
+                    <span class="muted" data-no-i18n>%{Math.round(badgeCfg(p()).scale * 100)}</span>
+                  </div>
+                  <input type="range" class="range" style={{ width: "100%" }} min={BADGE_SCALE.min * 100} max={BADGE_SCALE.max * 100} step="5" value={Math.round(badgeCfg(p()).scale * 100)} onInput={(e) => p() && setBadgeCfg(p()!.id, { scale: Number(e.currentTarget.value) / 100 })} />
+                  <button class="btn ghost wide" style={{ "margin-top": "12px" }} disabled={!p()?.badge?.pos && !p()?.badge?.scale} onClick={() => p() && setBadgeCfg(p()!.id, { pos: null, scale: null })}>
+                    <I.RotateCcw /> Varsayılan konum ve boyuta döndür
                   </button>
                 </Show>
                 <p class="ovset-note">
-                  <Show when={badgeLocked()} fallback="Logo tüm yayın düzenlerinde overlay'lerin üstünde çizilir; tuvalde sürükleyerek ya da ok tuşlarıyla taşıyabilirsin, boyutu değiştirilemez. Bu ayarlar bütün yayın düzenleri için geçerlidir.">
+                  <Show when={badgeLocked()} fallback="Logo overlay'lerin üstünde çizilir. Görünürlüğü, yeri ve boyutu her düzen için ayrıdır: tuvalde sürükleyerek ya da ok tuşlarıyla taşı, sağ alt köşesinden ya da buradan boyutlandır. Başka bir düzeni seçince o düzenin kendi logo ayarı geçerli olur.">
                     Logo tüm yayın düzenlerinde sağ üst köşede, overlay'lerin üstünde çizilir; taşınamaz ve boyutlandırılamaz. Bu ayar bütün yayın düzenleri için geçerlidir.
                   </Show>
                 </p>

@@ -602,8 +602,15 @@ fn legacy_backdrop_path(app: &AppHandle) -> Result<PathBuf, String> {
 fn backdrop_path(app: &AppHandle, slot: Option<&str>) -> Result<PathBuf, String> {
     match slot {
         Some(s @ ("layout" | "stream" | "screen")) => Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg"))),
+        // Düzene özel arka plan: "p-<düzen kimliği>" (yalnızca harf / rakam / - / _)
+        Some(s) if profile_slot_ok(s) => Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg"))),
         _ => legacy_backdrop_path(app),
     }
+}
+
+/// "p-<düzen kimliği>": dosya adına girdiği için sıkı denetlenir
+fn profile_slot_ok(slot: &str) -> bool {
+    slot.len() > 2 && slot.len() <= 66 && slot.starts_with("p-") && slot[2..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 fn save_backdrop(app: &AppHandle, slot: Option<&str>, img: DynamicImage) -> Result<(), String> {
@@ -630,7 +637,9 @@ pub async fn edit_backdrop_import(app: AppHandle, data: String, slot: Option<Str
 pub async fn edit_backdrop_read(app: AppHandle, slot: Option<String>) -> Result<tauri::ipc::Response, String> {
     // Yerin kendi dosyası yoksa (eski sürümden gelen kurulum) eski ortak görsel okunur
     let own = backdrop_path(&app, slot.as_deref())?;
-    let p = if own.exists() { own } else { legacy_backdrop_path(&app)? };
+    // (Düzene özel görsel yoksa eski ortak görsele düşülmez: arayüz ortak yerin görselini ayrıca okur)
+    let per_profile = slot.as_deref().is_some_and(profile_slot_ok);
+    let p = if own.exists() || per_profile { own } else { legacy_backdrop_path(&app)? };
     Ok(tauri::ipc::Response::new(std::fs::read(p).map_err(|_| "arka plan yok".to_string())?))
 }
 

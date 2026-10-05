@@ -76,6 +76,12 @@ export interface Profile {
   isDefault?: boolean;
   /** Toplulukta paylaşıldıysa paylaşımın kimliği (yeniden paylaşırken "öncekini güncelle" için) */
   sharedId?: string;
+  /** SRTR Pitwall logosunun BU düzendeki hali (ücretli PRO): görünürlük, konum (boş payın oranı 0..1), boyut çarpanı.
+   * Alan yoksa eski ortak ayar (general.streamBadge / streamBadgePos) geçerlidir. Bkz. sdk/streamBadge.tsx */
+  badge?: { show?: boolean; pos?: { x: number; y: number }; scale?: number };
+  /** Tuval arka planının BU düzendeki hali. own: düzenin kendi görseli var (Rust: "p-<kimlik>" dosyası; yoksa ortak görsel);
+   * enabled: bu düzende açık / kapalı (yoksa ortak ayar); rev: görsel değişince artar (yeniden yüklenir) */
+  backdrop?: { own?: boolean; enabled?: boolean; rev?: number };
 }
 
 /** Bağlı yayın düzeni: `source` düzen kimliği ya da "@active" (uygulamada o an etkin düzen) */
@@ -1435,6 +1441,20 @@ export function normalize(input: unknown): AppSettings {
     if (p?.locked === true) prof.locked = true;
     if (p?.isDefault === true) prof.isDefault = true;
     if (typeof p?.sharedId === "string" && p.sharedId) prof.sharedId = p.sharedId;
+    if (p?.backdrop && typeof p.backdrop === "object") {
+      const b: NonNullable<Profile["backdrop"]> = {};
+      if (p.backdrop.own === true) b.own = true;
+      if (typeof p.backdrop.enabled === "boolean") b.enabled = p.backdrop.enabled;
+      if (typeof p.backdrop.rev === "number") b.rev = p.backdrop.rev;
+      if (Object.keys(b).length) prof.backdrop = b;
+    }
+    if (p?.badge && typeof p.badge === "object") {
+      const b: NonNullable<Profile["badge"]> = {};
+      if (typeof p.badge.show === "boolean") b.show = p.badge.show;
+      if (p.badge.pos && typeof p.badge.pos.x === "number" && typeof p.badge.pos.y === "number") b.pos = { x: p.badge.pos.x, y: p.badge.pos.y };
+      if (typeof p.badge.scale === "number" && isFinite(p.badge.scale)) b.scale = Math.max(0.5, Math.min(2.5, p.badge.scale));
+      if (Object.keys(b).length) prof.badge = b;
+    }
     if (p?.link && typeof p.link.source === "string" && p.link.source && prof.rules.mode === "stream")
       prof.link = { source: p.link.source, hidden: Array.isArray(p.link.hidden) ? p.link.hidden.filter((x) => typeof x === "string") : [] };
     // Kayıtlı kopyalar (anahtar: kopya kimliği; eski ayarlarda anahtar = overlay türü)
@@ -1482,6 +1502,14 @@ export function normalize(input: unknown): AppSettings {
       if (!prof.overlays[m.id]) prof.overlays[m.id] = defaultInstance(m.id);
     }
     out.profiles[pid] = prof;
+  }
+  // Eski ortak logo konumu (general.streamBadgePos) bir kez düzenlere dağıtılır: artık her düzen kendi konumunu saklar,
+  // "varsayılana döndür" de gerçek varsayılana (sağ üst) döner
+  {
+    const gp = out.general.streamBadgePos;
+    if (gp && typeof gp.x === "number" && typeof gp.y === "number")
+      for (const pr of Object.values(out.profiles)) if (!pr.badge?.pos) pr.badge = { ...(pr.badge ?? {}), pos: { x: gp.x, y: gp.y } };
+    delete out.general.streamBadgePos;
   }
   if (Object.keys(out.profiles).length === 0) out.profiles = d.profiles;
   ensureDefaultFlags(out);

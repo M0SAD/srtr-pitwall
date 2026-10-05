@@ -281,8 +281,14 @@ export function OverlaysPage() {
   );
 
   const isCollapsed = (cat: string) => collapsed().includes(cat);
+  /** Arama kutusu (overlay adı) */
+  const [q, setQ] = createSignal("");
+  const fold = (v: string) => v.toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   /** Kategori başlıklı gruplar yalnızca "Kategoriye göre" sıralamada; diğerlerinde (ve sürüklerken) tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
+    // Arama: ada (çevirisi ve Türkçesi) göre süzülmüş tek düz liste
+    const needle = fold(q().trim());
+    if (needle) return [[null, shown().filter((m) => fold(t(m.name)).includes(needle) || fold(m.name).includes(needle))]];
     if (flat()) return [[null, shown()]];
     const fv = shown().filter((m) => favs().includes(m.id));
     if (favOnly()) return [[null, fv]];
@@ -380,7 +386,14 @@ export function OverlaysPage() {
           <span class="lt-sp" />
           <UndoRedo keys class="ur-panel" />
         </div>
+        <label class="ovlist-search">
+          <I.Search />
+          <input type="search" value={q()} placeholder={t("Overlay ara")} onInput={(e) => setQ(e.currentTarget.value)} onKeyDown={(e) => e.key === "Escape" && (setQ(""), e.stopPropagation())} />
+        </label>
         <div class="ovlist-scroll" ref={scrollEl}>
+          <Show when={q().trim() && !groups()[0]?.[1].length}>
+            <div class="ovlist-simnote">Bu adla bir overlay yok.</div>
+          </Show>
           <div class="ovlist-hint">Çift tık: düzene ekle</div>
           <label
             class="ovlist-sort"

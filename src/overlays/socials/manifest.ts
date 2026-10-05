@@ -133,9 +133,10 @@ export default defineOverlay({
       key: "iconStyle",
       label: "Simge",
       type: "select",
-      default: "badge",
+      default: "logo",
       group: "Görünüm",
       options: [
+        { value: "logo", label: "Platform logosu" },
         { value: "badge", label: "Dolu rozet" },
         { value: "outline", label: "Çerçeveli rozet" },
         { value: "none", label: "Simge yok" },
