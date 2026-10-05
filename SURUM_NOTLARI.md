@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-167
+
+- Web sitesi artık main dalına yapılan her push'ta yeniden yayınlanır (eskiden yalnızca website/ değişince). Arada push'lanmayan bir sürümün site değişiklikleri sonraki push'ta kendiliğinden yayına girer.
+
 ## 051026-166
 
 - Kan Şekeri: Yuvarlak ve Kare tasarımda ölçüm saati artık değişim / birim satırının altında ayrı satırda; çerçevenin dışına taşmıyor (yuvarlak 132 → 140 px). Ayarın adı "Ölçüm saatini göster" oldu (kapatınca saat hiç görünmez).
