@@ -27,7 +27,7 @@ import {
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
-import { LayoutCanvas, canvasMulti, clearCanvasMulti, sayCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
+import { LayoutCanvas, canvasGeom, mapGeom, canvasMulti, clearCanvasMulti, sayCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
 import { badgePosWanted, badgeWanted } from "@/sdk/streamBadge";
 import { streamBadgeLocked } from "@/sdk/proFeatures";
 import { UndoRedo } from "@/sdk/UndoRedo";
@@ -353,7 +353,7 @@ export function LayoutsPage() {
   useEscClose(() => !!(sel() || ghost()), closeSet);
   const cols = useCols();
   useDeleteKey(sel, remove);
-  useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), locked);
+  useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), locked, () => ({ w: logical().w, h: logical().h, global: settings().theme.scale / 100 }));
 
   return (
     <div class="lpage" classList={{ "with-set": !!(sel() || ghost()), "keep-set": cols.keep(), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(!!(sel() || ghost())) }}>
@@ -639,11 +639,21 @@ let clip: OverlayInstance[] = [];
 let pasteN = 0;
 /** Kopyalamanın yapıldığı düzen: başka düzene yapıştırırken tek kopyalı overlay de (var olanın yerine) gelir */
 let clipFrom = "";
+/** Kopyalama anındaki tuval boyutu ve kopyaların oradaki görünümü (başka tuvale aynı yere / boyuta yapıştırmak için) */
+let clipScreen: { w: number; h: number } | null = null;
+let clipGeom: (ReturnType<typeof canvasGeom>)[] = [];
 /**
  * Ctrl+C: seçili overlay'i (ya da çoklu seçimi) kopyalar. Ctrl+V: açık düzene yapıştırır — overlay birden çok kez
  * eklenebiliyorsa yeni kopya olarak, düzende hiç yoksa aynı ayarlarla. Yazı alanında / metin seçiliyken dokunmaz.
  */
-export function useCopyPaste(prof: () => Profile | undefined, sel: () => string | null, setSel: (k: string | null) => void, locked: () => boolean) {
+export function useCopyPaste(
+  prof: () => Profile | undefined,
+  sel: () => string | null,
+  setSel: (k: string | null) => void,
+  locked: () => boolean,
+  /** Açık tuvalin mantıksal boyutu ve genel boyut çarpanı (yayın düzenlerinde 1) */
+  canvas?: () => { w: number; h: number; global: number },
+) {
   onMount(() => {
     const key = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.defaultPrevented || e.repeat) return;
@@ -657,8 +667,12 @@ export function useCopyPaste(prof: () => Profile | undefined, sel: () => string 
       if (c === "c") {
         if (window.getSelection()?.toString()) return;
         const ks = canvasMulti().length ? canvasMulti() : sel() ? [sel()!] : [];
-        const got = ks.map((k) => p.overlays[k]).filter((o) => !!o);
+        const pairs = ks.map((k) => [k, p.overlays[k]] as const).filter(([, o]) => !!o);
+        const got = pairs.map(([, o]) => o);
         if (!got.length) return;
+        clipGeom = pairs.map(([k]) => canvasGeom(k));
+        const cv = canvas?.();
+        clipScreen = cv ? { w: cv.w, h: cv.h } : null;
         e.preventDefault();
         clip = JSON.parse(JSON.stringify(got));
         pasteN = 0;
@@ -670,7 +684,16 @@ export function useCopyPaste(prof: () => Profile | undefined, sel: () => string 
       e.preventDefault();
       if (locked()) return void sayLayoutLocked();
       const other = p.id !== clipFrom;
-      const r = pasteInstances(p.id, clip.filter((i) => !isLocked(i.type)), 24 * (other ? pasteN++ : ++pasteN), other);
+      // Başka düzene: kaynak tuvaldeki yer ve boyut hedef tuvale taşınır (çözünürlük / genel boyut farkı hesaba katılır)
+      const cv = canvas?.();
+      const list =
+        other && cv && clipScreen
+          ? clip.map((inst, i) => {
+              const g = clipGeom[i];
+              return g ? { ...inst, ...mapGeom(g, clipScreen!, cv, cv.global) } : inst;
+            })
+          : clip;
+      const r = pasteInstances(p.id, list.filter((i) => !isLocked(i.type)), 24 * (other ? pasteN++ : ++pasteN), other);
       clearCanvasMulti();
       if (r.keys.length) setSel(r.keys[r.keys.length - 1]);
       if (r.single && !r.keys.length) sayCanvas(t("Bu overlay bir düzende yalnızca bir kez bulunabilir: yapıştırılmadı"));

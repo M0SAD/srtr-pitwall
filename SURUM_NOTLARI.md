@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-178
+
+- Canlı Sohbet varsayılan kısayolları: sesli okuma aç / kapat F8 (eskiden F5), altyazı aç / kapat F7 (eskiden F6). Eski varsayılanda kalmış kurulumlar bir kez kendiliğinden yeni tuşlara geçer; kendi seçtiğin tuşa dokunulmaz, yeni tuş başka bir eyleme atanmışsa da değiştirilmez.
+
+## 051026-177
+
+- Kopyala / yapıştır (Ctrl+C / Ctrl+V) başka düzene ya da yayın düzenine yapıştırırken overlay'i aynı yere, aynı görünür boyuta ve aynı ayarlarla getirir: kaynak ve hedef tuvalin çözünürlük farkı ile "genel boyut" ayarı hesaba katılır (ör. 5120×1440 monitör düzeninden 1920×1080 yayın düzenine). En-boy oranı aynıysa birebir; farklıysa boyut yüksekliğe göre, konum her eksende kendi oranıyla taşınır ve tuvalin içinde kalır.
+
 ## 051026-176
 
 - Düzenler ve Yayın düzenleri: soldaki eklenebilir overlay listesinde favoriler (Overlaylarım'da sağ tık › Favorilere ekle) en üstte, "Favorilerim" başlığı altında görünür; diğerleri seçili sıralamayla altında kalır. Düzene eklenen favori "Düzende" bölümüne geçer.

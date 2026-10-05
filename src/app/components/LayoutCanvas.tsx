@@ -78,6 +78,34 @@ const [rectsVer, setRectsVer] = createSignal(0);
 
 // Tuvaldeki overlay'lerin mantıksal dikdörtgenleri (yapıştırma için)
 const rects = new Map<string, Rect>();
+/** Kopyaların tuvaldeki etkin ölçeği (kendi ölçek × genel boyut) */
+const effs = new Map<string, number>();
+/** Kopyala için: kopyanın açık tuvaldeki dikdörtgeni ve etkin ölçeği */
+export const canvasGeom = (key: string): (Rect & { eff: number }) | null => {
+  const r = rects.get(key);
+  return r ? { ...r, eff: effs.get(key) ?? 1 } : null;
+};
+/**
+ * Başka bir tuvale yapıştırma: kaynak tuvaldeki görünüm (dikdörtgen + etkin ölçek) hedef tuvalde aynı yere ve aynı
+ * görece boyuta taşınır. Oranlar aynıysa birebir ölçeklenir; farklıysa boyut yüksekliğe göre, konum her eksende
+ * kendi oranıyla taşınır. Dönüş: kopyaya yazılacak x / y / ölçek.
+ */
+export function mapGeom(g: Rect & { eff: number }, from: { w: number; h: number }, to: { w: number; h: number }, toGlobal: number) {
+  const fx = to.w / from.w;
+  const fy = to.h / from.h;
+  const fs = Math.abs(from.w / from.h - to.w / to.h) < 0.02 ? fx : fy;
+  const eff = g.eff * fs;
+  const own = Math.max(0.2, Math.min(4, Math.round((eff / (toGlobal || 1)) * 100) / 100));
+  const real = effectiveScale(own, toGlobal || 1);
+  const w = (g.w / g.eff) * real;
+  const h = (g.h / g.eff) * real;
+  // Orta nokta oranı korunur (kenara yapışık olan kenarda kalır), sonra tuvalin içine alınır
+  const cx = (g.x + g.w / 2) * fx;
+  const cy = (g.y + g.h / 2) * fy;
+  const r = clampRect({ x: cx - w / 2, y: cy - h / 2, w, h }, to);
+  const pos = unlayoutPos(r, real / own, to);
+  return { x: Math.round(pos.x), y: Math.round(pos.y), scale: own };
+}
 
 // Çoklu seçim: tuvalde boş yerden sürükleyerek taranan (ya da Ctrl / Shift + tıkla eklenen) kopyalar.
 // Birlikte taşınır (sürükle / ok tuşları) ve Delete ile birlikte silinir. Tek seçim (ayar paneli) bundan ayrıdır.
@@ -497,7 +525,7 @@ function CanvasItem(props: {
     ro.observe(el!);
     onCleanup(() => ro.disconnect());
   });
-  onCleanup(() => (rects.delete(props.key), setRectsVer((n) => n + 1)));
+  onCleanup(() => (rects.delete(props.key), effs.delete(props.key), setRectsVer((n) => n + 1)));
 
   const gScale = () => (props.useGlobal ? settings().theme.scale / 100 : 1);
   const [drag, setDrag] = createSignal<{ x: number; y: number; scale: number; opts?: Record<string, number> } | null>(null);
@@ -526,6 +554,7 @@ function CanvasItem(props: {
   createEffect(() => {
     const v = view();
     rects.set(props.key, { x: v.x, y: v.y, w: v.w, h: v.h });
+    effs.set(props.key, v.eff);
     setRectsVer((n) => n + 1);
   });
   /** Ayrılmış alana giren dikdörtgeni hemen dışına iter; sığmayacak kadar büyükse olduğu gibi bırakır (logo üstte çizilir) */

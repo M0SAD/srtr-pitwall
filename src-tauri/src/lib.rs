@@ -1900,9 +1900,9 @@ const SHORTCUTS: [(&str, &str); 20] = [
     ("voice", "Ctrl+Shift+S"),
     // Canlı Sohbet (MultiChatOverlay varsayılanları): anket aç/bitir, sesli okuma aç/kapat, sustur, altyazı aç/kapat
     ("poll", "F9"),
-    ("tts", "F5"),
+    ("tts", "F8"),
     ("ttsHush", ""),
-    ("stt", "F6"),
+    ("stt", "F7"),
     // Canlı sohbeti başlat / durdur (her zaman kayıtlı)
     ("chat", "Ctrl+Shift+C"),
     // Ekip (uzaktan pit) kontrolünü durdur (varsayılan: kısayol yok)
@@ -1926,7 +1926,7 @@ const VR_ONLY: [&str; 8] = ["vrConfig", "vrRecenter", "vrNext", "vrMode", "vrSav
 /// Sadece yerel VR yapılandırma modunda kaydedilenler
 const VR_CONFIG_ONLY: [&str; 6] = ["vrNext", "vrMode", "vrSave", "vrReset", "vrFace", "vrGaze"];
 
-/// Sadece Canlı Sohbet çalışırken (ya da altyazı açıkken) kaydedilen kısayollar: F5/F6/F9 diğer uygulamalara kalsın
+/// Sadece Canlı Sohbet çalışırken (ya da altyazı açıkken) kaydedilen kısayollar: F7/F8/F9 diğer uygulamalara kalsın
 const LIVECHAT_ONLY: [&str; 4] = ["poll", "tts", "ttsHush", "stt"];
 
 /// Kısayolları yeniden kaydet (canlı sohbet başlayınca / durunca)
@@ -1991,6 +1991,18 @@ fn shortcuts_from_settings(v: Option<&Value>) -> Vec<(String, String)> {
             let cur = norm(k);
             if !taken && (cur.is_empty() || cur == "ctrl+shift+v") {
                 *k = "Ctrl+Shift+S".to_string();
+            }
+        }
+    }
+    // Bir kerelik geçiş (chatKeyV2, arayüz: settings.ts chatKeyMigrate): sesli okuma F5 → F8, altyazı F6 → F7
+    // (yalnızca eski varsayılanda kalmışsa ve yeni tuş başka bir eylemde değilse).
+    if !v.and_then(|v| v.pointer("/general/chatKeyV2")).and_then(|x| x.as_bool()).unwrap_or(false) {
+        for (act, old, new) in [("tts", "f5", "F8"), ("stt", "f6", "F7")] {
+            let taken = list.iter().any(|(a, k)| a != act && k.replace(' ', "").eq_ignore_ascii_case(new));
+            if let Some((_, k)) = list.iter_mut().find(|(a, _)| a == act) {
+                if !taken && k.replace(' ', "").to_lowercase() == old {
+                    *k = new.to_string();
+                }
             }
         }
     }

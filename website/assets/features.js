@@ -280,8 +280,8 @@ addDict({
   ],
   ov_captions_d: ["Konuşmanı yazıya çevirip altyazı olarak gösterir.", "Turns your speech into on-screen captions."],
   ov_captions_h: [
-    "Mikrofon ve isteğe bağlı uzak ses (ör. Discord) ayrı renkte|Yazı tipi, boyut, renk ve arka plan|Kısayolla aç / kapat (varsayılan F6)",
-    "Microphone plus optional remote audio (e.g. Discord) in a separate colour|Font, size, colour and background|Toggle with a hotkey (default F6)",
+    "Mikrofon ve isteğe bağlı uzak ses (ör. Discord) ayrı renkte|Yazı tipi, boyut, renk ve arka plan|Kısayolla aç / kapat (varsayılan F7)",
+    "Microphone plus optional remote audio (e.g. Discord) in a separate colour|Font, size, colour and background|Toggle with a hotkey (default F7)",
   ],
   ov_scene_n: ["Yayın Sahnesi", "Stream Scene"],
   ov_scene_d: ["Yayın için tam ekran sahneler.", "Full-screen scenes for your stream."],
@@ -438,8 +438,8 @@ addDict({
     "See the chat of three platforms in one place while you stream — over the game or in OBS. Channels are read without signing in; moderation, polls, read-aloud and captions are managed from the same page.",
   ],
   fx_lc_points: [
-    "Emote'lar, rozetler (yayıncı, mod, abone, VIP, üye), yanıtlanan mesaj|Super Chat, abonelik, raid ve bağış uyarıları|Platform başına ve toplam izleyici sayısı|Kısayollar: anket F9, sesli okuma F5, altyazı F6",
-    "Emotes, badges (broadcaster, mod, sub, VIP, member), replied-to message|Super Chat, sub, raid and donation alerts|Viewer counts per platform and in total|Hotkeys: poll F9, read-aloud F5, captions F6",
+    "Emote'lar, rozetler (yayıncı, mod, abone, VIP, üye), yanıtlanan mesaj|Super Chat, abonelik, raid ve bağış uyarıları|Platform başına ve toplam izleyici sayısı|Kısayollar: anket F9, sesli okuma F8, altyazı F7",
+    "Emotes, badges (broadcaster, mod, sub, VIP, member), replied-to message|Super Chat, sub, raid and donation alerts|Viewer counts per platform and in total|Hotkeys: poll F9, read-aloud F8, captions F7",
   ],
   fx_lc_free_t: ["Herkese açık", "For everyone"],
   fx_lc_free: [

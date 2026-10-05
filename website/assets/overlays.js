@@ -358,8 +358,8 @@ addDict({
     "Lets you run a poll in your live chat: viewers vote by typing the option number. The question, options, vote bars and time left are shown on screen, with a random-pick animation on a tie. Start it with a hotkey (F9 by default). A PRO feature.",
   ],
   ovg_captions: [
-    "Konuşmanı yazıya çevirir ve yayında altyazı olarak gösterir. İstersen Discord gibi uzaktan gelen sesi de ayrı renkte yazar. Yazı tipi, boyut, renk ve arka plan ayarlanır; bir kısayolla (varsayılan F6) açıp kapatırsın. PRO özelliğidir.",
-    "Turns your speech into text and shows it as captions on stream. Optionally it also transcribes remote audio such as Discord in a separate colour. Font, size, colour and background are adjustable, and a hotkey (F6 by default) toggles it. A PRO feature.",
+    "Konuşmanı yazıya çevirir ve yayında altyazı olarak gösterir. İstersen Discord gibi uzaktan gelen sesi de ayrı renkte yazar. Yazı tipi, boyut, renk ve arka plan ayarlanır; bir kısayolla (varsayılan F7) açıp kapatırsın. PRO özelliğidir.",
+    "Turns your speech into text and shows it as captions on stream. Optionally it also transcribes remote audio such as Discord in a separate colour. Font, size, colour and background are adjustable, and a hotkey (F7 by default) toggles it. A PRO feature.",
   ],
   ovg_startlights: [
     "Yarış başlamadan önce ekrana start ışıklarını getirir: formasyon turu ve grid bilgisi, sırayla yanan kırmızı ışıklar ve oyun yarışı başlattığı anda yeşil ışık ya da “GO!” yazısı. Yayına gerçek yarış havası katar, startı kaçırmamanı sağlar. Beş ışıklı köprü, trafik ışığı ya da sade yazı tasarımını seçebilirsin; start sonrası kendiliğinden kaybolur.",

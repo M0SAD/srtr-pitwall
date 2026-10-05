@@ -212,7 +212,7 @@ export function StreamingPage() {
   const cols = useCols();
   const withSet = () => badgeOpen() || (!linked() && !!(sel() || ghost()));
   useDeleteKey(sel, remove);
-  useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), () => locked() || linked());
+  useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), () => locked() || linked(), () => ({ w: canvas().w, h: canvas().h, global: 1 }));
   // Seçili kopya düzenden çıktıysa seçim bırakılır
   createEffect(() => {
     const k = sel();

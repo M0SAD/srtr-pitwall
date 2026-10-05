@@ -838,6 +838,8 @@ export interface GeneralSettings {
   demoMuteV1?: boolean;
   /** Bir kerelik geçiş: sesli mühendis kısayolu varsayılanı Ctrl+Shift+S */
   voiceKeyV1?: boolean;
+  /** Sesli okuma F5 → F8, altyazı F6 → F7 geçişi yapıldı */
+  chatKeyV2?: boolean;
   /** Bir kerelik geçiş yapıldı: daha okunaklı varsayılan yazı (Inter, 14 px, orta kalınlık, gölge) */
   themeReadV1?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
@@ -1186,7 +1188,7 @@ export function defaultSettings(): AppSettings {
       server: { enabled: true, port: 8910, lan: false },
       serverOnV1: true,
       mqtt: defaultMqtt(),
-      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+S", poll: "F9", tts: "F5", ttsHush: "", stt: "F6", chat: "Ctrl+Shift+C", crewStop: "", dashPage: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
+      shortcuts: { edit: "Ctrl+Shift+E", hide: "Ctrl+Shift+D", panel: "Ctrl+Shift+Space", shot: "F12", voice: "Ctrl+Shift+S", poll: "F9", tts: "F8", ttsHush: "", stt: "F7", chat: "Ctrl+Shift+C", crewStop: "", dashPage: "", vrConfig: "F9", vrRecenter: "End", vrNext: "Space", vrMode: "M", vrSave: "F10", vrReset: "Home", vrFace: "F", vrGaze: "G" },
       shotKeyV2: true,
       shotKeyV3: true,
       hideInReplay: true,
@@ -1197,6 +1199,7 @@ export function defaultSettings(): AppSettings {
       demoMute: true,
       demoMuteV1: true,
       voiceKeyV1: true,
+      chatKeyV2: true,
       themeReadV1: true,
       social: { dnd: false, acceptMessages: true, sound: true },
       screenshots: { includeOverlays: true, onlyInGame: true, format: "jpg", quality: 92 },
@@ -1279,6 +1282,22 @@ function voiceKeyMigrate<T extends Record<string, string>>(sc: T, done: boolean 
   return sc;
 }
 
+/**
+ * Bir kerelik geçiş (chatKeyV2): canlı sohbet varsayılanları değişti — sesli okuma F5 → F8, altyazı F6 → F7.
+ * Yalnızca eski varsayılanda kalmış kurulumlara uygulanır; yeni tuş başka bir eylemdeyse dokunulmaz.
+ * Rust: lib.rs shortcuts_from_settings.
+ */
+function chatKeyMigrate<T extends Record<string, string>>(sc: T, done: boolean | undefined): T {
+  if (done) return sc;
+  const norm = (k: unknown) => String(k ?? "").replace(/\s+/g, "").toLowerCase();
+  for (const [act, old, next] of [["tts", "f5", "F8"], ["stt", "f6", "F7"]] as const) {
+    if (norm(sc[act]) !== old) continue;
+    if (Object.entries(sc).some(([a, k]) => a !== act && norm(k) === next.toLowerCase())) continue;
+    (sc as Record<string, string>)[act] = next;
+  }
+  return sc;
+}
+
 /** Yeni ses sistemi (Crew Chief'ten bağımsız): sesli mühendis bir kez varsayılan açık olur, eski alanlar atılır */
 function voiceMigrate(v: VoiceSettings & { soundsDir?: string; spotter?: string }): VoiceSettings {
   if (!v.v2) {
@@ -1328,8 +1347,9 @@ export function normalize(input: unknown): AppSettings {
       // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
       demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,
       demoMuteV1: true,
-      shortcuts: voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1),
+      shortcuts: chatKeyMigrate(voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1), s.general?.chatKeyV2),
       voiceKeyV1: true,
+      chatKeyV2: true,
       shotKeyV2: true,
       shotKeyV3: true,
       chatLook: { ...DEFAULT_CHAT_LOOK, ...(s.general?.chatLook ?? {}) },
