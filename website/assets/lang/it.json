@@ -1236,5 +1236,9 @@
  "cw_x_track": "Temp. pista",
  "fr_typing": "{0} sta scrivendo…",
  "fr_hidden_st": "Offline (nascosto)",
- "fr_hidden_sec": "Nascosto"
+ "fr_hidden_sec": "Nascosto",
+ "ov_glucose_n": "Glicemia",
+ "ov_glucose_d": "La tua glicemia in tempo reale da un sensore per il monitoraggio continuo del glucosio: valore, freccia di tendenza e avvisi di glicemia bassa / alta.",
+ "ov_glucose_h": "Compatibile con FreeStyle Libre (LibreLinkUp), Dexcom (Share) e Nightscout|Valore, freccia di tendenza, variazione, ora della lettura e mini grafico delle ultime 3 ore|Avvisi sonori e visivi per bassa / alta e molto bassa / molto alta; i limiti li imposti tu|5 design, 6 temi colore e i tuoi colori personalizzati; mg/dL o mmol/L|I dati di accesso sono salvati cifrati solo sul tuo computer",
+ "ovg_glucose": "Per i piloti con diabete: mostra sullo schermo la lettura del tuo sensore per il monitoraggio continuo del glucosio (FreeStyle Libre, Dexcom o Nightscout) mentre corri. Accanto a un'icona a goccia di sangue trovi il valore attuale, una freccia che indica se sta salendo o scendendo e un piccolo grafico; se la glicemia scende sotto o sale sopra i limiti che hai impostato, la cornice lampeggia e suona un avviso. Così puoi tenerla d'occhio durante una gara lunga senza guardare il telefono. I tuoi dati di accesso restano sul tuo computer. Non è un dispositivo medico."
 }

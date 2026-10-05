@@ -10,6 +10,7 @@ mod engine;
 mod entitlement;
 mod events;
 mod extras;
+mod glucose;
 mod history;
 mod laprec;
 mod i18n;
@@ -2383,6 +2384,11 @@ pub fn run() {
             hidden_set,
             monitors_list,
             overlay_set_monitor,
+            glucose::glucose_login,
+            glucose::glucose_logout,
+            glucose::glucose_state,
+            glucose::glucose_refresh,
+            glucose::glucose_alert,
             preview_set,
             preview_freeze,
             panel_front,
@@ -2579,6 +2585,7 @@ pub fn run() {
             engine::spawn(handle.clone(), shared_state.clone());
             // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)
             livechat::init(&handle, shared_state.clone());
+            glucose::start(&handle);
             if srv_on {
                 apply_server(&handle, true, srv_port, srv_lan);
             }

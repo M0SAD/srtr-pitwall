@@ -1236,5 +1236,9 @@
  "cw_x_track": "Streckentemp.",
  "fr_typing": "{0} schreibt…",
  "fr_hidden_st": "Offline (verborgen)",
- "fr_hidden_sec": "Verborgen"
+ "fr_hidden_sec": "Verborgen",
+ "ov_glucose_n": "Blutzucker",
+ "ov_glucose_d": "Dein aktueller Blutzucker vom kontinuierlichen Glukosesensor: Wert, Trendpfeil und Warnungen bei zu niedrigen / zu hohen Werten.",
+ "ov_glucose_h": "Unterstützt FreeStyle Libre (LibreLinkUp), Dexcom (Share) und Nightscout|Wert, Trendpfeil, Änderung, Messzeit und Mini-Diagramm der letzten 3 Stunden|Akustische und optische Warnungen für niedrig / hoch und sehr niedrig / sehr hoch; die Grenzwerte legst du fest|5 Designs, 6 Farbthemen und deine eigenen Farben; mg/dL oder mmol/L|Zugangsdaten werden verschlüsselt und nur auf deinem eigenen Computer gespeichert",
+ "ovg_glucose": "Für Fahrer mit Diabetes: zeigt den Wert deines kontinuierlichen Glukosesensors (FreeStyle Libre, Dexcom oder Nightscout) während des Rennens auf dem Bildschirm. Neben einem Blutstropfen-Symbol siehst du den aktuellen Wert, einen Pfeil, der anzeigt, ob er steigt oder fällt, und ein kleines Diagramm; fällt dein Blutzucker unter die von dir festgelegten Grenzwerte oder steigt er darüber, blinkt der Rahmen und ein Warnton ertönt. So behältst du ihn in einem langen Rennen im Blick, ohne aufs Handy zu schauen. Deine Zugangsdaten bleiben auf deinem eigenen Computer. Kein Medizinprodukt."
 }

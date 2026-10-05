@@ -222,6 +222,14 @@ addDict({
     "İç / orta / dış sıcaklık|Kalan diş ve soğuk basınç|iRacing bu değerleri pitte günceller",
     "Inner / middle / outer temperature|Remaining tread and cold pressure|iRacing updates these values in the pits",
   ],
+  ov_glucose_d: [
+    "Sürekli şeker ölçüm sensöründen anlık kan şekerin: değer, yön oku ve düşük / yüksek uyarısı.",
+    "Your live blood glucose from a continuous glucose monitor: value, trend arrow and low / high alerts.",
+  ],
+  ov_glucose_h: [
+    "FreeStyle Libre (LibreLinkUp), Dexcom (Share) ve Nightscout desteği|Değer, yön oku, değişim, ölçüm saati ve son 3 saatin mini grafiği|Düşük / yüksek ve çok düşük / çok yüksek için sesli ve görsel uyarı; sınırları sen belirlersin|5 tasarım, 6 hazır renk teması ve kendi renklerin; mg/dL ya da mmol/L|Giriş bilgileri yalnızca kendi bilgisayarında, şifreli saklanır",
+    "Works with FreeStyle Libre (LibreLinkUp), Dexcom (Share) and Nightscout|Value, trend arrow, change, reading time and a mini graph of the last 3 hours|Sound and visual alerts for low / high and very low / very high; you set the limits|5 designs, 6 colour themes plus your own colours; mg/dL or mmol/L|Login details are stored encrypted on your own computer only",
+  ],
   ov_dataframe_d: ["Seçtiğin tek bir değeri büyük gösteren kutu.", "A box showing one value of your choice, big."],
   ov_dataframe_h: [
     "Hız, vites, yakıt, delta, pozisyon, tur, sıcaklık, fren dengesi ve daha fazlası|Kendi gösterge düzenini kutu kutu kur",

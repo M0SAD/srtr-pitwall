@@ -47,6 +47,7 @@ export { default as Check } from "lucide-solid/icons/check";
 export { default as TriangleAlert } from "lucide-solid/icons/triangle-alert";
 export { default as Wifi } from "lucide-solid/icons/wifi";
 export { default as ExternalLink } from "lucide-solid/icons/external-link";
+export { default as Droplet } from "lucide-solid/icons/droplet";
 export { default as Layers } from "lucide-solid/icons/layers";
 export { default as MousePointer2 } from "lucide-solid/icons/mouse-pointer-2";
 export { default as ImagePlus } from "lucide-solid/icons/image-plus";

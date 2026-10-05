@@ -1236,5 +1236,9 @@
  "cw_x_track": "Radan lämpö",
  "fr_typing": "{0} kirjoittaa…",
  "fr_hidden_st": "Offline (piilotettu)",
- "fr_hidden_sec": "Piilotettu"
+ "fr_hidden_sec": "Piilotettu",
+ "ov_glucose_n": "Verensokeri",
+ "ov_glucose_d": "Reaaliaikainen verensokerisi jatkuvasta glukoosisensorista: arvo, trendinuoli ja hälytykset matalasta / korkeasta arvosta.",
+ "ov_glucose_h": "Tukee FreeStyle Libreä (LibreLinkUp), Dexcomia (Share) ja Nightscoutia|Arvo, trendinuoli, muutos, mittausaika ja minikaavio viimeisestä 3 tunnista|Ääni- ja näkyvät hälytykset matalalle / korkealle ja hyvin matalalle / hyvin korkealle; rajat asetat itse|5 ulkoasua, 6 väriteemaa ja omat värisi; mg/dL tai mmol/L|Kirjautumistiedot tallennetaan salattuina vain omalle tietokoneellesi",
+ "ovg_glucose": "Diabetesta sairastaville kuljettajille: näyttää jatkuvan glukoosisensorisi (FreeStyle Libre, Dexcom tai Nightscout) lukeman ruudulla ajon aikana. Veripisarakuvakkeen vieressä näet nykyisen arvon, nuolen, joka kertoo, onko arvo nousussa vai laskussa, sekä pienen kaavion; jos verensokerisi laskee asettamiesi rajojen alle tai nousee niiden yli, kehys vilkkuu ja hälytysääni soi. Näin voit seurata tilannetta pitkässä kisassa katsomatta puhelinta. Kirjautumistietosi pysyvät omalla tietokoneellasi. Ei ole lääkinnällinen laite."
 }

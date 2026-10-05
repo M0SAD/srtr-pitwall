@@ -1236,5 +1236,9 @@
  "cw_x_track": "Baantemp.",
  "fr_typing": "{0} typt…",
  "fr_hidden_st": "Offline (verborgen)",
- "fr_hidden_sec": "Verborgen"
+ "fr_hidden_sec": "Verborgen",
+ "ov_glucose_n": "Bloedglucose",
+ "ov_glucose_d": "Je actuele bloedglucose van een continue glucosemeter: waarde, trendpijl en waarschuwingen bij laag / hoog.",
+ "ov_glucose_h": "Werkt met FreeStyle Libre (LibreLinkUp), Dexcom (Share) en Nightscout|Waarde, trendpijl, verandering, meettijd en een minigrafiek van de laatste 3 uur|Geluids- en visuele waarschuwingen voor laag / hoog en zeer laag / zeer hoog; jij bepaalt de grenzen|5 ontwerpen, 6 kleurthema's en je eigen kleuren; mg/dL of mmol/L|Inloggegevens worden versleuteld en alleen op je eigen computer opgeslagen",
+ "ovg_glucose": "Voor rijders met diabetes: toont de meting van je continue glucosemeter (FreeStyle Libre, Dexcom of Nightscout) op het scherm terwijl je racet. Naast een bloeddruppelicoon zie je de actuele waarde, een pijl die aangeeft of die stijgt of daalt, en een kleine grafiek; als je glucose onder de door jou ingestelde grenzen zakt of erboven komt, knippert het kader en klinkt er een waarschuwingsgeluid. Zo houd je het tijdens een lange race in de gaten zonder op je telefoon te kijken. Je inloggegevens blijven op je eigen computer. Geen medisch hulpmiddel."
 }

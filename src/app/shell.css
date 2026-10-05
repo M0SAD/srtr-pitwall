@@ -5088,3 +5088,25 @@ button.ovpal-lock {
 button.ovpal-lock:hover {
   background: color-mix(in srgb, #ffcc33 18%, transparent);
 }
+
+/* Kan Şekeri: hesap kutusu */
+.gl-acct {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.gl-acct-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gl-acct-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3ddc84;
+}
+.gl-acct-dot.err {
+  background: #ffb340;
+}

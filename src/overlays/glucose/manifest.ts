@@ -1,0 +1,100 @@
+import { defineOverlay } from "@/sdk/overlay";
+
+/** Hazır renk temaları: normal / uyarı (düşük-yüksek) / acil / arka plan / yazı */
+export const GLUCOSE_THEMES: Record<string, { normal: string; warn: string; urgent: string; bg: string; text: string }> = {
+  classic: { normal: "#3ddc84", warn: "#ffb340", urgent: "#ff5c5c", bg: "#17181c", text: "#f2f4f8" },
+  ocean: { normal: "#38bdf8", warn: "#a78bfa", urgent: "#fb7185", bg: "#0f1724", text: "#e8f1ff" },
+  neon: { normal: "#39ff14", warn: "#ffe600", urgent: "#ff2079", bg: "#0b0b10", text: "#ffffff" },
+  pastel: { normal: "#7ee7b6", warn: "#ffd48a", urgent: "#ff9aa2", bg: "#252838", text: "#f3f1ff" },
+  light: { normal: "#16a34a", warn: "#d97706", urgent: "#dc2626", bg: "#f4f5f7", text: "#16181d" },
+  mono: { normal: "#ffffff", warn: "#cfcfcf", urgent: "#ff5c5c", bg: "#000000", text: "#ffffff" },
+};
+
+const custom = { key: "theme", is: ["custom"] };
+
+export default defineOverlay({
+  id: "glucose",
+  name: "Kan Şekeri",
+  description:
+    "Sürekli şeker ölçüm sensöründen (FreeStyle Libre / LibreLinkUp, Dexcom, Nightscout) anlık kan şekeri: değer, yön oku, değişim, mini grafik ve düşük / yüksek uyarısı. Giriş bilgileri yalnızca bu bilgisayarda saklanır.",
+  category: "info",
+  topics: [],
+  size: { w: 230, h: 96 },
+  defaultPosition: { x: 1640, y: 60 },
+  defaultEnabled: false,
+  defaultAlwaysShow: true,
+  resize: false,
+  settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "card",
+      group: "Görünüm",
+      options: [
+        { value: "card", label: "Kart (değer + grafik)" },
+        { value: "pill", label: "Şerit (tek satır)" },
+        { value: "circle", label: "Yuvarlak" },
+        { value: "square", label: "Kare" },
+        { value: "graph", label: "Geniş grafik" },
+      ],
+    },
+    {
+      key: "theme",
+      label: "Renk teması",
+      type: "select",
+      default: "classic",
+      group: "Görünüm",
+      options: [
+        { value: "classic", label: "Klasik" },
+        { value: "ocean", label: "Okyanus" },
+        { value: "neon", label: "Neon" },
+        { value: "pastel", label: "Pastel" },
+        { value: "light", label: "Açık tema" },
+        { value: "mono", label: "Siyah-beyaz" },
+        { value: "app", label: "Uygulama teması" },
+        { value: "custom", label: "Kendi renklerim" },
+      ],
+    },
+    { key: "cNormal", label: "Normal rengi", type: "color", default: "#3ddc84", group: "Görünüm", showIf: custom },
+    { key: "cWarn", label: "Düşük / yüksek rengi", type: "color", default: "#ffb340", group: "Görünüm", showIf: custom },
+    { key: "cUrgent", label: "Çok düşük / çok yüksek rengi", type: "color", default: "#ff5c5c", group: "Görünüm", showIf: custom },
+    { key: "cBg", label: "Arka plan rengi", type: "color", default: "#17181c", group: "Görünüm", showIf: custom },
+    { key: "cText", label: "Yazı rengi", type: "color", default: "#f2f4f8", group: "Görünüm", showIf: custom, resetKeys: ["cNormal", "cWarn", "cUrgent", "cBg", "cText"], resetLabel: "Renkleri sıfırla" },
+    { key: "drop", label: "Kan damlası simgesi", type: "boolean", default: true, group: "Görünüm" },
+    {
+      key: "dropColor",
+      label: "Damla rengi",
+      type: "select",
+      default: "red",
+      group: "Görünüm",
+      showIf: { key: "drop", is: [true] },
+      options: [
+        { value: "red", label: "Kırmızı" },
+        { value: "status", label: "Duruma göre (normal / uyarı / acil)" },
+      ],
+    },
+    { key: "arrow", label: "Yön oku", type: "boolean", default: true, group: "Görünüm" },
+    { key: "delta", label: "Değişim (+/−)", type: "boolean", default: true, group: "Görünüm" },
+    { key: "time", label: "Ölçüm saati", type: "boolean", default: true, group: "Görünüm" },
+    { key: "spark", label: "Mini grafik (son ~3 saat)", type: "boolean", default: true, group: "Görünüm" },
+    {
+      key: "unit",
+      label: "Birim",
+      type: "select",
+      default: "mgdl",
+      group: "Ölçüm ve uyarı",
+      options: [
+        { value: "mgdl", label: "mg/dL" },
+        { value: "mmol", label: "mmol/L" },
+      ],
+    },
+    { key: "low", label: "Düşük sınırı", type: "number", default: 70, min: 50, max: 120, step: 1, unit: "mg/dL", group: "Ölçüm ve uyarı" },
+    { key: "high", label: "Yüksek sınırı", type: "number", default: 180, min: 120, max: 350, step: 5, unit: "mg/dL", group: "Ölçüm ve uyarı" },
+    { key: "urgentLow", label: "Çok düşük sınırı", type: "number", default: 55, min: 40, max: 80, step: 1, unit: "mg/dL", group: "Ölçüm ve uyarı" },
+    { key: "urgentHigh", label: "Çok yüksek sınırı", type: "number", default: 250, min: 180, max: 400, step: 5, unit: "mg/dL", group: "Ölçüm ve uyarı" },
+    { key: "flash", label: "Görsel uyarı (yanıp sönen çerçeve ve etiket)", type: "boolean", default: true, group: "Ölçüm ve uyarı" },
+    { key: "sound", label: "Sesli uyarı", type: "boolean", default: true, group: "Ölçüm ve uyarı", hint: "Düşük / yüksekte 15 dk'da bir, çok düşük / çok yüksekte 5 dk'da bir" },
+    { key: "volume", label: "Uyarı sesi", type: "number", default: 60, min: 5, max: 100, step: 5, unit: "%", group: "Ölçüm ve uyarı", showIf: { key: "sound", is: [true] } },
+  ],
+});

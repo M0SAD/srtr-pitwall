@@ -1236,5 +1236,9 @@
  "cw_x_track": "Temp. piste",
  "fr_typing": "{0} écrit…",
  "fr_hidden_st": "Hors ligne (masqué)",
- "fr_hidden_sec": "Masqué"
+ "fr_hidden_sec": "Masqué",
+ "ov_glucose_n": "Glycémie",
+ "ov_glucose_d": "Ta glycémie en direct depuis un capteur de glucose en continu : valeur, flèche de tendance et alertes hypo / hyper.",
+ "ov_glucose_h": "Compatible FreeStyle Libre (LibreLinkUp), Dexcom (Share) et Nightscout|Valeur, flèche de tendance, variation, heure de la mesure et mini-graphique des 3 dernières heures|Alertes sonores et visuelles pour bas / haut et très bas / très haut ; c'est toi qui fixes les seuils|5 designs, 6 thèmes de couleurs et tes propres couleurs ; mg/dL ou mmol/L|Les identifiants sont stockés chiffrés, uniquement sur ton propre ordinateur",
+ "ovg_glucose": "Pour les pilotes diabétiques : affiche à l'écran la mesure de ton capteur de glucose en continu (FreeStyle Libre, Dexcom ou Nightscout) pendant que tu roules. À côté d'une icône de goutte de sang, tu as la valeur actuelle, une flèche qui indique si elle monte ou descend, et un petit graphique ; si ta glycémie passe sous ou au-dessus des seuils que tu as fixés, le cadre clignote et une alerte sonore retentit. Tu peux ainsi la surveiller pendant une longue course sans regarder ton téléphone. Tes identifiants restent sur ton propre ordinateur. Ce n'est pas un dispositif médical."
 }

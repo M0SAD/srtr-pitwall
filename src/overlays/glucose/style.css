@@ -1,0 +1,271 @@
+/* Kan Şekeri overlay'i. Renkler: --gl-normal / --gl-warn / --gl-urgent / --gl-bg / --gl-text (tema ya da kendi renklerim);
+   "Uygulama teması"nda overlay temasının renkleri kullanılır. */
+.gl {
+  --gl-normal: #3ddc84;
+  --gl-warn: #ffb340;
+  --gl-urgent: #ff5c5c;
+  --gl-bg: #17181c;
+  --gl-text: #f2f4f8;
+  --gl-c: var(--gl-normal);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--gl-bg);
+  color: var(--gl-text);
+  border: 1.5px solid color-mix(in srgb, var(--gl-c) 55%, transparent);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  font-family: var(--ov-font, Inter, system-ui, sans-serif);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.gl.gl-app {
+  --gl-normal: var(--ov-pos, #3ddc84);
+  --gl-warn: var(--ov-warn, #ffb340);
+  --gl-urgent: var(--ov-neg, #ff5c5c);
+  --gl-bg: var(--ov-bg, #17181c);
+  --gl-text: var(--ov-text, #f2f4f8);
+  border-radius: var(--ov-radius, 14px);
+}
+.gl.gl-warn {
+  --gl-c: var(--gl-warn);
+}
+.gl.gl-urgent {
+  --gl-c: var(--gl-urgent);
+}
+.gl.gl-stale {
+  --gl-c: color-mix(in srgb, var(--gl-text) 45%, var(--gl-bg));
+}
+.gl-main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.gl-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.gl-drop {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: #e5484d;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+.gl-dropstatus .gl-drop {
+  color: var(--gl-c);
+}
+.gl-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--gl-c);
+}
+.gl-arrow {
+  font-style: normal;
+  font-size: 0.62em;
+  font-weight: 700;
+}
+.gl-sub {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--gl-text) 62%, var(--gl-bg));
+}
+.gl-sub b {
+  font-weight: 600;
+}
+.gl-sub b:first-child {
+  color: var(--gl-text);
+}
+.gl-note {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--gl-text) 55%, var(--gl-bg));
+  white-space: normal;
+  max-width: 180px;
+}
+.gl-tag {
+  align-self: center;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--gl-c);
+  color: var(--gl-bg);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.gl-chart {
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.gl-spark {
+  display: block;
+  overflow: visible;
+}
+.gl-band {
+  fill: color-mix(in srgb, var(--gl-normal) 16%, transparent);
+}
+.gl-line {
+  fill: none;
+  stroke: var(--gl-c);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.gl-dot {
+  fill: var(--gl-c);
+  stroke: var(--gl-bg);
+  stroke-width: 1.5;
+}
+.gl-login {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  white-space: normal;
+  max-width: 220px;
+}
+
+/* Şerit: tek satır */
+.gl-pill {
+  padding: 7px 14px 7px 10px;
+  border-radius: 999px;
+  gap: 10px;
+}
+.gl-pill .gl-main {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.gl-pill .gl-value {
+  font-size: 26px;
+}
+.gl-pill .gl-drop {
+  width: 18px;
+  height: 18px;
+}
+
+/* Yuvarlak / kare */
+.gl-circle,
+.gl-square {
+  width: 132px;
+  height: 132px;
+  padding: 10px;
+  justify-content: center;
+  text-align: center;
+}
+.gl-circle {
+  border-radius: 50%;
+  border-color: transparent;
+}
+.gl-square {
+  border-radius: 20px;
+}
+.gl-circle .gl-main,
+.gl-square .gl-main {
+  align-items: center;
+  gap: 4px;
+}
+.gl-circle .gl-head,
+.gl-square .gl-head {
+  flex-direction: column;
+  gap: 2px;
+}
+.gl-circle .gl-value,
+.gl-square .gl-value {
+  font-size: 34px;
+}
+.gl-circle .gl-drop,
+.gl-square .gl-drop {
+  width: 18px;
+  height: 18px;
+}
+.gl-circle .gl-sub,
+.gl-square .gl-sub {
+  font-size: 11px;
+  gap: 6px;
+}
+.gl-circle .gl-tag,
+.gl-square .gl-tag {
+  font-size: 9.5px;
+  padding: 2px 5px;
+}
+.gl-ring {
+  position: absolute;
+  inset: 3px;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  pointer-events: none;
+}
+.gl-ring-bg {
+  fill: none;
+  stroke: color-mix(in srgb, var(--gl-text) 12%, var(--gl-bg));
+  stroke-width: 5;
+}
+.gl-ring-fg {
+  fill: none;
+  stroke: var(--gl-c);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+/* Geniş grafik */
+.gl-graph {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 330px;
+}
+.gl-graph .gl-main {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Uyarı: çerçeve ve parlama yanıp söner */
+.gl.gl-alert {
+  animation: gl-pulse 1.4s ease-in-out infinite;
+}
+.gl.gl-alert.gl-urgent {
+  animation-duration: 0.8s;
+}
+@keyframes gl-pulse {
+  0%,
+  100% {
+    border-color: color-mix(in srgb, var(--gl-c) 55%, transparent);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    border-color: var(--gl-c);
+    box-shadow:
+      0 6px 22px rgba(0, 0, 0, 0.35),
+      0 0 0 3px color-mix(in srgb, var(--gl-c) 45%, transparent),
+      0 0 24px color-mix(in srgb, var(--gl-c) 60%, transparent);
+  }
+}
+.ov-frozen .gl.gl-alert,
+.reduce-fx .gl.gl-alert {
+  animation: none;
+  border-color: var(--gl-c);
+}
+.gl-circle .gl-sub,
+.gl-square .gl-sub {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 6px;
+  max-width: 100px;
+  font-size: 10.5px;
+}

@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-165
+
+- Yeni overlay: Kan Şekeri. Sürekli şeker ölçüm sensöründen (FreeStyle Libre / LibreLinkUp, Dexcom Share, Nightscout) anlık değer, yön oku, değişim, ölçüm saati ve son ~3 saatin mini grafiği; kan damlası simgesiyle.
+  - Giriş: overlay ayarlarının başındaki "Sensör hesabı" bölümünden kaynak seçilip giriş yapılır / çıkış yapılır. Bilgiler yalnızca bu bilgisayarda, şifreli (Windows DPAPI) saklanır; ayarlara, buluta, yedeğe ve OBS sayfasına gitmez. Ölçümler de yalnızca bellekte tutulur.
+  - Tasarımlar: Kart, Şerit, Yuvarlak, Kare, Geniş grafik. Renk temaları: Klasik, Okyanus, Neon, Pastel, Açık, Siyah-beyaz, Uygulama teması ya da kendi renklerin. mg/dL ya da mmol/L.
+  - Uyarı: düşük / yüksek ve çok düşük / çok yüksek sınırları ayarlanır; aşılınca çerçeve yanıp söner, etiket çıkar ve uyarı sesi çalar (15 dk'da bir; acil düzeyde 5 dk'da bir). 15 dakikadan eski veri gri görünür, uyarı vermez.
+  - Veri yalnızca overlay ekrandayken, 60 sn'de bir okunur; hata üst üste gelirse aralık uzar (hesabın kilitlenmemesi için). Çift tık hemen yeniler. Varsayılan olarak oyun kapalıyken de görünür.
+  - OBS / tarayıcı kaynağında gösterilmez (bilerek: sağlık verisi yayına kendiliğinden çıkmasın). Tıbbi cihaz değildir.
+- Web sitesi: overlay listesi, galeri ve özellikler sayfasına Kan Şekeri eklendi (13 dil).
+
 ## 051026-164
 
 - Düzenler ve Yayın düzenleri: düzen / sahne adları tutup sürüklenerek sıralanır (turuncu çizgi bırakılacak yeri gösterir; Esc vazgeçer). Soldaki "Düzende" overlay listesi de aynı şekilde sıralanır; yeni eklenen overlay yine sona gelir.

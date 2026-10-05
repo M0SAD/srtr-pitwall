@@ -28,6 +28,7 @@ const MAP: Record<string, () => JSX.Element> = {
   driverswap: () => <I.RefreshCw />,
   crewcall: () => <I.Megaphone />,
   dataframe: () => <I.Box />,
+  glucose: () => <I.Droplet />,
   webview: () => <I.ExternalLink />,
   tires: () => <I.Car />,
   scene: () => <I.Clapperboard />,
