@@ -39,6 +39,7 @@ import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
 import { inTauri } from "@/sdk/platform";
 import { emit } from "@tauri-apps/api/event";
+import { useCols } from "../colResize";
 import ZoomIn from "lucide-solid/icons/zoom-in";
 import ZoomOut from "lucide-solid/icons/zoom-out";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
@@ -350,11 +351,13 @@ export function LayoutsPage() {
   const shownNow = () => resolveProfile(status());
   const closeSet = () => (setSel(null), setGhost(null));
   useEscClose(() => !!(sel() || ghost()), closeSet);
+  const cols = useCols();
   useDeleteKey(sel, remove);
   useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), locked);
 
   return (
-    <div class="lpage" classList={{ "with-set": !!(sel() || ghost()) }}>
+    <div class="lpage" classList={{ "with-set": !!(sel() || ghost()), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(!!(sel() || ghost())) }}>
+      <cols.Grips withSet={!!(sel() || ghost())} />
       <aside class="llist">
         <div class="llist-items">
           <LayoutList

@@ -2,6 +2,7 @@
 // düzenleri ve overlay listesi, ortada tuval, sağda seçili overlay'in ayarları.
 
 import { For, Show, createEffect, createMemo, createResource, createSignal } from "solid-js";
+import { useCols } from "../colResize";
 import { t } from "@/sdk/i18n";
 import { RESOLUTIONS, linkSource, liveProfile, setStreamCanvas, setStreamFocus, streamFocus, unlinkStream } from "@/sdk/streamLink";
 import { ShareDialog, isSceneOnly } from "./CommunityPage";
@@ -208,6 +209,8 @@ export function StreamingPage() {
   };
   const closeSet = () => (setSel(null), setGhost(null), setBadgeSel(false));
   useEscClose(() => badgeOpen() || (!linked() && !!(sel() || ghost())), closeSet);
+  const cols = useCols();
+  const withSet = () => badgeOpen() || (!linked() && !!(sel() || ghost()));
   useDeleteKey(sel, remove);
   useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), () => locked() || linked());
   // Seçili kopya düzenden çıktıysa seçim bırakılır
@@ -218,7 +221,8 @@ export function StreamingPage() {
 
   return (
     <ProLockBox feature={F.streaming} text="Yayın düzenleri (OBS) PRO üyelere özel.">
-      <div class="lpage" classList={{ "with-set": badgeOpen() || (!linked() && !!(sel() || ghost())) }}>
+      <div class="lpage" classList={{ "with-set": withSet(), resizing: cols.resizing() }} style={{ "grid-template-columns": cols.columns(withSet()) }}>
+        <cols.Grips withSet={withSet()} />
         <aside class="llist">
           <div class="llist-items">
             <LayoutList

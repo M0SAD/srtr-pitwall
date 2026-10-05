@@ -5058,3 +5058,33 @@ body.ov-dragging * {
   display: block;
   margin-top: 2px;
 }
+
+/* Düzenler / Yayın: sütun genişletme tutamakları ve sürükleyerek sıralama */
+.lpage {
+  position: relative;
+}
+.lpage.resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+.dragsort-line {
+  position: fixed;
+  z-index: 9999;
+  height: 2px;
+  background: var(--accent, #ff8a2a);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.dragsort-src {
+  opacity: 0.5;
+}
+button.ovpal-lock {
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+button.ovpal-lock:hover {
+  background: color-mix(in srgb, #ffcc33 18%, transparent);
+}

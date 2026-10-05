@@ -10,6 +10,7 @@
 
 import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { askConfirm } from "../confirm";
+import { dragSort } from "../dragSort";
 import ArrowUp from "lucide-solid/icons/arrow-up";
 import ArrowDown from "lucide-solid/icons/arrow-down";
 import { t } from "@/sdk/i18n";
@@ -41,6 +42,19 @@ export function moveProfile(id: string, dir: -1 | 1) {
     const j = i + dir;
     if (j < 0 || j >= group.length) return;
     [group[i], group[j]] = [group[j], group[i]];
+    group.forEach((p, n) => (p.order = n));
+  });
+}
+
+/** Aynı türdeki listede `to` sırasına taşır (sürükleyerek sıralama) */
+export function reorderProfile(id: string, to: number) {
+  updateSettings((d) => {
+    const me = d.profiles[id];
+    if (!me) return;
+    const group = sortProfiles(Object.values(d.profiles).filter((p) => isStream(p) === isStream(me)));
+    const i = group.findIndex((p) => p.id === id);
+    if (i < 0) return;
+    group.splice(Math.max(0, Math.min(to, group.length - 1)), 0, ...group.splice(i, 1));
     group.forEach((p, n) => (p.order = n));
   });
 }
@@ -256,7 +270,8 @@ export function LayoutList(props: {
                 classList={{ sel: props.selId === x.id }}
                 tabindex="0"
                 role="button"
-                title={x.locked ? "Kilitli düzen: değiştirilemez · kilidi açmak için kilit simgesine tıkla" : "Çift tık: yeniden adlandır · Sağ tık: kopyala, varsayılan yap, kilitle, taşı, sil · Delete: sil"}
+                title={x.locked ? "Kilitli düzen: değiştirilemez · kilidi açmak için kilit simgesine tıkla" : "Sürükle: sırala · Çift tık: yeniden adlandır · Sağ tık: kopyala, varsayılan yap, kilitle, taşı, sil · Delete: sil"}
+                onPointerDown={(e) => dragSort(e, { container: e.currentTarget.parentElement, selector: ".llist-row", onDrop: (_f, to) => reorderProfile(x.id, to) })}
                 onClick={() => props.onSelect(x.id)}
                 onDblClick={() => startRename(x.id)}
                 onContextMenu={(e) => {

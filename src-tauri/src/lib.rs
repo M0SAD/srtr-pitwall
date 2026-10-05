@@ -1535,18 +1535,24 @@ fn spawn_monitor_watch(app: AppHandle) {
 fn autostart_first_run(app: &AppHandle, _had_settings: bool) {
     let Ok(dir) = app.path().app_config_dir() else { return };
     // v2: mevcut kurulumlar da bir kez açılır (eski "autostart.init" sadece yeni kurulumları açıyordu)
-    let marker = dir.join("autostart.v2");
-    if marker.exists() {
-        return;
-    }
-    let _ = std::fs::create_dir_all(&dir);
-    let _ = std::fs::write(&marker, b"1");
+    // v3 (163 sonrası): bir kez daha açılır — eski kurulumlarda kayıt hiç yazılmamış ya da eski kurulum yolunda kalmış olabiliyordu
+    let marker = dir.join("autostart.v3");
     // Geliştirme derlemesi kendini başlangıca eklemesin
     if cfg!(debug_assertions) {
         return;
     }
     use tauri_plugin_autostart::ManagerExt;
-    if let Err(e) = app.autolaunch().enable() {
+    let al = app.autolaunch();
+    if marker.exists() {
+        // Açıksa kayıt her açılışta yenilenir: program başka bir klasöre kurulduysa başlangıç kaydı eski yolu göstermesin
+        if al.is_enabled().unwrap_or(false) {
+            let _ = al.enable();
+        }
+        return;
+    }
+    let _ = std::fs::create_dir_all(&dir);
+    let _ = std::fs::write(&marker, b"1");
+    if let Err(e) = al.enable() {
         eprintln!("Otomatik başlatma açılamadı: {e}");
     }
 }

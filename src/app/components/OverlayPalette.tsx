@@ -19,6 +19,7 @@ import { useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
 import * as I from "../icons";
+import { dragSort } from "../dragSort";
 
 /** Kullanıcının kendi sırası mı geçerli ("Kendi sıram") */
 export const hasOverlayOrder = () => overlaySort() === "custom";
@@ -168,6 +169,17 @@ export function OverlayPalette(props: {
       else o.locked = true;
     });
 
+  /** "Düzende" listesinde sürükleyerek sıralama: sıra eklenme anına yazılır (yeni eklenen yine sona gelir) */
+  const reorder = (from: number, to: number) => {
+    const keys = [...added()];
+    keys.splice(to, 0, ...keys.splice(from, 1));
+    updateSettings((d) => {
+      const ov = d.profiles[props.profile.id]?.overlays;
+      if (!ov) return;
+      keys.forEach((k, i) => ov[k] && (ov[k].addedAt = i + 1));
+    });
+  };
+
   return (
     <div class="ovpal" classList={{ disabled: !!props.disabled }}>
       <Show when={added().length > 0}>
@@ -180,7 +192,8 @@ export function OverlayPalette(props: {
                 <div
                   class="ovitem ovpal-row on"
                   classList={{ sel: props.selected === k }}
-                  title={props.profile.overlays[k].locked ? "Kilitli overlay: taşınamaz, silinemez · sağ tık: Kilidi aç" : "Çift tık: düzenden çıkar · sağ tık: kilitle, sil"}
+                  title={props.profile.overlays[k].locked ? "Kilitli overlay: taşınamaz, silinemez · sağ tık: Kilidi aç" : "Sürükle: sırala · Çift tık: düzenden çıkar · sağ tık: kilitle, sil"}
+                  onPointerDown={(e) => !props.disabled && dragSort(e, { container: e.currentTarget.closest(".ovpal"), selector: ".ovpal-row.on", onDrop: reorder })}
                   onClick={() => props.onSelect(k, type())}
                   onDblClick={() => props.onRemove(k)}
                   onContextMenu={(e) => {
@@ -193,13 +206,18 @@ export function OverlayPalette(props: {
                 >
                   <span class="ovitem-ic">{overlayIcon(type())}</span>
                   <span class="ovitem-name">{instanceName(k, props.profile.overlays[k])}</span>
-                  <Show when={props.profile.overlays[k].locked}>
-                    <span class="ovpal-lock" title="Kilitli: konumu değiştirilemez, silinemez">
-                      <I.Lock />
-                    </span>
-                  </Show>
                   <Show when={isProOverlay(type())}>
                     <span class="pro-badge small" title="PRO overlay">PRO</span>
+                  </Show>
+                  <Show when={props.profile.overlays[k].locked}>
+                    <button
+                      class="ovpal-lock"
+                      title="Kilitli: konumu değiştirilemez, silinemez · kilidi açmak için tıkla"
+                      onClick={stop(() => (props.disabled ? props.onRemove(k) : toggleLock(k)))}
+                      onDblClick={(e) => e.stopPropagation()}
+                    >
+                      <I.Lock />
+                    </button>
                   </Show>
                   <button class="ovpal-btn rem" classList={{ blocked: !!props.disabled || !!props.profile.overlays[k].locked }} title="Düzenden çıkar" onClick={stop(() => props.onRemove(k))} onDblClick={(e) => e.stopPropagation()}>
                     <Minus />

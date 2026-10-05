@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-164
+
+- Düzenler ve Yayın düzenleri: düzen / sahne adları tutup sürüklenerek sıralanır (turuncu çizgi bırakılacak yeri gösterir; Esc vazgeçer). Soldaki "Düzende" overlay listesi de aynı şekilde sıralanır; yeni eklenen overlay yine sona gelir.
+- Düzenler ve Yayın düzenleri: sol sütun (düzenler + overlay listesi) ve ayarlar sütunu sağ kenarından sürüklenerek genişletilir (250–420 / 290–520 px, çift tık varsayılan). Genişlikler Overlaylarım sayfasıyla ortaktır ve hesapla hatırlanır.
+- "Düzende" listesi: kilit simgesi PRO etiketinin sağında; simgeye tıklayınca kilit açılır.
+- Düzeltme: Sohbet Anketi overlay'i uygulama açılınca örnek anketle ekranda kalıyordu (159'daki demo düzeltmesi panel önizleme verisini de "demo" sayıyordu). Artık yalnızca kullanıcının açtığı Demo modunda örnek gösterir.
+- Windows ile başlat (sistem tepsisinde) varsayılanı bir kez daha uygulanır (kayıt eski kurulumlarda yazılmamış / eski klasörü gösteriyor olabiliyordu) ve açıkken her açılışta yenilenir. Ayarlardan kapatılırsa kapalı kalır.
+
 ## 051026-163
 
 - Tuval yakınlaştırması düzen başına: bir düzende (ya da yayın düzeninde) yapılan yakınlaştırma yalnızca o düzende kalır, diğerleri kendi değerinde durur. Değer bu bilgisayarda hatırlanır (uygulama kapanıp açılsa da).

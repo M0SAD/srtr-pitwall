@@ -15,7 +15,8 @@ export default function LivePoll(props: OverlayProps) {
     if (onScreen()) {
       const m = gateMode(status()?.chat, false);
       // Demo modu açıkken (sohbet bağlı olsa da, giriş / PRO koşulu sağlanmasa da) gerçek bir anket yoksa örnek anket görünür
-      const demo = m === "demo" || !!status()?.demo || !!status()?.chat?.demo;
+      // Yalnızca kullanıcının açtığı Demo modu (status.demo panel önizlemesinde de doğrudur: uygulama açılınca örnek anket ekranda kalıyordu)
+      const demo = m === "demo" || !!status()?.chat?.demo;
       const live = poll();
       if (m === "real" && live && live.state !== "idle") return live;
       if (demo) return SAMPLE_POLL;
