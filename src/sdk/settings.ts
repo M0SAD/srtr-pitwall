@@ -1720,6 +1720,48 @@ export function addToLayout(profileId: string, type: string, monitor = ""): stri
   return key;
 }
 
+/**
+ * Kopyalanan overlay'leri düzene yapıştırır (ayarları ve görünümüyle). Düzende yoksa aynı yere; varsa ve overlay
+ * birden çok kez eklenebiliyorsa `shift` px kaydırılmış yeni bir kopya olarak. Tek kopyalı olup düzende zaten
+ * bulunanlar atlanır (`single`); `replace` verilirse (başka düzenden yapıştırma) kopyalananla değiştirilir.
+ */
+export function pasteInstances(profileId: string, list: OverlayInstance[], shift = 24, replace = false): { keys: string[]; single: number } {
+  const keys: string[] = [];
+  let single = 0;
+  updateSettings((d) => {
+    const p = d.profiles[profileId];
+    if (!p) return;
+    for (const src of list) {
+      const man = manifests.find((m) => m.id === src.type);
+      if (!man) continue;
+      const inst: OverlayInstance = { ...structuredClone(src), name: "", enabled: true, addedAt: Date.now() };
+      delete inst.locked;
+      const base = p.overlays[src.type];
+      let key = src.type;
+      if (base && base.enabled) {
+        if (!man.multiInstance) {
+          // Başka düzenden yapıştırma: tek kopyalı overlay zaten varsa kopyalananla değiştirilir (kilitliyse dokunulmaz)
+          if (!replace || base.locked) {
+            single++;
+            continue;
+          }
+          p.overlays[key] = inst;
+          keys.push(key);
+          continue;
+        }
+        let n = 2;
+        while (p.overlays[`${src.type}#${n}`]) n++;
+        key = `${src.type}#${n}`;
+        inst.x += shift;
+        inst.y += shift;
+      }
+      p.overlays[key] = inst;
+      keys.push(key);
+    }
+  });
+  return { keys, single };
+}
+
 /** Düzendeki kopyayı "Overlaylarım" varsayılanlarına döndürür (konum, monitör ve ad korunur) */
 export function resetToDefaults(profileId: string, key: string) {
   updateSettings((d) => {

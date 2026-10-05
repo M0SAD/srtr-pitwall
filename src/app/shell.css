@@ -5032,3 +5032,29 @@ body.ov-dragging * {
   background: var(--rail);
   border-bottom-color: #1a1d24;
 }
+
+/* Tuval: Space ile gezinme, tarayarak çoklu seçim */
+.lcanvas-wrap.space .lcanvas,
+.lcanvas-wrap.space .citem {
+  cursor: grab;
+}
+.lcanvas-wrap.panning,
+.lcanvas-wrap.panning .lcanvas,
+.lcanvas-wrap.panning .citem {
+  cursor: grabbing;
+}
+.lcanvas-marq {
+  position: absolute;
+  z-index: 7;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  pointer-events: none;
+}
+.citem.msel {
+  outline: 2px dashed var(--accent);
+  outline-offset: 1px;
+}
+.chint-more {
+  display: block;
+  margin-top: 2px;
+}

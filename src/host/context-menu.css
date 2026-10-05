@@ -115,3 +115,17 @@
 .ctx::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.ctx-rename {
+  display: block;
+  width: calc(100% - 12px);
+  margin: 4px 6px 6px;
+  padding: 5px 7px;
+  box-sizing: border-box;
+  border: 1px solid #ff8a2a;
+  border-radius: 5px;
+  background: #0f1216;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}

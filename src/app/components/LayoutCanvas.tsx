@@ -1,7 +1,7 @@
 // Düzen tuvali: bir monitörü (ya da yayın sahnesini) küçültülmüş olarak gösterir; overlay'ler
 // gerçek görünümleriyle çizilir, sürüklenip boyutlandırılabilir. Izgara ve kenarlara yapıştırma var.
 
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { manifestById } from "@/sdk/registry";
 import { instanceName, settings, updateSettings, type EditBackdropSlot, type OverlayInstance, type Profile } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
@@ -67,7 +67,7 @@ export interface CanvasProps {
   readOnly?: boolean;
   /** Yakınlaştırma (1 = sığdır). 1'den büyükse tuval kaydırılabilir olur */
   zoom?: number;
-  /** Space basılıyken fare tekeri: yakınlaştır / uzaklaştır (verilmezse kapalı) */
+  /** Fare tekeri: yakınlaştır / uzaklaştır (verilmezse kapalı) */
   onZoom?: (zoom: number) => void;
   /** Yayın düzeni: sağ üstteki SRTR Pitwall logosu */
   badge?: CanvasBadge;
@@ -79,12 +79,25 @@ const [rectsVer, setRectsVer] = createSignal(0);
 // Tuvaldeki overlay'lerin mantıksal dikdörtgenleri (yapıştırma için)
 const rects = new Map<string, Rect>();
 
+// Çoklu seçim: tuvalde boş yerden sürükleyerek taranan (ya da Ctrl / Shift + tıkla eklenen) kopyalar.
+// Birlikte taşınır (sürükle / ok tuşları) ve Delete ile birlikte silinir. Tek seçim (ayar paneli) bundan ayrıdır.
+const [multi, setMulti] = createSignal<string[]>([]);
+/** Çoklu seçimdeki kopyalar (2 ve üzeri ise anlamlıdır) */
+export const canvasMulti = () => (multi().length > 1 ? multi() : []);
+export const clearCanvasMulti = () => multi().length && setMulti([]);
+const inMulti = (key: string) => multi().length > 1 && multi().includes(key);
+/** Çoklu seçim birlikte sürükleniyor: sürüklenen kopya ve o anki kayma (mantıksal px) */
+const [groupDrag, setGroupDrag] = createSignal<{ lead: string; dx: number; dy: number } | null>(null);
+
 // Üst üste binen overlay'lerde tıklamanın kime gideceğini seçmek için: tuvaldeki her kopyanın tutamağı
 interface ItemHandle {
   locked: () => boolean;
   selected: () => boolean;
   select: () => void;
+  deselect: () => void;
   begin: (e: PointerEvent, cycle?: string) => void;
+  /** Çoklu seçimle birlikte taşı (kilitliyse hiçbir şey yapmaz) */
+  nudge: (dx: number, dy: number) => void;
 }
 const items = new Map<string, ItemHandle>();
 /** Son tıklamanın yeri: aynı yere sürüklemeden tekrar tıklanınca alttaki overlay'e geçilir */
@@ -99,8 +112,8 @@ const stackAt = (x: number, y: number): string[] =>
 /** Tuş hedefi yazı alanı mı (ok tuşları oraya aittir) */
 const typingTarget = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 /** Ok tuşu -> (dx, dy); Shift: 10 px */
-function arrowDelta(e: KeyboardEvent): [number, number] | null {
-  if (e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented) return null;
+function arrowDelta(e: KeyboardEvent, anyway = false): [number, number] | null {
+  if (e.ctrlKey || e.altKey || e.metaKey || (e.defaultPrevented && !anyway)) return null;
   const n = e.shiftKey ? 10 : 1;
   switch (e.key) {
     case "ArrowLeft":
@@ -128,25 +141,92 @@ export function LayoutCanvas(props: CanvasProps) {
   onMount(() => {
     let space = false;
     let over = false;
-    const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    // Yalnızca gerçek yazı alanı "yazıyor" sayılır: overlay seçiliyken odak ayar panelindeki bir düğmede / anahtarda /
+    // listede kalmış olsa da (eskiden bu yüzden kısayol çalışmıyordu) Space + teker ve + / − / 0 çalışır
+    const typing = (t: EventTarget | null) =>
+      t instanceof HTMLElement &&
+      (t.isContentEditable || t.tagName === "TEXTAREA" || (t instanceof HTMLInputElement && !/^(checkbox|radio|range|button|color|file|submit)$/.test(t.type)));
+    const hover = () => over || !!box?.matches(":hover");
+    const stepZoom = (d: number) => {
+      const cur = props.zoom ?? 1;
+      const next = Math.min(3, Math.max(0.5, Math.round((cur + d) * 20) / 20));
+      if (next !== cur) props.onZoom?.(next);
+    };
     const down = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || typing(e.target)) return;
+      if (typing(e.target) || !props.onZoom) return;
+      // İmleç tuvaldeyken: + / − yakınlaştır / uzaklaştır, 0 sığdır
+      if (hover() && !e.ctrlKey && !e.altKey && !e.metaKey && !document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) {
+        if (e.key === "+" || e.key === "=") return void (e.preventDefault(), stepZoom(0.25));
+        if (e.key === "-" || e.key === "_") return void (e.preventDefault(), stepZoom(-0.25));
+        if (e.key === "0") return void (e.preventDefault(), props.onZoom(1));
+      }
+      if (e.code !== "Space") return;
       space = true;
       // İmleç tuvaldeyken Space sayfayı kaydırmasın / odaktaki düğmeyi tetiklemesin
-      if (over && props.onZoom) e.preventDefault();
+      if (hover()) {
+        e.preventDefault();
+        const ae = document.activeElement;
+        if (ae instanceof HTMLElement && ae !== document.body && !e.repeat) ae.blur();
+      }
     };
     const up = (e: KeyboardEvent) => {
       if (e.code === "Space") space = false;
     };
     const blur = () => (space = false);
+    // Space + sol tuşla sürükle: yakınlaştırılmış tuvalde gezin (overlay'ler seçilmez / taşınmaz)
+    const panDown = (e: PointerEvent) => {
+      if (!space || e.button !== 0 || !box) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const el = box;
+      const x0 = e.clientX;
+      const y0 = e.clientY;
+      const l0 = el.scrollLeft;
+      const t0 = el.scrollTop;
+      el.setPointerCapture(e.pointerId);
+      el.classList.add("panning");
+      const mv = (ev: PointerEvent) => {
+        el.scrollLeft = l0 - (ev.clientX - x0);
+        el.scrollTop = t0 - (ev.clientY - y0);
+      };
+      const end = () => {
+        el.removeEventListener("pointermove", mv);
+        el.removeEventListener("pointerup", end);
+        el.removeEventListener("pointercancel", end);
+        el.classList.remove("panning");
+      };
+      el.addEventListener("pointermove", mv);
+      el.addEventListener("pointerup", end);
+      el.addEventListener("pointercancel", end);
+    };
+    box!.addEventListener("pointerdown", panDown, true);
+    onCleanup(() => box?.removeEventListener("pointerdown", panDown, true));
+    const spaceCls = (e: KeyboardEvent) => e.code === "Space" && box?.classList.toggle("space", e.type === "keydown" && hover() && !typing(e.target));
+    window.addEventListener("keydown", spaceCls);
+    window.addEventListener("keyup", spaceCls);
+    onCleanup(() => (window.removeEventListener("keydown", spaceCls), window.removeEventListener("keyup", spaceCls)));
     const enter = () => (over = true);
     const leave = () => (over = false);
     const wheel = (e: WheelEvent) => {
-      if (!space || !props.onZoom || e.deltaY === 0) return;
+      // Fare tekeri (Space gerekmez): yakınlaştır / uzaklaştır. Yakınlaştırılmış tuvalde gezinmek için Space + sürükle.
+      if (!props.onZoom || e.deltaY === 0 || e.ctrlKey) return;
       e.preventDefault();
       const cur = props.zoom ?? 1;
       const next = Math.min(3, Math.max(0.5, Math.round((cur + (e.deltaY < 0 ? 0.1 : -0.1)) * 20) / 20));
-      if (next !== cur) props.onZoom(next);
+      if (next === cur) return;
+      // İmlecin altındaki nokta yerinde kalsın
+      const el = box!;
+      const b = el.getBoundingClientRect();
+      const cx = e.clientX - b.left;
+      const cy = e.clientY - b.top;
+      const r = next / cur;
+      const sl = (el.scrollLeft + cx) * r - cx;
+      const st = (el.scrollTop + cy) * r - cy;
+      props.onZoom(next);
+      requestAnimationFrame(() => {
+        el.scrollLeft = Math.max(0, sl);
+        el.scrollTop = Math.max(0, st);
+      });
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -163,7 +243,63 @@ export function LayoutCanvas(props: CanvasProps) {
       box?.removeEventListener("wheel", wheel);
     });
   });
-  // Tuval pikseli / mantıksal piksel
+  // Düzen değişince çoklu seçim sıfırlanır; silinen kopyalar seçimden düşer
+  createEffect(on(() => props.profileId, () => setMulti([]), { defer: true }));
+  createEffect(() => {
+    const keys = props.keys;
+    const cur = multi();
+    if (cur.some((x) => !keys.includes(x))) setMulti(cur.filter((x) => keys.includes(x)));
+  });
+  onCleanup(() => setMulti([]));
+  /** Tarama dikdörtgeni (tuval pikseli) */
+  const [marq, setMarq] = createSignal<{ x: number; y: number; w: number; h: number } | null>(null);
+  /** Boş yere basıldı: sürüklenirse tarayarak çoklu seçim, sürüklenmezse seçimi kaldır */
+  const canvasDown = (e: PointerEvent) => {
+    if (e.target !== e.currentTarget || e.button !== 0) return;
+    const el = e.currentTarget as HTMLElement;
+    const b = el.getBoundingClientRect();
+    const x0 = e.clientX - b.left;
+    const y0 = e.clientY - b.top;
+    const add = e.shiftKey || e.ctrlKey ? multi() : [];
+    let moved = false;
+    el.setPointerCapture(e.pointerId);
+    const hits = (m: { x: number; y: number; w: number; h: number }) => {
+      const r = { x: m.x / k(), y: m.y / k(), w: m.w / k(), h: m.h / k() };
+      return props.keys.filter((key) => {
+        const q = rects.get(key);
+        return !!q && rectsHit(q, r);
+      });
+    };
+    const mv = (ev: PointerEvent) => {
+      const x = Math.max(0, Math.min(ev.clientX - b.left, b.width));
+      const y = Math.max(0, Math.min(ev.clientY - b.top, b.height));
+      if (!moved && Math.hypot(x - x0, y - y0) < 4) return;
+      moved = true;
+      const m = { x: Math.min(x, x0), y: Math.min(y, y0), w: Math.abs(x - x0), h: Math.abs(y - y0) };
+      setMarq(m);
+      setMulti([...new Set([...add, ...hits(m)])]);
+    };
+    const end = () => {
+      el.removeEventListener("pointermove", mv);
+      el.removeEventListener("pointerup", end);
+      el.removeEventListener("pointercancel", end);
+      setMarq(null);
+      const got = multi();
+      if (!moved) {
+        setMulti([]);
+        props.onSelect(null);
+      } else if (got.length === 1) {
+        setMulti([]);
+        props.onSelect(got[0]);
+      } else if (got.length > 1) {
+        props.onSelect(null);
+      }
+    };
+    el.addEventListener("pointermove", mv);
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+  };
+  // Tuvalin pikseli / mantıksal piksel
   const k = createMemo(() => Math.min(boxW() / props.width, 620 / props.height) * (props.zoom ?? 1));
   const g = () => settings().general;
   const vars = createMemo(() => themeVars(settings().theme));
@@ -263,8 +399,9 @@ export function LayoutCanvas(props: CanvasProps) {
           height: `${props.height * k()}px`,
           "--gridpx": `${g().gridSize * k()}px`,
         }}
-        onPointerDown={(e) => e.target === e.currentTarget && props.onSelect(null)}
+        onPointerDown={canvasDown}
       >
+        <Show when={marq()}>{(m) => <div class="lcanvas-marq" style={{ left: `${m().x}px`, top: `${m().y}px`, width: `${m().w}px`, height: `${m().h}px` }} />}</Show>
         <Show when={bg()}>
           <img class="lcanvas-bg" src={bg()!} alt="" draggable={false} style={{ opacity: g().editBackdrops[props.backdrop ?? "layout"].opacity / 100 }} />
         </Show>
@@ -282,6 +419,7 @@ export function LayoutCanvas(props: CanvasProps) {
               screen={{ w: props.width, h: props.height }}
               selected={props.selected === key}
               onSelect={() => props.onSelect(key)}
+              onDeselect={() => props.onSelect(null)}
               setGuides={setGuides}
               useGlobal={props.globalScale !== false}
               source={props.source}
@@ -340,6 +478,7 @@ function CanvasItem(props: {
   screen: { w: number; h: number };
   selected: boolean;
   onSelect: () => void;
+  onDeselect: () => void;
   setGuides: (g: Guides) => void;
   useGlobal: boolean;
   onMenu: (m: MenuState) => void;
@@ -379,7 +518,10 @@ function CanvasItem(props: {
     const w = size().w * eff;
     const h = size().h * eff;
     const r = d ? { x: d.x, y: d.y, w, h } : layoutRect({ x: base.x, y: base.y, w: size().w * own, h: size().h * own }, eff / own, props.screen);
-    return { ...clampRect(r, props.screen), eff, scale: own };
+    const gd = groupDrag();
+    // Çoklu seçim birlikte sürükleniyor: bu kopya sürüklenenle aynı kadar kayar
+    const rr = gd && gd.lead !== props.key && inMulti(props.key) && !blocked() ? { ...r, x: r.x + gd.dx, y: r.y + gd.dy } : r;
+    return { ...clampRect(rr, props.screen), eff, scale: own };
   });
   createEffect(() => {
     const v = view();
@@ -440,12 +582,29 @@ function CanvasItem(props: {
       if (cur && again && free.length > 1) cycle = free[(free.indexOf(cur) + 1) % free.length];
     }
     lastClick = { x: e.clientX, y: e.clientY };
+    // Ctrl / Shift + tıkla: çoklu seçime ekle / çıkar (tek seçim de dahil edilir)
+    if ((e.ctrlKey || e.shiftKey) && !props.readOnly) {
+      const cur = new Set(multi());
+      for (const [k2, h] of items) if (h.selected()) cur.add(k2);
+      if (cur.has(target) && cur.size > 1) cur.delete(target);
+      else cur.add(target);
+      setMulti([...cur]);
+      if (cur.size > 1) {
+        for (const h of items.values()) if (h.selected()) return void h.deselect();
+        return;
+      }
+    }
     (items.get(target) ?? handle).begin(e, cycle);
   };
 
   const begin = (e: PointerEvent, cycle?: string) => {
     if (!root) return;
-    props.onSelect();
+    // Çoklu seçimdeki bir kopyaya basıldı: seçim korunur ve hepsi birlikte sürüklenir
+    const group = inMulti(props.key);
+    if (!group) {
+      setMulti([]);
+      props.onSelect();
+    }
     if (blocked()) {
       // Tıklama sadece seçer; sürüklemeye çalışılırsa neden taşınmadığı söylenir
       const el0 = root;
@@ -472,7 +631,7 @@ function CanvasItem(props: {
     const o = view();
     const sx = e.clientX;
     const sy = e.clientY;
-    const others = [...rects.entries()].filter(([k]) => k !== props.key).map(([, r]) => r);
+    const others = [...rects.entries()].filter(([k]) => k !== props.key && !(group && inMulti(k))).map(([, r]) => r);
     let moved = false;
     let said = false;
     const move = (ev: PointerEvent) => {
@@ -492,6 +651,7 @@ function CanvasItem(props: {
       const q = outOfBadge(q0);
       if (q !== q0 && !said) (said = true), sayBadgeArea();
       setDrag({ x: q.x, y: q.y, scale: o.scale });
+      if (group) setGroupDrag({ lead: props.key, dx: q.x - o.x, dy: q.y - o.y });
       sendDrag(livePos(q, o.scale));
     };
     const up = () => {
@@ -499,9 +659,17 @@ function CanvasItem(props: {
       t.removeEventListener("pointerup", up);
       t.removeEventListener("pointercancel", up);
       const d = drag();
+      const gd = groupDrag();
+      setGroupDrag(null);
       if (d) commit({ x: d.x, y: d.y, w: o.w, h: o.h }, o.scale);
       setDrag(null);
+      if (gd && (gd.dx || gd.dy)) for (const k2 of multi()) if (k2 !== props.key) items.get(k2)?.nudge(gd.dx, gd.dy);
       props.setGuides({ v: [], h: [] });
+      // Çoklu seçimdeki kopyaya sürüklemeden tıklandı: yalnızca o seçilir
+      if (group && !moved) {
+        setMulti([]);
+        props.onSelect();
+      }
       if (!moved && cycle) items.get(cycle)?.select();
     };
     t.addEventListener("pointermove", move);
@@ -509,19 +677,27 @@ function CanvasItem(props: {
     t.addEventListener("pointercancel", up);
   };
 
-  const handle: ItemHandle = { locked: () => blocked(), selected: () => props.selected, select: () => props.onSelect(), begin };
+  const nudge = (dx: number, dy: number) => {
+    if (blocked()) return;
+    const v = view();
+    const r = clampRect({ x: v.x + dx, y: v.y + dy, w: v.w, h: v.h }, props.screen);
+    if (r.x !== v.x || r.y !== v.y) commit({ x: r.x, y: r.y, w: v.w, h: v.h }, v.scale);
+  };
+  const handle: ItemHandle = { locked: () => blocked(), selected: () => props.selected, select: () => props.onSelect(), deselect: () => props.onDeselect(), begin, nudge };
   items.set(props.key, handle);
   onCleanup(() => items.get(props.key) === handle && items.delete(props.key));
 
   // Ok tuşları: seçili overlay'i 1 px (Shift: 10 px) taşır; ızgaraya / kenarlara yapıştırılmaz
   onMount(() => {
     const key = (e: KeyboardEvent) => {
-      if (!props.selected || drag()) return;
-      const d = arrowDelta(e);
+      const group = inMulti(props.key);
+      if ((!props.selected && !group) || (props.selected && multi().length > 1 && !group) || drag()) return;
+      // Çoklu seçimde her kopya kendi dinleyicisiyle taşınır (ilki olayı tüketmiş olsa da)
+      const d = arrowDelta(e, group);
       if (!d || typingTarget(e.target)) return;
       if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
       e.preventDefault();
-      if (blocked()) return void (e.repeat || sayBlocked());
+      if (blocked()) return void (e.repeat || group || sayBlocked());
       const v = view();
       const r = clampRect({ x: v.x + d[0], y: v.y + d[1], w: v.w, h: v.h }, props.screen);
       if (r.x !== v.x || r.y !== v.y) commit({ x: r.x, y: r.y, w: v.w, h: v.h }, v.scale);
@@ -604,7 +780,7 @@ function CanvasItem(props: {
         ref={root}
         data-ckey={props.key}
         class="citem"
-        classList={{ sel: props.selected, dragging: !!drag(), locked: isLocked(inst()!.type), pinned: instLocked() }}
+        classList={{ sel: props.selected || inMulti(props.key), msel: inMulti(props.key), dragging: !!drag(), locked: isLocked(inst()!.type), pinned: instLocked() }}
         style={{
           transform: `translate(${view().x * props.k}px, ${view().y * props.k}px) scale(${view().eff * props.k})`,
           opacity: Math.min(inst()!.opacity, settings().theme.opacity / 100),
@@ -648,7 +824,7 @@ function CanvasItem(props: {
             <LockIcon />
           </div>
         </Show>
-        <Show when={props.selected && !blocked()}>
+        <Show when={props.selected && !blocked() && multi().length <= 1}>
           <For each={(rz().w ? (["w", "e"] as Edge[]) : []).concat(rz().h ? (["n", "s"] as Edge[]) : [])}>
             {(ed) => <div class={`rz-edge ${ed}`} style={{ "--hk": String(1 / (view().eff * props.k)) }} title="Kenardan sürükle: genişlik / yükseklik" onPointerDown={startEdge(ed)} />}
           </For>

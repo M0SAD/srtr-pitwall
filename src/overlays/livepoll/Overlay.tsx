@@ -14,8 +14,12 @@ export default function LivePoll(props: OverlayProps) {
     // gelmedi: ekrandaki overlay hiçbir şey çizmez (panel önizlemesinde örnek görünür). Demo modu: örnek anket.
     if (onScreen()) {
       const m = gateMode(status()?.chat, false);
+      // Demo modu açıkken (sohbet bağlı olsa da, giriş / PRO koşulu sağlanmasa da) gerçek bir anket yoksa örnek anket görünür
+      const demo = m === "demo" || !!status()?.demo || !!status()?.chat?.demo;
+      const live = poll();
+      if (m === "real" && live && live.state !== "idle") return live;
+      if (demo) return SAMPLE_POLL;
       if (m === "login" || m === "pro" || m === "wait") return null;
-      if (m === "demo") return SAMPLE_POLL;
     }
     const p = poll();
     if (p && p.state !== "idle") return p;

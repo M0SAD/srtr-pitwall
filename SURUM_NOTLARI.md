@@ -3,6 +3,30 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-163
+
+- Tuval yakınlaştırması düzen başına: bir düzende (ya da yayın düzeninde) yapılan yakınlaştırma yalnızca o düzende kalır, diğerleri kendi değerinde durur. Değer bu bilgisayarda hatırlanır (uygulama kapanıp açılsa da).
+
+## 051026-162
+
+- Düzenleme tuvallerinde (Düzenler ve Yayın düzenleri) fare tekeri doğrudan yakınlaştırır / uzaklaştırır; Space'e basmak gerekmez. Yakınlaştırma imlecin altındaki noktaya doğru yapılır. Yakınlaştırılmış tuvalde gezinmek için Space basılıyken sol tuşla sürükle (159'da eklendi).
+
+## 051026-161
+
+- Kopyalanan overlay başka düzene (ya da yayın düzenine) yapıştırılınca aynı konum ve ayarlarla gelir. Tek kopyalı overlay o düzende zaten varsa kopyalananla değiştirilir (kilitliyse dokunulmaz); aynı düzen içinde yapıştırmada eskisi gibi atlanır. Ctrl+Z geri alır.
+
+## 051026-160
+
+- Düzen tuvali: Ctrl+C seçili overlay'i (ya da çoklu seçimi) kopyalar, Ctrl+V yapıştırır. Birden çok kez eklenebilen overlay yeni kopya olarak (aynı ayarlar, biraz kaydırılmış) gelir; tek kopyalı overlay yalnızca düzende yoksa yapışır, varsa atlanır ve bilgi verilir. Başka bir düzene / yayın düzenine de yapıştırılabilir.
+- Sağ tık menüsü: "Kopyasını oluştur" (birden çok eklenebilen overlay'lerde; aynı ayarlarla) ve "Yeniden adlandır" (menünün başında ad kutusu; Enter kaydeder, boş bırakılırsa varsayılan ada döner).
+- Yakınlaştırma kısayolları overlay seçiliyken de çalışır: odak ayar panelindeki bir düğmede / listede kalınca Space + teker çalışmıyordu. Ayrıca imleç tuvaldeyken + / − yakınlaştırır / uzaklaştırır, 0 sığdırır.
+
+## 051026-159
+
+- Anket overlay'i Demo modunda örnek anket gösterir: eskiden sohbet bağlıyken (yayın kapalı) ya da giriş / PRO koşulu sağlanmıyorken demo açık olsa da boş kalıyordu. Gerçek bir anket sürüyorsa o gösterilir.
+- Düzen tuvali: Space basılıyken sol tuşla sürükleyerek yakınlaştırılmış tuvalde gezinilir (o sırada overlay seçilmez / taşınmaz).
+- Düzen tuvali: boş yerden sürükleyerek birden çok overlay taranıp seçilir (kesik çerçeve). Seçilenlerden biri sürüklenince hepsi birlikte taşınır; ok tuşları hepsini taşır; Delete hepsini siler. Ctrl / Shift + tıkla seçime ekler / çıkarır; boş yere tıklamak seçimi kaldırır. Kilitli overlay'ler taşınmaz ve silinmez. Yayın düzenlerinde de geçerli.
+
 ## 051026-158
 
 - Demo modunda sesli mühendis / spotter sessizce "konuşur": ses ve bip çıkmaz ama mesajlar gerçek süreleriyle sıraya girer, Sesli Mühendis (altyazı) overlay'i canlı yarıştaki gibi dolar. Sesli mühendis ayarı kapalı olsa da demo altyazıları gösterir (ses paketi kurulu olmalı; hangi mesaj türlerinin açık olduğu ayarlardan gelir).

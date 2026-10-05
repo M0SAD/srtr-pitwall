@@ -3,7 +3,7 @@
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { addToLayout, defaultInstance, removeInstance, settings, updateOverlay } from "@/sdk/settings";
+import { addToLayout, defaultInstance, pasteInstances, removeInstance, settings, updateOverlay } from "@/sdk/settings";
 import { monitorLabel, monitors, monitorOf } from "@/sdk/monitors";
 import { canDuplicate } from "@/sdk/registry";
 import "./context-menu.css";
@@ -167,6 +167,12 @@ export function ContextMenu(props: {
   const inst = () => settings().profiles[s().profileId]?.overlays[s().id];
   const locked = () => !!inst()?.locked;
   const [note, setNote] = createSignal(false);
+  /** "Yeniden adlandır": menünün başında ad kutusu açılır (Enter: kaydet, boş: varsayılan ada döner) */
+  const [ren, setRen] = createSignal(false);
+  const saveName = (v: string) => {
+    updateOverlay(s().id, (i) => (i.name = v.trim().slice(0, 40)), s().profileId);
+    props.onClose();
+  };
 
   const place = (fx: number, fy: number) => {
     const r = s().rect;
@@ -244,9 +250,22 @@ export function ContextMenu(props: {
               props.onClose();
             },
           },
+          {
+            label: "Kopyasını oluştur",
+            hint: "aynı ayarlarla",
+            run: () => {
+              const src = inst();
+              if (src) {
+                const r = pasteInstances(s().profileId, [JSON.parse(JSON.stringify(src))], 24);
+                if (r.keys[0]) props.onOpenSettings?.(r.keys[0]);
+              }
+              props.onClose();
+            },
+          },
         ]
       : []),
     ...(locked() && !canDuplicate(s().type, settings().general.allowDuplicates) ? [] : ["sep" as const]),
+    { label: "Yeniden adlandır", run: () => setRen(true) },
     {
       label: "Ayarlarını aç",
       hint: props.onOpenSettings ? undefined : prettyKey(shortcut("panel")),
@@ -285,7 +304,20 @@ export function ContextMenu(props: {
 
   return (
     <div ref={el} class="ctx" style={{ left: `${s().x}px`, top: `${s().y}px`, visibility: "hidden" }} onContextMenu={(e) => e.preventDefault()}>
-      <div class="ctx-title">{s().name}</div>
+      <Show when={ren()} fallback={<div class="ctx-title">{s().name}</div>}>
+        <input
+          class="ctx-rename"
+          value={inst()?.name ?? ""}
+          placeholder={s().name}
+          maxLength={40}
+          ref={(n) => setTimeout(() => (n.focus(), n.select()), 0)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") saveName(e.currentTarget.value);
+            else if (e.key === "Escape") props.onClose();
+          }}
+        />
+      </Show>
       <Show when={locked()}>
         <div class="ctx-sub">Kilitli: konumu değiştirilemez</div>
       </Show>

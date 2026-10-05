@@ -13,10 +13,12 @@ import {
   addToLayout,
   instancesOf,
   newProfile,
+  pasteInstances,
   removeInstance,
   resolveProfile,
   settings,
   updateSettings,
+  type OverlayInstance,
   type Profile,
   type ProfileMode,
   type SessionKind,
@@ -25,7 +27,7 @@ import {
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { defaultMonitor, loadMonitors, monitorLabel, monitors, belongsTo, type MonitorInfo } from "@/sdk/monitors";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
-import { LayoutCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
+import { LayoutCanvas, canvasMulti, clearCanvasMulti, sayCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
 import { badgePosWanted, badgeWanted } from "@/sdk/streamBadge";
 import { streamBadgeLocked } from "@/sdk/proFeatures";
 import { UndoRedo } from "@/sdk/UndoRedo";
@@ -228,7 +230,7 @@ export function LayoutsPage() {
   });
   const [rules, setRules] = createSignal(false);
   const [sharing, setSharing] = createSignal(false);
-  const [zoom, setZoom] = createSignal(1);
+  const [zoom, setZoom] = useCanvasZoom(() => p()?.id);
 
   // Sağ tık > "Ayarlarını aç" ya da başka sayfadan gelindiyse o düzen ve kopya açılır
   createEffect(() => {
@@ -349,6 +351,7 @@ export function LayoutsPage() {
   const closeSet = () => (setSel(null), setGhost(null));
   useEscClose(() => !!(sel() || ghost()), closeSet);
   useDeleteKey(sel, remove);
+  useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), locked);
 
   return (
     <div class="lpage" classList={{ "with-set": !!(sel() || ghost()) }}>
@@ -461,7 +464,10 @@ export function LayoutsPage() {
             Soldaki listede çift tık: overlay'i düzene ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik (destekleyen overlay'lerde) · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı
           </small>
           <small class="muted lhint lkeys">
-            <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · Ok tuşları: 1 px taşı (Shift: 10 px)
+            Fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · Ok tuşları: 1 px taşı (Shift: 10 px)
+            <span class="chint-more">
+              <kbd data-no-i18n>Space</kbd> + sürükle: gezin · boş yerden sürükle: birden çok overlay seç (birlikte taşı / sil) · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>C</kbd> / <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>V</kbd>: kopyala / yapıştır · <kbd data-no-i18n>+</kbd> <kbd data-no-i18n>−</kbd> <kbd data-no-i18n>0</kbd>: yakınlaştır / uzaklaştır / sığdır
+            </span>
           </small>
         </section>
 
@@ -528,6 +534,40 @@ export function CanvasOptions(props: { backdrop?: EditBackdropSlot }) {
 }
 
 /** Tuval araçları: geri al / yinele ve yakınlaştırma */
+// Tuval yakınlaştırması düzen başınadır: bir düzende yakınlaştırmak diğerlerini etkilemez (bu bilgisayarda hatırlanır)
+const ZOOM_KEY = "pw.canvasZoom";
+const readZooms = (): Record<string, number> => {
+  try {
+    const v = JSON.parse(localStorage.getItem(ZOOM_KEY) || "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+};
+const [zooms, setZooms] = createSignal<Record<string, number>>(readZooms());
+export function useCanvasZoom(id: () => string | undefined): [() => number, (z: number) => void] {
+  const zoom = () => {
+    const z = Number(zooms()[id() ?? ""]);
+    return z >= 0.5 && z <= 3 ? z : 1;
+  };
+  const setZoom = (z: number) => {
+    const k = id();
+    if (!k) return;
+    const next = { ...zooms() };
+    if (z === 1) delete next[k];
+    else next[k] = z;
+    // Silinmiş düzenlerin kaydı birikmesin
+    for (const x of Object.keys(next)) if (!settings().profiles[x]) delete next[x];
+    setZooms(next);
+    try {
+      localStorage.setItem(ZOOM_KEY, JSON.stringify(next));
+    } catch {
+      /* depo yok */
+    }
+  };
+  return [zoom, setZoom];
+}
+
 export function CanvasTools(props: { zoom: number; setZoom: (z: number) => void }) {
   const step = (d: number) => props.setZoom(Math.min(3, Math.max(0.5, Math.round((props.zoom + d) * 4) / 4)));
   return (
@@ -537,7 +577,7 @@ export function CanvasTools(props: { zoom: number; setZoom: (z: number) => void 
         <button type="button" class="ur-btn" title="Uzaklaştır" disabled={props.zoom <= 0.5} onClick={() => step(-0.25)}>
           <ZoomOut />
         </button>
-        <button type="button" class="ctools-pct" title="Sığdır (%100) · Space + fare tekeri: yakınlaştır / uzaklaştır" onClick={() => props.setZoom(1)} data-no-i18n>
+        <button type="button" class="ctools-pct" title="Sığdır (%100) · Fare tekeri: yakınlaştır / uzaklaştır" onClick={() => props.setZoom(1)} data-no-i18n>
           %{Math.round(props.zoom * 100)}
         </button>
         <button type="button" class="ur-btn" title="Yakınlaştır" disabled={props.zoom >= 3} onClick={() => step(0.25)}>
@@ -572,17 +612,69 @@ export function useDeleteKey(sel: () => string | null, remove: (key: string) => 
   onMount(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Delete" || e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+      const many = canvasMulti();
       const k = sel();
-      if (!k) return;
+      if (!k && !many.length) return;
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
       if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
       e.preventDefault();
       e.stopPropagation();
-      remove(k);
+      // Çoklu seçim: taranan overlay'lerin hepsi silinir (kilitliler `remove` içinde atlanır)
+      if (many.length) {
+        for (const x of many) remove(x);
+        clearCanvasMulti();
+      } else if (k) remove(k);
     };
     window.addEventListener("keydown", key, true);
     onCleanup(() => window.removeEventListener("keydown", key, true));
+  });
+}
+
+// Kopyala / yapıştır panosu (uygulama içi; düzenler ve yayın düzenleri arasında da çalışır)
+let clip: OverlayInstance[] = [];
+let pasteN = 0;
+/** Kopyalamanın yapıldığı düzen: başka düzene yapıştırırken tek kopyalı overlay de (var olanın yerine) gelir */
+let clipFrom = "";
+/**
+ * Ctrl+C: seçili overlay'i (ya da çoklu seçimi) kopyalar. Ctrl+V: açık düzene yapıştırır — overlay birden çok kez
+ * eklenebiliyorsa yeni kopya olarak, düzende hiç yoksa aynı ayarlarla. Yazı alanında / metin seçiliyken dokunmaz.
+ */
+export function useCopyPaste(prof: () => Profile | undefined, sel: () => string | null, setSel: (k: string | null) => void, locked: () => boolean) {
+  onMount(() => {
+    const key = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.defaultPrevented || e.repeat) return;
+      const c = e.key.toLowerCase();
+      if (c !== "c" && c !== "v") return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (document.querySelector(".modal-back, .bp-back, .ovmenu, .ctx")) return;
+      const p = prof();
+      if (!p) return;
+      if (c === "c") {
+        if (window.getSelection()?.toString()) return;
+        const ks = canvasMulti().length ? canvasMulti() : sel() ? [sel()!] : [];
+        const got = ks.map((k) => p.overlays[k]).filter((o) => !!o);
+        if (!got.length) return;
+        e.preventDefault();
+        clip = JSON.parse(JSON.stringify(got));
+        pasteN = 0;
+        clipFrom = p.id;
+        sayCanvas(got.length > 1 ? t("{0} overlay kopyalandı (Ctrl+V: yapıştır)", got.length) : t("Overlay kopyalandı (Ctrl+V: yapıştır)"));
+        return;
+      }
+      if (!clip.length) return;
+      e.preventDefault();
+      if (locked()) return void sayLayoutLocked();
+      const other = p.id !== clipFrom;
+      const r = pasteInstances(p.id, clip.filter((i) => !isLocked(i.type)), 24 * (other ? pasteN++ : ++pasteN), other);
+      clearCanvasMulti();
+      if (r.keys.length) setSel(r.keys[r.keys.length - 1]);
+      if (r.single && !r.keys.length) sayCanvas(t("Bu overlay bir düzende yalnızca bir kez bulunabilir: yapıştırılmadı"));
+      else if (r.single) sayCanvas(t("{0} overlay yapıştırıldı; yalnızca bir kez bulunabilenler atlandı", r.keys.length));
+    };
+    window.addEventListener("keydown", key);
+    onCleanup(() => window.removeEventListener("keydown", key));
   });
 }
 

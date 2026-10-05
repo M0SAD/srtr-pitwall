@@ -17,7 +17,7 @@ import { StreamBadgeMark, badgePosWanted, badgeRect, badgeWanted, pushOutOfBadge
 import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
-import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useDeleteKey, useEscClose } from "./LayoutsPage";
+import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useCanvasZoom, useCopyPaste, useDeleteKey, useEscClose } from "./LayoutsPage";
 import * as I from "../icons";
 import { F, proLocked, streamBadgeLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockNote } from "../components/ProLock";
@@ -93,7 +93,7 @@ export function StreamingPage() {
   });
   /** Soldaki listede tıklanan, düzene henüz eklenmemiş overlay türü */
   const [ghost, setGhost] = createSignal<string | null>(null);
-  const [zoom, setZoom] = createSignal(1);
+  const [zoom, setZoom] = useCanvasZoom(() => p()?.id);
   const [scaleSizes, setScaleSizes] = createSignal(true);
   const [custom, setCustom] = createSignal(false);
   const [sel, setSel] = createSignal<string | null>(null);
@@ -209,6 +209,7 @@ export function StreamingPage() {
   const closeSet = () => (setSel(null), setGhost(null), setBadgeSel(false));
   useEscClose(() => badgeOpen() || (!linked() && !!(sel() || ghost())), closeSet);
   useDeleteKey(sel, remove);
+  useCopyPaste(p, sel, (k) => (setSel(k), setGhost(null)), () => locked() || linked());
   // Seçili kopya düzenden çıktıysa seçim bırakılır
   createEffect(() => {
     const k = sel();
@@ -419,7 +420,10 @@ export function StreamingPage() {
             <Show when={!linked()}>
               <small class="muted lhint">Soldaki listede çift tık: overlay'i yayın düzenine ekle / çıkar · Sürükle: taşı · seçiliyken köşeler: boyutlandır, kenarlar: genişlik / yükseklik · OBS'teki görüntü sürüklerken anında güncellenir</small>
               <small class="muted lhint lkeys">
-                <kbd data-no-i18n>Space</kbd> + fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı · Ok tuşları: 1 px taşı (Shift: 10 px)
+                Fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · <kbd data-no-i18n>Alt</kbd>: yapıştırmadan taşı · Ok tuşları: 1 px taşı (Shift: 10 px)
+            <span class="chint-more">
+              <kbd data-no-i18n>Space</kbd> + sürükle: gezin · boş yerden sürükle: birden çok overlay seç (birlikte taşı / sil) · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>C</kbd> / <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>V</kbd>: kopyala / yapıştır · <kbd data-no-i18n>+</kbd> <kbd data-no-i18n>−</kbd> <kbd data-no-i18n>0</kbd>: yakınlaştır / uzaklaştır / sığdır
+            </span>
               </small>
             </Show>
             <Show when={sharing()}>
