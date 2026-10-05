@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-176
+
+- Düzenler ve Yayın düzenleri: soldaki eklenebilir overlay listesinde favoriler (Overlaylarım'da sağ tık › Favorilere ekle) en üstte, "Favorilerim" başlığı altında görünür; diğerleri seçili sıralamayla altında kalır. Düzene eklenen favori "Düzende" bölümüne geçer.
+
 ## 051026-175
 
 - Overlay ayarlarındaki ad kutusu artık düzendeki her overlay için görünür (ilk eklenen kopya dahil; eskiden yalnızca 2., 3. … kopyalarda vardı). Boş bırakılırsa overlay'in kendi adı kullanılır. Sağ tık › Yeniden adlandır aynen çalışır.

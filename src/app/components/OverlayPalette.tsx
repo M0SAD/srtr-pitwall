@@ -11,15 +11,20 @@ import { fitMenu } from "@/host/ContextMenu";
 import Minus from "lucide-solid/icons/minus";
 import { manifests } from "@/sdk/registry";
 import type { OverlayManifest } from "@/sdk/overlay";
-import { instanceName, settings, updateSettings, type OverlaySort, type Profile } from "@/sdk/settings";
+import { instanceName, settings, uiPref, updateSettings, type OverlaySort, type Profile } from "@/sdk/settings";
 import { overlayTop } from "@/cloud/overlayStats";
-import { lang, localeTag, translateText } from "@/sdk/i18n";
+import { lang, localeTag, t, translateText } from "@/sdk/i18n";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
 import * as I from "../icons";
 import { dragSort } from "../dragSort";
+
+// Favori overlay'ler: Overlaylarım sayfasıyla aynı kayıt (uiPref "ovFavs")
+const FAV_CAT = "__fav";
+const [favsRaw] = uiPref<string[]>("ovFavs", [], "pw.ovFavs");
+const favIds = () => (Array.isArray(favsRaw()) ? (favsRaw() as unknown[]).filter((x): x is string => typeof x === "string") : []);
 
 /** Kullanıcının kendi sırası mı geçerli ("Kendi sıram") */
 export const hasOverlayOrder = () => overlaySort() === "custom";
@@ -146,13 +151,18 @@ export function OverlayPalette(props: {
   const rest = createMemo(() => orderedOverlays(usable()).filter((m) => m.multiInstance || !addedTypes().has(m.id)));
   /** Kategori başlıklı gruplar; kullanıcı sırası varsa tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
-    if (overlaySort() !== "category") return rest().length ? [[null, rest()]] : [];
+    // Favoriler (Overlaylarım'da sağ tık > Favorilere ekle) eklenebilir listenin en üstünde ayrı grupta
+    const fav = favIds();
+    const fv = rest().filter((m) => fav.includes(m.id));
+    const others = fv.length ? rest().filter((m) => !fav.includes(m.id)) : rest();
+    const head: [string | null, OverlayManifest[]][] = fv.length ? [[FAV_CAT, fv]] : [];
+    if (overlaySort() !== "category") return others.length ? [...head, [null, others]] : head;
     const g = new Map<string, OverlayManifest[]>();
-    for (const m of rest()) {
+    for (const m of others) {
       if (!g.has(m.category)) g.set(m.category, []);
       g.get(m.category)!.push(m);
     }
-    return [...g.entries()];
+    return [...head, ...g.entries()];
   });
   // Salt okunur listede de (kilitli düzen) ekle / çıkar sayfaya iletilir: sayfa neden yapılamadığını söyler
   const stop = (fn: () => void) => (e: MouseEvent) => {
@@ -231,7 +241,7 @@ export function OverlayPalette(props: {
       <For each={groups()}>
         {([cat, ms]) => (
           <>
-            <div class="ovlist-cap">{cat === null ? "Eklenebilir" : CATEGORY_NAMES[cat] ?? cat}</div>
+            <div class="ovlist-cap">{cat === FAV_CAT ? t("Favorilerim") : cat === null ? t("Eklenebilir") : CATEGORY_NAMES[cat] ?? cat}</div>
             <For each={ms}>
               {(m) => {
                 const locked = () => isLocked(m.id);
