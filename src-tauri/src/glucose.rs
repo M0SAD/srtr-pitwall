@@ -640,6 +640,12 @@ pub fn glucose_state(watch: Option<bool>) -> State {
     snapshot()
 }
 
+/// OBS / tarayıcı kaynağı için son durum (yerel web sunucusu, yalnızca bu bilgisayardan): "bakıyorum" anlamına da gelir
+pub fn http_state() -> String {
+    WANT.store(now_ms(), Ordering::Relaxed);
+    serde_json::to_string(&snapshot()).unwrap_or_else(|_| "{}".into())
+}
+
 /// Hemen yenile (çift tık)
 #[tauri::command]
 pub fn glucose_refresh() {

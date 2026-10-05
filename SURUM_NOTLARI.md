@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-174
+
+- Kan Şekeri ve Kalp Atışı overlay'leri artık OBS / tarayıcı kaynağında da çalışır (yayın düzenleri): eskiden OBS'te "overlay ayarlarından giriş yap" yazıyordu, çünkü veri bilerek yalnızca uygulama pencerelerine veriliyordu. OBS sayfası veriyi yerel web sunucusundan okur; bu adres sunucu ağa açık olsa da yalnızca bu bilgisayardan gelen isteğe yanıt verir (ağdaki başka cihazlar okuyamaz). Kan şekeri 20 sn'de bir, nabız 2 sn'de bir yenilenir. Uyarı sesi yalnızca uygulamadaki overlay'de çalar; OBS'te yanıp sönme görünür.
+
 ## 051026-173
 
 - Ana pencere çerçevesiz: Windows başlık çubuğu yok. Pencere, üst çubuğun (sayfa adının yazdığı çubuk) boş bir yerinden tutulup taşınır; çift tık büyütür / eski boyutuna döndürür. Küçült, büyüt ve kapat düğmeleri üst çubuğun sağ ucunda (dil seçicinin yanında). Kenarlardan boyutlandırma aynen çalışır.

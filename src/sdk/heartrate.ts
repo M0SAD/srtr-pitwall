@@ -34,7 +34,18 @@ const pull = (watch: boolean) =>
 
 /** Son durum. `watch` doğruyken bağlantı açık tutulur (30 sn'de bir "bakıyorum" denir). */
 export function useHeartRate(watch: () => boolean = () => true) {
-  if (!inTauri) return state;
+  // OBS / tarayıcı kaynağı: yerel web sunucusundan okunur (yalnızca bu bilgisayardan erişilir)
+  if (!inTauri) {
+    const get = () =>
+      fetch("/api/heartrate", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((s) => s && typeof s === "object" && "configured" in s && setState(s as HeartState))
+        .catch(() => {});
+    void get();
+    const iv = window.setInterval(() => void get(), 2000);
+    onCleanup(() => clearInterval(iv));
+    return state;
+  }
   if (users++ === 0) {
     void listen<HeartState>("heartrate", (e) => e.payload && setState(e.payload)).then((u) => (users > 0 ? (stop = u) : u()));
   }
@@ -52,4 +63,4 @@ export function useHeartRate(watch: () => boolean = () => true) {
 
 export const heartConnect = (cfg: { source: HeartSource; token?: string; id?: string }) => invoke<HeartState>("heartrate_connect", { cfg }).then((s) => (setState(s), s));
 export const heartDisconnect = () => invoke("heartrate_disconnect").then(() => setState(EMPTY));
-export const heartAlert = (volume: number) => invoke<boolean>("heartrate_alert", { volume }).catch(() => false);
+export const heartAlert = (volume: number) => (inTauri ? invoke<boolean>("heartrate_alert", { volume }).catch(() => false) : Promise.resolve(false));

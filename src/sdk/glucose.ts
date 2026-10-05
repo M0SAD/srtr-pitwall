@@ -52,7 +52,18 @@ const pull = (watch: boolean) =>
  * Ayar panelindeki giriş kutusu `watch` olmadan yalnızca durumu izler.
  */
 export function useGlucose(watch: () => boolean = () => true) {
-  if (!inTauri) return state;
+  // OBS / tarayıcı kaynağı: yerel web sunucusundan okunur (yalnızca bu bilgisayardan erişilir)
+  if (!inTauri) {
+    const get = () =>
+      fetch("/api/glucose", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((s) => s && typeof s === "object" && "loggedIn" in s && setState(s as GlucoseState))
+        .catch(() => {});
+    void get();
+    const iv = window.setInterval(() => void get(), 20_000);
+    onCleanup(() => clearInterval(iv));
+    return state;
+  }
   if (users++ === 0) {
     void listen<GlucoseState>("glucose", (e) => e.payload && setState(e.payload)).then((u) => (users > 0 ? (stop = u) : u()));
   }
@@ -71,5 +82,5 @@ export function useGlucose(watch: () => boolean = () => true) {
 
 export const glucoseLogin = (cfg: GlucoseLogin) => invoke<GlucoseState>("glucose_login", { cfg }).then((s) => (setState(s), s));
 export const glucoseLogout = () => invoke("glucose_logout").then(() => setState(EMPTY));
-export const glucoseRefresh = () => invoke("glucose_refresh").catch(() => {});
-export const glucoseAlert = (level: "ul" | "l" | "h" | "uh" | "ok", volume: number) => invoke<boolean>("glucose_alert", { level, volume }).catch(() => false);
+export const glucoseRefresh = () => (inTauri ? invoke("glucose_refresh").catch(() => {}) : Promise.resolve());
+export const glucoseAlert = (level: "ul" | "l" | "h" | "uh" | "ok", volume: number) => (inTauri ? invoke<boolean>("glucose_alert", { level, volume }).catch(() => false) : Promise.resolve(false));

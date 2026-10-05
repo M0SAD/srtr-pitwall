@@ -165,6 +165,20 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                     continue;
                 }
 
+                // Kan şekeri / nabız (OBS tarayıcı kaynağındaki overlay'ler için). Sağlık verisi: sunucu ağa açık olsa da
+                // yalnızca bu bilgisayardan gelen isteğe (OBS aynı bilgisayarda çalışır) yanıt verilir.
+                if path == "/api/glucose" || path == "/api/heartrate" {
+                    let local = req.remote_addr().map(|a| a.ip().is_loopback()).unwrap_or(false);
+                    let resp = if local {
+                        let v = if path == "/api/glucose" { crate::glucose::http_state() } else { crate::heartrate::http_state() };
+                        Response::from_string(v).with_header(header("Content-Type", "application/json")).with_header(header("Cache-Control", "no-store"))
+                    } else {
+                        Response::from_string("{}").with_status_code(403)
+                    };
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
                 if path == "/api/entitlement" {
                     let v = serde_json::to_string(&crate::entitlement::view(&app)).unwrap_or_else(|_| "{}".into());
                     let resp = Response::from_string(v)

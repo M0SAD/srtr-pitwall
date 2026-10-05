@@ -387,6 +387,12 @@ pub fn heartrate_state(watch: Option<bool>) -> State {
     snapshot()
 }
 
+/// OBS / tarayıcı kaynağı için son durum (yerel web sunucusu, yalnızca bu bilgisayardan)
+pub fn http_state() -> String {
+    WANT.store(now_ms(), Ordering::Relaxed);
+    serde_json::to_string(&snapshot()).unwrap_or_else(|_| "{}".into())
+}
+
 static LAST_ALERT: AtomicI64 = AtomicI64::new(0);
 
 /// Yüksek nabız uyarı sesi (en çok dakikada bir; birden çok pencere çift çalmaz)
