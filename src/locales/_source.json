@@ -3907,7 +3907,7 @@
  "Öğütler": "src/sdk/settings.ts",
  "ölçülen": "src/overlays/pitwindow/Overlay.tsx",
  "Ölçülüyor…": "src/overlays/fuel/Overlay.tsx",
- "Ölçüm saati": "src/overlays/glucose/manifest.ts",
+ "Ölçüm saatini göster": "src/overlays/glucose/manifest.ts",
  "Ölçüm ve uyarı": "src/overlays/glucose/manifest.ts",
  "Ömür": "src/dash/Designer.tsx",
  "ÖN": "src/overlays/gapchart/Overlay.tsx",

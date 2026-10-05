@@ -147,7 +147,10 @@ export default function Glucose(props: OverlayProps) {
   );
   const Sub = () => (
     <span class="gl-sub">
-      <For each={[o().delta !== false && value() != null ? deltaText() : "", mmol() ? "mmol/L" : "mg/dL", o().time !== false ? timeText() : ""].filter(Boolean)}>{(x) => <b>{x}</b>}</For>
+      <For each={[o().delta !== false && value() != null ? deltaText() : "", mmol() ? "mmol/L" : "mg/dL"].filter(Boolean)}>{(x) => <b>{x}</b>}</For>
+      <Show when={o().time !== false && timeText()}>
+        <b class="gl-time">{timeText()}</b>
+      </Show>
     </span>
   );
 

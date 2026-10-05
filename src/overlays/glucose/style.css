@@ -261,11 +261,27 @@
   animation: none;
   border-color: var(--gl-c);
 }
+/* Yuvarlak / kare: değişim ve birim bir satırda, ölçüm saati altında ayrı satırda (dışarı taşmasın) */
 .gl-circle .gl-sub,
 .gl-square .gl-sub {
   flex-wrap: wrap;
   justify-content: center;
   gap: 2px 6px;
-  max-width: 100px;
+  max-width: 96px;
   font-size: 10.5px;
+}
+.gl-circle .gl-time,
+.gl-square .gl-time {
+  flex-basis: 100%;
+  text-align: center;
+}
+.gl-circle {
+  width: 140px;
+  height: 140px;
+}
+.gl-circle .gl-value {
+  font-size: 31px;
+}
+.gl-circle .gl-main {
+  gap: 3px;
 }

@@ -76,7 +76,7 @@ export default defineOverlay({
     },
     { key: "arrow", label: "Yön oku", type: "boolean", default: true, group: "Görünüm" },
     { key: "delta", label: "Değişim (+/−)", type: "boolean", default: true, group: "Görünüm" },
-    { key: "time", label: "Ölçüm saati", type: "boolean", default: true, group: "Görünüm" },
+    { key: "time", label: "Ölçüm saatini göster", type: "boolean", default: true, group: "Görünüm" },
     { key: "spark", label: "Mini grafik (son ~3 saat)", type: "boolean", default: true, group: "Görünüm" },
     {
       key: "unit",

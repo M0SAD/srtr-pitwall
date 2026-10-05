@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-166
+
+- Kan Şekeri: Yuvarlak ve Kare tasarımda ölçüm saati artık değişim / birim satırının altında ayrı satırda; çerçevenin dışına taşmıyor (yuvarlak 132 → 140 px). Ayarın adı "Ölçüm saatini göster" oldu (kapatınca saat hiç görünmez).
+
 ## 051026-165
 
 - Yeni overlay: Kan Şekeri. Sürekli şeker ölçüm sensöründen (FreeStyle Libre / LibreLinkUp, Dexcom Share, Nightscout) anlık değer, yön oku, değişim, ölçüm saati ve son ~3 saatin mini grafiği; kan damlası simgesiyle.
