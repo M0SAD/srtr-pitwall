@@ -4,6 +4,7 @@
 
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { manifestById } from "@/sdk/registry";
+import { t } from "@/sdk/i18n";
 import { DEFAULTS_ID, defaultInstance, instanceName, profileById, resetToDefaults, updateOverlay } from "@/sdk/settings";
 import type { SettingField } from "@/sdk/overlay";
 import { isLocked } from "@/cloud/account";
@@ -138,9 +139,10 @@ export function OverlaySettings(props: {
             <GlucoseLoginPanel />
           </Show>
           <Section title="Genel">
-            <Show when={!defaults() && isCopy()}>
+            {/* Ad: düzendeki her kopya için (ilk eklenen dahil); boş bırakılırsa overlay'in kendi adı */}
+            <Show when={!defaults()}>
               <div class="f2">
-                <div class="f2-cap">Kopya adı</div>
+                <div class="f2-cap">{isCopy() ? t("Kopya adı") : t("Ad")}</div>
                 <input class="input f2-text" value={inst()!.name} placeholder={instanceName(k, { ...inst()!, name: "" })} onChange={(e) => upd((o) => (o.name = e.currentTarget.value.trim()))} />
               </div>
             </Show>
