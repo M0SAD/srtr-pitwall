@@ -296,6 +296,8 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
   const [view, setView] = createSignal<View>("auto");
   const [cats, setCats] = createSignal<Set<Cat>>(new Set(CATS.map((c) => c.id)));
   const [onlyMe, setOnlyMe] = createSignal(false);
+  /** Sürücü süzgeci: araç idx'i; null = tüm sürücüler (varsayılan) */
+  const [driver, setDriver] = createSignal<number | null>(null);
   const [sel, setSel] = createSignal<number | null>(null);
   const [msg, setMsg] = createSignal<{ ok: boolean; text: string } | null>(null);
   const [showCfg, setShowCfg] = createSignal(false);
@@ -372,11 +374,28 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
     });
   const allOn = () => cats().size === CATS.length;
 
+  /** Olayı olan sürücüler (ada göre sıralı, olay sayısıyla): sürücü süzgecinin seçenekleri */
+  const drivers = createMemo(() => {
+    const m = new Map<number, { idx: number; number: string; name: string; n: number; me: boolean }>();
+    for (const e of events()) {
+      if (e.idx < 0 || !e.name) continue;
+      const d = m.get(e.idx);
+      if (d) d.n++;
+      else m.set(e.idx, { idx: e.idx, number: e.number, name: e.name, n: 1, me: e.isMe });
+    }
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
+  });
+  // Seçili sürücü listede kalmadıysa (başka oturuma geçildi) süzgeç "tümü"ne döner
+  createEffect(() => {
+    const d = driver();
+    if (d != null && !drivers().some((x) => x.idx === d)) setDriver(null);
+  });
+
   const filtered = createMemo(() => {
     const cs = cats();
     return events().filter((e) => {
       const c = CAT[e.kind];
-      return (c == null || cs.has(c)) && (!onlyMe() || e.isMe);
+      return (c == null || cs.has(c)) && (!onlyMe() || e.isMe) && (driver() == null || e.idx === driver());
     });
   });
 
@@ -777,9 +796,23 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
             </button>
           )}
         </For>
-        <button class="evw-chip me" classList={{ on: onlyMe() }} onClick={() => setOnlyMe(!onlyMe())}>
+        <button class="evw-chip me" classList={{ on: onlyMe() }} onClick={() => (setOnlyMe(!onlyMe()), setDriver(null))}>
           Sadece benim
         </button>
+        <Show when={drivers().length > 1}>
+          <select class="evw-driver" classList={{ on: driver() != null }} title={t("Yalnızca seçilen sürücünün olaylarını göster")} onChange={(e) => (setDriver(e.currentTarget.value === "" ? null : Number(e.currentTarget.value)), setOnlyMe(false))}>
+            <option value="" selected={driver() == null}>
+              {t("Tüm sürücüler")}
+            </option>
+            <For each={drivers()}>
+              {(d) => (
+                <option value={d.idx} selected={driver() === d.idx} data-no-i18n>
+                  {`${d.number ? `#${d.number} ` : ""}${d.name} (${d.n})`}
+                </option>
+              )}
+            </For>
+          </select>
+        </Show>
       </nav>
 
       <Show when={note()}>
@@ -822,6 +855,7 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
                         onClick={() => {
                           setCats(new Set(CATS.map((c) => c.id)));
                           setOnlyMe(false);
+                          setDriver(null);
                         }}
                       >
                         Süzgeçleri temizle

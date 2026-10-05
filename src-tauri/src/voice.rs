@@ -85,6 +85,8 @@ pub struct VoiceCfg {
     pub spotter_volume: f32,
     /// Ses çıkış cihazının adı (boş: Windows varsayılanı)
     pub device: String,
+    /// Demo modunda mühendis / spotter sesi ve bipler duyulsun (varsayılan kapalı: yalnızca altyazı benzetimi)
+    pub demo_sound: bool,
     /// "Argo ifadeler": sweary_ kayıtları da çalınsın
     pub sweary: bool,
     /// Virajda (direksiyon çevrili / sert frende) önemsiz mesajları beklet
@@ -111,6 +113,7 @@ impl Default for VoiceCfg {
             volume: 80.0,
             spotter_volume: 100.0,
             device: String::new(),
+            demo_sound: false,
             sweary: false,
             quiet_in_corners: false,
             oval_inside_outside: false,
@@ -669,6 +672,8 @@ impl Voice {
     /// Her karede çağrılır. `live`: gerçek sürüş ya da kullanıcının açtığı demo (önizleme değil).
     /// `sim`: bağlı sim kısa adı ("iracing", "acc"…; demo için boş)
     pub fn tick(&mut self, f: &Frame, s: &SessionData, t: &Tracker, live: bool, sim: &str, silent: bool) {
+        // "Demoda ses" açıksa demo da gerçek sürüş gibi seslidir
+        let silent = silent && !self.cfg.demo_sound;
         if self.silent != silent {
             // Demo açıldı / kapandı: sıradaki mesajlar diğer kipe taşınmasın
             self.queue.items.clear();

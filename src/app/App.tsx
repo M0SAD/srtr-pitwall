@@ -309,6 +309,19 @@ export function App() {
             </span>
           </span>
           <Toggle on={appState().demo} label="Demo" icon={<I.FlaskConical />} title="iRacing olmadan örnek veriyle göster" onChange={setDemo} />
+          {/* Demoda ses: yalnızca Demo açıkken görünür; varsayılan kapalı (sesli mühendis demoda sessiz, altyazı benzetimi sürer) */}
+          <Show when={appState().demo}>
+            <button
+              class="top-toggle top-demo-sound"
+              classList={{ on: !!settings().general.voice.demoSound }}
+              title={settings().general.voice.demoSound ? t("Demoda ses açık (sesli mühendis konuşur) · kapatmak için tıkla") : t("Demoda ses kapalı · açmak için tıkla")}
+              onClick={() => updateSettings((d) => (d.general.voice.demoSound = !d.general.voice.demoSound))}
+            >
+              <Show when={settings().general.voice.demoSound} fallback={<I.VolumeX />}>
+                <I.Volume2 />
+              </Show>
+            </button>
+          </Show>
           <Toggle on={!appState().hidden} label="Görünür" icon={<I.Eye />} title="Overlay'leri göster/gizle" onChange={(v) => invoke("hidden_set", { on: !v })} />
           <Toggle
             on={!appState().editMode}

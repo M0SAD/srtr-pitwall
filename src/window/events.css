@@ -502,3 +502,24 @@
   pointer-events: none;
   cursor: default;
 }
+
+/* Sürücü süzgeci (çiplerin yanında) */
+.evw-driver {
+  max-width: 240px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-3, #1a1e27);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.evw-driver.on {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.evw-driver option {
+  background: #1a1e27;
+  color: #eceff4;
+}

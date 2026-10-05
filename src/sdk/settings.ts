@@ -523,6 +523,8 @@ export interface VoiceSettings {
   sweary: boolean;
   /** Virajda (direksiyon çevrili / sert frende) önemsiz mesajları beklet */
   quietInCorners: boolean;
+  /** Demo modunda mühendis / spotter sesi duyulsun (varsayılan kapalı) */
+  demoSound: boolean;
   /** Ovallerde sol/sağ yerine iç/dış de */
   ovalInsideOutside: boolean;
   /** Hangi oturumlarda konuşsun */
@@ -1245,6 +1247,7 @@ export function defaultSettings(): AppSettings {
         device: "",
         sweary: false,
         quietInCorners: false,
+        demoSound: false,
         ovalInsideOutside: false,
         sessions: { race: true, qualify: true, practice: true },
         categories: Object.fromEntries(VOICE_CATEGORIES.map((c) => [c.id, c.id !== "radio"])),

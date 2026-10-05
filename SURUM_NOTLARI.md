@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 051026-190
+
+- Olaylar: sürücü süzgeci. Kategori çiplerinin yanındaki kutudan bir sürücü seçince yalnızca onun olayları listelenir (numara, ad ve olay sayısıyla, ada göre sıralı). Varsayılan "Tüm sürücüler". Kategori çipleriyle birlikte çalışır; CSV / dışa aktarma da süzülmüş listeyi alır. "Sadece benim" ile aynı anda kullanılmaz (biri seçilince diğeri kapanır).
+
+## 051026-189
+
+- Demoda ses aç / kapa: Demo açıkken üst çubukta Demo düğmesinin yanında bir hoparlör düğmesi çıkar. Varsayılan kapalı (sesli mühendis ve spotter demoda sessiz, altyazı benzetimi sürer); açınca demo da gerçek sürüş gibi seslidir (mühendis, spotter, uyarı bipleri). Seçim hatırlanır.
+
 ## 051026-188
 
 - Lider Tablosu: sunucudan çıkan sürücüler artık listede kalır (soluk görünür); yarışı bitirip çıkanlar tablodan düşmez. Resmi sırası olan (pozisyonu bilinen) sürücüler için geçerlidir.
