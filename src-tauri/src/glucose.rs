@@ -686,6 +686,43 @@ pub fn glucose_alert(level: String, volume: f32) -> bool {
     true
 }
 
+/// Sensörün yeni ölçüm yayınlama aralığı (ms): Dexcom 5 dk, diğerleri 1 dk
+fn period_ms(source: &str) -> i64 {
+    if source == "dexcom" {
+        300_000
+    } else {
+        60_000
+    }
+}
+
+/// Başarılı okumadan sonra bir sonraki okuma zamanı. Sabit 60 sn yerine sensörün bir sonraki ölçümünün beklendiği ana
+/// hizalanır (ölçüm anı + aralık + 6 sn pay): sabit aralıkta ölçüm, yayınlandıktan 60 sn sonraya kadar gecikebiliyordu.
+/// En erken 20 sn, en geç 60 sn sonra. Aynı ölçüm üst üste geliyorsa (sensör göndermiyor / saat farkı) 60 sn'ye dönülür.
+fn next_after_ok(source: &str, ts: i64, now: i64, same: u32) -> i64 {
+    let age = now - ts;
+    let p = period_ms(source);
+    if same >= 2 || age < 0 || age > p * 2 {
+        return now + POLL_MS;
+    }
+    (ts + p + 6_000).clamp(now + 20_000, now + POLL_MS)
+}
+
+/// Hatadan sonra bekleme. Geçici hatalarda (ağ, sunucu, henüz veri yok) çabuk yeniden denenir: ilk üç denemede 20 sn,
+/// sonra 60 sn. Eskiden her hata aralığı katlıyordu (2, 3, 4, 5 dk): tek bir ağ takılması veriyi dakikalarca geciktiriyordu.
+/// Giriş / hesap hatalarında (şifre, kilit, onay bekleyen adım) hesabı kilitlememek için aralık yine uzar (en çok 5 dk).
+fn retry_wait(err: &str, fails: u32) -> i64 {
+    let transient = ["ulaşılamadı", "henüz veri", "LibreLinkUp hatası", "yanıtı okunamadı", "Okuma hatası", "Dexcom hatası", "Nightscout hatası", "veri yok", "ölçüm bulunamadı"].iter().any(|k| err.contains(k));
+    if transient {
+        if fails <= 3 {
+            20_000
+        } else {
+            POLL_MS
+        }
+    } else {
+        POLL_MS * i64::from(1 + fails.min(4))
+    }
+}
+
 /// Arka plan okuyucu (bir kez başlatılır)
 pub fn start(app: &AppHandle) {
     if STARTED.swap(true, Ordering::SeqCst) {
@@ -698,6 +735,10 @@ pub fn start(app: &AppHandle) {
         let mut sess = Session::default();
         let mut last = 0i64;
         let mut fails = 0u32;
+        // Bir sonraki okumanın zamanı (0: hemen), son başarılı ölçümün anı ve aynı ölçümün üst üste kaç kez geldiği
+        let mut due = 0i64;
+        let mut last_ts = 0i64;
+        let mut same = 0u32;
         let Ok(c) = Net::new() else { return };
         loop {
             std::thread::sleep(Duration::from_millis(1000));
@@ -708,6 +749,9 @@ pub fn start(app: &AppHandle) {
                 sess = Session::default();
                 last = 0;
                 fails = 0;
+                due = 0;
+                last_ts = 0;
+                same = 0;
                 let cur = snapshot();
                 match &cfg {
                     Some(cf) if !cur.logged_in => publish(&app, State { logged_in: true, source: cf.source.clone(), account: mask(cf), ..State::default() }),
@@ -718,12 +762,12 @@ pub fn start(app: &AppHandle) {
             let Some(cf) = cfg.clone() else { continue };
             let now = now_ms();
             if now - WANT.load(Ordering::Relaxed) > WANT_MS {
+                // Kimse bakmıyor: yeniden bakıldığında beklemeden okunur
+                due = 0;
                 continue;
             }
             let force = FORCE.swap(false, Ordering::Relaxed);
-            // Hata üst üste gelirse aralık uzar (en çok 5 dk): hesabın kilitlenmesine yol açmamak için
-            let wait = POLL_MS * i64::from(1 + fails.min(4));
-            if !(force && now - last > 5000) && now - last < wait {
+            if !(force && now - last > 5000) && now < due {
                 continue;
             }
             last = now;
@@ -731,7 +775,19 @@ pub fn start(app: &AppHandle) {
             if GEN.load(Ordering::Relaxed) != gen {
                 continue;
             }
-            fails = if r.is_ok() { 0 } else { fails + 1 };
+            let now = now_ms();
+            due = match &r {
+                Ok(rd) => {
+                    fails = 0;
+                    same = if rd.ts == last_ts { same + 1 } else { 0 };
+                    last_ts = rd.ts;
+                    next_after_ok(&cf.source, rd.ts, now, same)
+                }
+                Err(e) => {
+                    fails += 1;
+                    now + retry_wait(e, fails)
+                }
+            };
             publish(&app, state_of(&cf, r, &snapshot()));
         }
     });
@@ -740,6 +796,26 @@ pub fn start(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn schedule() {
+        let now = 1_000_000_000i64;
+        // Taze ölçüm (10 sn önce): bir sonraki ölçümün beklendiği an (50 sn + 6 sn sonra)
+        assert_eq!(next_after_ok("libre", now - 10_000, now, 0), now + 56_000);
+        // Ölçüm 55 sn önceyse yenisi gelmek üzere: en erken 20 sn sonra
+        assert_eq!(next_after_ok("libre", now - 55_000, now, 0), now + 20_000);
+        // Eski ölçüm, saat farkı ya da üst üste aynı ölçüm: sabit 60 sn
+        assert_eq!(next_after_ok("libre", now - 600_000, now, 0), now + 60_000);
+        assert_eq!(next_after_ok("libre", now + 30_000, now, 0), now + 60_000);
+        assert_eq!(next_after_ok("libre", now - 10_000, now, 2), now + 60_000);
+        // Dexcom 5 dk'da bir ölçer: 60 sn'den seyrek sorulmaz
+        assert_eq!(next_after_ok("dexcom", now - 10_000, now, 0), now + 60_000);
+        assert_eq!(next_after_ok("dexcom", now - 290_000, now, 0), now + 20_000);
+        // Geçici hata çabuk, hesap hatası yavaş yeniden denenir
+        assert_eq!(retry_wait("LibreLinkUp sunucusuna ulaşılamadı", 1), 20_000);
+        assert_eq!(retry_wait("LibreLinkUp sunucusuna ulaşılamadı", 5), 60_000);
+        assert_eq!(retry_wait("Hesap geçici olarak kilitlendi: bir süre sonra tekrar dene", 3), 240_000);
+    }
 
     #[test]
     fn llu_time() {

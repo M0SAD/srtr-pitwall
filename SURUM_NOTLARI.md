@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-203
+
+- Kan Şekeri: veri gecikmesi azaltıldı.
+  - Geçici hatalarda (ağ takılması, sunucu hatası, henüz veri yok) 20 sn sonra yeniden denenir (ilk üç deneme, sonra 60 sn). Eskiden her hata bekleme süresini katlıyordu (2, 3, 4, 5 dk): tek bir takılma veriyi dakikalarca geciktiriyor, bu sırada ekranda eski değer kalıyordu. Giriş / hesap hatalarında (şifre, kilit) aralık hesabı kilitlememek için yine uzar.
+  - Okuma sensörün ölçüm anına hizalanır: sabit 60 sn yerine bir sonraki ölçümün beklendiği andan birkaç saniye sonra sorulur (en erken 20 sn, en geç 60 sn). Yeni ölçüm yayınlandıktan sonra en fazla ~10 sn içinde ekrana gelir (eskiden 60 sn'ye kadar).
+  - Overlay bir süre ekranda değilken geri geldiğinde beklemeden okunur.
+
 ## 061026-202
 
 - Ekranda düzenleme: içeriği manifestteki genişlikten dar olan tasarımlarda (ör. Kan Şekeri / Kalp Atışı yuvarlak ve kare, Sosyal Hesaplar tek hesap) çerçevenin sağında boşluk kalmaz; overlay ekranın sağ kenarına kadar taşınabilir. Çerçeve artık içeriğin gerçek genişliğini alır (boş overlay tutulabilsin diye yalnızca küçük bir alt sınır kaldı).
