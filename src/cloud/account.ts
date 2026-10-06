@@ -843,6 +843,8 @@ export interface AdminUser {
   created_at?: string;
   last_seen?: string | null;
   version?: string | null;
+  /** Yayın logosu izninin bitişi (c100) */
+  pro_paid_until?: string | null;
 }
 
 export async function saveConfig(patch: Partial<AppConfig>) {

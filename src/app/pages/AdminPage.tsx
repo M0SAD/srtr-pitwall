@@ -3,6 +3,7 @@
 // Reklamlar, Görünürlük, Bildirimler, Moderasyon, Mesajlar, Medya, Ses paketleri.
 // Moderatörler (reports.view izni): Destek (silme hariç) ve Moderasyon.
 
+import { hashColor, initialOf } from "@/cloud/social";
 import { adminOverview, refreshAdminOverview } from "@/cloud/adminOverview";
 import { AdminPayMethods } from "../components/AdminPayMethods";
 import { For, Match, Show, Switch, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
@@ -51,6 +52,8 @@ import { AdminLiveChat } from "../components/AdminLiveChat";
 import { sub } from "../ui";
 import { adminBadgeSeen, refreshAdminBadges, refreshAdminBadgesSoon } from "@/cloud/adminBadges";
 
+/** PRO kaynağının görünen adı */
+const SRC_LABEL: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici", trial: "Deneme" };
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
 const fmtTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString(localeTag()) : "—");
 const isOnline = (v: string | null | undefined) => !!v && new Date(v).getTime() > Date.now() - 4 * 60_000;
@@ -274,19 +277,19 @@ function Members(props: { run: Run }) {
             <span>
               <b>{o().members}</b> kayıtlı üye
             </span>
-            <span>
+            <span class="k-pro">
               <b>{o().pro}</b> PRO
             </span>
-            <span>
+            <span class="k-trial">
               <b>{o().trial}</b> deneme (PRO'ya dahil)
             </span>
             <span>
               <b>{Math.max(0, o().members - o().pro)}</b> PRO değil
             </span>
-            <span>
+            <span class="k-on">
               <b>{o().online}</b> çevrimiçi
             </span>
-            <span>
+            <span class="k-race">
               <b>{o().racing}</b> yarışta
             </span>
           </div>
@@ -307,39 +310,67 @@ function Members(props: { run: Run }) {
           Ara
         </button>
       </div>
-      <div class="admin-users">
+      <div class="mem-list">
         <For each={users()}>
           {(u) => {
+            const left = () => (u.pro_until ? Math.ceil((new Date(u.pro_until).getTime() - Date.now()) / 86400_000) : 0);
             const pro = () => !!u.pro_until && new Date(u.pro_until).getTime() > Date.now();
+            /** PRO durumu: inf süresiz · crit 3 gün ve altı · soon 10 gün ve altı · ok · none */
+            const st = () => (!pro() ? "none" : left() > 3000 ? "inf" : left() <= 3 ? "crit" : left() <= 10 ? "soon" : "ok");
+            const logo = () => pro() && !!u.pro_paid_until && new Date(u.pro_paid_until).getTime() > Date.now();
+            const online = () => isOnline(u.last_seen);
             return (
-              <div class="admin-user">
-                <div>
-                  <b data-no-i18n class="adm-plink" title={t("Profil")} onClick={() => void import("./TelemetryPage").then((x) => x.openDriverTelemetry(u.id))}>{u.display_name || "(adsız)"}</b>
-                  <Show when={u.is_owner}>
-                    <span class="admin-badge owner">sahip</span>
-                  </Show>
-                  <Show when={u.is_admin && !u.is_owner}>
-                    <span class="admin-badge">yönetici</span>
-                  </Show>
-                  <For each={(groups() ?? []).filter((g) => (u.groups ?? []).includes(g.id))}>
-                    {(g) => (
-                      <span class="admin-badge grp" style={{ "--gc": g.color }} data-no-i18n>
-                        {g.name}
-                      </span>
-                    )}
-                  </For>
-                  <small data-no-i18n>
+              <div class="mem-row" classList={{ [`st-${st()}`]: true }}>
+                <span class="mem-av" style={{ background: hashColor(u.id) }} data-no-i18n>
+                  {initialOf(u.display_name || u.email)}
+                  <i class="mem-dot" classList={{ on: online() }} title={online() ? t("çevrimiçi") : undefined} />
+                </span>
+                <div class="mem-main">
+                  <div class="mem-name">
+                    <b data-no-i18n class="adm-plink" title={t("Profil")} onClick={() => void import("./TelemetryPage").then((x) => x.openDriverTelemetry(u.id))}>
+                      {u.display_name || "(adsız)"}
+                    </b>
+                    <Show when={u.is_owner}>
+                      <span class="admin-badge owner">sahip</span>
+                    </Show>
+                    <Show when={u.is_admin && !u.is_owner}>
+                      <span class="admin-badge">yönetici</span>
+                    </Show>
+                    <For each={(groups() ?? []).filter((g) => (u.groups ?? []).includes(g.id))}>
+                      {(g) => (
+                        <span class="admin-badge grp" style={{ "--gc": g.color }} data-no-i18n>
+                          {g.name}
+                        </span>
+                      )}
+                    </For>
+                  </div>
+                  <small class="mem-mail" data-no-i18n>
                     {u.email}
                     {u.iracing_name ? ` · iRacing: ${u.iracing_name}` : ""}
                   </small>
-                  <small>{pro() ? t("PRO: {0} ({1})", fmtDate(u.pro_until), u.pro_source ?? "?") : "PRO değil"}</small>
                   <small class="muted">
                     {u.created_at ? t("Kayıt: {0}", fmtDate(u.created_at)) : ""}
-                    {u.last_seen ? ` · ${isOnline(u.last_seen) ? t("çevrimiçi") : t("son görülme: {0}", fmtDate(u.last_seen))}` : ""}
+                    {u.last_seen ? ` · ${online() ? t("çevrimiçi") : t("son görülme: {0}", fmtDate(u.last_seen))}` : ""}
                     {u.version ? ` · ${u.version}` : ""}
                   </small>
                 </div>
-                <div class="btns">
+                <div class="mem-pro">
+                  <span class="mem-pill">
+                    {st() === "none" ? t("PRO değil") : st() === "inf" ? `PRO · ${t("Süresiz")}` : `PRO · ${t("{0} gün kaldı", left())}`}
+                  </span>
+                  <Show when={pro()}>
+                    <small class="muted">
+                      {st() === "inf" ? "" : `${t("Bitiş: {0}", fmtDate(u.pro_until))} · `}
+                      {SRC_LABEL[u.pro_source ?? ""] ?? u.pro_source ?? "?"}
+                    </small>
+                  </Show>
+                  <Show when={logo()}>
+                    <span class="mem-logo" title={t("Yayın logosuna müdahale edebilir (bitiş: {0})", fmtDate(u.pro_paid_until))}>
+                      Logo izni
+                    </span>
+                  </Show>
+                </div>
+                <div class="mem-acts">
                   <button class="btn small" title="Gün ekle / çıkar, tarih ayarla, süresiz ya da kaldır; istersen kullanıcıya bildir" onClick={() => setEditing(u)}>
                     PRO süresini düzenle
                   </button>

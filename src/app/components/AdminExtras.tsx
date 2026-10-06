@@ -92,6 +92,16 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
       p.onDone();
     }, (label || (mode === "remove" ? t("PRO kaldırıldı") : t("PRO süresi güncellendi"))) + (notify() ? t(" · kullanıcıya bildirildi") : ""));
 
+  /** Takvim ayı ekle: kalan sürenin (bitmişse bugünün) üstüne; ayın günü korunur (31 Oca + 1 ay = 28/29 Şub) */
+  const addMonths = (m: number) => {
+    const base = new Date(Math.max(Date.now(), active() ? new Date(cur()!).getTime() : 0));
+    const day = base.getDate();
+    const until = new Date(base);
+    until.setDate(1);
+    until.setMonth(until.getMonth() + m);
+    until.setDate(Math.min(day, new Date(until.getFullYear(), until.getMonth() + 1, 0).getDate()));
+    return apply("set", { until }, t("+{0} ay eklendi", m));
+  };
   const add = (d: number) => d && apply("add", { days: d }, d > 0 ? t("+{0} gün eklendi", d) : t("{0} gün düşüldü", Math.abs(d)));
 
   return (
@@ -127,6 +137,18 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
               </small>
             </span>
           </label>
+
+          <label class="pe-label">Ay ekle</label>
+          <div class="pe-quick">
+            <For each={[1, 3, 6, 12]}>
+              {(m) => (
+                <button class="btn small" onClick={() => addMonths(m)}>
+                  +{t("{0} ay", m)}
+                </button>
+              )}
+            </For>
+            <small class="muted pe-amt">Takvim ayı olarak kalan sürenin üstüne eklenir (süre bitmişse bugünden sayılır).</small>
+          </div>
 
           <label class="pe-label">Gün ekle / çıkar</label>
           <div class="pe-quick">

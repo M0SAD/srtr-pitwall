@@ -5678,3 +5678,163 @@ button.ovpal-lock:hover {
   display: flex;
   flex-direction: column;
 }
+
+/* === Yönetim › Üyeler: satır kartları (PRO durumuna göre renkli) === */
+.mem-stats .k-pro b {
+  color: #ffb341;
+}
+.mem-stats .k-trial b {
+  color: #c4a1ff;
+}
+.mem-stats .k-on b {
+  color: #3ddc84;
+}
+.mem-stats .k-race b {
+  color: var(--accent-2, #ff8a2a);
+}
+.mem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.mem-row {
+  --st: var(--line);
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 10px 14px 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--st);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.mem-row.st-ok {
+  --st: #3ddc84;
+}
+.mem-row.st-inf {
+  --st: #c4a1ff;
+}
+.mem-row.st-soon {
+  --st: #ffb341;
+  background: color-mix(in srgb, #ffb341 6%, var(--bg-2));
+}
+.mem-row.st-crit {
+  --st: #ff5a52;
+  background: color-mix(in srgb, #ff5a52 8%, var(--bg-2));
+}
+.mem-av {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.mem-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-2);
+  background: #5b6270;
+}
+.mem-dot.on {
+  background: #3ddc84;
+}
+.mem-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mem-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.mem-name b {
+  font-size: 14.5px;
+}
+.mem-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.mem-mail {
+  color: color-mix(in srgb, var(--text, #f2f4f8) 78%, transparent);
+}
+.mem-pro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+}
+.mem-pro small {
+  font-size: 11.5px;
+}
+.mem-pill {
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid color-mix(in srgb, var(--st) 55%, transparent);
+  background: color-mix(in srgb, var(--st) 16%, transparent);
+  color: var(--st);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mem-row.st-none .mem-pill {
+  color: var(--muted);
+  font-weight: 500;
+}
+.mem-logo {
+  padding: 1px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+.mem-acts {
+  display: flex;
+  justify-content: flex-end;
+}
+.mem-row > .owner-row {
+  grid-column: 2 / -1;
+}
+@media (max-width: 900px) {
+  .mem-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .mem-pro {
+    grid-column: 2;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .mem-acts {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+.paydlg-info {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.paydlg-warn {
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, #ffb341 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #ffb341 10%, transparent);
+  color: #ffcf7a;
+  font-size: 12.5px;
+  line-height: 1.45;
+}

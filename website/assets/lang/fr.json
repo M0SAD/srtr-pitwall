@@ -1269,12 +1269,16 @@
  "pay_gift": "Offrir",
  "pay_gift_to": "Destinataire du cadeau : {0}",
  "pay_step1": "Effectuez le paiement",
- "pay_step2": "Signalez votre paiement",
+ "pay_step2": "Signale ton achat (facultatif)",
+ "pay_bought": "J'ai effectué l'achat",
+ "pay_bought_h": "Si tu as payé, préviens-nous ; ton abonnement sera activé plus vite.",
+ "pay_same_day": "Ton abonnement PRO est activé dans la journée, une fois ton paiement vérifié.",
+ "pay_bng": "Quand ta commande est livrée sur ByNoGame, n'oublie pas de confirmer la livraison.",
  "pay_step2_h": "Après le paiement, saisissez votre nom d'utilisateur ou e-mail SRTR Pitwall et envoyez ; votre abonnement sera attribué d'après cette information.",
  "pay_contact": "Votre nom d'utilisateur ou e-mail",
  "pay_info": "Tes informations de paiement",
  "pay_note": "Nom utilisé pour le paiement, montant, date et heure, numéro de commande / transaction, durée choisie…",
- "pay_send": "J'ai payé, notifier",
+ "pay_send": "Envoyer la notification",
  "pay_login": "Connectez-vous d'abord à votre compte pour envoyer une notification.",
- "pay_sent": "Votre notification a été envoyée. Une fois votre paiement vérifié, votre abonnement PRO sera attribué manuellement ; cela peut prendre un peu de temps."
+ "pay_sent": "Ta notification a été envoyée. Une fois ton paiement vérifié, ton abonnement PRO sera activé dans la journée."
 }

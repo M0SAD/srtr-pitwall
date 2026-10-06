@@ -1269,12 +1269,16 @@
  "pay_gift": "Ge bort",
  "pay_gift_to": "Gåvomottagare: {0}",
  "pay_step1": "Betala",
- "pay_step2": "Meddela din betalning",
+ "pay_step2": "Anmäl ditt köp (valfritt)",
+ "pay_bought": "Jag har köpt",
+ "pay_bought_h": "Om du har betalat, säg till; ditt medlemskap aktiveras snabbare.",
+ "pay_same_day": "Ditt PRO-medlemskap aktiveras inom dagen, när din betalning har kontrollerats.",
+ "pay_bng": "Glöm inte att bekräfta leveransen på ByNoGame när din beställning har levererats.",
  "pay_step2_h": "När du har betalat skriver du ditt användarnamn eller din e-post för SRTR Pitwall och skickar; ditt medlemskap tilldelas utifrån den uppgiften.",
  "pay_contact": "Ditt användarnamn eller din e-post",
  "pay_info": "Dina betalningsuppgifter",
  "pay_note": "Namn som användes vid betalningen, belopp, datum och tid, order- / transaktionsnummer, vald period…",
- "pay_send": "Jag har betalat, meddela",
+ "pay_send": "Skicka avisering",
  "pay_login": "Logga in på ditt konto först för att skicka ett meddelande.",
- "pay_sent": "Ditt meddelande har skickats. När betalningen har kontrollerats tilldelas ditt PRO-medlemskap manuellt; det kan ta en stund."
+ "pay_sent": "Din avisering har skickats. När din betalning har kontrollerats aktiveras ditt PRO-medlemskap inom dagen."
 }

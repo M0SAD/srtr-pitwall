@@ -1269,12 +1269,16 @@
  "pay_gift": "Lahjoita",
  "pay_gift_to": "Lahjan saaja: {0}",
  "pay_step1": "Tee maksu",
- "pay_step2": "Ilmoita maksusta",
+ "pay_step2": "Ilmoita ostoksestasi (valinnainen)",
+ "pay_bought": "Olen tehnyt ostoksen",
+ "pay_bought_h": "Jos olet maksanut, kerro meille; jäsenyytesi otetaan käyttöön nopeammin.",
+ "pay_same_day": "PRO-jäsenyytesi otetaan käyttöön saman päivän aikana, kun maksusi on tarkistettu.",
+ "pay_bng": "Kun tilauksesi on toimitettu ByNoGamessa, älä unohda vahvistaa toimitusta.",
  "pay_step2_h": "Kun olet maksanut, kirjoita SRTR Pitwall -käyttäjänimesi tai sähköpostisi ja lähetä; jäsenyytesi myönnetään tämän tiedon perusteella.",
  "pay_contact": "Käyttäjänimesi tai sähköpostisi",
  "pay_info": "Maksutietosi",
  "pay_note": "Maksussa käytetty nimi, summa, päivämäärä ja kellonaika, tilaus- / tapahtumanumero, valitsemasi jakso…",
- "pay_send": "Maksoin, ilmoita",
+ "pay_send": "Lähetä ilmoitus",
  "pay_login": "Kirjaudu ensin tilillesi lähettääksesi ilmoituksen.",
- "pay_sent": "Ilmoituksesi on lähetetty. Kun maksusi on tarkistettu, PRO-jäsenyytesi myönnetään käsin; tämä voi kestää hetken."
+ "pay_sent": "Ilmoituksesi on lähetetty. Kun maksusi on tarkistettu, PRO-jäsenyytesi otetaan käyttöön saman päivän aikana."
 }

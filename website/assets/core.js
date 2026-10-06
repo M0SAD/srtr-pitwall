@@ -375,6 +375,15 @@ function openPayDialog(id) {
   if (!it) return;
   const { link: x, cat, gift } = it;
   const form = !!x.claim || !!gift;
+  // Sabit Patreon kategorisinde PRO kendiliğinden açılır; kendi bağlantılarda yönetici gün içinde elle tanımlar
+  const manual = !(cat && cat.id === "__patreon");
+  let host = "";
+  try {
+    host = new URL(x.url).hostname;
+  } catch {
+    /* geçersiz adres */
+  }
+  const bynogame = /(^|\.)bynogame\.com$/i.test(host);
   const method = [cat && cat.title, x.title || x.url, x.price].filter(Boolean).join(" · ");
   document.querySelector("dialog.paydlg")?.remove();
   const d = document.createElement("dialog");
@@ -387,16 +396,24 @@ function openPayDialog(id) {
       ${x.note ? `<p class="pay-note" translate="no">${esc(x.note)}</p>` : ""}
       ${form ? `<p><b>1. ${esc(T("pay_step1"))}</b></p>` : ""}
       <p><a class="btn btn-accent" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(T("pay_open"))}</a></p>
+      ${manual ? `<p class="muted small">${esc(T("pay_same_day"))}</p>` : ""}
+      ${bynogame ? `<p class="pay-warn">${esc(T("pay_bng"))}</p>` : ""}
       ${
         !form
           ? ""
           : `<p><b>2. ${esc(T("pay_step2"))}</b></p>
-      <p class="muted small">${esc(T("pay_step2_h"))}</p>
-      <input class="input" maxlength="200" placeholder="${esc(T("pay_contact"))}" data-pay-contact />
-      <p><b>${esc(T("pay_info"))}</b></p>
-      <textarea class="input" rows="5" maxlength="900" placeholder="${esc(T("pay_note"))}" data-pay-note></textarea>
-      <p><button type="button" class="btn" data-pay-send>${esc(T("pay_send"))}</button></p>
-      <p class="small" data-pay-msg></p>`
+      <div data-pay-ask${gift ? " hidden" : ""}>
+        <p class="muted small">${esc(T("pay_bought_h"))}</p>
+        <p><button type="button" class="btn" data-pay-reveal>✓ ${esc(T("pay_bought"))}</button></p>
+      </div>
+      <div data-pay-form${gift ? "" : " hidden"}>
+        <p class="muted small">${esc(T("pay_step2_h"))}</p>
+        <input class="input" maxlength="200" placeholder="${esc(T("pay_contact"))}" data-pay-contact />
+        <p><b>${esc(T("pay_info"))}</b></p>
+        <textarea class="input" rows="4" maxlength="900" placeholder="${esc(T("pay_note"))}" data-pay-note></textarea>
+        <p><button type="button" class="btn btn-accent" data-pay-send>${esc(T("pay_send"))}</button></p>
+        <p class="small" data-pay-msg></p>
+      </div>`
       }
     </div>`;
   d.dataset.method = method;
@@ -415,6 +432,15 @@ function bindPayLinks() {
     const op = el?.closest("[data-pay-open]");
     if (op) return openPayDialog(op.getAttribute("data-pay-open"));
     if (el?.closest("[data-pay-close]")) return el.closest("dialog")?.close();
+    // "Satın alım yaptım": bildirim formunu aç
+    const rv = el?.closest("[data-pay-reveal]");
+    if (rv) {
+      const body = rv.closest(".pay-link-body");
+      body?.querySelector("[data-pay-ask]")?.setAttribute("hidden", "");
+      body?.querySelector("[data-pay-form]")?.removeAttribute("hidden");
+      body?.querySelector("[data-pay-contact]")?.focus();
+      return;
+    }
     const btn = el?.closest("[data-pay-send]");
     if (!btn) return;
     const dlg = btn.closest("dialog");
@@ -564,19 +590,23 @@ addDict({
   pay_gift: ["Hediye et", "Gift"],
   pay_gift_to: ["Hediye alıcısı: {0}", "Gift recipient: {0}"],
   pay_step1: ["Ödemeyi yap", "Make the payment"],
-  pay_step2: ["Ödediğini bildir", "Tell us you paid"],
+  pay_step2: ["Satın alımını bildir (isteğe bağlı)", "Report your purchase (optional)"],
   pay_step2_h: [
-    "Ödemeyi yaptıktan sonra SRTR Pitwall kullanıcı adını ya da e-postanı yazıp gönder; üyeliğin bu bilgiye göre tanımlanır.",
-    "After paying, enter your SRTR Pitwall username or e-mail and send it; your membership is assigned using this information.",
+    "SRTR Pitwall kullanıcı adını ya da e-postanı yazıp gönder; üyeliğin bu bilgiye göre tanımlanır.",
+    "Enter your SRTR Pitwall username or e-mail and send it; your membership is assigned using this information.",
   ],
+  pay_bought: ["Satın alım yaptım", "I've made the purchase"],
+  pay_bought_h: ["Ödemeyi yaptıysan haber ver; üyeliğin daha hızlı tanımlanır.", "If you have paid, let us know; your membership is assigned sooner."],
+  pay_same_day: ["PRO üyeliğin, ödemen kontrol edildikten sonra gün içinde tanımlanır.", "Your PRO membership is assigned within the day, once your payment has been checked."],
+  pay_bng: ["ByNoGame'de siparişin teslim edildiğinde teslimatı onaylamayı unutma.", "Don't forget to confirm the delivery on ByNoGame once your order has been delivered."],
   pay_contact: ["Kullanıcı adın ya da e-postan", "Your username or e-mail"],
   pay_info: ["Ödeme bilgilerin", "Your payment details"],
   pay_note: ["Ödemede kullandığın ad, tutar, tarih ve saat, sipariş / işlem numarası, seçtiğin süre…", "The name you paid with, amount, date and time, order / transaction number, the period you chose…"],
-  pay_send: ["Ödedim, bildir", "I have paid, notify"],
+  pay_send: ["Bildirimi gönder", "Send notification"],
   pay_login: ["Bildirim göndermek için önce hesabına giriş yap.", "Sign in to your account first to send the notification."],
   pay_sent: [
-    "Bildirimin gönderildi. Ödemen kontrol edildikten sonra PRO üyeliğin elle tanımlanacak; bu biraz zaman alabilir.",
-    "Your notification was sent. Once your payment is checked, your PRO membership will be assigned manually; this may take a while.",
+    "Bildirimin gönderildi. Ödemen kontrol edildikten sonra PRO üyeliğin gün içinde tanımlanacak.",
+    "Your notification was sent. Once your payment has been checked, your PRO membership will be assigned within the day.",
   ],
   nav_features: ["Özellikler", "Features"],
   nav_pricing: ["Fiyatlar", "Pricing"],

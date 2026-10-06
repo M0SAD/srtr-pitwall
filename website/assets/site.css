@@ -2125,3 +2125,6 @@ dialog.paydlg .pay-link-body{padding:0;border-top:0}
 .pay-link-body .input{display:block;width:100%;box-sizing:border-box;margin:6px 0;font:inherit}
 
 .pay-link-body .input{padding:9px 11px;border:1px solid var(--line,#2a2f3a);border-radius:8px;background:rgba(0,0,0,.25);color:inherit}
+
+.pay-link-body .pay-warn{padding:8px 11px;border:1px solid rgba(255,179,65,.45);border-radius:8px;background:rgba(255,179,65,.1);color:#ffcf7a;font-size:13.5px;line-height:1.45}
+.pay-link-body [hidden]{display:none}

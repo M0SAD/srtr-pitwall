@@ -1269,12 +1269,16 @@
  "pay_gift": "Presentear",
  "pay_gift_to": "Destinatário do presente: {0}",
  "pay_step1": "Faça o pagamento",
- "pay_step2": "Avise que pagou",
+ "pay_step2": "Avise sobre a sua compra (opcional)",
+ "pay_bought": "Fiz a compra",
+ "pay_bought_h": "Se você já pagou, avise a gente; sua assinatura será ativada mais rápido.",
+ "pay_same_day": "Sua assinatura PRO é ativada ao longo do dia, depois que o pagamento for conferido.",
+ "pay_bng": "Quando seu pedido for entregue na ByNoGame, não esqueça de confirmar a entrega.",
  "pay_step2_h": "Depois de pagar, digite seu nome de usuário ou e-mail do SRTR Pitwall e envie; sua assinatura será atribuída com base nessa informação.",
  "pay_contact": "Seu nome de usuário ou e-mail",
  "pay_info": "Seus dados de pagamento",
  "pay_note": "Nome usado no pagamento, valor, data e hora, número do pedido / transação, período escolhido…",
- "pay_send": "Paguei, avisar",
+ "pay_send": "Enviar aviso",
  "pay_login": "Entre na sua conta primeiro para enviar um aviso.",
- "pay_sent": "Seu aviso foi enviado. Depois que o pagamento for conferido, sua assinatura PRO será atribuída manualmente; isso pode levar um tempo."
+ "pay_sent": "Seu aviso foi enviado. Depois que o pagamento for conferido, sua assinatura PRO será ativada ao longo do dia."
 }

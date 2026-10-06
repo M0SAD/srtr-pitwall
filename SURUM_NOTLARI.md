@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-221
+
+- Ödeme penceresi (program + site): bildirim formu artık isteğe bağlı bir "Satın alım yaptım" düğmesinin arkasında; düğmeye basınca kullanıcı adı / e-posta ve ödeme bilgisi alanları açılır. Kendi ödeme bağlantılarında "PRO üyeliğin, ödemen kontrol edildikten sonra gün içinde tanımlanır." yazar; ByNoGame bağlantılarında ayrıca teslimatı onaylama hatırlatması görünür.
+
+## 061026-220
+
+- Küçük iyileştirmeler ve düzeltmeler.
+
 ## 061026-219
 
 - Uygulama kapanırken düzenler hesaba gönderilir: kontrol paneli kapatılırken ve tepsi menüsünden "Çıkış" denirken bekleyen ayar değişikliği önce buluta yazılır, sonra pencere / uygulama kapanır (en çok ~4 sn bekler). Eskiden son değişiklikler, istek yarıda kaldığı için hesaba hiç gitmeyebiliyordu.

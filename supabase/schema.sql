@@ -15983,3 +15983,72 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.settings_history_get(bigint) from public, anon;
 grant execute on function public.settings_history_get(bigint) to authenticated;
+
+-- ===== c99: ödeme bildirimi e-postası =====
+-- 'pay_claim' bildirimi (üye "Ödedim, bildir" dedi) yöneticiye e-posta olarak da gider (pitwall-jobs: payClaimAdmin).
+create or replace function public.friend_request_mail() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  cat text;
+begin
+  if new.kind in ('friend_request', 'pro_expiring', 'device_alert', 'pro_changed',
+                  'support_new', 'support_user_reply', 'support_reply',
+                  'ad_live', 'ad_rejected', 'ad_ended', 'ad_reported', 'ad_pending',
+                  'payment_new', 'payment_receipt', 'pro_gift', 'pro_gift_sent', 'pro_gift_ended',
+                  'message_reported',
+                  'team_invite', 'team_request', 'team_accepted', 'team_announcement', 'team_role',
+                  'voice_submission', 'pay_claim') then
+    cat := public.email_kind_category(new.kind);
+    if cat is not null and not public.email_pref_on(new.user_id, cat) then
+      return null;
+    end if;
+    if new.kind = 'team_announcement'
+       and not public.email_throttle_ok(new.user_id, 'team_announcement:' || coalesce(new.data ->> 'team', ''), interval '1 hour') then
+      return null;
+    end if;
+    if new.kind = 'team_request'
+       and not public.email_throttle_ok(new.user_id, 'team_request:' || coalesce(new.data ->> 'team', ''), interval '30 minutes') then
+      return null;
+    end if;
+    perform public.call_jobs(jsonb_build_object('type', new.kind, 'id', new.id));
+  end if;
+  return null;
+end $$;
+
+-- ===== c100: yönetim üyeler listesi =====
+-- Sıra: süresi dolmaya en yakın PRO üyeler en üstte, sonra süresiz PRO'lar, sonra PRO olmayanlar (yeni kayıt önce).
+-- Yeni sütun: pro_paid_until (yayın logosu izni bitişi). Dönüş tipi değiştiği için fonksiyon silinip yeniden kurulur.
+drop function if exists public.admin_users(text, text, int);
+create or replace function public.admin_users(p_q text, p_filter text, p_offset int)
+returns table (id uuid, display_name text, email text, iracing_name text, pro_until timestamptz, pro_source text,
+               is_admin boolean, is_owner boolean, groups uuid[], created_at timestamptz, last_seen timestamptz, version text,
+               pro_paid_until timestamptz)
+language plpgsql stable security definer set search_path = public, auth as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return query
+    select p.id, p.display_name, u.email::text, p.iracing_name, p.pro_until, p.pro_source, p.is_admin, p.is_owner,
+           coalesce((select array_agg(ug.group_id) from public.user_groups ug where ug.user_id = p.id), '{}'),
+           p.created_at, s.last_seen, s.version, p.pro_paid_until
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    left join lateral (select max(a.last_seen) as last_seen, max(a.version) as version from public.app_pings a where a.user_id = p.id) s on true
+    where (coalesce(p_q, '') = '' or p.display_name ilike '%' || p_q || '%' or u.email ilike '%' || p_q || '%'
+           or coalesce(p.iracing_name, '') ilike '%' || p_q || '%')
+      and case coalesce(p_filter, 'all')
+            when 'pro' then p.pro_until > now()
+            when 'admin' then p.is_admin
+            when 'online' then s.last_seen > now() - interval '4 minutes'
+            else true end
+    order by
+      case when p.pro_until > now() and p.pro_until < '2090-01-01'::timestamptz then 0
+           when p.pro_until > now() then 1
+           else 2 end,
+      case when p.pro_until > now() and p.pro_until < '2090-01-01'::timestamptz then p.pro_until end asc nulls last,
+      p.created_at desc
+    limit 50 offset greatest(coalesce(p_offset, 0), 0);
+end $$;
+revoke all on function public.admin_users(text, text, int) from public, anon;
+grant execute on function public.admin_users(text, text, int) to authenticated;

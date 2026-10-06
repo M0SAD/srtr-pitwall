@@ -228,7 +228,7 @@ export function AdminPayMethods() {
           </label>
           <label class="check" title="Açıkken üye bu bağlantının penceresinde ödeme bilgilerini yazıp sana bildirim gönderebilir">
             <input type="checkbox" checked={!!l().claim} onChange={(e) => setLink(p.n, { claim: e.currentTarget.checked })} />
-            <span>"Ödedim, bildir" formu</span>
+            <span>"Satın alım yaptım" bildirimi</span>
           </label>
           <span class="lt-sp" />
           <button class="btn ghost small" disabled={same()[0] === p.n} onClick={() => move(p.n, -1)} title="Yukarı taşı">
@@ -422,7 +422,7 @@ export function AdminPayMethods() {
         </button>
       </h4>
       <p class="muted small">
-        "Ödedim, bildir" formunu açtığın bağlantıyla ödeyen üye bilgilerini gönderince burada listelenir ve sana bildirim gelir. Ödemeyi ödeme sayfanda kontrol et, sonra süreyi seçip
+        "Satın alım yaptım" bildirimini açtığın bağlantıyla ödeyen üye bilgilerini gönderince burada listelenir; sana bildirim ve e-posta gelir. Ödemeyi ödeme sayfanda kontrol et, sonra süreyi seçip
         PRO'yu tanımla (kalan sürenin üstüne eklenir).
       </p>
       <Show when={(claims() ?? []).length > 0} fallback={<p class="muted small">Henüz bildirim yok.</p>}>

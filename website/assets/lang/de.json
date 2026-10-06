@@ -1269,12 +1269,16 @@
  "pay_gift": "Verschenken",
  "pay_gift_to": "Geschenkempfänger: {0}",
  "pay_step1": "Zahlung durchführen",
- "pay_step2": "Zahlung melden",
+ "pay_step2": "Kauf melden (optional)",
+ "pay_bought": "Ich habe gekauft",
+ "pay_bought_h": "Wenn du bezahlt hast, gib uns Bescheid; deine Mitgliedschaft wird dann schneller zugewiesen.",
+ "pay_same_day": "Deine PRO-Mitgliedschaft wird nach der Prüfung deiner Zahlung noch am selben Tag zugewiesen.",
+ "pay_bng": "Vergiss nicht, die Lieferung auf ByNoGame zu bestätigen, sobald deine Bestellung geliefert wurde.",
  "pay_step2_h": "Gib nach der Zahlung deinen SRTR Pitwall-Benutzernamen oder deine E-Mail ein und sende sie ab; deine Mitgliedschaft wird anhand dieser Angabe zugewiesen.",
  "pay_contact": "Dein Benutzername oder deine E-Mail",
  "pay_info": "Deine Zahlungsdaten",
  "pay_note": "Bei der Zahlung verwendeter Name, Betrag, Datum und Uhrzeit, Bestell- / Transaktionsnummer, gewählter Zeitraum…",
- "pay_send": "Ich habe bezahlt, melden",
+ "pay_send": "Benachrichtigung senden",
  "pay_login": "Melde dich zuerst in deinem Konto an, um eine Meldung zu senden.",
- "pay_sent": "Deine Meldung wurde gesendet. Nach Prüfung deiner Zahlung wird deine PRO-Mitgliedschaft manuell zugewiesen; das kann etwas dauern."
+ "pay_sent": "Deine Benachrichtigung wurde gesendet. Nachdem deine Zahlung geprüft wurde, wird deine PRO-Mitgliedschaft noch am selben Tag zugewiesen."
 }

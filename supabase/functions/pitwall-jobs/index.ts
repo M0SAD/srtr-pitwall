@@ -3,6 +3,7 @@
 //   {"type":"friend_request","id":"<bildirim id>"}  Yeni arkadaşlık isteği: karşı tarafa temalı e-posta gönderir
 //   {"type":"pro_expiring","id":"<bildirim id>"}  PRO bitmesine 10 gün ve son 1 gün kala hatırlatma e-postası
 //   {"type":"device_alert","id":"<bildirim id>"}   Yöneticiye: hesap cihaz sınırını aştı
+//   {"type":"pay_claim","id":"<bildirim id>"}     Yöneticiye: üye kendi ödeme bağlantısıyla ödediğini bildirdi
 //   {"type":"pro_changed","id":"<bildirim id>"}   Yönetici PRO süresini elle değiştirdi (kullanıcıya, kendi dilinde)
 //   {"type":"support_new" | "support_user_reply","id":"<bildirim id>"}  Yöneticiye: yeni destek talebi / yeni mesaj
 //   {"type":"support_reply","id":"<bildirim id>"}  Kullanıcıya: destek talebine yanıt geldi (kendi dilinde)
@@ -1146,6 +1147,37 @@ async function paymentAdmin(id: string) {
     </table>
     ${button(`${SITE}/yonetim.html#satislar`, L === "tr" ? "Satışları aç" : "Open sales")}`;
   const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${refund ? "−" : "+"}${money}`, page(title, body, `${title}: ${money}`));
+  return { ok: true, sent };
+}
+
+// Yöneticiye: bir üye kendi ödeme bağlantısıyla (ör. ByNoGame) ödediğini bildirdi ("Ödedim, bildir")
+async function payClaimAdmin(id: string) {
+  const { data: n, error } = await db.from("notifications").select("user_id,kind,data,created_at").eq("id", id).maybeSingle();
+  if (error || !n) return { ok: false, error: error?.message ?? "bildirim yok" };
+  if (n.kind !== "pay_claim") return { ok: true, skipped: true };
+  const u = await userInfo(n.user_id);
+  if (!u.email) return { ok: true, skipped: "e-posta yok" };
+  const L = u.lang === "tr" ? "tr" : "en";
+  const d = n.data ?? {};
+  const title = L === "tr" ? "Yeni ödeme bildirimi" : "New payment notice";
+  const body = `
+    <p style="margin:0 0 12px">${
+      L === "tr"
+        ? "Bir üye kendi ödeme bağlantınla ödeme yaptığını bildirdi. Ödemeyi ödeme sayfanda kontrol et, sonra PRO süresini tanımla."
+        : "A member reported a payment through one of your own payment links. Check the payment on your payment page, then grant the PRO period."
+    }</p>
+    <table role="presentation" style="border-collapse:collapse;margin:0 0 6px;width:100%">
+      ${infoRow(L === "tr" ? "Üye" : "Member", `<b>${esc(d.name ?? "?")}</b>`)}
+      ${infoRow(L === "tr" ? "Hesap e-postası" : "Account email", esc(d.email || "—"))}
+      ${infoRow(L === "tr" ? "Ödeme yöntemi" : "Payment method", esc(d.method || "—"))}
+      ${infoRow(L === "tr" ? "Yazdığı kullanıcı adı / e-posta" : "Username / email given", `<b>${esc(d.contact || "—")}</b>`)}
+      ${infoRow(L === "tr" ? "Tarih" : "Date", esc(fmtDay(new Date(n.created_at ?? Date.now()), L, true)))}
+    </table>
+    ${d.note ? quote(String(d.note)) : ""}
+    <p style="color:#8b93a3;font-size:13px;margin:0">${
+      L === "tr" ? "Uygulamada Yönetim → Planlar → Ödeme bildirimleri bölümünden süreyi tanımlayabilirsin." : "Grant the period in the app under Management → Plans → Payment notices."
+    }</p>`;
+  const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.name ?? "?"} · ${d.method ?? ""}`, page(title, body, `${title}: ${d.name ?? "?"}`));
   return { ok: true, sent };
 }
 
@@ -2295,6 +2327,8 @@ Deno.serve(async (req) => {
                                     ? await messageReportAdmin(body.id)
                                   : body.type === "voice_submission" && body.id
                                     ? await voiceSubmissionAdmin(body.id)
+                                    : body.type === "pay_claim" && body.id
+                                      ? await payClaimAdmin(body.id)
                                     : TEAM_KINDS.includes(String(body.type)) && body.id
                                       ? await teamMail(body.id)
           : body.type === "cleanup" ? await cleanup() : { ok: false, error: "bilinmeyen iş" };
