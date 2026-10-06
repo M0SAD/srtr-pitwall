@@ -766,7 +766,7 @@
  "ov_tires_h": "Température intérieure / centrale / extérieure|Gomme restante et pression à froid|iRacing met à jour ces valeurs aux stands",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Une case qui affiche en grand une valeur de ton choix.",
- "ov_dataframe_h": "Vitesse, rapport, carburant, delta, position, tour, température, répartition de freinage et plus encore|Construis ton propre tableau de bord case par case",
+ "ov_dataframe_h": "Vitesse, rapport, carburant, delta, position, tour, température, répartition de freinage et plus encore|Construis ton propre tableau de bord case par case|8 formes (angles carrés, pilule, cercle, coins coupés, inclinée, soulignée, sans boîte), barre d'accent, position du titre et couleurs personnalisées",
  "ov_pitspeed_n": "Vitesse pit",
  "ov_pitspeed_d": "Ta vitesse par rapport à la limite à l'approche et dans la pit lane.",
  "ov_pitspeed_h": "Avertit quand le limiteur est désactivé|Passe au rouge quand tu dépasses la limite|Visible uniquement quand c'est nécessaire",
@@ -1280,5 +1280,17 @@
  "pay_note": "Nom utilisé pour le paiement, montant, date et heure, numéro de commande / transaction, durée choisie…",
  "pay_send": "Envoyer la notification",
  "pay_login": "Connectez-vous d'abord à votre compte pour envoyer une notification.",
- "pay_sent": "Ta notification a été envoyée. Une fois ton paiement vérifié, ton abonnement PRO sera activé dans la journée."
+ "pay_sent": "Ta notification a été envoyée. Une fois ton paiement vérifié, ton abonnement PRO sera activé dans la journée.",
+ "ov_clock_n": "Horloge",
+ "ov_clock_d": "L'horloge de ton PC avec des alarmes et des rappels qui te préviennent par un son et un clignotement.",
+ "ov_clock_h": "Boîtier numérique, bandeau fin, texte seul et cadran analogique|Trois alarmes plus un rappel répétitif (p. ex. toutes les 30 minutes)|Bip, double bip, sirène ou tonalité douce avec volume réglable|Le boîtier, le cadre ou le texte clignote dans la couleur de ton choix|Peut apparaître uniquement pendant qu'une alarme sonne ou juste avant|Compte à rebours jusqu'à la prochaine alarme, date, secondes, 12/24 heures",
+ "ovg_clock": "Pas besoin de quitter le sim pour regarder l'heure : l'horloge de ton PC s'affiche à l'écran en overlay. Son vrai rôle, ce sont les alarmes : indique quand ta course commence, quand faire une pause ou quand arrêter le stream, et l'overlay clignote et sonne le moment venu. Tu peux aussi régler un rappel répétitif comme « bois de l'eau toutes les 30 minutes ». Si tu préfères, l'horloge reste masquée et n'apparaît que pendant qu'une alarme sonne ou quelques minutes avant. Elle fonctionne même quand le sim est fermé.",
+ "ov_gear_n": "Rapport",
+ "ov_gear_d": "Juste le rapport engagé : grand, lisible et qui change de couleur au point de changement.",
+ "ov_gear_h": "Les designs boîtier et chiffre seul sont gratuits|Les designs anneau de régime, LED de changement, néon et hexagone sont PRO|Change de couleur ou clignote au point de changement|Marche arrière et point mort dans leurs propres couleurs|Vitesse en option en dessous|Taille et chaque couleur réglables",
+ "ovg_gear": "Un overlay tout simple qui affiche uniquement le rapport engagé. Le chiffre est assez grand pour être lu d'un coup d'œil ; quand le moteur atteint le point de changement, il change de couleur et peut clignoter. Dans le design anneau de régime, l'arc autour du chiffre se remplit avec le régime, et le design LED allume des témoins de changement au-dessus. La taille et les couleurs, c'est toi qui les choisis.",
+ "ov_speedo_n": "Compteur de vitesse",
+ "ov_speedo_d": "Juste ta vitesse : trois designs numériques et trois cadrans analogiques, entièrement réglables.",
+ "ov_speedo_h": "Numérique : grand chiffre, chiffre avec barre, écran LCD|Analogique : cadran classique, arc moderne, demi-cadran|Règle la vitesse maximale et le début de la zone rouge|Active ou masque les graduations, les chiffres et l'affichage numérique dans le cadran|km/h ou mph ; affiche aussi le rapport en option|Taille, épaisseur et chaque couleur réglables",
+ "ovg_speedo": "Un indicateur qui n'affiche que ta vitesse. Choisis l'un des trois looks numériques (grand chiffre, une barre qui se remplit en dessous, un écran LCD lumineux) ou l'un des trois cadrans analogiques (cadran classique à aiguille, arc moderne, demi-cadran). Règle la vitesse maximale du cadran selon ta voiture et décide où commence la zone rouge ; les couleurs de l'aiguille, de l'arc, des graduations et des chiffres sont à toi. Ajoute plusieurs copies pour utiliser différents designs côte à côte."
 }

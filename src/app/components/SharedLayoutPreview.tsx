@@ -10,7 +10,7 @@ import { isLocked } from "@/cloud/account";
 import { OverlayView } from "./OverlayView";
 import { normalizeLook } from "@/sdk/look";
 
-export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w: number; h: number; stream?: boolean }) {
+export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w: number; h: number; stream?: boolean; /** Arka plan görseli (data URL) */ backdrop?: string; /** Canlı demo: overlay'ler yarıştaymış gibi davranır */ live?: boolean }) {
   let box: HTMLDivElement | undefined;
   const [boxW, setBoxW] = createSignal(800);
   onMount(() => {
@@ -32,6 +32,9 @@ export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w:
         class="slp ov-theme"
         style={{ ...themeVars(theme()), width: `${props.w * k()}px`, height: `${props.h * k()}px` }}
       >
+        <Show when={props.backdrop}>
+          <img class="slp-bg" src={props.backdrop} alt="" draggable={false} />
+        </Show>
         <For each={items()}>
           {(it) => (
             <div
@@ -42,7 +45,7 @@ export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w:
                 opacity: Math.min(it.o.opacity ?? 1, theme().opacity / 100),
               }}
             >
-              <OverlayView type={it.o.type} options={{ ...defaultOptions(it.m), ...(it.o.options ?? {}) }} look={normalizeLook(it.o.look)} bgOpacity={it.o.bgOpacity} themed={false} />
+              <OverlayView type={it.o.type} options={{ ...defaultOptions(it.m), ...(it.o.options ?? {}) }} look={normalizeLook(it.o.look)} bgOpacity={it.o.bgOpacity} themed={false} editing={!props.live} />
             </div>
           )}
         </For>

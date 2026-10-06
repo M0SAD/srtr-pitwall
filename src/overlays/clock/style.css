@@ -1,0 +1,179 @@
+.ck {
+  --ck-k: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: calc(1em * var(--ck-k));
+  padding: 0.55em 1em;
+  min-width: 7.5em;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.ck-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+}
+.ck-time {
+  font-size: 2.6em;
+  font-weight: var(--ov-weight-strong, 700);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.ck-time small {
+  font-size: 0.45em;
+  margin-left: 0.25em;
+  color: var(--ov-dim);
+}
+.ck-time em {
+  font-style: normal;
+  font-size: 0.32em;
+  margin-left: 0.3em;
+  color: var(--ov-accent);
+}
+.ck-date {
+  font-size: 0.85em;
+  color: var(--ov-dim);
+}
+.ck-next {
+  display: flex;
+  gap: 0.6em;
+  align-items: baseline;
+  font-size: 0.8em;
+  color: var(--ov-dim);
+  margin-top: 0.15em;
+}
+.ck-next b {
+  color: var(--ov-accent);
+  font-variant-numeric: tabular-nums;
+}
+.ck-msg {
+  font-size: 1.05em;
+  font-weight: var(--ov-weight-strong, 700);
+  color: var(--ck-flash);
+  margin-top: 0.15em;
+  max-width: 16em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* İnce şerit: her şey tek satırda */
+.ck-pill {
+  padding: 0.3em 0.9em;
+  border-radius: 999px;
+}
+.ck-pill .ck-main {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.7em;
+}
+.ck-pill .ck-time {
+  font-size: 1.5em;
+}
+.ck-pill .ck-next,
+.ck-pill .ck-msg {
+  margin-top: 0;
+}
+
+/* Yalnızca yazı: kutu yok, okunaklılık için gölge */
+.ck-minimal {
+  padding: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Analog */
+.ck-analog {
+  padding: 0.6em;
+  gap: 0.2em;
+}
+.ck-dial {
+  width: 8.5em;
+  height: 8.5em;
+}
+.ck-face {
+  fill: color-mix(in srgb, var(--ov-text) 5%, transparent);
+  stroke: color-mix(in srgb, var(--ov-text) 35%, transparent);
+  stroke-width: 1.5;
+}
+.ck-tick {
+  stroke: var(--ov-dim);
+  stroke-width: 1;
+}
+.ck-tick.big {
+  stroke: var(--ov-text);
+  stroke-width: 2;
+}
+.ck-hand {
+  stroke: var(--ov-text);
+  stroke-linecap: round;
+}
+.ck-hand.h {
+  stroke-width: 4;
+}
+.ck-hand.m {
+  stroke-width: 2.6;
+}
+.ck-hand.s {
+  stroke: var(--ov-accent);
+  stroke-width: 1.2;
+}
+.ck-hub {
+  fill: var(--ov-accent);
+}
+
+/* Alarm çalarken */
+@keyframes ck-box {
+  0%,
+  49% {
+    background-color: var(--ck-flash);
+    color: #fff;
+  }
+  50%,
+  100% {
+    background-color: var(--ov-bg);
+  }
+}
+@keyframes ck-border {
+  0%,
+  49% {
+    box-shadow: 0 0 0 3px var(--ck-flash), 0 0 18px var(--ck-flash);
+  }
+  50%,
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+@keyframes ck-text {
+  0%,
+  49% {
+    color: var(--ck-flash);
+  }
+  50%,
+  100% {
+    color: var(--ov-text);
+  }
+}
+.ck-f-box {
+  animation: ck-box 0.8s linear infinite;
+}
+.ck-f-box .ck-msg,
+.ck-f-box .ck-date,
+.ck-f-box .ck-time small {
+  color: inherit;
+}
+.ck-f-border {
+  animation: ck-border 0.8s linear infinite;
+}
+.ck-f-text .ck-time {
+  animation: ck-text 0.8s linear infinite;
+}
+.ck-minimal.ck-f-box,
+.ck-minimal.ck-f-border {
+  animation: none;
+}
+.ck-minimal.ck-f-box .ck-time,
+.ck-minimal.ck-f-border .ck-time {
+  animation: ck-text 0.8s linear infinite;
+}

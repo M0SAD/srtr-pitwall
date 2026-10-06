@@ -1,0 +1,168 @@
+.gr {
+  --gr-size: 120px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--gr-size) * 0.04);
+  color: var(--ov-text);
+}
+.gr-cap {
+  font-size: calc(var(--gr-size) * 0.12);
+  font-weight: var(--ov-weight-strong, 700);
+  letter-spacing: 0.12em;
+  color: var(--ov-dim);
+}
+.gr-body {
+  position: relative;
+  width: var(--gr-size);
+  height: var(--gr-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.gr-num {
+  position: relative;
+  font-size: calc(var(--gr-size) * 0.72);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.08s;
+}
+.gr-r .gr-num {
+  color: var(--gr-rev);
+}
+.gr-n .gr-num {
+  color: var(--ov-dim);
+}
+.gr-shift .gr-num {
+  color: var(--gr-shift);
+}
+@keyframes gr-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.gr-blink .gr-num {
+  animation: gr-blink 0.18s steps(2, start) infinite;
+}
+.gr-spd {
+  font-size: calc(var(--gr-size) * 0.17);
+  font-weight: var(--ov-weight-strong, 700);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.gr-spd small {
+  font-size: 0.7em;
+  color: var(--ov-dim);
+}
+
+/* Kutu: vites değiştirme devrinde çerçeve de renklenir */
+.gr-box.gr-shift .gr-body {
+  box-shadow: inset 0 0 0 calc(var(--gr-size) * 0.035) var(--gr-shift);
+}
+
+/* Yalnızca rakam */
+.gr-minimal .gr-num {
+  font-size: calc(var(--gr-size) * 0.95);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85), 0 0 14px rgba(0, 0, 0, 0.55);
+}
+
+.gr-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Devir halkası: 270 derecelik yay, devirle dolar */
+.gr-ring .gr-svg {
+  transform: rotate(135deg);
+}
+.gr-ring circle {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.gr-ring .trk {
+  stroke: color-mix(in srgb, var(--ov-bg) 85%, var(--ov-text));
+}
+.gr-ring .val {
+  stroke: var(--ov-accent);
+}
+.gr-ring.gr-shift .val {
+  stroke: var(--gr-shift);
+}
+.gr-ring .gr-body {
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ov-bg) 62%, transparent 63%);
+}
+.gr-ring .gr-num {
+  font-size: calc(var(--gr-size) * 0.56);
+}
+
+/* Vites LED'leri */
+.gr-leds .gr-body {
+  padding-top: calc(var(--gr-size) * 0.14);
+}
+.gr-leds .gr-leds {
+  position: absolute;
+  top: calc(var(--gr-size) * 0.07);
+  left: 8%;
+  right: 8%;
+  display: flex;
+  gap: 4%;
+}
+.gr-leds .gr-leds i {
+  flex: 1;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ov-text) 14%, transparent);
+}
+.gr-leds .gr-leds i.on {
+  background: var(--ov-accent);
+  box-shadow: 0 0 calc(var(--gr-size) * 0.05) var(--ov-accent);
+}
+.gr-leds .gr-leds i.on.hi {
+  background: var(--gr-shift);
+  box-shadow: 0 0 calc(var(--gr-size) * 0.05) var(--gr-shift);
+}
+.gr-leds .gr-num {
+  font-size: calc(var(--gr-size) * 0.62);
+}
+
+/* Neon */
+.gr-neon .gr-body {
+  border-radius: 18%;
+  background: color-mix(in srgb, var(--ov-bg) 70%, transparent);
+  border: calc(var(--gr-size) * 0.03) solid var(--ov-accent);
+  box-shadow: 0 0 calc(var(--gr-size) * 0.14) var(--ov-accent), inset 0 0 calc(var(--gr-size) * 0.12) color-mix(in srgb, var(--ov-accent) 60%, transparent);
+}
+.gr-neon .gr-num {
+  color: #fff;
+  text-shadow: 0 0 calc(var(--gr-size) * 0.06) var(--ov-accent), 0 0 calc(var(--gr-size) * 0.16) var(--ov-accent);
+}
+.gr-neon.gr-shift .gr-body {
+  border-color: var(--gr-shift);
+  box-shadow: 0 0 calc(var(--gr-size) * 0.18) var(--gr-shift), inset 0 0 calc(var(--gr-size) * 0.14) var(--gr-shift);
+}
+.gr-neon.gr-shift .gr-num,
+.gr-neon.gr-r .gr-num {
+  color: #fff;
+  text-shadow: 0 0 calc(var(--gr-size) * 0.06) var(--gr-shift), 0 0 calc(var(--gr-size) * 0.16) var(--gr-shift);
+}
+
+/* Altıgen */
+.gr-hex .hex {
+  fill: var(--ov-bg);
+  stroke: var(--ov-accent);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+.gr-hex.gr-shift .hex {
+  stroke: var(--gr-shift);
+  fill: color-mix(in srgb, var(--gr-shift) 22%, var(--ov-bg));
+}
+.gr-hex .gr-num {
+  font-size: calc(var(--gr-size) * 0.56);
+}

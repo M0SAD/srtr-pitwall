@@ -766,7 +766,7 @@
  "ov_tires_h": "Sisä- / keski- / ulkolämpötila|Jäljellä oleva pinta ja kylmäpaine|iRacing päivittää nämä arvot varikolla",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Laatikko, joka näyttää yhden valitsemasi arvon isona.",
- "ov_dataframe_h": "Nopeus, vaihde, polttoaine, delta, sijoitus, kierros, lämpötila, jarrubalanssi ja muuta|Rakenna oma mittaristosi laatikko kerrallaan",
+ "ov_dataframe_h": "Nopeus, vaihde, polttoaine, delta, sijoitus, kierros, lämpötila, jarrubalanssi ja muuta|Rakenna oma mittaristosi laatikko kerrallaan|8 muotoa (terävä, pilleri, ympyrä, viistetyt kulmat, vino, alleviivattu, ilman laatikkoa), korostuspalkki, otsikon sijainti ja omat värit",
  "ov_pitspeed_n": "Varikkonopeus",
  "ov_pitspeed_d": "Nopeutesi suhteessa rajoitukseen, kun lähestyt varikkokaistaa ja ajat sillä.",
  "ov_pitspeed_h": "Varoittaa, kun rajoitin on pois päältä|Muuttuu punaiseksi, kun ylität rajoituksen|Näkyy vain tarvittaessa",
@@ -1280,5 +1280,17 @@
  "pay_note": "Maksussa käytetty nimi, summa, päivämäärä ja kellonaika, tilaus- / tapahtumanumero, valitsemasi jakso…",
  "pay_send": "Lähetä ilmoitus",
  "pay_login": "Kirjaudu ensin tilillesi lähettääksesi ilmoituksen.",
- "pay_sent": "Ilmoituksesi on lähetetty. Kun maksusi on tarkistettu, PRO-jäsenyytesi otetaan käyttöön saman päivän aikana."
+ "pay_sent": "Ilmoituksesi on lähetetty. Kun maksusi on tarkistettu, PRO-jäsenyytesi otetaan käyttöön saman päivän aikana.",
+ "ov_clock_n": "Kello",
+ "ov_clock_d": "Tietokoneesi kello hälytyksillä ja muistutuksilla, jotka varoittavat sinua äänellä ja vilkkumalla.",
+ "ov_clock_h": "Digitaalinen laatikko, kapea nauha, pelkkä teksti ja analoginen kellotaulu|Kolme hälytystä sekä toistuva muistutus (esim. 30 minuutin välein)|Piippaus, kaksoispiippaus, sireeni tai pehmeä ääni säädettävällä äänenvoimakkuudella|Laatikko, kehys tai teksti vilkkuu valitsemallasi värillä|Voi näkyä vain hälytyksen soidessa tai hieman sitä ennen|Lähtölaskenta seuraavaan hälytykseen, päivämäärä, sekunnit, 12/24 tuntia",
+ "ovg_clock": "Sinun ei tarvitse poistua simusta katsoaksesi kellonaikaa: tietokoneesi kello on ruudulla overlayna. Sen todellinen tehtävä on hälytykset: syötä, milloin kisasi alkaa, milloin pidät tauon tai milloin lopetat striimin, ja overlay vilkkuu ja piippaa, kun hetki koittaa. Voit myös asettaa toistuvan muistutuksen, kuten ”juo vettä 30 minuutin välein”. Jos haluat, kello pysyy piilossa ja ilmestyy vain hälytyksen soidessa tai muutama minuutti ennen sitä. Se toimii myös simun ollessa suljettuna.",
+ "ov_gear_n": "Vaihde",
+ "ov_gear_d": "Pelkkä nykyinen vaihde: iso, selkeä ja vaihtaa väriä vaihtopisteessä.",
+ "ov_gear_h": "Laatikko- ja pelkkä numero -ulkoasut ovat ilmaisia|Kierroslukurengas-, vaihto-LED-, neon- ja kuusikulmioulkoasut ovat PRO|Vaihtaa väriä tai vilkkuu vaihtopisteessä|Peruutus ja vapaa omilla väreillään|Valinnainen nopeus alapuolella|Koko ja jokainen väri säädettävissä",
+ "ovg_gear": "Yksinkertainen overlay, joka näyttää vain, missä vaihteessa olet. Numero on tarpeeksi suuri luettavaksi yhdellä silmäyksellä; kun moottori saavuttaa vaihtopisteen, se vaihtaa väriä ja voi vilkkua. Kierroslukurengas-ulkoasussa numeron ympärillä oleva kaari täyttyy kierroksilla, ja LED-ulkoasu sytyttää vaihtovalot sen yläpuolelle. Koon ja värit päätät itse.",
+ "ov_speedo_n": "Nopeusmittari",
+ "ov_speedo_d": "Pelkkä nopeutesi: kolme digitaalista ja kolme analogista mittaristoa, täysin säädettävissä.",
+ "ov_speedo_h": "Digitaalinen: iso luku, luku palkilla, LCD-näyttö|Analoginen: klassinen mittari, moderni kaari, puolikas mittari|Aseta huippunopeus ja kohta, jossa punainen alue alkaa|Näytä tai piilota asteviivat, numerot ja digitaalinen lukema mittarin sisällä|km/h tai mph; näyttää halutessasi myös vaihteen|Koko, paksuus ja jokainen väri säädettävissä",
+ "ovg_speedo": "Mittari, joka näyttää vain nopeutesi. Valitse yksi kolmesta digitaalisesta ulkoasusta (iso luku, alle täyttyvä palkki, hehkuva LCD-näyttö) tai kolmesta analogisesta mittarista (klassinen mittari neulalla, moderni kaari, puolikas mittari). Aseta mittarin huippunopeus autollesi sopivaksi ja päätä, mistä punainen alue alkaa; neulan, kaaren, asteviivojen ja numeroiden värit ovat sinun päätettävissäsi. Lisää useita kopioita, niin voit käyttää eri ulkoasuja rinnakkain."
 }

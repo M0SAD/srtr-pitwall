@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatura interior / central / exterior|Piso restante e pressão a frio|O iRacing atualiza estes valores nas boxes",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Uma caixa que mostra, em grande, um valor à tua escolha.",
- "ov_dataframe_h": "Velocidade, mudança, combustível, delta, posição, volta, temperatura, repartição de travagem e mais|Constrói o teu próprio painel caixa a caixa",
+ "ov_dataframe_h": "Velocidade, mudança, combustível, delta, posição, volta, temperatura, repartição de travagem e mais|Constrói o teu próprio painel caixa a caixa|8 formas (reto, pílula, círculo, cantos cortados, inclinado, sublinhado, sem caixa), barra de destaque, posição do título e cores personalizadas",
  "ov_pitspeed_n": "Velocidade no Pit",
  "ov_pitspeed_d": "A tua velocidade face ao limite ao aproximares-te e ao percorreres o pit lane.",
  "ov_pitspeed_h": "Avisa quando o limitador está desligado|Fica vermelho quando ultrapassas o limite|Só visível quando é preciso",
@@ -1280,5 +1280,17 @@
  "pay_note": "Nome utilizado no pagamento, montante, data e hora, número da encomenda / transação, período escolhido…",
  "pay_send": "Enviar aviso",
  "pay_login": "Inicia sessão na tua conta para enviar um aviso.",
- "pay_sent": "O teu aviso foi enviado. Depois de o pagamento ser verificado, a tua subscrição PRO será ativada durante o dia."
+ "pay_sent": "O teu aviso foi enviado. Depois de o pagamento ser verificado, a tua subscrição PRO será ativada durante o dia.",
+ "ov_clock_n": "Relógio",
+ "ov_clock_d": "O relógio do teu PC com alarmes e lembretes que te avisam com som e piscar.",
+ "ov_clock_h": "Caixa digital, faixa fina, só texto e mostrador analógico|Três alarmes mais um lembrete repetido (p. ex., a cada 30 minutos)|Bip, bip duplo, sirene ou tom suave com volume ajustável|Caixa, moldura ou texto piscam na cor que escolheres|Pode aparecer só enquanto um alarme toca ou pouco antes|Contagem decrescente até ao próximo alarme, data, segundos, 12/24 horas",
+ "ovg_clock": "Não precisas de sair do sim para ver as horas: o relógio do teu PC fica no ecrã como overlay. A função principal são os alarmes: indica quando começa a tua corrida, quando fazer uma pausa ou quando terminar a transmissão, e o overlay pisca e toca quando chegar a hora. Também podes definir um lembrete repetido, como “beber água de 30 em 30 minutos”. Se preferires, o relógio fica escondido e só aparece enquanto um alarme toca ou uns minutos antes. Funciona até com o sim fechado.",
+ "ov_gear_n": "Mudança",
+ "ov_gear_d": "Só a mudança atual: grande, legível e a mudar de cor no ponto de passagem.",
+ "ov_gear_h": "Os designs de caixa e só dígito são grátis|Os designs de anel de rotações, LEDs de mudança, néon e hexágono são PRO|Muda de cor ou pisca no ponto de passagem|Marcha-atrás e ponto morto com cores próprias|Velocidade opcional por baixo|Tamanho e todas as cores ajustáveis",
+ "ovg_gear": "Um overlay simples que mostra só em que mudança estás. O dígito é grande o suficiente para ler de relance; quando o motor chega ao ponto de passagem, muda de cor e pode piscar. No design de anel de rotações, o arco à volta do dígito enche com as rotações, e o design LED acende luzes de mudança por cima. O tamanho e as cores és tu que defines.",
+ "ov_speedo_n": "Velocímetro",
+ "ov_speedo_d": "Só a tua velocidade: três designs digitais e três mostradores analógicos, totalmente ajustáveis.",
+ "ov_speedo_h": "Digital: número grande, número com barra, ecrã LCD|Analógico: mostrador clássico, arco moderno, meio mostrador|Define a velocidade máxima e onde começa a zona vermelha|Ativa ou desativa marcas, números e a leitura digital dentro do mostrador|km/h ou mph; opcionalmente mostra também a mudança|Tamanho, espessura e todas as cores ajustáveis",
+ "ovg_speedo": "Um indicador que mostra só a tua velocidade. Escolhe um dos três visuais digitais (número grande, uma barra que enche por baixo, um ecrã LCD luminoso) ou um dos três mostradores analógicos (mostrador clássico com ponteiro, arco moderno, meio mostrador). Ajusta a velocidade máxima do mostrador ao teu carro e decide onde começa a zona vermelha; as cores do ponteiro, do arco, das marcas e dos números ficam ao teu critério. Adiciona várias cópias para usar designs diferentes lado a lado."
 }

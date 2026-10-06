@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatur innen / Mitte / außen|Restprofil und Kaltdruck|iRacing aktualisiert diese Werte in der Box",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Ein Feld, das einen Wert deiner Wahl groß anzeigt.",
- "ov_dataframe_h": "Tempo, Gang, Sprit, Delta, Position, Runde, Temperatur, Bremsbalance und mehr|Bau dir dein eigenes Dash, Feld für Feld",
+ "ov_dataframe_h": "Tempo, Gang, Sprit, Delta, Position, Runde, Temperatur, Bremsbalance und mehr|Bau dir dein eigenes Dash, Feld für Feld|8 Formen (eckig, Pille, Kreis, abgeschnittene Ecken, schräg, unterstrichen, ohne Box), Akzentleiste, Titelposition und eigene Farben",
  "ov_pitspeed_n": "Pit-Tempo",
  "ov_pitspeed_d": "Dein Tempo im Vergleich zum Limit beim Anfahren und Durchfahren der Boxengasse.",
  "ov_pitspeed_h": "Warnt, wenn der Limiter aus ist|Wird rot, wenn du das Limit überschreitest|Nur sichtbar, wenn nötig",
@@ -1280,5 +1280,17 @@
  "pay_note": "Bei der Zahlung verwendeter Name, Betrag, Datum und Uhrzeit, Bestell- / Transaktionsnummer, gewählter Zeitraum…",
  "pay_send": "Benachrichtigung senden",
  "pay_login": "Melde dich zuerst in deinem Konto an, um eine Meldung zu senden.",
- "pay_sent": "Deine Benachrichtigung wurde gesendet. Nachdem deine Zahlung geprüft wurde, wird deine PRO-Mitgliedschaft noch am selben Tag zugewiesen."
+ "pay_sent": "Deine Benachrichtigung wurde gesendet. Nachdem deine Zahlung geprüft wurde, wird deine PRO-Mitgliedschaft noch am selben Tag zugewiesen.",
+ "ov_clock_n": "Uhr",
+ "ov_clock_d": "Deine PC-Uhr mit Alarmen und Erinnerungen, die dich mit Ton und Blinken warnen.",
+ "ov_clock_h": "Digitale Box, schlanker Streifen, nur Text und Analogzifferblatt|Drei Alarme plus eine wiederkehrende Erinnerung (z. B. alle 30 Minuten)|Piepton, Doppelpiepton, Sirene oder sanfter Ton mit einstellbarer Lautstärke|Box, Rahmen oder Text blinkt in einer Farbe deiner Wahl|Erscheint nur, während ein Alarm klingelt, oder kurz davor|Countdown zum nächsten Alarm, Datum, Sekunden, 12/24 Stunden",
+ "ovg_clock": "Du musst das Sim nicht verlassen, um die Uhrzeit zu checken: Deine PC-Uhr liegt als Overlay auf dem Bildschirm. Ihre eigentliche Aufgabe sind Alarme: Trag ein, wann dein Rennen startet, wann du eine Pause machen oder den Stream beenden willst, und das Overlay blinkt und gibt einen Ton aus, wenn es so weit ist. Du kannst auch eine wiederkehrende Erinnerung wie „Trink alle 30 Minuten Wasser“ einrichten. Wenn du magst, bleibt die Uhr versteckt und erscheint nur, während ein Alarm klingelt oder ein paar Minuten davor. Sie funktioniert auch bei geschlossenem Sim.",
+ "ov_gear_n": "Gang",
+ "ov_gear_d": "Nur der aktuelle Gang: groß, gut lesbar und mit Farbwechsel am Schaltpunkt.",
+ "ov_gear_h": "Box- und reine Ziffern-Designs sind kostenlos|Drehzahlring-, Schalt-LED-, Neon- und Sechseck-Designs sind PRO|Wechselt die Farbe oder blinkt am Schaltpunkt|Rückwärtsgang und Leerlauf in eigenen Farben|Optional die Geschwindigkeit darunter|Größe und jede Farbe anpassbar",
+ "ovg_gear": "Ein schlichtes Overlay, das nur zeigt, in welchem Gang du bist. Die Ziffer ist groß genug, um sie auf einen Blick zu lesen; erreicht der Motor den Schaltpunkt, wechselt sie die Farbe und kann blinken. Beim Drehzahlring-Design füllt sich der Bogen um die Ziffer mit der Drehzahl, und das LED-Design zeigt Schaltlichter darüber. Größe und Farben stellst du selbst ein.",
+ "ov_speedo_n": "Tacho",
+ "ov_speedo_d": "Nur deine Geschwindigkeit: drei digitale und drei analoge Zifferblatt-Designs, voll anpassbar.",
+ "ov_speedo_h": "Digital: große Zahl, Zahl mit Balken, LCD-Anzeige|Analog: klassisches Zifferblatt, moderner Bogen, Halbrund|Lege die Höchstgeschwindigkeit fest und wo der rote Bereich beginnt|Skalenstriche, Zahlen und die digitale Anzeige im Zifferblatt ein- und ausschaltbar|km/h oder mph; zeigt optional auch den Gang|Größe, Dicke und jede Farbe anpassbar",
+ "ovg_speedo": "Ein Messgerät, das nur deine Geschwindigkeit zeigt. Wähle einen von drei digitalen Looks (große Zahl, ein Balken, der sich darunter füllt, eine leuchtende LCD-Anzeige) oder drei analoge Zifferblätter (klassisch mit Zeiger, moderner Bogen, Halbrund). Stell die Höchstgeschwindigkeit des Zifferblatts passend zu deinem Auto ein und bestimme, wo der rote Bereich beginnt; Farben von Zeiger, Bogen, Skalenstrichen und Zahlen sind deine Sache. Füge mehrere Kopien hinzu, um verschiedene Designs nebeneinander zu nutzen."
 }

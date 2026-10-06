@@ -51,11 +51,30 @@ function newStream(name: string, id?: string): string {
   return nid;
 }
 
+// Son seçilen yayın düzeni: sayfadan çıkıp dönünce (ve uygulama yeniden açılınca) aynı düzen seçili gelir. Bu bilgisayara
+// özeldir (hesapla eşitlenmez: her seçimde buluta yazma olmasın).
+const LAST_STREAM_KEY = "pitwall.lastStream";
+let lastStream = "";
+try {
+  lastStream = localStorage.getItem(LAST_STREAM_KEY) || "";
+} catch {
+  /* depolama yok */
+}
+function rememberStream(id: string) {
+  lastStream = id;
+  try {
+    localStorage.setItem(LAST_STREAM_KEY, id);
+  } catch {
+    /* depolama yok */
+  }
+}
+
 export function StreamingPage() {
   const streams = () => sortProfiles(Object.values(settings().profiles).filter((p) => p.rules.mode === "stream"));
-  const [selId, setSelIdRaw] = createSignal<string>(streams()[0]?.id ?? "");
+  const [selId, setSelIdRaw] = createSignal<string>(settings().profiles[lastStream]?.rules.mode === "stream" ? lastStream : (streams()[0]?.id ?? ""));
   const setSelId = (id: string) => {
     setSelIdRaw(id);
+    rememberStream(id);
     setSel(null);
     setGhost(null);
   };

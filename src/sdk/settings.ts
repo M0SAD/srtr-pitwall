@@ -841,7 +841,7 @@ export interface GeneralSettings {
   /** Uygulama (panel) arka planı; istenirse overlay'lerde de */
   appBg: AppBg;
   /** Arkadaş listesi: rahatsız etme, mesaj kabulü, mesaj sesi */
-  social: { dnd: boolean; /** Çevrimdışı görün (c65; yok = kapalı) */ invisible?: boolean; acceptMessages: boolean; sound: boolean; /** Konuşma altyazımı ekibimle paylaş (Ekip Pitwall'ı; yok = açık) */ crewSpeech?: boolean; /** Ekip mesajlarını ekranın alt ortasında kutucukta göster (yok = açık) */ crewBox?: boolean };
+  social: { /** Arkadaş / mesaj bildirim sesi (yok = "soft") */ tone?: "soft" | "chime" | "pop" | "bell" | "drop" | "classic"; /** Bildirim sesi düzeyi 0..100 (yok = 50) */ volume?: number; dnd: boolean; /** Çevrimdışı görün (c65; yok = kapalı) */ invisible?: boolean; acceptMessages: boolean; sound: boolean; /** Konuşma altyazımı ekibimle paylaş (Ekip Pitwall'ı; yok = açık) */ crewSpeech?: boolean; /** Ekip mesajlarını ekranın alt ortasında kutucukta göster (yok = açık) */ crewBox?: boolean };
   /** Kullanılmıyor (v75): Demo modunda sesli mühendis / spotter / bipler her zaman susar; eski kayıtlar için duruyor */
   demoMute: boolean;
   /** Bir kerelik geçiş: demo sesi varsayılan olarak kapalı (kullanıcı sonra açarsa açık kalır) */
@@ -854,6 +854,8 @@ export interface GeneralSettings {
   offTrackV1?: boolean;
   /** Bir kerelik geçiş yapıldı: daha okunaklı varsayılan yazı (Inter, 14 px, orta kalınlık, gölge) */
   themeReadV1?: boolean;
+  /** Bir kerelik geçiş yapıldı: Kan Şekeri ve Kalp Atışı kopyalarında "Her zaman göster" açıldı */
+  healthAlwaysV1?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
   allowDuplicates: boolean;
   /** Ekran görüntüleri */
@@ -1539,6 +1541,12 @@ export function normalize(input: unknown): AppSettings {
     delete out.general.streamBadgePos;
   }
   if (Object.keys(out.profiles).length === 0) out.profiles = d.profiles;
+  // Bir kerelik geçiş (healthAlwaysV1): Kan Şekeri ve Kalp Atışı her düzende "Her zaman göster" olur (oyun kapalıyken,
+  // pist dışında, tekrarda; ekranda ve OBS'te). Kullanıcı sonradan kapatırsa kapalı kalır.
+  if (!s.general?.healthAlwaysV1) {
+    for (const pr of Object.values(out.profiles)) for (const i of Object.values(pr.overlays)) if (i.type === "glucose" || i.type === "heartrate") i.alwaysShow = true;
+  }
+  out.general.healthAlwaysV1 = true;
   ensureDefaultFlags(out);
   if (!out.profiles[out.activeProfile]) out.activeProfile = defaultProfileId(false, out) ?? Object.keys(out.profiles)[0];
   // Overlay varsayılanları. İlk geçişte (kayıtta yoksa) etkin düzendeki ayarlardan alınır: kullanıcının

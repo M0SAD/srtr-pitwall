@@ -5838,3 +5838,54 @@ button.ovpal-lock:hover {
   font-size: 12.5px;
   line-height: 1.45;
 }
+
+.ovpal-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 6px;
+  background: var(--bg-2);
+}
+
+.slp-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.cx-dprev {
+  position: relative;
+}
+.cx-demo {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+}
+
+.fme-sound {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 4px;
+  margin-top: 4px;
+  border-top: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  font-size: 12px;
+}
+.fme-sound-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fme-sound-row select,
+.fme-sound-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+.fme-sound-row small {
+  width: 38px;
+  text-align: right;
+  color: var(--muted);
+}

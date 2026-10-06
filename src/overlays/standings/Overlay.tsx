@@ -242,7 +242,7 @@ export default function Standings(props: OverlayProps) {
   const rowBg = () => (props.options.rowOpacity as number) ?? 100;
 
   return (
-    <div class="ov-panel st" classList={{ "st-clear": rowBg() <= 0, "st-framed": !!props.options.rowsFrame, "st-rowframed": !!props.options.rowFrame }} data-per={(props.options.drivers ?? "all") === "smart" ? Math.max(1, groups().filter((g) => g.mine).length) : Math.max(1, groups().length)} style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
+    <div class="ov-panel st" classList={{ "st-clear": rowBg() <= 0, "st-framed": !!props.options.rowsFrame, "st-rowframed": !!props.options.rowFrame }} data-per={(props.options.drivers ?? "all") === "smart" ? Math.max(1, groups().filter((g) => g.mine).length) : Math.max(1, groups().length)} style={{ "--st-fill": `${Math.min(100, Math.max(0, Number(props.options.rowFill) || 0))}%`, "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
       <Show when={props.options.showHeader && data()}>
         <div class="st-head" style={{ "font-size": `${barK(props.options.barSize)}em` }}>
           <Show

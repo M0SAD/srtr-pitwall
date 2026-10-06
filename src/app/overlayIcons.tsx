@@ -58,6 +58,9 @@ const MAP: Record<string, () => JSX.Element> = {
   goalbar: () => <I.ChartBarBig />,
   socials: () => <I.Share2 />,
   setupcover: () => <I.EyeOff />,
+  clock: () => <I.AlarmClock />,
+  gear: () => <I.Hash />,
+  speedo: () => <I.CircleGauge />,
   voice: () => <I.Volume2 />,
 };
 

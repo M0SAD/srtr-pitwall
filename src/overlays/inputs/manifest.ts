@@ -6,10 +6,10 @@ export default defineOverlay({
   description: "Gaz/fren/debriyaj izi, anlık pedal çubukları ve yüzdeleri, vites, hız, direksiyon; isteğe bağlı son / en iyi tur satırı. Dört tasarım.",
   category: "driving",
   topics: [{ name: "inputs", hz: 60 }],
-  size: { w: 420, h: 110 },
+  size: { w: 430, h: 110 },
   defaultPosition: { x: 750, y: 920 },
   defaultEnabled: true,
-  resize: { w: "width", wMin: true },
+  resize: { w: "width", h: "height", wMin: true },
   settings: [
     {
       key: "design",
@@ -60,7 +60,8 @@ export default defineOverlay({
       default: false,
       hint: "Pedal izini köşeli çizgiler yerine yumuşak eğrilerle çizer.",
     },
-    { key: "width", label: "Genişlik (en az)", type: "number", default: 200, min: 200, max: 1200, step: 10, unit: "px", hint: "Gösterge en az bu genişlikte olur; içerik sığmıyorsa kendiliğinden genişler. Düzenleme modunda pencerenin sağ / sol kenarından sürükleyerek de ayarlanır." },
+    { key: "width", label: "Genişlik", type: "number", default: 430, min: 260, max: 1200, step: 10, unit: "px", hint: "Göstergenin genişliği: iz grafiği boşluğu doldurur. Düzenleme ekranında sağ / sol kenarından sürükleyerek de ayarlanır." },
+    { key: "height", label: "Yükseklik", type: "number", default: 110, min: 76, max: 260, step: 2, unit: "px", hint: "Göstergenin yüksekliği: grafik ve çubuklar uzar, vites / hız / direksiyon yükseklikle birlikte büyür ya da küçülür. Düzenleme ekranında üst / alt kenarından sürükleyerek de ayarlanır." },
     { key: "showClutch", label: "Debriyaj", type: "boolean", default: false },
     { key: "showSteer", label: "Direksiyon", type: "boolean", default: true },
     {

@@ -386,3 +386,11 @@
 .st.st-framed.st-rowframed .st-rows {
   padding: 1px 0;
 }
+
+/* İsteğe bağlı: yalnızca sürücü satırlarının arka planı (panel şeffafken okunaklılık) */
+.st .st-row {
+  background-color: color-mix(in srgb, var(--ov-bg-solid, #0c0e13) var(--st-fill, 0%), transparent);
+}
+.st .st-row.me {
+  background: linear-gradient(var(--ov-bg-me), var(--ov-bg-me)), color-mix(in srgb, var(--ov-bg-solid, #0c0e13) var(--st-fill, 0%), transparent);
+}

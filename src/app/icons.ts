@@ -84,3 +84,5 @@ export { default as SkipForward } from "lucide-solid/icons/skip-forward";
 export { default as Link2 } from "lucide-solid/icons/link-2";
 export { default as Unlink } from "lucide-solid/icons/unlink";
 export { default as BatteryCharging } from "lucide-solid/icons/battery-charging";
+export { default as AlarmClock } from "lucide-solid/icons/alarm-clock";
+export { default as Hash } from "lucide-solid/icons/hash";

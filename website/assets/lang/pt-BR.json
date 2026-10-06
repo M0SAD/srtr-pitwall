@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatura interna / central / externa|Banda restante e pressão a frio|O iRacing atualiza esses valores no pit",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Uma caixa que mostra em destaque um único valor à sua escolha.",
- "ov_dataframe_h": "Velocidade, marcha, combustível, delta, posição, volta, temperatura, balanço de freio e mais|Monte o seu próprio painel caixa por caixa",
+ "ov_dataframe_h": "Velocidade, marcha, combustível, delta, posição, volta, temperatura, balanço de freio e mais|Monte o seu próprio painel caixa por caixa|8 formatos (reto, pílula, círculo, cantos cortados, inclinado, sublinhado, sem caixa), barra de destaque, posição do título e cores personalizadas",
  "ov_pitspeed_n": "Velocidade no Pit",
  "ov_pitspeed_d": "A sua velocidade em relação ao limite ao se aproximar do pit lane e dentro dele.",
  "ov_pitspeed_h": "Avisa se o limitador estiver desligado|Fica vermelho ao passar do limite|Só aparece quando necessário",
@@ -1280,5 +1280,17 @@
  "pay_note": "Nome usado no pagamento, valor, data e hora, número do pedido / transação, período escolhido…",
  "pay_send": "Enviar aviso",
  "pay_login": "Entre na sua conta primeiro para enviar um aviso.",
- "pay_sent": "Seu aviso foi enviado. Depois que o pagamento for conferido, sua assinatura PRO será ativada ao longo do dia."
+ "pay_sent": "Seu aviso foi enviado. Depois que o pagamento for conferido, sua assinatura PRO será ativada ao longo do dia.",
+ "ov_clock_n": "Relógio",
+ "ov_clock_d": "O relógio do seu PC com alarmes e lembretes que avisam você com som e piscadas.",
+ "ov_clock_h": "Caixa digital, faixa fina, só texto e mostrador analógico|Três alarmes mais um lembrete repetido (ex.: a cada 30 minutos)|Bipe, bipe duplo, sirene ou tom suave com volume ajustável|Caixa, moldura ou texto piscam na cor que você escolher|Pode aparecer só enquanto um alarme toca ou pouco antes|Contagem regressiva até o próximo alarme, data, segundos, 12/24 horas",
+ "ovg_clock": "Não precisa sair do sim para ver as horas: o relógio do seu PC fica na tela como overlay. A função principal são os alarmes: informe quando sua corrida começa, quando fazer uma pausa ou quando encerrar a live, e o overlay pisca e toca quando chegar a hora. Você também pode definir um lembrete repetido, como “beber água a cada 30 minutos”. Se preferir, o relógio fica escondido e só aparece enquanto um alarme toca ou alguns minutos antes. Funciona até com o sim fechado.",
+ "ov_gear_n": "Marcha",
+ "ov_gear_d": "Só a marcha atual: grande, legível e mudando de cor no ponto de troca.",
+ "ov_gear_h": "Designs de caixa e só dígito são grátis|Designs de anel de giros, LEDs de troca, neon e hexágono são PRO|Muda de cor ou pisca no ponto de troca|Ré e ponto morto com cores próprias|Velocidade opcional embaixo|Tamanho e todas as cores ajustáveis",
+ "ovg_gear": "Um overlay simples que mostra só em qual marcha você está. O dígito é grande o bastante para ler num relance; quando o motor chega ao ponto de troca, ele muda de cor e pode piscar. No design de anel de giros, o arco em volta do dígito se enche com a rotação, e o design LED acende luzes de troca acima. Tamanho e cores ficam por sua conta.",
+ "ov_speedo_n": "Velocímetro",
+ "ov_speedo_d": "Só a sua velocidade: três designs digitais e três mostradores analógicos, totalmente ajustáveis.",
+ "ov_speedo_h": "Digital: número grande, número com barra, display LCD|Analógico: mostrador clássico, arco moderno, meio mostrador|Defina a velocidade máxima e onde começa a zona vermelha|Ative ou desative marcas, números e a leitura digital dentro do mostrador|km/h ou mph; opcionalmente mostra a marcha também|Tamanho, espessura e todas as cores ajustáveis",
+ "ovg_speedo": "Um medidor que mostra só a sua velocidade. Escolha um dos três visuais digitais (número grande, uma barra que enche embaixo, um display LCD brilhante) ou um dos três mostradores analógicos (mostrador clássico com ponteiro, arco moderno, meio mostrador). Ajuste a velocidade máxima do mostrador para o seu carro e decida onde começa a zona vermelha; as cores do ponteiro, do arco, das marcas e dos números ficam a seu critério. Adicione várias cópias para usar designs diferentes lado a lado."
 }

@@ -63,6 +63,7 @@ import {
 } from "./CommunityKit";
 import { activeProfile, settings, updateSettings, type Profile } from "@/sdk/settings";
 import { inTauri } from "@/sdk/platform";
+import { importEditBackdrop, profileBackdropSlot } from "../components/Shots";
 import { go } from "../ui";
 
 const RESOLUTIONS = ["1920x1080", "2560x1440", "3440x1440", "3840x2160", "2560x1080", "5120x1440", "5760x1080"];
@@ -574,6 +575,12 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
   const [avg, setAvg] = createSignal({ v: Number(l().rating_avg), n: l().rating_count });
   const [reporting, setReporting] = createSignal(false);
   const [withTheme, setWithTheme] = createSignal(true);
+  /** Demo: önizleme canlı akar, overlay'ler yarıştaymış gibi davranır */
+  const [demo, setDemo] = createSignal(false);
+  const okBg = () => {
+    const b = data()?.backdrop;
+    return typeof b === "string" && /^data:image\/(jpeg|webp|png);base64,/.test(b) ? b : undefined;
+  };
 
   // Önizleme sabit görüntü: bir anlık örnek veri, sonra akış durur
   useSnapshot(
@@ -584,6 +591,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       return [...types].flatMap((t) => manifestById(t)?.topics ?? []);
     },
     () => data(),
+    demo,
   );
   const overlays = createMemo(() =>
     Object.entries(data()?.profile.overlays ?? {})
@@ -618,6 +626,10 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       const mode = props.kind === "stream" ? "stream" : src.rules?.mode && src.rules.mode !== "stream" ? src.rules.mode : "driving";
       const id = newLayout(mode, name, src);
       if (props.kind === "stream") updateSettings((x) => (x.profiles[id].canvas = src.canvas ?? { w: l().screen_w, h: l().screen_h }));
+      // Paylaşanın yerel arka plan işareti alınmaz: görsel paylaşımdaysa aşağıda bu düzene yazılır
+      updateSettings((x) => void delete x.profiles[id].backdrop);
+      const slot = profileBackdropSlot(id);
+      if (okBg() && slot && inTauri) await importEditBackdrop(await (await fetch(okBg()!)).blob(), slot).catch(() => {});
       if (withTheme() && d.theme) updateSettings((x) => (x.theme = { ...d.theme!, scale: props.kind === "stream" ? x.theme.scale : d.theme!.scale, opacity: x.theme.opacity }));
       markDownloaded(l().id);
       setMsg(
@@ -664,7 +676,10 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
 
         <div class="cx-dprev">
           <Show when={data()} fallback={<LayoutPreview boxes={l().boxes} w={l().screen_w} h={l().screen_h} scale={l().ui_scale} labels />}>
-            <SharedLayoutPreview profile={data()!.profile} theme={data()!.theme} w={l().screen_w / (l().ui_scale || 1)} h={l().screen_h / (l().ui_scale || 1)} stream={props.kind === "stream"} />
+            <SharedLayoutPreview profile={data()!.profile} theme={data()!.theme} w={l().screen_w / (l().ui_scale || 1)} h={l().screen_h / (l().ui_scale || 1)} stream={props.kind === "stream"} backdrop={okBg()} live={demo()} />
+            <button class="btn small cx-demo" classList={{ primary: demo() }} title="Düzeni örnek yarış verisiyle canlı oynatır: overlay'ler gerçek yarıştaki gibi görünür, gizlenir ve değişir" onClick={() => setDemo(!demo())}>
+              <I.FlaskConical /> {demo() ? "Demoyu durdur" : "Demo"}
+            </button>
           </Show>
         </div>
 
@@ -853,6 +868,25 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
     setDesc(x.description ?? "");
   });
   const boxes = () => (prof() ? layoutBoxes(prof()!) : []);
+  // Arka plan görseli: düzenin kendi görseli, yoksa sayfanın ortak görseli. Paylaşıma küçültülmüş JPEG olarak girer.
+  const [withBg, setWithBg] = createSignal(true);
+  const bgSlot = () => (prof()?.backdrop?.own ? profileBackdropSlot(pid()) : settings().general.editBackdrops[props.kind === "stream" ? "stream" : "layout"].has ? (props.kind === "stream" ? "stream" : "layout") : undefined);
+  const hasBg = () => inTauri && !!bgSlot();
+  const backdropData = async (): Promise<string | undefined> => {
+    try {
+      const buf = await invoke<ArrayBuffer>("edit_backdrop_read", { slot: bgSlot() });
+      const bmp = await createImageBitmap(new Blob([buf]));
+      const k = Math.min(1, 1280 / bmp.width);
+      const c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * k);
+      c.height = Math.round(bmp.height * k);
+      c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+      const url = c.toDataURL("image/jpeg", 0.72);
+      return url.length < 600_000 ? url : c.toDataURL("image/jpeg", 0.5);
+    } catch {
+      return undefined;
+    }
+  };
   // Paylaşmak varsayılan herkese açık; yönetici PRO yapabilir (PRO özellikleri)
   const shareLocked = () => proLocked(props.kind === "stream" ? "community.share.streams" : "community.share.layouts", false);
 
@@ -896,6 +930,7 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
         data: {
           profile: p,
           theme: withTheme() ? settings().theme : undefined,
+          backdrop: withBg() && hasBg() ? await backdropData() : undefined,
           boxes: boxes(),
           scale: screen().scale,
         },
@@ -949,6 +984,12 @@ export function ShareDialog(props: { kind: LayoutKind; profileId?: string; onClo
               <input type="checkbox" checked={withTheme()} onChange={(e) => setWithTheme(e.currentTarget.checked)} />
               <span>Renklerimi ve yazı tipimi de ekle</span>
             </label>
+            <Show when={hasBg()}>
+              <label class="check" title="Düzenleme tuvalindeki arka plan görselin küçültülerek paylaşıma eklenir; düzene bakanlar ve indirenler aynı arka planı görür">
+                <input type="checkbox" checked={withBg()} onChange={(e) => setWithBg(e.currentTarget.checked)} />
+                <span>Arka plan görselimi de ekle</span>
+              </label>
+            </Show>
             <Show when={prev()}>
               <div class="row">
                 <div>

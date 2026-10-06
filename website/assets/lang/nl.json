@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatuur binnen / midden / buiten|Resterend profiel en koude bandenspanning|iRacing werkt deze waarden bij in de pits",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Een vak dat één waarde naar keuze groot toont.",
- "ov_dataframe_h": "Snelheid, versnelling, brandstof, delta, positie, ronde, temperatuur, rembalans en meer|Bouw je eigen dash, vak voor vak",
+ "ov_dataframe_h": "Snelheid, versnelling, brandstof, delta, positie, ronde, temperatuur, rembalans en meer|Bouw je eigen dash, vak voor vak|8 vormen (vierkant, pil, cirkel, afgesneden hoeken, scheef, onderstreept, zonder vak), accentbalk, titelpositie en eigen kleuren",
  "ov_pitspeed_n": "Pitsnelheid",
  "ov_pitspeed_d": "Je snelheid ten opzichte van de limiet bij het naderen van en rijden door de pitlane.",
  "ov_pitspeed_h": "Waarschuwt als de limiter uit staat|Wordt rood als je de limiet overschrijdt|Alleen zichtbaar als het nodig is",
@@ -1280,5 +1280,17 @@
  "pay_note": "Naam gebruikt bij de betaling, bedrag, datum en tijd, bestel- / transactienummer, gekozen periode…",
  "pay_send": "Melding versturen",
  "pay_login": "Log eerst in op je account om een melding te sturen.",
- "pay_sent": "Je melding is verzonden. Zodra je betaling is gecontroleerd, wordt je PRO-lidmaatschap binnen de dag geactiveerd."
+ "pay_sent": "Je melding is verzonden. Zodra je betaling is gecontroleerd, wordt je PRO-lidmaatschap binnen de dag geactiveerd.",
+ "ov_clock_n": "Klok",
+ "ov_clock_d": "De klok van je pc met alarmen en herinneringen die je waarschuwen met geluid en geknipper.",
+ "ov_clock_h": "Digitale box, slanke strook, alleen tekst en analoge wijzerplaat|Drie alarmen plus een terugkerende herinnering (bijv. elke 30 minuten)|Piep, dubbele piep, sirene of zachte toon met instelbaar volume|Box, kader of tekst knippert in een kleur naar keuze|Kan alleen verschijnen terwijl een alarm afgaat of kort ervoor|Aftelling naar het volgende alarm, datum, seconden, 12/24 uur",
+ "ovg_clock": "Je hoeft de sim niet te verlaten om de tijd te checken: de klok van je pc staat als overlay op je scherm. Het echte werk zijn de alarmen: vul in wanneer je race begint, wanneer je pauze neemt of wanneer je de stream beëindigt, en de overlay knippert en geeft geluid als het zover is. Je kunt ook een terugkerende herinnering instellen, zoals “drink elke 30 minuten water”. Als je wilt, blijft de klok verborgen en verschijnt hij alleen terwijl een alarm afgaat of een paar minuten ervoor. Hij werkt ook als de sim dicht is.",
+ "ov_gear_n": "Versnelling",
+ "ov_gear_d": "Alleen de huidige versnelling: groot, goed leesbaar en van kleur veranderend bij het schakelpunt.",
+ "ov_gear_h": "Box- en alleen-cijfer-ontwerpen zijn gratis|Toerenring-, schakel-LED-, neon- en zeshoekontwerpen zijn PRO|Verandert van kleur of knippert bij het schakelpunt|Achteruit en neutraal in eigen kleuren|Optioneel snelheid eronder|Formaat en elke kleur aanpasbaar",
+ "ovg_gear": "Een simpele overlay die alleen laat zien in welke versnelling je zit. Het cijfer is groot genoeg om in één oogopslag te lezen; als de motor het schakelpunt bereikt, verandert het van kleur en kan het knipperen. Bij het toerenringontwerp vult de boog rond het cijfer zich met de toeren, en het LED-ontwerp laat schakellichten erboven oplichten. Formaat en kleuren stel je zelf in.",
+ "ov_speedo_n": "Snelheidsmeter",
+ "ov_speedo_d": "Alleen je snelheid: drie digitale en drie analoge wijzerplaten, volledig aanpasbaar.",
+ "ov_speedo_h": "Digitaal: groot getal, getal met balk, LCD-display|Analoog: klassieke wijzerplaat, moderne boog, halve wijzerplaat|Stel de topsnelheid in en waar de rode zone begint|Schakel streepjes, cijfers en de digitale uitlezing in de wijzerplaat aan of uit|km/h of mph; toont optioneel ook de versnelling|Formaat, dikte en elke kleur aanpasbaar",
+ "ovg_speedo": "Een meter die alleen je snelheid toont. Kies uit drie digitale looks (groot getal, een balk die eronder vol loopt, een gloeiend LCD-display) of drie analoge wijzerplaten (klassieke wijzerplaat met naald, moderne boog, halve wijzerplaat). Stel de topsnelheid van de wijzerplaat af op je auto en bepaal waar de rode zone begint; de kleuren van naald, boog, streepjes en cijfers zijn aan jou. Voeg meerdere kopieën toe om verschillende ontwerpen naast elkaar te gebruiken."
 }

@@ -22,7 +22,7 @@ function TraceDesign(props: { m: Model }) {
   return (
     <div class="ov-panel inx inx-tr" classList={{ shift: m.shiftOn() }}>
       <Show when={m.o.showTrace}>
-        <Trace m={m} w={300} h={84} />
+        <Trace m={m} w={300} h={84} fit />
       </Show>
       <Bars m={m} h={m.showPct() ? 68 : 84} />
       <Show when={m.o.showGear || m.o.showSteer}>
@@ -50,7 +50,7 @@ function SimDesign(props: { m: Model }) {
   return (
     <div class="ov-panel inx inx-sim" classList={{ shift: m.shiftOn() }}>
       <Show when={m.o.showTrace}>
-        <Trace m={m} w={200} h={72} grid="sim" class="inx-simtrace" />
+        <Trace m={m} w={200} h={72} grid="sim" class="inx-simtrace" fit />
       </Show>
       <Bars m={m} h={m.showPct() ? 58 : 72} />
       <Show when={m.o.showGear || m.o.showSteer}>
@@ -88,7 +88,7 @@ function WideDesign(props: { m: Model }) {
   return (
     <div class="ov-panel inx inx-wd" classList={{ shift: m.shiftOn() }}>
       <div class="inx-wdbox">
-        <Trace m={m} w={420} h={78} grid="sim" />
+        <Trace m={m} w={420} h={78} grid="sim" fit />
         <div class="inx-wdleg">
           <span style={{ color: m.thrFill() }} classList={{ glow: m.tcFrame() }}>
             {t("Gaz")}

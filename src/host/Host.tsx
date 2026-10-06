@@ -360,13 +360,18 @@ export function Host() {
     // Canlı sohbet overlay'leri "Sürekli göster": oyun kapalıyken, tekrar izlerken ve pist dışında da görünür
     // (kopyanın kendi "garajda / pistte gizle" seçenekleri yine geçerli)
     const always = ALWAYS_TYPES.includes(inst.type) && inst.options?.always !== false;
+    // Görünürlüğüne kendisi karar veren overlay (Setup Örtüsü): aşağıdaki gizleme kuralları uygulanmaz. iRacing'de garaj
+    // ekranı açıkken sim "tekrar oynatılıyor" bildirdiği için "tekrar izlerken gizle" kuralı örtüyü de gizliyordu.
+    if (manifests.find((x) => x.id === inst.type)?.ownVisibility) return (!!st?.connected && !st.preview) || inst.options?.when === "always";
     if (!st?.connected || st.preview) return always || !!inst.alwaysShow;
     // "Pitteyken gizle": garajda ya da pit yolunda / kutusunda. "Pistte sürerken gizle": araçta ve pitte değilken.
     const inPit = st.inGarage || !!st.onPit;
     const driving = st.onTrack && !st.replay && !inPit;
     if (always) return !(inst.hideInGarage && inPit) && !(inst.hideOnTrack && driving);
     // Tekrar (replay) izlenirken overlay'ler gizlenir (ayar; canlı ana yetişmiş izleme hariç)
-    if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch) return false;
+    // "Her zaman göster" işaretli kopyalar (ör. Kan Şekeri, Kalp Atışı) tekrarda da görünür: iRacing garaj ekranı ve
+    // araç dışı görünüm de "tekrar" sayıldığından bu kopyalar orada kayboluyordu.
+    if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch && !inst.alwaysShow) return false;
     // "Pistte değilken gizle" (varsayılan açık): overlay'ler sürüş başlayınca görünür. "Oyun kapalıyken de göster" işaretli
     // kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar) garajda da görünür kalır.
     // "İzlerken / garaj" türündeki düzenler tam da pist dışı içindir: onlar gizlenmez.

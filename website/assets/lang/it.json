@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatura interna / centrale / esterna|Battistrada residuo e pressione a freddo|iRacing aggiorna questi valori ai box",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Un riquadro che mostra in grande un solo valore a tua scelta.",
- "ov_dataframe_h": "Velocità, marcia, carburante, delta, posizione, giro, temperatura, ripartizione di frenata e altro|Costruisci il tuo cruscotto riquadro per riquadro",
+ "ov_dataframe_h": "Velocità, marcia, carburante, delta, posizione, giro, temperatura, ripartizione di frenata e altro|Costruisci il tuo cruscotto riquadro per riquadro|8 forme (angoli retti, pillola, cerchio, angoli tagliati, inclinata, sottolineata, senza riquadro), barra d'accento, posizione del titolo e colori personalizzati",
  "ov_pitspeed_n": "Velocità pit",
  "ov_pitspeed_d": "La tua velocità rispetto al limite quando ti avvicini alla pit lane e la percorri.",
  "ov_pitspeed_h": "Avvisa quando il limitatore è disattivato|Diventa rosso quando superi il limite|Visibile solo quando serve",
@@ -1280,5 +1280,17 @@
  "pay_note": "Nome usato per il pagamento, importo, data e ora, numero d'ordine / transazione, periodo scelto…",
  "pay_send": "Invia notifica",
  "pay_login": "Accedi prima al tuo account per inviare una notifica.",
- "pay_sent": "La tua notifica è stata inviata. Dopo la verifica del pagamento, il tuo abbonamento PRO verrà assegnato entro la giornata."
+ "pay_sent": "La tua notifica è stata inviata. Dopo la verifica del pagamento, il tuo abbonamento PRO verrà assegnato entro la giornata.",
+ "ov_clock_n": "Orologio",
+ "ov_clock_d": "L'orologio del tuo PC con sveglie e promemoria che ti avvisano con suono e lampeggio.",
+ "ov_clock_h": "Riquadro digitale, striscia sottile, solo testo e quadrante analogico|Tre sveglie più un promemoria ripetuto (ad es. ogni 30 minuti)|Bip, doppio bip, sirena o tono soft con volume regolabile|Riquadro, cornice o testo lampeggiano nel colore che scegli|Può comparire solo mentre suona una sveglia o poco prima|Conto alla rovescia fino alla prossima sveglia, data, secondi, 12/24 ore",
+ "ovg_clock": "Non serve uscire dal sim per controllare l'ora: l'orologio del tuo PC sta sullo schermo come overlay. Il suo vero compito sono le sveglie: inserisci quando inizia la tua gara, quando fare una pausa o quando chiudere lo stream, e l'overlay lampeggia e suona quando arriva il momento. Puoi anche impostare un promemoria ripetuto come «bevi acqua ogni 30 minuti». Se preferisci, l'orologio resta nascosto e compare solo mentre suona una sveglia o qualche minuto prima. Funziona anche a sim chiuso.",
+ "ov_gear_n": "Marcia",
+ "ov_gear_d": "Solo la marcia attuale: grande, leggibile e con cambio di colore al punto di cambiata.",
+ "ov_gear_h": "I design a riquadro e solo cifra sono gratuiti|I design con anello dei giri, LED di cambiata, neon ed esagono sono PRO|Cambia colore o lampeggia al punto di cambiata|Retromarcia e folle con colori dedicati|Velocità opzionale sotto|Dimensioni e ogni colore regolabili",
+ "ovg_gear": "Un overlay semplice che mostra solo in che marcia sei. La cifra è abbastanza grande da leggerla al volo; quando il motore raggiunge il punto di cambiata cambia colore e può lampeggiare. Nel design con anello dei giri l'arco attorno alla cifra si riempie con i giri, e il design LED accende le luci di cambiata sopra. Dimensioni e colori li imposti tu.",
+ "ov_speedo_n": "Tachimetro",
+ "ov_speedo_d": "Solo la tua velocità: tre design digitali e tre quadranti analogici, totalmente regolabili.",
+ "ov_speedo_h": "Digitale: numero grande, numero con barra, display LCD|Analogico: quadrante classico, arco moderno, mezzo quadrante|Imposta la velocità massima e dove inizia la zona rossa|Attiva o disattiva tacche, numeri e lettura digitale dentro il quadrante|km/h o mph; opzionalmente mostra anche la marcia|Dimensioni, spessore e ogni colore regolabili",
+ "ovg_speedo": "Un indicatore che mostra solo la tua velocità. Scegli uno dei tre look digitali (numero grande, una barra che si riempie sotto, un display LCD luminoso) o uno dei tre quadranti analogici (quadrante classico con lancetta, arco moderno, mezzo quadrante). Imposta la velocità massima del quadrante in base alla tua auto e decidi dove inizia la zona rossa; i colori di lancetta, arco, tacche e numeri spettano a te. Aggiungi più copie per usare design diversi affiancati."
 }

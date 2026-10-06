@@ -1,0 +1,219 @@
+.sp {
+  --sp-size: 220px;
+  display: inline-block;
+  color: var(--ov-text);
+  font-size: calc(var(--sp-size) / 220 * 16px);
+}
+
+/* Dijital */
+.sp-box {
+  position: relative;
+  width: var(--sp-size);
+  box-sizing: border-box;
+  padding: 0.5em 0.9em 0.6em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+.sp-val {
+  position: relative;
+  line-height: 1;
+}
+.sp-val b {
+  position: relative;
+  font-size: 4.6em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.sp-box small {
+  font-size: 0.95em;
+  font-weight: var(--ov-weight-strong, 700);
+  letter-spacing: 0.1em;
+  color: var(--sp-tick);
+  text-transform: none;
+}
+.sp-gear {
+  position: absolute;
+  top: 0.35em;
+  right: 0.55em;
+  font-style: normal;
+  font-size: 1.3em;
+  font-weight: 800;
+  color: var(--ov-accent);
+}
+.sp-inred .sp-val b {
+  color: var(--sp-red);
+}
+.sp-meter {
+  position: relative;
+  width: 100%;
+  margin-top: 0.5em;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--ov-text) 12%, transparent);
+  overflow: hidden;
+}
+.sp-meter > div {
+  height: 100%;
+  background: var(--ov-accent);
+  transition: width 0.08s linear;
+}
+.sp-inred .sp-meter > div {
+  background: var(--sp-red);
+}
+.sp-meter > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--sp-red);
+}
+
+/* LCD: tek aralıklı, ışımalı rakamlar ve soluk "888" zemini */
+.sp-lcd .sp-box {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ov-bg) 92%, #000), var(--ov-bg));
+  align-items: flex-end;
+}
+.sp-lcd .sp-val {
+  font-family: "Consolas", "DejaVu Sans Mono", "Courier New", monospace;
+  align-self: flex-end;
+}
+.sp-lcd .sp-val b {
+  color: var(--ov-accent);
+  text-shadow: 0 0 0.12em var(--ov-accent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.sp-lcd .sp-ghost {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 4.6em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--ov-accent) 10%, transparent);
+}
+.sp-lcd.sp-inred .sp-val b {
+  color: var(--sp-red);
+  text-shadow: 0 0 0.12em var(--sp-red);
+}
+
+/* Analog */
+.sp-dial {
+  position: relative;
+  width: var(--sp-size);
+  height: var(--sp-size);
+}
+.sp-dial.half {
+  height: calc(var(--sp-size) * 0.56);
+}
+.sp-dial svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.sp-face {
+  fill: var(--ov-bg);
+  stroke: color-mix(in srgb, var(--ov-text) 22%, transparent);
+  stroke-width: 1.5;
+}
+.sp-dial path:not(.sp-face) {
+  fill: none;
+}
+.sp-rim {
+  stroke: color-mix(in srgb, var(--ov-text) 30%, transparent);
+}
+.sp-trk {
+  stroke: color-mix(in srgb, var(--ov-text) 12%, transparent);
+  stroke-linecap: round;
+}
+.sp-redtrk {
+  stroke: var(--sp-red);
+  opacity: 0.75;
+}
+.sp-fill {
+  stroke: var(--ov-accent);
+  stroke-linecap: round;
+}
+.sp-inred .sp-fill {
+  stroke: var(--sp-red);
+}
+.sp-tk {
+  stroke: var(--sp-tick);
+  stroke-width: 1.2;
+}
+.sp-tk.big {
+  stroke: var(--ov-text);
+  stroke-width: 2.4;
+}
+.sp-tk.red {
+  stroke: var(--sp-red);
+}
+.sp-nm {
+  fill: var(--sp-tick);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.sp-needle {
+  fill: var(--ov-accent);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+}
+.sp-inred .sp-needle {
+  fill: var(--sp-red);
+}
+.sp-hub {
+  fill: var(--ov-text);
+  stroke: var(--ov-bg);
+  stroke-width: 2;
+}
+.sp-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 17%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.sp-center b {
+  font-size: 1.9em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.sp-center small {
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sp-tick);
+  margin-top: 0.15em;
+}
+.sp-center em {
+  font-style: normal;
+  font-size: 1.1em;
+  font-weight: 800;
+  color: var(--ov-accent);
+  margin-top: 0.2em;
+}
+.sp-arc .sp-center {
+  bottom: auto;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.sp-arc .sp-center b {
+  font-size: 3.4em;
+}
+.sp-half .sp-center {
+  bottom: 22%;
+}
+.sp-half .sp-center b {
+  font-size: 1.6em;
+}
+.sp-half .sp-center em {
+  display: none;
+}
+.sp-inred .sp-center b {
+  color: var(--sp-red);
+}

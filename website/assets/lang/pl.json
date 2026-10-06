@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatura wewnątrz / środek / zewnątrz|Pozostały bieżnik i ciśnienie na zimno|iRacing aktualizuje te wartości w boksie",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Pole pokazujące dużą czcionką jedną wybraną wartość.",
- "ov_dataframe_h": "Prędkość, bieg, paliwo, delta, pozycja, okrążenie, temperatura, balans hamulców i więcej|Zbuduj własny wyświetlacz pole po polu",
+ "ov_dataframe_h": "Prędkość, bieg, paliwo, delta, pozycja, okrążenie, temperatura, balans hamulców i więcej|Zbuduj własny wyświetlacz pole po polu|8 kształtów (kanciasty, pigułka, koło, ścięte rogi, skośny, podkreślony, bez ramki), pasek akcentu, położenie tytułu i własne kolory",
  "ov_pitspeed_n": "Prędkość w pit lane",
  "ov_pitspeed_d": "Twoja prędkość względem limitu przy dojeździe do pit lane i w pit lane.",
  "ov_pitspeed_h": "Ostrzega, gdy limiter jest wyłączony|Świeci na czerwono po przekroczeniu limitu|Widoczny tylko wtedy, gdy trzeba",
@@ -1280,5 +1280,17 @@
  "pay_note": "Nazwa użyta przy płatności, kwota, data i godzina, numer zamówienia / transakcji, wybrany okres…",
  "pay_send": "Wyślij powiadomienie",
  "pay_login": "Aby wysłać zgłoszenie, najpierw zaloguj się na konto.",
- "pay_sent": "Powiadomienie zostało wysłane. Po sprawdzeniu płatności Twoje członkostwo PRO zostanie aktywowane w ciągu dnia."
+ "pay_sent": "Powiadomienie zostało wysłane. Po sprawdzeniu płatności Twoje członkostwo PRO zostanie aktywowane w ciągu dnia.",
+ "ov_clock_n": "Zegar",
+ "ov_clock_d": "Zegar Twojego PC z alarmami i przypomnieniami, które ostrzegają dźwiękiem i miganiem.",
+ "ov_clock_h": "Cyfrowe pole, smukły pasek, sam tekst i tarcza analogowa|Trzy alarmy plus powtarzające się przypomnienie (np. co 30 minut)|Pisk, podwójny pisk, syrena lub łagodny dźwięk z regulowaną głośnością|Pole, ramka lub tekst migają w wybranym przez Ciebie kolorze|Może pojawiać się tylko podczas dzwonienia alarmu lub tuż przed nim|Odliczanie do następnego alarmu, data, sekundy, format 12/24 h",
+ "ovg_clock": "Nie musisz wychodzić z symulatora, żeby sprawdzić godzinę: zegar Twojego PC jest na ekranie jako overlay. Jego prawdziwe zadanie to alarmy: wpisz, kiedy zaczyna się wyścig, kiedy zrobić przerwę albo kiedy zakończyć stream, a overlay zamiga i zadźwięczy, gdy przyjdzie pora. Możesz też ustawić powtarzające się przypomnienie, np. „pij wodę co 30 minut”. Jeśli wolisz, zegar pozostaje ukryty i pojawia się tylko podczas dzwonienia alarmu lub kilka minut wcześniej. Działa nawet przy zamkniętym symulatorze.",
+ "ov_gear_n": "Bieg",
+ "ov_gear_d": "Tylko aktualny bieg: duży, czytelny i zmieniający kolor w punkcie zmiany biegu.",
+ "ov_gear_h": "Projekty z polem i tylko z cyfrą są darmowe|Projekty z pierścieniem obrotów, diodami LED zmiany biegu, neonem i sześciokątem są PRO|Zmienia kolor lub miga w punkcie zmiany biegu|Wsteczny i luz we własnych kolorach|Opcjonalnie prędkość pod spodem|Rozmiar i każdy kolor do ustawienia",
+ "ovg_gear": "Prosty overlay, który pokazuje tylko to, na którym biegu jedziesz. Cyfra jest na tyle duża, że odczytasz ją jednym spojrzeniem; gdy silnik osiągnie punkt zmiany biegu, zmienia kolor i może migać. W projekcie z pierścieniem obrotów łuk wokół cyfry wypełnia się wraz z obrotami, a projekt LED zapala nad nią diody zmiany biegu. Rozmiar i kolory ustawiasz sam.",
+ "ov_speedo_n": "Prędkościomierz",
+ "ov_speedo_d": "Tylko Twoja prędkość: trzy projekty cyfrowe i trzy analogowe, w pełni regulowane.",
+ "ov_speedo_h": "Cyfrowy: duża liczba, liczba z paskiem, wyświetlacz LCD|Analogowy: klasyczna tarcza, nowoczesny łuk, półtarcza|Ustaw prędkość maksymalną i miejsce, gdzie zaczyna się czerwone pole|Włączaj i wyłączaj kreski, liczby i cyfrowy odczyt wewnątrz tarczy|km/h lub mph; opcjonalnie pokazuje też bieg|Rozmiar, grubość i każdy kolor do ustawienia",
+ "ovg_speedo": "Wskaźnik, który pokazuje tylko Twoją prędkość. Wybierz jeden z trzech wyglądów cyfrowych (duża liczba, pasek wypełniający się pod spodem, świecący wyświetlacz LCD) albo jedną z trzech tarcz analogowych (klasyczna tarcza ze wskazówką, nowoczesny łuk, półtarcza). Ustaw prędkość maksymalną tarczy odpowiednio do swojego auta i zdecyduj, gdzie zaczyna się czerwone pole; kolory wskazówki, łuku, kresek i liczb zależą od Ciebie. Dodaj kilka kopii, aby używać różnych projektów obok siebie."
 }

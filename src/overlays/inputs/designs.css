@@ -630,3 +630,72 @@
 .inp-stack > .inx-rg {
   align-self: center;
 }
+
+/* === Pedallar & Girdi: gerçek genişlik + yükseklik (.inp-fit) ===
+   Gösterge ayardaki genişlik / yükseklikte çizilir: iz grafiği kutusu kalan alanı doldurur (60 px'e kadar daralır),
+   çubuklar yükseklik boyunca uzar, vites / hız / direksiyon sütunu yükseklikle ölçeklenir (--inp-k).
+   Pedal Seti overlay'i bu sınıfı kullanmaz ("en az genişlik" davranışı onda sürer). */
+.inp-stack.inp-fit {
+  width: var(--inp-w, 430px);
+  min-width: min-content;
+  max-width: none;
+}
+.inp-fit > .inp,
+.inp-fit > .inx {
+  width: auto;
+  height: var(--inp-h, 110px);
+  min-height: 0;
+  box-sizing: border-box;
+}
+.inp-tracebox,
+.inx-tracebox {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 60px;
+  min-height: 24px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.inp-tracebox > canvas,
+.inx-tracebox > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box;
+}
+/* Çubuklar yükseklik boyunca uzar */
+.inp-fit .inp-col .inp-bar {
+  min-height: 20px;
+}
+.inp-fit .inx-bars {
+  align-items: stretch;
+}
+.inp-fit .inx-vbar {
+  flex: 1 1 0;
+  height: auto !important;
+  min-height: 20px;
+}
+/* Sim tarzı: içerik alta yaslanmaz, kutuyu doldurur */
+.inp-fit > .inx-sim {
+  align-items: stretch;
+}
+.inp-fit .inx-tracebox:has(> .inx-simtrace) {
+  border-radius: 0;
+}
+/* Geniş grafik: grafik kutusu yüksekliği doldurur, direksiyon şeridi altta sabit kalır */
+.inp-fit .inx-wdbox {
+  flex: 1 1 0;
+  min-height: 30px;
+}
+/* Yan sütun (vites / hız / direksiyon) yükseklikle ölçeklenir */
+.inp-fit .inp-gear,
+.inp-fit .inx-side,
+.inp-fit .inx-simdial,
+.inp-fit .inx-wdgear {
+  font-size: calc(var(--inp-k, 1) * 1em);
+}
+.inp-fit .inx-simwheel {
+  width: calc(52px * var(--inp-k, 1));
+  height: calc(52px * var(--inp-k, 1));
+}

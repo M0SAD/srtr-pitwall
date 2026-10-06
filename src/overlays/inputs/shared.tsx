@@ -209,34 +209,53 @@ export type Model = ReturnType<typeof createModel>;
 
 export const n100 = (v: number) => Math.round(v * 100);
 
-export function Trace(props: { m: Model; w: number; h: number; grid?: "lines" | "sim"; class?: string }) {
+export function Trace(props: { m: Model; w: number; h: number; grid?: "lines" | "sim"; class?: string; fit?: boolean }) {
   let canvas: HTMLCanvasElement | undefined;
-  // "Genişlik" ayarıyla iz grafiği uzar: tuval çözünürlüğü yerleşim genişliğini izler (en az props.w)
+  let box: HTMLDivElement | undefined;
+  // "Genişlik" ayarıyla iz grafiği uzar: tuval çözünürlüğü yerleşim genişliğini izler (en az props.w).
+  // fit: tuval bir kutunun içini tümüyle doldurur; genişlik ve yükseklik kutudan gelir (küçülebilir de).
   let cw = props.w;
-  const p = () => props.m.paint(canvas, cw, props.h, props.grid ?? "lines");
+  let ch = props.h;
+  const p = () => props.m.paint(canvas, cw, ch, props.grid ?? "lines");
   props.m.setPainter(p);
   // Tampon doluyken (ör. önizleme donmuşken tasarım değişirse) ilk kareyi hemen çiz
   onMount(() => {
     p();
     const ro = new ResizeObserver(() => {
       if (!canvas) return;
-      const w = Math.max(props.w, Math.round(canvas.clientWidth));
-      cw = w;
-      if (canvas.width !== w * 2) canvas.width = w * 2;
+      if (props.fit && box) {
+        const w = Math.max(40, Math.round(box.clientWidth));
+        const h = Math.max(24, Math.round(box.clientHeight));
+        cw = w;
+        ch = h;
+        if (canvas.width !== w * 2) canvas.width = w * 2;
+        if (canvas.height !== h * 2) canvas.height = h * 2;
+      } else {
+        const w = Math.max(props.w, Math.round(canvas.clientWidth));
+        cw = w;
+        if (canvas.width !== w * 2) canvas.width = w * 2;
+      }
       p();
     });
-    ro.observe(canvas!);
+    ro.observe(props.fit && box ? box : canvas!);
     onCleanup(() => ro.disconnect());
   });
   onCleanup(() => props.m.clearPainter(p));
-  return (
+  const cv = (
     <canvas
       ref={canvas}
       width={props.w * 2}
       height={props.h * 2}
       class={`inx-trace ${props.class ?? ""}`}
-      style={{ width: `${props.w}px`, height: `${props.h}px` }}
+      style={props.fit ? undefined : { width: `${props.w}px`, height: `${props.h}px` }}
     />
+  );
+  return props.fit ? (
+    <div class="inx-tracebox" ref={box}>
+      {cv}
+    </div>
+  ) : (
+    cv
   );
 }
 

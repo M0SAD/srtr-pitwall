@@ -17,6 +17,8 @@ pub enum Cmd {
     Say { parts: Vec<PathBuf>, spotter: bool, volume: f32, sub: u64 },
     /// Kısa bip
     Beep { freq: f32, ms: u64, volume: f32, pan: f32 },
+    /// Yumuşak nota: yavaş girer ve sönerek biter (bildirim sesleri); art arda gönderilenler sırayla çalar
+    Note { freq: f32, ms: u64, volume: f32 },
     /// Sürekli ton (yanında araç): None durdurur. pan -1 sol, 1 sağ
     Alongside(Option<(f32, f32, f32)>),
     /// Çıkış cihazı (ad; boş: Windows varsayılanı). Aynı cihaz yeniden gönderilirse hiçbir şey olmaz.
@@ -178,6 +180,14 @@ fn run(rx: &Receiver<Cmd>) {
                     .take_duration(Duration::from_millis(ms))
                     .fade_in(Duration::from_millis(8));
                 fx.append(ChannelVolume::new(src, pan_volumes(pan, volume * 0.5)));
+            }
+            Cmd::Note { freq, ms, volume } => {
+                let d = Duration::from_millis(ms);
+                let src = SineWave::new(freq)
+                    .take_duration(d)
+                    .fade_in(Duration::from_millis(18))
+                    .linear_gain_ramp(d, 1.0, 0.0, true);
+                fx.append(ChannelVolume::new(src, pan_volumes(0.0, volume * 0.5)));
             }
             Cmd::Alongside(state) => {
                 let key = state.map(|(pan, freq, vol)| ((pan * 10.0) as i32, freq as i32, (vol * 100.0) as i32));

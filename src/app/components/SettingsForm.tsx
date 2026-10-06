@@ -424,7 +424,7 @@ export function SettingsForm(props: {
                     <div class="f2-cap">{sf().label}</div>
                     <select
                       class="f2-select"
-                      value={(props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key]}
+                      value={f.logoPermOpts && !paidLive() ? (sf().default as string) : ((props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key])}
                       onChange={(e) => {
                         const v = e.currentTarget.value;
                         const o = selectOptions(sf()).find((x) => x.value === v);
@@ -441,8 +441,8 @@ export function SettingsForm(props: {
                         {(o) => (
                           <option
                             value={o.value}
-                            selected={((props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key]) === o.value}
-                            disabled={!props.onPreview && optionLocked(props.overlayId, f.key, o)}
+                            selected={(f.logoPermOpts && !paidLive() ? sf().default : ((props.previewValues?.[f.key] as string | undefined) ?? props.values[f.key])) === o.value}
+                            disabled={(!props.onPreview && optionLocked(props.overlayId, f.key, o)) || (!!f.logoPermOpts && !paidLive() && o.value !== sf().default)}
                           >
                             {o.label}
                             {optionRequiresPro(props.overlayId, f.key, o) ? " · PRO" : ""}

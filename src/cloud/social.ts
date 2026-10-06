@@ -519,15 +519,31 @@ export function chatFront(): string {
   }
 }
 
-/** Kısa bildirim sesi (dosya gerekmez) */
-export function messageBeep(volume = 0.25) {
+/** Seçilebilen bildirim sesleri: [frekans Hz, süre ms] notaları (Rust tarafındaki tabloyla aynı) */
+export const MESSAGE_TONES: { id: "soft" | "chime" | "pop" | "bell" | "drop" | "classic"; label: string; notes: [number, number][] }[] = [
+  { id: "soft", label: "Yumuşak", notes: [[523.25, 170], [659.25, 300]] },
+  { id: "chime", label: "Çan dizisi", notes: [[659.25, 150], [783.99, 150], [987.77, 360]] },
+  { id: "pop", label: "Tık", notes: [[392, 90]] },
+  { id: "bell", label: "Zil", notes: [[783.99, 620]] },
+  { id: "drop", label: "Damla", notes: [[587.33, 140], [440, 300]] },
+  { id: "classic", label: "Klasik (keskin bip)", notes: [] },
+];
+
+/** Kısa bildirim sesi (dosya gerekmez). `force`: ayarlardaki "Dinle" düğmesi (Rahatsız Etme'de de çalar) */
+export function messageBeep(volume = 0.25, force = false) {
   // Rahatsız Etme: hiçbir bildirim sesi çalmaz (tek kapı; ayrı "Ses" düğmesi kaldırıldı, ses onun dışında hep açık)
-  if (settings().general.social.dnd) return;
+  const soc = settings().general.social;
+  if (soc.dnd && !force) return;
+  const tone = MESSAGE_TONES.find((x) => x.id === soc.tone) ?? MESSAGE_TONES[0];
+  // Kullanıcının ses düzeyi: 50 = eski düzey
+  const lvl = Math.max(0, Math.min(100, typeof soc.volume === "number" ? soc.volume : 50)) / 50;
+  if (lvl <= 0) return;
+  volume = Math.min(0.42, volume * lvl);
   // Programda ses Rust tarafında çalınır: overlay penceresi hiç tıklanmadığı için tarayıcının otomatik
   // oynatma kuralı oradaki AudioContext'i askıda bırakır ve bildirim sesi hiç duyulmaz.
   if (inTauri) {
     // 0.25 → 0.6: önceki seviye (0.5) oyun / yayın sesi arasında zor duyuluyordu
-    invoke("message_beep", { volume: Math.min(1, volume * 2.4) }).catch(() => {});
+    invoke("message_beep", { volume: Math.min(1, volume * 2.4), kind: tone.id }).catch(() => {});
     return;
   }
   try {
@@ -535,15 +551,32 @@ export function messageBeep(volume = 0.25) {
     const g = ac.createGain();
     g.gain.value = volume;
     g.connect(ac.destination);
-    [880, 1320].forEach((f, i) => {
+    if (!tone.notes.length) {
+      [880, 1320].forEach((f, i) => {
+        const o = ac.createOscillator();
+        o.type = "sine";
+        o.frequency.value = f;
+        o.connect(g);
+        o.start(ac.currentTime + i * 0.12);
+        o.stop(ac.currentTime + i * 0.12 + 0.1);
+      });
+    }
+    let at = ac.currentTime;
+    for (const [f, ms] of tone.notes) {
       const o = ac.createOscillator();
+      const ng = ac.createGain();
       o.type = "sine";
       o.frequency.value = f;
-      o.connect(g);
-      o.start(ac.currentTime + i * 0.12);
-      o.stop(ac.currentTime + i * 0.12 + 0.1);
-    });
-    setTimeout(() => ac.close(), 600);
+      // Yumuşak giriş, sönerek bitiş
+      ng.gain.setValueAtTime(0, at);
+      ng.gain.linearRampToValueAtTime(1, at + 0.018);
+      ng.gain.linearRampToValueAtTime(0, at + ms / 1000);
+      o.connect(ng).connect(g);
+      o.start(at);
+      o.stop(at + ms / 1000);
+      at += ms / 1000;
+    }
+    setTimeout(() => ac.close(), 1500);
   } catch {
     /* ses yok */
   }

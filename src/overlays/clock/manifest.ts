@@ -1,0 +1,93 @@
+import { defineOverlay } from "@/sdk/overlay";
+
+const G_ALARM = "Alarmlar";
+const G_WARN = "Uyarı";
+const G_COL = "Renkler";
+
+export default defineOverlay({
+  id: "clock",
+  name: "Saat",
+  description: "Bilgisayarının saatini gösterir. Alarm ve tekrarlayan hatırlatma kurulabilir: vakti gelince sesle ve yanıp sönerek uyarır. İstersen yalnızca alarm çalarken görünür.",
+  category: "info",
+  topics: [],
+  size: { w: 220, h: 100 },
+  defaultPosition: { x: 1660, y: 20 },
+  defaultEnabled: false,
+  defaultAlwaysShow: true,
+  multiInstance: true,
+  settings: [
+    {
+      key: "design",
+      label: "Tasarım",
+      type: "select",
+      default: "digital",
+      options: [
+        { value: "digital", label: "Dijital kutu" },
+        { value: "pill", label: "İnce şerit" },
+        { value: "minimal", label: "Yalnızca yazı" },
+        { value: "analog", label: "Analog kadran" },
+      ],
+    },
+    {
+      key: "show",
+      label: "Ne zaman görünsün",
+      type: "select",
+      default: "always",
+      options: [
+        { value: "always", label: "Her zaman" },
+        { value: "alarm", label: "Yalnızca alarm çalarken" },
+        { value: "soon", label: "Alarma az kala ve çalarken" },
+      ],
+    },
+    { key: "soonMin", label: "Alarma kaç dakika kala", type: "number", default: 5, min: 1, max: 60, step: 1, unit: "dk", showIf: { key: "show", is: ["soon"] } },
+    { key: "h12", label: "12 saatlik gösterim", type: "boolean", default: false },
+    { key: "seconds", label: "Saniyeyi göster", type: "boolean", default: false },
+    { key: "date", label: "Tarihi göster", type: "boolean", default: false },
+    { key: "showNext", label: "Sıradaki alarmı göster", type: "boolean", default: true, hint: "Saatin altında sıradaki alarmın saatini ve kalan süreyi yazar." },
+    { key: "size", label: "Boyut", type: "number", default: 100, min: 50, max: 300, step: 5, unit: "%" },
+    { key: "alarm1", label: "Alarm 1", type: "text", default: "", placeholder: "21:30", group: G_ALARM, hint: "Saati SS:DD biçiminde yaz (ör. 21:30). Boş bırakılan alarm kapalıdır. Alarmlar her gün aynı saatte çalar." },
+    { key: "label1", label: "Alarm 1 notu", type: "text", default: "", placeholder: "Yarış başlıyor", group: G_ALARM },
+    { key: "alarm2", label: "Alarm 2", type: "text", default: "", placeholder: "22:00", group: G_ALARM },
+    { key: "label2", label: "Alarm 2 notu", type: "text", default: "", placeholder: "Mola", group: G_ALARM },
+    { key: "alarm3", label: "Alarm 3", type: "text", default: "", placeholder: "23:15", group: G_ALARM },
+    { key: "label3", label: "Alarm 3 notu", type: "text", default: "", placeholder: "Yayını bitir", group: G_ALARM },
+    { key: "repeatMin", label: "Tekrarlayan hatırlatma", type: "number", default: 0, min: 0, max: 240, step: 5, unit: "dk", group: G_ALARM, hint: "Her şu kadar dakikada bir uyarır (ör. 30: her saat başı ve buçukta). 0 = kapalı." },
+    { key: "repeatLabel", label: "Hatırlatma notu", type: "text", default: "", placeholder: "Su iç", group: G_ALARM },
+    { key: "ringSec", label: "Uyarı süresi", type: "number", default: 30, min: 5, max: 300, step: 5, unit: "sn", group: G_WARN },
+    {
+      key: "sound",
+      label: "Ses",
+      type: "select",
+      default: "beep",
+      group: G_WARN,
+      options: [
+        { value: "beep", label: "Bip" },
+        { value: "double", label: "Çift bip" },
+        { value: "siren", label: "Siren (iki tonlu)" },
+        { value: "soft", label: "Yumuşak (seyrek, pes)" },
+        { value: "none", label: "Sessiz" },
+      ],
+      hint: "Demo modunda uygulama sessizdir; ses gerçek kullanımda duyulur.",
+    },
+    { key: "volume", label: "Ses düzeyi", type: "number", default: 60, min: 0, max: 100, step: 5, unit: "%", group: G_WARN },
+    {
+      key: "flash",
+      label: "Yanıp sönme",
+      type: "select",
+      default: "box",
+      group: G_WARN,
+      options: [
+        { value: "box", label: "Tüm kutu" },
+        { value: "border", label: "Yalnızca çerçeve" },
+        { value: "text", label: "Yalnızca yazı" },
+        { value: "none", label: "Yanıp sönmesin" },
+      ],
+    },
+    { key: "flashColor", label: "Uyarı rengi", type: "color", default: "#ff4d4d", group: G_WARN },
+    { key: "customColors", label: "Özel renkler", type: "boolean", default: false, group: G_COL, hint: "Kapalıyken temanın (ya da bu overlay'in Görünüm ayarının) renkleri kullanılır." },
+    { key: "bg", label: "Arka plan rengi", type: "color", default: "#0c0e13", group: G_COL, showIf: { key: "customColors", is: [true] } },
+    { key: "bgAlpha", label: "Arka plan opaklığı", type: "number", default: 86, min: 0, max: 100, step: 5, unit: "%", group: G_COL, showIf: { key: "customColors", is: [true] } },
+    { key: "textColor", label: "Yazı rengi", type: "color", default: "#f2f4f8", group: G_COL, showIf: { key: "customColors", is: [true] } },
+    { key: "accentColor", label: "Vurgu rengi", type: "color", default: "#ff8a2a", group: G_COL, showIf: { key: "customColors", is: [true] } },
+  ],
+});

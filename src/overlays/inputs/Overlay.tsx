@@ -9,7 +9,11 @@ import { LapLines } from "./shared";
 import "./style.css";
 
 const W0 = 240;
-const H = 86;
+const H0 = 86;
+const DEF_W = 430;
+const DEF_H = 110;
+/** Tasarımların doğal (ölçeksiz) yüksekliği: yan sütunun ölçeği buna göre hesaplanır */
+const NATURAL_H: Record<Design, number> = { trace: 100, sim: 88, wide: 110 };
 const ABS_DEF = "#ffd400";
 const TC_DEF = "#00c8ff";
 
@@ -19,8 +23,21 @@ export default function Inputs(props: OverlayProps) {
     const d = props.options.design;
     return isDesign(d) && !overlayValueLocked("inputs", "design", d) ? d : "default";
   };
+  // Genişlik ve yükseklik gerçek boyuttur (eskiden "en az genişlik"ti): iz grafiği ve çubuklar alanı doldurur.
+  // 200 ve altı eski "en az" kaydıdır; o zamanki doğal genişlik (430) kullanılır.
+  const width = () => {
+    const v = Number(props.options.width);
+    return v > 200 ? Math.min(1200, Math.max(260, v)) : DEF_W;
+  };
+  const height = () => Math.min(260, Math.max(76, Number(props.options.height) || DEF_H));
+  /** Vites / hız / direksiyon sütunu yükseklikle birlikte ölçeklenir (tasarımın doğal yüksekliğine göre) */
+  const sideK = () => {
+    const d = design();
+    const h0 = d === "default" ? (props.options.showGear && props.options.showSteer ? 114 : 102) : NATURAL_H[d];
+    return Math.round(Math.min(1.6, Math.max(0.6, height() / h0)) * 1000) / 1000;
+  };
   return (
-    <div class="inp-stack" style={{ "--ov-w": `${Math.max(0, Number(props.options.width) || 0)}px` }}>
+    <div class="inp-stack inp-fit" style={{ "--inp-w": `${width()}px`, "--inp-h": `${height()}px`, "--inp-k": String(sideK()) }}>
       <Show when={design() !== "default"} fallback={<DefaultDesign {...props} />}>
         <DesignView {...props} design={design() as Design} />
       </Show>
@@ -59,19 +76,24 @@ function DefaultDesign(props: OverlayProps) {
     }
   };
 
-  // İz grafiği "Genişlik" ayarıyla uzar: tuval çözünürlüğü yerleşim genişliğini izler
+  // İz grafiği genişlik / yükseklik ayarıyla büyür ve küçülür: tuval çözünürlüğü kutusunun yerleşim boyutunu izler
+  let box: HTMLDivElement | undefined;
   let W = W0;
+  let H = H0;
   onMount(() => {
     const ro = new ResizeObserver(() => {
-      if (!canvas) return;
-      const w = Math.max(W0, Math.round(canvas.clientWidth));
+      if (!canvas || !box) return;
+      const w = Math.max(40, Math.round(box.clientWidth));
+      const h = Math.max(24, Math.round(box.clientHeight));
       W = w;
+      H = h;
       if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
       draw();
     });
     createEffect(() => {
       ro.disconnect();
-      if (props.options.showTrace && canvas) ro.observe(canvas);
+      if (props.options.showTrace && box) ro.observe(box);
     });
     onCleanup(() => ro.disconnect());
   });
@@ -203,7 +225,9 @@ function DefaultDesign(props: OverlayProps) {
   return (
     <div class="ov-panel inp" classList={{ shift: shiftOn() }}>
       <Show when={props.options.showTrace}>
-        <canvas ref={canvas} width={W0} height={H} class="inp-trace" />
+        <div class="inp-tracebox" ref={box}>
+          <canvas ref={canvas} width={W0} height={H0} class="inp-trace" />
+        </div>
       </Show>
       <div class="inp-bars">
         <Show when={props.options.showClutch}>

@@ -478,3 +478,11 @@
 .rel.rel-rowframed .rel-row.rel-blank {
   border-bottom-color: transparent;
 }
+
+/* İsteğe bağlı: yalnızca sürücü satırlarının arka planı (panel şeffafken okunaklılık) */
+.rel .rel-row:not(.rel-blank) {
+  background-color: color-mix(in srgb, var(--ov-bg-solid, #0c0e13) var(--rel-fill, 0%), transparent);
+}
+.rel .rel-row.me {
+  background: linear-gradient(var(--ov-bg-me), var(--ov-bg-me)), color-mix(in srgb, var(--ov-bg-solid, #0c0e13) var(--rel-fill, 0%), transparent);
+}

@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatura interior / central / exterior|Dibujo restante y presión en frío|iRacing actualiza estos valores en el pit",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "Una casilla que muestra en grande un único valor que tú eliges.",
- "ov_dataframe_h": "Velocidad, marcha, combustible, delta, posición, vuelta, temperatura, reparto de frenada y más|Monta tu propio panel casilla a casilla",
+ "ov_dataframe_h": "Velocidad, marcha, combustible, delta, posición, vuelta, temperatura, reparto de frenada y más|Monta tu propio panel casilla a casilla|8 formas (esquinas rectas, píldora, círculo, esquinas cortadas, inclinada, subrayada, sin caja), barra de acento, posición del título y colores personalizados",
  "ov_pitspeed_n": "Velocidad en Pit",
  "ov_pitspeed_d": "Tu velocidad respecto al límite al acercarte al pit lane y dentro de él.",
  "ov_pitspeed_h": "Avisa si el limitador está apagado|Se pone en rojo al superar el límite|Solo se ve cuando hace falta",
@@ -1280,5 +1280,17 @@
  "pay_note": "Nombre usado en el pago, importe, fecha y hora, número de pedido / transacción, periodo elegido…",
  "pay_send": "Enviar notificación",
  "pay_login": "Inicia sesión en tu cuenta para enviar una notificación.",
- "pay_sent": "Tu notificación se ha enviado. Cuando se compruebe tu pago, tu membresía PRO se asignará en el mismo día."
+ "pay_sent": "Tu notificación se ha enviado. Cuando se compruebe tu pago, tu membresía PRO se asignará en el mismo día.",
+ "ov_clock_n": "Reloj",
+ "ov_clock_d": "El reloj de tu PC con alarmas y recordatorios que te avisan con sonido y parpadeo.",
+ "ov_clock_h": "Caja digital, tira fina, solo texto y esfera analógica|Tres alarmas más un recordatorio repetitivo (p. ej., cada 30 minutos)|Pitido, doble pitido, sirena o tono suave con volumen ajustable|La caja, el marco o el texto parpadean en el color que elijas|Puede aparecer solo mientras suena una alarma o poco antes|Cuenta atrás hasta la próxima alarma, fecha, segundos, 12/24 horas",
+ "ovg_clock": "No hace falta salir del sim para mirar la hora: el reloj de tu PC aparece en pantalla como overlay. Su verdadera función son las alarmas: indica cuándo empieza tu carrera, cuándo hacer una pausa o cuándo terminar el directo, y el overlay parpadea y suena cuando llegue el momento. También puedes poner un recordatorio repetitivo como «bebe agua cada 30 minutos». Si prefieres, el reloj se queda oculto y solo aparece mientras suena una alarma o unos minutos antes. Funciona incluso con el sim cerrado.",
+ "ov_gear_n": "Marcha",
+ "ov_gear_d": "Solo la marcha actual: grande, legible y con cambio de color en el punto de cambio.",
+ "ov_gear_h": "Los diseños de caja y solo dígito son gratis|Los diseños de anillo de revoluciones, LED de cambio, neón y hexágono son PRO|Cambia de color o parpadea en el punto de cambio|Marcha atrás y punto muerto con sus propios colores|Velocidad opcional debajo|Tamaño y todos los colores ajustables",
+ "ovg_gear": "Un overlay sencillo que muestra solo en qué marcha vas. El dígito es lo bastante grande para leerlo de un vistazo; cuando el motor llega al punto de cambio, cambia de color y puede parpadear. En el diseño de anillo de revoluciones, el arco alrededor del dígito se llena con las revoluciones, y el diseño LED enciende luces de cambio encima. El tamaño y los colores los eliges tú.",
+ "ov_speedo_n": "Velocímetro",
+ "ov_speedo_d": "Solo tu velocidad: tres diseños digitales y tres de esfera analógica, totalmente ajustables.",
+ "ov_speedo_h": "Digital: número grande, número con barra, pantalla LCD|Analógico: esfera clásica, arco moderno, media esfera|Define la velocidad máxima y dónde empieza la zona roja|Activa o desactiva marcas, números y la lectura digital dentro de la esfera|km/h o mph; opcionalmente muestra también la marcha|Tamaño, grosor y todos los colores ajustables",
+ "ovg_speedo": "Un indicador que muestra solo tu velocidad. Elige uno de tres estilos digitales (número grande, una barra que se llena debajo, una pantalla LCD luminosa) o tres esferas analógicas (esfera clásica con aguja, arco moderno, media esfera). Ajusta la velocidad máxima de la esfera a tu coche y decide dónde empieza la zona roja; los colores de la aguja, el arco, las marcas y los números dependen de ti. Añade varias copias para usar diseños distintos a la vez."
 }

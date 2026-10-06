@@ -76,10 +76,24 @@ fn system_sound() {}
 /// tarafında çalınmaz: hiç tıklanmamış (ya da gizli) pencerede otomatik oynatma kuralı sesi engeller.
 /// Ses aygıtı açılamadıysa Windows'un bildirim sesi çalınır.
 #[tauri::command]
-pub fn message_beep(app: AppHandle, volume: f32) {
-    let v = if volume.is_finite() { volume.clamp(0.05, 1.0) } else { 0.6 };
-    crate::audio::send(crate::audio::Cmd::Beep { freq: 880.0, ms: 100, volume: v, pan: 0.0 });
-    crate::audio::send(crate::audio::Cmd::Beep { freq: 1320.0, ms: 130, volume: v, pan: 0.0 });
+pub fn message_beep(app: AppHandle, volume: f32, kind: Option<String>) {
+    let v = if volume.is_finite() { volume.clamp(0.02, 1.0) } else { 0.6 };
+    // Yumuşak sesler: daha pes, sönerek biten notalar. "classic" eski keskin çift bip.
+    let notes: &[(f32, u64)] = match kind.as_deref().unwrap_or("classic") {
+        "soft" => &[(523.25, 170), (659.25, 300)],
+        "chime" => &[(659.25, 150), (783.99, 150), (987.77, 360)],
+        "pop" => &[(392.0, 90)],
+        "bell" => &[(783.99, 620)],
+        "drop" => &[(587.33, 140), (440.0, 300)],
+        _ => &[],
+    };
+    if notes.is_empty() {
+        crate::audio::send(crate::audio::Cmd::Beep { freq: 880.0, ms: 100, volume: v, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep { freq: 1320.0, ms: 130, volume: v, pan: 0.0 });
+    }
+    for (freq, ms) in notes {
+        crate::audio::send(crate::audio::Cmd::Note { freq: *freq, ms: *ms, volume: v });
+    }
     std::thread::spawn(move || {
         // Ses iş parçacığı ilk komutta açılır: aygıt durumunu öğrenmesi için kısa bekleme
         std::thread::sleep(std::time::Duration::from_millis(400));

@@ -33,6 +33,7 @@ import {
   initialOf,
   markRead,
   messageBeep,
+  MESSAGE_TONES,
   chatOpenKey,
   msgPreview,
   myFriends,
@@ -1598,6 +1599,38 @@ function MyStatusBar(props: { onEdit?: () => void }) {
                 </button>
               )}
             </For>
+            <div class="fme-sound" onClick={(e) => e.stopPropagation()}>
+              <b>Bildirim sesi</b>
+              <div class="fme-sound-row">
+                <select
+                  class="f2-select small"
+                  value={soc().tone ?? "soft"}
+                  onChange={(e) => {
+                    const v = e.currentTarget.value as (typeof MESSAGE_TONES)[number]["id"];
+                    updateSettings((d) => void (d.general.social.tone = v));
+                    messageBeep(0.25, true);
+                  }}
+                >
+                  <For each={MESSAGE_TONES}>{(x) => <option value={x.id}>{t(x.label)}</option>}</For>
+                </select>
+                <button class="btn ghost small" title="Dinle" onClick={() => messageBeep(0.25, true)}>
+                  <I.Volume2 />
+                </button>
+              </div>
+              <div class="fme-sound-row">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={soc().volume ?? 50}
+                  title="Ses düzeyi"
+                  onInput={(e) => updateSettings((d) => void (d.general.social.volume = Number(e.currentTarget.value)))}
+                  onChange={() => messageBeep(0.25, true)}
+                />
+                <small data-no-i18n>%{soc().volume ?? 50}</small>
+              </div>
+            </div>
             <Show when={props.onEdit}>
               <button role="menuitem" class="fme-edit" onClick={() => (setOpen(false), props.onEdit?.())}>
                 <I.Pencil />

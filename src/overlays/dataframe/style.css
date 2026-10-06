@@ -1,16 +1,26 @@
 .df {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(8px * var(--ov-pad-k, 1));
+  position: relative;
+  padding: calc(6px * var(--ov-pad-k, 1) * var(--df-pad, 1)) calc(10px * var(--ov-pad-k, 1) * var(--df-pad, 1)) calc(8px * var(--ov-pad-k, 1) * var(--df-pad, 1));
   box-sizing: border-box;
 }
 
+/* İçerik: başlık + değer (şekil dönüşümleri kutuya, içerik düz kalır) */
+.df-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
 .df-title {
-  font-size: 0.75em;
+  font-size: calc(0.75em * var(--df-ts, 1));
   color: var(--ov-dim);
   text-transform: var(--ov-label-tt, uppercase);
   letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .df-value {
@@ -27,4 +37,115 @@
 .df-value span {
   font-size: 0.85em;
   color: var(--ov-dim);
+}
+
+/* --- Başlığın yeri ve hizalama --- */
+.df-t-bottom .df-in {
+  flex-direction: column-reverse;
+}
+.df-t-left .df-in {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.df-a-left .df-in {
+  align-items: flex-start;
+}
+.df-a-right .df-in {
+  align-items: flex-end;
+}
+.df-t-left.df-a-left .df-in {
+  align-items: baseline;
+  justify-content: flex-start;
+}
+.df-t-left.df-a-right .df-in {
+  align-items: baseline;
+  justify-content: flex-end;
+}
+
+/* --- Şekiller --- */
+.df-square {
+  border-radius: 0;
+}
+.df-pill {
+  border-radius: 999px;
+  padding-left: calc(18px * var(--ov-pad-k, 1) * var(--df-pad, 1));
+  padding-right: calc(18px * var(--ov-pad-k, 1) * var(--df-pad, 1));
+}
+.df-circle {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  padding: 8%;
+}
+.df-circle .df-in {
+  align-items: center;
+  max-width: 100%;
+}
+.df-cut {
+  --df-cut: 12px;
+  border-radius: 0;
+  clip-path: polygon(var(--df-cut) 0, 100% 0, 100% calc(100% - var(--df-cut)), calc(100% - var(--df-cut)) 100%, 0 100%, 0 var(--df-cut));
+}
+/* Eğik: kutu yatık, içerik düz */
+.df-slant {
+  border-radius: 3px;
+  transform: skewX(-12deg);
+  transform-origin: 50% 50%;
+}
+.df-slant .df-in {
+  transform: skewX(12deg);
+}
+.df-underline,
+.df-plain {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.df-underline {
+  border-bottom: 3px solid var(--df-accent, var(--ov-accent));
+}
+
+/* --- Vurgu şeridi --- */
+.df[class*="df-bar-"]::before {
+  content: "";
+  position: absolute;
+  background: var(--df-accent, var(--ov-accent));
+  pointer-events: none;
+}
+.df-bar-left::before {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+.df-bar-right::before {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+.df-bar-top::before {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+}
+.df-bar-bottom::before {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+
+/* --- Yazı parlaması --- */
+.df-glow .df-value b {
+  text-shadow:
+    0 0 10px color-mix(in srgb, var(--df-accent, var(--ov-accent)) 75%, transparent),
+    0 0 2px color-mix(in srgb, var(--df-accent, var(--ov-accent)) 60%, transparent);
 }

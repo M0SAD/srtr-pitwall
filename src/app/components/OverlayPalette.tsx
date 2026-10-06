@@ -138,7 +138,12 @@ export function OverlayPalette(props: {
   const usable = createMemo(() => manifests.filter((m) => !m.hidden && !isHiddenOverlay(m.id) && overlaySupportsSim(m.id, sim())));
   const hiddenBySim = () => manifests.filter((m) => !m.hidden && !isHiddenOverlay(m.id) && !overlaySupportsSim(m.id, sim())).length;
   /** Düzene ekli kopyalar: eklenme sırasıyla (eski kayıtlarda eklenme anı yok: onlar listedeki sıralarıyla önde) */
-  const added = createMemo(() => {
+  /** Arama kutusu: overlay adına göre (çevirisi ve Türkçesi) süzer */
+  const [q, setQ] = createSignal("");
+  const fold = (v: string) => v.toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const needle = () => fold(q().trim());
+  const hit = (m: OverlayManifest) => fold(t(m.name)).includes(needle()) || fold(m.name).includes(needle());
+  const addedAll = createMemo(() => {
     const pos = new Map(orderedOverlays(usable()).map((m, i) => [m.id, i]));
     return Object.entries(props.profile.overlays)
       .filter(([, o]) => o.enabled && pos.has(o.type))
@@ -146,12 +151,24 @@ export function OverlayPalette(props: {
       .sort((a, b) => a.at - b.at || a.p - b.p || a.k.localeCompare(b.k, undefined, { numeric: true }))
       .map((x) => x.k);
   });
-  const addedTypes = createMemo(() => new Set(added().map((k) => props.profile.overlays[k]?.type)));
+  const added = createMemo(() => {
+    if (!needle()) return addedAll();
+    return addedAll().filter((k) => {
+      const o = props.profile.overlays[k];
+      const m = manifests.find((x) => x.id === o?.type);
+      return (!!o && fold(instanceName(k, o)).includes(needle())) || (!!m && hit(m));
+    });
+  });
+  const addedTypes = createMemo(() => new Set(addedAll().map((k) => props.profile.overlays[k]?.type)));
   /** Eklenmemiş (ya da birden çok eklenebilen) türler */
   const rest = createMemo(() => orderedOverlays(usable()).filter((m) => m.multiInstance || !addedTypes().has(m.id)));
   /** Kategori başlıklı gruplar; kullanıcı sırası varsa tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
     // Favoriler (Overlaylarım'da sağ tık > Favorilere ekle) eklenebilir listenin en üstünde ayrı grupta
+    if (needle()) {
+      const f = rest().filter(hit);
+      return f.length ? [[null, f]] : [];
+    }
     const fav = favIds();
     const fv = rest().filter((m) => fav.includes(m.id));
     const others = fv.length ? rest().filter((m) => !fav.includes(m.id)) : rest();
@@ -164,6 +181,9 @@ export function OverlayPalette(props: {
     }
     return [...head, ...g.entries()];
   });
+  // Gruplar anahtarla (kategori adı) çizilir: groups() yeniden hesaplanınca liste baştan kurulmaz, kaydırma konumu korunur
+  const groupKeys = createMemo(() => groups().map(([c]) => c ?? ""), undefined, { equals: (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]) });
+  const groupItems = (key: string) => groups().find(([c]) => (c ?? "") === key)?.[1] ?? [];
   // Salt okunur listede de (kilitli düzen) ekle / çıkar sayfaya iletilir: sayfa neden yapılamadığını söyler
   const stop = (fn: () => void) => (e: MouseEvent) => {
     e.stopPropagation();
@@ -181,6 +201,7 @@ export function OverlayPalette(props: {
 
   /** "Düzende" listesinde sürükleyerek sıralama: sıra eklenme anına yazılır (yeni eklenen yine sona gelir) */
   const reorder = (from: number, to: number) => {
+    if (needle()) return;
     const keys = [...added()];
     keys.splice(to, 0, ...keys.splice(from, 1));
     updateSettings((d) => {
@@ -192,6 +213,13 @@ export function OverlayPalette(props: {
 
   return (
     <div class="ovpal" classList={{ disabled: !!props.disabled }}>
+      <label class="ovlist-search ovpal-search">
+        <I.Search />
+        <input type="search" value={q()} placeholder={t("Overlay ara")} onInput={(e) => setQ(e.currentTarget.value)} onKeyDown={(e) => (e.stopPropagation(), e.key === "Escape" && setQ(""))} />
+      </label>
+      <Show when={needle() && !added().length && !groups().length}>
+        <div class="ovlist-simnote">Bu adla bir overlay yok.</div>
+      </Show>
       <Show when={added().length > 0}>
         <div class="ovlist-cap">Düzende</div>
         <For each={added()}>
@@ -238,11 +266,14 @@ export function OverlayPalette(props: {
           }}
         </For>
       </Show>
-      <For each={groups()}>
-        {([cat, ms]) => (
+      <For each={groupKeys()}>
+        {(gk) => {
+          const cat = gk === "" ? null : gk;
+          const ms = () => groupItems(gk);
+          return (
           <>
             <div class="ovlist-cap">{cat === FAV_CAT ? t("Favorilerim") : cat === null ? t("Eklenebilir") : CATEGORY_NAMES[cat] ?? cat}</div>
-            <For each={ms}>
+            <For each={ms()}>
               {(m) => {
                 const locked = () => isLocked(m.id);
                 const again = () => addedTypes().has(m.id);
@@ -270,7 +301,8 @@ export function OverlayPalette(props: {
               }}
             </For>
           </>
-        )}
+          );
+        }}
       </For>
       <Show when={menu()} keyed>
         {(m) => (

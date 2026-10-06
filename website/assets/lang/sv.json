@@ -766,7 +766,7 @@
  "ov_tires_h": "Temperatur insida / mitten / utsida|Mönsterdjup kvar och kalltryck|iRacing uppdaterar de här värdena i depån",
  "ov_dataframe_n": "Data Frame",
  "ov_dataframe_d": "En ruta som visar ett enda värde du valt, stort.",
- "ov_dataframe_h": "Hastighet, växel, bränsle, delta, position, varv, temperatur, bromsbalans med mera|Bygg din egen display ruta för ruta",
+ "ov_dataframe_h": "Hastighet, växel, bränsle, delta, position, varv, temperatur, bromsbalans med mera|Bygg din egen display ruta för ruta|8 former (kantig, pill, cirkel, avskurna hörn, lutande, understruken, utan ruta), accentlist, titelplacering och egna färger",
  "ov_pitspeed_n": "Depåhastighet",
  "ov_pitspeed_d": "Din hastighet mot gränsen när du närmar dig och kör på depågatan.",
  "ov_pitspeed_h": "Varnar när begränsaren är av|Lyser rött när du överskrider gränsen|Syns bara när den behövs",
@@ -1280,5 +1280,17 @@
  "pay_note": "Namn som användes vid betalningen, belopp, datum och tid, order- / transaktionsnummer, vald period…",
  "pay_send": "Skicka avisering",
  "pay_login": "Logga in på ditt konto först för att skicka ett meddelande.",
- "pay_sent": "Din avisering har skickats. När din betalning har kontrollerats aktiveras ditt PRO-medlemskap inom dagen."
+ "pay_sent": "Din avisering har skickats. När din betalning har kontrollerats aktiveras ditt PRO-medlemskap inom dagen.",
+ "ov_clock_n": "Klocka",
+ "ov_clock_d": "Din dators klocka med alarm och påminnelser som varnar dig med ljud och blinkande.",
+ "ov_clock_h": "Digital ruta, smal remsa, bara text och analog urtavla|Tre alarm plus en återkommande påminnelse (t.ex. var 30:e minut)|Pip, dubbelpip, siren eller mjuk ton med justerbar volym|Ruta, ram eller text blinkar i en färg du väljer|Kan visas bara medan ett alarm ringer eller strax innan|Nedräkning till nästa alarm, datum, sekunder, 12/24 timmar",
+ "ovg_clock": "Du behöver inte lämna simmet för att kolla tiden: datorns klocka ligger på skärmen som en overlay. Det den verkligen är till för är alarm: ange när ditt race startar, när du ska ta en paus eller när du ska avsluta streamen, så blinkar och låter overlayn när det är dags. Du kan också ställa in en återkommande påminnelse som ”drick vatten var 30:e minut”. Om du vill kan klockan vara dold och bara visas medan ett alarm ringer eller några minuter innan. Den fungerar även när simmet är stängt.",
+ "ov_gear_n": "Växel",
+ "ov_gear_d": "Bara den aktuella växeln: stor, lättläst och byter färg vid växlingspunkten.",
+ "ov_gear_h": "Ruta och bara siffra är gratis|Varvtalsring, växlings-LED, neon och sexhörning är PRO|Byter färg eller blinkar vid växlingspunkten|Back och neutral i egna färger|Valfri hastighet under|Storlek och varje färg kan justeras",
+ "ovg_gear": "En enkel overlay som bara visar vilken växel du ligger i. Siffran är tillräckligt stor för att läsas med en blick; när motorn når växlingspunkten byter den färg och kan blinka. I designen med varvtalsring fylls bågen runt siffran med varvtalet, och LED-designen tänder växlingslampor ovanför. Storlek och färger bestämmer du själv.",
+ "ov_speedo_n": "Hastighetsmätare",
+ "ov_speedo_d": "Bara din hastighet: tre digitala och tre analoga urtavlor, helt justerbara.",
+ "ov_speedo_h": "Digital: stort tal, tal med stapel, LCD-display|Analog: klassisk urtavla, modern båge, halv urtavla|Ställ in topphastigheten och var den röda zonen börjar|Slå av och på streck, siffror och den digitala avläsningen inuti urtavlan|km/h eller mph; visar valfritt även växeln|Storlek, tjocklek och varje färg kan justeras",
+ "ovg_speedo": "En mätare som bara visar din hastighet. Välj en av tre digitala looker (stort tal, en stapel som fylls under, en glödande LCD-display) eller tre analoga urtavlor (klassisk urtavla med visare, modern båge, halv urtavla). Ställ in urtavlans topphastighet så att den passar din bil och bestäm var den röda zonen börjar; färgerna på visare, båge, streck och siffror väljer du själv. Lägg till flera kopior för att använda olika designer sida vid sida."
 }

@@ -207,9 +207,10 @@ export function OverlaySettings(props: {
             </div>
             <div class="f2">
               <div class="f2-row">
-                <span class="f2-label">iRacing kapalıyken de göster</span>
+                <span class="f2-label">Her zaman göster</span>
                 <Switch checked={inst()!.alwaysShow} onChange={(v) => upd((o) => (o.alwaysShow = v))} />
               </div>
+              <small class="f2-hint">Oyun kapalıyken, pist dışında, garajda ve tekrar izlerken de görünür; ekranda ve OBS'te geçerlidir. Yukarıdaki iki gizleme seçeneği açıksa onlar yine uygulanır.</small>
             </div>
           </Section>
         </div>

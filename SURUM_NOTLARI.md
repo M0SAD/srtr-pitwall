@@ -3,6 +3,51 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-230
+
+- Yeni overlay: Saat. Bilgisayarının saatini dijital kutu, ince şerit, yalnızca yazı ya da analog kadran olarak gösterir. Üç alarm ve tekrarlayan hatırlatma kurulabilir; vakti gelince seçtiğin sesle (bip, çift bip, siren, yumuşak) ve yanıp sönerek uyarır. "Yalnızca alarm çalarken" ya da "alarma az kala" görünme seçenekleri vardır.
+- Yeni overlay: Vites. Yalnızca takılı vitesi gösterir; vites değiştirme devrinde renk değiştirir ya da yanıp söner. Kutu ve yalnızca rakam tasarımları ücretsiz; devir halkası, vites LED'leri, neon ve altıgen tasarımları PRO.
+- Yeni overlay: Hız Göstergesi. Üç dijital (büyük sayı, sayı ve çubuk, LCD) ve üç analog (klasik kadran, modern yay, yarım kadran) tasarım. En yüksek hız, kırmızı bölge, çizgiler, kalınlık ve renkler ayarlanabilir.
+- Arkadaş ve mesaj bildirim sesi artık seçilebilir: Yumuşak, Çan dizisi, Tık, Zil, Damla ve Klasik. Ses düzeyi de ayarlanır. Varsayılan artık daha pes ve sönerek biten "Yumuşak" ses. Ayar, Arkadaşlar panelindeki durum menüsünde (Çevrimiçi / Rahatsız Etme) "Bildirim sesi" başlığı altındadır.
+
+## 071026-229
+
+- Sıralama Tablosu ve Relative: "Sürücü satırlarının arka planı" ayarı eklendi. Arka plan şeffafken yalnızca sürücülerin olduğu satırlar koyulaştırılabilir; kaç sürücü varsa o kadar satır dolar, tablonun geri kalanı şeffaf kalır.
+
+## 071026-228
+
+- Topluluk: düzen paylaşırken "Arka plan görselimi de ekle" seçeneği geldi. Düzene bakanlar önizlemeyi o arka planla görür, indirenlerde düzen aynı arka planla gelir.
+- Topluluk: paylaşılan düzenin önizlemesine "Demo" düğmesi eklendi. Basınca düzen örnek yarış verisiyle canlı oynar; overlay'ler gerçek yarıştaki gibi görünür, gizlenir ve değişir.
+
+## 071026-227
+
+- Olay Sayacı: dört görünüm (Kutular, Tek satır, Halka, Bölmeli çubuk) ve özelleştirme eklendi. Genişlik, çubuk kalınlığı, köşe yuvarlaklığı, sarı/kırmızı eşikleri, kırmızıdayken yanıp sönme, kalan hakkı gösterme ve özel renkler (güvenli/uyarı/tehlike, arka plan, yazı, kenarlık) ayarlanabilir.
+
+## 071026-226
+
+- Düzenler ve Yayın düzenleme ekranlarındaki overlay listesine arama çubuğu eklendi: yazdıkça hem düzendeki hem eklenebilir overlay'ler ada göre süzülür.
+
+## 071026-225
+
+- Setup Örtüsü: Tasarım seçeneği artık herkese görünür. Yayın logosu izni olmayanlar yalnızca "Görsel tüm alanı kaplar" tasarımını kullanabilir; diğer tasarımlar ve kendi görselini ekleme izinli PRO üyelere açıktır.
+
+## 061026-224
+
+- "iRacing kapalıyken de göster" seçeneğinin adı "Her zaman göster" oldu ve artık adının hakkını veriyor: işaretli overlay'ler oyun kapalıyken ve pist dışında olduğu gibi tekrar izlerken ve garaj ekranında da görünür kalır (ekranda ve OBS'te). Eskiden "tekrar izlerken gizle" kuralı bu overlay'leri de gizliyordu; iRacing garaj ekranını ve araç dışı görünümü tekrar saydığı için orada kayboluyorlardı.
+- Kan Şekeri ve Kalp Atışı overlay'lerinde "Her zaman göster" bir kereliğine açıldı (sonradan kapatılabilir).
+
+## 061026-223
+
+- Veri Kutusu özelleştirme: 8 şekil (yuvarlak köşeli, köşeli, hap, daire, kesik köşeli, eğik, alt çizgili, yalnızca yazı), vurgu şeridi (sol / sağ / üst / alt), iç boşluk, başlığın yeri (üstte / altta / solda tek satır), hizalama, başlık boyutu, özel başlık ve birimi gizleme.
+- Veri Kutusu renkleri: "Özel renkler" ile arka plan rengi ve opaklığı, değer rengi, başlık / birim rengi, vurgu rengi, kenarlık rengi ve kalınlığı; "Yazı parlaması" ve "Değere göre renk" (delta yeşil / kırmızı) seçenekleri. Özel renkler kapalıyken tema renkleri kullanılır; mevcut kutuların görünümü değişmez.
+- Düzeltme (Setup Örtüsü): örtü, overlay penceresinin ve OBS sayfasının genel gizleme kurallarına takılıyordu (özellikle "tekrar izlerken gizle": iRacing'de garaj ekranı açıkken sim tekrar oynatılıyor bildirir). Artık bu kurallar örtüye uygulanmaz; ne zaman görüneceğine yalnızca kendi "Ne zaman görünsün" ayarı karar verir. "Her zaman" seçeneği sim kapalıyken de örter.
+
+## 061026-222
+
+- Pedallar & Girdi: "Genişlik" artık gerçek genişlik (260–1200 px; eskiden "en az genişlik"ti ve 430'un altına inmiyordu) ve yeni "Yükseklik" ayarı (76–260 px). İz grafiği ve çubuklar alanı doldurur, vites / hız / direksiyon yükseklikle birlikte ölçeklenir. Düzenleme ekranında sağ / sol kenardan genişlik, üst / alt kenardan yükseklik sürüklenerek ayarlanır. Dört tasarımda da geçerli.
+- Düzeltme: Overlay'ler, Düzenler ve Yayın sayfalarındaki overlay listesi ara sıra kendiliğinden en üste kayıyordu (liste her yeniden hesaplandığında baştan kuruluyordu); artık kaydırma konumu korunur.
+- Yayın sayfası: son seçtiğin yayın düzeni hatırlanır; başka bir sayfaya gidip dönünce (ve uygulamayı yeniden açınca) en üstteki değil, üzerinde çalıştığın düzen seçili gelir.
+
 ## 061026-221
 
 - Ödeme penceresi (program + site): bildirim formu artık isteğe bağlı bir "Satın alım yaptım" düğmesinin arkasında; düğmeye basınca kullanıcı adı / e-posta ve ödeme bilgisi alanları açılır. Kendi ödeme bağlantılarında "PRO üyeliğin, ödemen kontrol edildikten sonra gün içinde tanımlanır." yazar; ByNoGame bağlantılarında ayrıca teslimatı onaylama hatırlatması görünür.

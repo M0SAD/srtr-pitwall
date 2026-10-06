@@ -303,6 +303,12 @@ export function OverlaysPage() {
     return [...g.entries()];
   });
 
+  // Liste, grup dizisinin kendisiyle değil grup ANAHTARIYLA (kategori adı; başlıksız grup "") çizilir. groups() her yeniden
+  // hesaplandığında (ayar / yönetici yapılandırması / sim değişimi) yeni [kategori, liste] çiftleri üretir; For bunları yeni öğe
+  // sayıp bütün listeyi baştan kuruyor, kaydırma çubuğu da en üste dönüyordu. Anahtarlar aynı kaldıkça DOM ve kaydırma korunur.
+  const groupKeys = createMemo(() => groups().map(([c]) => c ?? ""), undefined, { equals: (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]) });
+  const groupItems = (key: string) => groups().find(([c]) => (c ?? "") === key)?.[1] ?? [];
+
   // Sütun genişletme: sürüklerken yerel değer, bırakınca kaydedilir (çift tık: varsayılana döner)
   const [dragCol, setDragCol] = createSignal<{ k: keyof typeof COL; v: number } | null>(null);
   const colW = (k: keyof typeof COL) => (dragCol()?.k === k ? dragCol()!.v : clampCol(k === "list" ? colListRaw() : colSetRaw(), k));
@@ -418,8 +424,11 @@ export function OverlaysPage() {
           <Show when={favOnly() && !shown().some((m) => favs().includes(m.id))}>
             <div class="ovlist-simnote">Henüz favorin yok. Bir overlay'e sağ tıklayıp "Favorilere ekle"yi seç; başka bir sıralamaya geçince tüm overlay'ler yeniden görünür.</div>
           </Show>
-          <For each={groups()}>
-            {([cat, ms]) => (
+          <For each={groupKeys()}>
+            {(gk) => {
+              const cat = gk === "" ? null : gk;
+              const ms = () => groupItems(gk);
+              return (
               <>
                 <Show when={cat !== null}>
                   <button
@@ -431,10 +440,10 @@ export function OverlaysPage() {
                   >
                     <ChevronDown />
                     <span>{cat === FAV_CAT ? t("Favorilerim") : CATEGORY_NAMES[cat!] ?? cat}</span>
-                    <small>{ms.length}</small>
+                    <small>{ms().length}</small>
                   </button>
                 </Show>
-                <For each={cat !== null && isCollapsed(cat) ? [] : ms}>
+                <For each={cat !== null && isCollapsed(cat) ? [] : ms()}>
                   {(m) => {
                     return (
                       <button
@@ -474,7 +483,8 @@ export function OverlaysPage() {
                   }}
                 </For>
               </>
-            )}
+              );
+            }}
           </For>
           <Show when={sim() && hiddenBySim() > 0}>
             <div class="ovlist-simnote">

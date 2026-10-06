@@ -21,6 +21,8 @@ export interface LayoutData {
   /** Windows ölçekleme (kutular mantıksal piksel, ekran fiziksel piksel) */
   scale?: number;
   appVersion?: string;
+  /** Düzenleme tuvalinin arka plan görseli (küçültülmüş JPEG, data URL); paylaşan isterse eklenir */
+  backdrop?: string;
 }
 
 export interface LayoutSummary {

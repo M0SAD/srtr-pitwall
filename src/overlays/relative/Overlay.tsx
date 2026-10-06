@@ -223,7 +223,7 @@ export default function Relative(props: OverlayProps) {
     r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
 
   return (
-    <div class="ov-panel rel" classList={{ "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame }} style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px` }}>
+    <div class="ov-panel rel" classList={{ "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame }} style={{ "--rel-fill": `${Math.min(100, Math.max(0, Number(props.options.rowFill) || 0))}%`, "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px` }}>
       <Show when={props.options.showHeader}>
         <div class="rel-head" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
           <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()?.sof ?? 0} />
