@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Velocímetro",
  "ov_speedo_d": "Solo tu velocidad: tres diseños digitales y tres de esfera analógica, totalmente ajustables.",
  "ov_speedo_h": "Digital: número grande, número con barra, pantalla LCD|Analógico: esfera clásica, arco moderno, media esfera|Define la velocidad máxima y dónde empieza la zona roja|Activa o desactiva marcas, números y la lectura digital dentro de la esfera|km/h o mph; opcionalmente muestra también la marcha|Tamaño, grosor y todos los colores ajustables",
- "ovg_speedo": "Un indicador que muestra solo tu velocidad. Elige uno de tres estilos digitales (número grande, una barra que se llena debajo, una pantalla LCD luminosa) o tres esferas analógicas (esfera clásica con aguja, arco moderno, media esfera). Ajusta la velocidad máxima de la esfera a tu coche y decide dónde empieza la zona roja; los colores de la aguja, el arco, las marcas y los números dependen de ti. Añade varias copias para usar diseños distintos a la vez."
+ "ovg_speedo": "Un indicador que muestra solo tu velocidad. Elige uno de tres estilos digitales (número grande, una barra que se llena debajo, una pantalla LCD luminosa) o tres esferas analógicas (esfera clásica con aguja, arco moderno, media esfera). Ajusta la velocidad máxima de la esfera a tu coche y decide dónde empieza la zona roja; los colores de la aguja, el arco, las marcas y los números dependen de ti. Añade varias copias para usar diseños distintos a la vez.",
+ "fx_soh1_t": "Añade a tu amigo",
+ "fx_soh1_d": "Busca su nombre visible o su nombre de iRacing en el panel de Amigos de la app y envía una solicitud. Cuando la acepte, aparecerá en tu lista.",
+ "fx_soh2_t": "Mira quién está haciendo qué",
+ "fx_soh2_d": "La lista muestra quién está conectado y quién está corriendo, en qué circuito, con qué coche y en qué posición.",
+ "fx_soh3_t": "Escríbele, incluso en plena carrera",
+ "fx_soh3_d": "Escribe desde la app o desde la web. Si tu amigo está en pista, tu mensaje aparece en su pantalla como un pequeño overlay y desaparece tras unos segundos; él elige el sonido de la notificación o lo silencia con No molestar."
 }

@@ -718,3 +718,41 @@ img[data-slot] {
 .mvr-pan span:last-child {
   transform: rotateY(-32deg);
 }
+
+/* Arkadaşlar: "nasıl çalışır" adımları */
+.fx-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 28px 0 8px;
+}
+.fx-steps > div {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.fx-steps span {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1005;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.fx-steps b {
+  display: block;
+  margin-bottom: 6px;
+}
+.fx-steps p {
+  margin: 0;
+  font-size: 0.95em;
+}
+@media (max-width: 760px) {
+  .fx-steps {
+    grid-template-columns: 1fr;
+  }
+}

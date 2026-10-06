@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Velocímetro",
  "ov_speedo_d": "Só a sua velocidade: três designs digitais e três mostradores analógicos, totalmente ajustáveis.",
  "ov_speedo_h": "Digital: número grande, número com barra, display LCD|Analógico: mostrador clássico, arco moderno, meio mostrador|Defina a velocidade máxima e onde começa a zona vermelha|Ative ou desative marcas, números e a leitura digital dentro do mostrador|km/h ou mph; opcionalmente mostra a marcha também|Tamanho, espessura e todas as cores ajustáveis",
- "ovg_speedo": "Um medidor que mostra só a sua velocidade. Escolha um dos três visuais digitais (número grande, uma barra que enche embaixo, um display LCD brilhante) ou um dos três mostradores analógicos (mostrador clássico com ponteiro, arco moderno, meio mostrador). Ajuste a velocidade máxima do mostrador para o seu carro e decida onde começa a zona vermelha; as cores do ponteiro, do arco, das marcas e dos números ficam a seu critério. Adicione várias cópias para usar designs diferentes lado a lado."
+ "ovg_speedo": "Um medidor que mostra só a sua velocidade. Escolha um dos três visuais digitais (número grande, uma barra que enche embaixo, um display LCD brilhante) ou um dos três mostradores analógicos (mostrador clássico com ponteiro, arco moderno, meio mostrador). Ajuste a velocidade máxima do mostrador para o seu carro e decida onde começa a zona vermelha; as cores do ponteiro, do arco, das marcas e dos números ficam a seu critério. Adicione várias cópias para usar designs diferentes lado a lado.",
+ "fx_soh1_t": "Adicione seu amigo",
+ "fx_soh1_d": "Busque o nome de exibição ou o nome do iRacing dele no painel de Amigos do app e envie um pedido. Assim que ele aceitar, aparece na sua lista.",
+ "fx_soh2_t": "Veja quem está fazendo o quê",
+ "fx_soh2_d": "A lista mostra quem está online e quem está correndo, em qual pista, com qual carro e em qual posição.",
+ "fx_soh3_t": "Mande mensagem, até no meio da corrida",
+ "fx_soh3_d": "Escreva pelo app ou pelo site. Se o seu amigo estiver na pista, sua mensagem aparece na tela dele como um pequeno overlay e some depois de alguns segundos; ele escolhe o som da notificação ou silencia com Não perturbe."
 }

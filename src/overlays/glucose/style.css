@@ -14,7 +14,8 @@
   box-sizing: border-box;
   padding: 12px 14px;
   border-radius: var(--gl-radius, 14px);
-  background: var(--gl-bg);
+  /* Kopyanın "Arka plan opaklığı" kendi renklerinde de geçerli */
+  background: color-mix(in srgb, var(--gl-bg) calc(var(--ov-bg-k, 1) * 100%), transparent);
   color: var(--gl-text);
   border: 1.5px solid color-mix(in srgb, var(--gl-c) 55%, transparent);
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
@@ -29,6 +30,7 @@
   --gl-bg: var(--ov-bg, #17181c);
   --gl-text: var(--ov-text, #f2f4f8);
   border-radius: var(--ov-radius, 14px);
+  background: var(--gl-bg);
 }
 .gl.gl-warn {
   --gl-c: var(--gl-warn);

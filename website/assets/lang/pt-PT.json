@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Velocímetro",
  "ov_speedo_d": "Só a tua velocidade: três designs digitais e três mostradores analógicos, totalmente ajustáveis.",
  "ov_speedo_h": "Digital: número grande, número com barra, ecrã LCD|Analógico: mostrador clássico, arco moderno, meio mostrador|Define a velocidade máxima e onde começa a zona vermelha|Ativa ou desativa marcas, números e a leitura digital dentro do mostrador|km/h ou mph; opcionalmente mostra também a mudança|Tamanho, espessura e todas as cores ajustáveis",
- "ovg_speedo": "Um indicador que mostra só a tua velocidade. Escolhe um dos três visuais digitais (número grande, uma barra que enche por baixo, um ecrã LCD luminoso) ou um dos três mostradores analógicos (mostrador clássico com ponteiro, arco moderno, meio mostrador). Ajusta a velocidade máxima do mostrador ao teu carro e decide onde começa a zona vermelha; as cores do ponteiro, do arco, das marcas e dos números ficam ao teu critério. Adiciona várias cópias para usar designs diferentes lado a lado."
+ "ovg_speedo": "Um indicador que mostra só a tua velocidade. Escolhe um dos três visuais digitais (número grande, uma barra que enche por baixo, um ecrã LCD luminoso) ou um dos três mostradores analógicos (mostrador clássico com ponteiro, arco moderno, meio mostrador). Ajusta a velocidade máxima do mostrador ao teu carro e decide onde começa a zona vermelha; as cores do ponteiro, do arco, das marcas e dos números ficam ao teu critério. Adiciona várias cópias para usar designs diferentes lado a lado.",
+ "fx_soh1_t": "Adiciona o teu amigo",
+ "fx_soh1_d": "Procura o nome de apresentação ou o nome iRacing dele no painel de Amigos da app e envia um pedido. Assim que ele aceitar, aparece na tua lista.",
+ "fx_soh2_t": "Vê quem está a fazer o quê",
+ "fx_soh2_d": "A lista mostra quem está online e quem está a correr, em que pista, com que carro e em que posição.",
+ "fx_soh3_t": "Envia-lhe uma mensagem, mesmo a meio da corrida",
+ "fx_soh3_d": "Escreve a partir da app ou do site. Se o teu amigo estiver em pista, a tua mensagem aparece no ecrã dele como um pequeno overlay e desaparece ao fim de alguns segundos; ele escolhe o som da notificação ou silencia-o com Não incomodar."
 }

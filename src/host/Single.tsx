@@ -14,7 +14,7 @@ import { inTauri, query } from "@/sdk/platform";
 import { t } from "@/sdk/i18n";
 import { setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
-import { lookStyle } from "@/sdk/lookStyle";
+import { lookClear, lookStyle } from "@/sdk/lookStyle";
 
 export function Single(props: { type: string }) {
   const m = manifestById(props.type);
@@ -92,6 +92,7 @@ export function Single(props: { type: string }) {
     <div
       ref={box}
       class="host ov-theme single"
+      classList={{ "ov-clear": !m?.noBgOpacity && lookClear(instance()?.look, settings().theme, instance()?.bgOpacity) }}
       style={{
         ...vars(),
         padding: "8px",

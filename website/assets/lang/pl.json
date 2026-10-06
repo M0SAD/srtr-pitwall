@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Prędkościomierz",
  "ov_speedo_d": "Tylko Twoja prędkość: trzy projekty cyfrowe i trzy analogowe, w pełni regulowane.",
  "ov_speedo_h": "Cyfrowy: duża liczba, liczba z paskiem, wyświetlacz LCD|Analogowy: klasyczna tarcza, nowoczesny łuk, półtarcza|Ustaw prędkość maksymalną i miejsce, gdzie zaczyna się czerwone pole|Włączaj i wyłączaj kreski, liczby i cyfrowy odczyt wewnątrz tarczy|km/h lub mph; opcjonalnie pokazuje też bieg|Rozmiar, grubość i każdy kolor do ustawienia",
- "ovg_speedo": "Wskaźnik, który pokazuje tylko Twoją prędkość. Wybierz jeden z trzech wyglądów cyfrowych (duża liczba, pasek wypełniający się pod spodem, świecący wyświetlacz LCD) albo jedną z trzech tarcz analogowych (klasyczna tarcza ze wskazówką, nowoczesny łuk, półtarcza). Ustaw prędkość maksymalną tarczy odpowiednio do swojego auta i zdecyduj, gdzie zaczyna się czerwone pole; kolory wskazówki, łuku, kresek i liczb zależą od Ciebie. Dodaj kilka kopii, aby używać różnych projektów obok siebie."
+ "ovg_speedo": "Wskaźnik, który pokazuje tylko Twoją prędkość. Wybierz jeden z trzech wyglądów cyfrowych (duża liczba, pasek wypełniający się pod spodem, świecący wyświetlacz LCD) albo jedną z trzech tarcz analogowych (klasyczna tarcza ze wskazówką, nowoczesny łuk, półtarcza). Ustaw prędkość maksymalną tarczy odpowiednio do swojego auta i zdecyduj, gdzie zaczyna się czerwone pole; kolory wskazówki, łuku, kresek i liczb zależą od Ciebie. Dodaj kilka kopii, aby używać różnych projektów obok siebie.",
+ "fx_soh1_t": "Dodaj swojego znajomego",
+ "fx_soh1_d": "Wyszukaj jego nazwę wyświetlaną lub nazwę iRacing w panelu Znajomi w aplikacji i wyślij zaproszenie. Gdy je zaakceptuje, pojawi się na twojej liście.",
+ "fx_soh2_t": "Zobacz, kto co robi",
+ "fx_soh2_d": "Lista pokazuje, kto jest online, a kto się ściga – na jakim torze, jakim autem i na której pozycji.",
+ "fx_soh3_t": "Napisz do niego, nawet w środku wyścigu",
+ "fx_soh3_d": "Pisz z aplikacji lub ze strony internetowej. Jeśli twój znajomy jest na torze, twoja wiadomość wyskoczy na jego ekranie jako mały overlay i zniknie po kilku sekundach; sam wybiera dźwięk powiadomienia albo wycisza go trybem Nie przeszkadzać."
 }

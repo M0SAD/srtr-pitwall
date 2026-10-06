@@ -32,7 +32,7 @@ import { StreamBadgeMark, badgeFactor, badgeCfg, badgeForcedLive, badgeRect } fr
 import { inTauri, query } from "@/sdk/platform";
 import { clearData, setSubscriptions, useTopic } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
-import { lookStyle } from "@/sdk/lookStyle";
+import { lookClear, lookStyle } from "@/sdk/lookStyle";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
 import { clampField, previewFrozen, resizeFields, rowUnit, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
@@ -856,7 +856,7 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       ref={el}
       data-fkey={id}
       class="frame"
-      classList={{ picked: props.editing && picked() === id, dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked(), ghost: ghost() }}
+      classList={{ picked: props.editing && picked() === id, dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked(), ghost: ghost(), "ov-clear": !props.manifest.noBgOpacity && lookClear(inst().look, settings().theme, inst().bgOpacity) }}
       style={{
         // Kopyaya özel görünüm: tema değişkenlerinin üstüne (yoksa boş)
         ...lookStyle(inst().look, settings().theme, inst().bgOpacity),

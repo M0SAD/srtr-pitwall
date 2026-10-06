@@ -48,6 +48,19 @@ export function lookStyle(look: OverlayLook | undefined, t: Theme, bgOpacity?: n
   return v;
 }
 
+/**
+ * Arka plan tamamen şeffaf mı (kopyanın çarpanı 0 ya da tema / görünüm arka planı %0 ve kenarlık açıkça seçilmemiş).
+ * Çizen kap bu durumda "ov-clear" sınıfını alır: kendi kenarlığını / gölgesini çizen overlay'lerde de çerçeve izi kalmaz.
+ */
+export function lookClear(look: OverlayLook | undefined, t: Theme, bgOpacity?: number): boolean {
+  const l = effectiveLook(look);
+  const k = typeof bgOpacity === "number" && isFinite(bgOpacity) ? Math.min(1, Math.max(0, bgOpacity)) : 1;
+  if (k <= 0) return true;
+  const on = l && l.on !== false ? l : undefined;
+  const ownBorder = !!on && (on.border !== undefined || on.borderOpacity !== undefined);
+  return (on?.bgOpacity ?? t.bgOpacity) <= 0 && !ownBorder;
+}
+
 function hexAlpha(hex: string, alphaPct: number): string {
   const h = hex.replace("#", "");
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h.padEnd(6, "0");

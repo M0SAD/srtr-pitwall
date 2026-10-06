@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Hastighetsmätare",
  "ov_speedo_d": "Bara din hastighet: tre digitala och tre analoga urtavlor, helt justerbara.",
  "ov_speedo_h": "Digital: stort tal, tal med stapel, LCD-display|Analog: klassisk urtavla, modern båge, halv urtavla|Ställ in topphastigheten och var den röda zonen börjar|Slå av och på streck, siffror och den digitala avläsningen inuti urtavlan|km/h eller mph; visar valfritt även växeln|Storlek, tjocklek och varje färg kan justeras",
- "ovg_speedo": "En mätare som bara visar din hastighet. Välj en av tre digitala looker (stort tal, en stapel som fylls under, en glödande LCD-display) eller tre analoga urtavlor (klassisk urtavla med visare, modern båge, halv urtavla). Ställ in urtavlans topphastighet så att den passar din bil och bestäm var den röda zonen börjar; färgerna på visare, båge, streck och siffror väljer du själv. Lägg till flera kopior för att använda olika designer sida vid sida."
+ "ovg_speedo": "En mätare som bara visar din hastighet. Välj en av tre digitala looker (stort tal, en stapel som fylls under, en glödande LCD-display) eller tre analoga urtavlor (klassisk urtavla med visare, modern båge, halv urtavla). Ställ in urtavlans topphastighet så att den passar din bil och bestäm var den röda zonen börjar; färgerna på visare, båge, streck och siffror väljer du själv. Lägg till flera kopior för att använda olika designer sida vid sida.",
+ "fx_soh1_t": "Lägg till din vän",
+ "fx_soh1_d": "Sök efter deras visningsnamn eller iRacing-namn i appens Vänner-panel och skicka en förfrågan. När de har accepterat dyker de upp i din lista.",
+ "fx_soh2_t": "Se vem som gör vad",
+ "fx_soh2_d": "Listan visar vem som är online och vem som kör, på vilken bana, i vilken bil och på vilken plats.",
+ "fx_soh3_t": "Skicka meddelande, även mitt i loppet",
+ "fx_soh3_d": "Skriv från appen eller webbplatsen. Om din vän är på banan dyker ditt meddelande upp på deras skärm som en liten overlay och försvinner efter några sekunder; de väljer själva notisljud eller tystar det med Stör ej."
 }

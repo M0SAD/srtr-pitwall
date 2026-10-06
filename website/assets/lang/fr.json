@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Compteur de vitesse",
  "ov_speedo_d": "Juste ta vitesse : trois designs numériques et trois cadrans analogiques, entièrement réglables.",
  "ov_speedo_h": "Numérique : grand chiffre, chiffre avec barre, écran LCD|Analogique : cadran classique, arc moderne, demi-cadran|Règle la vitesse maximale et le début de la zone rouge|Active ou masque les graduations, les chiffres et l'affichage numérique dans le cadran|km/h ou mph ; affiche aussi le rapport en option|Taille, épaisseur et chaque couleur réglables",
- "ovg_speedo": "Un indicateur qui n'affiche que ta vitesse. Choisis l'un des trois looks numériques (grand chiffre, une barre qui se remplit en dessous, un écran LCD lumineux) ou l'un des trois cadrans analogiques (cadran classique à aiguille, arc moderne, demi-cadran). Règle la vitesse maximale du cadran selon ta voiture et décide où commence la zone rouge ; les couleurs de l'aiguille, de l'arc, des graduations et des chiffres sont à toi. Ajoute plusieurs copies pour utiliser différents designs côte à côte."
+ "ovg_speedo": "Un indicateur qui n'affiche que ta vitesse. Choisis l'un des trois looks numériques (grand chiffre, une barre qui se remplit en dessous, un écran LCD lumineux) ou l'un des trois cadrans analogiques (cadran classique à aiguille, arc moderne, demi-cadran). Règle la vitesse maximale du cadran selon ta voiture et décide où commence la zone rouge ; les couleurs de l'aiguille, de l'arc, des graduations et des chiffres sont à toi. Ajoute plusieurs copies pour utiliser différents designs côte à côte.",
+ "fx_soh1_t": "Ajoute ton ami",
+ "fx_soh1_d": "Cherche son nom d'affichage ou son nom iRacing dans le panneau Amis de l'appli et envoie une demande. Dès qu'il accepte, il apparaît dans ta liste.",
+ "fx_soh2_t": "Vois qui fait quoi",
+ "fx_soh2_d": "La liste montre qui est en ligne et qui est en course, sur quel circuit, dans quelle voiture et à quelle position.",
+ "fx_soh3_t": "Écris-lui, même en pleine course",
+ "fx_soh3_d": "Écris depuis l'appli ou le site web. Si ton ami est en piste, ton message s'affiche sur son écran sous forme de petit overlay et disparaît au bout de quelques secondes ; il choisit le son de notification ou le coupe avec Ne pas déranger."
 }

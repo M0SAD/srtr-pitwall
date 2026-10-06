@@ -8,7 +8,7 @@ import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { settings } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
 import type { OverlayLook } from "@/sdk/look";
-import { lookStyle } from "@/sdk/lookStyle";
+import { lookClear, lookStyle } from "@/sdk/lookStyle";
 
 const cache = new Map<string, Component<any>>();
 export function overlayComponent(type: string) {
@@ -28,7 +28,7 @@ export function OverlayView(props: { type: string; options?: Record<string, unkn
   const opts = createMemo(() => sanitizeOverlayOptions(props.type, { ...(m ? defaultOptions(m) : {}), ...(props.options ?? {}) }));
   const vars = createMemo(() => ({ ...(props.themed === false ? {} : themeVars(settings().theme)), ...lookStyle(props.look, settings().theme, props.bgOpacity) }));
   return (
-    <div class={`ov-theme ovview ${props.class ?? ""}`} classList={{ "ov-frozen": previewFrozen() }} style={vars()}>
+    <div class={`ov-theme ovview ${props.class ?? ""}`} classList={{ "ov-frozen": previewFrozen(), "ov-clear": !m?.noBgOpacity && lookClear(props.look, settings().theme, props.bgOpacity) }} style={vars()}>
       <Show when={C} fallback={<div class="ov-panel ov-empty">{props.type}</div>}>
         <Suspense>
           <Dynamic component={C} options={opts()} units={settings().general.units} editing={props.editing ?? true} />

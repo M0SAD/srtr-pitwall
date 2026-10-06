@@ -303,3 +303,19 @@
 .ov-frozen * {
   animation-play-state: paused !important;
 }
+
+/* Arka plan tamamen şeffaf (ov-clear, bkz. sdk/lookStyle.ts lookClear): overlay'in kendi çizdiği dış kenarlık, gölge ve
+   bulanıklık da kalkar; yalnızca içerik kalır. Kural overlay'in kök öğesine uygulanır (düzenleme tutamaçları hariç);
+   kullanıcının açıkça açtığı iç çerçeveler (sürücü satırı çerçevesi vb.) kök olmadığı için etkilenmez. */
+.ov-clear > :not(.frame-label):not(.frame-unlock):not(.frame-resize):not(.rz-edge):not(.pspd):not(.gl-alert):not(.cc),
+.ov-clear .inx-sim,
+.ov-clear .inx-simtrace,
+.ov-clear .dcard-in,
+.ov-clear .h2h-panel,
+.ov-clear .rslt-panel {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

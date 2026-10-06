@@ -26,7 +26,7 @@ export const SLOTS = [
   ["feat.livechat", "Özellikler · Canlı Sohbet", "features.html", "", "1200×750"],
   ["feat.voice", "Özellikler · Sesli Mühendis", "features.html", "", "1200×750"],
   ["feat.community", "Özellikler · Topluluk", "features.html", "", "1200×750"],
-  ["feat.social", "Özellikler · Arkadaşlar ve takımlar", "features.html", "", "1200×750"],
+  ["feat.social", "Özellikler · Arkadaşlar ve takımlar", "features.html", "assets/img/social.webp", "1200×750"],
   ["feat.telemetry", "Özellikler · Telemetri", "features.html", "", "1200×750"],
   ["feat.shots", "Özellikler · Ekran görüntüleri", "features.html", "", "1200×750"],
   ["feat.layouts", "Özellikler · Düzenler ve profiller", "features.html", "", "1200×750"],

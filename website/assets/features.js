@@ -521,6 +521,12 @@ addDict({
     "Kim çevrimiçi, kim yarışta gör; mesajlaş, grup kur, takımınla sohbet et. Güvendiğin arkadaşınla yakıtını ve tur sürelerini canlı paylaş; ekibine aldığın arkadaşın uygulamadan ya da telefonundan sana spotter'lık ve yarış mühendisliği yapsın.",
     "See who is online and who is racing; message, create groups, chat with your team. Share your fuel and lap times live with friends you trust, and let a friend on your crew act as your spotter and race engineer from the app or from their phone.",
   ],
+  fx_soh1_t: ["Arkadaşını ekle", "Add your friend"],
+  fx_soh1_d: ["Uygulamadaki Arkadaşlar panelinde görünen adını ya da iRacing adını arat, istek gönder. Karşı taraf kabul edince listene düşer.", "Search their display name or iRacing name in the app's Friends panel and send a request. Once they accept, they appear in your list."],
+  fx_soh2_t: ["Kim ne yapıyor gör", "See who is doing what"],
+  fx_soh2_d: ["Listede kimin çevrimiçi, kimin yarışta olduğunu; hangi pistte, hangi araçla ve kaçıncı sırada olduğunu görürsün.", "The list shows who is online and who is racing, on which track, in which car and in what position."],
+  fx_soh3_t: ["Yaz, yarışta bile görsün", "Message them, even mid-race"],
+  fx_soh3_d: ["Uygulamadan ya da siteden mesaj yaz. Arkadaşın pistteyse mesajın ekranında küçük bir overlay olarak belirir ve birkaç saniye sonra kaybolur; bildirim sesini kendisi seçer ya da Rahatsız Etme ile susturur.", "Write from the app or the website. If your friend is on track, your message pops up on their screen as a small overlay and fades after a few seconds; they choose the notification sound or silence it with Do Not Disturb."],
   fx_so1_t: ["Arkadaş listesi", "Friends list"],
   fx_so1_d: [
     "Steam gibi ayrı arkadaş penceresi: çevrimiçi / yarışta durumu, hangi pistte hangi araçla. Arkadaşlarını renk, simge, fotoğraf ve etiketle özelleştir (PRO).",

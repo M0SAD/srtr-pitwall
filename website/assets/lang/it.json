@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Tachimetro",
  "ov_speedo_d": "Solo la tua velocità: tre design digitali e tre quadranti analogici, totalmente regolabili.",
  "ov_speedo_h": "Digitale: numero grande, numero con barra, display LCD|Analogico: quadrante classico, arco moderno, mezzo quadrante|Imposta la velocità massima e dove inizia la zona rossa|Attiva o disattiva tacche, numeri e lettura digitale dentro il quadrante|km/h o mph; opzionalmente mostra anche la marcia|Dimensioni, spessore e ogni colore regolabili",
- "ovg_speedo": "Un indicatore che mostra solo la tua velocità. Scegli uno dei tre look digitali (numero grande, una barra che si riempie sotto, un display LCD luminoso) o uno dei tre quadranti analogici (quadrante classico con lancetta, arco moderno, mezzo quadrante). Imposta la velocità massima del quadrante in base alla tua auto e decidi dove inizia la zona rossa; i colori di lancetta, arco, tacche e numeri spettano a te. Aggiungi più copie per usare design diversi affiancati."
+ "ovg_speedo": "Un indicatore che mostra solo la tua velocità. Scegli uno dei tre look digitali (numero grande, una barra che si riempie sotto, un display LCD luminoso) o uno dei tre quadranti analogici (quadrante classico con lancetta, arco moderno, mezzo quadrante). Imposta la velocità massima del quadrante in base alla tua auto e decidi dove inizia la zona rossa; i colori di lancetta, arco, tacche e numeri spettano a te. Aggiungi più copie per usare design diversi affiancati.",
+ "fx_soh1_t": "Aggiungi il tuo amico",
+ "fx_soh1_d": "Cerca il suo nome visualizzato o il suo nome iRacing nel pannello Amici dell'app e invia una richiesta. Appena accetta, compare nella tua lista.",
+ "fx_soh2_t": "Guarda chi sta facendo cosa",
+ "fx_soh2_d": "La lista mostra chi è online e chi sta correndo, su quale pista, con quale auto e in quale posizione.",
+ "fx_soh3_t": "Scrivigli, anche in piena gara",
+ "fx_soh3_d": "Scrivi dall'app o dal sito web. Se il tuo amico è in pista, il tuo messaggio compare sul suo schermo come un piccolo overlay e svanisce dopo qualche secondo; lui sceglie il suono della notifica oppure lo silenzia con Non disturbare."
 }

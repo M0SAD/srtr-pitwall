@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-234
+
+- Arka plan opaklığı %0 yapılan overlay'lerde çerçeve izi kalmıyor: kendi kenarlığını ve gölgesini çizen overlay'lerde de (Kan Şekeri, Kalp Atışı, Girdiler'in sim tasarımı vb.) dış çerçeve, gölge ve bulanıklık tamamen kalkar. Uyarı anındaki yanıp sönen çerçeve (ör. Kan Şekeri alarmı) görünmeye devam eder.
+
 ## 071026-233
 
 - Setup Örtüsü kilitlenince düzenleme ekranlarında neredeyse saydam olur ve tıklamaları geçirir: arkasındaki overlay'ler rahatça seçilip taşınır. Kilit, ekranda örtünün sol üstündeki kilit düğmesinden ya da düzen listesinde sağ tıkla açılır.

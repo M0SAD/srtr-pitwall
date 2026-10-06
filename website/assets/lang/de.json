@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Tacho",
  "ov_speedo_d": "Nur deine Geschwindigkeit: drei digitale und drei analoge Zifferblatt-Designs, voll anpassbar.",
  "ov_speedo_h": "Digital: große Zahl, Zahl mit Balken, LCD-Anzeige|Analog: klassisches Zifferblatt, moderner Bogen, Halbrund|Lege die Höchstgeschwindigkeit fest und wo der rote Bereich beginnt|Skalenstriche, Zahlen und die digitale Anzeige im Zifferblatt ein- und ausschaltbar|km/h oder mph; zeigt optional auch den Gang|Größe, Dicke und jede Farbe anpassbar",
- "ovg_speedo": "Ein Messgerät, das nur deine Geschwindigkeit zeigt. Wähle einen von drei digitalen Looks (große Zahl, ein Balken, der sich darunter füllt, eine leuchtende LCD-Anzeige) oder drei analoge Zifferblätter (klassisch mit Zeiger, moderner Bogen, Halbrund). Stell die Höchstgeschwindigkeit des Zifferblatts passend zu deinem Auto ein und bestimme, wo der rote Bereich beginnt; Farben von Zeiger, Bogen, Skalenstrichen und Zahlen sind deine Sache. Füge mehrere Kopien hinzu, um verschiedene Designs nebeneinander zu nutzen."
+ "ovg_speedo": "Ein Messgerät, das nur deine Geschwindigkeit zeigt. Wähle einen von drei digitalen Looks (große Zahl, ein Balken, der sich darunter füllt, eine leuchtende LCD-Anzeige) oder drei analoge Zifferblätter (klassisch mit Zeiger, moderner Bogen, Halbrund). Stell die Höchstgeschwindigkeit des Zifferblatts passend zu deinem Auto ein und bestimme, wo der rote Bereich beginnt; Farben von Zeiger, Bogen, Skalenstrichen und Zahlen sind deine Sache. Füge mehrere Kopien hinzu, um verschiedene Designs nebeneinander zu nutzen.",
+ "fx_soh1_t": "Füg deine Freunde hinzu",
+ "fx_soh1_d": "Such in der Freunde-Übersicht der App nach ihrem Anzeigenamen oder iRacing-Namen und schick eine Anfrage. Sobald sie annehmen, erscheinen sie in deiner Liste.",
+ "fx_soh2_t": "Sieh, wer gerade was macht",
+ "fx_soh2_d": "Die Liste zeigt dir, wer online ist und wer gerade fährt – auf welcher Strecke, in welchem Auto und auf welcher Position.",
+ "fx_soh3_t": "Schreib ihnen, auch mitten im Rennen",
+ "fx_soh3_d": "Schreib über die App oder die Website. Ist dein Freund auf der Strecke, erscheint deine Nachricht als kleines Overlay auf seinem Bildschirm und verschwindet nach ein paar Sekunden wieder; den Benachrichtigungston kann er selbst wählen oder mit „Bitte nicht stören“ stummschalten."
 }

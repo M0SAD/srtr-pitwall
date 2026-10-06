@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Nopeusmittari",
  "ov_speedo_d": "Pelkkä nopeutesi: kolme digitaalista ja kolme analogista mittaristoa, täysin säädettävissä.",
  "ov_speedo_h": "Digitaalinen: iso luku, luku palkilla, LCD-näyttö|Analoginen: klassinen mittari, moderni kaari, puolikas mittari|Aseta huippunopeus ja kohta, jossa punainen alue alkaa|Näytä tai piilota asteviivat, numerot ja digitaalinen lukema mittarin sisällä|km/h tai mph; näyttää halutessasi myös vaihteen|Koko, paksuus ja jokainen väri säädettävissä",
- "ovg_speedo": "Mittari, joka näyttää vain nopeutesi. Valitse yksi kolmesta digitaalisesta ulkoasusta (iso luku, alle täyttyvä palkki, hehkuva LCD-näyttö) tai kolmesta analogisesta mittarista (klassinen mittari neulalla, moderni kaari, puolikas mittari). Aseta mittarin huippunopeus autollesi sopivaksi ja päätä, mistä punainen alue alkaa; neulan, kaaren, asteviivojen ja numeroiden värit ovat sinun päätettävissäsi. Lisää useita kopioita, niin voit käyttää eri ulkoasuja rinnakkain."
+ "ovg_speedo": "Mittari, joka näyttää vain nopeutesi. Valitse yksi kolmesta digitaalisesta ulkoasusta (iso luku, alle täyttyvä palkki, hehkuva LCD-näyttö) tai kolmesta analogisesta mittarista (klassinen mittari neulalla, moderni kaari, puolikas mittari). Aseta mittarin huippunopeus autollesi sopivaksi ja päätä, mistä punainen alue alkaa; neulan, kaaren, asteviivojen ja numeroiden värit ovat sinun päätettävissäsi. Lisää useita kopioita, niin voit käyttää eri ulkoasuja rinnakkain.",
+ "fx_soh1_t": "Lisää kaverisi",
+ "fx_soh1_d": "Hae kaverin näyttönimeä tai iRacing-nimeä sovelluksen Kaverit-paneelista ja lähetä pyyntö. Kun hän hyväksyy sen, hän ilmestyy listallesi.",
+ "fx_soh2_t": "Näe, kuka tekee mitä",
+ "fx_soh2_d": "Lista näyttää, kuka on online-tilassa ja kuka ajaa, millä radalla, millä autolla ja missä asemassa.",
+ "fx_soh3_t": "Lähetä viesti, vaikka kesken kisan",
+ "fx_soh3_d": "Kirjoita sovelluksessa tai verkkosivustolla. Jos kaverisi on radalla, viestisi ponnahtaa hänen ruudulleen pienenä overlaynä ja katoaa muutaman sekunnin kuluttua; hän valitsee ilmoitusäänen tai mykistää sen Älä häiritse -tilalla."
 }

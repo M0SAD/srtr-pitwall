@@ -1292,5 +1292,11 @@
  "ov_speedo_n": "Snelheidsmeter",
  "ov_speedo_d": "Alleen je snelheid: drie digitale en drie analoge wijzerplaten, volledig aanpasbaar.",
  "ov_speedo_h": "Digitaal: groot getal, getal met balk, LCD-display|Analoog: klassieke wijzerplaat, moderne boog, halve wijzerplaat|Stel de topsnelheid in en waar de rode zone begint|Schakel streepjes, cijfers en de digitale uitlezing in de wijzerplaat aan of uit|km/h of mph; toont optioneel ook de versnelling|Formaat, dikte en elke kleur aanpasbaar",
- "ovg_speedo": "Een meter die alleen je snelheid toont. Kies uit drie digitale looks (groot getal, een balk die eronder vol loopt, een gloeiend LCD-display) of drie analoge wijzerplaten (klassieke wijzerplaat met naald, moderne boog, halve wijzerplaat). Stel de topsnelheid van de wijzerplaat af op je auto en bepaal waar de rode zone begint; de kleuren van naald, boog, streepjes en cijfers zijn aan jou. Voeg meerdere kopieën toe om verschillende ontwerpen naast elkaar te gebruiken."
+ "ovg_speedo": "Een meter die alleen je snelheid toont. Kies uit drie digitale looks (groot getal, een balk die eronder vol loopt, een gloeiend LCD-display) of drie analoge wijzerplaten (klassieke wijzerplaat met naald, moderne boog, halve wijzerplaat). Stel de topsnelheid van de wijzerplaat af op je auto en bepaal waar de rode zone begint; de kleuren van naald, boog, streepjes en cijfers zijn aan jou. Voeg meerdere kopieën toe om verschillende ontwerpen naast elkaar te gebruiken.",
+ "fx_soh1_t": "Voeg je vriend toe",
+ "fx_soh1_d": "Zoek op zijn weergavenaam of iRacing-naam in het Vrienden-paneel van de app en stuur een verzoek. Zodra die wordt geaccepteerd, verschijnt je vriend in je lijst.",
+ "fx_soh2_t": "Zie wie wat doet",
+ "fx_soh2_d": "De lijst laat zien wie online is en wie aan het racen is, op welk circuit, in welke auto en op welke positie.",
+ "fx_soh3_t": "Stuur een bericht, zelfs midden in de race",
+ "fx_soh3_d": "Schrijf vanuit de app of de website. Zit je vriend op de baan, dan verschijnt je bericht als kleine overlay op zijn scherm en verdwijnt het na een paar seconden; hij kiest zelf het notificatiegeluid of zet het uit met Niet storen."
 }
