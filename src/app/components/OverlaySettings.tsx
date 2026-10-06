@@ -158,7 +158,7 @@ export function OverlaySettings(props: {
               </Show>
             </div>
             {/* Kendi "Arka plan opaklığı" seçeneği olan overlay'lerde (mesajlar, sohbet, yakın takip…) genel kaydırıcı gösterilmez */}
-            <Show when={!m()!.settings.some((f) => f.key === "bgOpacity")}>
+            <Show when={!m()!.noBgOpacity && !m()!.settings.some((f) => f.key === "bgOpacity")}>
               <div class="f2">
                 <div class="f2-cap">Arka plan opaklığı</div>
                 <Slider value={Math.round((inst()!.bgOpacity ?? 1) * 100)} min={0} max={100} step={5} unit="%" onInput={(v) => upd((o) => (o.bgOpacity = v / 100))} />

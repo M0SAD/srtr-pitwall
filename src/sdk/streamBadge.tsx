@@ -117,6 +117,9 @@ export const badgeWanted = () => settings().general.streamBadge !== false;
  */
 export const badgeForcedLive = () => !entitlementLoaded() || (entitlement().locked.includes(STREAM_BADGE_LOCK) && !(entitlement().pro && entitlement().locked.includes(STREAM_BADGE_PAID)));
 
+/** Ücretli PRO (mağaza / Patreon ya da yöneticinin tutar girerek verdiği süre) ya da yönetici: Rust'ın bildirdiği işaret */
+export const paidLive = () => entitlementLoaded() && entitlement().pro && entitlement().locked.includes(STREAM_BADGE_PAID);
+
 // Ara sıra geçen ışık süpürmesi: 30 sn'de bir, ~1,2 sn (yalnız transform / opacity; arada hiçbir şey boyanmaz)
 const BADGE_CSS = `
 @keyframes srtr-badge-shine {

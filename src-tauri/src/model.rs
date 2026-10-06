@@ -128,6 +128,8 @@ pub struct Frame {
     pub on_pit_road: bool,
     pub is_on_track: bool,
     pub is_in_garage: bool,
+    /// Garaj / setup ekranı açık mı (iRacing IsGarageVisible; sim bildirmiyorsa None)
+    pub garage_visible: Option<bool>,
     pub replay: bool,
     /// Tekrar modu canlı ana yetişmiş (iRacing'de araçtan inince/izleyiciyken sim tekrar ekranındadır;
     /// bu gerçek bir tekrar izleme sayılmaz). Sadece iRacing verir (ReplayFrameNumEnd).
@@ -235,6 +237,7 @@ impl Default for Frame {
             on_pit_road: false,
             is_on_track: false,
             is_in_garage: false,
+            garage_visible: None,
             replay: false,
             replay_live: false,
             replay_session_num: 0,

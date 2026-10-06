@@ -83,6 +83,7 @@ const OVERLAYS = [
   ["gapchart", "Fark Grafiği"],
   ["goalbar", "Hedef Çubuğu"],
   ["socials", "Sosyal Hesaplar"],
+  ["setupcover", "Setup Örtüsü"],
   ["h2h", "Kafa Kafaya"],
   ["livechat", "Canlı Sohbet"],
   ["livepoll", "Sohbet Anketi"],
@@ -123,7 +124,7 @@ const DEFAULT_HIDDEN_MENU = ["drivers.league"];
 const SUPPORT_CATS = { bug: "Hata bildirimi", overlay: "Overlay / görünüm", payment: "Ödeme / abonelik", account: "Hesap", feature: "Öneri / istek", other: "Diğer" };
 const SUPPORT_ST = { open: ["warn", "Açık"], answered: ["ok", "Yanıtlandı"], closed: ["", "Kapalı"] };
 
-const SRC = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: "Yönetici" };
+const SRC = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici" };
 // Oturumdaki kişi yönetici mi (değilse moderatör: sadece Destek)
 let isAdm = false;
 let sections = SECTIONS;
@@ -275,14 +276,14 @@ async function satislar(el) {
         <td class="num">${r.kind === "refund" ? `<span class="badge bad">İade</span> ` : ""}${fmtMoney(r.kind === "refund" ? -r.amount : r.amount, r.currency)}</td>
       </tr>`,
         )
-        .join("") || `<tr><td colspan="5" class="muted">Henüz ödeme yok. Ödemeler Lemon Squeezy / Patreon / Ko-fi bildirimleriyle buraya düşer.</td></tr>`;
+        .join("") || `<tr><td colspan="5" class="muted">Henüz ödeme yok. Ödemeler Lemon Squeezy / Patreon bildirimleriyle buraya düşer.</td></tr>`;
     $("#pay-total").textContent = `${list.length} kayıt · ${money(tot)}`;
   };
   el.innerHTML = `
     <div class="row between" style="margin-bottom:14px">
       <h2 style="margin:0">Satışlar</h2>
       <div class="row"><span class="muted small" id="pay-total"></span>
-        <div class="seg" id="srcs">${[["", "Hepsi"], ["lemon", "Lemon"], ["patreon", "Patreon"], ["kofi", "Ko-fi"]]
+        <div class="seg" id="srcs">${[["", "Hepsi"], ["lemon", "Lemon"], ["patreon", "Patreon"]]
           .map(([k, l]) => `<button data-s="${k}" class="${k === src ? "on" : ""}">${l}</button>`)
           .join("")}</div>
         <button class="btn btn-sm" id="csv">CSV indir</button></div>
@@ -306,7 +307,7 @@ async function satislar(el) {
       const list = (await rpc("admin_pro_members", { p_kind: kind })) || [];
       box.innerHTML = `<p class="muted small">${
         kind === "paid"
-          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon, Ko-fi) gelen ya da ödeme kaydı olan üyeler."
+          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon) gelen ya da ödeme kaydı olan üyeler."
           : "Aktif PRO olup hiç ödemesi olmayan üyeler (yönetici tarafından verilen süreler vb.)."
       } ${list.length} kişi.</p>
       <table class="list"><thead><tr><th>Üye</th><th>PRO</th><th>Kaynak</th><th class="num">Ödediği</th><th>Son ödeme</th></tr></thead><tbody>
@@ -772,8 +773,6 @@ async function planlar(el) {
       <div class="card grid g2">
         ${f("patreon_url", "Patreon bağlantısı", "https://www.patreon.com/…")}
         ${f("patreon_url_tr", "Patreon bağlantısı (Türkiye)", "https://www.patreon.com/checkout/…")}
-        ${f("kofi_url", "Ko-fi bağlantısı", "https://ko-fi.com/…")}
-        ${f("kofi_url_tr", "Ko-fi bağlantısı (Türkiye)", "https://ko-fi.com/…")}
         ${f("device_limit", "Cihaz sınırı (aşılınca uyarı)", "2", "number")}
         <div class="field"><label>PRO notu (sitede ve programda fiyatların altında)</label><textarea name="pro_note" rows="2">${esc(c.pro_note ?? "")}</textarea></div>
       </div>

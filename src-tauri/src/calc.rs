@@ -20,6 +20,9 @@ pub struct Status {
     pub preview: bool,
     pub on_track: bool,
     pub in_garage: bool,
+    /// Garaj / setup ekranı açık mı (sim bildirmiyorsa alan gönderilmez)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub garage_visible: Option<bool>,
     /// Oyuncunun aracı pit yolunda / pit kutusunda (overlay'lerde "Pitteyken gizle")
     pub on_pit: bool,
     pub replay: bool,
@@ -623,6 +626,7 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         preview,
         on_track: f.is_on_track,
         in_garage: f.is_in_garage,
+        garage_visible: if connected && !demo { f.garage_visible } else { None },
         on_pit: f.on_pit_road,
         replay: f.replay,
         replay_watch: replay_watch(f),

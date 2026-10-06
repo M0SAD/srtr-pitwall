@@ -28,7 +28,7 @@ import "../admin.css";
 type Run = (fn: () => Promise<unknown>, ok: string) => Promise<void>;
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
-const SRC: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: "Yönetici" };
+const SRC: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici" };
 
 export function fmtMoney(m: Money | null | undefined) {
   const e = Object.entries(m ?? {}).filter(([, v]) => Number(v) !== 0);
@@ -63,6 +63,12 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
   const [days, setDays] = createSignal("");
   const [date, setDate] = createSignal("");
   const [note, setNote] = createSignal("");
+  /** "Yayın logosuna müdahale edebilsin": işaretliyse verilen sürenin sonuna kadar logoyu kaldırabilir / taşıyabilir */
+  const [logo, setLogo] = createSignal(false);
+  // Kutunun ilk durumu üyenin şu anki iznidir (profili yalnızca yönetici okuyabilir)
+  api<{ pro_paid_until: string | null }[]>("GET", `profiles?id=eq.${p.user.id}&select=pro_paid_until`)
+    .then((r) => setLogo(!!r?.[0]?.pro_paid_until && new Date(r[0].pro_paid_until).getTime() > Date.now()))
+    .catch(() => {});
   const [notify, setNotify] = createSignal(localStorage.getItem(NOTIFY_KEY) === "1");
   const [log, { refetch }] = createResource(() =>
     api<ProLogRow[]>("POST", "rpc/admin_pro_log", { body: { p_user: p.user.id } }).catch(() => [] as ProLogRow[]),
@@ -78,7 +84,7 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
 
   const apply = (mode: ProChangeMode, o: { days?: number; until?: Date } = {}, label = "") =>
     p.run(async () => {
-      const nu = await adminChangePro(p.user.id, mode, { ...o, note: note().trim(), notify: notify() });
+      const nu = await adminChangePro(p.user.id, mode, { ...o, note: note().trim(), notify: notify(), logo: logo() });
       setCur(nu ?? null);
       setNote("");
       setDays("");
@@ -110,6 +116,17 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
               <small class="muted">{p.user.pro_source ? t("Kaynak: {0}", SRC[p.user.pro_source] ?? p.user.pro_source) : ""}</small>
             </div>
           </div>
+
+          <label class="check pe-notify">
+            <input type="checkbox" checked={logo()} onChange={(e) => setLogo(e.currentTarget.checked)} />
+            <span>
+              <b>Yayın logosuna müdahale edebilsin</b>
+              <small class="muted">
+                İşaretliyken aşağıdan verdiğin sürenin sonuna kadar logoyu kaldırabilir / taşıyabilir ve Setup Örtüsü'nü özelleştirebilir. İşaretsizken bu haklar kapanır. Her
+                süre eklediğinde kutunun o anki durumu uygulanır.
+              </small>
+            </span>
+          </label>
 
           <label class="pe-label">Gün ekle / çıkar</label>
           <div class="pe-quick">
@@ -498,7 +515,7 @@ export function AdminRevenue() {
       </div>
       <p class="muted small">
         {kind() === "paid"
-          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon, Ko-fi) gelen ya da ödeme kaydı olan üyeler."
+          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon) gelen ya da ödeme kaydı olan üyeler."
           : "Aktif PRO olup hiç ödemesi olmayan üyeler (yönetici tarafından verilen süreler vb.)."}
       </p>
       <div class="rev-table">

@@ -352,3 +352,37 @@
 .st-row.gone {
   opacity: 0.55;
 }
+
+/* Satır arka planı %0: tablo tümüyle şeffaf; çerçeve, ayırıcı çizgiler ve şerit zeminleri de çizilmez */
+.st.st-clear {
+  --ov-divider: transparent;
+  --ov-bg-row: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.st.st-clear .st-class {
+  background: transparent;
+}
+/* İsteğe bağlı: sürücü satırlarını (kaç tane varsa) saran çerçeve */
+.st.st-framed .st-rows {
+  margin: 2px 3px;
+  border: 1px solid color-mix(in srgb, var(--ov-text) 45%, transparent);
+  border-radius: min(var(--ov-radius, 6px), 8px);
+  overflow: hidden;
+}
+.st.st-framed .st-rows > :last-child {
+  border-bottom: 0;
+}
+/* İsteğe bağlı: her sürücü satırının çevresinde çerçeve */
+.st.st-rowframed .st-row {
+  margin: 2px 3px;
+  height: calc(var(--ov-row-h) - 6px);
+  border: 1px solid color-mix(in srgb, var(--ov-text) 38%, transparent);
+  border-radius: min(var(--ov-radius, 6px), 6px);
+  overflow: hidden;
+}
+.st.st-framed.st-rowframed .st-rows {
+  padding: 1px 0;
+}

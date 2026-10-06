@@ -304,3 +304,17 @@
   min-width: 5.4ch;
   white-space: nowrap;
 }
+
+/* Satır çerçevesi kapalı (ayar) */
+.duel.duel-noframe .duel-row {
+  border-color: transparent;
+}
+/* İsteğe bağlı: tüm listenin çevresinde çerçeve */
+.duel.duel-framed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--ov-text) 45%, transparent);
+  border-radius: var(--ov-radius);
+}

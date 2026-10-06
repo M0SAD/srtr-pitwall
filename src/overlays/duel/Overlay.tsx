@@ -44,7 +44,14 @@ export default function Duel(props: OverlayProps) {
   const k = () => clamp(num(o().reel, 60), 0, 100) / 100;
   const rowH = () => clamp(num(o().rowHeight, 36), 22, 64);
   const fields = createMemo(() => new Set<string>(Array.isArray(o().fields) ? (o().fields as string[]) : DUEL_DEFAULT_FIELDS));
-  const has = (f: string) => fields().has(f);
+  /** Tek marka seri: listedeki tüm araçlar aynıysa araç logosu bilgi vermez */
+  const sameCar = createMemo(() => {
+    const rs = data()?.rows ?? [];
+    if (rs.length < 2) return false;
+    const first = rs[0].carName || rs[0].car;
+    return !!first && rs.every((r) => (r.carName || r.car) === first);
+  });
+  const has = (f: string) => fields().has(f) && !(f === "car" && o().hideSameCar !== false && sameCar());
 
   const me = createMemo(() => stable().find((r) => r.isMe));
 
@@ -188,6 +195,8 @@ export default function Duel(props: OverlayProps) {
   };
 
   const anyoneNear = createMemo(() => layout().list.some((r) => Math.abs(slotOf(r)) <= (slotOf(r) < 0 ? nAhead() : nBehind()) && closeness(r) > 0));
+  /** Ekranda en az bir araç görünüyor mu (eşik kapalıysa listedeki herhangi biri, açıksa eşik içindeki) */
+  const anyoneShown = () => (unlimited() ? layout().list.length > 0 : anyoneNear());
   const isRace = () => {
     const st = session()?.sessionType;
     return st == null || st === "" || /race|yarış/i.test(st);
@@ -254,7 +263,7 @@ export default function Duel(props: OverlayProps) {
   return (
     <div
       class="ov-theme duel"
-      classList={{ "duel-off": !visible(), "duel-flat": k() < 0.05 }}
+      classList={{ "duel-off": !visible(), "duel-flat": k() < 0.05, "duel-noframe": o().rowFrame === false || num(o().bgOpacity, 90) <= 0 && o().rowFrame !== true, "duel-framed": !!o().rowsFrame && (props.editing || anyoneShown() || o().showMe === true) }}
       style={{
         width: `${clamp(num(o().width, 560), 220, 700)}px`,
         "font-size": `${clamp(num(o().fontSize, 15), 10, 28)}px`,
@@ -273,7 +282,8 @@ export default function Duel(props: OverlayProps) {
                 </div>
               )}
             </For>
-            <Show when={o().showMe === true} fallback={<div class="duel-line" />}>
+            {/* Ortadaki çizgi yalnızca gösterilecek bir araç varken çizilir: kimse yokken ekranda tek başına çizgi kalmasın */}
+            <Show when={o().showMe === true} fallback={<Show when={props.editing || anyoneShown()}><div class="duel-line" /></Show>}>
               <div class="duel-row me" style={{ height: `${meH().toFixed(0)}px`, "margin-top": `${(-meH() / 2).toFixed(0)}px` }}>
                 {content(me()!, true)}
               </div>

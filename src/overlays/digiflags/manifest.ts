@@ -5,6 +5,7 @@ export default defineOverlay({
   name: "DigiFlags",
   description: "Gerçek yarış donanımlarından esinlenen LED matris bayrak paneli: sarı, mavi, yeşil, beyaz, damalı, kırmızı, siyah, hasar, enkaz. Ceza alınca altında uyarı satırı.",
   category: "info",
+  noBgOpacity: true,
   topics: [{ name: "session", hz: 5 }],
   size: { w: 180, h: 180 },
   defaultPosition: { x: 1100, y: 60 },

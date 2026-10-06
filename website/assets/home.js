@@ -1,5 +1,5 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
-import { $, T, addDict, appConfig, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, region, startProCheckout } from "./core.js";
+import { $, T, addDict, appConfig, payLinks, payLinksHtml, payMethods, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, region, startProCheckout } from "./core.js";
 import { applyCachedImages, initSiteImages, overrideFor } from "./siteimages.js";
 import { OVERLAY_ROUND as OVERLAY_COUNT } from "./overlays.js";
 import { OVERLAYS, OVERLAY_LIST, OVERLAY_TOTAL, overlayImage, overlaySlot } from "./overlays.js";
@@ -184,13 +184,10 @@ addDict({
     "Abonelik kendiliğinden yenilenir, istediğin zaman iptal edebilirsin; ödediğin dönemin sonuna kadar PRO kalırsın. Ödeme olunca PRO hesabına hemen işlenir.",
     "Subscriptions renew automatically and can be cancelled any time; you stay PRO until the end of the paid period. PRO is applied to your account right after payment.",
   ],
-  per_month: ["ayda {0}", "{0} per month"],
-  best_value: ["En avantajlı", "Best value"],
-  popular: ["Popüler", "Popular"],
   buy: ["Satın al", "Buy"],
   soon: ["Yakında", "Coming soon"],
   price_tbd: ["—", "—"],
-  patreon_title: ["Patreon ya da Ko-fi ile destekle", "Support on Patreon or Ko-fi"],
+  patreon_title: ["Patreon ile destekle", "Support on Patreon"],
   patreon_lead: [
     "İstersen Patreon'dan ödeyebilirsin. Patreon e-postan SRTR Pitwall hesabınla aynı olsun (değilse Hesabım sayfasından ödeme e-postanı yaz); PRO kendiliğinden açılır. Patreon ile sadece aylık abonelik alınabilir.",
     "You can pay on Patreon if you prefer. Use the same e-mail as your SRTR Pitwall account (or set your payment e-mail on My account); PRO turns on automatically. Patreon offers the monthly subscription only.",
@@ -305,7 +302,21 @@ function perMonth(s, n) {
 
 function renderPlans() {
   const c = cfg || {};
-  $("#plans").innerHTML = PLANS.map((p) => {
+  const pm = payMethods(c);
+  // Yöneticinin kendi ödeme bağlantıları (ör. ByNoGame): plan kartlarının hemen altında
+  let pl = $("#pay-links-home");
+  if (!pl) {
+    pl = document.createElement("div");
+    pl.id = "pay-links-home";
+    pl.style.marginTop = "22px";
+    $("#plans").after(pl);
+  }
+  pl.innerHTML = payLinksHtml(c);
+  $("#plans").style.display = pm.hide_plans ? "none" : "";
+  // "Abonelik kendiliğinden yenilenir…" metni yalnızca otomatik planlar açıkken; kendi kategorilerinde açıklamayı yönetici yazar
+  const lead = document.querySelector('[data-t="price_lead"]');
+  if (lead) lead.style.display = pm.hide_plans ? "none" : "";
+  $("#plans").innerHTML = pm.hide_plans ? "" : PLANS.map((p) => {
     const { price, checkout: link, num, cur } = planFor(c, p);
     let per = "";
     if (p.months > 1 && num > 0) per = T("per_month", fmtMoney(num / p.months, cur));
@@ -332,11 +343,12 @@ function renderPlans() {
     </div>`;
   }).join("");
   const alt = [];
-  const patreon = (region === "tr" && c.patreon_url_tr) || c.patreon_url;
+  const patreon = !pm.hide_patreon && ((region === "tr" && c.patreon_url_tr) || c.patreon_url);
   if (patreon) alt.push(`<a class="btn btn-patreon" href="${esc(patreon)}" target="_blank" rel="noopener">Patreon</a>`);
-  const kofi = (region === "tr" && c.kofi_url_tr) || c.kofi_url;
-  if (kofi) alt.push(`<a class="btn" href="${esc(kofi)}" target="_blank" rel="noopener">Ko-fi</a>`);
   $("#alt-pay-btns").innerHTML = alt.join("") || `<span class="muted small">${T("soon")}</span>`;
+  // Patreon gizlendiyse ya da yoksa ve kendi bağlantıların varsa boş "Yakında" kartı gösterilmez
+  const altCard = $("#alt-pay-btns").closest(".alt-pay");
+  if (altCard) altCard.style.display = !alt.length && (payLinks(c).length || pm.hide_patreon) ? "none" : "";
   $("#pro-note").textContent = c.pro_note || "";
 }
 

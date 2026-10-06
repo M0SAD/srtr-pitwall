@@ -18,6 +18,8 @@ export interface Profile {
   is_owner?: boolean;
   pro_until: string | null;
   pro_source: string | null;
+  /** Elle verilen PRO'da logo izninin bitişi (c96/c97): yönetici "logolara müdahale edebilsin" kutusunu işaretlediyse dolu */
+  pro_paid_until?: string | null;
 }
 
 export interface AppConfig {
@@ -26,6 +28,8 @@ export interface AppConfig {
   /** Türkiye'den bağlananlara gösterilen Patreon bağlantısı (boşsa patreon_url) */
   patreon_url_tr?: string;
   kofi_url: string;
+  /** Ödeme yöntemleri (c94): hazır yöntemleri gizleme + yöneticinin kendi ödeme bağlantıları */
+  pay_methods?: PayMethods | null;
   /** Türkiye'den bağlananlara gösterilen Ko-fi bağlantısı (boşsa kofi_url) */
   kofi_url_tr?: string;
   price_monthly: string;
@@ -344,12 +348,149 @@ export function proPrice(c: AppConfig | null | undefined, p: PlanDef): { num: nu
   return null;
 }
 
+/** Yöneticinin eklediği ödeme bağlantısı (ör. ByNoGame ilanı): plan kartı gibi görünür (başlık, fiyat, "Öde") */
+export interface PayLink {
+  title: string;
+  /** Türkiye fiyatı: kartta büyük yazılan metin (ör. "150 TL"); boş olabilir */
+  price?: string;
+  /** Türkiye'den bağlananların ödeme adresi (boşsa Türkiye'de gösterilmez) */
+  url: string;
+  /** Yurt dışı fiyatı ve ödeme adresi (adres boşsa yurt dışında gösterilmez) */
+  price_intl?: string;
+  url_intl?: string;
+  note: string;
+  /** Gösterilsin mi (false: gizli) */
+  on?: boolean;
+  /** (eski) Yalnızca Türkiye: artık yurt dışı adresinin boş olmasıyla ifade edilir */
+  tr_only?: boolean;
+  /** "Ödedim, bildir" formu bu bağlantıda gösterilsin mi (varsayılan kapalı) */
+  claim?: boolean;
+  /** Bağlı olduğu kategorinin kimliği (boş: kategorisiz) */
+  cat?: string;
+  /** Süre (1 / 3 / 6 / 12 ay; 0: belirtilmedi). 1'den büyükse kartta aylık karşılığı yazılır. */
+  months?: number;
+  /** Kart etiketi: "popular" (Popüler) | "best" (En avantajlı) | "" */
+  tag?: string;
+}
+/** "150 TL", "€4,99" gibi fiyat metninin aylık karşılığı (aynı para birimi yazımıyla); hesaplanamazsa "" */
+export function payPerMonth(price: string | undefined, months: number | undefined): string {
+  const str = String(price ?? "").trim();
+  const m = str.match(/\d[\d.,\s]*/);
+  if (!m || !months || months < 2) return "";
+  // Para birimi ne yazıldıysa (₺, TL, $, €, USD, "TL + KDV"…) sayının önündeki / arkasındaki metin aynen korunur
+  const pre = str.slice(0, m.index);
+  const post = str.slice((m.index ?? 0) + m[0].length);
+  let num = m[0].replace(/\s/g, "").replace(/[.,]$/, "");
+  const dot = num.lastIndexOf(".");
+  const com = num.lastIndexOf(",");
+  if (dot >= 0 && com >= 0) num = dot > com ? num.replace(/,/g, "") : num.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}([.,]\d{3})+$/.test(num)) num = num.replace(/[.,]/g, "");
+  else num = num.replace(",", ".");
+  const n = parseFloat(num);
+  if (!isFinite(n) || n <= 0) return "";
+  const v = (n / months).toLocaleString(localeTag(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${pre}${v}${m[0].endsWith(" ") && post ? " " : ""}${post}`;
+}
+/** Ödeme kategorisi (ör. "ByNoGame"): başlık, genel açıklama, logo; altında bağlantı kartları */
+export interface PayCat {
+  id: string;
+  title: string;
+  note: string;
+  /** Logo (data: ya da https: adresi) */
+  img?: string;
+  /** Kategori açıklamasının altındaki ödeme yöntemi görselleri (Visa, Mastercard…) */
+  badges?: string[];
+  on?: boolean;
+  tr_only?: boolean;
+}
+export interface PayMethods {
+  /** Otomatik planlar (mağaza) ve hediye PRO'nun mağaza düğmeleri gizli */
+  hide_plans?: boolean;
+  hide_patreon?: boolean;
+  /** İndirim kuponu kutusu gizli */
+  hide_coupon?: boolean;
+  cats?: PayCat[];
+  links?: PayLink[];
+  /** "Ödeme yöntemleri" görselleri (Visa, Mastercard…): data: ya da https: adresleri */
+  badges?: string[];
+}
+/** Görsel adresi güvenli mi (yalnızca gömülü resim ya da https) */
+export const payImgOk = (u: unknown): u is string => typeof u === "string" && /^(data:image\/(png|jpeg|webp|gif|svg\+xml);base64,|https:\/\/)/i.test(u);
+/** Ödeme yöntemleri ayarı (kayıt yoksa / bozuksa hiçbir şey gizli değil, bağlantı yok) */
+export function payMethods(c: AppConfig | null | undefined): PayMethods {
+  const p = c?.pay_methods;
+  if (!p || typeof p !== "object") return { links: [], cats: [], badges: [] };
+  const obj = (x: unknown) => !!x && typeof x === "object";
+  const cats = (Array.isArray(p.cats) ? p.cats : [])
+    .filter(obj)
+    .map((k) => ({ id: String(k.id ?? ""), title: String(k.title ?? ""), note: String(k.note ?? ""), img: payImgOk(k.img) ? k.img : "", badges: (Array.isArray(k.badges) ? k.badges : []).filter(payImgOk), on: k.on !== false, tr_only: !!k.tr_only }))
+    .filter((k) => k.id);
+  const links = (Array.isArray(p.links) ? p.links : []).filter(obj).map((l) => ({
+    title: String(l.title ?? ""),
+    price: String(l.price ?? ""),
+    url: String(l.url ?? ""),
+    note: String(l.note ?? ""),
+    // Eski kayıt (yurt dışı alanı yok): "Yalnızca Türkiye" değilse aynı adres / fiyat yurt dışında da geçerliydi
+    url_intl: l.url_intl !== undefined ? String(l.url_intl ?? "") : l.tr_only ? "" : String(l.url ?? ""),
+    price_intl: l.price_intl !== undefined ? String(l.price_intl ?? "") : l.tr_only ? "" : String(l.price ?? ""),
+    on: l.on !== false,
+    tr_only: false,
+    claim: !!l.claim,
+    cat: cats.some((k) => k.id === l.cat) ? String(l.cat) : "",
+    months: [1, 3, 6, 12].includes(Number(l.months)) ? Number(l.months) : 0,
+    tag: l.tag === "popular" || l.tag === "best" ? l.tag : "",
+  }));
+  const badges = (Array.isArray(p.badges) ? p.badges : []).filter(payImgOk);
+  return { hide_plans: !!p.hide_plans, hide_patreon: !!p.hide_patreon, hide_coupon: !!p.hide_coupon, cats, links, badges };
+}
+/** Kullanıcıya gösterilecek kendi ödeme bağlantıları (açık, adresi http(s), bölgeye uygun, kategorisi gizli değil) */
+export const payLinksShown = (c: AppConfig | null | undefined): PayLink[] => payGroupsShown(c).flatMap((g) => g.links);
+/** Gösterilecek kategoriler ve kartları. Kategorisiz bağlantılar başlıksız bir grup olarak en başta gelir. */
+export function payGroupsShown(c: AppConfig | null | undefined): { cat: PayCat | null; links: PayLink[] }[] {
+  const pm = payMethods(c);
+  // Bölgeye göre adres ve fiyat: Türkiye'de Türkiye alanları, diğer ülkelerde yurt dışı alanları. Adresi girilmemiş bölgede kart çıkmaz.
+  const tr = inTurkey();
+  const all = (pm.links ?? [])
+    .map((l) => (tr ? l : { ...l, url: l.url_intl ?? "", price: l.price_intl ?? "" }))
+    .filter((l) => l.on !== false && /^https?:\/\//i.test(l.url));
+  const out: { cat: PayCat | null; links: PayLink[] }[] = [];
+  const loose = all.filter((l) => !l.cat);
+  if (loose.length) out.push({ cat: null, links: loose });
+  for (const k of pm.cats ?? []) {
+    if (k.on === false || (k.tr_only && !inTurkey())) continue;
+    const links = all.filter((l) => l.cat === k.id);
+    if (links.length) out.push({ cat: k, links });
+  }
+  return out;
+}
+
+/** "Ödedim" bildirimi (c94): yöneticilere uygulama içi bildirim gider; PRO elle tanımlanır */
+export const sendPayClaim = (method: string, contact: string, note: string) =>
+  api<string>("POST", "rpc/pay_claim_send", { body: { p_method: method, p_contact: contact, p_note: note } });
+export interface PayClaim {
+  id: string;
+  user_id: string;
+  display_name: string;
+  email: string;
+  method: string;
+  contact: string;
+  note: string;
+  done: boolean;
+  created_at: string;
+  pro_until: string | null;
+}
+/** Yönetim: son ödeme bildirimleri */
+export const adminPayClaims = () => api<PayClaim[]>("POST", "rpc/admin_pay_claims", { body: {} }).then((r) => r ?? []);
+export const adminPayClaimDone = (id: string, done: boolean) => api("PATCH", `pay_claims?id=eq.${id}`, { body: { done } });
+
 /** Otomatik ödeme mi ("pro:<plan>", pro-checkout ile açılır) yoksa elle girilmiş bağlantı mı */
 export const isProCheckout = (link: string) => link.startsWith("pro:");
 
 /** Planın kullanıcının bölgesindeki fiyatı ve ödeme bağlantısı.
  *  Otomatik fiyat girildiyse checkout "pro:<plan>" olur (ödeme startProCheckout ile açılır). */
 export function planFor(c: AppConfig | null | undefined, p: PlanDef): { price: string; checkout: string; num?: number; cur?: string } {
+  // Yönetici otomatik planları gizlediyse (mağaza hazır değil) plan yok sayılır: düğmeler, kupon ve hediye de gizlenir
+  if (payMethods(c).hide_plans) return { price: "", checkout: "" };
   const dyn = proPrice(c, p);
   if (dyn) return { price: fmtPrice(dyn.num, dyn.cur), checkout: "pro:" + p.id, num: dyn.num, cur: dyn.cur };
   const g = (k: keyof AppConfig) => String((c?.[k] as string | undefined) ?? "");
@@ -536,7 +677,9 @@ const PAID_PRO_SOURCES = ["lemon", "patreon", "kofi"];
 /** Kullanıcının PRO'su ücretli bir kaynaktan mı geliyor (ve sürüyor mu) */
 export const paidPro = () => {
   const p = profile();
-  return !!p && !!p.pro_until && new Date(p.pro_until).getTime() > Date.now() && PAID_PRO_SOURCES.includes(p.pro_source ?? "");
+  if (!p || !p.pro_until || new Date(p.pro_until).getTime() <= Date.now()) return false;
+  // Mağaza / Patreon aboneliği ya da yöneticinin logo izniyle verdiği süre
+  return PAID_PRO_SOURCES.includes(p.pro_source ?? "") || (!!p.pro_paid_until && new Date(p.pro_paid_until).getTime() > Date.now());
 };
 /** Yayın logosunu gizleme / taşıma hakkı (özellik PRO'ya ayrılmışken): ücretli PRO ya da yönetici hesabı */
 export const streamBadgeEntitled = () => !freeView() && (realAdmin() || (isPro() && paidPro()));
@@ -691,7 +834,7 @@ export function adminSetPro(user: string, until: Date | null) {
 
 export type ProChangeMode = "add" | "set" | "unlimited" | "remove";
 /** PRO süresini düzenle; notify: kullanıcıya bildirim + e-posta (kendi dilinde). Yeni bitişi döner. */
-export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: number; until?: Date; note?: string; notify?: boolean } = {}) {
+export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: number; until?: Date; note?: string; notify?: boolean; logo?: boolean } = {}) {
   return api<string | null>("POST", "rpc/admin_change_pro", {
     body: {
       p_user: user,
@@ -700,6 +843,8 @@ export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: nu
       p_until: o.until ? o.until.toISOString() : null,
       p_note: o.note ?? "",
       p_notify: !!o.notify,
+      // Logo izni (c97): true = yeni bitişe kadar yayın logosuna müdahale edebilir; false = edemez; verilmezse korunur
+      ...(typeof o.logo === "boolean" ? { p_paid: o.logo } : {}),
     },
   });
 }

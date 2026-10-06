@@ -7,6 +7,7 @@ export default defineOverlay({
   description:
     "Canlı sohbetteki anketi gösterir: izleyiciler şık numarasını yazarak oy verir. Soru, şıklar, oy çubukları, kalan süre ve kazanan (beraberlikte rastgele seçim animasyonu). Anket Canlı Sohbet sayfasından başlatılır.",
   category: "stream",
+  noBgOpacity: true,
   topics: [{ name: "livepoll", hz: 10 }],
   size: { w: 360, h: 200 },
   defaultPosition: { x: 20, y: 200 },

@@ -3,6 +3,7 @@
 // Reklamlar, Görünürlük, Bildirimler, Moderasyon, Mesajlar, Medya, Ses paketleri.
 // Moderatörler (reports.view izni): Destek (silme hariç) ve Moderasyon.
 
+import { AdminPayMethods } from "../components/AdminPayMethods";
 import { For, Match, Show, Switch, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import {
@@ -159,6 +160,7 @@ export function AdminPage() {
         </Match>
         <Match when={page() === "plans"}>
           <Plans run={run} />
+          <AdminPayMethods />
         </Match>
         <Match when={page() === "notices"}>
           <section class="panel admin-panel">
@@ -642,14 +644,12 @@ function Plans(props: { run: Run }) {
         />
       </div>
       <details class="notes">
-        <summary>Eski bağlantılar (Patreon / Ko-fi)</summary>
+        <summary>Eski bağlantılar (Patreon)</summary>
         <For
           each={
             [
               ["patreon_url", "Patreon bağlantısı"],
               ["patreon_url_tr", "Patreon bağlantısı (Türkiye)"],
-              ["kofi_url", "Ko-fi bağlantısı"],
-              ["kofi_url_tr", "Ko-fi bağlantısı (Türkiye)"],
             ] as const
           }
         >

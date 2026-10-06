@@ -367,7 +367,10 @@ export function Host() {
     if (always) return !(inst.hideInGarage && inPit) && !(inst.hideOnTrack && driving);
     // Tekrar (replay) izlenirken overlay'ler gizlenir (ayar; canlı ana yetişmiş izleme hariç)
     if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch) return false;
-    if (settings().general.hideWhenOffTrack && !st.demo && (!st.onTrack || st.replay)) return false;
+    // "Pistte değilken gizle" (varsayılan açık): overlay'ler sürüş başlayınca görünür. "Oyun kapalıyken de göster" işaretli
+    // kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar) garajda da görünür kalır.
+    // "İzlerken / garaj" türündeki düzenler tam da pist dışı içindir: onlar gizlenmez.
+    if (settings().general.hideWhenOffTrack && shown()!.rules.mode !== "spotting" && !inst.alwaysShow && !st.demo && (!st.onTrack || st.replay)) return false;
     // Demo'da "pitteyken gizle" / "pistte gizle" uygulanmaz: yerleşim denenirken her overlay görünsün
     if (!st.demo && inst.hideInGarage && inPit) return false;
     if (!st.demo && inst.hideOnTrack && driving) return false;

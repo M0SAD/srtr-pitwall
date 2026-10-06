@@ -79,12 +79,19 @@ export default function Standings(props: OverlayProps) {
     return Number.isFinite(v) && v > 0 ? Math.max(2, Math.min(600, v)) : 0;
   };
 
+  /** Tek marka seri (ör. Porsche Cup): oturumdaki tüm araçlar aynıysa araç sütunu bilgi vermez */
+  const sameCar = createMemo(() => {
+    const rows = data()?.rows ?? [];
+    if (rows.length < 2) return false;
+    const first = rows[0].carName || rows[0].car;
+    return !!first && rows.every((r) => (r.carName || r.car) === first);
+  });
   const columns = createMemo(() =>
     orderValue(
       { options: STANDINGS_COLUMNS, default: STANDINGS_DEFAULT_COLUMNS },
       props.options.columns ?? legacyColumns(props.options),
     )
-      .filter((c) => c.on)
+      .filter((c) => c.on && !(c.key === "car" && props.options.hideSameCar !== false && sameCar()))
       // Genişliği elle ayarlanmış sütun "*" ile işaretlenir: hücre sabit genişlikli sarmalayıcıya girer
       .map((c) => (colW(c.key) ? c.key + "*" : c.key)),
   );
@@ -235,7 +242,7 @@ export default function Standings(props: OverlayProps) {
   const rowBg = () => (props.options.rowOpacity as number) ?? 100;
 
   return (
-    <div class="ov-panel st" data-per={(props.options.drivers ?? "all") === "smart" ? Math.max(1, groups().filter((g) => g.mine).length) : Math.max(1, groups().length)} style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
+    <div class="ov-panel st" classList={{ "st-clear": rowBg() <= 0, "st-framed": !!props.options.rowsFrame, "st-rowframed": !!props.options.rowFrame }} data-per={(props.options.drivers ?? "all") === "smart" ? Math.max(1, groups().filter((g) => g.mine).length) : Math.max(1, groups().length)} style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
       <Show when={props.options.showHeader && data()}>
         <div class="st-head" style={{ "font-size": `${barK(props.options.barSize)}em` }}>
           <Show
@@ -278,6 +285,7 @@ export default function Standings(props: OverlayProps) {
                   </span>
                 </div>
               </Show>
+              <div class="st-rows">
               <For each={groupOf(id)?.rows ?? []}>
                 {(r) =>
                   r === null ? (
@@ -291,6 +299,7 @@ export default function Standings(props: OverlayProps) {
                   )
                 }
               </For>
+              </div>
             </div>
           )}
         </For>

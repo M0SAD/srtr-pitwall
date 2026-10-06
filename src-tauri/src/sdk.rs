@@ -138,6 +138,7 @@ pub struct VarIndex {
     pub on_pit_road: Option<VarRef>,
     pub is_on_track: Option<VarRef>,
     pub is_in_garage: Option<VarRef>,
+    pub garage_visible: Option<VarRef>,
     pub replay: Option<VarRef>,
     pub replay_end: Option<VarRef>,
     pub replay_frame: Option<VarRef>,
@@ -252,6 +253,7 @@ impl VarIndex {
                 "OnPitRoad" => ix.on_pit_road = r,
                 "IsOnTrack" => ix.is_on_track = r,
                 "IsInGarage" => ix.is_in_garage = r,
+                "IsGarageVisible" => ix.garage_visible = r,
                 "IsReplayPlaying" => ix.replay = r,
                 "ReplayFrameNumEnd" => ix.replay_end = r,
                 "ReplayFrameNum" => ix.replay_frame = r,
@@ -419,6 +421,7 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.on_pit_road = bool_of(buf, ix.on_pit_road);
     f.is_on_track = bool_of(buf, ix.is_on_track);
     f.is_in_garage = bool_of(buf, ix.is_in_garage);
+    f.garage_visible = ix.garage_visible.map(|_| bool_of(buf, ix.garage_visible));
     f.replay = bool_of(buf, ix.replay);
     // Kasetin sonuna (canlı ana) 1 saniyeden yakın: izleyici/araç dışı görünüm, gerçek tekrar değil
     f.replay_live = f.replay && ix.replay_end.is_some() && i32_or(buf, ix.replay_end, 0) <= 60;

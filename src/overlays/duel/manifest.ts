@@ -73,6 +73,7 @@ export default defineOverlay({
 
     { key: "fields", label: "Gösterilecek bilgiler", type: "multi", default: DUEL_DEFAULT_FIELDS, options: DUEL_FIELDS, group: "Satır içeriği" },
     { key: "nameFormat", label: "Ad biçimi", type: "select", default: "full", options: NAME_FORMATS, group: "Satır içeriği" },
+    { key: "hideSameCar", label: "Tüm araçlar aynıysa araç sütununu gizle", type: "boolean", default: true, group: "Satır içeriği", hint: "Tek marka serilerde (ör. Porsche Cup) herkes aynı araçta olduğundan logo / araç adı gösterilmez; yer açılır." },
     { key: "logoSize", label: "Logo boyutu", type: "number", default: 130, min: 80, max: 220, step: 10, unit: "%", group: "Satır içeriği" },
     { key: "lapTint", label: "Tur farkı rengi (tur önde mavi, tur geride kırmızı)", type: "boolean", default: true, group: "Satır içeriği" },
 
@@ -82,6 +83,8 @@ export default defineOverlay({
     { key: "rowHeight", label: "Satır yüksekliği", type: "number", default: 36, min: 22, max: 64, step: 1, unit: "px", group: "Görünüm" },
     { key: "width", label: "Genişlik", type: "number", default: 560, min: 220, max: 700, step: 10, unit: "px", group: "Görünüm" },
     { key: "nearColor", label: "Yakın araç vurgu rengi", type: "color", default: "#ff8a2a", group: "Görünüm" },
+    { key: "rowsFrame", label: "Sürücü listesinin çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
+    { key: "rowFrame", label: "Her sürücünün çevresinde çerçeve", type: "boolean", default: true, group: "Görünüm" },
     { key: "bgOpacity", label: "Arka plan opaklığı", type: "number", default: 90, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm" },
   ],
 });

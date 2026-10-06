@@ -36,6 +36,8 @@ import {
   refreshEntitlement,
   updateProfile,
   PLAN_LIST,
+  payGroupsShown,
+  payMethods,
   planFor,
   isProCheckout,
   startProCheckout,
@@ -56,6 +58,7 @@ import { TelemetryPrivacyPanel } from "./TelemetryPage";
 import { EmailPrefsPanel } from "../components/EmailPrefsPanel";
 import { PublicProfilePanel } from "../components/Profile";
 import { DemoShowcaseToggle } from "../components/DemoShowcaseToggle";
+import { PayCats } from "../components/PayCats";
 import { CouponBox, CouponPrice, couponFor } from "../components/CouponBox";
 import { ProPromoCard } from "../components/ProPromoCard";
 
@@ -531,7 +534,7 @@ function ProPanel() {
           </p>
         </Show>
         <Show when={plans().length > 0}>
-          <Show when={session() && plans().some((p) => isProCheckout(p.checkout))}>
+          <Show when={session() && !payMethods(c()).hide_coupon && plans().some((p) => isProCheckout(p.checkout))}>
             <CouponBox />
           </Show>
           <div class="pro-plans">
@@ -564,22 +567,17 @@ function ProPanel() {
           </Show>
         </Show>
         <div class="btns">
-          <Show when={c()?.patreon_url || (inTurkey() && c()?.patreon_url_tr)}>
+          <Show when={!payMethods(c()).hide_patreon && (c()?.patreon_url || (inTurkey() && c()?.patreon_url_tr))}>
             <button class="btn ghost" data-no-i18n onClick={() => openUrl((inTurkey() && c()!.patreon_url_tr) || c()!.patreon_url)}>
               Patreon
             </button>
           </Show>
-          <Show when={c()?.kofi_url || (inTurkey() && c()?.kofi_url_tr)}>
-            <button class="btn ghost" data-no-i18n onClick={() => openUrl((inTurkey() && c()!.kofi_url_tr) || c()!.kofi_url)}>
-              Ko-fi
-            </button>
-          </Show>
         </div>
-        <p class="muted small">
-          Abonelik kendiliğinden yenilenir; istediğin zaman iptal edebilirsin. Ödeme sonrası PRO birkaç dakika içinde otomatik açılır.
-          <Show when={c()?.patreon_url || c()?.patreon_url_tr}> Patreon ile sadece aylık abonelik alınabilir.</Show>
-          <Show when={!session()}> Önce hesap oluştur ya da giriş yap.</Show>
-        </p>
+        {/* Yöneticinin ödeme kategorileri (ör. ByNoGame): plan kartı görünümünde bağlantılar. PRO elle tanımlanır. */}
+        <PayCats cfg={c} open={openUrl} />
+        <Show when={!session() && (plans().length > 0 || payGroupsShown(c()).length > 0)}>
+          <p class="muted small">Önce hesap oluştur ya da giriş yap.</p>
+        </Show>
         <div class="btns">
           <button class="btn ghost small" onClick={() => openUrl("https://pitwall.simracetr.com/hesap.html")}>
             Web sitesinde hesabım
@@ -711,7 +709,7 @@ function GiftPanel(props: { cfg: () => AppConfig | null | undefined }) {
       </div>
       <Show when={open()}>
         <div class="gift-inline">
-          <Show when={plans().length > 0} fallback={<p class="muted small">Hediye PRO şu an kullanılamıyor.</p>}>
+          <Show when={plans().length > 0 || payGroupsShown(props.cfg()).length > 0} fallback={<p class="muted small">Hediye PRO şu an kullanılamıyor.</p>}>
             <Show
               when={to()}
               fallback={
@@ -766,6 +764,7 @@ function GiftPanel(props: { cfg: () => AppConfig | null | undefined }) {
                   Değiştir
                 </button>
               </div>
+              <Show when={plans().length > 0}>
               <div class="pro-plans">
                 <For each={plans()}>
                   {(p) => (
@@ -783,6 +782,8 @@ function GiftPanel(props: { cfg: () => AppConfig | null | undefined }) {
                 Ödeme sayfasında senin e-postan kullanılır; fatura ve yenileme ödemeleri sana aittir. Alıcının e-postası kimseyle
                 paylaşılmaz. Alıcının PRO süresi varsa hediye üstüne eklenir.
               </p>
+              </Show>
+              <PayCats cfg={props.cfg} open={openUrl} badges={false} gift={() => to()?.display_name || "?"} />
             </Show>
           </Show>
         </div>

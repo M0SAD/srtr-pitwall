@@ -8,6 +8,7 @@ export default defineOverlay({
   description:
     "Ekranın iki yanında ince birer çubuk: sadece solunda ya da sağında araç varken o taraftaki çubuk yanar, işaret aracın arkadan öne ilerleyişini gösterir.",
   category: "driving",
+  noBgOpacity: true,
   topics: [
     { name: "radar", hz: 30 },
     { name: "inputs", hz: 5 },

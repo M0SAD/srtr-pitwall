@@ -2095,3 +2095,33 @@ button.adp:disabled {
     display: none;
   }
 }
+
+/* Ödeme kategorileri (fiyatlar, hesap sayfası, hediye): logo + başlık + açıklama, altında plan kartları */
+.paycats{display:flex;flex-direction:column;gap:18px;margin:14px 0}
+.paycat{padding:22px}
+.paycat-head{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+.paycat-logo{flex:none;max-width:260px;max-height:92px;object-fit:contain}
+.paycat-txt{flex:1;min-width:0}
+.paycat-txt h3{margin:0}
+.paycat-txt p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.paycards{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.paycards .plan{background:rgba(255,255,255,.03);padding:22px 16px}
+.paycards .plan .price{font-size:30px;min-height:36px}
+.paycards .plan .name{overflow-wrap:anywhere}
+.paybadges{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 22px;padding:4px 0}
+.paycat-badges{justify-content:flex-start;padding:12px 0 0}
+.paybadges img{max-height:30px;max-width:110px;object-fit:contain;opacity:.9}
+@media (max-width:560px){.paycat-head{flex-direction:column;align-items:flex-start;gap:10px}}
+dialog.paydlg{width:min(540px,calc(100vw - 32px));max-height:90vh;overflow:auto;color:inherit;padding:22px}
+dialog.paydlg::backdrop{background:rgba(0,0,0,.65)}
+.paydlg-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.paydlg-head img{max-height:32px;max-width:110px;object-fit:contain}
+.paydlg-head h3{flex:1;min-width:0;margin:0}
+.paydlg-price{color:var(--accent);margin-left:8px}
+dialog.paydlg .pay-link-body{padding:0;border-top:0}
+.pay-link-body{padding:0 16px 14px;border-top:1px solid var(--line,#2a2f3a)}
+.pay-link-body p{margin:10px 0 6px}
+.pay-link-body .pay-note{opacity:.8;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.pay-link-body .input{display:block;width:100%;box-sizing:border-box;margin:6px 0;font:inherit}
+
+.pay-link-body .input{padding:9px 11px;border:1px solid var(--line,#2a2f3a);border-radius:8px;background:rgba(0,0,0,.25);color:inherit}

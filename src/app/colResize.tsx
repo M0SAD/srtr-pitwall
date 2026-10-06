@@ -20,7 +20,8 @@ export function useCols() {
     onCleanup(() => window.removeEventListener("resize", on));
   });
   /** Ayar paneli kapalı ama yeri ayrılmış mı */
-  const keep = () => winW() >= KEEP_MIN;
+  // Ayar paneli kapalıyken yeri ayrılmaz: düzen tuvali soldaki overlay listesine yanaşır, ayarlar açılınca sağa kayar
+  const keep = () => false && winW() >= KEEP_MIN;
   const [drag, setDrag] = createSignal<{ k: Col; v: number } | null>(null);
   const w = (k: Col) => (drag()?.k === k ? drag()!.v : clamp(k === "list" ? listRaw() : setRaw(), k));
   const save = (k: Col, v: number) => (k === "list" ? setList(v) : setSet(v));

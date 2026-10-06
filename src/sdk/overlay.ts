@@ -21,6 +21,8 @@ interface FieldBase {
   /** Ayar panelinde hangi başlık altında (boş: overlay adı) */
   group?: string;
   showIf?: ShowIf;
+  /** Yalnızca yayın logosu izni olanlara (ücretli PRO / yönetici) gösterilen ayar */
+  logoPerm?: boolean;
   /** Sadece PRO olmayan kullanıcılara gösterilen not (ör. "tasarımlar PRO'ya özel") */
   proHint?: string;
   /** Bu ayar bir PRO özelliğine bağlı (src/sdk/proFeatures.ts anahtarı, ör. "social.messages_tts"):
@@ -102,6 +104,8 @@ export interface OverlayManifest {
   defaultAlwaysShow?: boolean;
   /** Ayarlar → Genel'de "aynı overlay'den birden fazla" kapalı olsa bile birden çok kopya eklenebilir */
   multiInstance?: boolean;
+  /** Tema arka planını kullanmayan overlay (kendi zemini / görseli var): genel "Arka plan opaklığı" kaydırıcısı gösterilmez */
+  noBgOpacity?: boolean;
   /** Yeni kopyanın arka plan opaklığı çarpanı (0..1; yok = 1). Ayarlarda "Arka plan opaklığı" ile değiştirilir. */
   defaultBgOpacity?: number;
   /**

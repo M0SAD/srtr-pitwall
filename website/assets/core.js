@@ -269,7 +269,172 @@ export function proPrice(cfg, p) {
 
 /** Planın bu bölgedeki fiyat metni ve ödeme bağlantısı (Türkiye alanı boşsa genel fiyat).
  *  Otomatik fiyat girildiyse checkout "pro:<plan>" olur (ödeme startProCheckout ile açılır). */
+/** Görsel adresi güvenli mi (yalnızca gömülü resim ya da https) */
+const payImgOk = (u) => typeof u === "string" && /^(data:image\/(png|jpeg|webp|gif|svg\+xml);base64,|https:\/\/)/i.test(u);
+/** Ödeme yöntemleri ayarı (app_config.pay_methods, c94): hazır yöntemleri gizleme + yöneticinin kategorileri ve bağlantıları */
+export function payMethods(cfg) {
+  const p = cfg && cfg.pay_methods;
+  if (!p || typeof p !== "object") return { links: [], cats: [], badges: [] };
+  const obj = (x) => x && typeof x === "object";
+  const cats = (Array.isArray(p.cats) ? p.cats : []).filter((k) => obj(k) && k.id);
+  const links = (Array.isArray(p.links) ? p.links : []).filter(obj).map((l) => ({ ...l, cat: cats.some((k) => k.id === l.cat) ? l.cat : "" }));
+  return { hide_plans: !!p.hide_plans, hide_patreon: !!p.hide_patreon, hide_coupon: !!p.hide_coupon, cats, links, badges: (Array.isArray(p.badges) ? p.badges : []).filter(payImgOk) };
+}
+/** Gösterilecek kategoriler ve kartları (kategorisiz bağlantılar başlıksız grup olarak en başta) */
+export function payGroups(cfg) {
+  const pm = payMethods(cfg);
+  // Bölgeye göre adres ve fiyat: Türkiye'de Türkiye alanları, diğer ülkelerde yurt dışı alanları; adresi girilmemiş
+  // bölgede kart çıkmaz. Eski kayıt (yurt dışı alanı yok): "Yalnızca Türkiye" değilse aynı adres yurt dışında da geçerli.
+  const all = pm.links
+    .map((l) =>
+      region === "tr"
+        ? l
+        : { ...l, url: l.url_intl !== undefined ? l.url_intl : l.tr_only ? "" : l.url, price: l.price_intl !== undefined ? l.price_intl : l.tr_only ? "" : l.price },
+    )
+    .filter((l) => l.on !== false && /^https?:\/\//i.test(String(l.url || "")));
+  const out = [];
+  const loose = all.filter((l) => !l.cat);
+  if (loose.length) out.push({ cat: null, links: loose });
+  for (const k of pm.cats) {
+    if (k.on === false || (k.tr_only && region !== "tr")) continue;
+    const links = all.filter((l) => l.cat === k.id);
+    if (links.length) out.push({ cat: k, links });
+  }
+  return out;
+}
+/** Gösterilecek kendi ödeme bağlantıları (düz liste) */
+export const payLinks = (cfg) => payGroups(cfg).flatMap((g) => g.links);
+/** Ödeme kategorileri: logo + başlık + genel açıklama, altında plan kartı görünümünde bağlantılar ("Öde").
+ *  Karta basınca pencere açılır: açıklama, ödeme sayfası düğmesi ve (açıksa) "ödedim" bildirimi.
+ *  gift: hediye alıcısının adı (form her zaman açılır, alıcı bildirime yazılır). */
+/** "150 TL", "€4,99" gibi fiyat metninin aylık karşılığı (aynı para birimi yazımıyla); hesaplanamazsa "" */
+function payPer(price, months) {
+  const str = String(price || "").trim();
+  const m = str.match(/\d[\d.,\s]*/);
+  if (!m || !months || months < 2) return "";
+  // Para birimi ne yazıldıysa (₺, TL, $, €, USD, "TL + KDV"…) sayının önündeki / arkasındaki metin aynen korunur
+  const pre = str.slice(0, m.index);
+  const post = str.slice(m.index + m[0].length);
+  let num = m[0].replace(/\s/g, "").replace(/[.,]$/, "");
+  const dot = num.lastIndexOf(".");
+  const com = num.lastIndexOf(",");
+  if (dot >= 0 && com >= 0) num = dot > com ? num.replace(/,/g, "") : num.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}([.,]\d{3})+$/.test(num)) num = num.replace(/[.,]/g, "");
+  else num = num.replace(",", ".");
+  const n = parseFloat(num);
+  if (!isFinite(n) || n <= 0) return "";
+  const v = (n / months).toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${pre}${v}${m[0].endsWith(" ") && post ? " " : ""}${post}`;
+}
+let paySeq = 0;
+const payStore = new Map();
+export function payLinksHtml(cfg, { gift = "", badges = true } = {}) {
+  const groups = payGroups(cfg);
+  if (!groups.length) return "";
+  bindPayLinks();
+  const b = badges ? payMethods(cfg).badges : [];
+  return `<div class="paycats">${groups
+    .map(
+      (g) => `<section class="paycat card">
+      ${
+        g.cat
+          ? `<header class="paycat-head">${payImgOk(g.cat.img) ? `<img class="paycat-logo" src="${esc(g.cat.img)}" alt="">` : ""}
+          <div class="paycat-txt"><h3 translate="no">${esc(g.cat.title || "")}</h3>${g.cat.note ? `<p translate="no">${esc(g.cat.note)}</p>` : ""}${(() => {
+            const cb = (Array.isArray(g.cat.badges) ? g.cat.badges : []).filter(payImgOk);
+            return cb.length ? `<div class="paybadges paycat-badges">${cb.map((u) => `<img src="${esc(u)}" alt="">`).join("")}</div>` : "";
+          })()}</div></header>`
+          : ""
+      }
+      <div class="plans paycards">${g.links
+        .map((x) => {
+          const id = "p" + ++paySeq;
+          payStore.set(id, { link: x, cat: g.cat, gift });
+          const mo = [1, 3, 6, 12].includes(Number(x.months)) ? Number(x.months) : 0;
+          const per = payPer(x.price, mo);
+          const tag = x.tag === "best" ? T("best_value") : x.tag === "popular" ? T("popular") : "";
+          return `<div class="card plan${x.tag === "best" ? " best" : ""}">${tag ? `<span class="tag">${esc(tag)}</span>` : ""}
+          <div class="name"${x.title ? ` translate="no"` : ""}>${esc(x.title || (mo ? T("plan_" + mo + "m") : "—"))}</div><div class="price" translate="no">${esc(x.price || "")}</div>
+          <div class="per">${per ? esc(T("per_month", per)) : ""}</div>
+          <button type="button" class="btn ${x.tag === "best" ? "btn-accent" : ""}" data-pay-open="${id}">${esc(T(gift ? "pay_gift" : "pay_with"))}</button></div>`;
+        })
+        .join("")}</div></section>`,
+    )
+    .join("")}${b.length ? `<div class="paybadges">${b.map((u) => `<img src="${esc(u)}" alt="">`).join("")}</div>` : ""}</div>`;
+}
+function openPayDialog(id) {
+  const it = payStore.get(id);
+  if (!it) return;
+  const { link: x, cat, gift } = it;
+  const form = !!x.claim || !!gift;
+  const method = [cat && cat.title, x.title || x.url, x.price].filter(Boolean).join(" · ");
+  document.querySelector("dialog.paydlg")?.remove();
+  const d = document.createElement("dialog");
+  d.className = "paydlg card";
+  d.innerHTML = `<div class="paydlg-head">${cat && payImgOk(cat.img) ? `<img src="${esc(cat.img)}" alt="">` : ""}
+      <h3 translate="no">${esc(x.title || x.url)}${x.price ? ` <span class="paydlg-price">${esc(x.price)}</span>` : ""}</h3>
+      <button type="button" class="btn btn-sm btn-ghost" data-pay-close aria-label="×">✕</button></div>
+    <div class="pay-link-body">
+      ${gift ? `<p><b>🎁 ${esc(T("pay_gift_to", gift))}</b></p>` : ""}
+      ${x.note ? `<p class="pay-note" translate="no">${esc(x.note)}</p>` : ""}
+      ${form ? `<p><b>1. ${esc(T("pay_step1"))}</b></p>` : ""}
+      <p><a class="btn btn-accent" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(T("pay_open"))}</a></p>
+      ${
+        !form
+          ? ""
+          : `<p><b>2. ${esc(T("pay_step2"))}</b></p>
+      <p class="muted small">${esc(T("pay_step2_h"))}</p>
+      <input class="input" maxlength="200" placeholder="${esc(T("pay_contact"))}" data-pay-contact />
+      <p><b>${esc(T("pay_info"))}</b></p>
+      <textarea class="input" rows="5" maxlength="900" placeholder="${esc(T("pay_note"))}" data-pay-note></textarea>
+      <p><button type="button" class="btn" data-pay-send>${esc(T("pay_send"))}</button></p>
+      <p class="small" data-pay-msg></p>`
+      }
+    </div>`;
+  d.dataset.method = method;
+  d.dataset.gift = gift || "";
+  document.body.appendChild(d);
+  d.addEventListener("close", () => d.remove());
+  d.addEventListener("click", (e) => e.target === d && d.close());
+  d.showModal();
+}
+let payBound = false;
+function bindPayLinks() {
+  if (payBound) return;
+  payBound = true;
+  document.addEventListener("click", async (e) => {
+    const el = e.target instanceof Element ? e.target : null;
+    const op = el?.closest("[data-pay-open]");
+    if (op) return openPayDialog(op.getAttribute("data-pay-open"));
+    if (el?.closest("[data-pay-close]")) return el.closest("dialog")?.close();
+    const btn = el?.closest("[data-pay-send]");
+    if (!btn) return;
+    const dlg = btn.closest("dialog");
+    const box = btn.closest(".pay-link-body");
+    const msg = box?.querySelector("[data-pay-msg]");
+    const say = (text, ok) => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.color = ok ? "#3ddc84" : "#ff6b6b";
+    };
+    const contact = (box?.querySelector("[data-pay-contact]")?.value || "").trim();
+    const gift = dlg?.dataset.gift || "";
+    const note = [gift ? T("pay_gift_to", gift) : "", (box?.querySelector("[data-pay-note]")?.value || "").trim()].filter(Boolean).join("\n");
+    const { data } = await sb.auth.getSession();
+    if (!data?.session) return say(T("pay_login"), false);
+    if (contact.length < 2) return say(T("pay_contact"), false);
+    btn.disabled = true;
+    const { error } = await sb.rpc("pay_claim_send", { p_method: dlg?.dataset.method || "", p_contact: contact, p_note: note });
+    if (error) {
+      btn.disabled = false;
+      return say(error.message || "?", false);
+    }
+    say(T("pay_sent"), true);
+  });
+}
+
 export function planFor(cfg, p) {
+  // Yönetici otomatik planları gizlediyse (mağaza hazır değil) plan yok sayılır
+  if (payMethods(cfg).hide_plans) return { price: "", checkout: "" };
   const dyn = proPrice(cfg, p);
   if (dyn) return { price: fmtMoney(dyn.num, dyn.cur), checkout: "pro:" + p.id, num: dyn.num, cur: dyn.cur };
   const tr = region === "tr" && (cfg[p.trPrice] || cfg[p.trCheckout]);
@@ -381,6 +546,28 @@ export const isProCheckout = (link) => typeof link === "string" && link.startsWi
 
 // Ortak metinler (üst menü, alt bilgi, genel)
 addDict({
+  per_month: ["ayda {0}", "{0} per month"],
+  best_value: ["En avantajlı", "Best value"],
+  popular: ["Popüler", "Popular"],
+  pay_open: ["Ödeme sayfasını aç", "Open payment page"],
+  pay_with: ["Öde", "Pay"],
+  pay_gift: ["Hediye et", "Gift"],
+  pay_gift_to: ["Hediye alıcısı: {0}", "Gift recipient: {0}"],
+  pay_step1: ["Ödemeyi yap", "Make the payment"],
+  pay_step2: ["Ödediğini bildir", "Tell us you paid"],
+  pay_step2_h: [
+    "Ödemeyi yaptıktan sonra SRTR Pitwall kullanıcı adını ya da e-postanı yazıp gönder; üyeliğin bu bilgiye göre tanımlanır.",
+    "After paying, enter your SRTR Pitwall username or e-mail and send it; your membership is assigned using this information.",
+  ],
+  pay_contact: ["Kullanıcı adın ya da e-postan", "Your username or e-mail"],
+  pay_info: ["Ödeme bilgilerin", "Your payment details"],
+  pay_note: ["Ödemede kullandığın ad, tutar, tarih ve saat, sipariş / işlem numarası, seçtiğin süre…", "The name you paid with, amount, date and time, order / transaction number, the period you chose…"],
+  pay_send: ["Ödedim, bildir", "I have paid, notify"],
+  pay_login: ["Bildirim göndermek için önce hesabına giriş yap.", "Sign in to your account first to send the notification."],
+  pay_sent: [
+    "Bildirimin gönderildi. Ödemen kontrol edildikten sonra PRO üyeliğin elle tanımlanacak; bu biraz zaman alabilir.",
+    "Your notification was sent. Once your payment is checked, your PRO membership will be assigned manually; this may take a while.",
+  ],
   nav_features: ["Özellikler", "Features"],
   nav_pricing: ["Fiyatlar", "Pricing"],
   nav_faq: ["SSS", "FAQ"],

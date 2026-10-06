@@ -850,6 +850,8 @@ export interface GeneralSettings {
   voiceKeyV1?: boolean;
   /** Sesli okuma F5 → F8, altyazı F6 → F7 geçişi yapıldı */
   chatKeyV2?: boolean;
+  /** Bir kerelik geçiş: "Pistte değilken gizle" varsayılan olarak açık (overlay'ler sürüş başlayınca görünür) */
+  offTrackV1?: boolean;
   /** Bir kerelik geçiş yapıldı: daha okunaklı varsayılan yazı (Inter, 14 px, orta kalınlık, gölge) */
   themeReadV1?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
@@ -1190,7 +1192,7 @@ export function defaultSettings(): AppSettings {
       sim: "auto",
       monitor: null,
       units: "metric",
-      hideWhenOffTrack: false,
+      hideWhenOffTrack: true,
       snapToGrid: true,
       snapToEdges: true,
       gridSize: 20,
@@ -1355,6 +1357,10 @@ export function normalize(input: unknown): AppSettings {
       // Bir kerelik geçiş (serverOnV1): web sunucusu varsayılan olarak açılır; kullanıcı sonra kapatırsa kapalı kalır
       server: { ...d.general.server, ...(s.general?.server ?? {}), ...(s.general?.serverOnV1 ? {} : { enabled: true }) },
       serverOnV1: true,
+      // Bir kerelik geçiş (offTrackV1): overlay'ler varsayılan olarak sürüş başlayınca görünür (sunucuya bağlanınca / garajda
+      // değil). Mevcut kurulumlarda da bir kez açılır; kullanıcı sonra kapatırsa kapalı kalır.
+      hideWhenOffTrack: s.general?.offTrackV1 ? (s.general?.hideWhenOffTrack ?? true) : true,
+      offTrackV1: true,
       themeReadV1: true,
       // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
       demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,

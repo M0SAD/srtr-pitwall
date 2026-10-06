@@ -119,9 +119,16 @@ export default function Relative(props: OverlayProps) {
     return Number.isFinite(v) && v > 0 ? Math.max(2, Math.min(600, v)) : 0;
   };
 
+  /** Tek marka seri: listedeki tüm araçlar aynıysa araç sütunu bilgi vermez */
+  const sameCar = createMemo(() => {
+    const rs = data()?.rows ?? [];
+    if (rs.length < 2) return false;
+    const first = rs[0].carName || rs[0].car;
+    return !!first && rs.every((r) => (r.carName || r.car) === first);
+  });
   const columns = createMemo(() =>
     orderValue({ options: RELATIVE_COLUMNS, default: RELATIVE_DEFAULT_COLUMNS }, props.options.columns ?? legacyColumns(props.options))
-      .filter((c) => c.on)
+      .filter((c) => c.on && !(c.key === "car" && props.options.hideSameCar !== false && sameCar()))
       // Genişliği elle ayarlanmış sütun "*" ile işaretlenir: hücre sabit genişlikli sarmalayıcıya girer
       .map((c) => (colW(c.key) ? c.key + "*" : c.key)),
   );
@@ -216,7 +223,7 @@ export default function Relative(props: OverlayProps) {
     r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
 
   return (
-    <div class="ov-panel rel" style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px` }}>
+    <div class="ov-panel rel" classList={{ "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame }} style={{ "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px` }}>
       <Show when={props.options.showHeader}>
         <div class="rel-head" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
           <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()?.sof ?? 0} />

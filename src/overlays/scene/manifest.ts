@@ -5,6 +5,7 @@ export default defineOverlay({
   name: "Yayın Sahnesi",
   description: "Yayın için tam ekran sahneler: Başlıyor (geri sayım), Hemen dönerim, Yayın sonu ve garajdayken ekranı kapatan örtü.",
   category: "stream",
+  noBgOpacity: true,
   topics: [{ name: "status", hz: 1 }],
   size: { w: 1920, h: 1080 },
   defaultPosition: { x: 0, y: 0 },

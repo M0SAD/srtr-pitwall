@@ -3,6 +3,91 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-216
+
+- Ödeme bağlantılarında Türkiye ve yurt dışı için ayrı adres ve fiyat: Yönetim › Planlar'da her bağlantıda iki satır (Türkiye / Yurt dışı). Türkiye'den bağlananlar Türkiye adresini ve fiyatını, diğerleri yurt dışı adresini ve fiyatını görür; adresi girilmemiş bölgede kart hiç çıkmaz (program + site). Bağlantıdaki "Yalnızca Türkiye" kutusu kalktı; eski kayıtlar kendiliğinden çevrilir (yalnızca Türkiye olanların yurt dışı adresi boş, diğerlerinde aynı adres iki bölgede).
+- Düzen tuvali: yakınlaştırılmış tuvalde boş yere basıp sürükleyerek gezinilir (Space gerekmez; Space + sürükle de çalışmaya devam eder). Yakınlaştırılmışken seçim kutusu için Shift / Ctrl basılı tutulur; tuval ekrana sığıyorken boş yerden sürüklemek eskisi gibi seçim kutusu çizer.
+- Düzenler ve Yayın sayfaları: geniş pencerede ayar paneli kapalıyken yeri boş ayrılmıyor; tuval soldaki overlay listesine yanaşır ve ortalanmaz, ayarlar açılınca sağa kayar.
+- Setup Örtüsü: yeni varsayılan "Garaj / setup ekranı açıkken". iRacing garaj ekranının açık olduğunu bildirdiği için (IsGarageVisible) örtü yalnızca o ekran açıkken gelir; bunu bildirmeyen simlerde pistte değilken örter.
+- Tema arka planını kullanmayan overlay'lerde (Setup Örtüsü, Sahne, Dijital Bayraklar, Spotter Çubuğu, Webview, Altyazı, Canlı Anket) işe yaramayan genel "Arka plan opaklığı" kaydırıcısı artık gösterilmiyor.
+- Setup Örtüsü: tasarım, görsel, yazı ve renk ayarları yalnızca yayın logosu izni olanlara (ücretli PRO / yönetici) gösterilir; diğerlerinde bu düğmeler ayar panelinde hiç çıkmaz.
+
+## 061026-215
+
+- Elle verilen PRO'da "ödenen tutar" yerine kutucuk (c97, veritabanına uygulandı): Yönetim › Üyeler › PRO düzenleme penceresinde "Yayın logosuna müdahale edebilsin". İşaretliyken verilen sürenin sonuna kadar üye logoyu kaldırabilir / taşıyabilir ve Setup Örtüsü'nü özelleştirebilir; işaretsizken bu haklar kapanır. Kutu üyenin o anki izniyle açılır; her süre eklemede kutunun durumu uygulanır. Tutar alanı ve elle ödeme kaydı kaldırıldı.
+- Ödeme bildirimleri listesinde "Tutar" kutusu yerine "Logo izni" kutusu (varsayılan işaretli).
+
+## 061026-214
+
+- Sıralama tablosu › Sütunlar: "Tüm araçlar aynıysa araç sütununu gizle" (varsayılan açık). Tek marka serilerde (ör. Porsche Cup) oturumdaki tüm araçlar aynıysa logo / araç adı sütunu kendiliğinden kalkar; farklı araç gelince geri döner. Aynı seçenek Relative ve Yakın Takip'e de eklendi.
+- "Her sürücünün çevresinde çerçeve" seçeneği: Sıralama ve Relative'de varsayılan kapalı; Yakın Takip'te satırlar zaten çerçeveli olduğundan varsayılan açık (kapatılabilir; arka plan opaklığı %0 iken kendiliğinden kalkar).
+- "Sürücü listesinin çevresinde çerçeve" seçeneği Relative ve Yakın Takip'e de eklendi.
+
+## 061026-213
+
+- Sıralama tablosu: arka plan tümüyle şeffafken (Satır arka planı %0, kopyanın arka plan opaklığı 0 ya da temada arka plan %0) dış çerçeve, satır ayırıcı çizgileri ve şerit zeminleri de çizilmez. Ayırıcı çizgilerin kalkması arka planı %0 olan diğer overlay'lerde de geçerli.
+- Sıralama tablosu › Görünüm: "Sürücü listesinin çevresinde çerçeve" (varsayılan kapalı): listede kaç sürücü varsa onları saran ince çerçeve; çok sınıflıda her sınıf için ayrı.
+
+## 061026-212
+
+- Elle verilen PRO'da ödenen tutar (c96, veritabanına uygulandı): Yönetim › Üyeler › PRO düzenleme penceresinde "Ödenen tutar" alanı ve para birimi. Tutar > 0 ise o sürenin sonuna kadar üye "ücretli" sayılır (yayın logosunu kaldırabilir, Setup Örtüsü'nü özelleştirebilir) ve ödeme kaydı düşer (kaynak: Elle ödeme). 0 / boşsa süre ücretsizdir ve bu hakları vermez; daha önce ödenmiş kapsam varsa kendi bitişine kadar sürer. Sonradan tutar girilerek süre eklenirse haklar yeni bitişe kadar açılır. PRO kaldırılınca ücretli kapsam da biter.
+- Ödeme bildirimleri listesinde her bildirim için "Tutar (TL)" kutusu: +1 / +3 / +6 / +12 ay düğmeleri bu tutarla birlikte tanımlar.
+- Setup Örtüsü: tasarımı ve görseli değiştirmek yalnızca ücretli PRO üyelere (ve yöneticilere) açık; diğerlerinde her zaman SRTR Pitwall görseli gösterilir.
+
+## 061026-211
+
+- Yeni overlay: Setup Örtüsü (yayın). Garajda / pistte değilken yayındaki setup ekranının üstünü tam opak bir perdeyle örter, piste çıkınca kalkar. Varsayılan tasarım SRTR Pitwall görselidir (pitwall.simracetr.com adresiyle, ortalanmış, kırpılmadan; boşluklar görselin bulanık haliyle dolar). "Ortada logo ve yazı" tasarımı, kendi görselini yükleme, boyut, çerçeve, renkler ve "ne zaman görünsün" (pistte değilken / yalnızca garajda / her zaman) ayarları var. Düzenleme, önizleme ve demoda hep görünür. Tekrar izlerken ve izleyici / spotter iken örtmez.
+- Web sitesi: overlay listesi, özellikler, galeri görseli ve yönetim listesine eklendi (13 dil).
+
+## 061026-210
+
+- Sesli mühendis PRO'ya ayrılmışsa ve kullanıcı PRO değilse demoda da ses çalınmaz ("Demoda ses" açık olsa bile yalnızca sessiz altyazı benzetimi). PRO üyede demo, sesli mühendis anahtarı kapalı olsa da konuşur.
+
+## 061026-209
+
+- Kategori başına ödeme yöntemi görselleri: Yönetim › Planlar'da her kategorinin açıklamasının altına görsel eklenir (Visa, Mastercard…); program ve sitede kategori açıklamasının altında şerit olarak görünür. En alttaki genel şerit de duruyor.
+- Kategori logosu büyütüldü (program 220×76, site 260×92); yükleme sınırı 440×140.
+- Aylık karşılık artık fiyat alanına yazılan para birimini aynen kullanır: tutarın önündeki / arkasındaki metin (₺, TL, $, €, USD…) "ayda …" satırında da görünür; binlik ayraçlı yazım (1.250 TL, 1,250.00 $) doğru hesaplanır.
+- Düzeltme: demoda ses açıkken sesli mühendis anahtarı kapalıysa (ya da PRO'ya ayrılmışsa) hiç ses çıkmıyordu; demo artık bu anahtara bakmadan konuşur.
+- Gizleme anahtarının adı "Lemon Squeezy ödemeleri (otomatik planlar)" oldu: kapalıyken 1 / 3 / 6 / 12 aylık mağaza düğmeleri, kupon kutusu ve hediye PRO'nun mağaza düğmeleri programda ve sitede görünmez.
+
+## 061026-208
+
+- Ödeme bölümü yeniden tasarlandı: kendi bağlantıların artık kategoriler altında, otomatik planlar gibi kart olarak görünür (başlık / süre, fiyat, "ayda …" karşılığı, "Öde" düğmesi; "Bununla öde" → "Öde"). Kategorinin logosu, başlığı ve genel açıklaması kartların üstünde durur. Program (Hesap › PRO) ve web sitesi (ana sayfa fiyatlar, hesap sayfası) aynı kaydı kullanır.
+- Yönetim › Planlar › Ödeme yöntemleri: kategori ekleme / sıralama / gizleme / yalnızca Türkiye, kategori logosu ve genel açıklaması; bağlantıda fiyat, süre (1 / 3 / 6 / 12 ay; 1 aydan uzunsa aylık karşılığı kendiliğinden yazılır), etiket (Popüler / En avantajlı) ve kategori seçimi. Gizlenen kategori içindeki bağlantılarla birlikte programda ve sitede kaybolur. Eski bağlantılar "Kategorisiz" grubunda durur.
+- Ödeme yöntemi görselleri (Visa, Mastercard…): yönetimden yüklenir, ödeme bölümünün altında şerit olarak görünür. Yüklenen görseller en çok 320×96'ya küçültülüp ayar kaydına gömülür.
+- "İndirim kuponu kutusu" gizleme anahtarı (program + site).
+- "Abonelik kendiliğinden yenilenir…" metni programdan kaldırıldı; sitede yalnızca otomatik planlar açıkken görünür.
+- Hediye PRO: alıcı seçildikten sonra etkin kategoriler ve kartları da görünür ("Hediye et"); pencerede alıcı yazılır, bildirim formu her zaman açıktır ve alıcının adı bildirime eklenir. Otomatik planlar kapalıyken de hediye bölümü kullanılabilir.
+- Web sitesinde bağlantı ayrıntıları artık açılır pencerede (dialog) gösterilir.
+- Veritabanı değişikliği yok (c95 hâlâ uygulanmayı bekliyor).
+
+## 061026-207
+
+- Ko-fi kaldırıldı: Hesap sayfası, Yönetim (bağlantı alanları, gizleme anahtarı, metinler) ve web sitesinde (ana sayfa "Patreon ile destekle", hesap sayfası, yönetim paneli) Ko-fi düğmesi / alanı / adı artık yok. Eski ödeme kayıtlarındaki "Ko-fi" kaynak etiketi geçmiş kayıtlar için duruyor.
+- Ödeme bildirimi: "Ödeme bilgilerin" adlı 5 satırlık, 1000 karakterlik yazma alanı (uygulama penceresi + web sitesi kartı). Yönetimdeki bildirim listesinde bu metin ayrı satırda, satır sonlarıyla gösterilir.
+- "Ödedim, bildir" formu artık bağlantı başına isteğe bağlı ve varsayılan kapalı: Yönetim › Planlar › Kendi ödeme bağlantıların satırında "Ödedim, bildir" formu kutusu. Kapalıyken pencere yalnızca açıklamayı ve "Ödeme sayfasını aç" düğmesini gösterir.
+- Düzeltme: Yönetimde kendi bağlantılarının başlık / adres / açıklama kutularına yazarken her harfte odak kayboluyordu (satırlar her tuşta yeniden oluşturuluyordu; For yerine Index).
+- c95 (veritabanı, henüz uygulanmadı): pay_claim_send notu 1000 karaktere çıkarır ve bildirimi gönderen yönetici de olsa tüm yöneticilere iletir.
+
+## 061026-206
+
+- Kendi ödeme bağlantıları için "ödedim" bildirimi (c94): Hesap sayfasında bağlantının "Bununla öde" düğmesi bir pencere açar: açıklama, "Ödeme sayfasını aç" düğmesi ve kullanıcı adı / e-posta + isteğe bağlı not alanı. "Ödedim, bildir" denince yöneticilere uygulama içi bildirim gider. Web sitesinde aynı akış bağlantı kartının içinde açılır.
+- Yönetim › Planlar › Ödeme bildirimleri: gelen bildirimler üye adı, e-postası, yazdığı bilgi ve PRO durumuyla listelenir; +1 / +3 / +6 / +12 ay düğmeleri PRO'yu kalan sürenin üstüne tanımlar ve bildirimi tamamlandı işaretler.
+
+## 061026-205
+
+- Overlay'ler sürüş başlayınca görünür: "Pistte değilken gizle" (Ayarlar › Genel) artık varsayılan olarak açık ve mevcut kurulumlarda da bir kez açılır. Sunucuya bağlanınca, garajda, menüde ve tekrar izlerken overlay'ler gizli kalır; araca binip sürüşe başlayınca belirir. Kapatılırsa seçim hatırlanır.
+  - Etkilenmeyenler: "iRacing kapalıyken de göster" işaretli kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar), "sürekli göster" açık sohbet overlay'leri, "İzlerken / garaj" türündeki düzenler ve Demo modu.
+- Yakın Takip: gösterilecek araç yokken ortadaki çizgi de çizilmez (ekranda tek başına çizgi kalmıyor).
+
+## 061026-204
+
+- Ödeme yöntemleri (c94): Yönetim › Planlar'a "Ödeme yöntemleri" bölümü eklendi.
+  - Kendi ödeme bağlantıların: başlık, adres ve açıklamayla en çok 8 bağlantı (ör. ByNoGame ilanı). Sıralanır, tek tek gizlenir, istenirse yalnızca Türkiye'den bağlananlara gösterilir. Hesap sayfasında ve web sitesinde (fiyatlar bölümü, hesap sayfası) başlık + açıklama + "Ödeme sayfasını aç" düğmesiyle görünür.
+  - Gizleme: otomatik planlar (mağaza düğmeleri, kupon kutusu, hediye PRO), Patreon ve Ko-fi ayrı ayrı kapatılabilir. Mağaza hazır değilken planlar gizlenip yalnızca kendi bağlantıların gösterilebilir.
+  - Kendi bağlantınla yapılan ödemede PRO kendiliğinden açılmaz; ödemeyi görünce Üyeler bölümünden elle tanımlanır.
+
 ## 061026-203
 
 - Kan Şekeri: veri gecikmesi azaltıldı.

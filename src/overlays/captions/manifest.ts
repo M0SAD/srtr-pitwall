@@ -7,6 +7,7 @@ export default defineOverlay({
   description:
     "Konuşmadan yazıya çevrilen metni altyazı olarak gösterir: kendi mikrofonun ve isteğe bağlı olarak bilgisayar sesi (ör. Discord'da konuşanlar), her biri kendi etiketi ve rengiyle. Kaynak ve cihazlar Canlı Sohbet › Konuşma → yazı sekmesinden seçilir.",
   category: "stream",
+  noBgOpacity: true,
   topics: [{ name: "captions", hz: 5 }],
   size: { w: 900, h: 120 },
   defaultPosition: { x: 510, y: 900 },

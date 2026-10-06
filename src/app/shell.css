@@ -5256,3 +5256,384 @@ button.ovpal-lock:hover {
   color: var(--muted);
   font-size: 11.5px;
 }
+
+/* Hesap › PRO: yöneticinin eklediği ödeme bağlantıları */
+.pay-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+.pay-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.pay-link-main {
+  flex: 1;
+  min-width: 0;
+}
+.pay-link-main p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* Yönetim: ödeme bağlantısı düzenleme satırı */
+.paylink-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.paylink-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.paylink-edit-row .input {
+  flex: 1;
+  min-width: 0;
+}
+.paylink-edit textarea.input {
+  resize: vertical;
+  font: inherit;
+}
+
+.paylink-h {
+  margin: 16px 0 6px;
+}
+
+/* Kendi ödeme bağlantısı penceresi */
+.modal.paydlg {
+  width: min(520px, 100%);
+}
+.paydlg-note {
+  margin: 10px 0 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.paydlg-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.paydlg-step .input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+.paydlg-step p {
+  margin: 0;
+}
+.paydlg-ok {
+  color: #3ddc84;
+  line-height: 1.5;
+}
+/* Yönetim: ödeme bildirimi satırı */
+.payclaim {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.payclaim.done {
+  opacity: 0.55;
+}
+.payclaim-main {
+  flex: 1;
+  min-width: 0;
+}
+.payclaim-main p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.payclaim-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.paydlg-lbl {
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+.payclaim-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  opacity: 0.85;
+}
+
+/* Hesap › PRO: ödeme kategorileri (logo + başlık + açıklama, altında plan kartları) */
+.paycats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0;
+}
+.paycat {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+}
+.paycat-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.paycat-logo {
+  flex: none;
+  max-width: 220px;
+  max-height: 76px;
+  object-fit: contain;
+}
+.paycat-txt {
+  flex: 1;
+  min-width: 0;
+}
+.paycat-txt b {
+  font-size: 15px;
+}
+.paycat-txt p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.paycat-cards {
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+.paycard {
+  flex: 1 1 140px;
+  max-width: 220px;
+  background: var(--bg-3);
+}
+.paycard small {
+  overflow-wrap: anywhere;
+}
+.paybadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 16px;
+  padding: 6px 0 2px;
+}
+.paybadges img {
+  max-height: 26px;
+  max-width: 90px;
+  object-fit: contain;
+  opacity: 0.9;
+}
+.paydlg header {
+  gap: 10px;
+}
+.paydlg-logo {
+  max-height: 28px;
+  max-width: 90px;
+  object-fit: contain;
+}
+.paydlg-price {
+  margin-left: 10px;
+  color: #ffb341;
+}
+.paydlg-gift {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+/* Yönetim: kategori düzenleme kutusu */
+.paycat-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #2b3550;
+  border-radius: 12px;
+  background: var(--bg-2);
+}
+.paycat-edit.off {
+  opacity: 0.6;
+}
+.paycat-edit textarea.input {
+  resize: vertical;
+  font: inherit;
+}
+.paycat-edit .paylink-edit {
+  margin-bottom: 0;
+  background: var(--bg-3);
+}
+.paycat-img {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 36px;
+  padding: 2px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.paycat-img img,
+.paybadge-item img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.paylink-edit-row .input.paylink-price {
+  flex: 0 0 130px;
+}
+.paylink-edit-row .input.paylink-cat {
+  flex: 0 0 150px;
+}
+.paybadge-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.paybadge-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.paybadge-item img {
+  max-width: 70px;
+  max-height: 24px;
+}
+.paylink-edit-row .input.paylink-months {
+  flex: 0 0 112px;
+}
+.paycard {
+  position: relative;
+  align-items: center;
+  text-align: center;
+  padding-top: 16px;
+}
+.paycard .btn {
+  align-self: stretch;
+}
+.paycard-per {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.paycard.best {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.paycard-tag {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: #15100a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.paycat-cards {
+  padding-top: 10px;
+  gap: 12px;
+}
+.paylink-edit-row .input.paylink-months {
+  flex: 0 0 112px;
+}
+.paycard {
+  position: relative;
+  align-items: center;
+  text-align: center;
+  padding-top: 16px;
+}
+.paycard .btn {
+  align-self: stretch;
+}
+.paycard-per {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.paycard.best {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.paycard-tag {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: #15100a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.paycat-cards {
+  padding-top: 10px;
+  gap: 12px;
+}
+.paycat-badges {
+  justify-content: flex-start;
+  padding: 8px 0 0;
+}
+.paycat-head {
+  margin-bottom: 8px;
+}
+.pe-cur {
+  flex: 0 0 84px;
+}
+.pe-amt {
+  flex: 1 1 100%;
+}
+.pe-amt.on {
+  color: #3ddc84;
+}
+.payclaim-amt {
+  width: 92px;
+}
+.paylink-reg {
+  flex: 0 0 68px;
+  font-size: 12px;
+  color: var(--muted);
+}
+/* Düzen tuvali ortalanmaz: soldaki sütuna (overlay listesi / açık ayar paneli) yanaşır */
+.lpage .lcanvas {
+  margin-left: 0;
+  margin-right: 0;
+}

@@ -40,6 +40,8 @@ export function lookStyle(look: OverlayLook | undefined, t: Theme, bgOpacity?: n
     v["--ov-line"] = a > 0 ? hexAlpha(on?.border ?? t.borderColor, a * k) : "transparent";
   }
   if (k <= 0 || baseOp <= 0) {
+    // Satır aralarındaki ince çizgiler de kalmasın (görünümde yazı rengi seçilmiş olsa bile)
+    v["--ov-divider"] = "transparent";
     if (k <= 0 || on?.shadow === undefined) v["--ov-box-shadow"] = "none";
     if (k <= 0 || on?.blur === undefined) v["--ov-backdrop"] = "none";
   }

@@ -106,6 +106,7 @@ export default defineOverlay({
       ],
       group: "Sütunlar",
     },
+    { key: "hideSameCar", label: "Tüm araçlar aynıysa araç sütununu gizle", type: "boolean", default: true, group: "Sütunlar", hint: "Tek marka serilerde (ör. Porsche Cup) herkes aynı araçta olduğundan logo / araç adı gösterilmez; yer açılır." },
     { key: "logoSize", label: "Logo boyutu", type: "number", default: 150, min: 80, max: 220, step: 10, unit: "%", group: "Sütunlar", showIf: { key: "carStyle", not: ["text"] } },
     { key: "showHeader", label: "Başlık satırı", type: "boolean", default: true, group: "Başlık" },
     headerField("headerFields", "Başlık bilgileri", ["remaining", "sof", "incidents", "position", "brakeBias"]),
@@ -113,6 +114,8 @@ export default defineOverlay({
     { key: "width", label: "Genişlik (en az)", type: "number", default: 560, min: 300, max: 1600, step: 10, unit: "px", hint: "Tablo en az bu genişlikte olur; ad sütunu boşluğu doldurur. Sütunlar sığmazsa tablo kendiliğinden genişler. Düzenleme modunda pencerenin sağ / sol kenarından sürükleyerek de ayarlanır." },
     { key: "barSize", label: "Bilgi satırı yazı boyutu", type: "number", default: 120, min: 80, max: 200, step: 5, unit: "%", group: "Başlık", hint: "Başlık bilgi satırındaki yazı ve simgelerin boyutu." },
     { key: "rowOpacity", label: "Satır arka planı", type: "number", default: 100, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm" },
+    { key: "rowsFrame", label: "Sürücü listesinin çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm", hint: "Listede kaç sürücü varsa onları saran ince bir çerçeve çizer (çok sınıflıda her sınıf için ayrı)." },
+    { key: "rowFrame", label: "Her sürücünün çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 3, min: 1, max: 10, step: 1, unit: "Hz", group: "Görünüm" },
   ],
 });

@@ -76,6 +76,7 @@ export const OVERLAYS = [
       ["results", "🏅", "pro"],
       ["goalbar", "🥅", "mixed"],
       ["socials", "📣", "free"],
+      ["setupcover", "🙈", "free"],
       ["webview", "🌐", "free"],
     ],
   ],
@@ -151,6 +152,7 @@ export const NAMES = {
   results: ["Yarış Sonucu", "Race Result"],
   goalbar: ["Hedef Çubuğu", "Goal Bar"],
   socials: ["Sosyal Hesaplar","Social Accounts"],
+  setupcover: ["Setup Örtüsü", "Setup Cover"],
   webview: ["Webview", "Webview"],
   messages: ["Mesajlar", "Messages"],
   voice: ["Sesli Mühendis altyazısı", "Voice Engineer subtitles"],
@@ -379,6 +381,7 @@ addDict({
     "Damalı bayraktan sonra yarış sonucunu ekrana getirir: sınıfının ilk üçü bayrakları ve farklarıyla, altında kendi sonucun (sıra, kazandığın ya da kaybettiğin sıra, en iyi tur, olay puanı) ve tahmini iRating değişimi. Podyum ya da tablo görünümünü seçebilirsin; belirli bir süre ya da oturum bitene kadar ekranda kalır. Yayını güzel bir kapanışla bitirir.",
     "Brings up the race result after the chequered flag: the top three of your class with flags and gaps, then your own result (position, places gained or lost, best lap, incident points) and the estimated iRating change. Choose the podium or the table view; it stays for a set time or until the session ends. A neat way to close out a stream.",
   ],
+  ovg_setupcover: ["Yayıncılar için: garajda setup ekranını açtığında yayındaki o bölgeyi örten bir perde. Kendi ekranında ayarlarını rahatça görürsün; izleyici ise logonu ve \"Setup gizli\" yazısını görür. Araç piste çıktığı anda örtü kendiliğinden kalkar, pite / garaja dönünce yeniden gelir. Boyutunu ve yerini setup ekranının yayındaki konumuna göre ayarlarsın; logo, yazı ve renkler serbesttir. Örtü yalnızca OBS'teki SRTR Pitwall tarayıcı kaynağında görünecek şekilde kullanılır.", "For streamers: a curtain that covers the setup screen area on your stream when you open it in the garage. You see your settings normally on your own screen, while viewers see your logo and a \"Setup hidden\" message. The cover lifts by itself the moment the car goes on track and returns when you are back in the pits or garage. Size and position it to match where the setup screen sits on your stream; logo, text and colours are up to you. It is meant to be used through the SRTR Pitwall browser source in OBS."],
   ovg_socials: ["Yayın izleyicilerine seni nerede bulacaklarını gösterir. Overlay ayarlarına hesap adlarını yazarsın (Twitch, YouTube, Instagram, Discord ve diğerleri); overlay bunları ekranda sırayla, hoş geçişlerle döndürür ya da hepsini liste / kayan şerit olarak gösterir. Renkleri, biçimi, yazı boyutunu ve geçişi kendi yayın tasarımına göre ayarlayabilir, her hesap için kendi simgeni yükleyebilirsin. İstersen sürekli ekranda durmaz, belirlediğin aralıklarla kısa süreliğine belirir.","Tells your stream viewers where to find you. You type your account names into the overlay settings (Twitch, YouTube, Instagram, Discord and more); the overlay cycles through them on screen with smooth transitions, or shows them all as a list or scrolling ticker. You can match colours, shape, text size and transition to your stream design and upload your own icon for each account. If you prefer, it does not stay on screen all the time but appears briefly at the interval you set."],
   ovg_goalbar: [
     "Yayıncılar için hedef ilerleme çubuğu: “100 takipçi” ya da bir bağış hedefi gibi. Sayacı elle artırabilir ya da canlı sohbet uyarılarından (yeni takipçi, abone / üye, bağış) kendiliğinden saydırabilirsin. Başlık, hedef, yüzde ve istersen “son destekçi” satırı görünür. İnce çubuk ve ikonlu hap tasarımı ücretsiz, büyük hedef panosu PRO.",

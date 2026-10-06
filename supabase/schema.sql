@@ -15612,3 +15612,306 @@ begin
 end $$;
 revoke all on function public.group_invite_respond(uuid, boolean) from public, anon;
 grant execute on function public.group_invite_respond(uuid, boolean) to authenticated;
+
+-- c94: Ödeme yöntemleri ayarı. Yönetici hazır yöntemleri (otomatik planlar, Patreon, Ko-fi) gizleyebilir ve kendi ödeme
+-- bağlantılarını (ör. ByNoGame ilanı) başlık + açıklamayla ekleyebilir:
+--   { "hide_plans": bool, "hide_patreon": bool, "hide_kofi": bool, "links": [{ "title", "url", "note", "on", "tr_only" }] }
+-- Herkes okur (app_config zaten herkese açık), yalnızca yönetici yazar (mevcut "config admin update" kuralı).
+alter table public.app_config add column if not exists pay_methods jsonb not null default '{}'::jsonb;
+
+-- c94 (devam): "Ödedim" bildirimleri. Kendi ödeme bağlantısıyla (ör. ByNoGame) ödeyen üye kullanıcı adını / e-postasını yazıp
+-- gönderir; yöneticilere uygulama içi bildirim gider, yönetici ödemeyi kontrol edip PRO'yu elle tanımlar.
+create table if not exists public.pay_claims (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  method text not null default '' check (char_length(method) <= 80),
+  contact text not null default '' check (char_length(contact) <= 200),
+  note text not null default '' check (char_length(note) <= 500),
+  done boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists pay_claims_time on public.pay_claims (created_at desc);
+alter table public.pay_claims enable row level security;
+drop policy if exists "pay claims read" on public.pay_claims;
+create policy "pay claims read" on public.pay_claims for select using (auth.uid() = user_id or public.is_admin());
+drop policy if exists "pay claims admin update" on public.pay_claims;
+create policy "pay claims admin update" on public.pay_claims for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "pay claims admin delete" on public.pay_claims;
+create policy "pay claims admin delete" on public.pay_claims for delete using (public.is_admin());
+revoke all on public.pay_claims from public, anon;
+grant select, update, delete on public.pay_claims to authenticated;
+grant all on public.pay_claims to service_role;
+
+create or replace function public.pay_claim_send(p_method text, p_contact text, p_note text default '') returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_method text := left(trim(coalesce(p_method, '')), 80);
+  v_contact text := left(trim(coalesce(p_contact, '')), 200);
+  v_note text := left(trim(coalesce(p_note, '')), 500);
+  nm text;
+  em text;
+  cid uuid;
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if char_length(v_contact) < 2 then
+    raise exception 'Kullanıcı adını ya da e-postanı yaz';
+  end if;
+  if (select count(*) from public.pay_claims where user_id = me and created_at > now() - interval '1 day') >= 5 then
+    raise exception 'Bugün çok fazla bildirim gönderdin, yarın tekrar dene';
+  end if;
+  insert into public.pay_claims (user_id, method, contact, note) values (me, v_method, v_contact, v_note) returning id into cid;
+  select display_name into nm from public.profiles where id = me;
+  select email into em from auth.users where id = me;
+  insert into public.notifications (user_id, kind, data)
+    select a.id, 'pay_claim',
+           jsonb_build_object('claim', cid, 'method', v_method, 'contact', v_contact, 'note', v_note,
+                              'name', coalesce(nm, '?'), 'email', coalesce(em, ''), 'user', me)
+      from public.profiles a
+     where a.is_admin and a.id <> me;
+  return cid;
+end $$;
+revoke all on function public.pay_claim_send(text, text, text) from public, anon;
+grant execute on function public.pay_claim_send(text, text, text) to authenticated;
+
+-- Yönetim: son bildirimler (üyenin adı ve e-postasıyla)
+create or replace function public.admin_pay_claims(p_limit int default 50)
+returns table (id uuid, user_id uuid, display_name text, email text, method text, contact text, note text, done boolean, created_at timestamptz, pro_until timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Yetkisiz';
+  end if;
+  return query
+    select c.id, c.user_id, coalesce(p.display_name, '?'), coalesce(u.email::text, ''), c.method, c.contact, c.note, c.done, c.created_at, p.pro_until
+      from public.pay_claims c
+      left join public.profiles p on p.id = c.user_id
+      left join auth.users u on u.id = c.user_id
+     order by c.done, c.created_at desc
+     limit greatest(1, least(coalesce(p_limit, 50), 200));
+end $$;
+revoke all on function public.admin_pay_claims(int) from public, anon;
+grant execute on function public.admin_pay_claims(int) to authenticated;
+
+-- ===== c95: ödeme bildirimi — ödeme bilgileri alanı 1000 karaktere çıktı; bildirim gönderen yönetici de olsa tüm yöneticilere gider =====
+create or replace function public.pay_claim_send(p_method text, p_contact text, p_note text default '') returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_method text := left(trim(coalesce(p_method, '')), 80);
+  v_contact text := left(trim(coalesce(p_contact, '')), 200);
+  v_note text := left(trim(coalesce(p_note, '')), 1000);
+  nm text;
+  em text;
+  cid uuid;
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if char_length(v_contact) < 2 then
+    raise exception 'Kullanıcı adını ya da e-postanı yaz';
+  end if;
+  if (select count(*) from public.pay_claims where user_id = me and created_at > now() - interval '1 day') >= 5 then
+    raise exception 'Bugün çok fazla bildirim gönderdin, yarın tekrar dene';
+  end if;
+  insert into public.pay_claims (user_id, method, contact, note) values (me, v_method, v_contact, v_note) returning id into cid;
+  select display_name into nm from public.profiles where id = me;
+  select email into em from auth.users where id = me;
+  insert into public.notifications (user_id, kind, data)
+    select a.id, 'pay_claim',
+           jsonb_build_object('claim', cid, 'method', v_method, 'contact', v_contact, 'note', v_note,
+                              'name', coalesce(nm, '?'), 'email', coalesce(em, ''), 'user', me)
+      from public.profiles a
+     where a.is_admin;
+  return cid;
+end $$;
+revoke all on function public.pay_claim_send(text, text, text) from public, anon;
+grant execute on function public.pay_claim_send(text, text, text) to authenticated;
+
+-- ===== c96: elle verilen PRO'da ödenen tutar =====
+-- profiles.pro_paid_until: ücretli PRO kapsamının bittiği an. Yönetici süre verirken tutar > 0 girerse yeni bitişe
+-- çekilir ve ödeme kaydı (payments, source 'manual') düşer; tutar 0 / boşsa değişmez (ücretsiz verilen süre logoyu
+-- kaldırma hakkı vermez, ama daha önce ödenmiş kapsam bitene kadar sürer). Kullanıcı bu alanı değiştiremez.
+alter table public.profiles add column if not exists pro_paid_until timestamptz;
+
+create or replace function public.protect_pro_paid() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if coalesce(auth.role(), '') in ('authenticated', 'anon') and not public.is_admin() then
+    new.pro_paid_until := old.pro_paid_until;
+  end if;
+  return new;
+end $$;
+drop trigger if exists protect_pro_paid on public.profiles;
+create trigger protect_pro_paid before update on public.profiles
+  for each row execute function public.protect_pro_paid();
+
+drop function if exists public.admin_change_pro(uuid, text, int, timestamptz, text, boolean);
+create or replace function public.admin_change_pro(
+  p_user uuid, p_mode text, p_days int default null, p_until timestamptz default null,
+  p_note text default '', p_notify boolean default false,
+  p_amount numeric default null, p_currency text default 'TRY')
+returns timestamptz language plpgsql security definer set search_path = public, auth as $$
+declare
+  ou timestamptz;
+  nu timestamptz;
+  amt numeric := coalesce(p_amount, 0);
+  em text;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  if amt < 0 or amt > 1000000 then
+    raise exception 'Geçersiz tutar';
+  end if;
+  select pro_until into ou from public.profiles where id = p_user;
+  if not found then
+    raise exception 'Kullanıcı bulunamadı';
+  end if;
+  if p_mode = 'add' then
+    if coalesce(p_days, 0) = 0 then
+      raise exception 'Gün sayısı gerekli';
+    end if;
+    nu := (case when ou > now() then ou else now() end) + make_interval(days => p_days);
+    if nu <= now() then
+      nu := now();
+    end if;
+  elsif p_mode = 'set' then
+    if p_until is null then
+      raise exception 'Tarih gerekli';
+    end if;
+    nu := p_until;
+  elsif p_mode = 'unlimited' then
+    nu := '2099-12-31 00:00:00+00'::timestamptz;
+  elsif p_mode = 'remove' then
+    nu := null;
+  else
+    raise exception 'Geçersiz işlem';
+  end if;
+  update public.profiles
+    set pro_until = nu,
+        pro_source = case when nu is null then null else 'admin' end,
+        -- Tutar girildiyse ücretli kapsam yeni bitişe uzar; girilmediyse eskisi kalır (yeni bitişi aşamaz)
+        pro_paid_until = case when nu is null then null
+                              when amt > 0 then nu
+                              when pro_paid_until is null then null
+                              else least(pro_paid_until, nu) end
+    where id = p_user;
+  if amt > 0 and nu is not null then
+    select email into em from auth.users where id = p_user;
+    insert into public.payments (id, source, user_id, email, amount, currency, plan, kind)
+      values ('manual-' || gen_random_uuid()::text, 'manual', p_user, lower(coalesce(em, '')), amt,
+              upper(coalesce(nullif(trim(p_currency), ''), 'TRY')), left(coalesce(p_note, ''), 80), 'payment');
+  end if;
+  if nu is distinct from ou then
+    update public.pro_log set note = left(coalesce(p_note, ''), 200)
+      where id = (select max(id) from public.pro_log where user_id = p_user);
+  end if;
+  if p_notify then
+    insert into public.notifications (user_id, kind, data)
+      values (p_user, 'pro_changed', jsonb_build_object(
+        'old_until', ou, 'new_until', nu, 'mode', p_mode,
+        'days', case when p_mode = 'add' then p_days
+                     when nu is not null and ou is not null then round(extract(epoch from (nu - greatest(ou, now()))) / 86400)::int
+                     else null end,
+        'note', left(coalesce(p_note, ''), 200)));
+  end if;
+  return nu;
+end $$;
+revoke all on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text) from public, anon;
+grant execute on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text) to authenticated;
+
+-- PRO'yu tümden kaldırınca ücretli kapsam da biter
+create or replace function public.admin_set_pro(p_user uuid, p_until timestamptz)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  update public.profiles
+    set pro_until = p_until,
+        pro_source = case when p_until is null then null else 'admin' end,
+        pro_paid_until = case when p_until is null or pro_paid_until is null then null else least(pro_paid_until, p_until) end
+  where id = p_user;
+end $$;
+
+-- ===== c97: logo izni kutucuğu =====
+-- Yönetici PRO süresi verirken 'yayın logosuna müdahale edebilsin' kutusunu işaretler (p_paid). true: izin yeni bitişe
+-- kadar açık (pro_paid_until = bitiş); false: kapalı; verilmezse (eski sürüm / site) mevcut durum korunur.
+drop function if exists public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text);
+create or replace function public.admin_change_pro(
+  p_user uuid, p_mode text, p_days int default null, p_until timestamptz default null,
+  p_note text default '', p_notify boolean default false,
+  p_amount numeric default null, p_currency text default 'TRY', p_paid boolean default null)
+returns timestamptz language plpgsql security definer set search_path = public, auth as $$
+declare
+  ou timestamptz;
+  nu timestamptz;
+  amt numeric := coalesce(p_amount, 0);
+  em text;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  if amt < 0 or amt > 1000000 then
+    raise exception 'Geçersiz tutar';
+  end if;
+  select pro_until into ou from public.profiles where id = p_user;
+  if not found then
+    raise exception 'Kullanıcı bulunamadı';
+  end if;
+  if p_mode = 'add' then
+    if coalesce(p_days, 0) = 0 then
+      raise exception 'Gün sayısı gerekli';
+    end if;
+    nu := (case when ou > now() then ou else now() end) + make_interval(days => p_days);
+    if nu <= now() then
+      nu := now();
+    end if;
+  elsif p_mode = 'set' then
+    if p_until is null then
+      raise exception 'Tarih gerekli';
+    end if;
+    nu := p_until;
+  elsif p_mode = 'unlimited' then
+    nu := '2099-12-31 00:00:00+00'::timestamptz;
+  elsif p_mode = 'remove' then
+    nu := null;
+  else
+    raise exception 'Geçersiz işlem';
+  end if;
+  update public.profiles
+    set pro_until = nu,
+        pro_source = case when nu is null then null else 'admin' end,
+        -- p_paid true: logo izni yeni bitişe kadar açık; false: kapalı; verilmediyse eskisi kalır (yeni bitişi aşamaz)
+        pro_paid_until = case when nu is null then null
+                              when p_paid is true or amt > 0 then nu
+                              when p_paid is false then null
+                              when pro_paid_until is null then null
+                              else least(pro_paid_until, nu) end
+    where id = p_user;
+  if amt > 0 and nu is not null then
+    select email into em from auth.users where id = p_user;
+    insert into public.payments (id, source, user_id, email, amount, currency, plan, kind)
+      values ('manual-' || gen_random_uuid()::text, 'manual', p_user, lower(coalesce(em, '')), amt,
+              upper(coalesce(nullif(trim(p_currency), ''), 'TRY')), left(coalesce(p_note, ''), 80), 'payment');
+  end if;
+  if nu is distinct from ou then
+    update public.pro_log set note = left(coalesce(p_note, ''), 200)
+      where id = (select max(id) from public.pro_log where user_id = p_user);
+  end if;
+  if p_notify then
+    insert into public.notifications (user_id, kind, data)
+      values (p_user, 'pro_changed', jsonb_build_object(
+        'old_until', ou, 'new_until', nu, 'mode', p_mode,
+        'days', case when p_mode = 'add' then p_days
+                     when nu is not null and ou is not null then round(extract(epoch from (nu - greatest(ou, now()))) / 86400)::int
+                     else null end,
+        'note', left(coalesce(p_note, ''), 200)));
+  end if;
+  return nu;
+end $$;
+revoke all on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean) from public, anon;
+grant execute on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean) to authenticated;

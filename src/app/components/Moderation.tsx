@@ -238,6 +238,8 @@ function noticeText(n: Notice): string {
     else s = t("PRO bitiş tarihin {0} olarak güncellendi.", date);
     return n.data.note ? `${s}\n${t("Not: {0}", n.data.note)}` : s;
   }
+  if (n.kind === "pay_claim")
+    return t('{0} "{1}" ile ödeme yaptığını bildirdi ({2}). Ödemeyi kontrol edip Yönetim › Planlar › Ödeme bildirimleri bölümünden PRO tanımla.', n.data.name ?? "?", n.data.method ?? "", n.data.contact ?? "");
   if (n.kind === "support_new") return t('{0} yeni destek talebi açtı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
   if (n.kind === "support_user_reply") return t('{0} destek talebine yazdı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
   if (n.kind === "support_reply") return t('Destek talebin yanıtlandı: "{0}"', n.data.subject ?? "");
@@ -497,6 +499,6 @@ export function NoticeBell() {
 
 /** Ödeme bildiriminin sonuna eklenen kaynak: " · Patreon" */
 function paySrc(src: unknown): string {
-  const name = ({ lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi" } as Record<string, string>)[String(src ?? "")] ?? String(src ?? "");
+  const name = ({ lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme" } as Record<string, string>)[String(src ?? "")] ?? String(src ?? "");
   return name ? ` · ${name}` : "";
 }

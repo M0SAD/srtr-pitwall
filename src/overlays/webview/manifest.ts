@@ -5,6 +5,7 @@ export default defineOverlay({
   name: "Webview",
   description: "Herhangi bir web sayfasını overlay olarak göster (sohbet, yayın uyarıları, zamanlayıcı, kendi panelin).",
   category: "info",
+  noBgOpacity: true,
   topics: [],
   size: { w: 400, h: 300 },
   defaultPosition: { x: 760, y: 380 },

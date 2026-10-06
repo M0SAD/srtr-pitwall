@@ -475,7 +475,7 @@ export function LayoutsPage() {
           <small class="muted lhint lkeys">
             Fare tekeri: yakınlaştır / uzaklaştır · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Z</kbd>: geri al · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>Y</kbd>: yinele · <kbd data-no-i18n>Delete</kbd>: sil · sağ tık: kilitle · Ok tuşları: 1 px taşı (Shift: 10 px)
             <span class="chint-more">
-              <kbd data-no-i18n>Space</kbd> + sürükle: gezin · boş yerden sürükle: birden çok overlay seç (birlikte taşı / sil) · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>C</kbd> / <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>V</kbd>: kopyala / yapıştır · <kbd data-no-i18n>+</kbd> <kbd data-no-i18n>−</kbd> <kbd data-no-i18n>0</kbd>: yakınlaştır / uzaklaştır / sığdır
+              <kbd data-no-i18n>Space</kbd> + sürükle ya da yakınlaştırılmış tuvalde boş yerden sürükle: gezin · boş yerden (yakınlaştırılmışken Shift ile) sürükle: birden çok overlay seç (birlikte taşı / sil) · <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>C</kbd> / <kbd data-no-i18n>Ctrl</kbd>+<kbd data-no-i18n>V</kbd>: kopyala / yapıştır · <kbd data-no-i18n>+</kbd> <kbd data-no-i18n>−</kbd> <kbd data-no-i18n>0</kbd>: yakınlaştır / uzaklaştır / sığdır
             </span>
           </small>
         </section>

@@ -1,6 +1,7 @@
 // Manifestteki ayar şemasından otomatik form üretir (anahtar, kaydırıcı, seçim, çoklu seçim,
 // sıralanabilir liste, renk, metin, resim).
 
+import { paidLive } from "@/sdk/streamBadge";
 import { For, Show, createSignal } from "solid-js";
 import { fieldVisible, orderValue, selectOptions, type SettingField } from "@/sdk/overlay";
 import { isPro } from "@/cloud/account";
@@ -366,7 +367,7 @@ export function SettingsForm(props: {
     <div class="form2">
       <For each={props.fields}>
         {(f) => (
-          <Show when={fieldVisible(f, props.values)}>
+          <Show when={fieldVisible(f, props.values) && (!f.logoPerm || paidLive())}>
             <div class={`f2 f2-${f.type}`} classList={{ "f2-locked": locked(f) }}>
               <Show when={f.type === "boolean"}>
                 <div class="f2-row">

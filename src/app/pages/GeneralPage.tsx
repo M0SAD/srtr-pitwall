@@ -126,7 +126,7 @@ export function GeneralPage() {
         <div class="row">
           <div>
             <b>Pistte değilken gizle</b>
-            <small>Garajda, menüde veya tekrar izlerken overlay'leri gizler.</small>
+            <small>Overlay'ler sürüşe başlayınca görünür; sunucuya bağlanınca, garajda, menüde ve tekrar izlerken gizlenir. "iRacing kapalıyken de göster" işaretli overlay'ler ve "İzlerken / garaj" türündeki düzenler etkilenmez.</small>
           </div>
           <label class="switch">
             <input

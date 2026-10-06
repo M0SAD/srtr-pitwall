@@ -8,6 +8,8 @@ export interface Status {
   preview: boolean;
   onTrack: boolean;
   inGarage: boolean;
+  /** Garaj / setup ekranı açık mı (yalnızca bildiren simlerde: iRacing) */
+  garageVisible?: boolean;
   /** Oyuncunun aracı pit yolunda / pit kutusunda */
   onPit?: boolean;
   replay: boolean;

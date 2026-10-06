@@ -18,6 +18,9 @@ import {
   lang,
   myProfile,
   planFor,
+  payLinks,
+  payLinksHtml,
+  payMethods,
   planName,
   promoUntil,
   rememberChoice,
@@ -93,7 +96,7 @@ addDict({
   a_logout: ["Çıkış yap", "Sign out"],
   a_profile: ["Profil", "Profile"],
   a_iracing: ["iRacing adı", "iRacing name"],
-  a_pay_email: ["Ödeme e-postası (Patreon/Ko-fi farklıysa)", "Payment e-mail (if different on Patreon/Ko-fi)"],
+  a_pay_email: ["Ödeme e-postası (Patreon'da farklıysa)", "Payment e-mail (if different on Patreon)"],
   a_member_since: ["Üyelik", "Member since"],
   a_pro: ["PRO üyelik", "PRO membership"],
   a_pro_active: ["PRO aktif", "PRO active"],
@@ -449,13 +452,13 @@ async function dashboard(u) {
         <div class="card">
           <h3>${T("a_buy_title")}</h3>
           <p class="muted small">${T("a_buy_note")}</p>
-          ${planBtns.includes("data-pro=") ? `<div id="cp-pro"></div>` : ""}
-          <div class="row">${planBtns || `<span class="muted small">${T("soon")}</span>`}</div>
+          ${planBtns.includes("data-pro=") && !payMethods(cfg).hide_coupon ? `<div id="cp-pro"></div>` : ""}
+          <div class="row">${planBtns || (payLinks(cfg).length ? "" : `<span class="muted small">${T("soon")}</span>`)}</div>
+          ${payLinksHtml(cfg)}
           ${
-            ((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url) || ((region === "tr" && cfg.kofi_url_tr) || cfg.kofi_url)
+            (!payMethods(cfg).hide_patreon && ((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url))
               ? `<div class="row" style="margin-top:14px">
-                  ${(region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url ? `<a class="btn btn-patreon btn-sm" href="${esc((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url)}" target="_blank" rel="noopener">Patreon</a>` : ""}
-                  ${((region === "tr" && cfg.kofi_url_tr) || cfg.kofi_url) ? `<a class="btn btn-sm" href="${esc(((region === "tr" && cfg.kofi_url_tr) || cfg.kofi_url))}" target="_blank" rel="noopener">Ko-fi</a>` : ""}
+                  ${!payMethods(cfg).hide_patreon && ((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url) ? `<a class="btn btn-patreon btn-sm" href="${esc((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url)}" target="_blank" rel="noopener">Patreon</a>` : ""}
                 </div><p class="muted small" style="margin:10px 0 0">${T("a_patreon_note")}</p>`
               : ""
           }
@@ -673,7 +676,7 @@ function drawGiftPick(u, cfg) {
   const el = $("#g-pick");
   if (!el) return;
   const plans = PLANS.map((x) => ({ x, ...planFor(cfg, x) })).filter((o) => isProCheckout(o.checkout));
-  if (!plans.length) {
+  if (!plans.length && !payLinks(cfg).length) {
     el.innerHTML = `<p class="muted small">${T("g_unavailable")}</p>`;
     return;
   }
@@ -681,11 +684,12 @@ function drawGiftPick(u, cfg) {
     el.innerHTML = `<div class="gift-sel">${avatar(giftTo.id, giftTo.name)}
         <span class="grow" style="flex:1;min-width:0"><span class="muted small">${T("g_to")}</span><br><b translate="no">${esc(giftTo.name)}</b></span>
         <button type="button" class="btn btn-sm btn-ghost" id="g-change">${T("g_change")}</button></div>
-      <p class="small" style="margin:0 0 8px">${T("g_plan_pick")}</p>
+      ${plans.length ? `<p class="small" style="margin:0 0 8px">${T("g_plan_pick")}</p>` : ""}
       <div class="row">${plans
         .map((o) => `<button type="button" class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" data-gplan="${o.x.id}">${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></button>`)
         .join("")}</div>
-      <p class="muted small" style="margin:10px 0 0">${T("g_note")}</p>`;
+      ${plans.length ? `<p class="muted small" style="margin:10px 0 0">${T("g_note")}</p>` : ""}
+      ${payLinksHtml(cfg, { gift: giftTo.name, badges: false })}`;
     decoratePlans(el, "gplan", true);
     $("#g-change").addEventListener("click", () => {
       giftTo = null;

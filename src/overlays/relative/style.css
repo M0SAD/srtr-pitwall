@@ -460,3 +460,21 @@
 .rel-row.me .rel-v {
   font-weight: var(--ov-weight-strong);
 }
+
+/* İsteğe bağlı çerçeveler: listenin çevresi ve / veya her sürücü satırı */
+.rel.rel-framed .rel-rows {
+  margin: 2px 3px;
+  border: 1px solid color-mix(in srgb, var(--ov-text) 45%, transparent);
+  border-radius: min(var(--ov-radius, 6px), 8px);
+  overflow: hidden;
+}
+.rel.rel-rowframed .rel-row:not(.rel-blank) {
+  margin: 2px 3px;
+  height: calc(var(--ov-row-h) - 4px);
+  border: 1px solid color-mix(in srgb, var(--ov-text) 38%, transparent);
+  border-radius: min(var(--ov-radius, 6px), 6px);
+  overflow: hidden;
+}
+.rel.rel-rowframed .rel-row.rel-blank {
+  border-bottom-color: transparent;
+}

@@ -297,6 +297,38 @@ export function LayoutCanvas(props: CanvasProps) {
     const b = el.getBoundingClientRect();
     const x0 = e.clientX - b.left;
     const y0 = e.clientY - b.top;
+    // Yakınlaştırılmış (kaydırılabilir) tuvalde boş yerden sürükle: gezin. Seçim kutusu için Shift / Ctrl basılı tutulur;
+    // tuval ekrana sığıyorken boş yerden sürüklemek eskisi gibi seçim kutusu çizer. Sürüklemeden tıklamak seçimi kaldırır.
+    const sc = box;
+    if (sc && !e.shiftKey && !e.ctrlKey && (sc.scrollWidth > sc.clientWidth + 1 || sc.scrollHeight > sc.clientHeight + 1)) {
+      const px = e.clientX;
+      const py = e.clientY;
+      const l0 = sc.scrollLeft;
+      const t0 = sc.scrollTop;
+      let dragged = false;
+      el.setPointerCapture(e.pointerId);
+      const pmv = (ev: PointerEvent) => {
+        if (!dragged && Math.hypot(ev.clientX - px, ev.clientY - py) < 4) return;
+        dragged = true;
+        sc.classList.add("panning");
+        sc.scrollLeft = l0 - (ev.clientX - px);
+        sc.scrollTop = t0 - (ev.clientY - py);
+      };
+      const pend = () => {
+        el.removeEventListener("pointermove", pmv);
+        el.removeEventListener("pointerup", pend);
+        el.removeEventListener("pointercancel", pend);
+        sc.classList.remove("panning");
+        if (!dragged) {
+          setMulti([]);
+          props.onSelect(null);
+        }
+      };
+      el.addEventListener("pointermove", pmv);
+      el.addEventListener("pointerup", pend);
+      el.addEventListener("pointercancel", pend);
+      return;
+    }
     const add = e.shiftKey || e.ctrlKey ? multi() : [];
     let moved = false;
     el.setPointerCapture(e.pointerId);

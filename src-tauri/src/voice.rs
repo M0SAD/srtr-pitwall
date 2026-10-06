@@ -393,6 +393,8 @@ pub struct Voice {
     pub sounds: SoundsCfg,
     /// Sesli kısım etkin (PRO ve "Sesli mühendis açık")
     pub voice_on: bool,
+    /// Sesli mühendis bu kullanıcıya açık mı (PRO'ya ayrıldıysa yalnızca PRO)
+    allowed: bool,
     /// Demo: ses çıkmaz (ses düzeyi 0, bip yok) ama mesajlar gerçek süreleriyle "söylenir": altyazı overlay'i canlı gibi görünür
     silent: bool,
     pack: Option<Pack>,
@@ -423,6 +425,7 @@ impl Default for Voice {
             cfg: VoiceCfg::default(),
             sounds: SoundsCfg::default(),
             voice_on: false,
+            allowed: false,
             silent: false,
             pack: None,
             pack_key: None,
@@ -502,6 +505,7 @@ impl Voice {
         }
         self.cfg_seen = true;
         self.voice_on = now_on;
+        self.allowed = allowed;
         self.cfg = cfg;
         self.sounds = sounds;
         if let Some(p) = self.pack.as_mut() {
@@ -673,7 +677,10 @@ impl Voice {
     /// `sim`: bağlı sim kısa adı ("iracing", "acc"…; demo için boş)
     pub fn tick(&mut self, f: &Frame, s: &SessionData, t: &Tracker, live: bool, sim: &str, silent: bool) {
         // "Demoda ses" açıksa demo da gerçek sürüş gibi seslidir
-        let silent = silent && !self.cfg.demo_sound;
+        // Demoda sesli mühendis anahtarı kapalı olsa da konuşur (sessiz demoda olduğu gibi)
+        let demo = silent;
+        // PRO'ya ayrılmış ve kullanıcı PRO değilse demoda da ses çıkmaz (yalnızca sessiz altyazı benzetimi)
+        let silent = silent && !(self.cfg.demo_sound && self.allowed);
         if self.silent != silent {
             // Demo açıldı / kapandı: sıradaki mesajlar diğer kipe taşınmasın
             self.queue.items.clear();
@@ -684,7 +691,7 @@ impl Voice {
 
         self.beeps(f, s, driving && !silent, live && !silent, now);
 
-        if (!self.voice_on && !silent) || !driving || self.cfg.pack_root.is_none() {
+        if (!self.voice_on && !demo) || !driving || self.cfg.pack_root.is_none() {
             self.spot.clr = 1;
             self.spot.overlap_since = None;
             // Araçtan inildi / ses kapalı: bekleyen trafik çağrıları sonradan çalmasın

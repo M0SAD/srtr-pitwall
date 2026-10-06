@@ -57,6 +57,7 @@ const MAP: Record<string, () => JSX.Element> = {
   h2h: () => <I.Users />,
   goalbar: () => <I.ChartBarBig />,
   socials: () => <I.Share2 />,
+  setupcover: () => <I.EyeOff />,
   voice: () => <I.Volume2 />,
 };
 
