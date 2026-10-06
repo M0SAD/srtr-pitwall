@@ -4,7 +4,7 @@ import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { api, callFunction, cloudEnabled, session } from "./supabase";
 import { apiBase, inTauri } from "@/sdk/platform";
-import { localeTag } from "@/sdk/i18n";
+import { localeTag, t } from "@/sdk/i18n";
 import { loadNotices, loadPerms } from "./moderation";
 import { normalizeWatermark, syncWatermark, type WatermarkCfg } from "@/sdk/watermark";
 
@@ -403,6 +403,17 @@ export interface PayCat {
   on?: boolean;
   tr_only?: boolean;
 }
+/** Sabit Patreon kategorisinin ayarlanabilir kısmı: logo, ödeme yöntemi görselleri, bölgeye göre fiyat ve adres */
+export interface PayPatreon {
+  img?: string;
+  badges?: string[];
+  /** Türkiye fiyatı / adresi */
+  price?: string;
+  url?: string;
+  /** Yurt dışı fiyatı / adresi */
+  price_intl?: string;
+  url_intl?: string;
+}
 export interface PayMethods {
   /** Otomatik planlar (mağaza) ve hediye PRO'nun mağaza düğmeleri gizli */
   hide_plans?: boolean;
@@ -411,6 +422,8 @@ export interface PayMethods {
   hide_coupon?: boolean;
   cats?: PayCat[];
   links?: PayLink[];
+  /** Sabit Patreon kategorisi (başlık ve açıklama yerleşik, tüm dillere çevrili); hide_patreon ile kapatılır */
+  patreon?: PayPatreon;
   /** "Ödeme yöntemleri" görselleri (Visa, Mastercard…): data: ya da https: adresleri */
   badges?: string[];
 }
@@ -419,7 +432,8 @@ export const payImgOk = (u: unknown): u is string => typeof u === "string" && /^
 /** Ödeme yöntemleri ayarı (kayıt yoksa / bozuksa hiçbir şey gizli değil, bağlantı yok) */
 export function payMethods(c: AppConfig | null | undefined): PayMethods {
   const p = c?.pay_methods;
-  if (!p || typeof p !== "object") return { links: [], cats: [], badges: [] };
+  if (!p || typeof p !== "object")
+    return { links: [], cats: [], badges: [], patreon: { img: "", badges: [], price: "", price_intl: "", url: String(c?.patreon_url_tr ?? c?.patreon_url ?? ""), url_intl: String(c?.patreon_url ?? "") } };
   const obj = (x: unknown) => !!x && typeof x === "object";
   const cats = (Array.isArray(p.cats) ? p.cats : [])
     .filter(obj)
@@ -441,7 +455,17 @@ export function payMethods(c: AppConfig | null | undefined): PayMethods {
     tag: l.tag === "popular" || l.tag === "best" ? l.tag : "",
   }));
   const badges = (Array.isArray(p.badges) ? p.badges : []).filter(payImgOk);
-  return { hide_plans: !!p.hide_plans, hide_patreon: !!p.hide_patreon, hide_coupon: !!p.hide_coupon, cats, links, badges };
+  const pt = obj(p.patreon) ? (p.patreon as PayPatreon) : {};
+  const patreon: PayPatreon = {
+    img: payImgOk(pt.img) ? pt.img : "",
+    badges: (Array.isArray(pt.badges) ? pt.badges : []).filter(payImgOk),
+    price: String(pt.price ?? ""),
+    price_intl: String(pt.price_intl ?? ""),
+    // Adres girilmediyse eski Patreon alanları (Yönetim › eski bağlantılar) kullanılır
+    url: String(pt.url ?? c?.patreon_url_tr ?? c?.patreon_url ?? ""),
+    url_intl: String(pt.url_intl ?? c?.patreon_url ?? ""),
+  };
+  return { hide_plans: !!p.hide_plans, hide_patreon: !!p.hide_patreon, hide_coupon: !!p.hide_coupon, cats, links, badges, patreon };
 }
 /** Kullanıcıya gösterilecek kendi ödeme bağlantıları (açık, adresi http(s), bölgeye uygun, kategorisi gizli değil) */
 export const payLinksShown = (c: AppConfig | null | undefined): PayLink[] => payGroupsShown(c).flatMap((g) => g.links);
@@ -460,6 +484,15 @@ export function payGroupsShown(c: AppConfig | null | undefined): { cat: PayCat |
     if (k.on === false || (k.tr_only && !inTurkey())) continue;
     const links = all.filter((l) => l.cat === k.id);
     if (links.length) out.push({ cat: k, links });
+  }
+  // Sabit Patreon kategorisi: başlık ve açıklama yerleşik (arayüz diline çevrili); adresi girilmemiş bölgede çıkmaz
+  const pt = pm.patreon ?? {};
+  const purl = tr ? (pt.url ?? "") : (pt.url_intl ?? "");
+  if (!pm.hide_patreon && /^https?:\/\//i.test(purl)) {
+    out.push({
+      cat: { id: "__patreon", title: "Patreon", note: t("Yalnızca aylık abonelik alınır. Patreon'da buradaki e-posta adresini kullandığında SRTR Pitwall PRO kendiliğinden açılır."), img: pt.img, badges: pt.badges, on: true },
+      links: [{ title: t(PLAN_LIST[0].label), months: 1, price: (tr ? pt.price : pt.price_intl) ?? "", url: purl, note: "", on: true, claim: false, cat: "__patreon", tag: "" }],
+    });
   }
   return out;
 }

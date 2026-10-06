@@ -1,4 +1,3 @@
-import { inTurkey } from "../../cloud/account";
 import { localeTag, t } from "@/sdk/i18n";
 import { For, Match, Show, Switch, createResource, createSignal, onMount, createEffect } from "solid-js";
 import {
@@ -567,11 +566,6 @@ function ProPanel() {
           </Show>
         </Show>
         <div class="btns">
-          <Show when={!payMethods(c()).hide_patreon && (c()?.patreon_url || (inTurkey() && c()?.patreon_url_tr))}>
-            <button class="btn ghost" data-no-i18n onClick={() => openUrl((inTurkey() && c()!.patreon_url_tr) || c()!.patreon_url)}>
-              Patreon
-            </button>
-          </Show>
         </div>
         {/* Yöneticinin ödeme kategorileri (ör. ByNoGame): plan kartı görünümünde bağlantılar. PRO elle tanımlanır. */}
         <PayCats cfg={c} open={openUrl} />

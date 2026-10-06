@@ -3,6 +3,7 @@
 // Reklamlar, Görünürlük, Bildirimler, Moderasyon, Mesajlar, Medya, Ses paketleri.
 // Moderatörler (reports.view izni): Destek (silme hariç) ve Moderasyon.
 
+import { adminOverview, refreshAdminOverview } from "@/cloud/adminOverview";
 import { AdminPayMethods } from "../components/AdminPayMethods";
 import { For, Match, Show, Switch, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
@@ -262,11 +263,35 @@ function Members(props: { run: Run }) {
       setUsers(append ? [...users(), ...rows] : rows);
       setMore(rows.length === 50);
     }, "");
-  onMount(() => search());
+  onMount(() => (search(), void refreshAdminOverview()));
   const [editing, setEditing] = createSignal<AdminUser | null>(null);
   return (
     <section class="panel admin-panel">
       <h3>Üyeler</h3>
+      <Show when={adminOverview()}>
+        {(o) => (
+          <div class="mem-stats">
+            <span>
+              <b>{o().members}</b> kayıtlı üye
+            </span>
+            <span>
+              <b>{o().pro}</b> PRO
+            </span>
+            <span>
+              <b>{o().trial}</b> deneme (PRO'ya dahil)
+            </span>
+            <span>
+              <b>{Math.max(0, o().members - o().pro)}</b> PRO değil
+            </span>
+            <span>
+              <b>{o().online}</b> çevrimiçi
+            </span>
+            <span>
+              <b>{o().racing}</b> yarışta
+            </span>
+          </div>
+        )}
+      </Show>
       <div class="cm-tabs">
         <For each={[["all", "Tüm kayıtlılar"], ["pro", "PRO üyeler"], ["online", "Çevrimiçi"], ["admin", "Yöneticiler"]] as const}>
           {([id, label]) => (

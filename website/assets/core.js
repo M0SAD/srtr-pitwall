@@ -274,11 +274,12 @@ const payImgOk = (u) => typeof u === "string" && /^(data:image\/(png|jpeg|webp|g
 /** Ödeme yöntemleri ayarı (app_config.pay_methods, c94): hazır yöntemleri gizleme + yöneticinin kategorileri ve bağlantıları */
 export function payMethods(cfg) {
   const p = cfg && cfg.pay_methods;
-  if (!p || typeof p !== "object") return { links: [], cats: [], badges: [] };
+  const purl = { url: String((cfg && (cfg.patreon_url_tr || cfg.patreon_url)) || ""), url_intl: String((cfg && cfg.patreon_url) || "") };
+  if (!p || typeof p !== "object") return { links: [], cats: [], badges: [], patreon: { ...purl } };
   const obj = (x) => x && typeof x === "object";
   const cats = (Array.isArray(p.cats) ? p.cats : []).filter((k) => obj(k) && k.id);
   const links = (Array.isArray(p.links) ? p.links : []).filter(obj).map((l) => ({ ...l, cat: cats.some((k) => k.id === l.cat) ? l.cat : "" }));
-  return { hide_plans: !!p.hide_plans, hide_patreon: !!p.hide_patreon, hide_coupon: !!p.hide_coupon, cats, links, badges: (Array.isArray(p.badges) ? p.badges : []).filter(payImgOk) };
+  return { hide_plans: !!p.hide_plans, hide_patreon: !!p.hide_patreon, hide_coupon: !!p.hide_coupon, cats, links, badges: (Array.isArray(p.badges) ? p.badges : []).filter(payImgOk), patreon: { ...purl, ...(obj(p.patreon) ? Object.fromEntries(Object.entries(p.patreon).filter(([, v]) => v !== undefined && v !== null)) : {}) } };
 }
 /** Gösterilecek kategoriler ve kartları (kategorisiz bağlantılar başlıksız grup olarak en başta) */
 export function payGroups(cfg) {
@@ -300,6 +301,14 @@ export function payGroups(cfg) {
     const links = all.filter((l) => l.cat === k.id);
     if (links.length) out.push({ cat: k, links });
   }
+  // Sabit Patreon kategorisi: başlık ve açıklama yerleşik (site diline çevrili); adresi girilmemiş bölgede çıkmaz
+  const pt = pm.patreon || {};
+  const purl = String((region === "tr" ? pt.url : pt.url_intl) || "");
+  if (!pm.hide_patreon && /^https?:\/\//i.test(purl))
+    out.push({
+      cat: { id: "__patreon", title: "Patreon", note: T("pay_patreon_note"), img: pt.img, badges: pt.badges },
+      links: [{ title: T("plan_1m"), months: 1, price: String((region === "tr" ? pt.price : pt.price_intl) || ""), url: purl, note: "", claim: false, tag: "" }],
+    });
   return out;
 }
 /** Gösterilecek kendi ödeme bağlantıları (düz liste) */
@@ -549,6 +558,7 @@ addDict({
   per_month: ["ayda {0}", "{0} per month"],
   best_value: ["En avantajlı", "Best value"],
   popular: ["Popüler", "Popular"],
+  pay_patreon_note: ["Yalnızca aylık abonelik alınır. Patreon'da buradaki e-posta adresini kullandığında SRTR Pitwall PRO kendiliğinden açılır.", "Monthly subscription only. Use the same e-mail on Patreon as here and SRTR Pitwall PRO turns on automatically."],
   pay_open: ["Ödeme sayfasını aç", "Open payment page"],
   pay_with: ["Öde", "Pay"],
   pay_gift: ["Hediye et", "Gift"],

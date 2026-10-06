@@ -2,7 +2,7 @@
 // bağlantılarını (ör. ByNoGame ilanı) başlık + açıklamayla ekleme. app_config.pay_methods (c94) içinde saklanır;
 // uygulamadaki Hesap sayfası ve web sitesi (ana sayfa fiyatlar, hesap sayfası) aynı kaydı okur.
 import { For, Index, Show, createResource, createSignal } from "solid-js";
-import { adminPayClaimDone, adminPayClaims, adminChangePro, config, payMethods, saveConfig, payImgOk, type PayCat, type PayClaim, type PayLink, type PayMethods } from "@/cloud/account";
+import { adminPayClaimDone, adminPayClaims, adminChangePro, config, payMethods, saveConfig, payImgOk, type PayCat, type PayClaim, type PayLink, type PayMethods, type PayPatreon } from "@/cloud/account";
 import { localeTag } from "@/sdk/i18n";
 import { t } from "@/sdk/i18n";
 import * as I from "../icons";
@@ -15,6 +15,22 @@ export function AdminPayMethods() {
   const patch = (p: Partial<PayMethods>) => (setDraft({ ...cur(), ...p }), setMsg(null));
   const links = () => cur().links ?? [];
   const setLink = (i: number, p: Partial<PayLink>) => patch({ links: links().map((l, n) => (n === i ? { ...l, ...p } : l)) });
+  const pat = (): PayPatreon => cur().patreon ?? {};
+  const setPat = (p: Partial<PayPatreon>) => patch({ patreon: { ...pat(), ...p } });
+  /** Elle eklenmiş "Patreon" kategorisi (sabit kategoriye aktarılabilir) */
+  const ownPatreon = () => cats().find((k) => k.title.trim().toLowerCase() === "patreon");
+  /** Kendi Patreon kategorindeki logo, görseller, fiyat ve adresleri sabit Patreon'a taşır; kendi kategorin ve bağlantıları silinir */
+  const importPatreon = () => {
+    const k = ownPatreon();
+    if (!k) return;
+    const l = links().find((x) => x.cat === k.id);
+    patch({
+      hide_patreon: false,
+      patreon: { img: k.img || pat().img, badges: k.badges?.length ? k.badges : pat().badges, price: l?.price ?? pat().price, url: l?.url ?? pat().url, price_intl: l?.price_intl ?? pat().price_intl, url_intl: l?.url_intl ?? pat().url_intl },
+      cats: cats().filter((x) => x.id !== k.id),
+      links: links().filter((x) => x.cat !== k.id),
+    });
+  };
   const cats = () => cur().cats ?? [];
   const badges = () => cur().badges ?? [];
   const setCat = (i: number, p: Partial<PayCat>) => patch({ cats: cats().map((k, n) => (n === i ? { ...k, ...p } : k)) });
@@ -79,13 +95,15 @@ export function AdminPayMethods() {
     const clean = (d.links ?? [])
       .map((l) => ({ ...l, title: l.title.trim(), price: (l.price ?? "").trim(), url: l.url.trim(), price_intl: (l.price_intl ?? "").trim(), url_intl: (l.url_intl ?? "").trim(), tr_only: false, note: l.note.trim() }))
       .filter((l) => l.title || l.url || l.url_intl);
-    const cleanCats = (d.cats ?? []).map((k) => ({ ...k, title: k.title.trim(), note: k.note.trim() }));
     const okUrl = (u: string) => !u || /^https?:\/\/\S+$/i.test(u);
+    const pt = d.patreon ?? {};
+    if (![pt.url ?? "", pt.url_intl ?? ""].every((u) => okUrl(u.trim()))) return void setMsg({ ok: false, text: t('"{0}" için geçerli bir adres yaz (https:// ile başlamalı)', "Patreon") });
+    const cleanCats = (d.cats ?? []).map((k) => ({ ...k, title: k.title.trim(), note: k.note.trim() }));
     const bad = clean.find((l) => !okUrl(l.url) || !okUrl(l.url_intl) || (!l.url && !l.url_intl));
     if (bad) return void setMsg({ ok: false, text: t('"{0}" için geçerli bir adres yaz (https:// ile başlamalı)', bad.title || "?") });
     setBusy(true);
     try {
-      await saveConfig({ pay_methods: { ...d, links: clean, cats: cleanCats } });
+      await saveConfig({ pay_methods: { ...d, links: clean, cats: cleanCats, patreon: { ...pt, price: (pt.price ?? "").trim(), url: (pt.url ?? "").trim(), price_intl: (pt.price_intl ?? "").trim(), url_intl: (pt.url_intl ?? "").trim() } } });
       setDraft(null);
       setMsg({ ok: true, text: t("Ödeme yöntemleri kaydedildi") });
     } catch (e) {
@@ -234,7 +252,56 @@ export function AdminPayMethods() {
         ödemede PRO kendiliğinden açılmaz: ödemeyi görünce üyeye PRO'yu Üyeler bölümünden elle tanımlarsın; açıklamaya üyenin ne yapması gerektiğini yaz.
       </p>
       <Hide k="hide_plans" title="Lemon Squeezy ödemeleri (otomatik planlar)" sub="1 / 3 / 6 / 12 aylık abonelik düğmeleri ve hediye PRO'nun mağaza düğmeleri. Mağaza hazır değilken kapat." />
-      <Hide k="hide_patreon" title="Patreon" sub="Bağlantı girilmişse gösterilir" />
+      <Hide k="hide_patreon" title="Patreon" sub="Sabit Patreon kategorisi: başlık ve açıklama yerleşiktir, arayüzün ve sitenin diline göre kendiliğinden çevrilir" />
+      <div class="paycat-edit" classList={{ off: !!cur().hide_patreon }}>
+        <div class="paylink-edit-row">
+          <button class="paycat-img" title={t("Logo seç")} onClick={() => pickImg((u) => setPat({ img: u }))}>
+            <Show when={pat().img} fallback={<span>Logo</span>}>
+              <img src={pat().img} alt="" />
+            </Show>
+          </button>
+          <b data-no-i18n>Patreon</b>
+          <Show when={pat().img}>
+            <button class="btn ghost small" onClick={() => setPat({ img: "" })}>
+              Logoyu kaldır
+            </button>
+          </Show>
+          <span class="lt-sp" />
+          <Show when={ownPatreon()}>
+            <button class="btn small" onClick={importPatreon} title={t("Kendi eklediğin Patreon kategorisindeki logo, görseller, fiyat ve adresler buraya taşınır; kendi kategorin silinir. Kaydet'e basınca uygulanır.")}>
+              Kendi Patreon kategorimden aktar
+            </button>
+          </Show>
+        </div>
+        <small class="muted">{t("Yalnızca aylık abonelik alınır. Patreon'da buradaki e-posta adresini kullandığında SRTR Pitwall PRO kendiliğinden açılır.")}</small>
+        <div class="paybadge-edit">
+          <small class="muted">Ödeme yöntemi görselleri (açıklamanın altında):</small>
+          <For each={pat().badges ?? []}>
+            {(b, bi) => (
+              <span class="paybadge-item">
+                <img src={b} alt="" />
+                <button class="icon-btn" title={t("Kaldır")} onClick={() => setPat({ badges: (pat().badges ?? []).filter((_, n) => n !== bi()) })}>
+                  <I.X />
+                </button>
+              </span>
+            )}
+          </For>
+          <button class="btn ghost small" disabled={(pat().badges ?? []).length >= 10} onClick={() => pickImg((u) => setPat({ badges: [...(pat().badges ?? []), u] }))}>
+            <I.Plus /> Görsel ekle
+          </button>
+        </div>
+        <div class="paylink-edit-row">
+          <span class="paylink-reg">Türkiye</span>
+          <input class="input paylink-price" maxLength={30} placeholder="Fiyat (ör. $3)" title={t("Para birimini tutarın yanına yaz (₺, TL, $, €, USD…); aylık karşılık aynı simgeyle gösterilir")} value={pat().price ?? ""} onInput={(e) => setPat({ price: e.currentTarget.value })} />
+          <input class="input" maxLength={400} placeholder="https://…" data-no-i18n value={pat().url ?? ""} onInput={(e) => setPat({ url: e.currentTarget.value })} />
+        </div>
+        <div class="paylink-edit-row">
+          <span class="paylink-reg">Yurt dışı</span>
+          <input class="input paylink-price" maxLength={30} placeholder="Fiyat (ör. $5)" title={t("Para birimini tutarın yanına yaz (₺, TL, $, €, USD…); aylık karşılık aynı simgeyle gösterilir")} value={pat().price_intl ?? ""} onInput={(e) => setPat({ price_intl: e.currentTarget.value })} />
+          <input class="input" maxLength={400} placeholder="https://…" data-no-i18n value={pat().url_intl ?? ""} onInput={(e) => setPat({ url_intl: e.currentTarget.value })} />
+        </div>
+        <small class="muted">Adresini boş bıraktığın bölgede bu bağlantı gösterilmez.</small>
+      </div>
       <Hide k="hide_coupon" title="İndirim kuponu kutusu" sub="Otomatik planların üstündeki kupon girme alanı" />
       <h4 class="paylink-h">Genel ödeme yöntemi görselleri</h4>
       <p class="muted small">Tüm ödeme bölümünün en altında yan yana gösterilir (ör. Visa, Mastercard, Troy logoları). Görseller kaydedilirken küçültülür.</p>

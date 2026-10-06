@@ -30,7 +30,7 @@ export default function SetupCover(props: OverlayProps) {
   const img = () => (custom() ? String(o().logo || "") : "");
   const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
   return (
-    <div class="sc-wrap" style={{ width: `${num(o().w, 1280)}px`, height: `${num(o().h, 720)}px` }}>
+    <div class="sc-wrap" style={{ width: `${num(o().w, 1024)}px`, height: `${num(o().h, 768)}px` }}>
       <div
         class="sc"
         classList={{ on: show(), fade: o().fade !== false, stripes: !banner() && o().stripes !== false, frame: o().frame !== false, banner: banner() }}

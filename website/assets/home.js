@@ -343,12 +343,11 @@ function renderPlans() {
     </div>`;
   }).join("");
   const alt = [];
-  const patreon = !pm.hide_patreon && ((region === "tr" && c.patreon_url_tr) || c.patreon_url);
-  if (patreon) alt.push(`<a class="btn btn-patreon" href="${esc(patreon)}" target="_blank" rel="noopener">Patreon</a>`);
   $("#alt-pay-btns").innerHTML = alt.join("") || `<span class="muted small">${T("soon")}</span>`;
   // Patreon gizlendiyse ya da yoksa ve kendi bağlantıların varsa boş "Yakında" kartı gösterilmez
   const altCard = $("#alt-pay-btns").closest(".alt-pay");
-  if (altCard) altCard.style.display = !alt.length && (payLinks(c).length || pm.hide_patreon) ? "none" : "";
+  // Patreon artık ödeme kategorileri arasında (sabit kategori); ayrı "Patreon ile destekle" kartı gösterilmez
+  if (altCard) altCard.style.display = "none";
   $("#pro-note").textContent = c.pro_note || "";
 }
 

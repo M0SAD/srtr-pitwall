@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-217
+
+- Sabit Patreon kategorisi: Patreon artık ödeme kategorileri arasında yerleşik bir kategori. Başlığı ve açıklaması sabittir ve arayüzün / sitenin diline göre kendiliğinden çevrilir (14 dil); kart başlığı "1 aylık". Yönetim › Planlar'daki "Patreon" anahtarıyla kapatılır. Logo, ödeme yöntemi görselleri, Türkiye / yurt dışı fiyatı ve adresi aynı kutudan girilir; adres girilmezse eski Patreon bağlantıları kullanılır. "Kendi Patreon kategorimden aktar" düğmesi elle eklenmiş Patreon kategorisindeki logo, görseller, fiyat ve adresleri buraya taşır ve o kategoriyi siler (Kaydet'e basınca uygulanır).
+- Eski "Patreon" düğmesi (program) ve sitedeki ayrı "Patreon ile destekle" kartı kaldırıldı; Patreon yalnızca kategori olarak görünür.
+- Yönetim › Üyeler: üstte sayılar (kayıtlı üye, PRO, deneme, PRO değil, çevrimiçi, yarışta).
+- Setup Örtüsü: varsayılan boyut 1024×768 (yeni eklenen örtüler için; varsayılan görünme koşulu "Garaj / setup ekranı açıkken").
+
 ## 061026-216
 
 - Ödeme bağlantılarında Türkiye ve yurt dışı için ayrı adres ve fiyat: Yönetim › Planlar'da her bağlantıda iki satır (Türkiye / Yurt dışı). Türkiye'den bağlananlar Türkiye adresini ve fiyatını, diğerleri yurt dışı adresini ve fiyatını görür; adresi girilmemiş bölgede kart hiç çıkmaz (program + site). Bağlantıdaki "Yalnızca Türkiye" kutusu kalktı; eski kayıtlar kendiliğinden çevrilir (yalnızca Türkiye olanların yurt dışı adresi boş, diğerlerinde aynı adres iki bölgede).

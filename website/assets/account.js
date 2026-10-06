@@ -455,13 +455,6 @@ async function dashboard(u) {
           ${planBtns.includes("data-pro=") && !payMethods(cfg).hide_coupon ? `<div id="cp-pro"></div>` : ""}
           <div class="row">${planBtns || (payLinks(cfg).length ? "" : `<span class="muted small">${T("soon")}</span>`)}</div>
           ${payLinksHtml(cfg)}
-          ${
-            (!payMethods(cfg).hide_patreon && ((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url))
-              ? `<div class="row" style="margin-top:14px">
-                  ${!payMethods(cfg).hide_patreon && ((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url) ? `<a class="btn btn-patreon btn-sm" href="${esc((region === "tr" && cfg.patreon_url_tr) || cfg.patreon_url)}" target="_blank" rel="noopener">Patreon</a>` : ""}
-                </div><p class="muted small" style="margin:10px 0 0">${T("a_patreon_note")}</p>`
-              : ""
-          }
         </div>
 
         <div class="card" id="hediye">
