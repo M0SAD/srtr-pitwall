@@ -1918,7 +1918,9 @@ export function resolveProfile(st: Status | undefined, stream = false, forced?: 
   const s = settings();
   if (forced && s.profiles[forced]) return s.profiles[forced];
   const list = Object.values(s.profiles);
-  const mode: ProfileMode = stream ? "stream" : st?.spectating ? "spotting" : "driving";
+  // Garaj / setup ekranı açıkken sürüş düzeni kalır: iRacing o sırada aracı "pistte değil, garajda değil" bildirir ve
+  // izleme düzenine geçilirse sürüş düzenindeki Setup Örtüsü kayboluyordu.
+  const mode: ProfileMode = stream ? "stream" : st?.spectating && st.garageVisible !== true ? "spotting" : "driving";
   const pick = (m: ProfileMode, needAuto: boolean) => {
     let best: Profile | null = null;
     let bestScore = -1;

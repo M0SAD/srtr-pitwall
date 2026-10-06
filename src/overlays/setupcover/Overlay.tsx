@@ -20,7 +20,7 @@ export default function SetupCover(props: OverlayProps) {
     if (when === "always") return true;
     if (!s?.connected || s.preview) return false;
     // Garaj / setup ekranı açıkken: sim bildiriyorsa (iRacing) yalnızca o ekran açıkken; bildirmiyorsa pistte değilken
-    if (when === "menu" && typeof s.garageVisible === "boolean") return s.garageVisible;
+    if (when === "menu" && typeof s.garageVisible === "boolean") return s.garageVisible || !!s.inGarage;
     if (when === "garage") return !!s.inGarage;
     // Tekrar izlerken ya da izleyici / spotter iken örtmeye gerek yok: kendi aracının setup'ı açık değildir
     return !!s.inGarage || (!s.onTrack && !s.replayWatch && !s.spectating);

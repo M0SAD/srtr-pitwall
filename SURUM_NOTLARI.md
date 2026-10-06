@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-232
+
+- Setup Örtüsü: garaj / setup ekranı açılınca uygulama izleme düzenine geçtiği için sürüş düzenindeki örtü kayboluyordu. Garaj ekranı açıkken artık sürüş düzeni kalır ve örtü görünür. Örtü Garage düğmesine basıldığı anda gelir (eskiden yarım saniyeye kadar gecikebiliyordu).
+
+## 071026-231
+
+- Ekran Görüntüleri sayfasındaki filigran önizlemesinin görseli yenilendi.
+
 ## 071026-230
 
 - Yeni overlay: Saat. Bilgisayarının saatini dijital kutu, ince şerit, yalnızca yazı ya da analog kadran olarak gösterir. Üç alarm ve tekrarlayan hatırlatma kurulabilir; vakti gelince seçtiğin sesle (bip, çift bip, siren, yumuşak) ve yanıp sönerek uyarır. "Yalnızca alarm çalarken" ya da "alarma az kala" görünme seçenekleri vardır.

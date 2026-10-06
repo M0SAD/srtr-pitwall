@@ -10,7 +10,7 @@ import { prettyKey, shortcut } from "@/sdk/shortcuts";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { config, profile } from "@/cloud/account";
 import { composePreview, normalizeWatermark } from "@/sdk/watermark";
-import cockpitImg from "@/assets/backdrops/cockpit.jpg";
+import wmPreviewImg from "@/assets/backdrops/watermark-preview.jpg";
 import { encodeForShare, shareShot, sharedLocalPaths, shotLimits } from "@/cloud/shots";
 import { useScreenshotBytes } from "../components/Backdrop";
 import {
@@ -479,7 +479,7 @@ function WatermarkPreview() {
   const wm = () => normalizeWatermark(config()?.watermark);
   const [preview] = createResource(
     () => ({ c: wm(), user: profile()?.display_name ?? "" }),
-    (k) => composePreview(cockpitImg, k.c, k.user, 360).catch(() => ""),
+    (k) => composePreview(wmPreviewImg, k.c, k.user, 360).catch(() => ""),
   );
   return (
     <div class="row">

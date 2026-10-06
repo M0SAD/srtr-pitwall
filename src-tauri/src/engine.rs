@@ -91,7 +91,7 @@ struct Subscriber {
     topics: Vec<Topic>,
     /// Bu aboneye gönderilen son pist şekli sürümü
     map_version: u32,
-    status_key: (bool, bool, bool, bool),
+    status_key: (bool, bool, bool, bool, bool, bool),
 }
 
 impl Subscriber {
@@ -251,7 +251,7 @@ impl Shared {
             sink,
             topics: build_topics(reqs),
             map_version: u32::MAX,
-            status_key: (false, false, false, true),
+            status_key: (false, false, false, true, false, false),
         });
         self.topics_gen.fetch_add(1, Ordering::Relaxed);
         id
@@ -773,7 +773,8 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
     let s = &st.session;
     let t = &st.tracker;
     let has_data = connected && f.player_idx >= 0;
-    let key = (connected, demo || preview, f.is_on_track, f.replay);
+    // Garaj / setup ekranı ve garaj durumu da anahtarda: Setup Örtüsü düğmeye basıldığı anda gelsin (yarım saniye beklemesin)
+    let key = (connected, demo || preview, f.is_on_track, f.replay, f.garage_visible == Some(true), f.is_in_garage);
 
     // Aynı karede birden fazla aboneye gidecek paketi bir kez hesapla
     // (konu, paket, SSE aboneleri için hazır JSON metni)

@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { adminStorageUsage, config, profile, saveConfig } from "@/cloud/account";
 import { projectRef } from "@/cloud/supabase";
 import { DEFAULT_WATERMARK, WM_POSITIONS, composePreview, logoDataUrl, normalizeWatermark, type WatermarkCfg, type WmPosition } from "@/sdk/watermark";
-import cockpitImg from "@/assets/backdrops/cockpit.jpg";
+import cockpitImg from "@/assets/backdrops/watermark-preview.jpg";
 import dayImg from "@/assets/backdrops/day.jpg";
 import { fmtSize } from "./Shots";
 
