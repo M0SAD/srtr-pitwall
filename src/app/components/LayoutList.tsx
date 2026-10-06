@@ -87,7 +87,8 @@ export const FIXED_STREAM = "stream-default";
 
 /** Silinemeyen varsayılan düzen (işaretli olan; yoksa eski sabit kimlik, o da yoksa listenin ilki) */
 export function fixedProfileId(stream: boolean): string | undefined {
-  return defaultProfileId(stream);
+  // Yayın düzenlerinde varsayılan / silinemeyen düzen yoktur
+  return stream ? undefined : defaultProfileId(false);
 }
 
 /** Düzeni kilitler / kilidini açar */
@@ -106,7 +107,7 @@ export async function removeProfile(id: string): Promise<boolean> {
   if (!p) return false;
   const stream = isStream(p);
   const count = Object.values(settings().profiles).filter((x) => isStream(x) === stream).length;
-  if (fixedProfileId(stream) === id || p.locked || count <= 1) return false;
+  if (fixedProfileId(stream) === id || p.locked || (!stream && count <= 1)) return false;
   const ok = await askConfirm(stream ? t('"{0}" yayın düzeni silinsin mi?', p.name) : t('"{0}" düzeni silinsin mi?', p.name), {
     note: t("Düzendeki overlay'ler ve ayarları da silinir. Bu işlem geri alınamaz."),
     ok: t("Sil"),
@@ -156,7 +157,7 @@ export function LayoutList(props: {
   const fixed = () => fixedProfileId(stream());
   const isFixed = (id: string) => fixed() === id;
   const isLockedP = (id: string) => !!settings().profiles[id]?.locked;
-  const canRemove = (id: string) => !isFixed(id) && !isLockedP(id) && props.list.length > 1;
+  const canRemove = (id: string) => !isFixed(id) && !isLockedP(id) && (stream() || props.list.length > 1);
   const startRename = (id: string) => !isLockedP(id) && setRenaming(id);
   const remove = async (id: string) => {
     const i = props.list.findIndex((p) => p.id === id);
@@ -206,9 +207,11 @@ export function LayoutList(props: {
                     <I.LockOpen /> Kilidi aç
                   </Show>
                 </button>
-                <button disabled={isFixed(m.id)} onPointerUp={run(() => setDefaultProfile(m.id))} title="Varsayılan düzen silinemez; seçili düzen kaybolursa buna dönülür">
-                  <I.Star /> {isFixed(m.id) ? "Varsayılan düzen" : "Varsayılan yap"}
-                </button>
+                <Show when={!stream()}>
+                  <button disabled={isFixed(m.id)} onPointerUp={run(() => setDefaultProfile(m.id))} title="Varsayılan düzen silinemez; seçili düzen kaybolursa buna dönülür">
+                    <I.Star /> {isFixed(m.id) ? "Varsayılan düzen" : "Varsayılan yap"}
+                  </button>
+                </Show>
                 <Show when={props.onShare}>
                   <button disabled={props.canShare ? !props.canShare(prof()) : false} onPointerUp={run(() => (props.onSelect(m.id), props.onShare!(m.id)))}>
                     <I.Share2 /> Toplulukta paylaş
@@ -317,18 +320,20 @@ export function LayoutList(props: {
                     <I.Lock />
                   </Show>
                 </button>
-                <button
-                  class="llist-def"
-                  classList={{ on: isFixed(x.id) }}
-                  title={isFixed(x.id) ? "Varsayılan düzen: silinemez (başka bir düzeni varsayılan yapabilirsin)" : "Varsayılan yap"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isFixed(x.id)) setDefaultProfile(x.id);
-                  }}
-                  onDblClick={(e) => e.stopPropagation()}
-                >
-                  <I.Star />
-                </button>
+                <Show when={!stream()}>
+                  <button
+                    class="llist-def"
+                    classList={{ on: isFixed(x.id) }}
+                    title={isFixed(x.id) ? "Varsayılan düzen: silinemez (başka bir düzeni varsayılan yapabilirsin)" : "Varsayılan yap"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isFixed(x.id)) setDefaultProfile(x.id);
+                    }}
+                    onDblClick={(e) => e.stopPropagation()}
+                  >
+                    <I.Star />
+                  </button>
+                </Show>
                 <Show when={canRemove(x.id)}>
                   <button
                     class="llist-del"

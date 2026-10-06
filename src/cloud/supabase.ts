@@ -450,11 +450,6 @@ export async function syncNow() {
     const since = fresh ? 0 : typeof local.syncedAt === "number" ? local.syncedAt : lastSync();
     if (!remote) {
       await push(local);
-    } else if (since === 0 && !fresh && local.updatedAt > remote.at) {
-      // Bu cihazda hesaba girmeden yapılmış, hesaptakinden yeni ayarlar var: sessizce ezme, kullanıcıya sor
-      setConflict({ remote: remote.data, remoteAt: remote.at });
-      setSyncState("conflict");
-      return;
     } else if (since === 0) {
       // Bu cihazda bu hesapla ilk eşitleme (yeni kurulum, başka bilgisayar ya da yeniden giriş): hesaptaki kayıt geçerlidir.
       // Düzenler ve bütün ayarlar hesaptan gelir; cihazdaki giriş öncesi ayarlar buluttakinin üzerine YAZILMAZ
@@ -465,12 +460,9 @@ export async function syncNow() {
         /* yer yoksa yedeksiz devam */
       }
       await applyRemote(remote);
-    } else if (remote.at > since && local.updatedAt > since && remote.at !== local.updatedAt && since > 0) {
-      // Son eşitlemeden beri iki tarafta da değişiklik var: kullanıcıya sor
-      setConflict({ remote: remote.data, remoteAt: remote.at });
-      setSyncState("conflict");
-      return;
     } else if (remote.at > local.updatedAt) {
+      // Kullanıcıya sorulmaz: iki tarafta da değişiklik varsa en son değiştirilen geçerlidir (hesaptaki eski sürümler
+      // Hesap › Ayar geçmişi'nde durur, geri alınabilir).
       await applyRemote(remote);
     } else if (local.updatedAt > remote.at) {
       await push(local);
@@ -506,8 +498,10 @@ export function startAutoSync() {
   // Ayar değişiklikleri hemen değil, toplu gönderilir (her değişiklik ayrı bir istek olmasın): son değişiklikten 8 sn sonra,
   // değişiklikler sürüyorsa en geç 1 dk'da bir. Panel arka plana geçince / gizlenince bekleyen değişiklik hemen gönderilir,
   // böylece başka cihaza geçildiğinde hesap günceldir. (Eskiden her değişiklikten 3 sn sonra gönderiliyordu.)
-  const QUIET_MS = 8_000;
-  const MAX_WAIT_MS = 60_000;
+  // Değişiklikler 30 dk sonra toplu gönderilir (ilk değişiklikten itibaren); uygulama kapanırken ya da çıkış yapılırken
+  // bekleyen değişiklik hemen gönderilir. Ayarlar zaten bu bilgisayarda anında kaydedilir; bu yalnızca hesaba yazmadır.
+  const QUIET_MS = 30 * 60_000;
+  const MAX_WAIT_MS = 30 * 60_000;
   let firstPending = 0;
   let inflight: Promise<void> | null = null;
   const flush = async (): Promise<void> => {
@@ -532,14 +526,15 @@ export function startAutoSync() {
     })();
     await inflight;
     inflight = null;
-    if (firstPending && !pushTimer) pushTimer = window.setTimeout(() => void flush(), syncState() === "error" ? 30_000 : QUIET_MS);
+    if (firstPending && !pushTimer) pushTimer = window.setTimeout(() => void flush(), syncState() === "error" ? 60_000 : QUIET_MS);
   };
   onSettingsChange(() => {
     if (applyingRemote || !session() || conflict()) return;
     const now = Date.now();
     if (!firstPending) firstPending = now;
-    clearTimeout(pushTimer);
-    pushTimer = window.setTimeout(() => void flush(), Math.max(1000, Math.min(QUIET_MS, firstPending + MAX_WAIT_MS - now)));
+    // Süre ilk değişiklikten sayılır; sonraki değişiklikler aynı gönderime katılır
+    if (pushTimer) return;
+    pushTimer = window.setTimeout(() => void flush(), Math.max(1000, firstPending + MAX_WAIT_MS - now));
   });
   flushPending = flush;
   // Pencere kapatılırken / uygulamadan çıkılırken bekleyen değişiklik gönderilmeden kapanmasın (webview kapanınca istek yarıda kalıyordu)
@@ -560,8 +555,6 @@ export function startAutoSync() {
       /* tarayıcı: yok */
     }
   })();
-  window.addEventListener("blur", () => void flush());
-  document.addEventListener("visibilitychange", () => document.hidden && void flush());
   window.addEventListener("pagehide", () => void flush());
   syncNow();
   // Başka bir cihazda yapılan değişiklikler: panel yeniden öne geldiğinde (en çok 10 dk'da bir) hesaptaki kayıt sorulur.

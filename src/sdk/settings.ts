@@ -1547,6 +1547,18 @@ export function normalize(input: unknown): AppSettings {
     for (const pr of Object.values(out.profiles)) for (const i of Object.values(pr.overlays)) if (i.type === "glucose" || i.type === "heartrate") i.alwaysShow = true;
   }
   out.general.healthAlwaysV1 = true;
+  // Yayın düzenlerinde sabit "stream-default" kimliği kalmaz: her yayın düzeninin kendine özel OBS adresi olur. Yeni kimlik
+  // düzenin adından türetilir (bulut eski kaydı yeniden getirirse aynı kimlik çıksın, adres bir daha değişmesin).
+  const legacyStream = out.profiles["stream-default"];
+  if (legacyStream && legacyStream.rules.mode === "stream") {
+    let h = 2166136261;
+    for (const ch of `stream-default|${legacyStream.name}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+    let nid = `s${h.toString(36)}`;
+    while (out.profiles[nid]) nid += "x";
+    delete out.profiles["stream-default"];
+    legacyStream.id = nid;
+    out.profiles[nid] = legacyStream;
+  }
   ensureDefaultFlags(out);
   if (!out.profiles[out.activeProfile]) out.activeProfile = defaultProfileId(false, out) ?? Object.keys(out.profiles)[0];
   // Overlay varsayılanları. İlk geçişte (kayıtta yoksa) etkin düzendeki ayarlardan alınır: kullanıcının
@@ -1699,7 +1711,9 @@ export function defaultProfileId(stream = false, s: Pick<AppSettings, "profiles"
 
 /** Her türde (düzen / yayın düzeni) tam bir varsayılan işareti bırakır */
 export function ensureDefaultFlags(d: Pick<AppSettings, "profiles">) {
-  for (const stream of [false, true]) {
+  // Yayın düzenlerinde varsayılan yoktur: her biri kendi OBS adresiyle kullanılır, hepsi silinebilir
+  for (const p of Object.values(d.profiles)) if (p.rules.mode === "stream") delete p.isDefault;
+  for (const stream of [false]) {
     const id = defaultProfileId(stream, d);
     for (const p of Object.values(d.profiles)) {
       if ((p.rules.mode === "stream") !== stream) continue;

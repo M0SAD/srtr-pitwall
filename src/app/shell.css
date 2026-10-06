@@ -5894,3 +5894,25 @@ button.ovpal-lock:hover {
 .citem.ghost {
   pointer-events: none;
 }
+
+.obs-lan {
+  cursor: pointer;
+  user-select: all;
+}
+
+.pe-pay {
+  flex-wrap: wrap;
+}
+.pe-pay .input:not(.pe-days) {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+.rev-h {
+  margin: 18px 0 6px;
+  font-size: 13px;
+}
+
+.rev-range {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}

@@ -5,15 +5,22 @@ import { Portal } from "solid-js/web";
 import { localeTag, t } from "@/sdk/i18n";
 import { api } from "@/cloud/supabase";
 import {
+  adminAddExpense,
   adminChangePro,
+  adminDeleteExpense,
+  adminExpenses,
+  adminPayments,
   adminProMembers,
   adminRevenue,
   config,
   isAdmin,
+  payMethods,
   markedHiddenOverlay,
   markedHiddenSection,
   saveConfig,
+  type AdminPayment,
   type AdminUser,
+  type Expense,
   type Money,
   type ProChangeMode,
   type ProMember,
@@ -65,6 +72,14 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
   const [note, setNote] = createSignal("");
   /** "Yayın logosuna müdahale edebilsin": işaretliyse verilen sürenin sonuna kadar logoyu kaldırabilir / taşıyabilir */
   const [logo, setLogo] = createSignal(false);
+  // Ödeme kaydı (isteğe bağlı): tutar girilirse süre verilirken Gelir'e yazılır
+  const [amount, setAmount] = createSignal("");
+  const [currency, setCurrency] = createSignal(localStorage.getItem("pitwall.admin.payCur") || "TRY");
+  const [method, setMethod] = createSignal(localStorage.getItem("pitwall.admin.payMethod") || "");
+  const [item, setItem] = createSignal("");
+  const amt = () => Math.max(0, parseFloat(amount().replace(",", ".")) || 0);
+  /** Seçilebilen yöntemler: kendi ödeme kategorilerin + yaygın olanlar (elle de yazılabilir) */
+  const methodList = () => [...new Set([...(payMethods(config()).cats ?? []).map((c) => c.title.trim()).filter(Boolean), "ByNoGame", "Patreon", "Lemon Squeezy", "Havale / EFT", "Papara", "PayPal", "Nakit"])];
   // Kutunun ilk durumu üyenin şu anki iznidir (profili yalnızca yönetici okuyabilir)
   api<{ pro_paid_until: string | null }[]>("GET", `profiles?id=eq.${p.user.id}&select=pro_paid_until`)
     .then((r) => setLogo(!!r?.[0]?.pro_paid_until && new Date(r[0].pro_paid_until).getTime() > Date.now()))
@@ -82,9 +97,17 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
   window.addEventListener("keydown", onKey);
   onCleanup(() => window.removeEventListener("keydown", onKey));
 
-  const apply = (mode: ProChangeMode, o: { days?: number; until?: Date } = {}, label = "") =>
+  const apply = (mode: ProChangeMode, o: { days?: number; until?: Date } = {}, label = "", bought = "") =>
     p.run(async () => {
-      const nu = await adminChangePro(p.user.id, mode, { ...o, note: note().trim(), notify: notify(), logo: logo() });
+      const pay = mode !== "remove" && amt() > 0;
+      const nu = await adminChangePro(p.user.id, mode, { ...o, note: note().trim(), notify: notify(), logo: logo(), ...(pay ? { amount: amt(), currency: currency(), method: method().trim(), item: item().trim() || bought } : {}) });
+      if (pay) {
+        localStorage.setItem("pitwall.admin.payCur", currency());
+        localStorage.setItem("pitwall.admin.payMethod", method().trim());
+        // Aynı ödeme ikinci bir süre eklemede yeniden yazılmasın
+        setAmount("");
+        setItem("");
+      }
       setCur(nu ?? null);
       setNote("");
       setDays("");
@@ -100,9 +123,9 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
     until.setDate(1);
     until.setMonth(until.getMonth() + m);
     until.setDate(Math.min(day, new Date(until.getFullYear(), until.getMonth() + 1, 0).getDate()));
-    return apply("set", { until }, t("+{0} ay eklendi", m));
+    return apply("set", { until }, t("+{0} ay eklendi", m), t("{0} ay PRO", m));
   };
-  const add = (d: number) => d && apply("add", { days: d }, d > 0 ? t("+{0} gün eklendi", d) : t("{0} gün düşüldü", Math.abs(d)));
+  const add = (d: number) => d && apply("add", { days: d }, d > 0 ? t("+{0} gün eklendi", d) : t("{0} gün düşüldü", Math.abs(d)), d > 0 ? t("{0} gün PRO", d) : "");
 
   return (
     <Portal>
@@ -137,6 +160,27 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
               </small>
             </span>
           </label>
+
+          <label class="pe-label">Ödeme (isteğe bağlı)</label>
+          <div class="pe-quick pe-pay">
+            <input class="input pe-days" inputmode="decimal" placeholder="Tutar" value={amount()} onInput={(e) => setAmount(e.currentTarget.value)} />
+            <select class="f2-select small" value={currency()} onChange={(e) => setCurrency(e.currentTarget.value)}>
+              <For each={["TRY", "USD", "EUR", "GBP"]}>{(c) => <option value={c}>{c}</option>}</For>
+            </select>
+            <input class="input" list="pe-methods" placeholder="Ödeme yöntemi" value={method()} onInput={(e) => setMethod(e.currentTarget.value)} />
+            <datalist id="pe-methods">
+              <For each={methodList()}>{(m) => <option value={m} />}</For>
+            </datalist>
+            <input class="input" list="pe-items" placeholder="Ne aldı (ör. 3 ay PRO)" value={item()} onInput={(e) => setItem(e.currentTarget.value)} />
+            <datalist id="pe-items">
+              <For each={[1, 3, 6, 12]}>{(m) => <option value={t("{0} ay PRO", m)} />}</For>
+              <option value={t("Süresiz PRO")} />
+            </datalist>
+          </div>
+          <small class="muted">
+            Tutar yazarsan aşağıdan süre verdiğin anda bu ödeme Gelir sayfasına kaydedilir (yöntem ve alınan ürünle birlikte). Boş bırakırsan ödeme kaydı oluşmaz.
+            "Ne aldı" boşsa verdiğin süre yazılır.
+          </small>
 
           <label class="pe-label">Ay ekle</label>
           <div class="pe-quick">
@@ -186,7 +230,7 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
             <button class="btn small" disabled={!date()} onClick={() => apply("set", { until: new Date(date() + "T23:59:00") }, t("Bitiş {0} olarak ayarlandı", fmtDate(date() + "T23:59:00")))}>
               Bu tarihe ayarla
             </button>
-            <button class="btn small" onClick={() => apply("unlimited", {}, t("Süresiz PRO verildi"))}>
+            <button class="btn small" onClick={() => apply("unlimited", {}, t("Süresiz PRO verildi"), t("Süresiz PRO"))}>
               Süresiz
             </button>
             <button
@@ -480,6 +524,85 @@ export function AdminRevenue() {
   const [kind, setKind] = createSignal<"paid" | "free">("paid");
   const [rows] = createResource(kind, (k) => adminProMembers(k).catch(() => [] as ProMember[]));
   const [q, setQ] = createSignal("");
+  // Ödemeler: yönteme göre döküm ve son ödemeler (elle girilenlerde yöntem yazılıdır; diğerlerinde ödeme kaynağı)
+  const [pays, { refetch: refetchPays }] = createResource(() => adminPayments().catch(() => [] as AdminPayment[]));
+  const [payAll, setPayAll] = createSignal(false);
+  // Tarih aralığı (boş = tüm zamanlar): gelir, gider, yöntem dökümü ve listeler bu aralığa göre
+  const [from, setFrom] = createSignal("");
+  const [to, setTo] = createSignal("");
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const presets = (): { label: string; from: string; to: string }[] => {
+    const n = new Date();
+    return [
+      { label: "Tüm zamanlar", from: "", to: "" },
+      { label: "Bu ay", from: iso(new Date(n.getFullYear(), n.getMonth(), 1)), to: "" },
+      { label: "Geçen ay", from: iso(new Date(n.getFullYear(), n.getMonth() - 1, 1)), to: iso(new Date(n.getFullYear(), n.getMonth(), 0)) },
+      { label: "Son 30 gün", from: iso(new Date(n.getTime() - 30 * 86400_000)), to: "" },
+      { label: "Bu yıl", from: iso(new Date(n.getFullYear(), 0, 1)), to: "" },
+    ];
+  };
+  const inRange = (d: string) => {
+    const day = d.length > 10 ? iso(new Date(d)) : d;
+    return (!from() || day >= from()) && (!to() || day <= to());
+  };
+  const paysIn = () => (pays() ?? []).filter((x) => inRange(x.created_at));
+  const [exps, { refetch: refetchExps }] = createResource(() => adminExpenses().catch(() => [] as Expense[]));
+  const expsIn = () => (exps() ?? []).filter((x) => inRange(x.spent_at));
+  const sumBy = <T,>(list: T[], cur: (x: T) => string, val: (x: T) => number): Money => {
+    const m: Money = {};
+    for (const x of list) m[cur(x)] = (m[cur(x)] ?? 0) + val(x);
+    return m;
+  };
+  const income = () => sumBy(paysIn(), (x) => x.currency, (x) => (x.kind === "refund" ? -1 : 1) * Number(x.amount));
+  const spent = () => sumBy(expsIn(), (x) => x.currency, (x) => Number(x.amount));
+  const net = () => {
+    const m: Money = { ...income() };
+    for (const [c, v] of Object.entries(spent())) m[c] = (m[c] ?? 0) - v;
+    return m;
+  };
+  const money = (m: Money) => (Object.keys(m).length ? fmtMoney(m) : "0");
+  // Yeni gider formu
+  const [eTitle, setETitle] = createSignal("");
+  const [eCat, setECat] = createSignal("");
+  const [eAmt, setEAmt] = createSignal("");
+  const [eCur, setECur] = createSignal("TRY");
+  const [eDate, setEDate] = createSignal(iso(new Date()));
+  const [eNote, setENote] = createSignal("");
+  const [eErr, setEErr] = createSignal("");
+  const addExpense = async () => {
+    const amount = parseFloat(eAmt().replace(",", ".")) || 0;
+    if (!eTitle().trim() || amount <= 0) return setEErr(t("Ne için harcandığını ve tutarı yaz."));
+    setEErr("");
+    try {
+      await adminAddExpense({ title: eTitle().trim().slice(0, 120), category: eCat().trim().slice(0, 60), amount, currency: eCur(), spent_at: eDate() || iso(new Date()), note: eNote().trim().slice(0, 300) });
+      setETitle("");
+      setEAmt("");
+      setENote("");
+      refetchExps();
+    } catch (e) {
+      setEErr(String((e as Error).message ?? e));
+    }
+  };
+  const delExpense = async (x: Expense) => {
+    if (!confirm(t('"{0}" gideri silinsin mi?', x.title))) return;
+    await adminDeleteExpense(x.id).catch((e) => setEErr(String((e as Error).message ?? e)));
+    refetchExps();
+  };
+  const methodName = (x: AdminPayment) => (x.method || "").trim() || SRC[x.source] || x.source || "—";
+  const byMethod = () => {
+    const m = new Map<string, { name: string; count: number; month: Money; all: Money }>();
+    const m0 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+    for (const x of paysIn()) {
+      const name = methodName(x);
+      const r = m.get(name) ?? { name, count: 0, month: {}, all: {} };
+      const v = (x.kind === "refund" ? -1 : 1) * Number(x.amount);
+      if (x.kind !== "refund") r.count++;
+      r.all[x.currency] = (r.all[x.currency] ?? 0) + v;
+      if (new Date(x.created_at).getTime() >= m0) r.month[x.currency] = (r.month[x.currency] ?? 0) + v;
+      m.set(name, r);
+    }
+    return [...m.values()].sort((a, b) => b.count - a.count);
+  };
   const shown = () => {
     const s = q().trim().toLowerCase();
     return (rows() ?? []).filter((r) => !s || `${r.display_name} ${r.email}`.toLowerCase().includes(s));
@@ -487,19 +610,32 @@ export function AdminRevenue() {
   return (
     <section class="panel admin-panel">
       <h3>Gelir</h3>
+      <div class="cm-tabs rev-tabs rev-range">
+        <For each={presets()}>
+          {(pz) => (
+            <button classList={{ on: from() === pz.from && to() === pz.to }} onClick={() => (setFrom(pz.from), setTo(pz.to))}>
+              {t(pz.label)}
+            </button>
+          )}
+        </For>
+        <span class="lt-sp" />
+        <input class="input" type="date" value={from()} title="Başlangıç" onInput={(e) => setFrom(e.currentTarget.value)} />
+        <span>–</span>
+        <input class="input" type="date" value={to()} title="Bitiş" onInput={(e) => setTo(e.currentTarget.value)} />
+      </div>
       <Show when={rev()} fallback={<p class="muted small">{rev.loading ? "Yükleniyor…" : "Gelir bilgisi okunamadı."}</p>}>
         <div class="stat-grid">
           <div class="stat pro">
-            <b>{fmtMoney(rev()!.month)}</b>
-            <small>{t("Bu ay ({0} ödeme)", rev()!.payments_month)}</small>
+            <b>{money(income())}</b>
+            <small>{t("Gelir ({0} ödeme)", paysIn().filter((x) => x.kind !== "refund").length)}</small>
           </div>
-          <div class="stat pro">
-            <b>{fmtMoney(rev()!.d30)}</b>
-            <small>Son 30 gün</small>
+          <div class="stat">
+            <b>{money(spent())}</b>
+            <small>{t("Gider ({0} kayıt)", expsIn().length)}</small>
           </div>
-          <div class="stat pro">
-            <b>{fmtMoney(rev()!.all)}</b>
-            <small>{t("Toplam ({0} ödeme)", rev()!.payments_all)}</small>
+          <div class="stat on">
+            <b>{money(net())}</b>
+            <small>Net (gelir − gider)</small>
           </div>
           <div class="stat">
             <b>{rev()!.paying_users}</b>
@@ -522,6 +658,116 @@ export function AdminRevenue() {
           </Show>
         </small>
       </Show>
+      <Show when={(pays() ?? []).length}>
+        <h4 class="rev-h">Ödeme yöntemine göre</h4>
+        <div class="rev-table">
+          <div class="rev-row head">
+            <span>Yöntem</span>
+            <span>Ödeme sayısı</span>
+            <span>Toplam</span>
+          </div>
+          <For each={byMethod()}>
+            {(m) => (
+              <div class="rev-row">
+                <span>
+                  <b data-no-i18n>{m.name}</b>
+                </span>
+                <span>{m.count}</span>
+                <span>{fmtMoney(m.all)}</span>
+              </div>
+            )}
+          </For>
+        </div>
+        <h4 class="rev-h">Son ödemeler</h4>
+        <div class="rev-table">
+          <div class="rev-row head">
+            <span>Üye</span>
+            <span>Tarih</span>
+            <span>Yöntem · ne aldı</span>
+            <span>Tutar</span>
+          </div>
+          <For each={paysIn().slice(0, payAll() ? 1000 : 15)} fallback={<p class="muted small">Bu aralıkta ödeme yok.</p>}>
+            {(x) => (
+              <div class="rev-row">
+                <span>
+                  <b data-no-i18n>{x.display_name || "(adsız)"}</b>
+                  <small class="muted" data-no-i18n>
+                    {x.email}
+                  </small>
+                </span>
+                <span>{fmtDate(x.created_at)}</span>
+                <span data-no-i18n>
+                  {methodName(x)}
+                  <Show when={x.plan}>
+                    <small class="muted">{x.plan}</small>
+                  </Show>
+                </span>
+                <span>
+                  {x.kind === "refund" ? "−" : ""}
+                  {fmtMoney({ [x.currency]: Number(x.amount) })}
+                  <Show when={x.kind === "refund"}>
+                    <small class="muted">iade</small>
+                  </Show>
+                </span>
+              </div>
+            )}
+          </For>
+        </div>
+        <Show when={paysIn().length > 15 && !payAll()}>
+          <button class="btn ghost small" onClick={() => setPayAll(true)}>
+            {t("Tümünü göster ({0})", paysIn().length)}
+          </button>
+        </Show>
+      </Show>
+      <h4 class="rev-h">Giderler</h4>
+      <div class="pe-quick pe-pay">
+        <input class="input" placeholder="Ne için (ör. sunucu, alan adı)" value={eTitle()} onInput={(e) => setETitle(e.currentTarget.value)} />
+        <input class="input" list="exp-cats" placeholder="Kategori" value={eCat()} onInput={(e) => setECat(e.currentTarget.value)} />
+        <datalist id="exp-cats">
+          <For each={[...new Set(["Sunucu", "Alan adı", "Yazılım", "Reklam", "Komisyon", "Vergi", ...(exps() ?? []).map((x) => x.category).filter(Boolean)])]}>{(c) => <option value={c} />}</For>
+        </datalist>
+        <input class="input pe-days" inputmode="decimal" placeholder="Tutar" value={eAmt()} onInput={(e) => setEAmt(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && addExpense()} />
+        <select class="f2-select small" value={eCur()} onChange={(e) => setECur(e.currentTarget.value)}>
+          <For each={["TRY", "USD", "EUR", "GBP"]}>{(c) => <option value={c}>{c}</option>}</For>
+        </select>
+        <input class="input" type="date" value={eDate()} onInput={(e) => setEDate(e.currentTarget.value)} />
+        <input class="input" placeholder="Not (isteğe bağlı)" value={eNote()} onInput={(e) => setENote(e.currentTarget.value)} />
+        <button class="btn small primary" onClick={addExpense}>
+          Gider ekle
+        </button>
+      </div>
+      <Show when={eErr()}>
+        <p class="error">{eErr()}</p>
+      </Show>
+      <div class="rev-table">
+        <div class="rev-row head">
+          <span>Gider</span>
+          <span>Tarih</span>
+          <span>Kategori</span>
+          <span>Tutar</span>
+        </div>
+        <For each={expsIn()} fallback={<p class="muted small">{exps.loading ? "Yükleniyor…" : "Bu aralıkta gider yok."}</p>}>
+          {(x) => (
+            <div class="rev-row">
+              <span data-no-i18n>
+                <b>{x.title}</b>
+                <Show when={x.note}>
+                  <small class="muted">{x.note}</small>
+                </Show>
+              </span>
+              <span>{fmtDate(x.spent_at)}</span>
+              <span data-no-i18n>{x.category || "—"}</span>
+              <span>
+                {fmtMoney({ [x.currency]: Number(x.amount) })}{" "}
+                <button class="link" title="Sil" onClick={() => delExpense(x)}>
+                  ✕
+                </button>
+              </span>
+            </div>
+          )}
+        </For>
+      </div>
+      <h4 class="rev-h">PRO üyeler</h4>
       <div class="cm-tabs rev-tabs">
         <button classList={{ on: kind() === "paid" }} onClick={() => setKind("paid")}>
           {t("Parayla PRO ({0})", rev()?.paid_pro ?? "…")}
@@ -531,7 +777,7 @@ export function AdminRevenue() {
         </button>
         <span class="lt-sp" />
         <input class="input" placeholder="Ara" value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
-        <button class="btn ghost small" onClick={() => refetch()}>
+        <button class="btn ghost small" onClick={() => (refetch(), refetchPays(), refetchExps())}>
           Yenile
         </button>
       </div>

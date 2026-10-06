@@ -869,7 +869,7 @@ export function adminSetPro(user: string, until: Date | null) {
 
 export type ProChangeMode = "add" | "set" | "unlimited" | "remove";
 /** PRO süresini düzenle; notify: kullanıcıya bildirim + e-posta (kendi dilinde). Yeni bitişi döner. */
-export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: number; until?: Date; note?: string; notify?: boolean; logo?: boolean } = {}) {
+export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: number; until?: Date; note?: string; notify?: boolean; logo?: boolean; amount?: number; currency?: string; method?: string; item?: string } = {}) {
   return api<string | null>("POST", "rpc/admin_change_pro", {
     body: {
       p_user: user,
@@ -880,6 +880,8 @@ export function adminChangePro(user: string, mode: ProChangeMode, o: { days?: nu
       p_notify: !!o.notify,
       // Logo izni (c97): true = yeni bitişe kadar yayın logosuna müdahale edebilir; false = edemez; verilmezse korunur
       ...(typeof o.logo === "boolean" ? { p_paid: o.logo } : {}),
+      // Ödeme kaydı (c101): tutar girildiyse Gelir'e yazılır; yöntem (ByNoGame, havale…) ve alınan ürün (ör. 3 ay PRO)
+      ...(o.amount && o.amount > 0 ? { p_amount: o.amount, p_currency: o.currency || "TRY", p_method: o.method ?? "", p_item: o.item ?? "" } : {}),
     },
   });
 }
@@ -896,6 +898,33 @@ export interface AdminRevenue {
   free_pro: number;
   promo_until: string | null;
 }
+export interface AdminPayment {
+  id: string;
+  source: string;
+  user_id: string | null;
+  display_name: string | null;
+  email: string;
+  amount: number;
+  currency: string;
+  plan: string;
+  kind: string;
+  created_at: string;
+  method?: string;
+}
+export const adminPayments = (days = 3650) => api<AdminPayment[]>("POST", "rpc/admin_payments", { body: { p_days: days } }).then((r) => r ?? []);
+/** Gider (c102): yalnızca yönetici okur / yazar */
+export interface Expense {
+  id: string;
+  title: string;
+  category: string;
+  amount: number;
+  currency: string;
+  spent_at: string;
+  note: string;
+}
+export const adminExpenses = () => api<Expense[]>("GET", "expenses?select=*&order=spent_at.desc,created_at.desc&limit=2000").then((r) => r ?? []);
+export const adminAddExpense = (e: Omit<Expense, "id">) => api("POST", "expenses", { body: e, prefer: "return=minimal" });
+export const adminDeleteExpense = (id: string) => api("DELETE", `expenses?id=eq.${encodeURIComponent(id)}`);
 export const adminRevenue = () => api<AdminRevenue>("POST", "rpc/admin_revenue", { body: {} });
 
 export interface ProMember {

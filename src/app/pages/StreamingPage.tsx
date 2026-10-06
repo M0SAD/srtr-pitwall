@@ -9,18 +9,18 @@ import { ShareDialog, isSceneOnly } from "./CommunityPage";
 import { go, overlayFocus, setOverlayFocus } from "../ui";
 import { invoke } from "@tauri-apps/api/core";
 import { manifestById } from "@/sdk/registry";
-import { addToLayout, instanceName, instancesOf, newProfile, removeInstance, settings, updateSettings, type Profile } from "@/sdk/settings";
+import { addToLayout, instanceName, instancesOf, removeInstance, settings, updateSettings, type Profile } from "@/sdk/settings";
 import { useSnapshot, useTopic } from "@/sdk/telemetry";
 import { appState } from "../App";
 import { isHiddenOverlay, isLocked } from "@/cloud/account";
 import { LayoutCanvas, sayBadgeArea, sayLayoutLocked, sayOverlayLocked, type CanvasBadge } from "../components/LayoutCanvas";
 import { BADGE_SCALE, StreamBadgeMark, badgeCfg, badgeRect, pushOutOfBadge, setBadgeCfg } from "@/sdk/streamBadge";
-import { FIXED_STREAM, LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
+import { LayoutList, sortProfiles, toggleProfileLock } from "../components/LayoutList";
 import { OverlayPalette } from "../components/OverlayPalette";
 import { OverlaySettings } from "../components/OverlaySettings";
 import { CanvasOptions, CanvasTools, GhostPanel, newLayout, useCanvasZoom, useCopyPaste, useDeleteKey, useEscClose } from "./LayoutsPage";
 import * as I from "../icons";
-import { F, proLocked, streamBadgeLocked } from "@/sdk/proFeatures";
+import { F, streamBadgeLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockNote } from "../components/ProLock";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 
@@ -33,19 +33,7 @@ interface ServerInfo {
 }
 
 /** Boş bir yayın düzeni (1920×1080, overlay'siz) oluşturur */
-function newStream(name: string, id?: string): string {
-  if (id) {
-    updateSettings((d) => {
-      const p = newProfile(id, name);
-      p.rules.mode = "stream";
-      p.canvas = { w: 1920, h: 1080 };
-      p.order = -1;
-      p.isDefault = true;
-      for (const o of Object.values(p.overlays)) o.enabled = false;
-      d.profiles[id] = p;
-    });
-    return id;
-  }
+function newStream(name: string): string {
   const nid = newLayout("stream", name);
   updateSettings((d) => (d.profiles[nid].canvas = { w: 1920, h: 1080 }));
   return nid;
@@ -91,10 +79,6 @@ export function StreamingPage() {
     const x = settings().profiles[selId()];
     return x && x.rules.mode === "stream" ? x : streams()[0];
   };
-  // Sabit "Varsayılan" yayın düzeni: hiç yayın düzeni yoksa (ve özellik açıksa) kendiliğinden oluşur
-  createEffect(() => {
-    if (streams().length === 0 && !proLocked(F.streaming)) setSelIdRaw(newStream(t("Varsayılan"), FIXED_STREAM));
-  });
   createEffect(() => {
     const f = streamFocus();
     if (!f) return;
@@ -169,9 +153,12 @@ export function StreamingPage() {
   );
 
   const urlOf = (id: string) => {
-    const base = info()?.lanUrl ?? info()?.url ?? `http://127.0.0.1:${settings().general.server.port}`;
-    return `${base}/overlay.html?layout=${encodeURIComponent(id)}`;
+    // Adres sabittir: bu bilgisayarın yerel adresi + port + düzenin kimliği. Düzen kimliği hesapla eşitlendiği için başka bir
+    // bilgisayarda giriş yapınca da aynı adres çıkar (ağ adresi bilgisayara ve ağa göre değiştiği için ana adres olarak kullanılmaz).
+    return `http://127.0.0.1:${settings().general.server.port}/overlay.html?layout=${encodeURIComponent(id)}`;
   };
+  /** Ağdaki başka bir bilgisayardan (iki bilgisayarlı yayın) açmak için: yalnızca ağ erişimi açıksa */
+  const lanUrlOf = (id: string) => (info()?.lanUrl ? `${info()!.lanUrl}/overlay.html?layout=${encodeURIComponent(id)}` : "");
   const url = () => urlOf(p()?.id ?? "");
 
   const enableServer = async () => {
@@ -333,8 +320,16 @@ export function StreamingPage() {
                     <I.Copy /> {copied() ? "Kopyalandı" : "Kopyala"}
                   </button>
                 </div>
+                <Show when={lanUrlOf(p()!.id)}>
+                  <small class="muted">
+                    Başka bir bilgisayardaki OBS için ağ adresi (ağa göre değişebilir):{" "}
+                    <code class="obs-lan" title="Kopyalamak için tıkla" onClick={() => void navigator.clipboard.writeText(lanUrlOf(p()!.id)).catch(() => {})}>
+                      {lanUrlOf(p()!.id)}
+                    </code>
+                  </small>
+                </Show>
                 <small class="muted">
-                  OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik {canvas().w}, yükseklik {canvas().h}. Arka plan şeffaftır.
+                  Bu adres değişmez; başka bir bilgisayarda hesabına girdiğinde de aynıdır. OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik {canvas().w}, yükseklik {canvas().h}. Arka plan şeffaftır.
                 </small>
               </Show>
             </div>

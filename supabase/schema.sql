@@ -16052,3 +16052,122 @@ begin
 end $$;
 revoke all on function public.admin_users(text, text, int) from public, anon;
 grant execute on function public.admin_users(text, text, int) to authenticated;
+
+-- ===== c101: elle girilen ödemede yöntem ve alınan ürün =====
+-- Yönetici PRO verirken ödenen tutarı, ödeme yöntemini (ByNoGame, havale…) ve ne alındığını (ör. 3 ay PRO) girer.
+-- Ödeme payments tablosuna 'manual' kaynağıyla yazılır; Gelir sayfası yönteme göre döküm ve son ödemeleri gösterir.
+alter table public.payments add column if not exists method text not null default '';
+drop function if exists public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean);
+create or replace function public.admin_change_pro(
+  p_user uuid, p_mode text, p_days int default null, p_until timestamptz default null,
+  p_note text default '', p_notify boolean default false,
+  p_amount numeric default null, p_currency text default 'TRY', p_paid boolean default null,
+  p_method text default '', p_item text default '')
+returns timestamptz language plpgsql security definer set search_path = public, auth as $$
+declare
+  ou timestamptz;
+  nu timestamptz;
+  amt numeric := coalesce(p_amount, 0);
+  em text;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  if amt < 0 or amt > 1000000 then
+    raise exception 'Geçersiz tutar';
+  end if;
+  select pro_until into ou from public.profiles where id = p_user;
+  if not found then
+    raise exception 'Kullanıcı bulunamadı';
+  end if;
+  if p_mode = 'add' then
+    if coalesce(p_days, 0) = 0 then
+      raise exception 'Gün sayısı gerekli';
+    end if;
+    nu := (case when ou > now() then ou else now() end) + make_interval(days => p_days);
+    if nu <= now() then
+      nu := now();
+    end if;
+  elsif p_mode = 'set' then
+    if p_until is null then
+      raise exception 'Tarih gerekli';
+    end if;
+    nu := p_until;
+  elsif p_mode = 'unlimited' then
+    nu := '2099-12-31 00:00:00+00'::timestamptz;
+  elsif p_mode = 'remove' then
+    nu := null;
+  else
+    raise exception 'Geçersiz işlem';
+  end if;
+  update public.profiles
+    set pro_until = nu,
+        pro_source = case when nu is null then null else 'admin' end,
+        -- p_paid true: logo izni yeni bitişe kadar açık; false: kapalı; verilmediyse eskisi kalır (yeni bitişi aşamaz)
+        pro_paid_until = case when nu is null then null
+                              when p_paid is true or (p_paid is null and amt > 0) then nu
+                              when p_paid is false then null
+                              when pro_paid_until is null then null
+                              else least(pro_paid_until, nu) end
+    where id = p_user;
+  if amt > 0 and nu is not null then
+    select email into em from auth.users where id = p_user;
+    insert into public.payments (id, source, user_id, email, amount, currency, plan, kind, method)
+      values ('manual-' || gen_random_uuid()::text, 'manual', p_user, lower(coalesce(em, '')), amt,
+              upper(coalesce(nullif(trim(p_currency), ''), 'TRY')),
+              left(coalesce(nullif(trim(p_item), ''), p_note, ''), 80), 'payment', left(trim(coalesce(p_method, '')), 60));
+  end if;
+  if nu is distinct from ou then
+    update public.pro_log set note = left(coalesce(p_note, ''), 200)
+      where id = (select max(id) from public.pro_log where user_id = p_user);
+  end if;
+  if p_notify then
+    insert into public.notifications (user_id, kind, data)
+      values (p_user, 'pro_changed', jsonb_build_object(
+        'old_until', ou, 'new_until', nu, 'mode', p_mode,
+        'days', case when p_mode = 'add' then p_days
+                     when nu is not null and ou is not null then round(extract(epoch from (nu - greatest(ou, now()))) / 86400)::int
+                     else null end,
+        'note', left(coalesce(p_note, ''), 200)));
+  end if;
+  return nu;
+end $$;
+revoke all on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean, text, text) from public, anon;
+grant execute on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean, text, text) to authenticated;
+
+drop function if exists public.admin_payments(int);
+create or replace function public.admin_payments(p_days int default 365)
+returns table (id text, source text, user_id uuid, display_name text, email text, amount numeric, currency text,
+               plan text, kind text, created_at timestamptz, method text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  return query
+    select x.id, x.source, x.user_id, p.display_name, x.email, x.amount, x.currency, x.plan, x.kind, x.created_at, x.method
+    from public.payments x left join public.profiles p on p.id = x.user_id
+    where x.created_at > now() - make_interval(days => greatest(p_days, 1))
+    order by x.created_at desc limit 1000;
+end $$;
+revoke all on function public.admin_payments(int) from public, anon;
+grant execute on function public.admin_payments(int) to authenticated;
+
+-- ===== c102: giderler =====
+-- Yönetici harcamalarını (sunucu, alan adı, reklam…) girer; Gelir sayfası seçilen tarih aralığında gelir, gider ve neti gösterir.
+create table if not exists public.expenses (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  category text not null default '',
+  amount numeric(12, 2) not null check (amount >= 0),
+  currency text not null default 'TRY',
+  spent_at date not null default current_date,
+  note text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists expenses_spent on public.expenses (spent_at desc);
+alter table public.expenses enable row level security;
+drop policy if exists "admin expenses" on public.expenses;
+create policy "admin expenses" on public.expenses for all using (public.is_admin()) with check (public.is_admin());
+revoke all on public.expenses from anon;
+grant select, insert, update, delete on public.expenses to authenticated;

@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-237
+
+- Küçük iyileştirmeler ve düzeltmeler.
+
+## 071026-236
+
+- Hesap eşitlemesi artık "bu bilgisayardakini mi, hesaptakini mi kullanayım" diye sormuyor: en son değiştirilen ayarlar geçerli olur. Eski sürümler Hesap sayfasındaki ayar geçmişinde durur.
+- Ayar değişiklikleri hesaba 30 dakika sonra toplu yazılır; uygulama kapatılırken ya da çıkış yapılırken bekleyen değişiklik hemen yazılır. Bilgisayar uygulama açıkken kapatılırsa yazılamayan değişiklik kaybolmaz: uygulama bir sonraki açılışta hesaba gönderir. Ayarlar bu bilgisayara her zamanki gibi anında kaydedilir.
+
+## 071026-235
+
+- Yayın düzenleri: "varsayılan yayın düzeni" kalktı. Her yayın düzeninin kendine özel OBS adresi var; hepsi silinebilir ve uygulama kendiliğinden yenisini oluşturmaz.
+- Yayın düzeninin OBS adresi artık sabit: bir kez oluşunca değişmez ve başka bir bilgisayarda hesabına girdiğinde de aynıdır. Ağ erişimi açıksa ikinci bilgisayar için ağ adresi ayrıca gösterilir.
+- Dikkat: eski "Varsayılan" yayın düzeninin adresi (…?layout=stream-default) değişti. OBS'te bu adresi kullanıyorsan Yayın sayfasından yeni adresi kopyalayıp tarayıcı kaynağına yapıştır.
+
 ## 071026-234
 
 - Arka plan opaklığı %0 yapılan overlay'lerde çerçeve izi kalmıyor: kendi kenarlığını ve gölgesini çizen overlay'lerde de (Kan Şekeri, Kalp Atışı, Girdiler'in sim tasarımı vb.) dış çerçeve, gölge ve bulanıklık tamamen kalkar. Uyarı anındaki yanıp sönen çerçeve (ör. Kan Şekeri alarmı) görünmeye devam eder.
