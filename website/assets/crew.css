@@ -1638,3 +1638,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Ekip paneli: 10 dk geri sayım ve süre dolunca çıkan kutu */
+.cw-left{margin-left:auto;padding:5px 10px;border:1px solid var(--line,#333);border-radius:8px;font-size:12px;opacity:.85;white-space:nowrap}
+.cw-left b{font-variant-numeric:tabular-nums}
+.cw-left.soon{border-color:#f5a524;color:#f5a524;opacity:1}
+.cw-timeout{max-width:560px;margin:24px auto;padding:20px;border:1px solid var(--line,#333);border-radius:12px;line-height:1.5}
+.cw-timeout h3{margin:0 0 8px}
+.cw-timeout p{margin:0 0 14px}

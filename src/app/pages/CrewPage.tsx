@@ -7,6 +7,7 @@ import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from
 import { createStore, reconcile } from "solid-js/store";
 import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
+import { pingLink, type PingLink } from "@/cloud/social";
 import { PIT, crewCommandText, crewDriver, crewDrivers, crewFocus, setCrewFocus, crewSend, crewSimOk, crewSpotRelease, crewStatusText, type CrewCommand, type CrewDriver, type CrewKind } from "@/cloud/crew";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "../components/ProLock";
@@ -37,6 +38,8 @@ export function CrewPage(props: { owner?: string } = {}) {
   createEffect(on(uid, () => void refetch()));
   const [sel, setSel] = createSignal(props.owner ?? "");
   const [drv, setDrv] = createSignal<CrewDriver | null>(null);
+  /** Güvenilir arkadaşlardan çıkarıldım: beni çıkaran sürücünün adı (bilgi kutusu kapatılana kadar) */
+  const [kicked, setKicked] = createSignal("");
   const [err, setErr] = createSignal("");
   const [sent, setSent] = createSignal<CrewCommand[]>([]);
   const [liters, setLiters] = createSignal(40);
@@ -120,7 +123,7 @@ export function CrewPage(props: { owner?: string } = {}) {
   const ivList = window.setInterval(() => !document.hidden && void refetch(), 30_000);
   onCleanup(() => clearInterval(ivList));
 
-  // Seçili sürücü: 6 sn'de bir (sunucu "bağlı" göstergesini de bununla günceller)
+  // Seçili sürücü: 15 sn'de bir (sunucu "bağlı" göstergesini de bununla günceller)
   let alive = true;
   onCleanup(() => (alive = false));
   const load = async () => {
@@ -133,10 +136,30 @@ export function CrewPage(props: { owner?: string } = {}) {
         setErr("");
       }
     } catch (e) {
-      if (alive && sel() === id) setErr(String((e as Error)?.message ?? e));
+      if (!alive || sel() !== id) return;
+      const msg = String((e as Error)?.message ?? e);
+      // Sürücü beni güvenilir arkadaşlarından (= ekibinden) çıkardı: bağlantı hemen kesilir ve nedeni söylenir
+      if (/ekibinde değilsin/i.test(msg)) {
+        setKicked((list() ?? []).find((d) => d.owner_id === id)?.display_name || drv()?.display_name || "?");
+        if (full()) toggleFull();
+        setSel("");
+        void refetch();
+        return;
+      }
+      setErr(msg);
     }
   };
-  const ivDrv = window.setInterval(() => void load(), 6000);
+  // Pencere görünmüyorken (simge durumunda / tepside) yoklanmaz: izlemiyorum demektir, yerim de kendiliğinden boşalır
+  // 15 sn (eskiden 6 sn): canlı veri pit duvarı yayınıyla gelir; bu yoklama pit ayarlarını, "bağlı" göstergesini
+  // (sunucu 45 sn tanır) ve yetkiyi tazeler. Yetkim kalkarsa sürücü "co:<ben>" haberi yollar, hemen yeniden sorulur.
+  const ivDrv = window.setInterval(() => !document.hidden && void load(), 15_000);
+  let outLink: PingLink | null = null;
+  createEffect(() => {
+    const me = uid();
+    outLink?.close();
+    outLink = me ? pingLink(`co:${me}`, () => void load()) : null;
+  });
+  onCleanup(() => outLink?.close());
   onCleanup(() => clearInterval(ivDrv));
   // c75: sürücü başına tek spotter — panelden çıkarken / başka sürücüye geçerken spotter yeri hemen bırakılır
   // (bırakılmazsa sunucu 45 sn sonra kendiliğinden boşaltır)
@@ -154,9 +177,46 @@ export function CrewPage(props: { owner?: string } = {}) {
       void load();
     }),
   );
+  // ---- 10 dakikalık oturum sınırı ----
+  // Ekip paneli sürekli izleme için değil, kısa müdahale içindir (sunucuya en çok yük bindiren ekran): bir sürücünün
+  // paneline girilince 10 dk geri sayım başlar; süre dolunca panel kapanır ve spotter yeri bırakılır. Acil durumda
+  // "Tekrar bağlan" ile yeniden girilir (sayaç baştan başlar).
+  const CREW_LIMIT_MS = 10 * 60_000;
+  const [until, setUntil] = createSignal(0);
+  const [timedOut, setTimedOut] = createSignal(false);
+  const [clock, setClock] = createSignal(Date.now());
+  let lastSel = props.owner ?? "";
+  createEffect(
+    on(sel, (id) => {
+      if (!id) return;
+      lastSel = id;
+      setUntil(Date.now() + CREW_LIMIT_MS);
+      setClock(Date.now());
+    }),
+  );
+  const leftSec = () => Math.max(0, Math.ceil((until() - clock()) / 1000));
+  const leftText = () => `${Math.floor(leftSec() / 60)}:${String(leftSec() % 60).padStart(2, "0")}`;
+  const ivLimit = window.setInterval(() => {
+    setClock(Date.now());
+    if (!sel() || timedOut() || Date.now() < until()) return;
+    setTimedOut(true);
+    if (full()) toggleFull();
+    setSel("");
+  }, 1000);
+  onCleanup(() => clearInterval(ivLimit));
+  const reconnect = () => {
+    setTimedOut(false);
+    const l = list() ?? [];
+    const id = props.owner || (l.some((d) => d.owner_id === lastSel) ? lastSel : (l[0]?.owner_id ?? ""));
+    if (id) setSel(id);
+    void refetch();
+  };
+
   // Tek sürücü varsa kendiliğinden aç
   createEffect(() => {
     const l = list();
+    // Süre doldu: kullanıcı "Tekrar bağlan" diyene kadar kendiliğinden açılmaz
+    if (timedOut()) return;
     // Arkadaşlar listesindeki "Ekip" düğmesinden gelindiyse o sürücü açılır
     const want = crewFocus();
     if (props.owner) return;
@@ -238,12 +298,33 @@ export function CrewPage(props: { owner?: string } = {}) {
             </p>
           </section>
         </Show>
-        <Show when={(list() ?? []).length > 0 || !!props.owner}>
+        <Show when={kicked()}>
+          <section class="panel crew-timeout">
+            <h3>Bağlantın kesildi</h3>
+            <p>{t("{0} seni güvenilir arkadaşlarından çıkardı. Ekip paneline erişimin kaldırıldı ve bağlantın kesildi.", kicked())}</p>
+            <button class="btn" onClick={() => setKicked("")}>
+              Tamam
+            </button>
+          </section>
+        </Show>
+        <Show when={timedOut()}>
+          <section class="panel crew-timeout">
+            <h3>Ekip paneli kapandı</h3>
+            <p>
+              10 dakikalık süre doldu ve bağlantın kesildi. Spotter takibine oyunun içinden devam et. Acil durumlarda buraya tekrar bağlanıp
+              işlem yapabilirsin; ancak yarışı uzun süre buradan takip etmemeyi tercih et.
+            </p>
+            <button class="btn primary" onClick={reconnect}>
+              Tekrar bağlan
+            </button>
+          </section>
+        </Show>
+        <Show when={!timedOut() && ((list() ?? []).length > 0 || !!props.owner)}>
           <div class="crew-wrap">
             <div class="crew-list" classList={{ hide: !!props.owner || (list() ?? []).length < 2 }}>
               <For each={list() ?? []}>
                 {(d) => (
-                  <button class="crew-drv" classList={{ on: sel() === d.owner_id, live: d.live, viewonly: !d.can_control }} onClick={() => setSel(d.owner_id)}>
+                  <button class="crew-drv" classList={{ on: sel() === d.owner_id, live: d.live, viewonly: !d.can_control }} onClick={() => (setTimedOut(false), setSel(d.owner_id))}>
                     <b data-no-i18n>{d.display_name || "?"}</b>
                     <small data-no-i18n>{sub(d)}</small>
                     <small classList={{ "spot-me": !!d.spotter_me, "spot-other": !!d.spotter_id && !d.spotter_me }} data-no-i18n>
@@ -276,6 +357,15 @@ export function CrewPage(props: { owner?: string } = {}) {
                 <button class="btn ghost small" classList={{ on: full() }} onClick={toggleFull} title="Menüler gizlenir, ekip paneli tüm ekranı kaplar (çıkmak için Esc)">
                   {full() ? t("Tam ekrandan çık") : t("Tam ekran")}
                 </button>
+                <Show when={sel()}>
+                  <span
+                    class="crew-left"
+                    classList={{ soon: leftSec() <= 60 }}
+                    title={t("Ekip paneli 10 dakika sonra kendiliğinden kapanır. Spotter takibine oyunun içinden devam et; acil durumda tekrar bağlanabilirsin.")}
+                  >
+                    {t("Kalan süre")} <b data-no-i18n>{leftText()}</b>
+                  </span>
+                </Show>
               </div>
             <Show when={taken()}>
               <section class="panel">

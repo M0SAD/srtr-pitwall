@@ -88,7 +88,7 @@ export function AdminPage() {
     }),
   );
   // Açık kalan sayfada yapılan işlemler (ör. destek talebini yanıtlama) için kısa aralıklı yenileme
-  const iv = window.setInterval(() => void refreshAdminBadges(), 20_000);
+  const iv = window.setInterval(() => !document.hidden && void refreshAdminBadges(), 30_000);
   onCleanup(() => clearInterval(iv));
   return (
     <div class="page">

@@ -115,21 +115,36 @@ export interface LiveData {
   laps?: { lap: number; time: number; valid: boolean; pit: boolean }[];
   /** Ekip (uzaktan pit) için ek veri (c53; bkz. cloud/crew.ts CrewLive) */
   crew?: import("./crew").CrewLive;
+  /** Canlı yayın anahtarı: veri 10 sn'de bir Realtime yayınıyla (`lvd:<üye>:<anahtar>`, veritabanına yazılmaz) gider;
+   *  satır yalnızca seyrek yazılır ve bu anahtarı taşır (satırı yalnızca güvenilenler okuyabildiği için yayını da onlar bulur) */
+  ck?: string;
 }
+/** Canlı veri yayın kanalı (anahtar live_data satırında) */
+export const liveCastChannel = (owner: string, key: string) => `lvd:${owner}:${key}`;
 
 /** Arkadaşa özel bildirim / ses kapatma (friendships.notify_muted / sound_muted, sunucu c30) */
 export interface FriendPrefs {
   notify_muted: boolean;
   sound_muted: boolean;
 }
+// Arkadaşa özel bildirim ayarları nadiren değişir: her liste yenilemesinde ayrı bir istek atmak yerine 15 dk saklanır
+// (ayar bu pencereden değişince hemen, başka pencereden değişince en geç 15 dk'da tazelenir)
+let prefsCache: { me: string; at: number; v: Record<string, FriendPrefs> } | null = null;
+const PREFS_TTL = 15 * 60_000;
 async function friendPrefs(): Promise<Record<string, FriendPrefs>> {
   const me = session()?.user.id;
   if (!me) return {};
+  if (prefsCache && prefsCache.me === me && Date.now() - prefsCache.at < PREFS_TTL) return prefsCache.v;
+  const v = await friendPrefsFetch(me);
+  if (v) prefsCache = { me, at: Date.now(), v };
+  return v ?? {};
+}
+async function friendPrefsFetch(me: string): Promise<Record<string, FriendPrefs> | null> {
   try {
     const rows = await api<({ friend_id: string } & FriendPrefs)[]>("GET", `friendships?user_id=eq.${me}&select=friend_id,notify_muted,sound_muted`);
     return Object.fromEntries((rows ?? []).map((r) => [r.friend_id, { notify_muted: !!r.notify_muted, sound_muted: !!r.sound_muted }]));
   } catch {
-    return {}; // sunucu güncellenmemişse (c30 yok) hepsi açık sayılır
+    return null; // sunucu güncellenmemişse (c30 yok) hepsi açık sayılır
   }
 }
 
@@ -139,8 +154,10 @@ export async function myFriends() {
   noteAvatars((list ?? []).map((f) => ({ id: f.friend_id, avatar_path: f.avatar_path })));
   return (list ?? []).map((f) => ({ ...f, notify_muted: !!prefs[f.friend_id]?.notify_muted, sound_muted: false }));
 }
-export const setFriendPrefs = (id: string, notifyMuted: boolean, soundMuted: boolean) =>
-  api("POST", "rpc/friend_prefs", { body: { p_user: id, p_notify_muted: notifyMuted, p_sound_muted: soundMuted } });
+export const setFriendPrefs = (id: string, notifyMuted: boolean, soundMuted: boolean) => {
+  prefsCache = null;
+  return api("POST", "rpc/friend_prefs", { body: { p_user: id, p_notify_muted: notifyMuted, p_sound_muted: soundMuted } });
+};
 
 export function findPeople(q: string) {
   const t = encodeURIComponent(q.replace(/[(),*]/g, " ").trim());
@@ -184,6 +201,12 @@ export async function friendTrust(id: string, on: boolean) {
     return;
   }
   if (trustErr && !on) throw trustErr;
+  // Güvenilirden çıkardım: o kişi ekip panelindeyse hemen yeniden sorar ve bağlantısı kesilir ("co:<üye>" haberi, veri taşımaz)
+  if (!on) {
+    const l = pingLink(`co:${id}`);
+    l.ping();
+    setTimeout(() => l.close(), 5000);
+  }
 }
 export interface ShareTrust {
   /** Kabul edilmiş tüm arkadaşlarım verimi görebilir */
@@ -429,19 +452,43 @@ export async function onMessages(
 }
 
 /** Güvendiği arkadaşların canlı verisi (ekleme/güncelleme geldikçe) */
-export async function onLive(users: string[], cb: (user: string, d: LiveData) => void): Promise<() => void> {
+/** onLive aboneliği: çağırınca kapanır; `seed` ilk okunan satırı verir (yayın anahtarı varsa canlı yayına hemen katılınır) */
+export type LiveSub = (() => void) & { seed: (user: string, d: LiveData | null | undefined) => void };
+export async function onLive(users: string[], cb: (user: string, d: LiveData) => void): Promise<LiveSub> {
+  // Canlı yayınlar (üye -> anahtar + kanal): satır seyrek yazılır, aradaki veriler yayından gelir
+  const casts = new Map<string, { key: string; link: CastLink }>();
+  let closed = false;
+  const follow = (user: string, d: LiveData | null | undefined) => {
+    const key = d?.ck;
+    if (closed || !key || !users.includes(user)) return;
+    const cur = casts.get(user);
+    if (cur?.key === key) return;
+    cur?.link.close();
+    casts.set(user, { key, link: castLink(liveCastChannel(user, key), "d", (p) => p && typeof p === "object" && cb(user, p as LiveData)) });
+  };
+  const closeCasts = () => {
+    closed = true;
+    for (const x of casts.values()) x.link.close();
+    casts.clear();
+  };
   const c = await client();
-  if (!c || users.length === 0) return () => {};
+  if (!c || users.length === 0) return Object.assign(() => closeCasts(), { seed: follow });
   const ch: RealtimeChannel = c
     .channel(`live-${Math.random().toString(36).slice(2, 9)}`)
     .on("postgres_changes" as any, { event: "*", schema: "public", table: "live_data", filter: `user_id=in.(${users.slice(0, 100).join(",")})` }, (p: any) => {
       const row = p.new as { user_id: string; data: LiveData };
-      if (row?.user_id) cb(row.user_id, row.data);
+      if (!row?.user_id) return;
+      follow(row.user_id, row.data);
+      cb(row.user_id, row.data);
     })
     .subscribe();
-  return () => {
-    c.removeChannel(ch);
-  };
+  return Object.assign(
+    () => {
+      closeCasts();
+      c.removeChannel(ch);
+    },
+    { seed: follow },
+  );
 }
 
 /**

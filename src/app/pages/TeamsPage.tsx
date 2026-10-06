@@ -30,6 +30,7 @@ import {
   muteTeamChat,
   myTeamInvites,
   myTeams,
+  TEAM_ROOMS,
   pinPost,
   postAnnouncement,
   requestJoin,
@@ -445,7 +446,7 @@ function TeamView(props: { id: string; onBack: () => void }) {
     act(async () => {
       const r = await requestJoin(props.id);
       if (r === "requested" || r === "pending") setOk(t("Katılma isteğin takım yöneticilerine gönderildi."));
-      else setOk(t("Takıma katıldın! Takım sohbeti arkadaş listende."));
+      else setOk(t("Takıma katıldın!"));
     });
 
   return (
@@ -484,12 +485,12 @@ function TeamView(props: { id: string; onBack: () => void }) {
                 <div class="thero-acts">
                   <Show when={session()} fallback={<button class="btn" onClick={() => go("account")}>Katılmak için giriş yap</button>}>
                     <Show when={role()}>
-                      <Show when={inTauri}>
+                      <Show when={inTauri && TEAM_ROOMS}>
                         <button class="btn primary" onClick={() => openTeamChat(p().id)}>
                           <I.MessageSquare /> Takım sohbeti
                         </button>
                       </Show>
-                      <Show when={chatMuted() !== null}>
+                      <Show when={TEAM_ROOMS && chatMuted() !== null}>
                         <button
                           class="btn"
                           classList={{ on: !!chatMuted() }}
@@ -572,7 +573,7 @@ function TeamView(props: { id: string; onBack: () => void }) {
                             <button
                               class="btn primary"
                               disabled={proLocked(F.teamJoin)}
-                              onClick={() => act(() => respondInvite(inv().id, true), t("Takıma katıldın! Takım sohbeti arkadaş listende."))}
+                              onClick={() => act(() => respondInvite(inv().id, true), t("Takıma katıldın!"))}
                             >
                               Daveti kabul et
                               <ProLockTag feature={F.teamJoin} />

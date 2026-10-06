@@ -47,6 +47,19 @@ export interface GroupMessage {
 }
 
 export const myGroups = () => api<MyGroup[]>("POST", "rpc/my_groups", { body: {} }).then((r) => r ?? []);
+/** Bekleyen grup daveti (c93): kabul edilene kadar gruba dahil olunmaz */
+export interface GroupInvite {
+  group_id: string;
+  name: string;
+  from_id: string | null;
+  from_name: string;
+  member_count: number;
+  created_at: string;
+}
+/** Bekleyen grup davetlerim (sunucu güncel değilse boş) */
+export const myGroupInvites = () => api<GroupInvite[]>("POST", "rpc/my_group_invites", { body: {} }).then((r) => r ?? []).catch(() => [] as GroupInvite[]);
+/** Daveti kabul et / reddet */
+export const respondGroupInvite = (group: string, accept: boolean) => api<boolean>("POST", "rpc/group_invite_respond", { body: { p_group: group, p_accept: accept } });
 export const createGroup = (name: string, members: string[]) => {
   assertFeature(F.messages, "Grup kurmak");
   return api<string>("POST", "rpc/group_create", { body: { p_name: name, p_members: members } });

@@ -35,6 +35,9 @@ import {
   setMyStatus,
   pingLink,
   type PingLink,
+  castLink,
+  liveCastChannel,
+  type CastLink,
   shareTrustGet,
   type Friend,
   type LiveData,
@@ -43,7 +46,7 @@ import {
   type ToastPayload,
 } from "@/cloud/social";
 import { liveWatch, statusChannel } from "@/cloud/pings";
-import { myTeams, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } from "@/cloud/teams";
+import { myTeamRooms, onTeamChat, teamChatKey, teamLogo, teamProfile, type MyTeam } from "@/cloud/teams";
 import { groupChatKey, myGroups, onGroupChat, type MyGroup } from "@/cloud/groups";
 import { broadcastOvMsg, ovMsgShown, OVMSG_CLEAR_EVENT, type OvMsg } from "@/sdk/ovmsg";
 import { crewLiveExtra, crewWatching, isDriving } from "./crew";
@@ -329,9 +332,12 @@ export function startSocial(status: Accessor<Status | undefined>) {
   });
 
   // Arkadaş listesi (güvenilirler ve bana güvenenler) 2 dakikada bir yenilenir
-  let stopLive: () => void = () => {};
+  let stopLive: (() => void) & { seed?: (user: string, d: LiveData | null | undefined) => void } = () => {};
   let liveKey = "";
-  const refreshFriends = async () => {
+  let fullAt = 0;
+  /** full: takım / grup odaları ve "herkese güven" ayarı da yenilenir (yoksa en fazla 30 dk'da bir) */
+  const refreshFriends = async (full = true) => {
+    if (!full && Date.now() - fullAt > 30 * 60_000) full = true;
     if (!session()) {
       friends = [];
       return;
@@ -345,7 +351,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
       friends = got;
       syncTray();
       if (missed.length) void catchUp(missed);
-      trustAll = await shareTrustGet().then((r) => !!r?.trust_all).catch(() => false);
+      if (full) trustAll = await shareTrustGet().then((r) => !!r?.trust_all).catch(() => trustAll);
       // Açılır pencere: beni güvenilir seçen ya da istek gönderen yeni arkadaş (yarıştayken oyun içi bildirim)
       if (prev.length && !soc().dnd) {
         for (const f of friends) {
@@ -374,13 +380,16 @@ export function startSocial(status: Accessor<Status | undefined>) {
       }
       // Kabul edilen arkadaşlar panel kapalıyken de renk/simge listesine eklenir
       syncAccountFriends(friends);
-      const gotTeams = await myTeams().catch(() => teams);
-      const gotGroups = await myGroups().catch(() => groups);
-      if (session()?.user.id !== uid) return;
-      teams = gotTeams;
-      void subscribeTeams();
-      groups = gotGroups;
-      void subscribeGroups();
+      if (full) {
+        const gotTeams = await myTeamRooms().catch(() => teams);
+        const gotGroups = await myGroups().catch(() => groups);
+        if (session()?.user.id !== uid) return;
+        fullAt = Date.now();
+        teams = gotTeams;
+        void subscribeTeams();
+        groups = gotGroups;
+        void subscribeGroups();
+      }
     } catch {
       return;
     }
@@ -419,19 +428,25 @@ export function startSocial(status: Accessor<Status | undefined>) {
     const put = (uid: string, d: LiveData | null | undefined) => {
       if (!d || !liveIds.includes(uid)) return;
       const f = friends.find((x) => x.friend_id === uid);
-      invoke("team_remote_set", { key: uid, fuel: { ...d, sender: d.sender || f?.display_name || "?" } }).catch(() => {});
+      // ck: canlı yayın anahtarı (yalnızca kanalı bulmak için); Rust'a gitmez
+      const { ck: _ck, ...rest } = d;
+      invoke("team_remote_set", { key: uid, fuel: { ...rest, sender: d.sender || f?.display_name || "?" } }).catch(() => {});
     };
     stopLive = await onLive(trustsMe, put);
     syncWatch();
     // İlk durum: şu an paylaşan arkadaşların son verisi (Realtime sadece sonraki değişiklikleri getirir)
     try {
-      for (const s of (await friendShares()) ?? []) if (s.live) put(s.friend_id, s.data);
+      for (const s of (await friendShares()) ?? [])
+        if (s.live) {
+          stopLive.seed?.(s.friend_id, s.data);
+          put(s.friend_id, s.data);
+        }
     } catch {
       /* eski sunucu (c44 yok): veri ilk Realtime olayıyla gelir */
     }
   };
   // Ayarlar ekranından: güven listesi değişti -> hemen yenile
-  listen("social-refresh", () => void refreshFriends());
+  listen("social-refresh", () => void refreshFriends(true));
   // Sohbet penceresi öndeki sekmesini bildirir (o sohbetten gelen mesajda kutu / ses çıkmaz)
   listen<string>("chat-front", (e) => noteChatFront(String(e.payload ?? "")));
   // iRacing hesabı: iRacing'e bağlanınca oturumdaki üye no ve ad hesaba kendiliğinden yazılır
@@ -457,12 +472,18 @@ export function startSocial(status: Accessor<Status | undefined>) {
     }
   }, 20_000);
 
-  setTimeout(refreshFriends, 4000);
-  setInterval(refreshFriends, 120_000);
+  // Düzenli yenileme yalnızca yedek: mesajlar ve canlı veri Realtime ile, kendi yaptığım değişiklikler "social-refresh" ile
+  // hemen gelir. Eskiden 2 dk'da bir beş istek atılıyordu; şimdi liste 10 dk'da bir, takım / grup / güven ayarı 30 dk'da bir.
+  setTimeout(() => void refreshFriends(), 4000);
+  setInterval(() => void refreshFriends(false), 600_000);
 
   // Yarışırken canlı verimi gönder (sadece PRO isem ve güvendiğim en az bir arkadaş varsa, 10 sn'de bir, yalnızca bakan varken).
   // Veri paylaşımı PRO üyelere özel; PRO olmayan, onu güvenilir seçen PRO arkadaşının verisini görebilir.
   let lastPush = 0;
+  let lastRow = 0;
+  let liveCast: CastLink | null = null;
+  let liveCastKey = "";
+  let liveCastFor = "";
   listen<LiveData>("team-fuel-local", (e) => {
     // Ekip (c53): ekibimde izleyen varsa veri paylaşımı kapalı / PRO olmasa da gönderilir (sadece ekip görür)
     // Yalnızca bakan varken: güvendiğim bir arkadaş "bakıyorum" demişse (lv:<ben>, 20 sn'de bir) ya da pit duvarımı izleyen varsa
@@ -474,7 +495,22 @@ export function startSocial(status: Accessor<Status | undefined>) {
     if (now - lastPush < 10_000) return;
     lastPush = now;
     const s = status();
-    pushLive({ ...e.payload, track: s?.track ?? "", session: s?.sessionType ?? "", ...(crew ? { crew } : {}) }, !share);
+    const data: LiveData = { ...e.payload, track: s?.track ?? "", session: s?.sessionType ?? "", ...(crew ? { crew } : {}) };
+    // Arkadaşlara 10 sn'de bir Realtime yayını (veritabanına yazılmaz, istek sayılmaz). Satır yalnızca 45 sn'de bir yazılır:
+    // yayın anahtarını taşır, sunucudaki "canlı" (son 2 dk) işaretini taze tutar ve yayını alamayana yedek olur.
+    // Ekip izliyorsa satır eskisi gibi 10 sn'de bir yazılır (ekip paneli satırı sunucudan okur).
+    const me = session()!.user.id;
+    if (!liveCast || liveCastFor !== me) {
+      liveCast?.close();
+      liveCastKey = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      liveCast = castLink(liveCastChannel(me, liveCastKey), "d");
+      liveCastFor = me;
+      lastRow = 0;
+    }
+    if (share) liveCast.send(data);
+    if (!crew && now - lastRow < 45_000) return;
+    lastRow = now;
+    pushLive({ ...data, ck: liveCastKey }, !share);
   });
 
   // Takım odaları: sessize alınmamış odadaki yeni mesaj açılır pencere / oyun içi bildirim + ses

@@ -67,7 +67,7 @@ import ChevronsDown from "lucide-solid/icons/chevrons-down";
 import { SimBadge, SIM_SHORT } from "./Profile";
 import { TeamChat, TeamLogo, type TeamEvent } from "./TeamChat";
 import { crewDrivers, crewList as myCrewList, setCrewFocus, type CrewMember } from "@/cloud/crew";
-import { muteTeamChat, myTeams, onTeamChat, setTeamFocus, type MyTeam, type TeamMessage } from "@/cloud/teams";
+import { muteTeamChat, myTeamRooms, onTeamChat, setTeamFocus, type MyTeam, type TeamMessage } from "@/cloud/teams";
 import { ChatStage, chatFontVars } from "../chatLook";
 import { BgNote, ConvBgPanel, adoptBg, useConvBg } from "./ConvBg";
 import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
@@ -75,7 +75,7 @@ import { useReactions } from "@/cloud/reactions";
 import { dmRoom, statusChannel, usePings } from "@/cloud/pings";
 import { useSeen } from "../chatSeen";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
-import { deleteGroup, leaveGroup, muteGroup, myGroups, onGroupChat, type GroupMessage, type MyGroup } from "@/cloud/groups";
+import { deleteGroup, leaveGroup, muteGroup, myGroupInvites, myGroups, onGroupChat, respondGroupInvite, type GroupInvite, type GroupMessage, type MyGroup } from "@/cloud/groups";
 import { clearRoomBg } from "@/cloud/chatBg";
 import { broadcastOvMsg } from "@/sdk/ovmsg";
 import "../friends.css";
@@ -139,13 +139,23 @@ function presence(f: Friend): Presence {
   return "offline";
 }
 
-/** Avatar: arkadaşa özel fotoğraf ya da baş harf (rengi Arkadaşlar sayfasındaki ayardan, yoksa kimlikten) */
-export function Avatar(props: { id: string; name: string; size?: number; presence?: Presence }) {
+// Profil açıcı: pencerenin gezinme yolu (ana panelde sayfa değişir; ayrı Arkadaşlar / sohbet penceresinde ana panel o
+// profille öne gelir). FriendsPanel kurulunca atanır; sohbetlerdeki resimler ve adlar bunu kullanır.
+let profileOpener: ((id: string) => void) | null = null;
+/** Üyenin profilini aç (Telemetri sayfasındaki üye profili) */
+export const openProfile = (id: string) => id && profileOpener?.(id);
+
+/** Avatar: arkadaşa özel fotoğraf ya da baş harf (rengi Arkadaşlar sayfasındaki ayardan, yoksa kimlikten).
+ *  `profile`: tıklanınca o üyenin profili açılır. */
+export function Avatar(props: { id: string; name: string; size?: number; presence?: Presence; profile?: boolean }) {
   const look = () => friendLook(props.id);
   return (
     <span
       class="fav"
-      classList={{ [`p-${props.presence}`]: !!props.presence }}
+      role={props.profile ? "button" : undefined}
+      title={props.profile ? t("Profili gör") : undefined}
+      onClick={(e) => props.profile && (e.stopPropagation(), openProfile(props.id))}
+      classList={{ [`p-${props.presence}`]: !!props.presence, "fav-link": !!props.profile }}
       style={{ "--sz": `${props.size ?? 36}px`, "--fc": look().color }}
     >
       <Show when={look().photo} fallback={<span data-no-i18n>{initialOf(props.name)}</span>}>
@@ -187,6 +197,7 @@ export function FriendsPanel(props: {
   const [view, setView] = createSignal<View>({ kind: "list" });
   /** Profil: Telemetri sayfasındaki üye profili */
   const setProfileOf = (id: string) => nav.profile(id);
+  profileOpener = nav.profile;
   const [last, setLast] = createSignal<Record<string, Message>>({});
   let lastList: Friend[] = [];
   const [list, { refetch, mutate }] = createResource<Friend[], string | null>(
@@ -228,7 +239,7 @@ export function FriendsPanel(props: {
     () => (session() ? session()!.user.id : null),
     async () => {
       try {
-        lastTeams = await myTeams();
+        lastTeams = await myTeamRooms();
       } catch {
         /* çevrimdışı ya da takımlar yok */
       }
@@ -281,6 +292,17 @@ export function FriendsPanel(props: {
     },
   );
   const chatGroups = () => groupList() ?? [];
+  // Bekleyen grup davetleri (c93): kabul edilene kadar gruba dahil olunmaz. Grup listesiyle birlikte yenilenir.
+  const [groupInvites, { refetch: refetchInvites, mutate: mutateInvites }] = createResource<GroupInvite[], MyGroup[] | undefined>(
+    () => (session() ? groupList() ?? [] : undefined),
+    () => myGroupInvites(),
+  );
+  const answerInvite = (inv: GroupInvite, accept: boolean) => {
+    mutateInvites((groupInvites() ?? []).filter((x) => x.group_id !== inv.group_id));
+    respondGroupInvite(inv.group_id, accept)
+      .then(() => accept && refetchGroups())
+      .catch((e) => (setErr(String((e as Error).message)), void refetchInvites()));
+  };
   const curG = (g: MyGroup) => chatGroups().find((x) => x.group_id === g.group_id) ?? g;
   const groupG = () => {
     const v = view();
@@ -338,16 +360,18 @@ export function FriendsPanel(props: {
 
   // Arkadaşın durumu değişince (çevrimiçi, yarışta, uzakta ...) haber gelir ve liste hemen tazelenir
   usePings(() => (list() ?? []).filter((f) => f.status === "accepted").map((f) => statusChannel(f.friend_id)), () => void refetch());
-  // Yedek: liste açık ve görünürken 2 dk'da bir, kapalı / gizliyken 5 dk'da bir (çevrimdışı olan haber veremez)
+  // Yedek: liste açık ve görünürken 2 dk'da bir, kapalı / gizliyken 10 dk'da bir (çevrimdışı olan haber veremez)
   onMount(() => {
     let n = 0;
     const iv = setInterval(() => {
       n++;
-      if ((props.open() && !document.hidden && n % 2 === 0) || n % 5 === 0) {
-        refetch();
+      // Arkadaş listesi: açık ve görünürken 2 dk, değilken 10 dk. Takım / grup / ekip listeleri nadiren değişir
+      // (değişiklikler kendi olaylarıyla hemen gelir): 15 dk'da bir yedek yenileme yeter.
+      if ((props.open() && !document.hidden && n % 2 === 0) || n % 10 === 0) refetch();
+      if (n % 15 === 0) {
         refetchTeams();
         refetchGroups();
-        if (n % 5 === 0) refetchCrew();
+        refetchCrew();
       }
     }, 60_000);
     onCleanup(() => clearInterval(iv));
@@ -762,6 +786,30 @@ export function FriendsPanel(props: {
               </For>
             </Show>
           </Show>
+          <Show when={(groupInvites() ?? []).length > 0}>
+            <div class="fdock-sec fsec-teams">
+              <span>Grup davetleri</span>
+              <i>{(groupInvites() ?? []).length}</i>
+            </div>
+            <For each={groupInvites() ?? []}>
+              {(inv) => (
+                <div class="frow ginv">
+                  <div class="ginv-main">
+                    <b data-no-i18n>{inv.name}</b>
+                    <small>{t("{0} davet etti · {1} üye", inv.from_name || "?", inv.member_count)}</small>
+                  </div>
+                  <div class="frow-acts">
+                    <button class="btn primary small" onClick={() => answerInvite(inv, true)}>
+                      Kabul et
+                    </button>
+                    <button class="btn ghost small" onClick={() => answerInvite(inv, false)}>
+                      Reddet
+                    </button>
+                  </div>
+                </div>
+              )}
+            </For>
+          </Show>
           <Show when={groupRows().length > 0}>
             <Show when={!p.plain}>
               <button class="fdock-sec fsec-teams" classList={{ closed: !!collapsed().groups && !q() }} onClick={() => toggle("groups")}>
@@ -1022,11 +1070,13 @@ export function FriendsPanel(props: {
             </Show>
           </Show>
         </div>
-        <Show when={props.standalone}>
+        {/* Grup sohbetleri bölmesi: hiç grup (ve bekleyen davet) yokken gösterilmez; grup, bir sohbetin başlığındaki
+            "Sohbete arkadaş ekle" düğmesiyle kurulur */}
+        <Show when={props.standalone && (teamRows().length > 0 || groupRows().length > 0 || (groupInvites() ?? []).length > 0)}>
           <div class="fst-foot" classList={{ open: footOpen() }}>
             <div class="fst-foot-btn" role="button" tabindex="0" onClick={flipFoot}>
               <ChevronsDown class="fst-chev" />
-              <span>Takım ve grup sohbetleri</span>
+              <span>Grup sohbetleri</span>
               <span class="lt-sp" />
               <button class="icon-btn" title="Grup kur: arkadaşlarınla grup sohbeti" onClick={(e) => (e.stopPropagation(), setView({ kind: "newgroup" }))}>
                 <I.Plus />
@@ -1035,9 +1085,6 @@ export function FriendsPanel(props: {
             <Show when={footOpen()}>
               <div class="fdock-list fst-rooms">
                 <Rooms plain />
-                <Show when={teamRows().length === 0 && groupRows().length === 0}>
-                  <p class="muted small fdock-empty">Henüz takım ya da grup sohbeti yok.</p>
-                </Show>
               </div>
             </Show>
           </div>
@@ -2260,7 +2307,7 @@ function Chat(props: {
                 >
                   <Show when={r.first}>
                     <div class="fmsg-head">
-                      <Avatar id={r.m.sender === me() ? me() ?? "" : props.f.friend_id} name={r.m.sender === me() ? myProfile()?.display_name || "?" : props.f.display_name} size={30} />
+                      <Avatar id={r.m.sender === me() ? me() ?? "" : props.f.friend_id} name={r.m.sender === me() ? myProfile()?.display_name || "?" : props.f.display_name} size={30} profile />
                       <b data-no-i18n>{r.m.sender === me() ? myProfile()?.display_name || t("Sen") : shownName(props.f)}</b>
                       <small>{time(r.m.created_at)}</small>
                     </div>

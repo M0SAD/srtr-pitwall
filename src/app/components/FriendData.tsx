@@ -114,6 +114,8 @@ export default function FriendData(props: { f: Friend }) {
       setReal(x);
       setAt(Date.now());
     });
+    // Yayın anahtarı ilk okunan satırdaysa canlı yayına hemen katıl (satır yalnızca 45 sn'de bir yazılır)
+    stop.seed(props.f.friend_id, r?.data);
     onCleanup(stop);
   });
   const [now, setNow] = createSignal(Date.now());

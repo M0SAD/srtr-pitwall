@@ -1857,3 +1857,33 @@
 .fdock-panel.standalone {
   box-shadow: inset 0 0 0 1px #2a303b;
 }
+
+/* Tıklanınca profil açan resim / ad */
+.fav-link {
+  cursor: pointer;
+}
+.fav.fav-link:hover {
+  filter: brightness(1.15);
+}
+.tmsg-who.fav-link:hover {
+  text-decoration: underline;
+}
+
+/* Grup kurma: "24 saatte mesaj yazılmazsa silinir" uyarısı */
+.gnew-warn {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid #b8741a;
+  border-radius: 8px;
+  color: #ffb35c;
+  line-height: 1.4;
+}
+.gnew-warn svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-top: 2px;
+}

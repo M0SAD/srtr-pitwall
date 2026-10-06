@@ -174,6 +174,13 @@ export const searchTeams = (q: string, sim: TeamSim | "" = "") =>
   );
 export const teamProfile = (id: string) => api<TeamProfile | null>("POST", "rpc/team_profile", { body: { p_team: id }, auth: "optional" });
 export const myTeams = () => api<MyTeam[]>("POST", "rpc/my_teams", { body: {} }).then((r) => r ?? []);
+/**
+ * Takım sohbet odaları kapalı: takımlar (sayfa, duyurular, üyelik) durur, ama arkadaş listesinde takım odası açılmaz,
+ * takım sohbeti dinlenmez ve bunun için sunucuya istek atılmaz. Yeniden açmak için true yapmak yeter.
+ */
+export const TEAM_ROOMS = false;
+/** Arkadaş listesindeki takım odaları (kapalıyken boş, istek atılmaz) */
+export const myTeamRooms = (): Promise<MyTeam[]> => (TEAM_ROOMS ? myTeams() : Promise.resolve([]));
 export const myTeamInvites = () => api<TeamInvite[]>("POST", "rpc/my_team_invites", { body: {} }).then((r) => r ?? []);
 
 export interface TeamFields {

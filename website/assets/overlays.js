@@ -38,7 +38,7 @@ export const OVERLAYS = [
       ["sectors", "🟪", "mixed"],
       ["laptimes", "📋", "free"],
       ["corners", "〰️", "pro"],
-      ["brakepoint", "🛑", "mixed"],
+      ["brakepoint", "🛑", "pro"],
       ["tracklimits", "🚷", "mixed"],
       ["tires", "🛞", "free"],
       ["damage", "🛠️", "pro"],

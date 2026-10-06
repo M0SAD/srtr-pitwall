@@ -375,12 +375,22 @@ export async function syncNow() {
     const since = lastSync();
     if (!remote) {
       await push(local);
+    } else if (since === 0) {
+      // Bu cihazda bu hesapla ilk eşitleme (yeni kurulum, başka bilgisayar ya da yeniden giriş): hesaptaki kayıt geçerlidir.
+      // Düzenler ve bütün ayarlar hesaptan gelir; cihazdaki giriş öncesi ayarlar buluttakinin üzerine YAZILMAZ
+      // (eskiden cihazdaki ayar daha yeni tarihliyse hesaptaki düzenleri eziyordu). Cihazdaki eski ayarlar yedeklenir.
+      try {
+        if (local.updatedAt > 0) localStorage.setItem("pitwall.settingsBeforeLogin", JSON.stringify({ at: Date.now(), data: local }));
+      } catch {
+        /* yer yoksa yedeksiz devam */
+      }
+      applyRemote(remote);
     } else if (remote.at > since && local.updatedAt > since && remote.at !== local.updatedAt && since > 0) {
       // Son eşitlemeden beri iki tarafta da değişiklik var: kullanıcıya sor
       setConflict({ remote: remote.data, remoteAt: remote.at });
       setSyncState("conflict");
       return;
-    } else if (remote.at > local.updatedAt || (since === 0 && local.updatedAt === 0)) {
+    } else if (remote.at > local.updatedAt) {
       applyRemote(remote);
     } else if (local.updatedAt > remote.at) {
       await push(local);
@@ -413,19 +423,50 @@ let pushTimer: number | undefined;
 /** Kontrol paneli açıkken ayar değişikliklerini birkaç saniye bekleyip buluta gönderir. */
 export function startAutoSync() {
   if (!cloudEnabled) return;
+  // Ayar değişiklikleri hemen değil, toplu gönderilir (her değişiklik ayrı bir istek olmasın): son değişiklikten 60 sn sonra,
+  // değişiklikler sürüyorsa en geç 5 dk'da bir. Panel arka plana geçince / gizlenince bekleyen değişiklik hemen gönderilir,
+  // böylece başka cihaza geçildiğinde hesap günceldir. (Eskiden her değişiklikten 3 sn sonra gönderiliyordu.)
+  const QUIET_MS = 60_000;
+  const MAX_WAIT_MS = 5 * 60_000;
+  let firstPending = 0;
+  let pushing = false;
+  const flush = async () => {
+    clearTimeout(pushTimer);
+    pushTimer = undefined;
+    if (!firstPending || pushing) return;
+    if (applyingRemote || !session() || conflict()) return void (firstPending = 0);
+    firstPending = 0;
+    pushing = true;
+    try {
+      setSyncState("syncing");
+      await push(settings());
+      setSyncState("ok");
+    } catch (e) {
+      setSyncError(String((e as Error).message ?? e));
+      setSyncState("error");
+    } finally {
+      pushing = false;
+      // Gönderim sürerken yeni değişiklik geldiyse sıradaki tura kalır
+      if (firstPending && !pushTimer) pushTimer = window.setTimeout(() => void flush(), QUIET_MS);
+    }
+  };
   onSettingsChange(() => {
     if (applyingRemote || !session() || conflict()) return;
+    const now = Date.now();
+    if (!firstPending) firstPending = now;
     clearTimeout(pushTimer);
-    pushTimer = window.setTimeout(async () => {
-      try {
-        setSyncState("syncing");
-        await push(settings());
-        setSyncState("ok");
-      } catch (e) {
-        setSyncError(String((e as Error).message ?? e));
-        setSyncState("error");
-      }
-    }, 3000);
+    pushTimer = window.setTimeout(() => void flush(), Math.max(1000, Math.min(QUIET_MS, firstPending + MAX_WAIT_MS - now)));
   });
+  window.addEventListener("blur", () => void flush());
+  document.addEventListener("visibilitychange", () => document.hidden && void flush());
+  window.addEventListener("pagehide", () => void flush());
   syncNow();
+  // Başka bir cihazda yapılan değişiklikler: panel yeniden öne geldiğinde (en çok 10 dk'da bir) hesaptaki kayıt sorulur.
+  // Uygulamayı yeniden başlatmak gerekmez; bekleyen yerel değişiklik varken sorulmaz (önce o gönderilir).
+  let pulledAt = Date.now();
+  window.addEventListener("focus", () => {
+    if (!session() || conflict() || pushTimer || Date.now() - pulledAt < 10 * 60_000) return;
+    pulledAt = Date.now();
+    void syncNow();
+  });
 }

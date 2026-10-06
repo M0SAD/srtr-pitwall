@@ -213,6 +213,7 @@ function noticeText(n: Notice): string {
     return n.data.state === "accepted"
       ? t("{0} sohbet arka planı önerini kabul etti.", n.data.name ?? "?")
       : t("{0} sohbetiniz için bir arka plan önerdi. Sohbeti açıp yanıtlayabilirsin.", n.data.name ?? "?");
+  if (n.kind === "group_invite") return t("{0} seni \"{1}\" grubuna davet etti. Arkadaşlar listesindeki Grup davetleri bölümünden kabul edebilir ya da reddedebilirsin.", n.data.name ?? "?", n.data.group_name ?? "?");
   if (n.kind === "group_added") return t("{0} seni \"{1}\" grubuna ekledi. Arkadaşlar listesindeki Gruplar bölümünden açabilirsin.", n.data.name ?? "?", n.data.group_name ?? "?");
   if (n.kind === "group_removed") return t("\"{0}\" grubundan çıkarıldın.", n.data.group_name ?? "?");
   if (n.kind === "dash_removed") return t('"{0}" adlı direksiyon ekranı tasarımın bir moderatör tarafından kaldırıldı.', n.data.title ?? "?");

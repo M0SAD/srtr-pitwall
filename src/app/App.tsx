@@ -193,7 +193,7 @@ export function App() {
 
   onMount(async () => {
     // Bildirimler 10 dakikada bir yenilenir
-    const nt = setInterval(loadNotices, 3 * 60_000);
+    const nt = setInterval(() => !document.hidden && void loadNotices(), 10 * 60_000);
     onCleanup(() => clearInterval(nt));
     setAppState(await invoke<AppState>("state_get"));
     await listen<AppState>("app-state", (e) => setAppState(e.payload));

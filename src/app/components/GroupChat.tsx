@@ -38,7 +38,7 @@ import { ChatStage } from "../chatLook";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockNote } from "./ProLock";
 import { BgNote, RoomBgPanel, SysNote, useRoomBg } from "./ConvBg";
-import { Avatar, ReportMessage } from "./FriendsDock";
+import { Avatar, ReportMessage, openProfile } from "./FriendsDock";
 import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { useReactions } from "@/cloud/reactions";
 import { useSeen } from "../chatSeen";
@@ -130,6 +130,10 @@ export function NewGroup(props: { friends: Friend[]; onCreated: (id: string) => 
       <p class="muted small">
         Gruba sadece arkadaşlarını ekleyebilirsin. Dilediğin zaman gruptan ayrılabilir ya da grubu silebilirsin; grupta kimse kalmazsa grup
         kendiliğinden kapanır.
+      </p>
+      <p class="gnew-warn small">
+        <I.TriangleAlert /> Grupta 24 saat içinde hiç mesaj yazılmazsa grup kendiliğinden silinir. Davet ettiğin kişiler daveti kabul edince
+        gruba katılır.
       </p>
       <Show when={err()}>
         <p class="error small">{err()}</p>
@@ -443,7 +447,14 @@ export function GroupChat(props: {
                     onClick={(e) => clickCtx(e, r.m)}
                   >
                     <Show when={r.first && r.m.sender !== me()}>
-                      <b class="tmsg-who" style={{ color: hashColor(r.m.sender ?? "?") }} data-no-i18n>
+                      <b
+                        class="tmsg-who fav-link"
+                        role="button"
+                        title={t("Profili gör")}
+                        style={{ color: hashColor(r.m.sender ?? "?") }}
+                        onClick={(e) => (e.stopPropagation(), r.m.sender && openProfile(r.m.sender))}
+                        data-no-i18n
+                      >
                         {nameOf(r.m)}
                       </b>
                     </Show>
@@ -582,8 +593,8 @@ function MembersPanel(props: {
       props.onChanged();
       setNote(
         n === want
-          ? t("{0} kişi gruba eklendi.", n)
-          : t("{0} kişi eklendi; {1} kişi eklenemedi (mesajları kapalı ya da seni sessize almış).", n, want - n),
+          ? t("{0} kişiye davet gönderildi; kabul edince gruba katılırlar.", n)
+          : t("{0} kişiye davet gönderildi; {1} kişi davet edilemedi (mesajları kapalı, seni sessize almış ya da zaten davetli).", n, want - n),
       );
     });
   const kick = (m: GroupMember) => {
@@ -662,7 +673,7 @@ function MembersPanel(props: {
           <For each={props.members}>
             {(m) => (
               <div class="gmem">
-                <Avatar id={m.user_id} name={m.display_name} size={24} />
+                <Avatar id={m.user_id} name={m.display_name} size={24} profile />
                 <b data-no-i18n>{m.display_name}</b>
                 <Show when={m.user_id === me()}>
                   <small class="muted">(sen)</small>

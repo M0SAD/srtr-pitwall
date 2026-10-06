@@ -1846,3 +1846,32 @@
 .crv-body .eng {
   color: var(--ov-text, #eef1f6);
 }
+
+/* Ekip paneli: 10 dk geri sayım ve süre dolunca çıkan bilgi kutusu */
+.crew-left {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.crew-left b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.crew-left.soon {
+  border-color: #f5a524;
+  color: #f5a524;
+}
+.crew-left.soon b {
+  color: #f5a524;
+}
+.crew-timeout {
+  max-width: 560px;
+}
+.crew-timeout p {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}

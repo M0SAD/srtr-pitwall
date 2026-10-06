@@ -15468,3 +15468,147 @@ grant execute on function public.crew_wall(uuid) to authenticated;
 update public.app_config
    set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['glucose']) as x)
  where id = 1;
+
+-- c91: Fren ve Vites İşareti overlay'i varsayılan olarak PRO (app_config.pro_overlays). Yönetim › PRO özellikleri'nden değiştirilebilir.
+update public.app_config
+   set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['brakepoint']) as x)
+ where id = 1;
+
+-- c92: Boş sohbet grupları kendiliğinden kapanır. Kurulduktan 24 saat sonra içinde hiç gerçek mesaj yoksa grup silinir
+-- (üyelikler ve sistem satırları "on delete cascade" ile gider). Sistem satırları (katıldı / ayrıldı / sahip / ad / arka plan)
+-- mesaj sayılmaz. Saat başı pg_cron ile çalışır; pg_cron yoksa zamanlama atlanır (işlev elle de çağrılabilir).
+create or replace function public.chat_groups_sweep() returns int
+language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+begin
+  with dead as (
+    select g.id from public.chat_groups g
+     where g.created_at < now() - interval '24 hours'
+       and not exists (
+         select 1 from public.group_messages m
+          where m.group_id = g.id
+            and coalesce(m.meta ->> 't', '') not in ('join', 'kick', 'leave', 'owner', 'rename', 'bg'))
+  ), gone_notes as (
+    delete from public.notifications nt using dead d
+     where nt.kind in ('group_added', 'group_invite') and nt.data ->> 'group' = d.id::text
+  )
+  delete from public.chat_groups g using dead d where g.id = d.id;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function public.chat_groups_sweep() from public, anon, authenticated;
+grant execute on function public.chat_groups_sweep() to service_role;
+
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.schedule('pitwall-groups-sweep', '23 * * * *', 'select public.chat_groups_sweep()');
+  end if;
+end $$;
+
+-- c93: Sohbet grubuna eklenmek onaya bağlı. Davet edilen kişi kabul edene kadar üye olmaz: grubu, üyelerini ve mesajlarını
+-- göremez; reddederse davet silinir. Kurucu (group_create) ve davet eden (group_invite) aynı RPC'leri kullanır; yalnızca
+-- chat_group_add üye eklemek yerine davet yazar.
+create table if not exists public.chat_group_invites (
+  group_id uuid not null references public.chat_groups (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  invited_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+create index if not exists chat_group_invites_user on public.chat_group_invites (user_id);
+alter table public.chat_group_invites enable row level security;
+-- Doğrudan erişim yok: yalnızca aşağıdaki işlevler (security definer) okur / yazar
+revoke all on public.chat_group_invites from public, anon, authenticated;
+grant all on public.chat_group_invites to service_role;
+
+create or replace function public.chat_group_add(p_group uuid, p_by uuid, p_users uuid[]) returns int
+language plpgsql security definer set search_path = public as $$
+declare
+  u uuid;
+  n int := 0;
+  cnt int;
+  g_name text;
+  by_name text;
+begin
+  select name into g_name from public.chat_groups where id = p_group;
+  select coalesce(display_name, '?') into by_name from public.profiles where id = p_by;
+  -- Sınır: üyeler + bekleyen davetler
+  select (select count(*) from public.chat_group_members where group_id = p_group)
+       + (select count(*) from public.chat_group_invites where group_id = p_group) into cnt;
+  for u in select distinct x from unnest(coalesce(p_users, '{}'::uuid[])) x where x is not null and x <> p_by limit 60 loop
+    continue when exists (select 1 from public.chat_group_members where group_id = p_group and user_id = u);
+    continue when exists (select 1 from public.chat_group_invites where group_id = p_group and user_id = u);
+    continue when not public.are_friends(p_by, u);
+    -- Davet edeni sessize alan ya da mesajları kapatan kişi davet edilemez
+    continue when coalesce((select muted from public.friendships where user_id = u and friend_id = p_by), false);
+    continue when not coalesce((select accept_messages from public.user_status where user_id = u), true);
+    continue when (select count(*) from public.chat_group_members where user_id = u) >= 100;
+    if cnt >= 50 then
+      raise exception 'Bir grupta en fazla 50 kişi olabilir';
+    end if;
+    insert into public.chat_group_invites (group_id, user_id, invited_by) values (p_group, u, p_by);
+    cnt := cnt + 1;
+    n := n + 1;
+    insert into public.notifications (user_id, kind, data)
+      values (u, 'group_invite', jsonb_build_object('group', p_group, 'group_name', g_name, 'from', p_by, 'name', coalesce(by_name, '?')));
+  end loop;
+  return n;
+end $$;
+revoke all on function public.chat_group_add(uuid, uuid, uuid[]) from public, anon, authenticated;
+
+-- Bekleyen grup davetlerim
+create or replace function public.my_group_invites()
+returns table (group_id uuid, name text, from_id uuid, from_name text, member_count int, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select i.group_id, g.name, i.invited_by, coalesce(p.display_name, '?'),
+         (select count(*)::int from public.chat_group_members c where c.group_id = g.id),
+         i.created_at
+    from public.chat_group_invites i
+    join public.chat_groups g on g.id = i.group_id
+    left join public.profiles p on p.id = i.invited_by
+   where i.user_id = auth.uid()
+   order by i.created_at desc;
+$$;
+revoke all on function public.my_group_invites() from public, anon;
+grant execute on function public.my_group_invites() to authenticated;
+
+-- Daveti kabul et / reddet. Dönüş: gruba katıldım mı.
+create or replace function public.group_invite_respond(p_group uuid, p_accept boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  inv public.chat_group_invites%rowtype;
+  my_name text;
+  by_name text;
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  select * into inv from public.chat_group_invites where group_id = p_group and user_id = me;
+  if not found then
+    raise exception 'Bu grup için bekleyen bir davetin yok';
+  end if;
+  delete from public.chat_group_invites where group_id = p_group and user_id = me;
+  delete from public.notifications where user_id = me and kind = 'group_invite' and data ->> 'group' = p_group::text;
+  if not coalesce(p_accept, false) then
+    return false;
+  end if;
+  if (select count(*) from public.chat_group_members where group_id = p_group) >= 50 then
+    raise exception 'Bir grupta en fazla 50 kişi olabilir';
+  end if;
+  if (select count(*) from public.chat_group_members where user_id = me) >= 100 then
+    raise exception 'Çok fazla gruptasın';
+  end if;
+  insert into public.chat_group_members (group_id, user_id, invited_by) values (p_group, me, inv.invited_by)
+    on conflict do nothing;
+  select coalesce(display_name, '?') into my_name from public.profiles where id = me;
+  select coalesce(display_name, '?') into by_name from public.profiles where id = inv.invited_by;
+  insert into public.group_messages (group_id, sender, body, meta)
+    values (p_group, me, '➕ ' || coalesce(my_name, '?') || ' gruba katıldı',
+            jsonb_build_object('t', 'join', 'user', me, 'name', coalesce(my_name, '?'), 'by_name', coalesce(by_name, '?')));
+  return true;
+end $$;
+revoke all on function public.group_invite_respond(uuid, boolean) from public, anon;
+grant execute on function public.group_invite_respond(uuid, boolean) to authenticated;

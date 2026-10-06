@@ -853,7 +853,9 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
         transform: `translate(${view().x}px, ${view().y}px) scale(${view().eff})`,
         // Genel opaklık bir tavandır: overlay'in kendi opaklığı ondan düşükse aynen kalır
         opacity: Math.min(inst().opacity, globalOpacity()),
-        "min-width": props.editing && !rz().w ? `${props.manifest.size.w}px` : undefined,
+        // Düzenlemede boş kalan overlay de tutulabilsin diye küçük bir alt sınır. Eskiden manifestteki tam genişlikti: içeriği daha
+        // dar olan tasarımlarda (ör. Kan Şekeri / Kalp Atışı yuvarlak) sağda boşluk kalıyor, overlay sağ kenara yanaşamıyordu.
+        "min-width": props.editing && !rz().w ? `${Math.min(props.manifest.size.w, 60)}px` : undefined,
         "min-height": props.editing && !rz().h ? `${Math.min(props.manifest.size.h, 60)}px` : undefined,
       }}
       onPointerDown={startMove}

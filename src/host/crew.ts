@@ -201,12 +201,12 @@ export function startCrew(status: Accessor<Status | undefined>) {
       busy = false;
     }
   }
-  // Yoklama (yalnızca Realtime kaçırırsa diye yedek): yarışta 30 sn, değilken 2 dk — sadece ekibim varsa
+  // Yoklama (yalnızca Realtime kaçırırsa diye yedek): yarışta 60 sn, değilken 10 dk — sadece ekibim varsa
   let tick = 0;
   setInterval(() => {
     tick++;
     if (!members.length || !session()) return;
-    if (tick % (racing() ? 3 : 12) === 0) void process();
+    if (tick % (racing() ? 6 : 60) === 0) void process();
   }, 10_000);
 
   // ---- Ekip odası (c64) ----
@@ -305,12 +305,14 @@ export function startCrew(status: Accessor<Status | undefined>) {
   setInterval(() => {
     chatTick++;
     if (!session()) return syncRooms();
-    if (chatTick % 45 === 2) void loadDrivers();
+    // Ekip değişikliği "crew-refresh" / "social-refresh" ile hemen gelir; düzenli yenileme yalnızca yedek (15 dk)
+    if (chatTick % 225 === 2) void loadDrivers();
     syncRooms();
     const me = session()?.user.id ?? "";
     for (const [id, r] of rooms) {
-      // Realtime asıl kanal; yoklama yedek: kendi odam yarışta 20 sn, diğerleri 60 sn
-      if (!r.last || (id === me && racing() && chatTick % 5 === 0) || chatTick % 15 === 0) void pollChat(id);
+      // Realtime asıl kanal; yoklama yalnızca yedek: kendi odam yarışta 60 sn, onun dışında her oda 10 dk
+      // (eskiden her oda 60 sn'de bir, boşta bile yoklanıyordu: güvenilir arkadaş sayısıyla katlanan en büyük istek kalemi)
+      if (!r.last || (id === me && racing() && chatTick % 15 === 0) || chatTick % 150 === 0) void pollChat(id);
     }
   }, 4000);
 
@@ -554,11 +556,11 @@ export function startCrew(status: Accessor<Status | undefined>) {
     if (watchers > 0) void startStream();
     else stopStream();
     // İzleyen varken: veri saniyede bir canlı yayınla (Realtime, veritabanına yazılmaz) gider; veritabanına yalnızca
-    // 15 sn'de bir yazılır (yayın anahtarını taşır + yayını alamayan izleyiciye yedek). İzleyen yokken 30 sn'de bir
+    // 15 sn'de bir yazılır (yayın anahtarını taşır + yayını alamayan izleyiciye yedek). İzleyen yokken 90 sn'de bir
     // (ya da izleyen "girdim" deyince hemen) sorulur.
     const data = watchers > 0 ? buildWall() : null;
     if (data) wallCast?.send(data);
-    const due = watchers === 0 ? probeNow > 0 || wallTick % 30 === 0 : wallFirst || wallTick % 15 === 0;
+    const due = watchers === 0 ? probeNow > 0 || wallTick % 90 === 0 : wallFirst || wallTick % 15 === 0;
     if (wallBusy || !due) return;
     if (probeNow > 0) probeNow--;
     wallFirst = false;

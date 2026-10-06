@@ -71,7 +71,7 @@ export function useConvBg(friendId: () => string): ConvBgState {
   };
   onMount(() => {
     void refresh();
-    const iv = setInterval(refresh, 30_000);
+    const iv = setInterval(() => !document.hidden && void refresh(), 60_000);
     onCleanup(() => clearInterval(iv));
   });
 
@@ -473,7 +473,7 @@ export function useRoomBg(scope: RoomScope, room: () => string): RoomBgState {
   };
   onMount(() => {
     void refresh();
-    const iv = setInterval(refresh, 60_000);
+    const iv = setInterval(() => !document.hidden && void refresh(), 120_000);
     onCleanup(() => clearInterval(iv));
   });
   const [bgImg, setBgImg] = createSignal<string | null>(null);

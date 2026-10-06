@@ -39,7 +39,7 @@ export function CrewSettings() {
   };
   // Kimin bağlı olduğu ve komut listesi sık değişir
   const iv = window.setInterval(() => {
-    if (!uid()) return;
+    if (!uid() || document.hidden) return;
     void refetchCrew();
     void refetchLog();
   }, 15_000);

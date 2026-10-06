@@ -72,7 +72,7 @@ export function FriendsPage() {
   const outgoing = () => all().filter((f) => f.status === "pending_out");
   const cloudOf = (id?: string) => (id ? all().find((f) => f.friend_id === id) : undefined);
   onMount(() => {
-    const iv = setInterval(() => session() && refetch(), 15_000);
+    const iv = setInterval(() => session() && !document.hidden && refetch(), 15_000);
     const close = () => setMenu(null);
     window.addEventListener("pointerdown", close);
     window.addEventListener("blur", close);

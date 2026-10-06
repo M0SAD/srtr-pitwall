@@ -17,8 +17,38 @@ export function WinChrome(props: { drag: string; inline?: boolean; max?: boolean
       const el = e.target as HTMLElement | null;
       return !!el && !!el.closest(props.drag) && !el.closest(INTERACTIVE);
     };
+    // Çubuktan tutup taşırken yazı alanının odağı kaybolmasın (taşıdıktan sonra yeniden tıklamak gerekmesin):
+    // çubuğa basmak odağı değiştirmez (mousedown engellenir), taşıma bitince de odak eski yazı alanına geri verilir.
+    let typing: HTMLElement | null = null;
+    const isField = (el: Element | null): el is HTMLElement => el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA)$/.test(el.tagName));
+    const refocus = () => {
+      const el = typing;
+      if (!el || !el.isConnected || document.activeElement === el) return;
+      // Kullanıcı bu arada başka bir alana geçtiyse dokunma
+      if (isField(document.activeElement)) return;
+      el.focus({ preventScroll: true });
+    };
+    const keep = (e: MouseEvent) => {
+      if (e.button !== 0 || !onBar(e)) return;
+      if (isField(document.activeElement)) {
+        typing = document.activeElement;
+        e.preventDefault();
+      }
+    };
+    let moveTimer = 0;
+    let unMoved: (() => void) | undefined;
+    void win
+      .onMoved(() => {
+        clearTimeout(moveTimer);
+        moveTimer = window.setTimeout(refocus, 120);
+      })
+      .then((u) => (unMoved = u))
+      .catch(() => {});
+    const onFocus = () => setTimeout(refocus, 0);
+    window.addEventListener("focus", onFocus);
     const down = (e: PointerEvent) => {
       if (e.button !== 0 || !onBar(e)) return;
+      if (isField(document.activeElement)) typing = document.activeElement;
       const x0 = e.clientX;
       const y0 = e.clientY;
       const move = (ev: PointerEvent) => {
@@ -30,6 +60,7 @@ export function WinChrome(props: { drag: string; inline?: boolean; max?: boolean
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", end);
         window.removeEventListener("pointercancel", end);
+        setTimeout(refocus, 0);
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", end);
@@ -37,8 +68,13 @@ export function WinChrome(props: { drag: string; inline?: boolean; max?: boolean
     };
     const dbl = (e: MouseEvent) => onBar(e) && !(e.target as HTMLElement).closest(".cwin-tab") && void win.toggleMaximize().catch(() => {});
     document.addEventListener("pointerdown", down);
+    document.addEventListener("mousedown", keep);
     document.addEventListener("dblclick", dbl);
     onCleanup(() => {
+      document.removeEventListener("mousedown", keep);
+      window.removeEventListener("focus", onFocus);
+      clearTimeout(moveTimer);
+      unMoved?.();
       document.removeEventListener("pointerdown", down);
       document.removeEventListener("dblclick", dbl);
     });

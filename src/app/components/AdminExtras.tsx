@@ -205,7 +205,7 @@ export function AdminSupport() {
   const [open, setOpen] = createSignal("");
   // Seçili talep liste süzgecinde görünmese de açık kalsın
   const [picked, setPicked] = createSignal<AdminSupportTicket | null>(null);
-  const timer = window.setInterval(() => refetch(), 60_000);
+  const timer = window.setInterval(() => !document.hidden && refetch(), 60_000);
   onCleanup(() => clearInterval(timer));
   createEffect(() => {
     const f = supportFocus();

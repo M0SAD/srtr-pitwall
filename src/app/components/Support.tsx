@@ -188,7 +188,7 @@ export function TicketThread(p: {
     queueMicrotask(() => listEl && (listEl.scrollTop = listEl.scrollHeight));
   });
   // Açıkken yeni mesajlar için ara ara bak
-  const timer = window.setInterval(() => refetch(), 45_000);
+  const timer = window.setInterval(() => !document.hidden && refetch(), 45_000);
   onCleanup(() => clearInterval(timer));
 
   const send = async () => {

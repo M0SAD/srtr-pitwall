@@ -33,7 +33,7 @@ function SupportInner() {
   const [list, { refetch }] = createResource(() => myTickets().catch(() => [] as SupportTicket[]));
   // "new": yeni talep formu, id: açık talep
   const [open, setOpen] = createSignal<string>("");
-  const timer = window.setInterval(() => refetch(), 60_000);
+  const timer = window.setInterval(() => !document.hidden && refetch(), 60_000);
   onCleanup(() => clearInterval(timer));
 
   // Bildirimden gelindiyse o talebi aç

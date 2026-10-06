@@ -55,6 +55,23 @@ addDict({
   cw_x_wx: ["Hava", "Weather"],
   cw_x_air: ["Hava sıcaklığı", "Air temp"],
   cw_x_track: ["Pist sıcaklığı", "Track temp"],
+  cw_left: ["Kalan süre", "Time left"],
+  cw_left_h: [
+    "Ekip paneli 10 dakika sonra kendiliğinden kapanır. Spotter takibine oyunun içinden devam et; acil durumda tekrar bağlanabilirsin.",
+    "The crew panel closes by itself after 10 minutes. Keep spotting from inside the game; you can reconnect in an emergency.",
+  ],
+  cw_timeout_t: ["Ekip paneli kapandı", "Crew panel closed"],
+  cw_timeout_b: [
+    "10 dakikalık süre doldu ve bağlantın kesildi. Spotter takibine oyunun içinden devam et. Acil durumlarda buraya tekrar bağlanıp işlem yapabilirsin; ancak yarışı uzun süre buradan takip etmemeyi tercih et.",
+    "The 10-minute limit is up and you have been disconnected. Keep spotting from inside the game. In an emergency you can reconnect here and act, but please avoid following the race from here for long periods.",
+  ],
+  cw_timeout_again: ["Tekrar bağlan", "Reconnect"],
+  cw_kicked_t: ["Bağlantın kesildi", "You were disconnected"],
+  cw_kicked_b: [
+    "{0} seni güvenilir arkadaşlarından çıkardı. Ekip paneline erişimin kaldırıldı ve bağlantın kesildi.",
+    "{0} removed you from their trusted friends. Your access to the crew panel was removed and you were disconnected.",
+  ],
+  cw_kicked_ok: ["Tamam", "OK"],
   cw_fit: ["Ekrana sığdır", "Fit to screen"],
   cw_fit_h: ["Kaydırmaya gerek kalmadan tüm panel ekrana sığacak şekilde ölçeklenir", "Scales the whole panel so it fits the screen without scrolling"],
   cw_full: ["Tam ekran", "Full screen"],
@@ -569,6 +586,9 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     } catch {}
     return false;
   };
+  // 10 dakikalık oturum sınırı: panel sürekli izleme için değil, kısa müdahale içindir (uygulamadaki Ekip sayfasıyla aynı kural)
+  const limitAt = Date.now() + 10 * 60_000;
+  const leftSec = () => Math.max(0, Math.ceil((limitAt - Date.now()) / 1000));
   let fit = ls("crew.fit");
   let full = false;
   let zoom = 1;
@@ -580,7 +600,8 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       bar,
       `<span class="cw-tabs">${tabs.map(([id, k]) => `<button type="button" class="${tab === id ? "on" : ""}" data-tab="${id}">${T(k)}</button>`).join("")}</span>` +
         `<button type="button" class="cw-vb${fit ? " on" : ""}" data-view="fit" title="${esc(T("cw_fit_h"))}">${T("cw_fit")}</button>` +
-        `<button type="button" class="cw-vb${full ? " on" : ""}" data-view="full">${T(full ? "cw_full_exit" : "cw_full")}</button>`,
+        `<button type="button" class="cw-vb${full ? " on" : ""}" data-view="full">${T(full ? "cw_full_exit" : "cw_full")}</button>` +
+        `<span class="cw-left${leftSec() <= 60 ? " soon" : ""}" title="${esc(T("cw_left_h"))}">${T("cw_left")} <b>${Math.floor(leftSec() / 60)}:${String(leftSec() % 60).padStart(2, "0")}</b></span>`,
     );
     host.classList.toggle("cw-fit", fit);
     host.classList.toggle("cw-full", full);
@@ -972,7 +993,15 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
     const { data, error } = await sb.rpc("crew_driver", { p_owner: ownerId });
     if (!alive) return;
     if (error) {
-      // Ekipten çıkarılmış olabilir: paneli kapat (liste / arkadaş listesine dönülür)
+      // Sürücü beni güvenilir arkadaşlarından (= ekibinden) çıkardı: bağlantı hemen kesilir ve nedeni panelde yazar
+      if (/ekibinde değilsin/i.test(String(error.message || ""))) {
+        const who = drv?.display_name || "?";
+        handle.destroy();
+        host.innerHTML = `<div class="cw-timeout"><h3>${T("cw_kicked_t")}</h3><p>${esc(T("cw_kicked_b", who))}</p><button type="button" class="cw-vb" data-cw-ok>${T("cw_kicked_ok")}</button></div>`;
+        host.querySelector("[data-cw-ok]")?.addEventListener("click", () => opts.onGone?.());
+        return;
+      }
+      // Başka bir hata: paneli kapat (liste / arkadaş listesine dönülür)
       toast(tr(error.message), true);
       opts.onGone?.();
       return;
@@ -1608,7 +1637,15 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   const tick = () => {
     if (!document.hidden) void loadDriver();
   };
-  const timer = setInterval(tick, opts.interval || 6000);
+  // 15 sn (eskiden 6 sn): canlı veri pit duvarı yayınıyla gelir; yetkim kalkarsa sürücü "co:<ben>" haberi yollar
+  const timer = setInterval(tick, opts.interval || 15000);
+  let outCh = null;
+  sb.auth.getSession().then(({ data }) => {
+    const me = data?.session?.user?.id;
+    if (!me || !alive) return;
+    outCh = sb.channel(`co:${me}`, { config: { broadcast: { self: false, ack: false } } });
+    outCh.on("broadcast", { event: "ping" }, () => alive && void loadDriver()).subscribe();
+  }).catch(() => {});
   // Pitwall sekmesi açık değilken pit duvarı / oda yoklanmaz ("bağlı" göstergesini crew_driver ve crew_ext sürdürür)
   const wallTimer = setInterval(() => {
     if (taken()) return castJoin("");
@@ -1630,7 +1667,19 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
   void loadDriver();
   void loadWall();
   void loadRoom(true);
-  return {
+  // Geri sayım: saniyede bir çubuk yenilenir; süre dolunca panel kapanır, spotter yeri bırakılır ve bilgi + "Tekrar bağlan" gösterilir
+  const limitTimer = setInterval(() => {
+    if (!alive) return;
+    if (leftSec() > 0) return drawBar();
+    handle.destroy();
+    host.innerHTML = `<div class="cw-timeout"><h3>${T("cw_timeout_t")}</h3><p>${T("cw_timeout_b")}</p><button type="button" class="cw-vb on" data-cw-again>${T("cw_timeout_again")}</button></div>`;
+    host.querySelector("[data-cw-again]")?.addEventListener("click", () => {
+      host.innerHTML = "";
+      // Çağıranın elindeki tutamak yeni panele bağlanır (sayfadan çıkarken yine doğru panel kapatılır)
+      Object.assign(handle, mountCrewPanel(host, ownerId, opts));
+    });
+  }, 1000);
+  const handle = {
     redraw() {
       drawDash();
       drawExt();
@@ -1659,6 +1708,11 @@ export function mountCrewPanel(host, ownerId, opts = {}) {
       host.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      clearInterval(limitTimer);
+      try {
+        if (outCh) sb.removeChannel(outCh);
+      } catch {}
     },
   };
+  return handle;
 }

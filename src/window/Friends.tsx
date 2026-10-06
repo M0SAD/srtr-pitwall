@@ -11,7 +11,7 @@ import { session } from "@/cloud/supabase";
 import { CHAT_FRONT_KEY, myFriends, type Friend } from "@/cloud/social";
 import { statusChannel, usePings } from "@/cloud/pings";
 import { WinChrome } from "./chrome";
-import { myTeams } from "@/cloud/teams";
+import { myTeamRooms } from "@/cloud/teams";
 import { myGroups } from "@/cloud/groups";
 import { Avatar, FriendsPanel, shownName, statusText } from "@/app/components/FriendsDock";
 import FriendData from "@/app/components/FriendData";
@@ -46,7 +46,7 @@ export function ChatWindow(props: { id: string }) {
   let lastUnread = "";
   const [list, { refetch }] = createResource(async () => (await myFriends().catch(() => [])) ?? []);
   const friend = (id: string) => (list() ?? []).find((x) => x.friend_id === id);
-  const [teamList] = createResource(async () => (await myTeams().catch(() => [])) ?? []);
+  const [teamList] = createResource(async () => (await myTeamRooms().catch(() => [])) ?? []);
   const [groupList, { refetch: refetchGroups }] = createResource(async () => (await myGroups().catch(() => [])) ?? []);
   /** Sekmenin rengi arkadaş listesindeki gibi: yarışta (yeşil), çevrimiçi (mavi), çevrimdışı (gri); odalar çevrimiçi sayılır */
   const pres = (id: string) => {
@@ -160,7 +160,8 @@ export function ChatWindow(props: { id: string }) {
           <For each={tabs()}>
             {(id) => (
               <div class="cwin-tab" classList={{ on: active() === id, unread: !!unread()[id], [`p-${pres(id)}`]: true, closing: closing().includes(id) }} onClick={() => select(id)} onAuxClick={(e) => e.button === 1 && close(id)}>
-                <Avatar id={id.replace(/^(team|group):/, "")} name={info(id).name.replace(/^\[[^\]]*\]\s*/, "")} size={26} />
+                {/* Etkin birebir sohbetin sekmesindeki resim: profil (diğer sekmelerde tıklama sekmeyi seçer) */}
+                <Avatar id={id.replace(/^(team|group):/, "")} name={info(id).name.replace(/^\[[^\]]*\]\s*/, "")} size={26} profile={active() === id && !/^(team|group):/.test(id)} />
                 <span class="cwin-tab-name">
                   <b data-no-i18n>{info(id).name}</b>
                   <small data-no-i18n={id.includes(":") ? undefined : true}>{info(id).sub}</small>

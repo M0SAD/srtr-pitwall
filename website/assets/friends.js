@@ -79,6 +79,8 @@ addDict({
   fr_bg_changed: ["🖼️ Sohbet arka planını değiştirdi", "🖼️ Changed the chat background"],
   fr_bg_removed: ["🖼️ Sohbet arka planını kaldırdı", "🖼️ Removed the chat background"],
   fr_groups: ["Gruplar", "Groups"],
+  fr_ginv: ["Grup davetleri", "Group invites"],
+  fr_ginv_by: ["{0} davet etti", "Invited by {0}"],
   fr_teams: ["Takımlar", "Teams"],
   fr_members_n: ["{0} üye", "{0} members"],
   fr_members: ["Üyeler", "Members"],
@@ -231,6 +233,7 @@ const S = {
   found: null,
   inbox: null,
   groups: [], // my_groups()
+  ginv: [], // my_group_invites(): bekleyen grup davetleri (c93)
   teams: [], // my_teams()
   crew: [], // crew_drivers(): ekibinde olduğum sürücüler
   room: null, // açık grup / takım sohbeti: { kind: "group" | "team", id }
@@ -293,10 +296,13 @@ const visible = () => document.visibilityState === "visible";
 async function loadRooms() {
   if (!S.me) return;
   const get = (fn) => rpc(fn).then((r) => (Array.isArray(r) ? r : [])).catch(() => null);
-  const [g, t, c, mine, st] = await Promise.all([get("my_groups"), get("my_teams"), get("crew_drivers"), get("crew_list"), rpc("crew_state").catch(() => null)]);
+  const [g, t, c, mine, st] = await Promise.all([get("my_groups"), Promise.resolve([]) /* takım sohbet odaları kapalı: my_teams çağrılmaz */, get("crew_drivers"), get("crew_list"), rpc("crew_state").catch(() => null)]);
   if (mine) S.mine = mine;
   if (st && typeof st === "object") S.crewLock = !!st.needs_pro;
   if (g) S.groups = g;
+  // Bekleyen grup davetleri (c93; sunucu güncel değilse boş kalır)
+  const gi = await get("my_group_invites");
+  if (gi) S.ginv = gi;
   if (t) S.teams = t;
   if (c) S.crew = c;
   // Açık sohbetin grubu / takımı artık yoksa (çıkarıldım, silindi) listeye dön
@@ -491,7 +497,7 @@ function listView() {
   const out = S.friends.filter((f) => f.status === "pending_out");
   const acc = accepted();
   const on = acc.filter((f) => f.online).length;
-  const rooms = S.groups.length + S.teams.length > 0;
+  const rooms = S.groups.length + S.teams.length + S.ginv.length > 0;
   // Steam gibi: yarışta (yeşil) üstte, sonra çevrimiçi (mavi), en altta çevrimdışı (gri); bölüm içinde alfabetik
   const byName = (a, b) => String(a.display_name || "").localeCompare(String(b.display_name || ""), locale(), { sensitivity: "base" });
   const stSec = (k, title, arr) => (arr.length ? `<div class="fr-sec fr-st st-${k}">${esc(title)} <span>${arr.length}</span></div>${[...arr].sort(byName).map(rowHtml).join("")}` : "");
@@ -505,6 +511,7 @@ function listView() {
       ${!S.loaded ? `<p class="fr-empty">${esc(T("loading"))}</p>` : ""}
       ${sec(T("fr_requests"), inc)}
       ${acc.length ? `${inc.length || out.length || rooms ? `<div class="fr-sec">${esc(T("fr_friends"))} <span>${acc.length}</span></div>` : ""}${stSec("race", T("fr_racing"), acc.filter((f) => f.racing && !f.invisible))}${stSec("on", T("fr_online"), acc.filter((f) => !f.invisible && f.online && !f.racing && !f.dnd))}${stSec("dnd", T("fr_dnd"), acc.filter((f) => !f.invisible && f.online && !f.racing && f.dnd))}${stSec("hid", T("fr_hidden_sec"), acc.filter((f) => f.invisible))}${stSec("off", T("fr_offline"), acc.filter((f) => !f.invisible && !f.online && !f.racing))}` : ""}
+      ${S.ginv.length ? `<div class="fr-sec">${esc(T("fr_ginv"))} <span>${S.ginv.length}</span></div>${S.ginv.map((i) => `<div class="fr-row"><span class="fr-main"><b>${esc(i.name || "?")}</b><small>${esc(T("fr_ginv_by", i.from_name || "?"))}</small></span><span class="fr-acts"><button class="btn btn-sm btn-accent" data-act="ginv-yes" data-id="${esc(i.group_id)}">${esc(T("fr_accept"))}</button><button class="fr-ib" data-act="ginv-no" data-id="${esc(i.group_id)}" title="${esc(T("fr_decline"))}" aria-label="${esc(T("fr_decline"))}">${IC.x}</button></span></div>`).join("")}` : ""}
       ${S.groups.length ? `<div class="fr-sec">${esc(T("fr_groups"))} <span>${S.groups.length}</span></div>${S.groups.map((g) => roomRowHtml("group", g)).join("")}` : ""}
       ${S.teams.length ? `<div class="fr-sec">${esc(T("fr_teams"))} <span>${S.teams.length}</span></div>${S.teams.map((t) => roomRowHtml("team", t)).join("")}` : ""}
       ${sec(T("fr_sent"), out)}
@@ -1384,6 +1391,13 @@ async function act(a, id, el, src = null) {
         await rpc("friend_respond", { p_user: id, p_accept: true });
         toast(T("fr_now_friends"));
         return loadFriends();
+      case "ginv-yes":
+      case "ginv-no":
+        if (el) el.disabled = true;
+        await rpc("group_invite_respond", { p_group: id, p_accept: a === "ginv-yes" });
+        S.ginv = S.ginv.filter((i) => i.group_id !== id);
+        await loadRooms();
+        return render();
       case "decline":
         if (el) el.disabled = true;
         await rpc("friend_respond", { p_user: id, p_accept: false });
@@ -1431,6 +1445,12 @@ async function act(a, id, el, src = null) {
         try {
           await rpc("friend_trust_set", { p_user: fid, p_trusted: on });
           f.trusted = on;
+          // Güvenilirden çıkardım: o kişi ekip panelindeyse hemen yeniden sorar ve bağlantısı kesilir
+          if (!on) {
+            const l = pingCh(`co:${fid}`);
+            l.ping();
+            setTimeout(() => l.close(), 5000);
+          }
         } catch (e) {
           trustErr = e;
         }

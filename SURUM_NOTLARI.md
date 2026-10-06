@@ -3,6 +3,66 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-202
+
+- Ekranda düzenleme: içeriği manifestteki genişlikten dar olan tasarımlarda (ör. Kan Şekeri / Kalp Atışı yuvarlak ve kare, Sosyal Hesaplar tek hesap) çerçevenin sağında boşluk kalmaz; overlay ekranın sağ kenarına kadar taşınabilir. Çerçeve artık içeriğin gerçek genişliğini alır (boş overlay tutulabilsin diye yalnızca küçük bir alt sınır kaldı).
+
+## 061026-201
+
+- Ayarların / düzenlerin buluta gönderimi toplu yapılır: her değişiklikten 3 sn sonra ayrı ayrı göndermek yerine son değişiklikten 60 sn sonra, değişiklikler sürüyorsa en geç 5 dakikada bir. Panel arka plana geçince ya da gizlenince bekleyen değişiklik hemen gönderilir (başka cihaza geçildiğinde hesap günceldir). Düzen düzenlerken atılan istek sayısı belirgin biçimde düşer.
+
+## 061026-200
+
+- Overlay düzenleri hesapla birlikte gelir: düzenler (ve bütün ayarlar) giriş yapılıyken zaten buluta kaydediliyordu; ancak başka bir bilgisayarda / yeni kurulumda giriş yapınca cihazdaki ayarlar daha yeni tarihliyse hesaptaki düzenlerin ÜZERİNE yazılabiliyordu. Artık bir cihazda bir hesapla ilk girişte her zaman hesaptaki kayıt uygulanır; cihazdaki giriş öncesi ayarlar yedek olarak saklanır.
+- Açık duran uygulama da güncel kalır: panel yeniden öne geldiğinde (en çok 10 dakikada bir) hesaptaki kayıt sorulur; başka cihazda yapılan düzen değişikliği uygulamayı yeniden başlatmadan gelir. İki cihazda da değişiklik yapıldıysa eskisi gibi hangisinin kalacağı sorulur.
+
+## 061026-199
+
+- Arkadaşlar penceresi: alttaki bölmenin adı "Takım ve grup sohbetleri" yerine "Grup sohbetleri"; hiç grup (ve bekleyen grup daveti) yokken bölme gösterilmez. Grup, bir sohbetin başlığındaki "Sohbete arkadaş ekle" düğmesiyle kurulur.
+- Grup kurma ekranında uyarı: "Grupta 24 saat içinde hiç mesaj yazılmazsa grup kendiliğinden silinir. Davet ettiğin kişiler daveti kabul edince gruba katılır."
+
+## 061026-198
+
+- Sohbette resme tıklayınca profil: birebir sohbette mesajların başındaki resim (karşı tarafın ve kendi resmin), sohbet penceresinde etkin sekmenin resmi, grup sohbetinde gönderenin adı ve üye listesindeki resimler tıklanınca o üyenin profilini açar (ayrı sohbet penceresinden tıklanınca ana panel o profille öne gelir).
+
+## 061026-197
+
+- Sohbet / Arkadaşlar / ana pencere: pencereyi üst çubuktan tutup taşıyınca yazı alanının odağı kaybolmaz; taşıdıktan sonra mesaj kutusuna yeniden tıklamadan yazmaya devam edilir (çubuğa basmak odağı değiştirmez, taşıma bitince odak eski yazı alanına geri verilir).
+
+## 061026-196
+
+- Ekip paneli: sürücü yoklaması 6 sn yerine 15 sn'de bir (saatte 600 → 240 istek; canlı veri zaten pit duvarı yayınıyla gelir). Pit ayarı gibi yalnızca bu yoklamayla gelen bilgiler en fazla 15 sn gecikebilir. Uygulama ve web sitesi.
+- Güvenilirden çıkarma artık anlık: sürücü birini çıkardığında o kişinin paneline bir haber gider, panel hemen yeniden sorar ve bağlantı kesilir (haber ulaşmazsa en geç 15 sn'lik yoklamada).
+
+## 061026-195
+
+- Ekip paneli: sürücü bir spotter'ı / izleyiciyi güvenilir arkadaşlarından çıkarınca o kişinin paneli hemen (en geç 6 sn içinde) kapanır, spotter yeri boşalır ve "… seni güvenilir arkadaşlarından çıkardı; bağlantın kesildi" bilgisi gösterilir. Uygulama ve web sitesi.
+
+## 061026-194
+
+- Sohbet grubuna eklenmek artık onaya bağlı (c93): grup kurulurken ya da sonradan eklenen kişi doğrudan üye olmaz, davet alır. Arkadaşlar listesinde "Grup davetleri" bölümünde Kabul et / Reddet ile yanıtlar (bildirim de gelir). Kabul edene kadar grubu, üyelerini ve mesajlarını göremez; reddederse davet silinir. Davet eden "davet gönderildi" bilgisini görür. Uygulama ve web sitesi.
+
+## 061026-193
+
+- Takım sohbet odaları kapatıldı: arkadaş listesinde / Arkadaşlar penceresinde takım odası çıkmaz, takım sohbeti dinlenmez ve bunun için sunucuya istek atılmaz (uygulama ve web sitesi). Takımlar sayfası, duyurular ve üyelik aynen durur; "Takım sohbeti" düğmesi kaldırıldı. Sunucudaki eski mesajlara dokunulmadı.
+- Ekip paneli (spotter / izleyici) 10 dakikalık oturum sınırı: bir sürücünün paneline girilince çubukta geri sayım görünür (son 1 dakikada turuncu). Süre dolunca panel kapanır, spotter yeri bırakılır ve "spotter takibine oyunun içinden devam et; acil durumda tekrar bağlanabilirsin" bilgisi "Tekrar bağlan" düğmesiyle gösterilir (yeniden bağlanınca sayaç baştan başlar). Uygulamadaki Ekip sayfasında ve web sitesindeki ekip panelinde aynı.
+
+## 061026-192
+
+- Supabase istek sayısı azaltıldı (günlük log kotası). Koddan hesap: boşta ~525–750 → ~200–300 istek/saat; sürüşte ~975–1.470 → ~450–550 istek/saat.
+  - Ekip odası sohbeti: Realtime asıl kanal; yedek yoklama her oda için 60 sn yerine 10 dk (kendi odam yarışta 60 sn). Eskiden güvenilir arkadaş sayısıyla katlanan en büyük kalemdi.
+  - Canlı veri (takım yakıtı / arkadaş verisi): 10 sn'de bir Realtime yayınıyla gider (veritabanına yazılmaz); satır yalnızca 45 sn'de bir yazılır ve yayın anahtarını taşır (satırı yalnızca güvenilenler okuyabildiği için yayını da onlar bulur). Ekip izlerken satır eskisi gibi 10 sn'de bir.
+  - Overlay penceresi: arkadaş listesi 2 dk yerine 10 dk'da bir; takım / grup / "herkese güven" ayarı 30 dk'da bir (kendi değişikliklerin hemen).
+  - Arkadaşa özel bildirim ayarları 15 dk saklanır: arkadaş listesi her yenilemede iki yerine tek istek.
+  - Arkadaşlar paneli: gizliyken 5 dk yerine 10 dk; takım / grup / ekip listeleri 15 dk'da bir.
+  - Ekip komutu yoklaması yarışta 30 → 60 sn, boşta 2 → 10 dk; pit duvarı "izleyen var mı" sorusu 30 → 90 sn (izleyen girince yine hemen); ekip sürücü listesi 3 → 15 dk.
+  - Pencere görünmüyorken (simge durumunda / tepside) yoklamayan sayfalar: Ekip, Arkadaşlar, Ekip ayarları, sohbet arka planı, Yönetim, Destek. Bildirimler 3 → 10 dk.
+- c92 (sunucu): içinde 24 saat boyunca hiç mesaj yazılmayan sohbet grupları kendiliğinden silinir (saat başı; katıldı / ayrıldı gibi sistem satırları mesaj sayılmaz).
+
+## 061026-191
+
+- Fren ve Vites İşareti overlay'i varsayılan olarak PRO (c91: app_config.pro_overlays). Yönetim › PRO özellikleri'nden değiştirilebilir. Web sitesinde overlay "PRO" etiketiyle gösterilir.
+
 ## 051026-190
 
 - Olaylar: sürücü süzgeci. Kategori çiplerinin yanındaki kutudan bir sürücü seçince yalnızca onun olayları listelenir (numara, ad ve olay sayısıyla, ada göre sıralı). Varsayılan "Tüm sürücüler". Kategori çipleriyle birlikte çalışır; CSV / dışa aktarma da süzülmüş listeyi alır. "Sadece benim" ile aynı anda kullanılmaz (biri seçilince diğeri kapanır).
