@@ -306,7 +306,13 @@ export async function signUp(email: string, password: string, displayName = ""):
   return true;
 }
 
+/** Bekleyen ayar değişikliğini hemen gönderir (startAutoSync kurar): çıkış yapmadan / pencere kapanmadan önce çağrılır */
+let flushPending: () => Promise<void> = async () => {};
+export const flushSync = () => flushPending();
+
 export async function signOut() {
+  // Son değişiklikler gönderilmeden oturum kapanmasın (eskiden son 1 dakikadaki değişiklikler hesaba hiç gitmiyordu)
+  await Promise.race([flushPending().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]);
   const t = session()?.access_token;
   saveSession(null);
   markSynced(0);
@@ -497,32 +503,36 @@ let pushTimer: number | undefined;
 /** Kontrol paneli açıkken ayar değişikliklerini birkaç saniye bekleyip buluta gönderir. */
 export function startAutoSync() {
   if (!cloudEnabled) return;
-  // Ayar değişiklikleri hemen değil, toplu gönderilir (her değişiklik ayrı bir istek olmasın): son değişiklikten 20 sn sonra,
-  // değişiklikler sürüyorsa en geç 5 dk'da bir. Panel arka plana geçince / gizlenince bekleyen değişiklik hemen gönderilir,
+  // Ayar değişiklikleri hemen değil, toplu gönderilir (her değişiklik ayrı bir istek olmasın): son değişiklikten 8 sn sonra,
+  // değişiklikler sürüyorsa en geç 1 dk'da bir. Panel arka plana geçince / gizlenince bekleyen değişiklik hemen gönderilir,
   // böylece başka cihaza geçildiğinde hesap günceldir. (Eskiden her değişiklikten 3 sn sonra gönderiliyordu.)
-  const QUIET_MS = 20_000;
-  const MAX_WAIT_MS = 5 * 60_000;
+  const QUIET_MS = 8_000;
+  const MAX_WAIT_MS = 60_000;
   let firstPending = 0;
-  let pushing = false;
-  const flush = async () => {
+  let inflight: Promise<void> | null = null;
+  const flush = async (): Promise<void> => {
     clearTimeout(pushTimer);
     pushTimer = undefined;
-    if (!firstPending || pushing) return;
+    // Süren bir gönderim varsa bitmesi beklenir (pencere kapanırken yarıda kalmasın); arada yeni değişiklik geldiyse o da gönderilir
+    if (inflight) await inflight;
+    if (!firstPending) return;
     if (applyingRemote || !session() || conflict()) return void (firstPending = 0);
     firstPending = 0;
-    pushing = true;
-    try {
-      setSyncState("syncing");
-      await push(settings());
-      setSyncState("ok");
-    } catch (e) {
-      setSyncError(String((e as Error).message ?? e));
-      setSyncState("error");
-    } finally {
-      pushing = false;
-      // Gönderim sürerken yeni değişiklik geldiyse sıradaki tura kalır
-      if (firstPending && !pushTimer) pushTimer = window.setTimeout(() => void flush(), QUIET_MS);
-    }
+    inflight = (async () => {
+      try {
+        setSyncState("syncing");
+        await push(settings());
+        setSyncState("ok");
+      } catch (e) {
+        setSyncError(String((e as Error).message ?? e));
+        setSyncState("error");
+        // Gönderilemedi (ağ / sunucu): değişiklik kaybolmasın, yarım dakika sonra yeniden denenir
+        if (!firstPending) firstPending = Date.now();
+      }
+    })();
+    await inflight;
+    inflight = null;
+    if (firstPending && !pushTimer) pushTimer = window.setTimeout(() => void flush(), syncState() === "error" ? 30_000 : QUIET_MS);
   };
   onSettingsChange(() => {
     if (applyingRemote || !session() || conflict()) return;
@@ -531,6 +541,25 @@ export function startAutoSync() {
     clearTimeout(pushTimer);
     pushTimer = window.setTimeout(() => void flush(), Math.max(1000, Math.min(QUIET_MS, firstPending + MAX_WAIT_MS - now)));
   });
+  flushPending = flush;
+  // Pencere kapatılırken / uygulamadan çıkılırken bekleyen değişiklik gönderilmeden kapanmasın (webview kapanınca istek yarıda kalıyordu)
+  void (async () => {
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const { listen } = await import("@tauri-apps/api/event");
+      const { invoke } = await import("@tauri-apps/api/core");
+      const bounded = () => Promise.race([flush().catch(() => {}), new Promise((r) => setTimeout(r, 3500))]);
+      await getCurrentWindow().onCloseRequested(async () => {
+        await bounded();
+      });
+      await listen("flush-sync", async () => {
+        await bounded();
+        void invoke("sync_flushed").catch(() => {});
+      });
+    } catch {
+      /* tarayıcı: yok */
+    }
+  })();
   window.addEventListener("blur", () => void flush());
   document.addEventListener("visibilitychange", () => document.hidden && void flush());
   window.addEventListener("pagehide", () => void flush());

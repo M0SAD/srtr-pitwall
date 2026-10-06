@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-219
+
+- Uygulama kapanırken düzenler hesaba gönderilir: kontrol paneli kapatılırken ve tepsi menüsünden "Çıkış" denirken bekleyen ayar değişikliği önce buluta yazılır, sonra pencere / uygulama kapanır (en çok ~4 sn bekler). Eskiden son değişiklikler, istek yarıda kaldığı için hesaba hiç gitmeyebiliyordu.
+- Hesaptan çıkış yaparken de bekleyen değişiklik önce gönderilir.
+- Değişiklikler artık son değişiklikten 8 sn sonra, en geç 1 dakikada bir gönderilir; gönderim başarısız olursa (ağ / sunucu) kaybolmaz, 30 sn sonra yeniden denenir.
+- "Hangi ayarlar kullanılsın?" sorusu artık her sayfada pencere olarak çıkar (karar verilene kadar ayarlar hesaba gönderilmediği için gözden kaçmamalı).
+
 ## 061026-218
 
 - ÖNEMLİ düzeltme (ayarların kaybolması): ayar dosyası silindiğinde / yeni kurulumda (AppData temizlenmiş, ama oturum tarayıcı deposunda duruyor) uygulama varsayılan ayarları "daha yeni" sayıp hesaptaki kaydın üzerine yazıyordu; düzenler bulutta da siliniyordu. Artık ayar dosyası yoksa bu ilk eşitleme sayılır ve hesaptaki kayıt geri gelir; boş ayarlar buluta yazılmaz. Son eşitleme anı ayar dosyasının içinde tutulur (syncedAt).

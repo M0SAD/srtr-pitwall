@@ -9,7 +9,8 @@ import type { AppState } from "@/sdk/types";
 import { settings, takeLiveChatAutoMigrated, updateSettings } from "@/sdk/settings";
 import { loadMonitors } from "@/sdk/monitors";
 import { syncScreens } from "@/sdk/streamLink";
-import { cloudEnabled, session } from "@/cloud/supabase";
+import { cloudEnabled, conflict, resolveConflict, session } from "@/cloud/supabase";
+import { localeTag } from "@/sdk/i18n";
 import { freeView, realAdmin, setFreeView, isAdmin, isHiddenSection, isPro, markedHiddenSection, proDaysLeft, proExpiringSoon } from "@/cloud/account";
 import { useSubscriptions, useTopic } from "@/sdk/telemetry";
 import { bindUpdateEvents, checking, checkUpdate, focusOverlay, editFriendLook, go, loadVersion, openUrl, section, setUpdateDialog, sub, update, version, type Section } from "./ui";
@@ -447,6 +448,26 @@ export function App() {
         </main>
         <FriendsDock racing={() => appState().connected} />
         <UpdateDialog />
+        {/* Eşitleme çakışması her sayfada sorulur: karar verilene kadar ayarlar hesaba gönderilmez (eskiden yalnızca Hesap sayfasında görünüyordu) */}
+        <Show when={conflict() && section() !== "account"}>
+          <div class="modal-back">
+            <div class="modal">
+              <h3>Hangi ayarlar kullanılsın?</h3>
+              <p class="muted">
+                Bu bilgisayardaki ayarlar ile hesabındaki ayarlar farklı (hesaptaki: {new Date(conflict()!.remoteAt).toLocaleString(localeTag())}). Seçim yapana kadar
+                değişikliklerin hesabına kaydedilmez.
+              </p>
+              <div class="btns">
+                <button class="btn primary" onClick={() => resolveConflict("local")}>
+                  Bu bilgisayardakini kullan
+                </button>
+                <button class="btn ghost" onClick={() => resolveConflict("remote")}>
+                  Buluttakini kullan
+                </button>
+              </div>
+            </div>
+          </div>
+        </Show>
         <TrialWelcome />
       </div>
     </div>

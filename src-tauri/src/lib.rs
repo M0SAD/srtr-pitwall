@@ -532,9 +532,33 @@ where
     move |invoke| crashlog::guard(|| f(invoke)).unwrap_or(true)
 }
 
-fn quit_app(app: &AppHandle) {
+static QUITTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn quit_now(app: &AppHandle) {
     app.state::<SettingsStore>().flush(app);
     app.exit(0);
+}
+
+/// Çıkış: kontrol paneli açıksa önce bekleyen ayar değişikliklerini hesaba göndermesi istenir (bulut eşitlemesi panelde
+/// çalışır); panel `sync_flushed` ile haber verince ya da en geç 4 sn sonra uygulama kapanır. Panel kapalıysa hemen kapanır.
+fn quit_app(app: &AppHandle) {
+    if app.get_webview_window("main").is_none() || QUITTING.swap(true, Ordering::SeqCst) {
+        return quit_now(app);
+    }
+    let _ = app.emit("flush-sync", ());
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(4000));
+        quit_now(&app2);
+    });
+}
+
+/// Panel bekleyen değişiklikleri gönderdi: çıkış bekliyorsa hemen kapat
+#[tauri::command]
+fn sync_flushed(app: AppHandle) {
+    if QUITTING.load(Ordering::SeqCst) {
+        quit_now(&app);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2361,6 +2385,7 @@ pub fn run() {
         .invoke_handler(guard_invoke(tauri::generate_handler![
             settings_get,
             settings_set,
+            sync_flushed,
             stream_start,
             stream_topics,
             stream_stop,
