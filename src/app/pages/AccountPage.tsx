@@ -16,6 +16,11 @@ import {
   signUp,
   syncError,
   syncNow,
+  settingsHistory,
+  restoreSettingsVersion,
+  localBackup,
+  restoreLocalBackup,
+  type SettingsVersion,
   syncState,
 } from "@/cloud/supabase";
 import {
@@ -305,7 +310,11 @@ function Signed() {
         <Show when={syncState() === "error"}>
           <p class="error">{syncError()}</p>
         </Show>
-        <p class="muted">Ayarlar değiştikten birkaç saniye sonra otomatik olarak buluta gönderilir.</p>
+        <p class="muted">
+          Bütün ayarların (düzenler, overlay ayarları, tema, ses çıkışı seçimleri, kısayollar) hesabına kaydedilir; değişikliklerden kısa süre sonra kendiliğinden
+          gönderilir. Uygulamayı sıfırdan kurup hesabına girdiğinde hepsi geri gelir.
+        </p>
+        <SettingsVersions />
       </section>
       <Show when={conflict()}>
         <section class="panel warn-panel">
@@ -325,6 +334,74 @@ function Signed() {
         </section>
       </Show>
     </>
+  );
+}
+
+/** Hesaptaki ayarların önceki sürümleri + bu bilgisayardaki giriş öncesi yedek: yanlışlıkla silinen düzenleri geri almak için */
+function SettingsVersions() {
+  const [open, setOpen] = createSignal(false);
+  const [list, { refetch }] = createResource(open, (o) => (o ? settingsHistory().catch(() => [] as SettingsVersion[]) : []));
+  const [busy, setBusy] = createSignal(false);
+  const [msg, setMsg] = createSignal("");
+  const when = (s: string | number) => new Date(s).toLocaleString(localeTag(), { dateStyle: "short", timeStyle: "short" });
+  const run = async (fn: () => Promise<void>) => {
+    if (busy() || !confirm(t("Şimdiki ayarların yerine bu sürüm yüklensin mi? Şimdiki halin de önceki sürümler arasında saklanır."))) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await fn();
+      setMsg(t("Ayarlar geri yüklendi"));
+      void refetch();
+    } catch (e) {
+      setMsg(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="setver">
+      <button class="btn ghost small" onClick={() => setOpen(!open())}>
+        {open() ? "Önceki sürümleri gizle" : "Ayarların önceki sürümleri"}
+      </button>
+      <Show when={open()}>
+        <p class="muted small">
+          Hesabındaki ayar kaydı değiştikçe eski hali burada saklanır (son 8 sürüm). Düzenlerin kaybolduysa buradan geri yükleyebilirsin.
+        </p>
+        <Show when={localBackup()}>
+          {(b) => (
+            <div class="setver-row">
+              <span>
+                <b>Bu bilgisayardaki yedek</b>
+                <small class="muted">
+                  {when(b().at)} · {t("{0} düzen", Object.keys(b().data.profiles ?? {}).length)}
+                </small>
+              </span>
+              <button class="btn small" disabled={busy()} onClick={() => run(restoreLocalBackup)}>
+                Geri yükle
+              </button>
+            </div>
+          )}
+        </Show>
+        <For each={list() ?? []} fallback={<p class="muted small">{list.loading ? "Yükleniyor…" : "Hesapta saklanan önceki sürüm yok."}</p>}>
+          {(v) => (
+            <div class="setver-row">
+              <span>
+                <b>{when(v.updated_at)}</b>
+                <small class="muted">
+                  {t("{0} düzen", v.profiles)} · {t("{0} açık overlay", v.overlays)} · {Math.round(v.bytes / 1024)} KB
+                </small>
+              </span>
+              <button class="btn small" disabled={busy()} onClick={() => run(() => restoreSettingsVersion(v.id))}>
+                Geri yükle
+              </button>
+            </div>
+          )}
+        </For>
+        <Show when={msg()}>
+          <p class="small">{msg()}</p>
+        </Show>
+      </Show>
+    </div>
   );
 }
 

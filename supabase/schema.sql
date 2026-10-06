@@ -15915,3 +15915,71 @@ begin
 end $$;
 revoke all on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean) from public, anon;
 grant execute on function public.admin_change_pro(uuid, text, int, timestamptz, text, boolean, numeric, text, boolean) to authenticated;
+
+-- ===== c98: ayarların önceki sürümleri =====
+-- user_settings kaydı değişirken eski hali saklanır: 6 saatte en çok bir sürüm; ama içerik belirgin küçülüyorsa (düzen /
+-- açık overlay sayısı düşüyor ya da veri %30'dan fazla küçülüyorsa) 10 dakikada bir. Kullanıcı başına son 8 sürüm tutulur.
+-- Amaç: yanlışlıkla (boş ayarların buluta yazılması gibi) silinen düzenleri geri alabilmek.
+create table if not exists public.user_settings_history (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz not null,
+  saved_at timestamptz not null default now()
+);
+create index if not exists user_settings_history_user on public.user_settings_history (user_id, saved_at desc);
+alter table public.user_settings_history enable row level security;
+-- (politika yok: yalnızca aşağıdaki security definer fonksiyonlar erişir)
+
+create or replace function public.settings_overlay_count(d jsonb) returns int
+language sql immutable as $$
+  select coalesce(sum((select count(*) from jsonb_each(coalesce(p.value->'overlays', '{}'::jsonb)) o
+                        where o.value->>'enabled' = 'true')), 0)::int
+    from jsonb_each(coalesce(d->'profiles', '{}'::jsonb)) p
+$$;
+
+create or replace function public.user_settings_keep() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  last_at timestamptz;
+  shrink boolean;
+begin
+  if new.data is not distinct from old.data then
+    return new;
+  end if;
+  select max(saved_at) into last_at from public.user_settings_history where user_id = old.user_id;
+  shrink := (select count(*) from jsonb_object_keys(coalesce(new.data->'profiles', '{}'::jsonb)))
+              < (select count(*) from jsonb_object_keys(coalesce(old.data->'profiles', '{}'::jsonb)))
+         or public.settings_overlay_count(new.data) < public.settings_overlay_count(old.data)
+         or pg_column_size(new.data) < pg_column_size(old.data) * 0.7;
+  if last_at is null or last_at < now() - interval '6 hours' or (shrink and last_at < now() - interval '10 minutes') then
+    insert into public.user_settings_history (user_id, data, updated_at) values (old.user_id, old.data, old.updated_at);
+    delete from public.user_settings_history h
+      where h.user_id = old.user_id
+        and h.id not in (select id from public.user_settings_history where user_id = old.user_id order by saved_at desc limit 8);
+  end if;
+  return new;
+end $$;
+drop trigger if exists user_settings_keep on public.user_settings;
+create trigger user_settings_keep before update on public.user_settings
+  for each row execute function public.user_settings_keep();
+
+create or replace function public.settings_history()
+returns table (id bigint, updated_at timestamptz, saved_at timestamptz, profiles int, overlays int, bytes int)
+language sql stable security definer set search_path = public as $$
+  select h.id, h.updated_at, h.saved_at,
+         (select count(*) from jsonb_object_keys(coalesce(h.data->'profiles', '{}'::jsonb)))::int,
+         public.settings_overlay_count(h.data), pg_column_size(h.data)::int
+    from public.user_settings_history h
+   where h.user_id = auth.uid()
+   order by h.saved_at desc
+$$;
+revoke all on function public.settings_history() from public, anon;
+grant execute on function public.settings_history() to authenticated;
+
+create or replace function public.settings_history_get(p_id bigint) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select h.data from public.user_settings_history h where h.id = p_id and h.user_id = auth.uid()
+$$;
+revoke all on function public.settings_history_get(bigint) from public, anon;
+grant execute on function public.settings_history_get(bigint) to authenticated;

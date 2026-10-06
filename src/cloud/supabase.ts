@@ -8,7 +8,7 @@ import { lang } from "@/sdk/i18n";
 // Kurulum: proje kökünde .env dosyası oluştur (bkz. .env.example ve docs/SUPABASE.md)
 
 import { createSignal } from "solid-js";
-import { onSettingsChange, replaceSettings, settings, type AppSettings } from "@/sdk/settings";
+import { defaultProfileId, newProfile, onSettingsChange, replaceSettings, setSyncedAt, settings, settingsFresh, type AppSettings } from "@/sdk/settings";
 
 const URL_ = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -66,6 +66,7 @@ function saveSession(s: StoredSession | null) {
 function markSynced(ts: number) {
   localStorage.setItem(LAST_SYNC_KEY, String(ts));
   setLastSync(ts);
+  setSyncedAt(ts);
 }
 
 async function authRequest(path: string, body: unknown): Promise<any> {
@@ -345,9 +346,70 @@ async function fetchRemote(): Promise<{ data: AppSettings; at: number } | null> 
 
 let applyingRemote = false;
 
-async function push(s: AppSettings) {
+/** Bu bilgisayarın kimliği (Rust: MachineGuid karması) ve adı; tarayıcıda / hata olursa null */
+let device: { hash: string; label: string } | null | undefined;
+async function thisDevice() {
+  if (device !== undefined) return device;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const d = await invoke<{ hash: string; label: string }>("device_info");
+    device = d?.hash ? d : null;
+  } catch {
+    device = null;
+  }
+  return device;
+}
+const setDefaults = (s: AppSettings, def: string | undefined, sdef: string | undefined) => {
+  for (const p of Object.values(s.profiles)) {
+    const stream = p.rules.mode === "stream";
+    const want = stream ? sdef : def;
+    if (want && s.profiles[want] && (s.profiles[want].rules.mode === "stream") === stream) p.isDefault = p.id === want;
+  }
+};
+/**
+ * Hesaptan gelen ayarları bu bilgisayara uyarlar. Düzen listesi ortaktır; etkin ve varsayılan düzen bilgisayara özeldir:
+ *  - Bu bilgisayarın kaydı varsa oradaki etkin / varsayılan düzen geçerli olur.
+ *  - Kaydı yoksa ve bu yeni bir kurulumsa (başka bir bilgisayar: monitör / çözünürlük farklı olabilir) eski düzenlere
+ *    dokunulmaz, bu bilgisayar için yeni bir varsayılan düzen oluşturulur ve etkin yapılır.
+ *  - Kaydı yoksa ama uygulama zaten kuruluysa bu bilgisayardaki etkin / varsayılan seçim korunur.
+ * created: yeni düzen oluşturuldu (buluta geri gönderilmeli).
+ */
+function adaptToDevice(remote: AppSettings, local: AppSettings, dev: { hash: string; label: string } | null, fresh: boolean): { data: AppSettings; created: boolean } {
+  if (!dev) return { data: remote, created: false };
+  const data = structuredClone(remote);
+  const me = data.devices?.[dev.hash];
+  if (me) {
+    if (me.active && data.profiles[me.active]) data.activeProfile = me.active;
+    setDefaults(data, me.def, me.sdef);
+    return { data, created: false };
+  }
+  const others = Object.keys(data.devices ?? {}).length > 0;
+  if (fresh && others) {
+    let id = `pc-${dev.hash.slice(0, 6)}`;
+    while (data.profiles[id]) id += "x";
+    const name = `Varsayılan (${(dev.label || "PC").slice(0, 24)})`;
+    const p = newProfile(id, name);
+    p.order = Math.max(0, ...Object.values(data.profiles).map((x) => x.order ?? 0)) + 1;
+    data.profiles[id] = p;
+    data.activeProfile = id;
+    setDefaults(data, id, undefined);
+    return { data, created: true };
+  }
+  if (!fresh) {
+    if (data.profiles[local.activeProfile]) data.activeProfile = local.activeProfile;
+    setDefaults(data, defaultProfileId(false, local), defaultProfileId(true, local));
+  }
+  return { data, created: false };
+}
+
+async function push(s0: AppSettings) {
   const uid = session()!.user.id;
-  const at = s.updatedAt || Date.now();
+  const at = s0.updatedAt || Date.now();
+  // Bu bilgisayarın etkin / varsayılan düzeni hesaptaki kayda işlenir (diğer bilgisayarların kayıtları korunur)
+  const dev = await thisDevice();
+  const s: AppSettings = dev
+    ? { ...s0, devices: { ...(s0.devices ?? {}), [dev.hash]: { label: dev.label, active: s0.activeProfile, def: defaultProfileId(false, s0), sdef: defaultProfileId(true, s0), at: Date.now() } } }
+    : s0;
   await rest(
     "POST",
     "",
@@ -357,11 +419,15 @@ async function push(s: AppSettings) {
   markSynced(at);
 }
 
-function applyRemote(r: { data: AppSettings; at: number }) {
+async function applyRemote(r: { data: AppSettings; at: number }) {
+  const fresh = settingsFresh();
+  const { data, created } = adaptToDevice(r.data, settings(), await thisDevice(), fresh);
   applyingRemote = true;
-  replaceSettings({ ...r.data, updatedAt: r.at });
+  replaceSettings({ ...data, updatedAt: created ? Date.now() : r.at });
   applyingRemote = false;
   markSynced(r.at);
+  // Bu bilgisayar için yeni varsayılan düzen oluşturulduysa hesaba da yazılır
+  if (created) await push(settings());
 }
 
 /** Yerel ve bulut ayarlarını karşılaştırıp eşitler. */
@@ -372,26 +438,34 @@ export async function syncNow() {
   try {
     const local = settings();
     const remote = await fetchRemote();
-    const since = lastSync();
+    // Son eşitleme anı ayar dosyasından okunur. Dosya bu açılışta yoktuysa (yeni kurulum / silinmiş AppData) eldeki ayarlar
+    // varsayılandır: tarayıcı deposunda eski bir eşitleme tarihi kalmış olsa bile ilk eşitleme sayılır ve hesaptaki kayıt gelir.
+    const fresh = settingsFresh();
+    const since = fresh ? 0 : typeof local.syncedAt === "number" ? local.syncedAt : lastSync();
     if (!remote) {
       await push(local);
+    } else if (since === 0 && !fresh && local.updatedAt > remote.at) {
+      // Bu cihazda hesaba girmeden yapılmış, hesaptakinden yeni ayarlar var: sessizce ezme, kullanıcıya sor
+      setConflict({ remote: remote.data, remoteAt: remote.at });
+      setSyncState("conflict");
+      return;
     } else if (since === 0) {
       // Bu cihazda bu hesapla ilk eşitleme (yeni kurulum, başka bilgisayar ya da yeniden giriş): hesaptaki kayıt geçerlidir.
       // Düzenler ve bütün ayarlar hesaptan gelir; cihazdaki giriş öncesi ayarlar buluttakinin üzerine YAZILMAZ
       // (eskiden cihazdaki ayar daha yeni tarihliyse hesaptaki düzenleri eziyordu). Cihazdaki eski ayarlar yedeklenir.
       try {
-        if (local.updatedAt > 0) localStorage.setItem("pitwall.settingsBeforeLogin", JSON.stringify({ at: Date.now(), data: local }));
+        if (local.updatedAt > 0 && !fresh) localStorage.setItem("pitwall.settingsBeforeLogin", JSON.stringify({ at: Date.now(), data: local }));
       } catch {
         /* yer yoksa yedeksiz devam */
       }
-      applyRemote(remote);
+      await applyRemote(remote);
     } else if (remote.at > since && local.updatedAt > since && remote.at !== local.updatedAt && since > 0) {
       // Son eşitlemeden beri iki tarafta da değişiklik var: kullanıcıya sor
       setConflict({ remote: remote.data, remoteAt: remote.at });
       setSyncState("conflict");
       return;
     } else if (remote.at > local.updatedAt) {
-      applyRemote(remote);
+      await applyRemote(remote);
     } else if (local.updatedAt > remote.at) {
       await push(local);
     } else {
@@ -409,7 +483,7 @@ export async function resolveConflict(use: "local" | "remote") {
   if (!c) return;
   setConflict(null);
   try {
-    if (use === "remote") applyRemote({ data: c.remote, at: c.remoteAt });
+    if (use === "remote") await applyRemote({ data: c.remote, at: c.remoteAt });
     else await push(settings());
     setSyncState("ok");
   } catch (e) {
@@ -423,10 +497,10 @@ let pushTimer: number | undefined;
 /** Kontrol paneli açıkken ayar değişikliklerini birkaç saniye bekleyip buluta gönderir. */
 export function startAutoSync() {
   if (!cloudEnabled) return;
-  // Ayar değişiklikleri hemen değil, toplu gönderilir (her değişiklik ayrı bir istek olmasın): son değişiklikten 60 sn sonra,
+  // Ayar değişiklikleri hemen değil, toplu gönderilir (her değişiklik ayrı bir istek olmasın): son değişiklikten 20 sn sonra,
   // değişiklikler sürüyorsa en geç 5 dk'da bir. Panel arka plana geçince / gizlenince bekleyen değişiklik hemen gönderilir,
   // böylece başka cihaza geçildiğinde hesap günceldir. (Eskiden her değişiklikten 3 sn sonra gönderiliyordu.)
-  const QUIET_MS = 60_000;
+  const QUIET_MS = 20_000;
   const MAX_WAIT_MS = 5 * 60_000;
   let firstPending = 0;
   let pushing = false;
@@ -469,4 +543,50 @@ export function startAutoSync() {
     pulledAt = Date.now();
     void syncNow();
   });
+}
+
+/** Hesaptaki ayarların önceki sürümleri (c98): bulut kaydı değişirken eski hali sunucuda saklanır */
+export interface SettingsVersion {
+  id: number;
+  updated_at: string;
+  saved_at: string;
+  profiles: number;
+  overlays: number;
+  bytes: number;
+}
+async function rpc<T>(fn: string, body: unknown): Promise<T> {
+  const t = await token();
+  if (!t) throw new Error("Oturum süresi doldu, tekrar giriş yap");
+  const res = await fetch(`${URL_}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: KEY!, Authorization: `Bearer ${t}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`Bulut hatası ${res.status}: ${await res.text()}`);
+  return (await res.json()) as T;
+}
+export const settingsHistory = () => rpc<SettingsVersion[]>("settings_history", {});
+/** Eski bir sürümü geri yükle: bu bilgisayara uygulanır ve hesaptaki güncel kayıt olur (şimdiki kayıt da geçmişe düşer) */
+export async function restoreSettingsVersion(id: number) {
+  const data = await rpc<AppSettings | null>("settings_history_get", { p_id: id });
+  if (!data) throw new Error("Sürüm bulunamadı");
+  applyingRemote = true;
+  replaceSettings({ ...data, updatedAt: Date.now() });
+  applyingRemote = false;
+  await push(settings());
+  setSyncState("ok");
+}
+/** Bu bilgisayarda, hesaptaki kayıt uygulanmadan hemen önce yedeklenen ayarlar (varsa) */
+export function localBackup(): { at: number; data: AppSettings } | null {
+  try {
+    const j = JSON.parse(localStorage.getItem("pitwall.settingsBeforeLogin") || "null");
+    return j && typeof j.at === "number" && j.data ? j : null;
+  } catch {
+    return null;
+  }
+}
+export async function restoreLocalBackup() {
+  const b = localBackup();
+  if (!b) return;
+  applyingRemote = true;
+  replaceSettings({ ...b.data, updatedAt: Date.now() });
+  applyingRemote = false;
+  await push(settings());
+  setSyncState("ok");
 }

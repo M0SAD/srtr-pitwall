@@ -5656,3 +5656,25 @@ button.ovpal-lock:hover {
   font-size: 14px;
   margin-right: 3px;
 }
+.setver {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+}
+.setver-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.setver-row span {
+  display: flex;
+  flex-direction: column;
+}

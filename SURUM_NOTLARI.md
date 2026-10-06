@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 061026-218
+
+- ÖNEMLİ düzeltme (ayarların kaybolması): ayar dosyası silindiğinde / yeni kurulumda (AppData temizlenmiş, ama oturum tarayıcı deposunda duruyor) uygulama varsayılan ayarları "daha yeni" sayıp hesaptaki kaydın üzerine yazıyordu; düzenler bulutta da siliniyordu. Artık ayar dosyası yoksa bu ilk eşitleme sayılır ve hesaptaki kayıt geri gelir; boş ayarlar buluta yazılmaz. Son eşitleme anı ayar dosyasının içinde tutulur (syncedAt).
+- Hesaba girmeden yapılmış ve hesaptakinden yeni ayarlar varsa sessizce ezilmez; "Hangi ayarlar kullanılsın?" diye sorulur.
+- Ayarların önceki sürümleri (c98, veritabanına uygulandı): hesaptaki ayar kaydı değişirken eski hali sunucuda saklanır (6 saatte bir; içerik belirgin küçülüyorsa 10 dakikada bir; son 8 sürüm). Hesap › "Ayarların önceki sürümleri" listesinden geri yüklenir. Aynı yerde, varsa bu bilgisayardaki giriş öncesi yedek de geri yüklenebilir.
+- Ayar değişiklikleri buluta 60 sn yerine 20 sn sessizlikten sonra gönderilir (uygulama hemen kapatılırsa kaybolma olasılığı azalır).
+- Birden çok bilgisayar: düzen listesi hesapta ortaktır, ama hangi düzenin etkin / varsayılan olduğu artık bilgisayara özeldir (hesap kaydında bilgisayar başına tutulur). Hesabı zaten kullanan başka bilgisayar varken yeni bir bilgisayara kurulup giriş yapıldığında eski düzenlere dokunulmaz; o bilgisayar için "Varsayılan (bilgisayar adı)" adlı yeni bir varsayılan düzen oluşturulur ve etkin yapılır. Aynı bilgisayara yeniden kurulumda o bilgisayarın eski etkin / varsayılan düzeni geri gelir.
+
 ## 061026-217
 
 - Sabit Patreon kategorisi: Patreon artık ödeme kategorileri arasında yerleşik bir kategori. Başlığı ve açıklaması sabittir ve arayüzün / sitenin diline göre kendiliğinden çevrilir (14 dil); kart başlığı "1 aylık". Yönetim › Planlar'daki "Patreon" anahtarıyla kapatılır. Logo, ödeme yöntemi görselleri, Türkiye / yurt dışı fiyatı ve adresi aynı kutudan girilir; adres girilmezse eski Patreon bağlantıları kullanılır. "Kendi Patreon kategorimden aktar" düğmesi elle eklenmiş Patreon kategorisindeki logo, görseller, fiyat ve adresleri buraya taşır ve o kategoriyi siler (Kaydet'e basınca uygulanır).

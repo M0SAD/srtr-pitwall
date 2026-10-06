@@ -906,9 +906,22 @@ export interface SavedTheme {
 export type OverlaySort = "category" | "alpha" | "popular" | "custom";
 export const OVERLAY_SORTS: OverlaySort[] = ["popular", "category", "alpha", "custom"];
 
+export interface DeviceEntry {
+  label: string;
+  active?: string;
+  def?: string;
+  sdef?: string;
+  at: number;
+}
 export interface AppSettings {
   version: 1;
   updatedAt: number;
+  /** Bu ayar dosyasının hesapla en son eşitlendiği an (bulut kaydının tarihi). Dosyayla birlikte yaşar: dosya silinirse
+   *  sıfırlanır ve hesaptaki kayıt geri gelir (eskiden tarayıcı deposunda duruyordu, silinen dosyadan sonra boş ayarlar buluta yazılıyordu). */
+  syncedAt?: number;
+  /** Hesabı kullanan bilgisayarlar (kimlik karması → o bilgisayardaki etkin ve varsayılan düzenler). Düzen listesi ortaktır,
+   *  ama hangi düzenin etkin / varsayılan olduğu bilgisayara özeldir (farklı monitör ve çözünürlükler). */
+  devices?: Record<string, DeviceEntry>;
   general: GeneralSettings;
   activeProfile: string;
   profiles: Record<string, Profile>;
@@ -1350,6 +1363,8 @@ export function normalize(input: unknown): AppSettings {
   const out: AppSettings = {
     version: 1,
     updatedAt: typeof s.updatedAt === "number" ? s.updatedAt : 0,
+    ...(typeof s.syncedAt === "number" ? { syncedAt: s.syncedAt } : {}),
+    ...(s.devices && typeof s.devices === "object" ? { devices: s.devices } : {}),
     general: {
       ...d.general,
       ...(s.general ?? {}),
@@ -1574,6 +1589,7 @@ export async function initSettings(windowName: string) {
     return;
   }
   const saved = await invoke<unknown>("settings_get");
+  fresh = saved == null;
   setSettingsSignal(normalize(saved));
   await listen<{ value: unknown; source: string }>("settings-changed", (e) => {
     if (e.payload.source === source) return;
@@ -1637,6 +1653,18 @@ export function updateSettings(fn: (draft: AppSettings) => void) {
   setSettingsSignal(draft);
   scheduleSave(draft);
   changeListeners.forEach((l) => l(draft, true));
+}
+
+let fresh = false;
+/** Bu açılışta ayar dosyası yoktu (yeni kurulum ya da silinmiş AppData): eldeki ayarlar varsayılandır, hesaptakinin üzerine yazılmamalı */
+export const settingsFresh = () => fresh;
+/** Eşitleme anını ayar dosyasına işle: updatedAt değişmez, buluta yeniden gönderim tetiklenmez */
+export function setSyncedAt(ts: number) {
+  fresh = false;
+  if (settings().syncedAt === ts) return;
+  const s = { ...settings(), syncedAt: ts };
+  setSettingsSignal(s);
+  scheduleSave(s);
 }
 
 /** Buluttan gelen ayarları olduğu gibi uygula (updatedAt korunur). */
