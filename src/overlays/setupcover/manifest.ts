@@ -13,7 +13,6 @@ export default defineOverlay({
   defaultPosition: { x: 448, y: 156 },
   defaultEnabled: false,
   defaultAlwaysShow: true,
-  multiInstance: true,
   resize: false,
   settings: [
     {

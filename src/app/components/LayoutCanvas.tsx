@@ -651,6 +651,8 @@ function CanvasItem(props: {
   /** Bu kopya kilitli: taşınamaz, boyutlandırılamaz, silinemez (ayarları değiştirilebilir) */
   const instLocked = () => !!inst()?.locked;
   const blocked = () => !!props.readOnly || instLocked();
+  /** Kilitli Setup Örtüsü: neredeyse saydam olur ve tıklamaları geçirir; arkasındaki overlay'ler seçilebilir */
+  const ghost = () => instLocked() && !!m()?.ownVisibility;
   const sayBlocked = () => (props.readOnly ? layoutLocked() && sayLayoutLocked() : sayOverlayLocked());
   const commit = (r0: Rect, own: number, opts?: Record<string, number>) => {
     if (blocked()) return void sayBlocked();
@@ -895,10 +897,10 @@ function CanvasItem(props: {
         ref={root}
         data-ckey={props.key}
         class="citem"
-        classList={{ sel: props.selected || inMulti(props.key), msel: inMulti(props.key), dragging: !!drag(), locked: isLocked(inst()!.type), pinned: instLocked() }}
+        classList={{ sel: props.selected || inMulti(props.key), msel: inMulti(props.key), dragging: !!drag(), locked: isLocked(inst()!.type), pinned: instLocked(), ghost: ghost() }}
         style={{
           transform: `translate(${view().x * props.k}px, ${view().y * props.k}px) scale(${view().eff * props.k})`,
-          opacity: Math.min(inst()!.opacity, settings().theme.opacity / 100),
+          opacity: ghost() ? 0.2 : Math.min(inst()!.opacity, settings().theme.opacity / 100),
         }}
         onPointerDown={startMove}
         onContextMenu={(e) => {

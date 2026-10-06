@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-233
+
+- Setup Örtüsü kilitlenince düzenleme ekranlarında neredeyse saydam olur ve tıklamaları geçirir: arkasındaki overlay'ler rahatça seçilip taşınır. Kilit, ekranda örtünün sol üstündeki kilit düğmesinden ya da düzen listesinde sağ tıkla açılır.
+- Setup Örtüsü artık bir düzene yalnızca bir kez eklenebilir; sağ tık menüsündeki "Aynısından ekle" yalnızca birden çok eklenebilen overlay'lerde görünür.
+
 ## 071026-232
 
 - Setup Örtüsü: garaj / setup ekranı açılınca uygulama izleme düzenine geçtiği için sürüş düzenindeki örtü kayboluyordu. Garaj ekranı açıkken artık sürüş düzeni kalır ve örtü görünür. Örtü Garage düğmesine basıldığı anda gelir (eskiden yarım saniyeye kadar gecikebiliyordu).

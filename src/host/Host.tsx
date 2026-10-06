@@ -628,6 +628,8 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
   const layoutLocked = () => !!shown()?.locked;
   /** Kilitli kopya (sağ tık > Kilitle): taşınamaz, boyutlandırılamaz, kapatılamaz; sağ tık menüsü açılır (kilidi açmak için) */
   const locked = () => layoutLocked() || !!inst()?.locked;
+  /** Kilitli Setup Örtüsü düzenlemede neredeyse saydam olur ve tıklamaları geçirir: arkasındaki overlay'ler seçilebilir */
+  const ghost = () => props.editing && !!inst()?.locked && !!props.manifest.ownVisibility;
   /** Kenardan boyutlandırılabilen genişlik / yükseklik ayarları */
   const rz = createMemo(() => resizeFields(props.manifest, inst()?.options));
   /** Satır birimli sürükleme sonucunu (px farkı) ayar değerine çevirir */
@@ -854,13 +856,13 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       ref={el}
       data-fkey={id}
       class="frame"
-      classList={{ picked: props.editing && picked() === id, dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked() }}
+      classList={{ picked: props.editing && picked() === id, dragging: !!drag(), peek: peekId() === id, locked: props.editing && locked(), ghost: ghost() }}
       style={{
         // Kopyaya özel görünüm: tema değişkenlerinin üstüne (yoksa boş)
         ...lookStyle(inst().look, settings().theme, inst().bgOpacity),
         transform: `translate(${view().x}px, ${view().y}px) scale(${view().eff})`,
         // Genel opaklık bir tavandır: overlay'in kendi opaklığı ondan düşükse aynen kalır
-        opacity: Math.min(inst().opacity, globalOpacity()),
+        opacity: ghost() ? 0.2 : Math.min(inst().opacity, globalOpacity()),
         // Düzenlemede boş kalan overlay de tutulabilsin diye küçük bir alt sınır. Eskiden manifestteki tam genişlikti: içeriği daha
         // dar olan tasarımlarda (ör. Kan Şekeri / Kalp Atışı yuvarlak) sağda boşluk kalıyor, overlay sağ kenara yanaşamıyordu.
         "min-width": props.editing && !rz().w ? `${Math.min(props.manifest.size.w, 60)}px` : undefined,
@@ -869,6 +871,11 @@ function OverlayFrame(props: { key: string; manifest: OverlayManifest; editing: 
       onPointerDown={startMove}
       onContextMenu={onContext}
     >
+      <Show when={ghost() && !layoutLocked()}>
+        <button class="frame-unlock" title="Kilidi aç" onPointerDown={(e) => e.stopPropagation()} onClick={() => editOverlay(id, (i) => void delete i.locked)}>
+          🔒
+        </button>
+      </Show>
       <Show when={props.editing}>
         <div
           class="frame-label"

@@ -528,3 +528,22 @@
   z-index: 4;
   outline-style: solid;
 }
+
+/* Kilitli Setup Örtüsü: saydam, tıklamaları geçirir; yalnızca küçük kilit düğmesi tıklanır */
+.editing .frame.ghost {
+  pointer-events: none;
+}
+.frame-unlock {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 5;
+  pointer-events: auto;
+  font-size: 22px;
+  line-height: 1;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  cursor: pointer;
+}

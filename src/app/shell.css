@@ -5889,3 +5889,8 @@ button.ovpal-lock:hover {
   text-align: right;
   color: var(--muted);
 }
+
+/* Kilitli Setup Örtüsü: saydam, tıklamaları geçirir (kilidi soldaki listeden açılır) */
+.citem.ghost {
+  pointer-events: none;
+}
