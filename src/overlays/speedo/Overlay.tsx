@@ -2,6 +2,7 @@ import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { speed, speedUnit } from "@/sdk/format";
+import { overlayValueLocked } from "@/sdk/proFeatures";
 import "./style.css";
 
 const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
@@ -27,7 +28,10 @@ const arc = (cx: number, cy: number, r: number, a0: number, a1: number) => {
 export default function Speedo(props: OverlayProps) {
   const d = useTopic("inputs");
   const o = () => props.options;
-  const design = () => (DESIGNS.includes(String(o().design)) ? String(o().design) : "analog");
+  const design = () => {
+    const v = String(o().design);
+    return DESIGNS.includes(v) && !overlayValueLocked("speedo", "design", v) ? v : "arc";
+  };
   const unit = () => (o().unit === "kmh" ? "km/h" : o().unit === "mph" ? "mph" : speedUnit(props.units));
   const value = () => {
     const ms = d()?.speed ?? 0;

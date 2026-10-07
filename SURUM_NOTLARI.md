@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-261
+
+- Şu overlay'ler artık PRO: G-Force, Düz Harita, Direksiyon Ekranı, Mini Harita, Telemetri Paneli ve Kalp Atışı.
+- Hız Göstergesi: LCD ekran, klasik kadran ve yarım kadran tasarımları PRO oldu; varsayılan tasarım "modern yay".
+- Pist Limiti: Şerit tasarımı kaldırıldı; üç yeni tasarım eklendi (Bayrak şeridi, Işık, Küçük etiket). Tüm tasarımlar herkese açık.
+
+## 071026-260
+
+- Fren ve Vites İşareti'ne üç yeni tasarım: Parlayan FREN tabelası (yaklaştıkça dolar, fren noktasında kırmızı parlayıp yanıp söner), Mesafe levhaları (PRO) ve Geri sayım halkası (PRO).
+
+## 071026-259
+
+- Düzenler ve Yayın sayfalarındaki overlay listesinde kategori başlıklarına tıklayıp kategoriyi kapatabilirsin. Overlaylarım sayfasıyla ortaktır: birinde kapattığın kategori diğerinde de kapalı görünür ve program yeniden açıldığında öyle kalır.
+- Overlay aramanın altına "Kategori" menüsü eklendi (Overlaylarım, Düzenler ve Yayın sayfaları): bir kategori seçince yalnızca o kategorideki overlay'ler listelenir.
+
 ## 071026-258
 
 - Yeni overlay: Setup Karşılaştırma. Garajda yüklediğin her setup ile attığın en iyi turu, sektörleri, teorik en iyiyi, ortalamayı ve tur sayısını tutar; setup'ları yan yana koyup hangisiyle daha hızlı olduğunu gösterir. 2 ile 6 arası setup karşılaştırılabilir; yalnızca bu oturum ya da aynı pist ve araçtaki tüm kayıtlar seçilebilir. iRacing'de çalışır.

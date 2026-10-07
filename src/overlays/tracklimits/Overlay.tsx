@@ -1,6 +1,6 @@
 // Pist Limiti: süren tur geçerli mi, pist dışı / geçersiz tur sayaçları, olay puanı (iRacing).
 // Veriyi Rust tarafı toplar (drivecues.rs, `tracklimits` konusu).
-// İki özgün tasarım:  badge → Rozet   strip → Şerit (PRO)
+// Tasarımlar:  badge → Rozet   banner → Bayrak şeridi   lamp → Işık   compact → Küçük etiket
 
 import { Show, createEffect, createMemo, createSignal, on, onCleanup, type JSX } from "solid-js";
 import { previewFrozen, type OverlayProps } from "@/sdk/overlay";
@@ -10,7 +10,7 @@ import { t } from "@/sdk/i18n";
 import type { TrackLimits } from "@/sdk/drivecues";
 import "./style.css";
 
-const DESIGNS = ["badge", "strip"] as const;
+const DESIGNS = ["badge", "banner", "lamp", "compact"] as const;
 type Design = (typeof DESIGNS)[number];
 
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -202,22 +202,13 @@ export default function TrackLimitsOverlay(props: OverlayProps) {
           </span>
           <span class="tl-title">{reason() || title()}</span>
           {/* Sim tur geçerliliğini bildirmiyorsa durum pist dışı / olaydan çıkarılır */}
-          <Show when={!d()!.simValid && state() !== "pit" && design() === "badge"}>
+          <Show when={!d()!.simValid && state() !== "pit" && design() !== "compact"}>
             <span class="tl-est" title={t("Bu sim tur geçerliliğini bildirmiyor: pist dışı ve olaylardan tahmin edilir")}>
               tahmini
             </span>
           </Show>
-          <Show when={design() === "strip"}>
-            <span class="tl-sep" />
-            <Stats />
-          </Show>
         </div>
-        <Show when={design() === "strip" && showInc() && d()!.incidentLimit > 0}>
-          <div class="tl-incbar tl-incbar-thin" classList={{ "tl-warned": incWarn() }}>
-            <div style={{ width: `${clamp(incRatio(), 0, 1) * 100}%` }} />
-          </div>
-        </Show>
-        <Show when={design() === "badge"}>
+        <Show when={design() !== "compact"}>
           <div class="tl-stats">
             <Stats />
           </div>

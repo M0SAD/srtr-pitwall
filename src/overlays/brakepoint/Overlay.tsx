@@ -1,6 +1,7 @@
 // Fren ve Vites İşareti: referans turdaki (en iyi geçerli tur) fren / gaz kesme noktalarına geri sayım.
 // Referansı Rust tarafı kaydeder (drivecues.rs): pist + araç başına dosyada saklanır, oturumlar arasında kalır.
-// Üç özgün tasarım:  bar → Yatay geri sayım çubuğu   cue → Büyük minimal işaret   vertical → Dikey çubuk (PRO)
+// Tasarımlar:  bar → Yatay geri sayım çubuğu   cue → Büyük minimal işaret   vertical → Dikey çubuk (PRO)
+//   sign → Parlayan FREN tabelası   boards → Mesafe levhaları (PRO)   ring → Geri sayım halkası (PRO)
 
 import { For, Match, Show, Switch, createEffect, createMemo, createSignal, on, type JSX } from "solid-js";
 import { previewFrozen, type OverlayProps } from "@/sdk/overlay";
@@ -11,7 +12,7 @@ import { t } from "@/sdk/i18n";
 import type { Brakepoint } from "@/sdk/drivecues";
 import "./style.css";
 
-const DESIGNS = ["bar", "cue", "vertical"] as const;
+const DESIGNS = ["bar", "cue", "vertical", "sign", "boards", "ring"] as const;
 type Design = (typeof DESIGNS)[number];
 
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -149,7 +150,7 @@ export default function BrakepointOverlay(props: OverlayProps) {
   const style = (): JSX.CSSProperties => ({
     "font-size": `${clamp(num(o().fontSize, 14), 10, 30)}px`,
     "--bp-col": m.color(),
-    ...(design() === "bar" ? { width: `${clamp(num(o().width, 320), 200, 700)}px` } : {}),
+    ...(design() === "bar" || design() === "sign" || design() === "boards" ? { width: `${clamp(num(o().width, 320), 200, 700)}px` } : {}),
     ...(design() === "vertical" ? { height: `${clamp(num(o().height, 220), 120, 500)}px` } : {}),
   });
 
@@ -178,6 +179,15 @@ export default function BrakepointOverlay(props: OverlayProps) {
             </Match>
             <Match when={design() === "vertical"}>
               <VerticalDesign m={m} />
+            </Match>
+            <Match when={design() === "sign"}>
+              <SignDesign m={m} />
+            </Match>
+            <Match when={design() === "boards"}>
+              <BoardsDesign m={m} />
+            </Match>
+            <Match when={design() === "ring"}>
+              <RingDesign m={m} />
             </Match>
           </Switch>
         </Show>
@@ -319,6 +329,86 @@ function VerticalDesign(p: { m: Model }) {
       </div>
       <Dist m={m} />
       <Gear m={m} />
+      <Diff m={m} />
+    </>
+  );
+}
+
+/** Parlayan tabela: uzakta sönük, yaklaştıkça dolar; fren noktasında kırmızı parlayıp yanıp söner */
+function SignDesign(p: { m: Model }) {
+  const m = p.m;
+  return (
+    <>
+      <div class="bp-sign" style={{ "--bp-k": String(m.stage() === 0 ? 0 : 1 - m.frac()) }}>
+        <span class="bp-sign-fill" />
+        <b>{m.label()}</b>
+      </div>
+      <div class="bp-row bp-sign-foot">
+        <Show when={m.stage() !== 4} fallback={<span class="bp-now">ŞİMDİ</span>}>
+          <Dist m={m} />
+        </Show>
+        <span class="bp-spacer" />
+        <MinSpeed m={m} />
+        <Gear m={m} />
+      </div>
+      <Show when={m.diff()}>
+        <div class="bp-row bp-foot">
+          <Diff m={m} />
+        </div>
+      </Show>
+    </>
+  );
+}
+
+/** Pist kenarındaki mesafe levhaları gibi: geri sayım üçe bölünür, geçilen levha yanar; sonuncusu FREN */
+function BoardsDesign(p: { m: Model }) {
+  const m = p.m;
+  const marks = () => [1, 2 / 3, 1 / 3].map((f) => m.fmtDist(m.range() * f));
+  return (
+    <>
+      <div class="bp-boards">
+        <For each={marks()}>
+          {(d, i) => (
+            <span class="bp-board" classList={{ "bp-on": m.stage() >= i() + 1 }} data-no-i18n>
+              {d}
+            </span>
+          )}
+        </For>
+        <span class="bp-board bp-board-now" classList={{ "bp-on": m.stage() === 4 }}>
+          {m.label()}
+        </span>
+      </div>
+      <div class="bp-row bp-foot">
+        <Diff m={m} />
+        <span class="bp-spacer" />
+        <MinSpeed m={m} />
+        <Gear m={m} />
+      </div>
+    </>
+  );
+}
+
+/** Geri sayım halkası: halka fren noktasına yaklaştıkça dolar, ortada virajın vitesi */
+function RingDesign(p: { m: Model }) {
+  const m = p.m;
+  const C = 2 * Math.PI * 42;
+  const n = () => m.next();
+  return (
+    <>
+      <div class="bp-ring">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="bp-ring-bg" cx="50" cy="50" r="42" />
+          <circle class="bp-ring-fg" cx="50" cy="50" r="42" stroke-dasharray={`${C}`} stroke-dashoffset={`${C * (m.stage() === 0 ? 1 : m.stage() === 4 ? 0 : m.frac())}`} transform="rotate(-90 50 50)" />
+        </svg>
+        <div class="bp-ring-mid" data-no-i18n>
+          <Show when={m.o().showGear !== false && n() && n()!.gear > 0} fallback={<b class="bp-ring-dot" />}>
+            <b>{fmtGear(n()!.gear)}</b>
+          </Show>
+        </div>
+      </div>
+      <span class="bp-label">{m.label()}</span>
+      <Dist m={m} />
+      <MinSpeed m={m} />
       <Diff m={m} />
     </>
   );

@@ -9,6 +9,7 @@ import { Portal } from "solid-js/web";
 import "@/host/context-menu.css";
 import { fitMenu } from "@/host/ContextMenu";
 import Minus from "lucide-solid/icons/minus";
+import ChevronDown from "lucide-solid/icons/chevron-down";
 import { manifests } from "@/sdk/registry";
 import type { OverlayManifest } from "@/sdk/overlay";
 import { instanceName, settings, uiPref, updateSettings, type OverlaySort, type Profile } from "@/sdk/settings";
@@ -17,7 +18,7 @@ import { lang, localeTag, t, translateText } from "@/sdk/i18n";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
-import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
+import { CATEGORY_NAMES, CategoryFilter, catFilter, overlayIcon } from "../overlayIcons";
 import * as I from "../icons";
 import { dragSort } from "../dragSort";
 
@@ -25,6 +26,11 @@ import { dragSort } from "../dragSort";
 const FAV_CAT = "__fav";
 const [favsRaw] = uiPref<string[]>("ovFavs", [], "pw.ovFavs");
 const favIds = () => (Array.isArray(favsRaw()) ? (favsRaw() as unknown[]).filter((x): x is string => typeof x === "string") : []);
+
+// Kapatılan kategori başlıkları: Overlaylarım sayfasıyla aynı kayıt (uiPref "ovCatCollapsed"); orada kapatılan burada da kapalıdır
+const [palClosedRaw, setPalClosed] = uiPref<string[]>("ovCatCollapsed", [], "pw.ovcatCollapsed");
+const palClosed = () => (Array.isArray(palClosedRaw()) ? (palClosedRaw() as unknown[]).filter((x): x is string => typeof x === "string") : []);
+const togglePalCat = (key: string) => setPalClosed(palClosed().includes(key) ? palClosed().filter((c) => c !== key) : [...palClosed(), key]);
 
 /** Kullanıcının kendi sırası mı geçerli ("Kendi sıram") */
 export const hasOverlayOrder = () => overlaySort() === "custom";
@@ -143,6 +149,8 @@ export function OverlayPalette(props: {
   const fold = (v: string) => v.toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const needle = () => fold(q().trim());
   const hit = (m: OverlayManifest) => fold(t(m.name)).includes(needle()) || fold(m.name).includes(needle());
+  /** Kategori süzgeci (arama kutusunun altındaki menü; Overlaylarım sayfasıyla ortak) */
+  const inCat = (m: OverlayManifest | undefined) => !catFilter() || m?.category === catFilter();
   const addedAll = createMemo(() => {
     const pos = new Map(orderedOverlays(usable()).map((m, i) => [m.id, i]));
     return Object.entries(props.profile.overlays)
@@ -152,16 +160,18 @@ export function OverlayPalette(props: {
       .map((x) => x.k);
   });
   const added = createMemo(() => {
-    if (!needle()) return addedAll();
+    if (!needle() && !catFilter()) return addedAll();
     return addedAll().filter((k) => {
       const o = props.profile.overlays[k];
       const m = manifests.find((x) => x.id === o?.type);
+      if (!inCat(m)) return false;
+      if (!needle()) return true;
       return (!!o && fold(instanceName(k, o)).includes(needle())) || (!!m && hit(m));
     });
   });
   const addedTypes = createMemo(() => new Set(addedAll().map((k) => props.profile.overlays[k]?.type)));
   /** Eklenmemiş (ya da birden çok eklenebilen) türler */
-  const rest = createMemo(() => orderedOverlays(usable()).filter((m) => m.multiInstance || !addedTypes().has(m.id)));
+  const rest = createMemo(() => orderedOverlays(usable()).filter((m) => (m.multiInstance || !addedTypes().has(m.id)) && inCat(m)));
   /** Kategori başlıklı gruplar; kullanıcı sırası varsa tek düz liste */
   const groups = createMemo((): [string | null, OverlayManifest[]][] => {
     // Favoriler (Overlaylarım'da sağ tık > Favorilere ekle) eklenebilir listenin en üstünde ayrı grupta
@@ -217,6 +227,7 @@ export function OverlayPalette(props: {
         <I.Search />
         <input type="search" value={q()} placeholder={t("Overlay ara")} onInput={(e) => setQ(e.currentTarget.value)} onKeyDown={(e) => (e.stopPropagation(), e.key === "Escape" && setQ(""))} />
       </label>
+      <CategoryFilter />
       <Show when={needle() && !added().length && !groups().length}>
         <div class="ovlist-simnote">Bu adla bir overlay yok.</div>
       </Show>
@@ -270,10 +281,22 @@ export function OverlayPalette(props: {
         {(gk) => {
           const cat = gk === "" ? null : gk;
           const ms = () => groupItems(gk);
+          // Arama sırasında hiçbir başlık kapalı sayılmaz (sonuçlar gizlenmesin)
+          const closed = () => !needle() && palClosed().includes(gk || "__rest");
           return (
           <>
-            <div class="ovlist-cap">{cat === FAV_CAT ? t("Favorilerim") : cat === null ? t("Eklenebilir") : CATEGORY_NAMES[cat] ?? cat}</div>
-            <For each={ms()}>
+            <button
+              class="ovlist-cap ovlist-captog"
+              classList={{ closed: closed() }}
+              aria-expanded={!closed()}
+              title={closed() ? t("Kategoriyi aç") : t("Kategoriyi kapat")}
+              onClick={() => togglePalCat(gk || "__rest")}
+            >
+              <ChevronDown />
+              <span>{cat === FAV_CAT ? t("Favorilerim") : cat === null ? t("Eklenebilir") : CATEGORY_NAMES[cat] ?? cat}</span>
+              <small>{ms().length}</small>
+            </button>
+            <For each={closed() ? [] : ms()}>
               {(m) => {
                 const locked = () => isLocked(m.id);
                 const again = () => addedTypes().has(m.id);

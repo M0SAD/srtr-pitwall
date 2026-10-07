@@ -16224,3 +16224,9 @@ drop function if exists public.team_poll_close(uuid);
 drop table if exists public.team_poll_votes;
 delete from public.pro_features where key = 'teams.poll';
 select (select count(*) from public.team_polls) as polls_left, to_regclass('public.team_poll_votes') is null as votes_dropped;
+
+-- c105: G-Force, Düz Harita, Direksiyon Ekranı, Mini Harita, Telemetri Paneli ve Kalp Atışı overlay'leri varsayılan olarak PRO
+--       (app_config.pro_overlays). Yönetim › PRO özellikleri'nden değiştirilebilir.
+update public.app_config
+   set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['gforce', 'flatmap', 'dashboard', 'minimap', 'telemetry', 'heartrate']) as x)
+ where id = 1;

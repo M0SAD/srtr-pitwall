@@ -127,26 +127,114 @@
   }
 }
 
-/* Şerit */
-.tl-d-strip {
-  padding: 0.35em 0.7em 0.4em;
+/* ---- Bayrak şeridi: durum, renkle dolu geniş bir şeritte ---- */
+.tl-d-banner {
+  padding: 0;
+  border-left: 0;
+  overflow: hidden;
+  min-width: 15em;
 }
-.tl-d-strip .tl-mark {
-  width: 1.3em;
-  height: 1.3em;
+.tl-d-banner .tl-head {
+  justify-content: center;
+  padding: 0.5em 0.9em;
+  background: var(--tl-col);
+  color: var(--ov-bg-solid, #0c0e13);
+  text-shadow: none;
 }
-.tl-d-strip .tl-ico {
-  width: 0.85em;
-  height: 0.85em;
+.tl-d-banner .tl-title {
+  font-size: 1.55em;
+  letter-spacing: 0.08em;
+  color: inherit;
 }
-.tl-d-strip .tl-title {
-  font-size: 1.05em;
+.tl-d-banner .tl-mark {
+  background: var(--ov-bg-solid, #0c0e13);
+  color: var(--tl-col);
 }
-.tl-d-strip .tl-head {
-  gap: 0.7em;
+.tl-d-banner .tl-est {
+  color: inherit;
+  opacity: 0.7;
 }
-.tl-sep {
-  width: 1px;
-  align-self: stretch;
-  background: var(--ov-divider);
+.tl-d-banner .tl-stats {
+  justify-content: center;
+  margin: 0;
+  padding: 0.45em 0.8em;
+}
+.tl-d-banner .tl-incbar {
+  margin: 0;
+  border-radius: 0;
+}
+.tl-d-banner .tl-penalty {
+  margin: 0;
+  border-radius: 0;
+}
+.tl-d-banner.tl-flash {
+  animation: none;
+}
+.tl-d-banner.tl-flash .tl-head,
+.tl-d-banner.tl-off .tl-head {
+  animation: tl-pulse 0.4s steps(2, jump-none) infinite;
+}
+
+/* ---- Işık: solda parlayan büyük lamba ---- */
+.tl-d-lamp {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.8em;
+  align-items: center;
+  border-left: 0;
+  padding: 0.6em 0.85em;
+}
+.tl-d-lamp .tl-head {
+  display: contents;
+}
+.tl-d-lamp .tl-mark {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 3.3em;
+  height: 3.3em;
+  box-shadow: 0 0 0.9em var(--tl-col), inset 0 0 0.6em rgba(255, 255, 255, 0.35);
+  border: 0.2em solid color-mix(in srgb, var(--ov-text) 14%, transparent);
+}
+.tl-d-lamp .tl-ico {
+  width: 1.9em;
+  height: 1.9em;
+}
+.tl-d-lamp .tl-title {
+  grid-column: 2;
+}
+.tl-d-lamp .tl-est {
+  display: none;
+}
+.tl-d-lamp .tl-stats,
+.tl-d-lamp .tl-incbar {
+  grid-column: 2;
+  margin-top: 0.35em;
+}
+.tl-d-lamp .tl-penalty {
+  grid-column: 1 / -1;
+}
+.tl-d-lamp.tl-pit .tl-mark {
+  box-shadow: none;
+}
+
+/* ---- Küçük etiket: yalnızca durum ---- */
+.tl-d-compact {
+  padding: 0.3em 0.75em 0.3em 0.4em;
+  border-radius: 1.1em;
+  border: 2px solid var(--tl-col);
+}
+.tl-d-compact .tl-mark {
+  width: 1.35em;
+  height: 1.35em;
+}
+.tl-d-compact .tl-ico {
+  width: 0.9em;
+  height: 0.9em;
+}
+.tl-d-compact .tl-title {
+  font-size: 1em;
+}
+.tl-d-compact .tl-penalty {
+  margin-top: 0.3em;
+  border-radius: 999px;
 }

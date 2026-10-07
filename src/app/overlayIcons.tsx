@@ -1,5 +1,5 @@
 // Overlay türlerine göre liste ikonları
-import type { JSX } from "solid-js";
+import { For, createSignal, type JSX } from "solid-js";
 import * as I from "./icons";
 
 const MAP: Record<string, () => JSX.Element> = {
@@ -76,3 +76,21 @@ export const CATEGORY_NAMES: Record<string, string> = {
   info: "Bilgi",
   stream: "Yayın",
 };
+
+// Overlay listelerindeki kategori süzgeci (Overlaylarım, Düzenler ve Yayın sayfalarında ortak; "" = tümü).
+// Kalıcı değildir: program yeniden açıldığında "Tümü" ile başlar (unutulan süzgeç overlay'leri saklamasın).
+const [catFilter, setCatFilter] = createSignal("");
+export { catFilter, setCatFilter };
+
+/** Arama kutusunun altındaki "Kategori" açılır menüsü */
+export function CategoryFilter() {
+  return (
+    <label class="ovlist-sort ovlist-catsel">
+      <span>Kategori</span>
+      <select value={catFilter()} onChange={(e) => setCatFilter(e.currentTarget.value)}>
+        <option value="">Tümü</option>
+        <For each={Object.entries(CATEGORY_NAMES)}>{([id, name]) => <option value={id}>{name}</option>}</For>
+      </select>
+    </label>
+  );
+}

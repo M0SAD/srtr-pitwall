@@ -17,7 +17,7 @@ import { SIM_FAMILIES, SIM_NAMES, SIM_SHORT, currentSim, overlaySupportsSim, sup
 import { OverlayView } from "../components/OverlayView";
 import { OverlaySettings, previewVals } from "../components/OverlaySettings";
 import { BACKDROPS, Backdrop, ScreenshotPicker, backdrop, pickCustomImage, setBackdrop } from "../components/Backdrop";
-import { CATEGORY_NAMES, overlayIcon } from "../overlayIcons";
+import { CATEGORY_NAMES, CategoryFilter, catFilter, overlayIcon } from "../overlayIcons";
 import { focusOverlay, openCard, setOpenCard } from "../ui";
 import { sortProfiles } from "../components/LayoutList";
 import * as I from "../icons";
@@ -285,7 +285,7 @@ export function OverlaysPage() {
   const [q, setQ] = createSignal("");
   const fold = (v: string) => v.toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   /** Kategori başlıklı gruplar yalnızca "Kategoriye göre" sıralamada; diğerlerinde (ve sürüklerken) tek düz liste */
-  const groups = createMemo((): [string | null, OverlayManifest[]][] => {
+  const groupsAll = createMemo((): [string | null, OverlayManifest[]][] => {
     // Arama: ada (çevirisi ve Türkçesi) göre süzülmüş tek düz liste
     const needle = fold(q().trim());
     if (needle) return [[null, shown().filter((m) => fold(t(m.name)).includes(needle) || fold(m.name).includes(needle))]];
@@ -301,6 +301,12 @@ export function OverlaysPage() {
       g.get(m.category)!.push(m);
     }
     return [...g.entries()];
+  });
+  const groups = createMemo((): [string | null, OverlayManifest[]][] => {
+    // Kategori süzgeci (arama kutusunun altındaki menü): boş kalan gruplar çizilmez
+    const c = catFilter();
+    if (!c) return groupsAll();
+    return groupsAll().map(([k, ms]): [string | null, OverlayManifest[]] => [k, ms.filter((m) => m.category === c)]).filter(([k, ms]) => ms.length > 0 || k === null);
   });
 
   // Liste, grup dizisinin kendisiyle değil grup ANAHTARIYLA (kategori adı; başlıksız grup "") çizilir. groups() her yeniden
@@ -396,6 +402,7 @@ export function OverlaysPage() {
           <I.Search />
           <input type="search" value={q()} placeholder={t("Overlay ara")} onInput={(e) => setQ(e.currentTarget.value)} onKeyDown={(e) => e.key === "Escape" && (setQ(""), e.stopPropagation())} />
         </label>
+        <CategoryFilter />
         <div class="ovlist-scroll" ref={scrollEl}>
           <Show when={q().trim() && !groups()[0]?.[1].length}>
             <div class="ovlist-simnote">Bu adla bir overlay yok.</div>
