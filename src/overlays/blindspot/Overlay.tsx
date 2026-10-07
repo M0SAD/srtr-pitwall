@@ -1,11 +1,12 @@
 import { Show } from "solid-js";
 import { onScreen, type OverlayProps } from "@/sdk/overlay";
 import { useTopic, demoShow } from "@/sdk/telemetry";
+import { overlayValueLocked } from "@/sdk/proFeatures";
 import "./style.css";
 
 /** Araç boyu (m): radar mesafesi merkezden merkezedir, tampon arası boşluk = mesafe − araç boyu */
 const CAR_LEN = 4.8;
-const DESIGNS = ["mirror", "icon", "dot", "bar"];
+const DESIGNS = ["mirror", "icon", "dot", "bar", "triangle", "arrow", "chevrons", "ring", "pulse", "diamond"];
 const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
 const hex = (v: unknown, d: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : d);
 
@@ -14,7 +15,10 @@ export default function BlindSpot(props: OverlayProps) {
   const status = useTopic("status");
   const inputs = useTopic("inputs");
   const o = () => props.options;
-  const design = () => (DESIGNS.includes(String(o().design)) ? String(o().design) : "mirror");
+  const design = () => {
+    const d = String(o().design ?? "mirror");
+    return DESIGNS.includes(d) && !overlayValueLocked("blindspot", "design", d) ? d : "mirror";
+  };
   const sample = () => props.editing || !onScreen();
   const muted = () => {
     if (sample() || demoShow()) return false;
@@ -65,7 +69,44 @@ export default function BlindSpot(props: OverlayProps) {
         idle: !!o().idle && lv(p.s) === 0,
         right: p.s > 0,
       }}
+      style={{ "--bs-c": lv(p.s) === 2 && o().alongOn ? hex(o().alongColor, "#ff3b30") : undefined }}
     >
+      <Show when={design() === "triangle"}>
+        <svg viewBox="0 0 100 70" aria-hidden="true">
+          <path class="bs-fill" d="M50 5 L92 64 H8 Z" stroke-linejoin="round" />
+          <path class="bs-ink" d="M50 26 V44 M50 53 V54" />
+        </svg>
+      </Show>
+      <Show when={design() === "arrow"}>
+        <svg viewBox="0 0 100 70" aria-hidden="true">
+          <path class="bs-fill" d="M22 35 L74 6 V64 Z" stroke-linejoin="round" />
+        </svg>
+      </Show>
+      <Show when={design() === "chevrons"}>
+        <svg viewBox="0 0 100 70" aria-hidden="true">
+          <path class="bs-line c1" d="M78 10 L56 35 L78 60" />
+          <path class="bs-line c2" d="M56 10 L34 35 L56 60" />
+          <path class="bs-line c3" d="M34 10 L12 35 L34 60" />
+        </svg>
+      </Show>
+      <Show when={design() === "ring" || design() === "pulse"}>
+        <svg viewBox="0 0 100 70" aria-hidden="true">
+          <Show when={design() === "pulse"}>
+            <circle class="bs-wave" cx="50" cy="35" r="14" />
+            <circle class="bs-wave w2" cx="50" cy="35" r="14" />
+          </Show>
+          <Show when={design() === "ring"}>
+            <circle class="bs-line" cx="50" cy="35" r="26" />
+          </Show>
+          <circle class="bs-fill" cx="50" cy="35" r="13" />
+        </svg>
+      </Show>
+      <Show when={design() === "diamond"}>
+        <svg viewBox="0 0 100 70" aria-hidden="true">
+          <path class="bs-line" d="M50 4 L88 35 L50 66 L12 35 Z" stroke-linejoin="round" />
+          <path class="bs-fill" d="M50 18 L70 35 L50 52 L30 35 Z" stroke-linejoin="round" />
+        </svg>
+      </Show>
       <Show when={design() === "mirror" || design() === "icon"}>
         <svg viewBox="0 0 100 70" aria-hidden="true">
           <Show when={design() === "mirror"}>

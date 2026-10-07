@@ -92,3 +92,85 @@
   background: var(--bs-c);
   box-shadow: 0 0 calc(var(--bs-size) * 0.3) var(--bs-c), 0 0 0 2px rgba(0, 0, 0, 0.55);
 }
+
+/* PRO tasarımlar: üçgen, ok, üçlü ok, halka, yayılan nokta, elmas */
+.bs-fill {
+  fill: var(--bs-c);
+  stroke: var(--bs-c);
+  stroke-width: 5;
+}
+.bs-ink {
+  fill: none;
+  stroke: rgba(10, 12, 16, 0.9);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.bs-line {
+  fill: none;
+  stroke: var(--bs-c);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bs-triangle .bs-lamp svg,
+.bs-arrow .bs-lamp svg,
+.bs-chevrons .bs-lamp svg,
+.bs-ring .bs-lamp svg,
+.bs-pulse .bs-lamp svg,
+.bs-diamond .bs-lamp svg {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
+}
+.bs-triangle .bs-lamp.on:not(.soft) svg,
+.bs-arrow .bs-lamp.on:not(.soft) svg,
+.bs-chevrons .bs-lamp.on:not(.soft) svg,
+.bs-ring .bs-lamp.on:not(.soft) svg,
+.bs-pulse .bs-lamp.on:not(.soft) svg,
+.bs-diamond .bs-lamp.on:not(.soft) svg {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 calc(var(--bs-size) * 0.14) var(--bs-c));
+}
+/* Uyarı üçgeni iki yanda aynı durur (ünlem ters dönmesin) */
+.bs-triangle .bs-lamp.right svg {
+  transform: none;
+}
+/* Üçlü ok: içten dışa sırayla yanar */
+@keyframes bs-chev {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.bs-chevrons .bs-lamp.on .bs-line {
+  animation: bs-chev 0.9s linear infinite;
+}
+.bs-chevrons .bs-lamp.on .c2 {
+  animation-delay: 0.15s;
+}
+.bs-chevrons .bs-lamp.on .c3 {
+  animation-delay: 0.3s;
+}
+/* Yayılan nokta */
+@keyframes bs-wave {
+  from {
+    r: 13px;
+    opacity: 0.8;
+  }
+  to {
+    r: 34px;
+    opacity: 0;
+  }
+}
+.bs-wave {
+  fill: none;
+  stroke: var(--bs-c);
+  stroke-width: 4;
+  opacity: 0;
+}
+.bs-pulse .bs-lamp.on .bs-wave {
+  animation: bs-wave 1.2s ease-out infinite;
+}
+.bs-pulse .bs-lamp.on .bs-wave.w2 {
+  animation-delay: 0.6s;
+}

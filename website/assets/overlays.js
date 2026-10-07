@@ -21,7 +21,7 @@ export const OVERLAYS = [
       ["minimap", "🧭", "free"],
       ["radar", "📡", "free"],
       ["spotterbar", "🚦", "mixed"],
-      ["blindspot", "🪞", "free"],
+      ["blindspot", "🪞", "mixed"],
       ["overtake", "⏩", "free"],
       ["rejoin", "↩️", "pro"],
     ],
