@@ -201,7 +201,10 @@ pub fn parse(yaml: &str) -> SessionData {
                                     // Kısa kod gelmezse ülke adı kullanılır (arayüz adı bayrağa çevirir)
                                     "FlairName" => {
                                         // "-none-": sürücü ülke seçmemiş
-                                        if d.flair.is_empty() && !v.trim().is_empty() && !v.trim().starts_with('-') {
+                                        if d.flair.is_empty() && v.trim().starts_with('-') {
+                                            // Ülke seçilmemiş: arayüz bayrak yerine küre simgesi gösterir
+                                            d.flair = "NONE".to_string();
+                                        } else if (d.flair.is_empty() || d.flair == "NONE") && !v.trim().is_empty() {
                                             // iRacing ülkeyi adıyla gönderir ("Turkey"): bilinen adlar iki harfli koda çevrilir
                                             d.flair = flair_code(v).map(str::to_string).unwrap_or_else(|| v.trim().to_string());
                                         }

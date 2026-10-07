@@ -65,9 +65,32 @@ export function flagUrl(code: string | undefined | null): string | undefined {
   return byCode[ALIAS[c] ?? c] ?? (c.length === 3 ? byCode[ISO3[c]] : undefined) ?? (NAMES[c] ? byCode[NAMES[c]] : undefined) ?? byCode[allNames()[fold(c)]];
 }
 
-export function Flag(props: { code: string | undefined | null; class?: string }) {
+/** Ülke seçmemiş ya da ülkesi tanınmayan sürücü için tarafsız küre simgesi */
+function Globe(props: { class?: string; title?: string }) {
   return (
-    <Show when={flagUrl(props.code)} fallback={<span class={props.class}>{String(props.code ?? "").trim().length <= 3 ? props.code : ""}</span>}>
+    <svg class={`ov-flag ov-flag-globe ${props.class ?? ""}`} viewBox="0 0 24 18" aria-hidden="true" style={{ width: "1.9em", height: "1.42em", opacity: "0.75" }}>
+      <title>{props.title ?? ""}</title>
+      <g fill="none" stroke="currentColor" stroke-width="1.4">
+        <circle cx="12" cy="9" r="7" />
+        <ellipse cx="12" cy="9" rx="3.1" ry="7" />
+        <path d="M5 9h14M6.2 5.4h11.6M6.2 12.6h11.6" />
+      </g>
+    </svg>
+  );
+}
+
+export function Flag(props: { code: string | undefined | null; class?: string }) {
+  const raw = () => String(props.code ?? "").trim();
+  return (
+    <Show
+      when={flagUrl(props.code)}
+      fallback={
+        // Kısa kod tanınmadıysa kod yazı olarak kalır; ülke seçilmemişse ("NONE") ya da uzun bir ad tanınmadıysa küre simgesi
+        <Show when={raw().length > 3} fallback={<span class={props.class}>{raw()}</span>}>
+          <Globe class={props.class} title={raw().toUpperCase() === "NONE" ? "" : raw()} />
+        </Show>
+      }
+    >
       {(u) => <img class={`ov-flag ${props.class ?? ""}`} src={u()} alt={props.code ?? ""} title={props.code ?? ""} draggable={false} />}
     </Show>
   );

@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-253
+
+- Ülke bayrakları: ülke seçmemiş ya da ülkesi tanınmayan sürücülerde bayrak yerine küre simgesi görünür.
+
 ## 071026-252
 
 - Ülke bayrakları: iRacing'in gönderdiği ülke adları (ör. "Türkiye") doğru okunuyor; ülke seçmemiş sürücüde hücre boş kalıyor. Not: Test Sürüşü gibi çevrimdışı oturumlarda iRacing ülke bilgisi göndermediği için bayrak görünmez; çevrimiçi oturumlarda görünür.
