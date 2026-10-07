@@ -2587,6 +2587,20 @@ pub fn run() {
         ]))
         .setup(move |app| {
             let handle = app.handle().clone();
+            // Varsayılan: Windows açılışında başlat (sistem tepsisinde). Bir kez uygulanır; kullanıcı Ayarlar › Genel'den
+            // kapatırsa kapalı kalır. Geliştirme derlemesinde dokunulmaz.
+            if !cfg!(debug_assertions) {
+                if let Ok(dir) = handle.path().app_config_dir() {
+                    let mark = dir.join("autostart-default");
+                    if !mark.exists() {
+                        use tauri_plugin_autostart::ManagerExt;
+                        let _ = std::fs::create_dir_all(&dir);
+                        if handle.autolaunch().enable().is_ok() {
+                            let _ = std::fs::write(&mark, b"1");
+                        }
+                    }
+                }
+            }
             if let Ok(dir) = handle.path().app_data_dir() {
                 crashlog::set_dir(dir);
             }

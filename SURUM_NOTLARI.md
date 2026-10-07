@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-240
+
+- SRTR Pitwall artık varsayılan olarak Windows açılışında (sistem tepsisinde) başlar. İstemezsen Ayarlar › Genel'deki "Windows ile başlat" seçeneğinden kapatabilirsin; kapattıktan sonra kapalı kalır.
+
 ## 071026-239
 
 - Küçük iyileştirmeler ve düzeltmeler.
