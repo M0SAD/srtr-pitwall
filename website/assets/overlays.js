@@ -21,6 +21,7 @@ export const OVERLAYS = [
       ["minimap", "🧭", "free"],
       ["radar", "📡", "free"],
       ["spotterbar", "🚦", "mixed"],
+      ["blindspot", "🪞", "free"],
       ["overtake", "⏩", "free"],
       ["rejoin", "↩️", "pro"],
     ],
@@ -95,8 +96,8 @@ export const OVERLAYS = [
 /** Düz liste: [{ id, icon, tag, group }] (galeri sırası) */
 export const OVERLAY_LIST = OVERLAYS.flatMap(([group, list]) => list.map(([id, icon, tag]) => ({ id, icon, tag, group })));
 export const OVERLAY_TOTAL = OVERLAY_LIST.length;
-/** Başlıklarda gösterilen yuvarlak sayı: 51 → "50+" */
-export const OVERLAY_ROUND = `${Math.floor(OVERLAY_TOTAL / 10) * 10}+`;
+/** Başlıklarda gösterilen sayı: listedeki tam overlay sayısı (index.html / features.html meta açıklamalarındaki sayı elle güncellenir) */
+export const OVERLAY_ROUND = String(OVERLAY_TOTAL);
 
 /** Galeri görseli: siteyle gelen varsayılan dosya ve yönetim panelindeki yuva adı */
 export const overlayImage = (id) => `assets/img/ov/${id}.webp`;
@@ -115,6 +116,7 @@ export const NAMES = {
   minimap: ["Mini Harita", "Mini Map"],
   radar: ["Radar", "Radar"],
   spotterbar: ["Çubuk Spotter", "Spotter Bars"],
+  blindspot: ["Kör Nokta Uyarısı", "Blind Spot Warning"],
   overtake: ["Hızlı Sınıf Uyarısı", "Faster Class Warning"],
   rejoin: ["Piste Dönüş", "Rejoin Helper"],
   dashboard: ["Direksiyon Ekranı", "Steering Wheel Display"],
@@ -231,6 +233,7 @@ addDict({
     "Yanındaki ve çok yakınındaki araçları kuşbakışı gösteren bir yakınlık radarı. Aynada göremediğin kör noktadaki aracı fark etmeni sağlar; yanında araç varken o taraf kırmızıya döner. Görüş mesafesini ayarlayabilirsin; çevrende kimse yokken kendiliğinden gizlenir.",
     "A proximity radar showing the cars beside and very close to you from above. It helps you notice a car in the blind spot your mirrors miss; the side turns red while a car is alongside. The range is adjustable and it hides itself when nobody is near.",
   ],
+  ovg_blindspot: ["Gerçek arabaların yan aynalarındaki kör nokta ışığının overlay hâli. İki küçük ışığı sanal aynalarının üstüne ya da ekranın iki kenarına yerleştirirsin; arkadan bir araç ayarladığın mesafeye girdiğinde ışık soluk yanar, araç yanına geldiğinde o taraftaki ışık parlar. Uyarının kaç metreden başlayacağını ve dibindeki araç için susacağı en yakın mesafeyi sen belirlersin. iRacing yaklaşan aracın tarafını ancak yanına geldiğinde bildirdiği için o ana kadar iki ışık birden soluk yanar; istersen bunu kapatıp yalnızca yan yanayken uyarı alırsın.", "The blind spot light from real cars' wing mirrors, as an overlay. Place the two small lights over your virtual mirrors or at the screen edges; when a car behind enters the distance you set the light glows dimly, and when it pulls alongside the light on that side turns bright. You choose how many metres away the warning starts and the nearest distance below which a car right on your bumper stays silent. Because iRacing only reports which side a car is on once it is alongside, both lights glow dimly until then; you can turn that off and be warned only when a car is beside you."],
   ovg_spotterbar: [
     "Ekranın solunda ve sağında ince birer çubuk: yalnızca yanında araç olan taraf yanar. Çubuktaki işaret, yandaki aracın arkadan öne doğru ilerleyişini gösterir; tek araç, iki yanda araç ve tehlikeli yakınlık için ayrı renkler kullanılır. Radar kadar yer kaplamayan sade bir spotter isteyenler içindir. Düz çubuk ücretsiz; yay, segmentli ve neon gibi altı görünüm PRO.",
     "A thin bar on the left and right of the screen: only the side with a car alongside lights up. A marker on the bar shows that car moving from your rear to your front, with separate colours for one car, cars on both sides and dangerously close. For anyone who wants a spotter that takes less room than a radar. The flat bar is free; six other looks such as arc, segmented and neon are PRO.",

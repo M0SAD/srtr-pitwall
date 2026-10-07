@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-239
+
+- Küçük iyileştirmeler ve düzeltmeler.
+
+## 071026-238
+
+- Yeni overlay: Kör Nokta Uyarısı. Gerçek arabaların aynalarındaki kör nokta ışığı gibi, arkadan bir araç ayarladığın mesafeye girince ya da yanına gelince solda / sağda ışık yanar. En uzak ve en yakın mesafe, tasarım (ayna camı, simge, LED nokta, ışık şeridi), renk ve ışıklar arası mesafe ayarlanabilir. iRacing yaklaşan aracın tarafını ancak yanına geldiğinde bildirdiği için o ana kadar iki ışık birden soluk yanar (kapatılabilir).
+
 ## 071026-237
 
 - Küçük iyileştirmeler ve düzeltmeler.

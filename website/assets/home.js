@@ -80,15 +80,9 @@ addDict({
     "Messages pop up while you drive, with Steam-style desktop notifications. Do Not Disturb keeps them quiet.",
   ],
   f6_t: ["OBS yayın düzenleri", "OBS streaming layouts"],
-  f6_d: [
-    "Yayına özel düzenler, hazır sahneler (birazdan başlıyoruz, mola, kapanış), canlı sohbet ve yayın overlay'leri: start ışıkları, sürücü kartı, kafa kafaya, yarış sonucu ve hedef çubuğu.",
-    "Stream-only layouts, ready scenes (starting soon, be right back, ending), live chat and broadcast overlays: start lights, driver card, head to head, race result and goal bar.",
-  ],
+  f6_d: ["Yayına özel düzenler, canlı sohbet ve yayın overlay'leri: start ışıkları, sürücü kartı, kafa kafaya, yarış sonucu ve hedef çubuğu.", "Stream-only layouts, live chat and broadcast overlays: start lights, driver card, head to head, race result and goal bar."],
   f7_t: ["Topluluk merkezi", "Community hub"],
-  f7_d: [
-    "Ücretsiz hesapla topluluk düzenlerine ve temalarına göz at, onları kullan, puan ver ve yorum yaz; topluluk dashboard'larını da puanla ve yorumla. Kendi düzenini de paylaş.",
-    "With a free account, browse community layouts and themes, use them, rate them and comment — and rate and comment on community dashboards too. Share your own layout as well.",
-  ],
+  f7_d: ["Düzenini toplulukla paylaş; başkalarının düzenlerini canlı demoyla önizle ve tek tıkla kendi uygulamana al. Ücretsiz hesapla düzenlere ve temalara göz at, kullan, puan ver, yorum yaz.", "Share your layout with the community; preview other people's layouts with a live demo and bring them into your app in one click. With a free account you can browse layouts and themes, use them, rate them and comment."],
   f8_t: ["Tek tuşla ekran görüntüsü", "One-key screenshots"],
   f8_d: [
     "F12 oyunu overlay'ler ve filigranla birlikte yakalar; galeride paylaş.",

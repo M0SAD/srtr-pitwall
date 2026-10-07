@@ -64,6 +64,7 @@ const OVERLAYS = [
   ["speedo", "Hız Göstergesi"],
   ["radar", "Radar"],
   ["spotterbar", "Çubuk Spotter"],
+  ["blindspot", "Kör Nokta Uyarısı"],
   ["rejoin", "Piste Dönüş"],
   ["relative", "Yakındakiler (Relative)"],
   ["scene", "Yayın Sahnesi"],
