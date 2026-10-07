@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-254
+
+- Sohbet grupları: son mesajın üstünden 24 saat geçen grup, mesajlarıyla birlikte kendiliğinden silinir. Eskiden yalnızca hiç mesaj yazılmamış gruplar siliniyordu.
+
 ## 071026-253
 
 - Ülke bayrakları: ülke seçmemiş ya da ülkesi tanınmayan sürücülerde bayrak yerine küre simgesi görünür.

@@ -16171,3 +16171,30 @@ drop policy if exists "admin expenses" on public.expenses;
 create policy "admin expenses" on public.expenses for all using (public.is_admin()) with check (public.is_admin());
 revoke all on public.expenses from anon;
 grant select, insert, update, delete on public.expenses to authenticated;
+
+-- ===== c103: sessiz sohbet grupları kapanır =====
+-- Kural değişti (c92 yalnızca hiç mesaj yazılmamış grupları siliyordu): son gerçek mesajın üstünden 24 saat geçen grup
+-- silinir; hiç mesaj yoksa kuruluşundan 24 saat sonra. Sistem satırları (katıldı / ayrıldı / sahip / ad / arka plan) mesaj
+-- sayılmaz; silinmiş mesaj da sayılmaz. Üyelikler ve mesajlar "on delete cascade" ile gider. Saat başı pg_cron çalıştırır.
+create or replace function public.chat_groups_sweep() returns int
+language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+begin
+  with dead as (
+    select g.id from public.chat_groups g
+     where greatest(g.created_at, coalesce((
+             select max(m.created_at) from public.group_messages m
+              where m.group_id = g.id and not m.deleted
+                and coalesce(m.meta ->> 't', '') not in ('join', 'kick', 'leave', 'owner', 'rename', 'bg')), g.created_at))
+           < now() - interval '24 hours'
+  ), gone_notes as (
+    delete from public.notifications nt using dead d
+     where nt.kind in ('group_added', 'group_invite') and nt.data ->> 'group' = d.id::text
+  )
+  delete from public.chat_groups g using dead d where g.id = d.id;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function public.chat_groups_sweep() from public, anon, authenticated;
+grant execute on function public.chat_groups_sweep() to service_role;

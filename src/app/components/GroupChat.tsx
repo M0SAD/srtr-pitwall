@@ -132,8 +132,8 @@ export function NewGroup(props: { friends: Friend[]; onCreated: (id: string) => 
         kendiliğinden kapanır.
       </p>
       <p class="gnew-warn small">
-        <I.TriangleAlert /> Grupta 24 saat içinde hiç mesaj yazılmazsa grup kendiliğinden silinir. Davet ettiğin kişiler daveti kabul edince
-        gruba katılır.
+        <I.TriangleAlert /> Grupta son mesajın üstünden 24 saat geçerse grup, mesajlarıyla birlikte kendiliğinden silinir. Davet ettiğin kişiler daveti
+        kabul edince gruba katılır.
       </p>
       <Show when={err()}>
         <p class="error small">{err()}</p>
