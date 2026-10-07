@@ -858,6 +858,8 @@ export interface GeneralSettings {
   themeReadV1?: boolean;
   /** Bir kerelik geçiş yapıldı: Kan Şekeri ve Kalp Atışı kopyalarında "Her zaman göster" açıldı */
   healthAlwaysV1?: boolean;
+  /** Bir kerelik geçiş yapıldı: Sıralama Tablosu / Yakındakiler'de ülke bayrağı sütunu yeniden açıldı */
+  flairOnV2?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
   allowDuplicates: boolean;
   /** Ekran görüntüleri */
@@ -1550,6 +1552,30 @@ export function normalize(input: unknown): AppSettings {
     for (const pr of Object.values(out.profiles)) for (const i of Object.values(pr.overlays)) if (i.type === "glucose" || i.type === "heartrate") i.alwaysShow = true;
   }
   out.general.healthAlwaysV1 = true;
+  // Bir kerelik geçiş (flairOnV2): Sıralama Tablosu ve Yakındakiler'de ülke bayrağı sütunu her düzende yeniden açılır
+  // (listede yoksa sürücü adının soluna eklenir). Hesaptan / eski kayıttan gelen ayarlarda sütun kapalı kalmış olabiliyordu.
+  // Kullanıcı sonradan kapatırsa kapalı kalır.
+  if (!s.general?.flairOnV2) {
+    const fix = (i: OverlayInstance | undefined) => {
+      if (!i || (i.type !== "standings" && i.type !== "relative") || !i.options) return;
+      // Eski tek tek aç/kapa ayarı ve elle çok daraltılmış sütun genişliği de bayrağı gizleyebilir
+      if (i.options.showFlair === false) i.options.showFlair = true;
+      const cw = i.options.colWidths as Record<string, unknown> | undefined;
+      if (cw && typeof cw.flair === "number" && cw.flair < 20) delete cw.flair;
+      if (!Array.isArray(i.options.columns)) return;
+      const cols = (i.options.columns as { key: string; on: boolean }[]).filter((c) => c && typeof c.key === "string");
+      const cur = cols.find((c) => c.key === "flair");
+      if (cur) cur.on = true;
+      else {
+        const at = cols.findIndex((c) => c.key === "name");
+        cols.splice(at < 0 ? 0 : at, 0, { key: "flair", on: true });
+      }
+      i.options.columns = cols;
+    };
+    for (const pr of Object.values(out.profiles)) for (const i of Object.values(pr.overlays)) fix(i);
+    for (const i of Object.values(out.defaults ?? {})) fix(i);
+  }
+  out.general.flairOnV2 = true;
   // Yayın düzenlerinde sabit "stream-default" kimliği kalmaz: her yayın düzeninin kendine özel OBS adresi olur. Yeni kimlik
   // düzenin adından türetilir (bulut eski kaydı yeniden getirirse aynı kimlik çıksın, adres bir daha değişmesin).
   const legacyStream = out.profiles["stream-default"];

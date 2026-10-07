@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-248
+
+- Sıralama Tablosu ve Yakındakiler: ülke bayrağı sütunu bütün düzenlerde bir kereliğine yeniden açıldı (bazı düzenlerde kapalı kalmıştı). İstemezsen overlay ayarlarındaki sütun listesinden "Ülke"yi kapatabilirsin.
+
 ## 071026-247
 
 - Sıralama Tablosu ve Yakındakiler: ülke bayrağı, iRacing ülkenin kısa kodunu göndermediğinde ülke adından da bulunur.
