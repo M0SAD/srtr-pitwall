@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-245
+
+- Hız Göstergesi: "Dijital: LCD ekran" tasarımında sayı artık kutunun ortasında.
+- OBS'teki eski yayın adresi (…?layout=stream-default) yeniden eski "Varsayılan" yayın düzenini gösteriyor; adresi değiştirmeyenlerde başka bir yayın düzeni görünebiliyordu.
+
+## 071026-244
+
+- Sesli Mühendis overlay'i artık Demo modunda da görünüyor: kimse konuşmuyorken örnek bir cümle gösterir, böylece yerini ve görünümünü ayarlayabilirsin. Gerçek yarışta yine yalnızca mühendis ya da spotter konuşurken görünür.
+
 ## 071026-243
 
 - Düzen listesindeki sıra artık üst üste binme sırasını da belirliyor: soldaki "Düzende" listesinde üstte duran overlay, ekranda, OBS'te ve düzenleme tuvalinde diğerlerinin üstünde görünür. Sırayı listede sürükleyerek değiştirebilirsin.

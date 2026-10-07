@@ -6,7 +6,7 @@ export default defineOverlay({
   description:
     "Sesli mühendis ya da spotter konuşurken hoparlör simgesiyle birlikte ne dediğini altyazı olarak gösterir. Sesli Mühendis sayfasındaki ses paketiyle çalışır; sustuğunda kendiliğinden kaybolur.",
   category: "info",
-  topics: [{ name: "voice", hz: 5 }],
+  topics: [{ name: "voice", hz: 5 }, { name: "status", hz: 2 }],
   size: { w: 640, h: 84 },
   defaultPosition: { x: 640, y: 880 },
   defaultEnabled: false,

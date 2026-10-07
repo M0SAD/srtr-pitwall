@@ -82,6 +82,8 @@ export interface Profile {
   /** Tuval arka planının BU düzendeki hali. own: düzenin kendi görseli var (Rust: "p-<kimlik>" dosyası; yoksa ortak görsel);
    * enabled: bu düzende açık / kapalı (yoksa ortak ayar); rev: görsel değişince artar (yeniden yüklenir) */
   backdrop?: { own?: boolean; enabled?: boolean; rev?: number };
+  /** Düzenin eski kimliği (taşınan "stream-default"): eski OBS adresleri bu düzeni göstermeye devam eder */
+  legacyId?: string;
 }
 
 /** Bağlı yayın düzeni: `source` düzen kimliği ya da "@active" (uygulamada o an etkin düzen) */
@@ -1470,6 +1472,7 @@ export function normalize(input: unknown): AppSettings {
     if (p?.locked === true) prof.locked = true;
     if (p?.isDefault === true) prof.isDefault = true;
     if (typeof p?.sharedId === "string" && p.sharedId) prof.sharedId = p.sharedId;
+    if (p?.legacyId === "stream-default") prof.legacyId = "stream-default";
     if (p?.backdrop && typeof p.backdrop === "object") {
       const b: NonNullable<Profile["backdrop"]> = {};
       if (p.backdrop.own === true) b.own = true;
@@ -1551,13 +1554,18 @@ export function normalize(input: unknown): AppSettings {
   // düzenin adından türetilir (bulut eski kaydı yeniden getirirse aynı kimlik çıksın, adres bir daha değişmesin).
   const legacyStream = out.profiles["stream-default"];
   if (legacyStream && legacyStream.rules.mode === "stream") {
-    let h = 2166136261;
-    for (const ch of `stream-default|${legacyStream.name}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
-    let nid = `s${h.toString(36)}`;
+    let nid = legacyStreamId(legacyStream.name);
     while (out.profiles[nid]) nid += "x";
     delete out.profiles["stream-default"];
     legacyStream.id = nid;
+    // Eski OBS adresi (?layout=stream-default) çalışmaya devam etsin: bu düzen eski kimlikle de bulunur
+    legacyStream.legacyId = "stream-default";
     out.profiles[nid] = legacyStream;
+  }
+  // Daha önce taşınmış (işaretsiz) eski varsayılan yayın düzeni: kimliği adından türetilen kimlikse eski adres ona bağlanır
+  if (!Object.values(out.profiles).some((pr) => pr.legacyId === "stream-default")) {
+    const old = Object.values(out.profiles).find((pr) => pr.rules.mode === "stream" && pr.id.replace(/x+$/, "") === legacyStreamId(pr.name));
+    if (old) old.legacyId = "stream-default";
   }
   ensureDefaultFlags(out);
   if (!out.profiles[out.activeProfile]) out.activeProfile = defaultProfileId(false, out) ?? Object.keys(out.profiles)[0];
@@ -1693,6 +1701,13 @@ export function replaceSettings(value: unknown) {
   setSettingsSignal(s);
   scheduleSave(s);
   changeListeners.forEach((l) => l(s, false));
+}
+
+/** Eski "stream-default" yayın düzeninin taşındığı kimlik: düzenin adından türetilir (her bilgisayarda aynı çıkar) */
+function legacyStreamId(name: string): string {
+  let h = 2166136261;
+  for (const ch of `stream-default|${name}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return `s${h.toString(36)}`;
 }
 
 /**
@@ -1945,6 +1960,9 @@ function ruleScore(p: Profile, st: Status | undefined, mode: ProfileMode): numbe
 export function resolveProfile(st: Status | undefined, stream = false, forced?: string | null): Profile {
   const s = settings();
   if (forced && s.profiles[forced]) return s.profiles[forced];
+  // Eski kimlikle istenen düzen (taşınmış "stream-default"): OBS'teki eski adres aynı düzeni göstermeye devam eder
+  const legacy = forced ? Object.values(s.profiles).find((p) => p.legacyId === forced) : undefined;
+  if (legacy) return legacy;
   const list = Object.values(s.profiles);
   // Garaj / setup ekranı açıkken sürüş düzeni kalır: iRacing o sırada aracı "pistte değil, garajda değil" bildirir ve
   // izleme düzenine geçilirse sürüş düzenindeki Setup Örtüsü kayboluyordu.

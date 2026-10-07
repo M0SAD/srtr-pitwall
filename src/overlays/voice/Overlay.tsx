@@ -2,8 +2,8 @@
 // konuşan (Mühendis / Spotter) ve söylenen cümle görünür; konuşma bitince `hold` saniye sonra solarak kaybolur.
 
 import { Show, createEffect, createSignal, on, onCleanup } from "solid-js";
-import type { OverlayProps } from "@/sdk/overlay";
-import { useTopic } from "@/sdk/telemetry";
+import { onScreen, type OverlayProps } from "@/sdk/overlay";
+import { demoShow, useTopic } from "@/sdk/telemetry";
 import type { VoiceLine } from "@/sdk/types";
 import "./style.css";
 
@@ -69,7 +69,9 @@ export default function Voice(props: OverlayProps) {
     ),
   );
 
-  const view = () => shown() ?? (props.editing ? SAMPLE : null);
+  // Düzenlemede, panel önizlemesinde ve Demo modunda (kimse konuşmuyorken) örnek cümle görünür: overlay'in yeri ve
+  // görünümü ayarlanabilsin. Demo çoğunlukla sessiz olduğu için eskiden Demo'da hiç görünmüyordu.
+  const view = () => shown() ?? (props.editing || !onScreen() || demoShow() ? SAMPLE : null);
   const active = () => (shown() ? speaking() : true);
   const color = () =>
     view()?.role === "spotter"

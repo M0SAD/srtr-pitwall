@@ -217,3 +217,19 @@
 .sp-inred .sp-center b {
   color: var(--sp-red);
 }
+
+/* LCD: sayı kutunun ortasında; rakamlar üç hanelik sabit alanda sağa yaslı (soluk "888" ile üst üste oturur) */
+.sp-lcd .sp-box {
+  align-items: center;
+}
+.sp-lcd .sp-val {
+  align-self: center;
+  font-size: 4.6em;
+  width: calc(3ch + 0.12em);
+  text-align: right;
+  white-space: nowrap;
+}
+.sp-lcd .sp-val b,
+.sp-lcd .sp-ghost {
+  font-size: 1em;
+}
