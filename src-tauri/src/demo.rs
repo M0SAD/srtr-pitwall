@@ -380,6 +380,7 @@ impl Demo {
             player_user_id: 0,
             sim_mode: String::new(),
             sector_starts: vec![0.0, 0.29, 0.67],
+            ..Default::default()
         };
         let player_lap = cars[PLAYER].dist.floor() as i64;
         let air = rng.range(20.0, 27.0);

@@ -356,6 +356,10 @@ pub struct SessionData {
     pub sim_mode: String,
     /// Resmi sektör başlangıçları (tur yüzdesi, ilki 0; iRacing SplitTimeInfo). Boş: bilinmiyor
     pub sector_starts: Vec<f32>,
+    /// iRacing DriverInfo.DriverSetupName: garajda yüklü setup dosyası ("yaris1.sto"); diğer simlerde boş
+    pub setup_name: String,
+    /// iRacing DriverInfo.DriverSetupIsModified: yüklenen setup garajda değiştirildi (kaydedilmedi)
+    pub setup_modified: bool,
 }
 
 impl SessionData {

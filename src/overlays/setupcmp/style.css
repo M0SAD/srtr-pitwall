@@ -1,0 +1,115 @@
+/* Setup Karşılaştırma. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.sc {
+  box-sizing: border-box;
+  padding: 0.55em 0.7em 0.6em;
+  font-variant-numeric: tabular-nums;
+}
+.sc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin-bottom: 0.45em;
+}
+.sc-head b {
+  font-size: 0.78em;
+  letter-spacing: 0.08em;
+  color: var(--ov-dim);
+}
+.sc-head small {
+  font-size: 0.72em;
+  color: var(--ov-dim);
+}
+.sc-grid {
+  display: grid;
+  column-gap: 0.7em;
+  row-gap: 0.22em;
+  align-items: baseline;
+}
+.sc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-weight: var(--ov-weight-strong);
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--ov-line);
+}
+.sc-name.cur::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  background: var(--ov-accent, #4ea1ff);
+  vertical-align: 0.08em;
+}
+.sc-lbl {
+  font-size: 0.8em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.sc-lbl.strong {
+  color: var(--ov-text);
+  font-weight: var(--ov-weight-strong);
+}
+.sc-val {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+  min-width: 0;
+}
+.sc-val b {
+  font-weight: 500;
+}
+.sc-val.strong b {
+  font-size: 1.2em;
+  font-weight: var(--ov-weight-strong);
+}
+.sc-val i,
+.sc-row i {
+  font-style: normal;
+  font-size: 0.74em;
+  color: var(--sc-slow);
+}
+.sc-val.best b,
+.sc-row.best b {
+  color: var(--sc-best);
+}
+.sc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.sc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+}
+.sc-row .sc-name {
+  flex: 1;
+  text-align: left;
+  border: 0;
+  padding: 0;
+}
+.sc-row small {
+  font-size: 0.74em;
+  color: var(--ov-dim);
+}
+.sc-row b {
+  font-size: 1.15em;
+  font-weight: var(--ov-weight-strong);
+}
+.sc-row i {
+  min-width: 3.6em;
+  text-align: right;
+}
+.sc-note {
+  margin: 0.5em 0 0;
+  font-size: 0.78em;
+  line-height: 1.35;
+  color: var(--ov-dim);
+}

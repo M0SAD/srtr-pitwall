@@ -403,6 +403,8 @@ export interface TopicMap {
   /** Sektör süreleri ve tur bazlı fark geçmişi (Rust: timing.rs) */
   sectors: Sectors;
   gaps: Gaps;
+  /** Setup karşılaştırma (Rust: setupcmp.rs) */
+  setupcmp: SetupCmp;
   /** Canlı sohbet (olay tabanlı, iRacing'den bağımsız) */
   livechat: LiveChatTopic;
   livepoll: PollView;
@@ -729,3 +731,33 @@ export const WETNESS: string[] = [
   "Çok ıslak",
   "Sırılsıklam",
 ];
+
+/** Bir setup ile atılan turların özeti (Rust: setupcmp::Stats). Süreler sn; 0 = yok. */
+export interface SetupStats {
+  laps: number;
+  best: number;
+  /** En iyi turun sektörleri */
+  sectors: number[];
+  /** Sektör sektör en iyiler (farklı turlardan) */
+  opt: number[];
+  last: number;
+  /** Tur sürelerinin toplamı (ortalama = sum / laps) */
+  sum: number;
+}
+export interface SetupEntry {
+  name: string;
+  /** Yüklendikten sonra garajda değiştirilmiş (kaydedilmemiş) */
+  modified: boolean;
+  used: number;
+  /** Tüm zamanlar (bu pist ve araç) */
+  all: SetupStats;
+  /** Sadece bu oturum */
+  ses: SetupStats;
+}
+export interface SetupCmp {
+  /** Şu an yüklü setup ("" = sim vermiyor) */
+  current: string;
+  modified: boolean;
+  /** En son kullanılan en üstte */
+  setups: SetupEntry[];
+}

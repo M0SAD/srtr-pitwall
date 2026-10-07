@@ -44,6 +44,8 @@ pub enum Packet {
     Corners(crate::history::Corners),
     Sectors(crate::timing::Sectors),
     Gaps(crate::timing::Gaps),
+    /// Setup karşılaştırma (bkz. setupcmp.rs)
+    Setupcmp(crate::setupcmp::Packet),
     Traffic(crate::extras::Traffic),
     /// Fren / vites işareti, pist limiti, hasar (bkz. drivecues.rs)
     Brakepoint(crate::drivecues::Brakepoint),
@@ -205,6 +207,7 @@ const KNOWN: &[&str] = &[
     "corners",
     "sectors",
     "gaps",
+    "setupcmp",
     "brakepoint",
     "tracklimits",
     "damage",
@@ -331,6 +334,8 @@ struct State {
     cues: crate::drivecues::Cues,
     /// Stint / takım sürücüsü / pit kaybı takibi (`strategy` konusu), bkz. strategy.rs
     strategy: crate::strategy::Strategy,
+    /// Setup başına en iyi tur / sektörler (`setupcmp` konusu), bkz. setupcmp.rs
+    setups: crate::setupcmp::SetupCmp,
 }
 
 /// Tamamlanan turu arka planda yerel kuyruğa yazar ve arayüze haber verir (yükleme JS tarafında).
@@ -383,6 +388,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         laprec: Default::default(),
         cues: Default::default(),
         strategy: crate::strategy::Strategy::new(map_dir.clone()),
+        setups: crate::setupcmp::SetupCmp::new(map_dir.clone()),
     };
     let app_data = map_dir.clone();
     // Telemetri kaydı ayarı (general.telemetryRecord, varsayılan açık); saniyede bir okunur
@@ -640,6 +646,13 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             let done = crate::crashlog::guard(|| st.history.update(&st.frame, &st.session, !demo_on && connected)).flatten();
             save_record(&shared, done);
             crate::crashlog::guard(|| st.timing.update(&st.frame, &st.session, demo_on));
+            if connected && !demo_on && !preview {
+                crate::crashlog::guard(|| {
+                    let timing = &st.timing;
+                    let (f, raw) = (&st.frame, &st.raw);
+                    st.setups.update(f, raw, || timing.sectors(f, raw).last);
+                });
+            }
             // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
@@ -848,6 +861,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                     "corners" => Packet::Corners(st.history.corners(f)),
                     "sectors" => Packet::Sectors(st.timing.sectors(f, s)),
                     "gaps" => Packet::Gaps(st.timing.gaps(f, s)),
+                    "setupcmp" => Packet::Setupcmp(st.setups.packet(&st.raw)),
                     "traffic" => Packet::Traffic(crate::extras::traffic(f, s)),
                     "brakepoint" => Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)),
                     "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
@@ -889,6 +903,7 @@ mod publish_tests {
             laprec: Default::default(),
             cues: Default::default(),
             strategy: crate::strategy::Strategy::new(None),
+            setups: crate::setupcmp::SetupCmp::new(None),
         }
     }
 

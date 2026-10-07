@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-258
+
+- Yeni overlay: Setup Karşılaştırma. Garajda yüklediğin her setup ile attığın en iyi turu, sektörleri, teorik en iyiyi, ortalamayı ve tur sayısını tutar; setup'ları yan yana koyup hangisiyle daha hızlı olduğunu gösterir. 2 ile 6 arası setup karşılaştırılabilir; yalnızca bu oturum ya da aynı pist ve araçtaki tüm kayıtlar seçilebilir. iRacing'de çalışır.
+
 ## 071026-257
 
 - Sıralama Tablosu ve Yakındakiler artık test sürüşünde (iRacing Test Drive) gizleniyor. Overlay ayarlarındaki "Test sürüşünde gizle" seçeneğiyle kapatılabilir.

@@ -329,6 +329,8 @@ addDict({
     "Kimi izleyeceğini seç: öndeki, arkadaki, sınıf lideri, belirli bir araç / sürücü ya da işaretli arkadaşın|Son turdaki fark değişimi; son ve en iyi tur seninkiyle karşılaştırmalı|Pit: kaç tur önce / şu an pitte, lastik, iRating ve lisans, mini fark grafiği|Kart ya da kompakt şerit; gösterilecek bilgiler tek tek seçilir",
     "Choose who to follow: car ahead, car behind, class leader, a specific car / driver or a marked friend|Gap change over the last lap; last and best lap compared with yours|Pit: laps since / in the pits now, tyre, iRating and licence, mini gap chart|Card or compact strip; every field can be switched on or off",
   ],
+  ov_setupcmp_d: ["Garajda yüklediğin setup'ları yan yana karşılaştırır: hangisiyle daha hızlısın?", "Compares the setups you load in the garage side by side: which one are you faster with?"],
+  ov_setupcmp_h: ["Her setup için en iyi tur, sektörler, teorik en iyi, ortalama ve tur sayısı|En hızlı setup yeşil, diğerlerinde fark|2 ile 6 arası setup yan yana|Sadece bu oturum ya da aynı pist ve araçtaki tüm kayıtlar|Tablo ya da sade liste görünümü|iRacing", "Best lap, sectors, theoretical best, average and lap count for every setup|Fastest setup in green, the gap on the others|2 to 6 setups side by side|This session only, or everything recorded on the same track and car|Table or simple list view|iRacing"],
   ov_sectors_d: [
     "Güncel turun sektör süreleri canlı: mor sınıfın en iyisi, yeşil kişisel en iyi, sarı daha yavaş.",
     "Live sector times for the current lap: purple best in class, green personal best, yellow slower.",

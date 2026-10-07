@@ -26,6 +26,7 @@ mod sdk;
 mod sims;
 mod server;
 mod session;
+mod setupcmp;
 mod strategy;
 mod trackmap;
 mod translate;

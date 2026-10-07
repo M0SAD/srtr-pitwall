@@ -37,6 +37,7 @@ export const OVERLAYS = [
       ["telemetry", "⚙️", "free"],
       ["delta", "⏱️", "free"],
       ["sectors", "🟪", "mixed"],
+      ["setupcmp", "🔧", "free"],
       ["laptimes", "📋", "free"],
       ["corners", "〰️", "pro"],
       ["brakepoint", "🛑", "pro"],
@@ -127,6 +128,7 @@ export const NAMES = {
   telemetry: ["Telemetri Paneli", "Telemetry Panel"],
   delta: ["Delta Bar", "Delta Bar"],
   sectors: ["Sektör Süreleri", "Sector Times"],
+  setupcmp: ["Setup Karşılaştırma", "Setup Comparison"],
   laptimes: ["Tur Süreleri", "Lap Times"],
   corners: ["Viraj Analizi", "Corner Analysis"],
   brakepoint: ["Fren ve Vites İşareti", "Brake & Gear Markers"],
@@ -274,6 +276,7 @@ addDict({
     "En iyi turuna göre şu an önde misin, geride misin; saniyenin binde biri hassasiyetiyle anlık gösterir. Çubuk yeşile dönüyorsa zaman kazanıyor, kırmızıya dönüyorsa kaybediyorsun; eğilim oku farkın büyüyüp küçüldüğünü belirtir. Sıralama turlarında ve tempo çalışırken en çok bakılan göstergedir. iRacing ve ACC'de çalışır.",
     "Shows live, to the thousandth of a second, whether you are ahead of or behind your best lap. A bar turning green means you are gaining time, red means you are losing it, and a trend arrow shows whether the difference is growing or shrinking. It is the gauge drivers watch most in qualifying and pace runs. Works in iRacing and ACC.",
   ],
+  ovg_setupcmp: ["Setup denerken hangisinin gerçekten daha hızlı olduğunu aklında tutmak zorunda kalmazsın. Garajda bir setup yükleyip tur attığında overlay o setup'ın adıyla en iyi turunu, sektörlerini, ortalamanı ve tur sayını kaydeder; başka bir setup yüklediğinde ikisini yan yana koyar. Her satırda en hızlı olan yeşil görünür, diğerinde ne kadar geride kaldığın yazar; böylece yeni setup'ın turun hangi bölümünde kazandırıp hangisinde kaybettirdiğini görürsün. İstersen ikiden fazla setup'ı karşılaştırabilir, yalnızca bu oturumun turlarına ya da aynı pist ve araçta daha önce attığın turlara bakabilirsin.", "When you are testing setups you no longer have to remember which one was actually faster. Load a setup in the garage and drive, and the overlay records your best lap, sectors, average and lap count under that setup's name; load another one and it puts the two side by side. In every row the fastest value is green and the other shows how far behind it is, so you can see in which part of the lap the new setup gains or loses time. You can compare more than two setups, and look at this session's laps only or include laps you set earlier on the same track and car."],
   ovg_sectors: [
     "Güncel turunun sektör sürelerini canlı gösterir ve yayınlardaki gibi renklendirir: mor sınıfın en iyisi, yeşil kişisel en iyin, sarı daha yavaş. Turun hangi bölümünde zaman kazandığını ya da kaybettiğini hemen anlarsın; en iyi sektörlerinin toplamı olan teorik en iyi turu da görürsün. Farkı kişisel en iyine, son turuna ya da sınıfın en iyisine göre ölçebilirsin. Kompakt kutular ve renkli çubuklar ücretsiz, tablo tasarımı PRO.",
     "Shows the sector times of your current lap live, coloured the way broadcasts do it: purple for best in class, green for a personal best, yellow for slower. You immediately see in which part of the lap you gain or lose time, plus your theoretical best lap — the sum of your best sectors. The delta can be measured against your personal best, your last lap or the class best. Compact boxes and coloured bars are free; the table design is PRO.",

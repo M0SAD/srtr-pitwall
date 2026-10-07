@@ -85,6 +85,8 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   ers: ["acc", "ams2"],
   // Olay puanı sadece iRacing'de
   incidents: ["acc", "ac", "lmu", "ams2"],
+  // Setup adı sadece iRacing oturum bilgisinde var
+  setupcmp: ["acc", "ac", "lmu", "ams2"],
   incidentlog: ["acc", "ac", "lmu", "ams2"],
   // Sınıf tempo tahmini (class_est_lap) sadece iRacing'de: "daha hızlı sınıf" hiç tespit edilemez;
   // AC/ACC'de zaten rakip yok

@@ -46,6 +46,7 @@ const MAP: Record<string, () => JSX.Element> = {
   damage: () => <I.Car />,
   windcompass: () => <I.Globe />,
   sectors: () => <I.Timer />,
+  setupcmp: () => <I.Wrench />,
   gapchart: () => <I.Activity />,
   target: () => <I.User />,
   messages: () => <I.MessageSquare />,

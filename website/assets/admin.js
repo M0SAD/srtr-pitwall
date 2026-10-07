@@ -95,6 +95,7 @@ const OVERLAYS = [
   ["pitwindow", "Pit Penceresi"],
   ["results", "Yarış Sonucu"],
   ["sectors", "Sektör Süreleri"],
+  ["setupcmp", "Setup Karşılaştırma"],
   ["startlights", "Start Işıkları"],
   ["stint", "Stint Özeti"],
   ["target", "Rakip Takibi"],
