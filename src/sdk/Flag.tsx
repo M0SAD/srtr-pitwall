@@ -38,10 +38,31 @@ const NAMES: Record<string, string> = {
   andorra: "ad", liechtenstein: "li", "san marino": "sm", tunisia: "tn", algeria: "dz", nigeria: "ng", kenya: "ke",
 };
 
+/** Aksan ve noktalama farklarını yok sayan karşılaştırma anahtarı ("Côte d'Ivoire" = "cote divoire") */
+const fold = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+/** Bütün ülkelerin İngilizce adları → kod (tarayıcının ülke adı listesinden, ilk kullanımda kurulur) */
+let nameCache: Record<string, string> | null = null;
+function allNames(): Record<string, string> {
+  if (nameCache) return nameCache;
+  nameCache = {};
+  try {
+    const dn = new Intl.DisplayNames(["en"], { type: "region" });
+    for (const code of Object.keys(byCode)) {
+      if (code.length !== 2) continue;
+      const n = dn.of(code.toUpperCase());
+      if (n && n.toUpperCase() !== code.toUpperCase()) nameCache[fold(n)] = code;
+    }
+  } catch {
+    /* Intl.DisplayNames yoksa yalnızca elle yazılmış liste kullanılır */
+  }
+  for (const [n, code] of Object.entries(NAMES)) nameCache[fold(n)] = code;
+  return nameCache;
+}
+
 export function flagUrl(code: string | undefined | null): string | undefined {
   const c = String(code ?? "").trim().toLowerCase();
   if (!c) return undefined;
-  return byCode[ALIAS[c] ?? c] ?? (c.length === 3 ? byCode[ISO3[c]] : undefined) ?? (NAMES[c] ? byCode[NAMES[c]] : undefined);
+  return byCode[ALIAS[c] ?? c] ?? (c.length === 3 ? byCode[ISO3[c]] : undefined) ?? (NAMES[c] ? byCode[NAMES[c]] : undefined) ?? byCode[allNames()[fold(c)]];
 }
 
 export function Flag(props: { code: string | undefined | null; class?: string }) {

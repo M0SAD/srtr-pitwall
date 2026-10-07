@@ -197,7 +197,8 @@ pub fn parse(yaml: &str) -> SessionData {
                                     // Kısa kod gelmezse ülke adı kullanılır (arayüz adı bayrağa çevirir)
                                     "FlairName" => {
                                         if d.flair.is_empty() && !v.trim().is_empty() {
-                                            d.flair = v.to_string();
+                                            // iRacing ülkeyi adıyla gönderir ("Turkey"): bilinen adlar iki harfli koda çevrilir
+                                            d.flair = flair_code(v).map(str::to_string).unwrap_or_else(|| v.trim().to_string());
                                         }
                                     }
                                     "TeamName" => d.team_name = v.to_string(),
@@ -343,7 +344,8 @@ DriverInfo:
    CarClassID: 4029
    CarClassShortName: GT3 Class
    CarPath: porsche992rgt3
-   FlairShortName: TR
+   FlairID: 228
+   FlairName: Turkey
    CarClassColor: 0xFFDA59
    CarClassEstLapTime: 137.4561
    IRating: 2450
@@ -398,4 +400,135 @@ SplitTimeInfo:
         c.tire_kind = b'S';
         assert_eq!(crate::model::tire_kind(&c, &sd, false), b'S');
     }
+}
+
+/// iRacing ülke adı ("FlairName", İngilizce) → bayrak kodu (ISO 3166-1 alpha-2; Birleşik Krallık ülkeleri "GB-ENG" vb.).
+/// Listede olmayan ad olduğu gibi bırakılır: arayüz daha geniş bir ad listesiyle yeniden dener.
+pub fn flair_code(name: &str) -> Option<&'static str> {
+    let n = name.trim().to_lowercase();
+    Some(match n.as_str() {
+        "turkey" => "TR",
+        "türkiye" => "TR",
+        "turkiye" => "TR",
+        "germany" => "DE",
+        "united kingdom" => "GB",
+        "great britain" => "GB",
+        "england" => "GB-ENG",
+        "scotland" => "GB-SCT",
+        "wales" => "GB-WLS",
+        "northern ireland" => "GB-NIR",
+        "united states" => "US",
+        "united states of america" => "US",
+        "usa" => "US",
+        "italy" => "IT",
+        "spain" => "ES",
+        "france" => "FR",
+        "netherlands" => "NL",
+        "brazil" => "BR",
+        "portugal" => "PT",
+        "sweden" => "SE",
+        "finland" => "FI",
+        "poland" => "PL",
+        "belgium" => "BE",
+        "austria" => "AT",
+        "canada" => "CA",
+        "australia" => "AU",
+        "japan" => "JP",
+        "denmark" => "DK",
+        "norway" => "NO",
+        "switzerland" => "CH",
+        "czech republic" => "CZ",
+        "czechia" => "CZ",
+        "argentina" => "AR",
+        "mexico" => "MX",
+        "ireland" => "IE",
+        "new zealand" => "NZ",
+        "russia" => "RU",
+        "russian federation" => "RU",
+        "ukraine" => "UA",
+        "hungary" => "HU",
+        "romania" => "RO",
+        "bulgaria" => "BG",
+        "greece" => "GR",
+        "croatia" => "HR",
+        "slovenia" => "SI",
+        "slovakia" => "SK",
+        "serbia" => "RS",
+        "estonia" => "EE",
+        "latvia" => "LV",
+        "lithuania" => "LT",
+        "luxembourg" => "LU",
+        "iceland" => "IS",
+        "china" => "CN",
+        "south korea" => "KR",
+        "korea" => "KR",
+        "india" => "IN",
+        "indonesia" => "ID",
+        "malaysia" => "MY",
+        "singapore" => "SG",
+        "thailand" => "TH",
+        "philippines" => "PH",
+        "south africa" => "ZA",
+        "chile" => "CL",
+        "colombia" => "CO",
+        "peru" => "PE",
+        "uruguay" => "UY",
+        "venezuela" => "VE",
+        "israel" => "IL",
+        "saudi arabia" => "SA",
+        "united arab emirates" => "AE",
+        "azerbaijan" => "AZ",
+        "georgia" => "GE",
+        "kazakhstan" => "KZ",
+        "egypt" => "EG",
+        "morocco" => "MA",
+        "cyprus" => "CY",
+        "malta" => "MT",
+        "bosnia and herzegovina" => "BA",
+        "north macedonia" => "MK",
+        "albania" => "AL",
+        "montenegro" => "ME",
+        "belarus" => "BY",
+        "taiwan" => "TW",
+        "hong kong" => "HK",
+        "vietnam" => "VN",
+        "pakistan" => "PK",
+        "qatar" => "QA",
+        "kuwait" => "KW",
+        "bahrain" => "BH",
+        "ecuador" => "EC",
+        "paraguay" => "PY",
+        "bolivia" => "BO",
+        "costa rica" => "CR",
+        "panama" => "PA",
+        "puerto rico" => "PR",
+        "dominican republic" => "DO",
+        "guatemala" => "GT",
+        "moldova" => "MD",
+        "armenia" => "AM",
+        "monaco" => "MC",
+        "andorra" => "AD",
+        "liechtenstein" => "LI",
+        "san marino" => "SM",
+        "tunisia" => "TN",
+        "algeria" => "DZ",
+        "nigeria" => "NG",
+        "kenya" => "KE",
+        "iran" => "IR",
+        "iraq" => "IQ",
+        "jordan" => "JO",
+        "lebanon" => "LB",
+        "oman" => "OM",
+        "sri lanka" => "LK",
+        "bangladesh" => "BD",
+        "nepal" => "NP",
+        "kosovo" => "XK",
+        "el salvador" => "SV",
+        "honduras" => "HN",
+        "nicaragua" => "NI",
+        "cuba" => "CU",
+        "jamaica" => "JM",
+        "trinidad and tobago" => "TT",
+        _ => return None,
+    })
 }

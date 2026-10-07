@@ -262,7 +262,12 @@ pub fn player_iracing_from(sim: &str, sd: &SessionData) -> Option<PlayerIracing>
         irating: d.irating,
         license: d.license.clone(),
         lic_color: if is_hex_color(&d.lic_color) { d.lic_color.to_ascii_lowercase() } else { String::new() },
-        country: d.flair.trim().to_ascii_uppercase(),
+        // Yalnızca bayrak kodu gönderilir (ör. TR, GB-ENG); koda çevrilemeyen ülke adı gönderilmez
+        country: {
+            let c = d.flair.trim().to_ascii_uppercase();
+            let short = (2..=3).contains(&c.len()) && c.chars().all(|ch| ch.is_ascii_alphanumeric());
+            if short || (c.starts_with("GB-") && c.len() == 6) { c } else { String::new() }
+        },
         category: sd.category.chars().filter(|c| c.is_ascii_alphabetic()).collect::<String>().to_ascii_lowercase(),
     })
 }
