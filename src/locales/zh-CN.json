@@ -4624,6 +4624,7 @@
   "PRO olmayan kullanıcılara programdaki PRO bölümünün ve web sitesindeki PRO alanlarının (ana sayfa fiyatlar, Hesabım) üstünde gösterilir. Kullanıcı kartı 7 gün gizleyebilir. Metinleri dil dil yazabilirsin: bir dilde boş bırakılan alan için İngilizce, o da yoksa Türkçe gösterilir.": "向非 PRO 用户显示在应用 PRO 部分及网站 PRO 区域（首页价格、我的账户）上方。用户可将卡片隐藏 7 天。文本可按语言分别填写：某语言留空时显示英语，英语也为空则显示土耳其语。",
   "PRO olmayan üye gibi gör": "以非 PRO 会员视角查看",
   "PRO olmayan üye görünümü açık": "非 PRO 会员视图已开启",
+  "PRO olmayanlar": "非 PRO",
   "PRO overlay": "PRO overlay",
   "PRO overlay listesi kaydedildi": "PRO overlay 列表已保存",
   "PRO overlay'ler": "PRO overlay",

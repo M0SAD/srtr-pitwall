@@ -1,6 +1,7 @@
 // Overlay türlerine göre liste ikonları
 import { For, createSignal, type JSX } from "solid-js";
 import * as I from "./icons";
+import { isProOverlay } from "@/cloud/account";
 
 const MAP: Record<string, () => JSX.Element> = {
   relative: () => <I.Layers />,
@@ -81,6 +82,15 @@ export const CATEGORY_NAMES: Record<string, string> = {
 // Kalıcı değildir: program yeniden açıldığında "Tümü" ile başlar (unutulan süzgeç overlay'leri saklamasın).
 const [catFilter, setCatFilter] = createSignal("");
 export { catFilter, setCatFilter };
+/** Overlay seçili süzgece uyuyor mu: kategori, "__pro" (yalnızca PRO) ya da "__free" (PRO olmayanlar) */
+export const catMatch = (m: { id: string; category: string } | undefined): boolean => {
+  const c = catFilter();
+  if (!c) return true;
+  if (!m) return false;
+  if (c === "__pro") return isProOverlay(m.id);
+  if (c === "__free") return !isProOverlay(m.id);
+  return m.category === c;
+};
 
 /** Arama kutusunun altındaki "Kategori" açılır menüsü */
 export function CategoryFilter() {
@@ -90,6 +100,8 @@ export function CategoryFilter() {
       <select value={catFilter()} onChange={(e) => setCatFilter(e.currentTarget.value)}>
         <option value="">Tümü</option>
         <For each={Object.entries(CATEGORY_NAMES)}>{([id, name]) => <option value={id}>{name}</option>}</For>
+        <option value="__pro">PRO olanlar</option>
+        <option value="__free">PRO olmayanlar</option>
       </select>
     </label>
   );

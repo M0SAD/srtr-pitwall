@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-263
+
+- Yakıt Hesaplayıcı'da "Her zaman göster" işareti tüm düzenlerde bir kereliğine kaldırıldı. İstersen overlay ayarından yeniden açabilirsin.
+
+## 071026-262
+
+- Overlay listelerindeki "Kategori" menüsüne "PRO olanlar" ve "PRO olmayanlar" seçenekleri eklendi.
+
 ## 071026-261
 
 - Şu overlay'ler artık PRO: G-Force, Düz Harita, Direksiyon Ekranı, Mini Harita, Telemetri Paneli ve Kalp Atışı.

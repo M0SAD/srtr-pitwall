@@ -858,6 +858,7 @@ export interface GeneralSettings {
   themeReadV1?: boolean;
   /** Bir kerelik geçiş yapıldı: Kan Şekeri ve Kalp Atışı kopyalarında "Her zaman göster" açıldı */
   healthAlwaysV1?: boolean;
+  fuelAlwaysOffV1?: boolean;
   /** Bir kerelik geçiş yapıldı: Sıralama Tablosu / Yakındakiler'de ülke bayrağı sütunu yeniden açıldı */
   flairOnV2?: boolean;
   /** Aynı overlay'den birden fazla eklenebilsin */
@@ -1552,6 +1553,14 @@ export function normalize(input: unknown): AppSettings {
     for (const pr of Object.values(out.profiles)) for (const i of Object.values(pr.overlays)) if (i.type === "glucose" || i.type === "heartrate") i.alwaysShow = true;
   }
   out.general.healthAlwaysV1 = true;
+  // Bir kerelik geçiş (fuelAlwaysOffV1): Yakıt Hesaplayıcı'da "Her zaman göster" her düzende ve overlay varsayılanında
+  // kapatılır (bazı kayıtlarda açık kalmıştı). Kullanıcı sonradan açarsa açık kalır.
+  if (!s.general?.fuelAlwaysOffV1) {
+    for (const pr of Object.values(out.profiles)) for (const i of Object.values(pr.overlays)) if (i.type === "fuel") i.alwaysShow = false;
+    const fd = (out.defaults as Record<string, { alwaysShow?: boolean } | undefined>)?.fuel;
+    if (fd) fd.alwaysShow = false;
+  }
+  out.general.fuelAlwaysOffV1 = true;
   // Bir kerelik geçiş (flairOnV2): Sıralama Tablosu ve Yakındakiler'de ülke bayrağı sütunu her düzende yeniden açılır
   // (listede yoksa sürücü adının soluna eklenir). Hesaptan / eski kayıttan gelen ayarlarda sütun kapalı kalmış olabiliyordu.
   // Kullanıcı sonradan kapatırsa kapalı kalır.

@@ -18,7 +18,7 @@ import { lang, localeTag, t, translateText } from "@/sdk/i18n";
 import { isAdmin, isHiddenOverlay, isLocked, isProOverlay, markedHiddenOverlay } from "@/cloud/account";
 import { useTopic } from "@/sdk/telemetry";
 import { SIM_NAMES, currentSim, overlaySupportsSim } from "@/overlays/simSupport";
-import { CATEGORY_NAMES, CategoryFilter, catFilter, overlayIcon } from "../overlayIcons";
+import { CATEGORY_NAMES, CategoryFilter, catFilter, catMatch, overlayIcon } from "../overlayIcons";
 import * as I from "../icons";
 import { dragSort } from "../dragSort";
 
@@ -150,7 +150,7 @@ export function OverlayPalette(props: {
   const needle = () => fold(q().trim());
   const hit = (m: OverlayManifest) => fold(t(m.name)).includes(needle()) || fold(m.name).includes(needle());
   /** Kategori süzgeci (arama kutusunun altındaki menü; Overlaylarım sayfasıyla ortak) */
-  const inCat = (m: OverlayManifest | undefined) => !catFilter() || m?.category === catFilter();
+  const inCat = (m: OverlayManifest | undefined) => catMatch(m);
   const addedAll = createMemo(() => {
     const pos = new Map(orderedOverlays(usable()).map((m, i) => [m.id, i]));
     return Object.entries(props.profile.overlays)

@@ -4624,6 +4624,7 @@
   "PRO olmayan kullanıcılara programdaki PRO bölümünün ve web sitesindeki PRO alanlarının (ana sayfa fiyatlar, Hesabım) üstünde gösterilir. Kullanıcı kartı 7 gün gizleyebilir. Metinleri dil dil yazabilirsin: bir dilde boş bırakılan alan için İngilizce, o da yoksa Türkçe gösterilir.": "Näytetään ei-PRO-käyttäjille sovelluksen PRO-osion ja sivuston PRO-alueiden (etusivun hinnat, Oma tili) yläpuolella. Käyttäjä voi piilottaa kortin 7 päiväksi. Voit kirjoittaa tekstit kielikohtaisesti: jos kentän jättää jollain kielellä tyhjäksi, näytetään englanti ja jos sitäkään ei ole, turkki.",
   "PRO olmayan üye gibi gör": "Näytä kuten jäsen ilman PRO:ta",
   "PRO olmayan üye görünümü açık": "Näkymä jäsenenä ilman PRO:ta on päällä",
+  "PRO olmayanlar": "Ei-PRO",
   "PRO overlay": "PRO-overlay",
   "PRO overlay listesi kaydedildi": "PRO-overlaylista tallennettu",
   "PRO overlay'ler": "PRO-overlayt",

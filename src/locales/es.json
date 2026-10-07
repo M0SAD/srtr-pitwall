@@ -4624,6 +4624,7 @@
   "PRO olmayan kullanıcılara programdaki PRO bölümünün ve web sitesindeki PRO alanlarının (ana sayfa fiyatlar, Hesabım) üstünde gösterilir. Kullanıcı kartı 7 gün gizleyebilir. Metinleri dil dil yazabilirsin: bir dilde boş bırakılan alan için İngilizce, o da yoksa Türkçe gösterilir.": "Se muestra a los usuarios sin PRO encima de la sección PRO de la app y de las zonas PRO de la web (precios de la página principal, Mi cuenta). El usuario puede ocultar la tarjeta 7 días. Puedes escribir los textos por idioma: si un campo queda vacío en un idioma se muestra en inglés, y si tampoco existe, en turco.",
   "PRO olmayan üye gibi gör": "Ver como miembro sin PRO",
   "PRO olmayan üye görünümü açık": "Vista de miembro sin PRO activada",
+  "PRO olmayanlar": "No PRO",
   "PRO overlay": "Overlay PRO",
   "PRO overlay listesi kaydedildi": "Lista de overlays PRO guardada",
   "PRO overlay'ler": "Overlays PRO",
