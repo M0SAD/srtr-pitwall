@@ -67,7 +67,7 @@ export function flagUrl(code: string | undefined | null): string | undefined {
 
 export function Flag(props: { code: string | undefined | null; class?: string }) {
   return (
-    <Show when={flagUrl(props.code)} fallback={<span class={props.class}>{props.code}</span>}>
+    <Show when={flagUrl(props.code)} fallback={<span class={props.class}>{String(props.code ?? "").trim().length <= 3 ? props.code : ""}</span>}>
       {(u) => <img class={`ov-flag ${props.class ?? ""}`} src={u()} alt={props.code ?? ""} title={props.code ?? ""} draggable={false} />}
     </Show>
   );

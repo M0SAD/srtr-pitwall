@@ -171,6 +171,10 @@ pub fn parse(yaml: &str) -> SessionData {
                     match list {
                         List::Drivers => {
                             if let Some(d) = cur_driver.as_mut() {
+                                // Tanılama: iRacing'in ülke / bayrak için gönderdiği alanların adı ve örnek değeri bir kez günlüğe yazılır
+                                if k.contains("Flair") || k.contains("Club") || k.contains("Country") {
+                                    note_flair_key(k, v);
+                                }
                                 match k {
                                     "CarIdx" => d.car_idx = v.parse().unwrap_or(-1),
                                     "UserName" => d.name = v.to_string(),
@@ -196,9 +200,18 @@ pub fn parse(yaml: &str) -> SessionData {
                                     }
                                     // Kısa kod gelmezse ülke adı kullanılır (arayüz adı bayrağa çevirir)
                                     "FlairName" => {
-                                        if d.flair.is_empty() && !v.trim().is_empty() {
+                                        // "-none-": sürücü ülke seçmemiş
+                                        if d.flair.is_empty() && !v.trim().is_empty() && !v.trim().starts_with('-') {
                                             // iRacing ülkeyi adıyla gönderir ("Turkey"): bilinen adlar iki harfli koda çevrilir
                                             d.flair = flair_code(v).map(str::to_string).unwrap_or_else(|| v.trim().to_string());
+                                        }
+                                    }
+                                    // Eski oturum bilgisi: ülke "kulüp" adıyla gelir; yalnızca bir ülke adıysa kullanılır
+                                    "ClubName" => {
+                                        if d.flair.is_empty() {
+                                            if let Some(c) = flair_code(v) {
+                                                d.flair = c.to_string();
+                                            }
                                         }
                                     }
                                     "TeamName" => d.team_name = v.to_string(),
@@ -406,6 +419,10 @@ SplitTimeInfo:
 /// Listede olmayan ad olduğu gibi bırakılır: arayüz daha geniş bir ad listesiyle yeniden dener.
 pub fn flair_code(name: &str) -> Option<&'static str> {
     let n = name.trim().to_lowercase();
+    // Latin-1 olarak okunmuş UTF-8 ("TÃ¼rkiye") de tanınsın
+    if n.starts_with('t') && n.ends_with("rkiye") {
+        return Some("TR");
+    }
     Some(match n.as_str() {
         "turkey" => "TR",
         "türkiye" => "TR",
@@ -531,4 +548,21 @@ pub fn flair_code(name: &str) -> Option<&'static str> {
         "trinidad and tobago" => "TT",
         _ => return None,
     })
+}
+
+/// Ülke / bayrakla ilgili her alan adı ilk görüldüğünde örnek değeriyle crash.log'a yazılır (bayrak sorunlarını
+/// uzaktan teşhis etmek için; oturum başına değil, uygulama açıkken alan başına bir kez).
+fn note_flair_key(k: &str, v: &str) {
+    use std::sync::{Mutex, OnceLock};
+    static SEEN: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    if v.trim().is_empty() {
+        return;
+    }
+    let Ok(mut seen) = SEEN.get_or_init(|| Mutex::new(Vec::new())).lock() else { return };
+    if seen.iter().any(|x| x == k) || seen.len() >= 12 {
+        return;
+    }
+    seen.push(k.to_string());
+    let sample: String = v.chars().take(40).collect();
+    crate::crashlog::note(&format!("bayrak-alani {k} = {sample} -> {}", flair_code(v).unwrap_or("?")));
 }

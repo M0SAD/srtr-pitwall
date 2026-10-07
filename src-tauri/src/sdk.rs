@@ -606,8 +606,12 @@ mod win {
                 )
             };
             let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
-            // Latin-1 -> UTF-8: her bayt bir Unicode kod noktasıdır.
-            Some(bytes[..end].iter().map(|&b| b as char).collect())
+            // iRacing metni UTF-8 gönderir (ör. "Türkiye"); geçerli UTF-8 değilse eski Latin-1 sayılır (her bayt bir kod noktası).
+            // Eskiden hep Latin-1 okunduğu için aksanlı harfler ("ü", "é") bozuluyordu.
+            Some(match std::str::from_utf8(&bytes[..end]) {
+                Ok(s) => s.to_string(),
+                Err(_) => bytes[..end].iter().map(|&b| b as char).collect(),
+            })
         }
 
         /// Yeni bir telemetri satırı varsa `frame`'e yazar ve true döner.
