@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-264
+
+- Fren ve Vites İşareti:
+  - Yeni ayar "Fren noktaları neye göre": tüm zamanlardaki kendi rekorun, bu oturumdaki en iyi turun ya da topluluk telemetrisindeki rekor tur.
+  - Üç yeni tabela tasarımı: Neon tabela, Uyarı şeridi ve İkaz üçgeni.
+  - "Büyük minimal işaret" ve "Dikey çubuk" tasarımları kaldırıldı.
+  - Mesafe levhalarında son kutu "GAZ KES" yazısı sığacak şekilde büyütüldü.
+  - Arka plan opaklığı düşürülünce içteki kutuların arka planı da şeffaflaşıyor.
+- Tamamı PRO olan overlay'lerde tasarım seçeneklerinin yanında artık ayrıca "PRO" yazmıyor.
+
 ## 081026-263
 
 - Yakıt Hesaplayıcı'da "Her zaman göster" işareti tüm düzenlerde bir kereliğine kaldırıldı. İstersen overlay ayarından yeniden açabilirsin.

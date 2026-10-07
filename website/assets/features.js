@@ -344,8 +344,8 @@ addDict({
     "A countdown to the braking points of your best valid lap, the gear for the corner and your braking difference.",
   ],
   ov_brakepoint_h: [
-    "Sıradaki fren noktasına metre metre geri sayım; ŞİMDİ uyarısı için ayarlanabilir tepki payı|Virajın vitesi ve isteğe bağlı en düşük hızı|Son virajda referansa göre kaç metre erken / geç frenlediğin|Gaz kesme noktaları ve tur şeridi|3 tasarım: yatay çubuk, büyük minimal işaret; PRO: dikey çubuk",
-    "Metre-by-metre countdown to the next braking point; adjustable reaction lead for the NOW cue|The gear for the corner and, optionally, its minimum speed|How many metres earlier / later than the reference you braked at the last corner|Lift points and a lap strip|3 designs: horizontal bar, big minimal cue; PRO: vertical bar",
+    "Sıradaki fren noktasına metre metre geri sayım; ŞİMDİ uyarısı için ayarlanabilir tepki payı|Virajın vitesi ve isteğe bağlı en düşük hızı|Son virajda referansa göre kaç metre erken / geç frenlediğin|Gaz kesme noktaları ve tur şeridi|Referans seçimi: kendi rekorun, bu oturumun en iyi turu ya da topluluk telemetrisindeki rekor|7 tasarım: yatay çubuk, parlayan FREN tabelası, neon tabela, uyarı şeridi, ikaz üçgeni, mesafe levhaları, geri sayım halkası",
+    "Metre-by-metre countdown to the next braking point; adjustable reaction lead for the NOW cue|The gear for the corner and, optionally, its minimum speed|How many metres earlier / later than the reference you braked at the last corner|Lift points and a lap strip|Reference choice: your own record, this session's best lap or the record from community telemetry|7 designs: horizontal bar, glowing BRAKE sign, neon sign, hazard strip, warning triangle, distance boards, countdown ring",
   ],
   ov_tracklimits_d: [
     "Süren tur hâlâ geçerli mi, kaç kez pist dışına çıktın, kaç turun geçersiz sayıldı.",

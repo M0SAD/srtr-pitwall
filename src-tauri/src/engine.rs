@@ -137,6 +137,10 @@ impl Subscriber {
 
 #[derive(Default)]
 pub struct Shared {
+    /// Arayüzün indirdiği topluluk fren referansı (bkz. `brake_community_set`); motor bir sonraki karede alır
+    pub brake_community: Mutex<Option<crate::drivecues::CommunityRef>>,
+    /// Şu anki pist + araç (telemetri kimlikleri); arayüz topluluk rekorunu bununla arar (`brake_combo`)
+    pub brake_combo: Mutex<crate::drivecues::Combo>,
     pub demo: AtomicBool,
     pub connected: AtomicBool,
     pub edit_mode: AtomicBool,
@@ -656,10 +660,14 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
+                *shared.brake_combo.lock() = if connected && !demo_on && !preview { st.cues.combo() } else { Default::default() };
                 rec_enabled = crate::with_settings(&app, |v| v.and_then(|v| v.pointer("/general/telemetryRecord").and_then(|x| x.as_bool()))).unwrap_or(true);
             }
             // Fren noktası referansı ve pist limiti sayaçları (demo verisinde dosyaya yazılmaz)
             crate::crashlog::guard(|| st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref()));
+            if let Some(c) = shared.brake_community.lock().take() {
+                st.cues.set_community(c);
+            }
             let rec_on = rec_enabled && !demo_on && !preview && connected && demo.is_none();
             if let Some(lap) = crate::crashlog::guard(|| st.laprec.update(&st.frame, &st.raw, st.sim, rec_on)).flatten() {
                 save_lap(&app, app_data.as_deref(), lap);

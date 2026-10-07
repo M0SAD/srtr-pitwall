@@ -340,12 +340,67 @@ pub struct Brakepoint {
     pub on_pit_road: bool,
     pub on_track: bool,
     pub zones: Vec<Zone>,
+    /// Bu oturumun en iyi temiz turu (ayar: "Bu oturum")
+    pub session: RefPkt,
+    /// Topluluk telemetrisindeki rekor tur (ayar: "Topluluk rekoru"); arayüz indirip `brake_community_set` ile verir
+    pub community: RefPkt,
+    /// Telemetri kayıtlarıyla aynı pist + araç kimliği (topluluk rekorunu aramak için)
+    pub combo: Combo,
 }
+
+/// Ek referansın (oturum / topluluk) arayüze giden hali
+#[derive(Serialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct RefPkt {
+    pub has_ref: bool,
+    pub ref_time: f32,
+    /// Topluluk rekorunun sahibi
+    pub name: String,
+    pub next: Option<NextZone>,
+    pub last: Option<LastZone>,
+    pub zones: Vec<Zone>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Combo {
+    pub sim: String,
+    pub track_id: String,
+    pub track_config: String,
+    pub car_id: String,
+}
+
+/// Arayüzün verdiği topluluk rekoru (bkz. `brake_community_set`)
+#[derive(Deserialize, Clone, Default, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CommunityRef {
+    pub combo: Combo,
+    pub time: f32,
+    pub name: String,
+    pub zones: Vec<Zone>,
+}
+
+/// Bir referans tur ve ona göre takip: geçilen nokta, son virajdaki fark
+#[derive(Default)]
+struct RefTrack {
+    reference: Option<RefLap>,
+    /// Referansta bu geçişte karşılanan nokta
+    done: Option<usize>,
+    last: Option<LastZone>,
+    last_id: u32,
+}
+
+const R_BEST: usize = 0;
+const R_SESSION: usize = 1;
+const R_COMMUNITY: usize = 2;
 
 #[derive(Default)]
 struct BrakeRec {
     key: String,
-    reference: Option<RefLap>,
+    /// 0: tüm zamanların en iyisi (dosyada), 1: bu oturumun en iyisi, 2: topluluk rekoru
+    refs: [RefTrack; 3],
+    combo: Combo,
+    community_name: String,
     from_file: bool,
     /// Süren turun noktaları
     cur: Vec<Zone>,
@@ -364,10 +419,6 @@ struct BrakeRec {
     thr_high: bool,
     /// Son gaz kesme: (tur yüzdesi, üzerinden geçen süre)
     lift: Option<(f32, f32)>,
-    /// Referansta bu geçişte karşılanan nokta
-    done: Option<usize>,
-    last: Option<LastZone>,
-    last_id: u32,
 }
 
 fn safe_name(key: &str) -> String {
@@ -407,53 +458,75 @@ impl BrakeRec {
         self.prev_inc = f.incidents;
     }
 
-    fn set_key(&mut self, key: String, dir: Option<&Path>, demo: bool) {
+    fn set_key(&mut self, key: String, dir: Option<&Path>, demo: bool) -> bool {
         if key == self.key {
-            return;
+            return false;
         }
         *self = BrakeRec { key, prev_pct: -1.0, ..Default::default() };
         if demo {
             // Demo pisti: fren bölgeleri demo.rs `speed_factor` ile aynı yerde (viraj − %3),
             // birkaç metre kaydırılmış ki "erken / geç" farkı da görünsün
             let z = |pct: f32, gear: i32, speed: f32, min: f32| Zone { pct, kind: 0, gear, speed, min_speed: min, lift: pct - 0.004 };
-            self.reference = Some(RefLap {
-                time: 0.0,
-                len_m: 0.0,
-                zones: vec![z(0.0885, 3, 71.0, 39.0), z(0.3418, 2, 70.0, 38.0), z(0.5782, 4, 72.0, 40.0), z(0.8326, 3, 71.0, 39.0)],
-            });
-            return;
+            // Demoda üç kaynak da aynı örnek noktaları gösterir
+            for t in self.refs.iter_mut() {
+                t.reference = Some(RefLap {
+                    time: 0.0,
+                    len_m: 0.0,
+                    zones: vec![z(0.0885, 3, 71.0, 39.0), z(0.3418, 2, 70.0, 38.0), z(0.5782, 4, 72.0, 40.0), z(0.8326, 3, 71.0, 39.0)],
+                });
+            }
+            self.community_name = "Demo".into();
+            return true;
         }
         if self.key.is_empty() {
-            return;
+            return true;
         }
         if let Some(text) = dir.and_then(|d| std::fs::read_to_string(ref_file(d, &self.key)).ok()) {
             if let Ok(r) = serde_json::from_str::<RefLap>(&text) {
                 if !r.zones.is_empty() && r.zones.len() < 200 {
-                    self.reference = Some(r);
+                    self.refs[R_BEST].reference = Some(r);
                     self.from_file = true;
                 }
             }
         }
+        true
+    }
+
+    /// Arayüzün indirdiği topluluk rekoru: yalnızca şu anki pist + araç içinse kullanılır
+    fn set_community(&mut self, c: CommunityRef) {
+        if self.key.is_empty() || self.key == "demo" || c.combo != self.combo {
+            return;
+        }
+        let mut zones: Vec<Zone> = c.zones.into_iter().filter(|z| (0.0..=1.0).contains(&z.pct)).take(150).collect();
+        zones.sort_by(|a, b| a.pct.total_cmp(&b.pct));
+        self.refs[R_COMMUNITY] = RefTrack { reference: if zones.is_empty() { None } else { Some(RefLap { time: c.time, len_m: 0.0, zones }) }, ..Default::default() };
+        self.community_name = c.name.chars().take(60).collect();
+    }
+
+    fn any_ref(&self) -> Option<&RefLap> {
+        self.refs.iter().find_map(|t| t.reference.as_ref())
     }
 
     /// Oyuncunun yeni fren / gaz kesme başlangıcını referansla karşılaştırır
     fn compare(&mut self, pct: f32, kind: u8, len: f32) {
-        let Some(r) = self.reference.as_ref() else { return };
         if len <= 0.0 {
             return;
         }
-        let best = r
-            .zones
-            .iter()
-            .enumerate()
-            .map(|(i, z)| (i, wrap_pct(pct - z.pct) * len))
-            .min_by(|a, b| a.1.abs().partial_cmp(&b.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
-        if let Some((i, diff)) = best {
-            // Referans noktasından çok uzaktaki fren başka bir şeydir (trafik, hata)
-            if diff.abs() <= 150.0 && (kind == 0 || r.zones[i].kind == 1) {
-                self.last_id += 1;
-                self.last = Some(LastZone { n: i + 1, diff, kind: r.zones[i].kind, id: self.last_id });
-                self.done = Some(i);
+        for t in self.refs.iter_mut() {
+            let Some(r) = t.reference.as_ref() else { continue };
+            let best = r
+                .zones
+                .iter()
+                .enumerate()
+                .map(|(i, z)| (i, wrap_pct(pct - z.pct) * len))
+                .min_by(|a, b| a.1.abs().partial_cmp(&b.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
+            if let Some((i, diff)) = best {
+                // Referans noktasından çok uzaktaki fren başka bir şeydir (trafik, hata)
+                if diff.abs() <= 150.0 && (kind == 0 || r.zones[i].kind == 1) {
+                    t.last_id += 1;
+                    t.last = Some(LastZone { n: i + 1, diff, kind: r.zones[i].kind, id: t.last_id });
+                    t.done = Some(i);
+                }
             }
         }
     }
@@ -469,7 +542,21 @@ impl BrakeRec {
             let car = if d.car_path.is_empty() { &d.car_name } else { &d.car_path };
             format!("{}_{}_{}__{}", sim, s.track_name, s.track_config, car).to_lowercase()
         };
-        self.set_key(key, dir, demo);
+        if self.set_key(key, dir, demo) && !demo {
+            // Telemetri kayıtlarındaki kimliklerle aynı (bkz. laprec.rs)
+            let slug = crate::laprec::slug;
+            self.combo = Combo {
+                sim: sim.to_string(),
+                track_id: if s.track_id > 0 { s.track_id.to_string() } else { slug(&s.track_name) },
+                track_config: s.track_config.clone(),
+                car_id: match me {
+                    Some(d) if d.car_id > 0 => d.car_id.to_string(),
+                    Some(d) if !d.car_path.is_empty() => slug(&d.car_path),
+                    Some(d) => slug(&d.car_name),
+                    None => String::new(),
+                },
+            };
+        }
         if self.key.is_empty() {
             return;
         }
@@ -484,7 +571,7 @@ impl BrakeRec {
             self.reset_lap(f, false);
             return;
         }
-        let len = track_len(s, self.reference.as_ref());
+        let len = track_len(s, self.any_ref());
         let surface = f.cars.get(f.player_idx as usize).map(|c| c.surface).unwrap_or(3);
         let off = surface == 0 || f.tyres_out >= 4;
 
@@ -493,7 +580,7 @@ impl BrakeRec {
         if self.prev_pct > 0.85 && pct < 0.15 {
             self.finish_lap(f, s, demo, dir);
             self.reset_lap(f, !f.on_pit_road);
-            self.done = None;
+            self.refs.iter_mut().for_each(|t| t.done = None);
         } else if d_pct.abs() > 0.05 {
             // Işınlanma (pite dönüş, sıfırlama)
             self.reset_lap(f, false);
@@ -506,10 +593,12 @@ impl BrakeRec {
         self.prev_inc = f.incidents;
 
         // Referansta geçilen nokta "yapıldı" işaretini bırakır
-        if let (Some(i), Some(r)) = (self.done, self.reference.as_ref()) {
-            let behind = r.zones.get(i).map(|z| wrap_pct(pct - z.pct) * len.max(1.0)).unwrap_or(999.0);
-            if !(-200.0..=250.0).contains(&behind) {
-                self.done = None;
+        for t in self.refs.iter_mut() {
+            if let (Some(i), Some(r)) = (t.done, t.reference.as_ref()) {
+                let behind = r.zones.get(i).map(|z| wrap_pct(pct - z.pct) * len.max(1.0)).unwrap_or(999.0);
+                if !(-200.0..=250.0).contains(&behind) {
+                    t.done = None;
+                }
             }
         }
 
@@ -595,13 +684,17 @@ impl BrakeRec {
         if len_m > 0.0 && ((self.dist as f32) < len_m * 0.9 || (self.dist as f32) > len_m * 1.15) {
             return;
         }
-        let better = self.reference.as_ref().map(|r| r.time <= 0.0 || time < r.time - 0.0005).unwrap_or(true);
-        if !better {
-            return;
-        }
+        let better = |t: &RefTrack| t.reference.as_ref().map(|r| r.time <= 0.0 || time < r.time - 0.0005).unwrap_or(true);
         let mut zones = self.cur.clone();
         zones.sort_by(|a, b| a.pct.total_cmp(&b.pct));
         let r = RefLap { time, len_m, zones };
+        // Bu oturumun en iyisi (dosyaya yazılmaz)
+        if better(&self.refs[R_SESSION]) {
+            self.refs[R_SESSION] = RefTrack { reference: Some(r.clone()), ..Default::default() };
+        }
+        if !better(&self.refs[R_BEST]) {
+            return;
+        }
         if let Some(d) = dir {
             let path = ref_file(d, &self.key);
             if let Ok(text) = serde_json::to_string(&r) {
@@ -614,39 +707,21 @@ impl BrakeRec {
                 });
             }
         }
-        self.reference = Some(r);
+        self.refs[R_BEST] = RefTrack { reference: Some(r), ..Default::default() };
         self.from_file = false;
-        self.last = None;
     }
 
-    fn packet(&self, f: &Frame, s: &SessionData, demo: bool, persist: bool) -> Brakepoint {
-        let pct = f.lap_dist_pct;
-        let len = track_len(s, self.reference.as_ref());
-        let mut out = Brakepoint {
-            has_ref: self.reference.is_some(),
-            ref_time: self.reference.as_ref().map(|r| if demo && f.lap_best > 0.0 { f.lap_best } else { r.time }).unwrap_or(0.0),
-            from_file: self.from_file,
-            persist: persist && !demo && !self.key.is_empty(),
-            lap_clean: self.clean,
-            next: None,
-            last: self.last.clone(),
-            braking: f.brake > 0.12,
-            gear: f.gear,
-            speed: f.speed,
-            lap_pct: pct,
-            track_len: len,
-            on_pit_road: f.on_pit_road,
-            on_track: f.is_on_track,
-            zones: self.reference.as_ref().map(|r| r.zones.clone()).unwrap_or_default(),
-        };
-        let Some(r) = self.reference.as_ref() else { return out };
+    /// Bu referansta sıradaki nokta
+    fn next_for(&self, t: &RefTrack, f: &Frame, len: f32) -> Option<NextZone> {
+        let r = t.reference.as_ref()?;
         if len <= 0.0 || r.zones.is_empty() {
-            return out;
+            return None;
         }
+        let pct = f.lap_dist_pct;
         let mut best: Option<(usize, f32)> = None;
         for (i, z) in r.zones.iter().enumerate() {
             let mut d = wrap_pct(z.pct - pct) * len;
-            let done = self.done == Some(i);
+            let done = t.done == Some(i);
             // Geçilmiş nokta: fren yapılmadıysa 30 m boyunca "ŞİMDİ" kalır
             if d < -30.0 || (done && d < 150.0) || (d < 0.0 && f.brake > 0.12) {
                 d += len;
@@ -655,26 +730,61 @@ impl BrakeRec {
                 best = Some((i, d));
             }
         }
-        if let Some((i, d)) = best {
-            let z = &r.zones[i];
-            let lift_dist = if z.lift >= 0.0 && z.kind == 0 {
-                let l = d - wrap_pct(z.pct - z.lift).max(0.0) * len;
-                l.max(0.0)
-            } else {
-                -1.0
-            };
-            out.next = Some(NextZone {
-                n: i + 1,
-                dist: d,
-                eta: if f.speed > 1.0 { (d / f.speed).max(0.0) } else { 999.0 },
-                kind: z.kind,
-                gear: z.gear,
-                speed: z.speed,
-                min_speed: z.min_speed,
-                lift_dist,
-            });
+        let (i, d) = best?;
+        let z = &r.zones[i];
+        let lift_dist = if z.lift >= 0.0 && z.kind == 0 {
+            let l = d - wrap_pct(z.pct - z.lift).max(0.0) * len;
+            l.max(0.0)
+        } else {
+            -1.0
+        };
+        Some(NextZone {
+            n: i + 1,
+            dist: d,
+            eta: if f.speed > 1.0 { (d / f.speed).max(0.0) } else { 999.0 },
+            kind: z.kind,
+            gear: z.gear,
+            speed: z.speed,
+            min_speed: z.min_speed,
+            lift_dist,
+        })
+    }
+
+    fn ref_pkt(&self, i: usize, f: &Frame, len: f32, demo: bool) -> RefPkt {
+        let t = &self.refs[i];
+        RefPkt {
+            has_ref: t.reference.is_some(),
+            ref_time: t.reference.as_ref().map(|r| if demo && f.lap_best > 0.0 { f.lap_best } else { r.time }).unwrap_or(0.0),
+            name: if i == R_COMMUNITY { self.community_name.clone() } else { String::new() },
+            next: self.next_for(t, f, len),
+            last: t.last.clone(),
+            zones: t.reference.as_ref().map(|r| r.zones.clone()).unwrap_or_default(),
         }
-        out
+    }
+
+    fn packet(&self, f: &Frame, s: &SessionData, demo: bool, persist: bool) -> Brakepoint {
+        let len = track_len(s, self.any_ref());
+        let best = self.ref_pkt(R_BEST, f, len, demo);
+        Brakepoint {
+            has_ref: best.has_ref,
+            ref_time: best.ref_time,
+            from_file: self.from_file,
+            persist: persist && !demo && !self.key.is_empty(),
+            lap_clean: self.clean,
+            next: best.next,
+            last: best.last,
+            braking: f.brake > 0.12,
+            gear: f.gear,
+            speed: f.speed,
+            lap_pct: f.lap_dist_pct,
+            track_len: len,
+            on_pit_road: f.on_pit_road,
+            on_track: f.is_on_track,
+            zones: best.zones,
+            session: self.ref_pkt(R_SESSION, f, len, demo),
+            community: self.ref_pkt(R_COMMUNITY, f, len, demo),
+            combo: self.combo.clone(),
+        }
     }
 }
 
@@ -884,6 +994,16 @@ impl Cues {
         self.limits.update(f, demo);
     }
 
+    /// Şu anki pist + araç kimliği (demoda / bilinmiyorken boş)
+    pub fn combo(&self) -> Combo {
+        if self.demo { Combo::default() } else { self.brake.combo.clone() }
+    }
+
+    /// Arayüzün indirdiği topluluk rekoru (bkz. `brake_community_set`)
+    pub fn set_community(&mut self, c: CommunityRef) {
+        self.brake.set_community(c);
+    }
+
     pub fn brakepoint(&self, f: &Frame, s: &SessionData) -> Brakepoint {
         self.brake.packet(f, s, self.demo, self.persist)
     }
@@ -943,8 +1063,18 @@ mod tests {
         assert!((n.dist - 400.0).abs() < 5.0, "{}", n.dist);
         // Daha geç fren: + metre
         drive(&mut c, &s, 1, 0.51, t);
-        let l = c.brake.last.clone().unwrap();
+        let l = c.brake.refs[R_BEST].last.clone().unwrap();
         assert!((l.diff - 40.0).abs() < 3.0, "{}", l.diff);
+        // Oturum referansı da aynı turdan oluştu; topluluk rekoru yalnızca aynı pist + araç için kabul edilir
+        let p = c.brakepoint(&frame(t, 0.4, 3), &s);
+        assert!(p.session.has_ref && !p.community.has_ref);
+        let z = Zone { pct: 0.7, kind: 0, gear: 3, speed: 60.0, min_speed: 30.0, lift: -1.0 };
+        c.set_community(CommunityRef { combo: Combo { sim: "x".into(), ..Default::default() }, time: 90.0, name: "A".into(), zones: vec![z.clone()] });
+        assert!(!c.brakepoint(&frame(t, 0.4, 3), &s).community.has_ref);
+        c.set_community(CommunityRef { combo: p.combo.clone(), time: 90.0, name: "A".into(), zones: vec![z] });
+        let p = c.brakepoint(&frame(t, 0.4, 3), &s);
+        assert!(p.community.has_ref && p.community.name == "A");
+        assert!((p.community.next.unwrap().dist - 1200.0).abs() < 5.0);
     }
 
     #[test]

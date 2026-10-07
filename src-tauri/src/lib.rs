@@ -1312,6 +1312,17 @@ fn autostart_set(app: AppHandle, on: bool) -> Result<bool, String> {
     Ok(al.is_enabled().unwrap_or(on))
 }
 
+/// Fren ve Vites İşareti: arayüzün topluluk telemetrisinden indirdiği rekor turun fren / gaz kesme noktaları
+#[tauri::command]
+fn brake_combo(app: AppHandle) -> drivecues::Combo {
+    shared(&app).brake_combo.lock().clone()
+}
+
+#[tauri::command]
+fn brake_community_set(app: AppHandle, reference: drivecues::CommunityRef) {
+    *shared(&app).brake_community.lock() = Some(reference);
+}
+
 /// Arkadaş listesi: güvendiği arkadaşın canlı yakıt verisini takım listesine ekler (Yakıt overlay'i ve Pitwall)
 #[tauri::command]
 fn team_remote_set(app: AppHandle, key: String, fuel: Option<mqtt::TeamFuel>) {
@@ -2426,6 +2437,8 @@ pub fn run() {
             overlay_pin_get,
             overlay_pin_profile_get,
             team_remote_set,
+            brake_community_set,
+            brake_combo,
             hidden_set,
             monitors_list,
             overlay_set_monitor,

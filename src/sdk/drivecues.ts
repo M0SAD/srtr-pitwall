@@ -52,6 +52,21 @@ export interface Brakepoint {
   onPitRoad: boolean;
   onTrack: boolean;
   zones: BrakeZone[];
+  /** Bu oturumun en iyi temiz turu / topluluk rekoru (eski motor sürümlerinde yok) */
+  session?: BrakeRef;
+  community?: BrakeRef;
+  /** Telemetri kayıtlarıyla aynı pist + araç kimliği */
+  combo?: { sim: string; trackId: string; trackConfig: string; carId: string };
+}
+
+export interface BrakeRef {
+  hasRef: boolean;
+  refTime: number;
+  /** Topluluk rekorunun sahibi */
+  name: string;
+  next: BrakeNext | null;
+  last: BrakeLast | null;
+  zones: BrakeZone[];
 }
 
 export interface TrackLimits {

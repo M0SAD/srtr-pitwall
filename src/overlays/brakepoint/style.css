@@ -27,12 +27,12 @@
   padding: 0.18em 0.55em;
   border-radius: 0.3em;
   color: var(--bp-col);
-  background: color-mix(in srgb, var(--bp-col) 16%, transparent);
+  background: color-mix(in srgb, var(--bp-col) calc(16% * var(--ov-bg-k, 1)), transparent);
   white-space: nowrap;
 }
 .bp-s0 .bp-label {
   color: var(--ov-dim);
-  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(8% * var(--ov-bg-k, 1)), transparent);
 }
 .bp-dist {
   color: var(--ov-dim);
@@ -74,7 +74,7 @@
   line-height: 1.2;
   border-radius: 0.25em;
   font-weight: var(--ov-weight-strong);
-  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(10% * var(--ov-bg-k, 1)), transparent);
 }
 .bp-min {
   color: var(--ov-dim);
@@ -91,7 +91,7 @@
   height: 0.9em;
   margin: 0.55em 0 1.05em;
   border-radius: 0.3em;
-  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(9% * var(--ov-bg-k, 1)), transparent);
 }
 .bp-fill {
   position: absolute;
@@ -165,7 +165,7 @@
   flex: 0 1 45%;
   height: 0.3em;
   border-radius: 0.15em;
-  background: color-mix(in srgb, var(--ov-text) 12%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(12% * var(--ov-bg-k, 1)), transparent);
 }
 .bp-mini i {
   position: absolute;
@@ -202,101 +202,6 @@
   color: var(--ov-dim);
   font-size: 0.86em;
 }
-.bp-d-vertical.bp-wait {
-  height: auto !important;
-  max-width: 12em;
-}
-
-/* Büyük minimal işaret */
-.bp-d-cue {
-  padding: 0.7em 0.9em;
-}
-.bp-cue-main {
-  display: flex;
-  align-items: center;
-  gap: 0.9em;
-}
-.bp-lamps {
-  display: flex;
-  gap: 0.35em;
-}
-.bp-lamps i {
-  width: 1.5em;
-  height: 2.6em;
-  border-radius: 0.3em;
-  background: color-mix(in srgb, var(--ov-text) 10%, transparent);
-}
-.bp-lamps i.bp-on {
-  background: var(--bp-col);
-}
-.bp-s4 .bp-lamps i {
-  background: var(--bp-col);
-  animation: bp-blink 0.28s steps(2, jump-none) infinite;
-}
-.bp-cue-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3em;
-  min-width: 5.2em;
-}
-.bp-d-cue .bp-dist b,
-.bp-d-cue .bp-now {
-  font-size: 2em;
-}
-.bp-gear-big {
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1em;
-}
-.bp-gear-big b {
-  font-size: 2.6em;
-  line-height: 1.1;
-  min-width: 1.2em;
-}
-.bp-d-cue .bp-foot {
-  margin-top: 0.5em;
-}
-
-/* Dikey çubuk */
-.bp-d-vertical {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0.6em 0.55em;
-  min-width: 5em;
-}
-.bp-vtrack {
-  position: relative;
-  flex: 1;
-  min-height: 3em;
-  width: 1.5em;
-  border-radius: 0.35em;
-  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
-  border-bottom: 3px solid var(--ov-text);
-}
-.bp-vfill {
-  position: absolute;
-  inset: 0 0 auto 0;
-  border-radius: 0.35em 0.35em 0 0;
-  background: var(--bp-col);
-}
-.bp-vtick {
-  position: absolute;
-  left: -0.25em;
-  right: -0.25em;
-  height: 2px;
-  margin-top: -1px;
-  background: color-mix(in srgb, var(--ov-text) 55%, transparent);
-}
-.bp-d-vertical .bp-diff {
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1em;
-  font-size: 0.86em;
-  text-align: center;
-}
 
 /* ---- Parlayan FREN tabelası ---- */
 .bp-sign {
@@ -308,7 +213,7 @@
   border-radius: 0.5em;
   overflow: hidden;
   border: 2px solid color-mix(in srgb, var(--bp-col) 55%, transparent);
-  background: color-mix(in srgb, var(--bp-col) 8%, transparent);
+  background: color-mix(in srgb, var(--bp-col) calc(8% * var(--ov-bg-k, 1)), transparent);
   transition: border-color 0.15s linear, box-shadow 0.15s linear;
 }
 .bp-sign-fill {
@@ -316,7 +221,7 @@
   inset: 0;
   transform-origin: 50% 50%;
   transform: scaleX(var(--bp-k, 0));
-  background: color-mix(in srgb, var(--bp-col) 38%, transparent);
+  background: color-mix(in srgb, var(--bp-col) calc(38% * var(--ov-bg-k, 1)), transparent);
   transition: background-color 0.15s linear;
 }
 .bp-sign b {
@@ -331,7 +236,7 @@
 }
 .bp-s0 .bp-sign {
   border-color: color-mix(in srgb, var(--ov-text) 14%, transparent);
-  background: color-mix(in srgb, var(--ov-text) 5%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(5% * var(--ov-bg-k, 1)), transparent);
 }
 .bp-s0 .bp-sign b {
   color: color-mix(in srgb, var(--ov-text) 28%, transparent);
@@ -382,7 +287,7 @@
   line-height: 1;
   font-weight: var(--ov-weight-strong);
   color: color-mix(in srgb, var(--ov-text) 35%, transparent);
-  background: color-mix(in srgb, var(--ov-text) 7%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(7% * var(--ov-bg-k, 1)), transparent);
   border: 2px solid transparent;
   white-space: nowrap;
   transition: background-color 0.12s linear, color 0.12s linear;
@@ -392,7 +297,10 @@
   background: var(--bp-col);
 }
 .bp-board-now {
-  flex: 1.5;
+  flex: 0 0 auto;
+  min-width: 4.2em;
+  padding-left: 0.6em;
+  padding-right: 0.6em;
   letter-spacing: 0.08em;
   border-color: color-mix(in srgb, var(--ov-text) 16%, transparent);
 }
@@ -448,7 +356,7 @@
   width: 0.3em;
   height: 0.3em;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--ov-text) 30%, transparent);
+  background: color-mix(in srgb, var(--ov-text) calc(30% * var(--ov-bg-k, 1)), transparent);
 }
 .bp-s4 .bp-ring {
   filter: drop-shadow(0 0 0.5em var(--bp-col));
@@ -456,4 +364,116 @@
 }
 .bp-s4 .bp-ring-mid b {
   color: var(--bp-col);
+}
+
+/* ---- Tabela çeşitleri (aynı iskelet: .bp-sign) ---- */
+/* Neon: içi boş, parlayan tüp yazı */
+.bp-sign-neon {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--bp-col) 70%, transparent);
+  box-shadow: 0 0 0.5em color-mix(in srgb, var(--bp-col) calc(var(--bp-k, 0) * 80%), transparent), inset 0 0 0.5em color-mix(in srgb, var(--bp-col) calc(var(--bp-k, 0) * 60%), transparent);
+}
+.bp-sign-neon .bp-sign-fill {
+  display: none;
+}
+.bp-sign-neon b {
+  color: transparent;
+  -webkit-text-stroke: 0.045em var(--bp-col);
+  text-shadow: 0 0 0.25em color-mix(in srgb, var(--bp-col) calc(var(--bp-k, 0) * 100%), transparent);
+}
+.bp-s0 .bp-sign-neon {
+  background: transparent;
+  box-shadow: none;
+}
+.bp-s0 .bp-sign-neon b {
+  color: transparent;
+  -webkit-text-stroke-color: color-mix(in srgb, var(--ov-text) 30%, transparent);
+  text-shadow: none;
+}
+.bp-s4 .bp-sign-neon {
+  background: color-mix(in srgb, var(--bp-col) 22%, transparent);
+  animation: bp-neon 0.22s steps(2, jump-none) infinite;
+}
+.bp-s4 .bp-sign-neon b {
+  color: #fff;
+  -webkit-text-stroke-color: #fff;
+  text-shadow: 0 0 0.2em #fff, 0 0 0.5em var(--bp-col), 0 0 1em var(--bp-col);
+}
+@keyframes bp-neon {
+  50% {
+    filter: brightness(0.55);
+  }
+}
+
+/* Uyarı şeridi: çapraz çizgili ikaz bandı */
+.bp-sign-hazard {
+  border-width: 0;
+  background: transparent;
+}
+.bp-sign-hazard::before,
+.bp-sign-hazard::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0.55em;
+  background: repeating-linear-gradient(-45deg, var(--bp-col) 0 0.5em, transparent 0.5em 1em);
+  opacity: calc(0.25 + var(--bp-k, 0) * 0.75);
+}
+.bp-sign-hazard::before {
+  top: 0;
+}
+.bp-sign-hazard::after {
+  bottom: 0;
+}
+.bp-sign-hazard .bp-sign-fill {
+  top: 0.55em;
+  bottom: 0.55em;
+}
+.bp-s0 .bp-sign-hazard {
+  background: transparent;
+}
+.bp-s0 .bp-sign-hazard::before,
+.bp-s0 .bp-sign-hazard::after {
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--ov-text) 30%, transparent) 0 0.5em, transparent 0.5em 1em);
+  opacity: 1;
+}
+.bp-s4 .bp-sign-hazard::before,
+.bp-s4 .bp-sign-hazard::after {
+  background: repeating-linear-gradient(-45deg, #fff 0 0.5em, transparent 0.5em 1em);
+  background-size: 200% 100%;
+  opacity: 1;
+  animation: bp-slide 0.5s linear infinite;
+}
+@keyframes bp-slide {
+  to {
+    background-position: 1.414em 0;
+  }
+}
+
+/* İkaz: ünlemli üçgen ve yanıp sönen çerçeve */
+.bp-sign-alert {
+  gap: 0.6em;
+}
+.bp-sign-alert .bp-sign-ico {
+  position: relative;
+  width: 2.2em;
+  height: 2.2em;
+  flex: none;
+  color: var(--bp-col);
+}
+.bp-s0 .bp-sign-alert .bp-sign-ico {
+  color: color-mix(in srgb, var(--ov-text) 28%, transparent);
+}
+.bp-s4 .bp-sign-alert .bp-sign-ico {
+  color: #fff;
+  animation: bp-shake 0.18s linear infinite;
+}
+@keyframes bp-shake {
+  25% {
+    transform: translateX(-0.08em) rotate(-4deg);
+  }
+  75% {
+    transform: translateX(0.08em) rotate(4deg);
+  }
 }

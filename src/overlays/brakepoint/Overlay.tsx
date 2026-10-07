@@ -1,7 +1,8 @@
 // Fren ve Vites İşareti: referans turdaki (en iyi geçerli tur) fren / gaz kesme noktalarına geri sayım.
 // Referansı Rust tarafı kaydeder (drivecues.rs): pist + araç başına dosyada saklanır, oturumlar arasında kalır.
-// Tasarımlar:  bar → Yatay geri sayım çubuğu   cue → Büyük minimal işaret   vertical → Dikey çubuk (PRO)
-//   sign → Parlayan FREN tabelası   boards → Mesafe levhaları (PRO)   ring → Geri sayım halkası (PRO)
+// Tasarımlar:  bar → Yatay geri sayım çubuğu   sign / neon / hazard / alert → Parlayan tabela çeşitleri
+//   boards → Mesafe levhaları   ring → Geri sayım halkası
+// Referans kaynağı (ayar): tüm zamanların en iyisi (dosyada), bu oturumun en iyisi ya da topluluk telemetrisindeki rekor.
 
 import { For, Match, Show, Switch, createEffect, createMemo, createSignal, on, type JSX } from "solid-js";
 import { previewFrozen, type OverlayProps } from "@/sdk/overlay";
@@ -12,7 +13,10 @@ import { t } from "@/sdk/i18n";
 import type { Brakepoint } from "@/sdk/drivecues";
 import "./style.css";
 
-const DESIGNS = ["bar", "cue", "vertical", "sign", "boards", "ring"] as const;
+const DESIGNS = ["bar", "sign", "neon", "hazard", "alert", "boards", "ring"] as const;
+const SIGNS: readonly string[] = ["sign", "neon", "hazard", "alert"];
+const SOURCES = ["best", "session", "community"] as const;
+type Source = (typeof SOURCES)[number];
 type Design = (typeof DESIGNS)[number];
 
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -40,7 +44,17 @@ const SAMPLE: Brakepoint = {
 function createModel(props: OverlayProps) {
   const live = useTopic("brakepoint");
   const o = () => props.options;
-  const data = createMemo<Brakepoint | undefined>(() => live() ?? (props.editing ? SAMPLE : undefined));
+  const raw = createMemo<Brakepoint | undefined>(() => live() ?? (props.editing ? SAMPLE : undefined));
+  const source = (): Source => (SOURCES.includes(o().source as Source) ? (o().source as Source) : "best");
+  /** Seçili referans kaynağına göre paket: oturum / topluluk seçiliyse onların noktaları, farkı ve süresi kullanılır */
+  const data = createMemo<Brakepoint | undefined>(() => {
+    const d = raw();
+    if (!d || source() === "best") return d;
+    const r = source() === "session" ? d.session : d.community;
+    // Eski sürüm motoru (alan yok) ya da örnek veri: en iyi tura göre gösterilir
+    if (!r) return d;
+    return { ...d, hasRef: r.hasRef, refTime: r.refTime, next: r.next, last: r.last, zones: r.zones };
+  });
   const sample = () => !live() && props.editing;
   const imperial = () => props.units === "imperial";
 
@@ -126,7 +140,7 @@ function createModel(props: OverlayProps) {
     return d.dir === 0 ? t("aynı nokta") : d.dir > 0 ? t("{0} geç", d.text) : t("{0} erken", d.text);
   };
 
-  return { o, data, sample, units: () => props.units, next, stage, frac, color, ticks, fmtDist, distUnit, label, diff, diffText, range };
+  return { o, data, sample, source, units: () => props.units, next, stage, frac, color, ticks, fmtDist, distUnit, label, diff, diffText, range };
 }
 
 type Model = ReturnType<typeof createModel>;
@@ -150,8 +164,7 @@ export default function BrakepointOverlay(props: OverlayProps) {
   const style = (): JSX.CSSProperties => ({
     "font-size": `${clamp(num(o().fontSize, 14), 10, 30)}px`,
     "--bp-col": m.color(),
-    ...(design() === "bar" || design() === "sign" || design() === "boards" ? { width: `${clamp(num(o().width, 320), 200, 700)}px` } : {}),
-    ...(design() === "vertical" ? { height: `${clamp(num(o().height, 220), 120, 500)}px` } : {}),
+    ...(design() !== "ring" ? { width: `${clamp(num(o().width, 320), 200, 700)}px` } : {}),
   });
 
   return (
@@ -165,8 +178,18 @@ export default function BrakepointOverlay(props: OverlayProps) {
           when={m.data()!.hasRef}
           fallback={
             <div class="bp-waiting">
-              <b>Referans turu bekleniyor</b>
-              <span>{m.data()!.lapClean ? t("Bu tur temiz gidiyor: bitince referans olacak") : t("Pist dışına çıkmadan tam bir tur at")}</span>
+              <Show
+                when={m.source() !== "community"}
+                fallback={
+                  <>
+                    <b>Topluluk rekoru bekleniyor</b>
+                    <span>Bu pist ve araç için toplulukta izi olan bir tur bulunursa fren noktaları buradan gösterilir.</span>
+                  </>
+                }
+              >
+                <b>Referans turu bekleniyor</b>
+                <span>{m.data()!.lapClean ? t("Bu tur temiz gidiyor: bitince referans olacak") : t("Pist dışına çıkmadan tam bir tur at")}</span>
+              </Show>
             </div>
           }
         >
@@ -174,14 +197,8 @@ export default function BrakepointOverlay(props: OverlayProps) {
             <Match when={design() === "bar"}>
               <BarDesign m={m} />
             </Match>
-            <Match when={design() === "cue"}>
-              <CueDesign m={m} />
-            </Match>
-            <Match when={design() === "vertical"}>
-              <VerticalDesign m={m} />
-            </Match>
-            <Match when={design() === "sign"}>
-              <SignDesign m={m} />
+            <Match when={SIGNS.includes(design())}>
+              <SignDesign m={m} variant={design()} />
             </Match>
             <Match when={design() === "boards"}>
               <BoardsDesign m={m} />
@@ -290,57 +307,20 @@ function BarDesign(p: { m: Model }) {
   );
 }
 
-function CueDesign(p: { m: Model }) {
-  const m = p.m;
-  return (
-    <>
-      <div class="bp-cue-main">
-        <div class="bp-lamps" aria-hidden="true">
-          <i classList={{ "bp-on": m.stage() >= 1 }} />
-          <i classList={{ "bp-on": m.stage() >= 2 }} />
-          <i classList={{ "bp-on": m.stage() >= 3 }} />
-        </div>
-        <div class="bp-cue-text">
-          <span class="bp-label">{m.label()}</span>
-          <Dist m={m} />
-        </div>
-        <Gear m={m} big />
-      </div>
-      <Show when={m.diff() || (m.o().showSpeed && m.next())}>
-        <div class="bp-row bp-foot">
-          <Diff m={m} />
-          <span class="bp-spacer" />
-          <MinSpeed m={m} />
-        </div>
-      </Show>
-    </>
-  );
-}
-
-function VerticalDesign(p: { m: Model }) {
-  const m = p.m;
-  return (
-    <>
-      <span class="bp-label">{m.label()}</span>
-      <div class="bp-vtrack">
-        {/* Dolgu yukarıdan aşağı iner: nokta altta */}
-        <div class="bp-vfill" style={{ height: `${(m.stage() === 0 ? 0 : 1 - m.frac()) * 100}%` }} />
-        <For each={m.ticks()}>{(k) => <span class="bp-vtick" style={{ top: `${(1 - k.f) * 100}%` }} />}</For>
-      </div>
-      <Dist m={m} />
-      <Gear m={m} />
-      <Diff m={m} />
-    </>
-  );
-}
-
 /** Parlayan tabela: uzakta sönük, yaklaştıkça dolar; fren noktasında kırmızı parlayıp yanıp söner */
-function SignDesign(p: { m: Model }) {
+function SignDesign(p: { m: Model; variant: string }) {
   const m = p.m;
   return (
     <>
-      <div class="bp-sign" style={{ "--bp-k": String(m.stage() === 0 ? 0 : 1 - m.frac()) }}>
+      <div class={`bp-sign bp-sign-${p.variant}`} style={{ "--bp-k": String(m.stage() === 0 ? 0 : 1 - m.frac()) }}>
         <span class="bp-sign-fill" />
+        <Show when={p.variant === "alert"}>
+          <svg class="bp-sign-ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 22.5 21h-21z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" />
+            <path d="M12 9.5v5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+            <circle cx="12" cy="18" r="1.3" fill="currentColor" />
+          </svg>
+        </Show>
         <b>{m.label()}</b>
       </div>
       <div class="bp-row bp-sign-foot">

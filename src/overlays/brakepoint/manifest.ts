@@ -18,14 +18,27 @@ export default defineOverlay({
       default: "bar",
       options: [
         { value: "bar", label: "Yatay geri sayım çubuğu" },
-        { value: "cue", label: "Büyük minimal işaret" },
         { value: "sign", label: "Parlayan FREN tabelası" },
-        { value: "vertical", label: "Dikey çubuk", pro: true },
+        { value: "neon", label: "Neon tabela" },
+        { value: "hazard", label: "Uyarı şeridi" },
+        { value: "alert", label: "İkaz üçgeni" },
         { value: "boards", label: "Mesafe levhaları", pro: true },
         { value: "ring", label: "Geri sayım halkası", pro: true },
       ],
-      hint: "Yatay çubuk: mesafe işaretli geri sayım. Büyük işaret: sadece vites ve üç basamaklı uyarı. Parlayan tabela: yaklaştıkça dolan, fren noktasında kırmızı parlayan büyük FREN yazısı. Dikey çubuk: göz ucuyla okunan dar sütun. Mesafe levhaları: pist kenarındaki levhalar gibi sırayla yanar. Halka: ortasında virajın vitesi olan geri sayım.",
-      proHint: "Dikey çubuk, mesafe levhaları ve halka tasarımları PRO üyelere özel.",
+      hint: "Yatay çubuk: mesafe işaretli geri sayım. Parlayan tabela: yaklaştıkça dolan, fren noktasında kırmızı parlayan büyük FREN yazısı. Neon: içi boş, parlayan tüp yazı. Uyarı şeridi: çapraz çizgili ikaz bandı. İkaz üçgeni: ünlemli üçgenle birlikte. Mesafe levhaları: pist kenarındaki levhalar gibi sırayla yanar. Halka: ortasında virajın vitesi olan geri sayım.",
+      proHint: "Mesafe levhaları ve halka tasarımları PRO üyelere özel.",
+    },
+    {
+      key: "source",
+      label: "Fren noktaları neye göre",
+      type: "select",
+      default: "best",
+      options: [
+        { value: "best", label: "Tüm zamanlardaki kendi rekorum" },
+        { value: "session", label: "Bu oturumdaki en iyi turum" },
+        { value: "community", label: "Topluluk rekoru (telemetri kayıtları)" },
+      ],
+      hint: "Kendi rekorum: bu pist ve araçta bugüne kadarki en iyi temiz turun (bilgisayarında saklanır). Bu oturum: yalnızca bu oturumda attığın en iyi temiz tur. Topluluk rekoru: Telemetri sayfasındaki sıralamada bu pist ve araç için izi paylaşılmış en hızlı turun fren ve gaz kesme noktaları; hesabınla giriş yapmış olman gerekir.",
     },
     {
       key: "range",
@@ -63,7 +76,6 @@ export default defineOverlay({
     { key: "colNow", label: "ŞİMDİ rengi", type: "color", default: "#ff4d4f", group: "Renkler" },
 
     { key: "fontSize", label: "Yazı boyutu", type: "number", default: 14, min: 10, max: 30, step: 1, unit: "px", group: "Görünüm", hint: "Bütün gösterge yazı boyutuyla birlikte büyür ve küçülür." },
-    { key: "width", label: "Genişlik", type: "number", default: 320, min: 200, max: 700, step: 10, unit: "px", group: "Görünüm", showIf: { key: "design", is: ["bar", "sign", "boards"] } },
-    { key: "height", label: "Yükseklik", type: "number", default: 220, min: 120, max: 500, step: 10, unit: "px", group: "Görünüm", showIf: { key: "design", is: ["vertical"] } },
+    { key: "width", label: "Genişlik", type: "number", default: 320, min: 200, max: 700, step: 10, unit: "px", group: "Görünüm", showIf: { key: "design", is: ["bar", "sign", "neon", "hazard", "alert", "boards"] } },
   ],
 });
