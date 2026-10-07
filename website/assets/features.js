@@ -540,8 +540,8 @@ addDict({
   fx_so3_d: ["Arkadaşlarınla grup sohbeti kur; grup mesajları da yarış içi Mesajlar overlay'inde görünür.", "Create group chats with your friends; group messages show in the in-race Messages overlay too."],
   fx_so4_t: ["Takımlar", "Teams"],
   fx_so4_d: [
-    "Takım kur ya da katıl: takım sohbeti, duyurular, anketler ve herkese açık takım sayfası. Yakıt overlay'inde takım arkadaşlarının yakıtı.",
-    "Create or join a team: team chat, announcements, polls and a public team page. Your teammates' fuel in the fuel overlay.",
+    "Takım kur ya da katıl: takım sohbeti, duyurular ve herkese açık takım sayfası. Yakıt overlay'inde takım arkadaşlarının yakıtı.",
+    "Create or join a team: team chat, announcements and a public team page. Your teammates' fuel in the fuel overlay.",
   ],
   fx_so5_t: ["Güvenilir arkadaşla canlı veri", "Live data with trusted friends"],
   fx_so5_d: [

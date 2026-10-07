@@ -735,46 +735,6 @@ button.fr-row:hover {
   text-align: center;
   cursor: pointer;
 }
-.fr-poll {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 200px;
-  white-space: normal;
-}
-.fr-popt {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 5px 9px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-  font-size: 13px;
-}
-.fr-popt.mine {
-  border-color: var(--accent);
-}
-.fr-popt > i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: rgba(255, 138, 42, 0.18);
-}
-.fr-popt > span,
-.fr-popt > em {
-  position: relative;
-  font-style: normal;
-}
-.fr-popt > em {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.fr-poll small {
-  color: var(--muted);
-  font-size: 11.5px;
-}
-/* Ekip paneli (crewpanel.js) panelin içinde: dar sütun */
 .fr-crew {
   padding: 10px 12px 16px;
   overflow-y: auto;

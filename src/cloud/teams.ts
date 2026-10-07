@@ -97,7 +97,6 @@ export interface MyTeam {
   last_body: string | null;
   last_at: string | null;
   last_sender: string | null;
-  last_poll: boolean;
   member_count: number;
 }
 
@@ -130,20 +129,6 @@ export interface TeamPost {
   comments: TeamComment[];
 }
 
-export interface TeamPoll {
-  id: string;
-  team_id: string;
-  question: string;
-  options: string[];
-  multi: boolean;
-  ends_at: string;
-  counts: number[];
-  voters: number;
-  created_by: string | null;
-  /** Benim seçtiklerim (seçenek sırası) */
-  mine: number[];
-}
-
 export interface TeamMessage {
   id: string;
   team_id: string;
@@ -151,9 +136,7 @@ export interface TeamMessage {
   sender_name?: string;
   body: string;
   deleted: boolean;
-  poll_id: string | null;
   created_at: string;
-  poll?: TeamPoll | null;
   /** Sistem mesajı (c45): sohbet arka planı değişti */
   meta?: import("./social").MsgMeta | null;
 }
@@ -296,40 +279,13 @@ export const reportTeamMessage = (id: string, reason: string, note: string) =>
 export const markTeamRead = (team: string) => api("POST", "rpc/team_chat_read", { body: { p_team: team } }).catch(() => {});
 export const muteTeamChat = (team: string, muted: boolean) => api("POST", "rpc/team_chat_mute", { body: { p_team: team, p_muted: muted } });
 
-/** Anket süresi seçenekleri (saat) */
-export const POLL_DURATIONS: { id: string; label: string; hours: number }[] = [
-  { id: "1h", label: "1 saat", hours: 1 },
-  { id: "6h", label: "6 saat", hours: 6 },
-  { id: "1d", label: "1 gün", hours: 24 },
-  { id: "3d", label: "3 gün", hours: 72 },
-  { id: "7d", label: "7 gün", hours: 168 },
-];
-
-export const createPoll = (team: string, question: string, options: string[], multi: boolean, endsAt: Date) => {
-  assertFeature(F.teamPoll, "Anket oluşturmak");
-  return api<string>("POST", "rpc/team_poll_create", {
-    body: { p_team: team, p_question: question, p_options: options, p_multi: multi, p_ends_at: endsAt.toISOString() },
-  });
-};
-export const votePoll = (poll: string, options: number[]) => api("POST", "rpc/team_poll_vote", { body: { p_poll: poll, p_options: options } });
-export const closePoll = (poll: string) => api("POST", "rpc/team_poll_close", { body: { p_poll: poll } });
-
-/** Anket bitti mi (bitiş zamanı geçti) */
-export const pollEnded = (p: Pick<TeamPoll, "ends_at">, now = Date.now()) => new Date(p.ends_at).getTime() <= now;
-/** Kazanan seçenek(ler): en çok oy alan(lar); hiç oy yoksa boş */
-export function pollWinners(p: Pick<TeamPoll, "counts">): number[] {
-  const max = Math.max(0, ...p.counts);
-  if (max === 0) return [];
-  return p.counts.map((c, i) => (c === max ? i : -1)).filter((i) => i >= 0);
-}
-
 /**
- * Takımlarımın sohbet mesajları (yeni mesaj ve silinme/güncelleme) ve anket sayıları.
+ * Takımlarımın sohbet mesajları (yeni mesaj ve silinme/güncelleme).
  * Realtime, okuma kuralına (üye olma) uyar; filtre sadece trafiği azaltır.
  */
 export async function onTeamChat(
   teams: string[],
-  cb: { message?: (m: TeamMessage, kind: "insert" | "update") => void; poll?: (p: Omit<TeamPoll, "mine">) => void },
+  cb: { message?: (m: TeamMessage, kind: "insert" | "update") => void },
 ): Promise<() => void> {
   const c = await realtime();
   if (!c || teams.length === 0) return () => {};
@@ -342,7 +298,6 @@ export async function onTeamChat(
     .on("postgres_changes" as any, { event: "UPDATE", schema: "public", table: "team_messages", filter }, (p: any) =>
       cb.message?.(p.new as TeamMessage, "update"),
     )
-    .on("postgres_changes" as any, { event: "UPDATE", schema: "public", table: "team_polls", filter }, (p: any) => cb.poll?.(p.new))
     .subscribe();
   return () => {
     c.removeChannel(ch);

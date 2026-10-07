@@ -16198,3 +16198,29 @@ begin
 end $$;
 revoke all on function public.chat_groups_sweep() from public, anon, authenticated;
 grant execute on function public.chat_groups_sweep() to service_role;
+
+-- ============================================================================================
+-- c104 — Takım anketi kaldırıldı (1. aşama)
+--   Anket hiç kullanılmadı (team_polls ve team_poll_votes boş). Oylar tablosu ve anket RPC'leri kaldırılır;
+--   team_poll_json boş döner (team_chat onu çağırmaya devam eder). team_polls tablosu şimdilik durur:
+--   eski sürümler Realtime'da bu tabloya abone olduğu için tablo, üyeler güncelledikten sonra kaldırılacak.
+--   Kayıt varsa hiçbir şey silinmez (hata verir).
+-- ============================================================================================
+do $$
+begin
+  if exists (select 1 from public.team_polls) or exists (select 1 from public.team_poll_votes) then
+    raise exception 'team_polls / team_poll_votes bos degil; silinmedi';
+  end if;
+end $$;
+
+create or replace function public.team_poll_json(p_poll uuid) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select null::jsonb;
+$$;
+
+drop function if exists public.team_poll_create(uuid, text, text[], boolean, timestamptz);
+drop function if exists public.team_poll_vote(uuid, int[]);
+drop function if exists public.team_poll_close(uuid);
+drop table if exists public.team_poll_votes;
+delete from public.pro_features where key = 'teams.poll';
+select (select count(*) from public.team_polls) as polls_left, to_regclass('public.team_poll_votes') is null as votes_dropped;

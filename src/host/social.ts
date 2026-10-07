@@ -53,7 +53,7 @@ import { crewLiveExtra, crewWatching, isDriving } from "./crew";
 import { syncIracingStats } from "@/cloud/iracingStats";
 
 /** Mesajlar overlay'ine giden kayıt: takım mesajı */
-function teamOv(m: { id: string; team_id: string; sender: string | null; body: string; poll_id?: string | null; meta?: MsgMeta | null }, tm: MyTeam, who: string, mine: boolean): OvMsg {
+function teamOv(m: { id: string; team_id: string; sender: string | null; body: string; meta?: MsgMeta | null }, tm: MyTeam, who: string, mine: boolean): OvMsg {
   const look = friendLook(m.sender ?? "");
   return {
     id: `t-${m.id}`,
@@ -64,7 +64,7 @@ function teamOv(m: { id: string; team_id: string; sender: string | null; body: s
     color: look.color,
     photo: look.photo || undefined,
     team: `[${tm.tag}]`,
-    body: m.poll_id ? `📊 ${emojify(m.body)}` : emojify(msgPreview(m)),
+    body: emojify(msgPreview(m)),
     mine,
     ts: Date.now(),
   };
@@ -553,7 +553,7 @@ export function startSocial(status: Accessor<Status | undefined>) {
         }
         void (async () => {
           const who = await senderName(m.team_id, m.sender);
-          const body = m.poll_id ? `${who}: 📊 ${emojify(m.body)}` : `${who}: ${emojify(msgPreview(m))}`;
+          const body = `${who}: ${emojify(msgPreview(m))}`;
           if (chatFront() === teamChatKey(tm.team_id)) return;
           if (racing()) {
             // Mesajlar overlay'i bu mesajı gösteriyorsa alt köşedeki kutu ayrıca çıkmaz

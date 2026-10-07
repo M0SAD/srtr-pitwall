@@ -107,10 +107,6 @@ addDict({
   fr_del_all: ["Herkesten sil", "Delete for everyone"],
   fr_del_all_ask: ["Bu mesaj herkesten silinsin mi?", "Delete this message for everyone?"],
   fr_deleted: ["Bu mesaj silindi", "This message was deleted"],
-  fr_poll_last: ["📊 Anket", "📊 Poll"],
-  fr_poll_votes: ["{0} oy", "{0} votes"],
-  fr_poll_ended: ["Anket bitti", "Poll ended"],
-  fr_poll_app: ["Oy vermek için SRTR Pitwall programını kullan", "Use the SRTR Pitwall app to vote"],
   fr_sys_join: ["{0}, {1} adlı kişiyi gruba ekledi", "{0} added {1} to the group"],
   fr_sys_leave: ["{0} gruptan ayrıldı", "{0} left the group"],
   fr_sys_kick: ["{0} gruptan çıkarıldı", "{0} was removed from the group"],
@@ -572,22 +568,6 @@ function sysTextOf(m) {
   }
 }
 
-/** Takım sohbetindeki anket: sitede sadece okunur (oy vermek programdan) */
-function pollHtml(p) {
-  const counts = Array.isArray(p.counts) ? p.counts.map((c) => Number(c) || 0) : [];
-  const total = counts.reduce((a, b) => a + b, 0);
-  const mine = Array.isArray(p.mine) ? p.mine : [];
-  const ended = new Date(p.ends_at).getTime() <= Date.now();
-  const opts = (Array.isArray(p.options) ? p.options : [])
-    .map((o, i) => {
-      const c = counts[i] || 0;
-      const pct = total ? Math.round((c * 100) / total) : 0;
-      return `<span class="fr-popt${mine.includes(i) ? " mine" : ""}"><i style="width:${pct}%"></i><span>${esc(o)}</span><em>${c}</em></span>`;
-    })
-    .join("");
-  return `<span class="fr-poll"><b>📊 ${esc(p.question || "")}</b>${opts}<small>${esc(T("fr_poll_votes", Number(p.voters) || 0))} · ${esc(T(ended ? "fr_poll_ended" : "fr_poll_app"))}</small></span>`;
-}
-
 function msgsHtml() {
   if (!S.msgs.length) return `<p class="fr-empty">${esc(T("fr_no_msgs"))}</p>`;
   const me = S.me.id;
@@ -609,14 +589,14 @@ function msgsHtml() {
       const prev = S.msgs[i - 1];
       const cont = prev && !isSys(prev) && prev.sender === m.sender && new Date(m.created_at) - new Date(prev.created_at) < 5 * 60000 && dayOf(prev.created_at) === d;
       const text = bodyOf(m);
-      const big = !m.deleted && !m.poll && emojiOnly(text);
+      const big = !m.deleted && emojiOnly(text);
       // Steam tarzı: balon yok; ilk mesajda fotoğraf + ad + saat, altında düz satırlar
       const fr = !room && !mine ? friend(S.chat) : null;
       const name = mine ? S.meP?.display_name || T("fr_me") : room ? m.sender_name || "?" : nameOf(fr);
       const head = cont
         ? ""
         : `<div class="fr-mhead">${avatarHtml(String(m.sender || "?"), name, mine ? S.meP : fr, "", "sm")}<b>${esc(name)}</b><time>${esc(timeOf(m.created_at))}</time></div>`;
-      const inner = m.deleted ? `<i class="fr-gone">${esc(T("fr_deleted"))}</i>` : m.poll ? pollHtml(m.poll) : msgHtml(text);
+      const inner = m.deleted ? `<i class="fr-gone">${esc(T("fr_deleted"))}</i>` : msgHtml(text);
       const rs = S.reacts[String(m.id)] || [];
       const chips = rs.length
         ? `<div class="fr-reacts">${rs
@@ -1372,7 +1352,7 @@ async function act(a, id, el, src = null) {
       case "m-del": {
         if (!inRoom() || !confirm(T("fr_del_all_ask"))) return;
         await rpc(ROOM[S.room.kind].del, { p_id: id });
-        S.msgs = (S.msgs || []).map((m) => (m.id === id ? { ...m, deleted: true, body: "", meta: null, poll: null } : m));
+        S.msgs = (S.msgs || []).map((m) => (m.id === id ? { ...m, deleted: true, body: "", meta: null } : m));
         scheduleRooms();
         return render();
       }
@@ -1627,11 +1607,6 @@ function syncRoomSub() {
     for (const event of ["INSERT", "UPDATE"])
       ch = ch.on("postgres_changes", { event, schema: "public", table: R.table, filter }, (p) => onRoomMsg(kind, p.new, event));
   }
-  // Anket oyları: açık takım sohbetindeki sayılar tazelensin
-  if (ts.length)
-    ch = ch.on("postgres_changes", { event: "UPDATE", schema: "public", table: "team_polls", filter: `team_id=in.(${ts.slice(0, 100).join(",")})` }, (p) => {
-      if (inRoom() && S.room.kind === "team" && S.room.id === p.new?.team_id) scheduleRoom();
-    });
   S.roomCh = ch.subscribe();
 }
 function dropRoomSub() {

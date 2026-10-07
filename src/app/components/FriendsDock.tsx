@@ -527,7 +527,7 @@ export function FriendsPanel(props: {
             setTeamEvent({ kind, m });
             const me = session()?.user.id;
             if (kind === "update") {
-              if (m.deleted) patchTeam(m.team_id, (x) => (x.last_at === m.created_at ? { ...x, last_body: null, last_poll: false } : x));
+              if (m.deleted) patchTeam(m.team_id, (x) => (x.last_at === m.created_at ? { ...x, last_body: null } : x));
               return;
             }
             const v = view();
@@ -537,7 +537,6 @@ export function FriendsPanel(props: {
               ...x,
               last_body: msgPreview(m),
               last_at: m.created_at,
-              last_poll: !!m.poll_id,
               last_sender: m.sender === me ? t("Sen") : null,
               unread: !open && m.sender !== me ? (x.unread || 0) + 1 : x.unread,
             }));
@@ -546,7 +545,6 @@ export function FriendsPanel(props: {
             const soc = settings().general.social;
             if (front && !props.racing?.() && !soc.dnd) messageBeep();
           },
-          poll: (p) => setTeamEvent({ kind: "poll", p }),
         }).then((s) => (dead ? s() : (stop = s)));
         onCleanup(() => {
           dead = true;
@@ -1124,7 +1122,6 @@ export function FriendsPanel(props: {
                 ...x,
                 last_body: m ? msgPreview(m) : null,
                 last_at: m ? m.created_at : null,
-                last_poll: !!m?.poll_id,
                 last_sender: m && m.sender === session()?.user.id ? t("Sen") : null,
               }))
             }

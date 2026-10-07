@@ -38,7 +38,6 @@ const META = { bg: "Sohbet arka planını değiştirdi", join: "gruba eklendi", 
 function bodyText(m) {
   if (m.deleted) return "Bu mesaj silindi";
   const x = m.meta;
-  if (x?.poll && !m.body) return "📊 Anket";
   if (x?.t === "bg") return META.bg;
   if (x?.t === "rename") return `${META.rename} ${x.name ?? "?"}`;
   if (x?.t && META[x.t]) return `${x.name ?? "?"} ${META[x.t]}`;

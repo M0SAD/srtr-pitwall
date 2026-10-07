@@ -79,6 +79,7 @@ export default defineOverlay({
     { key: "logoSize", label: "Logo boyutu", type: "number", default: 150, min: 80, max: 220, step: 10, unit: "%", group: "Sütunlar" },
     { key: "showIrDelta", label: "Tahmini iRating değişimi (yarış)", type: "boolean", default: true, group: "Sütunlar" },
     { key: "rowFill", label: "Sürücü satırlarının arka planı", type: "number", default: 0, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm", hint: "Arka plan şeffafken yalnızca sürücü satırlarını koyulaştırır: isimler daha rahat okunur, tablonun geri kalanı şeffaf kalır. 0 = kapalı." },
+    { key: "hideInTest", label: "Test sürüşünde gizle", type: "boolean", default: true, group: "Görünüm", hint: "Tek başına test sürüşünde (iRacing Test Drive) bu tablo gösterilmez." },
     { key: "rowsFrame", label: "Sürücü listesinin çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
     { key: "rowFrame", label: "Her sürücünün çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 10, min: 2, max: 30, step: 1, unit: "Hz" },

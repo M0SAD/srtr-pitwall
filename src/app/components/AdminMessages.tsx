@@ -45,7 +45,6 @@ const threadTitle = (x: AdminChatThread) => (x.kind === "dm" ? `${x.a_name} ↔ 
 /** Mesaj metni: silinmiş / anket / sistem mesajı ayrımıyla */
 function bodyText(m: { body: string; deleted?: boolean; meta?: Record<string, any> | null }): string {
   if (m.deleted) return t("Bu mesaj silindi");
-  if (m.meta?.poll && !m.body) return `📊 ${t("Anket")}`;
   return msgPreview({ body: m.body, meta: m.meta?.t ? (m.meta as MsgMeta) : null });
 }
 

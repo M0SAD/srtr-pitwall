@@ -379,6 +379,8 @@ export function Host() {
     // kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar) garajda da görünür kalır.
     // "İzlerken / garaj" türündeki düzenler tam da pist dışı içindir: onlar gizlenmez.
     if (settings().general.hideWhenOffTrack && shown()!.rules.mode !== "spotting" && !inst.alwaysShow && !st.demo && (!st.onTrack || st.replay)) return false;
+    // Sıralama / Yakındakiler: tek başına test sürüşünde (iRacing "Offline Testing") gizlenir (overlay ayarı, varsayılan açık)
+    if (!st.demo && (inst.type === "standings" || inst.type === "relative") && inst.options?.hideInTest !== false && /offline testing/i.test(st.sessionType ?? "")) return false;
     // Demo'da "pitteyken gizle" / "pistte gizle" uygulanmaz: yerleşim denenirken her overlay görünsün
     if (!st.demo && inst.hideInGarage && inPit) return false;
     if (!st.demo && inst.hideOnTrack && driving) return false;

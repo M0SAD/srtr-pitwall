@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-257
+
+- Sıralama Tablosu ve Yakındakiler artık test sürüşünde (iRacing Test Drive) gizleniyor. Overlay ayarlarındaki "Test sürüşünde gizle" seçeneğiyle kapatılabilir.
+
+## 071026-256
+
+- Takım sohbetindeki anket özelliği kaldırıldı.
+
 ## 071026-255
 
 - Küçük iyileştirmeler ve düzeltmeler.

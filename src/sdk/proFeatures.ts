@@ -62,7 +62,6 @@ export const F = {
   teamCreate: "teams.create",
   teamJoin: "teams.join",
   teamChat: "teams.chat",
-  teamPoll: "teams.poll",
   teamPost: "teams.post",
   teleRecord: "telemetry.record",
   teleOthers: "telemetry.others",
@@ -130,7 +129,6 @@ const STATIC: ProFeature[] = [
   { key: F.teamCreate, label: "Takım kurmak", group: "Takımlar", defaultPro: false, server: true },
   { key: F.teamJoin, label: "Takıma katılmak (istek göndermek, daveti kabul etmek)", group: "Takımlar", defaultPro: false, server: true },
   { key: F.teamChat, label: "Takım sohbetine yazmak", group: "Takımlar", defaultPro: false, server: true, hint: "Okumak her zaman açık" },
-  { key: F.teamPoll, label: "Takımda anket oluşturmak", group: "Takımlar", defaultPro: false, server: true, hint: "Oy vermek her zaman açık" },
   { key: F.teamPost, label: "Takım duyurusu yazmak", group: "Takımlar", defaultPro: false, server: true },
   // Telemetri
   { key: F.teleRecord, label: "Telemetri kaydını buluta yüklemek", group: "Telemetri", defaultPro: true, server: true, hint: "Kapalıyken turlar bilgisayarda bekler, PRO olunca yüklenir" },

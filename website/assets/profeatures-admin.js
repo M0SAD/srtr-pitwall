@@ -29,7 +29,6 @@ const STATIC = [
   ["teams.create", "Takım kurmak", "Takımlar", false, true],
   ["teams.join", "Takıma katılmak (istek göndermek, daveti kabul etmek)", "Takımlar", false, true],
   ["teams.chat", "Takım sohbetine yazmak", "Takımlar", false, true],
-  ["teams.poll", "Takımda anket oluşturmak", "Takımlar", false, true],
   ["teams.post", "Takım duyurusu yazmak", "Takımlar", false, true],
   ["telemetry.record", "Telemetri kaydını buluta yüklemek", "Telemetri", true, true],
   ["telemetry.others", "Başkalarının telemetrisini görmek (Yarışçılar, takım arkadaşları)", "Telemetri", true, true],
