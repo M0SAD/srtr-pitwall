@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-242
+
+- Kör Nokta Uyarısı: "Çerçeveli üçgen ve ünlem" tasarımı eklendi (PRO).
+
 ## 071026-241
 
 - Kör Nokta Uyarısı: PRO üyeler için altı yeni tasarım (uyarı üçgeni, ok üçgeni, üçlü ok, halka nokta, yayılan nokta, elmas). Ayrıca yan yanayken farklı bir renk seçilebilir.

@@ -6,7 +6,7 @@ import "./style.css";
 
 /** Araç boyu (m): radar mesafesi merkezden merkezedir, tampon arası boşluk = mesafe − araç boyu */
 const CAR_LEN = 4.8;
-const DESIGNS = ["mirror", "icon", "dot", "bar", "triangle", "arrow", "chevrons", "ring", "pulse", "diamond"];
+const DESIGNS = ["mirror", "icon", "dot", "bar", "triangle", "trisign", "arrow", "chevrons", "ring", "pulse", "diamond"];
 const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
 const hex = (v: unknown, d: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : d);
 
@@ -75,6 +75,13 @@ export default function BlindSpot(props: OverlayProps) {
         <svg viewBox="0 0 100 70" aria-hidden="true">
           <path class="bs-fill" d="M50 5 L92 64 H8 Z" stroke-linejoin="round" />
           <path class="bs-ink" d="M50 26 V44 M50 53 V54" />
+        </svg>
+      </Show>
+      <Show when={design() === "trisign"}>
+        <svg viewBox="0 0 100 70" aria-hidden="true">
+          <path class="bs-glass" d="M50 6 L91 63 H9 Z" stroke-linejoin="round" />
+          <path class="bs-line" d="M50 6 L91 63 H9 Z" />
+          <path class="bs-line" d="M50 27 V44 M50 53 V54" />
         </svg>
       </Show>
       <Show when={design() === "arrow"}>

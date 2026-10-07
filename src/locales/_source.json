@@ -1480,6 +1480,7 @@
  "Çerçeve": "src/overlays/setupcover/manifest.ts",
  "Çerçeve çizgisi": "src/overlays/glucose/manifest.ts",
  "Çerçeveli rozet": "src/overlays/socials/manifest.ts",
+ "Çerçeveli üçgen ve ünlem": "src/overlays/blindspot/manifest.ts",
  "Çeviri": "src/app/components/modLogFormat.ts",
  "Çeviri durduruldu. {0} alan dolduruldu.": "src/app/components/AdminContent.tsx",
  "Çeviri düzeltildi ({0}, {1}): “{2}” → “{3}”": "src/app/components/modLogFormat.ts",

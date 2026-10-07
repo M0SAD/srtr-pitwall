@@ -30,6 +30,7 @@ export default defineOverlay({
         { value: "dot", label: "LED nokta" },
         { value: "bar", label: "Dikey ışık şeridi" },
         { value: "triangle", label: "Uyarı üçgeni", pro: true },
+        { value: "trisign", label: "Çerçeveli üçgen ve ünlem", pro: true },
         { value: "arrow", label: "Ok üçgeni (aracın olduğu yana bakar)", pro: true },
         { value: "chevrons", label: "Üçlü ok", pro: true },
         { value: "ring", label: "Halka nokta", pro: true },
