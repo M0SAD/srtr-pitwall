@@ -2,7 +2,7 @@
 # main dalına yapılan HER push'ta çalışır (website/ değişmemiş olsa da): arada push'lanmayan bir sürümün site
 # değişiklikleri sonraki push'ta kaçmasın. İş ~20 sn sürer; aynı içerik yeniden yayınlanırsa hiçbir şey bozulmaz.
 # İlk kurulum: GitHub → Settings → Pages → Source: "GitHub Actions".
-name: 071026-249
+name: Web sitesi
 
 on:
   push:

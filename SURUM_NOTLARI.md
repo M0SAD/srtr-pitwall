@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-250
+
+- Küçük iyileştirmeler ve düzeltmeler.
+
 ## 071026-249
 
 - Sıralama Tablosu ve Yakındakiler'de ülke bayrakları artık gerçek iRacing yarışlarında da görünüyor. iRacing ülkeyi kısa kodla değil adıyla gönderiyor; uygulama yalnızca kısa kodu okuduğu için bayraklar yalnızca Demo modunda çıkıyordu.
