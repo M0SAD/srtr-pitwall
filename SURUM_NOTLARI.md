@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-243
+
+- Düzen listesindeki sıra artık üst üste binme sırasını da belirliyor: soldaki "Düzende" listesinde üstte duran overlay, ekranda, OBS'te ve düzenleme tuvalinde diğerlerinin üstünde görünür. Sırayı listede sürükleyerek değiştirebilirsin.
+
 ## 071026-242
 
 - Kör Nokta Uyarısı: "Çerçeveli üçgen ve ünlem" tasarımı eklendi (PRO).

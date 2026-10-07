@@ -25,7 +25,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { manifests, loadComponent } from "@/sdk/registry";
 import { sanitizeOverlayOptions, streamBadgeLocked } from "@/sdk/proFeatures";
-import { instanceName, instancesOf, resolveProfile, settings, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
+import { instanceName, instancesOf, resolveProfile, settings, stackKeys, updateOverlay, updateSettings, type Profile } from "@/sdk/settings";
 import { belongsTo, loadMonitors, monitors } from "@/sdk/monitors";
 import { canvasOf, liveProfile } from "@/sdk/streamLink";
 import { StreamBadgeMark, badgeFactor, badgeCfg, badgeForcedLive, badgeRect } from "@/sdk/streamBadge";
@@ -300,7 +300,10 @@ export function Host() {
       const p = shown()!;
       const cur = sim();
       monitors();
-      return instancesOf(p)
+      const all = new Map(instancesOf(p));
+      // Listede üstte olan overlay ekranda da üstte çizilir (bkz. stackKeys)
+      return stackKeys(p, [...all.keys()])
+        .map((k) => [k, all.get(k)!] as const)
         .filter(
           ([, i]) =>
             i.enabled &&

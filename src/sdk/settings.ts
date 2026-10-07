@@ -1747,6 +1747,20 @@ export function instancesOf(p: Profile): [string, OverlayInstance][] {
   );
 }
 
+/**
+ * Çizim (üst üste binme) sırası: düzen listesinde ("Düzende") üstte duran overlay ekranda da diğerlerinin üstünde çizilir.
+ * Liste eklenme sırasına (addedAt, küçük olan üstte) göredir; DOM'da sonra gelen üstte çizildiği için anahtarlar addedAt'e
+ * göre büyükten küçüğe dizilir. Eşitlikte verilen sıra korunur.
+ */
+export function stackKeys(p: Pick<Profile, "overlays"> | undefined, keys: string[]): string[] {
+  if (!p) return keys;
+  const at = (k: string) => p.overlays[k]?.addedAt ?? 0;
+  return keys
+    .map((k, i) => ({ k, i }))
+    .sort((a, b) => at(b.k) - at(a.k) || a.i - b.i)
+    .map((x) => x.k);
+}
+
 /** Kopya için görünen ad */
 export function instanceName(key: string, inst: OverlayInstance) {
   const m = manifests.find((x) => x.id === inst.type);

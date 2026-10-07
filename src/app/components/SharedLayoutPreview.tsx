@@ -5,7 +5,7 @@ import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-j
 import { manifestById } from "@/sdk/registry";
 import { defaultOptions } from "@/sdk/overlay";
 import { DEFAULT_THEME, themeVars, type Theme } from "@/sdk/theme";
-import type { Profile } from "@/sdk/settings";
+import { stackKeys, type Profile } from "@/sdk/settings";
 import { isLocked } from "@/cloud/account";
 import { OverlayView } from "./OverlayView";
 import { normalizeLook } from "@/sdk/look";
@@ -21,11 +21,12 @@ export function SharedLayoutPreview(props: { profile: Profile; theme?: Theme; w:
   const theme = () => ({ ...DEFAULT_THEME, ...(props.theme ?? {}) });
   const k = createMemo(() => boxW() / Math.max(1, props.w));
   const g = () => (props.stream ? 1 : theme().scale / 100);
-  const items = createMemo(() =>
-    Object.entries(props.profile.overlays ?? {})
-      .filter(([, o]) => o.enabled && manifestById(o.type))
-      .map(([key, o]) => ({ key, o, m: manifestById(o.type)! })),
-  );
+  const items = createMemo(() => {
+    const list = Object.entries(props.profile.overlays ?? {}).filter(([, o]) => o.enabled && manifestById(o.type));
+    const by = new Map(list);
+    // Paylaşanın listesindeki sıra: üstteki overlay önizlemede de üstte çizilir
+    return stackKeys(props.profile, list.map(([k]) => k)).map((key) => ({ key, o: by.get(key)!, m: manifestById(by.get(key)!.type)! }));
+  });
   return (
     <div class="slp-wrap" ref={box}>
       <div

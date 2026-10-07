@@ -3,7 +3,7 @@
 
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { manifestById } from "@/sdk/registry";
-import { instanceName, settings, updateSettings, type EditBackdropSlot, type OverlayInstance, type Profile } from "@/sdk/settings";
+import { instanceName, settings, stackKeys, updateSettings, type EditBackdropSlot, type OverlayInstance, type Profile } from "@/sdk/settings";
 import { themeVars } from "@/sdk/theme";
 import { isLocked } from "@/cloud/account";
 import { CORNERS, clampRect, cornerResize, edgeResize, effectiveScale, layoutRect, snapMove, unlayoutPos, type Corner, type Edge, type Guides, type Rect } from "@/host/snap";
@@ -515,7 +515,7 @@ export function LayoutCanvas(props: CanvasProps) {
         <div class="lcanvas-center h" />
         <For each={guides().v}>{(x) => <div class="lcanvas-guide v" style={{ left: `${x * k()}px` }} />}</For>
         <For each={guides().h}>{(y) => <div class="lcanvas-guide h" style={{ top: `${y * k()}px` }} />}</For>
-        <For each={props.keys}>
+        <For each={stackKeys(props.source ?? settings().profiles[props.profileId], props.keys)}>
           {(key) => (
             <CanvasItem
               key={key}
