@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-255
+
+- Küçük iyileştirmeler ve düzeltmeler.
+
 ## 071026-254
 
 - Sohbet grupları: son mesajın üstünden 24 saat geçen grup, mesajlarıyla birlikte kendiliğinden silinir. Eskiden yalnızca hiç mesaj yazılmamış gruplar siliniyordu.
