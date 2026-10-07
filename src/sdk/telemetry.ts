@@ -126,6 +126,27 @@ function normalize(topics: Sub[]): Sub[] {
   return [...m.entries()].map(([name, hz]) => ({ name, hz }));
 }
 
+/**
+ * Tarayıcı (OBS) sayfasında veri akışının bağlanacağı adres. Tarayıcılar aynı adrese en fazla 6 bağlantı açar ve OBS'teki
+ * bütün tarayıcı kaynakları bu sınırı paylaşır; her kaynağın akışı sürekli açık kaldığından birkaç kaynak eklenince sınır
+ * dolar ve sonraki kaynağın dosyaları / durum güncellemeleri gelmez. Sunucu akış için ek portlar açar (/api/ports); her
+ * sayfa bunlardan rastgele birini kullanır, ana port dosyalar için boş kalır. Ek port yoksa (eski sürüm) ana port kullanılır.
+ */
+let streamBaseCache: Promise<string> | null = null;
+function streamBase(): Promise<string> {
+  streamBaseCache ??= (async () => {
+    try {
+      const ports = (await fetch(`${apiBase}/api/ports`).then((r) => r.json())) as unknown;
+      const list = Array.isArray(ports) ? ports.filter((x): x is number => typeof x === "number" && x > 0 && x < 65536) : [];
+      if (!list.length) return apiBase;
+      return `${location.protocol}//${location.hostname}:${list[Math.floor(Math.random() * list.length)]}`;
+    } catch {
+      return apiBase;
+    }
+  })();
+  return streamBaseCache;
+}
+
 export async function setSubscriptions(topics: Sub[]) {
   const list = normalize(topics);
   const key = list
@@ -139,11 +160,28 @@ export async function setSubscriptions(topics: Sub[]) {
   if (!inTauri || remoteBase) {
     // Tarayıcı ya da uzak kaynak: abonelik değişince bağlantı yeniden kurulur
     es?.close();
-    es = new EventSource(`${remoteBase ?? apiBase}/api/stream?topics=${key}`);
+    const base = remoteBase ?? (await streamBase());
+    // Beklerken daha yeni bir abonelik geldiyse bu eskidi
+    if (key !== lastKey) return;
+    es?.close();
+    es = new EventSource(`${base}/api/stream?topics=${key}`);
     const cur = es;
+    let opened = false;
     // Bağlantı durumu (uzak gösterge sayfası gösterir); EventSource koparsa kendiliğinden yeniden bağlanır
-    cur.onopen = () => es === cur && setStreamOpen(true);
-    cur.onerror = () => es === cur && setStreamOpen(false);
+    cur.onopen = () => {
+      opened = true;
+      if (es === cur) setStreamOpen(true);
+    };
+    cur.onerror = () => {
+      if (es !== cur) return;
+      setStreamOpen(false);
+      // Ek akış portuna hiç bağlanılamadıysa (güvenlik yazılımı / port kapalı) ana porta dönülür
+      if (!opened && !remoteBase && streamBaseCache) {
+        streamBaseCache = Promise.resolve(apiBase);
+        lastKey = "";
+        void setSubscriptions(lastList);
+      }
+    };
     es.onmessage = (e) => {
       try {
         if (es === cur) setStreamOpen(true);

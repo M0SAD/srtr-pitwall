@@ -4,7 +4,8 @@ import { demoShow, useTopic } from "@/sdk/telemetry";
 import { t } from "@/sdk/i18n";
 import { paidLive } from "@/sdk/streamBadge";
 import srtrLogo from "@/assets/logo.png";
-import srtrBanner from "./banner.webp";
+// Görsel JPEG olarak ve kodun içine gömülü gelir: OBS tarayıcısında ayrı dosya isteği / WebP çözme sorunu yaşanmaz
+import srtrBanner from "./banner.jpg?inline";
 import "./style.css";
 
 // Setup Örtüsü: araç pistte değilken (garaj / pit menüsü) yayında setup ekranının üstünü örter.

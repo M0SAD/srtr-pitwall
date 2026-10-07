@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-246
+
+- OBS'e birden fazla tarayıcı kaynağı (iki yayın düzeni, sohbet, anket, altyazı…) eklenince bazı kaynakların takılması düzeltildi: görseller yüklenmiyor, overlay'ler görünmüyor ya da Setup Örtüsü ekrandan gitmiyordu. Tarayıcılar aynı adrese sınırlı sayıda bağlantı açtığı için kaynaklar birbirini tıkıyordu; veri akışı artık ek portlara (8911–8922) dağıtılıyor.
+- Setup Örtüsü'nün hazır görseli uygulamanın içine gömüldü (ayrı dosya olarak yüklenmez).
+
 ## 071026-245
 
 - Hız Göstergesi: "Dijital: LCD ekran" tasarımında sayı artık kutunun ortasında.

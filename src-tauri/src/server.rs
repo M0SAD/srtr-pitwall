@@ -96,12 +96,80 @@ fn query_param<'a>(url: &'a str, key: &str) -> Option<&'a str> {
     })
 }
 
+/// Canlı veri akışı (SSE): isteği kendi iş parçacığına devreder.
+fn serve_sse(req: tiny_http::Request, url: &str, app: &AppHandle, shared: &Arc<Shared>, stop: &Arc<AtomicBool>) {
+    let mut topics = parse_topics(&url_decode(query_param(url, "topics").unwrap_or("")));
+    // Canlı sohbet konuları tarayıcı kaynağına sadece izin varsa (PRO: livechat.obs)
+    if topics.iter().any(|t| crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str())) && !crate::livechat::allowed(app, "livechat.obs") {
+        topics.retain(|t| !crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str()));
+    }
+    let (tx, rx) = mpsc::channel::<String>();
+    let id = shared.subscribe(Sink::Sse(tx), &topics);
+    let shared3 = shared.clone();
+    let stop3 = stop.clone();
+    // Ham sokete doğrudan yaz ve her olaydan sonra boşalt (tamponlama gecikmesi olmasın)
+    std::thread::spawn(move || {
+        let mut w = req.into_writer();
+        let head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\
+                    Connection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n";
+        if w.write_all(head.as_bytes()).and_then(|_| w.flush()).is_ok() {
+            loop {
+                if stop3.load(Ordering::Relaxed) {
+                    break;
+                }
+                let chunk = match rx.recv_timeout(Duration::from_secs(15)) {
+                    Ok(s) => format!("data: {s}\n\n"),
+                    Err(mpsc::RecvTimeoutError::Timeout) => ": ping\n\n".to_string(),
+                    Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                };
+                if w.write_all(chunk.as_bytes()).and_then(|_| w.flush()).is_err() {
+                    break;
+                }
+            }
+        }
+        shared3.unsubscribe(id);
+    });
+}
+
+/// Veri akışı için ek portlar. Tarayıcılar aynı adrese (host:port) en fazla 6 bağlantı açar ve OBS'teki bütün tarayıcı
+/// kaynakları bu sınırı paylaşır: her kaynağın sürekli açık bir veri akışı olduğundan birkaç kaynak (düzenler, sohbet,
+/// anket, altyazı…) eklenince sınır dolar; sonraki kaynağın dosyaları ve görselleri yüklenmez. Akışlar ek portlara
+/// dağıtılınca ana port dosyalar için boş kalır. Açılamayan port (başka program kullanıyor) atlanır.
+fn start_stream_ports(app: &AppHandle, shared: &Arc<Shared>, host: &str, port: u16, stop: &Arc<AtomicBool>) -> Vec<u16> {
+    let mut open = Vec::new();
+    for p in (1..=12u16).filter_map(|i| port.checked_add(i)) {
+        let Ok(server) = Server::http(format!("{host}:{p}")) else { continue };
+        let (app, shared, stop) = (app.clone(), shared.clone(), stop.clone());
+        let spawned = std::thread::Builder::new().name(format!("web-stream-{p}")).spawn(move || {
+            while !stop.load(Ordering::Relaxed) {
+                let req = match server.recv_timeout(Duration::from_millis(500)) {
+                    Ok(Some(r)) => r,
+                    Ok(None) => continue,
+                    Err(_) => break,
+                };
+                let url = req.url().to_string();
+                if url.split('?').next() == Some("/api/stream") {
+                    serve_sse(req, &url, &app, &shared, &stop);
+                } else {
+                    let _ = req.respond(Response::from_string("").with_status_code(404).with_header(header("Access-Control-Allow-Origin", "*")));
+                }
+            }
+        });
+        if spawned.is_ok() {
+            open.push(p);
+        }
+    }
+    open
+}
+
 pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Result<WebServer, String> {
     let host = if lan { "0.0.0.0" } else { "127.0.0.1" };
     let server = Server::http(format!("{host}:{port}")).map_err(|e| format!("Port {port} açılamadı: {e}"))?;
     let addr = server.server_addr().to_ip().ok_or("adres alınamadı")?;
     let stop = Arc::new(AtomicBool::new(false));
     let stop2 = stop.clone();
+    let ports = Arc::new(parking_lot::Mutex::new(start_stream_ports(&app, &shared, host, port, &stop)));
+    let ports2 = ports.clone();
     std::thread::Builder::new()
         .name("web-server".into())
         // Bir istekteki panic (crash.log'a yazılır) sunucuyu durdurmasın: döngü yeniden başlar
@@ -131,37 +199,17 @@ pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Resul
                 }
 
                 if path == "/api/stream" {
-                    let mut topics = parse_topics(&url_decode(query_param(&url, "topics").unwrap_or("")));
-                    // Canlı sohbet konuları tarayıcı kaynağına sadece izin varsa (PRO: livechat.obs)
-                    if topics.iter().any(|t| crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str())) && !crate::livechat::allowed(&app, "livechat.obs") {
-                        topics.retain(|t| !crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str()));
-                    }
-                    let (tx, rx) = mpsc::channel::<String>();
-                    let id = shared.subscribe(Sink::Sse(tx), &topics);
-                    let shared3 = shared.clone();
-                    let stop3 = stop2.clone();
-                    // Ham sokete doğrudan yaz ve her olaydan sonra boşalt (tamponlama gecikmesi olmasın)
-                    std::thread::spawn(move || {
-                        let mut w = req.into_writer();
-                        let head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\
-                                    Connection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n";
-                        if w.write_all(head.as_bytes()).and_then(|_| w.flush()).is_ok() {
-                            loop {
-                                if stop3.load(Ordering::Relaxed) {
-                                    break;
-                                }
-                                let chunk = match rx.recv_timeout(Duration::from_secs(15)) {
-                                    Ok(s) => format!("data: {s}\n\n"),
-                                    Err(mpsc::RecvTimeoutError::Timeout) => ": ping\n\n".to_string(),
-                                    Err(mpsc::RecvTimeoutError::Disconnected) => break,
-                                };
-                                if w.write_all(chunk.as_bytes()).and_then(|_| w.flush()).is_err() {
-                                    break;
-                                }
-                            }
-                        }
-                        shared3.unsubscribe(id);
-                    });
+                    serve_sse(req, &url, &app, &shared, &stop2);
+                    continue;
+                }
+                // Veri akışı için açık ek portlar (bkz. start_stream_ports): sayfa akışını bunlardan birine bağlar
+                if path == "/api/ports" {
+                    let v = serde_json::to_string(&*ports2.lock()).unwrap_or_else(|_| "[]".into());
+                    let resp = Response::from_string(v)
+                        .with_header(header("Content-Type", "application/json"))
+                        .with_header(header("Cache-Control", "no-store"))
+                        .with_header(header("Access-Control-Allow-Origin", "*"));
+                    let _ = req.respond(resp);
                     continue;
                 }
 
