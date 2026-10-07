@@ -22,10 +22,26 @@ const ISO3: Record<string, string> = {
   geo: "ge", kaz: "kz", egy: "eg", mar: "ma", cyp: "cy", mlt: "mt", bih: "ba", mkd: "mk", alb: "al", mne: "me", blr: "by",
 };
 
+/** Ülke adı (iRacing "FlairName", İngilizce) → iki harfli kod: kısa kod gelmediğinde bayrak yine çizilsin */
+const NAMES: Record<string, string> = {
+  turkey: "tr", "türkiye": "tr", turkiye: "tr", germany: "de", "united kingdom": "gb", "great britain": "gb", england: "gb-eng", scotland: "gb-sct", wales: "gb-wls",
+  "northern ireland": "gb-nir", "united states": "us", "united states of america": "us", usa: "us", italy: "it", spain: "es", france: "fr", netherlands: "nl",
+  brazil: "br", portugal: "pt", sweden: "se", finland: "fi", poland: "pl", belgium: "be", austria: "at", canada: "ca", australia: "au", japan: "jp",
+  denmark: "dk", norway: "no", switzerland: "ch", "czech republic": "cz", czechia: "cz", argentina: "ar", mexico: "mx", ireland: "ie", "new zealand": "nz",
+  russia: "ru", ukraine: "ua", hungary: "hu", romania: "ro", bulgaria: "bg", greece: "gr", croatia: "hr", slovenia: "si", slovakia: "sk", serbia: "rs",
+  estonia: "ee", latvia: "lv", lithuania: "lt", luxembourg: "lu", iceland: "is", china: "cn", "south korea": "kr", korea: "kr", india: "in", indonesia: "id",
+  malaysia: "my", singapore: "sg", thailand: "th", philippines: "ph", "south africa": "za", chile: "cl", colombia: "co", peru: "pe", uruguay: "uy",
+  venezuela: "ve", israel: "il", "saudi arabia": "sa", "united arab emirates": "ae", azerbaijan: "az", georgia: "ge", kazakhstan: "kz", egypt: "eg",
+  morocco: "ma", cyprus: "cy", malta: "mt", "bosnia and herzegovina": "ba", "north macedonia": "mk", albania: "al", montenegro: "me", belarus: "by",
+  taiwan: "tw", "hong kong": "hk", vietnam: "vn", pakistan: "pk", qatar: "qa", kuwait: "kw", bahrain: "bh", ecuador: "ec", paraguay: "py", bolivia: "bo",
+  "costa rica": "cr", panama: "pa", "puerto rico": "pr", "dominican republic": "do", guatemala: "gt", moldova: "md", armenia: "am", monaco: "mc",
+  andorra: "ad", liechtenstein: "li", "san marino": "sm", tunisia: "tn", algeria: "dz", nigeria: "ng", kenya: "ke",
+};
+
 export function flagUrl(code: string | undefined | null): string | undefined {
   const c = String(code ?? "").trim().toLowerCase();
   if (!c) return undefined;
-  return byCode[ALIAS[c] ?? c] ?? (c.length === 3 ? byCode[ISO3[c]] : undefined);
+  return byCode[ALIAS[c] ?? c] ?? (c.length === 3 ? byCode[ISO3[c]] : undefined) ?? (NAMES[c] ? byCode[NAMES[c]] : undefined);
 }
 
 export function Flag(props: { code: string | undefined | null; class?: string }) {

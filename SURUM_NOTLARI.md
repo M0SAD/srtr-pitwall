@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 071026-247
+
+- Sıralama Tablosu ve Yakındakiler: ülke bayrağı, iRacing ülkenin kısa kodunu göndermediğinde ülke adından da bulunur.
+- Canlı sohbet yazma kutusu: Enter ile gönderdikten sonra imleç kutuda kalır, tıklamadan art arda mesaj yazabilirsin. Oyuna dönmek için Esc'e bas ya da kutunun dışına tıkla.
+
 ## 071026-246
 
 - OBS'e birden fazla tarayıcı kaynağı (iki yayın düzeni, sohbet, anket, altyazı…) eklenince bazı kaynakların takılması düzeltildi: görseller yüklenmiyor, overlay'ler görünmüyor ya da Setup Örtüsü ekrandan gitmiyordu. Tarayıcılar aynı adrese sınırlı sayıda bağlantı açtığı için kaynaklar birbirini tıkıyordu; veri akışı artık ek portlara (8911–8922) dağıtılıyor.

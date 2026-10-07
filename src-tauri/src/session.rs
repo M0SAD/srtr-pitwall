@@ -189,7 +189,17 @@ pub fn parse(yaml: &str) -> SessionData {
                                     "CarScreenNameShort" => d.car_name = v.to_string(),
                                     "CarPath" => d.car_path = v.to_string(),
                                     "CarID" => d.car_id = v.parse().unwrap_or(0),
-                                    "FlairShortName" => d.flair = v.to_string(),
+                                    "FlairShortName" => {
+                                        if !v.trim().is_empty() {
+                                            d.flair = v.to_string();
+                                        }
+                                    }
+                                    // Kısa kod gelmezse ülke adı kullanılır (arayüz adı bayrağa çevirir)
+                                    "FlairName" => {
+                                        if d.flair.is_empty() && !v.trim().is_empty() {
+                                            d.flair = v.to_string();
+                                        }
+                                    }
                                     "TeamName" => d.team_name = v.to_string(),
                                     "IsSpectator" => d.is_spectator = v == "1",
                                     "CarIsPaceCar" => d.is_pace_car = v == "1",

@@ -59,7 +59,8 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
       if (bad) return showErr(bad.error ?? t("Gönderilemedi"));
       if (input) input.value = "";
       setErr("");
-      input?.blur();
+      // Odak kutuda kalır: art arda mesaj yazılabilsin (oyuna dönmek için Esc ya da kutunun dışına tıklamak yeterli)
+      input?.focus();
     } catch (e) {
       showErr(String((e as Error)?.message ?? e));
     } finally {
