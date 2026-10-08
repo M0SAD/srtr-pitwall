@@ -395,7 +395,9 @@ async function boardView(key) {
             <td class="num">${r.rank}</td><td><b>${esc(r.sim_name || r.display_name)}</b>${
               r.sim_name && r.display_name && r.sim_name !== r.display_name ? ` <span class="muted small">· ${esc(r.display_name)}</span>` : ""
             }</td><td>${esc(r.car_name)}</td>
-            <td class="num" style="${r.rank === 1 ? "color:#3ecf8e;font-weight:700" : ""}">${lapTime(r.lap_time)}</td>
+            <td class="num" style="${r.rank === 1 ? "color:#3ecf8e;font-weight:700" : ""}">${lapTime(r.lap_time)}${
+              r.clean === false ? ` <span title="${esc(T("dr_invalid_lap"))}${r.incidents ? " · " + r.incidents + "x" : ""}" style="color:#f0b429;cursor:help">⚠</span>` : ""
+            }</td>
             ${[0, 1, 2].map((i) => `<td class="num">${r.sectors?.[i] > 0 ? r.sectors[i].toFixed(3) : "—"}</td>`).join("")}
             <td>${fmtDate(r.driven_at)}</td></tr>`,
           )

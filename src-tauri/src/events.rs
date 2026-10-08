@@ -773,7 +773,7 @@ mod tests {
                 ..Default::default()
             }));
         }
-        s.sessions.push(SessionEntry { num: 2, kind: "Race".into(), laps: None, time: None });
+        s.sessions.push(SessionEntry { num: 2, kind: "Race".into(), laps: None, time: None, ..Default::default() });
         s
     }
 

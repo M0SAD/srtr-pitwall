@@ -180,6 +180,7 @@ pub fn build_session(b: &[u8]) -> SessionData {
         kind: kind.to_string(),
         laps: if kind == "Race" && laps > 0 { Some(laps) } else { None },
         time: None,
+        ..Default::default()
     });
     sd
 }

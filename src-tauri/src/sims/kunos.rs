@@ -264,6 +264,7 @@ pub fn build_session(kind: SimKind, gfx: &[u8], phys: &[u8], si: &StaticInfo) ->
         kind: kind_s.to_string(),
         laps: if kind_s == "Race" && laps > 0 { Some(laps) } else { None },
         time: None,
+        ..Default::default()
     });
     let name = if si.player.is_empty() { si.nick.clone() } else { si.player.clone() };
     sd.drivers[0] = Some(Driver {

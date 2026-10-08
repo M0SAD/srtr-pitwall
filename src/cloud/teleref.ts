@@ -47,7 +47,7 @@ async function traceOf(lapId: string): Promise<{ info: LapInfo; trace: Trace } |
 
 /** Sıralamadaki izi paylaşılmış turlar (en hızlıdan); `skipMe`: kendi turum hariç */
 async function boardTraces(c: ComboKey, max: number, skipMe: boolean) {
-  const rows = ((await leaderboard({ sim: c.sim, track_id: c.track_id, track_config: c.track_config }, c.car_id, 30)) ?? []).filter((r) => r.has_trace && !(skipMe && r.is_me));
+  const rows = ((await leaderboard({ sim: c.sim, track_id: c.track_id, track_config: c.track_config }, c.car_id, 30, true)) ?? []).filter((r) => r.has_trace && !(skipMe && r.is_me));
   const out: { name: string; time: number; trace: Trace; lapId: string }[] = [];
   for (const r of rows) {
     if (out.length >= max) break;

@@ -3,6 +3,17 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 091026-275
+
+- Canlı sohbet (YouTube): "YouTube sayfası yüklenemedi (HTTP 429)" hatası. YouTube çok sık sayfa isteğinde geçici sınır koyuyor; canlı yayın ve sohbet artık sayfa yerine YouTube'un hafif veri arayüzünden bulunuyor (sınıra takılmıyor). Sayfaya yine de gerekirse ve sınır varsa sınır bitene kadar (her seferinde artan sürelerle) tekrar istenmiyor; "Yeniden kur" da sınırı uzatmıyor. Hata mesajı ne kadar sonra yeniden deneneceğini gösteriyor.
+
+## 091026-274
+
+- Sıralama / lider tablosu overlay'leri (iRacing): bazı sürücülerin en iyi turu boş görünüyordu. iRacing'in canlı verisi oturuma sonradan girdiğinde ya da bazı araçlar için en iyi turu vermiyor; eksik en iyi ve son turlar artık oturumun resmi sonuçlarından tamamlanıyor. Sonuçlardaki tur daha hızlıysa o gösteriliyor ve pratikte sıralama da buna göre yapılıyor.
+- Telemetri › Sıralama: kaza ya da pist dışı olan en hızlı turlar artık listede (⚠ işaretiyle). "Yalnızca temiz turlar" seçeneğiyle eski görünüm. Araç süzgecindeyken başka araçlarla tur atan yarışçı sayısı ve "Tüm araçları göster" bağlantısı gösteriliyor.
+- Uygulama açılınca monitörün siyah görünmesi düzeltildi: overlay pencereleri artık içerikleri yüklenmeden gösterilmiyor. Windows ile başlatıldığında bilgisayar yeni açıldıysa ekran kartı sürücüsünün hazır olması için birkaç saniye bekleniyor.
+- Telemetri: pistin tamamı ölçülemeyen turlar (sıfırlama, çekici, tur sayacı atlaması) geçersiz sayılıyor; 10 saniyelik gibi hatalı turlar artık sıralamanın başına geçmiyor.
+
 ## 081026-273
 
 - Pit Penceresi: Kompakt şerit ve Detaylı kart tasarımlarında yazıların iç içe geçmesi düzeltildi. Sabit genişlikli etiketler kaldırıldı; önündeki / arkandaki araç yön oklarıyla gösteriliyor ve uzun çevirilerde bölümler alt satıra geçiyor. Zaman çizelgesinde numaralar ve "SEN" etiketi artık üst üste binmiyor.

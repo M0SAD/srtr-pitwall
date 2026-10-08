@@ -317,6 +317,7 @@ pub fn build_session(sc: &Scoring, tele: &[u8], slots: &mut Slots) -> SessionDat
         kind: kind.to_string(),
         laps: if kind == "Race" && sc.max_laps > 0 && sc.max_laps < 10_000 { Some(sc.max_laps) } else { None },
         time: if sc.end_et > 0.0 { Some(sc.end_et) } else { None },
+        ..Default::default()
     });
     sd
 }

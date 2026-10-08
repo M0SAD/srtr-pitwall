@@ -100,13 +100,57 @@ fn init_browser_args(settings: Option<&Value>) {
     let _ = BROWSER_ARGS_DYN.set(a);
 }
 
+/// Sayfası yüklenmiş overlay pencereleri. Şeffaf pencere içeriği çizilmeden gösterilirse (özellikle bilgisayar
+/// yeni açılmışken WebView2 yavaş başlar) tüm monitör siyah görünür; pencere ancak sayfa yüklendikten sonra açılır.
+static OVERLAY_READY: Mutex<Vec<String>> = parking_lot::const_mutex(Vec::new());
+
+fn overlay_is_ready(label: &str) -> bool {
+    OVERLAY_READY.lock().iter().any(|l| l == label)
+}
+
+fn mark_overlay_ready(app: &AppHandle, label: &str) {
+    {
+        let mut r = OVERLAY_READY.lock();
+        if r.iter().any(|l| l == label) {
+            return;
+        }
+        r.push(label.to_string());
+    }
+    sync_overlay_visibility(app);
+}
+
+/// Sayfa yüklenince (ilk çizim için kısa bir pay bırakılarak) ya da en geç 15 sn sonra pencere hazır sayılır
+fn overlay_builder<'a>(
+    app: &'a AppHandle,
+    label: &str,
+    url: WebviewUrl,
+) -> WebviewWindowBuilder<'a, tauri::Wry, AppHandle> {
+    OVERLAY_READY.lock().retain(|l| l != label);
+    let a = app.clone();
+    let l = label.to_string();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(15));
+        mark_overlay_ready(&a, &l);
+    });
+    WebviewWindowBuilder::new(app, label, url).on_page_load(|w, p| {
+        if matches!(p.event(), tauri::webview::PageLoadEvent::Finished) {
+            let app = w.app_handle().clone();
+            let label = w.label().to_string();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(400));
+                mark_overlay_ready(&app, &label);
+            });
+        }
+    })
+}
+
 /// Ana overlay penceresi (varsayılan monitör). Tarayıcı argümanları ayarlara bağlı olduğu
 /// için yapılandırma dosyasında değil burada oluşturulur.
 fn create_main_overlay(app: &AppHandle) -> tauri::Result<()> {
     if app.get_webview_window("overlay").is_some() {
         return Ok(());
     }
-    WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("overlay.html".into()))
+    overlay_builder(app, "overlay", WebviewUrl::App("overlay.html".into()))
         .title("SRTR Pitwall Overlay")
         .inner_size(1920.0, 1080.0)
         .position(0.0, 0.0)
@@ -185,7 +229,7 @@ pub(crate) fn sync_overlay_visibility(app: &AppHandle) {
     // VR modu "masaüstü overlay'ini gizle": sadece düzenleme modunda (ve yeni eklenen overlay gösterilirken) görünür
     let show = show && (!vr::hide_desktop() || s.edit_mode.load(Ordering::Relaxed) || s.peek.load(Ordering::Relaxed) || pinned);
     for w in overlay_windows(app) {
-        if show {
+        if show && overlay_is_ready(w.label()) {
             let _ = w.show();
             let _ = w.set_always_on_top(true);
             // Pencere görünür olduktan sonra uygula (gizli pencerede bazı platformlarda çalışmaz).
@@ -247,7 +291,7 @@ fn sync_monitor_windows(app: &AppHandle, settings: &Value) {
             None => {
                 let url = format!("overlay.html?monitor={}", server::url_encode(name));
                 // Her monitörün penceresi ayrı başlıkta (pencere yakalama araçları ayırt edebilsin)
-                let built = WebviewWindowBuilder::new(app, &label, WebviewUrl::App(url.into()))
+                let built = overlay_builder(app, &label, WebviewUrl::App(url.into()))
                     .title(format!("SRTR Pitwall Overlay - {}", name.trim_start_matches(|c: char| !c.is_ascii_alphanumeric())))
                     .transparent(true)
                     .decorations(false)
@@ -2407,6 +2451,7 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
 pub fn run() {
     // Çökme günlüğü (crash.log) ve panic kancası: her şeyden önce
     crashlog::install();
+    boot_delay();
     let shared_state = Arc::new(Shared::default());
 
     tauri::Builder::default()
@@ -2729,4 +2774,21 @@ pub fn run() {
             tauri::RunEvent::Exit => app.state::<SettingsStore>().flush(app),
             _ => {}
         });
+}
+
+/// Windows ile başlatıldığında bilgisayar yeni açıldıysa biraz beklenir: ekran kartı sürücüsü ve masaüstü
+/// birleştirici hazır olmadan WebView2 başlarsa şeffaf overlay pencereleri siyah çizilebiliyor (monitör kararıyor).
+/// Sistem açılalı 90 sn olana kadar (en çok 75 sn) beklenir; elle açılışta bekleme yok.
+fn boot_delay() {
+    if !std::env::args().any(|a| a == TRAY_ARG) {
+        return;
+    }
+    #[cfg(windows)]
+    {
+        let up = unsafe { windows_sys::Win32::System::SystemInformation::GetTickCount64() };
+        const WANT: u64 = 90_000;
+        if up < WANT {
+            std::thread::sleep(std::time::Duration::from_millis((WANT - up).min(75_000)));
+        }
+    }
 }

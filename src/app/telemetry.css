@@ -781,3 +781,11 @@
 .best-grid[hidden] {
   display: none;
 }
+
+/* Lider tablosu: temiz olmayan tur işareti */
+.tele-table .lap-dirty {
+  margin-left: 5px;
+  color: #f0b429;
+  font-size: 0.85em;
+  cursor: help;
+}

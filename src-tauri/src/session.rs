@@ -60,6 +60,8 @@ pub fn parse(yaml: &str) -> SessionData {
     let mut cur_driver: Option<Driver> = None;
     let mut cur_sess: Option<SessionEntry> = None;
     let mut cur_tire: Option<(i32, String)> = None;
+    // Oturum öğesinin içindeki ResultsPositions listesi okunuyor mu
+    let mut in_results = false;
 
     let flush_driver = |d: Option<Driver>, sd: &mut SessionData| {
         if let Some(d) = d {
@@ -144,6 +146,7 @@ pub fn parse(yaml: &str) -> SessionData {
                             sd.sessions.push(s);
                         }
                         cur_sess = Some(SessionEntry::default());
+                        in_results = false;
                     }
                     List::Tires => {
                         if let Some(t) = cur_tire.take() {
@@ -163,6 +166,28 @@ pub fn parse(yaml: &str) -> SessionData {
                     sd.tire_types.push(t);
                 }
                 list = List::None;
+            }
+
+            // Oturumun sonuç listesi (ResultsPositions): her araç için en iyi ve son tur.
+            // iRacing'in CarIdxBestLapTime değeri bazı araçlar için boş kalabilir (oturuma sonradan girmek,
+            // izleme menzili); sıralama overlay'leri eksik süreleri buradan tamamlar.
+            if list == List::Sessions && dash_col != usize::MAX && in_results && kv_col >= dash_col + 4 {
+                if let Some(s) = cur_sess.as_mut() {
+                    if is_item && ind == dash_col + 2 {
+                        s.results.push((-1, -1.0, -1.0));
+                    }
+                    if kv_col == dash_col + 4 {
+                        if let (Some((k, v)), Some(r)) = (split_kv(kv_text), s.results.last_mut()) {
+                            match k {
+                                "CarIdx" => r.0 = v.parse().unwrap_or(-1),
+                                "FastestTime" => r.1 = num_prefix(v).unwrap_or(-1.0) as f32,
+                                "LastTime" => r.2 = num_prefix(v).unwrap_or(-1.0) as f32,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                continue;
             }
 
             // Sadece öğenin doğrudan alanlarını al (iç içe listeleri atla)
@@ -227,6 +252,7 @@ pub fn parse(yaml: &str) -> SessionData {
                         }
                         List::Sessions => {
                             if let Some(s) = cur_sess.as_mut() {
+                                in_results = k == "ResultsPositions";
                                 match k {
                                     "SessionNum" => s.num = v.parse().unwrap_or(0),
                                     "SessionType" => s.kind = v.to_string(),
@@ -336,8 +362,16 @@ SessionInfo:
    ResultsPositions:
    - Position: 1
      CarIdx: 3
+     FastestTime: 137.1250
+     LastTime: 138.5000
    - Position: 2
      CarIdx: 1
+     FastestTime: -1.0000
+     LastTime: -1.0000
+   ResultsFastestLap:
+   - CarIdx: 3
+     FastestLap: 4
+     FastestTime: 137.1250
  - SessionNum: 2
    SessionLaps: 25
    SessionTime: unlimited
@@ -390,6 +424,8 @@ SplitTimeInfo:
         assert_eq!(sd.sessions.len(), 2);
         assert_eq!(sd.sessions[0].kind, "Practice");
         assert_eq!(sd.sessions[0].time, Some(600.0));
+        assert_eq!(sd.sessions[0].results, vec![(3, 137.125, 138.5), (1, -1.0, -1.0)]);
+        assert!(sd.sessions[1].results.is_empty());
         assert_eq!(sd.sessions[1].laps, Some(25));
         assert!(sd.is_race(2));
         let me = sd.driver(1).unwrap();
@@ -570,4 +606,22 @@ fn note_flair_key(k: &str, v: &str) {
     seen.push(k.to_string());
     let sample: String = v.chars().take(40).collect();
     crate::crashlog::note(&format!("bayrak-alani {k} = {sample} -> {}", flair_code(v).unwrap_or("?")));
+}
+
+/// iRacing: canlı veride en iyi / son turu boş görünen araçlar oturum sonuçlarından tamamlanır.
+/// Sonuçlardaki en iyi tur daha hızlıysa (oturuma sonradan girildi) o kullanılır.
+pub fn fill_lap_times(f: &mut crate::model::Frame, sd: &SessionData) {
+    let Some(s) = sd.session(f.session_num) else { return };
+    for &(idx, best, last) in &s.results {
+        if !(0..MAX_CARS as i32).contains(&idx) {
+            continue;
+        }
+        let c = &mut f.cars[idx as usize];
+        if best > 0.0 && (c.best <= 0.0 || best < c.best - 0.0005) {
+            c.best = best;
+        }
+        if last > 0.0 && c.last <= 0.0 {
+            c.last = last;
+        }
+    }
 }

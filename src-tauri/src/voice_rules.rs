@@ -3694,6 +3694,7 @@ mod tests {
             kind: kind.into(),
             laps: Some(20),
             time: None,
+            ..Default::default()
         }];
         s.drivers = vec![None; MAX_CARS];
         for i in 0..cars {

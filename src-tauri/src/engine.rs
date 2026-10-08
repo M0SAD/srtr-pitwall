@@ -549,6 +549,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                         new_frame = src.read(&mut st.frame);
                         if new_frame {
                             last_data = Instant::now();
+                            if src.kind().id() == "iracing" {
+                                crate::session::fill_lap_times(&mut st.frame, &st.raw);
+                            }
                         }
                         connected = last_data.elapsed() < STALE_AFTER;
                         st.sim = src.kind().id();

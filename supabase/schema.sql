@@ -16269,3 +16269,65 @@ language plpgsql security definer set search_path = public as $$
 begin
   raise exception 'Telemetri oturumları silinemez';
 end $$;
+
+-- c109: Lider tablosu düzeltmeleri
+--   * Her üyenin en hızlı turu görünür: kaza / pist dışı olan turlar da sayılır ("temiz" değil olarak işaretlenir).
+--     p_clean = true yalnızca temiz turları verir (izli tur arayan topluluk kıyaslamaları bunu kullanır).
+--   * Pistin tamamı ölçülmemiş turlar (sektörü yok: sıfırlama, çekici, tur sayacı atlaması) ve fiziksel olarak
+--     imkânsız hızdaki turlar (ortalama > 400 km/sa) hiçbir zaman sayılmaz; kayıtta da geçersiz işaretlenir.
+create or replace function public.telemetry_laps_sanity() returns trigger
+language plpgsql as $$
+begin
+  if coalesce(array_length(new.sectors, 1), 0) < 3 then
+    new.valid := false;
+  end if;
+  return new;
+end $$;
+drop trigger if exists telemetry_laps_sanity on public.telemetry_laps;
+create trigger telemetry_laps_sanity before insert or update of sectors, valid on public.telemetry_laps
+  for each row execute function public.telemetry_laps_sanity();
+update public.telemetry_laps set valid = false where valid and coalesce(array_length(sectors, 1), 0) < 3;
+update public.telemetry_sessions s set valid_laps = x.nv, invalid_laps = x.n - x.nv, best_lap = x.best, best_lap_id = x.best_id
+from (
+  select l.session_id, count(*)::int n, count(*) filter (where l.valid)::int nv,
+         min(l.lap_time) filter (where l.valid and not l.pit) best,
+         (array_agg(l.id order by l.lap_time) filter (where l.valid and not l.pit))[1] best_id
+  from public.telemetry_laps l
+  where l.session_id in (select s2.id from public.telemetry_sessions s2 join public.telemetry_laps b on b.id = s2.best_lap_id where not b.valid)
+  group by l.session_id
+) x
+where s.id = x.session_id;
+
+drop function if exists public.telemetry_leaderboard(text, text, text, text, int);
+create or replace function public.telemetry_leaderboard(p_sim text, p_track_id text, p_track_config text default '',
+    p_car_id text default null, p_limit int default 50, p_clean boolean default false)
+returns table (rank int, user_id uuid, display_name text, sim_name text, lap_id uuid, lap_time real, sectors real[],
+               car_id text, car_name text, car_class text, driven_at timestamptz, has_trace boolean, is_me boolean,
+               clean boolean, incidents int, off_track boolean)
+language sql stable security definer set search_path = public as $$
+  with best as (
+    select distinct on (l.user_id) l.*, s.car_name s_car_name, s.car_class s_car_class
+    from public.telemetry_laps l
+    join public.telemetry_sessions s on s.id = l.session_id
+    where l.sim = p_sim and l.track_id = p_track_id and l.track_config = coalesce(p_track_config, '')
+      and (p_car_id is null or p_car_id = '' or l.car_id = p_car_id)
+      and not l.pit and not l.sim_invalid
+      and coalesce(array_length(l.sectors, 1), 0) = 3
+      and (s.track_length_km <= 0 or s.track_length_km / (l.lap_time / 3600.0) < 400)
+      and (l.valid or not coalesce(p_clean, false))
+      and public.telemetry_visible(l.user_id)
+    order by l.user_id, l.lap_time, (not l.valid), (l.trace_path is null), l.driven_at
+  )
+  select (row_number() over (order by b.lap_time, b.driven_at))::int, b.user_id, p.display_name,
+         coalesce(d.sim_name, (select s.driver_name from public.telemetry_sessions s where s.id = b.session_id)),
+         b.id, b.lap_time, b.sectors, b.car_id, b.s_car_name, b.s_car_class,
+         b.driven_at, b.trace_path is not null, b.user_id = auth.uid(), b.valid, b.incidents, b.off_track
+  from best b
+  join public.profiles p on p.id = b.user_id
+  left join public.driver_identities d on d.user_id = b.user_id and d.sim = b.sim
+  order by b.lap_time, b.driven_at
+  limit least(greatest(coalesce(p_limit, 50), 1), 200);
+$$;
+revoke all on function public.telemetry_leaderboard(text, text, text, text, int, boolean) from public, anon;
+grant execute on function public.telemetry_leaderboard(text, text, text, text, int, boolean) to authenticated, service_role;
+notify pgrst, 'reload schema';

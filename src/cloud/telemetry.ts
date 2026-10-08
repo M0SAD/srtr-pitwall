@@ -218,6 +218,10 @@ export interface BoardRow {
   driven_at: string;
   has_trace: boolean;
   is_me: boolean;
+  /** Kazasız, pist dışına çıkılmamış tur (c109; eski sunucuda yok) */
+  clean?: boolean;
+  incidents?: number;
+  off_track?: boolean;
 }
 
 export interface DriverRow {
@@ -254,13 +258,15 @@ export const comboLaps = (c: { sim: string; track_id: string; track_config: stri
     p_car_id: c.car_id,
     p_user: user ?? null,
   });
-export const leaderboard = (c: { sim: string; track_id: string; track_config: string }, car: string | null, limit = 50) =>
+/** `clean`: yalnızca kazasız / pist dışı olmayan turlar (izli tur arayan kıyaslamalar için) */
+export const leaderboard = (c: { sim: string; track_id: string; track_config: string }, car: string | null, limit = 50, clean = false) =>
   rpc<BoardRow[]>("telemetry_leaderboard", {
     p_sim: c.sim,
     p_track_id: c.track_id,
     p_track_config: c.track_config ?? "",
     p_car_id: car,
     p_limit: limit,
+    p_clean: clean,
   });
 export const telemetryDrivers = (sim: string, q = "", limit = 60, offset = 0) =>
   rpc<DriverRow[]>("telemetry_drivers", { p_sim: sim || null, p_q: q.trim(), p_limit: limit, p_offset: offset });

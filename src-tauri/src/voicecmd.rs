@@ -1771,7 +1771,7 @@ mod tests {
                 Some(crate::model::Driver { car_idx: i, name: format!("Sürücü {i}"), class_id: 1, class_est_lap: 90.0, ..Default::default() })
             })
             .collect();
-        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), laps: Some(20), time: None }];
+        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), laps: Some(20), time: None, ..Default::default() }];
         let mut f = Frame::default();
         f.player_idx = 1;
         f.is_on_track = true;

@@ -412,6 +412,10 @@ fn finish(p: Pending, sim_time: Option<f32>) -> Option<LapRecord> {
     }
     rec.lap_time = t;
     rec.trace = build_trace(&p.samples, t);
+    // Pistin tamamı ölçülmediyse (sıfırlama, çekici, tur sayacı atlaması) süre güvenilmez: geçersiz
+    if rec.trace.is_none() {
+        rec.valid = false;
+    }
     if let Some(tr) = rec.trace.as_ref() {
         let a = tr.time_at(1.0 / 3.0).unwrap_or(0.0);
         let b = tr.time_at(2.0 / 3.0).unwrap_or(0.0);
@@ -609,7 +613,7 @@ mod tests {
             class_name: "GT3".into(),
             ..Default::default()
         })];
-        s.sessions = vec![SessionEntry { num: 0, kind: "Open Qualify".into(), laps: None, time: None }];
+        s.sessions = vec![SessionEntry { num: 0, kind: "Open Qualify".into(), laps: None, time: None, ..Default::default() }];
         s
     }
 

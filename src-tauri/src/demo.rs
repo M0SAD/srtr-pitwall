@@ -374,7 +374,7 @@ impl Demo {
             series_id: 0,
             category: "Road".into(),
             drivers,
-            sessions: vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: Some(RACE_LEN) }],
+            sessions: vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: Some(RACE_LEN), ..Default::default() }],
             tire_types: Vec::new(),
             ai_session: false,
             player_user_id: 0,

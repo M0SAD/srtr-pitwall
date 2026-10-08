@@ -322,6 +322,8 @@ pub struct SessionEntry {
     pub kind: String,
     pub laps: Option<i32>,
     pub time: Option<f64>,
+    /// iRacing ResultsPositions: (CarIdx, en iyi tur, son tur); süre yoksa ≤ 0
+    pub results: Vec<(i32, f32, f32)>,
 }
 
 /// Session YAML'ından çıkarılan, seyrek değişen bilgiler.

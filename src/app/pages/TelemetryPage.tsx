@@ -30,6 +30,7 @@ import {
   type BestLap,
   type DriverRow,
   type LapInfo,
+  type BoardRow,
   type SimId,
   type Trace,
   type TelemetrySession,
@@ -836,10 +837,22 @@ function SessionView(p: { id: string }) {
 
 function BoardView(p: { v: Extract<View, { kind: "board" }> }) {
   const [allCars, setAllCars] = createSignal(false);
+  const [cleanOnly, setCleanOnly] = createSignal(false);
   const [rows] = createResource(
-    () => ({ ...p.v, all: allCars() }),
-    (x) => leaderboard(x, x.all ? null : x.car_id, 100),
+    () => ({ ...p.v, all: allCars(), clean: cleanOnly() }),
+    (x) => leaderboard(x, x.all ? null : x.car_id, 100, x.clean),
   );
+  // Başka araçlarla tur atan yarışçılar (araç süzgeci açıkken bilgi satırı için)
+  const [allRows] = createResource(
+    () => (allCars() ? null : { ...p.v, clean: cleanOnly() }),
+    (x) => leaderboard(x, null, 100, x.clean),
+  );
+  const otherCars = () => {
+    const here = new Set((rows() ?? []).map((r) => r.user_id));
+    return (allRows() ?? []).filter((r) => !here.has(r.user_id)).length;
+  };
+  const dirtyText = (r: BoardRow) =>
+    [t("Temiz olmayan tur"), r.off_track ? t("pist dışı") : "", r.incidents ? `${r.incidents}x` : ""].filter(Boolean).join(" · ");
   const [sel, setSel] = createSignal<string[]>([]);
   const toggle = (id: string) => setSel(sel().includes(id) ? sel().filter((x) => x !== id) : [...sel(), id].slice(-2));
   return (
@@ -854,6 +867,9 @@ function BoardView(p: { v: Extract<View, { kind: "board" }> }) {
         <div class="tele-tools">
           <label class="chk">
             <input type="checkbox" checked={allCars()} onChange={(e) => setAllCars(e.currentTarget.checked)} /> Tüm araçlar
+          </label>
+          <label class="chk" title="Kaza veya pist dışı olan turlar sayılmaz">
+            <input type="checkbox" checked={cleanOnly()} onChange={(e) => setCleanOnly(e.currentTarget.checked)} /> Yalnızca temiz turlar
           </label>
           <button class="btn primary small" disabled={!sel().length} onClick={() => push({ kind: "analysis", laps: sel() })}>
             <I.Activity /> Karşılaştır ({sel().length}/2)
@@ -897,6 +913,11 @@ function BoardView(p: { v: Extract<View, { kind: "board" }> }) {
                   <td>{r.car_name}</td>
                   <td class="num mono" classList={{ best: r.rank === 1 }}>
                     {lapTime(r.lap_time)}
+                    <Show when={r.clean === false}>
+                      <span class="lap-dirty" title={dirtyText(r)}>
+                        ⚠
+                      </span>
+                    </Show>
                   </td>
                   <For each={[0, 1, 2]}>{(i) => <td class="num mono">{r.sectors?.[i] > 0 ? r.sectors[i].toFixed(3) : "—"}</td>}</For>
                   <td class="nowrap">{fmtDate(r.driven_at, false)}</td>
@@ -906,6 +927,15 @@ function BoardView(p: { v: Extract<View, { kind: "board" }> }) {
           </tbody>
         </table>
       </div>
+      <Show when={!allCars() && otherCars() > 0}>
+        <p class="muted small">
+          {t("Bu pistte başka araçlarla tur atan {0} yarışçı daha var.", otherCars())}{" "}
+          <button class="link" onClick={() => setAllCars(true)}>
+            Tüm araçları göster
+          </button>
+        </p>
+      </Show>
+      <p class="muted small">⚠ Kaza ya da pist dışı olan tur. Pistin tamamı ölçülemeyen turlar (sıfırlama, çekici) sıralamaya girmez.</p>
     </section>
   );
 }
@@ -1080,7 +1110,7 @@ function LapPicker(p: { base: LapInfo; exclude: string[]; onPick: (id: string) =
   const [tab, setTab] = createSignal<"mine" | "others">("mine");
   const combo = () => ({ sim: p.base.sim, track_id: p.base.track_id, track_config: p.base.track_config, car_id: p.base.car_id });
   const [mine] = createResource(() => (tab() === "mine" ? combo() : null), (c) => comboLaps(c));
-  const [others] = createResource(() => (tab() === "others" ? combo() : null), (c) => leaderboard(c, c.car_id, 50));
+  const [others] = createResource(() => (tab() === "others" ? combo() : null), (c) => leaderboard(c, c.car_id, 50, true));
   return (
     <div class="lap-picker">
       <div class="seg small">

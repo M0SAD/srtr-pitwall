@@ -25,6 +25,36 @@ pub const CLIENT_VERSION: &str = "2.20260925.01.00";
 const CHAT_URL: &str = "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?prettyPrint=false";
 const META_URL: &str = "https://www.youtube.com/youtubei/v1/updated_metadata?prettyPrint=false";
 const COOKIE: &str = "CONSENT=YES+cb; SOCS=CAI";
+const RESOLVE_URL: &str = "https://www.youtube.com/youtubei/v1/navigation/resolve_url?prettyPrint=false";
+const NEXT_URL: &str = "https://www.youtube.com/youtubei/v1/next?prettyPrint=false";
+const PLAYER_URL: &str = "https://www.youtube.com/youtubei/v1/player?prettyPrint=false";
+
+// YouTube HTML sayfaları için istek sınırı (HTTP 429): tüm kanallar için ortak bekleme. Sınır varken sayfa hiç
+// istenmez (her yeniden denemede / "Yeniden kur"da tekrar istemek sınırı uzatıyordu); bekleme her 429'da ikiye katlanır.
+static BLOCK_UNTIL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static BLOCK_LEVEL: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+fn unix_now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+}
+
+fn page_block_left() -> Option<u64> {
+    let until = BLOCK_UNTIL.load(std::sync::atomic::Ordering::Relaxed);
+    let now = unix_now();
+    (until > now).then(|| until - now)
+}
+
+fn note_page_429(retry_after: Option<u64>) -> u64 {
+    use std::sync::atomic::Ordering::Relaxed;
+    let level = BLOCK_LEVEL.fetch_add(1, Relaxed).min(4);
+    let secs = retry_after.unwrap_or(60u64 << level).clamp(30, 900);
+    BLOCK_UNTIL.store(unix_now() + secs, Relaxed);
+    secs
+}
+
+fn limit_msg(secs: u64) -> String {
+    format!("YouTube geçici istek sınırı (HTTP 429): {secs} sn sonra yeniden denenecek")
+}
 
 /// Sayfadaki `ytInitialData` nesnesi
 pub fn initial_data(page: &str) -> Option<Value> {
@@ -406,6 +436,9 @@ pub fn parse_viewers(v: &Value, raw: &str) -> Option<u64> {
 // ---------------------------------------------------------------------------
 
 async fn get_page(url: &str) -> Result<String, String> {
+    if let Some(left) = page_block_left() {
+        return Err(limit_msg(left));
+    }
     let resp = net::http()?
         .get(url)
         .header("Accept-Language", "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -413,10 +446,52 @@ async fn get_page(url: &str) -> Result<String, String> {
         .send()
         .await
         .map_err(|e| format!("Ağ hatası: {e}"))?;
+    if resp.status().as_u16() == 429 {
+        let ra = resp.headers().get("retry-after").and_then(|v| v.to_str().ok()).and_then(|v| v.trim().parse().ok());
+        return Err(limit_msg(note_page_429(ra)));
+    }
     if !resp.status().is_success() {
         return Err(format!("YouTube sayfası yüklenemedi (HTTP {})", resp.status().as_u16()));
     }
+    BLOCK_LEVEL.store(0, std::sync::atomic::Ordering::Relaxed);
     resp.text().await.map_err(|e| e.to_string())
+}
+
+fn api_ctx(cv: &str) -> Value {
+    serde_json::json!({ "client": { "clientName": "WEB", "clientVersion": cv, "hl": "en" } })
+}
+
+/// Kanalın canlı yayını, HTML sayfası yerine YouTube'un veri arayüzüyle: `/@kanal/live` adresi canlı yayın varsa
+/// izleme sayfasına çözülür, yayının gerçekten canlı olduğu oynatıcı bilgisinden doğrulanır.
+async fn resolve_live_api(live_page: &str, cv: &str) -> Result<Option<String>, String> {
+    let body = serde_json::json!({ "context": api_ctx(cv), "url": live_page });
+    let (v, _) = post_json(RESOLVE_URL, &body, "https://www.youtube.com/").await?;
+    let Some(vid) = v.pointer("/endpoint/watchEndpoint/videoId").and_then(|x| x.as_str()).map(str::to_string) else {
+        if v.pointer("/endpoint/browseEndpoint").is_some() {
+            return Ok(None); // kanal var, canlı yayın yok
+        }
+        return Err("YouTube kanal adresi çözülemedi".into());
+    };
+    let live = player_info(&vid, cv).await?.0;
+    Ok(live.then_some(vid))
+}
+
+/// (canlı mı, kanal adı)
+async fn player_info(vid: &str, cv: &str) -> Result<(bool, Option<String>), String> {
+    let body = serde_json::json!({ "context": api_ctx(cv), "videoId": vid });
+    let (p, _) = post_json(PLAYER_URL, &body, &format!("https://www.youtube.com/watch?v={vid}")).await?;
+    let d = p.get("videoDetails");
+    let live = d.and_then(|d| d.get("isLive")).and_then(|x| x.as_bool()).unwrap_or(false);
+    let name = d.and_then(|d| d.get("author")).and_then(|x| x.as_str()).filter(|s| !s.is_empty()).map(str::to_string);
+    Ok((live, name))
+}
+
+/// İzleme sayfasının yerine: (canlı mı, kanal adı, sohbet verisi `ytInitialData` ile aynı yapıda)
+async fn watch_api(vid: &str, cv: &str) -> Result<(bool, Option<String>, Value), String> {
+    let (live, name) = player_info(vid, cv).await?;
+    let body = serde_json::json!({ "context": api_ctx(cv), "videoId": vid });
+    let (next, _) = post_json(NEXT_URL, &body, &format!("https://www.youtube.com/watch?v={vid}")).await?;
+    Ok((live, name, next))
 }
 
 async fn post_json(url: &str, body: &Value, referer: &str) -> Result<(Value, String), String> {
@@ -461,24 +536,31 @@ enum End {
 
 async fn chat_session(ctx: &Ctx, vid: &str) -> Result<End, String> {
     let watch = format!("https://www.youtube.com/watch?v={vid}");
-    let page = get_page(&watch).await?;
-    if let Some(n) = owner_channel_name(&page) {
+    let cv0 = ctx.hub.yt_client_version().unwrap_or_else(|| CLIENT_VERSION.to_string());
+    // Önce veri arayüzü (hafif, sayfa istek sınırına takılmaz); olmazsa izleme sayfası
+    let (live, name, data, page_tok, page_cv) = match watch_api(vid, &cv0).await {
+        Ok((live, name, next)) if live && chat_tokens(&next) != (None, None) => (live, name, Some(next), None, None),
+        Ok((false, name, _)) => (false, name, None, None, None),
+        _ => {
+            let page = get_page(&watch).await?;
+            (is_live_now(&page), owner_channel_name(&page), initial_data(&page), fallback_token(&page), page_client_version(&page))
+        }
+    };
+    if let Some(n) = name {
         ctx.hub.set_name(&ctx.key, &n);
     }
-    if !is_live_now(&page) {
+    if !live {
         return Ok(End::NotLive);
     }
-    let data = initial_data(&page);
     let (live_tok, mut default_tok) = data.as_ref().map(chat_tokens).unwrap_or((None, None));
     if default_tok.is_none() {
-        default_tok = fallback_token(&page);
+        default_tok = page_tok;
     }
     let Some(mut token) = live_tok.clone().or_else(|| default_tok.clone()) else {
         return Err("Canlı sohbet verisi bulunamadı (sohbet kapalı olabilir)".into());
     };
     let mut fallback = if live_tok.is_some() && default_tok != live_tok { default_tok } else { None };
-    let cv = ctx.hub.yt_client_version().or_else(|| page_client_version(&page)).unwrap_or_else(|| CLIENT_VERSION.to_string());
-    drop(page);
+    let cv = ctx.hub.yt_client_version().or(page_cv).unwrap_or_else(|| CLIENT_VERSION.to_string());
 
     ctx.hub.set_video(&ctx.key, Some(vid.to_string()));
     ctx.hub.set_chat(&ctx.key, true, None);
@@ -559,14 +641,21 @@ pub async fn run(ctx: Ctx) {
         let vid = match ctx.link.yt {
             Some(YtKind::Video) => Ok(Some(ctx.link.ident.clone())),
             _ => match youtube_live_page(&ctx.link) {
-                Some(u) => resolve_live(&u).await,
+                Some(u) => {
+                    let cv = ctx.hub.yt_client_version().unwrap_or_else(|| CLIENT_VERSION.to_string());
+                    match resolve_live_api(&u, &cv).await {
+                        Ok(v) => Ok(v),
+                        Err(_) => resolve_live(&u).await,
+                    }
+                }
                 None => Err("Geçersiz kanal linki".into()),
             },
         };
         let wait = match vid {
             Err(e) => {
                 ctx.hub.set_chat(&ctx.key, false, Some(e));
-                30
+                // Sayfa istek sınırındaysa sınır bitene kadar beklenir
+                30.max(page_block_left().unwrap_or(0))
             }
             Ok(None) => {
                 ctx.hub.set_video(&ctx.key, None);

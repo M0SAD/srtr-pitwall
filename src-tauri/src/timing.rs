@@ -554,7 +554,7 @@ mod tests {
         for i in 0..2 {
             s.drivers[i] = Some(Driver { car_idx: i as i32, car_number: format!("{}", i + 1), class_id: 1, ..Default::default() });
         }
-        s.sessions = vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: None }];
+        s.sessions = vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: None, ..Default::default() }];
         s.sector_starts = vec![0.0, 0.25, 0.5];
         s
     }
