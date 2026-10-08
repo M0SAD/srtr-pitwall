@@ -413,6 +413,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     let mut voice = crate::voice::Voice::default();
     // Tekrar izleme başladı mı (Olaylar penceresini bir kez açmak için)
     let mut was_replay = false;
+    // Olaylar penceresi yarış bitince / tekrar başlayınca kendiliğinden açıldı: oturumdan çıkılınca (quit) kapatılır
+    let mut events_auto = false;
+    let mut was_conn_ev = false;
     // Olaylar penceresine son bildirilen liste sürümü ve kayıt ayarının son okunma anı
     let mut events_rev = 0u64;
     let mut last_events_cfg = crate::crashlog::past(10);
@@ -647,12 +650,14 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             };
             if finished && !demo_on && connected && auto_open(0) {
                 crate::open_events(&app);
+                events_auto = true;
             }
             // Tekrar izlenmeye başlandı: olaylara atlayabilmek için Olaylar penceresini aç (açık değilse)
             let replay = connected && !demo_on && !preview && crate::calc::replay_watch(&st.frame);
             // Atlanacak olay yoksa açılmaz (boş pencere açmanın anlamı yok)
             if replay && !was_replay && auto_open(1) {
                 crate::open_events_if_closed(&app);
+                events_auto = true;
             }
             was_replay = replay;
             let done = crate::crashlog::guard(|| st.history.update(&st.frame, &st.session, !demo_on && connected)).flatten();
@@ -700,6 +705,15 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         }
         // Sesli komut (bas-konuş): bekleyen soruları son kareden cevapla (bkz. voicecmd.rs)
         crate::crashlog::guard(|| crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim, shared.demo.load(Ordering::Relaxed)));
+
+        // Oturumdan çıkıldı (sim bağlantısı bitti): kendiliğinden açılmış Olaylar penceresi kapanır
+        if was_conn_ev && !connected && events_auto {
+            events_auto = false;
+            if let Some(w) = app.get_webview_window("events") {
+                let _ = w.close();
+            }
+        }
+        was_conn_ev = connected;
 
         let visible = connected && !preview;
         if visible != was_connected {

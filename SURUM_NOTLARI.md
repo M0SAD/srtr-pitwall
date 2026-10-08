@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-268
+
+- Yarış bitince (ya da tekrar izlemeye başlayınca) kendiliğinden açılan Olaylar penceresi, oturumdan çıkınca (quit) kendiliğinden kapanır. Elle açtığın Olaylar penceresine dokunulmaz.
+
 ## 081026-267
 
 - Telemetri sayfası yenilendi: üstte sürücü kartı ve özet kutuları, oturumlarda pist ile araç tek sütunda ve oturum türü renkli etiketle; kişisel en iyiler liste ya da kart olarak görüntülenebilir.
