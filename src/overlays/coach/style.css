@@ -1,0 +1,218 @@
+/* Canlı Kıyas. Ölçüler em: yazı boyutu ayarı bütün göstergeyi ölçekler. */
+.co {
+  box-sizing: border-box;
+  padding: 0.55em 0.7em 0.6em;
+  font-variant-numeric: tabular-nums;
+  --co-thr: #35d07f;
+  --co-brk: #ff4d4f;
+  --co-gain: #35d07f;
+  --co-loss: #ff4d4f;
+}
+.co-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.45em;
+  min-width: 0;
+}
+.co-logo {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  object-fit: contain;
+}
+.co-head b {
+  font-size: 0.78em;
+  letter-spacing: 0.1em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+.co-ref {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8em;
+  color: var(--ov-dim);
+}
+.co-ref em {
+  margin-left: 0.5em;
+  font-style: normal;
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-text);
+}
+.co-main {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6em;
+}
+.co-graph {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 0.35em;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ov-text) calc(6% * var(--ov-bg-k, 1)), transparent);
+}
+.co-graph svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.co-a {
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 4 3;
+}
+.co-a-thr {
+  fill: color-mix(in srgb, var(--co-thr) 20%, transparent);
+  stroke: color-mix(in srgb, var(--co-thr) 65%, transparent);
+}
+.co-a-brk {
+  fill: color-mix(in srgb, var(--co-brk) 24%, transparent);
+  stroke: color-mix(in srgb, var(--co-brk) 70%, transparent);
+}
+.co-l {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.co-l-thr {
+  stroke: var(--co-thr);
+}
+.co-l-brk {
+  stroke: var(--co-brk);
+}
+.co-now {
+  stroke: var(--ov-text);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.co-cue {
+  position: absolute;
+  top: 0.35em;
+  right: 0.45em;
+  padding: 0.15em 0.55em;
+  border-radius: 0.3em;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--co-brk);
+  box-shadow: 0 0 0.8em var(--co-brk);
+  text-shadow: none;
+}
+.co-scale {
+  position: absolute;
+  right: 0.45em;
+  bottom: 0.2em;
+  font-size: 0.66em;
+  color: var(--ov-dim);
+}
+.co-bars {
+  display: flex;
+  gap: 0.3em;
+}
+.co-bar {
+  position: relative;
+  width: 1em;
+  border-radius: 0.25em;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ov-text) calc(8% * var(--ov-bg-k, 1)), transparent);
+}
+.co-bar i {
+  position: absolute;
+  bottom: 0;
+}
+.co-bar-ref {
+  left: 0;
+  right: 0;
+  background: color-mix(in srgb, var(--c) 30%, transparent);
+  border-top: 2px dashed var(--c);
+}
+.co-bar-me {
+  left: 22%;
+  right: 22%;
+  border-radius: 0.15em 0.15em 0 0;
+  background: var(--c);
+}
+.co-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 4.6em;
+  line-height: 1.1;
+}
+.co-delta {
+  font-size: 1.8em;
+  font-weight: var(--ov-weight-strong);
+}
+.co-side small {
+  font-size: 0.66em;
+  letter-spacing: 0.1em;
+  color: var(--ov-dim);
+}
+.co-speed {
+  margin-top: 0.4em;
+  font-size: 0.9em;
+  font-weight: var(--ov-weight-strong);
+}
+.co-gain {
+  color: var(--co-gain);
+}
+.co-loss {
+  color: var(--co-loss);
+}
+.co-sectors {
+  display: flex;
+  gap: 0.35em;
+  margin-top: 0.45em;
+}
+.co-sec {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4em;
+  padding: 0.2em 0.5em;
+  border-radius: 0.3em;
+  font-size: 0.86em;
+  font-weight: var(--ov-weight-strong);
+  background: color-mix(in srgb, var(--ov-text) calc(7% * var(--ov-bg-k, 1)), transparent);
+  border-bottom: 2px solid transparent;
+}
+.co-sec.cur {
+  border-bottom-color: var(--ov-text);
+}
+.co-sec.co-gain {
+  background: color-mix(in srgb, var(--co-gain) 18%, transparent);
+}
+.co-sec.co-loss {
+  background: color-mix(in srgb, var(--co-loss) 18%, transparent);
+}
+.co-sec i {
+  font-style: normal;
+  font-size: 0.8em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--ov-dim);
+}
+.co-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  padding: 0.6em 0.3em;
+  text-align: center;
+}
+.co-note b {
+  font-weight: var(--ov-weight-strong);
+}
+.co-note span {
+  font-size: 0.84em;
+  color: var(--ov-dim);
+}

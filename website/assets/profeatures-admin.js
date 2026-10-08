@@ -34,6 +34,8 @@ const STATIC = [
   ["telemetry.others", "Başkalarının telemetrisini görmek (Yarışçılar, takım arkadaşları)", "Telemetri", true, true],
   ["telemetry.compare", "Tur karşılaştırma (iki turun izleri ve fark)", "Telemetri", false, false],
   ["telemetry.leaderboard", "Pist / araç sıralaması (lider tablosu)", "Telemetri", false, false],
+  ["telemetry.community", "Toplulukla kıyaslama (topluluk rekoru ve ortalaması)", "Telemetri", true, false],
+  ["telemetry.map", "Pist haritasında hızlı / yavaş noktalar ve farklar", "Telemetri", true, false],
   ["appearance.themes", "Tema düzenlemek (renkler, yazı tipi, kenarlık, gölge)", "Görünüm", false, false],
   ["appearance.app_bg", "Uygulama arka planı (resim / renk)", "Görünüm", false, false],
   ["appearance.chat_look", "Sohbet görünümü (balonlar ve sohbet arka planı)", "Görünüm", false, false],

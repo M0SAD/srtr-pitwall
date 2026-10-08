@@ -26,6 +26,7 @@ mod sdk;
 mod sims;
 mod server;
 mod session;
+mod coach;
 mod setupcmp;
 mod strategy;
 mod trackmap;
@@ -1309,10 +1310,42 @@ fn autostart_set(app: AppHandle, on: bool) -> Result<bool, String> {
     use tauri_plugin_autostart::ManagerExt;
     let al = app.autolaunch();
     if on { al.enable() } else { al.disable() }.map_err(|e| e.to_string())?;
+    // Kullanıcının seçimi saklanır: güncelleme başlangıç kaydını silse de açılışta buna göre geri yazılır
+    autostart_save_want(&app, on);
     Ok(al.is_enabled().unwrap_or(on))
 }
 
+/// "Windows ile başlat" için kullanıcının isteği (1 / 0): `autostart.want`
+fn autostart_want_path(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("autostart.want"))
+}
+
+fn autostart_save_want(app: &AppHandle, on: bool) {
+    if let Some(p) = autostart_want_path(app) {
+        if let Some(d) = p.parent() {
+            let _ = std::fs::create_dir_all(d);
+        }
+        let _ = std::fs::write(p, if on { b"1" } else { b"0" });
+    }
+}
+
 /// Fren ve Vites İşareti: arayüzün topluluk telemetrisinden indirdiği rekor turun fren / gaz kesme noktaları
+/// Canlı Kıyas: arayüzün indirdiği referans tur izi (ya da "veri yok" durumu)
+#[tauri::command]
+fn coach_ref_set(app: AppHandle, reference: coach::RefIn) {
+    shared(&app).coach_refs.lock().push(reference);
+}
+
+/// Telemetri sayfası: bu bilgisayarda öğrenilmiş pist haritası (yoksa null)
+#[tauri::command]
+fn track_shape(app: AppHandle, sim: String, track_id: String, track_name: String, track_config: String) -> Option<Vec<[f32; 2]>> {
+    let key = if sim == "iracing" { format!("{track_id}_{track_config}") } else { format!("{sim}_{track_name}_{track_config}").to_lowercase() };
+    let safe: String = key.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect();
+    let path = app.path().app_data_dir().ok()?.join("tracks").join(format!("{safe}.json"));
+    let v: Vec<[f32; 2]> = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
+    (v.len() >= 50).then_some(v)
+}
+
 #[tauri::command]
 fn brake_combo(app: AppHandle) -> drivecues::Combo {
     shared(&app).brake_combo.lock().clone()
@@ -1571,31 +1604,32 @@ fn spawn_monitor_watch(app: AppHandle) {
     }));
 }
 
-/// "Windows ile başlat" (sistem tepsisinde, --tray) varsayılan olarak açıktır: ilk kurulumda ve bu varsayılanın
-/// geldiği sürüme güncellenen mevcut kurulumlarda bir kez açılır. İşaret dosyası sayesinde kullanıcı sonradan
-/// kapatırsa tekrar açılmaz.
+/// "Windows ile başlat" (sistem tepsisinde, --tray) varsayılan olarak açıktır. Kullanıcının isteği `autostart.want`
+/// dosyasında tutulur (Ayarlar › Genel'deki anahtar yazar):
+/// - İstek yoksa (yeni kurulum ya da bu düzeltmeden önceki kurulum) bir kez açılır ve "1" yazılır.
+/// - "1" ise her açılışta kayıt yenilenir: güncelleme kurulumu başlangıç kaydını silse bile geri gelir.
+/// - "0" ise (kullanıcı kapattı) hiç dokunulmaz; sonraki sürümlerde de kapalı kalır.
 fn autostart_first_run(app: &AppHandle, _had_settings: bool) {
-    let Ok(dir) = app.path().app_config_dir() else { return };
-    // v2: mevcut kurulumlar da bir kez açılır (eski "autostart.init" sadece yeni kurulumları açıyordu)
-    // v3 (163 sonrası): bir kez daha açılır — eski kurulumlarda kayıt hiç yazılmamış ya da eski kurulum yolunda kalmış olabiliyordu
-    let marker = dir.join("autostart.v3");
     // Geliştirme derlemesi kendini başlangıca eklemesin
     if cfg!(debug_assertions) {
         return;
     }
     use tauri_plugin_autostart::ManagerExt;
     let al = app.autolaunch();
-    if marker.exists() {
-        // Açıksa kayıt her açılışta yenilenir: program başka bir klasöre kurulduysa başlangıç kaydı eski yolu göstermesin
-        if al.is_enabled().unwrap_or(false) {
-            let _ = al.enable();
+    let want = autostart_want_path(app).and_then(|p| std::fs::read(p).ok()).map(|b| b.first() == Some(&b'1'));
+    match want {
+        Some(false) => {}
+        Some(true) => {
+            if let Err(e) = al.enable() {
+                eprintln!("Otomatik başlatma açılamadı: {e}");
+            }
         }
-        return;
-    }
-    let _ = std::fs::create_dir_all(&dir);
-    let _ = std::fs::write(&marker, b"1");
-    if let Err(e) = al.enable() {
-        eprintln!("Otomatik başlatma açılamadı: {e}");
+        None => {
+            autostart_save_want(app, true);
+            if let Err(e) = al.enable() {
+                eprintln!("Otomatik başlatma açılamadı: {e}");
+            }
+        }
     }
 }
 
@@ -2305,8 +2339,16 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
                     osd::show(app, "hide", Some(!shared(app).user_hidden.load(Ordering::Relaxed)));
                 }
                 Some("panel") => {
-                    bring_panel_front(app);
-                    osd::show(app, "panel", None);
+                    // Panel zaten önde (görünür, simge durumunda değil, odakta): ikinci basışta simge durumuna küçülür
+                    let front = app.get_webview_window("main").filter(|w| {
+                        w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false) && w.is_focused().unwrap_or(false)
+                    });
+                    if let Some(w) = front {
+                        let _ = w.minimize();
+                    } else {
+                        bring_panel_front(app);
+                        osd::show(app, "panel", None);
+                    }
                 }
                 Some("shot") => {
                     // Bildirim görüntü alındıktan sonra gösterilir (osd.rs: screenshot-taken / screenshot-error)
@@ -2439,6 +2481,8 @@ pub fn run() {
             team_remote_set,
             brake_community_set,
             brake_combo,
+            coach_ref_set,
+            track_shape,
             hidden_set,
             monitors_list,
             overlay_set_monitor,
@@ -2601,20 +2645,6 @@ pub fn run() {
         ]))
         .setup(move |app| {
             let handle = app.handle().clone();
-            // Varsayılan: Windows açılışında başlat (sistem tepsisinde). Bir kez uygulanır; kullanıcı Ayarlar › Genel'den
-            // kapatırsa kapalı kalır. Geliştirme derlemesinde dokunulmaz.
-            if !cfg!(debug_assertions) {
-                if let Ok(dir) = handle.path().app_config_dir() {
-                    let mark = dir.join("autostart-default");
-                    if !mark.exists() {
-                        use tauri_plugin_autostart::ManagerExt;
-                        let _ = std::fs::create_dir_all(&dir);
-                        if handle.autolaunch().enable().is_ok() {
-                            let _ = std::fs::write(&mark, b"1");
-                        }
-                    }
-                }
-            }
             if let Ok(dir) = handle.path().app_data_dir() {
                 crashlog::set_dir(dir);
             }

@@ -3,6 +3,28 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-267
+
+- Telemetri sayfası yenilendi: üstte sürücü kartı ve özet kutuları, oturumlarda pist ile araç tek sütunda ve oturum türü renkli etiketle; kişisel en iyiler liste ya da kart olarak görüntülenebilir.
+- Tur kaydı artık her zaman açık; turların ve izlerin topluluğa açıktır ve sıralamalarda, topluluk kıyaslamalarında kullanılır. Telemetri oturumları silinemez.
+- Ayarlar › Genel'e "Mesaj bildirimi" bölümü eklendi: arkadaş mesajı sesini ve ses düzeyini buradan seçebilirsin (varsayılan ses değişmedi).
+- Ctrl + Shift + Boşluk: kontrol paneli öndeyken tekrar basınca pencere simge durumuna küçülür.
+- Canlı Sohbet mesaj kutusu: soldaki kanal adına tıklayarak da kanal değiştirebilirsin (sağ tık: önceki, tekerlek de çalışır). Yalnızca şu an canlı yayında olan kanallar listelenir.
+- Canlı Sohbet izleyici çubuğu: bir platformun izleyici sayısına tıklayınca o platformdaki canlı kanalın sayfası açılır (Σ: en çok izlenen canlı kanal).
+- "Windows ile başlat" güncellemelerden sonra kendiliğinden kapanıyordu; düzeltildi. Varsayılan olarak açıktır; Ayarlar › Genel'den kapatırsan sonraki sürümlerde de kapalı kalır.
+
+## 081026-266
+
+- Telemetri artık herkese açık: tur kayıtların, kişisel en iyilerin ve tur izlerin tüm üyelere ve Yarışçılar sayfasına açıktır; sıralamalarda ve topluluk kıyaslamalarında kullanılır. "Telemetri verilerimi başkaları görebilsin" seçeneği kaldırıldı. Kaydedilmesini istemiyorsan Telemetri › Ayarlar'daki "Turlarımı kaydet" anahtarını kapatabilir, istediğin oturumu silebilirsin.
+
+## 081026-265
+
+- Yeni overlay (PRO): Canlı Kıyas. Sürerken gaz ve frenini topluluğun en iyi turuyla, topluluk ortalamasıyla ya da kendi rekorunla canlı karşılaştırır; tur içi farkı, hız farkını ve bölüm bölüm kazanç / kaybı gösterir. Yeterli tur yoksa "Yeterli veri yok" yazar.
+- Telemetri › Tur analizi (PRO): pist haritası. Seçtiğin referansa göre (bu oturumun en iyisi, kendi rekorun, topluluğun en iyi turu, topluluk ortalaması ya da karşılaştırdığın tur) zaman kazandığın yerler yeşil, kaybettiğin yerler kırmızı görünür; hız farkı ve sektör görünümleri de var. "Farkları haritada göster" ile viraj viraj fark süreleri haritaya yazılır.
+- Telemetri › Tur analizi (PRO): "Toplulukla kıyasla" düğmesi, topluluğun en hızlı turunu tek tıkla karşılaştırmaya ekler.
+- Telemetri sayfasının görünümü düzenlendi (tur kartları, tablolar, grafikler).
+- Referans turlar bir kez indirilip bilgisayarında saklanır; aynı pist ve araç için sunucuya en fazla 12 saatte bir gidilir.
+
 ## 081026-264
 
 - Fren ve Vites İşareti:

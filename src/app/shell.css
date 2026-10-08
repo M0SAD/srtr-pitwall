@@ -5916,3 +5916,16 @@ button.ovpal-lock:hover {
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
+
+/* Ayarlar › Genel: mesaj sesi */
+.gp-tone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gp-tone select {
+  min-width: 170px;
+}
+.gp-vol {
+  width: 200px;
+}

@@ -400,3 +400,20 @@
   overflow-wrap: anywhere;
   cursor: pointer;
 }
+
+/* Mesaj kutusunun kanal adı: tıklayınca kanal değişir */
+.lc-send-ch.pick {
+  cursor: pointer;
+  border-radius: 0.3em;
+}
+.lc-send-ch.pick:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+/* İzleyici çubuğu: tıklayınca canlı kanalın sayfası açılır */
+.lc-bar-item.link {
+  cursor: pointer;
+  border-radius: 0.3em;
+}
+.lc-bar-item.link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

@@ -382,3 +382,402 @@
 .tele-filters .tf-selects select {
   min-width: min(180px, 100%);
 }
+
+/* ---- Pist haritası (tur analizi, PRO) ---- */
+.tmap-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+.tmap-f {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.tmap-f select {
+  padding: 5px 8px;
+  font-size: 12.5px;
+}
+.tmap-tools .chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.tmap-note {
+  margin: 6px 0 0;
+}
+.tmap-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 14px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .tmap-box {
+    grid-template-columns: 1fr;
+  }
+}
+.tmap-svg {
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  border-radius: 12px;
+  background: radial-gradient(120% 120% at 50% 40%, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--line);
+}
+.tmap-bg {
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 15;
+  stroke-linecap: round;
+}
+.tmap-seg {
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.tmap-start {
+  fill: #fff;
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+.tmap-tag {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  fill: #35d07f;
+  paint-order: stroke;
+  stroke: rgba(8, 10, 14, 0.9);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.tmap-tag.bad {
+  fill: #ff6163;
+}
+.tmap-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+.tmap-side small {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tmap-side small:first-child {
+  margin-top: 0;
+}
+.tmap-total {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+.tmap-total.good {
+  color: #35d07f;
+}
+.tmap-total.bad {
+  color: #ff6163;
+}
+.tmap-nodata {
+  margin: 0;
+  color: var(--muted);
+}
+.tmap-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 0;
+  margin: 12px 0 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tmap-legend i {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #2ecc71, #7a8292, #ff4d4f);
+}
+.tmap-legend.blue i {
+  background: linear-gradient(90deg, #3a84ff, #7a8292, #ff4d4f);
+}
+.tmap-legend span:last-child {
+  text-align: right;
+}
+
+/* ---- Görsel düzen (263+): kartlar, tablolar ve grafikler daha okunaklı ---- */
+.tele .panel > h3,
+.tele .tele-head h3 {
+  letter-spacing: 0.01em;
+}
+.lap-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--c) 14%, transparent), transparent 55%), var(--bg-2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+.lap-card .lap-time {
+  font-size: 22px;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.tele-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg-2);
+}
+.tele-table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.015);
+}
+.tele-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.045);
+}
+.tele-table td.num,
+.tele-table th.num {
+  font-variant-numeric: tabular-nums;
+}
+.tchart-head > b {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tchart-plot {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008));
+  overflow: hidden;
+}
+.tele-tools {
+  flex-wrap: wrap;
+}
+
+/* ---- Telemetri yeni görünüm (268) ---- */
+.tele-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%),
+    radial-gradient(80% 120% at 100% 0%, rgba(58, 132, 255, 0.1), transparent 60%),
+    var(--bg-2);
+}
+.th-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.th-avatar {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #3a84ff));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.th-who {
+  flex: 1;
+  min-width: 200px;
+}
+.th-who > small {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.th-who h3 {
+  margin: 2px 0 6px;
+  font-size: 22px;
+}
+.th-sims {
+  display: flex;
+  gap: 8px;
+}
+.th-sim {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.th-sim b {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.th-sim small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.th-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 10px;
+}
+.th-stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+}
+.th-stat svg {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.th-stat b {
+  white-space: nowrap;
+  font-size: 23px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.th-stat small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.th-stat.accent {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent);
+}
+.th-stat.accent b,
+.th-stat.accent svg {
+  color: var(--accent);
+  opacity: 1;
+}
+.th-stat.warn svg {
+  color: #ffc53d;
+}
+/* Oturum tablosu */
+.tele-table td.tt-date small,
+.tele-table td.tt-track small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tele-table td.tt-track b {
+  font-weight: 600;
+}
+.tele-table td.tt-best {
+  font-weight: 700;
+  color: var(--text);
+}
+.sess-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+}
+.sess-pill.t-race {
+  color: #ff8f8f;
+  background: rgba(255, 92, 92, 0.12);
+  border-color: rgba(255, 92, 92, 0.3);
+}
+.sess-pill.t-qualify {
+  color: #d3a6ff;
+  background: rgba(183, 108, 255, 0.12);
+  border-color: rgba(183, 108, 255, 0.3);
+}
+.sess-pill.t-practice,
+.sess-pill.t-warmup {
+  color: #9cc4ff;
+  background: rgba(58, 132, 255, 0.12);
+  border-color: rgba(58, 132, 255, 0.3);
+}
+.sess-pill.t-hotlap {
+  color: #8ff0bb;
+  background: rgba(61, 220, 132, 0.12);
+  border-color: rgba(61, 220, 132, 0.3);
+}
+.sess-pill + .tele-tag {
+  margin-left: 6px;
+}
+/* Kişisel en iyiler: kartlar */
+.best-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+.best-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(61, 220, 132, 0.07), transparent 45%), var(--bg-2);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.best-card:hover {
+  border-color: color-mix(in srgb, #3ddc84 40%, var(--line));
+  transform: translateY(-1px);
+}
+.bc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.bc-sim {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.bc-track {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-car {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-time {
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #3ddc84;
+  letter-spacing: 0.01em;
+}
+.bc-act {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.best-grid[hidden] {
+  display: none;
+}

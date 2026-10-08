@@ -16230,3 +16230,42 @@ select (select count(*) from public.team_polls) as polls_left, to_regclass('publ
 update public.app_config
    set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['gforce', 'flatmap', 'dashboard', 'minimap', 'telemetry', 'heartrate']) as x)
  where id = 1;
+
+-- c106: Canlı Kıyas overlay'i varsayılan olarak PRO (app_config.pro_overlays). Yönetim › PRO özellikleri'nden değiştirilebilir.
+--       Telemetri: "telemetry.community" ve "telemetry.map" özellikleri istemcide varsayılan olarak PRO'dur (pro_features'ta kayıt gerekmez).
+update public.app_config
+   set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['coach']) as x)
+ where id = 1;
+
+-- c107: Telemetri gizlenemez. Tüm üyelerin telemetrisi herkese açık (Yarışçılar, sıralamalar, topluluk kıyaslamaları).
+--       Eski sürümler / site anahtarı kapatmaya çalışsa da değer true kalır. Paylaşmak istemeyen kaydı kapatabilir ya da
+--       oturumlarını silebilir (programda Telemetri › Ayarlar).
+update public.profiles set telemetry_public = true where telemetry_public is distinct from true;
+
+create or replace function public.profiles_telemetry_public_force() returns trigger
+language plpgsql as $$
+begin
+  new.telemetry_public := true;
+  return new;
+end $$;
+
+drop trigger if exists profiles_telemetry_public_force on public.profiles;
+create trigger profiles_telemetry_public_force before insert or update of telemetry_public on public.profiles
+  for each row execute function public.profiles_telemetry_public_force();
+
+create or replace function public.telemetry_set_public(p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  -- Telemetri gizlenemez (c107): istek yok sayılır
+end $$;
+
+-- c108: Telemetri oturumları silinemez (kayıtlar sıralamalar ve topluluk kıyaslamaları için saklanır).
+--       Eski sürümlerdeki "Oturumu sil" düğmesi açık bir hata mesajı alır; hiçbir şey silinmez.
+create or replace function public.telemetry_delete_session(p_session uuid) returns text[]
+language plpgsql security definer set search_path = public as $$
+begin
+  raise exception 'Telemetri oturumları silinemez';
+end $$;

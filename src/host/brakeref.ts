@@ -4,7 +4,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { settings } from "@/sdk/settings";
-import { leaderboard, lapsInfo, loadTrace, type SimId, type Trace } from "@/cloud/telemetry";
+import type { SimId, Trace } from "@/cloud/telemetry";
+import { loadRef } from "@/cloud/teleref";
 import type { BrakeZone } from "@/sdk/drivecues";
 
 interface Combo {
@@ -84,15 +85,12 @@ export function zonesFromTrace(tr: Trace): BrakeZone[] {
 }
 
 async function fetchRef(c: Combo): Promise<boolean> {
-  const rows = await leaderboard({ sim: c.sim, track_id: c.trackId, track_config: c.trackConfig }, c.carId, 20);
-  const row = (rows ?? []).find((r) => r.has_trace);
-  if (!row) return false;
-  const info = (await lapsInfo([row.lap_id]))?.[0];
-  const trace = await loadTrace(info?.trace_path);
-  if (!trace) return false;
-  const zones = zonesFromTrace(trace);
+  // Canlı Kıyas ile aynı önbellekli kaynak: aynı pist + araç için sunucuya en fazla 12 saatte bir gidilir
+  const r = await loadRef("best", { sim: c.sim, track_id: c.trackId, track_config: c.trackConfig, car_id: c.carId });
+  if (!r) return false;
+  const zones = zonesFromTrace(r.trace);
   if (!zones.length) return false;
-  await invoke("brake_community_set", { reference: { combo: c, time: row.lap_time, name: row.display_name || row.sim_name || "", zones } });
+  await invoke("brake_community_set", { reference: { combo: c, time: r.time, name: r.name, zones } });
   return true;
 }
 

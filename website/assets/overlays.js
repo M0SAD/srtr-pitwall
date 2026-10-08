@@ -38,6 +38,7 @@ export const OVERLAYS = [
       ["delta", "⏱️", "free"],
       ["sectors", "🟪", "mixed"],
       ["setupcmp", "🔧", "free"],
+      ["coach", "📈", "pro"],
       ["laptimes", "📋", "free"],
       ["corners", "〰️", "pro"],
       ["brakepoint", "🛑", "pro"],
@@ -129,6 +130,7 @@ export const NAMES = {
   delta: ["Delta Bar", "Delta Bar"],
   sectors: ["Sektör Süreleri", "Sector Times"],
   setupcmp: ["Setup Karşılaştırma", "Setup Comparison"],
+  coach: ["Canlı Kıyas", "Live Compare"],
   laptimes: ["Tur Süreleri", "Lap Times"],
   corners: ["Viraj Analizi", "Corner Analysis"],
   brakepoint: ["Fren ve Vites İşareti", "Brake & Gear Markers"],
@@ -276,6 +278,7 @@ addDict({
     "En iyi turuna göre şu an önde misin, geride misin; saniyenin binde biri hassasiyetiyle anlık gösterir. Çubuk yeşile dönüyorsa zaman kazanıyor, kırmızıya dönüyorsa kaybediyorsun; eğilim oku farkın büyüyüp küçüldüğünü belirtir. Sıralama turlarında ve tempo çalışırken en çok bakılan göstergedir. iRacing ve ACC'de çalışır.",
     "Shows live, to the thousandth of a second, whether you are ahead of or behind your best lap. A bar turning green means you are gaining time, red means you are losing it, and a trend arrow shows whether the difference is growing or shrinking. It is the gauge drivers watch most in qualifying and pace runs. Works in iRacing and ACC.",
   ],
+  ovg_coach: ["Hızlı sürücülerin nerede frenleyip nerede gaza bastığını pistten çıkmadan görürsün. Overlay, bu pist ve araç için toplulukta paylaşılmış en hızlı turun (ya da en hızlı turların ortalamasının) gaz ve fren izini önündeki birkaç yüz metre için çizer; senin girdilerin aynı grafikte üstüne biner. Yanında tur içi farkın, o noktadaki hız farkın ve turun üç bölümünde kazandığın ya da kaybettiğin süre durur. Referans frendeyken sen değilsen kısa bir FREN uyarısı çıkar. İstersen kendi rekorunla da kıyaslayabilirsin; yeterli tur yoksa overlay bunu açıkça söyler.", "See where fast drivers brake and get back on the throttle without leaving the track. The overlay draws the throttle and brake trace of the fastest shared lap for this track and car (or the average of the fastest laps) for the next few hundred metres, with your own inputs laid over the same graph. Next to it are your live lap delta, your speed difference at that point and the time gained or lost in each third of the lap. When the reference is on the brakes and you are not, a short BRAKE cue appears. You can compare against your own record too, and when there are too few laps the overlay says so plainly."],
   ovg_setupcmp: ["Setup denerken hangisinin gerçekten daha hızlı olduğunu aklında tutmak zorunda kalmazsın. Garajda bir setup yükleyip tur attığında overlay o setup'ın adıyla en iyi turunu, sektörlerini, ortalamanı ve tur sayını kaydeder; başka bir setup yüklediğinde ikisini yan yana koyar. Her satırda en hızlı olan yeşil görünür, diğerinde ne kadar geride kaldığın yazar; böylece yeni setup'ın turun hangi bölümünde kazandırıp hangisinde kaybettirdiğini görürsün. İstersen ikiden fazla setup'ı karşılaştırabilir, yalnızca bu oturumun turlarına ya da aynı pist ve araçta daha önce attığın turlara bakabilirsin.", "When you are testing setups you no longer have to remember which one was actually faster. Load a setup in the garage and drive, and the overlay records your best lap, sectors, average and lap count under that setup's name; load another one and it puts the two side by side. In every row the fastest value is green and the other shows how far behind it is, so you can see in which part of the lap the new setup gains or loses time. You can compare more than two setups, and look at this session's laps only or include laps you set earlier on the same track and car."],
   ovg_sectors: [
     "Güncel turunun sektör sürelerini canlı gösterir ve yayınlardaki gibi renklendirir: mor sınıfın en iyisi, yeşil kişisel en iyin, sarı daha yavaş. Turun hangi bölümünde zaman kazandığını ya da kaybettiğini hemen anlarsın; en iyi sektörlerinin toplamı olan teorik en iyi turu da görürsün. Farkı kişisel en iyine, son turuna ya da sınıfın en iyisine göre ölçebilirsin. Kompakt kutular ve renkli çubuklar ücretsiz, tablo tasarımı PRO.",

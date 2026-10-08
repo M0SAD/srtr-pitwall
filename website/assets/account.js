@@ -65,6 +65,7 @@ addDict({
   a_title: ["Hesabım", "My account"],
   a_tele_title: ["Telemetri", "Telemetry"],
   a_tele_public: ["Telemetri verilerimi başkaları görebilsin", "Let others see my telemetry"],
+  a_tele_info: ["Telemetri kayıtların (turlar, kişisel en iyiler ve tur izleri) tüm üyelere ve Yarışçılar sayfasına açıktır; sıralamalarda ve topluluk kıyaslamalarında kullanılır. Kaydedilmesini istemiyorsan programda Telemetri › Ayarlar bölümünden kaydı kapatabilir, istediğin oturumu silebilirsin.", "Your telemetry (laps, personal bests and lap traces) is open to all members and on the Drivers page, and is used in leaderboards and community comparisons. If you do not want it recorded, turn recording off in the app under Telemetry › Settings, and you can delete any session."],
   ep_title: ["E-posta bildirimleri", "E-mail notifications"],
   ep_lead: [
     "Hangi bildirimlerin e-postayla da gelmesini istediğini seç. Uygulama içi bildirimler her zaman gelir.",
@@ -507,10 +508,7 @@ async function dashboard(u) {
 
         <div class="card" id="telemetri">
           <h3>${T("a_tele_title")}</h3>
-          <label class="row between" style="gap:14px;cursor:pointer">
-            <span><b>${T("a_tele_public")}</b><br><span class="muted small">${T("a_tele_lead")}</span></span>
-            <input type="checkbox" id="tele-public" style="width:auto" ${p.telemetry_public !== false ? "checked" : ""}>
-          </label>
+          <p class="muted small">${T("a_tele_info")}</p>
           <a class="btn btn-sm" href="yarisci.html?u=me" style="margin-top:10px">${T("a_tele_open")}</a>
         </div>
 

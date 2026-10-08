@@ -299,11 +299,7 @@ async function profileView(uid) {
     </div>`
     }
     ${
-      isMe
-        ? `<div class="card" style="margin-bottom:18px"><label class="row between" style="gap:14px;cursor:pointer">
-        <span><b>${esc(T("dr_public"))}</b><br><span class="muted small">${esc(T("dr_public_lead"))}</span></span>
-        <input type="checkbox" id="dr-public" style="width:auto" ${p.telemetry_public ? "checked" : ""}></label></div>`
-        : ""
+      ""
     }
     ${body}
   </div>`;

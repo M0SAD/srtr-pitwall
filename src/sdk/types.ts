@@ -405,6 +405,8 @@ export interface TopicMap {
   gaps: Gaps;
   /** Setup karşılaştırma (Rust: setupcmp.rs) */
   setupcmp: SetupCmp;
+  /** Canlı Kıyas: referans tur izi ile canlı girdi / fark (Rust: coach.rs) */
+  coach: Coach;
   /** Canlı sohbet (olay tabanlı, iRacing'den bağımsız) */
   livechat: LiveChatTopic;
   livepoll: PollView;
@@ -760,4 +762,44 @@ export interface SetupCmp {
   modified: boolean;
   /** En son kullanılan en üstte */
   setups: SetupEntry[];
+}
+
+/** Canlı Kıyas referansı (Rust: coach::RefView) */
+export interface CoachRef {
+  /** "best" topluluk rekoru | "avg" topluluk ortalaması | "mine" kendi rekorum */
+  kind: string;
+  /** "ok" | "nodata" | "loading" | "login" */
+  status: string;
+  name: string;
+  time: number;
+  laps: number;
+  /** Tur içi fark (sn): + referanstan yavaş */
+  delta: number | null;
+  /** Üç eşit bölümde kazanılan / kaybedilen süre */
+  sectors: (number | null)[];
+  thr: number[];
+  brk: number[];
+  /** km/h */
+  spd: number[];
+  nowThr: number;
+  nowBrk: number;
+  /** m/s */
+  nowSpeed: number;
+  nowGear: number;
+}
+export interface Coach {
+  onTrack: boolean;
+  onPitRoad: boolean;
+  lapPct: number;
+  /** m/s */
+  speed: number;
+  throttle: number;
+  brake: number;
+  gear: number;
+  nowIdx: number;
+  windowM: number;
+  /** Oyuncunun bu turdaki gaz / freni (0-100; 255 = yok) */
+  myThr: number[];
+  myBrk: number[];
+  refs: CoachRef[];
 }

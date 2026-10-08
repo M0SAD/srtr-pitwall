@@ -7,7 +7,8 @@ import { fmtCount, gateMode, shortName, type ChatMsg, type GateMode, type Platfo
 import { createChatSim } from "./sim";
 import { inTauri, query } from "@/sdk/platform";
 import { CaptionBox, PlatformIcon, PollBox, PollDictBox, fontStack } from "./parts";
-import { SendBox } from "./SendBox";
+import { SendBox, useClickRegion } from "./SendBox";
+import { invoke } from "@tauri-apps/api/core";
 import "./style.css";
 
 const ALERT_COLORS: Record<string, string> = {
@@ -210,6 +211,17 @@ export default function LiveChat(props: OverlayProps) {
     return (["youtube", "twitch", "kick"] as const).filter((p) => set.has(p));
   });
   const barOn = () => barSize() > 0 && (simOn() || real());
+  // İzleyici çubuğuna tıklayınca o platformdaki canlı kanalın sayfası açılır (en çok izleyicisi olan); Σ: tüm kanallar içinde
+  let barEl: HTMLDivElement | undefined;
+  const barClickable = () => barOn() && real() && onScreen() && !props.editing;
+  useClickRegion(() => barEl, barClickable);
+  const liveOf = (p?: string) =>
+    (topic()?.channels ?? []).filter((c) => c.state === "live" && c.url && (!p || c.platform === p)).sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
+  const openChannel = (p?: string) => {
+    if (!barClickable()) return;
+    const c = liveOf(p)[0];
+    if (c) void invoke("open_url", { url: c.url }).catch(() => window.open(c.url, "_blank"));
+  };
   const sample = simOn;
   const clock = () => new Date(now()).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
@@ -231,11 +243,16 @@ export default function LiveChat(props: OverlayProps) {
       }}
     >
       <Show when={barOn()}>
-        <div class="lc-bar" style={{ "font-size": `${barSize()}px`, background: o().bubbles ? bubbleBg() : undefined }}>
+        <div ref={barEl} class="lc-bar" classList={{ click: barClickable() }} style={{ "font-size": `${barSize()}px`, background: o().bubbles ? bubbleBg() : undefined }}>
           <Show when={o().viewerMode !== "total"}>
             <For each={sample() ? (["youtube", "twitch", "kick"] as const) : barPlatforms()}>
               {(p) => (
-                <span class="lc-bar-item">
+                <span
+                  class="lc-bar-item"
+                  classList={{ link: barClickable() && liveOf(p).length > 0 }}
+                  title={barClickable() && liveOf(p)[0] ? t("{0} kanalını aç", liveOf(p)[0].label) : undefined}
+                  onClick={() => openChannel(p)}
+                >
                   <PlatformIcon platform={p} size={barSize() + 2} />
                   {fmtCount(viewers()?.[p])}
                 </span>
@@ -243,7 +260,9 @@ export default function LiveChat(props: OverlayProps) {
             </For>
           </Show>
           <Show when={sample() || o().viewerMode === "total" || barPlatforms().length > 1}>
-            <span class="lc-bar-item lc-bar-total">Σ {fmtCount(viewers()?.total)}</span>
+            <span class="lc-bar-item lc-bar-total" classList={{ link: barClickable() && liveOf().length > 0 }} onClick={() => openChannel()}>
+              Σ {fmtCount(viewers()?.total)}
+            </span>
           </Show>
           <Show when={o().showClock}>
             <span class="lc-bar-clock">{clock()}</span>

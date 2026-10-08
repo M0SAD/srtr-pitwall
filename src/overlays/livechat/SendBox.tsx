@@ -1,6 +1,8 @@
 // Canlı Sohbet overlay'inin en altındaki mesaj yazma satırı (ayar: "Mesaj yazma kutusu", PRO: livechat.send).
 // Solda hedef kanal (platform simgesi + ad), sağında mesaj kutusu. Kutu odaktayken:
 //   Tab / Shift+Tab → sonraki / önceki yazılabilir kanal · Enter → seçili kanala gönder · Esc → odağı bırak
+// Soldaki kanal adına tıklamak da kanalı değiştirir (sol tık / tekerlek: sonraki, sağ tık: önceki).
+// Yalnızca şu an canlı yayında olan kanallar listelenir.
 // Overlay penceresi normalde tıklamaları oyuna geçirir; satırın ekran dikdörtgeni Rust'a bildirilir (livechat/inputbox.rs)
 // ve imleç yalnızca bu satırın üstündeyken pencere tıklanabilir olur. Odak bırakılınca klavye oyuna geri verilir.
 // Panel önizlemesinde ve düzenleme modunda satır sadece görünür (yazılamaz); OBS tarayıcı kaynağında hiç çizilmez.
@@ -30,12 +32,12 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
   };
   onCleanup(() => clearTimeout(errTimer));
 
-  /** Yazılabilir kanallar: sohbete bağlı (durmuş / kilitli değil) ve platformun hesabı "Sohbete yaz"da bağlı; ★ kanallar önde */
+  /** Yazılabilir kanallar: şu an canlı yayında ve platformun hesabı "Sohbete yaz"da bağlı; ★ kanallar önde */
   const targets = createMemo(() => {
     if (!props.interactive) return [];
     const s = st();
     const l = props.channels.filter(
-      (c) => c.platform && (WRITABLE as readonly string[]).includes(c.platform) && c.state !== "idle" && c.state !== "locked" && !!s?.[c.platform as W]?.connected,
+      (c) => c.platform && (WRITABLE as readonly string[]).includes(c.platform) && c.state === "live" && !!s?.[c.platform as W]?.connected,
     );
     return [...l.filter((c) => c.mine), ...l.filter((c) => !c.mine)];
   });
@@ -131,7 +133,29 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
 
   return (
     <div ref={row} class="lc-send" classList={{ on: props.interactive, focus: focused(), err: !!err() }} style={{ background: props.bg }}>
-      <span class="lc-send-ch" title={t("Mesajın gideceği kanal (kutudayken Tab ile değişir)")}>
+      <span
+        class="lc-send-ch"
+        classList={{ pick: props.interactive && targets().length > 1 }}
+        title={t("Mesajın gideceği kanal: tıkla ya da kutudayken Tab ile değiştir (sağ tık: önceki)")}
+        // Tıklamak kutunun odağını bozmasın: kanal değişir, yazmaya devam edilir
+        onMouseDown={(e) => props.interactive && e.preventDefault()}
+        onClick={() => {
+          if (!props.interactive) return;
+          step(1);
+          input?.focus();
+        }}
+        onContextMenu={(e) => {
+          if (!props.interactive) return;
+          e.preventDefault();
+          step(-1);
+          input?.focus();
+        }}
+        onWheel={(e) => {
+          if (!props.interactive) return;
+          e.preventDefault();
+          step(e.deltaY > 0 ? 1 : -1);
+        }}
+      >
         <Show when={props.interactive} fallback={<PlatformIcon platform="twitch" size={16} />}>
           <Show when={cur()} fallback={<i class="lc-dot" style={{ width: "9px", height: "9px" }} />}>
             <PlatformIcon platform={cur()!.platform!} size={16} />
@@ -164,7 +188,7 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
           !props.interactive
             ? t("Mesaj yaz…")
             : !targets().length
-              ? t("Yazılabilir kanal yok (Canlı Sohbet › Sohbete yaz'dan hesabını bağla)")
+              ? t("Canlı yayında yazılabilir kanal yok (hesabını Canlı Sohbet › Sohbete yaz'dan bağla)")
               : focused()
                 ? t("Tab: kanal · Enter: gönder · Esc: çık")
                 : t("Mesaj yaz…")
@@ -181,4 +205,41 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
       />
     </div>
   );
+}
+
+/**
+ * Overlay penceresinde tıklanabilir bölge (izleyici çubuğu gibi): öğenin ekran dikdörtgeni Rust'a bildirilir; imleç
+ * üstündeyken pencere tıklamaları alır, başka yerde oyuna geçirir. `on` false olunca bölge kaldırılır.
+ */
+export function useClickRegion(el: () => HTMLElement | undefined, on: () => boolean) {
+  const id = `lc-click-${Math.random().toString(36).slice(2, 8)}`;
+  let last = "";
+  let live = false;
+  const report = () => {
+    const e = el();
+    if (!on() || !e) {
+      if (live) {
+        live = false;
+        last = "";
+        void LC.inputBox(id, "remove").catch(() => {});
+      }
+      return;
+    }
+    const r = e.getBoundingClientRect();
+    const k = window.devicePixelRatio || 1;
+    const rect = { x: Math.round(r.left * k), y: Math.round(r.top * k), w: Math.round(r.width * k), h: Math.round(r.height * k) };
+    const key = JSON.stringify(rect);
+    if (key === last) return;
+    last = key;
+    live = true;
+    void LC.inputBox(id, "region", rect).catch(() => {});
+  };
+  onMount(() => {
+    const timer = setInterval(report, 500);
+    createEffect(() => (on(), report()));
+    onCleanup(() => {
+      clearInterval(timer);
+      if (live) void LC.inputBox(id, "remove").catch(() => {});
+    });
+  });
 }

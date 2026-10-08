@@ -67,6 +67,8 @@ export const F = {
   teleOthers: "telemetry.others",
   teleCompare: "telemetry.compare",
   teleBoard: "telemetry.leaderboard",
+  teleCommunity: "telemetry.community",
+  teleMap: "telemetry.map",
   appBg: "appearance.app_bg",
   chatLook: "appearance.chat_look",
   themes: "appearance.themes",
@@ -135,6 +137,8 @@ const STATIC: ProFeature[] = [
   { key: F.teleOthers, label: "Başkalarının telemetrisini görmek (Yarışçılar, takım arkadaşları)", group: "Telemetri", defaultPro: true, server: true },
   { key: F.teleCompare, label: "Tur karşılaştırma (iki turun izleri ve fark)", group: "Telemetri", defaultPro: false },
   { key: F.teleBoard, label: "Pist / araç sıralaması (lider tablosu)", group: "Telemetri", defaultPro: false },
+  { key: F.teleCommunity, label: "Toplulukla kıyaslama (topluluk rekoru ve ortalaması)", group: "Telemetri", defaultPro: true },
+  { key: F.teleMap, label: "Pist haritasında hızlı / yavaş noktalar ve farklar", group: "Telemetri", defaultPro: true },
   // Görünüm
   { key: F.themes, label: "Tema düzenlemek (renkler, yazı tipi, kenarlık, gölge)", group: "Görünüm", defaultPro: false },
   { key: F.appBg, label: "Uygulama arka planı (resim / renk)", group: "Görünüm", defaultPro: false },

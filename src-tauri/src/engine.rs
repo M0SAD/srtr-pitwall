@@ -46,6 +46,8 @@ pub enum Packet {
     Gaps(crate::timing::Gaps),
     /// Setup karşılaştırma (bkz. setupcmp.rs)
     Setupcmp(crate::setupcmp::Packet),
+    /// Canlı Kıyas (bkz. coach.rs)
+    Coach(crate::coach::Packet),
     Traffic(crate::extras::Traffic),
     /// Fren / vites işareti, pist limiti, hasar (bkz. drivecues.rs)
     Brakepoint(crate::drivecues::Brakepoint),
@@ -141,6 +143,8 @@ pub struct Shared {
     pub brake_community: Mutex<Option<crate::drivecues::CommunityRef>>,
     /// Şu anki pist + araç (telemetri kimlikleri); arayüz topluluk rekorunu bununla arar (`brake_combo`)
     pub brake_combo: Mutex<crate::drivecues::Combo>,
+    /// Canlı Kıyas referansları (bkz. `coach_ref_set`); motor bir sonraki karede alır
+    pub coach_refs: Mutex<Vec<crate::coach::RefIn>>,
     pub demo: AtomicBool,
     pub connected: AtomicBool,
     pub edit_mode: AtomicBool,
@@ -212,6 +216,7 @@ const KNOWN: &[&str] = &[
     "sectors",
     "gaps",
     "setupcmp",
+    "coach",
     "brakepoint",
     "tracklimits",
     "damage",
@@ -340,6 +345,8 @@ struct State {
     strategy: crate::strategy::Strategy,
     /// Setup başına en iyi tur / sektörler (`setupcmp` konusu), bkz. setupcmp.rs
     setups: crate::setupcmp::SetupCmp,
+    /// Canlı Kıyas: referans izleri ve oyuncunun süren turu (`coach` konusu)
+    coach: crate::coach::Coach,
 }
 
 /// Tamamlanan turu arka planda yerel kuyruğa yazar ve arayüze haber verir (yükleme JS tarafında).
@@ -393,6 +400,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         cues: Default::default(),
         strategy: crate::strategy::Strategy::new(map_dir.clone()),
         setups: crate::setupcmp::SetupCmp::new(map_dir.clone()),
+        coach: Default::default(),
     };
     let app_data = map_dir.clone();
     // Telemetri kaydı ayarı (general.telemetryRecord, varsayılan açık); saniyede bir okunur
@@ -661,12 +669,23 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
                 *shared.brake_combo.lock() = if connected && !demo_on && !preview { st.cues.combo() } else { Default::default() };
-                rec_enabled = crate::with_settings(&app, |v| v.and_then(|v| v.pointer("/general/telemetryRecord").and_then(|x| x.as_bool()))).unwrap_or(true);
+                // Tur kaydı her zaman açık (eski "Turlarımı kaydet" ayarı yok sayılır)
+                rec_enabled = true;
             }
             // Fren noktası referansı ve pist limiti sayaçları (demo verisinde dosyaya yazılmaz)
             crate::crashlog::guard(|| st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref()));
             if let Some(c) = shared.brake_community.lock().take() {
                 st.cues.set_community(c);
+            }
+            if connected && !demo_on && !preview {
+                crate::crashlog::guard(|| {
+                    let combo = st.cues.combo_ref();
+                    st.coach.update(&st.frame, combo);
+                });
+                let incoming = std::mem::take(&mut *shared.coach_refs.lock());
+                for r in incoming {
+                    st.coach.set_ref(r);
+                }
             }
             let rec_on = rec_enabled && !demo_on && !preview && connected && demo.is_none();
             if let Some(lap) = crate::crashlog::guard(|| st.laprec.update(&st.frame, &st.raw, st.sim, rec_on)).flatten() {
@@ -870,6 +889,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                     "sectors" => Packet::Sectors(st.timing.sectors(f, s)),
                     "gaps" => Packet::Gaps(st.timing.gaps(f, s)),
                     "setupcmp" => Packet::Setupcmp(st.setups.packet(&st.raw)),
+                    "coach" => Packet::Coach(st.coach.packet(f, st.raw.track_length_km * 1000.0)),
                     "traffic" => Packet::Traffic(crate::extras::traffic(f, s)),
                     "brakepoint" => Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)),
                     "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
@@ -912,6 +932,7 @@ mod publish_tests {
             cues: Default::default(),
             strategy: crate::strategy::Strategy::new(None),
             setups: crate::setupcmp::SetupCmp::new(None),
+            coach: Default::default(),
         }
     }
 

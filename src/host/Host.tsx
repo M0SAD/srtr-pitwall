@@ -5,6 +5,7 @@ import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
 import { crewBox, startCrew } from "./crew";
 import { startBrakeRef } from "./brakeref";
+import { startCoachRef } from "./coachref";
 import { startTelemetryUpload } from "@/cloud/telemetry";
 import { t } from "@/sdk/i18n";
 import { prettyKey, shortcut } from "@/sdk/shortcuts";
@@ -215,6 +216,7 @@ export function Host() {
       startSocial(status);
       startCrew(status);
       startBrakeRef();
+      startCoachRef();
       // Telemetri: kaydedilen turları (giriş yapılmışsa) buluta yükle
       startTelemetryUpload();
       await listen<{ name: string }>("screenshot-taken", () => showShotToast("Ekran görüntüsü kaydedildi", false));

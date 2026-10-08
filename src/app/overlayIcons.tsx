@@ -48,6 +48,7 @@ const MAP: Record<string, () => JSX.Element> = {
   windcompass: () => <I.Globe />,
   sectors: () => <I.Timer />,
   setupcmp: () => <I.Wrench />,
+  coach: () => <I.Activity />,
   gapchart: () => <I.Activity />,
   target: () => <I.User />,
   messages: () => <I.MessageSquare />,

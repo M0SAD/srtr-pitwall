@@ -994,6 +994,10 @@ impl Cues {
         self.limits.update(f, demo);
     }
 
+    pub fn combo_ref(&self) -> &Combo {
+        &self.brake.combo
+    }
+
     /// Şu anki pist + araç kimliği (demoda / bilinmiyorken boş)
     pub fn combo(&self) -> Combo {
         if self.demo { Combo::default() } else { self.brake.combo.clone() }

@@ -11,6 +11,8 @@ import { listen } from "@tauri-apps/api/event";
 import { settings, updateSettings } from "@/sdk/settings";
 import { appState, setDemo } from "../App";
 import { freeView, realAdmin, setFreeView } from "@/cloud/account";
+import { MESSAGE_TONES, messageBeep } from "@/cloud/social";
+import * as I from "../icons";
 
 interface MonitorInfo {
   index: number;
@@ -85,6 +87,48 @@ export function GeneralPage() {
         <Show when={autoErr()}>
           <p class="error">{autoErr()}</p>
         </Show>
+      </section>
+
+      <section class="panel">
+        <h3>Mesaj bildirimi</h3>
+        <div class="row">
+          <div>
+            <b>Arkadaş mesajı sesi</b>
+            <small>Arkadaşlarından, gruplardan ve takımdan mesaj gelince çalan ses. Rahatsız Etme açıkken ses çalmaz.</small>
+          </div>
+          <div class="gp-tone">
+            <select
+              class="input"
+              value={settings().general.social.tone ?? "soft"}
+              onChange={(e) => {
+                const v = e.currentTarget.value as (typeof MESSAGE_TONES)[number]["id"];
+                updateSettings((d) => void (d.general.social.tone = v));
+                messageBeep(0.25, true);
+              }}
+            >
+              <For each={MESSAGE_TONES}>{(x) => <option value={x.id}>{t(x.label)}</option>}</For>
+            </select>
+            <button class="btn ghost small" title={t("Dinle")} onClick={() => messageBeep(0.25, true)}>
+              <I.Volume2 />
+            </button>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <b>Ses düzeyi</b>
+            <small data-no-i18n>%{settings().general.social.volume ?? 50}</small>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            class="gp-vol"
+            value={settings().general.social.volume ?? 50}
+            onInput={(e) => updateSettings((d) => void (d.general.social.volume = Number(e.currentTarget.value)))}
+            onChange={() => messageBeep(0.25, true)}
+          />
+        </div>
       </section>
 
       <section class="panel">

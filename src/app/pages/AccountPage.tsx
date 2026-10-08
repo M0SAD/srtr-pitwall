@@ -58,7 +58,6 @@ import { useTopic } from "@/sdk/telemetry";
 import { manifests } from "@/sdk/registry";
 import { openUrl } from "../ui";
 import { AdSlot } from "../components/AdSlot";
-import { TelemetryPrivacyPanel } from "./TelemetryPage";
 import { EmailPrefsPanel } from "../components/EmailPrefsPanel";
 import { PublicProfilePanel } from "../components/Profile";
 import { DemoShowcaseToggle } from "../components/DemoShowcaseToggle";
@@ -279,7 +278,6 @@ function Signed() {
       <ProfilePanel />
       <PublicProfilePanel />
       <IracingPanel />
-      <TelemetryPrivacyPanel />
       <EmailPrefsPanel />
       <ProPanel />
       <section class="panel">

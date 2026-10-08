@@ -9,32 +9,24 @@ import { For, Match, Show, Switch, createEffect, createMemo, createResource, cre
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { friendRequest } from "@/cloud/social";
 import { F, proLocked } from "@/sdk/proFeatures";
-import { ProLockBox, ProLockNote, ProLockTag } from "../components/ProLock";
-import { settings, updateSettings } from "@/sdk/settings";
+import { ProLockBox, ProLockTag } from "../components/ProLock";
 import { lapTime } from "@/sdk/format";
+import { uiPref } from "@/sdk/settings";
 import {
   SESSION_LABEL,
   SIM_LABEL,
   SIM_TABS,
   comboLaps,
-  deleteSession,
   deltaSeries,
-  flushTelemetry,
   lapsInfo,
   leaderboard,
-  loadTelemetryPublic,
   loadTrace,
-  queueCount,
-  refreshQueueCount,
-  setTelemetryPublic,
   telemetryDrivers,
   telemetryOverview,
-  telemetryPublic,
   telemetrySession,
   telemetrySessions,
   isAiSession,
   trackLabel,
-  uploadError,
   type BestLap,
   type DriverRow,
   type LapInfo,
@@ -46,6 +38,8 @@ import { go } from "../ui";
 import { setTeamFocus } from "@/cloud/teams";
 import { ProfileCard } from "../components/Profile";
 import * as I from "../icons";
+import { TeleMap } from "../components/TeleMap";
+import { loadRef } from "@/cloud/teleref";
 import "../telemetry.css";
 
 /** İki turun renkleri (koyu zeminde renk körlüğü denetiminden geçti) */
@@ -142,7 +136,7 @@ export function TelemetryPage(p: { sub: string }) {
             <p>
               SRTR Pitwall bir simde sürdüğün her turu kaydeder: süre, geçerlilik, olaylar, sektörler ve hız/gaz/fren izi. Giriş
               yapınca turların hesabına yüklenir; buradan oturumlarına, kişisel en iyilerine bakabilir ve turlarını başkalarıyla
-              karşılaştırabilirsin.
+              karşılaştırabilirsin. Turların ve izlerin topluluğa açıktır; sıralamalarda ve topluluk kıyaslamalarında kullanılır.
             </p>
             <button class="btn primary" onClick={() => go("account")}>
               Giriş yap
@@ -214,112 +208,7 @@ export function TelemetryPage(p: { sub: string }) {
 // Ayarlar (bu sayfada ve Hesap sayfasında)
 // ---------------------------------------------------------------------------
 
-/** "Telemetri verilerimi başkaları görebilsin" anahtarı */
-export function TelemetryPrivacyRow() {
-  const [err, setErr] = createSignal("");
-  onMount(() => {
-    if (telemetryPublic() === null) void loadTelemetryPublic();
-  });
-  return (
-    <>
-      <div class="row">
-        <div>
-          <b>Telemetri verilerimi başkaları görebilsin</b>
-          <small>
-            Açıkken tur kayıtların, kişisel en iyilerin ve tur izlerin diğer üyelere ve sitedeki Yarışçılar sayfasına açık olur;
-            lider tablolarında görünürsün. Kapalıyken sadece sen ve takım arkadaşların görebilir. Yarışçılar listesinde sim adın
-            yine görünür (arkadaş eklenebilmen için).
-          </small>
-        </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            checked={telemetryPublic() ?? true}
-            disabled={telemetryPublic() === null}
-            onChange={(e) => {
-              setErr("");
-              setTelemetryPublic(e.currentTarget.checked).catch((x) => setErr(errText(x)));
-            }}
-          />
-          <i />
-        </label>
-      </div>
-      <Show when={err()}>
-        <p class="error">{err()}</p>
-      </Show>
-    </>
-  );
-}
-
-/** Hesap sayfası için küçük bölüm */
-export function TelemetryPrivacyPanel() {
-  return (
-    <section class="panel">
-      <h3>Telemetri</h3>
-      <TelemetryPrivacyRow />
-    </section>
-  );
-}
-
-function SettingsPanel() {
-  const [busy, setBusy] = createSignal(false);
-  const [msg, setMsg] = createSignal("");
-  onMount(() => void refreshQueueCount());
-  const flush = async () => {
-    setBusy(true);
-    setMsg("");
-    try {
-      const n = await flushTelemetry();
-      setMsg(n ? t("{0} tur yüklendi", n) : uploadError() || "Yüklenecek tur yok");
-    } finally {
-      setBusy(false);
-      void refreshQueueCount();
-    }
-  };
-  return (
-    <section class="panel">
-      <h3>Kayıt ve paylaşım</h3>
-      <ProLockNote feature={F.teleRecord} text="Turları buluta yüklemek PRO üyelere özel. Turlar bu bilgisayarda bekler; PRO olunca yüklenir." />
-      <div class="row">
-        <div>
-          <b>Turlarımı kaydet</b>
-          <small>
-            Bir simde (iRacing, ACC, AC, LMU/rF2, AMS2) sürerken tamamlanan her tur kaydedilir ve hesabına yüklenir. Demo ve önizleme
-            verisi kaydedilmez. Tur izi (hız, gaz, fren, vites) her oturumun en iyi turu için saklanır.
-          </small>
-        </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            checked={settings().general.telemetryRecord}
-            onChange={(e) => {
-              const v = e.currentTarget.checked;
-              updateSettings((d) => (d.general.telemetryRecord = v));
-            }}
-          />
-          <i />
-        </label>
-      </div>
-      <TelemetryPrivacyRow />
-      <div class="row">
-        <div>
-          <b>Yükleme kuyruğu</b>
-          <small>
-            {queueCount() === null
-              ? "Kuyruk okunamadı"
-              : queueCount()
-                ? t("{0} tur yüklenmeyi bekliyor (program açıkken kendiliğinden yüklenir)", queueCount()!)
-                : "Bekleyen tur yok"}
-            <Show when={msg()}> · {msg()}</Show>
-          </small>
-        </div>
-        <button class="btn small" disabled={busy() || !queueCount()} onClick={flush}>
-          <I.RefreshCw /> Şimdi yükle
-        </button>
-      </div>
-    </section>
-  );
-}
+// Tur kaydı her zaman açıktır ve turlar topluluğa açıktır (ayar yok); bekleyen turlar program açıkken kendiliğinden yüklenir.
 
 // ---------------------------------------------------------------------------
 // Genel bakış (kendim ya da başka bir üye)
@@ -372,9 +261,6 @@ function OverviewView(p: { user?: string }) {
   const isMe = () => !p.user || data()?.profile.is_me;
   return (
     <>
-      <Show when={isMe()}>
-        <SettingsPanel />
-      </Show>
       <Show when={data.error}>
         {/* Telemetri okunamadı: başka bir üyenin profili yine de görünür */}
         <Show when={p.user && p.user !== session()?.user.id}>
@@ -395,11 +281,15 @@ function OverviewView(p: { user?: string }) {
                 <ProfileCard id={d().profile.id} onTeam={(id) => (setTeamFocus(id), go("drivers", "teams"))} />
               </section>
             </Show>
-            <section class="panel">
-              <div class="tele-head">
-                <div>
-                  <h3>{isMe() ? "Telemetrim" : "Telemetri"}</h3>
-                  <div class="tele-ids" hidden={!isMe()}>
+            <section class="panel tele-hero">
+              <div class="th-top">
+                <span class="th-avatar" data-no-i18n>
+                  {(d().profile.display_name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("")}
+                </span>
+                <div class="th-who">
+                  <small>{isMe() ? "Telemetrim" : "Telemetri"}</small>
+                  <h3 data-no-i18n>{d().profile.display_name || "—"}</h3>
+                  <div class="tele-ids">
                     <For each={d().identities}>
                       {(x) => (
                         <span class="tele-tag" title={x.sim_id ? t("Üye no {0}", x.sim_id) : undefined}>
@@ -408,6 +298,16 @@ function OverviewView(p: { user?: string }) {
                       )}
                     </For>
                   </div>
+                </div>
+                <div class="th-sims">
+                  <For each={d().sims}>
+                    {(s) => (
+                      <span class="th-sim">
+                        <b>{s.laps}</b>
+                        <small>{SIM_LABEL[s.sim] ?? s.sim}</small>
+                      </span>
+                    )}
+                  </For>
                 </div>
               </div>
               <Show
@@ -424,44 +324,42 @@ function OverviewView(p: { user?: string }) {
                     </p>
                   }
                 >
-                  <div class="stat-grid">
-                    <div class="stat race">
-                      <b>{d().totals!.laps}</b>
-                      <small>Tur ({d().totals!.valid_laps} geçerli)</small>
+                  <div class="th-stats">
+                    <div class="th-stat accent">
+                      <I.Flag />
+                      <b>{d().totals!.laps.toLocaleString(localeTag())}</b>
+                      <small>{t("Tur ({0} geçerli)", d().totals!.valid_laps)}</small>
                     </div>
-                    <div class="stat">
+                    <div class="th-stat">
+                      <I.Layers />
                       <b>{d().totals!.sessions}</b>
                       <small>Oturum</small>
                     </div>
-                    <div class="stat">
+                    <div class="th-stat">
+                      <I.Map />
                       <b>{Math.round(d().totals!.distance_km).toLocaleString(localeTag())}</b>
                       <small>km</small>
                     </div>
-                    <div class="stat">
+                    <div class="th-stat">
+                      <I.Timer />
                       <b>{fmtHours(d().totals!.drive_time)}</b>
                       <small>Sürüş süresi</small>
                     </div>
-                    <div class="stat">
+                    <div class="th-stat">
+                      <I.Globe />
                       <b>{d().totals!.tracks}</b>
                       <small>Pist</small>
                     </div>
-                    <div class="stat">
+                    <div class="th-stat">
+                      <I.Car />
                       <b>{d().totals!.cars}</b>
                       <small>Araç</small>
                     </div>
-                    <div class="stat">
+                    <div class="th-stat warn">
+                      <I.TriangleAlert />
                       <b>{d().totals!.incidents}x</b>
                       <small>Olay</small>
                     </div>
-                  </div>
-                  <div class="tele-ids">
-                    <For each={d().sims}>
-                      {(s) => (
-                        <span class="tele-tag">
-                          {SIM_LABEL[s.sim] ?? s.sim}: {t("{0} tur", s.laps)}
-                        </span>
-                      )}
-                    </For>
                   </div>
                 </Show>
               </Show>
@@ -493,17 +391,6 @@ function SessionsPanel(p: { sessions: TelemetrySession[]; mine: boolean; user: s
   const [fAi, setFAi] = createSignal<"" | "ai" | "human">("");
   createEffect(on(() => p.sessions, (v) => (setList(v), setDone(v.length < 20)), { defer: true }));
 
-  const del = async (s: TelemetrySession) => {
-    if (!confirm(t("{0} oturumu silinsin mi? Turları ve izleri kalıcı olarak silinir.", trackLabel(s)))) return;
-    setErr("");
-    try {
-      await deleteSession(s.id);
-      setList((l) => l.filter((x) => x.id !== s.id));
-      p.onDeleted();
-    } catch (e) {
-      setErr(errText(e));
-    }
-  };
 
   const typeOf = (s: TelemetrySession) => ((TYPE_FILTERS as readonly string[]).includes(s.session_type) ? s.session_type : "other");
   /** Süzgeç seçenekleri: yüklenmiş oturumlardan (sim seçiliyse o simin pist/araçları) */
@@ -633,31 +520,30 @@ function SessionsPanel(p: { sessions: TelemetrySession[]; mine: boolean; user: s
             <thead>
               <tr>
                 <th>Tarih</th>
-                <th>Sim</th>
-                <th>Pist</th>
-                <th>Araç</th>
+                <th>Pist / araç</th>
                 <th>Oturum</th>
                 <th class="num">Tur</th>
                 <th class="num">En iyi</th>
                 <th class="num">Olay</th>
-                <th />
               </tr>
             </thead>
             <tbody>
               <For each={shown()}>
                 {(s) => (
                   <tr class="click" onClick={() => push({ kind: "session", id: s.id })}>
-                    <td class="nowrap">{fmtDate(s.started_at)}</td>
-                    <td>{SIM_LABEL[s.sim] ?? s.sim}</td>
-                    <td>{trackLabel(s)}</td>
-                    <td>
-                      {s.car_name}
-                      <Show when={s.car_class}>
-                        <small class="muted"> · {s.car_class}</small>
-                      </Show>
+                    <td class="nowrap tt-date">
+                      {fmtDate(s.started_at)}
+                      <small>{SIM_LABEL[s.sim] ?? s.sim}</small>
+                    </td>
+                    <td class="tt-track">
+                      <b>{trackLabel(s)}</b>
+                      <small>
+                        {s.car_name}
+                        <Show when={s.car_class}> · {s.car_class}</Show>
+                      </small>
                     </td>
                     <td>
-                      {t(SESSION_LABEL[s.session_type] ?? "Oturum")}
+                      <span class={`sess-pill t-${typeOf(s)}`}>{t(SESSION_LABEL[s.session_type] ?? "Oturum")}</span>
                       <Show when={isAiSession(s)}>
                         <span class="tele-tag ai" title="Rakipler yapay zekâ">
                           Bot
@@ -673,22 +559,8 @@ function SessionsPanel(p: { sessions: TelemetrySession[]; mine: boolean; user: s
                         </small>
                       </Show>
                     </td>
-                    <td class="num mono">{lapTime(s.best_lap)}</td>
+                    <td class="num mono tt-best">{lapTime(s.best_lap)}</td>
                     <td class="num">{s.incidents ? `${s.incidents}x` : "—"}</td>
-                    <td class="act">
-                      <Show when={p.mine}>
-                        <button
-                          class="icon-btn small"
-                          title="Oturumu sil"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void del(s);
-                          }}
-                        >
-                          <I.Trash />
-                        </button>
-                      </Show>
-                    </td>
                   </tr>
                 )}
               </For>
@@ -708,66 +580,116 @@ function SessionsPanel(p: { sessions: TelemetrySession[]; mine: boolean; user: s
 }
 
 function BestsPanel(p: { bests: BestLap[] }) {
+  // Görünüm: liste (varsayılan, çok pistte az yer kaplar) ya da kartlar; ayarlarda saklanır
+  const [bestViewRaw, setBestView] = uiPref<"list" | "cards">("teleBestView", "list");
+  const bestView = () => (bestViewRaw() === "cards" ? "cards" : "list");
   return (
     <Show when={p.bests.length}>
       <section class="panel">
-        <h3>Kişisel en iyiler</h3>
-        <div class="tele-scroll">
-          <table class="tele-table">
-            <thead>
-              <tr>
-                <th>Sim</th>
-                <th>Pist</th>
-                <th>Araç</th>
-                <th class="num">En iyi tur</th>
-                <th class="num">Tur</th>
-                <th>Tarih</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <For each={p.bests}>
-                {(b) => (
-                  <tr>
-                    <td>{SIM_LABEL[b.sim] ?? b.sim}</td>
-                    <td>{trackLabel(b)}</td>
-                    <td>
-                      {b.car_name}
-                      <Show when={b.car_class}>
-                        <small class="muted"> · {b.car_class}</small>
-                      </Show>
-                    </td>
-                    <td class="num mono best">{lapTime(b.lap_time)}</td>
-                    <td class="num">{b.laps}</td>
-                    <td class="nowrap">{fmtDate(b.driven_at, false)}</td>
-                    <td class="act nowrap">
-                      <button
-                        class="btn ghost small"
-                        title="Bu pist ve araçta diğer yarışçıların en iyileri"
-                        onClick={() =>
-                          push({
-                            kind: "board",
-                            sim: b.sim,
-                            track_id: b.track_id,
-                            track_config: b.track_config,
-                            car_id: b.car_id,
-                            title: `${trackLabel(b)} · ${b.car_name}`,
-                          })
-                        }
-                      >
-                        <I.Trophy /> Sıralama
-                      </button>
-                      <Show when={b.has_trace}>
-                        <button class="btn small" onClick={() => push({ kind: "analysis", laps: [b.lap_id] })}>
-                          <I.Activity /> Analiz
+        <div class="tele-head">
+          <h3>Kişisel en iyiler</h3>
+          <div class="tele-tools">
+            <span class="muted small">{t("{0} pist / araç", p.bests.length)}</span>
+            <div class="seg small">
+              <button classList={{ on: bestView() === "list" }} onClick={() => setBestView("list")} title={t("Liste")}>
+                Liste
+              </button>
+              <button classList={{ on: bestView() === "cards" }} onClick={() => setBestView("cards")} title={t("Kartlar")}>
+                Kartlar
+              </button>
+            </div>
+          </div>
+        </div>
+        <Show when={bestView() === "list"}>
+          <div class="tele-scroll">
+            <table class="tele-table best-list">
+              <thead>
+                <tr>
+                  <th>Pist / araç</th>
+                  <th class="num">En iyi tur</th>
+                  <th class="num">Tur</th>
+                  <th>Tarih</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                <For each={p.bests}>
+                  {(b) => (
+                    <tr>
+                      <td class="tt-track">
+                        <b>{trackLabel(b)}</b>
+                        <small>
+                          {SIM_LABEL[b.sim] ?? b.sim} · {b.car_name}
+                          <Show when={b.car_class}> · {b.car_class}</Show>
+                        </small>
+                      </td>
+                      <td class="num mono best">{lapTime(b.lap_time)}</td>
+                      <td class="num">{b.laps}</td>
+                      <td class="nowrap">{fmtDate(b.driven_at, false)}</td>
+                      <td class="act nowrap">
+                        <button
+                          class="btn ghost small"
+                          title="Bu pist ve araçta diğer yarışçıların en iyileri"
+                          onClick={() =>
+                            push({ kind: "board", sim: b.sim, track_id: b.track_id, track_config: b.track_config, car_id: b.car_id, title: `${trackLabel(b)} · ${b.car_name}` })
+                          }
+                        >
+                          <I.Trophy /> Sıralama
                         </button>
-                      </Show>
-                    </td>
-                  </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
+                        <Show when={b.has_trace}>
+                          <button class="btn small" onClick={() => push({ kind: "analysis", laps: [b.lap_id] })}>
+                            <I.Activity /> Analiz
+                          </button>
+                        </Show>
+                      </td>
+                    </tr>
+                  )}
+                </For>
+              </tbody>
+            </table>
+          </div>
+        </Show>
+        <div class="best-grid" hidden={bestView() !== "cards"}>
+          <For each={p.bests}>
+            {(b) => (
+              <div class="best-card">
+                <div class="bc-top">
+                  <span class="bc-sim">{SIM_LABEL[b.sim] ?? b.sim}</span>
+                  <span class="muted small">{fmtDate(b.driven_at, false)}</span>
+                </div>
+                <b class="bc-track">{trackLabel(b)}</b>
+                <small class="bc-car">
+                  {b.car_name}
+                  <Show when={b.car_class}> · {b.car_class}</Show>
+                </small>
+                <div class="bc-time mono">{lapTime(b.lap_time)}</div>
+                <small class="muted">{t("{0} tur", b.laps)}</small>
+                <div class="bc-act">
+                  <button
+                    class="btn ghost small"
+                    title="Bu pist ve araçta diğer yarışçıların en iyileri"
+                    onClick={() =>
+                      push({
+                        kind: "board",
+                        sim: b.sim,
+                        track_id: b.track_id,
+                        track_config: b.track_config,
+                        car_id: b.car_id,
+                        title: `${trackLabel(b)} · ${b.car_name}`,
+                      })
+                    }
+                  >
+                    <I.Trophy /> Sıralama
+                  </button>
+                  <Show when={b.has_trace}>
+                    <button class="btn small" onClick={() => push({ kind: "analysis", laps: [b.lap_id] })}>
+                      <I.Activity /> Analiz
+                    </button>
+                  </Show>
+                </div>
+              </div>
+            )}
+          </For>
         </div>
       </section>
     </Show>
@@ -1009,8 +931,27 @@ function AnalysisView(p: { laps: string[] }) {
   const [picker, setPicker] = createSignal(false);
   const setLaps = (laps: string[]) => replaceTop({ kind: "analysis", laps });
   const first = () => data()?.[0]?.info;
+  // Toplulukla kıyasla (PRO): bu pist ve araçta başkasına ait en hızlı izli tur B olarak eklenir
+  const [community, setCommunity] = createSignal<"" | "loading" | "nodata">("");
+  const addCommunity = async () => {
+    const f = first();
+    if (!f) return;
+    setCommunity("loading");
+    try {
+      const r = await loadRef("best", { sim: f.sim, track_id: f.track_id, track_config: f.track_config, car_id: f.car_id }, { skipMe: true });
+      if (r?.lapId && r.lapId !== f.id) {
+        setCommunity("");
+        setLaps([...p.laps.slice(0, 1), r.lapId]);
+      } else setCommunity("nodata");
+    } catch {
+      setCommunity("nodata");
+    }
+  };
   return (
     <>
+      <Show when={community() === "nodata"}>
+        <p class="muted">Yeterli veri yok: bu pist ve araç için toplulukta izi paylaşılmış başka bir tur bulunamadı.</p>
+      </Show>
       <Show when={data.error}>
         <p class="error">{errText(data.error)}</p>
       </Show>
@@ -1031,9 +972,19 @@ function AnalysisView(p: { laps: string[] }) {
                   </Show>
                 </div>
                 <Show when={list().length < 2 && first()}>
-                  <button class="btn primary small" onClick={() => setPicker(!picker())}>
-                    <I.Plus /> Karşılaştırılacak tur ekle
-                  </button>
+                  <div class="tele-tools">
+                    <button
+                      class="btn small"
+                      disabled={proLocked(F.teleCommunity) || community() === "loading"}
+                      title={proLocked(F.teleCommunity) ? t("Toplulukla kıyaslama PRO üyelere özel") : t("Bu pist ve araçta topluluğun en hızlı (izi paylaşılmış) turunu B olarak ekler")}
+                      onClick={addCommunity}
+                    >
+                      <I.Users /> Toplulukla kıyasla <span class="pro-badge small">PRO</span>
+                    </button>
+                    <button class="btn primary small" onClick={() => setPicker(!picker())}>
+                      <I.Plus /> Karşılaştırılacak tur ekle
+                    </button>
+                  </div>
                 </Show>
               </div>
               <div class="lap-cards">
@@ -1077,6 +1028,7 @@ function AnalysisView(p: { laps: string[] }) {
               when={list().every((x) => x.trace)}
               fallback={<p class="muted">Bu turların izi bulunamadı (sadece oturumların en iyi turlarının izi saklanır).</p>}
             >
+              <TeleMap base={list()[0] as { info: LapInfo; trace: Trace }} other={list()[1] as { info: LapInfo; trace: Trace } | undefined} />
               <TraceCharts laps={list()} />
             </Show>
           </>
