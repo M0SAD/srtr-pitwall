@@ -15,11 +15,12 @@ export default defineOverlay({
       key: "mode",
       label: "Araç konumu",
       type: "select",
-      default: "real",
+      default: "lanes",
       options: [
-        { value: "real", label: "Gerçek konum (yanal uzaklıkla)" },
         { value: "lanes", label: "Şeritler (sol / orta / sağ)" },
+        { value: "real", label: "Gerçek konum (yanal uzaklıkla)", pro: true },
       ],
+      proHint: "Gerçek konum görünümü PRO üyelere özel.",
       hint: "Gerçek konum: araçlar sana gerçek uzaklıkta, sağa / sola ne kadar açık olduklarıyla görünür (ACC, LMU / rF2, AMS2). iRacing diğer araçların yanal konumunu vermediği için orada araç yanına gelince sol / sağ şeride yerleşir. Şeritler: önceki görünüm.",
     },
     {

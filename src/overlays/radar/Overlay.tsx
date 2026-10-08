@@ -1,6 +1,7 @@
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic, demoShow } from "@/sdk/telemetry";
+import { overlayValueLocked } from "@/sdk/proFeatures";
 import "./style.css";
 
 /** Araç boyu (m): yan yana sayılma sınırı */
@@ -50,7 +51,7 @@ export default function Radar(props: OverlayProps) {
    * (1 m ≈ 10 px), vermiyorsa (iRacing) yandaysa sol / sağ şeritte, değilse ortada. "Şeritler": her zaman üç şerit.
    */
   const x = (c: { side: number; lat?: number }) => {
-    if (props.options.mode !== "lanes" && typeof c.lat === "number") {
+    if (props.options.mode === "real" && !overlayValueLocked("radar", "mode", "real") && typeof c.lat === "number") {
       const lat = props.options.mirror ? -c.lat : c.lat;
       return 100 + Math.max(-85, Math.min(85, lat * 10));
     }

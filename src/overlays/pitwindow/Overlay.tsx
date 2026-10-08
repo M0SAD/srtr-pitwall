@@ -45,7 +45,11 @@ export default function PitWindow(props: OverlayProps) {
   const data = createMemo(() => live() ?? (props.editing ? STRATEGY_SAMPLE : undefined));
   const fuel = createMemo(() => (sample() ? FUEL_SAMPLE : liveFuel()));
 
-  const design = () => (o().design === "card" && !overlayValueLocked("pitwindow", "design", "card") ? "card" : "strip");
+  const DESIGNS = ["strip", "card", "tiles", "minimal", "bar"] as const;
+  const design = (): (typeof DESIGNS)[number] => {
+    const d = o().design as (typeof DESIGNS)[number];
+    return DESIGNS.includes(d) && !overlayValueLocked("pitwindow", "design", d) ? d : "strip";
+  };
 
   const loss = createMemo<{ v: number; src: "track" | "measured" | "default" }>(() => {
     const d = data();
@@ -117,9 +121,12 @@ export default function PitWindow(props: OverlayProps) {
   const srcText = () => (loss().src === "track" ? t("piste özel") : loss().src === "measured" ? t("ölçülen") : t("varsayılan"));
   const lapTag = (n: Near) => (n.lapRel > 0 ? `+${n.lapRel}T` : n.lapRel < 0 ? `−${-n.lapRel}T` : "");
 
+  // Önündeki / arkandaki satırı: etiket yerine yön oku (dilden bağımsız, her çeviride aynı genişlik); tam metin ipucunda
   const NearRow = (p: { n: Near | null; side: "ahead" | "behind" }) => (
-    <div class={`pw-near pw-${p.side}`}>
-      <span class="pw-near-l">{p.side === "ahead" ? "ÖNÜNDE" : "ARKANDA"}</span>
+    <div class={`pw-near pw-${p.side}`} title={p.side === "ahead" ? t("Pit çıkışında önünde") : t("Pit çıkışında arkanda")}>
+      <span class="pw-dir" data-no-i18n>
+        {p.side === "ahead" ? "▲" : "▼"}
+      </span>
       <Show when={p.n} fallback={<span class="pw-near-none">Boş pist</span>}>
         <i class="pw-cls" style={{ background: p.n!.car.classColor }} />
         <b class="pw-num" data-no-i18n>
@@ -188,6 +195,33 @@ export default function PitWindow(props: OverlayProps) {
     </div>
   );
 
+  /** Yakıt pit penceresi çubuğu: yarışın turları, açık aralık yeşil, şu anki tur işaretli */
+  const WinBar = () => {
+    const f = () => fuel();
+    const total = () => {
+      const x = f();
+      return x && x.raceLapsLeft > 0 ? Math.ceil(x.lap + x.raceLapsLeft) : 0;
+    };
+    const pct = (lap: number) => clamp(total() > 0 ? (lap / total()) * 100 : 0, 0, 100);
+    return (
+      <Show when={total() > 0 && win().open > 0 && win().open <= win().close}>
+        <div class="pw-wbar" data-no-i18n>
+          <div class="pw-wbar-track">
+            <i class="pw-wbar-open" style={{ left: `${pct(win().open - 1)}%`, width: `${Math.max(1.5, pct(win().close) - pct(win().open - 1))}%` }} />
+            <i class="pw-wbar-now" style={{ left: `${pct(f()!.lap)}%` }} />
+          </div>
+          <div class="pw-wbar-axis">
+            <span>1</span>
+            <span>
+              {win().open}–{win().close}
+            </span>
+            <span>{total()}</span>
+          </div>
+        </div>
+      </Show>
+    );
+  };
+
   /** Dönüş çizelgesi: ortada ben (pit çıkışı), sağda öndekiler, solda arkadakiler */
   const Timeline = () => {
     const span = () => clamp(num(o().span, 15), 5, 40);
@@ -198,8 +232,8 @@ export default function PitWindow(props: OverlayProps) {
         <div class="pw-tl-track">
           <i class="pw-tl-zone" style={{ left: `${x(clamp(num(o().trafficGap, 2.5), 0.5, 10) / 2)}%`, right: `${100 - x(-clamp(num(o().trafficGap, 2.5), 0.5, 10))}%` }} />
           <For each={shown()}>
-            {(n) => (
-              <span class="pw-tl-car" classList={{ "pw-tl-other": !n.car.sameClass }} style={{ left: `${x(n.rel)}%`, "--pw-c": n.car.classColor }} data-no-i18n>
+            {(n, i) => (
+              <span class="pw-tl-car" classList={{ "pw-tl-other": !n.car.sameClass, "pw-tl-up": i() % 2 === 1 }} style={{ left: `${x(n.rel)}%`, "--pw-c": n.car.classColor }} data-no-i18n>
                 <i />
                 <b>{n.car.number}</b>
               </span>
@@ -210,12 +244,12 @@ export default function PitWindow(props: OverlayProps) {
             <b>SEN</b>
           </span>
         </div>
-        <div class="pw-tl-axis" data-no-i18n>
-          <span>−{span()}s</span>
+        <div class="pw-tl-axis">
+          <span data-no-i18n>−{span()}s</span>
           <span class="pw-tl-dir">
-            <span>arkanda</span> ◂ ▸ <span>önünde</span>
+            <span>arkanda</span> <span data-no-i18n>◂ ▸</span> <span>önünde</span>
           </span>
-          <span>+{span()}s</span>
+          <span data-no-i18n>+{span()}s</span>
         </div>
       </div>
     );
@@ -246,28 +280,92 @@ export default function PitWindow(props: OverlayProps) {
             </Show>
           </div>
         </Show>
-        <div class="pw-main">
-          <Show when={o().showLoss !== false}>
-            <Loss />
-          </Show>
-          <Show when={o().showPos !== false}>
-            <Pos />
-          </Show>
+        <Show when={design() === "minimal"}>
+          <div class="pw-min">
+            <span class="pw-min-dot" classList={{ "pw-busy": calc()?.traffic }} />
+            <b class="pw-min-loss" data-no-i18n>
+              {sec(loss().v)}s
+            </b>
+            <Show when={data()?.race && calc() && calc()!.posNow > 0}>
+              <b class="pw-min-pos" data-no-i18n>
+                P{calc()!.posNow} → <span classList={{ "pw-drop": calc()!.posAfter > calc()!.posNow }}>P{calc()!.posAfter}</span>
+              </b>
+            </Show>
+            <Show when={calc()?.ahead}>
+              <span class="pw-min-car" data-no-i18n>
+                ▲ #{calc()!.ahead!.car.number} <b>{sec(Math.abs(calc()!.ahead!.rel))}</b>
+              </span>
+            </Show>
+            <Show when={calc()?.behind}>
+              <span class="pw-min-car" data-no-i18n>
+                ▼ #{calc()!.behind!.car.number} <b>{sec(Math.abs(calc()!.behind!.rel))}</b>
+              </span>
+            </Show>
+          </div>
+        </Show>
+        <Show when={design() === "tiles"}>
+          <div class="pw-tiles">
+            <Show when={o().showLoss !== false}>
+              <div class="pw-tile">
+                <span class="pw-k">PİT KAYBI</span>
+                <b data-no-i18n>
+                  {sec(loss().v)}
+                  <i>s</i>
+                </b>
+                <span class="pw-sub">{srcText()}</span>
+              </div>
+            </Show>
+            <Show when={o().showPos !== false && data()?.race && calc() && calc()!.posNow > 0}>
+              <div class="pw-tile">
+                <span class="pw-k">{calc()!.multi ? "SINIF SIRASI" : "SIRA"}</span>
+                <b data-no-i18n>
+                  P{calc()!.posNow}
+                  <em>→</em>
+                  <span classList={{ "pw-drop": calc()!.posAfter > calc()!.posNow }}>P{calc()!.posAfter}</span>
+                </b>
+              </div>
+            </Show>
+            <Show when={o().showTraffic !== false}>
+              <div class="pw-tile pw-tile-traffic" classList={{ "pw-busy": calc()?.traffic }}>
+                <span class="pw-k">ÇIKIŞ</span>
+                <b>{calc()?.traffic ? "TRAFİK" : "TEMİZ HAVA"}</b>
+              </div>
+            </Show>
+          </div>
           <Show when={o().showRejoin !== false}>
-            <div class="pw-rejoin">
+            <div class="pw-rejoin pw-rejoin-wide">
               <NearRow n={calc()?.ahead ?? null} side="ahead" />
               <NearRow n={calc()?.behind ?? null} side="behind" />
             </div>
           </Show>
-          <Show when={o().showTraffic !== false}>
-            <Traffic />
-          </Show>
-        </div>
+        </Show>
+        <Show when={design() === "strip" || design() === "card" || design() === "bar"}>
+          <div class="pw-main">
+            <Show when={o().showLoss !== false}>
+              <Loss />
+            </Show>
+            <Show when={o().showPos !== false}>
+              <Pos />
+            </Show>
+            <Show when={o().showRejoin !== false}>
+              <div class="pw-rejoin">
+                <NearRow n={calc()?.ahead ?? null} side="ahead" />
+                <NearRow n={calc()?.behind ?? null} side="behind" />
+              </div>
+            </Show>
+            <Show when={o().showTraffic !== false}>
+              <Traffic />
+            </Show>
+          </div>
+        </Show>
         <Show when={design() === "card" && o().showRejoin !== false}>
           <Timeline />
         </Show>
-        <Show when={o().showWindow !== false}>
+        <Show when={o().showWindow !== false && design() !== "minimal"}>
           <Window />
+          <Show when={design() === "bar" || design() === "tiles"}>
+            <WinBar />
+          </Show>
         </Show>
       </div>
     </Show>

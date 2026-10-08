@@ -22,10 +22,13 @@ export default defineOverlay({
       default: "strip",
       options: [
         { value: "strip", label: "Kompakt şerit" },
+        { value: "minimal", label: "Minimal tek satır" },
+        { value: "tiles", label: "Büyük kutular" },
         { value: "card", label: "Detaylı kart (dönüş çizelgesi)", pro: true },
+        { value: "bar", label: "Pit penceresi çubuğu", pro: true },
       ],
-      hint: "Kompakt şerit bütün bilgiyi tek satırda verir. Detaylı kart, pit çıkışında çevrende olacak araçları bir zaman çizelgesinde de gösterir.",
-      proHint: "Dönüş çizelgeli detaylı kart PRO üyelere özel.",
+      hint: "Kompakt şerit bütün bilgiyi derli toplu verir. Minimal: yalnızca pit kaybı, sıra ve önündeki / arkandaki araç, tek satırda. Büyük kutular: göz ucuyla okunan iri kutular ve yakıt penceresi çubuğu. Detaylı kart: pit çıkışında çevrende olacak araçları bir zaman çizelgesinde de gösterir. Pit penceresi çubuğu: yarışın turları üzerinde pite girebileceğin aralık ve bulunduğun tur.",
+      proHint: "Detaylı kart ve pit penceresi çubuğu PRO üyelere özel.",
     },
     { key: "width", label: "Genişlik", type: "number", default: 460, min: 300, max: 900, step: 10, unit: "px" },
     {

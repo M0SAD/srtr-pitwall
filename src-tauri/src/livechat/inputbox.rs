@@ -87,9 +87,11 @@ fn set_clickable(app: &AppHandle, w: &WebviewWindow) {
         return;
     }
     let _ = app.run_on_main_thread(move || unsafe {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT};
+        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT};
         let ex = GetWindowLongPtrW(h as _, GWL_EXSTYLE);
-        let want = (ex & !(WS_EX_TRANSPARENT as isize)) | WS_EX_LAYERED as isize;
+        // WS_EX_TOOLWINDOW: Chrome'un pencere örtülme hesabı araç pencerelerini hiç saymaz (kesin muafiyet). Yalnızca
+        // tıklanabilirken eklenir: OBS'in "Pencere yakalama" listesi araç pencerelerini göstermediği için kalıcı olmaz.
+        let want = (ex & !(WS_EX_TRANSPARENT as isize)) | WS_EX_LAYERED as isize | WS_EX_TOOLWINDOW as isize;
         if want != ex {
             SetWindowLongPtrW(h as _, GWL_EXSTYLE, want);
         }
@@ -106,9 +108,9 @@ fn set_passthrough(app: &AppHandle, w: &WebviewWindow) {
         return;
     }
     let _ = app.run_on_main_thread(move || unsafe {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT};
+        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT};
         let ex = GetWindowLongPtrW(h as _, GWL_EXSTYLE);
-        let want = ex | WS_EX_TRANSPARENT as isize | WS_EX_LAYERED as isize;
+        let want = (ex | WS_EX_TRANSPARENT as isize | WS_EX_LAYERED as isize) & !(WS_EX_TOOLWINDOW as isize);
         if want != ex {
             SetWindowLongPtrW(h as _, GWL_EXSTYLE, want);
         }
