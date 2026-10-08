@@ -17,7 +17,7 @@ export default defineOverlay({
       label: "Adres",
       type: "text",
       default: "",
-      hint: "https:// ile başlayan tam adres. Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.",
+      hint: "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.",
     },
     { key: "width", label: "Genişlik", type: "number", default: 400, min: 100, max: 1920, step: 10, unit: "px" },
     { key: "height", label: "Yükseklik", type: "number", default: 300, min: 60, max: 1080, step: 10, unit: "px" },

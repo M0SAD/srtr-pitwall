@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-269
+
+- Web Görünümü overlay'i: YouTube (video, shorts, canlı yayın, oynatma listesi), Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir; video adresini olduğu gibi yapıştırınca artık boş görünmez.
+
 ## 081026-268
 
 - Yarış bitince (ya da tekrar izlemeye başlayınca) kendiliğinden açılan Olaylar penceresi, oturumdan çıkınca (quit) kendiliğinden kapanır. Elle açtığın Olaylar penceresine dokunulmaz.

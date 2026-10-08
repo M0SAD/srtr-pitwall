@@ -7018,5 +7018,6 @@
   "Toplam ({0} ödeme)": "Total ({0} paiements)",
   "OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik": "OBS : Ajouter une source → Navigateur → colle l'adresse, largeur",
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Tours bouclés et points d'incident ; une barre qui change de couleur à mesure que tu approches de la limite d'incidents de la course.",
-  "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Modifier le design et le visuel est réservé aux membres PRO ayant l'autorisation du logo du stream ; pour les autres, le visuel SRTR Pitwall est affiché."
+  "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Modifier le design et le visuel est réservé aux membres PRO ayant l'autorisation du logo du stream ; pour les autres, le visuel SRTR Pitwall est affiché.",
+  "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Adresse complète commençant par https://. Les adresses YouTube, Twitch et Kick sont converties automatiquement en lecteur (tu peux coller l'adresse de la vidéo telle quelle). Certains sites empêchent l'intégration ; ils s'affichent alors vides."
 }

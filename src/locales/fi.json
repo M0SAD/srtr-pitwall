@@ -7018,5 +7018,6 @@
   "Toplam ({0} ödeme)": "Yhteensä ({0} maksua)",
   "OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik": "OBS: Lisää lähde → Selain → liitä osoite, leveys",
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Ajetut kierrokset ja incident-pisteesi; palkki vaihtaa väriä lähestyessäsi kisan incident-rajaa.",
-  "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Ulkoasun ja kuvan muuttaminen on avoinna PRO-jäsenille, joilla on striimin logon oikeus; muille näytetään SRTR Pitwall -kuva."
+  "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Ulkoasun ja kuvan muuttaminen on avoinna PRO-jäsenille, joilla on striimin logon oikeus; muille näytetään SRTR Pitwall -kuva.",
+  "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Täydellinen osoite, joka alkaa https://. YouTube-, Twitch- ja Kick-osoitteet muutetaan automaattisesti soittimeksi (voit liittää videon osoitteen sellaisenaan). Jotkin sivustot estävät upottamisen; silloin näkyy tyhjää."
 }

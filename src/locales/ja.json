@@ -7018,5 +7018,6 @@
   "Toplam ({0} ödeme)": "合計(支払い{0}件)",
   "OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik": "OBS: ソースを追加 → ブラウザ → アドレスを貼り付け、幅",
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "完了した周回数とインシデントポイント。レースのインシデント上限に近づくと色が変わるバー。",
-  "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "デザインや画像の変更は、配信ロゴの権限を持つPROメンバーのみ可能です。それ以外のメンバーにはSRTR Pitwallの画像が表示されます。"
+  "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "デザインや画像の変更は、配信ロゴの権限を持つPROメンバーのみ可能です。それ以外のメンバーにはSRTR Pitwallの画像が表示されます。",
+  "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "https:// で始まる完全なアドレス。YouTube・Twitch・Kick のアドレスは自動でプレーヤーに変換されます（動画のアドレスをそのまま貼り付けられます）。埋め込みを禁止しているサイトは空白で表示されます。"
 }
