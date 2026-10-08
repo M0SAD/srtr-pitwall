@@ -3674,7 +3674,7 @@ dependencies = [
 
 [[package]]
 name = "pitwall"
-version = "1.0.268"
+version = "1.0.269"
 dependencies = [
  "base64 0.22.1",
  "futures-util",

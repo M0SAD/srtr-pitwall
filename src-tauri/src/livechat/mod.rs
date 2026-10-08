@@ -645,6 +645,9 @@ impl Inner {
                     return None;
                 }
                 if let Some(r) = g.rt.get_mut(&m.channel) {
+                    if r.last_msg <= 0.0 {
+                        debug_file(&format!("{}: ilk mesaj geldi", m.channel));
+                    }
                     r.last_msg = now;
                 }
                 let ch = &g.cfg.channels[idx];
@@ -778,6 +781,10 @@ impl Hub {
         let after = (r.chat, r.live, r.viewers, r.error.clone(), r.name.clone(), r.video.clone());
         if before != after {
             g.dirty_status = true;
+            // İzleyici sayısı dışındaki değişimler tanılama günlüğüne
+            if (before.0, before.1, &before.3, &before.5) != (after.0, after.1, &after.3, &after.5) {
+                debug_file(&format!("{key}: sohbet={} canlı={:?} video={:?} hata={:?}", after.0, after.1, after.5, after.3));
+            }
         }
     }
 
@@ -1302,12 +1309,35 @@ fn update_settings(app: &AppHandle, f: impl FnOnce(&mut Value)) {
 // Kurulum
 // ---------------------------------------------------------------------------
 
+/// Tanılama günlüğü: kanal durumu değişimleri ve gönderim sonuçları `livechat_debug.log` dosyasına yazılır
+/// (anahtar / parola içermez; 256 KB'ı geçince yarısı atılır). Destek için okunur.
+static DEBUG_LOG: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
+
+pub fn debug_file(line: &str) {
+    let Some(path) = DEBUG_LOG.get() else { return };
+    use std::io::Write;
+    if std::fs::metadata(path).map(|m| m.len() > 256 * 1024).unwrap_or(false) {
+        if let Ok(t) = std::fs::read_to_string(path) {
+            let half = t.len() / 2;
+            let cut = t[half..].find('\n').map(|i| half + i + 1).unwrap_or(half);
+            let _ = std::fs::write(path, &t[cut..]);
+        }
+    }
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let _ = writeln!(f, "{} {:02}:{:02}:{:02}Z {}", secs / 86_400, secs / 3600 % 24, secs / 60 % 60, secs % 60, line);
+    }
+}
+
 pub fn hub(app: &AppHandle) -> Arc<Hub> {
     app.state::<Arc<Hub>>().inner().clone()
 }
 
 /// Uygulama açılışında (setup): merkezi kur ve zamanlayıcıyı başlat
 pub fn init(app: &AppHandle, shared: Arc<Shared>) {
+    if let Ok(d) = app.path().app_config_dir() {
+        let _ = DEBUG_LOG.set(d.join("livechat_debug.log"));
+    }
     let h = Arc::new(Hub::new(app.clone(), shared));
     {
         let mut g = h.st.lock();

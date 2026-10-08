@@ -73,6 +73,27 @@ fn give_back(w: &WebviewWindow, prev: isize) {
     }
 }
 
+/// Tıklanabilir yapılan overlay penceresi WS_EX_LAYERED stilini kaybeder; Chrome / Edge o zaman ekranı kaplayan bu
+/// pencereyi opak sanıp arkadaki sekmeleri "örtülü" sayar ve videoları siyaha çevirir. Stil (pencere iş parçacığında,
+/// tao'nun kendi stil güncellemesinden sonra) geri eklenir: pencere görünüşü değişmez, tarayıcı onu saydam sayar.
+#[cfg(windows)]
+fn keep_layered(app: &AppHandle, w: &WebviewWindow) {
+    let h = own_hwnd(w);
+    if h == 0 {
+        return;
+    }
+    let _ = app.run_on_main_thread(move || unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED};
+        let ex = GetWindowLongPtrW(h as _, GWL_EXSTYLE);
+        if ex & WS_EX_LAYERED as isize == 0 {
+            SetWindowLongPtrW(h as _, GWL_EXSTYLE, ex | WS_EX_LAYERED as isize);
+        }
+    });
+}
+
+#[cfg(not(windows))]
+fn keep_layered(_app: &AppHandle, _w: &WebviewWindow) {}
+
 #[cfg(not(windows))]
 fn own_hwnd(_w: &WebviewWindow) -> isize {
     0
@@ -131,6 +152,8 @@ fn poll(app: AppHandle) {
                 }
                 // Her turda yinelenir: görünürlük eşitlemesi (lib.rs) pencereyi yeniden tıklama geçirir yapmış olabilir
                 let _ = w.set_ignore_cursor_events(false);
+                // Kutu tıklanabilirken / yazarken arkadaki tarayıcı videoları kararmasın
+                keep_layered(&app, &w);
             } else if open {
                 let _ = w.set_ignore_cursor_events(true);
             }
@@ -205,6 +228,7 @@ pub async fn livechat_input(app: AppHandle, window: WebviewWindow, id: String, o
             }
             let _ = window.set_ignore_cursor_events(false);
             let _ = window.set_focus();
+            keep_layered(&app, &window);
         }
         "blur" => {
             let prev = {

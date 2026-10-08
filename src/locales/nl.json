@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} heeft het bericht van {1} gemeld ({2}): \"{3}\"",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} reed {3} ronden op {1} in de {2}",
   "{0}: liderliği aldı": "{0}: neemt de leiding",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}: bericht verzonden, maar het verscheen niet in de chat",
   "{0}. turda açılır": "Opent in ronde {0}",
   "{0}{1} özellik {2} mı?": "{0}{1} functies — {2}?",
   "{0}+ yıldız": "{0}+ sterren",

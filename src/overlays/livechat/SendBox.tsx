@@ -11,6 +11,7 @@ import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from
 import { t } from "@/sdk/i18n";
 import * as LC from "@/sdk/livechat";
 import { PlatformIcon } from "./parts";
+import { listen } from "@tauri-apps/api/event";
 
 const WRITABLE = ["twitch", "youtube", "kick"] as const;
 type W = (typeof WRITABLE)[number];
@@ -87,6 +88,7 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
   // Hesap durumu + tıklanabilir bölge (yalnızca ekrandaki, etkileşimli satır)
   onMount(() => {
     let un: (() => void) | undefined;
+    let unSeen: (() => void) | undefined;
     let last = "";
     let live = false;
     const report = () => {
@@ -112,6 +114,11 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
       if (props.interactive) {
         if (!st()) LC.sendStatus().then(setSt).catch(() => {});
         if (!un) void LC.onSend(setSt).then((u) => (un = u));
+        // Gönderildi denen mesaj sohbette hiç görünmediyse uyar (platform mesajı sessizce düşürmüş olabilir)
+        if (!unSeen)
+          void listen<{ key: string; label: string }>("livechat-send-unseen", (e) =>
+            showErr(t("{0}: mesaj gönderildi ama sohbette görünmedi", e.payload.label)),
+          ).then((u) => (unSeen = u));
       } else input?.blur();
       report();
     });
@@ -125,6 +132,7 @@ export function SendBox(props: { channels: LC.ChannelStatus[]; interactive: bool
     onCleanup(() => {
       clearInterval(timer);
       un?.();
+      unSeen?.();
       document.removeEventListener("pointerdown", outside, true);
       window.removeEventListener("blur", winBlur);
       if (live) void LC.inputBox(id, "remove").catch(() => {});

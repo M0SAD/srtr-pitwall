@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-270
+
+- Canlı Sohbet: oyun üstündeki mesaj kutusuna tıklayınca Chrome / Edge'de açık olan yayının (YouTube vb.) siyah olması düzeltildi.
+- Canlı Sohbet: gönderildi görünen bir mesaj 20 saniye içinde sohbette görünmezse mesaj kutusunda uyarı çıkar.
+
 ## 081026-269
 
 - Web Görünümü overlay'i: YouTube (video, shorts, canlı yayın, oynatma listesi), Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir; video adresini olduğu gibi yapıştırınca artık boş görünmez.

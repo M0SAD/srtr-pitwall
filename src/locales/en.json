@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} reported {1}'s message ({2}): \"{3}\"",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} drove {3} laps at {1} in the {2}",
   "{0}: liderliği aldı": "{0}: took the lead",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}: message sent but it didn't show up in the chat",
   "{0}. turda açılır": "Opens on lap {0}",
   "{0}{1} özellik {2} mı?": "{0}{1} features — {2}?",
   "{0}+ yıldız": "{0}+ stars",

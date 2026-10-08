@@ -233,6 +233,7 @@ fn scrub(s: &str) -> String {
 pub(super) fn dlog(line: impl AsRef<str>) {
     let secs = now_ms() / 1000 % 86_400;
     let l = format!("{:02}:{:02}:{:02}Z {}", secs / 3600, secs / 60 % 60, secs % 60, scrub(line.as_ref()));
+    super::debug_file(&format!("gönderim: {}", scrub(line.as_ref())));
     let mut g = state().lock();
     if g.log.len() >= 80 {
         g.log.remove(0);
@@ -1264,6 +1265,32 @@ pub async fn livechat_send(app: AppHandle, text: String, target: Option<String>)
     if out.iter().any(|r| r.ok) {
         let line = format!("[YAZ] {}", text);
         h.st.lock().log(line);
+        // Doğrulama: gönderilen mesaj 20 sn içinde o kanalın sohbetinde görünmezse kullanıcıya söylenir
+        let sent_at = now_ms();
+        let want: String = text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+        let keys: Vec<(String, String)> = out.iter().filter(|r| r.ok).map(|r| (r.key.clone(), r.label.clone())).collect();
+        let app2 = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let mut left = keys;
+            for _ in 0..40 {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                let h = hub(&app2);
+                let g = h.st.lock();
+                left.retain(|(k, _)| {
+                    !g.ring.iter().rev().take(200).any(|m| {
+                        m.channel == *k && m.ts + 5_000 >= sent_at && m.text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase().contains(&want)
+                    })
+                });
+                if left.is_empty() {
+                    break;
+                }
+            }
+            for (k, label) in left {
+                dlog(format!("doğrulama {k}: gönderildi denildi ama 20 sn içinde sohbette görünmedi"));
+                use tauri::Emitter;
+                let _ = app2.emit("livechat-send-unseen", serde_json::json!({ "key": k, "label": label }));
+            }
+        });
     }
     Ok(out)
 }

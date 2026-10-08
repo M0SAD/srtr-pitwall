@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} rapporterade ett meddelande från {1} ({2}): \"{3}\"",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} körde {3} varv på {1} i {2}",
   "{0}: liderliği aldı": "{0}: tog ledningen",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}: meddelandet skickades men syntes inte i chatten",
   "{0}. turda açılır": "öppnar på varv {0}",
   "{0}{1} özellik {2} mı?": "{0}{1} funktioner — {2}?",
   "{0}+ yıldız": "{0}+ stjärnor",

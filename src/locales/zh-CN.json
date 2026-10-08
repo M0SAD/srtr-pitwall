@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} 举报了 {1} 的消息（{2}）：“{3}”",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} 驾驶 {2} 在 {1} 跑了 {3} 圈",
   "{0}: liderliği aldı": "{0}：取得领先",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}：消息已发送，但未出现在聊天中",
   "{0}. turda açılır": "第 {0} 圈打开",
   "{0}{1} özellik {2} mı?": "{0}{1} 项功能 — {2}？",
   "{0}+ yıldız": "{0}+ 星",

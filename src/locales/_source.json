@@ -312,6 +312,7 @@
  "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "src/app/components/Moderation.tsx",
  "{0}, {1} pistinde {2} ile {3} tur attı": "src/app/pages/TeamsPage.tsx",
  "{0}: liderliği aldı": "src-tauri",
+ "{0}: mesaj gönderildi ama sohbette görünmedi": "src/overlays/livechat/SendBox.tsx",
  "{0}. turda açılır": "src/overlays/pitwindow/Overlay.tsx",
  "{0}{1} özellik {2} mı?": "src/app/components/AdminProFeatures.tsx",
  "{0}+ yıldız": "src/app/pages/CommunityDashes.tsx, src/app/pages/CommunityKit.tsx, src/app/pages/CommunityPage.tsx, src/app/pages/CommunityShots.tsx",

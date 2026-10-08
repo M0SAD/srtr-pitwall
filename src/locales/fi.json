@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} ilmoitti käyttäjän {1} viestistä ({2}): \"{3}\"",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} ajoi {3} kierrosta radalla {1} autolla {2}",
   "{0}: liderliği aldı": "{0}: otti johdon",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}: viesti lähetettiin, mutta se ei näkynyt chatissa",
   "{0}. turda açılır": "aukeaa kierroksella {0}",
   "{0}{1} özellik {2} mı?": "{0}{1} ominaisuutta — {2}?",
   "{0}+ yıldız": "{0}+ tähteä",

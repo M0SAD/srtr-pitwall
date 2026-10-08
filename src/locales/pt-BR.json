@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} denunciou a mensagem de {1} ({2}): \"{3}\"",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} deu {3} voltas em {1} com o {2}",
   "{0}: liderliği aldı": "{0}: assumiu a liderança",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}: mensagem enviada, mas não apareceu no chat",
   "{0}. turda açılır": "Abre na volta {0}",
   "{0}{1} özellik {2} mı?": "{0}{1} recursos — {2}?",
   "{0}+ yıldız": "{0}+ estrelas",

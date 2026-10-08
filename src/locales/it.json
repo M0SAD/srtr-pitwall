@@ -312,6 +312,7 @@
   "{0}, {1} kişisinin mesajını raporladı ({2}): \"{3}\"": "{0} ha segnalato il messaggio di {1} ({2}): \"{3}\"",
   "{0}, {1} pistinde {2} ile {3} tur attı": "{0} ha fatto {3} giri a {1} con la {2}",
   "{0}: liderliği aldı": "{0}: ha preso la testa",
+  "{0}: mesaj gönderildi ama sohbette görünmedi": "{0}: messaggio inviato, ma non è comparso in chat",
   "{0}. turda açılır": "Si apre al giro {0}",
   "{0}{1} özellik {2} mı?": "{0}{1} funzioni — {2}?",
   "{0}+ yıldız": "{0}+ stelle",
