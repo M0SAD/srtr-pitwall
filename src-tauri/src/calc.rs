@@ -183,6 +183,11 @@ pub struct RadarCar {
     pub side: i8,
     /// Boyuna mesafe (m); + önde
     pub offset: f32,
+    /// Araç sırası (CarIdx; demo araçlarında -1): arayüz aracı kareler arasında takip eder
+    pub idx: i32,
+    /// Yanal uzaklık (m, + sağ); sim vermiyorsa (iRacing) yok
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lat: Option<f32>,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -950,8 +955,8 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
     let mut r = Radar { state: f.car_left_right, ..Default::default() };
     // Demo: sanal yan araçlar hazır gelir
     if let Some(sc) = &f.demo_side_cars {
-        for &(side, off) in sc {
-            r.cars.push(RadarCar { side, offset: off });
+        for (k, &(side, off)) in sc.iter().enumerate() {
+            r.cars.push(RadarCar { side, offset: off, idx: -1 - k as i32, lat: f.radar_lat.get(k).copied() });
             if side == 0 || off.abs() > 4.8 {
                 if off >= 0.0 {
                     r.ahead_m = Some(r.ahead_m.map_or(off, |a| a.min(off)));
@@ -971,7 +976,9 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
         return r;
     }
     let len_m = s.track_length_km * 1000.0;
-    let mut near: Vec<f32> = Vec::new();
+    // Görüş mesafesi en fazla 60 m (ayar): bu mesafedeki her araç gönderilir, arayüz ayara göre süzer.
+    // Eskiden yalnızca 25 m içindekiler gönderiliyordu; arkadan gelen araç mesafe yazısında görünüp radarda yoktu.
+    let mut near: Vec<(f32, i32)> = Vec::new();
     for i in 0..MAX_CARS {
         if i == me || !active(f, s, i) || f.cars[i].on_pit {
             continue;
@@ -990,13 +997,13 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
         } else if r.behind_m.map(|b| -m < b).unwrap_or(true) {
             r.behind_m = Some(-m);
         }
-        if m.abs() < 25.0 {
-            near.push(m);
+        if m.abs() < 60.0 {
+            near.push((m, i as i32));
         }
     }
     // iRacing yan araçların yanal konumunu vermez; CarLeftRight'a göre en yakın
     // araçları yanlara, kalanları öne/arkaya yerleştiriyoruz.
-    near.sort_by(|a, b| a.abs().total_cmp(&b.abs()));
+    near.sort_by(|a, b| a.0.abs().total_cmp(&b.0.abs()));
     let (mut left, mut right) = match f.car_left_right {
         2 => (1, 0),
         3 => (0, 1),
@@ -1005,7 +1012,7 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
         6 => (0, 2),
         _ => (0, 0),
     };
-    for m in near {
+    for (m, idx) in near {
         let side = if m.abs() < 6.0 && left > 0 {
             left -= 1;
             -1
@@ -1015,7 +1022,7 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
         } else {
             0
         };
-        r.cars.push(RadarCar { side, offset: m });
+        r.cars.push(RadarCar { side, offset: m, idx, lat: None });
     }
     r
 }

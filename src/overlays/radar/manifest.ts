@@ -12,6 +12,17 @@ export default defineOverlay({
   defaultEnabled: false,
   settings: [
     {
+      key: "mode",
+      label: "Araç konumu",
+      type: "select",
+      default: "real",
+      options: [
+        { value: "real", label: "Gerçek konum (yanal uzaklıkla)" },
+        { value: "lanes", label: "Şeritler (sol / orta / sağ)" },
+      ],
+      hint: "Gerçek konum: araçlar sana gerçek uzaklıkta, sağa / sola ne kadar açık olduklarıyla görünür (ACC, LMU / rF2, AMS2). iRacing diğer araçların yanal konumunu vermediği için orada araç yanına gelince sol / sağ şeride yerleşir. Şeritler: önceki görünüm.",
+    },
+    {
       key: "hideWhenClear",
       label: "Kimse yokken gizle",
       type: "boolean",
@@ -29,17 +40,19 @@ export default defineOverlay({
       key: "range",
       label: "Görüş mesafesi (ön/arka)",
       type: "number",
-      default: 12,
+      default: 20,
       min: 6,
-      max: 40,
+      max: 60,
       step: 1,
       unit: "m",
+      hint: "Arkadan ya da önden gelen araç bu mesafeye girince radarda gerçek uzaklığında görünür.",
     },
     {
       key: "showDistance",
-      label: "Mesafe yaz",
+      label: "Uzaklığı yaz (m)",
       type: "boolean",
       default: false,
+      hint: "Önündeki ve arkandaki en yakın aracın uzaklığını radarın üstüne / altına yazar. Kapalıyken yazı görünmez.",
     },
     {
       key: "hz",

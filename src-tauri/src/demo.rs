@@ -816,6 +816,8 @@ impl Demo {
         // Kör nokta
         let (state, side_list) = self.side_traffic(dt as f32);
         f.car_left_right = if player_in_pit { 1 } else { state };
+        // Demo: yan araçlar şerit ortasında (±3.3 m), öndekiler / arkadakiler hafif kaydırılmış
+        f.radar_lat = if player_in_pit { Vec::new() } else { side_list.iter().map(|(sd, off)| if *sd != 0 { *sd as f32 * 3.3 } else { (off * 0.37).sin() * 1.2 }).collect() };
         f.demo_side_cars = Some(if player_in_pit { Vec::new() } else { side_list });
 
         f.on_pit_road = player_in_pit;

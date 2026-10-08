@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081026-271
+
+- Canlı Sohbet: oyun üstündeki mesaj kutusuna tıklayınca Chrome / Edge'deki yayının (YouTube vb.) siyah olması için kalıcı düzeltme: overlay penceresi tıklanabilir olurken tarayıcının onu opak sayması engellendi.
+- Radar: arkadan / önden gelen araçlar artık ayarladığın görüş mesafesinde gerçek uzaklıklarında görünür (eskiden 25 m'den uzaktakiler hiç çizilmiyordu); varsayılan görüş mesafesi 20 m, en fazla 60 m.
+- Radar: yeni "Araç konumu" ayarı. Gerçek konum: araçlar sağa / sola ne kadar açık olduklarıyla gösterilir (ACC, LMU / rF2, AMS2; iRacing yanal konum vermediği için orada yan şeride yerleşir). Şeritler: önceki sol / orta / sağ görünümü.
+- Radar: araçlar yan değiştirirken ve yaklaşırken yumuşak kayar; yanından çıkan araç bir anda ortaya zıplamaz. "Uzaklığı yaz (m)" ayarıyla mesafe yazısı açılıp kapatılabilir.
+
 ## 081026-270
 
 - Canlı Sohbet: oyun üstündeki mesaj kutusuna tıklayınca Chrome / Edge'de açık olan yayının (YouTube vb.) siyah olması düzeltildi.

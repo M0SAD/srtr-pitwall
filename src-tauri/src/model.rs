@@ -191,6 +191,9 @@ pub struct Frame {
     pub tyres_out: i8,
     /// Sadece demo: kör noktadaki sanal araçlar (taraf -1 sol / 1 sağ / 0 orta, boyuna mesafe m)
     pub demo_side_cars: Option<Vec<(i8, f32)>>,
+    /// `demo_side_cars` ile aynı sırada araçların yanal uzaklığı (m, + sağ). Dünya koordinatı veren simlerde
+    /// (ACC, LMU / rF2, AMS2) dolar; iRacing ve demo boş bırakır (radar "gerçek konum"da yan şeride yerleştirir)
+    pub radar_lat: Vec<f32>,
     pub cars: [CarState; MAX_CARS],
 }
 
@@ -277,6 +280,7 @@ impl Default for Frame {
             damage: crate::drivecues::Damage::default(),
             tyres_out: -1,
             demo_side_cars: None,
+            radar_lat: Vec::new(),
             cars: [CarState { surface: -1, pct: -1.0, tire: -1, ..Default::default() }; MAX_CARS],
         }
     }

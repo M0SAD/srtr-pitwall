@@ -139,6 +139,10 @@ export interface RadarCar {
   side: number;
   /** boyuna mesafe (m), + önde */
   offset: number;
+  /** Araç sırası (CarIdx; demoda negatif) */
+  idx?: number;
+  /** Yanal uzaklık (m, + sağ); yalnızca dünya koordinatı veren simlerde (ACC, LMU / rF2, AMS2) */
+  lat?: number;
 }
 
 export interface Radar {

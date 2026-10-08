@@ -275,6 +275,7 @@ pub(crate) fn fill_radar(f: &mut Frame, rel: &[(f32, f32)], driving: bool) {
     const CAR_LEN: f32 = 5.0;
     let mut list = f.demo_side_cars.take().unwrap_or_default();
     list.clear();
+    f.radar_lat.clear();
     if !driving {
         f.car_left_right = 0;
         f.demo_side_cars = None;
@@ -282,7 +283,7 @@ pub(crate) fn fill_radar(f: &mut Frame, rel: &[(f32, f32)], driving: bool) {
     }
     let (mut left, mut right) = (0, 0);
     for &(lat, long) in rel {
-        if long.abs() > 40.0 || lat.abs() > 10.0 {
+        if long.abs() > 60.0 || lat.abs() > 12.0 {
             continue;
         }
         let side: i8 = if lat.abs() < 1.6 {
@@ -300,6 +301,7 @@ pub(crate) fn fill_radar(f: &mut Frame, rel: &[(f32, f32)], driving: bool) {
             }
         }
         list.push((side, long));
+        f.radar_lat.push(lat);
     }
     f.car_left_right = match (left, right) {
         (0, 0) => 1,

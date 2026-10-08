@@ -43,3 +43,8 @@
   font: var(--ov-weight-strong) 12px var(--ov-font);
   text-anchor: middle;
 }
+
+/* Araçlar yan değiştirirken ve ilerlerken yumuşak kaysın */
+.radar .car.other {
+  transition: transform 0.12s linear;
+}
