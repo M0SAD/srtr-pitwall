@@ -199,10 +199,17 @@ export function TtsTab() {
         </div>
         <div class="row">
           <div>
-            <b>Emote ve özel görselleri oku</b>
-            <small>Kapalıyken (varsayılan) emote'lar, kanal emojileri ve gönderilen özel görseller okunmaz. Açıksa adları okunur (ör. “Kappa”, “pit stop”).</small>
+            <b>Emote'ları oku</b>
+            <small>Twitch / Kick emote'larının adı okunur (ör. “Kappa”). Kapalıyken (varsayılan) okunmaz.</small>
           </div>
           <Switch checked={!v().skipEmotes} onChange={(on) => setTts((x) => (x.skipEmotes = !on))} />
+        </div>
+        <div class="row">
+          <div>
+            <b>Kanal emojilerini ve özel görselleri oku</b>
+            <small>YouTube kanal emojileri ve sohbete gönderilen özel görseller. Kapalıyken (varsayılan) okunmaz; açıksa kanalın verdiği adı okunur (ör. “:_pitStop:” → “pit Stop”), yüklenen dosyanın adı okunmaz.</small>
+          </div>
+          <Switch checked={!!v().readCustom} onChange={(on) => setTts((x) => (x.readCustom = on))} />
         </div>
         <div class="row">
           <div>

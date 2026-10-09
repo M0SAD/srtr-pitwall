@@ -26,7 +26,7 @@ export type MsgKind = "chat" | "superchat" | "sub" | "raid" | "donation" | "aler
 
 export type Part =
   | { t: "text"; v: string }
-  | { t: "emote"; url: string; name: string }
+  | { t: "emote"; url: string; name: string; /** Kanalın kendi emojisi / özel görseli (YouTube) */ custom?: boolean }
   | { t: "link"; url: string; v: string }
   | { t: "mention"; v: string };
 

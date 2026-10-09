@@ -72,7 +72,13 @@ pub enum Kind {
 #[serde(tag = "t", rename_all = "lowercase")]
 pub enum Part {
     Text { v: String },
-    Emote { url: String, name: String },
+    Emote {
+        url: String,
+        name: String,
+        /// Kanalın kendi emojisi / özel görseli (YouTube kanal emojisi): sesli okumada ayrı ayarla okunur
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        custom: bool,
+    },
     Link { url: String, v: String },
     Mention { v: String },
 }

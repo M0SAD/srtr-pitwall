@@ -1960,7 +1960,13 @@ fn open_panel(app: &AppHandle) {
                         record_panel_geom(&app2, &w);
                     }
                 }
-                tauri::WindowEvent::CloseRequested { .. } => save_panel_geom(&app2, true),
+                tauri::WindowEvent::CloseRequested { .. } => {
+                    save_panel_geom(&app2, true);
+                    // Kapatma tıklanınca pencere anında kaybolsun (arayüz bekleyen ayarları gönderirken ekranda kalmasın)
+                    if let Some(w) = app2.get_webview_window("main") {
+                        let _ = w.hide();
+                    }
+                }
                 tauri::WindowEvent::Destroyed => {
                     save_panel_geom(&app2, true);
                     set_preview_frozen(&app2, false);

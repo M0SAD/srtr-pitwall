@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-284
+
+- Kontrol paneli: X'e basınca pencere anında kayboluyor. Eskiden bekleyen ayarlar hesaba gönderilene kadar (en çok 3,5 sn) pencere ekranda kalıyordu; gönderim artık pencere gizlendikten sonra arka planda yapılıyor.
+- Canlı sohbet › Sesli okuma: YouTube kanal emojileri / özel görseller için ayrı ayar, "Kanal emojilerini ve özel görselleri oku" (varsayılan kapalı). Eskiden bunlar emote sayılıyor ve yüklenen dosyanın adıyla ("imagein…" gibi) okunuyordu. Açıldığında artık kanalın verdiği ad okunuyor (":_pitStop:" → "pit Stop"), dosya adı okunmuyor. "Emote'ları oku" ayarı yalnızca Twitch / Kick emote'larını kapsıyor.
+
 ## 101026-283
 
 - Canlı sohbet › Sesli okuma: kanal emojileri ve gönderilen özel görseller yazı olarak (":_imageinKedi:" gibi kısa kodlarla ya da Kick'te "[emote:…]") gelince kodlarıyla birlikte okunuyordu. Artık okunmuyor. Ayar "Emote ve özel görselleri oku" olarak yeniden adlandırıldı (varsayılan kapalı); açılırsa görselin adı okunur hâle getirilip okunuyor (":_pitStop:" → "pit Stop"). Saat gibi yazılar ("10:30:45") etkilenmiyor.

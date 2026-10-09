@@ -65,6 +65,8 @@ pub struct TtsCfg {
     pub skip_emotes: bool,
     /// ":)", ":D", "<3" gibi karakterlerle yazılan ifadeler okunmaz
     pub skip_smileys: bool,
+    /// Kanal emojileri / özel görseller (YouTube kanal emojisi, ":_ad:" kısa kodları) okunsun mu (varsayılan hayır)
+    pub read_custom: bool,
     pub max_chars: usize,
     pub max_queue: usize,
     pub max_delay: f64,
@@ -94,6 +96,7 @@ impl Default for TtsCfg {
             skip_links: true,
             skip_emotes: true,
             skip_smileys: true,
+            read_custom: false,
             max_chars: 150,
             max_queue: 3,
             max_delay: 8.0,
@@ -130,6 +133,7 @@ pub fn cfg_from_settings(v: &Value) -> TtsCfg {
         skip_links: b("/skipLinks", true),
         skip_emotes: b("/skipEmotes", true),
         skip_smileys: b("/skipSmileys", true),
+        read_custom: b("/readCustom", false),
         max_chars: f("/maxChars", 150.0).clamp(20.0, 500.0) as usize,
         max_queue: f("/maxQueue", 3.0).clamp(1.0, 50.0) as usize,
         max_delay: f("/maxDelay", 8.0).clamp(2.0, 120.0),
@@ -161,13 +165,13 @@ pub fn win_pitch(p: f64) -> f64 {
 
 /// Okunacak düz metin (MCO speech_text): emote/bağlantı/yıldızlı kelimeler atlanır, tekrarlar kısalır,
 /// emoji ve süs karakterleri atılır, uzunluk kelime sınırında kesilir.
-pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emotes: bool, skip_smileys: bool) -> String {
+pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emotes: bool, skip_smileys: bool, read_custom: bool) -> String {
     let mut s = String::new();
     for p in parts {
         match p {
-            Part::Text { v } => s.push_str(&emote_codes(v, skip_emotes)),
-            Part::Emote { name, .. } => {
-                if !skip_emotes {
+            Part::Text { v } => s.push_str(&emote_codes(v, !read_custom, skip_emotes)),
+            Part::Emote { name, custom, .. } => {
+                if if *custom { read_custom } else { !skip_emotes } {
                     s.push(' ');
                     s.push_str(&emote_name(name));
                 }
@@ -211,7 +215,8 @@ pub fn emote_name(name: &str) -> String {
 
 /// Metnin içine yazı olarak gelen emoji kısa kodları (":_kanalEmojisi:", ":kedi:") ve Kick "[emote:ID:AD]" kodları:
 /// `skip` ise atılır, değilse okunacak ada çevrilir. Saat gibi yalnızca rakamlı kısımlar ("10:30:45") kod sayılmaz.
-pub fn emote_codes(s: &str, skip: bool) -> String {
+/// `skip_codes`: kısa kodlar (kanal emojileri), `skip_kick`: Kick emote kodları.
+pub fn emote_codes(s: &str, skip_codes: bool, skip_kick: bool) -> String {
     let ok = |c: char| c.is_alphanumeric() || c == '_' || c == '-';
     let chars: Vec<char> = s.chars().collect();
     let mut out = String::with_capacity(s.len());
@@ -223,7 +228,7 @@ pub fn emote_codes(s: &str, skip: bool) -> String {
             let rest: String = chars[i..chars.len().min(i + 80)].iter().collect();
             if let Some(inner) = rest.strip_prefix("[emote:").and_then(|r| r.split_once(']')).map(|(a, _)| a.to_string()) {
                 let name = inner.split_once(':').map(|(_, n)| n).unwrap_or("");
-                if !skip {
+                if !skip_kick {
                     out.push(' ');
                     out.push_str(&emote_name(name));
                 }
@@ -240,7 +245,7 @@ pub fn emote_codes(s: &str, skip: bool) -> String {
             }
             let inner: String = chars[i + 1..j.min(chars.len())].iter().collect();
             if j < chars.len() && chars[j] == ':' && inner.chars().count() >= 2 && !inner.chars().all(|c| c.is_ascii_digit()) {
-                if !skip {
+                if !skip_codes {
                     out.push(' ');
                     out.push_str(&emote_name(&inner));
                 }
@@ -422,7 +427,7 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
             return None;
         }
         let action = alert_action(m);
-        let msg = speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys);
+        let msg = speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys, cfg.read_custom);
         let head = format!("{name} {action}").trim().to_string();
         let s = if msg.is_empty() { head } else if head.is_empty() { msg } else { format!("{head}. {msg}") };
         return (!s.is_empty()).then_some(s);
@@ -441,9 +446,9 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
     }
     let text = if cfg.mode == Mode::Command {
         let rest = match_command(&m.text, &cfg.command)?;
-        clean_text(&emote_codes(&rest, cfg.skip_emotes), cfg.max_chars, cfg.skip_links, cfg.skip_smileys)
+        clean_text(&emote_codes(&rest, !cfg.read_custom, cfg.skip_emotes), cfg.max_chars, cfg.skip_links, cfg.skip_smileys)
     } else {
-        speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys)
+        speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys, cfg.read_custom)
     };
     if text.is_empty() {
         return None;
@@ -1062,22 +1067,28 @@ mod tests {
         assert_eq!(match_command("!okul var", "!oku"), None);
         assert_eq!(match_command("!merhaba", "!"), Some("merhaba".into()));
         assert_eq!(match_command("!OKU Selam", "!s, !oku"), Some("Selam".into()));
-        let parts = vec![Part::text("bak "), Part::Emote { url: "u".into(), name: "Kappa".into() }, Part::text(" "), Part::Link { url: "https://a.com".into(), v: "a.com".into() }, Part::text(" tamam")];
-        assert_eq!(speech_text(&parts, 150, true, true, true), "bak tamam");
+        let parts = vec![Part::text("bak "), Part::Emote { url: "u".into(), name: "Kappa".into(), custom: false }, Part::text(" "), Part::Link { url: "https://a.com".into(), v: "a.com".into() }, Part::text(" tamam")];
+        assert_eq!(speech_text(&parts, 150, true, true, true, false), "bak tamam");
         assert_eq!(clean_text("harika :) bu :D çok iyi:) <3 xD ;-) (: saat 10:30 (yani) ^^", 150, true, true), "harika bu çok iyi saat 10:30 (yani)");
         assert_eq!(clean_text("harika :)", 150, true, false), "harika :)");
-        assert_eq!(speech_text(&parts, 150, false, false, true), "bak Kappa a.com tamam");
+        assert_eq!(speech_text(&parts, 150, false, false, true, false), "bak Kappa a.com tamam");
         assert_eq!(social_text("Ali_Veli", "Pitte görüşürüz 👍", true, 200).as_deref(), Some("Ali Veli diyor ki: Pitte görüşürüz"));
         assert_eq!(social_text("Ali", "selam", false, 200).as_deref(), Some("selam"));
         assert_eq!(social_text("Ali", "🔥", true, 200), None);
         // Kanal emojileri / özel görseller yazı olarak gelirse
-        assert_eq!(emote_codes("selam :_imageinKedi: nasılsın", true).split_whitespace().collect::<Vec<_>>().join(" "), "selam nasılsın");
-        assert_eq!(emote_codes("selam :_imageinKedi::yt: x", false).split_whitespace().collect::<Vec<_>>().join(" "), "selam imagein Kedi yt x");
-        assert_eq!(emote_codes("saat 10:30:45 oldu", true), "saat 10:30:45 oldu");
-        assert_eq!(emote_codes("bak [emote:37226:KEKW] tamam", true).split_whitespace().collect::<Vec<_>>().join(" "), "bak tamam");
-        assert_eq!(emote_codes("not:kod: değil", true), "not:kod: değil");
-        assert_eq!(speech_text(&[Part::text("harika :_kanal_emoji: oldu")], 150, true, true, true), "harika oldu");
-        assert_eq!(speech_text(&[Part::Emote { url: "u".into(), name: ":_pitStop:".into() }], 150, true, false, true), "pit Stop");
+        let w = |s: String| s.split_whitespace().collect::<Vec<_>>().join(" ");
+        assert_eq!(w(emote_codes("selam :_imageinKedi: nasılsın", true, true)), "selam nasılsın");
+        assert_eq!(w(emote_codes("selam :_imageinKedi::yt: x", false, true)), "selam imagein Kedi yt x");
+        assert_eq!(emote_codes("saat 10:30:45 oldu", true, true), "saat 10:30:45 oldu");
+        assert_eq!(w(emote_codes("bak [emote:37226:KEKW] tamam", false, true)), "bak tamam");
+        assert_eq!(w(emote_codes("bak [emote:37226:KEKW] tamam", true, false)), "bak KEKW tamam");
+        assert_eq!(emote_codes("not:kod: değil", true, true), "not:kod: değil");
+        assert_eq!(speech_text(&[Part::text("harika :_kanal_emoji: oldu")], 150, true, false, true, false), "harika oldu");
+        // Kanal emojisi: "emote'ları oku" açık olsa da ayrı ayar kapalıysa okunmaz
+        let custom = [Part::Emote { url: "u".into(), name: ":_pitStop:".into(), custom: true }];
+        assert_eq!(speech_text(&custom, 150, true, false, true, false), "");
+        assert_eq!(speech_text(&custom, 150, true, true, true, true), "pit Stop");
+        assert_eq!(speech_text(&[Part::Emote { url: "u".into(), name: "Kappa".into(), custom: false }], 150, true, false, true, false), "Kappa");
     }
 
     #[test]

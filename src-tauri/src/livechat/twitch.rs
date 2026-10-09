@@ -124,7 +124,7 @@ pub fn emote_parts(text: &str, emotes: &str) -> Vec<Part> {
         if a > pos {
             parts.push(Part::text(chars[pos..a].iter().collect::<String>()));
         }
-        parts.push(Part::Emote { url: emote_url(id), name: chars[a..=b].iter().collect() });
+        parts.push(Part::Emote { url: emote_url(id), name: chars[a..=b].iter().collect(), custom: false });
         pos = b + 1;
     }
     if pos < chars.len() {
@@ -478,11 +478,11 @@ mod tests {
         assert_eq!(
             m.parts,
             vec![
-                Part::Emote { url: emote_url("25"), name: "Kappa".into() },
+                Part::Emote { url: emote_url("25"), name: "Kappa".into(), custom: false },
                 Part::text(" selam "),
-                Part::Emote { url: emote_url("25"), name: "Kappa".into() },
+                Part::Emote { url: emote_url("25"), name: "Kappa".into(), custom: false },
                 Part::text(" "),
-                Part::Emote { url: emote_url("1902"), name: "Keepo".into() },
+                Part::Emote { url: emote_url("1902"), name: "Keepo".into(), custom: false },
                 Part::text(" ğüş"),
             ]
         );
@@ -493,7 +493,7 @@ mod tests {
     fn emotes_unicode_positions() {
         // Konumlar karakter indeksi: "ğğ " sonrası emote
         let p = emote_parts("ğğ Kappa", "25:3-7");
-        assert_eq!(p, vec![Part::text("ğğ "), Part::Emote { url: emote_url("25"), name: "Kappa".into() }]);
+        assert_eq!(p, vec![Part::text("ğğ "), Part::Emote { url: emote_url("25"), name: "Kappa".into(), custom: false }]);
         // Bozuk konumlar yok sayılır
         assert_eq!(emote_parts("hi", "25:0-9"), vec![Part::text("hi")]);
     }

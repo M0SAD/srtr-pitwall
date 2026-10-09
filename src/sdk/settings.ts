@@ -288,6 +288,8 @@ export interface LiveChatTts {
   skipEmotes: boolean;
   /** ":)", ":D", "<3" gibi karakterle yazılan ifadeler okunmaz */
   skipSmileys: boolean;
+  /** Kanal emojileri / özel görseller (YouTube kanal emojisi) okunsun (yok = hayır) */
+  readCustom?: boolean;
   maxChars: number;
   maxQueue: number;
   /** Bu kadar saniyeden eski mesaj okunmaz */
@@ -395,6 +397,7 @@ export function defaultLiveChat(): LiveChatSettings {
       skipLinks: true,
       skipEmotes: true,
       skipSmileys: true,
+      readCustom: false,
       maxChars: 150,
       maxQueue: 3,
       maxDelay: 8,

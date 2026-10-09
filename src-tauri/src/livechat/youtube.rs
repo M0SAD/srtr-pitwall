@@ -191,7 +191,14 @@ fn emoji_part(e: &Value) -> Part {
         }
     };
     if let Some(url) = last_thumb(e.get("image")) {
-        return Part::Emote { url, name: label };
+        // Kanal emojisi: adı kanalın verdiği kısa koddan (":_ad:"); erişilebilirlik etiketi çoğu zaman yüklenen dosyanın
+        // adıdır ("imagein…" gibi) ve okununca anlamsızdı
+        let name = if custom {
+            e.get("shortcuts").and_then(|s| s.get(0)).and_then(|x| x.as_str()).map(String::from).filter(|s| !s.is_empty()).unwrap_or(label)
+        } else {
+            label
+        };
+        return Part::Emote { url, name, custom };
     }
     if let Some(sc) = e.get("shortcuts").and_then(|s| s.get(0)).and_then(|x| x.as_str()) {
         return Part::text(shortcut_emoji(sc).map(String::from).unwrap_or_else(|| sc.to_string()));
@@ -303,7 +310,7 @@ pub fn item_msg(item: &Value, client_id: &str) -> Option<ChatMsg> {
             s if s.is_empty() => "Super Sticker".to_string(),
             s => s,
         };
-        let parts = last_thumb(r.get("sticker")).map(|url| vec![Part::Emote { url, name }]).unwrap_or_default();
+        let parts = last_thumb(r.get("sticker")).map(|url| vec![Part::Emote { url, name, custom: false }]).unwrap_or_default();
         let mut m = ChatMsg::new(Platform::Youtube, id_of(r), Kind::Superchat, a, parts);
         m.amount = Some(simple_or_runs(r.get("purchaseAmountText"))).filter(|s| !s.is_empty());
         m.alert = Some(AlertInfo { kind: "supersticker".into(), ..Default::default() });
@@ -739,7 +746,7 @@ mod tests {
             m.parts,
             vec![
                 Part::text("selam "),
-                Part::Emote { url: "https://e/2".into(), name: "yt".into() },
+                Part::Emote { url: "https://e/2".into(), name: ":yt:".into(), custom: true },
                 Part::text(" 😀"),
                 Part::Link { url: "https://simracetr.com".into(), v: " bak simracetr.com".into() },
             ]
@@ -747,7 +754,7 @@ mod tests {
         let p = &b.msgs[1];
         assert_eq!((p.kind, p.amount.as_deref(), p.text.as_str()), (Kind::Superchat, Some("₺100,00"), "helal"));
         let s = &b.msgs[2];
-        assert_eq!(s.parts, vec![Part::Emote { url: "https://st/1".into(), name: "Kedi".into() }]);
+        assert_eq!(s.parts, vec![Part::Emote { url: "https://st/1".into(), name: "Kedi".into(), custom: false }]);
         let u = &b.msgs[3];
         assert_eq!((u.kind, u.headline.as_deref()), (Kind::Sub, Some("Welcome to Kanal!")));
         assert_eq!(b.deleted_ids, vec!["old1", "old2", "old3"]);

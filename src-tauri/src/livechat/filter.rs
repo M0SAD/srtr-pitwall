@@ -249,10 +249,10 @@ mod tests {
         let f = WordFilter::new("şişli");
         assert!(f.matches("ŞİŞLİ"));
         assert!(f.matches("şışlı"));
-        let mut parts = vec![Part::text("hey aptal "), Part::Emote { url: "u".into(), name: "aptal".into() }];
+        let mut parts = vec![Part::text("hey aptal "), Part::Emote { url: "u".into(), name: "aptal".into(), custom: false }];
         assert!(WordFilter::new("aptal").mask_parts(&mut parts));
         assert_eq!(parts[0], Part::text("hey a**** "));
-        assert_eq!(parts[1], Part::Emote { url: "u".into(), name: "aptal".into() });
+        assert_eq!(parts[1], Part::Emote { url: "u".into(), name: "aptal".into(), custom: false });
     }
 
     #[test]

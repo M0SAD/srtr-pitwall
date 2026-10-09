@@ -72,7 +72,7 @@ pub fn content_parts(content: &str) -> Vec<Part> {
             continue;
         }
         parts.push(Part::text(&rest[..i]));
-        parts.push(Part::Emote { url: format!("https://files.kick.com/emotes/{id}/fullsize"), name: name.to_string() });
+        parts.push(Part::Emote { url: format!("https://files.kick.com/emotes/{id}/fullsize"), name: name.to_string(), custom: false });
         rest = &after[close + 1..];
     }
     parts.push(Part::text(rest));
@@ -407,7 +407,7 @@ mod tests {
             content_parts("selam [emote:37226:KEKW] [mention:ali] naber"),
             vec![
                 Part::text("selam "),
-                Part::Emote { url: "https://files.kick.com/emotes/37226/fullsize".into(), name: "KEKW".into() },
+                Part::Emote { url: "https://files.kick.com/emotes/37226/fullsize".into(), name: "KEKW".into(), custom: false },
                 Part::text(" "),
                 Part::Mention { v: "ali".into() },
                 Part::text(" naber"),
