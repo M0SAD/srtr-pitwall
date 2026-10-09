@@ -49,7 +49,7 @@ document.title =
           ? "SRTR Pitwall"
           : "SRTR Pitwall – Pitwall Paneli";
 
-initSettings(`window-${view}`).then(async () => {
+initSettings(`window-${view}`).catch((e) => console.error("Ayarlar yüklenemedi", e)).then(async () => {
   startDomTranslation();
   // Arkadaş pencereleri panelin görünümünü kullanır
   if (social || events || crew) {

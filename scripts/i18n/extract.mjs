@@ -16,7 +16,8 @@ const SRC = join(root, "src");
 const OUT = join(SRC, "locales");
 
 const SKIP_DIRS = new Set(["locales", "assets"]);
-const SKIP_FILES = [/types\.ts$/, /vite-env\.d\.ts$/, /engineerScreens\.ts$/, /i18n\.ts$/];
+// bootGuard.tsx: açılış hata ekranı çeviriler yüklenmeden de okunabilsin diye iki dilli sabit metin
+const SKIP_FILES = [/types\.ts$/, /vite-env\.d\.ts$/, /engineerScreens\.ts$/, /i18n\.ts$/, /bootGuard\.tsx$/];
 
 function walk(dir, out = []) {
   for (const n of readdirSync(dir)) {

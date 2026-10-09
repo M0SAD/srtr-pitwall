@@ -59,6 +59,10 @@ import { overlayBgUrl } from "@/app/appBg";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
 import { sessionShown } from "@/sdk/sessionShow";
 import { replayClick, reportClickRects, setReplayClick } from "@/sdk/replayClick";
+import type { Status } from "@/sdk/types";
+
+/** Tekrar ekranında mı (eski bir anı izlerken de, canlı ana yetişmiş izlerken de); garaj / setup ekranı hariç */
+const inReplay = (st: Status) => !!st.replayWatch || (!!st.replay && st.garageVisible !== true && !st.onTrack);
 
 // Panelden yeni eklenen overlay: kısa süre gösterilir ve vurgulanır
 const [peekId, setPeekId] = createSignal<string | null>(null);
@@ -176,7 +180,7 @@ export function Host() {
   // Tekrar izlerken (iRacing) sürücü adına tıklayıp canlı izleme: adların yeri düzenli olarak bildirilir
   createEffect(() => {
     const st = status();
-    setReplayClick(!!st?.connected && !st.demo && !st.preview && !!st.replayWatch && (st.sim ?? "iracing") === "iracing" && !app().editMode);
+    setReplayClick(!!st?.connected && !st.demo && !st.preview && inReplay(st) && (st.sim || "iracing") === "iracing" && !app().editMode);
   });
   {
     const tick = setInterval(() => reportClickRects(replayClick()), 250);
@@ -394,7 +398,9 @@ export function Host() {
     // araç dışı görünüm de "tekrar" sayıldığından bu kopyalar orada kayboluyordu.
     // "Replay'de göster" işaretli kopya tekrar izlenirken görünür (genel "replay izlerken gizle" ve "pistte değilken
     // gizle" kuralları ona uygulanmaz)
-    const replayOk = !st.demo && !!st.replayWatch && !!inst.showInReplay;
+    // iRacing'de araçtan inince tekrar ekranı canlı ana yetişmiş olarak açılır (replayWatch false, replay true): o da
+    // "replay" sayılır; yoksa "pistte değilken gizle" kuralı kopyayı yine gizliyordu. Garaj / setup ekranı sayılmaz.
+    const replayOk = !st.demo && inReplay(st) && !!inst.showInReplay;
     if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch && !inst.alwaysShow && !replayOk) return false;
     // "Pistte değilken gizle" (varsayılan açık): overlay'ler sürüş başlayınca görünür. "Oyun kapalıyken de göster" işaretli
     // kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar) garajda da görünür kalır.

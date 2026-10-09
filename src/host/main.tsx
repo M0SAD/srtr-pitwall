@@ -9,6 +9,7 @@ import { startProFeatures } from "@/sdk/proFeatures";
 import "@/sdk/fonts";
 import "@/overlays/base.css";
 import "./host.css";
+import { SafeRender, atMost, installErrorLog } from "@/sdk/bootGuard";
 
 // Tarayıcının kendi sağ tık menüsü (Farklı kaydet, Yazdır…) hiçbir yerde açılmasın
 document.addEventListener("contextmenu", (e) => {
@@ -19,13 +20,14 @@ document.addEventListener("contextmenu", (e) => {
 
 const root = document.getElementById("root")!;
 
-initSettings("overlay").then(() => {
+installErrorLog("overlay");
+atMost(initSettings("overlay"), 5000, "overlay-settings").then(() => {
   startDomTranslation();
   // Geliştirme modunda dosya kaydedilince eski kopya kaldırılır (çift çizim olmasın).
   root.textContent = "";
   // ?only=<overlay>: tek overlay (OBS kısa adresleri /livechat, /livepoll, /captions)
   const only = query.get("only");
-  const dispose = render(() => (only ? <Single type={only} /> : <Host />), root);
+  const dispose = render(() => <SafeRender src="overlay" visible={false}>{only ? <Single type={only} /> : <Host />}</SafeRender>, root);
   import.meta.hot?.dispose(dispose);
   startEntitlement();
   startProFeatures(false);

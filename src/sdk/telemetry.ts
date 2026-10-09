@@ -193,15 +193,19 @@ export async function setSubscriptions(topics: Sub[]) {
     return;
   }
 
-  if (starting) await starting;
+  if (starting) await starting.catch(() => {});
   if (subId === null) {
     starting = (async () => {
       const channel = new Channel<Packet>();
       channel.onmessage = handle;
       subId = await invoke<number>("stream_start", { channel, topics: list });
     })();
-    await starting;
-    starting = null;
+    try {
+      await starting;
+    } finally {
+      // stream_start hata verse de sonraki abonelik denemeleri kilitli kalmasın
+      starting = null;
+    }
   } else {
     await invoke("stream_topics", { id: subId, topics: list });
   }

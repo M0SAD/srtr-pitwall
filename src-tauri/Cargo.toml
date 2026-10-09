@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.277"
+version = "1.0.279"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -59,6 +59,8 @@ windows-sys = { version = "0.59", features = [
   "Win32_Devices_HumanInterfaceDevice",
   "Win32_Media_Multimedia",
   "Win32_Storage_FileSystem",
+  # Açılış uyarıları (src/startup.rs): Windows arayüz dili
+  "Win32_Globalization",
 ] }
 # Canlı sohbet: Windows sesleriyle sesli okuma (SpeechSynthesis) ve konuşmayı yazıya çevirme (SpeechRecognition)
 windows = { version = "0.62", features = [

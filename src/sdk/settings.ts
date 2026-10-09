@@ -1673,9 +1673,22 @@ export async function initSettings(windowName: string) {
     });
     return;
   }
-  const saved = await invoke<unknown>("settings_get");
+  const saved = await invoke<unknown>("settings_get").catch((e) => {
+    console.error("Ayarlar okunamadı", e);
+    return null;
+  });
   fresh = saved == null;
-  setSettingsSignal(normalize(saved));
+  // Beklenmeyen biçimdeki bir ayar dosyası paneli hiç açılmaz hâle getirmesin: dosya saklanır, varsayılanlarla açılır
+  let norm: AppSettings;
+  try {
+    norm = normalize(saved);
+  } catch (e) {
+    console.error("Ayarlar çözümlenemedi, varsayılanlarla açılıyor", e);
+    await invoke("settings_backup_broken", { reason: String((e as Error)?.stack ?? e) }).catch(() => {});
+    norm = normalize(null);
+  }
+  setSettingsSignal(norm);
+  loaded = true;
   await listen<{ value: unknown; source: string }>("settings-changed", (e) => {
     if (e.payload.source === source) return;
     const s = normalize(e.payload.value);
@@ -1687,8 +1700,12 @@ export async function initSettings(windowName: string) {
 // Değişiklikler bir kare (~16 ms) içinde birleştirilip hemen gönderilir.
 // Kaydırıcı sürüklerken bile diğer pencere akıcı güncellenir; diske yazmayı Rust toplar.
 let pending: AppSettings | null = null;
+/** Kayıtlı ayarlar okundu (ya da okunamadı ve varsayılanlar kullanılıyor) */
+let loaded = false;
 function scheduleSave(s: AppSettings) {
   if (!inTauri) return;
+  // Kayıtlı ayarlar henüz gelmediyse (arayüz beklemeden açıldı) varsayılanlar diske yazılıp asıl ayarları ezmesin
+  if (!loaded) return;
   const first = pending === null;
   pending = s;
   if (!first) return;

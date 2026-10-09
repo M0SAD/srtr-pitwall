@@ -273,7 +273,7 @@ function Remote() {
 }
 
 const root = document.getElementById("root")!;
-initSettings("overlay").then(() => {
+initSettings("overlay").catch((e) => console.error("Ayarlar yüklenemedi", e)).then(() => {
   startDomTranslation();
   root.textContent = "";
   render(() => <Remote />, root);

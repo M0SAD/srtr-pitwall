@@ -3,6 +3,7 @@
 mod broadcast;
 mod calc;
 mod clickzones;
+mod startup;
 mod crashlog;
 mod demo;
 mod drivecues;
@@ -337,8 +338,36 @@ fn settings_path(app: &AppHandle) -> Option<PathBuf> {
 
 fn read_settings(app: &AppHandle) -> Option<Value> {
     let p = settings_path(app)?;
-    let text = std::fs::read_to_string(p).ok()?;
-    serde_json::from_str(&text).ok()
+    let text = std::fs::read_to_string(&p).ok()?;
+    match serde_json::from_str(&text) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            // Bozuk ayar dosyası varsayılanlarla ezilmeden önce saklanır (destek için)
+            startup::boot_step(&format!("ayar dosyası okunamadı, varsayılanlarla açılıyor: {e}"));
+            let _ = std::fs::copy(&p, p.with_file_name("settings.broken.json"));
+            None
+        }
+    }
+}
+
+/// Arayüzde yakalanmamış hata (bkz. src/sdk/bootGuard.tsx): açılış ve çökme günlüğüne yazılır
+#[tauri::command]
+fn frontend_error(src: String, msg: String) {
+    let src: String = src.chars().take(40).collect();
+    let msg: String = msg.chars().take(1500).collect();
+    startup::boot_step(&format!("arayüz hatası [{src}]: {}", msg.replace('\n', " | ")));
+    crashlog::note(&format!("arayüz hatası [{src}]: {msg}"));
+}
+
+/// Panel ayarları çözümleyemedi (beklenmeyen biçim): dosya `settings.broken.json` olarak saklanır, olay günlüğe yazılır
+#[tauri::command]
+fn settings_backup_broken(app: AppHandle, reason: String) {
+    let reason: String = reason.chars().take(300).collect();
+    startup::boot_step(&format!("panel ayarları çözümleyemedi, varsayılanlarla açılıyor: {reason}"));
+    crashlog::note(&format!("ayarlar çözümlenemedi: {reason}"));
+    if let Some(p) = settings_path(&app) {
+        let _ = std::fs::copy(&p, p.with_file_name("settings.broken.json"));
+    }
 }
 
 fn write_settings_file(path: &PathBuf, value: &Value) -> Result<(), String> {
@@ -1161,6 +1190,21 @@ pub(crate) fn on_connection_change(app: &AppHandle, connected: bool) {
 /// Kontrol panelini öne getirir. Düzenleme modundayken overlay penceresi her zaman üstte
 /// olduğu için panel de geçici olarak "her zaman üstte" yapılır (panel kısayolu).
 fn bring_panel_front(app: &AppHandle) {
+    // Panel yoksa (ör. Windows ile tepside başladıktan sonra ilk tıklama) pencere ayrı iş parçacığında oluşturulur:
+    // tepsi / kısayol olayı işlenirken ana iş parçacığında WebView2 penceresi kurmak donmaya yol açabiliyor
+    // (Arkadaşlar / Olaylar pencereleri de aynı sebeple böyle açılıyor).
+    if app.get_webview_window("main").is_none() {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            crashlog::guard(|| {
+                open_panel(&app);
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.set_focus();
+                }
+            });
+        });
+        return;
+    }
     open_panel(app);
     if let Some(w) = app.get_webview_window("main") {
         let edit = shared(app).edit_mode.load(Ordering::Relaxed);
@@ -1377,6 +1421,9 @@ fn autostart_set(app: AppHandle, on: bool) -> Result<bool, String> {
     use tauri_plugin_autostart::ManagerExt;
     let al = app.autolaunch();
     if on { al.enable() } else { al.disable() }.map_err(|e| e.to_string())?;
+    if on {
+        autostart_fix_quotes(&app);
+    }
     // Kullanıcının seçimi saklanır: güncelleme başlangıç kaydını silse de açılışta buna göre geri yazılır
     autostart_save_want(&app, on);
     Ok(al.is_enabled().unwrap_or(on))
@@ -1676,6 +1723,44 @@ fn spawn_monitor_watch(app: AppHandle) {
 /// - İstek yoksa (yeni kurulum ya da bu düzeltmeden önceki kurulum) bir kez açılır ve "1" yazılır.
 /// - "1" ise her açılışta kayıt yenilenir: güncelleme kurulumu başlangıç kaydını silse bile geri gelir.
 /// - "0" ise (kullanıcı kapattı) hiç dokunulmaz; sonraki sürümlerde de kapalı kalır.
+/// Windows ile başlatılınca panel açılmaz, program yalnızca tepside çalışır. Windows 11 yeni tepsi simgelerini
+/// gizli taşma menüsüne koyduğu için program "açılmamış" sanılıyordu: kısa bir Windows bildirimi gösterilir.
+fn autostart_notice(app: &AppHandle, saved: Option<&Value>) {
+    use tauri_plugin_notification::NotificationExt;
+    let lang = saved.and_then(|v| v.pointer("/general/language")).and_then(|v| v.as_str()).unwrap_or("");
+    let tr = if lang.is_empty() { startup::turkish() } else { lang.starts_with("tr") };
+    let (title, body) = if tr {
+        ("SRTR Pitwall çalışıyor", "Program arka planda açık. Paneli açmak için saatin yanındaki tepsi simgesine tıklayın (gizli simgeler okunun içinde olabilir).")
+    } else {
+        ("SRTR Pitwall is running", "The program is running in the background. Click its tray icon next to the clock to open the panel (it may be under the hidden icons arrow).")
+    };
+    if let Err(e) = app.notification().builder().title(title).body(body).show() {
+        startup::boot_step(&format!("açılış bildirimi gösterilemedi: {e}"));
+    }
+}
+
+/// "Windows ile başlat" kaydındaki program yolu tırnaksız yazılıyor (tauri-plugin-autostart); yolda boşluk var
+/// ("...\SRTR Pitwall\...") ve bazı sistemlerde Windows açılışta programı bulamıyordu. Kayıt tırnaklı yeniden yazılır.
+fn autostart_fix_quotes(app: &AppHandle) {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::System::Registry::{RegSetKeyValueW, HKEY_CURRENT_USER, REG_SZ};
+        let Ok(exe) = std::env::current_exe() else { return };
+        let wide = |s: &str| s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+        let key = wide("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+        let name = wide(&app.package_info().name);
+        let data = wide(&format!("\"{}\" {TRAY_ARG}", exe.display()));
+        let rc = unsafe {
+            RegSetKeyValueW(HKEY_CURRENT_USER, key.as_ptr(), name.as_ptr(), REG_SZ, data.as_ptr() as *const _, (data.len() * 2) as u32)
+        };
+        if rc != 0 {
+            startup::boot_step(&format!("başlangıç kaydı yazılamadı ({rc})"));
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = app;
+}
+
 fn autostart_first_run(app: &AppHandle, _had_settings: bool) {
     // Geliştirme derlemesi kendini başlangıca eklemesin
     if cfg!(debug_assertions) {
@@ -1688,13 +1773,17 @@ fn autostart_first_run(app: &AppHandle, _had_settings: bool) {
         Some(false) => {}
         Some(true) => {
             if let Err(e) = al.enable() {
-                eprintln!("Otomatik başlatma açılamadı: {e}");
+                startup::boot_step(&format!("otomatik başlatma açılamadı: {e}"));
+            } else {
+                autostart_fix_quotes(app);
             }
         }
         None => {
             autostart_save_want(app, true);
             if let Err(e) = al.enable() {
-                eprintln!("Otomatik başlatma açılamadı: {e}");
+                startup::boot_step(&format!("otomatik başlatma açılamadı: {e}"));
+            } else {
+                autostart_fix_quotes(app);
             }
         }
     }
@@ -1843,7 +1932,12 @@ fn open_panel(app: &AppHandle) {
         })
         .unwrap_or((1560.0, 880.0));
     let geom = load_panel_geom(app).filter(|g| panel_geom_visible(app, g));
-    let _ = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+    let built = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+        .on_page_load(|_, p| {
+            if matches!(p.event(), tauri::webview::PageLoadEvent::Finished) {
+                startup::panel_loaded();
+            }
+        })
         .title(format!("SRTR Pitwall {}", display_version()))
         // Çerçevesiz: üst çubuktan tutulup taşınır, pencere düğmeleri üst çubuğun sağında (src/window/chrome.tsx)
         .decorations(false)
@@ -1881,6 +1975,10 @@ fn open_panel(app: &AppHandle) {
                 _ => {}
             });
         });
+    if let Err(e) = built {
+        startup::boot_step(&format!("panel penceresi açılamadı: {e}"));
+        crashlog::note(&format!("panel penceresi açılamadı: {e}"));
+    }
 }
 
 fn tray_action(app: &AppHandle, id: &str) {
@@ -1959,7 +2057,7 @@ fn tray_menu_show(app: &AppHandle, x: f64, y: f64) {
 #[tauri::command]
 fn tray_menu_items(app: AppHandle) -> Vec<(String, String)> {
     let st = app.state::<KeyBindings>();
-    let items = st.tray.lock();
+    let items = st.tray.lock().clone();
     let mut out: Vec<(String, String)> = Vec::new();
     for want in ["panel", "friends", "events", "edit", "hide", "quit"] {
         if let Some((a, it)) = items.iter().find(|(a, _)| a == want) {
@@ -2311,7 +2409,10 @@ fn shortcut_mods(sc: &Shortcut) -> u8 {
 fn refresh_tray_labels(app: &AppHandle, v: Option<&Value>) {
     let st = app.state::<KeyBindings>();
     let bound: Vec<String> = st.bound.lock().iter().map(|(a, _)| a.clone()).collect();
-    for (action, item) in st.tray.lock().iter() {
+    // Kilit set_text'ten önce bırakılır: set_text ana iş parçacığını bekler; ana iş parçacığı da aynı kilidi
+    // isteyen bir komuttaysa (i18n_set, tray_menu_items) ikisi birbirini sonsuza dek bekliyordu
+    let items = st.tray.lock().clone();
+    for (action, item) in items.iter() {
         let base = TRAY_LABELS.iter().find(|(a, _)| a == action).map(|(_, l)| *l).unwrap_or("");
         let base = tr(app, base);
         let key = bound.iter().any(|a| a == action).then(|| want_text(v, action));
@@ -2474,7 +2575,12 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
 pub fn run() {
     // Çökme günlüğü (crash.log) ve panic kancası: her şeyden önce
     crashlog::install();
+    startup::boot_step("başladı");
+    // Donmuş eski kopya varsa yeni kopya ona ileti gönderirken sonsuza dek bekliyordu: önce yoklanır.
+    // Ad, tauri.conf.json "identifier" ile aynı olmalı (tek örnek eklentisinin mutex / pencere adları).
+    startup::check_running_instance("com.pitwall.overlay", std::env::args().any(|a| a == TRAY_ARG));
     boot_delay();
+    startup::boot_step("Tauri kuruluyor");
     let shared_state = Arc::new(Shared::default());
 
     tauri::Builder::default()
@@ -2543,6 +2649,8 @@ pub fn run() {
             demo_set,
             edit_mode_set,
             watch_car_live,
+            settings_backup_broken,
+            frontend_error,
             overlay_click_rects,
             overlay_peek,
             overlay_pin,
@@ -2714,85 +2822,120 @@ pub fn run() {
             livechat::inputbox::livechat_input,
         ]))
         .setup(move |app| {
-            let handle = app.handle().clone();
-            if let Ok(dir) = handle.path().app_data_dir() {
-                crashlog::set_dir(dir);
-            }
+            // Tauri kurulum hatasında / panikte "Failed to setup app" ile sessizce kapanıyordu (yalnızca crash.log):
+            // sebep pencereyle gösterilir. Overlay / tepsi gibi ikincil adımlar kendi içinde hata verirse panel yine açılır.
+            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> Result<(), Box<dyn std::error::Error>> {
+                let handle = app.handle().clone();
+                if let Ok(dir) = handle.path().app_data_dir() {
+                    crashlog::set_dir(dir.clone());
+                    startup::set_dir(dir);
+                }
+                startup::boot_step("kurulum başladı");
 
-            // Kayıtlı genel ayarları uygula (panel açılmadan önce).
-            let had_settings = settings_path(&handle).map(|p| p.exists()).unwrap_or(false);
-            let saved = read_settings(&handle);
-            autostart_first_run(&handle, had_settings);
-            *app.state::<SettingsStore>().current.lock() = saved.clone();
-            spawn_settings_writer(handle.clone());
-            let general = saved.as_ref().and_then(|v| v.get("general"));
-            let demo = general.and_then(|g| g.get("demo")).and_then(|v| v.as_bool()).unwrap_or(false);
-            let monitor = general.and_then(|g| g.get("monitor")).and_then(|v| v.as_u64()).map(|v| v as usize);
-            let srv = general.and_then(|g| g.get("server"));
-            // Web sunucusu varsayılan olarak açık: yeni kurulumda ve bir kereliğine (general.serverOnV1 işareti yokken)
-            // eski kurulumlarda da başlatılır; kullanıcı sonradan kapatırsa (işaret kaydedilmiştir) kapalı kalır.
-            let srv_migrated = general.and_then(|g| g.get("serverOnV1")).and_then(|v| v.as_bool()).unwrap_or(false);
-            let srv_on = !srv_migrated || srv.and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(true);
-            let srv_port = srv.and_then(|v| v.get("port")).and_then(|v| v.as_u64()).unwrap_or(8910) as u16;
-            let srv_lan = srv.and_then(|v| v.get("lan")).and_then(|v| v.as_bool()).unwrap_or(false);
-            shared_state.demo.store(demo, Ordering::Relaxed);
+                // Kayıtlı genel ayarları uygula (panel açılmadan önce).
+                let had_settings = settings_path(&handle).map(|p| p.exists()).unwrap_or(false);
+                let saved = read_settings(&handle);
+                autostart_first_run(&handle, had_settings);
+                *app.state::<SettingsStore>().current.lock() = saved.clone();
+                spawn_settings_writer(handle.clone());
+                let general = saved.as_ref().and_then(|v| v.get("general"));
+                let demo = general.and_then(|g| g.get("demo")).and_then(|v| v.as_bool()).unwrap_or(false);
+                let monitor = general.and_then(|g| g.get("monitor")).and_then(|v| v.as_u64()).map(|v| v as usize);
+                let srv = general.and_then(|g| g.get("server"));
+                // Web sunucusu varsayılan olarak açık: yeni kurulumda ve bir kereliğine (general.serverOnV1 işareti yokken)
+                // eski kurulumlarda da başlatılır; kullanıcı sonradan kapatırsa (işaret kaydedilmiştir) kapalı kalır.
+                let srv_migrated = general.and_then(|g| g.get("serverOnV1")).and_then(|v| v.as_bool()).unwrap_or(false);
+                let srv_on = !srv_migrated || srv.and_then(|v| v.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(true);
+                let srv_port = srv.and_then(|v| v.get("port")).and_then(|v| v.as_u64()).unwrap_or(8910) as u16;
+                let srv_lan = srv.and_then(|v| v.get("lan")).and_then(|v| v.as_bool()).unwrap_or(false);
+                shared_state.demo.store(demo, Ordering::Relaxed);
 
-            init_browser_args(saved.as_ref());
-            create_main_overlay(&handle)?;
-            place_overlay(&handle, monitor);
+                init_browser_args(saved.as_ref());
+                startup::boot_step("ayarlar okundu, overlay penceresi oluşturuluyor");
+                if let Err(e) = create_main_overlay(&handle) {
+                    // Overlay penceresi açılamasa da panel açılsın (sebep panelde / günlükte görünür)
+                    startup::boot_step(&format!("overlay penceresi oluşturulamadı: {e}"));
+                    crashlog::note(&format!("overlay penceresi oluşturulamadı: {e}"));
+                }
+                place_overlay(&handle, monitor);
+                startup::boot_step("overlay penceresi oluşturuldu");
 
-            // Güncelleme eklentisi sadece imzalı sürüm derlemelerinde (anahtar tanımlıysa) yüklenir.
-            if updater::configured(&handle) {
-                handle.plugin(tauri_plugin_updater::Builder::new().build())?;
-            }
+                // Güncelleme eklentisi sadece imzalı sürüm derlemelerinde (anahtar tanımlıysa) yüklenir.
+                if updater::configured(&handle) {
+                    handle.plugin(tauri_plugin_updater::Builder::new().build())?;
+                }
 
-            // Windows başlangıcında (--tray) sadece tepside başla; elle açılınca paneli göster.
-            // Güncelleme kurulurken panel açıktıysa (işaret dosyası) --tray ile yeniden başlasa bile panel açılır.
-            let from_autostart = std::env::args().any(|a| a == TRAY_ARG);
-            let reopen = updater::take_reopen_panel(&handle);
-            if !from_autostart || reopen {
-                open_panel(&handle);
-            }
+                // Windows başlangıcında (--tray) sadece tepside başla; elle açılınca paneli göster.
+                // Güncelleme kurulurken panel açıktıysa (işaret dosyası) --tray ile yeniden başlasa bile panel açılır.
+                let from_autostart = std::env::args().any(|a| a == TRAY_ARG);
+                let reopen = updater::take_reopen_panel(&handle);
+                if !from_autostart || reopen {
+                    open_panel(&handle);
+                    startup::boot_step("panel penceresi oluşturuldu");
+                    startup::watch_panel();
+                }
 
-            setup_tray(&handle)?;
-            setup_shortcuts(&handle, saved.as_ref());
-            osd::init(&handle);
-            voicesub::init(shared_state.clone());
-            engine::spawn(handle.clone(), shared_state.clone());
-            // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)
-            livechat::init(&handle, shared_state.clone());
-            glucose::start(&handle);
-            heartrate::start(&handle);
-            if srv_on {
-                apply_server(&handle, true, srv_port, srv_lan);
-            }
-            // Canlı taşıma: pencereler arası "overlay-live-drag" olayı OBS sayfasına da (SSE) iletilir, ~30/sn
-            {
-                use tauri::Listener;
-                let drag_shared = shared_state.clone();
-                let last = Mutex::new(std::time::Instant::now());
-                handle.listen("overlay-live-drag", move |ev| {
-                    let Ok(v) = serde_json::from_str::<Value>(ev.payload()) else { return };
-                    let end = v.get("end").and_then(|e| e.as_bool()).unwrap_or(false);
-                    if !end {
-                        let mut t = last.lock();
-                        if t.elapsed() < std::time::Duration::from_millis(30) {
-                            return;
-                        }
-                        *t = std::time::Instant::now();
+                if let Err(e) = setup_tray(&handle) {
+                    startup::boot_step(&format!("tepsi simgesi oluşturulamadı: {e}"));
+                    crashlog::note(&format!("tepsi simgesi oluşturulamadı: {e}"));
+                    // Tepsi simgesi yoksa programa ulaşılamaz: Windows ile başlatılmış olsa da panel açılır
+                    if from_autostart && !reopen {
+                        open_panel(&handle);
                     }
-                    drag_shared.broadcast_drag(v);
-                });
+                }
+                startup::boot_step("tepsi simgesi hazır");
+                if from_autostart && !reopen {
+                    autostart_notice(&handle, saved.as_ref());
+                }
+                setup_shortcuts(&handle, saved.as_ref());
+                osd::init(&handle);
+                voicesub::init(shared_state.clone());
+                engine::spawn(handle.clone(), shared_state.clone());
+                // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)
+                livechat::init(&handle, shared_state.clone());
+                glucose::start(&handle);
+                heartrate::start(&handle);
+                if srv_on {
+                    apply_server(&handle, true, srv_port, srv_lan);
+                }
+                // Canlı taşıma: pencereler arası "overlay-live-drag" olayı OBS sayfasına da (SSE) iletilir, ~30/sn
+                {
+                    use tauri::Listener;
+                    let drag_shared = shared_state.clone();
+                    let last = Mutex::new(std::time::Instant::now());
+                    handle.listen("overlay-live-drag", move |ev| {
+                        let Ok(v) = serde_json::from_str::<Value>(ev.payload()) else { return };
+                        let end = v.get("end").and_then(|e| e.as_bool()).unwrap_or(false);
+                        if !end {
+                            let mut t = last.lock();
+                            if t.elapsed() < std::time::Duration::from_millis(30) {
+                                return;
+                            }
+                            *t = std::time::Instant::now();
+                        }
+                        drag_shared.broadcast_drag(v);
+                    });
+                }
+                if let Some(v) = saved.as_ref() {
+                    apply_dynamic(&handle, v);
+                }
+                sync_overlay_visibility(&handle);
+                spawn_monitor_watch(handle.clone());
+                startup::boot_step("kurulum bitti");
+                Ok(())
+            }));
+            match res {
+                Ok(Ok(())) => Ok(()),
+                Ok(Err(e)) => startup::fatal(&e.to_string()),
+                Err(p) => {
+                    let msg = p.downcast_ref::<&str>().map(|s| s.to_string()).or_else(|| p.downcast_ref::<String>().cloned()).unwrap_or_else(|| "panic".into());
+                    startup::fatal(&format!("kurulum sırasında hata: {msg}"))
+                }
             }
-            if let Some(v) = saved.as_ref() {
-                apply_dynamic(&handle, v);
-            }
-            sync_overlay_visibility(&handle);
-            spawn_monitor_watch(handle.clone());
-            Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("SRTR Pitwall başlatılamadı")
+        // Sessizce kapanmak yerine sebep pencereyle gösterilir (ör. WebView2 açılamadı)
+        .unwrap_or_else(|e| startup::fatal(&e.to_string()))
         .run(|app, event| match event {
             // Kontrol paneli kapansa da uygulama tepside çalışmaya devam eder.
             tauri::RunEvent::ExitRequested { api, code, .. } if code.is_none() => api.prevent_exit(),
@@ -2803,7 +2946,7 @@ pub fn run() {
 
 /// Windows ile başlatıldığında bilgisayar yeni açıldıysa biraz beklenir: ekran kartı sürücüsü ve masaüstü
 /// birleştirici hazır olmadan WebView2 başlarsa şeffaf overlay pencereleri siyah çizilebiliyor (monitör kararıyor).
-/// Sistem açılalı 90 sn olana kadar (en çok 75 sn) beklenir; elle açılışta bekleme yok.
+/// Sistem açılalı 60 sn olana kadar (en çok 40 sn) beklenir; elle açılışta bekleme yok.
 fn boot_delay() {
     if !std::env::args().any(|a| a == TRAY_ARG) {
         return;
@@ -2811,9 +2954,13 @@ fn boot_delay() {
     #[cfg(windows)]
     {
         let up = unsafe { windows_sys::Win32::System::SystemInformation::GetTickCount64() };
-        const WANT: u64 = 90_000;
+        // Overlay pencereleri artık sayfa yüklenmeden gösterilmiyor (OVERLAY_READY); bekleme kısaltıldı (90/75 → 60/40 sn):
+        // bu sürede tepsi simgesi de olmadığından program "açılmadı" sanılıyordu
+        const WANT: u64 = 60_000;
         if up < WANT {
-            std::thread::sleep(std::time::Duration::from_millis((WANT - up).min(75_000)));
+            let ms = (WANT - up).min(40_000);
+            startup::boot_step(&format!("Windows yeni açıldı: {ms} ms bekleniyor"));
+            std::thread::sleep(std::time::Duration::from_millis(ms));
         }
     }
 }

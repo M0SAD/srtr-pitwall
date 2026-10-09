@@ -3,6 +3,26 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 091026-279
+
+Açılış sorunları ("yükledim ama açılmıyor", "Windows ile başlamadı") için düzeltmeler ve tanı araçları:
+
+- Program zaten çalışıyor ama donmuşsa, yeni açılış ona ileti gönderirken sonsuza dek bekliyordu (imleçte dönen mavi çember, pencere yok). Artık bu durum fark ediliyor ve "Donmuş kopya kapatılıp yeniden açılsın mı?" diye soruluyor.
+- Kurulum sırasında bir hata olursa (ör. WebView2 açılamadı) program sessizce kapanıyordu. Artık sebep bir pencerede gösteriliyor; WebView2 ile ilgiliyse indirme bağlantısı da veriliyor.
+- Kontrol paneli 1 dakika içinde yüklenmezse kullanıcıya sebep ve günlük dosyalarının yeri gösteriliyor.
+- Overlay penceresi ya da tepsi simgesi oluşturulamazsa panel yine açılıyor (eskiden tüm program kapanıyordu).
+- Olası bir donma giderildi: tepsi menüsü yazıları güncellenirken panel aynı anda dil çevirilerini gönderirse program kilitlenebiliyordu (özellikle iRacing açıkken program başlatılınca).
+- Windows ile tepside başladıktan sonra paneli ilk açışta pencere ayrı iş parçacığında kuruluyor (donma riski).
+- Açılış günlüğü: her açılışın adımları %APPDATA%\com.pitwall.overlay\boot.log dosyasına yazılıyor (bir öncekisi boot.old.log). Arayüz hataları da buraya düşüyor. "Açılmıyor" bildirimlerinde bu dosya istenebilir.
+- Ayarlar okunamasa ya da beklenmeyen biçimde olsa da panel varsayılanlarla açılıyor; bozuk dosya settings.broken.json olarak saklanıyor. Ayarlar gelmeden varsayılanlar diske yazılmıyor.
+- Panelde beklenmeyen bir çizim hatası olursa boş pencere yerine hata ve "Yeniden yükle" düğmesi görünüyor.
+- Windows ile başlat: kayıt defterindeki program yolu artık tırnak içinde yazılıyor (yolda boşluk var). Windows açılışında programın arka planda çalıştığını söyleyen kısa bir bildirim gösteriliyor; Windows 11 yeni tepsi simgelerini gizli simgelere koyduğu için program açılmamış sanılıyordu. Bilgisayar yeni açıldığında bekleme 75 sn'den 40 sn'ye indi.
+- Telemetri aboneliği bir kez hata verirse oturum boyunca "Bağlı değil" kalabiliyordu; düzeltildi.
+
+## 091026-278
+
+- Düzeltme: "Replay'de göster" açık olan overlay (ör. Sıralama Tablosu) iRacing'de araçtan inip tekrar ekranına geçince görünmüyordu. Tekrar ekranı canlı ana yetişmiş olarak açıldığında "replay" sayılmıyor, bu yüzden "Pistte değilken gizle" kuralı overlay'i gizliyordu. Artık tekrar ekranının her hâli (eski bir anı izlerken de, canlıyı izlerken de) replay sayılıyor; garaj / setup ekranı sayılmıyor. Sürücü adına tıklayıp canlı izleme de canlı ana dönünce çalışmaya devam ediyor.
+
 ## 091026-277
 
 - Sıralama Tablosu ve Yakındakiler: "Test sürüşünde gizle" yerine "Gösterildiği oturumlar" ayarı. Test sürüşü, antrenman, sıralama turları ve yarış ayrı ayrı seçilebiliyor (varsayılan: test sürüşü hariç hepsi).
