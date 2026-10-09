@@ -16,6 +16,8 @@ import { manifests } from "./registry";
 import { defaultOptions, type Units } from "./overlay";
 import { DEFAULT_THEME, OLD_TEXT_DEFAULTS, normalizeTheme, type Theme } from "./theme";
 import { normalizeLook, type OverlayLook } from "./look";
+import { STANDINGS_DEFAULT_COLUMNS, STANDINGS_OLD_DEFAULT_COLUMNS } from "@/overlays/standings/manifest";
+import { RELATIVE_DEFAULT_COLUMNS, RELATIVE_OLD_DEFAULT_COLUMNS } from "@/overlays/relative/manifest";
 
 export interface OverlayInstance {
   /** Overlay türü (manifest kimliği). Aynı türden birden fazla kopya olabilir. */
@@ -31,6 +33,8 @@ export interface OverlayInstance {
   hideOnTrack: boolean;
   /** iRacing kapalıyken de göster (ör. web sayfası, Twitch sohbeti) */
   alwaysShow: boolean;
+  /** Tekrar (replay) izlerken de göster (genel "replay izlerken gizle" ayarına rağmen; yok = kapalı) */
+  showInReplay?: boolean;
   x: number;
   y: number;
   scale: number;
@@ -282,6 +286,8 @@ export interface LiveChatTts {
   platforms: { youtube: boolean; twitch: boolean; kick: boolean };
   skipLinks: boolean;
   skipEmotes: boolean;
+  /** ":)", ":D", "<3" gibi karakterle yazılan ifadeler okunmaz */
+  skipSmileys: boolean;
   maxChars: number;
   maxQueue: number;
   /** Bu kadar saniyeden eski mesaj okunmaz */
@@ -388,6 +394,7 @@ export function defaultLiveChat(): LiveChatSettings {
       platforms: { youtube: true, twitch: true, kick: true },
       skipLinks: true,
       skipEmotes: true,
+      skipSmileys: true,
       maxChars: 150,
       maxQueue: 3,
       maxDelay: 8,
@@ -1063,6 +1070,7 @@ function stFlairMigrate(type: string, saved: Record<string, any> | undefined, op
  * varsayılanında duran değerler yeni varsayılana alınır; kullanıcının değiştirdiği değerlere dokunulmaz.
  */
 function c63Migrate(type: string, saved: Record<string, any> | undefined, options: Record<string, any>) {
+  if (saved && (type === "standings" || type === "relative")) tableV276(type, saved, options);
   if ((type !== "standings" && type !== "relative" && type !== "duel") || saved?.c63V1) return options;
   const same = (v: unknown, old: string[]) => Array.isArray(v) && v.length === old.length && old.every((k, i) => v[i] === k);
   if (saved && type === "standings") {
@@ -1174,6 +1182,19 @@ export function factoryDefaults(): Record<string, OverlayInstance> {
   return out;
 }
 
+/**
+ * 091026-276: Sıralama / Yakındakiler "Test sürüşünde gizle" yerine "Gösterildiği oturumlar"; varsayılan sütun sırası
+ * değişti (son tur / en iyi tur açık, fark son turdan sonra, en sonda lastik ve bayrak). Varsayılan sütunlara hiç
+ * dokunmamış kullanıcı yeni varsayılana geçer; değiştirmiş olanın listesine yeni sütunlar sona eklenir.
+ */
+function tableV276(type: string, saved: Record<string, any>, options: Record<string, any>) {
+  if (!Array.isArray(saved.showIn) && saved.hideInTest === false && Array.isArray(options.showIn) && !options.showIn.includes("test")) options.showIn = [...options.showIn, "test"];
+  const old = type === "standings" ? STANDINGS_OLD_DEFAULT_COLUMNS : RELATIVE_OLD_DEFAULT_COLUMNS;
+  const cols = saved.columns as { key: string; on: boolean }[] | undefined;
+  if (Array.isArray(cols) && cols.length === old.length && old.every((c, i) => cols[i]?.key === c.key && !!cols[i]?.on === c.on))
+    options.columns = structuredClone(type === "standings" ? STANDINGS_DEFAULT_COLUMNS : RELATIVE_DEFAULT_COLUMNS);
+}
+
 /** Bir düzen kopyasından varsayılana taşınan alanlar (konum, monitör, ad ve açık/kapalı düzene aittir) */
 function defaultFrom(type: string, src: Partial<OverlayInstance> | undefined): OverlayInstance {
   const def = defaultInstance(type);
@@ -1185,6 +1206,7 @@ function defaultFrom(type: string, src: Partial<OverlayInstance> | undefined): O
     hideInGarage: typeof src?.hideInGarage === "boolean" ? src.hideInGarage : def.hideInGarage,
     hideOnTrack: typeof src?.hideOnTrack === "boolean" ? src.hideOnTrack : def.hideOnTrack,
     alwaysShow: typeof src?.alwaysShow === "boolean" ? src.alwaysShow : def.alwaysShow,
+    ...(src?.showInReplay ? { showInReplay: true } : {}),
     scale: num(src?.scale, 1, 0.2, 3),
     opacity: num(src?.opacity, 1, 0.2, 1),
     ...(typeof (src?.bgOpacity ?? def.bgOpacity) === "number" ? { bgOpacity: num(src?.bgOpacity, def.bgOpacity ?? 1, 0, 1) } : {}),
@@ -1952,6 +1974,8 @@ export function resetToDefaults(profileId: string, key: string) {
     o.hideInGarage = def.hideInGarage;
     o.hideOnTrack = def.hideOnTrack;
     o.alwaysShow = def.alwaysShow;
+    if (def.showInReplay) o.showInReplay = true;
+    else delete o.showInReplay;
   });
 }
 

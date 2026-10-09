@@ -63,6 +63,8 @@ pub struct TtsCfg {
     pub kick: bool,
     pub skip_links: bool,
     pub skip_emotes: bool,
+    /// ":)", ":D", "<3" gibi karakterlerle yazılan ifadeler okunmaz
+    pub skip_smileys: bool,
     pub max_chars: usize,
     pub max_queue: usize,
     pub max_delay: f64,
@@ -91,6 +93,7 @@ impl Default for TtsCfg {
             kick: true,
             skip_links: true,
             skip_emotes: true,
+            skip_smileys: true,
             max_chars: 150,
             max_queue: 3,
             max_delay: 8.0,
@@ -126,6 +129,7 @@ pub fn cfg_from_settings(v: &Value) -> TtsCfg {
         kick: b("/platforms/kick", true),
         skip_links: b("/skipLinks", true),
         skip_emotes: b("/skipEmotes", true),
+        skip_smileys: b("/skipSmileys", true),
         max_chars: f("/maxChars", 150.0).clamp(20.0, 500.0) as usize,
         max_queue: f("/maxQueue", 3.0).clamp(1.0, 50.0) as usize,
         max_delay: f("/maxDelay", 8.0).clamp(2.0, 120.0),
@@ -157,7 +161,7 @@ pub fn win_pitch(p: f64) -> f64 {
 
 /// Okunacak düz metin (MCO speech_text): emote/bağlantı/yıldızlı kelimeler atlanır, tekrarlar kısalır,
 /// emoji ve süs karakterleri atılır, uzunluk kelime sınırında kesilir.
-pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emotes: bool) -> String {
+pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emotes: bool, skip_smileys: bool) -> String {
     let mut s = String::new();
     for p in parts {
         match p {
@@ -182,13 +186,53 @@ pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emot
             }
         }
     }
-    clean_text(&s, max_chars, skip_links)
+    clean_text(&s, max_chars, skip_links, skip_smileys)
+}
+
+/// Karakterlerle yazılmış yüz ifadesi mi (":)", ":-D", ";P", "(:", "<3", "xD", "^^")
+fn is_smiley(w: &str) -> bool {
+    if matches!(w, "<3" | "</3" | "xD" | "XD" | "xd" | "^^" | "^_^" | "-_-" | "T_T" | "._." | "o/" | "\\o/" | ":3") {
+        return true;
+    }
+    let c: Vec<char> = w.chars().collect();
+    if !(2..=4).contains(&c.len()) {
+        return false;
+    }
+    const EYES: &str = ":;=";
+    const NOSE: &str = "-'^o";
+    const MOUTH: &str = ")(][DPpdOo|/\\*3cC><{}@$S";
+    // ":)" ":-)" ":'("
+    let fwd = EYES.contains(c[0]) && c[1..c.len() - 1].iter().all(|x| NOSE.contains(*x)) && c[1..].iter().all(|x| NOSE.contains(*x) || MOUTH.contains(*x)) && MOUTH.contains(c[c.len() - 1]);
+    // "(:" "(-:"
+    let back = EYES.contains(c[c.len() - 1]) && ")(][".contains(c[0]) && c[1..c.len() - 1].iter().all(|x| NOSE.contains(*x));
+    fwd || back
+}
+
+/// Kelimenin kendisi ya da sonu yüz ifadesiyse atılır ("iyi:)" → "iyi"); saat ("10:30") gibi yazılar kalır
+fn strip_smiley(w: &str) -> &str {
+    if is_smiley(w) {
+        return "";
+    }
+    for n in [4usize, 3, 2] {
+        let cut = w.char_indices().rev().nth(n - 1).map(|(i, _)| i);
+        if let Some(i) = cut {
+            if i > 0 && is_smiley(&w[i..]) && w[..i].chars().last().is_some_and(|ch| ch.is_alphanumeric()) && !w[i..].starts_with(|ch: char| ch.is_ascii_digit()) {
+                return &w[..i];
+            }
+        }
+    }
+    w
 }
 
 /// Düz metin temizliği (bkz. speech_text)
-pub fn clean_text(s: &str, max_chars: usize, skip_links: bool) -> String {
+pub fn clean_text(s: &str, max_chars: usize, skip_links: bool, skip_smileys: bool) -> String {
     // Kelime bazlı: bağlantılar ve yıldızlanmış (** içeren) kelimeler atılır
-    let words: Vec<&str> = s.split_whitespace().filter(|w| !(skip_links && has_link(w)) && !w.contains("**")).collect();
+    let words: Vec<&str> = s
+        .split_whitespace()
+        .filter(|w| !(skip_links && has_link(w)) && !w.contains("**"))
+        .map(|w| if skip_smileys { strip_smiley(w) } else { w })
+        .filter(|w| !w.is_empty())
+        .collect();
     let joined = words.join(" ");
     // "aaaaaa" → "aaa"
     let mut out = String::with_capacity(joined.len());
@@ -312,7 +356,7 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
             return None;
         }
         let action = alert_action(m);
-        let msg = speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes);
+        let msg = speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys);
         let head = format!("{name} {action}").trim().to_string();
         let s = if msg.is_empty() { head } else if head.is_empty() { msg } else { format!("{head}. {msg}") };
         return (!s.is_empty()).then_some(s);
@@ -331,9 +375,9 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
     }
     let text = if cfg.mode == Mode::Command {
         let rest = match_command(&m.text, &cfg.command)?;
-        clean_text(&rest, cfg.max_chars, cfg.skip_links)
+        clean_text(&rest, cfg.max_chars, cfg.skip_links, cfg.skip_smileys)
     } else {
-        speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes)
+        speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys)
     };
     if text.is_empty() {
         return None;
@@ -827,7 +871,7 @@ pub fn livechat_tts_test(app: AppHandle, text: String, voice: String, device: St
         return Err("Sohbeti sesli okuma PRO üyelere özel".into());
     }
     let t = tts(&app).ok_or("hazır değil")?;
-    let text = clean_text(&text, 300, true);
+    let text = clean_text(&text, 300, true, true);
     if text.is_empty() {
         return Err("Okunacak metin yok".into());
     }
@@ -839,7 +883,7 @@ pub fn livechat_tts_test(app: AppHandle, text: String, voice: String, device: St
 
 /// Sosyal mesajın okunacak metni: ad isteğe bağlı ("Ali diyor ki: …"), metin sohbetle aynı kurallarla temizlenir
 pub fn social_text(name: &str, body: &str, read_name: bool, max_chars: usize) -> Option<String> {
-    let text = clean_text(body, max_chars.clamp(20, 500), true);
+    let text = clean_text(body, max_chars.clamp(20, 500), true, true);
     if text.is_empty() {
         return None;
     }
@@ -899,7 +943,7 @@ pub fn tts_speak(
         return Err("Sesli okuma PRO üyelere özel".into());
     }
     let t = tts(&app).ok_or("hazır değil")?;
-    let text = clean_text(&text, max_chars.unwrap_or(300).clamp(20, 1000), true);
+    let text = clean_text(&text, max_chars.unwrap_or(300).clamp(20, 1000), true, true);
     if text.is_empty() {
         return Ok(false);
     }
@@ -946,15 +990,17 @@ mod tests {
         assert_eq!(speech_name("gamer_kaan123"), "gamer kaan");
         assert_eq!(speech_name("Ali.Veli"), "Ali Veli");
         assert_eq!(speech_name("12345"), "12345");
-        assert_eq!(clean_text("çooooook güzel 🔥 www.x.com k*** s**t", 150, true), "çoook güzel");
-        assert_eq!(clean_text("bir iki üç dört", 9, true), "bir iki");
+        assert_eq!(clean_text("çooooook güzel 🔥 www.x.com k*** s**t", 150, true, true), "çoook güzel");
+        assert_eq!(clean_text("bir iki üç dört", 9, true, true), "bir iki");
         assert_eq!(match_command("!oku merhaba", "!oku"), Some("merhaba".into()));
         assert_eq!(match_command("!okul var", "!oku"), None);
         assert_eq!(match_command("!merhaba", "!"), Some("merhaba".into()));
         assert_eq!(match_command("!OKU Selam", "!s, !oku"), Some("Selam".into()));
         let parts = vec![Part::text("bak "), Part::Emote { url: "u".into(), name: "Kappa".into() }, Part::text(" "), Part::Link { url: "https://a.com".into(), v: "a.com".into() }, Part::text(" tamam")];
-        assert_eq!(speech_text(&parts, 150, true, true), "bak tamam");
-        assert_eq!(speech_text(&parts, 150, false, false), "bak Kappa a.com tamam");
+        assert_eq!(speech_text(&parts, 150, true, true, true), "bak tamam");
+        assert_eq!(clean_text("harika :) bu :D çok iyi:) <3 xD ;-) (: saat 10:30 (yani) ^^", 150, true, true), "harika bu çok iyi saat 10:30 (yani)");
+        assert_eq!(clean_text("harika :)", 150, true, false), "harika :)");
+        assert_eq!(speech_text(&parts, 150, false, false, true), "bak Kappa a.com tamam");
         assert_eq!(social_text("Ali_Veli", "Pitte görüşürüz 👍", true, 200).as_deref(), Some("Ali Veli diyor ki: Pitte görüşürüz"));
         assert_eq!(social_text("Ali", "selam", false, 200).as_deref(), Some("selam"));
         assert_eq!(social_text("Ali", "🔥", true, 200), None);
@@ -962,11 +1008,12 @@ mod tests {
 
     #[test]
     fn decide_rules() {
-        let mut c = TtsCfg { enabled: true, ..Default::default() };
+        let mut c = TtsCfg { enabled: true, mode: Mode::All, ..Default::default() };
         assert_eq!(decide(&c, &msg("selam", false)).as_deref(), Some("gamer kaan diyor ki: selam"));
         c.read_names = false;
         assert_eq!(decide(&c, &msg("selam", false)).as_deref(), Some("selam"));
         c.mode = Mode::Command;
+        c.command = "!oku".into();
         assert_eq!(decide(&c, &msg("selam", false)), None);
         assert_eq!(decide(&c, &msg("!oku selam", false)).as_deref(), Some("selam"));
         c.mode = Mode::All;

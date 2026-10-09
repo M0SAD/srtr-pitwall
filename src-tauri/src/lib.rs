@@ -2,6 +2,7 @@
 
 mod broadcast;
 mod calc;
+mod clickzones;
 mod crashlog;
 mod demo;
 mod drivecues;
@@ -234,7 +235,8 @@ pub(crate) fn sync_overlay_visibility(app: &AppHandle) {
             let _ = w.set_always_on_top(true);
             // Pencere görünür olduktan sonra uygula (gizli pencerede bazı platformlarda çalışmaz).
             // Düzenleme modunda fare overlay'e gelir; normalde tıklamalar oyuna geçer.
-            let _ = w.set_ignore_cursor_events(!s.edit_mode.load(Ordering::Relaxed));
+            // Tekrar izlerken imleç tıklanabilir bir bölgenin (sürücü adı) üstündeyse o pencere fareyi alır (clickzones)
+            let _ = w.set_ignore_cursor_events(!s.edit_mode.load(Ordering::Relaxed) && !clickzones::hovered(w.label()));
         } else {
             let _ = w.hide();
         }
@@ -647,6 +649,27 @@ fn replay_to(session_num: i32, time: f64) -> Result<(), String> {
 #[tauri::command]
 fn replay_live() -> Result<(), String> {
     broadcast::replay_live()
+}
+
+/// Tekrar izlerken sürücü adına tıklandı: canlı yayına dön ve kamerayı o araca çevir
+#[tauri::command]
+async fn watch_car_live(number: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        broadcast::replay_live()?;
+        // Canlıya sarma bitmeden gelen kamera komutu bazen yutuluyor: kısa bekle, sonra bir kez daha gönder
+        std::thread::sleep(std::time::Duration::from_millis(350));
+        broadcast::camera_to_car(&number)?;
+        std::thread::sleep(std::time::Duration::from_millis(600));
+        broadcast::camera_to_car(&number)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Overlay penceresinin tıklanabilir bölgeleri (CSS pikseli, pencere içi: x, y, w, h)
+#[tauri::command]
+fn overlay_click_rects(app: AppHandle, window: tauri::WebviewWindow, rects: Vec<[f64; 4]>) {
+    clickzones::set(&app, &window, rects);
 }
 
 // ---- Olaylar ekranı ----
@@ -2519,6 +2542,8 @@ pub fn run() {
             state_get,
             demo_set,
             edit_mode_set,
+            watch_car_live,
+            overlay_click_rects,
             overlay_peek,
             overlay_pin,
             overlay_pin_get,

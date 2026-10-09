@@ -1,6 +1,7 @@
 import { defineOverlay } from "@/sdk/overlay";
 import { NAME_FORMATS, headerField } from "@/sdk/HeaderStats";
 import { labelStyleField } from "@/sdk/WxIcon";
+import { SESSION_SHOW_DEFAULT, SESSION_SHOW_OPTIONS } from "@/sdk/sessionShow";
 
 export const RELATIVE_COLUMNS = [
   { value: "class", label: "Sınıf rengi" },
@@ -12,13 +13,32 @@ export const RELATIVE_COLUMNS = [
   { value: "stint", label: "Stint / PIT / OUT" },
   { value: "license", label: "Lisans ve SR" },
   { value: "irating", label: "iRating" },
+  { value: "best", label: "En iyi tur" },
   { value: "last", label: "Son tur" },
-  { value: "tire", label: "Lastik" },
   { value: "gap", label: "Fark" },
-  { value: "flag", label: "Bayrak" },
+  { value: "tire", label: "Lastik" },
+  { value: "flag", label: "Bayrak (ceza)" },
 ];
 
 export const RELATIVE_DEFAULT_COLUMNS = [
+  { key: "class", on: true },
+  { key: "pos", on: true },
+  { key: "num", on: true },
+  { key: "flair", on: true },
+  { key: "name", on: true },
+  { key: "car", on: true },
+  { key: "license", on: true },
+  { key: "irating", on: true },
+  { key: "stint", on: true },
+  { key: "best", on: true },
+  { key: "last", on: true },
+  { key: "gap", on: true },
+  { key: "tire", on: true },
+  { key: "flag", on: true },
+];
+
+/** Önceki sürümlerin varsayılan sütunları: kayıtlı liste bunlarla aynıysa yeni varsayılana geçilir */
+export const RELATIVE_OLD_DEFAULT_COLUMNS = [
   { key: "class", on: true },
   { key: "pos", on: true },
   { key: "num", on: true },
@@ -36,14 +56,14 @@ export const RELATIVE_DEFAULT_COLUMNS = [
 
 /** Sütun genişliği ayarında varsayılandan ilk değişiklikte başlanan yaklaşık değerler (px) */
 export const RELATIVE_COL_START: Record<string, number> = {
-  class: 4, pos: 24, num: 40, flair: 26, name: 130, car: 44, stint: 40, license: 60, irating: 54, last: 62, tire: 22, gap: 46, flag: 26,
+  class: 4, pos: 24, num: 40, flair: 26, name: 130, car: 44, stint: 40, license: 60, irating: 54, best: 62, last: 62, tire: 22, gap: 46, flag: 26,
 };
 
 export default defineOverlay({
   id: "relative",
   name: "Yakındakiler",
   description:
-    "Pistte önündeki ve arkandaki araçlar (Relative): fark, stint, lisans/SR, ülke bayrağı, iRating ve tahmini değişimi, son tur, bayraklar. Üstte hava, altta SOF ve olay puanı.",
+    "Pistte önündeki ve arkandaki araçlar (Relative): fark, stint, lisans/SR, ülke bayrağı, iRating ve tahmini değişimi, en iyi ve son tur, bayraklar. Üstte hava, altta SOF ve olay puanı.",
   category: "race",
   topics: [
     { name: "relative", hz: 10 },
@@ -79,7 +99,7 @@ export default defineOverlay({
     { key: "logoSize", label: "Logo boyutu", type: "number", default: 150, min: 80, max: 220, step: 10, unit: "%", group: "Sütunlar" },
     { key: "showIrDelta", label: "Tahmini iRating değişimi (yarış)", type: "boolean", default: true, group: "Sütunlar" },
     { key: "rowFill", label: "Sürücü satırlarının arka planı", type: "number", default: 0, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm", hint: "Arka plan şeffafken yalnızca sürücü satırlarını koyulaştırır: isimler daha rahat okunur, tablonun geri kalanı şeffaf kalır. 0 = kapalı." },
-    { key: "hideInTest", label: "Test sürüşünde gizle", type: "boolean", default: true, group: "Görünüm", hint: "Tek başına test sürüşünde (iRacing Test Drive) bu tablo gösterilmez." },
+    { key: "showIn", label: "Gösterildiği oturumlar", type: "multi", default: SESSION_SHOW_DEFAULT, options: SESSION_SHOW_OPTIONS, group: "Görünüm", hint: "Seçili olmayan oturum türünde tablo gizlenir. Test sürüşü: tek başına iRacing Test Drive." },
     { key: "rowsFrame", label: "Sürücü listesinin çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
     { key: "rowFrame", label: "Her sürücünün çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 10, min: 2, max: 30, step: 1, unit: "Hz" },

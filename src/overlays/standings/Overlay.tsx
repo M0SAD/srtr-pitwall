@@ -14,6 +14,8 @@ import { STANDINGS_COLUMNS, STANDINGS_DEFAULT_COLUMNS } from "./manifest";
 import { Flag } from "@/sdk/Flag";
 import { LicenseBadge } from "@/sdk/LicenseBadge";
 import { Helmet } from "@/sdk/Helmet";
+import { FlagBadge } from "@/sdk/FlagBadge";
+import { replayClick, watchLive } from "@/sdk/replayClick";
 import { t } from "@/sdk/i18n";
 import "./style.css";
 
@@ -159,7 +161,14 @@ export default function Standings(props: OverlayProps) {
         return (
           <span class="st-name">
             <FriendBadge place="standings" userId={r.userId} name={r.name} />
-            <span data-no-i18n>{formatName(r.name, props.options.nameFormat as string)}</span>
+            <span
+              data-no-i18n
+              data-replay-click={replayClick() && !props.editing && !r.gone && !!r.number ? "" : undefined}
+              title={replayClick() && !r.gone ? t("Canlı izle") : undefined}
+              onClick={() => replayClick() && !props.editing && !r.gone && watchLive(r.number)}
+            >
+              {formatName(r.name, props.options.nameFormat as string)}
+            </span>
             <Show when={tag}>
               <span class="ov-tag st-dtag">{tag}</span>
             </Show>
@@ -212,6 +221,12 @@ export default function Standings(props: OverlayProps) {
         return (
           <span class="st-lap ov-mono st-best" classList={{ best: r.classBest }}>
             <span class="st-v">{lapTime(r.best)}</span>
+          </span>
+        );
+      case "flag":
+        return (
+          <span class="st-flag">
+            <FlagBadge flag={r.flag} />
           </span>
         );
     }

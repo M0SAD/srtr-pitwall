@@ -16,6 +16,31 @@ export default function Radar(props: OverlayProps) {
    * yanımızdan çıkarken bir anda ortaya (arkaya / öne) zıplamasın diye son bilinen taraf ~9 m boyunca korunur.
    */
   const lastSide = new Map<number, { side: number; at: number }>();
+  const real = () => props.options.mode === "real" && !overlayValueLocked("radar", "mode", "real");
+  /**
+   * "Gerçek konum" (yanal konum vermeyen simlerde, ör. iRacing): sim yalnızca araç tam yanımızdayken hangi tarafta
+   * olduğunu söyler. Araç o taraftan geçtiyse önümüze / arkamıza çıktığında bir anda ortaya zıplamaz: geçtiği tarafta
+   * kalır ve uzaklaştıkça yavaşça şeride (ortaya) döner. Arkadan yaklaşan ama henüz yanımıza gelmemiş aracın hangi
+   * tarafta olduğu bilinemediği için o ortada görünür.
+   */
+  const sideMem = new Map<number, { side: number; at: number }>();
+  /** Taraf belleğinin geçerli kaldığı süre (ms) */
+  const MEM_MS = 8000;
+  const estLat = (c: { idx?: number; side: number; offset: number }, now: number): number => {
+    const id = c.idx ?? NaN;
+    if (c.side !== 0) {
+      if (Number.isFinite(id)) sideMem.set(id, { side: c.side, at: now });
+      return c.side;
+    }
+    const m = Number.isFinite(id) ? sideMem.get(id) : undefined;
+    if (!m || now - m.at > MEM_MS) return 0;
+    // Yan yana bitince ~1,5 araç boyu tarafında kalır, sonra ~3 araç boyu daha uzaklaşırken ortaya kayar
+    const d = Math.abs(c.offset);
+    const k = d <= CAR_LEN * 1.5 ? 1 : Math.max(0, 1 - (d - CAR_LEN * 1.5) / (CAR_LEN * 3));
+    // Süre dolarken de yavaşça ortaya döner
+    const fade = Math.min(1, Math.max(0, (MEM_MS - (now - m.at)) / 2500));
+    return m.side * k * fade;
+  };
   const cars = createMemo(() => {
     const now = performance.now();
     const out = (data()?.cars ?? [])
@@ -24,6 +49,8 @@ export default function Radar(props: OverlayProps) {
       .map((c) => (props.options.mirror && c.side !== 0 ? { ...c, side: -c.side } : c))
       .map((c) => {
         const id = c.idx ?? NaN;
+        // Gerçek konum, yanal uzaklık yok: tahmini yanal konum (şerit genişliği biriminde, - sol / + sağ)
+        if (real() && typeof c.lat !== "number") return { ...c, est: estLat(c, now) };
         if (!Number.isFinite(id)) return c;
         if (c.side !== 0) {
           lastSide.set(id, { side: c.side, at: now });
@@ -35,13 +62,16 @@ export default function Radar(props: OverlayProps) {
       });
     // Uzun süredir görülmeyen araçların kaydı silinir
     for (const [id, v] of lastSide) if (now - v.at > 5000) lastSide.delete(id);
+    for (const [id, v] of sideMem) if (now - v.at > MEM_MS) sideMem.delete(id);
     return out;
   });
   const side = (s: number) => cars().filter((c) => c.side === s);
+  /** Ön / arka koni: tam önümüzde / arkamızda (yanda ya da yana kaymış görünmeyen) araç */
+  const centered = (c: { side: number; est?: number }) => c.side === 0 && Math.abs(c.est ?? 0) < 0.5;
   const alongside = (s: number) =>
     side(s).some((c) => Math.abs(c.offset) < CAR_LEN * 1.1);
-  const frontNear = () => cars().some((c) => c.side === 0 && c.offset > 0);
-  const rearNear = () => cars().some((c) => c.side === 0 && c.offset < 0);
+  const frontNear = () => cars().some((c) => centered(c) && c.offset > 0);
+  const rearNear = () => cars().some((c) => centered(c) && c.offset < 0);
   const active = () => cars().length > 0;
 
   // Radar: 200px alan, merkez 100; araç 22x46 px; boyuna ölçek range -> 90px
@@ -50,11 +80,13 @@ export default function Radar(props: OverlayProps) {
    * Yatay konum. "Gerçek konum": sim yanal uzaklığı veriyorsa (ACC, LMU / rF2, AMS2) araç gerçek yanal yerinde
    * (1 m ≈ 10 px), vermiyorsa (iRacing) yandaysa sol / sağ şeritte, değilse ortada. "Şeritler": her zaman üç şerit.
    */
-  const x = (c: { side: number; lat?: number }) => {
-    if (props.options.mode === "real" && !overlayValueLocked("radar", "mode", "real") && typeof c.lat === "number") {
+  const x = (c: { side: number; lat?: number; est?: number }) => {
+    if (real() && typeof c.lat === "number") {
       const lat = props.options.mirror ? -c.lat : c.lat;
       return 100 + Math.max(-85, Math.min(85, lat * 10));
     }
+    // Tahmini yanal konum: bir şerit = 32 px (sol / sağ şeritle aynı yer), aradaki değerler yumuşak geçiş
+    if (typeof c.est === "number") return 100 + c.est * 32;
     return c.side === 0 ? 100 : c.side < 0 ? 68 : 132;
   };
 

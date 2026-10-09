@@ -57,6 +57,8 @@ import { endDrag, remoteDrag, sendDrag } from "@/sdk/livedrag";
 import { BackdropPicker } from "@/app/components/BackdropPicker";
 import { overlayBgUrl } from "@/app/appBg";
 import { currentSim, overlaySupportsSim } from "@/overlays/simSupport";
+import { sessionShown } from "@/sdk/sessionShow";
+import { replayClick, reportClickRects, setReplayClick } from "@/sdk/replayClick";
 
 // Panelden yeni eklenen overlay: kısa süre gösterilir ve vurgulanır
 const [peekId, setPeekId] = createSignal<string | null>(null);
@@ -171,6 +173,18 @@ export function Host() {
   const onWinResize = () => setWinSize({ w: window.innerWidth, h: window.innerHeight });
   window.addEventListener("resize", onWinResize);
   onCleanup(() => window.removeEventListener("resize", onWinResize));
+  // Tekrar izlerken (iRacing) sürücü adına tıklayıp canlı izleme: adların yeri düzenli olarak bildirilir
+  createEffect(() => {
+    const st = status();
+    setReplayClick(!!st?.connected && !st.demo && !st.preview && !!st.replayWatch && (st.sim ?? "iracing") === "iracing" && !app().editMode);
+  });
+  {
+    const tick = setInterval(() => reportClickRects(replayClick()), 250);
+    onCleanup(() => {
+      clearInterval(tick);
+      reportClickRects(false);
+    });
+  }
   const status = useTopic("status");
   // Açılış: uygulama durumu (state_get) ve ilk `status` paketi gelene kadar hiçbir overlay çizilmez
   // (durum bilinmeden çizilen overlay açılışta görünüp kaybolmasın). Tarayıcı kaynağında (OBS) beklenmez.
@@ -378,13 +392,16 @@ export function Host() {
     // Tekrar (replay) izlenirken overlay'ler gizlenir (ayar; canlı ana yetişmiş izleme hariç)
     // "Her zaman göster" işaretli kopyalar (ör. Kan Şekeri, Kalp Atışı) tekrarda da görünür: iRacing garaj ekranı ve
     // araç dışı görünüm de "tekrar" sayıldığından bu kopyalar orada kayboluyordu.
-    if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch && !inst.alwaysShow) return false;
+    // "Replay'de göster" işaretli kopya tekrar izlenirken görünür (genel "replay izlerken gizle" ve "pistte değilken
+    // gizle" kuralları ona uygulanmaz)
+    const replayOk = !st.demo && !!st.replayWatch && !!inst.showInReplay;
+    if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch && !inst.alwaysShow && !replayOk) return false;
     // "Pistte değilken gizle" (varsayılan açık): overlay'ler sürüş başlayınca görünür. "Oyun kapalıyken de göster" işaretli
     // kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar) garajda da görünür kalır.
     // "İzlerken / garaj" türündeki düzenler tam da pist dışı içindir: onlar gizlenmez.
-    if (settings().general.hideWhenOffTrack && shown()!.rules.mode !== "spotting" && !inst.alwaysShow && !st.demo && (!st.onTrack || st.replay)) return false;
-    // Sıralama / Yakındakiler: tek başına test sürüşünde (iRacing "Offline Testing") gizlenir (overlay ayarı, varsayılan açık)
-    if (!st.demo && (inst.type === "standings" || inst.type === "relative") && inst.options?.hideInTest !== false && /offline testing/i.test(st.sessionType ?? "")) return false;
+    if (settings().general.hideWhenOffTrack && shown()!.rules.mode !== "spotting" && !inst.alwaysShow && !replayOk && !st.demo && (!st.onTrack || st.replay)) return false;
+    // Sıralama / Yakındakiler: yalnızca "Gösterildiği oturumlar"da seçili oturum türlerinde (test / antrenman / sıralama / yarış)
+    if (!st.demo && (inst.type === "standings" || inst.type === "relative") && !sessionShown(inst.options, st.sessionType)) return false;
     // Demo'da "pitteyken gizle" / "pistte gizle" uygulanmaz: yerleşim denenirken her overlay görünsün
     if (!st.demo && inst.hideInGarage && inPit) return false;
     if (!st.demo && inst.hideOnTrack && driving) return false;
@@ -403,7 +420,7 @@ export function Host() {
   return (
     <div
       class="host ov-theme"
-      classList={{ "ov-frozen": previewFrozen(), editing: app().editMode, "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
+      classList={{ "ov-frozen": previewFrozen(), editing: app().editMode, "replay-click": replayClick(), "grid-on": g().snapToGrid, "has-bg": app().editMode && !!editBg(), "reduce-fx": g().perf.reduceEffects, opaque: g().opaque, "ov-appbg": !!overlayBgUrl() }}
       style={{ ...vars(), "--grid": `${g().gridSize}px`, ...(overlayBgUrl() ? { "--ov-appbg": `url("${overlayBgUrl()}")` } : {}), ...(vrBg ? { "background-color": vrBg } : {}) }}
     >
       <Show when={app().editMode && editBg()}>

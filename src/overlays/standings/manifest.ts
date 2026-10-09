@@ -1,6 +1,7 @@
 import { defineOverlay } from "@/sdk/overlay";
 import { NAME_FORMATS, headerField } from "@/sdk/HeaderStats";
 import { labelStyleField } from "@/sdk/WxIcon";
+import { SESSION_SHOW_DEFAULT, SESSION_SHOW_OPTIONS } from "@/sdk/sessionShow";
 
 export const STANDINGS_COLUMNS = [
   { value: "flair", label: "Ülke" },
@@ -11,14 +12,33 @@ export const STANDINGS_COLUMNS = [
   { value: "irating", label: "iRating" },
   { value: "irDelta", label: "Tahmini iRating değişimi (yarış)" },
   { value: "pits", label: "Pit sayısı" },
-  { value: "gap", label: "Fark" },
   { value: "avg", label: "Son 5 tur ortalaması" },
-  { value: "last", label: "Son tur" },
   { value: "best", label: "En iyi tur" },
+  { value: "last", label: "Son tur" },
+  { value: "gap", label: "Fark" },
   { value: "tire", label: "Lastik" },
+  { value: "flag", label: "Bayrak (ceza)" },
 ];
 
 export const STANDINGS_DEFAULT_COLUMNS = [
+  { key: "flair", on: true },
+  { key: "name", on: true },
+  { key: "car", on: true },
+  { key: "change", on: false },
+  { key: "license", on: true },
+  { key: "irating", on: true },
+  { key: "irDelta", on: true },
+  { key: "pits", on: false },
+  { key: "avg", on: false },
+  { key: "best", on: true },
+  { key: "last", on: true },
+  { key: "gap", on: true },
+  { key: "tire", on: true },
+  { key: "flag", on: true },
+];
+
+/** Önceki sürümlerin varsayılan sütunları: kayıtlı liste bunlarla aynıysa yeni varsayılana geçilir */
+export const STANDINGS_OLD_DEFAULT_COLUMNS = [
   { key: "flair", on: true },
   { key: "name", on: true },
   { key: "car", on: true },
@@ -34,16 +54,18 @@ export const STANDINGS_DEFAULT_COLUMNS = [
   { key: "tire", on: true },
 ];
 
+
+
 /** Sütun genişliği ayarında varsayılandan ilk değişiklikte başlanan yaklaşık değerler (px) */
 export const STANDINGS_COL_START: Record<string, number> = {
-  flair: 26, car: 44, name: 130, change: 30, license: 52, irating: 46, irDelta: 34, pits: 24, gap: 50, avg: 62, last: 62, best: 62, tire: 22,
+  flair: 26, car: 44, name: 130, change: 30, license: 52, irating: 46, irDelta: 34, pits: 24, gap: 50, avg: 62, last: 62, best: 62, tire: 22, flag: 26,
 };
 
 export default defineOverlay({
   id: "standings",
   name: "Sıralama Tablosu",
   description:
-    "Çok sınıflı sıralama: sınıf başlıkları ve SOF, ülke, araç, iRating ve tahmini değişimi, fark/aralık, 5 tur ortalaması, en iyi tur, pit durumu. Sütunlar sıralanabilir.",
+    "Çok sınıflı sıralama: sınıf başlıkları ve SOF, ülke, araç, iRating ve tahmini değişimi, fark/aralık, 5 tur ortalaması, son ve en iyi tur, lastik, ceza bayrağı, pit durumu. Sütunlar sıralanabilir.",
   category: "race",
   topics: [
     { name: "standings", hz: 3 },
@@ -115,7 +137,7 @@ export default defineOverlay({
     { key: "barSize", label: "Bilgi satırı yazı boyutu", type: "number", default: 120, min: 80, max: 200, step: 5, unit: "%", group: "Başlık", hint: "Başlık bilgi satırındaki yazı ve simgelerin boyutu." },
     { key: "rowOpacity", label: "Satır arka planı", type: "number", default: 100, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm" },
     { key: "rowFill", label: "Sürücü satırlarının arka planı", type: "number", default: 0, min: 0, max: 100, step: 5, unit: "%", group: "Görünüm", hint: "Arka plan şeffafken yalnızca sürücü satırlarını koyulaştırır: isimler daha rahat okunur, tablonun geri kalanı şeffaf kalır. 0 = kapalı." },
-    { key: "hideInTest", label: "Test sürüşünde gizle", type: "boolean", default: true, group: "Görünüm", hint: "Tek başına test sürüşünde (iRacing Test Drive) bu tablo gösterilmez." },
+    { key: "showIn", label: "Gösterildiği oturumlar", type: "multi", default: SESSION_SHOW_DEFAULT, options: SESSION_SHOW_OPTIONS, group: "Görünüm", hint: "Seçili olmayan oturum türünde tablo gizlenir. Test sürüşü: tek başına iRacing Test Drive." },
     { key: "rowsFrame", label: "Sürücü listesinin çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm", hint: "Listede kaç sürücü varsa onları saran ince bir çerçeve çizer (çok sınıflıda her sınıf için ayrı)." },
     { key: "rowFrame", label: "Her sürücünün çevresinde çerçeve", type: "boolean", default: false, group: "Görünüm" },
     { key: "hz", label: "Güncelleme sıklığı", type: "number", default: 3, min: 1, max: 10, step: 1, unit: "Hz", group: "Görünüm" },

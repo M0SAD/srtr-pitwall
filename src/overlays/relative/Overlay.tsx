@@ -12,6 +12,8 @@ import { FriendBadge } from "@/sdk/FriendBadge";
 import { TireBadge } from "@/sdk/TireBadge";
 import { t } from "@/sdk/i18n";
 import { LicenseBadge } from "@/sdk/LicenseBadge";
+import { FlagBadge } from "@/sdk/FlagBadge";
+import { replayClick, watchLive } from "@/sdk/replayClick";
 import { RELATIVE_COLUMNS, RELATIVE_DEFAULT_COLUMNS } from "./manifest";
 import "./style.css";
 
@@ -41,40 +43,6 @@ export function ComboPill(props: { r: Row; delta: boolean }) {
         <i classList={{ up: props.r.irDelta > 0, down: props.r.irDelta < 0 }}>{props.r.irDelta > 0 ? "▲" : "▼"}</i>
       </Show>
     </LicenseBadge>
-  );
-}
-
-/** Bayrak kodu -> [görünüm sınıfı, ad]. Sim'den gelen kısa kodlar (BLK/DSQ/REP/BLU) ve renk adları. */
-const FLAG_SWATCH: Record<string, [string, string]> = {
-  blk: ["black", "Siyah bayrak"],
-  black: ["black", "Siyah bayrak"],
-  dsq: ["dsq", "Diskalifiye (siyah bayrak)"],
-  disqualify: ["dsq", "Diskalifiye (siyah bayrak)"],
-  rep: ["meatball", "Teknik bayrak (turuncu toplu siyah)"],
-  repair: ["meatball", "Teknik bayrak (turuncu toplu siyah)"],
-  meatball: ["meatball", "Teknik bayrak (turuncu toplu siyah)"],
-  blu: ["blue", "Mavi bayrak"],
-  blue: ["blue", "Mavi bayrak"],
-  yellow: ["yellow", "Sarı bayrak"],
-  yel: ["yellow", "Sarı bayrak"],
-  green: ["green", "Yeşil bayrak"],
-  grn: ["green", "Yeşil bayrak"],
-  white: ["white", "Beyaz bayrak"],
-  wht: ["white", "Beyaz bayrak"],
-  red: ["red", "Kırmızı bayrak"],
-  checkered: ["checkered", "Damalı bayrak"],
-  chk: ["checkered", "Damalı bayrak"],
-  debris: ["debris", "Pistte döküntü bayrağı"],
-  slow: ["slow", "Yavaşla uyarısı"],
-};
-
-/** Bayrak sütunu: yazısız renkli bayrak; adı ipucunda */
-export function FlagBadge(props: { flag: string }) {
-  const info = () => (props.flag ? FLAG_SWATCH[props.flag.toLowerCase()] : undefined);
-  return (
-    <Show when={info()}>
-      <span class={`fsw fsw-${info()![0]}`} title={info()![1]} data-tip={t(info()![1])} />
-    </Show>
   );
 }
 
@@ -154,7 +122,14 @@ export default function Relative(props: OverlayProps) {
         return (
           <span class="rel-name">
             <FriendBadge place="relative" userId={r.userId} name={r.name} />
-            <span data-no-i18n>{formatName(r.name, props.options.nameFormat as string)}</span>
+            <span
+              data-no-i18n
+              data-replay-click={replayClick() && !props.editing && !!r.number ? "" : undefined}
+              title={replayClick() ? t("Canlı izle") : undefined}
+              onClick={() => replayClick() && !props.editing && watchLive(r.number)}
+            >
+              {formatName(r.name, props.options.nameFormat as string)}
+            </span>
             <Show when={friendsOn("relative") && friendOf(r.userId, r.name)?.tag}>
               <span class="ov-tag rel-dtag">{friendOf(r.userId, r.name)!.tag}</span>
             </Show>
@@ -186,6 +161,12 @@ export default function Relative(props: OverlayProps) {
         return (
           <span class="rel-last ov-mono" classList={{ pb: r.lastPb }}>
             <span class="rel-v">{lapTime(r.last)}</span>
+          </span>
+        );
+      case "best":
+        return (
+          <span class="rel-last rel-best ov-mono">
+            <span class="rel-v">{lapTime(r.best)}</span>
           </span>
         );
       case "tire":

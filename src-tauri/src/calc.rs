@@ -446,6 +446,9 @@ fn car_flag(bits: u32) -> &'static str {
         "BLK"
     } else if bits & CF_REPAIR != 0 {
         "REP"
+    } else if bits & CF_FURLED != 0 {
+        // Kıvrık siyah bayrak: uyarı (ör. pist sınırı / pit hızı uyarısı)
+        "WRN"
     } else if bits & CF_BLUE != 0 {
         "BLU"
     } else {

@@ -97,6 +97,7 @@ export function OverlaySettings(props: {
       o.hideInGarage = d.hideInGarage;
       o.hideOnTrack = d.hideOnTrack;
       o.alwaysShow = d.alwaysShow;
+      delete o.showInReplay;
     });
   };
 
@@ -211,6 +212,13 @@ export function OverlaySettings(props: {
                 <Switch checked={inst()!.alwaysShow} onChange={(v) => upd((o) => (o.alwaysShow = v))} />
               </div>
               <small class="f2-hint">Oyun kapalıyken, pist dışında, garajda ve tekrar izlerken de görünür; ekranda ve OBS'te geçerlidir. Yukarıdaki iki gizleme seçeneği açıksa onlar yine uygulanır.</small>
+            </div>
+            <div class="f2">
+              <div class="f2-row">
+                <span class="f2-label">Replay'de göster</span>
+                <Switch checked={!!inst()!.showInReplay} onChange={(v) => upd((o) => (v ? (o.showInReplay = true) : delete o.showInReplay))} />
+              </div>
+              <small class="f2-hint">Tekrar izlerken de görünür ("Replay izlerken overlay'leri gizle" genel ayarı açık olsa bile).</small>
             </div>
           </Section>
         </div>

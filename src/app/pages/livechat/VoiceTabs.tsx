@@ -204,6 +204,13 @@ export function TtsTab() {
           </div>
           <Switch checked={v().skipEmotes} onChange={(on) => setTts((x) => (x.skipEmotes = on))} />
         </div>
+        <div class="row">
+          <div>
+            <b>Yüz ifadelerini atla</b>
+            <small>“:)”, “:D”, “;)”, “xD” gibi karakterlerle yazılan ifadeler okunmaz.</small>
+          </div>
+          <Switch checked={v().skipSmileys ?? true} onChange={(on) => setTts((x) => (x.skipSmileys = on))} />
+        </div>
         <div class="lcp-grid2">
           <div class="f2">
             <div class="f2-cap">En fazla karakter</div>

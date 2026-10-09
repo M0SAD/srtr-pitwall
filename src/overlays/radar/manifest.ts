@@ -21,7 +21,7 @@ export default defineOverlay({
         { value: "real", label: "Gerçek konum (yanal uzaklıkla)", pro: true },
       ],
       proHint: "Gerçek konum görünümü PRO üyelere özel.",
-      hint: "Gerçek konum: araçlar sana gerçek uzaklıkta, sağa / sola ne kadar açık olduklarıyla görünür (ACC, LMU / rF2, AMS2). iRacing diğer araçların yanal konumunu vermediği için orada araç yanına gelince sol / sağ şeride yerleşir. Şeritler: önceki görünüm.",
+      hint: "Gerçek konum: araçlar sana gerçek uzaklıkta, sağa / sola ne kadar açık olduklarıyla görünür (ACC, LMU / rF2, AMS2). iRacing diğer araçların yanal konumunu hiç vermez; orada ön / arka uzaklık gerçektir, yan konum tahmindir: araç yanına gelince geldiği tarafa geçer, seni geçince ortaya zıplamaz, geçtiği tarafta kalıp uzaklaştıkça yavaşça şeride döner. Şeritler: önceki görünüm.",
     },
     {
       key: "hideWhenClear",

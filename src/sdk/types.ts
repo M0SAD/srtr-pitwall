@@ -187,7 +187,7 @@ export interface Row {
   tire: number;
   /** Lastik türü: "S" | "M" | "H" | "I" (ara) | "W" (yağmur) | "D" (kuru, türü bilinmiyor) | "" bilinmiyor */
   tireKind?: string;
-  flag: "" | "BLK" | "DSQ" | "REP" | "BLU";
+  flag: "" | "BLK" | "DSQ" | "REP" | "WRN" | "BLU";
   posChange: number;
   isMe: boolean;
   /** Sunucudan çıkmış ama resmi sıralamada duran sürücü (yalnızca "standings") */

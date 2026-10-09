@@ -3,6 +3,20 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 091026-277
+
+- Sıralama Tablosu ve Yakındakiler: "Test sürüşünde gizle" yerine "Gösterildiği oturumlar" ayarı. Test sürüşü, antrenman, sıralama turları ve yarış ayrı ayrı seçilebiliyor (varsayılan: test sürüşü hariç hepsi).
+- Sıralama Tablosu: yeni varsayılan sütunlar. Son 5 tur ortalaması kapalı, son tur ve en iyi tur açık; en sonda sırasıyla son tur, fark, lastik ve bayrak. Sütunları hiç değiştirmemiş olanlar yeni düzene kendiliğinden geçiyor.
+- Sıralama Tablosu: yeni "Bayrak (ceza)" sütunu. Sürücünün aldığı cezanın bayrağı görünüyor: siyah bayrak, diskalifiye, teknik (turuncu toplu) bayrak, uyarı (kıvrık siyah bayrak), mavi bayrak.
+- Yakındakiler: yeni "En iyi tur" sütunu (varsayılan açık); sütun sırası Sıralama Tablosu ile aynı (en iyi tur, son tur, fark, lastik, bayrak). Bayrak sütununda uyarı bayrağı da görünüyor.
+- Her overlay'in ayarlarında yeni "Replay'de göster" seçeneği (varsayılan kapalı): açık olan overlay, genel "Replay izlerken overlay'leri gizle" ayarı açık olsa bile tekrar izlerken görünür.
+- Tekrar izlerken (iRacing) Sıralama Tablosu ya da Yakındakiler'de bir sürücünün adına tıklayınca canlı yayına dönülüyor ve kamera o sürücüye geçiyor. Yalnızca adların üstü tıklanabilir; ekranın geri kalanı oyuna tıklanmaya devam ediyor. Sunucudan çıkmış sürücülerin adı tıklanmıyor.
+- Radar › Gerçek konum (iRacing): sizi geçen araç artık önünüze zıplamıyor; geçtiği tarafta kalıp uzaklaştıkça yavaşça şeride dönüyor. iRacing diğer araçların yan konumunu vermediği için yan konum tahmini; ön / arka uzaklık gerçek.
+
+## 091026-276
+
+- Canlı sohbet › Sesli okuma: yeni "Yüz ifadelerini atla" ayarı (varsayılan açık). ":)", ":D", ";)", "<3", "xD" gibi karakterlerle yazılan ifadeler artık okunmuyor; kelimeye bitişik olanlar da ("iyi:)") atlanıyor, saat gibi yazılar ("10:30") okunmaya devam ediyor.
+
 ## 091026-275
 
 - Canlı sohbet (YouTube): "YouTube sayfası yüklenemedi (HTTP 429)" hatası. YouTube çok sık sayfa isteğinde geçici sınır koyuyor; canlı yayın ve sohbet artık sayfa yerine YouTube'un hafif veri arayüzünden bulunuyor (sınıra takılmıyor). Sayfaya yine de gerekirse ve sınır varsa sınır bitene kadar (her seferinde artan sürelerle) tekrar istenmiyor; "Yeniden kur" da sınırı uzatmıyor. Hata mesajı ne kadar sonra yeniden deneneceğini gösteriyor.

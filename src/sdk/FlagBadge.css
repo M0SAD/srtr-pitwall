@@ -1,0 +1,64 @@
+/* Bayrak sütunu: yazısız renkli bayrak (ad ipucunda) */
+.fsw {
+  display: inline-block;
+  position: relative;
+  width: 1.45em;
+  height: 0.95em;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  background: #888;
+}
+
+.fsw-black,
+.fsw-dsq,
+.fsw-meatball {
+  background: #000;
+}
+
+.fsw-dsq {
+  background:
+    linear-gradient(45deg, transparent 44%, #e02424 44% 56%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, #e02424 44% 56%, transparent 56%),
+    #000;
+}
+
+.fsw-meatball {
+  background: radial-gradient(circle at 50% 50%, #ff8a2a 0 30%, #000 31%);
+}
+
+.fsw-blue {
+  background: #1e6fff;
+}
+
+.fsw-yellow {
+  background: #ffd400;
+}
+
+.fsw-green {
+  background: #19b34a;
+}
+
+.fsw-white {
+  background: #fff;
+}
+
+.fsw-red {
+  background: #e02424;
+}
+
+.fsw-checkered {
+  background: repeating-conic-gradient(#000 0 25%, #fff 0 50%) 0 0 / 0.48em 0.48em;
+}
+
+.fsw-debris {
+  background: repeating-linear-gradient(90deg, #ffd400 0 0.24em, #e02424 0.24em 0.48em);
+}
+
+.fsw-slow {
+  background: linear-gradient(135deg, #ffd400 50%, #000 50%);
+}
+
+.fsw-furled {
+  background: linear-gradient(135deg, #fff 0 50%, #000 50%);
+}
+

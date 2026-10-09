@@ -224,6 +224,13 @@
   display: inline-flex;
   justify-content: center;
 }
+.st-flag {
+  width: 1.9em;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  flex: none;
+}
 .st-sess {
   display: inline-flex;
   align-items: center;

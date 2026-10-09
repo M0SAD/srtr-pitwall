@@ -5,6 +5,16 @@
   pointer-events: none;
 }
 
+/* Tekrar izlerken sürücü adına tıklayıp canlı izleme (sdk/replayClick.ts) */
+.host.replay-click [data-replay-click] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.host.replay-click [data-replay-click]:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .host.editing {
   pointer-events: auto;
   /* Düzenleme modunda ekranı hafifçe karart */
