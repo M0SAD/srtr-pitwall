@@ -244,7 +244,8 @@ export function useClickRegion(el: () => HTMLElement | undefined, on: () => bool
   };
   onMount(() => {
     const timer = setInterval(report, 500);
-    createEffect(() => (on(), report()));
+    // Öğe yeni çizildiyse (ör. açılan liste) yeri bir sonraki karede belli olur: hemen bildirilsin, 500 ms beklenmesin
+    createEffect(() => (on(), report(), requestAnimationFrame(report)));
     onCleanup(() => {
       clearInterval(timer);
       if (live) void LC.inputBox(id, "remove").catch(() => {});

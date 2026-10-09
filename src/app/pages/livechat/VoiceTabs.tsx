@@ -199,10 +199,10 @@ export function TtsTab() {
         </div>
         <div class="row">
           <div>
-            <b>Emote'ları atla</b>
-            <small>Kapalıysa emote adı okunur (ör. “Kappa”).</small>
+            <b>Emote ve özel görselleri oku</b>
+            <small>Kapalıyken (varsayılan) emote'lar, kanal emojileri ve gönderilen özel görseller okunmaz. Açıksa adları okunur (ör. “Kappa”, “pit stop”).</small>
           </div>
-          <Switch checked={v().skipEmotes} onChange={(on) => setTts((x) => (x.skipEmotes = on))} />
+          <Switch checked={!v().skipEmotes} onChange={(on) => setTts((x) => (x.skipEmotes = !on))} />
         </div>
         <div class="row">
           <div>

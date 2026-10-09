@@ -2,7 +2,7 @@
 
 mod broadcast;
 mod calc;
-mod clickzones;
+mod keyactivity;
 mod startup;
 mod crashlog;
 mod demo;
@@ -236,8 +236,7 @@ pub(crate) fn sync_overlay_visibility(app: &AppHandle) {
             let _ = w.set_always_on_top(true);
             // Pencere görünür olduktan sonra uygula (gizli pencerede bazı platformlarda çalışmaz).
             // Düzenleme modunda fare overlay'e gelir; normalde tıklamalar oyuna geçer.
-            // Tekrar izlerken imleç tıklanabilir bir bölgenin (sürücü adı) üstündeyse o pencere fareyi alır (clickzones)
-            let _ = w.set_ignore_cursor_events(!s.edit_mode.load(Ordering::Relaxed) && !clickzones::hovered(w.label()));
+            let _ = w.set_ignore_cursor_events(!s.edit_mode.load(Ordering::Relaxed));
         } else {
             let _ = w.hide();
         }
@@ -695,11 +694,6 @@ async fn watch_car_live(number: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
-/// Overlay penceresinin tıklanabilir bölgeleri (CSS pikseli, pencere içi: x, y, w, h)
-#[tauri::command]
-fn overlay_click_rects(app: AppHandle, window: tauri::WebviewWindow, rects: Vec<[f64; 4]>) {
-    clickzones::set(&app, &window, rects);
-}
 
 // ---- Olaylar ekranı ----
 
@@ -2649,9 +2643,9 @@ pub fn run() {
             demo_set,
             edit_mode_set,
             watch_car_live,
+            keyactivity::key_idle_ms,
             settings_backup_broken,
             frontend_error,
-            overlay_click_rects,
             overlay_peek,
             overlay_pin,
             overlay_pin_get,

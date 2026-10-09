@@ -7,7 +7,8 @@ import { listen } from "@tauri-apps/api/event";
 import { inTauri } from "@/sdk/platform";
 import { For, Match, Show, Switch, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { friendRequest } from "@/cloud/social";
+import { friendLook, friendRequest } from "@/cloud/social";
+import { loadAvatars } from "@/cloud/profile";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockTag } from "../components/ProLock";
 import { lapTime } from "@/sdk/format";
@@ -114,9 +115,28 @@ const fmtDate = (v: string | null | undefined, time = true) =>
   v ? new Date(v).toLocaleString(localeTag(), time ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "medium" }) : "—";
 
 const fmtHours = (sec: number) => {
-  const h = Math.floor(sec / 3600);
-  const m = Math.round((sec % 3600) / 60);
-  return h > 0 ? `${h} sa ${m} dk` : `${m} dk`;
+  const total = Math.max(0, Math.round(sec / 60));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h > 0 ? t("{0} sa {1} dk", h.toLocaleString(localeTag()), m) : t("{0} dk", m);
+};
+
+/** İstatistik kutusu değeri: sayılar büyük, birimler ("sa", "dk") küçük yazılır; dar kutuya sığar */
+function StatValue(p: { text: string }) {
+  return (
+    <b class="th-val" data-no-i18n>
+      <For each={p.text.split(/([\d.,]+)/).filter((x) => x !== "")}>
+        {(part) => (/^[\d.,]+$/.test(part) ? <>{part}</> : <span class="th-unit">{part.trim()}</span>)}
+      </For>
+    </b>
+  );
+}
+
+/** Sınıf adı (eski kayıtlarda da): anlamsız iRacing sınıf adları gösterilmez, "GT3 Class" → "GT3" */
+const classLabel = (cls: string | null | undefined, car: string | null | undefined) => {
+  const c = (cls ?? "").trim();
+  if (!c || /hosted|all cars/i.test(c) || /^\d+$/.test(c) || c.toLowerCase() === (car ?? "").trim().toLowerCase()) return "";
+  return c.replace(/\s+class$/i, "").trim();
 };
 
 const errText = (e: unknown) => String((e as Error)?.message ?? e);
@@ -257,8 +277,15 @@ function FriendButton(p: { id: string; status: string | null }) {
   );
 }
 
+/** Profil fotoğrafı (yoksa ""): önbellekte yoksa sunucudan istenir */
+const avatarOf = (id: string) => (id ? friendLook(id).photo : "");
+
 function OverviewView(p: { user?: string }) {
   const [data, { refetch }] = createResource(() => p.user ?? "me", (u) => telemetryOverview(u === "me" ? null : u));
+  createEffect(() => {
+    const id = data()?.profile.id;
+    if (id && !avatarOf(id)) void loadAvatars([id]);
+  });
   const isMe = () => !p.user || data()?.profile.is_me;
   return (
     <>
@@ -284,8 +311,13 @@ function OverviewView(p: { user?: string }) {
             </Show>
             <section class="panel tele-hero">
               <div class="th-top">
-                <span class="th-avatar" data-no-i18n>
-                  {(d().profile.display_name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("")}
+                <span class="th-avatar" classList={{ photo: !!avatarOf(d().profile.id) }} data-no-i18n>
+                  <Show
+                    when={avatarOf(d().profile.id)}
+                    fallback={(d().profile.display_name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("")}
+                  >
+                    <img src={avatarOf(d().profile.id)} alt="" />
+                  </Show>
                 </span>
                 <div class="th-who">
                   <small>{isMe() ? "Telemetrim" : "Telemetri"}</small>
@@ -343,7 +375,7 @@ function OverviewView(p: { user?: string }) {
                     </div>
                     <div class="th-stat">
                       <I.Timer />
-                      <b>{fmtHours(d().totals!.drive_time)}</b>
+                      <StatValue text={fmtHours(d().totals!.drive_time)} />
                       <small>Sürüş süresi</small>
                     </div>
                     <div class="th-stat">
@@ -540,7 +572,7 @@ function SessionsPanel(p: { sessions: TelemetrySession[]; mine: boolean; user: s
                       <b>{trackLabel(s)}</b>
                       <small>
                         {s.car_name}
-                        <Show when={s.car_class}> · {s.car_class}</Show>
+                        <Show when={classLabel(s.car_class, s.car_name)}> · {classLabel(s.car_class, s.car_name)}</Show>
                       </small>
                     </td>
                     <td>
@@ -621,7 +653,7 @@ function BestsPanel(p: { bests: BestLap[] }) {
                         <b>{trackLabel(b)}</b>
                         <small>
                           {SIM_LABEL[b.sim] ?? b.sim} · {b.car_name}
-                          <Show when={b.car_class}> · {b.car_class}</Show>
+                          <Show when={classLabel(b.car_class, b.car_name)}> · {classLabel(b.car_class, b.car_name)}</Show>
                         </small>
                       </td>
                       <td class="num mono best">{lapTime(b.lap_time)}</td>
@@ -661,7 +693,7 @@ function BestsPanel(p: { bests: BestLap[] }) {
                 <b class="bc-track">{trackLabel(b)}</b>
                 <small class="bc-car">
                   {b.car_name}
-                  <Show when={b.car_class}> · {b.car_class}</Show>
+                  <Show when={classLabel(b.car_class, b.car_name)}> · {classLabel(b.car_class, b.car_name)}</Show>
                 </small>
                 <div class="bc-time mono">{lapTime(b.lap_time)}</div>
                 <small class="muted">{t("{0} tur", b.laps)}</small>
@@ -727,7 +759,7 @@ function SessionView(p: { id: string }) {
                     <h3>{trackLabel(s())}</h3>
                     <p class="muted small">
                       {SIM_LABEL[s().sim]} · {s().car_name}
-                      {s().car_class ? ` (${s().car_class})` : ""} · {t(SESSION_LABEL[s().session_type] ?? "Oturum")} · {fmtDate(s().started_at)}
+                      {classLabel(s().car_class, s().car_name) ? ` (${classLabel(s().car_class, s().car_name)})` : ""} · {t(SESSION_LABEL[s().session_type] ?? "Oturum")} · {fmtDate(s().started_at)}
                       <Show when={!session() || d().owner.id !== session()!.user.id}>
                         {" "}
                         · {d().owner.display_name}

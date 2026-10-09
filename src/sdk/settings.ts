@@ -1191,6 +1191,13 @@ function tableV276(type: string, saved: Record<string, any>, options: Record<str
   if (!Array.isArray(saved.showIn) && saved.hideInTest === false && Array.isArray(options.showIn) && !options.showIn.includes("test")) options.showIn = [...options.showIn, "test"];
   const old = type === "standings" ? STANDINGS_OLD_DEFAULT_COLUMNS : RELATIVE_OLD_DEFAULT_COLUMNS;
   const cols = saved.columns as { key: string; on: boolean }[] | undefined;
+  // 091026-282: Sıralama Tablosu "Araç numarası" sütunu kayıtlı listeye ülke bayrağının soluna (kapalı) eklenir
+  if (type === "standings" && Array.isArray(options.columns) && !(options.columns as { key: string }[]).some((c) => c?.key === "num")) {
+    const list = [...(options.columns as { key: string; on: boolean }[])];
+    const at = list.findIndex((c) => c?.key === "flair");
+    list.splice(at < 0 ? 0 : at, 0, { key: "num", on: false });
+    options.columns = list;
+  }
   if (Array.isArray(cols) && cols.length === old.length && old.every((c, i) => cols[i]?.key === c.key && !!cols[i]?.on === c.on))
     options.columns = structuredClone(type === "standings" ? STANDINGS_DEFAULT_COLUMNS : RELATIVE_DEFAULT_COLUMNS);
 }

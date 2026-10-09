@@ -59,7 +59,13 @@ export default function Clock(props: OverlayProps) {
 
   const design = () => (DESIGNS.includes(String(o().design)) ? String(o().design) : "digital");
   const sec = createMemo(() => now().getHours() * 3600 + now().getMinutes() * 60 + now().getSeconds());
-  const ringSec = () => clamp(num(o().ringSec, 30), 5, 300);
+  /** En uzun çalma süresi (sn). Eski "Uyarı süresi" (ringSec) yerine; susturulmazsa bu kadar çalar. */
+  const ringMax = () => clamp(num(o().ringMax, 120), 10, 600);
+  /** Tuşla susturma bu kadar saniye çaldıktan sonra mümkün */
+  const KEY_AFTER = 10;
+  /** Susturulan alarmlar: alarm saati → susturulduğu günün numarası (aynı gün yeniden çalmasın) */
+  const [dismissed, setDismissed] = createSignal<Record<number, number>>({});
+  const dayNo = () => Math.floor(new Date(now().getFullYear(), now().getMonth(), now().getDate()).getTime() / 86_400_000);
   const alarms = createMemo((): Alarm[] => {
     const out: Alarm[] = [];
     for (const i of [1, 2, 3]) {
@@ -72,7 +78,32 @@ export default function Clock(props: OverlayProps) {
   });
   /** Alarma kalan saniye (0..DAY); çalan alarmda negatif değil, "geçen süre" ayrı hesaplanır */
   const until = (a: Alarm) => (a.at - sec() + DAY) % DAY;
-  const ringing = createMemo(() => alarms().find((a) => (sec() - a.at + DAY) % DAY < ringSec()) ?? null);
+  /** Alarm çalmaya başlayalı geçen saniye */
+  const elapsed = (a: Alarm) => (sec() - a.at + DAY) % DAY;
+  // Gece yarısını aşan alarm (ör. 23:59) ertesi gün susturulmuş sayılmasın diye susturma, çalmanın başladığı güne yazılır
+  const ringDay = (a: Alarm) => dayNo() - (sec() < a.at ? 1 : 0);
+  const ringing = createMemo(() => alarms().find((a) => elapsed(a) < ringMax() && dismissed()[a.at] !== ringDay(a)) ?? null);
+  // Tuşla susturma: 10 sn çaldıktan sonra herhangi bir tuşa basılırsa (yalnızca gerçek overlay'de, Rust tuşları yoklar)
+  {
+    const poll = window.setInterval(() => {
+      const a = ringing();
+      if (!a || !real() || !inTauri || o().keyStop === false) return;
+      const el = elapsed(a);
+      if (el < KEY_AFTER) {
+        // Yoklamayı erkenden başlat: 10. saniyede hazır olsun
+        invoke<number>("key_idle_ms").catch(() => 0);
+        return;
+      }
+      const ringingFor = el - KEY_AFTER;
+      invoke<number>("key_idle_ms")
+        .then((ms) => {
+          // Tuş, 10. saniyeden sonra basıldıysa sustur
+          if (ms < ringingFor * 1000 + 300 && ms < 60_000) setDismissed((d) => ({ ...d, [a.at]: ringDay(a) }));
+        })
+        .catch(() => {});
+    }, 150);
+    onCleanup(() => clearInterval(poll));
+  }
   const next = createMemo(() => {
     let best: Alarm | null = null;
     for (const a of alarms()) if (until(a) > 0 && (!best || until(a) < until(best))) best = a;

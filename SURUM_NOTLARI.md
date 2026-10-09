@@ -3,6 +3,29 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-283
+
+- Canlı sohbet › Sesli okuma: kanal emojileri ve gönderilen özel görseller yazı olarak (":_imageinKedi:" gibi kısa kodlarla ya da Kick'te "[emote:…]") gelince kodlarıyla birlikte okunuyordu. Artık okunmuyor. Ayar "Emote ve özel görselleri oku" olarak yeniden adlandırıldı (varsayılan kapalı); açılırsa görselin adı okunur hâle getirilip okunuyor (":_pitStop:" → "pit Stop"). Saat gibi yazılar ("10:30:45") etkilenmiyor.
+
+## 091026-282
+
+- Sıralama Tablosu: yeni "Araç numarası" sütunu, ülke bayrağının solunda (varsayılan kapalı; Sütunlar'dan açılır).
+- Düzeltme: canlı yayın bitince program donmuş gibi kalıyordu. Yayın kapanınca Canlı Sohbet overlay'indeki izleyici çubuğu / mesaj kutusu kalkarken, aynı anda imleç onların üstündeyse görünmez tam ekran overlay penceresi tıklanabilir kalıyor ve bütün tıklamaları yutuyordu (oyuna, OBS'e, masaüstüne tıklanamıyordu). Artık bölge kalkınca pencere her zaman yeniden tıklama geçirir oluyor; izleme biterken de bütün overlay pencereleri emniyet için geri alınıyor.
+- Düzeltme: Canlı Sohbet hata ayıklama günlüğü 256 KB'ı geçince Türkçe harfte kesilip panic yapabiliyordu; yayın bitiminde sohbet bağlantıları birer birer düşüyordu.
+- Canlı Sohbet › izleyici çubuğu: platform simgesinin (ya da Σ toplamın) üstüne gelince o platformdaki canlı kanallar izleyici sayılarıyla listeleniyor; listeden tıklanan kanalın yayın sayfası açılıyor. Simgeye doğrudan tıklamak eskisi gibi en çok izleyicisi olan kanalı açıyor.
+- Tekrar izlerken sürücü adına tıklama, Canlı Sohbet'in tıklanabilir bölge düzeneğine taşındı (ayrı düzenek, tarayıcıdaki videoyu karartabilen bir pencere stili değişikliği yapıyordu).
+
+## 091026-281
+
+- Saat › Alarm: alarm artık susturulmazsa 2 dakika çalıyor ("En uzun çalma süresi", varsayılan 120 sn; eski "Uyarı süresi" yerine). Yeni "Herhangi bir tuşla sustur" seçeneği (varsayılan açık): alarm 10 saniye çaldıktan sonra klavyede herhangi bir tuşa basınca susuyor. İlk 10 saniyede basılan tuşlar (ör. sürüş sırasında) alarmı kapatmıyor. Susturulan alarm o gün aynı saatte yeniden çalmıyor; ertesi gün yine çalıyor.
+
+## 091026-280
+
+- Telemetri / profil: iRacing lisans sınıfı ve SR artık gösterilmiyor (iRating zaten kaldırılmıştı). iRacing bu değerleri yalnızca o an sürülen oturumun kategorisi için veriyor (yol, formula, oval, toprak ayrı ayrı); program son girilen oturumun değerini kaydettiği için profilde çoğu zaman başka kategorinin değeri, yani yanlış görünen bir değer çıkıyordu. Ülke bayrağı kalıyor.
+- Telemetri: araç sınıfı düzeltmesi. Lig kategorisi ayarlıysa oturumlara iRacing sınıfı yerine lig kategorisi ("Pro", "Am" vb.) yazılıyordu; artık gerçek sınıf yazılıyor. Anlamsız sınıf adları ("Hosted All Cars Class", araç adının kendisi, yalnızca sayı) gösterilmiyor; "GT3 Class" → "GT3". Eski kayıtlarda da aynı süzme uygulanıyor.
+- Telemetri: profil fotoğrafı, baş harfler yerine üstteki avatar kutusunda görünüyor.
+- Telemetri: istatistik kutuları yeniden düzenlendi. "Sürüş süresi" artık kutuya sığıyor: sayılar büyük, "sa / dk" birimleri küçük yazılıyor; değer kutuya sığmazsa taşmıyor. Kutular biraz genişledi, etiketler gerekirse iki satıra iniyor. "1 sa 60 dk" gibi yuvarlama hatası da düzeltildi.
+
 ## 091026-279
 
 Açılış sorunları ("yükledim ama açılmıyor", "Windows ile başlamadı") için düzeltmeler ve tanı araçları:

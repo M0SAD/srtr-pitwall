@@ -53,7 +53,8 @@ export default defineOverlay({
     { key: "label3", label: "Alarm 3 notu", type: "text", default: "", placeholder: "Yayını bitir", group: G_ALARM },
     { key: "repeatMin", label: "Tekrarlayan hatırlatma", type: "number", default: 0, min: 0, max: 240, step: 5, unit: "dk", group: G_ALARM, hint: "Her şu kadar dakikada bir uyarır (ör. 30: her saat başı ve buçukta). 0 = kapalı." },
     { key: "repeatLabel", label: "Hatırlatma notu", type: "text", default: "", placeholder: "Su iç", group: G_ALARM },
-    { key: "ringSec", label: "Uyarı süresi", type: "number", default: 30, min: 5, max: 300, step: 5, unit: "sn", group: G_WARN },
+    { key: "ringMax", label: "En uzun çalma süresi", type: "number", default: 120, min: 10, max: 600, step: 10, unit: "sn", group: G_WARN, hint: "Susturulmazsa alarm bu kadar çalar." },
+    { key: "keyStop", label: "Herhangi bir tuşla sustur", type: "boolean", default: true, group: G_WARN, hint: "Alarm 10 saniye çaldıktan sonra klavyede herhangi bir tuşa basınca susar. İlk 10 saniye susmaz (o sırada sürüşte bastığın tuşlar alarmı kapatmasın)." },
     {
       key: "sound",
       label: "Ses",

@@ -155,6 +155,14 @@ fn poll(app: AppHandle) {
             let mut g = st().lock();
             if g.wins.is_empty() {
                 g.running = false;
+                drop(g);
+                // Emniyet: izleme biterken hiçbir overlay penceresi tıklanabilir kalmasın (yarış durumunda kalırsa
+                // görünmez tam ekran pencere bütün tıklamaları yutuyor, program donmuş gibi görünüyordu)
+                if !editing(&app) {
+                    for w in crate::overlay_windows(&app) {
+                        set_passthrough(&app, &w);
+                    }
+                }
                 return;
             }
             g.wins.iter().map(|(l, w)| (l.clone(), w.regions.values().copied().collect(), w.hold, w.open)).collect()
@@ -185,6 +193,12 @@ fn poll(app: AppHandle) {
                 }
                 // Her turda yinelenir: görünürlük eşitlemesi (lib.rs) pencereyi yeniden tıklama geçirir yapmış olabilir
                 set_clickable(&app, &w);
+                // Bu arada bölge kaldırıldıysa ("remove", ör. yayın bitince kutu / çubuk kalktı) pencere tıklanabilir
+                // kalmasın: geçirgenlik isteği tıklanabilirlikten SONRA ana iş parçacığına sıralanır
+                if !st().lock().wins.contains_key(&label) {
+                    set_passthrough(&app, &w);
+                    continue;
+                }
             } else if open {
                 set_passthrough(&app, &w);
             }
@@ -222,7 +236,8 @@ pub async fn livechat_input(app: AppHandle, window: WebviewWindow, id: String, o
                         if let Some(w) = g.wins.get_mut(&label) {
                             w.regions.remove(&id);
                             if w.regions.is_empty() {
-                                restore = w.open || w.hold;
+                                // Her zaman geri al: izleyici iş parçacığı aynı anda pencereyi tıklanabilir yapmış olabilir
+                                restore = true;
                                 g.wins.remove(&label);
                             }
                         }

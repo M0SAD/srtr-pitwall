@@ -4,6 +4,7 @@ import { labelStyleField } from "@/sdk/WxIcon";
 import { SESSION_SHOW_DEFAULT, SESSION_SHOW_OPTIONS } from "@/sdk/sessionShow";
 
 export const STANDINGS_COLUMNS = [
+  { value: "num", label: "Araç numarası" },
   { value: "flair", label: "Ülke" },
   { value: "car", label: "Araç markası" },
   { value: "name", label: "Sürücü" },
@@ -21,6 +22,7 @@ export const STANDINGS_COLUMNS = [
 ];
 
 export const STANDINGS_DEFAULT_COLUMNS = [
+  { key: "num", on: false },
   { key: "flair", on: true },
   { key: "name", on: true },
   { key: "car", on: true },
@@ -58,7 +60,7 @@ export const STANDINGS_OLD_DEFAULT_COLUMNS = [
 
 /** Sütun genişliği ayarında varsayılandan ilk değişiklikte başlanan yaklaşık değerler (px) */
 export const STANDINGS_COL_START: Record<string, number> = {
-  flair: 26, car: 44, name: 130, change: 30, license: 52, irating: 46, irDelta: 34, pits: 24, gap: 50, avg: 62, last: 62, best: 62, tire: 22, flag: 26,
+  num: 34, flair: 26, car: 44, name: 130, change: 30, license: 52, irating: 46, irDelta: 34, pits: 24, gap: 50, avg: 62, last: 62, best: 62, tire: 22, flag: 26,
 };
 
 export default defineOverlay({

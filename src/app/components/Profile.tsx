@@ -29,7 +29,6 @@ import {
 import { teamLogo } from "@/cloud/teams";
 import { openUrl } from "../ui";
 import { Flag } from "@/sdk/Flag";
-import { LicenseBadge, parseLicense } from "@/sdk/LicenseBadge";
 import * as I from "../icons";
 import "../profile.css";
 
@@ -289,35 +288,19 @@ export function ProfileCard(props: {
 }
 
 /**
- * iRacing bilgileri: ülke bayrağı ve KATEGORİ BAŞINA lisans rozeti (sınıf + SR) ve iRating (SQL c56 + c63).
- * iRacing bu değerleri oturumun kategorisi için verir (yol serisinde yol lisansı, ovalde oval lisansı); bu yüzden
- * her değer alındığı kategorinin adıyla gösterilir. Eski sunucuda (c63 yok) sadece son sürülen kategori görünür.
+ * iRacing bilgileri: yalnızca ülke bayrağı. Lisans sınıfı / SR ve iRating gösterilmez: iRacing bu değerleri yalnızca
+ * o an sürülen oturumun kategorisi için verir (yol, formula, oval, toprak ayrı ayrı) ve program son girilen oturumun
+ * değerini kaydettiği için profilde başka kategorinin (çoğu zaman yanlış görünen) değeri çıkıyordu.
  */
 export function IracingBadges(props: { ir: IracingInfo; user?: string }) {
-  // Kategori adı ("Road" vb.) ve iRating yanlış göründüğü için kaldırıldı: yalnızca son sürülen oturumun lisans rozeti
-  const list = () => [{ license: props.ir.license, lic_color: props.ir.lic_color, updated_at: props.ir.updated_at }];
-  const day = (iso: string) => new Date(iso).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" });
   return (
-    <div class="pf-irx">
-      <Show when={props.ir.country}>
+    <Show when={props.ir.country}>
+      <div class="pf-irx">
         <span class="pf-irx-flag" data-no-i18n>
           <Flag code={props.ir.country} />
         </span>
-      </Show>
-      <div class="pf-irx-cats">
-        <For each={list()}>
-          {(c) => (
-            <span class="pf-irx-cat" title={t("güncellendi: {0}", day(c.updated_at))}>
-              <LicenseBadge class="pf-licb" letter={parseLicense(c.license)[0]} sr={parseLicense(c.license)[1]} color={c.lic_color} title="iRacing lisansı ve Safety Rating" />
-            </span>
-          )}
-        </For>
       </div>
-      <small class="muted">{t("güncellendi: {0}", day(list()[0].updated_at))}</small>
-      <Show when={!props.ir.public}>
-        <small class="muted">(sadece sen görüyorsun)</small>
-      </Show>
-    </div>
+    </Show>
   );
 }
 

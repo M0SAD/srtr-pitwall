@@ -1,5 +1,5 @@
 import { onScreen, previewFrozen, screenEditing } from "@/sdk/overlay";
-import { For, Show, createMemo, createSignal, onCleanup, type JSX } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { t } from "@/sdk/i18n";
@@ -217,11 +217,32 @@ export default function LiveChat(props: OverlayProps) {
   useClickRegion(() => barEl, barClickable);
   const liveOf = (p?: string) =>
     (topic()?.channels ?? []).filter((c) => c.state === "live" && c.url && (!p || c.platform === p)).sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
+  const openUrl = (url: string) => void invoke("open_url", { url }).catch(() => window.open(url, "_blank"));
   const openChannel = (p?: string) => {
     if (!barClickable()) return;
     const c = liveOf(p)[0];
-    if (c) void invoke("open_url", { url: c.url }).catch(() => window.open(c.url, "_blank"));
+    if (c) openUrl(c.url);
   };
+  // Simgenin üstüne gelince o platformdaki canlı kanallar listelenir (Σ: hepsi); listeden tıklanan kanal açılır.
+  // "" = Σ (tüm platformlar), null = liste kapalı
+  const [hoverP, setHoverP] = createSignal<string | null>(null);
+  let popEl: HTMLDivElement | undefined;
+  let hideTimer = 0;
+  const showList = (p: string) => {
+    if (!barClickable()) return;
+    clearTimeout(hideTimer);
+    setHoverP(liveOf(p || undefined).length ? p : null);
+  };
+  // İmleç bölgeden çıkınca pencere yeniden tıklama geçirir olur ve fare olayı gelmeyebilir: liste kısa süre sonra kendiliğinden kapanır
+  const hideSoon = (ms = 350) => {
+    clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => setHoverP(null), ms);
+  };
+  onCleanup(() => clearTimeout(hideTimer));
+  createEffect(() => {
+    if (!barClickable()) setHoverP(null);
+  });
+  useClickRegion(() => popEl, () => barClickable() && hoverP() != null);
   const sample = simOn;
   const clock = () => new Date(now()).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
@@ -249,8 +270,10 @@ export default function LiveChat(props: OverlayProps) {
               {(p) => (
                 <span
                   class="lc-bar-item"
-                  classList={{ link: barClickable() && liveOf(p).length > 0 }}
-                  title={barClickable() && liveOf(p)[0] ? t("{0} kanalını aç", liveOf(p)[0].label) : undefined}
+                  classList={{ link: barClickable() && liveOf(p).length > 0, on: hoverP() === p }}
+                  onMouseEnter={() => showList(p)}
+                  onMouseMove={() => showList(p)}
+                  onMouseLeave={() => hideSoon()}
                   onClick={() => openChannel(p)}
                 >
                   <PlatformIcon platform={p} size={barSize() + 2} />
@@ -260,12 +283,49 @@ export default function LiveChat(props: OverlayProps) {
             </For>
           </Show>
           <Show when={sample() || o().viewerMode === "total" || barPlatforms().length > 1}>
-            <span class="lc-bar-item lc-bar-total" classList={{ link: barClickable() && liveOf().length > 0 }} onClick={() => openChannel()}>
+            <span
+              class="lc-bar-item lc-bar-total"
+              classList={{ link: barClickable() && liveOf().length > 0, on: hoverP() === "" }}
+              onMouseEnter={() => showList("")}
+              onMouseMove={() => showList("")}
+              onMouseLeave={() => hideSoon()}
+              onClick={() => openChannel()}
+            >
               Σ {fmtCount(viewers()?.total)}
             </span>
           </Show>
           <Show when={o().showClock}>
             <span class="lc-bar-clock">{clock()}</span>
+          </Show>
+          <Show when={hoverP() != null && liveOf(hoverP() || undefined).length > 0}>
+            <div
+              ref={popEl}
+              class="lc-bar-pop"
+              data-no-i18n
+              onMouseEnter={() => clearTimeout(hideTimer)}
+              onMouseMove={() => clearTimeout(hideTimer)}
+              onMouseLeave={() => hideSoon(250)}
+            >
+              <For each={liveOf(hoverP() || undefined)}>
+                {(c) => (
+                  <button
+                    class="lc-bar-pop-row"
+                    onClick={() => {
+                      setHoverP(null);
+                      openUrl(c.url);
+                    }}
+                  >
+                    <Show when={c.platform}>
+                      <PlatformIcon platform={c.platform!} size={Math.max(12, barSize())} />
+                    </Show>
+                    <span class="lc-bar-pop-name">{c.label}</span>
+                    <Show when={c.viewers != null}>
+                      <span class="lc-bar-pop-v">{fmtCount(c.viewers ?? null)}</span>
+                    </Show>
+                  </button>
+                )}
+              </For>
+            </div>
           </Show>
         </div>
       </Show>

@@ -439,9 +439,12 @@ fn build(app: &AppHandle, p: Platform, url: &str, visible: bool) -> Result<Webvi
     let a3 = app.clone();
     w.on_window_event(move |e| {
         if let tauri::WindowEvent::Destroyed = e {
-            st().lock().win.remove(pkey(p));
-            dlog(format!("web {}: pencere kapandı", pkey(p)));
-            send::emit(&a3);
+            // Ana iş parçacığında: panic programı kapatmasın
+            crate::crashlog::guard(|| {
+                st().lock().win.remove(pkey(p));
+                dlog(format!("web {}: pencere kapandı", pkey(p)));
+                send::emit(&a3);
+            });
         }
     });
     st().lock().win.insert(pkey(p), Win { target: url.to_string(), made_at: now_ms(), ..Default::default() });

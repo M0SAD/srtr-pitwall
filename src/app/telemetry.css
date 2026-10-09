@@ -591,6 +591,16 @@
   color: #fff;
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #3a84ff));
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 30%, transparent);
+  overflow: hidden;
+}
+.th-avatar.photo {
+  background: var(--bg-3, #222);
+}
+.th-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .th-who {
   flex: 1;
@@ -629,15 +639,17 @@
 }
 .th-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 10px;
 }
 .th-stat {
   position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 12px 14px 12px;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 14px 14px 12px;
   border-radius: 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
@@ -652,14 +664,30 @@
   opacity: 0.7;
 }
 .th-stat b {
+  /* Simge sağ üstte: değer onun altına kaymasın diye kutunun üst kısmında boşluk bırakılır */
+  margin-top: 14px;
   white-space: nowrap;
-  font-size: 23px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(18px, 1.6vw, 23px);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+/* "12 sa 30 dk": birimler küçük ve soluk, sayılar büyük */
+.th-val .th-unit {
+  margin: 0 0.32em 0 0.12em;
+  font-size: 0.56em;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.th-val .th-unit:last-child {
+  margin-right: 0;
 }
 .th-stat small {
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.3;
 }
 .th-stat.accent {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));

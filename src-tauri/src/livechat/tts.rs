@@ -165,11 +165,11 @@ pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emot
     let mut s = String::new();
     for p in parts {
         match p {
-            Part::Text { v } => s.push_str(v),
+            Part::Text { v } => s.push_str(&emote_codes(v, skip_emotes)),
             Part::Emote { name, .. } => {
                 if !skip_emotes {
                     s.push(' ');
-                    s.push_str(name);
+                    s.push_str(&emote_name(name));
                 }
                 s.push(' ');
             }
@@ -187,6 +187,72 @@ pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emot
         }
     }
     clean_text(&s, max_chars, skip_links, skip_smileys)
+}
+
+/// Kanal emojisi / özel görsel adı okunacak hâle: ":_imageinKedi:" → "imagein Kedi", "pit_stop" → "pit stop"
+pub fn emote_name(name: &str) -> String {
+    let n = name.trim().trim_matches(':').trim_matches('_');
+    let mut out = String::new();
+    let mut prev: Option<char> = None;
+    for c in n.chars() {
+        if c == '_' || c == '-' {
+            out.push(' ');
+        } else {
+            // küçük → BÜYÜK harf geçişinde kelime ayrılır ("pitStop" → "pit Stop")
+            if c.is_uppercase() && prev.map(|p| p.is_lowercase()).unwrap_or(false) {
+                out.push(' ');
+            }
+            out.push(c);
+        }
+        prev = Some(c);
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Metnin içine yazı olarak gelen emoji kısa kodları (":_kanalEmojisi:", ":kedi:") ve Kick "[emote:ID:AD]" kodları:
+/// `skip` ise atılır, değilse okunacak ada çevrilir. Saat gibi yalnızca rakamlı kısımlar ("10:30:45") kod sayılmaz.
+pub fn emote_codes(s: &str, skip: bool) -> String {
+    let ok = |c: char| c.is_alphanumeric() || c == '_' || c == '-';
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::with_capacity(s.len());
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        // [emote:123:ad]
+        if c == '[' {
+            let rest: String = chars[i..chars.len().min(i + 80)].iter().collect();
+            if let Some(inner) = rest.strip_prefix("[emote:").and_then(|r| r.split_once(']')).map(|(a, _)| a.to_string()) {
+                let name = inner.split_once(':').map(|(_, n)| n).unwrap_or("");
+                if !skip {
+                    out.push(' ');
+                    out.push_str(&emote_name(name));
+                }
+                out.push(' ');
+                i += "[emote:".len() + inner.chars().count() + 1;
+                continue;
+            }
+        }
+        // :kod:
+        if c == ':' && (i == 0 || !chars[i - 1].is_alphanumeric()) {
+            let mut j = i + 1;
+            while j < chars.len() && j - i <= 60 && ok(chars[j]) {
+                j += 1;
+            }
+            let inner: String = chars[i + 1..j.min(chars.len())].iter().collect();
+            if j < chars.len() && chars[j] == ':' && inner.chars().count() >= 2 && !inner.chars().all(|c| c.is_ascii_digit()) {
+                if !skip {
+                    out.push(' ');
+                    out.push_str(&emote_name(&inner));
+                }
+                out.push(' ');
+                i = j + 1;
+                continue;
+            }
+        }
+        out.push(c);
+        i += 1;
+    }
+    out
 }
 
 /// Karakterlerle yazılmış yüz ifadesi mi (":)", ":-D", ";P", "(:", "<3", "xD", "^^")
@@ -375,7 +441,7 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
     }
     let text = if cfg.mode == Mode::Command {
         let rest = match_command(&m.text, &cfg.command)?;
-        clean_text(&rest, cfg.max_chars, cfg.skip_links, cfg.skip_smileys)
+        clean_text(&emote_codes(&rest, cfg.skip_emotes), cfg.max_chars, cfg.skip_links, cfg.skip_smileys)
     } else {
         speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys)
     };
@@ -1004,6 +1070,14 @@ mod tests {
         assert_eq!(social_text("Ali_Veli", "Pitte görüşürüz 👍", true, 200).as_deref(), Some("Ali Veli diyor ki: Pitte görüşürüz"));
         assert_eq!(social_text("Ali", "selam", false, 200).as_deref(), Some("selam"));
         assert_eq!(social_text("Ali", "🔥", true, 200), None);
+        // Kanal emojileri / özel görseller yazı olarak gelirse
+        assert_eq!(emote_codes("selam :_imageinKedi: nasılsın", true).split_whitespace().collect::<Vec<_>>().join(" "), "selam nasılsın");
+        assert_eq!(emote_codes("selam :_imageinKedi::yt: x", false).split_whitespace().collect::<Vec<_>>().join(" "), "selam imagein Kedi yt x");
+        assert_eq!(emote_codes("saat 10:30:45 oldu", true), "saat 10:30:45 oldu");
+        assert_eq!(emote_codes("bak [emote:37226:KEKW] tamam", true).split_whitespace().collect::<Vec<_>>().join(" "), "bak tamam");
+        assert_eq!(emote_codes("not:kod: değil", true), "not:kod: değil");
+        assert_eq!(speech_text(&[Part::text("harika :_kanal_emoji: oldu")], 150, true, true, true), "harika oldu");
+        assert_eq!(speech_text(&[Part::Emote { url: "u".into(), name: ":_pitStop:".into() }], 150, true, false, true), "pit Stop");
     }
 
     #[test]

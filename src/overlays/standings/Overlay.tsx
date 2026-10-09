@@ -150,6 +150,12 @@ export default function Standings(props: OverlayProps) {
 
   const cell = (key: string, r: Row): JSX.Element => {
     switch (key) {
+      case "num":
+        return (
+          <span class="st-num" data-no-i18n>
+            {r.number}
+          </span>
+        );
       case "flair":
         return (
           <span class="st-flair" data-no-i18n>

@@ -354,7 +354,8 @@ impl Recorder {
             track_length_km: s.track_length_km,
             car_id: car_id.to_string(),
             car_name: player.map(|d| d.car_name.clone()).unwrap_or_default(),
-            car_class: player.map(|d| d.class_name.clone()).unwrap_or_default(),
+            // Lig kategorisi değil, simin gerçek sınıfı (lig ayarı sınıf adını "Pro" / "Am" gibi kategoriyle değiştirir)
+            car_class: player.map(|d| car_class_of(if d.orig_class_name.is_empty() { &d.class_name } else { &d.orig_class_name }, &d.car_name)).unwrap_or_default(),
             session_type: session_type(&kind).to_string(),
             session_kind: session_kind_tag(&kind, s.has_ai_opponents()),
             session_num: f.session_num,
@@ -779,5 +780,31 @@ mod tests {
         clear(&p).unwrap();
         assert_eq!(count(&p), 0);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+/// Telemetriye yazılan sınıf adı: anlamsız iRacing sınıf adları ("Hosted All Cars Class", araç adının kendisi,
+/// yalnızca sayı) boş bırakılır; "GT3 Class" → "GT3"
+fn car_class_of(class: &str, car: &str) -> String {
+    let c = class.trim();
+    let low = c.to_ascii_lowercase();
+    if c.is_empty() || low.contains("hosted") || low.contains("all cars") || c.chars().all(|ch| ch.is_ascii_digit()) || c.eq_ignore_ascii_case(car.trim()) {
+        return String::new();
+    }
+    let c = c.strip_suffix(" Class").or_else(|| c.strip_suffix(" class")).unwrap_or(c).trim();
+    c.to_string()
+}
+
+#[cfg(test)]
+mod class_tests {
+    use super::car_class_of;
+
+    #[test]
+    fn class_names() {
+        assert_eq!(car_class_of("GT3 Class", "BMW M4 GT3"), "GT3");
+        assert_eq!(car_class_of("Hosted All Cars Class", "x"), "");
+        assert_eq!(car_class_of("Mazda MX-5 Cup", "Mazda MX-5 Cup"), "");
+        assert_eq!(car_class_of("4029", "x"), "");
+        assert_eq!(car_class_of("LMP2", "Dallara P217"), "LMP2");
     }
 }

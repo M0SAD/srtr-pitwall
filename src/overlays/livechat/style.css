@@ -414,6 +414,56 @@
   cursor: pointer;
   border-radius: 0.3em;
 }
-.lc-bar-item.link:hover {
+.lc-bar-item.link:hover,
+.lc-bar-item.link.on {
   background: rgba(255, 255, 255, 0.1);
+}
+/* İzleyici çubuğu: simgenin üstüne gelince canlı kanallar listesi */
+.lc-bar {
+  position: relative;
+}
+.lc-bar-pop {
+  position: absolute;
+  /* Çubuğa bitişik: imleç simgeden listeye inerken tıklanabilir bölgeden çıkmasın */
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 12em;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(14, 16, 21, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.lc-bar-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.35em 0.55em;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.lc-bar-pop-row:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.lc-bar-pop-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lc-bar-pop-v {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
 }

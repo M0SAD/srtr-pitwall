@@ -1318,7 +1318,12 @@ pub fn debug_file(line: &str) {
     use std::io::Write;
     if std::fs::metadata(path).map(|m| m.len() > 256 * 1024).unwrap_or(false) {
         if let Ok(t) = std::fs::read_to_string(path) {
-            let half = t.len() / 2;
+            // Yarı nokta çok baytlı bir harfin (ör. "ı", "ş") ortasına denk gelirse dilimleme panic yapıyordu ve dosya
+            // artık değişmediği için her çağrıda yineleniyordu (yayın bitince sohbet görevleri birer birer düşüyordu)
+            let mut half = t.len() / 2;
+            while !t.is_char_boundary(half) {
+                half += 1;
+            }
             let cut = t[half..].find('\n').map(|i| half + i + 1).unwrap_or(half);
             let _ = std::fs::write(path, &t[cut..]);
         }
