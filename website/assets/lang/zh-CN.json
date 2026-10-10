@@ -145,6 +145,7 @@
  "a_manage": "管理 / 取消订阅",
  "a_buy_title": "购买或续期 PRO",
  "a_buy_note": "结账时会自动关联你的账户；付款后 PRO 几秒内生效。剩余时长会顺延。",
+ "a_buy_btn": "购买",
  "a_patreon_note": "若通过 Patreon 付款，你的 Patreon 邮箱必须与本账户邮箱或上方的付款邮箱一致。Patreon 仅提供按月订阅。",
  "a_payments": "付款记录",
  "a_no_payments": "暂无付款记录。",

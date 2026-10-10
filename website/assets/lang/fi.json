@@ -145,6 +145,7 @@
  "a_manage": "Hallitse / peru tilaus",
  "a_buy_title": "Osta tai jatka PRO:ta",
  "a_buy_note": "Tilisi yhdistetään kassalla automaattisesti; PRO aktivoituu muutamassa sekunnissa. Jäljellä olevaa aikaa jatketaan.",
+ "a_buy_btn": "Osta",
  "a_patreon_note": "Jos maksat Patreonissa, Patreon-sähköpostisi on oltava sama kuin tämän tilin sähköposti tai yllä oleva maksusähköposti. Patreonin kautta saa vain kuukausitilauksen.",
  "a_payments": "Maksuhistoria",
  "a_no_payments": "Ei vielä maksuja.",

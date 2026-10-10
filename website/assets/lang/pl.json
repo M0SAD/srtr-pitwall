@@ -145,6 +145,7 @@
  "a_manage": "Zarządzaj / anuluj subskrypcję",
  "a_buy_title": "Kup lub przedłuż PRO",
  "a_buy_note": "Twoje konto zostanie automatycznie powiązane przy płatności; PRO włączy się w ciągu kilku sekund. Pozostały czas zostanie przedłużony.",
+ "a_buy_btn": "Kup",
  "a_patreon_note": "Jeśli płacisz przez Patreon, Twój e-mail na Patreonie musi być taki sam jak e-mail tego konta lub e-mail płatności podany powyżej. Na Patreonie dostępna jest tylko subskrypcja miesięczna.",
  "a_payments": "Historia płatności",
  "a_no_payments": "Brak płatności.",

@@ -110,6 +110,7 @@ addDict({
   a_next_renew: ["Sonraki yenileme", "Next renewal"],
   a_manage: ["Aboneliği yönet / iptal et", "Manage / cancel subscription"],
   a_buy_title: ["PRO satın al ya da uzat", "Buy or extend PRO"],
+  a_buy_btn: ["Satın al", "Buy"],
   a_buy_note: [
     "Ödeme sayfasında hesabın otomatik eşlenir; ödeme olunca PRO birkaç saniyede açılır. Süren varsa üstüne eklenir.",
     "Your account is linked automatically at checkout; PRO turns on within seconds. Existing time is extended.",
@@ -405,13 +406,20 @@ async function dashboard(u) {
   const gotGift = pro?.gift;
   const planBtns = PLANS.map((x) => ({ x, ...planFor(cfg, x) }))
     .filter((o) => o.checkout)
-    .map((o) =>
-      isProCheckout(o.checkout)
-        ? `<button class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" data-pro="${o.x.id}">
-        ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></button>`
-        : `<a class="btn ${o.x.id === "12m" ? "btn-accent" : ""}" href="${esc(checkoutUrl(o.checkout, u))}">
-        ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></a>`,
-    )
+    .map((o) => {
+      // Ana sayfadaki fiyat kutularıyla aynı görünüm; fiyat .muted içinde, kupon onu üstü çizili günceller (decoratePlans "procard")
+      const best = o.x.id === "12m";
+      const tag = best ? T("best_value") : o.x.id === "3m" ? T("popular") : "";
+      const per = o.x.months > 1 && o.num > 0 ? T("per_month", fmtMoney(o.num / o.x.months, o.cur)) : "";
+      const cls = `btn ${best ? "btn-accent" : ""}`;
+      const btn = isProCheckout(o.checkout)
+        ? `<button type="button" class="${cls}" data-pro="${o.x.id}">${T("a_buy_btn")}</button>`
+        : `<a class="${cls}" href="${esc(checkoutUrl(o.checkout, u))}">${T("a_buy_btn")}</a>`;
+      return `<div class="card plan${best ? " best" : ""}" data-procard="${o.x.id}">${tag ? `<span class="tag">${esc(tag)}</span>` : ""}
+        <div class="name">${esc(planName(o.x))}</div>
+        <div class="price" translate="no"><span class="muted">${esc(o.price)}</span></div>
+        <div class="per">${esc(per)}</div>${btn}</div>`;
+    })
     .join("");
   const srcName = { paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: T("nav_admin") }[p.pro_source] || p.pro_source || "—";
 
@@ -463,7 +471,7 @@ async function dashboard(u) {
           <h3>${T("a_buy_title")}</h3>
           <p class="muted small">${T("a_buy_note")}</p>
           ${planBtns.includes("data-pro=") && !payMethods(cfg).hide_coupon ? `<div id="cp-pro"></div>` : ""}
-          <div class="row">${planBtns || (payLinks(cfg).length ? "" : `<span class="muted small">${T("soon")}</span>`)}</div>
+          ${planBtns ? `<div class="plans plans-compact">${planBtns}</div>` : payLinks(cfg).length ? "" : `<span class="muted small">${T("soon")}</span>`}
           ${payLinksHtml(cfg)}
         </div>
 
@@ -545,10 +553,12 @@ async function dashboard(u) {
     product: "pro",
     onChange: () => {
       decoratePlans(document, "pro");
+      decoratePlans(document, "procard");
       decoratePlans($("#g-pick"), "gplan", true);
     },
   });
   decoratePlans(document, "pro");
+  decoratePlans(document, "procard");
   $$("[data-pro]").forEach((b) =>
     b.addEventListener("click", async () => {
       b.disabled = true;

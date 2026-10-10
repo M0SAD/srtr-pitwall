@@ -145,6 +145,7 @@
  "a_manage": "Gestionar / cancelar suscripción",
  "a_buy_title": "Comprar o ampliar PRO",
  "a_buy_note": "Tu cuenta se vincula automáticamente en el pago; PRO se activa en segundos. El tiempo que ya tengas se amplía.",
+ "a_buy_btn": "Comprar",
  "a_patreon_note": "Si pagas en Patreon, tu e-mail de Patreon debe coincidir con el e-mail de esta cuenta o con el e-mail de pago de arriba. En Patreon solo está disponible la suscripción mensual.",
  "a_payments": "Historial de pagos",
  "a_no_payments": "Aún no hay pagos.",

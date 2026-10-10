@@ -542,6 +542,48 @@ section {
 .plan .btn {
   margin-top: auto;
 }
+/* Hesabım > PRO satın al: yarım genişlikteki kartın içinde 2 sütun */
+.plans.plans-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+@media (max-width: 420px) {
+  .plans.plans-compact {
+    grid-template-columns: 1fr;
+  }
+}
+.plans-compact .plan {
+  padding: 20px 14px 16px;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.plans-compact .plan .name {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.plans-compact .plan .price {
+  font-size: 28px;
+  line-height: 1.15;
+  min-height: 32px;
+}
+.plans-compact .plan .price > .muted {
+  color: inherit;
+}
+.plans-compact .plan .price s {
+  font-size: 16px;
+  display: block;
+}
+.plans-compact .plan .per {
+  font-size: 12px;
+  min-height: 18px;
+  margin-bottom: 8px;
+}
+.plans-compact .plan .btn {
+  margin-top: auto;
+  width: 100%;
+  justify-content: center;
+}
 .alt-pay {
   margin-top: 26px;
   display: flex;

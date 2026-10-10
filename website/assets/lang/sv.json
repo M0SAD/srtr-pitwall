@@ -145,6 +145,7 @@
  "a_manage": "Hantera / säg upp prenumeration",
  "a_buy_title": "Köp eller förläng PRO",
  "a_buy_note": "Ditt konto kopplas automatiskt i kassan; PRO slås på inom några sekunder. Eventuell återstående tid förlängs.",
+ "a_buy_btn": "Köp",
  "a_patreon_note": "Om du betalar via Patreon måste din Patreon-e-post stämma med det här kontots e-post eller betalnings-e-posten ovan. Via Patreon finns bara månadsprenumerationen.",
  "a_payments": "Betalningshistorik",
  "a_no_payments": "Inga betalningar än.",

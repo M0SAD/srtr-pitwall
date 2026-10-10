@@ -145,6 +145,7 @@
  "a_manage": "Abonnement beheren / opzeggen",
  "a_buy_title": "PRO kopen of verlengen",
  "a_buy_note": "Je account wordt bij de checkout automatisch gekoppeld; PRO is binnen enkele seconden actief. Bestaande tijd wordt verlengd.",
+ "a_buy_btn": "Kopen",
  "a_patreon_note": "Als je via Patreon betaalt, moet je Patreon-e-mailadres overeenkomen met het e-mailadres van dit account of met het betaal-e-mailadres hierboven. Via Patreon is alleen het maandabonnement beschikbaar.",
  "a_payments": "Betalingsgeschiedenis",
  "a_no_payments": "Nog geen betalingen.",

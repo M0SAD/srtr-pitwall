@@ -145,6 +145,7 @@
  "a_manage": "Gerenciar / cancelar assinatura",
  "a_buy_title": "Comprar ou estender o PRO",
  "a_buy_note": "Sua conta é vinculada automaticamente no checkout; o PRO é ativado em segundos. O tempo que você já tem é estendido.",
+ "a_buy_btn": "Comprar",
  "a_patreon_note": "Se você pagar pelo Patreon, o seu e-mail do Patreon precisa ser igual ao e-mail desta conta ou ao e-mail de pagamento acima. No Patreon só está disponível a assinatura mensal.",
  "a_payments": "Histórico de pagamentos",
  "a_no_payments": "Nenhum pagamento ainda.",

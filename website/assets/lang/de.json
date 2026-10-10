@@ -145,6 +145,7 @@
  "a_manage": "Abo verwalten / kündigen",
  "a_buy_title": "PRO kaufen oder verlängern",
  "a_buy_note": "Dein Konto wird an der Kasse automatisch verknüpft; PRO ist in Sekunden aktiv. Bestehende Laufzeit wird verlängert.",
+ "a_buy_btn": "Kaufen",
  "a_patreon_note": "Wenn du über Patreon bezahlst, muss deine Patreon-E-Mail mit der E-Mail dieses Kontos oder der obigen Zahlungs-E-Mail übereinstimmen. Über Patreon gibt es nur das Monatsabo.",
  "a_payments": "Zahlungsverlauf",
  "a_no_payments": "Noch keine Zahlungen.",

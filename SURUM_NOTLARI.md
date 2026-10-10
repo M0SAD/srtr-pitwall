@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-288
+
+- Site, Hesabım: "PRO satın al ya da uzat" bölümü ana sayfadaki gibi plan kutularıyla gösteriliyor (Aylık / 3 aylık / 6 aylık / Yıllık; "Popüler" ve "En avantajlı" etiketleri, aylık karşılığı, her kutuda Satın al düğmesi). Kupon uygulanınca kutudaki fiyat üstü çizili eski fiyat ve yeni fiyat olarak güncellenir.
+
 ## 101026-287
 
 - Site: yasal sayfalar eklendi (Paddle onayı için): Kullanım koşulları (kosullar.html), Gizlilik politikası (gizlilik.html), İade politikası (iade.html). Türkçe arayüzde Türkçe, diğer dillerde İngilizce. Alt bilgide bu sayfaların ve iletişim e-postasının bağlantıları. Satıcı: Erkin Azcan (Türkiye), iletişim: erkinazcan@gmail.com. Metinler assets/legal.js içinde.
