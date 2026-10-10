@@ -1,7 +1,7 @@
 // Sitedeki reklam alanları: <div data-ad="site_home"></div> gibi yer tutucuları doldurur.
 // PRO üyelere ve reklamlar kapalıyken sunucu boş döner (alan gizli kalır). Yarısı en az 1 saniye
 // göründüğünde gösterim sayılır; sağ tık menüsünden reklam raporlanır (giriş gerekir).
-import { $, $$, SUPABASE_URL, T, addDict, currentUser, esc, lang, sb, visitorId } from "./core.js";
+import { $, $$, ADS_PAGE, SUPABASE_URL, T, addDict, currentUser, esc, lang, sb, visitorId } from "./core.js";
 
 addDict({
   ad_tag: ["Reklam", "Ad"],
@@ -66,7 +66,7 @@ async function openMenu(e, ad, reload) {
   m.style.left = Math.min(e.clientX, window.innerWidth - 240) + "px";
   m.style.top = Math.min(e.clientY, window.innerHeight - 140) + "px";
   m.innerHTML = `<button data-a="report">⚑ ${esc(T(u ? "ad_report" : "ad_report_login"))}</button>
-    <a href="reklam.html">📣 ${esc(T("ad_advertise"))}</a>
+    ${ADS_PAGE ? `<a href="reklam.html">📣 ${esc(T("ad_advertise"))}</a>` : ""}
     <a href="index.html#pricing">★ ${esc(T("ad_go_pro"))}</a>`;
   document.body.appendChild(m);
   m.querySelector("[data-a=report]").addEventListener("click", () => {

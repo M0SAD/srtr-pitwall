@@ -1,7 +1,7 @@
 // Reklam ver: reklam veren yer, fiyat modeli (gösterim paketi / süre), görsel, metin, bağlantı ve hedef dili seçer,
 // canlı önizlemeyi ve toplam fiyatı görür, "Öde" ile ödeme sayfasına (Paddle) gider (ads-checkout).
 // Ödeme gelince reklam kendiliğinden yayına girer. "Reklamlarım": durum, gösterim / tıklama, kalan.
-import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, openCheckout, region, sb, toast } from "./core.js";
+import { $, $$, ADS_PAGE, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, openCheckout, region, sb, toast } from "./core.js";
 import { AD_PLACES, adHtml, adImg } from "./adslot.js";
 import { couponBox, couponPrice, getCoupon, strikeHtml } from "./coupon.js";
 
@@ -345,6 +345,11 @@ async function render() {
     ${user ? `<a class="btn" href="#mine">${esc(T("ad_mine"))}</a>` : ""}</div>`;
   const rules = `<div class="card"><h3>${esc(T("ad_rules_title"))}</h3><div class="muted small ad-rules">${T("ad_rules")}</div></div>`;
 
+  // Reklam alımı kapalıyken giriş yapmamış ziyaretçiye fiyatlar da gösterilmez
+  if (!user && !cfg.ads_enabled) {
+    app().innerHTML = `<div class="page">${head}<div class="msg">${esc(T("ad_closed"))}</div></div>`;
+    return;
+  }
   if (!user) {
     app().innerHTML = `<div class="page">${head}
       <div class="grid g4 ad-places-ro">${PLACES.map((id) => placeCard(id, false)).join("")}</div>
@@ -662,6 +667,7 @@ function pollPaid(id) {
 }
 
 async function main() {
+  if (!ADS_PAGE) return location.replace("index.html");
   await boot("/reklam", "ads");
   [cfg, user] = await Promise.all([appConfig().catch(() => ({})), currentUser()]);
   pr = { ...DEF_PRICING, ...(cfg.ad_pricing || {}) };

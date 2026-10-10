@@ -1,5 +1,5 @@
 // Tanıtım sayfası: özellikler, karşılaştırma, fiyatlar (yönetim panelinden girilen fiyat ve ödeme bağlantıları), SSS
-import { $, T, addDict, appConfig, payLinks, payLinksHtml, payMethods, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, region, startProCheckout } from "./core.js";
+import { $, ADS_PAGE, T, addDict, appConfig, payLinks, payLinksHtml, payMethods, applyLang, boot, checkoutUrl, currentUser, esc, fmtMoney, isProCheckout, locale, planFor, planName, PLANS, region, startProCheckout } from "./core.js";
 import { applyCachedImages, initSiteImages, overrideFor } from "./siteimages.js";
 import { OVERLAY_ROUND as OVERLAY_COUNT } from "./overlays.js";
 import { OVERLAYS, OVERLAY_LIST, OVERLAY_TOTAL, overlayImage, overlaySlot } from "./overlays.js";
@@ -270,7 +270,8 @@ let user = null;
 document.querySelectorAll('[data-t="pill_overlays"]').forEach((el) => (el.dataset.tArgs = String(OVERLAY_COUNT)));
 
 function renderStatic() {
-  $("#feat-grid").innerHTML = FEATS.map(
+  // "Reklam ver" kartı yalnızca reklam alımı açıksa (yönetim > Reklamlar açık)
+  $("#feat-grid").innerHTML = FEATS.filter(([, k]) => k !== "f14" || (ADS_PAGE && cfg?.ads_enabled)).map(
     ([ic, k]) => `<div class="card feat"><div class="ic">${ic}</div><h3>${T(k + "_t", OVERLAY_COUNT)}</h3><p>${T(k + "_d")}</p></div>`,
   ).join("");
   const mark = (v) => (v ? `<span class="y">✓</span>` : `<span class="n">—</span>`);
@@ -504,6 +505,7 @@ async function main() {
   });
   [cfg, user] = await Promise.all([appConfig().catch(() => ({})), currentUser()]);
   initSiteImages(cfg && Object.keys(cfg).length ? cfg : null);
+  if (ADS_PAGE && cfg?.ads_enabled) renderStatic();
   renderPlans();
   applyLang();
   // PRO tanıtım kartı: fiyatların üstünde (PRO olmayanlara; yönetici ayarlar)

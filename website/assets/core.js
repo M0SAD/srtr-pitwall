@@ -915,6 +915,9 @@ export async function initNav() {
   });
 }
 
+/** "Reklam ver" sayfası herkese kapalı (Paddle reklam satışına izin vermiyor; şu an gerek yok). Açmak için true yap. */
+export const ADS_PAGE = false;
+
 export function headerHtml(active = "") {
   return `
   <header class="top">
@@ -926,7 +929,7 @@ export function headerHtml(active = "") {
         <a href="index.html#faq" data-t="nav_faq"></a>
         <a href="takimlar.html" class="${active === "teams" ? "on" : ""}" data-t="nav_teams"></a>
         <a href="yarisci.html" class="${active === "drivers" ? "on" : ""}" data-t="nav_drivers"></a>
-        <a href="reklam.html" class="${active === "ads" ? "on" : ""}" data-t="nav_ads"></a>
+        <a href="reklam.html" class="nav-ads${active === "ads" ? " on" : ""}" hidden data-t="nav_ads"></a>
         <a href="crew.html" class="nav-crew${active === "crew" ? " on" : ""}" hidden data-t="nav_crew"></a>
         <a href="yonetim.html" class="nav-admin${active === "admin" ? " on" : ""}" hidden data-t="nav_admin"></a>
         <a href="hesap.html" class="nav-login${active === "account" ? " on" : ""}" data-t="nav_login"></a>
@@ -955,7 +958,7 @@ export function footerHtml() {
         <a href="https://www.instagram.com/erkinazcan" target="_blank" rel="noopener">Instagram</a>
         <a href="https://github.com/${REPO}" target="_blank" rel="noopener">GitHub</a>
         <a href="yarisci.html" data-t="nav_drivers"></a>
-        <a href="reklam.html" data-t="nav_ads"></a>
+        <a href="reklam.html" class="nav-ads" hidden data-t="nav_ads"></a>
         <a href="kosullar.html" data-t="legal_terms"></a>
         <a href="gizlilik.html" data-t="legal_privacy"></a>
         <a href="iade.html" data-t="legal_refund"></a>
@@ -1003,6 +1006,11 @@ export async function boot(page, active = "") {
   hit(page);
   await initNav();
   promoBanner();
+  // Reklam bağlantıları yalnızca yönetimde "Reklamlar açık" ise görünür (ödeme sağlayıcısı reklam satışına izin vermeyebilir)
+  if (ADS_PAGE)
+    appConfig()
+      .then((c) => $$(".nav-ads").forEach((a) => (a.hidden = !c?.ads_enabled)))
+      .catch(() => {});
   // Üst çubuk bağlantıları (Discord, WhatsApp…): alt bilgide küçük simgeler
   import("./toplinks.js").then((m) => m.initTopLinks()).catch(() => {});
 }

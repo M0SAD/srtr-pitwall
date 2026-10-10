@@ -33,7 +33,7 @@ Paddle → **Catalog → Products → + New product**:
 
 - **SRTR Pitwall PRO** — vergi kategorisi **Standard digital goods** (ya da **SaaS**). Fiyat eklemen gerekmez
   (fiyat her ödemede panelden gönderilir). Ürün kimliğini (`pro_…`) not et → `PADDLE_PRO_PRODUCT_ID`.
-- **SRTR Pitwall reklamı** — aynı vergi kategorisi, fiyatsız. Kimliği → `PADDLE_AD_PRODUCT_ID`.
+- ~~SRTR Pitwall reklamı~~ — **oluşturma.** Paddle reklam alanı satışına izin vermiyor (mağaza onayı bu yüzden reddedildi). Reklam ödemeleri Paddle dışında kalır (Lemon tanımlıysa Lemon, değilse reklam alımı kapalı: yönetim > Reklamlar > "Reklamlar açık" kapalı tutulur; kapalıyken sitede reklam bağlantıları ve fiyatları görünmez).
 
 ### 3. Anahtarlar
 
@@ -71,7 +71,7 @@ Paddle → **Developer tools → Notifications → + New destination**:
    `apply_subscription`, `my_pro`, `my_gifts`, gelir istatistiklerinde Paddle).
 2. **Edge Functions → Secrets**:
    - `PADDLE_API_KEY`, `PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET`
-   - `PADDLE_PRO_PRODUCT_ID`, `PADDLE_AD_PRODUCT_ID`
+   - `PADDLE_PRO_PRODUCT_ID` (`PADDLE_AD_PRODUCT_ID` tanımlanmaz; varsa silinir)
    - `PADDLE_ENV=sandbox` (yalnızca test ortamında; canlıda bu değeri **sil**)
    - (isteğe bağlı) `SITE_URL`, varsayılan `https://pitwall.simracetr.com`
 3. Fonksiyonları güncel dosyalarla yeniden yayınla (**Edge Functions → fonksiyon → Code** → dosyanın içeriğini

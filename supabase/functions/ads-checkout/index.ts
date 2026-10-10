@@ -1,6 +1,7 @@
 // Reklam ödemesi: reklam verenin ödenmemiş reklamı için tek seferlik ödeme sayfası açar.
 //
-// ÖDEME SAĞLAYICISI: PADDLE_API_KEY tanımlıysa Paddle Billing, değilse Lemon Squeezy (eski yol).
+// ÖDEME SAĞLAYICISI: PADDLE_API_KEY ve PADDLE_AD_PRODUCT_ID ikisi de tanımlıysa Paddle Billing, değilse Lemon Squeezy.
+// NOT: Paddle reklam alanı satışına izin vermiyor (mağaza onayı bu yüzden reddedildi); PADDLE_AD_PRODUCT_ID'yi tanımlama.
 // Paddle: reklam ürünü (PADDLE_AD_PRODUCT_ID) + bu ödemeye özel tek seferlik fiyat (kuponlu tutar, reklamın para
 // birimi; kur çevrimi yok). custom_data.ad_id → pro-webhook (?source=paddle) transaction.completed ile reklamı
 // ödendi sayar; iade (adjustment) reklamı durdurur. Yanıt pro-checkout'taki gibi: url (odeme.html?_ptxn=…), txn, token, env.
@@ -184,11 +185,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return reply(405, { error: "POST bekleniyor" });
   try {
-    const usePaddle = !!PADDLE_KEY();
+    const usePaddle = !!PADDLE_KEY() && !!env("PADDLE_AD_PRODUCT_ID");
     const apiKey = Deno.env.get("LEMON_API_KEY") ?? "";
-    if (usePaddle) {
-      if (!env("PADDLE_AD_PRODUCT_ID")) return reply(503, { error: "Reklam ödemesi henüz yapılandırılmadı" });
-    } else if (!apiKey || !env("LEMON_STORE_ID") || !(env("LEMON_AD_VARIANT_ID") || env("LEMON_AD_PRODUCT_ID"))) {
+    if (!usePaddle && (!apiKey || !env("LEMON_STORE_ID") || !(env("LEMON_AD_VARIANT_ID") || env("LEMON_AD_PRODUCT_ID")))) {
       return reply(503, { error: "Reklam ödemesi henüz yapılandırılmadı" });
     }
 

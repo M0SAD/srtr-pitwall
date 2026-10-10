@@ -4,6 +4,7 @@ import {
   $,
   $$,
   T,
+  ADS_PAGE,
   PLANS,
   addDict,
   appConfig,
@@ -355,7 +356,7 @@ async function afterLogin() {
   const { data } = await sb.auth.getSession();
   const u = data.session?.user;
   // Reklam ver sayfasından gelindiyse oraya dön
-  if (u && new URLSearchParams(location.search).get("next") === "reklam") {
+  if (u && ADS_PAGE && new URLSearchParams(location.search).get("next") === "reklam") {
     location.href = "reklam.html";
     return;
   }

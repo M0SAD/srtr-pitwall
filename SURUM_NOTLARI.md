@@ -3,6 +3,17 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-290
+
+- Site: "Reklam ver" sayfası herkese kapatıldı (core.js ADS_PAGE = false). Menüde, alt bilgide, ana sayfa özelliklerinde ve reklam kutusunun menüsünde bağlantısı yok; reklam.html açılırsa ana sayfaya yönlenir ve arama motorlarına kapalı (noindex). Yönetimdeki reklam ayarları yerinde duruyor; sayfayı geri açmak için ADS_PAGE = true.
+
+## 101026-289
+
+- Paddle reklam satışına izin vermediği için mağaza onayı reddedildi; reklam ödemesi Paddle'dan ayrıldı:
+  - ads-checkout: Paddle yalnızca PADDLE_AD_PRODUCT_ID tanımlıysa kullanılır (tanımlanmamalı); yoksa Lemon, o da yoksa "Reklam ödemesi henüz yapılandırılmadı".
+  - Site: yönetimde "Reklamlar açık" kapalıyken üst menü ve alt bilgideki "Reklam ver" bağlantıları, ana sayfadaki "Reklam ver" kutusu gizlenir; reklam sayfası giriş yapmamış ziyaretçiye fiyat göstermez, yalnızca "Reklam alımı şu an kapalı" yazar.
+  - Kullanım koşulları ve iade politikasından reklam satışı maddeleri çıkarıldı.
+
 ## 101026-288
 
 - Site, Hesabım: "PRO satın al ya da uzat" bölümü ana sayfadaki gibi plan kutularıyla gösteriliyor (Aylık / 3 aylık / 6 aylık / Yıllık; "Popüler" ve "En avantajlı" etiketleri, aylık karşılığı, her kutuda Satın al düğmesi). Kupon uygulanınca kutudaki fiyat üstü çizili eski fiyat ve yeni fiyat olarak güncellenir.

@@ -28,7 +28,7 @@ const DOCS = {
         ]],
         ["2. Hizmet", [
           "SRTR Pitwall, yarış simülasyonları (ör. iRacing, Assetto Corsa Competizione, Le Mans Ultimate) için ekran üstü göstergeler (overlay), telemetri, canlı yayın araçları ve topluluk özellikleri sunan bir programdır.",
-          "Programın temel özellikleri ücretsizdir. PRO üyelik ek özellikleri açar. Sitede reklam alanı da satın alınabilir.",
+          "Programın temel özellikleri ücretsizdir. PRO üyelik ek özellikleri açar.",
           "Hizmeti geliştirmek için özellikleri zaman zaman değiştirebilir, ekleyebilir ya da kaldırabiliriz.",
         ]],
         ["3. Hesap", [
@@ -43,7 +43,6 @@ const DOCS = {
           "Fiyat değişiklikleri yalnızca yeni aboneliklere uygulanır; mevcut aboneliğin kendi fiyatından yenilenir.",
           "Başka bir üyeye hediye edilen PRO aboneliğinde ödemeyi ve yenilemeleri hediye eden yapar; hediye eden aboneliği istediği zaman sonlandırabilir.",
           "İndirim kuponları ödeme sayfasında belirtilen koşullarla ve süreyle geçerlidir.",
-          "Reklam alanı satın alımları tek seferliktir. Reklamlar yayına girmeden önce incelenebilir; uygun bulunmayan ödenmiş reklamın ücreti iade edilir.",
         ]],
         ["5. İade", [
           "İadeler " + `<a href="iade.html">İade politikamıza</a>` + " tabidir.",
@@ -51,7 +50,7 @@ const DOCS = {
         ["6. Kabul edilebilir kullanım", [
           "Hizmeti yasalara, kullandığın oyunların ve platformların (ör. iRacing, Twitch, YouTube, Kick) kurallarına uygun kullanmalısın.",
           "PRO kilidini aşmaya çalışmak, programı kırmak, değiştirilmiş kopyasını dağıtmak, Hizmete saldırmak ya da başkalarının hesaplarına erişmeye çalışmak yasaktır.",
-          "Paylaştığın içerikler (profil, düzenler, mesajlar, reklamlar) yasa dışı, nefret söylemi içeren, taciz edici ya da başkalarının haklarını ihlal eden nitelikte olamaz.",
+          "Paylaştığın içerikler (profil, düzenler, mesajlar) yasa dışı, nefret söylemi içeren, taciz edici ya da başkalarının haklarını ihlal eden nitelikte olamaz.",
         ]],
         ["7. Fikri mülkiyet", [
           "Program, web sitesi, tasarımlar ve markalar bize aittir. Sana Hizmeti kişisel olarak kullanman için devredilemez, münhasır olmayan bir kullanım hakkı veriyoruz.",
@@ -83,7 +82,7 @@ const DOCS = {
         ]],
         ["2. The Service", [
           "SRTR Pitwall is an application that provides on-screen overlays, telemetry, live streaming tools and community features for racing simulators (e.g. iRacing, Assetto Corsa Competizione, Le Mans Ultimate).",
-          "The core features of the app are free. A PRO membership unlocks additional features. Advertising placements can also be purchased on the website.",
+          "The core features of the app are free. A PRO membership unlocks additional features.",
           "We may change, add or remove features from time to time to improve the Service.",
         ]],
         ["3. Your account", [
@@ -98,13 +97,12 @@ const DOCS = {
           "Price changes apply to new subscriptions only; an existing subscription renews at its own price.",
           "For a PRO subscription gifted to another member, the gifter pays the initial and renewal payments and may end the gift at any time.",
           "Discount coupons are valid under the conditions and for the period shown at checkout.",
-          "Advertising purchases are one-time payments. Ads may be reviewed before going live; a paid ad that is rejected is refunded.",
         ]],
         ["5. Refunds", ["Refunds are governed by our " + `<a href="iade.html">Refund Policy</a>` + "."]],
         ["6. Acceptable use", [
           "You must use the Service in line with the law and the rules of the games and platforms you use (e.g. iRacing, Twitch, YouTube, Kick).",
           "You may not attempt to bypass the PRO lock, crack or redistribute modified copies of the app, attack the Service or access other people's accounts.",
-          "Content you share (profile, layouts, messages, ads) must not be illegal, hateful, harassing or infringe the rights of others.",
+          "Content you share (profile, layouts, messages) must not be illegal, hateful, harassing or infringe the rights of others.",
         ]],
         ["7. Intellectual property", [
           "The application, website, designs and brand belong to us. We grant you a personal, non-transferable, non-exclusive licence to use the Service.",
@@ -234,10 +232,7 @@ const DOCS = {
         ["3. Abonelik iptali", [
           "Aboneliğini istediğin zaman Hesabım sayfasındaki \"Aboneliği yönet\" bağlantısından ya da paddle.net üzerinden iptal edebilirsin. İptal sonraki yenilemeleri durdurur ve ödenmiş dönemin sonunda geçerli olur; o tarihe kadar PRO özelliklerini kullanmaya devam edersin.",
         ]],
-        ["4. Reklam ödemeleri", [
-          "Yayına alınması uygun bulunmayan (reddedilen) ödenmiş reklamların ücreti iade edilir. Yayına girmiş reklamlar için iade yukarıdaki kurallara tabidir.",
-        ]],
-        ["5. İade talebi", [
+        ["4. İade talebi", [
           "İade talebi için " + link("https://paddle.net", "paddle.net") + " adresinden siparişini bulup Paddle'a başvurabilir ya da " + mail + " adresine sipariş e-postanla birlikte yazabilirsin.",
         ]],
       ],
@@ -257,10 +252,7 @@ const DOCS = {
         ["3. Cancelling a subscription", [
           "You can cancel at any time from the \"Manage subscription\" link on your account page or via paddle.net. Cancelling stops future renewals and takes effect at the end of the paid period; you keep PRO features until then.",
         ]],
-        ["4. Advertising payments", [
-          "Paid ads that are rejected and not published are refunded. Refunds for ads that have gone live follow the rules above.",
-        ]],
-        ["5. Requesting a refund", [
+        ["4. Requesting a refund", [
           "To request a refund, find your order at " + link("https://paddle.net", "paddle.net") + " and contact Paddle, or e-mail " + mail + " with the e-mail address used for the order.",
         ]],
       ],
