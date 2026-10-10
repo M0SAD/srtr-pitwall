@@ -8,6 +8,8 @@ export default defineOverlay({
   name: "Hız Göstergesi",
   description: "Yalnızca hızı gösterir: üç dijital ve üç analog kadran tasarımı. En yüksek hız, kırmızı bölge, çizgiler ve renkler ayarlanabilir.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "inputs", hz: 30 }],
   size: { w: 220, h: 220 },
   defaultPosition: { x: 1040, y: 740 },

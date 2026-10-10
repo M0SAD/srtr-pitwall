@@ -5,6 +5,8 @@ export default defineOverlay({
   name: "Telemetri Paneli",
   description: "Vites halkası ve devir göstergesi, hız, devir ışıkları, pozisyon, son tur, yakıt ve pist sıcaklığı.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "telemetry", hz: 30 }],
   size: { w: 520, h: 104 },
   defaultPosition: { x: 700, y: 800 },

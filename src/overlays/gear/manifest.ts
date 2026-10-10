@@ -7,6 +7,8 @@ export default defineOverlay({
   name: "Vites",
   description: "Yalnızca takılı vitesi büyük ve okunaklı gösterir. Vites değiştirme devrinde renk değiştirir; devir halkalı, LED'li ve neon tasarımları vardır.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "inputs", hz: 30 }],
   size: { w: 130, h: 150 },
   defaultPosition: { x: 895, y: 760 },

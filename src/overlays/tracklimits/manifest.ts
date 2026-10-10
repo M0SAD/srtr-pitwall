@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Süren tur hâlâ geçerli mi, oturumda kaç kez pist dışına çıktın, kaç turun geçersiz sayıldı ve (iRacing'de) olay puanın sınıra ne kadar yakın. Pist dışına çıkınca ya da tur iptal olunca yanıp söner.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "tracklimits", hz: 15 }],
   size: { w: 250, h: 84 },
   defaultPosition: { x: 835, y: 120 },

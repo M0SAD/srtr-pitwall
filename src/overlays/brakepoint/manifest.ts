@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "En iyi geçerli turundaki fren noktalarını referans alır: sıradaki fren noktasına geri sayım, virajın vitesi ve son virajda referansa göre kaç metre erken ya da geç frenlediğin.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "brakepoint", hz: 30 }],
   size: { w: 320, h: 92 },
   defaultPosition: { x: 800, y: 620 },

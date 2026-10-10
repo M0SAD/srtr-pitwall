@@ -10,6 +10,8 @@ export default defineOverlay({
     "Gerçek arabaların aynalarındaki kör nokta ışığı gibi: arkadan bir araç ayarladığın mesafeye girince ya da yanına gelince solda / sağda uyarı ışığı yanar.",
   category: "driving",
   noBgOpacity: true,
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [
     { name: "radar", hz: 30 },
     { name: "inputs", hz: 10 },

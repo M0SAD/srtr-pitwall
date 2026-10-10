@@ -7072,5 +7072,6 @@
   "OBS: Kaynak ekle → Tarayıcı → adresi yapıştır, genişlik": "OBS：添加源 → 浏览器 → 粘贴地址，宽度",
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "已完成圈数和事故分；随着接近比赛事故上限而变色的进度条。",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "更改设计和图片仅对拥有直播 Logo 权限的 PRO 会员开放；其他人将显示 SRTR Pitwall 图片。",
-  "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "以 https:// 开头的完整地址。YouTube、Twitch 和 Kick 地址会自动转换为播放器（可直接粘贴视频地址）。有些网站禁止被嵌入，此时会显示空白。"
+  "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "以 https:// 开头的完整地址。YouTube、Twitch 和 Kick 地址会自动转换为播放器（可直接粘贴视频地址）。有些网站禁止被嵌入，此时会显示空白。",
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "此叠加层在回放画面中不起作用：其数据（踏板、挡位、速度、轮胎等）只有在你亲自驾驶时才会传来，观看回放或队友驾驶时不会传来。"
 }

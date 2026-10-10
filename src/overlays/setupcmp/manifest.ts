@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Garajda yüklediğin setup'ları yan yana karşılaştırır: her setup ile attığın en iyi tur, sektörler, teorik en iyi, ortalama ve tur sayısı. En hızlı olan yeşil, diğerlerinde fark gösterilir.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [
     { name: "setupcmp", hz: 2 },
     { name: "status", hz: 1 },

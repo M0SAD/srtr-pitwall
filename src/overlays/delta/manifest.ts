@@ -5,6 +5,8 @@ export default defineOverlay({
   name: "Delta Bar",
   description: "En iyi turuna göre anlık fark, kazanma/kaybetme eğilimi ve tur süreleri.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "delta", hz: 30 }],
   size: { w: 360, h: 74 },
   defaultPosition: { x: 780, y: 60 },

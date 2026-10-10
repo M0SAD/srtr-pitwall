@@ -110,6 +110,10 @@ export interface OverlayManifest {
    *  OBS sayfası bu kopyaya "pist dışında gizle", "tekrar izlerken gizle", "pitteyken gizle" kurallarını UYGULAMAZ:
    *  sim bağlıyken çerçeve hep açıktır, içerik overlay'in kendi koşuluna göre çizilir. */
   ownVisibility?: boolean;
+  /** false: tekrar (replay) ekranında çalışmaz — verisi yalnızca kullanıcı aracı kendisi sürerken gelir (pedal, vites,
+   *  hız, lastik, hasar, delta…; iRacing bu değerleri tekrarda ya da takım arkadaşı sürerken izlenen araç için vermez).
+   *  Bu overlay'lerde "Replay'de göster" seçeneği sunulmaz ve uygulanmaz. Yok = çalışır. */
+  replay?: boolean;
   /** Tema arka planını kullanmayan overlay (kendi zemini / görseli var): genel "Arka plan opaklığı" kaydırıcısı gösterilmez */
   noBgOpacity?: boolean;
   /** Yeni kopyanın arka plan opaklığı çarpanı (0..1; yok = 1). Ayarlarda "Arka plan opaklığı" ile değiştirilir. */

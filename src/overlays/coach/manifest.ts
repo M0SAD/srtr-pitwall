@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Sürerken gaz ve fren girdilerini topluluğun en iyi turuyla, topluluk ortalamasıyla ya da kendi rekorunla canlı karşılaştırır: önündeki virajda referansın nerede frenleyip nerede gaza bastığını, tur içi farkını ve hangi bölümde zaman kazanıp kaybettiğini gösterir.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [
     { name: "coach", hz: 20 },
     { name: "status", hz: 1 },

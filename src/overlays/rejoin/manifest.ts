@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Pist dışına çıktığında ya da durduğunda belirir: arkadan gelen en yakın araçlara süre farkını gösterip piste dönmenin güvenli olup olmadığını söyler.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "traffic", hz: 10 }],
   size: { w: 260, h: 150 },
   defaultPosition: { x: 830, y: 260 },

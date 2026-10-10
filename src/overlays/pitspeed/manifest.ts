@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Pit yoluna yaklaşırken ve pit yolundayken hız sınırına göre hızın; sınırlayıcı kapalıysa uyarır, sınırı aşınca kırmızı yanar.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "pit", hz: 20 }],
   size: { w: 220, h: 120 },
   defaultPosition: { x: 850, y: 700 },

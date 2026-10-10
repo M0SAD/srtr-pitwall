@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Dört lastiğin iç/orta/dış sıcaklığı, kalan diş ve soğuk basıncı. iRacing bu değerleri sadece pitte (lastik kontrolünde) günceller.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "tires", hz: 1 }],
   size: { w: 260, h: 250 },
   defaultPosition: { x: 1290, y: 780 },

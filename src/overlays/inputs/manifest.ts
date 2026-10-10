@@ -5,6 +5,8 @@ export default defineOverlay({
   name: "Pedallar & Girdi",
   description: "Gaz/fren/debriyaj izi, anlık pedal çubukları ve yüzdeleri, vites, hız, direksiyon; isteğe bağlı son / en iyi tur satırı. Dört tasarım.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "inputs", hz: 60 }],
   size: { w: 430, h: 110 },
   defaultPosition: { x: 750, y: 920 },

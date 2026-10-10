@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Aracın üstten şeması: hasarlı bölgeler şiddetine göre renklenir, tahmini tamir süresi (zorunlu + isteğe bağlı) ve motor uyarıları yanında durur. Hasar yokken kendini gizleyebilir.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "damage", hz: 5 }],
   size: { w: 230, h: 190 },
   defaultPosition: { x: 40, y: 420 },

@@ -7,6 +7,8 @@ export default defineOverlay({
   name: "Pedal Seti",
   description: "Grafiksiz pedal göstergesi: gaz / fren / debriyaj pedalları, yüzdeler, vites, hız ve direksiyon; isteğe bağlı son / en iyi tur satırı. Yedi tasarım.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "inputs", hz: 60 }],
   size: { w: 300, h: 130 },
   defaultPosition: { x: 420, y: 900 },

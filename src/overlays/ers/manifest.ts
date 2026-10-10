@@ -8,6 +8,8 @@ export default defineOverlay({
   description:
     "Hibrit araçlarda batarya doluluğu, bu turdaki net kazanç / kayıp, MGU gücü, harcama modu ve P2P / DRS durumu. Beş farklı görünüm.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "ers", hz: 20 }],
   size: { w: 300, h: 96 },
   defaultPosition: { x: 760, y: 780 },

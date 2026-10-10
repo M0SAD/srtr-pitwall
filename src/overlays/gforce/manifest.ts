@@ -5,6 +5,8 @@ export default defineOverlay({
   name: "G-Force",
   description: "Yanal ve boyuna g kuvveti: iz bırakan g-çemberi, tepe değer işaretleri, çubuklar, sayısal görünüm ve sürtünme çemberi.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "inputs", hz: 60 }],
   size: { w: 210, h: 250 },
   defaultPosition: { x: 1180, y: 780 },

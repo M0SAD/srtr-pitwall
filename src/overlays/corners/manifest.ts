@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "En iyi turundaki virajları otomatik bulur ve her virajdaki en düşük hızını son turunla (ve bu turla) karşılaştırır. Nerede zaman kaybettiğini gösterir.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "corners", hz: 2 }],
   size: { w: 300, h: 320 },
   defaultPosition: { x: 1600, y: 560 },

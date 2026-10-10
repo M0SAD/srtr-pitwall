@@ -6,6 +6,8 @@ export default defineOverlay({
   description:
     "Yanındaki ve yakınındaki araçları kuşbakışı gösteren radar. Araç blokları boyuna konumlarına göre hareket eder.",
   category: "driving",
+  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
+  replay: false,
   topics: [{ name: "radar", hz: 30 }],
   size: { w: 220, h: 220 },
   defaultPosition: { x: 850, y: 600 },

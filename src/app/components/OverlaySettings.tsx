@@ -192,7 +192,7 @@ export function OverlaySettings(props: {
             )}
           </For>
 
-          <Section title="Ne zaman gizlensin" open={false}>
+          <Section title="Görünürlük" open={false}>
             <p class="muted small">Pitteyken: garajda, pit yolunda ya da pit kutusunda. Pistte sürerken: araçtasın ve pitte değilsin. Demo modunda ve düzenlerken bu iki seçenek uygulanmaz; overlay her zaman görünür.</p>
             <div class="f2">
               <div class="f2-row">
@@ -213,6 +213,10 @@ export function OverlaySettings(props: {
               </div>
               <small class="f2-hint">Oyun kapalıyken, pist dışında, garajda ve tekrar izlerken de görünür; ekranda ve OBS'te geçerlidir. Yukarıdaki iki gizleme seçeneği açıksa onlar yine uygulanır.</small>
             </div>
+            <Show
+              when={m()!.replay !== false}
+              fallback={<small class="f2-hint">Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.</small>}
+            >
             <div class="f2">
               <div class="f2-row">
                 <span class="f2-label">Replay'de göster</span>
@@ -220,6 +224,7 @@ export function OverlaySettings(props: {
               </div>
               <small class="f2-hint">Tekrar izlerken de görünür ("Replay izlerken overlay'leri gizle" genel ayarı açık olsa bile).</small>
             </div>
+            </Show>
           </Section>
         </div>
         <footer class="ovset-foot">

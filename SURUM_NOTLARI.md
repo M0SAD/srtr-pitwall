@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-291
+
+- Overlay ayarları: "Ne zaman gizlensin" bölümünün adı "Görünürlük" oldu. "Replay'de göster" seçeneği replay ekranında çalışan tüm overlay'lerde var (sıralama, yakındakiler, harita, oturum, hava, tur süreleri, sektörler, olaylar, sohbet…).
+- Replay ekranında çalışmayan overlay'lerde (Pedallar & Girdi, pedallar, vites, hız, G kuvveti, telemetri, gösterge paneli, veri çerçevesi, delta, fren noktası, koç, virajlar, hasar, ERS, lastikler, pit hızı, yola dönüş, pist limitleri, spotter çubuğu, kör nokta, radar, setup karşılaştırma) bu seçenek yerine açıklama görünür: verileri yalnızca aracı kendin sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez. Bu overlay'lerde eskiden açılmış seçenek de uygulanmaz.
+
 ## 101026-290
 
 - Site: "Reklam ver" sayfası herkese kapatıldı (core.js ADS_PAGE = false). Menüde, alt bilgide, ana sayfa özelliklerinde ve reklam kutusunun menüsünde bağlantısı yok; reklam.html açılırsa ana sayfaya yönlenir ve arama motorlarına kapalı (noindex). Yönetimdeki reklam ayarları yerinde duruyor; sayfayı geri açmak için ADS_PAGE = true.
