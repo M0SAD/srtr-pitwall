@@ -587,7 +587,7 @@ function ProPanel() {
             <Show when={sub()}>
               <p class="muted small">
                 <Show
-                  when={proInfo()?.renewing}
+                  when={["active", "on_trial"].includes(sub()!.status)}
                   fallback={
                     <>
                       {sub()!.status === "cancelled" ? "Abonelik iptal edildi; ödediğin dönemin sonuna kadar PRO sürer." : t("Abonelik durumu: {0}", sub()!.status)}

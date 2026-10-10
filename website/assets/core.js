@@ -663,6 +663,8 @@ export const isProCheckout = (link) => typeof link === "string" && link.startsWi
 
 // Ortak metinler (üst menü, alt bilgi, genel)
 addDict({
+  // Hesap sayfasında da kullanılır (ödeme seçeneği yokken); eskiden yalnızca ana sayfada tanımlıydı, "soon" yazıyordu
+  soon: ["Yakında", "Coming soon"],
   per_month: ["ayda {0}", "{0} per month"],
   best_value: ["En avantajlı", "Best value"],
   popular: ["Popüler", "Popular"],

@@ -399,6 +399,9 @@ async function dashboard(u) {
   const active = p.is_admin || (d !== null && d > 0);
   const forever = p.is_admin || (d !== null && d > 3000);
   const sub = pro?.sub;
+  // Gösterilen aboneliğin kendi durumu (pro.renewing hesabın HERHANGİ bir aboneliği yenileniyorsa doğrudur; ör. eski
+  // Lemon aboneliği sürerken iptal edilen Paddle aboneliği "yenilenir" görünüyordu)
+  const subRenewing = !!sub && ["active", "on_trial"].includes(sub.status) && !(sub.ends_at && new Date(sub.ends_at) <= new Date());
   const gotGift = pro?.gift;
   const planBtns = PLANS.map((x) => ({ x, ...planFor(cfg, x) }))
     .filter((o) => o.checkout)
@@ -437,8 +440,8 @@ async function dashboard(u) {
           }
           <dl class="kv" style="margin-top:14px">
             ${active && !forever ? `<dt>${T("a_pro_source")}</dt><dd>${esc(srcName)}</dd>` : ""}
-            ${sub ? `<dt>${T("a_plan")}</dt><dd>${esc(sub.plan || "—")} <span class="badge ${pro.renewing ? "ok" : "warn"}">${pro.renewing ? T("a_renewing") : T("a_not_renewing")}</span></dd>` : ""}
-            ${sub?.renews_at && pro.renewing ? `<dt>${T("a_next_renew")}</dt><dd>${fmtDate(sub.renews_at)}</dd>` : ""}
+            ${sub ? `<dt>${T("a_plan")}</dt><dd>${esc(sub.plan || "—")} <span class="badge ${subRenewing ? "ok" : "warn"}">${subRenewing ? T("a_renewing") : T("a_not_renewing")}</span></dd>` : ""}
+            ${sub?.renews_at && subRenewing ? `<dt>${T("a_next_renew")}</dt><dd>${fmtDate(sub.renews_at)}</dd>` : ""}
           </dl>
           ${
             gotGift
