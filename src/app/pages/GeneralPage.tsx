@@ -407,6 +407,26 @@ function GeneralExtra() {
         </div>
       </div>
     </section>
+    <section class="panel">
+      <h3>Pit servisi (iRacing)</h3>
+      <div class="row">
+        <div>
+          <b>Lastik değişimini otomatik kapat</b>
+          <small>Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki "lastikleri değiştir" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.</small>
+        </div>
+        <div class="seg">
+          <button classList={{ on: (g().autoClearTires ?? "off") === "off" }} onClick={() => set((x) => (x.autoClearTires = "off"))}>
+            Kapalı
+          </button>
+          <button classList={{ on: g().autoClearTires === "race" }} onClick={() => set((x) => (x.autoClearTires = "race"))}>
+            Yarışlarda
+          </button>
+          <button classList={{ on: g().autoClearTires === "all" }} onClick={() => set((x) => (x.autoClearTires = "all"))}>
+            Her oturumda
+          </button>
+        </div>
+      </div>
+    </section>
     </>
   );
 }

@@ -846,6 +846,9 @@ export interface GeneralSettings {
   shotKeyV3?: boolean;
   /** Tekrar (replay) izlerken overlay'leri gizle */
   hideInReplay: boolean;
+  /** iRacing: araca binince pit servisindeki lastik değişimini kaldır. "race": yalnızca yarış oturumlarında, "all": her
+   *  oturumda; yok / "off": kapalı (bkz. src/host/autoPit.ts) */
+  autoClearTires?: "off" | "race" | "all";
   /** Sohbet görünümü (sadece bu kullanıcı görür; arka plan görseli ayar klasöründe dosya) */
   chatLook: ChatLook;
   /** Sohbete özel arka planlar (arkadaş hesap kimliği → arka plan) */

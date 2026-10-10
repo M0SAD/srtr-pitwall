@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Voltooide ronden en je incidentpunten; balk die van kleur verandert naarmate je de incidentlimiet van de race nadert.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Het ontwerp en de afbeelding wijzigen is voorbehouden aan PRO-leden met streamlogorecht; voor anderen wordt de SRTR Pitwall-afbeelding getoond.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Volledig adres dat begint met https://. YouTube-, Twitch- en Kick-adressen worden automatisch omgezet naar hun speler (je kunt het video-adres gewoon plakken). Sommige sites blokkeren insluiten; die blijven dan leeg.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Deze overlay werkt niet op het replayscherm: de gegevens (pedalen, versnelling, snelheid, banden…) komen alleen binnen terwijl je zelf rijdt, niet tijdens een replay of als je teamgenoot rijdt."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Deze overlay werkt niet op het replayscherm: de gegevens (pedalen, versnelling, snelheid, banden…) komen alleen binnen terwijl je zelf rijdt, niet tijdens een replay of als je teamgenoot rijdt.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Elke keer dat je in de auto stapt (en wanneer een racesessie begint terwijl je in de auto zit), wordt \"banden wisselen\" uitgevinkt in de pitservice. Wil je banden bij een stop, selecteer ze dan opnieuw in het pitmenu van iRacing.",
+  "Her oturumda": "Elke sessie",
+  "Lastik değişimini otomatik kapat": "Bandenwissel automatisch uitzetten",
+  "Pit servisi (iRacing)": "Pitservice (iRacing)",
+  "Yarışlarda": "In races"
 }

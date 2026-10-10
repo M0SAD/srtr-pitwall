@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Absolvierte Runden und Incident-Punkte; ein Balken, der die Farbe wechselt, je näher du dem Incident-Limit kommst.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Design und Bild zu ändern ist PRO-Mitgliedern mit Stream-Logo-Berechtigung vorbehalten; allen anderen wird das SRTR Pitwall-Bild angezeigt.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Vollständige Adresse mit https://. YouTube-, Twitch- und Kick-Adressen werden automatisch in ihren Player umgewandelt (du kannst die Videoadresse einfach einfügen). Manche Seiten verbieten das Einbetten; dann bleibt die Fläche leer.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Dieses Overlay funktioniert nicht im Replay-Bildschirm: Seine Daten (Pedale, Gang, Tempo, Reifen…) kommen nur, während du selbst fährst – nicht beim Ansehen eines Replays oder wenn dein Teamkollege fährt."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Dieses Overlay funktioniert nicht im Replay-Bildschirm: Seine Daten (Pedale, Gang, Tempo, Reifen…) kommen nur, während du selbst fährst – nicht beim Ansehen eines Replays oder wenn dein Teamkollege fährt.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Jedes Mal, wenn du ins Auto steigst (und wenn eine Rennsession startet, während du im Auto sitzt), wird „Reifen wechseln“ im Boxenservice abgewählt. Wenn du beim Stopp Reifen willst, wähle sie im iRacing-Boxenmenü wieder aus.",
+  "Her oturumda": "Jede Session",
+  "Lastik değişimini otomatik kapat": "Reifenwechsel automatisch abwählen",
+  "Pit servisi (iRacing)": "Boxenservice (iRacing)",
+  "Yarışlarda": "In Rennen"
 }

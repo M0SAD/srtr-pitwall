@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Пройденные круги и штрафные очки; полоска меняет цвет по мере приближения к лимиту инцидентов гонки.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Менять дизайн и изображение могут PRO-участники с правом на логотип стрима; остальным показывается изображение SRTR Pitwall.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Полный адрес, начинающийся с https://. Адреса YouTube, Twitch и Kick автоматически превращаются в плеер (можно вставить адрес видео как есть). Некоторые сайты запрещают встраивание — тогда область будет пустой.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Этот оверлей не работает на экране повтора: его данные (педали, передача, скорость, шины…) поступают, только пока машиной управляешь ты, а не при просмотре повтора и не когда едет напарник."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Этот оверлей не работает на экране повтора: его данные (педали, передача, скорость, шины…) поступают, только пока машиной управляешь ты, а не при просмотре повтора и не когда едет напарник.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Каждый раз, когда ты садишься в машину (и когда гоночная сессия начинается, пока ты в машине), в пит-сервисе снимается отметка «сменить шины». Если на пит-стопе нужны шины, выбери их снова в пит-меню iRacing.",
+  "Her oturumda": "В каждой сессии",
+  "Lastik değişimini otomatik kapat": "Автоматически отключать смену шин",
+  "Pit servisi (iRacing)": "Пит-сервис (iRacing)",
+  "Yarışlarda": "В гонках"
 }

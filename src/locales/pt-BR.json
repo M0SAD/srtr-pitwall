@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Voltas completadas e seus pontos de incidente; barra que muda de cor conforme você se aproxima do limite de incidentes da corrida.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Alterar o design e a imagem é liberado para membros PRO com permissão de logo da transmissão; para os demais, a imagem do SRTR Pitwall é exibida.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Endereço completo começando com https://. Endereços do YouTube, Twitch e Kick são convertidos automaticamente para o player (você pode colar o endereço do vídeo como está). Alguns sites bloqueiam a incorporação; nesse caso aparecem em branco.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Este overlay não funciona na tela de replay: seus dados (pedais, marcha, velocidade, pneus…) só chegam enquanto você dirige, não ao assistir a um replay nem quando seu colega de equipe dirige."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Este overlay não funciona na tela de replay: seus dados (pedais, marcha, velocidade, pneus…) só chegam enquanto você dirige, não ao assistir a um replay nem quando seu colega de equipe dirige.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Sempre que você entra no carro (e quando uma sessão de corrida começa com você no carro), \"trocar pneus\" é desmarcado no serviço de box. Se quiser pneus numa parada, selecione-os de novo no menu de box do iRacing.",
+  "Her oturumda": "Toda sessão",
+  "Lastik değişimini otomatik kapat": "Desativar troca de pneus automaticamente",
+  "Pit servisi (iRacing)": "Serviço de box (iRacing)",
+  "Yarışlarda": "Em corridas"
 }

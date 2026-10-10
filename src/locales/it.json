@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Giri completati e punti incidente; barra che cambia colore man mano che ti avvicini al limite incidenti della gara.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Modificare il design e l'immagine è consentito ai membri PRO con il permesso per il logo dello stream; agli altri viene mostrata l'immagine di SRTR Pitwall.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Indirizzo completo che inizia con https://. Gli indirizzi di YouTube, Twitch e Kick vengono convertiti automaticamente nel loro player (puoi incollare l'indirizzo del video così com'è). Alcuni siti impediscono l'incorporamento; in quel caso appaiono vuoti.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Questo overlay non funziona nella schermata replay: i suoi dati (pedali, marcia, velocità, gomme…) arrivano solo mentre guidi tu, non durante un replay né quando guida il tuo compagno di squadra."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Questo overlay non funziona nella schermata replay: i suoi dati (pedali, marcia, velocità, gomme…) arrivano solo mentre guidi tu, non durante un replay né quando guida il tuo compagno di squadra.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Ogni volta che sali in auto (e quando inizia una sessione di gara mentre sei in auto), \"cambia gomme\" viene deselezionato nel servizio ai box. Se vuoi le gomme a una sosta, riselezionale nel menu box di iRacing.",
+  "Her oturumda": "Ogni sessione",
+  "Lastik değişimini otomatik kapat": "Disattiva automaticamente il cambio gomme",
+  "Pit servisi (iRacing)": "Servizio ai box (iRacing)",
+  "Yarışlarda": "In gara"
 }

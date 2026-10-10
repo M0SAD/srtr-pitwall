@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Ukończone okrążenia i punkty incydentów; pasek zmienia kolor, gdy zbliżasz się do limitu incydentów wyścigu.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Zmiana wyglądu i grafiki jest dostępna dla członków PRO z uprawnieniem do logo transmisji; pozostałym wyświetlana jest grafika SRTR Pitwall.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Pełny adres zaczynający się od https://. Adresy YouTube, Twitch i Kick są automatycznie zamieniane na odtwarzacz (możesz wkleić adres filmu bez zmian). Niektóre strony blokują osadzanie; wtedy pole jest puste.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Ta nakładka nie działa na ekranie powtórki: jej dane (pedały, bieg, prędkość, opony…) przychodzą tylko wtedy, gdy sam jedziesz, a nie podczas oglądania powtórki ani gdy jedzie twój kolega z zespołu."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Ta nakładka nie działa na ekranie powtórki: jej dane (pedały, bieg, prędkość, opony…) przychodzą tylko wtedy, gdy sam jedziesz, a nie podczas oglądania powtórki ani gdy jedzie twój kolega z zespołu.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Za każdym razem, gdy wsiadasz do auta (i gdy zaczyna się sesja wyścigowa, kiedy jesteś w aucie), opcja „wymiana opon” w serwisie boksu zostaje odznaczona. Jeśli chcesz opony podczas postoju, zaznacz je ponownie w menu boksu iRacing.",
+  "Her oturumda": "Każda sesja",
+  "Lastik değişimini otomatik kapat": "Automatycznie wyłącz wymianę opon",
+  "Pit servisi (iRacing)": "Serwis boksu (iRacing)",
+  "Yarışlarda": "W wyścigach"
 }

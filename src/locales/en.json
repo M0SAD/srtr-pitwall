@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Laps completed and your incident points; a bar that changes color as you near the race's incident limit.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Changing the design and visual is open to PRO members with stream logo permission; for everyone else the SRTR Pitwall visual is shown.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Full address starting with https://. YouTube, Twitch and Kick addresses are turned into their player automatically (you can paste the video address as is). Some sites block being embedded in other pages; they show up blank.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "This overlay doesn't work on the replay screen: its data (pedals, gear, speed, tyres…) only comes in while you are driving the car, not while watching a replay or while your teammate drives."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "This overlay doesn't work on the replay screen: its data (pedals, gear, speed, tyres…) only comes in while you are driving the car, not while watching a replay or while your teammate drives.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Every time you get in the car (and when a race session starts while you are in the car), \"change tyres\" is unticked in the pit service. If you want tyres at a stop, select them again in the iRacing pit menu.",
+  "Her oturumda": "Every session",
+  "Lastik değişimini otomatik kapat": "Turn off tyre change automatically",
+  "Pit servisi (iRacing)": "Pit service (iRacing)",
+  "Yarışlarda": "In races"
 }

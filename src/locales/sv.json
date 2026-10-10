@@ -7073,5 +7073,10 @@
   "Tamamlanan tur ve olay puanın; yarışın olay sınırına yaklaştıkça renk değiştiren çubuk.": "Avklarade varv och dina incidentpoäng; stapel som byter färg när du närmar dig loppets incidentgräns.",
   "Tasarımı ve görseli değiştirmek yayın logosu izni olan PRO üyelere açıktır; diğerlerinde SRTR Pitwall görseli gösterilir.": "Att ändra design och bild är öppet för PRO-medlemmar med behörighet för streamlogotypen; för övriga visas SRTR Pitwall-bilden.",
   "https:// ile başlayan tam adres. YouTube, Twitch ve Kick adresleri kendiliğinden oynatıcıya çevrilir (video adresini olduğu gibi yapıştırabilirsin). Bazı siteler başka sayfalara gömülmeyi engeller; o durumda boş görünür.": "Fullständig adress som börjar med https://. YouTube-, Twitch- och Kick-adresser görs automatiskt om till deras spelare (du kan klistra in videoadressen som den är). Vissa webbplatser blockerar inbäddning; de visas då tomma.",
-  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Den här overlayen fungerar inte på replay-skärmen: dess data (pedaler, växel, fart, däck…) kommer bara medan du själv kör, inte när du tittar på en replay eller när din lagkamrat kör."
+  "Bu overlay replay ekranında çalışmaz: verisi (pedal, vites, hız, lastik…) yalnızca aracı sen sürerken gelir; tekrar izlerken ya da takım arkadaşın sürerken gelmez.": "Den här overlayen fungerar inte på replay-skärmen: dess data (pedaler, växel, fart, däck…) kommer bara medan du själv kör, inte när du tittar på en replay eller när din lagkamrat kör.",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) pit servisindeki \"lastikleri değiştir\" seçimi kaldırılır. Pitte lastik istersen iRacing'in pit menüsünden yeniden seçebilirsin.": "Varje gång du sätter dig i bilen (och när ett racepass startar medan du sitter i bilen) avmarkeras ”byt däck” i depåservicen. Vill du ha däck vid ett stopp väljer du dem igen i iRacings depåmeny.",
+  "Her oturumda": "Varje pass",
+  "Lastik değişimini otomatik kapat": "Stäng av däckbyte automatiskt",
+  "Pit servisi (iRacing)": "Depåservice (iRacing)",
+  "Yarışlarda": "I race"
 }
