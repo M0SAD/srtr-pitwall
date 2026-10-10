@@ -6,8 +6,6 @@ export default defineOverlay({
   name: "Veri Kutusu",
   description: "Seçtiğin tek bir değeri büyük gösteren kutu: hız, vites, yakıt, delta, pozisyon, tur, sıcaklık, BB ve daha fazlası.",
   category: "info",
-  // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
-  replay: false,
   topics: [
     { name: "telemetry", hz: 10 },
     { name: "session", hz: 2 },

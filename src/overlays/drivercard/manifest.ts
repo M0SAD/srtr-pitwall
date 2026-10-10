@@ -20,6 +20,8 @@ export default defineOverlay({
   description:
     "Yayın için alt bant (lower third): adın, ülke bayrağın, araç numaran, aracın ve sınıfın, takım adın, iRating ve lisansın, o anki sıran. İstersen ikinci satırda kendi yazın (ör. sosyal medya adın).",
   category: "stream",
+  // Tekrar ekranında çalışmaz
+  replay: false,
   topics: [
     { name: "standings", hz: 1 },
     { name: "session", hz: 1 },

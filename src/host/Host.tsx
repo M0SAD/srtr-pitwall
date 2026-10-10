@@ -402,7 +402,7 @@ export function Host() {
     // gizle" kuralları ona uygulanmaz)
     // iRacing'de araçtan inince tekrar ekranı canlı ana yetişmiş olarak açılır (replayWatch false, replay true): o da
     // "replay" sayılır; yoksa "pistte değilken gizle" kuralı kopyayı yine gizliyordu. Garaj / setup ekranı sayılmaz.
-    const replayOk = !st.demo && inReplay(st) && !!inst.showInReplay && manifests.find((x) => x.id === inst.type)?.replay !== false;
+    const replayOk = !st.demo && inReplay(st) && inst.showInReplay !== false && manifests.find((x) => x.id === inst.type)?.replay !== false;
     if (settings().general.hideInReplay !== false && !st.demo && st.replayWatch && !inst.alwaysShow && !replayOk) return false;
     // "Pistte değilken gizle" (varsayılan açık): overlay'ler sürüş başlayınca görünür. "Oyun kapalıyken de göster" işaretli
     // kopyalar (ör. Kan Şekeri, Kalp Atışı, Sosyal Hesaplar) garajda da görünür kalır.

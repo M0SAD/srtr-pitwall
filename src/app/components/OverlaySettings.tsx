@@ -220,7 +220,7 @@ export function OverlaySettings(props: {
             <div class="f2">
               <div class="f2-row">
                 <span class="f2-label">Replay'de göster</span>
-                <Switch checked={!!inst()!.showInReplay} onChange={(v) => upd((o) => (v ? (o.showInReplay = true) : delete o.showInReplay))} />
+                <Switch checked={inst()!.showInReplay !== false} onChange={(v) => upd((o) => (v ? delete o.showInReplay : (o.showInReplay = false)))} />
               </div>
               <small class="f2-hint">Tekrar izlerken de görünür ("Replay izlerken overlay'leri gizle" genel ayarı açık olsa bile).</small>
             </div>

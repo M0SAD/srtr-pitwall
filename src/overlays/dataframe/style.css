@@ -28,6 +28,8 @@
   align-items: baseline;
   gap: 4px;
   line-height: 1.1;
+  /* Boş tur süresi "--:--.---" tirelerden bölünüp iki satır oluyordu */
+  white-space: nowrap;
 }
 
 .df-value b {

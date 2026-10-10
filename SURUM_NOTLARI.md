@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-295
+
+- Veri Kutusu: En iyi tur / Son tur gibi değerler boşken ("--:--.---") tirelerden bölünüp iki satır görünüyordu; değer artık hep tek satır.
+
+## 101026-294
+
+- "Replay'de göster" artık varsayılan olarak AÇIK (replay'de çalışan tüm overlay'lerde; mevcut kopyalarda da kendiliğinden açılır). Kapatılan kopyada kapalı kalır; "Sıfırla" yeniden açar.
+- Veri Kutusu overlay'ine "Replay'de göster" eklendi.
+- Sürücü Kartı'ndan "Replay'de göster" kaldırıldı (replay'de çalışmıyor).
+
 ## 101026-293
 
 - Ayarlar: seçenek düğmeleri (ör. Pit servisi "Kapalı / Yarışlarda / Her oturumda") uzun açıklama metninin yanında daralıp son düğme yarım kesiliyordu; düğmeler artık daralmıyor ve yazıları tek satırda kalıyor.

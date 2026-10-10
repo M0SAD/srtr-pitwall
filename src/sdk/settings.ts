@@ -33,7 +33,9 @@ export interface OverlayInstance {
   hideOnTrack: boolean;
   /** iRacing kapalıyken de göster (ör. web sayfası, Twitch sohbeti) */
   alwaysShow: boolean;
-  /** Tekrar (replay) izlerken de göster (genel "replay izlerken gizle" ayarına rağmen; yok = kapalı) */
+  /** Tekrar (replay) izlerken de göster (genel "replay izlerken gizle" ayarına rağmen). Yok = AÇIK (varsayılan, 101026-294'ten
+   *  beri; eskiden yok = kapalıydı, kayıtlı kopyalarda da bu yüzden kendiliğinden açılır), false = kapalı. Yalnızca
+   *  replay'de çalışan overlay'lerde geçerli (manifest `replay !== false`). */
   showInReplay?: boolean;
   x: number;
   y: number;
@@ -1219,7 +1221,7 @@ function defaultFrom(type: string, src: Partial<OverlayInstance> | undefined): O
     hideInGarage: typeof src?.hideInGarage === "boolean" ? src.hideInGarage : def.hideInGarage,
     hideOnTrack: typeof src?.hideOnTrack === "boolean" ? src.hideOnTrack : def.hideOnTrack,
     alwaysShow: typeof src?.alwaysShow === "boolean" ? src.alwaysShow : def.alwaysShow,
-    ...(src?.showInReplay ? { showInReplay: true } : {}),
+    ...(src?.showInReplay === false ? { showInReplay: false } : {}),
     scale: num(src?.scale, 1, 0.2, 3),
     opacity: num(src?.opacity, 1, 0.2, 1),
     ...(typeof (src?.bgOpacity ?? def.bgOpacity) === "number" ? { bgOpacity: num(src?.bgOpacity, def.bgOpacity ?? 1, 0, 1) } : {}),
@@ -2004,7 +2006,7 @@ export function resetToDefaults(profileId: string, key: string) {
     o.hideInGarage = def.hideInGarage;
     o.hideOnTrack = def.hideOnTrack;
     o.alwaysShow = def.alwaysShow;
-    if (def.showInReplay) o.showInReplay = true;
+    if (def.showInReplay === false) o.showInReplay = false;
     else delete o.showInReplay;
   });
 }
