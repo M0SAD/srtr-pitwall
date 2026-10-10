@@ -499,6 +499,6 @@ export function NoticeBell() {
 
 /** Ödeme bildiriminin sonuna eklenen kaynak: " · Patreon" */
 function paySrc(src: unknown): string {
-  const name = ({ lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme" } as Record<string, string>)[String(src ?? "")] ?? String(src ?? "");
+  const name = ({ paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme" } as Record<string, string>)[String(src ?? "")] ?? String(src ?? "");
   return name ? ` · ${name}` : "";
 }

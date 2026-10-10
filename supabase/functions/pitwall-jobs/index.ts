@@ -1089,7 +1089,7 @@ async function messageReportAdmin(id: string) {
 }
 
 // Yöneticiye: yeni ödeme / iade (PRO, reklam, Patreon, Ko-fi)
-const PAY_SOURCES: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi" };
+const PAY_SOURCES: Record<string, string> = { paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi" };
 // pro-webhook reklam planı: "Reklam: <yer>" (yer adları pro-webhook AD_PLACES ile aynı)
 const AD_PLAN_KEYS: Record<string, string> = {
   "Uygulama banner": "panel_banner", "Uygulama kart": "panel_card", "Site ana sayfa": "site_home", "Site hesap sayfası": "site_account",
@@ -1408,7 +1408,7 @@ async function paymentReceipt(id: string) {
     ${amountBox(refund ? m.refunded : m.paid, money, refund, esc(fmtDay(new Date(n.created_at ?? Date.now()), u.lang)))}
     ${plan || gift ? `<table role="presentation" style="border-collapse:collapse;margin:0 0 12px">${plan ? infoRow(ad ? m.place : m.plan, `<b>${esc(plan)}</b>`) : ""}${gift ? infoRow(gm.to, `<b>🎁 ${esc(giftName)}</b>`) : ""}</table>` : ""}
     ${until ? `<p style="margin:0 0 14px"><b style="color:#ffb35c">${esc(m.until.replace("{0}", fmtDay(until, u.lang)))}</b></p>` : ""}
-    ${!ad && !refund && d.source === "lemon" ? `<div style="${BOX}">${esc(gift ? gm.renew : m.renew)}</div>` : ""}
+    ${!ad && !refund && (d.source === "lemon" || d.source === "paddle") ? `<div style="${BOX}">${esc(gift ? gm.renew : m.renew)}</div>` : ""}
     ${button(ad ? `${SITE}/reklam.html` : `${SITE}/hesap.html`, ad ? m.ads : m.account)}`;
   const sent = await sendMail([u.email], `SRTR Pitwall · ${title}`, page(title, body, line, u.lang));
   return { ok: true, sent };

@@ -410,7 +410,7 @@ async function dashboard(u) {
         ${esc(planName(o.x))} <span class="muted">${esc(o.price)}</span></a>`,
     )
     .join("");
-  const srcName = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: T("nav_admin") }[p.pro_source] || p.pro_source || "—";
+  const srcName = { paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", admin: T("nav_admin") }[p.pro_source] || p.pro_source || "—";
 
   app().innerHTML = `<div class="page">
     <div class="page-head">
@@ -447,7 +447,13 @@ async function dashboard(u) {
                 }</div>`
               : ""
           }
-          ${sub?.portal_url ? `<p style="margin-top:14px"><a class="btn btn-sm" href="${esc(sub.portal_url)}" target="_blank" rel="noopener">${T("a_manage")}</a></p>` : ""}
+          ${
+            sub?.provider === "paddle"
+              ? `<p style="margin-top:14px"><button type="button" class="btn btn-sm" id="a-portal">${T("a_manage")}</button></p>`
+              : sub?.portal_url
+                ? `<p style="margin-top:14px"><a class="btn btn-sm" href="${esc(sub.portal_url)}" target="_blank" rel="noopener">${T("a_manage")}</a></p>`
+                : ""
+          }
         </div>
 
         <div class="card">
@@ -1061,4 +1067,24 @@ render();
 document.addEventListener("langchange", () => {
   render();
   applyLang();
+});
+
+// Paddle abonelik yönetimi: her tıklamada kısa ömürlü müşteri portalı açılır (pro-portal). Pencere tıklama anında
+// açılır (açılır pencere engellenmesin), adres gelince yönlendirilir.
+document.addEventListener("click", async (e) => {
+  const b = e.target instanceof Element ? e.target.closest("#a-portal") : null;
+  if (!b || b.disabled) return;
+  b.disabled = true;
+  const w = window.open("about:blank", "_blank");
+  try {
+    const { data, error } = await sb.functions.invoke("pro-portal", { body: {} });
+    if (error || !data?.url) throw new Error(data?.error || T("error"));
+    if (w) w.location.href = data.url;
+    else location.href = data.url;
+  } catch (err) {
+    w?.close();
+    toast(err?.message || T("error"), true);
+  } finally {
+    b.disabled = false;
+  }
 });

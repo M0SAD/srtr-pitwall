@@ -1,5 +1,12 @@
-// Reklam ödemesi: reklam verenin ödenmemiş reklamı için Lemon Squeezy'de tek seferlik ödeme sayfası açar.
+// Reklam ödemesi: reklam verenin ödenmemiş reklamı için tek seferlik ödeme sayfası açar.
 //
+// ÖDEME SAĞLAYICISI: PADDLE_API_KEY tanımlıysa Paddle Billing, değilse Lemon Squeezy (eski yol).
+// Paddle: reklam ürünü (PADDLE_AD_PRODUCT_ID) + bu ödemeye özel tek seferlik fiyat (kuponlu tutar, reklamın para
+// birimi; kur çevrimi yok). custom_data.ad_id → pro-webhook (?source=paddle) transaction.completed ile reklamı
+// ödendi sayar; iade (adjustment) reklamı durdurur. Yanıt pro-checkout'taki gibi: url (odeme.html?_ptxn=…), txn, token, env.
+// Gizli değerler: PADDLE_API_KEY, PADDLE_CLIENT_TOKEN, PADDLE_AD_PRODUCT_ID, PADDLE_ENV, SITE_URL. Kurulum: docs/PRO.md
+//
+// Lemon Squeezy (PADDLE_API_KEY yoksa):
 // Adres: https://<proje>.supabase.co/functions/v1/ads-checkout   (POST {"ad_id":"<reklam id>"})
 // İndirim kuponu: {"ad_id":…, "coupon":"ERKIN"} (isteğe bağlı) → kupon sunucuda yeniden doğrulanır (coupon_validate, c34;
 // reklam modeli impressions / days kuponun paketlerinde olmalı), indirimli tutar custom_price olur ve indirim ödeme
@@ -61,6 +68,54 @@ const CORS = {
 };
 
 const env = (k: string) => (Deno.env.get(k) ?? "").trim();
+
+// ---------------------------------------------------------------------------
+// Paddle Billing (ortak yardımcılar; bu dosya panelden tek başına yayınlandığı için diğer fonksiyonlarda da aynısı var)
+// ---------------------------------------------------------------------------
+const PADDLE_KEY = () => (Deno.env.get("PADDLE_API_KEY") ?? "").trim();
+/** PADDLE_ENV=sandbox: test ortamı (sandbox-api.paddle.com); boş / "live": canlı */
+const PADDLE_SANDBOX = () => (Deno.env.get("PADDLE_ENV") ?? "").trim().toLowerCase() === "sandbox";
+const PADDLE_API = () => (PADDLE_SANDBOX() ? "https://sandbox-api.paddle.com" : "https://api.paddle.com");
+
+class PaddleError extends Error {
+  constructor(public status: number, public code: string, msg: string) {
+    super(msg);
+  }
+}
+
+/** Paddle API çağrısı; `data` alanını döner, hatada PaddleError fırlatır */
+// deno-lint-ignore no-explicit-any
+async function paddle<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(PADDLE_API() + path, {
+    method,
+    headers: { Authorization: `Bearer ${PADDLE_KEY()}`, "Content-Type": "application/json", "Paddle-Version": "1" },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = j?.error ?? {};
+    // deno-lint-ignore no-explicit-any
+    const fields = Array.isArray(e.errors) ? e.errors.map((x: any) => `${x?.field}: ${x?.message}`).join("; ") : "";
+    throw new PaddleError(res.status, String(e.code ?? ""), `${e.code ?? res.status}: ${e.detail ?? ""}${fields ? ` (${fields})` : ""}`);
+  }
+  return j?.data as T;
+}
+
+/** Kullanıcının e-postasıyla Paddle müşterisi (yoksa oluşturulur) */
+async function paddleCustomer(email: string): Promise<string> {
+  // deno-lint-ignore no-explicit-any
+  const list = await paddle<any[]>("GET", `/customers?email=${encodeURIComponent(email)}`);
+  const found = (list ?? []).find((c) => c?.status !== "archived") ?? list?.[0];
+  if (found?.id) return String(found.id);
+  try {
+    const c = await paddle("POST", "/customers", { email });
+    return String(c.id);
+  } catch (e) {
+    const m = e instanceof PaddleError ? /ctm_[a-z0-9]+/i.exec(e.message) : null;
+    if (m) return m[0];
+    throw e;
+  }
+}
 
 /** Ürünün ilk (tek) varyantı — Lemon API'sinden, sonuç saklanır */
 const variantCache = new Map<string, string>();
@@ -129,8 +184,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return reply(405, { error: "POST bekleniyor" });
   try {
+    const usePaddle = !!PADDLE_KEY();
     const apiKey = Deno.env.get("LEMON_API_KEY") ?? "";
-    if (!apiKey || !env("LEMON_STORE_ID") || !(env("LEMON_AD_VARIANT_ID") || env("LEMON_AD_PRODUCT_ID"))) {
+    if (usePaddle) {
+      if (!env("PADDLE_AD_PRODUCT_ID")) return reply(503, { error: "Reklam ödemesi henüz yapılandırılmadı" });
+    } else if (!apiKey || !env("LEMON_STORE_ID") || !(env("LEMON_AD_VARIANT_ID") || env("LEMON_AD_PRODUCT_ID"))) {
       return reply(503, { error: "Reklam ödemesi henüz yapılandırılmadı" });
     }
 
@@ -183,6 +241,70 @@ Deno.serve(async (req) => {
       const pct = Number(cv?.percent);
       if (!cv?.id || !(pct >= 1 && pct <= 90)) return reply(400, { error: "Kupon bulunamadı" });
       coupon = { id: String(cv.id), code: String(cv.code ?? couponCode).toUpperCase(), percent: pct };
+    }
+
+    if (usePaddle) {
+      const charge = coupon ? discounted(price, coupon.percent) : price;
+      const cents = Math.round(charge * 100);
+      if (!(cents > 0)) return reply(400, { error: "Fiyat belirlenmemiş" });
+      if (!user.email) return reply(400, { error: "Hesabında e-posta yok" });
+      await db.from("ad_campaigns").update({ price, currency, updated_at: new Date().toISOString() }).eq("id", ad.id);
+      const trText = currency === "TRY";
+      const what = trText
+        ? ad.model === "impressions" ? `${ad.quantity.toLocaleString("tr-TR")} gösterim` : `${ad.quantity} gün`
+        : ad.model === "impressions" ? `${ad.quantity.toLocaleString("en-US")} impressions` : `${ad.quantity} day${ad.quantity > 1 ? "s" : ""}`;
+      const place = (trText ? PLACE_NAMES_TR : PLACE_NAMES)[ad.placement] ?? ad.placement;
+      const baseName = trText ? `SRTR Pitwall reklam · ${place}` : `SRTR Pitwall ad · ${place}`;
+      const couponLine = coupon
+        ? trText
+          ? ` · Kupon ${coupon.code}: ${money(price, currency, true)} yerine ${money(charge, currency, true)} (%${coupon.percent} indirim)`
+          : ` · Coupon ${coupon.code}: ${money(charge, currency, false)} instead of ${money(price, currency, false)} (${coupon.percent}% off)`
+        : "";
+      const couponData = coupon
+        ? { coupon_id: coupon.id, coupon: coupon.code, coupon_before: String(price), coupon_after: String(charge), coupon_currency: currency }
+        : {};
+      let txn = "";
+      try {
+        const customer = await paddleCustomer(user.email);
+        const t = await paddle("POST", "/transactions", {
+          items: [
+            {
+              quantity: 1,
+              price: {
+                product_id: env("PADDLE_AD_PRODUCT_ID"),
+                name: (coupon ? `${baseName} · ${trText ? `Kupon ${coupon.code} %${coupon.percent}` : `Coupon ${coupon.code} ${coupon.percent}% off`}` : baseName).slice(0, 150),
+                description: `${baseName} · ${what} — "${ad.title}"${couponLine}`.slice(0, 500),
+                unit_price: { amount: String(cents), currency_code: currency },
+                tax_mode: "internal",
+              },
+            },
+          ],
+          customer_id: customer,
+          currency_code: currency,
+          collection_mode: "automatic",
+          custom_data: { ad_id: ad.id, user_id: user.id, ...couponData },
+          checkout: { url: `${SITE}/odeme.html` },
+        });
+        txn = String(t?.id ?? "");
+      } catch (e) {
+        console.error("paddle ad transaction", String((e as Error).message ?? e));
+      }
+      if (!txn) return reply(502, { error: "Ödeme sayfası açılamadı" });
+      const done = `reklam.html?paid=${ad.id}`;
+      return reply(200, {
+        provider: "paddle",
+        url: `${SITE}/odeme.html?_ptxn=${encodeURIComponent(txn)}&done=${encodeURIComponent(done)}`,
+        txn,
+        token: env("PADDLE_CLIENT_TOKEN"),
+        env: PADDLE_SANDBOX() ? "sandbox" : "production",
+        email: user.email,
+        done: `${SITE}/${done}`,
+        price,
+        currency,
+        charged: charge,
+        charged_currency: currency,
+        ...(coupon ? { coupon: coupon.code, percent: coupon.percent, discounted: charge } : {}),
+      });
     }
 
     // Bu para biriminin mağazası; yoksa ana mağaza ve kur çevrimi

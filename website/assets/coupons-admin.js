@@ -131,7 +131,7 @@ export async function kuponlar(el, rerender) {
   for (const c of list) for (const [k, v] of Object.entries(c.discount || {})) total[k] = (total[k] || 0) + Number(v);
 
   el.innerHTML = `<h2>İndirim kuponları</h2>
-    <p class="muted small">Kullanıcılar PRO, hediye PRO ve reklam satın alırken kupon kodunu girer; indirim Lemon ödeme sayfasında ürün adında ve açıklamasında görünür.
+    <p class="muted small">Kullanıcılar PRO, hediye PRO ve reklam satın alırken kupon kodunu girer; indirim ödeme sayfasında (Paddle) indirim satırı ve ürün açıklamasında görünür.
       Kupon ödeme anında sunucuda yeniden denetlenir. PRO aboneliğinde indirim ilk ödemede uygulanır (aylık planda kupon geçerli olduğu sürece, bitişi yoksa her ödemede); yenilemeler güncel fiyattan.
       Kullanılmış kupon silinemez, kapatılabilir. Süresi dolmuş kuponu "Yeniden aç" ile tarihlerini güncelleyerek açabilirsin.</p>
     <div class="stats">

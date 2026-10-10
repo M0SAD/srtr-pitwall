@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Setup-vergelijking",
  "ov_setupcmp_d": "Vergelijkt de setups die je in de garage laadt naast elkaar: met welke ben je sneller?",
  "ov_setupcmp_h": "Beste ronde, sectoren, theoretisch beste, gemiddelde en aantal rondes per setup|Snelste setup in groen, bij de andere het verschil|2 tot 6 setups naast elkaar|Alleen deze sessie, of alles wat op dezelfde baan en auto is opgeslagen|Tabelweergave of simpele lijst|iRacing",
- "ovg_setupcmp": "Bij het testen van setups hoef je niet meer te onthouden welke nou echt sneller was. Laad een setup in de garage en rijd, en de overlay slaat je beste ronde, sectoren, gemiddelde en aantal rondes op onder de naam van die setup; laad je een andere, dan zet hij de twee naast elkaar. In elke rij is de snelste waarde groen en bij de andere zie je hoeveel je achterligt, zodat je ziet in welk deel van de ronde de nieuwe setup tijd wint of verliest. Je kunt meer dan twee setups vergelijken en alleen de rondes van deze sessie bekijken, of ook rondes die je eerder op dezelfde baan en auto hebt gereden."
+ "ovg_setupcmp": "Bij het testen van setups hoef je niet meer te onthouden welke nou echt sneller was. Laad een setup in de garage en rijd, en de overlay slaat je beste ronde, sectoren, gemiddelde en aantal rondes op onder de naam van die setup; laad je een andere, dan zet hij de twee naast elkaar. In elke rij is de snelste waarde groen en bij de andere zie je hoeveel je achterligt, zodat je ziet in welk deel van de ronde de nieuwe setup tijd wint of verliest. Je kunt meer dan twee setups vergelijken en alleen de rondes van deze sessie bekijken, of ook rondes die je eerder op dezelfde baan en auto hebt gereden.",
+ "pay_title": "Betaling",
+ "pay_loading": "Checkout wordt geopend…",
+ "pay_closed": "De checkout is gesloten. Als je nog niet klaar was met betalen, kun je hem opnieuw openen.",
+ "pay_reopen": "Checkout opnieuw openen",
+ "pay_done": "Betaling ontvangen, bedankt! Je wordt doorgestuurd…",
+ "pay_invalid": "De betaallink is ongeldig of onvolledig. Start de betaling opnieuw vanaf je accountpagina.",
+ "pay_failed": "De checkout kon niet worden geopend. Zet je adblocker uit en herlaad de pagina.",
+ "pay_back": "Terug naar mijn account",
+ "pay_secure": "De betaling wordt veilig verwerkt door Paddle als Merchant of Record."
 }

@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Comparaison de setups",
  "ov_setupcmp_d": "Compare côte à côte les setups que tu charges au garage : avec lequel es-tu le plus rapide ?",
  "ov_setupcmp_h": "Meilleur tour, secteurs, meilleur théorique, moyenne et nombre de tours pour chaque setup|Setup le plus rapide en vert, écart sur les autres|De 2 à 6 setups côte à côte|Cette session uniquement ou tous les enregistrements sur la même piste et la même voiture|Vue tableau ou liste simple|iRacing",
- "ovg_setupcmp": "Quand tu testes des setups, tu n'as plus à te rappeler lequel était vraiment le plus rapide. Charge un setup au garage et roule : l'overlay enregistre ton meilleur tour, tes secteurs, ta moyenne et ton nombre de tours sous le nom de ce setup ; quand tu en charges un autre, il met les deux côte à côte. Sur chaque ligne, la valeur la plus rapide est en vert et l'autre indique ton retard, ce qui te permet de voir dans quelle partie du tour le nouveau setup fait gagner ou perdre du temps. Tu peux comparer plus de deux setups, et regarder uniquement les tours de cette session ou ceux que tu as faits auparavant sur la même piste et la même voiture."
+ "ovg_setupcmp": "Quand tu testes des setups, tu n'as plus à te rappeler lequel était vraiment le plus rapide. Charge un setup au garage et roule : l'overlay enregistre ton meilleur tour, tes secteurs, ta moyenne et ton nombre de tours sous le nom de ce setup ; quand tu en charges un autre, il met les deux côte à côte. Sur chaque ligne, la valeur la plus rapide est en vert et l'autre indique ton retard, ce qui te permet de voir dans quelle partie du tour le nouveau setup fait gagner ou perdre du temps. Tu peux comparer plus de deux setups, et regarder uniquement les tours de cette session ou ceux que tu as faits auparavant sur la même piste et la même voiture.",
+ "pay_title": "Paiement",
+ "pay_loading": "Ouverture du paiement…",
+ "pay_closed": "La fenêtre de paiement a été fermée. Si tu n'as pas fini de payer, tu peux la rouvrir.",
+ "pay_reopen": "Rouvrir le paiement",
+ "pay_done": "Paiement reçu, merci ! Redirection…",
+ "pay_invalid": "Le lien de paiement est invalide ou incomplet. Relance le paiement depuis ta page de compte.",
+ "pay_failed": "Impossible d'ouvrir le paiement. Désactive le bloqueur de publicités et recharge la page.",
+ "pay_back": "Retour à mon compte",
+ "pay_secure": "Le paiement est traité en toute sécurité par Paddle en tant que Merchant of Record."
 }

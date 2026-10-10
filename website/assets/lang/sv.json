@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Setupjämförelse",
  "ov_setupcmp_d": "Jämför setups du laddar i garaget sida vid sida: med vilken är du snabbare?",
  "ov_setupcmp_h": "Bästa varv, sektorer, teoretiskt bästa, snitt och antal varv för varje setup|Snabbaste setupen i grönt, skillnaden hos de andra|2 till 6 setups sida vid sida|Bara den här sessionen, eller allt som sparats på samma bana och bil|Tabell eller enkel listvy|iRacing",
- "ovg_setupcmp": "När du testar setups behöver du inte längre komma ihåg vilken som verkligen var snabbast. Ladda en setup i garaget och kör, så sparar overlayen ditt bästa varv, sektorer, snitt och antal varv under setupens namn; laddar du en annan ställer den de två sida vid sida. I varje rad är det snabbaste värdet grönt och hos det andra står hur mycket du ligger efter, så du ser i vilken del av varvet den nya setupen vinner eller förlorar tid. Du kan jämföra fler än två setups och titta bara på den här sessionens varv eller på varv du kört tidigare på samma bana och bil."
+ "ovg_setupcmp": "När du testar setups behöver du inte längre komma ihåg vilken som verkligen var snabbast. Ladda en setup i garaget och kör, så sparar overlayen ditt bästa varv, sektorer, snitt och antal varv under setupens namn; laddar du en annan ställer den de två sida vid sida. I varje rad är det snabbaste värdet grönt och hos det andra står hur mycket du ligger efter, så du ser i vilken del av varvet den nya setupen vinner eller förlorar tid. Du kan jämföra fler än två setups och titta bara på den här sessionens varv eller på varv du kört tidigare på samma bana och bil.",
+ "pay_title": "Betalning",
+ "pay_loading": "Öppnar kassan…",
+ "pay_closed": "Kassan stängdes. Om du inte betalat klart kan du öppna den igen.",
+ "pay_reopen": "Öppna kassan igen",
+ "pay_done": "Betalning mottagen, tack! Du skickas vidare…",
+ "pay_invalid": "Betalningslänken är ogiltig eller ofullständig. Starta betalningen igen från din kontosida.",
+ "pay_failed": "Kassan kunde inte öppnas. Stäng av annonsblockeraren och ladda om sidan.",
+ "pay_back": "Tillbaka till mitt konto",
+ "pay_secure": "Betalningen hanteras säkert av Paddle som Merchant of Record."
 }

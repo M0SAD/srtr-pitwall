@@ -251,7 +251,7 @@ export function AdminPayMethods() {
         Hesap sayfasında ve web sitesinde hangi ödeme yöntemlerinin görüneceğini seç, kendi ödeme bağlantılarını ekle. Kendi bağlantınla (ör. ByNoGame) yapılan
         ödemede PRO kendiliğinden açılmaz: ödemeyi görünce üyeye PRO'yu Üyeler bölümünden elle tanımlarsın; açıklamaya üyenin ne yapması gerektiğini yaz.
       </p>
-      <Hide k="hide_plans" title="Lemon Squeezy ödemeleri (otomatik planlar)" sub="1 / 3 / 6 / 12 aylık abonelik düğmeleri ve hediye PRO'nun mağaza düğmeleri. Mağaza hazır değilken kapat." />
+      <Hide k="hide_plans" title="Otomatik ödemeler (Paddle planları)" sub="1 / 3 / 6 / 12 aylık abonelik düğmeleri ve hediye PRO'nun mağaza düğmeleri. Mağaza hazır değilken kapat." />
       <Hide k="hide_patreon" title="Patreon" sub="Sabit Patreon kategorisi: başlık ve açıklama yerleşiktir, arayüzün ve sitenin diline göre kendiliğinden çevrilir" />
       <div class="paycat-edit" classList={{ off: !!cur().hide_patreon }}>
         <div class="paylink-edit-row">

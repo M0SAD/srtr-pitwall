@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-285
+
+- Ödemeler Paddle'a taşındı (Lemon Squeezy'nin yerine). PRO abonelik (1 / 3 / 6 / 12 ay), hediye PRO, kuponlar ve reklam ödemeleri Paddle Billing üzerinden alınır; Paddle anahtarları sunucuda tanımlanana kadar eski Lemon yolu çalışmaya devam eder. Var olan Lemon abonelikleri kendi mağazalarında yenilenmeye devam eder.
+- Hesap › "Aboneliği yönet": Paddle aboneliğinde Paddle müşteri portalını açar (kart değiştirme, faturalar, iptal).
+- Hediye ettiğin Paddle aboneliğini "Sonlandır" ile iptal edebilirsin (alıcının PRO'su ödenen dönemin sonuna kadar sürer).
+- Yönetim: gelir / üye / ödeme listelerinde Paddle kaynağı; plan ve reklam açıklamaları Paddle'a göre güncellendi.
+- Sunucu: c110_guncelleme.sql, yeni pro-portal fonksiyonu; pro-checkout, ads-checkout, pro-webhook (?source=paddle), gift-cancel ve pitwall-jobs güncellendi. Sitede yeni ödeme sayfası (odeme.html). Kurulum: docs/PRO.md.
+
 ## 101026-284
 
 - Kontrol paneli: X'e basınca pencere anında kayboluyor. Eskiden bekleyen ayarlar hesaba gönderilene kadar (en çok 3,5 sn) pencere ekranda kalıyordu; gönderim artık pencere gizlendikten sonra arka planda yapılıyor.

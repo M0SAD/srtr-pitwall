@@ -130,7 +130,7 @@ const DEFAULT_HIDDEN_MENU = ["drivers.league"];
 const SUPPORT_CATS = { bug: "Hata bildirimi", overlay: "Overlay / görünüm", payment: "Ödeme / abonelik", account: "Hesap", feature: "Öneri / istek", other: "Diğer" };
 const SUPPORT_ST = { open: ["warn", "Açık"], answered: ["ok", "Yanıtlandı"], closed: ["", "Kapalı"] };
 
-const SRC = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici" };
+const SRC = { paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici" };
 // Oturumdaki kişi yönetici mi (değilse moderatör: sadece Destek)
 let isAdm = false;
 let sections = SECTIONS;
@@ -282,14 +282,14 @@ async function satislar(el) {
         <td class="num">${r.kind === "refund" ? `<span class="badge bad">İade</span> ` : ""}${fmtMoney(r.kind === "refund" ? -r.amount : r.amount, r.currency)}</td>
       </tr>`,
         )
-        .join("") || `<tr><td colspan="5" class="muted">Henüz ödeme yok. Ödemeler Lemon Squeezy / Patreon bildirimleriyle buraya düşer.</td></tr>`;
+        .join("") || `<tr><td colspan="5" class="muted">Henüz ödeme yok. Ödemeler Paddle / Lemon Squeezy / Patreon bildirimleriyle buraya düşer.</td></tr>`;
     $("#pay-total").textContent = `${list.length} kayıt · ${money(tot)}`;
   };
   el.innerHTML = `
     <div class="row between" style="margin-bottom:14px">
       <h2 style="margin:0">Satışlar</h2>
       <div class="row"><span class="muted small" id="pay-total"></span>
-        <div class="seg" id="srcs">${[["", "Hepsi"], ["lemon", "Lemon"], ["patreon", "Patreon"]]
+        <div class="seg" id="srcs">${[["", "Hepsi"], ["paddle", "Paddle"], ["lemon", "Lemon"], ["patreon", "Patreon"]]
           .map(([k, l]) => `<button data-s="${k}" class="${k === src ? "on" : ""}">${l}</button>`)
           .join("")}</div>
         <button class="btn btn-sm" id="csv">CSV indir</button></div>
@@ -313,7 +313,7 @@ async function satislar(el) {
       const list = (await rpc("admin_pro_members", { p_kind: kind })) || [];
       box.innerHTML = `<p class="muted small">${
         kind === "paid"
-          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon) gelen ya da ödeme kaydı olan üyeler."
+          ? "Aktif PRO olup ödeme kaynağından (Paddle, Lemon Squeezy, Patreon) gelen ya da ödeme kaydı olan üyeler."
           : "Aktif PRO olup hiç ödemesi olmayan üyeler (yönetici tarafından verilen süreler vb.)."
       } ${list.length} kişi.</p>
       <table class="list"><thead><tr><th>Üye</th><th>PRO</th><th>Kaynak</th><th class="num">Ödediği</th><th>Son ödeme</th></tr></thead><tbody>
@@ -749,9 +749,8 @@ async function planlar(el) {
   const num = (k, label, v, ph = "") =>
     `<div class="field"><label>${label}</label><input name="${k}" type="text" inputmode="decimal" value="${v > 0 ? esc(v) : ""}" placeholder="${esc(ph)}"></div>`;
   el.innerHTML = `<h2>Planlar ve fiyatlar</h2>
-    <p class="muted small">Buradaki fiyatlar hem sitede hem programda görünür ve ödeme tutarı olarak kullanılır. Lemon Squeezy'de tek bir abonelik ürünü
-      (“SRTR Pitwall PRO”) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant numaraları Supabase'de
-      <code>LEMON_PRO_1M_VARIANT_ID</code> … <code>LEMON_PRO_12M_VARIANT_ID</code> olarak girilir. Tutarlar buradan alınır ve <code>pro-checkout</code>
+    <p class="muted small">Buradaki fiyatlar hem sitede hem programda görünür ve ödeme tutarı olarak kullanılır. Ödemeleri Paddle alır: Paddle'da tek bir ürün
+      (“SRTR Pitwall PRO”) açılır, ürün kimliği Supabase'de <code>PADDLE_PRO_PRODUCT_ID</code> olarak girilir (kurulum: docs/PRO.md). Tutarlar buradan alınır ve <code>pro-checkout</code>
       fonksiyonu ödeme sayfasını bu tutarla açar; yenilemeler de aynı tutarla olur (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
       Türkiye'den girenler (saat dilimi Türkiye olanlar) Türkiye fiyatını (TL) görür ve öder, diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa Türkiye'de de genel fiyat kullanılır.
       Sitede <code>?region=tr</code> ya da <code>?region=intl</code> ekleyerek iki görünümü de deneyebilirsin.</p>

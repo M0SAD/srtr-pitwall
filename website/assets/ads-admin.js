@@ -65,7 +65,7 @@ export async function reklamlar(el, rerender) {
   const revTxt = Object.entries(rev).map(([k, v]) => fmtMoney(v, k)).join(" + ") || fmtMoney(0, pr.currency);
 
   el.innerHTML = `<h2>Reklamlar</h2>
-    <p class="muted small">Reklam verenler <a href="reklam.html">reklam.html</a> sayfasından yer, gösterim paketi ya da gün seçer, görsel yükler ve Lemon Squeezy ile öder.
+    <p class="muted small">Reklam verenler <a href="reklam.html">reklam.html</a> sayfasından yer, gösterim paketi ya da gün seçer, görsel yükler ve Paddle ile öder.
       Ödeme gelince reklam otomatik yayına girer (otomatik onay kapalıysa burada onay bekler). PRO üyeler reklam görmez; oyun içi overlay'lerde reklam yoktur.
       Türkiye'den girenler, o yer için Türkiye fiyatı girildiyse TL fiyatı görür ve TL öder; diğerleri genel fiyatı (USD) görür. Türkiye fiyatı 0 ise herkese genel fiyat uygulanır.
       Kullanıcılar reklamı sağ tıklayıp raporlar; rapor sınırına ulaşan reklam kendiliğinden gizlenir ve sana bildirim + e-posta gelir.</p>

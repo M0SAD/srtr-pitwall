@@ -53,7 +53,7 @@ import { sub } from "../ui";
 import { adminBadgeSeen, refreshAdminBadges, refreshAdminBadgesSoon } from "@/cloud/adminBadges";
 
 /** PRO kaynağının görünen adı */
-const SRC_LABEL: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici", trial: "Deneme" };
+const SRC_LABEL: Record<string, string> = { paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici", trial: "Deneme" };
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
 const fmtTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString(localeTag()) : "—");
 const isOnline = (v: string | null | undefined) => !!v && new Date(v).getTime() > Date.now() - 4 * 60_000;
@@ -429,7 +429,7 @@ function Members(props: { run: Run }) {
 }
 
 // ---------------------------------------------------------------------------
-// Abonelikler (Lemon Squeezy)
+// Abonelikler (Paddle; eski Lemon Squeezy abonelikleri de)
 // ---------------------------------------------------------------------------
 const STATUS: Record<string, string> = {
   active: "Aktif",
@@ -454,7 +454,7 @@ function Subscriptions() {
   return (
     <section class="panel admin-panel">
       <h3>Abonelikler</h3>
-      <p class="muted small">Lemon Squeezy'den gelen abonelikler. Durum değişiklikleri kendiliğinden buraya düşer; PRO süresi de otomatik ayarlanır.</p>
+      <p class="muted small">Paddle'dan (ve eski Lemon Squeezy aboneliklerinden) gelen abonelikler. Durum değişiklikleri kendiliğinden buraya düşer; PRO süresi de otomatik ayarlanır.</p>
       <div class="cm-tabs">
         <For each={[["all", "Tümü"], ["active", "Yenilenenler"], ["issue", "Sorunlu"], ["ended", "İptal / bitmiş"]] as const}>
           {([id, label]) => (
@@ -618,9 +618,9 @@ function Plans(props: { run: Run }) {
     <section class="panel admin-panel">
       <h3>Planlar ve fiyatlar</h3>
       <p class="muted small">
-        Lemon Squeezy'de tek bir abonelik ürünü (SRTR Pitwall PRO) ve 4 varyantı (her 1 / 3 / 6 / 12 ayda bir yenilenen, fiyatı önemsiz) açılır; varyant
-        numaraları Supabase'de gizli değer olarak girilir. Tutarlar buradan alınır: ödeme sayfası bu tutarla açılır ve yenilemeler de aynı tutarla olur
-        (fiyat değişikliği yalnızca yeni aboneliklere uygulanır).
+        Ödemeleri Paddle alır: Paddle'da tek bir ürün (SRTR Pitwall PRO) açılır, ürün kimliği Supabase'de gizli değer olarak girilir. Tutarlar buradan
+        alınır: ödeme sayfası bu tutarla açılır ve yenilemeler de aynı tutarla olur (fiyat değişikliği yalnızca yeni aboneliklere uygulanır). Eski Lemon
+        Squeezy abonelikleri kendi mağazalarında yenilenmeye devam eder.
       </p>
       <p class="muted small">
         Türkiye'den kullananlar (saat dilimi Türkiye) Türkiye fiyatını (TL) görür ve öder; diğer herkes genel fiyatı (USD). Türkiye fiyatı boşsa herkes genel fiyatı

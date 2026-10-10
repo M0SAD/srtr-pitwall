@@ -35,7 +35,7 @@ import "../admin.css";
 type Run = (fn: () => Promise<unknown>, ok: string) => Promise<void>;
 
 const fmtDate = (v: string | number | null | undefined) => (v ? new Date(v).toLocaleDateString(localeTag()) : "—");
-const SRC: Record<string, string> = { lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici" };
+const SRC: Record<string, string> = { paddle: "Paddle", lemon: "Lemon Squeezy", patreon: "Patreon", kofi: "Ko-fi", manual: "Elle ödeme", admin: "Yönetici" };
 
 export function fmtMoney(m: Money | null | undefined) {
   const e = Object.entries(m ?? {}).filter(([, v]) => Number(v) !== 0);
@@ -79,7 +79,7 @@ export function ProEditor(p: { user: AdminUser; run: Run; onClose: () => void; o
   const [item, setItem] = createSignal("");
   const amt = () => Math.max(0, parseFloat(amount().replace(",", ".")) || 0);
   /** Seçilebilen yöntemler: kendi ödeme kategorilerin + yaygın olanlar (elle de yazılabilir) */
-  const methodList = () => [...new Set([...(payMethods(config()).cats ?? []).map((c) => c.title.trim()).filter(Boolean), "ByNoGame", "Patreon", "Lemon Squeezy", "Havale / EFT", "Papara", "PayPal", "Nakit"])];
+  const methodList = () => [...new Set([...(payMethods(config()).cats ?? []).map((c) => c.title.trim()).filter(Boolean), "ByNoGame", "Patreon", "Paddle", "Lemon Squeezy", "Havale / EFT", "Papara", "PayPal", "Nakit"])];
   // Kutunun ilk durumu üyenin şu anki iznidir (profili yalnızca yönetici okuyabilir)
   api<{ pro_paid_until: string | null }[]>("GET", `profiles?id=eq.${p.user.id}&select=pro_paid_until`)
     .then((r) => setLogo(!!r?.[0]?.pro_paid_until && new Date(r[0].pro_paid_until).getTime() > Date.now()))
@@ -783,7 +783,7 @@ export function AdminRevenue() {
       </div>
       <p class="muted small">
         {kind() === "paid"
-          ? "Aktif PRO olup ödeme kaynağından (Lemon Squeezy, Patreon) gelen ya da ödeme kaydı olan üyeler."
+          ? "Aktif PRO olup ödeme kaynağından (Paddle, Lemon Squeezy, Patreon) gelen ya da ödeme kaydı olan üyeler."
           : "Aktif PRO olup hiç ödemesi olmayan üyeler (yönetici tarafından verilen süreler vb.)."}
       </p>
       <div class="rev-table">

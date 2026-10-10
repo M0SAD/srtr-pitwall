@@ -1,6 +1,19 @@
-// PRO üyelik bildirimi: Patreon ve Ko-fi ödeme bildirimlerini alır, ödeyen e-postaya PRO süresi verir.
+// PRO üyelik bildirimi: Paddle, Lemon Squeezy, Patreon ve Ko-fi ödeme bildirimlerini alır, PRO süresini ayarlar.
 //
-// Adres: https://<proje>.supabase.co/functions/v1/pro-webhook?source=lemon  (ya da patreon / kofi)
+// Adres: https://<proje>.supabase.co/functions/v1/pro-webhook?source=paddle  (ya da lemon / patreon / kofi)
+//
+// Paddle (?source=paddle): Paddle → Developer tools → Notifications → bildirim adresi (webhook). Olaylar:
+//   subscription.created / updated / activated / canceled / past_due / paused / resumed / trialing → apply_subscription
+//     (provider 'paddle'; Paddle durumları Lemon'daki adlara çevrilir: iptal planlanmış aktif abonelik 'cancelled',
+//     sona ermiş 'expired', deneme 'on_trial'), kuponlu abonelik başlayınca coupon_redeem.
+//   transaction.completed → ödeme kaydı (record_payment; abonelik faturası ya da reklam). Reklamda (custom_data.ad_id)
+//     ad_paid ile reklam ödendi sayılır.
+//   adjustment.created / updated (iade / ters ibraz onaylanınca) → iade kaydı; reklam iadesinde ad_refunded.
+//   İmza: Paddle-Signature: ts=…;h1=… — HMAC-SHA256("ts:gövde", PADDLE_WEBHOOK_SECRET). Bildirimin custom_data'sı
+//   yoksa (ör. yenileme) abonelik satırından ya da Paddle API'sinden (işlem / müşteri) tamamlanır.
+//   Gizli değerler: PADDLE_WEBHOOK_SECRET (bildirim adresinin "secret key"i), PADDLE_API_KEY, PADDLE_ENV.
+//   Önce c110_guncelleme.sql çalıştırılmalı.
+//
 // Gizli değerler (Supabase -> Edge Functions -> Secrets):
 //   PATREON_WEBHOOK_SECRET  Patreon webhook sayfasındaki "secret"
 //   KOFI_VERIFICATION_TOKEN Ko-fi -> API -> Verification Token
@@ -37,6 +50,38 @@ function serviceKey(): string {
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey(), {
   auth: { persistSession: false },
 });
+
+// ---------------------------------------------------------------------------
+// Paddle Billing (ortak yardımcılar; bu dosya panelden tek başına yayınlandığı için diğer fonksiyonlarda da aynısı var)
+// ---------------------------------------------------------------------------
+const PADDLE_KEY = () => (Deno.env.get("PADDLE_API_KEY") ?? "").trim();
+/** PADDLE_ENV=sandbox: test ortamı (sandbox-api.paddle.com); boş / "live": canlı */
+const PADDLE_SANDBOX = () => (Deno.env.get("PADDLE_ENV") ?? "").trim().toLowerCase() === "sandbox";
+const PADDLE_API = () => (PADDLE_SANDBOX() ? "https://sandbox-api.paddle.com" : "https://api.paddle.com");
+
+class PaddleError extends Error {
+  constructor(public status: number, public code: string, msg: string) {
+    super(msg);
+  }
+}
+
+/** Paddle API çağrısı; `data` alanını döner, hatada PaddleError fırlatır */
+// deno-lint-ignore no-explicit-any
+async function paddle<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(PADDLE_API() + path, {
+    method,
+    headers: { Authorization: `Bearer ${PADDLE_KEY()}`, "Content-Type": "application/json", "Paddle-Version": "1" },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = j?.error ?? {};
+    // deno-lint-ignore no-explicit-any
+    const fields = Array.isArray(e.errors) ? e.errors.map((x: any) => `${x?.field}: ${x?.message}`).join("; ") : "";
+    throw new PaddleError(res.status, String(e.code ?? ""), `${e.code ?? res.status}: ${e.detail ?? ""}${fields ? ` (${fields})` : ""}`);
+  }
+  return j?.data as T;
+}
 
 const DAY = 24 * 3600 * 1000;
 /** Ödeme gecikmelerine karşı ek süre */
@@ -358,14 +403,301 @@ async function lemonAdOrder(j: any, event: string, adId: string, customUser: str
   return ok({ ok: true, event, ad: adId, status: data?.status });
 }
 
+// ---------------------------------------------------------------------------
+// Paddle Billing (bkz. dosya başı)
+// ---------------------------------------------------------------------------
+const UUID = /^[0-9a-f-]{36}$/i;
+const uuidOr = (v: unknown) => (typeof v === "string" && UUID.test(v) ? v : null);
+/** Paddle tutarı: en küçük birim (kuruş / cent) metni → sayı */
+const minor = (v: unknown) => (Number(v) || 0) / 100;
+const PLAN_NAME: Record<number, string> = { 1: "Monthly", 3: "Every 3 months", 6: "Every 6 months", 12: "Yearly" };
+
+/** İmza: "ts=…;h1=…" (anahtar değişiminde birden çok h1 olabilir) */
+export function paddleSignatureOk(header: string, raw: string, secret: string, now = Date.now()): boolean {
+  if (!secret || !header) return false;
+  const parts = header.split(";").map((x) => x.trim().split("="));
+  const ts = parts.find(([k]) => k === "ts")?.[1] ?? "";
+  const sigs = parts.filter(([k]) => k === "h1").map(([, v]) => v ?? "");
+  if (!/^\d+$/.test(ts) || !sigs.length) return false;
+  // Eski bildirimin yeniden gönderilmesine karşı: en çok 1 saatlik (Paddle yeniden denemelerde yeni imza üretir)
+  if (Math.abs(now / 1000 - Number(ts)) > 3600) return false;
+  const mine = new TextEncoder().encode(createHmac("sha256", secret).update(`${ts}:${raw}`).digest("hex"));
+  return sigs.some((s) => {
+    const b = new TextEncoder().encode(s);
+    return b.length === mine.length && timingSafeEqual(b, mine);
+  });
+}
+
+const customerEmails = new Map<string, string>();
+/** Paddle müşterisinin e-postası (bulunamazsa "") */
+async function paddleEmail(customer: string): Promise<string> {
+  if (!customer) return "";
+  if (customerEmails.has(customer)) return customerEmails.get(customer)!;
+  try {
+    const c = await paddle("GET", `/customers/${encodeURIComponent(customer)}`);
+    const e = String(c?.email ?? "");
+    customerEmails.set(customer, e);
+    return e;
+  } catch (e) {
+    console.error("paddle customer", String((e as Error).message ?? e));
+    return "";
+  }
+}
+
+/** İşlemin custom_data'sı ve abonelik kimliği (bildirimde yoksa API'den) */
+// deno-lint-ignore no-explicit-any
+async function paddleTxn(id: string): Promise<any | null> {
+  if (!id || !PADDLE_KEY()) return null;
+  try {
+    return await paddle("GET", `/transactions/${encodeURIComponent(id)}`);
+  } catch (e) {
+    console.error("paddle transaction", String((e as Error).message ?? e));
+    return null;
+  }
+}
+
+/** Fiyatın yenileme dönemi (ay) */
+// deno-lint-ignore no-explicit-any
+function cycleMonths(price: any): number {
+  const c = price?.billing_cycle;
+  const n = Number(c?.frequency) || 0;
+  if (!n) return 0;
+  return c?.interval === "year" ? n * 12 : c?.interval === "month" ? n : 0;
+}
+
+// deno-lint-ignore no-explicit-any
+async function paddleSubscription(d: any, event: string) {
+  const id = String(d?.id ?? "");
+  if (!id) return ok({ ignored: "id yok", event });
+  let custom = d?.custom_data ?? null;
+  // custom_data işlemden aboneliğe kopyalanır; yoksa (eski olay) aboneliği başlatan işlemden okunur
+  if (!uuidOr(custom?.user_id) && d?.transaction_id) custom = (await paddleTxn(String(d.transaction_id)))?.custom_data ?? custom;
+  const customUser = uuidOr(custom?.user_id);
+  const customGifter = uuidOr(custom?.gifter);
+
+  const now = Date.now();
+  const at = (v: unknown) => (typeof v === "string" && v ? new Date(v) : null);
+  const periodEnd = at(d?.current_billing_period?.ends_at);
+  const next = at(d?.next_billed_at);
+  const sc = d?.scheduled_change;
+  let status = "";
+  let renews: Date | null = null;
+  let ends: Date | null = null;
+  switch (String(d?.status ?? "")) {
+    case "active":
+      if (sc?.action === "cancel") {
+        status = "cancelled";
+        ends = at(sc?.effective_at) ?? periodEnd ?? new Date(now);
+      } else if (sc?.action === "pause") {
+        status = "cancelled";
+        ends = at(sc?.effective_at) ?? periodEnd ?? new Date(now);
+      } else {
+        status = "active";
+        renews = next ?? periodEnd;
+      }
+      break;
+    case "trialing":
+      status = "on_trial";
+      renews = next ?? periodEnd;
+      break;
+    case "past_due":
+      // Paddle ödemeyi yeniden dener. Yenilemede dönem ileri alındığı için current_billing_period ÖDENMEMİŞ dönemdir:
+      // PRO ödenen dönemin sonuna (= ödenmemiş dönemin başı) + ek süre kadar sürer
+      status = "past_due";
+      renews = at(d?.current_billing_period?.starts_at) ?? new Date(now);
+      break;
+    case "paused":
+      status = "paused";
+      ends = at(d?.paused_at) ?? periodEnd ?? new Date(now);
+      break;
+    case "canceled":
+      ends = at(d?.canceled_at) ?? periodEnd ?? new Date(now);
+      status = ends.getTime() > now ? "cancelled" : "expired";
+      break;
+    default:
+      return ok({ ignored: d?.status, event });
+  }
+  let until: Date | null;
+  if (status === "active" || status === "on_trial" || status === "past_due") {
+    until = renews ? new Date(renews.getTime() + GRACE_DAYS * DAY) : null;
+  } else if (status === "cancelled") {
+    until = ends ?? new Date(now);
+  } else {
+    until = ends && ends.getTime() < now ? ends : new Date(now);
+  }
+  const item = Array.isArray(d?.items) ? d.items[0] : null;
+  const months = cycleMonths(item?.price);
+  const plan = PLAN_NAME[months] ?? (months ? `Every ${months} months` : String(custom?.plan ?? ""));
+  const customer = String(d?.customer_id ?? "");
+  const email = await paddleEmail(customer);
+  const { data, error } = await supabase.rpc("apply_subscription", {
+    p_lemon_id: id,
+    p_user: customUser,
+    p_email: email,
+    p_status: status,
+    p_plan: plan,
+    p_variant: String(item?.price?.id ?? ""),
+    p_renews: renews ? renews.toISOString() : null,
+    p_ends: ends ? ends.toISOString() : null,
+    p_portal: "",
+    p_until: until ? until.toISOString() : null,
+    p_gifter: customGifter,
+    p_provider: "paddle",
+    p_customer: customer,
+    // Paddle olayları sırasız / gecikmeli gelebilir: daha eski durum yenisinin üstüne yazılmaz (c110)
+    p_event_at: typeof d?.updated_at === "string" && d.updated_at ? d.updated_at : null,
+  });
+  if (error) throw new Error(error.message);
+  if (event === "subscription.created") {
+    await redeemCoupon(custom, {
+      ref: `paddle-sub-${id}`,
+      user: customGifter ?? customUser,
+      product: customGifter ? "gift" : "pro",
+      plan: String(custom?.plan || ""),
+    });
+  }
+  return ok({ ok: true, event, status, user: data });
+}
+
+// deno-lint-ignore no-explicit-any
+async function paddleTransaction(d: any, event: string) {
+  if (String(d?.status ?? "") !== "completed") return ok({ ignored: d?.status, event });
+  const id = String(d?.id ?? "");
+  const custom = d?.custom_data ?? {};
+  const customUser = uuidOr(custom?.user_id);
+  const customGifter = uuidOr(custom?.gifter);
+  const totals = d?.details?.totals ?? {};
+  const amount = minor(totals.grand_total ?? totals.total);
+  const currency = String(d?.currency_code ?? totals.currency_code ?? "USD");
+  const email = await paddleEmail(String(d?.customer_id ?? ""));
+
+  // Reklam ödemesi (ads-checkout)
+  const adId = uuidOr(custom?.ad_id);
+  if (adId) {
+    const { data, error } = await supabase.rpc("ad_paid", { p_ad: adId, p_user: customUser, p_order: id, p_amount: amount, p_currency: currency });
+    if (error) {
+      // Kalıcı veri hatası (ör. reklam başka hesaba ait / silinmiş): Paddle günlerce yeniden denemesin
+      if (/başka hesab|bulunamad|not found/i.test(error.message)) {
+        console.error("ad_paid", adId, error.message);
+        return ok({ ignored: error.message, event, ad: adId });
+      }
+      throw new Error(error.message);
+    }
+    await record({
+      id: `paddle-ad-${id}`,
+      source: "paddle",
+      email,
+      user: customUser ?? data?.user_id ?? null,
+      amount,
+      currency,
+      plan: `Reklam: ${AD_PLACES[data?.placement] ?? data?.placement ?? ""}`,
+    });
+    await redeemCoupon(custom, { ref: `paddle-ad-${id}`, user: customUser ?? data?.user_id ?? null, product: "ad", plan: String(data?.placement ?? ""), after: amount, currency });
+    return ok({ ok: true, event, ad: adId, status: data?.status });
+  }
+
+  // Abonelik faturası: sadece kayıt (PRO süresini abonelik olayı ayarlar)
+  const subId = String(d?.subscription_id ?? "");
+  if (!subId) return ok({ ignored: "abonelik / reklam değil", event });
+  // Tutarsız işlemler (ör. portalda kart değişikliği: origin subscription_payment_method_change, tutar 0) ödeme sayılmaz
+  if (!(amount > 0)) return ok({ ignored: `tutar 0 (${d?.origin ?? ""})`, event });
+  const { data: sub } = await supabase.from("subscriptions").select("plan,user_id,gifted_by,is_gift").eq("lemon_id", subId).maybeSingle();
+  const gift = !!customGifter || !!sub?.is_gift || custom?.gift === "1";
+  const months = cycleMonths(Array.isArray(d?.items) ? d.items[0]?.price : null);
+  const payer = gift ? customGifter ?? sub?.gifted_by ?? null : customUser ?? sub?.user_id ?? null;
+  await record({
+    id: `paddle-txn-${id}`,
+    source: "paddle",
+    email,
+    user: payer,
+    giftTo: gift ? customUser ?? sub?.user_id ?? null : null,
+    amount,
+    currency,
+    plan: String(sub?.plan || PLAN_NAME[months] || custom?.plan || ""),
+  });
+  // Kuponlu aboneliğin ilk ödemesi: kullanım abonelik başına bir kez (subscription.created ile aynı ref),
+  // indirimli tutar bu işlemden
+  const initial = ["web", "api"].includes(String(d?.origin ?? ""));
+  if (initial && typeof custom?.coupon_id === "string") {
+    const ref = `paddle-sub-${subId}`;
+    await redeemCoupon(custom, { ref, user: payer, product: gift ? "gift" : "pro", plan: String(custom?.plan || ""), after: amount, currency });
+    const { error: ue } = await supabase.from("coupon_redemptions").update({ amount_after: amount, currency: currency.toUpperCase() }).eq("ref", ref);
+    if (ue) console.error("coupon amount", ue.message);
+  }
+  return ok({ ok: true, event });
+}
+
+// deno-lint-ignore no-explicit-any
+async function paddleAdjustment(d: any, event: string) {
+  const action = String(d?.action ?? "");
+  if ((action !== "refund" && action !== "chargeback") || String(d?.status ?? "") !== "approved") {
+    return ok({ ignored: `${action}/${d?.status}`, event });
+  }
+  const txnId = String(d?.transaction_id ?? "");
+  const t = await paddleTxn(txnId);
+  const custom = t?.custom_data ?? {};
+  const amount = minor(d?.totals?.total);
+  const currency = String(d?.currency_code ?? t?.currency_code ?? "USD");
+  const email = await paddleEmail(String(d?.customer_id ?? t?.customer_id ?? ""));
+  const adId = uuidOr(custom?.ad_id);
+  if (adId) {
+    const { data, error } = await supabase.rpc("ad_refunded", { p_ad: adId });
+    if (error) throw new Error(error.message);
+    await record({
+      id: `paddle-adj-${d?.id}`,
+      source: "paddle",
+      email,
+      user: uuidOr(custom?.user_id) ?? data?.user_id ?? null,
+      amount,
+      currency,
+      plan: `Reklam: ${AD_PLACES[data?.placement] ?? data?.placement ?? ""}`,
+      kind: "refund",
+    });
+    return ok({ ok: true, event, ad: adId, refunded: true });
+  }
+  const subId = String(d?.subscription_id ?? t?.subscription_id ?? "");
+  const { data: sub } = subId
+    ? await supabase.from("subscriptions").select("plan,user_id,gifted_by,is_gift").eq("lemon_id", subId).maybeSingle()
+    : { data: null };
+  const customUser = uuidOr(custom?.user_id);
+  const customGifter = uuidOr(custom?.gifter);
+  const gift = !!customGifter || !!sub?.is_gift || custom?.gift === "1";
+  await record({
+    id: `paddle-adj-${d?.id}`,
+    source: "paddle",
+    email,
+    user: gift ? customGifter ?? sub?.gifted_by ?? null : customUser ?? sub?.user_id ?? null,
+    giftTo: gift ? customUser ?? sub?.user_id ?? null : null,
+    amount,
+    currency,
+    plan: String(sub?.plan || custom?.plan || ""),
+    kind: "refund",
+  });
+  return ok({ ok: true, event, refunded: true });
+}
+
+async function paddleHook(req: Request) {
+  const raw = await req.text();
+  const secret = (Deno.env.get("PADDLE_WEBHOOK_SECRET") ?? "").trim();
+  if (!paddleSignatureOk(req.headers.get("Paddle-Signature") ?? "", raw, secret)) return fail(401, "imza hatalı");
+  const j = JSON.parse(raw);
+  const event = String(j?.event_type ?? "");
+  const d = j?.data ?? {};
+  if (event.startsWith("subscription.")) return await paddleSubscription(d, event);
+  if (event === "transaction.completed") return await paddleTransaction(d, event);
+  if (event === "adjustment.created" || event === "adjustment.updated") return await paddleAdjustment(d, event);
+  return ok({ ignored: event });
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return fail(405, "POST bekleniyor");
   const source = new URL(req.url).searchParams.get("source");
   try {
     if (source === "kofi") return await kofi(req);
     if (source === "patreon") return await patreon(req);
+    if (source === "paddle") return await paddleHook(req);
     if (source === "lemon") return await lemon(req);
-    return fail(400, "source=lemon, patreon ya da kofi olmalı");
+    return fail(400, "source=paddle, lemon, patreon ya da kofi olmalı");
   } catch (e) {
     console.error(e);
     return fail(500, String((e as Error).message ?? e));

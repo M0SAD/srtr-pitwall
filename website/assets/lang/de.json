@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Setup-Vergleich",
  "ov_setupcmp_d": "Vergleicht die Setups, die du in der Garage lädst, nebeneinander: Mit welchem bist du schneller?",
  "ov_setupcmp_h": "Beste Runde, Sektoren, theoretische Bestzeit, Durchschnitt und Rundenanzahl für jedes Setup|Schnellstes Setup in Grün, bei den anderen der Abstand|2 bis 6 Setups nebeneinander|Nur diese Session oder alle Aufzeichnungen auf derselben Strecke und mit demselben Auto|Tabellen- oder einfache Listenansicht|iRacing",
- "ovg_setupcmp": "Beim Testen von Setups musst du dir nicht merken, welches wirklich schneller war. Lädst du in der Garage ein Setup und fährst Runden, speichert das Overlay unter dem Namen dieses Setups deine beste Runde, Sektoren, deinen Durchschnitt und die Rundenanzahl; lädst du ein anderes, stellt es beide nebeneinander. In jeder Zeile ist der schnellste Wert grün, beim anderen siehst du, wie weit du zurückliegst – so erkennst du, in welchem Teil der Runde das neue Setup Zeit bringt oder kostet. Du kannst auch mehr als zwei Setups vergleichen und entweder nur die Runden dieser Session oder auch früher auf derselben Strecke und mit demselben Auto gefahrene Runden betrachten."
+ "ovg_setupcmp": "Beim Testen von Setups musst du dir nicht merken, welches wirklich schneller war. Lädst du in der Garage ein Setup und fährst Runden, speichert das Overlay unter dem Namen dieses Setups deine beste Runde, Sektoren, deinen Durchschnitt und die Rundenanzahl; lädst du ein anderes, stellt es beide nebeneinander. In jeder Zeile ist der schnellste Wert grün, beim anderen siehst du, wie weit du zurückliegst – so erkennst du, in welchem Teil der Runde das neue Setup Zeit bringt oder kostet. Du kannst auch mehr als zwei Setups vergleichen und entweder nur die Runden dieser Session oder auch früher auf derselben Strecke und mit demselben Auto gefahrene Runden betrachten.",
+ "pay_title": "Zahlung",
+ "pay_loading": "Checkout wird geöffnet…",
+ "pay_closed": "Der Checkout wurde geschlossen. Wenn du noch nicht bezahlt hast, kannst du ihn erneut öffnen.",
+ "pay_reopen": "Checkout erneut öffnen",
+ "pay_done": "Zahlung erhalten, danke! Du wirst weitergeleitet…",
+ "pay_invalid": "Der Zahlungslink ist ungültig oder unvollständig. Starte die Zahlung erneut auf deiner Kontoseite.",
+ "pay_failed": "Der Checkout konnte nicht geöffnet werden. Deaktiviere Werbeblocker und lade die Seite neu.",
+ "pay_back": "Zurück zu meinem Konto",
+ "pay_secure": "Die Zahlung wird sicher von Paddle als Merchant of Record abgewickelt."
 }

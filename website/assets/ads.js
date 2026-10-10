@@ -1,5 +1,5 @@
 // Reklam ver: reklam veren yer, fiyat modeli (gösterim paketi / süre), görsel, metin, bağlantı ve hedef dili seçer,
-// canlı önizlemeyi ve toplam fiyatı görür, "Öde" ile Lemon Squeezy ödeme sayfasına gider (ads-checkout).
+// canlı önizlemeyi ve toplam fiyatı görür, "Öde" ile ödeme sayfasına (Paddle) gider (ads-checkout).
 // Ödeme gelince reklam kendiliğinden yayına girer. "Reklamlarım": durum, gösterim / tıklama, kalan.
 import { $, $$, T, addDict, appConfig, boot, currentUser, esc, fmtDate, fmtMoney, openCheckout, region, sb, toast } from "./core.js";
 import { AD_PLACES, adHtml, adImg } from "./adslot.js";
@@ -454,7 +454,7 @@ async function checkout(id, coupon = null) {
     throw new Error(msg);
   }
   if (!data?.url) throw new Error(T("error"));
-  const how = await openCheckout(data.url, () => {
+  const how = await openCheckout(data, () => {
     toast(T("pay_ok"));
     // Mevcut ?paid= dönüşü: bilgi mesajı + webhook işlenene kadar liste yenilenir
     setTimeout(() => (location.href = "reklam.html?paid=" + encodeURIComponent(id)), 2500);

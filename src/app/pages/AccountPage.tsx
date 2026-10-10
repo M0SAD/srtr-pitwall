@@ -49,6 +49,7 @@ import {
   checkoutGift,
   myGifts,
   cancelGift,
+  portalUrl,
   SUB_LIVE,
   type AppConfig,
   type GiftSent,
@@ -500,6 +501,23 @@ function ProPanel() {
   onMount(() => loadProInfo());
   const plans = () => PLAN_LIST.map((p) => ({ ...p, ...planFor(c(), p) })).filter((p) => p.price || p.checkout);
   const sub = () => proInfo()?.sub ?? null;
+  // Abonelik yönetimi: Lemon kalıcı portal bağlantısı verir; Paddle'da her tıklamada kısa ömürlü oturum açılır
+  const [portalBusy, setPortalBusy] = createSignal(false);
+  const [portalErr, setPortalErr] = createSignal("");
+  const manage = async () => {
+    const s = sub();
+    if (!s) return;
+    if (s.provider !== "paddle") return openUrl(s.portal_url);
+    setPortalBusy(true);
+    setPortalErr("");
+    try {
+      openUrl(await portalUrl());
+    } catch (e) {
+      setPortalErr(String((e as Error).message ?? e));
+    } finally {
+      setPortalBusy(false);
+    }
+  };
   const days = () => proDaysLeft();
   const [buying, setBuying] = createSignal("");
   const [buyErr, setBuyErr] = createSignal("");
@@ -656,12 +674,15 @@ function ProPanel() {
       <Show when={session()}>
         <GiftPanel cfg={c} />
       </Show>
-      <Show when={sub()?.portal_url}>
+      <Show when={sub()?.portal_url || sub()?.provider === "paddle"}>
         <div class="btns">
-          <button class="btn ghost" onClick={() => openUrl(sub()!.portal_url)}>
-            Aboneliği yönet (kart, fatura, iptal)
+          <button class="btn ghost" disabled={portalBusy()} onClick={() => void manage()}>
+            {portalBusy() ? "Bekleyin…" : "Aboneliği yönet (kart, fatura, iptal)"}
           </button>
         </div>
+        <Show when={portalErr()}>
+          <p class="error small">{portalErr()}</p>
+        </Show>
       </Show>
 
       <Show when={session() && profile()}>

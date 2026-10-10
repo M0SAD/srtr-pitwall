@@ -532,9 +532,91 @@ function loadLemon() {
   return lemonLoad;
 }
 
-/** Ödeme bağlantısını sitenin içinde (Lemon katmanı) açar; olmazsa sayfayı ödemeye yönlendirir.
+// ---------------------------------------------------------------------------
+// Paddle Billing: ödeme fonksiyonu (pro-checkout / ads-checkout) Paddle'daysa yanıt { provider: "paddle", txn,
+// token, env, url } olur; ödeme sitenin içinde Paddle katmanında (Paddle.js) açılır. Paddle.js yüklenemezse
+// ödeme sayfasına (odeme.html?_ptxn=…) yönlendirilir.
+// ---------------------------------------------------------------------------
+const PADDLE_JS = "https://cdn.paddle.com/paddle/v2/paddle.js";
+let paddleLoad = null;
+let paddleKey = "";
+let paddleDone = null;
+
+/** Paddle ödeme sayfası dili (desteklenmeyen dilde İngilizce) */
+export function paddleLocale(l = lang) {
+  if (l === "zh-CN") return "zh-Hans";
+  const base = String(l || "en").split("-")[0];
+  return ["en", "tr", "de", "fr", "es", "it", "nl", "pl", "pt", "ru", "sv", "ja", "da", "no"].includes(base) ? base : "en";
+}
+
+/** Paddle.js'i yükler ve (bir kez) başlatır. settings: Initialize'a verilecek ödeme ayarları (ör. successUrl) */
+export function loadPaddle(token, env, eventCallback = null, settings = null) {
+  if (!paddleLoad) {
+    paddleLoad = new Promise((resolve, reject) => {
+      if (window.Paddle?.Initialize) return resolve(window.Paddle);
+      const timer = setTimeout(() => reject(new Error("paddle.js timeout")), 8000);
+      const el = document.createElement("script");
+      el.src = PADDLE_JS;
+      el.onload = () => {
+        clearTimeout(timer);
+        window.Paddle?.Initialize ? resolve(window.Paddle) : reject(new Error("paddle.js"));
+      };
+      el.onerror = () => {
+        clearTimeout(timer);
+        reject(new Error("paddle.js"));
+      };
+      document.head.appendChild(el);
+    }).catch((e) => {
+      paddleLoad = null;
+      throw e;
+    });
+  }
+  return paddleLoad.then((P) => {
+    const key = `${env}|${token}`;
+    if (paddleKey !== key) {
+      if (env === "sandbox") P.Environment.set("sandbox");
+      P.Initialize({
+        token,
+        ...(settings ? { checkout: { settings } } : {}),
+        eventCallback: (e) => {
+          if (e?.name === "checkout.completed" && paddleDone) {
+            const cb = paddleDone;
+            paddleDone = null;
+            try {
+              cb(e);
+            } catch {}
+          }
+          if (typeof eventCallback === "function") eventCallback(e);
+        },
+      });
+      paddleKey = key;
+    }
+    return P;
+  });
+}
+
+async function openPaddle(data, onSuccess) {
+  try {
+    if (!data.token || !data.txn) throw new Error("paddle");
+    const P = await loadPaddle(data.token, data.env);
+    paddleDone = typeof onSuccess === "function" ? onSuccess : null;
+    P.Checkout.open({ transactionId: data.txn, settings: { displayMode: "overlay", theme: "dark", locale: paddleLocale() } });
+    return "overlay";
+  } catch {
+    location.href = data.url;
+    return "redirect";
+  }
+}
+
+/** Ödeme sayfasını sitenin içinde (Lemon / Paddle katmanı) açar; olmazsa sayfayı ödemeye yönlendirir.
+ *  urlOrData: Lemon ödeme adresi ya da ödeme fonksiyonunun yanıtı ({ provider: "paddle", … }).
  *  onSuccess ödeme tamamlanınca çağrılır. Dönüş: "overlay" ya da "redirect". */
-export async function openCheckout(url, onSuccess) {
+export async function openCheckout(urlOrData, onSuccess) {
+  if (urlOrData && typeof urlOrData === "object") {
+    if (urlOrData.provider === "paddle") return openPaddle(urlOrData, onSuccess);
+    urlOrData = urlOrData.url;
+  }
+  const url = urlOrData;
   try {
     const ls = await loadLemon();
     lemonDone = typeof onSuccess === "function" ? onSuccess : null;
@@ -564,7 +646,7 @@ export async function startProCheckout(planId, giftTo = null, coupon = null) {
       throw new Error(msg);
     }
     if (!data?.url) throw new Error(T("error"));
-    const how = await openCheckout(data.url, () => {
+    const how = await openCheckout(data, () => {
       toast(T(giftTo ? "gift_pay_ok" : "pay_ok"));
       setTimeout(() => (location.href = `hesap.html?paid=${giftTo ? "gift" : "pro"}`), 3000);
     });

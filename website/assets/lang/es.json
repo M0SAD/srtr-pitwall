@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Comparación de setups",
  "ov_setupcmp_d": "Compara lado a lado los setups que cargas en el garaje: ¿con cuál eres más rápido?",
  "ov_setupcmp_h": "Mejor vuelta, sectores, mejor teórica, media y número de vueltas de cada setup|El setup más rápido en verde, la diferencia en los demás|De 2 a 6 setups lado a lado|Solo esta sesión o todos los registros de la misma pista y coche|Vista de tabla o de lista sencilla|iRacing",
- "ovg_setupcmp": "Al probar setups ya no tienes que recordar cuál era realmente más rápido. Carga un setup en el garaje y da vueltas, y el overlay guarda tu mejor vuelta, sectores, media y número de vueltas con el nombre de ese setup; cuando cargas otro, los pone lado a lado. En cada fila el valor más rápido aparece en verde y en el otro se indica cuánto te falta, así ves en qué parte de la vuelta el nuevo setup gana o pierde tiempo. Puedes comparar más de dos setups y mirar solo las vueltas de esta sesión o también las que hiciste antes en la misma pista y coche."
+ "ovg_setupcmp": "Al probar setups ya no tienes que recordar cuál era realmente más rápido. Carga un setup en el garaje y da vueltas, y el overlay guarda tu mejor vuelta, sectores, media y número de vueltas con el nombre de ese setup; cuando cargas otro, los pone lado a lado. En cada fila el valor más rápido aparece en verde y en el otro se indica cuánto te falta, así ves en qué parte de la vuelta el nuevo setup gana o pierde tiempo. Puedes comparar más de dos setups y mirar solo las vueltas de esta sesión o también las que hiciste antes en la misma pista y coche.",
+ "pay_title": "Pago",
+ "pay_loading": "Abriendo el pago…",
+ "pay_closed": "Se cerró la ventana de pago. Si no terminaste de pagar, puedes abrirla de nuevo.",
+ "pay_reopen": "Abrir el pago de nuevo",
+ "pay_done": "¡Pago recibido, gracias! Redirigiendo…",
+ "pay_invalid": "El enlace de pago no es válido o está incompleto. Vuelve a iniciar el pago desde tu cuenta.",
+ "pay_failed": "No se pudo abrir el pago. Desactiva el bloqueador de anuncios y recarga la página.",
+ "pay_back": "Volver a mi cuenta",
+ "pay_secure": "El pago lo procesa de forma segura Paddle como Merchant of Record."
 }

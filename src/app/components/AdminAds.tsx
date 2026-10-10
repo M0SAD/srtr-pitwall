@@ -86,7 +86,7 @@ function AdSettings(p: { run: Run }) {
     <section class="panel admin-panel">
       <h3>Reklamlar</h3>
       <p class="muted small">
-        Reklam verenler sitedeki <b>Reklam ver</b> sayfasından yer, gösterim paketi ya da gün seçer, görsel yükler ve Lemon Squeezy ile öder. Ödeme gelince reklam
+        Reklam verenler sitedeki <b>Reklam ver</b> sayfasından yer, gösterim paketi ya da gün seçer, görsel yükler ve Paddle ile öder. Ödeme gelince reklam
         otomatik yayına girer (otomatik onay kapalıysa burada onay bekler). PRO üyeler reklam görmez; oyun içi overlay'lerde hiç reklam yoktur. Kullanıcılar reklamı sağ
         tıklayıp raporlayabilir; rapor sınırına ulaşan reklam kendiliğinden gizlenir ve sana bildirim gelir.
       </p>

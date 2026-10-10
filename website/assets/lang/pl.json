@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Porównanie setupów",
  "ov_setupcmp_d": "Porównuje obok siebie setupy wczytane w garażu: z którym jesteś szybszy?",
  "ov_setupcmp_h": "Najlepsze okrążenie, sektory, teoretyczne best, średnia i liczba okrążeń dla każdego setupu|Najszybszy setup na zielono, przy pozostałych różnica|Od 2 do 6 setupów obok siebie|Tylko ta sesja albo wszystkie zapisy z tego samego toru i auta|Widok tabeli lub prostej listy|iRacing",
- "ovg_setupcmp": "Testując setupy, nie musisz już pamiętać, który naprawdę był szybszy. Wczytaj setup w garażu i jedź, a overlay zapisze najlepsze okrążenie, sektory, średnią i liczbę okrążeń pod nazwą tego setupu; gdy wczytasz inny, zestawi oba obok siebie. W każdym wierszu najszybsza wartość jest zielona, a przy drugiej widać, ile tracisz, więc zobaczysz, w której części okrążenia nowy setup zyskuje, a w której traci. Możesz porównywać więcej niż dwa setupy i patrzeć tylko na okrążenia z tej sesji albo też na te przejechane wcześniej na tym samym torze i w tym samym aucie."
+ "ovg_setupcmp": "Testując setupy, nie musisz już pamiętać, który naprawdę był szybszy. Wczytaj setup w garażu i jedź, a overlay zapisze najlepsze okrążenie, sektory, średnią i liczbę okrążeń pod nazwą tego setupu; gdy wczytasz inny, zestawi oba obok siebie. W każdym wierszu najszybsza wartość jest zielona, a przy drugiej widać, ile tracisz, więc zobaczysz, w której części okrążenia nowy setup zyskuje, a w której traci. Możesz porównywać więcej niż dwa setupy i patrzeć tylko na okrążenia z tej sesji albo też na te przejechane wcześniej na tym samym torze i w tym samym aucie.",
+ "pay_title": "Płatność",
+ "pay_loading": "Otwieranie płatności…",
+ "pay_closed": "Okno płatności zostało zamknięte. Jeśli nie dokończyłeś płatności, możesz je otworzyć ponownie.",
+ "pay_reopen": "Otwórz płatność ponownie",
+ "pay_done": "Płatność otrzymana, dziękujemy! Przekierowanie…",
+ "pay_invalid": "Link do płatności jest nieprawidłowy lub niepełny. Rozpocznij płatność ponownie ze strony konta.",
+ "pay_failed": "Nie udało się otworzyć płatności. Wyłącz blokadę reklam i odśwież stronę.",
+ "pay_back": "Wróć do mojego konta",
+ "pay_secure": "Płatność jest bezpiecznie obsługiwana przez Paddle jako Merchant of Record."
 }

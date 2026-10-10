@@ -1307,5 +1307,14 @@
  "ov_setupcmp_n": "Setup-vertailu",
  "ov_setupcmp_d": "Vertailee varikolla lataamiasi setupeja rinnakkain: millä olet nopeampi?",
  "ov_setupcmp_h": "Jokaisen setupin paras kierros, sektorit, teoreettinen paras, keskiarvo ja kierrosmäärä|Nopein setup vihreällä, muilta ero|2–6 setupia rinnakkain|Vain tämä istunto tai kaikki samalla radalla ja autolla tallennetut kierrokset|Taulukko- tai yksinkertainen listanäkymä|iRacing",
- "ovg_setupcmp": "Setupeja testatessasi sinun ei tarvitse muistaa, mikä oli oikeasti nopeampi. Lataa setup varikolla ja aja kierroksia, niin overlay tallentaa parhaan kierroksesi, sektorisi, keskiarvosi ja kierrosmääräsi kyseisen setupin nimellä; kun lataat toisen, se asettaa ne rinnakkain. Jokaisella rivillä nopein arvo näkyy vihreänä ja toisella näkyy, kuinka paljon jäät jälkeen, joten näet, missä osassa kierrosta uusi setup voittaa tai hävittää aikaa. Voit vertailla useampaa kuin kahta setupia ja katsoa vain tämän istunnon kierroksia tai myös aiemmin samalla radalla ja autolla ajamiasi kierroksia."
+ "ovg_setupcmp": "Setupeja testatessasi sinun ei tarvitse muistaa, mikä oli oikeasti nopeampi. Lataa setup varikolla ja aja kierroksia, niin overlay tallentaa parhaan kierroksesi, sektorisi, keskiarvosi ja kierrosmääräsi kyseisen setupin nimellä; kun lataat toisen, se asettaa ne rinnakkain. Jokaisella rivillä nopein arvo näkyy vihreänä ja toisella näkyy, kuinka paljon jäät jälkeen, joten näet, missä osassa kierrosta uusi setup voittaa tai hävittää aikaa. Voit vertailla useampaa kuin kahta setupia ja katsoa vain tämän istunnon kierroksia tai myös aiemmin samalla radalla ja autolla ajamiasi kierroksia.",
+ "pay_title": "Maksu",
+ "pay_loading": "Avataan kassaa…",
+ "pay_closed": "Kassa suljettiin. Jos et maksanut loppuun, voit avata sen uudelleen.",
+ "pay_reopen": "Avaa kassa uudelleen",
+ "pay_done": "Maksu vastaanotettu, kiitos! Ohjataan eteenpäin…",
+ "pay_invalid": "Maksulinkki on virheellinen tai puutteellinen. Aloita maksu uudelleen tilisivultasi.",
+ "pay_failed": "Kassaa ei voitu avata. Poista mainosesto käytöstä ja lataa sivu uudelleen.",
+ "pay_back": "Takaisin tiliini",
+ "pay_secure": "Maksun käsittelee turvallisesti Paddle (Merchant of Record)."
 }

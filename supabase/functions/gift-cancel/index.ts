@@ -7,7 +7,11 @@
 // alıcının PRO'su sürer (Lemon ayrıca 'subscription_cancelled' olayını pro-webhook'a yollar).
 // Veritabanında durum hemen 'cancelled' yapılır ve alıcıya 'pro_gift_ended' bildirimi gider (gift_cancelled).
 //
-// Gizli değerler: LEMON_API_KEY (pro-checkout ile aynı)
+// Paddle aboneliği (kimlik sub_…, subscriptions.provider = 'paddle'): POST /subscriptions/{id}/cancel
+// (effective_from: next_billing_period) — yenileme durur, ödenen dönemin sonuna kadar alıcının PRO'su sürer; Paddle
+// ayrıca subscription.updated (iptal planlandı) ve dönem bitince subscription.canceled olaylarını pro-webhook'a yollar.
+//
+// Gizli değerler: LEMON_API_KEY (Lemon abonelikleri için), PADDLE_API_KEY / PADDLE_ENV (Paddle abonelikleri için)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -24,6 +28,38 @@ function serviceKey(): string {
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey(), { auth: { persistSession: false } });
 
+// ---------------------------------------------------------------------------
+// Paddle Billing (ortak yardımcılar; bu dosya panelden tek başına yayınlandığı için diğer fonksiyonlarda da aynısı var)
+// ---------------------------------------------------------------------------
+const PADDLE_KEY = () => (Deno.env.get("PADDLE_API_KEY") ?? "").trim();
+/** PADDLE_ENV=sandbox: test ortamı (sandbox-api.paddle.com); boş / "live": canlı */
+const PADDLE_SANDBOX = () => (Deno.env.get("PADDLE_ENV") ?? "").trim().toLowerCase() === "sandbox";
+const PADDLE_API = () => (PADDLE_SANDBOX() ? "https://sandbox-api.paddle.com" : "https://api.paddle.com");
+
+class PaddleError extends Error {
+  constructor(public status: number, public code: string, msg: string) {
+    super(msg);
+  }
+}
+
+/** Paddle API çağrısı; `data` alanını döner, hatada PaddleError fırlatır */
+// deno-lint-ignore no-explicit-any
+async function paddle<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(PADDLE_API() + path, {
+    method,
+    headers: { Authorization: `Bearer ${PADDLE_KEY()}`, "Content-Type": "application/json", "Paddle-Version": "1" },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = j?.error ?? {};
+    // deno-lint-ignore no-explicit-any
+    const fields = Array.isArray(e.errors) ? e.errors.map((x: any) => `${x?.field}: ${x?.message}`).join("; ") : "";
+    throw new PaddleError(res.status, String(e.code ?? ""), `${e.code ?? res.status}: ${e.detail ?? ""}${fields ? ` (${fields})` : ""}`);
+  }
+  return j?.data as T;
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -39,7 +75,6 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return reply(405, { error: "POST bekleniyor" });
   try {
     const apiKey = Deno.env.get("LEMON_API_KEY") ?? "";
-    if (!apiKey) return reply(503, { error: "Ödeme sistemi yapılandırılmadı" });
 
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: ud, error: ue } = await db.auth.getUser(jwt);
@@ -47,20 +82,48 @@ Deno.serve(async (req) => {
     if (ue || !user) return reply(401, { error: "Giriş yapmalısın" });
 
     const body = await req.json().catch(() => ({}));
+    // Abonelik kimliği: Lemon (sayı) ya da Paddle (sub_…)
     const lemonId = String(body?.lemon_id ?? "").trim();
-    if (!/^\d{1,20}$/.test(lemonId)) return reply(400, { error: "Geçersiz abonelik" });
+    if (!/^\d{1,20}$/.test(lemonId) && !/^sub_[a-z0-9]{8,64}$/i.test(lemonId)) return reply(400, { error: "Geçersiz abonelik" });
 
     // Sadece hediye eden
     const { data: sub, error: se } = await db
       .from("subscriptions")
-      .select("lemon_id,status,gifted_by,is_gift,renews_at,ends_at")
+      .select("lemon_id,status,gifted_by,is_gift,renews_at,ends_at,provider")
       .eq("lemon_id", lemonId)
       .maybeSingle();
     if (se) throw new Error(se.message);
     if (!sub || !sub.is_gift || sub.gifted_by !== user.id) return reply(404, { error: "Hediye bulunamadı" });
 
     let endsAt: string | null = sub.ends_at ?? null;
-    if (sub.status !== "cancelled" && sub.status !== "expired") {
+    if (sub.provider === "paddle" && sub.status !== "cancelled" && sub.status !== "expired") {
+      if (!PADDLE_KEY()) return reply(503, { error: "Ödeme sistemi yapılandırılmadı" });
+      const cancel = (effective: string) =>
+        paddle("POST", `/subscriptions/${encodeURIComponent(lemonId)}/cancel`, { effective_from: effective });
+      try {
+        const d = await cancel("next_billing_period");
+        endsAt = d?.scheduled_change?.effective_at ?? d?.current_billing_period?.ends_at ?? sub.renews_at ?? endsAt;
+      } catch (e) {
+        const code = e instanceof PaddleError ? e.code : "";
+        console.error("paddle cancel", code, String((e as Error).message ?? e));
+        if (/already|canceled|cancelled|scheduled/i.test(code)) {
+          // Zaten iptal edilmiş / planlanmış: veritabanı yine güncellenir
+          endsAt = sub.renews_at ?? endsAt;
+        } else if (sub.status === "past_due") {
+          // Ödemesi yapılamayan abonelik dönem sonunda iptal edilemiyorsa hemen iptal edilir (zaten ödenmemiş)
+          try {
+            await cancel("immediately");
+            endsAt = new Date().toISOString();
+          } catch (e2) {
+            console.error("paddle cancel now", String((e2 as Error).message ?? e2));
+            return reply(502, { error: "Abonelik iptal edilemedi, biraz sonra tekrar dene" });
+          }
+        } else {
+          return reply(502, { error: "Abonelik iptal edilemedi, biraz sonra tekrar dene" });
+        }
+      }
+    } else if (sub.provider !== "paddle" && sub.status !== "cancelled" && sub.status !== "expired") {
+      if (!apiKey) return reply(503, { error: "Ödeme sistemi yapılandırılmadı" });
       const res = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${encodeURIComponent(lemonId)}`, {
         method: "DELETE",
         headers: {

@@ -1,5 +1,27 @@
-// PRO üyelik ödemesi: giriş yapmış kullanıcı için Lemon Squeezy'de abonelik ödeme sayfası açar.
+// PRO üyelik ödemesi: giriş yapmış kullanıcı için abonelik ödeme sayfası açar.
 //
+// ÖDEME SAĞLAYICISI: PADDLE_API_KEY tanımlıysa Paddle Billing (aşağıdaki "Paddle" bölümü), değilse Lemon Squeezy
+// (eski yol; Paddle kurulana kadar çalışmaya devam eder). Var olan Lemon abonelikleri Lemon'da yenilenmeye devam eder.
+//
+// Paddle:
+//   Fiyat yine app_config.pro_pricing'den gelir ve Paddle'a "katalog dışı fiyat" (non-catalog price) olarak gönderilir:
+//   tek PRO ürünü (PADDLE_PRO_PRODUCT_ID) + bu ödemeye özel fiyat (tutar, para birimi, her 1/3/6/12 ayda bir yenileme).
+//   Paddle bu fiyatı abonelikte saklar; yenilemeler aynı tutardan olur (panelde fiyat değişikliği yalnızca yeni
+//   abonelikleri etkiler, Lemon'daki gibi). Paddle birden çok para birimini tek hesapta desteklediği için TL / USD için
+//   ayrı mağaza ya da kur çevrimi gerekmez.
+//   Kupon: bu ödemeye özel, tek kullanımlık bir Paddle indirimi (yüzde) oluşturulur ve işleme (transaction)
+//   discount_id ile uygulanır. Aylık planda kupon geçerliyken (bitişi yoksa her ödemede), diğer planlarda yalnızca ilk
+//   ödemede (recur / maximum_recurring_intervals; Paddle'da bu sayı ilk ödemeyi de içerir).
+//   Ödeme sayfası: sitedeki odeme.html (Paddle.js ile; Paddle → Checkout settings → Default payment link bu sayfa
+//   olmalı). Yanıtta url (odeme.html?_ptxn=…), txn, token (istemci anahtarı), env döner; site Paddle katmanını kendi
+//   sayfasında açar, program ödeme penceresinde odeme.html'i açar. Ödeme bitince hesap.html?paid=pro|gift adresine dönülür.
+//   Paddle müşterisi kullanıcının hesap e-postasıyla bulunur ya da oluşturulur (fatura / makbuz ona gider; hediyede
+//   ödeyenin kendi e-postası). custom_data: user_id (hediyede alıcı), gifter, plan, gift, kupon alanları → pro-webhook.
+//   {"op":"paddle_config"} (oturum gerekmez): ödeme sayfası için istemci anahtarı ve ortam (token, env).
+//   Gizli değerler: PADDLE_API_KEY, PADDLE_CLIENT_TOKEN (istemci tarafı anahtar: Developer tools → Authentication),
+//   PADDLE_PRO_PRODUCT_ID (pro_…), PADDLE_ENV ("sandbox" ise test ortamı), SITE_URL. Kurulum: docs/PRO.md
+//
+// Lemon Squeezy (PADDLE_API_KEY yoksa):
 // Adres: https://<proje>.supabase.co/functions/v1/pro-checkout   (POST {"plan":"1m|3m|6m|12m","region":"tr|intl"})
 // Hediye PRO: {"plan":…, "region":…, "gift_to":"<alıcının hesap kimliği>"} → abonelik alıcıya işlenir
 // (custom_data.user_id = alıcı, custom_data.gifter = çağıran). Ödeme sayfasındaki e-posta ÇAĞIRANIN kendi
@@ -60,6 +82,57 @@ const db = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey(), { auth: { p
 const SITE = (Deno.env.get("SITE_URL") ?? "https://pitwall.simracetr.com").replace(/\/$/, "");
 
 const MONTHS: Record<string, number> = { "1m": 1, "3m": 3, "6m": 6, "12m": 12 };
+/** Abonelik listesinde / ödeme geçmişinde görünen plan adı (Lemon varyant adlarıyla aynı) */
+const PLAN_NAME: Record<number, string> = { 1: "Monthly", 3: "Every 3 months", 6: "Every 6 months", 12: "Yearly" };
+
+// ---------------------------------------------------------------------------
+// Paddle Billing (ortak yardımcılar; bu dosya panelden tek başına yayınlandığı için diğer fonksiyonlarda da aynısı var)
+// ---------------------------------------------------------------------------
+const PADDLE_KEY = () => (Deno.env.get("PADDLE_API_KEY") ?? "").trim();
+/** PADDLE_ENV=sandbox: test ortamı (sandbox-api.paddle.com); boş / "live": canlı */
+const PADDLE_SANDBOX = () => (Deno.env.get("PADDLE_ENV") ?? "").trim().toLowerCase() === "sandbox";
+const PADDLE_API = () => (PADDLE_SANDBOX() ? "https://sandbox-api.paddle.com" : "https://api.paddle.com");
+
+class PaddleError extends Error {
+  constructor(public status: number, public code: string, msg: string) {
+    super(msg);
+  }
+}
+
+/** Paddle API çağrısı; `data` alanını döner, hatada PaddleError fırlatır */
+// deno-lint-ignore no-explicit-any
+async function paddle<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(PADDLE_API() + path, {
+    method,
+    headers: { Authorization: `Bearer ${PADDLE_KEY()}`, "Content-Type": "application/json", "Paddle-Version": "1" },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = j?.error ?? {};
+    // deno-lint-ignore no-explicit-any
+    const fields = Array.isArray(e.errors) ? e.errors.map((x: any) => `${x?.field}: ${x?.message}`).join("; ") : "";
+    throw new PaddleError(res.status, String(e.code ?? ""), `${e.code ?? res.status}: ${e.detail ?? ""}${fields ? ` (${fields})` : ""}`);
+  }
+  return j?.data as T;
+}
+
+/** Kullanıcının e-postasıyla Paddle müşterisi (yoksa oluşturulur) */
+async function paddleCustomer(email: string): Promise<string> {
+  // deno-lint-ignore no-explicit-any
+  const list = await paddle<any[]>("GET", `/customers?email=${encodeURIComponent(email)}`);
+  const found = (list ?? []).find((c) => c?.status !== "archived") ?? list?.[0];
+  if (found?.id) return String(found.id);
+  try {
+    const c = await paddle("POST", "/customers", { email });
+    return String(c.id);
+  } catch (e) {
+    // Aynı e-postayla müşteri zaten var (liste geç güncellenmiş olabilir): hata mesajındaki kimlik
+    const m = e instanceof PaddleError ? /ctm_[a-z0-9]+/i.exec(e.message) : null;
+    if (m) return m[0];
+    throw e;
+  }
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -154,12 +227,184 @@ function reply(status: number, body: unknown) {
 
 const NOT_READY = "PRO ödemesi henüz yapılandırılmadı";
 
+/** Paddle: müşteri, (kuponluysa) tek kullanımlık indirim ve abonelik işlemi; ödeme sayfası adresiyle döner */
+async function paddleCheckout(o: {
+  email: string;
+  userId: string;
+  plan: string;
+  months: number;
+  price: number;
+  currency: string;
+  coupon: { id: string; code: string; percent: number; validUntil: string | null } | null;
+  giftTo: string | null;
+  giftName: string;
+}) {
+  const product = (Deno.env.get("PADDLE_PRO_PRODUCT_ID") ?? "").trim();
+  const cents = Math.round(o.price * 100);
+  if (!(cents > 0)) return reply(400, { error: "Bu plan için fiyat belirlenmemiş" });
+  if (!o.email) return reply(400, { error: "Hesabında e-posta yok" });
+  const charge = o.coupon ? discounted(o.price, o.coupon.percent) : o.price;
+  const trText = o.currency === "TRY";
+  const expiresAt = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
+
+  // Kupon: aylık planda kupon geçerliyken (bitiş yoksa her zaman), diğer planlarda yalnızca ilk ödeme
+  let duration: "once" | "repeating" | "forever" = "once";
+  let durMonths = 1;
+  if (o.coupon && o.months === 1) {
+    const n = monthsWithin(o.coupon.validUntil);
+    if (n == null) duration = "forever";
+    else if (n > 1) {
+      duration = "repeating";
+      durMonths = n;
+    }
+  }
+
+  let customer: string;
+  try {
+    customer = await paddleCustomer(o.email);
+  } catch (e) {
+    console.error("paddle customer", String((e as Error).message ?? e));
+    return reply(502, { error: "Ödeme sayfası açılamadı" });
+  }
+
+  let discountId = "";
+  if (o.coupon) {
+    try {
+      const d = await paddle("POST", "/discounts", {
+        description: `SRTR Pitwall ${o.coupon.code} %${o.coupon.percent} (${o.userId.slice(0, 8)})`,
+        type: "percentage",
+        amount: String(o.coupon.percent),
+        enabled_for_checkout: false,
+        recur: duration !== "once",
+        ...(duration === "repeating" ? { maximum_recurring_intervals: durMonths } : {}),
+        usage_limit: 1,
+        // Tek ödemelik indirimin süresi ödeme sayfasıyla biter; yinelenen indirimde süre konmaz (yenilemelerde de
+        // geçerli kalsın; tek kullanımlık olduğu için başka işlemde kullanılamaz)
+        ...(duration === "once" ? { expires_at: expiresAt } : {}),
+        restrict_to: [product],
+        custom_data: { coupon_id: o.coupon.id, user_id: o.userId },
+      });
+      discountId = String(d?.id ?? "");
+    } catch (e) {
+      console.error("paddle discount", String((e as Error).message ?? e));
+    }
+    // İndirim oluşturulamadıysa ödeme açılmaz (yanlış tutar alınmasın)
+    if (!discountId) return reply(502, { error: "Kupon şu an uygulanamadı" });
+  }
+
+  const lines: string[] = [];
+  if (o.giftTo) lines.push(trText ? `Hediye: ${o.giftName}` : `Gift for ${o.giftName}`);
+  if (o.coupon) {
+    const until = o.coupon.validUntil ? new Date(o.coupon.validUntil) : null;
+    const untilTxt = (tr: boolean) =>
+      until ? until.toLocaleDateString(tr ? "tr-TR" : "en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Istanbul" }) : "";
+    const scope =
+      duration === "once"
+        ? trText ? "ilk ödemede; yenilemeler güncel fiyattan" : "first payment only; renewals at the current price"
+        : duration === "forever"
+          ? trText ? "tüm ödemelerde" : "on every payment"
+          : trText
+            ? `kupon geçerli olduğu sürece (${untilTxt(true)} tarihine kadar, ${durMonths} ödeme); sonra güncel fiyattan`
+            : `while the coupon is valid (until ${untilTxt(false)}, ${durMonths} payments); then the current price`;
+    lines.push(
+      trText
+        ? `Kupon ${o.coupon.code}: ${money(o.price, o.currency, true)} yerine ${money(charge, o.currency, true)} (%${o.coupon.percent} indirim, ${scope})`
+        : `Coupon ${o.coupon.code}: ${money(charge, o.currency, false)} instead of ${money(o.price, o.currency, false)} (${o.coupon.percent}% off, ${scope})`,
+    );
+  }
+  const every = trText ? `${o.months} aylık` : o.months === 1 ? "monthly" : o.months === 12 ? "yearly" : `every ${o.months} months`;
+  // Fiyat adı ödeme sayfasında ve faturada müşteriye görünür (description görünmez): hediye ve kupon kısaca burada
+  const extra = [
+    o.giftTo ? (trText ? `Hediye: ${o.giftName}` : `Gift for ${o.giftName}`) : "",
+    o.coupon ? (trText ? `Kupon ${o.coupon.code} %${o.coupon.percent}` : `Coupon ${o.coupon.code} ${o.coupon.percent}% off`) : "",
+  ].filter(Boolean);
+  const name = [`SRTR Pitwall PRO (${every})`, ...extra].join(" · ").slice(0, 150);
+  const couponData = o.coupon
+    ? {
+        coupon_id: o.coupon.id,
+        coupon: o.coupon.code,
+        coupon_before: String(o.price),
+        coupon_after: String(charge),
+        coupon_currency: o.currency,
+        coupon_duration: duration === "repeating" ? `repeating:${durMonths}` : duration,
+      }
+    : {};
+  const custom = o.giftTo
+    ? { user_id: o.giftTo, gifter: o.userId, plan: o.plan, gift: "1", ...couponData }
+    : { user_id: o.userId, plan: o.plan, ...couponData };
+
+  let txn: string;
+  try {
+    const t = await paddle("POST", "/transactions", {
+      items: [
+        {
+          quantity: 1,
+          price: {
+            product_id: product,
+            name,
+            description: [name, ...lines].join(" · ").slice(0, 500),
+            unit_price: { amount: String(cents), currency_code: o.currency },
+            // Panel fiyatı vergi dahil (KDV / satış vergisi Paddle tarafından fiyatın içinden ayrılır)
+            tax_mode: "internal",
+            billing_cycle: { interval: "month", frequency: o.months },
+            custom_data: { plan: o.plan, plan_name: PLAN_NAME[o.months] ?? o.plan },
+          },
+        },
+      ],
+      customer_id: customer,
+      currency_code: o.currency,
+      collection_mode: "automatic",
+      ...(discountId ? { discount_id: discountId } : {}),
+      custom_data: custom,
+      checkout: { url: `${SITE}/odeme.html` },
+    });
+    txn = String(t?.id ?? "");
+  } catch (e) {
+    console.error("paddle transaction", String((e as Error).message ?? e));
+    return reply(502, { error: "Ödeme sayfası açılamadı" });
+  }
+  if (!txn) return reply(502, { error: "Ödeme sayfası açılamadı" });
+  const done = `hesap.html?paid=${o.giftTo ? "gift" : "pro"}`;
+  return reply(200, {
+    provider: "paddle",
+    url: `${SITE}/odeme.html?_ptxn=${encodeURIComponent(txn)}&done=${encodeURIComponent(done)}`,
+    txn,
+    token: (Deno.env.get("PADDLE_CLIENT_TOKEN") ?? "").trim(),
+    env: PADDLE_SANDBOX() ? "sandbox" : "production",
+    email: o.email,
+    done: `${SITE}/${done}`,
+    price: o.price,
+    currency: o.currency,
+    charged: charge,
+    charged_currency: o.currency,
+    ...(o.coupon
+      ? {
+          coupon: o.coupon.code,
+          percent: o.coupon.percent,
+          discounted: charge,
+          coupon_duration: duration,
+          ...(duration === "repeating" ? { coupon_months: durMonths } : {}),
+        }
+      : {}),
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return reply(405, { error: "POST bekleniyor" });
   try {
+    const body = await req.json().catch(() => ({}));
+    // Ödeme sayfası (odeme.html) için Paddle istemci anahtarı: herkese açık bilgi, oturum gerekmez
+    if (body?.op === "paddle_config") {
+      const token = (Deno.env.get("PADDLE_CLIENT_TOKEN") ?? "").trim();
+      if (!token) return reply(503, { error: NOT_READY });
+      return reply(200, { token, env: PADDLE_SANDBOX() ? "sandbox" : "production" });
+    }
+    const usePaddle = !!PADDLE_KEY();
     const apiKey = Deno.env.get("LEMON_API_KEY") ?? "";
-    if (!apiKey || !(Deno.env.get("LEMON_STORE_ID") ?? "")) return reply(503, { error: NOT_READY });
+    if (usePaddle) {
+      if (!(Deno.env.get("PADDLE_PRO_PRODUCT_ID") ?? "").trim()) return reply(503, { error: NOT_READY });
+    } else if (!apiKey || !(Deno.env.get("LEMON_STORE_ID") ?? "")) return reply(503, { error: NOT_READY });
 
     // Çağıran hesap (oturum anahtarından)
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -167,7 +412,6 @@ Deno.serve(async (req) => {
     const user = ud?.user;
     if (ue || !user) return reply(401, { error: "Giriş yapmalısın" });
 
-    const body = await req.json().catch(() => ({}));
     const embed = body?.embed === true;
     const plan = String(body?.plan ?? "");
     const months = MONTHS[plan];
@@ -227,6 +471,10 @@ Deno.serve(async (req) => {
         percent: pct,
         validUntil: cr?.valid_until ? String(cr.valid_until) : null,
       };
+    }
+
+    if (usePaddle) {
+      return await paddleCheckout({ email: user.email ?? "", userId: user.id, plan, months, price, currency, coupon, giftTo, giftName });
     }
 
     // Bu para biriminin mağazası; yoksa ana mağaza ve kur çevrimi

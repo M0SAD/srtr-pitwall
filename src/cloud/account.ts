@@ -231,7 +231,17 @@ export interface ProInfo {
   source: string | null;
   /** Abonelik kendini yeniliyor mu */
   renewing: boolean;
-  sub: { status: string; plan: string; renews_at: string | null; ends_at: string | null; portal_url: string } | null;
+  sub: {
+    status: string;
+    plan: string;
+    renews_at: string | null;
+    ends_at: string | null;
+    portal_url: string;
+    /** "lemon" | "paddle" (c110; eski sunucuda yok = lemon) */
+    provider?: string;
+    /** Abonelik kimliği (Paddle: sub_…) */
+    sub_id?: string;
+  } | null;
   /** Bana hediye edilmiş (sürmekte olan) abonelik; portal bağlantısı ödeyene ait olduğu için yok */
   gift?: GiftReceived | null;
   gifted_by_name?: string | null;
@@ -258,6 +268,8 @@ export interface GiftSent {
   ends_at: string | null;
   until: string | null;
   created_at: string;
+  /** "lemon" | "paddle" (c110) */
+  provider?: string;
 }
 
 /** Sürmekte olan abonelik durumları */
@@ -265,7 +277,14 @@ export const SUB_LIVE = ["active", "on_trial", "past_due"];
 
 export const myGifts = () => api<GiftSent[]>("POST", "rpc/my_gifts", { body: {} }).then((r) => r ?? []);
 
-/** Hediye ettiğim aboneliği sonlandırır (Lemon'da iptal; alıcının PRO'su ödenen dönemin sonuna kadar sürer) */
+/** Paddle abonelik yönetimi: kısa ömürlü müşteri portalı adresi (kart, fatura, iptal). subId: hediye ettiğim abonelik */
+export const portalUrl = (subId?: string) =>
+  callFunction<{ url?: string }>("pro-portal", subId ? { sub_id: subId } : {}).then((r) => {
+    if (!r?.url) throw new Error("Abonelik sayfası açılamadı");
+    return r.url;
+  });
+
+/** Hediye ettiğim aboneliği sonlandırır (Lemon / Paddle'da iptal; alıcının PRO'su ödenen dönemin sonuna kadar sürer) */
 export const cancelGift = (lemonId: string) =>
   callFunction<{ ok: boolean; status: string; ends_at: string | null }>("gift-cancel", { lemon_id: lemonId });
 
@@ -704,9 +723,9 @@ function streamBadgeRequiresPro(): boolean {
   return true;
 }
 
-/** Ücretli PRO kaynakları (profiles.pro_source). Üyeden üyeye hediye de Lemon aboneliğidir ('lemon').
+/** Ücretli PRO kaynakları (profiles.pro_source). Üyeden üyeye hediye de mağaza aboneliğidir ('paddle' / eski 'lemon').
  *  Yöneticinin verdiği ('admin'), deneme ('trial') ve kampanya PRO'su ücretli sayılmaz. */
-const PAID_PRO_SOURCES = ["lemon", "patreon", "kofi"];
+const PAID_PRO_SOURCES = ["paddle", "lemon", "patreon", "kofi"];
 /** Kullanıcının PRO'su ücretli bir kaynaktan mı geliyor (ve sürüyor mu) */
 export const paidPro = () => {
   const p = profile();
