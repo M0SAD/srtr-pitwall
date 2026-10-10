@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-293
+
+- Ayarlar: seçenek düğmeleri (ör. Pit servisi "Kapalı / Yarışlarda / Her oturumda") uzun açıklama metninin yanında daralıp son düğme yarım kesiliyordu; düğmeler artık daralmıyor ve yazıları tek satırda kalıyor.
+
 ## 101026-292
 
 - Genel ayarlar > yeni "Pit servisi (iRacing)" bölümü: "Lastik değişimini otomatik kapat" (Kapalı / Yarışlarda / Her oturumda; varsayılan kapalı). Araca her binişte ve araçtayken yarış oturumu başlayınca pit servisindeki lastik değişimi kaldırılır (iRacing #cleartires komutu; araç yüklenirken iRacing seçimi geri açabildiği için 1,5 ve 5 sn sonra iki kez gönderilir). Yalnızca kendi aracını sürerken çalışır (izlerken / takım arkadaşı sürerken / tekrarda değil). Kod: src/host/autoPit.ts.

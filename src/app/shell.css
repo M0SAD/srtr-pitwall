@@ -178,6 +178,12 @@ body {
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Ayar satırında seçenek düğmeleri daralmasın (uzun açıklama metni yanında son düğme kesiliyordu) */
+.row > .seg {
+  flex-shrink: 0;
 }
 
 .seg button:last-child {
