@@ -1316,5 +1316,9 @@
  "pay_invalid": "El enlace de pago no es válido o está incompleto. Vuelve a iniciar el pago desde tu cuenta.",
  "pay_failed": "No se pudo abrir el pago. Desactiva el bloqueador de anuncios y recarga la página.",
  "pay_back": "Volver a mi cuenta",
- "pay_secure": "El pago lo procesa de forma segura Paddle como Merchant of Record."
+ "pay_secure": "El pago lo procesa de forma segura Paddle como Merchant of Record.",
+ "legal_terms": "Términos del servicio",
+ "legal_privacy": "Política de privacidad",
+ "legal_refund": "Política de reembolso",
+ "legal_contact": "Contacto"
 }

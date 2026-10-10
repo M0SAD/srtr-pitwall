@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 101026-287
+
+- Site: yasal sayfalar eklendi (Paddle onayı için): Kullanım koşulları (kosullar.html), Gizlilik politikası (gizlilik.html), İade politikası (iade.html). Türkçe arayüzde Türkçe, diğer dillerde İngilizce. Alt bilgide bu sayfaların ve iletişim e-postasının bağlantıları. Satıcı: Erkin Azcan (Türkiye), iletişim: erkinazcan@gmail.com. Metinler assets/legal.js içinde.
+
+## 101026-286
+
+- Hesap sayfası (site ve program): abonelik satırındaki "Kendiliğinden yenilenir / Yenilenmeyecek" etiketi artık gösterilen aboneliğin kendi durumuna bakıyor. Eskiden hesaptaki herhangi bir abonelik (ör. eski Lemon aboneliği) yenileniyorsa iptal edilmiş Paddle aboneliği de "yenilenir" görünüyordu.
+- Site: ödeme seçeneği yokken hesap sayfasında "soon" yerine "Yakında" yazıyor.
+
 ## 101026-285
 
 - Ödemeler Paddle'a taşındı (Lemon Squeezy'nin yerine). PRO abonelik (1 / 3 / 6 / 12 ay), hediye PRO, kuponlar ve reklam ödemeleri Paddle Billing üzerinden alınır; Paddle anahtarları sunucuda tanımlanana kadar eski Lemon yolu çalışmaya devam eder. Var olan Lemon abonelikleri kendi mağazalarında yenilenmeye devam eder.

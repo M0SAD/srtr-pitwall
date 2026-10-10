@@ -1316,5 +1316,9 @@
  "pay_invalid": "支払いリンクが無効か不完全です。アカウントページからもう一度お支払いを始めてください。",
  "pay_failed": "決済画面を開けませんでした。広告ブロッカーを無効にしてページを再読み込みしてください。",
  "pay_back": "アカウントに戻る",
- "pay_secure": "お支払いは販売代理人（Merchant of Record）である Paddle によって安全に処理されます。"
+ "pay_secure": "お支払いは販売代理人（Merchant of Record）である Paddle によって安全に処理されます。",
+ "legal_terms": "利用規約",
+ "legal_privacy": "プライバシーポリシー",
+ "legal_refund": "返金ポリシー",
+ "legal_contact": "お問い合わせ"
 }

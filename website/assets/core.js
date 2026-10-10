@@ -707,6 +707,10 @@ addDict({
     "<b>Erkin Azcan</b> tarafından <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> topluluğu için geliştirildi.",
     "Built by <b>Erkin Azcan</b> for the <a href=\"https://www.simracetr.com\" target=\"_blank\" rel=\"noopener\">Sim Race Türkiye</a> community.",
   ],
+  legal_terms: ["Kullanım koşulları", "Terms of Service"],
+  legal_privacy: ["Gizlilik politikası", "Privacy Policy"],
+  legal_refund: ["İade politikası", "Refund Policy"],
+  legal_contact: ["İletişim", "Contact"],
   footer_legal: [
     "iRacing, iRacing.com Motorsport Simulations, LLC'nin ticari markasıdır. SRTR Pitwall'un iRacing ile bağlantısı yoktur.",
     "iRacing is a trademark of iRacing.com Motorsport Simulations, LLC. SRTR Pitwall is not affiliated with iRacing.",
@@ -952,6 +956,10 @@ export function footerHtml() {
         <a href="https://github.com/${REPO}" target="_blank" rel="noopener">GitHub</a>
         <a href="yarisci.html" data-t="nav_drivers"></a>
         <a href="reklam.html" data-t="nav_ads"></a>
+        <a href="kosullar.html" data-t="legal_terms"></a>
+        <a href="gizlilik.html" data-t="legal_privacy"></a>
+        <a href="iade.html" data-t="legal_refund"></a>
+        <a href="mailto:erkinazcan@gmail.com" data-t="legal_contact"></a>
       </div>
     </div>
     <div class="wrap"><p class="muted tiny" data-t="footer_legal"></p></div>

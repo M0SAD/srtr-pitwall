@@ -1316,5 +1316,9 @@
  "pay_invalid": "De betaallink is ongeldig of onvolledig. Start de betaling opnieuw vanaf je accountpagina.",
  "pay_failed": "De checkout kon niet worden geopend. Zet je adblocker uit en herlaad de pagina.",
  "pay_back": "Terug naar mijn account",
- "pay_secure": "De betaling wordt veilig verwerkt door Paddle als Merchant of Record."
+ "pay_secure": "De betaling wordt veilig verwerkt door Paddle als Merchant of Record.",
+ "legal_terms": "Gebruiksvoorwaarden",
+ "legal_privacy": "Privacybeleid",
+ "legal_refund": "Terugbetalingsbeleid",
+ "legal_contact": "Contact"
 }

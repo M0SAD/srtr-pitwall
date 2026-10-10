@@ -1316,5 +1316,9 @@
  "pay_invalid": "Maksulinkki on virheellinen tai puutteellinen. Aloita maksu uudelleen tilisivultasi.",
  "pay_failed": "Kassaa ei voitu avata. Poista mainosesto käytöstä ja lataa sivu uudelleen.",
  "pay_back": "Takaisin tiliini",
- "pay_secure": "Maksun käsittelee turvallisesti Paddle (Merchant of Record)."
+ "pay_secure": "Maksun käsittelee turvallisesti Paddle (Merchant of Record).",
+ "legal_terms": "Käyttöehdot",
+ "legal_privacy": "Tietosuojakäytäntö",
+ "legal_refund": "Palautuskäytäntö",
+ "legal_contact": "Yhteystiedot"
 }

@@ -1316,5 +1316,9 @@
  "pay_invalid": "付款链接无效或不完整。请从账户页面重新开始付款。",
  "pay_failed": "无法打开结账页面。请关闭广告拦截器并刷新页面。",
  "pay_back": "返回我的账户",
- "pay_secure": "付款由 Paddle 作为记录商家（Merchant of Record）安全处理。"
+ "pay_secure": "付款由 Paddle 作为记录商家（Merchant of Record）安全处理。",
+ "legal_terms": "服务条款",
+ "legal_privacy": "隐私政策",
+ "legal_refund": "退款政策",
+ "legal_contact": "联系我们"
 }

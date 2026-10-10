@@ -1316,5 +1316,9 @@
  "pay_invalid": "Betalningslänken är ogiltig eller ofullständig. Starta betalningen igen från din kontosida.",
  "pay_failed": "Kassan kunde inte öppnas. Stäng av annonsblockeraren och ladda om sidan.",
  "pay_back": "Tillbaka till mitt konto",
- "pay_secure": "Betalningen hanteras säkert av Paddle som Merchant of Record."
+ "pay_secure": "Betalningen hanteras säkert av Paddle som Merchant of Record.",
+ "legal_terms": "Användarvillkor",
+ "legal_privacy": "Integritetspolicy",
+ "legal_refund": "Återbetalningspolicy",
+ "legal_contact": "Kontakt"
 }

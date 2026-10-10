@@ -1316,5 +1316,9 @@
  "pay_invalid": "Der Zahlungslink ist ungültig oder unvollständig. Starte die Zahlung erneut auf deiner Kontoseite.",
  "pay_failed": "Der Checkout konnte nicht geöffnet werden. Deaktiviere Werbeblocker und lade die Seite neu.",
  "pay_back": "Zurück zu meinem Konto",
- "pay_secure": "Die Zahlung wird sicher von Paddle als Merchant of Record abgewickelt."
+ "pay_secure": "Die Zahlung wird sicher von Paddle als Merchant of Record abgewickelt.",
+ "legal_terms": "Nutzungsbedingungen",
+ "legal_privacy": "Datenschutzerklärung",
+ "legal_refund": "Rückerstattungsrichtlinie",
+ "legal_contact": "Kontakt"
 }
