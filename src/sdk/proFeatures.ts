@@ -92,6 +92,7 @@ export const F = {
   liveObs: "livechat.obs",
   liveTts: "livechat.tts",
   liveStt: "livechat.stt",
+  liveTranslate: "livechat.translate",
   liveSend: "livechat.send",
   liveAlerts: "livechat.alerts",
   liveLog: "livechat.log",
@@ -99,7 +100,7 @@ export const F = {
 
 /** Rust'ın da denetlediği Canlı Sohbet anahtarları: PRO'ya ayrılmışsa entitlement "locked" listesine aynı adla girer
  *  (bkz. cloud/account.ts withVoiceLock, src-tauri/src/livechat/mod.rs allowed). Varsayılanları aşağıdaki katalogda. */
-export const LIVECHAT_LOCK_KEYS = [F.liveMulti, F.liveFav, F.livePoll, F.liveObs, F.liveTts, F.liveStt, F.liveSend, F.liveAlerts, F.liveLog] as const;
+export const LIVECHAT_LOCK_KEYS = [F.liveMulti, F.liveFav, F.livePoll, F.liveObs, F.liveTts, F.liveStt, F.liveTranslate, F.liveSend, F.liveAlerts, F.liveLog] as const;
 /** Rust'ın denetlediği diğer anahtarlar (aynı adla "locked" listesine girer): Mesajlar overlay'inde sesli okuma (livechat/tts.rs) */
 export const RUST_LOCK_KEYS = [F.msgTts, F.voiceCommands, F.dashRemote] as const;
 
@@ -167,6 +168,7 @@ const STATIC: ProFeature[] = [
   { key: F.liveObs, label: "OBS tarayıcı kaynağı (sohbet, anket, altyazı sayfaları)", group: "Canlı Sohbet", defaultPro: false, hint: "Rust da denetler" },
   { key: F.liveTts, label: "Sohbeti sesli okuma (TTS)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveStt, label: "Konuşmayı yazıya çevirme (altyazı)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
+  { key: F.liveTranslate, label: "Altyazı çevirisi (oyunda / Discord'da konuşulanları kendi dilinde altyazı olarak görmek)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveSend, label: "Sohbete yazma (Twitch / Kick / YouTube)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler" },
   { key: F.liveAlerts, label: "Streamlabs uyarıları", group: "Canlı Sohbet", defaultPro: false, hint: "Rust da denetler" },
   { key: F.liveLog, label: "Sohbet kaydını görüntüleme (arama, süzme, dışa aktarma)", group: "Canlı Sohbet", defaultPro: true, hint: "Rust da denetler · kayıt tutmak ve silmek her zaman açık" },

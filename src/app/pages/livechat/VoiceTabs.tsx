@@ -15,6 +15,23 @@ import { StatusPill, errText, lc, setLc, toast } from "./common";
 
 const setTts = (fn: (x: LiveChatTts) => void) => setLc((x) => fn(x.tts));
 const setStt = (fn: (x: LiveChatStt) => void) => setLc((x) => fn(x.stt));
+/** Altyazı çevirisinin hedef dilleri (kendi adlarıyla) */
+const TR_LANGS: [string, string][] = [
+  ["tr", "Türkçe"],
+  ["en", "English"],
+  ["de", "Deutsch"],
+  ["fr", "Français"],
+  ["es", "Español"],
+  ["it", "Italiano"],
+  ["pt", "Português"],
+  ["nl", "Nederlands"],
+  ["pl", "Polski"],
+  ["fi", "Suomi"],
+  ["sv", "Svenska"],
+  ["ru", "Русский"],
+  ["ja", "日本語"],
+  ["zh", "中文"],
+];
 
 function KeyRow(p: { action: ShortcutAction; title: string; sub?: string }) {
   return (
@@ -865,6 +882,83 @@ export function SttTab() {
           </div>
         </Show>
       </section>
+
+      <ProLockBox feature={F.liveTranslate} text={t("Altyazı çevirisi PRO üyelere özel.")}>
+        <section class="panel">
+          <h3>Çeviri</h3>
+          <p class="muted small">
+            Oyunda, Discord'da ya da takım telsizinde başka dilde konuşulanları altyazıda kendi dilinde görürsün. Konuşma önce yazıya dökülür, sonra
+            aynı sunucunun yapay zekâ modeliyle çevrilir; aynı API anahtarı kullanılır, ek hesap gerekmez. Cümle bittikten 1–2 sn sonra görünür.
+          </p>
+          <Show when={!cloud()}>
+            <div class="lcp-note lcp-warnnote">Çeviri yalnızca “Çevrimiçi (Whisper)” motoruyla çalışır: yukarıdan motoru değiştir.</div>
+          </Show>
+          <div class="row">
+            <div>
+              <b>Altyazıyı çevir</b>
+              <small>Çevrilecek seste dil kendiliğinden algılanır; zaten hedef dilde olan cümleler olduğu gibi yazılır.</small>
+            </div>
+            <Switch checked={v().translate.enabled} onChange={(on) => setStt((x) => (x.translate.enabled = on))} />
+          </div>
+          <Show when={v().translate.enabled}>
+            <div class="row">
+              <div>
+                <b>Hedef dil</b>
+                <small>Altyazının yazılacağı dil.</small>
+              </div>
+              <select class="f2-select" value={v().translate.target} onChange={(e) => setStt((x) => (x.translate.target = e.currentTarget.value))}>
+                <option value="">{t("Arayüz dili")}</option>
+                <For each={TR_LANGS}>
+                  {([code, name]) => (
+                    <option value={code} selected={code === v().translate.target} data-no-i18n>
+                      {name}
+                    </option>
+                  )}
+                </For>
+              </select>
+            </div>
+            <div class="row">
+              <div>
+                <b>Çevrilecek ses</b>
+                <small>Kendi konuşmanı da çevirmek istersen “Mikrofon da”yı seç (ör. yabancı izleyiciler için).</small>
+              </div>
+              <div class="seg">
+                <button classList={{ on: v().translate.sources !== "both" }} onClick={() => setStt((x) => (x.translate.sources = "remote"))}>
+                  Bilgisayar sesi
+                </button>
+                <button classList={{ on: v().translate.sources === "both" }} onClick={() => setStt((x) => (x.translate.sources = "both"))}>
+                  Mikrofon da
+                </button>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <b>Orijinali de göster</b>
+                <small>Çevirinin altında küçük harfle konuşulan dildeki metin.</small>
+              </div>
+              <Switch checked={v().translate.showOriginal} onChange={(on) => setStt((x) => (x.translate.showOriginal = on))} />
+            </div>
+            <div class="row">
+              <div>
+                <b>Çeviri modeli</b>
+                <small>Boş bırakılırsa: Groq'ta llama-3.3-70b-versatile, OpenAI'da gpt-4o-mini. Kendi sunucunda modelin adını yaz.</small>
+              </div>
+              <input
+                class="input"
+                style={{ width: "240px" }}
+                placeholder={v().cloud.provider === "openai" ? "gpt-4o-mini" : "llama-3.3-70b-versatile"}
+                value={v().translate.model}
+                onChange={(e) => setStt((x) => (x.translate.model = e.currentTarget.value.trim()))}
+                data-no-i18n
+              />
+            </div>
+            <p class="muted small">
+              İpucu: bilgisayar sesi dinlenirken oyunun motor sesi de duyulur ve boşuna altyazı çıkabilir. En temizi, iRacing'in ses ayarlarında
+              sesli sohbet için ayrı bir çıkış cihazı seçip yukarıdaki “Bilgisayar sesi” cihazı olarak onu seçmek.
+            </p>
+          </Show>
+        </section>
+      </ProLockBox>
 
       <section class="panel">
         <h3>Deneme ve kısayol</h3>

@@ -22,6 +22,7 @@
 use super::allowed;
 use super::filter::is_w;
 use super::stt_cloud::{self as cloud, CloudCfg, Src};
+use super::translate;
 use parking_lot::Mutex;
 use serde::Serialize;
 use serde_json::Value;
@@ -87,6 +88,13 @@ pub struct SttCfg {
     pub cloud_model: String,
     /// 1..10
     pub sensitivity: u8,
+    /// Çeviri (PRO: livechat.translate; yalnızca çevrimiçi motorda): açık mı, hedef dil (boş: arayüz dili),
+    /// mikrofon da çevrilsin mi (kapalı: yalnızca bilgisayar sesi), özgün metin de gösterilsin mi, sohbet modeli
+    pub translate: bool,
+    pub tr_target: String,
+    pub tr_mic: bool,
+    pub tr_show_orig: bool,
+    pub tr_model: String,
 }
 
 pub fn cfg_from_settings(v: &Value) -> SttCfg {
@@ -122,6 +130,11 @@ pub fn cfg_from_settings(v: &Value) -> SttCfg {
         cloud_url: s("/cloud/url"),
         cloud_model: s("/cloud/model"),
         sensitivity: t.pointer("/sensitivity").and_then(|x| x.as_f64()).unwrap_or(5.0).clamp(1.0, 10.0) as u8,
+        translate: b("/translate/enabled", false),
+        tr_target: s("/translate/target"),
+        tr_mic: s("/translate/sources") == "both",
+        tr_show_orig: b("/translate/showOriginal", true),
+        tr_model: s("/translate/model"),
     }
 }
 
@@ -131,7 +144,9 @@ impl SttCfg {
         match self.engine {
             Engine::Windows => format!("win|{}|{}|{}|{:?}", self.language, self.win_mic, self.ui_lang, self.source),
             Engine::Cloud => format!(
-                "cloud|{:?}|{}|{}|{}|{}|{}|{}|{}|{}",
+                "cloud|{}{}|{:?}|{}|{}|{}|{}|{}|{}|{}|{}",
+                self.translates(Src::System) as u8,
+                self.translates(Src::Mic) as u8,
                 self.source,
                 self.mic_device,
                 self.system_device,
@@ -144,6 +159,18 @@ impl SttCfg {
                 key.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32))
             ),
         }
+    }
+
+    /// Çeviri hedef dili (boş: arayüz dili)
+    fn tr_lang(&self) -> String {
+        let l = self.tr_target.trim().to_lowercase();
+        let l = if l.is_empty() { self.ui_lang.to_lowercase() } else { l };
+        l.split(['-', '_']).next().unwrap_or("tr").chars().take(3).collect()
+    }
+
+    /// Bu kaynak çevrilecek mi (ayar; PRO denetimi ayrıca)
+    fn translates(&self, src: Src) -> bool {
+        self.translate && self.engine == Engine::Cloud && (src == Src::System || self.tr_mic)
     }
 
     /// Çevrimiçi motora gönderilecek dil kodu ("" : otomatik algıla)
@@ -380,6 +407,20 @@ struct St {
 pub struct Stt {
     app: AppHandle,
     st: Mutex<St>,
+    /// Çeviri kuyruğu (ilk çeviride açılır)
+    tr_queue: Mutex<Option<std::sync::mpsc::Sender<TrJob>>>,
+}
+
+/// Çevrilecek altyazı cümlesi
+struct TrJob {
+    gen: u64,
+    kind: &'static str,
+    label: String,
+    /// Küfür filtresinden geçmiş özgün metin
+    text: String,
+    cfg: translate::TrCfg,
+    show_orig: bool,
+    filter: Option<Arc<Profanity>>,
 }
 
 const SYSTEM_NEEDS_CLOUD: &str = "Bilgisayar sesi (Discord vb.) Windows motoruyla yazıya çevrilemez: Windows tanıyıcısı yalnızca mikrofonu dinler. Bunun için motor olarak “Çevrimiçi (Whisper)” seçin.";
@@ -473,7 +514,12 @@ impl Stt {
                             continue;
                         }
                         let me = self.clone();
-                        let (c, st) = (ccfg.clone(), stop.clone());
+                        // Çevrilecek kaynakta konuşmanın dili bilinmez: Whisper dili kendisi algılar
+                        let mut c = ccfg.clone();
+                        if cfg.translates(src) {
+                            c.language = String::new();
+                        }
+                        let st = stop.clone();
                         let _ = std::thread::Builder::new().name(name.into()).spawn(move || crate::crashlog::supervise(name, || me.clone().cloud_thread(src, dev.clone(), c.clone(), st.clone(), gen)));
                     }
                 }
@@ -507,18 +553,21 @@ impl Stt {
     }
 
     fn on_text(&self, gen: u64, src: Src, text: String, check_tts: bool) {
-        let (enabled, pause, label, filter) = {
+        let (enabled, pause, label, filter, tr) = {
             let g = self.st.lock();
             if g.run.as_ref().map(|r| r.2) != Some(gen) {
                 return;
             }
-            (g.cfg.enabled, g.cfg.pause_while_tts, if src == Src::Mic { g.cfg.label.clone() } else { g.cfg.remote_label.clone() }, g.filter.clone())
+            let tr = (g.cfg.translates(src) && allowed(&self.app, translate::FEATURE)).then(|| {
+                (translate::TrCfg { url: g.cfg.cloud_url.clone(), key: g.key.clone(), model: g.cfg.tr_model.clone(), target: g.cfg.tr_lang() }, g.cfg.tr_show_orig)
+            });
+            (g.cfg.enabled, g.cfg.pause_while_tts, if src == Src::Mic { g.cfg.label.clone() } else { g.cfg.remote_label.clone() }, g.filter.clone(), tr)
         };
         // Sesli okuma konuşurken (ve hemen ardından) duyulanlar yazılmaz
         if check_tts && pause && self.tts_busy() {
             return;
         }
-        let text = match filter {
+        let text = match &filter {
             Some(f) => f.mask(&text),
             None => text,
         };
@@ -530,9 +579,67 @@ impl Stt {
         if !enabled {
             return;
         }
-        super::hub(&self.app).push_caption(if src == Src::Mic { "mic" } else { "remote" }, &label, &text);
+        let kind = if src == Src::Mic { "mic" } else { "remote" };
+        if let Some((cfg, show_orig)) = tr {
+            // Çeviri sırayla (tek iş parçacığı) yapılır; bitince altyazıya yazılır
+            self.translate_job(TrJob { gen, kind, label, text, cfg, show_orig, filter });
+            return;
+        }
+        super::hub(&self.app).push_caption(kind, &label, &text);
         self.st.lock().last = Some(text);
         self.emit();
+    }
+
+    /// Çeviri kuyruğuna ekle (kuyruk iş parçacığı ilk işte açılır)
+    fn translate_job(&self, job: TrJob) {
+        let mut q = self.tr_queue.lock();
+        if q.is_none() {
+            let (tx, rx) = std::sync::mpsc::channel::<TrJob>();
+            let app = self.app.clone();
+            let ok = std::thread::Builder::new()
+                .name("livechat-translate".into())
+                .spawn(move || {
+                    while let Ok(j) = rx.recv() {
+                        let Some(me) = stt(&app) else { continue };
+                        if !me.current(j.gen) {
+                            continue;
+                        }
+                        let res = tauri::async_runtime::block_on(translate::translate(&j.cfg, &j.text));
+                        let (out, orig) = match res {
+                            Ok(t) => {
+                                let t = match &j.filter {
+                                    Some(f) => f.mask(&t),
+                                    None => t,
+                                };
+                                // Zaten hedef dildeyse (model aynısını döndürdü) özgün metin ayrıca yazılmaz
+                                let same = t.trim().eq_ignore_ascii_case(j.text.trim());
+                                let orig = if j.show_orig && !same { j.text.clone() } else { String::new() };
+                                (t, orig)
+                            }
+                            Err((_, e)) => {
+                                me.st.lock().notice = Some(e);
+                                (j.text.clone(), String::new())
+                            }
+                        };
+                        if !me.current(j.gen) {
+                            continue;
+                        }
+                        super::hub(&app).push_caption_orig(j.kind, &j.label, &out, &orig);
+                        me.st.lock().last = Some(out);
+                        me.emit();
+                    }
+                })
+                .is_ok();
+            if !ok {
+                drop(q);
+                super::hub(&self.app).push_caption(job.kind, &job.label, &job.text);
+                return;
+            }
+            *q = Some(tx);
+        }
+        if let Some(tx) = q.as_ref() {
+            let _ = tx.send(job);
+        }
     }
 
     /// Hata sonrası bekleme (durdurulursa false)
@@ -717,7 +824,7 @@ pub fn stt(app: &AppHandle) -> Option<Arc<Stt>> {
 
 pub fn init(app: &AppHandle) {
     let key = super::secrets::get(app, KEY_NAME);
-    app.manage(Arc::new(Stt { app: app.clone(), st: Mutex::new(St { key, ..Default::default() }) }));
+    app.manage(Arc::new(Stt { app: app.clone(), st: Mutex::new(St { key, ..Default::default() }), tr_queue: Mutex::new(None) }));
 }
 
 pub fn apply_settings(app: &AppHandle, v: &Value) {

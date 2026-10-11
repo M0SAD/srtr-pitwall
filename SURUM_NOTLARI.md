@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-302
+
+- Yeni PRO özellik: Altyazı çevirisi (livechat.translate). Konuşma → yazı › Çeviri: oyunda / Discord'da / takım telsizinde başka dilde konuşulanlar altyazıda seçilen dile çevrilmiş görünür (varsayılan: arayüz dili). Çevrimiçi (Whisper) motoruyla çalışır: konuşma yazıya döküldükten sonra aynı OpenAI uyumlu sunucunun sohbet ucuyla çevrilir (aynı API anahtarı; Groq: llama-3.3-70b-versatile, OpenAI: gpt-4o-mini, kendi sunucunda model adı ayardan). Çevrilen kaynakta Whisper dili kendisi algılar; zaten hedef dilde olan cümle olduğu gibi kalır. Seçenekler: yalnızca bilgisayar sesi ya da mikrofon da, "Orijinali de göster" (çevirinin altında küçük harfle özgün metin; altyazı overlay'i ve OBS sayfası). Cümleler sırayla çevrilir; çeviri hata verirse cümle çevrilmeden yazılır ve durum satırında uyarı çıkar. Rust: livechat/translate.rs.
+- Site: Canlı Sohbet PRO listesine altyazı çevirisi eklendi.
+
+## 121026-301
+
+- Telemetri: her tur hangi setup'la atıldığını kaydeder (iRacing; setup dosyasının adı, klasör ve .sto olmadan). Telemetri sayfasında en iyi turlar listesi ve kartlarında, oturum ayrıntısının tur tablosunda ("Setup" sütunu; yalnızca setup bilgisi olan oturumlarda) ve tur analizinde gösterilir. Sitede yarışçı telemetri sayfalarında da görünür. Eski turlarda setup bilgisi yok.
+- Supabase: c111_guncelleme.sql (telemetry_laps.setup_name; telemetry_record_lap, telemetry_overview, telemetry_session, telemetry_laps_info, telemetry_combo_laps). SQL çalıştırılmadan önce de program sorunsuz tur yükler (setup adı o zamana kadar kaydedilmez).
+
 ## 111026-300
 
 - FFB Gücü: iRacing'in Quick Settings'teki gibi FFB gücü sayısı da gösteriliyor, ör. "5.5 (61.4 Nm)". Yeni ayar "Gösterilecek değer": ikisi (varsayılan) / yalnızca güç sayısı / yalnızca Nm. Güç sayısı = 100 × direksiyon gücü (Wheel Force, SteeringWheelPeakForceNm) / Max Force (Nm); direksiyon gücü bilinmiyorsa yalnızca Nm. "Aracın tepe torku" seçeneği aslında direksiyon gücünü (Wheel Force) gösterdiği için adı düzeltildi.

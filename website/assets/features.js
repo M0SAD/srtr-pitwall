@@ -468,8 +468,8 @@ addDict({
   ],
   fx_lc_pro_t: ["PRO ile", "With PRO"],
   fx_lc_pro: [
-    "Birden fazla kanal aynı anda|Favori kanallar ve izleyici sayıları|Sohbet anketi: izleyiciler numara yazarak oy verir|Sohbeti sesli okuma (TTS, Windows sesleri)|Konuşmayı yazıya çevirme: altyazı|Sohbete kendi Twitch / Kick / YouTube hesabınla yazma|Sohbet kaydı görüntüleyici: arama, süzme, dışa aktarma",
-    "Several channels at once|Favourite channels with viewer counts|Chat poll: viewers vote by typing a number|Chat read-aloud (TTS, Windows voices)|Speech-to-text captions|Write to chat with your own Twitch / Kick / YouTube account|Chat log viewer: search, filter, export",
+    "Birden fazla kanal aynı anda|Favori kanallar ve izleyici sayıları|Sohbet anketi: izleyiciler numara yazarak oy verir|Sohbeti sesli okuma (TTS, Windows sesleri)|Konuşmayı yazıya çevirme: altyazı|Altyazı çevirisi: oyunda / Discord'da başka dilde konuşulanları kendi dilinde altyazı olarak gör|Sohbete kendi Twitch / Kick / YouTube hesabınla yazma|Sohbet kaydı görüntüleyici: arama, süzme, dışa aktarma",
+    "Several channels at once|Favourite channels with viewer counts|Chat poll: viewers vote by typing a number|Chat read-aloud (TTS, Windows voices)|Speech-to-text captions|Caption translation: see what's said in another language in game / on Discord as subtitles in your language|Write to chat with your own Twitch / Kick / YouTube account|Chat log viewer: search, filter, export",
   ],
 
   // ---- Sesli Mühendis ----

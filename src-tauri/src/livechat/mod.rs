@@ -62,6 +62,7 @@ pub mod inputbox;
 pub mod streamlabs;
 pub mod stt;
 pub mod stt_cloud;
+pub mod translate;
 #[cfg(windows)]
 pub mod stt_win;
 #[cfg(windows)]
@@ -347,6 +348,9 @@ pub struct CaptionLine {
     pub src: String,
     pub label: String,
     pub text: String,
+    /// Çevrilen altyazının özgün metni ("Orijinali de göster" açıkken; yoksa boş)
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub orig: String,
     /// Son güncelleme (unix ms)
     pub ts: u64,
 }
@@ -931,7 +935,13 @@ impl Hub {
 
     /// Aynı kaynaktan `captions.secs` saniye içinde gelen cümleler birleştirilir (en fazla 180 karakter)
     pub fn push_caption(&self, src: &str, label: &str, text: &str) {
+        self.push_caption_orig(src, label, text, "");
+    }
+
+    /// Altyazı satırı; `orig`: çevrildiyse özgün metin (boş: çeviri yok ya da gösterilmiyor)
+    pub fn push_caption_orig(&self, src: &str, label: &str, text: &str, orig: &str) {
         let text = text.trim();
+        let orig = orig.trim();
         if text.is_empty() {
             return;
         }
@@ -945,14 +955,21 @@ impl Hub {
                 g.captions.lines.last_mut().unwrap()
             }
         };
-        if now.saturating_sub(line.ts) < (secs * 1000.0) as u64 && !line.text.is_empty() {
+        let join = now.saturating_sub(line.ts) < (secs * 1000.0) as u64 && !line.text.is_empty();
+        if join {
             line.text = format!("{} {}", line.text.trim_start_matches('…'), text);
+            line.orig = if orig.is_empty() { String::new() } else if line.orig.is_empty() { orig.to_string() } else { format!("{} {}", line.orig.trim_start_matches('…'), orig) };
         } else {
             line.text = text.to_string();
+            line.orig = orig.to_string();
         }
         let n = line.text.chars().count();
         if n > 180 {
             line.text = format!("…{}", line.text.chars().skip(n - 179).collect::<String>());
+        }
+        let n = line.orig.chars().count();
+        if n > 180 {
+            line.orig = format!("…{}", line.orig.chars().skip(n - 179).collect::<String>());
         }
         line.label = label.to_string();
         line.ts = now;

@@ -116,6 +116,8 @@ export interface TelemetryLap {
   class_position: number | null;
   driven_at: string;
   has_trace: boolean;
+  /** Turun atıldığı setup (c111; eski turlarda yok) */
+  setup_name?: string | null;
 }
 
 export interface BestLap {
@@ -133,6 +135,7 @@ export interface BestLap {
   driven_at: string;
   has_trace: boolean;
   laps: number;
+  setup_name?: string | null;
 }
 
 export interface Identity {
@@ -192,6 +195,7 @@ export interface LapInfo {
   valid: boolean;
   driven_at: string;
   trace_path: string | null;
+  setup_name?: string | null;
 }
 
 export interface ComboLap {
@@ -202,6 +206,7 @@ export interface ComboLap {
   driven_at: string;
   session_id: string;
   session_type: string;
+  setup_name?: string | null;
 }
 
 export interface BoardRow {

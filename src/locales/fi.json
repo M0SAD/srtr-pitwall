@@ -7149,5 +7149,22 @@
   "Nm)": "Nm)",
   "Yalnızca FFB gücü (ör. 5.5)": "Vain FFB-voima (esim. 5.5)",
   "Yalnızca Nm (ör. 61.4 Nm)": "Vain Nm (esim. 61.4 Nm)",
-  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Viivaa ei piirretä lainkaan, jos radalla ei ole muita autoja. Pois päältä: piirretään vain, kun näytettävä auto on. \"Näytä oma rivini\" -asetuksella näkyy rivisi viivan sijaan."
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Viivaa ei piirretä lainkaan, jos radalla ei ole muita autoja. Pois päältä: piirretään vain, kun näytettävä auto on. \"Näytä oma rivini\" -asetuksella näkyy rivisi viivan sijaan.",
+  "Setup": "Setup",
+  "Altyazı çevirisi (oyunda / Discord'da konuşulanları kendi dilinde altyazı olarak görmek)": "Tekstitysten käännös (pelissä / Discordissa puhuttu tekstityksinä omalla kielelläsi)",
+  "Altyazı çevirisi PRO üyelere özel.": "Tekstitysten käännös on PRO-jäsenille.",
+  "Altyazının yazılacağı dil.": "Kieli, jolla tekstitykset kirjoitetaan.",
+  "Altyazıyı çevir": "Käännä tekstitykset",
+  "Boş bırakılırsa: Groq'ta llama-3.3-70b-versatile, OpenAI'da gpt-4o-mini. Kendi sunucunda modelin adını yaz.": "Tyhjä: Groqissa llama-3.3-70b-versatile, OpenAI:ssa gpt-4o-mini. Omalla palvelimella kirjoita mallin nimi.",
+  "Çeviri modeli": "Käännösmalli",
+  "Çeviri yalnızca “Çevrimiçi (Whisper)” motoruyla çalışır: yukarıdan motoru değiştir.": "Käännös toimii vain “Verkossa (Whisper)” -moottorilla: vaihda moottori yltä.",
+  "Çevirinin altında küçük harfle konuşulan dildeki metin.": "Puhutun kielen teksti pienellä käännöksen alla.",
+  "Çevrilecek ses": "Käännettävä ääni",
+  "Çevrilecek seste dil kendiliğinden algılanır; zaten hedef dilde olan cümleler olduğu gibi yazılır.": "Käännettävän äänen kieli tunnistetaan automaattisesti; jo kohdekielellä olevat lauseet näytetään sellaisenaan.",
+  "Hedef dil": "Kohdekieli",
+  "İpucu: bilgisayar sesi dinlenirken oyunun motor sesi de duyulur ve boşuna altyazı çıkabilir. En temizi, iRacing'in ses ayarlarında sesli sohbet için ayrı bir çıkış cihazı seçip yukarıdaki “Bilgisayar sesi” cihazı olarak onu seçmek.": "Vinkki: tietokoneen ääntä kuunneltaessa myös moottorin ääni kuuluu ja voi tuottaa turhia tekstityksiä. Siistein tapa on valita iRacingin ääniasetuksista äänichatille oma lähtölaite ja valita se yllä “Tietokoneen ääni” -laitteeksi.",
+  "Kendi konuşmanı da çevirmek istersen “Mikrofon da”yı seç (ör. yabancı izleyiciler için).": "Valitse “Myös mikrofoni” kääntääksesi myös oman puheesi (esim. ulkomaisille katsojille).",
+  "Mikrofon da": "Myös mikrofoni",
+  "Orijinali de göster": "Näytä myös alkuperäinen",
+  "Oyunda, Discord'da ya da takım telsizinde başka dilde konuşulanları altyazıda kendi dilinde görürsün. Konuşma önce yazıya dökülür, sonra aynı sunucunun yapay zekâ modeliyle çevrilir; aynı API anahtarı kullanılır, ek hesap gerekmez. Cümle bittikten 1–2 sn sonra görünür.": "Pelissä, Discordissa tai tiimiradiossa muulla kielellä puhuttu näkyy tekstityksinä omalla kielelläsi. Puhe kirjoitetaan ensin tekstiksi ja käännetään sitten saman palvelimen tekoälymallilla; sama API-avain, ei lisätiliä. Näkyy 1–2 s lauseen päätyttyä."
 }

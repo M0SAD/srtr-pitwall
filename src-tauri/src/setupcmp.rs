@@ -93,7 +93,7 @@ pub struct SetupCmp {
 }
 
 /// "yaris1.sto" → "yaris1"
-fn clean(name: &str) -> String {
+pub fn clean(name: &str) -> String {
     let n = name.trim();
     let n = n.rsplit(['/', '\\']).next().unwrap_or(n);
     let low = n.to_ascii_lowercase();

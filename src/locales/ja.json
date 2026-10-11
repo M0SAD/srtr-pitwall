@@ -7149,5 +7149,22 @@
   "Nm)": "Nm)",
   "Yalnızca FFB gücü (ör. 5.5)": "FFB 強度のみ(例:5.5)",
   "Yalnızca Nm (ör. 61.4 Nm)": "Nm のみ(例:61.4 Nm)",
-  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "コース上に他の車がいないときは線を描きません。オフのときは表示する車がいる間だけ描きます。「自分の行を表示」がオンなら線の代わりに自分の行が出ます。"
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "コース上に他の車がいないときは線を描きません。オフのときは表示する車がいる間だけ描きます。「自分の行を表示」がオンなら線の代わりに自分の行が出ます。",
+  "Setup": "セットアップ",
+  "Altyazı çevirisi (oyunda / Discord'da konuşulanları kendi dilinde altyazı olarak görmek)": "字幕翻訳(ゲーム内や Discord での会話を自分の言語の字幕で表示)",
+  "Altyazı çevirisi PRO üyelere özel.": "字幕翻訳は PRO メンバー限定です。",
+  "Altyazının yazılacağı dil.": "字幕を表示する言語。",
+  "Altyazıyı çevir": "字幕を翻訳",
+  "Boş bırakılırsa: Groq'ta llama-3.3-70b-versatile, OpenAI'da gpt-4o-mini. Kendi sunucunda modelin adını yaz.": "空欄の場合:Groq は llama-3.3-70b-versatile、OpenAI は gpt-4o-mini。自前のサーバーではモデル名を入力してください。",
+  "Çeviri modeli": "翻訳モデル",
+  "Çeviri yalnızca “Çevrimiçi (Whisper)” motoruyla çalışır: yukarıdan motoru değiştir.": "翻訳は「オンライン(Whisper)」エンジンでのみ動作します。上でエンジンを変更してください。",
+  "Çevirinin altında küçük harfle konuşulan dildeki metin.": "話された言語の原文を、翻訳の下に小さく表示します。",
+  "Çevrilecek ses": "翻訳する音声",
+  "Çevrilecek seste dil kendiliğinden algılanır; zaten hedef dilde olan cümleler olduğu gibi yazılır.": "翻訳する音声の言語は自動で判定され、すでに翻訳先の言語の文はそのまま表示されます。",
+  "Hedef dil": "翻訳先の言語",
+  "İpucu: bilgisayar sesi dinlenirken oyunun motor sesi de duyulur ve boşuna altyazı çıkabilir. En temizi, iRacing'in ses ayarlarında sesli sohbet için ayrı bir çıkış cihazı seçip yukarıdaki “Bilgisayar sesi” cihazı olarak onu seçmek.": "ヒント:PC の音声を聞き取るとエンジン音も拾い、不要な字幕が出ることがあります。iRacing のサウンド設定でボイスチャット用に別の出力デバイスを選び、上の「PC の音声」デバイスとしてそれを選ぶのが最も確実です。",
+  "Kendi konuşmanı da çevirmek istersen “Mikrofon da”yı seç (ör. yabancı izleyiciler için).": "自分の声も翻訳するには「マイクも」を選びます(例:海外の視聴者向け)。",
+  "Mikrofon da": "マイクも",
+  "Orijinali de göster": "原文も表示",
+  "Oyunda, Discord'da ya da takım telsizinde başka dilde konuşulanları altyazıda kendi dilinde görürsün. Konuşma önce yazıya dökülür, sonra aynı sunucunun yapay zekâ modeliyle çevrilir; aynı API anahtarı kullanılır, ek hesap gerekmez. Cümle bittikten 1–2 sn sonra görünür.": "ゲーム内、Discord、チーム無線で他の言語で話された内容を、自分の言語の字幕で表示します。音声を文字にしてから同じサーバーの AI モデルで翻訳します。同じ API キーを使うので追加のアカウントは不要です。文が終わってから 1〜2 秒後に表示されます。"
 }

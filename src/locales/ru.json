@@ -7149,5 +7149,22 @@
   "Nm)": "Нм)",
   "Yalnızca FFB gücü (ör. 5.5)": "Только сила FFB (например 5.5)",
   "Yalnızca Nm (ör. 61.4 Nm)": "Только Нм (например 61.4 Нм)",
-  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Если на трассе нет других машин, линия не рисуется. Выключено: рисуется, только когда есть машина для показа. При «Показывать мою строку» вместо линии видна твоя строка."
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Если на трассе нет других машин, линия не рисуется. Выключено: рисуется, только когда есть машина для показа. При «Показывать мою строку» вместо линии видна твоя строка.",
+  "Setup": "Настройка",
+  "Altyazı çevirisi (oyunda / Discord'da konuşulanları kendi dilinde altyazı olarak görmek)": "Перевод субтитров (сказанное в игре / в Discord — субтитрами на твоём языке)",
+  "Altyazı çevirisi PRO üyelere özel.": "Перевод субтитров доступен только PRO-участникам.",
+  "Altyazının yazılacağı dil.": "Язык, на котором пишутся субтитры.",
+  "Altyazıyı çevir": "Переводить субтитры",
+  "Boş bırakılırsa: Groq'ta llama-3.3-70b-versatile, OpenAI'da gpt-4o-mini. Kendi sunucunda modelin adını yaz.": "Если пусто: llama-3.3-70b-versatile в Groq, gpt-4o-mini в OpenAI. На своём сервере укажи название модели.",
+  "Çeviri modeli": "Модель перевода",
+  "Çeviri yalnızca “Çevrimiçi (Whisper)” motoruyla çalışır: yukarıdan motoru değiştir.": "Перевод работает только с движком «Онлайн (Whisper)»: смени движок выше.",
+  "Çevirinin altında küçük harfle konuşulan dildeki metin.": "Текст на языке говорящего мелким шрифтом под переводом.",
+  "Çevrilecek ses": "Какой звук переводить",
+  "Çevrilecek seste dil kendiliğinden algılanır; zaten hedef dilde olan cümleler olduğu gibi yazılır.": "Язык переводимой речи определяется автоматически; фразы, уже написанные на нужном языке, остаются как есть.",
+  "Hedef dil": "Язык перевода",
+  "İpucu: bilgisayar sesi dinlenirken oyunun motor sesi de duyulur ve boşuna altyazı çıkabilir. En temizi, iRacing'in ses ayarlarında sesli sohbet için ayrı bir çıkış cihazı seçip yukarıdaki “Bilgisayar sesi” cihazı olarak onu seçmek.": "Совет: при прослушивании звука компьютера слышен и мотор, из-за чего могут появляться лишние субтитры. Лучше всего в настройках звука iRacing выбрать для голосового чата отдельное устройство вывода и указать его выше как устройство «Звук компьютера».",
+  "Kendi konuşmanı da çevirmek istersen “Mikrofon da”yı seç (ör. yabancı izleyiciler için).": "Выбери «И микрофон», чтобы переводить и свою речь (например, для зарубежных зрителей).",
+  "Mikrofon da": "И микрофон",
+  "Orijinali de göster": "Показывать и оригинал",
+  "Oyunda, Discord'da ya da takım telsizinde başka dilde konuşulanları altyazıda kendi dilinde görürsün. Konuşma önce yazıya dökülür, sonra aynı sunucunun yapay zekâ modeliyle çevrilir; aynı API anahtarı kullanılır, ek hesap gerekmez. Cümle bittikten 1–2 sn sonra görünür.": "То, что говорят на другом языке в игре, в Discord или по командной рации, ты видишь субтитрами на своём языке. Речь сначала распознаётся, затем переводится ИИ-моделью того же сервера; тот же API-ключ, без отдельного аккаунта. Появляется через 1–2 с после конца фразы."
 }

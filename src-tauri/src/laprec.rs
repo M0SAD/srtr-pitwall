@@ -67,6 +67,9 @@ pub struct LapRecord {
     pub car_id: String,
     pub car_name: String,
     pub car_class: String,
+    /// Turun atıldığı setup (iRacing DriverInfo.DriverSetupName; klasör ve .sto olmadan). Bilinmiyorsa boş.
+    #[serde(default)]
+    pub setup_name: String,
     /// practice | qualify | race | warmup | hotlap | other
     pub session_type: String,
     /// Simin verdiği ham oturum adı ("Open Qualify", "Practice"...)
@@ -356,6 +359,7 @@ impl Recorder {
             car_name: player.map(|d| d.car_name.clone()).unwrap_or_default(),
             // Lig kategorisi değil, simin gerçek sınıfı (lig ayarı sınıf adını "Pro" / "Am" gibi kategoriyle değiştirir)
             car_class: player.map(|d| car_class_of(if d.orig_class_name.is_empty() { &d.class_name } else { &d.orig_class_name }, &d.car_name)).unwrap_or_default(),
+            setup_name: crate::setupcmp::clean(&s.setup_name),
             session_type: session_type(&kind).to_string(),
             session_kind: session_kind_tag(&kind, s.has_ai_opponents()),
             session_num: f.session_num,

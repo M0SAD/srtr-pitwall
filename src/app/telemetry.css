@@ -817,3 +817,36 @@
   font-size: 0.85em;
   cursor: help;
 }
+
+/* Turun atıldığı setup (c111) */
+.tt-setup {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 0;
+}
+.tt-setup svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  opacity: 0.8;
+}
+.tt-setup span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-setup {
+  justify-content: center;
+}
+.tt-setup-cell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}

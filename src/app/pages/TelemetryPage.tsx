@@ -655,6 +655,11 @@ function BestsPanel(p: { bests: BestLap[] }) {
                           {SIM_LABEL[b.sim] ?? b.sim} · {b.car_name}
                           <Show when={classLabel(b.car_class, b.car_name)}> · {classLabel(b.car_class, b.car_name)}</Show>
                         </small>
+                        <Show when={b.setup_name}>
+                          <small class="tt-setup" title={t("Setup")}>
+                            <I.Wrench /> <span data-no-i18n>{b.setup_name}</span>
+                          </small>
+                        </Show>
                       </td>
                       <td class="num mono best">{lapTime(b.lap_time)}</td>
                       <td class="num">{b.laps}</td>
@@ -695,6 +700,11 @@ function BestsPanel(p: { bests: BestLap[] }) {
                   {b.car_name}
                   <Show when={classLabel(b.car_class, b.car_name)}> · {classLabel(b.car_class, b.car_name)}</Show>
                 </small>
+                <Show when={b.setup_name}>
+                  <small class="tt-setup bc-setup" title={t("Setup")}>
+                    <I.Wrench /> <span data-no-i18n>{b.setup_name}</span>
+                  </small>
+                </Show>
                 <div class="bc-time mono">{lapTime(b.lap_time)}</div>
                 <small class="muted">{t("{0} tur", b.laps)}</small>
                 <div class="bc-act">
@@ -811,6 +821,9 @@ function SessionView(p: { id: string }) {
                         <th class="num">Olay</th>
                         <th class="num">Yakıt</th>
                         <th class="num">Sıra</th>
+                        <Show when={d().laps.some((l) => l.setup_name)}>
+                          <th>Setup</th>
+                        </Show>
                         <th />
                       </tr>
                     </thead>
@@ -840,6 +853,11 @@ function SessionView(p: { id: string }) {
                             <td class="num">{l.incidents ? `${l.incidents}x` : "—"}</td>
                             <td class="num">{l.fuel_used ? `${l.fuel_used.toFixed(2)} L` : "—"}</td>
                             <td class="num">{l.position ? `P${l.position}` : "—"}</td>
+                            <Show when={d().laps.some((x) => x.setup_name)}>
+                              <td class="tt-setup-cell" title={l.setup_name ?? ""} data-no-i18n>
+                                {l.setup_name || "—"}
+                              </td>
+                            </Show>
                             <td class="act">
                               <Show when={l.has_trace}>
                                 <button class="btn small" onClick={() => push({ kind: "analysis", laps: [l.id] })}>
@@ -1061,6 +1079,11 @@ function AnalysisView(p: { laps: string[] }) {
                         <small>
                           {x.info.car_name} · {t("Tur {0}", x.info.lap)} · {fmtDate(x.info.driven_at, false)}
                         </small>
+                        <Show when={x.info.setup_name}>
+                          <small class="tt-setup">
+                            <I.Wrench /> <span data-no-i18n>{x.info.setup_name}</span>
+                          </small>
+                        </Show>
                       </div>
                       <span class="mono lap-time">{lapTime(x.info.lap_time)}</span>
                       <Show when={list().length > 1}>

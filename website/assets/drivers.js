@@ -61,6 +61,7 @@ addDict({
   dr_status: ["Durum", "Status"],
   dr_fuel: ["Yakıt", "Fuel"],
   dr_pos: ["Sıra", "Pos"],
+  dr_setup: ["Setup", "Setup"],
   dr_valid_lap: ["Geçerli", "Valid"],
   dr_invalid_lap: ["Geçersiz", "Invalid"],
   dr_pit: ["Pit", "Pit"],
@@ -264,7 +265,9 @@ async function profileView(uid) {
         .map(
           (b) => `<tr>
           <td>${esc(SIM_LABEL[b.sim] || b.sim)}</td><td>${esc(trackLabel(b))}</td>
-          <td>${esc(b.car_name)}${b.car_class ? ` <span class="muted small">· ${esc(b.car_class)}</span>` : ""}</td>
+          <td>${esc(b.car_name)}${b.car_class ? ` <span class="muted small">· ${esc(b.car_class)}</span>` : ""}${
+            b.setup_name ? `<br><span class="muted small" title="${esc(T("dr_setup"))}">🔧 ${esc(b.setup_name)}</span>` : ""
+          }</td>
           <td class="num" style="color:#3ecf8e;font-weight:700">${lapTime(b.lap_time)}</td><td class="num">${b.laps}</td>
           <td>${fmtDate(b.driven_at)}</td>
           <td class="num"><a class="btn btn-sm btn-ghost" href="#" data-go='${esc(
@@ -322,6 +325,7 @@ async function profileView(uid) {
 async function sessionView(id) {
   app().innerHTML = `<p class="muted page">${esc(T("loading"))}</p>`;
   const d = await rpc("telemetry_session", { p_session: id });
+  const hasSetup = (d?.laps || []).some((l) => l.setup_name);
   const s = d.session;
   const ok = (d.laps || []).filter((l) => l.valid && !l.pit);
   const best = ok.reduce((a, l) => (!a || l.lap_time < a.lap_time ? l : a), null);
@@ -347,7 +351,7 @@ async function sessionView(id) {
     <div class="card"><div style="overflow-x:auto"><table class="list">
       <thead><tr><th class="num">${esc(T("dr_lap"))}</th><th class="num">${esc(T("dr_time"))}</th><th class="num">S1</th><th class="num">S2</th>
       <th class="num">S3</th><th>${esc(T("dr_status"))}</th><th class="num">${esc(T("dr_incidents"))}</th><th class="num">${esc(T("dr_fuel"))}</th>
-      <th class="num">${esc(T("dr_pos"))}</th></tr></thead>
+      <th class="num">${esc(T("dr_pos"))}</th>${hasSetup ? `<th>${esc(T("dr_setup"))}</th>` : ""}</tr></thead>
       <tbody>${(d.laps || [])
         .map(
           (l) => `<tr style="${l.valid ? "" : "color:var(--muted)"}">
@@ -359,7 +363,9 @@ async function sessionView(id) {
           }</td>
           <td class="num">${l.incidents ? l.incidents + "x" : "—"}</td>
           <td class="num">${l.fuel_used ? l.fuel_used.toFixed(2) + " L" : "—"}</td>
-          <td class="num">${l.position ? "P" + l.position : "—"}</td></tr>`,
+          <td class="num">${l.position ? "P" + l.position : "—"}</td>${
+            hasSetup ? `<td class="muted small" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.setup_name || "")}">${esc(l.setup_name || "—")}</td>` : ""
+          }</tr>`,
         )
         .join("")}</tbody></table></div>
       <p class="muted small">${esc(T("dr_session_note"))}</p></div>

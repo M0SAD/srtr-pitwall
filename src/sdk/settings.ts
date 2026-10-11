@@ -343,6 +343,20 @@ export interface LiveChatStt {
   pauseWhileTts: boolean;
   /** Altyazının önündeki ad (boş: yok) */
   label: string;
+  /** Altyazı çevirisi (PRO: livechat.translate; yalnızca cloud motoru). Rust: livechat/translate.rs */
+  translate: LiveChatTranslate;
+}
+
+export interface LiveChatTranslate {
+  enabled: boolean;
+  /** Hedef dil kodu ("tr", "en"…); boş: arayüz dili */
+  target: string;
+  /** "remote": yalnızca bilgisayar sesi (oyun, Discord) çevrilir; "both": mikrofon da */
+  sources: "remote" | "both";
+  /** Çevirinin altında özgün metin de görünsün */
+  showOriginal: boolean;
+  /** Sohbet modeli; boş: sunucuya göre varsayılan (Groq: llama-3.3-70b-versatile, OpenAI: gpt-4o-mini) */
+  model: string;
 }
 
 /** Varsayılan Canlı Sohbet kanalları, bu sırayla (YouTube ilk: ücretsiz sürümde yalnızca ilk kanal bağlanır) */
@@ -425,6 +439,7 @@ export function defaultLiveChat(): LiveChatSettings {
       profanityWords: "",
       pauseWhileTts: true,
       label: "",
+      translate: { enabled: false, target: "", sources: "remote", showOriginal: true, model: "" },
     },
     sendTarget: "mine",
   };
@@ -483,7 +498,7 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
       cmdDefV1: true,
       ...(ttsNew ? { enabled: true } : {}),
     },
-    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },
+    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, translate: { ...d.stt.translate, ...(v.stt?.translate ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },
     voiceDefV1: true,
     // Bir kerelik geçiş (autoStartV1): sohbet uygulama açılınca kendiliğinden başlar; kullanıcı sonra kapatırsa kapalı kalır
     ...(v.autoStartV1 ? {} : { autoStart: true }),

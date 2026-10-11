@@ -7149,5 +7149,22 @@
   "Nm)": "Nm)",
   "Yalnızca FFB gücü (ör. 5.5)": "Solo forza FFB (es. 5.5)",
   "Yalnızca Nm (ör. 61.4 Nm)": "Solo Nm (es. 61.4 Nm)",
-  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "La linea non viene mai disegnata se in pista non ci sono altre auto. Se disattivato, viene disegnata solo se c'è un'auto da mostrare. Con «Mostra la mia riga» compare la tua riga al posto della linea."
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "La linea non viene mai disegnata se in pista non ci sono altre auto. Se disattivato, viene disegnata solo se c'è un'auto da mostrare. Con «Mostra la mia riga» compare la tua riga al posto della linea.",
+  "Setup": "Setup",
+  "Altyazı çevirisi (oyunda / Discord'da konuşulanları kendi dilinde altyazı olarak görmek)": "Traduzione dei sottotitoli (ciò che si dice in gioco / su Discord come sottotitoli nella tua lingua)",
+  "Altyazı çevirisi PRO üyelere özel.": "La traduzione dei sottotitoli è riservata ai membri PRO.",
+  "Altyazının yazılacağı dil.": "La lingua in cui vengono scritti i sottotitoli.",
+  "Altyazıyı çevir": "Traduci i sottotitoli",
+  "Boş bırakılırsa: Groq'ta llama-3.3-70b-versatile, OpenAI'da gpt-4o-mini. Kendi sunucunda modelin adını yaz.": "Se vuoto: llama-3.3-70b-versatile su Groq, gpt-4o-mini su OpenAI. Sul tuo server inserisci il nome del modello.",
+  "Çeviri modeli": "Modello di traduzione",
+  "Çeviri yalnızca “Çevrimiçi (Whisper)” motoruyla çalışır: yukarıdan motoru değiştir.": "La traduzione funziona solo con il motore «Online (Whisper)»: cambia il motore qui sopra.",
+  "Çevirinin altında küçük harfle konuşulan dildeki metin.": "Il testo nella lingua parlata, in piccolo sotto la traduzione.",
+  "Çevrilecek ses": "Audio da tradurre",
+  "Çevrilecek seste dil kendiliğinden algılanır; zaten hedef dilde olan cümleler olduğu gibi yazılır.": "La lingua dell'audio tradotto viene rilevata automaticamente; le frasi già nella lingua di destinazione restano invariate.",
+  "Hedef dil": "Lingua di destinazione",
+  "İpucu: bilgisayar sesi dinlenirken oyunun motor sesi de duyulur ve boşuna altyazı çıkabilir. En temizi, iRacing'in ses ayarlarında sesli sohbet için ayrı bir çıkış cihazı seçip yukarıdaki “Bilgisayar sesi” cihazı olarak onu seçmek.": "Suggerimento: ascoltando l'audio del computer si sente anche il motore e possono comparire sottotitoli inutili. La soluzione più pulita è scegliere un'uscita audio separata per la chat vocale nelle impostazioni audio di iRacing e selezionarla qui sopra come dispositivo «Audio del computer».",
+  "Kendi konuşmanı da çevirmek istersen “Mikrofon da”yı seç (ör. yabancı izleyiciler için).": "Scegli «Anche il microfono» per tradurre anche la tua voce (es. per spettatori stranieri).",
+  "Mikrofon da": "Anche il microfono",
+  "Orijinali de göster": "Mostra anche l'originale",
+  "Oyunda, Discord'da ya da takım telsizinde başka dilde konuşulanları altyazıda kendi dilinde görürsün. Konuşma önce yazıya dökülür, sonra aynı sunucunun yapay zekâ modeliyle çevrilir; aynı API anahtarı kullanılır, ek hesap gerekmez. Cümle bittikten 1–2 sn sonra görünür.": "Ciò che viene detto in un'altra lingua in gioco, su Discord o via radio di squadra lo vedi come sottotitoli nella tua lingua. Il parlato viene prima trascritto, poi tradotto con il modello IA dello stesso server; stessa chiave API, nessun account aggiuntivo. Compare 1–2 s dopo la fine della frase."
 }

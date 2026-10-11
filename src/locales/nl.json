@@ -7149,5 +7149,22 @@
   "Nm)": "Nm)",
   "Yalnızca FFB gücü (ör. 5.5)": "Alleen FFB-sterkte (bijv. 5.5)",
   "Yalnızca Nm (ör. 61.4 Nm)": "Alleen Nm (bijv. 61.4 Nm)",
-  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Zonder andere auto's op de baan wordt de lijn nooit getekend. Uit: alleen getekend als er een auto te tonen is. Met \"Mijn rij tonen\" verschijnt je rij in plaats van de lijn."
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Zonder andere auto's op de baan wordt de lijn nooit getekend. Uit: alleen getekend als er een auto te tonen is. Met \"Mijn rij tonen\" verschijnt je rij in plaats van de lijn.",
+  "Setup": "Setup",
+  "Altyazı çevirisi (oyunda / Discord'da konuşulanları kendi dilinde altyazı olarak görmek)": "Ondertitelvertaling (wat in de game / op Discord wordt gezegd als ondertitels in jouw taal)",
+  "Altyazı çevirisi PRO üyelere özel.": "Ondertitelvertaling is voor PRO-leden.",
+  "Altyazının yazılacağı dil.": "De taal waarin de ondertitels worden geschreven.",
+  "Altyazıyı çevir": "Ondertitels vertalen",
+  "Boş bırakılırsa: Groq'ta llama-3.3-70b-versatile, OpenAI'da gpt-4o-mini. Kendi sunucunda modelin adını yaz.": "Leeg: llama-3.3-70b-versatile bij Groq, gpt-4o-mini bij OpenAI. Op je eigen server vul je de modelnaam in.",
+  "Çeviri modeli": "Vertaalmodel",
+  "Çeviri yalnızca “Çevrimiçi (Whisper)” motoruyla çalışır: yukarıdan motoru değiştir.": "Vertalen werkt alleen met de engine “Online (Whisper)”: wijzig de engine hierboven.",
+  "Çevirinin altında küçük harfle konuşulan dildeki metin.": "De tekst in de gesproken taal, klein onder de vertaling.",
+  "Çevrilecek ses": "Te vertalen geluid",
+  "Çevrilecek seste dil kendiliğinden algılanır; zaten hedef dilde olan cümleler olduğu gibi yazılır.": "De taal van vertaald geluid wordt automatisch herkend; zinnen die al in de doeltaal zijn blijven zoals ze zijn.",
+  "Hedef dil": "Doeltaal",
+  "İpucu: bilgisayar sesi dinlenirken oyunun motor sesi de duyulur ve boşuna altyazı çıkabilir. En temizi, iRacing'in ses ayarlarında sesli sohbet için ayrı bir çıkış cihazı seçip yukarıdaki “Bilgisayar sesi” cihazı olarak onu seçmek.": "Tip: bij het meeluisteren van computergeluid hoor je ook het motorgeluid, wat onnodige ondertitels kan geven. Het netst is in de geluidsinstellingen van iRacing een apart uitvoerapparaat voor voicechat te kiezen en dat hierboven als “Computergeluid” te selecteren.",
+  "Kendi konuşmanı da çevirmek istersen “Mikrofon da”yı seç (ör. yabancı izleyiciler için).": "Kies “Microfoon ook” om ook je eigen spraak te vertalen (bijv. voor buitenlandse kijkers).",
+  "Mikrofon da": "Microfoon ook",
+  "Orijinali de göster": "Origineel ook tonen",
+  "Oyunda, Discord'da ya da takım telsizinde başka dilde konuşulanları altyazıda kendi dilinde görürsün. Konuşma önce yazıya dökülür, sonra aynı sunucunun yapay zekâ modeliyle çevrilir; aynı API anahtarı kullanılır, ek hesap gerekmez. Cümle bittikten 1–2 sn sonra görünür.": "Wat in een andere taal in de game, op Discord of via teamradio wordt gezegd, zie je als ondertitels in jouw taal. Spraak wordt eerst uitgeschreven en daarna vertaald met het AI-model van dezelfde server; dezelfde API-sleutel, geen extra account. Verschijnt 1–2 s na het einde van de zin."
 }
