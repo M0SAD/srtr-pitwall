@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "距离上限",
   "Uzaktaki araçlar şeffaflaşsın": "远处车辆变淡",
   "Yarış başladıktan sonra gizle": "比赛开始后隐藏",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "在绿旗后设定的时间消失；练习、排位和起跑前可见。",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "若比例较高，可考虑提高 FFB 力度（Max Force）；削波时方向盘会丢失细节。",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "框的长度随名称而定，不超过此宽度。较长的名称会缩小字号以完全显示；特别长时换成两行。名称不会被截断。"
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "框的长度随名称而定，不超过此宽度。较长的名称会缩小字号以完全显示；特别长时换成两行。名称不会被截断。",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "在绿旗后设定的时间消失；练习、排位和起跑前可见。演示模式下不会隐藏。"
 }

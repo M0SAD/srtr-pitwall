@@ -297,6 +297,8 @@ pub struct Standings {
     pub leader_lap: i32,
     pub car_count: i32,
     pub classes: Vec<ClassInfo>,
+    /// Kameranın izlediği araç (iRacing CamCarIdx; tekrar / izleyici / takım arkadaşı sürerken); bilinmiyorsa -1
+    pub cam_idx: i32,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -1048,6 +1050,7 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         total_laps: entry.and_then(|e| e.laps).unwrap_or(0),
         leader_lap,
         classes,
+        cam_idx: f.cam_car_idx,
     }
 }
 
@@ -1440,6 +1443,20 @@ mod tests {
         }
         let p = positions(&f, &s);
         assert_eq!(p[0].0, 4);
+    }
+
+    #[test]
+    fn demo_session_has_setup_and_ffb() {
+        let mut d = Demo::new();
+        let mut f = Frame::default();
+        for _ in 0..120 {
+            d.step(1.0 / 60.0, &mut f);
+        }
+        let s = d.session().clone();
+        let j = serde_json::to_value(session(&f, &s)).unwrap();
+        assert_eq!(j["setupName"], "SRTR\\yaris_kuru_v3.sto");
+        let i = serde_json::to_value(inputs(&f, &s)).unwrap();
+        assert!(i["ffbMaxNm"].as_f64().unwrap() > 0.0, "{i}");
     }
 
     #[test]

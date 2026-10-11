@@ -225,6 +225,8 @@ export interface ClassInfo {
 
 export interface Standings {
   rows: Row[];
+  /** Kameranın izlediği araç (iRacing CamCarIdx); bilinmiyorsa -1 */
+  camIdx?: number;
   multiclass: boolean;
   race: boolean;
   sessionType: string;

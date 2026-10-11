@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "距離の上限",
   "Uzaktaki araçlar şeffaflaşsın": "遠くの車を薄くする",
   "Yarış başladıktan sonra gizle": "レース開始後に隠す",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "グリーンフラッグから設定時間後に消えます。練習・予選・スタート前は表示されます。",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "高い場合は FFB 強度(Max Force)を上げることを検討してください。クリッピング中はハンドルの情報が失われます。",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "ボックスは名前の長さに合わせ、この幅を超えません。長い名前は文字を縮小して収め、非常に長い場合は 2 行に折り返します。名前が切れることはありません。"
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "ボックスは名前の長さに合わせ、この幅を超えません。長い名前は文字を縮小して収め、非常に長い場合は 2 行に折り返します。名前が切れることはありません。",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "グリーンフラッグから設定時間後に消えます。練習・予選・スタート前は表示されます。デモモードでは隠れません。"
 }

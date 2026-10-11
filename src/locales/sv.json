@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "Avståndsgräns",
   "Uzaktaki araçlar şeffaflaşsın": "Låt avlägsna bilar blekna",
   "Yarış başladıktan sonra gizle": "Dölj efter racestarten",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "Försvinner den inställda tiden efter grön flagg; syns i träning, kval och före start.",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Är den hög kan du överväga att höja FFB-styrkan (Max Force); vid clipping tappar ratten detaljer.",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Rutan är lika lång som namnet, högst denna bredd. Ett längre namn förminskas så att det får plats; är det mycket långt bryts det på två rader. Namnet kapas aldrig."
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Rutan är lika lång som namnet, högst denna bredd. Ett längre namn förminskas så att det får plats; är det mycket långt bryts det på två rader. Namnet kapas aldrig.",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Försvinner den inställda tiden efter grön flagg; syns i träning, kval och före start. Döljs inte i demoläget."
 }

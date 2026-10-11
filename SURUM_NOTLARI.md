@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 111026-299
+
+- Setup Adı: demo modunda "Yarış başladıktan sonra gizle" uygulanmıyor (demo yarışı hep sürdüğü için overlay hiç görünmüyordu). Varsayılan yazı boyutu 22 px, en fazla genişlik 420 px (eskiden 16 / 320; mevcut kopyada "Sıfırla" ile yeni varsayılanlar gelir). Kenardan sürükleyince en fazla genişlik değişir.
+- Sürücü Kartı: tekrar izlerken, izleyiciyken ya da araçta takım arkadaşın varken kameranın izlediği aracın sürücüsü gösterilir (adı, numarası, sırası, aracı, sınıfı, iRating ve lisansı). Kendi özel ad / takım / ikinci satır yazıların yalnızca sen sürerken kullanılır. "Replay'de göster" seçeneği eklendi. Rust: standings paketinde camIdx (iRacing CamCarIdx).
+
 ## 111026-298
 
 - Vites ve Hız Göstergesi overlay'lerine "Replay'de göster" seçeneği eklendi (varsayılan açık).

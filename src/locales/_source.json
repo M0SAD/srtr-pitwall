@@ -6741,7 +6741,7 @@
  "Yarışçı bulunamadı.": "src/app/pages/TelemetryPage.tsx",
  "Yarışçılar": "src/app/menu.ts",
  "Yarışın bitmesine": "src/app/components/CrewGfx.tsx",
- "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "src/overlays/setupname/manifest.ts",
+ "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "src/overlays/setupname/manifest.ts",
  "Yarışırken gelen arkadaş, takım, grup ve ekip odası mesajlarını ekranda küçük balonlarla gösterir; ayarladığın süre sonunda kaybolur. İstersen arkadaş ve ekip mesajlarını ayrı ayrı sesli okur. Birden fazla kopya eklenip her birinde arkadaşlar, ekip ya da seçtiğin kişiler ayrı ayrı gösterilebilir.": "src/overlays/messages/manifest.ts",
  "Yarışlarda": "src/app/pages/GeneralPage.tsx",
  "yarışta": "src/app/components/AdminTopStats.tsx, src/app/pages/AdminPage.tsx",

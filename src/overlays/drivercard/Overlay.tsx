@@ -31,7 +31,25 @@ export default function DriverCard(props: OverlayProps) {
   }, 1000);
   onCleanup(() => clearInterval(timer));
 
-  const real = createMemo(() => standings()?.rows.find((r) => r.isMe));
+  // Kartın aracı: kendi aracını sürerken sen; tekrar izlerken, izleyiciyken ya da araçta takım arkadaşın varken
+  // kameranın izlediği araç (o yoksa kendi aracın)
+  const watching = () => {
+    const s = status();
+    return !!s && (!!s.replay || !!s.replayWatch || (s.driver === false && !s.demo));
+  };
+  const real = createMemo(() => {
+    const st = standings();
+    const rows = st?.rows ?? [];
+    const cam = st?.camIdx ?? -1;
+    if (watching() && cam >= 0) {
+      const r = rows.find((x) => x.idx === cam);
+      if (r) return r;
+    }
+    return rows.find((r) => r.isMe);
+  });
+  /** Kartta sen mi varsın (özel ad / takım / ikinci satır yazısı ve oyuncu bilgileri yalnızca o zaman kullanılır).
+   *  Takım yarışında araçta takım arkadaşın varken kendi aracın görünse de kartta onun adı yazar. */
+  const own = () => !real() || (real()!.isMe && status()?.driver !== false);
   const useSample = () => !real() && (props.editing || !onScreen());
   const me = createMemo<Row | undefined>(() => real() ?? (useSample() ? SAMPLE : undefined));
 
@@ -40,14 +58,14 @@ export default function DriverCard(props: OverlayProps) {
 
   const name = () => {
     const custom = String(o().nameText ?? "").trim();
-    if (custom) return custom;
-    const n = me()?.name || status()?.userName || "";
+    if (custom && own()) return custom;
+    const n = me()?.name || (own() ? status()?.userName : "") || "";
     return formatName(n, o().nameFormat as string);
   };
-  const team = () => String(o().teamText ?? "").trim() || (useSample() ? "SRTR Racing" : status()?.teamName || "");
-  const car = () => me()?.carName || status()?.carName || "";
-  const cls = () => me()?.className || status()?.className || "";
-  const line2 = () => String(o().line2 ?? "").trim();
+  const team = () => (own() ? String(o().teamText ?? "").trim() || (useSample() ? "SRTR Racing" : status()?.teamName || "") : "");
+  const car = () => me()?.carName || (own() ? status()?.carName : "") || "";
+  const cls = () => me()?.className || (own() ? status()?.className : "") || "";
+  const line2 = () => (own() ? String(o().line2 ?? "").trim() : "");
   const accent = () => (o().classColor !== false ? me()?.classColor || "var(--ov-accent)" : (o().accent as string) || "var(--ov-accent)");
 
   const visible = createMemo(() => {

@@ -29,6 +29,7 @@ const TYPE_LABEL: Record<string, string> = { user: "Kendi setup'ım", iracing: "
 // ne zaman yandığı bilinmez: yarış başlamış sayılır ve gizli kalır.
 export default function SetupName(props: OverlayProps) {
   const ses = useTopic("session");
+  const status = useTopic("status");
   const o = () => props.options;
   const design = () => (DESIGNS.includes(String(o().design)) ? String(o().design) : "card");
   const raw = () => String(ses()?.setupName ?? "");
@@ -64,7 +65,8 @@ export default function SetupName(props: OverlayProps) {
   const tick = window.setInterval(() => setNow(Date.now()), 1000);
   onCleanup(() => clearInterval(tick));
   const hidden = () => {
-    if (props.editing || !o().hideAfterStart) return false;
+    // Demo / önizlemede yarış hep sürüyor: kendiliğinden gizleme uygulanmaz, overlay denenirken görünsün
+    if (props.editing || !o().hideAfterStart || status()?.demo || status()?.preview) return false;
     const g = greenAt();
     if (g === 0) return false;
     if (g < 0) return true;
@@ -74,8 +76,8 @@ export default function SetupName(props: OverlayProps) {
   const custom = () => !!o().customColors;
   const style = () => {
     const st: Record<string, string> = {
-      "font-size": `${clamp(num(o().fontSize, 16), 10, 40)}px`,
-      "max-width": `${clamp(num(o().maxWidth, 360), 120, 900)}px`,
+      "font-size": `${clamp(num(o().fontSize, 22), 10, 48)}px`,
+      "max-width": `${clamp(num(o().maxWidth, 420), 120, 900)}px`,
       "--sn-accent": custom() ? hex(o().accentColor, "#ff8a2a") : "var(--ov-accent)",
     };
     if (custom()) {

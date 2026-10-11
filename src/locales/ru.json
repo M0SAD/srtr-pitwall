@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "Порог расстояния",
   "Uzaktaki araçlar şeffaflaşsın": "Дальние машины бледнеют",
   "Yarış başladıktan sonra gizle": "Скрывать после старта гонки",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "Исчезает через заданное время после зелёного флага; виден в практике, квалификации и до старта.",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Если доля высокая, стоит увеличить силу FFB (Max Force): при срезании руль теряет детали.",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Рамка по длине названия, но не шире этого значения. Более длинное название уменьшается, чтобы поместиться; очень длинное переносится на две строки. Название никогда не обрезается."
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Рамка по длине названия, но не шире этого значения. Более длинное название уменьшается, чтобы поместиться; очень длинное переносится на две строки. Название никогда не обрезается.",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Исчезает через заданное время после зелёного флага; виден в практике, квалификации и до старта. В демо-режиме не скрывается."
 }

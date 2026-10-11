@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "Limite de distância",
   "Uzaktaki araçlar şeffaflaşsın": "Esbater carros distantes",
   "Yarış başladıktan sonra gizle": "Ocultar depois da partida",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "Desaparece o tempo definido após a bandeira verde; visível nos treinos, na qualificação e antes da partida.",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Se estiver alta, pondera aumentar a força do FFB (Max Force); a saturar, o volante perde detalhe.",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "A caixa tem o tamanho do nome, até esta largura. Um nome mais longo é reduzido para caber; se for muito longo, passa para duas linhas. O nome nunca é cortado."
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "A caixa tem o tamanho do nome, até esta largura. Um nome mais longo é reduzido para caber; se for muito longo, passa para duas linhas. O nome nunca é cortado.",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Desaparece o tempo definido após a bandeira verde; visível nos treinos, na qualificação e antes da partida. Não é ocultado no modo Demo."
 }

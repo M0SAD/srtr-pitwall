@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "Abstandsgrenze",
   "Uzaktaki araçlar şeffaflaşsın": "Weit entfernte Autos verblassen",
   "Yarış başladıktan sonra gizle": "Nach dem Rennstart ausblenden",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "Verschwindet die eingestellte Zeit nach der grünen Flagge; im Training, Qualifying und vor dem Rennstart sichtbar.",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Ist er hoch, erhöhe ggf. deine FFB-Stärke (Max Force); beim Clipping verliert das Lenkrad an Details.",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Die Box ist so lang wie der Name, höchstens diese Breite. Ein längerer Name wird verkleinert, bis er passt; ist er sehr lang, bricht er in zwei Zeilen um. Der Name wird nie abgeschnitten."
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Die Box ist so lang wie der Name, höchstens diese Breite. Ein längerer Name wird verkleinert, bis er passt; ist er sehr lang, bricht er in zwei Zeilen um. Der Name wird nie abgeschnitten.",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Verschwindet die eingestellte Zeit nach der grünen Flagge; im Training, Qualifying und vor dem Rennstart sichtbar. Im Demo-Modus wird es nicht ausgeblendet."
 }

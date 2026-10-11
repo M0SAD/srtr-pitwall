@@ -7137,7 +7137,7 @@
   "Uzaklık sınırı": "Afstandsgrens",
   "Uzaktaki araçlar şeffaflaşsın": "Verre auto's laten vervagen",
   "Yarış başladıktan sonra gizle": "Verbergen na de racestart",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.": "Verdwijnt de ingestelde tijd na de groene vlag; zichtbaar in training, kwalificatie en vóór de start.",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Is het hoog, overweeg dan je FFB-sterkte (Max Force) te verhogen; tijdens clipping verliest het stuur detail.",
-  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Het vak is zo lang als de naam, tot deze breedte. Een langere naam wordt verkleind tot hij past; is hij erg lang, dan loopt hij over twee regels. De naam wordt nooit afgekapt."
+  "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Het vak is zo lang als de naam, tot deze breedte. Een langere naam wordt verkleind tot hij past; is hij erg lang, dan loopt hij over twee regels. De naam wordt nooit afgekapt.",
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Verdwijnt de ingestelde tijd na de groene vlag; zichtbaar in training, kwalificatie en vóór de start. In de demomodus wordt hij niet verborgen."
 }

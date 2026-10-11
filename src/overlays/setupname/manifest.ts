@@ -8,8 +8,13 @@ export default defineOverlay({
   description:
     "Araçta yüklü setup dosyasının adını gösterir; garajda değiştirilip kaydedilmediyse işaretler. İsteğe bağlı olarak yarış başladıktan sonra kendiliğinden gizlenir. Üç tasarım.",
   category: "info",
-  topics: [{ name: "session", hz: 1 }],
-  size: { w: 300, h: 60 },
+  topics: [
+    { name: "session", hz: 1 },
+    { name: "status", hz: 1 },
+  ],
+  size: { w: 340, h: 70 },
+  // Kenardan sürükleyince en fazla genişlik değişir (köşeler ölçeği değiştirir)
+  resize: { w: "maxWidth", wMin: true },
   defaultPosition: { x: 40, y: 980 },
   defaultEnabled: false,
   multiInstance: true,
@@ -25,8 +30,8 @@ export default defineOverlay({
         { value: "minimal", label: "Yalnızca yazı" },
       ],
     },
-    { key: "fontSize", label: "Yazı boyutu", type: "number", default: 16, min: 10, max: 40, step: 1, unit: "px" },
-    { key: "maxWidth", label: "En fazla genişlik", type: "number", default: 320, min: 120, max: 900, step: 10, unit: "px", hint: "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez." },
+    { key: "fontSize", label: "Yazı boyutu", type: "number", default: 22, min: 10, max: 48, step: 1, unit: "px" },
+    { key: "maxWidth", label: "En fazla genişlik", type: "number", default: 420, min: 120, max: 900, step: 10, unit: "px", hint: "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez." },
     { key: "showLabel", label: "Başlığı göster", type: "boolean", default: true },
     { key: "label", label: "Başlık", type: "text", default: "SETUP", showIf: { key: "showLabel", is: [true] } },
     { key: "showFolder", label: "Klasör adını göster", type: "boolean", default: false, hint: "Setup bir alt klasördeyse (ör. \"garage61\\yaris.sto\") klasörü de yazar." },
@@ -38,7 +43,7 @@ export default defineOverlay({
       label: "Yarış başladıktan sonra gizle",
       type: "boolean",
       default: false,
-      hint: "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür.",
+      hint: "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.",
     },
     { key: "hideDelay", label: "Gizleme süresi", type: "number", default: 30, min: 0, max: 600, step: 5, unit: "sn", showIf: { key: "hideAfterStart", is: [true] } },
 
