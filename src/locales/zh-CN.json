@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "比赛开始后隐藏",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "若比例较高，可考虑提高 FFB 力度（Max Force）；削波时方向盘会丢失细节。",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "框的长度随名称而定，不超过此宽度。较长的名称会缩小字号以完全显示；特别长时换成两行。名称不会被截断。",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "在绿旗后设定的时间消失；练习、排位和起跑前可见。演示模式下不会隐藏。"
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "在绿旗后设定的时间消失；练习、排位和起跑前可见。演示模式下不会隐藏。",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "方向盘",
+  "Direksiyon gücünü göster (Wheel Force)": "显示方向盘力度（Wheel Force）",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "FFB 力度和 Nm（如 5.5 (61.4 Nm)）",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "你在 iRacing 设置中为方向盘填写的峰值扭矩（Nm）。",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "与 iRacing 快速设置相同：FFB 力度，括号内为 Max Force（Nm）。方向盘力度未知时只显示 Nm。",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "仅 FFB 力度（如 5.5）",
+  "Yalnızca Nm (ör. 61.4 Nm)": "仅 Nm（如 61.4 Nm）",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "赛道上没有其他车辆时不绘制中线。关闭时，只有在有车辆要显示时才绘制。开启“显示我的行”时，用你的行代替中线。"
 }

@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 111026-300
+
+- FFB Gücü: iRacing'in Quick Settings'teki gibi FFB gücü sayısı da gösteriliyor, ör. "5.5 (61.4 Nm)". Yeni ayar "Gösterilecek değer": ikisi (varsayılan) / yalnızca güç sayısı / yalnızca Nm. Güç sayısı = 100 × direksiyon gücü (Wheel Force, SteeringWheelPeakForceNm) / Max Force (Nm); direksiyon gücü bilinmiyorsa yalnızca Nm. "Aracın tepe torku" seçeneği aslında direksiyon gücünü (Wheel Force) gösterdiği için adı düzeltildi.
+- Yakın Takip: sunucuda / pistte başka araç yokken ortadaki çizgi çizilmiyor.
+
 ## 111026-299
 
 - Setup Adı: demo modunda "Yarış başladıktan sonra gizle" uygulanmıyor (demo yarışı hep sürdüğü için overlay hiç görünmüyordu). Varsayılan yazı boyutu 22 px, en fazla genişlik 420 px (eskiden 16 / 320; mevcut kopyada "Sıfırla" ile yeni varsayılanlar gelir). Kenardan sürükleyince en fazla genişlik değişir.

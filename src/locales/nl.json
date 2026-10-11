@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Verbergen na de racestart",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Is het hoog, overweeg dan je FFB-sterkte (Max Force) te verhogen; tijdens clipping verliest het stuur detail.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Het vak is zo lang als de naam, tot deze breedte. Een langere naam wordt verkleind tot hij past; is hij erg lang, dan loopt hij over twee regels. De naam wordt nooit afgekapt.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Verdwijnt de ingestelde tijd na de groene vlag; zichtbaar in training, kwalificatie en vóór de start. In de demomodus wordt hij niet verborgen."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Verdwijnt de ingestelde tijd na de groene vlag; zichtbaar in training, kwalificatie en vóór de start. In de demomodus wordt hij niet verborgen.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "STUUR",
+  "Direksiyon gücünü göster (Wheel Force)": "Stuurkracht tonen (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "FFB-sterkte en Nm (bijv. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "Het piekkoppel dat je in de iRacing-instellingen voor je stuur hebt ingevuld (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Zoals in de Quick Settings van iRacing: de FFB-sterkte met Max Force (Nm) tussen haakjes. Is de stuurkracht onbekend, dan staat er alleen Nm.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Alleen FFB-sterkte (bijv. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Alleen Nm (bijv. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Zonder andere auto's op de baan wordt de lijn nooit getekend. Uit: alleen getekend als er een auto te tonen is. Met \"Mijn rij tonen\" verschijnt je rij in plaats van de lijn."
 }

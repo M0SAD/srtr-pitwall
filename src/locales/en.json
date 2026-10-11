@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Hide after the race starts",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "If it is high, consider raising your FFB strength (Max Force); the wheel loses detail while clipping.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "The box is as long as the name, up to this width. A longer name is shrunk to fit; if it is very long it wraps to two lines. The name is never cut off.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Leaves the screen the set time after the green flag; visible in practice, qualifying and before the race starts. Not hidden in Demo mode."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Leaves the screen the set time after the green flag; visible in practice, qualifying and before the race starts. Not hidden in Demo mode.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "WHEEL",
+  "Direksiyon gücünü göster (Wheel Force)": "Show wheel force",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "FFB strength and Nm (e.g. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "The peak torque entered for your wheel in the iRacing settings (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Like iRacing's Quick Settings: the FFB strength number with Max Force (Nm) in brackets. If the wheel force is unknown, only Nm is shown.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "FFB strength only (e.g. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Nm only (e.g. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "The line is never drawn when there are no other cars on track. When off, the line is only drawn while there is a car to show. With \"Show my row\" on, your row is shown instead of the line."
 }

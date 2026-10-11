@@ -727,14 +727,15 @@ impl Demo {
         let gear_lo = (f.gear - 1) as f32 * 76.0 / 5.0;
         f.rpm = 4200.0 + ((f.speed - gear_lo) / (76.0 / 5.0)).clamp(0.0, 1.0) * 4600.0;
         f.steer = ((pct * std::f32::consts::TAU * 4.0).sin()) * 0.9 * (1.0 - sf * 0.8);
-        // Demo FFB: 18 Nm ayar; tork direksiyon ve hızla artar, sert virajlarda kısa süre sınıra (clipping) dayanır
+        // Demo FFB: tork direksiyon ve hızla artar, sert virajlarda kısa süre sınıra (clipping) dayanır
         {
             let v = (f.speed / 76.0).clamp(0.0, 1.0);
             let pct = if player_in_pit { 0.04 } else { ((f.steer.abs() / 0.9) * (0.45 + 0.75 * v) + 0.08).min(1.0) };
-            f.ffb_max_nm = 18.0;
-            f.ffb_peak_nm = 26.5;
+            // iRacing'deki "5.5 (61.4)": Max Force 61.4 Nm, direksiyon gücü (Wheel Force) 3.38 Nm → güç 5.5
+            f.ffb_max_nm = 61.4;
+            f.ffb_peak_nm = 3.38;
             f.ffb_pct = pct;
-            f.ffb_torque_nm = pct * 18.0 * f.steer.signum();
+            f.ffb_torque_nm = pct * 61.4 * f.steer.signum();
         }
         // Demo ivmeleri (g): gaz/fren ve direksiyondan türetilir, önceki kareyle yumuşatılır
         {

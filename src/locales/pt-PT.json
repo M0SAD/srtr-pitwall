@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Ocultar depois da partida",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Se estiver alta, pondera aumentar a força do FFB (Max Force); a saturar, o volante perde detalhe.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "A caixa tem o tamanho do nome, até esta largura. Um nome mais longo é reduzido para caber; se for muito longo, passa para duas linhas. O nome nunca é cortado.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Desaparece o tempo definido após a bandeira verde; visível nos treinos, na qualificação e antes da partida. Não é ocultado no modo Demo."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Desaparece o tempo definido após a bandeira verde; visível nos treinos, na qualificação e antes da partida. Não é ocultado no modo Demo.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "VOLANTE",
+  "Direksiyon gücünü göster (Wheel Force)": "Mostrar a força do volante (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "Força do FFB e Nm (ex.: 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "O binário máximo indicado para o teu volante nas definições do iRacing (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Como nas Quick Settings do iRacing: a força do FFB com Max Force (Nm) entre parênteses. Se a força do volante for desconhecida, só é mostrado Nm.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Só força do FFB (ex.: 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Só Nm (ex.: 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "A linha nunca é desenhada se não houver outros carros em pista. Desligado: só é desenhada quando há um carro para mostrar. Com \"Mostrar a minha linha\", a tua linha aparece no lugar."
 }

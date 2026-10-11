@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Nascondi dopo la partenza della gara",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Se è alta, valuta di aumentare la forza FFB (Max Force); in clipping il volante perde dettagli.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Il riquadro è lungo quanto il nome, fino a questa larghezza. Un nome più lungo viene rimpicciolito per starci; se è molto lungo va su due righe. Il nome non viene mai tagliato.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Sparisce dopo il tempo impostato dalla bandiera verde; visibile in prove, qualifiche e prima della partenza. In modalità Demo non viene nascosto."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Sparisce dopo il tempo impostato dalla bandiera verde; visibile in prove, qualifiche e prima della partenza. In modalità Demo non viene nascosto.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "VOLANTE",
+  "Direksiyon gücünü göster (Wheel Force)": "Mostra la forza del volante (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "Forza FFB e Nm (es. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "La coppia massima inserita per il tuo volante nelle impostazioni di iRacing (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Come nelle Quick Settings di iRacing: la forza FFB con Max Force (Nm) tra parentesi. Se la forza del volante non è nota, compare solo Nm.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Solo forza FFB (es. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Solo Nm (es. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "La linea non viene mai disegnata se in pista non ci sono altre auto. Se disattivato, viene disegnata solo se c'è un'auto da mostrare. Con «Mostra la mia riga» compare la tua riga al posto della linea."
 }

@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "レース開始後に隠す",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "高い場合は FFB 強度(Max Force)を上げることを検討してください。クリッピング中はハンドルの情報が失われます。",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "ボックスは名前の長さに合わせ、この幅を超えません。長い名前は文字を縮小して収め、非常に長い場合は 2 行に折り返します。名前が切れることはありません。",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "グリーンフラッグから設定時間後に消えます。練習・予選・スタート前は表示されます。デモモードでは隠れません。"
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "グリーンフラッグから設定時間後に消えます。練習・予選・スタート前は表示されます。デモモードでは隠れません。",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "ハンドル",
+  "Direksiyon gücünü göster (Wheel Force)": "ハンドルの力を表示(Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "FFB 強度と Nm(例:5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "iRacing の設定でハンドル用に入力した最大トルク(Nm)。",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "iRacing のクイック設定と同じく、FFB 強度とかっこ内に Max Force(Nm)を表示。ハンドルの力が不明なら Nm のみ。",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "FFB 強度のみ(例:5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Nm のみ(例:61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "コース上に他の車がいないときは線を描きません。オフのときは表示する車がいる間だけ描きます。「自分の行を表示」がオンなら線の代わりに自分の行が出ます。"
 }

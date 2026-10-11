@@ -47,6 +47,12 @@
   letter-spacing: 0.06em;
 }
 
+.ffb-val small.ffb-nm {
+  margin-left: 0.35em;
+  font-size: 0.42em;
+  letter-spacing: 0;
+}
+
 .ffb-none .ffb-val {
   color: var(--ov-dim);
 }

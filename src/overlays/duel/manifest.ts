@@ -75,7 +75,7 @@ export default defineOverlay({
     },
     { key: "farLimit", label: "Uzaklık sınırı", type: "number", default: 30, min: 2, max: 120, step: 1, unit: "sn", showIf: { key: "farHide", is: [true] } },
     { key: "farFade", label: "Uzaktaki araçlar şeffaflaşsın", type: "boolean", default: true, hint: "Araç uzaklaştıkça satırı silikleşir (30 sn'de en silik hâline gelir; \"Araçlar uzaktayken gizle\" açıksa onun sınırında)." },
-    { key: "centerLine", label: "Ortadaki çizgiyi hep göster", type: "boolean", default: true, hint: "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür." },
+    { key: "centerLine", label: "Ortadaki çizgiyi hep göster", type: "boolean", default: true, hint: "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür." },
     { key: "sameClass", label: "Sadece kendi sınıfım", type: "boolean", default: false },
     { key: "raceOnly", label: "Sadece yarış oturumunda göster", type: "boolean", default: false },
     { key: "showMe", label: "Kendi satırımı göster", type: "boolean", default: false },

@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Ukryj po starcie wyścigu",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Jeśli jest wysoki, rozważ zwiększenie siły FFB (Max Force); podczas przycinania kierownica traci szczegóły.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Pole ma długość nazwy, najwyżej tę szerokość. Dłuższa nazwa jest zmniejszana, by się zmieściła; bardzo długa przechodzi do dwóch wierszy. Nazwa nigdy nie jest ucinana.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Znika po ustawionym czasie od zielonej flagi; widoczna w treningu, kwalifikacjach i przed startem. W trybie demo nie jest ukrywana."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Znika po ustawionym czasie od zielonej flagi; widoczna w treningu, kwalifikacjach i przed startem. W trybie demo nie jest ukrywana.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "KIEROWNICA",
+  "Direksiyon gücünü göster (Wheel Force)": "Pokaż siłę kierownicy (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "Siła FFB i Nm (np. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "Szczytowy moment wpisany dla twojej kierownicy w ustawieniach iRacing (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Jak w Quick Settings iRacing: siła FFB z Max Force (Nm) w nawiasie. Jeśli siła kierownicy jest nieznana, pokazywane jest tylko Nm.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Tylko siła FFB (np. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Tylko Nm (np. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Gdy na torze nie ma innych aut, linia nie jest rysowana. Wyłączone: rysowana tylko, gdy jest auto do pokazania. Z „Pokaż mój wiersz” zamiast linii widać twój wiersz."
 }

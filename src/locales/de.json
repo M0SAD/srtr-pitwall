@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Nach dem Rennstart ausblenden",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Ist er hoch, erhöhe ggf. deine FFB-Stärke (Max Force); beim Clipping verliert das Lenkrad an Details.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Die Box ist so lang wie der Name, höchstens diese Breite. Ein längerer Name wird verkleinert, bis er passt; ist er sehr lang, bricht er in zwei Zeilen um. Der Name wird nie abgeschnitten.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Verschwindet die eingestellte Zeit nach der grünen Flagge; im Training, Qualifying und vor dem Rennstart sichtbar. Im Demo-Modus wird es nicht ausgeblendet."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Verschwindet die eingestellte Zeit nach der grünen Flagge; im Training, Qualifying und vor dem Rennstart sichtbar. Im Demo-Modus wird es nicht ausgeblendet.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "LENKRAD",
+  "Direksiyon gücünü göster (Wheel Force)": "Lenkradkraft anzeigen (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "FFB-Stärke und Nm (z. B. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "Das für dein Lenkrad in den iRacing-Einstellungen eingetragene Spitzendrehmoment (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Wie in den Quick Settings von iRacing: die FFB-Stärke mit Max Force (Nm) in Klammern. Ist die Lenkradkraft unbekannt, wird nur Nm angezeigt.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Nur FFB-Stärke (z. B. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Nur Nm (z. B. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Ohne andere Autos auf der Strecke wird die Linie nie gezeichnet. Wenn aus, wird sie nur gezeichnet, solange ein Auto angezeigt wird. Mit „Meine Zeile anzeigen“ erscheint statt der Linie deine Zeile."
 }

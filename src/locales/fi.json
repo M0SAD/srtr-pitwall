@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Piilota kilpailun alettua",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "Jos se on suuri, harkitse FFB-voiman (Max Force) nostamista; leikkautuessa ratti menettää yksityiskohtia.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "Laatikko on nimen mittainen, enintään tämän levyinen. Pidempi nimi pienennetään mahtumaan; hyvin pitkä nimi jaetaan kahdelle riville. Nimeä ei koskaan katkaista.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Poistuu asetetun ajan kuluttua vihreästä lipusta; näkyy harjoituksissa, aika-ajossa ja ennen lähtöä. Demotilassa sitä ei piiloteta."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Poistuu asetetun ajan kuluttua vihreästä lipusta; näkyy harjoituksissa, aika-ajossa ja ennen lähtöä. Demotilassa sitä ei piiloteta.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "RATTI",
+  "Direksiyon gücünü göster (Wheel Force)": "Näytä rattivoima (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "FFB-voima ja Nm (esim. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "Rattisi huippuvääntö, joka on syötetty iRacingin asetuksiin (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Kuten iRacingin Quick Settingsissä: FFB-voima ja suluissa Max Force (Nm). Jos rattivoimaa ei tiedetä, näytetään vain Nm.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Vain FFB-voima (esim. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Vain Nm (esim. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Viivaa ei piirretä lainkaan, jos radalla ei ole muita autoja. Pois päältä: piirretään vain, kun näytettävä auto on. \"Näytä oma rivini\" -asetuksella näkyy rivisi viivan sijaan."
 }

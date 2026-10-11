@@ -7139,5 +7139,15 @@
   "Yarış başladıktan sonra gizle": "Masquer après le départ de la course",
   "Yüksekse FFB gücünü (Max Force) artırmayı düşünebilirsin; sınırda kalan anlarda direksiyon ayrıntı vermez.": "S'il est élevé, pense à augmenter ta force FFB (Max Force) ; le volant perd des détails en saturation.",
   "Kutu adın boyu kadardır, bu genişliği geçmez. Daha uzun adın yazısı küçülerek kutuya sığar; çok uzunsa iki satıra iner, ad hiç kesilmez.": "La boîte fait la longueur du nom, au plus cette largeur. Un nom plus long est réduit pour tenir ; s'il est très long, il passe sur deux lignes. Le nom n'est jamais coupé.",
-  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Disparaît le temps choisi après le drapeau vert ; visible en essais, qualifications et avant le départ. Non masqué en mode Démo."
+  "Yarışın yeşil bayrağından belirtilen süre sonra ekrandan kalkar; antrenman ve sıralamada, ve yarış başlamadan önce görünür. Demo modunda gizlenmez.": "Disparaît le temps choisi après le drapeau vert ; visible en essais, qualifications et avant le départ. Non masqué en mode Démo.",
+  "{0} Nm": "{0} Nm",
+  "DİREKSİYON": "VOLANT",
+  "Direksiyon gücünü göster (Wheel Force)": "Afficher la force du volant (Wheel Force)",
+  "FFB gücü ve Nm (ör. 5.5 (61.4 Nm))": "Force FFB et Nm (ex. 5.5 (61.4 Nm))",
+  "iRacing ayarlarında direksiyonun için girilen en yüksek tork (Nm).": "Le couple max saisi pour ton volant dans les réglages d'iRacing (Nm).",
+  "iRacing'in Quick Settings ekranındaki gibi: FFB gücü sayısı ve parantez içinde Max Force (Nm). Güç sayısı direksiyon gücü (Wheel Force) bilinmiyorsa yalnızca Nm yazar.": "Comme dans les Quick Settings d'iRacing : la force FFB avec Max Force (Nm) entre parenthèses. Si la force du volant est inconnue, seul le Nm est affiché.",
+  "Nm)": "Nm)",
+  "Yalnızca FFB gücü (ör. 5.5)": "Force FFB seule (ex. 5.5)",
+  "Yalnızca Nm (ör. 61.4 Nm)": "Nm seul (ex. 61.4 Nm)",
+  "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "La ligne n'est jamais tracée s'il n'y a pas d'autre voiture en piste. Désactivé : elle n'est tracée que s'il y a une voiture à afficher. Avec « Afficher ma ligne », ta ligne remplace le trait."
 }

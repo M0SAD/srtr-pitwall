@@ -315,8 +315,9 @@ export default function Duel(props: OverlayProps) {
                 </div>
               )}
             </For>
-            {/* Ortadaki çizgi: "Ortadaki çizgiyi hep göster" (varsayılan açık) kapalıyken yalnızca gösterilecek bir araç varken */}
-            <Show when={o().showMe === true} fallback={<Show when={props.editing || anyoneShown() || o().centerLine !== false}><div class="duel-line" /></Show>}>
+            {/* Ortadaki çizgi: "Ortadaki çizgiyi hep göster" (varsayılan açık) kapalıyken yalnızca gösterilecek bir araç varken;
+                açıkken de sunucuda / pistte başka araç yokken çizilmez */}
+            <Show when={o().showMe === true} fallback={<Show when={props.editing || anyoneShown() || (o().centerLine !== false && layout().list.length > 0)}><div class="duel-line" /></Show>}>
               <div class="duel-row me" style={{ height: `${meH().toFixed(0)}px`, "margin-top": `${(-meH() / 2).toFixed(0)}px` }}>
                 {content(me()!, true)}
               </div>

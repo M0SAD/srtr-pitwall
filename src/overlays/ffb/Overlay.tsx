@@ -33,6 +33,28 @@ export default function Ffb(props: OverlayProps) {
   const peak = () => num(d()?.ffbPeakNm, -1);
   const decimals = () => (num(o().decimals, 1) >= 1 ? 1 : 0);
   const value = () => (known() ? maxNm().toFixed(decimals()) : "—");
+  /** iRacing'deki FFB gücü sayısı (Quick Settings'te "5.5 (61.4)" yazan ilk sayı): direksiyon gücünün (Wheel Force,
+   *  SteeringWheelPeakForceNm) FFB gücüne (Max Force, Nm) oranının yüzdesi. Bilinmiyorsa -1. */
+  const strength = () => {
+    const p = peak();
+    return known() && p > 0 ? (100 * p) / maxNm() : -1;
+  };
+  /** Gösterim: "both" güç sayısı + (Nm), "strength" yalnız güç sayısı, "nm" yalnız Nm. Güç sayısı bilinmiyorsa Nm. */
+  const mode = () => {
+    const m = String(o().valueMode ?? "both");
+    if (m === "nm" || strength() < 0) return "nm";
+    return m === "strength" ? "strength" : "both";
+  };
+  const mainVal = () => (
+    <span class="ffb-val ov-mono">
+      <Show when={mode() !== "nm"} fallback={<>{value()}<small>Nm</small></>}>
+        {strength().toFixed(1)}
+        <Show when={mode() === "both"}>
+          <small class="ffb-nm">({value()} Nm)</small>
+        </Show>
+      </Show>
+    </span>
+  );
 
   // Sınır uyarısı: kısa süre açık kalır; son 30 sn'deki sınırda kalma oranı örneklerden hesaplanır
   const [clipUntil, setClipUntil] = createSignal(0);
@@ -78,7 +100,7 @@ export default function Ffb(props: OverlayProps) {
       </Show>
       <Show when={o().showPeak && peak() > 0}>
         <span class="ffb-stat">
-          <span>TEPE</span> <b>{peak().toFixed(1)}</b> <small>Nm</small>
+          <span>DİREKSİYON</span> <b>{peak().toFixed(1)}</b> <small>Nm</small>
         </span>
       </Show>
     </>
@@ -101,10 +123,7 @@ export default function Ffb(props: OverlayProps) {
             <Show when={o().showLabel !== false}>
               <span class="ffb-cap">FFB</span>
             </Show>
-            <span class="ffb-val ov-mono">
-              {value()}
-              <small>Nm</small>
-            </span>
+            {mainVal()}
           </div>
           {torqueBar()}
           <Show when={o().clipStat || o().showPeak}>
@@ -118,10 +137,7 @@ export default function Ffb(props: OverlayProps) {
           <Show when={o().showLabel !== false}>
             <span class="ffb-cap">FFB</span>
           </Show>
-          <span class="ffb-val ov-mono">
-            {value()}
-            <small>Nm</small>
-          </span>
+          {mainVal()}
           <Show when={o().showTorque !== false} fallback={<span class="ffb-gap" />}>
             <div class="ffb-track ffb-track-wide">
               <i style={{ width: `${(pct() * 100).toFixed(1)}%` }} />
@@ -143,9 +159,10 @@ export default function Ffb(props: OverlayProps) {
             <path class="zone" d="M10 50 A40 40 0 0 1 90 50" stroke-dasharray={`0 ${(ARC * 0.94).toFixed(1)} ${(ARC * 0.06).toFixed(1)} 0`} />
           </svg>
           <div class="ffb-gin">
-            <span class="ffb-val ov-mono">{value()}</span>
+            <span class="ffb-val ov-mono">{mode() === "nm" ? value() : strength().toFixed(1)}</span>
             <span class="ffb-unit">
-              <Show when={o().showLabel !== false}>FFB · </Show>Nm
+              <Show when={o().showLabel !== false}>FFB · </Show>
+              <Show when={mode() !== "strength"}>{mode() === "both" ? `${value()} Nm` : "Nm"}</Show>
             </span>
           </div>
           <Show when={o().clipStat || o().showPeak}>
@@ -159,10 +176,7 @@ export default function Ffb(props: OverlayProps) {
           <Show when={o().showLabel !== false}>
             <span class="ffb-cap">FFB</span>
           </Show>
-          <span class="ffb-val ov-mono">
-            {value()}
-            <small>Nm</small>
-          </span>
+          {mainVal()}
           <Show when={o().showTorque !== false}>
             <span class="ffb-pct ov-mono">{Math.round(pct() * 100)}%</span>
           </Show>
