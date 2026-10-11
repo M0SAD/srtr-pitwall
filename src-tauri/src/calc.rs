@@ -75,6 +75,11 @@ pub struct Inputs {
     /// Son / en iyi tur (sn; yoksa -1)
     pub last_lap: f32,
     pub best_lap: f32,
+    /// FFB (bkz. Frame::ffb_*): ayar (Nm), anlık tork oranı 0..1, anlık tork (Nm), aracın tepe torku (Nm); yoksa -1
+    pub ffb_max_nm: f32,
+    pub ffb_pct: f32,
+    pub ffb_torque_nm: f32,
+    pub ffb_peak_nm: f32,
 }
 
 /// ERS ve batarya overlay'i. Tur başı / tur ortalaması gibi türev değerler arayüzde hesaplanır.
@@ -386,6 +391,10 @@ pub struct Session {
     /// Yanan kırmızı ışık sayısı / toplam (LMU/rF2); toplam 0: sim ışıkları tek tek vermiyor
     pub start_lit: i32,
     pub start_total: i32,
+    /// Yüklü setup adı (iRacing; yoksa boş), değiştirildi mi, yükleme türü
+    pub setup_name: String,
+    pub setup_modified: bool,
+    pub setup_type: String,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -675,6 +684,10 @@ pub fn inputs(f: &Frame, s: &SessionData) -> Inputs {
         long_g: f.long_g,
         last_lap: f.lap_last,
         best_lap: f.lap_best,
+        ffb_max_nm: f.ffb_max_nm,
+        ffb_pct: f.ffb_pct,
+        ffb_torque_nm: f.ffb_torque_nm,
+        ffb_peak_nm: f.ffb_peak_nm,
     }
 }
 
@@ -797,6 +810,8 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         list.push((if i == me { 0.0 } else { dt }, i, lap_rel));
     }
     list.sort_by(|a, b| b.0.total_cmp(&a.0));
+    // Sıra numaraları Sıralama tablosuyla aynı kaynaktan (yarış başında resmi sıra yokken / eskiyken de uyumlu)
+    let pos_of = positions(f, s);
     let me_pos = list.iter().position(|x| x.1 == me).unwrap_or(0);
     let from = me_pos.saturating_sub(n);
     let to = (me_pos + n + 1).min(list.len());
@@ -804,6 +819,13 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         .iter()
         .map(|&(gap, i, lr)| {
             let mut r = base_row(f, s, t, i);
+            let (p, cp) = pos_of[i];
+            if p > 0 {
+                r.pos = p;
+            }
+            if cp > 0 {
+                r.class_pos = cp;
+            }
             r.gap = gap;
             r.lap_rel = lr;
             r.ir_delta = irs[i];
@@ -813,32 +835,107 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
     out
 }
 
+/// Sunucudan çıkmış ama resmi sırası duran sürücü (araç dünyada yok, pct < 0)
+fn left_car(f: &Frame, s: &SessionData, i: usize) -> bool {
+    f.cars[i].pct < 0.0 && f.cars[i].position > 0 && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator)
+}
+
+/// Sıralamaya giren araçlar
+fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
+    (0..MAX_CARS).filter(|&i| active(f, s, i) || left_car(f, s, i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0)).collect()
+}
+
+/// Son sıralama turlarının (Qualify) sonucu: grid sırası (CarIdx listesi). iRacing ResultsPositions sıra düzeninde gelir.
+fn grid_order(s: &SessionData, race_num: i32) -> Vec<usize> {
+    s.sessions
+        .iter()
+        .filter(|e| e.num < race_num && e.kind.contains("Qualify") && e.results.iter().any(|r| r.0 >= 0))
+        .max_by_key(|e| e.num)
+        .map(|e| e.results.iter().filter(|r| r.0 >= 0 && (r.0 as usize) < MAX_CARS).map(|r| r.0 as usize).collect())
+        .unwrap_or_default()
+}
+
+/// Sıralama düzeni (Sıralama tablosu, Yakındakiler ve sesli mühendis aynı sırayı kullanır). Dönen değer: sıra numaraları
+/// iRacing'in resmi sırasından mı (true) yoksa buradaki dizilişten mi (false; numara = dizideki yer) alınacak.
+///
+/// Yarışta lider ilk turunu tamamlayana kadar iRacing'in resmi sırası (CarIdxPosition) güvenilmez: yalnızca araçlar
+/// çizgiyi geçince güncellenir, grid ve start turunda eski / boş kalır. Bu aralıkta:
+/// - yeşil bayraktan önce (araca binme, grid, formasyon turu): sıralama turlarının sonucu (grid sırası);
+/// - start turunda: pistteki konum (önde olan önde).
+fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool {
+    use std::cmp::Ordering;
+    let race = s.is_race(f.session_num);
+    let lap1 = race && f.session_state <= 4 && idxs.iter().all(|&i| f.cars[i].lap_completed <= 0);
+    let official = |i: usize| if f.cars[i].position > 0 { f.cars[i].position } else { 1000 + i as i32 };
+    if lap1 && f.session_state < 4 {
+        let grid = grid_order(s, f.session_num);
+        if !grid.is_empty() {
+            let slot = |i: usize| grid.iter().position(|&g| g == i).map(|p| p as i32).unwrap_or(500 + official(i));
+            idxs.sort_by_key(|&i| slot(i));
+            return false;
+        }
+    }
+    if lap1 && f.session_state >= 4 {
+        let rolling = |i: usize| f.cars[i].pct >= 0.0 && !f.cars[i].on_pit;
+        idxs.sort_by(|&a, &b| match (rolling(a), rolling(b)) {
+            (true, true) => {
+                let da = f.cars[a].lap as f32 + f.cars[a].pct;
+                let db = f.cars[b].lap as f32 + f.cars[b].pct;
+                db.total_cmp(&da)
+            }
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            (false, false) => official(a).cmp(&official(b)),
+        });
+        return false;
+    }
+    if idxs.iter().any(|&i| f.cars[i].position > 0) {
+        idxs.sort_by_key(|&i| official(i));
+        return true;
+    }
+    // Henüz resmi sıralama yok: en iyi tura, o da yoksa pistteki mesafeye göre
+    idxs.sort_by(|&a, &b| {
+        let ka = if f.cars[a].best > 0.0 { f.cars[a].best } else { 1e6 - (f.cars[a].lap as f32 + f.cars[a].pct) };
+        let kb = if f.cars[b].best > 0.0 { f.cars[b].best } else { 1e6 - (f.cars[b].lap as f32 + f.cars[b].pct) };
+        ka.total_cmp(&kb)
+    });
+    false
+}
+
+/// Her aracın (genel sıra, sınıf sırası); sıralamada olmayan araç (0, 0). Sıralama tablosuyla birebir aynı.
+pub fn positions(f: &Frame, s: &SessionData) -> [(i32, i32); MAX_CARS] {
+    let mut idxs = field_idxs(f, s);
+    let has_pos = sort_field(f, s, &mut idxs);
+    let mut out = [(0, 0); MAX_CARS];
+    let mut seen: Vec<(i32, i32)> = Vec::new();
+    for (n, &i) in idxs.iter().enumerate() {
+        let cid = s.driver(i).map(|d| d.class_id).unwrap_or(0);
+        let nth = match seen.iter_mut().find(|x| x.0 == cid) {
+            Some(x) => {
+                x.1 += 1;
+                x.1
+            }
+            None => {
+                seen.push((cid, 1));
+                1
+            }
+        };
+        let c = f.cars[i];
+        let pos = if has_pos { c.position } else { n as i32 + 1 };
+        let cpos = if !has_pos || c.class_position <= 0 { nth } else { c.class_position };
+        out[i] = (pos, cpos);
+    }
+    out
+}
+
 pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
     let race = s.is_race(f.session_num);
     let entry = s.session(f.session_num);
     // Sunucudan çıkan sürücüler de listede kalır: araç dünyada yoktur (pct < 0) ama resmi sırası durur. Yoksa yarışı
     // bitirip çıkanlar tablodan düşer, podyum da "o an sunucuda kim varsa" ona göre dizilirdi.
-    let left = |i: usize| f.cars[i].pct < 0.0 && f.cars[i].position > 0 && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator);
-    let mut idxs: Vec<usize> =
-        (0..MAX_CARS).filter(|&i| active(f, s, i) || left(i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0)).collect();
-    let has_pos = idxs.iter().any(|&i| f.cars[i].position > 0);
-    if has_pos {
-        idxs.sort_by_key(|&i| {
-            let p = f.cars[i].position;
-            if p > 0 {
-                p
-            } else {
-                1000 + i as i32
-            }
-        });
-    } else {
-        // Henüz resmi sıralama yok: en iyi tura, o da yoksa pistteki mesafeye göre
-        idxs.sort_by(|&a, &b| {
-            let ka = if f.cars[a].best > 0.0 { f.cars[a].best } else { 1e6 - (f.cars[a].lap as f32 + f.cars[a].pct) };
-            let kb = if f.cars[b].best > 0.0 { f.cars[b].best } else { 1e6 - (f.cars[b].lap as f32 + f.cars[b].pct) };
-            ka.total_cmp(&kb)
-        });
-    }
+    let left = |i: usize| left_car(f, s, i);
+    let mut idxs = field_idxs(f, s);
+    let has_pos = sort_field(f, s, &mut idxs);
     let irs = ir_map(f, s);
 
     // Sınıf bazında en iyi tur
@@ -1230,6 +1327,9 @@ pub fn session(f: &Frame, s: &SessionData) -> Session {
         start_lights: start_lights(f.session_flags),
         start_lit: f.start_lit as i32,
         start_total: f.start_total as i32,
+        setup_name: s.setup_name.clone(),
+        setup_modified: s.setup_modified,
+        setup_type: s.setup_type.clone(),
     }
 }
 
@@ -1300,6 +1400,47 @@ pub fn race_control(t: &Tracker) -> RaceControl {
 mod tests {
     use super::*;
     use crate::demo::Demo;
+
+    #[test]
+    fn race_start_order_grid_then_track() {
+        use crate::model::{Driver, SessionEntry};
+        let mut s = SessionData { player_idx: 0, ..Default::default() };
+        s.drivers = vec![None; 4];
+        for i in 0..4 {
+            s.drivers[i] = Some(Driver { car_idx: i as i32, class_id: 1, ..Default::default() });
+        }
+        // Sıralama turları: 2, 0, 3, 1
+        s.sessions.push(SessionEntry { num: 1, kind: "Lone Qualify".into(), results: vec![(2, 90.0, 90.0), (0, 91.0, 91.0), (3, 92.0, 92.0), (1, 93.0, 93.0)], ..Default::default() });
+        s.sessions.push(SessionEntry { num: 2, kind: "Race".into(), ..Default::default() });
+        let mut f = Frame { player_idx: 0, session_num: 2, session_state: 3, ..Default::default() };
+        for i in 0..4 {
+            f.cars[i].pct = 0.9 - i as f32 * 0.01;
+            f.cars[i].position = 0;
+        }
+        // Yeşilden önce: grid sırası (sıralama turları sonucu)
+        let p = positions(&f, &s);
+        assert_eq!([p[2].0, p[0].0, p[3].0, p[1].0], [1, 2, 3, 4]);
+        // Start turu: pistteki konum; resmi sıra eski kalsa bile
+        f.session_state = 4;
+        for i in 0..4 {
+            f.cars[i].position = 4 - i as i32;
+            f.cars[i].class_position = 4 - i as i32;
+        }
+        let p = positions(&f, &s);
+        assert_eq!([p[0].1, p[1].1, p[2].1, p[3].1], [1, 2, 3, 4]);
+        // Yakındakiler aynı numaraları gösterir
+        let t = Tracker::default();
+        let rel = relative(&f, &s, &t, 3);
+        for r in &rel.rows {
+            assert_eq!(r.class_pos, p[r.idx as usize].1);
+        }
+        // Lider ilk turunu tamamlayınca resmi sıra
+        for i in 0..4 {
+            f.cars[i].lap_completed = 1;
+        }
+        let p = positions(&f, &s);
+        assert_eq!(p[0].0, 4);
+    }
 
     #[test]
     fn sof_and_ir() {

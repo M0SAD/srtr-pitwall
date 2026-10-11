@@ -1,0 +1,120 @@
+/* Setup Adı: yazı boyutu kökte (font-size), uzun ad --max-width'te kısaltılır */
+.sn {
+  display: inline-block;
+  color: var(--ov-text);
+  line-height: 1.2;
+  transition: opacity 0.6s ease;
+}
+
+.sn.sn-off {
+  opacity: 0;
+}
+
+.sn-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: var(--ov-weight-strong, 700);
+}
+
+/* Küçültmek de yetmezse iki satır (ad kesilmez) */
+.sn-name.sn-wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.sn-empty .sn-name {
+  color: var(--ov-dim);
+}
+
+.sn-cap {
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ov-dim);
+  text-transform: uppercase;
+}
+
+.sn-mod,
+.sn-type {
+  flex: none;
+  padding: 0.1em 0.45em;
+  border-radius: 4px;
+  font-size: 0.68em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sn-mod {
+  color: #15100a;
+  background: var(--ov-yellow);
+}
+
+.sn-type {
+  color: var(--ov-dim);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ov-dim) 60%, transparent);
+}
+
+/* Kart: solda vurgu şeridi */
+.sn-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  padding: 0.45em 0.8em 0.5em 1em;
+  overflow: hidden;
+}
+
+.sn-box::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--sn-accent);
+}
+
+.sn-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+}
+
+/* Tek satır etiket: başlık vurgu renginde bir sekme */
+.sn-pill {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  gap: 0.55em;
+  padding: 0 0.75em 0 0;
+  border-radius: 99px;
+  overflow: hidden;
+  min-height: 1.9em;
+}
+
+.sn-pill .sn-tag {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.7em;
+  font-size: 0.7em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #15100a;
+  background: var(--sn-accent);
+}
+
+.sn-pill .sn-name:first-child {
+  padding-left: 0.85em;
+}
+
+/* Yalnızca yazı */
+.sn-min {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}

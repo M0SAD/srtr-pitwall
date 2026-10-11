@@ -82,6 +82,9 @@ pub struct Ctx<'a> {
     pub multiclass: bool,
     /// Sınıf içi sıra (tek sınıfta genel sıra)
     pub pos: i32,
+    /// Her aracın (genel sıra, sınıf sırası): Sıralama tablosuyla aynı kaynak (calc::positions). iRacing'in resmi
+    /// sırası yarış başında (grid / start turu) eski ya da boş kaldığından mühendis yanlış sıra söylüyordu.
+    pub pos_of: [(i32, i32); MAX_CARS],
     /// Sınıftaki araç sayısı
     pub field: i32,
     pub oval: bool,
@@ -100,12 +103,8 @@ impl<'a> Ctx<'a> {
         let me = f.player_idx.clamp(0, MAX_CARS as i32 - 1) as usize;
         let my_class = s.driver(me).map(|d| d.class_id).unwrap_or(0);
         let multiclass = s.class_count() > 1;
-        let c = f.cars[me];
-        let pos = if c.class_position > 0 {
-            c.class_position
-        } else {
-            c.position
-        };
+        let pos_of = calc::positions(f, s);
+        let pos = if pos_of[me].1 > 0 { pos_of[me].1 } else { pos_of[me].0 };
         let field = (0..MAX_CARS)
             .filter(|&i| {
                 s.driver(i)
@@ -127,6 +126,7 @@ impl<'a> Ctx<'a> {
             my_class,
             multiclass,
             pos,
+            pos_of,
             field,
             oval: s.category.to_lowercase().contains("oval"),
         }
@@ -155,11 +155,8 @@ impl<'a> Ctx<'a> {
         (0..MAX_CARS).find(|&i| {
             i != self.me && self.same_class(i) && {
                 let c = self.f.cars[i];
-                let p = if c.class_position > 0 {
-                    c.class_position
-                } else {
-                    c.position
-                };
+                let (o, cl) = self.pos_of[i];
+                let p = if cl > 0 { cl } else { o };
                 p == pos && (c.pct >= 0.0 || c.position > 0)
             }
         })
@@ -698,6 +695,8 @@ pub struct Eng {
     started: bool,
     start_time: f64,
     start_pos: i32,
+    /// Yeşilden önce (grid / formasyon) son görülen sıra: start sırası budur
+    grid_pos: i32,
     start_reported: bool,
     get_ready_said: bool,
     checkered: Option<i32>,
@@ -725,6 +724,9 @@ pub struct Eng {
     lapped_by: HashMap<usize, i32>,
     /// Pit ziyaretinden sonra sıra / tur farkı özeti bir kez söylenecek
     pos_after_pit: bool,
+    /// Çizgi geçildi: sıra duyurusu bekliyor (iRacing sırayı çizgiden biraz sonra günceller; hemen söylenince bir önceki
+    /// turun sırası okunuyordu)
+    pos_cross_at: Option<Instant>,
     // turlar
     cur_dirty: bool,
     cur_in: bool,
@@ -830,6 +832,7 @@ impl Default for Eng {
             started: false,
             start_time: 0.0,
             start_pos: 0,
+            grid_pos: 0,
             start_reported: false,
             get_ready_said: false,
             checkered: None,
@@ -854,6 +857,7 @@ impl Default for Eng {
             lapping_said: 0,
             lapped_by: HashMap::new(),
             pos_after_pit: false,
+            pos_cross_at: None,
             cur_dirty: true,
             cur_in: false,
             cur_out: false,
@@ -1402,11 +1406,14 @@ impl Eng {
             out.push(Msg::new("race", prio::HIGH, vec![k("lap_counter/get_ready")]).ttl(5.0));
         }
 
+        if !self.started && st < 4 && pos > 0 {
+            self.grid_pos = pos;
+        }
         // Yeşil
         if !self.started && st == 4 {
             self.started = true;
             self.start_time = f.session_time;
-            self.start_pos = pos;
+            self.start_pos = if self.grid_pos > 0 { self.grid_pos } else { pos };
             self.announced_pos = pos;
             self.last_pos = pos;
             if f.lap_completed <= 1
@@ -1719,10 +1726,21 @@ impl Eng {
     fn position(&mut self, c: &Ctx, crossed: bool, out: &mut Vec<Msg>) {
         let f = c.f;
         let pos = c.pos;
+        let now = c.now;
+        if crossed {
+            self.pos_cross_at = Some(now);
+        }
+        // Çizgi geçişindeki duyuru 1,5 sn sonra, güncellenmiş sırayla yapılır (tur süresi duyurusu gibi)
+        let crossed = match self.pos_cross_at {
+            Some(a) if now.duration_since(a) >= Duration::from_millis(1500) => {
+                self.pos_cross_at = None;
+                true
+            }
+            _ => false,
+        };
         if !self.started || self.finished || pos <= 0 {
             return;
         }
-        let now = c.now;
         // Pitteyken sıra / tur farkı söylenmez; pistte hıza dönünce tek özet
         let off = self.traffic_off(f, now);
         // Anlık geçiş: sıra bir değişti ve iki araç da pistte

@@ -1,0 +1,213 @@
+/* FFB Gücü: --ffb-k ölçek; renkler --ffb-bar (tork), --ffb-clip (sınırda) */
+.ffb {
+  --ffb-k: 1;
+  display: inline-block;
+  color: var(--ov-text);
+  font-size: calc(15px * var(--ffb-k));
+  line-height: 1.1;
+}
+
+.ffb-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  padding: 0.55em 0.8em 0.6em;
+  min-width: 8em;
+  box-sizing: border-box;
+}
+
+.ffb-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7em;
+}
+
+.ffb-cap {
+  font-size: 0.72em;
+  font-weight: var(--ov-weight-strong, 700);
+  letter-spacing: 0.14em;
+  color: var(--ov-dim);
+}
+
+.ffb-val {
+  font-size: 1.9em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: color 0.1s;
+}
+
+.ffb-val small,
+.ffb-unit {
+  margin-left: 0.2em;
+  font-size: 0.45em;
+  font-weight: 700;
+  color: var(--ov-dim);
+  letter-spacing: 0.06em;
+}
+
+.ffb-none .ffb-val {
+  color: var(--ov-dim);
+}
+
+/* Anlık tork çubuğu; son %6'lık bölge sınır bölgesi */
+.ffb-track {
+  position: relative;
+  height: 0.45em;
+  border-radius: 99px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ov-text) 12%, transparent);
+}
+
+.ffb-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--ffb-bar);
+  transition: width 0.06s linear;
+}
+
+.ffb-track em {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 6%;
+  background: color-mix(in srgb, var(--ffb-clip) 35%, transparent);
+}
+
+.ffb-clipping .ffb-track i {
+  background: var(--ffb-clip);
+}
+
+.ffb-clipping .ffb-val {
+  color: var(--ffb-clip);
+}
+
+.ffb-clipping .ffb-box {
+  box-shadow:
+    inset 0 0 0 1px var(--ffb-clip),
+    0 0 14px color-mix(in srgb, var(--ffb-clip) 45%, transparent);
+}
+
+.ffb-extras {
+  display: flex;
+  gap: 0.9em;
+  justify-content: space-between;
+}
+
+.ffb-stat {
+  font-size: 0.72em;
+  color: var(--ov-dim);
+  white-space: nowrap;
+}
+
+.ffb-stat span {
+  letter-spacing: 0.08em;
+}
+
+.ffb-stat b {
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ffb-stat.hi b {
+  color: var(--ffb-clip);
+}
+
+/* Yatay çubuk */
+.ffb-hbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.7em;
+  min-width: 16em;
+}
+
+.ffb-hbox .ffb-val {
+  font-size: 1.45em;
+}
+
+.ffb-track-wide {
+  flex: 1 1 auto;
+  min-width: 5em;
+  height: 0.6em;
+}
+
+.ffb-gap {
+  flex: 1 1 auto;
+}
+
+.ffb-pct {
+  min-width: 2.6em;
+  text-align: right;
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--ov-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gösterge */
+.ffb-gbox {
+  align-items: center;
+  gap: 0.1em;
+  width: 9.5em;
+  padding-bottom: 0.5em;
+}
+
+.ffb-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ffb-svg path {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: butt;
+}
+
+.ffb-svg .trk {
+  stroke: color-mix(in srgb, var(--ov-text) 12%, transparent);
+}
+
+.ffb-svg .val {
+  stroke: var(--ffb-bar);
+  transition: stroke-dasharray 0.06s linear;
+}
+
+.ffb-svg .zone {
+  stroke: color-mix(in srgb, var(--ffb-clip) 45%, transparent);
+}
+
+.ffb-clipping .ffb-svg .val {
+  stroke: var(--ffb-clip);
+}
+
+.ffb-gin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -2.4em;
+}
+
+.ffb-gin .ffb-val {
+  font-size: 1.7em;
+}
+
+.ffb-gin .ffb-unit {
+  margin: 0.15em 0 0;
+  font-size: 0.68em;
+}
+
+/* Yalnızca yazı */
+.ffb-min {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.ffb-min .ffb-val {
+  font-size: 1.6em;
+}

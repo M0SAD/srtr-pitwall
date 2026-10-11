@@ -220,6 +220,22 @@ const F_CAUTION_WAVING: u32 = 0x8000;
 const FLAG_COOLDOWN: f64 = 20.0;
 /// Aynı aracın pist dışı olayları arası en kısa süre
 const OFFTRACK_COOLDOWN: f64 = 8.0;
+/// Bu kadar saniye içinde gelen olay puanları tek olay sayılır (iRacing aynı pist dışı çıkışa art arda 1x + 1x
+/// verebiliyor; Olaylar'da iki ayrı satır görünüyordu)
+const INC_MERGE: f64 = 4.0;
+
+/// Birleşik olay puanının açıklaması: hepsi aynı türse o tür ("Pist dışı"), değilse toplama ya da en ağırına göre
+fn merged_incident_text(parts: &[i32]) -> &'static str {
+    let total: i32 = parts.iter().sum();
+    let max = parts.iter().copied().max().unwrap_or(0);
+    if parts.iter().all(|&p| p == max) {
+        incident_text(max)
+    } else if total <= 3 {
+        incident_text(total)
+    } else {
+        incident_text(max)
+    }
+}
 
 pub struct EventLog {
     list: VecDeque<RaceEvent>,
@@ -234,6 +250,8 @@ pub struct EventLog {
     /// Sonraki canlı karede önceki değerleri sadece kaydet (olay üretme)
     rebase: bool,
     prev_inc: i32,
+    /// Son olay puanı kaydı (kimlik, son artışın zamanı, artışlar): art arda gelen puanlar tek olayda birleşir
+    last_inc: Option<(u64, f64, Vec<i32>)>,
     prev_pos: i32,
     prev_best: f32,
     prev_flags: u32,
@@ -277,6 +295,7 @@ impl Default for EventLog {
             last_time: 0.0,
             rebase: true,
             prev_inc: 0,
+            last_inc: None,
             prev_pos: 0,
             prev_best: 0.0,
             prev_flags: 0,
@@ -602,8 +621,27 @@ impl EventLog {
         if let Some(mi) = me {
             if f.incidents > self.prev_inc {
                 let d = f.incidents - self.prev_inc;
-                let text = incident_text(d).to_string();
-                self.push(f, s, mi, "incident", &format!("{d}x"), text, mi);
+                let now = f.session_time;
+                let recent = match &self.last_inc {
+                    Some((id, t, _)) if now >= *t && now - *t < INC_MERGE => Some(*id),
+                    _ => None,
+                };
+                let target = recent.and_then(|id| self.list.iter().position(|e| e.id == id && e.session_num == f.session_num));
+                if let Some(k) = target {
+                    let (_, t, parts) = self.last_inc.as_mut().unwrap();
+                    parts.push(d);
+                    *t = now;
+                    let total: i32 = parts.iter().sum();
+                    let text = merged_incident_text(parts);
+                    let ev = &mut self.list[k];
+                    ev.sub = format!("{total}x");
+                    ev.text = text.to_string();
+                    self.rev = next_rev();
+                } else {
+                    let before = self.next_id;
+                    self.push(f, s, mi, "incident", &format!("{d}x"), incident_text(d).to_string(), mi);
+                    self.last_inc = if self.next_id > before { Some((before, now, vec![d])) } else { None };
+                }
             }
             // Olay puanı vermeyen simler (ACC, LMU/rF2, AMS2): turun geçersiz sayılması (tur başına bir kez)
             if f.lap_invalid && !self.prev_invalid && f.is_on_track && f.lap != self.invalid_lap {
@@ -913,7 +951,8 @@ mod tests {
         let mut f = frame(0.0);
         log.update(&f, &s, &t);
         for k in 1..=(MAX_EVENTS as i32 + 50) {
-            f.session_time = k as f64;
+            // Art arda puanlar birleştiği için aralarında birleşme süresinden uzun zaman olsun
+            f.session_time = k as f64 * (INC_MERGE + 1.0);
             f.incidents = k;
             log.update(&f, &s, &t);
         }
@@ -937,6 +976,37 @@ mod tests {
     }
 
     #[test]
+    fn back_to_back_incidents_merge() {
+        let s = session();
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        let mut f = frame(100.0);
+        log.update(&f, &s, &t);
+        // Aynı pist dışı çıkış: 1 sn arayla 1x + 1x → tek olay "2x Pist dışı"
+        f.session_time = 101.0;
+        f.incidents = 1;
+        log.update(&f, &s, &t);
+        f.session_time = 102.0;
+        f.incidents = 2;
+        log.update(&f, &s, &t);
+        let e: Vec<_> = log.events().into_iter().filter(|e| e.kind == "incident").collect();
+        assert_eq!(e.len(), 1, "{e:?}");
+        assert_eq!((e[0].sub.as_str(), e[0].text.as_str()), ("2x", "Pist dışı"));
+        // 1x + 2x → toplam 3x "Pist dışı + kontrol kaybı"
+        f.session_time = 103.5;
+        f.incidents = 4;
+        log.update(&f, &s, &t);
+        let e: Vec<_> = log.events().into_iter().filter(|e| e.kind == "incident").collect();
+        assert_eq!(e.len(), 1);
+        assert_eq!(e[0].sub, "4x");
+        // Birleşme süresinden sonra yeni olay
+        f.session_time = 120.0;
+        f.incidents = 5;
+        log.update(&f, &s, &t);
+        assert_eq!(log.events().into_iter().filter(|e| e.kind == "incident").count(), 2);
+    }
+
+    #[test]
     fn incident_delta_classification() {
         assert_eq!(incident_text(1), "Pist dışı");
         assert_eq!(incident_text(2), "Kontrol kaybı / duvar");
@@ -951,7 +1021,7 @@ mod tests {
         f.incidents = 5; // kayıt başlamadan önce alınmış puan
         log.update(&f, &s, &t);
         for (k, inc) in [6, 6, 8, 12, 12, 15].into_iter().enumerate() {
-            f.session_time = 11.0 + k as f64;
+            f.session_time = 11.0 + k as f64 * 5.0;
             f.incidents = inc;
             log.update(&f, &s, &t);
         }
@@ -1051,7 +1121,7 @@ mod tests {
         d.session_time = 501.0;
         d.incidents = 2;
         log.update(&d, &s, &t);
-        d.session_time = 502.0;
+        d.session_time = 510.0;
         d.incidents = 6;
         log.update(&d, &s, &t);
         let i = log.info(true);

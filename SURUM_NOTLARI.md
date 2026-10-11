@@ -3,6 +3,27 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 111026-298
+
+- Vites ve Hız Göstergesi overlay'lerine "Replay'de göster" seçeneği eklendi (varsayılan açık).
+
+## 111026-297
+
+- Yeni overlay: FFB Gücü (iRacing). FFB gücü ayarını (Max Force) Nm olarak gösterir. Anlık tork çubuğu, sınıra dayanınca (clipping) kırmızı uyarı, isteğe bağlı son 30 sn'de sınırda kalma oranı ve aracın tepe torku. Tasarımlar: kart, yatay çubuk, gösterge, yalnızca yazı; boyut ve renkler ayarlanabilir. Rust: SteeringWheelMaxForceNm / PctTorque / Torque / PeakForceNm, `inputs` konusunda ffb* alanları.
+- Yeni overlay: Setup Adı (iRacing). Yüklü setup dosyasının adı; garajda değiştirilip kaydedilmediyse "değiştirildi", isteğe bağlı kaynağı (iRacing / kendi setup'ım), klasör ve .sto uzantısı. Kutu adın boyu kadar (en fazla genişliğe kadar); uzun ad küçülerek tam sığar, çok uzunsa iki satıra iner, kesilmez. "Yarış başladıktan sonra gizle" (varsayılan kapalı; süre varsayılan 30 sn). Tasarımlar: kart, tek satır etiket, yalnızca yazı. `session` konusunda setupName / setupModified / setupType.
+- Yakın Takip: "Araçlar uzaktayken gizle" (varsayılan kapalı; önde ve arkada belirtilen süreden, varsayılan 30 sn, yakın araç yoksa overlay gizlenir). "Uzaktaki araçlar şeffaflaşsın" (varsayılan açık) ve "Ortadaki çizgiyi hep göster" (varsayılan açık).
+- Olaylar: art arda gelen olay puanları (4 sn içinde) tek olayda birleşir. iRacing aynı pist dışı çıkışa 1x + 1x verebiliyordu ve iki ayrı "Pist dışı" satırı görünüyordu; artık tek satır "2x Pist dışı".
+- Site: Özellikler sayfası ve ana sayfa galerisine FFB Gücü ve Setup Adı eklendi (13 dil).
+
+## 111026-296
+
+- Yakın Takip: yeni "Renkler" bölümü. Yakın araç vurgu rengi buraya taşındı; "Özel renkler" açılınca satır arka planı, yazı, ikincil yazı, satır çerçevesi, kendi satırım / orta çizgi, yaklaşıyor / uzaklaşıyor oku, tur önde / tur geride renkleri seçilebilir.
+- Sıralama tablosu ve Yakındakiler yarış başında uyumlu: sıra tek yerden hesaplanıyor (calc::positions).
+  - Yeşil bayraktan önce (araca binme, grid, formasyon turu) sıralama turlarının sonucuna (grid sırasına) göre dizilir; yarış başlamadan da sıralama sonucu görünür.
+  - Start turunda (lider ilk turunu tamamlayana kadar) pistteki konuma göre; iRacing'in resmi sırası bu aralıkta çizgi geçilmeden güncellenmediği için eski kalıyordu.
+  - Yakındakiler'deki sıra numaraları Sıralama tablosundakilerle aynı.
+- Sesli mühendis: sırayı Sıralama tablosuyla aynı kaynaktan alıyor. Çizgi geçişindeki sıra duyurusu 1,5 sn sonra yapılıyor (iRacing sırayı çizgiden biraz sonra güncellediği için bir önceki turun sırası söyleniyordu). Start değerlendirmesi (iyi / kötü start) grid sırasına göre.
+
 ## 101026-295
 
 - Veri Kutusu: En iyi tur / Son tur gibi değerler boşken ("--:--.---") tirelerden bölünüp iki satır görünüyordu; değer artık hep tek satır.

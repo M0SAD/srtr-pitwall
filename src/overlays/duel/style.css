@@ -102,13 +102,13 @@
   font-size: 0.86em;
   font-weight: var(--ov-weight-strong);
   background: color-mix(in srgb, var(--ov-bg-solid) var(--duel-bga), transparent);
-  border-color: color-mix(in srgb, var(--ov-yellow) 55%, transparent);
+  border-color: color-mix(in srgb, var(--duel-me, var(--ov-yellow)) 55%, transparent);
   transition: none;
 }
 
 .duel-row.me::before {
   opacity: 1;
-  background: var(--ov-bg-me);
+  background: var(--duel-me-bg, var(--ov-bg-me));
 }
 
 .duel-row.me::after {
@@ -122,7 +122,7 @@
   top: -1px;
   height: 2px;
   border-radius: 1px;
-  background: var(--ov-yellow);
+  background: var(--duel-me, var(--ov-yellow));
   opacity: 0.7;
 }
 
@@ -135,12 +135,12 @@
 /* Tur farkı: tur önde mavi, tur geride kırmızı (Yakındakiler ile aynı anlam) */
 .duel-row.lap-ahead .duel-name,
 .duel-row.lap-ahead .duel-gap {
-  color: var(--ov-blue);
+  color: var(--duel-lapup, var(--ov-blue));
 }
 
 .duel-row.lap-behind .duel-name,
 .duel-row.lap-behind .duel-gap {
-  color: var(--ov-red);
+  color: var(--duel-lapdown, var(--ov-red));
 }
 
 .duel-class {
@@ -250,11 +250,11 @@
 }
 
 .duel-trend.closing {
-  color: var(--ov-green);
+  color: var(--duel-closing, var(--ov-green));
 }
 
 .duel-trend.away {
-  color: var(--ov-red);
+  color: var(--duel-away, var(--ov-red));
 }
 
 .duel-gap {
@@ -295,10 +295,10 @@
   opacity: 0.8;
 }
 .duel-lap.up {
-  color: color-mix(in srgb, var(--ov-blue) 70%, #fff);
+  color: color-mix(in srgb, var(--duel-lapup, var(--ov-blue)) 70%, #fff);
 }
 .duel-lap.down {
-  color: color-mix(in srgb, var(--ov-red) 70%, #fff);
+  color: color-mix(in srgb, var(--duel-lapdown, var(--ov-red)) 70%, #fff);
 }
 .duel-gap {
   min-width: 5.4ch;

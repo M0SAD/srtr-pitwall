@@ -117,6 +117,10 @@ pub struct VarIndex {
     pub brake: Option<VarRef>,
     pub clutch: Option<VarRef>,
     pub steer: Option<VarRef>,
+    pub ffb_max: Option<VarRef>,
+    pub ffb_pct: Option<VarRef>,
+    pub ffb_torque: Option<VarRef>,
+    pub ffb_peak: Option<VarRef>,
     pub abs_active: Option<VarRef>,
     pub lat_accel: Option<VarRef>,
     pub long_accel: Option<VarRef>,
@@ -232,6 +236,10 @@ impl VarIndex {
                 "Brake" => ix.brake = r,
                 "Clutch" => ix.clutch = r,
                 "SteeringWheelAngle" => ix.steer = r,
+                "SteeringWheelMaxForceNm" => ix.ffb_max = r,
+                "SteeringWheelPctTorque" => ix.ffb_pct = r,
+                "SteeringWheelTorque" => ix.ffb_torque = r,
+                "SteeringWheelPeakForceNm" => ix.ffb_peak = r,
                 "BrakeABSactive" => ix.abs_active = r,
                 "LatAccel" => ix.lat_accel = r,
                 "LongAccel" => ix.long_accel = r,
@@ -399,6 +407,10 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     // iRacing'de Clutch 1 = tam bağlı (pedal bırakılmış). Pedal konumuna çeviriyoruz.
     f.clutch = 1.0 - f32_or(buf, ix.clutch, 1.0);
     f.steer = f32_or(buf, ix.steer, 0.0);
+    f.ffb_max_nm = f32_or(buf, ix.ffb_max, -1.0);
+    f.ffb_pct = f32_or(buf, ix.ffb_pct, -1.0);
+    f.ffb_torque_nm = f32_or(buf, ix.ffb_torque, -1.0);
+    f.ffb_peak_nm = f32_or(buf, ix.ffb_peak, -1.0);
     f.abs_active = bool_of(buf, ix.abs_active);
     // iRacing: LatAccel + = sola, LongAccel + = ileri (m/s²)
     f.lat_g = -f32_or(buf, ix.lat_accel, 0.0) / 9.80665;

@@ -100,6 +100,12 @@ pub struct Frame {
     pub brake: f32,
     pub clutch: f32,
     pub steer: f32,
+    /// Direksiyon güç geri bildirimi (iRacing): FFB gücü ayarı (Nm; "Max Force"), şaftaki anlık tork oranı (0..1;
+    /// 1 = sınırda / clipping), anlık tork (Nm), aracın tepe torku (Nm). Sim vermiyorsa -1.
+    pub ffb_max_nm: f32,
+    pub ffb_pct: f32,
+    pub ffb_torque_nm: f32,
+    pub ffb_peak_nm: f32,
     pub abs_active: bool,
     /// Çekiş kontrolü şu an devrede (ACC/AC tcInAction; iRacing vermez)
     pub tc_active: bool,
@@ -217,6 +223,10 @@ impl Default for Frame {
             brake: 0.0,
             clutch: 0.0,
             steer: 0.0,
+            ffb_max_nm: -1.0,
+            ffb_pct: -1.0,
+            ffb_torque_nm: -1.0,
+            ffb_peak_nm: -1.0,
             abs_active: false,
             tc_active: false,
             lat_g: 0.0,
@@ -358,6 +368,8 @@ pub struct SessionData {
     pub ai_session: bool,
     /// iRacing DriverInfo.DriverUserID: bu bilgisayardaki hesabın üye no (takım yarışında araçtaki sürücüden farklı olabilir)
     pub player_user_id: i64,
+    /// iRacing DriverInfo.DriverSetupLoadTypeName: setup'ın kaynağı ("user", "iracing", "shared"…)
+    pub setup_type: String,
     /// iRacing WeekendInfo.SimMode: "full" canlı oturum, "replay" kayıtlı tekrar dosyası; diğer simlerde boş
     pub sim_mode: String,
     /// Resmi sektör başlangıçları (tur yüzdesi, ilki 0; iRacing SplitTimeInfo). Boş: bilinmiyor

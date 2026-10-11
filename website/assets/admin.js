@@ -96,6 +96,8 @@ const OVERLAYS = [
   ["results", "Yarış Sonucu"],
   ["sectors", "Sektör Süreleri"],
   ["setupcmp", "Setup Karşılaştırma"],
+  ["setupname", "Setup Adı"],
+  ["ffb", "FFB Gücü"],
   ["coach", "Canlı Kıyas"],
   ["startlights", "Start Işıkları"],
   ["stint", "Stint Özeti"],

@@ -18,6 +18,8 @@ import "./style.css";
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
+const HEX = /^#[0-9a-f]{6}$/i;
+const hex = (v: unknown, d: string) => (typeof v === "string" && HEX.test(v) ? v : d);
 
 /** Metre tahmini için en düşük hız (m/s): dururken fark 0 m görünmesin */
 const MIN_SPEED = 10;
@@ -176,7 +178,7 @@ export default function Duel(props: OverlayProps) {
     const inside = j <= limit && !(!unlimited() && o().hideOutside && c <= 0);
     const scale = slotScale(j) * (0.84 + 0.16 * c);
     const tilt = clamp(-s * k() * 13, -64, 64);
-    const opacity = inside ? clamp((1 - k() * 0.13 * (j - 1)) * (0.4 + 0.6 * c), 0.14, 1) : 0;
+    const opacity = inside ? clamp((1 - k() * 0.13 * (j - 1)) * (0.4 + 0.6 * c) * farFade(r), 0.14, 1) : 0;
     const blur = o().blur === true ? k() * 0.45 * (j - 1) + (1 - c) * 1.1 : 0;
     return {
       transform: `translate3d(0, ${(Math.sign(s) * offsets()[Math.min(j, 6)]).toFixed(1)}px, 0) perspective(520px) rotateX(${tilt.toFixed(1)}deg) scale(${scale.toFixed(3)})`,
@@ -186,6 +188,15 @@ export default function Duel(props: OverlayProps) {
       "z-index": String(10 - j),
     };
   };
+
+  /** "Uzaklık sınırı" (sn); "Araçlar uzaktayken gizle" kapalıyken şeffaflaşma ölçeği için 30 sn */
+  const farLimit = () => (o().farHide ? clamp(num(o().farLimit, 30), 2, 120) : 30);
+  /** Uzaktaki araç silikleşir: farkı arttıkça 1'den 0,3'e iner */
+  const farFade = (r: Row) => (o().farFade === false ? 1 : 1 - 0.7 * clamp((Math.abs(r.gap) - 1) / Math.max(1, farLimit() - 1), 0, 1));
+  /** Önde ya da arkada (gösterilen yuvalarda) uzaklık sınırından yakın bir araç var mı */
+  const anyWithinFar = createMemo(() =>
+    layout().list.some((r) => Math.abs(slotOf(r)) <= (slotOf(r) < 0 ? nAhead() : nBehind()) && Math.abs(r.gap) <= farLimit()),
+  );
 
   const rowClass = (r: Row) => {
     let c = slotOf(r) < 0 ? "ahead" : "behind";
@@ -201,7 +212,10 @@ export default function Duel(props: OverlayProps) {
     const st = session()?.sessionType;
     return st == null || st === "" || /race|yarış/i.test(st);
   };
-  const visible = () => props.editing || demoShow() || ((!o().raceOnly || isRace()) && (unlimited() || !o().hideWhenAlone || anyoneNear()));
+  const visible = () =>
+    props.editing ||
+    demoShow() ||
+    ((!o().raceOnly || isRace()) && (unlimited() || !o().hideWhenAlone || anyoneNear()) && (!o().farHide || anyWithinFar()));
 
   const content = (r: Row, self: boolean) => (
     <>
@@ -260,6 +274,24 @@ export default function Duel(props: OverlayProps) {
     </>
   );
 
+  /** "Özel renkler" açıkken satır renkleri (kapalıyken tema renkleri) */
+  const colorVars = (): Record<string, string> => {
+    if (!o().customColors) return {};
+    const me = hex(o().meColor, "#ffd23f");
+    return {
+      "--ov-bg-solid": hex(o().rowBg, "#0c0e13"),
+      "--ov-text": hex(o().textColor, "#f2f4f8"),
+      "--ov-dim": hex(o().dimColor, "#9aa3b2"),
+      "--ov-line": hex(o().borderColor, "#2a2f3a"),
+      "--duel-me": me,
+      "--duel-me-bg": `color-mix(in srgb, ${me} 26%, transparent)`,
+      "--duel-closing": hex(o().closingColor, "#3ddc84"),
+      "--duel-away": hex(o().awayColor, "#ff4d4d"),
+      "--duel-lapup": hex(o().lapAheadColor, "#4da3ff"),
+      "--duel-lapdown": hex(o().lapBehindColor, "#ff4d4d"),
+    };
+  };
+
   return (
     <div
       class="ov-theme duel"
@@ -270,6 +302,7 @@ export default function Duel(props: OverlayProps) {
         "--duel-h": `${rowH()}px`,
         "--duel-near": (o().nearColor as string) || "var(--ov-accent)",
         "--duel-bga": `${clamp(num(o().bgOpacity, 90), 0, 100)}%`,
+        ...colorVars(),
       }}
     >
       <Show when={me()} fallback={<div class="ov-panel ov-empty">Veri bekleniyor…</div>}>
@@ -282,8 +315,8 @@ export default function Duel(props: OverlayProps) {
                 </div>
               )}
             </For>
-            {/* Ortadaki çizgi yalnızca gösterilecek bir araç varken çizilir: kimse yokken ekranda tek başına çizgi kalmasın */}
-            <Show when={o().showMe === true} fallback={<Show when={props.editing || anyoneShown()}><div class="duel-line" /></Show>}>
+            {/* Ortadaki çizgi: "Ortadaki çizgiyi hep göster" (varsayılan açık) kapalıyken yalnızca gösterilecek bir araç varken */}
+            <Show when={o().showMe === true} fallback={<Show when={props.editing || anyoneShown() || o().centerLine !== false}><div class="duel-line" /></Show>}>
               <div class="duel-row me" style={{ height: `${meH().toFixed(0)}px`, "margin-top": `${(-meH() / 2).toFixed(0)}px` }}>
                 {content(me()!, true)}
               </div>

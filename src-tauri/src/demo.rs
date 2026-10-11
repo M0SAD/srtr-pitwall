@@ -380,6 +380,8 @@ impl Demo {
             player_user_id: 0,
             sim_mode: String::new(),
             sector_starts: vec![0.0, 0.29, 0.67],
+            setup_name: "SRTR\\yaris_kuru_v3.sto".into(),
+            setup_type: "user".into(),
             ..Default::default()
         };
         let player_lap = cars[PLAYER].dist.floor() as i64;
@@ -725,6 +727,15 @@ impl Demo {
         let gear_lo = (f.gear - 1) as f32 * 76.0 / 5.0;
         f.rpm = 4200.0 + ((f.speed - gear_lo) / (76.0 / 5.0)).clamp(0.0, 1.0) * 4600.0;
         f.steer = ((pct * std::f32::consts::TAU * 4.0).sin()) * 0.9 * (1.0 - sf * 0.8);
+        // Demo FFB: 18 Nm ayar; tork direksiyon ve hızla artar, sert virajlarda kısa süre sınıra (clipping) dayanır
+        {
+            let v = (f.speed / 76.0).clamp(0.0, 1.0);
+            let pct = if player_in_pit { 0.04 } else { ((f.steer.abs() / 0.9) * (0.45 + 0.75 * v) + 0.08).min(1.0) };
+            f.ffb_max_nm = 18.0;
+            f.ffb_peak_nm = 26.5;
+            f.ffb_pct = pct;
+            f.ffb_torque_nm = pct * 18.0 * f.steer.signum();
+        }
         // Demo ivmeleri (g): gaz/fren ve direksiyondan türetilir, önceki kareyle yumuşatılır
         {
             let k = (dt as f32 * 7.0).min(1.0);

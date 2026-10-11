@@ -62,6 +62,12 @@ export interface Inputs {
   /** Son / en iyi tur (sn; yoksa -1) */
   lastLap?: number;
   bestLap?: number;
+  /** FFB (iRacing): güç ayarı / "Max Force" (Nm), anlık tork oranı 0..1 (1 = sınırda, clipping), anlık tork (Nm,
+   *  işaretli), aracın tepe torku (Nm). Sim vermiyorsa -1. */
+  ffbMaxNm?: number;
+  ffbPct?: number;
+  ffbTorqueNm?: number;
+  ffbPeakNm?: number;
 }
 
 /** ERS ve batarya (Rust: calc::Ers). Bilinmeyen sayılar -1, sim vermeyen güçler null. */
@@ -320,6 +326,10 @@ export interface Session {
   /** Yanan kırmızı ışık sayısı / toplam (LMU/rF2); toplam 0: sim ışıkları tek tek vermiyor */
   startLit?: number;
   startTotal?: number;
+  /** Yüklü setup dosyası (iRacing; klasörü ve .sto uzantısıyla, yoksa ""), garajda değiştirildi mi, kaynağı ("user", "iracing"…) */
+  setupName?: string;
+  setupModified?: boolean;
+  setupType?: string;
 }
 
 export interface MapCar {

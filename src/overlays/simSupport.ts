@@ -87,6 +87,9 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   incidents: ["acc", "ac", "lmu", "ams2"],
   // Setup adı sadece iRacing oturum bilgisinde var
   setupcmp: ["acc", "ac", "lmu", "ams2"],
+  setupname: ["acc", "ac", "lmu", "ams2"],
+  // FFB gücü ve şaft torku sadece iRacing telemetrisinde var
+  ffb: ["acc", "ac", "lmu", "ams2"],
   incidentlog: ["acc", "ac", "lmu", "ams2"],
   // Sınıf tempo tahmini (class_est_lap) sadece iRacing'de: "daha hızlı sınıf" hiç tespit edilemez;
   // AC/ACC'de zaten rakip yok
