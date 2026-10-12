@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-309
+
+- Siyah ekran düzeltmesi: yarıştan çıkınca bazen monitör siyah kalıyor, düzelmesi için programı kapatıp açmak gerekiyordu. Sebep: iRacing yarıştan çıkınca sim süreci kapanır ve ekran modu değişir; bu sırada WebView2'nin şeffaf overlay çizimi bozulabiliyor ve görünür kalan overlay penceresi (ör. "sürekli göster" açık Canlı Sohbet / Altyazı, Kan Şekeri) tüm monitörü siyah kaplıyordu. Artık oyundan çıkınca (en az 20 sn süren gerçek bir oturumdan sonra, demo hariç) 4 sn beklenip hâlâ bağlı değilse overlay pencereleri sıfırdan oluşturuluyor; yeni pencere içerik çizilene kadar gösterilmediği için siyah kalmıyor. Oturum değişiminde hemen yeniden bağlanılırsa yenileme yapılmaz. Oyun dışındayken ekran çözünürlüğü / monitör düzeni değişince de yenilenir. Rust: refresh_overlay_windows (lib.rs).
+- Tepsi menüsüne "Overlay'leri yenile": ekran yine de kararırsa programı kapatmadan düzeltir.
+
 ## 121026-308
 
 - Arkadaş Uyarısı: Demo açıkken (ana ekrandaki Demo ve düzen / topluluk önizlemelerindeki canlı Demo) tuşa basmadan da görünür: belli aralıklarla (en az 12 sn'de bir, ayarlanan süre kadar) "SRTR Pitwall" adıyla örnek uyarı yanıp söner. Demoda ses çalmaz.

@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Dauer der grünen Flagge",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Die Overlays dieses Layouts gibt es in dieser Version nicht. Aktualisiere die App und versuche es erneut.",
   "İndirilemedi: {0}": "Download fehlgeschlagen: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Die geteilten Daten konnten nicht gelesen werden (beschädigt oder unvollständig)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Die geteilten Daten konnten nicht gelesen werden (beschädigt oder unvollständig).",
+  "Overlay'leri yenile": "Overlays neu laden"
 }

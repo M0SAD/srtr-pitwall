@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Duração da bandeira verde",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Os overlays deste esquema não existem nesta versão. Atualiza a aplicação e tenta de novo.",
   "İndirilemedi: {0}": "Não foi possível transferir: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Não foi possível ler os dados partilhados (corrompidos ou incompletos)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Não foi possível ler os dados partilhados (corrompidos ou incompletos).",
+  "Overlay'leri yenile": "Recarregar overlays"
 }

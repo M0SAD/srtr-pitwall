@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "グリーンフラッグの表示時間",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "このレイアウトのオーバーレイはこのバージョンにありません。アプリを更新して再試行してください。",
   "İndirilemedi: {0}": "ダウンロードできませんでした: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "共有データを読み込めませんでした（破損または不完全）。"
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "共有データを読み込めませんでした（破損または不完全）。",
+  "Overlay'leri yenile": "オーバーレイを再読み込み"
 }

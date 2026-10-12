@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Vihreän lipun kesto",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Tämän asettelun overlayt eivät ole tässä versiossa. Päivitä sovellus ja yritä uudelleen.",
   "İndirilemedi: {0}": "Lataus epäonnistui: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Jaettuja tietoja ei voitu lukea (vioittuneet tai puutteelliset)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Jaettuja tietoja ei voitu lukea (vioittuneet tai puutteelliset).",
+  "Overlay'leri yenile": "Päivitä overlayt"
 }

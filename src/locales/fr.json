@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Durée du drapeau vert",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Les overlays de cette disposition n'existent pas dans cette version. Mets l'application à jour et réessaie.",
   "İndirilemedi: {0}": "Téléchargement impossible : {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Les données partagées n'ont pas pu être lues (corrompues ou incomplètes)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Les données partagées n'ont pas pu être lues (corrompues ou incomplètes).",
+  "Overlay'leri yenile": "Recharger les overlays"
 }

@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Длительность зелёного флага",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Оверлеев из этой раскладки нет в этой версии. Обновите приложение и попробуйте снова.",
   "İndirilemedi: {0}": "Не удалось загрузить: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Не удалось прочитать данные публикации (повреждены или неполные)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Не удалось прочитать данные публикации (повреждены или неполные).",
+  "Overlay'leri yenile": "Обновить оверлеи"
 }

@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Grön flagga, varaktighet",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Overlayerna i den här layouten finns inte i den här versionen. Uppdatera appen och försök igen.",
   "İndirilemedi: {0}": "Kunde inte hämtas: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "De delade uppgifterna kunde inte läsas (skadade eller ofullständiga)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "De delade uppgifterna kunde inte läsas (skadade eller ofullständiga).",
+  "Overlay'leri yenile": "Uppdatera overlayer"
 }

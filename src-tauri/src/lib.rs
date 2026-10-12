@@ -244,6 +244,76 @@ pub(crate) fn sync_overlay_visibility(app: &AppHandle) {
     broadcast_state(app);
 }
 
+/// Overlay pencerelerini sıfırdan oluşturur. Oyun kapanırken (iRacing yarıştan çıkınca sim süreci biter, ekran modu
+/// değişir) ya da ekran kartı sürücüsü sıfırlanınca WebView2'nin şeffaf çizimi bozulabiliyor: görünür kalan overlay
+/// penceresi (ör. "sürekli göster" açık sohbet / altyazı) tüm monitörü siyah kaplıyor ve program yeniden başlatılana
+/// kadar düzelmiyordu. Yeni pencere sayfa çizilene kadar gösterilmez (OVERLAY_READY), siyah ekran kalmaz.
+static OV_REFRESHING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub(crate) fn refresh_overlay_windows(app: &AppHandle, reason: &str) {
+    if OV_REFRESHING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    crashlog::note(&format!("overlay pencereleri yenileniyor: {reason}"));
+    let app = app.clone();
+    std::thread::spawn(move || {
+        crashlog::guard(|| {
+            // Eski pencereler ana iş parçacığında kapatılır
+            let a = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                for w in overlay_windows(&a) {
+                    let _ = w.destroy();
+                }
+            });
+            // Etiketler serbest kalana kadar (en çok 5 sn)
+            for _ in 0..50 {
+                if overlay_windows(&app).is_empty() {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            let settings = current_settings(&app);
+            let monitor = settings.as_ref().and_then(|v| v.pointer("/general/monitor")).and_then(|v| v.as_u64()).map(|v| v as usize);
+            if let Err(e) = create_main_overlay(&app) {
+                crashlog::note(&format!("overlay penceresi yeniden oluşturulamadı: {e}"));
+            }
+            place_overlay(&app, monitor);
+            if let Some(v) = settings.as_ref() {
+                sync_monitor_windows(&app, v);
+            }
+            sync_overlay_visibility(&app);
+        });
+        OV_REFRESHING.store(false, Ordering::SeqCst);
+    });
+}
+
+/// Oyundan çıkışta yenileme: gerçek (demo olmayan) ve en az 20 sn süren bir bağlantıdan sonra, 4 sn beklenip
+/// hâlâ bağlı değilse (oturum değişiminde hemen yeniden bağlanılır) overlay pencereleri yenilenir.
+static SIM_CONNECTED_AT: Mutex<Option<std::time::Instant>> = parking_lot::const_mutex(None);
+
+fn refresh_after_disconnect(app: &AppHandle, connected: bool) {
+    if connected {
+        if !shared(app).demo.load(Ordering::Relaxed) {
+            *SIM_CONNECTED_AT.lock() = Some(std::time::Instant::now());
+        }
+        return;
+    }
+    let Some(at) = SIM_CONNECTED_AT.lock().take() else { return };
+    if at.elapsed() < std::time::Duration::from_secs(20) {
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(4));
+        let s = shared(&app);
+        if s.connected.load(Ordering::Relaxed) || s.demo.load(Ordering::Relaxed) {
+            return;
+        }
+        refresh_overlay_windows(&app, "oyundan çıkıldı");
+    });
+}
+
 /// Ayarlardaki overlay kopyalarının kullandığı monitörler için pencere aç/kapat.
 /// Ana overlay monitöründekiler ana pencerede çizilir; diğer her monitör için ayrı bir şeffaf pencere.
 fn sync_monitor_windows(app: &AppHandle, settings: &Value) {
@@ -1172,6 +1242,8 @@ fn focus_sim() {}
 
 /// iRacing bağlantısı kurulunca/koptuğunca (demo hariç)
 pub(crate) fn on_connection_change(app: &AppHandle, connected: bool) {
+    // Oyundan çıkınca overlay pencereleri yenilenir (siyah ekran; bkz. refresh_overlay_windows)
+    refresh_after_disconnect(app, connected);
     // Oyuna girince/çıkınca ekran görüntüsü kısayolunu kaydet/bırak
     {
         let app = app.clone();
@@ -1717,6 +1789,12 @@ fn spawn_monitor_watch(app: AppHandle) {
             if let Some(v) = settings.as_ref() {
                 sync_monitor_windows(&app, v);
             }
+            // Ekran modu / çözünürlük değişti: şeffaf çizim bozulmuş olabilir. Oyundayken overlay'ler kesilmesin diye
+            // yalnızca oyun dışında yenilenir (oyundan çıkışta zaten yenilenir).
+            if !shared(&app).connected.load(Ordering::Relaxed) {
+                std::thread::sleep(std::time::Duration::from_millis(1500));
+                refresh_overlay_windows(&app, "ekran düzeni değişti");
+            }
             let _ = app.emit("monitors-changed", ());
         }
     }));
@@ -2001,6 +2079,7 @@ fn tray_action(app: &AppHandle, id: &str) {
             set_edit_mode(app, on);
         }
         "hide" => toggle_hidden(app),
+        "refresh" => refresh_overlay_windows(app, "tepsi menüsü"),
         "quit" => quit_app(app),
         _ => {}
     }
@@ -2009,7 +2088,7 @@ fn tray_action(app: &AppHandle, id: &str) {
 const TRAY_MENU: &str = "traymenu";
 /// Tepsi menüsü penceresinin mantıksal boyutu (src/window/TrayMenu.tsx ile aynı: 6 satır + ayırıcı + iç boşluk)
 const TRAY_MENU_W: f64 = 250.0;
-const TRAY_MENU_H: f64 = 6.0 * 34.0 + 9.0 + 12.0;
+const TRAY_MENU_H: f64 = 7.0 * 34.0 + 9.0 + 12.0;
 
 /// Tepsi sağ tık menüsü: kenarlıksız, saydam, her zaman üstte küçük pencere (gizli oluşturulur, odak kaybedince gizlenir)
 fn tray_menu_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
@@ -2069,7 +2148,7 @@ fn tray_menu_items(app: AppHandle) -> Vec<(String, String)> {
     let st = app.state::<KeyBindings>();
     let items = st.tray.lock().clone();
     let mut out: Vec<(String, String)> = Vec::new();
-    for want in ["panel", "friends", "events", "edit", "hide", "quit"] {
+    for want in ["panel", "friends", "events", "edit", "hide", "refresh", "quit"] {
         if let Some((a, it)) = items.iter().find(|(a, _)| a == want) {
             out.push((a.clone(), it.text().unwrap_or_default()));
         }
@@ -2093,17 +2172,19 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let hide = MenuItem::with_id(app, "hide", TRAY_LABELS[1].1, true, None::<&str>)?;
     let friends = MenuItem::with_id(app, "friends", TRAY_LABELS[4].1, true, None::<&str>)?;
     let events = MenuItem::with_id(app, "events", TRAY_LABELS[5].1, true, None::<&str>)?;
+    let refresh = MenuItem::with_id(app, "refresh", TRAY_LABELS[6].1, true, None::<&str>)?;
     *app.state::<KeyBindings>().tray.lock() = vec![
         ("edit".into(), edit.clone()),
         ("hide".into(), hide.clone()),
         ("panel".into(), open.clone()),
         ("friends".into(), friends.clone()),
         ("events".into(), events.clone()),
+        ("refresh".into(), refresh.clone()),
     ];
     let sep = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Çıkış", true, None::<&str>)?;
     app.state::<KeyBindings>().tray.lock().push(("quit".into(), quit.clone()));
-    let menu = Menu::with_items(app, &[&open, &friends, &events, &edit, &hide, &sep, &quit])?;
+    let menu = Menu::with_items(app, &[&open, &friends, &events, &edit, &hide, &refresh, &sep, &quit])?;
 
     // Sağ tık menüsü: programın kendi çizdiği pencere (tasarımlı). Açılamazsa Windows'un yerel menüsü kullanılır.
     let custom = tray_menu_window(app).is_ok();
@@ -2198,13 +2279,14 @@ struct KeyBindings {
     tray: Mutex<Vec<(String, MenuItem<tauri::Wry>)>>,
 }
 
-const TRAY_LABELS: [(&str, &str); 6] = [
+const TRAY_LABELS: [(&str, &str); 7] = [
     ("edit", "Düzenleme Modu"),
     ("hide", "Overlay Gizle/Göster"),
     ("panel", "Kontrol Paneli"),
     ("quit", "Çıkış"),
     ("friends", "Arkadaşlar"),
     ("events", "Olaylar"),
+    ("refresh", "Overlay'leri yenile"),
 ];
 
 #[derive(Serialize)]

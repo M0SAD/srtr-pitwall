@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "绿旗显示时长",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "此布局中的叠加层在当前版本中不存在。请更新程序后重试。",
   "İndirilemedi: {0}": "无法下载：{0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "无法读取分享的数据（已损坏或不完整）。"
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "无法读取分享的数据（已损坏或不完整）。",
+  "Overlay'leri yenile": "刷新叠加层"
 }

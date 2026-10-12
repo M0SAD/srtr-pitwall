@@ -345,7 +345,7 @@ export function startDomTranslation() {
 
 /** Rust tarafının kullandığı metinler (tepsi, pencere başlıkları, oturum özeti) */
 export const RUST_KEYS = [
-  "Düzenleme Modu", "Overlay Gizle/Göster", "Kontrol Paneli", "Çıkış", "Boşluk",
+  "Düzenleme Modu", "Overlay Gizle/Göster", "Kontrol Paneli", "Çıkış", "Boşluk", "Overlay'leri yenile",
   "Pitwall Paneli", "Live Timing", "Mühendis Ekranı", "Arkadaşlar", "Arkadaş verileri", "Olaylar",
   "oturum özeti", "Tarih (UTC)", "Başlangıç: P{0}   Bitiş: P{1} (sınıf)", "Tur: {0}  (geçerli {1})   En iyi: {2}", "Olay: {0}x",
   "TURLAR", "OLAYLAR", "SONUÇLAR", "yakıt", "geçersiz", "pit", "tur", "Tur", "toplam",

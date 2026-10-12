@@ -7190,5 +7190,6 @@
   "Yeşil bayrak süresi": "Green flag duration",
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "The overlays in this layout are not in this version. Update the app and try again.",
   "İndirilemedi: {0}": "Could not download: {0}",
-  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "The shared data could not be read (corrupt or incomplete)."
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "The shared data could not be read (corrupt or incomplete).",
+  "Overlay'leri yenile": "Refresh overlays"
 }
