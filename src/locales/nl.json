@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Hoe vaak het per seconde knippert.",
   "Yanıp sönme hızı": "Knippersnelheid",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "Vriendwaarschuwing vereist een PRO-lidmaatschap"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "Vriendwaarschuwing vereist een PRO-lidmaatschap",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Nadat de groene vlag verschijnt, toont het paneel hem zo lang en gaat dan uit (ook als de sim de vlag aan houdt). 0: tot de sim de vlag weghaalt.",
+  "Yeşil bayrak süresi": "Duur groene vlag"
 }

@@ -15,6 +15,18 @@ export default defineOverlay({
     { key: "hideWhenNone", label: "Bayrak yokken gizle", type: "boolean", default: true },
     { key: "showGreen", label: "Yeşil bayrağı da göster", type: "boolean", default: false },
     {
+      key: "greenSeconds",
+      label: "Yeşil bayrak süresi",
+      type: "number",
+      default: 5,
+      min: 0,
+      max: 60,
+      step: 1,
+      unit: "sn",
+      showIf: { key: "showGreen", is: [true] },
+      hint: "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.",
+    },
+    {
       key: "showPenalty",
       label: "Ceza uyarısı satırı",
       type: "boolean",

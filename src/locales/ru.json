@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Сколько раз в секунду мигает.",
   "Yanıp sönme hızı": "Скорость мигания",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "Сигнал другу требует подписки PRO"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "Сигнал другу требует подписки PRO",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "После появления зелёного флага панель показывает его столько времени, затем гаснет (даже если сим держит флаг). 0: пока сим не снимет флаг.",
+  "Yeşil bayrak süresi": "Длительность зелёного флага"
 }

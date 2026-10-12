@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Quantas vezes pisca por segundo.",
   "Yanıp sönme hızı": "Velocidade de piscar",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "O alerta para amigo requer subscrição PRO"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "O alerta para amigo requer subscrição PRO",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Depois de a bandeira verde aparecer, o painel mostra-a durante este tempo e depois apaga-se (mesmo que o simulador a mantenha). 0: até o simulador retirar a bandeira.",
+  "Yeşil bayrak süresi": "Duração da bandeira verde"
 }

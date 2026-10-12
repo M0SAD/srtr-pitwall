@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Hur många gånger per sekund den blinkar.",
   "Yanıp sönme hızı": "Blinkhastighet",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "Vänvarning kräver PRO-medlemskap"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "Vänvarning kräver PRO-medlemskap",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "När den gröna flaggan visas lyser panelen så här länge och släcks sedan (även om simmen håller flaggan aktiv). 0: tills simmen tar bort flaggan.",
+  "Yeşil bayrak süresi": "Grön flagga, varaktighet"
 }

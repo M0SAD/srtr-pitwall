@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "1秒あたりの点滅回数。",
   "Yanıp sönme hızı": "点滅速度",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "フレンドアラートにはPRO会員が必要です"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "フレンドアラートにはPRO会員が必要です",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "グリーンフラッグが出てからこの時間だけパネルに表示し、その後消灯します（シムがフラッグを出し続けていても）。0：シムがフラッグを解除するまで。",
+  "Yeşil bayrak süresi": "グリーンフラッグの表示時間"
 }

@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "每秒闪烁次数。",
   "Yanıp sönme hızı": "闪烁速度",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "好友提醒需要 PRO 会员"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "好友提醒需要 PRO 会员",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "绿旗出现后，面板显示这么长时间后熄灭（即使模拟器仍保持该旗）。0：直到模拟器撤下旗帜。",
+  "Yeşil bayrak süresi": "绿旗显示时长"
 }

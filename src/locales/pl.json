@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Ile razy na sekundę miga.",
   "Yanıp sönme hızı": "Szybkość migania",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "Alert dla znajomego wymaga członkostwa PRO"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "Alert dla znajomego wymaga członkostwa PRO",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Po pojawieniu się zielonej flagi panel świeci tak długo, a potem gaśnie (nawet jeśli symulator ją utrzymuje). 0: do zdjęcia flagi przez symulator.",
+  "Yeşil bayrak süresi": "Czas zielonej flagi"
 }

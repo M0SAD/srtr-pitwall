@@ -6970,6 +6970,8 @@
  "Yeşil": "src/app/components/VrPanel.tsx, src/overlays/digiflags/Overlay.tsx",
  "Yeşil bayrağı da göster": "src/overlays/digiflags/manifest.ts",
  "Yeşil bayrak": "src/app/components/CrewWall.tsx, src/app/pages/VoicePage.tsx, src/sdk/FlagBadge.tsx",
+ "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "src/overlays/digiflags/manifest.ts",
+ "Yeşil bayrak süresi": "src/overlays/digiflags/manifest.ts",
  "yeşil bayrak, yarış devam ediyor": "src-tauri",
  "YEŞİL BEKLENİYOR": "src/overlays/session/Overlay.tsx",
  "Yeşil ışık rengi": "src/overlays/startlights/manifest.ts",

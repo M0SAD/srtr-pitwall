@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Nombre de clignotements par seconde.",
   "Yanıp sönme hızı": "Vitesse de clignotement",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "L'alerte ami nécessite un abonnement PRO"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "L'alerte ami nécessite un abonnement PRO",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Après l'apparition du drapeau vert, le panneau l'affiche pendant cette durée puis s'éteint (même si la simu le garde actif). 0 : jusqu'à ce que la simu le retire.",
+  "Yeşil bayrak süresi": "Durée du drapeau vert"
 }

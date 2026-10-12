@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "How many times per second it flashes.",
   "Yanıp sönme hızı": "Flash speed",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "Friend alert requires a PRO membership"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "Friend alert requires a PRO membership",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "After the green flag appears, the panel shows it for this long and then goes dark (even if the sim keeps the flag on). 0: until the sim clears the flag.",
+  "Yeşil bayrak süresi": "Green flag duration"
 }

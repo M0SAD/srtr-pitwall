@@ -7185,5 +7185,7 @@
   "NFKC": "NFKC",
   "Saniyede kaç kez yanıp söner.": "Kuinka monta kertaa sekunnissa se vilkkuu.",
   "Yanıp sönme hızı": "Vilkkumisnopeus",
-  "Arkadaş uyarısı PRO üyelik gerektirir": "Kaverivaroitus vaatii PRO-jäsenyyden"
+  "Arkadaş uyarısı PRO üyelik gerektirir": "Kaverivaroitus vaatii PRO-jäsenyyden",
+  "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Vihreän lipun ilmestyttyä paneeli näyttää sen näin kauan ja sammuu sitten (vaikka simulaattori pitäisi lipun päällä). 0: kunnes simulaattori poistaa lipun.",
+  "Yeşil bayrak süresi": "Vihreän lipun kesto"
 }

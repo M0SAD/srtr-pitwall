@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-306
+
+- DigiFlags: "Yeşil bayrağı da göster" kapalıyken de yeşil yanıyor ve ekranda kalıyordu. Sebep: ayar yalnızca "green" bayrağına uygulanıyordu; iRacing'in start öncesi / sonrası uzun süre açık tuttuğu "greenHeld" (yeşil bekletiliyor) ve "oneLapToGreen" (yeşile bir tur) ayarı atlıyordu. Artık üçü de ayara bağlı. Ayar açıkken yeşil, göründükten sonra "Yeşil bayrak süresi" kadar yanar (varsayılan 5 sn, 0: sim kaldırana kadar), sonra söner. Bayrak seçimi ayrı dosyada (digiflags/pick.ts).
+
 ## 121026-305
 
 - Arkadaş Uyarısı: ünlem işareti yazı karakteri yerine şekil olarak çiziliyor; yazı tipinden bağımsız olarak üçgenin / dairenin tam ortasında duruyor.
