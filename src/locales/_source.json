@@ -779,6 +779,7 @@
  "Arkadaş uyarısı": "src/window/Osd.tsx",
  "Arkadaş Uyarısı": "src/overlays/friendalert/manifest.ts",
  "Arkadaş uyarısı için giriş yapmalısın": "src/window/Osd.tsx",
+ "Arkadaş uyarısı PRO üyelik gerektirir": "src/window/Osd.tsx",
  "Arkadaş verileri": "src-tauri",
  "Arkadaş: Arkadaşlar listendeki sürücülerden bu oturumda olan ve sıralamada sana en yakın olanı izlenir.": "src/overlays/target/manifest.ts",
  "Arkadaşa uyarı": "src/app/components/ShortcutsPanel.tsx",

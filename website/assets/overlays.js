@@ -93,7 +93,7 @@ export const OVERLAYS = [
     [
       ["messages", "✉️", "pro"],
       ["voice", "🎙️", "mixed"],
-      ["friendalert", "❗", "free"],
+      ["friendalert", "❗", "pro"],
     ],
   ],
 ];

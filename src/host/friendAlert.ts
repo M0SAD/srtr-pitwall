@@ -13,6 +13,7 @@ import type { Accessor } from "solid-js";
 import { session } from "@/cloud/supabase";
 import { castLink, castOnce, myFriends, type CastLink, type Friend } from "@/cloud/social";
 import type { Status } from "@/sdk/types";
+import { overlayKey, proLocked } from "@/sdk/proFeatures";
 
 export const FRIEND_ALERT_SHOW = "friend-alert-show";
 export interface FriendAlertShow {
@@ -73,6 +74,11 @@ export function startFriendAlert(status: Accessor<Status | undefined>) {
     const me = session()?.user.id;
     if (!me) {
       void invoke("osd_push", { key: "friendAlertLogin" }).catch(() => {});
+      return;
+    }
+    // PRO overlay: göndermek de PRO ister (alıcıda overlay kilitliyse zaten görünmez)
+    if (proLocked(overlayKey("friendalert"))) {
+      void invoke("osd_push", { key: "friendAlertPro" }).catch(() => {});
       return;
     }
     if (Date.now() - lastSend < 1500) return;

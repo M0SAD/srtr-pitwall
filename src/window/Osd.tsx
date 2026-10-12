@@ -65,6 +65,8 @@ function describe(p: OsdPayload): Omit<View, "id"> | null {
       return { label: t("Arkadaş uyarısı"), state: t("Aynı yarışta arkadaşın yok"), tone: "warn" };
     case "friendAlertFail":
       return { label: t("Arkadaş uyarısı"), state: t("Gönderilemedi"), tone: "warn" };
+    case "friendAlertPro":
+      return { label: t("Arkadaş uyarısı PRO üyelik gerektirir"), tone: "warn" };
     case "friendAlertLogin":
       return { label: t("Arkadaş uyarısı için giriş yapmalısın"), tone: "warn" };
     case "dashPage":

@@ -47,12 +47,23 @@ export default function FriendAlert(props: OverlayProps) {
         {(v) => (
           <div class="fa-box" classList={{ blink: !!alert() }}>
             <div class="fa-icon">
-              <Show when={design() === "triangle"} fallback={<span class="fa-shape" />}>
-                <svg viewBox="0 0 100 88" class="fa-tri">
-                  <path d="M50 4 L96 84 L4 84 Z" />
+              {/* Ünlem yazı karakteri değil şekil: yazı tipinden bağımsız, her zaman tam ortada */}
+              <Show
+                when={design() === "triangle"}
+                fallback={
+                  <svg viewBox="0 0 100 100" class="fa-svg">
+                    <circle class="fa-bg" cx="50" cy="50" r="46" />
+                    <rect class="fa-mark" x="43" y="20" width="14" height="42" rx="7" />
+                    <circle class="fa-mark" cx="50" cy="76" r="8" />
+                  </svg>
+                }
+              >
+                <svg viewBox="0 0 100 88" class="fa-svg">
+                  <path class="fa-bg" d="M50 4 L96 84 L4 84 Z" />
+                  <rect class="fa-mark" x="44" y="30" width="12" height="32" rx="6" />
+                  <circle class="fa-mark" cx="50" cy="72" r="6.5" />
                 </svg>
               </Show>
-              <b class="fa-bang">!</b>
             </div>
             <div class="fa-txt">
               <b data-no-i18n>{text()}</b>

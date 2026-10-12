@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-305
+
+- Arkadaş Uyarısı: ünlem işareti yazı karakteri yerine şekil olarak çiziliyor; yazı tipinden bağımsız olarak üçgenin / dairenin tam ortasında duruyor.
+- Arkadaş Uyarısı artık PRO overlay. PRO olmayan üye tuşa basınca uyarı gönderilmez, ekranda "Arkadaş uyarısı PRO üyelik gerektirir" yazar. Site: overlay listesinde PRO rozeti.
+- Supabase: c112_guncelleme.sql (app_config.pro_overlays'e "friendalert" eklenir; Yönetim › PRO özellikleri'nden değiştirilebilir).
+
 ## 121026-304
 
 - Yeni overlay: Arkadaş Uyarısı. Arkadaş listendeki biriyle aynı yarıştayken atadığın klavye tuşuna ya da direksiyon düğmesine basınca onun ekranında yanıp sönen ünlem işareti ve "DİKKAT" yazısı çıkar (o basınca senin ekranında). Tuş / düğme: Kısayollar › Arkadaşa uyarı (tuş yutulmaz, oyun öndeyken de çalışır). Tasarımlar: üçgen, daire, şerit; yazı, gönderenin adı, süre (5 sn), yanıp sönme hızı, boyut, renkler ve isteğe bağlı ses ayarlanır. Aynı yarış: arkadaşın profilindeki sim adı bağlı oturumun sürücü listesinde olmalı. Uyarı Supabase Realtime yayınıyla gider (veritabanına yazılmaz); alıcı, gönderenin kabul edilmiş ve susturulmamış arkadaşı ve aynı oturumda olduğunu kendisi denetler, 30 sn'den eski uyarıyı göstermez. Ekranda kısa bilgi: "Gönderildi" / "Aynı yarışta arkadaşın yok" / giriş gerekli. Demoda basınca kendi ekranında önizleme. Rust: voicecmd.rs (friend-alert-press), session_driver_names komutu. Şimdilik iRacing.

@@ -32,44 +32,30 @@
 }
 
 .fa-icon {
-  position: relative;
   width: 7em;
   height: 6.2em;
-  display: grid;
-  place-items: center;
 }
 
-.fa-tri {
-  position: absolute;
-  inset: 0;
+.fa-svg {
+  display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
-.fa-tri path {
+.fa-svg .fa-bg {
   fill: var(--fa-c);
   stroke: #15100a;
   stroke-width: 4;
   stroke-linejoin: round;
 }
 
-.fa-shape {
-  position: absolute;
-  inset: 0.2em 0.6em;
-  border-radius: 50%;
-  background: var(--fa-c);
-  box-shadow: inset 0 0 0 0.25em #15100a;
+.fa-svg .fa-mark {
+  fill: #15100a;
 }
 
-.fa-bang {
-  position: relative;
-  margin-top: 0.6em;
-  font: 900 4em/1 var(--ov-font, sans-serif);
-  color: #15100a;
-}
-
-.fa-circle .fa-bang {
-  margin-top: 0;
+.fa-circle .fa-icon {
+  width: 6.2em;
 }
 
 .fa-txt {
@@ -105,15 +91,6 @@
 .fa-banner .fa-icon {
   width: 3.4em;
   height: 3.4em;
-}
-
-.fa-banner .fa-shape {
-  inset: 0;
-}
-
-.fa-banner .fa-bang {
-  margin-top: 0;
-  font-size: 2.4em;
 }
 
 .fa-banner .fa-txt {
