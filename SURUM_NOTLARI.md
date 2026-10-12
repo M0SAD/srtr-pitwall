@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 131026-313
+
+- Olaylar ekranı kayıtlı tekrarlarda da çalışır. Olaylar yalnızca canlı sürüşte toplanıyor, kaydedilmiyordu: iRacing'de kayıtlı bir tekrar dosyası açılınca liste boş kalıyor (ya da başka bir yarışın listesi görünüyordu). Artık tekrar izlerken Olaylar penceresinde "Olayları bul": iRacing'in tekrara gömdüğü olay işaretleri (tekrar ekranındaki "sonraki olay" düğmesinin gittiği anlar) tek tek gezilir; her işarette oturum, zaman, kameranın gösterdiği araç ve turu alınır, sonunda tekrar kaldığın yere döner ve oynar (olay başına ~0,2-0,5 sn; "Durdur" ile kesilebilir). Bulunan olaylar o tekrarın listesi olur; tıklayınca tekrar o ana sarılır. Kayıtlı tekrar dosyası açıkken (iRacing SimMode = replay) pencere açılınca ve liste bu tekrara ait değilse tarama kendiliğinden başlar; başka yarışın listesi gösterilmez (yanlış anlara sarardı), "önceki oturum" olarak saklanır. Listenin hangi oturuma ait olduğu iRacing SubSessionID ile (yoksa pist + oturumlar) izlenir. Rust: broadcast::replay_scan_incidents, EventLog::load_replay_hits, events_scan_replay / events_scan_stop komutları; testler replay_file_lists_scanned_incidents, session_keys.
+
 ## 121026-312
 
 - Sıralama tablosu: sunucudaki bütün sürücüler görünür. Önceden yalnızca aracı dünyada olanlar (pistte / pitte) ve sunucudan çıkmış ama resmi sırası olanlar listeleniyordu; antrenmanda ya da kimsenin tur atmadığı bir oturumda garajda bekleyenler hiç görünmüyor, piste çıkınca tablo boş kalıyordu (yalnızca sen). Artık garajdaki / henüz piste çıkmamış sürücüler de listede: en sonda, "GAR" etiketiyle ve hafif soluk; fark / aralık sütunları boş. Resmi sırası olmadığı için sıra numarası tablodaki yeridir. Sıra numaraları Yakındakiler ve sesli mühendisle aynı kaynaktan (calc::positions) gelmeye devam eder. Rust: calc.rs garage_car, field_idxs; test standings_show_drivers_in_garage.

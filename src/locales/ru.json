@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Включать autofuel автоматически",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Каждый раз, когда вы садитесь в машину (и когда гонка начинается, пока вы в машине), включается autofuel iRacing: на пит-стопе бак не заливается полностью, добавляется только топливо, нужное до финиша. Команда \"#autofuel\" вводится в чат iRacing; окно чата ненадолго появляется на экране.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "Когда гонка заканчивается и вы выходите из машины клавишей ESC на экран повтора, а также когда начинается повтор, открывается окно «События»; оно закрывается, когда вы садитесь в машину. Щелчок по событию переводит повтор iRacing на этот момент.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Это окно открывается само, когда после гонки вы выходите из машины на экран повтора и когда начинается повтор"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Это окно открывается само, когда после гонки вы выходите из машины на экран повтора и когда начинается повтор",
+  "Bu tekrarda olay işareti bulunamadı": "В этом повторе не найдено отметок инцидентов",
+  "Bu tekrarın olayları henüz listelenmedi.": "События этого повтора ещё не составлены.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "Повтор iRacing перескакивает от инцидента к инциденту; в конце возвращается туда, где вы были.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Находит и перечисляет отметки инцидентов в просматриваемом повторе (инциденты экрана повтора iRacing)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Список составлен по отметкам инцидентов в повторе: участник — машина, которую в тот момент показывала камера iRacing.",
+  "Olayları bul": "Найти события",
+  "Tekrarda {0} olay bulundu": "В повторе найдено инцидентов: {0}",
+  "Tekrardaki olaylar aranıyor… ({0})": "Поиск инцидентов в повторе… ({0})",
+  "Olay (tekrardaki işaret)": "Инцидент (отметка повтора)"
 }

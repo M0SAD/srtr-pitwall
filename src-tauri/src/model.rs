@@ -372,6 +372,8 @@ pub struct SessionData {
     pub setup_type: String,
     /// iRacing WeekendInfo.SimMode: "full" canlı oturum, "replay" kayıtlı tekrar dosyası; diğer simlerde boş
     pub sim_mode: String,
+    /// iRacing oturum kimliği (WeekendInfo.SubSessionID; antrenman / test sürüşünde 0 olabilir)
+    pub sub_session_id: i64,
     /// Resmi sektör başlangıçları (tur yüzdesi, ilki 0; iRacing SplitTimeInfo). Boş: bilinmiyor
     pub sector_starts: Vec<f32>,
     /// iRacing DriverInfo.DriverSetupName: garajda yüklü setup dosyası ("yaris1.sto"); diğer simlerde boş

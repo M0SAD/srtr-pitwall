@@ -379,6 +379,7 @@ impl Demo {
             ai_session: false,
             player_user_id: 0,
             sim_mode: String::new(),
+            sub_session_id: 0,
             sector_starts: vec![0.0, 0.29, 0.67],
             setup_name: "SRTR\\yaris_kuru_v3.sto".into(),
             setup_type: "user".into(),

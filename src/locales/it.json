@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Attiva autofuel automaticamente",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Ogni volta che sali in auto (e quando inizia una gara mentre sei in auto) viene attivato l'autofuel di iRacing: ai box il serbatoio non viene riempito, si aggiunge solo il carburante necessario a finire. Il comando \"#autofuel\" viene scritto nella chat di iRacing; la finestra della chat compare per un attimo.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "A fine gara, quando esci dall'auto con ESC verso la schermata del replay e quando parte un replay, si apre la finestra Eventi; si chiude quando sali in auto. Cliccando un evento il replay di iRacing salta a quel momento.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Questa finestra si apre da sola quando esci dall'auto verso la schermata del replay dopo la gara e quando parte un replay"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Questa finestra si apre da sola quando esci dall'auto verso la schermata del replay dopo la gara e quando parte un replay",
+  "Bu tekrarda olay işareti bulunamadı": "Nessun segnalatore di incidente trovato in questo replay",
+  "Bu tekrarın olayları henüz listelenmedi.": "Gli eventi di questo replay non sono ancora stati elencati.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "Il replay di iRacing salta da un incidente all'altro; alla fine torna dove eri.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Trova ed elenca i segnalatori di incidente del replay che stai guardando (gli incidenti della schermata replay di iRacing)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Elenco ricavato dai segnalatori di incidente del replay: il coinvolto è l'auto che la telecamera di iRacing mostrava in quel momento.",
+  "Olayları bul": "Trova eventi",
+  "Tekrarda {0} olay bulundu": "Trovati {0} incidenti nel replay",
+  "Tekrardaki olaylar aranıyor… ({0})": "Ricerca degli incidenti nel replay… ({0})",
+  "Olay (tekrardaki işaret)": "Incidente (segnalatore del replay)"
 }

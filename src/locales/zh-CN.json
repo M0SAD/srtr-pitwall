@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "自动开启 autofuel",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "每次上车时（以及你在车内时比赛开始时）都会开启 iRacing 的自动加油（autofuel）：进站时不会加满油箱，只加完赛所需的燃油。会在 iRacing 聊天中输入 \"#autofuel\" 命令，聊天框会短暂出现。",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "比赛结束后按 ESC 下车进入回放界面时，以及开始回放时，会打开事件窗口；上车时关闭。点击事件可让 iRacing 回放跳到该时刻。",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "赛后下车进入回放界面时以及开始回放时，此窗口会自动打开"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "赛后下车进入回放界面时以及开始回放时，此窗口会自动打开",
+  "Bu tekrarda olay işareti bulunamadı": "此回放中未找到事故标记",
+  "Bu tekrarın olayları henüz listelenmedi.": "此回放的事件尚未列出。",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "iRacing 回放会在事故之间跳转；完成后回到你原来的位置。",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "查找并列出你正在观看的回放中的事故标记（即 iRacing 回放界面中的事故）",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "此列表来自回放中的事故标记：涉及的车辆为当时 iRacing 镜头所显示的车辆。",
+  "Olayları bul": "查找事件",
+  "Tekrarda {0} olay bulundu": "在回放中找到 {0} 起事故",
+  "Tekrardaki olaylar aranıyor… ({0})": "正在回放中搜索事故…（{0}）",
+  "Olay (tekrardaki işaret)": "事故（回放标记）"
 }

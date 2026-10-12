@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Slå på autofuel automatiskt",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Varje gång du sätter dig i bilen (och när ett race börjar medan du sitter i bilen) slås iRacings autofuel på: vid depåstoppet fylls inte tanken, utan bara så mycket bränsle som behövs för att gå i mål. Kommandot \"#autofuel\" skrivs i iRacing-chatten; chattrutan syns en kort stund.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "När loppet är slut och du lämnar bilen med ESC till repriskärmen, och när en repris startar, öppnas fönstret Händelser; det stängs när du sätter dig i bilen. Klicka på en händelse så hoppar iRacing-reprisen dit.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Fönstret öppnas av sig självt när du efter loppet lämnar bilen till repriskärmen och när en repris startar"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Fönstret öppnas av sig självt när du efter loppet lämnar bilen till repriskärmen och när en repris startar",
+  "Bu tekrarda olay işareti bulunamadı": "Inga incidentmarkeringar hittades i den här reprisen",
+  "Bu tekrarın olayları henüz listelenmedi.": "Händelserna i den här reprisen har inte listats än.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "iRacing-reprisen hoppar från incident till incident; när den är klar återgår den dit du var.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Hittar och listar incidentmarkeringarna i reprisen du tittar på (incidenterna i iRacings repriskärm)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Listan bygger på reprisens incidentmarkeringar: inblandad är bilen som iRacings kamera visade i det ögonblicket.",
+  "Olayları bul": "Hitta händelser",
+  "Tekrarda {0} olay bulundu": "Hittade {0} incidenter i reprisen",
+  "Tekrardaki olaylar aranıyor… ({0})": "Söker efter incidenter i reprisen… ({0})",
+  "Olay (tekrardaki işaret)": "Incident (markering i reprisen)"
 }

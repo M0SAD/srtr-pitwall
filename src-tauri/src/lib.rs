@@ -819,6 +819,52 @@ async fn replay_seek(
         .map_err(|e| e.to_string())?
 }
 
+/// Olaylar ekranı: izlenen tekrardaki olay işaretlerini bul (kayıtlı tekrar dosyasında canlı toplanan olaylar yoktur).
+/// İlerleme "events-scan-progress" (bulunan sayı), bitiş "events-scan-done" ({ count, error }) olayıyla bildirilir;
+/// bulunanlar bir sonraki karede Olaylar listesine yüklenir (engine.rs). Tarama sürerken ikinci istek reddedilir.
+#[tauri::command]
+async fn events_scan_replay(app: AppHandle, state: State<'_, Arc<Shared>>) -> Result<(), String> {
+    let (sim, demo) = {
+        let ev = state.events.lock();
+        (ev.sim, ev.demo)
+    };
+    if demo || !state.connected.load(Ordering::Relaxed) {
+        return Err("iRacing bağlı değil".into());
+    }
+    if !sim.is_empty() && sim != "iracing" {
+        return Err("Replay bu oyunda desteklenmiyor".into());
+    }
+    if state.replay_scanning.swap(true, Ordering::SeqCst) {
+        return Err("Tarama zaten sürüyor".into());
+    }
+    state.replay_scan_stop.store(false, Ordering::Relaxed);
+    let shared = state.inner().clone();
+    let a = app.clone();
+    let res = tauri::async_runtime::spawn_blocking(move || {
+        let r = broadcast::replay_scan_incidents(&shared.replay_scan_stop, |n| {
+            let _ = a.emit("events-scan-progress", n);
+        });
+        if let Ok(h) = &r {
+            *shared.replay_hits.lock() = Some(h.clone());
+        }
+        shared.replay_scanning.store(false, Ordering::SeqCst);
+        r
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let (count, error) = match &res {
+        Ok(h) => (h.len(), None),
+        Err(e) => (0, Some(e.clone())),
+    };
+    let _ = app.emit("events-scan-done", serde_json::json!({ "count": count, "error": error }));
+    res.map(|_| ())
+}
+
+#[tauri::command]
+fn events_scan_stop(state: State<'_, Arc<Shared>>) {
+    state.replay_scan_stop.store(true, Ordering::Relaxed);
+}
+
 /// Ekip (uzaktan pit): ekip üyesinin gönderdiği pit komutunu iRacing'e uygular. Yetki ve ana anahtar
 /// sunucuda ve arayüzde (host/crew.ts) denetlenir; burada sadece izinli pit komutları çalışır.
 #[tauri::command]
@@ -2732,6 +2778,8 @@ pub fn run() {
             replay_live,
             crew_pit_command,
             pit_autofuel,
+            events_scan_replay,
+            events_scan_stop,
             events_get,
             events_export,
             replay_seek,

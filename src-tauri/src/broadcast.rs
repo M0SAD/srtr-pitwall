@@ -17,6 +17,9 @@ mod msg {
     pub const PIT_COMMAND: u16 = 9;
     /// ReplaySearch modu: canlıya dön
     pub const RPY_SRCH_TO_END: u16 = 1;
+    /// ReplaySearch modları (irsdk_RpySrchMode): kasetin başı, sonraki olay işareti
+    pub const RPY_SRCH_TO_START: u16 = 0;
+    pub const RPY_SRCH_NEXT_INCIDENT: u16 = 9;
 }
 
 /// irsdk_broadcastMsg paketleme: wParam = MAKELONG(msg, var1). İki 16 bit parametreli
@@ -89,6 +92,8 @@ struct ReplayPos {
     session_time: f64,
     frame: i32,
     cam_car_idx: i32,
+    /// Kameradaki aracın turu (tekrar taramasında olayın turu)
+    cam_lap: i32,
     at: std::time::Instant,
 }
 
@@ -152,6 +157,7 @@ pub fn observe(f: &crate::model::Frame, live: bool) {
         session_time: f.replay_session_time,
         frame: f.replay_frame,
         cam_car_idx: f.cam_car_idx,
+        cam_lap: if f.cam_car_idx >= 0 { f.cars.get(f.cam_car_idx as usize).map(|c| c.lap).unwrap_or(0) } else { 0 },
         at: std::time::Instant::now(),
     });
     if live && f.session_time > 0.0 {
@@ -230,6 +236,67 @@ pub fn replay_seek(session_num: i32, time_s: f64, car_number: &str, car_idx: Opt
     }
     send(msg::REPLAY_SET_PLAY_SPEED, 1, make_long(0, 0))?;
     Ok(res)
+}
+
+/// Tekrardaki bir olay işareti (iRacing'in tekrar ekranındaki "sonraki olay" düğmesinin gittiği anlar)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScanHit {
+    pub session_num: i32,
+    pub time: f64,
+    /// O an kameranın gösterdiği araç (iRacing olaya giderken kamerayı olaydaki araca çevirir)
+    pub car_idx: i32,
+    pub lap: i32,
+}
+
+/// Bir taramada en çok bu kadar olay
+pub const SCAN_MAX: usize = 400;
+
+/// Tekrardaki olay işaretlerini bul: tekrar duraklatılır, başa sarılır, "sonraki olay" ile işaret işaret ilerlenir;
+/// her işarette oturum, zaman, kameradaki araç ve turu okunur. Sonunda kafa eski yerine döner. Kaydedilmiş bir tekrar
+/// dosyası izlenirken Olaylar ekranı bu listeyi gösterir (canlı oturumda toplanan olaylar o dosyada yoktur).
+/// Bekleme içerir (olay başına ~0,2-0,5 sn): arayüz iş parçacığından çağrılmaz. `stop` true olunca durur.
+pub fn replay_scan_incidents(stop: &std::sync::atomic::AtomicBool, progress: impl Fn(usize)) -> Result<Vec<ScanHit>, String> {
+    use std::sync::atomic::Ordering;
+    let start = fresh_pos().ok_or("Tekrar konumu okunamıyor: iRacing tekrar ekranında olmalısın")?;
+    // Duraklat (kaset oynarken kare ilerler, sonraki olay ayırt edilemez)
+    send(msg::REPLAY_SET_PLAY_SPEED, 0, make_long(0, 0))?;
+    send(msg::REPLAY_SEARCH, msg::RPY_SRCH_TO_START, 0)?;
+    // Başa varılsın (kare küçülür) ya da en çok 3 sn
+    let _ = wait_pos(3000, |p| p.frame < start.frame.min(120) || p.frame <= 1);
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    let mut last = fresh_pos().map(|p| p.frame).unwrap_or(0);
+    let mut hits: Vec<ScanHit> = Vec::new();
+    let mut misses = 0;
+    while hits.len() < SCAN_MAX && !stop.load(Ordering::Relaxed) {
+        send(msg::REPLAY_SEARCH, msg::RPY_SRCH_NEXT_INCIDENT, 0)?;
+        if !wait_pos(2000, |p| p.frame > last) {
+            // Kare ilerlemedi: başka olay yok (bir kez daha denenir; komut kaybolmuş olabilir)
+            misses += 1;
+            if misses >= 2 {
+                break;
+            }
+            continue;
+        }
+        misses = 0;
+        // Kamera olaydaki araca geçsin
+        std::thread::sleep(std::time::Duration::from_millis(180));
+        let Some(p) = fresh_pos() else { break };
+        if p.frame <= last {
+            break;
+        }
+        last = p.frame;
+        let hit = ScanHit { session_num: p.session_num, time: p.session_time, car_idx: p.cam_car_idx, lap: p.cam_lap };
+        // Aynı ana iki işaret (çok araçlı kaza): aynı araçsa bir kez
+        if !hits.iter().any(|h| h.session_num == hit.session_num && (h.time - hit.time).abs() < 0.5 && h.car_idx == hit.car_idx) {
+            hits.push(hit);
+            progress(hits.len());
+        }
+    }
+    // Eski yerine dön ve oynat
+    send(msg::REPLAY_SET_PLAY_POSITION, msg::RPY_POS_BEGIN, start.frame.max(0) as isize)?;
+    let _ = wait_pos(1500, |p| (p.frame - start.frame).abs() < 240);
+    send(msg::REPLAY_SET_PLAY_SPEED, 1, make_long(0, 0))?;
+    Ok(hits)
 }
 
 /// Canlı yayına dön.

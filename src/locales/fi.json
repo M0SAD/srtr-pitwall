@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Kytke autofuel automaattisesti",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Aina kun nouset autoon (ja kun kisa alkaa ollessasi autossa), iRacingin autofuel kytketään päälle: varikolla tankkia ei täytetä, vaan lisätään vain maaliin tarvittava polttoaine. Komento \"#autofuel\" kirjoitetaan iRacingin chattiin; chat-ikkuna näkyy hetken.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "Kun kisa päättyy ja poistut autosta ESC:llä uusintanäkymään, sekä kun uusinta alkaa, Tapahtumat-ikkuna avautuu; se sulkeutuu, kun nouset autoon. Tapahtumaa napsauttamalla iRacingin uusinta siirtyy siihen hetkeen.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Tämä ikkuna avautuu itsestään, kun poistut kisan jälkeen autosta uusintanäkymään ja kun uusinta alkaa"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Tämä ikkuna avautuu itsestään, kun poistut kisan jälkeen autosta uusintanäkymään ja kun uusinta alkaa",
+  "Bu tekrarda olay işareti bulunamadı": "Tästä uusinnasta ei löytynyt tapahtumamerkintöjä",
+  "Bu tekrarın olayları henüz listelenmedi.": "Tämän uusinnan tapahtumia ei ole vielä listattu.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "iRacingin uusinta hyppii tapahtumasta toiseen; lopuksi se palaa kohtaan, jossa olit.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Etsii ja listaa katsomasi uusinnan tapahtumamerkinnät (iRacingin uusintanäkymän tapahtumat)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Lista on koottu uusinnan tapahtumamerkinnöistä: osallinen on auto, jota iRacingin kamera näytti sillä hetkellä.",
+  "Olayları bul": "Etsi tapahtumat",
+  "Tekrarda {0} olay bulundu": "Uusinnasta löytyi {0} tapahtumaa",
+  "Tekrardaki olaylar aranıyor… ({0})": "Etsitään tapahtumia uusinnasta… ({0})",
+  "Olay (tekrardaki işaret)": "Tapahtuma (uusinnan merkintä)"
 }

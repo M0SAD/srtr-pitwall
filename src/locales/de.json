@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Autofuel automatisch einschalten",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Jedes Mal, wenn du ins Auto steigst (und wenn ein Rennen beginnt, während du im Auto sitzt), wird iRacings Autofuel eingeschaltet: Beim Boxenstopp wird der Tank nicht gefüllt, sondern nur so viel getankt, wie zum Rennende nötig ist. Der Befehl \"#autofuel\" wird in den iRacing-Chat geschrieben; das Chatfenster erscheint kurz.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "Wenn das Rennen endet und du mit ESC aus dem Auto zum Wiederholungsbildschirm wechselst, und wenn eine Wiederholung startet, öffnet sich das Ereignisfenster; beim Einsteigen schließt es sich. Ein Klick auf ein Ereignis springt in der iRacing-Wiederholung zu diesem Moment.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Dieses Fenster öffnet sich von selbst, wenn du nach dem Rennen aus dem Auto zum Wiederholungsbildschirm wechselst und wenn eine Wiederholung startet"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Dieses Fenster öffnet sich von selbst, wenn du nach dem Rennen aus dem Auto zum Wiederholungsbildschirm wechselst und wenn eine Wiederholung startet",
+  "Bu tekrarda olay işareti bulunamadı": "In dieser Wiederholung wurden keine Vorfallmarkierungen gefunden",
+  "Bu tekrarın olayları henüz listelenmedi.": "Die Ereignisse dieser Wiederholung wurden noch nicht aufgelistet.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "Die iRacing-Wiederholung springt von Vorfall zu Vorfall; danach kehrt sie an deine Stelle zurück.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Findet und listet die Vorfallmarkierungen der Wiederholung, die du ansiehst (die Vorfälle im iRacing-Wiederholungsbildschirm)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Liste aus den Vorfallmarkierungen der Wiederholung: Beteiligt ist das Auto, das die iRacing-Kamera in dem Moment zeigte.",
+  "Olayları bul": "Ereignisse finden",
+  "Tekrarda {0} olay bulundu": "{0} Vorfälle in der Wiederholung gefunden",
+  "Tekrardaki olaylar aranıyor… ({0})": "Wiederholung wird nach Vorfällen durchsucht… ({0})",
+  "Olay (tekrardaki işaret)": "Vorfall (Markierung in der Wiederholung)"
 }

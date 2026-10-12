@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "autofuelを自動でオンにする",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "車に乗るたびに（車内にいる間にレースセッションが始まったときも）iRacingのautofuelがオンになります。ピットで満タンにせず、完走に必要な分だけ給油します。iRacingのチャットに「#autofuel」コマンドが入力され、チャット欄が一瞬表示されます。",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "レース終了後にESCで車を降りてリプレイ画面に移ったとき、およびリプレイが始まったときにイベントウィンドウが開きます。車に乗ると閉じます。イベントをクリックするとiRacingのリプレイがその瞬間に移動します。",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "レース後に車を降りてリプレイ画面に移ったときと、リプレイが始まったときにこのウィンドウが自動で開きます"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "レース後に車を降りてリプレイ画面に移ったときと、リプレイが始まったときにこのウィンドウが自動で開きます",
+  "Bu tekrarda olay işareti bulunamadı": "このリプレイにインシデントのマーカーは見つかりませんでした",
+  "Bu tekrarın olayları henüz listelenmedi.": "このリプレイのイベントはまだ一覧化されていません。",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "iRacingのリプレイがインシデントからインシデントへ移動します。終わると元の位置に戻ります。",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "視聴中のリプレイにあるインシデントのマーカー（iRacingのリプレイ画面のインシデント）を見つけて一覧にします",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "リプレイのインシデントマーカーから作成した一覧です。関係者はその瞬間にiRacingのカメラが映していた車です。",
+  "Olayları bul": "イベントを探す",
+  "Tekrarda {0} olay bulundu": "リプレイで{0}件のインシデントが見つかりました",
+  "Tekrardaki olaylar aranıyor… ({0})": "リプレイのインシデントを検索中…（{0}）",
+  "Olay (tekrardaki işaret)": "インシデント（リプレイのマーカー）"
 }

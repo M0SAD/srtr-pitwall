@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Włączaj autofuel automatycznie",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Za każdym razem, gdy wsiadasz do auta (i gdy wyścig zaczyna się, gdy jesteś w aucie), włączany jest autofuel iRacing: w pit stopie bak nie jest napełniany do pełna, dolewane jest tylko tyle paliwa, ile trzeba do mety. Polecenie \"#autofuel\" jest wpisywane na czacie iRacing; okno czatu pojawia się na chwilę.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "Po zakończeniu wyścigu, gdy klawiszem ESC wyjdziesz z auta do ekranu powtórki, oraz gdy zacznie się powtórka, otwiera się okno Zdarzenia; zamyka się, gdy wsiądziesz do auta. Kliknięcie zdarzenia przewija powtórkę iRacing do tego momentu.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "To okno otwiera się samo, gdy po wyścigu wyjdziesz z auta do ekranu powtórki oraz gdy zacznie się powtórka"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "To okno otwiera się samo, gdy po wyścigu wyjdziesz z auta do ekranu powtórki oraz gdy zacznie się powtórka",
+  "Bu tekrarda olay işareti bulunamadı": "W tej powtórce nie znaleziono znaczników incydentów",
+  "Bu tekrarın olayları henüz listelenmedi.": "Zdarzenia tej powtórki nie zostały jeszcze wypisane.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "Powtórka iRacing przeskakuje od incydentu do incydentu; na koniec wraca tam, gdzie byłeś.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Znajduje i wypisuje znaczniki incydentów w oglądanej powtórce (incydenty z ekranu powtórki iRacing)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Lista ze znaczników incydentów w powtórce: uczestnikiem jest auto, które w tym momencie pokazywała kamera iRacing.",
+  "Olayları bul": "Znajdź zdarzenia",
+  "Tekrarda {0} olay bulundu": "Znaleziono {0} incydentów w powtórce",
+  "Tekrardaki olaylar aranıyor… ({0})": "Szukanie incydentów w powtórce… ({0})",
+  "Olay (tekrardaki işaret)": "Incydent (znacznik powtórki)"
 }

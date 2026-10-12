@@ -191,6 +191,11 @@ pub struct Shared {
     /// Oturumdaki sürücülerin adları (sim; tekrarlamasız, küçük harf değil): Arkadaş Uyarısı aynı yarıştaki arkadaşları
     /// bununla bulur (bkz. lib.rs session_driver_names, src/host/friendAlert.ts). Demo / bağlı değilken boş.
     pub driver_names: Mutex<Vec<String>>,
+    /// Tekrar taramasının bulduğu olay işaretleri (lib.rs events_scan_replay); motor bir sonraki karede Olaylar listesine yükler
+    pub replay_hits: Mutex<Option<Vec<crate::broadcast::ScanHit>>>,
+    /// Tekrar taraması sürüyor / durdur isteği
+    pub replay_scanning: AtomicBool,
+    pub replay_scan_stop: AtomicBool,
 }
 
 const KNOWN: &[&str] = &[
@@ -645,9 +650,13 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             } else {
                 None
             };
+            let hits = shared.replay_hits.lock().take();
             let (finished, ev_count, ev_rev) = crate::crashlog::guard(|| {
                 let mut ev = shared.events.lock();
                 ev.set_source(st.sim, demo_on);
+                if let Some(h) = hits.as_ref() {
+                    ev.load_replay_hits(h, &st.session);
+                }
                 if let Some(r) = record {
                     ev.set_record(r);
                 }

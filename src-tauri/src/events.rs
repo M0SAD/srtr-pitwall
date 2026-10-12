@@ -200,8 +200,28 @@ pub struct EventsInfo {
     pub has_current: bool,
     /// Liste her değiştiğinde artar (pencere gereksiz yeniden çizmesin)
     pub rev: u64,
+    /// Şu an tekrar izleniyor (kafa canlı anda değil) ya da kayıtlı bir tekrar dosyası açık
+    pub watching: bool,
+    /// Kayıtlı tekrar dosyası açık (iRacing SimMode = replay): canlı oturumda toplanan olaylar bu dosyada yok
+    pub replay_file: bool,
+    /// Liste, şu an açık olan oturuma / tekrara ait (kimlik eşleşiyor)
+    pub matches: bool,
+    /// Liste tekrardaki olay işaretlerinden çıkarıldı (bkz. load_replay_hits)
+    pub from_replay: bool,
     pub summary: Summary,
     pub events: Vec<RaceEvent>,
+}
+
+/// Oturumun kimliği: iRacing SubSessionID, yoksa pist + oturum listesi (Olaylar listesinin hangi oturuma ait olduğu)
+pub fn session_key(s: &SessionData) -> String {
+    if s.sub_session_id > 0 {
+        return format!("ss:{}", s.sub_session_id);
+    }
+    if s.track_name.is_empty() {
+        return String::new();
+    }
+    let kinds: Vec<&str> = s.sessions.iter().map(|e| e.kind.as_str()).collect();
+    format!("t:{}|{}|{}", s.track_name, s.track_config, kinds.join(","))
 }
 
 /// Bu kadar süre kare gelmezse (oyun kapandı/yeniden bağlandı) eski değerlerle kıyaslama yapılmaz
@@ -279,6 +299,12 @@ pub struct EventLog {
     prev_invalid: bool,
     /// Geçersiz tur olayının yazıldığı son tur (tur başına bir kez)
     invalid_lap: i32,
+    /// Listenin ait olduğu oturumun kimliği (session_key) ve şu an açık olanınki
+    list_key: String,
+    cur_key: String,
+    watching: bool,
+    replay_file: bool,
+    from_replay: bool,
 }
 
 impl Default for EventLog {
@@ -318,6 +344,11 @@ impl Default for EventLog {
             prev_repairs: -1,
             prev_invalid: false,
             invalid_lap: i32::MIN,
+            list_key: String::new(),
+            cur_key: String::new(),
+            watching: false,
+            replay_file: false,
+            from_replay: false,
         }
     }
 }
@@ -354,6 +385,10 @@ impl EventLog {
                 has_previous: true,
                 has_current,
                 rev: self.rev,
+                watching: self.watching,
+                replay_file: self.replay_file,
+                matches: false,
+                from_replay: false,
                 summary: p.summary.clone(),
                 events: p.events.clone(),
             };
@@ -370,9 +405,60 @@ impl EventLog {
             has_previous: prev.is_some(),
             has_current,
             rev: self.rev,
+            watching: self.watching,
+            replay_file: self.replay_file,
+            matches: has_current && !self.cur_key.is_empty() && self.list_key == self.cur_key,
+            from_replay: self.from_replay,
             summary: self.summary.clone(),
             events: self.events(),
         }
+    }
+
+    /// Tekrar taramasının bulduğu olay işaretlerini bu tekrarın olay listesi olarak yükler (bkz.
+    /// broadcast::replay_scan_incidents). Eski liste "önceki oturum" olarak saklanır.
+    pub fn load_replay_hits(&mut self, hits: &[crate::broadcast::ScanHit], s: &SessionData) {
+        let (sim, demo, next_id, record, last_wall) = (self.sim, self.demo, self.next_id, self.record, self.last_wall);
+        let stash = self.stash.take();
+        let prev = if self.from_replay { self.prev.take() } else { self.snapshot().or_else(|| self.prev.take()) };
+        let (watching, replay_file, cur_key) = (self.watching, self.replay_file, self.cur_key.clone());
+        *self = EventLog { sim, demo, next_id, stash, prev, record, last_wall, watching, replay_file, ..EventLog::default() };
+        self.reset_track_name(s);
+        self.list_key = session_key(s);
+        self.cur_key = cur_key;
+        self.from_replay = true;
+        self.rebase = true;
+        let mut hits = hits.to_vec();
+        hits.sort_by(|a, b| a.session_num.cmp(&b.session_num).then(a.time.total_cmp(&b.time)));
+        if let Some(h) = hits.first() {
+            self.session_num = h.session_num;
+            self.session_kind = s.session(h.session_num).map(|x| x.kind.clone()).unwrap_or_default();
+        }
+        for h in hits {
+            let idx = h.car_idx;
+            let d = if idx >= 0 { s.driver(idx as usize) } else { None };
+            let ev = RaceEvent {
+                id: 0,
+                session_num: h.session_num,
+                time: h.time,
+                lap: h.lap.max(0),
+                kind: "incident",
+                sub: String::new(),
+                idx,
+                number: d.map(|d| d.car_number.clone()).unwrap_or_default(),
+                name: d.map(|d| d.name.clone()).unwrap_or_default(),
+                class_color: d.map(|d| d.class_color.clone()).unwrap_or_default(),
+                text: "Olay (tekrardaki işaret)".to_string(),
+                is_me: idx >= 0 && idx == s.player_idx,
+                focus: d.map(|d| d.car_number.clone()).unwrap_or_default(),
+            };
+            // Kayıt ayarlarından bağımsız: tekrar taraması yalnızca olayları bulur
+            self.rev = next_rev();
+            let mut ev = ev;
+            ev.id = self.next_id;
+            self.next_id += 1;
+            self.list.push_back(ev);
+        }
+        self.rev = next_rev();
     }
 
     /// Otomatik açılışta pencerede görünecek (start/bitiş dışındaki) olay sayısı
@@ -439,6 +525,8 @@ impl EventLog {
         let (record, last_wall) = (self.record, self.last_wall);
         *self = EventLog { sim, demo, next_id, stash, prev, record, last_wall, ..EventLog::default() };
         self.session_num = f.session_num;
+        self.list_key = session_key(s);
+        self.cur_key = self.list_key.clone();
         self.summary.started_at = now_ms();
         self.track = if s.track_config.is_empty() {
             s.track_name.clone()
@@ -518,6 +606,22 @@ impl EventLog {
         if self.sim == "iracing" && !self.demo {
             // Tekrar kafasının konumu ve canlı andaki kaset karesi (tekrara sarma bunu kullanır)
             crate::broadcast::observe(f, !f.replay || f.replay_live);
+        }
+        // Açık oturumun kimliği ve tekrar durumu (pencere listenin bu oturuma ait olup olmadığını bilsin)
+        let key = session_key(s);
+        let replay_file = s.sim_mode == "replay";
+        let watching = (f.replay && !f.replay_live) || replay_file;
+        if key != self.cur_key || watching != self.watching || replay_file != self.replay_file {
+            self.cur_key = key;
+            self.watching = watching;
+            self.replay_file = replay_file;
+            self.rev = next_rev();
+        }
+        if replay_file {
+            // Kayıtlı tekrar dosyası: canlı olay üretilmez (liste tekrar taramasından gelir)
+            self.last_rc_id = rc_max;
+            self.rebase = true;
+            return false;
         }
         if f.replay && !f.replay_live {
             // Tekrar oynatılıyor: geçmiş anlardan olay üretme, dönünce yeniden taban al
@@ -825,6 +929,67 @@ mod tests {
             f.cars[i].lap_completed = 2;
         }
         f
+    }
+
+    #[test]
+    fn replay_file_lists_scanned_incidents() {
+        use crate::broadcast::ScanHit;
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        log.set_source("iracing", false);
+        // Canlı yarış: bir olay toplanır
+        let mut live = session();
+        live.sub_session_id = 111;
+        let mut f = frame(100.0);
+        log.update(&f, &live, &t);
+        f.session_time = 101.0;
+        f.incidents = 4;
+        log.update(&f, &live, &t);
+        let i = log.info(true);
+        assert!(i.matches && !i.watching && !i.replay_file && !i.from_replay);
+
+        // Sonra başka bir yarışın kayıtlı tekrar dosyası açıldı: liste o tekrara ait değil, canlı olay üretilmez
+        let mut rep = session();
+        rep.sub_session_id = 222;
+        rep.sim_mode = "replay".into();
+        let mut rf = frame(50.0);
+        rf.replay = true;
+        rf.incidents = 9;
+        log.update(&rf, &rep, &t);
+        rf.session_time = 60.0;
+        rf.cars[1].surface = 0;
+        log.update(&rf, &rep, &t);
+        let i = log.info(true);
+        assert!(i.watching && i.replay_file && !i.matches, "eski liste bu tekrara ait değil");
+        assert_eq!(i.events.len(), 1);
+
+        // Tarama sonucu yüklenir: sıralı, araç bilgisiyle, sarılabilir; önceki yarış "önceki oturum" olur
+        let hits = [
+            ScanHit { session_num: 2, time: 300.5, car_idx: 2, lap: 5 },
+            ScanHit { session_num: 2, time: 120.0, car_idx: 1, lap: 2 },
+            ScanHit { session_num: 2, time: 200.0, car_idx: -1, lap: 0 },
+        ];
+        log.load_replay_hits(&hits, &rep);
+        let i = log.info(true);
+        assert!(i.from_replay && i.matches && i.has_previous && i.replay_ok);
+        let ev = &i.events;
+        assert_eq!(ev.len(), 3);
+        assert_eq!(ev.iter().map(|e| e.time).collect::<Vec<_>>(), vec![120.0, 200.0, 300.5]);
+        assert_eq!((ev[0].kind, ev[0].number.as_str(), ev[0].focus.as_str(), ev[0].lap), ("incident", "11", "11", 2));
+        assert!(ev[1].number.is_empty(), "kamerada araç yoksa numara boş");
+        // Tekrar izlenirken sonraki karelerde liste bozulmaz
+        rf.session_time = 70.0;
+        log.update(&rf, &rep, &t);
+        assert_eq!(log.events().len(), 3);
+    }
+
+    #[test]
+    fn session_keys() {
+        let mut s = session();
+        assert!(session_key(&s).starts_with("t:Spa|"));
+        s.sub_session_id = 42;
+        assert_eq!(session_key(&s), "ss:42");
+        assert_eq!(session_key(&SessionData::default()), "");
     }
 
     #[test]

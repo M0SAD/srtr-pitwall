@@ -7193,5 +7193,14 @@
   "Autofuel'i otomatik aç": "Autofuel automatisch inschakelen",
   "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Elke keer dat je in de auto stapt (en wanneer een race begint terwijl je in de auto zit) wordt de autofuel van iRacing ingeschakeld: bij de pitstop wordt de tank niet volgegooid, alleen genoeg brandstof om te finishen. Het commando \"#autofuel\" wordt in de iRacing-chat getypt; het chatvenster verschijnt even.",
   "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "Als de race eindigt en je met ESC uit de auto naar het herhalingsscherm gaat, en als een herhaling start, opent het venster Gebeurtenissen; het sluit als je instapt. Klik op een gebeurtenis om de iRacing-herhaling naar dat moment te laten springen.",
-  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Dit venster opent vanzelf als je na de race uit de auto naar het herhalingsscherm gaat en als een herhaling start"
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Dit venster opent vanzelf als je na de race uit de auto naar het herhalingsscherm gaat en als een herhaling start",
+  "Bu tekrarda olay işareti bulunamadı": "Geen incidentmarkeringen gevonden in deze herhaling",
+  "Bu tekrarın olayları henüz listelenmedi.": "De gebeurtenissen van deze herhaling zijn nog niet opgesomd.",
+  "iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.": "De iRacing-herhaling springt van incident naar incident; daarna keert hij terug naar waar je was.",
+  "İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler": "Zoekt en toont de incidentmarkeringen in de herhaling die je bekijkt (de incidenten in het iRacing-herhalingsscherm)",
+  "Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.": "Lijst op basis van de incidentmarkeringen in de herhaling: de betrokken auto is de auto die de iRacing-camera op dat moment toonde.",
+  "Olayları bul": "Gebeurtenissen zoeken",
+  "Tekrarda {0} olay bulundu": "{0} incidenten gevonden in de herhaling",
+  "Tekrardaki olaylar aranıyor… ({0})": "Herhaling wordt doorzocht op incidenten… ({0})",
+  "Olay (tekrardaki işaret)": "Incident (markering in herhaling)"
 }
