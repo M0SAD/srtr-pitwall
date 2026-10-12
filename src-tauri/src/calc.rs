@@ -842,9 +842,20 @@ fn left_car(f: &Frame, s: &SessionData, i: usize) -> bool {
     f.cars[i].pct < 0.0 && f.cars[i].position > 0 && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator)
 }
 
-/// Sıralamaya giren araçlar
+/// Sunucuda olan ama aracı dünyada olmayan (garajda / henüz piste çıkmamış) ve resmi sırası olmayan sürücü.
+/// iRacing bu araçların konumunu -1 verir; yine de sıralama tablosunda görünürler (sonda, "GAR").
+fn garage_car(f: &Frame, s: &SessionData, i: usize) -> bool {
+    f.cars[i].pct < 0.0
+        && f.cars[i].position <= 0
+        && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator && !d.name.trim().is_empty())
+}
+
+/// Sıralamaya giren araçlar: pistteki / pitteki araçlar, sunucudan çıkmış ama resmi sırası duranlar ve garajdakiler.
+/// Garajdakilerin resmi sırası yoktur; her sıralama düzeninde en sona düşerler.
 fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
-    (0..MAX_CARS).filter(|&i| active(f, s, i) || left_car(f, s, i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0)).collect()
+    (0..MAX_CARS)
+        .filter(|&i| active(f, s, i) || left_car(f, s, i) || garage_car(f, s, i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0))
+        .collect()
 }
 
 /// Son sıralama turlarının (Qualify) sonucu: grid sırası (CarIdx listesi). iRacing ResultsPositions sıra düzeninde gelir.
@@ -896,11 +907,18 @@ fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool {
         return true;
     }
     // Henüz resmi sıralama yok: en iyi tura, o da yoksa pistteki mesafeye göre
-    idxs.sort_by(|&a, &b| {
-        let ka = if f.cars[a].best > 0.0 { f.cars[a].best } else { 1e6 - (f.cars[a].lap as f32 + f.cars[a].pct) };
-        let kb = if f.cars[b].best > 0.0 { f.cars[b].best } else { 1e6 - (f.cars[b].lap as f32 + f.cars[b].pct) };
-        ka.total_cmp(&kb)
-    });
+    // (dünyada olmayan araç en sonda; garajdakiler kendi aralarında araç sırasıyla)
+    let key = |i: usize| {
+        let c = &f.cars[i];
+        if c.best > 0.0 {
+            c.best
+        } else if c.pct < 0.0 {
+            2e6 + i as f32
+        } else {
+            1e6 - (c.lap as f32 + c.pct)
+        }
+    };
+    idxs.sort_by(|&a, &b| key(a).total_cmp(&key(b)));
     false
 }
 
@@ -969,7 +987,13 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
             r.on_pit = false;
             r.pit_state = String::new();
         }
-        if !has_pos {
+        let in_garage = garage_car(f, s, i);
+        if in_garage {
+            r.on_pit = false;
+            r.pit_state = "GAR".into();
+        }
+        // Resmi sırası olmayan (ör. garajdaki) sürücü: tablodaki yeri
+        if !has_pos || r.pos <= 0 {
             r.pos = n as i32 + 1;
         }
         let c = f.cars[i];
@@ -994,7 +1018,11 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
             None => class_irs.push((r.class_id, vec![r.irating])),
         }
         let prev = class_prev.iter().find(|x| x.0 == r.class_id).map(|x| x.1);
-        if race {
+        if in_garage {
+            // Garajdaki araç: fark / aralık yok (pistte değil)
+            r.gap = 0.0;
+            r.interval = 0.0;
+        } else if race {
             let lc = f.cars[leader];
             r.laps_down = (lc.lap_completed - c.lap_completed).max(0);
             r.gap = (c.f2 - lc.f2).max(0.0);
@@ -1443,6 +1471,56 @@ mod tests {
         }
         let p = positions(&f, &s);
         assert_eq!(p[0].0, 4);
+    }
+
+    #[test]
+    fn standings_show_drivers_in_garage() {
+        use crate::model::{Driver, SessionEntry};
+        let mut s = SessionData { player_idx: 0, ..Default::default() };
+        s.drivers = vec![None; 6];
+        for i in 0..6 {
+            s.drivers[i] = Some(Driver { car_idx: i as i32, class_id: 1, name: format!("Sürücü {i}"), ..Default::default() });
+        }
+        // 5: izleyici (listeye girmez)
+        if let Some(d) = s.drivers[5].as_mut() {
+            d.is_spectator = true;
+        }
+        s.sessions.push(SessionEntry { num: 0, kind: "Practice".into(), ..Default::default() });
+        let mut f = Frame { player_idx: 0, session_num: 0, session_state: 4, ..Default::default() };
+        for i in 0..6 {
+            f.cars[i].pct = -1.0;
+            f.cars[i].position = 0;
+        }
+        // Ben pistten yeni çıktım (tur yok); 1 pistte ve en iyi turu var; 2, 3, 4 garajda
+        f.cars[0].pct = 0.05;
+        f.cars[1].pct = 0.5;
+        f.cars[1].best = 92.5;
+        let t = Tracker::default();
+        let st = standings(&f, &s, &t);
+        let ids: Vec<i32> = st.rows.iter().map(|r| r.idx).collect();
+        assert_eq!(ids.len(), 5, "garajdakiler de listede, izleyici yok: {ids:?}");
+        assert_eq!(&ids[..2], &[1, 0], "pistteki araçlar önde: {ids:?}");
+        assert!(st.rows[2..].iter().all(|r| r.pit_state == "GAR" && !r.gone && r.gap == 0.0));
+        assert_eq!(st.rows.iter().map(|r| r.pos).collect::<Vec<_>>(), vec![1, 2, 3, 4, 5]);
+        // Yakındakiler yalnızca dünyadaki araçları gösterir; sıra numaraları tabloyla aynı
+        let rel = relative(&f, &s, &t, 3);
+        assert_eq!(rel.rows.len(), 2);
+        let p = positions(&f, &s);
+        for r in &rel.rows {
+            assert_eq!(r.pos, p[r.idx as usize].0);
+        }
+        // Yarışta resmi sıra varken garajdaki (sırasız) araç sonda kalır
+        s.sessions.push(SessionEntry { num: 1, kind: "Race".into(), ..Default::default() });
+        f.session_num = 1;
+        f.cars[0].position = 2;
+        f.cars[1].position = 1;
+        f.cars[0].lap_completed = 3;
+        f.cars[1].lap_completed = 3;
+        let st = standings(&f, &s, &t);
+        assert_eq!(st.rows.first().map(|r| r.idx), Some(1));
+        assert_eq!(st.rows.len(), 5);
+        assert!(st.rows[2..].iter().all(|r| r.pit_state == "GAR"));
+        assert_eq!(st.rows.iter().map(|r| r.pos).collect::<Vec<_>>(), vec![1, 2, 3, 4, 5]);
     }
 
     #[test]

@@ -187,7 +187,7 @@ export interface Row {
   avg5: number;
   lastPb: boolean;
   onPit: boolean;
-  pitState: "" | "PIT" | "OUT";
+  pitState: "" | "PIT" | "OUT" | "GAR";
   stint: number;
   pits: number;
   tire: number;

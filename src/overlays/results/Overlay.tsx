@@ -83,7 +83,8 @@ export default function Results(props: OverlayProps) {
 
   // --- veriler ---
   const all = createMemo<Row[]>(() => {
-    const rows = standings()?.rows ?? [];
+    // Hiç piste çıkmamış (garajda, resmi sırası yok) sürücüler sonuçlara girmez
+    const rows = (standings()?.rows ?? []).filter((r) => r.pitState !== "GAR");
     if (rows.some((r) => r.isMe)) return rows;
     // Rakip listesi yoksa örnek yalnızca önizleme / düzenlemede
     return liveOn() ? rows : SAMPLE;

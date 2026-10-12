@@ -16,7 +16,8 @@ export default function BattleBox(props: OverlayProps) {
     if (!d) return null;
     const me = d.rows.find((r) => r.isMe);
     if (!me) return null;
-    const cls = d.rows.filter((r) => r.classId === me.classId).sort((a, b) => a.classPos - b.classPos);
+    // Garajdakiler (pistte değil) rakip sayılmaz
+    const cls = d.rows.filter((r) => r.classId === me.classId && r.pitState !== "GAR").sort((a, b) => a.classPos - b.classPos);
     const i = cls.findIndex((r) => r.isMe);
     const ahead = i > 0 ? cls[i - 1] : null;
     const behind = i >= 0 && i < cls.length - 1 ? cls[i + 1] : null;

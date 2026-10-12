@@ -412,3 +412,8 @@
 .st .st-row.me {
   background: linear-gradient(var(--ov-bg-me), var(--ov-bg-me)), color-mix(in srgb, var(--ov-bg-solid, #0c0e13) var(--st-fill, 0%), transparent);
 }
+
+/* Sunucuda ama garajda (pistte değil, resmi sırası yok): sonda, hafif soluk */
+.st-row.garage {
+  opacity: 0.6;
+}

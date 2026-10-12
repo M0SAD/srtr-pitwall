@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-312
+
+- Sıralama tablosu: sunucudaki bütün sürücüler görünür. Önceden yalnızca aracı dünyada olanlar (pistte / pitte) ve sunucudan çıkmış ama resmi sırası olanlar listeleniyordu; antrenmanda ya da kimsenin tur atmadığı bir oturumda garajda bekleyenler hiç görünmüyor, piste çıkınca tablo boş kalıyordu (yalnızca sen). Artık garajdaki / henüz piste çıkmamış sürücüler de listede: en sonda, "GAR" etiketiyle ve hafif soluk; fark / aralık sütunları boş. Resmi sırası olmadığı için sıra numarası tablodaki yeridir. Sıra numaraları Yakındakiler ve sesli mühendisle aynı kaynaktan (calc::positions) gelmeye devam eder. Rust: calc.rs garage_car, field_idxs; test standings_show_drivers_in_garage.
+- Yakındakiler (relative) yalnızca pistteki / pitteki araçları gösterir (garajdaki araçların pistte konumu yoktur); sıra numaraları tabloyla aynı.
+- Yakın Mücadele, Fark Grafiği, Hedef ve Sonuçlar overlay'leri garajdaki sürücüleri rakip / sonuç saymaz.
+
 ## 121026-311
 
 - Olaylar penceresi: yarış bitince çizgiyi geçer geçmez açılmıyor; bitişten sonra araçtan çıkınca (ESC ile tekrar / replay ekranına geçince) açılır. Önceden tekrar ekranı canlı görüntüdeyken açılmıyor, ancak geri sarınca açılıyordu. Tekrar izlemeye (geri sarmaya) başlayınca açılması ve araca binince kapanması aynen sürer. Ayar metinleri güncellendi.
