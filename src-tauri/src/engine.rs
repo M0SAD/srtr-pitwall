@@ -188,6 +188,9 @@ pub struct Shared {
     pub topics_gen: AtomicU64,
     /// Canlı Sohbet overlay kapısı (livechat/mod.rs günceller): `status` konusuyla her aboneye — OBS dahil — gider
     pub live_gate: Mutex<crate::livechat::LiveGate>,
+    /// Oturumdaki sürücülerin adları (sim; tekrarlamasız, küçük harf değil): Arkadaş Uyarısı aynı yarıştaki arkadaşları
+    /// bununla bulur (bkz. lib.rs session_driver_names, src/host/friendAlert.ts). Demo / bağlı değilken boş.
+    pub driver_names: Mutex<Vec<String>>,
 }
 
 const KNOWN: &[&str] = &[
@@ -591,6 +594,16 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             let cfg = shared.league.lock().clone();
             let (s, active) = crate::league::apply(&st.raw, cfg.as_ref());
             st.session = s;
+            {
+                let mut names: Vec<String> = Vec::new();
+                for d in st.session.drivers.iter().flatten() {
+                    if d.is_pace_car || d.is_spectator || d.name.trim().is_empty() || names.iter().any(|n| n == &d.name) {
+                        continue;
+                    }
+                    names.push(d.name.clone());
+                }
+                *shared.driver_names.lock() = names;
+            }
             st.league_active = active;
             let track = if st.session.track_config.is_empty() {
                 st.session.track_name.clone()

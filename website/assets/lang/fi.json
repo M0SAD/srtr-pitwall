@@ -301,6 +301,7 @@
  "ad_report_dup": "Olet jo ilmoittanut tämän mainoksen.",
  "ad_rclick": "Ilmoita oikealla klikkauksella",
  "nav_ads": "Mainosta",
+ "nav_tele": "Oma telemetria",
  "f13_t": "Tapahtumanäkymä ja uusinta",
  "f13_d": "Kilpailun päätyttyä tapahtumalista avautuu itsestään: insidentit, ohitukset, varikkokäynnit. Klikkaa yhtä, niin iRacingin uusinta hyppää siihen hetkeen.",
  "f14_t": "Mainosta",
@@ -404,6 +405,9 @@
  "dr_fuel": "Polttoaine",
  "dr_pos": "Sij.",
  "dr_setup": "Setup",
+ "dr_share": "Jaa",
+ "dr_share_hint": "Kopioi linkki: kuka tahansa kirjautunut jäsen voi avata sen",
+ "dr_copied": "Linkki kopioitu",
  "dr_valid_lap": "Kelvollinen",
  "dr_invalid_lap": "Hylätty",
  "dr_pit": "Varikko",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Käyttöehdot",
  "legal_privacy": "Tietosuojakäytäntö",
  "legal_refund": "Palautuskäytäntö",
- "legal_contact": "Yhteystiedot"
+ "legal_contact": "Yhteystiedot",
+ "ov_friendalert_n": "Kaverivaroitus",
+ "ov_friendalert_d": "Vilkkuva “HUOMIO”-varoitus samassa kisassa olevan kaverin näytöllä yhdellä painalluksella.",
+ "ov_friendalert_h": "Lähetetään näppäimellä tai rattipainikkeella|Menee vain kaverilistasi jäsenille samassa kisassa|Vilkkuva huutomerkki ja “HUOMIO”; lähettäjän nimi valinnainen|Kolmio-, ympyrä- ja nauhamallit; väri, kesto ja nopeus säädettävissä|Valinnainen varoitusääni|iRacing",
+ "ovg_friendalert": "Voit sanoa samassa kisassa olevalle kaverille “varo” yhdellä painalluksella. Kun olet samassa kisassa kaverilistasi jäsenen kanssa, painat määrittämääsi näppäintä tai rattipainiketta; hänen näytölleen ilmestyy iso vilkkuva huutomerkki ja “HUOMIO”, halutessa lyhyen äänen kera. Tiimikisoissa nopein tapa varoittaa ilman puhetta takaa tulevasta nopeasta autosta tai edessä olevasta kolarista. Kolmio-, ympyrä- ja nauhamallit; teksti, väri, kesto ja vilkkumisnopeus säädettävissä."
 }

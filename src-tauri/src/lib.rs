@@ -697,6 +697,16 @@ async fn watch_car_live(number: String) -> Result<(), String> {
 
 // ---- Olaylar ekranı ----
 
+/// Bağlı oturumdaki sürücülerin adları (Arkadaş Uyarısı: aynı yarıştaki arkadaşlar). Demo / bağlı değilken boş.
+#[tauri::command]
+fn session_driver_names(state: State<'_, Arc<Shared>>) -> Vec<String> {
+    let demo = state.events.lock().demo;
+    if demo || !state.connected.load(Ordering::Relaxed) {
+        return Vec::new();
+    }
+    state.driver_names.lock().clone()
+}
+
 #[tauri::command]
 fn events_get(state: State<'_, Arc<Shared>>, view: Option<String>) -> events::EventsInfo {
     let connected = state.connected.load(Ordering::Relaxed);
@@ -2719,6 +2729,7 @@ pub fn run() {
             voicecmd::voicecmd_status,
             voicecmd::voicecmd_examples,
             voicecmd::voicecmd_capture_button,
+            session_driver_names,
             voicecmd::voicecmd_capture_cancel,
             voicecmd::voicecmd_test_text,
             voicecmd::voicecmd_listen,

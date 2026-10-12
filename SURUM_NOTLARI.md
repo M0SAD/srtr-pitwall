@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-304
+
+- Yeni overlay: Arkadaş Uyarısı. Arkadaş listendeki biriyle aynı yarıştayken atadığın klavye tuşuna ya da direksiyon düğmesine basınca onun ekranında yanıp sönen ünlem işareti ve "DİKKAT" yazısı çıkar (o basınca senin ekranında). Tuş / düğme: Kısayollar › Arkadaşa uyarı (tuş yutulmaz, oyun öndeyken de çalışır). Tasarımlar: üçgen, daire, şerit; yazı, gönderenin adı, süre (5 sn), yanıp sönme hızı, boyut, renkler ve isteğe bağlı ses ayarlanır. Aynı yarış: arkadaşın profilindeki sim adı bağlı oturumun sürücü listesinde olmalı. Uyarı Supabase Realtime yayınıyla gider (veritabanına yazılmaz); alıcı, gönderenin kabul edilmiş ve susturulmamış arkadaşı ve aynı oturumda olduğunu kendisi denetler, 30 sn'den eski uyarıyı göstermez. Ekranda kısa bilgi: "Gönderildi" / "Aynı yarışta arkadaşın yok" / giriş gerekli. Demoda basınca kendi ekranında önizleme. Rust: voicecmd.rs (friend-alert-press), session_driver_names komutu. Şimdilik iRacing.
+- Tur analizi: sektör karşılaştırma tablosunda "Setup" sütunu (A ve B hangi setup'la atıldı; "Aynı setup" / "Farklı setup"). Karşılaştırılacak tur seçicide kendi turlarının setup adı.
+- Tur analizi › İzler: grafiklerin yanında küçük pist haritası; grafiklerin üzerinde gezinirken imlecin pistin neresinde olduğu sarı noktayla gösterilir (büyük pist haritasında da). Küçük haritanın üzerinde gezinince grafiklerdeki imleç oraya gider. Harita bu bilgisayarda öğrenilmiş pist şeklinden çizilir.
+- Site: overlay listesine Arkadaş Uyarısı.
+
+## 121026-303
+
+- Telemetri: sayfaların üstünde "Paylaş" düğmesi. Bağlantıyı panoya kopyalar; giriş yapmış her üye web sitesinde (yarisci.html) açıp görebilir. Kendi telemetrin / bir üyenin telemetrisi → ?u=, oturum → ?s=, pist + araç sıralaması → ?b=; tur analizinde o turun oturum sayfası paylaşılır (analizin sitede karşılığı yok).
+- Site: yarışçı telemetri sayfalarında (profil, oturum, sıralama) da "Paylaş" düğmesi. Giriş yapmamış biri paylaşılan bağlantıyı açarsa "Giriş yap" onu girişten sonra aynı sayfaya geri getirir. Üst menüde giriş yapmış üyelere "Telemetrim" bağlantısı.
+
 ## 121026-302
 
 - Yeni PRO özellik: Altyazı çevirisi (livechat.translate). Konuşma → yazı › Çeviri: oyunda / Discord'da / takım telsizinde başka dilde konuşulanlar altyazıda seçilen dile çevrilmiş görünür (varsayılan: arayüz dili). Çevrimiçi (Whisper) motoruyla çalışır: konuşma yazıya döküldükten sonra aynı OpenAI uyumlu sunucunun sohbet ucuyla çevrilir (aynı API anahtarı; Groq: llama-3.3-70b-versatile, OpenAI: gpt-4o-mini, kendi sunucunda model adı ayardan). Çevrilen kaynakta Whisper dili kendisi algılar; zaten hedef dilde olan cümle olduğu gibi kalır. Seçenekler: yalnızca bilgisayar sesi ya da mikrofon da, "Orijinali de göster" (çevirinin altında küçük harfle özgün metin; altyazı overlay'i ve OBS sayfası). Cümleler sırayla çevrilir; çeviri hata verirse cümle çevrilmeden yazılır ve durum satırında uyarı çıkar. Rust: livechat/translate.rs.

@@ -790,6 +790,38 @@ export function castLink(name: string, event: string, onData?: (payload: any) =>
 }
 
 /**
+ * Tek seferlik yayın: kanala katılır, katılınca yükü gönderir, kısa süre sonra ayrılır (Realtime BROADCAST; veritabanına
+ * yazılmaz). Katılınamazsa ya da 6 sn içinde gönderilemezse false döner.
+ */
+export function castOnce(name: string, event: string, payload: unknown): Promise<boolean> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (ok: boolean, c?: NonNullable<Awaited<ReturnType<typeof client>>>, ch?: RealtimeChannel) => {
+      if (done) return;
+      done = true;
+      resolve(ok);
+      if (c && ch) setTimeout(() => void c.removeChannel(ch), 1500);
+    };
+    setTimeout(() => finish(false), 6000);
+    void (async () => {
+      try {
+        const c = await client();
+        if (!c) return finish(false);
+        const ch = c.channel(name, { config: { broadcast: { self: false, ack: false } } });
+        ch.subscribe((status) => {
+          if (String(status) !== "SUBSCRIBED") return;
+          void Promise.resolve(ch.send({ type: "broadcast", event, payload }))
+            .then(() => finish(true, c, ch))
+            .catch(() => finish(false, c, ch));
+        });
+      } catch {
+        finish(false);
+      }
+    })();
+  });
+}
+
+/**
  * "Yazıyor…" bildirimi (birebir sohbet): Realtime BROADCAST — veritabanına hiçbir şey yazılmaz.
  * Kanal adı iki kullanıcı kimliğinden türetilir (site ile aynı: `typing:<küçük>:<büyük>`), sadece o sohbet açıkken katılınır.
  * Yayın kanalları kullanıcı bazında yetkilendirilmez: yükte yalnızca gönderenin kimliği vardır ve

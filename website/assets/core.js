@@ -699,6 +699,7 @@ addDict({
   nav_login: ["Giriş yap", "Sign in"],
   nav_account: ["Hesabım", "My account"],
   nav_admin: ["Yönetim", "Admin"],
+  nav_tele: ["Telemetrim", "My telemetry"],
   nav_ads: ["Reklam ver", "Advertise"],
   nav_drivers: ["Yarışçılar", "Drivers"],
   nav_teams: ["Takımlar", "Teams"],
@@ -907,6 +908,8 @@ export async function initNav() {
     });
     $$(".nav-admin").forEach((a) => (a.hidden = !p?.is_admin));
     $$(".nav-crew").forEach((a) => (a.hidden = !u));
+    // Giriş yapmış üye: kendi telemetrisi
+    $$(".nav-tele").forEach((a) => (a.hidden = !u));
   };
   await refresh();
   sb.auth.onAuthStateChange(() => {
@@ -930,6 +933,7 @@ export function headerHtml(active = "") {
         <a href="takimlar.html" class="${active === "teams" ? "on" : ""}" data-t="nav_teams"></a>
         <a href="yarisci.html" class="${active === "drivers" ? "on" : ""}" data-t="nav_drivers"></a>
         <a href="reklam.html" class="nav-ads${active === "ads" ? " on" : ""}" hidden data-t="nav_ads"></a>
+        <a href="yarisci.html?u=me" class="nav-tele" hidden data-t="nav_tele"></a>
         <a href="crew.html" class="nav-crew${active === "crew" ? " on" : ""}" hidden data-t="nav_crew"></a>
         <a href="yonetim.html" class="nav-admin${active === "admin" ? " on" : ""}" hidden data-t="nav_admin"></a>
         <a href="hesap.html" class="nav-login${active === "account" ? " on" : ""}" data-t="nav_login"></a>

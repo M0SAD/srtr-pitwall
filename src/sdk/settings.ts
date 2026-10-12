@@ -807,6 +807,9 @@ export type EditBackdropSlot = "layout" | "stream" | "screen";
 export const EDIT_BACKDROP_SLOTS: EditBackdropSlot[] = ["layout", "stream", "screen"];
 
 export interface GeneralSettings {
+  /** Arkadaşa uyarı (Arkadaş Uyarısı overlay'i): basınca aynı yarıştaki arkadaşların ekranında "DİKKAT" yanıp söner.
+   *  Tuş GetAsyncKeyState ile yoklanır (yutulmaz), direksiyon düğmesi bas-konuşla aynı yoldan. Rust: voicecmd.rs */
+  friendAlert: { key: string; button: VoiceCommandButton | null };
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
   sim: SimChoice;
@@ -1276,6 +1279,7 @@ export function defaultSettings(): AppSettings {
       shotKeyV2: true,
       shotKeyV3: true,
       hideInReplay: true,
+      friendAlert: { key: "", button: null },
       chatLook: { ...DEFAULT_CHAT_LOOK },
       convBg: {},
       appBg: { ...DEFAULT_APP_BG },
@@ -1439,6 +1443,7 @@ export function normalize(input: unknown): AppSettings {
       // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
       demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,
       demoMuteV1: true,
+      friendAlert: { key: "", button: null, ...(s.general?.friendAlert ?? {}) },
       shortcuts: chatKeyMigrate(voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1), s.general?.chatKeyV2),
       voiceKeyV1: true,
       chatKeyV2: true,

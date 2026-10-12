@@ -1,6 +1,17 @@
 /* Telemetri ve Yarışçılar sayfası */
 .tele .tele-back {
+  margin-bottom: 0;
+}
+/* Geri + Paylaş satırı */
+.tele-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 10px;
+}
+.tele-share.ok {
+  color: var(--ok, #3ddc84);
 }
 .tele-head {
   display: flex;
@@ -849,4 +860,73 @@
   white-space: nowrap;
   color: var(--muted);
   font-size: 12.5px;
+}
+
+/* İzler: grafikler + imlecin pistteki yerini gösteren küçük harita */
+.tcharts-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+.tcharts-list {
+  min-width: 0;
+}
+.tminimap {
+  position: sticky;
+  top: 8px;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+.tminimap svg {
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+.tminimap small {
+  font-variant-numeric: tabular-nums;
+}
+.tmm-track {
+  fill: none;
+  stroke: #7a8292;
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+.tmm-start {
+  fill: #fff;
+  stroke: #0b0d12;
+  stroke-width: 2;
+}
+.tmm-dot {
+  fill: #ffcc00;
+  stroke: #0b0d12;
+  stroke-width: 2;
+}
+.tmm-dot-halo,
+.tmap-cursor-halo {
+  fill: rgba(255, 204, 0, 0.25);
+}
+.tmap-cursor {
+  fill: #ffcc00;
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+@media (max-width: 900px) {
+  .tcharts-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tminimap {
+    order: -1;
+    width: 190px;
+    justify-self: end;
+    z-index: 2;
+  }
 }

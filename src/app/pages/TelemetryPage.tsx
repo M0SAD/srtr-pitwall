@@ -40,7 +40,7 @@ import { go } from "../ui";
 import { setTeamFocus } from "@/cloud/teams";
 import { ProfileCard } from "../components/Profile";
 import * as I from "../icons";
-import { TeleMap } from "../components/TeleMap";
+import { MiniMap, TeleMap } from "../components/TeleMap";
 import { loadRef } from "@/cloud/teleref";
 import "../telemetry.css";
 
@@ -55,6 +55,61 @@ type View =
   | { kind: "board"; sim: string; track_id: string; track_config: string; car_id: string; title: string };
 
 const [stack, setStack] = createSignal<View[]>([]);
+
+/** Web sitesindeki karşılığı (yarisci.html): giriş yapmış her üye bağlantıyla açabilir. Analiz ekranının sitede
+ *  karşılığı yok: o turun oturum sayfası paylaşılır. */
+const SITE = "https://pitwall.simracetr.com/yarisci.html";
+function shareUrl(v: View, me: string | undefined, sessionOf?: string): string | null {
+  switch (v.kind) {
+    case "home":
+      return me ? `${SITE}?u=${me}` : null;
+    case "user":
+      return `${SITE}?u=${v.id}`;
+    case "session":
+      return `${SITE}?s=${v.id}`;
+    case "board":
+      return `${SITE}?b=${encodeURIComponent([v.sim, v.track_id, v.track_config, v.car_id].join("|"))}`;
+    case "analysis":
+      return sessionOf ? `${SITE}?s=${sessionOf}` : null;
+  }
+}
+/** Analiz ekranındaki ilk turun oturumu (paylaşım bağlantısı için; AnalysisView yükleyince yazar) */
+const [analysisSession, setAnalysisSession] = createSignal<string | undefined>();
+
+function ShareButton() {
+  const [done, setDone] = createSignal(false);
+  const url = () => shareUrl(view(), session()?.user.id, analysisSession());
+  const copy = async () => {
+    const u = url();
+    if (!u) return;
+    try {
+      await navigator.clipboard.writeText(u);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = u;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    setDone(true);
+    setTimeout(() => setDone(false), 2200);
+  };
+  return (
+    <Show when={url()}>
+      <button
+        class="btn ghost small tele-share"
+        classList={{ ok: done() }}
+        title={t("Bağlantıyı kopyala: giriş yapmış her üye web sitesinde açıp görebilir")}
+        onClick={copy}
+      >
+        <Show when={done()} fallback={<><I.Share2 /> Paylaş</>}>
+          <I.Check /> Bağlantı kopyalandı
+        </Show>
+      </button>
+    </Show>
+  );
+}
 const view = (): View => stack()[stack().length - 1] ?? { kind: "home" };
 const push = (v: View) => setStack([...stack(), v]);
 const back = () => setStack(stack().slice(0, -1));
@@ -170,11 +225,14 @@ export function TelemetryPage(p: { sub: string }) {
           </ProLockBox>
         </Match>
         <Match when={true}>
-          <Show when={stack().length}>
-            <button class="btn ghost small tele-back" onClick={back}>
-              <I.ChevronLeft /> Geri
-            </button>
-          </Show>
+          <div class="tele-topbar">
+            <Show when={stack().length} fallback={<span />}>
+              <button class="btn ghost small tele-back" onClick={back}>
+                <I.ChevronLeft /> Geri
+              </button>
+            </Show>
+            <ShareButton />
+          </div>
           <Show when={cmpNote() && view().kind === "user"}>
             <p class="muted small" onClick={() => setCmpNote("")}>
               {cmpNote()}
@@ -1005,10 +1063,13 @@ function AnalysisView(p: { laps: string[] }) {
     async () => {
       const infos = await lapsInfo(p.laps);
       const ordered = p.laps.map((id) => infos.find((x) => x.id === id)).filter((x): x is LapInfo => !!x);
+      setAnalysisSession(ordered[0]?.session_id);
       return Promise.all(ordered.map(async (info) => ({ info, trace: await loadTrace(info.trace_path) }) as Loaded));
     },
   );
   const [picker, setPicker] = createSignal(false);
+  // İzler ile pist haritasının ortak imleci (tur oranı 0..1)
+  const [cursorK, setCursorK] = createSignal<number | null>(null);
   const setLaps = (laps: string[]) => replaceTop({ kind: "analysis", laps });
   const first = () => data()?.[0]?.info;
   // Toplulukla kıyasla (PRO): bu pist ve araçta başkasına ait en hızlı izli tur B olarak eklenir
@@ -1113,8 +1174,8 @@ function AnalysisView(p: { laps: string[] }) {
               when={list().every((x) => x.trace)}
               fallback={<p class="muted">Bu turların izi bulunamadı (sadece oturumların en iyi turlarının izi saklanır).</p>}
             >
-              <TeleMap base={list()[0] as { info: LapInfo; trace: Trace }} other={list()[1] as { info: LapInfo; trace: Trace } | undefined} />
-              <TraceCharts laps={list()} />
+              <TeleMap base={list()[0] as { info: LapInfo; trace: Trace }} other={list()[1] as { info: LapInfo; trace: Trace } | undefined} cursor={cursorK()} />
+              <TraceCharts laps={list()} cursorK={cursorK()} setCursorK={setCursorK} />
             </Show>
           </>
         )}
@@ -1129,6 +1190,8 @@ function SectorCompare(p: { a: LapInfo; b: LapInfo }) {
     const d = y! - x!;
     return `${d >= 0 ? "+" : ""}${d.toFixed(3)}`;
   };
+  const setups = () => !!(p.a.setup_name || p.b.setup_name);
+  const sameSetup = () => !!p.a.setup_name && p.a.setup_name === p.b.setup_name;
   return (
     <table class="tele-table compact">
       <thead>
@@ -1138,6 +1201,9 @@ function SectorCompare(p: { a: LapInfo; b: LapInfo }) {
           <th class="num">S2</th>
           <th class="num">S3</th>
           <th class="num">Tur</th>
+          <Show when={setups()}>
+            <th>Setup</th>
+          </Show>
         </tr>
       </thead>
       <tbody>
@@ -1145,16 +1211,29 @@ function SectorCompare(p: { a: LapInfo; b: LapInfo }) {
           <td>A</td>
           <For each={[0, 1, 2]}>{(i) => <td class="num mono">{p.a.sectors?.[i]?.toFixed(3) ?? "—"}</td>}</For>
           <td class="num mono">{lapTime(p.a.lap_time)}</td>
+          <Show when={setups()}>
+            <td class="tt-setup-cell" title={p.a.setup_name ?? ""} data-no-i18n>
+              {p.a.setup_name || "—"}
+            </td>
+          </Show>
         </tr>
         <tr>
           <td>B</td>
           <For each={[0, 1, 2]}>{(i) => <td class="num mono">{p.b.sectors?.[i]?.toFixed(3) ?? "—"}</td>}</For>
           <td class="num mono">{lapTime(p.b.lap_time)}</td>
+          <Show when={setups()}>
+            <td class="tt-setup-cell" title={p.b.setup_name ?? ""} data-no-i18n>
+              {p.b.setup_name || "—"}
+            </td>
+          </Show>
         </tr>
         <tr class="diff">
           <td>B − A</td>
           <For each={[0, 1, 2]}>{(i) => <td class="num mono">{cell(p.a.sectors?.[i], p.b.sectors?.[i])}</td>}</For>
           <td class="num mono">{cell(p.a.lap_time, p.b.lap_time)}</td>
+          <Show when={setups()}>
+            <td class="muted small">{sameSetup() ? t("Aynı setup") : t("Farklı setup")}</td>
+          </Show>
         </tr>
       </tbody>
     </table>
@@ -1187,6 +1266,9 @@ function LapPicker(p: { base: LapInfo; exclude: string[]; onPick: (id: string) =
                     <td class="mono">{lapTime(l.lap_time)}</td>
                     <td>{t(SESSION_LABEL[l.session_type] ?? "Oturum")}</td>
                     <td>{t("Tur {0}", l.lap)}</td>
+                    <td class="tt-setup-cell" title={l.setup_name ?? ""} data-no-i18n>
+                      {l.setup_name || ""}
+                    </td>
                     <td class="nowrap">{fmtDate(l.driven_at)}</td>
                   </tr>
                 )}
@@ -1309,12 +1391,14 @@ function ChartPanel(p: {
   );
 }
 
-function TraceCharts(p: { laps: Loaded[] }) {
-  const [cursor, setCursor] = createSignal<number | null>(null);
+function TraceCharts(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k: number | null) => void }) {
+  const n = () => p.laps[0]?.trace?.n ?? 0;
+  // İmleç dışarıda tur oranı olarak tutulur (pist haritası da kullanır); grafikler örnek indeksiyle çalışır
+  const cursor = () => (p.cursorK == null || n() < 2 ? null : Math.min(n() - 1, Math.max(0, Math.round(p.cursorK * (n() - 1)))));
+  const setCursor = (i: number | null) => p.setCursorK(i == null || n() < 2 ? null : i / (n() - 1));
   const len = () => p.laps[0]?.info.track_length_km ?? 0;
   const mk = (pick: (t: Trace) => number[], scale = 1): SeriesDef[] =>
     p.laps.map((x, i) => ({ label: "AB"[i], color: COLORS[i], values: pick(x.trace!).map((v) => v * scale) }));
-  const n = () => p.laps[0]?.trace?.n ?? 0;
   const pos = () => {
     const c = cursor();
     if (c == null || !n()) return "";
@@ -1336,6 +1420,8 @@ function TraceCharts(p: { laps: Loaded[] }) {
         <h3>İzler</h3>
         <span class="muted small">{pos() ? t("Konum: {0}", pos()) : "Değerleri görmek için grafiğin üzerine gel"}</span>
       </div>
+      <div class="tcharts-body">
+      <div class="tcharts-list">
       <Show when={delta()}>
         <ChartPanel
           title="Fark (B − A, sn; + B daha yavaş)"
@@ -1352,6 +1438,11 @@ function TraceCharts(p: { laps: Loaded[] }) {
       <ChartPanel title="Fren (%)" series={mk((t) => t.brake)} height={70} min={0} max={100} fmt={(v) => v.toFixed(0)} cursor={cursor()} setCursor={setCursor} />
       <ChartPanel title="Vites" series={mk((t) => t.gear)} height={70} step fmt={(v) => (v < 0 ? "R" : v === 0 ? "N" : v.toFixed(0))} cursor={cursor()} setCursor={setCursor} />
       <ChartPanel title="Direksiyon (°)" series={mk((t) => t.steer)} height={80} zero fmt={(v) => v.toFixed(0)} cursor={cursor()} setCursor={setCursor} />
+      </div>
+      <Show when={p.laps[0]}>
+        <MiniMap info={p.laps[0].info} cursor={p.cursorK} setCursor={p.setCursorK} label={pos()} />
+      </Show>
+      </div>
     </section>
   );
 }

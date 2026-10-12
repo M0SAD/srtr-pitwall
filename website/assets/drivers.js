@@ -61,6 +61,9 @@ addDict({
   dr_status: ["Durum", "Status"],
   dr_fuel: ["Yakıt", "Fuel"],
   dr_pos: ["Sıra", "Pos"],
+  dr_share: ["Paylaş", "Share"],
+  dr_share_hint: ["Bağlantıyı kopyala: giriş yapmış her üye açıp görebilir", "Copy the link: any signed-in member can open it"],
+  dr_copied: ["Bağlantı kopyalandı", "Link copied"],
   dr_setup: ["Setup", "Setup"],
   dr_valid_lap: ["Geçerli", "Valid"],
   dr_invalid_lap: ["Geçersiz", "Invalid"],
@@ -149,7 +152,39 @@ function bindFriends(root) {
   );
 }
 
+/** Giriş sayfasına git, girişten sonra bu sayfaya (paylaşılan bağlantıya) dön */
+function loginHref() {
+  return `hesap.html?next=${encodeURIComponent("yarisci.html" + location.search)}`;
+}
+
+/** Üst satır: geri bağlantısı + "Paylaş" (bağlantıyı panoya kopyalar) */
+function topBar(backHtml, shareQuery) {
+  const url = `${location.origin}${location.pathname}?${shareQuery}`;
+  return `<div class="row between" style="margin-bottom:12px;gap:10px">${backHtml}
+    <button type="button" class="btn btn-sm btn-ghost" data-share="${esc(url)}" title="${esc(T("dr_share_hint"))}">🔗 ${esc(T("dr_share"))}</button></div>`;
+}
+
+function bindShare(root) {
+  $$("[data-share]", root).forEach((b) =>
+    b.addEventListener("click", async () => {
+      const url = b.dataset.share;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      toast(T("dr_copied"));
+    }),
+  );
+}
+
 function bindLinks(root) {
+  bindShare(root);
   $$("[data-go]", root).forEach((el) =>
     el.addEventListener("click", (e) => {
       if (e.target.closest("button:not([data-go]), a:not([data-go])")) return;
@@ -229,7 +264,7 @@ async function fillList(sim, q, me) {
 async function profileView(uid) {
   const me = await currentUser();
   if (uid === "me" && !me) {
-    app().innerHTML = `<div class="page"><div class="msg">${esc(T("dr_login_me"))} <a href="hesap.html">${esc(T("nav_login"))}</a></div></div>`;
+    app().innerHTML = `<div class="page"><div class="msg">${esc(T("dr_login_me"))} <a href="${loginHref()}">${esc(T("nav_login"))}</a></div></div>`;
     return;
   }
   app().innerHTML = `<p class="muted page">${esc(T("loading"))}</p>`;
@@ -290,7 +325,7 @@ async function profileView(uid) {
         .join("")}</tbody></table></div></div>`;
   }
   app().innerHTML = `<div class="page">
-    <p><a href="yarisci.html" data-go='{}'>${esc(T("dr_back"))}</a></p>
+    ${topBar(`<a href="yarisci.html" data-go='{}'>${esc(T("dr_back"))}</a>`, `u=${encodeURIComponent(p.id)}`)}
     ${
       pub
         ? profileHero(pub, isMe ? `<a class="btn btn-sm" href="hesap.html#profil">${esc(T("pf_edit"))}</a>` : friendBtn(p.id, p.friend, me)) +
@@ -337,7 +372,7 @@ async function sessionView(id) {
     return `<span style="${purple ? "color:#c58bff;font-weight:700" : ""}">${v.toFixed(3)}</span>`;
   };
   app().innerHTML = `<div class="page">
-    <p><a href="#" data-go='${esc(JSON.stringify({ u: d.owner.id }))}'>← ${esc(d.owner.display_name || "—")}</a></p>
+    ${topBar(`<a href="#" data-go='${esc(JSON.stringify({ u: d.owner.id }))}'>← ${esc(d.owner.display_name || "—")}</a>`, `s=${encodeURIComponent(id)}`)}
     <div class="page-head"><div><h1>${esc(trackLabel(s))}</h1>
       <p class="muted" style="margin:4px 0 0">${esc(SIM_LABEL[s.sim] || s.sim)} · ${esc(s.car_name)}${s.car_class ? ` (${esc(s.car_class)})` : ""} · ${esc(
         stLabel(s.session_type),
@@ -383,7 +418,7 @@ async function boardView(key) {
   const rows = await rpc("telemetry_leaderboard", { p_sim: sim, p_track_id: track, p_track_config: config, p_car_id: all ? null : car, p_limit: 100 });
   const title = rows[0] ? `${rows[0].car_name && !all ? rows[0].car_name : ""}` : "";
   app().innerHTML = `<div class="page">
-    <p><a href="javascript:history.back()">←</a></p>
+    ${topBar(`<a href="javascript:history.back()">←</a>`, `b=${encodeURIComponent(key)}${all ? "&all=1" : ""}`)}
     <div class="page-head"><div><h1>${esc(T("dr_board"))}</h1><p class="muted" style="margin:4px 0 0">${esc(SIM_LABEL[sim] || sim)} · ${esc(
       track,
     )}${config ? " – " + esc(config) : ""}${title ? " · " + esc(title) : ""}</p></div>
@@ -418,7 +453,7 @@ async function route() {
   const p = params();
   // Telemetri yalnızca giriş yapmış üyelere görünür (c86)
   if (!(await currentUser())) {
-    app().innerHTML = `<div class="page"><h1>${esc(T("dr_title"))}</h1><div class="msg">${esc(T("dr_login_need"))} <a href="hesap.html">${esc(T("nav_login"))}</a></div></div>`;
+    app().innerHTML = `<div class="page"><h1>${esc(T("dr_title"))}</h1><div class="msg">${esc(T("dr_login_need"))} <a href="${loginHref()}">${esc(T("nav_login"))}</a></div></div>`;
     return;
   }
   try {

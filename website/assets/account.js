@@ -349,7 +349,8 @@ async function onSubmit(e) {
 /** ?next= : sadece aynı sitedeki basit bir sayfa adı (ör. "crew.html?d=…"); şema, eğik çizgi, başka alan adı kabul edilmez */
 function safeNext() {
   const n = new URLSearchParams(location.search).get("next") || "";
-  return /^[a-z0-9_-]+\.html(\?[A-Za-z0-9_=&%.-]*)?$/.test(n) && !n.startsWith("hesap.html") ? n : "";
+  // Aynı sitedeki bir sayfa (paylaşılan telemetri bağlantıları: yarisci.html?b=iracing|123|config|45 gibi)
+  return /^[a-z0-9_-]+\.html(\?[^\s<>"'`\\]*)?$/.test(n) && !n.startsWith("hesap.html") ? n : "";
 }
 
 async function afterLogin() {

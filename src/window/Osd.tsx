@@ -59,6 +59,14 @@ function describe(p: OsdPayload): Omit<View, "id"> | null {
       return { label: t("Sesli mühendis PRO üyelik gerektirir"), tone: "warn" };
     case "crewStop":
       return p.on ? { label: t("Ekip kontrolü durduruldu"), tone: "off" } : { label: t("Ekip kontrolü zaten kapalı"), tone: "info" };
+    case "friendAlertSent":
+      return { label: t("Arkadaş uyarısı"), state: t("Gönderildi"), tone: "on" };
+    case "friendAlertNone":
+      return { label: t("Arkadaş uyarısı"), state: t("Aynı yarışta arkadaşın yok"), tone: "warn" };
+    case "friendAlertFail":
+      return { label: t("Arkadaş uyarısı"), state: t("Gönderilemedi"), tone: "warn" };
+    case "friendAlertLogin":
+      return { label: t("Arkadaş uyarısı için giriş yapmalısın"), tone: "warn" };
     case "dashPage":
       return { label: t("Direksiyon Ekranı"), state: t("Sonraki sayfa"), tone: "info" };
     case "vrConfig":

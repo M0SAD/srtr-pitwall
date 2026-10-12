@@ -90,6 +90,8 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   setupname: ["acc", "ac", "lmu", "ams2"],
   // FFB gücü ve şaft torku sadece iRacing telemetrisinde var
   ffb: ["acc", "ac", "lmu", "ams2"],
+  // Arkadaşın simdeki adı profilde yalnızca iRacing için tutulur (aynı yarıştaki arkadaşı bulmak için)
+  friendalert: ["acc", "ac", "lmu", "ams2"],
   incidentlog: ["acc", "ac", "lmu", "ams2"],
   // Sınıf tempo tahmini (class_est_lap) sadece iRacing'de: "daha hızlı sınıf" hiç tespit edilemez;
   // AC/ACC'de zaten rakip yok

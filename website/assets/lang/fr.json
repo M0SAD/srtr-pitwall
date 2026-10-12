@@ -301,6 +301,7 @@
  "ad_report_dup": "Tu as déjà signalé cette pub.",
  "ad_rclick": "Clic droit : signaler",
  "nav_ads": "Publicité",
+ "nav_tele": "Ma télémétrie",
  "f13_t": "Écran des événements et replay",
  "f13_d": "À la fin de la course, la liste des événements s'ouvre toute seule : incidents, dépassements, arrêts aux stands. Clique sur l'un d'eux et le replay iRacing saute à ce moment.",
  "f14_t": "Faire de la pub",
@@ -404,6 +405,9 @@
  "dr_fuel": "Carburant",
  "dr_pos": "Pos.",
  "dr_setup": "Setup",
+ "dr_share": "Partager",
+ "dr_share_hint": "Copier le lien : tout membre connecté peut l'ouvrir",
+ "dr_copied": "Lien copié",
  "dr_valid_lap": "Valide",
  "dr_invalid_lap": "Invalide",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Conditions d'utilisation",
  "legal_privacy": "Politique de confidentialité",
  "legal_refund": "Politique de remboursement",
- "legal_contact": "Contact"
+ "legal_contact": "Contact",
+ "ov_friendalert_n": "Alerte ami",
+ "ov_friendalert_d": "Une alerte « ATTENTION » qui clignote sur l'écran d'un ami dans la même course, en un seul appui.",
+ "ov_friendalert_h": "Envoyée avec une touche du clavier ou un bouton du volant|Uniquement à ta liste d'amis et dans la même course|Point d'exclamation clignotant et « ATTENTION » ; nom de l'expéditeur en option|Designs triangle, cercle et bandeau ; couleur, durée et vitesse réglables|Son d'alerte en option|iRacing",
+ "ovg_friendalert": "Permet de dire « attention » à un ami dans la même course en un seul appui. Quand tu es dans la même course qu'un membre de ta liste d'amis, appuie sur la touche ou le bouton du volant attribué ; un grand point d'exclamation clignotant et « ATTENTION » apparaissent sur son écran, avec un court son s'il le souhaite. En course d'équipe, c'est le moyen le plus rapide de prévenir d'une voiture rapide qui arrive derrière ou d'un accident devant sans parler. Designs triangle, cercle et bandeau ; texte, couleur, durée et vitesse de clignotement réglables."
 }

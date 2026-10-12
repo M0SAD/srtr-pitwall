@@ -301,6 +301,7 @@
  "ad_report_dup": "Ya reportaste este anuncio.",
  "ad_rclick": "Clic derecho: reportar",
  "nav_ads": "Publicidad",
+ "nav_tele": "Mi telemetría",
  "f13_t": "Pantalla de eventos y repetición",
  "f13_d": "Al terminar la carrera se abre sola la lista de eventos: incidentes, adelantamientos, paradas en boxes. Haz clic en uno y la repetición de iRacing salta a ese momento.",
  "f14_t": "Anúnciate",
@@ -404,6 +405,9 @@
  "dr_fuel": "Combustible",
  "dr_pos": "Pos.",
  "dr_setup": "Setup",
+ "dr_share": "Compartir",
+ "dr_share_hint": "Copiar el enlace: cualquier miembro con sesión iniciada puede abrirlo",
+ "dr_copied": "Enlace copiado",
  "dr_valid_lap": "Válida",
  "dr_invalid_lap": "Inválida",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Términos del servicio",
  "legal_privacy": "Política de privacidad",
  "legal_refund": "Política de reembolso",
- "legal_contact": "Contacto"
+ "legal_contact": "Contacto",
+ "ov_friendalert_n": "Aviso a amigos",
+ "ov_friendalert_d": "Un aviso de “ATENCIÓN” que parpadea en la pantalla de un amigo en la misma carrera, con una sola pulsación.",
+ "ov_friendalert_h": "Se envía con una tecla o un botón del volante|Solo llega a tu lista de amigos y en la misma carrera|Signo de exclamación parpadeante y “ATENCIÓN”; nombre del remitente opcional|Diseños triángulo, círculo y banda; color, duración y velocidad ajustables|Sonido de aviso opcional|iRacing",
+ "ovg_friendalert": "Te permite decir “cuidado” a un amigo en la misma carrera con una sola pulsación. Cuando estás en la misma carrera que alguien de tu lista de amigos, pulsas la tecla o el botón del volante asignado; en su pantalla aparecen un gran signo de exclamación parpadeante y “ATENCIÓN”, con un breve sonido si quiere. En carreras por equipos es la forma más rápida de avisar de un coche rápido que llega por detrás o de un accidente delante sin hablar. Diseños triángulo, círculo y banda; texto, color, duración y velocidad de parpadeo ajustables."
 }

@@ -307,6 +307,11 @@ pub struct CmdCfg {
     pub cloud_model: String,
     /// PRO izni
     pub allowed: bool,
+    /// Arkadaşa uyarı (Arkadaş Uyarısı overlay'i): klavye tuşu + değiştiriciler ve direksiyon düğmesi. Basınca
+    /// "friend-alert-press" olayı (gönderme arayüzde: src/host/friendAlert.ts). Sesli komuttan bağımsız, PRO istemez.
+    pub alert_vk: u32,
+    pub alert_mods: u8,
+    pub alert_button: Option<(u16, u16, u16)>,
 }
 
 /// Tanıma motoru: Otomatik = dilin Windows tanıyıcısı kuruluysa Windows, değilse çevrimiçi (Whisper)
@@ -353,7 +358,24 @@ pub fn cloud_lang(rec_lang: &str) -> String {
     rec_lang.split(['-', '_']).next().unwrap_or("").to_lowercase()
 }
 
+/// Arkadaşa uyarı tuşu ve düğmesi (`general.friendAlert`)
+fn alert_from_settings(v: &Value) -> (u32, u8, Option<(u16, u16, u16)>) {
+    let Some(a) = v.pointer("/general/friendAlert") else { return (0, 0, None) };
+    let (vk, mods) = parse_key(a.get("key").and_then(|x| x.as_str()).unwrap_or("").trim()).unwrap_or((0, 0));
+    let button = a.get("button").filter(|b| b.is_object()).and_then(|b| {
+        let n = |k: &str| b.get(k).and_then(|x| x.as_u64());
+        Some((n("vid")? as u16, n("pid")? as u16, n("button")? as u16))
+    });
+    (vk, mods, button)
+}
+
 pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
+    let (alert_vk, alert_mods, alert_button) = alert_from_settings(v);
+    let c = cfg_from_settings_voice(v, allowed);
+    CmdCfg { alert_vk, alert_mods, alert_button, ..c }
+}
+
+fn cfg_from_settings_voice(v: &Value, allowed: bool) -> CmdCfg {
     let ui = v.pointer("/general/language").and_then(|x| x.as_str()).unwrap_or("tr");
     let ui_lang = lang_key(ui).to_string();
     let Some(c) = v.pointer("/general/voice/commands") else {
@@ -404,12 +426,18 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         cloud_url: cloud("url", CLOUD_URL_DEFAULT),
         cloud_model: cloud("model", CLOUD_MODEL_DEFAULT),
         allowed,
+        ..Default::default()
     }
 }
 
 impl CmdCfg {
     pub fn active(&self) -> bool {
         self.enabled && self.allowed && (self.vk != 0 || self.button.is_some())
+    }
+
+    /// Arkadaşa uyarı tuşu ya da düğmesi atanmış
+    pub fn alert_on(&self) -> bool {
+        self.alert_vk != 0 || self.alert_button.is_some()
     }
 }
 
@@ -764,7 +792,7 @@ pub fn allowed(app: &AppHandle) -> bool {
 pub fn apply_settings(app: &AppHandle, v: &Value) {
     let _ = APP.set(app.clone());
     let c = cfg_from_settings(v, allowed(app));
-    let active = c.active();
+    let active = c.active() || c.alert_on();
     *CFG.lock() = Some(c);
     if active {
         imp::ensure_input();
@@ -1148,11 +1176,14 @@ mod imp {
             let mut last_raw: Option<Instant> = None;
             let mut capturing = false;
             let mut idle_since: Option<Instant> = None;
+            let mut alert_was = false;
+            let mut alert_at: Option<Instant> = None;
             loop {
                 let c = cfg();
                 let cap = CAPTURE.lock().as_ref().map(|(_, until)| *until);
                 let active = c.active();
-                if !active && cap.is_none() {
+                let alert_on = c.alert_on();
+                if !active && !alert_on && cap.is_none() {
                     // 2 sn boşta: pencereyi ve Raw Input kaydını bırak
                     let since = *idle_since.get_or_insert_with(Instant::now);
                     if since.elapsed() > Duration::from_secs(2) {
@@ -1161,7 +1192,11 @@ mod imp {
                 } else {
                     idle_since = None;
                 }
-                input.pump(cap.is_some(), c.button.map(|(v, p, _)| (v, p)));
+                // Bas-konuş ve arkadaşa uyarı düğmeleri farklı aygıtlardaysa ikisi de yoklanır
+                let ptt_dev = if active { c.button.map(|(v, p, _)| (v, p)) } else { None };
+                let alert_dev = if alert_on { c.alert_button.map(|(v, p, _)| (v, p)) } else { None };
+                let two = matches!((ptt_dev, alert_dev), (Some(a), Some(b)) if a != b);
+                input.pump(cap.is_some() || two, ptt_dev.or(alert_dev));
 
                 // Düğme yakalama ("Direksiyon tuşu ata")
                 if let Some(until) = cap {
@@ -1203,6 +1238,18 @@ mod imp {
                     }
                 }
                 was_down = down;
+
+                // Arkadaşa uyarı: basıldığı an (en çok 0,4 sn'de bir)
+                let alert_down = alert_on
+                    && cap.is_none()
+                    && (ptt_win::key_down(c.alert_vk, c.alert_mods) || c.alert_button.map(|(v, p, b)| input.is_down(v, p, b)).unwrap_or(false));
+                if alert_down && !alert_was && alert_at.map(|t| t.elapsed() > Duration::from_millis(400)).unwrap_or(true) {
+                    alert_at = Some(Instant::now());
+                    if let Some(app) = APP.get() {
+                        let _ = app.emit("friend-alert-press", ());
+                    }
+                }
+                alert_was = alert_down;
                 std::thread::sleep(Duration::from_millis(10));
             }
             drop(input);
@@ -1214,7 +1261,7 @@ mod imp {
             }
             INPUT_RUNNING.store(false, Ordering::SeqCst);
             // Kapanırken ayar yeniden açıldıysa tekrar başlat
-            if cfg().active() || CAPTURE.lock().is_some() {
+            if cfg().active() || cfg().alert_on() || CAPTURE.lock().is_some() {
                 ensure_input();
             }
         });

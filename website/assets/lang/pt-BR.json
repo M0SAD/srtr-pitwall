@@ -301,6 +301,7 @@
  "ad_report_dup": "Você já denunciou este anúncio.",
  "ad_rclick": "Clique direito para denunciar",
  "nav_ads": "Anuncie",
+ "nav_tele": "Minha telemetria",
  "f13_t": "Tela de eventos e replay",
  "f13_d": "Quando a corrida termina, a lista de eventos abre sozinha: incidentes, ultrapassagens, pit stops. Clique em um e o replay do iRacing pula para aquele momento.",
  "f14_t": "Anuncie",
@@ -404,6 +405,9 @@
  "dr_fuel": "Combustível",
  "dr_pos": "Pos.",
  "dr_setup": "Setup",
+ "dr_share": "Compartilhar",
+ "dr_share_hint": "Copiar o link: qualquer membro conectado pode abri-lo",
+ "dr_copied": "Link copiado",
  "dr_valid_lap": "Válida",
  "dr_invalid_lap": "Inválida",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Termos de serviço",
  "legal_privacy": "Política de privacidade",
  "legal_refund": "Política de reembolso",
- "legal_contact": "Contato"
+ "legal_contact": "Contato",
+ "ov_friendalert_n": "Alerta para amigo",
+ "ov_friendalert_d": "Um alerta de “ATENÇÃO” piscando na tela de um amigo na mesma corrida, com um só toque.",
+ "ov_friendalert_h": "Enviado com uma tecla ou botão do volante|Vai só para sua lista de amigos na mesma corrida|Ponto de exclamação piscando e “ATENÇÃO”; nome do remetente opcional|Designs triângulo, círculo e faixa; cor, duração e velocidade ajustáveis|Som de alerta opcional|iRacing",
+ "ovg_friendalert": "Permite dizer “cuidado” a um amigo na mesma corrida com um só toque. Quando você está na mesma corrida que alguém da sua lista de amigos, aperta a tecla ou o botão do volante atribuído; na tela dele aparecem um grande ponto de exclamação piscando e “ATENÇÃO”, com um som curto se ele quiser. Em corridas por equipe é o jeito mais rápido de avisar, sem falar, sobre um carro rápido vindo atrás ou um acidente à frente. Designs triângulo, círculo e faixa; texto, cor, duração e velocidade de piscar ajustáveis."
 }

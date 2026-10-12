@@ -301,6 +301,7 @@
  "ad_report_dup": "Ta reklama została już przez ciebie zgłoszona.",
  "ad_rclick": "Prawy klik, aby zgłosić",
  "nav_ads": "Reklama",
+ "nav_tele": "Moja telemetria",
  "f13_t": "Ekran zdarzeń i powtórka",
  "f13_d": "Po wyścigu lista zdarzeń otwiera się sama: incydenty, wyprzedzenia, pit stopy. Kliknij jedno, a powtórka iRacing przeskoczy do tej chwili.",
  "f14_t": "Zareklamuj się",
@@ -404,6 +405,9 @@
  "dr_fuel": "Paliwo",
  "dr_pos": "Poz.",
  "dr_setup": "Setup",
+ "dr_share": "Udostępnij",
+ "dr_share_hint": "Skopiuj link: każdy zalogowany członek może go otworzyć",
+ "dr_copied": "Link skopiowany",
  "dr_valid_lap": "Ważne",
  "dr_invalid_lap": "Nieważne",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Warunki korzystania",
  "legal_privacy": "Polityka prywatności",
  "legal_refund": "Zasady zwrotów",
- "legal_contact": "Kontakt"
+ "legal_contact": "Kontakt",
+ "ov_friendalert_n": "Alert dla znajomego",
+ "ov_friendalert_d": "Migające ostrzeżenie „UWAGA” na ekranie znajomego w tym samym wyścigu, jednym naciśnięciem.",
+ "ov_friendalert_h": "Wysyłany klawiszem lub przyciskiem kierownicy|Trafia tylko do znajomych z listy w tym samym wyścigu|Migający wykrzyknik i „UWAGA”; nazwa nadawcy opcjonalna|Wzory trójkąt, koło i pasek; kolor, czas i szybkość regulowane|Opcjonalny dźwięk ostrzeżenia|iRacing",
+ "ovg_friendalert": "Pozwala jednym naciśnięciem powiedzieć „uważaj” znajomemu w tym samym wyścigu. Gdy jesteś w tym samym wyścigu co ktoś z listy znajomych, naciskasz przypisany klawisz lub przycisk kierownicy; na jego ekranie pojawia się duży migający wykrzyknik i „UWAGA”, opcjonalnie z krótkim dźwiękiem. W wyścigach drużynowych to najszybszy sposób, by bez rozmowy ostrzec przed szybkim autem z tyłu lub wypadkiem z przodu. Wzory trójkąt, koło i pasek; tekst, kolor, czas i szybkość migania regulowane."
 }

@@ -125,8 +125,18 @@ export const voiceCmdLocked = () => proLocked(F.voiceCommands) || proLocked(VOIC
 const cmd = () => settings().general.voice.commands;
 const setCmd = (fn: (x: VoiceCommandSettings) => void) => updateSettings((d) => fn(d.general.voice.commands));
 
+/** Atanacak tuş / düğme: varsayılan bas-konuş (general.voice.commands); Arkadaş Uyarısı kendi ayarını verir */
+export interface BindTarget {
+  get: () => { key: string; button: VoiceCommandButton | null };
+  set: (fn: (x: { key: string; button: VoiceCommandButton | null }) => void) => void;
+  /** Satırın açıklaması */
+  hint?: string;
+}
+const PTT_TARGET: BindTarget = { get: () => cmd(), set: (fn) => setCmd((x) => fn(x)) };
+
 /** Bas-konuş klavye tuşu satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak) */
-export function PttKeyRow(props: { label?: string; disabled?: boolean }) {
+export function PttKeyRow(props: { label?: string; disabled?: boolean; target?: BindTarget }) {
+  const tg = () => props.target ?? PTT_TARGET;
   const [rec, setRec] = createSignal(false);
   // Kaydederken PrintScreen kancası duraklar (bkz. ShortcutsPanel)
   const setRecording = (on: boolean) => {
@@ -145,7 +155,7 @@ export function PttKeyRow(props: { label?: string; disabled?: boolean }) {
     const k = fromEvent(e, true);
     if (!k) return;
     setRecording(false);
-    setCmd((x) => (x.key = k));
+    tg().set((x) => (x.key = k));
   };
   onMount(() => {
     window.addEventListener("keydown", onKey, true);
@@ -154,22 +164,29 @@ export function PttKeyRow(props: { label?: string; disabled?: boolean }) {
       window.removeEventListener("keydown", onKey, true);
     });
   });
-  const clash = () => SHORTCUT_ACTIONS.find((a) => cmd().key && sameKey(shortcut(a), cmd().key));
+  const clash = () => SHORTCUT_ACTIONS.find((a) => tg().get().key && sameKey(shortcut(a), tg().get().key));
   return (
     <div class="row">
       <div>
         <span>{props.label ?? "Klavye tuşu"}</span>
-        <small>
-          Basılı tutarken dinler, bırakınca cevaplar. Tek tuş da olabilir (ör. F13 ya da klavyeye atanmış bir direksiyon düğmesi). Tuş
-          yutulmaz: oyun ve diğer uygulamalar da görür.
-        </small>
+        <Show
+          when={props.target?.hint}
+          fallback={
+            <small>
+              Basılı tutarken dinler, bırakınca cevaplar. Tek tuş da olabilir (ör. F13 ya da klavyeye atanmış bir direksiyon düğmesi). Tuş
+              yutulmaz: oyun ve diğer uygulamalar da görür.
+            </small>
+          }
+        >
+          <small>{props.target!.hint}</small>
+        </Show>
         <Show when={clash()}>{(a) => <small class="sc-err">{t("Çakışma: “{0}” ile aynı tuş", t(SHORTCUT_LABELS[a()]))}</small>}</Show>
       </div>
       <div class="sc-keys">
         <button class="sc-key" classList={{ rec: rec() }} disabled={props.disabled} onClick={() => setRecording(!rec())}>
-          {rec() ? "Tuşlara bas…" : cmd().key ? prettyKey(cmd().key) : "Tuş ata"}
+          {rec() ? "Tuşlara bas…" : tg().get().key ? prettyKey(tg().get().key) : "Tuş ata"}
         </button>
-        <button class="btn ghost small" title="Tuşu kaldır" disabled={props.disabled || !cmd().key} onClick={() => setCmd((x) => (x.key = ""))}>
+        <button class="btn ghost small" title="Tuşu kaldır" disabled={props.disabled || !tg().get().key} onClick={() => tg().set((x) => (x.key = ""))}>
           Kaldır
         </button>
       </div>
@@ -202,10 +219,11 @@ export function PttModeRow(props: { disabled?: boolean }) {
 }
 
 /** Bas-konuş direksiyon / kumanda düğmesi satırı (Sesli Mühendis ve Kısayollar sayfalarında ortak; aynı ayar) */
-export function PttButtonRow(props: { disabled?: boolean }) {
+export function PttButtonRow(props: { disabled?: boolean; target?: BindTarget }) {
+  const tg = () => props.target ?? PTT_TARGET;
   const [capturing, setCapturing] = createSignal(false);
   const [captureMsg, setCaptureMsg] = createSignal("");
-  const bound = () => cmd().button;
+  const bound = () => tg().get().button;
   // Atanan düğme / tuş şu an basılı mı (Rust: "voicecmd-ptt"): atamanın gerçekten görüldüğünü doğrulamak için
   const [held, setHeld] = createSignal(false);
   onMount(() => {
@@ -226,7 +244,7 @@ export function PttButtonRow(props: { disabled?: boolean }) {
     setCaptureMsg("");
     try {
       const b = await invoke<VoiceCommandButton | null>("voicecmd_capture_button", { seconds: 10 });
-      if (b) setCmd((x) => (x.button = b));
+      if (b) tg().set((x) => (x.button = b));
       else setCaptureMsg("Düğme algılanmadı. Direksiyon bağlı mı? Tekrar deneyip düğmeye bas.");
     } catch (e) {
       setCaptureMsg(String(e));
@@ -247,7 +265,7 @@ export function PttButtonRow(props: { disabled?: boolean }) {
             </small>
           )}
         </Show>
-        <Show when={held()}>
+        <Show when={held() && !props.target}>
           <small class="voice-cmd-held">Basılı: dinliyor</small>
         </Show>
         <Show when={captureMsg()}>
@@ -258,7 +276,7 @@ export function PttButtonRow(props: { disabled?: boolean }) {
         <button class="sc-key" classList={{ rec: capturing() }} disabled={props.disabled} onClick={captureButton}>
           {capturing() ? "Düğmeye bas…" : "Direksiyon tuşu ata"}
         </button>
-        <button class="btn ghost small" title="Düğmeyi kaldır" disabled={props.disabled || !bound()} onClick={() => setCmd((x) => (x.button = null))}>
+        <button class="btn ghost small" title="Düğmeyi kaldır" disabled={props.disabled || !bound()} onClick={() => tg().set((x) => (x.button = null))}>
           Kaldır
         </button>
       </div>

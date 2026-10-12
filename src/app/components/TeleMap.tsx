@@ -72,7 +72,92 @@ function corners(speed: number[]): number[] {
   return out.slice(0, 30);
 }
 
-export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { info: LapInfo; trace: Trace } }) {
+/** Pist şekli (bu bilgisayarda öğrenilmiş); oturum boyunca önbellekte (bulunamazsa sonra yeniden denenir) */
+const shapeCache = new Map<string, Promise<Shape | null>>();
+export function trackShapeFor(info: Pick<LapInfo, "sim" | "track_id" | "track_name" | "track_config">): Promise<Shape | null> {
+  const key = `${info.sim}|${info.track_id}|${info.track_name}|${info.track_config}`;
+  let pr = shapeCache.get(key);
+  if (!pr) {
+    pr = (async () => {
+      if (!inTauri) return null;
+      const pts = await invoke<[number, number][] | null>("track_shape", { sim: info.sim, trackId: info.track_id, trackName: info.track_name, trackConfig: info.track_config }).catch(() => null);
+      return pts && pts.length >= 50 ? toShape(pts) : null;
+    })();
+    shapeCache.set(key, pr);
+    void pr.then((v) => {
+      if (!v) shapeCache.delete(key);
+    });
+  }
+  return pr;
+}
+
+/** Tur oranı (0..1) → şekil noktası */
+const ptAt = (s: Shape, k: number) => s.pts[Math.min(s.pts.length - 1, Math.max(0, Math.floor((((k % 1) + 1) % 1) * s.pts.length)))];
+
+/** İzler: imlecin pistteki yeri (küçük harita). Üzerinde gezinince imleç de oraya gider. */
+export function MiniMap(p: { info: LapInfo; cursor: number | null; setCursor?: (k: number | null) => void; label?: string }) {
+  const MW = 300;
+  const MH = 200;
+  const [shape] = createResource(
+    () => `${p.info.sim}|${p.info.track_id}|${p.info.track_name}|${p.info.track_config}`,
+    () => trackShapeFor(p.info),
+  );
+  const geo = createMemo(() => {
+    const s = shape();
+    if (!s) return null;
+    const xf = fitTransform(s, MW, MH, 14, 0, false);
+    const m = s.pts.length;
+    const step = Math.max(1, Math.floor(m / 500));
+    const pts: [number, number][] = [];
+    for (let i = 0; i < m; i += step) pts.push(xf(s.pts[i]) as [number, number]);
+    return { xf, d: "M" + pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L") + "Z", start: xf(s.pts[0]) };
+  });
+  const dot = () => {
+    const g = geo();
+    const s = shape();
+    if (!g || !s || p.cursor == null) return null;
+    return g.xf(ptAt(s, p.cursor));
+  };
+  let svg!: SVGSVGElement;
+  const move = (e: PointerEvent) => {
+    const g = geo();
+    const s = shape();
+    if (!g || !s || !p.setCursor) return;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    const m = s.pts.length;
+    let best = 0;
+    let bd = Infinity;
+    for (let i = 0; i < m; i++) {
+      const [x, y] = g.xf(s.pts[i]);
+      const d = (x - pt.x) ** 2 + (y - pt.y) ** 2;
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    }
+    // Çizgiden çok uzaktaysa imleci bırak
+    p.setCursor(bd > 30 * 30 ? null : best / m);
+  };
+  return (
+    <Show when={geo()}>
+      <div class="tminimap">
+        <svg ref={svg} viewBox={`0 0 ${MW} ${MH}`} onPointerMove={move} onPointerLeave={() => p.setCursor?.(null)}>
+          <path class="tmm-track" d={geo()!.d} />
+          <circle class="tmm-start" cx={geo()!.start[0]} cy={geo()!.start[1]} r="4.5" />
+          <Show when={dot()}>
+            <circle class="tmm-dot-halo" cx={dot()![0]} cy={dot()![1]} r="11" />
+            <circle class="tmm-dot" cx={dot()![0]} cy={dot()![1]} r="5.5" />
+          </Show>
+        </svg>
+        <small class="muted" data-no-i18n>{p.label || "\u00a0"}</small>
+      </div>
+    </Show>
+  );
+}
+
+export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { info: LapInfo; trace: Trace }; cursor?: number | null }) {
   const [mode, setMode] = createSignal<Mode>("delta");
   const [source, setSource] = createSignal<Source>(p.other ? "lapB" : "session");
   const [labels, setLabels] = createSignal(true);
@@ -81,11 +166,7 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { in
 
   const [shape] = createResource(
     () => `${info().sim}|${info().track_id}|${info().track_name}|${info().track_config}`,
-    async () => {
-      if (!inTauri) return null;
-      const pts = await invoke<[number, number][] | null>("track_shape", { sim: info().sim, trackId: info().track_id, trackName: info().track_name, trackConfig: info().track_config }).catch(() => null);
-      return pts && pts.length >= 50 ? toShape(pts) : null;
-    },
+    () => trackShapeFor(info()),
   );
 
   const communityLocked = () => proLocked(F.teleCommunity);
@@ -180,8 +261,13 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { in
       }
     }
     const start = at(0);
-    return { segs, tags, start };
+    return { segs, tags, start, at };
   });
+  /** İzlerdeki imlecin haritadaki yeri */
+  const cursorPt = () => {
+    const g = segments();
+    return g && p.cursor != null ? g.at(Math.min(Math.max(p.cursor, 0), 0.9999)) : null;
+  };
 
   const total = () => {
     const c = calc();
@@ -253,6 +339,10 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { in
               <For each={segments()?.segs}>{(s) => <line class="tmap-seg" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.c} />}</For>
               <Show when={segments()}>
                 <circle class="tmap-start" cx={segments()!.start[0]} cy={segments()!.start[1]} r="7" />
+              </Show>
+              <Show when={cursorPt()}>
+                <circle class="tmap-cursor-halo" cx={cursorPt()![0]} cy={cursorPt()![1]} r="16" />
+                <circle class="tmap-cursor" cx={cursorPt()![0]} cy={cursorPt()![1]} r="8" />
               </Show>
               <For each={segments()?.tags}>
                 {(g) => (

@@ -301,6 +301,7 @@
  "ad_report_dup": "Du har redan rapporterat den här annonsen.",
  "ad_rclick": "Högerklicka för att rapportera",
  "nav_ads": "Annonsera",
+ "nav_tele": "Min telemetri",
  "f13_t": "Händelseskärm och repris",
  "f13_d": "När loppet är slut öppnas händelselistan av sig själv: incidenter, omkörningar, depåstopp. Klicka på en så hoppar iRacing-reprisen till det ögonblicket.",
  "f14_t": "Annonsera",
@@ -404,6 +405,9 @@
  "dr_fuel": "Bränsle",
  "dr_pos": "Pos",
  "dr_setup": "Setup",
+ "dr_share": "Dela",
+ "dr_share_hint": "Kopiera länken: alla inloggade medlemmar kan öppna den",
+ "dr_copied": "Länken kopierad",
  "dr_valid_lap": "Giltigt",
  "dr_invalid_lap": "Ogiltigt",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Användarvillkor",
  "legal_privacy": "Integritetspolicy",
  "legal_refund": "Återbetalningspolicy",
- "legal_contact": "Kontakt"
+ "legal_contact": "Kontakt",
+ "ov_friendalert_n": "Vänvarning",
+ "ov_friendalert_d": "En blinkande “OBS”-varning på skärmen hos en vän i samma lopp, med ett tryck.",
+ "ov_friendalert_h": "Skickas med en tangent eller rattknapp|Går bara till din vänlista i samma lopp|Blinkande utropstecken och “OBS”; avsändarens namn valfritt|Triangel-, cirkel- och banderolldesign; färg, tid och hastighet justerbara|Valfritt varningsljud|iRacing",
+ "ovg_friendalert": "Låter dig säga “se upp” till en vän i samma lopp med ett enda tryck. När du är i samma lopp som någon på din vänlista trycker du på din tilldelade tangent eller rattknapp; på hans skärm visas ett stort blinkande utropstecken och “OBS”, med ett kort ljud om han vill. I lagtävlingar är det snabbaste sättet att utan att prata varna för en snabb bil bakifrån eller en krasch längre fram. Triangel-, cirkel- och banderolldesign; text, färg, tid och blinkhastighet justerbara."
 }

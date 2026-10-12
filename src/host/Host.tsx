@@ -5,6 +5,7 @@ import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
 import { crewBox, startCrew } from "./crew";
 import { startAutoPit } from "./autoPit";
+import { startFriendAlert } from "./friendAlert";
 import { startBrakeRef } from "./brakeref";
 import { startCoachRef } from "./coachref";
 import { startTelemetryUpload } from "@/cloud/telemetry";
@@ -235,6 +236,7 @@ export function Host() {
       startSocial(status);
       startCrew(status);
       startAutoPit(status);
+      startFriendAlert(status);
       startBrakeRef();
       startCoachRef();
       // Telemetri: kaydedilen turları (giriş yapılmışsa) buluta yükle

@@ -15,7 +15,7 @@ import {
   shortcut,
   type ShortcutAction,
 } from "@/sdk/shortcuts";
-import { PttButtonRow, PttKeyRow, PttModeRow, voiceCmdLocked } from "./VoiceCommands";
+import { PttButtonRow, PttKeyRow, PttModeRow, voiceCmdLocked, type BindTarget } from "./VoiceCommands";
 
 /** Genel kısayol olarak atanırsa başka uygulamalarda/uygulama içinde sorun çıkaran tuşlar */
 const RESERVED: { key: string; why: string }[] = [
@@ -74,6 +74,13 @@ const IN_APP: { where: string; items: { keys: string; what: string }[] }[] = [
   },
 ];
 
+
+/** Arkadaşa uyarı tuşu / düğmesi (general.friendAlert) */
+const ALERT_TARGET: BindTarget = {
+  get: () => settings().general.friendAlert,
+  set: (fn) => updateSettings((d) => fn(d.general.friendAlert)),
+  hint: "Bir kez basman yeter. Tek tuş da olabilir (ör. F6 ya da klavyeye atanmış bir direksiyon düğmesi).",
+};
 export function ShortcutsPanel() {
   const [recording, setRec] = createSignal<ShortcutAction | null>(null);
   const [notice, setNotice] = createSignal<{ action: ShortcutAction; text: string } | null>(null);
@@ -258,6 +265,16 @@ export function ShortcutsPanel() {
         <PttModeRow disabled={voiceCmdLocked()} />
         <PttButtonRow disabled={voiceCmdLocked()} />
         <PttKeyRow label="Klavye tuşu" disabled={voiceCmdLocked()} />
+      </section>
+      {/* Arkadaş Uyarısı overlay'i (general.friendAlert; Rust: voicecmd.rs, gönderme: src/host/friendAlert.ts) */}
+      <section class="panel">
+        <h3>Arkadaşa uyarı</h3>
+        <p class="muted small">
+          Arkadaş listendeki biriyle aynı yarıştayken bu düğmeye ya da tuşa basınca onun ekranında “DİKKAT” uyarısı yanıp söner. Uyarıyı
+          görmek için iki tarafta da “Arkadaş Uyarısı” overlay'i açık olmalı. Tuş yutulmaz, oyun öndeyken de çalışır.
+        </p>
+        <PttButtonRow target={ALERT_TARGET} />
+        <PttKeyRow label="Klavye tuşu" target={ALERT_TARGET} />
       </section>
       <section class="panel">
         <h3>Uygulama içi tuşlar</h3>

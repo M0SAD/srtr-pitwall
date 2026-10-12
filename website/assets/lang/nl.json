@@ -301,6 +301,7 @@
  "ad_report_dup": "Je hebt deze advertentie al gemeld.",
  "ad_rclick": "Rechtsklik om te melden",
  "nav_ads": "Adverteren",
+ "nav_tele": "Mijn telemetrie",
  "f13_t": "Gebeurtenissenscherm en replay",
  "f13_d": "Als de race klaar is, opent de gebeurtenissenlijst vanzelf: incidenten, inhaalacties, pitstops. Klik er een aan en de iRacing-replay springt naar dat moment.",
  "f14_t": "Adverteren",
@@ -404,6 +405,9 @@
  "dr_fuel": "Brandstof",
  "dr_pos": "Pos",
  "dr_setup": "Setup",
+ "dr_share": "Delen",
+ "dr_share_hint": "Link kopiëren: elk ingelogd lid kan hem openen",
+ "dr_copied": "Link gekopieerd",
  "dr_valid_lap": "Geldig",
  "dr_invalid_lap": "Ongeldig",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Gebruiksvoorwaarden",
  "legal_privacy": "Privacybeleid",
  "legal_refund": "Terugbetalingsbeleid",
- "legal_contact": "Contact"
+ "legal_contact": "Contact",
+ "ov_friendalert_n": "Vriendwaarschuwing",
+ "ov_friendalert_d": "Een knipperende “LET OP”-waarschuwing op het scherm van een vriend in dezelfde race, met één druk.",
+ "ov_friendalert_h": "Verstuurd met een toets of stuurknop|Gaat alleen naar je vriendenlijst in dezelfde race|Knipperend uitroepteken en “LET OP”; naam van afzender optioneel|Driehoek-, cirkel- en bannerontwerp; kleur, duur en snelheid instelbaar|Optioneel waarschuwingsgeluid|iRacing",
+ "ovg_friendalert": "Hiermee zeg je met één druk “let op” tegen een vriend in dezelfde race. Zit je in dezelfde race als iemand uit je vriendenlijst, dan druk je op je toegewezen toets of stuurknop; op zijn scherm verschijnen een groot knipperend uitroepteken en “LET OP”, desgewenst met een kort geluid. In teamraces de snelste manier om zonder praten te waarschuwen voor een snelle auto van achteren of een crash vooruit. Driehoek-, cirkel- en bannerontwerp; tekst, kleur, duur en knippersnelheid instelbaar."
 }

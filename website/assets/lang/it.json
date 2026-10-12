@@ -301,6 +301,7 @@
  "ad_report_dup": "Hai già segnalato questo annuncio.",
  "ad_rclick": "Clic destro per segnalare",
  "nav_ads": "Pubblicizza",
+ "nav_tele": "La mia telemetria",
  "f13_t": "Schermata eventi e replay",
  "f13_d": "A fine gara la lista eventi si apre da sola: incidenti, sorpassi, pit stop. Cliccane uno e il replay di iRacing salta a quel momento.",
  "f14_t": "Pubblicizza",
@@ -404,6 +405,9 @@
  "dr_fuel": "Carburante",
  "dr_pos": "Pos",
  "dr_setup": "Setup",
+ "dr_share": "Condividi",
+ "dr_share_hint": "Copia il link: qualsiasi membro che ha effettuato l'accesso può aprirlo",
+ "dr_copied": "Link copiato",
  "dr_valid_lap": "Valido",
  "dr_invalid_lap": "Non valido",
  "dr_pit": "Pit",
@@ -1330,5 +1334,9 @@
  "legal_terms": "Termini di servizio",
  "legal_privacy": "Informativa sulla privacy",
  "legal_refund": "Politica di rimborso",
- "legal_contact": "Contatti"
+ "legal_contact": "Contatti",
+ "ov_friendalert_n": "Avviso amico",
+ "ov_friendalert_d": "Un avviso “ATTENZIONE” che lampeggia sullo schermo di un amico nella stessa gara, con una sola pressione.",
+ "ov_friendalert_h": "Inviato con un tasto della tastiera o un pulsante del volante|Arriva solo alla tua lista amici e nella stessa gara|Punto esclamativo lampeggiante e “ATTENZIONE”; nome del mittente opzionale|Design triangolo, cerchio e banda; colore, durata e velocità regolabili|Suono di avviso opzionale|iRacing",
+ "ovg_friendalert": "Ti permette di dire “attento” a un amico nella stessa gara con una sola pressione. Quando sei nella stessa gara di qualcuno della tua lista amici, premi il tasto o il pulsante del volante assegnato; sul suo schermo compaiono un grande punto esclamativo lampeggiante e “ATTENZIONE”, se vuole con un breve suono. Nelle gare a squadre è il modo più rapido per avvisare di un'auto veloce in arrivo da dietro o di un incidente davanti senza parlare. Design triangolo, cerchio e banda; testo, colore, durata e velocità di lampeggio regolabili."
 }
