@@ -7187,5 +7187,8 @@
   "Yanıp sönme hızı": "Скорость мигания",
   "Arkadaş uyarısı PRO üyelik gerektirir": "Сигнал другу требует подписки PRO",
   "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "После появления зелёного флага панель показывает его столько времени, затем гаснет (даже если сим держит флаг). 0: пока сим не снимет флаг.",
-  "Yeşil bayrak süresi": "Длительность зелёного флага"
+  "Yeşil bayrak süresi": "Длительность зелёного флага",
+  "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Оверлеев из этой раскладки нет в этой версии. Обновите приложение и попробуйте снова.",
+  "İndirilemedi: {0}": "Не удалось загрузить: {0}",
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Не удалось прочитать данные публикации (повреждены или неполные)."
 }

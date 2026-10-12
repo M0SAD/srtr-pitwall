@@ -61,7 +61,8 @@ import {
   stored,
   type ActiveChip,
 } from "./CommunityKit";
-import { activeProfile, settings, updateSettings, type Profile } from "@/sdk/settings";
+import { activeProfile, normalizeImportedProfile, settings, updateSettings, type Profile } from "@/sdk/settings";
+import { normalizeTheme } from "@/sdk/theme";
 import { inTauri } from "@/sdk/platform";
 import { importEditBackdrop, profileBackdropSlot } from "../components/Shots";
 import { go } from "../ui";
@@ -617,11 +618,11 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
     setMsg("");
     try {
       const d = data() ?? (await getLayoutData(l().id));
-      const src: Profile = structuredClone(d.profile);
-      delete src.link;
-      delete src.locked;
-      delete (src as { isDefault?: boolean }).isDefault;
-      delete src.sharedId;
+      // Paylaşım başka bir sürümde yapılmış olabilir: düzen bu sürümün biçimine getirilir (açılıştaki onarımın aynısı).
+      // Paylaşanın yerel işaretleri (kilit, paylaşım kimliği, arka plan, yayın bağı) burada atılır.
+      const src: Profile | null = normalizeImportedProfile(structuredClone(d?.profile));
+      if (!src) throw new Error(t("Paylaşımın verisi okunamadı (bozuk ya da eksik)."));
+      if (!Object.values(src.overlays).some((o) => o.enabled)) throw new Error(t("Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene."));
       const name = `${l().title} (${l().author_name || "paylaşım"})`;
       const mode = props.kind === "stream" ? "stream" : src.rules?.mode && src.rules.mode !== "stream" ? src.rules.mode : "driving";
       const id = newLayout(mode, name, src);
@@ -630,7 +631,10 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       updateSettings((x) => void delete x.profiles[id].backdrop);
       const slot = profileBackdropSlot(id);
       if (okBg() && slot && inTauri) await importEditBackdrop(await (await fetch(okBg()!)).blob(), slot).catch(() => {});
-      if (withTheme() && d.theme) updateSettings((x) => (x.theme = { ...d.theme!, scale: props.kind === "stream" ? x.theme.scale : d.theme!.scale, opacity: x.theme.opacity }));
+      if (withTheme() && d.theme) {
+        const th = normalizeTheme(d.theme);
+        updateSettings((x) => (x.theme = { ...th, scale: props.kind === "stream" ? x.theme.scale : th.scale, opacity: x.theme.opacity }));
+      }
       markDownloaded(l().id);
       setMsg(
         props.kind === "stream"
@@ -639,7 +643,8 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       );
       props.onChanged();
     } catch (e) {
-      setMsg("İndirilemedi: " + String((e as Error).message));
+      console.error("Düzen indirilemedi", e);
+      setMsg(t("İndirilemedi: {0}", String((e as Error)?.message ?? e)));
     }
   };
 

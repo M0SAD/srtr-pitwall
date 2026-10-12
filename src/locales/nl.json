@@ -7187,5 +7187,8 @@
   "Yanıp sönme hızı": "Knippersnelheid",
   "Arkadaş uyarısı PRO üyelik gerektirir": "Vriendwaarschuwing vereist een PRO-lidmaatschap",
   "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Nadat de groene vlag verschijnt, toont het paneel hem zo lang en gaat dan uit (ook als de sim de vlag aan houdt). 0: tot de sim de vlag weghaalt.",
-  "Yeşil bayrak süresi": "Duur groene vlag"
+  "Yeşil bayrak süresi": "Duur groene vlag",
+  "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "De overlays in deze indeling bestaan niet in deze versie. Werk de app bij en probeer het opnieuw.",
+  "İndirilemedi: {0}": "Downloaden mislukt: {0}",
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "De gedeelde gegevens konden niet worden gelezen (beschadigd of onvolledig)."
 }

@@ -7187,5 +7187,8 @@
   "Yanıp sönme hızı": "闪烁速度",
   "Arkadaş uyarısı PRO üyelik gerektirir": "好友提醒需要 PRO 会员",
   "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "绿旗出现后，面板显示这么长时间后熄灭（即使模拟器仍保持该旗）。0：直到模拟器撤下旗帜。",
-  "Yeşil bayrak süresi": "绿旗显示时长"
+  "Yeşil bayrak süresi": "绿旗显示时长",
+  "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "此布局中的叠加层在当前版本中不存在。请更新程序后重试。",
+  "İndirilemedi: {0}": "无法下载：{0}",
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "无法读取分享的数据（已损坏或不完整）。"
 }

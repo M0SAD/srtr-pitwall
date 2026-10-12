@@ -7187,5 +7187,8 @@
   "Yanıp sönme hızı": "Vitesse de clignotement",
   "Arkadaş uyarısı PRO üyelik gerektirir": "L'alerte ami nécessite un abonnement PRO",
   "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Après l'apparition du drapeau vert, le panneau l'affiche pendant cette durée puis s'éteint (même si la simu le garde actif). 0 : jusqu'à ce que la simu le retire.",
-  "Yeşil bayrak süresi": "Durée du drapeau vert"
+  "Yeşil bayrak süresi": "Durée du drapeau vert",
+  "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Les overlays de cette disposition n'existent pas dans cette version. Mets l'application à jour et réessaie.",
+  "İndirilemedi: {0}": "Téléchargement impossible : {0}",
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Les données partagées n'ont pas pu être lues (corrompues ou incomplètes)."
 }

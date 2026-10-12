@@ -7187,5 +7187,8 @@
   "Yanıp sönme hızı": "Flash speed",
   "Arkadaş uyarısı PRO üyelik gerektirir": "Friend alert requires a PRO membership",
   "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "After the green flag appears, the panel shows it for this long and then goes dark (even if the sim keeps the flag on). 0: until the sim clears the flag.",
-  "Yeşil bayrak süresi": "Green flag duration"
+  "Yeşil bayrak süresi": "Green flag duration",
+  "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "The overlays in this layout are not in this version. Update the app and try again.",
+  "İndirilemedi: {0}": "Could not download: {0}",
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "The shared data could not be read (corrupt or incomplete)."
 }

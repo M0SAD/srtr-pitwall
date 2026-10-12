@@ -7187,5 +7187,8 @@
   "Yanıp sönme hızı": "Velocità di lampeggio",
   "Arkadaş uyarısı PRO üyelik gerektirir": "L'avviso amico richiede un abbonamento PRO",
   "Yeşil bayrak göründükten sonra panelde bu kadar yanar, sonra söner (sim bayrağı açık tutsa da). 0: sim bayrağı kaldırana kadar.": "Dopo la comparsa della bandiera verde, il pannello la mostra per questo tempo e poi si spegne (anche se la simulazione la mantiene). 0: finché la simulazione non la rimuove.",
-  "Yeşil bayrak süresi": "Durata bandiera verde"
+  "Yeşil bayrak süresi": "Durata bandiera verde",
+  "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Gli overlay di questo layout non esistono in questa versione. Aggiorna l'app e riprova.",
+  "İndirilemedi: {0}": "Download non riuscito: {0}",
+  "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Impossibile leggere i dati condivisi (danneggiati o incompleti)."
 }

@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-307
+
+- Topluluk › Düzenler / Yayın düzenleri: paylaşılan bir düzeni "Kullan" ile almak bazı kullanıcılarda hata veriyordu. Sebep: indirilen düzen, programın açılışta her düzene uyguladığı onarımdan geçmeden doğrudan ayarlara ekleniyordu. Paylaşan ile indiren farklı sürümlerdeyse düzende bu sürümde olmayan overlay türleri, eski biçimde ayarlar ya da eksik alanlar (ör. kurallar) kalıyor; "Kullan" ya da düzenin açılması hata veriyordu. Artık indirilen düzen aynı onarımdan geçiyor (normalizeImportedProfile): eski biçimler taşınır, eksik ayarlar varsayılanla dolar, bilinmeyen overlay türleri atılır; temalar da normalizeTheme'den geçer. Paylaşanın yerel işaretleri (varsayılan düzen, kilit, paylaşım kimliği, arka plan işareti, yayın bağı) alınmaz; önceden paylaşanın arka plan işareti yüzünden indirenin aynı kimlikli düzeninin arka planı kopyalanabiliyordu. Bozuk paylaşımda ve bu sürümde hiç overlay'i olmayan düzende anlaşılır hata yazılır.
+
 ## 121026-306
 
 - DigiFlags: "Yeşil bayrağı da göster" kapalıyken de yeşil yanıyor ve ekranda kalıyordu. Sebep: ayar yalnızca "green" bayrağına uygulanıyordu; iRacing'in start öncesi / sonrası uzun süre açık tuttuğu "greenHeld" (yeşil bekletiliyor) ve "oneLapToGreen" (yeşile bir tur) ayarı atlıyordu. Artık üçü de ayara bağlı. Ayar açıkken yeşil, göründükten sonra "Yeşil bayrak süresi" kadar yanar (varsayılan 5 sn, 0: sim kaldırana kadar), sonra söner. Bayrak seçimi ayrı dosyada (digiflags/pick.ts).

@@ -1669,6 +1669,29 @@ export function normalize(input: unknown): AppSettings {
   return out;
 }
 
+/**
+ * Dışarıdan gelen tek bir düzeni (topluluk paylaşımı) bu sürümün biçimine getirir: açılıştaki onarımın aynısı
+ * (eski ayar biçimleri taşınır, eksik ayarlar varsayılanla dolar, bu sürümde olmayan overlay türleri atılır).
+ * Paylaşan ile indiren farklı sürümlerdeyse düzen ancak böyle güvenle kullanılır. Bozuk veride null.
+ */
+export function normalizeImportedProfile(input: unknown): Profile | null {
+  if (!input || typeof input !== "object") return null;
+  const raw = input as Partial<Profile>;
+  if (!raw.overlays || typeof raw.overlays !== "object") return null;
+  const key = "__import__";
+  const p = normalize({ profiles: { [key]: raw } }).profiles[key];
+  if (!p) return null;
+  // Yerel işaretler alınmaz (normalize varsayılan / eski yayın düzeni işareti koyabilir)
+  delete p.isDefault;
+  delete p.legacyId;
+  delete p.locked;
+  delete p.sharedId;
+  delete p.order;
+  delete p.backdrop;
+  delete p.link;
+  return p;
+}
+
 const [settings, setSettingsRaw] = createSignal<AppSettings>(defaultSettings());
 /** Ayarlar değişince biçim tercihlerini (saat, mph) de günceller */
 function setSettingsSignal(s: AppSettings) {
