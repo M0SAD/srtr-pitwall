@@ -5621,7 +5621,7 @@
  "Spotter: yok": "src/app/components/CrewRoom.tsx",
  "SRTR": "src/app/components/BackdropPicker.tsx, src/app/components/Shots.tsx, src/overlays/dashboard/manifest.ts",
  "SRTR PITWALL": "src/overlays/scene/Overlay.tsx",
- "SRTR Pitwall": "src/app/components/Creator.tsx, src/app/components/ServerPanel.tsx, src/app/components/Shots.tsx, src/app/pages/CommunityHome.tsx, src/app/pages/GeneralPage.tsx, src/app/pages/ScreenshotsPage.tsx, src/app/pages/StreamingPage.tsx, src/dash/remote.tsx, src/host/friendAlert.ts, src/host/social.ts, src/sdk/livechat.ts, src/sdk/streamBadge.tsx, src/window/Pitwall.tsx, src/window/main.tsx",
+ "SRTR Pitwall": "src/app/components/Creator.tsx, src/app/components/ServerPanel.tsx, src/app/components/Shots.tsx, src/app/pages/CommunityHome.tsx, src/app/pages/GeneralPage.tsx, src/app/pages/ScreenshotsPage.tsx, src/app/pages/StreamingPage.tsx, src/dash/remote.tsx, src/host/friendAlert.ts, src/host/social.ts, src/overlays/friendalert/Overlay.tsx, src/sdk/livechat.ts, src/sdk/streamBadge.tsx, src/window/Pitwall.tsx, src/window/main.tsx",
  "SRTR Pitwall – {0}": "src/window/Events.tsx, src/window/Friends.tsx",
  "SRTR Pitwall – Arkadaşlar": "src/window/main.tsx",
  "SRTR Pitwall – Ekip Pitwall'ı": "src/window/main.tsx",

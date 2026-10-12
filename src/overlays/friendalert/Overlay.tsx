@@ -1,7 +1,8 @@
-import { Show, createSignal, onCleanup, onMount } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
 import type { OverlayProps } from "@/sdk/overlay";
 import { inTauri } from "@/sdk/platform";
+import { useTopic } from "@/sdk/telemetry";
 import { messageBeep } from "@/cloud/social";
 import { FRIEND_ALERT_SHOW, type FriendAlertShow } from "@/host/friendAlert";
 import "./style.css";
@@ -30,7 +31,38 @@ export default function FriendAlert(props: OverlayProps) {
       void un.then((f) => f?.());
     });
   });
-  const view = () => alert() ?? (props.editing ? { name: "Erkin Azcan" } : null);
+  // Demo: tuşa basılmasa da overlay'in nasıl göründüğü görülsün diye belli aralıklarla örnek uyarı yanıp söner (sessiz)
+  // (ana ekrandaki Demo ve düzen önizlemelerindeki canlı Demo)
+  const status = useTopic("status");
+  // Yalnızca demo açılıp kapanınca değişir (durum paketi sık gelir; zamanlayıcı her pakette sıfırlanmasın)
+  const isDemo = createMemo(() => !!status()?.demo);
+  const durMs = createMemo(() => clamp(num(o().duration, 5), 1, 30) * 1000);
+  const [demoOn, setDemoOn] = createSignal(false);
+  createEffect(() => {
+    if (!isDemo() || props.editing) {
+      setDemoOn(false);
+      return;
+    }
+    const dur = durMs();
+    const period = Math.max(dur + 4000, 12_000);
+    let off: ReturnType<typeof setTimeout> | undefined;
+    const fire = () => {
+      setDemoOn(true);
+      clearTimeout(off);
+      off = setTimeout(() => setDemoOn(false), dur);
+    };
+    const first = setTimeout(fire, 1500);
+    const iv = setInterval(fire, period);
+    onCleanup(() => {
+      clearTimeout(first);
+      clearTimeout(off);
+      clearInterval(iv);
+      setDemoOn(false);
+    });
+  });
+  const DEMO_NAME = "SRTR Pitwall";
+  const view = () => alert() ?? (demoOn() ? { name: DEMO_NAME } : props.editing ? { name: "Erkin Azcan" } : null);
+  const blinking = () => !!alert() || demoOn();
   const design = () => (DESIGNS.includes(String(o().design)) ? String(o().design) : "triangle");
   const text = () => String(o().text ?? "").trim() || "DİKKAT";
   return (
@@ -45,7 +77,7 @@ export default function FriendAlert(props: OverlayProps) {
     >
       <Show when={view()}>
         {(v) => (
-          <div class="fa-box" classList={{ blink: !!alert() }}>
+          <div class="fa-box" classList={{ blink: blinking() }}>
             <div class="fa-icon">
               {/* Ünlem yazı karakteri değil şekil: yazı tipinden bağımsız, her zaman tam ortada */}
               <Show
