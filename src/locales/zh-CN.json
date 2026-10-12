@@ -6662,8 +6662,6 @@
   "Yarış başlıyor": "比赛即将开始",
   "Yarış bitince Olaylar ekranını aç": "比赛结束后打开事件界面",
   "Yarış bitince sonuçlar, tur süreleri ve olaylar bir özet dosyasına yazılır.": "比赛结束后，结果、单圈时间和事故会写入一个总结文件。",
-  "Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır": "比赛结束并开始回放 (replay) 时，此窗口会自动打开",
-  "Yarış bitince ve tekrar (replay) başlayınca Olaylar penceresi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider.": "比赛结束并开始回放（replay）时会打开事故窗口；点击某个事故，iRacing 回放就会跳到那一刻。",
   "Yarış direksiyonlarındaki ekranlar gibi: devir ışıkları, büyük vites, hız, pozisyon, delta, sektör ve tur süreleri, seçilebilir alt kutular. Klasik, Minimal, Yarış ve Dayanıklılık görünümleri; PRO üyeler için gerçek yarış araçlarının ekranlarından esinlenen araç tarzı ekranlar. Hibrit / DRS / P2P bilgisi araca göre kendiliğinden görünür; ABS / TC, renkler ve her öğenin boyutu / rengi / görünürlüğü ayarlanabilir. PRO: Dashboard Tasarımcısı ile kendi ekranını tasarla, telefon ya da tabletten aç.": "如同赛车方向盘上的显示屏：换挡灯、大号挡位、速度、名次、delta、扇区和圈速、可选的底部信息框。经典、极简、正赛和耐力赛视图；PRO 会员可使用取材于真实赛车显示屏的车型风格显示屏。混动 / DRS / P2P 信息按车辆自动显示；ABS / TC、颜色以及每个元素的大小 / 颜色 / 可见性均可调整。PRO：用仪表盘设计器设计自己的显示屏，并在手机或平板上打开。",
   "Yarış kontrol": "赛事控制",
   "YARIŞ KONTROL": "赛事控制",
@@ -7191,5 +7189,9 @@
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "此布局中的叠加层在当前版本中不存在。请更新程序后重试。",
   "İndirilemedi: {0}": "无法下载：{0}",
   "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "无法读取分享的数据（已损坏或不完整）。",
-  "Overlay'leri yenile": "刷新叠加层"
+  "Overlay'leri yenile": "刷新叠加层",
+  "Autofuel'i otomatik aç": "自动开启 autofuel",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "每次上车时（以及你在车内时比赛开始时）都会开启 iRacing 的自动加油（autofuel）：进站时不会加满油箱，只加完赛所需的燃油。会在 iRacing 聊天中输入 \"#autofuel\" 命令，聊天框会短暂出现。",
+  "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "比赛结束后按 ESC 下车进入回放界面时，以及开始回放时，会打开事件窗口；上车时关闭。点击事件可让 iRacing 回放跳到该时刻。",
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "赛后下车进入回放界面时以及开始回放时，此窗口会自动打开"
 }

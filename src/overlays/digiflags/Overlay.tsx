@@ -2,7 +2,7 @@ import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "so
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic, demoShow } from "@/sdk/telemetry";
 import type { FlagName } from "@/sdk/types";
-import { GREEN_NAMES, pickFlag } from "./pick";
+import { GREEN_NAMES, greenState, pickFlag } from "./pick";
 import "./style.css";
 
 type Pattern = (x: number, y: number, n: number) => string | null;
@@ -72,20 +72,23 @@ export default function DigiFlags(props: OverlayProps) {
     clearTimeout(sampleTimer);
     sampleTimer = window.setTimeout(() => setSample(null), SAMPLE_MS);
   };
-  // Yeşil: ilk göründüğü an; süre dolunca yeniden hesaplamak için zamanlayıcı
+  // Yeşil: başladığı an (yeşil durumu her değiştiğinde yeniden; bkz. greenState); süre dolunca yeniden hesaplamak için zamanlayıcı
   const [greenSince, setGreenSince] = createSignal<number | null>(null);
+  let lastGreen = "";
   const [tick, setTick] = createSignal(0);
   let greenTimer: number | undefined;
   onCleanup(() => clearTimeout(greenTimer));
   const greenMs = () => Math.max(0, Number(props.options.greenSeconds ?? 5)) * 1000;
   createEffect(() => {
-    const on = (s()?.flags ?? []).some((n) => GREEN_NAMES.includes(n));
-    if (!on) {
-      if (greenSince() != null) setGreenSince(null);
-      clearTimeout(greenTimer);
+    const st = greenState(s()?.flags ?? []);
+    if (st === lastGreen) return;
+    lastGreen = st;
+    clearTimeout(greenTimer);
+    if (!st) {
+      setGreenSince(null);
       return;
     }
-    if (greenSince() == null) {
+    {
       setGreenSince(Date.now());
       clearTimeout(greenTimer);
       if (greenMs() > 0) greenTimer = window.setTimeout(() => setTick((x) => x + 1), greenMs() + 50);

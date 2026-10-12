@@ -6662,8 +6662,6 @@
   "Yarış başlıyor": "La course commence",
   "Yarış bitince Olaylar ekranını aç": "Ouvrir l'écran Événements à la fin de la course",
   "Yarış bitince sonuçlar, tur süreleri ve olaylar bir özet dosyasına yazılır.": "À la fin de la course, les résultats, temps au tour et incidents sont écrits dans un fichier résumé.",
-  "Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır": "Cette fenêtre s'ouvre toute seule à la fin de la course et au début du replay",
-  "Yarış bitince ve tekrar (replay) başlayınca Olaylar penceresi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider.": "À la fin de la course et au début du replay, la fenêtre Incidents s'ouvre ; clique sur un incident et le replay iRacing saute à ce moment.",
   "Yarış direksiyonlarındaki ekranlar gibi: devir ışıkları, büyük vites, hız, pozisyon, delta, sektör ve tur süreleri, seçilebilir alt kutular. Klasik, Minimal, Yarış ve Dayanıklılık görünümleri; PRO üyeler için gerçek yarış araçlarının ekranlarından esinlenen araç tarzı ekranlar. Hibrit / DRS / P2P bilgisi araca göre kendiliğinden görünür; ABS / TC, renkler ve her öğenin boyutu / rengi / görünürlüğü ayarlanabilir. PRO: Dashboard Tasarımcısı ile kendi ekranını tasarla, telefon ya da tabletten aç.": "Comme les écrans des volants de course : LED de régime, grand rapport, vitesse, position, delta, temps de secteur et au tour, cases du bas au choix. Vues Classique, Minimal, Course et Endurance ; pour les membres PRO, des écrans façon voiture inspirés de vraies voitures de course. Les infos hybride / DRS / P2P apparaissent automatiquement selon la voiture ; ABS / TC, couleurs et taille / couleur / visibilité de chaque élément sont réglables. PRO : conçois ton propre écran avec le Designer de dashboard et ouvre-le sur téléphone ou tablette.",
   "Yarış kontrol": "Direction de course",
   "YARIŞ KONTROL": "DIRECTION DE COURSE",
@@ -7191,5 +7189,9 @@
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Les overlays de cette disposition n'existent pas dans cette version. Mets l'application à jour et réessaie.",
   "İndirilemedi: {0}": "Téléchargement impossible : {0}",
   "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Les données partagées n'ont pas pu être lues (corrompues ou incomplètes).",
-  "Overlay'leri yenile": "Recharger les overlays"
+  "Overlay'leri yenile": "Recharger les overlays",
+  "Autofuel'i otomatik aç": "Activer l'autofuel automatiquement",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "À chaque fois que tu montes dans la voiture (et quand une course commence pendant que tu es dans la voiture), l'autofuel d'iRacing est activé : au stand, le réservoir n'est pas rempli, seul le carburant nécessaire pour finir est ajouté. La commande \"#autofuel\" est tapée dans le chat iRacing ; la fenêtre de chat apparaît brièvement.",
+  "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "À la fin de la course, quand tu quittes la voiture avec Échap pour l'écran de replay, et quand un replay démarre, la fenêtre Événements s'ouvre ; elle se ferme quand tu montes dans la voiture. Un clic sur un événement place le replay iRacing à ce moment.",
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Cette fenêtre s'ouvre toute seule quand tu quittes la voiture pour l'écran de replay après la course et quand un replay démarre"
 }

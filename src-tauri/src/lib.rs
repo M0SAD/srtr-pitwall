@@ -836,6 +836,23 @@ fn crew_pit_command(state: State<'_, Arc<Shared>>, kind: String, args: Value) ->
     broadcast::crew_apply(&kind, &args)
 }
 
+/// Otomatik yakıt (iRacing autofuel): Genel ayarlar › "Autofuel'i otomatik aç". "#autofuel" pit makrosu iRacing
+/// sohbetine yazılır (SDK'da autofuel için pit komutu yok). Komut her zaman "aç" demektir; zaten açıksa değişmez.
+#[tauri::command]
+async fn pit_autofuel(state: State<'_, Arc<Shared>>) -> Result<(), String> {
+    let (sim, demo) = {
+        let ev = state.events.lock();
+        (ev.sim, ev.demo)
+    };
+    if demo || !state.connected.load(Ordering::Relaxed) {
+        return Err("Sürücü oyunda değil".into());
+    }
+    if !sim.is_empty() && sim != "iracing" {
+        return Err("Bu oyunda desteklenmiyor".into());
+    }
+    tauri::async_runtime::spawn_blocking(|| broadcast::chat_macro("#autofuel")).await.map_err(|e| e.to_string())?
+}
+
 // ---- Ek pencereler: Pitwall ve Live Timing ----
 
 /// Ekip Pitwall'ı penceresi: bir sürücünün (owner) canlı pitwall'ı ve ekip odası (her sürücü için ayrı pencere)
@@ -2714,6 +2731,7 @@ pub fn run() {
             replay_to,
             replay_live,
             crew_pit_command,
+            pit_autofuel,
             events_get,
             events_export,
             replay_seek,

@@ -642,7 +642,7 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
           <label class="evw-cfg-row">
             <span>
               <b>Yarış sonunda aç</b>
-              <small class="muted">Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır</small>
+              <small class="muted">Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır</small>
             </span>
             <span class="switch">
               <input

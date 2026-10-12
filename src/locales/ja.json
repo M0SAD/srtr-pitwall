@@ -6662,8 +6662,6 @@
   "Yarış başlıyor": "レース開始",
   "Yarış bitince Olaylar ekranını aç": "レース終了時にイベント画面を開く",
   "Yarış bitince sonuçlar, tur süreleri ve olaylar bir özet dosyasına yazılır.": "レース終了時に、リザルト、ラップタイム、インシデントがサマリーファイルに書き出されます。",
-  "Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır": "レース終了時とリプレイ開始時に、このウィンドウが自動で開きます",
-  "Yarış bitince ve tekrar (replay) başlayınca Olaylar penceresi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider.": "レース終了後にリプレイが始まるとインシデントウィンドウが開きます。インシデントをクリックすると iRacing のリプレイがその瞬間に移動します。",
   "Yarış direksiyonlarındaki ekranlar gibi: devir ışıkları, büyük vites, hız, pozisyon, delta, sektör ve tur süreleri, seçilebilir alt kutular. Klasik, Minimal, Yarış ve Dayanıklılık görünümleri; PRO üyeler için gerçek yarış araçlarının ekranlarından esinlenen araç tarzı ekranlar. Hibrit / DRS / P2P bilgisi araca göre kendiliğinden görünür; ABS / TC, renkler ve her öğenin boyutu / rengi / görünürlüğü ayarlanabilir. PRO: Dashboard Tasarımcısı ile kendi ekranını tasarla, telefon ya da tabletten aç.": "レース用ステアリングのディスプレイのように: シフトライト、大きなギア、速度、順位、デルタ、セクターとラップタイム、選択可能な下部ボックス。クラシック、ミニマル、レース、耐久の各ビュー。PRO メンバーには実際のレースカーのディスプレイに着想を得た車種別ディスプレイ。ハイブリッド / DRS / P2P 情報は車両に応じて自動表示。ABS / TC、色、各要素のサイズ / 色 / 表示を調整できます。PRO: ダッシュボードデザイナーで独自のディスプレイをデザインし、スマホやタブレットで開けます。",
   "Yarış kontrol": "レースコントロール",
   "YARIŞ KONTROL": "レースコントロール",
@@ -7191,5 +7189,9 @@
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "このレイアウトのオーバーレイはこのバージョンにありません。アプリを更新して再試行してください。",
   "İndirilemedi: {0}": "ダウンロードできませんでした: {0}",
   "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "共有データを読み込めませんでした（破損または不完全）。",
-  "Overlay'leri yenile": "オーバーレイを再読み込み"
+  "Overlay'leri yenile": "オーバーレイを再読み込み",
+  "Autofuel'i otomatik aç": "autofuelを自動でオンにする",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "車に乗るたびに（車内にいる間にレースセッションが始まったときも）iRacingのautofuelがオンになります。ピットで満タンにせず、完走に必要な分だけ給油します。iRacingのチャットに「#autofuel」コマンドが入力され、チャット欄が一瞬表示されます。",
+  "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "レース終了後にESCで車を降りてリプレイ画面に移ったとき、およびリプレイが始まったときにイベントウィンドウが開きます。車に乗ると閉じます。イベントをクリックするとiRacingのリプレイがその瞬間に移動します。",
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "レース後に車を降りてリプレイ画面に移ったときと、リプレイが始まったときにこのウィンドウが自動で開きます"
 }

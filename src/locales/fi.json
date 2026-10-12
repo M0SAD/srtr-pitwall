@@ -6662,8 +6662,6 @@
   "Yarış başlıyor": "Kisa alkaa",
   "Yarış bitince Olaylar ekranını aç": "Avaa Tapahtumat-näkymä kilpailun päätyttyä",
   "Yarış bitince sonuçlar, tur süreleri ve olaylar bir özet dosyasına yazılır.": "Kisan päätyttyä tulokset, kierrosajat ja incidentit kirjoitetaan yhteenvetotiedostoon.",
-  "Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır": "Tämä ikkuna avautuu itsestään, kun kisa päättyy ja kun uusinta alkaa",
-  "Yarış bitince ve tekrar (replay) başlayınca Olaylar penceresi açılır; bir olaya tıklayınca iRacing tekrarı o ana gider.": "Kun kisa päättyy ja replay alkaa, Incidentit-ikkuna avautuu; incidenttiä klikkaamalla iRacingin replay siirtyy siihen hetkeen.",
   "Yarış direksiyonlarındaki ekranlar gibi: devir ışıkları, büyük vites, hız, pozisyon, delta, sektör ve tur süreleri, seçilebilir alt kutular. Klasik, Minimal, Yarış ve Dayanıklılık görünümleri; PRO üyeler için gerçek yarış araçlarının ekranlarından esinlenen araç tarzı ekranlar. Hibrit / DRS / P2P bilgisi araca göre kendiliğinden görünür; ABS / TC, renkler ve her öğenin boyutu / rengi / görünürlüğü ayarlanabilir. PRO: Dashboard Tasarımcısı ile kendi ekranını tasarla, telefon ya da tabletten aç.": "Kuin kilparattien näytöt: vaihtovalot, suuri vaihde, nopeus, sijoitus, delta, sektori- ja kierrosajat, valittavat alalaatikot. Klassinen-, Minimal-, Kisa- ja Kestävyys-näkymät; PRO-jäsenille oikeiden kilpa-autojen näytöistä innoituksensa saaneet autotyyliset näytöt. Hybridi- / DRS- / P2P-tiedot näkyvät automaattisesti auton mukaan; ABS / TC, värit sekä jokaisen elementin koko / väri / näkyvyys ovat säädettävissä. PRO: suunnittele oma näyttösi Dashboard-suunnittelijalla ja avaa se puhelimella tai tabletilla.",
   "Yarış kontrol": "Kilpailunjohto",
   "YARIŞ KONTROL": "KILPAILUNJOHTO",
@@ -7191,5 +7189,9 @@
   "Bu düzendeki overlay'ler bu sürümde yok. Programı güncelleyip yeniden dene.": "Tämän asettelun overlayt eivät ole tässä versiossa. Päivitä sovellus ja yritä uudelleen.",
   "İndirilemedi: {0}": "Lataus epäonnistui: {0}",
   "Paylaşımın verisi okunamadı (bozuk ya da eksik).": "Jaettuja tietoja ei voitu lukea (vioittuneet tai puutteelliset).",
-  "Overlay'leri yenile": "Päivitä overlayt"
+  "Overlay'leri yenile": "Päivitä overlayt",
+  "Autofuel'i otomatik aç": "Kytke autofuel automaattisesti",
+  "Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine \"#autofuel\" komutu yazılır; ekranda bir an sohbet kutusu görünür.": "Aina kun nouset autoon (ja kun kisa alkaa ollessasi autossa), iRacingin autofuel kytketään päälle: varikolla tankkia ei täytetä, vaan lisätään vain maaliin tarvittava polttoaine. Komento \"#autofuel\" kirjoitetaan iRacingin chattiin; chat-ikkuna näkyy hetken.",
+  "Yarış bitince ESC ile araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca Olaylar penceresi açılır; araca binince kapanır. Bir olaya tıklayınca iRacing tekrarı o ana gider.": "Kun kisa päättyy ja poistut autosta ESC:llä uusintanäkymään, sekä kun uusinta alkaa, Tapahtumat-ikkuna avautuu; se sulkeutuu, kun nouset autoon. Tapahtumaa napsauttamalla iRacingin uusinta siirtyy siihen hetkeen.",
+  "Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır": "Tämä ikkuna avautuu itsestään, kun poistut kisan jälkeen autosta uusintanäkymään ja kun uusinta alkaa"
 }

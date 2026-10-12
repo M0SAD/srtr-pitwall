@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 121026-311
+
+- Olaylar penceresi: yarış bitince çizgiyi geçer geçmez açılmıyor; bitişten sonra araçtan çıkınca (ESC ile tekrar / replay ekranına geçince) açılır. Önceden tekrar ekranı canlı görüntüdeyken açılmıyor, ancak geri sarınca açılıyordu. Tekrar izlemeye (geri sarmaya) başlayınca açılması ve araca binince kapanması aynen sürer. Ayar metinleri güncellendi.
+
+## 121026-310
+
+- DigiFlags: "Yeşil bayrağı da göster" açıkken yarış startında yeşil yanmıyordu. Sebep (306): yeşil süresi yeşil ailesinden herhangi bir işaret ilk göründüğünde başlıyordu; iRacing gridde uzun süre "greenHeld" tuttuğu için süre start öncesinde doluyor, start anında "green" gelince sayaç yenilenmiyordu. Artık yeşilin durumu her değiştiğinde (greenHeld → green, sarı / kırmızı kalkınca yeniden yeşil) yeşil yeniden "Yeşil bayrak süresi" kadar yanar (greenState, digiflags/pick.ts). Sürekli yanması için süre 0 yapılabilir.
+- Yeni ayar (Genel › Pit servisi): "Autofuel'i otomatik aç" (Kapalı / Yarışlarda / Her oturumda; varsayılan kapalı). Araca binince (ve araçtayken yarış başlayınca) iRacing'in autofuel'i açılır: pitte depo doldurulmaz. SDK'da autofuel için pit komutu olmadığından "#autofuel" pit makrosu iRacing sohbetine yazılır (sohbeti açma: irsdk ChatComand BeginChat; yazı iRacing penceresine WM_CHAR ile, ardından Enter). Komut her zaman "aç" demektir, zaten açıksa değişmez. Rust: broadcast::chat_macro (yalnızca "#" ile başlayan kısa pit makroları), pit_autofuel komutu.
+- Olaylar penceresi: araca binince (sürüş başlayınca) kendiliğinden açılmışsa kapanır, elle açılmışsa simge durumuna küçülür (yalnızca biniş anında; yarış bitince soğuma turunda açılan pencere hemen kapanmaz). Tekrar (replay) başlayınca açılmaya devam eder. Oyundan çıkınca (Quit) oturum sırasında açık görülen Olaylar penceresi kapanır (önceden yalnızca kendiliğinden açılan kapanıyordu).
+
 ## 121026-309
 
 - Siyah ekran düzeltmesi: yarıştan çıkınca bazen monitör siyah kalıyor, düzelmesi için programı kapatıp açmak gerekiyordu. Sebep: iRacing yarıştan çıkınca sim süreci kapanır ve ekran modu değişir; bu sırada WebView2'nin şeffaf overlay çizimi bozulabiliyor ve görünür kalan overlay penceresi (ör. "sürekli göster" açık Canlı Sohbet / Altyazı, Kan Şekeri) tüm monitörü siyah kaplıyordu. Artık oyundan çıkınca (en az 20 sn süren gerçek bir oturumdan sonra, demo hariç) 4 sn beklenip hâlâ bağlı değilse overlay pencereleri sıfırdan oluşturuluyor; yeni pencere içerik çizilene kadar gösterilmediği için siyah kalmıyor. Oturum değişiminde hemen yeniden bağlanılırsa yenileme yapılmaz. Oyun dışındayken ekran çözünürlüğü / monitör düzeni değişince de yenilenir. Rust: refresh_overlay_windows (lib.rs).

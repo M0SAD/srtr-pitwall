@@ -419,6 +419,12 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     // Olaylar penceresi yarış bitince / tekrar başlayınca kendiliğinden açıldı: oturumdan çıkılınca (quit) kapatılır
     let mut events_auto = false;
     let mut was_conn_ev = false;
+    // Olaylar penceresi: araca binme anı (pencere arkaya alınır / kapanır) ve oturumda açık görüldü mü (çıkışta kapanır)
+    let mut was_in_car = false;
+    // Yarış bitti: Olaylar penceresi çizgide değil, araçtan çıkınca (ESC ile tekrar ekranına geçince) açılır
+    let mut events_pending = false;
+    let mut events_seen = false;
+    let mut last_events_look = Instant::now();
     // Olaylar penceresine son bildirilen liste sürümü ve kayıt ayarının son okunma anı
     let mut events_rev = 0u64;
     let mut last_events_cfg = crate::crashlog::past(10);
@@ -664,9 +670,19 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 });
                 auto && ev_count >= min.max(need)
             };
-            if finished && !demo_on && connected && auto_open(0) {
-                crate::open_events(&app);
-                events_auto = true;
+            if finished && !demo_on && connected {
+                events_pending = true;
+            }
+            // Bitişten sonra araçtan çıkıldı (ESC → tekrar ekranı): pencere şimdi açılır
+            if events_pending && connected && !demo_on && !preview && !st.frame.is_on_track {
+                events_pending = false;
+                if auto_open(0) {
+                    crate::open_events(&app);
+                    events_auto = true;
+                }
+            }
+            if !connected {
+                events_pending = false;
             }
             // Tekrar izlenmeye başlandı: olaylara atlayabilmek için Olaylar penceresini aç (açık değilse)
             let replay = connected && !demo_on && !preview && crate::calc::replay_watch(&st.frame);
@@ -723,13 +739,39 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         crate::crashlog::guard(|| crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim, shared.demo.load(Ordering::Relaxed)));
 
         // Oturumdan çıkıldı (sim bağlantısı bitti): kendiliğinden açılmış Olaylar penceresi kapanır
-        if was_conn_ev && !connected && events_auto {
-            events_auto = false;
-            if let Some(w) = app.get_webview_window("events") {
-                let _ = w.close();
+        // Oyundan çıkıldı (iRacing'de Quit: sim kapanır): oturum sırasında açılmış Olaylar penceresi kapanır
+        // (kendiliğinden açılan ya da oturumdayken elle açılan; oyun kapalıyken elle açılan dokunulmaz)
+        let real = connected && !demo_on && !preview;
+        if real && last_events_look.elapsed() > Duration::from_secs(1) {
+            last_events_look = Instant::now();
+            if app.get_webview_window("events").map(|w| w.is_visible().unwrap_or(false)).unwrap_or(false) {
+                events_seen = true;
             }
         }
+        if was_conn_ev && !connected {
+            if events_auto || events_seen {
+                if let Some(w) = app.get_webview_window("events") {
+                    let _ = w.close();
+                }
+            }
+            events_auto = false;
+            events_seen = false;
+        }
         was_conn_ev = connected;
+        // Araca binildi (sürüş başladı): Olaylar penceresi önde kalmasın. Kendiliğinden açıldıysa kapanır, elle açıldıysa
+        // simge durumuna küçülür. Yalnızca biniş anında (yarış bitince soğuma turunda açılan pencere hemen kapanmaz).
+        let in_car = real && st.frame.is_on_track && !st.frame.replay;
+        if in_car && !was_in_car {
+            if let Some(w) = app.get_webview_window("events") {
+                if events_auto {
+                    let _ = w.close();
+                    events_auto = false;
+                } else if w.is_visible().unwrap_or(false) {
+                    let _ = w.minimize();
+                }
+            }
+        }
+        was_in_car = in_car;
 
         let visible = connected && !preview;
         if visible != was_connected {

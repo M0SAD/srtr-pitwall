@@ -6,6 +6,19 @@ export const GREEN_NAMES: FlagName[] = ["oneLapToGreen", "greenHeld", "green"];
 
 export const isGreen = (n: FlagName) => GREEN_NAMES.includes(n);
 
+/** Sarı / kırmızı gibi yarışı durduran bayraklar: bunlar kalkınca gelen yeşil yeni bir yeşil sayılır */
+const HOLD: FlagName[] = ["caution", "cautionWaving", "yellow", "yellowWaving", "red", "checkered"];
+
+/**
+ * Yeşilin "durumu": hangi yeşil işaretleri var (+ durdurucu bayrak var mı). Bu değişince yeşil yeniden başlamış sayılır
+ * (ör. start öncesi uzun süre "greenHeld" → start anında "green"; sarı bayrak kalkınca yeniden yeşil). Yeşil yoksa "".
+ */
+export function greenState(flags: readonly FlagName[]): string {
+  const g = GREEN_NAMES.filter((n) => flags.includes(n));
+  if (!g.length) return "";
+  return g.join("+") + (HOLD.some((n) => flags.includes(n)) ? "|hold" : "");
+}
+
 /**
  * Önem sırasına göre ilk eşleşen bayrak tanımı.
  * Yeşil ailesi yalnızca `showGreen` açıksa ve yeşil ilk göründükten sonra `greenMs` süresi dolmadıysa yanar
