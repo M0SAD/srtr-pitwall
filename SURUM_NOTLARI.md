@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 131026-322
+
+- Kendiliğinden kapanma için önlem ve teşhis: tepsi menüsü, tepsi simgesi ve overlay yenileme gibi ana iş parçacığında çalışan geri çağrılardaki bir hata artık programı kapatmıyor (yakalanıp crash.log'a yazılıyor). Program yine de beklenmedik kapanırsa (bellek bitmesi, sürücü çökmesi, sonlandırılma) bir sonraki açılışta crash.log'a "önceki oturum beklenmedik kapandı" satırı düşer: ne zaman açıldığı, ne kadar çalıştığı, bellek kullanımı (en yüksek dahil) ve son durum (oyuna bağlı mı). Bellek 2,5 GB'ı aşarsa da not düşülür.
+- Ayarlar › Genel › Hakkında › "Hata günlüğü": günlüğü programın içinden göster, kopyala ya da klasörünü aç.
+- F1 kaynağı açılırken ve DiRT sektör numarasında olası taşma düzeltildi.
+
 ## 131026-321
 
 - Yakın Takip: yeni "Performans" ayar grubu. Performans modu: Görsel kalite (tüm efektler, varsayılan), Dengeli (yakınlık renk geçişi ve kenar karartması kapalı), En yüksek FPS (animasyon yok, 3B eğim yok, düz görünüm), Özel (kayma animasyonu, yumuşak renk geçişi, 3B eğim, kenar karartması ve yakın araç renk dolgusu tek tek açılıp kapanır). En pahalı efekt yumuşak renk geçişiydi (her karede satırın yeniden boyanması).

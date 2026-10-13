@@ -104,7 +104,11 @@ impl<'a> Ctx<'a> {
         let my_class = s.driver(me).map(|d| d.class_id).unwrap_or(0);
         let multiclass = s.class_count() > 1;
         let pos_of = calc::positions(f, s);
-        let pos = if pos_of[me].1 > 0 { pos_of[me].1 } else { pos_of[me].0 };
+        let pos = if pos_of[me].1 > 0 {
+            pos_of[me].1
+        } else {
+            pos_of[me].0
+        };
         let field = (0..MAX_CARS)
             .filter(|&i| {
                 s.driver(i)
@@ -992,7 +996,8 @@ pub fn lapped_call(prev: Option<i32>, diff: i32, since_cat: f32) -> (bool, bool)
 
 /// Gerçek tur farkı (pist konumu dahil): tur çizgisi dışında da doğru sonuç verir
 pub fn laps_between(front_lc: i32, front_pct: f32, back_lc: i32, back_pct: f32) -> i32 {
-    let d = (front_lc as f32 + front_pct.clamp(0.0, 1.0)) - (back_lc as f32 + back_pct.clamp(0.0, 1.0));
+    let d =
+        (front_lc as f32 + front_pct.clamp(0.0, 1.0)) - (back_lc as f32 + back_pct.clamp(0.0, 1.0));
     d.floor() as i32
 }
 
@@ -1413,7 +1418,11 @@ impl Eng {
         if !self.started && st == 4 {
             self.started = true;
             self.start_time = f.session_time;
-            self.start_pos = if self.grid_pos > 0 { self.grid_pos } else { pos };
+            self.start_pos = if self.grid_pos > 0 {
+                self.grid_pos
+            } else {
+                pos
+            };
             self.announced_pos = pos;
             self.last_pos = pos;
             if f.lap_completed <= 1
@@ -1824,7 +1833,12 @@ impl Eng {
         if pos > 1 {
             if let Some(l) = c.class_car(1) {
                 let diff = if summary {
-                    laps_between(f.cars[l].lap_completed, f.cars[l].pct, my_lc, f.cars[c.me].pct)
+                    laps_between(
+                        f.cars[l].lap_completed,
+                        f.cars[l].pct,
+                        my_lc,
+                        f.cars[c.me].pct,
+                    )
                 } else {
                     f.cars[l].lap_completed - my_lc
                 };
@@ -1840,7 +1854,12 @@ impl Eng {
             }
         } else if let Some(p2) = c.class_car(2) {
             let diff = if summary {
-                laps_between(my_lc, f.cars[c.me].pct, f.cars[p2].lap_completed, f.cars[p2].pct)
+                laps_between(
+                    my_lc,
+                    f.cars[c.me].pct,
+                    f.cars[p2].lap_completed,
+                    f.cars[p2].pct,
+                )
             } else {
                 my_lc - f.cars[p2].lap_completed - 1
             };
@@ -2429,7 +2448,8 @@ impl Eng {
             let (theirs, mine) = (f.cars[i].lap_completed, f.cars[c.me].lap_completed);
             if theirs > mine {
                 let since = secs_since(self.cd.get("lapped_cat").copied(), now);
-                let (mark, speak) = lapped_call(self.lapped_by.get(&i).copied(), theirs - mine, since);
+                let (mark, speak) =
+                    lapped_call(self.lapped_by.get(&i).copied(), theirs - mine, since);
                 if mark {
                     self.lapped_by.insert(i, theirs - mine);
                 }
@@ -3980,8 +4000,16 @@ mod tests {
         assert!(!traffic_key("flags/yellow_flag"));
         assert!(!traffic_key("push_now/pits_exit_traffic_behind"));
         assert!(!traffic_key("fuel/we_estimate"));
-        assert!(traffic_msg(&Msg::new("gaps", prio::NORMAL, vec![k("timings/gap_behind_is_now"), Part::Secs(1.0)])));
-        assert!(!traffic_msg(&Msg::new("position", prio::NORMAL, vec![Part::Pos(3)])));
+        assert!(traffic_msg(&Msg::new(
+            "gaps",
+            prio::NORMAL,
+            vec![k("timings/gap_behind_is_now"), Part::Secs(1.0)]
+        )));
+        assert!(!traffic_msg(&Msg::new(
+            "position",
+            prio::NORMAL,
+            vec![Part::Pos(3)]
+        )));
 
         // yeni araç, bekleme dolmuş: söyle
         assert_eq!(lapped_call(None, 1, f32::MAX), (true, true));

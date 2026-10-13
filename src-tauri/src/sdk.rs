@@ -216,14 +216,20 @@ impl VarIndex {
         let base = h.var_header_offset.max(0) as usize;
         for i in 0..h.num_vars.max(0) as usize {
             let off = base + i * VAR_HEADER_SIZE;
-            let Some(vh) = mem.get(off..off + VAR_HEADER_SIZE) else { break };
+            let Some(vh) = mem.get(off..off + VAR_HEADER_SIZE) else {
+                break;
+            };
             let ty = rd_i32(vh, 0) as u8;
             let voff = rd_i32(vh, 4).max(0) as usize;
             let count = rd_i32(vh, 8).max(1) as usize;
             let name_raw = &vh[16..48];
             let end = name_raw.iter().position(|&c| c == 0).unwrap_or(32);
             let name = std::str::from_utf8(&name_raw[..end]).unwrap_or("");
-            let r = Some(VarRef { ty, offset: voff, count });
+            let r = Some(VarRef {
+                ty,
+                offset: voff,
+                count,
+            });
             match name {
                 "SessionTime" => ix.session_time = r,
                 "SessionTimeRemain" => ix.session_time_remain = r,
@@ -475,7 +481,11 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
         f.tire_press[c] = f32_or(buf, ix.tire_press[c], 0.0);
     }
     f.tire_compound = i32_or(buf, ix.tire_compound, -1);
-    f.pit_sv_flags = if ix.pit_sv_flags.is_some() { (u32_bits(buf, ix.pit_sv_flags) & 0x7f) as i32 } else { -1 };
+    f.pit_sv_flags = if ix.pit_sv_flags.is_some() {
+        (u32_bits(buf, ix.pit_sv_flags) & 0x7f) as i32
+    } else {
+        -1
+    };
     f.pit_sv_fuel = f32_or(buf, ix.pit_sv_fuel, 0.0);
     f.pit_sv_compound = i32_or(buf, ix.pit_sv_compound, -1);
     f.fast_repairs = i32_or(buf, ix.fast_repairs, -1);
@@ -508,15 +518,27 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     for i in 0..MAX_CARS {
         let c = &mut f.cars[i];
         c.lap = get_f64(buf, ix.c_lap, i).map(|x| x as i32).unwrap_or(-1);
-        c.lap_completed = get_f64(buf, ix.c_lap_completed, i).map(|x| x as i32).unwrap_or(-1);
+        c.lap_completed = get_f64(buf, ix.c_lap_completed, i)
+            .map(|x| x as i32)
+            .unwrap_or(-1);
         c.pct = get_f64(buf, ix.c_pct, i).map(|x| x as f32).unwrap_or(-1.0);
-        c.position = get_f64(buf, ix.c_position, i).map(|x| x as i32).unwrap_or(0);
-        c.class_position = get_f64(buf, ix.c_class_position, i).map(|x| x as i32).unwrap_or(0);
-        c.on_pit = get_f64(buf, ix.c_on_pit, i).map(|x| x != 0.0).unwrap_or(false);
-        c.est_time = get_f64(buf, ix.c_est_time, i).map(|x| x as f32).unwrap_or(0.0);
+        c.position = get_f64(buf, ix.c_position, i)
+            .map(|x| x as i32)
+            .unwrap_or(0);
+        c.class_position = get_f64(buf, ix.c_class_position, i)
+            .map(|x| x as i32)
+            .unwrap_or(0);
+        c.on_pit = get_f64(buf, ix.c_on_pit, i)
+            .map(|x| x != 0.0)
+            .unwrap_or(false);
+        c.est_time = get_f64(buf, ix.c_est_time, i)
+            .map(|x| x as f32)
+            .unwrap_or(0.0);
         c.last = get_f64(buf, ix.c_last, i).map(|x| x as f32).unwrap_or(-1.0);
         c.best = get_f64(buf, ix.c_best, i).map(|x| x as f32).unwrap_or(-1.0);
-        c.surface = get_f64(buf, ix.c_surface, i).map(|x| x as i32).unwrap_or(-1);
+        c.surface = get_f64(buf, ix.c_surface, i)
+            .map(|x| x as i32)
+            .unwrap_or(-1);
         c.f2 = get_f64(buf, ix.c_f2, i).map(|x| x as f32).unwrap_or(0.0);
         c.tire = get_f64(buf, ix.c_tire, i).map(|x| x as i32).unwrap_or(-1);
         c.flags = match ix.c_flags {
@@ -568,7 +590,11 @@ mod win {
     impl LiveSource {
         pub fn open() -> Option<LiveSource> {
             unsafe {
-                let map = OpenFileMappingW(FILE_MAP_READ, 0, wide("Local\\IRSDKMemMapFileName").as_ptr());
+                let map = OpenFileMappingW(
+                    FILE_MAP_READ,
+                    0,
+                    wide("Local\\IRSDKMemMapFileName").as_ptr(),
+                );
                 if map.is_null() {
                     return None;
                 }
@@ -658,7 +684,11 @@ mod win {
                 let len = h.buf_len as usize;
                 self.buf.resize(len, 0);
                 unsafe {
-                    std::ptr::copy_nonoverlapping(self.view.add(off as usize), self.buf.as_mut_ptr(), len);
+                    std::ptr::copy_nonoverlapping(
+                        self.view.add(off as usize),
+                        self.buf.as_mut_ptr(),
+                        len,
+                    );
                 }
                 // Kopyalarken iRacing aynı tamponu yeniden yazdıysa tekrar dene.
                 let h2 = match self.header() {
@@ -678,7 +708,9 @@ mod win {
     impl Drop for LiveSource {
         fn drop(&mut self) {
             unsafe {
-                UnmapViewOfFile(MEMORY_MAPPED_VIEW_ADDRESS { Value: self.view as *mut _ });
+                UnmapViewOfFile(MEMORY_MAPPED_VIEW_ADDRESS {
+                    Value: self.view as *mut _,
+                });
                 CloseHandle(self.map);
                 if !self.event.is_null() {
                     CloseHandle(self.event);
@@ -721,7 +753,15 @@ mod tests {
         var(&mut mem, var_base, 0, "Speed", T_FLOAT as i32, 0, 1);
         var(&mut mem, var_base, 1, "Gear", T_INT as i32, 4, 1);
         var(&mut mem, var_base, 2, "SessionTime", T_DOUBLE as i32, 8, 1);
-        var(&mut mem, var_base, 3, "CarIdxLapDistPct", T_FLOAT as i32, 16, 64);
+        var(
+            &mut mem,
+            var_base,
+            3,
+            "CarIdxLapDistPct",
+            T_FLOAT as i32,
+            16,
+            64,
+        );
         mem[buf_off..buf_off + 4].copy_from_slice(&42.5f32.to_le_bytes());
         put_i32(&mut mem, buf_off + 4, 3);
         mem[buf_off + 8..buf_off + 16].copy_from_slice(&123.25f64.to_le_bytes());

@@ -237,7 +237,13 @@ impl Recorder {
 
     /// Her yeni karede çağrılır. `active` false iken (demo, önizleme, bağlantı yok, kayıt kapalı)
     /// kayıt yapılmaz; bekleyen tur ölçülen süreyle bitirilir. Tamamlanan tur döner.
-    pub fn update(&mut self, f: &Frame, s: &SessionData, sim: &str, active: bool) -> Option<LapRecord> {
+    pub fn update(
+        &mut self,
+        f: &Frame,
+        s: &SessionData,
+        sim: &str,
+        active: bool,
+    ) -> Option<LapRecord> {
         if !active || sim.is_empty() {
             let out = self.pending.take().map(|p| finish(p, None));
             self.cur = None;
@@ -249,7 +255,10 @@ impl Recorder {
         // Önceki tur süresi bekleniyor
         if let Some(p) = self.pending.as_ref() {
             let changed = f.lap_last > 0.0 && (f.lap_last - p.prev_last).abs() > 0.0005;
-            if changed || f.session_time >= p.deadline || f.session_time < p.deadline - LAST_LAP_WAIT - 1.0 {
+            if changed
+                || f.session_time >= p.deadline
+                || f.session_time < p.deadline - LAST_LAP_WAIT - 1.0
+            {
                 let p = self.pending.take().unwrap();
                 out = finish(p, changed.then_some(f.lap_last));
             }
@@ -261,14 +270,21 @@ impl Recorder {
         }
         let me = f.cars[f.player_idx as usize];
         let player = s.player();
-        let track_id = if s.track_id > 0 { s.track_id.to_string() } else { slug(&s.track_name) };
+        let track_id = if s.track_id > 0 {
+            s.track_id.to_string()
+        } else {
+            slug(&s.track_name)
+        };
         let car_id = match player {
             Some(d) if d.car_id > 0 => d.car_id.to_string(),
             Some(d) if !d.car_path.is_empty() => slug(&d.car_path),
             Some(d) => slug(&d.car_name),
             None => String::new(),
         };
-        let key = format!("{sim}|{track_id}|{}|{car_id}|{}", s.track_config, f.session_num);
+        let key = format!(
+            "{sim}|{track_id}|{}|{car_id}|{}",
+            s.track_config, f.session_num
+        );
         if key != self.key {
             // Yeni oturum (ya da pist/araç değişti)
             self.key = key;
@@ -290,7 +306,16 @@ impl Recorder {
             if let Some(c) = self.cur.take() {
                 if f.lap == c.lap + 1 && c.full && c.lap > 0 {
                     let measured = (f.session_time - c.start_time) as f32;
-                    let rec = self.build(f, s, sim, &c, &track_id, &car_id, me.position, me.class_position);
+                    let rec = self.build(
+                        f,
+                        s,
+                        sim,
+                        &c,
+                        &track_id,
+                        &car_id,
+                        me.position,
+                        me.class_position,
+                    );
                     let p = Pending {
                         rec,
                         samples: c.samples,
@@ -371,9 +396,22 @@ impl Recorder {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn build(&self, f: &Frame, s: &SessionData, sim: &str, c: &Cur, track_id: &str, car_id: &str, pos: i32, cpos: i32) -> LapRecord {
+    fn build(
+        &self,
+        f: &Frame,
+        s: &SessionData,
+        sim: &str,
+        c: &Cur,
+        track_id: &str,
+        car_id: &str,
+        pos: i32,
+        cpos: i32,
+    ) -> LapRecord {
         let player = s.player();
-        let kind = s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default();
+        let kind = s
+            .session(f.session_num)
+            .map(|x| x.kind.clone())
+            .unwrap_or_default();
         let incidents = (f.incidents - c.inc_start).max(0);
         let fuel = c.start_fuel - f.fuel_level;
         LapRecord {
@@ -387,14 +425,28 @@ impl Recorder {
             car_id: car_id.to_string(),
             car_name: player.map(|d| d.car_name.clone()).unwrap_or_default(),
             // Lig kategorisi değil, simin gerçek sınıfı (lig ayarı sınıf adını "Pro" / "Am" gibi kategoriyle değiştirir)
-            car_class: player.map(|d| car_class_of(if d.orig_class_name.is_empty() { &d.class_name } else { &d.orig_class_name }, &d.car_name)).unwrap_or_default(),
+            car_class: player
+                .map(|d| {
+                    car_class_of(
+                        if d.orig_class_name.is_empty() {
+                            &d.class_name
+                        } else {
+                            &d.orig_class_name
+                        },
+                        &d.car_name,
+                    )
+                })
+                .unwrap_or_default(),
             setup_name: crate::setupcmp::clean(&s.setup_name),
             session_type: session_type(&kind).to_string(),
             session_kind: session_kind_tag(&kind, s.has_ai_opponents()),
             session_num: f.session_num,
             session_started: self.started,
             driver_name: player.map(|d| d.name.clone()).unwrap_or_default(),
-            driver_id: player.filter(|d| d.user_id > 0).map(|d| d.user_id.to_string()).unwrap_or_default(),
+            driver_id: player
+                .filter(|d| d.user_id > 0)
+                .map(|d| d.user_id.to_string())
+                .unwrap_or_default(),
             lap: c.lap,
             lap_time: 0.0,
             sectors: Vec::new(),
@@ -503,7 +555,9 @@ fn build_trace(samples: &[Sample], lap_time: f32) -> Option<Trace> {
         full.push(s);
     }
     // Konum (yalnızca .ibt): bütün noktalarda geçerliyse yazılır
-    let has_pos = full.iter().all(|s| s.lat.is_finite() && s.lon.is_finite() && (s.lat != 0.0 || s.lon != 0.0));
+    let has_pos = full
+        .iter()
+        .all(|s| s.lat.is_finite() && s.lon.is_finite() && (s.lat != 0.0 || s.lon != 0.0));
     // Süre artan olmalı
     for i in 1..n {
         if full[i].t < full[i - 1].t {
@@ -513,17 +567,49 @@ fn build_trace(samples: &[Sample], lap_time: f32) -> Option<Trace> {
     Some(Trace {
         n: n as u32,
         t: full.iter().map(|s| (s.t * 1000.0).round() as i32).collect(),
-        speed: full.iter().map(|s| (s.speed * 36.0).round() as i32).collect(),
-        throttle: full.iter().map(|s| (s.throttle.clamp(0.0, 1.0) * 100.0).round() as u8).collect(),
-        brake: full.iter().map(|s| (s.brake.clamp(0.0, 1.0) * 100.0).round() as u8).collect(),
+        speed: full
+            .iter()
+            .map(|s| (s.speed * 36.0).round() as i32)
+            .collect(),
+        throttle: full
+            .iter()
+            .map(|s| (s.throttle.clamp(0.0, 1.0) * 100.0).round() as u8)
+            .collect(),
+        brake: full
+            .iter()
+            .map(|s| (s.brake.clamp(0.0, 1.0) * 100.0).round() as u8)
+            .collect(),
         gear: full.iter().map(|s| s.gear.clamp(-1, 12) as i8).collect(),
-        steer: full.iter().map(|s| s.steer.to_degrees().clamp(-1080.0, 1080.0).round() as i16).collect(),
-        rpm: full.iter().map(|s| s.rpm.clamp(0.0, 30000.0).round() as u16).collect(),
-        lat_g: full.iter().map(|s| (s.lat_g.clamp(-9.0, 9.0) * 100.0).round() as i16).collect(),
-        long_g: full.iter().map(|s| (s.long_g.clamp(-9.0, 9.0) * 100.0).round() as i16).collect(),
-        abs: full.iter().map(|s| (s.abs.clamp(0.0, 1.0) * 100.0).round() as u8).collect(),
-        lat: if has_pos { full.iter().map(|s| (s.lat * 1e6).round() as i32).collect() } else { Vec::new() },
-        lon: if has_pos { full.iter().map(|s| (s.lon * 1e6).round() as i32).collect() } else { Vec::new() },
+        steer: full
+            .iter()
+            .map(|s| s.steer.to_degrees().clamp(-1080.0, 1080.0).round() as i16)
+            .collect(),
+        rpm: full
+            .iter()
+            .map(|s| s.rpm.clamp(0.0, 30000.0).round() as u16)
+            .collect(),
+        lat_g: full
+            .iter()
+            .map(|s| (s.lat_g.clamp(-9.0, 9.0) * 100.0).round() as i16)
+            .collect(),
+        long_g: full
+            .iter()
+            .map(|s| (s.long_g.clamp(-9.0, 9.0) * 100.0).round() as i16)
+            .collect(),
+        abs: full
+            .iter()
+            .map(|s| (s.abs.clamp(0.0, 1.0) * 100.0).round() as u8)
+            .collect(),
+        lat: if has_pos {
+            full.iter().map(|s| (s.lat * 1e6).round() as i32).collect()
+        } else {
+            Vec::new()
+        },
+        lon: if has_pos {
+            full.iter().map(|s| (s.lon * 1e6).round() as i32).collect()
+        } else {
+            Vec::new()
+        },
     })
 }
 
@@ -556,7 +642,12 @@ pub fn queue_path(app_data: &Path) -> PathBuf {
 
 fn read_lines(path: &Path) -> Vec<String> {
     std::fs::read_to_string(path)
-        .map(|s| s.lines().filter(|l| !l.trim().is_empty()).map(String::from).collect())
+        .map(|s| {
+            s.lines()
+                .filter(|l| !l.trim().is_empty())
+                .map(String::from)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -577,7 +668,10 @@ pub fn append(path: &Path, rec: &LapRecord) -> std::io::Result<()> {
         std::fs::create_dir_all(d)?;
     }
     let line = serde_json::to_string(rec).map_err(std::io::Error::other)?;
-    let mut fh = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
+    let mut fh = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)?;
     writeln!(fh, "{line}")?;
     drop(fh);
     // Ara sıra boyut denetimi (her turda tüm dosyayı okumamak için)
@@ -593,7 +687,11 @@ pub fn append(path: &Path, rec: &LapRecord) -> std::io::Result<()> {
 /// Kuyruktaki en eski `limit` tur
 pub fn pending(path: &Path, limit: usize) -> Vec<serde_json::Value> {
     let _g = QUEUE_LOCK.lock();
-    read_lines(path).iter().filter_map(|l| serde_json::from_str(l).ok()).take(limit).collect()
+    read_lines(path)
+        .iter()
+        .filter_map(|l| serde_json::from_str(l).ok())
+        .take(limit)
+        .collect()
 }
 
 /// Kuyruktaki tur sayısı
@@ -609,7 +707,11 @@ pub fn ack(path: &Path, ids: &[String]) -> std::io::Result<usize> {
     let keep: Vec<String> = lines
         .into_iter()
         .filter(|l| match serde_json::from_str::<serde_json::Value>(l) {
-            Ok(v) => !v.get("id").and_then(|x| x.as_str()).map(|id| ids.iter().any(|i| i == id)).unwrap_or(true),
+            Ok(v) => !v
+                .get("id")
+                .and_then(|x| x.as_str())
+                .map(|id| ids.iter().any(|i| i == id))
+                .unwrap_or(true),
             Err(_) => false,
         })
         .collect();
@@ -639,7 +741,11 @@ mod tests {
         assert_eq!(session_kind_tag("Practice", false), "Practice");
         let mut s = session();
         assert!(!s.has_ai_opponents());
-        s.drivers.push(Some(Driver { car_idx: 1, is_ai: true, ..Default::default() }));
+        s.drivers.push(Some(Driver {
+            car_idx: 1,
+            is_ai: true,
+            ..Default::default()
+        }));
         assert!(s.has_ai_opponents());
     }
 
@@ -661,14 +767,32 @@ mod tests {
             class_name: "GT3".into(),
             ..Default::default()
         })];
-        s.sessions = vec![SessionEntry { num: 0, kind: "Open Qualify".into(), laps: None, time: None, ..Default::default() }];
+        s.sessions = vec![SessionEntry {
+            num: 0,
+            kind: "Open Qualify".into(),
+            laps: None,
+            time: None,
+            ..Default::default()
+        }];
         s
     }
 
     /// `laps` tur boyunca 60 Hz kare üretir; `lap_len` sn'lik turlar, `start_pct` konumundan başlar.
     /// `hook(t, frame)` her karede çağrılır.
-    fn drive(r: &mut Recorder, s: &SessionData, start_pct: f64, lap_len: f64, secs: f64, mut hook: impl FnMut(f64, &mut Frame)) -> Vec<LapRecord> {
-        let mut f = Frame { player_idx: 0, is_on_track: true, fuel_level: 60.0, ..Default::default() };
+    fn drive(
+        r: &mut Recorder,
+        s: &SessionData,
+        start_pct: f64,
+        lap_len: f64,
+        secs: f64,
+        mut hook: impl FnMut(f64, &mut Frame),
+    ) -> Vec<LapRecord> {
+        let mut f = Frame {
+            player_idx: 0,
+            is_on_track: true,
+            fuel_level: 60.0,
+            ..Default::default()
+        };
         f.cars[0].surface = 3;
         f.cars[0].position = 4;
         f.cars[0].class_position = 2;
@@ -703,7 +827,12 @@ mod tests {
         let mut r = Recorder::default();
         // %50'den başla: ilk (yarım) tur kaydedilmez, ardından 2 tam tur
         let laps = drive(&mut r, &s, 0.5, 100.0, 252.0, |_, _| {});
-        assert_eq!(laps.len(), 2, "{:?}", laps.iter().map(|l| (l.lap, l.lap_time)).collect::<Vec<_>>());
+        assert_eq!(
+            laps.len(),
+            2,
+            "{:?}",
+            laps.iter().map(|l| (l.lap, l.lap_time)).collect::<Vec<_>>()
+        );
         let l = &laps[0];
         assert_eq!(l.lap, 2);
         assert!((l.lap_time - 100.0).abs() < 0.02, "{}", l.lap_time);
@@ -786,14 +915,25 @@ mod tests {
         let mut s = vec![Sample::default(); 100];
         for (i, x) in s.iter_mut().enumerate() {
             if i % 5 != 3 {
-                *x = Sample { set: true, t: i as f32, speed: i as f32, throttle: 1.0, brake: 0.0, gear: 3, steer: 0.1, ..Default::default() };
+                *x = Sample {
+                    set: true,
+                    t: i as f32,
+                    speed: i as f32,
+                    throttle: 1.0,
+                    brake: 0.0,
+                    gear: 3,
+                    steer: 0.1,
+                    ..Default::default()
+                };
             }
         }
         let tr = build_trace(&s, 100.0).unwrap();
         assert_eq!(tr.t[3], 3000);
         assert_eq!(tr.speed[3], (3.0f32 * 36.0).round() as i32);
         assert_eq!(tr.steer[0], 6);
-        let sparse: Vec<Sample> = (0..100).map(|i| if i < 50 { s[0] } else { Sample::default() }).collect();
+        let sparse: Vec<Sample> = (0..100)
+            .map(|i| if i < 50 { s[0] } else { Sample::default() })
+            .collect();
         assert!(build_trace(&sparse, 100.0).is_none());
         assert_eq!(tr.time_at(0.5), Some(50.0));
     }
@@ -806,7 +946,10 @@ mod tests {
         assert_eq!(session_type("Hotlap"), "hotlap");
         assert_eq!(session_type("Warmup"), "warmup");
         assert_eq!(session_type(""), "other");
-        assert_eq!(slug("ks_nordschleife / Touristenfahrten"), "ks-nordschleife-touristenfahrten");
+        assert_eq!(
+            slug("ks_nordschleife / Touristenfahrten"),
+            "ks-nordschleife-touristenfahrten"
+        );
     }
 
     #[test]
@@ -814,7 +957,12 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("pw-tq-{}", now_ms()));
         let p = queue_path(&dir);
         for i in 1..=3 {
-            let rec = LapRecord { id: format!("x-{i}"), lap: i, lap_time: 90.0, ..Default::default() };
+            let rec = LapRecord {
+                id: format!("x-{i}"),
+                lap: i,
+                lap_time: 90.0,
+                ..Default::default()
+            };
             append(&p, &rec).unwrap();
         }
         assert_eq!(count(&p), 3);
@@ -835,10 +983,19 @@ mod tests {
 fn car_class_of(class: &str, car: &str) -> String {
     let c = class.trim();
     let low = c.to_ascii_lowercase();
-    if c.is_empty() || low.contains("hosted") || low.contains("all cars") || c.chars().all(|ch| ch.is_ascii_digit()) || c.eq_ignore_ascii_case(car.trim()) {
+    if c.is_empty()
+        || low.contains("hosted")
+        || low.contains("all cars")
+        || c.chars().all(|ch| ch.is_ascii_digit())
+        || c.eq_ignore_ascii_case(car.trim())
+    {
         return String::new();
     }
-    let c = c.strip_suffix(" Class").or_else(|| c.strip_suffix(" class")).unwrap_or(c).trim();
+    let c = c
+        .strip_suffix(" Class")
+        .or_else(|| c.strip_suffix(" class"))
+        .unwrap_or(c)
+        .trim();
     c.to_string()
 }
 

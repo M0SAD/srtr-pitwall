@@ -62,7 +62,13 @@ impl Placement {
     }
 
     pub fn from_json(v: &Value, d: Placement) -> Placement {
-        let f = |k: &str, d: f32| v.get(k).and_then(|x| x.as_f64()).filter(|x| x.is_finite()).map(|x| x as f32).unwrap_or(d);
+        let f = |k: &str, d: f32| {
+            v.get(k)
+                .and_then(|x| x.as_f64())
+                .filter(|x| x.is_finite())
+                .map(|x| x as f32)
+                .unwrap_or(d)
+        };
         let b = |k: &str, d: bool| v.get(k).and_then(|x| x.as_bool()).unwrap_or(d);
         let mut p = Placement {
             x: f("x", d.x),
@@ -152,10 +158,20 @@ fn rot_x(rad: f32) -> M3 {
 const ROT_Z_180: M3 = [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]];
 
 fn compose(r: M3, t: V3) -> HmdMatrix34 {
-    HmdMatrix34 { m: [[r[0][0], r[0][1], r[0][2], t[0]], [r[1][0], r[1][1], r[1][2], t[1]], [r[2][0], r[2][1], r[2][2], t[2]]] }
+    HmdMatrix34 {
+        m: [
+            [r[0][0], r[0][1], r[0][2], t[0]],
+            [r[1][0], r[1][1], r[1][2], t[1]],
+            [r[2][0], r[2][1], r[2][2], t[2]],
+        ],
+    }
 }
 fn rotation(m: &HmdMatrix34) -> M3 {
-    [[m.m[0][0], m.m[0][1], m.m[0][2]], [m.m[1][0], m.m[1][1], m.m[1][2]], [m.m[2][0], m.m[2][1], m.m[2][2]]]
+    [
+        [m.m[0][0], m.m[0][1], m.m[0][2]],
+        [m.m[1][0], m.m[1][1], m.m[1][2]],
+        [m.m[2][0], m.m[2][1], m.m[2][2]],
+    ]
 }
 pub fn translation(m: &HmdMatrix34) -> V3 {
     [m.m[0][3], m.m[1][3], m.m[2][3]]
@@ -164,12 +180,19 @@ fn apply(r: M3, v: V3) -> V3 {
     [dot(r[0], v), dot(r[1], v), dot(r[2], v)]
 }
 fn transpose(r: M3) -> M3 {
-    [[r[0][0], r[1][0], r[2][0]], [r[0][1], r[1][1], r[2][1]], [r[0][2], r[1][2], r[2][2]]]
+    [
+        [r[0][0], r[1][0], r[2][0]],
+        [r[0][1], r[1][1], r[2][1]],
+        [r[0][2], r[1][2], r[2][2]],
+    ]
 }
 /// a · b (katı dönüşümler)
 pub fn mul(a: &HmdMatrix34, b: &HmdMatrix34) -> HmdMatrix34 {
     let ra = rotation(a);
-    compose(m3_mul(ra, rotation(b)), add(apply(ra, translation(b)), translation(a)))
+    compose(
+        m3_mul(ra, rotation(b)),
+        add(apply(ra, translation(b)), translation(a)),
+    )
 }
 /// Noktayı `m` uzayından üst uzaya taşır
 #[cfg(test)]
@@ -196,15 +219,29 @@ pub struct Base {
 }
 
 impl Base {
-    pub const ZERO: Base = Base { x: 0.0, y: 0.0, z: 0.0, yaw: 0.0 };
+    pub const ZERO: Base = Base {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        yaw: 0.0,
+    };
 
     /// Gözlüğün o anki yeri ve yatay bakış yönü yeni başlangıç olur (eğim ve yatış yok sayılır)
     pub fn from_hmd(hmd: &HmdMatrix34) -> Base {
         let f = forward(hmd);
         let t = translation(hmd);
         // rot_y(a) için -z sütunu (-sin a, 0, -cos a) = bakış yönü
-        let yaw = if f[0].abs() + f[2].abs() < 1e-4 { 0.0 } else { (-f[0]).atan2(-f[2]).to_degrees() };
-        Base { x: t[0], y: t[1], z: t[2], yaw }
+        let yaw = if f[0].abs() + f[2].abs() < 1e-4 {
+            0.0
+        } else {
+            (-f[0]).atan2(-f[2]).to_degrees()
+        };
+        Base {
+            x: t[0],
+            y: t[1],
+            z: t[2],
+            yaw,
+        }
     }
 
     pub fn matrix(&self) -> HmdMatrix34 {
@@ -212,8 +249,18 @@ impl Base {
     }
 
     pub fn from_json(v: &Value) -> Option<Base> {
-        let f = |k: &str| v.get(k).and_then(|x| x.as_f64()).filter(|x| x.is_finite()).map(|x| x as f32);
-        Some(Base { x: f("x")?, y: f("y")?, z: f("z")?, yaw: f("yaw")? })
+        let f = |k: &str| {
+            v.get(k)
+                .and_then(|x| x.as_f64())
+                .filter(|x| x.is_finite())
+                .map(|x| x as f32)
+        };
+        Some(Base {
+            x: f("x")?,
+            y: f("y")?,
+            z: f("z")?,
+            yaw: f("yaw")?,
+        })
     }
 
     pub fn to_json(&self) -> Value {
@@ -224,14 +271,23 @@ impl Base {
 
 /// Overlay'in izleme uzayındaki dönüşümü (SetOverlayTransformAbsolute).
 /// `hmd`: gözlüğün aynı izleme uzayındaki konumu ("bana dön" için; yoksa saklanan açı kullanılır).
-pub fn transform(p: &Placement, base: &HmdMatrix34, hmd: Option<&HmdMatrix34>, invert: bool) -> HmdMatrix34 {
+pub fn transform(
+    p: &Placement,
+    base: &HmdMatrix34,
+    hmd: Option<&HmdMatrix34>,
+    invert: bool,
+) -> HmdMatrix34 {
     let mut pos: V3 = [p.x, p.y, -p.z];
     let mut rot = m3_mul(rot_y(p.yaw.to_radians()), rot_x(p.pitch.to_radians()));
     if let (true, Some(h)) = (p.face_me, hmd) {
         // Gözlük merkezli, saklanan uzaklıkta bir kürede; ön yüz gözlüğe bakar
         let head = point_inv(base, translation(h));
         let dist = len(pos);
-        let dir = if dist < 0.05 { [0.0, 0.0, -1.0] } else { scale(pos, 1.0 / dist) };
+        let dir = if dist < 0.05 {
+            [0.0, 0.0, -1.0]
+        } else {
+            scale(pos, 1.0 / dist)
+        };
         pos = add(head, scale(dir, dist.max(0.05)));
         let to_head = scale(dir, -1.0);
         let yaw = to_head[0].atan2(to_head[2]);
@@ -355,7 +411,9 @@ pub fn bgra_to_rgba(buf: &mut [u8], key: Option<[u8; 3]>, tol: u8) {
         Some([kr, kg, kb]) => {
             for px in buf.chunks_exact_mut(4) {
                 px.swap(0, 2);
-                let hit = px[0].abs_diff(kr) <= tol && px[1].abs_diff(kg) <= tol && px[2].abs_diff(kb) <= tol;
+                let hit = px[0].abs_diff(kr) <= tol
+                    && px[1].abs_diff(kg) <= tol
+                    && px[2].abs_diff(kb) <= tol;
                 if hit {
                     px.copy_from_slice(&[0, 0, 0, 0]);
                 } else {
@@ -424,7 +482,12 @@ mod tests {
             let t = translation(&m);
             let flat = [t[0], 0.0, t[2]];
             assert!((len(flat) - 1.2).abs() < 1e-3, "{i}");
-            assert!(close(normal(&m), scale(flat, -1.0 / len(flat))), "{i}: {:?} {:?}", normal(&m), t);
+            assert!(
+                close(normal(&m), scale(flat, -1.0 / len(flat))),
+                "{i}: {:?} {:?}",
+                normal(&m),
+                t
+            );
         }
         // Sağdaki overlay sağda (x > 0), ikinci sıra aşağıda
         assert!(Placement::default_for(4, 5).x > 0.5 && Placement::default_for(0, 5).x < -0.5);
@@ -444,7 +507,15 @@ mod tests {
 
     #[test]
     fn face_me_follows_head_on_sphere() {
-        let mut p = Placement { x: 0.6, y: 0.2, z: 1.0, yaw: 33.0, pitch: -12.0, face_me: true, ..Placement::default_for(0, 1) };
+        let mut p = Placement {
+            x: 0.6,
+            y: 0.2,
+            z: 1.0,
+            yaw: 33.0,
+            pitch: -12.0,
+            face_me: true,
+            ..Placement::default_for(0, 1)
+        };
         p.clamp();
         let dist = p.distance();
         for head in [[0.0, 0.0, 0.0], [0.3, -0.1, 0.25], [-1.0, 0.4, -0.5]] {
@@ -463,21 +534,42 @@ mod tests {
     #[test]
     fn recenter_base() {
         // Gözlük (1, 1.5, 2) noktasında, sağa (+x) bakıyor: rot_y(-90°) için -z sütunu +x olur
-        let hmd = compose(m3_mul(rot_y(-std::f32::consts::FRAC_PI_2), rot_x(0.3)), [1.0, 1.5, 2.0]);
+        let hmd = compose(
+            m3_mul(rot_y(-std::f32::consts::FRAC_PI_2), rot_x(0.3)),
+            [1.0, 1.5, 2.0],
+        );
         assert!(forward(&hmd)[0] > 0.9);
         let base = Base::from_hmd(&hmd);
         assert!((base.yaw + 90.0).abs() < 0.01, "{}", base.yaw);
         // Tam öndeki overlay artık gözlüğün baktığı yönde, 1,2 m ötede
-        let p = Placement { y: 0.0, ..Placement::default_for(0, 1) };
+        let p = Placement {
+            y: 0.0,
+            ..Placement::default_for(0, 1)
+        };
         let m = transform(&p, &base.matrix(), None, false);
-        assert!(close(translation(&m), [2.2, 1.5, 2.0]), "{:?}", translation(&m));
+        assert!(
+            close(translation(&m), [2.2, 1.5, 2.0]),
+            "{:?}",
+            translation(&m)
+        );
         assert!(close(normal(&m), [-1.0, 0.0, 0.0]));
         let j = base.to_json();
-        assert_eq!(Base::from_json(&j), Some(Base { x: 1.0, y: 1.5, z: 2.0, yaw: base.to_json()["yaw"].as_f64().unwrap() as f32 }));
+        assert_eq!(
+            Base::from_json(&j),
+            Some(Base {
+                x: 1.0,
+                y: 1.5,
+                z: 2.0,
+                yaw: base.to_json()["yaw"].as_f64().unwrap() as f32
+            })
+        );
         assert_eq!(Base::from_json(&json!({ "x": 1 })), None);
         // point / point_inv birbirinin tersi
         let q = [0.3, -0.2, 0.9];
-        assert!(close(point_inv(&base.matrix(), point(&base.matrix(), q)), q));
+        assert!(close(
+            point_inv(&base.matrix(), point(&base.matrix(), q)),
+            q
+        ));
     }
 
     #[test]
@@ -508,19 +600,51 @@ mod tests {
     fn mouse_position_mode() {
         let mut p = Placement::default_for(0, 1);
         let mut lock = AxisLock::default();
-        let m = MouseInput { left: (100, -50), ..Default::default() };
+        let m = MouseInput {
+            left: (100, -50),
+            ..Default::default()
+        };
         assert!(apply_mouse(&mut p, Mode::Position, &m, &mut lock));
         assert!(p.x > 0.1 && p.y > 0.0 && (p.z - 1.2).abs() < 1e-5);
         // Sağ sürükle yukarı: uzaklaş
         let z = p.z;
-        assert!(apply_mouse(&mut p, Mode::Position, &MouseInput { right: (40, -100), right_down: true, ..Default::default() }, &mut lock));
+        assert!(apply_mouse(
+            &mut p,
+            Mode::Position,
+            &MouseInput {
+                right: (40, -100),
+                right_down: true,
+                ..Default::default()
+            },
+            &mut lock
+        ));
         assert!((p.z - z - 0.2).abs() < 1e-4);
         // Hareket yoksa değişmez
-        assert!(!apply_mouse(&mut p, Mode::Position, &MouseInput::default(), &mut lock));
+        assert!(!apply_mouse(
+            &mut p,
+            Mode::Position,
+            &MouseInput::default(),
+            &mut lock
+        ));
         // "Bana dön" açıkken uzaklık kürenin yarıçapını değiştirir, yön aynı kalır
-        let mut q = Placement { x: 0.5, y: 0.5, z: 1.0, face_me: true, ..p };
+        let mut q = Placement {
+            x: 0.5,
+            y: 0.5,
+            z: 1.0,
+            face_me: true,
+            ..p
+        };
         let d = q.distance();
-        apply_mouse(&mut q, Mode::Position, &MouseInput { right: (0, -100), right_down: true, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut q,
+            Mode::Position,
+            &MouseInput {
+                right: (0, -100),
+                right_down: true,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!((q.distance() - d - 0.2).abs() < 1e-3 && (q.x - q.y).abs() < 1e-5);
     }
 
@@ -529,38 +653,117 @@ mod tests {
         let mut p = Placement::default_for(0, 1);
         let mut lock = AxisLock::default();
         let w = p.width;
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { left: (0, -100), ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                left: (0, -100),
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!(p.width > w * 1.4);
         // Eksen kilidi: önce yatay hareket → yaw; sonraki dikey hareket yok sayılır
         let (yaw, pitch) = (p.yaw, p.pitch);
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { right: (10, 2), right_down: true, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                right: (10, 2),
+                right_down: true,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert_eq!(lock.axis, Some(true));
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { right: (0, 50), right_down: true, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                right: (0, 50),
+                right_down: true,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!(p.yaw != yaw && p.pitch == pitch);
         // Tuş bırakılınca kilit kalkar; yeni sürükleme dikey başlarsa pitch
         apply_mouse(&mut p, Mode::Adjust, &MouseInput::default(), &mut lock);
         assert_eq!(lock.axis, None);
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { right: (1, 20), right_down: true, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                right: (1, 20),
+                right_down: true,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!(lock.axis == Some(false) && p.pitch != pitch);
         // Shift: yalnız yaw, Ctrl: yalnız pitch (kilitten bağımsız)
         let (yaw, pitch) = (p.yaw, p.pitch);
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { right: (20, 20), right_down: true, ctrl: true, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                right: (20, 20),
+                right_down: true,
+                ctrl: true,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!(p.yaw == yaw && p.pitch != pitch);
         let pitch = p.pitch;
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { right: (20, 20), right_down: true, shift: true, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                right: (20, 20),
+                right_down: true,
+                shift: true,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!(p.yaw != yaw && p.pitch == pitch);
         // Orta: eğrilik, tekerlek: saydamlık (sınırlar içinde)
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { middle: (100, 0), wheel: -4, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                middle: (100, 0),
+                wheel: -4,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!((p.curve - 0.2).abs() < 1e-4 && (p.alpha - 0.8).abs() < 1e-4);
-        apply_mouse(&mut p, Mode::Adjust, &MouseInput { middle: (-9000, 0), wheel: -400, ..Default::default() }, &mut lock);
+        apply_mouse(
+            &mut p,
+            Mode::Adjust,
+            &MouseInput {
+                middle: (-9000, 0),
+                wheel: -400,
+                ..Default::default()
+            },
+            &mut lock,
+        );
         assert!(p.curve == 0.0 && (p.alpha - 0.1).abs() < 1e-6);
     }
 
     #[test]
     fn json_roundtrip_and_clamp() {
         let d = Placement::default_for(2, 5);
-        let p = Placement::from_json(&json!({ "x": 0.25, "widthM": 99, "alpha": -3, "faceMe": true, "yaw": 190, "pitch": "bozuk" }), d);
-        assert_eq!((p.x, p.width, p.alpha, p.face_me, p.gaze), (0.25, 3.0, 0.1, true, false));
+        let p = Placement::from_json(
+            &json!({ "x": 0.25, "widthM": 99, "alpha": -3, "faceMe": true, "yaw": 190, "pitch": "bozuk" }),
+            d,
+        );
+        assert_eq!(
+            (p.x, p.width, p.alpha, p.face_me, p.gaze),
+            (0.25, 3.0, 0.1, true, false)
+        );
         assert!((p.yaw + 170.0).abs() < 1e-4 && p.pitch == d.pitch && p.z == d.z);
         let back = Placement::from_json(&p.to_json(), Placement::default_for(0, 1));
         assert!((back.x - p.x).abs() < 1e-3 && (back.yaw - p.yaw).abs() < 1e-3 && back.face_me);
@@ -572,10 +775,16 @@ mod tests {
         let src = [255u8, 0, 0, 0, 0, 0, 0, 0, 3, 2, 1, 0, 255, 255, 255, 0];
         let mut a = src;
         bgra_to_rgba(&mut a, None, 0);
-        assert_eq!(a, [0, 0, 255, 255, 0, 0, 0, 255, 1, 2, 3, 255, 255, 255, 255, 255]);
+        assert_eq!(
+            a,
+            [0, 0, 255, 255, 0, 0, 0, 255, 1, 2, 3, 255, 255, 255, 255, 255]
+        );
         let mut b = src;
         bgra_to_rgba(&mut b, Some([0, 0, 0]), 2);
-        assert_eq!(b, [0, 0, 255, 255, 0, 0, 0, 0, 1, 2, 3, 255, 255, 255, 255, 255]);
+        assert_eq!(
+            b,
+            [0, 0, 255, 255, 0, 0, 0, 0, 1, 2, 3, 255, 255, 255, 255, 255]
+        );
         let mut c = src;
         bgra_to_rgba(&mut c, Some([0, 0, 0]), 4);
         assert_eq!(c[8..12], [0, 0, 0, 0]);

@@ -25,6 +25,54 @@ interface MonitorInfo {
   primary: boolean;
 }
 
+/** Hata günlüğü: program kendiliğinden kapanırsa sebebi crash.log'a yazılır; buradan görüntülenip kopyalanır */
+function CrashLogRow() {
+  const [text, setText] = createSignal<string | null>(null);
+  const [copied, setCopied] = createSignal(false);
+  const show = async () => setText(await invoke<string>("crash_log_read").catch((e) => String(e)));
+  const copy = async () => {
+    await navigator.clipboard.writeText(text() ?? "").catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <>
+      <div class="row">
+        <div>
+          <b>Hata günlüğü</b>
+          <small>Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.</small>
+        </div>
+        <div class="btns">
+          <button class="btn ghost" onClick={show}>
+            Göster
+          </button>
+          <button class="btn ghost" onClick={() => invoke("crash_log_open").catch(() => {})}>
+            Klasörü aç
+          </button>
+        </div>
+      </div>
+      <Show when={text() !== null}>
+        <div class="modal-back" onClick={(e) => e.target === e.currentTarget && setText(null)}>
+          <div class="modal crash-modal">
+            <header>
+              <h3>Hata günlüğü</h3>
+              <button class="btn ghost small" onClick={() => setText(null)} title="Kapat">
+                <I.X />
+              </button>
+            </header>
+            <textarea class="crash-text" readOnly value={text() || t("Günlük boş: kayıtlı bir hata yok.")} data-no-i18n />
+            <div class="btns">
+              <button class="btn primary" onClick={copy}>
+                {copied() ? t("Kopyalandı") : t("Kopyala")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
+    </>
+  );
+}
+
 /** UDP telemetrisi gönderen oyunlar (F1, Forza, DiRT / GRID, BeamNG): portlar ve "konsoldan da al" */
 function UdpPortsRow() {
   const u = () => ({ ...UDP_DEFAULTS, ...(settings().general.udp ?? {}) });
@@ -366,6 +414,7 @@ export function About() {
       <Show when={updateError()}>
         <p class="error">{updateError()}</p>
       </Show>
+      <CrashLogRow />
       <details class="notes">
         <summary>Sürüm notları</summary>
         <Notes text={notesRaw.replace(/^# .*\n/, "")} />

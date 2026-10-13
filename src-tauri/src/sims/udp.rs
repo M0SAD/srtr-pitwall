@@ -101,7 +101,13 @@ pub fn listen(ports: &[u16]) {
             continue;
         }
         // Açılamayan port 10 sn'de bir yeniden denenir
-        if h.failed.lock().unwrap().get(&p).map(|t| t.elapsed() < Duration::from_secs(10)).unwrap_or(false) {
+        if h.failed
+            .lock()
+            .unwrap()
+            .get(&p)
+            .map(|t| t.elapsed() < Duration::from_secs(10))
+            .unwrap_or(false)
+        {
             continue;
         }
         match UdpSocket::bind(("0.0.0.0", p)) {
@@ -110,7 +116,9 @@ pub fn listen(ports: &[u16]) {
                 let stop = Arc::new(AtomicBool::new(false));
                 let s2 = stop.clone();
                 let _ = sock.set_read_timeout(Some(Duration::from_millis(300)));
-                let spawned = std::thread::Builder::new().name(format!("udp-{p}")).spawn(move || run(sock, s2));
+                let spawned = std::thread::Builder::new()
+                    .name(format!("udp-{p}"))
+                    .spawn(move || run(sock, s2));
                 if spawned.is_ok() {
                     map.insert(p, PortCtl { stop });
                 }
@@ -142,7 +150,11 @@ fn run(sock: UdpSocket, stop: Arc<AtomicBool>) {
     while !stop.load(Ordering::Relaxed) {
         match sock.recv_from(&mut buf) {
             Ok((n, _)) => push(&buf[..n]),
-            Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {}
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
             // Windows: önceki gönderimin ICMP "ulaşılamadı" yanıtı (WSAECONNRESET) — yok sayılır
             Err(e) if e.kind() == std::io::ErrorKind::ConnectionReset => {}
             Err(_) => std::thread::sleep(Duration::from_millis(200)),
@@ -193,7 +205,11 @@ pub fn proto_for_exe(exe: &str) -> Option<Proto> {
     let e = exe.to_ascii_lowercase();
     if e.starts_with("f1_") || e.starts_with("f1 ") {
         Some(Proto::F1)
-    } else if e.contains("dirtrally") || e.starts_with("dirt") || e.starts_with("drt") || e.starts_with("grid") {
+    } else if e.contains("dirtrally")
+        || e.starts_with("dirt")
+        || e.starts_with("drt")
+        || e.starts_with("grid")
+    {
         Some(Proto::Dirt)
     } else if e.starts_with("forza") {
         Some(Proto::Forza)
@@ -216,16 +232,27 @@ pub struct UdpCfg {
 
 impl Default for UdpCfg {
     fn default() -> Self {
-        UdpCfg { codemasters: 20777, forza: 5300, beamng: 4444, always: false }
+        UdpCfg {
+            codemasters: 20777,
+            forza: 5300,
+            beamng: 4444,
+            always: false,
+        }
     }
 }
 
 impl UdpCfg {
     pub fn from_settings(v: Option<&serde_json::Value>) -> UdpCfg {
         let d = UdpCfg::default();
-        let Some(u) = v.and_then(|v| v.pointer("/general/udp")) else { return d };
+        let Some(u) = v.and_then(|v| v.pointer("/general/udp")) else {
+            return d;
+        };
         let port = |k: &str, def: u16| {
-            u.get(k).and_then(|x| x.as_u64()).filter(|p| (1024..=65535).contains(p)).map(|p| p as u16).unwrap_or(def)
+            u.get(k)
+                .and_then(|x| x.as_u64())
+                .filter(|p| (1024..=65535).contains(p))
+                .map(|p| p as u16)
+                .unwrap_or(def)
         };
         UdpCfg {
             codemasters: port("codemasters", d.codemasters),
@@ -246,7 +273,11 @@ impl UdpCfg {
 
 /// Hangi portlar açık olmalı: istenen türler arasından oyunu çalışanlar (ya da `always`)
 pub fn wanted_ports(cfg: &UdpCfg, wants: &[Proto], running: &[Proto]) -> Vec<u16> {
-    let mut v: Vec<u16> = wants.iter().filter(|p| cfg.always || running.contains(p)).map(|p| cfg.port(*p)).collect();
+    let mut v: Vec<u16> = wants
+        .iter()
+        .filter(|p| cfg.always || running.contains(p))
+        .map(|p| cfg.port(*p))
+        .collect();
     v.sort();
     v.dedup();
     v
@@ -286,13 +317,32 @@ mod tests {
 
     #[test]
     fn config_and_ports() {
-        let v = serde_json::json!({"general": {"udp": {"forza": 9999, "beamng": 80, "always": true}}});
+        let v =
+            serde_json::json!({"general": {"udp": {"forza": 9999, "beamng": 80, "always": true}}});
         let c = UdpCfg::from_settings(Some(&v));
-        assert_eq!(c, UdpCfg { codemasters: 20777, forza: 9999, beamng: 4444, always: true });
+        assert_eq!(
+            c,
+            UdpCfg {
+                codemasters: 20777,
+                forza: 9999,
+                beamng: 4444,
+                always: true
+            }
+        );
         let d = UdpCfg::default();
-        assert_eq!(wanted_ports(&d, &[Proto::F1, Proto::Dirt, Proto::Forza], &[Proto::Dirt]), vec![20777]);
+        assert_eq!(
+            wanted_ports(&d, &[Proto::F1, Proto::Dirt, Proto::Forza], &[Proto::Dirt]),
+            vec![20777]
+        );
         assert!(wanted_ports(&d, &[Proto::Forza], &[]).is_empty());
-        assert_eq!(wanted_ports(&c, &[Proto::F1, Proto::Dirt, Proto::Forza, Proto::BeamNg], &[]), vec![4444, 9999, 20777]);
+        assert_eq!(
+            wanted_ports(
+                &c,
+                &[Proto::F1, Proto::Dirt, Proto::Forza, Proto::BeamNg],
+                &[]
+            ),
+            vec![4444, 9999, 20777]
+        );
     }
 
     #[test]
@@ -330,7 +380,10 @@ mod tests {
         let sd = src.session_update().expect("oturum");
         assert_eq!(sd.track_name, "Monza");
         // Kare için yeni bir telemetri paketi
-        let tele = crate::sims::f1::tests::sample(2025).into_iter().find(|p| p[6] == 6).unwrap();
+        let tele = crate::sims::f1::tests::sample(2025)
+            .into_iter()
+            .find(|p| p[6] == 6)
+            .unwrap();
         tx.send_to(&tele, ("127.0.0.1", port)).unwrap();
         let mut f = crate::model::Frame::default();
         let t0 = Instant::now();

@@ -49,24 +49,24 @@
 //! konusunun `chat` alanında (ayrıca `livechat` konusu ve `livechat-status` olayında `gate`) her aboneye — OBS tarayıcı
 //! kaynağı dahil — gönderir. Tarayıcı kaynağı giriş / PRO durumunu kendisi tahmin etmez.
 
+pub mod chatlog;
 pub mod filter;
+pub mod inputbox;
 pub mod kick;
 pub mod links;
 pub mod model;
+#[cfg(windows)]
+pub mod mp3_win;
 pub mod net;
 pub mod poll;
 pub mod secrets;
-pub mod chatlog;
 pub mod send;
-pub mod inputbox;
 pub mod streamlabs;
 pub mod stt;
 pub mod stt_cloud;
-pub mod translate;
 #[cfg(windows)]
 pub mod stt_win;
-#[cfg(windows)]
-pub mod mp3_win;
+pub mod translate;
 pub mod tts;
 pub mod tts_edge;
 #[cfg(windows)]
@@ -182,22 +182,47 @@ impl Default for Config {
 
 fn cfg_from_settings(v: &Value) -> Config {
     let d = Config::default();
-    let Some(lc) = v.pointer("/general/livechat") else { return d };
+    let Some(lc) = v.pointer("/general/livechat") else {
+        return d;
+    };
     let b = |p: &str, def: bool| lc.pointer(p).and_then(|x| x.as_bool()).unwrap_or(def);
     let f = |p: &str, def: f64| lc.pointer(p).and_then(|x| x.as_f64()).unwrap_or(def);
-    let s = |p: &str| lc.pointer(p).and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let s = |p: &str| {
+        lc.pointer(p)
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
     let mut channels: Vec<Chan> = Vec::new();
-    for c in lc.get("channels").and_then(|x| x.as_array()).into_iter().flatten() {
-        let Ok(ci) = serde_json::from_value::<ChannelIn>(c.clone()) else { continue };
-        let Some(link) = links::parse_link(&ci.url) else { continue };
+    for c in lc
+        .get("channels")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+    {
+        let Ok(ci) = serde_json::from_value::<ChannelIn>(c.clone()) else {
+            continue;
+        };
+        let Some(link) = links::parse_link(&ci.url) else {
+            continue;
+        };
         if channels.iter().any(|x| x.link.key == link.key) {
             continue;
         }
         channels.push(Chan { cfg: ci, link });
     }
     let banned: HashSet<String> = match lc.pointer("/moderation/banned") {
-        Some(Value::Array(a)) => a.iter().filter_map(|x| x.as_str()).map(norm_user).filter(|x| !x.is_empty()).collect(),
-        Some(Value::String(t)) => t.split(',').map(norm_user).filter(|x| !x.is_empty()).collect(),
+        Some(Value::Array(a)) => a
+            .iter()
+            .filter_map(|x| x.as_str())
+            .map(norm_user)
+            .filter(|x| !x.is_empty())
+            .collect(),
+        Some(Value::String(t)) => t
+            .split(',')
+            .map(norm_user)
+            .filter(|x| !x.is_empty())
+            .collect(),
         _ => HashSet::new(),
     };
     Config {
@@ -208,7 +233,11 @@ fn cfg_from_settings(v: &Value) -> Config {
         banned,
         word_filter: b("/moderation/wordFilter", false),
         words: s("/moderation/words"),
-        word_mode: if s("/moderation/wordMode") == "hide" { WordMode::Hide } else { WordMode::Mask },
+        word_mode: if s("/moderation/wordMode") == "hide" {
+            WordMode::Hide
+        } else {
+            WordMode::Mask
+        },
         block_links: b("/moderation/blockLinks", false),
         spam: b("/moderation/spam", true),
         spam_window: f("/moderation/spamWindow", 10.0).clamp(1.0, 300.0),
@@ -338,7 +367,15 @@ pub fn live_gate(demo: bool, running: bool, live: bool, login_ok: bool, obs_ok: 
     } else {
         app
     };
-    LiveGate { demo, running, live, login_ok, obs_ok, app, obs }
+    LiveGate {
+        demo,
+        running,
+        live,
+        login_ok,
+        obs_ok,
+        app,
+        obs,
+    }
 }
 
 #[derive(Serialize, Clone, Debug, Default, PartialEq)]
@@ -453,7 +490,9 @@ pub fn allowed(app: &AppHandle, key: &str) -> bool {
 }
 
 fn login_flag(locked: &[String]) -> bool {
-    locked.iter().any(|x| x == "livechat.signedin" || x == "livechat.anon")
+    locked
+        .iter()
+        .any(|x| x == "livechat.signedin" || x == "livechat.anon")
 }
 
 /// Canlı Sohbet kullanılabilir mi: hesaba giriş yapılmış ya da yönetici giriş zorunluluğunu kapatmış
@@ -467,7 +506,13 @@ pub const LOGIN_MSG: &str = "Canlı Sohbet için giriş yapmalısın";
 fn show_tag(cfg: &Config, ch: &Chan) -> bool {
     match ch.cfg.tag {
         Some(t) => t,
-        None => cfg.channels.iter().filter(|c| c.link.platform == ch.link.platform).count() > 1,
+        None => {
+            cfg.channels
+                .iter()
+                .filter(|c| c.link.platform == ch.link.platform)
+                .count()
+                > 1
+        }
     }
 }
 
@@ -512,12 +557,22 @@ impl Inner {
                     state,
                     chat: self.running && !locked && rt.is_some_and(|r| r.chat),
                     // Kilitli (tek kanal) ama ★ favori ve favoriler açık: sohbeti gösterilmez, izleyici sayısı izlenir
-                    viewers: if state == State::Live || (locked && self.fav && self.running && ch.cfg.mine && rt.is_some_and(|r| r.live == Some(true))) {
+                    viewers: if state == State::Live
+                        || (locked
+                            && self.fav
+                            && self.running
+                            && ch.cfg.mine
+                            && rt.is_some_and(|r| r.live == Some(true)))
+                    {
                         rt.and_then(|r| r.viewers)
                     } else {
                         None
                     },
-                    error: if self.running && !locked { rt.and_then(|r| r.error.clone()) } else { None },
+                    error: if self.running && !locked {
+                        rt.and_then(|r| r.error.clone())
+                    } else {
+                        None
+                    },
                     hidden: ch.cfg.hidden,
                     // Favoriler kapalıyken (ücretsiz) ★ işareti yok sayılır
                     mine: ch.cfg.mine && self.fav,
@@ -530,16 +585,26 @@ impl Inner {
 
     fn viewers(&self, chans: &[ChannelStatus]) -> Viewers {
         let per = |p: Platform| -> Option<u64> {
-            let list: Vec<&ChannelStatus> = chans.iter().filter(|c| c.platform == Some(p)).collect();
+            let list: Vec<&ChannelStatus> =
+                chans.iter().filter(|c| c.platform == Some(p)).collect();
             if let Some(m) = list.iter().find(|c| c.mine && c.viewers.is_some()) {
                 return m.viewers;
             }
             let live: Vec<u64> = list.iter().filter_map(|c| c.viewers).collect();
             (!live.is_empty()).then(|| live.iter().sum())
         };
-        let (y, t, k) = (per(Platform::Youtube), per(Platform::Twitch), per(Platform::Kick));
+        let (y, t, k) = (
+            per(Platform::Youtube),
+            per(Platform::Twitch),
+            per(Platform::Kick),
+        );
         let all: Vec<u64> = [y, t, k].into_iter().flatten().collect();
-        Viewers { youtube: y, twitch: t, kick: k, total: (!all.is_empty()).then(|| all.iter().sum()) }
+        Viewers {
+            youtube: y,
+            twitch: t,
+            kick: k,
+            total: (!all.is_empty()).then(|| all.iter().sum()),
+        }
     }
 
     /// Bağlı (kilitli olmayan) kanallardan en az biri canlı mı. Yayın durumu öğrenilemeyen (`live == None`) ama
@@ -564,7 +629,13 @@ impl Inner {
     }
 
     fn gate(&self, now: f64) -> LiveGate {
-        live_gate(self.demo, self.running, self.any_live(now), self.login_ok, self.obs_ok)
+        live_gate(
+            self.demo,
+            self.running,
+            self.any_live(now),
+            self.login_ok,
+            self.obs_ok,
+        )
     }
 
     fn sl_status(&self) -> SlStatus {
@@ -572,7 +643,11 @@ impl Inner {
             enabled: self.cfg.streamlabs,
             has_token: !self.sl_token.is_empty(),
             connected: self.sl_task.is_some() && self.sl_connected,
-            error: if self.cfg.streamlabs && (self.sl_task.is_some() || !self.sl_token.is_empty()) { self.sl_error.clone() } else { None },
+            error: if self.cfg.streamlabs && (self.sl_task.is_some() || !self.sl_token.is_empty()) {
+                self.sl_error.clone()
+            } else {
+                None
+            },
             locked: !self.alerts_ok,
             state: if !self.cfg.streamlabs {
                 "off"
@@ -643,7 +718,9 @@ impl Inner {
             }
             if !matches!(m.platform, Platform::Streamlabs | Platform::System) {
                 // Kaldırılmış ya da gizlenmiş (göz kapalı) kanal
-                let Some(idx) = g.cfg.channels.iter().position(|c| c.link.key == m.channel) else { return None };
+                let Some(idx) = g.cfg.channels.iter().position(|c| c.link.key == m.channel) else {
+                    return None;
+                };
                 // Ücretsiz sürüm: yalnızca en üstteki kanalın mesajları (★ favoriler sadece izleyici sayısı için bağlı)
                 if !g.multi && idx > 0 {
                     return None;
@@ -666,7 +743,10 @@ impl Inner {
             }
             let login = norm_user(&m.author.login);
             // Yasaklı kullanıcı (ayarlar + bu oturumda platformda yasaklananlar)
-            if m.platform != Platform::Streamlabs && (g.cfg.banned.contains(&login) || g.session_bans.contains(&(m.platform, login.clone()))) {
+            if m.platform != Platform::Streamlabs
+                && (g.cfg.banned.contains(&login)
+                    || g.session_bans.contains(&(m.platform, login.clone())))
+            {
                 return None;
             }
             // Kayıt: filtrelenmemiş hali
@@ -686,7 +766,9 @@ impl Inner {
                 }
             }
             if m.platform != Platform::Streamlabs {
-                if g.cfg.block_links && (has_link(&m.text) || m.parts.iter().any(|p| matches!(p, Part::Link { .. }))) {
+                if g.cfg.block_links
+                    && (has_link(&m.text) || m.parts.iter().any(|p| matches!(p, Part::Link { .. })))
+                {
                     return None;
                 }
                 m.parts = linkify(std::mem::take(&mut m.parts));
@@ -709,7 +791,11 @@ impl Inner {
             if is_vote && g.cfg.hide_votes {
                 return None;
             }
-            if g.cfg.spam && m.kind == Kind::Chat && g.spam.check(m.platform, &login, &m.text, now, g.cfg.spam_window) {
+            if g.cfg.spam
+                && m.kind == Kind::Chat
+                && g.spam
+                    .check(m.platform, &login, &m.text, now, g.cfg.spam_window)
+            {
                 return None;
             }
             if g.ring.iter().rev().take(200).any(|x| x.id == m.id) {
@@ -725,7 +811,6 @@ impl Inner {
             Some(m)
         }
     }
-
 
     fn mark_deleted(&mut self, pred: impl Fn(&ChatMsg) -> bool) -> usize {
         let mut n = 0;
@@ -754,7 +839,21 @@ fn platform_tag(m: &ChatMsg) -> String {
 
 impl Hub {
     fn new(app: AppHandle, shared: Arc<Shared>) -> Hub {
-        Hub { app, shared, st: Mutex::new(Inner { multi: true, alerts_ok: true, fav: true, login_ok: true, obs_ok: true, ..Default::default() }), hooks: Mutex::new(vec![]), started_once: AtomicBool::new(false), auto_pending: AtomicBool::new(false) }
+        Hub {
+            app,
+            shared,
+            st: Mutex::new(Inner {
+                multi: true,
+                alerts_ok: true,
+                fav: true,
+                login_ok: true,
+                obs_ok: true,
+                ..Default::default()
+            }),
+            hooks: Mutex::new(vec![]),
+            started_once: AtomicBool::new(false),
+            auto_pending: AtomicBool::new(false),
+        }
     }
 
     #[allow(dead_code)] // sesli okuma (TTS) modülü kullanacak
@@ -780,14 +879,32 @@ impl Hub {
             return; // durdurulmuş görev
         }
         let r = g.rt.entry(key.to_string()).or_default();
-        let before = (r.chat, r.live, r.viewers, r.error.clone(), r.name.clone(), r.video.clone());
+        let before = (
+            r.chat,
+            r.live,
+            r.viewers,
+            r.error.clone(),
+            r.name.clone(),
+            r.video.clone(),
+        );
         f(r);
-        let after = (r.chat, r.live, r.viewers, r.error.clone(), r.name.clone(), r.video.clone());
+        let after = (
+            r.chat,
+            r.live,
+            r.viewers,
+            r.error.clone(),
+            r.name.clone(),
+            r.video.clone(),
+        );
         if before != after {
             g.dirty_status = true;
             // İzleyici sayısı dışındaki değişimler tanılama günlüğüne
-            if (before.0, before.1, &before.3, &before.5) != (after.0, after.1, &after.3, &after.5) {
-                debug_file(&format!("{key}: sohbet={} canlı={:?} video={:?} hata={:?}", after.0, after.1, after.5, after.3));
+            if (before.0, before.1, &before.3, &before.5) != (after.0, after.1, &after.3, &after.5)
+            {
+                debug_file(&format!(
+                    "{key}: sohbet={} canlı={:?} video={:?} hata={:?}",
+                    after.0, after.1, after.5, after.3
+                ));
             }
         }
     }
@@ -882,7 +999,17 @@ impl Hub {
             g.seq += 1;
             g.seq
         };
-        let mut m = ChatMsg::new(Platform::System, format!("s{seq}"), Kind::System, model::Author { name: "SRTR Pitwall".into(), login: "srtr".into(), ..Default::default() }, vec![Part::text(text)]);
+        let mut m = ChatMsg::new(
+            Platform::System,
+            format!("s{seq}"),
+            Kind::System,
+            model::Author {
+                name: "SRTR Pitwall".into(),
+                login: "srtr".into(),
+                ..Default::default()
+            },
+            vec![Part::text(text)],
+        );
         m.channel = "system".into();
         self.ingest(m);
     }
@@ -916,7 +1043,12 @@ impl Hub {
         if !g.cfg.mirror_deletes {
             return;
         }
-        let id = g.ring.iter().rev().find(|m| m.platform == platform && !m.deleted && norm_user(&m.author.login) == login).map(|m| m.id.clone());
+        let id = g
+            .ring
+            .iter()
+            .rev()
+            .find(|m| m.platform == platform && !m.deleted && norm_user(&m.author.login) == login)
+            .map(|m| m.id.clone());
         if let Some(id) = id {
             g.mark_deleted(|m| m.id == id);
         }
@@ -951,14 +1083,23 @@ impl Hub {
         let line = match g.captions.lines.iter_mut().find(|l| l.src == src) {
             Some(l) => l,
             None => {
-                g.captions.lines.push(CaptionLine { src: src.to_string(), ..Default::default() });
+                g.captions.lines.push(CaptionLine {
+                    src: src.to_string(),
+                    ..Default::default()
+                });
                 g.captions.lines.last_mut().unwrap()
             }
         };
         let join = now.saturating_sub(line.ts) < (secs * 1000.0) as u64 && !line.text.is_empty();
         if join {
             line.text = format!("{} {}", line.text.trim_start_matches('…'), text);
-            line.orig = if orig.is_empty() { String::new() } else if line.orig.is_empty() { orig.to_string() } else { format!("{} {}", line.orig.trim_start_matches('…'), orig) };
+            line.orig = if orig.is_empty() {
+                String::new()
+            } else if line.orig.is_empty() {
+                orig.to_string()
+            } else {
+                format!("{} {}", line.orig.trim_start_matches('…'), orig)
+            };
         } else {
             line.text = text.to_string();
             line.orig = orig.to_string();
@@ -974,10 +1115,16 @@ impl Hub {
         line.label = label.to_string();
         line.ts = now;
         // Uzak ses ("remote") önce
-        g.captions.lines.sort_by_key(|l| if l.src == "remote" { 0 } else { 1 });
+        g.captions
+            .lines
+            .sort_by_key(|l| if l.src == "remote" { 0 } else { 1 });
         g.captions.rev += 1;
         g.dirty_captions = true;
-        let tag = if label.is_empty() { "SES".to_string() } else { format!("SES {label}") };
+        let tag = if label.is_empty() {
+            "SES".to_string()
+        } else {
+            format!("SES {label}")
+        };
         g.log(format!("[{tag}] {text}"));
     }
 
@@ -1022,7 +1169,12 @@ impl Hub {
         let login = login_ok(&self.app);
         let obs_ok = allowed(&self.app, "livechat.obs") || !login;
         let mut g = self.st.lock();
-        if g.multi != multi || g.alerts_ok != alerts_ok || g.fav != fav || g.login_ok != login || g.obs_ok != obs_ok {
+        if g.multi != multi
+            || g.alerts_ok != alerts_ok
+            || g.fav != fav
+            || g.login_ok != login
+            || g.obs_ok != obs_ok
+        {
             g.dirty_status = true;
         }
         g.obs_ok = obs_ok;
@@ -1033,11 +1185,22 @@ impl Hub {
         let desired: Vec<(String, Link)> = if g.running && login {
             // Tek kanal (ücretsiz): yalnızca en üstteki kanal. Favoriler açıksa (livechat.favorites) ★ kanallar da bağlanır
             // (sadece izleyici sayıları kullanılır; mesajlarını `accept` atar).
-            g.cfg.channels.iter().enumerate().filter(|(i, c)| multi || *i == 0 || (fav && c.cfg.mine)).map(|(_, c)| (c.link.key.clone(), c.link.clone())).collect()
+            g.cfg
+                .channels
+                .iter()
+                .enumerate()
+                .filter(|(i, c)| multi || *i == 0 || (fav && c.cfg.mine))
+                .map(|(_, c)| (c.link.key.clone(), c.link.clone()))
+                .collect()
         } else {
             vec![]
         };
-        let stop: Vec<String> = g.tasks.keys().filter(|k| !desired.iter().any(|(d, _)| d == *k)).cloned().collect();
+        let stop: Vec<String> = g
+            .tasks
+            .keys()
+            .filter(|k| !desired.iter().any(|(d, _)| d == *k))
+            .cloned()
+            .collect();
         for k in stop {
             if let Some(hs) = g.tasks.remove(&k) {
                 for h in hs {
@@ -1051,11 +1214,23 @@ impl Hub {
             if g.tasks.contains_key(&key) {
                 continue;
             }
-            let ctx = Ctx { hub: self.clone(), key: key.clone(), link: link.clone() };
-            let spawn = |f: std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>| tauri::async_runtime::spawn(f);
+            let ctx = Ctx {
+                hub: self.clone(),
+                key: key.clone(),
+                link: link.clone(),
+            };
+            let spawn = |f: std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>| {
+                tauri::async_runtime::spawn(f)
+            };
             let handles = match link.platform {
-                Platform::Twitch => vec![spawn(Box::pin(twitch::run_chat(ctx.clone()))), spawn(Box::pin(twitch::run_viewers(ctx)))],
-                Platform::Kick => vec![spawn(Box::pin(kick::run_chat(ctx.clone()))), spawn(Box::pin(kick::run_viewers(ctx)))],
+                Platform::Twitch => vec![
+                    spawn(Box::pin(twitch::run_chat(ctx.clone()))),
+                    spawn(Box::pin(twitch::run_viewers(ctx))),
+                ],
+                Platform::Kick => vec![
+                    spawn(Box::pin(kick::run_chat(ctx.clone()))),
+                    spawn(Box::pin(kick::run_viewers(ctx))),
+                ],
                 Platform::Youtube => vec![spawn(Box::pin(youtube::run(ctx)))],
                 _ => vec![],
             };
@@ -1218,13 +1393,22 @@ impl Hub {
                 g.dirty_poll = true;
             }
             // Geri sayım: anket sürerken saniyede bir
-            if g.poll.state == PollState::Active && g.poll.ends_at.is_some() && now - g.poll_pushed_at >= 1.0 {
+            if g.poll.state == PollState::Active
+                && g.poll.ends_at.is_some()
+                && now - g.poll_pushed_at >= 1.0
+            {
                 g.dirty_poll = true;
             }
             if g.poll.state == PollState::Result && !g.poll.spinning && !g.poll_logged {
                 g.poll_logged = true;
                 let v = g.poll.view(now);
-                let counts = v.counts.iter().enumerate().map(|(i, c)| format!("{}: {c}", i + 1)).collect::<Vec<_>>().join(", ");
+                let counts = v
+                    .counts
+                    .iter()
+                    .enumerate()
+                    .map(|(i, c)| format!("{}: {c}", i + 1))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 g.log(format!("[ANKET] Sonuç — {} | {counts}", v.result_text));
             }
             let msgs = std::mem::take(&mut g.new_msgs);
@@ -1238,7 +1422,8 @@ impl Hub {
                 g.poll_pushed_at = now;
             }
             let poll = (poll_dirty || force).then(|| with_dictation(g.poll.view(now)));
-            let captions = (std::mem::replace(&mut g.dirty_captions, false) || force).then(|| g.captions.clone());
+            let captions = (std::mem::replace(&mut g.dirty_captions, false) || force)
+                .then(|| g.captions.clone());
             let logs = std::mem::take(&mut g.log_lines);
             (msgs, deleted, cleared, status, topic, poll, captions, logs)
         };
@@ -1283,7 +1468,10 @@ impl Hub {
 // ---------------------------------------------------------------------------
 
 fn logs_dir(app: &AppHandle) -> Option<PathBuf> {
-    app.path().app_data_dir().ok().map(|d| d.join("livechat").join("logs"))
+    app.path()
+        .app_data_dir()
+        .ok()
+        .map(|d| d.join("livechat").join("logs"))
 }
 
 /// Günlük dosya: <app_data>/livechat/logs/YYYY-MM-DD.txt, satır: [HH:MM:SS] metin
@@ -1297,7 +1485,13 @@ fn write_log(app: &AppHandle, lines: &[String]) {
         let days = hub(app).st.lock().cfg.log_days;
         chatlog::prune(app, days);
     }
-    let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join(format!("{date}.txt"))) else { return };
+    let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(dir.join(format!("{date}.txt")))
+    else {
+        return;
+    };
     let mut buf = String::new();
     for l in lines {
         buf.push_str(&format!("[{time}] {}\n", l.replace(['\r', '\n'], " ")));
@@ -1314,12 +1508,19 @@ fn update_settings(app: &AppHandle, f: impl FnOnce(&mut Value)) {
     if v.pointer("/general").is_none() {
         v["general"] = serde_json::json!({});
     }
-    if v.pointer("/general/livechat").map_or(true, |x| !x.is_object()) {
+    if v.pointer("/general/livechat")
+        .map_or(true, |x| !x.is_object())
+    {
         v["general"]["livechat"] = serde_json::json!({});
     }
     f(&mut v["general"]["livechat"]);
     v["updatedAt"] = Value::from(now_ms());
-    crate::settings_set(app.clone(), app.state::<crate::SettingsStore>(), v, "livechat".into());
+    crate::settings_set(
+        app.clone(),
+        app.state::<crate::SettingsStore>(),
+        v,
+        "livechat".into(),
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1333,7 +1534,10 @@ static DEBUG_LOG: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock:
 pub fn debug_file(line: &str) {
     let Some(path) = DEBUG_LOG.get() else { return };
     use std::io::Write;
-    if std::fs::metadata(path).map(|m| m.len() > 256 * 1024).unwrap_or(false) {
+    if std::fs::metadata(path)
+        .map(|m| m.len() > 256 * 1024)
+        .unwrap_or(false)
+    {
         if let Ok(t) = std::fs::read_to_string(path) {
             // Yarı nokta çok baytlı bir harfin (ör. "ı", "ş") ortasına denk gelirse dilimleme panic yapıyordu ve dosya
             // artık değişmediği için her çağrıda yineleniyordu (yayın bitince sohbet görevleri birer birer düşüyordu)
@@ -1345,9 +1549,24 @@ pub fn debug_file(line: &str) {
             let _ = std::fs::write(path, &t[cut..]);
         }
     }
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
-        let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-        let _ = writeln!(f, "{} {:02}:{:02}:{:02}Z {}", secs / 86_400, secs / 3600 % 24, secs / 60 % 60, secs % 60, line);
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let _ = writeln!(
+            f,
+            "{} {:02}:{:02}:{:02}Z {}",
+            secs / 86_400,
+            secs / 3600 % 24,
+            secs / 60 % 60,
+            secs % 60,
+            line
+        );
     }
 }
 
@@ -1384,7 +1603,9 @@ pub fn init(app: &AppHandle, shared: Arc<Shared>) {
 
 /// Ayarlar değişince (apply_dynamic)
 pub fn apply_settings(app: &AppHandle, value: &Value) {
-    let Some(h) = app.try_state::<Arc<Hub>>().map(|s| s.inner().clone()) else { return };
+    let Some(h) = app.try_state::<Arc<Hub>>().map(|s| s.inner().clone()) else {
+        return;
+    };
     let cfg = cfg_from_settings(value);
     let auto = cfg.auto_start;
     chatlog::prune(app, cfg.log_days);
@@ -1407,7 +1628,9 @@ pub fn apply_settings(app: &AppHandle, value: &Value) {
 
 /// Canlı sohbet kısayolları kaydedilsin mi: sohbet çalışıyor ya da altyazı açık
 pub fn hotkeys_active(app: &AppHandle) -> bool {
-    let running = app.try_state::<Arc<Hub>>().is_some_and(|h| h.st.lock().running);
+    let running = app
+        .try_state::<Arc<Hub>>()
+        .is_some_and(|h| h.st.lock().running);
     running || stt::is_enabled(app)
 }
 
@@ -1424,7 +1647,12 @@ pub fn beep_onoff(on: bool) {
             if i > 0 {
                 std::thread::sleep(Duration::from_millis(140));
             }
-            crate::audio::send(crate::audio::Cmd::Beep { freq: *f, ms: 110, volume: 0.45, pan: 0.0 });
+            crate::audio::send(crate::audio::Cmd::Beep {
+                freq: *f,
+                ms: 110,
+                volume: 0.45,
+                pan: 0.0,
+            });
         }
     });
 }
@@ -1438,15 +1666,26 @@ pub fn hotkey_chat(app: &AppHandle) {
         (g.running, g.cfg.channels.len())
     };
     let err = |text: &str| {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 300.0,
+            ms: 160,
+            volume: 0.5,
+            pan: 0.0,
+        });
         notice(app, text);
-        let _ = app.emit("livechat-toggled", serde_json::json!({ "on": false, "error": true, "login": text == LOGIN_MSG }));
+        let _ = app.emit(
+            "livechat-toggled",
+            serde_json::json!({ "on": false, "error": true, "login": text == LOGIN_MSG }),
+        );
     };
     if running {
         h.set_running(false);
         beep_onoff(false);
         notice(app, "Canlı sohbet durduruldu");
-        let _ = app.emit("livechat-toggled", serde_json::json!({ "on": false, "error": false }));
+        let _ = app.emit(
+            "livechat-toggled",
+            serde_json::json!({ "on": false, "error": false }),
+        );
     } else if !login_ok(app) {
         err(LOGIN_MSG);
     } else if n == 0 {
@@ -1456,7 +1695,10 @@ pub fn hotkey_chat(app: &AppHandle) {
         h.set_running(true);
         beep_onoff(true);
         notice(app, "Canlı sohbet başlatıldı");
-        let _ = app.emit("livechat-toggled", serde_json::json!({ "on": true, "error": false }));
+        let _ = app.emit(
+            "livechat-toggled",
+            serde_json::json!({ "on": true, "error": false }),
+        );
     }
 }
 
@@ -1475,7 +1717,12 @@ pub fn hotkey_poll(app: &AppHandle) {
         }
     }
     let fail = |text: &str| {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 300.0,
+            ms: 160,
+            volume: 0.5,
+            pan: 0.0,
+        });
         notice(app, text);
     };
     if !allowed(app, "livechat.poll") {
@@ -1507,9 +1754,19 @@ pub fn hotkey_poll(app: &AppHandle) {
         return;
     }
     let now = std::time::Instant::now();
-    *POLL_DICT.lock() = Some(PollDict { started: now, updated: now, text: String::new(), released: false });
+    *POLL_DICT.lock() = Some(PollDict {
+        started: now,
+        updated: now,
+        text: String::new(),
+        released: false,
+    });
     emit_dictation(app, true, "");
-    crate::audio::send(crate::audio::Cmd::Beep { freq: 1320.0, ms: 70, volume: 0.4, pan: 0.0 });
+    crate::audio::send(crate::audio::Cmd::Beep {
+        freq: 1320.0,
+        ms: 70,
+        volume: 0.4,
+        pan: 0.0,
+    });
     notice(app, "Dinleniyor… soruyu söyle, tuşu bırakınca anket başlar");
 }
 
@@ -1520,7 +1777,12 @@ fn start_poll_hotkey(app: &AppHandle, question: Option<String>) {
             notice(app, "Anket başladı");
         }
         Err(e) => {
-            crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+            crate::audio::send(crate::audio::Cmd::Beep {
+                freq: 300.0,
+                ms: 160,
+                volume: 0.5,
+                pan: 0.0,
+            });
             notice(app, &e);
         }
     }
@@ -1551,7 +1813,10 @@ fn with_dictation(mut v: PollView) -> PollView {
 
 /// Dikte durumunu panele ("livechat-poll-dictation") ve overlay'lere (anket görünümü) bildir
 fn emit_dictation(app: &AppHandle, active: bool, text: &str) {
-    let _ = app.emit("livechat-poll-dictation", serde_json::json!({ "active": active, "text": text }));
+    let _ = app.emit(
+        "livechat-poll-dictation",
+        serde_json::json!({ "active": active, "text": text }),
+    );
     if let Some(h) = app.try_state::<Arc<Hub>>() {
         h.st.lock().dirty_poll = true;
     }
@@ -1611,12 +1876,17 @@ pub fn hotkey_poll_up(app: &AppHandle) {
                 if waited >= Duration::from_millis(5000) {
                     break;
                 }
-                if waited >= Duration::from_millis(1600) && has && quiet >= Duration::from_millis(1000) {
+                if waited >= Duration::from_millis(1600)
+                    && has
+                    && quiet >= Duration::from_millis(1000)
+                {
                     break;
                 }
             }
         }
-        let Some(d) = POLL_DICT.lock().take() else { return };
+        let Some(d) = POLL_DICT.lock().take() else {
+            return;
+        };
         let q = d.text.trim().to_string();
         // Tanıyıcının durumu, dinleme kapatılmadan önce okunur (neden tanınmadığını söyleyebilmek için)
         let (listening, err) = stt::dictate_state(&app);
@@ -1626,13 +1896,19 @@ pub fn hotkey_poll_up(app: &AppHandle) {
             start_poll_hotkey(&app, Some(q));
             return;
         }
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 300.0,
+            ms: 160,
+            volume: 0.5,
+            pan: 0.0,
+        });
         let why = if tap {
             "Anket başlamadı: tuşu basılı tutup soruyu söyle, bırakınca anket başlar".to_string()
         } else if let Some(e) = err {
             format!("Anket başlamadı: konuşma tanınamadı. {e}")
         } else if !listening {
-            "Anket başlamadı: mikrofon dinlenemedi (Konuşma → yazı ayarlarını kontrol et)".to_string()
+            "Anket başlamadı: mikrofon dinlenemedi (Konuşma → yazı ayarlarını kontrol et)"
+                .to_string()
         } else {
             "Anket başlamadı: söylenen soru anlaşılamadı. Tuşu basılı tutup biraz daha yüksek sesle söyle".to_string()
         };
@@ -1642,7 +1918,9 @@ pub fn hotkey_poll_up(app: &AppHandle) {
 
 /// Web sunucusu (OBS) için tüm durum
 pub fn state_json(app: &AppHandle) -> Value {
-    let Some(h) = app.try_state::<Arc<Hub>>().map(|s| s.inner().clone()) else { return Value::Null };
+    let Some(h) = app.try_state::<Arc<Hub>>().map(|s| s.inner().clone()) else {
+        return Value::Null;
+    };
     serde_json::json!({ "chat": h.topic(), "poll": h.poll_view(), "captions": h.captions() })
 }
 
@@ -1697,11 +1975,16 @@ pub fn livechat_parse_links(text: String) -> ParsedLinks {
 
 /// Kanal listesini ayarlara yazar (sıra önemli: ücretsizde sadece ilki bağlanır). Tanınmayan / tekrar eden linkler atılır.
 #[tauri::command]
-pub fn livechat_channels_set(app: AppHandle, channels: Vec<ChannelIn>) -> Result<Vec<ChannelStatus>, String> {
+pub fn livechat_channels_set(
+    app: AppHandle,
+    channels: Vec<ChannelIn>,
+) -> Result<Vec<ChannelStatus>, String> {
     let mut seen = HashSet::new();
     let mut list = Vec::new();
     for mut c in channels {
-        let Some(l) = links::parse_link(&c.url) else { continue };
+        let Some(l) = links::parse_link(&c.url) else {
+            continue;
+        };
         if !seen.insert(l.key.clone()) {
             continue;
         }
@@ -1761,8 +2044,23 @@ pub fn livechat_poll_start(
         g.poll.start(n, dur, &q, &answers, res, now);
         g.poll_logged = false;
         g.dirty_poll = true;
-        let desc = g.poll.answers.iter().enumerate().filter(|(_, a)| !a.is_empty()).map(|(i, a)| format!("{}={a}", i + 1)).collect::<Vec<_>>().join(", ");
-        let mut line = format!("[ANKET] Başladı — {n} şık, {}", if dur > 0.0 { format!("{} sn", dur.round()) } else { "süresiz".into() });
+        let desc = g
+            .poll
+            .answers
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| !a.is_empty())
+            .map(|(i, a)| format!("{}={a}", i + 1))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let mut line = format!(
+            "[ANKET] Başladı — {n} şık, {}",
+            if dur > 0.0 {
+                format!("{} sn", dur.round())
+            } else {
+                "süresiz".into()
+            }
+        );
         if !g.poll.question.is_empty() {
             line += &format!(" — Soru: {}", g.poll.question);
         }
@@ -1813,13 +2111,23 @@ pub fn livechat_ban_user(app: AppHandle, user: String, platform: Option<String>)
         let h = hub(&app);
         let mut g = h.st.lock();
         g.cfg.banned.insert(login.clone());
-        g.mark_deleted(|m| p.map_or(true, |p| m.platform == p) && norm_user(&m.author.login) == login);
+        g.mark_deleted(|m| {
+            p.map_or(true, |p| m.platform == p) && norm_user(&m.author.login) == login
+        });
         g.log(format!("[MOD] {login} engellendi"));
     }
     update_settings(&app, |lc| {
         let mut list: Vec<String> = match lc.pointer("/moderation/banned") {
-            Some(Value::Array(a)) => a.iter().filter_map(|x| x.as_str()).map(String::from).collect(),
-            Some(Value::String(s)) => s.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect(),
+            Some(Value::Array(a)) => a
+                .iter()
+                .filter_map(|x| x.as_str())
+                .map(String::from)
+                .collect(),
+            Some(Value::String(s)) => s
+                .split(',')
+                .map(|x| x.trim().to_string())
+                .filter(|x| !x.is_empty())
+                .collect(),
             _ => vec![],
         };
         if !list.iter().any(|x| norm_user(x) == login) {
@@ -1929,7 +2237,10 @@ pub fn livechat_streamlabs_test(app: AppHandle, kind: Option<String>) -> Result<
     }
     let h = hub(&app);
     if !h.st.lock().running {
-        return Err("Önce canlı sohbeti başlat: uyarılar sohbet akışında (ve overlay'de) gösterilir.".into());
+        return Err(
+            "Önce canlı sohbeti başlat: uyarılar sohbet akışında (ve overlay'de) gösterilir."
+                .into(),
+        );
     }
     let frame = streamlabs::test_frame(kind.as_deref().unwrap_or("donation"));
     match streamlabs::parse_frame(&frame) {
@@ -1998,15 +2309,46 @@ mod tests {
 
     #[test]
     fn status_view_and_viewers() {
-        let mut g = Inner { running: true, multi: false, alerts_ok: true, fav: true, login_ok: true, cfg: cfg_from_settings(&cfg_json()), ..Default::default() };
-        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(true), viewers: Some(10), ..Default::default() });
+        let mut g = Inner {
+            running: true,
+            multi: false,
+            alerts_ok: true,
+            fav: true,
+            login_ok: true,
+            cfg: cfg_from_settings(&cfg_json()),
+            ..Default::default()
+        };
+        g.rt.insert(
+            "twitch:erkin".into(),
+            ChanRt {
+                chat: true,
+                live: Some(true),
+                viewers: Some(10),
+                ..Default::default()
+            },
+        );
         let v = g.channels_view();
         assert_eq!(v[0].state, State::Live);
         assert_eq!(v[1].state, State::Locked); // ücretsiz: sadece ilk kanal
         assert_eq!(v[2].state, State::Locked);
         g.multi = true;
-        g.rt.insert("twitch:ikinci".into(), ChanRt { chat: true, live: Some(true), viewers: Some(5), ..Default::default() });
-        g.rt.insert("kick:erkin".into(), ChanRt { chat: false, error: Some("x".into()), ..Default::default() });
+        g.rt.insert(
+            "twitch:ikinci".into(),
+            ChanRt {
+                chat: true,
+                live: Some(true),
+                viewers: Some(5),
+                ..Default::default()
+            },
+        );
+        g.rt.insert(
+            "kick:erkin".into(),
+            ChanRt {
+                chat: false,
+                error: Some("x".into()),
+                ..Default::default()
+            },
+        );
         let v = g.channels_view();
         assert_eq!(v[1].state, State::Error);
         let w = g.viewers(&v);
@@ -2028,26 +2370,64 @@ mod tests {
         assert_eq!(v[2].viewers, None);
         assert_eq!(g.viewers(&v).twitch, Some(10));
         // Yayın durumu bilinmiyor ama sohbet bağlı: son 3 dakikada mesaj geldiyse canlı
-        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: None, last_msg: 100.0, ..Default::default() });
+        g.rt.insert(
+            "twitch:erkin".into(),
+            ChanRt {
+                chat: true,
+                live: None,
+                last_msg: 100.0,
+                ..Default::default()
+            },
+        );
         assert!(g.any_live(150.0));
         assert!(!g.any_live(100.0 + MSG_LIVE_SECS + 1.0));
         // Yayın sorgusu "kapalı" diyor ama sohbet bağlı ve mesaj geliyor: canlı (süre dolunca değil)
-        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(false), last_msg: 100.0, ..Default::default() });
+        g.rt.insert(
+            "twitch:erkin".into(),
+            ChanRt {
+                chat: true,
+                live: Some(false),
+                last_msg: 100.0,
+                ..Default::default()
+            },
+        );
         assert!(g.any_live(150.0));
         assert!(!g.any_live(100.0 + MSG_LIVE_SECS + 1.0));
         // Sohbet bağlı değilse eski mesaj canlılık sayılmaz
-        g.rt.insert("twitch:erkin".into(), ChanRt { chat: false, live: Some(false), last_msg: 100.0, ..Default::default() });
+        g.rt.insert(
+            "twitch:erkin".into(),
+            ChanRt {
+                chat: false,
+                live: Some(false),
+                last_msg: 100.0,
+                ..Default::default()
+            },
+        );
         assert!(!g.any_live(150.0));
         // Ücretsiz + favoriler açık: en üstteki kanal kapalı, ★ favori canlı → canlı; favoriler kapalıysa değil
         let fav_key = g.cfg.channels[2].link.key.clone();
-        g.rt.insert(fav_key.clone(), ChanRt { chat: true, live: Some(true), ..Default::default() });
+        g.rt.insert(
+            fav_key.clone(),
+            ChanRt {
+                chat: true,
+                live: Some(true),
+                ..Default::default()
+            },
+        );
         assert!(!g.any_live(150.0));
         g.fav = true;
         assert!(g.any_live(150.0));
         g.fav = false;
         g.rt.remove(&fav_key);
         g.login_ok = false;
-        g.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(true), ..Default::default() });
+        g.rt.insert(
+            "twitch:erkin".into(),
+            ChanRt {
+                chat: true,
+                live: Some(true),
+                ..Default::default()
+            },
+        );
         assert!(!g.any_live(0.0));
         g.login_ok = true;
         g.running = false;
@@ -2081,9 +2461,24 @@ mod tests {
         assert_eq!(v["obsOk"], true);
         assert_eq!(v["app"], "demo");
         // Inner::gate alanları taşır
-        let mut i = Inner { running: true, multi: true, login_ok: true, obs_ok: true, cfg: cfg_from_settings(&cfg_json()), ..Default::default() };
+        let mut i = Inner {
+            running: true,
+            multi: true,
+            login_ok: true,
+            obs_ok: true,
+            cfg: cfg_from_settings(&cfg_json()),
+            ..Default::default()
+        };
         assert_eq!(i.gate(0.0).app, "offline");
-        i.rt.insert("twitch:erkin".into(), ChanRt { chat: true, live: Some(false), last_msg: 10.0, ..Default::default() });
+        i.rt.insert(
+            "twitch:erkin".into(),
+            ChanRt {
+                chat: true,
+                live: Some(false),
+                last_msg: 10.0,
+                ..Default::default()
+            },
+        );
         assert_eq!(i.gate(20.0).app, "real");
         i.demo = true;
         assert_eq!(i.gate(20.0).app, "real");
@@ -2093,7 +2488,17 @@ mod tests {
     }
 
     fn chat(platform: Platform, channel: &str, id: &str, user: &str, text: &str) -> ChatMsg {
-        let mut m = ChatMsg::new(platform, id, Kind::Chat, model::Author { name: user.into(), login: user.to_lowercase(), ..Default::default() }, vec![Part::text(text)]);
+        let mut m = ChatMsg::new(
+            platform,
+            id,
+            Kind::Chat,
+            model::Author {
+                name: user.into(),
+                login: user.to_lowercase(),
+                ..Default::default()
+            },
+            vec![Part::text(text)],
+        );
         m.channel = channel.into();
         m
     }
@@ -2104,48 +2509,150 @@ mod tests {
         v["general"]["livechat"]["moderation"]["wordMode"] = "mask".into();
         v["general"]["livechat"]["moderation"]["words"] = "kötü, salak*".into();
         let cfg = cfg_from_settings(&v);
-        let mut g = Inner { running: true, multi: true, login_ok: true, words: WordFilter::new(&cfg.words), cfg, ..Default::default() };
+        let mut g = Inner {
+            running: true,
+            multi: true,
+            login_ok: true,
+            words: WordFilter::new(&cfg.words),
+            cfg,
+            ..Default::default()
+        };
         // Etiket ve kanal adı
-        let m = g.accept(chat(Platform::Twitch, "twitch:erkin", "1", "Ali", "selam"), 0.0).unwrap();
+        let m = g
+            .accept(
+                chat(Platform::Twitch, "twitch:erkin", "1", "Ali", "selam"),
+                0.0,
+            )
+            .unwrap();
         assert!(m.show_tag);
         assert_eq!(m.channel_name, "Erkin");
         // Gizli (göz kapalı) ve listede olmayan kanal
-        assert!(g.accept(chat(Platform::Kick, "kick:erkin", "2", "Ali", "x"), 0.0).is_none());
-        assert!(g.accept(chat(Platform::Twitch, "twitch:yok", "3", "Ali", "x"), 0.0).is_none());
+        assert!(g
+            .accept(chat(Platform::Kick, "kick:erkin", "2", "Ali", "x"), 0.0)
+            .is_none());
+        assert!(g
+            .accept(chat(Platform::Twitch, "twitch:yok", "3", "Ali", "x"), 0.0)
+            .is_none());
         // Yasaklı
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "4", "KOTU", "x"), 0.0).is_none());
+        assert!(g
+            .accept(
+                chat(Platform::Twitch, "twitch:erkin", "4", "KOTU", "x"),
+                0.0
+            )
+            .is_none());
         // Kelime filtresi (yıldızla)
-        let m = g.accept(chat(Platform::Twitch, "twitch:erkin", "5", "Veli", "çok kötü salaklık"), 0.0).unwrap();
+        let m = g
+            .accept(
+                chat(
+                    Platform::Twitch,
+                    "twitch:erkin",
+                    "5",
+                    "Veli",
+                    "çok kötü salaklık",
+                ),
+                0.0,
+            )
+            .unwrap();
         assert!(m.masked);
         assert_eq!(m.text, "çok k*** s*******");
         // Tekrar (spam) filtresi: 5 sn
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "6", "Veli", "çok kötü salaklık"), 1.0).is_none());
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "7", "Veli", "çok kötü salaklık"), 20.0).is_some());
+        assert!(g
+            .accept(
+                chat(
+                    Platform::Twitch,
+                    "twitch:erkin",
+                    "6",
+                    "Veli",
+                    "çok kötü salaklık"
+                ),
+                1.0
+            )
+            .is_none());
+        assert!(g
+            .accept(
+                chat(
+                    Platform::Twitch,
+                    "twitch:erkin",
+                    "7",
+                    "Veli",
+                    "çok kötü salaklık"
+                ),
+                20.0
+            )
+            .is_some());
         // Aynı kimlik iki kez gelmez
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "1", "Ali", "başka"), 30.0).is_none());
+        assert!(g
+            .accept(
+                chat(Platform::Twitch, "twitch:erkin", "1", "Ali", "başka"),
+                30.0
+            )
+            .is_none());
         // Bağlantılar parçalara ayrılır; engel açıksa mesaj düşer
-        let m = g.accept(chat(Platform::Twitch, "twitch:erkin", "8", "Can", "bak simracetr.com"), 31.0).unwrap();
+        let m = g
+            .accept(
+                chat(
+                    Platform::Twitch,
+                    "twitch:erkin",
+                    "8",
+                    "Can",
+                    "bak simracetr.com",
+                ),
+                31.0,
+            )
+            .unwrap();
         assert!(m.parts.iter().any(|p| matches!(p, Part::Link { .. })));
         g.cfg.block_links = true;
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "9", "Can", "bak www.x.org"), 32.0).is_none());
+        assert!(g
+            .accept(
+                chat(
+                    Platform::Twitch,
+                    "twitch:erkin",
+                    "9",
+                    "Can",
+                    "bak www.x.org"
+                ),
+                32.0
+            )
+            .is_none());
         // Anket: oy sayılır, istenirse gizlenir
         g.poll.start(3, 60.0, "", &[], 15.0, 40.0);
-        let m = g.accept(chat(Platform::Twitch, "twitch:erkin", "10", "Oy1", "2"), 41.0).unwrap();
+        let m = g
+            .accept(
+                chat(Platform::Twitch, "twitch:erkin", "10", "Oy1", "2"),
+                41.0,
+            )
+            .unwrap();
         assert_eq!(m.vote, Some(2));
         g.cfg.hide_votes = true;
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "11", "Oy2", "#3"), 42.0).is_none());
+        assert!(g
+            .accept(
+                chat(Platform::Twitch, "twitch:erkin", "11", "Oy2", "#3"),
+                42.0
+            )
+            .is_none());
         assert_eq!(g.poll.counts, vec![0, 1, 1]);
         // Gizli kanaldan oy sayılmaz
         g.accept(chat(Platform::Kick, "kick:erkin", "12", "Oy3", "1"), 43.0);
         assert_eq!(g.poll.counts, vec![0, 1, 1]);
         // Kayıt satırları (filtrelenmemiş)
-        assert!(g.log_lines.iter().any(|l| l == "[Twitch Erkin] Veli: çok kötü salaklık"));
+        assert!(g
+            .log_lines
+            .iter()
+            .any(|l| l == "[Twitch Erkin] Veli: çok kötü salaklık"));
         // Silme: tek mesaj ve kullanıcının tümü
         assert_eq!(g.mark_deleted(|m| m.native_id == "5"), 1);
         assert_eq!(g.mark_deleted(|m| m.author.login == "veli"), 1);
-        assert_eq!(g.new_deleted, vec!["twitch:5".to_string(), "twitch:7".to_string()]);
+        assert_eq!(
+            g.new_deleted,
+            vec!["twitch:5".to_string(), "twitch:7".to_string()]
+        );
         // Durmuşken mesaj alınmaz
         g.running = false;
-        assert!(g.accept(chat(Platform::Twitch, "twitch:erkin", "99", "Ali", "x"), 50.0).is_none());
+        assert!(g
+            .accept(
+                chat(Platform::Twitch, "twitch:erkin", "99", "Ali", "x"),
+                50.0
+            )
+            .is_none());
     }
 }

@@ -141,7 +141,12 @@ impl TrackMap {
         if !(0.005..0.5).contains(&len) {
             return None;
         }
-        Some(PitLane { entry, exit, side: self.store.side, stall: self.stall })
+        Some(PitLane {
+            entry,
+            exit,
+            side: self.store.side,
+            stall: self.stall,
+        })
     }
 
     /// Şekil üzerindeki nokta ve birim teğet (tur yüzdesine göre)
@@ -173,7 +178,11 @@ impl TrackMap {
             if pp < 0.0 || c.pct < 0.0 || c.on_pit == was || wrap(c.pct - pp).abs() > 0.02 {
                 continue;
             }
-            let list = if c.on_pit { &mut self.store.entries } else { &mut self.store.exits };
+            let list = if c.on_pit {
+                &mut self.store.entries
+            } else {
+                &mut self.store.exits
+            };
             if list.len() >= PIT_SAMPLES {
                 list.remove(0);
             }
@@ -219,8 +228,20 @@ impl TrackMap {
     }
 
     fn file(&self) -> Option<PathBuf> {
-        let safe: String = self.key.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect();
-        self.dir.as_ref().map(|d| d.join("tracks").join(format!("{safe}.json")))
+        let safe: String = self
+            .key
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '-' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        self.dir
+            .as_ref()
+            .map(|d| d.join("tracks").join(format!("{safe}.json")))
     }
 
     /// Pist değişince çağrılır: kayıtlı şekil varsa yüklenir.
@@ -231,7 +252,10 @@ impl TrackMap {
         self.key = key.to_string();
         self.reset_lap();
         self.reset_pit();
-        if let Some(text) = self.pit_file().and_then(|p| std::fs::read_to_string(p).ok()) {
+        if let Some(text) = self
+            .pit_file()
+            .and_then(|p| std::fs::read_to_string(p).ok())
+        {
             if let Ok(v) = serde_json::from_str::<PitStore>(&text) {
                 self.store = v;
             }
@@ -256,7 +280,12 @@ impl TrackMap {
         self.reset_pit();
         if key == "demo" {
             // Demo araçları çizgiyi geçince pite girer: pit yolu çizgiyi sarar
-            self.demo_pit = Some(PitLane { entry: 0.93, exit: 0.07, side: 0, stall: 0.0 });
+            self.demo_pit = Some(PitLane {
+                entry: 0.93,
+                exit: 0.07,
+                side: 0,
+                stall: 0.0,
+            });
         }
         self.version += 1;
     }
@@ -344,7 +373,12 @@ impl TrackMap {
     fn finish(&mut self) {
         // Boşlukları doğrusal doldur
         let mut pts: Vec<[f32; 2]> = Vec::with_capacity(BINS);
-        let known: Vec<(usize, [f32; 2])> = self.bins.iter().enumerate().filter_map(|(i, b)| b.map(|p| (i, p))).collect();
+        let known: Vec<(usize, [f32; 2])> = self
+            .bins
+            .iter()
+            .enumerate()
+            .filter_map(|(i, b)| b.map(|p| (i, p)))
+            .collect();
         if known.len() < 50 {
             self.reset_lap();
             return;
@@ -354,11 +388,19 @@ impl TrackMap {
                 pts.push(p);
                 continue;
             }
-            let prev = known.iter().rev().find(|k| k.0 < i).or(known.last()).unwrap();
+            let prev = known
+                .iter()
+                .rev()
+                .find(|k| k.0 < i)
+                .or(known.last())
+                .unwrap();
             let next = known.iter().find(|k| k.0 > i).or(known.first()).unwrap();
             let span = ((next.0 + BINS - prev.0) % BINS).max(1) as f32;
             let k = ((i + BINS - prev.0) % BINS) as f32 / span;
-            pts.push([prev.1[0] + (next.1[0] - prev.1[0]) * k, prev.1[1] + (next.1[1] - prev.1[1]) * k]);
+            pts.push([
+                prev.1[0] + (next.1[0] - prev.1[0]) * k,
+                prev.1[1] + (next.1[1] - prev.1[1]) * k,
+            ]);
         }
         // Kapanış hatasını tur boyunca dağıt: son nokta ilk noktaya bağlanmalı
         let first = pts[0];
@@ -387,7 +429,10 @@ pub fn demo_shape() -> Vec<[f32; 2]> {
     let mut v = Vec::with_capacity(BINS);
     for i in 0..BINS {
         let a = i as f32 / BINS as f32 * std::f32::consts::TAU;
-        let r = 1.0 + 0.28 * (2.0 * a + 0.6).sin() + 0.12 * (3.0 * a + 1.9).cos() + 0.06 * (5.0 * a).sin();
+        let r = 1.0
+            + 0.28 * (2.0 * a + 0.6).sin()
+            + 0.12 * (3.0 * a + 1.9).cos()
+            + 0.06 * (5.0 * a).sin();
         v.push([r * a.cos() * 420.0, r * a.sin() * 300.0]);
     }
     v
@@ -450,7 +495,11 @@ mod tests {
             let pct = (p % 1.0) as f32;
             let on = (0.95..1.05).contains(&p);
             // Pit yoluna girince 2 sn boyunca 10 m/s sola kay (20 m içeri)
-            f.vel_y = if (0.95..0.95 + 2.0 / lap_t).contains(&p) { 10.0 } else { 0.0 };
+            f.vel_y = if (0.95..0.95 + 2.0 / lap_t).contains(&p) {
+                10.0
+            } else {
+                0.0
+            };
             let r = 300.0;
             f.session_time = t;
             f.lap_dist_pct = pct;

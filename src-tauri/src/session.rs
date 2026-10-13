@@ -13,7 +13,9 @@ fn indent(line: &str) -> usize {
 
 fn clean(v: &str) -> &str {
     let v = v.trim();
-    v.strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap_or(v)
+    v.strip_prefix('"')
+        .and_then(|s| s.strip_suffix('"'))
+        .unwrap_or(v)
 }
 
 fn split_kv(s: &str) -> Option<(&str, &str)> {
@@ -90,7 +92,11 @@ pub fn parse(yaml: &str) -> SessionData {
                 sd.tire_types.push(t);
             }
             list = List::None;
-            section = if body.ends_with(':') { &body[..body.len() - 1] } else { "" };
+            section = if body.ends_with(':') {
+                &body[..body.len() - 1]
+            } else {
+                ""
+            };
             if section.is_empty() {
                 if let Some((k, _)) = split_kv(body) {
                     section = k;
@@ -139,7 +145,10 @@ pub fn parse(yaml: &str) -> SessionData {
                 match list {
                     List::Drivers => {
                         flush_driver(cur_driver.take(), &mut sd);
-                        cur_driver = Some(Driver { car_idx: -1, ..Default::default() });
+                        cur_driver = Some(Driver {
+                            car_idx: -1,
+                            ..Default::default()
+                        });
                     }
                     List::Sessions => {
                         if let Some(s) = cur_sess.take() {
@@ -171,7 +180,11 @@ pub fn parse(yaml: &str) -> SessionData {
             // Oturumun sonuç listesi (ResultsPositions): her araç için en iyi ve son tur.
             // iRacing'in CarIdxBestLapTime değeri bazı araçlar için boş kalabilir (oturuma sonradan girmek,
             // izleme menzili); sıralama overlay'leri eksik süreleri buradan tamamlar.
-            if list == List::Sessions && dash_col != usize::MAX && in_results && kv_col >= dash_col + 4 {
+            if list == List::Sessions
+                && dash_col != usize::MAX
+                && in_results
+                && kv_col >= dash_col + 4
+            {
                 if let Some(s) = cur_sess.as_mut() {
                     if is_item && ind == dash_col + 2 {
                         s.results.push((-1, -1.0, -1.0));
@@ -197,7 +210,10 @@ pub fn parse(yaml: &str) -> SessionData {
                         List::Drivers => {
                             if let Some(d) = cur_driver.as_mut() {
                                 // Tanılama: iRacing'in ülke / bayrak için gönderdiği alanların adı ve örnek değeri bir kez günlüğe yazılır
-                                if k.contains("Flair") || k.contains("Club") || k.contains("Country") {
+                                if k.contains("Flair")
+                                    || k.contains("Club")
+                                    || k.contains("Country")
+                                {
                                     note_flair_key(k, v);
                                 }
                                 match k {
@@ -229,9 +245,13 @@ pub fn parse(yaml: &str) -> SessionData {
                                         if d.flair.is_empty() && v.trim().starts_with('-') {
                                             // Ülke seçilmemiş: arayüz bayrak yerine küre simgesi gösterir
                                             d.flair = "NONE".to_string();
-                                        } else if (d.flair.is_empty() || d.flair == "NONE") && !v.trim().is_empty() {
+                                        } else if (d.flair.is_empty() || d.flair == "NONE")
+                                            && !v.trim().is_empty()
+                                        {
                                             // iRacing ülkeyi adıyla gönderir ("Turkey"): bilinen adlar iki harfli koda çevrilir
-                                            d.flair = flair_code(v).map(str::to_string).unwrap_or_else(|| v.trim().to_string());
+                                            d.flair = flair_code(v)
+                                                .map(str::to_string)
+                                                .unwrap_or_else(|| v.trim().to_string());
                                         }
                                     }
                                     // Eski oturum bilgisi: ülke "kulüp" adıyla gelir; yalnızca bir ülke adıysa kullanılır
@@ -287,13 +307,17 @@ pub fn parse(yaml: &str) -> SessionData {
                 match (section, k) {
                     ("WeekendInfo", "TrackDisplayName") => sd.track_name = v.to_string(),
                     ("WeekendInfo", "TrackConfigName") => sd.track_config = v.to_string(),
-                    ("SplitTimeInfo", "SectorStartPct") => sd.sector_starts.push(num_prefix(v).unwrap_or(0.0) as f32),
+                    ("SplitTimeInfo", "SectorStartPct") => {
+                        sd.sector_starts.push(num_prefix(v).unwrap_or(0.0) as f32)
+                    }
                     ("WeekendInfo", "TrackLength") => {
                         sd.track_length_km = num_prefix(v).unwrap_or(0.0) as f32
                     }
                     ("DriverInfo", "DriverCarIdx") => sd.player_idx = v.parse().unwrap_or(-1),
                     ("DriverInfo", "DriverUserID") => sd.player_user_id = v.parse().unwrap_or(0),
-                    ("DriverInfo", "DriverSetupLoadTypeName") => sd.setup_type = v.trim().to_string(),
+                    ("DriverInfo", "DriverSetupLoadTypeName") => {
+                        sd.setup_type = v.trim().to_string()
+                    }
                     ("DriverInfo", "DriverCarFuelMaxLtr") => {
                         sd.fuel_max_ltr = num_prefix(v).unwrap_or(0.0) as f32
                     }
@@ -306,9 +330,15 @@ pub fn parse(yaml: &str) -> SessionData {
                     ("DriverInfo", "DriverCarSLShiftRPM") => {
                         sd.shift_rpm = num_prefix(v).unwrap_or(0.0) as f32
                     }
-                    ("DriverInfo", "DriverCarSLFirstRPM") => sd.sl_first = num_prefix(v).unwrap_or(0.0) as f32,
-                    ("DriverInfo", "DriverCarSLLastRPM") => sd.sl_last = num_prefix(v).unwrap_or(0.0) as f32,
-                    ("DriverInfo", "DriverCarSLBlinkRPM") => sd.sl_blink = num_prefix(v).unwrap_or(0.0) as f32,
+                    ("DriverInfo", "DriverCarSLFirstRPM") => {
+                        sd.sl_first = num_prefix(v).unwrap_or(0.0) as f32
+                    }
+                    ("DriverInfo", "DriverCarSLLastRPM") => {
+                        sd.sl_last = num_prefix(v).unwrap_or(0.0) as f32
+                    }
+                    ("DriverInfo", "DriverCarSLBlinkRPM") => {
+                        sd.sl_blink = num_prefix(v).unwrap_or(0.0) as f32
+                    }
                     ("WeekendInfo", "TrackPitSpeedLimit") => {
                         let n = num_prefix(v).unwrap_or(0.0) as f32;
                         sd.pit_limit_kph = if v.contains("mph") { n * 1.609_344 } else { n };
@@ -426,7 +456,10 @@ SplitTimeInfo:
         assert_eq!(sd.sessions.len(), 2);
         assert_eq!(sd.sessions[0].kind, "Practice");
         assert_eq!(sd.sessions[0].time, Some(600.0));
-        assert_eq!(sd.sessions[0].results, vec![(3, 137.125, 138.5), (1, -1.0, -1.0)]);
+        assert_eq!(
+            sd.sessions[0].results,
+            vec![(3, 137.125, 138.5), (1, -1.0, -1.0)]
+        );
         assert!(sd.sessions[1].results.is_empty());
         assert_eq!(sd.sessions[1].laps, Some(25));
         assert!(sd.is_race(2));
@@ -445,9 +478,15 @@ SplitTimeInfo:
         assert_eq!(sd.driver(3).unwrap().name, "Other Driver");
         // İç içe ResultsPositions içindeki CarIdx sürücü oluşturmamalı
         assert!(sd.driver(2).is_none());
-        assert_eq!(sd.tire_types, vec![(0, "Hard".to_string()), (1, "Wet".to_string())]);
+        assert_eq!(
+            sd.tire_types,
+            vec![(0, "Hard".to_string()), (1, "Wet".to_string())]
+        );
         // Tek kuru hamur: "Hard" yerine kuru (D); 1 = yağmur
-        let mut c = crate::model::CarState { tire: 0, ..Default::default() };
+        let mut c = crate::model::CarState {
+            tire: 0,
+            ..Default::default()
+        };
         assert_eq!(crate::model::tire_kind(&c, &sd, true), b'D');
         c.tire = 1;
         assert_eq!(crate::model::tire_kind(&c, &sd, true), b'W');
@@ -601,19 +640,26 @@ fn note_flair_key(k: &str, v: &str) {
     if v.trim().is_empty() {
         return;
     }
-    let Ok(mut seen) = SEEN.get_or_init(|| Mutex::new(Vec::new())).lock() else { return };
+    let Ok(mut seen) = SEEN.get_or_init(|| Mutex::new(Vec::new())).lock() else {
+        return;
+    };
     if seen.iter().any(|x| x == k) || seen.len() >= 12 {
         return;
     }
     seen.push(k.to_string());
     let sample: String = v.chars().take(40).collect();
-    crate::crashlog::note(&format!("bayrak-alani {k} = {sample} -> {}", flair_code(v).unwrap_or("?")));
+    crate::crashlog::note(&format!(
+        "bayrak-alani {k} = {sample} -> {}",
+        flair_code(v).unwrap_or("?")
+    ));
 }
 
 /// iRacing: canlı veride en iyi / son turu boş görünen araçlar oturum sonuçlarından tamamlanır.
 /// Sonuçlardaki en iyi tur daha hızlıysa (oturuma sonradan girildi) o kullanılır.
 pub fn fill_lap_times(f: &mut crate::model::Frame, sd: &SessionData) {
-    let Some(s) = sd.session(f.session_num) else { return };
+    let Some(s) = sd.session(f.session_num) else {
+        return;
+    };
     for &(idx, best, last) in &s.results {
         if !(0..MAX_CARS as i32).contains(&idx) {
             continue;

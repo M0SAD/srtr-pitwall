@@ -7311,5 +7311,8 @@
   "Performans modu": "パフォーマンスモード",
   "Üst ve alt kenarda karartma": "上下の端をフェード",
   "Yakın araç renk dolgusu": "近い車のカラー塗り",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "滑らかな色の遷移（接近ハイライトが徐々に満ちる）"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "滑らかな色の遷移（接近ハイライトが徐々に満ちる）",
+  "Günlük boş: kayıtlı bir hata yok.": "ログは空です。エラーは記録されていません。",
+  "Hata günlüğü": "エラーログ",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "プログラムが勝手に終了したり、何かが固まったりした場合、その原因がここに記録されます。サポートを依頼するときはこのログをコピーして送ってください。"
 }

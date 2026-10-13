@@ -118,13 +118,18 @@ impl WordFilter {
 }
 
 const TLDS: [&str; 19] = [
-    "com", "net", "org", "tv", "gg", "io", "me", "xyz", "ly", "co", "tr", "ru", "info", "biz", "link", "site", "live", "app", "com.tr",
+    "com", "net", "org", "tv", "gg", "io", "me", "xyz", "ly", "co", "tr", "ru", "info", "biz",
+    "link", "site", "live", "app", "com.tr",
 ];
 
 /// Kelime bir bağlantı mı (http(s)://, www., ya da alanadı.uzantı)
 fn token_is_link(tok: &str) -> bool {
     let low = tok.to_lowercase();
-    if low.contains("http://") || low.contains("https://") || low.starts_with("www.") || low.contains("://www.") {
+    if low.contains("http://")
+        || low.contains("https://")
+        || low.starts_with("www.")
+        || low.contains("://www.")
+    {
         return true;
     }
     let chars: Vec<char> = low.chars().collect();
@@ -164,7 +169,9 @@ pub fn linkify(parts: Vec<Part>) -> Vec<Part> {
         let mut buf = String::new();
         let mut rest = v.as_str();
         while !rest.is_empty() {
-            let ws_end = rest.find(|c: char| !c.is_whitespace()).unwrap_or(rest.len());
+            let ws_end = rest
+                .find(|c: char| !c.is_whitespace())
+                .unwrap_or(rest.len());
             buf.push_str(&rest[..ws_end]);
             rest = &rest[ws_end..];
             if rest.is_empty() {
@@ -186,7 +193,10 @@ pub fn linkify(parts: Vec<Part>) -> Vec<Part> {
                 if !buf.is_empty() {
                     out.push(Part::text(std::mem::take(&mut buf)));
                 }
-                out.push(Part::Link { url, v: core.to_string() });
+                out.push(Part::Link {
+                    url,
+                    v: core.to_string(),
+                });
                 buf.push_str(tail);
             } else {
                 buf.push_str(tok);
@@ -207,7 +217,14 @@ pub struct SpamFilter {
 
 impl SpamFilter {
     /// true: tekrar (gizle)
-    pub fn check(&mut self, platform: Platform, user: &str, text: &str, now: f64, window: f64) -> bool {
+    pub fn check(
+        &mut self,
+        platform: Platform,
+        user: &str,
+        text: &str,
+        now: f64,
+        window: f64,
+    ) -> bool {
         let key = (platform, user.trim().trim_start_matches('@').to_lowercase());
         let norm = text.trim().to_string();
         let dup = match self.last.get(&key) {
@@ -249,10 +266,24 @@ mod tests {
         let f = WordFilter::new("şişli");
         assert!(f.matches("ŞİŞLİ"));
         assert!(f.matches("şışlı"));
-        let mut parts = vec![Part::text("hey aptal "), Part::Emote { url: "u".into(), name: "aptal".into(), custom: false }];
+        let mut parts = vec![
+            Part::text("hey aptal "),
+            Part::Emote {
+                url: "u".into(),
+                name: "aptal".into(),
+                custom: false,
+            },
+        ];
         assert!(WordFilter::new("aptal").mask_parts(&mut parts));
         assert_eq!(parts[0], Part::text("hey a**** "));
-        assert_eq!(parts[1], Part::Emote { url: "u".into(), name: "aptal".into(), custom: false });
+        assert_eq!(
+            parts[1],
+            Part::Emote {
+                url: "u".into(),
+                name: "aptal".into(),
+                custom: false
+            }
+        );
     }
 
     #[test]
@@ -269,7 +300,10 @@ mod tests {
             p,
             vec![
                 Part::text("bak: "),
-                Part::Link { url: "https://simracetr.com".into(), v: "simracetr.com".into() },
+                Part::Link {
+                    url: "https://simracetr.com".into(),
+                    v: "simracetr.com".into()
+                },
                 Part::text(", güzel")
             ]
         );

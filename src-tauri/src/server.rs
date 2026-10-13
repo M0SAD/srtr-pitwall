@@ -72,7 +72,10 @@ fn url_decode(s: &str) -> String {
     while i < b.len() {
         if b[i] == b'%' && i + 2 < b.len() {
             // `get`: "%" sonrası çok baytlı (UTF-8) karakterse dilimleme panic yapmasın
-            if let Some(v) = s.get(i + 1..i + 3).and_then(|h| u8::from_str_radix(h, 16).ok()) {
+            if let Some(v) = s
+                .get(i + 1..i + 3)
+                .and_then(|h| u8::from_str_radix(h, 16).ok())
+            {
                 out.push(v);
                 i += 3;
                 continue;
@@ -97,10 +100,20 @@ fn query_param<'a>(url: &'a str, key: &str) -> Option<&'a str> {
 }
 
 /// Canlı veri akışı (SSE): isteği kendi iş parçacığına devreder.
-fn serve_sse(req: tiny_http::Request, url: &str, app: &AppHandle, shared: &Arc<Shared>, stop: &Arc<AtomicBool>) {
+fn serve_sse(
+    req: tiny_http::Request,
+    url: &str,
+    app: &AppHandle,
+    shared: &Arc<Shared>,
+    stop: &Arc<AtomicBool>,
+) {
     let mut topics = parse_topics(&url_decode(query_param(url, "topics").unwrap_or("")));
     // Canlı sohbet konuları tarayıcı kaynağına sadece izin varsa (PRO: livechat.obs)
-    if topics.iter().any(|t| crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str())) && !crate::livechat::allowed(app, "livechat.obs") {
+    if topics
+        .iter()
+        .any(|t| crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str()))
+        && !crate::livechat::allowed(app, "livechat.obs")
+    {
         topics.retain(|t| !crate::engine::LIVECHAT_TOPICS.contains(&t.name.as_str()));
     }
     let (tx, rx) = mpsc::channel::<String>();
@@ -110,7 +123,8 @@ fn serve_sse(req: tiny_http::Request, url: &str, app: &AppHandle, shared: &Arc<S
     // Ham sokete doğrudan yaz ve her olaydan sonra boşalt (tamponlama gecikmesi olmasın)
     std::thread::spawn(move || {
         let mut w = req.into_writer();
-        let head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\
+        let head =
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\
                     Connection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n";
         if w.write_all(head.as_bytes()).and_then(|_| w.flush()).is_ok() {
             loop {
@@ -122,7 +136,10 @@ fn serve_sse(req: tiny_http::Request, url: &str, app: &AppHandle, shared: &Arc<S
                     Err(mpsc::RecvTimeoutError::Timeout) => ": ping\n\n".to_string(),
                     Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 };
-                if w.write_all(chunk.as_bytes()).and_then(|_| w.flush()).is_err() {
+                if w.write_all(chunk.as_bytes())
+                    .and_then(|_| w.flush())
+                    .is_err()
+                {
                     break;
                 }
             }
@@ -135,26 +152,40 @@ fn serve_sse(req: tiny_http::Request, url: &str, app: &AppHandle, shared: &Arc<S
 /// kaynakları bu sınırı paylaşır: her kaynağın sürekli açık bir veri akışı olduğundan birkaç kaynak (düzenler, sohbet,
 /// anket, altyazı…) eklenince sınır dolar; sonraki kaynağın dosyaları ve görselleri yüklenmez. Akışlar ek portlara
 /// dağıtılınca ana port dosyalar için boş kalır. Açılamayan port (başka program kullanıyor) atlanır.
-fn start_stream_ports(app: &AppHandle, shared: &Arc<Shared>, host: &str, port: u16, stop: &Arc<AtomicBool>) -> Vec<u16> {
+fn start_stream_ports(
+    app: &AppHandle,
+    shared: &Arc<Shared>,
+    host: &str,
+    port: u16,
+    stop: &Arc<AtomicBool>,
+) -> Vec<u16> {
     let mut open = Vec::new();
     for p in (1..=12u16).filter_map(|i| port.checked_add(i)) {
-        let Ok(server) = Server::http(format!("{host}:{p}")) else { continue };
+        let Ok(server) = Server::http(format!("{host}:{p}")) else {
+            continue;
+        };
         let (app, shared, stop) = (app.clone(), shared.clone(), stop.clone());
-        let spawned = std::thread::Builder::new().name(format!("web-stream-{p}")).spawn(move || {
-            while !stop.load(Ordering::Relaxed) {
-                let req = match server.recv_timeout(Duration::from_millis(500)) {
-                    Ok(Some(r)) => r,
-                    Ok(None) => continue,
-                    Err(_) => break,
-                };
-                let url = req.url().to_string();
-                if url.split('?').next() == Some("/api/stream") {
-                    serve_sse(req, &url, &app, &shared, &stop);
-                } else {
-                    let _ = req.respond(Response::from_string("").with_status_code(404).with_header(header("Access-Control-Allow-Origin", "*")));
+        let spawned = std::thread::Builder::new()
+            .name(format!("web-stream-{p}"))
+            .spawn(move || {
+                while !stop.load(Ordering::Relaxed) {
+                    let req = match server.recv_timeout(Duration::from_millis(500)) {
+                        Ok(Some(r)) => r,
+                        Ok(None) => continue,
+                        Err(_) => break,
+                    };
+                    let url = req.url().to_string();
+                    if url.split('?').next() == Some("/api/stream") {
+                        serve_sse(req, &url, &app, &shared, &stop);
+                    } else {
+                        let _ = req.respond(
+                            Response::from_string("")
+                                .with_status_code(404)
+                                .with_header(header("Access-Control-Allow-Origin", "*")),
+                        );
+                    }
                 }
-            }
-        });
+            });
         if spawned.is_ok() {
             open.push(p);
         }
@@ -162,13 +193,21 @@ fn start_stream_ports(app: &AppHandle, shared: &Arc<Shared>, host: &str, port: u
     open
 }
 
-pub fn start(app: AppHandle, shared: Arc<Shared>, port: u16, lan: bool) -> Result<WebServer, String> {
+pub fn start(
+    app: AppHandle,
+    shared: Arc<Shared>,
+    port: u16,
+    lan: bool,
+) -> Result<WebServer, String> {
     let host = if lan { "0.0.0.0" } else { "127.0.0.1" };
-    let server = Server::http(format!("{host}:{port}")).map_err(|e| format!("Port {port} açılamadı: {e}"))?;
+    let server = Server::http(format!("{host}:{port}"))
+        .map_err(|e| format!("Port {port} açılamadı: {e}"))?;
     let addr = server.server_addr().to_ip().ok_or("adres alınamadı")?;
     let stop = Arc::new(AtomicBool::new(false));
     let stop2 = stop.clone();
-    let ports = Arc::new(parking_lot::Mutex::new(start_stream_ports(&app, &shared, host, port, &stop)));
+    let ports = Arc::new(parking_lot::Mutex::new(start_stream_ports(
+        &app, &shared, host, port, &stop,
+    )));
     let ports2 = ports.clone();
     std::thread::Builder::new()
         .name("web-server".into())
@@ -361,8 +400,15 @@ fn is_dash_page(path: &str) -> bool {
 
 /// Uzak gösterge sayfasının verisi: kullanıcının tasarımları ve birim tercihi
 fn dash_json(settings: Option<&serde_json::Value>) -> serde_json::Value {
-    let dashes = settings.and_then(|s| s.get("dashes")).filter(|d| d.is_array()).cloned().unwrap_or_else(|| serde_json::json!([]));
-    let units = settings.and_then(|s| s.pointer("/general/units")).and_then(|u| u.as_str()).unwrap_or("metric");
+    let dashes = settings
+        .and_then(|s| s.get("dashes"))
+        .filter(|d| d.is_array())
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!([]));
+    let units = settings
+        .and_then(|s| s.pointer("/general/units"))
+        .and_then(|u| u.as_str())
+        .unwrap_or("metric");
     serde_json::json!({ "ok": true, "units": units, "dashes": dashes })
 }
 
@@ -381,7 +427,9 @@ pub fn lan_ips() -> Vec<String> {
     if let Some(ip) = lan_ip() {
         out.push(ip);
     }
-    let host = std::env::var("COMPUTERNAME").or_else(|_| std::env::var("HOSTNAME")).unwrap_or_default();
+    let host = std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .unwrap_or_default();
     if !host.is_empty() {
         if let Ok(addrs) = (host.as_str(), 0u16).to_socket_addrs() {
             for a in addrs {
@@ -396,7 +444,11 @@ pub fn lan_ips() -> Vec<String> {
             }
         }
     }
-    out.retain(|s| s.parse::<std::net::Ipv4Addr>().map(|v| usable_lan_v4(&v)).unwrap_or(false));
+    out.retain(|s| {
+        s.parse::<std::net::Ipv4Addr>()
+            .map(|v| usable_lan_v4(&v))
+            .unwrap_or(false)
+    });
     out
 }
 
@@ -413,7 +465,10 @@ mod tests {
         assert_eq!(t.len(), 3);
         assert_eq!(t[0].name, "relative");
         assert_eq!(t[2].hz, 5.0);
-        assert_eq!(query_param("/api/stream?a=1&topics=x:1", "topics"), Some("x:1"));
+        assert_eq!(
+            query_param("/api/stream?a=1&topics=x:1", "topics"),
+            Some("x:1")
+        );
         assert_eq!(url_decode("a%3A1%2Cb%3A2"), "a:1,b:2");
         assert_eq!(url_decode("100%"), "100%");
     }
@@ -423,10 +478,18 @@ mod tests {
         for p in ["/dash", "/dash/", "/dash/dabc123", "/dash/classic"] {
             assert!(is_dash_page(p), "{p}");
         }
-        for p in ["/dash.html", "/dashboard", "/dash/a/b", "/dash/x.js", "/assets/dash.js", "/"] {
+        for p in [
+            "/dash.html",
+            "/dashboard",
+            "/dash/a/b",
+            "/dash/x.js",
+            "/assets/dash.js",
+            "/",
+        ] {
             assert!(!is_dash_page(p), "{p}");
         }
-        let s = serde_json::json!({ "general": { "units": "imperial" }, "dashes": [{ "id": "d1" }] });
+        let s =
+            serde_json::json!({ "general": { "units": "imperial" }, "dashes": [{ "id": "d1" }] });
         let v = dash_json(Some(&s));
         assert_eq!(v["ok"], true);
         assert_eq!(v["units"], "imperial");

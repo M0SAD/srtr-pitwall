@@ -103,7 +103,9 @@ fn part(i: usize) -> usize {
 
 pub fn viewed(b: &[u8]) -> Option<usize> {
     let v = rd_i32(b, o::VIEWED_PARTICIPANT);
-    (0..MAX_PARTICIPANTS as i32).contains(&v).then_some(v as usize)
+    (0..MAX_PARTICIPANTS as i32)
+        .contains(&v)
+        .then_some(v as usize)
 }
 
 fn num(b: &[u8]) -> usize {
@@ -123,7 +125,9 @@ pub fn connected_state(b: &[u8]) -> bool {
 
 pub fn session_sig(b: &[u8]) -> u64 {
     let n = num(b);
-    let names: Vec<String> = (0..n).map(|i| rd_cstr(b, part(i) + o::P_NAME, 64)).collect();
+    let names: Vec<String> = (0..n)
+        .map(|i| rd_cstr(b, part(i) + o::P_NAME, 64))
+        .collect();
     let mut parts: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
     let track = rd_cstr(b, o::TRACK_LOCATION, 64);
     let var = rd_cstr(b, o::TRACK_VARIATION, 64);
@@ -131,8 +135,12 @@ pub fn session_sig(b: &[u8]) -> u64 {
     parts.push(&track);
     parts.push(&var);
     parts.push(&car);
-    let mut nums: Vec<i64> =
-        vec![session_num(b) as i64, rd_u32(b, o::LAPS_IN_EVENT) as i64, rd_i32(b, o::VIEWED_PARTICIPANT) as i64, tail_ok(b) as i64];
+    let mut nums: Vec<i64> = vec![
+        session_num(b) as i64,
+        rd_u32(b, o::LAPS_IN_EVENT) as i64,
+        rd_i32(b, o::VIEWED_PARTICIPANT) as i64,
+        tail_ok(b) as i64,
+    ];
     nums.extend((0..n).map(|i| rd_u8(b, part(i) + o::P_IS_ACTIVE) as i64));
     sig(&parts, &nums)
 }
@@ -153,9 +161,15 @@ pub fn build_session(b: &[u8]) -> SessionData {
             continue;
         }
         let (car, class) = if tail {
-            (rd_cstr(b, o::CAR_NAMES + i * 64, 64), rd_cstr(b, o::CAR_CLASS_NAMES + i * 64, 64))
+            (
+                rd_cstr(b, o::CAR_NAMES + i * 64, 64),
+                rd_cstr(b, o::CAR_CLASS_NAMES + i * 64, 64),
+            )
         } else if Some(i) == me {
-            (rd_cstr(b, o::CAR_NAME, 64), rd_cstr(b, o::CAR_CLASS_NAME, 64))
+            (
+                rd_cstr(b, o::CAR_NAME, 64),
+                rd_cstr(b, o::CAR_CLASS_NAME, 64),
+            )
         } else {
             (String::new(), String::new())
         };
@@ -178,7 +192,11 @@ pub fn build_session(b: &[u8]) -> SessionData {
     sd.sessions.push(SessionEntry {
         num: session_num(b),
         kind: kind.to_string(),
-        laps: if kind == "Race" && laps > 0 { Some(laps) } else { None },
+        laps: if kind == "Race" && laps > 0 {
+            Some(laps)
+        } else {
+            None
+        },
         time: None,
         ..Default::default()
     });
@@ -204,7 +222,16 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     f.player_idx = me.map(|v| v as i32).unwrap_or(-1);
 
     for c in f.cars.iter_mut() {
-        *c = CarState { surface: -1, pct: -1.0, tire: -1, lap: -1, lap_completed: -1, last: -1.0, best: -1.0, ..Default::default() };
+        *c = CarState {
+            surface: -1,
+            pct: -1.0,
+            tire: -1,
+            lap: -1,
+            lap_completed: -1,
+            last: -1.0,
+            best: -1.0,
+            ..Default::default()
+        };
     }
     for i in 0..n {
         let p = part(i);
@@ -212,7 +239,11 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
             continue;
         }
         let c = &mut f.cars[i];
-        c.pct = if track_len > 0.0 { (rd_f32(b, p + o::P_LAP_DISTANCE) / track_len).clamp(0.0, 0.9999) } else { 0.0 };
+        c.pct = if track_len > 0.0 {
+            (rd_f32(b, p + o::P_LAP_DISTANCE) / track_len).clamp(0.0, 0.9999)
+        } else {
+            0.0
+        };
         c.lap_completed = rd_u32(b, p + o::P_LAPS_COMPLETED) as i32;
         c.lap = rd_u32(b, p + o::P_CURRENT_LAP) as i32;
         c.position = rd_u32(b, p + o::P_RACE_POSITION) as i32;
@@ -235,7 +266,10 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     }
 
     // Oyuncu (izlenen katılımcı)
-    f.lap_invalid = tail && me.map(|i| rd_u8(b, o::LAPS_INVALIDATED + i) != 0).unwrap_or(false);
+    f.lap_invalid = tail
+        && me
+            .map(|i| rd_u8(b, o::LAPS_INVALIDATED + i) != 0)
+            .unwrap_or(false);
     f.speed = rd_f32(b, o::SPEED);
     f.rpm = rd_f32(b, o::RPM);
     f.gear = rd_i32(b, o::GEAR);
@@ -254,7 +288,11 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let cap = rd_f32(b, o::FUEL_CAPACITY);
     f.fuel_pct = rd_f32(b, o::FUEL_LEVEL).clamp(0.0, 1.0);
     f.fuel_level = f.fuel_pct * cap.max(0.0);
-    f.engine_warnings = if rd_u32(b, o::CAR_FLAGS) & CAR_FLAG_SPEED_LIMITER != 0 { EW_PIT_LIMITER } else { 0 };
+    f.engine_warnings = if rd_u32(b, o::CAR_FLAGS) & CAR_FLAG_SPEED_LIMITER != 0 {
+        EW_PIT_LIMITER
+    } else {
+        0
+    };
     // Hasar: mTyreFlags[4] 6992, mBrakeDamage[4] 7104, mSuspensionDamage[4] 7120, mAeroDamage 7236, mEngineDamage 7240.
     // Pist dışı: mTerrain[4] 7008 (teker altındaki zemin)
     f.damage = crate::drivecues::ams2_damage(
@@ -291,8 +329,15 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let remain = rd_f32(b, o::EVENT_TIME_REMAINING);
     f.session_time_remain = if remain > 0.0 { remain as f64 } else { -1.0 };
     let laps = rd_u32(b, o::LAPS_IN_EVENT) as i32;
-    let leader_laps = (0..n).find(|&i| f.cars[i].position == 1).map(|i| f.cars[i].lap_completed).unwrap_or(0);
-    f.session_laps_remain = if race && laps > 0 { (laps - leader_laps).max(0) } else { 32767 };
+    let leader_laps = (0..n)
+        .find(|&i| f.cars[i].position == 1)
+        .map(|i| f.cars[i].lap_completed)
+        .unwrap_or(0);
+    f.session_laps_remain = if race && laps > 0 {
+        (laps - leader_laps).max(0)
+    } else {
+        32767
+    };
     f.session_state = if !race {
         STATE_RACING
     } else {
@@ -339,7 +384,12 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     }
     m.rel.clear();
     if let (Some(mi), Some((fe, fnn))) = (me, m.fwd) {
-        let pos = |i: usize| (rd_f32(b, part(i) + o::P_WORLD_POS), rd_f32(b, part(i) + o::P_WORLD_POS + 8));
+        let pos = |i: usize| {
+            (
+                rd_f32(b, part(i) + o::P_WORLD_POS),
+                rd_f32(b, part(i) + o::P_WORLD_POS + 8),
+            )
+        };
         let (mx, mz) = pos(mi);
         let (re, rn) = (fnn, -fe);
         for i in 0..n {
@@ -437,9 +487,18 @@ mod win {
             if !(2..=6).contains(&gs) || n <= 0 {
                 return false;
             }
-            if self.last_new.elapsed() > Duration::from_secs(10) && self.checked.get().elapsed() > Duration::from_secs(5) {
+            if self.last_new.elapsed() > Duration::from_secs(10)
+                && self.checked.get().elapsed() > Duration::from_secs(5)
+            {
                 self.checked.set(Instant::now());
-                self.alive.set(shm::any_running(&["ams2avx.exe", "ams2.exe", "pcars2avx.exe", "pcars2.exe", "pcars3.exe", "pcars3avx.exe"]));
+                self.alive.set(shm::any_running(&[
+                    "ams2avx.exe",
+                    "ams2.exe",
+                    "pcars2avx.exe",
+                    "pcars2.exe",
+                    "pcars3.exe",
+                    "pcars3avx.exe",
+                ]));
             }
             self.alive.get() || self.last_new.elapsed() < Duration::from_secs(10)
         }
@@ -516,8 +575,12 @@ mod tests {
         put_s(&mut b, o::CAR_NAME, "Formula Vee");
         put_s(&mut b, o::CAR_CLASS_NAME, "F-Vee");
         put_u32(&mut b, o::LAPS_IN_EVENT, 10);
-        for (i, (name, dist, pos, x, z)) in
-            [("Leader", 2154.5f32, 1u32, -2.5f32, -1.0f32), ("Erkin Azcan", 1000.0, 2, 0.0, 0.0)].iter().enumerate()
+        for (i, (name, dist, pos, x, z)) in [
+            ("Leader", 2154.5f32, 1u32, -2.5f32, -1.0f32),
+            ("Erkin Azcan", 1000.0, 2, 0.0, 0.0),
+        ]
+        .iter()
+        .enumerate()
         {
             let p = part(i);
             b[p + o::P_IS_ACTIVE] = 1;

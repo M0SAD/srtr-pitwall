@@ -3,8 +3,8 @@
 //! Paket tipleri arayüzdeki src/sdk/types.ts ile birebir aynıdır.
 
 use crate::model::{Frame, SessionData, MAX_CARS};
-use crate::trackmap::TrackMap;
 use crate::tracker::{RcEvent, Tracker, CF_BLACK, CF_BLUE, CF_DQ, CF_REPAIR};
+use crate::trackmap::TrackMap;
 use serde::Serialize;
 
 // ---------------------------------------------------------------------------
@@ -112,9 +112,21 @@ pub fn ers(f: &Frame) -> Ers {
     let h = &f.hybrid;
     Ers {
         has_hybrid: h.has,
-        battery_pct: if h.battery_pct >= 0.0 { h.battery_pct.clamp(0.0, 1.0) } else { -1.0 },
-        battery_mj: if h.battery_j >= 0.0 { h.battery_j / 1.0e6 } else { -1.0 },
-        lap_deploy_left: if h.lap_deploy_left >= 0.0 { h.lap_deploy_left.clamp(0.0, 1.0) } else { -1.0 },
+        battery_pct: if h.battery_pct >= 0.0 {
+            h.battery_pct.clamp(0.0, 1.0)
+        } else {
+            -1.0
+        },
+        battery_mj: if h.battery_j >= 0.0 {
+            h.battery_j / 1.0e6
+        } else {
+            -1.0
+        },
+        lap_deploy_left: if h.lap_deploy_left >= 0.0 {
+            h.lap_deploy_left.clamp(0.0, 1.0)
+        } else {
+            -1.0
+        },
         mguk_kw: h.mguk_ok.then_some(h.mguk_kw),
         mguh_kw: h.mguh_ok.then_some(h.mguh_kw),
         mode: h.mode,
@@ -500,7 +512,10 @@ pub fn ir_deltas(field: &[(i32, i32)]) -> Vec<i32> {
     if n < 2 {
         return vec![0; n];
     }
-    let e: Vec<f64> = field.iter().map(|(ir, _)| (-(*ir).max(1) as f64 / BR1).exp()).collect();
+    let e: Vec<f64> = field
+        .iter()
+        .map(|(ir, _)| (-(*ir).max(1) as f64 / BR1).exp())
+        .collect();
     let chance = |a: usize, b: usize| {
         // a'nın b'yi yenme olasılığı
         let (ea, eb) = (e[a], e[b]);
@@ -561,10 +576,18 @@ fn base_row(f: &Frame, s: &SessionData, t: &Tracker, i: usize) -> Row {
         tire_kind: {
             let my_class = s.player().map(|p| p.class_id);
             let k = crate::model::tire_kind(c, s, d.map(|d| d.class_id) == my_class);
-            if k == 0 { String::new() } else { (k as char).to_string() }
+            if k == 0 {
+                String::new()
+            } else {
+                (k as char).to_string()
+            }
         },
         flag: car_flag(c.flags).into(),
-        pos_change: if tr.start_pos > 0 && c.class_position > 0 { tr.start_pos - c.class_position } else { 0 },
+        pos_change: if tr.start_pos > 0 && c.class_position > 0 {
+            tr.start_pos - c.class_position
+        } else {
+            0
+        },
         is_me: i as i32 == f.player_idx,
         ..Default::default()
     }
@@ -591,7 +614,11 @@ fn ir_map(f: &Frame, s: &SessionData) -> [i32; MAX_CARS] {
         return out;
     }
     // Sınıftaki bütün kayıtlı sürücüler (pistten çıkmış olsa da): sıralaması olan başlamış, olmayan başlamamış sayılır
-    let in_field = |i: usize| s.driver(i).map(|d| !d.is_pace_car && !d.is_spectator).unwrap_or(false);
+    let in_field = |i: usize| {
+        s.driver(i)
+            .map(|d| !d.is_pace_car && !d.is_spectator)
+            .unwrap_or(false)
+    };
     let mut class_ids: Vec<i32> = Vec::new();
     for i in 0..MAX_CARS {
         if let Some(d) = s.driver(i) {
@@ -601,8 +628,9 @@ fn ir_map(f: &Frame, s: &SessionData) -> [i32; MAX_CARS] {
         }
     }
     for cid in class_ids {
-        let mut idxs: Vec<usize> =
-            (0..MAX_CARS).filter(|&i| in_field(i) && s.driver(i).map(|d| d.class_id == cid).unwrap_or(false)).collect();
+        let mut idxs: Vec<usize> = (0..MAX_CARS)
+            .filter(|&i| in_field(i) && s.driver(i).map(|d| d.class_id == cid).unwrap_or(false))
+            .collect();
         // Başlayanlar sınıf sırasına göre önde, başlamayanlar sonda
         idxs.sort_by_key(|&i| {
             let p = f.cars[i].class_position;
@@ -645,15 +673,26 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         preview,
         on_track: f.is_on_track,
         in_garage: f.is_in_garage,
-        garage_visible: if connected && !demo { f.garage_visible } else { None },
+        garage_visible: if connected && !demo {
+            f.garage_visible
+        } else {
+            None
+        },
         on_pit: f.on_pit_road,
         replay: f.replay,
         replay_watch: replay_watch(f),
         spectating: connected && !demo && !f.is_on_track && !f.is_in_garage,
         // Demo / önizleme: sürücü; canlı simde motor sim kimliğiyle yeniden hesaplar (engine.rs)
         driver: connected,
-        role: if connected { "driver".into() } else { String::new() },
-        session_type: s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default(),
+        role: if connected {
+            "driver".into()
+        } else {
+            String::new()
+        },
+        session_type: s
+            .session(f.session_num)
+            .map(|x| x.kind.clone())
+            .unwrap_or_default(),
         track: s.track_name.clone(),
         track_id: s.track_id,
         series_id: s.series_id,
@@ -698,8 +737,16 @@ pub fn telemetry(f: &Frame, s: &SessionData, t: &Tracker) -> Telemetry {
     let c = f.cars.get(me).copied().unwrap_or_default();
     let start = t.cars.get(me).map(|x| x.start_pos).unwrap_or(0);
     // Vites ışıkları tanımlı değilse makul değerler türet
-    let shift = if s.shift_rpm > 0.0 { s.shift_rpm } else { s.redline * 0.95 };
-    let first = if s.sl_first > 0.0 { s.sl_first } else { shift * 0.8 };
+    let shift = if s.shift_rpm > 0.0 {
+        s.shift_rpm
+    } else {
+        s.redline * 0.95
+    };
+    let first = if s.sl_first > 0.0 {
+        s.sl_first
+    } else {
+        shift * 0.8
+    };
     Telemetry {
         gear: f.gear,
         speed: f.speed,
@@ -707,11 +754,19 @@ pub fn telemetry(f: &Frame, s: &SessionData, t: &Tracker) -> Telemetry {
         sl_first: first,
         sl_shift: shift,
         sl_last: if s.sl_last > 0.0 { s.sl_last } else { shift },
-        sl_blink: if s.sl_blink > 0.0 { s.sl_blink } else { s.redline },
+        sl_blink: if s.sl_blink > 0.0 {
+            s.sl_blink
+        } else {
+            s.redline
+        },
         redline: s.redline,
         position: c.position,
         class_position: c.class_position,
-        pos_change: if start > 0 && c.class_position > 0 { start - c.class_position } else { 0 },
+        pos_change: if start > 0 && c.class_position > 0 {
+            start - c.class_position
+        } else {
+            0
+        },
         lap: f.lap,
         last: f.lap_last,
         best: f.lap_best,
@@ -768,12 +823,12 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         return out;
     }
     let my_class = s.driver(me).map(|d| d.class_id).unwrap_or(0);
-    out.sof = sof(
-        &(0..MAX_CARS)
-            .filter(|&i| active(f, s, i) && s.driver(i).map(|d| d.class_id == my_class).unwrap_or(false))
-            .filter_map(|i| s.driver(i).map(|d| d.irating))
-            .collect::<Vec<_>>(),
-    );
+    out.sof = sof(&(0..MAX_CARS)
+        .filter(|&i| {
+            active(f, s, i) && s.driver(i).map(|d| d.class_id == my_class).unwrap_or(false)
+        })
+        .filter_map(|i| s.driver(i).map(|d| d.irating))
+        .collect::<Vec<_>>());
     let irs = ir_map(f, s);
     let lap_t = ref_lap_time(f, s);
     let race = s.is_race(f.session_num);
@@ -839,7 +894,10 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
 
 /// Sunucudan çıkmış ama resmi sırası duran sürücü (araç dünyada yok, pct < 0)
 fn left_car(f: &Frame, s: &SessionData, i: usize) -> bool {
-    f.cars[i].pct < 0.0 && f.cars[i].position > 0 && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator)
+    f.cars[i].pct < 0.0
+        && f.cars[i].position > 0
+        && s.driver(i)
+            .is_some_and(|d| !d.is_pace_car && !d.is_spectator)
 }
 
 /// Sunucuda olan ama aracı dünyada olmayan (garajda / henüz piste çıkmamış) ve resmi sırası olmayan sürücü.
@@ -847,14 +905,20 @@ fn left_car(f: &Frame, s: &SessionData, i: usize) -> bool {
 fn garage_car(f: &Frame, s: &SessionData, i: usize) -> bool {
     f.cars[i].pct < 0.0
         && f.cars[i].position <= 0
-        && s.driver(i).is_some_and(|d| !d.is_pace_car && !d.is_spectator && !d.name.trim().is_empty())
+        && s.driver(i)
+            .is_some_and(|d| !d.is_pace_car && !d.is_spectator && !d.name.trim().is_empty())
 }
 
 /// Sıralamaya giren araçlar: pistteki / pitteki araçlar, sunucudan çıkmış ama resmi sırası duranlar ve garajdakiler.
 /// Garajdakilerin resmi sırası yoktur; her sıralama düzeninde en sona düşerler.
 fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
     (0..MAX_CARS)
-        .filter(|&i| active(f, s, i) || left_car(f, s, i) || garage_car(f, s, i) || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0))
+        .filter(|&i| {
+            active(f, s, i)
+                || left_car(f, s, i)
+                || garage_car(f, s, i)
+                || (i as i32 == f.player_idx && f.cars[i].pct >= 0.0)
+        })
         .collect()
 }
 
@@ -862,9 +926,17 @@ fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
 fn grid_order(s: &SessionData, race_num: i32) -> Vec<usize> {
     s.sessions
         .iter()
-        .filter(|e| e.num < race_num && e.kind.contains("Qualify") && e.results.iter().any(|r| r.0 >= 0))
+        .filter(|e| {
+            e.num < race_num && e.kind.contains("Qualify") && e.results.iter().any(|r| r.0 >= 0)
+        })
         .max_by_key(|e| e.num)
-        .map(|e| e.results.iter().filter(|r| r.0 >= 0 && (r.0 as usize) < MAX_CARS).map(|r| r.0 as usize).collect())
+        .map(|e| {
+            e.results
+                .iter()
+                .filter(|r| r.0 >= 0 && (r.0 as usize) < MAX_CARS)
+                .map(|r| r.0 as usize)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -879,11 +951,22 @@ fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool {
     use std::cmp::Ordering;
     let race = s.is_race(f.session_num);
     let lap1 = race && f.session_state <= 4 && idxs.iter().all(|&i| f.cars[i].lap_completed <= 0);
-    let official = |i: usize| if f.cars[i].position > 0 { f.cars[i].position } else { 1000 + i as i32 };
+    let official = |i: usize| {
+        if f.cars[i].position > 0 {
+            f.cars[i].position
+        } else {
+            1000 + i as i32
+        }
+    };
     if lap1 && f.session_state < 4 {
         let grid = grid_order(s, f.session_num);
         if !grid.is_empty() {
-            let slot = |i: usize| grid.iter().position(|&g| g == i).map(|p| p as i32).unwrap_or(500 + official(i));
+            let slot = |i: usize| {
+                grid.iter()
+                    .position(|&g| g == i)
+                    .map(|p| p as i32)
+                    .unwrap_or(500 + official(i))
+            };
             idxs.sort_by_key(|&i| slot(i));
             return false;
         }
@@ -942,7 +1025,11 @@ pub fn positions(f: &Frame, s: &SessionData) -> [(i32, i32); MAX_CARS] {
         };
         let c = f.cars[i];
         let pos = if has_pos { c.position } else { n as i32 + 1 };
-        let cpos = if !has_pos || c.class_position <= 0 { nth } else { c.class_position };
+        let cpos = if !has_pos || c.class_position <= 0 {
+            nth
+        } else {
+            c.class_position
+        };
         out[i] = (pos, cpos);
     }
     out
@@ -1032,13 +1119,19 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
             };
         } else {
             let lb = f.cars[leader].best;
-            r.gap = if c.best > 0.0 && lb > 0.0 { c.best - lb } else { 0.0 };
+            r.gap = if c.best > 0.0 && lb > 0.0 {
+                c.best - lb
+            } else {
+                0.0
+            };
             r.interval = match prev {
                 Some(p) if c.best > 0.0 && f.cars[p].best > 0.0 => c.best - f.cars[p].best,
                 _ => 0.0,
             };
         }
-        r.class_best = class_best.iter().any(|x| x.0 == r.class_id && c.best > 0.0 && (x.1 - c.best).abs() < 1e-4);
+        r.class_best = class_best
+            .iter()
+            .any(|x| x.0 == r.class_id && c.best > 0.0 && (x.1 - c.best).abs() < 1e-4);
         let nth = match class_seen.iter_mut().find(|x| x.0 == r.class_id) {
             Some(x) => {
                 x.1 += 1;
@@ -1083,11 +1176,19 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
 }
 
 pub fn radar(f: &Frame, s: &SessionData) -> Radar {
-    let mut r = Radar { state: f.car_left_right, ..Default::default() };
+    let mut r = Radar {
+        state: f.car_left_right,
+        ..Default::default()
+    };
     // Demo: sanal yan araçlar hazır gelir
     if let Some(sc) = &f.demo_side_cars {
         for (k, &(side, off)) in sc.iter().enumerate() {
-            r.cars.push(RadarCar { side, offset: off, idx: -1 - k as i32, lat: f.radar_lat.get(k).copied() });
+            r.cars.push(RadarCar {
+                side,
+                offset: off,
+                idx: -1 - k as i32,
+                lat: f.radar_lat.get(k).copied(),
+            });
             if side == 0 || off.abs() > 4.8 {
                 if off >= 0.0 {
                     r.ahead_m = Some(r.ahead_m.map_or(off, |a| a.min(off)));
@@ -1153,7 +1254,12 @@ pub fn radar(f: &Frame, s: &SessionData) -> Radar {
         } else {
             0
         };
-        r.cars.push(RadarCar { side, offset: m, idx, lat: None });
+        r.cars.push(RadarCar {
+            side,
+            offset: m,
+            idx,
+            lat: None,
+        });
     }
     r
 }
@@ -1277,10 +1383,20 @@ pub struct Tires {
 }
 
 pub fn tires(f: &Frame) -> Tires {
-    let corners: Vec<TireCorner> =
-        (0..4).map(|i| TireCorner { temp: f.tire_temp[i], wear: f.tire_wear[i], press: f.tire_press[i] }).collect();
+    let corners: Vec<TireCorner> = (0..4)
+        .map(|i| TireCorner {
+            temp: f.tire_temp[i],
+            wear: f.tire_wear[i],
+            press: f.tire_press[i],
+        })
+        .collect();
     let available = corners.iter().any(|c| c.wear[1] >= 0.0 || c.temp[1] > 0.0);
-    Tires { corners, compound: f.tire_compound, available, on_pit: f.on_pit_road }
+    Tires {
+        corners,
+        compound: f.tire_compound,
+        available,
+        on_pit: f.on_pit_road,
+    }
 }
 
 pub fn decode_flags(bits: u32) -> Vec<&'static str> {
@@ -1305,8 +1421,16 @@ pub fn decode_flags(bits: u32) -> Vec<&'static str> {
         (0x0010_0000, "repair"),
     ];
     // Dalgalanan sarı aynı zamanda "yellow" olarak da bildirilir (bu adı bilmeyen tüketiciler için)
-    let bits = if bits & 0x0100 != 0 { bits | 0x0008 } else { bits };
-    TABLE.iter().filter(|(b, _)| bits & b != 0).map(|(_, n)| *n).collect()
+    let bits = if bits & 0x0100 != 0 {
+        bits | 0x0008
+    } else {
+        bits
+    };
+    TABLE
+        .iter()
+        .filter(|(b, _)| bits & b != 0)
+        .map(|(_, n)| *n)
+        .collect()
 }
 
 pub fn session(f: &Frame, s: &SessionData) -> Session {
@@ -1424,7 +1548,9 @@ pub fn map(f: &Frame, s: &SessionData, m: &TrackMap, send_shape: bool) -> MapDat
 }
 
 pub fn race_control(t: &Tracker) -> RaceControl {
-    RaceControl { events: t.events.iter().rev().take(80).cloned().collect() }
+    RaceControl {
+        events: t.events.iter().rev().take(80).cloned().collect(),
+    }
 }
 
 #[cfg(test)]
@@ -1435,15 +1561,41 @@ mod tests {
     #[test]
     fn race_start_order_grid_then_track() {
         use crate::model::{Driver, SessionEntry};
-        let mut s = SessionData { player_idx: 0, ..Default::default() };
+        let mut s = SessionData {
+            player_idx: 0,
+            ..Default::default()
+        };
         s.drivers = vec![None; 4];
         for i in 0..4 {
-            s.drivers[i] = Some(Driver { car_idx: i as i32, class_id: 1, ..Default::default() });
+            s.drivers[i] = Some(Driver {
+                car_idx: i as i32,
+                class_id: 1,
+                ..Default::default()
+            });
         }
         // Sıralama turları: 2, 0, 3, 1
-        s.sessions.push(SessionEntry { num: 1, kind: "Lone Qualify".into(), results: vec![(2, 90.0, 90.0), (0, 91.0, 91.0), (3, 92.0, 92.0), (1, 93.0, 93.0)], ..Default::default() });
-        s.sessions.push(SessionEntry { num: 2, kind: "Race".into(), ..Default::default() });
-        let mut f = Frame { player_idx: 0, session_num: 2, session_state: 3, ..Default::default() };
+        s.sessions.push(SessionEntry {
+            num: 1,
+            kind: "Lone Qualify".into(),
+            results: vec![
+                (2, 90.0, 90.0),
+                (0, 91.0, 91.0),
+                (3, 92.0, 92.0),
+                (1, 93.0, 93.0),
+            ],
+            ..Default::default()
+        });
+        s.sessions.push(SessionEntry {
+            num: 2,
+            kind: "Race".into(),
+            ..Default::default()
+        });
+        let mut f = Frame {
+            player_idx: 0,
+            session_num: 2,
+            session_state: 3,
+            ..Default::default()
+        };
         for i in 0..4 {
             f.cars[i].pct = 0.9 - i as f32 * 0.01;
             f.cars[i].position = 0;
@@ -1476,17 +1628,34 @@ mod tests {
     #[test]
     fn standings_show_drivers_in_garage() {
         use crate::model::{Driver, SessionEntry};
-        let mut s = SessionData { player_idx: 0, ..Default::default() };
+        let mut s = SessionData {
+            player_idx: 0,
+            ..Default::default()
+        };
         s.drivers = vec![None; 6];
         for i in 0..6 {
-            s.drivers[i] = Some(Driver { car_idx: i as i32, class_id: 1, name: format!("Sürücü {i}"), ..Default::default() });
+            s.drivers[i] = Some(Driver {
+                car_idx: i as i32,
+                class_id: 1,
+                name: format!("Sürücü {i}"),
+                ..Default::default()
+            });
         }
         // 5: izleyici (listeye girmez)
         if let Some(d) = s.drivers[5].as_mut() {
             d.is_spectator = true;
         }
-        s.sessions.push(SessionEntry { num: 0, kind: "Practice".into(), ..Default::default() });
-        let mut f = Frame { player_idx: 0, session_num: 0, session_state: 4, ..Default::default() };
+        s.sessions.push(SessionEntry {
+            num: 0,
+            kind: "Practice".into(),
+            ..Default::default()
+        });
+        let mut f = Frame {
+            player_idx: 0,
+            session_num: 0,
+            session_state: 4,
+            ..Default::default()
+        };
         for i in 0..6 {
             f.cars[i].pct = -1.0;
             f.cars[i].position = 0;
@@ -1498,10 +1667,19 @@ mod tests {
         let t = Tracker::default();
         let st = standings(&f, &s, &t);
         let ids: Vec<i32> = st.rows.iter().map(|r| r.idx).collect();
-        assert_eq!(ids.len(), 5, "garajdakiler de listede, izleyici yok: {ids:?}");
+        assert_eq!(
+            ids.len(),
+            5,
+            "garajdakiler de listede, izleyici yok: {ids:?}"
+        );
         assert_eq!(&ids[..2], &[1, 0], "pistteki araçlar önde: {ids:?}");
-        assert!(st.rows[2..].iter().all(|r| r.pit_state == "GAR" && !r.gone && r.gap == 0.0));
-        assert_eq!(st.rows.iter().map(|r| r.pos).collect::<Vec<_>>(), vec![1, 2, 3, 4, 5]);
+        assert!(st.rows[2..]
+            .iter()
+            .all(|r| r.pit_state == "GAR" && !r.gone && r.gap == 0.0));
+        assert_eq!(
+            st.rows.iter().map(|r| r.pos).collect::<Vec<_>>(),
+            vec![1, 2, 3, 4, 5]
+        );
         // Yakındakiler yalnızca dünyadaki araçları gösterir; sıra numaraları tabloyla aynı
         let rel = relative(&f, &s, &t, 3);
         assert_eq!(rel.rows.len(), 2);
@@ -1510,7 +1688,11 @@ mod tests {
             assert_eq!(r.pos, p[r.idx as usize].0);
         }
         // Yarışta resmi sıra varken garajdaki (sırasız) araç sonda kalır
-        s.sessions.push(SessionEntry { num: 1, kind: "Race".into(), ..Default::default() });
+        s.sessions.push(SessionEntry {
+            num: 1,
+            kind: "Race".into(),
+            ..Default::default()
+        });
         f.session_num = 1;
         f.cars[0].position = 2;
         f.cars[1].position = 1;
@@ -1520,7 +1702,10 @@ mod tests {
         assert_eq!(st.rows.first().map(|r| r.idx), Some(1));
         assert_eq!(st.rows.len(), 5);
         assert!(st.rows[2..].iter().all(|r| r.pit_state == "GAR"));
-        assert_eq!(st.rows.iter().map(|r| r.pos).collect::<Vec<_>>(), vec![1, 2, 3, 4, 5]);
+        assert_eq!(
+            st.rows.iter().map(|r| r.pos).collect::<Vec<_>>(),
+            vec![1, 2, 3, 4, 5]
+        );
     }
 
     #[test]
@@ -1577,7 +1762,11 @@ mod tests {
         assert!(st.rows.iter().any(|r| r.avg5 > 0.0));
         let fu = fuel(&f, &s, &t);
         assert!(fu.samples >= 2, "yakıt örneği: {}", fu.samples);
-        assert!(fu.avg5.usage > 1.0 && fu.avg5.usage < 5.0, "ortalama: {}", fu.avg5.usage);
+        assert!(
+            fu.avg5.usage > 1.0 && fu.avg5.usage < 5.0,
+            "ortalama: {}",
+            fu.avg5.usage
+        );
         assert!(fu.race_laps_left > 5.0);
         assert_eq!(fu.targets.len(), 3);
         let se = session(&f, &s);
@@ -1589,4 +1778,3 @@ mod tests {
         assert!(!t.events.is_empty(), "yarış kontrol olayı üretilmeli");
     }
 }
-

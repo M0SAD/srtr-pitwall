@@ -7311,5 +7311,8 @@
   "Performans modu": "性能模式",
   "Üst ve alt kenarda karartma": "上下边缘渐暗",
   "Yakın araç renk dolgusu": "附近车辆颜色填充",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "平滑颜色过渡（接近高亮逐渐填满）"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "平滑颜色过渡（接近高亮逐渐填满）",
+  "Günlük boş: kayıtlı bir hata yok.": "日志为空：没有记录到错误。",
+  "Hata günlüğü": "错误日志",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "如果程序自行关闭或卡住，原因会记录在这里。请求支持时请复制并发送此日志。"
 }

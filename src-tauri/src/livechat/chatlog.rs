@@ -48,11 +48,20 @@ pub struct LogHit {
     pub line: LogLine,
 }
 
-const PLATFORMS: [(&str, &str); 5] = [("YouTube", "youtube"), ("Twitch", "twitch"), ("Kick", "kick"), ("Streamlabs", "streamlabs"), ("Sistem", "system")];
+const PLATFORMS: [(&str, &str); 5] = [
+    ("YouTube", "youtube"),
+    ("Twitch", "twitch"),
+    ("Kick", "kick"),
+    ("Streamlabs", "streamlabs"),
+    ("Sistem", "system"),
+];
 
 /// `[SS:DD:ss] [Etiket] Ad: metin` satırını ayrıştırır (biçime uymayan satır düz metin olarak döner)
 pub fn parse_line(n: usize, raw: &str) -> LogLine {
-    let mut out = LogLine { n, ..Default::default() };
+    let mut out = LogLine {
+        n,
+        ..Default::default()
+    };
     let mut rest = raw.trim_end();
     if let Some(r) = rest.strip_prefix('[') {
         if let Some(i) = r.find("] ") {
@@ -72,7 +81,10 @@ pub fn parse_line(n: usize, raw: &str) -> LogLine {
     };
     let tag = &r[..i];
     let body = &r[i + 2..];
-    match PLATFORMS.iter().find(|(name, _)| tag == *name || tag.starts_with(&format!("{name} "))) {
+    match PLATFORMS
+        .iter()
+        .find(|(name, _)| tag == *name || tag.starts_with(&format!("{name} ")))
+    {
         Some((name, id)) => {
             out.platform = (*id).to_string();
             out.channel = tag[name.len()..].trim().to_string();
@@ -93,12 +105,21 @@ pub fn parse_line(n: usize, raw: &str) -> LogLine {
 }
 
 pub fn parse_file(text: &str) -> Vec<LogLine> {
-    text.lines().enumerate().filter(|(_, l)| !l.trim().is_empty()).map(|(n, l)| parse_line(n, l)).collect()
+    text.lines()
+        .enumerate()
+        .filter(|(_, l)| !l.trim().is_empty())
+        .map(|(n, l)| parse_line(n, l))
+        .collect()
 }
 
 fn valid_date(d: &str) -> bool {
     let b = d.as_bytes();
-    b.len() == 10 && b[4] == b'-' && b[7] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit())
+    b.len() == 10
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && b.iter()
+            .enumerate()
+            .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit())
 }
 
 /// 1970-01-01'den bu yana gün (takvim tarihi → gün sayısı)
@@ -129,7 +150,8 @@ fn list_dates(dir: &Path) -> Vec<(String, PathBuf)> {
         .filter_map(|e| {
             let p = e.path();
             let stem = p.file_stem()?.to_str()?.to_string();
-            (p.extension().and_then(|x| x.to_str()) == Some("txt") && valid_date(&stem)).then_some((stem, p))
+            (p.extension().and_then(|x| x.to_str()) == Some("txt") && valid_date(&stem))
+                .then_some((stem, p))
         })
         .collect();
     v.sort_by(|a, b| b.0.cmp(&a.0));
@@ -141,10 +163,13 @@ pub fn prune_dir(dir: &Path, today: &str, days: i64) -> usize {
     if days <= 0 {
         return 0;
     }
-    let Some(now) = day_number(today) else { return 0 };
+    let Some(now) = day_number(today) else {
+        return 0;
+    };
     let mut n = 0;
     for (date, path) in list_dates(dir) {
-        if day_number(&date).is_some_and(|d| now - d >= days) && std::fs::remove_file(path).is_ok() {
+        if day_number(&date).is_some_and(|d| now - d >= days) && std::fs::remove_file(path).is_ok()
+        {
             n += 1;
         }
     }
@@ -169,7 +194,9 @@ fn file_of(app: &AppHandle, date: &str) -> Result<PathBuf, String> {
     if !valid_date(date) {
         return Err("Geçersiz tarih".into());
     }
-    Ok(super::logs_dir(app).ok_or("klasör yok")?.join(format!("{date}.txt")))
+    Ok(super::logs_dir(app)
+        .ok_or("klasör yok")?
+        .join(format!("{date}.txt")))
 }
 
 fn csv_cell(s: &str) -> String {
@@ -180,7 +207,11 @@ pub fn to_csv(date: &str, lines: &[LogLine]) -> String {
     // BOM: Excel Türkçe karakterleri doğru açsın
     let mut out = String::from("\u{feff}tarih,saat,platform,kanal,kullanici,mesaj\r\n");
     for l in lines {
-        out.push_str(&[date, &l.time, &l.platform, &l.channel, &l.user, &l.text].map(csv_cell).join(","));
+        out.push_str(
+            &[date, &l.time, &l.platform, &l.channel, &l.user, &l.text]
+                .map(csv_cell)
+                .join(","),
+        );
         out.push_str("\r\n");
     }
     out
@@ -204,13 +235,17 @@ fn matches(l: &LogLine, q: &str, platform: &str, user: &str) -> bool {
 /// Kayıt günleri (yeniden eskiye). PRO değilse de döner (liste boş değil bilgisi ve silme için); içerik PRO.
 #[tauri::command]
 pub async fn livechat_log_days(app: AppHandle) -> Vec<LogDay> {
-    let Some(dir) = super::logs_dir(&app) else { return vec![] };
+    let Some(dir) = super::logs_dir(&app) else {
+        return vec![];
+    };
     tauri::async_runtime::spawn_blocking(move || {
         list_dates(&dir)
             .into_iter()
             .map(|(date, p)| {
                 let bytes = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
-                let lines = std::fs::read(&p).map(|b| b.iter().filter(|c| **c == b'\n').count()).unwrap_or(0);
+                let lines = std::fs::read(&p)
+                    .map(|b| b.iter().filter(|c| **c == b'\n').count())
+                    .unwrap_or(0);
                 LogDay { date, bytes, lines }
             })
             .collect()
@@ -236,7 +271,12 @@ pub async fn livechat_log_read(app: AppHandle, date: String) -> Result<Vec<LogLi
 
 /// Tüm günlerde arama (yeniden eskiye, en fazla 1000 sonuç). user: tam kullanıcı adı (büyük/küçük harf ayırmaz)
 #[tauri::command]
-pub async fn livechat_log_search(app: AppHandle, query: String, platform: Option<String>, user: Option<String>) -> Result<Vec<LogHit>, String> {
+pub async fn livechat_log_search(
+    app: AppHandle,
+    query: String,
+    platform: Option<String>,
+    user: Option<String>,
+) -> Result<Vec<LogHit>, String> {
     if !allowed(&app, FEATURE) {
         return Err(LOCKED.into());
     }
@@ -250,10 +290,15 @@ pub async fn livechat_log_search(app: AppHandle, query: String, platform: Option
     tauri::async_runtime::spawn_blocking(move || {
         let mut out: Vec<LogHit> = Vec::new();
         for (date, p) in list_dates(&dir) {
-            let Ok(bytes) = std::fs::read(&p) else { continue };
+            let Ok(bytes) = std::fs::read(&p) else {
+                continue;
+            };
             for l in parse_file(&String::from_utf8_lossy(&bytes)) {
                 if matches(&l, &q, &platform, &user) {
-                    out.push(LogHit { date: date.clone(), line: l });
+                    out.push(LogHit {
+                        date: date.clone(),
+                        line: l,
+                    });
                     if out.len() >= SEARCH_LIMIT {
                         return out;
                     }
@@ -290,10 +335,21 @@ pub fn livechat_log_export(app: AppHandle, date: String, format: String) -> Resu
     let bytes = std::fs::read(&src).map_err(|_| "Bu güne ait kayıt yok".to_string())?;
     let text = String::from_utf8_lossy(&bytes).into_owned();
     let csv = format == "csv";
-    let dir = app.path().download_dir().or_else(|_| app.path().document_dir()).map_err(|e| e.to_string())?;
+    let dir = app
+        .path()
+        .download_dir()
+        .or_else(|_| app.path().document_dir())
+        .map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let out = dir.join(format!("srtr-sohbet-{date}.{}", if csv { "csv" } else { "txt" }));
-    let data = if csv { to_csv(&date, &parse_file(&text)) } else { text };
+    let out = dir.join(format!(
+        "srtr-sohbet-{date}.{}",
+        if csv { "csv" } else { "txt" }
+    ));
+    let data = if csv {
+        to_csv(&date, &parse_file(&text))
+    } else {
+        text
+    };
     std::fs::write(&out, data).map_err(|e| e.to_string())?;
     let _ = crate::open_path(&dir);
     Ok(out.to_string_lossy().into_owned())
@@ -306,29 +362,64 @@ mod tests {
     #[test]
     fn parse() {
         let l = parse_line(3, "[12:34:56] [Twitch Erkin] Veli: selam: nasılsın");
-        assert_eq!(l, LogLine { n: 3, time: "12:34:56".into(), platform: "twitch".into(), channel: "Erkin".into(), user: "Veli".into(), text: "selam: nasılsın".into() });
+        assert_eq!(
+            l,
+            LogLine {
+                n: 3,
+                time: "12:34:56".into(),
+                platform: "twitch".into(),
+                channel: "Erkin".into(),
+                user: "Veli".into(),
+                text: "selam: nasılsın".into()
+            }
+        );
         let l = parse_line(0, "[01:02:03] [YouTube] Ali: merhaba");
-        assert_eq!((l.platform.as_str(), l.channel.as_str(), l.user.as_str(), l.text.as_str()), ("youtube", "", "Ali", "merhaba"));
+        assert_eq!(
+            (
+                l.platform.as_str(),
+                l.channel.as_str(),
+                l.user.as_str(),
+                l.text.as_str()
+            ),
+            ("youtube", "", "Ali", "merhaba")
+        );
         let l = parse_line(0, "[01:02:03] [ANKET] Sonuç — 2 | 1: 3, 2: 5");
-        assert_eq!((l.platform.as_str(), l.channel.as_str(), l.user.as_str()), ("", "ANKET", ""));
+        assert_eq!(
+            (l.platform.as_str(), l.channel.as_str(), l.user.as_str()),
+            ("", "ANKET", "")
+        );
         assert_eq!(l.text, "Sonuç — 2 | 1: 3, 2: 5");
         let l = parse_line(0, "[01:02:03] [MOD] veli engellendi");
-        assert_eq!((l.channel.as_str(), l.text.as_str()), ("MOD", "veli engellendi"));
+        assert_eq!(
+            (l.channel.as_str(), l.text.as_str()),
+            ("MOD", "veli engellendi")
+        );
         let l = parse_line(0, "bozuk satır");
         assert_eq!((l.time.as_str(), l.text.as_str()), ("", "bozuk satır"));
-        assert_eq!(parse_file("[01:02:03] [Kick] a: b\n\n[01:02:04] [Kick] c: d\n").len(), 2);
+        assert_eq!(
+            parse_file("[01:02:03] [Kick] a: b\n\n[01:02:04] [Kick] c: d\n").len(),
+            2
+        );
     }
 
     #[test]
     fn dates_and_csv() {
         assert_eq!(day_number("1970-01-01"), Some(0));
-        assert_eq!(day_number("2026-03-01").unwrap() - day_number("2026-02-01").unwrap(), 28);
-        assert_eq!(day_number("2024-03-01").unwrap() - day_number("2024-02-01").unwrap(), 29);
+        assert_eq!(
+            day_number("2026-03-01").unwrap() - day_number("2026-02-01").unwrap(),
+            28
+        );
+        assert_eq!(
+            day_number("2024-03-01").unwrap() - day_number("2024-02-01").unwrap(),
+            29
+        );
         assert_eq!(day_number("2026-3-1"), None);
         assert_eq!(day_number("../../x.txt"), None);
         let l = parse_line(0, "[01:02:03] [Twitch] Ali: \"selam\", dedi");
         let csv = to_csv("2026-01-02", &[l.clone()]);
-        assert!(csv.ends_with("\"2026-01-02\",\"01:02:03\",\"twitch\",\"\",\"Ali\",\"\"\"selam\"\", dedi\"\r\n"));
+        assert!(csv.ends_with(
+            "\"2026-01-02\",\"01:02:03\",\"twitch\",\"\",\"Ali\",\"\"\"selam\"\", dedi\"\r\n"
+        ));
         assert!(matches(&l, "selam", "", ""));
         assert!(matches(&l, "", "twitch", "ali"));
         assert!(!matches(&l, "", "kick", ""));
@@ -347,7 +438,10 @@ mod tests {
         assert_eq!(prune_dir(&dir, "2026-01-31", 0), 0);
         assert_eq!(prune_dir(&dir, "2026-01-31", 30), 1);
         let left: Vec<String> = list_dates(&dir).into_iter().map(|x| x.0).collect();
-        assert_eq!(left, vec!["2026-01-31".to_string(), "2026-01-20".to_string()]);
+        assert_eq!(
+            left,
+            vec!["2026-01-31".to_string(), "2026-01-20".to_string()]
+        );
         assert!(dir.join("notlar.txt").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -7311,5 +7311,8 @@
   "Performans modu": "Suorituskykytila",
   "Üst ve alt kenarda karartma": "Tummennus ylä- ja alareunassa",
   "Yakın araç renk dolgusu": "Lähellä olevan auton väritäyttö",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Pehmeä värisiirtymä (läheisyyskorostus täyttyy vähitellen)"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Pehmeä värisiirtymä (läheisyyskorostus täyttyy vähitellen)",
+  "Günlük boş: kayıtlı bir hata yok.": "Loki on tyhjä: virheitä ei ole tallennettu.",
+  "Hata günlüğü": "Virheloki",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Jos ohjelma sulkeutuu itsestään tai jokin jumittuu, syy kirjoitetaan tänne. Kopioi ja lähetä tämä loki, kun pyydät tukea."
 }

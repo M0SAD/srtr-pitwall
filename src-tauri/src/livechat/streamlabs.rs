@@ -43,7 +43,8 @@ pub enum SlFrame {
 fn map_type(t: &str, for_: &str) -> Option<(&'static str, Kind)> {
     let yt = for_ == "youtube_account";
     Some(match t {
-        "donation" | "streamlabscharity" | "pledge" | "eldonation" | "tiltifydonation" | "donordrivedonation" | "justgivingdonation" | "treatstream" => ("tip", Kind::Donation),
+        "donation" | "streamlabscharity" | "pledge" | "eldonation" | "tiltifydonation"
+        | "donordrivedonation" | "justgivingdonation" | "treatstream" => ("tip", Kind::Donation),
         "superchat" => ("superchat", Kind::Superchat),
         "follow" => ("follower", Kind::Alert),
         // YouTube'da "subscription" kanal üyeliğidir (abone olmak "follow" olarak gelir)
@@ -62,17 +63,34 @@ fn map_type(t: &str, for_: &str) -> Option<(&'static str, Kind)> {
 }
 
 fn first_str(item: &Value, keys: &[&str]) -> String {
-    keys.iter().map(|k| json_str(item.get(*k))).find(|s| !s.is_empty()).unwrap_or_default()
+    keys.iter()
+        .map(|k| json_str(item.get(*k)))
+        .find(|s| !s.is_empty())
+        .unwrap_or_default()
 }
 
 /// Tek uyarı öğesi → mesaj
 pub fn alert_msg(etype: &str, item: &Value, platform_for: &str) -> Option<ChatMsg> {
     let (mut norm, kind) = map_type(&etype.to_lowercase(), platform_for)?;
-    let months = ["months", "streak_months", "cumulative_months"].iter().find_map(|k| json_u64(item.get(*k))).map(|m| m as u32);
+    let months = ["months", "streak_months", "cumulative_months"]
+        .iter()
+        .find_map(|k| json_u64(item.get(*k)))
+        .map(|m| m as u32);
     if norm == "subscriber" && months.is_some_and(|m| m > 1) {
         norm = "resubscriber";
     }
-    let user = match first_str(item, &["name", "from", "display_name", "displayName", "username", "gifter", "gifter_display_name"]) {
+    let user = match first_str(
+        item,
+        &[
+            "name",
+            "from",
+            "display_name",
+            "displayName",
+            "username",
+            "gifter",
+            "gifter_display_name",
+        ],
+    ) {
         s if s.is_empty() => "?".to_string(),
         s => s,
     };
@@ -82,28 +100,49 @@ pub fn alert_msg(etype: &str, item: &Value, platform_for: &str) -> Option<ChatMs
     };
     // Super Chat'te "amount" mikro birimdir (5000000 = 5,00): biçimli metin tercih edilir
     let amount = if norm == "superchat" {
-        match first_str(item, &["displayString", "display_string", "formatted_amount"]) {
+        match first_str(
+            item,
+            &["displayString", "display_string", "formatted_amount"],
+        ) {
             s if !s.is_empty() => s,
-            _ => json_u64(item.get("amount")).map(|micros| format!("{:.2}", micros as f64 / 1_000_000.0)).unwrap_or_default(),
+            _ => json_u64(item.get("amount"))
+                .map(|micros| format!("{:.2}", micros as f64 / 1_000_000.0))
+                .unwrap_or_default(),
         }
     } else {
         first_str(item, &["formatted_amount", "formattedAmount", "amount"])
     };
     let currency = json_str(item.get("currency"));
     let tier = first_str(item, &["sub_plan", "subPlan"]);
-    let gifted = item.get("gifter").is_some_and(|x| !x.is_null() && x != "") || item.get("giftedBy").is_some_and(|x| !x.is_null()) || item.get("isGiftSub").and_then(|x| x.as_bool()).unwrap_or(false);
+    let gifted = item.get("gifter").is_some_and(|x| !x.is_null() && x != "")
+        || item.get("giftedBy").is_some_and(|x| !x.is_null())
+        || item
+            .get("isGiftSub")
+            .and_then(|x| x.as_bool())
+            .unwrap_or(false);
     let count_keys: &[&str] = match norm {
         "submysterygift" => &["amount", "count"],
         "gift" => &["giftMembershipsCount", "amount", "count"],
         _ => &["viewers", "raiders", "count"],
     };
-    let count = count_keys.iter().find_map(|k| json_u64(item.get(*k))).filter(|c| *c > 0);
+    let count = count_keys
+        .iter()
+        .find_map(|k| json_u64(item.get(*k)))
+        .filter(|c| *c > 0);
     let id = match first_str(item, &["_id", "id", "event_id"]) {
         s if s.is_empty() => format!("sl{}", super::poll::rand_u64()),
         s => s,
     };
-    let author = Author { login: user.to_lowercase(), name: user, ..Default::default() };
-    let parts = if message.is_empty() { vec![] } else { vec![Part::text(message)] };
+    let author = Author {
+        login: user.to_lowercase(),
+        name: user,
+        ..Default::default()
+    };
+    let parts = if message.is_empty() {
+        vec![]
+    } else {
+        vec![Part::text(message)]
+    };
     let mut m = ChatMsg::new(Platform::Streamlabs, id, kind, author, parts);
     m.channel = "streamlabs".into();
     m.channel_name = match platform_for {
@@ -115,7 +154,9 @@ pub fn alert_msg(etype: &str, item: &Value, platform_for: &str) -> Option<ChatMs
     if !amount.is_empty() && matches!(norm, "tip" | "cheer" | "superchat") {
         m.amount = Some(if norm == "cheer" {
             format!("{amount} bits")
-        } else if currency.is_empty() || amount.contains(|c: char| !c.is_ascii_digit() && c != '.' && c != ',') {
+        } else if currency.is_empty()
+            || amount.contains(|c: char| !c.is_ascii_digit() && c != '.' && c != ',')
+        {
             amount.clone()
         } else {
             format!("{amount} {currency}")
@@ -141,11 +182,15 @@ pub fn parse_frame(raw: &str) -> SlFrame {
         return SlFrame::Pong;
     }
     if let Some(rest) = raw.strip_prefix("42") {
-        let Ok(Value::Array(a)) = serde_json::from_str::<Value>(rest) else { return SlFrame::Other };
+        let Ok(Value::Array(a)) = serde_json::from_str::<Value>(rest) else {
+            return SlFrame::Other;
+        };
         if a.first().and_then(|x| x.as_str()) != Some("event") {
             return SlFrame::Other;
         }
-        let Some(data) = a.get(1) else { return SlFrame::Other };
+        let Some(data) = a.get(1) else {
+            return SlFrame::Other;
+        };
         let etype = json_str(data.get("type")).to_lowercase();
         let for_ = json_str(data.get("for"));
         let items: Vec<&Value> = match data.get("message") {
@@ -153,7 +198,12 @@ pub fn parse_frame(raw: &str) -> SlFrame {
             Some(o @ Value::Object(_)) => vec![o],
             _ => vec![],
         };
-        return SlFrame::Event(items.into_iter().filter_map(|i| alert_msg(&etype, i, &for_)).collect());
+        return SlFrame::Event(
+            items
+                .into_iter()
+                .filter_map(|i| alert_msg(&etype, i, &for_))
+                .collect(),
+        );
     }
     if raw.starts_with("40") {
         return SlFrame::Connected;
@@ -166,8 +216,14 @@ pub fn parse_frame(raw: &str) -> SlFrame {
     }
     if let Some(rest) = raw.strip_prefix('0') {
         let v = serde_json::from_str::<Value>(rest).ok();
-        let iv = v.as_ref().and_then(|v| json_u64(v.get("pingInterval"))).unwrap_or(25_000);
-        let to = v.as_ref().and_then(|v| json_u64(v.get("pingTimeout"))).unwrap_or(60_000);
+        let iv = v
+            .as_ref()
+            .and_then(|v| json_u64(v.get("pingInterval")))
+            .unwrap_or(25_000);
+        let to = v
+            .as_ref()
+            .and_then(|v| json_u64(v.get("pingTimeout")))
+            .unwrap_or(60_000);
         return SlFrame::Open(iv, to);
     }
     SlFrame::Other
@@ -189,11 +245,22 @@ fn scrub(msg: &str, token: &str) -> String {
 /// Bağlantı hatası → kullanıcıya gösterilecek Türkçe metin ("auth": anahtar reddedildi)
 fn explain(e: &str) -> String {
     let low = e.to_lowercase();
-    if low.contains("401") || low.contains("403") || low.contains("unauthorized") || low.contains("forbidden") {
+    if low.contains("401")
+        || low.contains("403")
+        || low.contains("unauthorized")
+        || low.contains("forbidden")
+    {
         "auth".into()
-    } else if low.contains("zaman aşımı") || low.contains("timed out") || low.contains("timeout") {
+    } else if low.contains("zaman aşımı") || low.contains("timed out") || low.contains("timeout")
+    {
         "Streamlabs sunucusu yanıt vermedi (zaman aşımı); yeniden denenecek.".into()
-    } else if low.contains("dns") || low.contains("resolve") || low.contains("lookup") || low.contains("network") || low.contains("connection") || low.contains("os error") {
+    } else if low.contains("dns")
+        || low.contains("resolve")
+        || low.contains("lookup")
+        || low.contains("network")
+        || low.contains("connection")
+        || low.contains("os error")
+    {
         format!("Streamlabs sunucusuna ulaşılamadı (internet / güvenlik duvarı?); yeniden denenecek. [{e}]")
     } else {
         format!("Streamlabs bağlantısı koptu; yeniden denenecek. [{e}]")
@@ -225,7 +292,9 @@ pub async fn run(hub: Arc<Hub>, token: String) {
             early_drops += 1;
         }
         let msg = if early_drops >= 3 && !err.contains("ulaşılamadı") {
-            format!("{err} Bağlantı her seferinde hemen kapanıyor: Socket API Token yanlış olabilir.")
+            format!(
+                "{err} Bağlantı her seferinde hemen kapanıyor: Socket API Token yanlış olabilir."
+            )
         } else {
             err
         };
@@ -234,8 +303,16 @@ pub async fn run(hub: Arc<Hub>, token: String) {
     }
 }
 
-async fn session(hub: &Arc<Hub>, token: &str, backoff: &mut Backoff, connected: &mut bool) -> Result<(), String> {
-    let url = format!("wss://sockets.streamlabs.com/socket.io/?token={}&EIO=3&transport=websocket", crate::server::url_encode(token));
+async fn session(
+    hub: &Arc<Hub>,
+    token: &str,
+    backoff: &mut Backoff,
+    connected: &mut bool,
+) -> Result<(), String> {
+    let url = format!(
+        "wss://sockets.streamlabs.com/socket.io/?token={}&EIO=3&transport=websocket",
+        crate::server::url_encode(token)
+    );
     let mut ws = net::ws_connect(&url, &[("User-Agent", net::BROWSER_UA)]).await?;
     let mut ping_ms: u64 = 25_000;
     let mut timeout_ms: u64 = 60_000;
@@ -302,19 +379,58 @@ async fn session(hub: &Arc<Hub>, token: &str, backoff: &mut Backoff, connected: 
 pub fn test_frame(kind: &str) -> String {
     let id = format!("test{}", super::poll::rand_u64());
     let (ty, for_, item) = match kind {
-        "follow" => ("follow", "twitch_account", serde_json::json!({ "name": "Deneme_Takipci", "isTest": true })),
-        "subscription" => ("subscription", "twitch_account", serde_json::json!({ "name": "Deneme_Abone", "months": 1, "sub_plan": "1000", "message": "İlk abonelik!", "isTest": true })),
-        "resub" => ("resub", "twitch_account", serde_json::json!({ "name": "Deneme_Abone", "months": 7, "streak_months": 7, "sub_plan": "1000", "message": "7 ay oldu", "isTest": true })),
-        "bits" => ("bits", "twitch_account", serde_json::json!({ "name": "Deneme_Bits", "amount": "250", "message": "Cheer250 kolay gelsin", "isTest": true })),
-        "raid" => ("raid", "twitch_account", serde_json::json!({ "name": "Deneme_Yayinci", "raiders": 42, "isTest": true })),
-        "host" => ("host", "twitch_account", serde_json::json!({ "name": "Deneme_Yayinci", "viewers": "17", "isTest": true })),
-        "superchat" => ("superchat", "youtube_account", serde_json::json!({ "name": "Deneme İzleyici", "amount": "50000000", "currency": "TRY", "displayString": "₺50,00", "comment": "Yayın harika!", "isTest": true })),
-        "membershipGift" => ("membershipGift", "youtube_account", serde_json::json!({ "name": "Deneme Üye", "giftMembershipsCount": "5", "isTest": true })),
-        _ => ("donation", "streamlabs", serde_json::json!({ "name": "Deneme_Bagisci", "from": "Deneme_Bagisci", "amount": "25", "formatted_amount": "₺25,00", "currency": "TRY", "message": "Bu bir deneme bağışıdır", "isTest": true })),
+        "follow" => (
+            "follow",
+            "twitch_account",
+            serde_json::json!({ "name": "Deneme_Takipci", "isTest": true }),
+        ),
+        "subscription" => (
+            "subscription",
+            "twitch_account",
+            serde_json::json!({ "name": "Deneme_Abone", "months": 1, "sub_plan": "1000", "message": "İlk abonelik!", "isTest": true }),
+        ),
+        "resub" => (
+            "resub",
+            "twitch_account",
+            serde_json::json!({ "name": "Deneme_Abone", "months": 7, "streak_months": 7, "sub_plan": "1000", "message": "7 ay oldu", "isTest": true }),
+        ),
+        "bits" => (
+            "bits",
+            "twitch_account",
+            serde_json::json!({ "name": "Deneme_Bits", "amount": "250", "message": "Cheer250 kolay gelsin", "isTest": true }),
+        ),
+        "raid" => (
+            "raid",
+            "twitch_account",
+            serde_json::json!({ "name": "Deneme_Yayinci", "raiders": 42, "isTest": true }),
+        ),
+        "host" => (
+            "host",
+            "twitch_account",
+            serde_json::json!({ "name": "Deneme_Yayinci", "viewers": "17", "isTest": true }),
+        ),
+        "superchat" => (
+            "superchat",
+            "youtube_account",
+            serde_json::json!({ "name": "Deneme İzleyici", "amount": "50000000", "currency": "TRY", "displayString": "₺50,00", "comment": "Yayın harika!", "isTest": true }),
+        ),
+        "membershipGift" => (
+            "membershipGift",
+            "youtube_account",
+            serde_json::json!({ "name": "Deneme Üye", "giftMembershipsCount": "5", "isTest": true }),
+        ),
+        _ => (
+            "donation",
+            "streamlabs",
+            serde_json::json!({ "name": "Deneme_Bagisci", "from": "Deneme_Bagisci", "amount": "25", "formatted_amount": "₺25,00", "currency": "TRY", "message": "Bu bir deneme bağışıdır", "isTest": true }),
+        ),
     };
     let mut item = item;
     item["_id"] = Value::String(id);
-    format!("42{}", serde_json::json!(["event", { "type": ty, "for": for_, "message": [item] }]))
+    format!(
+        "42{}",
+        serde_json::json!(["event", { "type": ty, "for": for_, "message": [item] }])
+    )
 }
 
 #[cfg(test)]
@@ -323,45 +439,121 @@ mod tests {
 
     #[test]
     fn frames() {
-        assert_eq!(parse_frame(r#"0{"sid":"x","upgrades":[],"pingInterval":25000,"pingTimeout":60000}"#), SlFrame::Open(25000, 60000));
+        assert_eq!(
+            parse_frame(r#"0{"sid":"x","upgrades":[],"pingInterval":25000,"pingTimeout":60000}"#),
+            SlFrame::Open(25000, 60000)
+        );
         assert_eq!(parse_frame("40"), SlFrame::Connected);
         assert_eq!(parse_frame("44\"Invalid token\""), SlFrame::AuthError);
         assert_eq!(parse_frame("2"), SlFrame::Ping);
         let don = r#"42["event",{"type":"donation","message":[{"name":"Bağışçı","amount":"50","formatted_amount":"₺50,00","currency":"TRY","message":"Kolay gelsin","_id":"d1"}],"for":"streamlabs"}]"#;
-        let SlFrame::Event(v) = parse_frame(don) else { panic!() };
+        let SlFrame::Event(v) = parse_frame(don) else {
+            panic!()
+        };
         assert_eq!(v.len(), 1);
         let m = &v[0];
-        assert_eq!((m.kind, m.amount.as_deref(), m.text.as_str(), m.author.name.as_str()), (Kind::Donation, Some("₺50,00"), "Kolay gelsin", "Bağışçı"));
+        assert_eq!(
+            (
+                m.kind,
+                m.amount.as_deref(),
+                m.text.as_str(),
+                m.author.name.as_str()
+            ),
+            (Kind::Donation, Some("₺50,00"), "Kolay gelsin", "Bağışçı")
+        );
         assert_eq!(m.alert.as_ref().unwrap().kind, "tip");
         assert_eq!(m.id, "streamlabs:d1");
         let sub = r#"42["event",{"type":"subscription","message":[{"name":"Abone","months":3,"sub_plan":"1000"}],"for":"twitch_account"}]"#;
-        let SlFrame::Event(v) = parse_frame(sub) else { panic!() };
+        let SlFrame::Event(v) = parse_frame(sub) else {
+            panic!()
+        };
         let a = v[0].alert.as_ref().unwrap();
-        assert_eq!((a.kind.as_str(), a.months, a.tier.as_deref()), ("resubscriber", Some(3), Some("1000")));
+        assert_eq!(
+            (a.kind.as_str(), a.months, a.tier.as_deref()),
+            ("resubscriber", Some(3), Some("1000"))
+        );
         assert_eq!(v[0].channel_name, "Twitch");
         let raid = r#"42["event",{"type":"raid","message":{"name":"Akıncı","raiders":25},"for":"twitch_account"}]"#;
-        let SlFrame::Event(v) = parse_frame(raid) else { panic!() };
-        assert_eq!((v[0].kind, v[0].alert.as_ref().unwrap().count), (Kind::Raid, Some(25)));
-        let SlFrame::Event(v) = parse_frame(r#"42["event",{"type":"alertPlaying","message":{}}]"#) else { panic!() };
+        let SlFrame::Event(v) = parse_frame(raid) else {
+            panic!()
+        };
+        assert_eq!(
+            (v[0].kind, v[0].alert.as_ref().unwrap().count),
+            (Kind::Raid, Some(25))
+        );
+        let SlFrame::Event(v) = parse_frame(r#"42["event",{"type":"alertPlaying","message":{}}]"#)
+        else {
+            panic!()
+        };
         assert!(v.is_empty());
         assert_eq!(parse_frame("41"), SlFrame::Disconnected);
         // Twitch yeniden abonelik "resub" olarak gelir
-        let SlFrame::Event(v) = parse_frame(r#"42["event",{"type":"resub","message":[{"name":"Eski","months":"12","streak_months":12}],"for":"twitch_account"}]"#) else { panic!() };
-        assert_eq!((v[0].kind, v[0].alert.as_ref().unwrap().kind.as_str(), v[0].alert.as_ref().unwrap().months), (Kind::Sub, "resubscriber", Some(12)));
+        let SlFrame::Event(v) = parse_frame(
+            r#"42["event",{"type":"resub","message":[{"name":"Eski","months":"12","streak_months":12}],"for":"twitch_account"}]"#,
+        ) else {
+            panic!()
+        };
+        assert_eq!(
+            (
+                v[0].kind,
+                v[0].alert.as_ref().unwrap().kind.as_str(),
+                v[0].alert.as_ref().unwrap().months
+            ),
+            (Kind::Sub, "resubscriber", Some(12))
+        );
         // YouTube: Super Chat (mikro birim + biçimli metin), üyelik, hediye üyelik
         let sc = r#"42["event",{"type":"superchat","message":[{"name":"İzleyici","amount":"5000000","currency":"USD","displayString":"$5.00","comment":"selam"}],"for":"youtube_account"}]"#;
-        let SlFrame::Event(v) = parse_frame(sc) else { panic!() };
-        assert_eq!((v[0].kind, v[0].amount.as_deref(), v[0].text.as_str(), v[0].channel_name.as_str()), (Kind::Superchat, Some("$5.00"), "selam", "YouTube"));
-        let SlFrame::Event(v) = parse_frame(r#"42["event",{"type":"subscription","message":[{"name":"Üye"}],"for":"youtube_account"}]"#) else { panic!() };
+        let SlFrame::Event(v) = parse_frame(sc) else {
+            panic!()
+        };
+        assert_eq!(
+            (
+                v[0].kind,
+                v[0].amount.as_deref(),
+                v[0].text.as_str(),
+                v[0].channel_name.as_str()
+            ),
+            (Kind::Superchat, Some("$5.00"), "selam", "YouTube")
+        );
+        let SlFrame::Event(v) = parse_frame(
+            r#"42["event",{"type":"subscription","message":[{"name":"Üye"}],"for":"youtube_account"}]"#,
+        ) else {
+            panic!()
+        };
         assert_eq!(v[0].alert.as_ref().unwrap().kind, "member");
-        let SlFrame::Event(v) = parse_frame(r#"42["event",{"type":"membershipGift","message":[{"name":"Cömert","giftMembershipsCount":"5"}],"for":"youtube_account"}]"#) else { panic!() };
-        assert_eq!((v[0].alert.as_ref().unwrap().kind.as_str(), v[0].alert.as_ref().unwrap().count), ("gift", Some(5)));
+        let SlFrame::Event(v) = parse_frame(
+            r#"42["event",{"type":"membershipGift","message":[{"name":"Cömert","giftMembershipsCount":"5"}],"for":"youtube_account"}]"#,
+        ) else {
+            panic!()
+        };
+        assert_eq!(
+            (
+                v[0].alert.as_ref().unwrap().kind.as_str(),
+                v[0].alert.as_ref().unwrap().count
+            ),
+            ("gift", Some(5))
+        );
         // Yerel deneme çerçeveleri gerçek ayrıştırıcıdan geçer
-        for k in ["donation", "follow", "subscription", "resub", "bits", "raid", "host", "superchat", "membershipGift"] {
-            let SlFrame::Event(v) = parse_frame(&test_frame(k)) else { panic!("{k}") };
+        for k in [
+            "donation",
+            "follow",
+            "subscription",
+            "resub",
+            "bits",
+            "raid",
+            "host",
+            "superchat",
+            "membershipGift",
+        ] {
+            let SlFrame::Event(v) = parse_frame(&test_frame(k)) else {
+                panic!("{k}")
+            };
             assert_eq!(v.len(), 1, "{k}");
         }
-        assert_eq!(scrub("wss://x/?token=abcdef123456&EIO=3", "abcdef123456"), "wss://x/?token=***&EIO=3");
+        assert_eq!(
+            scrub("wss://x/?token=abcdef123456&EIO=3", "abcdef123456"),
+            "wss://x/?token=***&EIO=3"
+        );
         assert_eq!(explain("HTTP error: 401 Unauthorized"), "auth");
     }
 }

@@ -61,20 +61,41 @@ pub fn data() -> &'static Data {
     static D: OnceLock<Data> = OnceLock::new();
     D.get_or_init(|| {
         let v: Value = serde_json::from_str(DATA_JSON).unwrap_or(Value::Null);
-        let intents: Vec<String> = v["intents"].as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default();
+        let intents: Vec<String> = v["intents"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
         let mut langs = Vec::new();
         if let Some(map) = v["languages"].as_object() {
             for (key, l) in map {
                 let mut phrases: Vec<(String, Vec<String>)> = Vec::new();
                 let mut norm = Vec::new();
                 for (i, intent) in intents.iter().enumerate() {
-                    let list: Vec<String> = l["phrases"][intent].as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default();
+                    let list: Vec<String> = l["phrases"][intent]
+                        .as_array()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|x| x.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
                     for p in &list {
                         norm.push((normalize(p), i));
                     }
                     phrases.push((intent.clone(), list));
                 }
-                let answers = l["answers"].as_object().map(|o| o.iter().filter_map(|(k, x)| x.as_str().map(|s| (k.clone(), s.to_string()))).collect()).unwrap_or_default();
+                let answers = l["answers"]
+                    .as_object()
+                    .map(|o| {
+                        o.iter()
+                            .filter_map(|(k, x)| x.as_str().map(|s| (k.clone(), s.to_string())))
+                            .collect()
+                    })
+                    .unwrap_or_default();
                 langs.push(LangData {
                     key: key.clone(),
                     name: l["name"].as_str().unwrap_or(key).to_string(),
@@ -97,7 +118,11 @@ pub fn lang_key(tag: &str) -> &'static str {
         return &l.key;
     }
     let primary = t.split('-').next().unwrap_or("");
-    if let Some(l) = d.langs.iter().find(|l| l.key.to_lowercase().split('-').next() == Some(primary)) {
+    if let Some(l) = d
+        .langs
+        .iter()
+        .find(|l| l.key.to_lowercase().split('-').next() == Some(primary))
+    {
         return &l.key;
     }
     "en"
@@ -191,7 +216,10 @@ pub fn match_intent(text: &str, lang_key: &str) -> Option<(&'static str, f32)> {
     for (p, i) in &l.norm {
         let s = if *p == t {
             1.0
-        } else if p.chars().count() >= 6 && (padded.contains(&format!(" {p} ")) || (!p.contains(' ') && !p.is_ascii() && t.contains(p.as_str()))) {
+        } else if p.chars().count() >= 6
+            && (padded.contains(&format!(" {p} "))
+                || (!p.contains(' ') && !p.is_ascii() && t.contains(p.as_str())))
+        {
             0.9
         } else {
             similarity(&t, p)
@@ -243,9 +271,17 @@ pub fn parse_key(s: &str) -> Option<(u32, u8)> {
                         '/' => Some(0xBF),
                         _ => None,
                     }
-                } else if let Some(n) = low.strip_prefix("num").and_then(|n| n.parse::<u32>().ok()).filter(|n| *n <= 9) {
+                } else if let Some(n) = low
+                    .strip_prefix("num")
+                    .and_then(|n| n.parse::<u32>().ok())
+                    .filter(|n| *n <= 9)
+                {
                     Some(0x60 + n)
-                } else if let Some(n) = low.strip_prefix('f').and_then(|n| n.parse::<u32>().ok()).filter(|n| (1..=24).contains(n)) {
+                } else if let Some(n) = low
+                    .strip_prefix('f')
+                    .and_then(|n| n.parse::<u32>().ok())
+                    .filter(|n| (1..=24).contains(n))
+                {
                     Some(0x6F + n)
                 } else {
                     match low.as_str() {
@@ -355,13 +391,20 @@ fn cloud_key(app: &AppHandle) -> String {
 
 /// Whisper'a gönderilecek dil kodu ("tr", "pt", "zh"…)
 pub fn cloud_lang(rec_lang: &str) -> String {
-    rec_lang.split(['-', '_']).next().unwrap_or("").to_lowercase()
+    rec_lang
+        .split(['-', '_'])
+        .next()
+        .unwrap_or("")
+        .to_lowercase()
 }
 
 /// Arkadaşa uyarı tuşu ve düğmesi (`general.friendAlert`)
 fn alert_from_settings(v: &Value) -> (u32, u8, Option<(u16, u16, u16)>) {
-    let Some(a) = v.pointer("/general/friendAlert") else { return (0, 0, None) };
-    let (vk, mods) = parse_key(a.get("key").and_then(|x| x.as_str()).unwrap_or("").trim()).unwrap_or((0, 0));
+    let Some(a) = v.pointer("/general/friendAlert") else {
+        return (0, 0, None);
+    };
+    let (vk, mods) =
+        parse_key(a.get("key").and_then(|x| x.as_str()).unwrap_or("").trim()).unwrap_or((0, 0));
     let button = a.get("button").filter(|b| b.is_object()).and_then(|b| {
         let n = |k: &str| b.get(k).and_then(|x| x.as_u64());
         Some((n("vid")? as u16, n("pid")? as u16, n("button")? as u16))
@@ -372,11 +415,19 @@ fn alert_from_settings(v: &Value) -> (u32, u8, Option<(u16, u16, u16)>) {
 pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     let (alert_vk, alert_mods, alert_button) = alert_from_settings(v);
     let c = cfg_from_settings_voice(v, allowed);
-    CmdCfg { alert_vk, alert_mods, alert_button, ..c }
+    CmdCfg {
+        alert_vk,
+        alert_mods,
+        alert_button,
+        ..c
+    }
 }
 
 fn cfg_from_settings_voice(v: &Value, allowed: bool) -> CmdCfg {
-    let ui = v.pointer("/general/language").and_then(|x| x.as_str()).unwrap_or("tr");
+    let ui = v
+        .pointer("/general/language")
+        .and_then(|x| x.as_str())
+        .unwrap_or("tr");
     let ui_lang = lang_key(ui).to_string();
     let Some(c) = v.pointer("/general/voice/commands") else {
         return CmdCfg {
@@ -391,7 +442,13 @@ fn cfg_from_settings_voice(v: &Value, allowed: bool) -> CmdCfg {
             ..Default::default()
         };
     };
-    let s = |p: &str| c.get(p).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    let s = |p: &str| {
+        c.get(p)
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string()
+    };
     let (vk, mods) = parse_key(&s("key")).unwrap_or((0, 0));
     let button = c.get("button").filter(|b| b.is_object()).and_then(|b| {
         let n = |k: &str| b.get(k).and_then(|x| x.as_u64());
@@ -399,7 +456,12 @@ fn cfg_from_settings_voice(v: &Value, allowed: bool) -> CmdCfg {
     });
     let want = s("language");
     let cloud = |k: &str, def: &str| {
-        let x = v.pointer(&format!("/general/livechat/stt/cloud/{k}")).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+        let x = v
+            .pointer(&format!("/general/livechat/stt/cloud/{k}"))
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string();
         if x.is_empty() {
             def.to_string()
         } else {
@@ -412,9 +474,14 @@ fn cfg_from_settings_voice(v: &Value, allowed: bool) -> CmdCfg {
         vk,
         mods,
         button,
-        rec_lang: if want.is_empty() { ui_lang.clone() } else { lang_key(&want).to_string() },
+        rec_lang: if want.is_empty() {
+            ui_lang.clone()
+        } else {
+            lang_key(&want).to_string()
+        },
         ui_lang,
-        confidence: (c.get("confidence").and_then(|x| x.as_f64()).unwrap_or(40.0) as f32 / 100.0).clamp(0.0, 1.0),
+        confidence: (c.get("confidence").and_then(|x| x.as_f64()).unwrap_or(40.0) as f32 / 100.0)
+            .clamp(0.0, 1.0),
         beeps: c.get("beeps").and_then(|x| x.as_bool()).unwrap_or(true),
         mic: s("mic"),
         mic_name: s("micName"),
@@ -455,7 +522,10 @@ pub struct Answer {
 
 fn dec1(x: f32, lang: &str) -> String {
     let s = format!("{:.1}", x);
-    let sep = self::lang(lang).and_then(|l| l.answers.get("dec")).map(|s| s.as_str()).unwrap_or(".");
+    let sep = self::lang(lang)
+        .and_then(|l| l.answers.get("dec"))
+        .map(|s| s.as_str())
+        .unwrap_or(".");
     if sep == "." {
         s
     } else {
@@ -475,7 +545,14 @@ fn lap_text(t: f32, lang: &str) -> String {
 }
 
 fn simple(lang: &str, key: &str, pack: &str) -> Answer {
-    Answer { parts: if pack.is_empty() { vec![] } else { vec![k(pack)] }, text: fmt(lang, key, &[]) }
+    Answer {
+        parts: if pack.is_empty() {
+            vec![]
+        } else {
+            vec![k(pack)]
+        },
+        text: fmt(lang, key, &[]),
+    }
 }
 
 pub fn no_data(lang: &str) -> Answer {
@@ -494,7 +571,10 @@ fn clock() -> (u32, u32) {
     }
     #[cfg(not(windows))]
     {
-        let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let s = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
         (((s / 3600) % 24) as u32, ((s / 60) % 60) as u32)
     }
 }
@@ -511,7 +591,11 @@ fn neighbour(c: &Ctx, ahead: bool) -> Option<(usize, f32)> {
         if i == c.me || !calc::active(c.f, c.s, i) || c.f.cars[i].on_pit {
             continue;
         }
-        if c.s.driver(i).map(|d| d.is_pace_car || d.is_spectator).unwrap_or(true) {
+        if c.s
+            .driver(i)
+            .map(|d| d.is_pace_car || d.is_spectator)
+            .unwrap_or(true)
+        {
             continue;
         }
         // track_gap: + ise araç arkamızda
@@ -534,8 +618,15 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
     let conv = |l: f32| if c.imperial { l / gal } else { l };
     let unit = fmt(lang, if c.imperial { "gallons" } else { "litres" }, &[]);
     let deg = |x: f32| if c.imperial { x * 9.0 / 5.0 + 32.0 } else { x };
-    let deg_key = if c.imperial { "conditions/fahrenheit" } else { "conditions/celsius" };
-    let a = |parts: Vec<Part>, key: &str, args: &[String]| Answer { parts, text: fmt(lang, key, args) };
+    let deg_key = if c.imperial {
+        "conditions/fahrenheit"
+    } else {
+        "conditions/celsius"
+    };
+    let a = |parts: Vec<Part>, key: &str, args: &[String]| Answer {
+        parts,
+        text: fmt(lang, key, args),
+    };
 
     match intent {
         "radio_check" => simple(lang, "radio", "acknowledge/radio_check"),
@@ -550,7 +641,14 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
             }
             let v = conv(f.fuel_level);
             a(
-                vec![Part::Int(v.round() as i64), k(if c.imperial { "fuel/gallons_remaining" } else { "fuel/litres_remaining" })],
+                vec![
+                    Part::Int(v.round() as i64),
+                    k(if c.imperial {
+                        "fuel/gallons_remaining"
+                    } else {
+                        "fuel/litres_remaining"
+                    }),
+                ],
                 "fuel_level",
                 &[dec1(v, lang), unit],
             )
@@ -565,14 +663,26 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
             }
             match intent {
                 "fuel_laps" => a(
-                    vec![k("fuel/we_estimate"), Part::Int(fu.avg5.laps.floor() as i64), k("fuel/laps_remaining")],
+                    vec![
+                        k("fuel/we_estimate"),
+                        Part::Int(fu.avg5.laps.floor() as i64),
+                        k("fuel/laps_remaining"),
+                    ],
                     "fuel_laps",
                     &[dec1(fu.avg5.laps, lang)],
                 ),
                 "fuel_per_lap" => {
                     let u = conv(fu.avg5.usage);
                     a(
-                        vec![k("fuel/we_estimate"), Part::Dec(u), k(if c.imperial { "fuel/gallons_per_lap" } else { "fuel/litres_per_lap" })],
+                        vec![
+                            k("fuel/we_estimate"),
+                            Part::Dec(u),
+                            k(if c.imperial {
+                                "fuel/gallons_per_lap"
+                            } else {
+                                "fuel/litres_per_lap"
+                            }),
+                        ],
                         "fuel_per_lap",
                         &[dec1(u, lang), unit],
                     )
@@ -588,14 +698,26 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
                             vec![
                                 k("fuel/we_will_need_to_add"),
                                 Part::Int(n),
-                                k(if c.imperial { "fuel/gallons_to_get_to_the_end" } else { "fuel/litres_to_get_to_the_end" }),
+                                k(if c.imperial {
+                                    "fuel/gallons_to_get_to_the_end"
+                                } else {
+                                    "fuel/litres_to_get_to_the_end"
+                                }),
                             ],
                             "fuel_end_need",
                             &[n.to_string(), unit],
                         )
                     } else {
                         let plenty = fu.avg5.laps - fu.race_laps_left >= 2.0;
-                        a(vec![k(if plenty { "fuel/plenty_of_fuel" } else { "fuel/fuel_should_be_ok" })], "fuel_end_ok", &[dec1(-add, lang), unit])
+                        a(
+                            vec![k(if plenty {
+                                "fuel/plenty_of_fuel"
+                            } else {
+                                "fuel/fuel_should_be_ok"
+                            })],
+                            "fuel_end_ok",
+                            &[dec1(-add, lang), unit],
+                        )
                     }
                 }
             }
@@ -605,11 +727,19 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
                 return no_data(lang);
             }
             let (n, limit) = (f.incidents.max(0) as i64, c.s.incident_limit as i64);
-            let mut parts = vec![k("incidents/you_have"), Part::Int(n), k("incidents/incident_points")];
+            let mut parts = vec![
+                k("incidents/you_have"),
+                Part::Int(n),
+                k("incidents/incident_points"),
+            ];
             if limit > 0 {
                 parts.push(k("incidents/the_incident_limit_is"));
                 parts.push(Part::Int(limit));
-                a(parts, "incidents_limit", &[n.to_string(), limit.to_string()])
+                a(
+                    parts,
+                    "incidents_limit",
+                    &[n.to_string(), limit.to_string()],
+                )
             } else {
                 a(parts, "incidents", &[n.to_string()])
             }
@@ -620,7 +750,11 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
             }
             let overall = f.cars[c.me].position;
             if c.multiclass && overall > 0 {
-                a(vec![Part::Pos(c.pos)], "position_class", &[c.pos.to_string(), overall.to_string()])
+                a(
+                    vec![Part::Pos(c.pos)],
+                    "position_class",
+                    &[c.pos.to_string(), overall.to_string()],
+                )
             } else {
                 a(vec![Part::Pos(c.pos)], "position", &[c.pos.to_string()])
             }
@@ -628,33 +762,71 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
         "gap_ahead" | "gap_behind" | "driver_ahead" | "driver_behind" => {
             let ahead = intent.ends_with("ahead");
             let Some((i, gap)) = neighbour(c, ahead) else {
-                return simple(lang, if ahead { "nobody_ahead" } else { "nobody_behind" }, "");
+                return simple(
+                    lang,
+                    if ahead {
+                        "nobody_ahead"
+                    } else {
+                        "nobody_behind"
+                    },
+                    "",
+                );
             };
             if intent.starts_with("driver") {
-                let name = c.s.driver(i).map(|d| d.name.trim().to_string()).filter(|n| !n.is_empty());
+                let name =
+                    c.s.driver(i)
+                        .map(|d| d.name.trim().to_string())
+                        .filter(|n| !n.is_empty());
                 return match name {
-                    Some(n) => a(vec![], if ahead { "driver_ahead" } else { "driver_behind" }, &[n]),
+                    Some(n) => a(
+                        vec![],
+                        if ahead {
+                            "driver_ahead"
+                        } else {
+                            "driver_behind"
+                        },
+                        &[n],
+                    ),
                     None => no_data(lang),
                 };
             }
             let gap = gap.max(0.1);
             a(
-                vec![k(if ahead { "timings/gap_in_front_is_now" } else { "timings/gap_behind_is_now" }), Part::Secs(gap)],
+                vec![
+                    k(if ahead {
+                        "timings/gap_in_front_is_now"
+                    } else {
+                        "timings/gap_behind_is_now"
+                    }),
+                    Part::Secs(gap),
+                ],
                 if ahead { "gap_ahead" } else { "gap_behind" },
                 &[dec1(gap, lang)],
             )
         }
         "last_lap" | "best_lap" => {
-            let t = if intent == "last_lap" { f.lap_last } else { f.lap_best };
+            let t = if intent == "last_lap" {
+                f.lap_last
+            } else {
+                f.lap_best
+            };
             if t <= 0.0 {
                 return no_data(lang);
             }
-            a(vec![k("lap_times/time_intro"), Part::Lap(t)], intent, &[lap_text(t, lang)])
+            a(
+                vec![k("lap_times/time_intro"), Part::Lap(t)],
+                intent,
+                &[lap_text(t, lang)],
+            )
         }
         "remaining" => {
             if c.kind == Kind::Race && f.session_laps_remain > 0 && f.session_laps_remain < 32767 {
                 let n = f.session_laps_remain as i64;
-                return a(vec![Part::Int(n), k("race_time/laps_remaining")], "laps_left", &[n.to_string()]);
+                return a(
+                    vec![Part::Int(n), k("race_time/laps_remaining")],
+                    "laps_left",
+                    &[n.to_string()],
+                );
             }
             let rem = f.session_time_remain;
             if rem <= 0.0 || rem > 7.0 * 86400.0 {
@@ -664,36 +836,83 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
             if mins >= 60 {
                 let (h, m) = (mins / 60, mins % 60);
                 a(
-                    vec![Part::Int(h), k(if h == 1 { "numbers/hour" } else { "numbers/hours" }), Part::Int(m), k("numbers/minutes"), k("race_time/remaining")],
+                    vec![
+                        Part::Int(h),
+                        k(if h == 1 {
+                            "numbers/hour"
+                        } else {
+                            "numbers/hours"
+                        }),
+                        Part::Int(m),
+                        k("numbers/minutes"),
+                        k("race_time/remaining"),
+                    ],
                     "time_left_h",
                     &[h.to_string(), m.to_string()],
                 )
             } else {
-                a(vec![Part::Int(mins), k(if mins == 1 { "numbers/minute" } else { "numbers/minutes" }), k("race_time/remaining")], "time_left", &[mins.to_string()])
+                a(
+                    vec![
+                        Part::Int(mins),
+                        k(if mins == 1 {
+                            "numbers/minute"
+                        } else {
+                            "numbers/minutes"
+                        }),
+                        k("race_time/remaining"),
+                    ],
+                    "time_left",
+                    &[mins.to_string()],
+                )
             }
         }
         "tyre_temps" => {
             if !f.tire_temp.iter().any(|t| t[1] > 0.0) {
                 return no_data(lang);
             }
-            let v: Vec<String> = f.tire_temp.iter().map(|t| (deg(t[1]).round() as i64).to_string()).collect();
+            let v: Vec<String> = f
+                .tire_temp
+                .iter()
+                .map(|t| (deg(t[1]).round() as i64).to_string())
+                .collect();
             a(vec![], "tyre_temps", &v)
         }
         "tyre_wear" => {
             if !f.tire_wear.iter().all(|w| w.iter().all(|x| *x >= 0.0)) {
                 return no_data(lang);
             }
-            let v: Vec<String> = f.tire_wear.iter().map(|w| (((w[0] + w[1] + w[2]) / 3.0 * 100.0).round().clamp(0.0, 100.0) as i64).to_string()).collect();
+            let v: Vec<String> = f
+                .tire_wear
+                .iter()
+                .map(|w| {
+                    (((w[0] + w[1] + w[2]) / 3.0 * 100.0)
+                        .round()
+                        .clamp(0.0, 100.0) as i64)
+                        .to_string()
+                })
+                .collect();
             a(vec![], "tyre_wear", &v)
         }
         "track_temp" | "air_temp" => {
-            let t = if intent == "track_temp" { f.track_temp } else { f.air_temp };
+            let t = if intent == "track_temp" {
+                f.track_temp
+            } else {
+                f.air_temp
+            };
             if f.track_temp <= 0.0 && f.air_temp <= 0.0 {
                 return no_data(lang);
             }
             let n = deg(t).round() as i64;
             a(
-                vec![k(if intent == "track_temp" { "conditions/track_temp_is" } else { "conditions/air_temp_is" }), Part::Int(n), k(deg_key)],
+                vec![
+                    k(if intent == "track_temp" {
+                        "conditions/track_temp_is"
+                    } else {
+                        "conditions/air_temp_is"
+                    }),
+                    Part::Int(n),
+                    k(deg_key),
+                ],
                 intent,
                 &[n.to_string()],
             )
@@ -702,7 +921,10 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
             if f.track_temp <= 0.0 && f.air_temp <= 0.0 {
                 return no_data(lang);
             }
-            let (air, track) = (deg(f.air_temp).round() as i64, deg(f.track_temp).round() as i64);
+            let (air, track) = (
+                deg(f.air_temp).round() as i64,
+                deg(f.track_temp).round() as i64,
+            );
             let cond = if f.precip > 0.01 {
                 "w_rain"
             } else if f.track_wetness >= 4 {
@@ -714,23 +936,42 @@ pub fn answer(intent: &str, c: &Ctx, lang: &str) -> Answer {
             };
             // Paketten yalnızca sıcaklıklar söylenebilir; yağmur / ıslak pist varsa metin (TTS) daha bilgilendirici
             let parts = if cond == "w_dry" {
-                vec![k("conditions/air_temp_is"), Part::Int(air), k(deg_key), k("conditions/track_temp_is"), Part::Int(track), k(deg_key)]
+                vec![
+                    k("conditions/air_temp_is"),
+                    Part::Int(air),
+                    k(deg_key),
+                    k("conditions/track_temp_is"),
+                    Part::Int(track),
+                    k(deg_key),
+                ]
             } else {
                 vec![]
             };
-            a(parts, "weather", &[air.to_string(), track.to_string(), fmt(lang, cond, &[])])
+            a(
+                parts,
+                "weather",
+                &[air.to_string(), track.to_string(), fmt(lang, cond, &[])],
+            )
         }
         "damage" => {
             let damaged = (f.cars[c.me].flags | f.session_flags) & F_REPAIR != 0;
             let mut ans = simple(
                 lang,
                 if damaged { "damage_yes" } else { "damage_no" },
-                if damaged { "damage_reporting/damage" } else { "damage_reporting/no_damage" },
+                if damaged {
+                    "damage_reporting/damage"
+                } else {
+                    "damage_reporting/no_damage"
+                },
             );
             if f.fast_repairs >= 0 {
                 // Hızlı tamir sayısı pakette yok: metinle (TTS) söylenir
                 ans.parts.clear();
-                ans.text = format!("{} {}", ans.text, fmt(lang, "fast_repairs", &[f.fast_repairs.to_string()]));
+                ans.text = format!(
+                    "{} {}",
+                    ans.text,
+                    fmt(lang, "fast_repairs", &[f.fast_repairs.to_string()])
+                );
             }
             ans
         }
@@ -810,7 +1051,12 @@ fn beep(kind: u8) {
         _ => &[(330.0, 170)],
     };
     for (f, ms) in tones {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: *f, ms: *ms, volume: 0.5, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: *f,
+            ms: *ms,
+            volume: 0.5,
+            pan: 0.0,
+        });
     }
 }
 
@@ -847,11 +1093,21 @@ fn emit(ev: CmdEvent) {
 /// `strict`: liste kipinde güven eşiği uygulanır. Dönen olay arayüzdeki deneme alanında gösterilir.
 fn handle_text(text: &str, conf: f32, rec_lang: &str, strict: bool, mut ev: CmdEvent) -> CmdEvent {
     let c = cfg();
-    let m = match_intent(text, rec_lang).or_else(|| if c.ui_lang != rec_lang { match_intent(text, &c.ui_lang) } else { None });
+    let m = match_intent(text, rec_lang).or_else(|| {
+        if c.ui_lang != rec_lang {
+            match_intent(text, &c.ui_lang)
+        } else {
+            None
+        }
+    });
     ev.state = "heard";
     ev.heard = text.to_string();
     ev.confidence = conf;
-    crate::voicesub::note("driver", text.to_string(), crate::voicesub::estimate_ms(text).min(4000));
+    crate::voicesub::note(
+        "driver",
+        text.to_string(),
+        crate::voicesub::estimate_ms(text).min(4000),
+    );
     match m {
         Some((intent, score)) if !strict || conf >= c.confidence => {
             ev.intent = intent.to_string();
@@ -927,49 +1183,61 @@ fn tts_tx() -> &'static Sender<(String, String, f32)> {
         let (tx, rx) = channel::<(String, String, f32)>();
         std::thread::Builder::new()
             .name("voicecmd-tts".into())
-            .spawn(move || crate::crashlog::supervise("voicecmd-tts", || {
-                // Panic sonrası yeniden başlangıçta bekleyen işaret takılı kalmasın
-                TTS_PENDING.store(false, Ordering::Relaxed);
-                let mut n = 0u32;
-                #[cfg(windows)]
-                let mut synth: Option<crate::livechat::tts_win::Synth> = None;
-                while let Ok((text, lang, volume)) = rx.recv() {
-                    n = (n + 1) % 4;
-                    #[allow(unused_mut)]
-                    let mut wav: Option<std::path::PathBuf> = None;
+            .spawn(move || {
+                crate::crashlog::supervise("voicecmd-tts", || {
+                    // Panic sonrası yeniden başlangıçta bekleyen işaret takılı kalmasın
+                    TTS_PENDING.store(false, Ordering::Relaxed);
+                    let mut n = 0u32;
                     #[cfg(windows)]
-                    {
-                        if synth.is_none() {
-                            synth = crate::livechat::tts_win::Synth::new().ok();
-                        }
-                        if let Some(sy) = synth.as_mut() {
-                            let voice = tts_voice(&lang);
-                            if let Ok(bytes) = sy.wav(&text, &voice, 0.0, 0.0, 1.0, 1.0) {
-                                let p = std::env::temp_dir().join(format!("srtr-pitwall-voicecmd-{n}.wav"));
-                                if std::fs::write(&p, bytes).is_ok() {
-                                    wav = Some(p);
+                    let mut synth: Option<crate::livechat::tts_win::Synth> = None;
+                    while let Ok((text, lang, volume)) = rx.recv() {
+                        n = (n + 1) % 4;
+                        #[allow(unused_mut)]
+                        let mut wav: Option<std::path::PathBuf> = None;
+                        #[cfg(windows)]
+                        {
+                            if synth.is_none() {
+                                synth = crate::livechat::tts_win::Synth::new().ok();
+                            }
+                            if let Some(sy) = synth.as_mut() {
+                                let voice = tts_voice(&lang);
+                                if let Ok(bytes) = sy.wav(&text, &voice, 0.0, 0.0, 1.0, 1.0) {
+                                    let p = std::env::temp_dir()
+                                        .join(format!("srtr-pitwall-voicecmd-{n}.wav"));
+                                    if std::fs::write(&p, bytes).is_ok() {
+                                        wav = Some(p);
+                                    }
                                 }
                             }
                         }
-                    }
-                    // Konuşan mesaj bitsin (altyazı erken değişmesin); spotter araya girerse sıra yine korunur
-                    let t = Instant::now();
-                    while crate::audio::busy() && t.elapsed() < Duration::from_secs(6) {
-                        std::thread::sleep(Duration::from_millis(50));
-                    }
-                    match wav {
-                        Some(p) => {
-                            let sub = crate::voicesub::start(false, text);
-                            crate::audio::send(crate::audio::Cmd::Say { parts: vec![p], spotter: false, volume, sub });
-                            // Ses iş parçacığı kanalı meşgul işaretleyene kadar kuyruk beklesin
-                            std::thread::sleep(Duration::from_millis(250));
+                        // Konuşan mesaj bitsin (altyazı erken değişmesin); spotter araya girerse sıra yine korunur
+                        let t = Instant::now();
+                        while crate::audio::busy() && t.elapsed() < Duration::from_secs(6) {
+                            std::thread::sleep(Duration::from_millis(50));
                         }
-                        // Ses üretilemedi (Windows dışı / ses yok): cevap yalnızca altyazıda görünür
-                        None => crate::voicesub::note("engineer", text.clone(), crate::voicesub::estimate_ms(&text)),
+                        match wav {
+                            Some(p) => {
+                                let sub = crate::voicesub::start(false, text);
+                                crate::audio::send(crate::audio::Cmd::Say {
+                                    parts: vec![p],
+                                    spotter: false,
+                                    volume,
+                                    sub,
+                                });
+                                // Ses iş parçacığı kanalı meşgul işaretleyene kadar kuyruk beklesin
+                                std::thread::sleep(Duration::from_millis(250));
+                            }
+                            // Ses üretilemedi (Windows dışı / ses yok): cevap yalnızca altyazıda görünür
+                            None => crate::voicesub::note(
+                                "engineer",
+                                text.clone(),
+                                crate::voicesub::estimate_ms(&text),
+                            ),
+                        }
+                        TTS_PENDING.store(false, Ordering::Relaxed);
                     }
-                    TTS_PENDING.store(false, Ordering::Relaxed);
-                }
-            }))
+                })
+            })
             .expect("sesli komut TTS iş parçacığı başlatılamadı");
         tx
     })
@@ -978,12 +1246,21 @@ fn tts_tx() -> &'static Sender<(String, String, f32)> {
 /// Arayüz diline uygun kurulu Windows sesi (yoksa boş: Windows varsayılanı)
 #[cfg(windows)]
 fn tts_voice(lang_key: &str) -> String {
-    let tag = lang(lang_key).map(|l| l.tag.to_lowercase()).unwrap_or_default();
+    let tag = lang(lang_key)
+        .map(|l| l.tag.to_lowercase())
+        .unwrap_or_default();
     let primary = tag.split('-').next().unwrap_or("").to_string();
-    let Ok(all) = crate::livechat::tts_win::voices() else { return String::new() };
+    let Ok(all) = crate::livechat::tts_win::voices() else {
+        return String::new();
+    };
     all.iter()
         .find(|v| v.language.to_lowercase() == tag)
-        .or_else(|| all.iter().find(|v| !primary.is_empty() && v.language.to_lowercase().split('-').next() == Some(primary.as_str())))
+        .or_else(|| {
+            all.iter().find(|v| {
+                !primary.is_empty()
+                    && v.language.to_lowercase().split('-').next() == Some(primary.as_str())
+            })
+        })
         .map(|v| v.id.clone())
         .unwrap_or_default()
 }
@@ -1015,7 +1292,12 @@ pub enum CloudHeard {
 /// Mikrofonu kaydet (16 kHz tek kanal). `released()`: basılı tut kipinde tuş bırakıldı / ikinci dokunuş;
 /// `auto_end`: konuşma bitince (sessizlik) kendiliğinden bitir. `on_ready`: mikrofon açılınca bir kez çağrılır.
 /// Dönen: örnekler; konuşma algılanmadıysa None.
-fn cloud_record(c: &CmdCfg, released: impl Fn() -> bool, auto_end: bool, on_ready: impl FnOnce()) -> Result<Option<Vec<f32>>, String> {
+fn cloud_record(
+    c: &CmdCfg,
+    released: impl Fn() -> bool,
+    auto_end: bool,
+    on_ready: impl FnOnce(),
+) -> Result<Option<Vec<f32>>, String> {
     use crate::livechat::stt_cloud as sc;
     use rodio::cpal;
     use rodio::cpal::traits::{DeviceTrait, StreamTrait};
@@ -1048,7 +1330,9 @@ fn cloud_record(c: &CmdCfg, released: impl Fn() -> bool, auto_end: bool, on_read
     }
     .map_err(|e| format!("Mikrofon açılamadı ({name}): {e}. Cihaz başka bir uygulama tarafından özel kipte kullanılıyor ya da Windows mikrofon izni kapalı olabilir."))?;
     drop(tx);
-    stream.play().map_err(|e| format!("Ses yakalama başlatılamadı: {e}"))?;
+    stream
+        .play()
+        .map_err(|e| format!("Ses yakalama başlatılamadı: {e}"))?;
     on_ready();
 
     let mut rs = sc::Resampler::new(in_rate);
@@ -1062,7 +1346,9 @@ fn cloud_record(c: &CmdCfg, released: impl Fn() -> bool, auto_end: bool, on_read
         match rx.recv_timeout(Duration::from_millis(40)) {
             Ok(chunk) => rs.push(&chunk, &mut samples),
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
-            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Err("Ses akışı kapandı".into()),
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                return Err("Ses akışı kapandı".into())
+            }
         }
         while samples.len() - scanned >= FRAME {
             if sc::rms(&samples[scanned..scanned + FRAME]) > threshold {
@@ -1077,10 +1363,16 @@ fn cloud_record(c: &CmdCfg, released: impl Fn() -> bool, auto_end: bool, on_read
             released_at = Some(Instant::now());
         }
         // Bırakıldıktan sonra kısa bir pay: son hece kesilmesin
-        if released_at.map(|t| t.elapsed() > Duration::from_millis(250)).unwrap_or(false) {
+        if released_at
+            .map(|t| t.elapsed() > Duration::from_millis(250))
+            .unwrap_or(false)
+        {
             break;
         }
-        if auto_end && ((voiced_ms >= 280 && silence_ms >= 900) || (voiced_ms == 0 && start.elapsed() > Duration::from_secs(6))) {
+        if auto_end
+            && ((voiced_ms >= 280 && silence_ms >= 900)
+                || (voiced_ms == 0 && start.elapsed() > Duration::from_secs(6)))
+        {
             break;
         }
         if start.elapsed() > Duration::from_secs(12) {
@@ -1095,7 +1387,13 @@ fn cloud_record(c: &CmdCfg, released: impl Fn() -> bool, auto_end: bool, on_read
 /// Kaydı yazıya çevir
 fn cloud_transcribe(c: &CmdCfg, key: &str, samples: &[f32]) -> CloudHeard {
     use crate::livechat::stt_cloud as sc;
-    let ccfg = sc::CloudCfg { url: c.cloud_url.clone(), model: c.cloud_model.clone(), key: key.to_string(), language: cloud_lang(&c.rec_lang), sensitivity: 7 };
+    let ccfg = sc::CloudCfg {
+        url: c.cloud_url.clone(),
+        model: c.cloud_model.clone(),
+        key: key.to_string(),
+        language: cloud_lang(&c.rec_lang),
+        sensitivity: 7,
+    };
     match tauri::async_runtime::block_on(sc::transcribe(&ccfg, sc::wav16(samples))) {
         Ok(text) if text.trim().is_empty() || sc::is_hallucination(&text) => CloudHeard::Nothing,
         Ok(text) => CloudHeard::Text(text),
@@ -1118,7 +1416,12 @@ pub struct BoundButton {
 }
 
 /// Hangi tanıyıcı kullanılacak: (dil etiketi, liste mi, İngilizceye mi düşüldü)
-pub fn plan(grammar: &[String], topic: &[String], want_tag: &str, pick: impl Fn(&[String], &str) -> Option<String>) -> Option<(String, bool, bool)> {
+pub fn plan(
+    grammar: &[String],
+    topic: &[String],
+    want_tag: &str,
+    pick: impl Fn(&[String], &str) -> Option<String>,
+) -> Option<(String, bool, bool)> {
     if let Some(t) = pick(grammar, want_tag) {
         return Some((t, true, false));
     }
@@ -1143,7 +1446,8 @@ mod imp {
     }
 
     /// Düğme yakalama isteği: (sonuç kanalı, son tarih)
-    static CAPTURE: Mutex<Option<(Sender<Option<BoundButton>>, Instant)>> = parking_lot::const_mutex(None);
+    static CAPTURE: Mutex<Option<(Sender<Option<BoundButton>>, Instant)>> =
+        parking_lot::const_mutex(None);
     static INPUT_RUNNING: AtomicBool = AtomicBool::new(false);
 
     pub fn rec_tx() -> &'static Sender<Ev> {
@@ -1168,103 +1472,135 @@ mod imp {
         if INPUT_RUNNING.swap(true, Ordering::SeqCst) {
             return;
         }
-        let spawned = std::thread::Builder::new().name("voicecmd-input".into()).spawn(|| {
-            // Gövde korunur: panic (crash.log'a yazılır) iş parçacığını öldürürse işaretler takılı kalmasın
-            let ok = crate::crashlog::guard(|| {
-            let mut input = Input::new();
-            let mut was_down = false;
-            let mut last_raw: Option<Instant> = None;
-            let mut capturing = false;
-            let mut idle_since: Option<Instant> = None;
-            let mut alert_was = false;
-            let mut alert_at: Option<Instant> = None;
-            loop {
-                let c = cfg();
-                let cap = CAPTURE.lock().as_ref().map(|(_, until)| *until);
-                let active = c.active();
-                let alert_on = c.alert_on();
-                if !active && !alert_on && cap.is_none() {
-                    // 2 sn boşta: pencereyi ve Raw Input kaydını bırak
-                    let since = *idle_since.get_or_insert_with(Instant::now);
-                    if since.elapsed() > Duration::from_secs(2) {
-                        break;
-                    }
-                } else {
-                    idle_since = None;
-                }
-                // Bas-konuş ve arkadaşa uyarı düğmeleri farklı aygıtlardaysa ikisi de yoklanır
-                let ptt_dev = if active { c.button.map(|(v, p, _)| (v, p)) } else { None };
-                let alert_dev = if alert_on { c.alert_button.map(|(v, p, _)| (v, p)) } else { None };
-                let two = matches!((ptt_dev, alert_dev), (Some(a), Some(b)) if a != b);
-                input.pump(cap.is_some() || two, ptt_dev.or(alert_dev));
-
-                // Düğme yakalama ("Direksiyon tuşu ata")
-                if let Some(until) = cap {
-                    if !capturing {
-                        capturing = true;
-                        input.capture_begin();
-                    }
-                    let hit = input.capture_poll();
-                    if hit.is_some() || Instant::now() >= until {
-                        if let Some((tx, _)) = CAPTURE.lock().take() {
-                            let _ = tx.send(hit.map(|p| BoundButton { vid: p.vid, pid: p.pid, button: p.button, name: p.name }));
+        let spawned = std::thread::Builder::new()
+            .name("voicecmd-input".into())
+            .spawn(|| {
+                // Gövde korunur: panic (crash.log'a yazılır) iş parçacığını öldürürse işaretler takılı kalmasın
+                let ok = crate::crashlog::guard(|| {
+                    let mut input = Input::new();
+                    let mut was_down = false;
+                    let mut last_raw: Option<Instant> = None;
+                    let mut capturing = false;
+                    let mut idle_since: Option<Instant> = None;
+                    let mut alert_was = false;
+                    let mut alert_at: Option<Instant> = None;
+                    loop {
+                        let c = cfg();
+                        let cap = CAPTURE.lock().as_ref().map(|(_, until)| *until);
+                        let active = c.active();
+                        let alert_on = c.alert_on();
+                        if !active && !alert_on && cap.is_none() {
+                            // 2 sn boşta: pencereyi ve Raw Input kaydını bırak
+                            let since = *idle_since.get_or_insert_with(Instant::now);
+                            if since.elapsed() > Duration::from_secs(2) {
+                                break;
+                            }
+                        } else {
+                            idle_since = None;
                         }
-                    }
-                } else if capturing {
-                    capturing = false;
-                    input.capture_end();
-                }
+                        // Bas-konuş ve arkadaşa uyarı düğmeleri farklı aygıtlardaysa ikisi de yoklanır
+                        let ptt_dev = if active {
+                            c.button.map(|(v, p, _)| (v, p))
+                        } else {
+                            None
+                        };
+                        let alert_dev = if alert_on {
+                            c.alert_button.map(|(v, p, _)| (v, p))
+                        } else {
+                            None
+                        };
+                        let two = matches!((ptt_dev, alert_dev), (Some(a), Some(b)) if a != b);
+                        input.pump(cap.is_some() || two, ptt_dev.or(alert_dev));
 
-                let raw = active
-                    && cap.is_none()
-                    && (ptt_win::key_down(c.vk, c.mods) || c.button.map(|(v, p, b)| input.is_down(v, p, b)).unwrap_or(false));
-                if raw {
-                    last_raw = Some(Instant::now());
-                }
-                // Bırakma 80 ms sürmeli: temas sıçraması ya da rapor titremesi basılı tutmayı erken bitirmesin
-                let down = raw || (was_down && active && cap.is_none() && last_raw.map(|t| t.elapsed() < Duration::from_millis(80)).unwrap_or(false));
-                PTT_DOWN.store(down, Ordering::Relaxed);
-                if down != was_down {
-                    // Arayüzdeki "basılı" göstergesi (atamanın görüldüğünü doğrulamak için)
-                    if let Some(app) = APP.get() {
-                        let _ = app.emit("voicecmd-ptt", down);
-                    }
-                }
-                if down && !was_down {
-                    if LISTENING.load(Ordering::Relaxed) {
-                        STOP.store(true, Ordering::Relaxed);
-                    } else {
-                        let _ = rec_tx().send(Ev::Listen { manual: false });
-                    }
-                }
-                was_down = down;
+                        // Düğme yakalama ("Direksiyon tuşu ata")
+                        if let Some(until) = cap {
+                            if !capturing {
+                                capturing = true;
+                                input.capture_begin();
+                            }
+                            let hit = input.capture_poll();
+                            if hit.is_some() || Instant::now() >= until {
+                                if let Some((tx, _)) = CAPTURE.lock().take() {
+                                    let _ = tx.send(hit.map(|p| BoundButton {
+                                        vid: p.vid,
+                                        pid: p.pid,
+                                        button: p.button,
+                                        name: p.name,
+                                    }));
+                                }
+                            }
+                        } else if capturing {
+                            capturing = false;
+                            input.capture_end();
+                        }
 
-                // Arkadaşa uyarı: basıldığı an (en çok 0,4 sn'de bir)
-                let alert_down = alert_on
-                    && cap.is_none()
-                    && (ptt_win::key_down(c.alert_vk, c.alert_mods) || c.alert_button.map(|(v, p, b)| input.is_down(v, p, b)).unwrap_or(false));
-                if alert_down && !alert_was && alert_at.map(|t| t.elapsed() > Duration::from_millis(400)).unwrap_or(true) {
-                    alert_at = Some(Instant::now());
-                    if let Some(app) = APP.get() {
-                        let _ = app.emit("friend-alert-press", ());
+                        let raw = active
+                            && cap.is_none()
+                            && (ptt_win::key_down(c.vk, c.mods)
+                                || c.button
+                                    .map(|(v, p, b)| input.is_down(v, p, b))
+                                    .unwrap_or(false));
+                        if raw {
+                            last_raw = Some(Instant::now());
+                        }
+                        // Bırakma 80 ms sürmeli: temas sıçraması ya da rapor titremesi basılı tutmayı erken bitirmesin
+                        let down = raw
+                            || (was_down
+                                && active
+                                && cap.is_none()
+                                && last_raw
+                                    .map(|t| t.elapsed() < Duration::from_millis(80))
+                                    .unwrap_or(false));
+                        PTT_DOWN.store(down, Ordering::Relaxed);
+                        if down != was_down {
+                            // Arayüzdeki "basılı" göstergesi (atamanın görüldüğünü doğrulamak için)
+                            if let Some(app) = APP.get() {
+                                let _ = app.emit("voicecmd-ptt", down);
+                            }
+                        }
+                        if down && !was_down {
+                            if LISTENING.load(Ordering::Relaxed) {
+                                STOP.store(true, Ordering::Relaxed);
+                            } else {
+                                let _ = rec_tx().send(Ev::Listen { manual: false });
+                            }
+                        }
+                        was_down = down;
+
+                        // Arkadaşa uyarı: basıldığı an (en çok 0,4 sn'de bir)
+                        let alert_down = alert_on
+                            && cap.is_none()
+                            && (ptt_win::key_down(c.alert_vk, c.alert_mods)
+                                || c.alert_button
+                                    .map(|(v, p, b)| input.is_down(v, p, b))
+                                    .unwrap_or(false));
+                        if alert_down
+                            && !alert_was
+                            && alert_at
+                                .map(|t| t.elapsed() > Duration::from_millis(400))
+                                .unwrap_or(true)
+                        {
+                            alert_at = Some(Instant::now());
+                            if let Some(app) = APP.get() {
+                                let _ = app.emit("friend-alert-press", ());
+                            }
+                        }
+                        alert_was = alert_down;
+                        std::thread::sleep(Duration::from_millis(10));
                     }
+                    drop(input);
+                })
+                .is_some();
+                PTT_DOWN.store(false, Ordering::Relaxed);
+                if !ok {
+                    std::thread::sleep(Duration::from_millis(500));
                 }
-                alert_was = alert_down;
-                std::thread::sleep(Duration::from_millis(10));
-            }
-            drop(input);
-            })
-            .is_some();
-            PTT_DOWN.store(false, Ordering::Relaxed);
-            if !ok {
-                std::thread::sleep(Duration::from_millis(500));
-            }
-            INPUT_RUNNING.store(false, Ordering::SeqCst);
-            // Kapanırken ayar yeniden açıldıysa tekrar başlat
-            if cfg().active() || cfg().alert_on() || CAPTURE.lock().is_some() {
-                ensure_input();
-            }
-        });
+                INPUT_RUNNING.store(false, Ordering::SeqCst);
+                // Kapanırken ayar yeniden açıldıysa tekrar başlat
+                if cfg().active() || cfg().alert_on() || CAPTURE.lock().is_some() {
+                    ensure_input();
+                }
+            });
         if spawned.is_err() {
             INPUT_RUNNING.store(false, Ordering::SeqCst);
         }
@@ -1274,7 +1610,10 @@ mod imp {
         let (tx, rx) = channel();
         *CAPTURE.lock() = Some((tx, Instant::now() + timeout));
         ensure_input();
-        let r = rx.recv_timeout(timeout + Duration::from_secs(2)).ok().flatten();
+        let r = rx
+            .recv_timeout(timeout + Duration::from_secs(2))
+            .ok()
+            .flatten();
         *CAPTURE.lock() = None;
         r
     }
@@ -1288,8 +1627,19 @@ mod imp {
     /// İstenen dil için tanıyıcı: liste → dikte → İngilizce liste. Dönen: (tanıyıcı, veri dili anahtarı, İngilizceye düşüldü mü)
     fn open(want_key: &str) -> Result<(Recognizer, String, bool), String> {
         let (grammar, topic) = (win::grammar_languages(), win::topic_languages());
-        let want_tag = lang(want_key).map(|l| l.tag.clone()).unwrap_or_else(|| "en-US".into());
-        let phrases = |key: &str| -> Vec<String> { lang(key).map(|l| l.phrases.iter().flat_map(|(_, p)| p.iter().cloned()).collect()).unwrap_or_default() };
+        let want_tag = lang(want_key)
+            .map(|l| l.tag.clone())
+            .unwrap_or_else(|| "en-US".into());
+        let phrases = |key: &str| -> Vec<String> {
+            lang(key)
+                .map(|l| {
+                    l.phrases
+                        .iter()
+                        .flat_map(|(_, p)| p.iter().cloned())
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
         let mut last_err = String::from("no_recognizer");
         if let Some(tag) = win::best_tag(&grammar, &want_tag) {
             match Recognizer::list(&tag, &phrases(want_key)) {
@@ -1324,23 +1674,44 @@ mod imp {
         while let Ok(Ev::Listen { manual }) = rx.recv() {
             let c = cfg();
             if !c.allowed {
-                emit(CmdEvent { state: "error", error: "pro".into(), ..Default::default() });
+                emit(CmdEvent {
+                    state: "error",
+                    error: "pro".into(),
+                    ..Default::default()
+                });
                 continue;
             }
             // Motor seçimi
             if native.as_ref().map(|n| n.0 != c.rec_lang).unwrap_or(true) {
                 let (grammar, topic) = (win::grammar_languages(), win::topic_languages());
-                let want_tag = lang(&c.rec_lang).map(|l| l.tag.clone()).unwrap_or_else(|| "en-US".into());
-                let has = plan(&grammar, &topic, &want_tag, win::best_tag).map(|p| !p.2).unwrap_or(false);
+                let want_tag = lang(&c.rec_lang)
+                    .map(|l| l.tag.clone())
+                    .unwrap_or_else(|| "en-US".into());
+                let has = plan(&grammar, &topic, &want_tag, win::best_tag)
+                    .map(|p| !p.2)
+                    .unwrap_or(false);
                 native = Some((c.rec_lang.clone(), has));
             }
             let key = APP.get().map(cloud_key).unwrap_or_default();
             let problem = cloud_problem(&c, &key);
-            if use_online(c.engine, native.as_ref().map(|n| n.1).unwrap_or(false), problem.is_none()) {
-                let base = CmdEvent { rec_tag: cloud_lang(&c.rec_lang), mode: "dictation", engine: "online", ..Default::default() };
+            if use_online(
+                c.engine,
+                native.as_ref().map(|n| n.1).unwrap_or(false),
+                problem.is_none(),
+            ) {
+                let base = CmdEvent {
+                    rec_tag: cloud_lang(&c.rec_lang),
+                    mode: "dictation",
+                    engine: "online",
+                    ..Default::default()
+                };
                 if let Some(p) = problem {
                     beep(2);
-                    emit(CmdEvent { state: "error", error: p.into(), ..base });
+                    emit(CmdEvent {
+                        state: "error",
+                        error: p.into(),
+                        ..base
+                    });
                     continue;
                 }
                 LISTENING.store(true, Ordering::Relaxed);
@@ -1348,16 +1719,28 @@ mod imp {
                 let hold = !c.toggle && !manual;
                 let recorded = cloud_record(
                     &c,
-                    || if hold { !PTT_DOWN.load(Ordering::Relaxed) } else { STOP.load(Ordering::Relaxed) },
+                    || {
+                        if hold {
+                            !PTT_DOWN.load(Ordering::Relaxed)
+                        } else {
+                            STOP.load(Ordering::Relaxed)
+                        }
+                    },
                     !hold,
                     || {
-                        emit(CmdEvent { state: "listening", ..base.clone() });
+                        emit(CmdEvent {
+                            state: "listening",
+                            ..base.clone()
+                        });
                         beep(0);
                     },
                 );
                 let heard = match recorded {
                     Ok(Some(samples)) => {
-                        emit(CmdEvent { state: "processing", ..base.clone() });
+                        emit(CmdEvent {
+                            state: "processing",
+                            ..base.clone()
+                        });
                         cloud_transcribe(&c, &key, &samples)
                     }
                     Ok(None) => CloudHeard::Nothing,
@@ -1371,11 +1754,18 @@ mod imp {
                     }
                     CloudHeard::Nothing => {
                         beep(2);
-                        emit(CmdEvent { state: "idle", ..base });
+                        emit(CmdEvent {
+                            state: "idle",
+                            ..base
+                        });
                     }
                     CloudHeard::Error(e) => {
                         beep(2);
-                        emit(CmdEvent { state: "error", error: e, ..base });
+                        emit(CmdEvent {
+                            state: "error",
+                            error: e,
+                            ..base
+                        });
                     }
                 }
                 continue;
@@ -1383,7 +1773,9 @@ mod imp {
             LISTENING.store(true, Ordering::Relaxed);
             STOP.store(false, Ordering::Relaxed);
             let recheck = match mic.as_ref() {
-                Some((want, _, at)) => *want != c.mic || (!c.mic.is_empty() && at.elapsed() > Duration::from_secs(10)),
+                Some((want, _, at)) => {
+                    *want != c.mic || (!c.mic.is_empty() && at.elapsed() > Duration::from_secs(10))
+                }
                 None => true,
             };
             if recheck {
@@ -1401,24 +1793,43 @@ mod imp {
                     Err(e) => {
                         LISTENING.store(false, Ordering::Relaxed);
                         beep(2);
-                        emit(CmdEvent { state: "error", error: e, ..Default::default() });
+                        emit(CmdEvent {
+                            state: "error",
+                            error: e,
+                            ..Default::default()
+                        });
                         continue;
                     }
                 }
             }
-            let Some((_, rec, key, fallback)) = cache.as_ref() else { continue };
+            let Some((_, rec, key, fallback)) = cache.as_ref() else {
+                continue;
+            };
             let base = CmdEvent {
                 rec_tag: rec.tag.clone(),
-                mode: if rec.mode == Mode::List { "list" } else { "dictation" },
+                mode: if rec.mode == Mode::List {
+                    "list"
+                } else {
+                    "dictation"
+                },
                 fallback: *fallback,
                 engine: "windows",
                 ..Default::default()
             };
-            emit(CmdEvent { state: "listening", ..base.clone() });
+            emit(CmdEvent {
+                state: "listening",
+                ..base.clone()
+            });
             beep(0);
             let hold = !c.toggle && !manual;
             let heard = rec.listen(
-                || if hold { !PTT_DOWN.load(Ordering::Relaxed) } else { STOP.load(Ordering::Relaxed) },
+                || {
+                    if hold {
+                        !PTT_DOWN.load(Ordering::Relaxed)
+                    } else {
+                        STOP.load(Ordering::Relaxed)
+                    }
+                },
                 Duration::from_millis(2500),
                 Duration::from_secs(12),
             );
@@ -1430,14 +1841,21 @@ mod imp {
                 }
                 Heard::Nothing => {
                     beep(2);
-                    emit(CmdEvent { state: "idle", ..base });
+                    emit(CmdEvent {
+                        state: "idle",
+                        ..base
+                    });
                 }
                 Heard::Error(e) => {
                     beep(2);
                     // Tanıyıcı bozulmuş olabilir: sonraki basışta yeniden kur (mikrofon da yeniden denetlenir)
                     cache = None;
                     mic = None;
-                    emit(CmdEvent { state: "error", error: e, ..base });
+                    emit(CmdEvent {
+                        state: "error",
+                        error: e,
+                        ..base
+                    });
                 }
             }
         }
@@ -1452,7 +1870,14 @@ mod imp {
     }
 
     pub fn microphones(want: &str) -> Result<Vec<MicInfo>, String> {
-        Ok(win::microphones(want)?.into_iter().map(|m| MicInfo { id: m.id, name: m.name, is_default: m.is_default }).collect())
+        Ok(win::microphones(want)?
+            .into_iter()
+            .map(|m| MicInfo {
+                id: m.id,
+                name: m.name,
+                is_default: m.is_default,
+            })
+            .collect())
     }
 }
 
@@ -1512,7 +1937,10 @@ pub struct CmdStatus {
 
 #[tauri::command]
 pub fn voicecmd_status(app: AppHandle) -> CmdStatus {
-    let c = cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), allowed(&app));
+    let c = cfg_from_settings(
+        &crate::current_settings(&app).unwrap_or(Value::Null),
+        allowed(&app),
+    );
     let (grammar, topic) = imp::languages();
     let l = lang(&c.rec_lang);
     let want_tag = l.map(|l| l.tag.clone()).unwrap_or_default();
@@ -1521,7 +1949,15 @@ pub fn voicecmd_status(app: AppHandle) -> CmdStatus {
     let key = cloud_key(&app);
     let problem = cloud_problem(&c, &key);
     let online = use_online(c.engine, native, problem.is_none());
-    let host = c.cloud_url.split("://").nth(1).unwrap_or("").split('/').next().unwrap_or("").to_string();
+    let host = c
+        .cloud_url
+        .split("://")
+        .nth(1)
+        .unwrap_or("")
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .to_string();
     CmdStatus {
         engine: match c.engine {
             Engine::Auto => "auto",
@@ -1565,8 +2001,13 @@ pub struct MicInfo {
 /// Kayıt cihazları (ad + Windows varsayılanı işareti). Ayardaki seçim önce uygulanır; cihaz yoksa varsayılana düşülür.
 #[tauri::command]
 pub async fn voicecmd_microphones(app: AppHandle) -> Result<Vec<MicInfo>, String> {
-    let c = cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), allowed(&app));
-    tauri::async_runtime::spawn_blocking(move || imp::microphones(&c.mic)).await.map_err(|e| e.to_string())?
+    let c = cfg_from_settings(
+        &crate::current_settings(&app).unwrap_or(Value::Null),
+        allowed(&app),
+    );
+    tauri::async_runtime::spawn_blocking(move || imp::microphones(&c.mic))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[derive(Serialize)]
@@ -1580,9 +2021,21 @@ pub struct Example {
 pub fn voicecmd_examples(app: AppHandle, language: Option<String>) -> Vec<Example> {
     let key = match language.filter(|l| !l.trim().is_empty()) {
         Some(l) => lang_key(&l).to_string(),
-        None => cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), true).rec_lang,
+        None => {
+            cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), true).rec_lang
+        }
     };
-    lang(&key).map(|l| l.phrases.iter().map(|(i, p)| Example { intent: i.clone(), phrases: p.clone() }).collect()).unwrap_or_default()
+    lang(&key)
+        .map(|l| {
+            l.phrases
+                .iter()
+                .map(|(i, p)| Example {
+                    intent: i.clone(),
+                    phrases: p.clone(),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// "Direksiyon tuşu ata": bir düğmeye basılmasını bekler (en çok `seconds` sn). Basılmazsa None.
@@ -1592,7 +2045,9 @@ pub async fn voicecmd_capture_button(seconds: Option<u64>) -> Result<Option<Boun
         return Err("Sesli komut yalnızca Windows'ta çalışır".into());
     }
     let t = Duration::from_secs(seconds.unwrap_or(10).clamp(2, 30));
-    tauri::async_runtime::spawn_blocking(move || imp::capture(t)).await.map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || imp::capture(t))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1604,10 +2059,17 @@ pub fn voicecmd_capture_cancel() {
 #[tauri::command]
 pub fn voicecmd_test_text(app: AppHandle, text: String, speak: Option<bool>) -> CmdEvent {
     let _ = APP.set(app.clone());
-    let c = cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), allowed(&app));
+    let c = cfg_from_settings(
+        &crate::current_settings(&app).unwrap_or(Value::Null),
+        allowed(&app),
+    );
     *CFG.lock() = Some(c.clone());
     if !c.allowed {
-        return CmdEvent { state: "error", error: "pro".into(), ..Default::default() };
+        return CmdEvent {
+            state: "error",
+            error: "pro".into(),
+            ..Default::default()
+        };
     }
     if speak.unwrap_or(true) {
         return handle_text(&text, 1.0, &c.rec_lang, false, CmdEvent::default());
@@ -1628,7 +2090,10 @@ pub fn voicecmd_test_text(app: AppHandle, text: String, speak: Option<bool>) -> 
 #[tauri::command]
 pub fn voicecmd_listen(app: AppHandle) -> Result<(), String> {
     let _ = APP.set(app.clone());
-    let c = cfg_from_settings(&crate::current_settings(&app).unwrap_or(Value::Null), allowed(&app));
+    let c = cfg_from_settings(
+        &crate::current_settings(&app).unwrap_or(Value::Null),
+        allowed(&app),
+    );
     if !SUPPORTED {
         return Err("Sesli komut yalnızca Windows'ta çalışır".into());
     }
@@ -1663,15 +2128,29 @@ mod tests {
                 assert!(phrases.len() >= 2, "{} {intent}", l.key);
                 for p in phrases {
                     // Her cümle kendi niyetine tam eşleşmeli (başka niyetle çakışma yok)
-                    assert_eq!(match_intent(p, &l.key), Some((intent.as_str(), 1.0)), "{} {p}", l.key);
+                    assert_eq!(
+                        match_intent(p, &l.key),
+                        Some((intent.as_str(), 1.0)),
+                        "{} {p}",
+                        l.key
+                    );
                 }
             }
             for key in en.answers.keys() {
-                assert!(l.answers.get(key).map(|s| !s.is_empty()).unwrap_or(false), "{} cevap eksik: {key}", l.key);
+                assert!(
+                    l.answers.get(key).map(|s| !s.is_empty()).unwrap_or(false),
+                    "{} cevap eksik: {key}",
+                    l.key
+                );
                 // Yer tutucular İngilizcedekiyle aynı
                 for i in 0..4 {
                     let ph = format!("{{{i}}}");
-                    assert_eq!(l.answers[key].contains(&ph), en.answers[key].contains(&ph), "{} {key} {ph}", l.key);
+                    assert_eq!(
+                        l.answers[key].contains(&ph),
+                        en.answers[key].contains(&ph),
+                        "{} {key} {ph}",
+                        l.key
+                    );
                 }
             }
         }
@@ -1692,7 +2171,10 @@ mod tests {
 
     #[test]
     fn normalizes() {
-        assert_eq!(normalize("  Ne kadar YAKITIM var?  "), "ne kadar yakitim var");
+        assert_eq!(
+            normalize("  Ne kadar YAKITIM var?  "),
+            "ne kadar yakitim var"
+        );
         assert_eq!(normalize("İncident limiti kaç!"), "incident limiti kaç");
         assert_eq!(normalize("What's my position?"), "whats my position");
         assert_eq!(normalize("燃料はどれくらいある?"), "燃料はどれくらいある");
@@ -1732,7 +2214,10 @@ mod tests {
         assert_eq!(m("how much fuel do i have left"), Some("fuel_level"));
         assert_eq!(m("How many incidents do I have"), Some("incidents"));
         assert_eq!(m("how many laps of fuel do I have"), Some("fuel_laps"));
-        assert_eq!(m("do I have enough fuel to finish the race"), Some("fuel_to_end"));
+        assert_eq!(
+            m("do I have enough fuel to finish the race"),
+            Some("fuel_to_end")
+        );
         assert_eq!(m("what's my position"), Some("position"));
         assert_eq!(m("whats the gap ahead"), Some("gap_ahead"));
         assert_eq!(m("what's the gap behind"), Some("gap_behind"));
@@ -1750,20 +2235,50 @@ mod tests {
 
     #[test]
     fn matches_other_languages() {
-        assert_eq!(match_intent("Wie viel Sprit habe ich?", "de").map(|x| x.0), Some("fuel_level"));
-        assert_eq!(match_intent("wie viele incidents habe ich", "de").map(|x| x.0), Some("incidents"));
-        assert_eq!(match_intent("¿Cuánto combustible tengo?", "es").map(|x| x.0), Some("fuel_level"));
-        assert_eq!(match_intent("combien de tours il reste", "fr").map(|x| x.0), Some("remaining"));
-        assert_eq!(match_intent("сколько у меня топлива", "ru").map(|x| x.0), Some("fuel_level"));
-        assert_eq!(match_intent("我还有多少油?", "zh-CN").map(|x| x.0), Some("fuel_level"));
-        assert_eq!(match_intent("燃料はどれくらいある", "ja").map(|x| x.0), Some("fuel_level"));
-        assert_eq!(match_intent("いま何位ですか", "ja").map(|x| x.0), Some("position"));
-        assert_eq!(match_intent("ile mam paliwa", "pl").map(|x| x.0), Some("fuel_level"));
+        assert_eq!(
+            match_intent("Wie viel Sprit habe ich?", "de").map(|x| x.0),
+            Some("fuel_level")
+        );
+        assert_eq!(
+            match_intent("wie viele incidents habe ich", "de").map(|x| x.0),
+            Some("incidents")
+        );
+        assert_eq!(
+            match_intent("¿Cuánto combustible tengo?", "es").map(|x| x.0),
+            Some("fuel_level")
+        );
+        assert_eq!(
+            match_intent("combien de tours il reste", "fr").map(|x| x.0),
+            Some("remaining")
+        );
+        assert_eq!(
+            match_intent("сколько у меня топлива", "ru").map(|x| x.0),
+            Some("fuel_level")
+        );
+        assert_eq!(
+            match_intent("我还有多少油?", "zh-CN").map(|x| x.0),
+            Some("fuel_level")
+        );
+        assert_eq!(
+            match_intent("燃料はどれくらいある", "ja").map(|x| x.0),
+            Some("fuel_level")
+        );
+        assert_eq!(
+            match_intent("いま何位ですか", "ja").map(|x| x.0),
+            Some("position")
+        );
+        assert_eq!(
+            match_intent("ile mam paliwa", "pl").map(|x| x.0),
+            Some("fuel_level")
+        );
     }
 
     #[test]
     fn keys() {
-        assert_eq!(parse_key("Ctrl+Shift+T"), Some((0x54, MOD_CTRL | MOD_SHIFT)));
+        assert_eq!(
+            parse_key("Ctrl+Shift+T"),
+            Some((0x54, MOD_CTRL | MOD_SHIFT))
+        );
         assert_eq!(parse_key("F13"), Some((0x7C, 0)));
         assert_eq!(parse_key("Num0"), Some((0x60, 0)));
         assert_eq!(parse_key("Alt+Space"), Some((0x20, MOD_ALT)));
@@ -1800,13 +2315,25 @@ mod tests {
         let pick = |list: &[String], want: &str| {
             let w = want.to_lowercase();
             let p = w.split('-').next().unwrap().to_string();
-            list.iter().find(|t| t.to_lowercase() == w).or_else(|| list.iter().find(|t| t.to_lowercase().starts_with(&p))).cloned()
+            list.iter()
+                .find(|t| t.to_lowercase() == w)
+                .or_else(|| list.iter().find(|t| t.to_lowercase().starts_with(&p)))
+                .cloned()
         };
         let g = vec!["en-US".to_string(), "de-DE".to_string()];
         let t = vec!["en-US".to_string(), "tr-TR".to_string()];
-        assert_eq!(plan(&g, &t, "de-DE", pick), Some(("de-DE".into(), true, false)));
-        assert_eq!(plan(&g, &t, "tr-TR", pick), Some(("tr-TR".into(), false, false)));
-        assert_eq!(plan(&g, &t, "fi-FI", pick), Some(("en-US".into(), true, true)));
+        assert_eq!(
+            plan(&g, &t, "de-DE", pick),
+            Some(("de-DE".into(), true, false))
+        );
+        assert_eq!(
+            plan(&g, &t, "tr-TR", pick),
+            Some(("tr-TR".into(), false, false))
+        );
+        assert_eq!(
+            plan(&g, &t, "fi-FI", pick),
+            Some(("en-US".into(), true, true))
+        );
         assert_eq!(plan(&[], &[], "tr-TR", pick), None);
     }
 
@@ -1815,10 +2342,22 @@ mod tests {
         s.incident_limit = 17;
         s.drivers = (0..3)
             .map(|i| {
-                Some(crate::model::Driver { car_idx: i, name: format!("Sürücü {i}"), class_id: 1, class_est_lap: 90.0, ..Default::default() })
+                Some(crate::model::Driver {
+                    car_idx: i,
+                    name: format!("Sürücü {i}"),
+                    class_id: 1,
+                    class_est_lap: 90.0,
+                    ..Default::default()
+                })
             })
             .collect();
-        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), laps: Some(20), time: None, ..Default::default() }];
+        s.sessions = vec![crate::model::SessionEntry {
+            num: 0,
+            kind: "Race".into(),
+            laps: Some(20),
+            time: None,
+            ..Default::default()
+        }];
         let mut f = Frame::default();
         f.player_idx = 1;
         f.is_on_track = true;
@@ -1848,26 +2387,58 @@ mod tests {
         let a = answer("fuel_level", &c, "tr");
         assert_eq!(a.parts, vec![Part::Int(43), k("fuel/litres_remaining")]);
         assert_eq!(a.text, "Depoda 42,6 litre yakıt var.");
-        assert_eq!(answer("fuel_level", &c, "en").text, "You have 42.6 litres of fuel.");
+        assert_eq!(
+            answer("fuel_level", &c, "en").text,
+            "You have 42.6 litres of fuel."
+        );
         let a = answer("incidents", &c, "tr");
         assert_eq!(a.text, "4 olay puanın var, sınır 17.");
         assert_eq!(a.parts.len(), 5);
-        assert_eq!(answer("incidents", &c, "en").text, "You have 4 incident points, the limit is 17.");
+        assert_eq!(
+            answer("incidents", &c, "en").text,
+            "You have 4 incident points, the limit is 17."
+        );
         assert_eq!(answer("position", &c, "tr").text, "2. sıradasın.");
         assert_eq!(answer("position", &c, "tr").parts, vec![Part::Pos(2)]);
-        assert_eq!(answer("last_lap", &c, "tr").text, "Son turun 1 dakika 23,4 saniye.");
-        assert_eq!(answer("best_lap", &c, "en").text, "Your best lap is 1 minutes 0.0 seconds.");
+        assert_eq!(
+            answer("last_lap", &c, "tr").text,
+            "Son turun 1 dakika 23,4 saniye."
+        );
+        assert_eq!(
+            answer("best_lap", &c, "en").text,
+            "Your best lap is 1 minutes 0.0 seconds."
+        );
         assert_eq!(answer("remaining", &c, "tr").text, "7 tur kaldı.");
-        assert_eq!(answer("track_temp", &c, "tr").text, "Pist sıcaklığı 32 derece.");
-        assert_eq!(answer("weather", &c, "tr").text, "Hava 22 derece, pist 32 derece, pist kuru.");
-        assert_eq!(answer("driver_ahead", &c, "tr").text, "Önünde Sürücü 0 var.");
-        assert_eq!(answer("driver_behind", &c, "tr").text, "Arkanda Sürücü 2 var.");
-        assert!(answer("gap_ahead", &c, "tr").text.starts_with("Öndekiyle fark "));
+        assert_eq!(
+            answer("track_temp", &c, "tr").text,
+            "Pist sıcaklığı 32 derece."
+        );
+        assert_eq!(
+            answer("weather", &c, "tr").text,
+            "Hava 22 derece, pist 32 derece, pist kuru."
+        );
+        assert_eq!(
+            answer("driver_ahead", &c, "tr").text,
+            "Önünde Sürücü 0 var."
+        );
+        assert_eq!(
+            answer("driver_behind", &c, "tr").text,
+            "Arkanda Sürücü 2 var."
+        );
+        assert!(answer("gap_ahead", &c, "tr")
+            .text
+            .starts_with("Öndekiyle fark "));
         assert_eq!(answer("damage", &c, "tr").text, "Hasar görünmüyor.");
         assert_eq!(answer("tyre_wear", &c, "tr"), no_data("tr"));
         // Ortalama yokken
-        assert_eq!(answer("fuel_per_lap", &c, "tr").parts, vec![k("fuel/not_enough_laps_for_average")]);
-        assert_eq!(answer("radio_check", &c, "tr").text, "Telsiz kontrolü, sesin net geliyor.");
+        assert_eq!(
+            answer("fuel_per_lap", &c, "tr").parts,
+            vec![k("fuel/not_enough_laps_for_average")]
+        );
+        assert_eq!(
+            answer("radio_check", &c, "tr").text,
+            "Telsiz kontrolü, sesin net geliyor."
+        );
         assert!(answer("clock", &c, "tr").text.starts_with("Saat "));
         // Diğer simlerde olay puanı yok
         let c2 = Ctx::new(&f, &s, &t, Instant::now(), Kind::of(&s, 0), "acc", &cfg);
@@ -1876,7 +2447,10 @@ mod tests {
         let (f0, s0) = (Frame::default(), SessionData::default());
         let c0 = Ctx::new(&f0, &s0, &t, Instant::now(), Kind::Practice, "", &cfg);
         assert_eq!(answer("fuel_level", &c0, "tr"), no_data("tr"));
-        assert_eq!(answer("position", &c0, "en").text, "I don't have that data.");
+        assert_eq!(
+            answer("position", &c0, "en").text,
+            "I don't have that data."
+        );
     }
 
     /// Cevaplarda kullanılan ses paketi ifadeleri katalogda var
@@ -1884,17 +2458,33 @@ mod tests {
     fn pack_keys_exist_in_catalog() {
         let cat: Value = serde_json::from_str(crate::voicepack::CATALOG_JSON).unwrap();
         // Yalnızca "used" işaretliler: katalog yeniden üretilirse (scripts/voice) sesli komut ifadeleri unutulmasın
-        let keys: std::collections::HashSet<&str> =
-            cat.as_array().unwrap().iter().filter(|e| e["used"].as_bool().unwrap_or(false)).filter_map(|e| e["key"].as_str()).collect();
-        let cats: std::collections::HashSet<&str> = keys.iter().map(|k| k.split('/').next().unwrap()).collect();
+        let keys: std::collections::HashSet<&str> = cat
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|e| e["used"].as_bool().unwrap_or(false))
+            .filter_map(|e| e["key"].as_str())
+            .collect();
+        let cats: std::collections::HashSet<&str> =
+            keys.iter().map(|k| k.split('/').next().unwrap()).collect();
         let src = include_str!("voicecmd.rs");
         let mut n = 0;
         for piece in src.split('"').skip(1).step_by(2) {
-            let Some((c0, ph)) = piece.split_once('/') else { continue };
-            if !cats.contains(c0) || ph.is_empty() || ph.contains(' ') || ph.contains('/') || ph.contains('{') {
+            let Some((c0, ph)) = piece.split_once('/') else {
+                continue;
+            };
+            if !cats.contains(c0)
+                || ph.is_empty()
+                || ph.contains(' ')
+                || ph.contains('/')
+                || ph.contains('{')
+            {
                 continue;
             }
-            assert!(keys.contains(piece), "katalogda yok ya da used=false: {piece}");
+            assert!(
+                keys.contains(piece),
+                "katalogda yok ya da used=false: {piece}"
+            );
             n += 1;
         }
         assert!(n > 20);

@@ -7311,5 +7311,8 @@
   "Performans modu": "Tryb wydajności",
   "Üst ve alt kenarda karartma": "Przyciemnienie górnej i dolnej krawędzi",
   "Yakın araç renk dolgusu": "Wypełnienie kolorem bliskiego samochodu",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Płynne przejście koloru (wyróżnienie bliskości wypełnia się stopniowo)"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Płynne przejście koloru (wyróżnienie bliskości wypełnia się stopniowo)",
+  "Günlük boş: kayıtlı bir hata yok.": "Dziennik jest pusty: brak zapisanych błędów.",
+  "Hata günlüğü": "Dziennik błędów",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Jeśli program sam się zamyka lub coś się zawiesza, przyczyna jest zapisywana tutaj. Prosząc o pomoc, skopiuj i wyślij ten dziennik."
 }

@@ -16,7 +16,10 @@ use tauri::{AppHandle, Manager};
 static LOCK: Mutex<()> = parking_lot::const_mutex(());
 
 fn path(app: &AppHandle) -> Option<PathBuf> {
-    app.path().app_config_dir().ok().map(|d| d.join("livechat_secrets.json"))
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|d| d.join("livechat_secrets.json"))
 }
 
 fn read_file(app: &AppHandle) -> serde_json::Map<String, Value> {
@@ -33,7 +36,11 @@ fn write_file(app: &AppHandle, m: &serde_json::Map<String, Value>) -> Result<(),
         std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
     }
     let tmp = p.with_extension("json.tmp");
-    std::fs::write(&tmp, serde_json::to_string_pretty(&Value::Object(m.clone())).unwrap_or_default()).map_err(|e| e.to_string())?;
+    std::fs::write(
+        &tmp,
+        serde_json::to_string_pretty(&Value::Object(m.clone())).unwrap_or_default(),
+    )
+    .map_err(|e| e.to_string())?;
     std::fs::rename(&tmp, &p).map_err(|e| e.to_string())
 }
 
@@ -53,7 +60,9 @@ pub fn set(app: &AppHandle, key: &str, value: &str) -> Result<(), String> {
 pub fn get(app: &AppHandle, key: &str) -> String {
     let _g = LOCK.lock();
     let mut m = read_file(app);
-    let Some(raw) = m.get(key).and_then(|v| v.as_str()).map(String::from) else { return String::new() };
+    let Some(raw) = m.get(key).and_then(|v| v.as_str()).map(String::from) else {
+        return String::new();
+    };
     match open(&raw) {
         Some(v) => v,
         None if !raw.starts_with("dpapi:") && !raw.starts_with("b64:") => {
@@ -78,7 +87,9 @@ pub fn set_json(app: &AppHandle, key: &str, v: &Value) -> Result<(), String> {
 
 pub fn get_json(app: &AppHandle, key: &str) -> Option<Value> {
     let s = get(app, key);
-    (!s.is_empty()).then(|| serde_json::from_str(&s).ok()).flatten()
+    (!s.is_empty())
+        .then(|| serde_json::from_str(&s).ok())
+        .flatten()
 }
 
 fn b64() -> base64::engine::GeneralPurpose {
@@ -101,13 +112,18 @@ pub fn seal(plain: &str) -> Result<String, String> {
 /// Çöz (ön ek yoksa / çözülemezse None)
 pub fn open(sealed: &str) -> Option<String> {
     if let Some(rest) = sealed.strip_prefix("b64:") {
-        return b64().decode(rest).ok().and_then(|b| String::from_utf8(b).ok());
+        return b64()
+            .decode(rest)
+            .ok()
+            .and_then(|b| String::from_utf8(b).ok());
     }
     if let Some(rest) = sealed.strip_prefix("dpapi:") {
         let bytes = b64().decode(rest).ok()?;
         #[cfg(windows)]
         {
-            return dpapi::unprotect(&bytes).ok().and_then(|b| String::from_utf8(b).ok());
+            return dpapi::unprotect(&bytes)
+                .ok()
+                .and_then(|b| String::from_utf8(b).ok());
         }
         #[cfg(not(windows))]
         {
@@ -144,7 +160,10 @@ pub fn random_bytes(n: usize) -> Vec<u8> {
     while out.len() < n {
         let mut h = std::collections::hash_map::RandomState::new().build_hasher();
         h.write_u64(i);
-        let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let t = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
         let d = Sha256::digest(format!("{}-{}-{}-{}", h.finish(), t, std::process::id(), i));
         out.extend_from_slice(&d);
         i += 1;

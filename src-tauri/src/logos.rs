@@ -39,19 +39,39 @@ pub fn list(app: &AppHandle) -> Vec<Logo> {
     let Some(d) = dir(app) else { return vec![] };
     let _ = std::fs::create_dir_all(&d);
     let mut out = Vec::new();
-    let Ok(rd) = std::fs::read_dir(&d) else { return out };
+    let Ok(rd) = std::fs::read_dir(&d) else {
+        return out;
+    };
     for e in rd.flatten() {
         let p = e.path();
-        let ext = p.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
+        let ext = p
+            .extension()
+            .and_then(|x| x.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
         let Some(m) = mime(&ext) else { continue };
         if e.metadata().map(|m| m.len() > MAX_BYTES).unwrap_or(true) {
             continue;
         }
-        let Ok(bytes) = std::fs::read(&p) else { continue };
-        let name = p.file_stem().and_then(|x| x.to_str()).unwrap_or("").to_lowercase();
-        let file = p.file_name().and_then(|x| x.to_str()).unwrap_or("").to_string();
+        let Ok(bytes) = std::fs::read(&p) else {
+            continue;
+        };
+        let name = p
+            .file_stem()
+            .and_then(|x| x.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        let file = p
+            .file_name()
+            .and_then(|x| x.to_str())
+            .unwrap_or("")
+            .to_string();
         let b64 = base64::engine::general_purpose::STANDARD.encode(bytes);
-        out.push(Logo { name, file, data_url: format!("data:{m};base64,{b64}") });
+        out.push(Logo {
+            name,
+            file,
+            data_url: format!("data:{m};base64,{b64}"),
+        });
     }
     out.sort_by(|a, b| a.name.cmp(&b.name));
     out
@@ -67,5 +87,9 @@ pub fn open_dir(app: &AppHandle) -> Result<(), String> {
     let cmd = "open";
     #[cfg(all(unix, not(target_os = "macos")))]
     let cmd = "xdg-open";
-    std::process::Command::new(cmd).arg(&d).spawn().map(|_| ()).map_err(|e| e.to_string())
+    std::process::Command::new(cmd)
+        .arg(&d)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }

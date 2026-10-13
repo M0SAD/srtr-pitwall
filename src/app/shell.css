@@ -5988,3 +5988,24 @@ button.ovpal-lock:hover {
 .udp-state.bad {
   color: var(--bad, #ff6b6b);
 }
+
+/* Hata günlüğü penceresi */
+.crash-modal {
+  width: min(860px, 92vw);
+}
+.crash-text {
+  width: 100%;
+  height: 52vh;
+  margin: 8px 0;
+  padding: 10px;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: pre;
+  color: var(--text);
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}

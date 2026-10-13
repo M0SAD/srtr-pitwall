@@ -40,9 +40,18 @@ pub struct UpdateInfo {
 }
 
 #[tauri::command]
-pub async fn update_check(app: AppHandle, state: State<'_, UpdateState>) -> Result<UpdateInfo, String> {
+pub async fn update_check(
+    app: AppHandle,
+    state: State<'_, UpdateState>,
+) -> Result<UpdateInfo, String> {
     if !configured(&app) {
-        return Ok(UpdateInfo { configured: false, available: false, version: None, notes: None, date: None });
+        return Ok(UpdateInfo {
+            configured: false,
+            available: false,
+            version: None,
+            notes: None,
+            date: None,
+        });
     }
     let updater = app.updater().map_err(|e| e.to_string())?;
     let found = updater.check().await.map_err(|e| e.to_string())?;
@@ -54,7 +63,13 @@ pub async fn update_check(app: AppHandle, state: State<'_, UpdateState>) -> Resu
             notes: u.body.clone(),
             date: u.date.map(|d| d.date().to_string()),
         },
-        None => UpdateInfo { configured: true, available: false, version: None, notes: None, date: None },
+        None => UpdateInfo {
+            configured: true,
+            available: false,
+            version: None,
+            notes: None,
+            date: None,
+        },
     };
     *state.0.lock() = found;
     Ok(info)
@@ -95,6 +110,7 @@ pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Re
             clear_reopen_panel(&app);
             e.to_string()
         })?;
+    crate::crashlog::session_end();
     app.restart();
 }
 
@@ -111,12 +127,18 @@ const REOPEN_FILE: &str = "reopen-panel";
 const REOPEN_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(30 * 60);
 
 fn reopen_path(app: &AppHandle) -> Option<std::path::PathBuf> {
-    app.path().app_config_dir().ok().map(|d| d.join(REOPEN_FILE))
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|d| d.join(REOPEN_FILE))
 }
 
 fn mark_reopen_panel(app: &AppHandle) {
     // Panel penceresi var ve görünür mü (simge durumunda olsa da "açık" sayılır; tepsiye kapatılmışsa pencere gizlidir)
-    let open = app.get_webview_window("main").map(|w| w.is_visible().unwrap_or(false)).unwrap_or(false);
+    let open = app
+        .get_webview_window("main")
+        .map(|w| w.is_visible().unwrap_or(false))
+        .unwrap_or(false);
     let Some(p) = reopen_path(app) else { return };
     if !open {
         let _ = std::fs::remove_file(p);
@@ -136,9 +158,18 @@ fn clear_reopen_panel(app: &AppHandle) {
 
 /// Açılışta: işaret varsa siler ve tazeyse true döner (panel `--tray` olsa da açılmalı)
 pub fn take_reopen_panel(app: &AppHandle) -> bool {
-    let Some(p) = reopen_path(app) else { return false };
-    let Ok(meta) = std::fs::metadata(&p) else { return false };
-    let fresh = meta.modified().ok().and_then(|t| t.elapsed().ok()).map(|age| age <= REOPEN_MAX_AGE).unwrap_or(true);
+    let Some(p) = reopen_path(app) else {
+        return false;
+    };
+    let Ok(meta) = std::fs::metadata(&p) else {
+        return false;
+    };
+    let fresh = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.elapsed().ok())
+        .map(|age| age <= REOPEN_MAX_AGE)
+        .unwrap_or(true);
     let _ = std::fs::remove_file(&p);
     fresh
 }

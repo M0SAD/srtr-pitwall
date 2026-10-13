@@ -113,8 +113,16 @@ pub const MAX_DRIVERS: usize = 128;
 fn drivers_base(b: &[u8]) -> (usize, usize) {
     let off = rd_i32(b, o::ALL_DRIVERS_OFFSET);
     let size = rd_i32(b, o::DRIVER_DATA_SIZE);
-    let base = if off > 0 && (off as usize) < 8192 { off as usize + 4 } else { o::DRIVERS };
-    let size = if (200..=1024).contains(&size) { size as usize } else { o::DRIVER_SIZE };
+    let base = if off > 0 && (off as usize) < 8192 {
+        off as usize + 4
+    } else {
+        o::DRIVERS
+    };
+    let size = if (200..=1024).contains(&size) {
+        size as usize
+    } else {
+        o::DRIVER_SIZE
+    };
     (base, size)
 }
 
@@ -162,13 +170,19 @@ fn slot(b: &[u8], i: usize) -> i64 {
 
 pub fn session_sig(b: &[u8]) -> u64 {
     let n = num_cars(b).min(MAX_CARS);
-    let names: Vec<String> = (0..n).map(|i| rd_cstr(b, drv(b, i) + o::D_NAME, 64)).collect();
+    let names: Vec<String> = (0..n)
+        .map(|i| rd_cstr(b, drv(b, i) + o::D_NAME, 64))
+        .collect();
     let mut parts: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
     let track = rd_cstr(b, o::TRACK_NAME, 64);
     let layout = rd_cstr(b, o::LAYOUT_NAME, 64);
     parts.push(&track);
     parts.push(&layout);
-    let mut nums = vec![session_num(b) as i64, rd_i32(b, o::NUMBER_OF_LAPS) as i64, rd_i32(b, o::VEHICLE_INFO + o::D_SLOT_ID) as i64];
+    let mut nums = vec![
+        session_num(b) as i64,
+        rd_i32(b, o::NUMBER_OF_LAPS) as i64,
+        rd_i32(b, o::VEHICLE_INFO + o::D_SLOT_ID) as i64,
+    ];
     nums.extend((0..n).map(|i| slot(b, i)));
     nums.extend((0..n).map(|i| rd_i32(b, drv(b, i) + o::D_CLASS_ID) as i64));
     sig(&parts, &nums)
@@ -188,7 +202,10 @@ pub fn build_session(b: &[u8]) -> SessionData {
     let up = rd_f32(b, o::UPSHIFT_RPS) / rps;
     sd.shift_rpm = if up > 0.0 { up } else { 0.0 };
     sd.incident_limit = rd_i32(b, o::MAX_INCIDENT_POINTS).max(0);
-    let sec = [rd_f32(b, o::SECTOR_STARTS + 4), rd_f32(b, o::SECTOR_STARTS + 8)];
+    let sec = [
+        rd_f32(b, o::SECTOR_STARTS + 4),
+        rd_f32(b, o::SECTOR_STARTS + 8),
+    ];
     if sec.iter().all(|v| *v > 0.0 && *v < 1.0) && sec[0] < sec[1] {
         sd.sector_starts = vec![0.0, sec[0], sec[1]];
     }
@@ -211,7 +228,10 @@ pub fn build_session(b: &[u8]) -> SessionData {
         let d = drv(b, i);
         let c = rd_i32(b, d + o::D_CLASS_ID);
         let class_name = if multi {
-            format!("Class {}", classes.iter().position(|x| x.0 == c).unwrap_or(0) + 1)
+            format!(
+                "Class {}",
+                classes.iter().position(|x| x.0 == c).unwrap_or(0) + 1
+            )
         } else {
             String::new()
         };
@@ -226,7 +246,11 @@ pub fn build_session(b: &[u8]) -> SessionData {
             user_id: rd_i32(b, d + o::D_USER_ID).max(0) as i64,
             abbrev: name.clone(),
             name,
-            car_number: if num >= 0 { num.to_string() } else { String::new() },
+            car_number: if num >= 0 {
+                num.to_string()
+            } else {
+                String::new()
+            },
             class_id: c,
             class_name,
             class_color,
@@ -241,7 +265,11 @@ pub fn build_session(b: &[u8]) -> SessionData {
     sd.sessions.push(SessionEntry {
         num: session_num(b),
         kind: kind.to_string(),
-        laps: if kind == "Race" && laps > 0 { Some(laps) } else { None },
+        laps: if kind == "Race" && laps > 0 {
+            Some(laps)
+        } else {
+            None
+        },
         time: None,
         ..Default::default()
     });
@@ -265,7 +293,12 @@ fn secs(v: f32) -> f32 {
 pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let (tick, st) = (f.tick, f.session_time);
     let side = f.demo_side_cars.take();
-    *f = Frame { tick, session_time: st, demo_side_cars: side, ..Frame::default() };
+    *f = Frame {
+        tick,
+        session_time: st,
+        demo_side_cars: side,
+        ..Frame::default()
+    };
     let n = num_cars(b).min(MAX_CARS);
     let me = sd.player_idx.max(-1);
     f.player_idx = me;
@@ -325,7 +358,11 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     f.long_g = -rd_f32(b, o::LOCAL_ACCEL + 8) / 9.80665;
     let cap = rd_f32(b, o::FUEL_CAPACITY);
     f.fuel_level = rd_f32(b, o::FUEL_LEFT).max(0.0);
-    f.fuel_pct = if cap > 0.0 { (f.fuel_level / cap).clamp(0.0, 1.0) } else { 0.0 };
+    f.fuel_pct = if cap > 0.0 {
+        (f.fuel_level / cap).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
     let wt = rd_f32(b, o::ENGINE_TEMP);
     f.water_temp = if wt > 0.0 { wt } else { -1.0 };
     let ot = rd_f32(b, o::OIL_TEMP);
@@ -339,7 +376,11 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     if rd_i32(b, o::DRS_EQUIPPED) == 1 || soc >= 0.0 {
         f.hybrid = crate::model::Hybrid {
             has: soc >= 0.0,
-            battery_pct: if soc >= 0.0 { (soc / 100.0).clamp(0.0, 1.0) } else { -1.0 },
+            battery_pct: if soc >= 0.0 {
+                (soc / 100.0).clamp(0.0, 1.0)
+            } else {
+                -1.0
+            },
             drs: if rd_i32(b, o::DRS_EQUIPPED) != 1 {
                 -1
             } else if rd_i32(b, o::DRS_ENGAGED) == 1 {
@@ -370,12 +411,18 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         let t = o::TIRE_TEMP + c * o::TIRE_TEMP_SIZE;
         f.tire_temp[c] = [rd_f32(b, t), rd_f32(b, t + 4), rd_f32(b, t + 8)];
         let w = rd_f32(b, o::TIRE_WEAR + c * 4);
-        f.tire_wear[c] = if w >= 0.0 { [w.clamp(0.0, 1.0); 3] } else { [-1.0; 3] };
+        f.tire_wear[c] = if w >= 0.0 {
+            [w.clamp(0.0, 1.0); 3]
+        } else {
+            [-1.0; 3]
+        };
         let p = rd_f32(b, o::TIRE_PRESSURE + c * 4);
         f.tire_press[c] = p.max(0.0);
     }
     // Zemin: 2 çim, 3 toprak, 4 çakıl
-    f.tyres_out = (0..4).filter(|w| matches!(rd_i32(b, o::TIRE_ON_MTRL + w * 4), 2..=4)).count() as i8;
+    f.tyres_out = (0..4)
+        .filter(|w| matches!(rd_i32(b, o::TIRE_ON_MTRL + w * 4), 2..=4))
+        .count() as i8;
     // Hasar (1 = sağlam): motor, şanzıman, aero, süspansiyon
     let dmg = |k: usize| {
         let v = rd_f32(b, o::CAR_DAMAGE + k * 4);
@@ -386,7 +433,13 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         }
     };
     let susp = dmg(3);
-    f.damage = crate::drivecues::Damage { detail: 1, engine: dmg(0).max(dmg(1)), aero: dmg(2), susp: [susp; 4], ..Default::default() };
+    f.damage = crate::drivecues::Damage {
+        detail: 1,
+        engine: dmg(0).max(dmg(1)),
+        aero: dmg(2),
+        susp: [susp; 4],
+        ..Default::default()
+    };
 
     f.lap_completed = rd_i32(b, o::COMPLETED_LAPS).max(0);
     f.lap = f.lap_completed + 1;
@@ -420,8 +473,15 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let remain = rd_f32(b, o::SESSION_TIME_REMAINING);
     f.session_time_remain = if remain >= 0.0 { remain as f64 } else { -1.0 };
     let laps = rd_i32(b, o::NUMBER_OF_LAPS);
-    let leader_laps = (0..n).find(|&i| f.cars[i].position == 1).map(|i| f.cars[i].lap_completed).unwrap_or(0);
-    f.session_laps_remain = if race && laps > 0 { (laps - leader_laps).max(0) } else { 32767 };
+    let leader_laps = (0..n)
+        .find(|&i| f.cars[i].position == 1)
+        .map(|i| f.cars[i].lap_completed)
+        .unwrap_or(0);
+    f.session_laps_remain = if race && laps > 0 {
+        (laps - leader_laps).max(0)
+    } else {
+        32767
+    };
     let phase = rd_i32(b, o::SESSION_PHASE);
     f.session_state = match phase {
         1 | 2 => 2,
@@ -470,7 +530,10 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     if let (true, Some((fe, fnn))) = (me >= 0, m.fwd) {
         let pos = |i: usize| {
             let d = drv(b, i);
-            (-rd_f32(b, d + o::D_POSITION), -rd_f32(b, d + o::D_POSITION + 8))
+            (
+                -rd_f32(b, d + o::D_POSITION),
+                -rd_f32(b, d + o::D_POSITION + 8),
+            )
         };
         let (mx, mn) = pos(me as usize);
         let (re, rn) = (fnn, -fe);
@@ -566,9 +629,12 @@ mod win {
             if menus != 0 && replay != 1 {
                 return false;
             }
-            if self.last_new.elapsed() > Duration::from_secs(10) && self.checked.get().elapsed() > Duration::from_secs(5) {
+            if self.last_new.elapsed() > Duration::from_secs(10)
+                && self.checked.get().elapsed() > Duration::from_secs(5)
+            {
                 self.checked.set(Instant::now());
-                self.alive.set(shm::any_running(&["rrre64.exe", "rrre.exe"]));
+                self.alive
+                    .set(shm::any_running(&["rrre64.exe", "rrre.exe"]));
             }
             self.alive.get() || self.last_new.elapsed() < Duration::from_secs(10)
         }
@@ -648,8 +714,12 @@ mod tests {
         pi(&mut b, o::NUMBER_OF_LAPS, 12);
         pi(&mut b, o::VEHICLE_INFO + o::D_SLOT_ID, 7);
         pi(&mut b, o::NUM_CARS, 2);
-        for (i, (name, slot, place, frac, x, z, class)) in
-            [("Leader", 3, 1, 0.5f32, -2.5f32, -1.0f32, 1700), ("Erkin Azcan", 7, 2, 0.25, 0.0, 0.0, 1700)].iter().enumerate()
+        for (i, (name, slot, place, frac, x, z, class)) in [
+            ("Leader", 3, 1, 0.5f32, -2.5f32, -1.0f32, 1700),
+            ("Erkin Azcan", 7, 2, 0.25, 0.0, 0.0, 1700),
+        ]
+        .iter()
+        .enumerate()
         {
             let d = o::DRIVERS + i * o::DRIVER_SIZE;
             ps(&mut b, d + o::D_NAME, name);

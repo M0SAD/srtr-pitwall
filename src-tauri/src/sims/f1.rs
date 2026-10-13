@@ -27,15 +27,55 @@ mod id {
 
 /// m_trackId -> pist adı
 const TRACKS: [&str; 42] = [
-    "Melbourne", "Paul Ricard", "Shanghai", "Sakhir", "Catalunya", "Monaco", "Montreal", "Silverstone", "Hockenheim",
-    "Hungaroring", "Spa", "Monza", "Singapore", "Suzuka", "Abu Dhabi", "Texas", "Brazil", "Austria", "Sochi", "Mexico",
-    "Baku", "Sakhir Short", "Silverstone Short", "Texas Short", "Suzuka Short", "Hanoi", "Zandvoort", "Imola",
-    "Portimao", "Jeddah", "Miami", "Las Vegas", "Losail", "", "", "", "", "", "", "Silverstone Reverse",
-    "Austria Reverse", "Zandvoort Reverse",
+    "Melbourne",
+    "Paul Ricard",
+    "Shanghai",
+    "Sakhir",
+    "Catalunya",
+    "Monaco",
+    "Montreal",
+    "Silverstone",
+    "Hockenheim",
+    "Hungaroring",
+    "Spa",
+    "Monza",
+    "Singapore",
+    "Suzuka",
+    "Abu Dhabi",
+    "Texas",
+    "Brazil",
+    "Austria",
+    "Sochi",
+    "Mexico",
+    "Baku",
+    "Sakhir Short",
+    "Silverstone Short",
+    "Texas Short",
+    "Suzuka Short",
+    "Hanoi",
+    "Zandvoort",
+    "Imola",
+    "Portimao",
+    "Jeddah",
+    "Miami",
+    "Las Vegas",
+    "Losail",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "Silverstone Reverse",
+    "Austria Reverse",
+    "Zandvoort Reverse",
 ];
 
 fn track_name(id: i8) -> String {
-    match TRACKS.get(id.max(-1) as usize).filter(|s| !s.is_empty() && id >= 0) {
+    match TRACKS
+        .get(id.max(-1) as usize)
+        .filter(|s| !s.is_empty() && id >= 0)
+    {
         Some(s) => s.to_string(),
         None => format!("Track {id}"),
     }
@@ -153,7 +193,11 @@ impl F1State {
         let uid = u64::from_le_bytes(b[7..15].try_into().unwrap());
         if uid != self.uid {
             // Yeni oturum: önceki oturumun birikmiş verisi atılır
-            *self = F1State { fmt, uid, ..Default::default() };
+            *self = F1State {
+                fmt,
+                uid,
+                ..Default::default()
+            };
         }
         self.fmt = fmt;
         self.player = (b[27] as usize).min(NCARS - 1);
@@ -245,7 +289,10 @@ impl F1State {
 }
 
 pub fn session_sig(s: &F1State) -> u64 {
-    let names: Vec<String> = (0..NCARS).filter(|&i| s.active(i)).map(|i| s.name(i)).collect();
+    let names: Vec<String> = (0..NCARS)
+        .filter(|&i| s.active(i))
+        .map(|i| s.name(i))
+        .collect();
     let parts: Vec<&str> = names.iter().map(|x| x.as_str()).collect();
     let ss = &s.session;
     let (ps, _) = part_size(s.fmt);
@@ -291,14 +338,25 @@ pub fn build_session(s: &F1State) -> SessionData {
         let num = rd_u8(&s.part, o + 5);
         let mut name = s.name(i);
         if name.is_empty() {
-            name = if has_part && num > 0 { format!("#{num}") } else { format!("Car {}", i + 1) };
+            name = if has_part && num > 0 {
+                format!("#{num}")
+            } else {
+                format!("Car {}", i + 1)
+            };
         }
-        let car = team_name(s.fmt, team).filter(|_| has_part).unwrap_or(class).to_string();
+        let car = team_name(s.fmt, team)
+            .filter(|_| has_part)
+            .unwrap_or(class)
+            .to_string();
         sd.drivers[i] = Some(Driver {
             car_idx: i as i32,
             abbrev: name.clone(),
             name,
-            car_number: if has_part && num > 0 { num.to_string() } else { String::new() },
+            car_number: if has_part && num > 0 {
+                num.to_string()
+            } else {
+                String::new()
+            },
             class_id,
             class_name: class.to_string(),
             class_color: class_color.clone(),
@@ -320,7 +378,11 @@ pub fn build_session(s: &F1State) -> SessionData {
     sd.sessions.push(SessionEntry {
         num: t as i32,
         kind: kind.to_string(),
-        laps: if kind == "Race" && laps > 0 { Some(laps) } else { None },
+        laps: if kind == "Race" && laps > 0 {
+            Some(laps)
+        } else {
+            None
+        },
         time: Some(rd_i16(ss, H + 11) as u16 as f64).filter(|v| *v > 0.0),
         ..Default::default()
     });
@@ -359,7 +421,12 @@ pub struct Motion {
 pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let (tick, st) = (f.tick, f.session_time);
     let side = f.demo_side_cars.take();
-    *f = Frame { tick, session_time: st, demo_side_cars: side, ..Frame::default() };
+    *f = Frame {
+        tick,
+        session_time: st,
+        demo_side_cars: side,
+        ..Frame::default()
+    };
     let ss = &s.session;
     let fmt = s.fmt;
     let ll = lap_layout(fmt);
@@ -382,7 +449,11 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         if track_len > 0.0 && d < 0.0 {
             d += track_len;
         }
-        c.pct = if track_len > 0.0 { (d / track_len).clamp(0.0, 0.9999) } else { 0.0 };
+        c.pct = if track_len > 0.0 {
+            (d / track_len).clamp(0.0, 0.9999)
+        } else {
+            0.0
+        };
         c.lap = rd_u8(l, o + k + 13) as i32;
         c.lap_completed = (c.lap - 1).max(0);
         c.position = rd_u8(l, o + k + 12) as i32;
@@ -467,7 +538,9 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
             f.tire_press[*dst] = rd_f32(t, to + 40 + src * 4) * 6.894_757;
         }
         // Teker altındaki zemin: 0 asfalt, 1 kerb, 2-3 beton / şerit dışı ... 4+ çim, çakıl, kum vb.
-        f.tyres_out = (0..4).filter(|w| matches!(rd_u8(t, to + 56 + w), 4 | 5 | 6 | 7 | 8 | 9 | 11)).count() as i8;
+        f.tyres_out = (0..4)
+            .filter(|w| matches!(rd_u8(t, to + 56 + w), 4 | 5 | 6 | 7 | 8 | 9 | 11))
+            .count() as i8;
     }
 
     // Oyuncu: araç durumu (55 bayt)
@@ -483,7 +556,11 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         let fuel = rd_f32(st, so + 5);
         let cap = rd_f32(st, so + 9);
         f.fuel_level = fuel.max(0.0);
-        f.fuel_pct = if cap > 0.0 { (fuel / cap).clamp(0.0, 1.0) } else { 0.0 };
+        f.fuel_pct = if cap > 0.0 {
+            (fuel / cap).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
         let (kind, wet) = compound(rd_u8(st, so + 26));
         f.tire_compound = if kind == 0 { -1 } else { wet as i32 };
         let ers = rd_f32(st, so + 37);
@@ -516,7 +593,14 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let dof = H + me * ds;
     if dm.len() >= dof + ds {
         let pct = |v: u8| (v as f32 / 100.0).clamp(0.0, 1.0);
-        let mut d = crate::drivecues::Damage { detail: 2, body: [0.0; 8], centre: 0.0, engine: 0.0, aero: 0.0, ..Default::default() };
+        let mut d = crate::drivecues::Damage {
+            detail: 2,
+            body: [0.0; 8],
+            centre: 0.0,
+            engine: 0.0,
+            aero: 0.0,
+            ..Default::default()
+        };
         let fl = pct(rd_u8(dm, dof + wo));
         let fr = pct(rd_u8(dm, dof + wo + 1));
         let rear = pct(rd_u8(dm, dof + wo + 2));
@@ -548,7 +632,11 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
     let total = rd_u8(ss, H + 3) as i32;
     let leader = (0..NCARS).find(|&i| f.cars[i].position == 1 && f.cars[i].pct >= 0.0);
     let leader_done = leader.map(|i| f.cars[i].lap_completed).unwrap_or(0);
-    f.session_laps_remain = if race && total > 0 { (total - leader_done).max(0) } else { 32767 };
+    f.session_laps_remain = if race && total > 0 {
+        (total - leader_done).max(0)
+    } else {
+        32767
+    };
     f.air_temp = rd_u8(ss, H + 2) as i8 as f32;
     f.track_temp = rd_u8(ss, H + 1) as i8 as f32;
     let weather = rd_u8(ss, H);
@@ -591,8 +679,15 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         bits |= flags::GREEN;
     }
     f.session_flags = bits;
-    let finished = s.lap_base(me).map(|o| rd_u8(&s.lap, o + k + 25) == 3).unwrap_or(false);
-    f.start_total = if race && !s.lights_out && s.start_lit > 0 { 5 } else { 0 };
+    let finished = s
+        .lap_base(me)
+        .map(|o| rd_u8(&s.lap, o + k + 25) == 3)
+        .unwrap_or(false);
+    f.start_total = if race && !s.lights_out && s.start_lit > 0 {
+        5
+    } else {
+        0
+    };
     f.start_lit = if f.start_total > 0 { s.start_lit } else { 0 };
     f.session_state = if s.chequered || finished {
         STATE_CHECKERED
@@ -662,7 +757,7 @@ impl F1 {
             session: SessionData::default(),
             motion: Motion::default(),
             sig: 0,
-            last_sig_check: now - std::time::Duration::from_secs(5),
+            last_sig_check: crate::crashlog::past(5),
             seen_seq: 0,
             tick: 0,
             t0: now,
@@ -694,7 +789,8 @@ impl Source for F1 {
 
     fn session_update(&mut self) -> Option<SessionData> {
         self.pump();
-        if self.last_sig_check.elapsed() < std::time::Duration::from_millis(500) || !self.st.ready() {
+        if self.last_sig_check.elapsed() < std::time::Duration::from_millis(500) || !self.st.ready()
+        {
             return None;
         }
         self.last_sig_check = std::time::Instant::now();
@@ -771,7 +867,10 @@ pub(crate) mod tests {
         let plen = H + 1 + NCARS * ps;
         let mut p = header(fmt, id::PARTICIPANTS, plen, uid, 1);
         p[H] = 2;
-        for (i, (name, team, num)) in [("VERSTAPPEN", 2u8, 1u8), ("Erkin Azcan", 1, 16)].iter().enumerate() {
+        for (i, (name, team, num)) in [("VERSTAPPEN", 2u8, 1u8), ("Erkin Azcan", 1, 16)]
+            .iter()
+            .enumerate()
+        {
             let o = H + 1 + i * ps;
             p[o] = if i == 0 { 1 } else { 0 };
             p[o + 3] = *team;
@@ -782,7 +881,10 @@ pub(crate) mod tests {
         // Tur verisi
         let ll = lap_layout(fmt);
         let mut l = header(fmt, id::LAP, H + NCARS * ll.size + 2, uid, 1);
-        for (i, (dist, pos, lap, last)) in [(2896.5f32, 1u8, 4u8, 82_500u32), (-10.0, 2, 4, 83_000)].iter().enumerate() {
+        for (i, (dist, pos, lap, last)) in [(2896.5f32, 1u8, 4u8, 82_500u32), (-10.0, 2, 4, 83_000)]
+            .iter()
+            .enumerate()
+        {
             let o = H + i * ll.size;
             pu32(&mut l, o, *last);
             pu32(&mut l, o + 4, 12_345);

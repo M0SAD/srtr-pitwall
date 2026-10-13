@@ -112,16 +112,36 @@ const CARS: [&str; 7] = [
 const FLAIRS: [&str; 10] = ["DE", "IT", "JP", "GB", "ES", "SE", "TR", "US", "FR", "BR"];
 
 const NAMES: [&str; N_CARS] = [
-    "Max Brenner", "Luca Rossi", "Kenji Sato", "Oliver Hart", "Mateo Silva", "Jonas Berg",
-    "Liam Novak", "Ethan Cole", "Noah Fischer", "Arda Yılmaz", "Emre Kaya", "Tom Walsh",
-    "Pierre Blanc", "Sam Porter", "Sen (Demo)", "Ivan Petrov", "Diego Ruiz", "Finn Larsen",
-    "Hugo Martin", "Leo Costa", "Kai Weber", "Omar Haddad", "Ben Clarke", "Marco Bianchi",
+    "Max Brenner",
+    "Luca Rossi",
+    "Kenji Sato",
+    "Oliver Hart",
+    "Mateo Silva",
+    "Jonas Berg",
+    "Liam Novak",
+    "Ethan Cole",
+    "Noah Fischer",
+    "Arda Yılmaz",
+    "Emre Kaya",
+    "Tom Walsh",
+    "Pierre Blanc",
+    "Sam Porter",
+    "Sen (Demo)",
+    "Ivan Petrov",
+    "Diego Ruiz",
+    "Finn Larsen",
+    "Hugo Martin",
+    "Leo Costa",
+    "Kai Weber",
+    "Omar Haddad",
+    "Ben Clarke",
+    "Marco Bianchi",
 ];
 
 /// Vitrin üyesinin ülkesi bilinmiyorsa seçilecek makul ülkeler (flag-icons kodları)
 const SHOWCASE_FLAIRS: [&str; 24] = [
-    "TR", "DE", "GB", "US", "IT", "ES", "FR", "NL", "BR", "PT", "SE", "FI", "PL", "BE", "AT", "CA", "AU", "JP", "DK", "NO",
-    "CH", "CZ", "AR", "MX",
+    "TR", "DE", "GB", "US", "IT", "ES", "FR", "NL", "BR", "PT", "SE", "FI", "PL", "BE", "AT", "CA",
+    "AU", "JP", "DK", "NO", "CH", "CZ", "AR", "MX",
 ];
 
 /// Ada bağlı sabit sayı (FNV-1a): bilinmeyen değerler her demo oturumunda aynı çıkar
@@ -166,11 +186,16 @@ fn is_hex_color(c: &str) -> bool {
 /// "A 3.42" biçimi: 1–6 harf, boşluk, sayı
 fn is_license(l: &str) -> bool {
     let mut it = l.splitn(2, ' ');
-    let (Some(cls), Some(sr)) = (it.next(), it.next()) else { return false };
+    let (Some(cls), Some(sr)) = (it.next(), it.next()) else {
+        return false;
+    };
     (1..=6).contains(&cls.len())
         && cls.chars().all(|c| c.is_ascii_alphabetic() || c == '/')
         && sr.len() <= 5
-        && sr.parse::<f32>().map(|v| (0.0..100.0).contains(&v)).unwrap_or(false)
+        && sr
+            .parse::<f32>()
+            .map(|v| (0.0..100.0).contains(&v))
+            .unwrap_or(false)
 }
 
 /// Demo vitrini: panelin buluttan aldığı PRO üyeler (`demo_set_drivers`; eski sunucuda sadece adlar,
@@ -185,13 +210,19 @@ pub fn set_showcase_drivers(list: Vec<ShowcaseDriver>) -> usize {
     for d in list {
         let n: String = d.name.split_whitespace().collect::<Vec<_>>().join(" ");
         let len = n.chars().count();
-        if !(2..=32).contains(&len) || out.iter().any(|x| x.name.eq_ignore_ascii_case(&n)) || NAMES.contains(&n.as_str()) {
+        if !(2..=32).contains(&len)
+            || out.iter().any(|x| x.name.eq_ignore_ascii_case(&n))
+            || NAMES.contains(&n.as_str())
+        {
             continue;
         }
         let country = d
             .country
             .map(|c| c.trim().to_ascii_uppercase())
-            .filter(|c| (2..=8).contains(&c.len()) && c.chars().all(|x| x.is_ascii_alphanumeric() || x == '-'))
+            .filter(|c| {
+                (2..=8).contains(&c.len())
+                    && c.chars().all(|x| x.is_ascii_alphanumeric() || x == '-')
+            })
             // "Bayrak yok" anlamındaki iRacing değerleri (ör. "--") ülke sayılmaz
             .filter(|c| c.chars().any(|x| x.is_ascii_alphabetic()));
         let irating = d.irating.filter(|v| (1..=20000).contains(v));
@@ -208,7 +239,13 @@ pub fn set_showcase_drivers(list: Vec<ShowcaseDriver>) -> usize {
             ),
             None => None,
         };
-        out.push(ShowcaseDriver { name: n, country, irating, license, lic_color });
+        out.push(ShowcaseDriver {
+            name: n,
+            country,
+            irating,
+            license,
+            lic_color,
+        });
         if out.len() >= 100 {
             break;
         }
@@ -222,7 +259,15 @@ pub fn set_showcase_drivers(list: Vec<ShowcaseDriver>) -> usize {
 
 /// Sadece adlar (eski sunucu: demo_pro_names). Bayrak / iR / SR bilinmez.
 pub fn set_showcase_names(names: Vec<String>) -> usize {
-    set_showcase_drivers(names.into_iter().map(|name| ShowcaseDriver { name, ..Default::default() }).collect())
+    set_showcase_drivers(
+        names
+            .into_iter()
+            .map(|name| ShowcaseDriver {
+                name,
+                ..Default::default()
+            })
+            .collect(),
+    )
 }
 
 fn showcase_drivers() -> Vec<ShowcaseDriver> {
@@ -254,21 +299,40 @@ pub fn player_iracing_from(sim: &str, sd: &SessionData) -> Option<PlayerIracing>
         return None;
     }
     let d = sd.driver(sd.player_idx as usize)?;
-    if d.is_ai || d.is_pace_car || d.user_id != sd.player_user_id || d.irating < 1 || !is_license(&d.license) {
+    if d.is_ai
+        || d.is_pace_car
+        || d.user_id != sd.player_user_id
+        || d.irating < 1
+        || !is_license(&d.license)
+    {
         return None;
     }
     Some(PlayerIracing {
         cust_id: d.user_id,
         irating: d.irating,
         license: d.license.clone(),
-        lic_color: if is_hex_color(&d.lic_color) { d.lic_color.to_ascii_lowercase() } else { String::new() },
+        lic_color: if is_hex_color(&d.lic_color) {
+            d.lic_color.to_ascii_lowercase()
+        } else {
+            String::new()
+        },
         // Yalnızca bayrak kodu gönderilir (ör. TR, GB-ENG); koda çevrilemeyen ülke adı gönderilmez
         country: {
             let c = d.flair.trim().to_ascii_uppercase();
-            let short = (2..=3).contains(&c.len()) && c.chars().all(|ch| ch.is_ascii_alphanumeric());
-            if short || (c.starts_with("GB-") && c.len() == 6) { c } else { String::new() }
+            let short =
+                (2..=3).contains(&c.len()) && c.chars().all(|ch| ch.is_ascii_alphanumeric());
+            if short || (c.starts_with("GB-") && c.len() == 6) {
+                c
+            } else {
+                String::new()
+            }
         },
-        category: sd.category.chars().filter(|c| c.is_ascii_alphabetic()).collect::<String>().to_ascii_lowercase(),
+        category: sd
+            .category
+            .chars()
+            .filter(|c| c.is_ascii_alphabetic())
+            .collect::<String>()
+            .to_ascii_lowercase(),
     })
 }
 
@@ -281,7 +345,11 @@ pub fn note_player(sim: &str, sd: &SessionData) {
         match cur {
             Some(p) => *g = Some(p),
             None => {
-                if sim != "iracing" || g.as_ref().map(|p| p.cust_id != sd.player_user_id).unwrap_or(false) {
+                if sim != "iracing"
+                    || g.as_ref()
+                        .map(|p| p.cust_id != sd.player_user_id)
+                        .unwrap_or(false)
+                {
                     *g = None;
                 }
             }
@@ -334,7 +402,11 @@ impl Demo {
                 car_number: format!("{}", 3 + i * 4 % 97),
                 class_id: if gtp { 1 } else { 2 },
                 class_name: if gtp { "GTP".into() } else { "GT3".into() },
-                class_color: if gtp { "#ffda59".into() } else { "#33ceff".into() },
+                class_color: if gtp {
+                    "#ffda59".into()
+                } else {
+                    "#33ceff".into()
+                },
                 class_est_lap: if gtp { 99.0 } else { 108.5 },
                 irating: 1200 + ((i * 1733) % 4200) as i32,
                 license: format!("{} {:.2}", lic, 1.5 + (i as f32 * 0.37) % 3.4),
@@ -374,7 +446,13 @@ impl Demo {
             series_id: 0,
             category: "Road".into(),
             drivers,
-            sessions: vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: Some(RACE_LEN), ..Default::default() }],
+            sessions: vec![SessionEntry {
+                num: 0,
+                kind: "Race".into(),
+                laps: None,
+                time: Some(RACE_LEN),
+                ..Default::default()
+            }],
             tire_types: Vec::new(),
             ai_session: false,
             player_user_id: 0,
@@ -460,13 +538,17 @@ impl Demo {
                 // Gerçek üye: biliniyorsa kendi ülkesi / iRating'i / lisansı. Bilinmeyen değer boş bırakılmaz:
                 // ada bağlı (her oturumda aynı) makul bir rastgele değer üretilir, satırda boş hücre kalmaz.
                 let h = name_hash(&d.name);
-                d.flair = m.country.unwrap_or_else(|| SHOWCASE_FLAIRS[(h % SHOWCASE_FLAIRS.len() as u64) as usize].to_string());
+                d.flair = m.country.unwrap_or_else(|| {
+                    SHOWCASE_FLAIRS[(h % SHOWCASE_FLAIRS.len() as u64) as usize].to_string()
+                });
                 d.irating = m.irating.unwrap_or(1350 + ((h >> 8) % 3900) as i32);
                 let lic = m.license.unwrap_or_else(|| {
                     let cls = ["D", "C", "C", "B", "B", "A", "A"][((h >> 24) % 7) as usize];
                     format!("{} {:.2}", cls, 1.6 + ((h >> 32) % 330) as f32 / 100.0)
                 });
-                d.lic_color = m.lic_color.unwrap_or_else(|| lic_color_for(&lic).to_string());
+                d.lic_color = m
+                    .lic_color
+                    .unwrap_or_else(|| lic_color_for(&lic).to_string());
                 d.license = lic;
             }
         }
@@ -554,10 +636,17 @@ impl Demo {
             self.track = (self.track + self.rng.range(-0.4, 0.6)).clamp(self.air + 4.0, 50.0);
             self.humidity = (self.humidity + self.rng.range(-0.02, 0.02)).clamp(0.2, 0.98);
             self.precip = (self.precip + self.rng.range(-0.05, 0.06)).clamp(0.0, 1.0);
-            self.wind_dir = (self.wind_dir + self.rng.range(-0.15, 0.15)).rem_euclid(std::f32::consts::TAU);
+            self.wind_dir =
+                (self.wind_dir + self.rng.range(-0.15, 0.15)).rem_euclid(std::f32::consts::TAU);
             self.wind_vel = (self.wind_vel + self.rng.range(-0.4, 0.4)).clamp(0.0, 12.0);
             // Yağış arttıkça pist ıslanır, azalınca kurur
-            let target = if self.precip > 0.7 { 5 } else if self.precip > 0.5 { 3 } else { 1 };
+            let target = if self.precip > 0.7 {
+                5
+            } else if self.precip > 0.5 {
+                3
+            } else {
+                1
+            };
             if self.wetness < target {
                 self.wetness += 1;
             } else if self.wetness > target {
@@ -572,7 +661,13 @@ impl Demo {
                 self.car_flag_idx = (self.car_flag_idx + 1) % N_CARS;
             }
             let r = self.rng.next();
-            self.car_flag = if r < 0.5 { 0x0020 } else if r < 0.8 { 0x0010_0000 } else { 0x0001_0000 };
+            self.car_flag = if r < 0.5 {
+                0x0020
+            } else if r < 0.8 {
+                0x0010_0000
+            } else {
+                0x0001_0000
+            };
             self.car_flag_until = t + self.rng.range(6.0, 12.0) as f64;
         }
         // Ara sıra bir rakip pist dışına çıkar (yaklaşık dakikada bir, 2 – 4 sn)
@@ -584,7 +679,13 @@ impl Demo {
         // Olay puanı: 1 – 4 dk arası rastgele (temiz turlar da olsun); iRacing'deki gibi 1x/2x/4x
         if t >= self.next_incident_at {
             let r = self.rng.next();
-            self.incidents += if r < 0.6 { 1 } else if r < 0.9 { 2 } else { 4 };
+            self.incidents += if r < 0.6 {
+                1
+            } else if r < 0.9 {
+                2
+            } else {
+                4
+            };
             self.next_incident_at = t + self.rng.range(60.0, 240.0) as f64;
         }
     }
@@ -610,11 +711,20 @@ impl Demo {
         for c in &mut self.side_cars {
             c.offset += c.speed * dt;
         }
-        self.side_cars.retain(|c| c.offset.abs() <= 16.0 || c.offset.signum() != c.speed.signum());
+        self.side_cars
+            .retain(|c| c.offset.abs() <= 16.0 || c.offset.signum() != c.speed.signum());
 
         const BESIDE: f32 = 4.8; // araç boyu kadar yan yana
-        let left = self.side_cars.iter().filter(|c| c.side == 0 && c.offset.abs() < BESIDE).count();
-        let right = self.side_cars.iter().filter(|c| c.side == 1 && c.offset.abs() < BESIDE).count();
+        let left = self
+            .side_cars
+            .iter()
+            .filter(|c| c.side == 0 && c.offset.abs() < BESIDE)
+            .count();
+        let right = self
+            .side_cars
+            .iter()
+            .filter(|c| c.side == 1 && c.offset.abs() < BESIDE)
+            .count();
         let state = match (left, right) {
             (0, 0) => 1,
             (1, 0) => 2,
@@ -639,9 +749,17 @@ impl Demo {
         for (i, c) in self.cars.iter_mut().enumerate() {
             let pct = c.dist.rem_euclid(1.0) as f32;
             let (sf, _, _) = Demo::speed_factor(pct);
-            let pace = if i == PLAYER { 1.0 } else { 1.0 + ((t * 0.05 + i as f64).sin() as f32) * 0.004 };
+            let pace = if i == PLAYER {
+                1.0
+            } else {
+                1.0 + ((t * 0.05 + i as f64).sin() as f32) * 0.004
+            };
             let in_pit = t < c.pit_until;
-            let v = if in_pit { 0.0 } else { dt / (c.base_lap as f64 * pace as f64) * (0.55 + 0.6 * sf as f64) };
+            let v = if in_pit {
+                0.0
+            } else {
+                dt / (c.base_lap as f64 * pace as f64) * (0.55 + 0.6 * sf as f64)
+            };
             let before = c.dist.floor();
             c.dist += v;
             if c.dist.floor() > before && c.dist >= 1.0 {
@@ -717,21 +835,37 @@ impl Demo {
         // Oyuncu arabası
         let me = &self.cars[PLAYER];
         let pct = me.dist.rem_euclid(1.0) as f32;
-        let (sf, thr, brk) = if player_in_pit { (0.0, 0.0, 0.0) } else { Demo::speed_factor(pct) };
+        let (sf, thr, brk) = if player_in_pit {
+            (0.0, 0.0, 0.0)
+        } else {
+            Demo::speed_factor(pct)
+        };
         let noise = self.rng.next() * 0.03;
         f.throttle = (thr - noise).clamp(0.0, 1.0);
         f.brake = brk;
         f.clutch = 0.0;
         f.abs_active = brk > 0.85;
-        f.speed = if player_in_pit { 0.0 } else { (55.0 + 22.0 * sf) * (0.6 + 0.4 * sf) }; // m/s
-        f.gear = if player_in_pit { 1 } else { (1.0 + (f.speed / 76.0 * 5.0)).clamp(1.0, 6.0) as i32 };
+        f.speed = if player_in_pit {
+            0.0
+        } else {
+            (55.0 + 22.0 * sf) * (0.6 + 0.4 * sf)
+        }; // m/s
+        f.gear = if player_in_pit {
+            1
+        } else {
+            (1.0 + (f.speed / 76.0 * 5.0)).clamp(1.0, 6.0) as i32
+        };
         let gear_lo = (f.gear - 1) as f32 * 76.0 / 5.0;
         f.rpm = 4200.0 + ((f.speed - gear_lo) / (76.0 / 5.0)).clamp(0.0, 1.0) * 4600.0;
         f.steer = ((pct * std::f32::consts::TAU * 4.0).sin()) * 0.9 * (1.0 - sf * 0.8);
         // Demo FFB: tork direksiyon ve hızla artar, sert virajlarda kısa süre sınıra (clipping) dayanır
         {
             let v = (f.speed / 76.0).clamp(0.0, 1.0);
-            let pct = if player_in_pit { 0.04 } else { ((f.steer.abs() / 0.9) * (0.45 + 0.75 * v) + 0.08).min(1.0) };
+            let pct = if player_in_pit {
+                0.04
+            } else {
+                ((f.steer.abs() / 0.9) * (0.45 + 0.75 * v) + 0.08).min(1.0)
+            };
             // iRacing'deki "5.5 (61.4)": Max Force 61.4 Nm, direksiyon gücü (Wheel Force) 3.38 Nm → güç 5.5
             f.ffb_max_nm = 61.4;
             f.ffb_peak_nm = 3.38;
@@ -742,8 +876,16 @@ impl Demo {
         {
             let k = (dt as f32 * 7.0).min(1.0);
             let v = (f.speed / 76.0).clamp(0.0, 1.0);
-            let long_t = if player_in_pit { 0.0 } else { f.throttle * (1.15 - 0.75 * v) - brk * (1.6 + 1.3 * v) };
-            let lat_t = if player_in_pit { 0.0 } else { (-f.steer / 0.9 * 3.4 * (0.35 + 0.65 * v)).clamp(-2.9, 2.9) };
+            let long_t = if player_in_pit {
+                0.0
+            } else {
+                f.throttle * (1.15 - 0.75 * v) - brk * (1.6 + 1.3 * v)
+            };
+            let lat_t = if player_in_pit {
+                0.0
+            } else {
+                (-f.steer / 0.9 * 3.4 * (0.35 + 0.65 * v)).clamp(-2.9, 2.9)
+            };
             let jit = (self.rng.next() - 0.5) * 0.08;
             f.long_g += (long_t + jit - f.long_g) * k;
             f.lat_g += (lat_t - jit - f.lat_g) * k;
@@ -765,7 +907,8 @@ impl Demo {
 
         // Yakıt: tur başına ~2.85 L, gaza ve turdan tura değişen çarpana bağlı
         if !player_in_pit {
-            let use_rate = (2.85 / me.base_lap) * self.lap_fuel_factor * (0.35 + 0.8 * f.throttle) * 1.095;
+            let use_rate =
+                (2.85 / me.base_lap) * self.lap_fuel_factor * (0.35 + 0.8 * f.throttle) * 1.095;
             self.fuel = (self.fuel - dt as f32 * use_rate).max(0.0);
         }
         f.fuel_level = self.fuel;
@@ -793,7 +936,10 @@ impl Demo {
             if !player_in_pit {
                 if brk > 0.05 {
                     k_kw = -(60.0 + 110.0 * brk);
-                } else if f.throttle > 0.85 && self.lap_deployed < LAP_LIMIT_MJ && self.battery > 0.01 {
+                } else if f.throttle > 0.85
+                    && self.lap_deployed < LAP_LIMIT_MJ
+                    && self.battery > 0.01
+                {
                     k_kw = 62.0 * factor;
                 }
                 if f.throttle > 0.5 {
@@ -807,7 +953,8 @@ impl Demo {
             if d_mj > 0.0 {
                 self.lap_deployed += d_mj;
             }
-            self.battery = (self.battery - (d_mj - dt as f32 * h_kw / 1000.0) / CAP_MJ).clamp(0.0, 1.0);
+            self.battery =
+                (self.battery - (d_mj - dt as f32 * h_kw / 1000.0) / CAP_MJ).clamp(0.0, 1.0);
             f.hybrid = crate::model::Hybrid {
                 has: true,
                 battery_pct: self.battery,
@@ -821,7 +968,15 @@ impl Demo {
                 regen_gain: 6.0,
                 p2p_count: -1,
                 p2p_active: false,
-                drs: if player_in_pit { 0 } else if f.throttle > 0.95 && sf > 0.9 { 3 } else if sf > 0.75 { 1 } else { 0 },
+                drs: if player_in_pit {
+                    0
+                } else if f.throttle > 0.95 && sf > 0.9 {
+                    3
+                } else if sf > 0.75 {
+                    1
+                } else {
+                    0
+                },
                 mode_set: 1,
             };
         }
@@ -830,7 +985,20 @@ impl Demo {
         let (state, side_list) = self.side_traffic(dt as f32);
         f.car_left_right = if player_in_pit { 1 } else { state };
         // Demo: yan araçlar şerit ortasında (±3.3 m), öndekiler / arkadakiler hafif kaydırılmış
-        f.radar_lat = if player_in_pit { Vec::new() } else { side_list.iter().map(|(sd, off)| if *sd != 0 { *sd as f32 * 3.3 } else { (off * 0.37).sin() * 1.2 }).collect() };
+        f.radar_lat = if player_in_pit {
+            Vec::new()
+        } else {
+            side_list
+                .iter()
+                .map(|(sd, off)| {
+                    if *sd != 0 {
+                        *sd as f32 * 3.3
+                    } else {
+                        (off * 0.37).sin() * 1.2
+                    }
+                })
+                .collect()
+        };
         f.demo_side_cars = Some(if player_in_pit { Vec::new() } else { side_list });
 
         f.on_pit_road = player_in_pit;
@@ -855,11 +1023,19 @@ impl Demo {
             let wet = self.wetness >= 4 || i % 5 == 2;
             f.cars[i].tire = if wet { 1 } else { 0 };
             f.cars[i].tire_kind = if wet {
-                if i % 10 == 7 { b'I' } else { b'W' }
+                if i % 10 == 7 {
+                    b'I'
+                } else {
+                    b'W'
+                }
             } else {
                 [b'S', b'M', b'H'][i % 3]
             };
-            f.cars[i].flags = if i == self.car_flag_idx && t < self.car_flag_until { self.car_flag } else { 0 };
+            f.cars[i].flags = if i == self.car_flag_idx && t < self.car_flag_until {
+                self.car_flag
+            } else {
+                0
+            };
         }
         self.tires(dt, player_in_pit, sf, brk, f);
         f.brake_bias = 54.5;
@@ -867,7 +1043,11 @@ impl Demo {
         f.abs_setting = 6.0;
         f.oil_temp = 94.0 + f.speed * 0.06;
         f.water_temp = 82.0 + f.speed * 0.04;
-        f.session_flags = if t >= RACE_LEN { F_CHECKERED } else { F_GREEN | self.flag };
+        f.session_flags = if t >= RACE_LEN {
+            F_CHECKERED
+        } else {
+            F_GREEN | self.flag
+        };
     }
 
     /// Demo lastikleri: aşınma turla artar, sıcaklık yüke göre değişir, pitte yeni takım.
@@ -882,7 +1062,11 @@ impl Demo {
         let load = [1.0 + brk * 0.5, 0.9 + brk * 0.45, 0.95, 0.85];
         let k = (dt as f32 * 0.25).min(1.0);
         for (i, h) in self.tire_heat.iter_mut().enumerate() {
-            let target = if in_pit { 0.35 } else { (0.55 + 0.35 * (1.0 - sf) + 0.15 * sf) * load[i] };
+            let target = if in_pit {
+                0.35
+            } else {
+                (0.55 + 0.35 * (1.0 - sf) + 0.15 * sf) * load[i]
+            };
             *h += (target - *h) * k;
         }
         let wear_rate = [0.0125, 0.0105, 0.0095, 0.0085];
@@ -923,7 +1107,13 @@ mod tests {
         ]);
         assert_eq!(n, 3);
         let d = Demo::new();
-        let names: Vec<String> = d.session.drivers.iter().flatten().map(|x| x.name.clone()).collect();
+        let names: Vec<String> = d
+            .session
+            .drivers
+            .iter()
+            .flatten()
+            .map(|x| x.name.clone())
+            .collect();
         assert_eq!(names.len(), N_CARS);
         assert!(names.iter().any(|x| x == "Ayşe Demir"));
         assert_eq!(names[PLAYER], "Sen (Demo)");
@@ -940,13 +1130,39 @@ mod tests {
                 license: Some("A  3.42".into()),
                 lic_color: None,
             },
-            ShowcaseDriver { name: "Zoe Lane".into(), country: Some("??".into()), irating: Some(0), license: Some("x".into()), lic_color: None },
+            ShowcaseDriver {
+                name: "Zoe Lane".into(),
+                country: Some("??".into()),
+                irating: Some(0),
+                license: Some("x".into()),
+                lic_color: None,
+            },
         ]);
         assert_eq!(n, 2);
         let d = Demo::new();
-        let a = d.session.drivers.iter().flatten().find(|x| x.name == "Ayşe Demir").unwrap();
-        assert_eq!((a.flair.as_str(), a.irating, a.license.as_str(), a.lic_color.as_str()), ("TR", 3210, "A 3.42", "#0153db"));
-        let z = d.session.drivers.iter().flatten().find(|x| x.name == "Zoe Lane").unwrap();
+        let a = d
+            .session
+            .drivers
+            .iter()
+            .flatten()
+            .find(|x| x.name == "Ayşe Demir")
+            .unwrap();
+        assert_eq!(
+            (
+                a.flair.as_str(),
+                a.irating,
+                a.license.as_str(),
+                a.lic_color.as_str()
+            ),
+            ("TR", 3210, "A 3.42", "#0153db")
+        );
+        let z = d
+            .session
+            .drivers
+            .iter()
+            .flatten()
+            .find(|x| x.name == "Zoe Lane")
+            .unwrap();
         // Bilgisi olmayan üye: boş kalmaz, makul rastgele bayrak
         assert!(SHOWCASE_FLAIRS.contains(&z.flair.as_str()));
         assert!(z.irating >= 1200 && z.license.contains(' '));
@@ -955,7 +1171,13 @@ mod tests {
 
     #[test]
     fn player_iracing_only_self() {
-        let mut sd = SessionData { drivers: vec![None; MAX_CARS], player_idx: 1, player_user_id: 77, category: "DirtOval".into(), ..Default::default() };
+        let mut sd = SessionData {
+            drivers: vec![None; MAX_CARS],
+            player_idx: 1,
+            player_user_id: 77,
+            category: "DirtOval".into(),
+            ..Default::default()
+        };
         sd.drivers[1] = Some(Driver {
             car_idx: 1,
             user_id: 77,
@@ -966,7 +1188,16 @@ mod tests {
             ..Default::default()
         });
         let p = player_iracing_from("iracing", &sd).unwrap();
-        assert_eq!((p.cust_id, p.irating, p.country.as_str(), p.category.as_str(), p.lic_color.as_str()), (77, 2450, "TR", "dirtoval", "#0153db"));
+        assert_eq!(
+            (
+                p.cust_id,
+                p.irating,
+                p.country.as_str(),
+                p.category.as_str(),
+                p.lic_color.as_str()
+            ),
+            (77, 2450, "TR", "dirtoval", "#0153db")
+        );
         assert!(player_iracing_from("acc", &sd).is_none());
         // Takım yarışı: araçta başkası
         sd.drivers[1].as_mut().unwrap().user_id = 99;

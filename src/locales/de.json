@@ -7311,5 +7311,8 @@
   "Performans modu": "Leistungsmodus",
   "Üst ve alt kenarda karartma": "Abdunklung am oberen und unteren Rand",
   "Yakın araç renk dolgusu": "Farbfüllung für nahe Autos",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Weicher Farbübergang (Nähe-Hervorhebung füllt sich allmählich)"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Weicher Farbübergang (Nähe-Hervorhebung füllt sich allmählich)",
+  "Günlük boş: kayıtlı bir hata yok.": "Das Protokoll ist leer: keine Fehler aufgezeichnet.",
+  "Hata günlüğü": "Fehlerprotokoll",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Wenn sich das Programm von selbst schließt oder etwas hängt, steht der Grund hier. Kopiere dieses Protokoll und sende es mit, wenn du Support anfragst."
 }

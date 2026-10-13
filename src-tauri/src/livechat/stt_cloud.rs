@@ -74,7 +74,10 @@ pub fn input_devices() -> Vec<String> {
     // cpal (WASAPI) cihaz listelenirken cihaz çıkarılırsa içeride panic yapabilir: yakalanır (crash.log'a yazılır)
     crate::crashlog::guard(|| {
         let host = cpal::default_host();
-        let mut v: Vec<String> = host.input_devices().map(|it| it.filter_map(|d| d.name().ok()).collect()).unwrap_or_default();
+        let mut v: Vec<String> = host
+            .input_devices()
+            .map(|it| it.filter_map(|d| d.name().ok()).collect())
+            .unwrap_or_default();
         v.dedup();
         v
     })
@@ -82,30 +85,53 @@ pub fn input_devices() -> Vec<String> {
 }
 
 pub fn default_input_name() -> Option<String> {
-    crate::crashlog::guard(|| cpal::default_host().default_input_device().and_then(|d| d.name().ok())).flatten()
+    crate::crashlog::guard(|| {
+        cpal::default_host()
+            .default_input_device()
+            .and_then(|d| d.name().ok())
+    })
+    .flatten()
 }
 
 pub fn default_output_name() -> Option<String> {
-    crate::crashlog::guard(|| cpal::default_host().default_output_device().and_then(|d| d.name().ok())).flatten()
+    crate::crashlog::guard(|| {
+        cpal::default_host()
+            .default_output_device()
+            .and_then(|d| d.name().ok())
+    })
+    .flatten()
 }
 
-pub(crate) fn open_device(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
+pub(crate) fn open_device(
+    src: Src,
+    want: &str,
+) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
     // cpal içindeki panic (cihaz o anda çıkarıldı vb.) hata olarak döner
-    crate::crashlog::guard(|| open_device_inner(src, want)).unwrap_or_else(|| Err("Ses cihazı açılırken beklenmeyen hata oluştu".into()))
+    crate::crashlog::guard(|| open_device_inner(src, want))
+        .unwrap_or_else(|| Err("Ses cihazı açılırken beklenmeyen hata oluştu".into()))
 }
 
-fn open_device_inner(src: Src, want: &str) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
+fn open_device_inner(
+    src: Src,
+    want: &str,
+) -> Result<(cpal::Device, cpal::SupportedStreamConfig, String), String> {
     let host = cpal::default_host();
     fn find(mut it: impl Iterator<Item = cpal::Device>, want: &str) -> Option<cpal::Device> {
         it.find(|d| d.name().map(|n| n == want).unwrap_or(false))
     }
     match src {
         Src::Mic => {
-            let chosen = if want.is_empty() { None } else { host.input_devices().ok().and_then(|it| find(it, want)) };
+            let chosen = if want.is_empty() {
+                None
+            } else {
+                host.input_devices().ok().and_then(|it| find(it, want))
+            };
             let dev = chosen
                 .or_else(|| host.default_input_device())
                 .ok_or("Mikrofon bulunamadı: Windows'ta etkin bir kayıt cihazı yok. Mikrofonu takın ya da Windows ses ayarlarından etkinleştirin.")?;
-            let cfg = dev.default_input_config().map_err(|e| format!("Mikrofon açılamadı: {e}"))?;
+            let cfg = dev
+                .default_input_config()
+                .map_err(|e| format!("Mikrofon açılamadı: {e}"))?;
             let name = dev.name().unwrap_or_default();
             Ok((dev, cfg, name))
         }
@@ -113,10 +139,18 @@ fn open_device_inner(src: Src, want: &str) -> Result<(cpal::Device, cpal::Suppor
             if !cfg!(windows) {
                 return Err("Bilgisayar sesini yakalama sadece Windows'ta çalışır".into());
             }
-            let chosen = if want.is_empty() { None } else { host.output_devices().ok().and_then(|it| find(it, want)) };
-            let dev = chosen.or_else(|| host.default_output_device()).ok_or("Ses çıkış cihazı bulunamadı: Windows'ta etkin bir hoparlör / kulaklık yok.")?;
+            let chosen = if want.is_empty() {
+                None
+            } else {
+                host.output_devices().ok().and_then(|it| find(it, want))
+            };
+            let dev = chosen.or_else(|| host.default_output_device()).ok_or(
+                "Ses çıkış cihazı bulunamadı: Windows'ta etkin bir hoparlör / kulaklık yok.",
+            )?;
             // Geri döngü çıkış cihazının kendi biçimiyle açılır
-            let cfg = dev.default_output_config().map_err(|e| format!("Bilgisayar sesi açılamadı: {e}"))?;
+            let cfg = dev
+                .default_output_config()
+                .map_err(|e| format!("Bilgisayar sesi açılamadı: {e}"))?;
             let name = dev.name().unwrap_or_default();
             Ok((dev, cfg, name))
         }
@@ -130,7 +164,9 @@ fn open_device_inner(src: Src, want: &str) -> Result<(cpal::Device, cpal::Suppor
 /// Çok kanallı örnekleri tek kanala indir
 pub(crate) fn to_mono<T: Copy>(data: &[T], channels: usize, conv: impl Fn(T) -> f32) -> Vec<f32> {
     let ch = channels.max(1);
-    data.chunks(ch).map(|c| c.iter().map(|s| conv(*s)).sum::<f32>() / c.len() as f32).collect()
+    data.chunks(ch)
+        .map(|c| c.iter().map(|s| conv(*s)).sum::<f32>() / c.len() as f32)
+        .collect()
 }
 
 /// Kutu süzgeçli örnekleme hızı düşürücü (giriş hızı → 16 kHz). Giriş 16 kHz'in altındaysa doğrusal ara değer.
@@ -146,7 +182,14 @@ pub struct Resampler {
 
 impl Resampler {
     pub fn new(in_rate: u32) -> Resampler {
-        Resampler { step: in_rate.max(1) as f64 / RATE as f64, pos: 0.0, acc: 0.0, n: 0, idx: 0, last: 0.0 }
+        Resampler {
+            step: in_rate.max(1) as f64 / RATE as f64,
+            pos: 0.0,
+            acc: 0.0,
+            n: 0,
+            idx: 0,
+            last: 0.0,
+        }
     }
 
     pub fn push(&mut self, input: &[f32], out: &mut Vec<f32>) {
@@ -214,7 +257,16 @@ pub struct Vad {
 
 impl Vad {
     pub fn new(sensitivity: u8) -> Vad {
-        Vad { base: base_threshold(sensitivity), noise: 0.0, pre: VecDeque::with_capacity(PREROLL + FRAME), run: 0, seg: None, voiced: 0, silence_ms: 0, tainted: false }
+        Vad {
+            base: base_threshold(sensitivity),
+            noise: 0.0,
+            pre: VecDeque::with_capacity(PREROLL + FRAME),
+            run: 0,
+            seg: None,
+            voiced: 0,
+            silence_ms: 0,
+            tainted: false,
+        }
     }
 
     pub fn in_speech(&self) -> bool {
@@ -301,7 +353,11 @@ pub fn wav16(samples: &[f32]) -> Vec<u8> {
     w.extend_from_slice(&len.to_le_bytes());
     // Kısık kayıtlar tanıyıcıya daha net gitsin: tepe değeri 0,7'ye yükselt (en fazla 8 kat)
     let peak = samples.iter().fold(0f32, |m, x| m.max(x.abs()));
-    let gain = if peak > 0.000_1 { (0.7 / peak).clamp(1.0, 8.0) } else { 1.0 };
+    let gain = if peak > 0.000_1 {
+        (0.7 / peak).clamp(1.0, 8.0)
+    } else {
+        1.0
+    };
     for s in samples {
         w.extend_from_slice(&(((s * gain).clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes());
     }
@@ -310,7 +366,11 @@ pub fn wav16(samples: &[f32]) -> Vec<u8> {
 
 /// Whisper'ın sessizlikte / gürültüde uydurduğu bilinen kalıplar
 pub fn is_hallucination(text: &str) -> bool {
-    let t: String = text.to_lowercase().chars().filter(|c| c.is_alphanumeric() || c.is_whitespace()).collect();
+    let t: String = text
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+        .collect();
     let t = t.split_whitespace().collect::<Vec<_>>().join(" ");
     if t.is_empty() {
         return true;
@@ -337,7 +397,9 @@ pub fn is_hallucination(text: &str) -> bool {
 /// Taban adres güvenli mi: https ya da yerel sunucu (anahtar düz http ile uzağa gönderilmez)
 pub fn check_url(url: &str) -> Result<String, String> {
     let u = url.trim().trim_end_matches('/');
-    let local = ["http://localhost", "http://127.0.0.1", "http://[::1]"].iter().any(|p| u.starts_with(p));
+    let local = ["http://localhost", "http://127.0.0.1", "http://[::1]"]
+        .iter()
+        .any(|p| u.starts_with(p));
     if u.starts_with("https://") || local {
         if u.contains(char::is_whitespace) {
             return Err("Sunucu adresi geçersiz".into());
@@ -351,7 +413,9 @@ pub fn check_url(url: &str) -> Result<String, String> {
 }
 
 pub fn is_local(url: &str) -> bool {
-    ["http://localhost", "http://127.0.0.1", "http://[::1]"].iter().any(|p| url.trim().starts_with(p))
+    ["http://localhost", "http://127.0.0.1", "http://[::1]"]
+        .iter()
+        .any(|p| url.trim().starts_with(p))
 }
 
 // ---------------------------------------------------------------------------
@@ -361,7 +425,10 @@ pub fn is_local(url: &str) -> bool {
 fn multipart(boundary: &str, fields: &[(&str, &str)], wav: &[u8]) -> Vec<u8> {
     let mut b = Vec::with_capacity(wav.len() + 512);
     for (k, v) in fields {
-        b.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n").as_bytes());
+        b.extend_from_slice(
+            format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n")
+                .as_bytes(),
+        );
     }
     b.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"speech.wav\"\r\nContent-Type: audio/wav\r\n\r\n").as_bytes());
     b.extend_from_slice(wav);
@@ -372,20 +439,35 @@ fn multipart(boundary: &str, fields: &[(&str, &str)], wav: &[u8]) -> Vec<u8> {
 /// Sunucunun hata gövdesinden kısa ileti (anahtar içermez)
 fn api_message(body: &str) -> String {
     let v: serde_json::Value = serde_json::from_str(body).unwrap_or(serde_json::Value::Null);
-    let m = v.pointer("/error/message").or_else(|| v.pointer("/message")).or_else(|| v.pointer("/error")).and_then(|x| x.as_str()).unwrap_or("");
+    let m = v
+        .pointer("/error/message")
+        .or_else(|| v.pointer("/message"))
+        .or_else(|| v.pointer("/error"))
+        .and_then(|x| x.as_str())
+        .unwrap_or("");
     m.chars().take(160).collect()
 }
 
 pub(crate) async fn transcribe(cfg: &CloudCfg, wav: Vec<u8>) -> Result<String, RunErr> {
     let base = check_url(&cfg.url).map_err(|e| (true, e))?;
     let boundary = format!("----pitwall{:016x}", super::poll::rand_u64());
-    let mut fields: Vec<(&str, &str)> = vec![("model", cfg.model.as_str()), ("response_format", "json"), ("temperature", "0")];
+    let mut fields: Vec<(&str, &str)> = vec![
+        ("model", cfg.model.as_str()),
+        ("response_format", "json"),
+        ("temperature", "0"),
+    ];
     if !cfg.language.is_empty() {
         fields.push(("language", cfg.language.as_str()));
     }
     let body = multipart(&boundary, &fields, &wav);
     let client = super::net::http().map_err(|e| (false, e))?;
-    let mut req = client.post(format!("{base}/audio/transcriptions")).header("Content-Type", format!("multipart/form-data; boundary={boundary}")).body(body);
+    let mut req = client
+        .post(format!("{base}/audio/transcriptions"))
+        .header(
+            "Content-Type",
+            format!("multipart/form-data; boundary={boundary}"),
+        )
+        .body(body);
     if !cfg.key.is_empty() {
         req = req.bearer_auth(&cfg.key);
     }
@@ -421,7 +503,14 @@ pub(crate) async fn transcribe(cfg: &CloudCfg, wav: Vec<u8>) -> Result<String, R
 
 /// Kaynağı dinle ve cümleleri yazıya çevir (çağıran iş parçacığını bloklar). `stop()` true dönünce Ok ile çıkar.
 /// `busy()`: sesli okuma / sesli mühendis konuşuyor (o sırada yakalanan cümle atılır).
-pub fn run(src: Src, device: &str, cfg: &CloudCfg, stop: impl Fn() -> bool, busy: impl Fn() -> bool, emit: impl Fn(Ev)) -> Result<(), RunErr> {
+pub fn run(
+    src: Src,
+    device: &str,
+    cfg: &CloudCfg,
+    stop: impl Fn() -> bool,
+    busy: impl Fn() -> bool,
+    emit: impl Fn(Ev),
+) -> Result<(), RunErr> {
     check_url(&cfg.url).map_err(|e| (true, e))?;
     if cfg.key.is_empty() && !is_local(&cfg.url) {
         return Err((true, "API anahtarı girilmedi: “Çevrimiçi (Whisper)” motoru için anahtarı aşağıya yapıştırın.".into()));
@@ -465,7 +554,9 @@ pub fn run(src: Src, device: &str, cfg: &CloudCfg, stop: impl Fn() -> bool, busy
         (false, format!("{what} açılamadı ({name}): {e}. Cihaz başka bir uygulama tarafından özel kipte kullanılıyor ya da Windows mikrofon izni kapalı olabilir."))
     })?;
     drop(tx);
-    stream.play().map_err(|e| (false, format!("Ses yakalama başlatılamadı: {e}")))?;
+    stream
+        .play()
+        .map_err(|e| (false, format!("Ses yakalama başlatılamadı: {e}")))?;
     emit(Ev::Listening(name));
 
     let mut rs = Resampler::new(in_rate);
@@ -490,12 +581,16 @@ pub fn run(src: Src, device: &str, cfg: &CloudCfg, stop: impl Fn() -> bool, busy
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Geri döngüde hiçbir şey çalmıyorken veri gelmez: süren cümleyi kapat
-                if vad.in_speech() && last_data.elapsed() > Duration::from_millis(END_SILENCE_MS as u64) {
+                if vad.in_speech()
+                    && last_data.elapsed() > Duration::from_millis(END_SILENCE_MS as u64)
+                {
                     done = vad.finish();
                 }
                 level_peak = 0.0;
             }
-            Err(mpsc::RecvTimeoutError::Disconnected) => return Err((false, "Ses akışı kapandı".into())),
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                return Err((false, "Ses akışı kapandı".into()))
+            }
         }
         let mut off = 0;
         while pending.len() - off >= FRAME {
@@ -558,7 +653,9 @@ mod tests {
     use super::*;
 
     fn tone(ms: usize, amp: f32) -> Vec<f32> {
-        (0..RATE as usize * ms / 1000).map(|i| (i as f32 * 0.2).sin() * amp).collect()
+        (0..RATE as usize * ms / 1000)
+            .map(|i| (i as f32 * 0.2).sin() * amp)
+            .collect()
     }
 
     #[test]
@@ -605,12 +702,18 @@ mod tests {
         let mut v = Vad::new(5);
         let mut audio = tone(100, 0.3);
         audio.extend(vec![0.0f32; RATE as usize]);
-        assert!(audio.chunks(FRAME).filter(|c| c.len() == FRAME).all(|f| v.frame(f, false).is_none()));
+        assert!(audio
+            .chunks(FRAME)
+            .filter(|c| c.len() == FRAME)
+            .all(|f| v.frame(f, false).is_none()));
         // Sesli okuma konuşurken yakalanan cümle atılır
         let mut v = Vad::new(5);
         let mut audio = tone(800, 0.2);
         audio.extend(vec![0.0f32; RATE as usize]);
-        assert!(audio.chunks(FRAME).filter(|c| c.len() == FRAME).all(|f| v.frame(f, true).is_none()));
+        assert!(audio
+            .chunks(FRAME)
+            .filter(|c| c.len() == FRAME)
+            .all(|f| v.frame(f, true).is_none()));
         // Akış kesilince süren cümle kapatılır
         let mut v = Vad::new(5);
         for f in tone(600, 0.2).chunks(FRAME).filter(|c| c.len() == FRAME) {
@@ -630,14 +733,22 @@ mod tests {
         assert!(is_hallucination(" Thanks for watching! "));
         assert!(is_hallucination(""));
         assert!(!is_hallucination("Pite gir, lastikler bitti"));
-        assert_eq!(check_url("https://api.groq.com/openai/v1/").unwrap(), "https://api.groq.com/openai/v1");
+        assert_eq!(
+            check_url("https://api.groq.com/openai/v1/").unwrap(),
+            "https://api.groq.com/openai/v1"
+        );
         assert!(check_url("http://example.com/v1").is_err());
         assert!(check_url("http://localhost:8000/v1").is_ok());
         assert!(check_url("").is_err());
         let b = multipart("B", &[("model", "m")], b"WAV");
         let s = String::from_utf8_lossy(&b);
-        assert!(s.starts_with("--B\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nm\r\n--B\r\n"));
+        assert!(s.starts_with(
+            "--B\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nm\r\n--B\r\n"
+        ));
         assert!(s.ends_with("\r\nWAV\r\n--B--\r\n"));
-        assert_eq!(api_message(r#"{"error":{"message":"Invalid API Key"}}"#), "Invalid API Key");
+        assert_eq!(
+            api_message(r#"{"error":{"message":"Invalid API Key"}}"#),
+            "Invalid API Key"
+        );
     }
 }

@@ -16,7 +16,10 @@
 use parking_lot::Mutex;
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
-use tauri::{AppHandle, Emitter, Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder,
+};
 
 pub const LABEL: &str = "osd";
 /// Pencere boyutu (mantıksal px); hap bunun içinde ortalanır
@@ -163,7 +166,12 @@ fn place(app: &AppHandle, w: &WebviewWindow) -> Option<(i32, i32, u32, u32)> {
         .and_then(|o| o.current_monitor().ok().flatten())
         .or_else(|| app.primary_monitor().ok().flatten())
         .or_else(|| w.current_monitor().ok().flatten())?;
-    Some(rect(mon.position().x, mon.position().y, mon.size().width, mon.scale_factor()))
+    Some(rect(
+        mon.position().x,
+        mon.position().y,
+        mon.size().width,
+        mon.scale_factor(),
+    ))
 }
 
 fn rect(mx: i32, my: i32, mw: u32, scale: f64) -> (i32, i32, u32, u32) {
@@ -178,12 +186,22 @@ fn rect(mx: i32, my: i32, mw: u32, scale: f64) -> (i32, i32, u32, u32) {
 /// Pencereyi odak çalmadan, en üstte göster (oyun odağını kaybetmez)
 #[cfg(windows)]
 fn show_at(w: &WebviewWindow, x: i32, y: i32, cw: u32, ch: u32) {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_SHOWWINDOW};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_SHOWWINDOW,
+    };
     let _ = w.set_size(PhysicalSize::new(cw, ch));
     let _ = w.set_position(PhysicalPosition::new(x, y));
     if let Ok(h) = w.hwnd() {
         unsafe {
-            SetWindowPos(h.0 as _, HWND_TOPMOST, x, y, cw as i32, ch as i32, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            SetWindowPos(
+                h.0 as _,
+                HWND_TOPMOST,
+                x,
+                y,
+                cw as i32,
+                ch as i32,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW,
+            );
         }
     }
 }
@@ -263,7 +281,9 @@ pub fn osd_take() -> Option<Value> {
 /// Sayfa hapı çizdi (göster) ya da süresi doldu (gizle)
 #[tauri::command]
 pub async fn osd_visible(app: AppHandle, show: bool) -> Result<(), String> {
-    let Some(w) = app.get_webview_window(LABEL) else { return Ok(()) };
+    let Some(w) = app.get_webview_window(LABEL) else {
+        return Ok(());
+    };
     if !show {
         // Bu arada yeni bildirim geldiyse gizleme (sayfa onu birazdan gösterecek)
         if PENDING.lock().is_none() {

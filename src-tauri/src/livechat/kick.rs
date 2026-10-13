@@ -38,16 +38,30 @@ pub struct KickInfo {
 /// `api/v2/channels/<ad>` yanıtından gereken alanlar
 pub fn parse_channel_info(body: &str) -> Option<KickInfo> {
     let v: Value = serde_json::from_str(body).ok()?;
-    let v = if v.get("chatroom").is_none() && v.get("data").is_some() { v.get("data")?.clone() } else { v };
+    let v = if v.get("chatroom").is_none() && v.get("data").is_some() {
+        v.get("data")?.clone()
+    } else {
+        v
+    };
     let chatroom_id = json_u64(v.pointer("/chatroom/id"))?;
     let ls = v.get("livestream").filter(|l| !l.is_null());
-    let live = ls.map(|l| l.get("is_live").and_then(|x| x.as_bool()).unwrap_or(true)).unwrap_or(false);
-    let viewers = if live { ls.and_then(|l| json_u64(l.get("viewer_count")).or_else(|| json_u64(l.get("viewers")))) } else { None };
+    let live = ls
+        .map(|l| l.get("is_live").and_then(|x| x.as_bool()).unwrap_or(true))
+        .unwrap_or(false);
+    let viewers = if live {
+        ls.and_then(|l| json_u64(l.get("viewer_count")).or_else(|| json_u64(l.get("viewers"))))
+    } else {
+        None
+    };
     let name = json_str(v.pointer("/user/username"));
     Some(KickInfo {
         chatroom_id,
         channel_id: json_u64(v.get("id")).unwrap_or(0),
-        name: if name.is_empty() { json_str(v.get("slug")) } else { name },
+        name: if name.is_empty() {
+            json_str(v.get("slug"))
+        } else {
+            name
+        },
         live,
         viewers,
     })
@@ -72,7 +86,11 @@ pub fn content_parts(content: &str) -> Vec<Part> {
             continue;
         }
         parts.push(Part::text(&rest[..i]));
-        parts.push(Part::Emote { url: format!("https://files.kick.com/emotes/{id}/fullsize"), name: name.to_string(), custom: false });
+        parts.push(Part::Emote {
+            url: format!("https://files.kick.com/emotes/{id}/fullsize"),
+            name: name.to_string(),
+            custom: false,
+        });
         rest = &after[close + 1..];
     }
     parts.push(Part::text(rest));
@@ -88,7 +106,9 @@ pub fn content_parts(content: &str) -> Vec<Part> {
         while let Some(i) = r.find("[mention:") {
             let Some(c) = r[i..].find(']') else { break };
             out.push(Part::text(&r[..i]));
-            out.push(Part::Mention { v: r[i + 9..i + c].to_string() });
+            out.push(Part::Mention {
+                v: r[i + 9..i + c].to_string(),
+            });
             r = &r[i + c + 1..];
         }
         out.push(Part::text(r));
@@ -105,7 +125,10 @@ pub enum KickEvent {
     Ping,
     Msg(Box<ChatMsg>),
     Delete(String),
-    Ban { login: String, permanent: bool },
+    Ban {
+        login: String,
+        permanent: bool,
+    },
     Error(String),
 }
 
@@ -114,13 +137,22 @@ fn sender_author(s: &Value) -> Author {
     let badges: Vec<String> = s
         .pointer("/identity/badges")
         .and_then(|b| b.as_array())
-        .map(|a| a.iter().map(|b| json_str(b.get("type")).to_lowercase()).filter(|t| !t.is_empty()).collect())
+        .map(|a| {
+            a.iter()
+                .map(|b| json_str(b.get("type")).to_lowercase())
+                .filter(|t| !t.is_empty())
+                .collect()
+        })
         .unwrap_or_default();
     let has = |n: &str| badges.iter().any(|b| b == n);
     let color = json_str(s.pointer("/identity/color"));
     let slug = json_str(s.get("slug"));
     Author {
-        login: if slug.is_empty() { username.to_lowercase() } else { slug.to_lowercase() },
+        login: if slug.is_empty() {
+            username.to_lowercase()
+        } else {
+            slug.to_lowercase()
+        },
         name: username,
         id: json_str(s.get("id")),
         color: (!color.is_empty()).then_some(color),
@@ -159,11 +191,23 @@ pub fn parse_pusher(raw: &str) -> Option<KickEvent> {
             if author.name.is_empty() || content.is_empty() {
                 return None;
             }
-            let mut m = ChatMsg::new(Platform::Kick, if id.is_empty() { format!("k{}", super::poll::rand_u64()) } else { id }, Kind::Chat, author, content_parts(&content));
+            let mut m = ChatMsg::new(
+                Platform::Kick,
+                if id.is_empty() {
+                    format!("k{}", super::poll::rand_u64())
+                } else {
+                    id
+                },
+                Kind::Chat,
+                author,
+                content_parts(&content),
+            );
             if json_str(data.get("type")) == "reply" {
                 let u = json_str(data.pointer("/metadata/original_sender/username"));
                 if !u.is_empty() {
-                    let t = super::model::plain_text(&content_parts(&json_str(data.pointer("/metadata/original_message/content"))));
+                    let t = super::model::plain_text(&content_parts(&json_str(
+                        data.pointer("/metadata/original_message/content"),
+                    )));
                     m.reply_to = Some(Reply { user: u, text: t });
                 }
             }
@@ -179,26 +223,73 @@ pub fn parse_pusher(raw: &str) -> Option<KickEvent> {
         "App\\Events\\UserBannedEvent" => {
             let u = data.get("user")?;
             let slug = json_str(u.get("slug"));
-            let login = if slug.is_empty() { json_str(u.get("username")) } else { slug };
-            let permanent = data.get("permanent").and_then(|x| x.as_bool()).unwrap_or_else(|| data.get("expires_at").map_or(true, |e| e.is_null()));
-            (!login.is_empty()).then(|| KickEvent::Ban { login: login.to_lowercase(), permanent })
+            let login = if slug.is_empty() {
+                json_str(u.get("username"))
+            } else {
+                slug
+            };
+            let permanent = data
+                .get("permanent")
+                .and_then(|x| x.as_bool())
+                .unwrap_or_else(|| data.get("expires_at").map_or(true, |e| e.is_null()));
+            (!login.is_empty()).then(|| KickEvent::Ban {
+                login: login.to_lowercase(),
+                permanent,
+            })
         }
         "App\\Events\\SubscriptionEvent" => {
             let user = json_str(data.get("username"));
             if user.is_empty() {
                 return None;
             }
-            let author = Author { login: user.to_lowercase(), name: user, ..Default::default() };
-            let mut m = ChatMsg::new(Platform::Kick, format!("sub{}", super::poll::rand_u64()), Kind::Sub, author, vec![]);
-            m.alert = Some(AlertInfo { kind: "subscriber".into(), months: json_u64(data.get("months")).map(|x| x as u32), ..Default::default() });
+            let author = Author {
+                login: user.to_lowercase(),
+                name: user,
+                ..Default::default()
+            };
+            let mut m = ChatMsg::new(
+                Platform::Kick,
+                format!("sub{}", super::poll::rand_u64()),
+                Kind::Sub,
+                author,
+                vec![],
+            );
+            m.alert = Some(AlertInfo {
+                kind: "subscriber".into(),
+                months: json_u64(data.get("months")).map(|x| x as u32),
+                ..Default::default()
+            });
             Some(KickEvent::Msg(Box::new(m)))
         }
         "App\\Events\\GiftedSubscriptionsEvent" => {
             let gifter = json_str(data.get("gifter_username"));
-            let n = data.get("gifted_usernames").and_then(|x| x.as_array()).map(|a| a.len() as u64).unwrap_or(0);
-            let author = Author { login: gifter.to_lowercase(), name: if gifter.is_empty() { "Anonim".into() } else { gifter }, ..Default::default() };
-            let mut m = ChatMsg::new(Platform::Kick, format!("gift{}", super::poll::rand_u64()), Kind::Sub, author, vec![]);
-            m.alert = Some(AlertInfo { kind: "subgift".into(), gifted: true, count: (n > 0).then_some(n), ..Default::default() });
+            let n = data
+                .get("gifted_usernames")
+                .and_then(|x| x.as_array())
+                .map(|a| a.len() as u64)
+                .unwrap_or(0);
+            let author = Author {
+                login: gifter.to_lowercase(),
+                name: if gifter.is_empty() {
+                    "Anonim".into()
+                } else {
+                    gifter
+                },
+                ..Default::default()
+            };
+            let mut m = ChatMsg::new(
+                Platform::Kick,
+                format!("gift{}", super::poll::rand_u64()),
+                Kind::Sub,
+                author,
+                vec![],
+            );
+            m.alert = Some(AlertInfo {
+                kind: "subgift".into(),
+                gifted: true,
+                count: (n > 0).then_some(n),
+                ..Default::default()
+            });
             Some(KickEvent::Msg(Box::new(m)))
         }
         "App\\Events\\StreamHostEvent" => {
@@ -207,10 +298,28 @@ pub fn parse_pusher(raw: &str) -> Option<KickEvent> {
                 return None;
             }
             let msg = json_str(data.get("optional_message"));
-            let author = Author { login: host.to_lowercase(), name: host, ..Default::default() };
-            let parts = if msg.is_empty() { vec![] } else { content_parts(&msg) };
-            let mut m = ChatMsg::new(Platform::Kick, format!("host{}", super::poll::rand_u64()), Kind::Raid, author, parts);
-            m.alert = Some(AlertInfo { kind: "host".into(), count: json_u64(data.get("number_viewers")), ..Default::default() });
+            let author = Author {
+                login: host.to_lowercase(),
+                name: host,
+                ..Default::default()
+            };
+            let parts = if msg.is_empty() {
+                vec![]
+            } else {
+                content_parts(&msg)
+            };
+            let mut m = ChatMsg::new(
+                Platform::Kick,
+                format!("host{}", super::poll::rand_u64()),
+                Kind::Raid,
+                author,
+                parts,
+            );
+            m.alert = Some(AlertInfo {
+                kind: "host".into(),
+                count: json_u64(data.get("number_viewers")),
+                ..Default::default()
+            });
             Some(KickEvent::Msg(Box::new(m)))
         }
         _ => None,
@@ -239,7 +348,11 @@ async fn webview_fetch(app: &AppHandle, url: &str) -> Result<String, String> {
         .additional_browser_args(crate::browser_args())
         .on_navigation(move |u| {
             if u.host_str() == Some(SENTINEL_HOST) {
-                let d = u.query_pairs().find(|(k, _)| k == "d").map(|(_, v)| v.into_owned()).unwrap_or_default();
+                let d = u
+                    .query_pairs()
+                    .find(|(k, _)| k == "d")
+                    .map(|(_, v)| v.into_owned())
+                    .unwrap_or_default();
                 if let Some(t) = tx2.lock().take() {
                     let _ = t.send(d);
                 }
@@ -285,7 +398,11 @@ pub async fn fetch_info(app: &AppHandle, slug: &str) -> Result<KickInfo, String>
                 }
                 BLOCKED.store(true, Ordering::Relaxed);
             }
-            Ok(r) if r.status().as_u16() == 403 || r.status().as_u16() == 429 || r.status().as_u16() == 503 => {
+            Ok(r)
+                if r.status().as_u16() == 403
+                    || r.status().as_u16() == 429
+                    || r.status().as_u16() == 503 =>
+            {
                 BLOCKED.store(true, Ordering::Relaxed);
             }
             Ok(r) => return Err(format!("Kick API HTTP {}", r.status().as_u16())),
@@ -307,7 +424,11 @@ pub async fn run_viewers(ctx: Ctx) {
                 ctx.hub.set_name(&ctx.key, &i.name);
             }
         }
-        let secs = if BLOCKED.load(Ordering::Relaxed) { 60 } else { 15 };
+        let secs = if BLOCKED.load(Ordering::Relaxed) {
+            60
+        } else {
+            15
+        };
         tokio::time::sleep(Duration::from_secs(secs)).await;
     }
 }
@@ -337,7 +458,14 @@ pub async fn run_chat(ctx: Ctx) {
 }
 
 async fn session(ctx: &Ctx, chatroom: u64, backoff: &mut Backoff) -> Result<(), String> {
-    let mut ws = net::ws_connect(PUSHER_URL, &[("Origin", "https://kick.com"), ("User-Agent", net::BROWSER_UA)]).await?;
+    let mut ws = net::ws_connect(
+        PUSHER_URL,
+        &[
+            ("Origin", "https://kick.com"),
+            ("User-Agent", net::BROWSER_UA),
+        ],
+    )
+    .await?;
     let mut ping = tokio::time::interval(Duration::from_secs(30));
     ping.tick().await;
     let mut last_rx = std::time::Instant::now();
@@ -392,7 +520,13 @@ mod tests {
         let body = r#"{"id":77,"slug":"erkinazcan","user":{"username":"ErkinAzcan"},"chatroom":{"id":12345},"livestream":{"is_live":true,"viewer_count":321}}"#;
         assert_eq!(
             parse_channel_info(body),
-            Some(KickInfo { chatroom_id: 12345, channel_id: 77, name: "ErkinAzcan".into(), live: true, viewers: Some(321) })
+            Some(KickInfo {
+                chatroom_id: 12345,
+                channel_id: 77,
+                name: "ErkinAzcan".into(),
+                live: true,
+                viewers: Some(321)
+            })
         );
         let off = r#"{"id":77,"slug":"x","user":{"username":"X"},"chatroom":{"id":"9"},"livestream":null}"#;
         let i = parse_channel_info(off).unwrap();
@@ -407,34 +541,71 @@ mod tests {
             content_parts("selam [emote:37226:KEKW] [mention:ali] naber"),
             vec![
                 Part::text("selam "),
-                Part::Emote { url: "https://files.kick.com/emotes/37226/fullsize".into(), name: "KEKW".into(), custom: false },
+                Part::Emote {
+                    url: "https://files.kick.com/emotes/37226/fullsize".into(),
+                    name: "KEKW".into(),
+                    custom: false
+                },
                 Part::text(" "),
                 Part::Mention { v: "ali".into() },
                 Part::text(" naber"),
             ]
         );
-        assert_eq!(content_parts("[emote:abc:x] y"), vec![Part::text("[emote:abc:x] y")]);
+        assert_eq!(
+            content_parts("[emote:abc:x] y"),
+            vec![Part::text("[emote:abc:x] y")]
+        );
     }
 
     #[test]
     fn pusher_events() {
-        assert_eq!(parse_pusher(r#"{"event":"pusher:connection_established","data":"{\"socket_id\":\"1.2\",\"activity_timeout\":120}"}"#), Some(KickEvent::Established));
-        assert_eq!(parse_pusher(r#"{"event":"pusher:ping","data":{}}"#), Some(KickEvent::Ping));
+        assert_eq!(
+            parse_pusher(
+                r#"{"event":"pusher:connection_established","data":"{\"socket_id\":\"1.2\",\"activity_timeout\":120}"}"#
+            ),
+            Some(KickEvent::Established)
+        );
+        assert_eq!(
+            parse_pusher(r#"{"event":"pusher:ping","data":{}}"#),
+            Some(KickEvent::Ping)
+        );
         let chat = r##"{"event":"App\\Events\\ChatMessageEvent","data":"{\"id\":\"m-1\",\"chatroom_id\":1,\"content\":\"merhaba [emote:1:Hi]\",\"type\":\"reply\",\"sender\":{\"id\":5,\"username\":\"Ayşe\",\"slug\":\"ayse\",\"identity\":{\"color\":\"#FF0000\",\"badges\":[{\"type\":\"moderator\",\"text\":\"Moderator\"},{\"type\":\"subscriber\",\"text\":\"Sub\",\"count\":3}]}},\"metadata\":{\"original_sender\":{\"id\":6,\"username\":\"Ali\"},\"original_message\":{\"id\":\"m-0\",\"content\":\"sorum var\"}}}","channel":"chatrooms.1.v2"}"##;
-        let Some(KickEvent::Msg(m)) = parse_pusher(chat) else { panic!() };
+        let Some(KickEvent::Msg(m)) = parse_pusher(chat) else {
+            panic!()
+        };
         assert_eq!(m.id, "kick:m-1");
-        assert_eq!((m.author.name.as_str(), m.author.login.as_str()), ("Ayşe", "ayse"));
+        assert_eq!(
+            (m.author.name.as_str(), m.author.login.as_str()),
+            ("Ayşe", "ayse")
+        );
         assert!(m.author.moderator && m.author.sub);
         assert_eq!(m.author.color.as_deref(), Some("#FF0000"));
-        assert_eq!(m.reply_to, Some(Reply { user: "Ali".into(), text: "sorum var".into() }));
+        assert_eq!(
+            m.reply_to,
+            Some(Reply {
+                user: "Ali".into(),
+                text: "sorum var".into()
+            })
+        );
         assert_eq!(m.text, "merhaba Hi");
         let del = r#"{"event":"App\\Events\\MessageDeletedEvent","data":"{\"id\":\"d1\",\"message\":{\"id\":\"m-1\"}}"}"#;
         assert_eq!(parse_pusher(del), Some(KickEvent::Delete("m-1".into())));
         let ban = r#"{"event":"App\\Events\\UserBannedEvent","data":"{\"id\":\"b\",\"user\":{\"id\":5,\"username\":\"Kotu\",\"slug\":\"kotu\"},\"banned_by\":{\"username\":\"mod\"},\"expires_at\":\"2026-10-01T10:00:00Z\"}"}"#;
-        assert_eq!(parse_pusher(ban), Some(KickEvent::Ban { login: "kotu".into(), permanent: false }));
+        assert_eq!(
+            parse_pusher(ban),
+            Some(KickEvent::Ban {
+                login: "kotu".into(),
+                permanent: false
+            })
+        );
         let sub = r#"{"event":"App\\Events\\SubscriptionEvent","data":"{\"chatroom_id\":1,\"username\":\"Veli\",\"months\":3}"}"#;
-        let Some(KickEvent::Msg(m)) = parse_pusher(sub) else { panic!() };
+        let Some(KickEvent::Msg(m)) = parse_pusher(sub) else {
+            panic!()
+        };
         assert_eq!((m.kind, m.alert.unwrap().months), (Kind::Sub, Some(3)));
-        assert_eq!(parse_pusher(r#"{"event":"App\\Events\\PinnedMessageCreatedEvent","data":"{}"}"#), None);
+        assert_eq!(
+            parse_pusher(r#"{"event":"App\\Events\\PinnedMessageCreatedEvent","data":"{}"}"#),
+            None
+        );
     }
 }

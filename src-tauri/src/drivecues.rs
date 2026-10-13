@@ -123,13 +123,22 @@ pub fn damage(f: &Frame) -> DamagePkt {
         warnings.push("detached");
     }
     let repair_flag = f.player_idx >= 0
-        && f.cars.get(f.player_idx as usize).map(|c| c.flags & CF_REPAIR != 0).unwrap_or(false);
+        && f.cars
+            .get(f.player_idx as usize)
+            .map(|c| c.flags & CF_REPAIR != 0)
+            .unwrap_or(false);
     if repair_flag {
         warnings.push("repairFlag");
     }
 
     let mx = |a: &[f32]| a.iter().cloned().fold(0.0f32, f32::max);
-    let mut overall = mx(&d.body).max(mx(&d.susp)).max(mx(&d.brake)).max(d.engine).max(d.aero).max(d.centre).max(0.0);
+    let mut overall = mx(&d.body)
+        .max(mx(&d.susp))
+        .max(mx(&d.brake))
+        .max(d.engine)
+        .max(d.aero)
+        .max(d.centre)
+        .max(0.0);
     if d.wheel.iter().any(|w| *w > 0) || d.detached {
         overall = overall.max(1.0);
     }
@@ -167,18 +176,35 @@ pub fn damage(f: &Frame) -> DamagePkt {
 /// 30 sn'ye kadar tamir (topluluk ölçümü) kabul edilir; şiddet buna göre ölçeklenir. AC'de ölçek kabadır.
 pub fn kunos_damage(acc: bool, car: [f32; 5], susp: Option<[f32; 4]>) -> Damage {
     let full = if acc { 80.0 } else { 150.0 };
-    let sev = |v: f32| if v.is_finite() { (v / full).clamp(0.0, 1.0) } else { 0.0 };
-    let mut d = Damage { detail: 2, centre: sev(car[4]), ..Default::default() };
+    let sev = |v: f32| {
+        if v.is_finite() {
+            (v / full).clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    };
+    let mut d = Damage {
+        detail: 2,
+        centre: sev(car[4]),
+        ..Default::default()
+    };
     d.body[1] = sev(car[0]);
     d.body[5] = sev(car[1]);
     d.body[7] = sev(car[2]);
     d.body[3] = sev(car[3]);
     if acc {
-        let body: f32 = car.iter().map(|v| if v.is_finite() { v.max(0.0) } else { 0.0 }).sum();
+        let body: f32 = car
+            .iter()
+            .map(|v| if v.is_finite() { v.max(0.0) } else { 0.0 })
+            .sum();
         let mut repair = body * 0.282;
         if let Some(s) = susp {
             for (i, v) in s.iter().enumerate() {
-                let v = if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 };
+                let v = if v.is_finite() {
+                    v.clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
                 d.susp[i] = v;
                 repair += v * 30.0;
             }
@@ -191,9 +217,19 @@ pub fn kunos_damage(acc: bool, car: [f32; 5], susp: Option<[f32; 4]>) -> Damage 
 
 /// LMU / rF2: `mDentSeverity[8]` (0 yok, 1 az, 2 çok), kopan parça, aşırı ısınma, teker (patlak, kopmuş).
 /// Göçük dizisinin sırası belgelenmemiştir; önden başlayıp sol taraftan dolaşan sıra varsayılır.
-pub fn rf2_damage(dent: [u8; 8], overheating: bool, detached: bool, wheels: [(bool, bool); 4]) -> Damage {
+pub fn rf2_damage(
+    dent: [u8; 8],
+    overheating: bool,
+    detached: bool,
+    wheels: [(bool, bool); 4],
+) -> Damage {
     const MAP: [usize; 8] = [1, 0, 7, 6, 5, 4, 3, 2];
-    let mut d = Damage { detail: 2, overheating, detached, ..Default::default() };
+    let mut d = Damage {
+        detail: 2,
+        overheating,
+        detached,
+        ..Default::default()
+    };
     for (i, v) in dent.iter().enumerate() {
         d.body[MAP[i]] = match v {
             0 => 0.0,
@@ -202,16 +238,39 @@ pub fn rf2_damage(dent: [u8; 8], overheating: bool, detached: bool, wheels: [(bo
         };
     }
     for (i, (flat, off)) in wheels.iter().enumerate() {
-        d.wheel[i] = if *off { 2 } else if *flat { 1 } else { 0 };
+        d.wheel[i] = if *off {
+            2
+        } else if *flat {
+            1
+        } else {
+            0
+        };
     }
     d
 }
 
 /// AMS2: aerodinamik ve motor hasarı (0..1), teker başına süspansiyon ve fren hasarı, lastik bayrakları
 /// (bit 0 takılı, bit 1 şişik). Kaporta bölgesi yoktur.
-pub fn ams2_damage(aero: f32, engine: f32, susp: [f32; 4], brake: [f32; 4], tyre_flags: [u32; 4]) -> Damage {
-    let c = |v: f32| if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 };
-    let mut d = Damage { detail: 1, aero: c(aero), engine: c(engine), ..Default::default() };
+pub fn ams2_damage(
+    aero: f32,
+    engine: f32,
+    susp: [f32; 4],
+    brake: [f32; 4],
+    tyre_flags: [u32; 4],
+) -> Damage {
+    let c = |v: f32| {
+        if v.is_finite() {
+            v.clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    };
+    let mut d = Damage {
+        detail: 1,
+        aero: c(aero),
+        engine: c(engine),
+        ..Default::default()
+    };
     for i in 0..4 {
         d.susp[i] = c(susp[i]);
         d.brake[i] = c(brake[i]);
@@ -219,7 +278,13 @@ pub fn ams2_damage(aero: f32, engine: f32, susp: [f32; 4], brake: [f32; 4], tyre
     // Bayraklar hiç doldurulmamışsa (hepsi 0) teker durumu bilinmiyor
     if tyre_flags.iter().any(|f| *f != 0) {
         for i in 0..4 {
-            d.wheel[i] = if tyre_flags[i] & 1 == 0 { 2 } else if tyre_flags[i] & 2 == 0 { 1 } else { 0 };
+            d.wheel[i] = if tyre_flags[i] & 1 == 0 {
+                2
+            } else if tyre_flags[i] & 2 == 0 {
+                1
+            } else {
+                0
+            };
         }
     }
     d
@@ -232,12 +297,27 @@ pub fn rf2_tyres_out(surface: [u8; 4]) -> i8 {
 
 /// AMS2 `mTerrain`: çim, çakıl, kum, toprak ve türevleri pist dışı sayılır
 pub fn ams2_tyres_out(terrain: [u32; 4]) -> i8 {
-    terrain.iter().filter(|t| matches!(**t, 6..=9 | 15..=18 | 22 | 24 | 27 | 28)).count() as i8
+    terrain
+        .iter()
+        .filter(|t| matches!(**t, 6..=9 | 15..=18 | 22 | 24 | 27 | 28))
+        .count() as i8
 }
 
 /// Demo: yaklaşık 80 saniyelik döngü — temiz, ön-sol darbe, arka darbe + süspansiyon, pitte tamir.
 pub fn demo_damage(t: f64) -> Damage {
-    let mut d = Damage { detail: 2, body: [0.0; 8], susp: [0.0; 4], brake: [0.0; 4], wheel: [0; 4], engine: 0.0, aero: 0.0, centre: 0.0, repair: 0.0, opt_repair: 0.0, ..Default::default() };
+    let mut d = Damage {
+        detail: 2,
+        body: [0.0; 8],
+        susp: [0.0; 4],
+        brake: [0.0; 4],
+        wheel: [0; 4],
+        engine: 0.0,
+        aero: 0.0,
+        centre: 0.0,
+        repair: 0.0,
+        opt_repair: 0.0,
+        ..Default::default()
+    };
     let c = (t % 80.0) as f32;
     let ramp = |from: f32, len: f32| ((c - from) / len).clamp(0.0, 1.0);
     // 12. saniyede ön-sol temas
@@ -422,11 +502,21 @@ struct BrakeRec {
 }
 
 fn safe_name(key: &str) -> String {
-    key.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).take(120).collect()
+    key.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .take(120)
+        .collect()
 }
 
 fn ref_file(dir: &Path, key: &str) -> PathBuf {
-    dir.join("brakepoints").join(format!("{}.json", safe_name(key)))
+    dir.join("brakepoints")
+        .join(format!("{}.json", safe_name(key)))
 }
 
 /// İşaretli tur farkı (-0.5..0.5]
@@ -462,17 +552,33 @@ impl BrakeRec {
         if key == self.key {
             return false;
         }
-        *self = BrakeRec { key, prev_pct: -1.0, ..Default::default() };
+        *self = BrakeRec {
+            key,
+            prev_pct: -1.0,
+            ..Default::default()
+        };
         if demo {
             // Demo pisti: fren bölgeleri demo.rs `speed_factor` ile aynı yerde (viraj − %3),
             // birkaç metre kaydırılmış ki "erken / geç" farkı da görünsün
-            let z = |pct: f32, gear: i32, speed: f32, min: f32| Zone { pct, kind: 0, gear, speed, min_speed: min, lift: pct - 0.004 };
+            let z = |pct: f32, gear: i32, speed: f32, min: f32| Zone {
+                pct,
+                kind: 0,
+                gear,
+                speed,
+                min_speed: min,
+                lift: pct - 0.004,
+            };
             // Demoda üç kaynak da aynı örnek noktaları gösterir
             for t in self.refs.iter_mut() {
                 t.reference = Some(RefLap {
                     time: 0.0,
                     len_m: 0.0,
-                    zones: vec![z(0.0885, 3, 71.0, 39.0), z(0.3418, 2, 70.0, 38.0), z(0.5782, 4, 72.0, 40.0), z(0.8326, 3, 71.0, 39.0)],
+                    zones: vec![
+                        z(0.0885, 3, 71.0, 39.0),
+                        z(0.3418, 2, 70.0, 38.0),
+                        z(0.5782, 4, 72.0, 40.0),
+                        z(0.8326, 3, 71.0, 39.0),
+                    ],
                 });
             }
             self.community_name = "Demo".into();
@@ -497,9 +603,25 @@ impl BrakeRec {
         if self.key.is_empty() || self.key == "demo" || c.combo != self.combo {
             return;
         }
-        let mut zones: Vec<Zone> = c.zones.into_iter().filter(|z| (0.0..=1.0).contains(&z.pct)).take(150).collect();
+        let mut zones: Vec<Zone> = c
+            .zones
+            .into_iter()
+            .filter(|z| (0.0..=1.0).contains(&z.pct))
+            .take(150)
+            .collect();
         zones.sort_by(|a, b| a.pct.total_cmp(&b.pct));
-        self.refs[R_COMMUNITY] = RefTrack { reference: if zones.is_empty() { None } else { Some(RefLap { time: c.time, len_m: 0.0, zones }) }, ..Default::default() };
+        self.refs[R_COMMUNITY] = RefTrack {
+            reference: if zones.is_empty() {
+                None
+            } else {
+                Some(RefLap {
+                    time: c.time,
+                    len_m: 0.0,
+                    zones,
+                })
+            },
+            ..Default::default()
+        };
         self.community_name = c.name.chars().take(60).collect();
     }
 
@@ -513,18 +635,29 @@ impl BrakeRec {
             return;
         }
         for t in self.refs.iter_mut() {
-            let Some(r) = t.reference.as_ref() else { continue };
+            let Some(r) = t.reference.as_ref() else {
+                continue;
+            };
             let best = r
                 .zones
                 .iter()
                 .enumerate()
                 .map(|(i, z)| (i, wrap_pct(pct - z.pct) * len))
-                .min_by(|a, b| a.1.abs().partial_cmp(&b.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
+                .min_by(|a, b| {
+                    a.1.abs()
+                        .partial_cmp(&b.1.abs())
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
             if let Some((i, diff)) = best {
                 // Referans noktasından çok uzaktaki fren başka bir şeydir (trafik, hata)
                 if diff.abs() <= 150.0 && (kind == 0 || r.zones[i].kind == 1) {
                     t.last_id += 1;
-                    t.last = Some(LastZone { n: i + 1, diff, kind: r.zones[i].kind, id: t.last_id });
+                    t.last = Some(LastZone {
+                        n: i + 1,
+                        diff,
+                        kind: r.zones[i].kind,
+                        id: t.last_id,
+                    });
                     t.done = Some(i);
                 }
             }
@@ -532,14 +665,22 @@ impl BrakeRec {
     }
 
     fn update(&mut self, f: &Frame, s: &SessionData, sim: &str, demo: bool, dir: Option<&Path>) {
-        let me = if f.player_idx >= 0 { s.driver(f.player_idx as usize) } else { None };
+        let me = if f.player_idx >= 0 {
+            s.driver(f.player_idx as usize)
+        } else {
+            None
+        };
         let key = if demo {
             "demo".to_string()
         } else if s.track_name.is_empty() || me.is_none() {
             String::new()
         } else {
             let d = me.unwrap();
-            let car = if d.car_path.is_empty() { &d.car_name } else { &d.car_path };
+            let car = if d.car_path.is_empty() {
+                &d.car_name
+            } else {
+                &d.car_path
+            };
             format!("{}_{}_{}__{}", sim, s.track_name, s.track_config, car).to_lowercase()
         };
         if self.set_key(key, dir, demo) && !demo {
@@ -547,7 +688,11 @@ impl BrakeRec {
             let slug = crate::laprec::slug;
             self.combo = Combo {
                 sim: sim.to_string(),
-                track_id: if s.track_id > 0 { s.track_id.to_string() } else { slug(&s.track_name) },
+                track_id: if s.track_id > 0 {
+                    s.track_id.to_string()
+                } else {
+                    slug(&s.track_name)
+                },
                 track_config: s.track_config.clone(),
                 car_id: match me {
                     Some(d) if d.car_id > 0 => d.car_id.to_string(),
@@ -572,7 +717,11 @@ impl BrakeRec {
             return;
         }
         let len = track_len(s, self.any_ref());
-        let surface = f.cars.get(f.player_idx as usize).map(|c| c.surface).unwrap_or(3);
+        let surface = f
+            .cars
+            .get(f.player_idx as usize)
+            .map(|c| c.surface)
+            .unwrap_or(3);
         let off = surface == 0 || f.tyres_out >= 4;
 
         // Tur çizgisi
@@ -595,7 +744,11 @@ impl BrakeRec {
         // Referansta geçilen nokta "yapıldı" işaretini bırakır
         for t in self.refs.iter_mut() {
             if let (Some(i), Some(r)) = (t.done, t.reference.as_ref()) {
-                let behind = r.zones.get(i).map(|z| wrap_pct(pct - z.pct) * len.max(1.0)).unwrap_or(999.0);
+                let behind = r
+                    .zones
+                    .get(i)
+                    .map(|z| wrap_pct(pct - z.pct) * len.max(1.0))
+                    .unwrap_or(999.0);
                 if !(-200.0..=250.0).contains(&behind) {
                     t.done = None;
                 }
@@ -654,7 +807,14 @@ impl BrakeRec {
                 }
                 self.compare(pct, 0, len);
             } else if !self.corner {
-                self.cur.push(Zone { pct, kind: 0, gear: f.gear, speed: f.speed, min_speed: f.speed, lift });
+                self.cur.push(Zone {
+                    pct,
+                    kind: 0,
+                    gear: f.gear,
+                    speed: f.speed,
+                    min_speed: f.speed,
+                    lift,
+                });
                 self.corner = true;
                 self.corner_t = 0.0;
                 self.compare(pct, 0, len);
@@ -664,7 +824,14 @@ impl BrakeRec {
         if !self.corner && !self.braking && fast && f.brake < 0.05 && f.throttle < 0.2 {
             if let Some((lp, age)) = self.lift {
                 if (0.4..2.5).contains(&age) {
-                    self.cur.push(Zone { pct: lp, kind: 1, gear: f.gear, speed: f.speed, min_speed: f.speed, lift: lp });
+                    self.cur.push(Zone {
+                        pct: lp,
+                        kind: 1,
+                        gear: f.gear,
+                        speed: f.speed,
+                        min_speed: f.speed,
+                        lift: lp,
+                    });
                     self.corner = true;
                     self.corner_t = 0.0;
                     self.lift = None;
@@ -679,18 +846,30 @@ impl BrakeRec {
         if demo || !self.clean || self.cur.is_empty() || time < 20.0 || self.cur.len() > 150 {
             return;
         }
-        let len_m = if s.track_length_km > 0.05 { s.track_length_km * 1000.0 } else { self.dist as f32 };
+        let len_m = if s.track_length_km > 0.05 {
+            s.track_length_km * 1000.0
+        } else {
+            self.dist as f32
+        };
         // Ölçülen yol pist uzunluğundan çok farklıysa tur eksiktir
         if len_m > 0.0 && ((self.dist as f32) < len_m * 0.9 || (self.dist as f32) > len_m * 1.15) {
             return;
         }
-        let better = |t: &RefTrack| t.reference.as_ref().map(|r| r.time <= 0.0 || time < r.time - 0.0005).unwrap_or(true);
+        let better = |t: &RefTrack| {
+            t.reference
+                .as_ref()
+                .map(|r| r.time <= 0.0 || time < r.time - 0.0005)
+                .unwrap_or(true)
+        };
         let mut zones = self.cur.clone();
         zones.sort_by(|a, b| a.pct.total_cmp(&b.pct));
         let r = RefLap { time, len_m, zones };
         // Bu oturumun en iyisi (dosyaya yazılmaz)
         if better(&self.refs[R_SESSION]) {
-            self.refs[R_SESSION] = RefTrack { reference: Some(r.clone()), ..Default::default() };
+            self.refs[R_SESSION] = RefTrack {
+                reference: Some(r.clone()),
+                ..Default::default()
+            };
         }
         if !better(&self.refs[R_BEST]) {
             return;
@@ -707,7 +886,10 @@ impl BrakeRec {
                 });
             }
         }
-        self.refs[R_BEST] = RefTrack { reference: Some(r), ..Default::default() };
+        self.refs[R_BEST] = RefTrack {
+            reference: Some(r),
+            ..Default::default()
+        };
         self.from_file = false;
     }
 
@@ -741,7 +923,11 @@ impl BrakeRec {
         Some(NextZone {
             n: i + 1,
             dist: d,
-            eta: if f.speed > 1.0 { (d / f.speed).max(0.0) } else { 999.0 },
+            eta: if f.speed > 1.0 {
+                (d / f.speed).max(0.0)
+            } else {
+                999.0
+            },
             kind: z.kind,
             gear: z.gear,
             speed: z.speed,
@@ -754,11 +940,29 @@ impl BrakeRec {
         let t = &self.refs[i];
         RefPkt {
             has_ref: t.reference.is_some(),
-            ref_time: t.reference.as_ref().map(|r| if demo && f.lap_best > 0.0 { f.lap_best } else { r.time }).unwrap_or(0.0),
-            name: if i == R_COMMUNITY { self.community_name.clone() } else { String::new() },
+            ref_time: t
+                .reference
+                .as_ref()
+                .map(|r| {
+                    if demo && f.lap_best > 0.0 {
+                        f.lap_best
+                    } else {
+                        r.time
+                    }
+                })
+                .unwrap_or(0.0),
+            name: if i == R_COMMUNITY {
+                self.community_name.clone()
+            } else {
+                String::new()
+            },
             next: self.next_for(t, f, len),
             last: t.last.clone(),
-            zones: t.reference.as_ref().map(|r| r.zones.clone()).unwrap_or_default(),
+            zones: t
+                .reference
+                .as_ref()
+                .map(|r| r.zones.clone())
+                .unwrap_or_default(),
         }
     }
 
@@ -871,7 +1075,15 @@ impl Limits {
     fn update(&mut self, f: &Frame, demo: bool) {
         let t = f.session_time;
         if !self.started || f.session_num != self.session_num || t < self.prev_time - 5.0 {
-            *self = Limits { started: true, session_num: f.session_num, lap_completed: f.lap_completed, prev_inc: f.incidents, off_end: -10.0, event_time: -100.0, ..Default::default() };
+            *self = Limits {
+                started: true,
+                session_num: f.session_num,
+                lap_completed: f.lap_completed,
+                prev_inc: f.incidents,
+                off_end: -10.0,
+                event_time: -100.0,
+                ..Default::default()
+            };
         }
         self.prev_time = t;
         let driving = f.is_on_track && !f.replay && !f.is_in_garage && f.player_idx >= 0;
@@ -890,7 +1102,11 @@ impl Limits {
             self.lap_offs = 0;
             self.prev_sim_invalid = false;
         }
-        let surface = f.cars.get(f.player_idx as usize).map(|c| c.surface).unwrap_or(3);
+        let surface = f
+            .cars
+            .get(f.player_idx as usize)
+            .map(|c| c.surface)
+            .unwrap_or(3);
         let off = !f.on_pit_road && (surface == 0 || f.tyres_out >= 4);
         if off && !self.was_off && t - self.off_end > 1.0 {
             self.offs += 1;
@@ -936,7 +1152,14 @@ impl Limits {
 
     fn packet(&self, f: &Frame, s: &SessionData, sim: &str, demo: bool) -> TrackLimits {
         let iracing = sim == "iracing" || demo;
-        let surface = if f.player_idx >= 0 { f.cars.get(f.player_idx as usize).map(|c| c.surface).unwrap_or(3) } else { 3 };
+        let surface = if f.player_idx >= 0 {
+            f.cars
+                .get(f.player_idx as usize)
+                .map(|c| c.surface)
+                .unwrap_or(3)
+        } else {
+            3
+        };
         TrackLimits {
             valid: !self.invalid,
             off: self.was_off,
@@ -983,7 +1206,14 @@ pub struct Cues {
 
 impl Cues {
     /// Her yeni telemetri karesinde. `dir`: uygulama veri klasörü (referans turlar için); demo'da yazılmaz.
-    pub fn update(&mut self, f: &Frame, s: &SessionData, sim: &str, demo: bool, dir: Option<&Path>) {
+    pub fn update(
+        &mut self,
+        f: &Frame,
+        s: &SessionData,
+        sim: &str,
+        demo: bool,
+        dir: Option<&Path>,
+    ) {
         if self.sim != sim || self.demo != demo {
             self.sim = sim.to_string();
             self.demo = demo;
@@ -1000,7 +1230,11 @@ impl Cues {
 
     /// Şu anki pist + araç kimliği (demoda / bilinmiyorken boş)
     pub fn combo(&self) -> Combo {
-        if self.demo { Combo::default() } else { self.brake.combo.clone() }
+        if self.demo {
+            Combo::default()
+        } else {
+            self.brake.combo.clone()
+        }
     }
 
     /// Arayüzün indirdiği topluluk rekoru (bkz. `brake_community_set`)
@@ -1022,14 +1256,35 @@ mod tests {
     use super::*;
 
     fn frame(t: f64, pct: f32, lap: i32) -> Frame {
-        let mut f = Frame { session_time: t, lap_dist_pct: pct, lap_completed: lap, lap: lap + 1, player_idx: 0, is_on_track: true, speed: 50.0, throttle: 1.0, gear: 5, ..Default::default() };
+        let mut f = Frame {
+            session_time: t,
+            lap_dist_pct: pct,
+            lap_completed: lap,
+            lap: lap + 1,
+            player_idx: 0,
+            is_on_track: true,
+            speed: 50.0,
+            throttle: 1.0,
+            gear: 5,
+            ..Default::default()
+        };
         f.cars[0].surface = 3;
         f
     }
 
     fn session() -> SessionData {
-        let mut s = SessionData { track_name: "test".into(), track_length_km: 4.0, player_idx: 0, drivers: vec![None; 4], ..Default::default() };
-        s.drivers[0] = Some(crate::model::Driver { car_idx: 0, car_path: "car".into(), ..Default::default() });
+        let mut s = SessionData {
+            track_name: "test".into(),
+            track_length_km: 4.0,
+            player_idx: 0,
+            drivers: vec![None; 4],
+            ..Default::default()
+        };
+        s.drivers[0] = Some(crate::model::Driver {
+            car_idx: 0,
+            car_path: "car".into(),
+            ..Default::default()
+        });
         s
     }
 
@@ -1072,10 +1327,30 @@ mod tests {
         // Oturum referansı da aynı turdan oluştu; topluluk rekoru yalnızca aynı pist + araç için kabul edilir
         let p = c.brakepoint(&frame(t, 0.4, 3), &s);
         assert!(p.session.has_ref && !p.community.has_ref);
-        let z = Zone { pct: 0.7, kind: 0, gear: 3, speed: 60.0, min_speed: 30.0, lift: -1.0 };
-        c.set_community(CommunityRef { combo: Combo { sim: "x".into(), ..Default::default() }, time: 90.0, name: "A".into(), zones: vec![z.clone()] });
+        let z = Zone {
+            pct: 0.7,
+            kind: 0,
+            gear: 3,
+            speed: 60.0,
+            min_speed: 30.0,
+            lift: -1.0,
+        };
+        c.set_community(CommunityRef {
+            combo: Combo {
+                sim: "x".into(),
+                ..Default::default()
+            },
+            time: 90.0,
+            name: "A".into(),
+            zones: vec![z.clone()],
+        });
         assert!(!c.brakepoint(&frame(t, 0.4, 3), &s).community.has_ref);
-        c.set_community(CommunityRef { combo: p.combo.clone(), time: 90.0, name: "A".into(), zones: vec![z] });
+        c.set_community(CommunityRef {
+            combo: p.combo.clone(),
+            time: 90.0,
+            name: "A".into(),
+            zones: vec![z],
+        });
         let p = c.brakepoint(&frame(t, 0.4, 3), &s);
         assert!(p.community.has_ref && p.community.name == "A");
         assert!((p.community.next.unwrap().dist - 1200.0).abs() < 5.0);
@@ -1092,7 +1367,9 @@ mod tests {
         f.incidents = 1;
         c.update(&f, &s, "iracing", false, None);
         let p = c.limits(&f, &s);
-        assert!(!p.valid && p.offs == 1 && p.invalid_laps == 1 && p.event_id == 1 && p.event_delta == 1);
+        assert!(
+            !p.valid && p.offs == 1 && p.invalid_laps == 1 && p.event_id == 1 && p.event_delta == 1
+        );
         f.session_time = 5.0;
         f.cars[0].surface = 3;
         f.lap_completed = 1;

@@ -106,7 +106,11 @@ fn allowed(app: &AppHandle, p: &Path) -> Result<PathBuf, String> {
     if let Some(d) = pitwall_dir(app) {
         dirs.push(d);
     }
-    if dirs.into_iter().filter_map(|d| d.canonicalize().ok()).any(|d| p.starts_with(&d)) {
+    if dirs
+        .into_iter()
+        .filter_map(|d| d.canonicalize().ok())
+        .any(|d| p.starts_with(&d))
+    {
         Ok(p)
     } else {
         Err("izin verilmeyen konum".into())
@@ -114,7 +118,11 @@ fn allowed(app: &AppHandle, p: &Path) -> Result<PathBuf, String> {
 }
 
 fn is_image(p: &Path) -> bool {
-    let ext = p.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
+    let ext = p
+        .extension()
+        .and_then(|x| x.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "bmp" | "webp")
 }
 
@@ -126,7 +134,11 @@ fn meta_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(config_dir(app)?.join("shots.json"))
 }
 
-fn with_meta<R>(app: &AppHandle, f: impl FnOnce(&mut HashMap<String, ShotMeta>) -> R, save: bool) -> R {
+fn with_meta<R>(
+    app: &AppHandle,
+    f: impl FnOnce(&mut HashMap<String, ShotMeta>) -> R,
+    save: bool,
+) -> R {
     let st = app.state::<ShotState>();
     let mut g = st.meta.lock();
     if g.is_none() {
@@ -157,32 +169,56 @@ fn load_wm(app: &AppHandle) {
         return;
     }
     let Ok(dir) = config_dir(app) else { return };
-    let cfg: Option<WmFile> = std::fs::read(dir.join("watermark.json")).ok().and_then(|b| serde_json::from_slice(&b).ok());
+    let cfg: Option<WmFile> = std::fs::read(dir.join("watermark.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok());
     let Some(cfg) = cfg else { return };
     if !cfg.enabled {
         return;
     }
     if let Ok(img) = image::open(dir.join("watermark.png")) {
-        *st.wm.lock() = Some(Wm { img: img.to_rgba8(), pos: cfg.pos, margin: cfg.margin });
+        *st.wm.lock() = Some(Wm {
+            img: img.to_rgba8(),
+            pos: cfg.pos,
+            margin: cfg.margin,
+        });
     }
 }
 
 /// Arayüzün çizdiği filigranı kaydeder (png: base64). enabled=false: filigran yok.
 #[tauri::command]
-pub fn watermark_set(app: AppHandle, enabled: bool, png: Option<String>, pos: String, margin: f32) -> Result<(), String> {
+pub fn watermark_set(
+    app: AppHandle,
+    enabled: bool,
+    png: Option<String>,
+    pos: String,
+    margin: f32,
+) -> Result<(), String> {
     let dir = config_dir(&app)?;
     let st = app.state::<ShotState>();
     st.wm_loaded.store(true, Ordering::Relaxed);
-    let cfg = WmFile { enabled, pos: pos.clone(), margin };
-    std::fs::write(dir.join("watermark.json"), serde_json::to_vec(&cfg).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    let cfg = WmFile {
+        enabled,
+        pos: pos.clone(),
+        margin,
+    };
+    std::fs::write(
+        dir.join("watermark.json"),
+        serde_json::to_vec(&cfg).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
     let bytes = match (enabled, png) {
-        (true, Some(b64)) => base64::engine::general_purpose::STANDARD.decode(b64).map_err(|e| e.to_string())?,
+        (true, Some(b64)) => base64::engine::general_purpose::STANDARD
+            .decode(b64)
+            .map_err(|e| e.to_string())?,
         _ => {
             *st.wm.lock() = None;
             return Ok(());
         }
     };
-    let img = image::load_from_memory(&bytes).map_err(|e| e.to_string())?.to_rgba8();
+    let img = image::load_from_memory(&bytes)
+        .map_err(|e| e.to_string())?
+        .to_rgba8();
     std::fs::write(dir.join("watermark.png"), &bytes).map_err(|e| e.to_string())?;
     *st.wm.lock() = Some(Wm { img, pos, margin });
     Ok(())
@@ -233,7 +269,17 @@ fn capture_rect(x: i32, y: i32, w: u32, h: u32) -> Result<RgbaImage, String> {
         let bmp = CreateCompatibleBitmap(screen, w as i32, h as i32);
         let old = SelectObject(mem, bmp);
         // CAPTUREBLT: katmanlı (şeffaf) pencereler, yani overlay'ler de görüntüye girer
-        let ok = BitBlt(mem, 0, 0, w as i32, h as i32, screen, x, y, SRCCOPY | CAPTUREBLT);
+        let ok = BitBlt(
+            mem,
+            0,
+            0,
+            w as i32,
+            h as i32,
+            screen,
+            x,
+            y,
+            SRCCOPY | CAPTUREBLT,
+        );
         SelectObject(mem, old);
         let mut bi: BITMAPINFO = std::mem::zeroed();
         bi.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
@@ -243,7 +289,15 @@ fn capture_rect(x: i32, y: i32, w: u32, h: u32) -> Result<RgbaImage, String> {
         bi.bmiHeader.biBitCount = 32;
         bi.bmiHeader.biCompression = BI_RGB;
         let mut buf = vec![0u8; w as usize * h as usize * 4];
-        let lines = GetDIBits(mem, bmp, 0, h, buf.as_mut_ptr() as *mut _, &mut bi, DIB_RGB_COLORS);
+        let lines = GetDIBits(
+            mem,
+            bmp,
+            0,
+            h,
+            buf.as_mut_ptr() as *mut _,
+            &mut bi,
+            DIB_RGB_COLORS,
+        );
         DeleteObject(bmp);
         DeleteDC(mem);
         ReleaseDC(std::ptr::null_mut(), screen);
@@ -262,18 +316,28 @@ fn capture_rect(x: i32, y: i32, w: u32, h: u32) -> Result<RgbaImage, String> {
 #[cfg(not(windows))]
 fn capture_rect(x: i32, y: i32, w: u32, h: u32) -> Result<RgbaImage, String> {
     let out = std::process::Command::new("import")
-        .args(["-window", "root", "-crop", &format!("{w}x{h}+{x}+{y}"), "png:-"])
+        .args([
+            "-window",
+            "root",
+            "-crop",
+            &format!("{w}x{h}+{x}+{y}"),
+            "png:-",
+        ])
         .output()
         .map_err(|e| format!("ekran okunamadı: {e}"))?;
     if !out.status.success() {
         return Err("ekran okunamadı".into());
     }
-    Ok(image::load_from_memory(&out.stdout).map_err(|e| e.to_string())?.to_rgba8())
+    Ok(image::load_from_memory(&out.stdout)
+        .map_err(|e| e.to_string())?
+        .to_rgba8())
 }
 
 /// Overlay'lerin gösterildiği monitörü yakalar
 fn capture_monitor(app: &AppHandle) -> Result<RgbaImage, String> {
-    let win = app.get_webview_window("overlay").ok_or("overlay penceresi yok")?;
+    let win = app
+        .get_webview_window("overlay")
+        .ok_or("overlay penceresi yok")?;
     let m = win
         .current_monitor()
         .ok()
@@ -307,7 +371,10 @@ fn stamp() -> String {
     }
     #[allow(unreachable_code)]
     {
-        let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+        let secs = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0) as i64;
         let (days, rem) = (secs.div_euclid(86400), secs.rem_euclid(86400));
         // Günden takvim tarihine (Howard Hinnant)
         let z = days + 719468;
@@ -319,7 +386,12 @@ fn stamp() -> String {
         let d = doy - (153 * mp + 2) / 5 + 1;
         let m = if mp < 10 { mp + 3 } else { mp - 9 };
         let y = yoe + era * 400 + i64::from(m <= 2);
-        format!("{y:04}-{m:02}-{d:02}_{:02}-{:02}-{:02}", rem / 3600, rem % 3600 / 60, rem % 60)
+        format!(
+            "{y:04}-{m:02}-{d:02}_{:02}-{:02}-{:02}",
+            rem / 3600,
+            rem % 3600 / 60,
+            rem % 60
+        )
     }
 }
 
@@ -340,12 +412,21 @@ fn encode(img: &RgbaImage, png: bool, quality: u8) -> Result<Vec<u8>, String> {
 
 fn take_inner(app: &AppHandle, from_panel: bool) -> Result<ShotInfo, String> {
     let v = crate::current_settings(app);
-    let include = setting(v.as_ref(), "includeOverlays").and_then(|x| x.as_bool()).unwrap_or(true);
+    let include = setting(v.as_ref(), "includeOverlays")
+        .and_then(|x| x.as_bool())
+        .unwrap_or(true);
     let png = setting(v.as_ref(), "format").and_then(|x| x.as_str()) == Some("png");
-    let quality = setting(v.as_ref(), "quality").and_then(|x| x.as_u64()).unwrap_or(92) as u8;
+    let quality = setting(v.as_ref(), "quality")
+        .and_then(|x| x.as_u64())
+        .unwrap_or(92) as u8;
 
     // Panelden çekiliyorsa panel görüntüye girmesin
-    let panel = if from_panel { app.get_webview_window("main").filter(|w| w.is_visible().unwrap_or(false)) } else { None };
+    let panel = if from_panel {
+        app.get_webview_window("main")
+            .filter(|w| w.is_visible().unwrap_or(false))
+    } else {
+        None
+    };
     if let Some(w) = &panel {
         let _ = w.hide();
         std::thread::sleep(Duration::from_millis(600));
@@ -380,13 +461,19 @@ fn take_inner(app: &AppHandle, from_panel: bool) -> Result<ShotInfo, String> {
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
 
     let (track, car) = crate::shared(app).shot_meta.lock().clone();
-    let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     let meta = ShotMeta { track, car, wm };
     with_meta(app, |m| m.insert(name.clone(), meta.clone()), true);
     Ok(ShotInfo {
         path: path.to_string_lossy().into(),
         name,
-        modified: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
+        modified: SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0),
         size: bytes.len() as u64,
         source: "pitwall".into(),
         track: meta.track,
@@ -400,7 +487,10 @@ pub fn take(app: &AppHandle, from_panel: bool) {
     // Yönetici ekran görüntüsü almayı PRO'ya ayırdıysa (PRO özellikleri: tools.screenshots → kilit "shots")
     let e = crate::entitlement::view(app);
     if !e.pro && e.locked.iter().any(|x| x == "shots") {
-        let _ = app.emit("screenshot-error", "Ekran görüntüsü almak PRO üyelik gerektirir".to_string());
+        let _ = app.emit(
+            "screenshot-error",
+            "Ekran görüntüsü almak PRO üyelik gerektirir".to_string(),
+        );
         return;
     }
     let st = app.state::<ShotState>();
@@ -410,7 +500,9 @@ pub fn take(app: &AppHandle, from_panel: bool) {
     let app = app.clone();
     std::thread::spawn(move || {
         let r = take_inner(&app, from_panel);
-        app.state::<ShotState>().busy.store(false, Ordering::Relaxed);
+        app.state::<ShotState>()
+            .busy
+            .store(false, Ordering::Relaxed);
         match r {
             Ok(info) => {
                 let _ = app.emit("screenshot-taken", info);
@@ -445,8 +537,15 @@ fn list_dir(d: &Path, source: &str, meta: &HashMap<String, ShotMeta>, out: &mut 
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0);
-        let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        let mm = if source == "pitwall" { meta.get(&name).cloned().unwrap_or_default() } else { ShotMeta::default() };
+        let name = p
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let mm = if source == "pitwall" {
+            meta.get(&name).cloned().unwrap_or_default()
+        } else {
+            ShotMeta::default()
+        };
         out.push(ShotInfo {
             path: p.to_string_lossy().into(),
             name,
@@ -490,7 +589,9 @@ pub fn shots_list(app: AppHandle, source: String) -> Vec<ShotInfo> {
 #[tauri::command]
 pub async fn shot_read(app: AppHandle, path: String) -> Result<tauri::ipc::Response, String> {
     let p = allowed(&app, Path::new(&path))?;
-    Ok(tauri::ipc::Response::new(std::fs::read(&p).map_err(|e| e.to_string())?))
+    Ok(tauri::ipc::Response::new(
+        std::fs::read(&p).map_err(|e| e.to_string())?,
+    ))
 }
 
 fn decode(p: &Path) -> Result<DynamicImage, String> {
@@ -512,7 +613,11 @@ pub async fn shot_thumb(app: AppHandle, path: String) -> Result<tauri::ipc::Resp
     p.hash(&mut h);
     md.len().hash(&mut h);
     md.modified().ok().hash(&mut h);
-    let cache = app.path().app_cache_dir().map_err(|e| e.to_string())?.join("thumbs");
+    let cache = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("thumbs");
     let file = cache.join(format!("{:016x}.jpg", h.finish()));
     if let Ok(b) = std::fs::read(&file) {
         return Ok(tauri::ipc::Response::new(b));
@@ -526,11 +631,23 @@ pub async fn shot_thumb(app: AppHandle, path: String) -> Result<tauri::ipc::Resp
 
 /// Paylaşım için: en fazla max_w genişliğe küçültür, istenirse filigran ekler (yoksa), JPEG döner.
 #[tauri::command]
-pub async fn shot_encode(app: AppHandle, path: String, max_w: u32, quality: u8, watermark: bool) -> Result<tauri::ipc::Response, String> {
+pub async fn shot_encode(
+    app: AppHandle,
+    path: String,
+    max_w: u32,
+    quality: u8,
+    watermark: bool,
+) -> Result<tauri::ipc::Response, String> {
     let p = allowed(&app, Path::new(&path))?;
-    let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-    let in_pitwall = pitwall_dir(&app).and_then(|d| d.canonicalize().ok()).is_some_and(|d| p.starts_with(d));
-    let already = in_pitwall && with_meta(&app, |m| m.get(&name).map(|x| x.wm).unwrap_or(false), false);
+    let name = p
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let in_pitwall = pitwall_dir(&app)
+        .and_then(|d| d.canonicalize().ok())
+        .is_some_and(|d| p.starts_with(d));
+    let already =
+        in_pitwall && with_meta(&app, |m| m.get(&name).map(|x| x.wm).unwrap_or(false), false);
     let mut img = decode(&p)?.to_rgba8();
     if watermark && !already {
         apply_wm(&app, &mut img);
@@ -547,12 +664,17 @@ pub async fn shot_encode(app: AppHandle, path: String, max_w: u32, quality: u8, 
 #[tauri::command]
 pub fn shot_delete(app: AppHandle, path: String) -> Result<(), String> {
     let p = allowed(&app, Path::new(&path))?;
-    let dir = pitwall_dir(&app).and_then(|d| d.canonicalize().ok()).ok_or("klasör yok")?;
+    let dir = pitwall_dir(&app)
+        .and_then(|d| d.canonicalize().ok())
+        .ok_or("klasör yok")?;
     if !p.starts_with(&dir) {
         return Err("Sadece SRTR Pitwall görüntüleri silinebilir".into());
     }
     std::fs::remove_file(&p).map_err(|e| e.to_string())?;
-    let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let name = p
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     with_meta(&app, |m| m.remove(&name), true);
     Ok(())
 }
@@ -560,7 +682,10 @@ pub fn shot_delete(app: AppHandle, path: String) -> Result<(), String> {
 #[tauri::command]
 pub fn shots_open_dir(app: AppHandle, source: String) -> Result<(), String> {
     let d = if source == "iracing" {
-        iracing_dirs(&app).into_iter().find(|d| d.exists()).ok_or("iRacing ekran görüntüsü klasörü bulunamadı")?
+        iracing_dirs(&app)
+            .into_iter()
+            .find(|d| d.exists())
+            .ok_or("iRacing ekran görüntüsü klasörü bulunamadı")?
     } else {
         let d = pitwall_dir(&app).ok_or("Resimler klasörü bulunamadı")?;
         std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
@@ -582,8 +707,14 @@ pub fn shots_dirs(app: AppHandle) -> ShotDirs {
     let ir = iracing_dirs(&app);
     let found = ir.iter().find(|d| d.exists()).cloned();
     ShotDirs {
-        pitwall: pitwall_dir(&app).map(|d| d.to_string_lossy().to_string()).unwrap_or_default(),
-        iracing: found.clone().or_else(|| ir.first().cloned()).map(|d| d.to_string_lossy().to_string()).unwrap_or_default(),
+        pitwall: pitwall_dir(&app)
+            .map(|d| d.to_string_lossy().to_string())
+            .unwrap_or_default(),
+        iracing: found
+            .clone()
+            .or_else(|| ir.first().cloned())
+            .map(|d| d.to_string_lossy().to_string())
+            .unwrap_or_default(),
         iracing_found: found.is_some(),
     }
 }
@@ -601,46 +732,82 @@ fn legacy_backdrop_path(app: &AppHandle) -> Result<PathBuf, String> {
 /// Bilinmeyen/boş değer eski tek dosyaya düşer.
 fn backdrop_path(app: &AppHandle, slot: Option<&str>) -> Result<PathBuf, String> {
     match slot {
-        Some(s @ ("layout" | "stream" | "screen")) => Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg"))),
+        Some(s @ ("layout" | "stream" | "screen")) => {
+            Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg")))
+        }
         // Düzene özel arka plan: "p-<düzen kimliği>" (yalnızca harf / rakam / - / _)
-        Some(s) if profile_slot_ok(s) => Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg"))),
+        Some(s) if profile_slot_ok(s) => {
+            Ok(config_dir(app)?.join(format!("edit-backdrop-{s}.jpg")))
+        }
         _ => legacy_backdrop_path(app),
     }
 }
 
 /// "p-<düzen kimliği>": dosya adına girdiği için sıkı denetlenir
 fn profile_slot_ok(slot: &str) -> bool {
-    slot.len() > 2 && slot.len() <= 66 && slot.starts_with("p-") && slot[2..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    slot.len() > 2
+        && slot.len() <= 66
+        && slot.starts_with("p-")
+        && slot[2..]
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 fn save_backdrop(app: &AppHandle, slot: Option<&str>, img: DynamicImage) -> Result<(), String> {
-    let img = if img.width() > 3840 { img.resize(3840, 3840, imageops::FilterType::CatmullRom) } else { img };
+    let img = if img.width() > 3840 {
+        img.resize(3840, 3840, imageops::FilterType::CatmullRom)
+    } else {
+        img
+    };
     let bytes = encode(&img.to_rgba8(), false, 90)?;
     std::fs::write(backdrop_path(app, slot)?, bytes).map_err(|e| e.to_string())
 }
 
 /// Galerideki bir görüntüyü düzenleme arka planı yap
 #[tauri::command]
-pub async fn edit_backdrop_set(app: AppHandle, path: String, slot: Option<String>) -> Result<(), String> {
+pub async fn edit_backdrop_set(
+    app: AppHandle,
+    path: String,
+    slot: Option<String>,
+) -> Result<(), String> {
     let p = allowed(&app, Path::new(&path))?;
     save_backdrop(&app, slot.as_deref(), decode(&p)?)
 }
 
 /// Kullanıcının seçtiği dosyadan (base64)
 #[tauri::command]
-pub async fn edit_backdrop_import(app: AppHandle, data: String, slot: Option<String>) -> Result<(), String> {
-    let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| e.to_string())?;
-    save_backdrop(&app, slot.as_deref(), image::load_from_memory(&bytes).map_err(|e| e.to_string())?)
+pub async fn edit_backdrop_import(
+    app: AppHandle,
+    data: String,
+    slot: Option<String>,
+) -> Result<(), String> {
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|e| e.to_string())?;
+    save_backdrop(
+        &app,
+        slot.as_deref(),
+        image::load_from_memory(&bytes).map_err(|e| e.to_string())?,
+    )
 }
 
 #[tauri::command]
-pub async fn edit_backdrop_read(app: AppHandle, slot: Option<String>) -> Result<tauri::ipc::Response, String> {
+pub async fn edit_backdrop_read(
+    app: AppHandle,
+    slot: Option<String>,
+) -> Result<tauri::ipc::Response, String> {
     // Yerin kendi dosyası yoksa (eski sürümden gelen kurulum) eski ortak görsel okunur
     let own = backdrop_path(&app, slot.as_deref())?;
     // (Düzene özel görsel yoksa eski ortak görsele düşülmez: arayüz ortak yerin görselini ayrıca okur)
     let per_profile = slot.as_deref().is_some_and(profile_slot_ok);
-    let p = if own.exists() || per_profile { own } else { legacy_backdrop_path(&app)? };
-    Ok(tauri::ipc::Response::new(std::fs::read(p).map_err(|_| "arka plan yok".to_string())?))
+    let p = if own.exists() || per_profile {
+        own
+    } else {
+        legacy_backdrop_path(&app)?
+    };
+    Ok(tauri::ipc::Response::new(
+        std::fs::read(p).map_err(|_| "arka plan yok".to_string())?,
+    ))
 }
 
 #[tauri::command]
@@ -664,16 +831,24 @@ fn chat_bg_path(app: &AppHandle) -> Result<PathBuf, String> {
 /// Kullanıcının seçtiği görsel (base64): en fazla 1600 px'e küçültülüp JPEG olarak saklanır
 #[tauri::command]
 pub async fn chat_bg_import(app: AppHandle, data: String) -> Result<(), String> {
-    let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| e.to_string())?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|e| e.to_string())?;
     let img = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
-    let img = if img.width() > 1600 || img.height() > 1600 { img.resize(1600, 1600, imageops::FilterType::CatmullRom) } else { img };
+    let img = if img.width() > 1600 || img.height() > 1600 {
+        img.resize(1600, 1600, imageops::FilterType::CatmullRom)
+    } else {
+        img
+    };
     let out = encode(&img.to_rgba8(), false, 85)?;
     std::fs::write(chat_bg_path(&app)?, out).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn chat_bg_read(app: AppHandle) -> Result<tauri::ipc::Response, String> {
-    Ok(tauri::ipc::Response::new(std::fs::read(chat_bg_path(&app)?).map_err(|_| "arka plan yok".to_string())?))
+    Ok(tauri::ipc::Response::new(
+        std::fs::read(chat_bg_path(&app)?).map_err(|_| "arka plan yok".to_string())?,
+    ))
 }
 
 #[tauri::command]
@@ -697,7 +872,9 @@ fn bg_slot_ok(slot: &str) -> bool {
         || (slot.starts_with("conv-")
             && slot.len() <= 70
             && slot.len() > 5
-            && slot[5..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
+            && slot[5..]
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-'))
 }
 
 fn bg_file_path(app: &AppHandle, slot: &str) -> Result<PathBuf, String> {
@@ -711,7 +888,9 @@ fn bg_file_path(app: &AppHandle, slot: &str) -> Result<PathBuf, String> {
 
 #[tauri::command]
 pub async fn bg_file_import(app: AppHandle, slot: String, data: String) -> Result<(), String> {
-    let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|e| e.to_string())?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|e| e.to_string())?;
     if bytes.len() > 4 * 1024 * 1024 {
         return Err("görsel çok büyük".into());
     }
@@ -724,7 +903,9 @@ pub async fn bg_file_import(app: AppHandle, slot: String, data: String) -> Resul
 
 #[tauri::command]
 pub async fn bg_file_read(app: AppHandle, slot: String) -> Result<tauri::ipc::Response, String> {
-    Ok(tauri::ipc::Response::new(std::fs::read(bg_file_path(&app, &slot)?).map_err(|_| "arka plan yok".to_string())?))
+    Ok(tauri::ipc::Response::new(
+        std::fs::read(bg_file_path(&app, &slot)?).map_err(|_| "arka plan yok".to_string())?,
+    ))
 }
 
 #[tauri::command]

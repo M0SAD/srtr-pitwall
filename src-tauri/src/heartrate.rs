@@ -64,7 +64,10 @@ static LAST_EMIT: AtomicI64 = AtomicI64::new(0);
 static APP: OnceLock<AppHandle> = OnceLock::new();
 
 fn now_ms() -> i64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 fn snapshot() -> State {
@@ -90,7 +93,16 @@ fn update(f: impl FnOnce(&mut State)) {
 
 fn base_state(cfg: Option<&Cfg>) -> State {
     match cfg {
-        Some(c) => State { configured: true, source: c.source.clone(), local_key: if c.source == "local" { c.key.clone() } else { String::new() }, ..State::default() },
+        Some(c) => State {
+            configured: true,
+            source: c.source.clone(),
+            local_key: if c.source == "local" {
+                c.key.clone()
+            } else {
+                String::new()
+            },
+            ..State::default()
+        },
         None => State::default(),
     }
 }
@@ -139,12 +151,23 @@ pub fn parse_bpm(text: &str) -> Option<u16> {
                 Value::Number(n) => n.as_f64(),
                 Value::String(s) => s.trim().parse::<f64>().ok(),
                 Value::Object(m) if depth < 3 => {
-                    for k in ["heartRate", "heart_rate", "heartrate", "bpm", "hr", "HR", "BPM", "value"] {
+                    for k in [
+                        "heartRate",
+                        "heart_rate",
+                        "heartrate",
+                        "bpm",
+                        "hr",
+                        "HR",
+                        "BPM",
+                        "value",
+                    ] {
                         if let Some(x) = m.get(k).and_then(|x| dig(x, depth + 1)) {
                             return Some(x);
                         }
                     }
-                    ["data", "payload"].iter().find_map(|k| m.get(*k).and_then(|x| dig(x, depth + 1)))
+                    ["data", "payload"]
+                        .iter()
+                        .find_map(|k| m.get(*k).and_then(|x| dig(x, depth + 1)))
                 }
                 _ => None,
             }
@@ -160,8 +183,18 @@ pub fn parse_bpm(text: &str) -> Option<u16> {
             Some((k, v)) => (k.trim().to_ascii_lowercase(), v.trim()),
             None => (String::new(), p),
         };
-        if k.is_empty() || matches!(k.as_str(), "heartrate" | "heart_rate" | "bpm" | "hr" | "value") {
-            if let Some(b) = val.trim_matches('"').parse::<f64>().ok().and_then(valid_bpm) {
+        if k.is_empty()
+            || matches!(
+                k.as_str(),
+                "heartrate" | "heart_rate" | "bpm" | "hr" | "value"
+            )
+        {
+            if let Some(b) = val
+                .trim_matches('"')
+                .parse::<f64>()
+                .ok()
+                .and_then(valid_bpm)
+            {
                 return Some(b);
             }
         }
@@ -171,7 +204,10 @@ pub fn parse_bpm(text: &str) -> Option<u16> {
 
 /// Yerel web sunucusundaki `/hr/<anahtar>` isteği. Dönüş: (HTTP kodu, gövde)
 pub fn http_push(path: &str, query: &str, body: &str) -> (u16, &'static str) {
-    let key = path.strip_prefix("/hr/").unwrap_or("").trim_end_matches('/');
+    let key = path
+        .strip_prefix("/hr/")
+        .unwrap_or("")
+        .trim_end_matches('/');
     let ok = {
         let g = CFG.lock();
         matches!(g.as_ref(), Some(c) if c.source == "local" && !c.key.is_empty() && c.key == key)
@@ -193,16 +229,28 @@ fn check(cfg: &mut Cfg, old_key: &str) -> Result<(), String> {
     cfg.id = cfg.id.trim().to_string();
     match cfg.source.as_str() {
         "pulsoid" => {
-            if cfg.token.len() < 8 || cfg.token.len() > 200 || !cfg.token.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            if cfg.token.len() < 8
+                || cfg.token.len() > 200
+                || !cfg
+                    .token
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
                 return Err("Pulsoid erişim belirteci geçersiz".into());
             }
             cfg.id.clear();
         }
         "hyperate" => {
-            if cfg.token.len() < 8 || cfg.token.len() > 200 || cfg.token.contains(char::is_whitespace) {
+            if cfg.token.len() < 8
+                || cfg.token.len() > 200
+                || cfg.token.contains(char::is_whitespace)
+            {
                 return Err("HypeRate API anahtarı geçersiz".into());
             }
-            if cfg.id.is_empty() || cfg.id.len() > 20 || !cfg.id.chars().all(|c| c.is_ascii_alphanumeric()) {
+            if cfg.id.is_empty()
+                || cfg.id.len() > 20
+                || !cfg.id.chars().all(|c| c.is_ascii_alphanumeric())
+            {
                 return Err("HypeRate oturum kimliği geçersiz".into());
             }
         }
@@ -216,7 +264,11 @@ fn check(cfg: &mut Cfg, old_key: &str) -> Result<(), String> {
         if old_key.len() >= 8 {
             old_key.to_string()
         } else {
-            crate::livechat::secrets::random_token(9).chars().filter(|c| c.is_ascii_alphanumeric()).take(12).collect()
+            crate::livechat::secrets::random_token(9)
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric())
+                .take(12)
+                .collect()
         }
     } else {
         String::new()
@@ -225,7 +277,17 @@ fn check(cfg: &mut Cfg, old_key: &str) -> Result<(), String> {
 }
 
 fn ws_url(cfg: &Cfg) -> String {
-    let enc: String = cfg.token.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") }).collect();
+    let enc: String = cfg
+        .token
+        .bytes()
+        .map(|b| {
+            if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {
+                (b as char).to_string()
+            } else {
+                format!("%{b:02X}")
+            }
+        })
+        .collect();
     match cfg.source.as_str() {
         "pulsoid" => format!("wss://dev.pulsoid.net/api/v1/data/real_time?access_token={enc}"),
         _ => format!("wss://app.hyperate.io/socket/websocket?token={enc}"),
@@ -239,15 +301,30 @@ pub fn ws_bpm(source: &str, text: &str) -> Option<u16> {
         if v.get("event").and_then(|x| x.as_str()) != Some("hr_update") {
             return None;
         }
-        return v.pointer("/payload/hr").and_then(|x| x.as_f64()).and_then(valid_bpm);
+        return v
+            .pointer("/payload/hr")
+            .and_then(|x| x.as_f64())
+            .and_then(valid_bpm);
     }
-    v.pointer("/data/heart_rate").or_else(|| v.get("heart_rate")).and_then(|x| x.as_f64()).and_then(valid_bpm)
+    v.pointer("/data/heart_rate")
+        .or_else(|| v.get("heart_rate"))
+        .and_then(|x| x.as_f64())
+        .and_then(valid_bpm)
 }
 
 fn connect_error(source: &str, e: &str) -> String {
     let l = e.to_ascii_lowercase();
-    if l.contains("401") || l.contains("403") || l.contains("unauthorized") || l.contains("forbidden") {
-        if source == "pulsoid" { "Pulsoid erişim belirteci kabul edilmedi" } else { "HypeRate API anahtarı kabul edilmedi" }.to_string()
+    if l.contains("401")
+        || l.contains("403")
+        || l.contains("unauthorized")
+        || l.contains("forbidden")
+    {
+        if source == "pulsoid" {
+            "Pulsoid erişim belirteci kabul edilmedi"
+        } else {
+            "HypeRate API anahtarı kabul edilmedi"
+        }
+        .to_string()
     } else if l.contains("zaman") {
         "Sunucu yanıt vermedi".to_string()
     } else {
@@ -257,10 +334,14 @@ fn connect_error(source: &str, e: &str) -> String {
 
 /// Bir websocket oturumu: bağlan, oku; kaynak değişince / kimse bakmayınca / bağlantı kopunca döner
 async fn ws_session(cfg: &Cfg, gen: u64) -> Result<(), String> {
-    let mut ws = crate::livechat::net::ws_connect(&ws_url(cfg), &[]).await.map_err(|e| connect_error(&cfg.source, &e))?;
+    let mut ws = crate::livechat::net::ws_connect(&ws_url(cfg), &[])
+        .await
+        .map_err(|e| connect_error(&cfg.source, &e))?;
     if cfg.source == "hyperate" {
         let join = json!({ "topic": format!("hr:{}", cfg.id), "event": "phx_join", "payload": {}, "ref": 0 }).to_string();
-        ws.send(Message::Text(join.into())).await.map_err(|_| "Sunucuya bağlanılamadı".to_string())?;
+        ws.send(Message::Text(join.into()))
+            .await
+            .map_err(|_| "Sunucuya bağlanılamadı".to_string())?;
     }
     set_status(true, "");
     let mut beat = tokio::time::interval(Duration::from_secs(20));
@@ -353,13 +434,23 @@ async fn run() {
 #[tauri::command]
 pub async fn heartrate_connect(app: AppHandle, cfg: Cfg) -> Result<State, String> {
     let mut cfg = cfg;
-    let old_key = CFG.lock().as_ref().map(|c| c.key.clone()).unwrap_or_default();
+    let old_key = CFG
+        .lock()
+        .as_ref()
+        .map(|c| c.key.clone())
+        .unwrap_or_default();
     check(&mut cfg, &old_key)?;
     if cfg.source != "local" {
-        let mut ws = crate::livechat::net::ws_connect(&ws_url(&cfg), &[]).await.map_err(|e| connect_error(&cfg.source, &e))?;
+        let mut ws = crate::livechat::net::ws_connect(&ws_url(&cfg), &[])
+            .await
+            .map_err(|e| connect_error(&cfg.source, &e))?;
         let _ = ws.close(None).await;
     }
-    crate::livechat::secrets::set_json(&app, SECRET_KEY, &serde_json::to_value(&cfg).map_err(|e| e.to_string())?)?;
+    crate::livechat::secrets::set_json(
+        &app,
+        SECRET_KEY,
+        &serde_json::to_value(&cfg).map_err(|e| e.to_string())?,
+    )?;
     *CFG.lock() = Some(cfg.clone());
     *STATE.lock() = Some(base_state(Some(&cfg)));
     WANT.store(now_ms(), Ordering::Relaxed);
@@ -403,10 +494,24 @@ pub fn heartrate_alert(volume: f32) -> bool {
         return false;
     }
     LAST_ALERT.store(now, Ordering::Relaxed);
-    let v = if volume.is_finite() { volume.clamp(0.05, 1.0) } else { 0.6 };
+    let v = if volume.is_finite() {
+        volume.clamp(0.05, 1.0)
+    } else {
+        0.6
+    };
     for _ in 0..2 {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 1000.0, ms: 160, volume: v, pan: 0.0 });
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 1.0, ms: 110, volume: 0.0, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 1000.0,
+            ms: 160,
+            volume: v,
+            pan: 0.0,
+        });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 1.0,
+            ms: 110,
+            volume: 0.0,
+            pan: 0.0,
+        });
     }
     true
 }
@@ -416,7 +521,9 @@ pub fn start(app: &AppHandle) {
         return;
     }
     let _ = APP.set(app.clone());
-    let cfg: Option<Cfg> = crate::livechat::secrets::get_json(app, SECRET_KEY).and_then(|v| serde_json::from_value(v).ok()).filter(|c: &Cfg| !c.source.is_empty());
+    let cfg: Option<Cfg> = crate::livechat::secrets::get_json(app, SECRET_KEY)
+        .and_then(|v| serde_json::from_value(v).ok())
+        .filter(|c: &Cfg| !c.source.is_empty());
     *STATE.lock() = Some(base_state(cfg.as_ref()));
     *CFG.lock() = cfg;
     tauri::async_runtime::spawn(run());
@@ -441,28 +548,62 @@ mod tests {
 
     #[test]
     fn ws_messages() {
-        assert_eq!(ws_bpm("pulsoid", "{\"measured_at\":1,\"data\":{\"heart_rate\":77}}"), Some(77));
-        assert_eq!(ws_bpm("hyperate", "{\"event\":\"hr_update\",\"payload\":{\"hr\":133},\"topic\":\"hr:abc\"}"), Some(133));
-        assert_eq!(ws_bpm("hyperate", "{\"event\":\"phx_reply\",\"payload\":{\"status\":\"ok\"}}"), None);
+        assert_eq!(
+            ws_bpm(
+                "pulsoid",
+                "{\"measured_at\":1,\"data\":{\"heart_rate\":77}}"
+            ),
+            Some(77)
+        );
+        assert_eq!(
+            ws_bpm(
+                "hyperate",
+                "{\"event\":\"hr_update\",\"payload\":{\"hr\":133},\"topic\":\"hr:abc\"}"
+            ),
+            Some(133)
+        );
+        assert_eq!(
+            ws_bpm(
+                "hyperate",
+                "{\"event\":\"phx_reply\",\"payload\":{\"status\":\"ok\"}}"
+            ),
+            None
+        );
         assert_eq!(ws_bpm("pulsoid", "bozuk"), None);
     }
 
     #[test]
     fn config() {
-        let mut c = Cfg { source: "local".into(), ..Cfg::default() };
+        let mut c = Cfg {
+            source: "local".into(),
+            ..Cfg::default()
+        };
         check(&mut c, "").unwrap();
         assert!(c.key.len() >= 8 && c.key.chars().all(|x| x.is_ascii_alphanumeric()));
         let k = c.key.clone();
         check(&mut c, &k).unwrap();
         assert_eq!(c.key, k);
-        let mut p = Cfg { source: "pulsoid".into(), token: "kisa".into(), ..Cfg::default() };
+        let mut p = Cfg {
+            source: "pulsoid".into(),
+            token: "kisa".into(),
+            ..Cfg::default()
+        };
         assert!(check(&mut p, "").is_err());
-        assert!(ws_url(&Cfg { source: "pulsoid".into(), token: "abc-123".into(), ..Cfg::default() }).ends_with("access_token=abc-123"));
+        assert!(ws_url(&Cfg {
+            source: "pulsoid".into(),
+            token: "abc-123".into(),
+            ..Cfg::default()
+        })
+        .ends_with("access_token=abc-123"));
     }
 
     #[test]
     fn push_route() {
-        *CFG.lock() = Some(Cfg { source: "local".into(), key: "anahtar123".into(), ..Cfg::default() });
+        *CFG.lock() = Some(Cfg {
+            source: "local".into(),
+            key: "anahtar123".into(),
+            ..Cfg::default()
+        });
         assert_eq!(http_push("/hr/yanlis", "", "72").0, 404);
         assert_eq!(http_push("/hr/anahtar123", "", "saçma").0, 400);
         assert_eq!(http_push("/hr/anahtar123", "bpm=81", "").0, 200);

@@ -5,7 +5,8 @@ use std::time::Duration;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::HeaderValue;
 
-pub type Ws = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+pub type Ws =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
 pub const BROWSER_UA: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
@@ -104,7 +105,10 @@ pub fn local_date_time() -> (String, String) {
         let d = doy - (153 * mp + 2) / 5 + 1;
         let m = if mp < 10 { mp + 3 } else { mp - 9 };
         let y = yoe + era * 400 + i64::from(m <= 2);
-        (format!("{y:04}-{m:02}-{d:02}"), format!("{:02}:{:02}:{:02}", rem / 3600, rem % 3600 / 60, rem % 60))
+        (
+            format!("{y:04}-{m:02}-{d:02}"),
+            format!("{:02}:{:02}:{:02}", rem / 3600, rem % 3600 / 60, rem % 60),
+        )
     }
 }
 
@@ -121,7 +125,9 @@ pub fn json_str(v: Option<&serde_json::Value>) -> String {
 /// JSON değerinden sayı ("12", 12, "1.2k" → 1200)
 pub fn json_u64(v: Option<&serde_json::Value>) -> Option<u64> {
     match v? {
-        serde_json::Value::Number(n) => n.as_u64().or_else(|| n.as_f64().map(|f| f.max(0.0) as u64)),
+        serde_json::Value::Number(n) => {
+            n.as_u64().or_else(|| n.as_f64().map(|f| f.max(0.0) as u64))
+        }
         serde_json::Value::String(s) => parse_count(s),
         _ => None,
     }

@@ -28,13 +28,19 @@ pub struct ImportSummary {
 }
 
 fn rd_i64(b: &[u8], off: usize) -> i64 {
-    b.get(off..off + 8).map(|s| i64::from_le_bytes(s.try_into().unwrap())).unwrap_or(0)
+    b.get(off..off + 8)
+        .map(|s| i64::from_le_bytes(s.try_into().unwrap()))
+        .unwrap_or(0)
 }
 fn rd_f64(b: &[u8], off: usize) -> f64 {
-    b.get(off..off + 8).map(|s| f64::from_le_bytes(s.try_into().unwrap())).unwrap_or(0.0)
+    b.get(off..off + 8)
+        .map(|s| f64::from_le_bytes(s.try_into().unwrap()))
+        .unwrap_or(0.0)
 }
 fn rd_i32(b: &[u8], off: usize) -> i32 {
-    b.get(off..off + 4).map(|s| i32::from_le_bytes(s.try_into().unwrap())).unwrap_or(0)
+    b.get(off..off + 4)
+        .map(|s| i32::from_le_bytes(s.try_into().unwrap()))
+        .unwrap_or(0)
 }
 
 /// Dosya içeriğinden turları çıkarır. `data` tüm dosyadır.
@@ -60,7 +66,10 @@ pub fn laps_from_bytes(data: &[u8]) -> Result<(Vec<LapRecord>, crate::model::Ses
     let so = h.session_info_offset.max(0) as usize;
     let sl = h.session_info_len.max(0) as usize;
     let yaml_raw = data.get(so..so + sl).unwrap_or(&[]);
-    let end = yaml_raw.iter().position(|&c| c == 0).unwrap_or(yaml_raw.len());
+    let end = yaml_raw
+        .iter()
+        .position(|&c| c == 0)
+        .unwrap_or(yaml_raw.len());
     let yaml: String = match std::str::from_utf8(&yaml_raw[..end]) {
         Ok(s) => s.to_string(),
         Err(_) => yaml_raw[..end].iter().map(|&c| c as char).collect(),
@@ -73,7 +82,9 @@ pub fn laps_from_bytes(data: &[u8]) -> Result<(Vec<LapRecord>, crate::model::Ses
     let mut laps = Vec::new();
     for r in 0..records {
         let off = row0 + r * len;
-        let Some(buf) = data.get(off..off + len) else { break };
+        let Some(buf) = data.get(off..off + len) else {
+            break;
+        };
         extract_frame(&ix, buf, r as i32, &mut f);
         // Dosyada oyuncu indeksi yoksa oturum bilgisindeki (DriverCarIdx)
         if ix.player_car_idx.is_none() || f.player_idx < 0 {
@@ -89,8 +100,16 @@ pub fn laps_from_bytes(data: &[u8]) -> Result<(Vec<LapRecord>, crate::model::Ses
         laps.push(l);
     }
     // Kararlı kimlikler ve gerçek sürüş zamanı
-    let started_ms = if start_date > 0 { (start_date as u64) * 1000 } else { crate::laprec::now_ms() };
-    let sess_key = if session.sub_session_id > 0 { session.sub_session_id.to_string() } else { format!("{start_date}") };
+    let started_ms = if start_date > 0 {
+        (start_date as u64) * 1000
+    } else {
+        crate::laprec::now_ms()
+    };
+    let sess_key = if session.sub_session_id > 0 {
+        session.sub_session_id.to_string()
+    } else {
+        format!("{start_date}")
+    };
     for l in laps.iter_mut() {
         l.session_local = format!("ibt-{sess_key}-{}", l.session_num.max(0));
         l.id = format!("{}-{}", l.session_local, l.lap);
@@ -104,9 +123,19 @@ pub fn laps_from_bytes(data: &[u8]) -> Result<(Vec<LapRecord>, crate::model::Ses
 
 /// Dosyayı okuyup turları yerel yükleme kuyruğuna yazar (yükleme arayüzde, canlı turlar gibi).
 pub fn import_file(path: &std::path::Path, queue: &std::path::Path) -> ImportSummary {
-    let file = path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_default();
-    let mut out = ImportSummary { file, ..Default::default() };
-    if !path.extension().map(|e| e.eq_ignore_ascii_case("ibt")).unwrap_or(false) {
+    let file = path
+        .file_name()
+        .map(|x| x.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let mut out = ImportSummary {
+        file,
+        ..Default::default()
+    };
+    if !path
+        .extension()
+        .map(|e| e.eq_ignore_ascii_case("ibt"))
+        .unwrap_or(false)
+    {
         out.error = Some("Dosya .ibt değil".into());
         return out;
     }
@@ -119,7 +148,11 @@ pub fn import_file(path: &std::path::Path, queue: &std::path::Path) -> ImportSum
     };
     match laps_from_bytes(&data) {
         Ok((laps, s)) => {
-            out.track = if s.track_config.is_empty() { s.track_name.clone() } else { format!("{} – {}", s.track_name, s.track_config) };
+            out.track = if s.track_config.is_empty() {
+                s.track_name.clone()
+            } else {
+                format!("{} – {}", s.track_name, s.track_config)
+            };
             out.car = s.player().map(|d| d.car_name.clone()).unwrap_or_default();
             for l in &laps {
                 if l.trace.as_ref().map(|t| !t.lat.is_empty()).unwrap_or(false) {

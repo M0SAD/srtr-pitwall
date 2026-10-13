@@ -22,10 +22,12 @@ use std::time::{Duration, Instant};
 
 /// Varsayılan web istemcisi sürümü (YouTube yeni sürüm çıkardıkça güncellenebilir; ayarlardan da ezilebilir)
 pub const CLIENT_VERSION: &str = "2.20260925.01.00";
-const CHAT_URL: &str = "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?prettyPrint=false";
+const CHAT_URL: &str =
+    "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?prettyPrint=false";
 const META_URL: &str = "https://www.youtube.com/youtubei/v1/updated_metadata?prettyPrint=false";
 const COOKIE: &str = "CONSENT=YES+cb; SOCS=CAI";
-const RESOLVE_URL: &str = "https://www.youtube.com/youtubei/v1/navigation/resolve_url?prettyPrint=false";
+const RESOLVE_URL: &str =
+    "https://www.youtube.com/youtubei/v1/navigation/resolve_url?prettyPrint=false";
 const NEXT_URL: &str = "https://www.youtube.com/youtubei/v1/next?prettyPrint=false";
 const PLAYER_URL: &str = "https://www.youtube.com/youtubei/v1/player?prettyPrint=false";
 
@@ -35,7 +37,10 @@ static BLOCK_UNTIL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64:
 static BLOCK_LEVEL: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
 fn unix_now() -> u64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 fn page_block_left() -> Option<u64> {
@@ -58,9 +63,14 @@ fn limit_msg(secs: u64) -> String {
 
 /// Sayfadaki `ytInitialData` nesnesi
 pub fn initial_data(page: &str) -> Option<Value> {
-    for marker in ["var ytInitialData = ", "window[\"ytInitialData\"] = ", "ytInitialData = "] {
+    for marker in [
+        "var ytInitialData = ",
+        "window[\"ytInitialData\"] = ",
+        "ytInitialData = ",
+    ] {
         if let Some(i) = page.find(marker) {
-            let mut it = serde_json::Deserializer::from_str(&page[i + marker.len()..]).into_iter::<Value>();
+            let mut it =
+                serde_json::Deserializer::from_str(&page[i + marker.len()..]).into_iter::<Value>();
             if let Some(Ok(v)) = it.next() {
                 return Some(v);
             }
@@ -70,8 +80,15 @@ pub fn initial_data(page: &str) -> Option<Value> {
 }
 
 fn cont_of(c: &Value) -> Option<String> {
-    for k in ["reloadContinuationData", "invalidationContinuationData", "timedContinuationData"] {
-        if let Some(t) = c.pointer(&format!("/{k}/continuation")).and_then(|x| x.as_str()) {
+    for k in [
+        "reloadContinuationData",
+        "invalidationContinuationData",
+        "timedContinuationData",
+    ] {
+        if let Some(t) = c
+            .pointer(&format!("/{k}/continuation"))
+            .and_then(|x| x.as_str())
+        {
             if !t.is_empty() {
                 return Some(t.to_string());
             }
@@ -82,12 +99,19 @@ fn cont_of(c: &Value) -> Option<String> {
 
 /// (Canlı sohbet anahtarı, varsayılan anahtar)
 pub fn chat_tokens(data: &Value) -> (Option<String>, Option<String>) {
-    let Some(lcr) = data.pointer("/contents/twoColumnWatchNextResults/conversationBar/liveChatRenderer") else {
+    let Some(lcr) =
+        data.pointer("/contents/twoColumnWatchNextResults/conversationBar/liveChatRenderer")
+    else {
         return (None, None);
     };
-    let default = lcr.get("continuations").and_then(|c| c.as_array()).and_then(|a| a.iter().find_map(cont_of));
+    let default = lcr
+        .get("continuations")
+        .and_then(|c| c.as_array())
+        .and_then(|a| a.iter().find_map(cont_of));
     let live = lcr
-        .pointer("/header/liveChatHeaderRenderer/viewSelector/sortFilterSubMenuRenderer/subMenuItems")
+        .pointer(
+            "/header/liveChatHeaderRenderer/viewSelector/sortFilterSubMenuRenderer/subMenuItems",
+        )
         .and_then(|x| x.as_array())
         .filter(|a| a.len() >= 2)
         .and_then(|a| a[1].pointer("/continuation/reloadContinuationData/continuation"))
@@ -110,7 +134,10 @@ pub fn fallback_token(page: &str) -> Option<String> {
 pub fn canonical_video(page: &str) -> Option<String> {
     let marker = "<link rel=\"canonical\" href=\"https://www.youtube.com/watch?v=";
     let i = page.find(marker)? + marker.len();
-    let id: String = page[i..].chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').collect();
+    let id: String = page[i..]
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .collect();
     (id.len() == 11).then_some(id)
 }
 
@@ -141,12 +168,27 @@ fn simple_or_runs(v: Option<&Value>) -> String {
     }
     v.get("runs")
         .and_then(|r| r.as_array())
-        .map(|a| a.iter().map(|r| json_str(r.get("text"))).collect::<String>())
+        .map(|a| {
+            a.iter()
+                .map(|r| json_str(r.get("text")))
+                .collect::<String>()
+        })
         .unwrap_or_default()
 }
 
 fn last_thumb(v: Option<&Value>) -> Option<String> {
-    v?.get("thumbnails")?.as_array()?.last()?.get("url")?.as_str().map(|u| if u.starts_with("//") { format!("https:{u}") } else { u.to_string() })
+    v?.get("thumbnails")?
+        .as_array()?
+        .last()?
+        .get("url")?
+        .as_str()
+        .map(|u| {
+            if u.starts_with("//") {
+                format!("https:{u}")
+            } else {
+                u.to_string()
+            }
+        })
 }
 
 /// Kısa kodlar → emoji (resim yoksa)
@@ -176,16 +218,27 @@ fn shortcut_emoji(s: &str) -> Option<&'static str> {
 }
 
 fn emoji_part(e: &Value) -> Part {
-    let custom = e.get("isCustomEmoji").and_then(|x| x.as_bool()).unwrap_or(false);
+    let custom = e
+        .get("isCustomEmoji")
+        .and_then(|x| x.as_bool())
+        .unwrap_or(false);
     let id = json_str(e.get("emojiId"));
     // Standart Unicode emoji: metin olarak (YouTube resmi yerine sistem emojisi)
-    if !custom && !id.is_empty() && !id.starts_with("UC") && id.chars().count() <= 8 && !id.is_ascii() {
+    if !custom
+        && !id.is_empty()
+        && !id.starts_with("UC")
+        && id.chars().count() <= 8
+        && !id.is_ascii()
+    {
         return Part::text(id);
     }
     let label = {
         let l = json_str(e.pointer("/image/accessibility/accessibilityData/label"));
         if l.is_empty() {
-            e.get("shortcuts").and_then(|s| s.get(0)).map(|x| json_str(Some(x))).unwrap_or_else(|| "emoji".into())
+            e.get("shortcuts")
+                .and_then(|s| s.get(0))
+                .map(|x| json_str(Some(x)))
+                .unwrap_or_else(|| "emoji".into())
         } else {
             l
         }
@@ -194,21 +247,38 @@ fn emoji_part(e: &Value) -> Part {
         // Kanal emojisi: adı kanalın verdiği kısa koddan (":_ad:"); erişilebilirlik etiketi çoğu zaman yüklenen dosyanın
         // adıdır ("imagein…" gibi) ve okununca anlamsızdı
         let name = if custom {
-            e.get("shortcuts").and_then(|s| s.get(0)).and_then(|x| x.as_str()).map(String::from).filter(|s| !s.is_empty()).unwrap_or(label)
+            e.get("shortcuts")
+                .and_then(|s| s.get(0))
+                .and_then(|x| x.as_str())
+                .map(String::from)
+                .filter(|s| !s.is_empty())
+                .unwrap_or(label)
         } else {
             label
         };
         return Part::Emote { url, name, custom };
     }
-    if let Some(sc) = e.get("shortcuts").and_then(|s| s.get(0)).and_then(|x| x.as_str()) {
-        return Part::text(shortcut_emoji(sc).map(String::from).unwrap_or_else(|| sc.to_string()));
+    if let Some(sc) = e
+        .get("shortcuts")
+        .and_then(|s| s.get(0))
+        .and_then(|x| x.as_str())
+    {
+        return Part::text(
+            shortcut_emoji(sc)
+                .map(String::from)
+                .unwrap_or_else(|| sc.to_string()),
+        );
     }
     if let Some(hex) = id.strip_prefix("U+") {
         if let Some(c) = u32::from_str_radix(hex, 16).ok().and_then(char::from_u32) {
             return Part::text(c.to_string());
         }
     }
-    Part::text(if id.is_empty() { "🔹".to_string() } else { id })
+    Part::text(if id.is_empty() {
+        "🔹".to_string()
+    } else {
+        id
+    })
 }
 
 /// `message` alanı (simpleText ya da runs: metin / emoji / bağlantı)
@@ -218,7 +288,12 @@ pub fn message_parts(msg: Option<&Value>) -> Vec<Part> {
         return vec![Part::text(s)];
     }
     let mut parts = Vec::new();
-    for run in msg.get("runs").and_then(|r| r.as_array()).into_iter().flatten() {
+    for run in msg
+        .get("runs")
+        .and_then(|r| r.as_array())
+        .into_iter()
+        .flatten()
+    {
         if let Some(t) = run.get("text").and_then(|x| x.as_str()) {
             let url = json_str(run.pointer("/navigationEndpoint/urlEndpoint/url"));
             if !url.is_empty() {
@@ -228,7 +303,10 @@ pub fn message_parts(msg: Option<&Value>) -> Vec<Part> {
                     .and_then(|(_, q)| q.split('&').find_map(|kv| kv.strip_prefix("q=")))
                     .map(|q| super::links::clean_link(q))
                     .unwrap_or(url);
-                parts.push(Part::Link { url: real, v: t.to_string() });
+                parts.push(Part::Link {
+                    url: real,
+                    v: t.to_string(),
+                });
             } else {
                 parts.push(Part::text(t));
             }
@@ -248,7 +326,12 @@ fn author_of(r: &Value) -> Author {
         avatar: last_thumb(r.get("authorPhoto")),
         ..Default::default()
     };
-    for b in r.get("authorBadges").and_then(|x| x.as_array()).into_iter().flatten() {
+    for b in r
+        .get("authorBadges")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+    {
         let br = b.get("liveChatAuthorBadgeRenderer").unwrap_or(b);
         if br.get("customThumbnail").is_some() {
             a.member = true;
@@ -272,7 +355,10 @@ fn author_of(r: &Value) -> Author {
 }
 
 fn ts_of(r: &Value) -> Option<u64> {
-    json_str(r.get("timestampUsec")).parse::<u64>().ok().map(|u| u / 1000)
+    json_str(r.get("timestampUsec"))
+        .parse::<u64>()
+        .ok()
+        .map(|u| u / 1000)
 }
 
 fn finish(mut m: ChatMsg, r: &Value) -> ChatMsg {
@@ -295,13 +381,25 @@ pub fn item_msg(item: &Value, client_id: &str) -> Option<ChatMsg> {
         if a.name.is_empty() || parts.is_empty() {
             return None;
         }
-        return Some(finish(ChatMsg::new(Platform::Youtube, id_of(r), Kind::Chat, a, parts), r));
+        return Some(finish(
+            ChatMsg::new(Platform::Youtube, id_of(r), Kind::Chat, a, parts),
+            r,
+        ));
     }
     if let Some(r) = item.get("liveChatPaidMessageRenderer") {
         let a = author_of(r);
-        let mut m = ChatMsg::new(Platform::Youtube, id_of(r), Kind::Superchat, a, message_parts(r.get("message")));
+        let mut m = ChatMsg::new(
+            Platform::Youtube,
+            id_of(r),
+            Kind::Superchat,
+            a,
+            message_parts(r.get("message")),
+        );
         m.amount = Some(simple_or_runs(r.get("purchaseAmountText"))).filter(|s| !s.is_empty());
-        m.alert = Some(AlertInfo { kind: "superchat".into(), ..Default::default() });
+        m.alert = Some(AlertInfo {
+            kind: "superchat".into(),
+            ..Default::default()
+        });
         return Some(finish(m, r));
     }
     if let Some(r) = item.get("liveChatPaidStickerRenderer") {
@@ -310,10 +408,21 @@ pub fn item_msg(item: &Value, client_id: &str) -> Option<ChatMsg> {
             s if s.is_empty() => "Super Sticker".to_string(),
             s => s,
         };
-        let parts = last_thumb(r.get("sticker")).map(|url| vec![Part::Emote { url, name, custom: false }]).unwrap_or_default();
+        let parts = last_thumb(r.get("sticker"))
+            .map(|url| {
+                vec![Part::Emote {
+                    url,
+                    name,
+                    custom: false,
+                }]
+            })
+            .unwrap_or_default();
         let mut m = ChatMsg::new(Platform::Youtube, id_of(r), Kind::Superchat, a, parts);
         m.amount = Some(simple_or_runs(r.get("purchaseAmountText"))).filter(|s| !s.is_empty());
-        m.alert = Some(AlertInfo { kind: "supersticker".into(), ..Default::default() });
+        m.alert = Some(AlertInfo {
+            kind: "supersticker".into(),
+            ..Default::default()
+        });
         return Some(finish(m, r));
     }
     if let Some(r) = item.get("liveChatMembershipItemRenderer") {
@@ -322,15 +431,40 @@ pub fn item_msg(item: &Value, client_id: &str) -> Option<ChatMsg> {
         a.sub = true;
         let primary = simple_or_runs(r.get("headerPrimaryText"));
         let sub = simple_or_runs(r.get("headerSubtext"));
-        let mut m = ChatMsg::new(Platform::Youtube, id_of(r), Kind::Sub, a, message_parts(r.get("message")));
-        let head = [primary.as_str(), sub.as_str()].iter().filter(|s| !s.is_empty()).copied().collect::<Vec<_>>().join(" · ");
+        let mut m = ChatMsg::new(
+            Platform::Youtube,
+            id_of(r),
+            Kind::Sub,
+            a,
+            message_parts(r.get("message")),
+        );
+        let head = [primary.as_str(), sub.as_str()]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .copied()
+            .collect::<Vec<_>>()
+            .join(" · ");
         m.headline = (!head.is_empty()).then_some(head);
-        let months: Option<u32> = if primary.is_empty() { None } else { net::parse_count(&primary).map(|x| x as u32) };
-        m.alert = Some(AlertInfo { kind: if primary.is_empty() { "member".into() } else { "milestone".into() }, months, ..Default::default() });
+        let months: Option<u32> = if primary.is_empty() {
+            None
+        } else {
+            net::parse_count(&primary).map(|x| x as u32)
+        };
+        m.alert = Some(AlertInfo {
+            kind: if primary.is_empty() {
+                "member".into()
+            } else {
+                "milestone".into()
+            },
+            months,
+            ..Default::default()
+        });
         return Some(finish(m, r));
     }
     if let Some(r) = item.get("liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") {
-        let h = r.pointer("/header/liveChatSponsorshipsHeaderRenderer").unwrap_or(r);
+        let h = r
+            .pointer("/header/liveChatSponsorshipsHeaderRenderer")
+            .unwrap_or(r);
         let mut a = author_of(h);
         if a.id.is_empty() {
             a.id = json_str(r.get("authorExternalChannelId"));
@@ -338,7 +472,12 @@ pub fn item_msg(item: &Value, client_id: &str) -> Option<ChatMsg> {
         let text = simple_or_runs(h.get("primaryText"));
         let mut m = ChatMsg::new(Platform::Youtube, id_of(r), Kind::Sub, a, vec![]);
         m.headline = (!text.is_empty()).then(|| text.clone());
-        m.alert = Some(AlertInfo { kind: "gift".into(), gifted: true, count: net::parse_count(&text), ..Default::default() });
+        m.alert = Some(AlertInfo {
+            kind: "gift".into(),
+            gifted: true,
+            count: net::parse_count(&text),
+            ..Default::default()
+        });
         return Some(finish(m, r));
     }
     None
@@ -358,18 +497,34 @@ pub struct ChatBatch {
 pub fn parse_chat(v: &Value) -> Option<ChatBatch> {
     let lc = v.pointer("/continuationContents/liveChatContinuation")?;
     let mut b = ChatBatch::default();
-    for c in lc.get("continuations").and_then(|x| x.as_array()).into_iter().flatten() {
+    for c in lc
+        .get("continuations")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+    {
         if let Some(t) = cont_of(c) {
             b.next = Some(t);
             b.timeout_ms = ["invalidationContinuationData", "timedContinuationData"]
                 .iter()
-                .find_map(|k| c.pointer(&format!("/{k}/timeoutMs")).and_then(|x| x.as_u64()));
+                .find_map(|k| {
+                    c.pointer(&format!("/{k}/timeoutMs"))
+                        .and_then(|x| x.as_u64())
+                });
             break;
         }
     }
-    for action in lc.get("actions").and_then(|x| x.as_array()).into_iter().flatten() {
+    for action in lc
+        .get("actions")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+    {
         if let Some(add) = action.get("addChatItemAction") {
-            if let Some(m) = add.get("item").and_then(|i| item_msg(i, &json_str(add.get("clientId")))) {
+            if let Some(m) = add
+                .get("item")
+                .and_then(|i| item_msg(i, &json_str(add.get("clientId"))))
+            {
                 b.msgs.push(m);
             }
             continue;
@@ -381,15 +536,23 @@ pub fn parse_chat(v: &Value) -> Option<ChatBatch> {
             }
         }
         if let Some(rep) = action.get("replaceChatItemAction") {
-            let item = rep.get("replacementItem").map(|x| x.to_string()).unwrap_or_default();
-            if item.contains("liveChatDeletedMessageRenderer") || item.contains("deletedStateMessage") {
+            let item = rep
+                .get("replacementItem")
+                .map(|x| x.to_string())
+                .unwrap_or_default();
+            if item.contains("liveChatDeletedMessageRenderer")
+                || item.contains("deletedStateMessage")
+            {
                 let id = json_str(rep.get("targetItemId"));
                 if !id.is_empty() && !b.deleted_ids.contains(&id) {
                     b.deleted_ids.push(id);
                 }
             }
         }
-        for k in ["markChatItemsByAuthorAsDeletedAction", "removeChatItemByAuthorAction"] {
+        for k in [
+            "markChatItemsByAuthorAsDeletedAction",
+            "removeChatItemByAuthorAction",
+        ] {
             let ch = json_str(action.pointer(&format!("/{k}/externalChannelId")));
             if !ch.is_empty() && !b.deleted_authors.contains(&ch) {
                 b.deleted_authors.push(ch);
@@ -401,8 +564,16 @@ pub fn parse_chat(v: &Value) -> Option<ChatBatch> {
 
 /// updated_metadata yanıtından canlı izleyici sayısı (bitmiş yayın / normal video: None)
 pub fn parse_viewers(v: &Value, raw: &str) -> Option<u64> {
-    for action in v.get("actions").and_then(|x| x.as_array()).into_iter().flatten() {
-        let Some(vc) = action.pointer("/updateViewershipAction/viewCount/videoViewCountRenderer") else { continue };
+    for action in v
+        .get("actions")
+        .and_then(|x| x.as_array())
+        .into_iter()
+        .flatten()
+    {
+        let Some(vc) = action.pointer("/updateViewershipAction/viewCount/videoViewCountRenderer")
+        else {
+            continue;
+        };
         let mut texts = Vec::new();
         for k in ["viewCount", "originalViewCount"] {
             match vc.get(k) {
@@ -434,7 +605,11 @@ pub fn parse_viewers(v: &Value, raw: &str) -> Option<u64> {
     }
     // Yedek: "concurrentViewers":"123"
     let i = raw.find("\"concurrentViewers\"")?;
-    let d: String = raw[i + 19..].chars().skip_while(|c| !c.is_ascii_digit()).take_while(|c| c.is_ascii_digit()).collect();
+    let d: String = raw[i + 19..]
+        .chars()
+        .skip_while(|c| !c.is_ascii_digit())
+        .take_while(|c| c.is_ascii_digit())
+        .collect();
     d.parse().ok()
 }
 
@@ -454,11 +629,18 @@ async fn get_page(url: &str) -> Result<String, String> {
         .await
         .map_err(|e| format!("Ağ hatası: {e}"))?;
     if resp.status().as_u16() == 429 {
-        let ra = resp.headers().get("retry-after").and_then(|v| v.to_str().ok()).and_then(|v| v.trim().parse().ok());
+        let ra = resp
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.trim().parse().ok());
         return Err(limit_msg(note_page_429(ra)));
     }
     if !resp.status().is_success() {
-        return Err(format!("YouTube sayfası yüklenemedi (HTTP {})", resp.status().as_u16()));
+        return Err(format!(
+            "YouTube sayfası yüklenemedi (HTTP {})",
+            resp.status().as_u16()
+        ));
     }
     BLOCK_LEVEL.store(0, std::sync::atomic::Ordering::Relaxed);
     resp.text().await.map_err(|e| e.to_string())
@@ -473,7 +655,11 @@ fn api_ctx(cv: &str) -> Value {
 async fn resolve_live_api(live_page: &str, cv: &str) -> Result<Option<String>, String> {
     let body = serde_json::json!({ "context": api_ctx(cv), "url": live_page });
     let (v, _) = post_json(RESOLVE_URL, &body, "https://www.youtube.com/").await?;
-    let Some(vid) = v.pointer("/endpoint/watchEndpoint/videoId").and_then(|x| x.as_str()).map(str::to_string) else {
+    let Some(vid) = v
+        .pointer("/endpoint/watchEndpoint/videoId")
+        .and_then(|x| x.as_str())
+        .map(str::to_string)
+    else {
         if v.pointer("/endpoint/browseEndpoint").is_some() {
             return Ok(None); // kanal var, canlı yayın yok
         }
@@ -486,10 +672,22 @@ async fn resolve_live_api(live_page: &str, cv: &str) -> Result<Option<String>, S
 /// (canlı mı, kanal adı)
 async fn player_info(vid: &str, cv: &str) -> Result<(bool, Option<String>), String> {
     let body = serde_json::json!({ "context": api_ctx(cv), "videoId": vid });
-    let (p, _) = post_json(PLAYER_URL, &body, &format!("https://www.youtube.com/watch?v={vid}")).await?;
+    let (p, _) = post_json(
+        PLAYER_URL,
+        &body,
+        &format!("https://www.youtube.com/watch?v={vid}"),
+    )
+    .await?;
     let d = p.get("videoDetails");
-    let live = d.and_then(|d| d.get("isLive")).and_then(|x| x.as_bool()).unwrap_or(false);
-    let name = d.and_then(|d| d.get("author")).and_then(|x| x.as_str()).filter(|s| !s.is_empty()).map(str::to_string);
+    let live = d
+        .and_then(|d| d.get("isLive"))
+        .and_then(|x| x.as_bool())
+        .unwrap_or(false);
+    let name = d
+        .and_then(|d| d.get("author"))
+        .and_then(|x| x.as_str())
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
     Ok((live, name))
 }
 
@@ -497,7 +695,12 @@ async fn player_info(vid: &str, cv: &str) -> Result<(bool, Option<String>), Stri
 async fn watch_api(vid: &str, cv: &str) -> Result<(bool, Option<String>, Value), String> {
     let (live, name) = player_info(vid, cv).await?;
     let body = serde_json::json!({ "context": api_ctx(cv), "videoId": vid });
-    let (next, _) = post_json(NEXT_URL, &body, &format!("https://www.youtube.com/watch?v={vid}")).await?;
+    let (next, _) = post_json(
+        NEXT_URL,
+        &body,
+        &format!("https://www.youtube.com/watch?v={vid}"),
+    )
+    .await?;
     Ok((live, name, next))
 }
 
@@ -532,7 +735,13 @@ async fn resolve_live(live_page: &str) -> Result<Option<String>, String> {
 
 async fn fetch_viewers(vid: &str, cv: &str) -> Option<u64> {
     let body = serde_json::json!({ "context": { "client": { "clientName": "WEB", "clientVersion": cv, "hl": "en" } }, "videoId": vid });
-    let (v, raw) = post_json(META_URL, &body, &format!("https://www.youtube.com/watch?v={vid}")).await.ok()?;
+    let (v, raw) = post_json(
+        META_URL,
+        &body,
+        &format!("https://www.youtube.com/watch?v={vid}"),
+    )
+    .await
+    .ok()?;
     parse_viewers(&v, &raw)
 }
 
@@ -543,14 +752,25 @@ enum End {
 
 async fn chat_session(ctx: &Ctx, vid: &str) -> Result<End, String> {
     let watch = format!("https://www.youtube.com/watch?v={vid}");
-    let cv0 = ctx.hub.yt_client_version().unwrap_or_else(|| CLIENT_VERSION.to_string());
+    let cv0 = ctx
+        .hub
+        .yt_client_version()
+        .unwrap_or_else(|| CLIENT_VERSION.to_string());
     // Önce veri arayüzü (hafif, sayfa istek sınırına takılmaz); olmazsa izleme sayfası
     let (live, name, data, page_tok, page_cv) = match watch_api(vid, &cv0).await {
-        Ok((live, name, next)) if live && chat_tokens(&next) != (None, None) => (live, name, Some(next), None, None),
+        Ok((live, name, next)) if live && chat_tokens(&next) != (None, None) => {
+            (live, name, Some(next), None, None)
+        }
         Ok((false, name, _)) => (false, name, None, None, None),
         _ => {
             let page = get_page(&watch).await?;
-            (is_live_now(&page), owner_channel_name(&page), initial_data(&page), fallback_token(&page), page_client_version(&page))
+            (
+                is_live_now(&page),
+                owner_channel_name(&page),
+                initial_data(&page),
+                fallback_token(&page),
+                page_client_version(&page),
+            )
         }
     };
     if let Some(n) = name {
@@ -566,8 +786,16 @@ async fn chat_session(ctx: &Ctx, vid: &str) -> Result<End, String> {
     let Some(mut token) = live_tok.clone().or_else(|| default_tok.clone()) else {
         return Err("Canlı sohbet verisi bulunamadı (sohbet kapalı olabilir)".into());
     };
-    let mut fallback = if live_tok.is_some() && default_tok != live_tok { default_tok } else { None };
-    let cv = ctx.hub.yt_client_version().or(page_cv).unwrap_or_else(|| CLIENT_VERSION.to_string());
+    let mut fallback = if live_tok.is_some() && default_tok != live_tok {
+        default_tok
+    } else {
+        None
+    };
+    let cv = ctx
+        .hub
+        .yt_client_version()
+        .or(page_cv)
+        .unwrap_or_else(|| CLIENT_VERSION.to_string());
 
     ctx.hub.set_video(&ctx.key, Some(vid.to_string()));
     ctx.hub.set_chat(&ctx.key, true, None);
@@ -623,7 +851,9 @@ async fn chat_session(ctx: &Ctx, vid: &str) -> Result<End, String> {
             }
             None => {
                 if let Some(fb) = fallback.take() {
-                    eprintln!("YouTube: canlı sohbet görünümü açılamadı, varsayılan görünüme geçiliyor");
+                    eprintln!(
+                        "YouTube: canlı sohbet görünümü açılamadı, varsayılan görünüme geçiliyor"
+                    );
                     token = fb;
                     skip_first = true;
                 } else {
@@ -649,7 +879,10 @@ pub async fn run(ctx: Ctx) {
             Some(YtKind::Video) => Ok(Some(ctx.link.ident.clone())),
             _ => match youtube_live_page(&ctx.link) {
                 Some(u) => {
-                    let cv = ctx.hub.yt_client_version().unwrap_or_else(|| CLIENT_VERSION.to_string());
+                    let cv = ctx
+                        .hub
+                        .yt_client_version()
+                        .unwrap_or_else(|| CLIENT_VERSION.to_string());
                     match resolve_live_api(&u, &cv).await {
                         Ok(v) => Ok(v),
                         Err(_) => resolve_live(&u).await,
@@ -707,11 +940,19 @@ mod tests {
         assert_eq!(canonical_video(WATCH).as_deref(), Some("abcDEF12345"));
         assert!(is_live_now(WATCH));
         assert_eq!(owner_channel_name(WATCH).as_deref(), Some("Erkin & Azcan"));
-        assert_eq!(page_client_version(WATCH).as_deref(), Some("2.20260920.00.00"));
+        assert_eq!(
+            page_client_version(WATCH).as_deref(),
+            Some("2.20260920.00.00")
+        );
         let d = initial_data(WATCH).unwrap();
         assert_eq!(chat_tokens(&d), (Some("LIVE".into()), Some("DEF".into())));
-        assert_eq!(fallback_token(r#"x"liveChatRenderer":{"a":1,"continuation":"TOK"}"#).as_deref(), Some("TOK"));
-        assert!(!is_live_now(r#"<link rel="canonical" href="https://www.youtube.com/@x">"#));
+        assert_eq!(
+            fallback_token(r#"x"liveChatRenderer":{"a":1,"continuation":"TOK"}"#).as_deref(),
+            Some("TOK")
+        );
+        assert!(!is_live_now(
+            r#"<link rel="canonical" href="https://www.youtube.com/@x">"#
+        ));
     }
 
     const CHAT: &str = r#"{"continuationContents":{"liveChatContinuation":{"continuations":[{"invalidationContinuationData":{"continuation":"NEXT","timeoutMs":5000}}],"actions":[
@@ -746,17 +987,37 @@ mod tests {
             m.parts,
             vec![
                 Part::text("selam "),
-                Part::Emote { url: "https://e/2".into(), name: ":yt:".into(), custom: true },
+                Part::Emote {
+                    url: "https://e/2".into(),
+                    name: ":yt:".into(),
+                    custom: true
+                },
                 Part::text(" 😀"),
-                Part::Link { url: "https://simracetr.com".into(), v: " bak simracetr.com".into() },
+                Part::Link {
+                    url: "https://simracetr.com".into(),
+                    v: " bak simracetr.com".into()
+                },
             ]
         );
         let p = &b.msgs[1];
-        assert_eq!((p.kind, p.amount.as_deref(), p.text.as_str()), (Kind::Superchat, Some("₺100,00"), "helal"));
+        assert_eq!(
+            (p.kind, p.amount.as_deref(), p.text.as_str()),
+            (Kind::Superchat, Some("₺100,00"), "helal")
+        );
         let s = &b.msgs[2];
-        assert_eq!(s.parts, vec![Part::Emote { url: "https://st/1".into(), name: "Kedi".into(), custom: false }]);
+        assert_eq!(
+            s.parts,
+            vec![Part::Emote {
+                url: "https://st/1".into(),
+                name: "Kedi".into(),
+                custom: false
+            }]
+        );
         let u = &b.msgs[3];
-        assert_eq!((u.kind, u.headline.as_deref()), (Kind::Sub, Some("Welcome to Kanal!")));
+        assert_eq!(
+            (u.kind, u.headline.as_deref()),
+            (Kind::Sub, Some("Welcome to Kanal!"))
+        );
         assert_eq!(b.deleted_ids, vec!["old1", "old2", "old3"]);
         assert_eq!(b.deleted_authors, vec!["UCbad"]);
         assert!(parse_chat(&serde_json::json!({"responseContext":{}})).is_none());
@@ -768,6 +1029,9 @@ mod tests {
         assert_eq!(parse_viewers(&live, ""), Some(1234));
         let ended: Value = serde_json::from_str(r#"{"actions":[{"updateViewershipAction":{"viewCount":{"videoViewCountRenderer":{"viewCount":{"simpleText":"12,345 views"}}}}}]}"#).unwrap();
         assert_eq!(parse_viewers(&ended, ""), None);
-        assert_eq!(parse_viewers(&Value::Null, r#"{"concurrentViewers": "77"}"#), Some(77));
+        assert_eq!(
+            parse_viewers(&Value::Null, r#"{"concurrentViewers": "77"}"#),
+            Some(77)
+        );
     }
 }

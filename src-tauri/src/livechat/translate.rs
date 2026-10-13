@@ -36,7 +36,13 @@ pub fn default_model(url: &str) -> &'static str {
 
 /// Dil kodunun İngilizce adı (modele verilen talimat için)
 pub fn language_name(code: &str) -> &'static str {
-    match code.split(['-', '_']).next().unwrap_or("").to_ascii_lowercase().as_str() {
+    match code
+        .split(['-', '_'])
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "tr" => "Turkish",
         "en" => "English",
         "de" => "German",
@@ -75,12 +81,20 @@ fn clean(out: &str) -> String {
         }
     }
     let s = s.trim_matches(|c| c == '"' || c == '“' || c == '”' || c == '\'');
-    s.lines().map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join(" ")
+    s.lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub async fn translate(cfg: &TrCfg, text: &str) -> Result<String, RunErr> {
     let base = check_url(&cfg.url).map_err(|e| (true, e))?;
-    let model = if cfg.model.trim().is_empty() { default_model(&cfg.url).to_string() } else { cfg.model.trim().to_string() };
+    let model = if cfg.model.trim().is_empty() {
+        default_model(&cfg.url).to_string()
+    } else {
+        cfg.model.trim().to_string()
+    };
     let body = serde_json::json!({
         "model": model,
         "temperature": 0.2,
@@ -96,18 +110,31 @@ pub async fn translate(cfg: &TrCfg, text: &str) -> Result<String, RunErr> {
         req = req.bearer_auth(&cfg.key);
     }
     let resp = req.send().await.map_err(|e| {
-        let m = if e.is_timeout() { "Çeviri sunucusu yanıt vermedi (zaman aşımı)." } else { "Çeviri isteği gönderilemedi." };
+        let m = if e.is_timeout() {
+            "Çeviri sunucusu yanıt vermedi (zaman aşımı)."
+        } else {
+            "Çeviri isteği gönderilemedi."
+        };
         (false, m.to_string())
     })?;
     let status = resp.status().as_u16();
     let raw = resp.text().await.unwrap_or_default();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap_or(serde_json::Value::Null);
     let msg = || {
-        v.pointer("/error/message").or_else(|| v.pointer("/message")).and_then(|x| x.as_str()).unwrap_or("").chars().take(160).collect::<String>()
+        v.pointer("/error/message")
+            .or_else(|| v.pointer("/message"))
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .chars()
+            .take(160)
+            .collect::<String>()
     };
     match status {
         200..=299 => {
-            let out = v.pointer("/choices/0/message/content").and_then(|x| x.as_str()).unwrap_or("");
+            let out = v
+                .pointer("/choices/0/message/content")
+                .and_then(|x| x.as_str())
+                .unwrap_or("");
             let out = clean(out);
             if out.is_empty() {
                 Err((false, "Çeviri boş döndü.".into()))
@@ -116,9 +143,21 @@ pub async fn translate(cfg: &TrCfg, text: &str) -> Result<String, RunErr> {
             }
         }
         401 | 403 => Err((true, "Çeviri: API anahtarı geçersiz ya da yetkisiz.".into())),
-        404 => Err((true, format!("Çeviri modeli bulunamadı (404): model adını ({model}) kontrol edin. {}", msg()))),
-        429 => Err((false, "Çeviri kotası / hız sınırı doldu; cümle çevrilmeden yazıldı.".into())),
-        _ => Err((false, format!("Çeviri sunucusu hata verdi ({status}). {}", msg()))),
+        404 => Err((
+            true,
+            format!(
+                "Çeviri modeli bulunamadı (404): model adını ({model}) kontrol edin. {}",
+                msg()
+            ),
+        )),
+        429 => Err((
+            false,
+            "Çeviri kotası / hız sınırı doldu; cümle çevrilmeden yazıldı.".into(),
+        )),
+        _ => Err((
+            false,
+            format!("Çeviri sunucusu hata verdi ({status}). {}", msg()),
+        )),
     }
 }
 
@@ -128,7 +167,10 @@ mod tests {
 
     #[test]
     fn cleans_model_output() {
-        assert_eq!(clean("  \"Pite gir, lastikler bitti\" "), "Pite gir, lastikler bitti");
+        assert_eq!(
+            clean("  \"Pite gir, lastikler bitti\" "),
+            "Pite gir, lastikler bitti"
+        );
         assert_eq!(clean("Translation: Arkandayım\n"), "Arkandayım");
         assert_eq!(clean("Bir\n\nİki"), "Bir İki");
     }
@@ -136,7 +178,10 @@ mod tests {
     #[test]
     fn models_and_languages() {
         assert_eq!(default_model("https://api.openai.com/v1"), "gpt-4o-mini");
-        assert_eq!(default_model("https://api.groq.com/openai/v1"), "llama-3.3-70b-versatile");
+        assert_eq!(
+            default_model("https://api.groq.com/openai/v1"),
+            "llama-3.3-70b-versatile"
+        );
         assert_eq!(language_name("tr"), "Turkish");
         assert_eq!(language_name("pt-BR"), "Portuguese");
         assert_eq!(language_name("zh-CN"), "Simplified Chinese");

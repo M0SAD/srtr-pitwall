@@ -589,7 +589,10 @@ impl Voice {
             self.answer = None;
             return;
         }
-        if crate::voicecmd::hold() || audio::busy() || now.duration_since(self.sent_at) < Duration::from_millis(350) {
+        if crate::voicecmd::hold()
+            || audio::busy()
+            || now.duration_since(self.sent_at) < Duration::from_millis(350)
+        {
             self.last_busy = now;
             return;
         }
@@ -602,7 +605,11 @@ impl Voice {
         }
         if !text.is_empty() {
             self.last_said = Some((Vec::new(), text.clone()));
-            crate::voicecmd::speak(text, &crate::voicecmd::answer_lang(), self.cfg.volume / 100.0);
+            crate::voicecmd::speak(
+                text,
+                &crate::voicecmd::answer_lang(),
+                self.cfg.volume / 100.0,
+            );
             self.sent_at = now;
             self.last_busy = now;
         }
@@ -675,7 +682,15 @@ impl Voice {
 
     /// Her karede çağrılır. `live`: gerçek sürüş ya da kullanıcının açtığı demo (önizleme değil).
     /// `sim`: bağlı sim kısa adı ("iracing", "acc"…; demo için boş)
-    pub fn tick(&mut self, f: &Frame, s: &SessionData, t: &Tracker, live: bool, sim: &str, silent: bool) {
+    pub fn tick(
+        &mut self,
+        f: &Frame,
+        s: &SessionData,
+        t: &Tracker,
+        live: bool,
+        sim: &str,
+        silent: bool,
+    ) {
         // "Demoda ses" açıksa demo da gerçek sürüş gibi seslidir
         // Demoda sesli mühendis anahtarı kapalı olsa da konuşur (sessiz demoda olduğu gibi)
         let demo = silent;
@@ -802,7 +817,8 @@ impl Voice {
 
         let fc = self.sounds.faster_class.clone();
         // Kendi aracımız pit yolundayken hızlı sınıf bipi de çalmaz
-        if !fc.enabled || !(driving || (live && !fc.mute_spectating)) || (driving && f.on_pit_road) {
+        if !fc.enabled || !(driving || (live && !fc.mute_spectating)) || (driving && f.on_pit_road)
+        {
             return;
         }
         let me = f.player_idx.max(0) as usize;
@@ -984,11 +1000,22 @@ mod tests {
     fn traffic_messages_expire_quickly() {
         let t0 = Instant::now();
         let mut q = Queue::default();
-        let mut m = Msg::new("gaps", prio::NORMAL, vec![k("timings/car_behind_is_lapping_us")]);
+        let mut m = Msg::new(
+            "gaps",
+            prio::NORMAL,
+            vec![k("timings/car_behind_is_lapping_us")],
+        );
         assert!(traffic_msg(&m));
         m.ttl = m.ttl.min(TRAFFIC_TTL);
         q.push(m, t0);
-        q.push(Msg::new("fuel", prio::NORMAL, vec![k("fuel/half_distance_good_fuel")]), t0);
+        q.push(
+            Msg::new(
+                "fuel",
+                prio::NORMAL,
+                vec![k("fuel/half_distance_good_fuel")],
+            ),
+            t0,
+        );
         // pitte: trafik mesajları kuyruktan silinir
         let mut q2 = Queue::default();
         q2.items = q.items.clone();

@@ -1,5 +1,10 @@
 // scripts/openvr_gen.mjs üretir — ELLE DÜZENLEME. Kaynak: OpenVR SDK v2.5.1, headers/openvr_capi.h
-#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case, dead_code)]
+#![allow(
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    dead_code
+)]
 
 use super::{HmdMatrix34, TrackedDevicePose};
 use std::ffi::{c_char, c_void};
@@ -70,11 +75,17 @@ pub mod ivrsystem {
 
     // void (OPENVR_FNTABLE_CALLTYPE *GetDeviceToAbsoluteTrackingPose)(ETrackingUniverseOrigin eOrigin, float fPredictedSecondsToPhotonsFromNow, struct TrackedDevicePose_t * pTrackedDevicePoseArray, uint32_t unTrackedDevicePoseArrayCount);
     pub const GetDeviceToAbsoluteTrackingPose: usize = 11;
-    pub type FnGetDeviceToAbsoluteTrackingPose = unsafe extern "system" fn(eOrigin: i32, fPredictedSecondsToPhotonsFromNow: f32, pTrackedDevicePoseArray: *mut TrackedDevicePose, unTrackedDevicePoseArrayCount: u32);
+    pub type FnGetDeviceToAbsoluteTrackingPose = unsafe extern "system" fn(
+        eOrigin: i32,
+        fPredictedSecondsToPhotonsFromNow: f32,
+        pTrackedDevicePoseArray: *mut TrackedDevicePose,
+        unTrackedDevicePoseArrayCount: u32,
+    );
 
     // bool (OPENVR_FNTABLE_CALLTYPE *PollNextEvent)(struct VREvent_t * pEvent, uint32_t uncbVREvent);
     pub const PollNextEvent: usize = 29;
-    pub type FnPollNextEvent = unsafe extern "system" fn(pEvent: *mut c_void, uncbVREvent: u32) -> u8;
+    pub type FnPollNextEvent =
+        unsafe extern "system" fn(pEvent: *mut c_void, uncbVREvent: u32) -> u8;
 
     // void (OPENVR_FNTABLE_CALLTYPE *AcknowledgeQuit_Exiting)();
     pub const AcknowledgeQuit_Exiting: usize = 43;
@@ -180,11 +191,16 @@ pub mod ivroverlay {
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *FindOverlay)(char * pchOverlayKey, VROverlayHandle_t * pOverlayHandle);
     pub const FindOverlay: usize = 0;
-    pub type FnFindOverlay = unsafe extern "system" fn(pchOverlayKey: *const c_char, pOverlayHandle: *mut u64) -> i32;
+    pub type FnFindOverlay =
+        unsafe extern "system" fn(pchOverlayKey: *const c_char, pOverlayHandle: *mut u64) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *CreateOverlay)(char * pchOverlayKey, char * pchOverlayName, VROverlayHandle_t * pOverlayHandle);
     pub const CreateOverlay: usize = 1;
-    pub type FnCreateOverlay = unsafe extern "system" fn(pchOverlayKey: *const c_char, pchOverlayName: *const c_char, pOverlayHandle: *mut u64) -> i32;
+    pub type FnCreateOverlay = unsafe extern "system" fn(
+        pchOverlayKey: *const c_char,
+        pchOverlayName: *const c_char,
+        pOverlayHandle: *mut u64,
+    ) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *DestroyOverlay)(VROverlayHandle_t ulOverlayHandle);
     pub const DestroyOverlay: usize = 2;
@@ -196,27 +212,36 @@ pub mod ivroverlay {
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlayColor)(VROverlayHandle_t ulOverlayHandle, float fRed, float fGreen, float fBlue);
     pub const SetOverlayColor: usize = 13;
-    pub type FnSetOverlayColor = unsafe extern "system" fn(ulOverlayHandle: u64, fRed: f32, fGreen: f32, fBlue: f32) -> i32;
+    pub type FnSetOverlayColor =
+        unsafe extern "system" fn(ulOverlayHandle: u64, fRed: f32, fGreen: f32, fBlue: f32) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlayAlpha)(VROverlayHandle_t ulOverlayHandle, float fAlpha);
     pub const SetOverlayAlpha: usize = 15;
-    pub type FnSetOverlayAlpha = unsafe extern "system" fn(ulOverlayHandle: u64, fAlpha: f32) -> i32;
+    pub type FnSetOverlayAlpha =
+        unsafe extern "system" fn(ulOverlayHandle: u64, fAlpha: f32) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlaySortOrder)(VROverlayHandle_t ulOverlayHandle, uint32_t unSortOrder);
     pub const SetOverlaySortOrder: usize = 19;
-    pub type FnSetOverlaySortOrder = unsafe extern "system" fn(ulOverlayHandle: u64, unSortOrder: u32) -> i32;
+    pub type FnSetOverlaySortOrder =
+        unsafe extern "system" fn(ulOverlayHandle: u64, unSortOrder: u32) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlayWidthInMeters)(VROverlayHandle_t ulOverlayHandle, float fWidthInMeters);
     pub const SetOverlayWidthInMeters: usize = 21;
-    pub type FnSetOverlayWidthInMeters = unsafe extern "system" fn(ulOverlayHandle: u64, fWidthInMeters: f32) -> i32;
+    pub type FnSetOverlayWidthInMeters =
+        unsafe extern "system" fn(ulOverlayHandle: u64, fWidthInMeters: f32) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlayCurvature)(VROverlayHandle_t ulOverlayHandle, float fCurvature);
     pub const SetOverlayCurvature: usize = 23;
-    pub type FnSetOverlayCurvature = unsafe extern "system" fn(ulOverlayHandle: u64, fCurvature: f32) -> i32;
+    pub type FnSetOverlayCurvature =
+        unsafe extern "system" fn(ulOverlayHandle: u64, fCurvature: f32) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlayTransformAbsolute)(VROverlayHandle_t ulOverlayHandle, ETrackingUniverseOrigin eTrackingOrigin, struct HmdMatrix34_t * pmatTrackingOriginToOverlayTransform);
     pub const SetOverlayTransformAbsolute: usize = 32;
-    pub type FnSetOverlayTransformAbsolute = unsafe extern "system" fn(ulOverlayHandle: u64, eTrackingOrigin: i32, pmatTrackingOriginToOverlayTransform: *mut HmdMatrix34) -> i32;
+    pub type FnSetOverlayTransformAbsolute = unsafe extern "system" fn(
+        ulOverlayHandle: u64,
+        eTrackingOrigin: i32,
+        pmatTrackingOriginToOverlayTransform: *mut HmdMatrix34,
+    ) -> i32;
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *ShowOverlay)(VROverlayHandle_t ulOverlayHandle);
     pub const ShowOverlay: usize = 41;
@@ -228,7 +253,13 @@ pub mod ivroverlay {
 
     // EVROverlayError (OPENVR_FNTABLE_CALLTYPE *SetOverlayRaw)(VROverlayHandle_t ulOverlayHandle, void * pvBuffer, uint32_t unWidth, uint32_t unHeight, uint32_t unBytesPerPixel);
     pub const SetOverlayRaw: usize = 60;
-    pub type FnSetOverlayRaw = unsafe extern "system" fn(ulOverlayHandle: u64, pvBuffer: *mut c_void, unWidth: u32, unHeight: u32, unBytesPerPixel: u32) -> i32;
+    pub type FnSetOverlayRaw = unsafe extern "system" fn(
+        ulOverlayHandle: u64,
+        pvBuffer: *mut c_void,
+        unWidth: u32,
+        unHeight: u32,
+        unBytesPerPixel: u32,
+    ) -> i32;
 
     /// (ad, indeks, C bildirimi): birim testi alıntı başlıkla karşılaştırır
     pub const USED: [(&str, usize, &str); 13] = [

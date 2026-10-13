@@ -29,9 +29,9 @@ mod imp {
         GetAsyncKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT, VK_SNAPSHOT,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        CallNextHookEx, DispatchMessageW, GetMessageW, PeekMessageW, PostThreadMessageW, SetWindowsHookExW,
-        TranslateMessage, UnhookWindowsHookEx, HC_ACTION, KBDLLHOOKSTRUCT, MSG, PM_NOREMOVE, WH_KEYBOARD_LL,
-        WM_KEYDOWN, WM_KEYUP, WM_QUIT, WM_SYSKEYDOWN, WM_SYSKEYUP,
+        CallNextHookEx, DispatchMessageW, GetMessageW, PeekMessageW, PostThreadMessageW,
+        SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx, HC_ACTION, KBDLLHOOKSTRUCT, MSG,
+        PM_NOREMOVE, WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_QUIT, WM_SYSKEYDOWN, WM_SYSKEYUP,
     };
 
     /// Dinlenen tuş (sanal tuş kodu). Varsayılan PrintScreen; `RegisterHotKey` başarısız olursa
@@ -136,7 +136,12 @@ mod imp {
                 let mut msg: MSG = std::mem::zeroed();
                 // İleti kuyruğunu oluştur (PostThreadMessageW ile WM_QUIT alabilmek için)
                 PeekMessageW(&mut msg, std::ptr::null_mut(), 0, 0, PM_NOREMOVE);
-                let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook_proc), GetModuleHandleW(std::ptr::null()), 0);
+                let hook = SetWindowsHookExW(
+                    WH_KEYBOARD_LL,
+                    Some(hook_proc),
+                    GetModuleHandleW(std::ptr::null()),
+                    0,
+                );
                 if hook.is_null() {
                     let _ = tx.send(Err(std::io::Error::last_os_error().to_string()));
                     return;

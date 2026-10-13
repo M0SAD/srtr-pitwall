@@ -98,16 +98,43 @@ pub struct SttCfg {
 }
 
 pub fn cfg_from_settings(v: &Value) -> SttCfg {
-    let ui_lang = v.pointer("/general/language").and_then(|x| x.as_str()).unwrap_or("tr").trim().to_string();
-    let win_mic = v.pointer("/general/voice/commands/mic").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    let ui_lang = v
+        .pointer("/general/language")
+        .and_then(|x| x.as_str())
+        .unwrap_or("tr")
+        .trim()
+        .to_string();
+    let win_mic = v
+        .pointer("/general/voice/commands/mic")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
     let Some(t) = v.pointer("/general/livechat/stt") else {
-        return SttCfg { pause_while_tts: true, remote_label: "Discord".into(), sensitivity: 5, ui_lang, win_mic, ..Default::default() };
+        return SttCfg {
+            pause_while_tts: true,
+            remote_label: "Discord".into(),
+            sensitivity: 5,
+            ui_lang,
+            win_mic,
+            ..Default::default()
+        };
     };
     let b = |p: &str, def: bool| t.pointer(p).and_then(|x| x.as_bool()).unwrap_or(def);
-    let s = |p: &str| t.pointer(p).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    let s = |p: &str| {
+        t.pointer(p)
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string()
+    };
     SttCfg {
         enabled: b("/enabled", false),
-        engine: if s("/engine") == "cloud" { Engine::Cloud } else { Engine::Windows },
+        engine: if s("/engine") == "cloud" {
+            Engine::Cloud
+        } else {
+            Engine::Windows
+        },
         source: match s("/source").as_str() {
             "system" => Source::System,
             "both" => Source::Both,
@@ -129,7 +156,11 @@ pub fn cfg_from_settings(v: &Value) -> SttCfg {
         ui_lang,
         cloud_url: s("/cloud/url"),
         cloud_model: s("/cloud/model"),
-        sensitivity: t.pointer("/sensitivity").and_then(|x| x.as_f64()).unwrap_or(5.0).clamp(1.0, 10.0) as u8,
+        sensitivity: t
+            .pointer("/sensitivity")
+            .and_then(|x| x.as_f64())
+            .unwrap_or(5.0)
+            .clamp(1.0, 10.0) as u8,
         translate: b("/translate/enabled", false),
         tr_target: s("/translate/target"),
         tr_mic: s("/translate/sources") == "both",
@@ -142,7 +173,10 @@ impl SttCfg {
     /// Dinlemeyi yeniden başlatmayı gerektiren alanlar (etiket, filtre gibi alanlar değişince yeniden başlatılmaz)
     fn run_key(&self, key: &str) -> String {
         match self.engine {
-            Engine::Windows => format!("win|{}|{}|{}|{:?}", self.language, self.win_mic, self.ui_lang, self.source),
+            Engine::Windows => format!(
+                "win|{}|{}|{}|{:?}",
+                self.language, self.win_mic, self.ui_lang, self.source
+            ),
             Engine::Cloud => format!(
                 "cloud|{}{}|{:?}|{}|{}|{}|{}|{}|{}|{}|{}",
                 self.translates(Src::System) as u8,
@@ -156,7 +190,8 @@ impl SttCfg {
                 self.sensitivity,
                 key.len(),
                 // Anahtarın kendisi karşılaştırma metnine girmez: kısa özeti yeter
-                key.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32))
+                key.bytes()
+                    .fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32))
             ),
         }
     }
@@ -164,8 +199,17 @@ impl SttCfg {
     /// Çeviri hedef dili (boş: arayüz dili)
     fn tr_lang(&self) -> String {
         let l = self.tr_target.trim().to_lowercase();
-        let l = if l.is_empty() { self.ui_lang.to_lowercase() } else { l };
-        l.split(['-', '_']).next().unwrap_or("tr").chars().take(3).collect()
+        let l = if l.is_empty() {
+            self.ui_lang.to_lowercase()
+        } else {
+            l
+        };
+        l.split(['-', '_'])
+            .next()
+            .unwrap_or("tr")
+            .chars()
+            .take(3)
+            .collect()
     }
 
     /// Bu kaynak çevrilecek mi (ayar; PRO denetimi ayrıca)
@@ -176,11 +220,20 @@ impl SttCfg {
     /// Çevrimiçi motora gönderilecek dil kodu ("" : otomatik algıla)
     fn cloud_lang(&self) -> String {
         let l = self.cloud_language.trim().to_lowercase();
-        let l = if l.is_empty() { self.ui_lang.to_lowercase() } else { l };
+        let l = if l.is_empty() {
+            self.ui_lang.to_lowercase()
+        } else {
+            l
+        };
         if l == "auto" {
             return String::new();
         }
-        l.split(['-', '_']).next().unwrap_or("").chars().take(3).collect()
+        l.split(['-', '_'])
+            .next()
+            .unwrap_or("")
+            .chars()
+            .take(3)
+            .collect()
     }
 }
 
@@ -191,14 +244,87 @@ impl SttCfg {
 
 const PROFANITY: &[&str] = &[
     // Türkçe
-    "amına*", "amina*", "amını*", "amcık*", "amcik*", "amk", "amq", "aq", "mk", "orospu*", "orosbu*", "oç", "piç*", "pic", "sik", "sikik*",
-    "sikim*", "sikiş*", "sikis*", "siktir*", "siktiğ*", "sikeyim", "sikerim", "siker", "sikecek*", "sikey*", "sikt*", "yarrak*", "yarak",
-    "yarağ*", "yarram*", "dalyarak*", "dalyarrak*", "taşak*", "taşşak*", "göt", "götü", "götün", "götveren*", "götoş*", "kahpe*",
-    "pezevenk*", "puşt*", "ibne*", "gavat*", "kaltak*", "kancık*", "fahişe*", "sürtük*", "yavşak*", "şerefsiz*", "ananı*", "ananın amı*",
-    "gerizekalı*", "salak", "dangalak*", "hıyarağası",
+    "amına*",
+    "amina*",
+    "amını*",
+    "amcık*",
+    "amcik*",
+    "amk",
+    "amq",
+    "aq",
+    "mk",
+    "orospu*",
+    "orosbu*",
+    "oç",
+    "piç*",
+    "pic",
+    "sik",
+    "sikik*",
+    "sikim*",
+    "sikiş*",
+    "sikis*",
+    "siktir*",
+    "siktiğ*",
+    "sikeyim",
+    "sikerim",
+    "siker",
+    "sikecek*",
+    "sikey*",
+    "sikt*",
+    "yarrak*",
+    "yarak",
+    "yarağ*",
+    "yarram*",
+    "dalyarak*",
+    "dalyarrak*",
+    "taşak*",
+    "taşşak*",
+    "göt",
+    "götü",
+    "götün",
+    "götveren*",
+    "götoş*",
+    "kahpe*",
+    "pezevenk*",
+    "puşt*",
+    "ibne*",
+    "gavat*",
+    "kaltak*",
+    "kancık*",
+    "fahişe*",
+    "sürtük*",
+    "yavşak*",
+    "şerefsiz*",
+    "ananı*",
+    "ananın amı*",
+    "gerizekalı*",
+    "salak",
+    "dangalak*",
+    "hıyarağası",
     // English
-    "fuck*", "motherfuck*", "shit*", "bullshit*", "bitch*", "asshole*", "bastard*", "dick", "dickhead*", "cunt*", "pussy", "whore*", "slut*",
-    "wanker*", "twat*", "nigger*", "nigga*", "faggot*", "fag", "retard*", "cock", "cocksucker*", "jerkoff*",
+    "fuck*",
+    "motherfuck*",
+    "shit*",
+    "bullshit*",
+    "bitch*",
+    "asshole*",
+    "bastard*",
+    "dick",
+    "dickhead*",
+    "cunt*",
+    "pussy",
+    "whore*",
+    "slut*",
+    "wanker*",
+    "twat*",
+    "nigger*",
+    "nigga*",
+    "faggot*",
+    "fag",
+    "retard*",
+    "cock",
+    "cocksucker*",
+    "jerkoff*",
 ];
 
 /// Türkçe küçük harf (İ→i, I→ı); karakter başına bir karakter
@@ -219,8 +345,17 @@ pub struct Profanity {
 
 impl Profanity {
     pub fn new(extra: &str, builtin: bool) -> Profanity {
-        let mut list: Vec<String> = if builtin { PROFANITY.iter().map(|s| s.to_string()).collect() } else { vec![] };
-        list.extend(extra.split([',', '\n']).map(|w| w.trim().to_string()).filter(|w| !w.is_empty()));
+        let mut list: Vec<String> = if builtin {
+            PROFANITY.iter().map(|s| s.to_string()).collect()
+        } else {
+            vec![]
+        };
+        list.extend(
+            extra
+                .split([',', '\n'])
+                .map(|w| w.trim().to_string())
+                .filter(|w| !w.is_empty()),
+        );
         let words = list
             .iter()
             .filter_map(|w| {
@@ -313,12 +448,24 @@ fn primary(tag: &str) -> String {
 /// Kurulu dillerden (`supported`: etiket, ad) seçim: istenen dil (tam eşleşme → aynı ana dil) → tercih listesi
 /// (ör. arayüz dili) → en-US → ilk kurulu dil. Döner: (sıra, istenen dil bulunamadığı için yedeğe düşüldü mü).
 /// İstenen dil kurulu değilken `SpeechRecognizer` "Eleman bulunamadı (0x80070490)" hatası verir; bu seçim onu önler.
-pub fn pick_language(supported: &[(String, String)], wanted: &str, prefer: &[String]) -> Option<(usize, bool)> {
+pub fn pick_language(
+    supported: &[(String, String)],
+    wanted: &str,
+    prefer: &[String],
+) -> Option<(usize, bool)> {
     if supported.is_empty() {
         return None;
     }
-    let find_exact = |t: &str| supported.iter().position(|(tag, _)| tag.eq_ignore_ascii_case(t));
-    let find_primary = |t: &str| supported.iter().position(|(tag, _)| primary(tag) == primary(t));
+    let find_exact = |t: &str| {
+        supported
+            .iter()
+            .position(|(tag, _)| tag.eq_ignore_ascii_case(t))
+    };
+    let find_primary = |t: &str| {
+        supported
+            .iter()
+            .position(|(tag, _)| primary(tag) == primary(t))
+    };
     if !wanted.is_empty() {
         if let Some(i) = find_exact(wanted).or_else(|| find_primary(wanted)) {
             return Some((i, false));
@@ -329,7 +476,12 @@ pub fn pick_language(supported: &[(String, String)], wanted: &str, prefer: &[Str
             return Some((i, !wanted.is_empty()));
         }
     }
-    Some((find_exact("en-US").or_else(|| find_primary("en")).unwrap_or(0), !wanted.is_empty()))
+    Some((
+        find_exact("en-US")
+            .or_else(|| find_primary("en"))
+            .unwrap_or(0),
+        !wanted.is_empty(),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -430,7 +582,13 @@ impl Stt {
         let ok = allowed(&self.app, FEATURE);
         let g = self.st.lock();
         let running = g.run.is_some();
-        let src = |want: bool, r: &SrcRt| SrcStatus { wanted: want, listening: running && r.listening, device: r.device.clone(), level: if running && r.listening { r.level } else { 0 }, error: r.error.clone() };
+        let src = |want: bool, r: &SrcRt| SrcStatus {
+            wanted: want,
+            listening: running && r.listening,
+            device: r.device.clone(),
+            level: if running && r.listening { r.level } else { 0 },
+            error: r.error.clone(),
+        };
         let mic = src(g.cfg.source.mic(), &g.mic);
         let system = src(g.cfg.source.system(), &g.sys);
         let error = match (&mic.error, &system.error) {
@@ -447,7 +605,11 @@ impl Stt {
             language: g.cfg.language.clone(),
             error,
             last: g.last.clone(),
-            engine: if g.cfg.engine == Engine::Cloud { "cloud" } else { "windows" },
+            engine: if g.cfg.engine == Engine::Cloud {
+                "cloud"
+            } else {
+                "windows"
+            },
             active_language: g.active_language.clone(),
             notice: g.notice.clone(),
             has_key: !g.key.is_empty(),
@@ -474,7 +636,8 @@ impl Stt {
         } else if g.dictate && eff.source == Source::System {
             eff.source = Source::Both;
         }
-        let fallback = eff.engine == Engine::Cloud && g.key.is_empty() && !cloud::is_local(&eff.cloud_url);
+        let fallback =
+            eff.engine == Engine::Cloud && g.key.is_empty() && !cloud::is_local(&eff.cloud_url);
         if fallback {
             eff.engine = Engine::Windows;
         }
@@ -503,13 +666,42 @@ impl Stt {
                     }
                     if cfg.source.mic() {
                         let me = self.clone();
-                        let _ = std::thread::Builder::new().name("livechat-stt".into()).spawn(move || crate::crashlog::supervise("livechat-stt", || me.clone().win_thread(cfg.clone(), stop.clone(), gen)));
+                        let _ = std::thread::Builder::new()
+                            .name("livechat-stt".into())
+                            .spawn(move || {
+                                crate::crashlog::supervise("livechat-stt", || {
+                                    me.clone().win_thread(cfg.clone(), stop.clone(), gen)
+                                })
+                            });
                     }
                 }
                 Engine::Cloud => {
-                    let ccfg = CloudCfg { url: cfg.cloud_url.clone(), model: cfg.cloud_model.clone(), key: g.key.clone(), language: cfg.cloud_lang(), sensitivity: cfg.sensitivity };
-                    g.active_language = Some(if ccfg.language.is_empty() { "auto".into() } else { ccfg.language.clone() });
-                    for (on, src, dev, name) in [(cfg.source.mic(), Src::Mic, cfg.mic_device.clone(), "livechat-stt-mic"), (cfg.source.system(), Src::System, cfg.system_device.clone(), "livechat-stt-sys")] {
+                    let ccfg = CloudCfg {
+                        url: cfg.cloud_url.clone(),
+                        model: cfg.cloud_model.clone(),
+                        key: g.key.clone(),
+                        language: cfg.cloud_lang(),
+                        sensitivity: cfg.sensitivity,
+                    };
+                    g.active_language = Some(if ccfg.language.is_empty() {
+                        "auto".into()
+                    } else {
+                        ccfg.language.clone()
+                    });
+                    for (on, src, dev, name) in [
+                        (
+                            cfg.source.mic(),
+                            Src::Mic,
+                            cfg.mic_device.clone(),
+                            "livechat-stt-mic",
+                        ),
+                        (
+                            cfg.source.system(),
+                            Src::System,
+                            cfg.system_device.clone(),
+                            "livechat-stt-sys",
+                        ),
+                    ] {
                         if !on {
                             continue;
                         }
@@ -520,7 +712,19 @@ impl Stt {
                             c.language = String::new();
                         }
                         let st = stop.clone();
-                        let _ = std::thread::Builder::new().name(name.into()).spawn(move || crate::crashlog::supervise(name, || me.clone().cloud_thread(src, dev.clone(), c.clone(), st.clone(), gen)));
+                        let _ = std::thread::Builder::new()
+                            .name(name.into())
+                            .spawn(move || {
+                                crate::crashlog::supervise(name, || {
+                                    me.clone().cloud_thread(
+                                        src,
+                                        dev.clone(),
+                                        c.clone(),
+                                        st.clone(),
+                                        gen,
+                                    )
+                                })
+                            });
                     }
                 }
             }
@@ -540,8 +744,17 @@ impl Stt {
             if g.run.as_ref().map(|r| r.2) != Some(gen) {
                 return;
             }
-            let St { mic, sys, notice, active_language, .. } = &mut *g;
-            let mut extra = St2 { notice, active_language };
+            let St {
+                mic,
+                sys,
+                notice,
+                active_language,
+                ..
+            } = &mut *g;
+            let mut extra = St2 {
+                notice,
+                active_language,
+            };
             f(if src == Src::Mic { mic } else { sys }, &mut extra);
         }
         self.emit();
@@ -549,7 +762,10 @@ impl Stt {
 
     /// Sesli okuma konuşuyor (ya da az önce bitti)
     fn tts_busy(&self) -> bool {
-        super::tts::tts(&self.app).is_some_and(|t| t.speaking.load(Ordering::Relaxed) || super::model::now_ms() < t.quiet_until.load(Ordering::Relaxed))
+        super::tts::tts(&self.app).is_some_and(|t| {
+            t.speaking.load(Ordering::Relaxed)
+                || super::model::now_ms() < t.quiet_until.load(Ordering::Relaxed)
+        })
     }
 
     fn on_text(&self, gen: u64, src: Src, text: String, check_tts: bool) {
@@ -559,9 +775,27 @@ impl Stt {
                 return;
             }
             let tr = (g.cfg.translates(src) && allowed(&self.app, translate::FEATURE)).then(|| {
-                (translate::TrCfg { url: g.cfg.cloud_url.clone(), key: g.key.clone(), model: g.cfg.tr_model.clone(), target: g.cfg.tr_lang() }, g.cfg.tr_show_orig)
+                (
+                    translate::TrCfg {
+                        url: g.cfg.cloud_url.clone(),
+                        key: g.key.clone(),
+                        model: g.cfg.tr_model.clone(),
+                        target: g.cfg.tr_lang(),
+                    },
+                    g.cfg.tr_show_orig,
+                )
             });
-            (g.cfg.enabled, g.cfg.pause_while_tts, if src == Src::Mic { g.cfg.label.clone() } else { g.cfg.remote_label.clone() }, g.filter.clone(), tr)
+            (
+                g.cfg.enabled,
+                g.cfg.pause_while_tts,
+                if src == Src::Mic {
+                    g.cfg.label.clone()
+                } else {
+                    g.cfg.remote_label.clone()
+                },
+                g.filter.clone(),
+                tr,
+            )
         };
         // Sesli okuma konuşurken (ve hemen ardından) duyulanlar yazılmaz
         if check_tts && pause && self.tts_busy() {
@@ -582,7 +816,15 @@ impl Stt {
         let kind = if src == Src::Mic { "mic" } else { "remote" };
         if let Some((cfg, show_orig)) = tr {
             // Çeviri sırayla (tek iş parçacığı) yapılır; bitince altyazıya yazılır
-            self.translate_job(TrJob { gen, kind, label, text, cfg, show_orig, filter });
+            self.translate_job(TrJob {
+                gen,
+                kind,
+                label,
+                text,
+                cfg,
+                show_orig,
+                filter,
+            });
             return;
         }
         super::hub(&self.app).push_caption(kind, &label, &text);
@@ -604,7 +846,8 @@ impl Stt {
                         if !me.current(j.gen) {
                             continue;
                         }
-                        let res = tauri::async_runtime::block_on(translate::translate(&j.cfg, &j.text));
+                        let res =
+                            tauri::async_runtime::block_on(translate::translate(&j.cfg, &j.text));
                         let (out, orig) = match res {
                             Ok(t) => {
                                 let t = match &j.filter {
@@ -613,7 +856,11 @@ impl Stt {
                                 };
                                 // Zaten hedef dildeyse (model aynısını döndürdü) özgün metin ayrıca yazılmaz
                                 let same = t.trim().eq_ignore_ascii_case(j.text.trim());
-                                let orig = if j.show_orig && !same { j.text.clone() } else { String::new() };
+                                let orig = if j.show_orig && !same {
+                                    j.text.clone()
+                                } else {
+                                    String::new()
+                                };
                                 (t, orig)
                             }
                             Err((_, e)) => {
@@ -664,7 +911,11 @@ impl Stt {
             // Mikrofon: bu sürecin kayıt cihazı tercihi (Sesli komut ayarıyla ortak). Cihaz yoksa Windows varsayılanı.
             let _ = crate::voicecmd_win::use_microphone(&cfg.win_mic);
             // Kullanılan cihazın adı yalnızca Windows varsayılanı kullanılırken bilinir
-            let dev = if cfg.win_mic.is_empty() { cloud::default_input_name() } else { None };
+            let dev = if cfg.win_mic.is_empty() {
+                cloud::default_input_name()
+            } else {
+                None
+            };
             if cloud::input_devices().is_empty() {
                 self.with_src(gen, Src::Mic, |r, _| {
                     r.listening = false;
@@ -683,7 +934,11 @@ impl Stt {
                     return;
                 }
             };
-            let wanted = if cfg.language.is_empty() { system_language().unwrap_or_default() } else { cfg.language.clone() };
+            let wanted = if cfg.language.is_empty() {
+                system_language().unwrap_or_default()
+            } else {
+                cfg.language.clone()
+            };
             let Some((i, fallback)) = pick_language(&supported, &wanted, &prefer) else {
                 self.with_src(gen, Src::Mic, |r, _| r.error = Some(NO_LANGUAGE.into()));
                 return;
@@ -694,7 +949,10 @@ impl Stt {
                     "{} ({wanted}) için Windows'ta konuşma tanıma paketi kurulu değil; {name} ({tag}) dilinde dinleniyor. Paketi kurmak için: Ayarlar › Saat ve dil › Dil ve bölge › dil › Dil seçenekleri › “Konuşma tanıma”. Windows'ta Türkçe paketi yoktur: Türkçe için “Çevrimiçi (Whisper)” motorunu seçin.",
                     display_name(&wanted)
                 ))
-            } else if cfg.language.is_empty() && !cfg.ui_lang.is_empty() && primary(&tag) != primary(&cfg.ui_lang) {
+            } else if cfg.language.is_empty()
+                && !cfg.ui_lang.is_empty()
+                && primary(&tag) != primary(&cfg.ui_lang)
+            {
                 Some(format!("{name} ({tag}) dilinde dinleniyor: Windows'ta arayüz diliniz için konuşma tanıma paketi yok. Türkçe için “Çevrimiçi (Whisper)” motorunu seçin."))
             } else {
                 None
@@ -746,7 +1004,14 @@ impl Stt {
 
     // ---- Çevrimiçi motor ----
 
-    fn cloud_thread(self: Arc<Self>, src: Src, device: String, ccfg: CloudCfg, stop: Arc<AtomicBool>, gen: u64) {
+    fn cloud_thread(
+        self: Arc<Self>,
+        src: Src,
+        device: String,
+        ccfg: CloudCfg,
+        stop: Arc<AtomicBool>,
+        gen: u64,
+    ) {
         let mut fails = 0u32;
         loop {
             let me = self.clone();
@@ -768,7 +1033,14 @@ impl Stt {
             };
             let started = std::time::Instant::now();
             let st2 = stop.clone();
-            let res = cloud::run(src, &device, &ccfg, move || st2.load(Ordering::Relaxed), busy, emit);
+            let res = cloud::run(
+                src,
+                &device,
+                &ccfg,
+                move || st2.load(Ordering::Relaxed),
+                busy,
+                emit,
+            );
             let fatal = matches!(&res, Err((true, _)));
             self.with_src(gen, src, |r, _| {
                 r.listening = false;
@@ -798,7 +1070,9 @@ impl Stt {
             if g.cfg == cfg {
                 return;
             }
-            g.filter = cfg.profanity.then(|| Arc::new(Profanity::new(&cfg.profanity_words, true)));
+            g.filter = cfg
+                .profanity
+                .then(|| Arc::new(Profanity::new(&cfg.profanity_words, true)));
             g.cfg = cfg;
         }
         self.reconcile();
@@ -824,7 +1098,14 @@ pub fn stt(app: &AppHandle) -> Option<Arc<Stt>> {
 
 pub fn init(app: &AppHandle) {
     let key = super::secrets::get(app, KEY_NAME);
-    app.manage(Arc::new(Stt { app: app.clone(), st: Mutex::new(St { key, ..Default::default() }), tr_queue: Mutex::new(None) }));
+    app.manage(Arc::new(Stt {
+        app: app.clone(),
+        st: Mutex::new(St {
+            key,
+            ..Default::default()
+        }),
+        tr_queue: Mutex::new(None),
+    }));
 }
 
 pub fn apply_settings(app: &AppHandle, v: &Value) {
@@ -864,7 +1145,9 @@ pub fn dictate(app: &AppHandle, on: bool) -> bool {
 
 /// Dikte için: mikrofon dinleniyor mu ve varsa mikrofon hatası
 pub fn dictate_state(app: &AppHandle) -> (bool, Option<String>) {
-    let Some(s) = stt(app) else { return (false, None) };
+    let Some(s) = stt(app) else {
+        return (false, None);
+    };
     let g = s.st.lock();
     (g.run.is_some() && g.mic.listening, g.mic.error.clone())
 }
@@ -876,8 +1159,16 @@ pub fn is_enabled(app: &AppHandle) -> bool {
 /// Kısayol: altyazıyı aç / kapat
 pub fn hotkey_toggle(app: &AppHandle) {
     if !SUPPORTED || !allowed(app, FEATURE) {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
-        super::notice(app, "Konuşmayı yazıya çevirme kullanılamıyor (PRO / Windows gerekli)");
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 300.0,
+            ms: 160,
+            volume: 0.5,
+            pan: 0.0,
+        });
+        super::notice(
+            app,
+            "Konuşmayı yazıya çevirme kullanılamıyor (PRO / Windows gerekli)",
+        );
         return;
     }
     let on = !is_enabled(app);
@@ -888,7 +1179,14 @@ pub fn hotkey_toggle(app: &AppHandle) {
         lc["stt"]["enabled"] = Value::Bool(on);
     });
     super::beep_onoff(on);
-    super::notice(app, if on { "Altyazı (konuşma → yazı) açıldı" } else { "Altyazı (konuşma → yazı) kapatıldı" });
+    super::notice(
+        app,
+        if on {
+            "Altyazı (konuşma → yazı) açıldı"
+        } else {
+            "Altyazı (konuşma → yazı) kapatıldı"
+        },
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -911,23 +1209,46 @@ pub struct SttLanguages {
 pub async fn livechat_stt_languages(app: AppHandle) -> SttLanguages {
     #[cfg(windows)]
     {
-        let ui = stt(&app).map(|s| s.st.lock().cfg.ui_lang.clone()).unwrap_or_default();
+        let ui = stt(&app)
+            .map(|s| s.st.lock().cfg.ui_lang.clone())
+            .unwrap_or_default();
         tauri::async_runtime::spawn_blocking(move || match super::stt_win::languages() {
             Ok(l) => {
                 let system = super::stt_win::system_language();
-                let effective = pick_language(&l, system.as_deref().unwrap_or(""), &[ui]).map(|(i, _)| l[i].0.clone());
+                let effective = pick_language(&l, system.as_deref().unwrap_or(""), &[ui])
+                    .map(|(i, _)| l[i].0.clone());
                 let error = l.is_empty().then(|| NO_LANGUAGE.to_string());
-                SttLanguages { languages: l, system, effective, error }
+                SttLanguages {
+                    languages: l,
+                    system,
+                    effective,
+                    error,
+                }
             }
-            Err(e) => SttLanguages { languages: vec![], system: None, effective: None, error: Some(e) },
+            Err(e) => SttLanguages {
+                languages: vec![],
+                system: None,
+                effective: None,
+                error: Some(e),
+            },
         })
         .await
-        .unwrap_or(SttLanguages { languages: vec![], system: None, effective: None, error: Some("Dil listesi okunamadı".into()) })
+        .unwrap_or(SttLanguages {
+            languages: vec![],
+            system: None,
+            effective: None,
+            error: Some("Dil listesi okunamadı".into()),
+        })
     }
     #[cfg(not(windows))]
     {
         let _ = app;
-        SttLanguages { languages: vec![], system: None, effective: None, error: Some("Konuşmayı yazıya çevirme sadece Windows'ta çalışır".into()) }
+        SttLanguages {
+            languages: vec![],
+            system: None,
+            effective: None,
+            error: Some("Konuşmayı yazıya çevirme sadece Windows'ta çalışır".into()),
+        }
     }
 }
 
@@ -939,7 +1260,9 @@ pub fn livechat_stt_status(app: AppHandle) -> SttStatus {
 /// Dinlemeyi yeniden başlat (hata sonrası "Tekrar dene")
 #[tauri::command]
 pub fn livechat_stt_restart(app: AppHandle) -> SttStatus {
-    let Some(s) = stt(&app) else { return SttStatus::default() };
+    let Some(s) = stt(&app) else {
+        return SttStatus::default();
+    };
     s.restart();
     s.status()
 }
@@ -977,11 +1300,18 @@ pub async fn livechat_audio_devices() -> AudioDevices {
         use rodio::DeviceTrait;
         let mut outputs: Vec<String> = crate::crashlog::guard(|| {
             let host = rodio::cpal::default_host();
-            host.output_devices().map(|it| it.filter_map(|d| d.name().ok()).collect::<Vec<String>>()).unwrap_or_default()
+            host.output_devices()
+                .map(|it| it.filter_map(|d| d.name().ok()).collect::<Vec<String>>())
+                .unwrap_or_default()
         })
         .unwrap_or_default();
         outputs.dedup();
-        AudioDevices { inputs: cloud::input_devices(), outputs, default_input: cloud::default_input_name(), default_output: cloud::default_output_name() }
+        AudioDevices {
+            inputs: cloud::input_devices(),
+            outputs,
+            default_input: cloud::default_input_name(),
+            default_output: cloud::default_output_name(),
+        }
     })
     .await
     .unwrap_or_default()
@@ -1003,12 +1333,19 @@ mod tests {
         assert_eq!(g.mask("muzlu kek"), "m**** kek");
         let c = cfg_from_settings(&serde_json::json!({}));
         assert!(c.pause_while_tts && !c.enabled);
-        assert_eq!((c.engine, c.source, c.remote_label.as_str(), c.sensitivity), (Engine::Windows, Source::Mic, "Discord", 5));
+        assert_eq!(
+            (c.engine, c.source, c.remote_label.as_str(), c.sensitivity),
+            (Engine::Windows, Source::Mic, "Discord", 5)
+        );
     }
 
     #[test]
     fn language_pick() {
-        let sup = |tags: &[&str]| tags.iter().map(|t| (t.to_string(), t.to_string())).collect::<Vec<_>>();
+        let sup = |tags: &[&str]| {
+            tags.iter()
+                .map(|t| (t.to_string(), t.to_string()))
+                .collect::<Vec<_>>()
+        };
         let l = sup(&["de-DE", "en-GB", "en-US"]);
         // Kurulu dil: aynen; aynı ana dil: o dil
         assert_eq!(pick_language(&l, "en-US", &[]), Some((2, false)));
@@ -1019,8 +1356,14 @@ mod tests {
         // Windows konuşma dili okunamadı (boş): yedek ama "istenen bulunamadı" sayılmaz
         assert_eq!(pick_language(&l, "", &["tr".into()]), Some((2, false)));
         // en-US yoksa İngilizcenin başka bir türü, o da yoksa ilk dil
-        assert_eq!(pick_language(&sup(&["fr-FR", "en-GB"]), "tr-TR", &[]), Some((1, true)));
-        assert_eq!(pick_language(&sup(&["fr-FR"]), "tr-TR", &[]), Some((0, true)));
+        assert_eq!(
+            pick_language(&sup(&["fr-FR", "en-GB"]), "tr-TR", &[]),
+            Some((1, true))
+        );
+        assert_eq!(
+            pick_language(&sup(&["fr-FR"]), "tr-TR", &[]),
+            Some((0, true))
+        );
         assert_eq!(pick_language(&[], "tr-TR", &[]), None);
     }
 
@@ -1033,7 +1376,15 @@ mod tests {
         let c = cfg_from_settings(&v);
         assert_eq!((c.engine, c.source), (Engine::Cloud, Source::Both));
         assert!(c.source.mic() && c.source.system());
-        assert_eq!((c.label.as_str(), c.remote_label.as_str(), c.win_mic.as_str(), c.sensitivity), ("Ben", "", "MIC1", 7));
+        assert_eq!(
+            (
+                c.label.as_str(),
+                c.remote_label.as_str(),
+                c.win_mic.as_str(),
+                c.sensitivity
+            ),
+            ("Ben", "", "MIC1", 7)
+        );
         // Dil: boş → arayüz dili, "auto" → otomatik (boş), "en-US" → "en"
         assert_eq!(c.cloud_lang(), "tr");
         let mut d = c.clone();

@@ -223,7 +223,13 @@ fn st() -> &'static Mutex<WState> {
 
 fn gate(p: Platform) -> &'static tokio::sync::Mutex<()> {
     static G: OnceLock<[tokio::sync::Mutex<()>; 3]> = OnceLock::new();
-    let g = G.get_or_init(|| [tokio::sync::Mutex::new(()), tokio::sync::Mutex::new(()), tokio::sync::Mutex::new(())]);
+    let g = G.get_or_init(|| {
+        [
+            tokio::sync::Mutex::new(()),
+            tokio::sync::Mutex::new(()),
+            tokio::sync::Mutex::new(()),
+        ]
+    });
     &g[match p {
         Platform::Twitch => 0,
         Platform::Youtube => 1,
@@ -234,9 +240,16 @@ fn gate(p: Platform) -> &'static tokio::sync::Mutex<()> {
 fn pcfg(app: &AppHandle, p: Platform) -> PCfg {
     let mut g = st().lock();
     if g.cfg.is_none() {
-        g.cfg = Some(secrets::get_json(app, "web.cfg").and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default());
+        g.cfg = Some(
+            secrets::get_json(app, "web.cfg")
+                .and_then(|v| serde_json::from_value(v).ok())
+                .unwrap_or_default(),
+        );
     }
-    g.cfg.as_ref().and_then(|m| m.get(pkey(p)).cloned()).unwrap_or_default()
+    g.cfg
+        .as_ref()
+        .and_then(|m| m.get(pkey(p)).cloned())
+        .unwrap_or_default()
 }
 
 /// Tercihi değiştir; değiştiyse diske yazar ve true döner
@@ -268,7 +281,10 @@ fn window(app: &AppHandle, p: Platform) -> Option<WebviewWindow> {
 }
 
 fn data_dir(app: &AppHandle, p: Platform) -> Result<PathBuf, String> {
-    app.path().app_local_data_dir().map(|d| d.join("chatweb").join(pkey(p))).map_err(|e| format!("profil klasörü bulunamadı: {e}"))
+    app.path()
+        .app_local_data_dir()
+        .map(|d| d.join("chatweb").join(pkey(p)))
+        .map_err(|e| format!("profil klasörü bulunamadı: {e}"))
 }
 
 #[derive(Serialize, Clone, Debug, Default)]
@@ -314,19 +330,31 @@ fn sendable(c: &ChannelStatus) -> bool {
 
 /// (sohbet çalışıyor mu, yazılabilecek ★ kanalların sohbet adresleri)
 fn targets(app: &AppHandle) -> (bool, Vec<(Platform, String)>) {
-    let Some(h) = app.try_state::<Arc<Hub>>().map(|s| s.inner().clone()) else { return (false, Vec::new()) };
+    let Some(h) = app.try_state::<Arc<Hub>>().map(|s| s.inner().clone()) else {
+        return (false, Vec::new());
+    };
     let g = h.st.lock();
     if !g.running {
         return (false, Vec::new());
     }
-    let idents: HashMap<String, String> = g.cfg.channels.iter().map(|c| (c.link.key.clone(), c.link.ident.clone())).collect();
+    let idents: HashMap<String, String> = g
+        .cfg
+        .channels
+        .iter()
+        .map(|c| (c.link.key.clone(), c.link.ident.clone()))
+        .collect();
     let out = g
         .channels_view()
         .into_iter()
         .filter(|c| c.mine && sendable(c))
         .filter_map(|c| {
             let p = c.platform?;
-            let url = chat_url(p, idents.get(&c.key).map(|s| s.as_str()).unwrap_or(""), c.video_id.as_deref()).ok()?;
+            let url = chat_url(
+                p,
+                idents.get(&c.key).map(|s| s.as_str()).unwrap_or(""),
+                c.video_id.as_deref(),
+            )
+            .ok()?;
             Some((p, url))
         })
         .collect();
@@ -334,7 +362,10 @@ fn targets(app: &AppHandle) -> (bool, Vec<(Platform, String)>) {
 }
 
 fn safe_ident(s: &str) -> bool {
-    !s.is_empty() && s.len() <= 64 && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    !s.is_empty()
+        && s.len() <= 64
+        && s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 /// Kanalın açılır sohbet adresi
@@ -348,7 +379,10 @@ pub fn chat_url(p: Platform, ident: &str, video: Option<&str>) -> Result<String,
         Platform::Twitch | Platform::Kick => {
             let ch = ident.trim().trim_start_matches('@').to_lowercase();
             if !safe_ident(&ch) {
-                return Err(format!("{} kanal adı sohbet adresine çevrilemedi", p.name()));
+                return Err(format!(
+                    "{} kanal adı sohbet adresine çevrilemedi",
+                    p.name()
+                ));
             }
             Ok(s.chat.replace("{channel}", &ch))
         }
@@ -362,8 +396,17 @@ pub fn chat_url(p: Platform, ident: &str, video: Option<&str>) -> Result<String,
 
 /// Sayfadan gelen başlık: "PWCHAT1:{json}" ise sonuç olarak işlenir (bkz. dosya başı)
 fn on_title(app: &AppHandle, p: Platform, title: &str) {
-    let Some(v) = title.strip_prefix(TITLE_PREFIX).and_then(|j| serde_json::from_str::<Value>(j).ok()) else { return };
-    let id = v.get("id").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let Some(v) = title
+        .strip_prefix(TITLE_PREFIX)
+        .and_then(|j| serde_json::from_str::<Value>(j).ok())
+    else {
+        return;
+    };
+    let id = v
+        .get("id")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
     if id.is_empty() || id.len() > 32 {
         return;
     }
@@ -379,12 +422,26 @@ fn on_title(app: &AppHandle, p: Platform, title: &str) {
 
 /// Betiğin bildirdiği giriş durumunu kaydet (yalnız platformun kendi alan adındaki sayfalar için)
 fn apply_probe(app: &AppHandle, p: Platform, v: &Value) {
-    if v.get("foreign").and_then(|x| x.as_bool()) == Some(true) || v.get("ready").and_then(|x| x.as_str()) == Some("loading") || v.get("logged").is_none() {
+    if v.get("foreign").and_then(|x| x.as_bool()) == Some(true)
+        || v.get("ready").and_then(|x| x.as_str()) == Some("loading")
+        || v.get("logged").is_none()
+    {
         return;
     }
     let logged = v.get("logged").and_then(|x| x.as_bool());
-    let name: String = v.get("name").and_then(|x| x.as_str()).unwrap_or("").chars().filter(|c| !c.is_control()).take(40).collect();
-    let input = v.get("input").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let name: String = v
+        .get("name")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(40)
+        .collect();
+    let input = v
+        .get("input")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
     if let Some(w) = st().lock().win.get_mut(pkey(p)) {
         w.input = input;
     }
@@ -447,8 +504,19 @@ fn build(app: &AppHandle, p: Platform, url: &str, visible: bool) -> Result<Webvi
             });
         }
     });
-    st().lock().win.insert(pkey(p), Win { target: url.to_string(), made_at: now_ms(), ..Default::default() });
-    dlog(format!("web {}: pencere oluşturuldu ({})", pkey(p), if visible { "görünür" } else { "gizli" }));
+    st().lock().win.insert(
+        pkey(p),
+        Win {
+            target: url.to_string(),
+            made_at: now_ms(),
+            ..Default::default()
+        },
+    );
+    dlog(format!(
+        "web {}: pencere oluşturuldu ({})",
+        pkey(p),
+        if visible { "görünür" } else { "gizli" }
+    ));
     Ok(w)
 }
 
@@ -470,13 +538,24 @@ fn js(v: &str) -> String {
 fn fire(w: &WebviewWindow, p: Platform, op: &str, text: &str) -> Result<String, String> {
     let id = secrets::random_token(9);
     // Sıra önemli: kullanıcı metni en son konur (metnin içindeki "__ID__" gibi diziler yeniden işlenmesin)
-    let script = SCRIPT.replace("__CFG__", selectors(p)).replace("__OP__", &js(op)).replace("__ID__", &js(&id)).replace("__TEXT__", &js(text));
-    w.eval(script).map_err(|e| format!("betik çalıştırılamadı: {e}"))?;
+    let script = SCRIPT
+        .replace("__CFG__", selectors(p))
+        .replace("__OP__", &js(op))
+        .replace("__ID__", &js(&id))
+        .replace("__TEXT__", &js(text));
+    w.eval(script)
+        .map_err(|e| format!("betik çalıştırılamadı: {e}"))?;
     Ok(id)
 }
 
 /// Betiği çalıştır ve sonucunu bekle (None: süre doldu)
-async fn run(w: &WebviewWindow, p: Platform, op: &str, text: &str, timeout_ms: u64) -> Result<Option<Value>, String> {
+async fn run(
+    w: &WebviewWindow,
+    p: Platform,
+    op: &str,
+    text: &str,
+    timeout_ms: u64,
+) -> Result<Option<Value>, String> {
     let id = fire(w, p, op, text)?;
     let t0 = now_ms();
     loop {
@@ -511,19 +590,35 @@ fn why_text(p: Platform, why: &str) -> String {
 }
 
 fn path_of(url: &str) -> String {
-    url.parse::<tauri::Url>().map(|u| u.path().to_lowercase().chars().take(80).collect()).unwrap_or_default()
+    url.parse::<tauri::Url>()
+        .map(|u| u.path().to_lowercase().chars().take(80).collect())
+        .unwrap_or_default()
 }
 
 /// Tarayıcı penceresi üzerinden mesaj gönder. Başarıda kısa ayrıntı (günlük için) döner.
-pub async fn send(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>, text: &str) -> Result<(), String> {
+pub async fn send(
+    app: &AppHandle,
+    p: Platform,
+    ident: &str,
+    video: Option<&str>,
+    text: &str,
+) -> Result<(), String> {
     let url = chat_url(p, ident, video)?;
     let c = pcfg(app, p);
     if !c.enabled {
-        return Err(format!("{} için giriş yapılmadı: Canlı Sohbet › Sohbete yaz › “Giriş penceresini aç”", p.name()));
+        return Err(format!(
+            "{} için giriş yapılmadı: Canlı Sohbet › Sohbete yaz › “Giriş penceresini aç”",
+            p.name()
+        ));
     }
     // Platform başına sıra: iki gönderim aynı pencerede üst üste binmez
     let _g = gate(p).lock().await;
-    let last = st().lock().win.get(pkey(p)).map(|w| w.last_send).unwrap_or(0);
+    let last = st()
+        .lock()
+        .win
+        .get(pkey(p))
+        .map(|w| w.last_send)
+        .unwrap_or(0);
     let wait = (last + MIN_GAP_MS).saturating_sub(now_ms());
     if wait > 0 {
         tokio::time::sleep(Duration::from_millis(wait.min(MIN_GAP_MS))).await;
@@ -533,10 +628,18 @@ pub async fn send(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>
 
     let (w, fresh) = match window(app, p) {
         Some(w) => {
-            let at = st().lock().win.get(pkey(p)).map(|x| x.target.clone()).unwrap_or_default();
+            let at = st()
+                .lock()
+                .win
+                .get(pkey(p))
+                .map(|x| x.target.clone())
+                .unwrap_or_default();
             if at != url {
                 if c.logged != Some(true) && w.is_visible().unwrap_or(false) {
-                    return Err(format!("Önce açık olan {} penceresinde girişi tamamla", p.name()));
+                    return Err(format!(
+                        "Önce açık olan {} penceresinde girişi tamamla",
+                        p.name()
+                    ));
                 }
                 navigate(&w, p, &url)?;
                 dlog(format!("web {}: sohbet sayfasına geçildi", pkey(p)));
@@ -559,10 +662,17 @@ pub async fn send(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>
         if let Some(v) = run(&w, p, "probe", "", 3_000).await? {
             let foreign = v.get("foreign").and_then(|x| x.as_bool()) == Some(true);
             let loading = v.get("ready").and_then(|x| x.as_str()) == Some("loading");
-            let has_input = v.get("input").and_then(|x| x.as_str()).is_some_and(|s| !s.is_empty());
+            let has_input = v
+                .get("input")
+                .and_then(|x| x.as_str())
+                .is_some_and(|s| !s.is_empty());
             let off = v.get("off").and_then(|x| x.as_bool()) == Some(true);
             let logged = v.get("logged").and_then(|x| x.as_bool());
-            let path = v.get("path").and_then(|x| x.as_str()).unwrap_or("").to_lowercase();
+            let path = v
+                .get("path")
+                .and_then(|x| x.as_str())
+                .unwrap_or("")
+                .to_lowercase();
             if foreign {
                 last_why = "foreign";
             } else if path != want && !loading {
@@ -572,7 +682,10 @@ pub async fn send(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>
                     renav = true;
                     limit += 20_000;
                     navigate(&w, p, &url)?;
-                    dlog(format!("web {}: pencere sohbet sayfasında değildi, yeniden açıldı", pkey(p)));
+                    dlog(format!(
+                        "web {}: pencere sohbet sayfasında değildi, yeniden açıldı",
+                        pkey(p)
+                    ));
                 }
             } else if has_input && !off && logged != Some(false) {
                 break;
@@ -584,11 +697,18 @@ pub async fn send(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>
             } else if has_input && off {
                 last_why = "disabled";
             } else {
-                last_why = if v.get("blocked").and_then(|x| x.as_bool()) == Some(true) { "disabled" } else { "noinput" };
+                last_why = if v.get("blocked").and_then(|x| x.as_bool()) == Some(true) {
+                    "disabled"
+                } else {
+                    "noinput"
+                };
             }
         }
         if el > limit {
-            dlog(format!("web {}: gönderilemedi (hazırlık): {last_why} · {n} karakter", pkey(p)));
+            dlog(format!(
+                "web {}: gönderilemedi (hazırlık): {last_why} · {n} karakter",
+                pkey(p)
+            ));
             return Err(why_text(p, last_why));
         }
         tokio::time::sleep(Duration::from_millis(600)).await;
@@ -599,16 +719,32 @@ pub async fn send(app: &AppHandle, p: Platform, ident: &str, video: Option<&str>
         x.last_send = now_ms();
     }
     let Some(v) = r else {
-        dlog(format!("web {}: gönderilemedi: betik yanıt vermedi · {n} karakter", pkey(p)));
+        dlog(format!(
+            "web {}: gönderilemedi: betik yanıt vermedi · {n} karakter",
+            pkey(p)
+        ));
         return Err(why_text(p, "timeout"));
     };
     let s = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
     if v.get("ok").and_then(|x| x.as_bool()) == Some(true) {
-        dlog(format!("web {}: gönderildi · kutu {} · yazma {} · gönderme {} {} · {n} karakter", pkey(p), s("input"), s("ins"), s("via"), s("btn")));
+        dlog(format!(
+            "web {}: gönderildi · kutu {} · yazma {} · gönderme {} {} · {n} karakter",
+            pkey(p),
+            s("input"),
+            s("ins"),
+            s("via"),
+            s("btn")
+        ));
         Ok(())
     } else {
         let why = s("why");
-        dlog(format!("web {}: gönderilemedi: {why} {} · kutu {} · yazma {} · {n} karakter", pkey(p), s("err"), s("input"), s("ins")));
+        dlog(format!(
+            "web {}: gönderilemedi: {why} {} · kutu {} · yazma {} · {n} karakter",
+            pkey(p),
+            s("err"),
+            s("input"),
+            s("ins")
+        ));
         Err(why_text(p, &why))
     }
 }
@@ -629,7 +765,10 @@ pub fn init(app: &AppHandle) {
 
 fn tick(app: &AppHandle) {
     // Hiç kullanılmadıysa hiçbir şey yapma
-    if PLATFORMS.iter().all(|p| !pcfg(app, *p).enabled && window(app, *p).is_none()) {
+    if PLATFORMS
+        .iter()
+        .all(|p| !pcfg(app, *p).enabled && window(app, *p).is_none())
+    {
         return;
     }
     let (running, targets) = targets(app);
@@ -640,10 +779,23 @@ fn tick(app: &AppHandle) {
         match window(app, p) {
             Some(w) => {
                 let vis = w.is_visible().unwrap_or(false);
-                let (made, probed, sent, at) = st().lock().win.get(pkey(p)).map(|x| (x.made_at, x.probe_at, x.last_send, x.target.clone())).unwrap_or((0, 0, 0, String::new()));
+                let (made, probed, sent, at) = st()
+                    .lock()
+                    .win
+                    .get(pkey(p))
+                    .map(|x| (x.made_at, x.probe_at, x.last_send, x.target.clone()))
+                    .unwrap_or((0, 0, 0, String::new()));
                 let idle = now.saturating_sub(made) > 60_000 && now.saturating_sub(sent) > 60_000;
                 if !vis && (!running || !c.enabled) && idle {
-                    dlog(format!("web {}: gizli pencere kapatıldı ({})", pkey(p), if running { "platform kapalı" } else { "sohbet durdu" }));
+                    dlog(format!(
+                        "web {}: gizli pencere kapatıldı ({})",
+                        pkey(p),
+                        if running {
+                            "platform kapalı"
+                        } else {
+                            "sohbet durdu"
+                        }
+                    ));
                     let _ = w.destroy();
                     continue;
                 }
@@ -664,7 +816,13 @@ fn tick(app: &AppHandle) {
             }
             None => {
                 let retry = st().lock().retry_at.get(pkey(p)).copied().unwrap_or(0);
-                if running && c.enabled && c.logged == Some(true) && now >= retry && !send::has_api(app, p) && allowed(app, FEATURE) {
+                if running
+                    && c.enabled
+                    && c.logged == Some(true)
+                    && now >= retry
+                    && !send::has_api(app, p)
+                    && allowed(app, FEATURE)
+                {
                     if let Some(t) = target {
                         if let Err(e) = build(app, p, &t, false) {
                             dlog(format!("web {}: gizli pencere hazırlanamadı: {e}", pkey(p)));
@@ -682,7 +840,9 @@ fn tick(app: &AppHandle) {
 // ---------------------------------------------------------------------------
 
 fn parse(platform: &str) -> Result<Platform, String> {
-    Platform::parse(platform).filter(|p| PLATFORMS.contains(p)).ok_or_else(|| "Bilinmeyen platform".to_string())
+    Platform::parse(platform)
+        .filter(|p| PLATFORMS.contains(p))
+        .ok_or_else(|| "Bilinmeyen platform".to_string())
 }
 
 /// Giriş / sohbet penceresini görünür aç (kullanıcı kendi hesabıyla, platformun kendi sayfasında giriş yapar)
@@ -695,11 +855,29 @@ pub async fn livechat_web_open(app: AppHandle, platform: String) -> Result<SendS
     update_cfg(&app, p, |c| c.enabled = true);
     let c = pcfg(&app, p);
     let s = site(p);
-    let url = if c.logged == Some(true) { targets(&app).1.into_iter().find(|t| t.0 == p).map(|t| t.1).unwrap_or_else(|| s.home.to_string()) } else { s.login.to_string() };
+    let url = if c.logged == Some(true) {
+        targets(&app)
+            .1
+            .into_iter()
+            .find(|t| t.0 == p)
+            .map(|t| t.1)
+            .unwrap_or_else(|| s.home.to_string())
+    } else {
+        s.login.to_string()
+    };
     let r = match window(&app, p) {
         Some(w) => {
-            let at = st().lock().win.get(pkey(p)).map(|x| x.target.clone()).unwrap_or_default();
-            let r = if c.logged != Some(true) && at != url { navigate(&w, p, &url) } else { Ok(()) };
+            let at = st()
+                .lock()
+                .win
+                .get(pkey(p))
+                .map(|x| x.target.clone())
+                .unwrap_or_default();
+            let r = if c.logged != Some(true) && at != url {
+                navigate(&w, p, &url)
+            } else {
+                Ok(())
+            };
             show(&w);
             r
         }
@@ -707,7 +885,15 @@ pub async fn livechat_web_open(app: AppHandle, platform: String) -> Result<SendS
     };
     match &r {
         Ok(()) => {
-            dlog(format!("web {}: pencere gösterildi ({})", pkey(p), if c.logged == Some(true) { "oturum açık" } else { "giriş sayfası" }));
+            dlog(format!(
+                "web {}: pencere gösterildi ({})",
+                pkey(p),
+                if c.logged == Some(true) {
+                    "oturum açık"
+                } else {
+                    "giriş sayfası"
+                }
+            ));
             send::set_last(p, None);
         }
         Err(e) => {
@@ -716,7 +902,8 @@ pub async fn livechat_web_open(app: AppHandle, platform: String) -> Result<SendS
         }
     }
     send::emit(&app);
-    r.map(|_| send::status(&app)).map_err(|e| format!("Giriş penceresi açılamadı: {e}"))
+    r.map(|_| send::status(&app))
+        .map_err(|e| format!("Giriş penceresi açılamadı: {e}"))
 }
 
 /// Pencereyi gizle (arka planda yaşar; sohbet çalışmıyorsa bir süre sonra kapatılır)
@@ -740,7 +927,10 @@ pub async fn livechat_web_logout(app: AppHandle, platform: String) -> Result<Sen
     update_cfg(&app, p, |c| *c = PCfg::default());
     if let Some(w) = window(&app, p) {
         if let Err(e) = w.clear_all_browsing_data() {
-            dlog(format!("web {}: tarayıcı verisi temizlenemedi: {e}", pkey(p)));
+            dlog(format!(
+                "web {}: tarayıcı verisi temizlenemedi: {e}",
+                pkey(p)
+            ));
         }
         tokio::time::sleep(Duration::from_millis(400)).await;
         let _ = w.destroy();
@@ -763,10 +953,16 @@ pub async fn livechat_web_logout(app: AppHandle, platform: String) -> Result<Sen
         }
     }
     if err.is_empty() {
-        dlog(format!("web {}: çıkış yapıldı, profil klasörü silindi", pkey(p)));
+        dlog(format!(
+            "web {}: çıkış yapıldı, profil klasörü silindi",
+            pkey(p)
+        ));
         send::set_last(p, None);
     } else {
-        dlog(format!("web {}: çıkış yapıldı ama profil klasörü silinemedi: {err}", pkey(p)));
+        dlog(format!(
+            "web {}: çıkış yapıldı ama profil klasörü silinemedi: {err}",
+            pkey(p)
+        ));
         send::set_last(p, Some("Çıkış yapıldı ama tarayıcı profili klasörü silinemedi (dosyalar kullanımda); programı yeniden başlatıp tekrar “Çıkış yap”a bas"));
     }
     send::emit(&app);
@@ -778,7 +974,11 @@ pub async fn test(app: &AppHandle, p: Platform) -> Vec<TestStep> {
     let mut out = Vec::new();
     let c = pcfg(app, p);
     if !c.enabled {
-        out.push(step("Tarayıcı girişi", "skip", "Henüz açılmadı: “Giriş penceresini aç” ile giriş yap"));
+        out.push(step(
+            "Tarayıcı girişi",
+            "skip",
+            "Henüz açılmadı: “Giriş penceresini aç” ile giriş yap",
+        ));
         return out;
     }
     let (running, targets) = targets(app);
@@ -786,7 +986,15 @@ pub async fn test(app: &AppHandle, p: Platform) -> Vec<TestStep> {
     let _g = gate(p).lock().await;
     let w = match window(app, p) {
         Some(w) => {
-            out.push(step("Tarayıcı penceresi", "ok", if w.is_visible().unwrap_or(false) { "Açık (görünür)" } else { "Açık (gizli)" }));
+            out.push(step(
+                "Tarayıcı penceresi",
+                "ok",
+                if w.is_visible().unwrap_or(false) {
+                    "Açık (görünür)"
+                } else {
+                    "Açık (gizli)"
+                },
+            ));
             w
         }
         None => match build(app, p, target.as_deref().unwrap_or(site(p).home), false) {
@@ -806,7 +1014,12 @@ pub async fn test(app: &AppHandle, p: Platform) -> Vec<TestStep> {
     while now_ms().saturating_sub(t0) < 20_000 {
         match run(&w, p, "probe", "", 3_000).await {
             Ok(Some(v)) => {
-                let done = v.get("ready").and_then(|x| x.as_str()) == Some("complete") && (v.get("input").and_then(|x| x.as_str()).is_some_and(|s| !s.is_empty()) || now_ms().saturating_sub(t0) > 8_000);
+                let done = v.get("ready").and_then(|x| x.as_str()) == Some("complete")
+                    && (v
+                        .get("input")
+                        .and_then(|x| x.as_str())
+                        .is_some_and(|s| !s.is_empty())
+                        || now_ms().saturating_sub(t0) > 8_000);
                 last = Some(v);
                 if done {
                     break;
@@ -821,19 +1034,46 @@ pub async fn test(app: &AppHandle, p: Platform) -> Vec<TestStep> {
         tokio::time::sleep(Duration::from_millis(700)).await;
     }
     let Some(v) = last else {
-        out.push(step("Sayfa", "fail", "Sayfa yanıt vermedi (yüklenemedi ya da betik çalışmadı)"));
+        out.push(step(
+            "Sayfa",
+            "fail",
+            "Sayfa yanıt vermedi (yüklenemedi ya da betik çalışmadı)",
+        ));
         return out;
     };
     let s = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
     if v.get("foreign").and_then(|x| x.as_bool()) == Some(true) {
-        out.push(step("Sayfa", "warn", format!("Pencere {} adresinde (giriş / doğrulama sayfası olabilir): pencereyi açıp tamamla", s("host"))));
+        out.push(step(
+            "Sayfa",
+            "warn",
+            format!(
+                "Pencere {} adresinde (giriş / doğrulama sayfası olabilir): pencereyi açıp tamamla",
+                s("host")
+            ),
+        ));
         return out;
     }
     out.push(step("Sayfa", "ok", format!("{}{}", s("host"), s("path"))));
     out.push(match v.get("logged").and_then(|x| x.as_bool()) {
-        Some(true) => step("Oturum", "ok", if s("name").is_empty() { "Giriş yapılmış".to_string() } else { format!("Giriş yapılmış, hesap: {}", s("name")) }),
-        Some(false) => step("Oturum", "fail", "Giriş yapılmamış: “Giriş penceresini aç” ile giriş yap"),
-        None => step("Oturum", "warn", "Giriş durumu sayfadan doğrulanamadı (gönderim yine de denenir)"),
+        Some(true) => step(
+            "Oturum",
+            "ok",
+            if s("name").is_empty() {
+                "Giriş yapılmış".to_string()
+            } else {
+                format!("Giriş yapılmış, hesap: {}", s("name"))
+            },
+        ),
+        Some(false) => step(
+            "Oturum",
+            "fail",
+            "Giriş yapılmamış: “Giriş penceresini aç” ile giriş yap",
+        ),
+        None => step(
+            "Oturum",
+            "warn",
+            "Giriş durumu sayfadan doğrulanamadı (gönderim yine de denenir)",
+        ),
     });
     out.push(if target.is_none() {
         step("Sohbet kutusu", "skip", if running { "Yazılabilecek canlı kanal yok (Kanallar'da ★ benim kanalım işaretli ve canlı / bağlı bir kanal olmalı)" } else { "Canlı sohbet çalışmıyor: kutu, sohbet başlatılınca denetlenebilir" })
@@ -859,15 +1099,27 @@ mod tests {
     use super::*;
     #[test]
     fn urls_and_config() {
-        assert_eq!(chat_url(Platform::Twitch, "@SomeOne", None).unwrap(), "https://www.twitch.tv/popout/someone/chat");
-        assert_eq!(chat_url(Platform::Kick, "abc-d", None).unwrap(), "https://kick.com/popout/abc-d/chat");
-        assert_eq!(chat_url(Platform::Youtube, "x", Some("dQw4w9WgXcQ")).unwrap(), "https://www.youtube.com/live_chat?is_popout=1&v=dQw4w9WgXcQ");
+        assert_eq!(
+            chat_url(Platform::Twitch, "@SomeOne", None).unwrap(),
+            "https://www.twitch.tv/popout/someone/chat"
+        );
+        assert_eq!(
+            chat_url(Platform::Kick, "abc-d", None).unwrap(),
+            "https://kick.com/popout/abc-d/chat"
+        );
+        assert_eq!(
+            chat_url(Platform::Youtube, "x", Some("dQw4w9WgXcQ")).unwrap(),
+            "https://www.youtube.com/live_chat?is_popout=1&v=dQw4w9WgXcQ"
+        );
         assert!(chat_url(Platform::Youtube, "x", None).is_err());
         assert!(chat_url(Platform::Twitch, "a/b?c", None).is_err());
         for p in PLATFORMS {
             assert!(serde_json::from_str::<Value>(selectors(p)).is_ok());
         }
         assert_eq!(js("a\"</script>\n"), "\"a\\\"</script>\\n\"");
-        assert_eq!(path_of("https://www.twitch.tv/popout/Abc/chat?x=1"), "/popout/abc/chat");
+        assert_eq!(
+            path_of("https://www.twitch.tv/popout/Abc/chat?x=1"),
+            "/popout/abc/chat"
+        );
     }
 }

@@ -7311,5 +7311,8 @@
   "Performans modu": "Prestandaläge",
   "Üst ve alt kenarda karartma": "Tonad övre och nedre kant",
   "Yakın araç renk dolgusu": "Färgfyllning för bilar nära",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Mjuk färgövergång (närhetsmarkeringen fylls gradvis)"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Mjuk färgövergång (närhetsmarkeringen fylls gradvis)",
+  "Günlük boş: kayıtlı bir hata yok.": "Loggen är tom: inga fel registrerade.",
+  "Hata günlüğü": "Fellogg",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Om programmet stängs av sig självt eller något hänger sig skrivs orsaken här. Kopiera och skicka den här loggen när du ber om support."
 }

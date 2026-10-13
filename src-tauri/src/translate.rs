@@ -23,7 +23,9 @@ fn enc(s: &str) -> String {
     let mut out = String::with_capacity(s.len() * 3);
     for b in s.bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
             _ => out.push_str(&format!("%{b:02X}")),
         }
     }
@@ -62,7 +64,12 @@ fn restore(s: &str) -> String {
     let mut out = s.to_string();
     for (name, ph) in KEEP {
         // Servis yer tutucunun harf büyüklüğünü ya da aradaki boşluğu değiştirebilir
-        for v in [ph.to_string(), ph.to_lowercase(), format!("{} {}", &ph[..3], &ph[3..]), format!("{} {}", &ph[..4], &ph[4..])] {
+        for v in [
+            ph.to_string(),
+            ph.to_lowercase(),
+            format!("{} {}", &ph[..3], &ph[3..]),
+            format!("{} {}", &ph[..4], &ph[4..]),
+        ] {
             out = out.replace(&v, name);
         }
     }
@@ -104,7 +111,8 @@ fn chunks(text: &str) -> Vec<String> {
         let cs: Vec<char> = line.chars().collect();
         for (i, c) in cs.iter().enumerate() {
             sentence.push(*c);
-            let end = matches!(c, '.' | '!' | '?' | '…') && cs.get(i + 1).map_or(true, |n| n.is_whitespace());
+            let end = matches!(c, '.' | '!' | '?' | '…')
+                && cs.get(i + 1).map_or(true, |n| n.is_whitespace());
             if end {
                 flush_sentence(&mut sentence, &mut cur, &mut out);
             }
@@ -125,16 +133,36 @@ async fn one(part: &str, from: &str, to: &str) -> Result<String, String> {
         enc(code(to))
     );
     let http = crate::livechat::net::http()?;
-    let res = http.get(&url).send().await.map_err(|_| "Çeviri servisine bağlanılamadı".to_string())?;
+    let res = http
+        .get(&url)
+        .send()
+        .await
+        .map_err(|_| "Çeviri servisine bağlanılamadı".to_string())?;
     let http_status = res.status().as_u16();
-    let body = res.text().await.map_err(|_| "Çeviri servisinin yanıtı okunamadı".to_string())?;
+    let body = res
+        .text()
+        .await
+        .map_err(|_| "Çeviri servisinin yanıtı okunamadı".to_string())?;
     if http_status == 429 {
         return Err("Günlük ücretsiz çeviri sınırı doldu, daha sonra tekrar dene".into());
     }
-    let v: Value = serde_json::from_str(&body).map_err(|_| format!("Çeviri servisi beklenmeyen yanıt verdi ({http_status})"))?;
-    let status = v.get("responseStatus").and_then(|s| s.as_u64().or_else(|| s.as_str().and_then(|x| x.parse().ok()))).unwrap_or(http_status as u64);
-    let out = v.pointer("/responseData/translatedText").and_then(|x| x.as_str()).unwrap_or("").to_string();
-    let quota = status == 429 || out.to_uppercase().contains("MYMEMORY WARNING") || out.to_uppercase().contains("QUERY LENGTH LIMIT");
+    let v: Value = serde_json::from_str(&body)
+        .map_err(|_| format!("Çeviri servisi beklenmeyen yanıt verdi ({http_status})"))?;
+    let status = v
+        .get("responseStatus")
+        .and_then(|s| {
+            s.as_u64()
+                .or_else(|| s.as_str().and_then(|x| x.parse().ok()))
+        })
+        .unwrap_or(http_status as u64);
+    let out = v
+        .pointer("/responseData/translatedText")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
+    let quota = status == 429
+        || out.to_uppercase().contains("MYMEMORY WARNING")
+        || out.to_uppercase().contains("QUERY LENGTH LIMIT");
     if quota {
         return Err("Günlük ücretsiz çeviri sınırı doldu, daha sonra tekrar dene".into());
     }
@@ -145,7 +173,11 @@ async fn one(part: &str, from: &str, to: &str) -> Result<String, String> {
 }
 
 fn decode_entities(s: &str) -> String {
-    s.replace("&#39;", "'").replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+    s.replace("&#39;", "'")
+        .replace("&quot;", "\"")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
 }
 
 /// Metni `from` dilinden `to` diline çevirir. Hata iletisi Türkçedir.
@@ -165,7 +197,14 @@ pub async fn translate_text(text: String, from: String, to: String) -> Result<St
         }
         // Baştaki/sondaki boşluk servis tarafından atılır: elle korunur
         let lead: String = part.chars().take_while(|c| c.is_whitespace()).collect();
-        let trail: String = part.chars().rev().take_while(|c| c.is_whitespace()).collect::<Vec<_>>().into_iter().rev().collect();
+        let trail: String = part
+            .chars()
+            .rev()
+            .take_while(|c| c.is_whitespace())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
         out.push_str(&lead);
         out.push_str(one(part.trim(), &from, &to).await?.trim());
         out.push_str(&trail);

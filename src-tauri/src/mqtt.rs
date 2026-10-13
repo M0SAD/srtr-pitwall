@@ -25,7 +25,10 @@ pub struct ServerCfg {
 
 impl Default for ServerCfg {
     fn default() -> Self {
-        ServerCfg { enabled: false, port: 1883 }
+        ServerCfg {
+            enabled: false,
+            port: 1883,
+        }
     }
 }
 
@@ -142,14 +145,23 @@ pub struct MqttShared {
 }
 
 pub fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 /// Başlıkta kullanılabilir anahtar (MQTT joker karakterleri ve boşluk olmadan)
 pub fn topic_key(s: &str) -> String {
     let k: String = s
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     if k.is_empty() {
         "anon".into()
@@ -179,7 +191,12 @@ impl MqttShared {
         members.sort_by(|a, b| a.age.total_cmp(&b.age));
         // Arkadaş listesinden gelen veri varsa takım bölümü kod olmadan da görünür
         let enabled = enabled || !members.is_empty();
-        Team { enabled, connected: self.connected.load(Ordering::Relaxed), team, members }
+        Team {
+            enabled,
+            connected: self.connected.load(Ordering::Relaxed),
+            team,
+            members,
+        }
     }
 
     /// Takım yakıtını yayınla (motor iş parçacığından, ~2 sn'de bir)
@@ -284,21 +301,33 @@ fn start_client(shared: &Arc<Shared>, cfg: &ClientCfg) -> ClientHandle {
     }
     let (client, mut connection) = Client::new(opts, 64);
     let prefix = cfg.prefix.trim().trim_end_matches('/').to_string();
-    let prefix = if prefix.is_empty() { "pitwall".to_string() } else { prefix };
+    let prefix = if prefix.is_empty() {
+        "pitwall".to_string()
+    } else {
+        prefix
+    };
     let team = cfg.team.trim().to_string();
 
     let m = &shared.mqtt;
     m.connected.store(false, Ordering::Relaxed);
     *m.error.lock() = None;
     m.team.lock().clear();
-    *m.link.lock() = Some(Link { client: client.clone(), prefix: prefix.clone(), team: team.clone() });
+    *m.link.lock() = Some(Link {
+        client: client.clone(),
+        prefix: prefix.clone(),
+        team: team.clone(),
+    });
 
     let stop = Arc::new(AtomicBool::new(false));
     {
         let stop = stop.clone();
         let shared = shared.clone();
         let client = client.clone();
-        let team_filter = if team.is_empty() { None } else { Some(format!("{}/team/{}/fuel/+", prefix, topic_key(&team))) };
+        let team_filter = if team.is_empty() {
+            None
+        } else {
+            Some(format!("{}/team/{}/fuel/+", prefix, topic_key(&team)))
+        };
         std::thread::Builder::new()
             .name("mqtt-client".into())
             .spawn(move || {
@@ -340,15 +369,28 @@ fn start_client(shared: &Arc<Shared>, cfg: &ClientCfg) -> ClientHandle {
     let topics: Vec<TopicReq> = cfg
         .publish
         .iter()
-        .map(|n| TopicReq { name: n.clone(), hz: cfg.hz.clamp(0.2, 20.0) })
+        .map(|n| TopicReq {
+            name: n.clone(),
+            hz: cfg.hz.clamp(0.2, 20.0),
+        })
         .collect();
     let sub_id = if topics.is_empty() {
         None
     } else {
-        Some(shared.subscribe(Sink::Mqtt { client: client.clone(), prefix }, &topics))
+        Some(shared.subscribe(
+            Sink::Mqtt {
+                client: client.clone(),
+                prefix,
+            },
+            &topics,
+        ))
     };
 
-    ClientHandle { client, stop, sub_id }
+    ClientHandle {
+        client,
+        stop,
+        sub_id,
+    }
 }
 
 impl ClientHandle {
@@ -403,7 +445,10 @@ pub fn apply(state: &MqttState, shared: &Arc<Shared>, cfg: MqttCfg) {
     if applied.as_ref() == Some(&cfg) {
         return;
     }
-    let client_changed = applied.as_ref().map(|a| a.client != cfg.client).unwrap_or(true);
+    let client_changed = applied
+        .as_ref()
+        .map(|a| a.client != cfg.client)
+        .unwrap_or(true);
     *applied = Some(cfg.clone());
     drop(applied);
 

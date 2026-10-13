@@ -25,9 +25,9 @@ pub struct WheelDev {
 
 /// Direksiyon tabanı üreten bilinen USB üreticileri: (VID, varsayılan biçim)
 const VENDORS: [(u16, &str); 14] = [
-    (0x046D, "round"),   // yuvarlak simitli tüketici setleri
+    (0x046D, "round"), // yuvarlak simitli tüketici setleri
     (0x044F, "round"),
-    (0x0EB7, "gt"),      // değiştirilebilir simitli tabanlar: çoğu simit D biçimli
+    (0x0EB7, "gt"), // değiştirilebilir simitli tabanlar: çoğu simit D biçimli
     (0x346E, "gt"),
     (0x3670, "gt"),
     (0x16D0, "round"),
@@ -38,18 +38,42 @@ const VENDORS: [(u16, &str); 14] = [
     (0x11FF, "gt"),
     (0x0F0D, "round"),
     (0x0E8F, "round"),
-    (0x045E, "round"),   // yalnız adı "wheel" içerenler (eski direksiyonlar); oyun kolları elenir
+    (0x045E, "round"), // yalnız adı "wheel" içerenler (eski direksiyonlar); oyun kolları elenir
 ];
 
 /// Ad ve VID'den biçim + direksiyon olup olmadığı
 pub fn classify(name: &str, vid: u16) -> (&'static str, bool) {
     let n = name.to_lowercase();
     let has = |ws: &[&str]| ws.iter().any(|w| n.contains(w));
-    let not_wheel = has(&["pedal", "shifter", "handbrake", "hand brake", "button box", "gamepad", "controller", "joystick", "throttle", "keyboard", "mouse", "headset", "xinput"]);
-    let named_wheel = has(&["wheel", "racing", "direct drive", "wheelbase", "wheel base", "force feedback", "ffb", "steering"]);
+    let not_wheel = has(&[
+        "pedal",
+        "shifter",
+        "handbrake",
+        "hand brake",
+        "button box",
+        "gamepad",
+        "controller",
+        "joystick",
+        "throttle",
+        "keyboard",
+        "mouse",
+        "headset",
+        "xinput",
+    ]);
+    let named_wheel = has(&[
+        "wheel",
+        "racing",
+        "direct drive",
+        "wheelbase",
+        "wheel base",
+        "force feedback",
+        "ffb",
+        "steering",
+    ]);
     let vendor = VENDORS.iter().find(|(v, _)| *v == vid).map(|(_, s)| *s);
     // Microsoft VID'i oyun kollarında da kullanılır: orada ad şartı aranır
-    let wheel = !not_wheel && (named_wheel || (vendor.is_some() && vid != 0x045E && vid != 0x0F0D && vid != 0x0E8F));
+    let wheel = !not_wheel
+        && (named_wheel || (vendor.is_some() && vid != 0x045E && vid != 0x0F0D && vid != 0x0E8F));
     let shape = if has(&["truck", "tsw", "bus "]) {
         "truck"
     } else if has(&["formula", " f1", "f1 ", "sf1000", "open wheel", "fx "]) {
@@ -66,13 +90,24 @@ pub fn classify(name: &str, vid: u16) -> (&'static str, bool) {
 
 fn make(name: String, vid: u16, pid: u16) -> WheelDev {
     let (shape, wheel) = classify(&name, vid);
-    WheelDev { name, vid, pid, shape, wheel }
+    WheelDev {
+        name,
+        vid,
+        pid,
+        shape,
+        wheel,
+    }
 }
 
 #[cfg(windows)]
 fn enumerate() -> Vec<WheelDev> {
-    use windows_sys::Win32::Media::Multimedia::{joyGetDevCapsW, joyGetNumDevs, joyGetPosEx, JOYCAPSW, JOYERR_NOERROR, JOYINFOEX, JOY_RETURNBUTTONS};
-    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
+    use windows_sys::Win32::Media::Multimedia::{
+        joyGetDevCapsW, joyGetNumDevs, joyGetPosEx, JOYCAPSW, JOYERR_NOERROR, JOYINFOEX,
+        JOY_RETURNBUTTONS,
+    };
+    use windows_sys::Win32::System::Registry::{
+        RegGetValueW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ,
+    };
 
     fn oem_name(vid: u16, pid: u16) -> Option<String> {
         let sub: Vec<u16> = format!("System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{vid:04X}&PID_{pid:04X}\0")
@@ -82,7 +117,17 @@ fn enumerate() -> Vec<WheelDev> {
         for root in [HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE] {
             let mut buf = [0u16; 256];
             let mut size = (buf.len() * 2) as u32;
-            let rc = unsafe { RegGetValueW(root, sub.as_ptr(), val.as_ptr(), RRF_RT_REG_SZ, std::ptr::null_mut(), buf.as_mut_ptr() as *mut _, &mut size) };
+            let rc = unsafe {
+                RegGetValueW(
+                    root,
+                    sub.as_ptr(),
+                    val.as_ptr(),
+                    RRF_RT_REG_SZ,
+                    std::ptr::null_mut(),
+                    buf.as_mut_ptr() as *mut _,
+                    &mut size,
+                )
+            };
             if rc == 0 {
                 let n = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
                 let s = String::from_utf16_lossy(&buf[..n]).trim().to_string();
@@ -99,7 +144,12 @@ fn enumerate() -> Vec<WheelDev> {
         let n = joyGetNumDevs().min(16);
         for id in 0..n {
             let mut caps: JOYCAPSW = std::mem::zeroed();
-            if joyGetDevCapsW(id as usize, &mut caps, std::mem::size_of::<JOYCAPSW>() as u32) != JOYERR_NOERROR {
+            if joyGetDevCapsW(
+                id as usize,
+                &mut caps,
+                std::mem::size_of::<JOYCAPSW>() as u32,
+            ) != JOYERR_NOERROR
+            {
                 continue;
             }
             // Takılı mı: konum okunabiliyorsa
@@ -116,11 +166,13 @@ fn enumerate() -> Vec<WheelDev> {
             let pname = caps.szPname;
             let end = pname.iter().position(|&c| c == 0).unwrap_or(pname.len());
             let mm = String::from_utf16_lossy(&pname[..end]).trim().to_string();
-            let name = oem_name(vid, pid).unwrap_or(if mm.is_empty() || mm.to_lowercase().contains("pc-joystick") {
-                format!("Joystick {vid:04X}:{pid:04X}")
-            } else {
-                mm
-            });
+            let name = oem_name(vid, pid).unwrap_or(
+                if mm.is_empty() || mm.to_lowercase().contains("pc-joystick") {
+                    format!("Joystick {vid:04X}:{pid:04X}")
+                } else {
+                    mm
+                },
+            );
             out.push(make(name, vid, pid));
         }
     }
@@ -146,7 +198,10 @@ mod tests {
 
     #[test]
     fn classify_devices() {
-        assert_eq!(classify("G29 Driving Force Racing Wheel", 0x046D), ("round", true));
+        assert_eq!(
+            classify("G29 Driving Force Racing Wheel", 0x046D),
+            ("round", true)
+        );
         assert_eq!(classify("FANATEC Wheel", 0x0EB7), ("gt", true));
         assert_eq!(classify("Some Formula Wheel", 0x1234), ("formula", true));
         assert_eq!(classify("Truck Wheel", 0x346E), ("truck", true));

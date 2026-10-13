@@ -7311,5 +7311,8 @@
   "Performans modu": "Prestatiemodus",
   "Üst ve alt kenarda karartma": "Vervaging aan boven- en onderrand",
   "Yakın araç renk dolgusu": "Kleurvulling voor auto's dichtbij",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Zachte kleurovergang (nabijheidsmarkering vult geleidelijk)"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Zachte kleurovergang (nabijheidsmarkering vult geleidelijk)",
+  "Günlük boş: kayıtlı bir hata yok.": "Het logboek is leeg: geen fouten vastgelegd.",
+  "Hata günlüğü": "Foutenlogboek",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Als het programma vanzelf sluit of iets vastloopt, staat de reden hier. Kopieer en stuur dit logboek mee als je om ondersteuning vraagt."
 }

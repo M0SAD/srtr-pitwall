@@ -112,12 +112,25 @@ impl SetupCmp {
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default();
         let seq = store.values().flatten().map(|e| e.used).max().unwrap_or(0);
-        SetupCmp { dir, store, seq, last_lap: -1, prev_lap_last: -1.0, ..Default::default() }
+        SetupCmp {
+            dir,
+            store,
+            seq,
+            last_lap: -1,
+            prev_lap_last: -1.0,
+            ..Default::default()
+        }
     }
 
     fn key_of(s: &SessionData) -> String {
         let me = s.player_idx;
-        let car = if me >= 0 { s.driver(me as usize).map(|d| d.car_path.clone()).unwrap_or_default() } else { String::new() };
+        let car = if me >= 0 {
+            s.driver(me as usize)
+                .map(|d| d.car_path.clone())
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
         if car.is_empty() || (s.track_id == 0 && s.track_name.is_empty()) {
             return String::new();
         }
@@ -156,7 +169,9 @@ impl SetupCmp {
                 self.pending = None;
                 let mut sec = sectors();
                 // Sektörler bu tura ait değilse (toplam tutmuyorsa) kullanılmaz
-                if sec.iter().any(|x| *x <= 0.0) || (sec.iter().sum::<f32>() - f.lap_last).abs() > 0.3 {
+                if sec.iter().any(|x| *x <= 0.0)
+                    || (sec.iter().sum::<f32>() - f.lap_last).abs() > 0.3
+                {
                     sec.clear();
                 }
                 self.record(clean(&s.setup_name), s.setup_modified, f.lap_last, &sec);
@@ -172,10 +187,17 @@ impl SetupCmp {
         self.seq += 1;
         let seq = self.seq;
         let list = self.store.entry(self.key.clone()).or_default();
-        let i = match list.iter().position(|e| e.name == name && e.modified == modified) {
+        let i = match list
+            .iter()
+            .position(|e| e.name == name && e.modified == modified)
+        {
             Some(i) => i,
             None => {
-                list.push(Entry { name, modified, ..Default::default() });
+                list.push(Entry {
+                    name,
+                    modified,
+                    ..Default::default()
+                });
                 list.len() - 1
             }
         };
@@ -192,7 +214,11 @@ impl SetupCmp {
 
     fn save(&mut self) {
         if self.store.len() > MAX_KEYS {
-            let mut keys: Vec<(String, u64)> = self.store.iter().map(|(k, v)| (k.clone(), v.iter().map(|e| e.used).max().unwrap_or(0))).collect();
+            let mut keys: Vec<(String, u64)> = self
+                .store
+                .iter()
+                .map(|(k, v)| (k.clone(), v.iter().map(|e| e.used).max().unwrap_or(0)))
+                .collect();
             keys.sort_by(|a, b| b.1.cmp(&a.1));
             for (k, _) in keys.into_iter().skip(MAX_KEYS) {
                 self.store.remove(&k);
@@ -200,7 +226,9 @@ impl SetupCmp {
         }
         let Some(dir) = self.dir.clone() else { return };
         // `ses` dosyaya da yazılır ama okunurken atlanır (skip_deserializing)
-        let Ok(bytes) = serde_json::to_vec(&self.store) else { return };
+        let Ok(bytes) = serde_json::to_vec(&self.store) else {
+            return;
+        };
         std::thread::spawn(move || {
             let tmp = dir.join("setupcmp.json.tmp");
             if std::fs::write(&tmp, bytes).is_ok() {
@@ -210,9 +238,17 @@ impl SetupCmp {
     }
 
     pub fn packet(&self, s: &SessionData) -> Packet {
-        let mut setups = self.store.get(&Self::key_of(s)).cloned().unwrap_or_default();
+        let mut setups = self
+            .store
+            .get(&Self::key_of(s))
+            .cloned()
+            .unwrap_or_default();
         setups.sort_by(|a, b| b.used.cmp(&a.used));
-        Packet { current: clean(&s.setup_name), modified: s.setup_modified, setups }
+        Packet {
+            current: clean(&s.setup_name),
+            modified: s.setup_modified,
+            setups,
+        }
     }
 }
 
@@ -222,14 +258,30 @@ mod tests {
     use crate::model::Driver;
 
     fn sd(setup: &str) -> SessionData {
-        let mut s = SessionData { drivers: vec![None; 4], player_idx: 1, track_id: 163, track_name: "Spa".into(), ..Default::default() };
-        s.drivers[1] = Some(Driver { car_idx: 1, car_path: "mx5".into(), ..Default::default() });
+        let mut s = SessionData {
+            drivers: vec![None; 4],
+            player_idx: 1,
+            track_id: 163,
+            track_name: "Spa".into(),
+            ..Default::default()
+        };
+        s.drivers[1] = Some(Driver {
+            car_idx: 1,
+            car_path: "mx5".into(),
+            ..Default::default()
+        });
         s.setup_name = setup.into();
         s
     }
 
     fn frame(t: f64, lap: i32, last: f32) -> Frame {
-        Frame { session_time: t, lap, lap_last: last, player_idx: 1, ..Default::default() }
+        Frame {
+            session_time: t,
+            lap,
+            lap_last: last,
+            player_idx: 1,
+            ..Default::default()
+        }
     }
 
     #[test]

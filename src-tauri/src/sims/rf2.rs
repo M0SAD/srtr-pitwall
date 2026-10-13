@@ -259,8 +259,13 @@ fn session_kind(s: i32) -> &'static str {
 
 /// "#6 Porsche Penske" / "Porsche 963 #6" -> "6"
 fn car_number(name: &str) -> String {
-    let Some(i) = name.find('#') else { return String::new() };
-    name[i + 1..].chars().take_while(|c| c.is_ascii_digit()).collect()
+    let Some(i) = name.find('#') else {
+        return String::new();
+    };
+    name[i + 1..]
+        .chars()
+        .take_while(|c| c.is_ascii_digit())
+        .collect()
 }
 
 pub fn session_sig(sc: &Scoring) -> u64 {
@@ -284,7 +289,9 @@ pub fn build_session(sc: &Scoring, tele: &[u8], slots: &mut Slots) -> SessionDat
     let seen: Vec<i64> = sc.vehicles.iter().map(|v| v.id as i64).collect();
     slots.retain(&seen);
     for v in &sc.vehicles {
-        let Some(idx) = slots.get(v.id as i64) else { continue };
+        let Some(idx) = slots.get(v.id as i64) else {
+            continue;
+        };
         let (class_id, class_color) = class_ident(&v.class);
         let d = Driver {
             car_idx: idx as i32,
@@ -315,8 +322,16 @@ pub fn build_session(sc: &Scoring, tele: &[u8], slots: &mut Slots) -> SessionDat
     sd.sessions.push(SessionEntry {
         num: sc.session,
         kind: kind.to_string(),
-        laps: if kind == "Race" && sc.max_laps > 0 && sc.max_laps < 10_000 { Some(sc.max_laps) } else { None },
-        time: if sc.end_et > 0.0 { Some(sc.end_et) } else { None },
+        laps: if kind == "Race" && sc.max_laps > 0 && sc.max_laps < 10_000 {
+            Some(sc.max_laps)
+        } else {
+            None
+        },
+        time: if sc.end_et > 0.0 {
+            Some(sc.end_et)
+        } else {
+            None
+        },
         ..Default::default()
     });
     sd
@@ -328,21 +343,43 @@ pub struct Motion {
 }
 
 /// Skorlama (5 Hz) + telemetri (karede bir) -> `Frame`. Araç indeksleri `sd`'deki sürücülerle eşleşir.
-pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m: &mut Motion, f: &mut Frame) {
+pub fn extract(
+    sc: &Scoring,
+    tele: &[u8],
+    sd: &SessionData,
+    slots: &mut Slots,
+    m: &mut Motion,
+    f: &mut Frame,
+) {
     let len = sc.lap_dist.max(1.0);
     let me = sc.vehicles.iter().find(|v| v.is_player);
     let me_t = me.and_then(|v| tele_find(tele, v.id));
-    let now = me_t.map(|o| rd_f64(tele, o + tv::ELAPSED_TIME)).filter(|t| *t > 0.0).unwrap_or(sc.current_et);
+    let now = me_t
+        .map(|o| rd_f64(tele, o + tv::ELAPSED_TIME))
+        .filter(|t| *t > 0.0)
+        .unwrap_or(sc.current_et);
     // Skorlama 5 Hz: konumları telemetri zamanına göre ileri taşı
     let dt = (now - sc.current_et).clamp(0.0, 0.5);
 
     f.session_time = now;
     f.session_num = sc.session;
     let race = session_kind(sc.session) == "Race";
-    f.session_time_remain = if sc.end_et > 0.0 { (sc.end_et - now).max(0.0) } else { -1.0 };
-    let leader_laps = sc.vehicles.iter().find(|v| v.place == 1).map(|v| v.total_laps).unwrap_or(0);
-    f.session_laps_remain =
-        if race && sc.max_laps > 0 && sc.max_laps < 10_000 { (sc.max_laps - leader_laps).max(0) } else { 32767 };
+    f.session_time_remain = if sc.end_et > 0.0 {
+        (sc.end_et - now).max(0.0)
+    } else {
+        -1.0
+    };
+    let leader_laps = sc
+        .vehicles
+        .iter()
+        .find(|v| v.place == 1)
+        .map(|v| v.total_laps)
+        .unwrap_or(0);
+    f.session_laps_remain = if race && sc.max_laps > 0 && sc.max_laps < 10_000 {
+        (sc.max_laps - leader_laps).max(0)
+    } else {
+        32767
+    };
     f.session_state = match sc.game_phase {
         0 => 1,
         1 | 2 => 2,
@@ -387,23 +424,44 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         _ => 0,
     };
     // Yeşil bayrakta, pistteyken "süre sayılmaz" işareti: tur geçersiz (pist sınırı vb.)
-    f.lap_invalid = sc.game_phase == 5 && me.map(|v| v.count_lap_flag < 2 && !v.in_pits && !v.in_garage).unwrap_or(false);
+    f.lap_invalid = sc.game_phase == 5
+        && me
+            .map(|v| v.count_lap_flag < 2 && !v.in_pits && !v.in_garage)
+            .unwrap_or(false);
 
     // Araçlar
     for c in f.cars.iter_mut() {
-        *c = CarState { surface: -1, pct: -1.0, tire: -1, lap: -1, lap_completed: -1, last: -1.0, best: -1.0, ..Default::default() };
+        *c = CarState {
+            surface: -1,
+            pct: -1.0,
+            tire: -1,
+            lap: -1,
+            lap_completed: -1,
+            last: -1.0,
+            best: -1.0,
+            ..Default::default()
+        };
     }
     f.player_idx = -1;
     for v in &sc.vehicles {
-        let Some(idx) = slots.get(v.id as i64) else { continue };
+        let Some(idx) = slots.get(v.id as i64) else {
+            continue;
+        };
         if sd.driver(idx).is_none() {
             continue;
         }
         let to = tele_find(tele, v.id);
-        let speed = to.map(|o| len3(rd_vec3(tele, o + tv::LOCAL_VEL))).unwrap_or(v.speed);
+        let speed = to
+            .map(|o| len3(rd_vec3(tele, o + tv::LOCAL_VEL)))
+            .unwrap_or(v.speed);
         // Ön lastik hamuru (adıyla; "Soft", "Wet"...) ve indeksi
         let (tire, tire_kind) = to
-            .map(|o| (rd_u8(tele, o + tv::FRONT_TIRE_COMPOUND_INDEX) as i32, tire_kind_from_name(&rd_cstr(tele, o + tv::FRONT_TIRE_COMPOUND_NAME, 18))))
+            .map(|o| {
+                (
+                    rd_u8(tele, o + tv::FRONT_TIRE_COMPOUND_INDEX) as i32,
+                    tire_kind_from_name(&rd_cstr(tele, o + tv::FRONT_TIRE_COMPOUND_NAME, 18)),
+                )
+            })
             .unwrap_or((-1, 0));
         let mut pct = ((v.lap_dist + speed * dt) / len) as f32;
         let mut laps = v.total_laps;
@@ -429,8 +487,13 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         c.tire = tire;
         c.tire_kind = tire_kind;
         c.sector = if v.sector <= 2 { v.sector + 1 } else { 0 };
-        c.f2 = if race { v.behind_leader.max(0.0) as f32 } else { 0.0 };
-        c.flags = if v.flag == 6 { flags::BLUE } else { 0 } | if v.finish_status == 3 { flags::DQ } else { 0 };
+        c.f2 = if race {
+            v.behind_leader.max(0.0) as f32
+        } else {
+            0.0
+        };
+        c.flags = if v.flag == 6 { flags::BLUE } else { 0 }
+            | if v.finish_status == 3 { flags::DQ } else { 0 };
         if v.is_player {
             f.player_idx = idx as i32;
         }
@@ -454,7 +517,13 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
     f.on_pit_road = v.in_pits;
     f.is_in_garage = v.in_garage;
     // Tür bilinmiyor (pit geçişi / dur-kalk): genel ceza; diskalifiye finish_status 3
-    f.penalty = if v.finish_status == 3 { 3 } else if v.num_penalties > 0 { 5 } else { 0 };
+    f.penalty = if v.finish_status == 3 {
+        3
+    } else if v.num_penalties > 0 {
+        5
+    } else {
+        0
+    };
     f.is_on_track = !v.in_garage && v.control >= 0;
     f.delta_best = 0.0;
     f.delta_best_ok = false;
@@ -473,9 +542,17 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         f.steer = steer_rad(rd_f64(tele, o + tv::UNF_STEERING) as f32, range);
         f.fuel_level = rd_f64(tele, o + tv::FUEL).max(0.0) as f32;
         let cap = rd_f64(tele, o + tv::FUEL_CAPACITY) as f32;
-        f.fuel_pct = if cap > 0.0 { (f.fuel_level / cap).clamp(0.0, 1.0) } else { 0.0 };
+        f.fuel_pct = if cap > 0.0 {
+            (f.fuel_level / cap).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
         f.lap_cur = (now - rd_f64(tele, o + tv::LAP_START_ET)).max(0.0) as f32;
-        f.engine_warnings = if rd_u8(tele, o + tv::SPEED_LIMITER) != 0 { EW_PIT_LIMITER } else { 0 };
+        f.engine_warnings = if rd_u8(tele, o + tv::SPEED_LIMITER) != 0 {
+            EW_PIT_LIMITER
+        } else {
+            0
+        };
         // Hasar: mOverheating 541, mDetached 542, mDentSeverity[8] 544; teker: mSurfaceType 176, mFlat 177, mDetached 178
         let wh = |i: usize, k: usize| rd_u8(tele, o + tv::WHEELS + i * tv::WHEEL_SIZE + k);
         f.damage = crate::drivecues::rf2_damage(
@@ -486,7 +563,11 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
         );
         f.tyres_out = crate::drivecues::rf2_tyres_out([0, 1, 2, 3].map(|i| wh(i, 176)));
         let rear = rd_f64(tele, o + tv::REAR_BRAKE_BIAS);
-        f.brake_bias = if rear > 0.0 && rear < 1.0 { ((1.0 - rear) * 100.0) as f32 } else { -1.0 };
+        f.brake_bias = if rear > 0.0 && rear < 1.0 {
+            ((1.0 - rear) * 100.0) as f32
+        } else {
+            -1.0
+        };
         // Hibrit: elektrik motoru durumu 0 ise araçta sistem yok
         let ms = rd_u8(tele, o + tv::ELECTRIC_BOOST_MOTOR_STATE);
         let mut hy = crate::model::Hybrid::default();
@@ -523,7 +604,11 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
                 f.tire_temp[c][k] = if t > 0.0 { (t - 273.15) as f32 } else { 0.0 };
             }
             let wear = rd_f64(tele, w + tv::W_WEAR) as f32;
-            f.tire_wear[c] = if wear > 0.0 { [wear.clamp(0.0, 1.0); 3] } else { [-1.0; 3] };
+            f.tire_wear[c] = if wear > 0.0 {
+                [wear.clamp(0.0, 1.0); 3]
+            } else {
+                [-1.0; 3]
+            };
             f.tire_press[c] = rd_f64(tele, w + tv::W_PRESSURE) as f32;
         }
         // Dünya hızı = Ori * yerel hız; üstten bakış: doğu = x, kuzey = z (sol elli sistem)
@@ -542,7 +627,9 @@ pub fn extract(sc: &Scoring, tele: &[u8], sd: &SessionData, slots: &mut Slots, m
             if ov.id == v.id || ov.in_garage {
                 continue;
             }
-            let p = tele_find(tele, ov.id).map(|x| rd_vec3(tele, x + tv::POS)).unwrap_or(ov.pos);
+            let p = tele_find(tele, ov.id)
+                .map(|x| rd_vec3(tele, x + tv::POS))
+                .unwrap_or(ov.pos);
             let d = [p[0] - my[0], p[1] - my[1], p[2] - my[2]];
             let lat_left = d[0] * left[0] + d[1] * left[1] + d[2] * left[2];
             let back_d = d[0] * back[0] + d[1] * back[1] + d[2] * back[2];
@@ -655,8 +742,13 @@ mod win {
             if ver == self.last_scor {
                 return false;
             }
-            let n = (self.scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES) as usize).min(MAX_VEHICLES);
-            if !read_consistent(&self.scor, buf::SCORING_VEHICLES + n * vs::SIZE, &mut self.sb) {
+            let n =
+                (self.scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES) as usize).min(MAX_VEHICLES);
+            if !read_consistent(
+                &self.scor,
+                buf::SCORING_VEHICLES + n * vs::SIZE,
+                &mut self.sb,
+            ) {
                 return false;
             }
             self.last_scor = ver;
@@ -691,9 +783,12 @@ mod win {
             if self.scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES) == 0 {
                 return false;
             }
-            if self.last_new.elapsed() > Duration::from_secs(10) && self.checked.get().elapsed() > Duration::from_secs(5) {
+            if self.last_new.elapsed() > Duration::from_secs(10)
+                && self.checked.get().elapsed() > Duration::from_secs(5)
+            {
                 self.checked.set(Instant::now());
-                self.alive.set(shm::any_running(&["le mans ultimate.exe", "rfactor2.exe"]));
+                self.alive
+                    .set(shm::any_running(&["le mans ultimate.exe", "rfactor2.exe"]));
             }
             self.alive.get() || self.last_new.elapsed() < Duration::from_secs(10)
         }
@@ -723,7 +818,14 @@ mod win {
             self.last_new = Instant::now();
             self.tick = self.tick.wrapping_add(1);
             frame.tick = self.tick;
-            extract(&self.scoring, &self.tb, &self.session, &mut self.slots, &mut self.motion, frame);
+            extract(
+                &self.scoring,
+                &self.tb,
+                &self.session,
+                &mut self.slots,
+                &mut self.motion,
+                frame,
+            );
             true
         }
 
@@ -859,7 +961,9 @@ mod tests {
         assert_eq!(f.fuel_pct, 0.5);
         assert!((f.steer + 90f32.to_radians()).abs() < 1e-4); // sağa yarım tur = -90°
         assert!((f.brake_bias - 55.0).abs() < 1e-3);
-        assert!((f.tire_temp[1][0] - 80.0).abs() < 1e-3 && (f.tire_temp[1][2] - 100.0).abs() < 1e-3);
+        assert!(
+            (f.tire_temp[1][0] - 80.0).abs() < 1e-3 && (f.tire_temp[1][2] - 100.0).abs() < 1e-3
+        );
         assert!((f.tire_wear[1][1] - 0.9).abs() < 1e-6);
         assert_eq!(f.tire_press[1], 170.0);
         assert_eq!(f.lap, 3);

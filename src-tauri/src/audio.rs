@@ -14,9 +14,19 @@ use std::time::Duration;
 pub enum Cmd {
     /// Ses parçalarını art arda çal. `spotter` sesleri mühendisi keser ve önceliklidir.
     /// `sub`: altyazı kimliği (bkz. `voicesub`; 0: altyazı yok)
-    Say { parts: Vec<PathBuf>, spotter: bool, volume: f32, sub: u64 },
+    Say {
+        parts: Vec<PathBuf>,
+        spotter: bool,
+        volume: f32,
+        sub: u64,
+    },
     /// Kısa bip
-    Beep { freq: f32, ms: u64, volume: f32, pan: f32 },
+    Beep {
+        freq: f32,
+        ms: u64,
+        volume: f32,
+        pan: f32,
+    },
     /// Yumuşak nota: yavaş girer ve sönerek biter (bildirim sesleri); art arda gönderilenler sırayla çalar
     Note { freq: f32, ms: u64, volume: f32 },
     /// Sürekli ton (yanında araç): None durdurur. pan -1 sol, 1 sağ
@@ -69,9 +79,15 @@ fn run(rx: &Receiver<Cmd>) {
         while rx.recv().is_ok() {}
         return;
     };
-    let Ok(mut voice) = Sink::try_new(&handle) else { return };
-    let Ok(mut spotter) = Sink::try_new(&handle) else { return };
-    let Ok(mut fx) = Sink::try_new(&handle) else { return };
+    let Ok(mut voice) = Sink::try_new(&handle) else {
+        return;
+    };
+    let Ok(mut spotter) = Sink::try_new(&handle) else {
+        return;
+    };
+    let Ok(mut fx) = Sink::try_new(&handle) else {
+        return;
+    };
     // Seçili çıkış cihazı ("" = Windows varsayılanı)
     let mut device = String::new();
     let mut tone: Option<Sink> = None;
@@ -114,15 +130,25 @@ fn run(rx: &Receiver<Cmd>) {
                     let dev = if name.is_empty() {
                         None
                     } else {
-                        rodio::cpal::default_host().output_devices().ok().and_then(|mut it| it.find(|d| d.name().map(|n| n == name).unwrap_or(false)))
+                        rodio::cpal::default_host()
+                            .output_devices()
+                            .ok()
+                            .and_then(|mut it| {
+                                it.find(|d| d.name().map(|n| n == name).unwrap_or(false))
+                            })
                     };
                     match dev {
-                        Some(d) => OutputStream::try_from_device(&d).or_else(|_| OutputStream::try_default()),
+                        Some(d) => OutputStream::try_from_device(&d)
+                            .or_else(|_| OutputStream::try_default()),
                         None => OutputStream::try_default(),
                     }
                 };
                 let Ok((s, h)) = opened else { continue };
-                let (Ok(v), Ok(sp), Ok(f)) = (Sink::try_new(&h), Sink::try_new(&h), Sink::try_new(&h)) else { continue };
+                let (Ok(v), Ok(sp), Ok(f)) =
+                    (Sink::try_new(&h), Sink::try_new(&h), Sink::try_new(&h))
+                else {
+                    continue;
+                };
                 if let Some(t) = tone.take() {
                     t.stop();
                 }
@@ -135,7 +161,12 @@ fn run(rx: &Receiver<Cmd>) {
                 _stream = s;
                 device = name;
             }
-            Cmd::Say { parts, spotter: is_spotter, volume, sub } => {
+            Cmd::Say {
+                parts,
+                spotter: is_spotter,
+                volume,
+                sub,
+            } => {
                 let sink = if is_spotter { &spotter } else { &voice };
                 if is_spotter {
                     // Eski spotter mesajı artık geçersiz: yenisi hemen çalsın. Spotter en önceliklidir:
@@ -175,7 +206,12 @@ fn run(rx: &Receiver<Cmd>) {
                 }
                 was_busy = busy_now;
             }
-            Cmd::Beep { freq, ms, volume, pan } => {
+            Cmd::Beep {
+                freq,
+                ms,
+                volume,
+                pan,
+            } => {
                 let src = SineWave::new(freq)
                     .take_duration(Duration::from_millis(ms))
                     .fade_in(Duration::from_millis(8));
@@ -190,7 +226,9 @@ fn run(rx: &Receiver<Cmd>) {
                 fx.append(ChannelVolume::new(src, pan_volumes(0.0, volume * 0.5)));
             }
             Cmd::Alongside(state) => {
-                let key = state.map(|(pan, freq, vol)| ((pan * 10.0) as i32, freq as i32, (vol * 100.0) as i32));
+                let key = state.map(|(pan, freq, vol)| {
+                    ((pan * 10.0) as i32, freq as i32, (vol * 100.0) as i32)
+                });
                 if key == tone_key {
                     continue;
                 }

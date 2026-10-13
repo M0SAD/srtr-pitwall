@@ -7311,5 +7311,8 @@
   "Performans modu": "Modo de desempenho",
   "Üst ve alt kenarda karartma": "Escurecimento nas margens superior e inferior",
   "Yakın araç renk dolgusu": "Preenchimento de cor do carro próximo",
-  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transição de cor suave (o destaque de proximidade enche aos poucos)"
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transição de cor suave (o destaque de proximidade enche aos poucos)",
+  "Günlük boş: kayıtlı bir hata yok.": "O registo está vazio: nenhum erro registado.",
+  "Hata günlüğü": "Registo de erros",
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Se o programa fechar sozinho ou algo bloquear, o motivo é escrito aqui. Ao pedir suporte, copia e envia este registo."
 }

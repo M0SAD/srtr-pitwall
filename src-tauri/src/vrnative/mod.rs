@@ -79,14 +79,33 @@ pub struct NativeCfg {
 
 impl Default for NativeCfg {
     fn default() -> Self {
-        NativeCfg { auto_start: false, show_desktop: false, invert: false, fps: 15, key: true, standing: false, debug: false, used: false, base: None, overlays: HashMap::new() }
+        NativeCfg {
+            auto_start: false,
+            show_desktop: false,
+            invert: false,
+            fps: 15,
+            key: true,
+            standing: false,
+            debug: false,
+            used: false,
+            base: None,
+            overlays: HashMap::new(),
+        }
     }
 }
 
 pub fn cfg_from_settings(v: &Value) -> NativeCfg {
     let d = v.pointer("/general/vr/native");
-    let b = |k: &str| d.and_then(|x| x.get(k)).and_then(|x| x.as_bool()).unwrap_or(false);
-    let s = |k: &str| d.and_then(|x| x.get(k)).and_then(|x| x.as_str()).unwrap_or("");
+    let b = |k: &str| {
+        d.and_then(|x| x.get(k))
+            .and_then(|x| x.as_bool())
+            .unwrap_or(false)
+    };
+    let s = |k: &str| {
+        d.and_then(|x| x.get(k))
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+    };
     let fps = match d.and_then(|x| x.get("fps")).and_then(|x| x.as_u64()) {
         Some(10) => 10,
         Some(30) => 30,
@@ -165,7 +184,10 @@ fn sh() -> &'static Shared {
         running: AtomicBool::new(false),
         stop: AtomicBool::new(false),
         config: AtomicBool::new(false),
-        inner: Mutex::new(Inner { state: "idle", ..Default::default() }),
+        inner: Mutex::new(Inner {
+            state: "idle",
+            ..Default::default()
+        }),
     })
 }
 
@@ -187,14 +209,30 @@ pub fn hides_desktop() -> bool {
 fn log(msg: impl Into<String>) {
     let msg = msg.into();
     let mut g = sh().inner.lock();
-    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    let line = format!("{:02}:{:02}:{:02} {msg}", (secs / 3600) % 24, (secs / 60) % 60, secs % 60);
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let line = format!(
+        "{:02}:{:02}:{:02} {msg}",
+        (secs / 3600) % 24,
+        (secs / 60) % 60,
+        secs % 60
+    );
     if g.cfg.debug {
         if let Some(p) = &g.log_file {
             use std::io::Write;
             // Dosya büyümesin: 512 KB'ı geçince baştan başla
-            let big = std::fs::metadata(p).map(|m| m.len() > 512 * 1024).unwrap_or(false);
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(!big).write(true).truncate(big).open(p) {
+            let big = std::fs::metadata(p)
+                .map(|m| m.len() > 512 * 1024)
+                .unwrap_or(false);
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(!big)
+                .write(true)
+                .truncate(big)
+                .open(p)
+            {
                 let _ = writeln!(f, "{line}");
             }
         }
@@ -227,13 +265,20 @@ fn dll_dirs(app: &AppHandle) -> Vec<PathBuf> {
         v.push(r.join("resources").join("openvr"));
         v.push(r);
     }
-    if let Some(d) = std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.to_path_buf())) {
+    if let Some(d) = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+    {
         v.push(d.join("openvr"));
         v.push(d.join("resources").join("openvr"));
         v.push(d);
     }
     #[cfg(debug_assertions)]
-    v.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources").join("openvr"));
+    v.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("openvr"),
+    );
     v
 }
 
@@ -246,7 +291,11 @@ pub fn apply_settings(app: &AppHandle, v: &Value) {
     let cfg = cfg_from_settings(v);
     let mut g = sh().inner.lock();
     if g.log_file.is_none() {
-        g.log_file = app.path().app_data_dir().ok().map(|d| d.join("vr_native.log"));
+        g.log_file = app
+            .path()
+            .app_data_dir()
+            .ok()
+            .map(|d| d.join("vr_native.log"));
     }
     if g.cfg != cfg {
         g.cfg = cfg;
@@ -303,19 +352,22 @@ pub fn start(app: &AppHandle, auto: bool) {
     }
     set_state("starting", "");
     let app2 = app.clone();
-    let spawned = std::thread::Builder::new().name("vr-native".into()).spawn(move || {
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| worker(&app2, auto)));
-        backend::mouse::stop();
-        let s = sh();
-        s.config.store(false, Ordering::SeqCst);
-        s.running.store(false, Ordering::SeqCst);
-        match result {
-            Ok(Ok(())) => set_state("idle", ""),
-            Ok(Err(e)) => set_state("error", e),
-            Err(_) => set_state("error", "beklenmeyen hata (panic)"),
-        }
-        after_change(&app2);
-    });
+    let spawned = std::thread::Builder::new()
+        .name("vr-native".into())
+        .spawn(move || {
+            let result =
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| worker(&app2, auto)));
+            backend::mouse::stop();
+            let s = sh();
+            s.config.store(false, Ordering::SeqCst);
+            s.running.store(false, Ordering::SeqCst);
+            match result {
+                Ok(Ok(())) => set_state("idle", ""),
+                Ok(Err(e)) => set_state("error", e),
+                Err(_) => set_state("error", "beklenmeyen hata (panic)"),
+            }
+            after_change(&app2);
+        });
     if let Err(e) = spawned {
         s.running.store(false, Ordering::SeqCst);
         set_state("error", e.to_string());
@@ -419,7 +471,12 @@ fn exempt_windows(app: &AppHandle) -> Vec<isize> {
 }
 
 fn worker(app: &AppHandle, auto: bool) -> Result<(), String> {
-    log(format!("başlıyor (OpenVR {}, {}, {})", openvr_gen::OPENVR_TAG, openvr_gen::IVRSYSTEM_VERSION, openvr_gen::IVROVERLAY_VERSION));
+    log(format!(
+        "başlıyor (OpenVR {}, {}, {})",
+        openvr_gen::OPENVR_TAG,
+        openvr_gen::IVRSYSTEM_VERSION,
+        openvr_gen::IVROVERLAY_VERSION
+    ));
     after_change(app);
     let dirs = dll_dirs(app);
 
@@ -502,7 +559,11 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
             for (i, o) in ovs.iter_mut().enumerate() {
                 if !o.dirty {
                     let d = Placement::default_for(i, count);
-                    o.place = cfg.overlays.get(&o.key).map(|v| Placement::from_json(v, d)).unwrap_or(o.place);
+                    o.place = cfg
+                        .overlays
+                        .get(&o.key)
+                        .map(|v| Placement::from_json(v, d))
+                        .unwrap_or(o.place);
                 }
                 o.hash = 0; // saydamlık yöntemi değişmiş olabilir: kareyi yeniden gönder
             }
@@ -594,14 +655,20 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
                     let on = !config;
                     if on {
                         if let Err(e) = backend::mouse::start(exempt_windows(app)) {
-                            log(format!("fare kancası kurulamadı: {e} (paneldeki düzenleyiciyi kullan)"));
+                            log(format!(
+                                "fare kancası kurulamadı: {e} (paneldeki düzenleyiciyi kullan)"
+                            ));
                         }
                     } else {
                         backend::mouse::stop();
                         save_now = true;
                     }
                     s.config.store(on, Ordering::SeqCst);
-                    log(if on { "yapılandırma modu açıldı" } else { "yapılandırma modu kapandı" });
+                    log(if on {
+                        "yapılandırma modu açıldı"
+                    } else {
+                        "yapılandırma modu kapandı"
+                    });
                     crate::refresh_shortcuts(app);
                 }
                 Cmd::Next if config && !ovs.is_empty() => {
@@ -610,7 +677,11 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
                 }
                 Cmd::Select(k) if ovs.iter().any(|o| o.key == k) => selected = k,
                 Cmd::Mode if config => {
-                    mode = if mode == Mode::Position { Mode::Adjust } else { Mode::Position };
+                    mode = if mode == Mode::Position {
+                        Mode::Adjust
+                    } else {
+                        Mode::Position
+                    };
                 }
                 Cmd::Save => save_now = true,
                 Cmd::Reset => {
@@ -668,20 +739,30 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
         let base_m = base.matrix();
         for o in ovs.iter_mut() {
             let tf = place::transform(&o.place, &base_m, hmd.as_ref(), cfg.invert);
-            if o.sent_tf != Some(tf) && check(o, session.set_transform(o.handle, cfg.standing, &tf)) {
+            if o.sent_tf != Some(tf) && check(o, session.set_transform(o.handle, cfg.standing, &tf))
+            {
                 o.sent_tf = Some(tf);
             }
-            if o.sent_width != o.place.width && check(o, session.set_width(o.handle, o.place.width)) {
+            if o.sent_width != o.place.width && check(o, session.set_width(o.handle, o.place.width))
+            {
                 o.sent_width = o.place.width;
             }
-            if o.sent_curve != o.place.curve && check(o, session.set_curvature(o.handle, o.place.curve)) {
+            if o.sent_curve != o.place.curve
+                && check(o, session.set_curvature(o.handle, o.place.curve))
+            {
                 o.sent_curve = o.place.curve;
             }
             // Bakış modu: yapılandırma modunda devre dışı (hep görünür)
-            let target_on = !o.place.gaze || config || hmd.as_ref().map(|h| place::gaze_inside(h, &tf, o.place.width, o.aspect)).unwrap_or(true);
+            let target_on = !o.place.gaze
+                || config
+                || hmd
+                    .as_ref()
+                    .map(|h| place::gaze_inside(h, &tf, o.place.width, o.aspect))
+                    .unwrap_or(true);
             o.gaze_f = place::fade(o.gaze_f, target_on, dt);
             let alpha = (o.place.alpha * o.gaze_f).clamp(0.0, 1.0);
-            if (o.sent_alpha - alpha).abs() > 0.004 && check(o, session.set_alpha(o.handle, alpha)) {
+            if (o.sent_alpha - alpha).abs() > 0.004 && check(o, session.set_alpha(o.handle, alpha))
+            {
                 o.sent_alpha = alpha;
             }
             let color = if !config {
@@ -693,12 +774,18 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
             } else {
                 [1.0, 0.8, 0.45]
             };
-            if o.sent_color != color && check(o, session.set_color(o.handle, color[0], color[1], color[2])) {
+            if o.sent_color != color
+                && check(o, session.set_color(o.handle, color[0], color[1], color[2]))
+            {
                 o.sent_color = color;
             }
             let want_visible = o.has_frame && alpha > 0.004;
             if want_visible != o.visible {
-                let r = if want_visible { session.show(o.handle) } else { session.hide(o.handle) };
+                let r = if want_visible {
+                    session.show(o.handle)
+                } else {
+                    session.hide(o.handle)
+                };
                 if check(o, r) {
                     o.visible = want_visible;
                 }
@@ -712,7 +799,9 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
                 continue;
             }
             o.next_capture = now + interval;
-            let Some((w, h)) = backend::capture(o.hwnd, &mut buf) else { continue };
+            let Some((w, h)) = backend::capture(o.hwnd, &mut buf) else {
+                continue;
+            };
             place::bgra_to_rgba(&mut buf, key_rgb, KEY_TOLERANCE);
             let hash = place::frame_hash(&buf, w, h);
             if hash == o.hash {
@@ -728,7 +817,11 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
         // Otomatik kayıt: son değişiklikten 0,5 sn sonra (ya da "şimdi kaydet")
         let dirty = base_dirty || ovs.iter().any(|o| o.dirty);
         if dirty && (save_now || now.duration_since(last_change) > AUTOSAVE) {
-            let places: Vec<(String, Value)> = ovs.iter().filter(|o| o.dirty).map(|o| (o.key.clone(), o.place.to_json())).collect();
+            let places: Vec<(String, Value)> = ovs
+                .iter()
+                .filter(|o| o.dirty)
+                .map(|o| (o.key.clone(), o.place.to_json()))
+                .collect();
             let base_json = base_dirty.then(|| base.to_json());
             for o in ovs.iter_mut() {
                 o.dirty = false;
@@ -745,7 +838,11 @@ fn run(app: &AppHandle, session: &backend::Session) -> Result<(), String> {
         crate::refresh_shortcuts(app);
     }
     // Kaydedilmemiş değişiklikleri yaz, overlay'leri kaldır
-    let places: Vec<(String, Value)> = ovs.iter().filter(|o| o.dirty).map(|o| (o.key.clone(), o.place.to_json())).collect();
+    let places: Vec<(String, Value)> = ovs
+        .iter()
+        .filter(|o| o.dirty)
+        .map(|o| (o.key.clone(), o.place.to_json()))
+        .collect();
     if !places.is_empty() || base_dirty {
         save(app, places, base_dirty.then(|| base.to_json()));
     }
@@ -774,14 +871,24 @@ fn check(o: &mut Ov, r: Result<(), String>) -> bool {
 fn save(app: &AppHandle, places: Vec<(String, Value)>, base: Option<Value>) {
     let n = places.len();
     crate::settings_patch(app, "vr", move |v| {
-        let Some(vr) = v.pointer_mut("/general/vr").and_then(|x| x.as_object_mut()) else { return false };
-        let native = vr.entry("native").or_insert_with(|| Value::Object(Default::default()));
-        let Some(native) = native.as_object_mut() else { return false };
+        let Some(vr) = v.pointer_mut("/general/vr").and_then(|x| x.as_object_mut()) else {
+            return false;
+        };
+        let native = vr
+            .entry("native")
+            .or_insert_with(|| Value::Object(Default::default()));
+        let Some(native) = native.as_object_mut() else {
+            return false;
+        };
         if let Some(b) = base {
             native.insert("base".into(), b);
         }
-        let ovs = native.entry("overlays").or_insert_with(|| Value::Object(Default::default()));
-        let Some(ovs) = ovs.as_object_mut() else { return false };
+        let ovs = native
+            .entry("overlays")
+            .or_insert_with(|| Value::Object(Default::default()));
+        let Some(ovs) = ovs.as_object_mut() else {
+            return false;
+        };
         for (k, p) in places {
             ovs.insert(k, p);
         }
@@ -821,7 +928,12 @@ pub async fn vr_native_status(app: AppHandle) -> Status {
     let probe = if is_running || !backend::SUPPORTED {
         None
     } else {
-        let cached = s.inner.lock().probe.filter(|(t, _)| t.elapsed() < Duration::from_secs(5)).map(|(_, p)| p);
+        let cached = s
+            .inner
+            .lock()
+            .probe
+            .filter(|(t, _)| t.elapsed() < Duration::from_secs(5))
+            .map(|(_, p)| p);
         Some(match cached {
             Some(p) => p,
             None => {
@@ -846,10 +958,23 @@ pub async fn vr_native_status(app: AppHandle) -> Status {
         overlays: g.overlays,
         config: is_running && s.config.load(Ordering::Relaxed),
         selected: g.selected.clone(),
-        mode: if g.mode == Mode::Adjust { "adjust" } else { "position" },
+        mode: if g.mode == Mode::Adjust {
+            "adjust"
+        } else {
+            "position"
+        },
         auto: g.auto,
-        openvr: format!("{} · {} · {}", openvr_gen::OPENVR_TAG, openvr_gen::IVRSYSTEM_VERSION, openvr_gen::IVROVERLAY_VERSION),
-        log_file: g.log_file.as_ref().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default(),
+        openvr: format!(
+            "{} · {} · {}",
+            openvr_gen::OPENVR_TAG,
+            openvr_gen::IVRSYSTEM_VERSION,
+            openvr_gen::IVROVERLAY_VERSION
+        ),
+        log_file: g
+            .log_file
+            .as_ref()
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default(),
         log: g.log.iter().rev().take(40).rev().cloned().collect(),
     }
 }
@@ -903,13 +1028,32 @@ mod tests {
             "overlays": { "relative": { "x": 0.5, "faceMe": true } }
         } } } });
         let c = cfg_from_settings(&s);
-        assert!(c.auto_start && c.show_desktop && c.invert && c.fps == 30 && !c.key && c.standing && c.debug);
-        assert_eq!(c.base, Some(Base { x: 1.0, y: 2.0, z: 3.0, yaw: 45.0 }));
+        assert!(
+            c.auto_start
+                && c.show_desktop
+                && c.invert
+                && c.fps == 30
+                && !c.key
+                && c.standing
+                && c.debug
+        );
+        assert_eq!(
+            c.base,
+            Some(Base {
+                x: 1.0,
+                y: 2.0,
+                z: 3.0,
+                yaw: 45.0
+            })
+        );
         let p = Placement::from_json(&c.overlays["relative"], Placement::default_for(0, 1));
         assert!(p.face_me && (p.x - 0.5).abs() < 1e-6 && (p.z - 1.2).abs() < 1e-5);
         assert!(wants_background_rendering(&s));
         // Desteklenmeyen kare hızı varsayılana düşer
-        assert_eq!(cfg_from_settings(&json!({ "general": { "vr": { "native": { "fps": 144 } } } })).fps, 15);
+        assert_eq!(
+            cfg_from_settings(&json!({ "general": { "vr": { "native": { "fps": 144 } } } })).fps,
+            15
+        );
     }
 
     #[test]
@@ -926,14 +1070,19 @@ mod tests {
 
     /// Alıntıdaki `struct VR_<arayüz>_FnTable` içindeki işlev adları ve bildirim satırları, sırayla
     fn table(iface: &str) -> Vec<(String, String)> {
-        let start = EXCERPT.find(&format!("struct VR_{iface}_FnTable")).expect("tablo alıntıda yok");
+        let start = EXCERPT
+            .find(&format!("struct VR_{iface}_FnTable"))
+            .expect("tablo alıntıda yok");
         let body = &EXCERPT[start..];
         let body = &body[..body.find("};").expect("tablo sonu")];
         body.lines()
             .filter(|l| l.contains("(OPENVR_FNTABLE_CALLTYPE *"))
             .map(|l| {
                 let after = l.split("(OPENVR_FNTABLE_CALLTYPE *").nth(1).unwrap();
-                (after[..after.find(')').unwrap()].to_string(), l.trim().to_string())
+                (
+                    after[..after.find(')').unwrap()].to_string(),
+                    l.trim().to_string(),
+                )
             })
             .collect()
     }
@@ -944,16 +1093,26 @@ mod tests {
         assert!(EXCERPT.contains(&format!("IVRSystem_Version = \"{IVRSYSTEM_VERSION}\"")));
         assert!(EXCERPT.contains(&format!("IVROverlay_Version = \"{IVROVERLAY_VERSION}\"")));
         assert!(EXCERPT.contains(&format!("OpenVR SDK {OPENVR_TAG} ")));
-        for (iface, names, used) in [("IVRSystem", &IVRSYSTEM_FNS[..], &ivrsystem::USED[..]), ("IVROverlay", &IVROVERLAY_FNS[..], &ivroverlay::USED[..])] {
+        for (iface, names, used) in [
+            ("IVRSystem", &IVRSYSTEM_FNS[..], &ivrsystem::USED[..]),
+            ("IVROverlay", &IVROVERLAY_FNS[..], &ivroverlay::USED[..]),
+        ] {
             let t = table(iface);
             // Alan sayısı ve sırası başlıkla aynı (tablo yalnız işlev işaretçilerinden oluşur)
             assert_eq!(t.len(), names.len(), "{iface}");
             let body_lines = {
                 let start = EXCERPT.find(&format!("struct VR_{iface}_FnTable")).unwrap();
                 let body = &EXCERPT[start..];
-                body[..body.find("};").unwrap()].lines().filter(|l| l.trim_end().ends_with(';')).count()
+                body[..body.find("};").unwrap()]
+                    .lines()
+                    .filter(|l| l.trim_end().ends_with(';'))
+                    .count()
             };
-            assert_eq!(body_lines, names.len(), "{iface}: tabloda işlev olmayan alan var");
+            assert_eq!(
+                body_lines,
+                names.len(),
+                "{iface}: tabloda işlev olmayan alan var"
+            );
             for (i, (name, _)) in t.iter().enumerate() {
                 assert_eq!(name, names[i], "{iface}[{i}]");
             }
@@ -976,10 +1135,19 @@ mod tests {
     fn enums_and_layouts_match_header() {
         use openvr_gen::*;
         for (text, value) in [
-            ("ETrackingUniverseOrigin_TrackingUniverseSeated = ", UNIVERSE_SEATED),
-            ("ETrackingUniverseOrigin_TrackingUniverseStanding = ", UNIVERSE_STANDING),
+            (
+                "ETrackingUniverseOrigin_TrackingUniverseSeated = ",
+                UNIVERSE_SEATED,
+            ),
+            (
+                "ETrackingUniverseOrigin_TrackingUniverseStanding = ",
+                UNIVERSE_STANDING,
+            ),
             ("EVRApplicationType_VRApplication_Overlay = ", APP_OVERLAY),
-            ("EVRApplicationType_VRApplication_Background = ", APP_BACKGROUND),
+            (
+                "EVRApplicationType_VRApplication_Background = ",
+                APP_BACKGROUND,
+            ),
             ("EVREventType_VREvent_Quit = ", EVENT_QUIT),
         ] {
             assert!(EXCERPT.contains(&format!("{text}{value},")), "{text}");
@@ -991,7 +1159,11 @@ mod tests {
         assert_eq!(std::mem::align_of::<TrackedDevicePose>(), 4);
         assert_eq!(std::mem::offset_of!(TrackedDevicePose, pose_is_valid), 76);
         let pose = &EXCERPT[EXCERPT.find("typedef struct TrackedDevicePose_t").unwrap()..];
-        let pose: Vec<&str> = pose[..pose.find('}').unwrap()].lines().skip(2).map(|l| l.trim()).collect();
+        let pose: Vec<&str> = pose[..pose.find('}').unwrap()]
+            .lines()
+            .skip(2)
+            .map(|l| l.trim())
+            .collect();
         assert_eq!(
             pose,
             [
@@ -1005,8 +1177,13 @@ mod tests {
         );
         // VREvent_t: uint32 + uint32 + float, sonra en büyüğü 6 × uint64 olan birleşim → Windows'ta 64 bayt
         let ev = &EXCERPT[EXCERPT.find("struct VREvent_t\n").unwrap()..];
-        assert!(ev.contains("uint32_t eventType;") && ev.find("eventType").unwrap() < ev.find("trackedDeviceIndex").unwrap());
-        assert!(EXCERPT.contains("uint64_t reserved5;") && !EXCERPT.contains("uint64_t reserved6;"));
+        assert!(
+            ev.contains("uint32_t eventType;")
+                && ev.find("eventType").unwrap() < ev.find("trackedDeviceIndex").unwrap()
+        );
+        assert!(
+            EXCERPT.contains("uint64_t reserved5;") && !EXCERPT.contains("uint64_t reserved6;")
+        );
         // Düz API bildirimleri (win.rs Api alanları)
         for decl in [
             "S_API intptr_t VR_InitInternal( EVRInitError *peError, EVRApplicationType eType );",
@@ -1023,7 +1200,11 @@ mod tests {
     /// Paketlenen DLL gerçekten 64 bit bir Windows DLL'i ve kullanılan simgeleri dışa aktarıyor
     #[test]
     fn bundled_dll_exports() {
-        let dll = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/openvr/openvr_api.dll")).expect("openvr_api.dll paketlenmeli");
+        let dll = std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/resources/openvr/openvr_api.dll"
+        ))
+        .expect("openvr_api.dll paketlenmeli");
         assert_eq!(&dll[..2], b"MZ");
         let pe = u32::from_le_bytes([dll[0x3c], dll[0x3d], dll[0x3e], dll[0x3f]]) as usize;
         assert_eq!(&dll[pe..pe + 4], b"PE\0\0");
@@ -1044,6 +1225,10 @@ mod tests {
         ] {
             assert!(has(name), "{name}");
         }
-        assert!(std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/openvr/LICENSE.txt")).is_file());
+        assert!(std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/resources/openvr/LICENSE.txt"
+        ))
+        .is_file());
     }
 }

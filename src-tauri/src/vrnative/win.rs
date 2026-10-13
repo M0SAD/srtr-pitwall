@@ -16,17 +16,18 @@ use std::path::{Path, PathBuf};
 
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GdiFlush, GetDC, ReleaseDC, SelectObject, BITMAPINFO,
-    BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HDC,
+    CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GdiFlush, GetDC, ReleaseDC,
+    SelectObject, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HDC,
 };
 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress, LoadLibraryW};
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_SHIFT};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, DispatchMessageW, GetAncestor, GetClientRect, GetMessageW, IsIconic,
-    IsWindow, PeekMessageW, PostThreadMessageW, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx,
-    WindowFromPoint, GA_ROOT, HC_ACTION, MSG, MSLLHOOKSTRUCT, PM_NOREMOVE, WH_MOUSE_LL, WM_LBUTTONDOWN, WM_LBUTTONUP,
-    WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_QUIT, WM_RBUTTONDOWN, WM_RBUTTONUP,
+    CallNextHookEx, DispatchMessageW, GetAncestor, GetClientRect, GetMessageW, IsIconic, IsWindow,
+    PeekMessageW, PostThreadMessageW, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx,
+    WindowFromPoint, GA_ROOT, HC_ACTION, MSG, MSLLHOOKSTRUCT, PM_NOREMOVE, WH_MOUSE_LL,
+    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL,
+    WM_QUIT, WM_RBUTTONDOWN, WM_RBUTTONUP,
 };
 
 pub const SUPPORTED: bool = true;
@@ -67,13 +68,19 @@ unsafe fn symbol(lib: *mut c_void, name: &CStr) -> Option<unsafe extern "system"
 #[cfg(windows)]
 fn wide_path(p: &Path) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt;
-    p.as_os_str().encode_wide().chain(std::iter::once(0)).collect()
+    p.as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect()
 }
 
 /// Yalnız Windows dışında tür denetimi yapılabilsin diye (bu dosya Windows dışında uygulamaya derlenmez)
 #[cfg(not(windows))]
 fn wide_path(p: &Path) -> Vec<u16> {
-    p.to_string_lossy().encode_utf16().chain(std::iter::once(0)).collect()
+    p.to_string_lossy()
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect()
 }
 
 fn load(dirs: &[PathBuf]) -> Result<Api, String> {
@@ -91,7 +98,10 @@ fn load(dirs: &[PathBuf]) -> Result<Api, String> {
         // SAFETY: sıfırla biten geniş karakterli yol; dönen modül süreç boyunca tutulur.
         let lib = unsafe { LoadLibraryW(wide.as_ptr()) };
         if lib.is_null() {
-            last = format!("openvr_api.dll yüklenemedi: {}", std::io::Error::last_os_error());
+            last = format!(
+                "openvr_api.dll yüklenemedi: {}",
+                std::io::Error::last_os_error()
+            );
             continue;
         }
         // SAFETY: simgeler openvr_api.dll'in dışa aktarım tablosundan adlarıyla alınır; imzalar SDK başlığındaki
@@ -100,7 +110,9 @@ fn load(dirs: &[PathBuf]) -> Result<Api, String> {
             macro_rules! sym {
                 ($name:literal) => {
                     match symbol(lib, $name) {
-                        Some(f) => std::mem::transmute::<unsafe extern "system" fn() -> isize, _>(f),
+                        Some(f) => {
+                            std::mem::transmute::<unsafe extern "system" fn() -> isize, _>(f)
+                        }
                         None => {
                             last = format!("openvr_api.dll: {} yok", $name.to_string_lossy());
                             continue;
@@ -115,8 +127,12 @@ fn load(dirs: &[PathBuf]) -> Result<Api, String> {
                 get_generic_interface: sym!(c"VR_GetGenericInterface"),
                 is_runtime_installed: sym!(c"VR_IsRuntimeInstalled"),
                 init_error_description: sym!(c"VR_GetVRInitErrorAsEnglishDescription"),
-                is_interface_version_valid: symbol(lib, c"VR_IsInterfaceVersionValid")
-                    .map(|f| std::mem::transmute::<unsafe extern "system" fn() -> isize, unsafe extern "C" fn(*const c_char) -> u8>(f)),
+                is_interface_version_valid: symbol(lib, c"VR_IsInterfaceVersionValid").map(|f| {
+                    std::mem::transmute::<
+                        unsafe extern "system" fn() -> isize,
+                        unsafe extern "C" fn(*const c_char) -> u8,
+                    >(f)
+                }),
             };
             *g = Some(api);
             return Ok(api);
@@ -127,18 +143,28 @@ fn load(dirs: &[PathBuf]) -> Result<Api, String> {
 
 /// SteamVR'ı başlatmadan: DLL var mı, SteamVR kurulu mu, gözlük bağlı mı
 pub fn probe(dirs: &[PathBuf]) -> Probe {
-    let Ok(api) = load(dirs) else { return Probe::default() };
+    let Ok(api) = load(dirs) else {
+        return Probe::default();
+    };
     // SAFETY: iki işlev de VR_Init'ten önce çağrılabilir, argüman almaz.
     unsafe {
         let runtime = (api.is_runtime_installed)() != 0;
-        Probe { dll: true, runtime, hmd: runtime && (api.is_hmd_present)() != 0 }
+        Probe {
+            dll: true,
+            runtime,
+            hmd: runtime && (api.is_hmd_present)() != 0,
+        }
     }
 }
 
 fn init_error(api: &Api, code: i32) -> String {
     // SAFETY: dönen işaretçi DLL içindeki sabit bir C dizgisidir (boş olabilir).
     let p = unsafe { (api.init_error_description)(code) };
-    let text = if p.is_null() { String::new() } else { unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned() };
+    let text = if p.is_null() {
+        String::new()
+    } else {
+        unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned()
+    };
     format!("{text} ({code})")
 }
 
@@ -186,7 +212,16 @@ impl Session {
         }
         let mut err: i32 = 0;
         // SAFETY: VR_InitInternal(EVRInitError*, EVRApplicationType); hata kodu `err`e yazılır.
-        unsafe { (api.init)(&mut err, if background { gen::APP_BACKGROUND } else { gen::APP_OVERLAY }) };
+        unsafe {
+            (api.init)(
+                &mut err,
+                if background {
+                    gen::APP_BACKGROUND
+                } else {
+                    gen::APP_OVERLAY
+                },
+            )
+        };
         if err != 0 {
             return Err(OpenError::Init(init_error(&api, err)));
         }
@@ -196,12 +231,17 @@ impl Session {
             Err(OpenError::Init(msg))
         };
         let mut tables = [std::ptr::null::<*const c_void>(); 2];
-        for (i, version) in [gen::IVRSYSTEM_VERSION, gen::IVROVERLAY_VERSION].into_iter().enumerate() {
+        for (i, version) in [gen::IVRSYSTEM_VERSION, gen::IVROVERLAY_VERSION]
+            .into_iter()
+            .enumerate()
+        {
             let plain = CString::new(version).unwrap_or_default();
             if let Some(valid) = api.is_interface_version_valid {
                 // SAFETY: sıfırla biten sürüm adı.
                 if unsafe { valid(plain.as_ptr()) } == 0 {
-                    return fail(format!("SteamVR {version} arayüzünü desteklemiyor (SteamVR'ı güncelle)"));
+                    return fail(format!(
+                        "SteamVR {version} arayüzünü desteklemiyor (SteamVR'ı güncelle)"
+                    ));
                 }
             }
             let name = CString::new(format!("FnTable:{version}")).unwrap_or_default();
@@ -213,14 +253,20 @@ impl Session {
             }
             tables[i] = p as *const *const c_void;
         }
-        Ok(Session { api, system: tables[0], overlay: tables[1] })
+        Ok(Session {
+            api,
+            system: tables[0],
+            overlay: tables[1],
+        })
     }
 
     /// Bekleyen olayları tüketir; SteamVR kapanıyorsa (VREvent_Quit) onaylar ve true döner.
     pub fn poll_quit(&self) -> bool {
         // SAFETY: tablo ve imzalar openvr_gen.rs'ten; tampon VREvent_t kadar ve hizalı.
         unsafe {
-            let Some(poll) = entry::<sy::FnPollNextEvent>(self.system, sy::PollNextEvent) else { return false };
+            let Some(poll) = entry::<sy::FnPollNextEvent>(self.system, sy::PollNextEvent) else {
+                return false;
+            };
             let mut ev = EventBuf([0; 64]);
             for _ in 0..64 {
                 if poll(ev.0.as_mut_ptr() as *mut c_void, ev.0.len() as u32) == 0 {
@@ -228,7 +274,10 @@ impl Session {
                 }
                 let ty = u32::from_ne_bytes([ev.0[0], ev.0[1], ev.0[2], ev.0[3]]);
                 if ty as i32 == gen::EVENT_QUIT {
-                    if let Some(ack) = entry::<sy::FnAcknowledgeQuit_Exiting>(self.system, sy::AcknowledgeQuit_Exiting) {
+                    if let Some(ack) = entry::<sy::FnAcknowledgeQuit_Exiting>(
+                        self.system,
+                        sy::AcknowledgeQuit_Exiting,
+                    ) {
                         ack();
                     }
                     return true;
@@ -242,7 +291,10 @@ impl Session {
     pub fn hmd_pose(&self, standing: bool) -> Option<HmdMatrix34> {
         // SAFETY: tek elemanlı TrackedDevicePose_t dizisi (80 bayt, bkz. types.rs testleri).
         unsafe {
-            let f = entry::<sy::FnGetDeviceToAbsoluteTrackingPose>(self.system, sy::GetDeviceToAbsoluteTrackingPose)?;
+            let f = entry::<sy::FnGetDeviceToAbsoluteTrackingPose>(
+                self.system,
+                sy::GetDeviceToAbsoluteTrackingPose,
+            )?;
             let mut pose: TrackedDevicePose = std::mem::zeroed();
             f(universe(standing), 0.0, &mut pose, 1);
             (pose.pose_is_valid != 0).then_some(pose.device_to_absolute)
@@ -255,12 +307,18 @@ impl Session {
         }
         // SAFETY: dönen işaretçi SteamVR içindeki sabit bir C dizgisidir.
         let name = unsafe {
-            entry::<ov::FnGetOverlayErrorNameFromEnum>(self.overlay, ov::GetOverlayErrorNameFromEnum)
-                .map(|f| f(code))
-                .filter(|p| !p.is_null())
-                .map(|p| CStr::from_ptr(p).to_string_lossy().into_owned())
+            entry::<ov::FnGetOverlayErrorNameFromEnum>(
+                self.overlay,
+                ov::GetOverlayErrorNameFromEnum,
+            )
+            .map(|f| f(code))
+            .filter(|p| !p.is_null())
+            .map(|p| CStr::from_ptr(p).to_string_lossy().into_owned())
         };
-        Err(format!("{} ({code})", name.unwrap_or_else(|| "VROverlayError".into())))
+        Err(format!(
+            "{} ({code})",
+            name.unwrap_or_else(|| "VROverlayError".into())
+        ))
     }
 
     /// Overlay oluşturur (aynı anahtarla eskisi kaldıysa onu kullanır)
@@ -307,7 +365,11 @@ impl Session {
         let mut m = *m;
         // SAFETY: HmdMatrix34_t işaretçisi çağrı süresince geçerli.
         unsafe {
-            let f = entry::<ov::FnSetOverlayTransformAbsolute>(self.overlay, ov::SetOverlayTransformAbsolute).ok_or(MISSING)?;
+            let f = entry::<ov::FnSetOverlayTransformAbsolute>(
+                self.overlay,
+                ov::SetOverlayTransformAbsolute,
+            )
+            .ok_or(MISSING)?;
             self.check(f(h, universe(standing), &mut m))
         }
     }
@@ -315,7 +377,9 @@ impl Session {
     pub fn set_width(&self, h: u64, meters: f32) -> Result<(), String> {
         // SAFETY: değer argümanları.
         unsafe {
-            let f = entry::<ov::FnSetOverlayWidthInMeters>(self.overlay, ov::SetOverlayWidthInMeters).ok_or(MISSING)?;
+            let f =
+                entry::<ov::FnSetOverlayWidthInMeters>(self.overlay, ov::SetOverlayWidthInMeters)
+                    .ok_or(MISSING)?;
             self.check(f(h, meters))
         }
     }
@@ -323,7 +387,8 @@ impl Session {
     pub fn set_curvature(&self, h: u64, c: f32) -> Result<(), String> {
         // SAFETY: değer argümanları.
         unsafe {
-            let f = entry::<ov::FnSetOverlayCurvature>(self.overlay, ov::SetOverlayCurvature).ok_or(MISSING)?;
+            let f = entry::<ov::FnSetOverlayCurvature>(self.overlay, ov::SetOverlayCurvature)
+                .ok_or(MISSING)?;
             self.check(f(h, c))
         }
     }
@@ -331,7 +396,8 @@ impl Session {
     pub fn set_alpha(&self, h: u64, a: f32) -> Result<(), String> {
         // SAFETY: değer argümanları.
         unsafe {
-            let f = entry::<ov::FnSetOverlayAlpha>(self.overlay, ov::SetOverlayAlpha).ok_or(MISSING)?;
+            let f =
+                entry::<ov::FnSetOverlayAlpha>(self.overlay, ov::SetOverlayAlpha).ok_or(MISSING)?;
             self.check(f(h, a))
         }
     }
@@ -339,7 +405,8 @@ impl Session {
     pub fn set_color(&self, h: u64, r: f32, g: f32, b: f32) -> Result<(), String> {
         // SAFETY: değer argümanları.
         unsafe {
-            let f = entry::<ov::FnSetOverlayColor>(self.overlay, ov::SetOverlayColor).ok_or(MISSING)?;
+            let f =
+                entry::<ov::FnSetOverlayColor>(self.overlay, ov::SetOverlayColor).ok_or(MISSING)?;
             self.check(f(h, r, g, b))
         }
     }
@@ -347,7 +414,8 @@ impl Session {
     pub fn set_sort_order(&self, h: u64, order: u32) -> Result<(), String> {
         // SAFETY: değer argümanları.
         unsafe {
-            let f = entry::<ov::FnSetOverlaySortOrder>(self.overlay, ov::SetOverlaySortOrder).ok_or(MISSING)?;
+            let f = entry::<ov::FnSetOverlaySortOrder>(self.overlay, ov::SetOverlaySortOrder)
+                .ok_or(MISSING)?;
             self.check(f(h, order))
         }
     }
@@ -462,7 +530,14 @@ pub mod mouse {
     static HELD: AtomicU8 = AtomicU8::new(0);
     static LAST_X: AtomicI32 = AtomicI32::new(0);
     static LAST_Y: AtomicI32 = AtomicI32::new(0);
-    static ACC: [AtomicI32; 6] = [AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0)];
+    static ACC: [AtomicI32; 6] = [
+        AtomicI32::new(0),
+        AtomicI32::new(0),
+        AtomicI32::new(0),
+        AtomicI32::new(0),
+        AtomicI32::new(0),
+        AtomicI32::new(0),
+    ];
     static WHEEL: AtomicI32 = AtomicI32::new(0);
     static THREAD: Mutex<u32> = parking_lot::const_mutex(0);
     /// Üstündeyken tıklamaların yutulmadığı pencereler (kök pencere tutamaçları)
@@ -520,7 +595,10 @@ pub mod mouse {
                 }
             } else if msg == WM_MOUSEWHEEL && !over_own_window(d.pt) {
                 // mouseData'nın üst sözcüğü: işaretli tekerlek miktarı (120 = bir çentik)
-                WHEEL.fetch_add(((d.mouseData >> 16) as u16 as i16) as i32, Ordering::Relaxed);
+                WHEEL.fetch_add(
+                    ((d.mouseData >> 16) as u16 as i16) as i32,
+                    Ordering::Relaxed,
+                );
                 return 1;
             }
         }
@@ -551,7 +629,12 @@ pub mod mouse {
                 let mut msg: MSG = std::mem::zeroed();
                 // İleti kuyruğunu oluştur (PostThreadMessageW ile WM_QUIT alabilmek için)
                 PeekMessageW(&mut msg, std::ptr::null_mut(), 0, 0, PM_NOREMOVE);
-                let hook = SetWindowsHookExW(WH_MOUSE_LL, Some(hook_proc), GetModuleHandleW(std::ptr::null()), 0);
+                let hook = SetWindowsHookExW(
+                    WH_MOUSE_LL,
+                    Some(hook_proc),
+                    GetModuleHandleW(std::ptr::null()),
+                    0,
+                );
                 if hook.is_null() {
                     let _ = tx.send(Err(std::io::Error::last_os_error().to_string()));
                     return;

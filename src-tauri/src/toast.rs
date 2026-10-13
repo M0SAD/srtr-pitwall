@@ -11,7 +11,10 @@
 
 use parking_lot::Mutex;
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
+    WebviewWindowBuilder,
+};
 
 pub const LABEL: &str = "toast";
 /// Kartların mantıksal genişliği (px); pencere buna göre ölçeklenir
@@ -51,15 +54,28 @@ fn ensure_window(app: &AppHandle) -> Result<WebviewWindow, String> {
 
 /// Ana monitörün çalışma alanına göre (görev çubuğu hariç) sağ alt köşe: (x, y, genişlik, yükseklik)
 fn place(app: &AppHandle, w: &WebviewWindow, height: f64) -> Option<(i32, i32, u32, u32)> {
-    let mon = app.primary_monitor().ok().flatten().or_else(|| w.current_monitor().ok().flatten())?;
+    let mon = app
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| w.current_monitor().ok().flatten())?;
     let wa = mon.work_area();
-    Some(rect(wa.position.x, wa.position.y, wa.size.width, wa.size.height, mon.scale_factor(), height))
+    Some(rect(
+        wa.position.x,
+        wa.position.y,
+        wa.size.width,
+        wa.size.height,
+        mon.scale_factor(),
+        height,
+    ))
 }
 
 fn rect(ax: i32, ay: i32, aw: u32, ah: u32, scale: f64, height: f64) -> (i32, i32, u32, u32) {
     let scale = if scale > 0.0 { scale } else { 1.0 };
     let w = (WIDTH * scale).round() as u32;
-    let h = (height.clamp(40.0, MAX_HEIGHT) * scale).round().min(ah as f64) as u32;
+    let h = (height.clamp(40.0, MAX_HEIGHT) * scale)
+        .round()
+        .min(ah as f64) as u32;
     let m = (MARGIN * scale).round() as i32;
     let x = ax + aw as i32 - w as i32 - m;
     let y = ay + ah as i32 - h as i32 - m;
@@ -69,10 +85,20 @@ fn rect(ax: i32, ay: i32, aw: u32, ah: u32, scale: f64, height: f64) -> (i32, i3
 /// Pencereyi odak çalmadan göster (oyun ya da yazılan başka pencere odağını kaybetmez)
 #[cfg(windows)]
 fn show_at(w: &WebviewWindow, x: i32, y: i32, cw: u32, ch: u32) {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_SHOWWINDOW};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_SHOWWINDOW,
+    };
     if let Ok(h) = w.hwnd() {
         unsafe {
-            SetWindowPos(h.0 as _, HWND_TOPMOST, x, y, cw as i32, ch as i32, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            SetWindowPos(
+                h.0 as _,
+                HWND_TOPMOST,
+                x,
+                y,
+                cw as i32,
+                ch as i32,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW,
+            );
         }
     }
 }
@@ -120,7 +146,14 @@ pub async fn toast_show(app: AppHandle, payload: Value) -> Result<(), String> {
         crate::trayalert::log(&app, &format!("toast: pencere acilamadi: {e}"));
         return Err(e);
     }
-    crate::trayalert::log(&app, if fresh { "toast: kart kuyruga eklendi (pencere olusturuldu)" } else { "toast: kart kuyruga eklendi" });
+    crate::trayalert::log(
+        &app,
+        if fresh {
+            "toast: kart kuyruga eklendi (pencere olusturuldu)"
+        } else {
+            "toast: kart kuyruga eklendi"
+        },
+    );
     let _ = app.emit_to(LABEL, "toast-new", ());
     Ok(())
 }
@@ -134,13 +167,18 @@ pub fn toast_take() -> Vec<Value> {
 /// Kartların toplam yüksekliğine (mantıksal px) göre pencereyi sağ alta yerleştir; 0 ise gizle
 #[tauri::command]
 pub async fn toast_layout(app: AppHandle, height: f64) -> Result<(), String> {
-    let Some(w) = app.get_webview_window(LABEL) else { return Ok(()) };
+    let Some(w) = app.get_webview_window(LABEL) else {
+        return Ok(());
+    };
     if !(height > 0.0) {
         hide(&w);
         return Ok(());
     }
     let Some((x, y, cw, ch)) = place(&app, &w, height) else {
-        crate::trayalert::log(&app, "toast: monitor bilgisi alinamadi, pencere gosterilemedi");
+        crate::trayalert::log(
+            &app,
+            "toast: monitor bilgisi alinamadi, pencere gosterilemedi",
+        );
         return Ok(());
     };
     {
@@ -163,8 +201,13 @@ pub async fn toast_layout(app: AppHandle, height: f64) -> Result<(), String> {
 pub async fn toast_open_chat(app: AppHandle, friend: Option<String>) -> Result<(), String> {
     // Arkadaş kimliği (uuid), takım odası ("team:<uuid>") ya da grup sohbeti ("group:<uuid>")
     let friend = friend.filter(|id| {
-        let rest = id.strip_prefix("team:").or_else(|| id.strip_prefix("group:")).unwrap_or(id);
-        !rest.is_empty() && rest.len() <= 40 && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
+        let rest = id
+            .strip_prefix("team:")
+            .or_else(|| id.strip_prefix("group:"))
+            .unwrap_or(id);
+        !rest.is_empty()
+            && rest.len() <= 40
+            && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '-')
     });
     // Sohbet penceresinde o sohbetin sekmesi açılır (arkadaş, takım odası ya da grup)
     if let Some(id) = friend.as_deref() {

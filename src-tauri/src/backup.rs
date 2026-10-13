@@ -85,11 +85,16 @@ fn hex(bytes: &[u8]) -> String {
 /// Windows'ta ayrılmış aygıt adları (uzantılı halleri de geçersizdir: "con.txt")
 fn is_reserved(stem: &str) -> bool {
     let s = stem.trim_end_matches([' ', '.']).to_ascii_uppercase();
-    if matches!(s.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$") {
+    if matches!(
+        s.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) {
         return true;
     }
     let b = s.as_bytes();
-    b.len() == 4 && (s.starts_with("COM") || s.starts_with("LPT")) && (b[3].is_ascii_digit() && b[3] != b'0')
+    b.len() == 4
+        && (s.starts_with("COM") || s.starts_with("LPT"))
+        && (b[3].is_ascii_digit() && b[3] != b'0')
 }
 
 /// Tek yol parçasını her işletim sisteminde (özellikle Windows'ta) geçerli bir dosya adına çevirir
@@ -110,7 +115,11 @@ pub fn sanitize_segment(seg: &str) -> String {
         out.push_str(&"_".repeat(k));
     }
     let out = out.trim_start_matches(' ');
-    let mut out = if out.is_empty() { "_".to_string() } else { out.to_string() };
+    let mut out = if out.is_empty() {
+        "_".to_string()
+    } else {
+        out.to_string()
+    };
     let stem = out.split('.').next().unwrap_or("");
     if is_reserved(stem) {
         out.insert(0, '_');
@@ -154,7 +163,9 @@ pub fn entry_path(bucket: &str, name: &str, used: &mut HashSet<String>) -> Strin
     while !used.insert(cand.to_lowercase()) {
         n += 1;
         cand = match base.rfind('.') {
-            Some(i) if i > base.rfind('/').unwrap_or(0) + 1 => format!("{}~{}{}", &base[..i], n, &base[i..]),
+            Some(i) if i > base.rfind('/').unwrap_or(0) + 1 => {
+                format!("{}~{}{}", &base[..i], n, &base[i..])
+            }
             _ => format!("{base}~{n}"),
         };
     }
@@ -210,33 +221,58 @@ pub struct Manifest {
 
 /// manifest.json denetimi: biçim sürümü, tablo listesi, dosya yolları (zip dışına çıkan yol olamaz)
 pub fn validate_manifest(v: &Value) -> Result<Manifest, String> {
-    let format = v.get("format").and_then(Value::as_u64).ok_or("manifest.json: biçim sürümü yok")?;
+    let format = v
+        .get("format")
+        .and_then(Value::as_u64)
+        .ok_or("manifest.json: biçim sürümü yok")?;
     if format != FORMAT {
-        return Err(format!("Bu yedeğin biçim sürümü ({format}) desteklenmiyor (beklenen {FORMAT})"));
+        return Err(format!(
+            "Bu yedeğin biçim sürümü ({format}) desteklenmiyor (beklenen {FORMAT})"
+        ));
     }
     if v.get("app").and_then(Value::as_str) != Some("SRTR Pitwall") {
         return Err("Bu dosya bir SRTR Pitwall yedeği değil".into());
     }
-    let tables: Vec<TableEntry> = serde_json::from_value(v.get("tables").cloned().unwrap_or(Value::Null))
-        .map_err(|_| "manifest.json: tablo listesi okunamadı".to_string())?;
+    let tables: Vec<TableEntry> =
+        serde_json::from_value(v.get("tables").cloned().unwrap_or(Value::Null))
+            .map_err(|_| "manifest.json: tablo listesi okunamadı".to_string())?;
     let mut seen = HashSet::new();
     for t in &tables {
         if t.name.is_empty() || !seen.insert(t.name.clone()) {
-            return Err(format!("manifest.json: geçersiz ya da yinelenen tablo adı: {}", t.name));
+            return Err(format!(
+                "manifest.json: geçersiz ya da yinelenen tablo adı: {}",
+                t.name
+            ));
         }
-        if !t.file.starts_with("tables/") || t.file.contains("..") || t.file.contains('\\') || t.file[7..].contains('/') {
+        if !t.file.starts_with("tables/")
+            || t.file.contains("..")
+            || t.file.contains('\\')
+            || t.file[7..].contains('/')
+        {
             return Err(format!("manifest.json: geçersiz dosya yolu: {}", t.file));
         }
     }
     Ok(Manifest {
-        project_ref: v.get("project_ref").and_then(Value::as_str).unwrap_or("").to_string(),
-        created_at: v.get("created_at").and_then(Value::as_str).unwrap_or("").to_string(),
+        project_ref: v
+            .get("project_ref")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        created_at: v
+            .get("created_at")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
         tables,
     })
 }
 
 /// Satırları ndjson olarak yazar (satır başına bir JSON), özet güncellenir; yazılan bayt döner
-pub fn write_ndjson<W: Write>(w: &mut W, rows: &[Value], hasher: &mut Sha256) -> std::io::Result<u64> {
+pub fn write_ndjson<W: Write>(
+    w: &mut W,
+    rows: &[Value],
+    hasher: &mut Sha256,
+) -> std::io::Result<u64> {
     let mut n = 0u64;
     for r in rows {
         let mut line = serde_json::to_vec(r).map_err(std::io::Error::other)?;
@@ -258,7 +294,12 @@ pub struct NdjsonPager<R: BufRead> {
 
 impl<R: BufRead> NdjsonPager<R> {
     pub fn new(r: R, max_rows: usize, max_bytes: usize) -> Self {
-        NdjsonPager { r, max_rows: max_rows.max(1), max_bytes: max_bytes.max(1), line: String::new() }
+        NdjsonPager {
+            r,
+            max_rows: max_rows.max(1),
+            max_bytes: max_bytes.max(1),
+            line: String::new(),
+        }
     }
 
     /// Sonraki sayfa; dosya bittiyse None. Boş satırlar atlanır; bozuk satır hatadır.
@@ -267,7 +308,10 @@ impl<R: BufRead> NdjsonPager<R> {
         let mut bytes = 0usize;
         loop {
             self.line.clear();
-            let n = self.r.read_line(&mut self.line).map_err(|e| e.to_string())?;
+            let n = self
+                .r
+                .read_line(&mut self.line)
+                .map_err(|e| e.to_string())?;
             if n == 0 {
                 break;
             }
@@ -312,7 +356,21 @@ fn hash_lines<R: Read>(r: R) -> Result<(String, u64), String> {
 /// Zaten sıkıştırılmış türler zip içinde sıkıştırılmadan saklanır
 fn precompressed(name: &str) -> bool {
     let ext = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
-    matches!(ext.as_str(), "png" | "jpg" | "jpeg" | "webp" | "gif" | "ogg" | "mp3" | "mp4" | "webm" | "zip" | "avif" | "ico")
+    matches!(
+        ext.as_str(),
+        "png"
+            | "jpg"
+            | "jpeg"
+            | "webp"
+            | "gif"
+            | "ogg"
+            | "mp3"
+            | "mp4"
+            | "webm"
+            | "zip"
+            | "avif"
+            | "ico"
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -416,7 +474,11 @@ impl Ctx {
         }
     }
     fn err(&self, kind: &str, name: &str, error: impl Into<String>) {
-        self.errors.lock().push(ErrItem { kind: kind.into(), name: name.into(), error: error.into() });
+        self.errors.lock().push(ErrItem {
+            kind: kind.into(),
+            name: name.into(),
+            error: error.into(),
+        });
     }
     /// İlerlemeyi güncelle ve (en sık 150 ms'de bir ya da `force`) arayüze bildir
     fn progress(&self, force: bool, f: impl FnOnce(&mut Progress)) {
@@ -480,7 +542,13 @@ async fn wait_token(ctx: &Ctx, old: &str) -> Result<(), String> {
 
 /// Kimlikli HTTP isteği: ağ hatası / 5xx / 429'da 2 kez yeniden dener (artan bekleme), oturum süresi dolduysa
 /// yeni anahtarı bekleyip yeniden dener. (durum kodu, gövde) döner.
-async fn http(ctx: &Ctx, method: reqwest::Method, url: &str, body: &Body<'_>, extra: &[(&str, &str)]) -> Result<(u16, Vec<u8>), String> {
+async fn http(
+    ctx: &Ctx,
+    method: reqwest::Method,
+    url: &str,
+    body: &Body<'_>,
+    extra: &[(&str, &str)],
+) -> Result<(u16, Vec<u8>), String> {
     let mut attempt = 0usize;
     let mut token_waits = 0usize;
     loop {
@@ -496,7 +564,9 @@ async fn http(ctx: &Ctx, method: reqwest::Method, url: &str, body: &Body<'_>, ex
         }
         rb = match body {
             Body::None => rb,
-            Body::Json(b) => rb.header("Content-Type", "application/json").body(b.to_vec()),
+            Body::Json(b) => rb
+                .header("Content-Type", "application/json")
+                .body(b.to_vec()),
             Body::Raw(b, ct) => rb.header("Content-Type", *ct).body(b.to_vec()),
         };
         let res = match rb.send().await {
@@ -513,7 +583,8 @@ async fn http(ctx: &Ctx, method: reqwest::Method, url: &str, body: &Body<'_>, ex
             Ok((status, bytes)) => {
                 let auth_fail = status == 401
                     || ((status == 400 || status == 403) && {
-                        let s = String::from_utf8_lossy(&bytes[..bytes.len().min(600)]).to_lowercase();
+                        let s =
+                            String::from_utf8_lossy(&bytes[..bytes.len().min(600)]).to_lowercase();
                         s.contains("jwt") || s.contains("token is expired")
                     });
                 if auth_fail && token_waits < 2 {
@@ -543,7 +614,11 @@ async fn http(ctx: &Ctx, method: reqwest::Method, url: &str, body: &Body<'_>, ex
 fn err_text(status: u16, bytes: &[u8]) -> String {
     let text = String::from_utf8_lossy(bytes);
     if let Ok(j) = serde_json::from_str::<Value>(&text) {
-        if let Some(m) = j.get("message").or_else(|| j.get("error")).and_then(Value::as_str) {
+        if let Some(m) = j
+            .get("message")
+            .or_else(|| j.get("error"))
+            .and_then(Value::as_str)
+        {
             return format!("{m} ({status})");
         }
     }
@@ -615,16 +690,34 @@ async fn list_objects(ctx: &Ctx) -> Result<Vec<Obj>, String> {
     let mut out = Vec::new();
     let mut off = 0u64;
     loop {
-        let page = arr(rpc(ctx, "admin_backup_objects", json!({ "p_offset": off, "p_limit": 1000 })).await?);
+        let page = arr(rpc(
+            ctx,
+            "admin_backup_objects",
+            json!({ "p_offset": off, "p_limit": 1000 }),
+        )
+        .await?);
         let n = page.len();
         for o in page {
-            let (Some(b), Some(nm)) = (o.get("bucket_id").and_then(Value::as_str), o.get("name").and_then(Value::as_str)) else { continue };
+            let (Some(b), Some(nm)) = (
+                o.get("bucket_id").and_then(Value::as_str),
+                o.get("name").and_then(Value::as_str),
+            ) else {
+                continue;
+            };
             out.push(Obj {
                 bucket: b.to_string(),
                 name: nm.to_string(),
                 size: o.get("size").and_then(Value::as_u64).unwrap_or(0),
-                mimetype: o.get("mimetype").and_then(Value::as_str).unwrap_or("").to_string(),
-                updated_at: o.get("updated_at").and_then(Value::as_str).unwrap_or("").to_string(),
+                mimetype: o
+                    .get("mimetype")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
+                updated_at: o
+                    .get("updated_at")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
                 entry: String::new(),
                 ok: false,
             });
@@ -651,12 +744,17 @@ type Zw = zip::ZipWriter<std::io::BufWriter<std::fs::File>>;
 
 fn opts(deflate: bool, large: bool) -> zip::write::SimpleFileOptions {
     zip::write::SimpleFileOptions::default()
-        .compression_method(if deflate { zip::CompressionMethod::Deflated } else { zip::CompressionMethod::Stored })
+        .compression_method(if deflate {
+            zip::CompressionMethod::Deflated
+        } else {
+            zip::CompressionMethod::Stored
+        })
         .large_file(large)
 }
 
 fn put(zw: &mut Zw, name: &str, data: &[u8]) -> Result<(), String> {
-    zw.start_file(name, opts(true, data.len() as u64 >= u32::MAX as u64)).map_err(zip_err)?;
+    zw.start_file(name, opts(true, data.len() as u64 >= u32::MAX as u64))
+        .map_err(zip_err)?;
     zw.write_all(data).map_err(io_err)
 }
 
@@ -666,7 +764,14 @@ fn put(zw: &mut Zw, name: &str, data: &[u8]) -> Result<(), String> {
 
 /// Bir RPC'yi sayfa sayfa çekip ndjson olarak zip'e akıtır. Sorgu süresi aşılırsa sayfa küçültülür.
 /// (satır, bayt, sha256) döner.
-async fn dump_paged(ctx: &Ctx, zw: &mut Zw, entry: &str, fn_name: &str, table: Option<&str>, start_limit: u64) -> Result<(u64, u64, String), String> {
+async fn dump_paged(
+    ctx: &Ctx,
+    zw: &mut Zw,
+    entry: &str,
+    fn_name: &str,
+    table: Option<&str>,
+    start_limit: u64,
+) -> Result<(u64, u64, String), String> {
     zw.start_file(entry, opts(true, true)).map_err(zip_err)?;
     let mut hasher = Sha256::new();
     let (mut rows, mut bytes, mut off, mut limit) = (0u64, 0u64, 0u64, start_limit);
@@ -700,7 +805,12 @@ async fn dump_paged(ctx: &Ctx, zw: &mut Zw, entry: &str, fn_name: &str, table: O
 }
 
 async fn download_obj(ctx: &Ctx, o: &Obj) -> Result<Vec<u8>, String> {
-    let url = format!("{}/storage/v1/object/authenticated/{}/{}", ctx.url, encode_path(&o.bucket), encode_path(&o.name));
+    let url = format!(
+        "{}/storage/v1/object/authenticated/{}/{}",
+        ctx.url,
+        encode_path(&o.bucket),
+        encode_path(&o.name)
+    );
     let (status, bytes) = http(ctx, reqwest::Method::GET, &url, &Body::None, &[]).await?;
     if !(200..300).contains(&status) {
         return Err(err_text(status, &bytes));
@@ -708,20 +818,43 @@ async fn download_obj(ctx: &Ctx, o: &Obj) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, project_ref: &str) -> Result<Value, String> {
+async fn backup_job(
+    ctx: &Ctx,
+    part: &Path,
+    dest: &Path,
+    o: &BackupOptions,
+    project_ref: &str,
+) -> Result<Value, String> {
     ctx.progress(true, |p| {
         p.step = "scan".into();
         p.label.clear();
     });
-    let tables = if o.tables { list_tables(ctx).await? } else { Vec::new() };
-    let buckets = if o.storage { arr(rpc(ctx, "admin_backup_buckets", json!({})).await?) } else { Vec::new() };
-    let mut objects: Vec<Obj> = if o.storage { list_objects(ctx).await? } else { Vec::new() };
+    let tables = if o.tables {
+        list_tables(ctx).await?
+    } else {
+        Vec::new()
+    };
+    let buckets = if o.storage {
+        arr(rpc(ctx, "admin_backup_buckets", json!({})).await?)
+    } else {
+        Vec::new()
+    };
+    let mut objects: Vec<Obj> = if o.storage {
+        list_objects(ctx).await?
+    } else {
+        Vec::new()
+    };
     if !o.buckets.is_empty() {
         objects.retain(|x| o.buckets.contains(&x.bucket));
     }
     let chosen_buckets: Vec<Value> = buckets
         .into_iter()
-        .filter(|b| o.buckets.is_empty() || b.get("id").and_then(Value::as_str).is_some_and(|id| o.buckets.iter().any(|x| x == id)))
+        .filter(|b| {
+            o.buckets.is_empty()
+                || b.get("id")
+                    .and_then(Value::as_str)
+                    .is_some_and(|id| o.buckets.iter().any(|x| x == id))
+        })
         .collect();
     let mut used = HashSet::new();
     for x in objects.iter_mut() {
@@ -750,18 +883,51 @@ async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, proj
         });
         let mut file = table_file(&t.name);
         if !used_files.insert(file.to_lowercase()) {
-            file = format!("tables/{}~{}.ndjson", sanitize_segment(&t.name), used_files.len());
+            file = format!(
+                "tables/{}~{}.ndjson",
+                sanitize_segment(&t.name),
+                used_files.len()
+            );
             used_files.insert(file.to_lowercase());
         }
         // Geniş satırlı tablolar (bayt/satır büyük) küçük sayfayla başlar
         let avg = if t.rows > 0 { t.bytes / t.rows } else { 0 };
-        let limit = if avg > 16_384 { 100 } else if avg > 2_048 { 400 } else { 1000 };
-        match dump_paged(ctx, &mut zw, &file, "admin_backup_rows", Some(&t.name), limit).await {
-            Ok((rows, bytes, sha)) => entries.push(TableEntry { name: t.name.clone(), rows, sha256: sha, bytes, file, complete: true }),
+        let limit = if avg > 16_384 {
+            100
+        } else if avg > 2_048 {
+            400
+        } else {
+            1000
+        };
+        match dump_paged(
+            ctx,
+            &mut zw,
+            &file,
+            "admin_backup_rows",
+            Some(&t.name),
+            limit,
+        )
+        .await
+        {
+            Ok((rows, bytes, sha)) => entries.push(TableEntry {
+                name: t.name.clone(),
+                rows,
+                sha256: sha,
+                bytes,
+                file,
+                complete: true,
+            }),
             Err(e) if e == CANCELLED => return Err(e),
             Err(e) => {
                 ctx.err("table", &t.name, e);
-                entries.push(TableEntry { name: t.name.clone(), rows: 0, sha256: String::new(), bytes: 0, file, complete: false });
+                entries.push(TableEntry {
+                    name: t.name.clone(),
+                    rows: 0,
+                    sha256: String::new(),
+                    bytes: 0,
+                    file,
+                    complete: false,
+                });
             }
         }
         ctx.progress(true, |p| p.tables_done += 1);
@@ -774,8 +940,19 @@ async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, proj
             p.step = "users".into();
             p.label.clear();
         });
-        match dump_paged(ctx, &mut zw, "auth_users.ndjson", "admin_backup_users", None, 500).await {
-            Ok((rows, bytes, sha)) => users = json!({ "rows": rows, "bytes": bytes, "sha256": sha, "file": "auth_users.ndjson" }),
+        match dump_paged(
+            ctx,
+            &mut zw,
+            "auth_users.ndjson",
+            "admin_backup_users",
+            None,
+            500,
+        )
+        .await
+        {
+            Ok((rows, bytes, sha)) => {
+                users = json!({ "rows": rows, "bytes": bytes, "sha256": sha, "file": "auth_users.ndjson" })
+            }
             Err(e) if e == CANCELLED => return Err(e),
             Err(e) => ctx.err("users", "auth.users", e),
         }
@@ -788,17 +965,31 @@ async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, proj
             p.step = "files".into();
             p.label.clear();
         });
-        put(&mut zw, "storage/buckets.json", &serde_json::to_vec_pretty(&chosen_buckets).unwrap_or_default())?;
+        put(
+            &mut zw,
+            "storage/buckets.json",
+            &serde_json::to_vec_pretty(&chosen_buckets).unwrap_or_default(),
+        )?;
         let mut i = 0;
         while i < objects.len() {
             ctx.check()?;
             let end = (i + PARALLEL).min(objects.len());
-            let results = futures_util::future::join_all(objects[i..end].iter().map(|x| download_obj(ctx, x))).await;
+            let results = futures_util::future::join_all(
+                objects[i..end].iter().map(|x| download_obj(ctx, x)),
+            )
+            .await;
             for (k, res) in results.into_iter().enumerate() {
                 let x = &mut objects[i + k];
                 match res {
                     Ok(data) => {
-                        zw.start_file(x.entry.as_str(), opts(!precompressed(&x.name), data.len() as u64 >= u32::MAX as u64)).map_err(zip_err)?;
+                        zw.start_file(
+                            x.entry.as_str(),
+                            opts(
+                                !precompressed(&x.name),
+                                data.len() as u64 >= u32::MAX as u64,
+                            ),
+                        )
+                        .map_err(zip_err)?;
                         zw.write_all(&data).map_err(io_err)?;
                         x.ok = true;
                         files_ok += 1;
@@ -819,7 +1010,8 @@ async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, proj
             }
             i = end;
         }
-        zw.start_file("storage/objects.ndjson", opts(true, true)).map_err(zip_err)?;
+        zw.start_file("storage/objects.ndjson", opts(true, true))
+            .map_err(zip_err)?;
         for x in &objects {
             let mut line = serde_json::to_vec(x).map_err(|e| e.to_string())?;
             line.push(b'\n');
@@ -832,7 +1024,11 @@ async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, proj
         p.label.clear();
     });
     let errors = ctx.errors.lock().clone();
-    put(&mut zw, "errors.json", &serde_json::to_vec_pretty(&errors).unwrap_or_default())?;
+    put(
+        &mut zw,
+        "errors.json",
+        &serde_json::to_vec_pretty(&errors).unwrap_or_default(),
+    )?;
     let total_rows: u64 = entries.iter().map(|t| t.rows).sum();
     let manifest = json!({
         "format": FORMAT,
@@ -856,7 +1052,11 @@ async fn backup_job(ctx: &Ctx, part: &Path, dest: &Path, o: &BackupOptions, proj
         },
         "errors": errors.len(),
     });
-    put(&mut zw, "manifest.json", &serde_json::to_vec_pretty(&manifest).unwrap_or_default())?;
+    put(
+        &mut zw,
+        "manifest.json",
+        &serde_json::to_vec_pretty(&manifest).unwrap_or_default(),
+    )?;
     let mut inner = zw.finish().map_err(zip_err)?;
     inner.flush().map_err(io_err)?;
     let f = inner.into_inner().map_err(|e| io_err(e.into_error()))?;
@@ -904,10 +1104,16 @@ pub struct Inspect {
     size: u64,
 }
 
-fn read_entry<R: Read + std::io::Seek>(z: &mut zip::ZipArchive<R>, name: &str, max: u64) -> Result<Vec<u8>, String> {
+fn read_entry<R: Read + std::io::Seek>(
+    z: &mut zip::ZipArchive<R>,
+    name: &str,
+    max: u64,
+) -> Result<Vec<u8>, String> {
     let f = z.by_name(name).map_err(|_| format!("{name} bulunamadı"))?;
     let mut buf = Vec::new();
-    f.take(max + 1).read_to_end(&mut buf).map_err(|e| e.to_string())?;
+    f.take(max + 1)
+        .read_to_end(&mut buf)
+        .map_err(|e| e.to_string())?;
     if buf.len() as u64 > max {
         return Err(format!("{name} çok büyük"));
     }
@@ -916,13 +1122,16 @@ fn read_entry<R: Read + std::io::Seek>(z: &mut zip::ZipArchive<R>, name: &str, m
 
 fn read_objects<R: Read + std::io::Seek>(z: &mut zip::ZipArchive<R>) -> Result<Vec<Obj>, String> {
     let mut out = Vec::new();
-    let Ok(f) = z.by_name("storage/objects.ndjson") else { return Ok(out) };
+    let Ok(f) = z.by_name("storage/objects.ndjson") else {
+        return Ok(out);
+    };
     for line in BufReader::new(f).lines() {
         let line = line.map_err(|e| e.to_string())?;
         if line.trim().is_empty() {
             continue;
         }
-        let o: Obj = serde_json::from_str(&line).map_err(|e| format!("storage/objects.ndjson bozuk: {e}"))?;
+        let o: Obj = serde_json::from_str(&line)
+            .map_err(|e| format!("storage/objects.ndjson bozuk: {e}"))?;
         out.push(o);
     }
     Ok(out)
@@ -931,9 +1140,12 @@ fn read_objects<R: Read + std::io::Seek>(z: &mut zip::ZipArchive<R>) -> Result<V
 fn inspect_blocking(path: &Path) -> Result<Inspect, String> {
     let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
     let size = file.metadata().map(|m| m.len()).unwrap_or(0);
-    let mut z = zip::ZipArchive::new(BufReader::new(file)).map_err(|_| "Geçerli bir zip dosyası değil".to_string())?;
-    let raw = read_entry(&mut z, "manifest.json", 32 * 1024 * 1024).map_err(|_| "Bu dosya bir SRTR Pitwall yedeği değil (manifest.json yok)".to_string())?;
-    let manifest: Value = serde_json::from_slice(&raw).map_err(|_| "manifest.json okunamadı".to_string())?;
+    let mut z = zip::ZipArchive::new(BufReader::new(file))
+        .map_err(|_| "Geçerli bir zip dosyası değil".to_string())?;
+    let raw = read_entry(&mut z, "manifest.json", 32 * 1024 * 1024)
+        .map_err(|_| "Bu dosya bir SRTR Pitwall yedeği değil (manifest.json yok)".to_string())?;
+    let manifest: Value =
+        serde_json::from_slice(&raw).map_err(|_| "manifest.json okunamadı".to_string())?;
     let m = validate_manifest(&manifest)?;
     let mut problems = Vec::new();
     let mut warnings = Vec::new();
@@ -942,7 +1154,10 @@ fn inspect_blocking(path: &Path) -> Result<Inspect, String> {
     for t in &m.tables {
         let mut ok = true;
         if !t.complete {
-            warnings.push(format!("{}: yedek alınırken bu tablo tam indirilemedi; geri yüklenmeyecek", t.name));
+            warnings.push(format!(
+                "{}: yedek alınırken bu tablo tam indirilemedi; geri yüklenmeyecek",
+                t.name
+            ));
         } else {
             match z.by_name(&t.file) {
                 Err(_) => {
@@ -953,10 +1168,16 @@ fn inspect_blocking(path: &Path) -> Result<Inspect, String> {
                     Ok((sha, lines)) => {
                         if !sha.eq_ignore_ascii_case(&t.sha256) {
                             ok = false;
-                            problems.push(format!("{}: SHA-256 uyuşmuyor (dosya değişmiş ya da bozulmuş)", t.name));
+                            problems.push(format!(
+                                "{}: SHA-256 uyuşmuyor (dosya değişmiş ya da bozulmuş)",
+                                t.name
+                            ));
                         } else if lines != t.rows {
                             ok = false;
-                            problems.push(format!("{}: satır sayısı uyuşmuyor ({} / {})", t.name, lines, t.rows));
+                            problems.push(format!(
+                                "{}: satır sayısı uyuşmuyor ({} / {})",
+                                t.name, lines, t.rows
+                            ));
                         }
                     }
                     Err(e) => {
@@ -967,7 +1188,12 @@ fn inspect_blocking(path: &Path) -> Result<Inspect, String> {
             }
         }
         rows += t.rows;
-        tables.push(InspectTable { name: t.name.clone(), rows: t.rows, ok, complete: t.complete });
+        tables.push(InspectTable {
+            name: t.name.clone(),
+            rows: t.rows,
+            ok,
+            complete: t.complete,
+        });
     }
     let objects = read_objects(&mut z)?;
     let (mut files, mut files_bytes, mut files_missing) = (0u64, 0u64, 0u64);
@@ -988,18 +1214,43 @@ fn inspect_blocking(path: &Path) -> Result<Inspect, String> {
     }
     let errs = manifest.get("errors").and_then(Value::as_u64).unwrap_or(0);
     if errs > 0 {
-        warnings.push(format!("Bu yedek alınırken {errs} hata oluşmuş (zip içindeki errors.json)"));
+        warnings.push(format!(
+            "Bu yedek alınırken {errs} hata oluşmuş (zip içindeki errors.json)"
+        ));
     }
-    Ok(Inspect { ok: problems.is_empty(), problems, warnings, manifest, tables, rows, files, files_bytes, files_missing, buckets, size })
+    Ok(Inspect {
+        ok: problems.is_empty(),
+        problems,
+        warnings,
+        manifest,
+        tables,
+        rows,
+        files,
+        files_bytes,
+        files_missing,
+        buckets,
+        size,
+    })
 }
 
 // ---------------------------------------------------------------------------
 // GERİ YÜKLEME
 // ---------------------------------------------------------------------------
 
-async fn restore_table(ctx: &Ctx, z: &mut zip::ZipArchive<BufReader<std::fs::File>>, run: &str, t: &TableEntry) -> Result<u64, String> {
-    let f = z.by_name(&t.file).map_err(|_| format!("dosya eksik: {}", t.file))?;
-    let mut pager = NdjsonPager::new(BufReader::with_capacity(256 * 1024, f), PAGE_ROWS, PAGE_BYTES);
+async fn restore_table(
+    ctx: &Ctx,
+    z: &mut zip::ZipArchive<BufReader<std::fs::File>>,
+    run: &str,
+    t: &TableEntry,
+) -> Result<u64, String> {
+    let f = z
+        .by_name(&t.file)
+        .map_err(|_| format!("dosya eksik: {}", t.file))?;
+    let mut pager = NdjsonPager::new(
+        BufReader::with_capacity(256 * 1024, f),
+        PAGE_ROWS,
+        PAGE_BYTES,
+    );
     let mut seq = 0u64;
     let mut written = 0u64;
     loop {
@@ -1012,8 +1263,18 @@ async fn restore_table(ctx: &Ctx, z: &mut zip::ZipArchive<BufReader<std::fs::Fil
             None => break,
         };
         let n = rows.len() as u64;
-        rpc(ctx, "admin_restore_stage", json!({ "p_run": run, "p_table": t.name, "p_seq": seq, "p_rows": rows })).await?;
-        let w = rpc(ctx, "admin_restore_apply", json!({ "p_run": run, "p_table": t.name, "p_seq": seq })).await?;
+        rpc(
+            ctx,
+            "admin_restore_stage",
+            json!({ "p_run": run, "p_table": t.name, "p_seq": seq, "p_rows": rows }),
+        )
+        .await?;
+        let w = rpc(
+            ctx,
+            "admin_restore_apply",
+            json!({ "p_run": run, "p_table": t.name, "p_seq": seq }),
+        )
+        .await?;
         written += w.as_u64().unwrap_or(0);
         ctx.progress(false, |p| p.rows_done += n);
         seq += 1;
@@ -1031,7 +1292,13 @@ async fn close_restore(ctx: &Ctx, run: &str, delete_orphans: bool) -> Result<Val
     let mut report = Value::Null;
     // finish kısa süreli kilit ister; tablo meşgulse birkaç kez yeniden denenir
     for attempt in 0..4 {
-        match rpc(ctx, "admin_restore_finish", json!({ "p_run": run, "p_delete_orphans": delete_orphans })).await {
+        match rpc(
+            ctx,
+            "admin_restore_finish",
+            json!({ "p_run": run, "p_delete_orphans": delete_orphans }),
+        )
+        .await
+        {
             Ok(v) => {
                 report = v;
                 last.clear();
@@ -1046,13 +1313,28 @@ async fn close_restore(ctx: &Ctx, run: &str, delete_orphans: bool) -> Result<Val
     if !last.is_empty() {
         return Err(last);
     }
-    let pending = report.get("fks_not_valid").and_then(Value::as_array).cloned().unwrap_or_default();
+    let pending = report
+        .get("fks_not_valid")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
     let mut not_valid: Vec<Value> = Vec::new();
     let mut orphans: Vec<Value> = Vec::new();
     for c in &pending {
-        let (Some(table), Some(conname)) = (c.get("table").and_then(Value::as_str), c.get("conname").and_then(Value::as_str)) else { continue };
+        let (Some(table), Some(conname)) = (
+            c.get("table").and_then(Value::as_str),
+            c.get("conname").and_then(Value::as_str),
+        ) else {
+            continue;
+        };
         ctx.progress(false, |p| p.label = format!("{table}.{conname}"));
-        match rpc(ctx, "admin_restore_validate", json!({ "p_table": table, "p_conname": conname, "p_delete_orphans": delete_orphans })).await {
+        match rpc(
+            ctx,
+            "admin_restore_validate",
+            json!({ "p_table": table, "p_conname": conname, "p_delete_orphans": delete_orphans }),
+        )
+        .await
+        {
             Ok(v) => {
                 let n = v.get("orphans").and_then(Value::as_u64).unwrap_or(0);
                 let valid = v.get("valid").and_then(Value::as_bool).unwrap_or(false);
@@ -1065,7 +1347,8 @@ async fn close_restore(ctx: &Ctx, run: &str, delete_orphans: bool) -> Result<Val
             }
             Err(e) => {
                 ctx.err("constraint", &format!("{table}.{conname}"), e);
-                not_valid.push(json!({ "table": table, "conname": conname, "orphans": Value::Null }));
+                not_valid
+                    .push(json!({ "table": table, "conname": conname, "orphans": Value::Null }));
             }
         }
     }
@@ -1078,9 +1361,25 @@ async fn close_restore(ctx: &Ctx, run: &str, delete_orphans: bool) -> Result<Val
 }
 
 async fn upload_obj(ctx: &Ctx, o: &Obj, data: &[u8]) -> Result<(), String> {
-    let url = format!("{}/storage/v1/object/{}/{}", ctx.url, encode_path(&o.bucket), encode_path(&o.name));
-    let ct = if o.mimetype.trim().is_empty() { "application/octet-stream" } else { o.mimetype.as_str() };
-    let (status, bytes) = http(ctx, reqwest::Method::POST, &url, &Body::Raw(data, ct), &[("x-upsert", "true"), ("cache-control", "max-age=3600")]).await?;
+    let url = format!(
+        "{}/storage/v1/object/{}/{}",
+        ctx.url,
+        encode_path(&o.bucket),
+        encode_path(&o.name)
+    );
+    let ct = if o.mimetype.trim().is_empty() {
+        "application/octet-stream"
+    } else {
+        o.mimetype.as_str()
+    };
+    let (status, bytes) = http(
+        ctx,
+        reqwest::Method::POST,
+        &url,
+        &Body::Raw(data, ct),
+        &[("x-upsert", "true"), ("cache-control", "max-age=3600")],
+    )
+    .await?;
     if !(200..300).contains(&status) {
         return Err(err_text(status, &bytes));
     }
@@ -1088,7 +1387,12 @@ async fn upload_obj(ctx: &Ctx, o: &Obj, data: &[u8]) -> Result<(), String> {
 }
 
 async fn delete_obj(ctx: &Ctx, bucket: &str, name: &str) -> Result<(), String> {
-    let url = format!("{}/storage/v1/object/{}/{}", ctx.url, encode_path(bucket), encode_path(name));
+    let url = format!(
+        "{}/storage/v1/object/{}/{}",
+        ctx.url,
+        encode_path(bucket),
+        encode_path(name)
+    );
     let (status, bytes) = http(ctx, reqwest::Method::DELETE, &url, &Body::None, &[]).await?;
     if !(200..300).contains(&status) {
         return Err(err_text(status, &bytes));
@@ -1099,16 +1403,27 @@ async fn delete_obj(ctx: &Ctx, bucket: &str, name: &str) -> Result<(), String> {
 async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value, String> {
     ctx.progress(true, |p| p.step = "scan".into());
     let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
-    let mut z = zip::ZipArchive::new(BufReader::new(file)).map_err(|_| "Geçerli bir zip dosyası değil".to_string())?;
-    let manifest: Value = serde_json::from_slice(&read_entry(&mut z, "manifest.json", 32 * 1024 * 1024)?).map_err(|_| "manifest.json okunamadı".to_string())?;
+    let mut z = zip::ZipArchive::new(BufReader::new(file))
+        .map_err(|_| "Geçerli bir zip dosyası değil".to_string())?;
+    let manifest: Value =
+        serde_json::from_slice(&read_entry(&mut z, "manifest.json", 32 * 1024 * 1024)?)
+            .map_err(|_| "manifest.json okunamadı".to_string())?;
     let m = validate_manifest(&manifest)?;
-    let objects: Vec<Obj> = if o.storage { read_objects(&mut z)? } else { Vec::new() };
+    let objects: Vec<Obj> = if o.storage {
+        read_objects(&mut z)?
+    } else {
+        Vec::new()
+    };
 
     // Geri yüklenecek tablolar: yedekte tam olan ∩ şu an var olan − korumalılar; profiles önce, sonra ada göre
     let mut todo: Vec<TableEntry> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
     if o.tables {
-        let current: HashSet<String> = list_tables(ctx).await?.into_iter().map(|t| t.name).collect();
+        let current: HashSet<String> = list_tables(ctx)
+            .await?
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
         for t in &m.tables {
             if PROTECTED.contains(&t.name.as_str()) {
                 continue;
@@ -1121,7 +1436,10 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
         }
         todo.sort_by(|a, b| (a.name != "profiles", &a.name).cmp(&(b.name != "profiles", &b.name)));
     }
-    let restorable: Vec<&Obj> = objects.iter().filter(|x| x.ok && x.entry.starts_with("storage/files/") && !x.entry.contains("..")).collect();
+    let restorable: Vec<&Obj> = objects
+        .iter()
+        .filter(|x| x.ok && x.entry.starts_with("storage/files/") && !x.entry.contains(".."))
+        .collect();
     ctx.progress(true, |p| {
         p.tables_total = todo.len() as u64;
         p.rows_total = todo.iter().map(|t| t.rows).sum();
@@ -1137,7 +1455,10 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
         // begin: public'teki bütün yabancı anahtarlar saklanıp kaldırılır (c68). Bu noktadan sonra HER çıkış yolunda
         // (başarı, hata, iptal) kapanış çağrılır ki kısıtlar yeniden kurulsun.
         let run = rpc(ctx, "admin_restore_begin", json!({ "p_tables": names })).await?;
-        let run = run.as_str().ok_or("Geri yükleme başlatılamadı")?.to_string();
+        let run = run
+            .as_str()
+            .ok_or("Geri yükleme başlatılamadı")?
+            .to_string();
         let mut outcome: Result<(), String> = Ok(());
         for t in &todo {
             if let Err(e) = ctx.check() {
@@ -1194,7 +1515,10 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
             .filter_map(|b| b.get("id").and_then(Value::as_str).map(str::to_string))
             .collect();
         let current = list_objects(ctx).await?;
-        let cur: HashMap<(&str, &str), &Obj> = current.iter().map(|x| ((x.bucket.as_str(), x.name.as_str()), x)).collect();
+        let cur: HashMap<(&str, &str), &Obj> = current
+            .iter()
+            .map(|x| ((x.bucket.as_str(), x.name.as_str()), x))
+            .collect();
         let mut batch: Vec<(&Obj, Vec<u8>)> = Vec::new();
         for (idx, x) in restorable.iter().enumerate() {
             ctx.check()?;
@@ -1202,7 +1526,11 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
             if !have.contains(&x.bucket) {
                 if !missing_buckets.contains(&x.bucket) {
                     missing_buckets.push(x.bucket.clone());
-                    ctx.err("bucket", &x.bucket, "Bu kova artık yok; dosyaları yüklenmedi (kova oluşturulmaz)");
+                    ctx.err(
+                        "bucket",
+                        &x.bucket,
+                        "Bu kova artık yok; dosyaları yüklenmedi (kova oluşturulmaz)",
+                    );
                 }
                 skip = true;
             } else if let Some(c) = cur.get(&(x.bucket.as_str(), x.name.as_str())) {
@@ -1225,7 +1553,11 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
                     }
                     Err(_) => {
                         failed += 1;
-                        ctx.err("file", &format!("{}/{}", x.bucket, x.name), "yedekte bulunamadı");
+                        ctx.err(
+                            "file",
+                            &format!("{}/{}", x.bucket, x.name),
+                            "yedekte bulunamadı",
+                        );
                     }
                 }
             }
@@ -1237,7 +1569,10 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
                 });
             }
             if batch.len() >= PARALLEL || (idx + 1 == restorable.len() && !batch.is_empty()) {
-                let results = futures_util::future::join_all(batch.iter().map(|(x, d)| upload_obj(ctx, x, d))).await;
+                let results = futures_util::future::join_all(
+                    batch.iter().map(|(x, d)| upload_obj(ctx, x, d)),
+                )
+                .await;
                 for ((x, _), res) in batch.iter().zip(results) {
                     match res {
                         Ok(()) => up += 1,
@@ -1263,11 +1598,19 @@ async fn restore_job(ctx: &Ctx, path: &Path, o: &RestoreOptions) -> Result<Value
                 p.label.clear();
             });
             // Yalnızca yedeğin kapsadığı kovalarda, yedekte adı geçmeyen dosyalar silinir
-            let covered: HashSet<&str> = manifest["storage"]["buckets"].as_array().map(|a| a.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
-            let known: HashSet<(&str, &str)> = objects.iter().map(|x| (x.bucket.as_str(), x.name.as_str())).collect();
+            let covered: HashSet<&str> = manifest["storage"]["buckets"]
+                .as_array()
+                .map(|a| a.iter().filter_map(Value::as_str).collect())
+                .unwrap_or_default();
+            let known: HashSet<(&str, &str)> = objects
+                .iter()
+                .map(|x| (x.bucket.as_str(), x.name.as_str()))
+                .collect();
             for c in &current {
                 ctx.check()?;
-                if !covered.contains(c.bucket.as_str()) || known.contains(&(c.bucket.as_str(), c.name.as_str())) {
+                if !covered.contains(c.bucket.as_str())
+                    || known.contains(&(c.bucket.as_str(), c.name.as_str()))
+                {
                     continue;
                 }
                 match delete_obj(ctx, &c.bucket, &c.name).await {
@@ -1317,7 +1660,10 @@ fn begin(app: &AppHandle, auth: Auth, kind: &'static str) -> Result<(Arc<Ctx>, S
         cancel,
         cleanup: AtomicBool::new(false),
         start: Instant::now(),
-        p: Mutex::new(Progress { kind, ..Default::default() }),
+        p: Mutex::new(Progress {
+            kind,
+            ..Default::default()
+        }),
         last_emit: Mutex::new(Instant::now()),
         errors: Mutex::new(Vec::new()),
     };
@@ -1352,16 +1698,26 @@ fn finish(ctx: &Ctx, kind: &'static str, path: &Path, res: Result<Value, String>
 
 /// Yedeği `dest` dosyasına indir (arka planda; sonuç "backup-done" olayıyla gelir)
 #[tauri::command]
-pub fn backup_run(app: AppHandle, dest: String, options: BackupOptions, auth: Auth) -> Result<(), String> {
+pub fn backup_run(
+    app: AppHandle,
+    dest: String,
+    options: BackupOptions,
+    auth: Auth,
+) -> Result<(), String> {
     let dest = PathBuf::from(dest.trim());
-    let fname = dest.file_name().and_then(|f| f.to_str()).ok_or("Geçersiz dosya adı")?.to_string();
+    let fname = dest
+        .file_name()
+        .and_then(|f| f.to_str())
+        .ok_or("Geçersiz dosya adı")?
+        .to_string();
     if !dest.is_absolute() {
         return Err("Geçersiz dosya yolu".into());
     }
     let part = dest.with_file_name(format!("{fname}.part"));
     let (ctx, project_ref) = begin(&app, auth, "backup")?;
     std::thread::spawn(move || {
-        let res = tauri::async_runtime::block_on(backup_job(&ctx, &part, &dest, &options, &project_ref));
+        let res =
+            tauri::async_runtime::block_on(backup_job(&ctx, &part, &dest, &options, &project_ref));
         if res.is_err() {
             let _ = std::fs::remove_file(&part);
         }
@@ -1372,7 +1728,12 @@ pub fn backup_run(app: AppHandle, dest: String, options: BackupOptions, auth: Au
 
 /// Yedekten geri yükle (arka planda; sonuç "backup-done" olayıyla gelir)
 #[tauri::command]
-pub fn restore_run(app: AppHandle, path: String, options: RestoreOptions, auth: Auth) -> Result<(), String> {
+pub fn restore_run(
+    app: AppHandle,
+    path: String,
+    options: RestoreOptions,
+    auth: Auth,
+) -> Result<(), String> {
     let path = PathBuf::from(path.trim());
     if !path.is_file() {
         return Err("Yedek dosyası bulunamadı".into());
@@ -1389,7 +1750,9 @@ pub fn restore_run(app: AppHandle, path: String, options: RestoreOptions, auth: 
 #[tauri::command]
 pub async fn backup_inspect(path: String) -> Result<Inspect, String> {
     let p = PathBuf::from(path.trim());
-    tauri::async_runtime::spawn_blocking(move || inspect_blocking(&p)).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || inspect_blocking(&p))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -1419,17 +1782,30 @@ pub fn backup_reveal(path: String) -> Result<(), String> {
     #[cfg(windows)]
     {
         if p.is_file() {
-            return std::process::Command::new("explorer").arg("/select,").arg(&p).spawn().map(|_| ()).map_err(|e| e.to_string());
+            return std::process::Command::new("explorer")
+                .arg("/select,")
+                .arg(&p)
+                .spawn()
+                .map(|_| ())
+                .map_err(|e| e.to_string());
         }
     }
-    let dir = if p.is_dir() { p.as_path() } else { p.parent().ok_or("klasör yok")? };
+    let dir = if p.is_dir() {
+        p.as_path()
+    } else {
+        p.parent().ok_or("klasör yok")?
+    };
     #[cfg(windows)]
     let cmd = "explorer";
     #[cfg(target_os = "macos")]
     let cmd = "open";
     #[cfg(all(unix, not(target_os = "macos")))]
     let cmd = "xdg-open";
-    std::process::Command::new(cmd).arg(dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+    std::process::Command::new(cmd)
+        .arg(dir)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -1507,7 +1883,9 @@ mod tests {
 
     #[test]
     fn ndjson_roundtrip_and_paging() {
-        let rows: Vec<Value> = (0..25).map(|i| json!({"id": i, "t": "satır\n\"x\""})).collect();
+        let rows: Vec<Value> = (0..25)
+            .map(|i| json!({"id": i, "t": "satır\n\"x\""}))
+            .collect();
         let mut buf = Vec::new();
         let mut h = Sha256::new();
         let n = write_ndjson(&mut buf, &rows, &mut h).unwrap();
@@ -1518,7 +1896,9 @@ mod tests {
         assert_eq!(lines, 25);
 
         let mut p = NdjsonPager::new(Cursor::new(buf.clone()), 10, usize::MAX);
-        let sizes: Vec<usize> = std::iter::from_fn(|| p.next_page().unwrap()).map(|v| v.len()).collect();
+        let sizes: Vec<usize> = std::iter::from_fn(|| p.next_page().unwrap())
+            .map(|v| v.len())
+            .collect();
         assert_eq!(sizes, vec![10, 10, 5]);
 
         // Bayt sınırı: her satır tek başına sayfa olur

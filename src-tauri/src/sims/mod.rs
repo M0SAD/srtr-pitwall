@@ -67,7 +67,10 @@ impl SimKind {
 
     /// Diğer araçların verisini (sıra, tur, konum) veriyor mu
     pub fn has_field(self) -> bool {
-        !matches!(self, SimKind::Ac | SimKind::Acc | SimKind::Forza | SimKind::Dirt | SimKind::BeamNg)
+        !matches!(
+            self,
+            SimKind::Ac | SimKind::Acc | SimKind::Forza | SimKind::Dirt | SimKind::BeamNg
+        )
     }
 }
 
@@ -98,7 +101,10 @@ impl SimPref {
     }
 
     pub fn from_settings(v: Option<&serde_json::Value>) -> SimPref {
-        v.and_then(|v| v.pointer("/general/sim")).and_then(|x| x.as_str()).map(SimPref::parse).unwrap_or_default()
+        v.and_then(|v| v.pointer("/general/sim"))
+            .and_then(|x| x.as_str())
+            .map(SimPref::parse)
+            .unwrap_or_default()
     }
 
     /// Bu tercihte `k` kabul edilir mi? LMU ve rF2 aynı eklentiyi/düzeni kullandığı için
@@ -230,7 +236,10 @@ fn udp_running(wants: &[udp::Proto], always: bool) -> Vec<udp::Proto> {
             return v.clone();
         }
     }
-    let mut v: Vec<udp::Proto> = shm::process_names().iter().filter_map(|e| udp::proto_for_exe(e)).collect();
+    let mut v: Vec<udp::Proto> = shm::process_names()
+        .iter()
+        .filter_map(|e| udp::proto_for_exe(e))
+        .collect();
     v.sort_by_key(|p| *p as u8);
     v.dedup();
     *c = Some((Instant::now(), v.clone()));
@@ -243,7 +252,9 @@ fn udp_running(wants: &[udp::Proto], always: bool) -> Vec<udp::Proto> {
 
 #[inline]
 pub(crate) fn rd_i32(b: &[u8], off: usize) -> i32 {
-    b.get(off..off + 4).map(|s| i32::from_le_bytes([s[0], s[1], s[2], s[3]])).unwrap_or(0)
+    b.get(off..off + 4)
+        .map(|s| i32::from_le_bytes([s[0], s[1], s[2], s[3]]))
+        .unwrap_or(0)
 }
 #[inline]
 pub(crate) fn rd_u32(b: &[u8], off: usize) -> u32 {
@@ -251,7 +262,9 @@ pub(crate) fn rd_u32(b: &[u8], off: usize) -> u32 {
 }
 #[inline]
 pub(crate) fn rd_i16(b: &[u8], off: usize) -> i16 {
-    b.get(off..off + 2).map(|s| i16::from_le_bytes([s[0], s[1]])).unwrap_or(0)
+    b.get(off..off + 2)
+        .map(|s| i16::from_le_bytes([s[0], s[1]]))
+        .unwrap_or(0)
 }
 #[inline]
 pub(crate) fn rd_u8(b: &[u8], off: usize) -> u8 {
@@ -287,7 +300,10 @@ pub(crate) fn rd_vec3(b: &[u8], off: usize) -> [f64; 3] {
 pub(crate) fn rd_wstr(b: &[u8], off: usize, n: usize) -> String {
     let mut u: Vec<u16> = Vec::with_capacity(n);
     for i in 0..n {
-        let c = b.get(off + i * 2..off + i * 2 + 2).map(|s| u16::from_le_bytes([s[0], s[1]])).unwrap_or(0);
+        let c = b
+            .get(off + i * 2..off + i * 2 + 2)
+            .map(|s| u16::from_le_bytes([s[0], s[1]]))
+            .unwrap_or(0);
         if c == 0 {
             break;
         }
@@ -298,12 +314,19 @@ pub(crate) fn rd_wstr(b: &[u8], off: usize, n: usize) -> String {
 
 /// char[n] metni (UTF-8 değilse Latin-1 kabul edilir)
 pub(crate) fn rd_cstr(b: &[u8], off: usize, n: usize) -> String {
-    let Some(s) = b.get(off..(off + n).min(b.len())) else { return String::new() };
+    let Some(s) = b.get(off..(off + n).min(b.len())) else {
+        return String::new();
+    };
     let end = s.iter().position(|&c| c == 0).unwrap_or(s.len());
     let s = &s[..end];
     match std::str::from_utf8(s) {
         Ok(t) => t.trim().to_string(),
-        Err(_) => s.iter().map(|&c| c as char).collect::<String>().trim().to_string(),
+        Err(_) => s
+            .iter()
+            .map(|&c| c as char)
+            .collect::<String>()
+            .trim()
+            .to_string(),
     }
 }
 
@@ -336,7 +359,11 @@ pub(crate) const STATE_CHECKERED: i32 = 5;
 /// Normalize direksiyon girişini (-1 sol .. 1 sağ) iRacing gibi radyana çevirir
 /// (iRacing'de pozitif = sola). `range_deg` direksiyonun toplam dönüşü.
 pub(crate) fn steer_rad(norm: f32, range_deg: f32) -> f32 {
-    let range = if range_deg > 90.0 && range_deg < 3000.0 { range_deg } else { 540.0 };
+    let range = if range_deg > 90.0 && range_deg < 3000.0 {
+        range_deg
+    } else {
+        540.0
+    };
     -norm.clamp(-1.5, 1.5) * (range * 0.5).to_radians()
 }
 
@@ -430,7 +457,9 @@ pub(crate) fn fill_estimates(f: &mut Frame, s: &SessionData, need_f2: bool, need
     }
     if need_f2 {
         let leader = (0..MAX_CARS).find(|&i| f.cars[i].position == 1 && f.cars[i].pct >= 0.0);
-        let (ll, lp) = leader.map(|i| (f.cars[i].lap_completed as f32, f.cars[i].pct)).unwrap_or((0.0, 0.0));
+        let (ll, lp) = leader
+            .map(|i| (f.cars[i].lap_completed as f32, f.cars[i].pct))
+            .unwrap_or((0.0, 0.0));
         for i in 0..MAX_CARS {
             let c = &mut f.cars[i];
             c.f2 = if leader.is_some() && c.pct >= 0.0 && c.position > 0 {
@@ -468,8 +497,13 @@ pub(crate) fn class_ident(name: &str) -> (i32, String) {
     for b in name.bytes() {
         h = (h ^ b as u32).wrapping_mul(16777619);
     }
-    const COLORS: [&str; 8] = ["#ffda59", "#33ceff", "#ff5888", "#ae6bff", "#53ff77", "#ff8a3d", "#5d8bff", "#e0e0e0"];
-    ((h & 0x7fff_ffff) as i32, COLORS[(h % COLORS.len() as u32) as usize].to_string())
+    const COLORS: [&str; 8] = [
+        "#ffda59", "#33ceff", "#ff5888", "#ae6bff", "#53ff77", "#ff8a3d", "#5d8bff", "#e0e0e0",
+    ];
+    (
+        (h & 0x7fff_ffff) as i32,
+        COLORS[(h % COLORS.len() as u32) as usize].to_string(),
+    )
 }
 
 /// "ks_nurburgring" -> "Nurburgring", "monza" -> "Monza"
@@ -551,7 +585,13 @@ pub(crate) fn sig(parts: &[&str], nums: &[i64]) -> u64 {
 
 /// Oturum sürücüsünden bağımsız "boş" oturum iskeleti
 pub(crate) fn empty_session() -> SessionData {
-    SessionData { drivers: vec![None; MAX_CARS], player_idx: -1, max_fuel_pct: 1.0, category: "Road".into(), ..Default::default() }
+    SessionData {
+        drivers: vec![None; MAX_CARS],
+        player_idx: -1,
+        max_fuel_pct: 1.0,
+        category: "Road".into(),
+        ..Default::default()
+    }
 }
 
 #[cfg(test)]
@@ -564,7 +604,10 @@ mod tests {
         assert_eq!(SimPref::parse("acc"), SimPref::Only(SimKind::Acc));
         assert_eq!(SimPref::parse("?"), SimPref::Auto);
         let v = serde_json::json!({"general": {"sim": "lmu"}});
-        assert_eq!(SimPref::from_settings(Some(&v)), SimPref::Only(SimKind::Lmu));
+        assert_eq!(
+            SimPref::from_settings(Some(&v)),
+            SimPref::Only(SimKind::Lmu)
+        );
         assert!(SimPref::Auto.accepts(SimKind::Ams2));
         assert!(!SimPref::Only(SimKind::Ac).accepts(SimKind::Acc));
         assert!(SimPref::Only(SimKind::Lmu).accepts(SimKind::Rf2));
@@ -586,7 +629,11 @@ mod tests {
     fn radar_sides() {
         let mut f = Frame::default();
         // sağda yan yana, solda biraz geride, önde 20 m
-        fill_radar(&mut f, &[(3.0, 1.0), (-3.2, -2.0), (0.2, 20.0), (0.0, 200.0)], true);
+        fill_radar(
+            &mut f,
+            &[(3.0, 1.0), (-3.2, -2.0), (0.2, 20.0), (0.0, 200.0)],
+            true,
+        );
         assert_eq!(f.car_left_right, 4);
         let l = f.demo_side_cars.as_ref().unwrap();
         assert_eq!(l.len(), 3);
@@ -615,13 +662,32 @@ mod tests {
     fn estimates() {
         let mut s = empty_session();
         for i in 0..3 {
-            s.drivers[i] = Some(crate::model::Driver { car_idx: i as i32, class_est_lap: 100.0, ..Default::default() });
+            s.drivers[i] = Some(crate::model::Driver {
+                car_idx: i as i32,
+                class_est_lap: 100.0,
+                ..Default::default()
+            });
         }
         let mut f = Frame::default();
         f.player_idx = 1;
-        f.cars[0] = crate::model::CarState { position: 1, lap_completed: 5, pct: 0.5, ..f.cars[0] };
-        f.cars[1] = crate::model::CarState { position: 2, lap_completed: 5, pct: 0.25, ..f.cars[1] };
-        f.cars[2] = crate::model::CarState { position: 3, lap_completed: 4, pct: 0.75, ..f.cars[2] };
+        f.cars[0] = crate::model::CarState {
+            position: 1,
+            lap_completed: 5,
+            pct: 0.5,
+            ..f.cars[0]
+        };
+        f.cars[1] = crate::model::CarState {
+            position: 2,
+            lap_completed: 5,
+            pct: 0.25,
+            ..f.cars[1]
+        };
+        f.cars[2] = crate::model::CarState {
+            position: 3,
+            lap_completed: 4,
+            pct: 0.75,
+            ..f.cars[2]
+        };
         fill_estimates(&mut f, &s, true, true);
         assert!((f.cars[1].est_time - 25.0).abs() < 1e-3);
         assert!((f.cars[1].f2 - 25.0).abs() < 1e-3);

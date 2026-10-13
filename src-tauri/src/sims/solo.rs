@@ -40,7 +40,15 @@ impl<T: Solo> SoloSource<T> {
         if !udp::active(T::PROTO, Duration::from_secs(2)) {
             return None;
         }
-        Some(SoloSource { p: T::default(), session: SessionData::default(), sig: 0, fresh: false, tick: 0, t0: Instant::now(), buf: Vec::new() })
+        Some(SoloSource {
+            p: T::default(),
+            session: SessionData::default(),
+            sig: 0,
+            fresh: false,
+            tick: 0,
+            t0: Instant::now(),
+            buf: Vec::new(),
+        })
     }
 
     fn pump(&mut self) {
@@ -89,7 +97,10 @@ impl<T: Solo> Source for SoloSource<T> {
         }
         self.fresh = false;
         let side = frame.demo_side_cars.take();
-        *frame = Frame { demo_side_cars: side, ..Frame::default() };
+        *frame = Frame {
+            demo_side_cars: side,
+            ..Frame::default()
+        };
         self.tick = self.tick.wrapping_add(1);
         frame.tick = self.tick;
         frame.session_time = self.t0.elapsed().as_secs_f64();
@@ -118,7 +129,14 @@ impl<T: Solo> Source for SoloSource<T> {
     }
 }
 
-fn solo_session(track: String, track_len_m: f32, car: String, class: String, kind: &str, laps: i32) -> SessionData {
+fn solo_session(
+    track: String,
+    track_len_m: f32,
+    car: String,
+    class: String,
+    kind: &str,
+    laps: i32,
+) -> SessionData {
     let mut sd = empty_session();
     sd.track_name = track;
     sd.track_length_km = (track_len_m / 1000.0).max(0.0);
@@ -137,7 +155,11 @@ fn solo_session(track: String, track_len_m: f32, car: String, class: String, kin
     sd.sessions.push(SessionEntry {
         num: 1,
         kind: kind.to_string(),
-        laps: if kind == "Race" && laps > 0 { Some(laps) } else { None },
+        laps: if kind == "Race" && laps > 0 {
+            Some(laps)
+        } else {
+            None
+        },
         ..Default::default()
     });
     sd
@@ -225,18 +247,44 @@ impl Solo for Forza {
     }
 
     fn sig(&self) -> u64 {
-        sig(&[], &[rd_i32(&self.b, 212) as i64, self.track_ordinal() as i64, self.horizon() as i64, (self.track.len / 10.0) as i64])
+        sig(
+            &[],
+            &[
+                rd_i32(&self.b, 212) as i64,
+                self.track_ordinal() as i64,
+                self.horizon() as i64,
+                (self.track.len / 10.0) as i64,
+            ],
+        )
     }
 
     fn session(&self) -> SessionData {
         let b = &self.b;
-        let class = FORZA_CLASS.get(rd_i32(b, 216).clamp(0, 7) as usize).copied().unwrap_or("");
+        let class = FORZA_CLASS
+            .get(rd_i32(b, 216).clamp(0, 7) as usize)
+            .copied()
+            .unwrap_or("");
         let pi = rd_i32(b, 220);
-        let class_name = if pi > 0 { format!("{class} {pi}") } else { class.to_string() };
+        let class_name = if pi > 0 {
+            format!("{class} {pi}")
+        } else {
+            class.to_string()
+        };
         let ord = self.track_ordinal();
-        let track = if ord > 0 { format!("Track {ord}") } else { String::new() };
+        let track = if ord > 0 {
+            format!("Track {ord}")
+        } else {
+            String::new()
+        };
         let race = self.dash().map(|d| rd_u8(b, d + 70) > 0).unwrap_or(false);
-        let mut sd = solo_session(track, self.track.len, format!("Car {}", rd_i32(b, 212)), class_name, if race { "Race" } else { "Practice" }, 0);
+        let mut sd = solo_session(
+            track,
+            self.track.len,
+            format!("Car {}", rd_i32(b, 212)),
+            class_name,
+            if race { "Race" } else { "Practice" },
+            0,
+        );
         sd.redline = rd_f32(b, 8).max(0.0);
         sd.track_id = ord;
         sd
@@ -313,7 +361,11 @@ pub struct Dirt {
 
 impl Dirt {
     fn g(&self, i: usize) -> f32 {
-        self.v.get(i).copied().filter(|x| x.is_finite()).unwrap_or(0.0)
+        self.v
+            .get(i)
+            .copied()
+            .filter(|x| x.is_finite())
+            .unwrap_or(0.0)
     }
 }
 
@@ -343,14 +395,33 @@ impl Solo for Dirt {
     }
 
     fn sig(&self) -> u64 {
-        sig(&[], &[self.g(61).round() as i64, self.g(60) as i64, self.g(63).round() as i64, self.g(65) as i64])
+        sig(
+            &[],
+            &[
+                self.g(61).round() as i64,
+                self.g(60) as i64,
+                self.g(63).round() as i64,
+                self.g(65) as i64,
+            ],
+        )
     }
 
     fn session(&self) -> SessionData {
         let len = self.g(61);
-        let track = if len > 0.0 { format!("Track {:.2} km", len / 1000.0) } else { String::new() };
+        let track = if len > 0.0 {
+            format!("Track {:.2} km", len / 1000.0)
+        } else {
+            String::new()
+        };
         let laps = self.g(60) as i32;
-        let mut sd = solo_session(track, len, String::new(), String::new(), if laps > 1 { "Race" } else { "Practice" }, laps);
+        let mut sd = solo_session(
+            track,
+            len,
+            String::new(),
+            String::new(),
+            if laps > 1 { "Race" } else { "Practice" },
+            laps,
+        );
         sd.redline = self.g(63) * 10.0;
         sd.fuel_max_ltr = self.g(46).max(0.0);
         sd
@@ -364,12 +435,20 @@ impl Solo for Dirt {
         f.clutch = self.g(32).clamp(0.0, 1.0);
         let gear = self.g(33).round() as i32;
         let max_gears = self.g(65) as i32;
-        f.gear = if gear < 0 || (gear == 10 && max_gears < 10) { -1 } else { gear };
+        f.gear = if gear < 0 || (gear == 10 && max_gears < 10) {
+            -1
+        } else {
+            gear
+        };
         f.lat_g = self.g(34);
         f.long_g = self.g(35);
         f.rpm = (self.g(37) * 10.0).max(0.0);
         f.fuel_level = self.g(45).max(0.0);
-        f.fuel_pct = if sd.fuel_max_ltr > 0.0 { (f.fuel_level / sd.fuel_max_ltr).clamp(0.0, 1.0) } else { 0.0 };
+        f.fuel_pct = if sd.fuel_max_ltr > 0.0 {
+            (f.fuel_level / sd.fuel_max_ltr).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
         f.on_pit_road = self.g(47) > 0.5;
         f.abs_setting = self.g(44);
         f.tc = self.g(43);
@@ -378,7 +457,11 @@ impl Solo for Dirt {
         if len > 0.0 && d < 0.0 {
             d += len;
         }
-        f.lap_dist_pct = if len > 0.0 { (d / len).clamp(0.0, 0.9999) } else { 0.0 };
+        f.lap_dist_pct = if len > 0.0 {
+            (d / len).clamp(0.0, 0.9999)
+        } else {
+            0.0
+        };
         let lap = self.g(36) as i32;
         f.lap_completed = lap.max(0);
         f.lap = f.lap_completed + 1;
@@ -387,9 +470,13 @@ impl Solo for Dirt {
         f.lap_last = if last > 0.0 { last } else { -1.0 };
         f.lap_best = if self.best > 0.0 { self.best } else { -1.0 };
         let laps = self.g(60) as i32;
-        f.session_laps_remain = if laps > 1 { (laps - f.lap_completed).max(0) } else { 32767 };
+        f.session_laps_remain = if laps > 1 {
+            (laps - f.lap_completed).max(0)
+        } else {
+            32767
+        };
         f.cars[0].position = self.g(39) as i32;
-        f.cars[0].sector = (self.g(48) as i32).clamp(-1, 200) as u8 + 2;
+        f.cars[0].sector = ((self.g(48) as i32).clamp(-1, 200) + 2) as u8;
         // Lastikler RL, RR, FL, FR -> LF, RF, LR, RR
         for (src, dst) in [2usize, 3, 0, 1].iter().enumerate() {
             f.tire_press[*dst] = self.g(55 + src) * 6.894_757;
@@ -429,7 +516,14 @@ impl Solo for BeamNg {
     }
 
     fn session(&self) -> SessionData {
-        solo_session(String::new(), 0.0, String::new(), String::new(), "Practice", 0)
+        solo_session(
+            String::new(),
+            0.0,
+            String::new(),
+            String::new(),
+            "Practice",
+            0,
+        )
     }
 
     fn extract(&mut self, _sd: &SessionData, f: &mut Frame) {

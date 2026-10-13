@@ -33,7 +33,11 @@ pub fn boot_step(what: &str) {
     let path = PATH.lock().clone();
     match path {
         Some(p) => {
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&p) {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&p)
+            {
                 let _ = f.write_all(line.as_bytes());
             }
         }
@@ -102,10 +106,23 @@ fn message(text: &str, yes_no: bool) -> bool {
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging::{
-            MessageBoxW, IDYES, MB_ICONERROR, MB_ICONWARNING, MB_OK, MB_SETFOREGROUND, MB_TOPMOST, MB_YESNO,
+            MessageBoxW, IDYES, MB_ICONERROR, MB_ICONWARNING, MB_OK, MB_SETFOREGROUND, MB_TOPMOST,
+            MB_YESNO,
         };
-        let flags = (if yes_no { MB_YESNO | MB_ICONWARNING } else { MB_OK | MB_ICONERROR }) | MB_TOPMOST | MB_SETFOREGROUND;
-        let r = unsafe { MessageBoxW(std::ptr::null_mut(), wide(text).as_ptr(), wide("SRTR Pitwall").as_ptr(), flags) };
+        let flags = (if yes_no {
+            MB_YESNO | MB_ICONWARNING
+        } else {
+            MB_OK | MB_ICONERROR
+        }) | MB_TOPMOST
+            | MB_SETFOREGROUND;
+        let r = unsafe {
+            MessageBoxW(
+                std::ptr::null_mut(),
+                wide(text).as_ptr(),
+                wide("SRTR Pitwall").as_ptr(),
+                flags,
+            )
+        };
         r == IDYES
     }
     #[cfg(not(windows))]
@@ -123,10 +140,12 @@ pub fn check_running_instance(identifier: &str, from_autostart: bool) {
     unsafe {
         use windows_sys::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
         use windows_sys::Win32::System::Threading::{
-            OpenMutexW, OpenProcess, TerminateProcess, WaitForSingleObject, PROCESS_TERMINATE, PROCESS_SYNCHRONIZE,
+            OpenMutexW, OpenProcess, TerminateProcess, WaitForSingleObject, PROCESS_SYNCHRONIZE,
+            PROCESS_TERMINATE,
         };
         use windows_sys::Win32::UI::WindowsAndMessaging::{
-            FindWindowW, GetWindowThreadProcessId, SendMessageTimeoutW, SMTO_ABORTIFHUNG, SMTO_BLOCK, WM_NULL,
+            FindWindowW, GetWindowThreadProcessId, SendMessageTimeoutW, SMTO_ABORTIFHUNG,
+            SMTO_BLOCK, WM_NULL,
         };
         // tauri-plugin-single-instance adları: "<kimlik>-sim" (mutex), "<kimlik>-sic" / "<kimlik>-siw" (pencere)
         const SYNCHRONIZE: u32 = 0x0010_0000;
@@ -135,12 +154,23 @@ pub fn check_running_instance(identifier: &str, from_autostart: bool) {
             return;
         }
         CloseHandle(m);
-        let hwnd = FindWindowW(wide(&format!("{identifier}-sic")).as_ptr(), wide(&format!("{identifier}-siw")).as_ptr());
+        let hwnd = FindWindowW(
+            wide(&format!("{identifier}-sic")).as_ptr(),
+            wide(&format!("{identifier}-siw")).as_ptr(),
+        );
         if hwnd.is_null() {
             return;
         }
         let mut res: usize = 0;
-        let ok = SendMessageTimeoutW(hwnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, &mut res);
+        let ok = SendMessageTimeoutW(
+            hwnd,
+            WM_NULL,
+            0,
+            0,
+            SMTO_ABORTIFHUNG | SMTO_BLOCK,
+            5000,
+            &mut res,
+        );
         if ok != 0 {
             boot_step("çalışan kopya yanıt veriyor: ona devrediliyor");
             return;

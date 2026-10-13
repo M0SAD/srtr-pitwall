@@ -13,7 +13,9 @@ pub struct DeviceInfo {
 #[cfg(windows)]
 fn machine_guid() -> Option<String> {
     use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
-    let sub: Vec<u16> = "SOFTWARE\\Microsoft\\Cryptography\0".encode_utf16().collect();
+    let sub: Vec<u16> = "SOFTWARE\\Microsoft\\Cryptography\0"
+        .encode_utf16()
+        .collect();
     let val: Vec<u16> = "MachineGuid\0".encode_utf16().collect();
     let mut buf = [0u16; 128];
     let mut size = (buf.len() * 2) as u32;
@@ -37,7 +39,9 @@ fn machine_guid() -> Option<String> {
 
 #[cfg(not(windows))]
 fn machine_guid() -> Option<String> {
-    std::fs::read_to_string("/etc/machine-id").ok().map(|s| s.trim().to_string())
+    std::fs::read_to_string("/etc/machine-id")
+        .ok()
+        .map(|s| s.trim().to_string())
 }
 
 fn computer_name() -> String {
@@ -52,8 +56,16 @@ pub fn info() -> DeviceInfo {
     let mut h = Sha256::new();
     h.update(b"srtr-pitwall-device:");
     h.update(guid.as_bytes());
-    let hash: String = h.finalize().iter().take(16).map(|b| format!("{b:02x}")).collect();
-    DeviceInfo { hash, label: computer_name() }
+    let hash: String = h
+        .finalize()
+        .iter()
+        .take(16)
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    DeviceInfo {
+        hash,
+        label: computer_name(),
+    }
 }
 
 /// Bu bilgisayarın karma kimliği ve adı

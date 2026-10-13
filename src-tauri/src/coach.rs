@@ -96,7 +96,15 @@ pub struct Coach {
 
 impl Default for Coach {
     fn default() -> Self {
-        Coach { combo: Combo::default(), refs: Vec::new(), my_thr: vec![NONE; BINS], my_brk: vec![NONE; BINS], prev_pct: -1.0, lap_start: 0.0, full: false }
+        Coach {
+            combo: Combo::default(),
+            refs: Vec::new(),
+            my_thr: vec![NONE; BINS],
+            my_brk: vec![NONE; BINS],
+            prev_pct: -1.0,
+            lap_start: 0.0,
+            full: false,
+        }
     }
 }
 
@@ -120,19 +128,27 @@ impl Coach {
             }
         }
         self.refs.retain(|x| x.input.kind != r.kind);
-        self.refs.push(Ref { input: r, mark: 0.0, sectors: [None; 3] });
+        self.refs.push(Ref {
+            input: r,
+            mark: 0.0,
+            sectors: [None; 3],
+        });
     }
 
     fn delta_of(&self, t: &Trace, f: &Frame) -> Option<f32> {
         if !self.full {
             return None;
         }
-        t.time_at(f.lap_dist_pct).map(|rt| (f.session_time - self.lap_start) as f32 - rt)
+        t.time_at(f.lap_dist_pct)
+            .map(|rt| (f.session_time - self.lap_start) as f32 - rt)
     }
 
     pub fn update(&mut self, f: &Frame, combo: &Combo) {
         if *combo != self.combo {
-            *self = Coach { combo: combo.clone(), ..Default::default() };
+            *self = Coach {
+                combo: combo.clone(),
+                ..Default::default()
+            };
         }
         let pct = f.lap_dist_pct;
         let driving = f.is_on_track && !f.replay && !f.is_in_garage && f.player_idx >= 0;
@@ -144,7 +160,10 @@ impl Coach {
         let d = pct - self.prev_pct;
         if self.prev_pct > 0.85 && pct < 0.15 {
             // Tur çizgisi: son bölüm kapanır, yeni tur başlar
-            let prev = Frame { lap_dist_pct: 1.0, ..f.clone() };
+            let prev = Frame {
+                lap_dist_pct: 1.0,
+                ..f.clone()
+            };
             for i in 0..self.refs.len() {
                 if let Some(t) = self.refs[i].input.trace.as_ref() {
                     if let Some(dl) = self.delta_of(t, &prev) {
@@ -182,7 +201,10 @@ impl Coach {
         }
         // Geçilen kutuları doldur
         let (a, b) = (bin(self.prev_pct), bin(pct));
-        let (thr, brk) = ((f.throttle.clamp(0.0, 1.0) * 100.0) as u8, (f.brake.clamp(0.0, 1.0) * 100.0) as u8);
+        let (thr, brk) = (
+            (f.throttle.clamp(0.0, 1.0) * 100.0) as u8,
+            (f.brake.clamp(0.0, 1.0) * 100.0) as u8,
+        );
         if b >= a && b - a < 60 {
             for i in a..=b {
                 self.my_thr[i] = thr;
@@ -197,7 +219,11 @@ impl Coach {
 
     pub fn packet(&self, f: &Frame, track_len_m: f32) -> Packet {
         let pct = f.lap_dist_pct;
-        let (behind, ahead) = if track_len_m > 200.0 { (BEHIND_M / track_len_m, AHEAD_M / track_len_m) } else { (0.025, 0.06) };
+        let (behind, ahead) = if track_len_m > 200.0 {
+            (BEHIND_M / track_len_m, AHEAD_M / track_len_m)
+        } else {
+            (0.025, 0.06)
+        };
         let span = behind + ahead;
         let now_idx = ((behind / span) * (WIN - 1) as f32).round() as usize;
         let pos = |k: usize| (pct - behind + span * k as f32 / (WIN - 1) as f32).rem_euclid(1.0);
@@ -210,7 +236,11 @@ impl Coach {
             brake: f.brake,
             gear: f.gear,
             now_idx,
-            window_m: if track_len_m > 200.0 { BEHIND_M + AHEAD_M } else { 0.0 },
+            window_m: if track_len_m > 200.0 {
+                BEHIND_M + AHEAD_M
+            } else {
+                0.0
+            },
             my_thr: Vec::with_capacity(now_idx + 1),
             my_brk: Vec::with_capacity(now_idx + 1),
             refs: Vec::with_capacity(self.refs.len()),
@@ -226,7 +256,11 @@ impl Coach {
         for r in &self.refs {
             let mut v = RefView {
                 kind: r.input.kind.clone(),
-                status: if r.input.status.is_empty() { "nodata".into() } else { r.input.status.clone() },
+                status: if r.input.status.is_empty() {
+                    "nodata".into()
+                } else {
+                    r.input.status.clone()
+                },
                 name: r.input.name.clone(),
                 time: r.input.time,
                 laps: r.input.laps,
@@ -260,17 +294,39 @@ mod tests {
     use super::*;
 
     fn combo() -> Combo {
-        Combo { sim: "iracing".into(), track_id: "1".into(), track_config: "".into(), car_id: "2".into() }
+        Combo {
+            sim: "iracing".into(),
+            track_id: "1".into(),
+            track_config: "".into(),
+            car_id: "2".into(),
+        }
     }
 
     fn frame(t: f64, pct: f32) -> Frame {
-        Frame { session_time: t, lap_dist_pct: pct, is_on_track: true, player_idx: 0, throttle: 0.5, brake: 0.25, ..Default::default() }
+        Frame {
+            session_time: t,
+            lap_dist_pct: pct,
+            is_on_track: true,
+            player_idx: 0,
+            throttle: 0.5,
+            brake: 0.25,
+            ..Default::default()
+        }
     }
 
     /// 100 sn'lik sabit hızlı referans tur
     fn trace() -> Trace {
         let n = 200;
-        Trace { n: n as u32, t: (0..n).map(|i| (i * 500) as i32).collect(), speed: vec![1800; n], throttle: vec![100; n], brake: vec![0; n], gear: vec![4; n], steer: vec![0; n], ..Default::default() }
+        Trace {
+            n: n as u32,
+            t: (0..n).map(|i| (i * 500) as i32).collect(),
+            speed: vec![1800; n],
+            throttle: vec![100; n],
+            brake: vec![0; n],
+            gear: vec![4; n],
+            steer: vec![0; n],
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -279,10 +335,31 @@ mod tests {
         let cb = combo();
         c.update(&frame(0.0, 0.95), &cb);
         // Başka araç için gelen referans alınmaz
-        c.set_ref(RefIn { combo: Combo { car_id: "9".into(), ..combo() }, kind: "best".into(), trace: Some(trace()), ..Default::default() });
+        c.set_ref(RefIn {
+            combo: Combo {
+                car_id: "9".into(),
+                ..combo()
+            },
+            kind: "best".into(),
+            trace: Some(trace()),
+            ..Default::default()
+        });
         assert!(c.packet(&frame(0.0, 0.95), 4000.0).refs.is_empty());
-        c.set_ref(RefIn { combo: combo(), kind: "best".into(), name: "A".into(), time: 100.0, laps: 1, trace: Some(trace()), ..Default::default() });
-        c.set_ref(RefIn { combo: combo(), kind: "avg".into(), status: "nodata".into(), ..Default::default() });
+        c.set_ref(RefIn {
+            combo: combo(),
+            kind: "best".into(),
+            name: "A".into(),
+            time: 100.0,
+            laps: 1,
+            trace: Some(trace()),
+            ..Default::default()
+        });
+        c.set_ref(RefIn {
+            combo: combo(),
+            kind: "avg".into(),
+            status: "nodata".into(),
+            ..Default::default()
+        });
         // Çizgi t=10'da geçilir; tur %10 daha yavaş sürülür (110 sn)
         let mut t = 9.0;
         let mut pct = 0.99f32;
@@ -305,7 +382,11 @@ mod tests {
         // Yarı turda 55 sn sürdü, referans 50 sn: +5
         assert!((r.delta.unwrap() - 5.0).abs() < 0.3, "{:?}", r.delta);
         // İlk bölüm: 1/3 turda ~+3.3 sn
-        assert!((r.sectors[0].unwrap() - 3.33).abs() < 0.3, "{:?}", r.sectors);
+        assert!(
+            (r.sectors[0].unwrap() - 3.33).abs() < 0.3,
+            "{:?}",
+            r.sectors
+        );
         assert_eq!(r.thr.len(), WIN);
         assert_eq!(p.my_thr.len(), p.now_idx + 1);
         assert_eq!(p.my_thr[p.now_idx - 1], 50);

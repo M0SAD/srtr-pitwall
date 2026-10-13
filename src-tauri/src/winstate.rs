@@ -27,7 +27,10 @@ static SAVE_PENDING: AtomicBool = AtomicBool::new(false);
 const SAVE_DELAY_MS: u64 = 700;
 
 fn path(app: &AppHandle) -> Option<PathBuf> {
-    app.path().app_config_dir().ok().map(|d| d.join("windows.json"))
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|d| d.join("windows.json"))
 }
 
 fn with_map<R>(app: &AppHandle, f: impl FnOnce(&mut HashMap<String, Geo>) -> R) -> R {
@@ -77,7 +80,10 @@ fn schedule_save(app: &AppHandle) {
 
 /// Kayıtlı yerleşim makul mü (boyut sınırları)
 fn sane(g: &Geo) -> bool {
-    (200..=16000).contains(&g.w) && (150..=16000).contains(&g.h) && g.x.abs() < 100_000 && g.y.abs() < 100_000
+    (200..=16000).contains(&g.w)
+        && (150..=16000).contains(&g.h)
+        && g.x.abs() < 100_000
+        && g.y.abs() < 100_000
 }
 
 /// Pencerenin başlık çubuğu bölgesi bağlı monitörlerden birinin içinde mi
@@ -101,7 +107,14 @@ pub fn restore(app: &AppHandle, label: &str) -> Option<Geo> {
         .available_monitors()
         .unwrap_or_default()
         .iter()
-        .map(|m| (m.position().x, m.position().y, m.size().width, m.size().height))
+        .map(|m| {
+            (
+                m.position().x,
+                m.position().y,
+                m.size().width,
+                m.size().height,
+            )
+        })
         .collect();
     if monitors.is_empty() || !on_monitor(&g, &monitors) {
         return None;
@@ -128,12 +141,23 @@ fn capture(app: &AppHandle, w: &WebviewWindow, label: &str) -> bool {
     let g = if maximized {
         // Büyütülmüşken normal yerleşimi koru, yalnız bayrağı güncelle
         match prev {
-            Some(p) => Geo { maximized: true, ..p },
+            Some(p) => Geo {
+                maximized: true,
+                ..p
+            },
             None => return false,
         }
     } else {
-        let (Ok(pos), Ok(size)) = (w.outer_position(), w.inner_size()) else { return false };
-        Geo { x: pos.x, y: pos.y, w: size.width, h: size.height, maximized: false }
+        let (Ok(pos), Ok(size)) = (w.outer_position(), w.inner_size()) else {
+            return false;
+        };
+        Geo {
+            x: pos.x,
+            y: pos.y,
+            w: size.width,
+            h: size.height,
+            maximized: false,
+        }
     };
     if !sane(&g) || prev == Some(g) {
         return false;
@@ -168,20 +192,50 @@ mod tests {
     #[test]
     fn on_monitor_checks_title_bar() {
         let mons = [(0, 0, 1920, 1080), (1920, 0, 2560, 1440)];
-        let g = Geo { x: 100, y: 100, w: 380, h: 680, maximized: false };
+        let g = Geo {
+            x: 100,
+            y: 100,
+            w: 380,
+            h: 680,
+            maximized: false,
+        };
         assert!(on_monitor(&g, &mons));
-        let g2 = Geo { x: 3000, y: 200, w: 380, h: 680, maximized: false };
+        let g2 = Geo {
+            x: 3000,
+            y: 200,
+            w: 380,
+            h: 680,
+            maximized: false,
+        };
         assert!(on_monitor(&g2, &mons));
         // İkinci monitör çıkarılmış
         assert!(!on_monitor(&g2, &mons[..1]));
         // Başlık çubuğu ekranın üstünde kalmış
-        let g3 = Geo { x: 100, y: -200, w: 380, h: 680, maximized: false };
+        let g3 = Geo {
+            x: 100,
+            y: -200,
+            w: 380,
+            h: 680,
+            maximized: false,
+        };
         assert!(!on_monitor(&g3, &mons));
     }
 
     #[test]
     fn sane_limits() {
-        assert!(sane(&Geo { x: 0, y: 0, w: 380, h: 680, maximized: false }));
-        assert!(!sane(&Geo { x: -32000, y: -32000, w: 0, h: 0, maximized: false }));
+        assert!(sane(&Geo {
+            x: 0,
+            y: 0,
+            w: 380,
+            h: 680,
+            maximized: false
+        }));
+        assert!(!sane(&Geo {
+            x: -32000,
+            y: -32000,
+            w: 0,
+            h: 0,
+            maximized: false
+        }));
     }
 }

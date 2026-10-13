@@ -31,7 +31,8 @@ pub const TRUSTED_CLIENT_TOKEN: &str = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 const CHROMIUM_FULL: &str = "143.0.3650.75";
 const CHROMIUM_MAJOR: &str = "143";
 const WSS_URL: &str = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
-const VOICES_URL: &str = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list";
+const VOICES_URL: &str =
+    "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list";
 const OUTPUT_FORMAT: &str = "audio-24khz-48kbitrate-mono-mp3";
 /// 1601 → 1970 arası saniye (Windows dosya zamanı başlangıcı)
 const WIN_EPOCH: i64 = 11_644_473_600;
@@ -45,7 +46,11 @@ static CLOCK_SKEW: AtomicI64 = AtomicI64::new(0);
 static DOWN_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn unix_now() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0) + CLOCK_SKEW.load(Ordering::Relaxed)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+        + CLOCK_SKEW.load(Ordering::Relaxed)
 }
 
 fn hex_upper(b: &[u8]) -> String {
@@ -62,7 +67,9 @@ pub fn sec_ms_gec(unix_secs: i64) -> String {
     ticks -= ticks.rem_euclid(300);
     // 100 nanosaniyelik adımlar
     let ticks = ticks as i128 * 10_000_000;
-    hex_upper(&Sha256::digest(format!("{ticks}{TRUSTED_CLIENT_TOKEN}").as_bytes()))
+    hex_upper(&Sha256::digest(
+        format!("{ticks}{TRUSTED_CLIENT_TOKEN}").as_bytes(),
+    ))
 }
 
 pub fn sec_ms_gec_version() -> String {
@@ -76,7 +83,10 @@ fn user_agent() -> String {
 /// 32 haneli rastgele hex (bağlantı / istek kimliği; kriptografik olması gerekmez)
 fn rand_hex() -> String {
     static N: AtomicU64 = AtomicU64::new(0);
-    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
     let n = N.fetch_add(1, Ordering::Relaxed);
     let local = 0u8;
     let seed = format!("{nanos}-{n}-{}-{:p}", std::process::id(), &local);
@@ -93,7 +103,9 @@ pub fn xml_escape(s: &str) -> String {
             '>' => o.push_str("&gt;"),
             '"' => o.push_str("&quot;"),
             '\'' => o.push_str("&apos;"),
-            c if (c as u32) < 0x20 || c == '\u{7f}' || c == '\u{fffe}' || c == '\u{ffff}' => o.push(' '),
+            c if (c as u32) < 0x20 || c == '\u{7f}' || c == '\u{fffe}' || c == '\u{ffff}' => {
+                o.push(' ')
+            }
             c => o.push(c),
         }
     }
@@ -102,7 +114,9 @@ pub fn xml_escape(s: &str) -> String {
 
 /// Kısa ad geçerli mi ("tr-TR-EmelNeural", "zh-CN-liaoning-XiaobeiNeural"): yalnızca harf, rakam ve tire
 pub fn valid_voice(short: &str) -> bool {
-    (5..=80).contains(&short.len()) && short.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') && short.split('-').count() >= 3
+    (5..=80).contains(&short.len())
+        && short.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+        && short.split('-').count() >= 3
 }
 
 /// "tr-TR-EmelNeural" → "Microsoft Server Speech Text to Speech Voice (tr-TR, EmelNeural)" (edge-tts ile aynı)
@@ -168,7 +182,9 @@ fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     era * 146_097 + doe - 719_468
 }
 
-const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 const DAYS: [&str; 7] = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
 
 /// X-Timestamp: "Sat Oct 03 2026 12:00:00 GMT+0000 (Coordinated Universal Time)"
@@ -222,13 +238,18 @@ pub fn audio_payload(frame: &[u8]) -> Option<&[u8]> {
         return None;
     }
     let head = String::from_utf8_lossy(&frame[2..2 + hl]);
-    head.split("\r\n").any(|l| l.trim().eq_ignore_ascii_case("Path:audio")).then(|| &frame[2 + hl..])
+    head.split("\r\n")
+        .any(|l| l.trim().eq_ignore_ascii_case("Path:audio"))
+        .then(|| &frame[2 + hl..])
 }
 
 /// Metin çerçevesinin `Path` başlığı
 fn text_path(msg: &str) -> &str {
     let head = msg.split("\r\n\r\n").next().unwrap_or("");
-    head.split("\r\n").find_map(|l| l.strip_prefix("Path:")).map(str::trim).unwrap_or("")
+    head.split("\r\n")
+        .find_map(|l| l.strip_prefix("Path:"))
+        .map(str::trim)
+        .unwrap_or("")
 }
 
 enum ConnErr {
@@ -245,18 +266,26 @@ async fn connect() -> Result<net::Ws, ConnErr> {
         sec_ms_gec(unix_now()),
         sec_ms_gec_version()
     );
-    let mut req = url.into_client_request().map_err(|e| ConnErr::Other(e.to_string()))?;
+    let mut req = url
+        .into_client_request()
+        .map_err(|e| ConnErr::Other(e.to_string()))?;
     let ua = user_agent();
     let cookie = format!("muid={};", rand_hex());
     for (k, v) in [
         ("Pragma", "no-cache"),
         ("Cache-Control", "no-cache"),
-        ("Origin", "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold"),
+        (
+            "Origin",
+            "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold",
+        ),
         ("User-Agent", ua.as_str()),
         ("Accept-Language", "en-US,en;q=0.9"),
         ("Cookie", cookie.as_str()),
     ] {
-        if let (Ok(name), Ok(val)) = (tokio_tungstenite::tungstenite::http::header::HeaderName::from_bytes(k.as_bytes()), HeaderValue::from_str(v)) {
+        if let (Ok(name), Ok(val)) = (
+            tokio_tungstenite::tungstenite::http::header::HeaderName::from_bytes(k.as_bytes()),
+            HeaderValue::from_str(v),
+        ) {
             req.headers_mut().insert(name, val);
         }
     }
@@ -265,7 +294,11 @@ async fn connect() -> Result<net::Ws, ConnErr> {
         Err(tokio_tungstenite::tungstenite::Error::Http(resp)) => {
             let code = resp.status().as_u16();
             if code == 403 {
-                let date = resp.headers().get("date").and_then(|v| v.to_str().ok()).and_then(parse_http_date);
+                let date = resp
+                    .headers()
+                    .get("date")
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(parse_http_date);
                 Err(ConnErr::Forbidden(date))
             } else {
                 Err(ConnErr::Other(format!("HTTP {code}")))
@@ -280,8 +313,13 @@ async fn synth_inner(text: &str, short: &str, rate: f64, pitch: f64) -> Result<V
         Ok(ws) => ws,
         Err(ConnErr::Forbidden(date)) => {
             // Bilgisayarın saati yanlışsa sunucu saatine göre düzelt ve bir kez daha dene
-            let Some(server) = date else { return Err("HTTP 403".into()) };
-            let local = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+            let Some(server) = date else {
+                return Err("HTTP 403".into());
+            };
+            let local = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
             CLOCK_SKEW.store(server - local, Ordering::Relaxed);
             match connect().await {
                 Ok(ws) => ws,
@@ -292,9 +330,17 @@ async fn synth_inner(text: &str, short: &str, rate: f64, pitch: f64) -> Result<V
         Err(ConnErr::Other(e)) => return Err(e),
     };
     let now = unix_now();
-    ws.send(Message::text(config_msg(now))).await.map_err(|e| e.to_string())?;
+    ws.send(Message::text(config_msg(now)))
+        .await
+        .map_err(|e| e.to_string())?;
     // Ses düzeyi çalarken uygulanır (canlı ayarlanabilsin): SSML'de tam ses
-    ws.send(Message::text(ssml_msg(now, &rand_hex().to_lowercase(), &ssml(text, short, rate, pitch, 100.0)))).await.map_err(|e| e.to_string())?;
+    ws.send(Message::text(ssml_msg(
+        now,
+        &rand_hex().to_lowercase(),
+        &ssml(text, short, rate, pitch, 100.0),
+    )))
+    .await
+    .map_err(|e| e.to_string())?;
     let mut mp3: Vec<u8> = Vec::with_capacity(32 * 1024);
     loop {
         match ws.next().await {
@@ -340,12 +386,21 @@ pub async fn synth_mp3(text: &str, short: &str, rate: f64, pitch: f64) -> Result
         Ok(r) => r,
         Err(_) => Err("zaman aşımı (10 sn)".into()),
     };
-    *DOWN_UNTIL.lock() = if r.is_err() { Some(Instant::now() + COOLDOWN) } else { None };
+    *DOWN_UNTIL.lock() = if r.is_err() {
+        Some(Instant::now() + COOLDOWN)
+    } else {
+        None
+    };
     r
 }
 
 /// Çalma iş parçacığı için: sentezle ve WAV'a çöz (Windows: Media Foundation). Çağıran iş parçacığını en fazla ~10 sn tutar.
-pub fn synth_wav_blocking(text: &str, short: &str, rate: f64, pitch: f64) -> Result<Vec<u8>, String> {
+pub fn synth_wav_blocking(
+    text: &str,
+    short: &str,
+    rate: f64,
+    pitch: f64,
+) -> Result<Vec<u8>, String> {
     let mp3 = tauri::async_runtime::block_on(synth_mp3(text, short, rate, pitch))?;
     decode_mp3(&mp3)
 }
@@ -423,23 +478,47 @@ const BUILTIN: &[(&str, bool)] = &[
 pub fn builtin_voices() -> Vec<EdgeVoice> {
     BUILTIN
         .iter()
-        .map(|(s, f)| EdgeVoice { short: s.to_string(), locale: s.splitn(3, '-').take(2).collect::<Vec<_>>().join("-"), female: *f, language_name: String::new() })
+        .map(|(s, f)| EdgeVoice {
+            short: s.to_string(),
+            locale: s.splitn(3, '-').take(2).collect::<Vec<_>>().join("-"),
+            female: *f,
+            language_name: String::new(),
+        })
         .collect()
 }
 
 /// voices/list yanıtını çöz (bozuk kayıtlar atlanır)
 pub fn parse_voices(body: &str) -> Vec<EdgeVoice> {
-    let Ok(serde_json::Value::Array(arr)) = serde_json::from_str::<serde_json::Value>(body) else { return Vec::new() };
+    let Ok(serde_json::Value::Array(arr)) = serde_json::from_str::<serde_json::Value>(body) else {
+        return Vec::new();
+    };
     arr.iter()
         .filter_map(|v| {
             let short = v.get("ShortName")?.as_str()?.to_string();
             if !valid_voice(&short) {
                 return None;
             }
-            let locale = v.get("Locale").and_then(|x| x.as_str()).unwrap_or("").to_string();
-            let female = v.get("Gender").and_then(|x| x.as_str()).is_some_and(|g| g.eq_ignore_ascii_case("female"));
-            let language_name = v.get("FriendlyName").and_then(|x| x.as_str()).and_then(|f| f.rsplit_once(" - ")).map(|(_, l)| l.trim().to_string()).unwrap_or_default();
-            Some(EdgeVoice { short, locale, female, language_name })
+            let locale = v
+                .get("Locale")
+                .and_then(|x| x.as_str())
+                .unwrap_or("")
+                .to_string();
+            let female = v
+                .get("Gender")
+                .and_then(|x| x.as_str())
+                .is_some_and(|g| g.eq_ignore_ascii_case("female"));
+            let language_name = v
+                .get("FriendlyName")
+                .and_then(|x| x.as_str())
+                .and_then(|f| f.rsplit_once(" - "))
+                .map(|(_, l)| l.trim().to_string())
+                .unwrap_or_default();
+            Some(EdgeVoice {
+                short,
+                locale,
+                female,
+                language_name,
+            })
         })
         .collect()
 }
@@ -470,7 +549,11 @@ async fn fetch_voices() -> Result<Vec<EdgeVoice>, String> {
 pub async fn voices() -> (Vec<EdgeVoice>, bool) {
     static CACHE: Mutex<Option<(Instant, bool, Vec<EdgeVoice>)>> = Mutex::new(None);
     if let Some((at, online, list)) = CACHE.lock().as_ref() {
-        let ttl = if *online { Duration::from_secs(12 * 3600) } else { Duration::from_secs(300) };
+        let ttl = if *online {
+            Duration::from_secs(12 * 3600)
+        } else {
+            Duration::from_secs(300)
+        };
         if at.elapsed() < ttl {
             return (list.clone(), *online);
         }
@@ -492,14 +575,18 @@ mod tests {
         // 5 dakikalık dilim içinde aynı, dilim değişince farklı; 64 haneli büyük harf hex
         let a = sec_ms_gec(1_700_000_000);
         assert_eq!(a.len(), 64);
-        assert!(a.chars().all(|c| c.is_ascii_digit() || ('A'..='F').contains(&c)));
+        assert!(a
+            .chars()
+            .all(|c| c.is_ascii_digit() || ('A'..='F').contains(&c)));
         // (1_700_000_000 + 11_644_473_600) % 300 == 200 → dilim 1_699_999_800..1_700_000_099
         assert_eq!(a, sec_ms_gec(1_699_999_800));
         assert_eq!(a, sec_ms_gec(1_700_000_099));
         assert_ne!(a, sec_ms_gec(1_700_000_100));
         assert_ne!(a, sec_ms_gec(1_699_999_799));
         // Karma girdisi: yuvarlanmış dosya zamanı (100 ns) + belirteç
-        let expect = hex_upper(&Sha256::digest(format!("133444734000000000{TRUSTED_CLIENT_TOKEN}").as_bytes()));
+        let expect = hex_upper(&Sha256::digest(
+            format!("133444734000000000{TRUSTED_CLIENT_TOKEN}").as_bytes(),
+        ));
         assert_eq!(a, expect);
         assert_eq!(sec_ms_gec_version(), format!("1-{CHROMIUM_FULL}"));
         assert_eq!(rand_hex().len(), 32);
@@ -508,13 +595,27 @@ mod tests {
 
     #[test]
     fn ssml_escape() {
-        assert_eq!(xml_escape("a & b <c> \"d\" 'e'\u{1}\n"), "a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos;  ");
-        let s = ssml("Merhaba <dünya> & 'sen'", "tr-TR-AhmetNeural", 2.0, -1.0, 100.0);
+        assert_eq!(
+            xml_escape("a & b <c> \"d\" 'e'\u{1}\n"),
+            "a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos;  "
+        );
+        let s = ssml(
+            "Merhaba <dünya> & 'sen'",
+            "tr-TR-AhmetNeural",
+            2.0,
+            -1.0,
+            100.0,
+        );
         assert!(s.starts_with("<speak version='1.0'"));
-        assert!(s.contains("<voice name='Microsoft Server Speech Text to Speech Voice (tr-TR, AhmetNeural)'>"));
+        assert!(s.contains(
+            "<voice name='Microsoft Server Speech Text to Speech Voice (tr-TR, AhmetNeural)'>"
+        ));
         assert!(s.contains("<prosody pitch='-5Hz' rate='+16%' volume='+0%'>Merhaba &lt;dünya&gt; &amp; &apos;sen&apos;</prosody>"));
         assert!(s.ends_with("</prosody></voice></speak>"));
-        assert_eq!(voice_full_name("zh-CN-liaoning-XiaobeiNeural"), "Microsoft Server Speech Text to Speech Voice (zh-CN-liaoning, XiaobeiNeural)");
+        assert_eq!(
+            voice_full_name("zh-CN-liaoning-XiaobeiNeural"),
+            "Microsoft Server Speech Text to Speech Voice (zh-CN-liaoning, XiaobeiNeural)"
+        );
         assert!(valid_voice("tr-TR-EmelNeural"));
         assert!(!valid_voice("tr-TR-Emel'/><x"));
         assert!(!valid_voice("Emel"));
@@ -535,9 +636,18 @@ mod tests {
 
     #[test]
     fn dates_and_frames() {
-        assert_eq!(js_date(0), "Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)");
-        assert_eq!(js_date(1_700_000_000), "Tue Nov 14 2023 22:13:20 GMT+0000 (Coordinated Universal Time)");
-        assert_eq!(parse_http_date("Tue, 14 Nov 2023 22:13:20 GMT"), Some(1_700_000_000));
+        assert_eq!(
+            js_date(0),
+            "Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+        );
+        assert_eq!(
+            js_date(1_700_000_000),
+            "Tue Nov 14 2023 22:13:20 GMT+0000 (Coordinated Universal Time)"
+        );
+        assert_eq!(
+            parse_http_date("Tue, 14 Nov 2023 22:13:20 GMT"),
+            Some(1_700_000_000)
+        );
         assert_eq!(parse_http_date("bozuk"), None);
         let head = b"X-RequestId:abc\r\nContent-Type:audio/mpeg\r\nPath:audio\r\n";
         let mut frame = (head.len() as u16).to_be_bytes().to_vec();
@@ -545,7 +655,12 @@ mod tests {
         frame.extend_from_slice(&[1, 2, 3]);
         assert_eq!(audio_payload(&frame), Some(&[1u8, 2, 3][..]));
         assert_eq!(audio_payload(&[0, 9, 1]), None);
-        assert_eq!(text_path("X-RequestId:abc\r\nContent-Type:application/json\r\nPath:turn.end\r\n\r\n{}"), "turn.end");
+        assert_eq!(
+            text_path(
+                "X-RequestId:abc\r\nContent-Type:application/json\r\nPath:turn.end\r\n\r\n{}"
+            ),
+            "turn.end"
+        );
         assert!(config_msg(0).contains("Path:speech.config\r\n\r\n{\"context\""));
         assert!(config_msg(0).contains(OUTPUT_FORMAT));
         assert!(ssml_msg(0, "id", "<speak/>").ends_with("Path:ssml\r\n\r\n<speak/>"));
@@ -554,10 +669,19 @@ mod tests {
     #[test]
     fn voice_lists() {
         let b = builtin_voices();
-        assert!(b.iter().any(|v| v.short == "tr-TR-EmelNeural" && v.female && v.locale == "tr-TR"));
-        assert!(b.iter().any(|v| v.short == "tr-TR-AhmetNeural" && !v.female));
-        for l in ["tr", "en", "de", "es", "fi", "fr", "it", "ja", "nl", "pl", "pt", "ru", "sv", "zh"] {
-            assert!(b.iter().filter(|v| v.locale.starts_with(l)).count() >= 2, "{l}");
+        assert!(b
+            .iter()
+            .any(|v| v.short == "tr-TR-EmelNeural" && v.female && v.locale == "tr-TR"));
+        assert!(b
+            .iter()
+            .any(|v| v.short == "tr-TR-AhmetNeural" && !v.female));
+        for l in [
+            "tr", "en", "de", "es", "fi", "fr", "it", "ja", "nl", "pl", "pt", "ru", "sv", "zh",
+        ] {
+            assert!(
+                b.iter().filter(|v| v.locale.starts_with(l)).count() >= 2,
+                "{l}"
+            );
         }
         assert_eq!(b[0].display(), "Emel");
         let body = r#"[{"Name":"x","ShortName":"tr-TR-EmelNeural","Gender":"Female","Locale":"tr-TR","FriendlyName":"Microsoft Emel Online (Natural) - Turkish (Turkey)"},{"ShortName":"bad name"}]"#;

@@ -8,8 +8,8 @@
 use crate::calc;
 use crate::demo::Demo;
 use crate::model::{Frame, SessionData};
-use crate::trackmap::TrackMap;
 use crate::tracker::Tracker;
+use crate::trackmap::TrackMap;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -86,7 +86,10 @@ pub enum Sink {
     /// Tarayıcı kaynağı (SSE); JSON metni gönderilir
     Sse(Sender<String>),
     /// MQTT istemcisi: her konu `<önek>/<konu>` başlığına yayınlanır
-    Mqtt { client: rumqttc::Client, prefix: String },
+    Mqtt {
+        client: rumqttc::Client,
+        prefix: String,
+    },
 }
 
 struct Subscriber {
@@ -125,10 +128,19 @@ impl Subscriber {
             },
             Sink::Mqtt { client, prefix } => {
                 if let Ok(serde_json::Value::Object(mut o)) = serde_json::to_value(p) {
-                    let t = o.get("t").and_then(|t| t.as_str()).unwrap_or("x").to_string();
+                    let t = o
+                        .get("t")
+                        .and_then(|t| t.as_str())
+                        .unwrap_or("x")
+                        .to_string();
                     let d = o.remove("d").unwrap_or(serde_json::Value::Null);
                     if let Ok(payload) = serde_json::to_vec(&d) {
-                        let _ = client.try_publish(format!("{prefix}/{t}"), rumqttc::QoS::AtMostOnce, false, payload);
+                        let _ = client.try_publish(
+                            format!("{prefix}/{t}"),
+                            rumqttc::QoS::AtMostOnce,
+                            false,
+                            payload,
+                        );
                     }
                 }
                 true
@@ -244,19 +256,31 @@ fn build_topics(reqs: &[TopicReq]) -> Vec<Topic> {
     let now = Instant::now();
     let mut out: Vec<Topic> = Vec::new();
     // Durum her zaman gönderilir
-    out.push(Topic { name: "status".into(), interval: Duration::from_millis(500), next: now });
+    out.push(Topic {
+        name: "status".into(),
+        interval: Duration::from_millis(500),
+        next: now,
+    });
     for r in reqs {
         if !KNOWN.contains(&r.name.as_str()) || r.name == "status" {
             continue;
         }
         // NaN `clamp`ten NaN çıkar ve Duration::from_secs_f32 panic yapar (ör. tarayıcı kaynağı adresinde "fuel:nan")
-        let hz = if r.hz.is_finite() { r.hz.clamp(0.5, 60.0) } else { 5.0 };
+        let hz = if r.hz.is_finite() {
+            r.hz.clamp(0.5, 60.0)
+        } else {
+            5.0
+        };
         let interval = Duration::from_secs_f32(1.0 / hz);
         match out.iter_mut().find(|t| t.name == r.name) {
             // Aynı konuya birden fazla overlay abone olursa en yüksek sıklık kazanır
             Some(t) if interval < t.interval => t.interval = interval,
             Some(_) => {}
-            None => out.push(Topic { name: r.name.clone(), interval, next: now }),
+            None => out.push(Topic {
+                name: r.name.clone(),
+                interval,
+                next: now,
+            }),
         }
     }
     out
@@ -359,7 +383,9 @@ struct State {
 
 /// Tamamlanan turu arka planda yerel kuyruğa yazar ve arayüze haber verir (yükleme JS tarafında).
 fn save_lap(app: &AppHandle, dir: Option<&std::path::Path>, lap: crate::laprec::LapRecord) {
-    let Some(dir) = dir.map(|d| d.to_path_buf()) else { return };
+    let Some(dir) = dir.map(|d| d.to_path_buf()) else {
+        return;
+    };
     let app = app.clone();
     std::thread::spawn(move || {
         let path = crate::laprec::queue_path(&dir);
@@ -378,7 +404,9 @@ fn save_lap(app: &AppHandle, dir: Option<&std::path::Path>, lap: crate::laprec::
 /// Bitmiş oturum kaydını arka planda diske yazar.
 fn save_record(shared: &Shared, rec: Option<crate::history::SessionRecord>) {
     let Some(rec) = rec else { return };
-    let Some(dir) = shared.sessions_dir.lock().clone() else { return };
+    let Some(dir) = shared.sessions_dir.lock().clone() else {
+        return;
+    };
     let (summary, keep) = *shared.history_cfg.lock();
     std::thread::spawn(move || {
         if let Err(e) = crate::history::save(&dir, &rec, summary) {
@@ -540,9 +568,15 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 let mut drop_live = false;
                 if last_pref_check.elapsed() > Duration::from_secs(1) {
                     last_pref_check = Instant::now();
-                    sim_pref = crate::with_settings(&app, |v| crate::sims::SimPref::from_settings(v));
-                    udp_cfg = crate::with_settings(&app, |v| crate::sims::udp::UdpCfg::from_settings(v));
-                    if live.as_ref().map(|l| !sim_pref.accepts(l.kind())).unwrap_or(false) {
+                    sim_pref =
+                        crate::with_settings(&app, |v| crate::sims::SimPref::from_settings(v));
+                    udp_cfg =
+                        crate::with_settings(&app, |v| crate::sims::udp::UdpCfg::from_settings(v));
+                    if live
+                        .as_ref()
+                        .map(|l| !sim_pref.accepts(l.kind()))
+                        .unwrap_or(false)
+                    {
                         drop_live = true;
                     }
                 }
@@ -611,7 +645,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             {
                 let mut names: Vec<String> = Vec::new();
                 for d in st.session.drivers.iter().flatten() {
-                    if d.is_pace_car || d.is_spectator || d.name.trim().is_empty() || names.iter().any(|n| n == &d.name) {
+                    if d.is_pace_car
+                        || d.is_spectator
+                        || d.name.trim().is_empty()
+                        || names.iter().any(|n| n == &d.name)
+                    {
                         continue;
                     }
                     names.push(d.name.clone());
@@ -624,7 +662,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             } else {
                 format!("{} – {}", st.session.track_name, st.session.track_config)
             };
-            let car = st.session.player().map(|d| d.car_name.clone()).unwrap_or_default();
+            let car = st
+                .session
+                .player()
+                .map(|d| d.car_name.clone())
+                .unwrap_or_default();
             *shared.shot_meta.lock() = (track, car);
         }
 
@@ -649,7 +691,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
                 last_events_cfg = Instant::now();
-                Some(crate::with_settings(&app, |v| crate::events::Record::from_settings(v.and_then(|v| v.pointer("/general/eventsRecord")))))
+                Some(crate::with_settings(&app, |v| {
+                    crate::events::Record::from_settings(
+                        v.and_then(|v| v.pointer("/general/eventsRecord")),
+                    )
+                }))
             } else {
                 None
             };
@@ -676,8 +722,18 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Otomatik açılış: general.eventsAutoOpen açık ve en az general.eventsMinCount olay varsa
             let auto_open = |need: usize| {
                 let (auto, min) = crate::with_settings(&app, |v| {
-                    let auto = v.and_then(|v| v.pointer("/general/eventsAutoOpen").and_then(|x| x.as_bool())).unwrap_or(true);
-                    let min = v.and_then(|v| v.pointer("/general/eventsMinCount").and_then(|x| x.as_u64())).unwrap_or(0) as usize;
+                    let auto = v
+                        .and_then(|v| {
+                            v.pointer("/general/eventsAutoOpen")
+                                .and_then(|x| x.as_bool())
+                        })
+                        .unwrap_or(true);
+                    let min = v
+                        .and_then(|v| {
+                            v.pointer("/general/eventsMinCount")
+                                .and_then(|x| x.as_u64())
+                        })
+                        .unwrap_or(0) as usize;
                     (auto, min)
                 });
                 auto && ev_count >= min.max(need)
@@ -704,7 +760,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 events_auto = true;
             }
             was_replay = replay;
-            let done = crate::crashlog::guard(|| st.history.update(&st.frame, &st.session, !demo_on && connected)).flatten();
+            let done = crate::crashlog::guard(|| {
+                st.history
+                    .update(&st.frame, &st.session, !demo_on && connected)
+            })
+            .flatten();
             save_record(&shared, done);
             crate::crashlog::guard(|| st.timing.update(&st.frame, &st.session, demo_on));
             if connected && !demo_on && !preview {
@@ -717,12 +777,19 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Telemetri: sadece canlı sim verisi (demo/önizleme değil); League Builder öncesi ham oturum
             if last_rec_check.elapsed() > Duration::from_secs(1) {
                 last_rec_check = Instant::now();
-                *shared.brake_combo.lock() = if connected && !demo_on && !preview { st.cues.combo() } else { Default::default() };
+                *shared.brake_combo.lock() = if connected && !demo_on && !preview {
+                    st.cues.combo()
+                } else {
+                    Default::default()
+                };
                 // Tur kaydı her zaman açık (eski "Turlarımı kaydet" ayarı yok sayılır)
                 rec_enabled = true;
             }
             // Fren noktası referansı ve pist limiti sayaçları (demo verisinde dosyaya yazılmaz)
-            crate::crashlog::guard(|| st.cues.update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref()));
+            crate::crashlog::guard(|| {
+                st.cues
+                    .update(&st.frame, &st.raw, st.sim, demo_on, app_data.as_deref())
+            });
             if let Some(c) = shared.brake_community.lock().take() {
                 st.cues.set_community(c);
             }
@@ -737,7 +804,10 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 }
             }
             let rec_on = rec_enabled && !demo_on && !preview && connected && demo.is_none();
-            if let Some(lap) = crate::crashlog::guard(|| st.laprec.update(&st.frame, &st.raw, st.sim, rec_on)).flatten() {
+            if let Some(lap) =
+                crate::crashlog::guard(|| st.laprec.update(&st.frame, &st.raw, st.sim, rec_on))
+                    .flatten()
+            {
                 save_lap(&app, app_data.as_deref(), lap);
             }
             if demo.is_none() {
@@ -745,10 +815,28 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             }
             // Sesli spotter/mühendis ve bipler: önizleme verisinde susar. Demo modunda ses çıkmaz ama mesajlar sessizce
             // "söylenir" (ses düzeyi 0, bip yok; sesli mühendis kapalı olsa da): altyazı overlay'i canlı gibi görünür.
-            crate::crashlog::guard(|| voice.tick(&st.frame, &st.session, &st.tracker, connected && !preview, st.sim, user_demo));
+            crate::crashlog::guard(|| {
+                voice.tick(
+                    &st.frame,
+                    &st.session,
+                    &st.tracker,
+                    connected && !preview,
+                    st.sim,
+                    user_demo,
+                )
+            });
         }
         // Sesli komut (bas-konuş): bekleyen soruları son kareden cevapla (bkz. voicecmd.rs)
-        crate::crashlog::guard(|| crate::voicecmd::service(&mut voice, &st.frame, &st.session, &st.tracker, st.sim, shared.demo.load(Ordering::Relaxed)));
+        crate::crashlog::guard(|| {
+            crate::voicecmd::service(
+                &mut voice,
+                &st.frame,
+                &st.session,
+                &st.tracker,
+                st.sim,
+                shared.demo.load(Ordering::Relaxed),
+            )
+        });
 
         // Oturumdan çıkıldı (sim bağlantısı bitti): kendiliğinden açılmış Olaylar penceresi kapanır
         // Oyundan çıkıldı (iRacing'de Quit: sim kapanır): oturum sırasında açılmış Olaylar penceresi kapanır
@@ -756,7 +844,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         let real = connected && !demo_on && !preview;
         if real && last_events_look.elapsed() > Duration::from_secs(1) {
             last_events_look = Instant::now();
-            if app.get_webview_window("events").map(|w| w.is_visible().unwrap_or(false)).unwrap_or(false) {
+            if app
+                .get_webview_window("events")
+                .map(|w| w.is_visible().unwrap_or(false))
+                .unwrap_or(false)
+            {
                 events_seen = true;
             }
         }
@@ -821,16 +913,31 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                         on_pit: f.on_pit_road,
                         ts: crate::mqtt::now_ms(),
                         lap_pct: f.lap_dist_pct,
-                        position: f.cars.get(me.car_idx as usize).map(|c| c.position).unwrap_or(0),
+                        position: f
+                            .cars
+                            .get(me.car_idx as usize)
+                            .map(|c| c.position)
+                            .unwrap_or(0),
                         best: lp.best,
-                        last: lp.laps.iter().rev().find(|l| l.time > 0.0).map(|l| l.time).unwrap_or(0.0),
+                        last: lp
+                            .laps
+                            .iter()
+                            .rev()
+                            .find(|l| l.time > 0.0)
+                            .map(|l| l.time)
+                            .unwrap_or(0.0),
                         laps: lp
                             .laps
                             .iter()
                             .rev()
                             .take(10)
                             .rev()
-                            .map(|l| crate::mqtt::TeamLap { lap: l.lap, time: l.time, valid: l.valid, pit: l.pit })
+                            .map(|l| crate::mqtt::TeamLap {
+                                lap: l.lap,
+                                time: l.time,
+                                valid: l.valid,
+                                pit: l.pit,
+                            })
                             .collect(),
                     };
                     shared.mqtt.publish_team(&tf);
@@ -845,7 +952,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                         // Lastik: kalan diş % (bilinmiyorsa -1) ve yüzey sıcaklığı °C — LF, RF, LR, RR
                         let wear = [0, 1, 2, 3].map(|i| {
                             let x = avg(&f.tire_wear[i]);
-                            if x < 0.0 { -1.0 } else { (x * 100.0).round() }
+                            if x < 0.0 {
+                                -1.0
+                            } else {
+                                (x * 100.0).round()
+                            }
                         });
                         let temp = [0, 1, 2, 3].map(|i| avg(&f.tire_temp[i]).round());
                         let crew = serde_json::json!({
@@ -898,7 +1009,14 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
     let t = &st.tracker;
     let has_data = connected && f.player_idx >= 0;
     // Garaj / setup ekranı ve garaj durumu da anahtarda: Setup Örtüsü düğmeye basıldığı anda gelsin (yarım saniye beklemesin)
-    let key = (connected, demo || preview, f.is_on_track, f.replay, f.garage_visible == Some(true), f.is_in_garage);
+    let key = (
+        connected,
+        demo || preview,
+        f.is_on_track,
+        f.replay,
+        f.garage_visible == Some(true),
+        f.is_in_garage,
+    );
 
     // Aynı karede birden fazla aboneye gidecek paketi bir kez hesapla
     // (konu, paket, SSE aboneleri için hazır JSON metni)
@@ -917,7 +1035,10 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
         // Önce gönderilecek konuları seç, sonra paketleri üretip gönder
         due.clear();
         for tp in sub.topics.iter_mut() {
-            if now < tp.next || (tp.name != "status" && tp.name != "team" && !has_data) || PUSHED.contains(&tp.name.as_str()) {
+            if now < tp.next
+                || (tp.name != "status" && tp.name != "team" && !has_data)
+                || PUSHED.contains(&tp.name.as_str())
+            {
                 continue;
             }
             tp.next = now + tp.interval;
@@ -940,47 +1061,51 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                 i
             } else {
                 // Konu hesabı korunur: bir konudaki panic (crash.log'a yazılır) yalnız o konuyu bu karede atlar
-                let made = crate::crashlog::guard(|| Some(match name {
-                    "status" => {
-                        let mut x = calc::status(f, s, connected, demo, preview);
-                        if connected && !demo && !preview {
-                            x.sim = st.sim.to_string();
-                            let role = crate::sims::role::role(st.sim, f, s);
-                            x.driver = role.is_driver();
-                            x.role = role.id().to_string();
+                let made = crate::crashlog::guard(|| {
+                    Some(match name {
+                        "status" => {
+                            let mut x = calc::status(f, s, connected, demo, preview);
+                            if connected && !demo && !preview {
+                                x.sim = st.sim.to_string();
+                                let role = crate::sims::role::role(st.sim, f, s);
+                                x.driver = role.is_driver();
+                                x.role = role.id().to_string();
+                            }
+                            x.chat = shared.live_gate.lock().clone();
+                            Packet::Status(x)
                         }
-                        x.chat = shared.live_gate.lock().clone();
-                        Packet::Status(x)
-                    }
-                    "inputs" => Packet::Inputs(calc::inputs(f, s)),
-                    "ers" => Packet::Ers(calc::ers(f)),
-                    "telemetry" => Packet::Telemetry(calc::telemetry(f, s, t)),
-                    "delta" => Packet::Delta(calc::delta(f, t)),
-                    "radar" => Packet::Radar(calc::radar(f, s)),
-                    "relative" => Packet::Relative(calc::relative(f, s, t, 8)),
-                    "standings" => Packet::Standings(calc::standings(f, s, t)),
-                    "fuel" => Packet::Fuel(calc::fuel(f, s, t)),
-                    "session" => Packet::Session(calc::session(f, s)),
-                    "weather" => Packet::Weather(calc::weather(f)),
-                    "raceControl" => Packet::RaceControl(calc::race_control(t)),
-                    "tires" => Packet::Tires(calc::tires(f)),
-                    "team" => Packet::Team(shared.mqtt.team_packet()),
-                    "entries" => Packet::Entries(crate::league::entries(s, st.league_active)),
-                    "laps" => Packet::Laps(st.history.laps(f)),
-                    "incidents" => Packet::Incidents(st.history.incidents(f, s)),
-                    "pit" => Packet::Pit(crate::extras::pit(f, s)),
-                    "corners" => Packet::Corners(st.history.corners(f)),
-                    "sectors" => Packet::Sectors(st.timing.sectors(f, s)),
-                    "gaps" => Packet::Gaps(st.timing.gaps(f, s)),
-                    "setupcmp" => Packet::Setupcmp(st.setups.packet(&st.raw)),
-                    "coach" => Packet::Coach(st.coach.packet(f, st.raw.track_length_km * 1000.0)),
-                    "traffic" => Packet::Traffic(crate::extras::traffic(f, s)),
-                    "brakepoint" => Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)),
-                    "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
-                    "damage" => Packet::Damage(crate::drivecues::damage(f)),
-                    "strategy" => Packet::Strategy(st.strategy.packet(f, s)),
-                    _ => return None,
-                }))
+                        "inputs" => Packet::Inputs(calc::inputs(f, s)),
+                        "ers" => Packet::Ers(calc::ers(f)),
+                        "telemetry" => Packet::Telemetry(calc::telemetry(f, s, t)),
+                        "delta" => Packet::Delta(calc::delta(f, t)),
+                        "radar" => Packet::Radar(calc::radar(f, s)),
+                        "relative" => Packet::Relative(calc::relative(f, s, t, 8)),
+                        "standings" => Packet::Standings(calc::standings(f, s, t)),
+                        "fuel" => Packet::Fuel(calc::fuel(f, s, t)),
+                        "session" => Packet::Session(calc::session(f, s)),
+                        "weather" => Packet::Weather(calc::weather(f)),
+                        "raceControl" => Packet::RaceControl(calc::race_control(t)),
+                        "tires" => Packet::Tires(calc::tires(f)),
+                        "team" => Packet::Team(shared.mqtt.team_packet()),
+                        "entries" => Packet::Entries(crate::league::entries(s, st.league_active)),
+                        "laps" => Packet::Laps(st.history.laps(f)),
+                        "incidents" => Packet::Incidents(st.history.incidents(f, s)),
+                        "pit" => Packet::Pit(crate::extras::pit(f, s)),
+                        "corners" => Packet::Corners(st.history.corners(f)),
+                        "sectors" => Packet::Sectors(st.timing.sectors(f, s)),
+                        "gaps" => Packet::Gaps(st.timing.gaps(f, s)),
+                        "setupcmp" => Packet::Setupcmp(st.setups.packet(&st.raw)),
+                        "coach" => {
+                            Packet::Coach(st.coach.packet(f, st.raw.track_length_km * 1000.0))
+                        }
+                        "traffic" => Packet::Traffic(crate::extras::traffic(f, s)),
+                        "brakepoint" => Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)),
+                        "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
+                        "damage" => Packet::Damage(crate::drivecues::damage(f)),
+                        "strategy" => Packet::Strategy(st.strategy.packet(f, s)),
+                        _ => return None,
+                    })
+                })
                 .flatten();
                 let Some(p) = made else { continue };
                 cache.push((name, p, None));
@@ -1035,7 +1160,10 @@ mod publish_tests {
         st.tracker.fuel.seed(&hist, &laps, stint);
         st.history.seed_demo(&laps, &hist);
         st.map.set_shape("demo", d.track_shape());
-        let secs: f64 = std::env::var("DEMO_SECS").ok().and_then(|v| v.parse().ok()).unwrap_or(100.0);
+        let secs: f64 = std::env::var("DEMO_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(100.0);
         let dt = 1.0 / 60.0;
         let mut t = 0.0;
         while t < secs {
@@ -1082,7 +1210,11 @@ mod publish_tests {
         put(Packet::Damage(crate::drivecues::damage(f)));
         put(Packet::Strategy(st.strategy.packet(f, s)));
         let path = std::env::var("DEMO_DUMP").unwrap_or_else(|_| "target/demo_topics.json".into());
-        std::fs::write(&path, serde_json::to_string(&serde_json::Value::Object(out)).unwrap()).unwrap();
+        std::fs::write(
+            &path,
+            serde_json::to_string(&serde_json::Value::Object(out)).unwrap(),
+        )
+        .unwrap();
         eprintln!("yazıldı: {path}");
     }
 
@@ -1092,7 +1224,10 @@ mod publish_tests {
         let shared = Shared::default();
         let (tx1, rx1) = std::sync::mpsc::channel::<String>();
         let (tx2, rx2) = std::sync::mpsc::channel::<String>();
-        let reqs = [TopicReq { name: "team".into(), hz: 1.0 }];
+        let reqs = [TopicReq {
+            name: "team".into(),
+            hz: 1.0,
+        }];
         shared.subscribe(Sink::Sse(tx1), &reqs);
         shared.subscribe(Sink::Sse(tx2), &reqs);
         let st = state();
