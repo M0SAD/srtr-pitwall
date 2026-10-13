@@ -5,15 +5,24 @@
 //! - iRacing: `sdk.rs` (değişmeden) + `iracing.rs` sarmalayıcısı
 //! - Assetto Corsa / ACC: `kunos.rs` (`Local\acpmf_physics|graphics|static`)
 //! - rFactor 2 / Le Mans Ultimate: `rf2.rs` (rF2 Shared Memory Map Plugin tamponları)
-//! - Automobilista 2 / Project CARS 2: `ams2.rs` (`$pcars2$`)
+//! - Automobilista 2 / Project CARS 2 / Project CARS 3: `ams2.rs` (`$pcars2$`)
+//! - RaceRoom: `r3e.rs` (`$R3E`)
+//! - F1 23 / 24 / 25: `f1.rs` (UDP)
+//! - Forza, DiRT Rally 2.0 / DiRT 4 / GRID, BeamNG.drive: `solo.rs` (UDP; sadece oyuncunun aracı)
+//!
+//! UDP dinleyicisi: `udp.rs` (portlar sadece oyun çalışırken ya da "konsoldan da al" açıkken açılır).
 //!
 //! Bayt ayrıştırma kısımları platformdan bağımsızdır (testler Linux'ta da çalışır);
 //! belleği açan kısımlar sadece Windows'ta derlenir.
 
 pub mod ams2;
+pub mod f1;
 pub mod kunos;
+pub mod r3e;
 pub mod rf2;
 pub mod role;
+pub mod solo;
+pub mod udp;
 
 #[cfg(windows)]
 pub mod iracing;
@@ -31,6 +40,11 @@ pub enum SimKind {
     Lmu,
     Rf2,
     Ams2,
+    R3e,
+    F1,
+    Forza,
+    Dirt,
+    BeamNg,
 }
 
 impl SimKind {
@@ -43,7 +57,17 @@ impl SimKind {
             SimKind::Lmu => "lmu",
             SimKind::Rf2 => "rf2",
             SimKind::Ams2 => "ams2",
+            SimKind::R3e => "r3e",
+            SimKind::F1 => "f1",
+            SimKind::Forza => "forza",
+            SimKind::Dirt => "dirt",
+            SimKind::BeamNg => "beamng",
         }
+    }
+
+    /// Diğer araçların verisini (sıra, tur, konum) veriyor mu
+    pub fn has_field(self) -> bool {
+        !matches!(self, SimKind::Ac | SimKind::Acc | SimKind::Forza | SimKind::Dirt | SimKind::BeamNg)
     }
 }
 
@@ -64,6 +88,11 @@ impl SimPref {
             "lmu" => SimPref::Only(SimKind::Lmu),
             "rf2" => SimPref::Only(SimKind::Rf2),
             "ams2" => SimPref::Only(SimKind::Ams2),
+            "r3e" => SimPref::Only(SimKind::R3e),
+            "f1" => SimPref::Only(SimKind::F1),
+            "forza" => SimPref::Only(SimKind::Forza),
+            "dirt" => SimPref::Only(SimKind::Dirt),
+            "beamng" => SimPref::Only(SimKind::BeamNg),
             _ => SimPref::Auto,
         }
     }
@@ -109,7 +138,7 @@ pub trait Source {
 /// Hiçbiri bağlı değilse (ama iRacing belleği varsa) iRacing kaynağı döner; motor onu
 /// eskisi gibi bırakıp yeniden dener.
 #[cfg(windows)]
-pub fn open(pref: SimPref) -> Option<Box<dyn Source>> {
+pub fn open(pref: SimPref, net: udp::UdpCfg) -> Option<Box<dyn Source>> {
     let mut idle: Option<Box<dyn Source>> = None;
     if pref.wants(&[SimKind::IRacing]) {
         if let Some(s) = iracing::IRacing::open() {
@@ -143,7 +172,69 @@ pub fn open(pref: SimPref) -> Option<Box<dyn Source>> {
             }
         }
     }
+    if pref.wants(&[SimKind::R3e]) {
+        if let Some(s) = r3e::R3e::open() {
+            if s.connected() {
+                return Some(Box::new(s));
+            }
+        }
+    }
+    // UDP simleri: oyunu çalışan (ya da "konsoldan da al" açıksa hepsinin) portu dinlenir
+    let wants: Vec<udp::Proto> = [
+        (SimKind::F1, udp::Proto::F1),
+        (SimKind::Dirt, udp::Proto::Dirt),
+        (SimKind::Forza, udp::Proto::Forza),
+        (SimKind::BeamNg, udp::Proto::BeamNg),
+    ]
+    .iter()
+    .filter(|(k, _)| pref.wants(&[*k]))
+    .map(|(_, p)| *p)
+    .collect();
+    let running = udp_running(&wants, net.always);
+    udp::listen(&udp::wanted_ports(&net, &wants, &running));
+    if wants.contains(&udp::Proto::F1) {
+        if let Some(s) = f1::F1::open() {
+            return Some(Box::new(s));
+        }
+    }
+    if wants.contains(&udp::Proto::Forza) {
+        if let Some(s) = solo::ForzaSource::open() {
+            return Some(Box::new(s));
+        }
+    }
+    if wants.contains(&udp::Proto::Dirt) {
+        if let Some(s) = solo::DirtSource::open() {
+            return Some(Box::new(s));
+        }
+    }
+    if wants.contains(&udp::Proto::BeamNg) {
+        if let Some(s) = solo::BeamNgSource::open() {
+            return Some(Box::new(s));
+        }
+    }
     idle
+}
+
+/// Bu bilgisayarda çalışan UDP oyunları (süreç listesi 3 sn'de bir okunur)
+#[cfg(windows)]
+fn udp_running(wants: &[udp::Proto], always: bool) -> Vec<udp::Proto> {
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+    static CACHE: Mutex<Option<(Instant, Vec<udp::Proto>)>> = Mutex::new(None);
+    if always || wants.is_empty() {
+        return Vec::new();
+    }
+    let mut c = CACHE.lock().unwrap();
+    if let Some((t, v)) = c.as_ref() {
+        if t.elapsed() < Duration::from_secs(3) {
+            return v.clone();
+        }
+    }
+    let mut v: Vec<udp::Proto> = shm::process_names().iter().filter_map(|e| udp::proto_for_exe(e)).collect();
+    v.sort_by_key(|p| *p as u8);
+    v.dedup();
+    *c = Some((Instant::now(), v.clone()));
+    v
 }
 
 // ---------------------------------------------------------------------------

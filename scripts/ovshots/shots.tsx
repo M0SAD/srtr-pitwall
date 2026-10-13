@@ -6,6 +6,7 @@ import { Show, createSignal, type Accessor } from "solid-js";
 import { initSettings } from "@/sdk/settings";
 import { TopicSourceProvider, type TopicSource } from "@/sdk/telemetry";
 import { manifestById } from "@/sdk/registry";
+import { unlockPreviews } from "@/sdk/proFeatures";
 import { OverlayView } from "@/app/components/OverlayView";
 import "@/sdk/fonts";
 import "@/overlays/base.css";
@@ -30,6 +31,8 @@ const patch = (() => {
 })();
 
 async function main() {
+  // Görseller PRO tasarımları da göstersin
+  unlockPreviews();
   // Ayarlar: varsayılanlar (tarayıcıda ayar sunucusu yok; en çok 1,5 sn beklenir)
   await Promise.race([initSettings("overlay").catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
   const data = (await fetch("/scripts/ovshots/demo_topics.json").then((r) => r.json())) as Record<string, Record<string, unknown>>;

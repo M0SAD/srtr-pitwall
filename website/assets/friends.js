@@ -132,7 +132,7 @@ addDict({
   ],
 });
 
-const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
+const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 const REASONS = ["harassment", "spam", "inappropriate", "scam", "other"];
 const PAGE = 60;
 

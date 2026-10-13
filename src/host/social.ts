@@ -112,7 +112,7 @@ function grown(prev: Friend[], next: Friend[]): string[] {
     .map((f) => f.friend_id);
 }
 /** Sunucunun kabul ettiği sim kimlikleri (user_status.sim, c31) */
-const SIM_IDS = ["iracing", "acc", "ac", "lmu", "rf2", "ams2"];
+const SIM_IDS = ["iracing", "acc", "ac", "lmu", "rf2", "ams2", "r3e", "f1", "forza", "dirt", "beamng"];
 
 /** Mesajları zaten gösteren bir pencere (panel ya da Arkadaşlar penceresi) şu an önde mi */
 async function chatVisible(): Promise<boolean> {

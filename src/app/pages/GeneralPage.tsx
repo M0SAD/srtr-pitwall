@@ -8,7 +8,7 @@ import { Notes } from "../components/Notes";
 import { checkUpdate, checking, setUpdateDialog, update, updateError, version } from "../ui";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { settings, updateSettings } from "@/sdk/settings";
+import { settings, updateSettings, UDP_DEFAULTS } from "@/sdk/settings";
 import { appState, setDemo } from "../App";
 import { freeView, realAdmin, setFreeView } from "@/cloud/account";
 import { MESSAGE_TONES, messageBeep } from "@/cloud/social";
@@ -23,6 +23,63 @@ interface MonitorInfo {
   y: number;
   scale: number;
   primary: boolean;
+}
+
+/** UDP telemetrisi gönderen oyunlar (F1, Forza, DiRT / GRID, BeamNG): portlar ve "konsoldan da al" */
+function UdpPortsRow() {
+  const u = () => ({ ...UDP_DEFAULTS, ...(settings().general.udp ?? {}) });
+  const set = (k: "codemasters" | "forza" | "beamng", v: string) => {
+    const n = Math.round(Number(v));
+    if (!(n >= 1024 && n <= 65535)) return;
+    updateSettings((d) => void (d.general.udp = { ...UDP_DEFAULTS, ...(d.general.udp ?? {}), [k]: n }));
+  };
+  const [st, setSt] = createSignal<{ listening: number[]; failed: number[] }>({ listening: [], failed: [] });
+  const poll = () => invoke<{ listening: number[]; failed: number[] }>("udp_status").then(setSt).catch(() => {});
+  poll();
+  const timer = setInterval(poll, 3000);
+  onCleanup(() => clearInterval(timer));
+  return (
+    <div class="row">
+      <div>
+        <b>UDP portları</b>
+        <small>
+          F1 23-25 ve DiRT Rally 2.0 / DiRT 4 / GRID, Forza ve BeamNG.drive verisini bu portlardan alır; oyundaki port aynı olmalı. Port, oyun bu bilgisayarda açıkken
+          dinlenir. SimHub gibi aynı portu kullanan bir program varsa oyunda ve burada farklı bir port seç (ya da o programın UDP yönlendirmesini kullan).
+        </small>
+        <Show when={st().failed.length}>
+          <small class="udp-state bad">{t("Açılamayan port: {0} (başka bir program kullanıyor)", st().failed.join(", "))}</small>
+        </Show>
+        <Show when={st().listening.length}>
+          <small class="udp-state">{t("Dinleniyor: {0}", st().listening.join(", "))}</small>
+        </Show>
+      </div>
+      <div class="udp-ports">
+        <label title={t("F1 23 / 24 / 25 ve DiRT Rally 2.0 / DiRT 4 / GRID (Codemasters)")}>
+          F1 / DiRT
+          <input type="number" min="1024" max="65535" value={u().codemasters} onChange={(e) => set("codemasters", e.currentTarget.value)} />
+        </label>
+        <label>
+          Forza
+          <input type="number" min="1024" max="65535" value={u().forza} onChange={(e) => set("forza", e.currentTarget.value)} />
+        </label>
+        <label>
+          BeamNG
+          <input type="number" min="1024" max="65535" value={u().beamng} onChange={(e) => set("beamng", e.currentTarget.value)} />
+        </label>
+        <label class="udp-always" title={t("PlayStation / Xbox'taki F1 ya da Forza bu bilgisayarın IP adresine gönderiyorsa aç: portlar oyun bu bilgisayarda çalışmıyorken de dinlenir")}>
+          <input
+            type="checkbox"
+            checked={u().always}
+            onChange={(e) => {
+              const v = e.currentTarget.checked;
+              updateSettings((d) => void (d.general.udp = { ...UDP_DEFAULTS, ...(d.general.udp ?? {}), always: v }));
+            }}
+          />
+          {t("Konsoldan da al")}
+        </label>
+      </div>
+    </div>
+  );
 }
 
 export function GeneralPage() {
@@ -133,13 +190,14 @@ export function GeneralPage() {
 
       <section class="panel">
         <h3>Görüntü</h3>
-        <div class="row">
+        <div class="row sim-row">
           <div>
             <b>Oyun</b>
-            <small>Otomatik: açık olan oyun kendiliğinden algılanır. Yalnızca birden çok oyun aynı anda açıksa ya da yanlış oyun algılanıyorsa elle seç.</small>
+            <small>Otomatik: açık olan oyun kendiliğinden algılanır. Yalnızca birden çok oyun aynı anda açıksa ya da yanlış oyun algılanıyorsa elle seç. Oyun simgesinin üzerine gelince o oyunda yapılması gereken ayar yazar.</small>
           </div>
           <SimPicker />
         </div>
+        <UdpPortsRow />
         <div class="row">
           <div>
             <b>Overlay monitörü</b>
@@ -184,7 +242,7 @@ export function GeneralPage() {
         <div class="row">
           <div>
             <b>Replay izlerken overlay'leri gizle</b>
-            <small>Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.</small>
+            <small>Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.</small>
           </div>
           <label class="switch">
             <input

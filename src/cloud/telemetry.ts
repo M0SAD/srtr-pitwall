@@ -15,7 +15,7 @@ import { F, proLocked } from "@/sdk/proFeatures";
 
 export const TELEMETRY_BUCKET = "telemetry";
 
-export type SimId = "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2";
+export type SimId = "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng";
 
 /** Yarışçılar sekmeleri (rF2 ile LMU ayrı kimliklerdir ama aynı sekmede gösterilir) */
 export const SIM_TABS: { id: SimId; label: string; also?: SimId[] }[] = [
@@ -24,6 +24,11 @@ export const SIM_TABS: { id: SimId; label: string; also?: SimId[] }[] = [
   { id: "ac", label: "Assetto Corsa" },
   { id: "lmu", label: "LMU / rF2", also: ["rf2"] },
   { id: "ams2", label: "AMS2" },
+  { id: "r3e", label: "RaceRoom" },
+  { id: "f1", label: "F1" },
+  { id: "forza", label: "Forza" },
+  { id: "dirt", label: "DiRT / GRID" },
+  { id: "beamng", label: "BeamNG" },
 ];
 
 export const SIM_LABEL: Record<string, string> = {
@@ -33,6 +38,11 @@ export const SIM_LABEL: Record<string, string> = {
   lmu: "Le Mans Ultimate",
   rf2: "rFactor 2",
   ams2: "Automobilista 2",
+  r3e: "RaceRoom",
+  f1: "F1",
+  forza: "Forza",
+  dirt: "DiRT Rally / GRID",
+  beamng: "BeamNG.drive",
 };
 
 export const SESSION_LABEL: Record<string, string> = {

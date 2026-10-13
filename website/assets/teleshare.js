@@ -91,7 +91,7 @@ function reasonText(r) {
   return "";
 }
 
-const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
+const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 const COLORS = ["#e0701a", "#3a84e0", "#2ecc71", "#c061e0", "#e8c53a"];
 const LETTERS = "ABCDE";
 const W = 1000;

@@ -10,7 +10,7 @@ import { F, assertFeature } from "@/sdk/proFeatures";
 export type TeamRole = "owner" | "admin" | "member";
 export type JoinMode = "open" | "request" | "invite";
 /** Takımın oyunu (c36); multi = birden fazla oyun */
-export type TeamSim = "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "multi";
+export type TeamSim = "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng" | "multi";
 
 export const TEAM_BUCKET = "teams";
 
@@ -28,6 +28,11 @@ export const TEAM_SIMS: { id: TeamSim; label: string; short: string }[] = [
   { id: "lmu", label: "Le Mans Ultimate", short: "LMU" },
   { id: "rf2", label: "rFactor 2", short: "rF2" },
   { id: "ams2", label: "Automobilista 2", short: "AMS2" },
+  { id: "r3e", label: "RaceRoom", short: "R3E" },
+  { id: "f1", label: "F1 23 / F1 24 / F1 25", short: "F1" },
+  { id: "forza", label: "Forza Motorsport / Horizon", short: "Forza" },
+  { id: "dirt", label: "DiRT Rally 2.0 / DiRT 4 / GRID", short: "DiRT" },
+  { id: "beamng", label: "BeamNG.drive", short: "BeamNG" },
   { id: "multi", label: "Birden fazla oyun", short: "Çoklu" },
 ];
 export const teamSimMeta = (sim: string | null | undefined) => TEAM_SIMS.find((x) => x.id === sim) ?? TEAM_SIMS[0];

@@ -440,6 +440,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     #[cfg(windows)]
     let mut sim_pref = crate::with_settings(&app, |v| crate::sims::SimPref::from_settings(v));
     #[cfg(windows)]
+    let mut udp_cfg = crate::with_settings(&app, |v| crate::sims::udp::UdpCfg::from_settings(v));
+    #[cfg(windows)]
     let mut last_pref_check = Instant::now();
     #[cfg(windows)]
     let mut last_try = crate::crashlog::past(10);
@@ -478,7 +480,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     if last_try.elapsed() > Duration::from_secs(2) {
                         last_try = Instant::now();
                         if live.is_none() {
-                            live = crate::sims::open(sim_pref);
+                            live = crate::sims::open(sim_pref, udp_cfg);
                         }
                         if let Some(src) = live.as_mut() {
                             let mut probe = Frame::default();
@@ -539,13 +541,14 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 if last_pref_check.elapsed() > Duration::from_secs(1) {
                     last_pref_check = Instant::now();
                     sim_pref = crate::with_settings(&app, |v| crate::sims::SimPref::from_settings(v));
+                    udp_cfg = crate::with_settings(&app, |v| crate::sims::udp::UdpCfg::from_settings(v));
                     if live.as_ref().map(|l| !sim_pref.accepts(l.kind())).unwrap_or(false) {
                         drop_live = true;
                     }
                 }
                 if live.is_none() && last_try.elapsed() > Duration::from_secs(1) {
                     last_try = Instant::now();
-                    live = crate::sims::open(sim_pref);
+                    live = crate::sims::open(sim_pref, udp_cfg);
                 }
                 if drop_live {
                     // aşağıda bırakılır

@@ -48,7 +48,7 @@ pub struct Status {
     /// Oyuncunun iRacing hesabı (hesap eşleme için)
     pub user_id: i64,
     pub user_name: String,
-    /// Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "" (yok/demo)
+    /// Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng" | "" (yok/demo)
     pub sim: String,
     /// Canlı Sohbet overlay kapısı (motor doldurur; bkz. livechat::LiveGate)
     pub chat: crate::livechat::LiveGate,

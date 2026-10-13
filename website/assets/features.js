@@ -15,24 +15,25 @@ const LANGS = 15;
 // Overlay listesi, adları (ov_<id>_n) ve grup başlıkları: overlays.js (ana sayfa galerisiyle ortak)
 const OVERLAY_COUNT = OVERLAYS.reduce((n, g) => n + g[1].length, 0);
 
-// simSupport.ts: 1 = çalışır, 2 = kısmen, 0 = çalışmaz. Sıra: iRacing, ACC, AC, LMU/rF2, AMS2
+// simSupport.ts: 1 = çalışır, 2 = kısmen, 0 = çalışmaz.
+// Sıra: iRacing, ACC, AC, LMU/rF2, AMS2, RaceRoom, F1, Forza, DiRT / GRID, BeamNG
 const SIMS = [
-  ["fx_si_r1", 1, 1, 1, 1, 1],
-  ["fx_si_r2", 1, 2, 2, 1, 1],
-  ["fx_si_r3", 1, 1, 2, 1, 1],
-  ["fx_si_r4", 1, 2, 1, 1, 2],
-  ["fx_si_r5", 1, 0, 0, 1, 1],
-  ["fx_si_r6", 1, 1, 0, 1, 1],
-  ["fx_si_r7", 1, 0, 0, 1, 1],
-  ["fx_si_r8", 1, 1, 0, 0, 0],
-  ["fx_si_r9", 1, 2, 2, 2, 2],
-  ["fx_si_r10", 1, 0, 0, 0, 0],
-  ["fx_si_r11", 1, 0, 0, 0, 0],
-  ["fx_si_r12", 1, 1, 1, 1, 1],
-  ["fx_si_r13", 1, 2, 2, 2, 2],
-  ["fx_si_r14", 1, 0, 0, 1, 0],
-  ["fx_si_r15", 1, 2, 0, 1, 2],
-  ["fx_si_r16", 1, 0, 0, 0, 0],
+  ["fx_si_r1", 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+  ["fx_si_r2", 1, 2, 2, 1, 1, 1, 1, 2, 2, 0],
+  ["fx_si_r3", 1, 1, 2, 1, 1, 0, 1, 0, 0, 0],
+  ["fx_si_r4", 1, 2, 1, 1, 2, 1, 1, 2, 2, 0],
+  ["fx_si_r5", 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+  ["fx_si_r6", 1, 1, 0, 1, 1, 1, 1, 0, 0, 0],
+  ["fx_si_r7", 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+  ["fx_si_r8", 1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+  ["fx_si_r9", 1, 2, 2, 2, 2, 1, 1, 2, 2, 2],
+  ["fx_si_r10", 1, 0, 0, 0, 0, 2, 0, 0, 0, 0],
+  ["fx_si_r11", 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ["fx_si_r12", 1, 1, 1, 1, 1, 1, 1, 2, 1, 0],
+  ["fx_si_r13", 1, 2, 2, 2, 2, 2, 2, 0, 0, 0],
+  ["fx_si_r14", 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+  ["fx_si_r15", 1, 2, 0, 1, 2, 1, 1, 0, 0, 0],
+  ["fx_si_r16", 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
 const TOC = ["overlays", "livechat", "voice", "community", "social", "tools", "sims", "pro"];
@@ -620,8 +621,8 @@ addDict({
   fx_si_eyebrow: ["Simülasyonlar", "Sims"],
   fx_si_title: ["Hangi oyunda ne çalışıyor?", "What works in which game?"],
   fx_si_lead: [
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2 ve Automobilista 2. Hangi oyunu açarsan kendiliğinden algılar. Her oyunun verdiği veri farklıdır; en eksiksiz destek iRacing'dedir.",
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2 and Automobilista 2. Whichever game you start is detected automatically. Each game exposes different data; iRacing has the most complete support.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2, Automobilista 2 / Project CARS 2-3, RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID ve BeamNG.drive. Hangi oyunu açarsan kendiliğinden algılar. Her oyunun verdiği veri farklıdır; en eksiksiz destek iRacing'dedir.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2, Automobilista 2 / Project CARS 2-3, RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID and BeamNG.drive. Whichever game you start is detected automatically. Each game exposes different data; iRacing has the most complete support.",
   ],
   fx_si_r1: ["Pedallar, vites, yakıt, tur süreleri, direksiyon ekranı, telemetri", "Pedals, gear, fuel, lap times, wheel display, telemetry"],
   fx_si_r2: ["Pist haritası ve mini harita <span class=\"muted\">(AC / ACC: haritada sadece sen)</span>", "Track map and mini map <span class=\"muted\">(AC / ACC: only you on the map)</span>"],
@@ -652,8 +653,8 @@ addDict({
     "Remote pit settings from your crew <span class=\"muted\">(in other games the crew can only watch and send messages)</span>",
   ],
   fx_si_note: [
-    "✓ çalışır · ◐ kısmen · — o oyun bu veriyi vermiyor. LMU / rF2 için rF2 Shared Memory eklentisi, AMS2 için oyun ayarlarında Shared Memory: Project CARS 2 gerekir.",
-    "✓ works · ◐ partly · — the game doesn't expose this data. LMU / rF2 need the rF2 Shared Memory plugin; AMS2 needs Shared Memory: Project CARS 2 in the game options.",
+    "✓ çalışır · ◐ kısmen · — o oyun bu veriyi vermiyor. LMU / rF2 için rF2 Shared Memory eklentisi, AMS2 için oyun ayarlarında Shared Memory: Project CARS 2 gerekir. F1, Forza, DiRT / GRID ve BeamNG verisini UDP ile gönderir: oyunun telemetri ayarında UDP'yi aç (F1 ve DiRT port 20777, Forza 5300, BeamNG OutGauge 4444). Forza, DiRT / GRID ve BeamNG sadece kendi aracını verir.",
+    "✓ works · ◐ partly · — the game doesn't expose this data. LMU / rF2 need the rF2 Shared Memory plugin; AMS2 needs Shared Memory: Project CARS 2 in the game options. F1, Forza, DiRT / GRID and BeamNG send their data over UDP: enable UDP in the game's telemetry options (F1 and DiRT port 20777, Forza 5300, BeamNG OutGauge 4444). Forza, DiRT / GRID and BeamNG only send your own car.",
   ],
 
   // ---- PRO ----

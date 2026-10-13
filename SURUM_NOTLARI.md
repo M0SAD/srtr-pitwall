@@ -3,6 +3,22 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 131026-320
+
+- Delta Bar: tur süreleri tek tek açılıp kapatılabilir (Şimdi, Son, En iyi; "Tur süreleri" kapalıyken hepsi gizli). Yeni ayarlar "Çubuk / gösterge" (kapatınca seçili tasarımın sadece +/− sayısı kalır) ve "Eğilim oku": hepsi kapatılınca overlay'de yalnızca fark sayısı kalır.
+- Delta Bar: 4 yeni tasarım — Kapsül (fark yönüne göre yeşil / kırmızı dolan, büyüdükçe koyulaşan kapsül), Dikey çubuk (yukarı kazanç, aşağı kayıp; ekran kenarı için dar), LED şerit (direksiyon ekranı gibi ortadan iki yana yanan 10+10 ışık, PRO) ve Kayan cetvel (farkla kayan cetvel ve ortada ibre, PRO). Toplam 10 tasarım.
+- Delta Bar "Sadece büyük sayı" (ve dar tasarımlar): tur sürelerinde "EN İYİ" alt satıra düşmüyor; dar tasarımlarda etiket üstte, süre altta üç sütun, dikey tasarımda alt alta.
+- Site: Delta Bar açıklaması (tasarımlar, açılıp kapanan öğeler, RaceRoom), 14 dil.
+
+## 131026-319
+
+- Yeni oyunlar. Tüm alanla (lider tablosu, relative, radar, harita dahil): **RaceRoom** (paylaşımlı bellek, ek ayar gerekmez; delta, olay puanı, start ışıkları, DRS / batarya) ve **F1 23 / F1 24 / F1 25** (oyunun UDP telemetrisi; 22 araç, lider farkı, lastik hamurları, ERS / DRS, hasar, start ışıkları, güvenlik aracı). **Project CARS 3** AMS2 / PC2 belleğiyle çalışır. Sadece kendi aracınla (oyunlar rakip verisi vermiyor): **Forza Motorsport / Forza Horizon 4-5** ("Data Out" UDP), **DiRT Rally 2.0 / DiRT Rally / DiRT 4 / GRID** (Codemasters UDP, extradata=3) ve **BeamNG.drive** (OutGauge).
+- Ayarlar › Genel › Oyun: seçici yeni oyunlarla birlikte alt satıra geçebilir; simgenin üzerine gelince o oyunda yapılacak ayar yazar. Yeni satır "UDP portları": F1 / DiRT 20777, Forza 5300, BeamNG 4444 (değiştirilebilir); port sadece oyun bu bilgisayarda açıkken dinlenir (SimHub gibi programlarla çakışmasın diye), "Konsoldan da al" açıksa sürekli (PlayStation / Xbox'taki F1 ve Forza). Açılamayan port (başka program kullanıyor) satırda kırmızı yazar.
+- Overlay'ler oyuna göre gizlenir (simSupport.ts): rakip isteyen overlay'ler Forza / DiRT / BeamNG'de, iRacing'e özel olanlar (setup adı, FFB, sınıf uyarısı vb.) yeni oyunlarda görünmez.
+- Rust: sims/udp.rs (port dinleyici, paket sınıflama), sims/f1.rs, sims/r3e.rs, sims/solo.rs (Forza, DiRT, BeamNG). Paket ve bellek düzenleri yayımlanmış belgelerden (EA F1 UDP spesifikasyonu, sector3studios r3e.h 3.5 — gcc offsetof ile doğrulandı); örnek paketlerle ve gerçek UDP soketiyle testli.
+- Site: özellikler sayfasındaki "Hangi oyunda ne çalışıyor?" tablosuna 5 sütun, ana sayfa / SSS metinleri, yarışçılar sekmeleri, takım ve profil oyun listeleri (14 dil).
+- Supabase: c115_guncelleme.sql (yeni oyun kimlikleri: telemetri oturumları, sürücü kimlikleri, arkadaş listesindeki oyun, takımın oyunu).
+
 ## 131026-318
 
 - Telemetri › ".ibt içe aktar" (yalnızca iRacing): iRacing'in kaydettiği telemetri dosyaları (Belgeler › iRacing › telemetry) seçilir, içindeki turlar canlı kayıt gibi telemetrine eklenir (tur süreleri, sektörler, 1000 noktalık izler, setup adı). Birden çok dosya bir kerede seçilebilir; aynı dosya yeniden içe aktarılınca kopya oluşmaz. Telemetri kaydını iRacing'de açmak için: sürerken Alt+L. Rust: ibt.rs (dosya biçimi okuyucu; satırlar laprec Recorder'dan geçer), komutlar ibt_import / ibt_default_dir.

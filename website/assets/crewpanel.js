@@ -310,7 +310,7 @@ const CORNERS = [
   ["lr", PIT.lr],
   ["rr", PIT.rr],
 ];
-export const SIMS = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "AMS2" };
+export const SIMS = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "AMS2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT / GRID", beamng: "BeamNG" };
 const simOk = (s) => !s || s === "iracing";
 
 /** Sürücüden gelen veri güvenilmez: sayı olmayan her şey 0 sayılır (HTML'e sayı olarak yazılır) */

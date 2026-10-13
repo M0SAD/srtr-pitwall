@@ -103,7 +103,19 @@ export function SocialLinks(props: { links: SocialLink[]; compact?: boolean }) {
 // ---------------------------------------------------------------------------
 // Oyun rozeti (arkadaş listesi)
 // ---------------------------------------------------------------------------
-export const SIM_SHORT: Record<string, string> = { iracing: "iRacing", acc: "ACC", ac: "AC", lmu: "LMU", rf2: "rF2", ams2: "AMS2" };
+export const SIM_SHORT: Record<string, string> = {
+  iracing: "iRacing",
+  acc: "ACC",
+  ac: "AC",
+  lmu: "LMU",
+  rf2: "rF2",
+  ams2: "AMS2",
+  r3e: "R3E",
+  f1: "F1",
+  forza: "Forza",
+  dirt: "DiRT",
+  beamng: "BeamNG",
+};
 const SIM_LONG: Record<string, string> = {
   iracing: "iRacing",
   acc: "Assetto Corsa Competizione",
@@ -111,6 +123,11 @@ const SIM_LONG: Record<string, string> = {
   lmu: "Le Mans Ultimate",
   rf2: "rFactor 2",
   ams2: "Automobilista 2",
+  r3e: "RaceRoom",
+  f1: "F1",
+  forza: "Forza",
+  dirt: "DiRT Rally / GRID",
+  beamng: "BeamNG.drive",
 };
 
 export function SimBadge(props: { sim?: string | null }) {

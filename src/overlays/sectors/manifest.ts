@@ -21,7 +21,7 @@ export default defineOverlay({
         { value: "bars", label: "Renkli çubuklar (minimal)" },
         { value: "table", label: "Tablo (güncel / son / en iyi / teorik)", pro: true },
       ],
-      hint: "Sektör sınırları simin resmi sektörleridir (iRacing, ACC, AC, LMU / rFactor 2, Automobilista 2). Sim sektör bilgisi vermiyorsa tur üç eşit mesafeye bölünür ve başlıkta ≈ işareti görünür.",
+      hint: "Sektör sınırları simin resmi sektörleridir (iRacing, ACC, AC, LMU / rFactor 2, Automobilista 2, RaceRoom, F1, DiRT / GRID). Sim sektör bilgisi vermiyorsa tur üç eşit mesafeye bölünür ve başlıkta ≈ işareti görünür.",
       proHint: "Tablo tasarımı PRO üyelere özel.",
     },
     {

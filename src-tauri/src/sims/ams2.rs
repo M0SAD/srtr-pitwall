@@ -1,5 +1,5 @@
 #![cfg_attr(not(windows), allow(dead_code))]
-//! Automobilista 2 / Project CARS 2: `$pcars2$` paylaşımlı belleği (SharedMemory.h, sürüm 9+).
+//! Automobilista 2 / Project CARS 2 / Project CARS 3: `$pcars2$` paylaşımlı belleği (SharedMemory.h, sürüm 9+).
 //! Oyunda Ayarlar > Sistem > Paylaşımlı Bellek = "Project CARS 2" seçili olmalı.
 //!
 //! Varsayılan hizalama. Baş kısım (katılımcı listesi, oyuncu telemetrisi, hava) tüm
@@ -439,7 +439,7 @@ mod win {
             }
             if self.last_new.elapsed() > Duration::from_secs(10) && self.checked.get().elapsed() > Duration::from_secs(5) {
                 self.checked.set(Instant::now());
-                self.alive.set(shm::any_running(&["ams2avx.exe", "ams2.exe", "pcars2avx.exe", "pcars2.exe"]));
+                self.alive.set(shm::any_running(&["ams2avx.exe", "ams2.exe", "pcars2avx.exe", "pcars2.exe", "pcars3.exe", "pcars3avx.exe"]));
             }
             self.alive.get() || self.last_new.elapsed() < Duration::from_secs(10)
         }

@@ -7,11 +7,11 @@ import { overlayImages } from "./siteimages.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
-  pill_sims: ["iRacing · ACC · AC · LMU · rF2 · AMS2", "iRacing · ACC · AC · LMU · rF2 · AMS2"],
+  pill_sims: ["iRacing · ACC · AC · LMU · AMS2 · R3E · F1 · Forza · DiRT · BeamNG", "iRacing · ACC · AC · LMU · AMS2 · R3E · F1 · Forza · DiRT · BeamNG"],
   f10_t: ["Birden çok simülasyon", "Multiple sims"],
   f10_d: [
-    "iRacing'in yanında Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2 ve Automobilista 2. Hangi oyunu açarsan kendiliğinden algılar.",
-    "Besides iRacing: Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2 and Automobilista 2. Detects whichever game you start.",
+    "iRacing'in yanında Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2, Automobilista 2, RaceRoom, F1 23-25, Forza, DiRT Rally 2.0 / GRID ve BeamNG.drive. Hangi oyunu açarsan kendiliğinden algılar.",
+    "Besides iRacing: Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2, Automobilista 2, RaceRoom, F1 23-25, Forza, DiRT Rally 2.0 / GRID and BeamNG.drive. Detects whichever game you start.",
   ],
   f11_t: ["Destek", "Support"],
   f11_d: [
@@ -25,8 +25,8 @@ addDict({
   ],
   q8: ["Hangi oyunları destekliyor?", "Which games are supported?"],
   a8: [
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate ve rFactor 2 (rF2 Shared Memory eklentisiyle), Automobilista 2 / Project CARS 2 (oyun ayarlarında Shared Memory: Project CARS 2). Her oyunun sağladığı veri farklıdır; en eksiksiz destek iRacing'dedir.",
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate and rFactor 2 (with the rF2 Shared Memory plugin), Automobilista 2 / Project CARS 2 (Shared Memory: Project CARS 2 in the game options). Each game exposes different data; iRacing has the most complete support.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate ve rFactor 2 (rF2 Shared Memory eklentisiyle), Automobilista 2 / Project CARS 2-3 (oyun ayarlarında Shared Memory: Project CARS 2), RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID ve BeamNG.drive (bu dördü oyunun UDP telemetri ayarıyla; Forza, DiRT ve BeamNG sadece kendi aracını verir). Her oyunun sağladığı veri farklıdır; en eksiksiz destek iRacing'dedir.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate and rFactor 2 (with the rF2 Shared Memory plugin), Automobilista 2 / Project CARS 2-3 (Shared Memory: Project CARS 2 in the game options), RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID and BeamNG.drive (these four via the game's UDP telemetry option; Forza, DiRT and BeamNG only send your own car). Each game exposes different data; iRacing has the most complete support.",
   ],
   hero_title: ["Sim kokpitin için <span class=\"accent\">eksiksiz bir pit duvarı</span>", "A complete <span class=\"accent\">pit wall</span> for your sim rig"],
   hero_lead: [

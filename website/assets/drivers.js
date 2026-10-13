@@ -95,8 +95,13 @@ const SIMS = [
   { id: "ac", label: "Assetto Corsa", ids: ["ac"] },
   { id: "lmu", label: "LMU / rF2", ids: ["lmu", "rf2"] },
   { id: "ams2", label: "AMS2", ids: ["ams2"] },
+  { id: "r3e", label: "RaceRoom", ids: ["r3e"] },
+  { id: "f1", label: "F1", ids: ["f1"] },
+  { id: "forza", label: "Forza", ids: ["forza"] },
+  { id: "dirt", label: "DiRT / GRID", ids: ["dirt"] },
+  { id: "beamng", label: "BeamNG", ids: ["beamng"] },
 ];
-const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
+const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 
 const app = () => $("#app");
 

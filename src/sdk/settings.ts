@@ -640,8 +640,18 @@ export interface ScreenshotSettings {
 }
 
 /** Veri kaynağı simülasyon: "auto" çalışanı bulur (önce iRacing) */
-export type SimChoice = "auto" | "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2";
-export const SIM_CHOICES: SimChoice[] = ["auto", "iracing", "acc", "ac", "lmu", "rf2", "ams2"];
+export type SimChoice = "auto" | "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng";
+export const SIM_CHOICES: SimChoice[] = ["auto", "iracing", "acc", "ac", "lmu", "rf2", "ams2", "r3e", "f1", "forza", "dirt", "beamng"];
+
+/** UDP telemetrisi gönderen oyunların portları (Rust: sims/udp.rs `general.udp`). `always`: oyun bu bilgisayarda
+ *  çalışmıyorken de dinle (PlayStation / Xbox'taki F1 ve Forza) */
+export interface UdpPorts {
+  codemasters: number;
+  forza: number;
+  beamng: number;
+  always: boolean;
+}
+export const UDP_DEFAULTS: UdpPorts = { codemasters: 20777, forza: 5300, beamng: 4444, always: false };
 
 /** Sohbet balonları ve arka planı (Ayarlar → Sohbet) */
 export interface ChatLook {
@@ -813,6 +823,8 @@ export interface GeneralSettings {
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
   sim: SimChoice;
+  /** UDP simleri (F1, Forza, DiRT / GRID, BeamNG) */
+  udp: UdpPorts;
   monitor: number | null;
   units: Units;
   hideWhenOffTrack: boolean;
@@ -1268,6 +1280,7 @@ export function defaultSettings(): AppSettings {
     general: {
       demo: false,
       sim: "auto",
+      udp: { ...UDP_DEFAULTS },
       monitor: null,
       units: "metric",
       hideWhenOffTrack: true,
@@ -1435,6 +1448,7 @@ export function normalize(input: unknown): AppSettings {
       ...d.general,
       ...(s.general ?? {}),
       sim: SIM_CHOICES.includes(s.general?.sim as SimChoice) ? (s.general!.sim as SimChoice) : "auto",
+      udp: { ...UDP_DEFAULTS, ...((s.general as { udp?: Partial<UdpPorts> } | undefined)?.udp ?? {}) },
       // Bir kerelik geçiş (serverOnV1): web sunucusu varsayılan olarak açılır; kullanıcı sonra kapatırsa kapalı kalır
       server: { ...d.general.server, ...(s.general?.server ?? {}), ...(s.general?.serverOnV1 ? {} : { enabled: true }) },
       serverOnV1: true,

@@ -840,6 +840,12 @@ async fn ibt_import(app: AppHandle, paths: Vec<String>) -> Result<Vec<ibt::Impor
     Ok(out)
 }
 
+/// UDP simleri (F1, Forza, DiRT/GRID, BeamNG): dinlenen ve açılamayan (başka programın kullandığı) portlar
+#[tauri::command]
+fn udp_status() -> serde_json::Value {
+    serde_json::json!({ "listening": sims::udp::listening(), "failed": sims::udp::failed_ports() })
+}
+
 /// iRacing'in telemetri klasörü (Belgeler\iRacing\telemetry; yoksa boş)
 #[tauri::command]
 fn ibt_default_dir(app: AppHandle) -> String {
@@ -2815,6 +2821,7 @@ pub fn run() {
             events_scan_stop,
             ibt_import,
             ibt_default_dir,
+            udp_status,
             events_get,
             events_export,
             replay_seek,

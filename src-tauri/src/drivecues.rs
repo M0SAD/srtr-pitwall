@@ -949,7 +949,7 @@ impl Limits {
             incident_limit: if iracing { s.incident_limit.max(0) } else { 0 },
             has_incidents: iracing,
             has_off: iracing || f.tyres_out >= 0 || surface == 0,
-            sim_valid: matches!(sim, "acc" | "lmu" | "rf2" | "ams2"),
+            sim_valid: matches!(sim, "acc" | "lmu" | "rf2" | "ams2" | "r3e" | "f1"),
             penalty: match f.penalty {
                 1 => "driveThrough",
                 2 => "stopGo",

@@ -34,7 +34,7 @@ export interface Status {
   /** Oyuncunun iRacing hesabı */
   userId: number;
   userName: string;
-  /** Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2", yoksa "" */
+  /** Bağlı simülasyon: "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng", yoksa "" */
   sim?: string;
   /** Canlı Sohbet overlay kapısı: overlay ne göstersin (uygulama karar verir; OBS sayfası da buradan öğrenir) */
   chat?: LiveGate;

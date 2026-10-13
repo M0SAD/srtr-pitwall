@@ -5935,3 +5935,56 @@ button.ovpal-lock:hover {
 .gp-vol {
   width: 200px;
 }
+
+/* Sim seçici: 11 seçenek — açıklamanın altında tam genişlikte, sığmayınca alt satıra geçer */
+.seg.sim-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow: visible;
+  border: 0;
+  background: none;
+}
+.seg.sim-grid button {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg-3);
+  min-width: 52px;
+}
+.seg.sim-grid button:last-child {
+  border-right: 1px solid var(--line);
+}
+.row.sim-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.udp-ports {
+  display: grid;
+  grid-template-columns: auto 92px;
+  gap: 6px 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.udp-ports label {
+  display: contents;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.udp-ports label.udp-always {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.udp-ports input[type="number"] {
+  width: 92px;
+}
+.udp-state {
+  display: block;
+  margin-top: 4px;
+}
+.udp-state.bad {
+  color: var(--bad, #ff6b6b);
+}

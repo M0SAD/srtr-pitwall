@@ -40,7 +40,7 @@ export interface Friend {
   sound_muted?: boolean;
   /** Arkadaşın kendi profil fotoğrafı ("avatars" kovasındaki yol, c31) */
   avatar_path?: string | null;
-  /** Çevrimiçiyse şu an bağlı olduğu sim: iracing | acc | ac | lmu | rf2 | ams2, yoksa "" (c31) */
+  /** Çevrimiçiyse şu an bağlı olduğu sim: iracing | acc | ac | lmu | rf2 | ams2 | r3e | f1 | forza | dirt | beamng, yoksa "" (c31, c115) */
   sim?: string;
   /** Sadece yöneticiye gelir (c65): arkadaş çevrimiçi ama "Çevrimdışı görün" seçmiş */
   invisible?: boolean;
