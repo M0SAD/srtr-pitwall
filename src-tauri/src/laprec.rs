@@ -13,7 +13,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// İz çözünürlüğü: tur mesafesi bu kadar eşit parçaya bölünür
-pub const TRACE_POINTS: usize = 360;
+/// İz çözünürlüğü: tur bu kadar eşit mesafeli noktaya bölünür (7 km'lik pistte ~7 m). Eski kayıtlar 360 noktaydı;
+/// arayüz farklı nokta sayılı turları kıyaslarken aynı ölçeğe getirir.
+pub const TRACE_POINTS: usize = 1000;
 /// İz geçerli sayılmak için doldurulması gereken en az nokta oranı
 const TRACE_MIN_FILL: f32 = 0.8;
 /// Tur geçince simin son tur süresini güncellemesi için beklenen en uzun süre (oturum saniyesi)
@@ -35,6 +37,21 @@ pub struct Trace {
     pub gear: Vec<i8>,
     /// Direksiyon açısı (derece, sola pozitif)
     pub steer: Vec<i16>,
+    /// Ek kanallar (eski kayıtlarda yok; boşsa yazılmaz): motor devri, yanal / boyuna ivme (g × 100; yanal + sağa,
+    /// boyuna + hızlanma), ABS devrede (0 / 100)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rpm: Vec<u16>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lat_g: Vec<i16>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub long_g: Vec<i16>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub abs: Vec<u8>,
+    /// Sürüş çizgisi: konum (mikro derece = derece × 1e6). Yalnızca .ibt'den içe aktarılan turlarda
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lat: Vec<i32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lon: Vec<i32>,
 }
 
 impl Trace {
@@ -117,6 +134,12 @@ struct Sample {
     brake: f32,
     gear: i32,
     steer: f32,
+    rpm: f32,
+    lat_g: f32,
+    long_g: f32,
+    abs: f32,
+    lat: f64,
+    lon: f64,
 }
 
 /// Süren tur
@@ -334,6 +357,12 @@ impl Recorder {
                         brake: f.brake,
                         gear: f.gear,
                         steer: f.steer,
+                        rpm: f.rpm,
+                        lat_g: f.lat_g,
+                        long_g: f.long_g,
+                        abs: if f.abs_active { 1.0 } else { 0.0 },
+                        lat: f.lat,
+                        lon: f.lon,
                     };
                 }
             }
@@ -473,6 +502,8 @@ fn build_trace(samples: &[Sample], lap_time: f32) -> Option<Trace> {
         };
         full.push(s);
     }
+    // Konum (yalnızca .ibt): bütün noktalarda geçerliyse yazılır
+    let has_pos = full.iter().all(|s| s.lat.is_finite() && s.lon.is_finite() && (s.lat != 0.0 || s.lon != 0.0));
     // Süre artan olmalı
     for i in 1..n {
         if full[i].t < full[i - 1].t {
@@ -487,6 +518,12 @@ fn build_trace(samples: &[Sample], lap_time: f32) -> Option<Trace> {
         brake: full.iter().map(|s| (s.brake.clamp(0.0, 1.0) * 100.0).round() as u8).collect(),
         gear: full.iter().map(|s| s.gear.clamp(-1, 12) as i8).collect(),
         steer: full.iter().map(|s| s.steer.to_degrees().clamp(-1080.0, 1080.0).round() as i16).collect(),
+        rpm: full.iter().map(|s| s.rpm.clamp(0.0, 30000.0).round() as u16).collect(),
+        lat_g: full.iter().map(|s| (s.lat_g.clamp(-9.0, 9.0) * 100.0).round() as i16).collect(),
+        long_g: full.iter().map(|s| (s.long_g.clamp(-9.0, 9.0) * 100.0).round() as i16).collect(),
+        abs: full.iter().map(|s| (s.abs.clamp(0.0, 1.0) * 100.0).round() as u8).collect(),
+        lat: if has_pos { full.iter().map(|s| (s.lat * 1e6).round() as i32).collect() } else { Vec::new() },
+        lon: if has_pos { full.iter().map(|s| (s.lon * 1e6).round() as i32).collect() } else { Vec::new() },
     })
 }
 
@@ -500,6 +537,12 @@ fn lerp(a: &Sample, b: &Sample, k: f32) -> Sample {
         brake: m(a.brake, b.brake),
         gear: if k < 0.5 { a.gear } else { b.gear },
         steer: m(a.steer, b.steer),
+        rpm: m(a.rpm, b.rpm),
+        lat_g: m(a.lat_g, b.lat_g),
+        long_g: m(a.long_g, b.long_g),
+        abs: a.abs.max(b.abs),
+        lat: a.lat + (b.lat - a.lat) * k as f64,
+        lon: a.lon + (b.lon - a.lon) * k as f64,
     }
 }
 
@@ -743,7 +786,7 @@ mod tests {
         let mut s = vec![Sample::default(); 100];
         for (i, x) in s.iter_mut().enumerate() {
             if i % 5 != 3 {
-                *x = Sample { set: true, t: i as f32, speed: i as f32, throttle: 1.0, brake: 0.0, gear: 3, steer: 0.1 };
+                *x = Sample { set: true, t: i as f32, speed: i as f32, throttle: 1.0, brake: 0.0, gear: 3, steer: 0.1, ..Default::default() };
             }
         }
         let tr = build_trace(&s, 100.0).unwrap();

@@ -1,6 +1,7 @@
 //! SRTR Pitwall uygulama girişi: pencereler, komutlar, tepsi simgesi, kısayollar.
 
 mod broadcast;
+mod ibt;
 mod calc;
 mod keyactivity;
 mod startup;
@@ -817,6 +818,38 @@ async fn replay_seek(
     tauri::async_runtime::spawn_blocking(move || broadcast::replay_seek(session_num, session_time, &car_number, car_idx, 5.0))
         .await
         .map_err(|e| e.to_string())?
+}
+
+/// Telemetri: iRacing telemetri dosyalarını (.ibt) içe aktar. Turlar canlı turlar gibi yerel kuyruğa yazılır ve
+/// yükleyici uyandırılır ("telemetry-lap"); dosya başına özet döner. Büyük dosyalar ayrı iş parçacığında okunur.
+#[tauri::command]
+async fn ibt_import(app: AppHandle, paths: Vec<String>) -> Result<Vec<ibt::ImportSummary>, String> {
+    if paths.is_empty() || paths.len() > 50 {
+        return Err("1 ile 50 arasında dosya seç".into());
+    }
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let queue = laprec::queue_path(&dir);
+    let out = tauri::async_runtime::spawn_blocking(move || {
+        paths.iter().map(|p| ibt::import_file(std::path::Path::new(p), &queue)).collect::<Vec<_>>()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    if out.iter().any(|s| s.laps > 0) {
+        let _ = app.emit("telemetry-lap", serde_json::json!({ "import": true }));
+    }
+    Ok(out)
+}
+
+/// iRacing'in telemetri klasörü (Belgeler\iRacing\telemetry; yoksa boş)
+#[tauri::command]
+fn ibt_default_dir(app: AppHandle) -> String {
+    app.path()
+        .document_dir()
+        .ok()
+        .map(|d| d.join("iRacing").join("telemetry"))
+        .filter(|d| d.is_dir())
+        .map(|d| d.to_string_lossy().to_string())
+        .unwrap_or_default()
 }
 
 /// Olaylar ekranı: izlenen tekrardaki olay işaretlerini bul (kayıtlı tekrar dosyasında canlı toplanan olaylar yoktur).
@@ -2780,6 +2813,8 @@ pub fn run() {
             pit_autofuel,
             events_scan_replay,
             events_scan_stop,
+            ibt_import,
+            ibt_default_dir,
             events_get,
             events_export,
             replay_seek,

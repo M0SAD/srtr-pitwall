@@ -61,6 +61,14 @@ export interface Trace {
   brake: number[];
   gear: number[];
   steer: number[];
+  /** Ek kanallar (yeni kayıtlarda; eski izlerde yok): devir, yanal / boyuna ivme (g × 100), ABS (0 / 100) */
+  rpm?: number[];
+  lat_g?: number[];
+  long_g?: number[];
+  abs?: number[];
+  /** Sürüş çizgisi: konum (derece × 1e6). Yalnızca .ibt'den içe aktarılan turlarda */
+  lat?: number[];
+  lon?: number[];
 }
 
 interface QueuedLap {
@@ -254,7 +262,47 @@ export const telemetryOverview = (user?: string | null) => rpc<Overview>("teleme
 export const telemetrySessions = (user: string | null, sim = "", limit = 30, offset = 0) =>
   rpc<TelemetrySession[]>("telemetry_session_list", { p_user: user, p_sim: sim || null, p_limit: limit, p_offset: offset });
 export const telemetrySession = (id: string) => rpc<SessionDetail>("telemetry_session", { p_session: id });
-export const lapsInfo = (ids: string[]) => rpc<LapInfo[]>("telemetry_laps_info", { p_ids: ids.slice(0, 4) });
+/** Tur analizinde en çok kaç tur kıyaslanır (c113) */
+export const MAX_COMPARE = 5;
+export const lapsInfo = (ids: string[]) => rpc<LapInfo[]>("telemetry_laps_info", { p_ids: ids.slice(0, MAX_COMPARE) });
+
+// ---------------------------------------------------------------------------
+// Paylaşım bağlantıları (c113): bağlantıyı bilen herkes giriş yapmadan görür
+// ---------------------------------------------------------------------------
+
+/** Paylaşım sayfası (web sitesi) */
+export const SHARE_PAGE = "https://pitwall.simracetr.com/telemetri.html";
+export const shareLink = (id: string) => `${SHARE_PAGE}?s=${encodeURIComponent(id)}`;
+
+/** Pist şekli paylaşıma küçültülerek eklenir (en çok ~600 nokta, 1 ondalık) */
+export function shapeForShare(pts: [number, number][] | null | undefined): [number, number][] | null {
+  if (!pts || pts.length < 50) return null;
+  const step = Math.max(1, Math.ceil(pts.length / 600));
+  const out: [number, number][] = [];
+  for (let i = 0; i < pts.length; i += step) out.push([Math.round(pts[i][0] * 10) / 10, Math.round(pts[i][1] * 10) / 10]);
+  return out;
+}
+
+export function createShare(v: { kind: "laps" | "session"; laps?: string[]; session?: string; title: string; shape?: [number, number][] | null }) {
+  return rpc<string>("telemetry_share_create", {
+    p_kind: v.kind,
+    p_laps: v.kind === "laps" ? (v.laps ?? []).slice(0, MAX_COMPARE) : null,
+    p_session: v.kind === "session" ? v.session : null,
+    p_title: v.title.slice(0, 120),
+    p_shape: v.shape ? { pts: v.shape } : null,
+  });
+}
+
+export interface MyShare {
+  id: string;
+  kind: "laps" | "session";
+  title: string;
+  views: number;
+  created_at: string;
+  laps: number;
+}
+export const myShares = () => rpc<MyShare[]>("telemetry_shares_mine", {});
+export const revokeShare = (id: string) => rpc<null>("telemetry_share_revoke", { p_id: id });
 export const comboLaps = (c: { sim: string; track_id: string; track_config: string; car_id: string }, user?: string | null) =>
   rpc<ComboLap[]>("telemetry_combo_laps", {
     p_sim: c.sim,
@@ -463,10 +511,24 @@ export async function refreshQueueCount() {
 // ---------------------------------------------------------------------------
 
 /** İkinci turun birinciye göre farkı (sn, + yavaş) mesafe boyunca */
+/** Diziyi `n` noktaya getirir (farklı çözünürlükte kaydedilmiş turlar: eski 360, yeni 1000 nokta) */
+export function resampleTo(arr: number[], n: number): number[] {
+  const m = arr.length;
+  if (m === n || m === 0) return arr;
+  return Array.from({ length: n }, (_, i) => {
+    const x = (i * (m - 1)) / Math.max(1, n - 1);
+    const a = Math.floor(x);
+    const b = Math.min(m - 1, a + 1);
+    return arr[a] + (arr[b] - arr[a]) * (x - a);
+  });
+}
+
+/** Fark (sn) dizisi: `other` − `base`, temel turun nokta sayısında */
 export function deltaSeries(base: Trace, other: Trace): number[] {
-  const n = Math.min(base.t.length, other.t.length);
+  const n = base.t.length;
+  const o = resampleTo(other.t, n);
   const out: number[] = new Array(n);
-  for (let i = 0; i < n; i++) out[i] = (other.t[i] - base.t[i]) / 1000;
+  for (let i = 0; i < n; i++) out[i] = (o[i] - base.t[i]) / 1000;
   return out;
 }
 

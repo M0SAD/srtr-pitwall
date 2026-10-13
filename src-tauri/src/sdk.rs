@@ -123,6 +123,9 @@ pub struct VarIndex {
     pub ffb_peak: Option<VarRef>,
     pub abs_active: Option<VarRef>,
     pub lat_accel: Option<VarRef>,
+    /// Konum (yalnızca .ibt dosyasında): Lat / Lon (derece, double)
+    pub lat: Option<VarRef>,
+    pub lon: Option<VarRef>,
     pub long_accel: Option<VarRef>,
     pub fuel_level: Option<VarRef>,
     pub fuel_pct: Option<VarRef>,
@@ -242,6 +245,8 @@ impl VarIndex {
                 "SteeringWheelPeakForceNm" => ix.ffb_peak = r,
                 "BrakeABSactive" => ix.abs_active = r,
                 "LatAccel" => ix.lat_accel = r,
+                "Lat" => ix.lat = r,
+                "Lon" => ix.lon = r,
                 "LongAccel" => ix.long_accel = r,
                 "FuelLevel" => ix.fuel_level = r,
                 "FuelLevelPct" => ix.fuel_pct = r,
@@ -414,6 +419,8 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.abs_active = bool_of(buf, ix.abs_active);
     // iRacing: LatAccel + = sola, LongAccel + = ileri (m/s²)
     f.lat_g = -f32_or(buf, ix.lat_accel, 0.0) / 9.80665;
+    f.lat = get_f64(buf, ix.lat, 0).unwrap_or(f64::NAN);
+    f.lon = get_f64(buf, ix.lon, 0).unwrap_or(f64::NAN);
     f.long_g = f32_or(buf, ix.long_accel, 0.0) / 9.80665;
     f.fuel_level = f32_or(buf, ix.fuel_level, 0.0);
     f.fuel_pct = f32_or(buf, ix.fuel_pct, 0.0);

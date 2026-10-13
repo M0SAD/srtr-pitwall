@@ -3,6 +3,39 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 131026-318
+
+- Telemetri › ".ibt içe aktar" (yalnızca iRacing): iRacing'in kaydettiği telemetri dosyaları (Belgeler › iRacing › telemetry) seçilir, içindeki turlar canlı kayıt gibi telemetrine eklenir (tur süreleri, sektörler, 1000 noktalık izler, setup adı). Birden çok dosya bir kerede seçilebilir; aynı dosya yeniden içe aktarılınca kopya oluşmaz. Telemetri kaydını iRacing'de açmak için: sürerken Alt+L. Rust: ibt.rs (dosya biçimi okuyucu; satırlar laprec Recorder'dan geçer), komutlar ibt_import / ibt_default_dir.
+- Tur analizi › "Sürüş çizgisi": .ibt'den içe aktarılan turlarda GPS konumu (Lat / Lon) saklanır; kıyaslanan turların çizgileri üst üste çizilir (tekerlek: yakınlaş, sürükle: kaydır, çift tık: sıfırla), ortak imleçle her turun o mesafedeki yeri ve A'ya uzaklığı (m). Canlı veride iRacing konum vermediği için çizgi yalnızca içe aktarılan turlarda var.
+- Tur analizi › "CSV": kıyaslanan turların bütün kanalları (süre, hız, gaz, fren, vites, direksiyon, devir, G, ABS, konum) mesafe sırasıyla tek CSV dosyasına (Excel ya da başka analiz araçlarında açmak için).
+- Paylaşım sayfası (site): sürüş çizgisi (turlarda konum varsa) ve "CSV indir".
+
+## 131026-317
+
+- Telemetri kaydı: tur izi 360 yerine 1000 noktayla kaydedilir (7 km'lik pistte ~7 m'de bir; fren noktaları ve viraj analizi daha hassas). Yeni kanallar: motor devri, yanal / boyuna G, ABS devrede. Eski kayıtlar okunmaya devam eder; farklı çözünürlükteki turlar kıyaslanırken aynı ölçeğe getirilir (fark grafiği, viraj analizi, harita). Rust: laprec.rs Trace (rpm, lat_g, long_g, abs; boşsa yazılmaz).
+- Tur analizi › İzler: kanal seçimi (Fark, Hız, Gaz, Fren, Vites, Direksiyon, Devir, Yanal G, Boyuna G, ABS; seçim hatırlanır). Yakınlaştırma: grafikte sürükleyerek bölge seç, tekerlekle yakınlaş / uzaklaş, çift tıkla ya da "Tüm tur" ile sıfırla; imleç ve harita noktası yakınlaştırmada da senkron.
+- Paylaşım sayfası (site): yeni kanallar (kayıtta varsa) ve aynı yakınlaştırma; farklı çözünürlükteki turların fark grafiği düzeltildi.
+
+## 131026-316
+
+- Telemetri › Tur analizi: "Viraj analizi" (Garage61 / Track Titan tarzı). Virajlar A turunun hız diplerinden bulunur; her viraj için fren noktası (m), giriş / en düşük / çıkış hızı, tam gaz noktası (m), en düşük vites ve seçilen referansa göre süre farkı. Satıra tıklayınca grafiklerde ve pist haritasında o viraja gidilir.
+- Koçluk notları: A'nın referansa göre en çok süre kaybettiği 3 viraj ve nedenleri (erken / geç fren, düşük viraj hızı, geç tam gaz, düşük çıkış hızı, farklı vites) + en güçlü viraj. Referans 2'den fazla turda seçilebilir.
+- Teorik en iyi tur: kıyaslanan turların 24 mikro sektöründeki en hızlıları; her turun potansiyeli (teorik en iyiye uzaklığı) ve kaç mikro sektörde en hızlı olduğu.
+- Aynı analiz web sitesindeki paylaşım sayfasında da (telemetri.html). Hesaplar tek kaynakta: src/sdk/teleAnalysis.ts (site için website/assets/teleanalysis.js esbuild ile üretilir).
+
+## 131026-315
+
+- Site: overlay görsellerinin hepsi (64) güncel görünümle yeniden üretildi; programın kendi kodu ve demo verisiyle çizildi (lider tablosu, araç logoları, bayraklar vb. bugünkü haliyle). FFB Gücü, Setup Adı ve Arkadaş Uyarısı'nın da artık görseli var. Üretim aracı: Rust `engine.rs` dump_demo_topics (demo verisini JSON'a döker) + scripts/ovshots (çekim sayfası, Playwright çekimi, 960×600 bileşim); görselleri yeniden üretmek için kullanılabilir.
+- Yönetim › Ana sayfa görselleri › Overlay Galerisi: her overlay'e birden fazla görsel (en çok 8) eklenebilir, sıralanır, alt metin yazılır, kaldırılır; "Varsayılana dön". İlk eklemede siteyle gelen görsel listenin başına konur. Ana sayfa galerisinde birden fazla görseli olan overlay'de oklar ve noktalarla geçilir. Eski tek görsel kayıtları geçerli.
+- Supabase: c114_guncelleme.sql (admin_set_site_images toplam boyut sınırı 20 000 → 250 000 karakter).
+
+## 131026-314
+
+- Telemetri paylaşımı herkese açık: tur analizinde (kıyaslama dahil) ve kendi oturumunda "Paylaş (herkese açık)" bağlantı oluşturup kopyalar; bağlantıyı (telemetri.html?s=…) bilen herkes GİRİŞ YAPMADAN görür. Yalnızca paylaşılan turlar / oturum açılır, telemetrinin geri kalanı ve gizlilik ayarı değişmez. "Paylaşımlarım": bağlantıları kopyala ya da kaldır (kaldırınca bağlantı ve iz dosyaları yeniden kapanır). Başkasının turu kıyaslamadaysa yalnızca telemetrisi herkese açık üyelerin turları paylaşılabilir. Üye profili / pist sıralaması bağlantıları eskisi gibi giriş yapmış üyelere açık.
+- Paylaşım sayfası (telemetri.html) uygulamadaki Tur analizi gibi: tur kartları (A'ya göre fark, setup), sektör tablosu (en hızlı sektör mor), pist haritası (A'ya göre kazanç / kayıp renkleri, kıyaslanacak tur seçimi; harita şekli paylaşıma eklenir), fark / hız / gaz / fren / vites / direksiyon grafikleri, grafiklerde ve haritada ortak imleç. Oturum paylaşımında tur tablosu da. Turlar tek tek gizlenip gösterilebilir. 14 dil.
+- Tur analizi 5 tura kadar kıyaslar (A–E, ayrı renkler): her tur A'ya göre fark grafiği ve sektör satırı, pist haritasında referans olarak herhangi bir kıyaslanan tur, tur kartında A'ya göre fark. Site: yarışçı oturum sayfasında kendi oturumun için "Herkese açık paylaş".
+- Supabase: c113_guncelleme.sql (telemetry_shares tablosu; telemetry_share_create / _get / _revoke, telemetry_shares_mine; iz kovası okuma kuralı paylaşılan izleri herkese okutur; telemetry_laps_info 5 tur).
+
 ## 131026-313
 
 - Olaylar ekranı kayıtlı tekrarlarda da çalışır. Olaylar yalnızca canlı sürüşte toplanıyor, kaydedilmiyordu: iRacing'de kayıtlı bir tekrar dosyası açılınca liste boş kalıyor (ya da başka bir yarışın listesi görünüyordu). Artık tekrar izlerken Olaylar penceresinde "Olayları bul": iRacing'in tekrara gömdüğü olay işaretleri (tekrar ekranındaki "sonraki olay" düğmesinin gittiği anlar) tek tek gezilir; her işarette oturum, zaman, kameranın gösterdiği araç ve turu alınır, sonunda tekrar kaldığın yere döner ve oynar (olay başına ~0,2-0,5 sn; "Durdur" ile kesilebilir). Bulunan olaylar o tekrarın listesi olur; tıklayınca tekrar o ana sarılır. Kayıtlı tekrar dosyası açıkken (iRacing SimMode = replay) pencere açılınca ve liste bu tekrara ait değilse tarama kendiliğinden başlar; başka yarışın listesi gösterilmez (yanlış anlara sarardı), "önceki oturum" olarak saklanır. Listenin hangi oturuma ait olduğu iRacing SubSessionID ile (yoksa pist + oturumlar) izlenir. Rust: broadcast::replay_scan_incidents, EventLog::load_replay_hits, events_scan_replay / events_scan_stop komutları; testler replay_file_lists_scanned_incidents, session_keys.

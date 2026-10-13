@@ -1,0 +1,336 @@
+/* Paylaşılan telemetri (telemetri.html): uygulamadaki Telemetri › Tur analizi görünümü */
+.ts-page {
+  --bg-2: #11141b;
+  --bg-3: #171b24;
+  max-width: 1180px;
+}
+.ts-page .panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.ts-page .mono {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.ts-page .small {
+  font-size: 12.5px;
+}
+.tele-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.tele-head h3 {
+  margin: 0 0 4px;
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+.tele-scroll {
+  overflow-x: auto;
+}
+.tele-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tele-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.tele-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+.tele-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tele-table td.purple {
+  color: #c58bff;
+  font-weight: 700;
+}
+.tele-table td.setup {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.tele-table tr.best td {
+  background: color-mix(in srgb, #3ddc84 6%, transparent);
+}
+.tele-table tr.diff td {
+  font-weight: 600;
+}
+.tele-table .bad,
+.lap-diff.bad {
+  color: #ff6b6b;
+}
+.tele-table .good,
+.lap-diff.good {
+  color: #2ecc71;
+}
+.sector-cmp {
+  margin-top: 6px;
+}
+.sc-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.ts-stats {
+  display: flex;
+  gap: 26px;
+  margin: 0 0 12px;
+}
+.ts-stats div {
+  display: flex;
+  flex-direction: column;
+}
+.ts-stats small {
+  color: var(--muted);
+}
+.ts-stats b {
+  font-size: 20px;
+}
+
+/* Tur kartları */
+.lap-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.lap-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--c);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.lap-card.off {
+  opacity: 0.45;
+}
+.lap-card .sw {
+  display: none;
+}
+.lap-card > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lap-card small {
+  color: var(--muted);
+}
+.lap-card .tt-setup {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lap-card .lap-time {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: "JetBrains Mono", Consolas, monospace;
+}
+.lap-card .lap-diff {
+  display: block;
+  font-size: 11px;
+  text-align: right;
+}
+.lap-card input {
+  accent-color: var(--c);
+  width: 16px;
+  height: 16px;
+}
+
+/* Grafikler */
+.tcharts .tchart + .tchart {
+  margin-top: 10px;
+}
+.tchart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.tchart-head > b {
+  color: var(--muted);
+  font-weight: 600;
+}
+.tchart-read {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.tchart-read span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tchart-read i {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+}
+.tchart-read b {
+  color: var(--text);
+  min-width: 44px;
+  text-align: right;
+}
+.tchart-plot {
+  position: relative;
+  border-radius: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  cursor: crosshair;
+  touch-action: none;
+}
+.tchart-plot svg {
+  display: block;
+}
+.tchart-plot .ln {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.tchart-plot .grid {
+  stroke: color-mix(in srgb, var(--line) 70%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.tchart-plot .zero {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+.tchart-axis {
+  position: absolute;
+  left: 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.tchart-axis.top {
+  top: 3px;
+}
+.tchart-axis.bottom {
+  bottom: 3px;
+}
+.tchart-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--text);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Pist haritası */
+.ts-map-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.ts-vs {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.ts-vs select {
+  margin-left: 6px;
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.tmap-svg {
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  border-radius: 12px;
+  background: radial-gradient(120% 120% at 50% 40%, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--line);
+  cursor: crosshair;
+  touch-action: none;
+}
+.tmap-seg {
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.tmap-start {
+  fill: #fff;
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+.tmap-cursor {
+  fill: #ffcc00;
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+.tmap-cursor-halo {
+  fill: rgba(255, 204, 0, 0.25);
+}
+.ts-foot {
+  text-align: center;
+  margin: 24px 0 8px;
+}
+@media (max-width: 640px) {
+  .ts-page .panel {
+    padding: 12px;
+  }
+  .lap-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Viraj analizi */
+.ca-theo { display: flex; flex-wrap: wrap; gap: 10px 26px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
+.ca-theo > div { display: flex; flex-direction: column; gap: 2px; }
+.ca-theo small { color: var(--muted); }
+.ca-theo b { font-size: 18px; }
+.ca-theo b.good { color: #2ecc71; }
+.ca-notes { display: grid; gap: 8px; margin-bottom: 12px; }
+.ca-note { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid #ff6b6b; border-radius: 10px; background: var(--bg-2); color: var(--text); font: inherit; cursor: pointer; }
+.ca-note:hover { background: var(--bg-3); }
+.ca-note ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+.ca-note .bad { color: #ff6b6b; }
+.ca-rank { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: color-mix(in srgb, #ff6b6b 25%, transparent); }
+.ca-best { margin: 0; color: #2ecc71; font-size: 13px; }
+.tele-table tr.click { cursor: pointer; }
+.tele-table tr.click:hover td { background: var(--bg-3); }
+.tchart-sel { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 22%, transparent); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); pointer-events: none; }
+.tchart-sel[hidden], .tchart-cursor[hidden] { display: none; }
+.ts-zoom { margin: -4px 0 10px; display: flex; align-items: center; gap: 10px; }
+.ts-zoom-reset { background: var(--bg-3); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; cursor: pointer; font: inherit; font-size: 12px; }
+
+/* Sürüş çizgisi */
+.rline-svg { display: block; width: 100%; height: auto; max-height: 560px; border: 1px solid var(--line, rgba(255,255,255,.08)); border-radius: 12px; background: #0b0d12; touch-action: none; }
+#ts-csv { margin-left: auto; }

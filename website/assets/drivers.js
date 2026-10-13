@@ -64,6 +64,8 @@ addDict({
   dr_share: ["Paylaş", "Share"],
   dr_share_hint: ["Bağlantıyı kopyala: giriş yapmış her üye açıp görebilir", "Copy the link: any signed-in member can open it"],
   dr_copied: ["Bağlantı kopyalandı", "Link copied"],
+  dr_share_pub: ["Herkese açık paylaş", "Share publicly"],
+  dr_share_pub_hint: ["Herkese açık bağlantı oluşturup kopyala: giriş yapmadan herkes görebilir (yalnızca bu oturum)", "Create and copy a public link: anyone can view it without signing in (this session only)"],
   dr_setup: ["Setup", "Setup"],
   dr_valid_lap: ["Geçerli", "Valid"],
   dr_invalid_lap: ["Geçersiz", "Invalid"],
@@ -157,28 +159,44 @@ function loginHref() {
   return `hesap.html?next=${encodeURIComponent("yarisci.html" + location.search)}`;
 }
 
-/** Üst satır: geri bağlantısı + "Paylaş" (bağlantıyı panoya kopyalar) */
-function topBar(backHtml, shareQuery) {
+/** Üst satır: geri bağlantısı + "Paylaş" (üye bağlantısını panoya kopyalar). `pubSession`: kendi oturumun → ayrıca
+ *  herkese açık paylaşım (c113 telemetry_share_create; telemetri.html?s=…). */
+function topBar(backHtml, shareQuery, pubSession = "") {
   const url = `${location.origin}${location.pathname}?${shareQuery}`;
+  const pub = pubSession
+    ? `<button type="button" class="btn btn-sm" data-share-pub="${esc(pubSession)}" title="${esc(T("dr_share_pub_hint"))}">🌐 ${esc(T("dr_share_pub"))}</button>`
+    : "";
   return `<div class="row between" style="margin-bottom:12px;gap:10px">${backHtml}
-    <button type="button" class="btn btn-sm btn-ghost" data-share="${esc(url)}" title="${esc(T("dr_share_hint"))}">🔗 ${esc(T("dr_share"))}</button></div>`;
+    <span class="row" style="gap:8px">${pub}<button type="button" class="btn btn-sm btn-ghost" data-share="${esc(url)}" title="${esc(T("dr_share_hint"))}">🔗 ${esc(T("dr_share"))}</button></span></div>`;
+}
+
+async function copyLink(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  toast(T("dr_copied"));
 }
 
 function bindShare(root) {
-  $$("[data-share]", root).forEach((b) =>
+  $$("[data-share]", root).forEach((b) => b.addEventListener("click", () => copyLink(b.dataset.share)));
+  $$("[data-share-pub]", root).forEach((b) =>
     b.addEventListener("click", async () => {
-      const url = b.dataset.share;
+      b.disabled = true;
       try {
-        await navigator.clipboard.writeText(url);
-      } catch {
-        const ta = document.createElement("textarea");
-        ta.value = url;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
+        const id = await rpc("telemetry_share_create", { p_kind: "session", p_laps: null, p_session: b.dataset.sharePub, p_title: document.title.split(" — ")[0] || "", p_shape: null });
+        await copyLink(`${location.origin}/telemetri.html?s=${encodeURIComponent(id)}`);
+      } catch (e) {
+        toast(String(e.message || e), true);
+      } finally {
+        b.disabled = false;
       }
-      toast(T("dr_copied"));
     }),
   );
 }
@@ -360,6 +378,7 @@ async function profileView(uid) {
 async function sessionView(id) {
   app().innerHTML = `<p class="muted page">${esc(T("loading"))}</p>`;
   const d = await rpc("telemetry_session", { p_session: id });
+  const me = await currentUser().catch(() => null);
   const hasSetup = (d?.laps || []).some((l) => l.setup_name);
   const s = d.session;
   const ok = (d.laps || []).filter((l) => l.valid && !l.pit);
@@ -372,7 +391,7 @@ async function sessionView(id) {
     return `<span style="${purple ? "color:#c58bff;font-weight:700" : ""}">${v.toFixed(3)}</span>`;
   };
   app().innerHTML = `<div class="page">
-    ${topBar(`<a href="#" data-go='${esc(JSON.stringify({ u: d.owner.id }))}'>← ${esc(d.owner.display_name || "—")}</a>`, `s=${encodeURIComponent(id)}`)}
+    ${topBar(`<a href="#" data-go='${esc(JSON.stringify({ u: d.owner.id }))}'>← ${esc(d.owner.display_name || "—")}</a>`, `s=${encodeURIComponent(id)}`, me && me.id === d.owner.id ? id : "")}
     <div class="page-head"><div><h1>${esc(trackLabel(s))}</h1>
       <p class="muted" style="margin:4px 0 0">${esc(SIM_LABEL[s.sim] || s.sim)} · ${esc(s.car_name)}${s.car_class ? ` (${esc(s.car_class)})` : ""} · ${esc(
         stLabel(s.session_type),

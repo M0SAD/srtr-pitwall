@@ -2,7 +2,7 @@
 // Harita, bu bilgisayarda öğrenilmiş pist şeklinden çizilir (Rust `track_shape`); referans izler tek seferde indirilir
 // ve önbelleğe alınır (cloud/teleref.ts) — sayfa açıkken sunucuya sürekli istek atılmaz.
 
-import { For, Show, createMemo, createResource, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "@/sdk/platform";
 import { t } from "@/sdk/i18n";
@@ -15,7 +15,9 @@ import type { Shape } from "@/sdk/trackshape";
 import { ProLockBox } from "./ProLock";
 
 type Mode = "delta" | "speed" | "sectors";
-type Source = "lapB" | RefKind;
+/** "lap1".."lap4": kıyaslanan turlar (B, C, D, E) */
+type Source = `lap${number}` | RefKind;
+const LETTERS = "ABCDE";
 
 const VW = 900;
 const VH = 520;
@@ -157,9 +159,16 @@ export function MiniMap(p: { info: LapInfo; cursor: number | null; setCursor?: (
   );
 }
 
-export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { info: LapInfo; trace: Trace }; cursor?: number | null }) {
+export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; others?: { info: LapInfo; trace: Trace }[]; cursor?: number | null }) {
   const [mode, setMode] = createSignal<Mode>("delta");
-  const [source, setSource] = createSignal<Source>(p.other ? "lapB" : "session");
+  const others = () => p.others ?? [];
+  const [source, setSource] = createSignal<Source>(others().length ? "lap1" : "session");
+  // Kıyaslanan tur çıkarılırsa geçerli bir referansa dön
+  createEffect(() => {
+    const s = source();
+    const n = others().length;
+    if (s.startsWith("lap") && Number(s.slice(3)) > n) setSource(n ? "lap1" : "session");
+  });
   const [labels, setLabels] = createSignal(true);
   const info = () => p.base.info;
   const combo = () => ({ sim: info().sim, track_id: info().track_id, track_config: info().track_config, car_id: info().car_id });
@@ -172,11 +181,14 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { in
   const communityLocked = () => proLocked(F.teleCommunity);
   /** Seçili referans: { ad, süre, iz } ya da null (yeterli veri yok) */
   const [ref] = createResource(
-    () => [source(), info().id, p.other?.info.id ?? ""] as const,
+    () => [source(), info().id, others().map((o) => o.info.id).join(",")] as const,
     async ([src]) => {
-      if (src === "lapB") return p.other ? { name: p.other.info.driver_name || p.other.info.display_name, time: p.other.info.lap_time, laps: 1, trace: p.other.trace, same: false } : null;
+      if (src.startsWith("lap")) {
+        const o = others()[Number(src.slice(3)) - 1];
+        return o ? { name: o.info.driver_name || o.info.display_name, time: o.info.lap_time, laps: 1, trace: o.trace, same: false } : null;
+      }
       if ((src === "best" || src === "avg") && communityLocked()) return null;
-      const r = await loadRef(src, combo(), { sessionId: info().session_id });
+      const r = await loadRef(src as RefKind, combo(), { sessionId: info().session_id });
       return r ? { name: r.name, time: r.time, laps: r.laps, trace: r.trace, same: r.lapId === info().id } : null;
     },
   );
@@ -304,9 +316,13 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; other?: { in
           <label class="tmap-f">
             <span>Referans</span>
             <select value={source()} onChange={(e) => setSource(e.currentTarget.value as Source)}>
-              <Show when={p.other}>
-                <option value="lapB">Karşılaştırılan tur (B)</option>
-              </Show>
+              <For each={others()}>
+                {(o, i) => (
+                  <option value={`lap${i() + 1}`}>
+                    {t("Karşılaştırılan tur ({0})", LETTERS[i() + 1])} · {o.info.driver_name || o.info.display_name}
+                  </option>
+                )}
+              </For>
               <option value="session">Bu oturumun en iyi turu</option>
               <option value="mine">Kendi rekorum</option>
               <option value="best">Topluluğun en iyi turu</option>

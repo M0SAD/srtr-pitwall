@@ -270,7 +270,7 @@ mod tests {
     /// 100 sn'lik sabit hızlı referans tur
     fn trace() -> Trace {
         let n = 200;
-        Trace { n: n as u32, t: (0..n).map(|i| (i * 500) as i32).collect(), speed: vec![1800; n], throttle: vec![100; n], brake: vec![0; n], gear: vec![4; n], steer: vec![0; n] }
+        Trace { n: n as u32, t: (0..n).map(|i| (i * 500) as i32).collect(), speed: vec![1800; n], throttle: vec![100; n], brake: vec![0; n], gear: vec![4; n], steer: vec![0; n], ..Default::default() }
     }
 
     #[test]

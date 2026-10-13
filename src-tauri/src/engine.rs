@@ -1017,6 +1017,72 @@ mod publish_tests {
         }
     }
 
+    /// Web sitesi overlay görselleri için: demoyu `DEMO_SECS` (varsayılan 100) saniye oynatır ve her veri konusunun
+    /// son paketini JSON dosyasına yazar (`DEMO_DUMP`, varsayılan target/demo_topics.json). Elle çalıştırılır:
+    /// `DEMO_DUMP=... cargo test dump_demo_topics -- --ignored`. Görselleri scripts/ovshots çizer.
+    #[test]
+    #[ignore]
+    fn dump_demo_topics() {
+        let mut st = state();
+        let mut d = Demo::new();
+        d.apply_showcase();
+        st.raw = d.session().clone();
+        st.session = crate::league::apply(&st.raw, None).0;
+        let (hist, laps, stint) = d.seed_history();
+        st.tracker.fuel.seed(&hist, &laps, stint);
+        st.history.seed_demo(&laps, &hist);
+        st.map.set_shape("demo", d.track_shape());
+        let secs: f64 = std::env::var("DEMO_SECS").ok().and_then(|v| v.parse().ok()).unwrap_or(100.0);
+        let dt = 1.0 / 60.0;
+        let mut t = 0.0;
+        while t < secs {
+            d.step(dt, &mut st.frame);
+            st.tracker.update(&st.frame, &st.session);
+            st.strategy.update(&st.frame, &st.session, "", true);
+            st.history.update(&st.frame, &st.session, false);
+            st.timing.update(&st.frame, &st.session, true);
+            st.cues.update(&st.frame, &st.raw, "", true, None);
+            t += dt;
+        }
+        let (f, s, tr) = (&st.frame, &st.session, &st.tracker);
+        let mut out = serde_json::Map::new();
+        let mut put = |p: Packet| {
+            let v = serde_json::to_value(&p).unwrap();
+            let name = v["t"].as_str().unwrap().to_string();
+            out.insert(name, v["d"].clone());
+        };
+        put(Packet::Status(calc::status(f, s, true, true, false)));
+        put(Packet::Inputs(calc::inputs(f, s)));
+        put(Packet::Ers(calc::ers(f)));
+        put(Packet::Telemetry(calc::telemetry(f, s, tr)));
+        put(Packet::Delta(calc::delta(f, tr)));
+        put(Packet::Radar(calc::radar(f, s)));
+        put(Packet::Relative(calc::relative(f, s, tr, 8)));
+        put(Packet::Standings(calc::standings(f, s, tr)));
+        put(Packet::Fuel(calc::fuel(f, s, tr)));
+        put(Packet::Session(calc::session(f, s)));
+        put(Packet::Weather(calc::weather(f)));
+        put(Packet::Map(calc::map(f, s, &st.map, true)));
+        put(Packet::RaceControl(calc::race_control(tr)));
+        put(Packet::Tires(calc::tires(f)));
+        put(Packet::Entries(crate::league::entries(s, false)));
+        put(Packet::Laps(st.history.laps(f)));
+        put(Packet::Incidents(st.history.incidents(f, s)));
+        put(Packet::Pit(crate::extras::pit(f, s)));
+        put(Packet::Corners(st.history.corners(f)));
+        put(Packet::Sectors(st.timing.sectors(f, s)));
+        put(Packet::Gaps(st.timing.gaps(f, s)));
+        put(Packet::Setupcmp(st.setups.packet(&st.raw)));
+        put(Packet::Traffic(crate::extras::traffic(f, s)));
+        put(Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)));
+        put(Packet::Tracklimits(st.cues.limits(f, &st.raw)));
+        put(Packet::Damage(crate::drivecues::damage(f)));
+        put(Packet::Strategy(st.strategy.packet(f, s)));
+        let path = std::env::var("DEMO_DUMP").unwrap_or_else(|_| "target/demo_topics.json".into());
+        std::fs::write(&path, serde_json::to_string(&serde_json::Value::Object(out)).unwrap()).unwrap();
+        eprintln!("yazıldı: {path}");
+    }
+
     /// Aynı konuya abone iki tarayıcı kaynağı aynı karede birebir aynı JSON'u alır; paket bir kez üretilir.
     #[test]
     fn sse_subscribers_share_one_packet() {

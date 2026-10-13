@@ -112,6 +112,9 @@ pub struct Frame {
     /// Yanal / boyuna ivme (g). lat_g + = sağa (sağ viraj), long_g + = ileri (hızlanma), fren negatif
     pub lat_g: f32,
     pub long_g: f32,
+    /// Coğrafi konum (derece). Yalnızca iRacing telemetri dosyasında (.ibt) var; canlı veride NaN
+    pub lat: f64,
+    pub lon: f64,
     /// Oyuncunun bekleyen cezası (0 yok, 1 pit geçişi, 2 dur-kalk, 3 diskalifiye, 4 süre cezası, 5 belirsiz ceza).
     /// ACC / AMS2 / LMU-rF2 doldurur; iRacing'de ceza siyah bayrak bitinden anlaşılır
     pub penalty: u8,
@@ -230,6 +233,8 @@ impl Default for Frame {
             abs_active: false,
             tc_active: false,
             lat_g: 0.0,
+            lat: f64::NAN,
+            lon: f64::NAN,
             long_g: 0.0,
             penalty: 0,
             fuel_level: 0.0,
