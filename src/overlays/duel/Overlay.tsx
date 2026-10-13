@@ -44,6 +44,15 @@ export default function Duel(props: OverlayProps) {
   const unlimited = () => mode() === "off";
   const speed = () => Math.max(MIN_SPEED, tele()?.speed ?? 0);
   const k = () => clamp(num(o().reel, 60), 0, 100) / 100;
+  /** Performans: hazır modlar ya da tek tek seçilen efektler */
+  const fx = createMemo(() => {
+    const p = o().perf as string;
+    if (p === "balanced") return { slide: true, color: false, d3: true, mask: false, glow: true };
+    if (p === "fast") return { slide: false, color: false, d3: false, mask: false, glow: false };
+    if (p === "custom")
+      return { slide: o().fxSlide !== false, color: o().fxColor !== false, d3: o().fx3d !== false, mask: o().fxMask !== false, glow: o().fxGlow !== false };
+    return { slide: true, color: true, d3: true, mask: true, glow: true };
+  });
   const rowH = () => clamp(num(o().rowHeight, 36), 22, 64);
   const fields = createMemo(() => new Set<string>(Array.isArray(o().fields) ? (o().fields as string[]) : DUEL_DEFAULT_FIELDS));
   /** Tek marka seri: listedeki tüm araçlar aynıysa araç logosu bilgi vermez */
@@ -174,14 +183,19 @@ export default function Duel(props: OverlayProps) {
     const s = slotOf(r);
     const j = Math.abs(s);
     const limit = s < 0 ? nAhead() : nBehind();
-    const c = closeness(r);
+    // Yakınlık 1/20 adımlara yuvarlanır: küçük fark değişimlerinde stil (ve geçiş) yeniden başlamaz
+    const c = Math.round(closeness(r) * 20) / 20;
     const inside = j <= limit && !(!unlimited() && o().hideOutside && c <= 0);
     const scale = slotScale(j) * (0.84 + 0.16 * c);
     const tilt = clamp(-s * k() * 13, -64, 64);
     const opacity = inside ? clamp((1 - k() * 0.13 * (j - 1)) * (0.4 + 0.6 * c) * farFade(r), 0.14, 1) : 0;
     const blur = o().blur === true ? k() * 0.45 * (j - 1) + (1 - c) * 1.1 : 0;
+    const y = (Math.sign(s) * offsets()[Math.min(j, 6)]).toFixed(1);
     return {
-      transform: `translate3d(0, ${(Math.sign(s) * offsets()[Math.min(j, 6)]).toFixed(1)}px, 0) perspective(520px) rotateX(${tilt.toFixed(1)}deg) scale(${scale.toFixed(3)})`,
+      // 3B kapalıyken eğim düz dikey küçültmeyle taklit edilir (perspektif hesabı yok)
+      transform: fx().d3
+        ? `translate3d(0, ${y}px, 0) perspective(520px) rotateX(${tilt.toFixed(1)}deg) scale(${scale.toFixed(3)})`
+        : `translate(0, ${y}px) scale(${scale.toFixed(3)}, ${(scale * Math.cos((tilt * Math.PI) / 180)).toFixed(3)})`,
       opacity: opacity.toFixed(2),
       filter: blur > 0.15 && inside ? `blur(${blur.toFixed(1)}px)` : "none",
       "--duel-c": c.toFixed(3),
@@ -295,7 +309,15 @@ export default function Duel(props: OverlayProps) {
   return (
     <div
       class="ov-theme duel"
-      classList={{ "duel-off": !visible(), "duel-flat": k() < 0.05, "duel-noframe": o().rowFrame === false || num(o().bgOpacity, 90) <= 0 && o().rowFrame !== true, "duel-framed": !!o().rowsFrame && (props.editing || anyoneShown() || o().showMe === true) }}
+      classList={{
+        "duel-off": !visible(),
+        "duel-flat": k() < 0.05,
+        "duel-noslide": !fx().slide,
+        "duel-nocolor": !fx().color,
+        "duel-nomask": !fx().mask,
+        "duel-noglow": !fx().glow,
+        "duel-2d": !fx().d3, "duel-noframe": o().rowFrame === false || num(o().bgOpacity, 90) <= 0 && o().rowFrame !== true, "duel-framed": !!o().rowsFrame && (props.editing || anyoneShown() || o().showMe === true),
+      }}
       style={{
         width: `${clamp(num(o().width, 560), 220, 700)}px`,
         "font-size": `${clamp(num(o().fontSize, 15), 10, 28)}px`,

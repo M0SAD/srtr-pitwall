@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Kapsuła (wypełniona kolorem)",
   "Kayan cetvel": "Przesuwana skala",
   "LED şerit": "Pasek LED",
-  "Şimdi (bu tur)": "Bieżące (to okrążenie)"
+  "Şimdi (bu tur)": "Bieżące (to okrążenie)",
+  "3B eğim (perspektif)": "Pochylenie 3D (perspektywa)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Zrównoważony (przejście koloru i przyciemnienie krawędzi wyłączone)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Obniżenie najbardziej pomaga FPS: przy 5 Hz bęben nadal wygląda płynnie (wiersze przesuwają się między aktualizacjami).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "Najdroższy efekt: wiersz musi być przerysowywany w każdej klatce.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Najwyższe FPS (bez animacji, płaski wygląd)",
+  "Görsel kalite (tüm efektler)": "Jakość obrazu (wszystkie efekty)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Po wyłączeniu pochylenie jest naśladowane płaskim skalowaniem.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Po wyłączeniu bliski samochód jest wyróżniany tylko kolorem ramki.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Animacja przesuwania (wiersze przesuwają się przy zmianie kolejności)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "Overlay się porusza, więc karta graficzna rysuje go w każdej klatce. Jeśli FPS w grze spada, wypróbuj Zrównoważony lub Najwyższe FPS, wyłącz rozmycie i obniż częstotliwość odświeżania.",
+  "Özel (efektleri tek tek seç)": "Własny (wybierz efekty pojedynczo)",
+  "Performans modu": "Tryb wydajności",
+  "Üst ve alt kenarda karartma": "Przyciemnienie górnej i dolnej krawędzi",
+  "Yakın araç renk dolgusu": "Wypełnienie kolorem bliskiego samochodu",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Płynne przejście koloru (wyróżnienie bliskości wypełnia się stopniowo)"
 }

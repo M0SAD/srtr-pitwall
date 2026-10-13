@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Capsula (riempita di colore)",
   "Kayan cetvel": "Scala scorrevole",
   "LED şerit": "Striscia LED",
-  "Şimdi (bu tur)": "Attuale (questo giro)"
+  "Şimdi (bu tur)": "Attuale (questo giro)",
+  "3B eğim (perspektif)": "Inclinazione 3D (prospettiva)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Bilanciato (transizione colore e sfumatura bordi disattivate)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Abbassarla è ciò che aiuta di più gli FPS: a 5 Hz il rullo resta fluido (le righe scorrono tra un aggiornamento e l'altro).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "L'effetto più pesante: la riga va ridisegnata a ogni fotogramma.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "FPS massimi (nessuna animazione, aspetto piatto)",
+  "Görsel kalite (tüm efektler)": "Qualità visiva (tutti gli effetti)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Se disattivata, l'inclinazione è imitata con un ridimensionamento piatto.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Se disattivato, l'auto vicina è evidenziata solo dal colore del bordo.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Animazione di scorrimento (le righe scorrono quando cambia l'ordine)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "L'overlay è animato, quindi la scheda video lo ridisegna a ogni fotogramma. Se gli FPS in gioco calano, prova Bilanciato o FPS massimi, disattiva la sfocatura e abbassa la frequenza di aggiornamento.",
+  "Özel (efektleri tek tek seç)": "Personalizzato (scegli gli effetti uno per uno)",
+  "Performans modu": "Modalità prestazioni",
+  "Üst ve alt kenarda karartma": "Sfumatura ai bordi superiore e inferiore",
+  "Yakın araç renk dolgusu": "Riempimento colore dell'auto vicina",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transizione colore morbida (l'evidenziazione si riempie gradualmente)"
 }

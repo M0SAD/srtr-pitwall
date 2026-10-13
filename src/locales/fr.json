@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Pastille (remplie de couleur)",
   "Kayan cetvel": "Échelle défilante",
   "LED şerit": "Bande LED",
-  "Şimdi (bu tur)": "Actuel (ce tour)"
+  "Şimdi (bu tur)": "Actuel (ce tour)",
+  "3B eğim (perspektif)": "Inclinaison 3D (perspective)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Équilibré (transition de couleur et fondu des bords désactivés)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "C'est le réglage qui aide le plus les FPS : à 5 Hz le rouleau reste fluide (les lignes glissent entre les mises à jour).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "L'effet le plus coûteux : la ligne doit être redessinée à chaque image.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "FPS maximum (pas d'animation, aspect plat)",
+  "Görsel kalite (tüm efektler)": "Qualité visuelle (tous les effets)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Désactivé, l'inclinaison est imitée par une mise à l'échelle plate.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Désactivé, une voiture proche n'est signalée que par la couleur du cadre.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Animation de glissement (les lignes glissent quand l'ordre change)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "L'overlay bouge, la carte graphique le redessine donc à chaque image. Si les FPS baissent en jeu, essaie Équilibré ou FPS maximum, désactive le flou et baisse la fréquence de mise à jour.",
+  "Özel (efektleri tek tek seç)": "Personnalisé (choisir les effets un par un)",
+  "Performans modu": "Mode performance",
+  "Üst ve alt kenarda karartma": "Fondu en haut et en bas",
+  "Yakın araç renk dolgusu": "Remplissage couleur des voitures proches",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transition de couleur douce (la mise en évidence se remplit progressivement)"
 }

@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Kapseli (värillä täytetty)",
   "Kayan cetvel": "Liukuva asteikko",
   "LED şerit": "LED-nauha",
-  "Şimdi (bu tur)": "Nyt (tämä kierros)"
+  "Şimdi (bu tur)": "Nyt (tämä kierros)",
+  "3B eğim (perspektif)": "3D-kallistus (perspektiivi)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Tasapainoinen (värisiirtymä ja reunojen tummennus pois)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Laskeminen auttaa FPS:ää eniten: 5 Hz:llä rulla näyttää yhä sulavalta (rivit liukuvat päivitysten välillä).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "Raskain efekti: rivi on piirrettävä uudelleen joka ruudulla.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Suurin FPS (ei animaatiota, tasainen ulkoasu)",
+  "Görsel kalite (tüm efektler)": "Kuvanlaatu (kaikki efektit)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Pois päältä kallistusta jäljitellään tasaisella skaalauksella.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Pois päältä lähellä oleva auto korostetaan vain kehyksen värillä.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Liukuanimaatio (rivit liukuvat järjestyksen muuttuessa)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "Overlay liikkuu, joten näytönohjain piirtää sen joka ruudulla. Jos pelin FPS laskee, kokeile Tasapainoista tai Suurinta FPS:ää, poista sumennus ja laske päivitystaajuutta.",
+  "Özel (efektleri tek tek seç)": "Mukautettu (valitse efektit yksitellen)",
+  "Performans modu": "Suorituskykytila",
+  "Üst ve alt kenarda karartma": "Tummennus ylä- ja alareunassa",
+  "Yakın araç renk dolgusu": "Lähellä olevan auton väritäyttö",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Pehmeä värisiirtymä (läheisyyskorostus täyttyy vähitellen)"
 }

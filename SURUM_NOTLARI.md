@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 131026-321
+
+- Yakın Takip: yeni "Performans" ayar grubu. Performans modu: Görsel kalite (tüm efektler, varsayılan), Dengeli (yakınlık renk geçişi ve kenar karartması kapalı), En yüksek FPS (animasyon yok, 3B eğim yok, düz görünüm), Özel (kayma animasyonu, yumuşak renk geçişi, 3B eğim, kenar karartması ve yakın araç renk dolgusu tek tek açılıp kapanır). En pahalı efekt yumuşak renk geçişiydi (her karede satırın yeniden boyanması).
+- Yakın Takip: yakınlık değeri 1/20 adımlara yuvarlanıyor; küçük fark değişimlerinde satırın stili ve animasyonu yeniden başlamıyor (tüm modlarda daha az çizim). Güncelleme sıklığı ayarına FPS ipucu eklendi.
+
 ## 131026-320
 
 - Delta Bar: tur süreleri tek tek açılıp kapatılabilir (Şimdi, Son, En iyi; "Tur süreleri" kapalıyken hepsi gizli). Yeni ayarlar "Çubuk / gösterge" (kapatınca seçili tasarımın sadece +/− sayısı kalır) ve "Eğilim oku": hepsi kapatılınca overlay'de yalnızca fark sayısı kalır.

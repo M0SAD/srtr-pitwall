@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "カプセル（色付き）",
   "Kayan cetvel": "スライドスケール",
   "LED şerit": "LEDストリップ",
-  "Şimdi (bu tur)": "現在（この周回）"
+  "Şimdi (bu tur)": "現在（この周回）",
+  "3B eğim (perspektif)": "3D 傾き（パースペクティブ）",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "バランス（色の遷移と端のフェードをオフ）",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "下げると FPS に最も効果があります。5 Hz でもリールは滑らかに見えます（行は更新の間をスライドします）。",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "最も負荷の高い効果です。毎フレーム行を再描画する必要があります。",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "最高 FPS（アニメーションなし、フラット表示）",
+  "Görsel kalite (tüm efektler)": "画質優先（すべての効果）",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "オフの場合、傾きは平面の縮小で再現します。",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "オフの場合、近い車は枠の色だけで強調されます。",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "スライドアニメーション（順位が変わると行がスライド）",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "オーバーレイが動くため、グラフィックカードは毎フレーム再描画します。ゲームの FPS が下がる場合は「バランス」か「最高 FPS」を試し、ぼかしをオフにして更新頻度を下げてください。",
+  "Özel (efektleri tek tek seç)": "カスタム（効果を個別に選択）",
+  "Performans modu": "パフォーマンスモード",
+  "Üst ve alt kenarda karartma": "上下の端をフェード",
+  "Yakın araç renk dolgusu": "近い車のカラー塗り",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "滑らかな色の遷移（接近ハイライトが徐々に満ちる）"
 }

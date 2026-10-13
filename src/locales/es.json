@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Cápsula (relleno de color)",
   "Kayan cetvel": "Escala deslizante",
   "LED şerit": "Tira LED",
-  "Şimdi (bu tur)": "Actual (esta vuelta)"
+  "Şimdi (bu tur)": "Actual (esta vuelta)",
+  "3B eğim (perspektif)": "Inclinación 3D (perspectiva)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Equilibrado (transición de color y oscurecido de bordes desactivados)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Bajarlo es lo que más ayuda a los FPS: a 5 Hz el rodillo sigue viéndose fluido (las filas se deslizan entre actualizaciones).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "El efecto más costoso: la fila debe repintarse en cada fotograma.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Máximos FPS (sin animación, aspecto plano)",
+  "Görsel kalite (tüm efektler)": "Calidad visual (todos los efectos)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Desactivado, la inclinación se imita con un escalado plano.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Desactivado, el coche cercano se resalta solo con el color del borde.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Animación de deslizamiento (las filas se deslizan al cambiar el orden)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "El overlay se mueve, así que la tarjeta gráfica lo redibuja en cada fotograma. Si bajan los FPS en el juego, prueba Equilibrado o Máximos FPS, desactiva el desenfoque y baja la frecuencia de actualización.",
+  "Özel (efektleri tek tek seç)": "Personalizado (elige los efectos uno a uno)",
+  "Performans modu": "Modo de rendimiento",
+  "Üst ve alt kenarda karartma": "Oscurecido en los bordes superior e inferior",
+  "Yakın araç renk dolgusu": "Relleno de color del coche cercano",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transición de color suave (el resaltado de proximidad se llena poco a poco)"
 }

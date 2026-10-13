@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Капсула (цветная заливка)",
   "Kayan cetvel": "Бегущая шкала",
   "LED şerit": "LED-полоса",
-  "Şimdi (bu tur)": "Сейчас (этот круг)"
+  "Şimdi (bu tur)": "Сейчас (этот круг)",
+  "3B eğim (perspektif)": "3D-наклон (перспектива)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Сбалансированный (переход цвета и затемнение краёв выключены)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Снижение сильнее всего помогает FPS: при 5 Гц барабан всё ещё выглядит плавно (строки скользят между обновлениями).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "Самый затратный эффект: строку приходится перерисовывать каждый кадр.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Максимальный FPS (без анимации, плоский вид)",
+  "Görsel kalite (tüm efektler)": "Качество картинки (все эффекты)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Если выключено, наклон имитируется плоским масштабированием.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Если выключено, близкая машина выделяется только цветом рамки.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Анимация сдвига (строки скользят при смене порядка)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "Оверлей подвижный, поэтому видеокарта перерисовывает его каждый кадр. Если FPS в игре падает, попробуйте Сбалансированный или Максимальный FPS, выключите размытие и снизьте частоту обновления.",
+  "Özel (efektleri tek tek seç)": "Свой (выбрать эффекты по одному)",
+  "Performans modu": "Режим производительности",
+  "Üst ve alt kenarda karartma": "Затемнение у верхнего и нижнего края",
+  "Yakın araç renk dolgusu": "Цветная заливка близкой машины",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Плавный переход цвета (подсветка близости заполняется постепенно)"
 }

@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Kapsel (farbig gefüllt)",
   "Kayan cetvel": "Laufende Skala",
   "LED şerit": "LED-Leiste",
-  "Şimdi (bu tur)": "Aktuell (diese Runde)"
+  "Şimdi (bu tur)": "Aktuell (diese Runde)",
+  "3B eğim (perspektif)": "3D-Neigung (Perspektive)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Ausgewogen (Farbübergang und Randabdunklung aus)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Senken hilft den FPS am meisten: bei 5 Hz wirkt die Walze weiterhin flüssig (Zeilen gleiten zwischen den Updates).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "Der teuerste Effekt: die Zeile muss in jedem Frame neu gezeichnet werden.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Höchste FPS (keine Animation, flache Ansicht)",
+  "Görsel kalite (tüm efektler)": "Bildqualität (alle Effekte)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Ausgeschaltet wird die Neigung durch flaches Skalieren nachgeahmt.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Ausgeschaltet wird ein nahes Auto nur mit der Rahmenfarbe hervorgehoben.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Gleitanimation (Zeilen gleiten bei Positionswechsel)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "Das Overlay bewegt sich, daher zeichnet die Grafikkarte es in jedem Frame neu. Sinken die FPS im Spiel, probiere Ausgewogen oder Höchste FPS, schalte die Unschärfe aus und senke die Aktualisierungsrate.",
+  "Özel (efektleri tek tek seç)": "Eigene (Effekte einzeln wählen)",
+  "Performans modu": "Leistungsmodus",
+  "Üst ve alt kenarda karartma": "Abdunklung am oberen und unteren Rand",
+  "Yakın araç renk dolgusu": "Farbfüllung für nahe Autos",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Weicher Farbübergang (Nähe-Hervorhebung füllt sich allmählich)"
 }

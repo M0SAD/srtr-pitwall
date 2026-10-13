@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Kapsel (färgfylld)",
   "Kayan cetvel": "Rullande skala",
   "LED şerit": "LED-list",
-  "Şimdi (bu tur)": "Nu (detta varv)"
+  "Şimdi (bu tur)": "Nu (detta varv)",
+  "3B eğim (perspektif)": "3D-lutning (perspektiv)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Balanserad (färgövergång och kanttoning av)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Att sänka den hjälper FPS mest: vid 5 Hz ser rullen fortfarande mjuk ut (raderna glider mellan uppdateringarna).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "Den dyraste effekten: raden måste ritas om varje bildruta.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Högsta FPS (ingen animation, platt utseende)",
+  "Görsel kalite (tüm efektler)": "Bildkvalitet (alla effekter)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Avstängd härmas lutningen med platt skalning.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Avstängd markeras en bil nära bara med ramfärgen.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Glidanimation (rader glider när ordningen ändras)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "Overlayn rör sig, så grafikkortet ritar om den varje bildruta. Om FPS i spelet sjunker, prova Balanserad eller Högsta FPS, stäng av oskärpan och sänk uppdateringsfrekvensen.",
+  "Özel (efektleri tek tek seç)": "Anpassad (välj effekter en och en)",
+  "Performans modu": "Prestandaläge",
+  "Üst ve alt kenarda karartma": "Tonad övre och nedre kant",
+  "Yakın araç renk dolgusu": "Färgfyllning för bilar nära",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Mjuk färgövergång (närhetsmarkeringen fylls gradvis)"
 }

@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Capsule (kleurgevuld)",
   "Kayan cetvel": "Schuivende schaal",
   "LED şerit": "Ledstrip",
-  "Şimdi (bu tur)": "Huidig (deze ronde)"
+  "Şimdi (bu tur)": "Huidig (deze ronde)",
+  "3B eğim (perspektif)": "3D-kanteling (perspectief)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Gebalanceerd (kleurovergang en randvervaging uit)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Verlagen helpt de FPS het meest: op 5 Hz blijft de rol vloeiend (rijen glijden tussen updates).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "Het duurste effect: de rij moet elk frame opnieuw worden getekend.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Hoogste FPS (geen animatie, vlak uiterlijk)",
+  "Görsel kalite (tüm efektler)": "Beeldkwaliteit (alle effecten)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Uit: de kanteling wordt nagebootst met vlak schalen.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Uit: een auto dichtbij wordt alleen met de randkleur gemarkeerd.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Schuifanimatie (rijen schuiven als de volgorde verandert)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "De overlay beweegt, dus de videokaart tekent hem elk frame opnieuw. Daalt je FPS in de game, probeer dan Gebalanceerd of Hoogste FPS, zet vervaging uit en verlaag de updatefrequentie.",
+  "Özel (efektleri tek tek seç)": "Aangepast (kies effecten één voor één)",
+  "Performans modu": "Prestatiemodus",
+  "Üst ve alt kenarda karartma": "Vervaging aan boven- en onderrand",
+  "Yakın araç renk dolgusu": "Kleurvulling voor auto's dichtbij",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Zachte kleurovergang (nabijheidsmarkering vult geleidelijk)"
 }

@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Pill (colour filled)",
   "Kayan cetvel": "Sliding scale",
   "LED şerit": "LED strip",
-  "Şimdi (bu tur)": "Current (this lap)"
+  "Şimdi (bu tur)": "Current (this lap)",
+  "3B eğim (perspektif)": "3D tilt (perspective)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Balanced (colour transition and edge fade off)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Lowering this helps FPS the most: at 5 Hz the reel still looks smooth (rows glide between updates).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "The most expensive effect: the row has to be repainted every frame.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "Highest FPS (no animation, flat look)",
+  "Görsel kalite (tüm efektler)": "Visual quality (all effects)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "When off, the tilt is imitated with a flat scale.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "When off, a nearby car is highlighted with the border colour only.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Slide animation (rows slide when the order changes)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "The overlay moves, so the graphics card redraws it every frame. If your in-game FPS drops, try Balanced or Highest FPS, turn blur off and lower the update rate.",
+  "Özel (efektleri tek tek seç)": "Custom (choose effects one by one)",
+  "Performans modu": "Performance mode",
+  "Üst ve alt kenarda karartma": "Fade at the top and bottom edges",
+  "Yakın araç renk dolgusu": "Nearby car colour fill",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Smooth colour transition (proximity highlight fills gradually)"
 }

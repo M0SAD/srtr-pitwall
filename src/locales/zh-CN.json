@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "胶囊（彩色填充）",
   "Kayan cetvel": "滑动刻度",
   "LED şerit": "LED 灯条",
-  "Şimdi (bu tur)": "当前（本圈）"
+  "Şimdi (bu tur)": "当前（本圈）",
+  "3B eğim (perspektif)": "3D 倾斜（透视）",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "平衡（关闭颜色过渡和边缘渐暗）",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "降低它对 FPS 帮助最大：5 Hz 时转轮仍然流畅（行会在更新之间滑动）。",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "最耗资源的效果：每一帧都要重绘该行。",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "最高 FPS（无动画，平面外观）",
+  "Görsel kalite (tüm efektler)": "画质优先（全部效果）",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "关闭时用平面缩放模拟倾斜。",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "关闭时只用边框颜色突出附近车辆。",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "滑动动画（顺序变化时行会滑动）",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "该叠加层是动态的，显卡每帧都要重绘。如果游戏 FPS 下降，请尝试“平衡”或“最高 FPS”，关闭模糊并降低更新频率。",
+  "Özel (efektleri tek tek seç)": "自定义（逐个选择效果）",
+  "Performans modu": "性能模式",
+  "Üst ve alt kenarda karartma": "上下边缘渐暗",
+  "Yakın araç renk dolgusu": "附近车辆颜色填充",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "平滑颜色过渡（接近高亮逐渐填满）"
 }

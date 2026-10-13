@@ -7296,5 +7296,20 @@
   "Kapsül (renk dolgulu)": "Cápsula (preenchida a cor)",
   "Kayan cetvel": "Escala deslizante",
   "LED şerit": "Faixa de LED",
-  "Şimdi (bu tur)": "Atual (esta volta)"
+  "Şimdi (bu tur)": "Atual (esta volta)",
+  "3B eğim (perspektif)": "Inclinação 3D (perspetiva)",
+  "Dengeli (renk geçişi ve kenar karartması kapalı)": "Equilibrado (transição de cor e escurecimento das margens desligados)",
+  "Düşürmek FPS'e en çok yarayan ayardır: 5 Hz'de makara yine akıcı görünür (satırlar arada kayarak geçer).": "Baixar é o que mais ajuda o FPS: a 5 Hz o rolo continua fluido (as linhas deslizam entre atualizações).",
+  "En pahalı efekt: her karede satırın yeniden boyanmasını gerektirir.": "O efeito mais pesado: a linha tem de ser redesenhada a cada fotograma.",
+  "En yüksek FPS (animasyon yok, düz görünüm)": "FPS máximo (sem animação, aspeto plano)",
+  "Görsel kalite (tüm efektler)": "Qualidade visual (todos os efeitos)",
+  "Kapalıyken eğim düz bir küçültmeyle taklit edilir.": "Desligado, a inclinação é imitada com uma escala plana.",
+  "Kapalıyken yakın araç yalnızca çerçeve rengiyle vurgulanır.": "Desligado, o carro próximo é destacado só pela cor da moldura.",
+  "Kayma animasyonu (sıra değişince satırlar kayar)": "Animação de deslizar (as linhas deslizam quando a ordem muda)",
+  "Overlay hareketli olduğu için ekran kartı her karede yeniden çizer. Oyunda FPS düşüyorsa Dengeli ya da En yüksek FPS'i dene; bulanıklığı kapat ve güncelleme sıklığını düşür.": "O overlay mexe-se, por isso a placa gráfica redesenha-o a cada fotograma. Se o FPS no jogo cair, experimenta Equilibrado ou FPS máximo, desliga o desfoque e baixa a frequência de atualização.",
+  "Özel (efektleri tek tek seç)": "Personalizado (escolhe os efeitos um a um)",
+  "Performans modu": "Modo de desempenho",
+  "Üst ve alt kenarda karartma": "Escurecimento nas margens superior e inferior",
+  "Yakın araç renk dolgusu": "Preenchimento de cor do carro próximo",
+  "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transição de cor suave (o destaque de proximidade enche aos poucos)"
 }
