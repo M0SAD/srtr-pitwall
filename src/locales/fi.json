@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Pehmeä värisiirtymä (läheisyyskorostus täyttyy vähitellen)",
   "Günlük boş: kayıtlı bir hata yok.": "Loki on tyhjä: virheitä ei ole tallennettu.",
   "Hata günlüğü": "Virheloki",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Jos ohjelma sulkeutuu itsestään tai jokin jumittuu, syy kirjoitetaan tänne. Kopioi ja lähetä tämä loki, kun pyydät tukea."
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Jos ohjelma sulkeutuu itsestään tai jokin jumittuu, syy kirjoitetaan tänne. Kopioi ja lähetä tämä loki, kun pyydät tukea.",
+  "Oturum başından geçen / toplam (eski)": "Kulunut istunnon alusta / yhteensä (vanha)",
+  "Sol üstteki süre": "Aika vasemmassa yläkulmassa",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Kierrosmääräisissä kisoissa näytetään aina johtajan kierros / kierrokset yhteensä. Jäljellä oleva aika tulee pelin kisakellosta; istunnon alun odotusta ja ruudukkoa ei lasketa.",
+  "Yarışın geçen / toplam süresi": "Kisan kulunut / kokonaisaika",
+  "Yarışın kalan süresi": "Kisan jäljellä oleva aika"
 }

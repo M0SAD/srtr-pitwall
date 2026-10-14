@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Smooth colour transition (proximity highlight fills gradually)",
   "Günlük boş: kayıtlı bir hata yok.": "The log is empty: no errors recorded.",
   "Hata günlüğü": "Error log",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "If the program closes by itself or something gets stuck, the reason is written here. When asking for support, copy and send this log."
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "If the program closes by itself or something gets stuck, the reason is written here. When asking for support, copy and send this log.",
+  "Oturum başından geçen / toplam (eski)": "Elapsed since session start / total (old)",
+  "Sol üstteki süre": "Time at top left",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Lap-limited races always show leader lap / total laps. Remaining time comes from the game's race clock; waiting and grid time at the start of the session is not counted.",
+  "Yarışın geçen / toplam süresi": "Race elapsed / total time",
+  "Yarışın kalan süresi": "Race time remaining"
 }

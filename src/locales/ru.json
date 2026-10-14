@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Плавный переход цвета (подсветка близости заполняется постепенно)",
   "Günlük boş: kayıtlı bir hata yok.": "Журнал пуст: ошибок не записано.",
   "Hata günlüğü": "Журнал ошибок",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Если программа закрывается сама или что-то зависает, причина записывается сюда. Обращаясь в поддержку, скопируйте и отправьте этот журнал."
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Если программа закрывается сама или что-то зависает, причина записывается сюда. Обращаясь в поддержку, скопируйте и отправьте этот журнал.",
+  "Oturum başından geçen / toplam (eski)": "Прошло с начала сессии / всего (старый)",
+  "Sol üstteki süre": "Время в левом верхнем углу",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "В гонках на круги всегда показывается круг лидера / всего кругов. Оставшееся время берётся из гоночных часов игры; ожидание и расстановка на старте в начале сессии не учитываются.",
+  "Yarışın geçen / toplam süresi": "Прошло / всего времени гонки",
+  "Yarışın kalan süresi": "Оставшееся время гонки"
 }

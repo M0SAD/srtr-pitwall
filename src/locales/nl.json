@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Zachte kleurovergang (nabijheidsmarkering vult geleidelijk)",
   "Günlük boş: kayıtlı bir hata yok.": "Het logboek is leeg: geen fouten vastgelegd.",
   "Hata günlüğü": "Foutenlogboek",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Als het programma vanzelf sluit of iets vastloopt, staat de reden hier. Kopieer en stuur dit logboek mee als je om ondersteuning vraagt."
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Als het programma vanzelf sluit of iets vastloopt, staat de reden hier. Kopieer en stuur dit logboek mee als je om ondersteuning vraagt.",
+  "Oturum başından geçen / toplam (eski)": "Verstreken sinds sessiestart / totaal (oud)",
+  "Sol üstteki süre": "Tijd linksboven",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Bij races met een rondeaantal wordt altijd ronde van de leider / totaal getoond. De resterende tijd komt van de raceklok van de game; wachten en grid aan het begin van de sessie tellen niet mee.",
+  "Yarışın geçen / toplam süresi": "Verstreken / totale racetijd",
+  "Yarışın kalan süresi": "Resterende racetijd"
 }

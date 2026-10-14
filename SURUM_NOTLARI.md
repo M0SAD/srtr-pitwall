@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 141026-324
+
+- Lider Tablosu: sol üstteki süre artık varsayılan olarak yarışın kalan süresini gösterir (oyunun yarış saatinden; oturumun başındaki bekleme ve grid süresi sayılmaz). Yeni ayar Başlık › "Sol üstteki süre": Yarışın kalan süresi (varsayılan), Yarışın geçen / toplam süresi, Oturum başından geçen / toplam (eski görünüm). Tur sayılı yarışlarda eskisi gibi lider turu / toplam tur.
+
 ## 141026-323
 
 - Telemetri › İzler: fareyle grafiklerin üzerinde gezinirken değerler imlecin olduğu yerde, çizginin üstünde de yazar (her turun noktası ve değeri, birimiyle: Gaz %54, Fren %80, Hız 184 km/h, vites, direksiyon, devir, G, fark). Etiketler üst üste binmez; sağ kenara yaklaşınca imlecin soluna geçer. Grafik başlığının sağındaki değerler eskisi gibi duruyor.

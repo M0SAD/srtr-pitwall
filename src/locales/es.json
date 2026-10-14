@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Transición de color suave (el resaltado de proximidad se llena poco a poco)",
   "Günlük boş: kayıtlı bir hata yok.": "El registro está vacío: no hay errores.",
   "Hata günlüğü": "Registro de errores",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Si el programa se cierra solo o algo se bloquea, el motivo se escribe aquí. Al pedir soporte, copia y envía este registro."
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Si el programa se cierra solo o algo se bloquea, el motivo se escribe aquí. Al pedir soporte, copia y envía este registro.",
+  "Oturum başından geçen / toplam (eski)": "Transcurrido desde el inicio de la sesión / total (antiguo)",
+  "Sol üstteki süre": "Tiempo arriba a la izquierda",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "En carreras por vueltas siempre se muestra vuelta del líder / vueltas totales. El tiempo restante viene del reloj de carrera del juego; no cuenta la espera ni la parrilla al inicio de la sesión.",
+  "Yarışın geçen / toplam süresi": "Tiempo de carrera transcurrido / total",
+  "Yarışın kalan süresi": "Tiempo restante de carrera"
 }

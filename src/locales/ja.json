@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "滑らかな色の遷移（接近ハイライトが徐々に満ちる）",
   "Günlük boş: kayıtlı bir hata yok.": "ログは空です。エラーは記録されていません。",
   "Hata günlüğü": "エラーログ",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "プログラムが勝手に終了したり、何かが固まったりした場合、その原因がここに記録されます。サポートを依頼するときはこのログをコピーして送ってください。"
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "プログラムが勝手に終了したり、何かが固まったりした場合、その原因がここに記録されます。サポートを依頼するときはこのログをコピーして送ってください。",
+  "Oturum başından geçen / toplam (eski)": "セッション開始からの経過 / 合計（旧）",
+  "Sol üstteki süre": "左上の時間",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "周回数制のレースでは常にリーダーの周回 / 総周回数を表示します。残り時間はゲームのレース時計の値で、セッション開始時の待機やグリッドの時間は含みません。",
+  "Yarışın geçen / toplam süresi": "レースの経過 / 合計時間",
+  "Yarışın kalan süresi": "レースの残り時間"
 }

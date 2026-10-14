@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "平滑颜色过渡（接近高亮逐渐填满）",
   "Günlük boş: kayıtlı bir hata yok.": "日志为空：没有记录到错误。",
   "Hata günlüğü": "错误日志",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "如果程序自行关闭或卡住，原因会记录在这里。请求支持时请复制并发送此日志。"
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "如果程序自行关闭或卡住，原因会记录在这里。请求支持时请复制并发送此日志。",
+  "Oturum başından geçen / toplam (eski)": "自会话开始已过 / 总计（旧）",
+  "Sol üstteki süre": "左上角的时间",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "按圈数进行的比赛始终显示领先者圈数 / 总圈数。剩余时间来自游戏的比赛计时；会话开始时的等待和发车格时间不计入。",
+  "Yarışın geçen / toplam süresi": "比赛已过 / 总时间",
+  "Yarışın kalan süresi": "比赛剩余时间"
 }

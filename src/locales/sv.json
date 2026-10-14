@@ -7314,5 +7314,10 @@
   "Yumuşak renk geçişi (yakınlık vurgusu akarak dolar)": "Mjuk färgövergång (närhetsmarkeringen fylls gradvis)",
   "Günlük boş: kayıtlı bir hata yok.": "Loggen är tom: inga fel registrerade.",
   "Hata günlüğü": "Fellogg",
-  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Om programmet stängs av sig självt eller något hänger sig skrivs orsaken här. Kopiera och skicka den här loggen när du ber om support."
+  "Program kendiliğinden kapanır ya da bir şey takılırsa sebebi buraya yazılır. Destek isterken bu günlüğü kopyalayıp gönder.": "Om programmet stängs av sig självt eller något hänger sig skrivs orsaken här. Kopiera och skicka den här loggen när du ber om support.",
+  "Oturum başından geçen / toplam (eski)": "Förflutet sedan sessionens start / totalt (gammal)",
+  "Sol üstteki süre": "Tid uppe till vänster",
+  "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "I varvbaserade lopp visas alltid ledarens varv / totalt antal varv. Återstående tid kommer från spelets tävlingsklocka; väntan och startgrid i början av sessionen räknas inte.",
+  "Yarışın geçen / toplam süresi": "Loppets förflutna / totala tid",
+  "Yarışın kalan süresi": "Återstående lopptid"
 }
