@@ -2042,6 +2042,33 @@ function ChartPanel(p: {
     return p.fmt(s.values[Math.min(n - 1, Math.max(0, Math.round(k * (n - 1))))] ?? 0);
   };
   const cursorX = () => (p.cursorK == null ? null : toX(p.cursorK));
+  /** İmleçteki değerler çizginin üstünde: her serinin noktası ve değeri (etiketler üst üste binmesin diye aralanır) */
+  const marks = createMemo(() => {
+    const k = p.cursorK;
+    const x = cursorX();
+    if (k == null || x == null || x < 0 || x > 1) return [];
+    const { lo, hi } = range();
+    const h = p.height;
+    const many = p.series.length > 1;
+    // Birim başlıktan: "Gaz (%)" -> "%", "Hız (km/h)" -> " km/h" (uzun açıklamalı başlıklarda birim yazılmaz)
+    const u = /\(([^(),;]{1,5})\)\s*$/.exec(p.title)?.[1] ?? "";
+    const unit = u === "%" ? "%" : u ? ` ${u}` : "";
+    const out = p.series.map((s, i) => {
+      const n = s.values.length;
+      const v = s.values[Math.min(n - 1, Math.max(0, Math.round(k * (n - 1))))] ?? 0;
+      const y = Math.min(h - 4, Math.max(4, h - 4 - ((v - lo) / (hi - lo || 1)) * (h - 8)));
+      return { i, y, ly: y, color: s.color, text: (many ? `${s.label} ` : "") + p.fmt(v) + unit };
+    });
+    // Etiket yerleşimi: yukarıdan aşağı sıralı, en az 15 px aralık, grafiğin içinde
+    const GAP = 15;
+    const sorted = [...out].sort((a, b) => a.y - b.y);
+    for (let j = 0; j < sorted.length; j++) {
+      sorted[j].ly = Math.max(sorted[j].y, j > 0 ? sorted[j - 1].ly + GAP : 8);
+    }
+    const over = sorted.length ? sorted[sorted.length - 1].ly - (h - 8) : 0;
+    if (over > 0) for (const m of sorted) m.ly = Math.max(8, m.ly - over);
+    return out;
+  });
   return (
     <div class="tchart">
       <div class="tchart-head">
@@ -2085,6 +2112,20 @@ function ChartPanel(p: {
         </Show>
         <Show when={cursorX() != null && cursorX()! >= 0 && cursorX()! <= 1}>
           <i class="tchart-cursor" style={{ left: `${cursorX()! * 100}%` }} />
+          <For each={marks()}>
+            {(m) => (
+              <>
+                <i class="tchart-dot" style={{ left: `${cursorX()! * 100}%`, top: `${m.y}px`, background: m.color }} />
+                <span
+                  class="tchart-tip mono"
+                  classList={{ flip: cursorX()! > 0.78 }}
+                  style={{ left: `${cursorX()! * 100}%`, top: `${m.ly}px`, "border-color": m.color, color: m.color }}
+                >
+                  {m.text}
+                </span>
+              </>
+            )}
+          </For>
         </Show>
       </div>
     </div>

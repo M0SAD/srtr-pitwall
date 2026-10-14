@@ -241,6 +241,9 @@ function chartHtml(c0, idx) {
   if (hi === lo) hi = lo + 1;
   c.lo = lo;
   c.hi = hi;
+  // İmleçteki değer etiketleri (setCursor) için ölçek
+  c0.lo = lo;
+  c0.hi = hi;
   const zy = c.height - 4 - ((0 - lo) / (hi - lo)) * (c.height - 8);
   return `<div class="tchart" data-c="${idx}">
     <div class="tchart-head"><b>${esc(c.title)}</b><span class="tchart-read">${c.series
@@ -256,6 +259,7 @@ function chartHtml(c0, idx) {
       <span class="tchart-axis bottom">${esc(c.fmt(lo))}</span>
       <i class="tchart-sel" hidden></i>
       <i class="tchart-cursor" hidden></i>
+      <div class="tchart-marks"></div>
     </div>
   </div>`;
 }
@@ -668,6 +672,8 @@ function setCursor(k) {
     const cur = el.querySelector(".tchart-cursor");
     if (k == null || !c) {
       cur.hidden = true;
+      const mk = el.querySelector(".tchart-marks");
+      if (mk) mk.innerHTML = "";
       c?.series.forEach((s, j) => {
         const r = el.querySelector(`[data-r="${el.dataset.c}-${j}"]`);
         if (r) r.textContent = "—";
@@ -677,6 +683,34 @@ function setCursor(k) {
     const x = (k - st.zoom.a) / Math.max(1e-6, st.zoom.b - st.zoom.a);
     cur.hidden = x < 0 || x > 1;
     cur.style.left = `${x * 100}%`;
+    // Çizginin üstünde nokta ve değer (etiketler üst üste binmesin diye aralanır)
+    const marks = el.querySelector(".tchart-marks");
+    if (marks) {
+      if (cur.hidden) marks.innerHTML = "";
+      else {
+        const h = c.height;
+        const many = c.series.length > 1;
+        const u = /\(([^(),;]{1,5})\)\s*$/.exec(c.title || "")?.[1] ?? "";
+        const unit = u === "%" ? "%" : u ? ` ${u}` : "";
+        const ms = c.series.map((s) => {
+          const i = Math.min(s.values.length - 1, Math.max(0, Math.round(k * (s.values.length - 1))));
+          const v = s.values[i] ?? 0;
+          const y = Math.min(h - 4, Math.max(4, h - 4 - ((v - c.lo) / (c.hi - c.lo || 1)) * (h - 8)));
+          return { y, ly: y, color: s.color, text: (many ? `${s.label} ` : "") + c.fmt(v) + unit };
+        });
+        const sorted = [...ms].sort((p, q) => p.y - q.y);
+        sorted.forEach((m, j) => (m.ly = Math.max(m.y, j > 0 ? sorted[j - 1].ly + 15 : 8)));
+        const over = sorted.length ? sorted[sorted.length - 1].ly - (h - 8) : 0;
+        if (over > 0) sorted.forEach((m) => (m.ly = Math.max(8, m.ly - over)));
+        const flip = x > 0.78 ? " flip" : "";
+        marks.innerHTML = ms
+          .map(
+            (m) =>
+              `<i class="tchart-dot" style="left:${x * 100}%;top:${m.y}px;background:${m.color}"></i><span class="tchart-tip mono${flip}" style="left:${x * 100}%;top:${m.ly}px;border-color:${m.color};color:${m.color}">${esc(m.text)}</span>`,
+          )
+          .join("");
+      }
+    }
     c.series.forEach((s, j) => {
       const i = Math.min(s.values.length - 1, Math.max(0, Math.round(k * (s.values.length - 1))));
       const r = el.querySelector(`[data-r="${el.dataset.c}-${j}"]`);

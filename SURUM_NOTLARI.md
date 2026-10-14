@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 141026-323
+
+- Telemetri › İzler: fareyle grafiklerin üzerinde gezinirken değerler imlecin olduğu yerde, çizginin üstünde de yazar (her turun noktası ve değeri, birimiyle: Gaz %54, Fren %80, Hız 184 km/h, vites, direksiyon, devir, G, fark). Etiketler üst üste binmez; sağ kenara yaklaşınca imlecin soluna geçer. Grafik başlığının sağındaki değerler eskisi gibi duruyor.
+- Paylaşım sayfasında (site) da aynısı.
+
 ## 131026-322
 
 - Kendiliğinden kapanma için önlem ve teşhis: tepsi menüsü, tepsi simgesi ve overlay yenileme gibi ana iş parçacığında çalışan geri çağrılardaki bir hata artık programı kapatmıyor (yakalanıp crash.log'a yazılıyor). Program yine de beklenmedik kapanırsa (bellek bitmesi, sürücü çökmesi, sonlandırılma) bir sonraki açılışta crash.log'a "önceki oturum beklenmedik kapandı" satırı düşer: ne zaman açıldığı, ne kadar çalıştığı, bellek kullanımı (en yüksek dahil) ve son durum (oyuna bağlı mı). Bellek 2,5 GB'ı aşarsa da not düşülür.

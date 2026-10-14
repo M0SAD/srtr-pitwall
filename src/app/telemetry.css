@@ -1106,3 +1106,32 @@
 .ibt-res { display: grid; gap: 6px; margin: 8px 0; max-height: 320px; overflow: auto; }
 .ibt-res .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.03); }
 .ibt-res .err { color: var(--bad, #ff6b6b); }
+
+/* İmleçteki değerler: çizgi üstünde nokta ve değer etiketi */
+.tchart-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-2, #12151b);
+  pointer-events: none;
+  z-index: 2;
+}
+.tchart-tip {
+  position: absolute;
+  transform: translate(8px, -50%);
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--bg-2, #12151b) 88%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+.tchart-tip.flip {
+  transform: translate(calc(-100% - 8px), -50%);
+}
