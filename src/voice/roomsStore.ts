@@ -5,6 +5,7 @@
 
 import { createSignal } from "solid-js";
 import { session } from "@/cloud/supabase";
+import { config } from "@/cloud/account";
 import { voiceCategories, voiceRooms, type VoiceCategory, type VoiceRoomRow } from "@/cloud/voiceRooms";
 
 const [rooms, setRooms] = createSignal<VoiceRoomRow[]>([]);
@@ -21,20 +22,26 @@ export interface RoomSection {
   rooms: VoiceRoomRow[];
 }
 
-/** Menü / sayfa bölümleri: kategoriler sırayla, sonra kategorisiz topluluk odaları, en altta özel odalar */
+/** Menü / sayfa bölümleri: yöneticinin belirlediği sırayla (app_config.voice_order); sırada olmayanlar sona
+ *  (kategoriler kendi sıralarıyla, sonra Topluluk odaları, en sonda Özel odalar) */
 export function roomSections(): RoomSection[] {
   const all = rooms();
   const cats = categories();
   const ids = new Set(cats.map((c) => c.id));
-  const out: RoomSection[] = cats.map((c) => ({ id: c.id, title: c.name, fixed: false, rooms: all.filter((r) => !r.auto_delete && r.category_id === c.id) }));
-  out.push({
+  const list: RoomSection[] = cats.map((c) => ({ id: c.id, title: c.name, fixed: false, rooms: all.filter((r) => !r.auto_delete && r.category_id === c.id) }));
+  list.push({
     id: "_community",
     title: "Topluluk odaları",
     fixed: true,
     rooms: all.filter((r) => !r.auto_delete && !(r.category_id && ids.has(r.category_id))),
   });
-  out.push({ id: "_private", title: "Özel odalar", fixed: true, rooms: all.filter((r) => !!r.auto_delete) });
-  return out;
+  list.push({ id: "_private", title: "Özel odalar", fixed: true, rooms: all.filter((r) => !!r.auto_delete) });
+  const order = config()?.voice_order ?? [];
+  const pos = (id: string) => {
+    const i = order.indexOf(id);
+    return i < 0 ? 1000 + list.findIndex((x) => x.id === id) : i;
+  };
+  return list.sort((a, b) => pos(a.id) - pos(b.id));
 }
 
 let busy = false;

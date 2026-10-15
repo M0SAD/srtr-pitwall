@@ -4237,7 +4237,7 @@
  "Odadan çıkarıldın": "src/voice/engine.ts",
  "Odalar": "src/app/App.tsx, src/app/pages/VoiceRoomsPage.tsx",
  "Odalara herkes girebilir; bu ayar sadece yeni oda kurmayı sınırlar. Yöneticiler her zaman kurar ve odaları kalıcıdır; diğerlerinin odası içinde kimse kalmadıktan 1 saat sonra silinir. Yalnızca yöneticiler görür.": "src/app/pages/VoiceRoomsPage.tsx",
- "Odaları sol menüde ve oda listesinde başlıklar altında toplar. Odayı kurarken ya da oda ayarlarından kategorisini seç. PRO üyelerin odaları her zaman “Özel odalar” altında görünür.": "src/app/pages/VoiceRoomsPage.tsx",
+ "Odaları sol menüde ve oda listesinde başlıklar altında toplar. Odayı kurarken ya da oda ayarlarından kategorisini seç. PRO üyelerin odaları her zaman “Özel odalar” altında görünür. Okla sırayı değiştir; “Topluluk odaları” ve “Özel odalar” da taşınabilir. Herkes bu sırayla görür.": "src/app/pages/VoiceRoomsPage.tsx",
  "Odaya yalnızca spotter yazabilir. Spotter olmak için pit ayarlarını değiştirme yetkisi gerekir.": "src/app/components/CrewRoom.tsx",
  "Odaya yaz…": "src/app/components/TeamChat.tsx",
  "Odayı sessize al": "src/app/pages/TeamsPage.tsx",

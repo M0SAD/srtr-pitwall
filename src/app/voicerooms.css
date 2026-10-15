@@ -889,3 +889,23 @@
   display: flex;
   flex-direction: column;
 }
+.vr-cat-fixed {
+  flex: 1;
+  max-width: 340px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: var(--bg-3);
+  border: 1px dashed var(--line);
+  font-size: 13px;
+}
+.vr-cat-fixed svg {
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+.vr-cat-gap {
+  width: 34px;
+}

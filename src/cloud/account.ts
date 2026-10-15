@@ -67,6 +67,8 @@ export interface AppConfig {
   hidden_menu?: string[];
   /** c117: ses odası kurabilenler: admin | pro (PRO üyeler, varsayılan) | team (PRO + takım yöneticileri takım odası) | all */
   voice_create?: "admin" | "pro" | "team" | "all";
+  /** c120: ses odası bölümlerinin sırası (kategori kimlikleri, "_community", "_private") */
+  voice_order?: string[];
   /** Üst çubuktaki sim seçicide oyun ikonları (c51); false: eski yazılı görünüm. Sütun yoksa (eski sunucu) açık sayılır */
   sim_icons?: boolean;
   /** Üst çubuk bağlantıları (c61); bkz. cloud/topLinks.ts */

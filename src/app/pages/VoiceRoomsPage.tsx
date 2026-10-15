@@ -1189,13 +1189,15 @@ function CategoryManager() {
       setErr(errText(e));
     }
   };
+  // Sıra: kategoriler + "Topluluk odaları" + "Özel odalar" birlikte (app_config.voice_order; herkes aynı sırayla görür)
+  const order = () => roomSections().map((x) => ({ id: x.id, title: x.title, fixed: x.fixed }));
   const move = (i: number, d: number) =>
     run(async () => {
-      const list = [...categories()];
+      const list = order().map((x) => x.id);
       const j = i + d;
       if (j < 0 || j >= list.length) return;
       [list[i], list[j]] = [list[j], list[i]];
-      await Promise.all(list.map((c, k) => (c.sort !== k ? voiceCategorySave(c.id, c.name, k) : null)));
+      await saveConfig({ voice_order: list });
     });
   return (
     <div class="vr-cats">
@@ -1204,45 +1206,56 @@ function CategoryManager() {
           <span>Kategoriler</span>
           <small>
             Odaları sol menüde ve oda listesinde başlıklar altında toplar. Odayı kurarken ya da oda ayarlarından kategorisini seç. PRO üyelerin odaları her
-            zaman “Özel odalar” altında görünür.
+            zaman “Özel odalar” altında görünür. Okla sırayı değiştir; “Topluluk odaları” ve “Özel odalar” da taşınabilir. Herkes bu sırayla görür.
           </small>
         </div>
       </div>
-      <For each={categories()}>
+      <For each={order()}>
         {(c, i) => (
           <div class="vr-cat">
-            <input
-              class="input"
-              maxLength={40}
-              value={c.name}
-              onChange={(e) => {
-                const v = e.currentTarget.value.trim();
-                if (v && v !== c.name) void run(() => voiceCategorySave(c.id, v));
-              }}
-            />
+            <Show
+              when={!c.fixed}
+              fallback={
+                <span class="vr-cat-fixed">
+                  <I.Lock /> {t(c.title)}
+                </span>
+              }
+            >
+              <input
+                class="input"
+                maxLength={40}
+                value={c.title}
+                onChange={(e) => {
+                  const v = e.currentTarget.value.trim();
+                  if (v && v !== c.title) void run(() => voiceCategorySave(c.id, v));
+                }}
+              />
+            </Show>
             <button class="btn ghost small" disabled={i() === 0} title={t("Yukarı")} onClick={() => void move(i(), -1)}>
               <I.ArrowUp />
             </button>
-            <button class="btn ghost small" disabled={i() === categories().length - 1} title={t("Aşağı")} onClick={() => void move(i(), 1)}>
+            <button class="btn ghost small" disabled={i() === order().length - 1} title={t("Aşağı")} onClick={() => void move(i(), 1)}>
               <I.ArrowDown />
             </button>
-            <button
-              class="btn ghost small"
-              title={t("Kategoriyi sil")}
-              onClick={async () => {
-                if (
-                  !(await askConfirm(t("“{0}” kategorisi silinsin mi?", c.name), {
-                    danger: true,
-                    ok: t("Sil"),
-                    note: t("İçindeki odalar silinmez, “Topluluk odaları” altına geçer."),
-                  }))
-                )
-                  return;
-                void run(() => voiceCategoryDelete(c.id));
-              }}
-            >
-              <I.Trash />
-            </button>
+            <Show when={!c.fixed} fallback={<span class="vr-cat-gap" />}>
+              <button
+                class="btn ghost small"
+                title={t("Kategoriyi sil")}
+                onClick={async () => {
+                  if (
+                    !(await askConfirm(t("“{0}” kategorisi silinsin mi?", c.title), {
+                      danger: true,
+                      ok: t("Sil"),
+                      note: t("İçindeki odalar silinmez, “Topluluk odaları” altına geçer."),
+                    }))
+                  )
+                    return;
+                  void run(() => voiceCategoryDelete(c.id));
+                }}
+              >
+                <I.Trash />
+              </button>
+            </Show>
           </div>
         )}
       </For>
@@ -1253,7 +1266,15 @@ function CategoryManager() {
           const v = name().trim();
           if (!v) return;
           void run(async () => {
-            await voiceCategorySave(null, v);
+            const id = await voiceCategorySave(null, v);
+            // Sıra önceden ayarlandıysa yeni kategori "Topluluk odaları"nın üstüne girer
+            const cur = config()?.voice_order ?? [];
+            if (cur.length && id) {
+              const ids = cur.filter((x) => x !== id);
+              const k = ids.indexOf("_community");
+              ids.splice(k < 0 ? ids.length : k, 0, String(id));
+              await saveConfig({ voice_order: ids });
+            }
             setName("");
           });
         }}

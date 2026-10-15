@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-336
+
+Supabase'de `c120_guncelleme.sql` çalıştırılmalı.
+
+- Ses odası bölümlerinin sırası: yönetici bölümündeki Kategoriler listesinde kategoriler, "Topluluk odaları" ve "Özel odalar" birlikte listelenir; oklarla istenen yere taşınır. Sıra sunucuda saklanır, herkes sol menüde ve oda listesinde aynı sırayı görür. Yeni kategori "Topluluk odaları"nın üstüne eklenir.
+
 ## 151026-335
 
 Supabase'de `c119_guncelleme.sql` çalıştırılmalı.
