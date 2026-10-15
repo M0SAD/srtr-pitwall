@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-344
+
+- Ses ayarları › Yayın (OBS): ses odasındaki konuşmalar kulaklığa gitmeye devam ederken ayrıca seçilen ikinci bir aygıta (ör. ücretsiz VB-Audio Virtual Cable) da gönderilir; OBS'te "Ses Girişi Yakalama" ile o aygıt alınır. Oyun ve masaüstü sesinden ayrı, kendi ses ayarıyla. Kişi başı ses ve "benim için sustur" yayına da uygulanır. Kurulum adımları sayfada yazar. (OBS'in "Uygulama Ses Yakalama"sı programın sesini alamayabiliyor: ses WebView2'nin ayrı işleminden çalıyor.)
+
 ## 161026-343
 
 - Düzeltme: program tepsiye küçültülünce (pencere gizlenince) birkaç dakika sonra ses odası bağlantısı kopuyordu. Gizli / simge durumundaki pencerede tarayıcının zamanlayıcıları dakikada bire düşürmesi ve sayfayı arka plana alması kapatıldı; bağlantı nabzı ve oturum yenileme kesintisiz sürer. (Değişiklik programı yeniden başlatınca geçerli olur.)

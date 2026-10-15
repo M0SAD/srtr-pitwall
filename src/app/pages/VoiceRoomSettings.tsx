@@ -9,7 +9,12 @@ import {
   audioDevices,
   autoGain,
   changeOutput,
+  changeStreamOutput,
   cueSounds,
+  setStreamDevice,
+  setStreamVolume,
+  streamDevice,
+  streamVolume,
   echoCancel,
   gateDb,
   gateHold,
@@ -42,7 +47,7 @@ import {
 } from "@/voice/engine";
 import { Slider, Switch } from "../components/SettingsForm";
 import { PttButtonRow, PttKeyRow, type BindTarget } from "../components/VoiceCommands";
-import { go } from "../ui";
+import { go, openUrl } from "../ui";
 import { ProLockNote } from "../components/ProLock";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ROOM_THEMES, TILE_STYLES, roomTheme, setRoomThemePref, setTileStylePref, tileStyle } from "@/voice/roomTheme";
@@ -92,6 +97,7 @@ export function VoiceRoomSettings() {
   return (
     <>
       <RoomLook />
+      <StreamOut outputs={(devs()?.outputs ?? []).filter((d) => d.deviceId && d.deviceId !== "default")} label={label} />
       <section class="panel vr-audio">
         <h3>Ses aygıtları</h3>
         <div class="row">
@@ -420,6 +426,76 @@ function RoomLook() {
           PRO'ya bak
         </button>
       </Show>
+    </section>
+  );
+}
+
+/** Yayın çıkışı (OBS): odadaki sesler ayrıca seçilen aygıta da gider (sanal kablo); OBS o aygıtı yakalar */
+function StreamOut(props: { outputs: MediaDeviceInfo[]; label: (d: MediaDeviceInfo, i: number) => string }) {
+  const CABLE = "https://vb-audio.com/Cable/";
+  const hasCable = () => props.outputs.some((d) => /cable|voicemeeter|virtual/i.test(d.label));
+  return (
+    <section class="panel vr-audio vr-stream">
+      <h3>Yayın (OBS)</h3>
+      <p class="muted small">
+        Ses odasındaki konuşmaları yayına ayrı bir ses kaynağı olarak eklemek için: odadaki sesler kulaklığına gitmeye devam eder, ayrıca burada seçtiğin
+        aygıta da gönderilir. OBS'te o aygıtı yakalarsın; oyun ve masaüstü sesinden ayrı, kendi ses ayarıyla.
+      </p>
+      <div class="row">
+        <div>
+          <span>Yayın çıkışı</span>
+          <small>Sanal bir ses kablosu seç (ör. “CABLE Input (VB-Audio Virtual Cable)”). Kendi kulaklığını seçme, sesi iki kez duyarsın.</small>
+        </div>
+        <select
+          class="vr-sel"
+          value={streamDevice()}
+          onChange={(e) => {
+            setStreamDevice(e.currentTarget.value);
+            changeStreamOutput();
+          }}
+        >
+          <option value="">{t("Kapalı")}</option>
+          <For each={props.outputs}>{(d, i) => <option value={d.deviceId}>{props.label(d, i())}</option>}</For>
+        </select>
+      </div>
+      <Show when={streamDevice()}>
+        <div class="row">
+          <span>Yayın çıkışı sesi</span>
+          <div class="vr-slider">
+            <Slider
+              value={streamVolume()}
+              min={0}
+              max={200}
+              step={5}
+              unit="%"
+              onInput={(v) => {
+                setStreamVolume(v);
+                applyVolumes();
+              }}
+            />
+          </div>
+        </div>
+      </Show>
+      <div class="vr-stream-help">
+        <b>{t("Kurulum (bir kez)")}</b>
+        <ol>
+          <li>
+            <Show when={!hasCable()} fallback={<span>{t("Sanal ses kablosu bilgisayarında kurulu görünüyor.")}</span>}>
+              {t("Ücretsiz VB-Audio Virtual Cable'ı kur ve bilgisayarı yeniden başlat:")}{" "}
+              <a class="msg-link" href={CABLE} onClick={(e) => (e.preventDefault(), openUrl(CABLE))}>
+                vb-audio.com/Cable
+              </a>
+            </Show>
+          </li>
+          <li>{t("Yukarıdaki “Yayın çıkışı”nda “CABLE Input”u seç.")}</li>
+          <li>{t("OBS › Kaynaklar › + › Ses Girişi Yakalama › Aygıt: “CABLE Output (VB-Audio Virtual Cable)”.")}</li>
+          <li>{t("Windows ayarlarında CABLE'ı varsayılan aygıt yapma; programlar sesini oraya göndermesin.")}</li>
+        </ol>
+        <p class="muted small">
+          OBS'teki “Uygulama Ses Yakalama” bu programın sesini alamayabilir: ses, Windows'un tarayıcı bileşeninin (WebView2) ayrı bir işleminden çalar. Daha
+          basit yol: OBS'teki “Masaüstü Sesi” zaten duyduğun her şeyi (ses odası dahil) yayına katar.
+        </p>
+      </div>
     </section>
   );
 }

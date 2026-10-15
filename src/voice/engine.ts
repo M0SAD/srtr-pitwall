@@ -43,6 +43,9 @@ export const [masterVolume, setMasterVolume] = uiPref<number>("voice.room.vol", 
 export const [userVolumes, setUserVolumes] = uiPref<Record<string, number>>("voice.room.userVol", {});
 /** Söz hakkı geldiğinde / bittiğinde kısa ses */
 export const [cueSounds, setCueSounds] = uiPref<boolean>("voice.room.cues", true);
+/** Yayın çıkışı (OBS için): odadaki sesler ayrıca bu aygıta da gider (ör. VB-Audio Virtual Cable). Boş = kapalı */
+export const [streamDevice, setStreamDevice] = uiPref<string>("voice.room.streamDev", "");
+export const [streamVolume, setStreamVolume] = uiPref<number>("voice.room.streamVol", 100);
 
 // ---- Durum
 const [status, setStatus] = createSignal<VoiceStatus>("idle");
@@ -160,6 +163,9 @@ interface Pulled {
   gain: GainNode | null;
   meter: AudioWorkletNode | null;
   src: MediaStreamAudioSourceNode | null;
+  /** Yayın çıkışı (ikinci aygıt) */
+  src2?: MediaStreamAudioSourceNode | null;
+  gain2?: GainNode | null;
 }
 /** Çekilen izler: hedef oturum → iz */
 const pulled = new Map<string, Pulled>();
@@ -180,6 +186,62 @@ function audioCtx(): AudioContext {
   }
   if (ctx.state === "suspended") void ctx.resume().catch(() => {});
   return ctx;
+}
+
+// ---- Yayın çıkışı: ikinci ses bağlamı, seçilen aygıta çalar (OBS "Ses Girişi Yakalama" ile alınır)
+let ctx2: AudioContext | null = null;
+
+function streamCtx(): AudioContext | null {
+  if (!streamDevice()) return null;
+  if (!ctx2) {
+    try {
+      ctx2 = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
+    } catch {
+      ctx2 = new AudioContext();
+    }
+    // deno-lint-ignore no-explicit-any
+    void (ctx2 as any).setSinkId?.(streamDevice()).catch(() => {});
+  }
+  if (ctx2.state === "suspended") void ctx2.resume().catch(() => {});
+  return ctx2;
+}
+
+function attachStream(p: Pulled) {
+  const c = streamCtx();
+  const stream = p.el.srcObject as MediaStream | null;
+  if (!c || !stream || p.src2) return;
+  try {
+    p.src2 = c.createMediaStreamSource(stream);
+    p.gain2 = c.createGain();
+    p.src2.connect(p.gain2);
+    p.gain2.connect(c.destination);
+  } catch {
+    p.src2 = null;
+    p.gain2 = null;
+  }
+}
+
+function detachStream(p: Pulled) {
+  try {
+    p.src2?.disconnect();
+    p.gain2?.disconnect();
+  } catch {
+    /* zaten ayrık */
+  }
+  p.src2 = null;
+  p.gain2 = null;
+}
+
+/** Yayın çıkışı aygıtı değişti: kapat / yeniden kur (açıkken odadaki bütün sesler bağlanır) */
+export function changeStreamOutput() {
+  for (const p of pulled.values()) detachStream(p);
+  if (ctx2) {
+    void ctx2.close().catch(() => {});
+    ctx2 = null;
+  }
+  if (!streamDevice()) return;
+  for (const p of pulled.values()) attachStream(p);
+  applyVolumes();
 }
 
 async function applyOutput() {
@@ -794,6 +856,7 @@ function onTrack(e: RTCTrackEvent) {
   const old = pulled.get(target);
   if (old) dropAudio(old);
   pulled.set(target, p);
+  attachStream(p);
   applyVolume(p);
   // Seviye ölçer (konuşma göstergesi; ses iş parçacığında, panel gizliyken de çalışır)
   if (src && ctx) {
@@ -807,6 +870,7 @@ function onTrack(e: RTCTrackEvent) {
 }
 
 function dropAudio(p: Pulled) {
+  detachStream(p);
   try {
     p.src?.disconnect();
     p.gain?.disconnect();
@@ -829,6 +893,8 @@ function applyVolume(p: Pulled) {
   const v = localMuted().includes(p.user) ? 0 : ((userVolumes()[p.user] ?? 100) / 100) * (masterVolume() / 100);
   if (p.gain) p.gain.gain.value = v;
   else p.el.volume = Math.min(1, v);
+  // Yayına giden ses: kişi başı ses ve "benim için sustur" geçerli, ana ses düğmesi değil (ayrı ayar)
+  if (p.gain2) p.gain2.gain.value = localMuted().includes(p.user) ? 0 : ((userVolumes()[p.user] ?? 100) / 100) * (streamVolume() / 100);
 }
 
 export function applyVolumes() {
