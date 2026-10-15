@@ -98,6 +98,7 @@ const OVERLAYS = [
   ["setupcmp", "Setup Karşılaştırma"],
   ["setupname", "Setup Adı"],
   ["friendalert", "Arkadaş Uyarısı"],
+  ["voiceroom", "Ses Odası"],
   ["ffb", "FFB Gücü"],
   ["coach", "Canlı Kıyas"],
   ["startlights", "Start Işıkları"],

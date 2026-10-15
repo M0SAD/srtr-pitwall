@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-333
+
+- Site: "Ses Odası" overlay'i overlay listesine ve galeriye eklendi (görsel, açıklama, özellikler; 14 dilde). Overlay sayısı artık 65 (sayfa başlıklarındaki eski "61 overlay" da düzeltildi).
+
 ## 151026-332
 
 - Site: Özellikler sayfasındaki "Ses odaları" kartı güncellendi (herkes ücretsiz girer, oda kurmak PRO; yapay zekâ gürültü engelleme, algılama eşiği, mikrofon / ses kapatma tuşları, Ses Odası overlay'i). Fiyatlandırma listelerine "Ses odalarına katılma" (ücretsiz) ve "Ses odası kurma" (PRO) eklendi. 14 dilde.
