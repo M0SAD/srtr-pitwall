@@ -348,6 +348,11 @@ pub struct CmdCfg {
     pub alert_vk: u32,
     pub alert_mods: u8,
     pub alert_button: Option<(u16, u16, u16)>,
+    /// Ses odası bas-konuş (`general.voiceRoom`): basılı tutulduğu sürece "voiceroom-ptt" true, bırakınca false.
+    /// Gönderme arayüzde (src/voice/engine.ts); sesli komuttan bağımsız, PRO istemez.
+    pub room_vk: u32,
+    pub room_mods: u8,
+    pub room_button: Option<(u16, u16, u16)>,
 }
 
 /// Tanıma motoru: Otomatik = dilin Windows tanıyıcısı kuruluysa Windows, değilse çevrimiçi (Whisper)
@@ -400,7 +405,12 @@ pub fn cloud_lang(rec_lang: &str) -> String {
 
 /// Arkadaşa uyarı tuşu ve düğmesi (`general.friendAlert`)
 fn alert_from_settings(v: &Value) -> (u32, u8, Option<(u16, u16, u16)>) {
-    let Some(a) = v.pointer("/general/friendAlert") else {
+    bind_from_settings(v, "/general/friendAlert")
+}
+
+/// Ayardaki {key, button} ataması: klavye tuşu + değiştiriciler ve direksiyon düğmesi
+fn bind_from_settings(v: &Value, ptr: &str) -> (u32, u8, Option<(u16, u16, u16)>) {
+    let Some(a) = v.pointer(ptr) else {
         return (0, 0, None);
     };
     let (vk, mods) =
@@ -414,11 +424,15 @@ fn alert_from_settings(v: &Value) -> (u32, u8, Option<(u16, u16, u16)>) {
 
 pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     let (alert_vk, alert_mods, alert_button) = alert_from_settings(v);
+    let (room_vk, room_mods, room_button) = bind_from_settings(v, "/general/voiceRoom");
     let c = cfg_from_settings_voice(v, allowed);
     CmdCfg {
         alert_vk,
         alert_mods,
         alert_button,
+        room_vk,
+        room_mods,
+        room_button,
         ..c
     }
 }
@@ -505,6 +519,16 @@ impl CmdCfg {
     /// Arkadaşa uyarı tuşu ya da düğmesi atanmış
     pub fn alert_on(&self) -> bool {
         self.alert_vk != 0 || self.alert_button.is_some()
+    }
+
+    /// Ses odası bas-konuş tuşu ya da düğmesi atanmış
+    pub fn room_on(&self) -> bool {
+        self.room_vk != 0 || self.room_button.is_some()
+    }
+
+    /// Giriş döngüsü gerekli mi (sesli komut, arkadaşa uyarı ya da ses odası)
+    pub fn inputs_on(&self) -> bool {
+        self.active() || self.alert_on() || self.room_on()
     }
 }
 
@@ -1033,7 +1057,7 @@ pub fn allowed(app: &AppHandle) -> bool {
 pub fn apply_settings(app: &AppHandle, v: &Value) {
     let _ = APP.set(app.clone());
     let c = cfg_from_settings(v, allowed(app));
-    let active = c.active() || c.alert_on();
+    let active = c.inputs_on();
     *CFG.lock() = Some(c);
     if active {
         imp::ensure_input();
@@ -1484,12 +1508,15 @@ mod imp {
                     let mut idle_since: Option<Instant> = None;
                     let mut alert_was = false;
                     let mut alert_at: Option<Instant> = None;
+                    let mut room_was = false;
+                    let mut room_raw_at: Option<Instant> = None;
                     loop {
                         let c = cfg();
                         let cap = CAPTURE.lock().as_ref().map(|(_, until)| *until);
                         let active = c.active();
                         let alert_on = c.alert_on();
-                        if !active && !alert_on && cap.is_none() {
+                        let room_on = c.room_on();
+                        if !active && !alert_on && !room_on && cap.is_none() {
                             // 2 sn boşta: pencereyi ve Raw Input kaydını bırak
                             let since = *idle_since.get_or_insert_with(Instant::now);
                             if since.elapsed() > Duration::from_secs(2) {
@@ -1509,8 +1536,18 @@ mod imp {
                         } else {
                             None
                         };
-                        let two = matches!((ptt_dev, alert_dev), (Some(a), Some(b)) if a != b);
-                        input.pump(cap.is_some() || two, ptt_dev.or(alert_dev));
+                        let room_dev = if room_on {
+                            c.room_button.map(|(v, p, _)| (v, p))
+                        } else {
+                            None
+                        };
+                        // Düğmeler farklı aygıtlardaysa hepsi yoklanır
+                        let devs: Vec<(u16, u16)> = [ptt_dev, alert_dev, room_dev]
+                            .into_iter()
+                            .flatten()
+                            .collect();
+                        let two = devs.iter().any(|d| *d != devs[0]);
+                        input.pump(cap.is_some() || two, devs.first().copied());
 
                         // Düğme yakalama ("Direksiyon tuşu ata")
                         if let Some(until) = cap {
@@ -1586,6 +1623,29 @@ mod imp {
                             }
                         }
                         alert_was = alert_down;
+
+                        // Ses odası bas-konuş: basılı / bırakıldı (bırakma 80 ms gecikmeli, titreme süzülür)
+                        let room_raw = room_on
+                            && cap.is_none()
+                            && (ptt_win::key_down(c.room_vk, c.room_mods)
+                                || c.room_button
+                                    .map(|(v, p, b)| input.is_down(v, p, b))
+                                    .unwrap_or(false));
+                        if room_raw {
+                            room_raw_at = Some(Instant::now());
+                        }
+                        let room_down = room_raw
+                            || (room_was
+                                && room_on
+                                && room_raw_at
+                                    .map(|t| t.elapsed() < Duration::from_millis(80))
+                                    .unwrap_or(false));
+                        if room_down != room_was {
+                            if let Some(app) = APP.get() {
+                                let _ = app.emit("voiceroom-ptt", room_down);
+                            }
+                        }
+                        room_was = room_down;
                         std::thread::sleep(Duration::from_millis(10));
                     }
                     drop(input);
@@ -1597,7 +1657,7 @@ mod imp {
                 }
                 INPUT_RUNNING.store(false, Ordering::SeqCst);
                 // Kapanırken ayar yeniden açıldıysa tekrar başlat
-                if cfg().active() || cfg().alert_on() || CAPTURE.lock().is_some() {
+                if cfg().inputs_on() || CAPTURE.lock().is_some() {
                     ensure_input();
                 }
             });

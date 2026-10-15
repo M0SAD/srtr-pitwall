@@ -1108,7 +1108,9 @@
  "fx_so_lead": "Näe, kuka on paikalla ja kuka ajaa kisaa; viestittele, perusta ryhmiä, juttele tiimisi kanssa. Jaa polttoaineesi ja kierrosaikasi livenä kaverille, johon luotat; miehistöösi ottamasi kaveri voi toimia spotterinasi ja kilpainsinöörinäsi sovelluksesta tai puhelimestaan.",
  "fx_so5_d": "Merkitse kaveri “luotetuksi”, niin hän voi seurata erillisessä ikkunassa livenä polttoainettasi, jäljellä olevia kierroksiasi, parasta / viimeistä kierrostasi, 10 viimeistä kierrostasi ja sijaintiasi radalla. Kuin varikkomuuri kestävyyskisoissa. (PRO)",
  "fx_so7_t": "Miehistö: etäspotter ja kilpainsinööri",
- "fx_so7_d": "Lisää kaverisi miehistöösi, niin hän voi yhdistää sinuun ajaessasi sovelluksesta tai puhelimestaan (sivuston Miehistö-sivu). Miehistön Pitwallissa hän näkee livenä ympärilläsi olevat autot, erot, liput, sään, rinnalla olevan auton ilmaisimen, polttoaineesi ja renkaasi; yhdellä napautuksella hän lähettää spotter-viestejä, kuten “Auto vasemmalla” tai “Varikolle tällä kierroksella”, tai oman viestinsä. Jos olet antanut luvan, hän muuttaa varikkoasetuksiasi etänä: lisättävän polttoaineen määrän, vaihdettavat renkaat, pikakorjauksen ja visiirikalvon (etävarikkoasetukset toimivat iRacingissa). Seuraaminen on ilmaista; varikkoasetusten luvan antaminen vaatii, että kuljettajalla on PRO. Data tulee 1–2 sekunnin viiveellä, eikä äänipuhelua ole.",
+ "fx_so7_d": "Lisää kaverisi miehistöösi, niin hän voi yhdistää sinuun ajaessasi sovelluksesta tai puhelimestaan (sivuston Miehistö-sivu). Miehistön Pitwallissa hän näkee livenä ympärilläsi olevat autot, erot, liput, sään, rinnalla olevan auton ilmaisimen, polttoaineesi ja renkaasi; yhdellä napautuksella hän lähettää spotter-viestejä, kuten “Auto vasemmalla” tai “Varikolle tällä kierroksella”, tai oman viestinsä. Jos olet antanut luvan, hän muuttaa varikkoasetuksiasi etänä: lisättävän polttoaineen määrän, vaihdettavat renkaat, pikakorjauksen ja visiirikalvon (etävarikkoasetukset toimivat iRacingissa). Seuraaminen on ilmaista; varikkoasetusten luvan antaminen vaatii, että kuljettajalla on PRO. Data tulee 1–2 sekunnin viiveellä; puhumiseen käytetään Puhehuoneita.",
+ "fx_so8_t": "Puhehuoneet",
+ "fx_so8_d": "Discordin kaltaiset puhehuoneet suoraan sovelluksessa: julkiset, kutsukoodilla yksityiset tai tiimin huoneet. Isoissa turnaushuoneissa voi käyttää ”Puheenvuoro”-tilaa: moderaattorit antavat ajastettuja vuoroja, jatkavat tai ottavat ne pois; muut pyytävät puheenvuoroa ja jonottavat, ja ajan loppuessa vuoro voi siirtyä automaattisesti seuraavalle. Avoin mikki tai paina ja puhu (näppäimistö tai rattinappi), äänenvoimakkuus henkilöittäin, kohinanpoisto. Mitään ei tallenneta.",
  "fx_si_r5": "Vastustajat: Relative, Järjestys, Battle Box, Lähitaistelu, Tasokartta, Erokaavio, Kilpailijan seuranta, Varikkoikkuna, Kaksinkamppailu, Kisan tulos",
  "fx_si_r12": "Sektoriajat, Jarru- ja vaihdemerkki, Tuulikompassi, Stintin yhteenveto",
  "fx_si_r13": "Ratarajat ja Vauriomittari <span class=\"muted\">(tarkkuus riippuu pelistä; incident-pisteet ja korjausaika iRacingissa)</span>",
@@ -1412,7 +1414,7 @@
  "ts_zoom_reset": "Koko kierros",
  "ts_latg": "Sivuttais-G (+ oikealle)",
  "ts_rline": "Ajolinja",
- "ts_rline_hint": "iRacingin telemetriatiedostoista (.ibt) tuotujen kierrosten GPS-sijainti. Vie hiiri päälle nähdäksesi kunkin kierroksen paikan tällä matkalla; etäisyys A:sta metreinä.",
+ "ts_rline_hint": "Mistä kukin kierros kulki radalla (iRacingissa telemetriatiedostosta, muissa peleissä live-sijainnista). Numerot merkitsevät mutkat. Vie hiiri päälle nähdäksesi kunkin kierroksen paikan tällä matkalla; etäisyys A:sta metreinä.",
  "ts_rline_gap": "{0}: {1} m A:sta",
  "ts_csv": "Lataa CSV"
 }

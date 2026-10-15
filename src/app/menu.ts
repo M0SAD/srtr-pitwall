@@ -21,6 +21,7 @@ export const MENU_SUBS: Record<"telemetry" | "drivers" | "community", MenuSub[]>
   drivers: [
     { id: "friends", label: "Arkadaşlar ve etiketler" },
     { id: "teams", label: "Takımlar" },
+    { id: "voice", label: "Ses Odaları" },
     { id: "crew", label: "Ekip" },
     { id: "league", label: "Lig Kategorileri" },
   ],

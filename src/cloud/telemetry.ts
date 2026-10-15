@@ -79,6 +79,9 @@ export interface Trace {
   /** Sürüş çizgisi: konum (derece × 1e6). Yalnızca .ibt'den içe aktarılan turlarda */
   lat?: number[];
   lon?: number[];
+  /** Simin dünya konumu (desimetre; doğu, kuzey): canlı kayıtta konum veren oyunlarda */
+  px?: number[];
+  py?: number[];
 }
 
 interface QueuedLap {

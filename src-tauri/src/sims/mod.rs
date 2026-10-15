@@ -221,6 +221,144 @@ pub fn open(pref: SimPref, net: udp::UdpCfg) -> Option<Box<dyn Source>> {
     idle
 }
 
+/// Tanılama (Ayarlar › Genel › Oyun › "Algılama durumu"): her sim için bellek / port bulundu mu, oyun durumu ne,
+/// neden bağlanılmadı. Motorun bağlantısına dokunmaz (bellekler salt okunur açılır).
+#[cfg(windows)]
+pub fn probe(pref: SimPref, net: udp::UdpCfg) -> Vec<String> {
+    use std::time::Duration;
+    let mut out = Vec::new();
+    out.push(format!(
+        "Seçili oyun: {}",
+        match pref {
+            SimPref::Auto => "Otomatik".to_string(),
+            SimPref::Only(k) => k.id().to_string(),
+        }
+    ));
+    let exes = shm::process_names();
+    let known = [
+        "iracingsim64dx11.exe",
+        "acc.exe",
+        "ac2-win64-shipping.exe",
+        "acs.exe",
+        "le mans ultimate.exe",
+        "rfactor2.exe",
+        "ams2avx.exe",
+        "ams2.exe",
+        "pcars2avx.exe",
+        "pcars2.exe",
+        "pcars3.exe",
+        "rrre64.exe",
+        "rrre.exe",
+    ];
+    let mut running: Vec<String> = exes
+        .iter()
+        .filter(|e| known.contains(&e.as_str()) || udp::proto_for_exe(e).is_some())
+        .cloned()
+        .collect();
+    running.sort();
+    running.dedup();
+    out.push(format!(
+        "Çalışan oyun süreçleri: {}",
+        if running.is_empty() {
+            "yok".to_string()
+        } else {
+            running.join(", ")
+        }
+    ));
+    out.push(match iracing::IRacing::open() {
+        None => "iRacing: bellek yok (oyun kapalı)".into(),
+        Some(s) => format!(
+            "iRacing: bellek var, {}",
+            if s.connected() {
+                "bağlı"
+            } else {
+                "oturumda değil"
+            }
+        ),
+    });
+    out.push(match kunos::Kunos::open() {
+        None => "Assetto Corsa / ACC: bellek yok (oyun kapalı)".into(),
+        Some(mut s) => {
+            s.detect(&exes);
+            format!(
+                "Assetto Corsa / ACC: bellek var ({}), {}",
+                s.kind().id(),
+                if s.connected() {
+                    "bağlı"
+                } else {
+                    "oturumda değil (menüde ya da piste çıkılmadı)"
+                }
+            )
+        }
+    });
+    out.push(match rf2::Rf2::open() {
+        None => "LMU / rFactor 2: bellek yok. LMU'da Ayarlar › Oynanış › \"Eklentileri etkinleştir\" açık olmalı (oyunu yeniden başlat); rFactor 2'de rF2 Shared Memory eklentisi kurulu olmalı".into(),
+        Some(s) => format!("LMU / rFactor 2: {} bulundu, {}", s.backend_name(), if s.connected() { "bağlı" } else { "oturumda değil" }),
+    });
+    out.push(match shm::Mapping::open("$pcars2$") {
+        None => "Automobilista 2 / Project CARS: bellek yok. Oyunda Seçenekler › Sistem › Paylaşımlı Bellek (Shared Memory) = \"Project CARS 2\" seçili olmalı, sonra oyunu yeniden başlat".into(),
+        Some(m) => {
+            let gs = m.u32_at(ams2::o::GAME_STATE);
+            let n = m.u32_at(ams2::o::NUM_PARTICIPANTS) as i32;
+            let state = match gs {
+                0 => "oyun kapandı",
+                1 => "ana menü",
+                2 => "sürüşte",
+                3 => "duraklatıldı",
+                4 => "oyun içi menü",
+                5 => "yeniden başlatılıyor",
+                6 | 7 => "tekrar",
+                _ => "bilinmiyor",
+            };
+            format!(
+                "Automobilista 2 / Project CARS: bellek var (sürüm {}), durum {gs} ({state}), katılımcı {n} — {}",
+                m.u32_at(ams2::o::VERSION),
+                if (2..=6).contains(&gs) && n > 0 { "bağlanılabilir" } else { "piste / oturuma girince bağlanır" }
+            )
+        }
+    });
+    out.push(match shm::Mapping::open("$R3E") {
+        None => "RaceRoom: bellek yok (oyun kapalı)".into(),
+        Some(m) => format!(
+            "RaceRoom: bellek var (sürüm {}.{}), {}",
+            m.u32_at(r3e::o::VERSION_MAJOR),
+            m.u32_at(4),
+            if m.u32_at(r3e::o::GAME_IN_MENUS) == 0 {
+                "oturumda"
+            } else {
+                "menüde"
+            }
+        ),
+    });
+    let ports = udp::listening();
+    let failed = udp::failed_ports();
+    let seen = |p: udp::Proto| {
+        udp::last_seen(p)
+            .map(|t| format!("son paket {} sn önce", t.elapsed().as_secs()))
+            .unwrap_or_else(|| "paket gelmedi".into())
+    };
+    out.push(format!(
+        "UDP: dinlenen portlar {}{}; F1 {}, DiRT/GRID {}, Forza {}, BeamNG {} (portlar: F1/DiRT {}, Forza {}, BeamNG {}{})",
+        if ports.is_empty() { "yok (UDP oyunu açık değil)".to_string() } else { format!("{ports:?}") },
+        if failed.is_empty() { String::new() } else { format!(", AÇILAMAYAN {failed:?} (başka program kullanıyor)") },
+        seen(udp::Proto::F1),
+        seen(udp::Proto::Dirt),
+        seen(udp::Proto::Forza),
+        seen(udp::Proto::BeamNg),
+        net.codemasters,
+        net.forza,
+        net.beamng,
+        if net.always { ", konsoldan da al açık" } else { "" }
+    ));
+    let _ = Duration::from_secs(0);
+    out
+}
+
+#[cfg(not(windows))]
+pub fn probe(_pref: SimPref, _net: udp::UdpCfg) -> Vec<String> {
+    vec!["Oyun algılama yalnızca Windows'ta çalışır.".into()]
+}
+
 /// Bu bilgisayarda çalışan UDP oyunları (süreç listesi 3 sn'de bir okunur)
 #[cfg(windows)]
 fn udp_running(wants: &[udp::Proto], always: bool) -> Vec<udp::Proto> {

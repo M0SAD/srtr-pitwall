@@ -1108,7 +1108,9 @@
  "fx_so_lead": "Sieh, wer online ist und wer gerade fährt; schreib Nachrichten, gründe Gruppen, chatte mit deinem Team. Teile Sprit und Rundenzeiten live mit Freunden, denen du vertraust, und lass einen Freund aus deiner Crew von der App oder vom Handy aus deinen Spotter und Renningenieur sein.",
  "fx_so5_d": "Markiere einen Freund als „vertraut“, und er sieht deinen Sprit, verbleibende Runden, beste / letzte Runde, die letzten 10 Runden und deine Streckenposition live in einem eigenen Fenster – wie eine Boxenmauer für Langstreckenrennen. (PRO)",
  "fx_so7_t": "Crew: Spotter und Renningenieur aus der Ferne",
- "fx_so7_d": "Füge einen Freund zu deiner Crew hinzu, und er kann sich während deines Rennens mit dir verbinden – von der App oder vom Handy aus (die Crew-Seite auf der Website). Auf der Crew-Pitwall sieht er die Autos um dich herum, Abstände, Flaggen, Wetter, eine Anzeige für Autos neben dir, deinen Sprit und deine Reifen live und schickt mit einem Tipp Spotter-Nachrichten wie „Auto links“ oder „Diese Runde Box“ oder eine eigene Nachricht. Wenn du es erlaubst, ändert er deine Boxeneinstellungen aus der Ferne: die nachzutankende Spritmenge, welche Reifen gewechselt werden, Fast Repair und Abreißvisier (Boxeneinstellungen aus der Ferne funktionieren in iRacing). Zuschauen ist kostenlos; um die Boxensteuerung freizugeben, muss der Fahrer PRO sein. Die Daten kommen 1–2 Sekunden verzögert an, einen Sprachchat gibt es nicht.",
+ "fx_so7_d": "Füge einen Freund zu deiner Crew hinzu, und er kann sich während deines Rennens mit dir verbinden – von der App oder vom Handy aus (die Crew-Seite auf der Website). Auf der Crew-Pitwall sieht er die Autos um dich herum, Abstände, Flaggen, Wetter, eine Anzeige für Autos neben dir, deinen Sprit und deine Reifen live und schickt mit einem Tipp Spotter-Nachrichten wie „Auto links“ oder „Diese Runde Box“ oder eine eigene Nachricht. Wenn du es erlaubst, ändert er deine Boxeneinstellungen aus der Ferne: die nachzutankende Spritmenge, welche Reifen gewechselt werden, Fast Repair und Abreißvisier (Boxeneinstellungen aus der Ferne funktionieren in iRacing). Zuschauen ist kostenlos; um die Boxensteuerung freizugeben, muss der Fahrer PRO sein. Die Daten kommen 1–2 Sekunden verzögert an; zum Sprechen nutzt ihr die Sprachräume.",
+ "fx_so8_t": "Sprachräume",
+ "fx_so8_d": "Sprachräume wie bei Discord, direkt in der App: öffentlich, privat mit Einladungscode oder als Teamraum. Volle Turnierräume nutzen den Modus „Wortmeldung“: Moderatoren erteilen das Wort auf Zeit, verlängern oder entziehen es; alle anderen melden sich und reihen sich ein, auf Wunsch geht das Wort nach Ablauf automatisch an den Nächsten. Offenes Mikro oder Push-to-Talk (Tastatur oder Lenkradknopf), Lautstärke pro Person, Rauschunterdrückung. Nichts wird aufgezeichnet.",
  "fx_si_r5": "Gegner: Relative, Wertung, Battle Box, Nahkampf, Flache Karte, Abstandsdiagramm, Gegner-Tracker, Boxenfenster, Kopf an Kopf, Rennergebnis",
  "fx_si_r12": "Sektorzeiten, Brems- und Gangmarker, Windkompass, Stint-Übersicht",
  "fx_si_r13": "Track Limits und Schadensanzeige <span class=\"muted\">(Detailgrad hängt vom Spiel ab; Incident-Punkte und Reparaturzeit in iRacing)</span>",
@@ -1412,7 +1414,7 @@
  "ts_zoom_reset": "Ganze Runde",
  "ts_latg": "Quer-G (+ rechts)",
  "ts_rline": "Ideallinie",
- "ts_rline_hint": "GPS-Position der aus iRacing-Telemetriedateien (.ibt) importierten Runden. Beim Überfahren siehst du, wo jede Runde bei dieser Distanz war; Abstand zu A in Metern.",
+ "ts_rline_hint": "Wo jede Runde auf der Strecke verlief (in iRacing aus der Telemetriedatei, in anderen Spielen aus der Live-Position). Die Zahlen markieren die Kurven. Beim Überfahren siehst du, wo jede Runde bei dieser Distanz war; Abstand zu A in Metern.",
  "ts_rline_gap": "{0}: {1} m von A",
  "ts_csv": "CSV herunterladen"
 }

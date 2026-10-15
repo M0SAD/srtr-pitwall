@@ -131,6 +131,8 @@ export interface BindTarget {
   set: (fn: (x: { key: string; button: VoiceCommandButton | null }) => void) => void;
   /** Satırın açıklaması */
   hint?: string;
+  /** Basılı göstergesi için Rust olayı (ör. "voiceroom-ptt") */
+  heldEvent?: string;
 }
 const PTT_TARGET: BindTarget = { get: () => cmd(), set: (fn) => setCmd((x) => fn(x)) };
 
@@ -227,7 +229,7 @@ export function PttButtonRow(props: { disabled?: boolean; target?: BindTarget })
   // Atanan düğme / tuş şu an basılı mı (Rust: "voicecmd-ptt"): atamanın gerçekten görüldüğünü doğrulamak için
   const [held, setHeld] = createSignal(false);
   onMount(() => {
-    const un = listen<boolean>("voicecmd-ptt", (e) => setHeld(!!e.payload)).catch(() => null);
+    const un = listen<boolean>(tg().heldEvent ?? "voicecmd-ptt", (e) => setHeld(!!e.payload)).catch(() => null);
     onCleanup(() => {
       void un.then((f) => f?.());
     });
@@ -265,8 +267,8 @@ export function PttButtonRow(props: { disabled?: boolean; target?: BindTarget })
             </small>
           )}
         </Show>
-        <Show when={held() && !props.target}>
-          <small class="voice-cmd-held">Basılı: dinliyor</small>
+        <Show when={held() && (!props.target || !!props.target.heldEvent)}>
+          <small class="voice-cmd-held">{props.target?.heldEvent ? t("Basılı: mikrofon açık") : t("Basılı: dinliyor")}</small>
         </Show>
         <Show when={captureMsg()}>
           <small class="sc-err">{captureMsg()}</small>

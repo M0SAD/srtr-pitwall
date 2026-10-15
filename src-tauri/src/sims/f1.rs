@@ -713,6 +713,8 @@ pub fn extract(s: &F1State, sd: &SessionData, m: &mut Motion, f: &mut Frame) {
         let (fx, fz) = (n(mb + 24), n(mb + 28));
         let (rx, rz) = (n(mb + 30), n(mb + 34));
         let (px, pz) = (rd_f32(mo, mb), rd_f32(mo, mb + 8));
+        f.pos_e = px as f64;
+        f.pos_n = pz as f64;
         for i in 0..NCARS {
             if i == me || !s.active(i) || f.cars[i].surface == 1 {
                 continue;

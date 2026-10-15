@@ -1108,7 +1108,9 @@
  "fx_so_lead": "Zie wie er online is en wie er racet; stuur berichten, maak groepen, chat met je team. Deel je brandstof en rondetijden live met vrienden die je vertrouwt, en laat een vriend uit je crew je spotter en race-engineer zijn, vanuit de app of vanaf zijn telefoon.",
  "fx_so5_d": "Markeer een vriend als “vertrouwd” en hij kan je brandstof, resterende rondes, beste / laatste ronde, laatste 10 rondes en positie op de baan live volgen in een apart venster: een pitmuur voor endurance-races. (PRO)",
  "fx_so7_t": "Crew: spotter en race-engineer op afstand",
- "fx_so7_d": "Voeg een vriend toe aan je crew en hij kan tijdens je race met je verbinden, vanuit de app of vanaf zijn telefoon (de Crew-pagina op de website). Op de Crew-Pitwall ziet hij live de auto's om je heen, gaten, vlaggen, het weer, een indicator voor een auto naast je, je brandstof en je banden, en stuurt hij met één tik spotterberichten zoals “Auto links” of “Deze ronde pitten”, of een eigen bericht. Als je het toestaat, past hij je pitinstellingen op afstand aan: hoeveel brandstof erbij moet, welke banden gewisseld worden, snelle reparatie en tear-off (pitinstellingen op afstand werken in iRacing). Meekijken is gratis; om pitcontrole te geven moet de coureur PRO zijn. Data komt 1–2 seconden later binnen en er is geen voicechat.",
+ "fx_so7_d": "Voeg een vriend toe aan je crew en hij kan tijdens je race met je verbinden, vanuit de app of vanaf zijn telefoon (de Crew-pagina op de website). Op de Crew-Pitwall ziet hij live de auto's om je heen, gaten, vlaggen, het weer, een indicator voor een auto naast je, je brandstof en je banden, en stuurt hij met één tik spotterberichten zoals “Auto links” of “Deze ronde pitten”, of een eigen bericht. Als je het toestaat, past hij je pitinstellingen op afstand aan: hoeveel brandstof erbij moet, welke banden gewisseld worden, snelle reparatie en tear-off (pitinstellingen op afstand werken in iRacing). Meekijken is gratis; om pitcontrole te geven moet de coureur PRO zijn. Data komt 1–2 seconden later binnen; om te praten gebruik je de Spraakkamers.",
+ "fx_so8_t": "Spraakkamers",
+ "fx_so8_d": "Spraakkamers zoals Discord, gewoon in de app: openbaar, privé met uitnodigingscode of voor je team. Drukke toernooikamers kunnen de modus “Spreekbeurt” gebruiken: moderators geven het woord voor een tijd, verlengen of nemen het af; de rest vraagt het woord en wacht in de rij, en als de tijd op is kan het woord vanzelf naar de volgende. Open microfoon of push-to-talk (toetsenbord of stuurknop), volume per persoon, ruisonderdrukking. Er wordt niets opgenomen.",
  "fx_si_r5": "Tegenstanders: Relative, Klassement, Battle Box, Close Battle, Vlakke kaart, Gapgrafiek, Rivaaltracker, Pitvenster, Head-to-head, Race-uitslag",
  "fx_si_r12": "Sectortijden, Rem- en Schakelmarkers, Windkompas, Stintoverzicht",
  "fx_si_r13": "Track Limits en Schade-indicator <span class=\"muted\">(detail verschilt per spel; incidentpunten en reparatietijd in iRacing)</span>",
@@ -1412,7 +1414,7 @@
  "ts_zoom_reset": "Hele ronde",
  "ts_latg": "Zijwaartse G (+ rechts)",
  "ts_rline": "Racelijn",
- "ts_rline_hint": "GPS-positie van ronden geïmporteerd uit iRacing-telemetriebestanden (.ibt). Beweeg erover om te zien waar elke ronde op die afstand was; afstand tot A in meters.",
+ "ts_rline_hint": "Waar elke ronde over de baan ging (in iRacing uit het telemetriebestand, in andere games uit de livepositie). De nummers markeren de bochten. Beweeg erover om te zien waar elke ronde op die afstand was; afstand tot A in meters.",
  "ts_rline_gap": "{0}: {1} m van A",
  "ts_csv": "CSV downloaden"
 }

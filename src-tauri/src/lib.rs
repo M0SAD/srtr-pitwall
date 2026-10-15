@@ -950,6 +950,80 @@ async fn ibt_import(app: AppHandle, paths: Vec<String>) -> Result<Vec<ibt::Impor
     Ok(out)
 }
 
+/// iRacing .ibt dosyalarını kendiliğinden içe aktar (ayar general.ibtAuto, varsayılan açık): iRacing'e bağlı değilken
+/// 90 sn'de bir telemetri klasörüne bakılır. Aynı oturumun canlı kaydedilmiş turlarının üzerine yazılır (kimlikler
+/// aynı, bkz. laprec.rs / ibt.rs): turlara sürüş çizgisi (GPS konumu) eklenir, kopya oluşmaz.
+fn start_ibt_auto(app: &AppHandle, data_dir: std::path::PathBuf) {
+    let app = app.clone();
+    let _ = std::thread::Builder::new()
+        .name("ibt-auto".into())
+        .spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(45));
+            loop {
+                crashlog::guard(|| {
+                    let on = with_settings(&app, |v| {
+                        v.and_then(|v| v.pointer("/general/ibtAuto"))
+                            .and_then(|x| x.as_bool())
+                            .unwrap_or(true)
+                    });
+                    let s = shared(&app);
+                    if !on || s.connected.load(Ordering::Relaxed) {
+                        return;
+                    }
+                    let Some(dir) = app
+                        .path()
+                        .document_dir()
+                        .ok()
+                        .map(|d| d.join("iRacing").join("telemetry"))
+                        .filter(|d| d.is_dir())
+                    else {
+                        return;
+                    };
+                    let out = ibt::auto_scan(
+                        &dir,
+                        &laprec::queue_path(&data_dir),
+                        &data_dir.join("telemetry").join("ibt_seen.txt"),
+                    );
+                    let laps: usize = out.iter().map(|x| x.laps).sum();
+                    if laps > 0 {
+                        crashlog::note(&format!(
+                            "iRacing telemetri dosyalarından {laps} tur içe aktarıldı ({} dosya)",
+                            out.len()
+                        ));
+                        let _ = app.emit("telemetry-lap", serde_json::json!({ "import": true }));
+                    }
+                });
+                std::thread::sleep(std::time::Duration::from_secs(90));
+            }
+        });
+}
+
+/// Oyun algılama tanılaması (Ayarlar › Genel › Oyun)
+#[tauri::command]
+fn sim_probe(app: AppHandle) -> Vec<String> {
+    let pref = with_settings(&app, |v| sims::SimPref::from_settings(v));
+    let net = with_settings(&app, |v| sims::udp::UdpCfg::from_settings(v));
+    let mut out = sims::probe(pref, net);
+    let s = shared(&app);
+    out.insert(
+        0,
+        format!(
+            "Program durumu: {}{}",
+            if s.connected.load(Ordering::Relaxed) {
+                "bir oyuna bağlı"
+            } else {
+                "bağlı değil"
+            },
+            if s.demo.load(Ordering::Relaxed) {
+                " (demo açık: demo kapalıyken oyun aranır)"
+            } else {
+                ""
+            }
+        ),
+    );
+    out
+}
+
 /// Hata günlüğü (Ayarlar › Hakkında): crash.log'un sonu ve önceki açılışın adımları
 #[tauri::command]
 fn crash_log_read() -> String {
@@ -1591,6 +1665,19 @@ fn bring_panel_front(app: &AppHandle) {
         let _ = w.set_always_on_top(edit);
         let _ = w.set_focus();
     }
+}
+
+/// Ses odasında mı (arayüz bildirir): paneli kapatma düğmesi pencereyi yok etmez, gizler
+static VOICE_ROOM_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[tauri::command]
+fn voice_room_active(on: bool) {
+    VOICE_ROOM_ACTIVE.store(on, Ordering::Relaxed);
+    crashlog::note(if on {
+        "ses odasına girildi"
+    } else {
+        "ses odasından çıkıldı"
+    });
 }
 
 #[tauri::command]
@@ -2508,8 +2595,12 @@ fn open_panel(app: &AppHandle) {
                         record_panel_geom(&app2, &w);
                     }
                 }
-                tauri::WindowEvent::CloseRequested { .. } => {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
                     save_panel_geom(&app2, true);
+                    // Ses odasındayken panel kapatılmaz, gizlenir: konuşma kopmasın (tepsiden geri açılır)
+                    if VOICE_ROOM_ACTIVE.load(Ordering::Relaxed) {
+                        api.prevent_close();
+                    }
                     // Kapatma tıklanınca pencere anında kaybolsun (arayüz bekleyen ayarları gönderirken ekranda kalmasın)
                     if let Some(w) = app2.get_webview_window("main") {
                         let _ = w.hide();
@@ -3307,6 +3398,7 @@ pub fn run() {
             ibt_default_dir,
             udp_status,
             crash_log_read,
+            sim_probe,
             crash_log_open,
             events_get,
             events_export,
@@ -3362,6 +3454,7 @@ pub fn run() {
             preview_set,
             preview_freeze,
             panel_front,
+            voice_room_active,
             chat_window_notify,
             chat_tabs_take,
             window_toggle,
@@ -3517,6 +3610,7 @@ pub fn run() {
                     if let Ok(dir) = handle.path().app_data_dir() {
                         crashlog::set_dir(dir.clone());
                         crashlog::session_start(&dir);
+                        start_ibt_auto(&handle, dir.clone());
                         startup::set_dir(dir);
                     }
                     startup::boot_step("kurulum başladı");

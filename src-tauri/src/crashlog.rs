@@ -605,7 +605,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("pw-sess-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         set_dir(dir.clone());
-        std::fs::write(dir.join("session.lock"), "v=1.0.1\nstart=1000\nbeat=1600\nmem=512\npeak=900\ninfo=oyuna bağlı\n").unwrap();
+        std::fs::write(
+            dir.join("session.lock"),
+            "v=1.0.1\nstart=1000\nbeat=1600\nmem=512\npeak=900\ninfo=oyuna bağlı\n",
+        )
+        .unwrap();
         session_start(&dir);
         let log = std::fs::read_to_string(dir.join(FILE)).unwrap();
         assert!(log.contains("BEKLENMEDİK KAPANDI"), "{log}");

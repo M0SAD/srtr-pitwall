@@ -1108,7 +1108,9 @@
  "fx_so_lead": "Mira quién está conectado y quién está corriendo; envía mensajes, crea grupos, chatea con tu equipo. Comparte en vivo tu combustible y tus tiempos de vuelta con los amigos en los que confías, y deja que un amigo de tu equipo de boxes sea tu spotter e ingeniero de carrera desde la app o desde su teléfono.",
  "fx_so5_d": "Marca a un amigo como “de confianza” y podrá ver en vivo, en una ventana aparte, tu combustible, tus vueltas restantes, tu mejor / última vuelta, tus últimas 10 vueltas y tu posición en pista. Como un muro de boxes para las carreras de resistencia. (PRO)",
  "fx_so7_t": "Equipo de boxes: spotter e ingeniero de carrera a distancia",
- "fx_so7_d": "Añade a un amigo a tu equipo de boxes y podrá conectarse contigo mientras corres, desde la app o desde su teléfono (la página Equipo de boxes del sitio web). En el Pit wall del equipo ve en vivo los coches que te rodean, las diferencias, las banderas, el clima, el indicador de coche al lado, tu combustible y tus neumáticos; con un toque envía mensajes de spotter como “Coche a tu izquierda” o “Pit esta vuelta”, o un mensaje propio. Si le das permiso, cambia tus ajustes de pit a distancia: la cantidad de combustible a añadir, qué neumáticos cambiar, la reparación rápida y el tear-off (el ajuste de pit a distancia funciona en iRacing). Mirar es gratis; para dar permiso sobre los ajustes de pit, el piloto debe ser PRO. Los datos llegan con 1–2 segundos de retraso y no hay chat de voz.",
+ "fx_so7_d": "Añade a un amigo a tu equipo de boxes y podrá conectarse contigo mientras corres, desde la app o desde su teléfono (la página Equipo de boxes del sitio web). En el Pit wall del equipo ve en vivo los coches que te rodean, las diferencias, las banderas, el clima, el indicador de coche al lado, tu combustible y tus neumáticos; con un toque envía mensajes de spotter como “Coche a tu izquierda” o “Pit esta vuelta”, o un mensaje propio. Si le das permiso, cambia tus ajustes de pit a distancia: la cantidad de combustible a añadir, qué neumáticos cambiar, la reparación rápida y el tear-off (el ajuste de pit a distancia funciona en iRacing). Mirar es gratis; para dar permiso sobre los ajustes de pit, el piloto debe ser PRO. Los datos llegan con 1–2 segundos de retraso; para hablar usad las Salas de voz.",
+ "fx_so8_t": "Salas de voz",
+ "fx_so8_d": "Salas de voz al estilo Discord dentro de la app: públicas, privadas con código o de equipo. Las salas grandes de torneo pueden usar el modo “Turno de palabra”: los moderadores dan turnos con tiempo, los alargan o los quitan; los demás piden la palabra y esperan en cola, y si quieres el turno pasa solo al siguiente al acabar el tiempo. Micro abierto o pulsar para hablar (teclado o botón del volante), volumen por persona, supresión de ruido. No se graba nada.",
  "fx_si_r5": "Rivales: Relative, Clasificación, Battle Box, Lucha Cercana, Mapa plano, Gráfico de diferencias, Seguimiento de rival, Ventana de pit, Cara a cara, Resultado de carrera",
  "fx_si_r12": "Tiempos de sector, Marcador de frenada y marcha, Brújula de viento, Resumen del stint",
  "fx_si_r13": "Límites de pista e Indicador de daños <span class=\"muted\">(el detalle depende del juego; puntos de incidente y tiempo de reparación en iRacing)</span>",
@@ -1412,7 +1414,7 @@
  "ts_zoom_reset": "Vuelta completa",
  "ts_latg": "G lateral (+ derecha)",
  "ts_rline": "Trazada",
- "ts_rline_hint": "Posición GPS de las vueltas importadas de archivos de telemetría de iRacing (.ibt). Pasa el ratón para ver dónde estaba cada vuelta a esa distancia; distancia a A en metros.",
+ "ts_rline_hint": "Por dónde fue cada vuelta (en iRacing desde el archivo de telemetría, en otros juegos desde la posición en directo). Los números marcan las curvas. Pasa el ratón para ver dónde estaba cada vuelta a esa distancia; distancia a A en metros.",
  "ts_rline_gap": "{0}: a {1} m de A",
  "ts_csv": "Descargar CSV"
 }

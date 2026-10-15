@@ -1,0 +1,553 @@
+/* Ses Odaları (pages/VoiceRoomsPage.tsx, components/VoiceDock.tsx) */
+
+.vr-page .panel h4 {
+  margin: 14px 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.vr-err {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 40%, transparent);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.vr-hint {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--yellow) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
+  font-size: 12.5px;
+}
+
+.vr-intro {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.vr-intro-txt {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.vr-intro-txt p {
+  margin: 4px 0 0;
+}
+.vr-intro-act {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.vr-code {
+  display: flex;
+  gap: 6px;
+}
+.vr-code input {
+  width: 130px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.vr-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vr-room {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+}
+.vr-room-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  color: var(--muted);
+  flex: none;
+}
+.vr-room-ic.live {
+  color: var(--green);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green) 45%, transparent);
+}
+.vr-room-ic svg {
+  width: 17px;
+  height: 17px;
+}
+.vr-room-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vr-room-main b,
+.vr-room-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vr-desc {
+  color: var(--text);
+  opacity: 0.8;
+}
+.vr-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.vr-count svg {
+  width: 14px;
+  height: 14px;
+}
+.vr-count.live {
+  color: var(--green);
+}
+
+.vr-create .row input,
+.vr-create .row select {
+  min-width: 220px;
+}
+.vr-form-act {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Oda başlığı */
+.vr-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.vr-head-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vr-head-main h3 {
+  margin: 0 0 2px;
+}
+.vr-conn {
+  color: var(--yellow);
+}
+.vr-invite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: var(--bg-3);
+  border: 1px dashed var(--line);
+}
+.vr-invite b {
+  font-family: ui-monospace, Consolas, monospace;
+  letter-spacing: 0.12em;
+  font-size: 15px;
+}
+
+/* Kontroller */
+.vr-ctrl-btns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vr-big {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.vr-big:hover {
+  border-color: var(--accent);
+}
+.vr-big svg {
+  width: 20px;
+  height: 20px;
+}
+.vr-big.off {
+  background: color-mix(in srgb, var(--red) 22%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+}
+.vr-ptt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 22px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.vr-ptt svg {
+  width: 16px;
+  height: 16px;
+}
+.vr-ptt.on {
+  background: color-mix(in srgb, var(--green) 22%, var(--bg-3));
+  border-color: var(--green);
+}
+.vr-meter {
+  flex: 1 1 120px;
+  max-width: 220px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.vr-meter i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--yellow));
+  transition: width 0.1s linear;
+}
+
+/* Söz hakkı */
+.vr-floor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.vr-floor > span {
+  flex: 1;
+  min-width: 200px;
+}
+.vr-floor.mine {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 8%, var(--bg-2));
+}
+.vr-floor-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.vr-floor-on svg {
+  width: 18px;
+  height: 18px;
+  color: var(--green);
+}
+.vr-floor .vr-cd {
+  flex: 1 1 160px;
+}
+
+.vr-cd {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 90px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--bg-3);
+  overflow: hidden;
+}
+.vr-cd i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--green) 55%, transparent);
+  transition: width 0.5s linear;
+}
+.vr-cd.low i {
+  background: color-mix(in srgb, var(--red) 65%, transparent);
+}
+.vr-cd em {
+  position: relative;
+  font-style: normal;
+  font-size: 11.5px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Moderatör masası */
+.vr-mod-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.vr-mod-head h3 {
+  margin: 0;
+  flex: 1;
+}
+.vr-mod-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vr-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.vr-q {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-3);
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.vr-q.away {
+  opacity: 0.55;
+}
+.vr-q-n {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  font-size: 11px;
+  color: var(--muted);
+}
+.vr-q-sp {
+  flex: 1;
+}
+.vr-q .vr-cd {
+  flex: 1 1 120px;
+}
+.vr-q-sel {
+  max-width: 90px;
+}
+
+/* Odadakiler */
+.vr-members {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.vr-mem {
+  border-radius: 9px;
+  border: 1px solid transparent;
+}
+.vr-mem.open {
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+.vr-mem-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 9px;
+  font: inherit;
+}
+.vr-mem-row:hover {
+  background: var(--bg-3);
+}
+.vr-av {
+  --lv: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  overflow: hidden;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px var(--bg-2);
+  transition: box-shadow 0.1s;
+}
+.vr-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vr-mem.talking .vr-av {
+  box-shadow:
+    0 0 0 2px var(--green),
+    0 0 calc(4px + var(--lv) * 14px) color-mix(in srgb, var(--green) 70%, transparent);
+}
+.vr-mem-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vr-mem-sp {
+  flex: 1;
+}
+.vr-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.vr-role svg {
+  width: 12px;
+  height: 12px;
+}
+.vr-role.r-owner,
+.vr-role.r-admin {
+  color: var(--accent-2);
+}
+.vr-role.r-mod {
+  color: #7cc4ff;
+}
+.vr-role.r-speaker,
+.vr-role.r-grant {
+  color: var(--green);
+}
+.vr-mem-ic svg {
+  width: 15px;
+  height: 15px;
+}
+.vr-mem-ic.warn {
+  color: var(--yellow);
+}
+.vr-mem-act {
+  padding: 4px 10px 10px 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vr-vol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vr-vol > span {
+  font-size: 12px;
+  min-width: 70px;
+}
+.vr-vol > div {
+  flex: 1 1 160px;
+  max-width: 260px;
+}
+.vr-mem-mod {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vr-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.vr-fold svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Üst çubuk */
+.vr-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--green) 14%, var(--bg-3));
+  border: 1px solid color-mix(in srgb, var(--green) 45%, transparent);
+  margin-right: 6px;
+}
+.vr-dock.talk {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 50%, transparent);
+}
+.vr-dock.recon {
+  background: color-mix(in srgb, var(--yellow) 14%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--yellow) 45%, transparent);
+}
+.vr-dock button {
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 12px;
+}
+.vr-dock button:hover {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+.vr-dock svg {
+  width: 14px;
+  height: 14px;
+}
+.vr-dock-name {
+  padding: 3px 8px;
+  max-width: 180px;
+}
+.vr-dock-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vr-dock-name em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--green);
+}
+.vr-dock-btn {
+  width: 26px;
+  height: 24px;
+  justify-content: center;
+}
+.vr-dock-btn.off {
+  color: var(--red) !important;
+}
+.vr-dock-btn.leave:hover {
+  background: color-mix(in srgb, var(--red) 30%, transparent) !important;
+}
+
+.vr-slider {
+  width: 260px;
+  max-width: 55%;
+}

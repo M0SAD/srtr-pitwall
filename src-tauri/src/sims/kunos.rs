@@ -555,9 +555,17 @@ pub fn extract(
         let pid = rd_i32(gfx, gr::PLAYER_CAR_ID);
         (0..n)
             .find(|&i| rd_i32(gfx, gr::CAR_ID + i * 4) == pid)
-            .map(|i| (rd_f32(gfx, gr::CAR_COORDINATES + i * 12), rd_f32(gfx, gr::CAR_COORDINATES + i * 12 + 8)))
+            .map(|i| {
+                (
+                    rd_f32(gfx, gr::CAR_COORDINATES + i * 12),
+                    rd_f32(gfx, gr::CAR_COORDINATES + i * 12 + 8),
+                )
+            })
     } else {
-        Some((rd_f32(gfx, gr::AC_CAR_COORDINATES), rd_f32(gfx, gr::AC_CAR_COORDINATES + 8)))
+        Some((
+            rd_f32(gfx, gr::AC_CAR_COORDINATES),
+            rd_f32(gfx, gr::AC_CAR_COORDINATES + 8),
+        ))
     };
     match mine {
         Some((x, z)) if gfx.len() > gr::AC_CAR_COORDINATES + 12 => {

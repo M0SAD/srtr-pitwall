@@ -1135,3 +1135,95 @@
 .tchart-tip.flip {
   transform: translate(calc(-100% - 8px), -50%);
 }
+
+/* Sürüş çizgisi: viraj numaraları / adları */
+.rline-corner {
+  cursor: pointer;
+}
+.rline-corner line {
+  stroke: color-mix(in srgb, var(--text) 45%, transparent);
+}
+.rline-corner circle {
+  fill: #0b0d12;
+  stroke: var(--accent);
+}
+.rline-corner text {
+  fill: var(--text);
+  font-weight: 800;
+  text-anchor: middle;
+  font-family: inherit;
+}
+.rline-corner text.rline-cname {
+  text-anchor: start;
+  font-weight: 700;
+  fill: var(--accent);
+  paint-order: stroke;
+  stroke: #0b0d12;
+  stroke-width: 0.3em;
+}
+.rline-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.cname-ed {
+  margin-top: 8px;
+}
+.cname-ed summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.cname-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px 10px;
+  margin-top: 6px;
+}
+.cname-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cname-grid b {
+  min-width: 1.8em;
+  text-align: center;
+  cursor: pointer;
+  color: var(--accent);
+}
+.cname-grid .input {
+  flex: 1;
+  min-width: 0;
+}
+.ca-cname {
+  color: var(--accent);
+  font-weight: 600;
+}
+.tmap-corner circle {
+  fill: #0b0d12;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.tmap-corner text {
+  fill: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+.tmap-corner text.tmap-cname {
+  fill: var(--accent);
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #0b0d12;
+  stroke-width: 3px;
+}
+.ibt-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}

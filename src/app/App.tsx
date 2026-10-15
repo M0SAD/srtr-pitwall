@@ -36,6 +36,7 @@ import { AppBgLayer, appBgActive } from "./appBg";
 import { AdminTopStats } from "./components/AdminTopStats";
 import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
+import { VoiceDock } from "./components/VoiceDock";
 
 // Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
 // (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)
@@ -45,6 +46,7 @@ const ToolsPage = lazy(() => import("./pages/ToolsPage").then((m) => ({ default:
 const LeaguePage = lazy(() => import("./pages/LeaguePage").then((m) => ({ default: m.LeaguePage })));
 const FriendsPage = lazy(() => import("./pages/FriendsPage").then((m) => ({ default: m.FriendsPage })));
 const TeamsPage = lazy(() => import("./pages/TeamsPage").then((m) => ({ default: m.TeamsPage })));
+const VoiceRoomsPage = lazy(() => import("./pages/VoiceRoomsPage").then((m) => ({ default: m.VoiceRoomsPage })));
 const CrewPage = lazy(() => import("./pages/CrewPage").then((m) => ({ default: m.CrewPage })));
 const CommunityPage = lazy(() => import("./pages/CommunityPage").then((m) => ({ default: m.CommunityPage })));
 const CommunityShots = lazy(() => import("./pages/CommunityShots").then((m) => ({ default: m.CommunityShots })));
@@ -332,6 +334,7 @@ export function App() {
             tone={appState().editMode ? "warn" : ""}
             onChange={(v) => invoke("edit_mode_set", { on: !v })}
           />
+          <VoiceDock onOpen={() => go("drivers", "voice")} />
           <LangPicker />
           {/* Çerçevesiz pencere: üst çubuktan tutulup taşınır; küçült / büyüt / kapat burada */}
           <WinChrome inline max drag=".top2" />
@@ -389,6 +392,9 @@ export function App() {
             </Match>
             <Match when={section() === "drivers" && sub() === "teams"}>
               <TeamsPage />
+            </Match>
+            <Match when={section() === "drivers" && sub() === "voice"}>
+              <VoiceRoomsPage />
             </Match>
             <Match when={section() === "drivers" && sub() === "crew"}>
               <CrewPage />

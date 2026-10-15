@@ -3,6 +3,33 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-327
+
+- Yeni: **Sürücüler › Ses Odaları**. Discord benzeri sesli odalar uygulamanın içinde: herkese açık, davet kodlu özel ya da takım odası (takım yöneticileri kurar). Kişi başı en çok 10 oda, odada en çok 60 kişi.
+- Kalabalık odalar için **"Söz hakkıyla"** modu: oda sahibi, yöneticiler, moderatörler ve "konuşmacı" yetkisi olanlar her zaman konuşur. Diğerleri "Söz iste"ye basıp sıraya girer.
+  - Moderatör söz verir (odanın varsayılan süresi ya da seçilen süre: 15 sn – 10 dk), +30 sn / +1 dk uzatır, sözü geri alır, "Sıradakine ver", "Herkesi sustur", isteği düşürür.
+  - "Otomatik sıra" açıkken süre bitince söz kendiliğinden sıradakine geçer.
+  - Geri sayım çubukları; söz geldiğinde ve bittiğinde kısa ses.
+- Söz hakkı olmayanın sesi sunucuda engellenir; kimse dinleyemez.
+- Yetkiler (yönetici, moderatör, konuşmacı) oda içinden verilir. Ayrıca: odadan çıkarma, 10 dk uzaklaştırma, kalıcı yasak. Özel odada davet kodu kopyalanır ya da yenilenir.
+- Açık mikrofon ya da bas-konuş. Bas-konuş için klavye tuşu ya da direksiyon düğmesi atanır (Ayarlar › Kısayollar'da da). Tuş yutulmaz, oyun öndeyken çalışır.
+- Ses ayarları: mikrofon ve hoparlör seçimi, gürültü bastırma, yankı giderme, otomatik ses seviyesi, genel ses. Kişi başı ses ayarı (%0–200) ve "benim için sustur" da var.
+- Konuşanın simgesi yanar. Üst çubukta oda göstergesi var: mikrofon, ses ve ayrıl düğmeleri, söz sendeyse kalan süre.
+- Odada iken paneli kapatmak konuşmayı bitirmez; panel gizlenir. Bağlantı koparsa kendiliğinden yeniden bağlanır.
+- Altyapı: ses Cloudflare Realtime SFU üzerinden akar (ayda 1000 GB ücretsiz) ve kaydedilmez. Supabase'de yalnızca oda, yetki ve söz bilgisi tutulur. Kurulum: `docs/ses_odalari_kurulum.md`. Supabase'de `c116_guncelleme.sql` çalıştırılmalı, `voice-sfu` Edge Function'ı yayınlanmalı.
+
+## 151026-326
+
+- Telemetri › Sürüş çizgisi canlı turlarda da: konum veren oyunlarda (ACC, AC, LMU / rF2, AMS2, RaceRoom, F1, DiRT / GRID, Forza) her turun pistteki çizgisi kaydedilir (iz dosyasında px / py, metre). Kıyaslanan turların çizgileri üst üste, imleçle A'ya uzaklık metre olarak.
+- iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydı açıksa (sürerken Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır (Telemetri sayfasında ".ibt içe aktar" yanındaki "Otomatik", varsayılan açık). Turlar aynı kimlikle yazılır: canlı kaydedilmiş turların üzerine sürüş çizgisi eklenir, kopya oluşmaz.
+- Viraj numaraları ve adları: pist haritasında ve sürüş çizgisinde virajlar numaralanır (turun hız diplerinden); "Viraj adları" bölümünden her virajın adını yaz (ör. La Source). Adlar pist başına saklanır (hesapla eşitlenir); haritada, sürüş çizgisinde ve viraj analizi tablosunda görünür. Numaraya tıklayınca grafiklerde o viraja gidilir.
+- CSV dışa aktarmada konum sütunları (pos_east_m, pos_north_m). Paylaşım sayfasında (site) canlı turların sürüş çizgisi ve viraj numaraları.
+
+## 151026-325
+
+- Le Mans Ultimate: oyunun kendi paylaşımlı belleği (`LMU_Data`) okunuyor; rF2 Shared Memory eklentisi artık gerekmiyor (yeni LMU sürümlerinde eklenti yüklenmediği için LMU algılanmıyordu). Oyunda Ayarlar › Oynanış › "Eklentileri etkinleştir" açık olmalı (açtıktan sonra oyunu yeniden başlat). Eklenti kurulu rFactor 2 ve eski LMU eskisi gibi çalışır.
+- Ayarlar › Genel › Oyun › "Oyun algılanmıyor mu? Algılama durumunu göster": her oyun için bellek / port bulunup bulunmadığını, oyunun durumunu (menü, sürüşte…) ve bağlanmama sebebini gösterir (ör. AMS2'de "Paylaşımlı Bellek = Project CARS 2" seçili değilse bellek hiç oluşmaz). Kopyalanabilir.
+
 ## 141026-324
 
 - Lider Tablosu: sol üstteki süre artık varsayılan olarak yarışın kalan süresini gösterir (oyunun yarış saatinden; oturumun başındaki bekleme ve grid süresi sayılmaz). Yeni ayar Başlık › "Sol üstteki süre": Yarışın kalan süresi (varsayılan), Yarışın geçen / toplam süresi, Oturum başından geçen / toplam (eski görünüm). Tur sayılı yarışlarda eskisi gibi lider turu / toplam tur.

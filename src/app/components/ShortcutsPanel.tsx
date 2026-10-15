@@ -75,6 +75,13 @@ const IN_APP: { where: string; items: { keys: string; what: string }[] }[] = [
 ];
 
 
+/** Ses odası bas-konuş (general.voiceRoom) */
+const VOICE_ROOM_TARGET: BindTarget = {
+  get: () => settings().general.voiceRoom,
+  set: (fn) => updateSettings((d) => fn(d.general.voiceRoom)),
+  heldEvent: "voiceroom-ptt",
+};
+
 /** Arkadaşa uyarı tuşu / düğmesi (general.friendAlert) */
 const ALERT_TARGET: BindTarget = {
   get: () => settings().general.friendAlert,
@@ -275,6 +282,16 @@ export function ShortcutsPanel() {
         </p>
         <PttButtonRow target={ALERT_TARGET} />
         <PttKeyRow label="Klavye tuşu" target={ALERT_TARGET} />
+      </section>
+      {/* Ses odası bas-konuş (general.voiceRoom; Rust: voicecmd.rs "voiceroom-ptt", arayüz: src/voice/engine.ts) */}
+      <section class="panel">
+        <h3>Ses odası (bas-konuş)</h3>
+        <p class="muted small">
+          Sürücüler › Ses Odaları'nda “Bas-konuş” seçiliyken basılı tuttuğun sürece mikrofonun açık olur. Tuş yutulmaz, oyun öndeyken de
+          çalışır.
+        </p>
+        <PttButtonRow target={VOICE_ROOM_TARGET} />
+        <PttKeyRow label="Klavye tuşu" target={VOICE_ROOM_TARGET} />
       </section>
       <section class="panel">
         <h3>Uygulama içi tuşlar</h3>

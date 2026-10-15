@@ -1108,7 +1108,9 @@
  "fx_so_lead": "Guarda chi è online e chi è in gara; scrivi messaggi, crea gruppi, chatta con il tuo team. Condividi carburante e tempi sul giro in tempo reale con gli amici di cui ti fidi, e lascia che un amico della tua crew ti faccia da spotter e ingegnere di pista dall'app o dal telefono.",
  "fx_so5_d": "Contrassegna un amico come “fidato” e potrà seguire in tempo reale, in una finestra separata, il tuo carburante, i giri rimanenti, il giro migliore / ultimo giro, gli ultimi 10 giri e la posizione in pista: come un muretto box per le gare endurance. (PRO)",
  "fx_so7_t": "Crew: spotter e ingegnere di pista a distanza",
- "fx_so7_d": "Aggiungi un amico alla tua crew e potrà collegarsi a te mentre corri, dall'app o dal telefono (la pagina Crew del sito). Nel Pitwall della crew vede in tempo reale le auto intorno a te, i distacchi, le bandiere, il meteo, l'indicatore di auto affiancata, il tuo carburante e le tue gomme, e con un tocco invia messaggi da spotter come “Auto a sinistra” o “Pit questo giro”, oppure un messaggio suo. Se glielo consenti, modifica a distanza le tue impostazioni pit: quantità di carburante da aggiungere, quali gomme cambiare, riparazione rapida e tear-off (le impostazioni pit a distanza funzionano in iRacing). Guardare è gratis; per concedere il controllo dei pit il pilota deve essere PRO. I dati arrivano con 1–2 secondi di ritardo e non c'è chat vocale.",
+ "fx_so7_d": "Aggiungi un amico alla tua crew e potrà collegarsi a te mentre corri, dall'app o dal telefono (la pagina Crew del sito). Nel Pitwall della crew vede in tempo reale le auto intorno a te, i distacchi, le bandiere, il meteo, l'indicatore di auto affiancata, il tuo carburante e le tue gomme, e con un tocco invia messaggi da spotter come “Auto a sinistra” o “Pit questo giro”, oppure un messaggio suo. Se glielo consenti, modifica a distanza le tue impostazioni pit: quantità di carburante da aggiungere, quali gomme cambiare, riparazione rapida e tear-off (le impostazioni pit a distanza funzionano in iRacing). Guardare è gratis; per concedere il controllo dei pit il pilota deve essere PRO. I dati arrivano con 1–2 secondi di ritardo; per parlare usate le Stanze vocali.",
+ "fx_so8_t": "Stanze vocali",
+ "fx_so8_d": "Stanze vocali in stile Discord dentro l'app: pubbliche, private con codice d'invito o del team. Le stanze affollate dei tornei possono usare la modalità “Alzata di mano”: i moderatori danno la parola a tempo, la allungano o la tolgono; gli altri alzano la mano e si mettono in coda, e a tempo scaduto la parola può passare da sola al prossimo. Microfono aperto o push-to-talk (tastiera o pulsante del volante), volume per persona, soppressione del rumore. Non viene registrato nulla.",
  "fx_si_r5": "Avversari: Relative, Classifica, Battle Box, Duello ravvicinato, Mappa piatta, Grafico Distacchi, Monitor Rivale, Finestra Pit, Testa a Testa, Risultato Gara",
  "fx_si_r12": "Tempi di Settore, Riferimenti Frenata e Marcia, Bussola del Vento, Riepilogo Stint",
  "fx_si_r13": "Limiti Pista e Indicatore Danni <span class=\"muted\">(il dettaglio varia in base al gioco; punti incidente e tempo di riparazione in iRacing)</span>",
@@ -1412,7 +1414,7 @@
  "ts_zoom_reset": "Giro intero",
  "ts_latg": "G laterale (+ destra)",
  "ts_rline": "Traiettoria",
- "ts_rline_hint": "Posizione GPS dei giri importati dai file di telemetria iRacing (.ibt). Passa sopra per vedere dove si trovava ogni giro a quella distanza; distanza da A in metri.",
+ "ts_rline_hint": "Dove è passato ogni giro (in iRacing dal file di telemetria, negli altri giochi dalla posizione in diretta). I numeri indicano le curve. Passa sopra per vedere dove si trovava ogni giro a quella distanza; distanza da A in metri.",
  "ts_rline_gap": "{0}: a {1} m da A",
  "ts_csv": "Scarica CSV"
 }

@@ -1108,7 +1108,9 @@
  "fx_so_lead": "Zobacz, kto jest online, a kto się ściga; pisz wiadomości, twórz grupy, rozmawiaj z zespołem. Udostępniaj na żywo swoje paliwo i czasy okrążeń zaufanym znajomym, a znajomy z twojej ekipy niech będzie twoim spotterem i inżynierem wyścigowym z aplikacji albo z telefonu.",
  "fx_so5_d": "Oznacz znajomego jako „zaufanego”, a będzie mógł w osobnym oknie śledzić na żywo twoje paliwo, pozostałe okrążenia, najlepsze / ostatnie okrążenie, ostatnie 10 okrążeń i pozycję na torze. Jak pit wall w wyścigach długodystansowych. (PRO)",
  "fx_so7_t": "Ekipa: zdalny spotter i inżynier wyścigowy",
- "fx_so7_d": "Dodaj znajomego do swojej ekipy, a połączy się z tobą podczas wyścigu z aplikacji albo z telefonu (strona Ekipa w serwisie). Na pit wallu ekipy widzi na żywo auta wokół ciebie, różnice, flagi, pogodę, wskaźnik auta obok, twoje paliwo i opony; jednym dotknięciem wysyła wiadomości spottera, takie jak „Auto z lewej” czy „Pit w tym okrążeniu”, albo własną wiadomość. Jeśli mu na to pozwolisz, zdalnie zmienia twoje ustawienia pit stopu: ilość paliwa do dolania, które opony wymienić, szybką naprawę i zrywkę (zdalne ustawienia pit stopu działają w iRacing). Oglądanie jest darmowe; żeby nadać uprawnienie do ustawień pit stopu, kierowca musi mieć PRO. Dane docierają z opóźnieniem 1–2 sekund, rozmowy głosowej nie ma.",
+ "fx_so7_d": "Dodaj znajomego do swojej ekipy, a połączy się z tobą podczas wyścigu z aplikacji albo z telefonu (strona Ekipa w serwisie). Na pit wallu ekipy widzi na żywo auta wokół ciebie, różnice, flagi, pogodę, wskaźnik auta obok, twoje paliwo i opony; jednym dotknięciem wysyła wiadomości spottera, takie jak „Auto z lewej” czy „Pit w tym okrążeniu”, albo własną wiadomość. Jeśli mu na to pozwolisz, zdalnie zmienia twoje ustawienia pit stopu: ilość paliwa do dolania, które opony wymienić, szybką naprawę i zrywkę (zdalne ustawienia pit stopu działają w iRacing). Oglądanie jest darmowe; żeby nadać uprawnienie do ustawień pit stopu, kierowca musi mieć PRO. Dane docierają z opóźnieniem 1–2 sekund; do rozmowy służą Pokoje głosowe.",
+ "fx_so8_t": "Pokoje głosowe",
+ "fx_so8_d": "Pokoje głosowe jak na Discordzie, prosto w aplikacji: publiczne, prywatne z kodem zaproszenia albo drużynowe. Duże pokoje turniejowe mogą używać trybu „Głos na prośbę”: moderatorzy dają głos na czas, wydłużają go lub odbierają; reszta prosi o głos i czeka w kolejce, a po upływie czasu głos może sam przejść do następnej osoby. Otwarty mikrofon lub naciśnij i mów (klawiatura albo przycisk kierownicy), głośność dla każdej osoby, tłumienie szumów. Nic nie jest nagrywane.",
  "fx_si_r5": "Rywale: Relative, Klasyfikacja, Battle Box, Bliska walka, Płaska mapa, Wykres różnic, Śledzenie rywala, Okno pitowe, Łeb w łeb, Wynik wyścigu",
  "fx_si_r12": "Czasy sektorów, Znacznik hamowania i biegu, Kompas wiatru, Podsumowanie stintu",
  "fx_si_r13": "Limity toru i Wskaźnik uszkodzeń <span class=\"muted\">(szczegółowość zależy od gry; punkty incydentów i czas naprawy w iRacing)</span>",
@@ -1412,7 +1414,7 @@
  "ts_zoom_reset": "Całe okrążenie",
  "ts_latg": "Przeciążenie boczne (+ w prawo)",
  "ts_rline": "Linia jazdy",
- "ts_rline_hint": "Pozycja GPS okrążeń zaimportowanych z plików telemetrii iRacing (.ibt). Najedź, aby zobaczyć, gdzie było każde okrążenie na tym dystansie; odległość od A w metrach.",
+ "ts_rline_hint": "Którędy przebiegało każde okrążenie (w iRacing z pliku telemetrii, w innych grach z pozycji na żywo). Numery oznaczają zakręty. Najedź, aby zobaczyć, gdzie było każde okrążenie na tym dystansie; odległość od A w metrach.",
  "ts_rline_gap": "{0}: {1} m od A",
  "ts_csv": "Pobierz CSV"
 }

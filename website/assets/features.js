@@ -51,6 +51,7 @@ const SOCIAL = [
   ["🛡️", "fx_so4"],
   ["📡", "fx_so5"],
   ["🎧", "fx_so7"],
+  ["🎙️", "fx_so8"],
   ["🪪", "fx_so6"],
 ];
 // [anahtar, görsel yuvası ("" = yok), çizim türü]
@@ -561,8 +562,13 @@ addDict({
   ],
   fx_so7_t: ["Ekip: uzaktan spotter ve yarış mühendisi", "Crew: remote spotter and race engineer"],
   fx_so7_d: [
-    "Arkadaşını ekibine ekle; yarışırken sana uygulamadan ya da telefonundan (sitedeki Ekip sayfası) bağlansın. Ekip Pitwall'ında çevrendeki araçları, farkları, bayrakları, havayı, yan araç göstergesini, yakıtını ve lastiklerini canlı görür; tek dokunuşla “Solunda araç”, “Bu tur pit” gibi spotter mesajları ya da kendi mesajını gönderir. Yetki verdiysen pit ayarlarını uzaktan değiştirir: eklenecek yakıt miktarı, hangi lastiklerin değişeceği, hızlı tamir ve vizör filmi (uzaktan pit ayarı iRacing'de çalışır). İzlemek ücretsiz; pit ayarı yetkisi vermek için sürücünün PRO olması gerekir. Veri 1–2 saniye gecikmeli gelir, sesli görüşme yoktur.",
-    "Add a friend to your crew and they can connect to you while you race, from the app or from their phone (the Crew page on the website). On the Crew pit wall they see the cars around you, gaps, flags, weather, a car-alongside indicator, your fuel and your tyres live, and send one-tap spotter messages such as “Car on your left” or “Pit this lap”, or a message of their own. If you allow it they change your pit settings remotely: the amount of fuel to add, which tyres to change, fast repair and tear-off (remote pit settings work in iRacing). Watching is free; granting pit control requires the driver to be PRO. Data arrives 1–2 seconds late and there is no voice chat.",
+    "Arkadaşını ekibine ekle; yarışırken sana uygulamadan ya da telefonundan (sitedeki Ekip sayfası) bağlansın. Ekip Pitwall'ında çevrendeki araçları, farkları, bayrakları, havayı, yan araç göstergesini, yakıtını ve lastiklerini canlı görür; tek dokunuşla “Solunda araç”, “Bu tur pit” gibi spotter mesajları ya da kendi mesajını gönderir. Yetki verdiysen pit ayarlarını uzaktan değiştirir: eklenecek yakıt miktarı, hangi lastiklerin değişeceği, hızlı tamir ve vizör filmi (uzaktan pit ayarı iRacing'de çalışır). İzlemek ücretsiz; pit ayarı yetkisi vermek için sürücünün PRO olması gerekir. Veri 1–2 saniye gecikmeli gelir; sesli konuşmak için Ses odalarını kullanın.",
+    "Add a friend to your crew and they can connect to you while you race, from the app or from their phone (the Crew page on the website). On the Crew pit wall they see the cars around you, gaps, flags, weather, a car-alongside indicator, your fuel and your tyres live, and send one-tap spotter messages such as “Car on your left” or “Pit this lap”, or a message of their own. If you allow it they change your pit settings remotely: the amount of fuel to add, which tyres to change, fast repair and tear-off (remote pit settings work in iRacing). Watching is free; granting pit control requires the driver to be PRO. Data arrives 1–2 seconds late; use Voice rooms to talk.",
+  ],
+  fx_so8_t: ["Ses odaları", "Voice rooms"],
+  fx_so8_d: [
+    "Discord gibi sesli odalar, uygulamanın içinde: herkese açık, davet kodlu özel ya da takım odası. Kalabalık turnuva odalarında “söz hakkıyla” mod: yöneticiler süreli söz verir, uzatır ya da geri alır; diğerleri el kaldırıp sıraya girer, istenirse süre bitince söz sıradakine kendiliğinden geçer. Açık mikrofon ya da bas-konuş (klavye veya direksiyon düğmesi), kişi başı ses ayarı, gürültü bastırma. Konuşmalar kaydedilmez.",
+    "Discord-style voice rooms inside the app: public, private with an invite code, or team rooms. Big tournament rooms can use “raise hand” mode: hosts give timed turns, extend them or take them back; everyone else raises a hand and queues, and the floor can pass to the next person automatically when time runs out. Open mic or push-to-talk (keyboard or wheel button), per-person volume, noise suppression. Nothing is recorded.",
   ],
   fx_so6_t: ["Sürücü profili", "Driver profile"],
   fx_so6_d: ["Profil fotoğrafı, tanıtım yazısı ve sosyal bağlantılar; sitedeki Yarışçılar sayfasında turların ve istatistiklerin.", "Profile photo, bio and social links; your laps and stats on the website's Drivers page."],

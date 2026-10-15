@@ -10,11 +10,53 @@
 //!                                  rF2ScoringInfo (548 bayt), rF2VehicleScoring[128] (584 bayt) }
 //! Yazım sırasında versionBegin artırılır, bitince versionEnd; ikisi eşitse tampon tutarlıdır.
 //! Dünya koordinatları sol elli, +y yukarı; araç yerel ekseninde +x sol, +z geri.
+//!
+//! Le Mans Ultimate 1.x kendi belleğini de yayımlar: `LMU_Data` (SharedMemoryInterface.hpp, `#pragma pack(4)`).
+//! İçinde aynı rF2 kayıtları vardır (rF2ScoringInfo 548, rF2VehicleScoring 584, rF2VehicleTelemetry 1888 bayt),
+//! yalnızca kapsayıcı farklıdır ve 104 araç yeri vardır; sürüm bloğu yoktur. Eklenti gerekmez, ama oyunda
+//! Ayarlar › Oynanış › "Eklentileri etkinleştir" açık olmalıdır. Bu bellek bulunursa önce o okunur ve eklenti
+//! tamponlarıyla aynı biçime kopyalanır (ayrıştırıcılar değişmez). Düzen: github.com/Swizzjack/lmu-pitwall
+//! (MIT, LMU 1.4 ile doğrulanmış).
 
 use super::*;
 use crate::model::{tire_kind_from_name, CarState, Driver, SessionEntry};
 
 pub const MAX_VEHICLES: usize = 128;
+
+/// LMU'nun kendi belleği (`LMU_Data`)
+pub mod lmu {
+    pub const NAME: &str = "LMU_Data";
+    pub const MAX_VEHICLES: usize = 104;
+    /// generic (332) + paths (1300)
+    pub const SCORING_INFO: usize = 1632;
+    /// scoringInfo (548) + scoringStreamSize (12)
+    pub const VEH_SCORING: usize = 1632 + 548 + 12;
+    /// scoring bloğu 126 832 bayt
+    pub const ACTIVE_VEHICLES: usize = 1632 + 126_832;
+    pub const PLAYER_IDX: usize = ACTIVE_VEHICLES + 1;
+    pub const PLAYER_HAS_VEHICLE: usize = ACTIVE_VEHICLES + 2;
+    /// 3 bayt + 4'e hizalama
+    pub const TELEM_INFO: usize = ACTIVE_VEHICLES + 4;
+    pub const SIZE: usize = TELEM_INFO + 1888 * MAX_VEHICLES;
+    pub const GAME_VERSION: usize = 64;
+}
+
+/// `LMU_Data` belleğinden (tam görüntü ya da en az ilgili bölümler) eklenti biçiminde skorlama ve telemetri
+/// tamponları kurar. `mem(off, len)` belleğin o bölümünü döner.
+pub fn lmu_buffers(mem: &dyn Fn(usize, usize) -> Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+    let n = (rd_i32(&mem(lmu::SCORING_INFO + si::NUM_VEHICLES, 4), 0).max(0) as usize)
+        .min(lmu::MAX_VEHICLES);
+    let mut sb = vec![0u8; buf::SCORING_INFO];
+    sb.extend(mem(lmu::SCORING_INFO, si::SIZE));
+    sb.extend(mem(lmu::VEH_SCORING, n * vs::SIZE));
+    let head = mem(lmu::ACTIVE_VEHICLES, 3);
+    let nt = (rd_u8(&head, 0) as usize).min(lmu::MAX_VEHICLES);
+    let mut tb = vec![0u8; buf::TELE_VEHICLES];
+    tb[buf::TELE_NUM_VEHICLES..buf::TELE_NUM_VEHICLES + 4]
+        .copy_from_slice(&(nt as i32).to_le_bytes());
+    tb.extend(mem(lmu::TELEM_INFO, nt * tv::SIZE));
+    (sb, tb)
+}
 
 pub mod buf {
     pub const VERSION_BEGIN: usize = 0;
@@ -620,6 +662,8 @@ pub fn extract(
 
         // Yan araçlar: yerel +x sol, +z geri eksenlerinin dünyadaki karşılığı Ori'nin sütunları
         let my = rd_vec3(tele, o + tv::POS);
+        f.pos_e = my[0];
+        f.pos_n = my[2];
         let left = [r[0][0], r[1][0], r[2][0]];
         let back = [r[0][2], r[1][2], r[2][2]];
         m.rel.clear();
@@ -658,9 +702,14 @@ mod win {
     use std::cell::Cell;
     use std::time::{Duration, Instant};
 
+    /// Okunan bellek: rF2 eklentisinin tamponları ya da LMU'nun kendi `LMU_Data` belleği
+    enum Backend {
+        Plugin { tele: Mapping, scor: Mapping },
+        Lmu(Mapping),
+    }
+
     pub struct Rf2 {
-        tele: Mapping,
-        scor: Mapping,
+        mem: Backend,
         kind: SimKind,
         tb: Vec<u8>,
         sb: Vec<u8>,
@@ -694,13 +743,19 @@ mod win {
 
     impl Rf2 {
         pub fn open() -> Option<Rf2> {
-            let scor = Mapping::open("$rFactor2SMMP_Scoring$")?;
-            let tele = Mapping::open("$rFactor2SMMP_Telemetry$")?;
-            let kind = SimKind::Rf2;
+            // Önce LMU'nun kendi belleği (eklenti gerekmez), yoksa rF2 eklentisi
+            let (mem, kind) = match Mapping::open(lmu::NAME).filter(|m| m.len() >= lmu::TELEM_INFO)
+            {
+                Some(m) => (Backend::Lmu(m), SimKind::Lmu),
+                None => {
+                    let scor = Mapping::open("$rFactor2SMMP_Scoring$")?;
+                    let tele = Mapping::open("$rFactor2SMMP_Telemetry$")?;
+                    (Backend::Plugin { tele, scor }, SimKind::Rf2)
+                }
+            };
             let now = Instant::now();
             let mut s = Rf2 {
-                tele,
-                scor,
+                mem,
                 kind,
                 tb: Vec::new(),
                 sb: Vec::new(),
@@ -721,10 +776,18 @@ mod win {
             Some(s)
         }
 
+        /// Hangi bellek okunuyor (tanılama)
+        pub fn backend_name(&self) -> &'static str {
+            match self.mem {
+                Backend::Lmu(_) => "LMU_Data (oyunun kendi belleği)",
+                Backend::Plugin { .. } => "rF2 Shared Memory eklentisi",
+            }
+        }
+
         /// Oyunu exe adından ayırt eder (aynı eklenti/bellek); tercih uymuyorsa false
         pub fn detect(&mut self, exes: &[String], pref: SimPref) -> bool {
             let has = |n: &str| exes.iter().any(|e| e == n);
-            self.kind = if has("le mans ultimate.exe") {
+            self.kind = if matches!(self.mem, Backend::Lmu(_)) || has("le mans ultimate.exe") {
                 SimKind::Lmu
             } else if has("rfactor2.exe") {
                 SimKind::Rf2
@@ -736,19 +799,87 @@ mod win {
             pref.accepts(self.kind)
         }
 
+        /// LMU: sürüm bloğu yok; skorlama saati (mCurrentET) ve oyuncunun fizik saati değişimi yeni veridir.
+        /// Kopya iki kez okunan saatle doğrulanır (yazım sırasında alınan kopya atılır).
+        fn refresh_lmu(
+            m: &Mapping,
+            sb: &mut Vec<u8>,
+            tb: &mut Vec<u8>,
+            last_s: &mut u32,
+            last_t: &mut u32,
+        ) -> (bool, bool) {
+            let et_bits = |m: &Mapping| {
+                let mut v = Vec::new();
+                m.copy(lmu::SCORING_INFO + si::CURRENT_ET, 8, &mut v);
+                let b = u64::from_le_bytes(
+                    v.get(..8).and_then(|x| x.try_into().ok()).unwrap_or([0; 8]),
+                );
+                (b ^ (b >> 32)) as u32
+            };
+            let tel_bits = |m: &Mapping| {
+                let mut v = Vec::new();
+                let i = (m.u32_at(lmu::ACTIVE_VEHICLES) >> 8 & 0xff) as usize;
+                m.copy(
+                    lmu::TELEM_INFO + i.min(lmu::MAX_VEHICLES - 1) * tv::SIZE + tv::ELAPSED_TIME,
+                    8,
+                    &mut v,
+                );
+                let b = u64::from_le_bytes(
+                    v.get(..8).and_then(|x| x.try_into().ok()).unwrap_or([0; 8]),
+                );
+                (b ^ (b >> 32)) as u32
+            };
+            let s0 = et_bits(m);
+            let t0 = tel_bits(m);
+            if s0 == *last_s && t0 == *last_t {
+                return (false, false);
+            }
+            let mem = |off: usize, len: usize| {
+                let mut v = Vec::new();
+                m.copy(off, len, &mut v);
+                v
+            };
+            for _ in 0..3 {
+                let (s, t) = lmu_buffers(&mem);
+                if et_bits(m) == s0 {
+                    let sc = s0 != *last_s;
+                    let te = t0 != *last_t;
+                    *sb = s;
+                    *tb = t;
+                    *last_s = s0;
+                    *last_t = t0;
+                    return (sc, te);
+                }
+                std::thread::yield_now();
+            }
+            (false, false)
+        }
+
         /// Skorlama değiştiyse yeniden okur
         fn refresh_scoring(&mut self) -> bool {
-            let ver = self.scor.u32_at(buf::VERSION_END);
+            let (tele, scor) = match &self.mem {
+                Backend::Plugin { tele, scor } => (tele, scor),
+                Backend::Lmu(m) => {
+                    let (sc, _) = Self::refresh_lmu(
+                        m,
+                        &mut self.sb,
+                        &mut self.tb,
+                        &mut self.last_scor,
+                        &mut self.last_tele,
+                    );
+                    if sc {
+                        self.scoring = parse_scoring(&self.sb);
+                    }
+                    return sc;
+                }
+            };
+            let _ = tele;
+            let ver = scor.u32_at(buf::VERSION_END);
             if ver == self.last_scor {
                 return false;
             }
-            let n =
-                (self.scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES) as usize).min(MAX_VEHICLES);
-            if !read_consistent(
-                &self.scor,
-                buf::SCORING_VEHICLES + n * vs::SIZE,
-                &mut self.sb,
-            ) {
+            let n = (scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES) as usize).min(MAX_VEHICLES);
+            if !read_consistent(scor, buf::SCORING_VEHICLES + n * vs::SIZE, &mut self.sb) {
                 return false;
             }
             self.last_scor = ver;
@@ -757,12 +888,28 @@ mod win {
         }
 
         fn refresh_tele(&mut self) -> bool {
-            let ver = self.tele.u32_at(buf::VERSION_END);
+            let tele = match &self.mem {
+                Backend::Plugin { tele, .. } => tele,
+                Backend::Lmu(m) => {
+                    let (sc, te) = Self::refresh_lmu(
+                        m,
+                        &mut self.sb,
+                        &mut self.tb,
+                        &mut self.last_scor,
+                        &mut self.last_tele,
+                    );
+                    if sc {
+                        self.scoring = parse_scoring(&self.sb);
+                    }
+                    return te;
+                }
+            };
+            let ver = tele.u32_at(buf::VERSION_END);
             if ver == self.last_tele {
                 return false;
             }
-            let n = (self.tele.u32_at(buf::TELE_NUM_VEHICLES) as usize).min(MAX_VEHICLES);
-            if !read_consistent(&self.tele, buf::TELE_VEHICLES + n * tv::SIZE, &mut self.tb) {
+            let n = (tele.u32_at(buf::TELE_NUM_VEHICLES) as usize).min(MAX_VEHICLES);
+            if !read_consistent(tele, buf::TELE_VEHICLES + n * tv::SIZE, &mut self.tb) {
                 return false;
             }
             self.last_tele = ver;
@@ -780,7 +927,11 @@ mod win {
         }
 
         fn connected(&self) -> bool {
-            if self.scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES) == 0 {
+            let n = match &self.mem {
+                Backend::Plugin { scor, .. } => scor.u32_at(buf::SCORING_INFO + si::NUM_VEHICLES),
+                Backend::Lmu(m) => m.u32_at(lmu::SCORING_INFO + si::NUM_VEHICLES),
+            };
+            if n == 0 {
                 return false;
             }
             if self.last_new.elapsed() > Duration::from_secs(10)
@@ -810,8 +961,25 @@ mod win {
         }
 
         fn read(&mut self, frame: &mut Frame) -> bool {
-            let sc = self.refresh_scoring();
-            let te = self.refresh_tele();
+            let (sc, te) = match &self.mem {
+                Backend::Lmu(m) => {
+                    let (sc, te) = Self::refresh_lmu(
+                        m,
+                        &mut self.sb,
+                        &mut self.tb,
+                        &mut self.last_scor,
+                        &mut self.last_tele,
+                    );
+                    if sc {
+                        self.scoring = parse_scoring(&self.sb);
+                    }
+                    (sc, te)
+                }
+                Backend::Plugin { .. } => {
+                    let sc = self.refresh_scoring();
+                    (sc, self.refresh_tele())
+                }
+            };
             if !sc && !te {
                 return false;
             }
@@ -983,5 +1151,27 @@ mod tests {
         assert!((f.yaw_north.abs() - std::f32::consts::PI).abs() < 1e-4);
         // Rakip yerel +x (sol) tarafında 3 m
         assert_eq!(f.car_left_right, 2);
+    }
+
+    /// LMU_Data görüntüsü eklenti tamponlarıyla aynı içeriğe dönüşür
+    #[test]
+    fn lmu_data_maps_to_plugin_buffers() {
+        let (s, t) = sample();
+        let mut img = vec![0u8; lmu::SIZE];
+        img[lmu::SCORING_INFO..lmu::SCORING_INFO + si::SIZE]
+            .copy_from_slice(&s[buf::SCORING_INFO..buf::SCORING_VEHICLES]);
+        let vs_len = s.len() - buf::SCORING_VEHICLES;
+        img[lmu::VEH_SCORING..lmu::VEH_SCORING + vs_len]
+            .copy_from_slice(&s[buf::SCORING_VEHICLES..]);
+        img[lmu::ACTIVE_VEHICLES] = 2;
+        img[lmu::PLAYER_IDX] = 1;
+        let tv_len = t.len() - buf::TELE_VEHICLES;
+        img[lmu::TELEM_INFO..lmu::TELEM_INFO + tv_len].copy_from_slice(&t[buf::TELE_VEHICLES..]);
+        let mem = |off: usize, len: usize| img[off..(off + len).min(img.len())].to_vec();
+        let (sb, tb) = lmu_buffers(&mem);
+        assert_eq!(sb, s);
+        assert_eq!(&tb[buf::TELE_NUM_VEHICLES..], &t[buf::TELE_NUM_VEHICLES..]);
+        assert_eq!(lmu::SIZE, 324_820);
+        assert_eq!(lmu::TELEM_INFO, 128_468);
     }
 }
