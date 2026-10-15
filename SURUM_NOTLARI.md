@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-334
+
+- Ses Odaları sol menüsü (Discord gibi): en üstte sabit **Ses ayarları** (çark simgesi) ve **Tüm odalar**; altında **Topluluk odaları** (yöneticilerin kurduğu, boş kalsa da hiç silinmeyen odalar) ve **Özel odalar** (PRO üyelerin kurduğu, içinde kimse kalmadıktan 1 saat sonra silinen odalar). Odaya tıklayınca girilir; içinde olduğun oda vurgulanır, odadaki kişi sayısı yanında yazar. Liste 15 sn'de bir yenilenir.
+- Odalar sayfasında da aynı iki grup.
+- Söz hakkıyla odalarda el simgesi (✋): menüde, oda listesinde ve oda başlığında.
+- Yöneticiler her odayı silebilir (çöp kutusu; onay penceresinde oda sahibi yazar). İçindekiler odadan çıkarılır.
+- Supabase: `c118_guncelleme.sql` çalıştırılmalı (c117'den önce PRO üyelerin kurduğu odalar da "Özel oda" sayılır ve boş kalınca silinir).
+
 ## 151026-333
 
 - Site: "Ses Odası" overlay'i overlay listesine ve galeriye eklendi (görsel, açıklama, özellikler; 14 dilde). Overlay sayısı artık 65 (sayfa başlıklarındaki eski "61 overlay" da düzeltildi).

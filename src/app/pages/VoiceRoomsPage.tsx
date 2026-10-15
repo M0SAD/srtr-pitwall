@@ -22,7 +22,6 @@ import {
   voiceRoomDelete,
   voiceRoomNewCode,
   voiceRoomUpdate,
-  voiceRooms,
   voiceSetRole,
   type VoiceKind,
   type VoiceMode,
@@ -53,6 +52,7 @@ import {
   type VoiceMember,
 } from "@/voice/engine";
 import { askConfirm } from "../confirm";
+import { communityRooms, privateRooms, refreshRooms, roomsErr, watchRooms } from "@/voice/roomsStore";
 import { Slider, Stepper, Switch } from "../components/SettingsForm";
 import * as I from "../icons";
 import { go } from "../ui";
@@ -105,13 +105,12 @@ export function VoiceRoomsPage(props: { sub?: string }) {
 // ---------------------------------------------------------------------------
 
 function Lobby(props: { inRoom?: boolean }) {
-  const [list, { refetch }] = createResource(() => voiceRooms().catch((e) => (setErr(errText(e)), [] as VoiceRoomRow[])));
   const [err, setErr] = createSignal("");
+  const refetch = () => refreshRooms();
   const [code, setCode] = createSignal("");
   const [creating, setCreating] = createSignal(false);
   const [busy, setBusy] = createSignal("");
-  const iv = window.setInterval(() => void refetch(), 15000);
-  onCleanup(() => clearInterval(iv));
+  onCleanup(watchRooms());
 
   // Oda kurma izni (c117, Yönetim: app_config.voice_create); sunucu ayrıca denetler
   const createWho = () => config()?.voice_create ?? "pro";
@@ -121,9 +120,6 @@ function Lobby(props: { inRoom?: boolean }) {
     createWho() === "all" ||
     ((createWho() === "pro" || createWho() === "team") && isPro()) ||
     (createWho() === "team" && (teamsAdm() ?? []).some((x) => x.role === "owner" || x.role === "admin"));
-  const mine = () => (list() ?? []).filter((r) => r.is_mine);
-  const team = () => (list() ?? []).filter((r) => !r.is_mine && r.kind === "team");
-  const others = () => (list() ?? []).filter((r) => !r.is_mine && r.kind !== "team");
 
   const enter = async (id: string | null, c: string | null) => {
     setBusy(id ?? "code");
@@ -200,25 +196,46 @@ function Lobby(props: { inRoom?: boolean }) {
           }}
         />
       </Show>
-      <RoomGroup title="Odalarım" rows={mine()} busy={busy()} onJoin={(id) => void enter(id, null)} onChanged={() => void refetch()} />
-      <RoomGroup title="Takım odaları" rows={team()} busy={busy()} onJoin={(id) => void enter(id, null)} onChanged={() => void refetch()} />
+      <Show when={roomsErr()}>
+        <p class="vr-err">{roomsErr()}</p>
+      </Show>
       <RoomGroup
-        title="Herkese açık odalar"
-        rows={others()}
+        title="Topluluk odaları"
+        rows={communityRooms()}
         busy={busy()}
         onJoin={(id) => void enter(id, null)}
         onChanged={() => void refetch()}
-        empty={canCreate() ? "Şu an açık oda yok. İlk odayı sen kur." : "Şu an açık oda yok."}
+        empty="Henüz oda yok."
+      />
+      <RoomGroup
+        title="Özel odalar"
+        note="PRO üyelerin kurduğu odalar. İçinde kimse kalmadıktan 1 saat sonra silinir."
+        rows={privateRooms()}
+        busy={busy()}
+        onJoin={(id) => void enter(id, null)}
+        onChanged={() => void refetch()}
+        empty={canCreate() && !realAdmin() ? "Şu an özel oda yok. İlk odayı sen kur." : "Şu an özel oda yok."}
       />
     </>
   );
 }
 
-function RoomGroup(props: { title: string; rows: VoiceRoomRow[]; busy: string; onJoin: (id: string) => void; onChanged: () => void; empty?: string }) {
+function RoomGroup(props: {
+  title: string;
+  note?: string;
+  rows: VoiceRoomRow[];
+  busy: string;
+  onJoin: (id: string) => void;
+  onChanged: () => void;
+  empty?: string;
+}) {
   return (
     <Show when={props.rows.length || props.empty}>
       <section class="panel">
         <h3>{props.title}</h3>
+        <Show when={props.note}>
+          <p class="muted small vr-group-note">{props.note}</p>
+        </Show>
         <Show when={props.rows.length} fallback={<p class="muted small">{props.empty}</p>}>
           <div class="vr-rooms">
             <For each={props.rows}>
@@ -228,7 +245,14 @@ function RoomGroup(props: { title: string; rows: VoiceRoomRow[]; busy: string; o
                     {r.kind === "private" ? <I.Lock /> : r.kind === "team" ? <I.Users /> : <I.Globe />}
                   </div>
                   <div class="vr-room-main">
-                    <b data-no-i18n>{r.name}</b>
+                    <b class="vr-room-name">
+                      <span data-no-i18n>{r.name}</span>
+                      <Show when={r.mode === "moderated"}>
+                        <span class="vr-hand" title={t("Söz hakkıyla: konuşmak için söz iste")}>
+                          <I.Hand />
+                        </span>
+                      </Show>
+                    </b>
                     <small class="muted">
                       {t(KIND_LABEL[r.kind])}
                       {r.team_name ? ` · ${r.team_name}` : ""}
@@ -259,12 +283,13 @@ function RoomGroup(props: { title: string; rows: VoiceRoomRow[]; busy: string; o
                       {props.busy === r.id ? t("Bağlanıyor…") : t("Gir")}
                     </button>
                   </Show>
-                  <Show when={r.is_mine}>
+                  <Show when={r.is_mine || realAdmin()}>
                     <button
                       class="btn ghost small"
-                      title={t("Odayı sil")}
+                      title={r.is_mine ? t("Odayı sil") : t("Odayı sil (yönetici)")}
                       onClick={async () => {
-                        if (!(await askConfirm(t("“{0}” odası silinsin mi?", r.name), { danger: true, ok: t("Sil") }))) return;
+                        const note = !r.is_mine ? t("Odadaki herkes çıkarılır. Oda sahibi: {0}", r.owner_name ?? "?") : undefined;
+                        if (!(await askConfirm(t("“{0}” odası silinsin mi?", r.name), { danger: true, ok: t("Sil"), note }))) return;
                         if (voice.room()?.id === r.id) await leaveRoom();
                         await voiceRoomDelete(r.id).catch(() => {});
                         props.onChanged();
@@ -460,7 +485,14 @@ function RoomView() {
     <>
       <section class="panel vr-head">
         <div class="vr-head-main">
-          <h3 data-no-i18n>{r()?.name ?? "…"}</h3>
+          <h3 class="vr-room-name">
+            <span data-no-i18n>{r()?.name ?? "…"}</span>
+            <Show when={moderated()}>
+              <span class="vr-hand" title={t("Söz hakkıyla: konuşmak için söz iste")}>
+                <I.Hand />
+              </span>
+            </Show>
+          </h3>
           <small class="muted">
             {r() ? t(KIND_LABEL[r()!.kind]) : ""}
             {moderated() ? ` · ${t("Söz hakkıyla")} (${fmtSec(st()?.talk_seconds ?? r()?.talk_seconds ?? 60)})` : ` · ${t("Herkes konuşur")}`}

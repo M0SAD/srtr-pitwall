@@ -37,6 +37,7 @@ import { AdminTopStats } from "./components/AdminTopStats";
 import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
 import { VoiceDock } from "./components/VoiceDock";
+import { VoiceRoomsNav } from "./components/VoiceRoomsNav";
 
 // Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
 // (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)
@@ -351,7 +352,10 @@ export function App() {
         <Show when={subs()}>
           <aside class="subnav">
             <div class="subnav-title">{TITLES[section()]}</div>
-            <For each={subs()}>
+            <Show when={section() === "voicerooms"}>
+              <VoiceRoomsNav />
+            </Show>
+            <For each={section() === "voicerooms" ? [] : subs()}>
               {(s) => (
                 <button classList={{ active: sub() === s.id }} onClick={() => go(section(), s.id)}>
                   {s.label}

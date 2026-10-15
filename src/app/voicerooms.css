@@ -628,3 +628,109 @@
   width: 14px;
   height: 14px;
 }
+
+/* Sol alt menü: oda listesi (components/VoiceRoomsNav.tsx) */
+.vrn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  flex: 1;
+}
+.subnav .vrn button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vrn-top svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.vrn-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+  margin-top: 6px;
+}
+.vrn-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 12px 10px 4px;
+}
+.vrn-empty {
+  color: var(--muted);
+  opacity: 0.7;
+  padding: 2px 10px 4px;
+  font-size: 11.5px;
+}
+.subnav .vrn button.vrn-room {
+  font-size: 13px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.vrn-ic {
+  display: inline-flex;
+  color: var(--muted);
+  flex: none;
+}
+.vrn-ic svg {
+  width: 14px;
+  height: 14px;
+}
+.vrn-room.here .vrn-ic {
+  color: var(--green);
+}
+.vrn-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.vrn-hand {
+  display: inline-flex;
+  color: var(--yellow);
+  flex: none;
+}
+.vrn-hand svg {
+  width: 13px;
+  height: 13px;
+}
+.vrn-count {
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--green) 20%, transparent);
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.vr-room-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.vr-room-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vr-hand {
+  display: inline-flex;
+  color: var(--yellow);
+  flex: none;
+}
+.vr-hand svg {
+  width: 14px;
+  height: 14px;
+}
+.vr-group-note {
+  margin: -4px 0 10px;
+}
