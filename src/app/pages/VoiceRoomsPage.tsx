@@ -5,7 +5,7 @@
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { friendRequest, friendRespond, initialOf, myFriends, type Friend } from "@/cloud/social";
+import { findPeople, friendRequest, friendRespond, initialOf, myFriends, type Friend, type Person } from "@/cloud/social";
 import { cachedAvatar, loadAvatars } from "@/cloud/profile";
 import { myTeams, type MyTeam } from "@/cloud/teams";
 import { settings } from "@/sdk/settings";
@@ -22,11 +22,18 @@ import {
   voiceRoomDelete,
   voiceRoomNewCode,
   voiceRoomUpdate,
+  voiceRoomMeta,
+  voiceCategorySave,
+  voiceCategoryDelete,
+  voiceMods,
+  voiceModSet,
+  voiceInvite,
   voiceSetRole,
   type VoiceKind,
   type VoiceMode,
   type VoiceRole,
   type VoiceRoomRow,
+  type VoiceMod,
 } from "@/cloud/voiceRooms";
 import {
   amAdmin,
@@ -52,7 +59,8 @@ import {
   type VoiceMember,
 } from "@/voice/engine";
 import { askConfirm } from "../confirm";
-import { communityRooms, privateRooms, refreshRooms, roomsErr, watchRooms } from "@/voice/roomsStore";
+import { categories, refreshRooms, rooms, roomSections, roomsErr, watchRooms } from "@/voice/roomsStore";
+import { RoomIcon, RoomIconPicker } from "../components/RoomIcon";
 import { Slider, Stepper, Switch } from "../components/SettingsForm";
 import * as I from "../icons";
 import { go } from "../ui";
@@ -182,6 +190,8 @@ function Lobby(props: { inRoom?: boolean }) {
               <option value="all">{t("Herkes")}</option>
             </select>
           </div>
+          <CategoryManager />
+          <VoiceModsPanel />
         </section>
       </Show>
       <Show when={err()}>
@@ -199,29 +209,28 @@ function Lobby(props: { inRoom?: boolean }) {
       <Show when={roomsErr()}>
         <p class="vr-err">{roomsErr()}</p>
       </Show>
-      <RoomGroup
-        title="Topluluk odaları"
-        rows={communityRooms()}
-        busy={busy()}
-        onJoin={(id) => void enter(id, null)}
-        onChanged={() => void refetch()}
-        empty="Henüz oda yok."
-      />
-      <RoomGroup
-        title="Özel odalar"
-        note="PRO üyelerin kurduğu odalar. İçinde kimse kalmadıktan 1 saat sonra silinir."
-        rows={privateRooms()}
-        busy={busy()}
-        onJoin={(id) => void enter(id, null)}
-        onChanged={() => void refetch()}
-        empty={canCreate() && !realAdmin() ? "Şu an özel oda yok. İlk odayı sen kur." : "Şu an özel oda yok."}
-      />
+      <For each={roomSections().filter((sec) => sec.rooms.length || sec.id === "_private" || (realAdmin() && !sec.fixed))}>
+        {(sec) => (
+          <RoomGroup
+            title={sec.title}
+            raw={!sec.fixed}
+            note={sec.id === "_private" ? "PRO üyelerin kurduğu odalar. İçinde kimse kalmadıktan 1 saat sonra silinir." : undefined}
+            rows={sec.rooms}
+            busy={busy()}
+            onJoin={(id) => void enter(id, null)}
+            onChanged={() => void refetch()}
+            empty={sec.id === "_private" ? (canCreate() && !realAdmin() ? "Şu an özel oda yok. İlk odayı sen kur." : "Şu an özel oda yok.") : "Henüz oda yok."}
+          />
+        )}
+      </For>
     </>
   );
 }
 
 function RoomGroup(props: {
   title: string;
+  /** başlık kullanıcı adı (kategori): çevrilmez */
+  raw?: boolean;
   note?: string;
   rows: VoiceRoomRow[];
   busy: string;
@@ -232,7 +241,7 @@ function RoomGroup(props: {
   return (
     <Show when={props.rows.length || props.empty}>
       <section class="panel">
-        <h3>{props.title}</h3>
+        <h3>{props.raw ? <span data-no-i18n>{props.title}</span> : t(props.title)}</h3>
         <Show when={props.note}>
           <p class="muted small vr-group-note">{props.note}</p>
         </Show>
@@ -242,11 +251,16 @@ function RoomGroup(props: {
               {(r) => (
                 <div class="vr-room" classList={{ here: voice.room()?.id === r.id }}>
                   <div class="vr-room-ic" classList={{ live: r.members > 0 }}>
-                    {r.kind === "private" ? <I.Lock /> : r.kind === "team" ? <I.Users /> : <I.Globe />}
+                    <RoomIcon icon={r.icon} kind={r.kind} />
                   </div>
                   <div class="vr-room-main">
                     <b class="vr-room-name">
                       <span data-no-i18n>{r.name}</span>
+                      <Show when={r.pro_only}>
+                        <span class="vr-pro" title={t("Sadece PRO üyeler girebilir")}>
+                          PRO
+                        </span>
+                      </Show>
                       <Show when={r.mode === "moderated"}>
                         <span class="vr-hand" title={t("Söz hakkıyla: konuşmak için söz iste")}>
                           <I.Hand />
@@ -279,7 +293,12 @@ function RoomGroup(props: {
                       </span>
                     }
                   >
-                    <button class="btn primary small" disabled={!!props.busy} onClick={() => props.onJoin(r.id)}>
+                    <button
+                      class="btn primary small"
+                      disabled={!!props.busy || r.can_enter === false}
+                      title={r.can_enter === false ? (r.pro_only ? t("Bu oda PRO üyelere özel") : t("Bu odaya giremezsin")) : ""}
+                      onClick={() => props.onJoin(r.id)}
+                    >
                       {props.busy === r.id ? t("Bağlanıyor…") : t("Gir")}
                     </button>
                   </Show>
@@ -316,6 +335,9 @@ function CreateRoom(props: { onDone: (id: string | null) => void }) {
   const [mode, setMode] = createSignal<VoiceMode>("open");
   const [talk, setTalk] = createSignal(60);
   const [max, setMax] = createSignal(20);
+  const [icon, setIcon] = createSignal("");
+  const [proOnly, setProOnly] = createSignal(false);
+  const [cat, setCat] = createSignal("");
   const [err, setErr] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [teams] = createResource(() => myTeams().catch(() => [] as MyTeam[]));
@@ -341,6 +363,9 @@ function CreateRoom(props: { onDone: (id: string | null) => void }) {
         talkSeconds: talk(),
         max: max(),
         description: desc().trim(),
+        icon: icon(),
+        proOnly: proOnly(),
+        category: realAdmin() && cat() ? cat() : null,
       });
       props.onDone(String(id));
     } catch (e) {
@@ -358,6 +383,32 @@ function CreateRoom(props: { onDone: (id: string | null) => void }) {
       <div class="row">
         <span>Açıklama</span>
         <input class="input" maxLength={200} value={desc()} onInput={(e) => setDesc(e.currentTarget.value)} placeholder={t("İsteğe bağlı")} />
+      </div>
+      <div class="row">
+        <span>Simge</span>
+        <RoomIconPicker value={icon()} onChange={setIcon} />
+      </div>
+      <Show when={realAdmin()}>
+        <div class="row">
+          <span>Kategori</span>
+          <select class="input" value={cat()} onChange={(e) => setCat(e.currentTarget.value)}>
+            <option value="">{t("Topluluk odaları")}</option>
+            <For each={categories()}>
+              {(c) => (
+                <option value={c.id} data-no-i18n>
+                  {c.name}
+                </option>
+              )}
+            </For>
+          </select>
+        </div>
+      </Show>
+      <div class="row">
+        <div>
+          <span>Sadece PRO üyeler girebilsin</span>
+          <small>Yöneticiler, moderatörler ve odada yetki verdiklerin her zaman girer.</small>
+        </div>
+        <Switch checked={proOnly()} onChange={setProOnly} />
       </div>
       <div class="row">
         <span>Tür</span>
@@ -441,6 +492,7 @@ function RoomView() {
   const moderated = () => (st()?.mode ?? r()?.mode) === "moderated";
   const [err, setErr] = createSignal("");
   const [openUser, setOpenUser] = createSignal("");
+  const [inviting, setInviting] = createSignal(false);
   const [code, setCode] = createSignal<string | null>(null);
   createEffect(() => setCode(r()?.invite_code ?? null));
   createEffect(() => {
@@ -551,10 +603,16 @@ function RoomView() {
           <button class="btn ghost small" onClick={() => go("voicerooms", "settings")}>
             <I.Settings /> Ses ayarları
           </button>
+          <button class="btn ghost small" classList={{ on: inviting() }} onClick={() => setInviting(!inviting())}>
+            <I.MailPlus /> Arkadaş davet et
+          </button>
           <button class="btn danger" onClick={() => void leaveRoom()}>
             <I.PhoneOff /> Ayrıl
           </button>
         </div>
+        <Show when={inviting()}>
+          <InvitePanel room={r()!.id} />
+        </Show>
         <Show when={inputMode() === "ptt" && !settings().general.voiceRoom.key && !settings().general.voiceRoom.button}>
           <p class="vr-hint">Bas-konuş için bir tuş ya da direksiyon düğmesi ata (Ses ayarları).</p>
         </Show>
@@ -911,6 +969,23 @@ function MemberRow(props: {
               </For>
             </div>
           </Show>
+          <Show when={realAdmin() && !props.me && role() !== "owner"}>
+            <div class="vr-mem-mod">
+              <Show
+                when={isGlobalMod(u())}
+                fallback={
+                  <button class="btn small" onClick={() => void props.act(() => voiceModSet(u(), true).then(loadGlobalMods))}>
+                    <I.ShieldCheck /> Ses Odası Moderatörü yap
+                  </button>
+                }
+              >
+                <small class="muted">{t("Ses Odası Moderatörü (bütün odalarda)")}</small>
+                <button class="btn small" onClick={() => void props.act(() => voiceModSet(u(), false).then(loadGlobalMods))}>
+                  Moderatörlüğü kaldır
+                </button>
+              </Show>
+            </div>
+          </Show>
           <Show when={canManage()}>
             <div class="vr-mem-mod">
               <button
@@ -970,6 +1045,17 @@ function RoomSettings() {
       setMax(st()?.max_members ?? r().max_members);
     }
   });
+  const row = () => rooms().find((x) => x.id === r().id);
+  const meta = async (o: Parameters<typeof voiceRoomMeta>[1]) => {
+    setErr("");
+    try {
+      await voiceRoomMeta(r().id, o);
+      await refreshRooms();
+      announce();
+    } catch (e) {
+      setErr(errText(e));
+    }
+  };
   const save = async (patch: Parameters<typeof voiceRoomUpdate>[1]) => {
     setErr("");
     try {
@@ -1022,10 +1108,46 @@ function RoomSettings() {
             }}
           />
         </div>
+        <div class="row">
+          <span>Simge</span>
+          <RoomIconPicker value={row()?.icon ?? r().icon ?? ""} onChange={(v) => void meta({ icon: v })} />
+        </div>
+        <div class="row">
+          <div>
+            <span>Sadece PRO üyeler girebilsin</span>
+            <small>Yöneticiler, moderatörler ve odada yetki verdiklerin her zaman girer.</small>
+          </div>
+          <Switch checked={!!(row()?.pro_only ?? r().pro_only)} onChange={(v) => void meta({ proOnly: v })} />
+        </div>
+        <Show when={realAdmin()}>
+          <div class="row">
+            <div>
+              <span>Kategori</span>
+              <small>Kategoriye konan oda kalıcıdır (boş kalınca silinmez).</small>
+            </div>
+            <select
+              class="input"
+              value={row()?.auto_delete ? "_private" : (row()?.category_id ?? "")}
+              onChange={(e) => void meta({ category: e.currentTarget.value === "_private" ? null : e.currentTarget.value || null, setCategory: true })}
+            >
+              <option value="">{t("Topluluk odaları")}</option>
+              <For each={categories()}>
+                {(c) => (
+                  <option value={c.id} data-no-i18n>
+                    {c.name}
+                  </option>
+                )}
+              </For>
+              <Show when={row()?.auto_delete}>
+                <option value="_private">{t("Özel odalar")}</option>
+              </Show>
+            </select>
+          </div>
+        </Show>
         <Show when={err()}>
           <p class="vr-err">{err()}</p>
         </Show>
-        <Show when={r().owner === session()?.user.id}>
+        <Show when={r().owner === session()?.user.id || realAdmin()}>
           <div class="vr-form-act">
             <button
               class="btn danger small"
@@ -1048,5 +1170,233 @@ function RoomSettings() {
         </Show>
       </Show>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Yönetici: kategoriler ve Ses Odası Moderatörleri
+// ---------------------------------------------------------------------------
+
+function CategoryManager() {
+  const [name, setName] = createSignal("");
+  const [err, setErr] = createSignal("");
+  const run = async (f: () => Promise<unknown>) => {
+    setErr("");
+    try {
+      await f();
+      await refreshRooms();
+    } catch (e) {
+      setErr(errText(e));
+    }
+  };
+  const move = (i: number, d: number) =>
+    run(async () => {
+      const list = [...categories()];
+      const j = i + d;
+      if (j < 0 || j >= list.length) return;
+      [list[i], list[j]] = [list[j], list[i]];
+      await Promise.all(list.map((c, k) => (c.sort !== k ? voiceCategorySave(c.id, c.name, k) : null)));
+    });
+  return (
+    <div class="vr-cats">
+      <div class="row">
+        <div>
+          <span>Kategoriler</span>
+          <small>
+            Odaları sol menüde ve oda listesinde başlıklar altında toplar. Odayı kurarken ya da oda ayarlarından kategorisini seç. PRO üyelerin odaları her
+            zaman “Özel odalar” altında görünür.
+          </small>
+        </div>
+      </div>
+      <For each={categories()}>
+        {(c, i) => (
+          <div class="vr-cat">
+            <input
+              class="input"
+              maxLength={40}
+              value={c.name}
+              onChange={(e) => {
+                const v = e.currentTarget.value.trim();
+                if (v && v !== c.name) void run(() => voiceCategorySave(c.id, v));
+              }}
+            />
+            <button class="btn ghost small" disabled={i() === 0} title={t("Yukarı")} onClick={() => void move(i(), -1)}>
+              <I.ArrowUp />
+            </button>
+            <button class="btn ghost small" disabled={i() === categories().length - 1} title={t("Aşağı")} onClick={() => void move(i(), 1)}>
+              <I.ArrowDown />
+            </button>
+            <button
+              class="btn ghost small"
+              title={t("Kategoriyi sil")}
+              onClick={async () => {
+                if (
+                  !(await askConfirm(t("“{0}” kategorisi silinsin mi?", c.name), {
+                    danger: true,
+                    ok: t("Sil"),
+                    note: t("İçindeki odalar silinmez, “Topluluk odaları” altına geçer."),
+                  }))
+                )
+                  return;
+                void run(() => voiceCategoryDelete(c.id));
+              }}
+            >
+              <I.Trash />
+            </button>
+          </div>
+        )}
+      </For>
+      <form
+        class="vr-cat"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const v = name().trim();
+          if (!v) return;
+          void run(async () => {
+            await voiceCategorySave(null, v);
+            setName("");
+          });
+        }}
+      >
+        <input class="input" maxLength={40} placeholder={t("Yeni kategori adı")} value={name()} onInput={(e) => setName(e.currentTarget.value)} />
+        <button class="btn small" disabled={!name().trim()}>
+          <I.FolderPlus /> Kategori ekle
+        </button>
+      </form>
+      <Show when={err()}>
+        <p class="vr-err">{err()}</p>
+      </Show>
+    </div>
+  );
+}
+
+// Ses Odası Moderatörleri: bütün odalarda söz verir / alır, sırayı yönetir, odadan çıkarır
+const [globalMods, setGlobalMods] = createSignal<VoiceMod[]>([]);
+async function loadGlobalMods() {
+  if (!realAdmin()) return;
+  setGlobalMods(await voiceMods().catch(() => globalMods()));
+}
+const isGlobalMod = (u: string) => globalMods().some((m) => m.user_id === u);
+
+function VoiceModsPanel() {
+  const [q, setQ] = createSignal("");
+  const [found, setFound] = createSignal<Person[]>([]);
+  const [err, setErr] = createSignal("");
+  void loadGlobalMods();
+  let tmr = 0;
+  const search = (v: string) => {
+    setQ(v);
+    clearTimeout(tmr);
+    if (v.trim().length < 2) return setFound([]);
+    tmr = window.setTimeout(
+      () =>
+        void findPeople(v.trim())
+          .then((r) => setFound(r ?? []))
+          .catch(() => setFound([])),
+      300,
+    );
+  };
+  const set = async (id: string, on: boolean) => {
+    setErr("");
+    try {
+      await voiceModSet(id, on);
+      await loadGlobalMods();
+    } catch (e) {
+      setErr(errText(e));
+    }
+  };
+  return (
+    <div class="vr-cats">
+      <div class="row">
+        <div>
+          <span>Ses Odası Moderatörleri</span>
+          <small>Bütün odalarda söz isteyenlere söz verir, süre uzatır, sözü alır, sırayı yönetir ve odadan çıkarabilir. Odalarda her zaman konuşabilir.</small>
+        </div>
+      </div>
+      <For each={globalMods()} fallback={<small class="muted">Henüz moderatör yok.</small>}>
+        {(m) => (
+          <div class="vr-cat">
+            <span class="vr-cat-name" data-no-i18n>
+              <I.ShieldCheck /> {m.name ?? "?"}
+            </span>
+            <button class="btn ghost small" onClick={() => void set(m.user_id, false)}>
+              Kaldır
+            </button>
+          </div>
+        )}
+      </For>
+      <div class="vr-cat">
+        <input class="input" placeholder={t("Kullanıcı ara (ad ya da iRacing adı)")} value={q()} onInput={(e) => search(e.currentTarget.value)} />
+      </div>
+      <For each={found().filter((p) => !isGlobalMod(p.id))}>
+        {(p) => (
+          <div class="vr-cat">
+            <span class="vr-cat-name" data-no-i18n>
+              {p.display_name}
+              {p.iracing_name ? ` · ${p.iracing_name}` : ""}
+            </span>
+            <button class="btn small primary" onClick={() => void set(p.id, true)}>
+              <I.ShieldCheck /> Moderatör yap
+            </button>
+          </div>
+        )}
+      </For>
+      <Show when={err()}>
+        <p class="vr-err">{err()}</p>
+      </Show>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Arkadaş davet et (mesaj olarak gider; arkadaş mesajdaki "Katıl" ile girer)
+// ---------------------------------------------------------------------------
+
+function InvitePanel(props: { room: string }) {
+  const [list] = createResource(() => myFriends().catch(() => [] as Friend[]));
+  const [sent, setSent] = createSignal<Record<string, string>>({});
+  const [q, setQ] = createSignal("");
+  const inRoom = (id: string) => voice.members().some((m) => m.user_id === id);
+  const shown = () =>
+    (list() ?? [])
+      .filter((f) => f.status === "accepted" && !inRoom(f.friend_id))
+      .filter((f) => !q().trim() || f.display_name.toLocaleLowerCase("tr").includes(q().trim().toLocaleLowerCase("tr")))
+      .sort((a, b) => Number(b.online) - Number(a.online) || a.display_name.localeCompare(b.display_name));
+  const invite = async (id: string) => {
+    setSent({ ...sent(), [id]: "…" });
+    try {
+      await voiceInvite(props.room, id);
+      setSent({ ...sent(), [id]: "ok" });
+    } catch (e) {
+      setSent({ ...sent(), [id]: errText(e) });
+    }
+  };
+  return (
+    <div class="vr-invite-panel">
+      <input class="input" placeholder={t("Arkadaş ara")} value={q()} onInput={(e) => setQ(e.currentTarget.value)} />
+      <div class="vr-invite-list">
+        <For each={shown()} fallback={<small class="muted">{list.loading ? t("Yükleniyor…") : t("Davet edilecek arkadaş yok.")}</small>}>
+          {(f) => (
+            <div class="vr-invite-row">
+              <span class="vr-invite-dot" classList={{ on: f.online }} />
+              <span class="vr-cat-name" data-no-i18n>
+                {f.display_name}
+              </span>
+              <Show
+                when={!sent()[f.friend_id] || (sent()[f.friend_id] !== "ok" && sent()[f.friend_id] !== "…")}
+                fallback={<small class={sent()[f.friend_id] === "ok" ? "vr-ok" : "muted"}>{sent()[f.friend_id] === "ok" ? t("Davet gönderildi") : "…"}</small>}
+              >
+                <Show when={sent()[f.friend_id]}>
+                  <small class="sc-err">{sent()[f.friend_id]}</small>
+                </Show>
+                <button class="btn small" onClick={() => void invite(f.friend_id)}>
+                  <I.MailPlus /> Davet et
+                </button>
+              </Show>
+            </div>
+          )}
+        </For>
+      </div>
+    </div>
   );
 }

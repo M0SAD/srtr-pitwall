@@ -24,6 +24,14 @@ export interface VoiceRoomRow {
   is_mine: boolean;
   /** c117: boş kalınca 1 saat sonra silinir (yönetici olmayanların odaları) */
   auto_delete?: boolean;
+  /** c119 */
+  category_id?: string | null;
+  /** "i:<ad>" (uygulamadaki simgeler) ya da emoji; boş = türüne göre */
+  icon?: string;
+  /** Sadece PRO üyeler girebilir */
+  pro_only?: boolean;
+  /** Ben girebilir miyim (PRO'ya özel odada PRO değilsem false) */
+  can_enter?: boolean;
 }
 
 export interface VoiceJoin {
@@ -40,6 +48,8 @@ export interface VoiceJoin {
   chan: string;
   role: VoiceRole;
   invite_code: string | null;
+  icon?: string;
+  pro_only?: boolean;
 }
 
 export interface VoiceGrant {
@@ -83,8 +93,14 @@ export const voiceRoomCreate = (o: {
   talkSeconds: number;
   max: number;
   description?: string;
+  category?: string | null;
+  icon?: string;
+  proOnly?: boolean;
 }) =>
   rpc<string>("voice_room_create", {
+    p_category: o.category ?? null,
+    p_icon: o.icon ?? "",
+    p_pro_only: !!o.proOnly,
     p_name: o.name,
     p_kind: o.kind,
     p_team: o.team ?? null,
@@ -179,3 +195,35 @@ export const sfu = {
     }),
   leave: (sid: string) => callFunction("voice-sfu", { action: "leave", session_id: sid }),
 };
+
+// ---- c119: simge / PRO'ya özel / kategori, kategoriler, Ses Odası Moderatörleri, davet
+export const voiceRoomMeta = (room: string, o: { icon?: string | null; proOnly?: boolean | null; category?: string | null; setCategory?: boolean }) =>
+  rpc("voice_room_meta", {
+    p_room: room,
+    p_icon: o.icon ?? null,
+    p_pro_only: o.proOnly ?? null,
+    p_category: o.category ?? null,
+    p_set_category: !!o.setCategory,
+  });
+
+export interface VoiceCategory {
+  id: string;
+  name: string;
+  sort: number;
+}
+export const voiceCategories = () =>
+  api<VoiceCategory[]>("GET", "voice_categories?select=id,name,sort&order=sort.asc,created_at.asc", { auth: "optional" }).then((r) => r ?? []);
+export const voiceCategorySave = (id: string | null, name: string, sort?: number) =>
+  rpc<string>("voice_category_save", { p_id: id, p_name: name, p_sort: sort ?? null });
+export const voiceCategoryDelete = (id: string) => rpc("voice_category_delete", { p_id: id });
+
+export interface VoiceMod {
+  user_id: string;
+  name: string | null;
+  created_at: string;
+}
+export const voiceMods = () => rpc<VoiceMod[]>("voice_mods_list", {}).then((r) => r ?? []);
+export const voiceModSet = (user: string, on: boolean) => rpc("voice_mod_set", { p_user: user, p_on: on });
+
+/** Arkadaşı odaya davet et (mesaj olarak gider) */
+export const voiceInvite = (room: string, to: string) => rpc<string>("voice_invite", { p_room: room, p_to: to });

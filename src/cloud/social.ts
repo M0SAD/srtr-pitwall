@@ -57,7 +57,11 @@ export interface Person {
  * join / leave / kick / owner / rename. Normal mesajda yoktur.
  */
 export interface MsgMeta {
-  t: "bg" | "join" | "leave" | "kick" | "owner" | "rename";
+  t: "bg" | "join" | "leave" | "kick" | "owner" | "rename" | "voice";
+  /** voice (c119): ses odası daveti — oda kimliği, özel odada davet kodu */
+  room?: string;
+  code?: string | null;
+  pro_only?: boolean;
   /** bg: arka plan türü ("none" = kaldırıldı) */
   kind?: "solid" | "gradient" | "image" | "none";
   value?: string;
@@ -88,6 +92,7 @@ export function msgPreview(m: { body: string; meta?: MsgMeta | null }): string {
   if (x.t === "kick") return `➖ ${t("{0} gruptan çıkarıldı", x.name ?? "?")}`;
   if (x.t === "owner") return `👑 ${t("{0} artık grubun sahibi", x.name ?? "?")}`;
   if (x.t === "rename") return `✏️ ${t("Grubun adı değişti: {0}", x.name ?? "?")}`;
+  if (x.t === "voice") return `🎧 ${t("Ses odasına davet: {0}", x.name ?? "?")}`;
   return m.body;
 }
 

@@ -311,6 +311,8 @@ pub fn probe(pref: SimPref, net: udp::UdpCfg) -> Vec<String> {
         Some(s) => format!("LMU / rFactor 2: {} bulundu, {}", s.backend_name(), if s.connected() { "bağlı" } else { "oturumda değil" }),
     });
     out.push(match shm::Mapping::open("$pcars2$") {
+        None if shm::open_error("$pcars2$") == 5 => "Automobilista 2 / Project CARS: bellek var ama erişim reddedildi — oyun yönetici olarak çalışıyor. Oyunu normal başlat ya da SRTR Pitwall'ı da yönetici olarak aç".into(),
+        None if shm::any_running(&["ams2avx.exe", "ams2.exe", "pcars2avx.exe", "pcars2.exe"]) && !shm::process_names().is_empty() => "Automobilista 2 / Project CARS: oyun açık ama bellek yok. Oyunda Seçenekler › Sistem › Paylaşımlı Bellek (Shared Memory) = \"Project CARS 2\" seçili olmalı; ayarı değiştirdikten sonra oyunu tamamen kapatıp yeniden aç".into(),
         None => "Automobilista 2 / Project CARS: bellek yok. Oyunda Seçenekler › Sistem › Paylaşımlı Bellek (Shared Memory) = \"Project CARS 2\" seçili olmalı, sonra oyunu yeniden başlat".into(),
         Some(m) => {
             let gs = m.u32_at(ams2::o::GAME_STATE);

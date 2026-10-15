@@ -734,3 +734,158 @@
 .vr-group-note {
   margin: -4px 0 10px;
 }
+
+/* Oda simgesi ve seçici (components/RoomIcon.tsx) */
+.room-emoji {
+  font-size: 15px;
+  line-height: 1;
+}
+.ricp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 420px;
+  align-items: center;
+}
+.ricp-b {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg-3);
+  color: var(--text);
+  cursor: pointer;
+}
+.ricp-b svg {
+  width: 16px;
+  height: 16px;
+}
+.ricp-b.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+}
+.ricp-emoji {
+  width: 64px;
+  text-align: center;
+}
+.vr-pro {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ff8a2a, #ffb35c);
+  color: #1a1206;
+  flex: none;
+}
+.subnav .vrn button.vrn-room.dim { opacity: 0.55; }
+
+/* Yönetici: kategoriler, moderatörler; davet paneli */
+.vr-cats {
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+  padding-top: 6px;
+}
+.vr-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+.vr-cat .input {
+  flex: 1;
+  max-width: 340px;
+}
+.vr-cat-name {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vr-cat-name svg {
+  width: 14px;
+  height: 14px;
+  color: #7cc4ff;
+}
+.vr-invite-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 9px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vr-invite-list {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vr-invite-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 7px;
+}
+.vr-invite-row:hover {
+  background: var(--bg-2);
+}
+.vr-invite-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.5;
+  flex: none;
+}
+.vr-invite-dot.on {
+  background: var(--green);
+  opacity: 1;
+}
+.vr-ok {
+  color: var(--green);
+}
+
+/* Sohbette ses odası daveti (components/VoiceInviteCard.tsx) */
+.vinv {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 380px;
+  margin: 4px auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--green, #33d17a) 10%, rgba(0, 0, 0, 0.25));
+  border: 1px solid color-mix(in srgb, var(--green, #33d17a) 40%, transparent);
+}
+.vinv-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--green, #33d17a) 25%, transparent);
+  color: var(--green, #33d17a);
+  flex: none;
+}
+.vinv-ic svg {
+  width: 18px;
+  height: 18px;
+}
+.vinv-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}

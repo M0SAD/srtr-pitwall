@@ -1,6 +1,6 @@
 //! Windows: adlandırılmış paylaşımlı belleği salt okunur açma ve süreç listesi.
 
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE};
+use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
@@ -113,6 +113,19 @@ pub fn process_names() -> Vec<String> {
 }
 
 /// Listelenen exe'lerden biri çalışıyor mu? Süreç listesi okunamazsa true (güvenli taraf).
+/// Paylaşımlı bellek neden açılamıyor: 0 = açılabiliyor, 2 = yok, 5 = erişim reddedildi (oyun yönetici olarak
+/// çalışıyor, uygulama değil)
+pub fn open_error(name: &str) -> u32 {
+    unsafe {
+        let map = OpenFileMappingW(FILE_MAP_READ, 0, wide(name).as_ptr());
+        if map.is_null() {
+            return GetLastError();
+        }
+        CloseHandle(map);
+        0
+    }
+}
+
 pub fn any_running(names: &[&str]) -> bool {
     let list = process_names();
     list.is_empty() || list.iter().any(|p| names.iter().any(|n| p == n))

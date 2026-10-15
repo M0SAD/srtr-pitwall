@@ -6,7 +6,8 @@ import { t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import type { VoiceRoomRow } from "@/cloud/voiceRooms";
 import { joinRoom, voice } from "@/voice/engine";
-import { communityRooms, privateRooms, watchRooms } from "@/voice/roomsStore";
+import { roomSections, watchRooms } from "@/voice/roomsStore";
+import { RoomIcon } from "./RoomIcon";
 import { go, sub } from "../ui";
 import * as I from "../icons";
 import "../voicerooms.css";
@@ -16,17 +17,24 @@ function RoomItem(props: { r: VoiceRoomRow }) {
   return (
     <button
       class="vrn-room"
-      classList={{ active: here() && sub() !== "settings", here: here() }}
+      classList={{ active: here() && sub() !== "settings", here: here(), dim: props.r.can_enter === false }}
       title={props.r.description || props.r.name}
       onClick={() => {
         go("voicerooms", "rooms");
         if (!here()) void joinRoom(props.r.id, null);
       }}
     >
-      <span class="vrn-ic">{props.r.kind === "private" ? <I.Lock /> : props.r.kind === "team" ? <I.Users /> : <I.AudioLines />}</span>
+      <span class="vrn-ic">
+        <RoomIcon icon={props.r.icon} kind={props.r.kind} />
+      </span>
       <span class="vrn-name" data-no-i18n>
         {props.r.name}
       </span>
+      <Show when={props.r.pro_only}>
+        <span class="vr-pro" title={t("Sadece PRO üyeler girebilir")}>
+          PRO
+        </span>
+      </Show>
       <Show when={props.r.mode === "moderated"}>
         <span class="vrn-hand" title={t("Söz hakkıyla: konuşmak için söz iste")}>
           <I.Hand />
@@ -51,13 +59,15 @@ export function VoiceRoomsNav() {
       </button>
       <Show when={session()}>
         <div class="vrn-scroll">
-          <div class="vrn-head">Topluluk odaları</div>
-          <For each={communityRooms()} fallback={<small class="vrn-empty">Henüz oda yok</small>}>
-            {(r) => <RoomItem r={r} />}
-          </For>
-          <div class="vrn-head">Özel odalar</div>
-          <For each={privateRooms()} fallback={<small class="vrn-empty">Şu an özel oda yok</small>}>
-            {(r) => <RoomItem r={r} />}
+          <For each={roomSections().filter((sec) => sec.rooms.length || sec.id === "_private")}>
+            {(sec) => (
+              <>
+                <div class="vrn-head">{sec.fixed ? t(sec.title) : <span data-no-i18n>{sec.title}</span>}</div>
+                <For each={sec.rooms} fallback={<small class="vrn-empty">{sec.id === "_private" ? t("Şu an özel oda yok") : t("Henüz oda yok")}</small>}>
+                  {(r) => <RoomItem r={r} />}
+                </For>
+              </>
+            )}
           </For>
         </div>
       </Show>

@@ -920,6 +920,13 @@ if (inTauri) {
     }
   });
   void listen(VOICE_OVERLAY_REQ, () => pushOverlay(true));
+  // Sohbetteki davet kartından "Katıl" (Arkadaşlar penceresinden de gelir)
+  void listen<{ room: string; code: string | null }>("voiceroom-join", (e) => {
+    const p = e.payload;
+    if (!p?.room) return;
+    void import("@/app/ui").then((m) => m.go("voicerooms", "rooms"));
+    if (room()?.id !== p.room) void joinRoom(p.room, p.code);
+  });
 }
 
 // Pencere kapanırken (uygulama çıkışı) odadan düzgün çık

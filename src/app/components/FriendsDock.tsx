@@ -76,6 +76,7 @@ import { useReactions } from "@/cloud/reactions";
 import { dmRoom, statusChannel, usePings } from "@/cloud/pings";
 import { useSeen } from "../chatSeen";
 import { LinkA, LinkPreview, splitLinks } from "./LinkPreview";
+import { VoiceInviteCard } from "./VoiceInviteCard";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
 import { deleteGroup, leaveGroup, muteGroup, myGroupInvites, myGroups, onGroupChat, respondGroupInvite, type GroupInvite, type GroupMessage, type MyGroup } from "@/cloud/groups";
 import { clearRoomBg } from "@/cloud/chatBg";
@@ -2327,6 +2328,10 @@ function Chat(props: {
               "day" in r ? (
                 <div class="fday">
                   <span>{r.day}</span>
+                </div>
+              ) : r.m.meta?.t === "voice" ? (
+                <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)}>
+                  <VoiceInviteCard meta={r.m.meta} mine={r.m.sender === me()} who={props.f.display_name || "?"} />
                 </div>
               ) : r.m.meta?.t === "bg" ? (
                 <div class="fsys-wrap" onContextMenu={(e) => openCtx(e, r.m)} onClick={(e) => clickCtx(e, r.m)}>

@@ -3,6 +3,17 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-335
+
+Supabase'de `c119_guncelleme.sql` çalıştırılmalı.
+
+- Ses odası **kategorileri**: yönetici Odalar sayfasındaki yönetici bölümünden kategori ekler, adını değiştirir, sırasını değiştirir (yukarı / aşağı), siler (içindeki odalar silinmez, "Topluluk odaları"na geçer). Sol menüde ve oda listesinde odalar kategorilerin altında görünür; kategorisiz yönetici odaları "Topluluk odaları", PRO üyelerin odaları her zaman "Özel odalar" altında. Kategoriye konan oda kalıcıdır.
+- **Oda simgesi**: oda kurarken ve oda ayarlarında 26 simgeden biri ya da bir emoji. Menüde ve listede odanın yanında görünür.
+- **Sadece PRO üyeler girebilir** seçeneği (oda kurarken ve oda ayarlarında). Listede PRO rozeti; PRO olmayanlar için "Gir" kapalı. Yöneticiler, moderatörler ve odada yetki verilenler her zaman girer.
+- **Ses Odası Moderatörü**: yönetici, istediği üyeyi bütün odalarda moderatör yapar (yönetici bölümünden kullanıcı arayarak ya da odadakiler listesinde kişiye tıklayıp). Moderatör söz isteyenlere söz verir, süre uzatır, sözü alır, sırayı yönetir, odadan çıkarabilir ve her zaman konuşur. Site yöneticileri de her odada yöneticidir.
+- **Arkadaşını odaya davet et**: odadayken "Arkadaş davet et" → arkadaş listesi (çevrimiçiler üstte) → "Davet et". Davet arkadaşına mesaj olarak gider; sohbette "Katıl" düğmeli bir kart çıkar (Arkadaşlar penceresinden de çalışır, panel öne gelip odaya girer). Özel odada davet kodu da eklenir.
+- AMS2: Ayarlar › Genel › "Algılama durumunu göster" artık oyunun yönetici olarak çalıştığını (bellek erişimi reddedildi) ve oyunun açık olduğu hâlde belleğin olmadığını (Paylaşımlı Bellek ayarı) ayrı ayrı yazar.
+
 ## 151026-334
 
 - Ses Odaları sol menüsü (Discord gibi): en üstte sabit **Ses ayarları** (çark simgesi) ve **Tüm odalar**; altında **Topluluk odaları** (yöneticilerin kurduğu, boş kalsa da hiç silinmeyen odalar) ve **Özel odalar** (PRO üyelerin kurduğu, içinde kimse kalmadıktan 1 saat sonra silinen odalar). Odaya tıklayınca girilir; içinde olduğun oda vurgulanır, odadaki kişi sayısı yanında yazar. Liste 15 sn'de bir yenilenir.
