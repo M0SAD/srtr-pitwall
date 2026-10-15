@@ -126,6 +126,9 @@ body {
   top: 2px;
   right: 1px;
 }
+.rail-count.voice {
+  background: #2fb36d;
+}
 .sub-count {
   float: right;
   min-width: 18px;

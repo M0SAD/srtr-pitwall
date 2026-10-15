@@ -3,6 +3,19 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-340
+
+Supabase'de `c121_guncelleme.sql` çalıştırılmalı.
+
+- Ses odalarına yazılı sohbet: odadayken sağdaki "Sohbet" panelinde odanın mesajları. Bağlantılar tıklanabilir ve önizlenir, Enter gönderir (Shift+Enter yeni satır). Mesajları yalnızca o an odada olanlar görür; 7 gün saklanır, oda silinince mesajları da silinir. Kendi mesajını, oda sahibi / yönetici / moderatör herkesin mesajını silebilir. Panel kapalıyken gelen mesajlar sohbet düğmesinde sayı olarak görünür. Sadece yazı gider, veri kullanımı yok denecek kadar az.
+- Ses odaları Discord'a benzer düzende: odadayken ortada kişi kutuları (konuşanın çerçevesi yeşil yanar, söz süresi kutunun köşesinde), altta yuvarlak mikrofon / ses / ayarlar / ayrıl düğmeleri, üstte oda adı ve açıklaması, sağda açılır panel (Sohbet, Söz sırası, Arkadaş davet et, Oda ayarları). Kişi kutusuna tıklayınca kişi kartı açılır (arkadaş ekle, ses seviyesi, benim için sustur, söz ver, yetki, çıkar / uzaklaştır).
+- Sol menü: bölüm başlıkları tıklayınca katlanır (katlıyken bulunduğun oda görünmeye devam eder), başlığın yanındaki + ile o bölüme oda kurulur, her odanın altında içindeki kişiler listelenir (bulunduğun odada konuşanın simgesi yeşil halkalı). En altta ses bağlantısı (oda adı, ayrıl) ve kendi mikrofon / ses / ayarlar düğmelerin.
+- "Tüm odalar" sayfası kartlarla: her odada kimlerin olduğu küçük fotoğraflarla görünür; yönetim ayarları katlanabilir bölümde.
+
+## 151026-339
+
+- Sol menüdeki Ses Odaları simgesinin üstünde, ses odalarında o an toplam kaç kişi olduğu yeşil rozetle gösterilir (kimse yoksa rozet görünmez). Sayı uygulama açıkken arka planda 45 saniyede bir (Ses Odaları açıkken 15 saniyede bir) kendiliğinden güncellenir.
+
 ## 151026-338
 
 - Yakındakiler (Relative) overlayında renk özelleştirme: overlay ayarlarında yeni "Renkler" bölümü. "Renkleri özelleştir" açılınca yazı, soluk yazı, senin satırının arka planı / yoğunluğu / yazısı, seni turlayan, turladığın, fark (saniye), kişisel en iyi tur, pit etiketi, sürücü satırı arka planı ve ayırıcı çizgi renkleri tek tek seçilebilir. Kapalıyken temanın renkleri kullanılır.

@@ -1,7 +1,9 @@
 // Ses odaları (c116): oda bilgisi, yetkiler ve söz hakkı (RPC). Ses Cloudflare Realtime SFU üzerinden akar
 // (Edge Function "voice-sfu" aracılık eder; bkz. src/voice/engine.ts). Hiçbir konuşma kaydedilmez.
 
+import type { RealtimeChannel } from "@supabase/realtime-js";
 import { api, callFunction } from "./supabase";
+import { realtime } from "./social";
 
 export type VoiceKind = "public" | "private" | "team";
 export type VoiceMode = "open" | "moderated";
@@ -227,3 +229,43 @@ export const voiceModSet = (user: string, on: boolean) => rpc("voice_mod_set", {
 
 /** Arkadaşı odaya davet et (mesaj olarak gider) */
 export const voiceInvite = (room: string, to: string) => rpc<string>("voice_invite", { p_room: room, p_to: to });
+
+// ---- c121: oda sohbeti (yalnızca odadakiler okur; 7 gün saklanır) ve odalardaki kişiler (sol menü)
+export interface VoiceMsg {
+  id: string;
+  room_id: string;
+  sender: string | null;
+  sender_name?: string | null;
+  avatar_path?: string | null;
+  body: string;
+  deleted: boolean;
+  created_at: string;
+}
+export const voiceChat = (room: string, before?: string) =>
+  rpc<VoiceMsg[]>("voice_chat", { p_room: room, p_before: before ?? null, p_limit: 80 }).then((r) => r ?? []);
+export const voiceChatSend = (room: string, body: string) => rpc<string>("voice_chat_send", { p_room: room, p_body: body });
+export const voiceChatDelete = (id: string) => rpc("voice_chat_delete", { p_id: id });
+
+/** Odanın yeni mesajları ve silinmeleri (Realtime; okuma kuralı: odada olmak) */
+export async function onVoiceChat(room: string, cb: (m: VoiceMsg, kind: "insert" | "update") => void): Promise<() => void> {
+  const c = await realtime();
+  if (!c) return () => {};
+  const filter = `room_id=eq.${room}`;
+  const ch: RealtimeChannel = c
+    .channel(`vchat-${room}-${Math.random().toString(36).slice(2, 7)}`)
+    .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "voice_messages", filter }, (p: any) => cb(p.new as VoiceMsg, "insert"))
+    .on("postgres_changes" as any, { event: "UPDATE", schema: "public", table: "voice_messages", filter }, (p: any) => cb(p.new as VoiceMsg, "update"))
+    .subscribe();
+  return () => {
+    c.removeChannel(ch);
+  };
+}
+
+export interface VoicePerson {
+  room_id: string;
+  user_id: string;
+  name: string | null;
+  avatar_path: string | null;
+}
+/** Listede görünen odalarda şu an kimler var (sunucu eskiyse boş) */
+export const voiceRoomsPeople = () => rpc<VoicePerson[]>("voice_rooms_people", {}).then((r) => r ?? []);

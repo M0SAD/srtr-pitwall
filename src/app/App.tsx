@@ -38,6 +38,7 @@ import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
 import { VoiceDock } from "./components/VoiceDock";
 import { VoiceRoomsNav } from "./components/VoiceRoomsNav";
+import { roomsTotal, watchRoomsBackground } from "@/voice/roomsStore";
 
 // Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
 // (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)
@@ -172,6 +173,11 @@ function RailButton(p: { item: NavItem }) {
       <Show when={p.item.badge}>
         <i class="rail-badge">{p.item.badge!()}</i>
       </Show>
+      <Show when={p.item.id === "voicerooms" && roomsTotal() > 0}>
+        <i class="rail-count voice" data-no-i18n title={t("Ses odalarında {0} kişi var", String(roomsTotal()))}>
+          {badgeText(roomsTotal())}
+        </i>
+      </Show>
       <Show when={p.item.id === "admin" && adminBadgeTotal() > 0}>
         <i class="rail-count" data-no-i18n>{badgeText(adminBadgeTotal())}</i>
       </Show>
@@ -200,6 +206,10 @@ export function App() {
   // Monitör boyutları ayarlara yazılır: OBS sayfası bağlı yayın düzenlerini buna göre oranlar
   void loadMonitors();
   createEffect(syncScreens);
+  createEffect(() => {
+    if (!session()) return;
+    onCleanup(watchRoomsBackground());
+  });
 
   onMount(async () => {
     // Bildirimler 10 dakikada bir yenilenir

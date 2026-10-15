@@ -6,12 +6,17 @@
 import { createSignal } from "solid-js";
 import { session } from "@/cloud/supabase";
 import { config } from "@/cloud/account";
-import { voiceCategories, voiceRooms, type VoiceCategory, type VoiceRoomRow } from "@/cloud/voiceRooms";
+import { voiceCategories, voiceRooms, voiceRoomsPeople, type VoiceCategory, type VoicePerson, type VoiceRoomRow } from "@/cloud/voiceRooms";
+import { noteAvatars } from "@/cloud/profile";
 
 const [rooms, setRooms] = createSignal<VoiceRoomRow[]>([]);
 const [categories, setCategories] = createSignal<VoiceCategory[]>([]);
 const [roomsErr, setRoomsErr] = createSignal("");
+const [people, setPeople] = createSignal<VoicePerson[]>([]);
 export { rooms, categories, roomsErr };
+
+/** Odadaki kişiler (sol menüde odanın altında; c121, sunucu eskiyse boş) */
+export const peopleIn = (room: string) => people().filter((p) => p.room_id === room);
 
 export interface RoomSection {
   /** kategori kimliği; "_community" | "_private" */
@@ -49,9 +54,11 @@ export async function refreshRooms() {
   if (busy || !session()) return;
   busy = true;
   try {
-    const [r, c] = await Promise.all([voiceRooms(), voiceCategories().catch(() => categories())]);
+    const [r, c, p] = await Promise.all([voiceRooms(), voiceCategories().catch(() => categories()), voiceRoomsPeople().catch(() => [] as VoicePerson[])]);
     setRooms(r);
     setCategories(c);
+    setPeople(p);
+    if (p.length) noteAvatars(p.map((x) => ({ id: x.user_id, avatar_path: x.avatar_path })));
     setRoomsErr("");
   } catch (e) {
     setRoomsErr(String((e as Error)?.message ?? e));
@@ -77,3 +84,28 @@ export function watchRooms(): () => void {
     }
   };
 }
+
+/** Ses odalarındaki toplam kişi (sol menüdeki simgenin rozeti) */
+export const roomsTotal = () => rooms().reduce((n, r) => n + (r.members || 0), 0);
+
+// Liste açık değilken de rozet güncel kalsın: oturum açıkken 45 sn'de bir (gizli pencerede yenilenmez),
+// pencereye dönünce hemen yenilenir. Liste açıkken watchRooms zaten 15 sn'de bir yeniler.
+let bg = 0;
+export function watchRoomsBackground(): () => void {
+  if (bg) return () => {};
+  const tick = () => {
+    if (!users && !document.hidden) void refreshRooms();
+  };
+  tick();
+  bg = window.setInterval(tick, 45_000);
+  const onVis = () => !document.hidden && tick();
+  document.addEventListener("visibilitychange", onVis);
+  return () => {
+    clearInterval(bg);
+    bg = 0;
+    document.removeEventListener("visibilitychange", onVis);
+  };
+}
+
+/** "Oda kur" formu açık mı (sol menüdeki + ile de açılır); cat: önceden seçilecek kategori */
+export const [createOpen, setCreateOpen] = createSignal<{ cat: string } | null>(null);
