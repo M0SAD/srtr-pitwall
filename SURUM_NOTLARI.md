@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-332
+
+- Site: Özellikler sayfasındaki "Ses odaları" kartı güncellendi (herkes ücretsiz girer, oda kurmak PRO; yapay zekâ gürültü engelleme, algılama eşiği, mikrofon / ses kapatma tuşları, Ses Odası overlay'i). Fiyatlandırma listelerine "Ses odalarına katılma" (ücretsiz) ve "Ses odası kurma" (PRO) eklendi. 14 dilde.
+
 ## 151026-331
 
 - Ses odası kurma izni (sunucuda denetlenir; Supabase'de `c117_guncelleme.sql` çalıştırılmalı):
