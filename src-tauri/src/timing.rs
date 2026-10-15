@@ -181,7 +181,10 @@ impl Timing {
     /// Sektör düzeni: sim numarası > oturum bilgisindeki sınırlar > üç eşit parça
     fn layout(&mut self, f: &Frame, s: &SessionData) {
         let me = f.player_idx;
-        let token = !self.token_dead && me >= 0 && (me as usize) < MAX_CARS && f.cars[me as usize].sector != 0;
+        let token = !self.token_dead
+            && me >= 0
+            && (me as usize) < MAX_CARS
+            && f.cars[me as usize].sector != 0;
         if token {
             if !self.token_mode {
                 self.token_mode = true;
@@ -199,7 +202,11 @@ impl Timing {
         self.token_mode = false;
         let mut b: Vec<f32> = Vec::new();
         for &x in s.sector_starts.iter() {
-            if x > 0.005 && x < 0.995 && b.last().map(|l| x > *l + 0.005).unwrap_or(true) && b.len() < MAX_SECTORS - 1 {
+            if x > 0.005
+                && x < 0.995
+                && b.last().map(|l| x > *l + 0.005).unwrap_or(true)
+                && b.len() < MAX_SECTORS - 1
+            {
                 b.push(x);
             }
         }
@@ -233,8 +240,18 @@ impl Timing {
                 continue;
             }
             let is_me = i as i32 == f.player_idx;
-            let lb = if c.best > 1.0 { c.best as f64 } else if c.last > 1.0 { c.last as f64 } else { ref_lap };
-            let ll = if c.last > 1.0 { c.last as f64 } else { lb * 1.004 };
+            let lb = if c.best > 1.0 {
+                c.best as f64
+            } else if c.last > 1.0 {
+                c.last as f64
+            } else {
+                ref_lap
+            };
+            let ll = if c.last > 1.0 {
+                c.last as f64
+            } else {
+                lb * 1.004
+            };
             let ct = &mut self.cars[i];
             let t0 = now - c.pct as f64 * lb;
             // Çizgi geçişleri
@@ -253,8 +270,12 @@ impl Timing {
                 t -= lt;
             }
             // Sektörler
-            ct.best = (0..n).map(|j| (lb * w[j] * (1.0 - 0.003 * (((i * 7 + j * 3) % 5) as f64) / 4.0)) as f32).collect();
-            ct.last = (0..n).map(|j| (ll * w[j] * (1.0 + 0.004 * ((i as f64) + (j as f64) * 2.1).sin())) as f32).collect();
+            ct.best = (0..n)
+                .map(|j| (lb * w[j] * (1.0 - 0.003 * (((i * 7 + j * 3) % 5) as f64) / 4.0)) as f32)
+                .collect();
+            ct.last = (0..n)
+                .map(|j| (ll * w[j] * (1.0 + 0.004 * ((i as f64) + (j as f64) * 2.1).sin())) as f32)
+                .collect();
             ct.best_prev = ct.best.clone();
             ct.seen = true;
             ct.lapc = c.lap_completed;
@@ -266,7 +287,8 @@ impl Timing {
             ct.sec_start = t0;
             for j in 0..n.saturating_sub(1) {
                 if c.pct >= self.bounds[j] && self.bounds[j] > 0.0 {
-                    let st = lb * w[j] * (1.0 + 0.004 * ((i as f64) * 0.7 + (j as f64) * 1.3).sin());
+                    let st =
+                        lb * w[j] * (1.0 + 0.004 * ((i as f64) * 0.7 + (j as f64) * 1.3).sin());
                     ct.cur.push(st as f32);
                     ct.sec_start += st;
                 }
@@ -373,7 +395,10 @@ impl Timing {
                 if token_mode {
                     if c.sector != 0 && ct.token != 0 && c.sector != ct.token {
                         // Tur dönüşündeki numara değişimi sınır değildir (tur sayacı ayrıca işlenir)
-                        if c.pct < 0.985 && now - ct.lap_start > 1.0 && ct.cur.len() + 1 < MAX_SECTORS {
+                        if c.pct < 0.985
+                            && now - ct.lap_start > 1.0
+                            && ct.cur.len() + 1 < MAX_SECTORS
+                        {
                             let j = ct.cur.len();
                             ct.push_sector(now, off);
                             if is_me {
@@ -387,7 +412,8 @@ impl Timing {
                 } else if ct.cur.len() + 1 < n {
                     let b = bounds[ct.cur.len()];
                     if c.pct >= b && ct.last_pct < b && c.pct - ct.last_pct < 0.5 {
-                        let fr = ((b - ct.last_pct) / (c.pct - ct.last_pct).max(1e-6)).clamp(0.0, 1.0) as f64;
+                        let fr = ((b - ct.last_pct) / (c.pct - ct.last_pct).max(1e-6))
+                            .clamp(0.0, 1.0) as f64;
                         ct.push_sector(prev + fr * (now - prev), off);
                     }
                 }
@@ -436,7 +462,12 @@ impl Timing {
         let me = me as usize;
         let ct = &self.cars[me];
         let pct = f.lap_dist_pct;
-        out.sector = out.bounds.iter().filter(|b| **b > 0.0 && pct >= **b).count().min(n - 1);
+        out.sector = out
+            .bounds
+            .iter()
+            .filter(|b| **b > 0.0 && pct >= **b)
+            .count()
+            .min(n - 1);
         if ct.full {
             out.current = ct.cur.iter().copied().take(n).collect();
             out.sector = out.current.len().min(n - 1);
@@ -472,7 +503,11 @@ impl Timing {
 
     pub fn gaps(&self, f: &Frame, s: &SessionData) -> Gaps {
         let race = s.is_race(f.session_num);
-        let mut out = Gaps { race, lap: f.lap_completed, ..Default::default() };
+        let mut out = Gaps {
+            race,
+            lap: f.lap_completed,
+            ..Default::default()
+        };
         let me = f.player_idx;
         if me < 0 || me as usize >= MAX_CARS || self.cars.len() != MAX_CARS {
             return out;
@@ -527,18 +562,30 @@ impl Timing {
                 .iter()
                 .map(|&(lap, t)| {
                     if race {
-                        ct.cross.iter().find(|x| x.0 == lap).map(|x| (t - x.1) as f32)
+                        ct.cross
+                            .iter()
+                            .find(|x| x.0 == lap)
+                            .map(|x| (t - x.1) as f32)
                     } else {
                         // Yarış dışı: pistte en yakın geçiş
                         ct.cross
                             .iter()
                             .map(|x| (t - x.1) as f32)
-                            .min_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap_or(std::cmp::Ordering::Equal))
+                            .min_by(|a, b| {
+                                a.abs()
+                                    .partial_cmp(&b.abs())
+                                    .unwrap_or(std::cmp::Ordering::Equal)
+                            })
                             .filter(|d| d.abs() < lap_t * 0.5)
                     }
                 })
                 .collect();
-            out.cars.push(GapCar { idx: i as i32, live, hist, pits: pit_idx(&ct.pits) });
+            out.cars.push(GapCar {
+                idx: i as i32,
+                live,
+                hist,
+                pits: pit_idx(&ct.pits),
+            });
         }
         out
     }
@@ -550,11 +597,27 @@ mod tests {
     use crate::model::{Driver, SessionEntry};
 
     fn session() -> SessionData {
-        let mut s = SessionData { track_name: "T".into(), player_idx: 0, drivers: vec![None; MAX_CARS], ..Default::default() };
+        let mut s = SessionData {
+            track_name: "T".into(),
+            player_idx: 0,
+            drivers: vec![None; MAX_CARS],
+            ..Default::default()
+        };
         for i in 0..2 {
-            s.drivers[i] = Some(Driver { car_idx: i as i32, car_number: format!("{}", i + 1), class_id: 1, ..Default::default() });
+            s.drivers[i] = Some(Driver {
+                car_idx: i as i32,
+                car_number: format!("{}", i + 1),
+                class_id: 1,
+                ..Default::default()
+            });
         }
-        s.sessions = vec![SessionEntry { num: 0, kind: "Race".into(), laps: None, time: None, ..Default::default() }];
+        s.sessions = vec![SessionEntry {
+            num: 0,
+            kind: "Race".into(),
+            laps: None,
+            time: None,
+            ..Default::default()
+        }];
         s.sector_starts = vec![0.0, 0.25, 0.5];
         s
     }

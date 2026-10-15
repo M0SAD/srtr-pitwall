@@ -80,7 +80,9 @@ pub fn valid_id(id: &str) -> bool {
         && id.len() <= 64
         && !id.starts_with('.')
         && !id.starts_with('_')
-        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
         && !id.ends_with(".tmp")
         && !id.ends_with(".old")
 }
@@ -96,7 +98,16 @@ struct Progress<'a> {
 }
 
 fn emit(app: &AppHandle, id: &str, received: u64, total: u64, stage: &str, error: Option<String>) {
-    let _ = app.emit("voicepack-progress", Progress { id, received, total, stage, error });
+    let _ = app.emit(
+        "voicepack-progress",
+        Progress {
+            id,
+            received,
+            total,
+            stage,
+            error,
+        },
+    );
 }
 
 fn client() -> Result<reqwest::Client, String> {
@@ -161,7 +172,11 @@ async fn download(
     file.flush().map_err(io_err)?;
     drop(file);
     emit(app, id, received, total.max(received), "download", None);
-    let sha = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let sha = hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
     Ok((received, sha))
 }
 
@@ -184,7 +199,10 @@ pub struct ZipScan {
 }
 
 fn ext_of(p: &Path) -> String {
-    p.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase()
+    p.extension()
+        .and_then(|x| x.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase()
 }
 
 fn is_junk(p: &Path) -> bool {
@@ -216,8 +234,15 @@ pub fn scan_zip(path: &Path) -> Result<ZipScan, String> {
             continue;
         }
         unpacked += e.size();
-        let comps: Vec<String> = p.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
-        if comps.last().map(|s| s.eq_ignore_ascii_case("pack.json")).unwrap_or(false) {
+        let comps: Vec<String> = p
+            .components()
+            .map(|c| c.as_os_str().to_string_lossy().into_owned())
+            .collect();
+        if comps
+            .last()
+            .map(|s| s.eq_ignore_ascii_case("pack.json"))
+            .unwrap_or(false)
+        {
             let pre = match comps.len() {
                 1 => Some(String::new()),
                 2 => Some(format!("{}/", comps[0])),
@@ -243,14 +268,22 @@ pub fn scan_zip(path: &Path) -> Result<ZipScan, String> {
             z.by_index_raw(i)
                 .ok()
                 .and_then(|e| e.enclosed_name())
-                .map(|p| p.to_string_lossy().replace('\\', "/").eq_ignore_ascii_case(&name))
+                .map(|p| {
+                    p.to_string_lossy()
+                        .replace('\\', "/")
+                        .eq_ignore_ascii_case(&name)
+                })
                 .unwrap_or(false)
         });
         if let Some(i) = idx {
             let mut e = z.by_index(i).map_err(|e| e.to_string())?;
             let mut s = String::new();
-            e.by_ref().take(64 * 1024).read_to_string(&mut s).map_err(|_| "pack.json okunamadı".to_string())?;
-            meta = serde_json::from_str(s.trim_start_matches('\u{feff}')).map_err(|_| "pack.json geçersiz".to_string())?;
+            e.by_ref()
+                .take(64 * 1024)
+                .read_to_string(&mut s)
+                .map_err(|_| "pack.json okunamadı".to_string())?;
+            meta = serde_json::from_str(s.trim_start_matches('\u{feff}'))
+                .map_err(|_| "pack.json geçersiz".to_string())?;
         }
     }
     let mut phrases = std::collections::HashSet::new();
@@ -264,7 +297,11 @@ pub fn scan_zip(path: &Path) -> Result<ZipScan, String> {
             continue;
         }
         if ext == "wav" || ext == "ogg" {
-            let rel = if prefix.is_empty() { p.as_path() } else { p.strip_prefix(&pre_path).unwrap_or(p) };
+            let rel = if prefix.is_empty() {
+                p.as_path()
+            } else {
+                p.strip_prefix(&pre_path).unwrap_or(p)
+            };
             // kategori/ifade/dosya
             if rel.components().count() == 3 {
                 files += 1;
@@ -289,11 +326,26 @@ pub fn scan_zip(path: &Path) -> Result<ZipScan, String> {
     } else {
         "wav"
     };
-    Ok(ZipScan { prefix, meta, phrases: phrases.len(), files, unpacked, skipped, format: format.into() })
+    Ok(ZipScan {
+        prefix,
+        meta,
+        phrases: phrases.len(),
+        files,
+        unpacked,
+        skipped,
+        format: format.into(),
+    })
 }
 
 /// Zip'i `dest` klasörüne aç (sadece `prefix` altındakiler, izin verilen uzantılar). Paket kökünü döner.
-fn extract(app: &AppHandle, id: &str, zip_path: &Path, scan: &ZipScan, dest: &Path, cancel: &AtomicBool) -> Result<PathBuf, String> {
+fn extract(
+    app: &AppHandle,
+    id: &str,
+    zip_path: &Path,
+    scan: &ZipScan,
+    dest: &Path,
+    cancel: &AtomicBool,
+) -> Result<PathBuf, String> {
     let f = std::fs::File::open(zip_path).map_err(io_err)?;
     let mut z = zip::ZipArchive::new(f).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(dest).map_err(io_err)?;
@@ -335,7 +387,9 @@ fn extract(app: &AppHandle, id: &str, zip_path: &Path, scan: &ZipScan, dest: &Pa
         let mut w = std::fs::File::create(&out).map_err(io_err)?;
         let mut written = 0u64;
         loop {
-            let n = e.read(&mut buf).map_err(|e| format!("Zip açılamadı: {e}"))?;
+            let n = e
+                .read(&mut buf)
+                .map_err(|e| format!("Zip açılamadı: {e}"))?;
             if n == 0 {
                 break;
             }
@@ -351,7 +405,8 @@ fn extract(app: &AppHandle, id: &str, zip_path: &Path, scan: &ZipScan, dest: &Pa
             emit(app, id, done.min(total), total, "extract", None);
         }
     }
-    voicepack::find_root(dest).ok_or_else(|| "Paket düzeni bulunamadı (spotter, numbers… klasörleri yok)".to_string())
+    voicepack::find_root(dest)
+        .ok_or_else(|| "Paket düzeni bulunamadı (spotter, numbers… klasörleri yok)".to_string())
 }
 
 /// Windows'ta çalınan bir dosya klasörü kısa süre kilitleyebilir: birkaç kez dene
@@ -367,7 +422,13 @@ fn rename_retry(from: &Path, to: &Path) -> std::io::Result<()> {
     Err(last.unwrap())
 }
 
-fn install_blocking(app: &AppHandle, id: &str, zip_path: &Path, base: &Path, cancel: &AtomicBool) -> Result<InstalledPack, String> {
+fn install_blocking(
+    app: &AppHandle,
+    id: &str,
+    zip_path: &Path,
+    base: &Path,
+    cancel: &AtomicBool,
+) -> Result<InstalledPack, String> {
     emit(app, id, 0, 0, "verify", None);
     let scan = scan_zip(zip_path)?;
     let tmp = base.join(format!("{id}.tmp"));
@@ -382,7 +443,12 @@ fn install_blocking(app: &AppHandle, id: &str, zip_path: &Path, base: &Path, can
             // (voicepack::find_root iki alt düzeye kadar bakar)
         }
         if fin.exists() {
-            rename_retry(&fin, &old).map_err(|e| format!("Eski sürüm kaldırılamadı (ses çalıyor olabilir): {}", io_err(e)))?;
+            rename_retry(&fin, &old).map_err(|e| {
+                format!(
+                    "Eski sürüm kaldırılamadı (ses çalıyor olabilir): {}",
+                    io_err(e)
+                )
+            })?;
         }
         if let Err(e) = rename_retry(&tmp, &fin) {
             if old.exists() {
@@ -400,7 +466,9 @@ fn install_blocking(app: &AppHandle, id: &str, zip_path: &Path, base: &Path, can
     // Kimlik klasör adından gelir; pack.json'daki id farklıysa düzelt
     let pj = fin.join("pack.json");
     if let Ok(t) = std::fs::read_to_string(&pj) {
-        if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(t.trim_start_matches('\u{feff}')) {
+        if let Ok(mut v) =
+            serde_json::from_str::<serde_json::Value>(t.trim_start_matches('\u{feff}'))
+        {
             if v.get("id").and_then(|x| x.as_str()) != Some(id) {
                 v["id"] = serde_json::Value::String(id.to_string());
                 let _ = std::fs::write(&pj, serde_json::to_string_pretty(&v).unwrap_or_default());
@@ -479,7 +547,8 @@ pub fn voice_pack_remove(app: AppHandle, id: String) -> Result<(), String> {
     // Önce yeniden adlandır (çalan dosya varsa hata hemen görünür), sonra sil
     let trash = base.join(format!("{id}.old"));
     let _ = std::fs::remove_dir_all(&trash);
-    rename_retry(&dir, &trash).map_err(|e| format!("Paket silinemedi (ses çalıyor olabilir): {}", io_err(e)))?;
+    rename_retry(&dir, &trash)
+        .map_err(|e| format!("Paket silinemedi (ses çalıyor olabilir): {}", io_err(e)))?;
     std::fs::remove_dir_all(&trash).map_err(io_err)?;
     voicepack::PACK_GEN.fetch_add(1, Ordering::Relaxed);
     if let Some(v) = crate::current_settings(&app) {
@@ -567,20 +636,38 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         // Kökte pack.json
         let a = dir.join("a.zip");
-        make_zip(&a, &[
-            ("pack.json", br#"{"id":"x","name":"X","language":"de"}"#),
-            ("spotter/car_left/1.ogg", b"o"),
-            ("spotter/car_left/2.ogg", b"o"),
-            ("numbers/5/1.ogg", b"o"),
-            ("numbers/5/METIN.txt", b"t"),
-            ("evil.exe", b"x"),
-        ]);
+        make_zip(
+            &a,
+            &[
+                ("pack.json", br#"{"id":"x","name":"X","language":"de"}"#),
+                ("spotter/car_left/1.ogg", b"o"),
+                ("spotter/car_left/2.ogg", b"o"),
+                ("numbers/5/1.ogg", b"o"),
+                ("numbers/5/METIN.txt", b"t"),
+                ("evil.exe", b"x"),
+            ],
+        );
         let s = scan_zip(&a).unwrap();
-        assert_eq!((s.prefix.as_str(), s.phrases, s.files, s.skipped, s.format.as_str()), ("", 2, 3, 1, "ogg"));
+        assert_eq!(
+            (
+                s.prefix.as_str(),
+                s.phrases,
+                s.files,
+                s.skipped,
+                s.format.as_str()
+            ),
+            ("", 2, 3, 1, "ogg")
+        );
         assert_eq!(s.meta.language, "de");
         // Bir klasör içinde
         let b = dir.join("b.zip");
-        make_zip(&b, &[("Paket/pack.json", b"{}"), ("Paket/spotter/clear/1.wav", b"w")]);
+        make_zip(
+            &b,
+            &[
+                ("Paket/pack.json", b"{}"),
+                ("Paket/spotter/clear/1.wav", b"w"),
+            ],
+        );
         let s = scan_zip(&b).unwrap();
         assert_eq!((s.prefix.as_str(), s.files), ("Paket/", 1));
         // pack.json yok

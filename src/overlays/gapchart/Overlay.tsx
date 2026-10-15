@@ -39,7 +39,8 @@ function createModel(props: OverlayProps) {
   const gp = useTopic("gaps");
   const o = () => props.options;
   const sample = () => props.editing && !(gp()?.cars.length && st()?.rows.some((r) => r.isMe));
-  const rows = () => (sample() ? SAMPLE_ROWS : st()?.rows);
+  // Garajdakiler (pistte değil, fark yok) grafiğe girmez
+  const rows = () => (sample() ? SAMPLE_ROWS : st()?.rows.filter((r) => r.pitState !== "GAR"));
   const gaps = () => (sample() ? SAMPLE_GAPS : gp());
   const nLaps = () => clamp(Math.round(num(o().laps, 15)), 5, 40);
   const leaderMode = () => o().aheadRef === "leader";

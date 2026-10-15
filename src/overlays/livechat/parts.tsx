@@ -131,6 +131,9 @@ export function CaptionBox(props: { captions: CaptionView; now: number; maxAge: 
                 <b>{l.label}: </b>
               </Show>
               {l.text}
+              <Show when={l.orig}>
+                <div class="lc-cap-orig">{l.orig}</div>
+              </Show>
             </div>
           )}
         </For>

@@ -11,7 +11,10 @@ pub struct IRacing {
 
 impl IRacing {
     pub fn open() -> Option<IRacing> {
-        LiveSource::open().map(|src| IRacing { src, last_session_update: -1 })
+        LiveSource::open().map(|src| IRacing {
+            src,
+            last_session_update: -1,
+        })
     }
 }
 

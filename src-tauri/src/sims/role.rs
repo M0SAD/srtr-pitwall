@@ -75,7 +75,11 @@ fn iracing(f: &Frame, s: &SessionData) -> Role {
     }
     let Some(me) = s.player() else {
         // Oturum bilgisi henüz gelmedi (bağlanma anı): araçtaysa sürücüdür
-        return if f.is_on_track { Role::Driver } else { Role::Spectator };
+        return if f.is_on_track {
+            Role::Driver
+        } else {
+            Role::Spectator
+        };
     };
     if me.is_spectator || me.is_pace_car {
         return Role::Spectator;
@@ -95,8 +99,18 @@ mod tests {
     use crate::model::Driver;
 
     fn sd(entry_user: i64, my_user: i64) -> SessionData {
-        let mut s = SessionData { drivers: vec![None; 8], player_idx: 3, player_user_id: my_user, sim_mode: "full".into(), ..Default::default() };
-        s.drivers[3] = Some(Driver { car_idx: 3, user_id: entry_user, ..Default::default() });
+        let mut s = SessionData {
+            drivers: vec![None; 8],
+            player_idx: 3,
+            player_user_id: my_user,
+            sim_mode: "full".into(),
+            ..Default::default()
+        };
+        s.drivers[3] = Some(Driver {
+            car_idx: 3,
+            user_id: entry_user,
+            ..Default::default()
+        });
         s
     }
 

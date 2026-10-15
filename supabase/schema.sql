@@ -16571,3 +16571,748 @@ revoke all on function public.my_gifts() from public, anon;
 grant execute on function public.my_gifts() to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
+-- c111: Telemetri turlarında setup adı (turun hangi setup'la atıldığı; iRacing DriverSetupName).
+-- telemetry_laps.setup_name; telemetry_record_lap kaydeder; oturum ayrıntısı, en iyiler, karşılaştırma ve
+-- pist+araç tur listesi döndürür. Eski turlarda boş (null) kalır.
+alter table public.telemetry_laps add column if not exists setup_name text;
+do $c111$ begin
+  alter table public.telemetry_laps add constraint telemetry_laps_setup_len check (setup_name is null or char_length(setup_name) <= 200);
+exception when duplicate_object then null;
+end $c111$;
+
+create or replace function public.telemetry_record_lap(p_lap jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_sim text := coalesce(p_lap->>'sim', '');
+  v_local text := left(coalesce(p_lap->>'session_local', ''), 120);
+  v_lap_local text := left(coalesce(p_lap->>'id', ''), 140);
+  v_time real;
+  v_valid boolean := coalesce((p_lap->>'valid')::boolean, false);
+  v_pit boolean := coalesce((p_lap->>'pit')::boolean, false);
+  v_has_trace boolean := coalesce((p_lap->>'has_trace')::boolean, false);
+  v_type text := coalesce(p_lap->>'session_type', 'other');
+  v_started timestamptz;
+  v_ts timestamptz;
+  v_sectors real[];
+  v_sess uuid;
+  v_lap uuid;
+  v_new boolean;
+  v_best real;
+  v_path text;
+  v_remove text[] := '{}';
+  v_pb boolean := false;
+  v_track text := left(coalesce(p_lap->>'track_id', ''), 120);
+  v_config text := left(coalesce(p_lap->>'track_config', ''), 160);
+  v_car text := left(coalesce(p_lap->>'car_id', ''), 120);
+  v_name text := left(btrim(coalesce(p_lap->>'driver_name', '')), 80);
+  v_sim_id text := left(btrim(coalesce(p_lap->>'driver_id', '')), 40);
+  v_setup text := nullif(left(btrim(coalesce(p_lap->>'setup_name', '')), 200), '');
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if public.feature_requires_pro('telemetry.record', false) and not public.is_pro() then
+    raise exception 'Telemetri yüklemek PRO üyelik gerektirir';
+  end if;
+  if v_sim not in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2') or v_local = '' or v_lap_local = '' then
+    raise exception 'Geçersiz tur';
+  end if;
+  v_time := (p_lap->>'lap_time')::real;
+  if v_time is null or v_time <= 1 or v_time >= 3600 then
+    raise exception 'Geçersiz tur süresi';
+  end if;
+  if v_type not in ('practice', 'qualify', 'race', 'warmup', 'hotlap', 'other') then
+    v_type := 'other';
+  end if;
+  -- Kötüye kullanım sınırı: günde en fazla 5000 tur
+  if (select count(*) from public.telemetry_laps where user_id = me and created_at > now() - interval '1 day') >= 5000 then
+    raise exception 'Günlük tur sınırına ulaşıldı';
+  end if;
+  v_started := to_timestamp(coalesce(nullif(p_lap->>'session_started', '')::bigint, 0) / 1000.0);
+  v_ts := to_timestamp(coalesce(nullif(p_lap->>'ts', '')::bigint, 0) / 1000.0);
+  if v_ts < now() - interval '2 years' or v_ts > now() + interval '1 day' then
+    v_ts := now();
+  end if;
+  if v_started < now() - interval '2 years' or v_started > now() + interval '1 day' then
+    v_started := v_ts;
+  end if;
+  select coalesce(array_agg(x::real), '{}') into v_sectors
+  from (select jsonb_array_elements_text(case when jsonb_typeof(p_lap->'sectors') = 'array' then p_lap->'sectors' else '[]'::jsonb end) x limit 3) s;
+
+  insert into public.telemetry_sessions as t (user_id, local_id, sim, track_id, track_name, track_config, track_length_km,
+      car_id, car_name, car_class, session_type, session_kind, driver_name, driver_id, started_at, last_lap_at)
+  values (me, v_local, v_sim, v_track, left(coalesce(p_lap->>'track_name', ''), 160), v_config,
+      greatest(coalesce((p_lap->>'track_length_km')::real, 0), 0), v_car, left(coalesce(p_lap->>'car_name', ''), 160),
+      left(coalesce(p_lap->>'car_class', ''), 80), v_type, left(coalesce(p_lap->>'session_kind', ''), 60),
+      v_name, v_sim_id, v_started, v_ts)
+  on conflict (user_id, local_id) do update
+    set last_lap_at = greatest(t.last_lap_at, excluded.last_lap_at),
+        driver_name = case when excluded.driver_name <> '' then excluded.driver_name else t.driver_name end,
+        driver_id = case when excluded.driver_id <> '' then excluded.driver_id else t.driver_id end
+  returning id into v_sess;
+
+  insert into public.telemetry_laps as l (session_id, user_id, local_id, sim, track_id, track_config, car_id, lap, lap_time,
+      sectors, valid, pit, off_track, sim_invalid, incidents, fuel_used, air_temp, track_temp, wetness, precip,
+      position, class_position, driven_at, setup_name)
+  values (v_sess, me, v_lap_local, v_sim, v_track, v_config, v_car, coalesce((p_lap->>'lap')::int, 0), v_time,
+      v_sectors, v_valid, v_pit, coalesce((p_lap->>'off_track')::boolean, false),
+      coalesce((p_lap->>'sim_invalid')::boolean, false), greatest(coalesce((p_lap->>'incidents')::int, 0), 0),
+      nullif((p_lap->>'fuel_used')::real, 0), (p_lap->>'air_temp')::real, (p_lap->>'track_temp')::real,
+      (p_lap->>'wetness')::int, (p_lap->>'precip')::real, nullif((p_lap->>'position')::int, 0),
+      nullif((p_lap->>'class_position')::int, 0), v_ts, v_setup)
+  on conflict (user_id, local_id) do update
+    set lap_time = excluded.lap_time, sectors = excluded.sectors, valid = excluded.valid, pit = excluded.pit,
+        off_track = excluded.off_track, sim_invalid = excluded.sim_invalid, incidents = excluded.incidents,
+        setup_name = coalesce(excluded.setup_name, l.setup_name)
+  returning id, (xmax = 0) into v_lap, v_new;
+
+  -- İz: oturumun yeni en iyi geçerli turu ise saklanır, oturumdaki eski izler silinir
+  if v_valid and not v_pit then
+    select min(lap_time) into v_best from public.telemetry_laps
+    where session_id = v_sess and valid and not pit and id <> v_lap;
+    if v_has_trace and (v_best is null or v_time < v_best
+        or (v_time = v_best and not exists (select 1 from public.telemetry_laps
+              where session_id = v_sess and id <> v_lap and trace_path is not null))) then
+      v_path := me::text || '/' || v_lap::text || '.json.gz';
+      select coalesce(array_agg(trace_path), '{}') into v_remove from public.telemetry_laps
+      where session_id = v_sess and id <> v_lap and trace_path is not null;
+      update public.telemetry_laps set trace_path = null
+      where session_id = v_sess and id <> v_lap and trace_path is not null;
+      update public.telemetry_laps set trace_path = v_path where id = v_lap;
+    end if;
+    v_pb := not exists (select 1 from public.telemetry_laps
+      where user_id = me and sim = v_sim and track_id = v_track and track_config = v_config and car_id = v_car
+        and valid and not pit and id <> v_lap and lap_time <= v_time);
+  end if;
+
+  -- Oturum özeti
+  update public.telemetry_sessions s set
+    laps = x.n, valid_laps = x.nv, invalid_laps = x.n - x.nv, incidents = x.inc,
+    best_lap = x.best, best_lap_id = x.best_id,
+    distance_km = x.n * s.track_length_km, drive_time = x.dt,
+    air_temp = coalesce((p_lap->>'air_temp')::real, s.air_temp),
+    track_temp = coalesce((p_lap->>'track_temp')::real, s.track_temp),
+    wetness = coalesce((p_lap->>'wetness')::int, s.wetness)
+  from (
+    select count(*)::int n, count(*) filter (where valid)::int nv, coalesce(sum(incidents), 0)::int inc,
+           min(lap_time) filter (where valid and not pit) best,
+           (array_agg(id order by lap_time) filter (where valid and not pit))[1] best_id,
+           coalesce(sum(lap_time), 0)::real dt
+    from public.telemetry_laps where session_id = v_sess
+  ) x
+  where s.id = v_sess;
+
+  -- Simdeki kimlik
+  if v_name <> '' then
+    insert into public.driver_identities as d (user_id, sim, sim_name, sim_id, laps)
+    values (me, v_sim, v_name, v_sim_id, 1)
+    on conflict (user_id, sim) do update
+      set sim_name = excluded.sim_name,
+          sim_id = case when excluded.sim_id <> '' then excluded.sim_id else d.sim_id end,
+          last_seen = now(),
+          laps = d.laps + case when v_new then 1 else 0 end;
+  end if;
+
+  return jsonb_build_object('lap_id', v_lap, 'session_id', v_sess, 'trace_path', v_path,
+    'remove', to_jsonb(v_remove), 'pb', v_pb, 'new', v_new);
+end $$;
+
+create or replace function public.telemetry_overview(p_user uuid default null) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_user uuid := coalesce(p_user, auth.uid());
+  v_prof jsonb;
+begin
+  if v_user is null then
+    raise exception 'Kullanıcı yok';
+  end if;
+  select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'telemetry_public', p.telemetry_public,
+           'is_me', p.id = auth.uid(),
+           'friend', (select f.status from public.friendships f where f.user_id = auth.uid() and f.friend_id = p.id))
+    into v_prof from public.profiles p where p.id = v_user;
+  if v_prof is null then
+    raise exception 'Kullanıcı bulunamadı';
+  end if;
+  if not public.telemetry_visible(v_user) then
+    return jsonb_build_object('profile', v_prof, 'visible', false,
+      'identities', (select coalesce(jsonb_agg(jsonb_build_object('sim', d.sim, 'sim_name', d.sim_name) order by d.last_seen desc), '[]')
+                     from public.driver_identities d where d.user_id = v_user));
+  end if;
+  return jsonb_build_object(
+    'profile', v_prof,
+    'visible', true,
+    'totals', (select jsonb_build_object(
+        'sessions', count(*), 'laps', coalesce(sum(s.laps), 0), 'valid_laps', coalesce(sum(s.valid_laps), 0),
+        'incidents', coalesce(sum(s.incidents), 0), 'distance_km', round(coalesce(sum(s.distance_km), 0)::numeric, 1),
+        'drive_time', round(coalesce(sum(s.drive_time), 0)::numeric), 'tracks', count(distinct (s.sim, s.track_id, s.track_config)),
+        'cars', count(distinct (s.sim, s.car_id)), 'first', min(s.started_at), 'last', max(s.last_lap_at))
+      from public.telemetry_sessions s where s.user_id = v_user and s.laps > 0),
+    'sims', (select coalesce(jsonb_agg(jsonb_build_object('sim', x.sim, 'laps', x.laps, 'sessions', x.n) order by x.laps desc), '[]')
+      from (select s.sim, sum(s.laps)::int laps, count(*)::int n from public.telemetry_sessions s
+            where s.user_id = v_user and s.laps > 0 group by s.sim) x),
+    'identities', (select coalesce(jsonb_agg(jsonb_build_object('sim', d.sim, 'sim_name', d.sim_name, 'sim_id', d.sim_id,
+        'laps', d.laps, 'first_seen', d.first_seen, 'last_seen', d.last_seen) order by d.last_seen desc), '[]')
+      from public.driver_identities d where d.user_id = v_user),
+    'bests', (select coalesce(jsonb_agg(b.j order by b.driven_at desc), '[]') from (
+        select distinct on (l.sim, l.track_id, l.track_config, l.car_id)
+          l.driven_at,
+          jsonb_build_object('lap_id', l.id, 'session_id', l.session_id, 'sim', l.sim, 'track_id', l.track_id,
+            'track_config', l.track_config, 'car_id', l.car_id, 'track_name', s.track_name, 'car_name', s.car_name,
+            'car_class', s.car_class, 'lap_time', l.lap_time, 'sectors', l.sectors, 'driven_at', l.driven_at,
+            'has_trace', l.trace_path is not null, 'setup_name', l.setup_name,
+            'laps', (select count(*) from public.telemetry_laps z where z.user_id = v_user and z.sim = l.sim
+                     and z.track_id = l.track_id and z.track_config = l.track_config and z.car_id = l.car_id)) j
+        from public.telemetry_laps l join public.telemetry_sessions s on s.id = l.session_id
+        where l.user_id = v_user and l.valid and not l.pit
+        order by l.sim, l.track_id, l.track_config, l.car_id, l.lap_time, l.driven_at
+      ) b),
+    'recent', (select coalesce(jsonb_agg(public.telemetry_session_json(s) order by s.started_at desc), '[]')
+      from (select * from public.telemetry_sessions s where s.user_id = v_user and s.laps > 0
+            order by s.started_at desc limit 20) s)
+  );
+end $$;
+
+create or replace function public.telemetry_session(p_session uuid) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  s public.telemetry_sessions;
+begin
+  select * into s from public.telemetry_sessions where id = p_session;
+  if s.id is null or not public.telemetry_visible(s.user_id) then
+    raise exception 'Oturum bulunamadı';
+  end if;
+  return jsonb_build_object(
+    'session', public.telemetry_session_json(s),
+    'owner', (select jsonb_build_object('id', p.id, 'display_name', p.display_name) from public.profiles p where p.id = s.user_id),
+    'laps', (select coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'lap', l.lap, 'lap_time', l.lap_time,
+        'sectors', l.sectors, 'valid', l.valid, 'pit', l.pit, 'off_track', l.off_track, 'sim_invalid', l.sim_invalid,
+        'incidents', l.incidents, 'fuel_used', l.fuel_used, 'air_temp', l.air_temp, 'track_temp', l.track_temp,
+        'wetness', l.wetness, 'position', l.position, 'class_position', l.class_position, 'driven_at', l.driven_at,
+        'has_trace', l.trace_path is not null, 'setup_name', l.setup_name) order by l.lap, l.driven_at), '[]')
+      from public.telemetry_laps l where l.session_id = s.id));
+end $$;
+
+create or replace function public.telemetry_laps_info(p_ids uuid[]) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'user_id', l.user_id, 'display_name', p.display_name,
+      'driver_name', s.driver_name, 'session_id', l.session_id, 'sim', l.sim, 'track_id', l.track_id,
+      'track_config', l.track_config, 'track_name', s.track_name, 'track_length_km', s.track_length_km,
+      'car_id', l.car_id, 'car_name', s.car_name, 'car_class', s.car_class, 'session_type', s.session_type,
+      'lap', l.lap, 'lap_time', l.lap_time, 'sectors', l.sectors, 'valid', l.valid, 'driven_at', l.driven_at,
+      'trace_path', l.trace_path, 'setup_name', l.setup_name)), '[]')
+  from public.telemetry_laps l
+  join public.telemetry_sessions s on s.id = l.session_id
+  join public.profiles p on p.id = l.user_id
+  where l.id = any (p_ids[1:4]) and public.telemetry_visible(l.user_id);
+$$;
+
+create or replace function public.telemetry_combo_laps(p_sim text, p_track_id text, p_track_config text, p_car_id text,
+    p_user uuid default null) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(x.j order by x.lap_time), '[]') from (
+    select l.lap_time, jsonb_build_object('id', l.id, 'lap', l.lap, 'lap_time', l.lap_time, 'sectors', l.sectors,
+        'driven_at', l.driven_at, 'session_id', l.session_id, 'session_type', s.session_type, 'setup_name', l.setup_name) j
+    from public.telemetry_laps l join public.telemetry_sessions s on s.id = l.session_id
+    where l.user_id = coalesce(p_user, auth.uid()) and public.telemetry_visible(l.user_id)
+      and l.sim = p_sim and l.track_id = p_track_id and l.track_config = coalesce(p_track_config, '')
+      and l.car_id = p_car_id and l.trace_path is not null and l.valid and not l.pit
+    order by l.lap_time limit 50) x;
+$$;
+
+notify pgrst, 'reload schema';
+
+-- c112: Arkadaş Uyarısı overlay'i varsayılan olarak PRO (app_config.pro_overlays). Yönetim › PRO özellikleri'nden değiştirilebilir.
+update public.app_config
+   set pro_overlays = (select array_agg(distinct x) from unnest(coalesce(pro_overlays, '{}') || array['friendalert']) as x)
+ where id = 1;
+
+-- c113: Telemetri paylaşım bağlantıları (herkese açık) + 5 tura kadar kıyaslama
+--
+-- Uygulamada "Paylaş" bir paylaşım kaydı oluşturur; bağlantıyı (telemetri.html?s=<kimlik>) bilen herkes GİRİŞ YAPMADAN
+-- görür. Yalnızca paylaşılan turlar / oturum açılır: sahibin diğer telemetrisi ve gizlilik ayarı değişmez. Sahibi
+-- istediği an iptal edebilir (iptal edilince bağlantı ve iz dosyaları yeniden kapanır).
+--   - kind 'laps': 1-5 tur (tur analizi / kıyaslama). Kendi turların ve telemetrisi herkese açık üyelerin turları.
+--   - kind 'session': kendi oturumun (tur tablosu + izli turlar).
+-- Kimlik tahmin edilemez (32 onaltılık karakter). Harita şekli (pist çizgisi) paylaşıma eklenir: harita her
+-- bilgisayarda yerel olarak öğrenildiğinden sitede ancak böyle çizilebilir.
+
+create table if not exists public.telemetry_shares (
+  id text primary key check (id ~ '^[A-Za-z0-9_-]{16,64}$'),
+  owner uuid not null references public.profiles (id) on delete cascade,
+  kind text not null default 'laps' check (kind in ('laps', 'session')),
+  session_id uuid references public.telemetry_sessions (id) on delete cascade,
+  lap_ids uuid[] not null default '{}' check (cardinality(lap_ids) <= 5),
+  title text not null default '' check (char_length(title) <= 120),
+  shape jsonb check (shape is null or octet_length(shape::text) <= 150000),
+  views int not null default 0,
+  revoked boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists telemetry_shares_owner on public.telemetry_shares (owner, created_at desc);
+create index if not exists telemetry_laps_trace_path on public.telemetry_laps (trace_path) where trace_path is not null;
+alter table public.telemetry_shares enable row level security;
+drop policy if exists "shares own read" on public.telemetry_shares;
+create policy "shares own read" on public.telemetry_shares for select to authenticated using (owner = auth.uid());
+revoke all on public.telemetry_shares from anon, authenticated;
+grant select on public.telemetry_shares to authenticated;
+grant all on public.telemetry_shares to service_role;
+
+-- Paylaşılan (iptal edilmemiş) bir turun iz dosyası mı
+create or replace function public.telemetry_trace_shared(p_path text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.telemetry_shares sh
+    join public.telemetry_laps l on l.id = any (sh.lap_ids)
+    where not sh.revoked and l.trace_path = p_path);
+$$;
+grant execute on function public.telemetry_trace_shared(text) to anon, authenticated, service_role;
+
+-- İz kovası okuma kuralı: görme yetkisi olanlar + paylaşılmış turların izleri (giriş yapmamış ziyaretçi de)
+create or replace function public.telemetry_can_read(p_path text) returns boolean
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_owner uuid;
+begin
+  begin
+    v_owner := split_part(p_path, '/', 1)::uuid;
+  exception when others then
+    return false;
+  end;
+  return public.telemetry_visible(v_owner) or public.telemetry_trace_shared(p_path);
+end $$;
+grant execute on function public.telemetry_can_read(text) to anon, authenticated, service_role;
+
+-- Paylaşım oluştur. Aynı içerik daha önce paylaşıldıysa (iptal edilmemiş) aynı bağlantı döner.
+create or replace function public.telemetry_share_create(p_kind text, p_laps uuid[], p_session uuid, p_title text,
+    p_shape jsonb) returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  v_me uuid := auth.uid();
+  v_laps uuid[];
+  v_id text;
+  v_n int;
+begin
+  if v_me is null then
+    raise exception 'Paylaşmak için giriş yapmalısın';
+  end if;
+  if p_shape is not null and octet_length(p_shape::text) > 150000 then
+    p_shape := null;
+  end if;
+  if p_kind = 'session' then
+    if not exists (select 1 from public.telemetry_sessions s where s.id = p_session and s.user_id = v_me) then
+      raise exception 'Yalnızca kendi oturumunu paylaşabilirsin';
+    end if;
+    select coalesce(array_agg(x.id), '{}') into v_laps from (
+      select l.id from public.telemetry_laps l
+      where l.session_id = p_session and l.trace_path is not null
+      order by l.lap_time limit 5) x;
+  elsif p_kind = 'laps' then
+    if p_laps is null or cardinality(p_laps) < 1 or cardinality(p_laps) > 5 then
+      raise exception 'Paylaşılacak tur sayısı 1 ile 5 arasında olmalı';
+    end if;
+    select count(*) into v_n from public.telemetry_laps l
+      join public.profiles p on p.id = l.user_id
+      where l.id = any (p_laps)
+        and (l.user_id = v_me or (coalesce(p.telemetry_public, false) and public.telemetry_visible(l.user_id)));
+    if v_n <> (select count(distinct x) from unnest(p_laps) x) then
+      raise exception 'Bu turlardan biri paylaşılamaz (telemetrisi gizli)';
+    end if;
+    v_laps := p_laps;
+    p_session := null;
+  else
+    raise exception 'Geçersiz paylaşım türü';
+  end if;
+  -- Aynı içerik zaten paylaşıldıysa onu kullan (harita şekli yoksa güncellenir)
+  select sh.id into v_id from public.telemetry_shares sh
+   where sh.owner = v_me and not sh.revoked and sh.kind = p_kind
+     and coalesce(sh.session_id::text, '') = coalesce(p_session::text, '') and sh.lap_ids = v_laps
+   order by sh.created_at desc limit 1;
+  if v_id is not null then
+    update public.telemetry_shares set shape = coalesce(shape, p_shape), title = coalesce(nullif(left(p_title, 120), ''), title)
+     where id = v_id;
+    return v_id;
+  end if;
+  -- Kötüye kullanım sınırı: günde en çok 200 paylaşım
+  if (select count(*) from public.telemetry_shares where owner = v_me and created_at > now() - interval '1 day') >= 200 then
+    raise exception 'Bugün çok fazla paylaşım yaptın; yarın yeniden dene';
+  end if;
+  v_id := replace(gen_random_uuid()::text, '-', '');
+  insert into public.telemetry_shares (id, owner, kind, session_id, lap_ids, title, shape)
+  values (v_id, v_me, p_kind, p_session, v_laps, left(coalesce(p_title, ''), 120), p_shape);
+  return v_id;
+end $$;
+grant execute on function public.telemetry_share_create(text, uuid[], uuid, text, jsonb) to authenticated;
+
+-- Paylaşımı aç (giriş gerekmez). Turların bilgisi + iz dosyası yolları (iz kovası paylaşılan izleri herkese okutur).
+create or replace function public.telemetry_share_get(p_id text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  sh public.telemetry_shares;
+  v_sess jsonb;
+begin
+  select * into sh from public.telemetry_shares where id = p_id and not revoked;
+  if sh.id is null then
+    raise exception 'Paylaşım bulunamadı ya da kaldırıldı';
+  end if;
+  update public.telemetry_shares set views = views + 1 where id = sh.id;
+  if sh.kind = 'session' then
+    select jsonb_build_object(
+      'session', public.telemetry_session_json(s),
+      'laps', (select coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'lap', l.lap, 'lap_time', l.lap_time,
+          'sectors', l.sectors, 'valid', l.valid, 'pit', l.pit, 'off_track', l.off_track, 'incidents', l.incidents,
+          'fuel_used', l.fuel_used, 'track_temp', l.track_temp, 'position', l.position, 'class_position', l.class_position,
+          'has_trace', l.id = any (sh.lap_ids), 'setup_name', l.setup_name) order by l.lap, l.driven_at), '[]')
+        from public.telemetry_laps l where l.session_id = s.id))
+      into v_sess
+      from public.telemetry_sessions s where s.id = sh.session_id;
+  end if;
+  return jsonb_build_object(
+    'id', sh.id, 'kind', sh.kind, 'title', sh.title, 'created_at', sh.created_at, 'views', sh.views + 1,
+    'shape', sh.shape,
+    'owner', (select jsonb_build_object('display_name', p.display_name) from public.profiles p where p.id = sh.owner),
+    'session', v_sess,
+    'laps', (select coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'display_name', p.display_name,
+        'driver_name', s.driver_name, 'session_id', l.session_id, 'sim', l.sim, 'track_id', l.track_id,
+        'track_config', l.track_config, 'track_name', s.track_name, 'track_length_km', s.track_length_km,
+        'car_id', l.car_id, 'car_name', s.car_name, 'car_class', s.car_class, 'session_type', s.session_type,
+        'lap', l.lap, 'lap_time', l.lap_time, 'sectors', l.sectors, 'valid', l.valid, 'driven_at', l.driven_at,
+        'trace_path', l.trace_path, 'setup_name', l.setup_name, 'track_temp', l.track_temp, 'air_temp', l.air_temp)
+        order by array_position(sh.lap_ids, l.id)), '[]')
+      from public.telemetry_laps l
+      join public.telemetry_sessions s on s.id = l.session_id
+      join public.profiles p on p.id = l.user_id
+      where l.id = any (sh.lap_ids)));
+end $$;
+grant execute on function public.telemetry_share_get(text) to anon, authenticated;
+
+-- Kendi paylaşımlarım (yönetmek / iptal etmek için)
+create or replace function public.telemetry_shares_mine() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'kind', kind, 'title', title, 'views', views,
+      'created_at', created_at, 'laps', cardinality(lap_ids)) order by created_at desc), '[]')
+  from (select * from public.telemetry_shares where owner = auth.uid() and not revoked order by created_at desc limit 200) x;
+$$;
+grant execute on function public.telemetry_shares_mine() to authenticated;
+
+create or replace function public.telemetry_share_revoke(p_id text) returns void
+language sql security definer set search_path = public as $$
+  update public.telemetry_shares set revoked = true where id = p_id and owner = auth.uid();
+$$;
+grant execute on function public.telemetry_share_revoke(text) to authenticated;
+
+-- Tur analizi artık 5 tura kadar kıyaslar
+create or replace function public.telemetry_laps_info(p_ids uuid[]) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'user_id', l.user_id, 'display_name', p.display_name,
+      'driver_name', s.driver_name, 'session_id', l.session_id, 'sim', l.sim, 'track_id', l.track_id,
+      'track_config', l.track_config, 'track_name', s.track_name, 'track_length_km', s.track_length_km,
+      'car_id', l.car_id, 'car_name', s.car_name, 'car_class', s.car_class, 'session_type', s.session_type,
+      'lap', l.lap, 'lap_time', l.lap_time, 'sectors', l.sectors, 'valid', l.valid, 'driven_at', l.driven_at,
+      'trace_path', l.trace_path, 'setup_name', l.setup_name)), '[]')
+  from public.telemetry_laps l
+  join public.telemetry_sessions s on s.id = l.session_id
+  join public.profiles p on p.id = l.user_id
+  where l.id = any (p_ids[1:5]) and public.telemetry_visible(l.user_id);
+$$;
+
+notify pgrst, 'reload schema';
+
+-- c114: Site görselleri: overlay başına birden fazla görsel (Yönetim › Ana sayfa görselleri › Overlay Galerisi).
+-- "ov.<overlay>" yuvası artık görsel listesi tutabilir (eski tek görsel kaydı geçerli kalır). 64 overlay × birkaç görsel
+-- eski 20 000 karakterlik toplam sınırı aştığı için sınır 250 000'e çıkarıldı; diğer denetimler aynı.
+
+create or replace function public.admin_set_site_images(p_images jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  before jsonb;
+  k text;
+  v jsonb;
+  item jsonb;
+  changed text[] := '{}';
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  if p_images is null or jsonb_typeof(p_images) <> 'object' then
+    raise exception 'Geçersiz veri';
+  end if;
+  if length(p_images::text) > 250000 then
+    raise exception 'Görsel listesi çok uzun';
+  end if;
+  for k, v in select * from jsonb_each(p_images) loop
+    if k !~ '^[a-z0-9][a-z0-9_.-]{0,59}$' then
+      raise exception 'Geçersiz yuva adı: %', left(k, 60);
+    end if;
+    if jsonb_typeof(v) = 'array' then
+      if jsonb_array_length(v) > 24 then
+        raise exception 'Galeride en fazla 24 görsel olabilir';
+      end if;
+      for item in select * from jsonb_array_elements(v) loop
+        if not public.site_image_ok(item) then
+          raise exception 'Geçersiz galeri görseli (%)', k;
+        end if;
+      end loop;
+    elsif not public.site_image_ok(v) then
+      raise exception 'Geçersiz görsel (%)', k;
+    end if;
+  end loop;
+
+  select coalesce(site_images, '{}'::jsonb) into before from public.app_config where id = 1;
+  update public.app_config set site_images = p_images, updated_at = now() where id = 1;
+
+  select coalesce(array_agg(x.key order by x.key), '{}') into changed
+  from (
+    select coalesce(n.key, o.key) as key
+    from jsonb_each(p_images) n
+    full join jsonb_each(coalesce(before, '{}'::jsonb)) o on o.key = n.key
+    where n.value is distinct from o.value
+  ) x;
+  perform public.log_mod('site_images_set', 'config', 'site_images', null,
+    jsonb_build_object('changed', to_jsonb(changed),
+                       'slots', (select coalesce(jsonb_agg(s), '[]'::jsonb) from jsonb_object_keys(p_images) s),
+                       'gallery', case when jsonb_typeof(p_images -> 'home.gallery') = 'array'
+                                       then jsonb_array_length(p_images -> 'home.gallery') else 0 end));
+end $$;
+revoke all on function public.admin_set_site_images(jsonb) from public, anon;
+grant execute on function public.admin_set_site_images(jsonb) to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- c115: Yeni oyunlar: RaceRoom (r3e), F1 23-25 (f1), Forza (forza), DiRT Rally 2.0 / DiRT 4 / GRID (dirt), BeamNG.drive (beamng).
+-- Oyun kimliği denetimleri genişletildi: telemetri oturumları ve kimlikler, arkadaş listesindeki oyun (user_status.sim),
+-- takımın oyunu, telemetry_record_lap / team_create / team_update. Gövdeler öncekiyle aynı, sadece kabul edilen liste uzadı.
+
+-- Eski oyun listesi denetimleri (sütun içi CHECK'lerin adı sürüme göre değişebilir: tanımından bulunur)
+do $$
+declare
+  r record;
+begin
+  for r in
+    select conrelid::regclass as t, conname from pg_constraint
+    where contype = 'c'
+      and conrelid in ('public.telemetry_sessions'::regclass, 'public.driver_identities'::regclass,
+                       'public.user_status'::regclass, 'public.teams'::regclass)
+      and pg_get_constraintdef(oid) like '%ams2%'
+  loop
+    execute format('alter table %s drop constraint %I', r.t, r.conname);
+  end loop;
+end $$;
+
+alter table public.telemetry_sessions drop constraint if exists telemetry_sessions_sim_check;
+alter table public.telemetry_sessions add constraint telemetry_sessions_sim_check check (sim in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng'));
+alter table public.driver_identities drop constraint if exists driver_identities_sim_check;
+alter table public.driver_identities add constraint driver_identities_sim_check check (sim in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng'));
+alter table public.user_status drop constraint if exists user_status_sim_ok;
+alter table public.user_status add constraint user_status_sim_ok check (sim in ('', 'iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng'));
+alter table public.teams drop constraint if exists teams_sim_check;
+alter table public.teams add constraint teams_sim_check check (sim in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng', 'multi'));
+
+create or replace function public.telemetry_record_lap(p_lap jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  v_sim text := coalesce(p_lap->>'sim', '');
+  v_local text := left(coalesce(p_lap->>'session_local', ''), 120);
+  v_lap_local text := left(coalesce(p_lap->>'id', ''), 140);
+  v_time real;
+  v_valid boolean := coalesce((p_lap->>'valid')::boolean, false);
+  v_pit boolean := coalesce((p_lap->>'pit')::boolean, false);
+  v_has_trace boolean := coalesce((p_lap->>'has_trace')::boolean, false);
+  v_type text := coalesce(p_lap->>'session_type', 'other');
+  v_started timestamptz;
+  v_ts timestamptz;
+  v_sectors real[];
+  v_sess uuid;
+  v_lap uuid;
+  v_new boolean;
+  v_best real;
+  v_path text;
+  v_remove text[] := '{}';
+  v_pb boolean := false;
+  v_track text := left(coalesce(p_lap->>'track_id', ''), 120);
+  v_config text := left(coalesce(p_lap->>'track_config', ''), 160);
+  v_car text := left(coalesce(p_lap->>'car_id', ''), 120);
+  v_name text := left(btrim(coalesce(p_lap->>'driver_name', '')), 80);
+  v_sim_id text := left(btrim(coalesce(p_lap->>'driver_id', '')), 40);
+  v_setup text := nullif(left(btrim(coalesce(p_lap->>'setup_name', '')), 200), '');
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if public.feature_requires_pro('telemetry.record', false) and not public.is_pro() then
+    raise exception 'Telemetri yüklemek PRO üyelik gerektirir';
+  end if;
+  if v_sim not in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng') or v_local = '' or v_lap_local = '' then
+    raise exception 'Geçersiz tur';
+  end if;
+  v_time := (p_lap->>'lap_time')::real;
+  if v_time is null or v_time <= 1 or v_time >= 3600 then
+    raise exception 'Geçersiz tur süresi';
+  end if;
+  if v_type not in ('practice', 'qualify', 'race', 'warmup', 'hotlap', 'other') then
+    v_type := 'other';
+  end if;
+  -- Kötüye kullanım sınırı: günde en fazla 5000 tur
+  if (select count(*) from public.telemetry_laps where user_id = me and created_at > now() - interval '1 day') >= 5000 then
+    raise exception 'Günlük tur sınırına ulaşıldı';
+  end if;
+  v_started := to_timestamp(coalesce(nullif(p_lap->>'session_started', '')::bigint, 0) / 1000.0);
+  v_ts := to_timestamp(coalesce(nullif(p_lap->>'ts', '')::bigint, 0) / 1000.0);
+  if v_ts < now() - interval '2 years' or v_ts > now() + interval '1 day' then
+    v_ts := now();
+  end if;
+  if v_started < now() - interval '2 years' or v_started > now() + interval '1 day' then
+    v_started := v_ts;
+  end if;
+  select coalesce(array_agg(x::real), '{}') into v_sectors
+  from (select jsonb_array_elements_text(case when jsonb_typeof(p_lap->'sectors') = 'array' then p_lap->'sectors' else '[]'::jsonb end) x limit 3) s;
+
+  insert into public.telemetry_sessions as t (user_id, local_id, sim, track_id, track_name, track_config, track_length_km,
+      car_id, car_name, car_class, session_type, session_kind, driver_name, driver_id, started_at, last_lap_at)
+  values (me, v_local, v_sim, v_track, left(coalesce(p_lap->>'track_name', ''), 160), v_config,
+      greatest(coalesce((p_lap->>'track_length_km')::real, 0), 0), v_car, left(coalesce(p_lap->>'car_name', ''), 160),
+      left(coalesce(p_lap->>'car_class', ''), 80), v_type, left(coalesce(p_lap->>'session_kind', ''), 60),
+      v_name, v_sim_id, v_started, v_ts)
+  on conflict (user_id, local_id) do update
+    set last_lap_at = greatest(t.last_lap_at, excluded.last_lap_at),
+        driver_name = case when excluded.driver_name <> '' then excluded.driver_name else t.driver_name end,
+        driver_id = case when excluded.driver_id <> '' then excluded.driver_id else t.driver_id end
+  returning id into v_sess;
+
+  insert into public.telemetry_laps as l (session_id, user_id, local_id, sim, track_id, track_config, car_id, lap, lap_time,
+      sectors, valid, pit, off_track, sim_invalid, incidents, fuel_used, air_temp, track_temp, wetness, precip,
+      position, class_position, driven_at, setup_name)
+  values (v_sess, me, v_lap_local, v_sim, v_track, v_config, v_car, coalesce((p_lap->>'lap')::int, 0), v_time,
+      v_sectors, v_valid, v_pit, coalesce((p_lap->>'off_track')::boolean, false),
+      coalesce((p_lap->>'sim_invalid')::boolean, false), greatest(coalesce((p_lap->>'incidents')::int, 0), 0),
+      nullif((p_lap->>'fuel_used')::real, 0), (p_lap->>'air_temp')::real, (p_lap->>'track_temp')::real,
+      (p_lap->>'wetness')::int, (p_lap->>'precip')::real, nullif((p_lap->>'position')::int, 0),
+      nullif((p_lap->>'class_position')::int, 0), v_ts, v_setup)
+  on conflict (user_id, local_id) do update
+    set lap_time = excluded.lap_time, sectors = excluded.sectors, valid = excluded.valid, pit = excluded.pit,
+        off_track = excluded.off_track, sim_invalid = excluded.sim_invalid, incidents = excluded.incidents,
+        setup_name = coalesce(excluded.setup_name, l.setup_name)
+  returning id, (xmax = 0) into v_lap, v_new;
+
+  -- İz: oturumun yeni en iyi geçerli turu ise saklanır, oturumdaki eski izler silinir
+  if v_valid and not v_pit then
+    select min(lap_time) into v_best from public.telemetry_laps
+    where session_id = v_sess and valid and not pit and id <> v_lap;
+    if v_has_trace and (v_best is null or v_time < v_best
+        or (v_time = v_best and not exists (select 1 from public.telemetry_laps
+              where session_id = v_sess and id <> v_lap and trace_path is not null))) then
+      v_path := me::text || '/' || v_lap::text || '.json.gz';
+      select coalesce(array_agg(trace_path), '{}') into v_remove from public.telemetry_laps
+      where session_id = v_sess and id <> v_lap and trace_path is not null;
+      update public.telemetry_laps set trace_path = null
+      where session_id = v_sess and id <> v_lap and trace_path is not null;
+      update public.telemetry_laps set trace_path = v_path where id = v_lap;
+    end if;
+    v_pb := not exists (select 1 from public.telemetry_laps
+      where user_id = me and sim = v_sim and track_id = v_track and track_config = v_config and car_id = v_car
+        and valid and not pit and id <> v_lap and lap_time <= v_time);
+  end if;
+
+  -- Oturum özeti
+  update public.telemetry_sessions s set
+    laps = x.n, valid_laps = x.nv, invalid_laps = x.n - x.nv, incidents = x.inc,
+    best_lap = x.best, best_lap_id = x.best_id,
+    distance_km = x.n * s.track_length_km, drive_time = x.dt,
+    air_temp = coalesce((p_lap->>'air_temp')::real, s.air_temp),
+    track_temp = coalesce((p_lap->>'track_temp')::real, s.track_temp),
+    wetness = coalesce((p_lap->>'wetness')::int, s.wetness)
+  from (
+    select count(*)::int n, count(*) filter (where valid)::int nv, coalesce(sum(incidents), 0)::int inc,
+           min(lap_time) filter (where valid and not pit) best,
+           (array_agg(id order by lap_time) filter (where valid and not pit))[1] best_id,
+           coalesce(sum(lap_time), 0)::real dt
+    from public.telemetry_laps where session_id = v_sess
+  ) x
+  where s.id = v_sess;
+
+  -- Simdeki kimlik
+  if v_name <> '' then
+    insert into public.driver_identities as d (user_id, sim, sim_name, sim_id, laps)
+    values (me, v_sim, v_name, v_sim_id, 1)
+    on conflict (user_id, sim) do update
+      set sim_name = excluded.sim_name,
+          sim_id = case when excluded.sim_id <> '' then excluded.sim_id else d.sim_id end,
+          last_seen = now(),
+          laps = d.laps + case when v_new then 1 else 0 end;
+  end if;
+
+  return jsonb_build_object('lap_id', v_lap, 'session_id', v_sess, 'trace_path', v_path,
+    'remove', to_jsonb(v_remove), 'pb', v_pb, 'new', v_new);
+end $$;
+
+create or replace function public.team_create(p_name text, p_tag text, p_description text default '',
+  p_color text default '#4ea1ff', p_logo text default '', p_join_mode text default 'request', p_sim text default 'iracing') returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  tid uuid;
+  v_name text := regexp_replace(trim(coalesce(p_name, '')), '\s+', ' ', 'g');
+  v_tag text := upper(trim(coalesce(p_tag, '')));
+  v_sim text := coalesce(nullif(trim(p_sim), ''), 'iracing');
+begin
+  if me is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  if public.feature_requires_pro('teams.create', false) and not public.is_pro() then
+    raise exception 'Takım kurmak PRO üyelik gerektirir';
+  end if;
+  perform public.team_check(v_name, v_tag, p_color, p_join_mode, p_logo);
+  if v_sim not in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng', 'multi') then
+    raise exception 'Geçersiz oyun';
+  end if;
+  if (select count(*) from public.teams where owner = me) >= 3 then
+    raise exception 'En fazla 3 takım kurabilirsin';
+  end if;
+  if (select count(*) from public.team_members where user_id = me) >= 10 then
+    raise exception 'En fazla 10 takımda olabilirsin';
+  end if;
+  if exists (select 1 from public.teams where lower(name) = lower(v_name)) then
+    raise exception 'Bu takım adı kullanılıyor';
+  end if;
+  if exists (select 1 from public.teams where upper(tag) = v_tag) then
+    raise exception 'Bu etiket kullanılıyor';
+  end if;
+  insert into public.teams (name, tag, description, color, logo_path, join_mode, owner, sim)
+    values (v_name, v_tag, left(trim(coalesce(p_description, '')), 1000), p_color, coalesce(p_logo, ''), p_join_mode, me, v_sim)
+    returning id into tid;
+  insert into public.team_members (team_id, user_id, role) values (tid, me, 'owner');
+  insert into public.team_chat_state (team_id, user_id) values (tid, me);
+  return tid;
+end $$;
+
+create or replace function public.team_update(p_team uuid, p_name text, p_tag text, p_description text,
+  p_color text, p_logo text, p_join_mode text, p_sim text default null) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_name text := regexp_replace(trim(coalesce(p_name, '')), '\s+', ' ', 'g');
+  v_tag text := upper(trim(coalesce(p_tag, '')));
+  v_sim text := nullif(trim(coalesce(p_sim, '')), '');
+begin
+  if not public.is_team_admin(p_team) then
+    raise exception 'Sadece takım sahibi ve yöneticileri düzenleyebilir';
+  end if;
+  perform public.team_check(v_name, v_tag, p_color, p_join_mode, p_logo);
+  if v_sim is not null and v_sim not in ('iracing', 'acc', 'ac', 'lmu', 'rf2', 'ams2', 'r3e', 'f1', 'forza', 'dirt', 'beamng', 'multi') then
+    raise exception 'Geçersiz oyun';
+  end if;
+  if exists (select 1 from public.teams where lower(name) = lower(v_name) and id <> p_team) then
+    raise exception 'Bu takım adı kullanılıyor';
+  end if;
+  if exists (select 1 from public.teams where upper(tag) = v_tag and id <> p_team) then
+    raise exception 'Bu etiket kullanılıyor';
+  end if;
+  -- p_sim verilmezse (eski programlar) oyun değişmez
+  update public.teams set name = v_name, tag = v_tag, description = left(trim(coalesce(p_description, '')), 1000),
+    color = p_color, logo_path = coalesce(p_logo, ''), join_mode = p_join_mode, sim = coalesce(v_sim, sim), updated_at = now()
+    where id = p_team;
+end $$;
+
+notify pgrst, 'reload schema';

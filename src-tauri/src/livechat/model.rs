@@ -71,7 +71,9 @@ pub enum Kind {
 #[derive(Serialize, Clone, Debug, PartialEq)]
 #[serde(tag = "t", rename_all = "lowercase")]
 pub enum Part {
-    Text { v: String },
+    Text {
+        v: String,
+    },
     Emote {
         url: String,
         name: String,
@@ -79,8 +81,13 @@ pub enum Part {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         custom: bool,
     },
-    Link { url: String, v: String },
-    Mention { v: String },
+    Link {
+        url: String,
+        v: String,
+    },
+    Mention {
+        v: String,
+    },
 }
 
 impl Part {
@@ -192,7 +199,13 @@ pub struct ChatMsg {
 }
 
 impl ChatMsg {
-    pub fn new(platform: Platform, native_id: impl Into<String>, kind: Kind, author: Author, parts: Vec<Part>) -> ChatMsg {
+    pub fn new(
+        platform: Platform,
+        native_id: impl Into<String>,
+        kind: Kind,
+        author: Author,
+        parts: Vec<Part>,
+    ) -> ChatMsg {
         let native_id = native_id.into();
         let text = plain_text(&parts);
         ChatMsg {

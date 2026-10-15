@@ -82,7 +82,11 @@ pub struct Corners {
 /// En iyi tur hız izinden virajları bulur: belirgin yerel minimumlar.
 pub fn find_corners(trace: &[f32]) -> Vec<(usize, f32)> {
     let n = trace.len();
-    let valid: Vec<f32> = trace.iter().copied().filter(|v| v.is_finite() && *v > 0.0).collect();
+    let valid: Vec<f32> = trace
+        .iter()
+        .copied()
+        .filter(|v| v.is_finite() && *v > 0.0)
+        .collect();
     if valid.len() < n * 3 / 4 {
         return Vec::new();
     }
@@ -221,13 +225,20 @@ pub struct History {
 impl History {
     /// Demo/önizleme için geçmiş turlar
     pub fn seed_demo(&mut self, laps: &[f32], fuel: &[f32]) {
-        self.seed = laps.iter().zip(fuel.iter().chain(std::iter::repeat(&2.8))).map(|(a, b)| (*a, *b)).collect();
+        self.seed = laps
+            .iter()
+            .zip(fuel.iter().chain(std::iter::repeat(&2.8)))
+            .map(|(a, b)| (*a, *b))
+            .collect();
     }
 
     fn clear(&mut self, f: &Frame) {
         let persist = self.persist_ok;
         let seed = std::mem::take(&mut self.seed);
-        *self = History { persist_ok: persist, ..History::default() };
+        *self = History {
+            persist_ok: persist,
+            ..History::default()
+        };
         self.session_num = f.session_num;
         self.started = now_ms();
         self.last_inc = f.incidents;
@@ -249,7 +260,11 @@ impl History {
             self.laps.push(LapRec {
                 lap,
                 time: t,
-                sectors: vec![t * w[0] + j, t * w[1] - j * 0.5, t * (1.0 - w[0] - w[1]) - j * 0.5],
+                sectors: vec![
+                    t * w[0] + j,
+                    t * w[1] - j * 0.5,
+                    t * (1.0 - w[0] - w[1]) - j * 0.5,
+                ],
                 fuel,
                 inc: 0,
                 valid: i != 1,
@@ -316,8 +331,13 @@ impl History {
         // Sektör geçişleri
         if f.lap == self.cur_lap && pct >= 0.0 {
             let boundary = (self.cur_sectors.len() + 1) as f32 / SECTORS as f32;
-            if self.cur_sectors.len() < SECTORS - 1 && pct >= boundary && self.last_pct < boundary && pct - self.last_pct < 0.5 {
-                self.cur_sectors.push((f.session_time - self.sector_start) as f32);
+            if self.cur_sectors.len() < SECTORS - 1
+                && pct >= boundary
+                && self.last_pct < boundary
+                && pct - self.last_pct < 0.5
+            {
+                self.cur_sectors
+                    .push((f.session_time - self.sector_start) as f32);
                 self.sector_start = f.session_time;
             }
         }
@@ -325,7 +345,11 @@ impl History {
         // Tur tamamlandı
         if f.lap != self.cur_lap {
             if f.lap == self.cur_lap + 1 && self.cur_lap > 0 {
-                let t = if f.lap_last > 0.0 { f.lap_last } else { (f.session_time - self.cur_start_time) as f32 };
+                let t = if f.lap_last > 0.0 {
+                    f.lap_last
+                } else {
+                    (f.session_time - self.cur_start_time) as f32
+                };
                 let mut sectors = self.cur_sectors.clone();
                 if sectors.len() == SECTORS - 1 {
                     let done: f32 = sectors.iter().sum();
@@ -338,7 +362,11 @@ impl History {
                 let trace = std::mem::replace(&mut self.cur_trace, vec![f32::INFINITY; TRACE_BINS]);
                 let full = trace.iter().filter(|v| v.is_finite()).count() > TRACE_BINS * 3 / 4;
                 if full {
-                    if !self.cur_invalid && !self.cur_pit && t > 0.0 && (self.best_trace_time == 0.0 || t < self.best_trace_time) {
+                    if !self.cur_invalid
+                        && !self.cur_pit
+                        && t > 0.0
+                        && (self.best_trace_time == 0.0 || t < self.best_trace_time)
+                    {
                         self.best_trace = trace.clone();
                         self.best_trace_time = t;
                         self.best_trace_lap = self.cur_lap;
@@ -384,7 +412,10 @@ impl History {
         }
         self.last_track = s.track_name.clone();
         self.last_car = s.player().map(|d| d.car_name.clone()).unwrap_or_default();
-        self.last_kind = s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default();
+        self.last_kind = s
+            .session(f.session_num)
+            .map(|x| x.kind.clone())
+            .unwrap_or_default();
         // Sonuçlar (damalı bayrak ya da oturum sonunda en güncel hali)
         if self.dirty && (f.session_state >= 5 || f.tick % 120 == 0) {
             self.last_results = results(f, s);
@@ -423,14 +454,22 @@ impl History {
     pub fn laps(&self, f: &Frame) -> Laps {
         let (best, best_lap) = best_of(&self.laps);
         let mut best_sectors = vec![0.0f32; SECTORS];
-        for l in self.laps.iter().filter(|l| l.valid && l.sectors.len() == SECTORS) {
+        for l in self
+            .laps
+            .iter()
+            .filter(|l| l.valid && l.sectors.len() == SECTORS)
+        {
             for (i, v) in l.sectors.iter().enumerate() {
                 if *v > 0.0 && (best_sectors[i] == 0.0 || *v < best_sectors[i]) {
                     best_sectors[i] = *v;
                 }
             }
         }
-        let optimal = if best_sectors.iter().all(|x| *x > 0.0) { best_sectors.iter().sum() } else { 0.0 };
+        let optimal = if best_sectors.iter().all(|x| *x > 0.0) {
+            best_sectors.iter().sum()
+        } else {
+            0.0
+        };
         let start = self.laps.len().saturating_sub(60);
         Laps {
             laps: self.laps[start..].to_vec(),
@@ -454,7 +493,11 @@ impl History {
                 let j = (i as isize + d).rem_euclid(TRACE_BINS as isize) as usize;
                 m = m.min(tr[j]);
             }
-            if m.is_finite() { m } else { 0.0 }
+            if m.is_finite() {
+                m
+            } else {
+                0.0
+            }
         };
         let here = ((f.lap_dist_pct.max(0.0) * TRACE_BINS as f32) as usize).min(TRACE_BINS - 1);
         Corners {
@@ -467,7 +510,11 @@ impl History {
                     pct: *i as f32 / TRACE_BINS as f32,
                     best: *v,
                     last: win(&self.last_trace, *i),
-                    current: if here > i + 4 { win(&self.cur_trace, *i) } else { 0.0 },
+                    current: if here > i + 4 {
+                        win(&self.cur_trace, *i)
+                    } else {
+                        0.0
+                    },
                 })
                 .collect(),
             best_lap: self.best_trace_lap,
@@ -481,7 +528,10 @@ impl History {
             list: self.incidents[start..].to_vec(),
             total: f.incidents,
             limit: s.incident_limit,
-            session_kind: s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default(),
+            session_kind: s
+                .session(f.session_num)
+                .map(|x| x.kind.clone())
+                .unwrap_or_default(),
         }
     }
 }
@@ -577,20 +627,40 @@ fn stamp(secs: i64) -> String {
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let y = if m <= 2 { y + 1 } else { y };
-    format!("{y:04}-{m:02}-{d:02}_{:02}-{:02}", rem / 3600, (rem % 3600) / 60)
+    format!(
+        "{y:04}-{m:02}-{d:02}_{:02}-{:02}",
+        rem / 3600,
+        (rem % 3600) / 60
+    )
 }
 
 pub fn summary_text(r: &SessionRecord) -> String {
     use crate::i18n::{tr, trf};
     let mut o = String::new();
-    o += &format!("SRTR Pitwall {}\n{}  ·  {}  ·  {}\n", tr("oturum özeti"), r.track, r.kind, r.car);
-    o += &format!("{}: {}\n\n", tr("Tarih (UTC)"), stamp((r.started / 1000) as i64).replace('_', " "));
+    o += &format!(
+        "SRTR Pitwall {}\n{}  ·  {}  ·  {}\n",
+        tr("oturum özeti"),
+        r.track,
+        r.kind,
+        r.car
+    );
+    o += &format!(
+        "{}: {}\n\n",
+        tr("Tarih (UTC)"),
+        stamp((r.started / 1000) as i64).replace('_', " ")
+    );
     if r.start_pos > 0 || r.finish_pos > 0 {
-        o += &trf("Başlangıç: P{0}   Bitiş: P{1} (sınıf)", &[&r.start_pos, &r.finish_pos]);
+        o += &trf(
+            "Başlangıç: P{0}   Bitiş: P{1} (sınıf)",
+            &[&r.start_pos, &r.finish_pos],
+        );
         o += "\n";
     }
     let valid = r.laps.iter().filter(|l| l.valid && !l.pit).count();
-    o += &trf("Tur: {0}  (geçerli {1})   En iyi: {2}", &[&r.laps.len(), &valid, &fmt_time(r.best)]);
+    o += &trf(
+        "Tur: {0}  (geçerli {1})   En iyi: {2}",
+        &[&r.laps.len(), &valid, &fmt_time(r.best)],
+    );
     o += "\n";
     let total_inc: i32 = r.incidents.iter().map(|i| i.delta).sum();
     o += &trf("Olay: {0}x", &[&total_inc]);
@@ -599,15 +669,28 @@ pub fn summary_text(r: &SessionRecord) -> String {
         o += &format!("{}\n", tr("TURLAR"));
         let (fuel, invalid, pit) = (tr("yakıt"), tr("geçersiz"), tr("pit"));
         for l in &r.laps {
-            let sec = l.sectors.iter().map(|s| format!("{s:.3}")).collect::<Vec<_>>().join(" / ");
+            let sec = l
+                .sectors
+                .iter()
+                .map(|s| format!("{s:.3}"))
+                .collect::<Vec<_>>()
+                .join(" / ");
             o += &format!(
                 "  {:>3}  {:>9}  {:<26} {fuel} {:.2} L{}{}\n",
                 l.lap,
                 fmt_time(l.time),
                 sec,
                 l.fuel,
-                if l.valid { String::new() } else { format!("  {invalid}") },
-                if l.pit { format!("  {pit}") } else { String::new() }
+                if l.valid {
+                    String::new()
+                } else {
+                    format!("  {invalid}")
+                },
+                if l.pit {
+                    format!("  {pit}")
+                } else {
+                    String::new()
+                }
             );
         }
         o += "\n";
@@ -616,7 +699,14 @@ pub fn summary_text(r: &SessionRecord) -> String {
         o += &format!("{}\n", tr("OLAYLAR"));
         let (lap, total) = (tr("Tur"), tr("toplam"));
         for i in &r.incidents {
-            o += &format!("  {lap} {:>3}  S{}  +{}x  {}  ({total} {}x)\n", i.lap, i.sector, i.delta, tr(&i.kind), i.total);
+            o += &format!(
+                "  {lap} {:>3}  S{}  +{}x  {}  ({total} {}x)\n",
+                i.lap,
+                i.sector,
+                i.delta,
+                tr(&i.kind),
+                i.total
+            );
         }
         o += "\n";
     }
@@ -667,7 +757,10 @@ fn json_files(dir: &Path) -> Vec<(PathBuf, std::time::SystemTime)> {
             rd.filter_map(|e| e.ok())
                 .filter(|e| e.path().extension().map(|x| x == "json").unwrap_or(false))
                 .map(|e| {
-                    let m = e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH);
+                    let m = e
+                        .metadata()
+                        .and_then(|m| m.modified())
+                        .unwrap_or(std::time::UNIX_EPOCH);
                     (e.path(), m)
                 })
                 .collect()
@@ -697,7 +790,11 @@ pub fn info(dir: &Path) -> SessionsInfo {
             })
         })
         .collect();
-    SessionsInfo { count: files.len(), dir: dir.to_string_lossy().into(), recent }
+    SessionsInfo {
+        count: files.len(),
+        dir: dir.to_string_lossy().into(),
+        recent,
+    }
 }
 
 /// `days` günden eski ya da en yeni `keep` dışındakileri siler (`all` hepsini).
@@ -706,7 +803,11 @@ pub fn prune(dir: &Path, days: u32, keep: usize, all: bool) -> usize {
     let now = std::time::SystemTime::now();
     let mut n = 0;
     for (i, (p, m)) in files.iter().enumerate() {
-        let old = days > 0 && now.duration_since(*m).map(|d| d.as_secs() > days as u64 * 86_400).unwrap_or(false);
+        let old = days > 0
+            && now
+                .duration_since(*m)
+                .map(|d| d.as_secs() > days as u64 * 86_400)
+                .unwrap_or(false);
         let over = keep > 0 && i >= keep;
         if all || old || over {
             let _ = std::fs::remove_file(p);
@@ -727,7 +828,8 @@ mod tests {
         let tr: Vec<f32> = (0..TRACE_BINS)
             .map(|i| {
                 let x = i as f32 / TRACE_BINS as f32;
-                70.0 - 40.0 * (-((x - 0.25) * 30.0).powi(2)).exp() - 30.0 * (-((x - 0.7) * 30.0).powi(2)).exp()
+                70.0 - 40.0 * (-((x - 0.25) * 30.0).powi(2)).exp()
+                    - 30.0 * (-((x - 0.7) * 30.0).powi(2)).exp()
             })
             .collect();
         let c = find_corners(&tr);
@@ -753,7 +855,16 @@ mod tests {
             track_config: String::new(),
             car: "Porsche 911 GT3 R".into(),
             kind: "Race".into(),
-            laps: vec![LapRec { lap: 1, time: 138.2, sectors: vec![40.0, 50.0, 48.2], fuel: 3.1, inc: 0, valid: true, pit: false, session_time: 140.0 }],
+            laps: vec![LapRec {
+                lap: 1,
+                time: 138.2,
+                sectors: vec![40.0, 50.0, 48.2],
+                fuel: 3.1,
+                inc: 0,
+                valid: true,
+                pit: false,
+                session_time: 140.0,
+            }],
             incidents: vec![],
             results: vec![],
             best: 138.2,
@@ -806,7 +917,11 @@ mod tests {
         assert!(l.laps[0].valid);
         assert!(!l.laps[1].valid);
         assert_eq!(l.laps[0].sectors.len(), 3);
-        assert!((l.laps[0].sectors[0] - 33.4).abs() < 0.2, "{:?}", l.laps[0].sectors);
+        assert!(
+            (l.laps[0].sectors[0] - 33.4).abs() < 0.2,
+            "{:?}",
+            l.laps[0].sectors
+        );
         assert!((l.laps[0].fuel - 2.0).abs() < 0.01);
         let inc = h.incidents(&f, &s);
         assert_eq!(inc.list.len(), 1);

@@ -48,7 +48,8 @@ pub fn optional(key: &str) -> bool {
         let n = n.strip_suffix("seconds").unwrap_or(n);
         if let Some((a, b)) = n.split_once("point") {
             // "point5" tek başına zorunlu; "1point5", "point5seconds" isteğe bağlı
-            return (digits(a) && b.len() == 1 && digits(b)) || (a.is_empty() && key.ends_with("seconds") && digits(b));
+            return (digits(a) && b.len() == 1 && digits(b))
+                || (a.is_empty() && key.ends_with("seconds") && digits(b));
         }
         if let Some((a, b)) = n.split_once('_') {
             return digits(a) && b.len() == 2 && digits(b);
@@ -66,7 +67,10 @@ fn is_audio(p: &Path) -> bool {
 }
 
 fn ext_of(p: &Path) -> String {
-    p.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase()
+    p.extension()
+        .and_then(|x| x.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase()
 }
 
 fn subdirs(p: &Path) -> Vec<String> {
@@ -84,7 +88,12 @@ fn subdirs(p: &Path) -> Vec<String> {
 
 fn files_in(p: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(p)
-        .map(|rd| rd.flatten().map(|e| e.path()).filter(|p| p.is_file()).collect())
+        .map(|rd| {
+            rd.flatten()
+                .map(|e| e.path())
+                .filter(|p| p.is_file())
+                .collect()
+        })
         .unwrap_or_default();
     v.sort();
     v
@@ -92,7 +101,11 @@ fn files_in(p: &Path) -> Vec<PathBuf> {
 
 /// Sistem dosyaları (sessizce yok sayılır)
 fn ignorable(p: &Path) -> bool {
-    let n = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_ascii_lowercase();
+    let n = p
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     n == "desktop.ini" || n == "thumbs.db" || n == ".ds_store" || n.starts_with("._")
 }
 
@@ -318,13 +331,21 @@ pub fn make_template(out_dir: &Path, language: &str) -> Result<TemplateResult, S
             version: "1".into(),
             format: "wav".into(),
         };
-        std::fs::write(&pj, serde_json::to_string_pretty(&meta).unwrap_or_default()).map_err(io_err)?;
+        std::fs::write(&pj, serde_json::to_string_pretty(&meta).unwrap_or_default())
+            .map_err(io_err)?;
     }
-    Ok(TemplateResult { path: root.display().to_string(), phrases, optional: opt })
+    Ok(TemplateResult {
+        path: root.display().to_string(),
+        phrases,
+        optional: opt,
+    })
 }
 
 #[tauri::command]
-pub async fn voice_pack_template(out_dir: String, language: String) -> Result<TemplateResult, String> {
+pub async fn voice_pack_template(
+    out_dir: String,
+    language: String,
+) -> Result<TemplateResult, String> {
     tauri::async_runtime::spawn_blocking(move || make_template(Path::new(&out_dir), &language))
         .await
         .map_err(|e| e.to_string())?
@@ -411,14 +432,20 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
     let mut cats: BTreeMap<String, CatReport> = BTreeMap::new();
     for e in cat.iter().filter(|e| e.used) {
         let (c, _) = e.key.split_once('/').unwrap_or((&e.key, ""));
-        let r = cats.entry(c.to_string()).or_insert_with(|| CatReport { name: c.to_string(), ..Default::default() });
+        let r = cats.entry(c.to_string()).or_insert_with(|| CatReport {
+            name: c.to_string(),
+            ..Default::default()
+        });
         if optional(&e.key) {
             r.optional += 1;
         } else {
             r.required += 1;
         }
     }
-    let mut rep = CheckReport { root: root.display().to_string(), ..Default::default() };
+    let mut rep = CheckReport {
+        root: root.display().to_string(),
+        ..Default::default()
+    };
     if root.join("pack.json").is_file() {
         rep.meta = Some(voicepack::read_meta(&root));
     }
@@ -427,13 +454,17 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
     let mut empty_unused = 0usize;
     for c in subdirs(&root) {
         let cdir = root.join(&c);
-        let known_cat = cats.contains_key(&c) || cat.iter().any(|e| e.key.starts_with(&format!("{c}/")));
+        let known_cat =
+            cats.contains_key(&c) || cat.iter().any(|e| e.key.starts_with(&format!("{c}/")));
         if !known_cat {
             rep.extra_categories.push(c.clone());
         }
         for f in files_in(&cdir) {
             if !ignorable(&f) && !is_text(&f) {
-                rep.invalid.push(format!("{c}/{}: ifade klasörünün dışında dosya", f.file_name().unwrap_or_default().to_string_lossy()));
+                rep.invalid.push(format!(
+                    "{c}/{}: ifade klasörünün dışında dosya",
+                    f.file_name().unwrap_or_default().to_string_lossy()
+                ));
             }
         }
         for ph in subdirs(&cdir) {
@@ -441,15 +472,25 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
             let pdir = cdir.join(&ph);
             let mut n = 0;
             for f in files_in(&pdir) {
-                let name = f.file_name().unwrap_or_default().to_string_lossy().into_owned();
+                let name = f
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
                 if ignorable(&f) || is_text(&f) {
                     continue;
                 }
                 if !is_audio(&f) {
-                    rep.invalid.push(format!("{key}/{name}: desteklenmeyen dosya (sadece .wav / .ogg)"));
+                    rep.invalid.push(format!(
+                        "{key}/{name}: desteklenmeyen dosya (sadece .wav / .ogg)"
+                    ));
                     continue;
                 }
-                let bad = if ext_of(&f) == "wav" { check_wav(&f, &mut st) } else { check_ogg(&f) };
+                let bad = if ext_of(&f) == "wav" {
+                    check_wav(&f, &mut st)
+                } else {
+                    check_ogg(&f)
+                };
                 if let Some(b) = bad {
                     rep.invalid.push(format!("{key}/{name}: {b}"));
                     continue;
@@ -457,7 +498,9 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
                 n += 1;
             }
             for sub in subdirs(&pdir) {
-                rep.invalid.push(format!("{key}/{sub}/: fazladan alt klasör (kayıtlar doğrudan ifade klasöründe olmalı)"));
+                rep.invalid.push(format!(
+                    "{key}/{sub}/: fazladan alt klasör (kayıtlar doğrudan ifade klasöründe olmalı)"
+                ));
             }
             rep.files += n;
             let used = known.get(key.as_str()).map(|e| e.used).unwrap_or(false);
@@ -470,7 +513,10 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
             present.insert(key.clone());
             rep.recorded_keys.push(key.clone());
             if !used {
-                let r = cats.entry(c.clone()).or_insert_with(|| CatReport { name: c.clone(), ..Default::default() });
+                let r = cats.entry(c.clone()).or_insert_with(|| CatReport {
+                    name: c.clone(),
+                    ..Default::default()
+                });
                 r.extra.push(key);
             }
         }
@@ -495,7 +541,9 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
     rep.categories = cats.into_values().collect();
     // Uyarılar
     if empty_unused > 0 {
-        rep.warnings.push(format!("{empty_unused} boş klasör mühendisin kullanmadığı ifadelere ait (sorun değil)."));
+        rep.warnings.push(format!(
+            "{empty_unused} boş klasör mühendisin kullanmadığı ifadelere ait (sorun değil)."
+        ));
     }
     let odd: Vec<String> = st
         .rates
@@ -504,19 +552,33 @@ pub fn check(dir: &Path) -> Result<CheckReport, String> {
         .map(|(r, n)| format!("{r} Hz ({n})"))
         .collect();
     if !odd.is_empty() {
-        rep.warnings.push(format!("Alışılmadık örnekleme hızı: {} — 44.1 kHz ya da 48 kHz önerilir.", odd.join(", ")));
+        rep.warnings.push(format!(
+            "Alışılmadık örnekleme hızı: {} — 44.1 kHz ya da 48 kHz önerilir.",
+            odd.join(", ")
+        ));
     }
     if st.rates.len() > 1 {
-        let all: Vec<String> = st.rates.iter().map(|(r, n)| format!("{r} Hz × {n}")).collect();
-        rep.warnings.push(format!("Kayıtlar farklı örnekleme hızlarında: {}.", all.join(", ")));
+        let all: Vec<String> = st
+            .rates
+            .iter()
+            .map(|(r, n)| format!("{r} Hz × {n}"))
+            .collect();
+        rep.warnings.push(format!(
+            "Kayıtlar farklı örnekleme hızlarında: {}.",
+            all.join(", ")
+        ));
     }
     if st.stereo > 0 {
-        rep.warnings.push(format!("{} kayıt stereo; paket oluşturulurken OGG dönüşümü açıksa mono yapılır.", st.stereo));
+        rep.warnings.push(format!(
+            "{} kayıt stereo; paket oluşturulurken OGG dönüşümü açıksa mono yapılır.",
+            st.stereo
+        ));
     }
     if rep.invalid.len() > 500 {
         let n = rep.invalid.len();
         rep.invalid.truncate(500);
-        rep.warnings.push(format!("{n} hatalı dosyanın ilk 500 tanesi gösteriliyor."));
+        rep.warnings
+            .push(format!("{n} hatalı dosyanın ilk 500 tanesi gösteriliyor."));
     }
     Ok(rep)
 }
@@ -578,7 +640,10 @@ pub fn wav_to_ogg(path: &Path, serial: i32) -> Result<Vec<u8>, String> {
     let spec = r.spec();
     let ch = spec.channels.max(1) as usize;
     let inter: Vec<f32> = match spec.sample_format {
-        hound::SampleFormat::Float => r.samples::<f32>().collect::<Result<_, _>>().map_err(|e| e.to_string())?,
+        hound::SampleFormat::Float => r
+            .samples::<f32>()
+            .collect::<Result<_, _>>()
+            .map_err(|e| e.to_string())?,
         hound::SampleFormat::Int if spec.bits_per_sample <= 16 => {
             let scale = 1.0 / (1u32 << (spec.bits_per_sample.max(1) - 1)) as f32;
             r.samples::<i16>()
@@ -604,10 +669,17 @@ pub fn wav_to_ogg(path: &Path, serial: i32) -> Result<Vec<u8>, String> {
     let rate = std::num::NonZeroU32::new(spec.sample_rate).ok_or("geçersiz örnekleme hızı")?;
     let mut out = Vec::with_capacity(mono.len() / 8);
     {
-        let mut enc = vorbis_rs::VorbisEncoderBuilder::new_with_serial(rate, std::num::NonZeroU8::new(1).unwrap(), &mut out, serial)
-            .bitrate_management_strategy(vorbis_rs::VorbisBitrateManagementStrategy::QualityVbr { target_quality: 0.4 })
-            .build()
-            .map_err(|e| e.to_string())?;
+        let mut enc = vorbis_rs::VorbisEncoderBuilder::new_with_serial(
+            rate,
+            std::num::NonZeroU8::new(1).unwrap(),
+            &mut out,
+            serial,
+        )
+        .bitrate_management_strategy(vorbis_rs::VorbisBitrateManagementStrategy::QualityVbr {
+            target_quality: 0.4,
+        })
+        .build()
+        .map_err(|e| e.to_string())?;
         for block in mono.chunks(4096) {
             enc.encode_audio_block([block]).map_err(|e| e.to_string())?;
         }
@@ -638,7 +710,8 @@ pub fn build(
     if !lang_ok(meta.language.trim()) {
         return Err("Geçersiz dil kodu (ör. de, fr, pt-BR)".into());
     }
-    let root = voicepack::find_root(src).ok_or("Klasörde ses paketi düzeni bulunamadı (spotter, numbers… klasörleri)")?;
+    let root = voicepack::find_root(src)
+        .ok_or("Klasörde ses paketi düzeni bulunamadı (spotter, numbers… klasörleri)")?;
     if out_path.starts_with(&root) {
         return Err("Zip dosyasını paket klasörünün dışına kaydet".into());
     }
@@ -656,7 +729,11 @@ pub fn build(
             let pdir = cdir.join(&ph);
             let mut n = 0;
             for f in files_in(&pdir) {
-                let name = f.file_name().unwrap_or_default().to_string_lossy().into_owned();
+                let name = f
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
                 if ignorable(&f) {
                     continue;
                 }
@@ -669,15 +746,27 @@ pub fn build(
                     continue;
                 }
                 let conv = convert && ext_of(&f) == "wav";
-                let stem = f.file_stem().unwrap_or_default().to_string_lossy().into_owned();
-                let out_name = if conv { format!("{stem}.ogg") } else { name.clone() };
+                let stem = f
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
+                let out_name = if conv {
+                    format!("{stem}.ogg")
+                } else {
+                    name.clone()
+                };
                 let out = format!("{c}/{ph}/{out_name}");
                 if !taken.insert(out.to_ascii_lowercase()) {
                     dup += 1;
                     continue;
                 }
                 input_bytes += f.metadata().map(|m| m.len()).unwrap_or(0);
-                jobs.push(Job { out, src: f, convert: conv });
+                jobs.push(Job {
+                    out,
+                    src: f,
+                    convert: conv,
+                });
                 n += 1;
             }
             if n == 0 {
@@ -689,11 +778,23 @@ pub fn build(
     }
     // Kök ve kategori düzeyindeki metinler (README, OKUBENI)
     for f in files_in(&root).into_iter().filter(|f| is_text(f)) {
-        texts.push((f.file_name().unwrap_or_default().to_string_lossy().into_owned(), f));
+        texts.push((
+            f.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+            f,
+        ));
     }
     for c in subdirs(&root) {
         for f in files_in(&root.join(&c)).into_iter().filter(|f| is_text(f)) {
-            texts.push((format!("{c}/{}", f.file_name().unwrap_or_default().to_string_lossy()), f));
+            texts.push((
+                format!(
+                    "{c}/{}",
+                    f.file_name().unwrap_or_default().to_string_lossy()
+                ),
+                f,
+            ));
         }
     }
     if jobs.is_empty() {
@@ -703,15 +804,23 @@ pub fn build(
         warnings.push(format!("{empty} ifade klasörü boş (pakete eklenmedi)."));
     }
     if unsupported > 0 {
-        warnings.push(format!("{unsupported} desteklenmeyen dosya atlandı (sadece .wav / .ogg)."));
+        warnings.push(format!(
+            "{unsupported} desteklenmeyen dosya atlandı (sadece .wav / .ogg)."
+        ));
     }
     if dup > 0 {
-        warnings.push(format!("{dup} kayıt aynı adda başka bir kayıtla çakıştığı için atlandı (ör. 1.wav ve 1.ogg)."));
+        warnings.push(format!(
+            "{dup} kayıt aynı adda başka bir kayıtla çakıştığı için atlandı (ör. 1.wav ve 1.ogg)."
+        ));
     }
 
     let total = jobs.len();
-    let any_wav_left = jobs.iter().any(|j| !j.convert && j.out.to_ascii_lowercase().ends_with(".wav"));
-    let any_ogg = jobs.iter().any(|j| j.convert || j.out.to_ascii_lowercase().ends_with(".ogg"));
+    let any_wav_left = jobs
+        .iter()
+        .any(|j| !j.convert && j.out.to_ascii_lowercase().ends_with(".wav"));
+    let any_ogg = jobs
+        .iter()
+        .any(|j| j.convert || j.out.to_ascii_lowercase().ends_with(".ogg"));
     let format = match (any_wav_left, any_ogg) {
         (true, true) => "mixed",
         (false, true) => "ogg",
@@ -722,7 +831,11 @@ pub fn build(
         name: meta.name.trim().to_string(),
         language: meta.language.trim().to_string(),
         author: meta.author.trim().to_string(),
-        version: if meta.version.trim().is_empty() { "1".into() } else { meta.version.trim().to_string() },
+        version: if meta.version.trim().is_empty() {
+            "1".into()
+        } else {
+            meta.version.trim().to_string()
+        },
         format: format.into(),
     };
 
@@ -740,17 +853,28 @@ pub fn build(
         .large_file(true);
 
     let result = (|| -> Result<(usize, usize), String> {
-        zw.start_file("pack.json", deflate).map_err(|e| e.to_string())?;
-        zw.write_all(serde_json::to_string_pretty(&pack).unwrap_or_default().as_bytes()).map_err(io_err)?;
+        zw.start_file("pack.json", deflate)
+            .map_err(|e| e.to_string())?;
+        zw.write_all(
+            serde_json::to_string_pretty(&pack)
+                .unwrap_or_default()
+                .as_bytes(),
+        )
+        .map_err(io_err)?;
         for (name, p) in &texts {
             let data = std::fs::read(p).map_err(io_err)?;
-            zw.start_file(name.as_str(), deflate).map_err(|e| e.to_string())?;
+            zw.start_file(name.as_str(), deflate)
+                .map_err(|e| e.to_string())?;
             zw.write_all(&data).map_err(io_err)?;
         }
         // Dönüştürme paralel; zip'e yazma bu iş parçacığında
-        let workers = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).clamp(1, 12);
+        let workers = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4)
+            .clamp(1, 12);
         let next = AtomicUsize::new(0);
-        let (tx, rx) = std::sync::mpsc::sync_channel::<(usize, Result<Vec<u8>, String>, bool)>(workers * 2);
+        let (tx, rx) =
+            std::sync::mpsc::sync_channel::<(usize, Result<Vec<u8>, String>, bool)>(workers * 2);
         let jobs_ref = &jobs;
         let mut converted = 0usize;
         let mut failed: Vec<String> = Vec::new();
@@ -794,14 +918,22 @@ pub fn build(
                 let j = &jobs_ref[i];
                 match data {
                     Ok(d) => {
-                        let opt = if j.out.to_ascii_lowercase().ends_with(".ogg") { stored } else { deflate };
-                        zw.start_file(j.out.as_str(), opt).map_err(|e| e.to_string())?;
+                        let opt = if j.out.to_ascii_lowercase().ends_with(".ogg") {
+                            stored
+                        } else {
+                            deflate
+                        };
+                        zw.start_file(j.out.as_str(), opt)
+                            .map_err(|e| e.to_string())?;
                         zw.write_all(&d).map_err(io_err)?;
                         if was_conv {
                             converted += 1;
                         }
                     }
-                    Err(e) => failed.push(format!("{}: {e}", j.src.strip_prefix(&root).unwrap_or(&j.src).display())),
+                    Err(e) => failed.push(format!(
+                        "{}: {e}",
+                        j.src.strip_prefix(&root).unwrap_or(&j.src).display()
+                    )),
                 }
                 done += 1;
                 if last.elapsed() >= Duration::from_millis(150) {
@@ -818,7 +950,9 @@ pub fn build(
         let n = failed.len();
         if n > 0 {
             let list = failed.into_iter().take(10).collect::<Vec<_>>().join("; ");
-            warnings.push(format!("{n} kayıt okunamadı / dönüştürülemedi ve pakete eklenmedi: {list}"));
+            warnings.push(format!(
+                "{n} kayıt okunamadı / dönüştürülemedi ve pakete eklenmedi: {list}"
+            ));
         }
         Ok((converted, n))
     })();
@@ -874,17 +1008,48 @@ pub async fn voice_pack_build(
     let app2 = app.clone();
     let res = tauri::async_runtime::spawn_blocking(move || {
         let emit = |done: usize, total: usize, stage: &'static str| {
-            let _ = app2.emit("voicepack-build-progress", BuildProgress { done, total, stage, error: None });
+            let _ = app2.emit(
+                "voicepack-build-progress",
+                BuildProgress {
+                    done,
+                    total,
+                    stage,
+                    error: None,
+                },
+            );
         };
-        build(Path::new(&src_dir), Path::new(&out_path), &meta, convert, &cancel, &emit)
+        build(
+            Path::new(&src_dir),
+            Path::new(&out_path),
+            &meta,
+            convert,
+            &cancel,
+            &emit,
+        )
     })
     .await
     .map_err(|e| e.to_string())
     .and_then(|r| r);
     cancel_done(BUILD_ID);
     let _ = match &res {
-        Ok(_) => app.emit("voicepack-build-progress", BuildProgress { done: 1, total: 1, stage: "done", error: None }),
-        Err(e) => app.emit("voicepack-build-progress", BuildProgress { done: 0, total: 0, stage: "error", error: Some(e.clone()) }),
+        Ok(_) => app.emit(
+            "voicepack-build-progress",
+            BuildProgress {
+                done: 1,
+                total: 1,
+                stage: "done",
+                error: None,
+            },
+        ),
+        Err(e) => app.emit(
+            "voicepack-build-progress",
+            BuildProgress {
+                done: 0,
+                total: 0,
+                stage: "error",
+                error: Some(e.clone()),
+            },
+        ),
     };
     res
 }
@@ -895,23 +1060,47 @@ mod tests {
 
     #[test]
     fn optional_keys() {
-        for k in ["numbers/1point5", "numbers/12point3", "numbers/1point5seconds", "numbers/point3seconds", "numbers/1_23", "position/p5"] {
+        for k in [
+            "numbers/1point5",
+            "numbers/12point3",
+            "numbers/1point5seconds",
+            "numbers/point3seconds",
+            "numbers/1_23",
+            "position/p5",
+        ] {
             assert!(optional(k), "{k}");
         }
-        for k in ["numbers/5", "numbers/05", "numbers/point5", "numbers/seconds", "numbers/hundred", "spotter/car_left", "position/leader"] {
+        for k in [
+            "numbers/5",
+            "numbers/05",
+            "numbers/point5",
+            "numbers/seconds",
+            "numbers/hundred",
+            "spotter/car_left",
+            "position/leader",
+        ] {
             assert!(!optional(k), "{k}");
         }
         // Katalogdaki zorunlu sayılar: 0-99, 01-09, point0-9 ve birkaç kelime
-        let req = catalog().into_iter().filter(|e| e.used && e.key.starts_with("numbers/") && !optional(&e.key)).count();
+        let req = catalog()
+            .into_iter()
+            .filter(|e| e.used && e.key.starts_with("numbers/") && !optional(&e.key))
+            .count();
         assert!((110..=140).contains(&req), "{req}");
     }
 
     fn write_wav(p: &Path, rate: u32, ch: u16, secs: f32) {
-        let spec = hound::WavSpec { channels: ch, sample_rate: rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+        let spec = hound::WavSpec {
+            channels: ch,
+            sample_rate: rate,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
         let mut w = hound::WavWriter::create(p, spec).unwrap();
         let n = (rate as f32 * secs) as usize;
         for i in 0..n {
-            let v = ((i as f32 * 440.0 * 2.0 * std::f32::consts::PI / rate as f32).sin() * 12000.0) as i16;
+            let v = ((i as f32 * 440.0 * 2.0 * std::f32::consts::PI / rate as f32).sin() * 12000.0)
+                as i16;
             for _ in 0..ch {
                 w.write_sample(v).unwrap();
             }
@@ -957,19 +1146,34 @@ mod tests {
         // Paket oluştur (OGG)
         std::fs::remove_file(root.join("numbers/7/1.wav")).unwrap();
         let out = dir.join("out").join("de-test.zip");
-        let meta = BuildMeta { id: "de-test".into(), name: "Test".into(), language: "de".into(), author: "A".into(), version: "2".into() };
+        let meta = BuildMeta {
+            id: "de-test".into(),
+            name: "Test".into(),
+            language: "de".into(),
+            author: "A".into(),
+            version: "2".into(),
+        };
         let cancel = AtomicBool::new(false);
         let b = build(&root, &out, &meta, true, &cancel, &|_, _, _| {}).unwrap();
         assert_eq!((b.files, b.converted, b.phrases), (4, 4, 3));
         assert!(b.size > 0 && b.sha256.len() == 64);
         let s = crate::voicepack_dl::scan_zip(&out).unwrap();
-        assert_eq!((s.prefix.as_str(), s.files, s.format.as_str()), ("", 4, "ogg"));
-        assert_eq!((s.meta.id.as_str(), s.meta.version.as_str()), ("de-test", "2"));
+        assert_eq!(
+            (s.prefix.as_str(), s.files, s.format.as_str()),
+            ("", 4, "ogg")
+        );
+        assert_eq!(
+            (s.meta.id.as_str(), s.meta.version.as_str()),
+            ("de-test", "2")
+        );
         // OGG kodlanmış kayıt rodio (lewton) ile çözülebilmeli
         let f = std::fs::File::open(&out).unwrap();
         let mut z = zip::ZipArchive::new(f).unwrap();
         let mut data = Vec::new();
-        z.by_name("spotter/car_left/1.ogg").unwrap().read_to_end(&mut data).unwrap();
+        z.by_name("spotter/car_left/1.ogg")
+            .unwrap()
+            .read_to_end(&mut data)
+            .unwrap();
         assert_eq!(&data[..4], b"OggS");
         let dec = rodio::Decoder::new(std::io::Cursor::new(data)).unwrap();
         use rodio::Source;

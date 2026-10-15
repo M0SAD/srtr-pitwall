@@ -24,7 +24,8 @@ function createModel(props: OverlayProps) {
   const gp = useTopic("gaps");
   const o = () => props.options;
   const sample = () => props.editing && !(gp()?.cars.length && st()?.rows.some((r) => r.isMe));
-  const rows = () => (sample() ? SAMPLE_ROWS : st()?.rows);
+  // Garajdakiler (pistte değil) hedef olamaz
+  const rows = () => (sample() ? SAMPLE_ROWS : st()?.rows.filter((r) => r.pitState !== "GAR"));
   const gaps = () => (sample() ? SAMPLE_GAPS : gp());
   const mode = (): RivalMode => (MODES.includes(o().mode as RivalMode) ? (o().mode as RivalMode) : "ahead");
   const fields = createMemo(() => new Set<string>(Array.isArray(o().fields) ? (o().fields as string[]) : TARGET_DEFAULT_FIELDS));

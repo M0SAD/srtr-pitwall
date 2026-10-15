@@ -61,7 +61,9 @@ fn percent_decode(s: &str) -> String {
 
 /// Yapıştırılan linki düzeltir: kodlanmış harfleri çözer, tırnak/<> ve sondaki / işaretini atar.
 pub fn clean_link(token: &str) -> String {
-    let t = token.trim().trim_matches(|c| c == '<' || c == '>' || c == '"' || c == '\'');
+    let t = token
+        .trim()
+        .trim_matches(|c| c == '<' || c == '>' || c == '"' || c == '\'');
     percent_decode(t).trim().trim_end_matches('/').to_string()
 }
 
@@ -83,9 +85,15 @@ fn take_ident(s: &str, dot: bool) -> &str {
 /// (host küçük harf, "www."/"m." atılmış ; yol ; sorgu)
 fn split_url(url: &str) -> Option<(String, String, String)> {
     let mut rest = url.trim();
-    if rest.get(..8).is_some_and(|p| p.eq_ignore_ascii_case("https://")) {
+    if rest
+        .get(..8)
+        .is_some_and(|p| p.eq_ignore_ascii_case("https://"))
+    {
         rest = &rest[8..];
-    } else if rest.get(..7).is_some_and(|p| p.eq_ignore_ascii_case("http://")) {
+    } else if rest
+        .get(..7)
+        .is_some_and(|p| p.eq_ignore_ascii_case("http://"))
+    {
         rest = &rest[7..];
     }
     let (host, after) = match rest.find(|c| c == '/' || c == '?' || c == '#') {
@@ -106,7 +114,11 @@ fn split_url(url: &str) -> Option<(String, String, String)> {
         Some(i) => (&after[..i], &after[i + 1..]),
         None => (after, ""),
     };
-    Some((host, path.trim_start_matches('/').to_string(), query.to_string()))
+    Some((
+        host,
+        path.trim_start_matches('/').to_string(),
+        query.to_string(),
+    ))
 }
 
 fn query_get<'a>(q: &'a str, key: &str) -> Option<&'a str> {
@@ -124,7 +136,9 @@ pub fn youtube_video_id(url: &str) -> Option<String> {
     } else if host == "youtube.com" {
         let (first, rest) = path.split_once('/').unwrap_or((path.as_str(), ""));
         match first.to_ascii_lowercase().as_str() {
-            "watch" => query_get(&query, "v").map(|v| take_ident(v, false)).unwrap_or(""),
+            "watch" => query_get(&query, "v")
+                .map(|v| take_ident(v, false))
+                .unwrap_or(""),
             "live" | "embed" | "shorts" => take_ident(rest, false),
             _ => "",
         }
@@ -168,11 +182,26 @@ fn simple_channel(url: &str, host_want: &str, excluded: &[&str]) -> Option<Strin
 }
 
 pub fn twitch_channel(url: &str) -> Option<String> {
-    simple_channel(url, "twitch.tv", &["videos", "directory", "settings", "downloads", "p", "search"])
+    simple_channel(
+        url,
+        "twitch.tv",
+        &[
+            "videos",
+            "directory",
+            "settings",
+            "downloads",
+            "p",
+            "search",
+        ],
+    )
 }
 
 pub fn kick_channel(url: &str) -> Option<String> {
-    simple_channel(url, "kick.com", &["categories", "browse", "following", "search", "video"])
+    simple_channel(
+        url,
+        "kick.com",
+        &["categories", "browse", "following", "search", "video"],
+    )
 }
 
 /// Linki tanır (tanınmazsa None)
@@ -217,11 +246,25 @@ pub fn parse_link(raw: &str) -> Option<Link> {
     }
     if low.contains("twitch.tv") {
         let ch = twitch_channel(&url)?;
-        return Some(Link { platform: Platform::Twitch, key: format!("twitch:{}", ch.to_lowercase()), label: ch.clone(), ident: ch, yt: None, url });
+        return Some(Link {
+            platform: Platform::Twitch,
+            key: format!("twitch:{}", ch.to_lowercase()),
+            label: ch.clone(),
+            ident: ch,
+            yt: None,
+            url,
+        });
     }
     if low.contains("kick.com") {
         let ch = kick_channel(&url)?;
-        return Some(Link { platform: Platform::Kick, key: format!("kick:{}", ch.to_lowercase()), label: ch.clone(), ident: ch, yt: None, url });
+        return Some(Link {
+            platform: Platform::Kick,
+            key: format!("kick:{}", ch.to_lowercase()),
+            label: ch.clone(),
+            ident: ch,
+            yt: None,
+            url,
+        });
     }
     None
 }
@@ -270,7 +313,10 @@ mod tests {
         assert_eq!(l.platform, Platform::Youtube);
         assert_eq!(l.key, "youtube:handle:erkinazcan");
         assert_eq!(l.label, "@ErkinAzcan");
-        assert_eq!(youtube_live_page(&l).unwrap(), "https://www.youtube.com/@ErkinAzcan/live");
+        assert_eq!(
+            youtube_live_page(&l).unwrap(),
+            "https://www.youtube.com/@ErkinAzcan/live"
+        );
 
         let l = parse_link("youtube.com/@%C4%B0nanDemirel/").unwrap();
         assert_eq!(l.ident, "İnanDemirel");
@@ -281,17 +327,38 @@ mod tests {
 
         let l = parse_link("https://www.youtube.com/watch?feature=x&v=dQw4w9WgXcQ&t=1").unwrap();
         assert_eq!(l.key, "youtube:v:dQw4w9WgXcQ");
-        assert_eq!(parse_link("https://youtu.be/dQw4w9WgXcQ?si=1").unwrap().ident, "dQw4w9WgXcQ");
-        assert_eq!(parse_link("https://m.youtube.com/live/abcDEF12345").unwrap().ident, "abcDEF12345");
-        assert_eq!(parse_link("https://www.youtube.com/c/Foo.Bar/live").unwrap().key, "youtube:custom:foo.bar");
+        assert_eq!(
+            parse_link("https://youtu.be/dQw4w9WgXcQ?si=1")
+                .unwrap()
+                .ident,
+            "dQw4w9WgXcQ"
+        );
+        assert_eq!(
+            parse_link("https://m.youtube.com/live/abcDEF12345")
+                .unwrap()
+                .ident,
+            "abcDEF12345"
+        );
+        assert_eq!(
+            parse_link("https://www.youtube.com/c/Foo.Bar/live")
+                .unwrap()
+                .key,
+            "youtube:custom:foo.bar"
+        );
         assert!(parse_link("https://www.youtube.com/results?search_query=x").is_none());
     }
 
     #[test]
     fn twitch_kick_links() {
         let l = parse_link("https://www.twitch.tv/ErkinAzcan").unwrap();
-        assert_eq!((l.platform, l.key.as_str(), l.label.as_str()), (Platform::Twitch, "twitch:erkinazcan", "ErkinAzcan"));
-        assert_eq!(parse_link("twitch.tv/popout/foo_bar/chat").unwrap().ident, "foo_bar");
+        assert_eq!(
+            (l.platform, l.key.as_str(), l.label.as_str()),
+            (Platform::Twitch, "twitch:erkinazcan", "ErkinAzcan")
+        );
+        assert_eq!(
+            parse_link("twitch.tv/popout/foo_bar/chat").unwrap().ident,
+            "foo_bar"
+        );
         assert!(parse_link("https://www.twitch.tv/directory").is_none());
         let l = parse_link("https://kick.com/erkin-azcan").unwrap();
         assert_eq!(l.key, "kick:erkin-azcan");

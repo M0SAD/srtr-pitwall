@@ -16,7 +16,11 @@ pub fn set(strings: HashMap<String, String>) {
 
 /// Türkçe kaynak metnin karşılığı (yoksa kendisi)
 pub fn tr(key: &str) -> String {
-    table().lock().get(key).cloned().unwrap_or_else(|| key.to_string())
+    table()
+        .lock()
+        .get(key)
+        .cloned()
+        .unwrap_or_else(|| key.to_string())
 }
 
 /// `{0}`, `{1}` yer tutucularını doldurur
@@ -34,6 +38,9 @@ mod tests {
 
     #[test]
     fn fills() {
-        assert_eq!(trf("Port {0} açılamadı: {1}", &[&8910, &"x"]), "Port 8910 açılamadı: x");
+        assert_eq!(
+            trf("Port {0} açılamadı: {1}", &[&8910, &"x"]),
+            "Port 8910 açılamadı: x"
+        );
     }
 }

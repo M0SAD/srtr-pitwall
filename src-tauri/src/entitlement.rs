@@ -33,7 +33,10 @@ pub struct EntitlementState(pub Mutex<Option<Entitlement>>);
 const SALT: &str = "pitwall-ent-7c1e";
 
 fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 /// Basit bütünlük kontrolü (FNV-1a); dosyanın elle değiştirilmesini zorlaştırır.
@@ -47,13 +50,22 @@ fn sign(body: &str) -> String {
 }
 
 fn path(app: &AppHandle) -> Option<PathBuf> {
-    app.path().app_config_dir().ok().map(|d| d.join("entitlement.dat"))
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|d| d.join("entitlement.dat"))
 }
 
 fn load(app: &AppHandle) -> Entitlement {
-    let Some(p) = path(app) else { return Entitlement::default() };
-    let Ok(text) = std::fs::read_to_string(p) else { return Entitlement::default() };
-    let Some((sig, body)) = text.split_once('\n') else { return Entitlement::default() };
+    let Some(p) = path(app) else {
+        return Entitlement::default();
+    };
+    let Ok(text) = std::fs::read_to_string(p) else {
+        return Entitlement::default();
+    };
+    let Some((sig, body)) = text.split_once('\n') else {
+        return Entitlement::default();
+    };
     if sig.trim() != sign(body) {
         return Entitlement::default();
     }
@@ -61,7 +73,9 @@ fn load(app: &AppHandle) -> Entitlement {
 }
 
 fn save(app: &AppHandle, e: &Entitlement) {
-    let (Some(p), Ok(body)) = (path(app), serde_json::to_string(e)) else { return };
+    let (Some(p), Ok(body)) = (path(app), serde_json::to_string(e)) else {
+        return;
+    };
     if let Some(dir) = p.parent() {
         let _ = std::fs::create_dir_all(dir);
     }
@@ -79,7 +93,11 @@ pub fn current(app: &AppHandle) -> Entitlement {
 
 pub fn view(app: &AppHandle) -> EntitlementView {
     let e = current(app);
-    EntitlementView { pro: e.pro_until > now_ms(), pro_until: e.pro_until, locked: e.locked }
+    EntitlementView {
+        pro: e.pro_until > now_ms(),
+        pro_until: e.pro_until,
+        locked: e.locked,
+    }
 }
 
 #[tauri::command]

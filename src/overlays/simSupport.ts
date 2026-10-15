@@ -24,12 +24,16 @@
 //   Yanal / boyuna ivme (g)       ✓        ✓     ✓     ✓        ✓      (gforce; inputs konusunda latG / longG)
 //   Resmi sektör sınırları        ✓        ✓     ✓     ✓        ✓      (sectors; iRacing SplitTimeInfo, diğerleri sektör numarası; yoksa 3 eşit parça)
 //   Pist haritası (şekil kaydı)   ✓        ✓     ✓     ✓        ✓      (AC/ACC: haritada sadece oyuncu)
+//
+// RaceRoom (r3e) ve F1 23-25 (f1) tüm alanı verir (sıra, tur, konum / radar; R3E delta ve olay puanı, F1 ERS ve start
+// ışıkları). Forza, DiRT / GRID ve BeamNG (UDP) sadece oyuncunun aracını verir: rakip isteyen overlay'ler çalışmaz;
+// BeamNG (OutGauge) tur konumu da vermez.
 
 import { settings } from "@/sdk/settings";
 import type { Status } from "@/sdk/types";
 
 /** iRacing dışındaki sim aileleri (rF2 ile LMU aynı veri düzenini kullanır) */
-export type SimFamily = "iracing" | "acc" | "ac" | "lmu" | "ams2";
+export type SimFamily = "iracing" | "acc" | "ac" | "lmu" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng";
 
 export const SIM_NAMES: Record<SimFamily, string> = {
   iracing: "iRacing",
@@ -37,6 +41,11 @@ export const SIM_NAMES: Record<SimFamily, string> = {
   ac: "Assetto Corsa",
   lmu: "Le Mans Ultimate / rFactor 2",
   ams2: "Automobilista 2",
+  r3e: "RaceRoom",
+  f1: "F1 23 / F1 24 / F1 25",
+  forza: "Forza Motorsport / Horizon",
+  dirt: "DiRT Rally 2.0 / DiRT 4 / GRID",
+  beamng: "BeamNG.drive",
 };
 
 /**
@@ -59,51 +68,56 @@ export const SIM_NAMES: Record<SimFamily, string> = {
  */
 const UNSUPPORTED: Record<string, SimFamily[]> = {
   // Rakip araç listesi yok (AC/ACC paylaşımlı belleği sadece oyuncu aracını verir)
-  relative: ["ac", "acc"],
-  standings: ["ac", "acc"],
-  battlebox: ["ac", "acc"],
-  duel: ["ac", "acc"],
+  relative: ["ac", "acc", "forza", "dirt", "beamng"],
+  standings: ["ac", "acc", "forza", "dirt", "beamng"],
+  battlebox: ["ac", "acc", "forza", "dirt", "beamng"],
+  duel: ["ac", "acc", "forza", "dirt", "beamng"],
   // Fark Grafiği / Rakip Takibi: rakiplerin çizgi geçişleri gerekir (sectors her simde çalışır: AC/ACC'de sınıf
   // en iyisi = kendi en iyin)
-  gapchart: ["ac", "acc"],
-  target: ["ac", "acc"],
+  gapchart: ["ac", "acc", "forza", "dirt", "beamng"],
+  target: ["ac", "acc", "forza", "dirt", "beamng"],
   // Pit Penceresi: pit çıkışında aralarına dönülecek araçlar için rakip listesi gerekir
-  pitwindow: ["ac", "acc"],
+  pitwindow: ["ac", "acc", "forza", "dirt", "beamng"],
   // Sürücü Değişimi: aracı o an kimin sürdüğü iRacing (takım oturumu) ve LMU/rF2 (skorlamadaki sürücü adı) verisinden
   // izlenir; AC/ACC paylaşımlı belleği ve AMS2 takım sürücüsü bilgisini vermiyor
-  driverswap: ["ac", "acc", "ams2"],
-  flatmap: ["ac", "acc"], // düz şeritte tek nokta kalır
+  driverswap: ["ac", "acc", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
+  flatmap: ["ac", "acc", "forza", "dirt", "beamng"], // düz şeritte tek nokta kalır
   // Arkadaki araçları bilemediği için yanlışlıkla "DÖNEBİLİRSİN" der
-  rejoin: ["ac", "acc"],
+  rejoin: ["ac", "acc", "forza", "dirt", "beamng"],
   // AC yan araç verisi vermiyor
-  radar: ["ac"],
-  spotterbar: ["ac"],
-  blindspot: ["ac"],
+  radar: ["ac", "forza", "dirt", "beamng"],
+  spotterbar: ["ac", "forza", "dirt", "beamng"],
+  blindspot: ["ac", "forza", "dirt", "beamng"],
   // Delta sadece iRacing ve ACC'de var; diğerlerinde çubuk hep boş kalır
-  delta: ["ac", "lmu", "ams2"],
+  delta: ["ac", "lmu", "ams2", "f1", "forza", "dirt", "beamng"],
   // Hibrit / batarya verisi: iRacing, LMU/rF2 ve AC'de var; ACC'de hibrit araç yok, AMS2 alanları okunmuyor
-  ers: ["acc", "ams2"],
+  ers: ["acc", "ams2", "forza", "dirt", "beamng"],
   // Olay puanı sadece iRacing'de
-  incidents: ["acc", "ac", "lmu", "ams2"],
+  incidents: ["acc", "ac", "lmu", "ams2", "f1", "forza", "dirt", "beamng"],
   // Setup adı sadece iRacing oturum bilgisinde var
-  setupcmp: ["acc", "ac", "lmu", "ams2"],
-  setupname: ["acc", "ac", "lmu", "ams2"],
+  setupcmp: ["acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
+  setupname: ["acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
   // FFB gücü ve şaft torku sadece iRacing telemetrisinde var
-  ffb: ["acc", "ac", "lmu", "ams2"],
-  incidentlog: ["acc", "ac", "lmu", "ams2"],
+  ffb: ["acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
+  // Arkadaşın simdeki adı profilde yalnızca iRacing için tutulur (aynı yarıştaki arkadaşı bulmak için)
+  friendalert: ["acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
+  incidentlog: ["acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
   // Sınıf tempo tahmini (class_est_lap) sadece iRacing'de: "daha hızlı sınıf" hiç tespit edilemez;
   // AC/ACC'de zaten rakip yok
-  overtake: ["acc", "ac", "lmu", "ams2"],
+  overtake: ["acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"],
   // Start ışıkları: AC start aşamasını vermiyor. iRacing: start bitleri (hazır / set / yeşil); LMU/rF2: ışıklar tek tek;
   // AMS2: sadece grid / formasyon ve start anı; ACC: yaklaşık (tur sayacı / yeşil bayrak), ışık verisi yok
-  startlights: ["ac"],
+  startlights: ["ac", "forza", "dirt", "beamng"],
   // Sınıfın ilk üçü ve rakip karşılaştırması rakip listesi ister (AC/ACC'de yok)
-  results: ["ac", "acc"],
-  h2h: ["ac", "acc"],
+  results: ["ac", "acc", "forza", "dirt", "beamng"],
+  // BeamNG (OutGauge) tur konumu vermiyor: harita çizilemez
+  trackmap: ["beamng"],
+  minimap: ["beamng"],
+  h2h: ["ac", "acc", "forza", "dirt", "beamng"],
 };
 
 /** Sim aileleri, gösterim sırasıyla */
-export const SIM_FAMILIES: SimFamily[] = ["iracing", "acc", "ac", "lmu", "ams2"];
+export const SIM_FAMILIES: SimFamily[] = ["iracing", "acc", "ac", "lmu", "ams2", "r3e", "f1", "forza", "dirt", "beamng"];
 
 /** Kısa rozet yazıları (önizleme köşesindeki "desteklenen oyunlar" çipleri) */
 export const SIM_SHORT: Record<SimFamily, string> = {
@@ -112,6 +126,11 @@ export const SIM_SHORT: Record<SimFamily, string> = {
   ac: "AC",
   lmu: "LMU / rF2",
   ams2: "AMS2",
+  r3e: "R3E",
+  f1: "F1",
+  forza: "Forza",
+  dirt: "DiRT",
+  beamng: "BeamNG",
 };
 
 /** Overlay'in çalıştığı sim aileleri (gösterim sırasıyla) */
@@ -128,6 +147,11 @@ export function simFamily(sim: string | null | undefined): SimFamily | null {
     case "ac":
     case "lmu":
     case "ams2":
+    case "r3e":
+    case "f1":
+    case "forza":
+    case "dirt":
+    case "beamng":
       return sim;
     case "rf2":
       return "lmu";

@@ -60,6 +60,11 @@ const TEAM_SIMS = [
   { id: "lmu", label: "Le Mans Ultimate", short: "LMU" },
   { id: "rf2", label: "rFactor 2", short: "rF2" },
   { id: "ams2", label: "Automobilista 2", short: "AMS2" },
+  { id: "r3e", label: "RaceRoom", short: "R3E" },
+  { id: "f1", label: "F1 23 / F1 24 / F1 25", short: "F1" },
+  { id: "forza", label: "Forza Motorsport / Horizon", short: "Forza" },
+  { id: "dirt", label: "DiRT Rally 2.0 / DiRT 4 / GRID", short: "DiRT" },
+  { id: "beamng", label: "BeamNG.drive", short: "BeamNG" },
   { id: "multi" },
 ];
 const SIM_LABEL = Object.fromEntries(TEAM_SIMS.filter((x) => x.label).map((x) => [x.id, x.label]));

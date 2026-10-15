@@ -10,10 +10,16 @@ mod msg {
     /// ReplaySetPlayPosition modu: kasetin başından
     pub const RPY_POS_BEGIN: u16 = 0;
     pub const REPLAY_SEARCH_SESSION_TIME: u16 = 12;
+    /// ChatComand(mode): sohbet kutusu (BeginChat = 1 açar)
+    pub const CHAT_COMMAND: u16 = 8;
+    pub const CHAT_BEGIN: u16 = 1;
     /// PitCommand(mode, var): pit servisi seçimleri (sadece sürücü araçtayken etkili)
     pub const PIT_COMMAND: u16 = 9;
     /// ReplaySearch modu: canlıya dön
     pub const RPY_SRCH_TO_END: u16 = 1;
+    /// ReplaySearch modları (irsdk_RpySrchMode): kasetin başı, sonraki olay işareti
+    pub const RPY_SRCH_TO_START: u16 = 0;
+    pub const RPY_SRCH_NEXT_INCIDENT: u16 = 9;
 }
 
 /// irsdk_broadcastMsg paketleme: wParam = MAKELONG(msg, var1). İki 16 bit parametreli
@@ -26,8 +32,13 @@ fn pack(m: u16, var1: u16) -> usize {
 
 #[cfg(windows)]
 fn send(m: u16, var1: u16, lparam: isize) -> Result<(), String> {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterWindowMessageW, SendNotifyMessageW, HWND_BROADCAST};
-    let name: Vec<u16> = "IRSDK_BROADCASTMSG".encode_utf16().chain(std::iter::once(0)).collect();
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        RegisterWindowMessageW, SendNotifyMessageW, HWND_BROADCAST,
+    };
+    let name: Vec<u16> = "IRSDK_BROADCASTMSG"
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
     unsafe {
         let id = RegisterWindowMessageW(name.as_ptr());
         if id == 0 {
@@ -86,6 +97,8 @@ struct ReplayPos {
     session_time: f64,
     frame: i32,
     cam_car_idx: i32,
+    /// Kameradaki aracın turu (tekrar taramasında olayın turu)
+    cam_lap: i32,
     at: std::time::Instant,
 }
 
@@ -103,7 +116,10 @@ struct ReplayTrack {
     anchors: Vec<Anchor>,
 }
 
-static TRACK: parking_lot::Mutex<ReplayTrack> = parking_lot::const_mutex(ReplayTrack { pos: None, anchors: Vec::new() });
+static TRACK: parking_lot::Mutex<ReplayTrack> = parking_lot::const_mutex(ReplayTrack {
+    pos: None,
+    anchors: Vec::new(),
+});
 
 const TAPE_FPS: f64 = 60.0;
 
@@ -149,17 +165,32 @@ pub fn observe(f: &crate::model::Frame, live: bool) {
         session_time: f.replay_session_time,
         frame: f.replay_frame,
         cam_car_idx: f.cam_car_idx,
+        cam_lap: if f.cam_car_idx >= 0 {
+            f.cars
+                .get(f.cam_car_idx as usize)
+                .map(|c| c.lap)
+                .unwrap_or(0)
+        } else {
+            0
+        },
         at: std::time::Instant::now(),
     });
     if live && f.session_time > 0.0 {
         // Canlı andaki kaset karesi = kafa + sona kalan kare
-        let a = Anchor { session_num: f.session_num, time: f.session_time, frame: f.replay_frame + f.replay_frame_end.max(0) };
+        let a = Anchor {
+            session_num: f.session_num,
+            time: f.session_time,
+            frame: f.replay_frame + f.replay_frame_end.max(0),
+        };
         anchor_put(&mut t.anchors, a);
     }
 }
 
 fn fresh_pos() -> Option<ReplayPos> {
-    TRACK.lock().pos.filter(|p| p.at.elapsed() < std::time::Duration::from_secs(2))
+    TRACK
+        .lock()
+        .pos
+        .filter(|p| p.at.elapsed() < std::time::Duration::from_secs(2))
 }
 
 /// Telemetri `ok` diyene kadar bekle (en çok `ms`).
@@ -188,19 +219,30 @@ pub struct SeekResult {
     pub by_frame: bool,
 }
 
-pub const SEEK_FAILED: &str = "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı";
+pub const SEEK_FAILED: &str =
+    "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı";
 
 /// Olayın `lead` sn öncesine sar, kamerayı araca çevir ve 1x oynat; sonucu telemetriden doğrula.
 /// Bekleme içerir (en çok ~4 sn): arayüz iş parçacığından çağrılmaz.
 ///
 /// Sıra önemli: önce sarma biter, sonra kamera değişir. Arama sürerken gelen kamera/hız
 /// komutları sarmayı yarıda bırakabiliyor.
-pub fn replay_seek(session_num: i32, time_s: f64, car_number: &str, car_idx: Option<i32>, lead: f64) -> Result<SeekResult, String> {
+pub fn replay_seek(
+    session_num: i32,
+    time_s: f64,
+    car_number: &str,
+    car_idx: Option<i32>,
+    lead: f64,
+) -> Result<SeekResult, String> {
     let target = (time_s - lead).max(0.0);
     let (var1, lp) = search_params(session_num, target);
     let known = fresh_pos().is_some();
     send(msg::REPLAY_SEARCH_SESSION_TIME, var1, lp)?;
-    let mut res = SeekResult { verified: known, camera: true, by_frame: false };
+    let mut res = SeekResult {
+        verified: known,
+        camera: true,
+        by_frame: false,
+    };
     if known {
         let there = |p: &ReplayPos| arrived(p.session_num, p.session_time, session_num, target);
         let mut ok = wait_pos(1500, there);
@@ -208,8 +250,14 @@ pub fn replay_seek(session_num: i32, time_s: f64, car_number: &str, car_idx: Opt
             // Zaman araması tutmadı (çok araçlı / çok oturumlu etkinliklerde olur): kare numarasıyla sar
             let frame = anchor_frame(&TRACK.lock().anchors, session_num, target);
             if let Some(fr) = frame {
-                send(msg::REPLAY_SET_PLAY_POSITION, msg::RPY_POS_BEGIN, fr as isize)?;
-                ok = wait_pos(1500, |p| there(p) || (p.frame >= fr - 120 && p.frame <= fr + 480));
+                send(
+                    msg::REPLAY_SET_PLAY_POSITION,
+                    msg::RPY_POS_BEGIN,
+                    fr as isize,
+                )?;
+                ok = wait_pos(1500, |p| {
+                    there(p) || (p.frame >= fr - 120 && p.frame <= fr + 480)
+                });
                 res.by_frame = ok;
             }
         }
@@ -227,6 +275,84 @@ pub fn replay_seek(session_num: i32, time_s: f64, car_number: &str, car_idx: Opt
     }
     send(msg::REPLAY_SET_PLAY_SPEED, 1, make_long(0, 0))?;
     Ok(res)
+}
+
+/// Tekrardaki bir olay işareti (iRacing'in tekrar ekranındaki "sonraki olay" düğmesinin gittiği anlar)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScanHit {
+    pub session_num: i32,
+    pub time: f64,
+    /// O an kameranın gösterdiği araç (iRacing olaya giderken kamerayı olaydaki araca çevirir)
+    pub car_idx: i32,
+    pub lap: i32,
+}
+
+/// Bir taramada en çok bu kadar olay
+pub const SCAN_MAX: usize = 400;
+
+/// Tekrardaki olay işaretlerini bul: tekrar duraklatılır, başa sarılır, "sonraki olay" ile işaret işaret ilerlenir;
+/// her işarette oturum, zaman, kameradaki araç ve turu okunur. Sonunda kafa eski yerine döner. Kaydedilmiş bir tekrar
+/// dosyası izlenirken Olaylar ekranı bu listeyi gösterir (canlı oturumda toplanan olaylar o dosyada yoktur).
+/// Bekleme içerir (olay başına ~0,2-0,5 sn): arayüz iş parçacığından çağrılmaz. `stop` true olunca durur.
+pub fn replay_scan_incidents(
+    stop: &std::sync::atomic::AtomicBool,
+    progress: impl Fn(usize),
+) -> Result<Vec<ScanHit>, String> {
+    use std::sync::atomic::Ordering;
+    let start =
+        fresh_pos().ok_or("Tekrar konumu okunamıyor: iRacing tekrar ekranında olmalısın")?;
+    // Duraklat (kaset oynarken kare ilerler, sonraki olay ayırt edilemez)
+    send(msg::REPLAY_SET_PLAY_SPEED, 0, make_long(0, 0))?;
+    send(msg::REPLAY_SEARCH, msg::RPY_SRCH_TO_START, 0)?;
+    // Başa varılsın (kare küçülür) ya da en çok 3 sn
+    let _ = wait_pos(3000, |p| p.frame < start.frame.min(120) || p.frame <= 1);
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    let mut last = fresh_pos().map(|p| p.frame).unwrap_or(0);
+    let mut hits: Vec<ScanHit> = Vec::new();
+    let mut misses = 0;
+    while hits.len() < SCAN_MAX && !stop.load(Ordering::Relaxed) {
+        send(msg::REPLAY_SEARCH, msg::RPY_SRCH_NEXT_INCIDENT, 0)?;
+        if !wait_pos(2000, |p| p.frame > last) {
+            // Kare ilerlemedi: başka olay yok (bir kez daha denenir; komut kaybolmuş olabilir)
+            misses += 1;
+            if misses >= 2 {
+                break;
+            }
+            continue;
+        }
+        misses = 0;
+        // Kamera olaydaki araca geçsin
+        std::thread::sleep(std::time::Duration::from_millis(180));
+        let Some(p) = fresh_pos() else { break };
+        if p.frame <= last {
+            break;
+        }
+        last = p.frame;
+        let hit = ScanHit {
+            session_num: p.session_num,
+            time: p.session_time,
+            car_idx: p.cam_car_idx,
+            lap: p.cam_lap,
+        };
+        // Aynı ana iki işaret (çok araçlı kaza): aynı araçsa bir kez
+        if !hits.iter().any(|h| {
+            h.session_num == hit.session_num
+                && (h.time - hit.time).abs() < 0.5
+                && h.car_idx == hit.car_idx
+        }) {
+            hits.push(hit);
+            progress(hits.len());
+        }
+    }
+    // Eski yerine dön ve oynat
+    send(
+        msg::REPLAY_SET_PLAY_POSITION,
+        msg::RPY_POS_BEGIN,
+        start.frame.max(0) as isize,
+    )?;
+    let _ = wait_pos(1500, |p| (p.frame - start.frame).abs() < 240);
+    send(msg::REPLAY_SET_PLAY_SPEED, 1, make_long(0, 0))?;
+    Ok(hits)
 }
 
 /// Canlı yayına dön.
@@ -262,6 +388,59 @@ pub fn pit_command(mode: u16, var: u16) -> Result<(), String> {
     send(msg::PIT_COMMAND, mode, make_long(var, 0))
 }
 
+/// iRacing sohbet / pit makrosu komutu (ör. "#autofuel"): SDK yalnızca sohbet kutusunu açabilir (ChatComand BeginChat);
+/// yazı iRacing penceresine karakter karakter (WM_CHAR) iletilir ve Enter ile gönderilir. Pencere öne gelmeden çalışır.
+/// Yalnızca "#" ile başlayan kısa pit makroları kabul edilir (serbest sohbet mesajı gönderilmez).
+pub fn chat_macro(text: &str) -> Result<(), String> {
+    if !is_pit_macro(text) {
+        return Err("Geçersiz komut".into());
+    }
+    chat_macro_send(text)
+}
+
+/// "#" ile başlayan, en çok 40 karakterlik, yalnızca harf / rakam / boşluk / + - . ! içeren komut
+fn is_pit_macro(text: &str) -> bool {
+    text.starts_with('#')
+        && text.len() <= 40
+        && text[1..]
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, ' ' | '+' | '-' | '.' | '!'))
+        && text.len() > 1
+}
+
+#[cfg(windows)]
+fn chat_macro_send(text: &str) -> Result<(), String> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        FindWindowW, PostMessageW, WM_CHAR, WM_KEYDOWN, WM_KEYUP,
+    };
+    const VK_RETURN: usize = 0x0D;
+    let name: Vec<u16> = "iRacing.com Simulator\0".encode_utf16().collect();
+    let hwnd = unsafe { FindWindowW(std::ptr::null(), name.as_ptr()) };
+    if hwnd.is_null() {
+        return Err("iRacing penceresi bulunamadı".into());
+    }
+    send(msg::CHAT_COMMAND, msg::CHAT_BEGIN, 0)?;
+    // Sohbet kutusu açılsın
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    unsafe {
+        for ch in text.encode_utf16() {
+            PostMessageW(hwnd, WM_CHAR, ch as usize, 1);
+            std::thread::sleep(std::time::Duration::from_millis(15));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        // Gerçek bir Enter basışı gibi: tuş inişi + karakter + tuş çıkışı
+        PostMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0x001C_0001);
+        PostMessageW(hwnd, WM_CHAR, VK_RETURN, 0x001C_0001);
+        PostMessageW(hwnd, WM_KEYUP, VK_RETURN, 0xC01C_0001u32 as isize);
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn chat_macro_send(_text: &str) -> Result<(), String> {
+    Err("iRacing komutları sadece Windows'ta çalışır".into())
+}
+
 /// Ekip (uzaktan pit) komutunu iRacing pit komutlarına çevirir: [(mod, değer)].
 /// Sadece burada sayılan türler kabul edilir; `message` bir pit komutu değildir (arayüz gösterir).
 pub fn crew_plan(kind: &str, args: &serde_json::Value) -> Result<Vec<(u16, u16)>, String> {
@@ -280,7 +459,12 @@ pub fn crew_plan(kind: &str, args: &serde_json::Value) -> Result<Vec<(u16, u16)>
         "tyres" => {
             // Tek tek kaldırma komutu yok: önce hepsi kaldırılır, sonra seçilenler işaretlenir
             let mut v = vec![(pit::CLEAR_TIRES, 0)];
-            for (k, m) in [("lf", pit::LF), ("rf", pit::RF), ("lr", pit::LR), ("rr", pit::RR)] {
+            for (k, m) in [
+                ("lf", pit::LF),
+                ("rf", pit::RF),
+                ("lr", pit::LR),
+                ("rr", pit::RR),
+            ] {
                 if flag(k, false) {
                     v.push((m, 0));
                 }
@@ -288,8 +472,22 @@ pub fn crew_plan(kind: &str, args: &serde_json::Value) -> Result<Vec<(u16, u16)>
             v
         }
         "tyres_clear" => vec![(pit::CLEAR_TIRES, 0)],
-        "fast_repair" => vec![(if flag("on", true) { pit::FR } else { pit::CLEAR_FR }, 0)],
-        "tearoff" => vec![(if flag("on", true) { pit::WS } else { pit::CLEAR_WS }, 0)],
+        "fast_repair" => vec![(
+            if flag("on", true) {
+                pit::FR
+            } else {
+                pit::CLEAR_FR
+            },
+            0,
+        )],
+        "tearoff" => vec![(
+            if flag("on", true) {
+                pit::WS
+            } else {
+                pit::CLEAR_WS
+            },
+            0,
+        )],
         "clear_all" => vec![(pit::CLEAR, 0)],
         _ => return Err("Bilinmeyen komut".into()),
     })
@@ -313,24 +511,56 @@ mod tests {
         // PitCommand = 9, mod wParam'ın üst sözcüğünde; litre lParam'ın alt sözcüğünde
         assert_eq!(pack(msg::PIT_COMMAND, pit::FUEL), 0x0002_0009);
         assert_eq!(make_long(45, 0), 45);
-        assert_eq!(crew_plan("fuel_set", &json!({ "liters": 44.2 })).unwrap(), vec![(pit::FUEL, 45)]);
+        assert_eq!(
+            crew_plan("fuel_set", &json!({ "liters": 44.2 })).unwrap(),
+            vec![(pit::FUEL, 45)]
+        );
         assert!(crew_plan("fuel_set", &json!({ "liters": 0 })).is_err());
         assert!(crew_plan("fuel_set", &json!({ "liters": 5000 })).is_err());
         assert!(crew_plan("fuel_set", &json!({})).is_err());
-        assert_eq!(crew_plan("fuel_clear", &json!({})).unwrap(), vec![(pit::CLEAR_FUEL, 0)]);
+        assert_eq!(
+            crew_plan("fuel_clear", &json!({})).unwrap(),
+            vec![(pit::CLEAR_FUEL, 0)]
+        );
         assert_eq!(crew_plan("tyres_all", &json!({})).unwrap().len(), 4);
         assert_eq!(
             crew_plan("tyres", &json!({ "lf": true, "rr": true })).unwrap(),
             vec![(pit::CLEAR_TIRES, 0), (pit::LF, 0), (pit::RR, 0)]
         );
-        assert_eq!(crew_plan("tyres", &json!({})).unwrap(), vec![(pit::CLEAR_TIRES, 0)]);
-        assert_eq!(crew_plan("fast_repair", &json!({ "on": false })).unwrap(), vec![(pit::CLEAR_FR, 0)]);
-        assert_eq!(crew_plan("fast_repair", &json!({})).unwrap(), vec![(pit::FR, 0)]);
-        assert_eq!(crew_plan("tearoff", &json!({ "on": true })).unwrap(), vec![(pit::WS, 0)]);
-        assert_eq!(crew_plan("clear_all", &json!({})).unwrap(), vec![(pit::CLEAR, 0)]);
+        assert_eq!(
+            crew_plan("tyres", &json!({})).unwrap(),
+            vec![(pit::CLEAR_TIRES, 0)]
+        );
+        assert_eq!(
+            crew_plan("fast_repair", &json!({ "on": false })).unwrap(),
+            vec![(pit::CLEAR_FR, 0)]
+        );
+        assert_eq!(
+            crew_plan("fast_repair", &json!({})).unwrap(),
+            vec![(pit::FR, 0)]
+        );
+        assert_eq!(
+            crew_plan("tearoff", &json!({ "on": true })).unwrap(),
+            vec![(pit::WS, 0)]
+        );
+        assert_eq!(
+            crew_plan("clear_all", &json!({})).unwrap(),
+            vec![(pit::CLEAR, 0)]
+        );
         // Pit komutu olmayan hiçbir şey çalıştırılamaz
         assert!(crew_plan("message", &json!({ "text": "x" })).is_err());
         assert!(crew_plan("settings_set", &json!({})).is_err());
+    }
+    #[test]
+    fn pit_macros_only() {
+        assert!(is_pit_macro("#autofuel"));
+        assert!(is_pit_macro("#autofuel +1.5"));
+        assert!(is_pit_macro("#-autofuel"));
+        assert!(!is_pit_macro("autofuel"));
+        assert!(!is_pit_macro("#"));
+        assert!(!is_pit_macro("#fuel 20l; /quit"));
+        assert!(!is_pit_macro("#a\nb"));
+        assert!(!is_pit_macro(&format!("#{}", "a".repeat(60))));
     }
     #[test]
     fn car_numbers() {
@@ -349,9 +579,30 @@ mod tests {
     #[test]
     fn anchors_and_arrival() {
         let mut l = Vec::new();
-        anchor_put(&mut l, Anchor { session_num: 0, time: 600.0, frame: 36_000 });
-        anchor_put(&mut l, Anchor { session_num: 2, time: 100.0, frame: 50_000 });
-        anchor_put(&mut l, Anchor { session_num: 2, time: 200.0, frame: 56_000 });
+        anchor_put(
+            &mut l,
+            Anchor {
+                session_num: 0,
+                time: 600.0,
+                frame: 36_000,
+            },
+        );
+        anchor_put(
+            &mut l,
+            Anchor {
+                session_num: 2,
+                time: 100.0,
+                frame: 50_000,
+            },
+        );
+        anchor_put(
+            &mut l,
+            Anchor {
+                session_num: 2,
+                time: 200.0,
+                frame: 56_000,
+            },
+        );
         assert_eq!(l.len(), 2);
         // 200. sn = 56000. kare; 150. sn 50 sn (3000 kare) geride
         assert_eq!(anchor_frame(&l, 2, 150.0), Some(53_000));
@@ -360,8 +611,22 @@ mod tests {
         assert_eq!(anchor_frame(&l, 2, 5000.0), None, "gelecekteki an");
         assert_eq!(anchor_frame(&l, 0, -5000.0), None, "kasetin başından önce");
         // Kaset baştan başladı (oturuma yeniden girildi): eski çapalar silinir
-        anchor_put(&mut l, Anchor { session_num: 2, time: 300.0, frame: 500 });
-        assert_eq!(l, vec![Anchor { session_num: 2, time: 300.0, frame: 500 }]);
+        anchor_put(
+            &mut l,
+            Anchor {
+                session_num: 2,
+                time: 300.0,
+                frame: 500,
+            },
+        );
+        assert_eq!(
+            l,
+            vec![Anchor {
+                session_num: 2,
+                time: 300.0,
+                frame: 500
+            }]
+        );
         assert!(arrived(2, 96.0, 2, 95.0));
         assert!(arrived(2, 94.0, 2, 95.0));
         assert!(!arrived(1, 95.0, 2, 95.0), "başka oturum");

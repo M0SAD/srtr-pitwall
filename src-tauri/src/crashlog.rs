@@ -30,7 +30,10 @@ static LAST_SECS: AtomicU64 = AtomicU64::new(0);
 static SKIPPED: AtomicU32 = AtomicU32::new(0);
 
 fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 /// Unix saniyesi → "YYYY-MM-DD HH:MM:SSZ" (bağımlılıksız)
@@ -48,12 +51,18 @@ fn stamp(secs: u64) -> String {
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let y = if m <= 2 { y + 1 } else { y };
-    format!("{y:04}-{m:02}-{d:02} {:02}:{:02}:{:02}Z", rem / 3600, (rem / 60) % 60, rem % 60)
+    format!(
+        "{y:04}-{m:02}-{d:02} {:02}:{:02}:{:02}Z",
+        rem / 3600,
+        (rem / 60) % 60,
+        rem % 60
+    )
 }
 
 fn path() -> PathBuf {
     let g = PATH.lock().unwrap_or_else(|e| e.into_inner());
-    g.clone().unwrap_or_else(|| std::env::temp_dir().join(FALLBACK_FILE))
+    g.clone()
+        .unwrap_or_else(|| std::env::temp_dir().join(FALLBACK_FILE))
 }
 
 /// Günlük klasörünü ayarlar (uygulama veri klasörü). Kurulumda bir kez çağrılır.
@@ -68,10 +77,17 @@ pub fn set_dir(dir: PathBuf) {
 fn append(text: &str) {
     let _g = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let p = path();
-    if std::fs::metadata(&p).map(|m| m.len() > MAX_BYTES).unwrap_or(false) {
+    if std::fs::metadata(&p)
+        .map(|m| m.len() > MAX_BYTES)
+        .unwrap_or(false)
+    {
         let _ = std::fs::rename(&p, p.with_file_name("crash.old.log"));
     }
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&p) {
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&p)
+    {
         let _ = f.write_all(text.as_bytes());
         let _ = f.flush();
     }
@@ -79,8 +95,180 @@ fn append(text: &str) {
 
 /// Günlüğe tek satır not (ör. bir iş parçacığının yeniden başlatıldığı)
 pub fn note(msg: &str) {
-    let msg: String = msg.chars().filter(|c| !c.is_control()).take(MSG_MAX).collect();
-    append(&format!("[{}] v{} {msg}\n", stamp(now_secs()), env!("CARGO_PKG_VERSION")));
+    let msg: String = msg
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(MSG_MAX)
+        .collect();
+    append(&format!(
+        "[{}] v{} {msg}\n",
+        stamp(now_secs()),
+        env!("CARGO_PKG_VERSION")
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// Oturum izi: program beklenmedik kapanırsa (panic yazılamadan süreç sonlandı, bellek bitti, Görev Yöneticisi,
+// sürücü çökmesi...) bir sonraki açılışta crash.log'a kaydedilir. Çalışırken `session.lock` dosyası 30 sn'de bir
+// güncellenir (zaman, çalışma süresi, bellek, son durum); temiz çıkışta silinir.
+// ---------------------------------------------------------------------------
+
+static SESSION: Mutex<Option<PathBuf>> = Mutex::new(None);
+static SESSION_INFO: Mutex<String> = Mutex::new(String::new());
+static SESSION_START: AtomicU64 = AtomicU64::new(0);
+static PEAK_MB: AtomicU64 = AtomicU64::new(0);
+
+/// Sürecin bellek kullanımı (çalışma kümesi, MB); bilinmiyorsa 0
+pub fn memory_mb() -> u64 {
+    #[cfg(windows)]
+    {
+        #[repr(C)]
+        #[allow(dead_code)]
+        struct Pmc {
+            cb: u32,
+            page_faults: u32,
+            peak_ws: usize,
+            ws: usize,
+            q1: usize,
+            q2: usize,
+            q3: usize,
+            q4: usize,
+            pagefile: usize,
+            peak_pagefile: usize,
+        }
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn GetCurrentProcess() -> *mut std::ffi::c_void;
+            fn K32GetProcessMemoryInfo(h: *mut std::ffi::c_void, c: *mut Pmc, cb: u32) -> i32;
+        }
+        let mut c: Pmc = unsafe { std::mem::zeroed() };
+        c.cb = std::mem::size_of::<Pmc>() as u32;
+        // SAFETY: geçerli sözde tutamak ve doğru boyutlu yapı
+        if unsafe { K32GetProcessMemoryInfo(GetCurrentProcess(), &mut c, c.cb) } != 0 {
+            return (c.ws / (1024 * 1024)) as u64;
+        }
+        0
+    }
+    #[cfg(not(windows))]
+    {
+        std::fs::read_to_string("/proc/self/statm")
+            .ok()
+            .and_then(|s| {
+                s.split_whitespace()
+                    .nth(1)
+                    .and_then(|x| x.parse::<u64>().ok())
+            })
+            .map(|pages| pages * 4096 / (1024 * 1024))
+            .unwrap_or(0)
+    }
+}
+
+/// Son durum (ör. "iracing bağlı"): beklenmedik kapanışta günlüğe yazılır
+pub fn session_info(s: &str) {
+    *SESSION_INFO.lock().unwrap_or_else(|e| e.into_inner()) = s.chars().take(160).collect();
+}
+
+fn session_text() -> String {
+    let now = now_secs();
+    let start = SESSION_START.load(Ordering::Relaxed);
+    let mb = memory_mb();
+    let peak = PEAK_MB.fetch_max(mb, Ordering::Relaxed).max(mb);
+    let info = SESSION_INFO
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
+    format!(
+        "v={}\nstart={start}\nbeat={now}\nmem={mb}\npeak={peak}\ninfo={info}\n",
+        env!("CARGO_PKG_VERSION")
+    )
+}
+
+/// Açılışta (günlük klasörü belli olunca) çağrılır: önceki oturum temiz kapanmadıysa günlüğe yazar,
+/// yeni oturum dosyasını başlatır ve 30 sn'lik kalp atışını kurar.
+pub fn session_start(dir: &std::path::Path) {
+    let p = dir.join("session.lock");
+    if let Ok(prev) = std::fs::read_to_string(&p) {
+        let get = |k: &str| {
+            prev.lines()
+                .find_map(|l| l.strip_prefix(&format!("{k}=")))
+                .unwrap_or("")
+                .to_string()
+        };
+        let start: u64 = get("start").parse().unwrap_or(0);
+        let beat: u64 = get("beat").parse().unwrap_or(0);
+        let mins = beat.saturating_sub(start) / 60;
+        note(&format!(
+            "ÖNCEKİ OTURUM BEKLENMEDİK KAPANDI (Windows kapatıldıysa normaldir): sürüm {}, açılış {}, son işaret {} ({} dk çalıştı), bellek {} MB (en çok {} MB), son durum: {}",
+            get("v"),
+            if start > 0 { stamp(start) } else { "?".into() },
+            if beat > 0 { stamp(beat) } else { "?".into() },
+            mins,
+            get("mem"),
+            get("peak"),
+            get("info")
+        ));
+    }
+    SESSION_START.store(now_secs(), Ordering::Relaxed);
+    *SESSION.lock().unwrap_or_else(|e| e.into_inner()) = Some(p.clone());
+    let _ = std::fs::write(&p, session_text());
+    let _ = std::thread::Builder::new()
+        .name("session-beat".into())
+        .spawn(move || {
+            let mut warned = false;
+            loop {
+                std::thread::sleep(Duration::from_secs(30));
+                let Some(p) = SESSION.lock().unwrap_or_else(|e| e.into_inner()).clone() else {
+                    return;
+                };
+                let text = session_text();
+                let _ = std::fs::write(&p, &text);
+                // Bellek sızıntısı belirtisi: bir kez not düşülür
+                let mb = memory_mb();
+                if mb > 2500 && !warned {
+                    warned = true;
+                    note(&format!("bellek kullanımı yüksek: {mb} MB"));
+                }
+            }
+        });
+}
+
+/// Temiz çıkış: oturum dosyası silinir (bir sonraki açılışta "beklenmedik kapandı" yazılmaz)
+pub fn session_end() {
+    if let Some(p) = SESSION.lock().unwrap_or_else(|e| e.into_inner()).take() {
+        let _ = std::fs::remove_file(p);
+    }
+}
+
+/// Günlük dosyalarının klasörü
+pub fn log_dir() -> PathBuf {
+    let p = path();
+    p.parent()
+        .map(|d| d.to_path_buf())
+        .unwrap_or_else(std::env::temp_dir)
+}
+
+/// Günlüklerin son kısmı (panelde "Hata günlüğü"): crash.log + önceki açılışın adımları (boot.old.log)
+pub fn read_logs(max: usize) -> String {
+    let dir = log_dir();
+    let tail = |name: &str, n: usize| -> String {
+        match std::fs::read(dir.join(name)) {
+            Ok(b) => {
+                let s = String::from_utf8_lossy(&b[b.len().saturating_sub(n)..]).to_string();
+                format!("===== {name} ({} bayt) =====\n{s}\n", b.len())
+            }
+            Err(_) => String::new(),
+        }
+    };
+    let mut out = format!(
+        "SRTR Pitwall v{} · {} · bellek {} MB\n\n",
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::OS,
+        memory_mb()
+    );
+    out.push_str(&tail(FILE, max));
+    out.push_str(&tail("crash.old.log", max / 4));
+    out.push_str(&tail("boot.old.log", 6000));
+    out
 }
 
 /// Genel panic kancasını kurar. Uygulama açılışında, her şeyden önce çağrılır.
@@ -90,7 +278,9 @@ pub fn install() {
         // Sel önleme: ilk FULL_ENTRIES kayıttan sonra en çok dakikada bir
         let n = COUNT.fetch_add(1, Ordering::Relaxed);
         let now = now_secs();
-        if n >= FULL_ENTRIES && now.saturating_sub(LAST_SECS.load(Ordering::Relaxed)) < THROTTLE_SECS {
+        if n >= FULL_ENTRIES
+            && now.saturating_sub(LAST_SECS.load(Ordering::Relaxed)) < THROTTLE_SECS
+        {
             SKIPPED.fetch_add(1, Ordering::Relaxed);
             return;
         }
@@ -103,12 +293,23 @@ pub fn install() {
             .map(|s| s.to_string())
             .or_else(|| payload.downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "(mesaj yok)".into());
-        let msg: String = msg.chars().filter(|c| !c.is_control()).take(MSG_MAX).collect();
-        let loc = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "?".into());
+        let msg: String = msg
+            .chars()
+            .filter(|c| !c.is_control())
+            .take(MSG_MAX)
+            .collect();
+        let loc = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "?".into());
         let th = std::thread::current();
         let name = th.name().unwrap_or("(adsız)").to_string();
         // Geri izleme pahalıdır: yalnızca ilk kayıtlarda alınır
-        let bt = if n < FULL_ENTRIES { format!("{}", std::backtrace::Backtrace::force_capture()) } else { String::new() };
+        let bt = if n < FULL_ENTRIES {
+            format!("{}", std::backtrace::Backtrace::force_capture())
+        } else {
+            String::new()
+        };
         let bt: String = bt.chars().take(12_000).collect();
         let mut text = format!(
             "\n==== PANIC [{}] v{} ({}) ====\nthread: {name}\nlocation: {loc}\nmessage: {msg}\n",
@@ -153,7 +354,9 @@ pub fn supervise(what: &str, mut body: impl FnMut()) {
         }
         fails = fails.saturating_add(1);
         if fails <= 5 || fails % 50 == 0 {
-            note(&format!("thread '{what}' recovered from panic (#{fails}), restarting"));
+            note(&format!(
+                "thread '{what}' recovered from panic (#{fails}), restarting"
+            ));
         }
         std::thread::sleep(Duration::from_millis(if fails < 5 { 200 } else { 2000 }));
     }
@@ -193,14 +396,33 @@ mod seh {
     #[link(name = "kernel32")]
     extern "system" {
         fn SetUnhandledExceptionFilter(filter: Option<Filter>) -> Option<Filter>;
-        fn CreateFileW(name: *const u16, access: u32, share: u32, sec: *mut c_void, disp: u32, flags: u32, template: *mut c_void) -> *mut c_void;
-        fn WriteFile(h: *mut c_void, buf: *const u8, len: u32, written: *mut u32, overlapped: *mut c_void) -> i32;
+        fn CreateFileW(
+            name: *const u16,
+            access: u32,
+            share: u32,
+            sec: *mut c_void,
+            disp: u32,
+            flags: u32,
+            template: *mut c_void,
+        ) -> *mut c_void;
+        fn WriteFile(
+            h: *mut c_void,
+            buf: *const u8,
+            len: u32,
+            written: *mut u32,
+            overlapped: *mut c_void,
+        ) -> i32;
         fn CloseHandle(h: *mut c_void) -> i32;
         fn GetModuleHandleW(name: *const u16) -> *mut c_void;
         fn GetCurrentThreadId() -> u32;
         fn GetModuleHandleExW(flags: u32, addr: *const c_void, module: *mut *mut c_void) -> i32;
         fn GetModuleFileNameW(module: *mut c_void, buf: *mut u16, size: u32) -> u32;
-        fn RtlCaptureStackBackTrace(skip: u32, count: u32, frames: *mut *mut c_void, hash: *mut u32) -> u16;
+        fn RtlCaptureStackBackTrace(
+            skip: u32,
+            count: u32,
+            frames: *mut *mut c_void,
+            hash: *mut u32,
+        ) -> u16;
     }
 
     /// `addr`'ı içeren modülün dosya adını (yol olmadan, ASCII) ve modül içi ofseti `buf`'a yazar: "ad.dll+0x1234".
@@ -240,7 +462,11 @@ mod seh {
     static BUSY: AtomicBool = AtomicBool::new(false);
 
     pub fn set_path(p: &std::path::Path) {
-        let w: Vec<u16> = p.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+        let w: Vec<u16> = p
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
         // Sızdırılır: süzgeç çalışırken geçerli kalmalı (önceki yol da sızdırılmış kalır; bir kez çağrılır)
         let leaked: &'static mut [u16] = Box::leak(w.into_boxed_slice());
         PATH_W.store(leaked.as_mut_ptr(), Ordering::SeqCst);
@@ -275,8 +501,14 @@ mod seh {
                 let rec = &*(*info).record;
                 let base = GetModuleHandleW(std::ptr::null()) as usize;
                 let addr = rec.address as usize;
-                let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-                let mut buf = Buf { b: [0u8; 2048], n: 0 };
+                let secs = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                let mut buf = Buf {
+                    b: [0u8; 2048],
+                    n: 0,
+                };
                 let _ = write!(
                     buf,
                     "\r\n==== UNHANDLED EXCEPTION unix={} v{} ====\r\ncode: 0x{:08X}\r\naddress: 0x{:X} (exe base 0x{:X}, offset 0x{:X})\r\nthread id: {}\r\n",
@@ -290,23 +522,46 @@ mod seh {
                 );
                 // Erişim ihlali: okuma/yazma türü ve hedef adres
                 if rec.code == 0xC000_0005 && rec.n_params >= 2 {
-                    let _ = write!(buf, "access: kind={} target=0x{:X}\r\n", rec.info[0], rec.info[1]);
+                    let _ = write!(
+                        buf,
+                        "access: kind={} target=0x{:X}\r\n",
+                        rec.info[0], rec.info[1]
+                    );
                 }
                 // Hangi modülde (DLL) çöktü + çağrı yığını (modül+ofset)
                 let _ = buf.write_str("module: ");
                 write_module(&mut buf, addr);
                 let _ = buf.write_str("\r\nstack:\r\n");
                 let mut frames: [*mut c_void; 24] = [std::ptr::null_mut(); 24];
-                let got = RtlCaptureStackBackTrace(0, frames.len() as u32, frames.as_mut_ptr(), std::ptr::null_mut()) as usize;
+                let got = RtlCaptureStackBackTrace(
+                    0,
+                    frames.len() as u32,
+                    frames.as_mut_ptr(),
+                    std::ptr::null_mut(),
+                ) as usize;
                 for f in frames.iter().take(got.min(frames.len())) {
                     let _ = buf.write_str("  ");
                     write_module(&mut buf, *f as usize);
                     let _ = buf.write_str("\r\n");
                 }
-                let h = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ_WRITE, std::ptr::null_mut(), OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, std::ptr::null_mut());
+                let h = CreateFileW(
+                    path,
+                    FILE_APPEND_DATA,
+                    FILE_SHARE_READ_WRITE,
+                    std::ptr::null_mut(),
+                    OPEN_ALWAYS,
+                    FILE_ATTRIBUTE_NORMAL,
+                    std::ptr::null_mut(),
+                );
                 if !h.is_null() && h as isize != -1 {
                     let mut written = 0u32;
-                    WriteFile(h, buf.b.as_ptr(), buf.n as u32, &mut written, std::ptr::null_mut());
+                    WriteFile(
+                        h,
+                        buf.b.as_ptr(),
+                        buf.n as u32,
+                        &mut written,
+                        std::ptr::null_mut(),
+                    );
                     CloseHandle(h);
                 }
             }
@@ -343,5 +598,22 @@ mod tests {
     fn past_never_panics() {
         let _ = past(u64::MAX / 4);
         assert!(past(1) <= Instant::now());
+    }
+
+    #[test]
+    fn detects_unclean_previous_session() {
+        let dir = std::env::temp_dir().join(format!("pw-sess-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        set_dir(dir.clone());
+        std::fs::write(dir.join("session.lock"), "v=1.0.1\nstart=1000\nbeat=1600\nmem=512\npeak=900\ninfo=oyuna bağlı\n").unwrap();
+        session_start(&dir);
+        let log = std::fs::read_to_string(dir.join(FILE)).unwrap();
+        assert!(log.contains("BEKLENMEDİK KAPANDI"), "{log}");
+        assert!(log.contains("10 dk") && log.contains("512 MB") && log.contains("oyuna bağlı"));
+        assert!(dir.join("session.lock").exists());
+        session_end();
+        assert!(!dir.join("session.lock").exists());
+        assert!(read_logs(10_000).contains("crash.log"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

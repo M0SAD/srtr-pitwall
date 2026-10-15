@@ -2170,3 +2170,42 @@ dialog.paydlg .pay-link-body{padding:0;border-top:0}
 
 .pay-link-body .pay-warn{padding:8px 11px;border:1px solid rgba(255,179,65,.45);border-radius:8px;background:rgba(255,179,65,.1);color:#ffcf7a;font-size:13.5px;line-height:1.45}
 .pay-link-body [hidden]{display:none}
+
+/* Overlay Galerisi: birden fazla görseli olan overlay'de görsel geçişi */
+.ovg-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(8, 10, 14, 0.72);
+  border: 1px solid var(--line);
+}
+.ovg-dots[hidden] {
+  display: none;
+}
+.ovg-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+.ovg-dot.on {
+  background: var(--accent);
+}
+.ovg-sub {
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}

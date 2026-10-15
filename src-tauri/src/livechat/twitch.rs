@@ -18,8 +18,14 @@ pub const GQL_CLIENT_ID: &str = "kd1unb4b3q4t58fwlpcbzcbnm76a8fp";
 const GQL_URL: &str = "https://gql.twitch.tv/gql";
 /// Kalıcı sorgu karmaları (Twitch yeni sürüm yayınlayınca değişebilir; sırayla denenir)
 const GQL_QUERIES: [(&str, &str); 2] = [
-    ("StreamMetadata", "059c4653b788f5bdb2f5a2d2a24b0ddc3831a15079001a3d927556a96fb0517f"),
-    ("UseLive", "639d5f11bfb8bf3053b424d9ef650d04c4ced7e20a612e1d49fb58e1d4cf6357"),
+    (
+        "StreamMetadata",
+        "059c4653b788f5bdb2f5a2d2a24b0ddc3831a15079001a3d927556a96fb0517f",
+    ),
+    (
+        "UseLive",
+        "639d5f11bfb8bf3053b424d9ef650d04c4ced7e20a612e1d49fb58e1d4cf6357",
+    ),
 ];
 
 /// Ayrıştırılmış IRC satırı
@@ -101,9 +107,13 @@ pub fn emote_parts(text: &str, emotes: &str) -> Vec<Part> {
     let chars: Vec<char> = text.chars().collect();
     let mut reps: Vec<(usize, usize, &str)> = Vec::new();
     for entry in emotes.split('/') {
-        let Some((id, pos)) = entry.split_once(':') else { continue };
+        let Some((id, pos)) = entry.split_once(':') else {
+            continue;
+        };
         for p in pos.split(',') {
-            let Some((a, b)) = p.split_once('-') else { continue };
+            let Some((a, b)) = p.split_once('-') else {
+                continue;
+            };
             if let (Ok(a), Ok(b)) = (a.parse::<usize>(), b.parse::<usize>()) {
                 if a <= b && b < chars.len() {
                     reps.push((a, b, id));
@@ -124,7 +134,11 @@ pub fn emote_parts(text: &str, emotes: &str) -> Vec<Part> {
         if a > pos {
             parts.push(Part::text(chars[pos..a].iter().collect::<String>()));
         }
-        parts.push(Part::Emote { url: emote_url(id), name: chars[a..=b].iter().collect(), custom: false });
+        parts.push(Part::Emote {
+            url: emote_url(id),
+            name: chars[a..=b].iter().collect(),
+            custom: false,
+        });
         pos = b + 1;
     }
     if pos < chars.len() {
@@ -181,7 +195,10 @@ pub enum TwEvent {
     /// Kullanıcının son mesajı (CLEARMSG, kimliksiz)
     DeleteUserLast(String),
     /// Kullanıcının mesajları silindi: kalıcı yasak (true) ya da zaman aşımı (false)
-    ClearUser { login: String, permanent: bool },
+    ClearUser {
+        login: String,
+        permanent: bool,
+    },
     Joined,
     Reconnect,
     Ping(String),
@@ -204,12 +221,17 @@ fn tier_name(plan: &str) -> Option<String> {
 pub fn event(line: &str) -> Option<TwEvent> {
     let irc = parse_irc(line)?;
     match irc.command.as_str() {
-        "PING" => Some(TwEvent::Ping(irc.trailing.unwrap_or_else(|| "tmi.twitch.tv".into()))),
+        "PING" => Some(TwEvent::Ping(
+            irc.trailing.unwrap_or_else(|| "tmi.twitch.tv".into()),
+        )),
         "RECONNECT" => Some(TwEvent::Reconnect),
         "ROOMSTATE" | "366" => Some(TwEvent::Joined),
         "NOTICE" => {
             let id = irc.tag("msg-id").to_string();
-            if id.starts_with("msg_channel_suspended") || id == "msg_banned" || id == "msg_room_not_found" {
+            if id.starts_with("msg_channel_suspended")
+                || id == "msg_banned"
+                || id == "msg_room_not_found"
+            {
                 Some(TwEvent::Error(irc.trailing.clone().unwrap_or(id)))
             } else {
                 None
@@ -227,7 +249,10 @@ pub fn event(line: &str) -> Option<TwEvent> {
         "CLEARCHAT" => {
             // Kullanıcısız CLEARCHAT (tüm sohbeti temizle) yok sayılır
             let user = irc.trailing.as_deref().unwrap_or("").trim();
-            (!user.is_empty()).then(|| TwEvent::ClearUser { login: user.to_lowercase(), permanent: irc.tag("ban-duration").is_empty() })
+            (!user.is_empty()).then(|| TwEvent::ClearUser {
+                login: user.to_lowercase(),
+                permanent: irc.tag("ban-duration").is_empty(),
+            })
         }
         "PRIVMSG" => {
             let mut text = irc.trailing.clone().unwrap_or_default();
@@ -241,12 +266,18 @@ pub fn event(line: &str) -> Option<TwEvent> {
             let mut reply = None;
             let ru = irc.tag("reply-parent-display-name");
             if !ru.is_empty() {
-                reply = Some(Reply { user: ru.to_string(), text: irc.tag("reply-parent-msg-body").to_string() });
+                reply = Some(Reply {
+                    user: ru.to_string(),
+                    text: irc.tag("reply-parent-msg-body").to_string(),
+                });
                 // Twitch yanıtın başına "@kullanici " ekler; zaten "↩ @kullanici" olarak gösteriliyor
                 let login = irc.tag("reply-parent-user-login");
                 if let Some(Part::Text { v }) = parts.first_mut() {
                     for cand in [format!("@{login} "), format!("@{ru} ")] {
-                        if cand.len() > 2 && v.get(..cand.len()).is_some_and(|p| p.to_lowercase() == cand.to_lowercase()) {
+                        if cand.len() > 2
+                            && v.get(..cand.len())
+                                .is_some_and(|p| p.to_lowercase() == cand.to_lowercase())
+                        {
                             *v = v[cand.len()..].to_string();
                             break;
                         }
@@ -268,7 +299,11 @@ pub fn event(line: &str) -> Option<TwEvent> {
             m.reply_to = reply;
             if bits > 0 {
                 m.amount = Some(format!("{bits} bits"));
-                m.alert = Some(AlertInfo { kind: "cheer".into(), count: Some(bits), ..Default::default() });
+                m.alert = Some(AlertInfo {
+                    kind: "cheer".into(),
+                    count: Some(bits),
+                    ..Default::default()
+                });
             }
             Some(TwEvent::Msg(Box::new(m)))
         }
@@ -276,10 +311,17 @@ pub fn event(line: &str) -> Option<TwEvent> {
             let msg_id = irc.tag("msg-id").to_string();
             let mut author = author_of(&irc, "");
             let text = irc.trailing.clone().unwrap_or_default();
-            let parts = if text.is_empty() { vec![] } else { emote_parts(&text, irc.tag("emotes")) };
+            let parts = if text.is_empty() {
+                vec![]
+            } else {
+                emote_parts(&text, irc.tag("emotes"))
+            };
             let p = |k: &str| irc.tag(&format!("msg-param-{k}")).to_string();
             let num = |k: &str| p(k).parse::<u64>().ok().filter(|n| *n > 0);
-            let mut alert = AlertInfo { kind: msg_id.clone(), ..Default::default() };
+            let mut alert = AlertInfo {
+                kind: msg_id.clone(),
+                ..Default::default()
+            };
             let kind = match msg_id.as_str() {
                 "sub" | "resub" => {
                     alert.months = num("cumulative-months").map(|x| x as u32);
@@ -289,7 +331,9 @@ pub fn event(line: &str) -> Option<TwEvent> {
                 "subgift" | "anonsubgift" => {
                     alert.gifted = true;
                     alert.tier = tier_name(&p("sub-plan"));
-                    alert.months = num("gift-months").or_else(|| num("months")).map(|x| x as u32);
+                    alert.months = num("gift-months")
+                        .or_else(|| num("months"))
+                        .map(|x| x as u32);
                     let r = p("recipient-display-name");
                     alert.recipient = (!r.is_empty()).then_some(r);
                     Kind::Sub
@@ -300,7 +344,11 @@ pub fn event(line: &str) -> Option<TwEvent> {
                     alert.count = num("mass-gift-count");
                     Kind::Sub
                 }
-                "giftpaidupgrade" | "anongiftpaidupgrade" | "primepaidupgrade" | "communitypayforward" | "standardpayforward" => Kind::Sub,
+                "giftpaidupgrade"
+                | "anongiftpaidupgrade"
+                | "primepaidupgrade"
+                | "communitypayforward"
+                | "standardpayforward" => Kind::Sub,
                 "raid" => {
                     alert.count = num("viewerCount");
                     let dn = p("displayName");
@@ -339,7 +387,9 @@ pub fn parse_gql(body: &str) -> Option<Option<u64>> {
     if user.is_null() {
         return None;
     }
-    let n = user.pointer("/stream/viewersCount").and_then(|x| x.as_u64());
+    let n = user
+        .pointer("/stream/viewersCount")
+        .and_then(|x| x.as_u64());
     Some(n)
 }
 
@@ -364,7 +414,9 @@ pub async fn fetch_viewers(channel: &str) -> Option<Option<u64>> {
         if !resp.status().is_success() {
             continue;
         }
-        let Ok(text) = resp.text().await else { continue };
+        let Ok(text) = resp.text().await else {
+            continue;
+        };
         if let Some(r) = parse_gql(&text) {
             return Some(r);
         }
@@ -463,12 +515,17 @@ mod tests {
         assert_eq!(i.tag("display-name"), "Ali_Veli");
         assert_eq!(unescape_tag(r"a\sb\:c\\d"), "a b;c\\d");
         let p = parse_irc("PING :tmi.twitch.tv").unwrap();
-        assert_eq!((p.command.as_str(), p.trailing.as_deref()), ("PING", Some("tmi.twitch.tv")));
+        assert_eq!(
+            (p.command.as_str(), p.trailing.as_deref()),
+            ("PING", Some("tmi.twitch.tv"))
+        );
     }
 
     #[test]
     fn privmsg() {
-        let Some(TwEvent::Msg(m)) = event(PRIV) else { panic!() };
+        let Some(TwEvent::Msg(m)) = event(PRIV) else {
+            panic!()
+        };
         assert_eq!(m.id, "twitch:abc-123");
         assert_eq!(m.author.name, "Ali_Veli");
         assert_eq!(m.author.login, "ali_veli");
@@ -478,11 +535,23 @@ mod tests {
         assert_eq!(
             m.parts,
             vec![
-                Part::Emote { url: emote_url("25"), name: "Kappa".into(), custom: false },
+                Part::Emote {
+                    url: emote_url("25"),
+                    name: "Kappa".into(),
+                    custom: false
+                },
                 Part::text(" selam "),
-                Part::Emote { url: emote_url("25"), name: "Kappa".into(), custom: false },
+                Part::Emote {
+                    url: emote_url("25"),
+                    name: "Kappa".into(),
+                    custom: false
+                },
                 Part::text(" "),
-                Part::Emote { url: emote_url("1902"), name: "Keepo".into(), custom: false },
+                Part::Emote {
+                    url: emote_url("1902"),
+                    name: "Keepo".into(),
+                    custom: false
+                },
                 Part::text(" ğüş"),
             ]
         );
@@ -493,7 +562,17 @@ mod tests {
     fn emotes_unicode_positions() {
         // Konumlar karakter indeksi: "ğğ " sonrası emote
         let p = emote_parts("ğğ Kappa", "25:3-7");
-        assert_eq!(p, vec![Part::text("ğğ "), Part::Emote { url: emote_url("25"), name: "Kappa".into(), custom: false }]);
+        assert_eq!(
+            p,
+            vec![
+                Part::text("ğğ "),
+                Part::Emote {
+                    url: emote_url("25"),
+                    name: "Kappa".into(),
+                    custom: false
+                }
+            ]
+        );
         // Bozuk konumlar yok sayılır
         assert_eq!(emote_parts("hi", "25:0-9"), vec![Part::text("hi")]);
     }
@@ -501,10 +580,18 @@ mod tests {
     #[test]
     fn action_reply_bits() {
         let l = "@badges=;display-name=Ayşe;emotes=;id=x1;reply-parent-display-name=Mehmet;reply-parent-user-login=mehmet;reply-parent-msg-body=nas\\sılsın;bits=100 :ayse!a@a PRIVMSG #c :\u{1}ACTION @mehmet iyiyim\u{1}";
-        let Some(TwEvent::Msg(m)) = event(l) else { panic!() };
+        let Some(TwEvent::Msg(m)) = event(l) else {
+            panic!()
+        };
         assert!(m.action);
         assert_eq!(m.text, "iyiyim");
-        assert_eq!(m.reply_to, Some(Reply { user: "Mehmet".into(), text: "nas ılsın".into() }));
+        assert_eq!(
+            m.reply_to,
+            Some(Reply {
+                user: "Mehmet".into(),
+                text: "nas ılsın".into()
+            })
+        );
         assert_eq!(m.kind, Kind::Donation);
         assert_eq!(m.amount.as_deref(), Some("100 bits"));
     }
@@ -512,42 +599,81 @@ mod tests {
     #[test]
     fn usernotice_and_moderation() {
         let sub = "@badges=subscriber/0;display-name=Can;id=n1;login=can;msg-id=resub;msg-param-cumulative-months=5;msg-param-sub-plan=1000;system-msg=Can\\ssubscribed\\sat\\sTier\\s1. :tmi.twitch.tv USERNOTICE #c :harika yayın";
-        let Some(TwEvent::Msg(m)) = event(sub) else { panic!() };
+        let Some(TwEvent::Msg(m)) = event(sub) else {
+            panic!()
+        };
         assert_eq!(m.kind, Kind::Sub);
         assert_eq!(m.author.login, "can");
         assert_eq!(m.headline.as_deref(), Some("Can subscribed at Tier 1."));
         let a = m.alert.as_ref().unwrap();
-        assert_eq!((a.kind.as_str(), a.months, a.tier.as_deref()), ("resub", Some(5), Some("1")));
+        assert_eq!(
+            (a.kind.as_str(), a.months, a.tier.as_deref()),
+            ("resub", Some(5), Some("1"))
+        );
         assert_eq!(m.text, "harika yayın");
 
         let raid = "@display-name=Baskın;login=baskin;id=n2;msg-id=raid;msg-param-displayName=Baskın;msg-param-viewerCount=42 :tmi.twitch.tv USERNOTICE #c";
-        let Some(TwEvent::Msg(m)) = event(raid) else { panic!() };
+        let Some(TwEvent::Msg(m)) = event(raid) else {
+            panic!()
+        };
         assert_eq!(m.kind, Kind::Raid);
         assert_eq!(m.alert.unwrap().count, Some(42));
 
         let gift = "@display-name=X;login=x;id=n3;msg-id=subgift;msg-param-recipient-display-name=Y;msg-param-sub-plan=2000 :tmi.twitch.tv USERNOTICE #c";
-        let Some(TwEvent::Msg(m)) = event(gift) else { panic!() };
+        let Some(TwEvent::Msg(m)) = event(gift) else {
+            panic!()
+        };
         let a = m.alert.unwrap();
         assert!(a.gifted);
-        assert_eq!((a.recipient.as_deref(), a.tier.as_deref()), (Some("Y"), Some("2")));
+        assert_eq!(
+            (a.recipient.as_deref(), a.tier.as_deref()),
+            (Some("Y"), Some("2"))
+        );
 
-        assert_eq!(event("@login=ali;target-msg-id=abc :tmi.twitch.tv CLEARMSG #c :mesaj"), Some(TwEvent::DeleteMsg("abc".into())));
+        assert_eq!(
+            event("@login=ali;target-msg-id=abc :tmi.twitch.tv CLEARMSG #c :mesaj"),
+            Some(TwEvent::DeleteMsg("abc".into()))
+        );
         assert_eq!(
             event("@ban-duration=600 :tmi.twitch.tv CLEARCHAT #c :Spammer"),
-            Some(TwEvent::ClearUser { login: "spammer".into(), permanent: false })
+            Some(TwEvent::ClearUser {
+                login: "spammer".into(),
+                permanent: false
+            })
         );
-        assert_eq!(event(":tmi.twitch.tv CLEARCHAT #c :kotu"), Some(TwEvent::ClearUser { login: "kotu".into(), permanent: true }));
+        assert_eq!(
+            event(":tmi.twitch.tv CLEARCHAT #c :kotu"),
+            Some(TwEvent::ClearUser {
+                login: "kotu".into(),
+                permanent: true
+            })
+        );
         assert_eq!(event(":tmi.twitch.tv CLEARCHAT #c"), None);
-        assert_eq!(event("PING :tmi.twitch.tv"), Some(TwEvent::Ping("tmi.twitch.tv".into())));
+        assert_eq!(
+            event("PING :tmi.twitch.tv"),
+            Some(TwEvent::Ping("tmi.twitch.tv".into()))
+        );
         assert_eq!(event(":tmi.twitch.tv RECONNECT"), Some(TwEvent::Reconnect));
-        assert_eq!(event("@emote-only=0;room-id=1 :tmi.twitch.tv ROOMSTATE #c"), Some(TwEvent::Joined));
+        assert_eq!(
+            event("@emote-only=0;room-id=1 :tmi.twitch.tv ROOMSTATE #c"),
+            Some(TwEvent::Joined)
+        );
     }
 
     #[test]
     fn gql() {
-        assert_eq!(parse_gql(r#"[{"data":{"user":{"stream":{"viewersCount":321}}}}]"#), Some(Some(321)));
-        assert_eq!(parse_gql(r#"[{"data":{"user":{"stream":null}}}]"#), Some(None));
+        assert_eq!(
+            parse_gql(r#"[{"data":{"user":{"stream":{"viewersCount":321}}}}]"#),
+            Some(Some(321))
+        );
+        assert_eq!(
+            parse_gql(r#"[{"data":{"user":{"stream":null}}}]"#),
+            Some(None)
+        );
         assert_eq!(parse_gql(r#"[{"data":{"user":null}}]"#), None);
-        assert_eq!(parse_gql(r#"[{"errors":[{"message":"PersistedQueryNotFound"}]}]"#), None);
+        assert_eq!(
+            parse_gql(r#"[{"errors":[{"message":"PersistedQueryNotFound"}]}]"#),
+            None
+        );
     }
 }

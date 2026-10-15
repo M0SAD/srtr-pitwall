@@ -1,6 +1,17 @@
 /* Telemetri ve Yarışçılar sayfası */
 .tele .tele-back {
+  margin-bottom: 0;
+}
+/* Geri + Paylaş satırı */
+.tele-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 10px;
+}
+.tele-share.ok {
+  color: var(--ok, #3ddc84);
 }
 .tele-head {
   display: flex;
@@ -816,4 +827,403 @@
   color: #f0b429;
   font-size: 0.85em;
   cursor: help;
+}
+
+/* Turun atıldığı setup (c111) */
+.tt-setup {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 0;
+}
+.tt-setup svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  opacity: 0.8;
+}
+.tt-setup span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-setup {
+  justify-content: center;
+}
+.tt-setup-cell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* İzler: grafikler + imlecin pistteki yerini gösteren küçük harita */
+.tcharts-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+.tcharts-list {
+  min-width: 0;
+}
+.tminimap {
+  position: sticky;
+  top: 8px;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+.tminimap svg {
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+.tminimap small {
+  font-variant-numeric: tabular-nums;
+}
+.tmm-track {
+  fill: none;
+  stroke: #7a8292;
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+.tmm-start {
+  fill: #fff;
+  stroke: #0b0d12;
+  stroke-width: 2;
+}
+.tmm-dot {
+  fill: #ffcc00;
+  stroke: #0b0d12;
+  stroke-width: 2;
+}
+.tmm-dot-halo,
+.tmap-cursor-halo {
+  fill: rgba(255, 204, 0, 0.25);
+}
+.tmap-cursor {
+  fill: #ffcc00;
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+@media (max-width: 900px) {
+  .tcharts-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tminimap {
+    order: -1;
+    width: 190px;
+    justify-self: end;
+    z-index: 2;
+  }
+}
+
+/* Çoklu kıyaslama (5 tura kadar) */
+.lap-time .lap-diff {
+  display: block;
+  font-size: 11px;
+  text-align: right;
+  color: var(--muted);
+}
+.lap-time .lap-diff.bad,
+.sector-cmp td.bad {
+  color: #ff6b6b;
+}
+.lap-time .lap-diff.good,
+.sector-cmp td.good {
+  color: #2ecc71;
+}
+.sector-cmp td.purple {
+  color: #c27bff;
+  font-weight: 700;
+}
+.sc-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* Paylaşım */
+.tele-share-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tele-share-wrap .error {
+  flex-basis: 100%;
+  text-align: right;
+}
+.modal.tele-shares {
+  width: min(640px, 94vw);
+}
+.modal.tele-shares header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Viraj analizi */
+.ca-theo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.ca-theo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ca-theo b {
+  font-size: 18px;
+}
+.ca-theo b.good {
+  color: #2ecc71;
+}
+.ca-notes {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ca-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid #ff6b6b;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.ca-note:hover {
+  background: var(--bg-3);
+}
+.ca-note ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+.ca-note .bad {
+  color: #ff6b6b;
+}
+.ca-rank {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: color-mix(in srgb, #ff6b6b 25%, transparent);
+}
+.ca-best {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #2ecc71;
+  font-size: 13px;
+}
+.ca-best svg {
+  width: 16px;
+  height: 16px;
+}
+.ca-table td.good {
+  color: #2ecc71;
+}
+.ca-table td.bad {
+  color: #ff6b6b;
+}
+
+/* Kanal seçimi ve yakınlaştırma */
+.tchart-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chip-btn {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip-btn.on {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text);
+}
+.chip-btn.dim {
+  opacity: 0.5;
+}
+.tchart-sel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  pointer-events: none;
+}
+
+/* .ibt içe aktarma / sürüş çizgisi */
+.tele-topbar-r { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rline-svg { display: block; width: 100%; height: auto; max-height: 560px; border: 1px solid var(--line); border-radius: 12px; background: radial-gradient(ellipse at center, rgba(255,255,255,.03), transparent 70%), #0b0d12; cursor: grab; touch-action: none; user-select: none; }
+.rline-svg:active { cursor: grabbing; }
+.rline-gaps { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; margin: 4px 0 8px; }
+.rline-gaps span { display: inline-flex; align-items: center; gap: 4px; }
+.ibt-res { display: grid; gap: 6px; margin: 8px 0; max-height: 320px; overflow: auto; }
+.ibt-res .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.03); }
+.ibt-res .err { color: var(--bad, #ff6b6b); }
+
+/* İmleçteki değerler: çizgi üstünde nokta ve değer etiketi */
+.tchart-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-2, #12151b);
+  pointer-events: none;
+  z-index: 2;
+}
+.tchart-tip {
+  position: absolute;
+  transform: translate(8px, -50%);
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--bg-2, #12151b) 88%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+.tchart-tip.flip {
+  transform: translate(calc(-100% - 8px), -50%);
+}
+
+/* Sürüş çizgisi: viraj numaraları / adları */
+.rline-corner {
+  cursor: pointer;
+}
+.rline-corner line {
+  stroke: color-mix(in srgb, var(--text) 45%, transparent);
+}
+.rline-corner circle {
+  fill: #0b0d12;
+  stroke: var(--accent);
+}
+.rline-corner text {
+  fill: var(--text);
+  font-weight: 800;
+  text-anchor: middle;
+  font-family: inherit;
+}
+.rline-corner text.rline-cname {
+  text-anchor: start;
+  font-weight: 700;
+  fill: var(--accent);
+  paint-order: stroke;
+  stroke: #0b0d12;
+  stroke-width: 0.3em;
+}
+.rline-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.cname-ed {
+  margin-top: 8px;
+}
+.cname-ed summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+.cname-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px 10px;
+  margin-top: 6px;
+}
+.cname-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cname-grid b {
+  min-width: 1.8em;
+  text-align: center;
+  cursor: pointer;
+  color: var(--accent);
+}
+.cname-grid .input {
+  flex: 1;
+  min-width: 0;
+}
+.ca-cname {
+  color: var(--accent);
+  font-weight: 600;
+}
+.tmap-corner circle {
+  fill: #0b0d12;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.tmap-corner text {
+  fill: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+.tmap-corner text.tmap-cname {
+  fill: var(--accent);
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #0b0d12;
+  stroke-width: 3px;
+}
+.ibt-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
 }

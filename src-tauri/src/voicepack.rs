@@ -258,7 +258,13 @@ fn say_texts() -> &'static HashMap<String, (String, String)> {
         let list: Vec<Value> = serde_json::from_str(CATALOG_JSON).unwrap_or_default();
         list.iter()
             .filter_map(|e| {
-                let s = |k: &str| e.get(k).and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+                let s = |k: &str| {
+                    e.get(k)
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string()
+                };
                 let key = s("key");
                 (!key.is_empty()).then(|| (key, (s("say_tr"), s("say_en"))))
             })
@@ -269,7 +275,13 @@ fn say_texts() -> &'static HashMap<String, (String, String)> {
 /// Bir ifadenin altyazı metni. Ses efekti açıklamaları ("(nefes alma sesi)") ve bilinmeyenler None.
 fn say_text(key: &str, tr: bool) -> Option<String> {
     let (t, e) = say_texts().get(key)?;
-    let s = if tr && !t.is_empty() { t } else if !e.is_empty() { e } else { t };
+    let s = if tr && !t.is_empty() {
+        t
+    } else if !e.is_empty() {
+        e
+    } else {
+        t
+    };
     (!s.is_empty() && !s.starts_with('(')).then(|| s.clone())
 }
 
@@ -278,7 +290,11 @@ fn say_text(key: &str, tr: bool) -> Option<String> {
 pub fn subtitle(parts: &[Part], tr: bool) -> String {
     let dec = |x: f32| {
         let s = format!("{:.1}", x);
-        if tr { s.replace('.', ",") } else { s }
+        if tr {
+            s.replace('.', ",")
+        } else {
+            s
+        }
     };
     let mut out: Vec<String> = Vec::new();
     for p in parts {
@@ -292,7 +308,17 @@ pub fn subtitle(parts: &[Part], tr: bool) -> String {
             Part::Secs(s) => {
                 let s = s.abs().max(0.1);
                 if s < 60.0 {
-                    format!("{} {}", dec(s), if tr { "saniye" } else if (s - 1.0).abs() < 0.05 { "second" } else { "seconds" })
+                    format!(
+                        "{} {}",
+                        dec(s),
+                        if tr {
+                            "saniye"
+                        } else if (s - 1.0).abs() < 0.05 {
+                            "second"
+                        } else {
+                            "seconds"
+                        }
+                    )
                 } else {
                     let total = s.round() as i64;
                     let (m, r) = (total / 60, total % 60);
@@ -307,16 +333,28 @@ pub fn subtitle(parts: &[Part], tr: bool) -> String {
             Part::Lap(t) => {
                 let tenths = (t.abs() * 10.0).round() as i64;
                 let (m, s, d) = (tenths / 600, (tenths % 600) / 10, tenths % 10);
-                if m > 0 { format!("{m}:{s:02}.{d}") } else { format!("{s}.{d}") }
+                if m > 0 {
+                    format!("{m}:{s:02}.{d}")
+                } else {
+                    format!("{s}.{d}")
+                }
             }
-            Part::Pos(n) => say_text(&format!("position/p{n}"), tr).unwrap_or_else(|| format!("P{n}")),
+            Part::Pos(n) => {
+                say_text(&format!("position/p{n}"), tr).unwrap_or_else(|| format!("P{n}"))
+            }
         };
         out.push(s);
     }
     let n = out.len();
     out.iter()
         .enumerate()
-        .map(|(i, s)| if i + 1 < n { s.trim_end_matches('.').to_string() } else { s.clone() })
+        .map(|(i, s)| {
+            if i + 1 < n {
+                s.trim_end_matches('.').to_string()
+            } else {
+                s.clone()
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ")
 }
@@ -723,7 +761,14 @@ mod tests {
         assert_eq!(subtitle(&[k("spotter/car_left")], true), "Solda araç.");
         assert_eq!(subtitle(&[k("spotter/car_left")], false), "Car left.");
         // Sayılar rakamla, ara parçaların noktası atılır, ses efektleri yazılmaz
-        let t = subtitle(&[k("spotter/car_left"), Part::Secs(1.3), k("acknowledge/breath_in")], true);
+        let t = subtitle(
+            &[
+                k("spotter/car_left"),
+                Part::Secs(1.3),
+                k("acknowledge/breath_in"),
+            ],
+            true,
+        );
         assert_eq!(t, "Solda araç 1,3 saniye");
         assert_eq!(subtitle(&[Part::Secs(75.0)], false), "1 min 15 s");
         assert_eq!(subtitle(&[Part::Lap(83.4)], false), "1:23.4");

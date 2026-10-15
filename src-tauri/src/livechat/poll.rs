@@ -55,7 +55,10 @@ pub enum Vote {
 pub fn parse_vote(text: &str) -> Option<u32> {
     let t = text.trim();
     let t = t.strip_prefix('#').unwrap_or(t);
-    let t = t.strip_suffix('.').or_else(|| t.strip_suffix('!')).unwrap_or(t);
+    let t = t
+        .strip_suffix('.')
+        .or_else(|| t.strip_suffix('!'))
+        .unwrap_or(t);
     if t.is_empty() || t.len() > 2 || !t.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
@@ -89,9 +92,21 @@ pub struct PollView {
 }
 
 impl Poll {
-    pub fn start(&mut self, options: u8, duration_secs: f64, question: &str, answers: &[String], result_duration: f64, now: f64) {
+    pub fn start(
+        &mut self,
+        options: u8,
+        duration_secs: f64,
+        question: &str,
+        answers: &[String],
+        result_duration: f64,
+        now: f64,
+    ) {
         let n = options.clamp(2, 9);
-        let mut ans: Vec<String> = answers.iter().take(n as usize).map(|a| a.trim().chars().take(60).collect()).collect();
+        let mut ans: Vec<String> = answers
+            .iter()
+            .take(n as usize)
+            .map(|a| a.trim().chars().take(60).collect())
+            .collect();
         ans.resize(n as usize, String::new());
         *self = Poll {
             state: PollState::Active,
@@ -114,7 +129,9 @@ impl Poll {
         if self.state != PollState::Active {
             return Vote::No;
         }
-        let Some(n) = parse_vote(text) else { return Vote::No };
+        let Some(n) = parse_vote(text) else {
+            return Vote::No;
+        };
         if n < 1 || n > self.options as u32 {
             return Vote::No;
         }
@@ -141,7 +158,13 @@ impl Poll {
         if top == 0 {
             return;
         }
-        let tied: Vec<u8> = self.counts.iter().enumerate().filter(|(_, c)| **c == top).map(|(i, _)| i as u8 + 1).collect();
+        let tied: Vec<u8> = self
+            .counts
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| **c == top)
+            .map(|(i, _)| i as u8 + 1)
+            .collect();
         if tied.len() < 2 {
             self.picked = tied.first().copied();
             return;
@@ -176,7 +199,10 @@ impl Poll {
 
     pub fn cancel(&mut self) {
         let rev = self.rev + 1;
-        *self = Poll { rev, ..Default::default() };
+        *self = Poll {
+            rev,
+            ..Default::default()
+        };
     }
 
     /// Zamanlayıcı: süresi biten anketi bitirir, dönme animasyonunu ilerletir, sonuç süresi bitince kapatır.
@@ -199,7 +225,13 @@ impl Poll {
                         self.rev += 1;
                         return true;
                     }
-                    let cur = self.spin.iter().rev().find(|(t, _)| *t <= now).map(|x| x.1).unwrap_or(self.highlight);
+                    let cur = self
+                        .spin
+                        .iter()
+                        .rev()
+                        .find(|(t, _)| *t <= now)
+                        .map(|x| x.1)
+                        .unwrap_or(self.highlight);
                     if cur != self.highlight {
                         self.highlight = cur;
                         self.rev += 1;
@@ -218,24 +250,58 @@ impl Poll {
 
     pub fn view(&self, now: f64) -> PollView {
         if self.state == PollState::Idle {
-            return PollView { rev: self.rev, ..Default::default() };
+            return PollView {
+                rev: self.rev,
+                ..Default::default()
+            };
         }
         let total: u32 = self.counts.iter().sum();
-        let ans = |n: u8| self.answers.get(n as usize - 1).cloned().unwrap_or_default();
+        let ans = |n: u8| {
+            self.answers
+                .get(n as usize - 1)
+                .cloned()
+                .unwrap_or_default()
+        };
         let (winners, text) = if self.state == PollState::Result {
             if self.spinning {
-                (vec![self.highlight], "Beraberlik — rastgele seçiliyor…".to_string())
+                (
+                    vec![self.highlight],
+                    "Beraberlik — rastgele seçiliyor…".to_string(),
+                )
             } else if !self.tie.is_empty() {
                 let n = self.picked.unwrap_or(self.tie[0]);
-                let list = self.tie.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ");
+                let list = self
+                    .tie
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 let a = ans(n);
-                let a = if a.is_empty() { String::new() } else { format!(" — {a}") };
-                (vec![n], format!("Beraberlik ({list}), rastgele seçilen: {n}{a} ({} oy)", self.counts[n as usize - 1]))
+                let a = if a.is_empty() {
+                    String::new()
+                } else {
+                    format!(" — {a}")
+                };
+                (
+                    vec![n],
+                    format!(
+                        "Beraberlik ({list}), rastgele seçilen: {n}{a} ({} oy)",
+                        self.counts[n as usize - 1]
+                    ),
+                )
             } else if let Some(n) = self.picked {
                 let c = self.counts[n as usize - 1];
-                let pct = if total > 0 { (c as f64 * 100.0 / total as f64).round() as u32 } else { 0 };
+                let pct = if total > 0 {
+                    (c as f64 * 100.0 / total as f64).round() as u32
+                } else {
+                    0
+                };
                 let a = ans(n);
-                let head = if a.is_empty() { format!("Kazanan: {n}") } else { format!("Kazanan: {n} — {a}") };
+                let head = if a.is_empty() {
+                    format!("Kazanan: {n}")
+                } else {
+                    format!("Kazanan: {n} — {a}")
+                };
                 (vec![n], format!("{head} ({c} oy, %{pct})"))
             } else {
                 (vec![], "Hiç oy gelmedi".to_string())
@@ -268,7 +334,10 @@ impl Poll {
 pub fn rand_u64() -> u64 {
     use std::sync::atomic::{AtomicU64, Ordering};
     static SEED: AtomicU64 = AtomicU64::new(0);
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(1);
+    let t = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(1);
     let mut x = t ^ SEED.fetch_add(0x9E37_79B9_7F4A_7C15, Ordering::Relaxed);
     x ^= x << 13;
     x ^= x >> 7;
@@ -293,7 +362,10 @@ mod tests {
         let mut p = Poll::default();
         assert_eq!(p.vote(Platform::Twitch, "a", "1"), Vote::No);
         p.start(3, 60.0, "Hangisi?", &["Bir".into()], 15.0, 0.0);
-        assert_eq!(p.answers, vec!["Bir".to_string(), String::new(), String::new()]);
+        assert_eq!(
+            p.answers,
+            vec!["Bir".to_string(), String::new(), String::new()]
+        );
         assert_eq!(p.vote(Platform::Twitch, "a", "1"), Vote::Counted(1));
         assert_eq!(p.vote(Platform::Twitch, "A", "2"), Vote::Repeat(2));
         assert_eq!(p.vote(Platform::Kick, "a", "2"), Vote::Counted(2));
@@ -327,7 +399,14 @@ mod tests {
     #[test]
     fn tiebreak() {
         let mut p = Poll::default();
-        p.start(3, 30.0, "", &["A".into(), "B".into(), "C".into()], 15.0, 0.0);
+        p.start(
+            3,
+            30.0,
+            "",
+            &["A".into(), "B".into(), "C".into()],
+            15.0,
+            0.0,
+        );
         p.vote(Platform::Twitch, "x", "1");
         p.vote(Platform::Twitch, "y", "3");
         p.finish_with(1.0, |tied| {
@@ -349,7 +428,10 @@ mod tests {
         assert_eq!(p.highlight, 3);
         let v = p.view(t);
         assert_eq!(v.picked, Some(3));
-        assert_eq!(v.result_text, "Beraberlik (1, 3), rastgele seçilen: 3 — C (1 oy)");
+        assert_eq!(
+            v.result_text,
+            "Beraberlik (1, 3), rastgele seçilen: 3 — C (1 oy)"
+        );
         assert_eq!(p.state, PollState::Result);
     }
 }

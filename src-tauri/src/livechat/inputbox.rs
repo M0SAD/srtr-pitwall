@@ -49,7 +49,9 @@ fn st() -> &'static Mutex<St> {
 }
 
 fn editing(app: &AppHandle) -> bool {
-    app.try_state::<Arc<Shared>>().map(|s| s.edit_mode.load(Ordering::Relaxed)).unwrap_or(false)
+    app.try_state::<Arc<Shared>>()
+        .map(|s| s.edit_mode.load(Ordering::Relaxed))
+        .unwrap_or(false)
 }
 
 #[cfg(windows)]
@@ -87,11 +89,16 @@ fn set_clickable(app: &AppHandle, w: &WebviewWindow) {
         return;
     }
     let _ = app.run_on_main_thread(move || unsafe {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT};
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+            WS_EX_TRANSPARENT,
+        };
         let ex = GetWindowLongPtrW(h as _, GWL_EXSTYLE);
         // WS_EX_TOOLWINDOW: Chrome'un pencere örtülme hesabı araç pencerelerini hiç saymaz (kesin muafiyet). Yalnızca
         // tıklanabilirken eklenir: OBS'in "Pencere yakalama" listesi araç pencerelerini göstermediği için kalıcı olmaz.
-        let want = (ex & !(WS_EX_TRANSPARENT as isize)) | WS_EX_LAYERED as isize | WS_EX_TOOLWINDOW as isize;
+        let want = (ex & !(WS_EX_TRANSPARENT as isize))
+            | WS_EX_LAYERED as isize
+            | WS_EX_TOOLWINDOW as isize;
         if want != ex {
             SetWindowLongPtrW(h as _, GWL_EXSTYLE, want);
         }
@@ -108,9 +115,13 @@ fn set_passthrough(app: &AppHandle, w: &WebviewWindow) {
         return;
     }
     let _ = app.run_on_main_thread(move || unsafe {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT};
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+            WS_EX_TRANSPARENT,
+        };
         let ex = GetWindowLongPtrW(h as _, GWL_EXSTYLE);
-        let want = (ex | WS_EX_TRANSPARENT as isize | WS_EX_LAYERED as isize) & !(WS_EX_TOOLWINDOW as isize);
+        let want = (ex | WS_EX_TRANSPARENT as isize | WS_EX_LAYERED as isize)
+            & !(WS_EX_TOOLWINDOW as isize);
         if want != ex {
             SetWindowLongPtrW(h as _, GWL_EXSTYLE, want);
         }
@@ -142,9 +153,13 @@ fn give_back(_w: &WebviewWindow, _prev: isize) {}
 
 /// İmleç bu pencerenin bölgelerinden birinin üstünde mi
 fn inside(app: &AppHandle, w: &WebviewWindow, regions: &[Rect]) -> bool {
-    let (Ok(c), Ok(o)) = (app.cursor_position(), w.inner_position()) else { return false };
+    let (Ok(c), Ok(o)) = (app.cursor_position(), w.inner_position()) else {
+        return false;
+    };
     let (x, y) = (c.x - o.x as f64, c.y - o.y as f64);
-    regions.iter().any(|r| x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h)
+    regions
+        .iter()
+        .any(|r| x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h)
 }
 
 fn poll(app: AppHandle) {
@@ -165,7 +180,17 @@ fn poll(app: AppHandle) {
                 }
                 return;
             }
-            g.wins.iter().map(|(l, w)| (l.clone(), w.regions.values().copied().collect(), w.hold, w.open)).collect()
+            g.wins
+                .iter()
+                .map(|(l, w)| {
+                    (
+                        l.clone(),
+                        w.regions.values().copied().collect(),
+                        w.hold,
+                        w.open,
+                    )
+                })
+                .collect()
         };
         let edit = editing(&app);
         for (label, regions, hold, open) in snap {
@@ -217,19 +242,33 @@ fn poll(app: AppHandle) {
 ///   "focus"  → kutu odağı aldı (pencere öne gelir, tıklanabilir kalır)
 ///   "blur"   → odak bırakıldı (pencere yeniden tıklama geçirir; klavye önceki pencereye döner)
 #[tauri::command]
-pub async fn livechat_input(app: AppHandle, window: WebviewWindow, id: String, op: String, rect: Option<Rect>) -> Result<(), String> {
+pub async fn livechat_input(
+    app: AppHandle,
+    window: WebviewWindow,
+    id: String,
+    op: String,
+    rect: Option<Rect>,
+) -> Result<(), String> {
     let label = window.label().to_string();
     if label != "overlay" && !label.starts_with("overlay-m") {
         return Ok(());
     }
     match op.as_str() {
         "region" | "remove" => {
-            let rect = if op == "region" { rect.filter(|r| r.w > 1.0 && r.h > 1.0) } else { None };
+            let rect = if op == "region" {
+                rect.filter(|r| r.w > 1.0 && r.h > 1.0)
+            } else {
+                None
+            };
             let start = {
                 let mut g = st().lock();
                 match rect {
                     Some(r) => {
-                        g.wins.entry(label.clone()).or_default().regions.insert(id, r);
+                        g.wins
+                            .entry(label.clone())
+                            .or_default()
+                            .regions
+                            .insert(id, r);
                     }
                     None => {
                         let mut restore = false;

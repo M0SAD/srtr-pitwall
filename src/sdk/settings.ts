@@ -343,6 +343,20 @@ export interface LiveChatStt {
   pauseWhileTts: boolean;
   /** Altyazının önündeki ad (boş: yok) */
   label: string;
+  /** Altyazı çevirisi (PRO: livechat.translate; yalnızca cloud motoru). Rust: livechat/translate.rs */
+  translate: LiveChatTranslate;
+}
+
+export interface LiveChatTranslate {
+  enabled: boolean;
+  /** Hedef dil kodu ("tr", "en"…); boş: arayüz dili */
+  target: string;
+  /** "remote": yalnızca bilgisayar sesi (oyun, Discord) çevrilir; "both": mikrofon da */
+  sources: "remote" | "both";
+  /** Çevirinin altında özgün metin de görünsün */
+  showOriginal: boolean;
+  /** Sohbet modeli; boş: sunucuya göre varsayılan (Groq: llama-3.3-70b-versatile, OpenAI: gpt-4o-mini) */
+  model: string;
 }
 
 /** Varsayılan Canlı Sohbet kanalları, bu sırayla (YouTube ilk: ücretsiz sürümde yalnızca ilk kanal bağlanır) */
@@ -425,6 +439,7 @@ export function defaultLiveChat(): LiveChatSettings {
       profanityWords: "",
       pauseWhileTts: true,
       label: "",
+      translate: { enabled: false, target: "", sources: "remote", showOriginal: true, model: "" },
     },
     sendTarget: "mine",
   };
@@ -483,7 +498,7 @@ function normalizeLiveChat(v: Partial<LiveChatSettings> | undefined, twitchChann
       cmdDefV1: true,
       ...(ttsNew ? { enabled: true } : {}),
     },
-    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },
+    stt: { ...d.stt, ...(v.stt ?? {}), cloud: { ...d.stt.cloud, ...(v.stt?.cloud ?? {}) }, translate: { ...d.stt.translate, ...(v.stt?.translate ?? {}) }, ...(sttNew ? { enabled: true, engine: "cloud" as const, source: "both" as const } : {}) },
     voiceDefV1: true,
     // Bir kerelik geçiş (autoStartV1): sohbet uygulama açılınca kendiliğinden başlar; kullanıcı sonra kapatırsa kapalı kalır
     ...(v.autoStartV1 ? {} : { autoStart: true }),
@@ -625,8 +640,18 @@ export interface ScreenshotSettings {
 }
 
 /** Veri kaynağı simülasyon: "auto" çalışanı bulur (önce iRacing) */
-export type SimChoice = "auto" | "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2";
-export const SIM_CHOICES: SimChoice[] = ["auto", "iracing", "acc", "ac", "lmu", "rf2", "ams2"];
+export type SimChoice = "auto" | "iracing" | "acc" | "ac" | "lmu" | "rf2" | "ams2" | "r3e" | "f1" | "forza" | "dirt" | "beamng";
+export const SIM_CHOICES: SimChoice[] = ["auto", "iracing", "acc", "ac", "lmu", "rf2", "ams2", "r3e", "f1", "forza", "dirt", "beamng"];
+
+/** UDP telemetrisi gönderen oyunların portları (Rust: sims/udp.rs `general.udp`). `always`: oyun bu bilgisayarda
+ *  çalışmıyorken de dinle (PlayStation / Xbox'taki F1 ve Forza) */
+export interface UdpPorts {
+  codemasters: number;
+  forza: number;
+  beamng: number;
+  always: boolean;
+}
+export const UDP_DEFAULTS: UdpPorts = { codemasters: 20777, forza: 5300, beamng: 4444, always: false };
 
 /** Sohbet balonları ve arka planı (Ayarlar → Sohbet) */
 export interface ChatLook {
@@ -792,9 +817,14 @@ export type EditBackdropSlot = "layout" | "stream" | "screen";
 export const EDIT_BACKDROP_SLOTS: EditBackdropSlot[] = ["layout", "stream", "screen"];
 
 export interface GeneralSettings {
+  /** Arkadaşa uyarı (Arkadaş Uyarısı overlay'i): basınca aynı yarıştaki arkadaşların ekranında "DİKKAT" yanıp söner.
+   *  Tuş GetAsyncKeyState ile yoklanır (yutulmaz), direksiyon düğmesi bas-konuşla aynı yoldan. Rust: voicecmd.rs */
+  friendAlert: { key: string; button: VoiceCommandButton | null };
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
   sim: SimChoice;
+  /** UDP simleri (F1, Forza, DiRT / GRID, BeamNG) */
+  udp: UdpPorts;
   monitor: number | null;
   units: Units;
   hideWhenOffTrack: boolean;
@@ -851,6 +881,9 @@ export interface GeneralSettings {
   /** iRacing: araca binince pit servisindeki lastik değişimini kaldır. "race": yalnızca yarış oturumlarında, "all": her
    *  oturumda; yok / "off": kapalı (bkz. src/host/autoPit.ts) */
   autoClearTires?: "off" | "race" | "all";
+  /** iRacing: araca binince autofuel'i aç ("#autofuel" pit makrosu). "race": yalnızca yarış oturumlarında, "all": her
+   *  oturumda; yok / "off": kapalı (bkz. src/host/autoPit.ts) */
+  autoFuel?: "off" | "race" | "all";
   /** Sohbet görünümü (sadece bu kullanıcı görür; arka plan görseli ayar klasöründe dosya) */
   chatLook: ChatLook;
   /** Sohbete özel arka planlar (arkadaş hesap kimliği → arka plan) */
@@ -1247,6 +1280,7 @@ export function defaultSettings(): AppSettings {
     general: {
       demo: false,
       sim: "auto",
+      udp: { ...UDP_DEFAULTS },
       monitor: null,
       units: "metric",
       hideWhenOffTrack: true,
@@ -1261,6 +1295,7 @@ export function defaultSettings(): AppSettings {
       shotKeyV2: true,
       shotKeyV3: true,
       hideInReplay: true,
+      friendAlert: { key: "", button: null },
       chatLook: { ...DEFAULT_CHAT_LOOK },
       convBg: {},
       appBg: { ...DEFAULT_APP_BG },
@@ -1413,6 +1448,7 @@ export function normalize(input: unknown): AppSettings {
       ...d.general,
       ...(s.general ?? {}),
       sim: SIM_CHOICES.includes(s.general?.sim as SimChoice) ? (s.general!.sim as SimChoice) : "auto",
+      udp: { ...UDP_DEFAULTS, ...((s.general as { udp?: Partial<UdpPorts> } | undefined)?.udp ?? {}) },
       // Bir kerelik geçiş (serverOnV1): web sunucusu varsayılan olarak açılır; kullanıcı sonra kapatırsa kapalı kalır
       server: { ...d.general.server, ...(s.general?.server ?? {}), ...(s.general?.serverOnV1 ? {} : { enabled: true }) },
       serverOnV1: true,
@@ -1424,6 +1460,7 @@ export function normalize(input: unknown): AppSettings {
       // Bir kerelik geçiş (demoMuteV1): Demo açılınca ses varsayılan olarak kapalıdır; kullanıcı açarsa seçimi hatırlanır
       demoMute: s.general?.demoMuteV1 ? (s.general?.demoMute ?? true) : true,
       demoMuteV1: true,
+      friendAlert: { key: "", button: null, ...(s.general?.friendAlert ?? {}) },
       shortcuts: chatKeyMigrate(voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1), s.general?.chatKeyV2),
       voiceKeyV1: true,
       chatKeyV2: true,
@@ -1647,6 +1684,29 @@ export function normalize(input: unknown): AppSettings {
   const seed = savedDef ? null : s.profiles && typeof s.profiles === "object" ? out.profiles[out.activeProfile] : null;
   for (const m of manifests) out.defaults[m.id] = defaultFrom(m.id, savedDef ? (m.id === "inputs" ? (inputsPedalsMigrate(savedDef[m.id])?.reset ?? savedDef[m.id]) : savedDef[m.id]) : seed?.overlays[m.id]);
   return out;
+}
+
+/**
+ * Dışarıdan gelen tek bir düzeni (topluluk paylaşımı) bu sürümün biçimine getirir: açılıştaki onarımın aynısı
+ * (eski ayar biçimleri taşınır, eksik ayarlar varsayılanla dolar, bu sürümde olmayan overlay türleri atılır).
+ * Paylaşan ile indiren farklı sürümlerdeyse düzen ancak böyle güvenle kullanılır. Bozuk veride null.
+ */
+export function normalizeImportedProfile(input: unknown): Profile | null {
+  if (!input || typeof input !== "object") return null;
+  const raw = input as Partial<Profile>;
+  if (!raw.overlays || typeof raw.overlays !== "object") return null;
+  const key = "__import__";
+  const p = normalize({ profiles: { [key]: raw } }).profiles[key];
+  if (!p) return null;
+  // Yerel işaretler alınmaz (normalize varsayılan / eski yayın düzeni işareti koyabilir)
+  delete p.isDefault;
+  delete p.legacyId;
+  delete p.locked;
+  delete p.sharedId;
+  delete p.order;
+  delete p.backdrop;
+  delete p.link;
+  return p;
 }
 
 const [settings, setSettingsRaw] = createSignal<AppSettings>(defaultSettings());

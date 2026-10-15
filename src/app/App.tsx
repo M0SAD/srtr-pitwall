@@ -101,7 +101,7 @@ function ChatStartButton() {
 }
 
 /** Bağlantı noktasının açıklamasında gösterilen sim adları (status.sim / general.sim) */
-const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "Assetto Corsa Competizione", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
+const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "Assetto Corsa Competizione", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 
 const TOP: NavItem[] = [
   { id: "overlays", label: "Overlaylarım", icon: () => <I.Box /> },

@@ -236,3 +236,231 @@
   font-size: 2em;
   line-height: 1.1;
 }
+
+/* ---- Tur süreleri: sığmayan "En iyi" alt satıra düşmesin ---- */
+.dl-times {
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+.dl-times > span {
+  white-space: nowrap;
+}
+/* Dar tasarımlar: etiket üstte, süre altta; sütunlar eşit paylaşılır */
+.dl-narrow .dl-times {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  text-align: center;
+  font-size: 0.92em;
+}
+.dl-narrow .dl-times > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+.dl-narrow .dl-times label {
+  margin: 0 0 1px;
+  font-size: 0.72em;
+}
+
+/* Çubuk kapalı: sadece sayı */
+.dl-nobar {
+  width: calc(230px * var(--ov-fs-k, 1));
+}
+.dl-nobar.dl-d-pill {
+  width: calc(220px * var(--ov-fs-k, 1));
+}
+
+/* Kapsül: arka plan farkın yönüne göre renklenir, koyuluğu büyüklükle artar */
+.dl-d-pill {
+  width: calc(220px * var(--ov-fs-k, 1));
+}
+.dl-p {
+  margin: calc(7px * var(--ov-pad-k, 1)) calc(9px * var(--ov-pad-k, 1));
+  padding: calc(3px * var(--ov-pad-k, 1)) 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ov-text) 8%, transparent);
+  transition: background 0.12s linear;
+}
+.dl.fast .dl-p {
+  background: color-mix(in srgb, var(--ov-green) calc(var(--m, 0) * 85%), transparent);
+}
+.dl.slow .dl-p {
+  background: color-mix(in srgb, var(--ov-red) calc(var(--m, 0) * 85%), transparent);
+}
+.dl-p .dl-value {
+  width: auto;
+  text-align: center;
+  font-size: 2.3em;
+  line-height: 1.15;
+}
+.dl.fast .dl-p .dl-value,
+.dl.slow .dl-p .dl-value {
+  color: var(--ov-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Dikey çubuk: yukarı kazanç (yeşil), aşağı kayıp (kırmızı) */
+.dl-d-vertical {
+  width: calc(150px * var(--ov-fs-k, 1));
+}
+.dl-v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: calc(8px * var(--ov-pad-k, 1)) calc(8px * var(--ov-pad-k, 1)) calc(5px * var(--ov-pad-k, 1));
+}
+.dl-vbar {
+  position: relative;
+  width: 22px;
+  height: calc(120px * var(--ov-fs-k, 1));
+  border-radius: 6px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ov-text) 7%, transparent);
+}
+.dl-vmid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: color-mix(in srgb, var(--ov-text) 55%, transparent);
+  z-index: 1;
+}
+.dl-vfill {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.dl-vfill.fast {
+  background: var(--ov-green);
+}
+.dl-vfill.slow {
+  background: var(--ov-red);
+}
+.dl-v .dl-value {
+  width: auto;
+  text-align: center;
+  font-size: 1.45em;
+}
+
+/* LED şerit: ortadan iki yana yanan ışıklar (direksiyon ekranı gibi) */
+.dl-d-leds {
+  width: calc(340px * var(--ov-fs-k, 1));
+}
+.dl-leds {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: calc(9px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
+}
+.dl-ledrow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.dl-ledrow .led {
+  flex: 1;
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ov-text) 9%, transparent);
+  transition: background 0.06s linear, box-shadow 0.06s linear;
+}
+.dl-ledrow .led.fast.on {
+  background: var(--ov-green);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ov-green) 70%, transparent);
+}
+.dl-ledrow .led.slow.on {
+  background: var(--ov-red);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ov-red) 70%, transparent);
+}
+.dl-ledmid {
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--ov-text);
+}
+.dl-leds .dl-value {
+  width: auto;
+  text-align: center;
+  font-size: 1.8em;
+  line-height: 1.15;
+}
+
+/* Kayan cetvel: cetvel farka göre kayar, ortadaki ibre anlık farkı gösterir */
+.dl-d-tape {
+  width: calc(320px * var(--ov-fs-k, 1));
+}
+.dl-tape {
+  display: flex;
+  flex-direction: column;
+  padding: calc(5px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(6px * var(--ov-pad-k, 1));
+}
+.dl-tape .dl-value {
+  width: auto;
+  text-align: center;
+  font-size: 1.7em;
+  line-height: 1.1;
+}
+.dl-tape svg {
+  display: block;
+  width: 100%;
+  height: calc(34px * var(--ov-fs-k, 1));
+  margin-top: 3px;
+}
+.dl-tape-bg {
+  fill: color-mix(in srgb, var(--ov-text) 5%, transparent);
+}
+.dl-tick {
+  stroke: color-mix(in srgb, var(--ov-text) 45%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.dl-tick.major {
+  stroke: color-mix(in srgb, var(--ov-text) 80%, transparent);
+  stroke-width: 1.5;
+}
+.dl-tick.neg.major {
+  stroke: var(--ov-green);
+}
+.dl-tick.pos.major {
+  stroke: var(--ov-red);
+}
+.dl-tick-t {
+  fill: var(--ov-dim);
+  font-family: var(--ov-mono, monospace);
+  font-size: 9px;
+  text-anchor: middle;
+}
+.dl-tape-ptr.fast,
+.dl-tape-ptr-l.fast {
+  fill: var(--ov-green);
+  stroke: var(--ov-green);
+}
+.dl-tape-ptr.slow,
+.dl-tape-ptr-l.slow {
+  fill: var(--ov-red);
+  stroke: var(--ov-red);
+}
+.dl-tape-ptr-l {
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+/* Dikey çubuk çok dar: süreler alt alta (etiket solda, süre sağda) */
+.dl-d-vertical .dl-times {
+  grid-auto-flow: row;
+  gap: 2px;
+}
+.dl-d-vertical .dl-times > span {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 6px;
+}
+.dl-d-vertical .dl-times label {
+  margin: 0;
+}

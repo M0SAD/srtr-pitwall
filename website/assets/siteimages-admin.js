@@ -3,10 +3,12 @@
 // Dosyalar 'site' kovasına home/<yuva>-<zaman>.<uzantı> adıyla yüklenir, eşleme app_config.site_images'ta saklanır
 // (RPC: admin_set_site_images — c54_guncelleme.sql). Yuva listesi: siteimages.js › SLOTS.
 import { $, $$, esc, sb, toast } from "./core.js";
-import { GALLERY_SLOT, SITE_BUCKET, SITE_PUBLIC, SLOTS, cleanImages } from "./siteimages.js";
+import { GALLERY_SLOT, SITE_BUCKET, SITE_PUBLIC, SLOTS, cleanImages, overlayDefaultUrl } from "./siteimages.js";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_GALLERY = 24;
+/** Bir overlay'e en çok kaç görsel */
+const MAX_OV = 8;
 const TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
 
 let map = {};
@@ -24,6 +26,11 @@ const CSS = `
 .si-gal{display:flex;flex-direction:column;gap:10px}
 .si-gal-row{display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--bg-2)}
 .si-gal-row img{width:120px;height:68px;object-fit:cover;border-radius:6px;display:block}
+.si-ov{display:flex;flex-direction:column;gap:8px}
+.si-ov-row{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--bg-2)}
+.si-ov-row img{width:96px;height:60px;object-fit:contain;background:#0b0d12;border-radius:5px;display:block}
+.si-ov-row .row{grid-column:1/-1;gap:6px;flex-wrap:wrap}
+.si-ov-row input{width:100%}
 @media (max-width:620px){.si-gal-row{grid-template-columns:90px 1fr}.si-gal-row img{width:90px;height:52px}.si-gal-row .row{grid-column:1/-1}}
 `;
 
@@ -94,6 +101,41 @@ function pick() {
 
 const gallery = () => (Array.isArray(map[GALLERY_SLOT]) ? map[GALLERY_SLOT] : []);
 
+/** Overlay yuvasının görsel listesi (eski tek görsel kaydı da liste sayılır) */
+const ovList = (slot) => {
+  const v = map[slot];
+  return Array.isArray(v) ? v : v ? [v] : [];
+};
+
+/** Overlay Galerisi kartı: birden fazla görsel; boşsa siteyle gelen varsayılan görsel gösterilir */
+function ovCard([id, label, , def, size]) {
+  const list = ovList(id);
+  const ovId = id.replace(/^ov\./, "");
+  const defUrl = overlayDefaultUrl(ovId);
+  const rows = list.length
+    ? list
+        .map(
+          (it, i) => `<div class="si-ov-row" data-i="${i}">
+        <img src="${esc(it.url)}" alt="" loading="lazy">
+        <input type="text" maxlength="300" data-oalt value="${esc(it.alt || "")}" placeholder="${it.url === defUrl ? "Varsayılan görsel · alt metin" : "Alt metin (isteğe bağlı)"}">
+        <div class="row">
+          <button class="btn btn-sm" data-oact="up" title="Öne al" ${i ? "" : "disabled"}>↑</button>
+          <button class="btn btn-sm" data-oact="down" title="Geri al" ${i < list.length - 1 ? "" : "disabled"}>↓</button>
+          <button class="btn btn-sm" data-oact="alt">Kaydet</button>
+          <button class="btn btn-sm btn-danger" data-oact="del">Kaldır</button>
+          ${i === 0 ? `<span class="badge ok">İlk görünen</span>` : ""}
+        </div></div>`,
+        )
+        .join("")
+    : `<div class="si-prev"><span class="badge">Varsayılan</span><img src="${esc(def)}" alt="" loading="lazy"></div>`;
+  return `<div class="card si-card" data-ov="${esc(id)}">
+    <div class="row between"><div><h4>${esc(label.replace(/^Overlay Galerisi · /, ""))}</h4><span class="muted tiny">${esc(id)} · önerilen ${esc(size)} · ${list.length || 1} görsel</span></div>
+      <button class="btn btn-sm btn-accent" data-oact="add" ${list.length >= MAX_OV ? "disabled" : ""}>Görsel ekle</button></div>
+    <div class="si-ov">${rows}</div>
+    ${list.length ? `<button class="btn btn-sm btn-ghost" data-oact="reset">Varsayılana dön (yalnızca siteyle gelen görsel)</button>` : ""}
+  </div>`;
+}
+
 function slotCard([id, label, page, def, size]) {
   const cur = map[id] && !Array.isArray(map[id]) ? map[id] : null;
   const src = cur?.url || def;
@@ -152,8 +194,8 @@ function draw(el) {
     <div class="si-grid">${group("features.html")}</div>
     <details style="margin-top:18px"${SLOTS.some((x) => x[2] === "gallery" && map[x[0]]) ? " open" : ""}>
       <summary style="cursor:pointer"><b>Ana sayfa · Overlay Galerisi</b> <span class="muted tiny">her overlay'in önizleme görseli (${SLOTS.filter((x) => x[2] === "gallery").length})</span></summary>
-      <p class="muted small">Galeride overlay seçilince sağda görünen görsel. Koyu zeminli, 16:10 oranında (ör. 720×450) görseller en iyi sonucu verir.</p>
-      <div class="si-grid">${group("gallery")}</div>
+      <p class="muted small">Galeride overlay seçilince sağda görünen görseller. Bir overlay'e en çok ${MAX_OV} görsel eklenebilir; birden fazlaysa galeride oklar ve noktalarla geçilir, ilk sıradaki önce görünür. İlk eklemede siteyle gelen varsayılan görsel listenin başına konur (istersen kaldır ya da sırala). Koyu zeminli, 16:10 oranında (ör. 960×600) görseller en iyi sonucu verir.</p>
+      <div class="si-grid">${SLOTS.filter((s) => s[2] === "gallery").map(ovCard).join("")}</div>
     </details>`;
 }
 
@@ -179,8 +221,79 @@ export async function siteGorselleri(el) {
   if (el.dataset.siBound) return;
   el.dataset.siBound = "1";
   el.addEventListener("click", async (e) => {
-    const b = e.target.closest("button[data-act], button[data-gact]");
+    const b = e.target.closest("button[data-act], button[data-gact], button[data-oact]");
     if (!b || b.disabled || busy) return;
+    // Overlay görselleri (liste)
+    if (b.dataset.oact) {
+      const card = b.closest("[data-ov]");
+      const slot = card.dataset.ov;
+      const ovId = slot.replace(/^ov\./, "");
+      const row = b.closest("[data-i]");
+      const i = row ? +row.dataset.i : -1;
+      const url = i >= 0 ? ovList(slot)[i]?.url : "";
+      const withOv = (list) => {
+        const next = { ...map };
+        if (list.length) next[slot] = list;
+        else delete next[slot];
+        return next;
+      };
+      const act = b.dataset.oact;
+      if (act === "add") {
+        const file = await pick();
+        if (!file) return;
+        await run(
+          el,
+          async () => {
+            let list = ovList(slot);
+            // İlk ekleme: siteyle gelen görsel listenin başında kalsın (kaldırılabilir)
+            if (!list.length) list = [{ url: overlayDefaultUrl(ovId), alt: "", w: 960, h: 600 }];
+            if (list.length >= MAX_OV) throw new Error(`Bir overlay'e en fazla ${MAX_OV} görsel eklenebilir.`);
+            const up = await upload(file, slot);
+            try {
+              await save(withOv([...list, { ...up, alt: "" }]));
+            } catch (err) {
+              await removeFile(up.url);
+              throw err;
+            }
+          },
+          "Görsel eklendi",
+        );
+      } else if (act === "up" || act === "down") {
+        await run(el, async () => {
+          const list = [...ovList(slot)];
+          const at = list.findIndex((x) => x.url === url);
+          const to = at + (act === "up" ? -1 : 1);
+          if (at < 0 || to < 0 || to >= list.length) return;
+          [list[at], list[to]] = [list[to], list[at]];
+          await save(withOv(list));
+        });
+      } else if (act === "alt") {
+        const alt = $("[data-oalt]", row).value.trim();
+        await run(el, async () => save(withOv(ovList(slot).map((x) => (x.url === url ? { ...x, alt } : x)))), "Kaydedildi");
+      } else if (act === "del") {
+        if (!url || !confirm("Bu görsel kaldırılsın mı?")) return;
+        await run(
+          el,
+          async () => {
+            await save(withOv(ovList(slot).filter((x) => x.url !== url)));
+            await removeFile(url);
+          },
+          "Kaldırıldı",
+        );
+      } else if (act === "reset") {
+        if (!confirm("Bu overlay'in yüklenen görselleri kaldırılıp siteyle gelen görsele dönülsün mü?")) return;
+        await run(
+          el,
+          async () => {
+            const old = ovList(slot);
+            await save(withOv([]));
+            for (const x of old) await removeFile(x.url);
+          },
+          "Varsayılana dönüldü",
+        );
+      }
+      return;
+    }
     // Yuvalar
     if (b.dataset.act) {
       const card = b.closest("[data-slot]");

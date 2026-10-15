@@ -12,13 +12,14 @@
 
 use std::time::{Duration, Instant};
 use windows::core::HSTRING;
-use windows_collections::IIterable;
 use windows::Foundation::TimeSpan;
 use windows::Globalization::Language;
 use windows::Media::SpeechRecognition::{
-    SpeechRecognitionConfidence, SpeechRecognitionListConstraint, SpeechRecognitionResult, SpeechRecognitionResultStatus, SpeechRecognitionScenario,
-    SpeechRecognitionTopicConstraint, SpeechRecognizer,
+    SpeechRecognitionConfidence, SpeechRecognitionListConstraint, SpeechRecognitionResult,
+    SpeechRecognitionResultStatus, SpeechRecognitionScenario, SpeechRecognitionTopicConstraint,
+    SpeechRecognizer,
 };
+use windows_collections::IIterable;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Mode {
@@ -96,10 +97,16 @@ pub fn best_tag(installed: &[String], want: &str) -> Option<String> {
     installed
         .iter()
         .find(|t| t.to_lowercase() == w)
-        .or_else(|| installed.iter().find(|t| t.to_lowercase().starts_with(&format!("{w}-"))))
+        .or_else(|| {
+            installed
+                .iter()
+                .find(|t| t.to_lowercase().starts_with(&format!("{w}-")))
+        })
         .or_else(|| {
             // pt-BR ↔ pt-PT gibi bölge farkında: önce istenen bölge, yoksa aynı ana dilin herhangi bir bölgesi
-            installed.iter().find(|t| t.to_lowercase().split('-').next() == Some(primary.as_str()))
+            installed
+                .iter()
+                .find(|t| t.to_lowercase().split('-').next() == Some(primary.as_str()))
         })
         .cloned()
 }
@@ -117,7 +124,11 @@ fn create(tag: &str) -> Result<SpeechRecognizer, String> {
 }
 
 fn compile(rec: &SpeechRecognizer) -> Result<(), String> {
-    let comp = rec.CompileConstraintsAsync().map_err(|e| err(&e))?.join().map_err(|e| err(&e))?;
+    let comp = rec
+        .CompileConstraintsAsync()
+        .map_err(|e| err(&e))?
+        .join()
+        .map_err(|e| err(&e))?;
     let st = comp.Status().map_err(|e| err(&e))?;
     if st != SpeechRecognitionResultStatus::Success {
         return Err(format!("compile:{}", st.0));
@@ -127,8 +138,12 @@ fn compile(rec: &SpeechRecognizer) -> Result<(), String> {
 
 fn timeouts(rec: &SpeechRecognizer) {
     if let Ok(t) = rec.Timeouts() {
-        let _ = t.SetInitialSilenceTimeout(TimeSpan { Duration: 60_000_000 }); // 6 sn
-        let _ = t.SetEndSilenceTimeout(TimeSpan { Duration: 5_000_000 }); // 0,5 sn
+        let _ = t.SetInitialSilenceTimeout(TimeSpan {
+            Duration: 60_000_000,
+        }); // 6 sn
+        let _ = t.SetEndSilenceTimeout(TimeSpan {
+            Duration: 5_000_000,
+        }); // 0,5 sn
         let _ = t.SetBabbleTimeout(TimeSpan { Duration: 0 });
     }
 }
@@ -139,21 +154,40 @@ impl Recognizer {
         let rec = create(tag)?;
         let items: Vec<HSTRING> = phrases.iter().map(|p| HSTRING::from(p.as_str())).collect();
         let it: IIterable<HSTRING> = IIterable::<HSTRING>::from(items);
-        let c = SpeechRecognitionListConstraint::CreateWithTag(&it, &HSTRING::from("commands")).map_err(|e| err(&e))?;
-        rec.Constraints().map_err(|e| err(&e))?.Append(&c).map_err(|e| err(&e))?;
+        let c = SpeechRecognitionListConstraint::CreateWithTag(&it, &HSTRING::from("commands"))
+            .map_err(|e| err(&e))?;
+        rec.Constraints()
+            .map_err(|e| err(&e))?
+            .Append(&c)
+            .map_err(|e| err(&e))?;
         compile(&rec)?;
         timeouts(&rec);
-        Ok(Recognizer { rec, mode: Mode::List, tag: tag.to_string() })
+        Ok(Recognizer {
+            rec,
+            mode: Mode::List,
+            tag: tag.to_string(),
+        })
     }
 
     /// Dikte tanıyıcısı (kısa sorgular için WebSearch senaryosu)
     pub fn dictation(tag: &str) -> Result<Recognizer, String> {
         let rec = create(tag)?;
-        let c = SpeechRecognitionTopicConstraint::Create(SpeechRecognitionScenario::WebSearch, &HSTRING::from("commands")).map_err(|e| err(&e))?;
-        rec.Constraints().map_err(|e| err(&e))?.Append(&c).map_err(|e| err(&e))?;
+        let c = SpeechRecognitionTopicConstraint::Create(
+            SpeechRecognitionScenario::WebSearch,
+            &HSTRING::from("commands"),
+        )
+        .map_err(|e| err(&e))?;
+        rec.Constraints()
+            .map_err(|e| err(&e))?
+            .Append(&c)
+            .map_err(|e| err(&e))?;
         compile(&rec)?;
         timeouts(&rec);
-        Ok(Recognizer { rec, mode: Mode::Dictation, tag: tag.to_string() })
+        Ok(Recognizer {
+            rec,
+            mode: Mode::Dictation,
+            tag: tag.to_string(),
+        })
     }
 
     /// Bir cümle dinle. `stop()`: true dönerse (tuş bırakıldı) en çok `grace` kadar daha sonuç beklenir, sonra iptal edilir.
@@ -181,12 +215,15 @@ impl Recognizer {
             if released.is_none() && stop() {
                 released = Some(Instant::now());
             }
-            let timed_out = released.map(|r| r.elapsed() > grace).unwrap_or(false) || start.elapsed() > max;
+            let timed_out =
+                released.map(|r| r.elapsed() > grace).unwrap_or(false) || start.elapsed() > max;
             if timed_out {
                 let _ = op.Cancel();
                 // İptalin tamamlanmasını kısa süre bekle (tanıyıcı yeniden kullanılabilsin)
                 let t = Instant::now();
-                while t.elapsed() < Duration::from_millis(800) && op.Status().map(|s| s.0 == ASYNC_STARTED).unwrap_or(false) {
+                while t.elapsed() < Duration::from_millis(800)
+                    && op.Status().map(|s| s.0 == ASYNC_STARTED).unwrap_or(false)
+                {
                     std::thread::sleep(Duration::from_millis(20));
                 }
                 return Heard::Nothing;
@@ -197,18 +234,29 @@ impl Recognizer {
             Ok(r) => r,
             Err(e) => return Heard::Error(err(&e)),
         };
-        let st = res.Status().unwrap_or(SpeechRecognitionResultStatus::Unknown);
+        let st = res
+            .Status()
+            .unwrap_or(SpeechRecognitionResultStatus::Unknown);
         if st != SpeechRecognitionResultStatus::Success {
             return match st {
-                SpeechRecognitionResultStatus::TimeoutExceeded | SpeechRecognitionResultStatus::PauseLimitExceeded | SpeechRecognitionResultStatus::UserCanceled => Heard::Nothing,
-                SpeechRecognitionResultStatus::MicrophoneUnavailable => Heard::Error("no_mic".into()),
+                SpeechRecognitionResultStatus::TimeoutExceeded
+                | SpeechRecognitionResultStatus::PauseLimitExceeded
+                | SpeechRecognitionResultStatus::UserCanceled => Heard::Nothing,
+                SpeechRecognitionResultStatus::MicrophoneUnavailable => {
+                    Heard::Error("no_mic".into())
+                }
                 SpeechRecognitionResultStatus::NetworkFailure => Heard::Error("network".into()),
                 SpeechRecognitionResultStatus::AudioQualityFailure => Heard::Nothing,
                 other => Heard::Error(format!("status:{}", other.0)),
             };
         }
         let text = res.Text().map(|t| t.to_string()).unwrap_or_default();
-        if text.trim().is_empty() || res.Confidence().unwrap_or(SpeechRecognitionConfidence::Rejected) == SpeechRecognitionConfidence::Rejected {
+        if text.trim().is_empty()
+            || res
+                .Confidence()
+                .unwrap_or(SpeechRecognitionConfidence::Rejected)
+                == SpeechRecognitionConfidence::Rejected
+        {
             return Heard::Nothing;
         }
         let raw = res.RawConfidence().unwrap_or(0.0);
@@ -259,7 +307,11 @@ pub struct Mic {
 
 #[link(name = "combase", kind = "raw-dylib")]
 extern "system" {
-    fn RoGetActivationFactory(class: *mut c_void, iid: *const GUID, factory: *mut *mut c_void) -> HRESULT;
+    fn RoGetActivationFactory(
+        class: *mut c_void,
+        iid: *const GUID,
+        factory: *mut *mut c_void,
+    ) -> HRESULT;
 }
 
 /// IAudioPolicyConfig: Windows 10 21H2+ / 11 ve öncesi
@@ -269,7 +321,13 @@ const IID_POLICY_OLD: GUID = GUID::from_u128(0x2a59116d_6c4f_45e0_a74f_707e3fef9
 const SLOT_SET: usize = 25;
 const E_CAPTURE: u32 = 1; // EDataFlow::eCapture
 
-type SetFn = unsafe extern "system" fn(this: *mut c_void, pid: u32, flow: u32, role: u32, device: *mut c_void) -> HRESULT;
+type SetFn = unsafe extern "system" fn(
+    this: *mut c_void,
+    pid: u32,
+    flow: u32,
+    role: u32,
+    device: *mut c_void,
+) -> HRESULT;
 type ReleaseFn = unsafe extern "system" fn(this: *mut c_void) -> u32;
 
 /// Bu sürecin kayıt cihazı tercihini ayarla (boş kimlik: tercihi sil → Windows varsayılanı)
@@ -297,7 +355,10 @@ fn set_process_capture(id: &str) -> Result<(), String> {
         for role in 0..3u32 {
             let h = set(p, pid, E_CAPTURE, role, dev_raw);
             if h.is_err() {
-                res = Err(format!("SetPersistedDefaultAudioEndpoint (0x{:08X})", h.0 as u32));
+                res = Err(format!(
+                    "SetPersistedDefaultAudioEndpoint (0x{:08X})",
+                    h.0 as u32
+                ));
             }
         }
         let release: ReleaseFn = std::mem::transmute(*vtbl.add(2));
@@ -311,11 +372,16 @@ fn set_process_capture(id: &str) -> Result<(), String> {
 static APPLIED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
 fn default_capture_id() -> String {
-    MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default).map(|h| h.to_string()).unwrap_or_default()
+    MediaDevice::GetDefaultAudioCaptureId(AudioDeviceRole::Default)
+        .map(|h| h.to_string())
+        .unwrap_or_default()
 }
 
 fn list_raw() -> Result<Vec<(String, String)>, String> {
-    let all = DeviceInformation::FindAllAsyncDeviceClass(DeviceClass::AudioCapture).map_err(|e| err(&e))?.join().map_err(|e| err(&e))?;
+    let all = DeviceInformation::FindAllAsyncDeviceClass(DeviceClass::AudioCapture)
+        .map_err(|e| err(&e))?
+        .join()
+        .map_err(|e| err(&e))?;
     let mut out = Vec::new();
     for d in all {
         if !d.IsEnabled().unwrap_or(true) {
@@ -348,14 +414,24 @@ pub fn microphones(want: &str) -> Result<Vec<Mic>, String> {
         }
         d
     };
-    Ok(list.into_iter().map(|(id, name)| Mic { is_default: !def.is_empty() && id.eq_ignore_ascii_case(&def), id, name }).collect())
+    Ok(list
+        .into_iter()
+        .map(|(id, name)| Mic {
+            is_default: !def.is_empty() && id.eq_ignore_ascii_case(&def),
+            id,
+            name,
+        })
+        .collect())
 }
 
 /// Seçilen mikrofonu uygula. Boş kimlik ya da cihaz artık yoksa Windows varsayılanına dönülür.
 /// Dönen: gerçekten kullanılan cihaz kimliği ("" : Windows varsayılanı). Tercih değiştiyse tanıyıcı yeniden kurulmalıdır.
 pub fn use_microphone(want: &str) -> String {
     // Cihaz hâlâ takılı mı (WinRT çağrısı ayrıca süreçte COM/MTA'yı hazırlar)
-    let present = !want.is_empty() && list_raw().map(|l| l.iter().any(|(id, _)| id.eq_ignore_ascii_case(want))).unwrap_or(false);
+    let present = !want.is_empty()
+        && list_raw()
+            .map(|l| l.iter().any(|(id, _)| id.eq_ignore_ascii_case(want)))
+            .unwrap_or(false);
     let target = if present { want } else { "" };
     let mut applied = APPLIED.lock().unwrap_or_else(|e| e.into_inner());
     if applied.as_deref() == Some(target) {

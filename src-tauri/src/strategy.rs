@@ -228,7 +228,12 @@ fn slope(v: &[f32]) -> Option<f32> {
 
 impl Cur {
     fn clean_times(&self) -> Vec<f32> {
-        let all: Vec<f32> = self.laps.iter().filter(|l| l.clean && l.time > 0.0).map(|l| l.time).collect();
+        let all: Vec<f32> = self
+            .laps
+            .iter()
+            .filter(|l| l.clean && l.time > 0.0)
+            .map(|l| l.time)
+            .collect();
         // Sarı bayrak / spin gibi çok yavaş turlar ortalamayı ve eğilimi bozmasın
         let best = all.iter().copied().fold(f32::INFINITY, f32::min);
         all.into_iter().filter(|t| *t <= best * 1.12).collect()
@@ -236,10 +241,19 @@ impl Cur {
 
     fn rec(&self, now: f64, fuel_now: f32, current: bool, pit_time: f32) -> StintRec {
         let times = self.clean_times();
-        let fuels: Vec<f32> = self.laps.iter().filter(|l| l.clean && l.fuel > 0.0).map(|l| l.fuel).collect();
+        let fuels: Vec<f32> = self
+            .laps
+            .iter()
+            .filter(|l| l.clean && l.fuel > 0.0)
+            .map(|l| l.fuel)
+            .collect();
         let tr = slope(&times);
         let end_fuel = self.fuel_end.unwrap_or(fuel_now);
-        let used = if self.fuel_start > 0.0 && end_fuel >= 0.0 { (self.fuel_start - end_fuel).max(0.0) } else { -1.0 };
+        let used = if self.fuel_start > 0.0 && end_fuel >= 0.0 {
+            (self.fuel_start - end_fuel).max(0.0)
+        } else {
+            -1.0
+        };
         let skip = times.len().saturating_sub(30);
         StintRec {
             n: self.n,
@@ -248,7 +262,11 @@ impl Cur {
             laps: self.laps.len() as i32,
             time: (self.end_time.unwrap_or(now) - self.start_time).max(0.0) as f32,
             avg: mean(&times),
-            best: if times.is_empty() { -1.0 } else { times.iter().copied().fold(f32::INFINITY, f32::min) },
+            best: if times.is_empty() {
+                -1.0
+            } else {
+                times.iter().copied().fold(f32::INFINITY, f32::min)
+            },
             last: self.laps.last().map(|l| l.time).unwrap_or(-1.0),
             trend: tr.unwrap_or(0.0),
             trend_ok: tr.is_some(),
@@ -326,8 +344,20 @@ impl Strategy {
         }
     }
 
-    fn start_stint(&mut self, f: &Frame, t: f64, lap_completed: i32, dirty: bool, tyre_base: i32, tyre_known: bool) {
-        let driver = self.drivers.get(self.cur_driver).map(|d| d.name.clone()).unwrap_or_default();
+    fn start_stint(
+        &mut self,
+        f: &Frame,
+        t: f64,
+        lap_completed: i32,
+        dirty: bool,
+        tyre_base: i32,
+        tyre_known: bool,
+    ) {
+        let driver = self
+            .drivers
+            .get(self.cur_driver)
+            .map(|d| d.name.clone())
+            .unwrap_or_default();
         if let Some(d) = self.drivers.get_mut(self.cur_driver) {
             d.stints += 1;
         }
@@ -354,7 +384,14 @@ impl Strategy {
         self.seeded = true;
         self.tracked_from = 0.0;
         let lap = ref_lap_time(f, s);
-        let mk = |n: i32, driver: &str, start: i32, laps: i32, off: f32, tr: f32, fuel: f32, pit: f32| StintRec {
+        let mk = |n: i32,
+                  driver: &str,
+                  start: i32,
+                  laps: i32,
+                  off: f32,
+                  tr: f32,
+                  fuel: f32,
+                  pit: f32| StintRec {
             n,
             driver: driver.to_string(),
             start_lap: start,
@@ -371,27 +408,60 @@ impl Strategy {
             tyre_known: true,
             pit_time: pit,
             current: false,
-            lap_times: (0..laps.min(30)).map(|i| lap + off - 0.5 + tr * i as f32 + ((i * 7 % 5) as f32 - 2.0) * 0.08).collect(),
+            lap_times: (0..laps.min(30))
+                .map(|i| lap + off - 0.5 + tr * i as f32 + ((i * 7 % 5) as f32 - 2.0) * 0.08)
+                .collect(),
         };
-        self.stints.push(mk(1, "Deniz Arslan", 0, 23, 0.84, 0.045, 2.91, 41.8));
-        self.stints.push(mk(2, "Mert Yıldız", 23, 17, 0.31, 0.03, 2.87, 43.1));
+        self.stints
+            .push(mk(1, "Deniz Arslan", 0, 23, 0.84, 0.045, 2.91, 41.8));
+        self.stints
+            .push(mk(2, "Mert Yıldız", 23, 17, 0.31, 0.03, 2.87, 43.1));
         self.next_n = 3;
-        self.drivers.push(DriverAcc { name: "Deniz Arslan".into(), user_id: 1, time: 2520.0, laps: 23, stints: 1 });
-        self.drivers.push(DriverAcc { name: "Mert Yıldız".into(), user_id: 2, time: 1890.0, laps: 17, stints: 1 });
-        let me = s.player().map(|d| (d.name.clone(), d.user_id)).unwrap_or(("Sen".into(), 3));
-        self.drivers.push(DriverAcc { name: me.0, user_id: me.1, time: 5.6 * lap as f64, laps: 5, stints: 0 });
+        self.drivers.push(DriverAcc {
+            name: "Deniz Arslan".into(),
+            user_id: 1,
+            time: 2520.0,
+            laps: 23,
+            stints: 1,
+        });
+        self.drivers.push(DriverAcc {
+            name: "Mert Yıldız".into(),
+            user_id: 2,
+            time: 1890.0,
+            laps: 17,
+            stints: 1,
+        });
+        let me = s
+            .player()
+            .map(|d| (d.name.clone(), d.user_id))
+            .unwrap_or(("Sen".into(), 3));
+        self.drivers.push(DriverAcc {
+            name: me.0,
+            user_id: me.1,
+            time: 5.6 * lap as f64,
+            laps: 5,
+            stints: 0,
+        });
         self.cur_driver = 2;
         self.cont_time = 5.6 * lap as f64;
         self.demo_loss = Some(27.4);
         self.team = true;
         self.team_name = "Demo Endurance".into();
-        let lc = f.cars.get(f.player_idx.max(0) as usize).map(|c| c.lap_completed).unwrap_or(0);
+        let lc = f
+            .cars
+            .get(f.player_idx.max(0) as usize)
+            .map(|c| c.lap_completed)
+            .unwrap_or(0);
         self.start_stint(f, t - 5.6 * lap as f64, lc - 5, false, 0, true);
         if let Some(c) = self.cur.as_mut() {
             c.fuel_start = f.fuel_level + 5.0 * 2.85;
             c.lap_start = t - 0.6 * lap as f64;
             for i in 0..5 {
-                c.laps.push(Lap { time: lap + 0.5 - 0.11 * i as f32 + if i == 3 { 0.3 } else { 0.0 }, clean: true, fuel: 2.85 + (i % 2) as f32 * 0.05 });
+                c.laps.push(Lap {
+                    time: lap + 0.5 - 0.11 * i as f32 + if i == 3 { 0.3 } else { 0.0 },
+                    clean: true,
+                    fuel: 2.85 + (i % 2) as f32 * 0.05,
+                });
             }
         }
     }
@@ -411,7 +481,12 @@ impl Strategy {
             self.reset();
             self.demo = demo;
             self.session_num = f.session_num;
-            self.track = format!("{}|{}|{}", if demo { "demo" } else { sim }, s.track_config, s.track_name);
+            self.track = format!(
+                "{}|{}|{}",
+                if demo { "demo" } else { sim },
+                s.track_config,
+                s.track_name
+            );
             self.last_time = t;
             self.tracked_from = t;
         }
@@ -436,13 +511,29 @@ impl Strategy {
 
         // ---- Sürücü ----
         if let Some(d) = s.driver(me) {
-            let same = self.drivers.get(self.cur_driver).map(|x| x.name == d.name && x.user_id == d.user_id).unwrap_or(false);
+            let same = self
+                .drivers
+                .get(self.cur_driver)
+                .map(|x| x.name == d.name && x.user_id == d.user_id)
+                .unwrap_or(false);
             if !same && !d.name.is_empty() {
-                let found = self.drivers.iter().position(|x| if d.user_id > 0 && x.user_id > 0 { x.user_id == d.user_id } else { x.name == d.name });
+                let found = self.drivers.iter().position(|x| {
+                    if d.user_id > 0 && x.user_id > 0 {
+                        x.user_id == d.user_id
+                    } else {
+                        x.name == d.name
+                    }
+                });
                 let idx = match found {
                     Some(i) => i,
                     None => {
-                        self.drivers.push(DriverAcc { name: d.name.clone(), user_id: d.user_id, time: 0.0, laps: 0, stints: 0 });
+                        self.drivers.push(DriverAcc {
+                            name: d.name.clone(),
+                            user_id: d.user_id,
+                            time: 0.0,
+                            laps: 0,
+                            stints: 0,
+                        });
                         self.drivers.len() - 1
                     }
                 };
@@ -452,7 +543,11 @@ impl Strategy {
                     self.cont_time = 0.0;
                     // Sürücü pit dışında, henüz tur atılmamış stint'te değiştiyse stint yeni sürücüye yazılır
                     // (olağan değişim pitte olur: yeni stint pit çıkışında zaten yeni sürücüyle başlar)
-                    let rename = self.cur.as_ref().map(|c| c.end_time.is_none() && c.laps.is_empty()).unwrap_or(false);
+                    let rename = self
+                        .cur
+                        .as_ref()
+                        .map(|c| c.end_time.is_none() && c.laps.is_empty())
+                        .unwrap_or(false);
                     if old != usize::MAX && rename {
                         if let Some(cur) = self.cur.as_mut() {
                             cur.driver = d.name.clone();
@@ -511,11 +606,19 @@ impl Strategy {
         // ---- Pit girişi / çıkışı ----
         if pit_like && !self.prev_pit {
             let jump = (c.pct - self.prev_pct).abs();
-            let steady = self.cur.as_ref().map(|x| t - x.start_time > 20.0).unwrap_or(false);
+            let steady = self
+                .cur
+                .as_ref()
+                .map(|x| t - x.start_time > 20.0)
+                .unwrap_or(false);
             self.visit = Some(Visit {
                 t_in: t,
                 pct_in: c.pct,
-                valid: in_world && self.prev_world && on_pit && steady && (jump < 0.05 || jump > 0.95),
+                valid: in_world
+                    && self.prev_world
+                    && on_pit
+                    && steady
+                    && (jump < 0.05 || jump > 0.95),
                 wear_in: avg_wear(f),
                 tyre_req: false,
                 left_world: !in_world,
@@ -567,7 +670,12 @@ impl Strategy {
                 // Pit kaybı: pit yolundaki süre − aynı pist parçasının normal temposu
                 if v.valid {
                     let frac = (c.pct - v.pct_in).rem_euclid(1.0);
-                    let pace = self.cur.as_ref().map(|x| mean(&x.clean_times())).filter(|p| *p > 0.0).unwrap_or_else(|| ref_lap_time(f, s));
+                    let pace = self
+                        .cur
+                        .as_ref()
+                        .map(|x| mean(&x.clean_times()))
+                        .filter(|p| *p > 0.0)
+                        .unwrap_or_else(|| ref_lap_time(f, s));
                     let loss = lane - frac * pace;
                     if frac < 0.5 && (8.0..150.0).contains(&loss) && (race || lane < 90.0) {
                         self.add_loss(loss);
@@ -576,7 +684,12 @@ impl Strategy {
             }
             if let Some(cur) = self.cur.take() {
                 // Hiç tur atılmamış, pitte başlamış stint kayda girmez
-                if !cur.laps.is_empty() || cur.end_time.map(|e| e - cur.start_time > 30.0).unwrap_or(false) {
+                if !cur.laps.is_empty()
+                    || cur
+                        .end_time
+                        .map(|e| e - cur.start_time > 30.0)
+                        .unwrap_or(false)
+                {
                     self.stints.push(cur.rec(t, f.fuel_level, false, pit_time));
                     if self.stints.len() > MAX_STINTS {
                         self.stints.remove(0);
@@ -608,8 +721,16 @@ impl Strategy {
                     let measured = (t - cur.lap_start) as f32;
                     let clean = !cur.lap_dirty && measured > 5.0;
                     let used = cur.lap_fuel - f.fuel_level;
-                    let time = if c.last > 0.0 && (c.last - measured).abs() < 0.25 { c.last } else { measured };
-                    cur.laps.push(Lap { time, clean, fuel: if clean && used > 0.05 { used } else { -1.0 } });
+                    let time = if c.last > 0.0 && (c.last - measured).abs() < 0.25 {
+                        c.last
+                    } else {
+                        measured
+                    };
+                    cur.laps.push(Lap {
+                        time,
+                        clean,
+                        fuel: if clean && used > 0.05 { used } else { -1.0 },
+                    });
                     self.pending = Some((c.last, t + 4.0));
                     if let Some(d) = self.drivers.get_mut(self.cur_driver) {
                         d.laps += 1;
@@ -670,14 +791,22 @@ impl Strategy {
         // Stint'ler ve sürücüler
         out.stints = self.stints.clone();
         if let Some(cur) = &self.cur {
-            out.stints.push(cur.rec(f.session_time, f.fuel_level, true, -1.0));
+            out.stints
+                .push(cur.rec(f.session_time, f.fuel_level, true, -1.0));
         }
         for (i, d) in self.drivers.iter().enumerate() {
             let current = i == self.cur_driver;
             if current {
                 out.driver = d.name.clone();
             }
-            out.drivers.push(DriverTot { name: d.name.clone(), user_id: d.user_id, time: d.time as f32, laps: d.laps, stints: d.stints, current });
+            out.drivers.push(DriverTot {
+                name: d.name.clone(),
+                user_id: d.user_id,
+                time: d.time as f32,
+                laps: d.laps,
+                stints: d.stints,
+                current,
+            });
         }
         if let Some(v) = &self.visit {
             out.pit_elapsed = (f.session_time - v.t_in).max(0.0) as f32;
@@ -692,7 +821,12 @@ impl Strategy {
         out.class_position = my.class_position;
         out.on_pit_road = my.on_pit || f.on_pit_road;
         let lap_t = ref_lap_time(f, s).max(1.0);
-        out.lap_time = self.cur.as_ref().map(|x| mean(&x.clean_times())).filter(|p| *p > 0.0).unwrap_or(lap_t);
+        out.lap_time = self
+            .cur
+            .as_ref()
+            .map(|x| mean(&x.clean_times()))
+            .filter(|p| *p > 0.0)
+            .unwrap_or(lap_t);
         if my.pct < 0.0 {
             return out;
         }

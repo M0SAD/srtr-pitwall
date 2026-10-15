@@ -523,3 +523,19 @@
   background: #1a1e27;
   color: #eceff4;
 }
+
+/* Tekrar taraması */
+.evw-scan {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.evw-scan small {
+  flex-basis: 100%;
+  order: 3;
+  opacity: 0.85;
+}
+.evw-scan .btn {
+  margin-left: auto;
+}

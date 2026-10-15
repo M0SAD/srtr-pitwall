@@ -3,14 +3,15 @@ import { $, ADS_PAGE, T, addDict, appConfig, payLinks, payLinksHtml, payMethods,
 import { applyCachedImages, initSiteImages, overrideFor } from "./siteimages.js";
 import { OVERLAY_ROUND as OVERLAY_COUNT } from "./overlays.js";
 import { OVERLAYS, OVERLAY_LIST, OVERLAY_TOTAL, overlayImage, overlaySlot } from "./overlays.js";
+import { overlayImages } from "./siteimages.js";
 
 addDict({
   hero_eyebrow: ["iRacing, ACC, LMU ve daha fazlası için hepsi bir arada", "All-in-one for iRacing, ACC, LMU and more"],
-  pill_sims: ["iRacing · ACC · AC · LMU · rF2 · AMS2", "iRacing · ACC · AC · LMU · rF2 · AMS2"],
+  pill_sims: ["iRacing · ACC · AC · LMU · AMS2 · R3E · F1 · Forza · DiRT · BeamNG", "iRacing · ACC · AC · LMU · AMS2 · R3E · F1 · Forza · DiRT · BeamNG"],
   f10_t: ["Birden çok simülasyon", "Multiple sims"],
   f10_d: [
-    "iRacing'in yanında Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2 ve Automobilista 2. Hangi oyunu açarsan kendiliğinden algılar.",
-    "Besides iRacing: Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2 and Automobilista 2. Detects whichever game you start.",
+    "iRacing'in yanında Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2, Automobilista 2, RaceRoom, F1 23-25, Forza, DiRT Rally 2.0 / GRID ve BeamNG.drive. Hangi oyunu açarsan kendiliğinden algılar.",
+    "Besides iRacing: Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate, rFactor 2, Automobilista 2, RaceRoom, F1 23-25, Forza, DiRT Rally 2.0 / GRID and BeamNG.drive. Detects whichever game you start.",
   ],
   f11_t: ["Destek", "Support"],
   f11_d: [
@@ -24,8 +25,8 @@ addDict({
   ],
   q8: ["Hangi oyunları destekliyor?", "Which games are supported?"],
   a8: [
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate ve rFactor 2 (rF2 Shared Memory eklentisiyle), Automobilista 2 / Project CARS 2 (oyun ayarlarında Shared Memory: Project CARS 2). Her oyunun sağladığı veri farklıdır; en eksiksiz destek iRacing'dedir.",
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate and rFactor 2 (with the rF2 Shared Memory plugin), Automobilista 2 / Project CARS 2 (Shared Memory: Project CARS 2 in the game options). Each game exposes different data; iRacing has the most complete support.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate ve rFactor 2 (rF2 Shared Memory eklentisiyle), Automobilista 2 / Project CARS 2-3 (oyun ayarlarında Shared Memory: Project CARS 2), RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID ve BeamNG.drive (bu dördü oyunun UDP telemetri ayarıyla; Forza, DiRT ve BeamNG sadece kendi aracını verir). Her oyunun sağladığı veri farklıdır; en eksiksiz destek iRacing'dedir.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate and rFactor 2 (with the rF2 Shared Memory plugin), Automobilista 2 / Project CARS 2-3 (Shared Memory: Project CARS 2 in the game options), RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID and BeamNG.drive (these four via the game's UDP telemetry option; Forza, DiRT and BeamNG only send your own car). Each game exposes different data; iRacing has the most complete support.",
   ],
   hero_title: ["Sim kokpitin için <span class=\"accent\">eksiksiz bir pit duvarı</span>", "A complete <span class=\"accent\">pit wall</span> for your sim rig"],
   hero_lead: [
@@ -370,11 +371,31 @@ function scrollListTo(list, el) {
   else if (er.bottom > lr.bottom) list.scrollTop += er.bottom - lr.bottom + 6;
 }
 
+/** Seçili overlay'in kaçıncı görseli (birden fazla görseli olan overlay'lerde) */
+let galSub = 0;
+let galSubFor = "";
+
 function galImage(o) {
   const { img, ph } = galEls;
   const def = overlayImage(o.id);
-  const ov = overrideFor(overlaySlot(o.id));
+  const list = overlayImages(o.id);
+  if (galSubFor !== o.id) {
+    galSubFor = o.id;
+    galSub = 0;
+  }
+  const n = Math.max(1, list.length);
+  galSub = ((galSub % n) + n) % n;
+  const ov = list[galSub] ?? null;
   const want = ov?.url || def;
+  // Birden fazla görsel: noktalar ve oklar
+  const dots = galEls.dots;
+  dots.hidden = list.length < 2;
+  dots.innerHTML =
+    list.length < 2
+      ? ""
+      : `<button type="button" class="ovg-sub prev" aria-label="‹">‹</button>${list
+          .map((_, i) => `<button type="button" class="ovg-dot${i === galSub ? " on" : ""}" data-sub="${i}" aria-label="${i + 1}"></button>`)
+          .join("")}<button type="button" class="ovg-sub next" aria-label="›">›</button>`;
   ph.querySelector("span").textContent = o.icon;
   if (img.dataset.id === o.id && img.dataset.want === want) return;
   img.dataset.id = o.id;
@@ -396,6 +417,8 @@ function galImage(o) {
   };
   img.alt = ov?.alt || T(`ov_${o.id}_n`);
   img.src = want;
+  // Aynı overlay'in diğer görselleri önceden yüklensin
+  list.forEach((x, i) => i !== galSub && (new Image().src = x.url));
 }
 
 function galRender() {
@@ -442,7 +465,7 @@ function mountGallery() {
         .join(""),
   ).join("")}</div>
   <div class="card ovg-view">
-    <div class="ovg-stage"><img alt="" width="720" height="450" decoding="async" /><div class="ovg-ph" hidden><span aria-hidden="true"></span><b></b></div></div>
+    <div class="ovg-stage"><img alt="" width="720" height="450" decoding="async" /><div class="ovg-ph" hidden><span aria-hidden="true"></span><b></b></div><div class="ovg-dots" hidden></div></div>
     <div class="ovg-info" aria-live="polite">
       <div><h3><span class="ovg-name"></span><span class="ovg-tag"></span></h3><p class="ovg-desc"></p><a class="ovg-more" data-t="ovg_more"></a></div>
       <div class="ovg-nav"><button type="button" class="ovg-prev">‹</button><span class="ovg-count"></span><button type="button" class="ovg-next">›</button></div>
@@ -461,7 +484,15 @@ function mountGallery() {
     count: q(".ovg-count"),
     prev: q(".ovg-prev"),
     next: q(".ovg-next"),
+    dots: q(".ovg-dots"),
   };
+  galEls.dots.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.sub != null) galSub = Number(b.dataset.sub);
+    else galSub += b.classList.contains("prev") ? -1 : 1;
+    galImage(OVERLAY_LIST[galIndex]);
+  });
   galEls.list.addEventListener("click", (e) => {
     const b = e.target.closest(".ovg-item");
     if (b) galSelect(Number(b.dataset.i));

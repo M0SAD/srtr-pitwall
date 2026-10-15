@@ -17,7 +17,10 @@ use parking_lot::Mutex;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewUrl,
+    WebviewWindowBuilder,
+};
 
 const PREFIX: &str = "vr-";
 const BOARD_TITLE: &str = "SRTR Pitwall - VR Panosu";
@@ -49,15 +52,27 @@ pub struct VrCfg {
 
 pub fn cfg_from_settings(v: &Value) -> VrCfg {
     let d = v.pointer("/general/vr");
-    let s = |k: &str| d.and_then(|x| x.get(k)).and_then(|x| x.as_str()).unwrap_or("");
-    let b = |k: &str| d.and_then(|x| x.get(k)).and_then(|x| x.as_bool()).unwrap_or(false);
+    let s = |k: &str| {
+        d.and_then(|x| x.get(k))
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+    };
+    let b = |k: &str| {
+        d.and_then(|x| x.get(k))
+            .and_then(|x| x.as_bool())
+            .unwrap_or(false)
+    };
     let source = s("source");
     let bg = match s("background") {
         "black" => "000000".to_string(),
         "green" => "00ff00".to_string(),
         "custom" => {
             let c = s("color").trim_start_matches('#').to_ascii_lowercase();
-            if c.len() == 6 && c.chars().all(|ch| ch.is_ascii_hexdigit()) { c } else { "000000".into() }
+            if c.len() == 6 && c.chars().all(|ch| ch.is_ascii_hexdigit()) {
+                c
+            } else {
+                "000000".into()
+            }
         }
         _ => String::new(),
     };
@@ -67,7 +82,10 @@ pub fn cfg_from_settings(v: &Value) -> VrCfg {
         board: source == "board" || source == "both",
         bg,
         offscreen: s("place") == "offscreen",
-        monitor: d.and_then(|x| x.get("monitor")).and_then(|x| x.as_u64()).map(|x| x as usize),
+        monitor: d
+            .and_then(|x| x.get("monitor"))
+            .and_then(|x| x.as_u64())
+            .map(|x| x as usize),
         hide_desktop: b("hideDesktop"),
     }
 }
@@ -76,7 +94,9 @@ pub fn cfg_from_settings(v: &Value) -> VrCfg {
 /// ekran dışında kalınca çizimi durdurmasın / yavaşlatmasın. Dönen: (kapatılacak özellik, ek argümanlar)
 pub fn browser_flags(settings: Option<&Value>) -> Option<(&'static str, &'static str)> {
     // Yerel VR de aynı pencereleri yakalar: bir kez kullanıldıysa / otomatik başlatılıyorsa açılışta uygulanır
-    let on = settings.map(|v| cfg_from_settings(v).enabled || crate::vrnative::wants_background_rendering(v)).unwrap_or(false);
+    let on = settings
+        .map(|v| cfg_from_settings(v).enabled || crate::vrnative::wants_background_rendering(v))
+        .unwrap_or(false);
     on.then_some((
         "CalculateNativeWinOcclusion",
         "--disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling",
@@ -85,7 +105,15 @@ pub fn browser_flags(settings: Option<&Value>) -> Option<(&'static str, &'static
 
 /// Pencere etiketinde geçerli karakterler (harf, rakam, - ve _)
 pub fn safe(key: &str) -> String {
-    key.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect()
+    key.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
 }
 
 fn hash8(s: &str) -> String {
@@ -115,14 +143,31 @@ pub fn wanted(cfg: &VrCfg, settings: &Value) -> Vec<Wanted> {
         return out;
     }
     let place = format!("{}:{:?}", cfg.offscreen, cfg.monitor);
-    let bg = if cfg.bg.is_empty() { String::new() } else { format!("&bg={}", cfg.bg) };
+    let bg = if cfg.bg.is_empty() {
+        String::new()
+    } else {
+        format!("&bg={}", cfg.bg)
+    };
     if cfg.board {
         let url = format!("overlay.html?vr=board{bg}");
-        out.push(Wanted { key: String::new(), label: format!("{PREFIX}board-{}", hash8(&format!("{url}|{place}"))), url, title: BOARD_TITLE.into(), board: true });
+        out.push(Wanted {
+            key: String::new(),
+            label: format!("{PREFIX}board-{}", hash8(&format!("{url}|{place}"))),
+            url,
+            title: BOARD_TITLE.into(),
+            board: true,
+        });
     }
     if cfg.windows {
-        let active = settings.get("activeProfile").and_then(|x| x.as_str()).unwrap_or("default");
-        let ovs = settings.pointer("/profiles").and_then(|p| p.get(active)).and_then(|p| p.get("overlays")).and_then(|o| o.as_object());
+        let active = settings
+            .get("activeProfile")
+            .and_then(|x| x.as_str())
+            .unwrap_or("default");
+        let ovs = settings
+            .pointer("/profiles")
+            .and_then(|p| p.get(active))
+            .and_then(|p| p.get("overlays"))
+            .and_then(|o| o.as_object());
         let mut keys: Vec<(&String, &Value)> = ovs.map(|o| o.iter().collect()).unwrap_or_default();
         keys.sort_by(|a, b| a.0.cmp(b.0));
         for (key, o) in keys {
@@ -137,7 +182,13 @@ pub fn wanted(cfg: &VrCfg, settings: &Value) -> Vec<Wanted> {
                 crate::server::url_encode(active)
             );
             // Geçici başlık; pencere açılınca overlay'in görünen adıyla değişir (bkz. `vr_fit`)
-            out.push(Wanted { key: key.clone(), label: format!("{PREFIX}{}-{}", safe(key), hash8(&format!("{url}|{place}"))), url, title: format!("SRTR Pitwall - {key}"), board: false });
+            out.push(Wanted {
+                key: key.clone(),
+                label: format!("{PREFIX}{}-{}", safe(key), hash8(&format!("{url}|{place}"))),
+                url,
+                title: format!("SRTR Pitwall - {key}"),
+                board: false,
+            });
         }
     }
     out
@@ -163,15 +214,23 @@ pub fn effective_cfg(settings: &Value, native: bool) -> VrCfg {
 
 /// Yerel VR'ın yakalayacağı pencereler: (kopya kimliği, pencere etiketi, görünen ad) ve arka plan rengi (rrggbb)
 pub fn native_targets(app: &AppHandle) -> (Vec<(String, String, String)>, String) {
-    let Some(settings) = crate::current_settings(app) else { return (Vec::new(), String::new()) };
+    let Some(settings) = crate::current_settings(app) else {
+        return (Vec::new(), String::new());
+    };
     let cfg = effective_cfg(&settings, true);
     let list = wanted(&cfg, &settings)
         .into_iter()
         .filter(|w| !w.board)
         .map(|w| {
             // Pencere başlığı overlay'in görünen adıdır (bkz. `vr_fit`)
-            let title = app.get_webview_window(&w.label).and_then(|x| x.title().ok()).unwrap_or(w.title);
-            let name = title.strip_prefix("SRTR Pitwall - ").unwrap_or(&title).to_string();
+            let title = app
+                .get_webview_window(&w.label)
+                .and_then(|x| x.title().ok())
+                .unwrap_or(w.title);
+            let name = title
+                .strip_prefix("SRTR Pitwall - ")
+                .unwrap_or(&title)
+                .to_string();
             (w.key, w.label, name)
         })
         .collect();
@@ -198,23 +257,39 @@ pub fn sync(app: &AppHandle, settings: &Value) {
         return;
     }
 
-    let Some(main) = app.get_webview_window("overlay") else { return };
+    let Some(main) = app.get_webview_window("overlay") else {
+        return;
+    };
     let monitors = main.available_monitors().unwrap_or_default();
-    let primary = main.primary_monitor().ok().flatten().or_else(|| monitors.first().cloned());
+    let primary = main
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| monitors.first().cloned());
     // Pano, overlay'lerin yerleştirildiği (varsayılan) monitörün boyutunda olmalı
     let def = settings
         .pointer("/general/monitor")
         .and_then(|x| x.as_u64())
         .and_then(|i| monitors.get(i as usize).cloned())
         .or_else(|| primary.clone());
-    let target = cfg.monitor.and_then(|i| monitors.get(i).cloned()).or_else(|| primary.clone());
+    let target = cfg
+        .monitor
+        .and_then(|i| monitors.get(i).cloned())
+        .or_else(|| primary.clone());
     let (base_x, base_y) = if cfg.offscreen {
         // Tüm ekranların sağında, görünmeyen bir alan
-        let right = monitors.iter().map(|m| m.position().x + m.size().width as i32).max().unwrap_or(1920);
+        let right = monitors
+            .iter()
+            .map(|m| m.position().x + m.size().width as i32)
+            .max()
+            .unwrap_or(1920);
         let top = monitors.iter().map(|m| m.position().y).min().unwrap_or(0);
         (right + 200, top)
     } else {
-        target.as_ref().map(|m| (m.position().x + 40, m.position().y + 40)).unwrap_or((40, 40))
+        target
+            .as_ref()
+            .map(|m| (m.position().x + 40, m.position().y + 40))
+            .unwrap_or((40, 40))
     };
 
     for (i, x) in list.iter().enumerate() {
@@ -243,7 +318,10 @@ pub fn sync(app: &AppHandle, settings: &Value) {
             }
         };
         if x.board {
-            let size = def.as_ref().map(|m| (m.size().width, m.size().height)).unwrap_or((1920, 1080));
+            let size = def
+                .as_ref()
+                .map(|m| (m.size().width, m.size().height))
+                .unwrap_or((1920, 1080));
             let _ = w.set_size(PhysicalSize::new(size.0, size.1));
             let _ = w.set_position(PhysicalPosition::new(base_x, base_y));
         } else {
@@ -267,7 +345,10 @@ pub fn vr_fit(window: tauri::WebviewWindow, title: String, w: f64, h: f64) {
         let _ = window.set_title(&format!("SRTR Pitwall - {}", name.trim()));
     }
     if w.is_finite() && h.is_finite() {
-        let _ = window.set_size(LogicalSize::new(w.clamp(60.0, 4000.0), h.clamp(40.0, 3000.0)));
+        let _ = window.set_size(LogicalSize::new(
+            w.clamp(60.0, 4000.0),
+            h.clamp(40.0, 3000.0),
+        ));
     }
 }
 
@@ -290,13 +371,27 @@ mod tests {
 
     #[test]
     fn config() {
-        let c = cfg_from_settings(&settings(json!({ "enabled": true, "source": "both", "background": "custom", "color": "#12AbCd", "place": "offscreen", "monitor": 1, "hideDesktop": true })));
+        let c = cfg_from_settings(&settings(
+            json!({ "enabled": true, "source": "both", "background": "custom", "color": "#12AbCd", "place": "offscreen", "monitor": 1, "hideDesktop": true }),
+        ));
         assert!(c.enabled && c.windows && c.board && c.offscreen && c.hide_desktop);
         assert_eq!(c.bg, "12abcd");
         assert_eq!(c.monitor, Some(1));
         // Bozuk renk siyaha düşer, eksik ayar kapalı sayılır
-        assert_eq!(cfg_from_settings(&settings(json!({ "background": "custom", "color": "kirmizi" }))).bg, "000000");
-        assert_eq!(cfg_from_settings(&json!({})), VrCfg { windows: true, ..Default::default() });
+        assert_eq!(
+            cfg_from_settings(&settings(
+                json!({ "background": "custom", "color": "kirmizi" })
+            ))
+            .bg,
+            "000000"
+        );
+        assert_eq!(
+            cfg_from_settings(&json!({})),
+            VrCfg {
+                windows: true,
+                ..Default::default()
+            }
+        );
         assert!(browser_flags(Some(&json!({}))).is_none());
         assert!(browser_flags(Some(&settings(json!({ "enabled": true })))).is_some());
     }
@@ -309,8 +404,14 @@ mod tests {
         assert_eq!(w.len(), 3);
         assert!(w[0].board && w[0].url == "overlay.html?vr=board&bg=00ff00");
         assert!(w[1].label.starts_with("vr-relative-") && w[2].label.starts_with("vr-relative_2-"));
-        assert!(w[2].url.contains("only=relative&key=relative%232") && w[2].url.contains("&vr=1&bg=00ff00"));
-        assert!(w.iter().all(|x| x.label.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_')));
+        assert!(
+            w[2].url.contains("only=relative&key=relative%232")
+                && w[2].url.contains("&vr=1&bg=00ff00")
+        );
+        assert!(w.iter().all(|x| x
+            .label
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_')));
         // Arka plan değişince etiket de değişir (pencere yeniden açılır)
         let s2 = settings(json!({ "enabled": true, "source": "both", "background": "black" }));
         assert_ne!(wanted(&cfg_from_settings(&s2), &s2)[1].label, w[1].label);
@@ -328,7 +429,9 @@ mod tests {
         assert!(c.enabled && c.windows && !c.board && c.bg == "000000");
         let w = wanted(&c, &off);
         assert_eq!(w.len(), 2);
-        assert!(w.iter().all(|x| !x.board && x.url.contains("&vr=1&bg=000000")));
+        assert!(w
+            .iter()
+            .all(|x| !x.board && x.url.contains("&vr=1&bg=000000")));
         // VR modu "sadece pano" iken de ayrı pencereler eklenir; seçilen renk korunur
         let board = settings(json!({ "enabled": true, "source": "board", "background": "green" }));
         let c = effective_cfg(&board, true);
@@ -337,6 +440,9 @@ mod tests {
         // Yerel VR çalışmıyorken ayar olduğu gibi
         assert_eq!(effective_cfg(&board, false), cfg_from_settings(&board));
         // Bir kez kullanıldıysa WebView2 arka plan çizim ayarı açılışta uygulanır
-        assert!(browser_flags(Some(&json!({ "general": { "vr": { "native": { "used": true } } } }))).is_some());
+        assert!(browser_flags(Some(
+            &json!({ "general": { "vr": { "native": { "used": true } } } })
+        ))
+        .is_some());
     }
 }

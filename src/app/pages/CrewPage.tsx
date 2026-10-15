@@ -18,7 +18,7 @@ import { FuelCard, Ic, RaceHeader, ServiceStrip, TyreCard, fxKeys, type Fx } fro
 import { crewFit } from "../crewFit";
 import "../crew.css";
 
-const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "AMS2" };
+const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "AMS2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT / GRID", beamng: "BeamNG" };
 /** `owner` verilirse (ayrı pencere: window.html?view=crew&owner=…) yalnızca o sürücünün pitwall'ı gösterilir */
 export function CrewPage(props: { owner?: string } = {}) {
   const uid = () => session()?.user.id;

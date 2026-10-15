@@ -154,8 +154,22 @@ let current = {};
 /** Yuvaya yüklenmiş görsel ({url, alt, w, h}) ya da null; tek öğesi seçime göre değişen bileşenler (Overlay Galerisi) kullanır */
 export function overrideFor(slot) {
   const v = current[slot];
+  if (Array.isArray(v)) return v.find(okItem) ?? null;
   return okItem(v) ? v : null;
 }
+
+/**
+ * Bir overlay'in galeri görselleri (yönetimde sıralanan liste). Eski kayıt tek görsel olabilir (liste sayılır).
+ * Boşsa []: galeri siteyle gelen varsayılan görseli (assets/img/ov/<kimlik>.webp) gösterir.
+ */
+export function overlayImages(id) {
+  const v = current[overlaySlot(id)];
+  if (Array.isArray(v)) return v.filter(okItem);
+  return okItem(v) ? [v] : [];
+}
+
+/** Siteyle gelen varsayılan overlay görselinin tam adresi (listede "varsayılan" öğesi olarak tutulur) */
+export const overlayDefaultUrl = (id) => new URL(overlayImage(id), location.origin + "/").href;
 
 /** Eşlemeyi sayfaya uygular */
 export function applyImages(map, root = document) {

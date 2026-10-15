@@ -37,17 +37,37 @@ pub fn tray_take_open() -> bool {
 /// sadece "mesaj geldi / kart gösterildi / ses çalındı / neden gösterilmedi" satırları (sorun bildirimi için).
 pub fn log(app: &AppHandle, msg: &str) {
     use std::io::Write;
-    let Ok(dir) = app.path().app_data_dir() else { return };
+    let Ok(dir) = app.path().app_data_dir() else {
+        return;
+    };
     let _ = std::fs::create_dir_all(&dir);
     let p = dir.join("social.log");
-    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
     let msg: String = msg.chars().filter(|c| !c.is_control()).take(240).collect();
     // Dosya büyümesin: 256 KB'ı geçince baştan başla
-    let big = std::fs::metadata(&p).map(|m| m.len() > 256 * 1024).unwrap_or(false);
+    let big = std::fs::metadata(&p)
+        .map(|m| m.len() > 256 * 1024)
+        .unwrap_or(false);
     static LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
     let _g = LOCK.lock();
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(!big).write(true).truncate(big).open(&p) {
-        let _ = writeln!(f, "{} {:02}:{:02}:{:02}Z {msg}", secs / 86_400, (secs / 3600) % 24, (secs / 60) % 60, secs % 60);
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(!big)
+        .write(true)
+        .truncate(big)
+        .open(&p)
+    {
+        let _ = writeln!(
+            f,
+            "{} {:02}:{:02}:{:02}Z {msg}",
+            secs / 86_400,
+            (secs / 3600) % 24,
+            (secs / 60) % 60,
+            secs % 60
+        );
     }
 }
 
@@ -77,7 +97,11 @@ fn system_sound() {}
 /// Ses aygıtı açılamadıysa Windows'un bildirim sesi çalınır.
 #[tauri::command]
 pub fn message_beep(app: AppHandle, volume: f32, kind: Option<String>) {
-    let v = if volume.is_finite() { volume.clamp(0.02, 1.0) } else { 0.6 };
+    let v = if volume.is_finite() {
+        volume.clamp(0.02, 1.0)
+    } else {
+        0.6
+    };
     // Yumuşak sesler: daha pes, sönerek biten notalar. "classic" eski keskin çift bip.
     let notes: &[(f32, u64)] = match kind.as_deref().unwrap_or("classic") {
         "soft" => &[(523.25, 170), (659.25, 300)],
@@ -88,11 +112,25 @@ pub fn message_beep(app: AppHandle, volume: f32, kind: Option<String>) {
         _ => &[],
     };
     if notes.is_empty() {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 880.0, ms: 100, volume: v, pan: 0.0 });
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 1320.0, ms: 130, volume: v, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 880.0,
+            ms: 100,
+            volume: v,
+            pan: 0.0,
+        });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 1320.0,
+            ms: 130,
+            volume: v,
+            pan: 0.0,
+        });
     }
     for (freq, ms) in notes {
-        crate::audio::send(crate::audio::Cmd::Note { freq: *freq, ms: *ms, volume: v });
+        crate::audio::send(crate::audio::Cmd::Note {
+            freq: *freq,
+            ms: *ms,
+            volume: v,
+        });
     }
     std::thread::spawn(move || {
         // Ses iş parçacığı ilk komutta açılır: aygıt durumunu öğrenmesi için kısa bekleme
@@ -117,13 +155,18 @@ pub fn social_tick_start(app: AppHandle) {
     if STARTED.swap(true, Ordering::Relaxed) {
         return;
     }
-    log(&app, &format!("servis basladi (surum {})", crate::display_version()));
-    let _ = std::thread::Builder::new().name("social-tick".into()).spawn(move || loop {
-        std::thread::sleep(std::time::Duration::from_secs(15));
-        crate::crashlog::guard(|| {
-            let _ = app.emit_to("overlay", "social-tick", ());
+    log(
+        &app,
+        &format!("servis basladi (surum {})", crate::display_version()),
+    );
+    let _ = std::thread::Builder::new()
+        .name("social-tick".into())
+        .spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_secs(15));
+            crate::crashlog::guard(|| {
+                let _ = app.emit_to("overlay", "social-tick", ());
+            });
         });
-    });
 }
 
 /// RGBA simgenin sağ üst köşesine beyaz çerçeveli kırmızı nokta çizer
@@ -146,7 +189,11 @@ fn badge(rgba: &mut [u8], w: u32, h: u32) {
             }
             // Kenarda yumuşak geçiş
             let a = (r + 0.5 - d).clamp(0.0, 1.0);
-            let col: [f32; 3] = if d > r - ring { [255.0, 255.0, 255.0] } else { [235.0, 45.0, 45.0] };
+            let col: [f32; 3] = if d > r - ring {
+                [255.0, 255.0, 255.0]
+            } else {
+                [235.0, 45.0, 45.0]
+            };
             let i = ((y * w + x) * 4) as usize;
             let old_a = rgba[i + 3] as f32 / 255.0;
             for k in 0..3 {
@@ -165,9 +212,15 @@ pub fn tray_unread(app: AppHandle, count: u32, text: Option<String>) {
     if prev != count {
         log(&app, &format!("tepsi: okunmamis {count}"));
     }
-    let Some(tray) = app.tray_by_id(TRAY_ID) else { return };
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return;
+    };
     let base = format!("SRTR Pitwall {}", crate::display_version());
-    let tip = match text.as_deref().map(str::trim).filter(|t| !t.is_empty() && count > 0) {
+    let tip = match text
+        .as_deref()
+        .map(str::trim)
+        .filter(|t| !t.is_empty() && count > 0)
+    {
         Some(t) => format!("{base} · {}", t.chars().take(80).collect::<String>()),
         None => base,
     };
@@ -176,7 +229,9 @@ pub fn tray_unread(app: AppHandle, count: u32, text: Option<String>) {
     if (prev > 0) == (count > 0) {
         return;
     }
-    let Some(icon) = app.default_window_icon() else { return };
+    let Some(icon) = app.default_window_icon() else {
+        return;
+    };
     if count == 0 {
         let _ = tray.set_icon(Some(icon.clone()));
         return;

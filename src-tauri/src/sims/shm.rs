@@ -35,14 +35,22 @@ impl Mapping {
                 return None;
             }
             let mut mbi: MEMORY_BASIC_INFORMATION = std::mem::zeroed();
-            let n = VirtualQuery(view.Value as *const _, &mut mbi, std::mem::size_of::<MEMORY_BASIC_INFORMATION>());
+            let n = VirtualQuery(
+                view.Value as *const _,
+                &mut mbi,
+                std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+            );
             let len = if n == 0 { 0 } else { mbi.RegionSize };
             if len == 0 {
                 UnmapViewOfFile(view);
                 CloseHandle(map);
                 return None;
             }
-            Some(Mapping { map, view: view.Value as *const u8, len })
+            Some(Mapping {
+                map,
+                view: view.Value as *const u8,
+                len,
+            })
         }
     }
 
@@ -71,7 +79,9 @@ impl Mapping {
 impl Drop for Mapping {
     fn drop(&mut self) {
         unsafe {
-            UnmapViewOfFile(MEMORY_MAPPED_VIEW_ADDRESS { Value: self.view as *mut _ });
+            UnmapViewOfFile(MEMORY_MAPPED_VIEW_ADDRESS {
+                Value: self.view as *mut _,
+            });
             CloseHandle(self.map);
         }
     }
@@ -89,7 +99,11 @@ pub fn process_names() -> Vec<String> {
         e.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
         let mut ok = Process32FirstW(snap, &mut e);
         while ok != 0 {
-            let end = e.szExeFile.iter().position(|&c| c == 0).unwrap_or(e.szExeFile.len());
+            let end = e
+                .szExeFile
+                .iter()
+                .position(|&c| c == 0)
+                .unwrap_or(e.szExeFile.len());
             out.push(String::from_utf16_lossy(&e.szExeFile[..end]).to_lowercase());
             ok = Process32NextW(snap, &mut e);
         }

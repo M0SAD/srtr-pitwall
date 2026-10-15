@@ -9,7 +9,13 @@ pub struct HmdMatrix34 {
 
 impl HmdMatrix34 {
     #[allow(dead_code)]
-    pub const IDENTITY: HmdMatrix34 = HmdMatrix34 { m: [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]] };
+    pub const IDENTITY: HmdMatrix34 = HmdMatrix34 {
+        m: [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+        ],
+    };
 }
 
 /// OpenVR `TrackedDevicePose_t` (80 bayt; bkz. openvr_capi_excerpt.h)

@@ -318,3 +318,32 @@
   border: 1px solid color-mix(in srgb, var(--ov-text) 45%, transparent);
   border-radius: var(--ov-radius);
 }
+
+/* --- Performans (ayar: Performans modu) --- */
+/* Renk geçişi kapalı: kayıtlı özellik (--duel-c) her karede yeniden boyama gerektirir; yalnızca transform / opacity akar */
+.duel.duel-nocolor .duel-row {
+  transition:
+    transform 0.42s cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 0.25s linear,
+    filter 0.25s linear;
+}
+/* Kayma kapalı: hiçbir geçiş yok, satırlar yeni yerlerine atlar */
+.duel.duel-noslide .duel-row,
+.duel.duel-noslide {
+  transition: none;
+}
+.duel.duel-nomask .duel-reel {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+/* Renk dolgusu kapalı: degrade katmanı hiç çizilmez, yakınlık sadece çerçeveyle */
+.duel.duel-noglow .duel-row::before {
+  display: none;
+}
+/* 3B kapalı: arka yüz / katman ipuçları gereksiz */
+.duel.duel-2d .duel-row {
+  backface-visibility: visible;
+}
+.duel.duel-noslide .duel-row {
+  will-change: auto;
+}

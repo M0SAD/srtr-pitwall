@@ -41,7 +41,10 @@ impl LeagueConfig {
     }
 
     fn tier_for(&self, number: &str, class_name: &str) -> Option<(usize, &Tier)> {
-        let id = self.assignments.get(number).or_else(|| self.class_defaults.get(class_name))?;
+        let id = self
+            .assignments
+            .get(number)
+            .or_else(|| self.class_defaults.get(class_name))?;
         self.tiers.iter().enumerate().find(|(_, t)| &t.id == id)
     }
 }
@@ -54,7 +57,9 @@ pub fn apply(raw: &SessionData, cfg: Option<&LeagueConfig>) -> (SessionData, boo
         d.orig_class_name = d.class_name.clone();
         d.orig_class_color = d.class_color.clone();
     }
-    let Some(cfg) = cfg.filter(|c| c.applies_to(raw)) else { return (s, false) };
+    let Some(cfg) = cfg.filter(|c| c.applies_to(raw)) else {
+        return (s, false);
+    };
     for d in s.drivers.iter_mut().flatten() {
         if d.is_pace_car || d.is_spectator {
             continue;
@@ -139,7 +144,11 @@ pub fn entries(s: &SessionData, active: bool) -> Entries {
         })
         .collect();
     drivers.sort_by(|a, b| b.irating.cmp(&a.irating));
-    Entries { league_id: s.league_id, active, drivers }
+    Entries {
+        league_id: s.league_id,
+        active,
+        drivers,
+    }
 }
 
 #[cfg(test)]
@@ -148,7 +157,10 @@ mod tests {
     use crate::model::Driver;
 
     fn session() -> SessionData {
-        let mut s = SessionData { league_id: 42, ..Default::default() };
+        let mut s = SessionData {
+            league_id: 42,
+            ..Default::default()
+        };
         s.drivers = vec![None; MAX_CARS];
         for i in 0..4 {
             s.drivers[i] = Some(Driver {
@@ -169,8 +181,16 @@ mod tests {
         let mut cfg = LeagueConfig {
             league_id: 42,
             tiers: vec![
-                Tier { id: "pro".into(), name: "Pro".into(), color: "#ff0000".into() },
-                Tier { id: "am".into(), name: "Am".into(), color: "#00ff00".into() },
+                Tier {
+                    id: "pro".into(),
+                    name: "Pro".into(),
+                    color: "#ff0000".into(),
+                },
+                Tier {
+                    id: "am".into(),
+                    name: "Am".into(),
+                    color: "#00ff00".into(),
+                },
             ],
             ..Default::default()
         };

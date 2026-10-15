@@ -17,20 +17,30 @@
 
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
-use windows_sys::Win32::Devices::HumanInterfaceDevice::{HidD_GetProductString, HidP_GetUsages, HidP_Input, HIDP_STATUS_SUCCESS};
+use windows_sys::Win32::Devices::HumanInterfaceDevice::{
+    HidD_GetProductString, HidP_GetUsages, HidP_Input, HIDP_STATUS_SUCCESS,
+};
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, INVALID_HANDLE_VALUE, SYSTEMTIME};
-use windows_sys::Win32::Media::Multimedia::{joyGetDevCapsW, joyGetNumDevs, joyGetPosEx, JOYCAPSW, JOYERR_NOERROR, JOYINFOEX, JOY_RETURNBUTTONS};
-use windows_sys::Win32::Storage::FileSystem::{CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING};
+use windows_sys::Win32::Media::Multimedia::{
+    joyGetDevCapsW, joyGetNumDevs, joyGetPosEx, JOYCAPSW, JOYERR_NOERROR, JOYINFOEX,
+    JOY_RETURNBUTTONS,
+};
+use windows_sys::Win32::Storage::FileSystem::{
+    CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::SystemInformation::GetLocalTime;
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+    GetAsyncKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+};
 use windows_sys::Win32::UI::Input::{
-    GetRawInputData, GetRawInputDeviceInfoW, RegisterRawInputDevices, RAWINPUT, RAWINPUTDEVICE, RAWINPUTHEADER, RIDEV_DEVNOTIFY, RIDEV_INPUTSINK, RIDEV_REMOVE,
-    RIDI_DEVICEINFO, RIDI_DEVICENAME, RIDI_PREPARSEDDATA, RID_DEVICE_INFO, RID_INPUT, RIM_TYPEHID,
+    GetRawInputData, GetRawInputDeviceInfoW, RegisterRawInputDevices, RAWINPUT, RAWINPUTDEVICE,
+    RAWINPUTHEADER, RIDEV_DEVNOTIFY, RIDEV_INPUTSINK, RIDEV_REMOVE, RIDI_DEVICEINFO,
+    RIDI_DEVICENAME, RIDI_PREPARSEDDATA, RID_DEVICE_INFO, RID_INPUT, RIM_TYPEHID,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, PeekMessageW, RegisterClassW, HWND_MESSAGE, MSG, PM_REMOVE, WM_INPUT,
-    WM_INPUT_DEVICE_CHANGE, WNDCLASSW,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, PeekMessageW, RegisterClassW,
+    HWND_MESSAGE, MSG, PM_REMOVE, WM_INPUT, WM_INPUT_DEVICE_CHANGE, WNDCLASSW,
 };
 
 /// Değiştirici bitleri (voicecmd::parse_key ile aynı)
@@ -131,17 +141,46 @@ impl Input {
             wc.lpszClassName = class.as_ptr();
             // Sınıf zaten kayıtlıysa (0 döner) pencere yine açılabilir
             RegisterClassW(&wc);
-            hwnd = CreateWindowExW(0, class.as_ptr(), class.as_ptr(), 0, 0, 0, 0, 0, HWND_MESSAGE, std::ptr::null_mut(), hinst, std::ptr::null());
+            hwnd = CreateWindowExW(
+                0,
+                class.as_ptr(),
+                class.as_ptr(),
+                0,
+                0,
+                0,
+                0,
+                0,
+                HWND_MESSAGE,
+                std::ptr::null_mut(),
+                hinst,
+                std::ptr::null(),
+            );
             if !hwnd.is_null() {
                 // Genel Masaüstü sayfası (0x01): 0x04 joystick, 0x05 gamepad, 0x08 çok eksenli kumanda (direksiyonlar)
                 let devs: Vec<RAWINPUTDEVICE> = [0x04u16, 0x05, 0x08]
                     .iter()
-                    .map(|&u| RAWINPUTDEVICE { usUsagePage: 0x01, usUsage: u, dwFlags: RIDEV_INPUTSINK | RIDEV_DEVNOTIFY, hwndTarget: hwnd })
+                    .map(|&u| RAWINPUTDEVICE {
+                        usUsagePage: 0x01,
+                        usUsage: u,
+                        dwFlags: RIDEV_INPUTSINK | RIDEV_DEVNOTIFY,
+                        hwndTarget: hwnd,
+                    })
                     .collect();
-                raw_ok = RegisterRawInputDevices(devs.as_ptr(), devs.len() as u32, std::mem::size_of::<RAWINPUTDEVICE>() as u32) != 0;
+                raw_ok = RegisterRawInputDevices(
+                    devs.as_ptr(),
+                    devs.len() as u32,
+                    std::mem::size_of::<RAWINPUTDEVICE>() as u32,
+                ) != 0;
             }
         }
-        Input { hwnd, hid: HashMap::new(), mm: Vec::new(), mm_scan: None, baseline: None, raw_ok }
+        Input {
+            hwnd,
+            hid: HashMap::new(),
+            mm: Vec::new(),
+            mm_scan: None,
+            baseline: None,
+            raw_ok,
+        }
     }
 
     /// Bekleyen iletileri işle (WM_INPUT) ve WinMM aygıtlarını yokla. `all`: tüm WinMM aygıtları (yakalama),
@@ -172,10 +211,17 @@ impl Input {
         let mut info: RID_DEVICE_INFO = std::mem::zeroed();
         info.cbSize = std::mem::size_of::<RID_DEVICE_INFO>() as u32;
         let mut size = info.cbSize;
-        if GetRawInputDeviceInfoW(h, RIDI_DEVICEINFO, &mut info as *mut _ as *mut _, &mut size) as i32 <= 0 || info.dwType != RIM_TYPEHID {
+        if GetRawInputDeviceInfoW(h, RIDI_DEVICEINFO, &mut info as *mut _ as *mut _, &mut size)
+            as i32
+            <= 0
+            || info.dwType != RIM_TYPEHID
+        {
             return None;
         }
-        let (vid, pid) = (info.Anonymous.hid.dwVendorId as u16, info.Anonymous.hid.dwProductId as u16);
+        let (vid, pid) = (
+            info.Anonymous.hid.dwVendorId as u16,
+            info.Anonymous.hid.dwProductId as u16,
+        );
         // Ön çözümleme verisi
         let mut psize: u32 = 0;
         GetRawInputDeviceInfoW(h, RIDI_PREPARSEDDATA, std::ptr::null_mut(), &mut psize);
@@ -183,7 +229,14 @@ impl Input {
             return None;
         }
         let mut preparsed = vec![0u64; (psize as usize + 7) / 8];
-        if GetRawInputDeviceInfoW(h, RIDI_PREPARSEDDATA, preparsed.as_mut_ptr() as *mut _, &mut psize) as i32 <= 0 {
+        if GetRawInputDeviceInfoW(
+            h,
+            RIDI_PREPARSEDDATA,
+            preparsed.as_mut_ptr() as *mut _,
+            &mut psize,
+        ) as i32
+            <= 0
+        {
             return None;
         }
         // Ürün adı: aygıt yolu → CreateFileW (erişim istemeden) → HidD_GetProductString
@@ -192,11 +245,24 @@ impl Input {
         GetRawInputDeviceInfoW(h, RIDI_DEVICENAME, std::ptr::null_mut(), &mut nlen);
         if nlen > 0 && nlen < 4096 {
             let mut path = vec![0u16; nlen as usize + 1];
-            if GetRawInputDeviceInfoW(h, RIDI_DEVICENAME, path.as_mut_ptr() as *mut _, &mut nlen) as i32 > 0 {
-                let f = CreateFileW(path.as_ptr(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, std::ptr::null(), OPEN_EXISTING, 0, std::ptr::null_mut());
+            if GetRawInputDeviceInfoW(h, RIDI_DEVICENAME, path.as_mut_ptr() as *mut _, &mut nlen)
+                as i32
+                > 0
+            {
+                let f = CreateFileW(
+                    path.as_ptr(),
+                    0,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    std::ptr::null(),
+                    OPEN_EXISTING,
+                    0,
+                    std::ptr::null_mut(),
+                );
                 if f != INVALID_HANDLE_VALUE && !f.is_null() {
                     let mut buf = [0u16; 127];
-                    if HidD_GetProductString(f, buf.as_mut_ptr() as *mut _, (buf.len() * 2) as u32) != 0 {
+                    if HidD_GetProductString(f, buf.as_mut_ptr() as *mut _, (buf.len() * 2) as u32)
+                        != 0
+                    {
                         name = from_wide(&buf);
                     }
                     CloseHandle(f);
@@ -206,7 +272,13 @@ impl Input {
         if name.is_empty() {
             name = format!("HID {vid:04X}:{pid:04X}");
         }
-        Some(HidDev { vid, pid, name, preparsed, reports: HashMap::new() })
+        Some(HidDev {
+            vid,
+            pid,
+            name,
+            preparsed,
+            reports: HashMap::new(),
+        })
     }
 
     unsafe fn on_input(&mut self, hraw: HANDLE) {
@@ -217,7 +289,14 @@ impl Input {
             return;
         }
         let mut buf = vec![0u64; (size as usize + 7) / 8];
-        if GetRawInputData(hraw as _, RID_INPUT, buf.as_mut_ptr() as *mut _, &mut size, hdr) != size {
+        if GetRawInputData(
+            hraw as _,
+            RID_INPUT,
+            buf.as_mut_ptr() as *mut _,
+            &mut size,
+            hdr,
+        ) != size
+        {
             return;
         }
         let raw = &*(buf.as_ptr() as *const RAWINPUT);
@@ -233,8 +312,13 @@ impl Input {
                 None => return,
             }
         }
-        let Some(dev) = self.hid.get_mut(&key) else { return };
-        let (report_len, count) = (raw.data.hid.dwSizeHid as usize, raw.data.hid.dwCount as usize);
+        let Some(dev) = self.hid.get_mut(&key) else {
+            return;
+        };
+        let (report_len, count) = (
+            raw.data.hid.dwSizeHid as usize,
+            raw.data.hid.dwCount as usize,
+        );
         let data = std::ptr::addr_of!(raw.data.hid.bRawData) as *const u8;
         // Tampon sınırı: başlık + RAWHID başlığı (8 bayt) + raporlar
         let avail = (size as usize).saturating_sub(hdr as usize + 8);
@@ -245,18 +329,37 @@ impl Input {
             let report = data.add(i * report_len);
             let mut usages = [0u16; 256];
             let mut n: u32 = usages.len() as u32;
-            let st = HidP_GetUsages(HidP_Input, 0x09, 0, usages.as_mut_ptr(), &mut n, dev.preparsed.as_ptr() as isize, report as *mut u8, report_len as u32);
+            let st = HidP_GetUsages(
+                HidP_Input,
+                0x09,
+                0,
+                usages.as_mut_ptr(),
+                &mut n,
+                dev.preparsed.as_ptr() as isize,
+                report as *mut u8,
+                report_len as u32,
+            );
             // Bu rapor kimliğinde düğme yoksa (çok raporlu aygıtlar) durum değişmez
             if st == HIDP_STATUS_SUCCESS {
                 // İlk bayt rapor kimliğidir (kimliksiz aygıtlarda 0)
                 let id = *report;
-                dev.reports.insert(id, usages[..(n as usize).min(usages.len())].iter().filter(|&&u| u > 0).map(|&u| u - 1).collect());
+                dev.reports.insert(
+                    id,
+                    usages[..(n as usize).min(usages.len())]
+                        .iter()
+                        .filter(|&&u| u > 0)
+                        .map(|&u| u - 1)
+                        .collect(),
+                );
             }
         }
     }
 
     fn poll_mm(&mut self, all: bool, want: Option<(u16, u16)>) {
-        let rescan = self.mm_scan.map(|t| t.elapsed() > Duration::from_secs(3)).unwrap_or(true);
+        let rescan = self
+            .mm_scan
+            .map(|t| t.elapsed() > Duration::from_secs(3))
+            .unwrap_or(true);
         unsafe {
             if rescan {
                 self.mm_scan = Some(Instant::now());
@@ -265,7 +368,12 @@ impl Input {
                 let n = joyGetNumDevs().min(16);
                 for id in 0..n {
                     let mut caps: JOYCAPSW = std::mem::zeroed();
-                    if joyGetDevCapsW(id as usize, &mut caps, std::mem::size_of::<JOYCAPSW>() as u32) != JOYERR_NOERROR {
+                    if joyGetDevCapsW(
+                        id as usize,
+                        &mut caps,
+                        std::mem::size_of::<JOYCAPSW>() as u32,
+                    ) != JOYERR_NOERROR
+                    {
                         continue;
                     }
                     // Takılı mı: konum okunabiliyorsa
@@ -284,7 +392,13 @@ impl Input {
                     } else if name.is_empty() || name.to_lowercase().contains("pc-joystick") {
                         name = format!("Joystick {vid:04X}:{pid:04X}");
                     }
-                    self.mm.push(MmDev { id, vid, pid, name, buttons: old.get(&id).copied().unwrap_or(0) });
+                    self.mm.push(MmDev {
+                        id,
+                        vid,
+                        pid,
+                        name,
+                        buttons: old.get(&id).copied().unwrap_or(0),
+                    });
                 }
             }
             for d in self.mm.iter_mut() {
@@ -295,30 +409,57 @@ impl Input {
                 let mut ji: JOYINFOEX = std::mem::zeroed();
                 ji.dwSize = std::mem::size_of::<JOYINFOEX>() as u32;
                 ji.dwFlags = JOY_RETURNBUTTONS as u32;
-                d.buttons = if joyGetPosEx(d.id, &mut ji) == JOYERR_NOERROR { ji.dwButtons } else { 0 };
+                d.buttons = if joyGetPosEx(d.id, &mut ji) == JOYERR_NOERROR {
+                    ji.dwButtons
+                } else {
+                    0
+                };
             }
         }
     }
 
     /// Bu aygıtın bu düğmesi şu an basılı mı (HID ya da WinMM)
     pub fn is_down(&self, vid: u16, pid: u16, button: u16) -> bool {
-        self.hid.values().any(|d| d.vid == vid && d.pid == pid && d.is_down(button))
-            || (button < 32 && self.mm.iter().any(|d| d.vid == vid && d.pid == pid && d.buttons & (1 << button) != 0))
+        self.hid
+            .values()
+            .any(|d| d.vid == vid && d.pid == pid && d.is_down(button))
+            || (button < 32
+                && self
+                    .mm
+                    .iter()
+                    .any(|d| d.vid == vid && d.pid == pid && d.buttons & (1 << button) != 0))
     }
 
     fn all_down(&self) -> Vec<Pressed> {
         let mut out: Vec<Pressed> = Vec::new();
         for d in self.hid.values() {
             for &b in d.reports.values().flatten() {
-                if !out.iter().any(|p| p.vid == d.vid && p.pid == d.pid && p.button == b) {
-                    out.push(Pressed { vid: d.vid, pid: d.pid, button: b, name: d.name.clone() });
+                if !out
+                    .iter()
+                    .any(|p| p.vid == d.vid && p.pid == d.pid && p.button == b)
+                {
+                    out.push(Pressed {
+                        vid: d.vid,
+                        pid: d.pid,
+                        button: b,
+                        name: d.name.clone(),
+                    });
                 }
             }
         }
         for d in &self.mm {
             for b in 0..32u16 {
-                if d.buttons & (1 << b) != 0 && !out.iter().any(|p| p.vid == d.vid && p.pid == d.pid && p.button == b) {
-                    out.push(Pressed { vid: d.vid, pid: d.pid, button: b, name: d.name.clone() });
+                if d.buttons & (1 << b) != 0
+                    && !out
+                        .iter()
+                        .any(|p| p.vid == d.vid && p.pid == d.pid && p.button == b)
+                {
+                    out.push(Pressed {
+                        vid: d.vid,
+                        pid: d.pid,
+                        button: b,
+                        name: d.name.clone(),
+                    });
                 }
             }
         }
@@ -327,7 +468,12 @@ impl Input {
 
     /// Yakalamayı başlat: şu an basılı düğmeler (ör. sürekli açık anahtarlar) sayılmaz
     pub fn capture_begin(&mut self) {
-        self.baseline = Some(self.all_down().into_iter().map(|p| (p.vid, p.pid, p.button)).collect());
+        self.baseline = Some(
+            self.all_down()
+                .into_iter()
+                .map(|p| (p.vid, p.pid, p.button))
+                .collect(),
+        );
     }
 
     pub fn capture_end(&mut self) {
@@ -340,13 +486,19 @@ impl Input {
         let base = self.baseline.as_mut()?;
         // Bırakılan düğmeler yeniden basılınca sayılsın
         base.retain(|k| now.iter().any(|p| (p.vid, p.pid, p.button) == *k));
-        now.into_iter().find(|p| !base.contains(&(p.vid, p.pid, p.button)))
+        now.into_iter()
+            .find(|p| !base.contains(&(p.vid, p.pid, p.button)))
     }
 
     /// Görülen aygıtlar (ad, VID, PID): arayüzdeki bilgi satırı için
     pub fn devices(&self) -> Vec<(String, u16, u16)> {
         let mut out: Vec<(String, u16, u16)> = Vec::new();
-        for (name, vid, pid) in self.hid.values().map(|d| (&d.name, d.vid, d.pid)).chain(self.mm.iter().map(|d| (&d.name, d.vid, d.pid))) {
+        for (name, vid, pid) in self
+            .hid
+            .values()
+            .map(|d| (&d.name, d.vid, d.pid))
+            .chain(self.mm.iter().map(|d| (&d.name, d.vid, d.pid)))
+        {
             if !out.iter().any(|x| x.1 == vid && x.2 == pid) {
                 out.push((name.clone(), vid, pid));
             }
@@ -363,9 +515,18 @@ impl Drop for Input {
                     // Kaydı bırak: özellik kapalıyken WM_INPUT akışı sürmesin
                     let devs: Vec<RAWINPUTDEVICE> = [0x04u16, 0x05, 0x08]
                         .iter()
-                        .map(|&u| RAWINPUTDEVICE { usUsagePage: 0x01, usUsage: u, dwFlags: RIDEV_REMOVE, hwndTarget: std::ptr::null_mut() })
+                        .map(|&u| RAWINPUTDEVICE {
+                            usUsagePage: 0x01,
+                            usUsage: u,
+                            dwFlags: RIDEV_REMOVE,
+                            hwndTarget: std::ptr::null_mut(),
+                        })
                         .collect();
-                    RegisterRawInputDevices(devs.as_ptr(), devs.len() as u32, std::mem::size_of::<RAWINPUTDEVICE>() as u32);
+                    RegisterRawInputDevices(
+                        devs.as_ptr(),
+                        devs.len() as u32,
+                        std::mem::size_of::<RAWINPUTDEVICE>() as u32,
+                    );
                 }
                 DestroyWindow(self.hwnd);
             }

@@ -23,7 +23,8 @@ pub struct Pit {
 }
 
 pub fn pit(f: &Frame, s: &SessionData) -> Pit {
-    let me = (f.player_idx >= 0 && (f.player_idx as usize) < MAX_CARS).then(|| f.cars[f.player_idx as usize]);
+    let me = (f.player_idx >= 0 && (f.player_idx as usize) < MAX_CARS)
+        .then(|| f.cars[f.player_idx as usize]);
     Pit {
         speed: f.speed,
         limit: s.pit_limit_kph / 3.6,
@@ -122,7 +123,8 @@ pub fn traffic(f: &Frame, s: &SessionData) -> Traffic {
             continue;
         }
         let same = d.class_id == my_class;
-        let faster = !same && my_est > 0.0 && d.class_est_lap > 0.0 && d.class_est_lap < my_est * 0.985;
+        let faster =
+            !same && my_est > 0.0 && d.class_est_lap > 0.0 && d.class_est_lap < my_est * 0.985;
         out.cars.push(TrafficCar {
             idx: i as i32,
             number: d.car_number.clone(),

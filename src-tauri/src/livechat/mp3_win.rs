@@ -6,9 +6,10 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 use windows::core::HSTRING;
 use windows::Win32::Media::MediaFoundation::{
-    IMFSample, IMFSourceReader, MFAudioFormat_PCM, MFCreateMediaType, MFCreateSourceReaderFromURL, MFMediaType_Audio, MFShutdown, MFStartup, MFSTARTUP_LITE,
-    MF_MT_AUDIO_BITS_PER_SAMPLE, MF_MT_AUDIO_NUM_CHANNELS, MF_MT_AUDIO_SAMPLES_PER_SECOND, MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE, MF_SOURCE_READERF_ENDOFSTREAM,
-    MF_SOURCE_READER_FIRST_AUDIO_STREAM, MF_VERSION,
+    IMFSample, IMFSourceReader, MFAudioFormat_PCM, MFCreateMediaType, MFCreateSourceReaderFromURL,
+    MFMediaType_Audio, MFShutdown, MFStartup, MFSTARTUP_LITE, MF_MT_AUDIO_BITS_PER_SAMPLE,
+    MF_MT_AUDIO_NUM_CHANNELS, MF_MT_AUDIO_SAMPLES_PER_SECOND, MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE,
+    MF_SOURCE_READERF_ENDOFSTREAM, MF_SOURCE_READER_FIRST_AUDIO_STREAM, MF_VERSION,
 };
 use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_MULTITHREADED};
 
@@ -46,7 +47,11 @@ fn wav_bytes(pcm: &[u8], rate: u32, channels: u16, bits: u16) -> Vec<u8> {
 /// `.mp3` dosyasına yazılır ve iş bitince silinir.
 pub fn decode_mp3(mp3: &[u8]) -> Result<Vec<u8>, String> {
     static N: AtomicU32 = AtomicU32::new(0);
-    let path = std::env::temp_dir().join(format!("srtr-pitwall-tts-{}-{}.mp3", std::process::id(), N.fetch_add(1, Ordering::Relaxed)));
+    let path = std::env::temp_dir().join(format!(
+        "srtr-pitwall-tts-{}-{}.mp3",
+        std::process::id(),
+        N.fetch_add(1, Ordering::Relaxed)
+    ));
     std::fs::write(&path, mp3).map_err(|e| format!("geçici dosya yazılamadı: {e}"))?;
     let r = unsafe {
         // İş parçacığında COM açık olmalı (zaten açıksa S_FALSE döner; her başarılı çağrı dengelenir)
@@ -72,21 +77,33 @@ unsafe fn decode_file(url: &HSTRING) -> Result<Vec<u8>, String> {
     let stream = MF_SOURCE_READER_FIRST_AUDIO_STREAM.0 as u32;
     let reader: IMFSourceReader = MFCreateSourceReaderFromURL(url, None).map_err(err)?;
     let want = MFCreateMediaType().map_err(err)?;
-    want.SetGUID(&MF_MT_MAJOR_TYPE, &MFMediaType_Audio).map_err(err)?;
-    want.SetGUID(&MF_MT_SUBTYPE, &MFAudioFormat_PCM).map_err(err)?;
-    reader.SetCurrentMediaType(stream, None, &want).map_err(err)?;
+    want.SetGUID(&MF_MT_MAJOR_TYPE, &MFMediaType_Audio)
+        .map_err(err)?;
+    want.SetGUID(&MF_MT_SUBTYPE, &MFAudioFormat_PCM)
+        .map_err(err)?;
+    reader
+        .SetCurrentMediaType(stream, None, &want)
+        .map_err(err)?;
     let cur = reader.GetCurrentMediaType(stream).map_err(err)?;
-    let rate = cur.GetUINT32(&MF_MT_AUDIO_SAMPLES_PER_SECOND).map_err(err)?;
+    let rate = cur
+        .GetUINT32(&MF_MT_AUDIO_SAMPLES_PER_SECOND)
+        .map_err(err)?;
     let channels = cur.GetUINT32(&MF_MT_AUDIO_NUM_CHANNELS).map_err(err)?;
     let bits = cur.GetUINT32(&MF_MT_AUDIO_BITS_PER_SAMPLE).unwrap_or(16);
-    if rate == 0 || channels == 0 || channels > 8 || (bits != 16 && bits != 8 && bits != 24 && bits != 32) {
+    if rate == 0
+        || channels == 0
+        || channels > 8
+        || (bits != 16 && bits != 8 && bits != 24 && bits != 32)
+    {
         return Err("beklenmeyen ses biçimi".into());
     }
     let mut pcm: Vec<u8> = Vec::with_capacity(256 * 1024);
     loop {
         let mut flags = 0u32;
         let mut sample: Option<IMFSample> = None;
-        reader.ReadSample(stream, 0, None, Some(&mut flags), None, Some(&mut sample)).map_err(err)?;
+        reader
+            .ReadSample(stream, 0, None, Some(&mut flags), None, Some(&mut sample))
+            .map_err(err)?;
         if let Some(s) = sample {
             let buf = s.ConvertToContiguousBuffer().map_err(err)?;
             let mut p: *mut u8 = std::ptr::null_mut();

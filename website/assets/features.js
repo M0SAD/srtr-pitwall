@@ -15,24 +15,25 @@ const LANGS = 15;
 // Overlay listesi, adları (ov_<id>_n) ve grup başlıkları: overlays.js (ana sayfa galerisiyle ortak)
 const OVERLAY_COUNT = OVERLAYS.reduce((n, g) => n + g[1].length, 0);
 
-// simSupport.ts: 1 = çalışır, 2 = kısmen, 0 = çalışmaz. Sıra: iRacing, ACC, AC, LMU/rF2, AMS2
+// simSupport.ts: 1 = çalışır, 2 = kısmen, 0 = çalışmaz.
+// Sıra: iRacing, ACC, AC, LMU/rF2, AMS2, RaceRoom, F1, Forza, DiRT / GRID, BeamNG
 const SIMS = [
-  ["fx_si_r1", 1, 1, 1, 1, 1],
-  ["fx_si_r2", 1, 2, 2, 1, 1],
-  ["fx_si_r3", 1, 1, 2, 1, 1],
-  ["fx_si_r4", 1, 2, 1, 1, 2],
-  ["fx_si_r5", 1, 0, 0, 1, 1],
-  ["fx_si_r6", 1, 1, 0, 1, 1],
-  ["fx_si_r7", 1, 0, 0, 1, 1],
-  ["fx_si_r8", 1, 1, 0, 0, 0],
-  ["fx_si_r9", 1, 2, 2, 2, 2],
-  ["fx_si_r10", 1, 0, 0, 0, 0],
-  ["fx_si_r11", 1, 0, 0, 0, 0],
-  ["fx_si_r12", 1, 1, 1, 1, 1],
-  ["fx_si_r13", 1, 2, 2, 2, 2],
-  ["fx_si_r14", 1, 0, 0, 1, 0],
-  ["fx_si_r15", 1, 2, 0, 1, 2],
-  ["fx_si_r16", 1, 0, 0, 0, 0],
+  ["fx_si_r1", 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+  ["fx_si_r2", 1, 2, 2, 1, 1, 1, 1, 2, 2, 0],
+  ["fx_si_r3", 1, 1, 2, 1, 1, 0, 1, 0, 0, 0],
+  ["fx_si_r4", 1, 2, 1, 1, 2, 1, 1, 2, 2, 0],
+  ["fx_si_r5", 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+  ["fx_si_r6", 1, 1, 0, 1, 1, 1, 1, 0, 0, 0],
+  ["fx_si_r7", 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+  ["fx_si_r8", 1, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+  ["fx_si_r9", 1, 2, 2, 2, 2, 1, 1, 2, 2, 2],
+  ["fx_si_r10", 1, 0, 0, 0, 0, 2, 0, 0, 0, 0],
+  ["fx_si_r11", 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ["fx_si_r12", 1, 1, 1, 1, 1, 1, 1, 2, 1, 0],
+  ["fx_si_r13", 1, 2, 2, 2, 2, 2, 2, 0, 0, 0],
+  ["fx_si_r14", 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+  ["fx_si_r15", 1, 2, 0, 1, 2, 1, 1, 0, 0, 0],
+  ["fx_si_r16", 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
 const TOC = ["overlays", "livechat", "voice", "community", "social", "tools", "sims", "pro"];
@@ -335,6 +336,8 @@ addDict({
   ov_coach_h: ["Önündeki virajda referansın fren ve gaz izi, üstünde senin girdilerin|Tur içi fark, hız farkı ve bölüm bölüm kazanç / kayıp|Referans: topluluğun en iyi turu, topluluk ortalaması ya da kendi rekorun|Yeterli tur yoksa açıkça \"Yeterli veri yok\" yazar|Kısa ipuçları: FREN, GAZ, FRENİ BIRAK|Referans bir kez indirilir ve bilgisayarında saklanır", "The reference's brake and throttle trace for the corner ahead, with your inputs on top|Live lap delta, speed difference and gain / loss per part of the lap|Reference: the community's best lap, the community average or your own record|Says \"Not enough data\" plainly when there are too few laps|Short cues: BRAKE, THROTTLE, RELEASE BRAKE|The reference is downloaded once and kept on your PC"],
   ov_setupcmp_d: ["Garajda yüklediğin setup'ları yan yana karşılaştırır: hangisiyle daha hızlısın?", "Compares the setups you load in the garage side by side: which one are you faster with?"],
   ov_setupcmp_h: ["Her setup için en iyi tur, sektörler, teorik en iyi, ortalama ve tur sayısı|En hızlı setup yeşil, diğerlerinde fark|2 ile 6 arası setup yan yana|Sadece bu oturum ya da aynı pist ve araçtaki tüm kayıtlar|Tablo ya da sade liste görünümü|iRacing", "Best lap, sectors, theoretical best, average and lap count for every setup|Fastest setup in green, the gap on the others|2 to 6 setups side by side|This session only, or everything recorded on the same track and car|Table or simple list view|iRacing"],
+  ov_friendalert_d: ["Aynı yarıştaki arkadaşının ekranında tek tuşla yanıp sönen “DİKKAT” uyarısı.", "A flashing “ATTENTION” alert on a friend's screen in the same race, with one press."],
+  ov_friendalert_h: ["Klavye tuşu ya da direksiyon düğmesiyle gönderilir|Yalnızca arkadaş listendekilere ve aynı yarıştayken gider|Yanıp sönen ünlem işareti ve “DİKKAT” yazısı; gönderenin adı isteğe bağlı|Üçgen, daire ve şerit tasarımları; renk, süre ve hız ayarlanabilir|İsteğe bağlı uyarı sesi|iRacing", "Sent with a keyboard key or wheel button|Only goes to people on your friends list in the same race|Flashing exclamation mark and “ATTENTION” text; sender name optional|Triangle, circle and banner designs; colour, duration and speed adjustable|Optional alert sound|iRacing"],
   ov_setupname_d: ["Araçta yüklü setup'ın adını gösterir; değiştirilip kaydedilmediyse işaretler.", "Shows the name of the setup loaded in the car and marks it when modified but not saved."],
   ov_setupname_h: ["Yüklü setup dosyasının adı (klasör ve .sto uzantısı isteğe bağlı)|Garajda değiştirilip kaydedilmediyse \"değiştirildi\" işareti|Setup'ın kaynağı (iRacing / kendi setup'ın)|Yarış başladıktan belirtilen süre sonra kendiliğinden gizlenebilir|Kart, tek satır etiket ve yalnızca yazı tasarımları; renkler ayarlanabilir|iRacing", "Name of the loaded setup file (folder and .sto extension optional)|\"modified\" mark when changed in the garage but not saved|Setup source (iRacing / your own setup)|Can hide itself a set time after the race starts|Card, single-line tag and text-only designs; colours adjustable|iRacing"],
   ov_sectors_d: [
@@ -468,8 +471,8 @@ addDict({
   ],
   fx_lc_pro_t: ["PRO ile", "With PRO"],
   fx_lc_pro: [
-    "Birden fazla kanal aynı anda|Favori kanallar ve izleyici sayıları|Sohbet anketi: izleyiciler numara yazarak oy verir|Sohbeti sesli okuma (TTS, Windows sesleri)|Konuşmayı yazıya çevirme: altyazı|Sohbete kendi Twitch / Kick / YouTube hesabınla yazma|Sohbet kaydı görüntüleyici: arama, süzme, dışa aktarma",
-    "Several channels at once|Favourite channels with viewer counts|Chat poll: viewers vote by typing a number|Chat read-aloud (TTS, Windows voices)|Speech-to-text captions|Write to chat with your own Twitch / Kick / YouTube account|Chat log viewer: search, filter, export",
+    "Birden fazla kanal aynı anda|Favori kanallar ve izleyici sayıları|Sohbet anketi: izleyiciler numara yazarak oy verir|Sohbeti sesli okuma (TTS, Windows sesleri)|Konuşmayı yazıya çevirme: altyazı|Altyazı çevirisi: oyunda / Discord'da başka dilde konuşulanları kendi dilinde altyazı olarak gör|Sohbete kendi Twitch / Kick / YouTube hesabınla yazma|Sohbet kaydı görüntüleyici: arama, süzme, dışa aktarma",
+    "Several channels at once|Favourite channels with viewer counts|Chat poll: viewers vote by typing a number|Chat read-aloud (TTS, Windows voices)|Speech-to-text captions|Caption translation: see what's said in another language in game / on Discord as subtitles in your language|Write to chat with your own Twitch / Kick / YouTube account|Chat log viewer: search, filter, export",
   ],
 
   // ---- Sesli Mühendis ----
@@ -618,8 +621,8 @@ addDict({
   fx_si_eyebrow: ["Simülasyonlar", "Sims"],
   fx_si_title: ["Hangi oyunda ne çalışıyor?", "What works in which game?"],
   fx_si_lead: [
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2 ve Automobilista 2. Hangi oyunu açarsan kendiliğinden algılar. Her oyunun verdiği veri farklıdır; en eksiksiz destek iRacing'dedir.",
-    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2 and Automobilista 2. Whichever game you start is detected automatically. Each game exposes different data; iRacing has the most complete support.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2, Automobilista 2 / Project CARS 2-3, RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID ve BeamNG.drive. Hangi oyunu açarsan kendiliğinden algılar. Her oyunun verdiği veri farklıdır; en eksiksiz destek iRacing'dedir.",
+    "iRacing, Assetto Corsa Competizione, Assetto Corsa, Le Mans Ultimate / rFactor 2, Automobilista 2 / Project CARS 2-3, RaceRoom, F1 23 / 24 / 25, Forza Motorsport / Horizon, DiRT Rally 2.0 / DiRT 4 / GRID and BeamNG.drive. Whichever game you start is detected automatically. Each game exposes different data; iRacing has the most complete support.",
   ],
   fx_si_r1: ["Pedallar, vites, yakıt, tur süreleri, direksiyon ekranı, telemetri", "Pedals, gear, fuel, lap times, wheel display, telemetry"],
   fx_si_r2: ["Pist haritası ve mini harita <span class=\"muted\">(AC / ACC: haritada sadece sen)</span>", "Track map and mini map <span class=\"muted\">(AC / ACC: only you on the map)</span>"],
@@ -650,8 +653,8 @@ addDict({
     "Remote pit settings from your crew <span class=\"muted\">(in other games the crew can only watch and send messages)</span>",
   ],
   fx_si_note: [
-    "✓ çalışır · ◐ kısmen · — o oyun bu veriyi vermiyor. LMU / rF2 için rF2 Shared Memory eklentisi, AMS2 için oyun ayarlarında Shared Memory: Project CARS 2 gerekir.",
-    "✓ works · ◐ partly · — the game doesn't expose this data. LMU / rF2 need the rF2 Shared Memory plugin; AMS2 needs Shared Memory: Project CARS 2 in the game options.",
+    "✓ çalışır · ◐ kısmen · — o oyun bu veriyi vermiyor. LMU / rF2 için rF2 Shared Memory eklentisi, AMS2 için oyun ayarlarında Shared Memory: Project CARS 2 gerekir. F1, Forza, DiRT / GRID ve BeamNG verisini UDP ile gönderir: oyunun telemetri ayarında UDP'yi aç (F1 ve DiRT port 20777, Forza 5300, BeamNG OutGauge 4444). Forza, DiRT / GRID ve BeamNG sadece kendi aracını verir.",
+    "✓ works · ◐ partly · — the game doesn't expose this data. LMU / rF2 need the rF2 Shared Memory plugin; AMS2 needs Shared Memory: Project CARS 2 in the game options. F1, Forza, DiRT / GRID and BeamNG send their data over UDP: enable UDP in the game's telemetry options (F1 and DiRT port 20777, Forza 5300, BeamNG OutGauge 4444). Forza, DiRT / GRID and BeamNG only send your own car.",
   ],
 
   // ---- PRO ----

@@ -160,7 +160,8 @@ pub fn hybrid(kind: SimKind, phys: &[u8], stat: &[u8]) -> crate::model::Hybrid {
     }
     let lap_max = rd_f32(stat, stc::ERS_MAX_J);
     if lap_max > 0.0 {
-        h.lap_deploy_left = (1.0 - rd_f32(phys, ph::KERS_CURRENT_KJ) * 1000.0 / lap_max).clamp(0.0, 1.0);
+        h.lap_deploy_left =
+            (1.0 - rd_f32(phys, ph::KERS_CURRENT_KJ) * 1000.0 / lap_max).clamp(0.0, 1.0);
     }
     if ers {
         h.mode = rd_i32(phys, ph::ERS_POWER_LEVEL);
@@ -184,7 +185,11 @@ pub fn detect(gfx: &[u8], exes: &[String]) -> Option<SimKind> {
     // ACC'de 252. baytta aktif araç sayısı (1..60) vardır; AC'de ise oyuncunun x koordinatı
     // (float). Bir koordinatın bit deseninin 1..60 arası tamsayı olması pratikte imkânsız.
     let n = rd_i32(gfx, gr::ACTIVE_CARS);
-    Some(if (1..=60).contains(&n) { SimKind::Acc } else { SimKind::Ac })
+    Some(if (1..=60).contains(&n) {
+        SimKind::Acc
+    } else {
+        SimKind::Ac
+    })
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -241,7 +246,11 @@ fn session_num(kind: SimKind, gfx: &[u8]) -> i32 {
 pub fn session_sig(kind: SimKind, gfx: &[u8], si: &StaticInfo) -> u64 {
     sig(
         &[&si.track, &si.track_config, &si.car_model, &si.player],
-        &[rd_i32(gfx, gr::SESSION) as i64, session_num(kind, gfx) as i64, rd_i32(gfx, gr::NUMBER_OF_LAPS) as i64],
+        &[
+            rd_i32(gfx, gr::SESSION) as i64,
+            session_num(kind, gfx) as i64,
+            rd_i32(gfx, gr::NUMBER_OF_LAPS) as i64,
+        ],
     )
 }
 
@@ -252,7 +261,11 @@ pub fn build_session(kind: SimKind, gfx: &[u8], phys: &[u8], si: &StaticInfo) ->
     sd.track_length_km = (si.track_len_m / 1000.0).max(0.0);
     sd.player_idx = 0;
     sd.fuel_max_ltr = si.max_fuel.max(0.0);
-    let max_rpm = if si.max_rpm > 0 { si.max_rpm } else { rd_i32(phys, ph::CURRENT_MAX_RPM) };
+    let max_rpm = if si.max_rpm > 0 {
+        si.max_rpm
+    } else {
+        rd_i32(phys, ph::CURRENT_MAX_RPM)
+    };
     sd.redline = max_rpm.max(0) as f32;
     // ACC çevrimdışı ve pistte başka araçlar var: botlara karşı
     sd.ai_session = kind == SimKind::Acc && !si.is_online && rd_i32(gfx, gr::ACTIVE_CARS) > 1;
@@ -262,11 +275,19 @@ pub fn build_session(kind: SimKind, gfx: &[u8], phys: &[u8], si: &StaticInfo) ->
     sd.sessions.push(SessionEntry {
         num: session_num(kind, gfx),
         kind: kind_s.to_string(),
-        laps: if kind_s == "Race" && laps > 0 { Some(laps) } else { None },
+        laps: if kind_s == "Race" && laps > 0 {
+            Some(laps)
+        } else {
+            None
+        },
         time: None,
         ..Default::default()
     });
-    let name = if si.player.is_empty() { si.nick.clone() } else { si.player.clone() };
+    let name = if si.player.is_empty() {
+        si.nick.clone()
+    } else {
+        si.player.clone()
+    };
     sd.drivers[0] = Some(Driver {
         car_idx: 0,
         abbrev: name.clone(),
@@ -296,7 +317,14 @@ fn ms_time(v: i32) -> f32 {
 }
 
 /// Fiziksel ve grafik sayfalarını `Frame`'e aktarır. `session_time` ve `tick` çağıran tarafından verilir.
-pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
+pub fn extract(
+    kind: SimKind,
+    phys: &[u8],
+    gfx: &[u8],
+    sd: &SessionData,
+    m: &mut Motion,
+    f: &mut Frame,
+) {
     let acc = kind == SimKind::Acc;
     let status = rd_i32(gfx, gr::STATUS);
     f.player_idx = 0;
@@ -318,10 +346,18 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     f.long_g = rd_f32(phys, ph::ACC_G + 8);
     f.tc_active = rd_u32(phys, ph::TC_IN_ACTION) != 0;
     f.fuel_level = rd_f32(phys, ph::FUEL).max(0.0);
-    f.fuel_pct = if sd.fuel_max_ltr > 0.0 { (f.fuel_level / sd.fuel_max_ltr).clamp(0.0, 1.0) } else { 0.0 };
+    f.fuel_pct = if sd.fuel_max_ltr > 0.0 {
+        (f.fuel_level / sd.fuel_max_ltr).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
     f.air_temp = rd_f32(phys, ph::AIR_TEMP);
     f.track_temp = rd_f32(phys, ph::ROAD_TEMP);
-    f.engine_warnings = if rd_i32(phys, ph::PIT_LIMITER_ON) != 0 { EW_PIT_LIMITER } else { 0 };
+    f.engine_warnings = if rd_i32(phys, ph::PIT_LIMITER_ON) != 0 {
+        EW_PIT_LIMITER
+    } else {
+        0
+    };
     // Hasar: carDamage[5] (224: ön, arka, sol, sağ, orta), ACC'de ayrıca suspensionDamage[4] (680).
     // Pist dışındaki teker sayısı: numberOfTyresOut (244)
     f.damage = crate::drivecues::kunos_damage(
@@ -341,10 +377,18 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
             -1.0
         }
     };
-    f.tc = if acc { rd_i32(gfx, gr::TC) as f32 } else { -1.0 };
+    f.tc = if acc {
+        rd_i32(gfx, gr::TC) as f32
+    } else {
+        -1.0
+    };
     // ACC: tur geçersiz mi (pist sınırı vb.); AC bu bilgiyi vermez
     f.lap_invalid = acc && gfx.len() >= gr::IS_VALID_LAP + 4 && rd_i32(gfx, gr::IS_VALID_LAP) == 0;
-    f.abs_setting = if acc { rd_i32(gfx, gr::ABS) as f32 } else { -1.0 };
+    f.abs_setting = if acc {
+        rd_i32(gfx, gr::ABS) as f32
+    } else {
+        -1.0
+    };
 
     // Lastikler: FL, FR, RL, RR = LF, RF, LR, RR. iRacing sırası araç soldan sağa (L/M/R):
     // sol lastiklerde dış taraf soldadır, sağ lastiklerde iç taraf.
@@ -354,13 +398,21 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
         let to = rd_f32(phys, ph::TYRE_TEMP_O + c * 4);
         if ti > 0.0 || tm > 0.0 || to > 0.0 {
             let left_side = c % 2 == 0;
-            f.tire_temp[c] = if left_side { [to, tm, ti] } else { [ti, tm, to] };
+            f.tire_temp[c] = if left_side {
+                [to, tm, ti]
+            } else {
+                [ti, tm, to]
+            };
         } else {
             let core = rd_f32(phys, ph::TYRE_CORE_TEMP + c * 4);
             f.tire_temp[c] = [core; 3];
         }
         let wear = rd_f32(phys, ph::TYRE_WEAR + c * 4);
-        f.tire_wear[c] = if !acc && wear > 0.0 { [(wear / 100.0).clamp(0.0, 1.0); 3] } else { [-1.0; 3] };
+        f.tire_wear[c] = if !acc && wear > 0.0 {
+            [(wear / 100.0).clamp(0.0, 1.0); 3]
+        } else {
+            [-1.0; 3]
+        };
         f.tire_press[c] = rd_f32(phys, ph::WHEELS_PRESSURE + c * 4) * 6.894_757;
     }
 
@@ -373,19 +425,38 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
     f.lap_best = ms_time(rd_i32(gfx, gr::I_BEST_TIME));
     if acc && f.lap_best > 0.0 {
         let d = rd_i32(gfx, gr::I_DELTA_LAP_TIME).unsigned_abs() as f32 / 1000.0;
-        f.delta_best = if rd_i32(gfx, gr::IS_DELTA_POSITIVE) != 0 { d } else { -d };
+        f.delta_best = if rd_i32(gfx, gr::IS_DELTA_POSITIVE) != 0 {
+            d
+        } else {
+            -d
+        };
         f.delta_best_ok = d < 600.0;
     } else {
         f.delta_best = 0.0;
         f.delta_best_ok = false;
     }
     let left = rd_f32(gfx, gr::SESSION_TIME_LEFT);
-    f.session_time_remain = if left > 0.0 { left as f64 / 1000.0 } else { -1.0 };
+    f.session_time_remain = if left > 0.0 {
+        left as f64 / 1000.0
+    } else {
+        -1.0
+    };
     let laps = rd_i32(gfx, gr::NUMBER_OF_LAPS);
-    f.session_laps_remain = if race && laps > 0 { (laps - completed).max(0) } else { 32767 };
+    f.session_laps_remain = if race && laps > 0 {
+        (laps - completed).max(0)
+    } else {
+        32767
+    };
 
     let in_pit = rd_i32(gfx, gr::IS_IN_PIT) != 0;
-    let pit_lane = rd_i32(gfx, if acc { gr::IS_IN_PIT_LANE } else { gr::AC_IS_IN_PIT_LANE }) != 0;
+    let pit_lane = rd_i32(
+        gfx,
+        if acc {
+            gr::IS_IN_PIT_LANE
+        } else {
+            gr::AC_IS_IN_PIT_LANE
+        },
+    ) != 0;
     f.on_pit_road = in_pit || pit_lane;
     f.is_in_garage = in_pit;
     f.replay = status == STATUS_REPLAY;
@@ -478,10 +549,40 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
         m.fwd = Some((vx / v, -vz / v));
     }
 
+    // Dünya konumu (telemetride sürüş çizgisi): doğu = x, kuzey = -z
+    let mine = if acc {
+        let n = rd_i32(gfx, gr::ACTIVE_CARS).clamp(0, 60) as usize;
+        let pid = rd_i32(gfx, gr::PLAYER_CAR_ID);
+        (0..n)
+            .find(|&i| rd_i32(gfx, gr::CAR_ID + i * 4) == pid)
+            .map(|i| (rd_f32(gfx, gr::CAR_COORDINATES + i * 12), rd_f32(gfx, gr::CAR_COORDINATES + i * 12 + 8)))
+    } else {
+        Some((rd_f32(gfx, gr::AC_CAR_COORDINATES), rd_f32(gfx, gr::AC_CAR_COORDINATES + 8)))
+    };
+    match mine {
+        Some((x, z)) if gfx.len() > gr::AC_CAR_COORDINATES + 12 => {
+            f.pos_e = x as f64;
+            f.pos_n = -(z as f64);
+        }
+        _ => {
+            f.pos_e = f64::NAN;
+            f.pos_n = f64::NAN;
+        }
+    }
+
     // Oyuncu aracı
     let position = rd_i32(gfx, gr::POSITION);
     for c in f.cars.iter_mut() {
-        *c = crate::model::CarState { surface: -1, pct: -1.0, tire: -1, lap: -1, lap_completed: -1, last: -1.0, best: -1.0, ..Default::default() };
+        *c = crate::model::CarState {
+            surface: -1,
+            pct: -1.0,
+            tire: -1,
+            lap: -1,
+            lap_completed: -1,
+            last: -1.0,
+            best: -1.0,
+            ..Default::default()
+        };
     }
     let me = &mut f.cars[0];
     me.lap = f.lap;
@@ -515,7 +616,9 @@ pub fn extract(kind: SimKind, phys: &[u8], gfx: &[u8], sd: &SessionData, m: &mut
             let o = gr::CAR_COORDINATES + i * 12;
             (rd_f32(gfx, o), rd_f32(gfx, o + 8))
         };
-        let my = (0..n).find(|&i| rd_i32(gfx, gr::CAR_ID + i * 4) == pid).map(pos);
+        let my = (0..n)
+            .find(|&i| rd_i32(gfx, gr::CAR_ID + i * 4) == pid)
+            .map(pos);
         if let (Some((mx, mz)), Some((fe, fnn))) = (my, m.fwd) {
             let (re, rn) = (fnn, -fe); // sağ = ileri yönün saat yönünde 90°
             for i in 0..n {
@@ -627,9 +730,16 @@ mod win {
                 return false;
             }
             // Oyun çökünce bellek son hâliyle kalır: veri uzun süre akmıyorsa süreç var mı bak
-            if self.last_new.elapsed() > Duration::from_secs(10) && self.checked.get().elapsed() > Duration::from_secs(5) {
+            if self.last_new.elapsed() > Duration::from_secs(10)
+                && self.checked.get().elapsed() > Duration::from_secs(5)
+            {
                 self.checked.set(Instant::now());
-                self.alive.set(shm::any_running(&["acc.exe", "ac2-win64-shipping.exe", "acs.exe", "acs_x86.exe"]));
+                self.alive.set(shm::any_running(&[
+                    "acc.exe",
+                    "ac2-win64-shipping.exe",
+                    "acs.exe",
+                    "acs_x86.exe",
+                ]));
             }
             self.alive.get() || self.last_new.elapsed() < Duration::from_secs(10)
         }
@@ -638,7 +748,11 @@ mod win {
             let kind = self.kind?;
             self.stat.copy(0, stc::SIZE, &mut self.sb);
             self.gfx.copy(0, gr::SIZE, &mut self.gb);
-            let key = [rd_i32(&self.gb, gr::SESSION), session_num(kind, &self.gb), rd_i32(&self.gb, gr::NUMBER_OF_LAPS)];
+            let key = [
+                rd_i32(&self.gb, gr::SESSION),
+                session_num(kind, &self.gb),
+                rd_i32(&self.gb, gr::NUMBER_OF_LAPS),
+            ];
             if self.sig != 0 && key == self.seen.1 && self.sb == self.seen.0 {
                 return None;
             }
@@ -657,7 +771,10 @@ mod win {
 
         fn read(&mut self, frame: &mut Frame) -> bool {
             let Some(kind) = self.kind else { return false };
-            let ids = (self.phys.u32_at(ph::PACKET_ID), self.gfx.u32_at(gr::PACKET_ID));
+            let ids = (
+                self.phys.u32_at(ph::PACKET_ID),
+                self.gfx.u32_at(gr::PACKET_ID),
+            );
             let now = Instant::now();
             if ids != self.last_ids {
                 self.last_ids = ids;
@@ -673,11 +790,26 @@ mod win {
                     break;
                 }
             }
-            self.gfx.copy(0, if kind == SimKind::Acc { gr::SIZE } else { gr::AC_SIZE }, &mut self.gb);
+            self.gfx.copy(
+                0,
+                if kind == SimKind::Acc {
+                    gr::SIZE
+                } else {
+                    gr::AC_SIZE
+                },
+                &mut self.gb,
+            );
             self.tick = self.tick.wrapping_add(1);
             frame.tick = self.tick;
             frame.session_time = self.t0.elapsed().as_secs_f64();
-            extract(kind, &self.pb, &self.gb, &self.session, &mut self.motion, frame);
+            extract(
+                kind,
+                &self.pb,
+                &self.gb,
+                &self.session,
+                &mut self.motion,
+                frame,
+            );
             frame.hybrid = hybrid(kind, &self.pb, &self.sb);
             true
         }
@@ -788,7 +920,12 @@ mod tests {
         put_i32(&mut g, gr::TC, 3);
         put_i32(&mut g, gr::RAIN_INTENSITY, 2);
         put_i32(&mut g, gr::TRACK_GRIP_STATUS, 5);
-        let si = StaticInfo { max_fuel: 120.0, track: "monza".into(), track_len_m: 5793.0, ..Default::default() };
+        let si = StaticInfo {
+            max_fuel: 120.0,
+            track: "monza".into(),
+            track_len_m: 5793.0,
+            ..Default::default()
+        };
         let sd = build_session(SimKind::Acc, &g, &p, &si);
         let mut f = Frame::default();
         let mut m = Motion::default();

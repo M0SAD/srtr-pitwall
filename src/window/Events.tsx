@@ -35,6 +35,7 @@ import Play from "lucide-solid/icons/play";
 import ChevronsUp from "lucide-solid/icons/chevrons-up";
 import ChevronsDown from "lucide-solid/icons/chevrons-down";
 import RadioTower from "lucide-solid/icons/radio-tower";
+import ScanSearch from "lucide-solid/icons/scan-search";
 import "./events.css";
 
 type Kind =
@@ -84,6 +85,14 @@ export interface EventsInfo {
   hasPrevious?: boolean;
   hasCurrent?: boolean;
   rev?: number;
+  /** Tekrar izleniyor ya da kayıtlı tekrar dosyası açık */
+  watching?: boolean;
+  /** Kayıtlı tekrar dosyası açık (iRacing SimMode = replay) */
+  replayFile?: boolean;
+  /** Liste şu an açık olan oturuma / tekrara ait */
+  matches?: boolean;
+  /** Liste tekrardaki olay işaretlerinden çıkarıldı */
+  fromReplay?: boolean;
   summary?: Summary;
   events: RaceEvent[];
 }
@@ -303,6 +312,11 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
   const [showCfg, setShowCfg] = createSignal(false);
   let listEl: HTMLDivElement | undefined;
   let listKey = "";
+  // Tekrar taraması (kayıtlı tekrar dosyasında olaylar canlı toplanmadığı için iRacing'in olay işaretlerinden çıkarılır)
+  const [scanning, setScanning] = createSignal(false);
+  const [scanCount, setScanCount] = createSignal(0);
+  /** Bu pencerede otomatik tarama denendi (aynı tekrar için bir kez; kullanıcı düğmeyle yeniden tarayabilir) */
+  let autoTried = "";
   let msgTimer: number | undefined;
 
   const say = (ok: boolean, text: string) => {
@@ -311,7 +325,30 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
     msgTimer = window.setTimeout(() => setMsg(null), 6000);
   };
 
+  /** Kayıtlı tekrar dosyası açık ama liste bu tekrara ait değil: eski liste gösterilmez (başka yarışın anlarına sarardı) */
+  const stale = () => !!info()?.replayFile && !info()?.matches && !info()?.previous;
+  const scan = async () => {
+    if (scanning() || ro() || !inTauri) return;
+    setScanning(true);
+    setScanCount(0);
+    try {
+      await invoke("events_scan_replay");
+    } catch (err) {
+      say(false, String(err));
+    } finally {
+      setScanning(false);
+      load();
+    }
+  };
+  const stopScan = () => void invoke("events_scan_stop").catch(() => {});
+
   const apply = (i: EventsInfo) => {
+    // Kayıtlı tekrar açıkken pencere açıldı ve liste bu tekrara ait değil: olay işaretleri kendiliğinden taranır
+    const autoKey = `${i.track}|${i.sessionNum}`;
+    if (!props.source && inTauri && i.replayOk && i.replayFile && !i.matches && !i.previous && autoTried !== autoKey && !scanning()) {
+      autoTried = autoKey;
+      queueMicrotask(() => void scan());
+    }
     setInfo(i);
     setFailed("");
     const key = `${i.rev ?? ""}|${i.demo}|${!!i.previous}|${i.sessionNum}|${i.events.length}|${i.events[i.events.length - 1]?.id ?? 0}`;
@@ -352,6 +389,23 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
       listen("events-changed", () => load())
         .then((u) => (gone ? u() : (un = u)))
         .catch(() => {});
+      let un2: (() => void) | undefined;
+      listen<number>("events-scan-progress", (e) => setScanCount(Number(e.payload) || 0))
+        .then((u) => (gone ? u() : (un2 = u)))
+        .catch(() => {});
+      let un3: (() => void) | undefined;
+      listen<{ count: number; error?: string | null }>("events-scan-done", (e) => {
+        const p = e.payload;
+        if (p?.error) return;
+        say(true, p?.count ? t("Tekrarda {0} olay bulundu", p.count) : t("Bu tekrarda olay işareti bulunamadı"));
+        load();
+      })
+        .then((u) => (gone ? u() : (un3 = u)))
+        .catch(() => {});
+      onCleanup(() => {
+        un2?.();
+        un3?.();
+      });
       onCleanup(() => {
         gone = true;
         un?.();
@@ -393,6 +447,7 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
 
   const filtered = createMemo(() => {
     const cs = cats();
+    if (stale()) return [];
     return events().filter((e) => {
       const c = CAT[e.kind];
       return (c == null || cs.has(c)) && (!onlyMe() || e.isMe) && (driver() == null || e.idx === driver());
@@ -627,6 +682,11 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
         <button class="btn small evw-tool" onClick={saveCsv} title={t("Listeyi CSV dosyası olarak kaydet")}>
           <Download /> CSV
         </button>
+        <Show when={!ro() && inTauri && info()?.watching && info()?.replayOk}>
+          <button class="btn small evw-tool" onClick={scan} disabled={scanning()} title={t("İzlediğin tekrardaki olay işaretlerini (iRacing'in tekrar ekranındaki olaylar) bulup listeler")}>
+            <ScanSearch /> Olayları bul
+          </button>
+        </Show>
         <Show when={!ro()}>
           <button class="btn small evw-tool evw-live" onClick={live} disabled={!!info() && !info()!.replayOk && inTauri} title={t("iRacing tekrarını canlı ana getir")}>
           <RadioTower /> Canlıya dön
@@ -642,7 +702,7 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
           <label class="evw-cfg-row">
             <span>
               <b>Yarış sonunda aç</b>
-              <small class="muted">Yarış bitince ve tekrar (replay) başlayınca bu pencere kendiliğinden açılır</small>
+              <small class="muted">Yarış bitince araçtan çıkıp tekrar (replay) ekranına geçtiğinde ve tekrar başlayınca bu pencere kendiliğinden açılır</small>
             </span>
             <span class="switch">
               <input
@@ -827,6 +887,26 @@ export function Events(props: { source?: Accessor<EventsInfo | null>; readOnly?:
         </div>
       </Show>
 
+      <Show when={scanning()}>
+        <div class="evw-note evw-scan">
+          <span>{t("Tekrardaki olaylar aranıyor… ({0})", scanCount())}</span>
+          <small>{t("iRacing tekrarı olaydan olaya atlıyor; bitince kaldığın yere döner.")}</small>
+          <button class="btn small" onClick={stopScan}>
+            Durdur
+          </button>
+        </div>
+      </Show>
+      <Show when={!scanning() && stale()}>
+        <div class="evw-note evw-scan">
+          <span>{t("Bu tekrarın olayları henüz listelenmedi.")}</span>
+          <button class="btn small primary" onClick={scan}>
+            <ScanSearch /> Olayları bul
+          </button>
+        </div>
+      </Show>
+      <Show when={!scanning() && info()?.fromReplay && !info()?.previous}>
+        <div class="evw-note">{t("Liste tekrardaki olay işaretlerinden çıkarıldı: kimin karıştığını o an iRacing'in kamerasının gösterdiği araç belirler.")}</div>
+      </Show>
       <div class="evw-list" ref={listEl}>
         <Show
           when={groups().length > 0}

@@ -219,6 +219,8 @@ export interface CaptionLine {
   src: "mic" | "remote";
   label: string;
   text: string;
+  /** Çevrildiyse özgün metin ("Orijinali de göster" açıkken) */
+  orig?: string;
   ts: number;
 }
 

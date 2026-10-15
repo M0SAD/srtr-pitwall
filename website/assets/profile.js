@@ -167,8 +167,8 @@ export function guessType(url) {
 // ---------------------------------------------------------------------------
 // Oyun rozeti (arkadaş listesi: my_friends().sim)
 // ---------------------------------------------------------------------------
-export const SIM_SHORT = { iracing: "iRacing", acc: "ACC", ac: "AC", lmu: "LMU", rf2: "rF2", ams2: "AMS2" };
-const SIM_LONG = { iracing: "iRacing", acc: "Assetto Corsa Competizione", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
+export const SIM_SHORT = { iracing: "iRacing", acc: "ACC", ac: "AC", lmu: "LMU", rf2: "rF2", ams2: "AMS2", r3e: "R3E", f1: "F1", forza: "Forza", dirt: "DiRT", beamng: "BeamNG" };
+const SIM_LONG = { iracing: "iRacing", acc: "Assetto Corsa Competizione", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 export function simBadge(sim) {
   injectCss();
   return SIM_SHORT[sim] ? `<span class="sim-badge s-${sim}" translate="no" title="${esc(T("pf_playing", SIM_LONG[sim]))}">${SIM_SHORT[sim]}</span>` : "";
@@ -471,7 +471,7 @@ function injectCss() {
 .pf-team b{color:var(--tc);font-size:12px;letter-spacing:.04em}
 .sim-badge{--sc:var(--accent);display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:5px;border:1px solid color-mix(in srgb,var(--sc) 55%,transparent);
   background:color-mix(in srgb,var(--sc) 16%,transparent);color:color-mix(in srgb,var(--sc) 70%,#fff);font:700 10px/1 var(--font);letter-spacing:.04em;white-space:nowrap;vertical-align:1px}
-.sim-badge.s-iracing{--sc:#3a8fff}.sim-badge.s-acc{--sc:#ff5a4f}.sim-badge.s-ac{--sc:#e8a33a}.sim-badge.s-lmu,.sim-badge.s-rf2{--sc:#33c48d}.sim-badge.s-ams2{--sc:#c06bff}
+.sim-badge.s-iracing{--sc:#3a8fff}.sim-badge.s-acc{--sc:#ff5a4f}.sim-badge.s-ac{--sc:#e8a33a}.sim-badge.s-lmu,.sim-badge.s-rf2{--sc:#33c48d}.sim-badge.s-ams2{--sc:#c06bff}.sim-badge.s-r3e{--sc:#f2c230}.sim-badge.s-f1{--sc:#e10600}.sim-badge.s-forza{--sc:#7fd1ff}.sim-badge.s-dirt{--sc:#ff8a3d}.sim-badge.s-beamng{--sc:#ff6a00}
 .pf-photo{display:flex;align-items:center;gap:16px;margin:4px 0 14px}
 .pf-links{display:flex;flex-direction:column;gap:6px}
 .pf-link{--brand:#a4adbd;display:flex;align-items:center;gap:6px}

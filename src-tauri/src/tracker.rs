@@ -111,7 +111,12 @@ impl FuelTracker {
     }
 
     pub fn max_use(&self, n: usize) -> f32 {
-        self.history.iter().rev().take(n).copied().fold(0.0, f32::max)
+        self.history
+            .iter()
+            .rev()
+            .take(n)
+            .copied()
+            .fold(0.0, f32::max)
     }
 
     pub fn avg_lap(&self, n: usize) -> f32 {
@@ -265,7 +270,11 @@ impl Tracker {
                 t.seen = true;
                 t.prev_on_pit = c.on_pit;
                 t.prev_lap_completed = c.lap_completed;
-                t.pit_exit_lap = if c.lap_completed > 0 && !race { c.lap_completed } else { 0 };
+                t.pit_exit_lap = if c.lap_completed > 0 && !race {
+                    c.lap_completed
+                } else {
+                    0
+                };
                 t.start_pos = c.class_position;
                 t.prev_class_pos = c.class_position;
                 t.prev_flags = c.flags;
@@ -313,7 +322,10 @@ impl Tracker {
             let was = self.cars[i].prev_on_pit;
             if c.on_pit != was {
                 self.cars[i].prev_on_pit = c.on_pit;
-                if s.driver(i).map(|d| !d.is_pace_car && !d.is_spectator).unwrap_or(false) {
+                if s.driver(i)
+                    .map(|d| !d.is_pace_car && !d.is_spectator)
+                    .unwrap_or(false)
+                {
                     if c.on_pit {
                         self.push(f, s, i, "pitIn", "pite girdi".into());
                     } else {
@@ -336,7 +348,11 @@ impl Tracker {
             if race && prev > 0 && now > 0 && now != prev {
                 if now == 1 {
                     // Metin arayüzde çevrilir: kalıplar scripts/i18n/extra.json'da
-                    let text = if s.class_count() > 1 { format!("{}: liderliği aldı", d.class_name) } else { "liderliği aldı".to_string() };
+                    let text = if s.class_count() > 1 {
+                        format!("{}: liderliği aldı", d.class_name)
+                    } else {
+                        "liderliği aldı".to_string()
+                    };
                     self.push(f, s, i, "lead", text);
                 } else if now - prev >= 3 && !c.on_pit {
                     self.push(f, s, i, "lost", format!("{} sıra kaybetti", now - prev));
@@ -362,7 +378,13 @@ impl Tracker {
                     }
                 };
                 if improved {
-                    self.push(f, s, i, "fastest", format!("en hızlı tur {}", fmt_lap(c.best)));
+                    self.push(
+                        f,
+                        s,
+                        i,
+                        "fastest",
+                        format!("en hızlı tur {}", fmt_lap(c.best)),
+                    );
                 }
             }
 

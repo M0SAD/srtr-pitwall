@@ -112,6 +112,13 @@ pub struct Frame {
     /// Yanal / boyuna ivme (g). lat_g + = sağa (sağ viraj), long_g + = ileri (hızlanma), fren negatif
     pub lat_g: f32,
     pub long_g: f32,
+    /// Coğrafi konum (derece). Yalnızca iRacing telemetri dosyasında (.ibt) var; canlı veride NaN
+    pub lat: f64,
+    pub lon: f64,
+    /// Dünya konumu (metre; doğu, kuzey). Konum veren simler (ACC, AC, LMU / rF2, AMS2, RaceRoom, F1, DiRT, Forza)
+    /// doldurur; iRacing canlı veride vermez (NaN). Telemetride sürüş çizgisi için.
+    pub pos_e: f64,
+    pub pos_n: f64,
     /// Oyuncunun bekleyen cezası (0 yok, 1 pit geçişi, 2 dur-kalk, 3 diskalifiye, 4 süre cezası, 5 belirsiz ceza).
     /// ACC / AMS2 / LMU-rF2 doldurur; iRacing'de ceza siyah bayrak bitinden anlaşılır
     pub penalty: u8,
@@ -230,6 +237,10 @@ impl Default for Frame {
             abs_active: false,
             tc_active: false,
             lat_g: 0.0,
+            lat: f64::NAN,
+            pos_e: f64::NAN,
+            pos_n: f64::NAN,
+            lon: f64::NAN,
             long_g: 0.0,
             penalty: 0,
             fuel_level: 0.0,
@@ -291,7 +302,12 @@ impl Default for Frame {
             tyres_out: -1,
             demo_side_cars: None,
             radar_lat: Vec::new(),
-            cars: [CarState { surface: -1, pct: -1.0, tire: -1, ..Default::default() }; MAX_CARS],
+            cars: [CarState {
+                surface: -1,
+                pct: -1.0,
+                tire: -1,
+                ..Default::default()
+            }; MAX_CARS],
         }
     }
 }
@@ -372,6 +388,8 @@ pub struct SessionData {
     pub setup_type: String,
     /// iRacing WeekendInfo.SimMode: "full" canlı oturum, "replay" kayıtlı tekrar dosyası; diğer simlerde boş
     pub sim_mode: String,
+    /// iRacing oturum kimliği (WeekendInfo.SubSessionID; antrenman / test sürüşünde 0 olabilir)
+    pub sub_session_id: i64,
     /// Resmi sektör başlangıçları (tur yüzdesi, ilki 0; iRacing SplitTimeInfo). Boş: bilinmiyor
     pub sector_starts: Vec<f32>,
     /// iRacing DriverInfo.DriverSetupName: garajda yüklü setup dosyası ("yaris1.sto"); diğer simlerde boş
@@ -390,17 +408,17 @@ impl SessionData {
     }
 
     pub fn is_race(&self, num: i32) -> bool {
-        self.session(num).map(|s| s.kind.contains("Race")).unwrap_or(false)
+        self.session(num)
+            .map(|s| s.kind.contains("Race"))
+            .unwrap_or(false)
     }
 
     /// Rakipler arasında yapay zekâ sürücü var mı (botlarla yarış)
     pub fn has_ai_opponents(&self) -> bool {
         self.ai_session
-            || self
-                .drivers
-                .iter()
-                .flatten()
-                .any(|d| d.is_ai && d.car_idx != self.player_idx && !d.is_pace_car && !d.is_spectator)
+            || self.drivers.iter().flatten().any(|d| {
+                d.is_ai && d.car_idx != self.player_idx && !d.is_pace_car && !d.is_spectator
+            })
     }
 
     pub fn player(&self) -> Option<&Driver> {
@@ -458,8 +476,16 @@ pub fn tire_kind(c: &CarState, s: &SessionData, same_class_as_player: bool) -> u
         if let Some((_, name)) = s.tire_types.iter().find(|(i, _)| *i == c.tire) {
             let k = tire_kind_from_name(name);
             // Tek kuru hamuru olan araçlarda ("Hard" + "Wet") sert yazmak yanıltıcı: sadece "kuru"
-            let dry = s.tire_types.iter().filter(|(_, n)| !matches!(tire_kind_from_name(n), b'W' | b'I')).count();
-            return if dry <= 1 && !matches!(k, b'W' | b'I') { b'D' } else { k };
+            let dry = s
+                .tire_types
+                .iter()
+                .filter(|(_, n)| !matches!(tire_kind_from_name(n), b'W' | b'I'))
+                .count();
+            return if dry <= 1 && !matches!(k, b'W' | b'I') {
+                b'D'
+            } else {
+                k
+            };
         }
     }
     if c.tire == 0 {

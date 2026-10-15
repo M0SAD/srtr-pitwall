@@ -23,7 +23,10 @@ pub fn estimate(field: &[Entry]) -> Vec<i32> {
         return vec![0; n];
     }
     let non_starters = n - starters;
-    let e: Vec<f64> = field.iter().map(|x| (-(x.irating.max(1) as f64) / BR).exp()).collect();
+    let e: Vec<f64> = field
+        .iter()
+        .map(|x| (-(x.irating.max(1) as f64) / BR).exp())
+        .collect();
     // a'nın b'yi yenme olasılığı
     let chance = |a: usize, b: usize| {
         let (ea, eb) = (e[a], e[b]);
@@ -32,7 +35,9 @@ pub fn estimate(field: &[Entry]) -> Vec<i32> {
     let nf = n as f64;
     let nsf = non_starters as f64;
     // Beklenen skor: yenmesi beklenen rakip sayısı (kendisiyle eşleşme 0.5 sayılır, çıkarılır)
-    let expected: Vec<f64> = (0..n).map(|i| (0..n).map(|j| chance(i, j)).sum::<f64>() - 0.5).collect();
+    let expected: Vec<f64> = (0..n)
+        .map(|i| (0..n).map(|j| chance(i, j)).sum::<f64>() - 0.5)
+        .collect();
     let mut out = vec![0f64; n];
     let mut sum_starters = 0.0;
     for i in 0..n {
@@ -46,10 +51,18 @@ pub fn estimate(field: &[Entry]) -> Vec<i32> {
     }
     if non_starters > 0 {
         // Başlayanların toplam kazancı başlamayanlara beklenen skorları oranında dağıtılır (ters işaretle)
-        let avg: f64 = (0..n).filter(|&i| !field[i].started).map(|i| expected[i]).sum::<f64>() / nsf;
+        let avg: f64 = (0..n)
+            .filter(|&i| !field[i].started)
+            .map(|i| expected[i])
+            .sum::<f64>()
+            / nsf;
         for i in 0..n {
             if !field[i].started {
-                out[i] = if avg.abs() > 1e-9 { -sum_starters / nsf * expected[i] / avg } else { 0.0 };
+                out[i] = if avg.abs() > 1e-9 {
+                    -sum_starters / nsf * expected[i] / avg
+                } else {
+                    0.0
+                };
             }
         }
     }
@@ -61,7 +74,11 @@ mod tests {
     use super::*;
 
     fn e(irating: i32, pos: i32, started: bool) -> Entry {
-        Entry { irating, pos, started }
+        Entry {
+            irating,
+            pos,
+            started,
+        }
     }
 
     #[test]
@@ -74,7 +91,13 @@ mod tests {
 
     #[test]
     fn roughly_zero_sum_and_non_starters_lose() {
-        let f = [e(2500, 1, true), e(1800, 2, true), e(2200, 3, true), e(1500, 4, true), e(2000, 0, false)];
+        let f = [
+            e(2500, 1, true),
+            e(1800, 2, true),
+            e(2200, 3, true),
+            e(1500, 4, true),
+            e(2000, 0, false),
+        ];
         let d = estimate(&f);
         assert!(d[4] < 0);
         assert!(d.iter().sum::<i32>().abs() <= 3);
@@ -84,6 +107,9 @@ mod tests {
     fn degenerate_fields() {
         assert_eq!(estimate(&[e(2000, 1, true)]), vec![0]);
         assert_eq!(estimate(&[e(0, 1, true), e(0, 2, true)]), vec![0, 0]);
-        assert_eq!(estimate(&[e(2000, 0, false), e(1500, 0, false)]), vec![0, 0]);
+        assert_eq!(
+            estimate(&[e(2000, 0, false), e(1500, 0, false)]),
+            vec![0, 0]
+        );
     }
 }

@@ -1,7 +1,8 @@
-import { For, Show, createMemo, createSignal, onCleanup } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic, demoShow } from "@/sdk/telemetry";
 import type { FlagName } from "@/sdk/types";
+import { GREEN_NAMES, greenState, pickFlag } from "./pick";
 import "./style.css";
 
 type Pattern = (x: number, y: number, n: number) => string | null;
@@ -36,7 +37,7 @@ const FLAGS: { names: FlagName[]; pattern: Pattern; blink?: boolean; label: stri
   // Mavi: köşegen şerit
   { names: ["blue"], label: "Mavi", pattern: (x, y, n) => (Math.abs(x + y - (n - 1)) <= 0 || Math.abs(x + y - n) <= 0 ? W : B), blink: true },
   { names: ["white"], label: "Beyaz", pattern: () => W },
-  { names: ["oneLapToGreen", "greenHeld", "green"], label: "Yeşil", pattern: () => G },
+  { names: GREEN_NAMES, label: "Yeşil", pattern: () => G },
 ];
 
 type FlagDef = (typeof FLAGS)[number];
@@ -71,9 +72,31 @@ export default function DigiFlags(props: OverlayProps) {
     clearTimeout(sampleTimer);
     sampleTimer = window.setTimeout(() => setSample(null), SAMPLE_MS);
   };
+  // Yeşil: başladığı an (yeşil durumu her değiştiğinde yeniden; bkz. greenState); süre dolunca yeniden hesaplamak için zamanlayıcı
+  const [greenSince, setGreenSince] = createSignal<number | null>(null);
+  let lastGreen = "";
+  const [tick, setTick] = createSignal(0);
+  let greenTimer: number | undefined;
+  onCleanup(() => clearTimeout(greenTimer));
+  const greenMs = () => Math.max(0, Number(props.options.greenSeconds ?? 5)) * 1000;
+  createEffect(() => {
+    const st = greenState(s()?.flags ?? []);
+    if (st === lastGreen) return;
+    lastGreen = st;
+    clearTimeout(greenTimer);
+    if (!st) {
+      setGreenSince(null);
+      return;
+    }
+    {
+      setGreenSince(Date.now());
+      clearTimeout(greenTimer);
+      if (greenMs() > 0) greenTimer = window.setTimeout(() => setTick((x) => x + 1), greenMs() + 50);
+    }
+  });
   const live = createMemo(() => {
-    const f = s()?.flags ?? [];
-    return FLAGS.find((d) => d.names.some((n) => f.includes(n) && (n !== "green" || props.options.showGreen)));
+    tick();
+    return pickFlag(FLAGS, s()?.flags ?? [], { showGreen: !!props.options.showGreen, greenSince: greenSince(), greenMs: greenMs(), now: Date.now() });
   });
   const canSample = () => props.editing || !s();
   const active = createMemo(() => live() ?? (canSample() ? sample() ?? undefined : undefined));

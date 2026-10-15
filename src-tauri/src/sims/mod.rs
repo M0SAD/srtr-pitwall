@@ -5,15 +5,24 @@
 //! - iRacing: `sdk.rs` (değişmeden) + `iracing.rs` sarmalayıcısı
 //! - Assetto Corsa / ACC: `kunos.rs` (`Local\acpmf_physics|graphics|static`)
 //! - rFactor 2 / Le Mans Ultimate: `rf2.rs` (rF2 Shared Memory Map Plugin tamponları)
-//! - Automobilista 2 / Project CARS 2: `ams2.rs` (`$pcars2$`)
+//! - Automobilista 2 / Project CARS 2 / Project CARS 3: `ams2.rs` (`$pcars2$`)
+//! - RaceRoom: `r3e.rs` (`$R3E`)
+//! - F1 23 / 24 / 25: `f1.rs` (UDP)
+//! - Forza, DiRT Rally 2.0 / DiRT 4 / GRID, BeamNG.drive: `solo.rs` (UDP; sadece oyuncunun aracı)
+//!
+//! UDP dinleyicisi: `udp.rs` (portlar sadece oyun çalışırken ya da "konsoldan da al" açıkken açılır).
 //!
 //! Bayt ayrıştırma kısımları platformdan bağımsızdır (testler Linux'ta da çalışır);
 //! belleği açan kısımlar sadece Windows'ta derlenir.
 
 pub mod ams2;
+pub mod f1;
 pub mod kunos;
+pub mod r3e;
 pub mod rf2;
 pub mod role;
+pub mod solo;
+pub mod udp;
 
 #[cfg(windows)]
 pub mod iracing;
@@ -31,6 +40,11 @@ pub enum SimKind {
     Lmu,
     Rf2,
     Ams2,
+    R3e,
+    F1,
+    Forza,
+    Dirt,
+    BeamNg,
 }
 
 impl SimKind {
@@ -43,7 +57,20 @@ impl SimKind {
             SimKind::Lmu => "lmu",
             SimKind::Rf2 => "rf2",
             SimKind::Ams2 => "ams2",
+            SimKind::R3e => "r3e",
+            SimKind::F1 => "f1",
+            SimKind::Forza => "forza",
+            SimKind::Dirt => "dirt",
+            SimKind::BeamNg => "beamng",
         }
+    }
+
+    /// Diğer araçların verisini (sıra, tur, konum) veriyor mu
+    pub fn has_field(self) -> bool {
+        !matches!(
+            self,
+            SimKind::Ac | SimKind::Acc | SimKind::Forza | SimKind::Dirt | SimKind::BeamNg
+        )
     }
 }
 
@@ -64,12 +91,20 @@ impl SimPref {
             "lmu" => SimPref::Only(SimKind::Lmu),
             "rf2" => SimPref::Only(SimKind::Rf2),
             "ams2" => SimPref::Only(SimKind::Ams2),
+            "r3e" => SimPref::Only(SimKind::R3e),
+            "f1" => SimPref::Only(SimKind::F1),
+            "forza" => SimPref::Only(SimKind::Forza),
+            "dirt" => SimPref::Only(SimKind::Dirt),
+            "beamng" => SimPref::Only(SimKind::BeamNg),
             _ => SimPref::Auto,
         }
     }
 
     pub fn from_settings(v: Option<&serde_json::Value>) -> SimPref {
-        v.and_then(|v| v.pointer("/general/sim")).and_then(|x| x.as_str()).map(SimPref::parse).unwrap_or_default()
+        v.and_then(|v| v.pointer("/general/sim"))
+            .and_then(|x| x.as_str())
+            .map(SimPref::parse)
+            .unwrap_or_default()
     }
 
     /// Bu tercihte `k` kabul edilir mi? LMU ve rF2 aynı eklentiyi/düzeni kullandığı için
@@ -109,7 +144,7 @@ pub trait Source {
 /// Hiçbiri bağlı değilse (ama iRacing belleği varsa) iRacing kaynağı döner; motor onu
 /// eskisi gibi bırakıp yeniden dener.
 #[cfg(windows)]
-pub fn open(pref: SimPref) -> Option<Box<dyn Source>> {
+pub fn open(pref: SimPref, net: udp::UdpCfg) -> Option<Box<dyn Source>> {
     let mut idle: Option<Box<dyn Source>> = None;
     if pref.wants(&[SimKind::IRacing]) {
         if let Some(s) = iracing::IRacing::open() {
@@ -143,7 +178,171 @@ pub fn open(pref: SimPref) -> Option<Box<dyn Source>> {
             }
         }
     }
+    if pref.wants(&[SimKind::R3e]) {
+        if let Some(s) = r3e::R3e::open() {
+            if s.connected() {
+                return Some(Box::new(s));
+            }
+        }
+    }
+    // UDP simleri: oyunu çalışan (ya da "konsoldan da al" açıksa hepsinin) portu dinlenir
+    let wants: Vec<udp::Proto> = [
+        (SimKind::F1, udp::Proto::F1),
+        (SimKind::Dirt, udp::Proto::Dirt),
+        (SimKind::Forza, udp::Proto::Forza),
+        (SimKind::BeamNg, udp::Proto::BeamNg),
+    ]
+    .iter()
+    .filter(|(k, _)| pref.wants(&[*k]))
+    .map(|(_, p)| *p)
+    .collect();
+    let running = udp_running(&wants, net.always);
+    udp::listen(&udp::wanted_ports(&net, &wants, &running));
+    if wants.contains(&udp::Proto::F1) {
+        if let Some(s) = f1::F1::open() {
+            return Some(Box::new(s));
+        }
+    }
+    if wants.contains(&udp::Proto::Forza) {
+        if let Some(s) = solo::ForzaSource::open() {
+            return Some(Box::new(s));
+        }
+    }
+    if wants.contains(&udp::Proto::Dirt) {
+        if let Some(s) = solo::DirtSource::open() {
+            return Some(Box::new(s));
+        }
+    }
+    if wants.contains(&udp::Proto::BeamNg) {
+        if let Some(s) = solo::BeamNgSource::open() {
+            return Some(Box::new(s));
+        }
+    }
     idle
+}
+
+/// Tanılama (Ayarlar › Genel › Oyun › "Algılama durumu"): her sim için bellek / port bulundu mu, oyun durumu ne,
+/// neden bağlanılmadı. Motorun bağlantısına dokunmaz (bellekler salt okunur açılır).
+#[cfg(windows)]
+pub fn probe(pref: SimPref, net: udp::UdpCfg) -> Vec<String> {
+    use std::time::Duration;
+    let mut out = Vec::new();
+    out.push(format!(
+        "Seçili oyun: {}",
+        match pref {
+            SimPref::Auto => "Otomatik".to_string(),
+            SimPref::Only(k) => k.id().to_string(),
+        }
+    ));
+    let exes = shm::process_names();
+    let known = [
+        "iracingsim64dx11.exe", "acc.exe", "ac2-win64-shipping.exe", "acs.exe", "le mans ultimate.exe", "rfactor2.exe",
+        "ams2avx.exe", "ams2.exe", "pcars2avx.exe", "pcars2.exe", "pcars3.exe", "rrre64.exe", "rrre.exe",
+    ];
+    let mut running: Vec<String> = exes
+        .iter()
+        .filter(|e| known.contains(&e.as_str()) || udp::proto_for_exe(e).is_some())
+        .cloned()
+        .collect();
+    running.sort();
+    running.dedup();
+    out.push(format!("Çalışan oyun süreçleri: {}", if running.is_empty() { "yok".to_string() } else { running.join(", ") }));
+    out.push(match iracing::IRacing::open() {
+        None => "iRacing: bellek yok (oyun kapalı)".into(),
+        Some(s) => format!("iRacing: bellek var, {}", if s.connected() { "bağlı" } else { "oturumda değil" }),
+    });
+    out.push(match kunos::Kunos::open() {
+        None => "Assetto Corsa / ACC: bellek yok (oyun kapalı)".into(),
+        Some(mut s) => {
+            s.detect(&exes);
+            format!("Assetto Corsa / ACC: bellek var ({}), {}", s.kind().id(), if s.connected() { "bağlı" } else { "oturumda değil (menüde ya da piste çıkılmadı)" })
+        }
+    });
+    out.push(match rf2::Rf2::open() {
+        None => "LMU / rFactor 2: bellek yok. LMU'da Ayarlar › Oynanış › \"Eklentileri etkinleştir\" açık olmalı (oyunu yeniden başlat); rFactor 2'de rF2 Shared Memory eklentisi kurulu olmalı".into(),
+        Some(s) => format!("LMU / rFactor 2: {} bulundu, {}", s.backend_name(), if s.connected() { "bağlı" } else { "oturumda değil" }),
+    });
+    out.push(match shm::Mapping::open("$pcars2$") {
+        None => "Automobilista 2 / Project CARS: bellek yok. Oyunda Seçenekler › Sistem › Paylaşımlı Bellek (Shared Memory) = \"Project CARS 2\" seçili olmalı, sonra oyunu yeniden başlat".into(),
+        Some(m) => {
+            let gs = m.u32_at(ams2::o::GAME_STATE);
+            let n = m.u32_at(ams2::o::NUM_PARTICIPANTS) as i32;
+            let state = match gs {
+                0 => "oyun kapandı",
+                1 => "ana menü",
+                2 => "sürüşte",
+                3 => "duraklatıldı",
+                4 => "oyun içi menü",
+                5 => "yeniden başlatılıyor",
+                6 | 7 => "tekrar",
+                _ => "bilinmiyor",
+            };
+            format!(
+                "Automobilista 2 / Project CARS: bellek var (sürüm {}), durum {gs} ({state}), katılımcı {n} — {}",
+                m.u32_at(ams2::o::VERSION),
+                if (2..=6).contains(&gs) && n > 0 { "bağlanılabilir" } else { "piste / oturuma girince bağlanır" }
+            )
+        }
+    });
+    out.push(match shm::Mapping::open("$R3E") {
+        None => "RaceRoom: bellek yok (oyun kapalı)".into(),
+        Some(m) => format!(
+            "RaceRoom: bellek var (sürüm {}.{}), {}",
+            m.u32_at(r3e::o::VERSION_MAJOR),
+            m.u32_at(4),
+            if m.u32_at(r3e::o::GAME_IN_MENUS) == 0 { "oturumda" } else { "menüde" }
+        ),
+    });
+    let ports = udp::listening();
+    let failed = udp::failed_ports();
+    let seen = |p: udp::Proto| {
+        udp::last_seen(p).map(|t| format!("son paket {} sn önce", t.elapsed().as_secs())).unwrap_or_else(|| "paket gelmedi".into())
+    };
+    out.push(format!(
+        "UDP: dinlenen portlar {}{}; F1 {}, DiRT/GRID {}, Forza {}, BeamNG {} (portlar: F1/DiRT {}, Forza {}, BeamNG {}{})",
+        if ports.is_empty() { "yok (UDP oyunu açık değil)".to_string() } else { format!("{ports:?}") },
+        if failed.is_empty() { String::new() } else { format!(", AÇILAMAYAN {failed:?} (başka program kullanıyor)") },
+        seen(udp::Proto::F1),
+        seen(udp::Proto::Dirt),
+        seen(udp::Proto::Forza),
+        seen(udp::Proto::BeamNg),
+        net.codemasters,
+        net.forza,
+        net.beamng,
+        if net.always { ", konsoldan da al açık" } else { "" }
+    ));
+    let _ = Duration::from_secs(0);
+    out
+}
+
+#[cfg(not(windows))]
+pub fn probe(_pref: SimPref, _net: udp::UdpCfg) -> Vec<String> {
+    vec!["Oyun algılama yalnızca Windows'ta çalışır.".into()]
+}
+
+/// Bu bilgisayarda çalışan UDP oyunları (süreç listesi 3 sn'de bir okunur)
+#[cfg(windows)]
+fn udp_running(wants: &[udp::Proto], always: bool) -> Vec<udp::Proto> {
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+    static CACHE: Mutex<Option<(Instant, Vec<udp::Proto>)>> = Mutex::new(None);
+    if always || wants.is_empty() {
+        return Vec::new();
+    }
+    let mut c = CACHE.lock().unwrap();
+    if let Some((t, v)) = c.as_ref() {
+        if t.elapsed() < Duration::from_secs(3) {
+            return v.clone();
+        }
+    }
+    let mut v: Vec<udp::Proto> = shm::process_names()
+        .iter()
+        .filter_map(|e| udp::proto_for_exe(e))
+        .collect();
+    v.sort_by_key(|p| *p as u8);
+    v.dedup();
+    *c = Some((Instant::now(), v.clone()));
+    v
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +351,9 @@ pub fn open(pref: SimPref) -> Option<Box<dyn Source>> {
 
 #[inline]
 pub(crate) fn rd_i32(b: &[u8], off: usize) -> i32 {
-    b.get(off..off + 4).map(|s| i32::from_le_bytes([s[0], s[1], s[2], s[3]])).unwrap_or(0)
+    b.get(off..off + 4)
+        .map(|s| i32::from_le_bytes([s[0], s[1], s[2], s[3]]))
+        .unwrap_or(0)
 }
 #[inline]
 pub(crate) fn rd_u32(b: &[u8], off: usize) -> u32 {
@@ -160,7 +361,9 @@ pub(crate) fn rd_u32(b: &[u8], off: usize) -> u32 {
 }
 #[inline]
 pub(crate) fn rd_i16(b: &[u8], off: usize) -> i16 {
-    b.get(off..off + 2).map(|s| i16::from_le_bytes([s[0], s[1]])).unwrap_or(0)
+    b.get(off..off + 2)
+        .map(|s| i16::from_le_bytes([s[0], s[1]]))
+        .unwrap_or(0)
 }
 #[inline]
 pub(crate) fn rd_u8(b: &[u8], off: usize) -> u8 {
@@ -196,7 +399,10 @@ pub(crate) fn rd_vec3(b: &[u8], off: usize) -> [f64; 3] {
 pub(crate) fn rd_wstr(b: &[u8], off: usize, n: usize) -> String {
     let mut u: Vec<u16> = Vec::with_capacity(n);
     for i in 0..n {
-        let c = b.get(off + i * 2..off + i * 2 + 2).map(|s| u16::from_le_bytes([s[0], s[1]])).unwrap_or(0);
+        let c = b
+            .get(off + i * 2..off + i * 2 + 2)
+            .map(|s| u16::from_le_bytes([s[0], s[1]]))
+            .unwrap_or(0);
         if c == 0 {
             break;
         }
@@ -207,12 +413,19 @@ pub(crate) fn rd_wstr(b: &[u8], off: usize, n: usize) -> String {
 
 /// char[n] metni (UTF-8 değilse Latin-1 kabul edilir)
 pub(crate) fn rd_cstr(b: &[u8], off: usize, n: usize) -> String {
-    let Some(s) = b.get(off..(off + n).min(b.len())) else { return String::new() };
+    let Some(s) = b.get(off..(off + n).min(b.len())) else {
+        return String::new();
+    };
     let end = s.iter().position(|&c| c == 0).unwrap_or(s.len());
     let s = &s[..end];
     match std::str::from_utf8(s) {
         Ok(t) => t.trim().to_string(),
-        Err(_) => s.iter().map(|&c| c as char).collect::<String>().trim().to_string(),
+        Err(_) => s
+            .iter()
+            .map(|&c| c as char)
+            .collect::<String>()
+            .trim()
+            .to_string(),
     }
 }
 
@@ -245,7 +458,11 @@ pub(crate) const STATE_CHECKERED: i32 = 5;
 /// Normalize direksiyon girişini (-1 sol .. 1 sağ) iRacing gibi radyana çevirir
 /// (iRacing'de pozitif = sola). `range_deg` direksiyonun toplam dönüşü.
 pub(crate) fn steer_rad(norm: f32, range_deg: f32) -> f32 {
-    let range = if range_deg > 90.0 && range_deg < 3000.0 { range_deg } else { 540.0 };
+    let range = if range_deg > 90.0 && range_deg < 3000.0 {
+        range_deg
+    } else {
+        540.0
+    };
     -norm.clamp(-1.5, 1.5) * (range * 0.5).to_radians()
 }
 
@@ -339,7 +556,9 @@ pub(crate) fn fill_estimates(f: &mut Frame, s: &SessionData, need_f2: bool, need
     }
     if need_f2 {
         let leader = (0..MAX_CARS).find(|&i| f.cars[i].position == 1 && f.cars[i].pct >= 0.0);
-        let (ll, lp) = leader.map(|i| (f.cars[i].lap_completed as f32, f.cars[i].pct)).unwrap_or((0.0, 0.0));
+        let (ll, lp) = leader
+            .map(|i| (f.cars[i].lap_completed as f32, f.cars[i].pct))
+            .unwrap_or((0.0, 0.0));
         for i in 0..MAX_CARS {
             let c = &mut f.cars[i];
             c.f2 = if leader.is_some() && c.pct >= 0.0 && c.position > 0 {
@@ -377,8 +596,13 @@ pub(crate) fn class_ident(name: &str) -> (i32, String) {
     for b in name.bytes() {
         h = (h ^ b as u32).wrapping_mul(16777619);
     }
-    const COLORS: [&str; 8] = ["#ffda59", "#33ceff", "#ff5888", "#ae6bff", "#53ff77", "#ff8a3d", "#5d8bff", "#e0e0e0"];
-    ((h & 0x7fff_ffff) as i32, COLORS[(h % COLORS.len() as u32) as usize].to_string())
+    const COLORS: [&str; 8] = [
+        "#ffda59", "#33ceff", "#ff5888", "#ae6bff", "#53ff77", "#ff8a3d", "#5d8bff", "#e0e0e0",
+    ];
+    (
+        (h & 0x7fff_ffff) as i32,
+        COLORS[(h % COLORS.len() as u32) as usize].to_string(),
+    )
 }
 
 /// "ks_nurburgring" -> "Nurburgring", "monza" -> "Monza"
@@ -460,7 +684,13 @@ pub(crate) fn sig(parts: &[&str], nums: &[i64]) -> u64 {
 
 /// Oturum sürücüsünden bağımsız "boş" oturum iskeleti
 pub(crate) fn empty_session() -> SessionData {
-    SessionData { drivers: vec![None; MAX_CARS], player_idx: -1, max_fuel_pct: 1.0, category: "Road".into(), ..Default::default() }
+    SessionData {
+        drivers: vec![None; MAX_CARS],
+        player_idx: -1,
+        max_fuel_pct: 1.0,
+        category: "Road".into(),
+        ..Default::default()
+    }
 }
 
 #[cfg(test)]
@@ -473,7 +703,10 @@ mod tests {
         assert_eq!(SimPref::parse("acc"), SimPref::Only(SimKind::Acc));
         assert_eq!(SimPref::parse("?"), SimPref::Auto);
         let v = serde_json::json!({"general": {"sim": "lmu"}});
-        assert_eq!(SimPref::from_settings(Some(&v)), SimPref::Only(SimKind::Lmu));
+        assert_eq!(
+            SimPref::from_settings(Some(&v)),
+            SimPref::Only(SimKind::Lmu)
+        );
         assert!(SimPref::Auto.accepts(SimKind::Ams2));
         assert!(!SimPref::Only(SimKind::Ac).accepts(SimKind::Acc));
         assert!(SimPref::Only(SimKind::Lmu).accepts(SimKind::Rf2));
@@ -495,7 +728,11 @@ mod tests {
     fn radar_sides() {
         let mut f = Frame::default();
         // sağda yan yana, solda biraz geride, önde 20 m
-        fill_radar(&mut f, &[(3.0, 1.0), (-3.2, -2.0), (0.2, 20.0), (0.0, 200.0)], true);
+        fill_radar(
+            &mut f,
+            &[(3.0, 1.0), (-3.2, -2.0), (0.2, 20.0), (0.0, 200.0)],
+            true,
+        );
         assert_eq!(f.car_left_right, 4);
         let l = f.demo_side_cars.as_ref().unwrap();
         assert_eq!(l.len(), 3);
@@ -524,13 +761,32 @@ mod tests {
     fn estimates() {
         let mut s = empty_session();
         for i in 0..3 {
-            s.drivers[i] = Some(crate::model::Driver { car_idx: i as i32, class_est_lap: 100.0, ..Default::default() });
+            s.drivers[i] = Some(crate::model::Driver {
+                car_idx: i as i32,
+                class_est_lap: 100.0,
+                ..Default::default()
+            });
         }
         let mut f = Frame::default();
         f.player_idx = 1;
-        f.cars[0] = crate::model::CarState { position: 1, lap_completed: 5, pct: 0.5, ..f.cars[0] };
-        f.cars[1] = crate::model::CarState { position: 2, lap_completed: 5, pct: 0.25, ..f.cars[1] };
-        f.cars[2] = crate::model::CarState { position: 3, lap_completed: 4, pct: 0.75, ..f.cars[2] };
+        f.cars[0] = crate::model::CarState {
+            position: 1,
+            lap_completed: 5,
+            pct: 0.5,
+            ..f.cars[0]
+        };
+        f.cars[1] = crate::model::CarState {
+            position: 2,
+            lap_completed: 5,
+            pct: 0.25,
+            ..f.cars[1]
+        };
+        f.cars[2] = crate::model::CarState {
+            position: 3,
+            lap_completed: 4,
+            pct: 0.75,
+            ..f.cars[2]
+        };
         fill_estimates(&mut f, &s, true, true);
         assert!((f.cars[1].est_time - 25.0).abs() < 1e-3);
         assert!((f.cars[1].f2 - 25.0).abs() < 1e-3);

@@ -144,8 +144,19 @@ export default function Standings(props: OverlayProps) {
     const d = data();
     if (!d) return "";
     if (d.totalLaps > 0) return bare ? `${d.leaderLap}/${d.totalLaps}` : `Tur ${d.leaderLap}/${d.totalLaps}`;
+    // Yarışın saati: oyunun kalan süresi (oturum başındaki bekleme / grid sayılmaz). Bilinmiyorsa oturum süresine düşer.
+    const mode = (props.options.timeMode as string) || "remain";
+    const remainOk = d.timeRemain >= 0 && d.timeRemain < 604800;
+    if (mode === "remain" && remainOk) return clock(d.timeRemain);
+    if (mode === "race" && remainOk && d.totalTime > 0) return `${clock(Math.max(0, d.totalTime - d.timeRemain))} / ${clock(d.totalTime)}`;
     if (d.totalTime > 0) return `${clock(d.elapsed)} / ${clock(d.totalTime)}`;
     return clock(d.elapsed);
+  };
+  const timeTitle = () => {
+    const d = data();
+    if (d && d.totalLaps > 0) return "Lider turu / toplam";
+    const mode = (props.options.timeMode as string) || "remain";
+    return mode === "remain" ? "Kalan süre" : mode === "race" ? "Yarışın geçen / toplam süresi" : "Geçen / toplam süre";
   };
 
   const cell = (key: string, r: Row): JSX.Element => {
@@ -276,7 +287,7 @@ export default function Standings(props: OverlayProps) {
           >
             <span class="st-sess">
               <WxLabel kind={sessionIcon(data()!.sessionType)} text="" title={data()!.sessionType || "Oturum"} class="st-sess-ic" />
-              <WxLabel kind={data()!.totalLaps > 0 ? "lap" : "clock"} text="" title={data()!.totalLaps > 0 ? "Lider turu / toplam" : "Geçen / toplam süre"} class="st-sess-ic" />
+              <WxLabel kind={data()!.totalLaps > 0 ? "lap" : "clock"} text="" title={timeTitle()} class="st-sess-ic" />
               <span class="ov-mono">{sessionTime(true)}</span>
             </span>
           </Show>
@@ -312,7 +323,7 @@ export default function Standings(props: OverlayProps) {
                   r === null ? (
                     <div class="st-gap-row">⋯</div>
                   ) : (
-                    <div class="st-row" classList={{ me: r.isMe, pit: r.onPit, gone: !!r.gone }} style={r.isMe ? undefined : friendRowStyle("standings", r.userId, r.name)}>
+                    <div class="st-row" classList={{ me: r.isMe, pit: r.onPit, gone: !!r.gone, garage: r.pitState === "GAR" }} style={r.isMe ? undefined : friendRowStyle("standings", r.userId, r.name)}>
                       <span class="st-accent" style={{ background: r.classColor || "#888" }} />
                       <span class="st-pos">{data()?.multiclass ? r.classPos : r.pos}</span>
                       <For each={columns()}>{(c) => col(c, r)}</For>

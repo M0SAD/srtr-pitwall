@@ -61,6 +61,12 @@ addDict({
   dr_status: ["Durum", "Status"],
   dr_fuel: ["Yakıt", "Fuel"],
   dr_pos: ["Sıra", "Pos"],
+  dr_share: ["Paylaş", "Share"],
+  dr_share_hint: ["Bağlantıyı kopyala: giriş yapmış her üye açıp görebilir", "Copy the link: any signed-in member can open it"],
+  dr_copied: ["Bağlantı kopyalandı", "Link copied"],
+  dr_share_pub: ["Herkese açık paylaş", "Share publicly"],
+  dr_share_pub_hint: ["Herkese açık bağlantı oluşturup kopyala: giriş yapmadan herkes görebilir (yalnızca bu oturum)", "Create and copy a public link: anyone can view it without signing in (this session only)"],
+  dr_setup: ["Setup", "Setup"],
   dr_valid_lap: ["Geçerli", "Valid"],
   dr_invalid_lap: ["Geçersiz", "Invalid"],
   dr_pit: ["Pit", "Pit"],
@@ -89,8 +95,13 @@ const SIMS = [
   { id: "ac", label: "Assetto Corsa", ids: ["ac"] },
   { id: "lmu", label: "LMU / rF2", ids: ["lmu", "rf2"] },
   { id: "ams2", label: "AMS2", ids: ["ams2"] },
+  { id: "r3e", label: "RaceRoom", ids: ["r3e"] },
+  { id: "f1", label: "F1", ids: ["f1"] },
+  { id: "forza", label: "Forza", ids: ["forza"] },
+  { id: "dirt", label: "DiRT / GRID", ids: ["dirt"] },
+  { id: "beamng", label: "BeamNG", ids: ["beamng"] },
 ];
-const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2" };
+const SIM_LABEL = { iracing: "iRacing", acc: "ACC", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 
 const app = () => $("#app");
 
@@ -148,7 +159,55 @@ function bindFriends(root) {
   );
 }
 
+/** Giriş sayfasına git, girişten sonra bu sayfaya (paylaşılan bağlantıya) dön */
+function loginHref() {
+  return `hesap.html?next=${encodeURIComponent("yarisci.html" + location.search)}`;
+}
+
+/** Üst satır: geri bağlantısı + "Paylaş" (üye bağlantısını panoya kopyalar). `pubSession`: kendi oturumun → ayrıca
+ *  herkese açık paylaşım (c113 telemetry_share_create; telemetri.html?s=…). */
+function topBar(backHtml, shareQuery, pubSession = "") {
+  const url = `${location.origin}${location.pathname}?${shareQuery}`;
+  const pub = pubSession
+    ? `<button type="button" class="btn btn-sm" data-share-pub="${esc(pubSession)}" title="${esc(T("dr_share_pub_hint"))}">🌐 ${esc(T("dr_share_pub"))}</button>`
+    : "";
+  return `<div class="row between" style="margin-bottom:12px;gap:10px">${backHtml}
+    <span class="row" style="gap:8px">${pub}<button type="button" class="btn btn-sm btn-ghost" data-share="${esc(url)}" title="${esc(T("dr_share_hint"))}">🔗 ${esc(T("dr_share"))}</button></span></div>`;
+}
+
+async function copyLink(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  toast(T("dr_copied"));
+}
+
+function bindShare(root) {
+  $$("[data-share]", root).forEach((b) => b.addEventListener("click", () => copyLink(b.dataset.share)));
+  $$("[data-share-pub]", root).forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        const id = await rpc("telemetry_share_create", { p_kind: "session", p_laps: null, p_session: b.dataset.sharePub, p_title: document.title.split(" — ")[0] || "", p_shape: null });
+        await copyLink(`${location.origin}/telemetri.html?s=${encodeURIComponent(id)}`);
+      } catch (e) {
+        toast(String(e.message || e), true);
+      } finally {
+        b.disabled = false;
+      }
+    }),
+  );
+}
+
 function bindLinks(root) {
+  bindShare(root);
   $$("[data-go]", root).forEach((el) =>
     el.addEventListener("click", (e) => {
       if (e.target.closest("button:not([data-go]), a:not([data-go])")) return;
@@ -228,7 +287,7 @@ async function fillList(sim, q, me) {
 async function profileView(uid) {
   const me = await currentUser();
   if (uid === "me" && !me) {
-    app().innerHTML = `<div class="page"><div class="msg">${esc(T("dr_login_me"))} <a href="hesap.html">${esc(T("nav_login"))}</a></div></div>`;
+    app().innerHTML = `<div class="page"><div class="msg">${esc(T("dr_login_me"))} <a href="${loginHref()}">${esc(T("nav_login"))}</a></div></div>`;
     return;
   }
   app().innerHTML = `<p class="muted page">${esc(T("loading"))}</p>`;
@@ -264,7 +323,9 @@ async function profileView(uid) {
         .map(
           (b) => `<tr>
           <td>${esc(SIM_LABEL[b.sim] || b.sim)}</td><td>${esc(trackLabel(b))}</td>
-          <td>${esc(b.car_name)}${b.car_class ? ` <span class="muted small">· ${esc(b.car_class)}</span>` : ""}</td>
+          <td>${esc(b.car_name)}${b.car_class ? ` <span class="muted small">· ${esc(b.car_class)}</span>` : ""}${
+            b.setup_name ? `<br><span class="muted small" title="${esc(T("dr_setup"))}">🔧 ${esc(b.setup_name)}</span>` : ""
+          }</td>
           <td class="num" style="color:#3ecf8e;font-weight:700">${lapTime(b.lap_time)}</td><td class="num">${b.laps}</td>
           <td>${fmtDate(b.driven_at)}</td>
           <td class="num"><a class="btn btn-sm btn-ghost" href="#" data-go='${esc(
@@ -287,7 +348,7 @@ async function profileView(uid) {
         .join("")}</tbody></table></div></div>`;
   }
   app().innerHTML = `<div class="page">
-    <p><a href="yarisci.html" data-go='{}'>${esc(T("dr_back"))}</a></p>
+    ${topBar(`<a href="yarisci.html" data-go='{}'>${esc(T("dr_back"))}</a>`, `u=${encodeURIComponent(p.id)}`)}
     ${
       pub
         ? profileHero(pub, isMe ? `<a class="btn btn-sm" href="hesap.html#profil">${esc(T("pf_edit"))}</a>` : friendBtn(p.id, p.friend, me)) +
@@ -322,6 +383,8 @@ async function profileView(uid) {
 async function sessionView(id) {
   app().innerHTML = `<p class="muted page">${esc(T("loading"))}</p>`;
   const d = await rpc("telemetry_session", { p_session: id });
+  const me = await currentUser().catch(() => null);
+  const hasSetup = (d?.laps || []).some((l) => l.setup_name);
   const s = d.session;
   const ok = (d.laps || []).filter((l) => l.valid && !l.pit);
   const best = ok.reduce((a, l) => (!a || l.lap_time < a.lap_time ? l : a), null);
@@ -333,7 +396,7 @@ async function sessionView(id) {
     return `<span style="${purple ? "color:#c58bff;font-weight:700" : ""}">${v.toFixed(3)}</span>`;
   };
   app().innerHTML = `<div class="page">
-    <p><a href="#" data-go='${esc(JSON.stringify({ u: d.owner.id }))}'>← ${esc(d.owner.display_name || "—")}</a></p>
+    ${topBar(`<a href="#" data-go='${esc(JSON.stringify({ u: d.owner.id }))}'>← ${esc(d.owner.display_name || "—")}</a>`, `s=${encodeURIComponent(id)}`, me && me.id === d.owner.id ? id : "")}
     <div class="page-head"><div><h1>${esc(trackLabel(s))}</h1>
       <p class="muted" style="margin:4px 0 0">${esc(SIM_LABEL[s.sim] || s.sim)} · ${esc(s.car_name)}${s.car_class ? ` (${esc(s.car_class)})` : ""} · ${esc(
         stLabel(s.session_type),
@@ -347,7 +410,7 @@ async function sessionView(id) {
     <div class="card"><div style="overflow-x:auto"><table class="list">
       <thead><tr><th class="num">${esc(T("dr_lap"))}</th><th class="num">${esc(T("dr_time"))}</th><th class="num">S1</th><th class="num">S2</th>
       <th class="num">S3</th><th>${esc(T("dr_status"))}</th><th class="num">${esc(T("dr_incidents"))}</th><th class="num">${esc(T("dr_fuel"))}</th>
-      <th class="num">${esc(T("dr_pos"))}</th></tr></thead>
+      <th class="num">${esc(T("dr_pos"))}</th>${hasSetup ? `<th>${esc(T("dr_setup"))}</th>` : ""}</tr></thead>
       <tbody>${(d.laps || [])
         .map(
           (l) => `<tr style="${l.valid ? "" : "color:var(--muted)"}">
@@ -359,7 +422,9 @@ async function sessionView(id) {
           }</td>
           <td class="num">${l.incidents ? l.incidents + "x" : "—"}</td>
           <td class="num">${l.fuel_used ? l.fuel_used.toFixed(2) + " L" : "—"}</td>
-          <td class="num">${l.position ? "P" + l.position : "—"}</td></tr>`,
+          <td class="num">${l.position ? "P" + l.position : "—"}</td>${
+            hasSetup ? `<td class="muted small" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.setup_name || "")}">${esc(l.setup_name || "—")}</td>` : ""
+          }</tr>`,
         )
         .join("")}</tbody></table></div>
       <p class="muted small">${esc(T("dr_session_note"))}</p></div>
@@ -377,7 +442,7 @@ async function boardView(key) {
   const rows = await rpc("telemetry_leaderboard", { p_sim: sim, p_track_id: track, p_track_config: config, p_car_id: all ? null : car, p_limit: 100 });
   const title = rows[0] ? `${rows[0].car_name && !all ? rows[0].car_name : ""}` : "";
   app().innerHTML = `<div class="page">
-    <p><a href="javascript:history.back()">←</a></p>
+    ${topBar(`<a href="javascript:history.back()">←</a>`, `b=${encodeURIComponent(key)}${all ? "&all=1" : ""}`)}
     <div class="page-head"><div><h1>${esc(T("dr_board"))}</h1><p class="muted" style="margin:4px 0 0">${esc(SIM_LABEL[sim] || sim)} · ${esc(
       track,
     )}${config ? " – " + esc(config) : ""}${title ? " · " + esc(title) : ""}</p></div>
@@ -412,7 +477,7 @@ async function route() {
   const p = params();
   // Telemetri yalnızca giriş yapmış üyelere görünür (c86)
   if (!(await currentUser())) {
-    app().innerHTML = `<div class="page"><h1>${esc(T("dr_title"))}</h1><div class="msg">${esc(T("dr_login_need"))} <a href="hesap.html">${esc(T("nav_login"))}</a></div></div>`;
+    app().innerHTML = `<div class="page"><h1>${esc(T("dr_title"))}</h1><div class="msg">${esc(T("dr_login_need"))} <a href="${loginHref()}">${esc(T("nav_login"))}</a></div></div>`;
     return;
   }
   try {

@@ -86,15 +86,33 @@ pub struct Record {
 
 impl Default for Record {
     fn default() -> Self {
-        Record { crash: true, pass: true, pit: true, fast: true, flag: true, others: true }
+        Record {
+            crash: true,
+            pass: true,
+            pit: true,
+            fast: true,
+            flag: true,
+            others: true,
+        }
     }
 }
 
 impl Record {
     /// `general.eventsRecord` nesnesinden okur; eksik alanlar açık sayılır
     pub fn from_settings(v: Option<&serde_json::Value>) -> Record {
-        let g = |k: &str| v.and_then(|v| v.get(k)).and_then(|x| x.as_bool()).unwrap_or(true);
-        Record { crash: g("crash"), pass: g("pass"), pit: g("pit"), fast: g("fast"), flag: g("flag"), others: g("others") }
+        let g = |k: &str| {
+            v.and_then(|v| v.get(k))
+                .and_then(|x| x.as_bool())
+                .unwrap_or(true)
+        };
+        Record {
+            crash: g("crash"),
+            pass: g("pass"),
+            pit: g("pit"),
+            fast: g("fast"),
+            flag: g("flag"),
+            others: g("others"),
+        }
     }
 
     fn allows(&self, ev: &RaceEvent) -> bool {
@@ -147,7 +165,10 @@ fn next_rev() -> u64 {
 }
 
 fn now_ms() -> u64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 /// Biten bir oturumun saklanan kopyası
@@ -200,8 +221,28 @@ pub struct EventsInfo {
     pub has_current: bool,
     /// Liste her değiştiğinde artar (pencere gereksiz yeniden çizmesin)
     pub rev: u64,
+    /// Şu an tekrar izleniyor (kafa canlı anda değil) ya da kayıtlı bir tekrar dosyası açık
+    pub watching: bool,
+    /// Kayıtlı tekrar dosyası açık (iRacing SimMode = replay): canlı oturumda toplanan olaylar bu dosyada yok
+    pub replay_file: bool,
+    /// Liste, şu an açık olan oturuma / tekrara ait (kimlik eşleşiyor)
+    pub matches: bool,
+    /// Liste tekrardaki olay işaretlerinden çıkarıldı (bkz. load_replay_hits)
+    pub from_replay: bool,
     pub summary: Summary,
     pub events: Vec<RaceEvent>,
+}
+
+/// Oturumun kimliği: iRacing SubSessionID, yoksa pist + oturum listesi (Olaylar listesinin hangi oturuma ait olduğu)
+pub fn session_key(s: &SessionData) -> String {
+    if s.sub_session_id > 0 {
+        return format!("ss:{}", s.sub_session_id);
+    }
+    if s.track_name.is_empty() {
+        return String::new();
+    }
+    let kinds: Vec<&str> = s.sessions.iter().map(|e| e.kind.as_str()).collect();
+    format!("t:{}|{}|{}", s.track_name, s.track_config, kinds.join(","))
 }
 
 /// Bu kadar süre kare gelmezse (oyun kapandı/yeniden bağlandı) eski değerlerle kıyaslama yapılmaz
@@ -279,6 +320,12 @@ pub struct EventLog {
     prev_invalid: bool,
     /// Geçersiz tur olayının yazıldığı son tur (tur başına bir kez)
     invalid_lap: i32,
+    /// Listenin ait olduğu oturumun kimliği (session_key) ve şu an açık olanınki
+    list_key: String,
+    cur_key: String,
+    watching: bool,
+    replay_file: bool,
+    from_replay: bool,
 }
 
 impl Default for EventLog {
@@ -318,6 +365,11 @@ impl Default for EventLog {
             prev_repairs: -1,
             prev_invalid: false,
             invalid_lap: i32::MIN,
+            list_key: String::new(),
+            cur_key: String::new(),
+            watching: false,
+            replay_file: false,
+            from_replay: false,
         }
     }
 }
@@ -354,6 +406,10 @@ impl EventLog {
                 has_previous: true,
                 has_current,
                 rev: self.rev,
+                watching: self.watching,
+                replay_file: self.replay_file,
+                matches: false,
+                from_replay: false,
                 summary: p.summary.clone(),
                 events: p.events.clone(),
             };
@@ -364,22 +420,123 @@ impl EventLog {
             connected,
             track: self.track.clone(),
             session_kind: self.session_kind.clone(),
-            session_num: if self.session_num == i32::MIN { -1 } else { self.session_num },
+            session_num: if self.session_num == i32::MIN {
+                -1
+            } else {
+                self.session_num
+            },
             replay_ok: connected && !self.demo && self.sim == "iracing",
             previous: false,
             has_previous: prev.is_some(),
             has_current,
             rev: self.rev,
+            watching: self.watching,
+            replay_file: self.replay_file,
+            matches: has_current && !self.cur_key.is_empty() && self.list_key == self.cur_key,
+            from_replay: self.from_replay,
             summary: self.summary.clone(),
             events: self.events(),
         }
     }
 
+    /// Tekrar taramasının bulduğu olay işaretlerini bu tekrarın olay listesi olarak yükler (bkz.
+    /// broadcast::replay_scan_incidents). Eski liste "önceki oturum" olarak saklanır.
+    pub fn load_replay_hits(&mut self, hits: &[crate::broadcast::ScanHit], s: &SessionData) {
+        let (sim, demo, next_id, record, last_wall) = (
+            self.sim,
+            self.demo,
+            self.next_id,
+            self.record,
+            self.last_wall,
+        );
+        let stash = self.stash.take();
+        let prev = if self.from_replay {
+            self.prev.take()
+        } else {
+            self.snapshot().or_else(|| self.prev.take())
+        };
+        let (watching, replay_file, cur_key) =
+            (self.watching, self.replay_file, self.cur_key.clone());
+        *self = EventLog {
+            sim,
+            demo,
+            next_id,
+            stash,
+            prev,
+            record,
+            last_wall,
+            watching,
+            replay_file,
+            ..EventLog::default()
+        };
+        self.reset_track_name(s);
+        self.list_key = session_key(s);
+        self.cur_key = cur_key;
+        self.from_replay = true;
+        self.rebase = true;
+        let mut hits = hits.to_vec();
+        hits.sort_by(|a, b| {
+            a.session_num
+                .cmp(&b.session_num)
+                .then(a.time.total_cmp(&b.time))
+        });
+        if let Some(h) = hits.first() {
+            self.session_num = h.session_num;
+            self.session_kind = s
+                .session(h.session_num)
+                .map(|x| x.kind.clone())
+                .unwrap_or_default();
+        }
+        for h in hits {
+            let idx = h.car_idx;
+            let d = if idx >= 0 {
+                s.driver(idx as usize)
+            } else {
+                None
+            };
+            let ev = RaceEvent {
+                id: 0,
+                session_num: h.session_num,
+                time: h.time,
+                lap: h.lap.max(0),
+                kind: "incident",
+                sub: String::new(),
+                idx,
+                number: d.map(|d| d.car_number.clone()).unwrap_or_default(),
+                name: d.map(|d| d.name.clone()).unwrap_or_default(),
+                class_color: d.map(|d| d.class_color.clone()).unwrap_or_default(),
+                text: "Olay (tekrardaki işaret)".to_string(),
+                is_me: idx >= 0 && idx == s.player_idx,
+                focus: d.map(|d| d.car_number.clone()).unwrap_or_default(),
+            };
+            // Kayıt ayarlarından bağımsız: tekrar taraması yalnızca olayları bulur
+            self.rev = next_rev();
+            let mut ev = ev;
+            ev.id = self.next_id;
+            self.next_id += 1;
+            self.list.push_back(ev);
+        }
+        self.rev = next_rev();
+    }
+
     /// Otomatik açılışta pencerede görünecek (start/bitiş dışındaki) olay sayısı
     pub fn auto_count(&self) -> usize {
-        let n = self.list.iter().filter(|e| category(e.kind) != "session").count();
+        let n = self
+            .list
+            .iter()
+            .filter(|e| category(e.kind) != "session")
+            .count();
         if n == 0 && self.list.is_empty() && !self.demo {
-            return self.prev.as_ref().map(|p| p.events.iter().filter(|e| category(e.kind) != "session").count()).unwrap_or(0);
+            return self
+                .prev
+                .as_ref()
+                .map(|p| {
+                    p.events
+                        .iter()
+                        .filter(|e| category(e.kind) != "session")
+                        .count()
+                })
+                .unwrap_or(0);
         }
         n
     }
@@ -413,7 +570,11 @@ impl EventLog {
             let mut cur = std::mem::take(self);
             cur.stash = None;
             let record = cur.record;
-            let mut next = back.unwrap_or_else(|| EventLog { sim: if demo { sim } else { "" }, demo, ..EventLog::default() });
+            let mut next = back.unwrap_or_else(|| EventLog {
+                sim: if demo { sim } else { "" },
+                demo,
+                ..EventLog::default()
+            });
             next.rebase = true;
             next.record = record;
             next.rev = next_rev();
@@ -425,7 +586,15 @@ impl EventLog {
             let stash = self.stash.take();
             let prev = self.snapshot().or_else(|| self.prev.take());
             let (record, next_id) = (self.record, self.next_id);
-            *self = EventLog { sim, demo, stash, prev, record, next_id, ..EventLog::default() };
+            *self = EventLog {
+                sim,
+                demo,
+                stash,
+                prev,
+                record,
+                next_id,
+                ..EventLog::default()
+            };
         }
         if !sim.is_empty() || demo {
             self.sim = sim;
@@ -437,8 +606,19 @@ impl EventLog {
         let stash = self.stash.take();
         let prev = self.snapshot().or_else(|| self.prev.take());
         let (record, last_wall) = (self.record, self.last_wall);
-        *self = EventLog { sim, demo, next_id, stash, prev, record, last_wall, ..EventLog::default() };
+        *self = EventLog {
+            sim,
+            demo,
+            next_id,
+            stash,
+            prev,
+            record,
+            last_wall,
+            ..EventLog::default()
+        };
         self.session_num = f.session_num;
+        self.list_key = session_key(s);
+        self.cur_key = self.list_key.clone();
         self.summary.started_at = now_ms();
         self.track = if s.track_config.is_empty() {
             s.track_name.clone()
@@ -462,15 +642,31 @@ impl EventLog {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn push(&mut self, f: &Frame, s: &SessionData, idx: usize, kind: &'static str, sub: &str, text: String, focus_idx: usize) {
+    fn push(
+        &mut self,
+        f: &Frame,
+        s: &SessionData,
+        idx: usize,
+        kind: &'static str,
+        sub: &str,
+        text: String,
+        focus_idx: usize,
+    ) {
         let d = s.driver(idx);
         let lap = f.cars.get(idx).map(|c| c.lap.max(0)).unwrap_or(0);
-        let focus = s.driver(focus_idx).map(|d| d.car_number.clone()).unwrap_or_default();
+        let focus = s
+            .driver(focus_idx)
+            .map(|d| d.car_number.clone())
+            .unwrap_or_default();
         self.push_ev(RaceEvent {
             id: 0,
             session_num: f.session_num,
             time: f.session_time,
-            lap: if idx as i32 == f.player_idx { f.lap.max(lap) } else { lap },
+            lap: if idx as i32 == f.player_idx {
+                f.lap.max(lap)
+            } else {
+                lap
+            },
             kind,
             sub: sub.to_string(),
             idx: idx as i32,
@@ -509,7 +705,10 @@ impl EventLog {
         // eski değerlerle kıyaslayıp sahte olay üretme. Zaman geri gittiyse bu yeni bir oturumdur
         // (aynı pistte aynı oturum numarasıyla yeniden başlayan antrenman eskisine karışmasın).
         let now = Instant::now();
-        let gap = self.last_wall.map(|w| now.saturating_duration_since(w) > GAP).unwrap_or(false);
+        let gap = self
+            .last_wall
+            .map(|w| now.saturating_duration_since(w) > GAP)
+            .unwrap_or(false);
         self.last_wall = Some(now);
         if gap {
             self.rebase = true;
@@ -519,16 +718,39 @@ impl EventLog {
             // Tekrar kafasının konumu ve canlı andaki kaset karesi (tekrara sarma bunu kullanır)
             crate::broadcast::observe(f, !f.replay || f.replay_live);
         }
+        // Açık oturumun kimliği ve tekrar durumu (pencere listenin bu oturuma ait olup olmadığını bilsin)
+        let key = session_key(s);
+        let replay_file = s.sim_mode == "replay";
+        let watching = (f.replay && !f.replay_live) || replay_file;
+        if key != self.cur_key || watching != self.watching || replay_file != self.replay_file {
+            self.cur_key = key;
+            self.watching = watching;
+            self.replay_file = replay_file;
+            self.rev = next_rev();
+        }
+        if replay_file {
+            // Kayıtlı tekrar dosyası: canlı olay üretilmez (liste tekrar taramasından gelir)
+            self.last_rc_id = rc_max;
+            self.rebase = true;
+            return false;
+        }
         if f.replay && !f.replay_live {
             // Tekrar oynatılıyor: geçmiş anlardan olay üretme, dönünce yeniden taban al
             self.last_rc_id = rc_max;
             self.rebase = true;
             return false;
         }
-        let restarted = gap && self.session_num != i32::MIN && f.session_time + 1.0 < self.last_time;
-        let track_changed = !s.track_name.is_empty() && !self.track.is_empty() && !self.track.starts_with(&s.track_name);
+        let restarted =
+            gap && self.session_num != i32::MIN && f.session_time + 1.0 < self.last_time;
+        let track_changed = !s.track_name.is_empty()
+            && !self.track.is_empty()
+            && !self.track.starts_with(&s.track_name);
         // Oturum değişti, pist değişti ya da zaman belirgin geri gitti (yeni yarış etkinliği)
-        if f.session_num != self.session_num || track_changed || restarted || f.session_time + 30.0 < self.last_time {
+        if f.session_num != self.session_num
+            || track_changed
+            || restarted
+            || f.session_time + 30.0 < self.last_time
+        {
             self.reset_session(f, s);
             self.last_rc_id = rc_max;
         }
@@ -536,9 +758,16 @@ impl EventLog {
             self.reset_track_name(s);
         }
         self.last_time = f.session_time;
-        self.session_kind = s.session(f.session_num).map(|x| x.kind.clone()).unwrap_or_default();
+        self.session_kind = s
+            .session(f.session_num)
+            .map(|x| x.kind.clone())
+            .unwrap_or_default();
         let race = s.is_race(f.session_num);
-        let me = if f.player_idx >= 0 && (f.player_idx as usize) < MAX_CARS { Some(f.player_idx as usize) } else { None };
+        let me = if f.player_idx >= 0 && (f.player_idx as usize) < MAX_CARS {
+            Some(f.player_idx as usize)
+        } else {
+            None
+        };
         let my_car = me.map(|i| f.cars[i]);
 
         // Oturum özeti (pencere başlığı)
@@ -583,7 +812,12 @@ impl EventLog {
         }
 
         // 1) Tracker'ın yarış kontrol olayları
-        let new: Vec<_> = t.events.iter().filter(|e| e.id > self.last_rc_id).cloned().collect();
+        let new: Vec<_> = t
+            .events
+            .iter()
+            .filter(|e| e.id > self.last_rc_id)
+            .cloned()
+            .collect();
         for e in new {
             self.last_rc_id = self.last_rc_id.max(e.id);
             if e.session_num != f.session_num {
@@ -626,7 +860,11 @@ impl EventLog {
                     Some((id, t, _)) if now >= *t && now - *t < INC_MERGE => Some(*id),
                     _ => None,
                 };
-                let target = recent.and_then(|id| self.list.iter().position(|e| e.id == id && e.session_num == f.session_num));
+                let target = recent.and_then(|id| {
+                    self.list
+                        .iter()
+                        .position(|e| e.id == id && e.session_num == f.session_num)
+                });
                 if let Some(k) = target {
                     let (_, t, parts) = self.last_inc.as_mut().unwrap();
                     parts.push(d);
@@ -639,8 +877,20 @@ impl EventLog {
                     self.rev = next_rev();
                 } else {
                     let before = self.next_id;
-                    self.push(f, s, mi, "incident", &format!("{d}x"), incident_text(d).to_string(), mi);
-                    self.last_inc = if self.next_id > before { Some((before, now, vec![d])) } else { None };
+                    self.push(
+                        f,
+                        s,
+                        mi,
+                        "incident",
+                        &format!("{d}x"),
+                        incident_text(d).to_string(),
+                        mi,
+                    );
+                    self.last_inc = if self.next_id > before {
+                        Some((before, now, vec![d]))
+                    } else {
+                        None
+                    };
                 }
             }
             // Olay puanı vermeyen simler (ACC, LMU/rF2, AMS2): turun geçersiz sayılması (tur başına bir kez)
@@ -684,7 +934,8 @@ impl EventLog {
 
         // 4) Oyuncunun sıra değişimleri (saniyede bir, yarış sürerken)
         if let (Some(mi), Some(c)) = (me, my_car) {
-            let due = f.session_time - self.last_pos_check >= 1.0 || f.session_time < self.last_pos_check;
+            let due =
+                f.session_time - self.last_pos_check >= 1.0 || f.session_time < self.last_pos_check;
             if due {
                 self.last_pos_check = f.session_time;
                 let now = c.class_position;
@@ -693,9 +944,15 @@ impl EventLog {
                     let my_class = s.driver(mi).map(|d| d.class_id);
                     // Eski sırama gelen araç: geçtiğim (arkama düşen) ya da beni geçen
                     let other = (0..MAX_CARS).find(|&j| {
-                        j != mi && f.cars[j].class_position == prev && s.driver(j).map(|d| Some(d.class_id) == my_class).unwrap_or(false)
+                        j != mi
+                            && f.cars[j].class_position == prev
+                            && s.driver(j)
+                                .map(|d| Some(d.class_id) == my_class)
+                                .unwrap_or(false)
                     });
-                    let oname = other.and_then(|j| s.driver(j)).map(|d| format!("#{} {}", d.car_number, d.name));
+                    let oname = other
+                        .and_then(|j| s.driver(j))
+                        .map(|d| format!("#{} {}", d.car_number, d.name));
                     if now < prev {
                         let text = match (&oname, prev - now) {
                             (Some(n), 1) => format!("{n} geçildi · P{now}"),
@@ -760,9 +1017,20 @@ impl EventLog {
         let mut open = false;
         if let (Some(mi), Some(c)) = (me, my_car) {
             if race && f.session_state == 4 && self.prev_state > 0 && self.prev_state < 4 {
-                self.push(f, s, mi, "start", "", format!("yarış başladı · P{}", c.class_position.max(0)), mi);
+                self.push(
+                    f,
+                    s,
+                    mi,
+                    "start",
+                    "",
+                    format!("yarış başladı · P{}", c.class_position.max(0)),
+                    mi,
+                );
             }
-            if race && (f.session_state >= 5 || f.session_flags & F_CHECKERED != 0) && !self.checkered_seen {
+            if race
+                && (f.session_state >= 5 || f.session_flags & F_CHECKERED != 0)
+                && !self.checkered_seen
+            {
                 self.checkered_seen = true;
                 self.checkered_lap = self.prev_lap_completed;
             }
@@ -801,7 +1069,11 @@ mod tests {
     use crate::model::{Driver, SessionEntry};
 
     fn session() -> SessionData {
-        let mut s = SessionData { track_name: "Spa".into(), player_idx: 0, ..Default::default() };
+        let mut s = SessionData {
+            track_name: "Spa".into(),
+            player_idx: 0,
+            ..Default::default()
+        };
         for i in 0..3 {
             s.drivers.push(Some(Driver {
                 car_idx: i,
@@ -811,12 +1083,26 @@ mod tests {
                 ..Default::default()
             }));
         }
-        s.sessions.push(SessionEntry { num: 2, kind: "Race".into(), laps: None, time: None, ..Default::default() });
+        s.sessions.push(SessionEntry {
+            num: 2,
+            kind: "Race".into(),
+            laps: None,
+            time: None,
+            ..Default::default()
+        });
         s
     }
 
     fn frame(t: f64) -> Frame {
-        let mut f = Frame { session_num: 2, session_time: t, session_state: 4, player_idx: 0, is_on_track: true, lap: 3, ..Default::default() };
+        let mut f = Frame {
+            session_num: 2,
+            session_time: t,
+            session_state: 4,
+            player_idx: 0,
+            is_on_track: true,
+            lap: 3,
+            ..Default::default()
+        };
         for i in 0..3 {
             f.cars[i].position = i as i32 + 1;
             f.cars[i].class_position = i as i32 + 1;
@@ -825,6 +1111,96 @@ mod tests {
             f.cars[i].lap_completed = 2;
         }
         f
+    }
+
+    #[test]
+    fn replay_file_lists_scanned_incidents() {
+        use crate::broadcast::ScanHit;
+        let t = Tracker::default();
+        let mut log = EventLog::default();
+        log.set_source("iracing", false);
+        // Canlı yarış: bir olay toplanır
+        let mut live = session();
+        live.sub_session_id = 111;
+        let mut f = frame(100.0);
+        log.update(&f, &live, &t);
+        f.session_time = 101.0;
+        f.incidents = 4;
+        log.update(&f, &live, &t);
+        let i = log.info(true);
+        assert!(i.matches && !i.watching && !i.replay_file && !i.from_replay);
+
+        // Sonra başka bir yarışın kayıtlı tekrar dosyası açıldı: liste o tekrara ait değil, canlı olay üretilmez
+        let mut rep = session();
+        rep.sub_session_id = 222;
+        rep.sim_mode = "replay".into();
+        let mut rf = frame(50.0);
+        rf.replay = true;
+        rf.incidents = 9;
+        log.update(&rf, &rep, &t);
+        rf.session_time = 60.0;
+        rf.cars[1].surface = 0;
+        log.update(&rf, &rep, &t);
+        let i = log.info(true);
+        assert!(
+            i.watching && i.replay_file && !i.matches,
+            "eski liste bu tekrara ait değil"
+        );
+        assert_eq!(i.events.len(), 1);
+
+        // Tarama sonucu yüklenir: sıralı, araç bilgisiyle, sarılabilir; önceki yarış "önceki oturum" olur
+        let hits = [
+            ScanHit {
+                session_num: 2,
+                time: 300.5,
+                car_idx: 2,
+                lap: 5,
+            },
+            ScanHit {
+                session_num: 2,
+                time: 120.0,
+                car_idx: 1,
+                lap: 2,
+            },
+            ScanHit {
+                session_num: 2,
+                time: 200.0,
+                car_idx: -1,
+                lap: 0,
+            },
+        ];
+        log.load_replay_hits(&hits, &rep);
+        let i = log.info(true);
+        assert!(i.from_replay && i.matches && i.has_previous && i.replay_ok);
+        let ev = &i.events;
+        assert_eq!(ev.len(), 3);
+        assert_eq!(
+            ev.iter().map(|e| e.time).collect::<Vec<_>>(),
+            vec![120.0, 200.0, 300.5]
+        );
+        assert_eq!(
+            (
+                ev[0].kind,
+                ev[0].number.as_str(),
+                ev[0].focus.as_str(),
+                ev[0].lap
+            ),
+            ("incident", "11", "11", 2)
+        );
+        assert!(ev[1].number.is_empty(), "kamerada araç yoksa numara boş");
+        // Tekrar izlenirken sonraki karelerde liste bozulmaz
+        rf.session_time = 70.0;
+        log.update(&rf, &rep, &t);
+        assert_eq!(log.events().len(), 3);
+    }
+
+    #[test]
+    fn session_keys() {
+        let mut s = session();
+        assert!(session_key(&s).starts_with("t:Spa|"));
+        s.sub_session_id = 42;
+        assert_eq!(session_key(&s), "ss:42");
+        assert_eq!(session_key(&SessionData::default()), "");
     }
 
     #[test]
@@ -861,7 +1237,10 @@ mod tests {
         f.cars[2].surface = 0;
         f.session_time = 103.0;
         log.update(&f, &s, &t);
-        assert_eq!(log.events().iter().filter(|e| e.kind == "offTrack").count(), 1);
+        assert_eq!(
+            log.events().iter().filter(|e| e.kind == "offTrack").count(),
+            1
+        );
 
         // Oyuncu 1. sıradan 2.'ye düştü: 2 numaralı (idx 1) araç geçti
         f.session_time = 105.0;
@@ -938,8 +1317,14 @@ mod tests {
         }
         let ev = log.events();
         assert!(!ev.is_empty());
-        assert!(ev.iter().any(|e| e.kind == "pitIn" || e.kind == "fastest" || e.kind == "lead"), "{ev:?}");
-        assert!(ev.windows(2).all(|w| w[0].id < w[1].id && w[0].time <= w[1].time + 1.0));
+        assert!(
+            ev.iter()
+                .any(|e| e.kind == "pitIn" || e.kind == "fastest" || e.kind == "lead"),
+            "{ev:?}"
+        );
+        assert!(ev
+            .windows(2)
+            .all(|w| w[0].id < w[1].id && w[0].time <= w[1].time + 1.0));
         assert!(!log.info(true).replay_ok, "demo'da tekrar yok");
     }
 
@@ -989,21 +1374,35 @@ mod tests {
         f.session_time = 102.0;
         f.incidents = 2;
         log.update(&f, &s, &t);
-        let e: Vec<_> = log.events().into_iter().filter(|e| e.kind == "incident").collect();
+        let e: Vec<_> = log
+            .events()
+            .into_iter()
+            .filter(|e| e.kind == "incident")
+            .collect();
         assert_eq!(e.len(), 1, "{e:?}");
         assert_eq!((e[0].sub.as_str(), e[0].text.as_str()), ("2x", "Pist dışı"));
         // 1x + 2x → toplam 3x "Pist dışı + kontrol kaybı"
         f.session_time = 103.5;
         f.incidents = 4;
         log.update(&f, &s, &t);
-        let e: Vec<_> = log.events().into_iter().filter(|e| e.kind == "incident").collect();
+        let e: Vec<_> = log
+            .events()
+            .into_iter()
+            .filter(|e| e.kind == "incident")
+            .collect();
         assert_eq!(e.len(), 1);
         assert_eq!(e[0].sub, "4x");
         // Birleşme süresinden sonra yeni olay
         f.session_time = 120.0;
         f.incidents = 5;
         log.update(&f, &s, &t);
-        assert_eq!(log.events().into_iter().filter(|e| e.kind == "incident").count(), 2);
+        assert_eq!(
+            log.events()
+                .into_iter()
+                .filter(|e| e.kind == "incident")
+                .count(),
+            2
+        );
     }
 
     #[test]
@@ -1028,7 +1427,10 @@ mod tests {
         let subs: Vec<String> = log.events().iter().map(|e| e.sub.clone()).collect();
         assert_eq!(subs, ["1x", "2x", "4x", "3x"]);
         let i = log.info(true);
-        assert_eq!(i.summary.incidents, 15, "özet simin toplamını gösterir (kayıt öncesi dahil)");
+        assert_eq!(
+            i.summary.incidents, 15,
+            "özet simin toplamını gösterir (kayıt öncesi dahil)"
+        );
         assert!(i.summary.has_incidents);
     }
 
@@ -1060,7 +1462,15 @@ mod tests {
         log.update(&f, &s, &t);
         let a = log.info_view(true, View::Auto);
         assert!(a.previous && a.has_previous && !a.has_current);
-        assert_eq!((a.session_num, a.events.len(), a.summary.laps, a.summary.incidents), (2, 1, 7, 2));
+        assert_eq!(
+            (
+                a.session_num,
+                a.events.len(),
+                a.summary.laps,
+                a.summary.incidents
+            ),
+            (2, 1, 7, 2)
+        );
         assert_eq!(log.auto_count(), 1);
         // "Güncel" istenirse boş güncel oturum döner, önceki hâlâ erişilebilir
         let c = log.info_view(true, View::Current);
@@ -1096,7 +1506,10 @@ mod tests {
         log.set_source("acc", false);
         let i = log.info(true);
         assert!(i.previous && i.sim == "iracing" && i.events.len() == 1);
-        assert!(!i.replay_ok, "başka sim bağlıyken iRacing tekrarına sarılamaz");
+        assert!(
+            !i.replay_ok,
+            "başka sim bağlıyken iRacing tekrarına sarılamaz"
+        );
     }
 
     #[test]
@@ -1211,7 +1624,11 @@ mod tests {
         assert!(!log.info(true).replay_ok);
 
         // Kayıt süzgeci: kaza grubu kapalıyken yazılmaz, diğer sürücüler kapalıyken yalnızca oyuncu
-        log.set_record(Record { crash: false, others: false, ..Record::default() });
+        log.set_record(Record {
+            crash: false,
+            others: false,
+            ..Record::default()
+        });
         f.session_time = 20.0;
         f.lap = 4;
         f.lap_invalid = false;

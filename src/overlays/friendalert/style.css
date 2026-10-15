@@ -1,0 +1,103 @@
+/* Arkadaş Uyarısı: --fa-k ölçek, --fa-c uyarı rengi, --fa-t yazı rengi, --fa-blink yanıp sönme süresi */
+.fa {
+  --fa-k: 1;
+  display: inline-flex;
+  justify-content: center;
+  font-size: calc(16px * var(--fa-k));
+  color: var(--fa-t);
+}
+
+.fa-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.6));
+}
+
+@keyframes fa-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.12;
+  }
+}
+
+.fa-box.blink .fa-icon,
+.fa-box.blink .fa-txt b {
+  animation: fa-blink var(--fa-blink) steps(1, end) infinite;
+}
+
+.fa-icon {
+  width: 7em;
+  height: 6.2em;
+}
+
+.fa-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.fa-svg .fa-bg {
+  fill: var(--fa-c);
+  stroke: #15100a;
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.fa-svg .fa-mark {
+  fill: #15100a;
+}
+
+.fa-circle .fa-icon {
+  width: 6.2em;
+}
+
+.fa-txt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.fa-txt b {
+  font-size: 2.2em;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.fa-txt span {
+  font-size: 1.1em;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* Şerit: yatay, uyarı renginde zemin */
+.fa-banner .fa-box {
+  flex-direction: row;
+  gap: 0.8em;
+  padding: 0.5em 1.4em 0.5em 0.8em;
+  border-radius: 0.5em;
+  background: rgba(10, 10, 14, 0.88);
+  box-shadow: inset 0 0 0 0.18em var(--fa-c);
+}
+
+.fa-banner .fa-icon {
+  width: 3.4em;
+  height: 3.4em;
+}
+
+.fa-banner .fa-txt {
+  align-items: flex-start;
+}
+
+.fa-banner .fa-txt b {
+  font-size: 1.8em;
+  color: var(--fa-c);
+}

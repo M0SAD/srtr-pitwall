@@ -5935,3 +5935,94 @@ button.ovpal-lock:hover {
 .gp-vol {
   width: 200px;
 }
+
+/* Sim seçici: 11 seçenek — açıklamanın altında tam genişlikte, sığmayınca alt satıra geçer */
+.seg.sim-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow: visible;
+  border: 0;
+  background: none;
+}
+.seg.sim-grid button {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg-3);
+  min-width: 52px;
+}
+.seg.sim-grid button:last-child {
+  border-right: 1px solid var(--line);
+}
+.row.sim-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.udp-ports {
+  display: grid;
+  grid-template-columns: auto 92px;
+  gap: 6px 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.udp-ports label {
+  display: contents;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.udp-ports label.udp-always {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.udp-ports input[type="number"] {
+  width: 92px;
+}
+.udp-state {
+  display: block;
+  margin-top: 4px;
+}
+.udp-state.bad {
+  color: var(--bad, #ff6b6b);
+}
+
+/* Hata günlüğü penceresi */
+.crash-modal {
+  width: min(860px, 92vw);
+}
+.crash-text {
+  width: 100%;
+  height: 52vh;
+  margin: 8px 0;
+  padding: 10px;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: pre;
+  color: var(--text);
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* Oyun algılama durumu */
+.sim-probe {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.sim-probe-list {
+  margin: 0;
+  padding: 8px 10px 8px 26px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}

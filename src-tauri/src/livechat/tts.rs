@@ -111,10 +111,17 @@ impl Default for TtsCfg {
 
 pub fn cfg_from_settings(v: &Value) -> TtsCfg {
     let d = TtsCfg::default();
-    let Some(t) = v.pointer("/general/livechat/tts") else { return d };
+    let Some(t) = v.pointer("/general/livechat/tts") else {
+        return d;
+    };
     let b = |p: &str, def: bool| t.pointer(p).and_then(|x| x.as_bool()).unwrap_or(def);
     let f = |p: &str, def: f64| t.pointer(p).and_then(|x| x.as_f64()).unwrap_or(def);
-    let s = |p: &str, def: &str| t.pointer(p).and_then(|x| x.as_str()).unwrap_or(def).to_string();
+    let s = |p: &str, def: &str| {
+        t.pointer(p)
+            .and_then(|x| x.as_str())
+            .unwrap_or(def)
+            .to_string()
+    };
     TtsCfg {
         enabled: b("/enabled", false),
         mode: match s("/mode", "command").as_str() {
@@ -124,7 +131,11 @@ pub fn cfg_from_settings(v: &Value) -> TtsCfg {
         },
         command: s("/command", "!"),
         subs_only: b("/subsOnly", false),
-        only_users: s("/onlyUsers", "").split([',', '\n', ' ']).map(norm_user).filter(|x| !x.is_empty()).collect(),
+        only_users: s("/onlyUsers", "")
+            .split([',', '\n', ' '])
+            .map(norm_user)
+            .filter(|x| !x.is_empty())
+            .collect(),
         read_names: b("/readNames", true),
         read_alerts: b("/readAlerts", true),
         youtube: b("/platforms/youtube", true),
@@ -165,7 +176,14 @@ pub fn win_pitch(p: f64) -> f64 {
 
 /// Okunacak düz metin (MCO speech_text): emote/bağlantı/yıldızlı kelimeler atlanır, tekrarlar kısalır,
 /// emoji ve süs karakterleri atılır, uzunluk kelime sınırında kesilir.
-pub fn speech_text(parts: &[Part], max_chars: usize, skip_links: bool, skip_emotes: bool, skip_smileys: bool, read_custom: bool) -> String {
+pub fn speech_text(
+    parts: &[Part],
+    max_chars: usize,
+    skip_links: bool,
+    skip_emotes: bool,
+    skip_smileys: bool,
+    read_custom: bool,
+) -> String {
     let mut s = String::new();
     for p in parts {
         match p {
@@ -226,7 +244,11 @@ pub fn emote_codes(s: &str, skip_codes: bool, skip_kick: bool) -> String {
         // [emote:123:ad]
         if c == '[' {
             let rest: String = chars[i..chars.len().min(i + 80)].iter().collect();
-            if let Some(inner) = rest.strip_prefix("[emote:").and_then(|r| r.split_once(']')).map(|(a, _)| a.to_string()) {
+            if let Some(inner) = rest
+                .strip_prefix("[emote:")
+                .and_then(|r| r.split_once(']'))
+                .map(|(a, _)| a.to_string())
+            {
                 let name = inner.split_once(':').map(|(_, n)| n).unwrap_or("");
                 if !skip_kick {
                     out.push(' ');
@@ -244,7 +266,11 @@ pub fn emote_codes(s: &str, skip_codes: bool, skip_kick: bool) -> String {
                 j += 1;
             }
             let inner: String = chars[i + 1..j.min(chars.len())].iter().collect();
-            if j < chars.len() && chars[j] == ':' && inner.chars().count() >= 2 && !inner.chars().all(|c| c.is_ascii_digit()) {
+            if j < chars.len()
+                && chars[j] == ':'
+                && inner.chars().count() >= 2
+                && !inner.chars().all(|c| c.is_ascii_digit())
+            {
                 if !skip_codes {
                     out.push(' ');
                     out.push_str(&emote_name(&inner));
@@ -262,7 +288,21 @@ pub fn emote_codes(s: &str, skip_codes: bool, skip_kick: bool) -> String {
 
 /// Karakterlerle yazılmış yüz ifadesi mi (":)", ":-D", ";P", "(:", "<3", "xD", "^^")
 fn is_smiley(w: &str) -> bool {
-    if matches!(w, "<3" | "</3" | "xD" | "XD" | "xd" | "^^" | "^_^" | "-_-" | "T_T" | "._." | "o/" | "\\o/" | ":3") {
+    if matches!(
+        w,
+        "<3" | "</3"
+            | "xD"
+            | "XD"
+            | "xd"
+            | "^^"
+            | "^_^"
+            | "-_-"
+            | "T_T"
+            | "._."
+            | "o/"
+            | "\\o/"
+            | ":3"
+    ) {
         return true;
     }
     let c: Vec<char> = w.chars().collect();
@@ -273,9 +313,16 @@ fn is_smiley(w: &str) -> bool {
     const NOSE: &str = "-'^o";
     const MOUTH: &str = ")(][DPpdOo|/\\*3cC><{}@$S";
     // ":)" ":-)" ":'("
-    let fwd = EYES.contains(c[0]) && c[1..c.len() - 1].iter().all(|x| NOSE.contains(*x)) && c[1..].iter().all(|x| NOSE.contains(*x) || MOUTH.contains(*x)) && MOUTH.contains(c[c.len() - 1]);
+    let fwd = EYES.contains(c[0])
+        && c[1..c.len() - 1].iter().all(|x| NOSE.contains(*x))
+        && c[1..]
+            .iter()
+            .all(|x| NOSE.contains(*x) || MOUTH.contains(*x))
+        && MOUTH.contains(c[c.len() - 1]);
     // "(:" "(-:"
-    let back = EYES.contains(c[c.len() - 1]) && ")(][".contains(c[0]) && c[1..c.len() - 1].iter().all(|x| NOSE.contains(*x));
+    let back = EYES.contains(c[c.len() - 1])
+        && ")(][".contains(c[0])
+        && c[1..c.len() - 1].iter().all(|x| NOSE.contains(*x));
     fwd || back
 }
 
@@ -287,7 +334,11 @@ fn strip_smiley(w: &str) -> &str {
     for n in [4usize, 3, 2] {
         let cut = w.char_indices().rev().nth(n - 1).map(|(i, _)| i);
         if let Some(i) = cut {
-            if i > 0 && is_smiley(&w[i..]) && w[..i].chars().last().is_some_and(|ch| ch.is_alphanumeric()) && !w[i..].starts_with(|ch: char| ch.is_ascii_digit()) {
+            if i > 0
+                && is_smiley(&w[i..])
+                && w[..i].chars().last().is_some_and(|ch| ch.is_alphanumeric())
+                && !w[i..].starts_with(|ch: char| ch.is_ascii_digit())
+            {
                 return &w[..i];
             }
         }
@@ -323,7 +374,17 @@ pub fn clean_text(s: &str, max_chars: usize, skip_links: bool, skip_smileys: boo
     // Emoji ve süs karakterleri (\w \s . , ! ? ; : ' " ( ) % & + - / kalır)
     let kept: String = out
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' || c.is_whitespace() || ".,!?;:'\"()%&+-/".contains(c) { c } else { ' ' })
+        .map(|c| {
+            if c.is_alphanumeric()
+                || c == '_'
+                || c.is_whitespace()
+                || ".,!?;:'\"()%&+-/".contains(c)
+            {
+                c
+            } else {
+                ' '
+            }
+        })
         .collect();
     let s = kept.split_whitespace().collect::<Vec<_>>().join(" ");
     if max_chars > 0 && s.chars().count() > max_chars {
@@ -338,11 +399,37 @@ pub fn clean_text(s: &str, max_chars: usize, skip_links: bool, skip_smileys: boo
 
 /// "gamer_kaan123" → "gamer kaan"
 pub fn speech_name(name: &str) -> String {
-    let n: String = name.chars().map(|c| if c == '_' || c == '-' || c == '.' { ' ' } else { c }).collect();
+    let n: String = name
+        .chars()
+        .map(|c| {
+            if c == '_' || c == '-' || c == '.' {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect();
     let trimmed = n.trim_end();
-    let digits = trimmed.chars().rev().take_while(|c| c.is_ascii_digit()).count();
-    let n = if digits >= 3 { &trimmed[..trimmed.len() - digits] } else { trimmed };
-    let n: String = n.chars().map(|c| if c.is_alphanumeric() || c.is_whitespace() { c } else { ' ' }).collect();
+    let digits = trimmed
+        .chars()
+        .rev()
+        .take_while(|c| c.is_ascii_digit())
+        .count();
+    let n = if digits >= 3 {
+        &trimmed[..trimmed.len() - digits]
+    } else {
+        trimmed
+    };
+    let n: String = n
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c.is_whitespace() {
+                c
+            } else {
+                ' '
+            }
+        })
+        .collect();
     let n = n.split_whitespace().collect::<Vec<_>>().join(" ");
     if n.is_empty() {
         name.to_string()
@@ -355,7 +442,11 @@ pub fn speech_name(name: &str) -> String {
 pub fn match_command(text: &str, cmds: &str) -> Option<String> {
     let t = text.trim();
     let low = t.to_lowercase();
-    let mut list: Vec<String> = cmds.split([',', ' ', '\n']).map(|x| x.trim().to_lowercase()).filter(|x| !x.is_empty()).collect();
+    let mut list: Vec<String> = cmds
+        .split([',', ' ', '\n'])
+        .map(|x| x.trim().to_lowercase())
+        .filter(|x| !x.is_empty())
+        .collect();
     list.sort_by_key(|c| std::cmp::Reverse(c.chars().count()));
     for c in list {
         if !low.starts_with(&c) {
@@ -374,7 +465,10 @@ pub fn match_command(text: &str, cmds: &str) -> Option<String> {
 }
 
 fn is_alert(m: &ChatMsg) -> bool {
-    matches!(m.kind, Kind::Superchat | Kind::Sub | Kind::Raid | Kind::Donation | Kind::Alert) || m.platform == Platform::Streamlabs
+    matches!(
+        m.kind,
+        Kind::Superchat | Kind::Sub | Kind::Raid | Kind::Donation | Kind::Alert
+    ) || m.platform == Platform::Streamlabs
 }
 
 /// Uyarının okunacak kısa açıklaması
@@ -382,9 +476,26 @@ fn alert_action(m: &ChatMsg) -> String {
     let ty = m.alert.as_ref().map(|a| a.kind.as_str()).unwrap_or("");
     let count = m.alert.as_ref().and_then(|a| a.count);
     match m.kind {
-        Kind::Superchat => format!("Super Chat gönderdi{}", m.amount.as_deref().map(|a| format!(", {a}")).unwrap_or_default()),
-        Kind::Donation if ty == "cheer" => format!("{} bits gönderdi", count.map(|c| c.to_string()).unwrap_or_default()).trim().to_string(),
-        Kind::Donation => format!("bağış yaptı{}", m.amount.as_deref().map(|a| format!(", {a}")).unwrap_or_default()),
+        Kind::Superchat => format!(
+            "Super Chat gönderdi{}",
+            m.amount
+                .as_deref()
+                .map(|a| format!(", {a}"))
+                .unwrap_or_default()
+        ),
+        Kind::Donation if ty == "cheer" => format!(
+            "{} bits gönderdi",
+            count.map(|c| c.to_string()).unwrap_or_default()
+        )
+        .trim()
+        .to_string(),
+        Kind::Donation => format!(
+            "bağış yaptı{}",
+            m.amount
+                .as_deref()
+                .map(|a| format!(", {a}"))
+                .unwrap_or_default()
+        ),
         Kind::Raid if ty == "host" => "host etti".into(),
         Kind::Raid => match count {
             Some(c) => format!("{c} kişiyle raid yaptı"),
@@ -427,16 +538,30 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
             return None;
         }
         let action = alert_action(m);
-        let msg = speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys, cfg.read_custom);
+        let msg = speech_text(
+            &m.parts,
+            cfg.max_chars,
+            cfg.skip_links,
+            cfg.skip_emotes,
+            cfg.skip_smileys,
+            cfg.read_custom,
+        );
         let head = format!("{name} {action}").trim().to_string();
-        let s = if msg.is_empty() { head } else if head.is_empty() { msg } else { format!("{head}. {msg}") };
+        let s = if msg.is_empty() {
+            head
+        } else if head.is_empty() {
+            msg
+        } else {
+            format!("{head}. {msg}")
+        };
         return (!s.is_empty()).then_some(s);
     }
     if cfg.mode == Mode::Alerts {
         return None;
     }
     let login = norm_user(&m.author.login);
-    let listed = !cfg.only_users.is_empty() && (cfg.only_users.contains(&login) || cfg.only_users.contains(&norm_user(&m.author.name)));
+    let listed = !cfg.only_users.is_empty()
+        && (cfg.only_users.contains(&login) || cfg.only_users.contains(&norm_user(&m.author.name)));
     if cfg.subs_only {
         if !(m.author.sub || m.author.member || listed) {
             return None;
@@ -446,14 +571,30 @@ pub fn decide(cfg: &TtsCfg, m: &ChatMsg) -> Option<String> {
     }
     let text = if cfg.mode == Mode::Command {
         let rest = match_command(&m.text, &cfg.command)?;
-        clean_text(&emote_codes(&rest, !cfg.read_custom, cfg.skip_emotes), cfg.max_chars, cfg.skip_links, cfg.skip_smileys)
+        clean_text(
+            &emote_codes(&rest, !cfg.read_custom, cfg.skip_emotes),
+            cfg.max_chars,
+            cfg.skip_links,
+            cfg.skip_smileys,
+        )
     } else {
-        speech_text(&m.parts, cfg.max_chars, cfg.skip_links, cfg.skip_emotes, cfg.skip_smileys, cfg.read_custom)
+        speech_text(
+            &m.parts,
+            cfg.max_chars,
+            cfg.skip_links,
+            cfg.skip_emotes,
+            cfg.skip_smileys,
+            cfg.read_custom,
+        )
     };
     if text.is_empty() {
         return None;
     }
-    Some(if cfg.read_names && !name.is_empty() { format!("{name} diyor ki: {text}") } else { text })
+    Some(if cfg.read_names && !name.is_empty() {
+        format!("{name} diyor ki: {text}")
+    } else {
+        text
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -546,7 +687,12 @@ impl Tts {
                 let max = g.cfg.max_queue.max(1);
                 while g.queue.len() > max {
                     // En eski sohbet mesajı atılır (yoksa en eski sosyal mesaj; denemeler kalır)
-                    match g.queue.iter().position(|x| x.test.is_none() && !x.ext).or_else(|| g.queue.iter().position(|x| x.test.is_none())) {
+                    match g
+                        .queue
+                        .iter()
+                        .position(|x| x.test.is_none() && !x.ext)
+                        .or_else(|| g.queue.iter().position(|x| x.test.is_none()))
+                    {
                         Some(i) => {
                             g.queue.remove(i);
                         }
@@ -572,7 +718,17 @@ impl Tts {
             return;
         }
         if let Some(text) = decide(&cfg, m) {
-            self.push(Item { id: Some(m.id.clone()), text, at: Instant::now(), test: None, ext: false, voice: None }, false);
+            self.push(
+                Item {
+                    id: Some(m.id.clone()),
+                    text,
+                    at: Instant::now(),
+                    test: None,
+                    ext: false,
+                    voice: None,
+                },
+                false,
+            );
         }
     }
 
@@ -627,7 +783,11 @@ pub fn init(app: &AppHandle, hub: &Arc<Hub>) {
     if SUPPORTED {
         let t3 = t.clone();
         let h = hub.clone();
-        let _ = std::thread::Builder::new().name("livechat-tts".into()).spawn(move || crate::crashlog::supervise("livechat-tts", || worker(t3.clone(), h.clone())));
+        let _ = std::thread::Builder::new()
+            .name("livechat-tts".into())
+            .spawn(move || {
+                crate::crashlog::supervise("livechat-tts", || worker(t3.clone(), h.clone()))
+            });
     }
 }
 
@@ -639,7 +799,14 @@ pub fn apply_settings(app: &AppHandle, v: &Value) {
 
 /// Mesaj moderasyonla silindi mi
 fn is_deleted(hub: &Hub, id: &str) -> bool {
-    hub.st.lock().ring.iter().rev().take(300).find(|m| m.id == id).is_some_and(|m| m.deleted)
+    hub.st
+        .lock()
+        .ring
+        .iter()
+        .rev()
+        .take(300)
+        .find(|m| m.id == id)
+        .is_some_and(|m| m.deleted)
 }
 
 #[cfg(windows)]
@@ -651,7 +818,8 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
     let mut synth: Option<super::tts_win::Synth> = None;
     let mut out: Option<(String, OutputStream, OutputStreamHandle)> = None;
     // Edge sesi çalışmazsa kullanılacak Windows sesi (dil kodu → ses kimliği; boş: Windows varsayılanı)
-    let mut win_fallback: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut win_fallback: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     loop {
         // Sıradaki mesaj (20 sn boşta kalınca ses akışı kapatılır)
         let item = {
@@ -668,7 +836,9 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
         };
         let cfg = t.st.lock().cfg.clone();
         if item.ext {
-            if !allowed(&t.app, SOCIAL_FEATURE) || item.at.elapsed().as_secs_f64() > SOCIAL_MAX_DELAY {
+            if !allowed(&t.app, SOCIAL_FEATURE)
+                || item.at.elapsed().as_secs_f64() > SOCIAL_MAX_DELAY
+            {
                 t.emit();
                 continue;
             }
@@ -682,24 +852,42 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
                 continue;
             }
         }
-        let mut ov = item.test.clone().unwrap_or(Override { voice: cfg.voice.clone(), device: cfg.device.clone(), rate: cfg.rate, pitch: cfg.pitch, volume: cfg.volume });
+        let mut ov = item.test.clone().unwrap_or(Override {
+            voice: cfg.voice.clone(),
+            device: cfg.device.clone(),
+            rate: cfg.rate,
+            pitch: cfg.pitch,
+            volume: cfg.volume,
+        });
         if let Some(v) = item.voice.as_ref().filter(|v| !v.is_empty()) {
             ov.voice = v.clone();
         }
         // Edge çevrimiçi sesi (edge:…): olmazsa bu mesaj aynı dildeki Windows sesiyle okunur, sıra beklemez
         let mut edge_wav: Option<Vec<u8>> = None;
         let mut notice: Option<String> = None;
-        if let Some(short) = ov.voice.strip_prefix(super::tts_edge::PREFIX).map(str::to_string) {
+        if let Some(short) = ov
+            .voice
+            .strip_prefix(super::tts_edge::PREFIX)
+            .map(str::to_string)
+        {
             t.st.lock().skip = false;
             match super::tts_edge::synth_wav_blocking(&item.text, &short, ov.rate, ov.pitch) {
                 Ok(w) => edge_wav = Some(w),
                 Err(e) => {
-                    notice = Some(format!("Edge sesi kullanılamadı, Windows sesiyle okundu ({e})"));
+                    notice = Some(format!(
+                        "Edge sesi kullanılamadı, Windows sesiyle okundu ({e})"
+                    ));
                     let lang = short.split('-').next().unwrap_or("").to_lowercase();
                     let fb = win_fallback.entry(lang.clone()).or_insert_with(|| {
                         super::tts_win::voices()
                             .ok()
-                            .and_then(|l| l.into_iter().find(|v| !lang.is_empty() && v.language.to_lowercase().split('-').next() == Some(lang.as_str())))
+                            .and_then(|l| {
+                                l.into_iter().find(|v| {
+                                    !lang.is_empty()
+                                        && v.language.to_lowercase().split('-').next()
+                                            == Some(lang.as_str())
+                                })
+                            })
                             .map(|v| v.id)
                             .unwrap_or_default()
                     });
@@ -726,7 +914,14 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
         }
         let wav = match edge_wav {
             Some(w) => w,
-            None => match synth.as_mut().unwrap().wav(&item.text, &ov.voice, ov.rate, ov.pitch, win_rate(ov.rate), win_pitch(ov.pitch)) {
+            None => match synth.as_mut().unwrap().wav(
+                &item.text,
+                &ov.voice,
+                ov.rate,
+                ov.pitch,
+                win_rate(ov.rate),
+                win_pitch(ov.pitch),
+            ) {
                 Ok(w) => w,
                 Err(e) => {
                     synth = None;
@@ -737,16 +932,24 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
             },
         };
         // Çıkış cihazı (boş: Windows varsayılanı)
-        if out.as_ref().map(|(d, _, _)| d != &ov.device).unwrap_or(true) {
+        if out
+            .as_ref()
+            .map(|(d, _, _)| d != &ov.device)
+            .unwrap_or(true)
+        {
             out = None;
             let host = rodio::cpal::default_host();
             let dev = if ov.device.is_empty() {
                 None
             } else {
-                host.output_devices().ok().and_then(|mut it| it.find(|d| d.name().map(|n| n == ov.device).unwrap_or(false)))
+                host.output_devices().ok().and_then(|mut it| {
+                    it.find(|d| d.name().map(|n| n == ov.device).unwrap_or(false))
+                })
             };
             let opened = match dev {
-                Some(d) => OutputStream::try_from_device(&d).or_else(|_| OutputStream::try_default()),
+                Some(d) => {
+                    OutputStream::try_from_device(&d).or_else(|_| OutputStream::try_default())
+                }
                 None => OutputStream::try_default(),
             };
             match opened {
@@ -765,7 +968,9 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
                 std::thread::sleep(Duration::from_millis(60));
             }
         }
-        let Some((_, _, handle)) = out.as_ref() else { continue };
+        let Some((_, _, handle)) = out.as_ref() else {
+            continue;
+        };
         let sink = match Sink::try_new(handle) {
             Ok(s) => s,
             Err(e) => {
@@ -816,7 +1021,8 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
             g.skip = false;
         }
         t.speaking.store(false, Ordering::Relaxed);
-        t.quiet_until.store(super::model::now_ms() + 800, Ordering::Relaxed);
+        t.quiet_until
+            .store(super::model::now_ms() + 800, Ordering::Relaxed);
         t.emit();
     }
 }
@@ -831,7 +1037,12 @@ fn worker(_t: Arc<Tts>, _hub: Arc<Hub>) {}
 /// Kısayol: sesli okumayı aç / kapat
 pub fn hotkey_toggle(app: &AppHandle) {
     if !SUPPORTED || !allowed(app, FEATURE) {
-        crate::audio::send(crate::audio::Cmd::Beep { freq: 300.0, ms: 160, volume: 0.5, pan: 0.0 });
+        crate::audio::send(crate::audio::Cmd::Beep {
+            freq: 300.0,
+            ms: 160,
+            volume: 0.5,
+            pan: 0.0,
+        });
         super::notice(app, "Sesli okuma kullanılamıyor (PRO / Windows gerekli)");
         return;
     }
@@ -843,7 +1054,14 @@ pub fn hotkey_toggle(app: &AppHandle) {
         lc["tts"]["enabled"] = Value::Bool(on);
     });
     super::beep_onoff(on);
-    super::notice(app, if on { "Sesli okuma açıldı" } else { "Sesli okuma kapatıldı" });
+    super::notice(
+        app,
+        if on {
+            "Sesli okuma açıldı"
+        } else {
+            "Sesli okuma kapatıldı"
+        },
+    );
 }
 
 /// Kısayol: okunanı kes ve kuyruğu boşalt
@@ -896,12 +1114,23 @@ pub async fn livechat_tts_voices() -> Result<Vec<VoiceOut>, String> {
     #[cfg(windows)]
     {
         // Windows sesleri okunamasa da Edge sesleri listelenir
-        let list = tauri::async_runtime::spawn_blocking(super::tts_win::voices).await.map_err(|e| e.to_string())?.unwrap_or_default();
+        let list = tauri::async_runtime::spawn_blocking(super::tts_win::voices)
+            .await
+            .map_err(|e| e.to_string())?
+            .unwrap_or_default();
         let mut out = edge_voice_list().await;
         out.extend(
             list.into_iter()
                 .filter(|v| !v.id.is_empty())
-                .map(|v| VoiceOut { id: v.id, name: v.name, language: v.language, language_name: v.language_name, female: v.female, gender: if v.female { "female" } else { "male" }, engine: v.engine }),
+                .map(|v| VoiceOut {
+                    id: v.id,
+                    name: v.name,
+                    language: v.language,
+                    language_name: v.language_name,
+                    female: v.female,
+                    gender: if v.female { "female" } else { "male" },
+                    engine: v.engine,
+                }),
         );
         Ok(out)
     }
@@ -919,7 +1148,10 @@ pub async fn livechat_audio_outputs() -> Vec<String> {
         use rodio::cpal::traits::HostTrait;
         use rodio::DeviceTrait;
         let host = rodio::cpal::default_host();
-        let mut v: Vec<String> = host.output_devices().map(|it| it.filter_map(|d| d.name().ok()).collect()).unwrap_or_default();
+        let mut v: Vec<String> = host
+            .output_devices()
+            .map(|it| it.filter_map(|d| d.name().ok()).collect())
+            .unwrap_or_default();
         v.dedup();
         v
     })
@@ -934,7 +1166,15 @@ pub fn livechat_tts_status(app: AppHandle) -> TtsStatus {
 
 /// Deneme okuması (kayıtlı olmayan değerlerle; sesli okuma kapalıyken de çalışır)
 #[tauri::command]
-pub fn livechat_tts_test(app: AppHandle, text: String, voice: String, device: String, rate: f64, pitch: f64, volume: f64) -> Result<(), String> {
+pub fn livechat_tts_test(
+    app: AppHandle,
+    text: String,
+    voice: String,
+    device: String,
+    rate: f64,
+    pitch: f64,
+    volume: f64,
+) -> Result<(), String> {
     if !SUPPORTED {
         return Err("Sesli okuma sadece Windows'ta çalışır".into());
     }
@@ -946,9 +1186,25 @@ pub fn livechat_tts_test(app: AppHandle, text: String, voice: String, device: St
     if text.is_empty() {
         return Err("Okunacak metin yok".into());
     }
-    let ov = Override { voice, device, rate: rate.clamp(-10.0, 10.0), pitch: pitch.clamp(-10.0, 10.0), volume: volume.clamp(0.0, 100.0) };
+    let ov = Override {
+        voice,
+        device,
+        rate: rate.clamp(-10.0, 10.0),
+        pitch: pitch.clamp(-10.0, 10.0),
+        volume: volume.clamp(0.0, 100.0),
+    };
     t.st.lock().error = None;
-    t.push(Item { id: None, text, at: Instant::now(), test: Some(ov), ext: false, voice: None }, true);
+    t.push(
+        Item {
+            id: None,
+            text,
+            at: Instant::now(),
+            test: Some(ov),
+            ext: false,
+            voice: None,
+        },
+        true,
+    );
     Ok(())
 }
 
@@ -958,15 +1214,31 @@ pub fn social_text(name: &str, body: &str, read_name: bool, max_chars: usize) ->
     if text.is_empty() {
         return None;
     }
-    let name = if read_name { speech_name(name) } else { String::new() };
-    Some(if name.trim().is_empty() { text } else { format!("{name} diyor ki: {text}") })
+    let name = if read_name {
+        speech_name(name)
+    } else {
+        String::new()
+    };
+    Some(if name.trim().is_empty() {
+        text
+    } else {
+        format!("{name} diyor ki: {text}")
+    })
 }
 
 /// "Mesajlar" overlay'i: gelen arkadaş / takım / grup mesajını sesli oku (PRO: social.messages_tts).
 /// Sohbet okumasıyla aynı kuyruğa girer (üst üste konuşmaz). Aynı kimlik ikinci kez gelirse yok sayılır.
 /// Döner: sıraya alındı mı.
 #[tauri::command]
-pub fn social_tts_speak(app: AppHandle, id: String, name: String, text: String, read_name: Option<bool>, max_chars: Option<usize>, voice: Option<String>) -> Result<bool, String> {
+pub fn social_tts_speak(
+    app: AppHandle,
+    id: String,
+    name: String,
+    text: String,
+    read_name: Option<bool>,
+    max_chars: Option<usize>,
+    voice: Option<String>,
+) -> Result<bool, String> {
     if !SUPPORTED {
         return Err("Sesli okuma sadece Windows'ta çalışır".into());
     }
@@ -974,7 +1246,14 @@ pub fn social_tts_speak(app: AppHandle, id: String, name: String, text: String, 
         return Err("Mesajları sesli okuma PRO üyelere özel".into());
     }
     let t = tts(&app).ok_or("hazır değil")?;
-    let Some(text) = social_text(&name, &text, read_name.unwrap_or(true), max_chars.unwrap_or(200)) else { return Ok(false) };
+    let Some(text) = social_text(
+        &name,
+        &text,
+        read_name.unwrap_or(true),
+        max_chars.unwrap_or(200),
+    ) else {
+        return Ok(false);
+    };
     {
         let mut g = t.st.lock();
         if !id.is_empty() {
@@ -987,7 +1266,17 @@ pub fn social_tts_speak(app: AppHandle, id: String, name: String, text: String, 
             }
         }
     }
-    t.push(Item { id: None, text, at: Instant::now(), test: None, ext: true, voice: voice.filter(|v| !v.trim().is_empty()) }, false);
+    t.push(
+        Item {
+            id: None,
+            text,
+            at: Instant::now(),
+            test: None,
+            ext: true,
+            voice: voice.filter(|v| !v.trim().is_empty()),
+        },
+        false,
+    );
     Ok(true)
 }
 
@@ -1020,14 +1309,27 @@ pub fn tts_speak(
     }
     let cfg = t.st.lock().cfg.clone();
     let ov = Override {
-        voice: voice.map(|v| v.trim().to_string()).filter(|v| !v.is_empty()).unwrap_or(cfg.voice),
+        voice: voice
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .unwrap_or(cfg.voice),
         device: device.unwrap_or(cfg.device),
         rate: rate.unwrap_or(cfg.rate).clamp(-10.0, 10.0),
         pitch: pitch.unwrap_or(cfg.pitch).clamp(-10.0, 10.0),
         volume: volume.unwrap_or(cfg.volume).clamp(0.0, 100.0),
     };
     t.st.lock().error = None;
-    t.push(Item { id: None, text, at: Instant::now(), test: Some(ov), ext: false, voice: None }, false);
+    t.push(
+        Item {
+            id: None,
+            text,
+            at: Instant::now(),
+            test: Some(ov),
+            ext: false,
+            voice: None,
+        },
+        false,
+    );
     Ok(true)
 }
 
@@ -1051,7 +1353,18 @@ mod tests {
     use crate::livechat::model::{AlertInfo, Author};
 
     fn msg(text: &str, sub: bool) -> ChatMsg {
-        let mut m = ChatMsg::new(Platform::Twitch, "1", Kind::Chat, Author { name: "gamer_kaan123".into(), login: "gamer_kaan123".into(), sub, ..Default::default() }, vec![Part::text(text)]);
+        let mut m = ChatMsg::new(
+            Platform::Twitch,
+            "1",
+            Kind::Chat,
+            Author {
+                name: "gamer_kaan123".into(),
+                login: "gamer_kaan123".into(),
+                sub,
+                ..Default::default()
+            },
+            vec![Part::text(text)],
+        );
         m.channel = "twitch:x".into();
         m
     }
@@ -1061,46 +1374,144 @@ mod tests {
         assert_eq!(speech_name("gamer_kaan123"), "gamer kaan");
         assert_eq!(speech_name("Ali.Veli"), "Ali Veli");
         assert_eq!(speech_name("12345"), "12345");
-        assert_eq!(clean_text("çooooook güzel 🔥 www.x.com k*** s**t", 150, true, true), "çoook güzel");
+        assert_eq!(
+            clean_text("çooooook güzel 🔥 www.x.com k*** s**t", 150, true, true),
+            "çoook güzel"
+        );
         assert_eq!(clean_text("bir iki üç dört", 9, true, true), "bir iki");
-        assert_eq!(match_command("!oku merhaba", "!oku"), Some("merhaba".into()));
+        assert_eq!(
+            match_command("!oku merhaba", "!oku"),
+            Some("merhaba".into())
+        );
         assert_eq!(match_command("!okul var", "!oku"), None);
         assert_eq!(match_command("!merhaba", "!"), Some("merhaba".into()));
-        assert_eq!(match_command("!OKU Selam", "!s, !oku"), Some("Selam".into()));
-        let parts = vec![Part::text("bak "), Part::Emote { url: "u".into(), name: "Kappa".into(), custom: false }, Part::text(" "), Part::Link { url: "https://a.com".into(), v: "a.com".into() }, Part::text(" tamam")];
-        assert_eq!(speech_text(&parts, 150, true, true, true, false), "bak tamam");
-        assert_eq!(clean_text("harika :) bu :D çok iyi:) <3 xD ;-) (: saat 10:30 (yani) ^^", 150, true, true), "harika bu çok iyi saat 10:30 (yani)");
+        assert_eq!(
+            match_command("!OKU Selam", "!s, !oku"),
+            Some("Selam".into())
+        );
+        let parts = vec![
+            Part::text("bak "),
+            Part::Emote {
+                url: "u".into(),
+                name: "Kappa".into(),
+                custom: false,
+            },
+            Part::text(" "),
+            Part::Link {
+                url: "https://a.com".into(),
+                v: "a.com".into(),
+            },
+            Part::text(" tamam"),
+        ];
+        assert_eq!(
+            speech_text(&parts, 150, true, true, true, false),
+            "bak tamam"
+        );
+        assert_eq!(
+            clean_text(
+                "harika :) bu :D çok iyi:) <3 xD ;-) (: saat 10:30 (yani) ^^",
+                150,
+                true,
+                true
+            ),
+            "harika bu çok iyi saat 10:30 (yani)"
+        );
         assert_eq!(clean_text("harika :)", 150, true, false), "harika :)");
-        assert_eq!(speech_text(&parts, 150, false, false, true, false), "bak Kappa a.com tamam");
-        assert_eq!(social_text("Ali_Veli", "Pitte görüşürüz 👍", true, 200).as_deref(), Some("Ali Veli diyor ki: Pitte görüşürüz"));
-        assert_eq!(social_text("Ali", "selam", false, 200).as_deref(), Some("selam"));
+        assert_eq!(
+            speech_text(&parts, 150, false, false, true, false),
+            "bak Kappa a.com tamam"
+        );
+        assert_eq!(
+            social_text("Ali_Veli", "Pitte görüşürüz 👍", true, 200).as_deref(),
+            Some("Ali Veli diyor ki: Pitte görüşürüz")
+        );
+        assert_eq!(
+            social_text("Ali", "selam", false, 200).as_deref(),
+            Some("selam")
+        );
         assert_eq!(social_text("Ali", "🔥", true, 200), None);
         // Kanal emojileri / özel görseller yazı olarak gelirse
         let w = |s: String| s.split_whitespace().collect::<Vec<_>>().join(" ");
-        assert_eq!(w(emote_codes("selam :_imageinKedi: nasılsın", true, true)), "selam nasılsın");
-        assert_eq!(w(emote_codes("selam :_imageinKedi::yt: x", false, true)), "selam imagein Kedi yt x");
-        assert_eq!(emote_codes("saat 10:30:45 oldu", true, true), "saat 10:30:45 oldu");
-        assert_eq!(w(emote_codes("bak [emote:37226:KEKW] tamam", false, true)), "bak tamam");
-        assert_eq!(w(emote_codes("bak [emote:37226:KEKW] tamam", true, false)), "bak KEKW tamam");
+        assert_eq!(
+            w(emote_codes("selam :_imageinKedi: nasılsın", true, true)),
+            "selam nasılsın"
+        );
+        assert_eq!(
+            w(emote_codes("selam :_imageinKedi::yt: x", false, true)),
+            "selam imagein Kedi yt x"
+        );
+        assert_eq!(
+            emote_codes("saat 10:30:45 oldu", true, true),
+            "saat 10:30:45 oldu"
+        );
+        assert_eq!(
+            w(emote_codes("bak [emote:37226:KEKW] tamam", false, true)),
+            "bak tamam"
+        );
+        assert_eq!(
+            w(emote_codes("bak [emote:37226:KEKW] tamam", true, false)),
+            "bak KEKW tamam"
+        );
         assert_eq!(emote_codes("not:kod: değil", true, true), "not:kod: değil");
-        assert_eq!(speech_text(&[Part::text("harika :_kanal_emoji: oldu")], 150, true, false, true, false), "harika oldu");
+        assert_eq!(
+            speech_text(
+                &[Part::text("harika :_kanal_emoji: oldu")],
+                150,
+                true,
+                false,
+                true,
+                false
+            ),
+            "harika oldu"
+        );
         // Kanal emojisi: "emote'ları oku" açık olsa da ayrı ayar kapalıysa okunmaz
-        let custom = [Part::Emote { url: "u".into(), name: ":_pitStop:".into(), custom: true }];
+        let custom = [Part::Emote {
+            url: "u".into(),
+            name: ":_pitStop:".into(),
+            custom: true,
+        }];
         assert_eq!(speech_text(&custom, 150, true, false, true, false), "");
-        assert_eq!(speech_text(&custom, 150, true, true, true, true), "pit Stop");
-        assert_eq!(speech_text(&[Part::Emote { url: "u".into(), name: "Kappa".into(), custom: false }], 150, true, false, true, false), "Kappa");
+        assert_eq!(
+            speech_text(&custom, 150, true, true, true, true),
+            "pit Stop"
+        );
+        assert_eq!(
+            speech_text(
+                &[Part::Emote {
+                    url: "u".into(),
+                    name: "Kappa".into(),
+                    custom: false
+                }],
+                150,
+                true,
+                false,
+                true,
+                false
+            ),
+            "Kappa"
+        );
     }
 
     #[test]
     fn decide_rules() {
-        let mut c = TtsCfg { enabled: true, mode: Mode::All, ..Default::default() };
-        assert_eq!(decide(&c, &msg("selam", false)).as_deref(), Some("gamer kaan diyor ki: selam"));
+        let mut c = TtsCfg {
+            enabled: true,
+            mode: Mode::All,
+            ..Default::default()
+        };
+        assert_eq!(
+            decide(&c, &msg("selam", false)).as_deref(),
+            Some("gamer kaan diyor ki: selam")
+        );
         c.read_names = false;
         assert_eq!(decide(&c, &msg("selam", false)).as_deref(), Some("selam"));
         c.mode = Mode::Command;
         c.command = "!oku".into();
         assert_eq!(decide(&c, &msg("selam", false)), None);
-        assert_eq!(decide(&c, &msg("!oku selam", false)).as_deref(), Some("selam"));
+        assert_eq!(
+            decide(&c, &msg("!oku selam", false)).as_deref(),
+            Some("selam")
+        );
         c.mode = Mode::All;
         c.subs_only = true;
         assert_eq!(decide(&c, &msg("selam", false)), None);
@@ -1122,8 +1533,15 @@ mod tests {
         assert_eq!(decide(&c, &msg("selam", false)), None);
         let mut a = msg("", false);
         a.kind = Kind::Raid;
-        a.alert = Some(AlertInfo { kind: "raid".into(), count: Some(42), ..Default::default() });
-        assert_eq!(decide(&c, &a).as_deref(), Some("gamer kaan 42 kişiyle raid yaptı"));
+        a.alert = Some(AlertInfo {
+            kind: "raid".into(),
+            count: Some(42),
+            ..Default::default()
+        });
+        assert_eq!(
+            decide(&c, &a).as_deref(),
+            Some("gamer kaan 42 kişiyle raid yaptı")
+        );
         c.mode = Mode::All;
         c.read_alerts = false;
         assert_eq!(decide(&c, &a), None);

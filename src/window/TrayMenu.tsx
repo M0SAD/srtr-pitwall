@@ -9,6 +9,7 @@ import ListOrdered from "lucide-solid/icons/list-ordered";
 import Move from "lucide-solid/icons/move";
 import EyeOff from "lucide-solid/icons/eye-off";
 import Power from "lucide-solid/icons/power";
+import RefreshCw from "lucide-solid/icons/refresh-cw";
 import "./toast.css";
 
 const ICON: Record<string, () => JSX.Element> = {
@@ -17,6 +18,7 @@ const ICON: Record<string, () => JSX.Element> = {
   events: () => <ListOrdered />,
   edit: () => <Move />,
   hide: () => <EyeOff />,
+  refresh: () => <RefreshCw />,
   quit: () => <Power />,
 };
 

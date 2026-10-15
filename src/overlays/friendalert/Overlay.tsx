@@ -1,0 +1,111 @@
+import { Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { listen } from "@tauri-apps/api/event";
+import type { OverlayProps } from "@/sdk/overlay";
+import { inTauri } from "@/sdk/platform";
+import { useTopic } from "@/sdk/telemetry";
+import { messageBeep } from "@/cloud/social";
+import { FRIEND_ALERT_SHOW, type FriendAlertShow } from "@/host/friendAlert";
+import "./style.css";
+
+const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const hex = (v: unknown, d: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : d);
+const DESIGNS = ["triangle", "circle", "banner"];
+
+// Arkadaş Uyarısı: aynı yarıştaki bir arkadaş uyarı tuşuna basınca (src/host/friendAlert.ts "friend-alert-show")
+// ekranda yanıp sönen ünlem + "DİKKAT" + gönderenin adı. Düzenlerken örnek görünür.
+export default function FriendAlert(props: OverlayProps) {
+  const o = () => props.options;
+  const [alert, setAlert] = createSignal<FriendAlertShow | null>(null);
+  let hideT: ReturnType<typeof setTimeout> | undefined;
+  onMount(() => {
+    if (!inTauri) return;
+    const un = listen<FriendAlertShow>(FRIEND_ALERT_SHOW, (e) => {
+      setAlert(e.payload ?? { name: "" });
+      clearTimeout(hideT);
+      hideT = setTimeout(() => setAlert(null), clamp(num(o().duration, 5), 1, 30) * 1000);
+      if (o().sound !== false) messageBeep(0.3, true);
+    }).catch(() => null);
+    onCleanup(() => {
+      clearTimeout(hideT);
+      void un.then((f) => f?.());
+    });
+  });
+  // Demo: tuşa basılmasa da overlay'in nasıl göründüğü görülsün diye belli aralıklarla örnek uyarı yanıp söner (sessiz)
+  // (ana ekrandaki Demo ve düzen önizlemelerindeki canlı Demo)
+  const status = useTopic("status");
+  // Yalnızca demo açılıp kapanınca değişir (durum paketi sık gelir; zamanlayıcı her pakette sıfırlanmasın)
+  const isDemo = createMemo(() => !!status()?.demo);
+  const durMs = createMemo(() => clamp(num(o().duration, 5), 1, 30) * 1000);
+  const [demoOn, setDemoOn] = createSignal(false);
+  createEffect(() => {
+    if (!isDemo() || props.editing) {
+      setDemoOn(false);
+      return;
+    }
+    const dur = durMs();
+    const period = Math.max(dur + 4000, 12_000);
+    let off: ReturnType<typeof setTimeout> | undefined;
+    const fire = () => {
+      setDemoOn(true);
+      clearTimeout(off);
+      off = setTimeout(() => setDemoOn(false), dur);
+    };
+    const first = setTimeout(fire, 1500);
+    const iv = setInterval(fire, period);
+    onCleanup(() => {
+      clearTimeout(first);
+      clearTimeout(off);
+      clearInterval(iv);
+      setDemoOn(false);
+    });
+  });
+  const DEMO_NAME = "SRTR Pitwall";
+  const view = () => alert() ?? (demoOn() ? { name: DEMO_NAME } : props.editing ? { name: "Erkin Azcan" } : null);
+  const blinking = () => !!alert() || demoOn();
+  const design = () => (DESIGNS.includes(String(o().design)) ? String(o().design) : "triangle");
+  const text = () => String(o().text ?? "").trim() || "DİKKAT";
+  return (
+    <div
+      class={`fa fa-${design()}`}
+      style={{
+        "--fa-k": String(clamp(num(o().size, 100), 40, 300) / 100),
+        "--fa-c": hex(o().color, "#ffcc00"),
+        "--fa-t": hex(o().textColor, "#ffffff"),
+        "--fa-blink": `${(1 / clamp(num(o().speed, 3), 1, 8)).toFixed(3)}s`,
+      }}
+    >
+      <Show when={view()}>
+        {(v) => (
+          <div class="fa-box" classList={{ blink: blinking() }}>
+            <div class="fa-icon">
+              {/* Ünlem yazı karakteri değil şekil: yazı tipinden bağımsız, her zaman tam ortada */}
+              <Show
+                when={design() === "triangle"}
+                fallback={
+                  <svg viewBox="0 0 100 100" class="fa-svg">
+                    <circle class="fa-bg" cx="50" cy="50" r="46" />
+                    <rect class="fa-mark" x="43" y="20" width="14" height="42" rx="7" />
+                    <circle class="fa-mark" cx="50" cy="76" r="8" />
+                  </svg>
+                }
+              >
+                <svg viewBox="0 0 100 88" class="fa-svg">
+                  <path class="fa-bg" d="M50 4 L96 84 L4 84 Z" />
+                  <rect class="fa-mark" x="44" y="30" width="12" height="32" rx="6" />
+                  <circle class="fa-mark" cx="50" cy="72" r="6.5" />
+                </svg>
+              </Show>
+            </div>
+            <div class="fa-txt">
+              <b data-no-i18n>{text()}</b>
+              <Show when={o().showName !== false && v().name}>
+                <span data-no-i18n>{v().name}</span>
+              </Show>
+            </div>
+          </div>
+        )}
+      </Show>
+    </div>
+  );
+}

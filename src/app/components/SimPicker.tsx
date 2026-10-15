@@ -20,7 +20,37 @@ const OPTS: Opt[] = [
     title: "Le Mans Ultimate / rFactor 2 (rF2 Shared Memory Map Plugin gerekir)",
     match: ["lmu", "rf2"],
   },
-  { id: "ams2", label: "AMS2", title: "Automobilista 2 / Project CARS 2 (paylaşımlı bellek: Project CARS 2)", match: ["ams2"] },
+  {
+    id: "ams2",
+    label: "AMS2",
+    title: "Automobilista 2 / Project CARS 2 / Project CARS 3 (oyunda paylaşımlı bellek: Project CARS 2)",
+    match: ["ams2"],
+  },
+  { id: "r3e", label: "R3E", title: "RaceRoom Racing Experience (ek ayar gerekmez)", match: ["r3e"] },
+  {
+    id: "f1",
+    label: "F1",
+    title: "F1 23 / F1 24 / F1 25 — oyunda Ayarlar › Telemetri: UDP telemetri açık, UDP biçimi oyunun yılı, port 20777",
+    match: ["f1"],
+  },
+  {
+    id: "forza",
+    label: "Forza",
+    title: "Forza Motorsport / Forza Horizon 4-5 — oyunda Veri çıkışı (Data Out) açık, IP 127.0.0.1, port 5300. Sadece kendi aracın",
+    match: ["forza"],
+  },
+  {
+    id: "dirt",
+    label: "DiRT",
+    title: "DiRT Rally 2.0 / DiRT Rally / DiRT 4 / GRID — hardware_settings_config.xml: udp enabled=\"true\" extradata=\"3\" port=\"20777\". Sadece kendi aracın",
+    match: ["dirt"],
+  },
+  {
+    id: "beamng",
+    label: "BeamNG",
+    title: "BeamNG.drive — Seçenekler › Diğer › OutGauge açık, IP 127.0.0.1, port 4444. Sadece kendi aracın",
+    match: ["beamng"],
+  },
 ];
 
 // Oyun ikonları: src/assets/simlogos/<id>.png / .svg (bkz. o klasördeki README.md). Dosya yoksa kısa ad yazılır.
@@ -32,6 +62,8 @@ export const ICONS: Record<string, string> = (() => {
   for (const [path, url] of Object.entries(mods).sort(([x], [y]) => Number(/\.svg$/i.test(x)) - Number(/\.svg$/i.test(y)))) {
     out[path.split("/").pop()!.replace(/\.(png|svg)$/i, "").toLowerCase()] = url;
   }
+  // Diğer dosya adları: raceroom.png -> r3e
+  if (!out.r3e && out.raceroom) out.r3e = out.raceroom;
   return out;
 })();
 
@@ -57,7 +89,7 @@ export function SimPicker() {
   };
 
   return (
-    <div class="seg" title="Simülasyon">
+    <div class="seg sim-grid" title="Simülasyon">
       <For each={OPTS}>
         {(o) => (
           <button

@@ -283,6 +283,13 @@
 .lc-cap-line + .lc-cap-line {
   margin-top: 3px;
 }
+/* Çevrilen altyazının özgün metni */
+.lc-cap-orig {
+  margin-top: 1px;
+  font-size: 0.62em;
+  opacity: 0.7;
+  font-style: italic;
+}
 
 /* Alta yaslı liste: overlay sabit yükseklikte bir kutudur (ayar: Yükseklik). İzleyici çubuğu / anket / altyazı üstte
    durur; mesaj listesi kalan alanı doldurur ve mesajlar ALT kenardan başlayıp yukarı doğru birikir (tek mesaj da en
