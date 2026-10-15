@@ -39,6 +39,7 @@ import { TopLinks } from "./components/TopLinks";
 import { VoiceDock } from "./components/VoiceDock";
 import { VoiceRoomsNav } from "./components/VoiceRoomsNav";
 import { roomsTotal, watchRoomsBackground } from "@/voice/roomsStore";
+import "@/voice/moveWatch";
 
 // Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
 // (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)

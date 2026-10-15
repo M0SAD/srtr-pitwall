@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-341
+
+Supabase'de `c122_guncelleme.sql` çalıştırılmalı (c121 de çalıştırılmadıysa önce o).
+
+- Ses odalarında sağ tık menüsü: oda içindeki kişi kutularına ve sol menüdeki kişilere sağ tıklayınca (ya da tıklayınca) imlecin yanında kişi menüsü açılır: arkadaş ekle, ses seviyesi, benim için sustur, söz ver / al, yetki, çıkar / uzaklaştır. Başka odadaki kişiler için de açılır (arkadaş ekle, taşı).
+- Üyeyi başka odaya taşıma: yönetici / moderatör bir kişiyi (oda kutusundan ya da sol menüden) fareyle tutup sol menüdeki başka bir odanın üstüne bırakır; ya da kişi menüsündeki "Başka odaya taşı" listesinden seçer. Taşınan kişinin uygulaması kendiliğinden yeni odaya geçer ve "X seni Y odasına taşıdı" yazısı görünür. Özel odalarda davet kodu ve doluluk aranmaz.
+- Kim taşıyabilir: kişinin bulunduğu odada ve hedef odada yönetici / moderatör olanlar; site yöneticileri ve Ses Odası Moderatörleri her yerde. Oda sahibini / yöneticisini yalnızca site yöneticisi taşır. PRO'ya özel odaya PRO olmayan, uzaklaştırılmış kişi o odaya taşınamaz.
+
 ## 151026-340
 
 Supabase'de `c121_guncelleme.sql` çalıştırılmalı.

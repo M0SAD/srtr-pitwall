@@ -2,32 +2,25 @@
 // sağda açılır panel: Sohbet (c121) / Söz sırası / Arkadaş davet et / Oda ayarları. Kişiye tıklayınca kişi menüsü açılır.
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js";
-import { Portal } from "solid-js/web";
 import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { initialOf } from "@/cloud/social";
 import { cachedAvatar, loadAvatars } from "@/cloud/profile";
-import { realAdmin } from "@/cloud/account";
 import { settings, uiPref } from "@/sdk/settings";
 import {
   voiceDismissRequest,
   voiceExtend,
   voiceGrant,
   voiceGrantNext,
-  voiceKick,
-  voiceModSet,
   voiceRequestFloor,
   voiceRevoke,
   voiceRoomNewCode,
   voiceRoomUpdate,
-  voiceSetRole,
   type VoiceRole,
 } from "@/cloud/voiceRooms";
 import {
   amAdmin,
   amMod,
-  announce,
-  announceKick,
   canSpeak,
   grantUntil,
   inputMode,
@@ -36,37 +29,22 @@ import {
   levelOf,
   requested,
   roleOf,
-  setUserVolume,
   toggleDeafen,
-  toggleLocalMute,
   toggleMic,
   transmitting,
-  userVolumes,
   voice,
   type VoiceMember,
 } from "@/voice/engine";
 import { chatErr, chatHasOlder, chatLoading, chatMsgs, chatUnread, deleteChat, loadOlder, sendChat, senderName, setChatVisible } from "@/voice/chatStore";
 import { askConfirm } from "../confirm";
 import { RoomIcon } from "../components/RoomIcon";
-import { Slider, Switch } from "../components/SettingsForm";
+import { movedNotice } from "@/voice/moveWatch";
+import { act, actErr, openPersonMenu, personDrag, personMenu, setActErr, startPersonDrag, tint } from "../components/VoicePeople";
+import { Switch } from "../components/SettingsForm";
 import { LinkA, LinkPreview, splitLinks } from "../components/LinkPreview";
 import * as I from "../icons";
 import { go } from "../ui";
-import {
-  Countdown,
-  FriendButton,
-  InvitePanel,
-  KIND_LABEL,
-  ROLE_LABEL,
-  RoomSettings,
-  TALK_CHOICES,
-  clock,
-  errText,
-  fmtSec,
-  isGlobalMod,
-  loadGlobalMods,
-  waitText,
-} from "./voiceRoomParts";
+import { Countdown, InvitePanel, KIND_LABEL, RoomSettings, TALK_CHOICES, clock, errText, fmtSec, waitText } from "./voiceRoomParts";
 
 type Side = "chat" | "queue" | "invite" | "settings" | "";
 const [side, setSide] = uiPref<Side>("voice.room.side", "chat");
@@ -75,35 +53,9 @@ const me = () => session()?.user.id ?? "";
 const moderated = () => (voice.state()?.mode ?? voice.room()?.mode) === "moderated";
 const roleFor = (u: string): VoiceRole => (voice.room()?.owner === u ? "owner" : roleOf(u));
 
-/** Kişiye özgü yumuşak arka plan rengi (Discord'daki gibi kutular birbirinden ayrılsın) */
-const tint = (id: string) => {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
-  return `hsl(${(h >>> 0) % 360} 20% 22%)`;
-};
-
-/** Yönetici işlemi: hata gösterilir, başarıda odadakilere bildirilir */
-const [actErr, setActErr] = createSignal("");
-async function act(f: () => Promise<unknown>) {
-  setActErr("");
-  try {
-    await f();
-    announce();
-  } catch (e) {
-    setActErr(errText(e));
-  }
-}
-
 export function VoiceRoomStage() {
   const r = () => voice.room();
   const st = () => voice.state();
-  const [menu, setMenu] = createSignal<{ user: string; x: number; y: number } | null>(null);
-  // Kişi odadan çıkınca menüsü kapanır
-  const menuMember = createMemo(() => {
-    const u = menu()?.user;
-    return u ? (voice.members().find((x) => x.user_id === u) ?? null) : null;
-  });
-
   createEffect(() => {
     const ids = voice.members().map((m) => m.user_id);
     if (ids.length) void loadAvatars(ids);
@@ -184,6 +136,13 @@ export function VoiceRoomStage() {
           </Show>
         </header>
 
+        <Show when={movedNotice()}>
+          {(n) => (
+            <p class="vr-hint vrs-msg vrs-moved">
+              <I.ArrowRightLeft /> {n().by ? t("{0} seni “{1}” odasına taşıdı.", n().by, n().room) : t("“{0}” odasına taşındın.", n().room)}
+            </p>
+          )}
+        </Show>
         <Show when={actErr() || voice.error()}>
           <p class="vr-err vrs-msg">{actErr() || voice.error()}</p>
         </Show>
@@ -193,18 +152,7 @@ export function VoiceRoomStage() {
 
         <div class="vrs-stage">
           <div class="vrs-grid" style={{ "--cols": String(cols()) }}>
-            <For each={sorted()}>
-              {(m) => (
-                <Tile
-                  m={m}
-                  open={menu()?.user === m.user_id}
-                  onOpen={(e) => {
-                    const b = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    setMenu(menu()?.user === m.user_id ? null : { user: m.user_id, x: b.left + b.width / 2, y: b.top + b.height / 2 });
-                  }}
-                />
-              )}
-            </For>
+            <For each={sorted()}>{(m) => <Tile m={m} />}</For>
           </div>
         </div>
 
@@ -235,8 +183,6 @@ export function VoiceRoomStage() {
           </div>
         </aside>
       </Show>
-
-      <Show when={menuMember()}>{(m) => <MemberMenu m={m()} x={menu()!.x} y={menu()!.y} onClose={() => setMenu(null)} />}</Show>
     </div>
   );
 }
@@ -258,7 +204,7 @@ function TopBtn(props: { on: boolean; title: string; badge?: number; onClick: ()
 // Kişi kutusu
 // ---------------------------------------------------------------------------
 
-function Tile(props: { m: VoiceMember; open: boolean; onOpen: (e: MouseEvent) => void }) {
+function Tile(props: { m: VoiceMember }) {
   const u = () => props.m.user_id;
   const mine = () => u() === me();
   const role = () => roleFor(u());
@@ -267,12 +213,15 @@ function Tile(props: { m: VoiceMember; open: boolean; onOpen: (e: MouseEvent) =>
   const muted = () => voice.localMuted().includes(u());
   const talking = () => isTalking(u()) && (mine() ? transmitting() : speaks());
   const av = () => cachedAvatar(u());
+  const who = () => ({ user: u(), name: props.m.name, room: voice.room()?.id ?? "" });
   return (
     <button
       class="vrs-tile"
-      classList={{ talking: talking(), open: props.open, me: mine(), listener: moderated() && !speaks() }}
+      classList={{ talking: talking(), open: personMenu()?.user === u(), me: mine(), listener: moderated() && !speaks(), dragged: personDrag()?.user === u() }}
       style={{ "--tint": tint(u()), "--lv": String(levelOf(u())) }}
-      onClick={(e) => props.onOpen(e)}
+      onClick={(e) => openPersonMenu(e, who())}
+      onContextMenu={(e) => openPersonMenu(e, who())}
+      onPointerDown={(e) => startPersonDrag(e, { user: u(), name: props.m.name, from: voice.room()?.id ?? "" })}
     >
       <span class="vrs-av">
         <Show when={av()} fallback={<span>{initialOf(props.m.name)}</span>}>
@@ -312,176 +261,6 @@ function Tile(props: { m: VoiceMember; open: boolean; onOpen: (e: MouseEvent) =>
         </Show>
       </span>
     </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Kişi menüsü (kutuya tıklayınca)
-// ---------------------------------------------------------------------------
-
-function MemberMenu(props: { m: VoiceMember; x: number; y: number; onClose: () => void }) {
-  let el!: HTMLDivElement;
-  const room = () => voice.room()!;
-  const u = () => props.m.user_id;
-  const mine = () => u() === me();
-  const role = () => roleFor(u());
-  const until = () => grantUntil(u());
-  const muted = () => voice.localMuted().includes(u());
-  const canManage = () => amMod() && !mine() && !["owner", "admin"].includes(role());
-  const [pos, setPos] = createSignal({ left: props.x, top: props.y });
-  void loadGlobalMods();
-
-  // Ekrandan taşmasın
-  const place = () => {
-    const w = el.offsetWidth,
-      h = el.offsetHeight;
-    setPos({
-      left: Math.max(8, Math.min(window.innerWidth - w - 8, props.x - w / 2)),
-      top: Math.max(8, Math.min(window.innerHeight - h - 8, props.y - h / 3)),
-    });
-  };
-  onMount(() => {
-    place();
-    const ro = new ResizeObserver(place);
-    ro.observe(el);
-    const down = (e: PointerEvent) => !el.contains(e.target as Node) && !(e.target as HTMLElement).closest?.(".vrs-tile") && props.onClose();
-    const key = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
-    document.addEventListener("pointerdown", down, true);
-    document.addEventListener("keydown", key);
-    onCleanup(() => {
-      ro.disconnect();
-      document.removeEventListener("pointerdown", down, true);
-      document.removeEventListener("keydown", key);
-    });
-  });
-
-  return (
-    <Portal>
-      <div class="vrs-menu" ref={el} style={{ left: `${pos().left}px`, top: `${pos().top}px` }}>
-        <div class="vrs-menu-head" style={{ "--tint": tint(u()) }}>
-          <span class="vrs-av">
-            <Show when={cachedAvatar(u())} fallback={<span>{initialOf(props.m.name)}</span>}>
-              <img src={cachedAvatar(u())} alt="" />
-            </Show>
-          </span>
-          <div>
-            <b data-no-i18n>{props.m.name}</b>
-            <Show when={role() !== "member"}>
-              <span class={`vr-role r-${role()}`}>
-                {role() === "owner" ? <I.Crown /> : null}
-                {t(ROLE_LABEL[role()])}
-              </span>
-            </Show>
-          </div>
-        </div>
-        <div class="vrs-menu-body">
-          <Show when={mine()}>
-            <small class="muted">{t("Bu sensin. Mikrofon ve ses için alttaki düğmeleri kullan.")}</small>
-          </Show>
-          <Show when={!mine()}>
-            <FriendButton user={u()} />
-            <div class="vr-vol">
-              <span>Ses</span>
-              <Slider value={userVolumes()[u()] ?? 100} min={0} max={200} step={5} unit="%" onInput={(v) => setUserVolume(u(), v)} />
-            </div>
-            <button class="btn small" onClick={() => toggleLocalMute(u())}>
-              {muted() ? <I.Volume2 /> : <I.VolumeX />} {muted() ? t("Sesini aç") : t("Benim için sustur")}
-            </button>
-          </Show>
-          <Show when={moderated() && amMod() && !mine() && !["owner", "admin", "mod", "speaker"].includes(role())}>
-            <div class="vr-mem-mod">
-              <Show
-                when={until()}
-                fallback={
-                  <button class="btn small primary" onClick={() => void act(() => voiceGrant(room().id, u()))}>
-                    <I.Mic /> Söz ver
-                  </button>
-                }
-              >
-                <button class="btn small" onClick={() => void act(() => voiceExtend(room().id, u(), 30))}>
-                  <I.TimerReset /> +30 sn
-                </button>
-                <button class="btn small danger" onClick={() => void act(() => voiceRevoke(room().id, u()))}>
-                  <I.MicOff /> Sözü al
-                </button>
-              </Show>
-            </div>
-          </Show>
-          <Show when={amAdmin() && !mine() && role() !== "owner"}>
-            <div class="vr-mem-mod">
-              <small class="muted">Yetki:</small>
-              <For each={["member", "speaker", "mod", "admin"] as VoiceRole[]}>
-                {(x) => (
-                  <button
-                    class="btn small"
-                    classList={{ on: role() === x }}
-                    disabled={role() === x}
-                    onClick={() => void act(() => voiceSetRole(room().id, u(), x === "member" ? null : (x as "admin" | "mod" | "speaker")))}
-                  >
-                    {t(ROLE_LABEL[x])}
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
-          <Show when={realAdmin() && !mine() && role() !== "owner"}>
-            <div class="vr-mem-mod">
-              <Show
-                when={isGlobalMod(u())}
-                fallback={
-                  <button class="btn small" onClick={() => void act(() => voiceModSet(u(), true).then(loadGlobalMods))}>
-                    <I.ShieldCheck /> Ses Odası Moderatörü yap
-                  </button>
-                }
-              >
-                <small class="muted">{t("Ses Odası Moderatörü (bütün odalarda)")}</small>
-                <button class="btn small" onClick={() => void act(() => voiceModSet(u(), false).then(loadGlobalMods))}>
-                  Moderatörlüğü kaldır
-                </button>
-              </Show>
-            </div>
-          </Show>
-          <Show when={canManage()}>
-            <div class="vr-mem-mod">
-              <button
-                class="btn small"
-                onClick={() =>
-                  void act(async () => {
-                    await voiceKick(room().id, u(), 0);
-                    announceKick(u());
-                  })
-                }
-              >
-                <I.UserX /> Çıkar
-              </button>
-              <button
-                class="btn small warn"
-                onClick={() =>
-                  void act(async () => {
-                    await voiceKick(room().id, u(), 10);
-                    announceKick(u());
-                  })
-                }
-              >
-                <I.Ban /> 10 dk uzaklaştır
-              </button>
-              <button
-                class="btn small danger"
-                onClick={async () => {
-                  if (!(await askConfirm(t("{0} bu odaya bir daha giremesin mi?", props.m.name), { danger: true, ok: t("Kalıcı yasakla") }))) return;
-                  await act(async () => {
-                    await voiceKick(room().id, u(), null);
-                    announceKick(u());
-                  });
-                }}
-              >
-                <I.Ban /> Kalıcı yasakla
-              </button>
-            </div>
-          </Show>
-        </div>
-      </div>
-    </Portal>
   );
 }
 

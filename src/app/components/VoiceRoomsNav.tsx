@@ -13,6 +13,7 @@ import type { VoiceRoomRow } from "@/cloud/voiceRooms";
 import { canSpeak, inputMode, isTalking, joinRoom, leaveRoom, toggleDeafen, toggleMic, transmitting, voice } from "@/voice/engine";
 import { peopleIn, roomSections, setCreateOpen, watchRooms } from "@/voice/roomsStore";
 import { RoomIcon } from "./RoomIcon";
+import { DragGhost, PersonMenuHost, canMoveFrom, dropRoom, moveMsg, openPersonMenu, personDrag, personMenu, startPersonDrag } from "./VoicePeople";
 import { go, sub } from "../ui";
 import * as I from "../icons";
 import "../voicerooms.css";
@@ -37,8 +38,9 @@ function RoomItem(props: { r: VoiceRoomRow }) {
       ? voice.members().map((m) => ({ id: m.user_id, name: m.name, live: true, muted: m.muted, deaf: m.deaf }))
       : peopleIn(props.r.id).map((p) => ({ id: p.user_id, name: p.name ?? "?", live: false }));
   const talking = (p: NavPerson) => p.live && isTalking(p.id) && (p.id === me() ? transmitting() : canSpeak(p.id));
+  const drop = () => !!personDrag() && dropRoom() === props.r.id;
   return (
-    <>
+    <div class="vrn-drop" data-vr-drop={props.r.id} classList={{ over: drop(), dragging: !!personDrag() }}>
       <button
         class="vrn-room"
         classList={{ active: here() && sub() !== "settings" && sub() !== "all", here: here(), dim: props.r.can_enter === false }}
@@ -72,7 +74,19 @@ function RoomItem(props: { r: VoiceRoomRow }) {
         <div class="vrn-people">
           <For each={people().slice(0, MAX_PEOPLE)}>
             {(p) => (
-              <div class="vrn-person" classList={{ talking: talking(p), me: p.id === me() }}>
+              <div
+                class="vrn-person"
+                classList={{
+                  talking: talking(p),
+                  me: p.id === me(),
+                  open: personMenu()?.user === p.id,
+                  dragged: personDrag()?.user === p.id,
+                  movable: canMoveFrom(props.r.id),
+                }}
+                onClick={(e) => openPersonMenu(e, { user: p.id, name: p.name, room: props.r.id })}
+                onContextMenu={(e) => openPersonMenu(e, { user: p.id, name: p.name, room: props.r.id })}
+                onPointerDown={(e) => startPersonDrag(e, { user: p.id, name: p.name, from: props.r.id })}
+              >
                 <span class="vrn-pav">
                   <Show when={cachedAvatar(p.id)} fallback={<span>{initialOf(p.name)}</span>}>
                     <img src={cachedAvatar(p.id)} alt="" />
@@ -95,7 +109,7 @@ function RoomItem(props: { r: VoiceRoomRow }) {
           </Show>
         </div>
       </Show>
-    </>
+    </div>
   );
 }
 
@@ -215,7 +229,17 @@ export function VoiceRoomsNav() {
             )}
           </For>
         </div>
+        <Show when={moveMsg()}>
+          {(m) => (
+            <div class="vrn-toast" classList={{ ok: m().ok }}>
+              {m().ok ? <I.ArrowRightLeft /> : <I.TriangleAlert />}
+              <span>{m().text}</span>
+            </div>
+          )}
+        </Show>
         <MePanel />
+        <PersonMenuHost />
+        <DragGhost />
       </Show>
     </div>
   );

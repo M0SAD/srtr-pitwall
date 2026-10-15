@@ -269,3 +269,28 @@ export interface VoicePerson {
 }
 /** Listede görünen odalarda şu an kimler var (sunucu eskiyse boş) */
 export const voiceRoomsPeople = () => rpc<VoicePerson[]>("voice_rooms_people", {}).then((r) => r ?? []);
+
+// ---- c122: üyeyi başka odaya taşı (sürükle-bırak)
+export const voiceMove = (user: string, to: string) => rpc("voice_move", { p_user: user, p_to: to });
+export interface VoiceMoveInfo {
+  to_room: string;
+  room_name: string;
+  by_name: string | null;
+  created_at: string;
+}
+export const voiceMyMove = () => rpc<VoiceMoveInfo[]>("voice_my_move", {}).then((r) => r?.[0] ?? null);
+
+/** Beni başka odaya taşıdılar (Realtime; kayıt yalnızca bana görünür) */
+export async function onVoiceMoved(uid: string, cb: () => void): Promise<() => void> {
+  const c = await realtime();
+  if (!c) return () => {};
+  const filter = `user_id=eq.${uid}`;
+  const ch: RealtimeChannel = c
+    .channel(`vmove-${uid}-${Math.random().toString(36).slice(2, 7)}`)
+    .on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "voice_moves", filter }, () => cb())
+    .on("postgres_changes" as any, { event: "UPDATE", schema: "public", table: "voice_moves", filter }, () => cb())
+    .subscribe();
+  return () => {
+    c.removeChannel(ch);
+  };
+}

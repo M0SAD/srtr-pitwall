@@ -2139,3 +2139,173 @@ button.vrs-pill {
   white-space: normal;
   overflow: visible;
 }
+
+/* ---- Sağ tık menüsü ve odalar arası taşıma (151026-341) */
+.vrn-person {
+  cursor: pointer;
+  user-select: none;
+}
+.vrn-person.movable {
+  cursor: grab;
+}
+.vrn-person.open {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.vrn-person.dragged,
+.vrs-tile.dragged {
+  opacity: 0.45;
+}
+.vrn-drop {
+  border-radius: 7px;
+  transition:
+    background 0.1s,
+    box-shadow 0.1s;
+}
+.vrn-drop.over {
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--green) 70%, transparent);
+}
+body.vr-dragging,
+body.vr-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+.vr-ghost {
+  position: fixed;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  max-width: 260px;
+  padding: 7px 12px 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px #000a;
+  pointer-events: none;
+}
+.vr-ghost .vrn-pav {
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+}
+.vr-ghost small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vr-ghost.ok {
+  border-color: var(--green);
+}
+.vr-ghost.ok small {
+  color: var(--green);
+}
+.vrn-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--red) 14%, var(--bg-3));
+  color: #ffb3b5;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.vrn-toast.ok {
+  background: color-mix(in srgb, var(--green) 14%, var(--bg-3));
+  color: var(--green);
+}
+.vrn-toast svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-top: 1px;
+}
+.vrs-menu-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.vrs-menu-room svg {
+  width: 13px;
+  height: 13px;
+}
+.vrs-move {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.vrs-move > small:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+.vrs-move svg {
+  width: 13px;
+  height: 13px;
+}
+.vrs-move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.vrs-move-room {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #c5cbd6;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.vrs-move-room:hover:not(:disabled) {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.vrs-move-room > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vrs-move-room em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--green) 20%, transparent);
+  color: var(--green);
+}
+.vrs-move-room .room-emoji {
+  font-size: 14px;
+}
+.vrs-moved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vrs-moved svg {
+  width: 15px;
+  height: 15px;
+}
