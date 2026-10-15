@@ -162,8 +162,8 @@ export function VoiceRoomSettings() {
           <div>
             <span>Gürültü engelleme</span>
             <small>
-              Güçlü: yapay zekâ tabanlı gürültü engelleme (RNNoise) klavye, fan, araba, köpek, ortam konuşması gibi sesleri konuşmandan ayırır.
-              Standart: Windows / tarayıcı gürültü bastırma. Ayrıca 90 Hz altı uğultu her zaman kesilir.
+              Güçlü: yapay zekâ tabanlı gürültü engelleme (RNNoise) klavye, fan, araba, köpek, ortam konuşması gibi sesleri konuşmandan ayırır. Standart:
+              Windows / tarayıcı gürültü bastırma. Ayrıca 90 Hz altı uğultu her zaman kesilir.
             </small>
           </div>
           <div class="seg">
@@ -186,8 +186,8 @@ export function VoiceRoomSettings() {
           <div>
             <span>Algılama eşiği</span>
             <small>
-              Sesin bu seviyenin altındaysa hiç gönderilmez (nefes, uzaktan gelen sesler). Otomatik: ortam gürültüsünü ölçer, eşiği kendisi
-              ayarlar. Bas-konuşta da geçerlidir.
+              Sesin bu seviyenin altındaysa hiç gönderilmez (nefes, uzaktan gelen sesler). Otomatik: ortam gürültüsünü ölçer, eşiği kendisi ayarlar. Bas-konuşta
+              da geçerlidir.
             </small>
           </div>
           <div class="seg">
@@ -254,9 +254,7 @@ export function VoiceRoomSettings() {
           </div>
           <div class="vr-test-row">
             <small class="muted">
-              {gateMode() === "off"
-                ? t("Eşik kapalı")
-                : t("Eşik: {0} dB", Math.round(gateMode() === "manual" ? gateDb() : micMeter.thr()))}
+              {gateMode() === "off" ? t("Eşik kapalı") : t("Eşik: {0} dB", Math.round(gateMode() === "manual" ? gateDb() : micMeter.thr()))}
               {testing() ? ` · ${micMeter.open() ? t("Ses gidiyor") : t("Kapalı (sessiz)")}` : ""}
             </small>
             <span class="vr-test-sp" />
@@ -285,9 +283,7 @@ export function VoiceRoomSettings() {
               </Show>
             </Show>
           </div>
-          <p class="muted small">
-            Konuşurken çubuk eşiği geçmeli, sessizken altında kalmalı. Kendini duymak için kulaklık kullan (hoparlörde yankı yapar).
-          </p>
+          <p class="muted small">Konuşurken çubuk eşiği geçmeli, sessizken altında kalmalı. Kendini duymak için kulaklık kullan (hoparlörde yankı yapar).</p>
         </div>
 
         <Show when={gateMode() !== "off"}>
@@ -342,8 +338,8 @@ export function VoiceRoomSettings() {
       <section class="panel vr-audio">
         <h3>Overlay</h3>
         <p class="muted small">
-          “Ses Odası” overlay'i oyunda odadakileri gösterir: konuşanın adı yanar, mikrofonu kapalı olanlar ve söz hakkı süresi görünür.
-          Overlaylarım sayfasından aç.
+          “Ses Odası” overlay'i oyunda odadakileri gösterir: konuşanın adı yanar, mikrofonu kapalı olanlar ve söz hakkı süresi görünür. Overlaylarım sayfasından
+          aç.
         </p>
         <button class="btn small" onClick={() => go("overlays")}>
           Overlaylarım'a git

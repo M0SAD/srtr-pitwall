@@ -22,6 +22,8 @@ export interface VoiceRoomRow {
   members: number;
   my_role: VoiceRole | null;
   is_mine: boolean;
+  /** c117: boş kalınca 1 saat sonra silinir (yönetici olmayanların odaları) */
+  auto_delete?: boolean;
 }
 
 export interface VoiceJoin {

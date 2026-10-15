@@ -608,3 +608,23 @@
 .vr-test-sp {
   flex: 1;
 }
+
+.vr-hide {
+  display: none;
+}
+.vr-room.here {
+  border-color: color-mix(in srgb, var(--green) 55%, transparent);
+  background: color-mix(in srgb, var(--green) 7%, var(--bg-3));
+}
+.vr-here {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--green);
+  padding: 0 6px;
+}
+.vr-here svg {
+  width: 14px;
+  height: 14px;
+}

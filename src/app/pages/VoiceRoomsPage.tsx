@@ -5,10 +5,11 @@
 import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { initialOf } from "@/cloud/social";
+import { friendRequest, friendRespond, initialOf, myFriends, type Friend } from "@/cloud/social";
 import { cachedAvatar, loadAvatars } from "@/cloud/profile";
 import { myTeams, type MyTeam } from "@/cloud/teams";
 import { settings } from "@/sdk/settings";
+import { config, isPro, realAdmin, saveConfig } from "@/cloud/account";
 import {
   voiceDismissRequest,
   voiceExtend,
@@ -85,13 +86,15 @@ export function VoiceRoomsPage(props: { sub?: string }) {
         <VoiceRoomSettings />
       </Show>
       <Show when={props.sub !== "settings"}>
-      <Show when={cloudEnabled} fallback={<p class="muted">Bulut bağlantısı yapılandırılmamış.</p>}>
-        <Show when={session()} fallback={<p class="muted">Ses odalarını kullanmak için giriş yapmalısın (Hesap).</p>}>
-          <Show when={voice.room() || voice.status() === "connecting" || voice.status() === "reconnecting"} fallback={<Lobby />}>
-            <RoomView />
+        <Show when={cloudEnabled} fallback={<p class="muted">Bulut bağlantısı yapılandırılmamış.</p>}>
+          <Show when={session()} fallback={<p class="muted">Ses odalarını kullanmak için giriş yapmalısın (Hesap).</p>}>
+            <Show when={voice.room() || voice.status() === "connecting" || voice.status() === "reconnecting"} fallback={<Lobby />}>
+              <RoomView />
+              {/* Odadayken de bütün odalar görünür; başka odaya "Gir" bu odadan çıkıp oraya geçer */}
+              <Lobby inRoom />
+            </Show>
           </Show>
         </Show>
-      </Show>
       </Show>
     </div>
   );
@@ -101,7 +104,7 @@ export function VoiceRoomsPage(props: { sub?: string }) {
 // Oda listesi
 // ---------------------------------------------------------------------------
 
-function Lobby() {
+function Lobby(props: { inRoom?: boolean }) {
   const [list, { refetch }] = createResource(() => voiceRooms().catch((e) => (setErr(errText(e)), [] as VoiceRoomRow[])));
   const [err, setErr] = createSignal("");
   const [code, setCode] = createSignal("");
@@ -110,6 +113,14 @@ function Lobby() {
   const iv = window.setInterval(() => void refetch(), 15000);
   onCleanup(() => clearInterval(iv));
 
+  // Oda kurma izni (c117, Yönetim: app_config.voice_create); sunucu ayrıca denetler
+  const createWho = () => config()?.voice_create ?? "pro";
+  const [teamsAdm] = createResource(() => (createWho() === "team" && !realAdmin() ? myTeams().catch(() => [] as MyTeam[]) : Promise.resolve([] as MyTeam[])));
+  const canCreate = () =>
+    realAdmin() ||
+    createWho() === "all" ||
+    ((createWho() === "pro" || createWho() === "team") && isPro()) ||
+    (createWho() === "team" && (teamsAdm() ?? []).some((x) => x.role === "owner" || x.role === "admin"));
   const mine = () => (list() ?? []).filter((r) => r.is_mine);
   const team = () => (list() ?? []).filter((r) => !r.is_mine && r.kind === "team");
   const others = () => (list() ?? []).filter((r) => !r.is_mine && r.kind !== "team");
@@ -123,21 +134,23 @@ function Lobby() {
 
   return (
     <>
-      <Show when={voice.status() === "error" && voice.error()}>
+      <Show when={!props.inRoom && voice.status() === "error" && voice.error()}>
         <p class="vr-err">{voice.error()}</p>
       </Show>
       <section class="panel vr-intro">
         <div class="vr-intro-txt">
-          <h3>Ses Odaları</h3>
-          <p class="muted small">
+          <h3>{props.inRoom ? t("Odalar") : t("Ses Odaları")}</h3>
+          <p class="muted small" classList={{ "vr-hide": !!props.inRoom }}>
             Takımınla ya da turnuvada sesli konuş. Konuşmalar kaydedilmez. Kalabalık odalarda “söz hakkıyla” modunu seç: yöneticiler süreli söz verir, diğerleri
             sıraya girer.
           </p>
         </div>
         <div class="vr-intro-act">
-          <button class="btn primary" onClick={() => setCreating(!creating())}>
-            <I.Plus /> Oda kur
-          </button>
+          <Show when={canCreate()}>
+            <button class="btn primary" onClick={() => setCreating(!creating())}>
+              <I.Plus /> Oda kur
+            </button>
+          </Show>
           <form
             class="vr-code"
             onSubmit={(e) => {
@@ -152,6 +165,29 @@ function Lobby() {
           </form>
         </div>
       </section>
+      <Show when={realAdmin()}>
+        <section class="panel vr-admin">
+          <div class="row">
+            <div>
+              <span>Kimler oda kurabilir</span>
+              <small>
+                Odalara herkes girebilir; bu ayar sadece yeni oda kurmayı sınırlar. Yöneticiler her zaman kurar ve odaları kalıcıdır; diğerlerinin odası içinde
+                kimse kalmadıktan 1 saat sonra silinir. Yalnızca yöneticiler görür.
+              </small>
+            </div>
+            <select
+              class="input"
+              value={createWho()}
+              onChange={(e) => void saveConfig({ voice_create: e.currentTarget.value as "admin" | "team" | "all" }).catch((x) => setErr(errText(x)))}
+            >
+              <option value="admin">{t("Sadece yöneticiler")}</option>
+              <option value="pro">{t("PRO üyeler")}</option>
+              <option value="team">{t("PRO üyeler ve takım yöneticileri (takım odası)")}</option>
+              <option value="all">{t("Herkes")}</option>
+            </select>
+          </div>
+        </section>
+      </Show>
       <Show when={err()}>
         <p class="vr-err">{err()}</p>
       </Show>
@@ -172,7 +208,7 @@ function Lobby() {
         busy={busy()}
         onJoin={(id) => void enter(id, null)}
         onChanged={() => void refetch()}
-        empty="Şu an açık oda yok. İlk odayı sen kur."
+        empty={canCreate() ? "Şu an açık oda yok. İlk odayı sen kur." : "Şu an açık oda yok."}
       />
     </>
   );
@@ -187,7 +223,7 @@ function RoomGroup(props: { title: string; rows: VoiceRoomRow[]; busy: string; o
           <div class="vr-rooms">
             <For each={props.rows}>
               {(r) => (
-                <div class="vr-room">
+                <div class="vr-room" classList={{ here: voice.room()?.id === r.id }}>
                   <div class="vr-room-ic" classList={{ live: r.members > 0 }}>
                     {r.kind === "private" ? <I.Lock /> : r.kind === "team" ? <I.Users /> : <I.Globe />}
                   </div>
@@ -199,6 +235,9 @@ function RoomGroup(props: { title: string; rows: VoiceRoomRow[]; busy: string; o
                       {r.mode === "moderated" ? ` · ${t("Söz hakkıyla")} (${fmtSec(r.talk_seconds)})` : ""}
                       {r.owner_name && !r.is_mine ? ` · ${r.owner_name}` : ""}
                     </small>
+                    <Show when={r.is_mine && r.auto_delete}>
+                      <small class="muted">{t("Boş kalınca 1 saat sonra silinir")}</small>
+                    </Show>
                     <Show when={r.description}>
                       <small class="vr-desc" data-no-i18n>
                         {r.description}
@@ -208,15 +247,25 @@ function RoomGroup(props: { title: string; rows: VoiceRoomRow[]; busy: string; o
                   <span class="vr-count" classList={{ live: r.members > 0 }} title={t("Odada / en çok")}>
                     <I.Headphones /> {r.members}/{r.max_members}
                   </span>
-                  <button class="btn primary small" disabled={!!props.busy} onClick={() => props.onJoin(r.id)}>
-                    {props.busy === r.id ? t("Bağlanıyor…") : t("Gir")}
-                  </button>
+                  <Show
+                    when={voice.room()?.id !== r.id}
+                    fallback={
+                      <span class="vr-here">
+                        <I.AudioLines /> {t("Buradasın")}
+                      </span>
+                    }
+                  >
+                    <button class="btn primary small" disabled={!!props.busy} onClick={() => props.onJoin(r.id)}>
+                      {props.busy === r.id ? t("Bağlanıyor…") : t("Gir")}
+                    </button>
+                  </Show>
                   <Show when={r.is_mine}>
                     <button
                       class="btn ghost small"
                       title={t("Odayı sil")}
                       onClick={async () => {
                         if (!(await askConfirm(t("“{0}” odası silinsin mi?", r.name), { danger: true, ok: t("Sil") }))) return;
+                        if (voice.room()?.id === r.id) await leaveRoom();
                         await voiceRoomDelete(r.id).catch(() => {});
                         props.onChanged();
                       }}
@@ -338,6 +387,9 @@ function CreateRoom(props: { onDone: (id: string | null) => void }) {
         <span>En çok kişi</span>
         <Stepper value={max()} min={2} max={60} onChange={setMax} />
       </div>
+      <Show when={!realAdmin()}>
+        <p class="muted small">Odada kimse kalmadıktan 1 saat sonra oda kendiliğinden silinir.</p>
+      </Show>
       <Show when={err()}>
         <p class="vr-err">{err()}</p>
       </Show>
@@ -518,7 +570,6 @@ function RoomView() {
         </section>
       </Show>
 
-
       {/* Moderatör masası */}
       <Show when={moderated() && amMod()}>
         <section class="panel vr-mod">
@@ -656,6 +707,73 @@ function Countdown(props: { until: number; total: number; label?: boolean }) {
   );
 }
 
+// Arkadaşlık durumu (odadakiler menüsündeki "Arkadaş ekle" için): kişi → durum
+const [friendMap, setFriendMap] = createSignal<Record<string, Friend["status"]>>({});
+let friendsLoaded = 0;
+function loadFriends(force = false) {
+  if (!force && Date.now() - friendsLoaded < 60_000) return;
+  friendsLoaded = Date.now();
+  void myFriends()
+    .then((l) => setFriendMap(Object.fromEntries((l ?? []).map((f) => [f.friend_id, f.status]))))
+    .catch(() => {});
+}
+
+function FriendButton(props: { user: string }) {
+  const [msg, setMsg] = createSignal("");
+  const [busy, setBusy] = createSignal(false);
+  loadFriends();
+  const st = () => friendMap()[props.user];
+  return (
+    <div class="vr-mem-mod">
+      <Show
+        when={!st()}
+        fallback={
+          <small class="muted">
+            {st() === "accepted" ? t("Arkadaşın") : st() === "pending_out" ? t("Arkadaşlık isteği gönderildi") : t("Sana arkadaşlık isteği gönderdi")}
+          </small>
+        }
+      >
+        <button
+          class="btn small"
+          disabled={busy()}
+          onClick={async () => {
+            setBusy(true);
+            setMsg("");
+            try {
+              await friendRequest(props.user);
+              setFriendMap({ ...friendMap(), [props.user]: "pending_out" });
+              loadFriends(true);
+            } catch (e) {
+              setMsg(errText(e));
+            }
+            setBusy(false);
+          }}
+        >
+          <I.UserPlus /> Arkadaş ekle
+        </button>
+      </Show>
+      <Show when={st() === "pending_in"}>
+        <button
+          class="btn small primary"
+          onClick={async () => {
+            try {
+              await friendRespond(props.user, true);
+              setFriendMap({ ...friendMap(), [props.user]: "accepted" });
+            } catch (e) {
+              setMsg(errText(e));
+            }
+          }}
+        >
+          <I.Check /> Kabul et
+        </button>
+      </Show>
+      <Show when={msg()}>
+        <small class="sc-err">{msg()}</small>
+      </Show>
+    </div>
+  );
+}
+
 function MemberRow(props: {
   m: VoiceMember;
   me: boolean;
@@ -716,6 +834,7 @@ function MemberRow(props: {
       <Show when={props.open}>
         <div class="vr-mem-act">
           <Show when={!props.me}>
+            <FriendButton user={u()} />
             <div class="vr-vol">
               <span>Ses</span>
               <Slider value={userVolumes()[u()] ?? 100} min={0} max={200} step={5} unit="%" onInput={(v) => setUserVolume(u(), v)} />

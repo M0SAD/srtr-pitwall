@@ -143,8 +143,23 @@ pub trait Source {
 /// Tercihe göre açık ve bağlı bir sim arar. Otomatikte iRacing önce denenir.
 /// Hiçbiri bağlı değilse (ama iRacing belleği varsa) iRacing kaynağı döner; motor onu
 /// eskisi gibi bırakıp yeniden dener.
+///
+/// Belirli bir oyun seçiliyken o oyun bağlı değilse diğer oyunlar da aranır (seçim "öncelik"tir): eskiden
+/// "iRacing" seçili kalmış biri AMS2'yi açınca hiçbir şey görünmüyordu.
 #[cfg(windows)]
 pub fn open(pref: SimPref, net: udp::UdpCfg) -> Option<Box<dyn Source>> {
+    let first = open_pref(pref, net);
+    if pref == SimPref::Auto || first.as_ref().map(|s| s.connected()).unwrap_or(false) {
+        return first;
+    }
+    match open_pref(SimPref::Auto, net) {
+        Some(s) if s.connected() => Some(s),
+        _ => first,
+    }
+}
+
+#[cfg(windows)]
+fn open_pref(pref: SimPref, net: udp::UdpCfg) -> Option<Box<dyn Source>> {
     let mut idle: Option<Box<dyn Source>> = None;
     if pref.wants(&[SimKind::IRacing]) {
         if let Some(s) = iracing::IRacing::open() {

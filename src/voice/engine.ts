@@ -201,7 +201,6 @@ function tuneOpus(sdp: string): string {
   });
 }
 
-
 function micError(e: unknown): string {
   const n = (e as DOMException)?.name;
   if (n === "NotAllowedError") return t("Mikrofon izni verilmedi. Windows › Gizlilik › Mikrofon'dan masaüstü uygulamalarına izin ver.");

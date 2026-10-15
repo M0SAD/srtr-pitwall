@@ -3,6 +3,20 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-331
+
+- Ses odası kurma izni (sunucuda denetlenir; Supabase'de `c117_guncelleme.sql` çalıştırılmalı):
+  - Varsayılan: yöneticiler ve **PRO üyeler** kurar, herkes girer.
+  - Yöneticiler Ses Odaları sayfasındaki "Kimler oda kurabilir" ayarıyla değiştirebilir: sadece yöneticiler, PRO üyeler, PRO + takım yöneticileri (takım odası) ya da herkes.
+- Yönetici olmayanların kurduğu odalar içinde kimse kalmadıktan **1 saat sonra kendiliğinden silinir**. Yöneticilerin odaları kalıcıdır, yöneticiler için 10 oda sınırı da yok.
+- Odadayken de bütün odalar (kurduğun odalar, takım ve herkese açık odalar) aşağıda görünür. İçinde bulunduğun oda "Buradasın" diye işaretlenir; başka odaya "Gir" ile doğrudan geçilir.
+- Yeni oyun simgeleri: RaceRoom, F1, Forza, DiRT Rally / GRID ve BeamNG için logolar (oyun seçicide, arkadaş listesinde oynadığı oyunun yanında). Koyu zeminde okunsun diye siyah kısımlar beyaza çevrildi.
+- Odadakiler listesinde kişiye tıklayınca **Arkadaş ekle** düğmesi var. Zaten arkadaşsanız ya da istek gönderildiyse durumu yazar; sana istek gönderdiyse oradan kabul edilir.
+
+## 151026-330
+
+- Oyun seçimi artık "öncelik": Ayarlar › Genel › Oyun'da belirli bir oyun (ör. iRacing) seçiliyken o oyun açık değilse diğer oyunlar da aranır. Eskiden iRacing seçili kalmış biri AMS2'yi (ya da başka bir oyunu) açınca bağlantı kurulmuyor, overlay'ler görünmüyordu. Durum yazısı "Aranan: iRacing" yerine "Öncelik: iRacing (diğer oyunlar da aranıyor)".
+
 ## 151026-329
 
 - Düzeltme: Ses Odaları sayfası yayın sürümünde açılırken "Cannot access 'x' before initialization" hatası veriyordu (odadakiler listesinin sıralaması).

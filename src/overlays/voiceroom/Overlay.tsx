@@ -75,7 +75,12 @@ export default function VoiceRoom(props: OverlayProps) {
                   </svg>
                 </Show>
                 <Show when={!m.deaf && m.mic !== "on"}>
-                  <svg class="vro-ic" classList={{ floor: m.mic === "floor" }} viewBox="0 0 24 24" aria-label={m.mic === "floor" ? t("Söz hakkı yok") : t("Mikrofon kapalı")}>
+                  <svg
+                    class="vro-ic"
+                    classList={{ floor: m.mic === "floor" }}
+                    viewBox="0 0 24 24"
+                    aria-label={m.mic === "floor" ? t("Söz hakkı yok") : t("Mikrofon kapalı")}
+                  >
                     <path d="M12 2a3 3 0 0 0-3 3v4M15 9.3V5a3 3 0 0 0-5.7-1.3M19 10v2a7 7 0 0 1-.6 2.8M5 10v2a7 7 0 0 0 11.9 5M12 19v3M2 2l20 20" />
                   </svg>
                 </Show>

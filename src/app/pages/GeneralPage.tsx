@@ -272,7 +272,7 @@ export function GeneralPage() {
         <div class="row sim-row">
           <div>
             <b>Oyun</b>
-            <small>Otomatik: açık olan oyun kendiliğinden algılanır. Yalnızca birden çok oyun aynı anda açıksa ya da yanlış oyun algılanıyorsa elle seç. Oyun simgesinin üzerine gelince o oyunda yapılması gereken ayar yazar.</small>
+            <small>Otomatik: açık olan oyun kendiliğinden algılanır. Elle seçilen oyun önceliklidir: o oyun açık değilse diğer oyunlar da aranır. Oyun simgesinin üzerine gelince o oyunda yapılması gereken ayar yazar.</small>
           </div>
           <SimPicker />
           <SimProbe />

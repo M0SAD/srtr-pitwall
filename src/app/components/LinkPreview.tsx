@@ -53,11 +53,12 @@ const cache = new Map<string, Promise<Preview | null>>();
 function load(url: string): Promise<Preview | null> {
   let p = cache.get(url);
   if (!p) {
-    p = IMG_RE.test(new URL(url).pathname) && url.startsWith("https://")
-      ? Promise.resolve({ url, kind: "image", site: new URL(url).hostname, title: "", description: "", image: url } as Preview)
-      : inTauri
-        ? invoke<Preview | null>("link_preview", { url }).catch(() => null)
-        : Promise.resolve(null);
+    p =
+      IMG_RE.test(new URL(url).pathname) && url.startsWith("https://")
+        ? Promise.resolve({ url, kind: "image", site: new URL(url).hostname, title: "", description: "", image: url } as Preview)
+        : inTauri
+          ? invoke<Preview | null>("link_preview", { url }).catch(() => null)
+          : Promise.resolve(null);
     cache.set(url, p);
   }
   return p;
@@ -97,7 +98,13 @@ export function LinkPreview(props: { text: string }) {
           when={v().kind === "page"}
           fallback={
             <button class="lp lp-img" onClick={(e) => (e.stopPropagation(), openUrl(v().url))} title={v().url}>
-              <img src={v().image} alt="" loading="lazy" referrerpolicy="no-referrer" onError={(e) => (e.currentTarget.parentElement!.style.display = "none")} />
+              <img
+                src={v().image}
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                onError={(e) => (e.currentTarget.parentElement!.style.display = "none")}
+              />
             </button>
           }
         >
@@ -114,7 +121,14 @@ export function LinkPreview(props: { text: string }) {
               </Show>
             </div>
             <Show when={v().image}>
-              <img class="lp-thumb" src={v().image} alt="" loading="lazy" referrerpolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = "none")} />
+              <img
+                class="lp-thumb"
+                src={v().image}
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
             </Show>
           </button>
         </Show>

@@ -244,7 +244,7 @@ export function App() {
       return { cls: "on", lines };
     }
     const want = settings().general.sim ?? "auto";
-    return { cls: "off", lines: [t("Bağlı değil"), want === "auto" ? t("Çalışan bir simülasyon aranıyor") : t("Aranan: {0}", SIM_NAMES[want] ?? want)] };
+    return { cls: "off", lines: [t("Bağlı değil"), want === "auto" ? t("Çalışan bir simülasyon aranıyor") : t("Öncelik: {0} (diğer oyunlar da aranıyor)", SIM_NAMES[want] ?? want)] };
   };
 
   // Canlı sohbet varsayılan olarak uygulama açılınca başlar. Ayar yeni açıldıysa (autoStartV1 geçişi / ilk kurulum)
