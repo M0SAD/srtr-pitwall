@@ -426,3 +426,17 @@
 .rel .rel-row.me {
   background: linear-gradient(var(--ov-bg-me), var(--ov-bg-me)), color-mix(in srgb, var(--ov-bg-solid, #0c0e13) var(--rel-fill, 0%), transparent);
 }
+
+/* Renkleri özelleştir (customColors): senin satırının yazısı ve fark rengi */
+.rel-custom .rel-row.me {
+  color: var(--rel-me-text);
+}
+.rel-custom .rel-gap {
+  color: var(--rel-gap);
+}
+.rel-custom .rel-row.ahead-lap .rel-name {
+  color: var(--ov-red);
+}
+.rel-custom .rel-row.behind-lap .rel-name {
+  color: var(--ov-blue);
+}

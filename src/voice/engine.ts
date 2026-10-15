@@ -209,8 +209,15 @@ function micError(e: unknown): string {
   return String((e as Error)?.message ?? e);
 }
 
+/** Bağlantı denemesi sayacı: yeni giriş / çıkış eski denemeyi geçersiz kılar (iki kez tıklama, davetten giriş,
+ *  yeniden bağlanma aynı anda olursa eski deneme yarıda bırakılır, yenisinin bağlantısına dokunmaz) */
+let connGen = 0;
+class Aborted extends Error {}
+
 /** Odaya gir (oda kimliği ya da davet kodu) */
 export async function joinRoom(roomId: string | null, code: string | null = null) {
+  // Aynı odaya bağlanılıyorsa (ikinci tıklama) bekle, yeniden başlatma
+  if ((status() === "connecting" || status() === "reconnecting") && roomId && joinArgs?.room === roomId) return;
   if (status() !== "idle" && status() !== "error") await leaveRoom();
   joinArgs = { room: roomId, code };
   retries = 0;
@@ -219,63 +226,80 @@ export async function joinRoom(roomId: string | null, code: string | null = null
 
 async function connect() {
   if (!joinArgs) return;
+  const my = ++connGen;
+  const check = () => {
+    if (my !== connGen) throw new Aborted();
+  };
   setStatus(status() === "reconnecting" ? "reconnecting" : "connecting");
   setError("");
+  // Bu denemenin kendi kaynakları (yarıda kalırsa yalnızca bunlar kapatılır)
+  let lMic: MediaStream | null = null;
+  let lChain: MicChain | null = null;
+  let lPc: RTCPeerConnection | null = null;
   try {
     stopMicTest();
     try {
-      mic = await getMicStream();
+      lMic = await getMicStream();
     } catch (e) {
       throw new Error(micError(e));
     }
-    chain = await buildMicChain(audioCtx(), mic);
-    const j = await sfu.join(joinArgs.room, joinArgs.code);
+    check();
+    lChain = await buildMicChain(audioCtx(), lMic);
+    check();
+    const args = joinArgs!;
+    const j = await sfu.join(args.room, args.code);
+    check();
     // Özel odaya kodla girildi: yeniden bağlanırken oda kimliğiyle (kod yine gerekir, saklı kalsın)
-    joinArgs = { room: j.room.id, code: joinArgs.code };
+    joinArgs = { room: j.room.id, code: args.code };
+    const p = new RTCPeerConnection({ iceServers: j.ice, bundlePolicy: "max-bundle" });
+    lPc = p;
+    // Bundan sonra kaynaklar bu bağlantınındır
+    mic = lMic;
+    chain = lChain;
+    pc = p;
     sid = j.session_id;
     setRoom(j.room);
-    pc = new RTCPeerConnection({
-      iceServers: j.ice,
-      bundlePolicy: "max-bundle",
-    });
-    pc.ontrack = onTrack;
-    pc.onconnectionstatechange = () => {
-      const s = pc?.connectionState;
+    p.ontrack = onTrack;
+    p.onconnectionstatechange = () => {
+      if (pc !== p) return;
+      const s = p.connectionState;
       if (s === "failed") scheduleReconnect();
       // "disconnected" çoğu zaman kendiliğinden düzelir (ağ değişimi): 6 sn sonra hâlâ kopuksa yeniden bağlan
       else if (s === "disconnected") {
-        const me = pc;
         window.setTimeout(() => {
-          if (pc === me && pc?.connectionState !== "connected") scheduleReconnect();
+          if (pc === p && p.connectionState !== "connected") scheduleReconnect();
         }, 6000);
       }
     };
-    const track = chain.track;
+    const track = lChain.track;
     track.enabled = false;
-    micTx = pc.addTransceiver(track, { direction: "sendonly" });
+    const tx = p.addTransceiver(track, { direction: "sendonly" });
+    micTx = tx;
     try {
-      const p = micTx.sender.getParameters();
-      p.encodings = [{ ...(p.encodings?.[0] ?? {}), maxBitrate: 40000 }];
-      await micTx.sender.setParameters(p);
+      const prm = tx.sender.getParameters();
+      prm.encodings = [{ ...(prm.encodings?.[0] ?? {}), maxBitrate: 40000 }];
+      await tx.sender.setParameters(prm);
     } catch {
       /* bazı sürümlerde kodlama listesi boş */
     }
+    check();
+    const mySid = j.session_id;
     await serial(async () => {
-      const offer = await pc!.createOffer();
-      await pc!.setLocalDescription({
-        type: "offer",
-        sdp: tuneOpus(offer.sdp ?? ""),
-      });
-      const r = await sfu.push(sid, pc!.localDescription!.sdp, micTx!.mid ?? "0");
+      check();
+      const offer = await p.createOffer();
+      await p.setLocalDescription({ type: "offer", sdp: tuneOpus(offer.sdp ?? "") });
+      const r = await sfu.push(mySid, p.localDescription!.sdp, tx.mid ?? "0");
+      check();
       if (!r.sdp) throw new Error(t("Ses sunucusu yanıt vermedi"));
-      await pc!.setRemoteDescription({
-        type: "answer",
-        sdp: tuneOpus(r.sdp.sdp),
-      });
+      await p.setRemoteDescription({ type: "answer", sdp: tuneOpus(r.sdp.sdp) });
     });
-    await waitConnected();
+    check();
+    await waitConnected(p);
+    check();
     await joinChannel(j.room.chan);
+    check();
     await refreshState();
+    check();
     startLoops();
     void bindPtt();
     if (inTauri) void invoke("voice_room_active", { on: true }).catch(() => {});
@@ -285,6 +309,13 @@ async function connect() {
     cue("join");
     pushOverlay(true);
   } catch (e) {
+    if (e instanceof Aborted || my !== connGen) {
+      // Yeni bir giriş / çıkış bu denemeyi geçersiz kıldı: yalnızca bu denemenin kaynaklarını bırak
+      if (lPc && lPc !== pc) lPc.close();
+      if (lChain && lChain !== chain) lChain.close();
+      if (lMic && lMic !== mic) lMic.getTracks().forEach((x) => x.stop());
+      return;
+    }
     const msg = String((e as Error)?.message ?? e);
     await teardown(false);
     if (status() === "reconnecting" && retries < 3) {
@@ -300,9 +331,8 @@ async function connect() {
   }
 }
 
-function waitConnected(): Promise<void> {
+function waitConnected(p: RTCPeerConnection): Promise<void> {
   return new Promise((resolve, reject) => {
-    const p = pc!;
     if (p.connectionState === "connected") return resolve();
     const to = window.setTimeout(() => reject(new Error(t("Ses sunucusuna bağlanılamadı (güvenlik duvarı UDP'yi engelliyor olabilir)"))), 15000);
     const h = () => {
@@ -338,6 +368,7 @@ function scheduleReconnect() {
 /** Odadan çık */
 export async function leaveRoom() {
   joinArgs = null;
+  connGen++;
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = 0;

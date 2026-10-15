@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-338
+
+- Yakındakiler (Relative) overlayında renk özelleştirme: overlay ayarlarında yeni "Renkler" bölümü. "Renkleri özelleştir" açılınca yazı, soluk yazı, senin satırının arka planı / yoğunluğu / yazısı, seni turlayan, turladığın, fark (saniye), kişisel en iyi tur, pit etiketi, sürücü satırı arka planı ve ayırıcı çizgi renkleri tek tek seçilebilir. Kapalıyken temanın renkleri kullanılır.
+
+## 151026-337
+
+- Düzeltme: ses odasına bağlanırken "Cannot read properties of null (reading 'createOffer')" hatası. Bağlantı sürerken ikinci bir giriş (odaya iki kez tıklama, menüden başka odaya tıklama, davetten katılma ya da yeniden bağlanma) ilk denemenin bağlantısını yarıda kapatıyordu; ilk deneme de kapanmış bağlantıyla devam etmeye çalışıp bu hatayı veriyordu. Artık her deneme kendi kaynaklarıyla çalışır, yenisi gelince eskisi sessizce bırakılır; aynı odaya bağlanırken tekrar tıklamak yok sayılır.
+
 ## 151026-336
 
 Supabase'de `c120_guncelleme.sql` çalıştırılmalı.

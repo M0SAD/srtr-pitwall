@@ -200,11 +200,40 @@ export default function Relative(props: OverlayProps) {
     );
   };
 
+  // Renkleri özelleştir: temanın değişkenleri bu tablo için ezilir
+  const hex = (v: unknown, d: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : d);
+  const customColors = (): Record<string, string> => {
+    const o = props.options;
+    if (!o.customColors) return {};
+    const meK = Math.min(100, Math.max(0, Number(o.meOpacity ?? 25)));
+    return {
+      "--ov-text": hex(o.colText, "#e9ecf2"),
+      "--ov-dim": hex(o.colDim, "#8a93a4"),
+      "--ov-bg-me": `color-mix(in srgb, ${hex(o.colMeBg, "#ff8a2a")} ${meK}%, transparent)`,
+      "--rel-me-text": hex(o.colMeText, "#ffffff"),
+      "--ov-red": hex(o.colAheadLap, "#ff5a5f"),
+      "--ov-blue": hex(o.colBehindLap, "#4aa8ff"),
+      "--rel-gap": hex(o.colGap, "#e9ecf2"),
+      "--ov-green": hex(o.colPb, "#33d17a"),
+      "--ov-accent": hex(o.colPit, "#ff8a2a"),
+      "--ov-bg-solid": hex(o.colRowBg, "#0c0e13"),
+      "--ov-divider": `color-mix(in srgb, ${hex(o.colDivider, "#262b36")} 100%, transparent)`,
+    };
+  };
+
   const rowClass = (r: Row) =>
     r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
 
   return (
-    <div class="ov-panel rel" classList={{ "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame }} style={{ "--rel-fill": `${Math.min(100, Math.max(0, Number(props.options.rowFill) || 0))}%`, "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px` }}>
+    <div
+      class="ov-panel rel"
+      classList={{ "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame, "rel-custom": !!props.options.customColors }}
+      style={{
+        "--rel-fill": `${Math.min(100, Math.max(0, Number(props.options.rowFill) || 0))}%`,
+        "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`,
+        ...customColors(),
+      }}
+    >
       <Show when={props.options.showHeader}>
         <div class="rel-head" style={{ "font-size": `${0.92 * barK(props.options.barSize)}em` }}>
           <HeaderStats labels={props.options.labelStyle as string} fields={(props.options.headerFields as string[]) ?? ["air", "track", "wetness", "humidity", "precip"]} units={props.units} sof={data()?.sof ?? 0} />
