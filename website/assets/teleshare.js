@@ -3,7 +3,7 @@
 // noktalar) paylaşılan turlar için herkese okunur. 5 tura kadar kıyaslama: tur kartları, sektör tablosu, pist haritası
 // (paylaşıma eklenen pist şekli), fark / hız / gaz / fren / vites / direksiyon grafikleri ortak imleçle.
 import { $, T, addDict, boot, esc, fmtDate, sb } from "./core.js";
-import { analyzeCorners, coachNotes, findCorners, theoreticalBest } from "./teleanalysis.js";
+import { analyzeCorners, coachNotes, theoreticalBest } from "./teleanalysis.js";
 
 addDict({
   ts_title: ["Telemetri", "Telemetry"],
@@ -76,7 +76,7 @@ addDict({
   ts_c_gear: ["Vites", "Gear"],
   ts_c_delta: ["Fark", "Delta"],
   ts_rline: ["Sürüş çizgisi", "Racing line"],
-  ts_rline_hint: ["Turların pistteki çizgisi (iRacing'de telemetri dosyasından, diğer oyunlarda canlı konumdan). Numaralar virajlardır. Üzerine gelince turların o mesafedeki yeri gösterilir; A'ya uzaklık metre.", "Where each lap went on track (from the telemetry file in iRacing, from live position in other games). Numbers mark the corners. Hover to see where each lap was at that distance; distance from A in metres."],
+  ts_rline_hint: ["iRacing telemetri dosyasından (.ibt) içe aktarılan turların GPS konumu. Üzerine gelince turların o mesafedeki yeri gösterilir; A'ya uzaklık metre.", "GPS position of laps imported from iRacing telemetry files (.ibt). Hover to see where each lap was at that distance; distance from A in metres."],
   ts_rline_gap: ["{0}: A'ya {1} m", "{0}: {1} m from A"],
   ts_csv: ["CSV indir", "Download CSV"],
   ts_ca_legend: ["Değerler: A / referans. Hızlar km/h; fren ve tam gaz noktaları tur başından metre. Fark: A'nın o virajdaki süresi eksi referansınki (+ yavaş).", "Values: A / reference. Speeds in km/h; brake and full-throttle points in metres from the line. Delta: A's corner time minus the reference's (+ slower)."],
@@ -522,28 +522,15 @@ function cornerHtml() {
 let rlXf = null; // { lines: [{ i, xy:[[x,y]] }], vb }
 function rlineHtml() {
   rlXf = null;
-  // Konum: .ibt'den GPS (lat / lon) ya da canlı kayıtta simin dünya konumu (px / py, desimetre)
-  const geo = (x) => (x.trace.lat?.length ?? 0) > 10 && x.trace.lat.length === x.trace.lon?.length;
-  const world = (x) => (x.trace.px?.length ?? 0) > 10 && x.trace.px.length === x.trace.py?.length;
-  const all = shown();
-  const first = all.find((x) => geo(x) || world(x));
-  if (!first) return "";
-  const useGeo = geo(first);
-  const L = all.filter((x) => (useGeo ? geo(x) : world(x)));
-  let lines;
-  if (useGeo) {
-    const lat0 = L[0].trace.lat[0] / 1e6;
-    const lon0 = L[0].trace.lon[0] / 1e6;
-    const kx = 111320 * Math.cos((lat0 * Math.PI) / 180);
-    lines = L.map((x) => ({
-      i: st.laps.indexOf(x),
-      xy: x.trace.lat.map((la, j) => [(x.trace.lon[j] / 1e6 - lon0) * kx, -(la / 1e6 - lat0) * 110540]),
-    }));
-  } else {
-    const e0 = L[0].trace.px[0] / 10;
-    const n0 = L[0].trace.py[0] / 10;
-    lines = L.map((x) => ({ i: st.laps.indexOf(x), xy: x.trace.px.map((e, j) => [e / 10 - e0, -(x.trace.py[j] / 10 - n0)]) }));
-  }
+  const L = shown().filter((x) => (x.trace.lat?.length ?? 0) > 10 && x.trace.lat.length === x.trace.lon?.length);
+  if (!L.length) return "";
+  const lat0 = L[0].trace.lat[0] / 1e6;
+  const lon0 = L[0].trace.lon[0] / 1e6;
+  const kx = 111320 * Math.cos((lat0 * Math.PI) / 180);
+  const lines = L.map((x) => ({
+    i: st.laps.indexOf(x),
+    xy: x.trace.lat.map((la, j) => [(x.trace.lon[j] / 1e6 - lon0) * kx, -(la / 1e6 - lat0) * 110540]),
+  }));
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const l of lines) for (const [x, y] of l.xy) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
   const pad = Math.max(x1 - x0, y1 - y0) * 0.04 + 5;
@@ -554,24 +541,6 @@ function rlineHtml() {
   return `<section class="panel rline"><div class="tele-head"><div><h3>${esc(T("ts_rline"))}</h3><p class="muted small">${esc(T("ts_rline_hint"))}</p></div><span class="muted small" id="ts-rgap"></span></div>
     <svg id="ts-rline" class="rline-svg" viewBox="${vb.map((v) => v.toFixed(1)).join(" ")}" preserveAspectRatio="xMidYMid meet">
       ${[...lines].reverse().map((l) => `<path d="${path(l.xy)}" fill="none" stroke="${COLORS[l.i]}" stroke-width="${(sw * (l.i === 0 ? 1.6 : 1.2)).toFixed(2)}" stroke-linejoin="round" opacity="${l.i === 0 ? 1 : 0.85}"/>`).join("")}
-      ${(() => {
-        // Viraj numaraları: A turunun hız diplerinden (uygulamadaki gibi)
-        const a = lines[0];
-        const tr = st.laps[a.i]?.trace;
-        if (!tr) return "";
-        const n = tr.speed.length;
-        const cx = (x0 + x1) / 2;
-        const cy = (y0 + y1) / 2;
-        return findCorners(tr.speed)
-          .map((ci, j) => {
-            const [x, y] = a.xy[Math.min(a.xy.length - 1, Math.round((ci / Math.max(1, n - 1)) * (a.xy.length - 1)))];
-            const d = Math.hypot(x - cx, y - cy) || 1;
-            const lx = x + ((x - cx) / d) * sw * 14;
-            const ly = y + ((y - cy) / d) * sw * 14;
-            return `<g class="rl-corner"><line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${ly.toFixed(1)}" stroke-width="${(sw * 0.7).toFixed(2)}"/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="${(sw * 6).toFixed(2)}" stroke-width="${(sw * 0.8).toFixed(2)}"/><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="${(sw * 7.5).toFixed(2)}" dy="0.35em">${j + 1}</text></g>`;
-          })
-          .join("");
-      })()}
       ${lines.map((l) => `<circle class="rl-dot" data-l="${l.i}" r="${(sw * 3.2).toFixed(2)}" fill="${COLORS[l.i]}" stroke="#0b0d12" stroke-width="${sw.toFixed(2)}" hidden/>`).join("")}
     </svg></section>`;
 }
@@ -628,7 +597,7 @@ function downloadCsv() {
   const lenM = (st.laps[0].info.track_length_km || 0) * 1000;
   const cols = [
     ["time_s", "t", 0.001], ["speed_kmh", "speed", 0.1], ["throttle_pct", "throttle", 1], ["brake_pct", "brake", 1], ["gear", "gear", 1],
-    ["steer_deg", "steer", 1], ["rpm", "rpm", 1], ["lat_g", "lat_g", 0.01], ["long_g", "long_g", 0.01], ["abs", "abs", 1], ["lat", "lat", 1e-6], ["lon", "lon", 1e-6], ["pos_east_m", "px", 0.1], ["pos_north_m", "py", 0.1],
+    ["steer_deg", "steer", 1], ["rpm", "rpm", 1], ["lat_g", "lat_g", 0.01], ["long_g", "long_g", 0.01], ["abs", "abs", 1], ["lat", "lat", 1e-6], ["lon", "lon", 1e-6],
   ].filter(([, f]) => L.some((x) => (x.trace[f]?.length ?? 0) > 1));
   const head = ["distance_m", "lap_pct", ...L.flatMap((x) => cols.map(([k]) => `${x.letter}_${k}`))];
   const series = L.map((x) => cols.map(([, f, m]) => resampleTo(x.trace[f] || [], n).map((v) => v * m)));

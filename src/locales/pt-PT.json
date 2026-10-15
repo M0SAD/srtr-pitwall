@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Tempo no canto superior esquerdo",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Em corridas por voltas mostra sempre volta do líder / total de voltas. O tempo restante vem do relógio de corrida do jogo; a espera e a grelha no início da sessão não contam.",
   "Yarışın geçen / toplam süresi": "Tempo de corrida decorrido / total",
-  "Yarışın kalan süresi": "Tempo restante da corrida",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Jogo não detetado? Mostrar estado da deteção",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Algumas voltas não têm posição. O iRacing não envia a posição do carro em direto: ativa a gravação de telemetria no iRacing (Alt+L durante a condução) e a app importa o ficheiro sozinha depois da corrida, adicionando a trajetória às tuas voltas. Os outros jogos gravam a posição em direto (voltas a partir desta versão).",
-  "Haritada göster": "Mostrar no mapa",
-  "Viraj adları ({0} viraj)": "Nomes das curvas ({0} curvas)",
-  "Viraj numaraları ve adları": "Números e nomes das curvas",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Dá nome às curvas (ex.: La Source, Eau Rouge). Os nomes ficam guardados para esta pista e aparecem no mapa, na trajetória e na análise de curvas.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Se a gravação de telemetria estiver ligada no iRacing (Alt+L), novos ficheiros .ibt são importados automaticamente após a corrida; a trajetória é adicionada às voltas dessa sessão sem duplicados"
+  "Yarışın kalan süresi": "Tempo restante da corrida"
 }

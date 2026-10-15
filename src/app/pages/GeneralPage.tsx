@@ -73,37 +73,6 @@ function CrashLogRow() {
   );
 }
 
-/** Oyun algılanmıyorsa: her oyun için bellek / port bulundu mu ve neden bağlanılmadığı (Rust: sims::probe) */
-function SimProbe() {
-  const [lines, setLines] = createSignal<string[] | null>(null);
-  const [busy, setBusy] = createSignal(false);
-  const run = async () => {
-    setBusy(true);
-    setLines(await invoke<string[]>("sim_probe").catch((e) => [String(e)]));
-    setBusy(false);
-  };
-  return (
-    <div class="sim-probe">
-      <button class="btn ghost small" disabled={busy()} onClick={run}>
-        {busy() ? t("Denetleniyor…") : t("Oyun algılanmıyor mu? Algılama durumunu göster")}
-      </button>
-      <Show when={lines()}>
-        <ul class="sim-probe-list" data-no-i18n>
-          <For each={lines()!}>{(l) => <li>{l}</li>}</For>
-        </ul>
-        <div class="btns">
-          <button class="btn ghost small" onClick={run}>
-            {t("Yenile")}
-          </button>
-          <button class="btn ghost small" onClick={() => navigator.clipboard.writeText(lines()!.join("\n")).catch(() => {})}>
-            {t("Kopyala")}
-          </button>
-        </div>
-      </Show>
-    </div>
-  );
-}
-
 /** UDP telemetrisi gönderen oyunlar (F1, Forza, DiRT / GRID, BeamNG): portlar ve "konsoldan da al" */
 function UdpPortsRow() {
   const u = () => ({ ...UDP_DEFAULTS, ...(settings().general.udp ?? {}) });
@@ -275,7 +244,6 @@ export function GeneralPage() {
             <small>Otomatik: açık olan oyun kendiliğinden algılanır. Yalnızca birden çok oyun aynı anda açıksa ya da yanlış oyun algılanıyorsa elle seç. Oyun simgesinin üzerine gelince o oyunda yapılması gereken ayar yazar.</small>
           </div>
           <SimPicker />
-          <SimProbe />
         </div>
         <UdpPortsRow />
         <div class="row">

@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Hela varvet",
  "ts_latg": "Sido-G (+ höger)",
  "ts_rline": "Körlinje",
- "ts_rline_hint": "Var varje varv gick på banan (i iRacing från telemetrifilen, i andra spel från liveposition). Siffrorna markerar kurvorna. Hovra för att se var varje varv var vid den sträckan; avstånd till A i meter.",
+ "ts_rline_hint": "GPS-position för varv importerade från iRacing-telemetrifiler (.ibt). Hovra för att se var varje varv var vid den sträckan; avstånd till A i meter.",
  "ts_rline_gap": "{0}: {1} m från A",
  "ts_csv": "Ladda ner CSV"
 }

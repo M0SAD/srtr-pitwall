@@ -111,12 +111,7 @@ pub fn laps_from_bytes(data: &[u8]) -> Result<(Vec<LapRecord>, crate::model::Ses
         format!("{start_date}")
     };
     for l in laps.iter_mut() {
-        // Canlı kayıtla aynı kimlik (laprec.rs): aynı oturumun turları yeniden yüklenince üzerine yazılır
-        l.session_local = if session.sub_session_id > 0 {
-            format!("iracing-ss{sess_key}-{}", l.session_num.max(0))
-        } else {
-            format!("ibt-{sess_key}-{}", l.session_num.max(0))
-        };
+        l.session_local = format!("ibt-{sess_key}-{}", l.session_num.max(0));
         l.id = format!("{}-{}", l.session_local, l.lap);
         l.session_started = started_ms;
         // Sürüş anı: oturum başı + tur bitişinin yaklaşık oturum zamanı bilinmiyor; başlangıçtan tur sırasıyla
@@ -124,46 +119,6 @@ pub fn laps_from_bytes(data: &[u8]) -> Result<(Vec<LapRecord>, crate::model::Ses
         l.ts = started_ms + (l.lap.max(0) as u64) * (l.lap_time.max(1.0) * 1000.0) as u64;
     }
     Ok((laps, session))
-}
-
-/// Otomatik içe aktarma: iRacing telemetri klasöründeki yeni .ibt dosyaları (son 48 saatte yazılmış, en az 30 sn'dir
-/// değişmeyen, daha önce içe aktarılmamış). İçe aktarılanlar `seen` dosyasında tutulur (ad|boyut|zaman).
-pub fn auto_scan(dir: &std::path::Path, queue: &std::path::Path, seen: &std::path::Path) -> Vec<ImportSummary> {
-    let now = std::time::SystemTime::now();
-    let mut known: Vec<String> = std::fs::read_to_string(seen)
-        .map(|s| s.lines().map(|l| l.to_string()).collect())
-        .unwrap_or_default();
-    let Ok(rd) = std::fs::read_dir(dir) else { return Vec::new() };
-    let mut files: Vec<(std::path::PathBuf, String)> = Vec::new();
-    for e in rd.flatten() {
-        let p = e.path();
-        if !p.extension().map(|x| x.eq_ignore_ascii_case("ibt")).unwrap_or(false) {
-            continue;
-        }
-        let Ok(md) = e.metadata() else { continue };
-        let Ok(mt) = md.modified() else { continue };
-        let age = now.duration_since(mt).unwrap_or_default();
-        if age < std::time::Duration::from_secs(30) || age > std::time::Duration::from_secs(48 * 3600) {
-            continue;
-        }
-        let secs = mt.duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-        let key = format!("{}|{}|{}", p.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_default(), md.len(), secs);
-        if !known.contains(&key) {
-            files.push((p, key));
-        }
-    }
-    files.sort();
-    let mut out = Vec::new();
-    for (p, key) in files.into_iter().take(20) {
-        out.push(import_file(&p, queue));
-        known.push(key);
-    }
-    if !out.is_empty() {
-        // Son 500 kayıt yeter
-        let start = known.len().saturating_sub(500);
-        let _ = std::fs::write(seen, known[start..].join("\n"));
-    }
-    out
 }
 
 /// Dosyayı okuyup turları yerel yükleme kuyruğuna yazar (yükleme arayüzde, canlı turlar gibi).
@@ -310,7 +265,7 @@ mod tests {
         assert!(laps.len() >= 2, "tur sayısı {}", laps.len());
         let l = &laps[0];
         assert_eq!(l.sim, "iracing");
-        assert!(l.id.starts_with("iracing-ss987654-0-"), "{}", l.id);
+        assert!(l.id.starts_with("ibt-987654-0-"), "{}", l.id);
         assert_eq!(l.session_started, 1_760_000_000_000);
         assert!((l.lap_time - 30.0).abs() < 0.2, "tur süresi {}", l.lap_time);
         let tr = l.trace.as_ref().expect("iz");

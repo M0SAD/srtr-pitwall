@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Czas w lewym górnym rogu",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "W wyścigach na okrążenia zawsze pokazywane jest okrążenie lidera / łącznie. Pozostały czas pochodzi z zegara wyścigu w grze; oczekiwanie i ustawianie na starcie się nie liczą.",
   "Yarışın geçen / toplam süresi": "Upłynęło / łączny czas wyścigu",
-  "Yarışın kalan süresi": "Pozostały czas wyścigu",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Gra nie jest wykrywana? Pokaż stan wykrywania",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Niektóre okrążenia nie mają pozycji. iRacing nie wysyła pozycji auta na żywo: włącz zapis telemetrii w iRacing (Alt+L podczas jazdy), a aplikacja sama zaimportuje plik po wyścigu i doda linię jazdy do okrążeń. Inne gry zapisują pozycję na żywo (okrążenia od tej wersji).",
-  "Haritada göster": "Pokaż na mapie",
-  "Viraj adları ({0} viraj)": "Nazwy zakrętów ({0} zakrętów)",
-  "Viraj numaraları ve adları": "Numery i nazwy zakrętów",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Nazwij zakręty (np. La Source, Eau Rouge). Nazwy są zapisywane dla tego toru i widoczne na mapie, linii jazdy i w analizie zakrętów.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Jeśli w iRacing zapis telemetrii jest włączony (Alt+L), nowe pliki .ibt są importowane automatycznie po wyścigu; linia jazdy zostaje dodana do okrążeń tej sesji bez duplikatów"
+  "Yarışın kalan süresi": "Pozostały czas wyścigu"
 }

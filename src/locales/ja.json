@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "左上の時間",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "周回数制のレースでは常にリーダーの周回 / 総周回数を表示します。残り時間はゲームのレース時計の値で、セッション開始時の待機やグリッドの時間は含みません。",
   "Yarışın geçen / toplam süresi": "レースの経過 / 合計時間",
-  "Yarışın kalan süresi": "レースの残り時間",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "ゲームが検出されない？検出状況を表示",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "一部の周回に位置情報がありません。iRacing はライブデータで車の位置を送りません。iRacing でテレメトリ記録をオンにすると（走行中に Alt+L）、レース後にアプリがファイルを自動で取り込み、周回に走行ラインを追加します。他のゲームでは位置をライブで記録します（このバージョン以降の周回）。",
-  "Haritada göster": "マップで表示",
-  "Viraj adları ({0} viraj)": "コーナー名（{0} 箇所）",
-  "Viraj numaraları ve adları": "コーナー番号と名前",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "コーナーに名前を付けましょう（例: La Source、Eau Rouge）。名前はこのコースに保存され、コースマップ、走行ライン、コーナー分析に表示されます。",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "iRacing でテレメトリ記録がオン（Alt+L）なら、レース後に新しい .ibt ファイルを自動で取り込みます。同じセッションの周回に走行ラインが追加され、重複はできません"
+  "Yarışın kalan süresi": "レースの残り時間"
 }

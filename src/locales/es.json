@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Tiempo arriba a la izquierda",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "En carreras por vueltas siempre se muestra vuelta del líder / vueltas totales. El tiempo restante viene del reloj de carrera del juego; no cuenta la espera ni la parrilla al inicio de la sesión.",
   "Yarışın geçen / toplam süresi": "Tiempo de carrera transcurrido / total",
-  "Yarışın kalan süresi": "Tiempo restante de carrera",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "¿No se detecta el juego? Mostrar estado de detección",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Algunas vueltas no tienen posición. iRacing no envía la posición del coche en directo: activa la grabación de telemetría en iRacing (Alt+L mientras conduces) y la app importará el archivo sola tras la carrera y añadirá la trazada a tus vueltas. Los demás juegos graban la posición en directo (vueltas desde esta versión).",
-  "Haritada göster": "Mostrar en el mapa",
-  "Viraj adları ({0} viraj)": "Nombres de curvas ({0} curvas)",
-  "Viraj numaraları ve adları": "Números y nombres de curvas",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Pon nombre a las curvas (p. ej. La Source, Eau Rouge). Los nombres se guardan para este circuito y aparecen en el mapa, la trazada y el análisis de curvas.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Si la grabación de telemetría está activa en iRacing (Alt+L), los nuevos archivos .ibt se importan solos tras la carrera; se añade la trazada a las vueltas de esa sesión sin duplicados"
+  "Yarışın kalan süresi": "Tiempo restante de carrera"
 }

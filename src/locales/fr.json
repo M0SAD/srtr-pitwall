@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Temps en haut à gauche",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Pour les courses à nombre de tours, on affiche toujours tour du leader / tours totaux. Le temps restant vient de l'horloge de course du jeu ; l'attente et la grille au début de la session ne comptent pas.",
   "Yarışın geçen / toplam süresi": "Temps de course écoulé / total",
-  "Yarışın kalan süresi": "Temps de course restant",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Jeu non détecté ? Afficher l'état de détection",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Certains tours n'ont pas de position. iRacing n'envoie pas la position de la voiture en direct : active l'enregistrement de télémétrie dans iRacing (Alt+L en roulant) et l'app importe le fichier toute seule après la course et ajoute la trajectoire à tes tours. Les autres jeux enregistrent la position en direct (tours à partir de cette version).",
-  "Haritada göster": "Afficher sur la carte",
-  "Viraj adları ({0} viraj)": "Noms des virages ({0} virages)",
-  "Viraj numaraları ve adları": "Numéros et noms des virages",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Nomme les virages (ex. La Source, Eau Rouge). Les noms sont enregistrés pour ce circuit et apparaissent sur la carte, la trajectoire et l'analyse des virages.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Si l'enregistrement de télémétrie est actif dans iRacing (Alt+L), les nouveaux fichiers .ibt sont importés automatiquement après la course ; la trajectoire est ajoutée aux tours de cette session sans doublons"
+  "Yarışın kalan süresi": "Temps de course restant"
 }

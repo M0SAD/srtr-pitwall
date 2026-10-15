@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Volta inteira",
  "ts_latg": "G lateral (+ direita)",
  "ts_rline": "Trajetória",
- "ts_rline_hint": "Por onde cada volta passou na pista (no iRacing pelo ficheiro de telemetria, nos outros jogos pela posição em direto). Os números marcam as curvas. Passe o rato para ver onde cada volta estava nessa distância; distância a A em metros.",
+ "ts_rline_hint": "Posição GPS das voltas importadas de ficheiros de telemetria do iRacing (.ibt). Passe o rato para ver onde cada volta estava nessa distância; distância a A em metros.",
  "ts_rline_gap": "{0}: a {1} m de A",
  "ts_csv": "Transferir CSV"
 }

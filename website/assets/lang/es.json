@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Vuelta completa",
  "ts_latg": "G lateral (+ derecha)",
  "ts_rline": "Trazada",
- "ts_rline_hint": "Por dónde fue cada vuelta (en iRacing desde el archivo de telemetría, en otros juegos desde la posición en directo). Los números marcan las curvas. Pasa el ratón para ver dónde estaba cada vuelta a esa distancia; distancia a A en metros.",
+ "ts_rline_hint": "Posición GPS de las vueltas importadas de archivos de telemetría de iRacing (.ibt). Pasa el ratón para ver dónde estaba cada vuelta a esa distancia; distancia a A en metros.",
  "ts_rline_gap": "{0}: a {1} m de A",
  "ts_csv": "Descargar CSV"
 }

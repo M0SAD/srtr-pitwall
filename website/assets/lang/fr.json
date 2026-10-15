@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Tour complet",
  "ts_latg": "G latéral (+ droite)",
  "ts_rline": "Trajectoire",
- "ts_rline_hint": "Le tracé de chaque tour (dans iRacing depuis le fichier de télémétrie, dans les autres jeux depuis la position en direct). Les numéros indiquent les virages. Survolez pour voir où était chaque tour à cette distance ; distance à A en mètres.",
+ "ts_rline_hint": "Position GPS des tours importés depuis les fichiers de télémétrie iRacing (.ibt). Survolez pour voir où était chaque tour à cette distance ; distance à A en mètres.",
  "ts_rline_gap": "{0} : à {1} m de A",
  "ts_csv": "Télécharger le CSV"
 }

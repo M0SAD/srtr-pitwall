@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "整圈",
  "ts_latg": "横向 G（+ 向右）",
  "ts_rline": "行车线",
- "ts_rline_hint": "各圈在赛道上的行驶路线（iRacing 来自遥测文件，其他游戏来自实时位置）。数字标出弯道。悬停可查看各圈在该距离处的位置；与 A 的距离（米）。",
+ "ts_rline_hint": "从 iRacing 遥测文件（.ibt）导入的圈的 GPS 位置。悬停可查看各圈在该距离处的位置；与 A 的距离（米）。",
  "ts_rline_gap": "{0}：距 A {1} 米",
  "ts_csv": "下载 CSV"
 }

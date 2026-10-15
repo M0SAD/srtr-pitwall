@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Tijd linksboven",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Bij races met een rondeaantal wordt altijd ronde van de leider / totaal getoond. De resterende tijd komt van de raceklok van de game; wachten en grid aan het begin van de sessie tellen niet mee.",
   "Yarışın geçen / toplam süresi": "Verstreken / totale racetijd",
-  "Yarışın kalan süresi": "Resterende racetijd",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Game niet gedetecteerd? Detectiestatus tonen",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Sommige ronden hebben geen positie. iRacing stuurt de positie van de auto niet live: zet in iRacing de telemetrie-opname aan (Alt+L tijdens het rijden), dan importeert de app het bestand na de race zelf en voegt de racelijn aan je ronden toe. Andere games leggen de positie live vast (ronden vanaf deze versie).",
-  "Haritada göster": "Op kaart tonen",
-  "Viraj adları ({0} viraj)": "Bochtnamen ({0} bochten)",
-  "Viraj numaraları ve adları": "Bochtnummers en -namen",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Geef de bochten een naam (bijv. La Source, Eau Rouge). Namen worden voor dit circuit bewaard en verschijnen op de baankaart, de racelijn en in de bochtanalyse.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Staat telemetrie-opname in iRacing aan (Alt+L), dan worden nieuwe .ibt-bestanden na de race automatisch geïmporteerd; de racelijn wordt aan de ronden van die sessie toegevoegd, zonder duplicaten"
+  "Yarışın kalan süresi": "Resterende racetijd"
 }

@@ -308,8 +308,6 @@ impl Solo for Forza {
             return;
         };
         f.speed = rd_f32(b, d + 12).max(0.0);
-        f.pos_e = rd_f32(b, d) as f64;
-        f.pos_n = rd_f32(b, d + 8) as f64;
         for (i, w) in [0usize, 1, 2, 3].iter().enumerate() {
             let tf = rd_f32(b, d + 24 + w * 4);
             f.tire_temp[i] = [(tf - 32.0) / 1.8; 3];
@@ -486,8 +484,6 @@ impl Solo for Dirt {
         f.is_on_track = f.speed > 0.0 || f.rpm > 0.0;
         f.session_state = STATE_RACING;
         motion(f, self.g(8), self.g(10));
-        f.pos_e = self.g(4) as f64;
-        f.pos_n = self.g(6) as f64;
     }
 }
 

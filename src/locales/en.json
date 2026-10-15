@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Time at top left",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Lap-limited races always show leader lap / total laps. Remaining time comes from the game's race clock; waiting and grid time at the start of the session is not counted.",
   "Yarışın geçen / toplam süresi": "Race elapsed / total time",
-  "Yarışın kalan süresi": "Race time remaining",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Game not detected? Show detection status",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Some laps have no position. iRacing doesn't send the car's position in live data: turn on telemetry recording in iRacing (Alt+L while driving) and the app imports the file by itself after the race, adding the racing line to your laps. Other games record position live (laps from this version on).",
-  "Haritada göster": "Show on map",
-  "Viraj adları ({0} viraj)": "Corner names ({0} corners)",
-  "Viraj numaraları ve adları": "Corner numbers and names",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Name the corners (e.g. La Source, Eau Rouge). Names are saved for this track and appear on the track map, the racing line and the corner analysis.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "If telemetry recording is on in iRacing (Alt+L), new .ibt files are imported automatically after the race; the racing line is added to that session's laps without creating duplicates"
+  "Yarışın kalan süresi": "Race time remaining"
 }

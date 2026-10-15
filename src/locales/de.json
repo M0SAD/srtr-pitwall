@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Zeit oben links",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Bei Rennen mit Rundenzahl wird immer Führungsrunde / Gesamtrunden gezeigt. Die Restzeit kommt von der Rennuhr des Spiels; Warte- und Grid-Zeit am Sitzungsbeginn zählt nicht.",
   "Yarışın geçen / toplam süresi": "Rennzeit vergangen / gesamt",
-  "Yarışın kalan süresi": "Verbleibende Rennzeit",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Spiel wird nicht erkannt? Erkennungsstatus anzeigen",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Manche Runden haben keine Position. iRacing sendet die Fahrzeugposition nicht live: Schalte in iRacing die Telemetrieaufzeichnung ein (Alt+L beim Fahren), dann importiert die App die Datei nach dem Rennen selbst und ergänzt deine Runden um die Ideallinie. Andere Spiele zeichnen die Position live auf (Runden ab dieser Version).",
-  "Haritada göster": "Auf der Karte zeigen",
-  "Viraj adları ({0} viraj)": "Kurvennamen ({0} Kurven)",
-  "Viraj numaraları ve adları": "Kurvennummern und -namen",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Benenne die Kurven (z. B. La Source, Eau Rouge). Die Namen werden für diese Strecke gespeichert und erscheinen auf der Streckenkarte, der Ideallinie und in der Kurvenanalyse.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Ist in iRacing die Telemetrieaufzeichnung an (Alt+L), werden neue .ibt-Dateien nach dem Rennen automatisch importiert; die Runden dieser Sitzung erhalten die Ideallinie, ohne Duplikate"
+  "Yarışın kalan süresi": "Verbleibende Rennzeit"
 }

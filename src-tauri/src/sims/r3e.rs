@@ -518,9 +518,6 @@ pub fn extract(b: &[u8], sd: &SessionData, m: &mut Motion, f: &mut Frame) {
 
     // Hareket ve yan araçlar. r3e.h: araç yerel ekseni +X sol, +Z geri; dünya ekseni aynı yönlü kabul edilir:
     // kuzeye (-Z) giden aracın solu +X -> doğu = -X, kuzey = -Z.
-    // Dünya konumu (player.position f64[3]): doğu = -x, kuzey = -z
-    f.pos_e = -rd_f64(b, 56);
-    f.pos_n = -rd_f64(b, 72);
     let vx = rd_f64(b, o::PLAYER_VELOCITY) as f32;
     let vz = rd_f64(b, o::PLAYER_VELOCITY + 16) as f32;
     let (east, north) = (-vx, -vz);

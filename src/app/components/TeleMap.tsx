@@ -13,8 +13,6 @@ import { loadRef, type RefKind } from "@/cloud/teleref";
 import { fitTransform } from "@/overlays/trackmap/draw";
 import type { Shape } from "@/sdk/trackshape";
 import { ProLockBox } from "./ProLock";
-import { cornerName, cornersOf, setCornerName } from "@/sdk/cornerNames";
-import { uiPref } from "@/sdk/settings";
 
 type Mode = "delta" | "speed" | "sectors";
 /** "lap1".."lap4": kıyaslanan turlar (B, C, D, E) */
@@ -277,19 +275,6 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; others?: { i
     const start = at(0);
     return { segs, tags, start, at };
   });
-  /** Viraj numaraları ve adları: haritanın içine doğru (fark etiketleri dışarıda) */
-  const [showCorners, setShowCorners] = uiPref("tele.map.corners", true);
-  const cornerTags = createMemo(() => {
-    const g = segments();
-    if (!g || !showCorners()) return [];
-    return cornersOf(p.base.trace.speed).map((k, j) => {
-      const [x, y] = g.at(Math.min(k, 0.9999));
-      const dx = x - VW / 2;
-      const dy = y - VH / 2;
-      const l = Math.hypot(dx, dy) || 1;
-      return { n: j + 1, k, x, y, lx: x - (dx / l) * 24, ly: y - (dy / l) * 22, name: cornerName(p.base.info, k), right: dx < 0 };
-    });
-  });
   /** İzlerdeki imlecin haritadaki yeri */
   const cursorPt = () => {
     const g = segments();
@@ -359,10 +344,6 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; others?: { i
             <input type="checkbox" checked={labels()} onChange={(e) => setLabels(e.currentTarget.checked)} />
             Farkları haritada göster
           </label>
-          <label class="chk">
-            <input type="checkbox" checked={showCorners()} onChange={(e) => setShowCorners(e.currentTarget.checked)} />
-            Viraj numaraları ve adları
-          </label>
         </div>
         <Show when={!shape.loading && !shape()}>
           <p class="muted tmap-note">Bu pistin haritası bu bilgisayarda henüz yok. Pistte bir tur attığında harita öğrenilir ve burada görünür.</p>
@@ -379,21 +360,6 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; others?: { i
                 <circle class="tmap-cursor-halo" cx={cursorPt()![0]} cy={cursorPt()![1]} r="16" />
                 <circle class="tmap-cursor" cx={cursorPt()![0]} cy={cursorPt()![1]} r="8" />
               </Show>
-              <For each={cornerTags()}>
-                {(c) => (
-                  <g class="tmap-corner">
-                    <circle cx={c.lx} cy={c.ly} r="10" />
-                    <text x={c.lx} y={c.ly} dy="0.35em">
-                      {c.n}
-                    </text>
-                    <Show when={c.name}>
-                      <text class="tmap-cname" x={c.right ? c.lx + 14 : c.lx - 14} y={c.ly} dy="0.35em" text-anchor={c.right ? "start" : "end"} data-no-i18n>
-                        {c.name}
-                      </text>
-                    </Show>
-                  </g>
-                )}
-              </For>
               <For each={segments()?.tags}>
                 {(g) => (
                   <text class="tmap-tag" classList={{ bad: g.bad }} x={g.x} y={g.y} text-anchor="middle" dominant-baseline="middle">
@@ -437,42 +403,8 @@ export function TeleMap(p: { base: { info: LapInfo; trace: Trace }; others?: { i
               </Show>
             </div>
           </div>
-          <Show when={showCorners()}>
-            <CornerNameEditor track={p.base.info} corners={cornerTags()} onPick={() => {}} />
-          </Show>
         </Show>
       </ProLockBox>
     </section>
   );
 }
-
-/** Viraj adları: numaralı virajlara ad ver (pist başına saklanır; haritada, sürüş çizgisinde ve viraj analizinde görünür) */
-export function CornerNameEditor(p: { track: LapInfo; corners: { k: number; n: number }[]; onPick: (k: number) => void }) {
-  return (
-    <Show when={p.corners.length}>
-      <details class="cname-ed">
-        <summary>{t("Viraj adları ({0} viraj)", p.corners.length)}</summary>
-        <p class="muted small">{t("Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.")}</p>
-        <div class="cname-grid">
-          <For each={p.corners}>
-            {(c) => (
-              <label>
-                <b onClick={() => p.onPick(c.k)} title={t("Haritada göster")}>
-                  {c.n}
-                </b>
-                <input
-                  class="input"
-                  value={cornerName(p.track, c.k)}
-                  placeholder={t("Viraj {0}", c.n)}
-                  maxLength={40}
-                  onChange={(e) => setCornerName(p.track, c.k, e.currentTarget.value)}
-                />
-              </label>
-            )}
-          </For>
-        </div>
-      </details>
-    </Show>
-  );
-}
-

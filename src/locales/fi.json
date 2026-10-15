@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Aika vasemmassa yläkulmassa",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Kierrosmääräisissä kisoissa näytetään aina johtajan kierros / kierrokset yhteensä. Jäljellä oleva aika tulee pelin kisakellosta; istunnon alun odotusta ja ruudukkoa ei lasketa.",
   "Yarışın geçen / toplam süresi": "Kisan kulunut / kokonaisaika",
-  "Yarışın kalan süresi": "Kisan jäljellä oleva aika",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Peliä ei tunnisteta? Näytä tunnistuksen tila",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Joissakin kierroksissa ei ole sijaintia. iRacing ei lähetä auton sijaintia live-datassa: ota iRacingissa telemetriatallennus käyttöön (Alt+L ajon aikana), niin sovellus tuo tiedoston itse kisan jälkeen ja lisää ajolinjan kierroksiisi. Muut pelit tallentavat sijainnin livenä (kierrokset tästä versiosta alkaen).",
-  "Haritada göster": "Näytä kartalla",
-  "Viraj adları ({0} viraj)": "Mutkien nimet ({0} mutkaa)",
-  "Viraj numaraları ve adları": "Mutkien numerot ja nimet",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Nimeä mutkat (esim. La Source, Eau Rouge). Nimet tallennetaan tälle radalle ja näkyvät ratakartalla, ajolinjassa ja mutka-analyysissä.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Jos iRacingin telemetriatallennus on päällä (Alt+L), uudet .ibt-tiedostot tuodaan automaattisesti kisan jälkeen; ajolinja lisätään saman istunnon kierroksiin ilman kaksoiskappaleita"
+  "Yarışın kalan süresi": "Kisan jäljellä oleva aika"
 }

@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Tempo in alto a sinistra",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "Nelle gare a giri si mostra sempre giro del leader / giri totali. Il tempo rimanente viene dal cronometro di gara del gioco; attesa e griglia all'inizio della sessione non contano.",
   "Yarışın geçen / toplam süresi": "Tempo di gara trascorso / totale",
-  "Yarışın kalan süresi": "Tempo di gara rimanente",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Gioco non rilevato? Mostra lo stato di rilevamento",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Alcuni giri non hanno la posizione. iRacing non invia la posizione dell'auto in diretta: attiva la registrazione della telemetria in iRacing (Alt+L durante la guida) e l'app importerà il file da sola dopo la gara aggiungendo la traiettoria ai tuoi giri. Gli altri giochi registrano la posizione in diretta (giri da questa versione).",
-  "Haritada göster": "Mostra sulla mappa",
-  "Viraj adları ({0} viraj)": "Nomi delle curve ({0} curve)",
-  "Viraj numaraları ve adları": "Numeri e nomi delle curve",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Dai un nome alle curve (es. La Source, Eau Rouge). I nomi sono salvati per questo circuito e compaiono sulla mappa, sulla traiettoria e nell'analisi delle curve.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Se in iRacing la registrazione della telemetria è attiva (Alt+L), i nuovi file .ibt vengono importati da soli dopo la gara; la traiettoria viene aggiunta ai giri di quella sessione senza duplicati"
+  "Yarışın kalan süresi": "Tempo di gara rimanente"
 }

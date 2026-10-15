@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "左上角的时间",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "按圈数进行的比赛始终显示领先者圈数 / 总圈数。剩余时间来自游戏的比赛计时；会话开始时的等待和发车格时间不计入。",
   "Yarışın geçen / toplam süresi": "比赛已过 / 总时间",
-  "Yarışın kalan süresi": "比赛剩余时间",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "未检测到游戏？显示检测状态",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "部分圈没有位置数据。iRacing 的实时数据不提供车辆位置：在 iRacing 中开启遥测记录（驾驶时按 Alt+L），比赛结束后应用会自动导入文件并为你的圈添加行车线。其他游戏会实时记录位置（从此版本起的圈）。",
-  "Haritada göster": "在地图上显示",
-  "Viraj adları ({0} viraj)": "弯道名称（{0} 个弯道）",
-  "Viraj numaraları ve adları": "弯道编号和名称",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "为弯道命名（例如 La Source、Eau Rouge）。名称按赛道保存，会显示在赛道地图、行车线和弯道分析中。",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "如果在 iRacing 中开启了遥测记录（Alt+L），比赛结束后会自动导入新的 .ibt 文件；行车线会添加到该会话的圈中，不会产生重复"
+  "Yarışın kalan süresi": "比赛剩余时间"
 }

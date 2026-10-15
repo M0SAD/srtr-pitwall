@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Ganze Runde",
  "ts_latg": "Quer-G (+ rechts)",
  "ts_rline": "Ideallinie",
- "ts_rline_hint": "Wo jede Runde auf der Strecke verlief (in iRacing aus der Telemetriedatei, in anderen Spielen aus der Live-Position). Die Zahlen markieren die Kurven. Beim Überfahren siehst du, wo jede Runde bei dieser Distanz war; Abstand zu A in Metern.",
+ "ts_rline_hint": "GPS-Position der aus iRacing-Telemetriedateien (.ibt) importierten Runden. Beim Überfahren siehst du, wo jede Runde bei dieser Distanz war; Abstand zu A in Metern.",
  "ts_rline_gap": "{0}: {1} m von A",
  "ts_csv": "CSV herunterladen"
 }

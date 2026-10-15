@@ -339,6 +339,3 @@
 .tchart-dot { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg-2, #12151b); pointer-events: none; z-index: 2; }
 .tchart-tip { position: absolute; transform: translate(8px, -50%); padding: 1px 6px; border: 1px solid; border-radius: 5px; background: color-mix(in srgb, var(--bg-2, #12151b) 88%, transparent); font-size: 11px; font-weight: 700; line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 3; }
 .tchart-tip.flip { transform: translate(calc(-100% - 8px), -50%); }
-.rl-corner line { stroke: rgba(255,255,255,.45); }
-.rl-corner circle { fill: #0b0d12; stroke: var(--accent, #ff8a2a); }
-.rl-corner text { fill: #fff; font-weight: 800; text-anchor: middle; }

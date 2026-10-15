@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Giro intero",
  "ts_latg": "G laterale (+ destra)",
  "ts_rline": "Traiettoria",
- "ts_rline_hint": "Dove è passato ogni giro (in iRacing dal file di telemetria, negli altri giochi dalla posizione in diretta). I numeri indicano le curve. Passa sopra per vedere dove si trovava ogni giro a quella distanza; distanza da A in metri.",
+ "ts_rline_hint": "Posizione GPS dei giri importati dai file di telemetria iRacing (.ibt). Passa sopra per vedere dove si trovava ogni giro a quella distanza; distanza da A in metri.",
  "ts_rline_gap": "{0}: a {1} m da A",
  "ts_csv": "Scarica CSV"
 }

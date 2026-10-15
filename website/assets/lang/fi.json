@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Koko kierros",
  "ts_latg": "Sivuttais-G (+ oikealle)",
  "ts_rline": "Ajolinja",
- "ts_rline_hint": "Mistä kukin kierros kulki radalla (iRacingissa telemetriatiedostosta, muissa peleissä live-sijainnista). Numerot merkitsevät mutkat. Vie hiiri päälle nähdäksesi kunkin kierroksen paikan tällä matkalla; etäisyys A:sta metreinä.",
+ "ts_rline_hint": "iRacingin telemetriatiedostoista (.ibt) tuotujen kierrosten GPS-sijainti. Vie hiiri päälle nähdäksesi kunkin kierroksen paikan tällä matkalla; etäisyys A:sta metreinä.",
  "ts_rline_gap": "{0}: {1} m A:sta",
  "ts_csv": "Lataa CSV"
 }

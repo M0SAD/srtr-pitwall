@@ -1412,7 +1412,7 @@
  "ts_zoom_reset": "Całe okrążenie",
  "ts_latg": "Przeciążenie boczne (+ w prawo)",
  "ts_rline": "Linia jazdy",
- "ts_rline_hint": "Którędy przebiegało każde okrążenie (w iRacing z pliku telemetrii, w innych grach z pozycji na żywo). Numery oznaczają zakręty. Najedź, aby zobaczyć, gdzie było każde okrążenie na tym dystansie; odległość od A w metrach.",
+ "ts_rline_hint": "Pozycja GPS okrążeń zaimportowanych z plików telemetrii iRacing (.ibt). Najedź, aby zobaczyć, gdzie było każde okrążenie na tym dystansie; odległość od A w metrach.",
  "ts_rline_gap": "{0}: {1} m od A",
  "ts_csv": "Pobierz CSV"
 }

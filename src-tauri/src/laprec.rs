@@ -52,11 +52,6 @@ pub struct Trace {
     pub lat: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lon: Vec<i32>,
-    /// Sürüş çizgisi: simin dünya konumu (desimetre; doğu, kuzey). Canlı kayıtta konum veren simlerde
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub px: Vec<i32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub py: Vec<i32>,
 }
 
 impl Trace {
@@ -145,8 +140,6 @@ struct Sample {
     abs: f32,
     lat: f64,
     lon: f64,
-    pe: f64,
-    pn: f64,
 }
 
 /// Süren tur
@@ -297,13 +290,7 @@ impl Recorder {
             self.key = key;
             self.started = now_ms().max(self.last_started + 1);
             self.last_started = self.started;
-            // iRacing: oturum kimliği (subsession) varsa kimlik ondan kurulur; aynı oturumun .ibt dosyası içe
-            // aktarılınca turlar kopya olmaz, üzerine yazılır (sürüş çizgisi eklenir). Bkz. ibt.rs
-            self.session_local = if sim == "iracing" && s.sub_session_id > 0 {
-                format!("iracing-ss{}-{}", s.sub_session_id, f.session_num.max(0))
-            } else {
-                format!("{sim}-{}-{}", self.started, f.session_num.max(0))
-            };
+            self.session_local = format!("{sim}-{}-{}", self.started, f.session_num.max(0));
             self.cur = None;
         }
 
@@ -401,8 +388,6 @@ impl Recorder {
                         abs: if f.abs_active { 1.0 } else { 0.0 },
                         lat: f.lat,
                         lon: f.lon,
-                        pe: f.pos_e,
-                        pn: f.pos_n,
                     };
                 }
             }
@@ -573,8 +558,6 @@ fn build_trace(samples: &[Sample], lap_time: f32) -> Option<Trace> {
     let has_pos = full
         .iter()
         .all(|s| s.lat.is_finite() && s.lon.is_finite() && (s.lat != 0.0 || s.lon != 0.0));
-    // Dünya konumu (canlı): bütün noktalarda geçerli ve hiçbiri tam (0, 0) değilse
-    let has_world = full.iter().all(|s| s.pe.is_finite() && s.pn.is_finite() && (s.pe != 0.0 || s.pn != 0.0));
     // Süre artan olmalı
     for i in 1..n {
         if full[i].t < full[i - 1].t {
@@ -627,16 +610,6 @@ fn build_trace(samples: &[Sample], lap_time: f32) -> Option<Trace> {
         } else {
             Vec::new()
         },
-        px: if has_world && !has_pos {
-            full.iter().map(|s| (s.pe * 10.0).round().clamp(-2e9, 2e9) as i32).collect()
-        } else {
-            Vec::new()
-        },
-        py: if has_world && !has_pos {
-            full.iter().map(|s| (s.pn * 10.0).round().clamp(-2e9, 2e9) as i32).collect()
-        } else {
-            Vec::new()
-        },
     })
 }
 
@@ -656,8 +629,6 @@ fn lerp(a: &Sample, b: &Sample, k: f32) -> Sample {
         abs: a.abs.max(b.abs),
         lat: a.lat + (b.lat - a.lat) * k as f64,
         lon: a.lon + (b.lon - a.lon) * k as f64,
-        pe: a.pe + (b.pe - a.pe) * k as f64,
-        pn: a.pn + (b.pn - a.pn) * k as f64,
     }
 }
 
@@ -848,27 +819,6 @@ mod tests {
             }
         }
         out
-    }
-
-    #[test]
-    fn world_position_becomes_racing_line() {
-        let s = session();
-        let mut r = Recorder::default();
-        // Konum veren sim: 500 m yarıçaplı daire üzerinde
-        let laps = drive(&mut r, &s, 0.5, 100.0, 210.0, |_, f| {
-            let a = f.lap_dist_pct as f64 * std::f64::consts::TAU;
-            f.pos_e = 500.0 * a.cos();
-            f.pos_n = 500.0 * a.sin();
-        });
-        let tr = laps[0].trace.as_ref().unwrap();
-        assert_eq!(tr.px.len(), TRACE_POINTS);
-        assert_eq!(tr.py.len(), TRACE_POINTS);
-        assert!((tr.px[0] - 5000).abs() < 40, "{}", tr.px[0]);
-        assert!(tr.lat.is_empty());
-        // Konum yoksa (iRacing canlı) yazılmaz
-        let mut r2 = Recorder::default();
-        let laps2 = drive(&mut r2, &s, 0.5, 100.0, 210.0, |_, _| {});
-        assert!(laps2[0].trace.as_ref().unwrap().px.is_empty());
     }
 
     #[test]

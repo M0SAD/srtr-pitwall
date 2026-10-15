@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Tid uppe till vänster",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "I varvbaserade lopp visas alltid ledarens varv / totalt antal varv. Återstående tid kommer från spelets tävlingsklocka; väntan och startgrid i början av sessionen räknas inte.",
   "Yarışın geçen / toplam süresi": "Loppets förflutna / totala tid",
-  "Yarışın kalan süresi": "Återstående lopptid",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Spelet hittas inte? Visa identifieringsstatus",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "Vissa varv saknar position. iRacing skickar inte bilens position live: slå på telemetriinspelning i iRacing (Alt+L under körning) så importerar appen filen själv efter loppet och lägger till körlinjen på dina varv. Andra spel spelar in positionen live (varv från den här versionen).",
-  "Haritada göster": "Visa på kartan",
-  "Viraj adları ({0} viraj)": "Kurvnamn ({0} kurvor)",
-  "Viraj numaraları ve adları": "Kurvnummer och -namn",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Namnge kurvorna (t.ex. La Source, Eau Rouge). Namnen sparas för den här banan och visas på bankartan, körlinjen och i kurvanalysen.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Om telemetriinspelning är på i iRacing (Alt+L) importeras nya .ibt-filer automatiskt efter loppet; körlinjen läggs till på den sessionens varv utan dubbletter"
+  "Yarışın kalan süresi": "Återstående lopptid"
 }

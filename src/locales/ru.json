@@ -7319,12 +7319,5 @@
   "Sol üstteki süre": "Время в левом верхнем углу",
   "Tur sayılı yarışlarda her zaman lider turu / toplam tur gösterilir. Kalan süre oyunun yarış saatinden gelir; oturumun başındaki bekleme ve grid süresi sayılmaz.": "В гонках на круги всегда показывается круг лидера / всего кругов. Оставшееся время берётся из гоночных часов игры; ожидание и расстановка на старте в начале сессии не учитываются.",
   "Yarışın geçen / toplam süresi": "Прошло / всего времени гонки",
-  "Yarışın kalan süresi": "Оставшееся время гонки",
-  "Oyun algılanmıyor mu? Algılama durumunu göster": "Игра не определяется? Показать состояние обнаружения",
-  "Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).": "У некоторых кругов нет позиции. iRacing не передаёт положение машины в живых данных: включите запись телеметрии в iRacing (Alt+L во время езды), и приложение само импортирует файл после гонки, добавив траекторию к вашим кругам. Другие игры записывают позицию вживую (круги начиная с этой версии).",
-  "Haritada göster": "Показать на карте",
-  "Viraj adları ({0} viraj)": "Названия поворотов ({0} поворотов)",
-  "Viraj numaraları ve adları": "Номера и названия поворотов",
-  "Virajlara ad ver (ör. La Source, Eau Rouge). Adlar bu pist için saklanır; pist haritasında, sürüş çizgisinde ve viraj analizinde görünür.": "Назовите повороты (например, La Source, Eau Rouge). Названия сохраняются для этой трассы и видны на карте, траектории и в анализе поворотов.",
-  "iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz": "Если в iRacing включена запись телеметрии (Alt+L), новые файлы .ibt импортируются автоматически после гонки; траектория добавляется к кругам этой сессии без дубликатов"
+  "Yarışın kalan süresi": "Оставшееся время гонки"
 }

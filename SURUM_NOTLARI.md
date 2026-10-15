@@ -3,18 +3,6 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
-## 151026-326
-
-- Telemetri › Sürüş çizgisi canlı turlarda da: konum veren oyunlarda (ACC, AC, LMU / rF2, AMS2, RaceRoom, F1, DiRT / GRID, Forza) her turun pistteki çizgisi kaydedilir (iz dosyasında px / py, metre). Kıyaslanan turların çizgileri üst üste, imleçle A'ya uzaklık metre olarak.
-- iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydı açıksa (sürerken Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır (Telemetri sayfasında ".ibt içe aktar" yanındaki "Otomatik", varsayılan açık). Turlar aynı kimlikle yazılır: canlı kaydedilmiş turların üzerine sürüş çizgisi eklenir, kopya oluşmaz.
-- Viraj numaraları ve adları: pist haritasında ve sürüş çizgisinde virajlar numaralanır (turun hız diplerinden); "Viraj adları" bölümünden her virajın adını yaz (ör. La Source). Adlar pist başına saklanır (hesapla eşitlenir); haritada, sürüş çizgisinde ve viraj analizi tablosunda görünür. Numaraya tıklayınca grafiklerde o viraja gidilir.
-- CSV dışa aktarmada konum sütunları (pos_east_m, pos_north_m). Paylaşım sayfasında (site) canlı turların sürüş çizgisi ve viraj numaraları.
-
-## 151026-325
-
-- Le Mans Ultimate: oyunun kendi paylaşımlı belleği (`LMU_Data`) okunuyor; rF2 Shared Memory eklentisi artık gerekmiyor (yeni LMU sürümlerinde eklenti yüklenmediği için LMU algılanmıyordu). Oyunda Ayarlar › Oynanış › "Eklentileri etkinleştir" açık olmalı (açtıktan sonra oyunu yeniden başlat). Eklenti kurulu rFactor 2 ve eski LMU eskisi gibi çalışır.
-- Ayarlar › Genel › Oyun › "Oyun algılanmıyor mu? Algılama durumunu göster": her oyun için bellek / port bulunup bulunmadığını, oyunun durumunu (menü, sürüşte…) ve bağlanmama sebebini gösterir (ör. AMS2'de "Paylaşımlı Bellek = Project CARS 2" seçili değilse bellek hiç oluşmaz). Kopyalanabilir.
-
 ## 141026-324
 
 - Lider Tablosu: sol üstteki süre artık varsayılan olarak yarışın kalan süresini gösterir (oyunun yarış saatinden; oturumun başındaki bekleme ve grid süresi sayılmaz). Yeni ayar Başlık › "Sol üstteki süre": Yarışın kalan süresi (varsayılan), Yarışın geçen / toplam süresi, Oturum başından geçen / toplam (eski görünüm). Tur sayılı yarışlarda eskisi gibi lider turu / toplam tur.

@@ -13,7 +13,7 @@ import { loadAvatars } from "@/cloud/profile";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockTag } from "../components/ProLock";
 import { lapTime } from "@/sdk/format";
-import { settings, uiPref, updateSettings } from "@/sdk/settings";
+import { uiPref } from "@/sdk/settings";
 import {
   SESSION_LABEL,
   SIM_LABEL,
@@ -48,9 +48,8 @@ import { go } from "../ui";
 import { setTeamFocus } from "@/cloud/teams";
 import { ProfileCard } from "../components/Profile";
 import * as I from "../icons";
-import { CornerNameEditor, MiniMap, TeleMap, trackShapeFor } from "../components/TeleMap";
+import { MiniMap, TeleMap, trackShapeFor } from "../components/TeleMap";
 import { analyzeCorners, coachNotes, theoreticalBest, type CoachReason } from "@/sdk/teleAnalysis";
-import { cornerName, cornersOf } from "@/sdk/cornerNames";
 import { loadRef } from "@/cloud/teleref";
 import "../telemetry.css";
 
@@ -1570,12 +1569,6 @@ function CornerAnalysis(p: { laps: Loaded[]; setCursorK: (k: number | null) => v
                     <tr class="click" onClick={() => p.setCursorK(c.apexPct)}>
                       <td>
                         <b>V{c.n}</b>
-                        <Show when={cornerName(p.laps[0].info, c.apexPct)}>
-                          <small class="ca-cname" data-no-i18n>
-                            {" "}
-                            {cornerName(p.laps[0].info, c.apexPct)}
-                          </small>
-                        </Show>
                       </td>
                       <td class="num mono">{Math.round(c.apexM)} m</td>
                       <td class="num mono">{two(m(a().brakeAt), r() ? m(r()!.brakeAt) : null)}</td>
@@ -1630,20 +1623,6 @@ function IbtImport() {
       <button class="btn ghost small" disabled={busy()} onClick={run} title={t("iRacing'in kaydettiği telemetri dosyalarını (.ibt) içe aktar: turlar, izler ve sürüş çizgisi telemetrine eklenir")}>
         <I.Upload /> {busy() ? t("İçe aktarılıyor…") : t(".ibt içe aktar")}
       </button>
-      <label
-        class="ibt-auto"
-        title={t("iRacing'de telemetri kaydı açıksa (Alt+L) yarıştan sonra yeni .ibt dosyaları kendiliğinden içe aktarılır; aynı oturumun turlarına sürüş çizgisi eklenir, kopya oluşmaz")}
-      >
-        <input
-          type="checkbox"
-          checked={(settings().general as { ibtAuto?: boolean }).ibtAuto !== false}
-          onChange={(e) => {
-            const v = e.currentTarget.checked;
-            updateSettings((d) => void ((d.general as { ibtAuto?: boolean }).ibtAuto = v));
-          }}
-        />
-        {t("Otomatik")}
-      </label>
       <Show when={res()}>
         <div class="modal-back" onClick={(e) => e.target === e.currentTarget && setRes(null)}>
           <div class="modal tele-shares">
@@ -1708,8 +1687,6 @@ async function exportCsv(laps: Loaded[]) {
     { key: "abs", pick: (t) => t.abs },
     { key: "lat", pick: (t) => t.lat, k: 1e-6 },
     { key: "lon", pick: (t) => t.lon, k: 1e-6 },
-    { key: "pos_east_m", pick: (t) => t.px, k: 0.1 },
-    { key: "pos_north_m", pick: (t) => t.py, k: 0.1 },
   ];
   const used = cols.filter((c) => withTrace.some((x) => (c.pick(x.trace!)?.length ?? 0) > 1));
   const head = ["distance_m", "lap_pct", ...withTrace.flatMap((_x, i) => used.map((c) => `${LETTERS[i]}_${c.key}`))];
@@ -1739,29 +1716,15 @@ function RacingLine(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k:
   const LW = 900;
   const LH = 560;
   const lines = createMemo(() => {
-    // Konum iki türlü gelir: .ibt'den GPS (lat / lon, mikro derece) ya da canlı kayıtta simin dünya konumu
-    // (px / py, desimetre; doğu, kuzey). Kıyaslanan turlar aynı türden olmalı (ilk konumlu turun türü).
-    const geo = (x: Loaded) => (x.trace?.lat?.length ?? 0) > 10 && x.trace!.lat!.length === x.trace!.lon?.length;
-    const world = (x: Loaded) => (x.trace?.px?.length ?? 0) > 10 && x.trace!.px!.length === x.trace!.py?.length;
-    const first = p.laps.find((x) => geo(x) || world(x));
-    if (!first) return null;
-    const useGeo = geo(first);
-    const list = p.laps.map((x, i) => ({ i, x })).filter(({ x }) => (useGeo ? geo(x) : world(x)));
+    const list = p.laps.map((x, i) => ({ i, lat: x.trace?.lat, lon: x.trace?.lon })).filter((x) => (x.lat?.length ?? 0) > 10 && x.lat!.length === x.lon!.length);
+    if (!list.length) return null;
     // Yerel düzlem (metre): ilk turun ortası merkez
-    let pts: { i: number; xy: [number, number][] }[];
-    if (useGeo) {
-      const f = first.trace!;
-      const lat0 = f.lat!.reduce((a, b) => a + b, 0) / f.lat!.length / 1e6;
-      const lon0 = f.lon!.reduce((a, b) => a + b, 0) / f.lon!.length / 1e6;
-      const kx = Math.cos((lat0 * Math.PI) / 180) * 111320;
-      const ky = 110540;
-      pts = list.map(({ i, x }) => ({ i, xy: x.trace!.lat!.map((la, j) => [(x.trace!.lon![j] / 1e6 - lon0) * kx, -(la / 1e6 - lat0) * ky] as [number, number]) }));
-    } else {
-      const f = first.trace!;
-      const e0 = f.px!.reduce((a, b) => a + b, 0) / f.px!.length / 10;
-      const n0 = f.py!.reduce((a, b) => a + b, 0) / f.py!.length / 10;
-      pts = list.map(({ i, x }) => ({ i, xy: x.trace!.px!.map((e, j) => [e / 10 - e0, -(x.trace!.py![j] / 10 - n0)] as [number, number]) }));
-    }
+    const f = list[0];
+    const lat0 = f.lat!.reduce((a, b) => a + b, 0) / f.lat!.length / 1e6;
+    const lon0 = f.lon!.reduce((a, b) => a + b, 0) / f.lon!.length / 1e6;
+    const kx = Math.cos((lat0 * Math.PI) / 180) * 111320;
+    const ky = 110540;
+    const pts = list.map((x) => ({ i: x.i, xy: x.lat!.map((la, j) => [(x.lon![j] / 1e6 - lon0) * kx, -(la / 1e6 - lat0) * ky] as [number, number]) }));
     let minX = Infinity,
       maxX = -Infinity,
       minY = Infinity,
@@ -1773,7 +1736,7 @@ function RacingLine(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k:
         minY = Math.min(minY, y);
         maxY = Math.max(maxY, y);
       }
-    return { pts, box: { x: minX - 30, y: minY - 30, w: maxX - minX + 60, h: maxY - minY + 60 }, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+    return { pts, box: { x: minX - 30, y: minY - 30, w: maxX - minX + 60, h: maxY - minY + 60 } };
   });
   const [vb, setVb] = createSignal<{ x: number; y: number; w: number; h: number } | null>(null);
   createEffect(() => {
@@ -1847,21 +1810,6 @@ function RacingLine(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k:
   };
   const path = (xy: [number, number][]) => "M" + xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join("L");
   const sw = () => (vb()?.w ?? 1000) / 450;
-  /** Virajlar: A turunun hız diplerinden; numara ve (varsa) ad, çizginin dışına */
-  const info = () => p.laps[0].info;
-  const corners = createMemo(() => {
-    const l = lines();
-    const a = l?.pts[0];
-    if (!l || !a) return [];
-    return cornersOf(p.laps[a.i].trace?.speed).map((k, j) => {
-      const [x, y] = at(a.xy, k);
-      const dx = x - l.cx;
-      const dy = y - l.cy;
-      const d = Math.hypot(dx, dy) || 1;
-      return { k, n: j + 1, x, y, lx: x + (dx / d) * sw() * 14, ly: y + (dy / d) * sw() * 14 };
-    });
-  });
-  const [showCorners, setShowCorners] = uiPref("tele.rline.corners", true);
   return (
     <Show when={lines()}>
       <section class="panel rline">
@@ -1882,14 +1830,9 @@ function RacingLine(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k:
             </div>
           </Show>
         </div>
-        <Show when={p.laps.some((x) => !(x.trace?.lat?.length) && !(x.trace?.px?.length))}>
-          <p class="muted small">
-            {t("Bazı turlarda konum yok. iRacing canlı veride aracın konumunu vermez: iRacing'de telemetri kaydını aç (sürerken Alt+L), program yarıştan sonra dosyayı kendiliğinden içe aktarır ve turlarına sürüş çizgisi eklenir. Diğer oyunlarda konum canlı kaydedilir (bu sürümden sonraki turlarda).")}
-          </p>
+        <Show when={p.laps.some((x) => !(x.trace?.lat?.length))}>
+          <p class="muted small">{t("Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).")}</p>
         </Show>
-        <label class="rline-opt">
-          <input type="checkbox" checked={showCorners()} onChange={(e) => setShowCorners(e.currentTarget.checked)} /> {t("Viraj numaraları ve adları")}
-        </label>
         <svg
           ref={svg}
           class="rline-svg"
@@ -1905,24 +1848,6 @@ function RacingLine(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k:
           onDblClick={() => createEffectReset()}
         >
           <For each={[...lines()!.pts].reverse()}>{(q) => <path d={path(q.xy)} fill="none" stroke={COLORS[q.i]} stroke-width={sw() * (q.i === 0 ? 1.6 : 1.2)} stroke-linejoin="round" opacity={q.i === 0 ? 1 : 0.85} />}</For>
-          <Show when={showCorners()}>
-            <For each={corners()}>
-              {(c) => (
-                <g class="rline-corner" onClick={() => p.setCursorK(c.k)}>
-                  <line x1={c.x} y1={c.y} x2={c.lx} y2={c.ly} stroke-width={sw() * 0.7} />
-                  <circle cx={c.lx} cy={c.ly} r={sw() * 6} stroke-width={sw() * 0.8} />
-                  <text x={c.lx} y={c.ly} font-size={String(sw() * 7.5)} dy="0.35em">
-                    {c.n}
-                  </text>
-                  <Show when={cornerName(info(), c.k)}>
-                    <text class="rline-cname" x={c.lx + sw() * 8} y={c.ly} font-size={String(sw() * 8)} dy="0.35em">
-                      {cornerName(info(), c.k)}
-                    </text>
-                  </Show>
-                </g>
-              )}
-            </For>
-          </Show>
           <Show when={p.cursorK != null}>
             <For each={lines()!.pts}>
               {(q) => {
@@ -1932,7 +1857,6 @@ function RacingLine(p: { laps: Loaded[]; cursorK: number | null; setCursorK: (k:
             </For>
           </Show>
         </svg>
-        <CornerNameEditor track={info()} corners={corners()} onPick={(k) => p.setCursorK(k)} />
       </section>
     </Show>
   );
