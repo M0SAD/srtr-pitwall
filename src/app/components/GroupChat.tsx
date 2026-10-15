@@ -3,6 +3,7 @@
 // (eklendi, ayrıldı, çıkarıldı, yeni sahip, ad değişti, arka plan değişti) ve sahibin seçtiği ortak arka plan.
 // Mesaja sağ tık: kopyala, herkesten sil (kendi mesajın; sahip her mesajı), raporla (başkasının mesajı).
 
+import { LinkPreview } from "./LinkPreview";
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
@@ -462,6 +463,9 @@ export function GroupChat(props: {
                       <p data-no-i18n>
                         <MsgText text={r.m.body} />
                       </p>
+                      <Show when={!r.m.deleted}>
+                        <LinkPreview text={r.m.body} />
+                      </Show>
                     </Show>
                     <ReactionRow list={reacts.of(r.m.id)} onToggle={(e) => void reacts.toggle(r.m.id, e).catch(() => {})} />
                     <Show when={r.lastOfRun}>

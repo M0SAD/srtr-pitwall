@@ -90,6 +90,7 @@ export { default as Wrench } from "lucide-solid/icons/wrench";
 export { default as ZoomOut } from "lucide-solid/icons/zoom-out";
 export { default as Upload } from "lucide-solid/icons/upload";
 export { default as Route } from "lucide-solid/icons/route";
+export { default as AudioLines } from "lucide-solid/icons/audio-lines";
 export { default as Headphones } from "lucide-solid/icons/headphones";
 export { default as HeadphoneOff } from "lucide-solid/icons/headphone-off";
 export { default as Hand } from "lucide-solid/icons/hand";

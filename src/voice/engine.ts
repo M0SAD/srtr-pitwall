@@ -9,6 +9,7 @@
 // Söz hakları / sıra / yetkiler: voice_room_state (10 sn'de bir + değişiklikte "refresh" yayını).
 
 import { createSignal } from "solid-js";
+import { emit } from "@tauri-apps/api/event";
 import type { RealtimeChannel } from "@supabase/realtime-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -19,28 +20,24 @@ import { inTauri } from "@/sdk/platform";
 import { uiPref } from "@/sdk/settings";
 import { t } from "@/sdk/i18n";
 import { sfu, voiceHeartbeat, voiceRoomState, type VoiceJoin, type VoiceRole, type VoiceState } from "@/cloud/voiceRooms";
+import { buildMicChain, getMicStream, meterNode, micMeter, outputDevice, type MicChain } from "./micChain";
+export * from "./micChain";
+import { VOICE_OVERLAY_EVENT, VOICE_OVERLAY_REQ, type VoiceOverlayData, type VoiceOverlayMember } from "./overlayTypes";
 
 export interface VoiceMember {
   user_id: string;
   name: string;
   /** SFU oturumu */
   sid: string;
-  /** Mikrofonu şu an iletiyor (kendi beyanı; ses yalnızca söz hakkı varsa ulaşır) */
-  live: boolean;
+  /** Mikrofonunu kapatmış (ya da sesi kapalı) */
+  muted: boolean;
   deaf: boolean;
-  /** Ses seviyesi 0..1 (çekilen izlerden ölçülür) */
-  level: number;
 }
 
 export type VoiceStatus = "idle" | "connecting" | "connected" | "reconnecting" | "error";
 
 // ---- Kullanıcı tercihleri (hesapla eşitlenir)
 export const [inputMode, setInputMode] = uiPref<"open" | "ptt">("voice.room.input", "open");
-export const [inputDevice, setInputDevice] = uiPref<string>("voice.room.inDev", "");
-export const [outputDevice, setOutputDevice] = uiPref<string>("voice.room.outDev", "");
-export const [noiseSuppress, setNoiseSuppress] = uiPref<boolean>("voice.room.ns", true);
-export const [echoCancel, setEchoCancel] = uiPref<boolean>("voice.room.ec", true);
-export const [autoGain, setAutoGain] = uiPref<boolean>("voice.room.agc", true);
 export const [masterVolume, setMasterVolume] = uiPref<number>("voice.room.vol", 100);
 /** Kişi başı ses (0..200 %) */
 export const [userVolumes, setUserVolumes] = uiPref<Record<string, number>>("voice.room.userVol", {});
@@ -58,7 +55,9 @@ const [clockSkew, setClockSkew] = createSignal(0);
 const [micOn, setMicOn] = createSignal(true);
 const [deafened, setDeafened] = createSignal(false);
 const [pttHeld, setPttHeld] = createSignal(false);
-const [myLevel, setMyLevel] = createSignal(0);
+/** Konuşma göstergesi: kişi → ses seviyesi 0..1 (çekilen izlerden; kendim için kapı açıkken mikrofon) */
+const [levels, setLevels] = createSignal<Record<string, number>>({});
+const [micTest, setMicTestSig] = createSignal(false);
 /** Yerelde susturulanlar (bu oturum) */
 const [localMuted, setLocalMuted] = createSignal<string[]>([]);
 /** Saniyelik tik (geri sayım çizimleri için) */
@@ -73,7 +72,10 @@ export const voice = {
   micOn,
   deafened,
   pttHeld,
-  myLevel,
+  /** Kendi mikrofon seviyem 0..1 (sadece iletilirken) */
+  myLevel: () => (transmitting() && micMeter.open() ? dbToLevel(micMeter.db()) : 0),
+  levels,
+  micTest,
   localMuted,
   tick,
   /** Sunucu saatine göre şimdi (ms) */
@@ -81,6 +83,12 @@ export const voice = {
 };
 
 const uid = () => session()?.user.id ?? "";
+
+/** dB → 0..1 (-60 dB sessiz, -10 dB tam) */
+export const dbToLevel = (db: number) => Math.max(0, Math.min(1, (db + 60) / 50));
+/** Kişi konuşuyor mu (gösterge eşiği) */
+export const levelOf = (user: string) => (user === uid() ? voice.myLevel() : (levels()[user] ?? 0));
+export const isTalking = (user: string) => levelOf(user) > 0.12;
 
 export function myRole(): VoiceRole | null {
   return (vstate()?.my_role as VoiceRole | null) ?? room()?.role ?? null;
@@ -116,6 +124,9 @@ export function canSpeak(user: string): boolean {
 /** Şu an mikrofonum iletiliyor mu */
 export const transmitting = () => status() === "connected" && canSpeak(uid()) && !deafened() && (inputMode() === "ptt" ? pttHeld() : micOn());
 
+/** Mikrofonum kapalı mı (açık mikrofonda kapattım ya da sesi kapattım; bas-konuşta basmamak kapalı sayılmaz) */
+export const micMuted = () => deafened() || (inputMode() === "open" && !micOn());
+
 export const requested = () => !!vstate()?.requests.some((r) => r.user_id === uid());
 
 // ---------------------------------------------------------------------------
@@ -125,10 +136,10 @@ export const requested = () => !!vstate()?.requests.some((r) => r.user_id === ui
 let pc: RTCPeerConnection | null = null;
 let sid = "";
 let mic: MediaStream | null = null;
+let chain: MicChain | null = null;
 let micTx: RTCRtpTransceiver | null = null;
 let chan: RealtimeChannel | null = null;
 let ctx: AudioContext | null = null;
-let myAnalyser: AnalyserNode | null = null;
 let timers: number[] = [];
 let expiryTimer = 0;
 let joinArgs: { room: string | null; code: string | null } | null = null;
@@ -147,7 +158,7 @@ interface Pulled {
   user: string;
   el: HTMLAudioElement;
   gain: GainNode | null;
-  analyser: AnalyserNode | null;
+  meter: AudioWorkletNode | null;
   src: MediaStreamAudioSourceNode | null;
 }
 /** Çekilen izler: hedef oturum → iz */
@@ -159,7 +170,12 @@ const denied = new Set<string>();
 
 function audioCtx(): AudioContext {
   if (!ctx) {
-    ctx = new AudioContext();
+    // RNNoise 48 kHz ister
+    try {
+      ctx = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
+    } catch {
+      ctx = new AudioContext();
+    }
     void applyOutput();
   }
   if (ctx.state === "suspended") void ctx.resume().catch(() => {});
@@ -185,19 +201,6 @@ function tuneOpus(sdp: string): string {
   });
 }
 
-async function getMic(): Promise<MediaStream> {
-  const dev = inputDevice();
-  return navigator.mediaDevices.getUserMedia({
-    audio: {
-      ...(dev ? { deviceId: { exact: dev } } : {}),
-      echoCancellation: echoCancel(),
-      noiseSuppression: noiseSuppress(),
-      autoGainControl: autoGain(),
-      channelCount: 1,
-    },
-    video: false,
-  });
-}
 
 function micError(e: unknown): string {
   const n = (e as DOMException)?.name;
@@ -220,11 +223,13 @@ async function connect() {
   setStatus(status() === "reconnecting" ? "reconnecting" : "connecting");
   setError("");
   try {
+    stopMicTest();
     try {
-      mic = await getMic();
+      mic = await getMicStream();
     } catch (e) {
       throw new Error(micError(e));
     }
+    chain = await buildMicChain(audioCtx(), mic);
     const j = await sfu.join(joinArgs.room, joinArgs.code);
     // Özel odaya kodla girildi: yeniden bağlanırken oda kimliğiyle (kod yine gerekir, saklı kalsın)
     joinArgs = { room: j.room.id, code: joinArgs.code };
@@ -246,9 +251,9 @@ async function connect() {
         }, 6000);
       }
     };
-    const track = mic.getAudioTracks()[0];
+    const track = chain.track;
     track.enabled = false;
-    micTx = pc.addTransceiver(track, { direction: "sendonly", streams: [mic] });
+    micTx = pc.addTransceiver(track, { direction: "sendonly" });
     try {
       const p = micTx.sender.getParameters();
       p.encodings = [{ ...(p.encodings?.[0] ?? {}), maxBitrate: 40000 }];
@@ -270,7 +275,6 @@ async function connect() {
       });
     });
     await waitConnected();
-    startMeter(mic);
     await joinChannel(j.room.chan);
     await refreshState();
     startLoops();
@@ -280,6 +284,7 @@ async function connect() {
     retries = 0;
     applyTransmit();
     cue("join");
+    pushOverlay(true);
   } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     await teardown(false);
@@ -344,6 +349,8 @@ export async function leaveRoom() {
   setRoom(null);
   setVstate(null);
   setMembers([]);
+  setLevels({});
+  pushOverlay(true);
 }
 
 async function teardown(sayBye: boolean) {
@@ -373,10 +380,10 @@ async function teardown(sayBye: boolean) {
   }
   pc = null;
   micTx = null;
+  chain?.close();
+  chain = null;
   mic?.getTracks().forEach((x) => x.stop());
   mic = null;
-  myAnalyser = null;
-  setMyLevel(0);
   sid = "";
   if (sayBye && r) {
     if (s) void sfu.leave(s).catch(() => {});
@@ -422,7 +429,7 @@ async function trackPresence() {
   const body = {
     n: profile()?.display_name || t("Sürücü"),
     s: sid,
-    l: transmitting(),
+    m: micMuted(),
     d: deafened(),
   };
   const key = JSON.stringify(body);
@@ -433,8 +440,7 @@ async function trackPresence() {
 
 function syncPresence() {
   if (!chan) return;
-  const ps = chan.presenceState() as Record<string, { n?: string; s?: string; l?: boolean; d?: boolean }[]>;
-  const prev = new Map(members().map((m) => [m.user_id, m]));
+  const ps = chan.presenceState() as Record<string, { n?: string; s?: string; m?: boolean; d?: boolean }[]>;
   const list: VoiceMember[] = [];
   for (const [user, metas] of Object.entries(ps)) {
     const m = metas[metas.length - 1];
@@ -443,13 +449,13 @@ function syncPresence() {
       user_id: user,
       name: String(m.n ?? "").slice(0, 40) || "?",
       sid: m.s,
-      live: !!m.l,
+      muted: !!m.m,
       deaf: !!m.d,
-      level: prev.get(user)?.level ?? 0,
     });
   }
   list.sort((a, b) => a.name.localeCompare(b.name));
   setMembers(list);
+  pushOverlay(true);
   void reconcile();
 }
 
@@ -533,7 +539,8 @@ function startLoops() {
       const ok = await voiceHeartbeat(r.id).catch(() => true);
       if (ok === false) void kicked(t("Odadan çıkarıldın"));
     }, 30_000),
-    window.setInterval(meter, 100),
+    // Overlay için (söz süresi, durum); konuşma göstergesi ölçerden anında gider
+    window.setInterval(() => pushOverlay(false), 1000),
   );
 }
 
@@ -542,9 +549,9 @@ function startLoops() {
 // ---------------------------------------------------------------------------
 
 function applyTransmit() {
-  const tr = mic?.getAudioTracks()[0];
-  if (tr) tr.enabled = transmitting();
+  if (chain) chain.track.enabled = transmitting();
   void trackPresence();
+  pushOverlay(true);
 }
 
 export function toggleMic() {
@@ -575,58 +582,81 @@ async function bindPtt() {
   unPtt = un;
 }
 
-/** Giriş aygıtı / ses işleme ayarı değişti: mikrofonu yeniden aç (bağlantı kopmadan) */
+/** Giriş aygıtı / ses işleme ayarı değişti: mikrofon zincirini yeniden kur (bağlantı kopmadan) */
 export async function restartMic() {
+  if (testChain) {
+    const loop = testLoop;
+    stopMicTest();
+    await startMicTest(loop);
+  }
   if (!micTx || !pc) return;
   try {
-    const m = await getMic();
-    const tr = m.getAudioTracks()[0];
-    tr.enabled = transmitting();
-    await micTx.sender.replaceTrack(tr);
+    const m = await getMicStream();
+    const c = await buildMicChain(audioCtx(), m);
+    c.track.enabled = transmitting();
+    await micTx.sender.replaceTrack(c.track);
+    chain?.close();
     mic?.getTracks().forEach((x) => x.stop());
     mic = m;
-    startMeter(m);
+    chain = c;
   } catch (e) {
     setError(micError(e));
   }
 }
 
+/** Kapı / kazanç ayarı değişti (zincir yeniden kurulmaz) */
+export function updateMic() {
+  chain?.update();
+  testChain?.update();
+}
+
 export const changeOutput = () => void applyOutput();
 
-function startMeter(m: MediaStream) {
+// ---- Mikrofon testi (Ses ayarları): seviye ve eşik çubuğu, istenirse kendini duy
+let testChain: MicChain | null = null;
+let testMic: MediaStream | null = null;
+let testLoop = false;
+export async function startMicTest(loopback: boolean) {
+  testLoop = loopback;
+  setMicTestSig(true);
+  if (chain) {
+    // Odadayken: oda zinciri ölçülür, sadece kendini duyma açılıp kapanır
+    chain.setLoopback(loopback);
+    return;
+  }
   try {
-    const c = audioCtx();
-    const src = c.createMediaStreamSource(m);
-    myAnalyser = c.createAnalyser();
-    myAnalyser.fftSize = 512;
-    src.connect(myAnalyser);
-  } catch {
-    myAnalyser = null;
+    if (!testChain) {
+      testMic = await getMicStream();
+      testChain = await buildMicChain(audioCtx(), testMic);
+    }
+    testChain.setLoopback(loopback);
+  } catch (e) {
+    setMicTestSig(false);
+    setError(micError(e));
   }
 }
-
-const buf = new Float32Array(512);
-function rms(a: AnalyserNode | null): number {
-  if (!a) return 0;
-  a.getFloatTimeDomainData(buf);
-  let s = 0;
-  for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
-  return Math.min(1, Math.sqrt(s / buf.length) * 6);
+export function stopMicTest() {
+  setMicTestSig(false);
+  testLoop = false;
+  chain?.setLoopback(false);
+  testChain?.close();
+  testChain = null;
+  testMic?.getTracks().forEach((x) => x.stop());
+  testMic = null;
 }
 
-function meter() {
-  setMyLevel(transmitting() ? rms(myAnalyser) : 0);
-  const lv = new Map<string, number>();
-  for (const p of pulled.values()) lv.set(p.user, rms(p.analyser));
-  const cur = members();
-  let changed = false;
-  const next = cur.map((m) => {
-    const l = m.user_id === uid() ? myLevel() : (lv.get(m.user_id) ?? 0);
-    const q = Math.round(l * 20) / 20;
-    if (q !== m.level) changed = true;
-    return q !== m.level ? { ...m, level: q } : m;
-  });
-  if (changed) setMembers(next);
+/** Konuşma göstergesi: ölçerden gelen seviye (değişince) */
+let lastOverlayTalk = 0;
+function noteLevel(user: string, db: number) {
+  const q = Math.round(dbToLevel(db) * 20) / 20;
+  const cur = levels();
+  if ((cur[user] ?? 0) === q) return;
+  setLevels({ ...cur, [user]: q });
+  const now = Date.now();
+  if (now - lastOverlayTalk > 90) {
+    lastOverlayTalk = now;
+    pushOverlay(false);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -720,35 +750,49 @@ function onTrack(e: RTCTrackEvent) {
   el.srcObject = stream;
   void el.play().catch(() => {});
   let gain: GainNode | null = null;
-  let analyser: AnalyserNode | null = null;
   let src: MediaStreamAudioSourceNode | null = null;
   try {
     const c = audioCtx();
     src = c.createMediaStreamSource(stream);
     gain = c.createGain();
-    analyser = c.createAnalyser();
-    analyser.fftSize = 512;
-    src.connect(analyser);
     src.connect(gain);
     gain.connect(c.destination);
   } catch {
     el.muted = false;
   }
-  const p: Pulled = { mid, user, el, gain, analyser, src };
+  const p: Pulled = { mid, user, el, gain, meter: null, src };
   const old = pulled.get(target);
   if (old) dropAudio(old);
   pulled.set(target, p);
   applyVolume(p);
+  // Seviye ölçer (konuşma göstergesi; ses iş parçacığında, panel gizliyken de çalışır)
+  if (src && ctx) {
+    void meterNode(ctx, (db) => noteLevel(user, db)).then((m) => {
+      if (!m) return;
+      if (pulled.get(target) !== p) return m.disconnect();
+      p.meter = m;
+      src!.connect(m);
+    });
+  }
 }
 
 function dropAudio(p: Pulled) {
   try {
     p.src?.disconnect();
     p.gain?.disconnect();
+    if (p.meter) {
+      p.meter.port.onmessage = null;
+      p.meter.disconnect();
+    }
   } catch {
     /* zaten ayrık */
   }
   p.el.srcObject = null;
+  if (p.user) {
+    const cur = { ...levels() };
+    delete cur[p.user];
+    setLevels(cur);
+  }
 }
 
 function applyVolume(p: Pulled) {
@@ -820,6 +864,63 @@ export async function audioDevices(): Promise<{
   } catch {
     return { inputs: [], outputs: [] };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Overlay ("Ses Odası" overlay'i, overlay penceresinde): kimin konuştuğu
+// ---------------------------------------------------------------------------
+
+let lastOverlay = "";
+function overlayData(): VoiceOverlayData {
+  const r = room();
+  if (!r || status() === "idle" || status() === "error") return { room: null, mode: "", members: [] };
+  const me = uid();
+  const now = voice.now();
+  const list = members().map((m) => {
+    const isMe = m.user_id === me;
+    const g = grantUntil(m.user_id);
+    const speak = canSpeak(m.user_id);
+    return {
+      id: m.user_id,
+      name: m.name,
+      talking: isTalking(m.user_id),
+      mic: !speak ? "floor" : isMe ? (micMuted() ? "off" : "on") : m.muted ? "off" : "on",
+      deaf: isMe ? deafened() : m.deaf,
+      me: isMe,
+      left: g ? Math.max(0, Math.ceil((g - now) / 1000)) : null,
+      role: r.owner === m.user_id ? "owner" : roleOf(m.user_id),
+    } as VoiceOverlayMember;
+  });
+  return { room: r.name, mode: vstate()?.mode ?? r.mode, members: list };
+}
+
+/** Overlay'e durum gönder (değiştiyse; force: her durumda) */
+export function pushOverlay(force: boolean) {
+  if (!inTauri) return;
+  const d = overlayData();
+  const key = JSON.stringify(d);
+  if (!force && key === lastOverlay) return;
+  lastOverlay = key;
+  void emit(VOICE_OVERLAY_EVENT, d).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Kısayollar (Rust "voiceroom-key": mute | deafen) ve overlay'in ilk istek olayı
+// ---------------------------------------------------------------------------
+
+// (Motor yalnızca panel penceresinde yüklenir: VoiceDock ve Ses Odaları sayfası)
+if (inTauri) {
+  void listen<string>("voiceroom-key", (e) => {
+    if (!room() || status() === "idle") return;
+    if (e.payload === "mute") {
+      toggleMic();
+      void invoke("osd_push", { key: "roomMute", on: voice.micOn() && !deafened() }).catch(() => {});
+    } else if (e.payload === "deafen") {
+      toggleDeafen();
+      void invoke("osd_push", { key: "roomDeafen", on: !deafened() }).catch(() => {});
+    }
+  });
+  void listen(VOICE_OVERLAY_REQ, () => pushOverlay(true));
 }
 
 // Pencere kapanırken (uygulama çıkışı) odadan düzgün çık

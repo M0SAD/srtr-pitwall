@@ -22,6 +22,7 @@ mod irating;
 mod keyactivity;
 mod laprec;
 mod league;
+mod linkpreview;
 mod livechat;
 mod logos;
 mod model;
@@ -3455,6 +3456,7 @@ pub fn run() {
             preview_freeze,
             panel_front,
             voice_room_active,
+            linkpreview::link_preview,
             chat_window_notify,
             chat_tabs_take,
             window_toggle,

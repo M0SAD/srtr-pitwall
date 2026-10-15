@@ -1,14 +1,14 @@
-// Sürücüler › Ses Odaları: Discord benzeri sade sesli odalar (herkese açık / davet kodlu özel / takım).
+// Ses Odaları (sol menüde ayrı bölüm): Discord benzeri sade sesli odalar (herkese açık / davet kodlu özel / takım).
 // Kalabalık odalarda "söz hakkıyla" mod: yöneticiler süreli söz verir, uzatır, geri alır; diğerleri söz ister.
 // Motor: src/voice/engine.ts (Cloudflare Realtime SFU), veri: src/cloud/voiceRooms.ts (c116).
 
-import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createEffect, createMemo, createResource, createSignal, onCleanup } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { initialOf } from "@/cloud/social";
 import { cachedAvatar, loadAvatars } from "@/cloud/profile";
 import { myTeams, type MyTeam } from "@/cloud/teams";
-import { settings, updateSettings } from "@/sdk/settings";
+import { settings } from "@/sdk/settings";
 import {
   voiceDismissRequest,
   voiceExtend,
@@ -33,54 +33,30 @@ import {
   amMod,
   announce,
   announceKick,
-  audioDevices,
-  autoGain,
   canSpeak,
-  changeOutput,
-  cueSounds,
-  echoCancel,
   grantUntil,
-  inputDevice,
   inputMode,
   joinRoom,
   leaveRoom,
-  masterVolume,
-  noiseSuppress,
-  outputDevice,
   requested,
-  restartMic,
   roleOf,
-  setAutoGain,
-  setCueSounds,
-  setEchoCancel,
-  setInputDevice,
-  setInputMode,
-  setMasterVolume,
-  setNoiseSuppress,
-  setOutputDevice,
   setUserVolume,
   toggleDeafen,
   toggleLocalMute,
   toggleMic,
   transmitting,
+  levelOf,
+  isTalking,
   userVolumes,
-  applyVolumes,
   voice,
   type VoiceMember,
 } from "@/voice/engine";
 import { askConfirm } from "../confirm";
 import { Slider, Stepper, Switch } from "../components/SettingsForm";
-import { PttButtonRow, PttKeyRow, type BindTarget } from "../components/VoiceCommands";
 import * as I from "../icons";
+import { go } from "../ui";
+import { VoiceRoomSettings } from "./VoiceRoomSettings";
 import "../voicerooms.css";
-
-/** Ses odası bas-konuş tuşu / düğmesi (general.voiceRoom; Rust: voicecmd.rs "voiceroom-ptt") */
-export const VOICE_ROOM_TARGET: BindTarget = {
-  get: () => settings().general.voiceRoom,
-  set: (fn) => updateSettings((d) => fn(d.general.voiceRoom)),
-  hint: "Basılı tuttuğun sürece mikrofonun açık olur. Tuş yutulmaz, oyun öndeyken de çalışır.",
-  heldEvent: "voiceroom-ptt",
-};
 
 const TALK_CHOICES = [15, 30, 45, 60, 90, 120, 180, 300, 600];
 const fmtSec = (s: number) => (s >= 60 ? (s % 60 ? t("{0} dk {1} sn", Math.floor(s / 60), s % 60) : t("{0} dk", s / 60)) : t("{0} sn", s));
@@ -102,15 +78,20 @@ const ROLE_LABEL: Record<VoiceRole, string> = {
 };
 const errText = (e: unknown) => String((e as Error)?.message ?? e);
 
-export function VoiceRoomsPage() {
+export function VoiceRoomsPage(props: { sub?: string }) {
   return (
     <div class="page vr-page">
+      <Show when={props.sub === "settings"}>
+        <VoiceRoomSettings />
+      </Show>
+      <Show when={props.sub !== "settings"}>
       <Show when={cloudEnabled} fallback={<p class="muted">Bulut bağlantısı yapılandırılmamış.</p>}>
         <Show when={session()} fallback={<p class="muted">Ses odalarını kullanmak için giriş yapmalısın (Hesap).</p>}>
           <Show when={voice.room() || voice.status() === "connecting" || voice.status() === "reconnecting"} fallback={<Lobby />}>
             <RoomView />
           </Show>
         </Show>
+      </Show>
       </Show>
     </div>
   );
@@ -383,7 +364,6 @@ function RoomView() {
   const moderated = () => (st()?.mode ?? r()?.mode) === "moderated";
   const [err, setErr] = createSignal("");
   const [openUser, setOpenUser] = createSignal("");
-  const [showSettings, setShowSettings] = createSignal(false);
   const [code, setCode] = createSignal<string | null>(null);
   createEffect(() => setCode(r()?.invite_code ?? null));
   createEffect(() => {
@@ -408,14 +388,6 @@ function RoomView() {
   const present = (u: string) => voice.members().some((m) => m.user_id === u);
   const speakers = createMemo(() => (st()?.grants ?? []).filter((g) => Date.parse(g.until) > voice.now()));
 
-  // Liste: konuşabilenler üstte
-  const sorted = createMemo(() =>
-    [...voice.members()].sort((a, b) => {
-      const ra = rank(a.user_id),
-        rb = rank(b.user_id);
-      return ra !== rb ? ra - rb : a.name.localeCompare(b.name);
-    }),
-  );
   const rank = (u: string) => {
     const ro = r()?.owner === u ? "owner" : roleOf(u);
     if (ro === "owner" || ro === "admin") return 0;
@@ -424,6 +396,14 @@ function RoomView() {
     return 3;
   };
 
+  // Liste: konuşabilenler üstte
+  const sorted = createMemo(() =>
+    [...voice.members()].sort((a, b) => {
+      const ra = rank(a.user_id),
+        rb = rank(b.user_id);
+      return ra !== rb ? ra - rb : a.name.localeCompare(b.name);
+    }),
+  );
   return (
     <>
       <section class="panel vr-head">
@@ -484,7 +464,7 @@ function RoomView() {
           <div class="vr-meter" title={t("Mikrofon seviyesi")}>
             <i style={{ width: `${Math.round(voice.myLevel() * 100)}%` }} />
           </div>
-          <button class="btn ghost small" onClick={() => setShowSettings(!showSettings())}>
+          <button class="btn ghost small" onClick={() => go("voicerooms", "settings")}>
             <I.Settings /> Ses ayarları
           </button>
           <button class="btn danger" onClick={() => void leaveRoom()}>
@@ -538,9 +518,6 @@ function RoomView() {
         </section>
       </Show>
 
-      <Show when={showSettings()}>
-        <AudioSettings />
-      </Show>
 
       {/* Moderatör masası */}
       <Show when={moderated() && amMod()}>
@@ -693,13 +670,13 @@ function MemberRow(props: {
   const until = () => grantUntil(u());
   const speaks = () => canSpeak(u());
   const muted = () => voice.localMuted().includes(u());
-  const talking = () => props.m.level > 0.08 && (props.me ? transmitting() : speaks());
+  const talking = () => isTalking(u()) && (props.me ? transmitting() : speaks());
   const av = () => cachedAvatar(u());
   const canManage = () => amMod() && !props.me && !["owner", "admin"].includes(role());
   return (
     <div class="vr-mem" classList={{ open: props.open, talking: talking() }}>
       <button class="vr-mem-row" onClick={props.onToggle}>
-        <span class="vr-av" style={{ "--lv": String(props.m.level) }}>
+        <span class="vr-av" style={{ "--lv": String(levelOf(u())) }}>
           <Show when={av()} fallback={<span>{initialOf(props.m.name)}</span>}>
             <img src={av()} alt="" />
           </Show>
@@ -919,120 +896,6 @@ function RoomSettings() {
           </div>
         </Show>
       </Show>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Ses ayarları
-// ---------------------------------------------------------------------------
-
-export function AudioSettings() {
-  const [devs, { refetch }] = createResource(audioDevices);
-  onMount(() => {
-    const h = () => void refetch();
-    navigator.mediaDevices?.addEventListener?.("devicechange", h);
-    onCleanup(() => navigator.mediaDevices?.removeEventListener?.("devicechange", h));
-  });
-  const label = (d: MediaDeviceInfo, i: number) => d.label || t("Aygıt {0}", i + 1);
-  return (
-    <section class="panel vr-audio">
-      <h3>Ses ayarları</h3>
-      <div class="row">
-        <span>Mikrofon</span>
-        <select
-          value={inputDevice()}
-          onChange={(e) => {
-            setInputDevice(e.currentTarget.value);
-            void restartMic();
-          }}
-        >
-          <option value="">{t("Varsayılan")}</option>
-          <For each={(devs()?.inputs ?? []).filter((d) => d.deviceId && d.deviceId !== "default")}>
-            {(d, i) => <option value={d.deviceId}>{label(d, i())}</option>}
-          </For>
-        </select>
-      </div>
-      <div class="row">
-        <span>Hoparlör / kulaklık</span>
-        <select
-          value={outputDevice()}
-          onChange={(e) => {
-            setOutputDevice(e.currentTarget.value);
-            changeOutput();
-          }}
-        >
-          <option value="">{t("Varsayılan")}</option>
-          <For each={(devs()?.outputs ?? []).filter((d) => d.deviceId && d.deviceId !== "default")}>
-            {(d, i) => <option value={d.deviceId}>{label(d, i())}</option>}
-          </For>
-        </select>
-      </div>
-      <div class="row">
-        <span>Konuşma şekli</span>
-        <div class="seg">
-          <button classList={{ on: inputMode() === "open" }} onClick={() => setInputMode("open")}>
-            Açık mikrofon
-          </button>
-          <button classList={{ on: inputMode() === "ptt" }} onClick={() => setInputMode("ptt")}>
-            Bas-konuş
-          </button>
-        </div>
-      </div>
-      <Show when={inputMode() === "ptt"}>
-        <PttButtonRow target={VOICE_ROOM_TARGET} />
-        <PttKeyRow label="Klavye tuşu" target={VOICE_ROOM_TARGET} />
-      </Show>
-      <div class="row">
-        <span>Gürültü bastırma</span>
-        <Switch
-          checked={noiseSuppress()}
-          onChange={(v) => {
-            setNoiseSuppress(v);
-            void restartMic();
-          }}
-        />
-      </div>
-      <div class="row">
-        <span>Yankı giderme</span>
-        <Switch
-          checked={echoCancel()}
-          onChange={(v) => {
-            setEchoCancel(v);
-            void restartMic();
-          }}
-        />
-      </div>
-      <div class="row">
-        <span>Otomatik ses seviyesi</span>
-        <Switch
-          checked={autoGain()}
-          onChange={(v) => {
-            setAutoGain(v);
-            void restartMic();
-          }}
-        />
-      </div>
-      <div class="row">
-        <span>Genel ses</span>
-        <div class="vr-slider">
-          <Slider
-            value={masterVolume()}
-            min={0}
-            max={200}
-            step={5}
-            unit="%"
-            onInput={(v) => {
-              setMasterVolume(v);
-              applyVolumes();
-            }}
-          />
-        </div>
-      </div>
-      <div class="row">
-        <span>Girme / söz hakkı sesleri</span>
-        <Switch checked={cueSounds()} onChange={setCueSounds} />
-      </div>
     </section>
   );
 }

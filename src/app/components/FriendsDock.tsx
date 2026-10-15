@@ -75,6 +75,7 @@ import { MsgMenu, ReactionRow, msgClickOpens, msgMenuPos } from "./MsgMenu";
 import { useReactions } from "@/cloud/reactions";
 import { dmRoom, statusChannel, usePings } from "@/cloud/pings";
 import { useSeen } from "../chatSeen";
+import { LinkA, LinkPreview, splitLinks } from "./LinkPreview";
 import { GroupAvatar, GroupChat, NewGroup, type GroupEvent, type GroupPanel } from "./GroupChat";
 import { deleteGroup, leaveGroup, muteGroup, myGroupInvites, myGroups, onGroupChat, respondGroupInvite, type GroupInvite, type GroupMessage, type MyGroup } from "@/cloud/groups";
 import { clearRoomBg } from "@/cloud/chatBg";
@@ -171,7 +172,17 @@ export function Avatar(props: { id: string; name: string; size?: number; presenc
 
 /** Mesaj metni: ifadeler emojiye çevrilir, emojiler biraz büyük */
 export function MsgText(props: { text: string }) {
-  return <For each={emojiParts(emojify(props.text))}>{(p) => (p.emo ? <span class="emo">{p.t}</span> : p.t)}</For>;
+  return (
+    <For each={splitLinks(props.text)}>
+      {(part) =>
+        part.url ? (
+          <LinkA url={part.url} text={part.text} />
+        ) : (
+          <For each={emojiParts(emojify(part.text))}>{(p) => (p.emo ? <span class="emo">{p.t}</span> : p.t)}</For>
+        )
+      }
+    </For>
+  );
 }
 
 
@@ -2345,6 +2356,7 @@ function Chat(props: {
                   <p data-no-i18n>
                     <MsgText text={r.m.body} />
                   </p>
+                  <LinkPreview text={r.m.body} />
                   <ReactionRow list={reacts.of(r.m.id)} onToggle={(e) => void reacts.toggle(r.m.id, e).catch(() => {})} />
                 </div>
               )

@@ -3,9 +3,26 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151026-329
+
+- Düzeltme: Ses Odaları sayfası yayın sürümünde açılırken "Cannot access 'x' before initialization" hatası veriyordu (odadakiler listesinin sıralaması).
+- Ses Odaları › **Ses ayarları** (sol menüde Ses Odaları'nın altında):
+  - **Gürültü engelleme**: Güçlü (yapay zekâ tabanlı RNNoise; klavye, fan, araba, ortam sesi), Standart (Windows / tarayıcı), Kapalı. 90 Hz altı uğultu her zaman kesilir.
+  - **Algılama eşiği** (ses kapısı): Otomatik (ortam gürültüsünü ölçer), Elle (ölçer çubuğunda tıklayıp sürükleyerek) ya da Kapalı. Konuşma bitince bekleme süresi ayarlanır. Eşiğin altındaki ses hiç gönderilmez.
+  - **Mikrofonu dene**: canlı seviye çubuğu ve eşik çizgisi, istenirse "Kendimi duy". Mikrofon kazancı (%0–300).
+  - Mikrofon / hoparlör seçimi, yankı giderme, otomatik ses seviyesi, genel ses.
+- **Kısayollar**: mikrofonu kapat / aç ve sesi kapat / aç (kimseyi duymazsın, mikrofon da kapanır). Klavye tuşu ya da direksiyon düğmesi atanır, oyun öndeyken çalışır, basınca ekranda kısa bildirim çıkar. Ayarlar › Kısayollar'da da var.
+- Yeni overlay: **Ses Odası**. Oyunda odadakileri gösterir; konuşanın adı yanar, mikrofonu kapalı / söz hakkı olmayanlar ve kalan söz süresi görünür. Herkes / konuşabilenler / sadece konuşanlar, satır sayısı, boyut, renk ayarlanır. Odada değilken gizlenir.
+- Konuşma göstergesi artık ses iş parçacığında ölçülüyor (panel gizliyken de doğru çalışır).
+- Sohbetler: arkadaş, grup ve takım mesajlarındaki **bağlantılar tıklanabilir** (http, https, www.). Mesajın altında **bağlantı önizlemesi**: sayfanın başlığı, açıklaması ve görseli (YouTube, haber siteleri…); resim bağlantılarında resmin kendisi. Önizleme uygulama tarafından indirilir, yerel ağ adresleri önizlenmez. Ayarlar › Sohbet › "Bağlantı önizlemesi" ile kapatılabilir.
+
+## 151026-328
+
+- Ses Odaları artık sol menüde ayrı bir bölüm (ses dalgası simgesi, Sesli Mühendis'in üstünde); Sürücüler altından kaldırıldı. Üst çubuktaki oda göstergesine tıklayınca da buraya gelinir. Yöneticiler Görünürlük › Menü görünürlüğü'nden bu bölümü gizleyebilir.
+
 ## 151026-327
 
-- Yeni: **Sürücüler › Ses Odaları**. Discord benzeri sesli odalar uygulamanın içinde: herkese açık, davet kodlu özel ya da takım odası (takım yöneticileri kurar). Kişi başı en çok 10 oda, odada en çok 60 kişi.
+- Yeni: **Ses Odaları**. Discord benzeri sesli odalar uygulamanın içinde: herkese açık, davet kodlu özel ya da takım odası (takım yöneticileri kurar). Kişi başı en çok 10 oda, odada en çok 60 kişi.
 - Kalabalık odalar için **"Söz hakkıyla"** modu: oda sahibi, yöneticiler, moderatörler ve "konuşmacı" yetkisi olanlar her zaman konuşur. Diğerleri "Söz iste"ye basıp sıraya girer.
   - Moderatör söz verir (odanın varsayılan süresi ya da seçilen süre: 15 sn – 10 dk), +30 sn / +1 dk uzatır, sözü geri alır, "Sıradakine ver", "Herkesi sustur", isteği düşürür.
   - "Otomatik sıra" açıkken süre bitince söz kendiliğinden sıradakine geçer.

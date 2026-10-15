@@ -16,6 +16,7 @@ export type Section =
   | "shots"
   | "tools"
   | "voice"
+  | "voicerooms"
   | "livechat"
   | "pro"
   | "account"

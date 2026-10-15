@@ -114,6 +114,7 @@ const TOP: NavItem[] = [
   { id: "community", label: "Topluluk", icon: () => <I.Share2 /> },
   { id: "shots", label: "Ekran Görüntüleri", icon: () => <I.Camera /> },
   { id: "tools", label: "Araçlar", icon: () => <I.Gauge /> },
+  { id: "voicerooms", label: "Ses Odaları", icon: () => <I.AudioLines /> },
   { id: "voice", label: "Sesli Mühendis", icon: () => <I.Mic />, badge: () => "PRO" },
   { id: "livechat", label: "Canlı Sohbet", icon: () => <I.MessageSquare /> },
 ];
@@ -135,6 +136,7 @@ const TITLES: Record<Section, string> = {
   community: "Topluluk",
   shots: "Ekran Görüntüleri",
   tools: "Araçlar",
+  voicerooms: "Ses Odaları",
   voice: "Sesli Mühendis",
   livechat: "Canlı Sohbet",
   pro: "PRO Üyelik",
@@ -152,6 +154,10 @@ const SUBS: Partial<Record<Section, { id: string; label: string }[]>> = {
   // Gizlenebilen alt sayfalar (Yönetim › Görünürlük › Menü görünürlüğü): tanımı menu.ts'te
   ...MENU_SUBS,
   livechat: LIVECHAT_PAGES,
+  voicerooms: [
+    { id: "rooms", label: "Odalar" },
+    { id: "settings", label: "Ses ayarları" },
+  ],
   settings: SETTINGS_PAGES,
 };
 
@@ -334,7 +340,7 @@ export function App() {
             tone={appState().editMode ? "warn" : ""}
             onChange={(v) => invoke("edit_mode_set", { on: !v })}
           />
-          <VoiceDock onOpen={() => go("drivers", "voice")} />
+          <VoiceDock onOpen={() => go("voicerooms", "rooms")} />
           <LangPicker />
           {/* Çerçevesiz pencere: üst çubuktan tutulup taşınır; küçült / büyüt / kapat burada */}
           <WinChrome inline max drag=".top2" />
@@ -393,9 +399,6 @@ export function App() {
             <Match when={section() === "drivers" && sub() === "teams"}>
               <TeamsPage />
             </Match>
-            <Match when={section() === "drivers" && sub() === "voice"}>
-              <VoiceRoomsPage />
-            </Match>
             <Match when={section() === "drivers" && sub() === "crew"}>
               <CrewPage />
             </Match>
@@ -431,6 +434,9 @@ export function App() {
             </Match>
             <Match when={section() === "telemetry"}>
               <TelemetryPage sub={sub()} />
+            </Match>
+            <Match when={section() === "voicerooms"}>
+              <VoiceRoomsPage sub={sub()} />
             </Match>
             <Match when={section() === "voice"}>
               <VoicePage />

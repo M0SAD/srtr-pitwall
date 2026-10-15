@@ -69,6 +69,10 @@ function describe(p: OsdPayload): Omit<View, "id"> | null {
       return { label: t("Arkadaş uyarısı PRO üyelik gerektirir"), tone: "warn" };
     case "friendAlertLogin":
       return { label: t("Arkadaş uyarısı için giriş yapmalısın"), tone: "warn" };
+    case "roomMute":
+      return onOff(t("Ses odası mikrofonu"), p.on);
+    case "roomDeafen":
+      return onOff(t("Ses odası sesi"), p.on);
     case "dashPage":
       return { label: t("Direksiyon Ekranı"), state: t("Sonraki sayfa"), tone: "info" };
     case "vrConfig":

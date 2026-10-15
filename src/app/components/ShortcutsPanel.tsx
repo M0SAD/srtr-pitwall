@@ -16,6 +16,7 @@ import {
   type ShortcutAction,
 } from "@/sdk/shortcuts";
 import { PttButtonRow, PttKeyRow, PttModeRow, voiceCmdLocked, type BindTarget } from "./VoiceCommands";
+import { VOICE_DEAFEN_TARGET, VOICE_MUTE_TARGET, VOICE_ROOM_TARGET } from "../pages/VoiceRoomSettings";
 
 /** Genel kısayol olarak atanırsa başka uygulamalarda/uygulama içinde sorun çıkaran tuşlar */
 const RESERVED: { key: string; why: string }[] = [
@@ -75,12 +76,6 @@ const IN_APP: { where: string; items: { keys: string; what: string }[] }[] = [
 ];
 
 
-/** Ses odası bas-konuş (general.voiceRoom) */
-const VOICE_ROOM_TARGET: BindTarget = {
-  get: () => settings().general.voiceRoom,
-  set: (fn) => updateSettings((d) => fn(d.general.voiceRoom)),
-  heldEvent: "voiceroom-ptt",
-};
 
 /** Arkadaşa uyarı tuşu / düğmesi (general.friendAlert) */
 const ALERT_TARGET: BindTarget = {
@@ -285,13 +280,18 @@ export function ShortcutsPanel() {
       </section>
       {/* Ses odası bas-konuş (general.voiceRoom; Rust: voicecmd.rs "voiceroom-ptt", arayüz: src/voice/engine.ts) */}
       <section class="panel">
-        <h3>Ses odası (bas-konuş)</h3>
+        <h3>Ses odası</h3>
         <p class="muted small">
-          Sürücüler › Ses Odaları'nda “Bas-konuş” seçiliyken basılı tuttuğun sürece mikrofonun açık olur. Tuş yutulmaz, oyun öndeyken de
-          çalışır.
+          Ses Odaları'nda “Bas-konuş” seçiliyken basılı tuttuğun sürece mikrofonun açık olur. Tuş yutulmaz, oyun öndeyken de çalışır.
         </p>
         <PttButtonRow target={VOICE_ROOM_TARGET} />
         <PttKeyRow label="Klavye tuşu" target={VOICE_ROOM_TARGET} />
+        <h4>Ses odası: mikrofonu kapat / aç</h4>
+        <PttButtonRow target={VOICE_MUTE_TARGET} />
+        <PttKeyRow label="Klavye tuşu" target={VOICE_MUTE_TARGET} />
+        <h4>Ses odası: sesi kapat / aç (mikrofon da kapanır)</h4>
+        <PttButtonRow target={VOICE_DEAFEN_TARGET} />
+        <PttKeyRow label="Klavye tuşu" target={VOICE_DEAFEN_TARGET} />
       </section>
       <section class="panel">
         <h3>Uygulama içi tuşlar</h3>

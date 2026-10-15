@@ -1,6 +1,7 @@
 // Takım sohbet odası (arkadaş listesinde oda olarak açılır): Realtime mesajlar, emoji seçici, mesaja sağ tık:
 // kopyala, benden sil, herkesten sil (kendi mesajın; sahip/yönetici her mesajı).
 
+import { LinkPreview } from "./LinkPreview";
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
@@ -332,6 +333,9 @@ export function TeamChat(props: {
                   <p data-no-i18n>
                     <MsgText text={r.m.body} />
                   </p>
+                  <Show when={!r.m.deleted}>
+                    <LinkPreview text={r.m.body} />
+                  </Show>
                 </Show>
                 <ReactionRow list={reacts.of(r.m.id)} onToggle={(e) => void reacts.toggle(r.m.id, e).catch(() => {})} />
                 <Show when={r.lastOfRun}>

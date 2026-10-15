@@ -353,6 +353,9 @@ pub struct CmdCfg {
     pub room_vk: u32,
     pub room_mods: u8,
     pub room_button: Option<(u16, u16, u16)>,
+    /// Ses odası aç / kapat tuşları (`general.voiceRoomMute`, `general.voiceRoomDeafen`): basıldığı an
+    /// "voiceroom-key" olayı ("mute" | "deafen"). Klavye tuşu yutulmaz; direksiyon düğmesi de olabilir.
+    pub room_keys: Vec<(&'static str, u32, u8, Option<(u16, u16, u16)>)>,
 }
 
 /// Tanıma motoru: Otomatik = dilin Windows tanıyıcısı kuruluysa Windows, değilse çevrimiçi (Whisper)
@@ -425,6 +428,17 @@ fn bind_from_settings(v: &Value, ptr: &str) -> (u32, u8, Option<(u16, u16, u16)>
 pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     let (alert_vk, alert_mods, alert_button) = alert_from_settings(v);
     let (room_vk, room_mods, room_button) = bind_from_settings(v, "/general/voiceRoom");
+    let room_keys = [
+        ("mute", "/general/voiceRoomMute"),
+        ("deafen", "/general/voiceRoomDeafen"),
+    ]
+    .into_iter()
+    .map(|(name, ptr)| {
+        let (vk, mods, button) = bind_from_settings(v, ptr);
+        (name, vk, mods, button)
+    })
+    .filter(|(_, vk, _, b)| *vk != 0 || b.is_some())
+    .collect();
     let c = cfg_from_settings_voice(v, allowed);
     CmdCfg {
         alert_vk,
@@ -433,6 +447,7 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         room_vk,
         room_mods,
         room_button,
+        room_keys,
         ..c
     }
 }
@@ -523,7 +538,7 @@ impl CmdCfg {
 
     /// Ses odası bas-konuş tuşu ya da düğmesi atanmış
     pub fn room_on(&self) -> bool {
-        self.room_vk != 0 || self.room_button.is_some()
+        self.room_vk != 0 || self.room_button.is_some() || !self.room_keys.is_empty()
     }
 
     /// Giriş döngüsü gerekli mi (sesli komut, arkadaşa uyarı ya da ses odası)
@@ -1510,6 +1525,7 @@ mod imp {
                     let mut alert_at: Option<Instant> = None;
                     let mut room_was = false;
                     let mut room_raw_at: Option<Instant> = None;
+                    let mut key_was: [bool; 2] = [false; 2];
                     loop {
                         let c = cfg();
                         let cap = CAPTURE.lock().as_ref().map(|(_, until)| *until);
@@ -1542,10 +1558,15 @@ mod imp {
                             None
                         };
                         // Düğmeler farklı aygıtlardaysa hepsi yoklanır
-                        let devs: Vec<(u16, u16)> = [ptt_dev, alert_dev, room_dev]
+                        let mut devs: Vec<(u16, u16)> = [ptt_dev, alert_dev, room_dev]
                             .into_iter()
                             .flatten()
                             .collect();
+                        devs.extend(
+                            c.room_keys
+                                .iter()
+                                .filter_map(|k| k.3.map(|(v, p, _)| (v, p))),
+                        );
                         let two = devs.iter().any(|d| *d != devs[0]);
                         input.pump(cap.is_some() || two, devs.first().copied());
 
@@ -1646,6 +1667,22 @@ mod imp {
                             }
                         }
                         room_was = room_down;
+
+                        // Ses odası mikrofon / ses aç-kapat: basıldığı an bir kez
+                        for (i, (name, vk, mods, button)) in c.room_keys.iter().enumerate().take(2)
+                        {
+                            let down = cap.is_none()
+                                && (ptt_win::key_down(*vk, *mods)
+                                    || button
+                                        .map(|(v, p, b)| input.is_down(v, p, b))
+                                        .unwrap_or(false));
+                            if down && !key_was[i] {
+                                if let Some(app) = APP.get() {
+                                    let _ = app.emit("voiceroom-key", *name);
+                                }
+                            }
+                            key_was[i] = down;
+                        }
                         std::thread::sleep(Duration::from_millis(10));
                     }
                     drop(input);

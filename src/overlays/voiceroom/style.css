@@ -1,0 +1,96 @@
+.vro {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25em;
+  min-width: 10em;
+  max-width: 22em;
+  padding: 0.6em 0.75em;
+  line-height: 1.25;
+}
+.vro.bare {
+  padding: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.vro-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  font-size: 0.85em;
+  opacity: 0.75;
+  margin-bottom: 0.15em;
+  white-space: nowrap;
+}
+.vro-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vro-dot {
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--talk);
+  flex: none;
+}
+.vro-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.2em 0.35em;
+  border-radius: 0.4em;
+  transition:
+    background 0.12s,
+    opacity 0.12s;
+  white-space: nowrap;
+}
+.vro-row.dim {
+  opacity: 0.55;
+}
+.vro-row.talking {
+  background: color-mix(in srgb, var(--talk) 22%, transparent);
+  opacity: 1;
+}
+.vro-ind {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  flex: none;
+  background: rgba(255, 255, 255, 0.25);
+  transition:
+    background 0.1s,
+    box-shadow 0.1s;
+}
+.vro-row.talking .vro-ind {
+  background: var(--talk);
+  box-shadow: 0 0 0.5em var(--talk);
+}
+.vro-row.talking .vro-n {
+  font-weight: 700;
+}
+.vro-n {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vro-left {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+  color: var(--talk);
+}
+.vro-left.low {
+  color: #ff5a5f;
+}
+.vro-ic {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  fill: none;
+  stroke: #ff5a5f;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.vro-ic.floor {
+  stroke: currentColor;
+  opacity: 0.6;
+}
