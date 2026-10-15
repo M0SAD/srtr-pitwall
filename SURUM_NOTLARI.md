@@ -3,6 +3,23 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-343
+
+- Düzeltme: program tepsiye küçültülünce (pencere gizlenince) birkaç dakika sonra ses odası bağlantısı kopuyordu. Gizli / simge durumundaki pencerede tarayıcının zamanlayıcıları dakikada bire düşürmesi ve sayfayı arka plana alması kapatıldı; bağlantı nabzı ve oturum yenileme kesintisiz sürer. (Değişiklik programı yeniden başlatınca geçerli olur.)
+- Arkadaşlar (sohbet) penceresi ana pencerenin sağ kenarına yapışır: üst çubuktaki Arkadaşlar düğmesine basınca uygulamanın sağında, onunla aynı boyda açılır; uygulama taşınınca / boyutlanınca peşinden gelir. Pencereyi tutup başka yere taşıyınca o seferlik ayrılır. Ayarlar › Sohbet'ten kapatılabilir.
+- Ses ayarları › Görünüm (PRO): ses odaları için 7 renk teması (Pitwall, Discord, Gece mavisi, Karbon, Synthwave, Yarış yeşili, Açık) ve 3 kişi görünümü (Kutular, Daireler, Liste). Tema sol menüye, oda ekranına, Tüm odalar sayfasına ve kişi menüsüne uygulanır. PRO olmayanlar önizlemeleri görür.
+- Direksiyon Ekranı: her görünüme (araç tarzı ekranlar ve kendi tasarımların dahil) eklenebilen lastik sıcaklığı göstergesi. Yeri: ekranın altı / üstü / sağı / solu. Tasarımlar: Kutular, Çubuklar (termometre), Araç (üstten görünüm, PRO), İç / orta / dış yüzey (PRO), Halkalar (PRO). İdeal sıcaklık aralığı ayarlanır (renkler ona göre), istenirse basınç da gösterilir. Ayar: overlay ayarları › Lastik göstergesi.
+
+## 161026-342
+
+Supabase'de `c123_guncelleme.sql` çalıştırılmalı. Yeni Edge Function: `admin-mail` (Verify JWT kapalı); `pitwall-jobs` güncel koduyla yeniden yayınlanmalı. Kayıt e-postalarını da uygulamadan ayarlamak için bir kez `PITWALL_MGMT_TOKEN` sırrı eklenmeli (docs/SUPABASE.md).
+
+- Yönetim › E-posta (SMTP): Gmail adresi ve uygulama şifresi uygulamadan girilir. Kaydedince hem uygulamanın kendi e-postaları (bildirim, destek, rapor) hem de kayıt doğrulama / şifre sıfırlama e-postaları bu hesaptan gider; Supabase paneline girmek gerekmez. "Deneme e-postası gönder" ile ayar doğrulanır (yanlış şifrede ne yapılacağı açıkça yazar). Kayıtta e-posta doğrulaması buradan açılıp kapatılır. Uygulama şifresinin nasıl alınacağı adım adım ve myaccount.google.com/apppasswords bağlantısıyla anlatılır. Şifre sunucuda saklanır, uygulamaya geri gönderilmez.
+- Yönetici üye listesi (üst çubuktaki Üyeler): sıralama seçenekleri: aktiflik, üyelik tarihi (en yeni / en eski), son görülme, ad, PRO'lar önce. Her üyenin altında üyelik tarihi yazar. Seçim hatırlanır.
+- Sürücü Kartı overlay'ine 5 yeni tasarım: TV yayını, Buzlu cam, Sade (arka plansız), Neon, Kapı numarası.
+- Ses odaları: kişi menüsüne "Profili gör". Oda sohbetinde ada ya da fotoğrafa tıklayınca / sağ tıklayınca da kişi menüsü açılır (arkadaş ekle, profil, ses, söz, taşı…).
+- Arkadaş listesi: çevrimiçi arkadaşa sağ tıklayınca "Ses odasına davet et" (bulunduğun ses odasına; hangi pencereden olursa olsun).
+
 ## 151026-341
 
 Supabase'de `c122_guncelleme.sql` çalıştırılmalı (c121 de çalıştırılmadıysa önce o).

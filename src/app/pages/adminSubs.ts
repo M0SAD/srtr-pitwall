@@ -29,6 +29,7 @@ export function adminSubs(): { id: string; label: string }[] {
     { id: "backdrops", label: "Overlay arka planları", need: isAdmin },
     { id: "toplinks", label: "Üst çubuk bağlantıları", need: isAdmin },
     { id: "translations", label: "Çeviriler", need: isAdmin },
+    { id: "mail", label: "E-posta (SMTP)", need: isAdmin },
     { id: "backup", label: "Yedekleme", need: isAdmin },
   ];
   return all.filter((x) => x.need()).map(({ id, label }) => ({ id, label }));

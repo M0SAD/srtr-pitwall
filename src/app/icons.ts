@@ -109,3 +109,4 @@ export { default as ArrowUp } from "lucide-solid/icons/arrow-up";
 export { default as ArrowDown } from "lucide-solid/icons/arrow-down";
 export { default as MailPlus } from "lucide-solid/icons/mail-plus";
 export { default as ArrowRightLeft } from "lucide-solid/icons/arrow-right-left";
+export { default as ArrowDownWideNarrow } from "lucide-solid/icons/arrow-down-wide-narrow";

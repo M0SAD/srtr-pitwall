@@ -214,3 +214,225 @@
   border: 0;
   background: none;
 }
+
+/* --- TV yayını: açık ad plakası, altında vurgu renkli şerit, solda koyu sıra kutusu --- */
+.dcard-d-tv .dcard-in {
+  background: none;
+  border: 0;
+  border-radius: 0.25em;
+  box-shadow: 0 0.4em 1.4em rgba(0, 0, 0, 0.45);
+}
+.dcard-d-tv .dcard-pos {
+  background: #0d1016;
+  color: #fff;
+  min-width: 2.6em;
+  font-size: 1.7em;
+}
+.dcard-d-tv .dcard-pos small {
+  color: var(--dc-accent);
+  opacity: 1;
+}
+.dcard-d-tv .dcard-num {
+  background: var(--dc-accent);
+  color: #0b0d11;
+  border: 0;
+  text-shadow: none;
+}
+.dcard-d-tv .dcard-main {
+  padding: 0;
+  gap: 0;
+  background: #f3f4f6;
+  color: #0e1116;
+  text-shadow: none;
+}
+.dcard-d-tv .dcard-l1 {
+  flex: 1;
+  padding: 0.35em 0.9em 0.3em;
+}
+.dcard-d-tv .dcard-name {
+  text-transform: uppercase;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+.dcard-d-tv .dcard-class {
+  background: #0e1116;
+  color: #fff;
+}
+.dcard-d-tv .dcard-l2 {
+  padding: 0.22em 0.9em;
+  background: var(--dc-accent);
+  color: #0b0d11;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.74em;
+}
+.dcard-d-tv .dcard-side {
+  background: #0d1016;
+  color: #fff;
+  border: 0;
+}
+
+/* --- Buzlu cam: yarı saydam, bulanık arka plan, yuvarlak hatlar, sıra yuvarlak rozette --- */
+.dcard-d-glass .dcard-in {
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05) 60%, color-mix(in srgb, var(--dc-accent) 22%, transparent));
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow:
+    0 0.5em 1.8em rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  padding: 0.3em;
+}
+.dcard-d-glass .dcard-pos {
+  align-self: center;
+  width: 2.2em;
+  height: 2.2em;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.25em;
+  box-shadow: 0 0 0.8em color-mix(in srgb, var(--dc-accent) 60%, transparent);
+}
+.dcard-d-glass .dcard-num {
+  background: none;
+  border: 0;
+  font-size: 1.25em;
+  min-width: 0;
+  padding: 0 0.2em 0 0.55em;
+}
+.dcard-d-glass .dcard-main {
+  padding: 0.3em 0.8em;
+}
+.dcard-d-glass .dcard-class {
+  border-radius: 999px;
+}
+.dcard-d-glass .dcard-side {
+  align-self: stretch;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  padding-right: 1.1em;
+}
+
+/* --- Sade: arka plan yok, büyük ad, altında ince vurgu çizgisi (oyun görüntüsünü kapatmaz) --- */
+.dcard-d-min .dcard-in {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0.15em 0.6em rgba(0, 0, 0, 0.7);
+}
+.dcard-d-min .dcard-pos {
+  background: none;
+  color: var(--dc-accent);
+  font-size: 2em;
+  min-width: 0;
+  padding: 0 0.3em 0 0;
+  text-shadow: inherit;
+}
+.dcard-d-min .dcard-num {
+  background: none;
+  border: 0;
+  font-size: 1.3em;
+  min-width: 0;
+  padding: 0 0.5em 0 0;
+  opacity: 0.85;
+}
+.dcard-d-min .dcard-main {
+  padding: 0.2em 0;
+}
+.dcard-d-min .dcard-l1 {
+  padding-bottom: 0.18em;
+  border-bottom: 0.14em solid var(--dc-accent);
+}
+.dcard-d-min .dcard-name {
+  font-size: 1.55em;
+  font-weight: 900;
+}
+.dcard-d-min .dcard-l2 {
+  color: #e6e9ef;
+}
+.dcard-d-min .dcard-side {
+  border: 0;
+  padding: 0.2em 0 0.2em 1em;
+}
+
+/* --- Neon: koyu zemin, parlayan vurgu çerçevesi ve yazı --- */
+.dcard-d-neon .dcard-in {
+  background: rgba(6, 7, 11, 0.9);
+  border: 1px solid var(--dc-accent);
+  border-left-width: 1px;
+  border-radius: 0.5em;
+  box-shadow:
+    0 0 0.7em color-mix(in srgb, var(--dc-accent) 70%, transparent),
+    inset 0 0 0.9em color-mix(in srgb, var(--dc-accent) 28%, transparent);
+}
+.dcard-d-neon .dcard-pos {
+  background: none;
+  color: var(--dc-accent);
+  border-right: 1px solid color-mix(in srgb, var(--dc-accent) 60%, transparent);
+  text-shadow: 0 0 0.45em var(--dc-accent);
+}
+.dcard-d-neon .dcard-num {
+  background: none;
+  border-right: 1px solid color-mix(in srgb, var(--dc-accent) 35%, transparent);
+}
+.dcard-d-neon .dcard-name {
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 0 0.25em #fff,
+    0 0 0.7em var(--dc-accent);
+}
+.dcard-d-neon .dcard-class {
+  background: none;
+  color: var(--dc-accent);
+  border: 1px solid var(--dc-accent);
+  box-shadow: 0 0 0.4em color-mix(in srgb, var(--dc-accent) 60%, transparent);
+}
+.dcard-d-neon .dcard-side {
+  border-left: 1px solid color-mix(in srgb, var(--dc-accent) 35%, transparent);
+}
+
+/* --- Kapı numarası: aracın kapısındaki gibi beyaz numara plakası, vurgu renginden geçişli zemin --- */
+.dcard-d-plate .dcard-in {
+  align-items: center;
+  border-left: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--dc-accent) 45%, var(--ov-bg-solid, #0c0e13)) 0, var(--ov-bg) 55%);
+}
+.dcard-d-plate .dcard-num {
+  order: -1;
+  align-self: center;
+  margin: 0.32em 0.1em 0.32em 0.35em;
+  min-width: 1.9em;
+  padding: 0.12em 0.32em;
+  border: 0.1em solid #111;
+  border-radius: 0.28em;
+  background: #fff;
+  color: #0b0d11;
+  font-style: normal;
+  font-size: 1.7em;
+  line-height: 1;
+  text-shadow: none;
+  box-shadow: 0 0.12em 0.4em rgba(0, 0, 0, 0.45);
+}
+.dcard-d-plate .dcard-num::before {
+  content: none;
+}
+.dcard-d-plate .dcard-pos {
+  align-self: stretch;
+  order: 5;
+  font-size: 1.3em;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--dc-accent);
+}
+.dcard-d-plate .dcard-name {
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.dcard-d-plate .dcard-side {
+  order: 4;
+}

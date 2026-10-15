@@ -28,7 +28,8 @@
 // işler tekrar çağrılsa da zarar vermez (rapor bir kez bildirilir, temizlik sadece süresi dolanları siler).
 //
 // Gizli değerler (Edge Functions → Secrets):
-//   SMTP_PASS  Gmail uygulama şifresi (e-posta göndermek için; yoksa sadece uygulama içi bildirim)
+//   SMTP_PASS  Gmail uygulama şifresi (e-posta göndermek için; yoksa sadece uygulama içi bildirim).
+//              Uygulamadan (Yönetim › E-posta) kaydedilen ayar varsa (c123: mail_settings) o kullanılır.
 //   SMTP_USER  (isteğe bağlı) varsayılan: erkinazcan@gmail.com
 //   SMTP_HOST / SMTP_PORT (isteğe bağlı) varsayılan: smtp.gmail.com / 465
 //   REPORT_TO  (isteğe bağlı) rapor e-postalarının ek alıcıları, virgülle
@@ -103,20 +104,39 @@ function page(title: string, body: string, preheader = "", lang = "") {
 </table></td></tr></table></body></html>`;
 }
 
+// SMTP ayarı: önce uygulamadan kaydedilen (Yönetim › E-posta, c123: mail_settings), yoksa gizli değerler (SMTP_*)
+let smtpCache: { at: number; host: string; port: number; user: string; pass: string; sender: string } | null = null;
+async function smtp() {
+  if (smtpCache && Date.now() - smtpCache.at < 60_000) return smtpCache;
+  let row: { smtp_host: string; smtp_port: number; smtp_user: string; smtp_pass: string; sender_name: string } | null = null;
+  try {
+    const { data } = await db.from("mail_settings").select("smtp_host, smtp_port, smtp_user, smtp_pass, sender_name").eq("id", 1).maybeSingle();
+    row = data ?? null;
+  } catch {
+    row = null;
+  }
+  smtpCache =
+    row && row.smtp_user && row.smtp_pass
+      ? { at: Date.now(), host: row.smtp_host, port: row.smtp_port, user: row.smtp_user, pass: row.smtp_pass, sender: row.sender_name || "SRTR Pitwall" }
+      : { at: Date.now(), host: SMTP_HOST, port: SMTP_PORT, user: SMTP_USER, pass: SMTP_PASS, sender: "SRTR Pitwall" };
+  return smtpCache;
+}
+
 async function sendMail(to: string[], subject: string, html: string) {
-  if (!SMTP_PASS || to.length === 0) return false;
+  const cfg = await smtp();
+  if (!cfg.pass || to.length === 0) return false;
   // nodemailer: Türkçe karakterli konu ve HTML doğru kodlanır (denomailer bunu bozuyordu)
   const tr = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.port === 465,
+    auth: { user: cfg.user, pass: cfg.pass },
   });
   // Uygulama adı hiçbir dile çevrilmez: Gmail / Google Çeviri'ye "çevirme" işareti
   const bi = html.indexOf("<body");
   html = html.slice(0, bi) + html.slice(bi).replace(/SRTR (<span[^>]*>)?Pitwall(<\/span>)?/g, (m) => `<span translate="no" class="notranslate">${m}</span>`);
   const text = html.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&middot;/g, "·").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
-  await tr.sendMail({ from: `SRTR Pitwall <${SMTP_USER}>`, to: to.join(", "), subject, html, text });
+  await tr.sendMail({ from: `${cfg.sender} <${cfg.user}>`, to: to.join(", "), subject, html, text });
   return true;
 }
 

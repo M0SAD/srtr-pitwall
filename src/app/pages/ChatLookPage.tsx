@@ -1,7 +1,10 @@
 // Ayarlar › Sohbet: sohbet mesajlarının yazı boyutu (arkadaş, takım ve grup sohbetleri). Hesapla birlikte taşınır.
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { linkPreviewOn, setLinkPreviewOn } from "../components/LinkPreview";
 import { Switch } from "../components/SettingsForm";
+import { friendsDock, setFriendsDock } from "../components/FriendsDock";
+import { inTauri } from "@/sdk/platform";
+import { invoke } from "@tauri-apps/api/core";
 import { CHAT_FAMILIES, CHAT_FONT_MAX, CHAT_FONT_MIN, chatFamily, chatFont, chatFontVars, setChatFamily, setChatFont } from "../chatLook";
 
 const SAMPLE: [string, string, string][] = [
@@ -37,6 +40,24 @@ export function ChatLookPage() {
           </div>
           <Switch checked={linkPreviewOn()} onChange={setLinkPreviewOn} />
         </div>
+        <Show when={inTauri}>
+          <div class="row">
+            <div>
+              <span>Arkadaşlar penceresi ana pencerenin sağına yapışsın</span>
+              <small>
+                Üst çubuktaki Arkadaşlar düğmesine basınca sohbet penceresi uygulamanın sağ kenarında, onunla aynı boyda açılır ve uygulamayı taşıyınca
+                peşinden gelir. Pencereyi tutup başka yere taşırsan o seferlik ayrılır.
+              </small>
+            </div>
+            <Switch
+              checked={friendsDock()}
+              onChange={(v) => {
+                setFriendsDock(v);
+                void invoke("friends_dock_set", { on: v }).catch(() => {});
+              }}
+            />
+          </div>
+        </Show>
         <div class="fx">
           <div class="fchat stm clp-sample" style={chatFontVars()}>
             <For each={SAMPLE}>

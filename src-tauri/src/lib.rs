@@ -8,6 +8,7 @@ mod coach;
 mod crashlog;
 mod demo;
 mod device;
+mod dock;
 mod drivecues;
 mod engine;
 mod entitlement;
@@ -78,7 +79,10 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut,
 
 /// Her iki pencere aynı WebView2 ortamını paylaşmalı (aynı argümanlar).
 /// `--renderer-process-limit=1` iki pencerenin tek bir render sürecini paylaşmasını sağlar (RAM tasarrufu).
-const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --renderer-process-limit=1";
+// Arka plan kısıtlamaları kapalı: program tepsiye küçültülüp pencere gizlenince (ses odasında konuşurken) zamanlayıcılar
+// dakikada bire düşürülmesin, sayfa askıya alınmasın; yoksa ses odası bağlantısı (Realtime nabzı, oturum yenileme)
+// birkaç dakika sonra kopuyordu. Overlay pencereleri zaten görünür olduğundan ek yük yok denecek kadar az.
+const BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,IntensiveWakeUpThrottling,CalculateNativeWinOcclusion --disable-background-networking --renderer-process-limit=1 --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows";
 
 /// Ayarlar → Ekran'daki GPU seçenekleri eklenmiş tarayıcı argümanları. Başlangıçta bir kez
 /// belirlenir (WebView2 ortamı süreç boyunca değişemez; değişiklik yeniden başlatınca geçerli).
@@ -1210,15 +1214,32 @@ fn idle_seconds() -> u64 {
 
 /// Araç penceresini aç; zaten açık ve görünürse kapat (arayüzdeki "Arkadaşlar" düğmesi)
 #[tauri::command]
-async fn window_toggle(app: AppHandle, view: String) -> Result<bool, String> {
+async fn window_toggle(app: AppHandle, view: String, dock: Option<bool>) -> Result<bool, String> {
     if let Some(w) = app.get_webview_window(&view) {
         if w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false) {
             let _ = w.close();
             return Ok(false);
         }
     }
+    // Arkadaşlar: ana pencerenin sağ kenarına yapışsın mı (arayüzdeki tercih)
+    if view == "friends" {
+        if let Some(on) = dock {
+            dock::set(&app, false);
+            if on {
+                window_open(app.clone(), view).await?;
+                dock::set(&app, true);
+                return Ok(true);
+            }
+        }
+    }
     window_open(app, view).await?;
     Ok(true)
+}
+
+/// Arkadaşlar penceresinin ana pencereye yapışma tercihi (Ayarlar › Sohbet); açıksa hemen yerleştirir
+#[tauri::command]
+fn friends_dock_set(app: AppHandle, on: bool) {
+    dock::set(&app, on);
 }
 
 fn valid_uuid(id: &str) -> bool {
@@ -1389,6 +1410,9 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
         let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
+        if label == "friends" {
+            dock::place(&app);
+        }
         return Ok(());
     }
     // Son kullanılan konum/boyut (bağlı bir monitördeyse); pencere gizli açılıp yerleştirildikten sonra gösterilir
@@ -1424,6 +1448,9 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
         let _ = win.set_focus();
     }
     winstate::track(&app, &win);
+    if label == "friends" {
+        dock::watch(&app, &win);
+    }
     Ok(())
 }
 
@@ -3460,6 +3487,7 @@ pub fn run() {
             chat_window_notify,
             chat_tabs_take,
             window_toggle,
+            friends_dock_set,
             idle_seconds,
             tray_menu_items,
             tray_menu_run,

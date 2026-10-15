@@ -114,3 +114,15 @@ Kurulum (bu projede yapıldı):
 | `shared_layouts` | Paylaşılan düzenler (ekran çözünürlüğü, overlay kutuları, profil verisi) |
 | `layout_ratings` / `layout_comments` | Yıldızlar ve yorumlar |
 | `pending_pro` | Hesap açılmadan önce ödeme yapanlar (kayıt olunca PRO otomatik açılır) |
+
+## E-posta (SMTP) ayarlarını uygulamadan yönetme (c123)
+
+Uygulamada **Yönetim › E-posta (SMTP)** sayfasından Gmail adresi ve uygulama şifresi girilir; hem uygulamanın kendi
+e-postaları (pitwall-jobs) hem de kayıt doğrulama / şifre sıfırlama e-postaları (Supabase Auth) buradan ayarlanır.
+
+Bir kerelik kurulum:
+1. `c123_guncelleme.sql` çalıştır.
+2. Edge Functions › **admin-mail** adında fonksiyon oluştur, `supabase/functions/admin-mail/index.ts` içeriğini yapıştır,
+   **Verify JWT kapalı** olarak yayınla. `pitwall-jobs` fonksiyonunu da güncel koduyla yeniden yayınla.
+3. supabase.com/dashboard/account/tokens › Generate new token ile erişim anahtarı oluştur; Edge Functions › Secrets'a
+   `PITWALL_MGMT_TOKEN` adıyla ekle. (Bu anahtar olmadan sadece uygulamanın kendi e-postaları ayarlanır.)

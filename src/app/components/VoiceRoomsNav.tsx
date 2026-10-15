@@ -16,6 +16,7 @@ import { RoomIcon } from "./RoomIcon";
 import { DragGhost, PersonMenuHost, canMoveFrom, dropRoom, moveMsg, openPersonMenu, personDrag, personMenu, startPersonDrag } from "./VoicePeople";
 import { go, sub } from "../ui";
 import * as I from "../icons";
+import { themeClass } from "@/voice/roomTheme";
 import "../voicerooms.css";
 
 const [folded, setFolded] = uiPref<string[]>("voice.nav.folded", []);
@@ -176,6 +177,18 @@ function MePanel() {
 
 export function VoiceRoomsNav() {
   onCleanup(watchRooms());
+  // Tema (PRO): sol menünün tamamına (kapsayan .subnav) uygulanır
+  let navEl!: HTMLDivElement;
+  let applied = "";
+  createEffect(() => {
+    const cls = themeClass();
+    const host = navEl?.closest(".subnav");
+    if (!host) return;
+    if (applied) host.classList.remove(applied);
+    host.classList.add(cls);
+    applied = cls;
+  });
+  onCleanup(() => applied && navEl?.closest(".subnav")?.classList.remove(applied));
   createEffect(() => {
     const ids = roomSections().flatMap((s) => s.rooms.flatMap((r) => peopleIn(r.id).map((p) => p.user_id)));
     const me = session()?.user.id;
@@ -191,7 +204,7 @@ export function VoiceRoomsNav() {
     go("voicerooms", "all");
   };
   return (
-    <div class="vrn">
+    <div class="vrn" ref={navEl}>
       <button class="vrn-top" classList={{ active: sub() === "settings" }} onClick={() => go("voicerooms", "settings")}>
         <I.Settings /> Ses ayarları
       </button>

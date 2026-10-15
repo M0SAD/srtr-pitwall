@@ -45,6 +45,7 @@ import { AdminMessages } from "../components/AdminMessages";
 import { AdminVoicePacks } from "../components/AdminVoicePacks";
 import { AdminTopLinks } from "../components/AdminTopLinks";
 import { AdminBackup } from "../components/AdminBackup";
+import { AdminMail } from "../components/AdminMail";
 import { AdminBackdrops, AdminProPromo, AdminSimIcons, AdminTranslations } from "../components/AdminContent";
 import { takeAdminFocus } from "../components/adminFocus";
 import { AdminTrial } from "../components/AdminTrial";
@@ -126,6 +127,9 @@ export function AdminPage() {
         </Match>
         <Match when={page() === "toplinks"}>
           <AdminTopLinks run={run} />
+        </Match>
+        <Match when={page() === "mail"}>
+          <AdminMail run={run} />
         </Match>
         <Match when={page() === "backup"}>
           <AdminBackup run={run} />

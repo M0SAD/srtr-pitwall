@@ -17,6 +17,7 @@ import {
   voiceRoomNewCode,
   voiceRoomUpdate,
   type VoiceRole,
+  type VoiceMsg,
 } from "@/cloud/voiceRooms";
 import {
   amAdmin,
@@ -546,6 +547,12 @@ function ChatPanel() {
     ta.focus();
   };
   const canDel = (sender: string | null) => sender === me() || amMod();
+  // Ada / fotoğrafa tıklama ya da sağ tıklama: kişi menüsü (odadan çıkmışsa oda işlemleri olmadan)
+  const who = (e: MouseEvent, m: VoiceMsg) => {
+    if (!m.sender) return;
+    const here = voice.members().some((x) => x.user_id === m.sender);
+    openPersonMenu(e, { user: m.sender, name: senderName(m), room: here ? (voice.room()?.id ?? "") : "" });
+  };
   const nameClass = (sender: string | null) => {
     if (!sender) return "";
     const ro = roleFor(sender);
@@ -594,7 +601,7 @@ function ChatPanel() {
               <div class="vrc-msg" classList={{ head: row.head, mine: row.m.sender === me() }}>
                 <div class="vrc-gut">
                   <Show when={row.head} fallback={<small class="vrc-hm">{hm(row.m.created_at)}</small>}>
-                    <span class="vrc-av" style={{ "--tint": tint(row.m.sender ?? "?") }}>
+                    <span class="vrc-av" style={{ "--tint": tint(row.m.sender ?? "?") }} onClick={(e) => who(e, row.m)} onContextMenu={(e) => who(e, row.m)}>
                       <Show when={row.m.sender && cachedAvatar(row.m.sender)} fallback={<span>{initialOf(senderName(row.m))}</span>}>
                         <img src={cachedAvatar(row.m.sender!)} alt="" />
                       </Show>
@@ -604,7 +611,7 @@ function ChatPanel() {
                 <div class="vrc-body">
                   <Show when={row.head}>
                     <div class="vrc-meta">
-                      <b class={nameClass(row.m.sender)} data-no-i18n>
+                      <b class={`vrc-name ${nameClass(row.m.sender)}`} data-no-i18n onClick={(e) => who(e, row.m)} onContextMenu={(e) => who(e, row.m)}>
                         {senderName(row.m)}
                       </b>
                       <small class="muted">{hm(row.m.created_at)}</small>

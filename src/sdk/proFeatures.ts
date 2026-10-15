@@ -76,6 +76,7 @@ export const F = {
   voice: VOICE_FEATURE,
   voicePackSubmit: "voice.pack_submit",
   voiceCommands: "voice.commands",
+  voiceRoomTheme: "voice.room_theme",
   shots: "tools.screenshots",
   streaming: "tools.streaming",
   streamBadgeHide: "stream.badge.hide",
@@ -149,6 +150,7 @@ const STATIC: ProFeature[] = [
   { key: VOICE_FEATURE, label: "Sesli mühendis ve spotter", group: "Ses", defaultPro: true },
   { key: F.voiceCommands, label: "Sesli komut (bas-konuş: mühendise sesle soru sormak)", group: "Ses", defaultPro: true, hint: "Rust da denetler · sesli mühendis de açık olmalı" },
   { key: F.voicePackSubmit, label: "Ses paketi göndermek (kendi kaydını paylaşmak)", group: "Ses", defaultPro: false, server: true },
+  { key: F.voiceRoomTheme, label: "Ses odaları teması ve kişi görünümü (Ses ayarları › Görünüm)", group: "Ses", defaultPro: true },
   // Araçlar
   { key: F.shots, label: "Ekran görüntüsü almak", group: "Araçlar", defaultPro: false },
   { key: F.streaming, label: "Yayın düzenleri (OBS) sayfası", group: "Araçlar", defaultPro: false },

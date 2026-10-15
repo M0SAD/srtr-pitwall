@@ -6,7 +6,9 @@ import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import { isAdmin } from "@/cloud/account";
 import { avatarUrl } from "@/cloud/profile";
 import { initialOf } from "@/cloud/social";
-import { MEMBERS_PAGE, adminMembersLive, adminOverview, refreshAdminOverview, useAdminOverview, type LiveMember, type MemberFilter } from "@/cloud/adminOverview";
+import { MEMBERS_PAGE, adminMembersLive, adminOverview, refreshAdminOverview, useAdminOverview, type LiveMember, type MemberFilter, type MemberSort } from "@/cloud/adminOverview";
+import { uiPref } from "@/sdk/settings";
+import { localeTag } from "@/sdk/i18n";
 import { go } from "../ui";
 import * as I from "../icons";
 import { SimBadge } from "./Profile";
@@ -15,6 +17,16 @@ import { relTime } from "../pages/CommunityKit";
 import "./adminTop.css";
 
 const [panel, setPanel] = createSignal<MemberFilter | null>(null);
+const [sort, setSort] = uiPref<MemberSort>("admin.members.sort", "active");
+const SORTS: [MemberSort, string][] = [
+  ["active", "Aktiflik (yarışta, çevrimiçi önce)"],
+  ["new", "Üyelik tarihi: en yeni"],
+  ["old", "Üyelik tarihi: en eski"],
+  ["seen", "Son görülme"],
+  ["name", "Ad (A → Z)"],
+  ["pro", "PRO'lar önce"],
+];
+const joined = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" }) : "");
 
 const big = (n: number) => (n > 9999 ? `${Math.floor(n / 1000)}b` : String(n));
 
@@ -88,7 +100,7 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
     if (!quiet) setLoading(true);
     setErr("");
     try {
-      const r = (await adminMembersLive(filter(), q().trim(), append ? rows().length : 0)) ?? [];
+      const r = (await adminMembersLive(filter(), q().trim(), append ? rows().length : 0, sort())) ?? [];
       if (my !== seq) return;
       setRows(append ? [...rows(), ...r] : r);
       setMore(r.length === MEMBERS_PAGE);
@@ -171,6 +183,21 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
         <div class="ats-search">
           <I.Search />
           <input class="input" placeholder="Ad, e-posta ya da iRacing adı" value={q()} onInput={(e) => onSearch(e.currentTarget.value)} />
+          <label class="ats-sort" title={t("Sıralama")}>
+            <I.ArrowDownWideNarrow />
+            <select
+              class="input"
+              value={sort()}
+              onChange={(e) => {
+                setSort(e.currentTarget.value as MemberSort);
+                void load();
+              }}
+            >
+              {SORTS.map(([id, label]) => (
+                <option value={id}>{t(label)}</option>
+              ))}
+            </select>
+          </label>
         </div>
         <Show when={err()}>
           <p class="ats-err" data-no-i18n>
@@ -202,6 +229,11 @@ function MembersPanel(props: { initial: MemberFilter; onClose: () => void }) {
                   <small class="ats-mail" data-no-i18n>
                     {m.email}
                   </small>
+                  <Show when={m.created_at}>
+                    <small class="ats-joined" classList={{ hot: sort() === "new" || sort() === "old" }} title={new Date(m.created_at!).toLocaleString(localeTag())}>
+                      {t("Üyelik: {0} ({1})", joined(m.created_at), relTime(m.created_at!))}
+                    </small>
+                  </Show>
                 </span>
                 <span class="ats-state">
                   <Show

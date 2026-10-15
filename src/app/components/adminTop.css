@@ -356,5 +356,42 @@
   }
 }
 
-.adm-plink { cursor: pointer; }
-.adm-plink:hover { text-decoration: underline; }
+.adm-plink {
+  cursor: pointer;
+}
+.adm-plink:hover {
+  text-decoration: underline;
+}
+
+/* Sıralama (c123) */
+.ats-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ats-search > .input {
+  flex: 1;
+  min-width: 0;
+}
+.ats-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.ats-search .ats-sort svg {
+  position: static;
+  transform: none;
+}
+.ats-search .ats-sort .input {
+  width: auto;
+  padding-left: 10px;
+}
+.ats-joined {
+  display: block;
+  font-size: 11px;
+  color: #8a93a3;
+}
+.ats-joined.hot {
+  color: var(--accent);
+}

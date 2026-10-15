@@ -294,3 +294,6 @@ export async function onVoiceMoved(uid: string, cb: () => void): Promise<() => v
     c.removeChannel(ch);
   };
 }
+
+/** Arkadaşı şu an bulunduğum ses odasına davet et (c123; hangi pencereden olursa olsun) */
+export const voiceInviteHere = (to: string) => rpc<string>("voice_invite_here", { p_to: to });

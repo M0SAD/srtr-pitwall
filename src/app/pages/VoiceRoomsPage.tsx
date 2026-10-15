@@ -30,13 +30,14 @@ import { go } from "../ui";
 import { VoiceRoomSettings } from "./VoiceRoomSettings";
 import { VoiceRoomStage } from "./VoiceRoomStage";
 import { KIND_LABEL, TALK_CHOICES, errText, fmtSec, globalMods, isGlobalMod, loadGlobalMods } from "./voiceRoomParts";
+import { themeClass, tileStyle } from "@/voice/roomTheme";
 import "../voicerooms.css";
 
 export function VoiceRoomsPage(props: { sub?: string }) {
   const inRoom = () => !!voice.room() || voice.status() === "connecting" || voice.status() === "reconnecting";
   const stage = () => props.sub !== "settings" && props.sub !== "all" && inRoom();
   return (
-    <div class="page vr-page" classList={{ "vr-page-stage": stage() }}>
+    <div class={`page vr-page ${themeClass()} vr-tiles-${tileStyle()}`} classList={{ "vr-page-stage": stage() }}>
       <Show when={props.sub === "settings"}>
         <VoiceRoomSettings />
       </Show>

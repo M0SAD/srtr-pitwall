@@ -2309,3 +2309,408 @@ body.vr-dragging * {
   width: 15px;
   height: 15px;
 }
+.vrc-av,
+.vrc-name {
+  cursor: pointer;
+}
+.vrc-name:hover {
+  text-decoration: underline;
+}
+
+/* ===========================================================================
+   Ses odası temaları (PRO; src/voice/roomTheme.ts). Kapsayıcı: .vr-page, sol menünün .subnav'ı, kişi menüsü.
+   =========================================================================== */
+.vr-th-discord {
+  --bg: #313338;
+  --bg-2: #2b2d31;
+  --bg-3: #383a40;
+  --line: #1f2023;
+  --text: #f2f3f5;
+  --muted: #949ba4;
+  --accent: #5865f2;
+  --green: #23a55a;
+  --red: #f23f43;
+  --yellow: #f0b232;
+}
+.vr-th-discord .vrs-stage {
+  background: #1e1f22;
+}
+.vr-th-midnight {
+  --bg: #0a1020;
+  --bg-2: #0f1830;
+  --bg-3: #16223f;
+  --line: #1f2d4f;
+  --text: #e6edff;
+  --muted: #8a9bc4;
+  --accent: #3fa9ff;
+  --green: #2ee6a6;
+}
+.vr-th-midnight .vrs-stage {
+  background: radial-gradient(ellipse at 50% 0, #14244a 0, var(--bg) 70%);
+}
+.vr-th-carbon {
+  --bg: #0d0d0f;
+  --bg-2: #141417;
+  --bg-3: #1f1f24;
+  --line: #2a2a30;
+  --text: #f1f1f3;
+  --muted: #9a9aa3;
+  --accent: #e10600;
+  --green: #00d46a;
+}
+.vr-th-carbon .vrs-stage,
+.vr-page.vr-th-carbon .vrl {
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.028) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.35) 0 2px, transparent 2px 6px);
+}
+.vr-th-carbon .vrs-top,
+.vr-th-carbon .vrs-side-head {
+  border-bottom-color: var(--accent);
+}
+.vr-th-synth {
+  --bg: #140b24;
+  --bg-2: #1c1033;
+  --bg-3: #2a1748;
+  --line: #3a2160;
+  --text: #f5e9ff;
+  --muted: #b39ad6;
+  --accent: #ff3d9a;
+  --green: #22f0e0;
+  --yellow: #ffd23f;
+}
+.vr-th-synth .vrs-stage {
+  background:
+    linear-gradient(180deg, transparent 55%, rgba(255, 61, 154, 0.12) 100%),
+    repeating-linear-gradient(90deg, rgba(34, 240, 224, 0.06) 0 1px, transparent 1px 48px),
+    var(--bg);
+}
+.vr-th-synth .vrs-tile.talking {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--green) 55%, transparent);
+}
+.vr-th-racing {
+  --bg: #0c1a13;
+  --bg-2: #10231a;
+  --bg-3: #173226;
+  --line: #21402f;
+  --text: #eef5ea;
+  --muted: #9db5a6;
+  --accent: #d4af37;
+  --green: #5cff9d;
+}
+.vr-th-light {
+  --bg: #f3f4f7;
+  --bg-2: #ffffff;
+  --bg-3: #e9ebf0;
+  --line: #d9dce3;
+  --text: #1b1f27;
+  --muted: #667085;
+  --accent: #ff7a1a;
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #b45309;
+  color: var(--text);
+}
+.vr-th-light.subnav button,
+.vr-th-light .subnav button,
+.subnav.vr-th-light .vrn button.vrn-room,
+.subnav.vr-th-light .vrn-person,
+.vr-th-light .vrs-tb,
+.vr-th-light .vrs-move-room,
+.vr-th-light .vrc-text {
+  color: #3a4150;
+}
+.subnav.vr-th-light .vrn button.vrn-room.here,
+.vr-th-light .vrs-tb.on,
+.vr-th-light .vrs-tb:hover {
+  color: var(--text);
+}
+.vr-th-light .vrs-tile {
+  background: color-mix(in srgb, var(--tint, #888) 45%, #fff);
+}
+.vr-th-light .vrs-av {
+  color: #fff;
+}
+.vr-th-light .panel,
+.vr-th-light .vrl-card,
+.vr-th-light .vrl-hero {
+  background: var(--bg-2);
+  border-color: var(--line);
+  color: var(--text);
+}
+.vr-th-light .input,
+.vr-th-light select,
+.vr-th-light textarea {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--line);
+}
+.vr-th-light .vrc-box textarea {
+  background: none;
+}
+.vr-th-light .vrc-msg:hover {
+  background: #f0f1f4;
+}
+.vr-th-light .vrs-cb {
+  color: #1b1f27;
+}
+.vr-th-light .vrs-cb.leave {
+  color: #fff;
+}
+.vr-th-light .btn:not(.primary):not(.danger):not(.warn) {
+  color: var(--text);
+}
+/* Temalı sayfa zemini (Tüm odalar ve Ses ayarları da temayı alır) */
+.content2 > .page.vr-page:not(.vr-th-default) {
+  background: var(--bg);
+  min-height: 100%;
+}
+.vr-th-default.subnav,
+.subnav[class*="vr-th-"] {
+  background: var(--bg-2);
+}
+.subnav[class*="vr-th-"] .subnav-title {
+  color: var(--muted);
+}
+
+/* ---- Kişi görünümü: daireler */
+.vr-tiles-circles .vrs-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  max-width: 900px;
+  gap: 18px 10px;
+}
+.vr-tiles-circles .vrs-tile {
+  aspect-ratio: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px;
+  background: none;
+  outline: 0;
+  border-radius: 14px;
+}
+.vr-tiles-circles .vrs-tile:hover,
+.vr-tiles-circles .vrs-tile.open {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  filter: none;
+}
+.vr-tiles-circles .vrs-tile.talking {
+  outline: 0;
+  box-shadow: none;
+}
+.vr-tiles-circles .vrs-av {
+  width: 96px;
+  font-size: 34px;
+  background: var(--tint);
+  box-shadow: 0 0 0 3px transparent;
+  transition: box-shadow 0.1s;
+}
+.vr-tiles-circles .vrs-tile.talking .vrs-av {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 6px var(--green),
+    0 0 22px color-mix(in srgb, var(--green) 45%, transparent);
+}
+.vr-tiles-circles .vrs-name {
+  position: static;
+  max-width: 100%;
+  background: none;
+  padding: 0;
+  color: var(--text);
+  justify-content: center;
+}
+.vr-tiles-circles .vrs-state {
+  position: absolute;
+  right: calc(50% - 52px);
+  top: 76px;
+  bottom: auto;
+}
+.vr-tiles-circles .vrs-grant {
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+/* ---- Kişi görünümü: liste */
+.vr-tiles-list .vrs-grid {
+  grid-template-columns: 1fr;
+  max-width: 620px;
+  gap: 4px;
+  margin: 0 auto auto;
+}
+.vr-tiles-list .vrs-tile {
+  aspect-ratio: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  outline-width: 2px;
+  outline-offset: -2px;
+}
+.vr-tiles-list .vrs-tile.talking {
+  outline-width: 2px;
+  outline-offset: -2px;
+}
+.vr-tiles-list .vrs-av {
+  width: 38px;
+  font-size: 15px;
+  background: var(--tint);
+  box-shadow: none;
+}
+.vr-tiles-list .vrs-tile.talking .vrs-av {
+  box-shadow:
+    0 0 0 2px var(--bg-2),
+    0 0 0 4px var(--green);
+}
+.vr-tiles-list .vrs-name {
+  position: static;
+  flex: 1;
+  max-width: none;
+  background: none;
+  padding: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.vr-tiles-list .vrs-state {
+  position: static;
+}
+.vr-tiles-list .vrs-grant {
+  position: static;
+  order: 3;
+}
+
+/* ---- Ses ayarları › Görünüm */
+.vr-look h4 {
+  margin: 14px 0 8px;
+}
+.vr-themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.vr-theme-card,
+.vr-ts-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vr-theme-card:hover:not(:disabled),
+.vr-ts-card:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--text) 30%, var(--line));
+}
+.vr-theme-card.on,
+.vr-ts-card.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.vr-theme-card.locked,
+.vr-ts-card.locked {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.vr-theme-prev {
+  position: relative;
+  display: block;
+  height: 62px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.vr-theme-prev i {
+  position: absolute;
+  border-radius: 3px;
+}
+.vr-theme-prev .side {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  border-radius: 0;
+}
+.vr-theme-prev .tile {
+  top: 10px;
+  width: 30%;
+  height: 30px;
+}
+.vr-theme-prev .tile:nth-child(2) {
+  left: 32%;
+}
+.vr-theme-prev .tile:nth-child(3) {
+  left: 66%;
+}
+.vr-theme-prev .bar {
+  left: 52%;
+  bottom: 6px;
+  width: 22%;
+  height: 8px;
+  border-radius: 4px;
+}
+.vr-theme-name,
+.vr-ts-card b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.vr-tilestyles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+.vr-ts-card small {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.vr-ts-prev {
+  display: grid;
+  gap: 4px;
+  height: 62px;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--bg);
+}
+.vr-ts-prev i {
+  border-radius: 4px;
+  background: var(--bg-2);
+}
+.vr-ts-prev.tiles {
+  grid-template-columns: 1fr 1fr;
+}
+.vr-ts-prev.tiles i:first-child {
+  box-shadow: inset 0 0 0 2px var(--green);
+}
+.vr-ts-prev.circles {
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+}
+.vr-ts-prev.circles i {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 25%, var(--bg-2));
+}
+.vr-ts-prev.circles i:first-child {
+  box-shadow: 0 0 0 2px var(--green);
+}
+.vr-ts-prev.list {
+  grid-template-rows: repeat(4, 1fr);
+  gap: 3px;
+}
+.vr-ts-prev.list i:first-child {
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+.vr-look-pro {
+  margin-top: 12px;
+}

@@ -18,6 +18,8 @@ import { askConfirm } from "../confirm";
 import { Slider } from "./SettingsForm";
 import { RoomIcon } from "./RoomIcon";
 import { FriendButton, ROLE_LABEL, errText, isGlobalMod, loadGlobalMods } from "../pages/voiceRoomParts";
+import { ProfileDialog } from "./Profile";
+import { themeClass } from "@/voice/roomTheme";
 import * as I from "../icons";
 
 const me = () => session()?.user.id ?? "";
@@ -46,10 +48,10 @@ export async function act(f: () => Promise<unknown>) {
 // ---------------------------------------------------------------------------
 
 const MOVER: string[] = ["owner", "admin", "mod"];
-const roomRow = (id: string): VoiceRoomRow | undefined => rooms().find((r) => r.id === id);
+const roomRow = (id: string): VoiceRoomRow | undefined => (id ? rooms().find((r) => r.id === id) : undefined);
 /** Bu odada taşıma yetkim var mı (site yöneticisi / Ses Odası Moderatörü her odada; sunucu ayrıca denetler) */
 const canMoveIn = (id: string) => realAdmin() || MOVER.includes(roomRow(id)?.my_role ?? "") || (voice.room()?.id === id && amMod());
-export const canMove = (from: string, to: string) => from !== to && canMoveIn(from) && canMoveIn(to);
+export const canMove = (from: string, to: string) => !!from && !!to && from !== to && canMoveIn(from) && canMoveIn(to);
 /** Bu odadan biri başka bir odaya taşınabilir mi (sürüklemeyi başlatmak için) */
 export const canMoveFrom = (from: string) => canMoveIn(from) && rooms().some((r) => canMove(from, r.id));
 
@@ -137,7 +139,7 @@ export function DragGhost() {
     <Show when={drag()}>
       {(d) => (
         <Portal>
-          <div class="vr-ghost" classList={{ ok: !!dropRoom() }} style={{ left: `${d().x + 14}px`, top: `${d().y + 10}px` }}>
+          <div class={`vr-ghost ${themeClass()}`} classList={{ ok: !!dropRoom() }} style={{ left: `${d().x + 14}px`, top: `${d().y + 10}px` }}>
             <span class="vrn-pav">
               <Show when={cachedAvatar(d().user)} fallback={<span>{initialOf(d().name)}</span>}>
                 <img src={cachedAvatar(d().user)} alt="" />
@@ -185,8 +187,16 @@ export function PersonMenuHost() {
     if (voice.room()?.id === m.room && !voice.members().some((x) => x.user_id === m.user)) return null;
     return m;
   };
-  return <Show when={valid()}>{(m) => <PersonMenu target={m()} onClose={closePersonMenu} />}</Show>;
+  return (
+    <>
+      <Show when={valid()}>{(m) => <PersonMenu target={m()} onClose={closePersonMenu} />}</Show>
+      <Show when={profileOf()}>{(id) => <ProfileDialog id={id()} onClose={() => setProfileOf(null)} />}</Show>
+    </>
+  );
 }
+
+/** Kişi menüsündeki "Profili gör" */
+const [profileOf, setProfileOf] = createSignal<string | null>(null);
 
 function PersonMenu(props: { target: MenuTarget; onClose: () => void }) {
   let el!: HTMLDivElement;
@@ -222,7 +232,8 @@ function PersonMenu(props: { target: MenuTarget; onClose: () => void }) {
     place();
     const ro = new ResizeObserver(place);
     ro.observe(el);
-    const down = (e: PointerEvent) => !el.contains(e.target as Node) && !(e.target as HTMLElement).closest?.(".vrs-tile, .vrn-person") && props.onClose();
+    const down = (e: PointerEvent) =>
+      !el.contains(e.target as Node) && !(e.target as HTMLElement).closest?.(".vrs-tile, .vrn-person, .vrc-av, .vrc-name, .fr-ctx-trigger") && props.onClose();
     const key = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
     const scroll = (e: Event) => !el.contains(e.target as Node) && props.onClose();
     document.addEventListener("pointerdown", down, true);
@@ -240,7 +251,7 @@ function PersonMenu(props: { target: MenuTarget; onClose: () => void }) {
 
   return (
     <Portal>
-      <div class="vrs-menu" ref={el} style={{ left: `${pos().left}px`, top: `${pos().top}px` }} onContextMenu={(e) => e.preventDefault()}>
+      <div class={`vrs-menu ${themeClass()}`} ref={el} style={{ left: `${pos().left}px`, top: `${pos().top}px` }} onContextMenu={(e) => e.preventDefault()}>
         <div class="vrs-menu-head" style={{ "--tint": tint(u()) }}>
           <span class="vrs-av">
             <Show when={cachedAvatar(u())} fallback={<span>{initialOf(props.target.name)}</span>}>
@@ -267,6 +278,15 @@ function PersonMenu(props: { target: MenuTarget; onClose: () => void }) {
           </div>
         </div>
         <div class="vrs-menu-body">
+          <button
+            class="btn small"
+            onClick={() => {
+              setProfileOf(u());
+              props.onClose();
+            }}
+          >
+            <I.User /> {t("Profili gör")}
+          </button>
           <Show when={mine() && here()}>
             <small class="muted">{t("Bu sensin. Mikrofon ve ses için alttaki düğmeleri kullan.")}</small>
           </Show>

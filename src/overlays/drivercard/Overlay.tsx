@@ -16,7 +16,21 @@ import "./style.css";
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
 
-const SAMPLE = sampleRow({ classPos: 4, pos: 6, number: "59", name: "Deniz Yılmaz", flair: "TR", irating: 2450, sr: 3.45, licLetter: "A", isMe: true, carName: "Porsche 911 GT3 R", className: "GT3" });
+const DESIGNS = ["bar", "tag", "angled", "tv", "glass", "min", "neon", "plate"];
+
+const SAMPLE = sampleRow({
+  classPos: 4,
+  pos: 6,
+  number: "59",
+  name: "Deniz Yılmaz",
+  flair: "TR",
+  irating: 2450,
+  sr: 3.45,
+  licLetter: "A",
+  isMe: true,
+  carName: "Porsche 911 GT3 R",
+  className: "GT3",
+});
 
 export default function DriverCard(props: OverlayProps) {
   const standings = useTopic("standings");
@@ -84,7 +98,7 @@ export default function DriverCard(props: OverlayProps) {
     }
     return true;
   });
-  const design = () => (["bar", "tag", "angled"].includes(o().design) ? (o().design as string) : "bar");
+  const design = () => (DESIGNS.includes(o().design) ? (o().design as string) : "bar");
   const sub = () => [has("car") ? car() : "", has("team") ? team() : ""].filter(Boolean);
 
   return (

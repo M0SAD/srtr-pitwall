@@ -54,6 +54,7 @@ import { ICONS as SIM_ICONS } from "./SimPicker";
 import { loadAvatars } from "@/cloud/profile";
 import { emit, listen } from "@tauri-apps/api/event";
 import { editFriendLook, go } from "../ui";
+import { voiceInviteHere } from "@/cloud/voiceRooms";
 import * as I from "../icons";
 import Wrench from "lucide-solid/icons/wrench";
 import Smile from "lucide-solid/icons/face-slightly-smiling";
@@ -141,6 +142,9 @@ function presence(f: Friend): Presence {
   if (f.online) return f.dnd ? "dnd" : "online";
   return "offline";
 }
+
+/** Arkadaşlar penceresi ana pencerenin sağ kenarına yapışsın (Ayarlar › Sohbet; Rust: dock.rs) */
+export const [friendsDock, setFriendsDock] = uiPref<boolean>("friends.dock", true);
 
 // Profil açıcı: pencerenin gezinme yolu (ana panelde sayfa değişir; ayrı Arkadaşlar / sohbet penceresinde ana panel o
 // profille öne gelir). FriendsPanel kurulunca atanır; sohbetlerdeki resimler ve adlar bunu kullanır.
@@ -1471,6 +1475,8 @@ export function FriendsDock(props: { racing?: () => boolean }) {
   const [counts, setCounts] = createSignal<[number, number]>([0, 0]);
   // Tepsi simgesine okunmamış mesaj varken tıklandı: panel açılır ve arkadaş listesi gösterilir
   if (inTauri) {
+    // Yapışma tercihini Rust'a bildir (tepsiden açılan pencere de aynı yere gelsin)
+    onMount(() => void invoke("friends_dock_set", { on: friendsDock() }).catch(() => {}));
     const take = () =>
       invoke<boolean>("tray_take_open")
         .then((yes) => yes && session() && invoke("window_open", { view: "friends" }))
@@ -1485,7 +1491,7 @@ export function FriendsDock(props: { racing?: () => boolean }) {
   // Programda arkadaş listesi her zaman ayrı pencerede açılır; düğmeye yeniden basınca pencere kapanır.
   // (Gizli panel takılı kalır: çevrimiçi ve okunmamış sayıları düğmede görünsün diye.)
   const toggleDock = () => {
-    if (inTauri) invoke("window_toggle", { view: "friends" }).catch(() => setOpen(!open()));
+    if (inTauri) invoke("window_toggle", { view: "friends", dock: friendsDock() }).catch(() => setOpen(!open()));
     else setOpen(!open());
   };
   // Çıkış yapınca (ya da hesap değişince) panel kapanır ve önceki hesabın sayıları sıfırlanır
@@ -1916,6 +1922,14 @@ function FriendRow(props: {
           <button onClick={() => (setMenu(false), props.onChat())}>
             <I.MessageSquare /> Mesaj
           </button>
+          <Show when={f().online}>
+            <button
+              onClick={() => (setMenu(false), props.act(() => voiceInviteHere(f().friend_id)))}
+              title={t("Bulunduğun ses odasına davet et; davet mesaj olarak gider, “Katıl” ile doğrudan odaya girer")}
+            >
+              <I.AudioLines /> {t("Ses odasına davet et")}
+            </button>
+          </Show>
           <button onClick={() => (setMenu(false), props.onProfile())}>
             <I.User /> Profil
           </button>

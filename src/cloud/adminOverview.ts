@@ -69,9 +69,11 @@ export async function refreshAdminOverview() {
 
 export const MEMBERS_PAGE = 200;
 
-export function adminMembersLive(filter: MemberFilter, search: string, offset = 0) {
+/** Üye listesi sırası (c123): active = yarışta / çevrimiçi / son görülme */
+export type MemberSort = "active" | "new" | "old" | "seen" | "name" | "pro";
+export function adminMembersLive(filter: MemberFilter, search: string, offset = 0, sort: MemberSort = "active") {
   return api<LiveMember[]>("POST", "rpc/admin_members_live", {
-    body: { p_filter: filter, p_search: search, p_limit: MEMBERS_PAGE, p_offset: offset },
+    body: { p_filter: filter, p_search: search, p_limit: MEMBERS_PAGE, p_offset: offset, ...(sort !== "active" ? { p_sort: sort } : {}) },
   });
 }
 

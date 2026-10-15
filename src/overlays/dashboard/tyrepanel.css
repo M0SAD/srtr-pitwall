@@ -1,0 +1,246 @@
+/* Direksiyon Ekranı › Lastik sıcaklığı göstergesi (tyrepanel.tsx) */
+.dash-tpw {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: calc(6px * var(--tp-z, 1));
+}
+.dash-tpw.tp-below {
+  flex-direction: column;
+}
+.dash-tpw.tp-above {
+  flex-direction: column-reverse;
+}
+.dash-tpw.tp-left {
+  flex-direction: row-reverse;
+}
+.tp {
+  position: relative;
+  box-sizing: border-box;
+  width: max-content;
+  font-size: calc(13px * var(--tp-z, 1));
+  font-family: "Barlow Semi Condensed", "Inter", sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #f4f4f4;
+  background: rgba(4, 4, 5, var(--tp-a, 0.92));
+  border: 1px solid #26292e;
+  border-radius: 0.5em;
+  padding: 0.55em 0.65em 0.45em;
+  line-height: 1.1;
+}
+.tp-none {
+  color: #8a8f98;
+  font-weight: 700;
+}
+.tp-unit {
+  position: absolute;
+  right: 0.6em;
+  top: 0.25em;
+  font-size: 0.66em;
+  color: #8a8f98;
+  font-weight: 700;
+}
+.tp-n {
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9aa0a9;
+}
+.tp small {
+  font-size: 0.72em;
+  color: #b9bec6;
+}
+/* Kutular */
+.tp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 4.2em);
+  gap: 0.3em;
+  margin-top: 0.4em;
+}
+.tp-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25em 0.2em 0.3em;
+  border-radius: 0.3em;
+  background: color-mix(in srgb, var(--tc) 22%, #0b0c0e);
+  border-bottom: 0.22em solid var(--tc);
+}
+.tp-cell b {
+  font-size: 1.35em;
+  font-weight: 800;
+}
+/* Araç */
+.tp-car {
+  position: relative;
+  width: 10.5em;
+  height: 9.2em;
+  margin-top: 0.3em;
+}
+.tp-body {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 100%;
+  transform: translateX(-50%);
+}
+.tp-body path {
+  fill: #1b1e23;
+  stroke: #3a3f46;
+  stroke-width: 1;
+}
+.tp-body .tp-cock {
+  fill: #0b0c0e;
+}
+.tp-cv {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  font-weight: 800;
+}
+.tp-cv b {
+  font-size: 1.3em;
+}
+.tp-cv0 {
+  left: 0;
+  top: 0.9em;
+}
+.tp-cv1 {
+  right: 0;
+  top: 0.9em;
+  align-items: flex-end;
+}
+.tp-cv2 {
+  left: 0;
+  bottom: 1.2em;
+}
+.tp-cv3 {
+  right: 0;
+  bottom: 1.2em;
+  align-items: flex-end;
+}
+/* Çubuklar */
+.tp-bars {
+  display: flex;
+  gap: 0.55em;
+  margin-top: 0.4em;
+}
+.tp-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  min-width: 2.6em;
+}
+.tp-bar b {
+  font-size: 1.15em;
+  font-weight: 800;
+}
+.tp-tube {
+  position: relative;
+  width: 0.9em;
+  height: 4.6em;
+  border-radius: 0.45em;
+  background: #15171b;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px #2a2e34;
+}
+.tp-tube i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.45em;
+  transition: height 0.4s ease;
+}
+.tp-tube em {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.45);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.45);
+}
+/* İç / orta / dış */
+.tp-imo {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.45em 0.7em;
+  margin-top: 0.4em;
+}
+.tp-imo-t {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+.tp-strips {
+  display: flex;
+  gap: 2px;
+}
+.tp-strips i {
+  display: grid;
+  place-items: end center;
+  width: 2.1em;
+  height: 2.6em;
+  padding-bottom: 0.15em;
+  border-radius: 0.2em;
+  font-style: normal;
+}
+.tp-strips small {
+  font-size: 0.72em;
+  font-weight: 800;
+  color: #0b0c0e;
+}
+.tp-p {
+  font-size: 0.68em !important;
+}
+/* Halkalar */
+.tp-rings {
+  display: grid;
+  grid-template-columns: repeat(2, 4.4em);
+  gap: 0.3em 0.5em;
+  margin-top: 0.3em;
+}
+.tp-ring {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.tp-ring svg {
+  width: 4.2em;
+  height: 4.2em;
+}
+.tp-ring circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.tp-ring-bg {
+  stroke: #24272c;
+}
+.tp-ring-fg {
+  transition: stroke-dasharray 0.4s ease;
+}
+.tp-ring b {
+  position: absolute;
+  top: 1.25em;
+  font-size: 1.15em;
+  font-weight: 800;
+}
+.tp-ring .tp-n {
+  margin-top: -0.9em;
+}
+/* Dikey yerleşimde (sol / sağ) tek sütun */
+.tp-v .tp-bars {
+  flex-wrap: wrap;
+  max-width: 6.2em;
+}
+/* Alt / üst yerleşimde tek satır (ekranın genişliğine uyar) */
+.tp:not(.tp-v) .tp-grid {
+  grid-template-columns: repeat(4, 4.2em);
+}
+.tp:not(.tp-v) .tp-rings {
+  grid-template-columns: repeat(4, 4.4em);
+}
+.tp:not(.tp-v) .tp-imo {
+  grid-template-columns: repeat(4, auto);
+}

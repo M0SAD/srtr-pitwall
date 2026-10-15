@@ -17,7 +17,9 @@
 }
 .pe-now b {
   min-width: 56px;
-  font: 800 32px/1 "Inter", sans-serif;
+  font:
+    800 32px/1 "Inter",
+    sans-serif;
   color: var(--muted);
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -130,7 +132,9 @@
   border-radius: 4px;
   background: #3a2230;
   color: #ff8fb0;
-  font: 700 10.5px/16px "Inter", sans-serif;
+  font:
+    700 10.5px/16px "Inter",
+    sans-serif;
   font-style: normal;
   text-transform: uppercase;
 }
@@ -164,7 +168,9 @@
   background: var(--bg);
 }
 .promo-now b {
-  font: 800 30px/1 "Inter", sans-serif;
+  font:
+    800 30px/1 "Inter",
+    sans-serif;
   color: var(--muted);
 }
 .promo-now.on {
@@ -795,4 +801,100 @@ p.bk-alert {
   .amx-grid.open .amx-list {
     display: none;
   }
+}
+
+/* Yönetim › E-posta (AdminMail.tsx) */
+.am-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.am-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+.am-status svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.am-status .ok {
+  color: var(--green);
+}
+.am-status .bad {
+  color: var(--yellow);
+}
+.am-help,
+.am-setup {
+  margin: 6px 0 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+  font-size: 13px;
+}
+.am-help b,
+.am-setup b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.am-help svg,
+.am-setup svg {
+  width: 14px;
+  height: 14px;
+}
+.am-help ol,
+.am-setup ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  line-height: 1.45;
+}
+.am-help a svg,
+.am-setup a svg {
+  width: 12px;
+  height: 12px;
+  vertical-align: -1px;
+}
+.am-setup {
+  border-color: color-mix(in srgb, var(--yellow) 45%, var(--line));
+}
+.am-adv {
+  margin: 4px 0 8px;
+}
+.am-adv summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
+.am-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+.am-to {
+  width: 220px;
+}
+.am-msg {
+  margin: 6px 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.am-msg.ok {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+.am-msg.bad {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  color: #ffb3b5;
 }

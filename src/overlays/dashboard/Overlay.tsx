@@ -12,6 +12,8 @@ import { overlayValueLocked } from "@/sdk/proFeatures";
 import { carFamily, carModel } from "@/sdk/cars";
 import { CarDash, DashExtras, NATIVE_HYBRID, STYLE_FOR_FAMILY, STYLE_FOR_MODEL, isCarStyle, type AidMode, type CarStyle, type DashCtx } from "./carstyles";
 import "./style.css";
+import { TyrePanel, type TyrePanelStyle } from "./tyrepanel";
+import "./tyrepanel.css";
 
 // ---------------------------------------------------------------------------
 // Önizleme (veri yokken düzenleme modunda / panelde): referans ekrandaki değerler
@@ -742,7 +744,7 @@ export default function Dashboard(props: OverlayProps) {
   /** Araç tarzı ekranlar: genel ölçek ve devir ışığı boyutu */
   const carVars = (): Record<string, string> => ({ "--cd-zoom": pct("carScale"), "--cd-led-z": pct("carRpmSize") });
 
-  return (
+  const Main = () => (
     <Show
       when={customDash()}
       fallback={<Builtin />}
@@ -754,6 +756,38 @@ export default function Dashboard(props: OverlayProps) {
           </div>
         </div>
       )}
+    </Show>
+  );
+
+  // Lastik sıcaklığı göstergesi (her görünüme eklenebilir; tyrepanel.tsx)
+  const tpPos = () => {
+    const v = String(props.options.tyrePanel ?? "off");
+    return ["below", "above", "left", "right"].includes(v) ? v : "off";
+  };
+  const tpStyle = (): TyrePanelStyle => {
+    const v = String(props.options.tyreDesign ?? "grid");
+    return (["grid", "car", "bars", "imo", "rings"].includes(v) ? v : "grid") as TyrePanelStyle;
+  };
+  const optC = (k: string, d: number) => {
+    const v = Number(props.options[k]);
+    return isFinite(v) && v > 0 ? v : d;
+  };
+
+  return (
+    <Show when={tpPos() !== "off"} fallback={<Main />}>
+      <div class={`dash-tpw tp-${tpPos()}`} style={{ "--tp-z": String(optC("tyrePanelSize", 100) / 100), "--tp-a": String(Math.max(0.3, alpha())) }}>
+        <Main />
+        <TyrePanel
+          tires={src().tires}
+          style={tpStyle()}
+          tv={(c) => tempVal(c, fmt(), 0)}
+          unit={tempUnitLabel(fmt())}
+          press={!!props.options.tyrePress}
+          lo={optC("tyreOptLo", 75)}
+          hi={optC("tyreOptHi", 100)}
+          vertical={tpPos() === "left" || tpPos() === "right"}
+        />
+      </div>
     </Show>
   );
 

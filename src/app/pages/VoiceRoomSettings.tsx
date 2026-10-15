@@ -43,6 +43,9 @@ import {
 import { Slider, Switch } from "../components/SettingsForm";
 import { PttButtonRow, PttKeyRow, type BindTarget } from "../components/VoiceCommands";
 import { go } from "../ui";
+import { ProLockNote } from "../components/ProLock";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ROOM_THEMES, TILE_STYLES, roomTheme, setRoomThemePref, setTileStylePref, tileStyle } from "@/voice/roomTheme";
 
 type Bind = "voiceRoom" | "voiceRoomMute" | "voiceRoomDeafen";
 const target = (k: Bind, hint: string, held?: string): BindTarget => ({
@@ -88,6 +91,7 @@ export function VoiceRoomSettings() {
 
   return (
     <>
+      <RoomLook />
       <section class="panel vr-audio">
         <h3>Ses aygıtları</h3>
         <div class="row">
@@ -346,5 +350,76 @@ export function VoiceRoomSettings() {
         </button>
       </section>
     </>
+  );
+}
+
+/** Görünüm: tema ve kişi görünümü (PRO) */
+function RoomLook() {
+  const locked = () => proLocked(F.voiceRoomTheme);
+  return (
+    <section class="panel vr-look">
+      <h3>Görünüm</h3>
+      <p class="muted small">Ses odalarının renk teması ve odadaki kişilerin nasıl görüneceği. Sadece senin ekranında değişir.</p>
+      <ProLockNote feature={F.voiceRoomTheme} text={t("Temalar ve kişi görünümleri PRO üyelere özel. Önizlemelere bakabilirsin.")} />
+      <h4>Tema</h4>
+      <div class="vr-themes">
+        <For each={ROOM_THEMES}>
+          {(th) => (
+            <button
+              class="vr-theme-card"
+              classList={{ on: roomTheme() === th.id, locked: locked() && th.id !== "default" }}
+              disabled={locked() && th.id !== "default"}
+              onClick={() => setRoomThemePref(th.id)}
+              title={locked() && th.id !== "default" ? t("PRO üyelere özel") : ""}
+            >
+              <span class="vr-theme-prev" style={{ background: th.sw[0] }}>
+                <i class="side" style={{ background: th.sw[1] }} />
+                <i class="tile" style={{ background: th.sw[1], "box-shadow": `inset 0 0 0 2px ${th.sw[3]}` }} />
+                <i class="tile" style={{ background: th.sw[1] }} />
+                <i class="bar" style={{ background: th.sw[2] }} />
+              </span>
+              <span class="vr-theme-name">
+                {t(th.label)}
+                <Show when={th.id !== "default"}>
+                  <span class="pro-badge small">PRO</span>
+                </Show>
+              </span>
+            </button>
+          )}
+        </For>
+      </div>
+      <h4>Kişi görünümü</h4>
+      <div class="vr-tilestyles">
+        <For each={TILE_STYLES}>
+          {(ts) => (
+            <button
+              class="vr-ts-card"
+              classList={{ on: tileStyle() === ts.id, locked: locked() && ts.id !== "tiles" }}
+              disabled={locked() && ts.id !== "tiles"}
+              onClick={() => setTileStylePref(ts.id)}
+            >
+              <span class={`vr-ts-prev ${ts.id}`}>
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <b>
+                {t(ts.label)}
+                <Show when={ts.id !== "tiles"}>
+                  <span class="pro-badge small">PRO</span>
+                </Show>
+              </b>
+              <small class="muted">{t(ts.hint)}</small>
+            </button>
+          )}
+        </For>
+      </div>
+      <Show when={locked()}>
+        <button class="btn primary small vr-look-pro" onClick={() => go("pro")}>
+          PRO'ya bak
+        </button>
+      </Show>
+    </section>
   );
 }
