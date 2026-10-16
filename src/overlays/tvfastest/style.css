@@ -1,0 +1,86 @@
+/* TV En Hızlı Tur */
+.tvf {
+  display: flex;
+  align-items: stretch;
+  height: 52px;
+  width: max-content;
+  font-size: 15px;
+  background: var(--tv-dark);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+  animation: tvf-in 0.5s cubic-bezier(0.2, 0.85, 0.2, 1);
+  overflow: hidden;
+}
+@keyframes tvf-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.tvf-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, var(--tvf), color-mix(in srgb, var(--tvf) 60%, #000));
+  font-weight: 700;
+  font-size: 1.05em;
+  letter-spacing: 0.04em;
+}
+.tvf-ic {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.tvf-pos {
+  width: 40px;
+  font-size: 1.4em;
+}
+.tvf-logo {
+  width: 52px;
+  height: 52px;
+}
+.tvf-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 14px;
+  min-width: 160px;
+}
+.tvf-name b {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+.tvf-name small {
+  font-size: 0.72em;
+  color: var(--tv-dim);
+}
+.tvf-num {
+  min-width: 42px;
+  font-size: 1.35em;
+  background: #fff;
+  color: #0b0b0d;
+}
+.tvf-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 14px;
+  background: color-mix(in srgb, var(--tvf) 28%, #0e0e10);
+}
+.tvf-time b {
+  font-size: 1.45em;
+  font-weight: 700;
+  color: #fff;
+}
+.tvf-time small {
+  font-size: 0.75em;
+  color: #d9b8ff;
+}

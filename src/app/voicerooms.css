@@ -2732,3 +2732,31 @@ body.vr-dragging * {
   gap: 5px;
   line-height: 1.45;
 }
+
+/* Ses odaları sayfaları pencerenin tüm genişliğini kullanır (.page'in 1200 px sınırı yok) */
+.content2 > .page.vr-page {
+  max-width: none;
+}
+.vrl {
+  max-width: none;
+}
+/* Ses ayarları satırları çok geniş ekranda dağılmasın */
+.vr-page:not(.vr-page-stage) > section.panel {
+  max-width: 1100px;
+}
+.vrs-grid {
+  max-width: none;
+}
+/* Tüm odalar: bölümler yan yana sütunlar; kalabalık bölüm tüm satırı kaplar */
+.vrl-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 18px 16px;
+  align-items: start;
+}
+.vrl-group.wide {
+  grid-column: 1 / -1;
+}
+.vrl-group:not(.wide) .vrl-grid {
+  grid-template-columns: 1fr;
+}

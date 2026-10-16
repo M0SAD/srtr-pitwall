@@ -1,0 +1,204 @@
+/* TV Sürücü Bandı (GT World Challenge yayınlarındaki alt bant; ölçüler 1080p yayına göre) */
+.tvl {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 62px;
+  font-size: 16px;
+  transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+.tvl.off {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.tvl-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* İki bantta göstergeler ortaya bakar: soldakinde sağda, sağdakinde solda */
+.tvl-card.left {
+  align-items: flex-end;
+}
+.tvl-card.right {
+  align-items: flex-start;
+}
+.tvl-band {
+  display: flex;
+  align-items: stretch;
+  height: 65px;
+  background: #fff;
+  color: #1b1b1d;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+.tvl-pos {
+  width: 73px;
+  font-size: 2.15em;
+  background: linear-gradient(180deg, var(--tv-red), color-mix(in srgb, var(--tv-red) 82%, #000));
+}
+.tvl-logo {
+  width: 115px;
+  height: 65px;
+  border-right: 1px solid #e2e2e4;
+}
+.tvl-logo img {
+  width: 52%;
+  height: 72%;
+}
+.tvl-txt {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 285px;
+  padding: 0 14px 0 16px;
+}
+.tvl-txt b {
+  font-size: 1.2em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvl-txt small {
+  font-size: 1.02em;
+  font-weight: 500;
+  color: #2c2c30;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvl-flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+}
+.tvl-flag img,
+.tvl-flag .ov-flag {
+  height: 37px;
+  width: auto;
+  border-radius: 0;
+}
+.tvl-num {
+  width: 89px;
+  font-size: 2.5em;
+  background: #fff;
+  color: #111;
+  border-left: 1px solid #e2e2e4;
+}
+/* Hız göstergesi: koyu yarım disk + kalın dış halka, altında BRAKE ve vites şeridi */
+.tvl-gauge {
+  position: relative;
+  width: 207px;
+  height: 116px;
+}
+.tvl-arc {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 207px;
+  height: 100px;
+}
+.tvl-disc {
+  opacity: 0.93;
+}
+.tvl-arc path.tvl-arc-bg,
+.tvl-arc path.tvl-arc-fg {
+  fill: none;
+  stroke-width: 18;
+}
+.tvl-arc-bg {
+  stroke: #e4e4e6;
+}
+.tvl-arc-fg {
+  stroke: #3fb24f;
+  transition: stroke-dasharray 0.12s linear;
+}
+.tvl-speed {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 3px;
+  color: #fff;
+}
+.tvl-speed b {
+  font-size: 2.15em;
+  font-weight: 700;
+}
+.tvl-speed small {
+  font-size: 0.72em;
+  font-weight: 700;
+}
+.tvl-tag {
+  position: absolute;
+  right: -44px;
+  top: -8px;
+  padding: 3px 6px 2px;
+  background: rgba(24, 24, 27, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+  font-size: 1.05em;
+  font-weight: 700;
+}
+.tvl-tag::after {
+  content: "";
+  position: absolute;
+  left: -9px;
+  bottom: -6px;
+  width: 12px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.55);
+  transform: rotate(-35deg);
+}
+.tvl-tag small {
+  font-size: 0.55em;
+  margin-left: 1px;
+}
+.tvl-under {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22px;
+  display: flex;
+  align-items: stretch;
+  background: rgba(22, 22, 25, 0.94);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+.tvl-brake {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  color: #fff;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+  transition: background 0.08s;
+}
+.tvl-brake.on {
+  background: #e3151f;
+}
+.tvl-gears {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 6px;
+}
+.tvl-gears i {
+  font-style: normal;
+  min-width: 1.05em;
+  padding: 2px 0 1px;
+  text-align: center;
+  color: #c9cace;
+}
+.tvl-gears i.on {
+  color: #111;
+  background: #fff;
+}
+.tvl-gears.none { visibility: hidden; }

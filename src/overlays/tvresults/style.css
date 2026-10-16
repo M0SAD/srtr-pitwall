@@ -1,0 +1,127 @@
+/* TV Sonuç Tablosu */
+.tvr {
+  width: 800px;
+  font-size: 15px;
+  animation: tvr-in 0.5s cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+@keyframes tvr-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.tvr-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 10px 9px;
+  background: linear-gradient(180deg, var(--tv-red), color-mix(in srgb, var(--tv-red) 75%, #000));
+}
+.tvr-head b {
+  font-size: 1.25em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.tvr-head small {
+  font-size: 0.95em;
+  font-weight: 600;
+}
+.tvr-list {
+  display: flex;
+  flex-direction: column;
+}
+.tvr-row {
+  display: grid;
+  grid-template-columns: var(--tvr-cols);
+  align-items: stretch;
+  height: 28px;
+  background: var(--tv-dark);
+  border-bottom: 1px solid var(--tv-line);
+  animation: tvr-row 0.35s ease both;
+}
+.tvr-row > * {
+  display: flex;
+  align-items: center;
+}
+@keyframes tvr-row {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+.tvr-pos {
+  justify-content: center;
+  font-size: 1.15em;
+}
+.tvr-logo {
+  width: 38px;
+  height: 28px;
+}
+.tvr-team {
+  padding: 0 10px;
+  font-weight: 700;
+  font-size: 1.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvr-drivers {
+  display: grid;
+  grid-template-columns: repeat(var(--nd), minmax(0, 1fr));
+  padding-left: 8px;
+}
+.tvr-drivers span {
+  padding-right: 8px;
+  font-weight: 600;
+  font-size: 0.97em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvr-num {
+  justify-content: center;
+  font-size: 1.18em;
+}
+.tvr-best {
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 0.92em;
+}
+.tvr-best.purple {
+  color: #d9a6ff;
+}
+.tvr-gap {
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1em;
+  background: rgba(0, 0, 0, 0.55);
+}
+.tvr-row.me .tvr-team,
+.tvr-row.me .tvr-drivers {
+  color: #ffe08a;
+}
+.tvr-pages {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 0;
+  background: var(--tv-dark);
+}
+.tvr-pages i {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.tvr-pages i.on {
+  background: var(--tv-red);
+}
+.tvr-team.long {
+  font-size: 0.86em;
+  letter-spacing: -0.01em;
+}
+.tvr-team.xlong {
+  font-size: 0.74em;
+  letter-spacing: -0.02em;
+}

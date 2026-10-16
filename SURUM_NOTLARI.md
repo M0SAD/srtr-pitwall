@@ -3,6 +3,26 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-349
+
+- Web sitesi: 5 TV overlay'inin açıklamalarına "Ne zaman görünsün" ayarları eklendi (15 dil).
+
+## 161026-348
+
+- TV yayını overlay'lerine "Ne zaman görünsün" ayarları: kendi olayında (mücadele olunca, yeni en hızlı tur atılınca, damalı bayraktan sonra, kamera başka araca geçince), her zaman, belirli aralıklarla (kaç dakikada bir, kaç saniye) ya da gizli. Olayda görünenlerde "bir seferde en çok" süre ve "tekrar görünmeden önce bekleme" var: ör. mücadele en çok 30 sn ekranda kalır, sonra 30 sn beklemeden tekrar çıkmaz. "Sadece yarış oturumunda" seçeneği (Mücadele'de varsayılan açık). Gizlenip görünürken yumuşak geçiş.
+- TV En Hızlı Tur "her zaman" / aralıklı kipte o anki en hızlı tur sahibini gösterir.
+
+## 161026-347
+
+- Yeni TV yayını overlay'leri (Overlaylarım › Yayın): **TV Sıralama Kulesi** (GT World Challenge yayınlarındaki gibi solda dikey sıralama; başlıkta seri adı, oturum, pist ve bayrak, yarış saati, logo, soyad, kategori / sınıf renkli numara, lidere fark; sıra kazanan / kaybeden satır yanıp söner), **TV Sonuç Tablosu** (yarış sonundaki büyük tablo: takım, aracı süren 3 sürücüye kadar, numara, +3 LAPS gibi fark; sayfa sayfa döner, damalı bayraktan sonra kendiliğinden çıkar), **TV Sürücü Bandı** (alt bant: sıra, logo, ad, takım, bayrak, numara; üstünde hız yayı, BRAKE ve vites şeridi), **TV Mücadele** ("BATTLE FOR P5": iki sürücü, fark, kapanıyor / açılıyor ve 30 sn grafik) ve **TV En Hızlı Tur** (mor "FASTEST LAP" bandı).
+- TV Sürücü Bandı: iRacing TV kamerasında ekrandaki araç ve pistte ona en yakın araç yan yana çıkar; ikisinde de hız (km/h) ve vites görünür. Diğer araçların hızı tur yüzdesi değişiminden, vitesi iRacing'in CarIdxGear verisinden gelir; fren bilgisini iRacing vermediği için yavaşlamadan tahmin edilir.
+- Sıralama verisine takım adı eklendi (takım yarışlarında).
+- Web sitesine 5 yeni overlay ve görselleri eklendi (overlay sayısı 70).
+
+## 161026-346
+
+- Ses odaları pencerenin tüm genişliğini kullanır (eskiden sayfa 1200 px'te kalıyor, sağ taraf boş görünüyordu). Oda ekranında kişi kutuları sahneyi doldurur: pencere boyutuna ve kişi sayısına göre en büyük kutuyu verecek sütun sayısı seçilir (Discord gibi). Tüm odalar sayfasında bölümler yan yana sütunlar halinde dizilir; kalabalık bölüm tüm satırı kaplar.
+
 ## 161026-345
 
 Supabase'de `c124_guncelleme.sql` çalıştırılmalı.

@@ -199,6 +199,8 @@ export interface Row {
   /** Sunucudan çıkmış ama resmi sıralamada duran sürücü (yalnızca "standings") */
   gone?: boolean;
   classBest: boolean;
+  /** Takım adı (takım yarışında; yoksa boş) */
+  team?: string;
 }
 
 export interface Relative {
@@ -345,6 +347,10 @@ export interface MapCar {
   classPos: number;
   me: boolean;
   pit: boolean;
+  /** Hız (m/sn; tur yüzdesi değişiminden, bilinmiyorsa 0) */
+  speed?: number;
+  /** Vites (sim veriyorsa): -1 geri, 0 boş */
+  gear?: number | null;
 }
 
 export interface MapData {
@@ -356,6 +362,8 @@ export interface MapData {
   recording: boolean;
   /** Öğrenilmiş pit yolu; bilinmiyorsa null */
   pit?: PitLane | null;
+  /** Pist uzunluğu (m; bilinmiyorsa 0) */
+  trackM?: number;
   cars: MapCar[];
 }
 

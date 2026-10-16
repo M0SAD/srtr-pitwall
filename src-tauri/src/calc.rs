@@ -266,6 +266,8 @@ pub struct Row {
     /// Sunucudan çıkmış (araç dünyada yok) ama resmi sıralamada duran sürücü: sıralama / sonuç listelerinde kalır
     pub gone: bool,
     pub class_best: bool,
+    /// Takım adı (takım yarışında; sürücü adıyla aynıysa boş). TV overlay'leri kullanır.
+    pub team: String,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -424,6 +426,10 @@ pub struct MapCar {
     pub class_pos: i32,
     pub me: bool,
     pub pit: bool,
+    /// Hız (m/sn; tur yüzdesi değişiminden, bilinmiyorsa 0)
+    pub speed: f32,
+    /// Vites (sim veriyorsa)
+    pub gear: Option<i8>,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -438,6 +444,8 @@ pub struct MapData {
     pub recording: bool,
     /// Öğrenilmiş pit yolu (giriş / çıkış tur yüzdesi, yan, pit kutusu); bilinmiyorsa null
     pub pit: Option<crate::trackmap::PitLane>,
+    /// Pist uzunluğu (m; bilinmiyorsa 0)
+    pub track_m: f32,
     pub cars: Vec<MapCar>,
 }
 
@@ -589,6 +597,16 @@ fn base_row(f: &Frame, s: &SessionData, t: &Tracker, i: usize) -> Row {
             0
         },
         is_me: i as i32 == f.player_idx,
+        team: d
+            .map(|d| {
+                let t = d.team_name.trim();
+                if t.is_empty() || t == d.name.trim() {
+                    String::new()
+                } else {
+                    t.to_string()
+                }
+            })
+            .unwrap_or_default(),
         ..Default::default()
     }
 }
@@ -1531,6 +1549,8 @@ pub fn map(f: &Frame, s: &SessionData, m: &TrackMap, send_shape: bool) -> MapDat
             class_pos: c.class_position,
             me: i as i32 == f.player_idx,
             pit: c.on_pit,
+            speed: (c.pct_rate * s.track_length_km * 1000.0).max(0.0),
+            gear: c.gear,
         });
     }
     // Oyuncu en üstte çizilsin
@@ -1543,6 +1563,7 @@ pub fn map(f: &Frame, s: &SessionData, m: &TrackMap, send_shape: bool) -> MapDat
         progress: m.progress(),
         recording: m.recording(),
         pit: m.pit(),
+        track_m: s.track_length_km * 1000.0,
         cars,
     }
 }

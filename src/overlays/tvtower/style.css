@@ -1,0 +1,181 @@
+/* TV Sıralama Kulesi */
+.tvt {
+  width: 330px;
+  font-size: 13px;
+}
+/* GT World Challenge kulesi: başlık geniş, gövde dar (sıra | logo | soyad | numara | fark) */
+.tvt-sub,
+.tvt-list {
+  width: 228px;
+}
+.tvt-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px 96px;
+  align-items: stretch;
+  height: 40px;
+}
+.tvt-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, var(--tv-red), color-mix(in srgb, var(--tv-red) 85%, #000));
+  min-width: 0;
+}
+.tvt-title b {
+  font-size: 1.16em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvt-title small {
+  font-size: 0.68em;
+  font-weight: 600;
+  opacity: 0.92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvt-ses {
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  background: #fff;
+  color: #111;
+  font-size: 1.22em;
+  font-weight: 700;
+}
+.tvt-track {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 7px;
+  background: #f1f1f2;
+  color: #111;
+  font-size: 0.68em;
+  border-left: 1px solid #cfd0d3;
+  font-weight: 700;
+}
+.tvt-track > span:first-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tvt-flag img,
+.tvt-flag .ov-flag {
+  height: 0.95em;
+  width: auto;
+}
+.tvt-sub {
+  display: grid;
+  grid-template-columns: 52px 1fr 54px;
+  align-items: stretch;
+  height: 28px;
+  margin-top: 2px;
+  background: var(--tv-dark);
+}
+.tvt-clock {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  font-size: 0.92em;
+}
+.tvt-over {
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-weight: 700;
+  font-size: 0.9em;
+}
+.tvt-gaph {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 0.64em;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: pre-line;
+  text-align: right;
+  justify-content: flex-end;
+}
+.tvt-list {
+  display: flex;
+  flex-direction: column;
+}
+.tvt-row {
+  display: grid;
+  grid-template-columns: 26px 24px minmax(0, 1fr) 28px 54px;
+  align-items: stretch;
+  height: 19px;
+  margin-top: 1px;
+  background: var(--tv-dark);
+  transition: background 0.4s;
+}
+.tvt-row > * {
+  display: flex;
+  align-items: center;
+}
+.tvt-pos {
+  justify-content: center;
+  font-size: 0.95em;
+}
+.tvt-logo {
+  width: 24px;
+  height: 19px;
+}
+.tvt-name {
+  padding-left: 7px;
+  font-weight: 700;
+  font-size: 0.98em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvt-num {
+  justify-content: center;
+  font-size: 1em;
+}
+.tvt-gap {
+  justify-content: flex-end;
+  padding-right: 5px;
+  font-size: 0.74em;
+  font-weight: 600;
+  color: #f2f3f5;
+  background: rgba(0, 0, 0, 0.55);
+}
+.tvt-gap.pit {
+  color: var(--tv-yellow);
+  font-weight: 700;
+}
+.tvt-row.cam .tvt-name {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent);
+}
+.tvt-row.cam {
+  box-shadow: inset 2px 0 0 #fff;
+}
+.tvt-row.up {
+  background: color-mix(in srgb, var(--tv-green) 55%, var(--tv-dark));
+}
+.tvt-row.down {
+  background: color-mix(in srgb, var(--tv-red) 55%, var(--tv-dark));
+}
+.tvt-row.pit .tvt-name {
+  opacity: 0.7;
+}
+.tvt-sep {
+  height: 6px;
+}
+.tvt-laps {
+  margin-left: 2px;
+  font-size: 0.72em;
+  font-weight: 700;
+}

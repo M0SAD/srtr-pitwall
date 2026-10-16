@@ -1,0 +1,116 @@
+/* TV Mücadele */
+.tvb {
+  width: 620px;
+  font-size: 15px;
+  animation: tvb-in 0.45s cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+@keyframes tvb-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+.tvb-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--tv-red);
+  font-weight: 700;
+  font-size: 0.95em;
+  letter-spacing: 0.04em;
+}
+.tvb-swords {
+  font-style: normal;
+}
+.tvb-main {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr;
+  align-items: stretch;
+  height: 44px;
+  background: var(--tv-dark);
+}
+.tvb-drv {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  background: #fff;
+  color: #1b1b1d;
+}
+.tvb-drv.r {
+  flex-direction: row-reverse;
+}
+.tvb-pos {
+  width: 38px;
+  font-size: 1.4em;
+}
+.tvb-logo {
+  width: 62px;
+  height: 44px;
+  border-right: 1px solid #e2e2e4;
+}
+.tvb-drv.r .tvb-logo {
+  border-right: 0;
+  border-left: 1px solid #e2e2e4;
+}
+.tvb-name {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: 1.2em;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvb-drv.r .tvb-name {
+  justify-content: flex-end;
+}
+.tvb-num {
+  min-width: 48px;
+  border-left: 1px solid #e2e2e4;
+  font-size: 1.3em;
+}
+.tvb-gap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: rgba(20, 20, 23, 0.94);
+  color: #fff;
+}
+.tvb-gap small {
+  font-size: 0.6em;
+  font-weight: 700;
+  color: #a9abb1;
+}
+.tvb-gap b {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+.tvb-trend {
+  font-size: 0.55em;
+  font-weight: 700;
+  color: #a9abb1;
+}
+.tvb-gap.closing .tvb-trend {
+  color: #3fd16f;
+}
+.tvb-gap.opening .tvb-trend {
+  color: #ff4b52;
+}
+.tvb-graph {
+  display: block;
+  width: 100%;
+  height: 26px;
+  background: rgba(14, 14, 16, 0.75);
+}
+.tvb-graph polyline {
+  fill: none;
+  stroke: var(--tv-yellow);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}

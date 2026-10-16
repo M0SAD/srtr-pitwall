@@ -26,6 +26,10 @@ pub struct CarState {
     pub flags: u32,
     /// Simin verdiği sektör numarası (0 bilinmiyor; değeri değil DEĞİŞİMİ kullanılır: resmi sektör sınırı, bkz. timing.rs)
     pub sector: u8,
+    /// Vites (sim veriyorsa; iRacing CarIdxGear). -1 geri, 0 boş
+    pub gear: Option<i8>,
+    /// Tur yüzdesinin değişim hızı (1/sn, yumuşatılmış); hız = pct_rate × pist uzunluğu
+    pub pct_rate: f32,
 }
 
 /// Hibrit / ERS durumu (oyuncu aracı). Bilinmeyen sayısal alanlar -1; güçler için `*_ok` bayrağı.

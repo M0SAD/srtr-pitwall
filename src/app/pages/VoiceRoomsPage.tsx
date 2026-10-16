@@ -177,20 +177,24 @@ function Lobby() {
       <Show when={roomsErr()}>
         <p class="vr-err">{roomsErr()}</p>
       </Show>
-      <For each={roomSections().filter((sec) => sec.rooms.length || sec.id === "_private" || (realAdmin() && !sec.fixed))}>
-        {(sec) => (
-          <RoomGroup
-            title={sec.title}
-            raw={!sec.fixed}
-            note={sec.id === "_private" ? "PRO üyelerin kurduğu odalar. İçinde kimse kalmadıktan 1 saat sonra silinir." : undefined}
-            rows={sec.rooms}
-            busy={busy()}
-            onJoin={(id) => void enter(id, null)}
-            onChanged={() => void refetch()}
-            empty={sec.id === "_private" ? (canCreate() && !realAdmin() ? "Şu an özel oda yok. İlk odayı sen kur." : "Şu an özel oda yok.") : "Henüz oda yok."}
-          />
-        )}
-      </For>
+      <div class="vrl-groups">
+        <For each={roomSections().filter((sec) => sec.rooms.length || sec.id === "_private" || (realAdmin() && !sec.fixed))}>
+          {(sec) => (
+            <RoomGroup
+              title={sec.title}
+              raw={!sec.fixed}
+              note={sec.id === "_private" ? "PRO üyelerin kurduğu odalar. İçinde kimse kalmadıktan 1 saat sonra silinir." : undefined}
+              rows={sec.rooms}
+              busy={busy()}
+              onJoin={(id) => void enter(id, null)}
+              onChanged={() => void refetch()}
+              empty={
+                sec.id === "_private" ? (canCreate() && !realAdmin() ? "Şu an özel oda yok. İlk odayı sen kur." : "Şu an özel oda yok.") : "Henüz oda yok."
+              }
+            />
+          )}
+        </For>
+      </div>
     </div>
   );
 }
@@ -208,7 +212,7 @@ function RoomGroup(props: {
 }) {
   return (
     <Show when={props.rows.length || props.empty}>
-      <section class="vrl-group">
+      <section class="vrl-group" classList={{ wide: props.rows.length > 3 }}>
         <h4 class="vrl-group-title">
           {props.raw ? <span data-no-i18n>{props.title}</span> : t(props.title)}
           <Show when={props.rows.length}>

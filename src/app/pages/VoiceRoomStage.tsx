@@ -40,6 +40,7 @@ import { chatErr, chatHasOlder, chatLoading, chatMsgs, chatUnread, deleteChat, l
 import { askConfirm } from "../confirm";
 import { RoomIcon } from "../components/RoomIcon";
 import { movedNotice } from "@/voice/moveWatch";
+import { tileStyle } from "@/voice/roomTheme";
 import { act, actErr, openPersonMenu, personDrag, personMenu, setActErr, startPersonDrag, tint } from "../components/VoicePeople";
 import { Switch } from "../components/SettingsForm";
 import { LinkA, LinkPreview, splitLinks } from "../components/LinkPreview";
@@ -84,10 +85,32 @@ export function VoiceRoomStage() {
       return ra !== rb ? ra - rb : a.name.localeCompare(b.name);
     }),
   );
-  const cols = () => {
-    const n = sorted().length;
-    return n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : n <= 16 ? 4 : 5;
-  };
+  // Kutular sahneyi doldursun (Discord gibi): sahnenin boyutuna göre en büyük kutuyu veren sütun sayısı
+  const [area, setArea] = createSignal({ w: 0, h: 0 });
+  let stageEl: HTMLDivElement | undefined;
+  onMount(() => {
+    if (!stageEl) return;
+    const ro = new ResizeObserver(() => stageEl && setArea({ w: stageEl.clientWidth - 32, h: stageEl.clientHeight - 32 }));
+    ro.observe(stageEl);
+    onCleanup(() => ro.disconnect());
+  });
+  const GAP = 10;
+  const fit = createMemo(() => {
+    const n = Math.max(1, sorted().length);
+    const { w, h } = area();
+    if (w <= 0 || h <= 0) return { cols: n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : n <= 16 ? 4 : 5, width: 0 };
+    let best = { cols: 1, tile: 0 };
+    for (let c = 1; c <= n; c++) {
+      const r = Math.ceil(n / c);
+      const tw = Math.min((w - GAP * (c - 1)) / c, ((h - GAP * (r - 1)) / r) * (16 / 9));
+      if (tw > best.tile) best = { cols: c, tile: tw };
+    }
+    // Çok küçülmesin (kalabalık odada kaydırılır), tek kişide de dev olmasın
+    const tile = Math.max(170, Math.min(best.tile, 900));
+    const cols = Math.max(1, Math.min(best.cols, Math.floor((w + GAP) / (tile + GAP)) || 1));
+    return { cols, width: cols * tile + GAP * (cols - 1) };
+  });
+  const cols = () => fit().cols;
   const toggle = (s: Side) => setSide(side() === s ? "" : s);
   const reqCount = () => st()?.requests.length ?? 0;
 
@@ -151,8 +174,11 @@ export function VoiceRoomStage() {
           <p class="vr-hint vrs-msg">Bas-konuş için bir tuş ya da direksiyon düğmesi ata (Ses ayarları).</p>
         </Show>
 
-        <div class="vrs-stage">
-          <div class="vrs-grid" style={{ "--cols": String(cols()) }}>
+        <div class="vrs-stage" ref={stageEl}>
+          <div
+            class="vrs-grid"
+            style={{ "--cols": String(cols()), ...(tileStyle() === "tiles" && fit().width > 0 ? { width: `${fit().width}px`, "max-width": "100%" } : {}) }}
+          >
             <For each={sorted()}>{(m) => <Tile m={m} />}</For>
           </div>
         </div>

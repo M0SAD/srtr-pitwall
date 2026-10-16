@@ -175,6 +175,7 @@ pub struct VarIndex {
     pub c_surface: Option<VarRef>,
     pub c_f2: Option<VarRef>,
     pub c_tire: Option<VarRef>,
+    pub c_gear: Option<VarRef>,
     pub c_flags: Option<VarRef>,
     pub yaw_north: Option<VarRef>,
     pub vel_x: Option<VarRef>,
@@ -302,6 +303,7 @@ impl VarIndex {
                 "CarIdxTrackSurface" => ix.c_surface = r,
                 "CarIdxF2Time" => ix.c_f2 = r,
                 "CarIdxTireCompound" => ix.c_tire = r,
+                "CarIdxGear" => ix.c_gear = r,
                 "CarIdxSessionFlags" => ix.c_flags = r,
                 "YawNorth" => ix.yaw_north = r,
                 "VelocityX" => ix.vel_x = r,
@@ -403,6 +405,7 @@ fn bool_of(buf: &[u8], v: Option<VarRef>) -> bool {
 /// Telemetri tamponunu normalize edilmiş `Frame` yapısına aktarır. Bellek ayırmaz.
 pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.tick = tick;
+    let prev_t = if f.replay { f.replay_session_time } else { f.session_time };
     f.session_time = get_f64(buf, ix.session_time, 0).unwrap_or(0.0);
     f.session_time_remain = get_f64(buf, ix.session_time_remain, 0).unwrap_or(-1.0);
     f.session_laps_remain = i32_or(buf, ix.session_laps_remain, 32767);
@@ -455,6 +458,9 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.replay_session_num = i32_or(buf, ix.replay_session_num, 0);
     f.replay_session_time = get_f64(buf, ix.replay_session_time, 0).unwrap_or(0.0);
     f.cam_car_idx = i32_or(buf, ix.cam_car_idx, -1);
+    // Araçların hızı için (tur yüzdesi değişimi / geçen süre); tekrarda kasetin zamanı
+    let now_t = if f.replay { f.replay_session_time } else { f.session_time };
+    let dt = (now_t - prev_t) as f32;
     f.air_temp = f32_or(buf, ix.air_temp, 0.0);
     f.track_temp = f32_or(buf, ix.track_temp, 0.0);
     f.incidents = i32_or(buf, ix.incidents, 0);
@@ -521,7 +527,25 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
         c.lap_completed = get_f64(buf, ix.c_lap_completed, i)
             .map(|x| x as i32)
             .unwrap_or(-1);
+        let old_pct = c.pct;
         c.pct = get_f64(buf, ix.c_pct, i).map(|x| x as f32).unwrap_or(-1.0);
+        if c.pct < 0.0 || old_pct < 0.0 || !(dt > 0.004 && dt < 1.0) {
+            if c.pct < 0.0 || dt >= 1.0 || dt < 0.0 {
+                c.pct_rate = 0.0;
+            }
+        } else {
+            let mut d = c.pct - old_pct;
+            if d < -0.5 {
+                d += 1.0;
+            } else if d > 0.5 {
+                d -= 1.0;
+            }
+            let r = d / dt;
+            if (-0.05..0.25).contains(&r) {
+                c.pct_rate = c.pct_rate * 0.8 + r * 0.2;
+            }
+        }
+        c.gear = get_f64(buf, ix.c_gear, i).map(|x| x.clamp(-1.0, 12.0) as i8);
         c.position = get_f64(buf, ix.c_position, i)
             .map(|x| x as i32)
             .unwrap_or(0);
