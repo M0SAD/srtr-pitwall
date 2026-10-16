@@ -2,8 +2,9 @@ import { Index, Show, createEffect, createMemo, createSignal, onCleanup } from "
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { Flag } from "@/sdk/Flag";
-import { useTvVisible, TvLogo, gapToLeader, hms, intervalText, numberColors, sessionLabel, tvName, upper, useTvStandings } from "@/sdk/tvkit";
+import { isRaceSession, useFinishReady, useTvVisible, TvLogo, gapToLeader, hms, intervalText, numberColors, sessionLabel, tvName, upper, useTvStandings, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
+import manifest from "./manifest";
 import "./style.css";
 
 // TV Sıralama Kulesi: GT yayınlarındaki soldaki dikey sıralama.
@@ -22,8 +23,8 @@ function lapsSmall(t: string) {
 }
 
 export default function TvTower(props: OverlayProps) {
-  const o = () => props.options;
-  const { rows, info, sample } = useTvStandings(() => !!props.editing);
+  const o = withDefaults(manifest, () => props.options);
+  const { rows, info, sample, session: ses } = useTvStandings(() => !!props.editing);
 
   // Fark sütunu "sırayla": 10 sn lidere fark, 10 sn öndekine fark
   const [phase, setPhase] = createSignal(0);
@@ -38,8 +39,49 @@ export default function TvTower(props: OverlayProps) {
     return all;
   });
   const n = () => Math.max(5, Math.min(40, Number(o().rows) || 25));
-  const shown = createMemo(() => filtered().slice(0, n()));
-  const extraMe = createMemo(() => (o().showMeAlways !== false && me() && !shown().some((r) => r.isMe) ? me() : undefined));
+  // Sayfalar: listeye sığmayan araçlar varsa sırayla sonraki sayfalar gösterilir (ilk sayfa daha uzun kalır).
+  // "Üstte sabit": sonraki sayfalarda ilk K sıra da görünür (lider ve ön sıralar ekrandan kalkmasın).
+  const keep = () => Math.max(0, Math.min(n() - 3, Number(o().keepTop) || 0));
+  const pages = createMemo(() => {
+    const total = filtered().length;
+    if (o().pageCycle === false || total <= n()) return 1;
+    return 1 + Math.ceil((total - n()) / Math.max(1, n() - keep()));
+  });
+  const [page, setPage] = createSignal(0);
+  let pageAt = Date.now();
+  let nextOther = 0;
+  const pv = window.setInterval(() => {
+    if (previewFrozen()) return;
+    const p = page();
+    if (p >= pages()) {
+      setPage(0);
+      pageAt = Date.now();
+      return;
+    }
+    if (pages() <= 1) return;
+    const secs = p === 0 ? Number(o().firstSecs) || 30 : Number(o().pageSecs) || 12;
+    if (Date.now() - pageAt >= Math.max(3, secs) * 1000) {
+      // "İlk sayfaya dön": 1 → 2 → 1 → 3 → 1 … (ilk sayfa çoğu zaman ekranda, diğerleri ara sıra)
+      if (o().returnFirst !== false) {
+        if (p === 0) {
+          nextOther = nextOther + 1 >= pages() ? 1 : nextOther + 1;
+          setPage(nextOther);
+        } else setPage(0);
+      } else setPage((p + 1) % pages());
+      pageAt = Date.now();
+    }
+  }, 500);
+  onCleanup(() => clearInterval(pv));
+  const top = createMemo(() => (page() > 0 && pages() > 1 ? filtered().slice(0, keep()) : []));
+  const shown = createMemo(() => {
+    const l = filtered();
+    const p = Math.min(page(), pages() - 1);
+    if (p <= 0) return l.slice(0, n());
+    const per = Math.max(1, n() - keep());
+    const from = n() + (p - 1) * per;
+    return l.slice(from, from + per);
+  });
+  const extraMe = createMemo(() => (o().showMe === true && me() && !shown().some((r) => r.isMe) && !top().some((r) => r.isMe) ? me() : undefined));
   const leader = () => filtered()[0];
   const posOf = (r: Row) => (o().classFilter === "mine" ? r.classPos : r.pos);
 
@@ -69,7 +111,24 @@ export default function TvTower(props: OverlayProps) {
     }
   });
 
-  const clockVal = () => (o().clock === "remain" ? hms(info().timeRemain) : hms(info().elapsed));
+  // Saat: yarış başlangıcından beri (varsayılan), oturumun geçen süresi ya da kalan süre
+  const timedValid = (x: number) => isFinite(x) && x >= 0 && x < 600000;
+  const clockVal = () => {
+    const i = info();
+    const mode = String(o().clock || "race");
+    if (mode === "remain") {
+      // Süreli yarış: kalan süre; tur sayılı yarışta iRacing kalan süre vermez → kalan tur
+      if (timedValid(i.timeRemain)) return hms(i.timeRemain);
+      if (i.lapsRemain >= 0 && i.lapsRemain < 32767) return `${i.lapsRemain} ${i.lapsRemain === 1 ? "LAP" : "LAPS"}`;
+      return "--:--:--";
+    }
+    if (mode === "race") {
+      if (i.raceElapsed >= 0) return hms(i.raceElapsed);
+      // Uygulama yarışın ortasında açıldı (yeşil anı görülmedi): süreli yarışta toplam - kalan
+      if (timedValid(i.timeRemain) && i.totalTime > 0 && i.totalTime < 600000) return hms(Math.max(0, i.totalTime - i.timeRemain));
+    }
+    return hms(i.elapsed);
+  };
   const track = () => upper(String(o().trackText || "").trim() || info().track || "");
   const scale = () => Math.max(0.6, Math.min(2, (Number(o().scale) || 100) / 100));
 
@@ -95,7 +154,7 @@ export default function TvTower(props: OverlayProps) {
           {p.r.number}
         </span>
         <span class="tvt-gap" classList={{ pit: p.r.onPit }}>
-          {lapsSmall(gapMode() === "interval" ? (p.i === 0 ? gapToLeader(p.r, leader(), info().leaderLap) : intervalText(p.r, p.i)) : gapToLeader(p.r, leader(), info().leaderLap))}
+          {lapsSmall(gapMode() === "interval" ? (p.i === 0 ? gapToLeader(p.r, leader(), info().leaderLap, { race: isRaceSession(info().session) }) : intervalText(p.r, p.i)) : gapToLeader(p.r, leader(), info().leaderLap, { race: isRaceSession(info().session) }))}
         </span>
       </div>
     );
@@ -108,7 +167,9 @@ export default function TvTower(props: OverlayProps) {
     const f = String(o().nameFormat || "last");
     return f === "full" ? 160 : f === "initial" ? 120 : 100;
   };
-  const visible = useTvVisible({ o, event: () => rows().length > 0, editing: () => !!props.editing, sample });
+  // Damalı bayraktan sonra ilk N araç (araç sayısı azsa hepsi) çizgiyi geçince kalkar
+  const finished = useFinishReady(() => ({ finishers: Number(o().hideAfterN) || 1, openDelay: 0 }), rows, () => ses()?.state ?? 0, () => isRaceSession(info().session));
+  const visible = useTvVisible({ o, event: () => rows().length > 0, editing: () => !!props.editing, sample, finished });
 
   return (
     <div class="tv tvt" classList={{ "tv-off": !visible() }} style={{ "--tv-red": String(o().accent || "#d4151d"), "--tvt-name": `${nameW()}px`, zoom: String(scale()) }} data-no-i18n>
@@ -139,7 +200,11 @@ export default function TvTower(props: OverlayProps) {
         <span class="tvt-gaph">{gapMode() === "interval" ? "INTERVAL" : "GAP TO\nLEADER"}</span>
       </div>
       <div class="tvt-list">
-        <Index each={shown()}>{(r, i) => <Line r={r()} i={i} />}</Index>
+        <Show when={top().length}>
+          <Index each={top()}>{(r) => <Line r={r()} i={filtered().indexOf(r())} />}</Index>
+          <div class="tvt-sep" />
+        </Show>
+        <Index each={shown()}>{(r) => <Line r={r()} i={filtered().indexOf(r())} />}</Index>
         <Show when={extraMe()}>
           {(m) => (
             <>

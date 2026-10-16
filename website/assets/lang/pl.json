@@ -1441,6 +1441,10 @@
  "ov_tvfastest_d": "Fioletowy pasek „FASTEST LAP”, gdy ktoś zrobi najszybsze okrążenie.",
  "ov_tvfastest_h": "Ogólnie, w każdej klasie lub tylko w mojej klasie|Logo, imię i nazwisko, zespół, numer i czas okrążenia|Zysk względem poprzedniego najlepszego (-0.231)|Widoczny kilka sekund, znika sam",
  "ovg_tvfastest": "Gdy tylko ktoś zrobi najszybsze okrążenie sesji lub swojej klasy, wjeżdża fioletowy pasek TV „FASTEST LAP”: pozycja, logo, imię i nazwisko, zespół, numer, czas okrążenia i zysk względem poprzedniego najlepszego. Po kilku sekundach znika. Ogólnie, najszybsze w każdej klasie lub tylko w twojej; tytuł i kolor do zmiany. Sam wybierasz, kiedy się pojawia: przy swoim zdarzeniu, zawsze, co kilka minut lub tylko w wyścigu; ustawisz maksymalny czas na ekranie i odstęp przed ponownym pokazaniem.",
- "fx_ex7_t": "Automatyczny reżyser",
- "fx_ex7_d": "Sam prowadzi kamerę iRacing na streamie: przed startem pola startowe od pole position, po zielonej fladze TV Mixed; lider, czołówka, walki i z czasem każde auto. Od razu przełącza na wypadki, działa też w powtórkach."
+ "fx_ex7_t": "Automatyczny reżyser (PRO)",
+ "fx_ex7_d": "Sam prowadzi kamerę iRacing na streamie: przed startem pola startowe od pole position, po zielonej fladze TV Mixed; lider, czołówka, walki i z czasem każde auto. Od razu przełącza na wypadki, działa też w powtórkach.",
+ "ov_tvpodium_n": "Wynik wyścigu TV",
+ "ov_tvpodium_d": "Podium jak w TV po wyścigu: pierwsza trójka na stopniach, neutralnie.",
+ "ov_tvpodium_h": "Zwycięzca pośrodku, drugi z lewej, trzeci z prawej; wysokość wg miejsca|Logo, nazwisko, zespół, flaga, numer i strata|Twoje dane nigdy nie są pokazywane (neutralnie)|Pojawia się z opóźnieniem po finiszu pierwszych aut i znika po chwili",
+ "ovg_tvpodium": "Grafika podium jak w TV po wyścigu: pierwsza trójka na stopniach, zwycięzca pośrodku, drugi z lewej, trzeci z prawej. Każdy z logo, nazwiskiem, zespołem, flagą, numerem i stratą do zwycięzcy. Neutralna: twoje dane nie są pokazywane. Po fladze w szachownicę pojawia się, gdy linię minie wybrana liczba aut, po ustawionym opóźnieniu; zostaje chwilę i znika."
 }

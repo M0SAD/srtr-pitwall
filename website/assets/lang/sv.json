@@ -1441,6 +1441,10 @@
  "ov_tvfastest_d": "En lila ”FASTEST LAP”-skylt när någon sätter passets snabbaste varv.",
  "ov_tvfastest_h": "Totalt, varje klass för sig eller bara min klass|Logga, namn, team, nummer och varvtid|Förbättring mot föregående bästa (-0.231)|Syns några sekunder och försvinner själv",
  "ovg_tvfastest": "Så fort någon sätter passets eller klassens snabbaste varv glider en lila tv-skylt ”FASTEST LAP” in: placering, märkeslogga, namn, team, nummer, varvtid och förbättringen mot föregående bästa. Den försvinner själv efter några sekunder. Totalt, varje klass snabbaste eller bara din klass; titel och färg kan ändras. Du väljer när den visas: vid sin händelse, alltid, med några minuters mellanrum eller bara i racet; längsta tid på skärmen och väntetid innan den visas igen kan ställas in.",
- "fx_ex7_t": "Automatisk regi",
- "fx_ex7_d": "Styr iRacing-kameran i strömmen själv: startfältet från pole före start, TV Mixed vid grönt; ledaren, täten, dueller och med tiden alla bilar. Klipper direkt till krascher och fungerar i repriser."
+ "fx_ex7_t": "Automatisk regi (PRO)",
+ "fx_ex7_d": "Styr iRacing-kameran i strömmen själv: startfältet från pole före start, TV Mixed vid grönt; ledaren, täten, dueller och med tiden alla bilar. Klipper direkt till krascher och fungerar i repriser.",
+ "ov_tvpodium_n": "TV-tävlingsresultat",
+ "ov_tvpodium_d": "Ett tv-podium när racet är slut: de tre främsta på trappsteg, neutralt.",
+ "ov_tvpodium_h": "Vinnaren i mitten, tvåan till vänster, trean till höger; höjd efter placering|Logga, namn, team, flagga, nummer och lucka|Dina egna uppgifter visas aldrig (neutralt)|Visas med fördröjning när de första bilarna gått i mål och försvinner sedan",
+ "ovg_tvpodium": "En podiumgrafik som på tv när racet är slut: de tre främsta på trappsteg, vinnaren i mitten, tvåan till vänster, trean till höger. Var och en med märkeslogga, namn, team, flagga, nummer och lucka till vinnaren. Neutral: dina egna uppgifter visas inte. Efter målflaggan visas den när valt antal bilar gått i mål, efter vald fördröjning; ligger kvar en stund och försvinner."
 }

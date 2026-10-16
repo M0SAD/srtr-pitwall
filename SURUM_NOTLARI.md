@@ -3,6 +3,71 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-363
+
+- Tekrar izlerken lider/sıralama tablolarında en iyi ve son tur, yarışın SONUNDAKİ değerleri gösteriyordu (iRacing tekrarda bu süreleri oturum sonundan verir). Artık turlar tekrar kafasının zamanından hesaplanır: tablo izlenen tura kadar atılan turları gösterir; geri sarınca ilerideki turlar silinir, ileri/geri sarınca bir sonraki tam tura kadar o araç için süre yoktur.
+- TV En Hızlı Tur: tekrarda en iyi turlar hiç değişmediği için açılmıyordu; düzeldi. Ayrıca oturumun ilk en hızlı turu da artık duyurulur (önceden yalnızca iyileşmeler).
+
+## 161026-362
+
+- Yarışta en iyi turlar (Sıralama / Lider tablosu, TV overlay'leri) eksik ya da bir önceki turun süresi çıkıyordu: iRacing son tur süresini çizgiyi geçtikten biraz sonra güncelliyor. Artık yarış turu son tur süresi değiştiği anda sayılır. TV En Hızlı Tur bu yüzden yarışta hiç çıkmıyordu; düzeldi.
+- Yarış sonu sırası: ilk 3 bitiş çizgisini geçince TV Sıralama Kulesi kalkar ve TV Yarış Sonucu (podyum) hemen açılır (ayar: "Sonra kaç saniye beklesin", varsayılan 0; ekranda 30 sn); podyum kapanınca TV Sonuç Tablosu açılır ("TV Yarış Sonucu'ndan sonra aç", varsayılan açık; podyum aynı pencerede değilse eski süre ayarı geçerli).
+
+## 161026-361
+
+- DigiFlags tekrar izlenirken çalışmıyordu: iRacing tekrarda bayrak bilgisini o ana göre vermiyor. Artık tekrarda bayraklar kameradaki aracın çevresinden çıkarılır: önünde 400 m içinde pist dışı ya da duran araç varsa sarı (150 m içinde dalgalanan sarı), arkasından 1,5 sn içinde tur önündeki araç yaklaşıyorsa mavi.
+- TV Sıralama Kulesi: uzun pist adı başlıkta alt alta iki satıra sığar.
+- TV Sürücü Bandı: "Araç dururken göstergeyi gizle" (varsayılan açık): araç hareketsizken hız / vites / fren göstergesi görünmez.
+
+## 161026-360
+
+- En iyi turlar her oturumda ayrı: yarışta yeşil bayrakta sıfırlanır ve yalnızca yarış turlarından hesaplanır (sıralamadan kalan süreler Sıralama, Lider tablosu, TV overlay'lerine karışmaz); antrenman / sıralama başında simde kalan önceki oturum süreleri yeni tur atılana kadar gösterilmez. TV En Hızlı Tur her oturumda ve yeşil bayrakta baştan sayar.
+- TV overlay'leri sıralama ve antrenmanda da: farklar en iyi tura göre (lider en iyi turunu gösterir); Sonuç Tablosu ve TV Yarış Sonucu sıralama bitince (damalı bayrak) ayarlanan süre sonra açılır ("QUALIFYING RESULT").
+- TV Sıralama Kulesi gridde de görünür (yarış başlamadan sim sıra vermediğinde grid sırası kullanılır). Sayfalarda "Her sayfadan sonra ilk sayfaya dön" (varsayılan açık): ilk sayfa çoğu zaman ekranda (45 sn), diğerleri ara sıra (10 sn).
+- TV Sürücü Bandı: Otomatik Rejisör kazaya kesince olaydaki aracın bandı "INCIDENT" etiketiyle hemen çıkar (ayar).
+- DigiFlags tekrar izlenirken de doğru bayrağı gösterir (tekrardaki anın bayrakları kameradaki araçtan okunur).
+- Otomatik Rejisör: başlıkta her zaman PRO yazar; ayarlar ve durum yalnızca PRO üyelere görünür.
+
+## 161026-359
+
+- Mesajlarda "blob:https://…" görünmesi: bir sitedeki (ör. ChatGPT) resim kopyalanınca panoya bazen resim yerine tarayıcının geçici adresi gelir; bu adres yalnızca kopyalandığı tarayıcıda çalışır. Arkadaş, grup, takım ve ses odası sohbetlerinde böyle bir adres yapıştırılınca artık yazılmaz, kutunun üstünde açıklama çıkar. Eski mesajlardaki bu adresler bağlantı olarak gösterilmez.
+
+## 161026-358
+
+- Otomatik Rejisör: "Bitişte ilk araçlara odaklan" (varsayılan açık, 3 araç). Son turda (beyaz bayrak) lider, damalı bayraktan sonra ilk N araç bitiş çizgisine yaklaşınca (15 sn kala) kamera onlara geçer, çizgiyi geçişini gösterir (3 sn daha); sıradaki gelir. Kaza ve diğer kurgudan önceliklidir.
+- TV Sıralama Kulesi: "Kaç araç bitirince kalksın" (varsayılan 3): damalı bayraktan sonra ilk N araç çizgiyi geçince kule kaybolur (daha az araç varsa hepsi geçince).
+- TV Sonuç Tablosu: "Sürücü adı" ayarı: A. SOYAD (varsayılan), AD SOYAD (tam ad) ya da SOYAD.
+
+## 161026-357
+
+- TV Sıralama Kulesi: "Sığmayanları sırayla göster" (varsayılan açık): satır sayısından fazla araç varsa sonraki sıralar (26-50, 51-…) sayfa sayfa gösterilir, sonra başa döner. İlk sayfada kalma (30 sn), sonraki sayfalarda kalma (12 sn) ve "sonraki sayfalarda üstte sabit kalan" (ör. 3: lider ve ilk üç hep üstte) ayarları.
+
+## 161026-356
+
+- Otomatik Rejisör artık PRO üyelere özel (Yönetim › PRO özellikleri › Araçlar: "Otomatik Rejisör", varsayılan PRO). Araçlar sayfasında PRO rozeti ve not; anahtar PRO olmayanlarda kapalı. Rust da denetler: kilitliyken iRacing'e kamera komutu gönderilmez.
+- Web sitesi: Otomatik Rejisör "(PRO)" olarak işaretlendi.
+
+## 161026-355
+
+- Yeni overlay: **TV Yarış Sonucu** (Yayın): yarış sonunda TV'deki gibi podyum, ilk üç basamaklarda (ortada kazanan, solda ikinci, sağda üçüncü): logo, ad, takım, bayrak, numara, fark. Tarafsız: oyuncunun kendi bilgisi gösterilmez.
+- TV Sonuç Tablosu ve TV Yarış Sonucu: damalı bayraktan sonra "Kaç araç bitirince açılsın" (varsayılan 3) ve "Sonra kaç saniye beklesin" (varsayılan 15 sn) ayarları.
+- TV Sıralama Kulesi ve Sonuç Tablosu tarafsız: "Listede yoksam altta kendimi göster" ve kendi satırını vurgulama varsayılan kapalı (tekrarı kimin çektiği belli olmaz).
+- TV Sürücü Bandı: yeşil bayraktan önce bütün sürücüleri pole'dan başlayarak sırayla gösterir (tek bant; kamera değişirse kameradaki araç). Yeşil bayraktan sonra ikinci bant "Pistte en yakın araç" ve yalnızca kapışma varken (fark 1 sn altında, ayarlanır) görünür; fark açılınca kalkar, yalnızca ekrandaki aracın bandı kalır.
+- Otomatik Rejisör: grid turu tekrar izlerken de çalışır. Kurgu ayarlarındaki kaydırıcılar görünmüyordu (yalnızca adlar vardı): düzeltildi.
+- TV overlay'lerinde beyaz zemindeki yazılar gölgesiz (daha net).
+- Web sitesi: TV Yarış Sonucu eklendi (71 overlay).
+
+## 161026-354
+
+- TV overlay'leri damalı bayraktan sonra gizlenmiyordu: TV Sürücü Bandı, En Hızlı Tur ve Mücadele oturum verisine (bayrak / yarış durumu) abone değildi; ayrıca daha önce eklenmiş overlay'lerin kaydında yeni ayarlar (yeşil / damalı bayrakta gizle, sonuç tablosunun ekranda kalma süresi) olmadığından varsayılanları devreye girmiyordu. Artık TV overlay'leri kayıtta olmayan ayarlar için varsayılanı kullanır.
+- TV Sonuç Tablosu: sayfa çevirme çalışmıyordu (zamanlayıcı her veri güncellemesinde baştan kuruluyordu); 20'den fazla araçta sayfalar artık ayarlanan sürede döner. Yarış sonunda sıralama verisi bir an boş gelince tablo kapanıp açılıyordu (yanıp sönme); son dolu liste tutulur. 60 sn sonra kaybolur (ayar).
+- Bütün TV overlay'leri: sıralama verisi bir an boş gelirse son liste birkaç saniye tutulur (yanıp sönme olmaz).
+
+## 161026-353
+
+- TV Sıralama Kulesi saati: yeni "Yarış başladıktan sonra geçen süre" seçeneği (varsayılan): yeşil bayraktan itibaren sayar (grid ve ısınma turu dahil değil; yarış başlamadan 00:00:00). Uygulama yarışın ortasında açıldıysa süreli yarışta toplam süre - kalan süreden hesaplanır. "Oturumun geçen süresi" seçeneği eski davranış.
+- "Kalan süre" seçiliyken saat boş kalıyordu: tur sayılı yarışlarda iRacing kalan süre vermiyor; artık kalan tur yazılır ("12 LAPS"). Saat kutusu uzun değerlere göre genişler.
+
 ## 161026-352
 
 - TV Sonuç Tablosu sürekli açılıp kapanıyordu: sıralama verisi her geldiğinde (saniyede 2 kez) satırlar baştan kurulup giriş animasyonu yeniden oynuyordu. Satırlar artık yerinde güncellenir (Sıralama Kulesi ve Sürücü Bandı'nda da).

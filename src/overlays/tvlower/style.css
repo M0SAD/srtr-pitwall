@@ -204,3 +204,21 @@
   background: #fff;
 }
 .tvl-gears.none { visibility: hidden; }
+
+/* Kaza: Otomatik Rejisör olaydaki araca kesince bandın üstünde kırmızı etiket */
+.tvl-inc {
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding: 4px 10px 3px;
+  background: #e3151f;
+  color: #fff;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  animation: tvl-inc 1s ease-in-out infinite alternate;
+}
+@keyframes tvl-inc {
+  to {
+    background: #a30d14;
+  }
+}

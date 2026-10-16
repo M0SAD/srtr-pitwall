@@ -268,6 +268,8 @@ pub struct Row {
     pub class_best: bool,
     /// Takım adı (takım yarışında; sürücü adıyla aynıysa boş). TV overlay'leri kullanır.
     pub team: String,
+    /// Tamamlanan tur (CarIdxLapCompleted); TV Sonuç Tablosu damalı bayraktan sonra bitirenleri bununla sayar
+    pub laps_done: i32,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -309,10 +311,14 @@ pub struct Standings {
     pub laps_remain: i32,
     pub total_laps: i32,
     pub leader_lap: i32,
+    /// Yeşil bayraktan beri geçen süre (sn); yarış başlamadıysa 0, başlangıç anı bilinmiyorsa -1
+    pub race_elapsed: f64,
     pub car_count: i32,
     pub classes: Vec<ClassInfo>,
     /// Kameranın izlediği araç (iRacing CamCarIdx; tekrar / izleyici / takım arkadaşı sürerken); bilinmiyorsa -1
     pub cam_idx: i32,
+    /// Otomatik Rejisör çekim türü (incident, finish, battle, grid…; çalışmıyorsa boş)
+    pub cam_kind: String,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -607,6 +613,7 @@ fn base_row(f: &Frame, s: &SessionData, t: &Tracker, i: usize) -> Row {
                 }
             })
             .unwrap_or_default(),
+        laps_done: f.cars[i].lap_completed,
         ..Default::default()
     }
 }
@@ -1188,8 +1195,14 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         laps_remain: f.session_laps_remain,
         total_laps: entry.and_then(|e| e.laps).unwrap_or(0),
         leader_lap,
+        race_elapsed: match t.green_time {
+            Some(g) => (f.session_time - g).max(0.0),
+            None if race && (1..=3).contains(&f.session_state) => 0.0,
+            None => -1.0,
+        },
         classes,
         cam_idx: f.cam_car_idx,
+        cam_kind: t.director_kind.to_string(),
     }
 }
 
@@ -1451,13 +1464,63 @@ pub fn decode_flags(bits: u32) -> Vec<&'static str> {
         .collect()
 }
 
+/// Tekrar izlenirken bayraklar (iRacing tekrarda bayrak bilgisini o ana göre vermez): kameradaki aracın önünde
+/// 400 m içinde pist dışında ya da pistte neredeyse durmuş bir araç varsa sarı (çok yakındaysa dalgalanan sarı);
+/// arkasında 1,5 sn içinde tur önündeki bir araç varsa mavi.
+pub fn replay_flags(f: &Frame, s: &SessionData) -> u32 {
+    let cam = if f.cam_car_idx >= 0 { f.cam_car_idx as usize } else { f.player_idx.max(0) as usize };
+    let len = s.track_length_km * 1000.0;
+    let Some(me) = f.cars.get(cam) else { return 0 };
+    if me.pct < 0.0 || len < 100.0 {
+        return 0;
+    }
+    let my_speed = (me.pct_rate * len).max(1.0);
+    let mut bits = 0u32;
+    for i in 0..MAX_CARS {
+        if i == cam || !active(f, s, i) {
+            continue;
+        }
+        let c = &f.cars[i];
+        if c.pct < 0.0 || c.on_pit {
+            continue;
+        }
+        // Önde (pist üzerinde) mesafe, m
+        let mut d = c.pct - me.pct;
+        if d < 0.0 {
+            d += 1.0;
+        }
+        let ahead_m = d * len;
+        let speed = c.pct_rate * len;
+        let stopped = c.surface == 3 && speed < 8.0;
+        if (c.surface == 0 || stopped) && ahead_m < 400.0 {
+            bits |= 0x0008;
+            if ahead_m < 150.0 {
+                bits |= 0x0100;
+            }
+        }
+        // Arkada yaklaşan ve tur önünde olan araç
+        let behind_m = (1.0 - d) * len;
+        let laps_ahead = (c.lap as f32 + c.pct) - (me.lap as f32 + me.pct);
+        if laps_ahead > 0.5 && behind_m / my_speed < 1.5 && c.surface == 3 {
+            bits |= 0x0020;
+        }
+    }
+    bits
+}
+
 pub fn session(f: &Frame, s: &SessionData) -> Session {
     let me = f.player_idx.max(0) as usize;
     let entry = s.session(f.session_num);
     let car_count = (0..MAX_CARS).filter(|&i| active(f, s, i)).count() as i32;
     // Oyuncuya özel bayraklar (siyah, hasar) oturum bayraklarına eklenir
     let mut bits = f.session_flags;
-    if let Some(c) = f.cars.get(me) {
+    // Tekrar izlenirken iRacing'in genel SessionFlags'i canlı oturumu gösterir (tekrardaki anı değil); kameradaki
+    // aracın bayrakları (CarIdxSessionFlags) tekrarın o anını verir: DigiFlags vb. tekrarda da doğru bayrağı gösterir
+    if replay_watch(f) {
+        // Tekrar: genel SessionFlags canlı oturuma aittir. Kameradaki aracın çevresinden bayrak çıkarılır
+        // (önünde pist dışı / duran araç: sarı; arkasından yaklaşan tur önündeki araç: mavi)
+        bits = replay_flags(f, s);
+    } else if let Some(c) = f.cars.get(me) {
         bits |= c.flags & (CF_BLACK | CF_DQ | CF_REPAIR | CF_FURLED);
     }
     let penalty = if bits & CF_DQ != 0 || f.penalty == 3 {
@@ -1578,6 +1641,32 @@ pub fn race_control(t: &Tracker) -> RaceControl {
 mod tests {
     use super::*;
     use crate::demo::Demo;
+
+    #[test]
+    fn replay_flags_yellow_and_blue() {
+        let mut s = SessionData { drivers: vec![None; MAX_CARS], track_length_km: 4.0, ..Default::default() };
+        for i in 0..3 {
+            s.drivers[i] = Some(crate::model::Driver { car_idx: i as i32, ..Default::default() });
+        }
+        let mut f = Frame { replay: true, cam_car_idx: 0, ..Default::default() };
+        for i in 0..3 {
+            f.cars[i].surface = 3;
+            f.cars[i].pct_rate = 0.012; // ~48 m/sn
+            f.cars[i].lap = 5;
+        }
+        f.cars[0].pct = 0.50;
+        f.cars[1].pct = 0.53; // 120 m önde
+        f.cars[2].pct = 0.10;
+        assert_eq!(replay_flags(&f, &s), 0);
+        f.cars[1].surface = 0; // pist dışı
+        let b = replay_flags(&f, &s);
+        assert!(b & 0x0008 != 0 && b & 0x0100 != 0);
+        f.cars[1].surface = 3;
+        // Tur önündeki araç 40 m arkada
+        f.cars[2].pct = 0.49;
+        f.cars[2].lap = 6;
+        assert!(replay_flags(&f, &s) & 0x0020 != 0);
+    }
 
     #[test]
     fn race_start_order_grid_then_track() {

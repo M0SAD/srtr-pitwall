@@ -691,7 +691,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             if st.league_active {
                 crate::league::reposition(&mut st.frame, &st.session);
             }
+            st.tracker.apply_race_best(&mut st.frame);
             st.tracker.update(&st.frame, &st.session);
+            st.tracker.apply_race_best(&mut st.frame);
             // Yardımcı hesaplar tek tek korunur: birindeki panic (crash.log'a yazılır) o kareyi atlar, döngü sürer
             crate::crashlog::guard(|| st.strategy.update(&st.frame, &st.session, st.sim, demo_on));
             // Olaylar ekranı: olayları topla; oyuncu yarışı bitirince pencereyi bir kez aç
@@ -699,6 +701,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
                 last_events_cfg = Instant::now();
                 director_cfg = crate::with_settings(&app, |v| crate::director::Cfg::from_settings(v.and_then(|v| v.pointer("/general/director"))));
+                // PRO özelliği (tools.director): kilitliyse kamera komutu gönderilmez
+                director_cfg.locked = !crate::livechat::allowed(&app, "tools.director");
                 Some(crate::with_settings(&app, |v| {
                     crate::events::Record::from_settings(
                         v.and_then(|v| v.pointer("/general/eventsRecord")),
@@ -714,6 +718,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                 }
                 let iracing = connected && !demo_on && !preview && st.sim == "iracing";
                 st.director.step(&st.frame, &st.session, &director_cfg, iracing, &mut crate::director::IracingOut);
+                st.tracker.director_kind = if st.director.status.active { st.director.current_kind() } else { "" };
                 let mut ds = shared.director_status.lock();
                 if *ds != st.director.status {
                     *ds = st.director.status.clone();
@@ -1189,7 +1194,9 @@ mod publish_tests {
         let mut t = 0.0;
         while t < secs {
             d.step(dt, &mut st.frame);
+            st.tracker.apply_race_best(&mut st.frame);
             st.tracker.update(&st.frame, &st.session);
+            st.tracker.apply_race_best(&mut st.frame);
             st.strategy.update(&st.frame, &st.session, "", true);
             st.history.update(&st.frame, &st.session, false);
             st.timing.update(&st.frame, &st.session, true);

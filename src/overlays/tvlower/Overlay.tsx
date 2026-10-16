@@ -3,8 +3,9 @@ import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
-import { TvLogo, upper, useTvStandings, useTvVisible } from "@/sdk/tvkit";
+import { TvLogo, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { MapCar, Row } from "@/sdk/types";
+import manifest from "./manifest";
 import "./style.css";
 
 // TV Sürücü Bandı: alt bant (sıra, logo, ad, takım, bayrak, numara) + hız yayı, fren ışığı ve vites şeridi.
@@ -15,24 +16,65 @@ import "./style.css";
 const GEARS = ["R", "N", "1", "2", "3", "4", "5", "6", "7", "8"];
 
 export default function TvLower(props: OverlayProps) {
-  const o = () => props.options;
+  const o = withDefaults(manifest, () => props.options);
   const { rows, info, sample } = useTvStandings(() => !!props.editing);
   const inputs = useTopic("inputs");
   const status = useTopic("status");
   const map = useTopic("map");
   const mapCar = (idx: number): MapCar | undefined => map()?.cars?.find((c) => c.idx === idx);
 
+  const ses = useTopic("session");
+  const [tick, setTick] = createSignal(Date.now());
+  const t = window.setInterval(() => !previewFrozen() && setTick(Date.now()), 500);
+  onCleanup(() => clearInterval(t));
+
+  // Yeşil bayraktan önce (yarışta gridde / ısınma turunda): bütün sürücüler sırayla, tek bant
+  const preGreen = () => {
+    if (sample() || o().gridCycle === false) return false;
+    const st = ses()?.state ?? 0;
+    return st >= 1 && st <= 3 && /race/i.test(info().session || "");
+  };
+  // Kamera son birkaç saniyede değiştiyse (ör. Otomatik Rejisör'ün grid turu) kameradaki araç; değilse kendi sırası
+  const [camAt, setCamAt] = createSignal(0);
+  createEffect(on(() => info().camIdx, () => setCamAt(Date.now()), { defer: true }));
+  const [gridI, setGridI] = createSignal(0);
+  let gridLast = Date.now();
+  createEffect(() => {
+    const n = tick();
+    if (!preGreen()) return;
+    if (n - gridLast >= Math.max(2, Number(o().gridSecs) || 4) * 1000) {
+      gridLast = n;
+      setGridI((i) => i + 1);
+    }
+  });
+
   const focus = createMemo<Row | undefined>(() => {
     const l = rows();
+    if (preGreen() && l.length) {
+      const cam = l.find((r) => r.idx === info().camIdx);
+      if (cam && tick() - camAt() < 6000) return cam;
+      return l[gridI() % l.length];
+    }
     if (o().focus !== "me") {
       const c = l.find((r) => r.idx === info().camIdx);
       if (c) return c;
     }
     return l.find((r) => r.isMe) ?? l[0];
   });
-  const other = createMemo<Row | undefined>(() => {
+  // Pistte iki araç arasındaki süre farkı (sn): tur yüzdesi farkı × tur süresi
+  const trackGap = (a: Row, b: Row) => {
+    const ca = mapCar(a.idx);
+    const cb = mapCar(b.idx);
+    if (!ca || !cb || ca.pct < 0 || cb.pct < 0) return 999;
+    let d = Math.abs(ca.pct - cb.pct);
+    if (d > 0.5) d = 1 - d;
+    const lap = a.best > 0 ? a.best : a.last > 0 ? a.last : 100;
+    return d * lap;
+  };
+  const otherRaw = createMemo<Row | undefined>(() => {
     const f = focus();
-    const mode = String(o().pair || "ahead");
+    if (preGreen()) return undefined;
+    const mode = String(o().second || "track");
     if (!f || mode === "none") return undefined;
     const l = rows();
     const i = l.indexOf(f);
@@ -66,6 +108,36 @@ export default function TvLower(props: OverlayProps) {
     const gb = behind && behind.interval > 0 ? behind.interval : 999;
     return ga <= gb ? (ahead ?? behind) : (behind ?? ahead);
   });
+  // "Pistte en yakın" / "hangisi yakınsa": ikinci bant yalnızca kapışma varken (fark ayarın altında) görünür;
+  // fark açılınca 2 sn sonra kalkar (titremesin)
+  const [pairOn, setPairOn] = createSignal(false);
+  let farSince = 0;
+  createEffect(() => {
+    const n = tick();
+    const f = focus();
+    const x = otherRaw();
+    const mode = String(o().second || "track");
+    if (!f || !x) {
+      setPairOn(false);
+      return;
+    }
+    if (mode !== "track" && mode !== "close") {
+      setPairOn(true);
+      return;
+    }
+    const g = Math.max(0.2, Number(o().pairGap) || 1);
+    const gap = mode === "track" ? trackGap(f, x) : Math.min(f.interval > 0 ? f.interval : 999, x.interval > 0 ? x.interval : 999);
+    if (gap <= g) {
+      farSince = 0;
+      setPairOn(true);
+    } else if (pairOn()) {
+      if (!farSince) farSince = n;
+      if (gap > g + 0.3 && n - farSince > 2000) setPairOn(false);
+    }
+  });
+  // Otomatik Rejisör kazaya kesti: kameradaki aracın bandı hemen çıkar, "INCIDENT" etiketiyle (ikinci bant yok)
+  const incident = () => !sample() && (info() as { camKind?: string }).camKind === "incident" && o().incidentTag !== false;
+  const other = () => (incident() ? undefined : pairOn() || sample() ? otherRaw() : undefined);
   // Ekranda soldaki: geride olan (kovalayan), sağdaki: önde olan (TV'deki gibi)
   const pair = createMemo(() => {
     const f = focus();
@@ -76,15 +148,12 @@ export default function TvLower(props: OverlayProps) {
   });
 
   // Görünürlük
-  const [tick, setTick] = createSignal(Date.now());
-  const t = window.setInterval(() => !previewFrozen() && setTick(Date.now()), 500);
-  onCleanup(() => clearInterval(t));
   const [shownAt, setShownAt] = createSignal(Date.now());
   createEffect(on(() => focus()?.idx, () => setShownAt(Date.now()), { defer: true }));
   // Eski ayar (mode) → ortak görünürlük ayarı (show)
   const opts = () => {
     const x = o();
-    if (x.show !== undefined) return x;
+    if (props.options?.show !== undefined || props.options?.mode === undefined) return x;
     const m = String(x.mode || "always");
     return { ...x, show: m === "camchange" ? "auto" : m, camSecs: x.camSecs ?? x.showSecs };
   };
@@ -140,7 +209,7 @@ export default function TvLower(props: OverlayProps) {
   const scale = () => Math.max(0.5, Math.min(2, (Number(o().scale) || 100) / 100));
 
   return (
-    <div class="tv tvl" classList={{ off: !visible() }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
+    <div class="tv tvl" classList={{ off: !(visible() || (incident() && String(o().show) !== "never")) }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
       <Index each={pair()}>{(r, i) => <Band r={r()} mine={r().isMe} side={pair().length < 2 ? "mid" : i === 0 ? "left" : "right"} />}</Index>
     </div>
   );
@@ -150,13 +219,18 @@ export default function TvLower(props: OverlayProps) {
     const team = () => (p.mine && String(o().teamText || "").trim() ? String(o().teamText) : p.r.team || (p.mine ? status()?.teamName : "") || p.r.carName);
     const gauge = () => {
       const g = o().gauge;
-      if (g === false || g === "off") return false;
+      if (g === false || g === "off" || preGreen()) return false;
       const t = telem(p.r);
+      // Araç duruyorsa (pitte, gridde, kaza sonrası) hız / vites göstergesi gizlenir (ayar)
+      if (o().hideGaugeStopped !== false && !sample() && t.speed * 3.6 < 3) return false;
       if (g === "me" || g === true) return p.mine && t.ok;
       return t.ok && (t.speed > 0 || p.mine);
     };
     return (
       <div class={`tvl-card ${p.side}`}>
+        <Show when={incident() && p.r.idx === info().camIdx}>
+          <span class="tvl-inc">INCIDENT</span>
+        </Show>
         <Show when={gauge()}>
           <Gauge r={p.r} />
         </Show>

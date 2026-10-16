@@ -7,12 +7,53 @@ import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "@/sdk/platform";
 import { uiPref } from "@/sdk/settings";
 import { openUrl } from "../ui";
+import { t } from "@/sdk/i18n";
 import "../linkpreview.css";
 
 export const [linkPreviewOn, setLinkPreviewOn] = uiPref<boolean>("chat.linkPreview", true);
 
 // http(s)://… ya da www.… ; sondaki noktalama bağlantıya dahil edilmez
-const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<>"'`]+[^\s<>"'`.,;:!?)\]}»”’])/gi;
+// "blob:https://…" bağlantıları hariç: tarayıcının kendi içindeki geçici adreslerdir, başkası açamaz
+const URL_RE = /(?<!blob:)\b((?:https?:\/\/|www\.)[^\s<>"'`]+[^\s<>"'`.,;:!?)\]}»”’])/gi;
+
+/** Tarayıcı içi geçici adres (blob:…): bir sitedeki resim "kopyalanınca" bazen resim yerine bu yazı panoya gelir */
+export const BLOB_RE = /\bblob:(?:https?:\/\/|null\/)\S*/i;
+
+/**
+ * Mesaj kutusu yapıştırma koruması: panoda yalnızca "blob:…" adresi varsa yapıştırılmaz, kutunun üstünde kısa bir
+ * açıklama çıkar (bu adres yalnızca kopyalandığı tarayıcı sekmesinde çalışır; karşı taraf açamaz). true: engellendi.
+ */
+export function blobPasteGuard(e: ClipboardEvent): boolean {
+  const txt = e.clipboardData?.getData("text/plain") ?? "";
+  if (!BLOB_RE.test(txt)) return false;
+  const rest = txt.replace(new RegExp(BLOB_RE.source, "gi"), "").trim();
+  e.preventDefault();
+  const el = e.currentTarget as HTMLTextAreaElement | HTMLInputElement | null;
+  // Adres dışında yazı da varsa onu yapıştır
+  if (rest && el) {
+    const s = el.selectionStart ?? el.value.length;
+    const en = el.selectionEnd ?? s;
+    el.setRangeText(rest, s, en, "end");
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  if (el) blobWarn(el);
+  return true;
+}
+
+function blobWarn(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const d = document.createElement("div");
+  d.className = "blob-warn";
+  d.textContent = t(
+    "Bu bir resim değil, tarayıcının geçici resim adresi (blob:…): yalnızca senin tarayıcında çalışır, karşı taraf açamaz. Resmi bilgisayarına kaydedip paylaş ya da sitenin paylaşım bağlantısını gönder.",
+  );
+  d.style.left = `${Math.max(8, r.left)}px`;
+  d.style.bottom = `${Math.max(8, window.innerHeight - r.top + 6)}px`;
+  d.style.maxWidth = `${Math.max(240, Math.min(460, r.width))}px`;
+  document.body.appendChild(d);
+  window.setTimeout(() => d.remove(), 7000);
+  d.addEventListener("click", () => d.remove());
+}
 
 export interface TextPart {
   text: string;

@@ -40,6 +40,9 @@ export interface DirectorCfg {
   /** Yarış başlamadan gridi pole'dan sırayla göster */
   gridWalk: boolean;
   gridShot: number;
+  /** Bitişte ilk N araç çizgiye yaklaşırken kamerayı onlara çevir */
+  finishFocus: boolean;
+  finishTop: number;
   /** Mücadele sayılan fark (sn) */
   battleGap: number;
   /** Elle kamera değişince bekleme (sn) */
@@ -59,6 +62,8 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   cams: "tvmix",
   gridWalk: true,
   gridShot: 4,
+  finishFocus: true,
+  finishTop: 3,
   battleGap: 1,
   manualPause: 20,
 };

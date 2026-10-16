@@ -201,6 +201,8 @@ export interface Row {
   classBest: boolean;
   /** Takım adı (takım yarışında; yoksa boş) */
   team?: string;
+  /** Tamamlanan tur sayısı */
+  lapsDone?: number;
 }
 
 export interface Relative {
@@ -229,6 +231,8 @@ export interface Standings {
   rows: Row[];
   /** Kameranın izlediği araç (iRacing CamCarIdx); bilinmiyorsa -1 */
   camIdx?: number;
+  /** Otomatik Rejisör'ün çekim türü (incident, finish, battle, grid…; çalışmıyorsa boş) */
+  camKind?: string;
   multiclass: boolean;
   race: boolean;
   sessionType: string;
@@ -238,6 +242,8 @@ export interface Standings {
   lapsRemain: number;
   totalLaps: number;
   leaderLap: number;
+  /** Yeşil bayraktan beri geçen süre (sn); yarış başlamadıysa 0, başlangıç anı bilinmiyorsa -1 */
+  raceElapsed?: number;
   carCount: number;
   classes: ClassInfo[];
 }

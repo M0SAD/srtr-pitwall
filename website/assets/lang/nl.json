@@ -1441,6 +1441,10 @@
  "ov_tvfastest_d": "Een paarse „FASTEST LAP”-banner als iemand de snelste ronde rijdt.",
  "ov_tvfastest_h": "Overall, per klasse of alleen mijn klasse|Logo, naam, team, nummer en rondetijd|Winst op de vorige beste (-0.231)|Een paar seconden zichtbaar, verdwijnt vanzelf",
  "ovg_tvfastest": "Zodra iemand de snelste ronde van de sessie of zijn klasse rijdt, schuift een paarse tv-banner „FASTEST LAP” in beeld: positie, merklogo, naam, team, nummer, rondetijd en de winst op de vorige beste. Na een paar seconden verdwijnt hij vanzelf. Overall, snelste per klasse of alleen jouw klasse; titel en kleur aanpasbaar. Jij kiest wanneer het verschijnt: bij de eigen gebeurtenis, altijd, om de paar minuten of alleen in de race; maximale tijd in beeld en wachttijd voor het opnieuw verschijnt zijn instelbaar.",
- "fx_ex7_t": "Automatische regie",
- "fx_ex7_d": "Regisseert de iRacing-camera op je stream zelf: de grid vanaf pole voor de start, TV Mixed bij groen; leider, kopgroep, gevechten en na verloop van tijd elke auto. Schakelt meteen naar crashes en werkt ook in herhalingen."
+ "fx_ex7_t": "Automatische regie (PRO)",
+ "fx_ex7_d": "Regisseert de iRacing-camera op je stream zelf: de grid vanaf pole voor de start, TV Mixed bij groen; leider, kopgroep, gevechten en na verloop van tijd elke auto. Schakelt meteen naar crashes en werkt ook in herhalingen.",
+ "ov_tvpodium_n": "TV-race-uitslag",
+ "ov_tvpodium_d": "Een tv-podium aan het eind van de race: de top drie op treden, neutraal.",
+ "ov_tvpodium_h": "Winnaar in het midden, tweede links, derde rechts; hoogte per plaats|Logo, naam, team, vlag, nummer en gat|Jouw eigen gegevens worden nooit getoond (neutraal)|Verschijnt met vertraging als de eerste auto’s binnen zijn en verdwijnt daarna",
+ "ovg_tvpodium": "Een podiumgrafiek zoals op tv aan het eind van de race: de top drie op treden, de winnaar in het midden, tweede links, derde rechts. Elk met merklogo, naam, team, vlag, nummer en gat tot de winnaar. Neutraal: jouw eigen gegevens worden niet getoond. Na de geblokte vlag verschijnt hij zodra het gekozen aantal auto’s binnen is, na de ingestelde vertraging; blijft even staan en verdwijnt."
 }

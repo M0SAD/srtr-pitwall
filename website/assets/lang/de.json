@@ -1441,6 +1441,10 @@
  "ov_tvfastest_d": "Ein lila „FASTEST LAP“-Banner, wenn jemand die schnellste Runde der Session fährt.",
  "ov_tvfastest_h": "Gesamt, jede Klasse für sich oder nur meine Klasse|Logo, Name, Team, Nummer und Rundenzeit|Gewinn gegenüber der bisherigen Bestzeit (-0.231)|Einige Sekunden sichtbar, verschwindet von selbst",
  "ovg_tvfastest": "Sobald jemand die schnellste Runde der Session oder seiner Klasse fährt, gleitet ein lila TV-Banner „FASTEST LAP“ herein: Position, Herstellerlogo, Name, Team, Nummer, Rundenzeit und der Gewinn gegenüber der bisherigen Bestzeit. Nach ein paar Sekunden verschwindet es. Gesamt, jede Klasse für sich oder nur deine Klasse; Titel und Farbe änderbar. Du wählst, wann es erscheint: bei seinem Ereignis, immer, alle paar Minuten oder nur im Rennen; maximale Einblenddauer und Wartezeit bis zur nächsten Einblendung sind einstellbar.",
- "fx_ex7_t": "Auto-Regie",
- "fx_ex7_d": "Führt die iRacing-Kamera im Stream selbst: vor dem Start die Startaufstellung ab der Pole, bei Grün TV Mixed; Führender, Spitzengruppe, Duelle und mit der Zeit jedes Auto. Schneidet sofort auf Unfälle, funktioniert auch in Wiederholungen."
+ "fx_ex7_t": "Auto-Regie (PRO)",
+ "fx_ex7_d": "Führt die iRacing-Kamera im Stream selbst: vor dem Start die Startaufstellung ab der Pole, bei Grün TV Mixed; Führender, Spitzengruppe, Duelle und mit der Zeit jedes Auto. Schneidet sofort auf Unfälle, funktioniert auch in Wiederholungen.",
+ "ov_tvpodium_n": "TV-Rennergebnis",
+ "ov_tvpodium_d": "Ein TV-Podium am Rennende: die ersten drei auf Stufen, neutral.",
+ "ov_tvpodium_h": "Sieger in der Mitte, Zweiter links, Dritter rechts; Stufenhöhe nach Platz|Logo, Name, Team, Flagge, Nummer und Abstand|Deine eigenen Daten werden nie gezeigt (neutral)|Öffnet sich mit Verzögerung, wenn die ersten Autos im Ziel sind, und verschwindet nach einer Weile",
+ "ovg_tvpodium": "Eine Podiumsgrafik wie im TV am Rennende: die ersten drei auf Stufen, Sieger in der Mitte, Zweiter links, Dritter rechts. Jeweils Herstellerlogo, Name, Team, Landesflagge, Nummer und Abstand zum Sieger. Neutral: deine eigenen Daten werden nicht gezeigt. Nach der Zielflagge öffnet sie sich, sobald die gewählte Zahl Autos im Ziel ist, nach der eingestellten Verzögerung; bleibt eine Weile und verschwindet."
 }

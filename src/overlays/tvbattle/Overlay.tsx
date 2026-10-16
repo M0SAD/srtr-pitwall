@@ -1,8 +1,9 @@
 import { Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { onScreen, previewFrozen } from "@/sdk/overlay";
-import { TvLogo, lastNameUpper, numberColors, useTvStandings, useTvVisible } from "@/sdk/tvkit";
+import { TvLogo, lastNameUpper, numberColors, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
+import manifest from "./manifest";
 import "./style.css";
 
 // TV Mücadele: yakın iki araç için "BATTLE FOR P5" bandı, fark, eğilim oku ve küçük grafik.
@@ -15,7 +16,7 @@ interface Battle {
 }
 
 export default function TvBattle(props: OverlayProps) {
-  const o = () => props.options;
+  const o = withDefaults(manifest, () => props.options);
   const { rows, sample } = useTvStandings(() => !!props.editing);
 
   const candidates = createMemo<Battle[]>(() => {

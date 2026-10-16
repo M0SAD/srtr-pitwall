@@ -1,0 +1,151 @@
+/* TV Yarış Sonucu (podyum) */
+.tvp {
+  width: 1000px;
+  font-size: 16px;
+  animation: tvp-in 0.6s cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+@keyframes tvp-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+.tvp-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px 11px;
+  background: linear-gradient(180deg, var(--tv-red), color-mix(in srgb, var(--tv-red) 75%, #000));
+}
+.tvp-head b {
+  font-size: 1.45em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.tvp-head small {
+  font-size: 0.95em;
+  font-weight: 600;
+}
+.tvp-stage {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+  gap: 14px;
+  padding: 18px 18px 0;
+  background: linear-gradient(180deg, rgba(14, 14, 16, 0.86), rgba(14, 14, 16, 0.94));
+}
+.tvp-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  animation: tvp-rise 0.7s cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+.tvp-col.p1 {
+  animation-delay: 0.35s;
+}
+.tvp-col.p2 {
+  animation-delay: 0.15s;
+}
+.tvp-col.p3 {
+  animation-delay: 0s;
+}
+@keyframes tvp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+.tvp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  background: #fff;
+  color: #151518;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+}
+.tvp-top {
+  display: flex;
+  align-items: stretch;
+  height: 54px;
+  margin-bottom: 4px;
+  border: 1px solid #e2e2e4;
+}
+.tvp-logo {
+  width: 84px;
+  height: 54px;
+}
+.tvp-num {
+  min-width: 58px;
+  padding: 0 8px;
+  font-size: 1.9em;
+  border-left: 1px solid #e2e2e4;
+}
+.tvp-name {
+  max-width: 100%;
+  font-size: 1.35em;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvp-team {
+  max-width: 100%;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #3a3a40;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tvp-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 26px;
+}
+.tvp-flag img,
+.tvp-flag .ov-flag {
+  height: 22px;
+  width: auto;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+.tvp-gap {
+  font-size: 1.05em;
+  font-weight: 700;
+  color: #333;
+}
+.tvp-col.p1 .tvp-gap {
+  color: var(--tv-red);
+}
+.tvp-step {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(180deg, #2a2b30, #17181b);
+  border-top: 4px solid var(--tv-red);
+}
+.tvp-step span {
+  font-size: 3em;
+  line-height: 1;
+}
+.tvp-col.p1 .tvp-step {
+  height: 140px;
+  background: linear-gradient(180deg, var(--tv-red), color-mix(in srgb, var(--tv-red) 60%, #000));
+  border-top-color: #fff;
+}
+.tvp-col.p1 .tvp-step span {
+  font-size: 4em;
+}
+.tvp-col.p2 .tvp-step {
+  height: 100px;
+}
+.tvp-col.p3 .tvp-step {
+  height: 70px;
+}

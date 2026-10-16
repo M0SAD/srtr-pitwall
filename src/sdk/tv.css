@@ -64,3 +64,8 @@
   transform: translateX(-14px);
   pointer-events: none;
 }
+/* TV grafiklerinin kendi zemini var: genel overlay yazı gölgesi (beyaz zeminde bulanık görünür) kapalı */
+.tv,
+.tv * {
+  text-shadow: none;
+}

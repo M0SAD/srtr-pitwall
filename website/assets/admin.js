@@ -96,6 +96,7 @@ const OVERLAYS = [
   ["results", "Yarış Sonucu"],
   ["tvtower", "TV Sıralama Kulesi"],
   ["tvresults", "TV Sonuç Tablosu"],
+  ["tvpodium", "TV Yarış Sonucu"],
   ["tvlower", "TV Sürücü Bandı"],
   ["tvbattle", "TV Mücadele"],
   ["tvfastest", "TV En Hızlı Tur"],

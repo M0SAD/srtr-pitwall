@@ -2,6 +2,7 @@
 // sağda açılır panel: Sohbet (c121) / Söz sırası / Arkadaş davet et / Oda ayarları. Kişiye tıklayınca kişi menüsü açılır.
 
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { blobPasteGuard } from "../components/LinkPreview";
 import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
 import { initialOf } from "@/cloud/social";
@@ -678,6 +679,7 @@ function ChatPanel() {
         }}
       >
         <textarea
+              onPaste={(e) => blobPasteGuard(e)}
           ref={ta}
           rows={1}
           maxLength={1000}

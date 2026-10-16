@@ -748,7 +748,7 @@ function withVoiceLock(list: string[]): string[] {
   const p = profile();
   const hadPaid = list.includes("stream.badge.paid") || entitlement().locked.includes("stream.badge.paid");
   const badgePaid = !session() ? false : p ? !!p.is_admin || paidPro() : hadPaid;
-  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "shots" && x !== "stream.badge" && x !== "stream.badge.paid" && !x.startsWith("livechat.") && !x.startsWith("social."));
+  const rest = list.filter((x) => x !== "voice" && x !== "voice.commands" && x !== "dashboard.remote" && x !== "tools.director" && x !== "shots" && x !== "stream.badge" && x !== "stream.badge.paid" && !x.startsWith("livechat.") && !x.startsWith("social."));
   if (voiceRequiresPro()) rest.push("voice");
   if (shotsRequirePro()) rest.push("shots");
   if (streamBadgeRequiresPro()) rest.push("stream.badge");
@@ -763,7 +763,7 @@ function withVoiceLock(list: string[]): string[] {
 /** Canlı Sohbet: PRO'ya ayrılmış özellikler (yönetici kararı, yoksa varsayılan PRO). Rust aynı adlarla denetler. */
 // "social.messages_tts": Mesajlar overlay'inde sesli okuma (aynı düzen; Rust: livechat/tts.rs social_tts_speak)
 // "voice.commands": sesli komut / bas-konuş (aynı düzen; Rust: voicecmd.rs allowed)
-const LIVECHAT_LOCKS = ["livechat.multi", "livechat.favorites", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.translate", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts", "voice.commands", "dashboard.remote"];
+const LIVECHAT_LOCKS = ["livechat.multi", "livechat.favorites", "livechat.poll", "livechat.obs", "livechat.tts", "livechat.stt", "livechat.translate", "livechat.send", "livechat.alerts", "livechat.log", "social.messages_tts", "voice.commands", "dashboard.remote", "tools.director"];
 function livechatLocks(): string[] {
   let v: Record<string, unknown> = {};
   try {

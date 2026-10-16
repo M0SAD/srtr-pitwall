@@ -75,3 +75,18 @@
   border-radius: 6px;
   display: block;
 }
+
+/* Mesaj kutusu: blob: adresi yapıştırılınca kısa açıklama */
+.blob-warn {
+  position: fixed;
+  z-index: 9999;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #2a1d10;
+  border: 1px solid rgba(255, 138, 42, 0.55);
+  color: #ffd8b0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}

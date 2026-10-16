@@ -1,12 +1,13 @@
 // TV yayını overlay'leri (tvtower, tvresults, tvlower, tvbattle, tvfastest) için ortak parçalar:
 // örnek veri, farklar / sıra / numara rengi yardımcıları, marka logosu kutusu. Görünüm: sdk/tv.css.
 
-import { Show, createMemo, createSignal, onCleanup } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import { demoShow, useTopic } from "./telemetry";
-import { onScreen, previewFrozen, type SettingField } from "./overlay";
+import { defaultOptions, onScreen, previewFrozen, type OverlayManifest, type SettingField } from "./overlay";
 import { sampleRow } from "./samples";
 import { brandOf, logoInfo } from "./logos";
 import type { Row, Standings } from "./types";
+import { lapTime } from "./format";
 import "./tv.css";
 
 // ---------------------------------------------------------------------------
@@ -71,17 +72,38 @@ export const TV_SAMPLE: Row[] = S.map(([name, carName, number, irating, flair, t
     classBest: i === 4,
   }),
 );
-export const TV_SAMPLE_INFO = { leaderLap: 206, elapsed: 14 * 3600 + 26 * 60 + 26, timeRemain: 9 * 3600 + 33 * 60, track: "Spa-Francorchamps", session: "Race" };
+export const TV_SAMPLE_INFO = {
+  leaderLap: 206,
+  elapsed: 14 * 3600 + 26 * 60 + 26,
+  raceElapsed: 14 * 3600 + 21 * 60 + 5,
+  timeRemain: 9 * 3600 + 33 * 60,
+  lapsRemain: 32767,
+  totalTime: 24 * 3600,
+  track: "Spa-Francorchamps",
+  session: "Race",
+};
 
 /** Sıralama: gerçek veri ya da (önizlemede) örnek. Sınıf filtresi: "" = hepsi, "mine" = kendi sınıfım. */
 export function useTvStandings(editing: () => boolean) {
   const st = useTopic("standings");
   const ses = useTopic("session");
   const sample = () => !(st()?.rows?.length) && (editing() || !onScreen());
+  // Sıralama bir an boş gelirse (oturum geçişi, araçlar sunucudan çıkarken) son dolu liste birkaç saniye tutulur:
+  // TV grafikleri yanıp sönmesin
+  let last: Row[] = [];
+  let lastAt = 0;
   const rows = createMemo<Row[]>(() => {
     const r = st()?.rows ?? [];
-    if (r.length) return r.filter((x) => x.pos > 0 || x.classPos > 0).sort((a, b) => (a.pos || 999) - (b.pos || 999));
-    return sample() ? TV_SAMPLE : [];
+    let l = r.filter((x) => x.pos > 0 || x.classPos > 0).sort((a, b) => (a.pos || 999) - (b.pos || 999));
+    // Gridde (yarış başlamadan) sim sıra vermeyebilir: sıralama verisinin kendi sırası (grid / sıralama) kullanılır
+    if (!l.length && r.length) l = r.map((x, i) => ({ ...x, pos: i + 1, classPos: x.classPos || i + 1 }));
+    if (l.length) {
+      last = l;
+      lastAt = Date.now();
+      return l;
+    }
+    if (sample()) return TV_SAMPLE;
+    return last.length && Date.now() - lastAt < 8000 ? last : [];
   });
   const info = () => {
     const s = st() as Standings | undefined;
@@ -89,10 +111,14 @@ export function useTvStandings(editing: () => boolean) {
     return {
       leaderLap: s.leaderLap,
       elapsed: s.elapsed,
+      raceElapsed: s.raceElapsed ?? -1,
       timeRemain: s.timeRemain,
+      lapsRemain: s.lapsRemain,
+      totalTime: s.totalTime,
       track: ses()?.track ?? "",
       session: s.sessionType || ses()?.sessionType || "",
       camIdx: s.camIdx ?? -1,
+      camKind: s.camKind ?? "",
       sample: false,
     };
   };
@@ -142,7 +168,16 @@ export function hms(sec: number) {
 }
 
 /** Lidere fark (TV biçimi): lider "206 LAPS", diğerleri "+1.234" / "+1L" / "PIT" */
-export function gapToLeader(r: Row, leader: Row | undefined, leaderLap: number, opts: { lapsWord?: string; pit?: boolean } = {}) {
+/** Yarış oturumu mu (antrenman / sıralamada farklar en iyi tura göre) */
+export const isRaceSession = (t: string) => /race/i.test(t || "");
+
+export function gapToLeader(r: Row, leader: Row | undefined, leaderLap: number, opts: { lapsWord?: string; pit?: boolean; race?: boolean } = {}) {
+  if (opts.race === false) {
+    // Antrenman / sıralama: lider en iyi turu, diğerleri en iyi tur farkı
+    if (!leader || r.idx === leader.idx || r.pos === 1) return r.best > 0 ? lapTime(r.best) : "—";
+    if (!(r.best > 0) || !(leader.best > 0)) return "—";
+    return `+${(r.best - leader.best).toFixed(3)}`;
+  }
   if (opts.pit !== false && r.onPit) return "PIT";
   if (!leader || r.idx === leader.idx || r.pos === 1) return leaderLap > 0 ? `${leaderLap} ${opts.lapsWord ?? "LAPS"}` : "LEADER";
   if (r.lapsDown > 0) return `+${r.lapsDown}L`;
@@ -156,7 +191,13 @@ export function intervalText(r: Row, i: number) {
   return `+${r.interval.toFixed(3)}`;
 }
 /** Sonuç tablosu farkı: "+3 LAPS" / "+12.345" */
-export function resultGap(r: Row, i: number, leaderLap: number) {
+export function resultGap(r: Row, i: number, leaderLap: number, race = true, leader?: Row) {
+  if (!race) {
+    // Sıralama / antrenman sonucu: lider en iyi turu, diğerleri farkı
+    if (i === 0) return r.best > 0 ? lapTime(r.best) : "—";
+    if (!(r.best > 0) || !(leader && leader.best > 0)) return "—";
+    return `+${(r.best - leader.best).toFixed(3)}`;
+  }
   if (i === 0) return leaderLap > 0 ? `${leaderLap} LAPS` : "WINNER";
   if (r.lapsDown > 0) return `+${r.lapsDown} ${r.lapsDown === 1 ? "LAP" : "LAPS"}`;
   if (!(r.gap > 0) || r.gap > 36000) return "—";
@@ -286,6 +327,8 @@ export function useTvVisible(p: {
   sample: () => boolean;
   /** Olay başına bir kez göster (süre dolunca olay bitene dek kapalı kalır) */
   once?: boolean;
+  /** "Damalı bayraktan sonra gizle" için yarış bitti mi (verilmezse damalı bayrak çıkınca) */
+  finished?: () => boolean;
 }) {
   const ses = useTopic("session");
   const [now, setNow] = createSignal(Date.now());
@@ -323,7 +366,7 @@ export function useTvVisible(p: {
     // Yarış durumu (iRacing SessionState): 1-3 gridde / ısınma turunda, 4 yarış, 5 damalı bayrak, 6 soğuma turu
     const state = ses()?.state ?? 0;
     if (p.o().hideBeforeGreen && state >= 1 && state <= 3) return false;
-    if (p.o().hideAfterFinish && state >= 5) return false;
+    if (p.o().hideAfterFinish && state >= 5 && (p.finished ? p.finished() : true)) return false;
     if (p.o().raceOnly) {
       const st = String(ses()?.sessionType ?? "").toLowerCase();
       if (st && !st.includes("race")) return false;
@@ -337,3 +380,56 @@ export function useTvVisible(p: {
     return autoOn() && p.event();
   };
 }
+
+/**
+ * Overlay ayarları + manifest varsayılanları. Kayıtlı kopyalar oluşturuldukları andaki ayarları taşır: sonradan eklenen
+ * ayarlar (ör. "Damalı bayraktan sonra gizle") kayıtta yoktur; varsayılanları buradan gelir.
+ */
+export function withDefaults(m: OverlayManifest, opts: () => Record<string, unknown>) {
+  const d = defaultOptions(m);
+  const memo = createMemo(() => ({ ...d, ...(opts() ?? {}) }));
+  return () => memo();
+}
+
+/**
+ * Yarış sonu: damalı bayraktan sonra ilk `o().finishers` araç çizgiyi geçtikten `o().openDelay` sn sonra true.
+ * Damalı bayrak çıktığı andaki turlar not edilir; turu artan araç bitirmiş sayılır (lider bayrağı gördüğü için zaten bitirmiştir).
+ */
+export function useFinishReady(o: () => Record<string, unknown>, rows: () => Row[], state: () => number, race: () => boolean = () => true) {
+  let snap: Map<number, number> | null = null;
+  const done = new Set<number>();
+  const [readyAt, setReadyAt] = createSignal(0);
+  createEffect(() => {
+    const st = state();
+    const l = rows();
+    if (st < 5) {
+      snap = null;
+      done.clear();
+      if (readyAt()) setReadyAt(0);
+      return;
+    }
+    if (!snap) {
+      snap = new Map(l.map((r) => [r.idx, r.lapsDone ?? 0]));
+      if (l[0]) done.add(l[0].idx);
+    }
+    for (const r of l) if ((r.lapsDone ?? 0) > (snap.get(r.idx) ?? 1e9)) done.add(r.idx);
+    // Sıralama / antrenman: damalı bayrak oturumun sonu; bitiren sayısı beklenmez
+    const need = race() ? Math.max(1, Math.min(l.length || 1, Number(o().finishers) || 1)) : 1;
+    // Soğuma turu (6): bitirenler sayılamasa da (uygulama yarış bitince açıldı) aç
+    if (!readyAt() && (done.size >= need || st >= 6)) setReadyAt(Date.now());
+  });
+  return () => readyAt() > 0 && Date.now() - readyAt() >= Math.max(0, Number(o().openDelay) || 0) * 1000;
+}
+
+/**
+ * Yarış sonu sırası: TV Yarış Sonucu (podyum) aynı pencerede açıksa TV Sonuç Tablosu onun bitmesini bekler
+ * (kule → podyum → sonuç tablosu). Podyum kendini kaydeder; gösterilip kapanınca `done` olur.
+ */
+export const [podiumMounted, setPodiumMounted] = createSignal(0);
+export const [podiumDoneAt, setPodiumDoneAt] = createSignal(0);
+
+/** Yarış sonu açılış ayarları (TV Sonuç Tablosu, TV Yarış Sonucu) */
+export const finishSettings = (): SettingField[] => [
+  { key: "finishers", label: "Kaç araç bitirince açılsın", type: "number", default: 3, min: 1, max: 20, step: 1, ui: "stepper", group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] }, hint: "Damalı bayrağı bu kadar araç geçince sayaç başlar (lider dahil)." },
+  { key: "openDelay", label: "Sonra kaç saniye beklesin", type: "number", default: 15, min: 0, max: 180, step: 1, unit: "sn", group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] } },
+];

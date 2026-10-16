@@ -4,6 +4,7 @@
 // Mesaja sağ tık: kopyala, herkesten sil (kendi mesajın; sahip her mesajı), raporla (başkasının mesajı).
 
 import { LinkPreview } from "./LinkPreview";
+import { blobPasteGuard } from "./LinkPreview";
 import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { session } from "@/cloud/supabase";
@@ -527,6 +528,7 @@ export function GroupChat(props: {
             <Smile />
           </button>
           <textarea
+              onPaste={(e) => blobPasteGuard(e)}
             ref={ta}
             class="input"
             rows={1}

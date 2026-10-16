@@ -1441,6 +1441,10 @@
  "ov_tvfastest_d": "Un rótulo morado “FASTEST LAP” cuando alguien marca la vuelta más rápida.",
  "ov_tvfastest_h": "General, la de cada clase o solo mi clase|Logo, nombre, equipo, número y tiempo de vuelta|Mejora sobre el mejor anterior (-0.231)|Se ve unos segundos y desaparece solo",
  "ovg_tvfastest": "En cuanto alguien marca la vuelta más rápida de la sesión o de su clase, entra un rótulo morado de TV “FASTEST LAP”: posición, logo, nombre, equipo, número, tiempo de vuelta y la mejora sobre el mejor anterior. Desaparece solo tras unos segundos. Elige general, la más rápida de cada clase o solo tu clase; título y color editables. Tú eliges cuándo aparece: con su evento, siempre, cada pocos minutos o solo en carrera; se ajusta el tiempo máximo en pantalla y la espera antes de volver a salir.",
- "fx_ex7_t": "Realizador automático",
- "fx_ex7_d": "Dirige solo la cámara de iRacing en el directo: muestra la parrilla desde la pole antes de la salida, pasa a TV Mixed con bandera verde; líder, primeras posiciones, luchas y con el tiempo todos los coches. Corta al instante a los accidentes y funciona en repeticiones."
+ "fx_ex7_t": "Realizador automático (PRO)",
+ "fx_ex7_d": "Dirige solo la cámara de iRacing en el directo: muestra la parrilla desde la pole antes de la salida, pasa a TV Mixed con bandera verde; líder, primeras posiciones, luchas y con el tiempo todos los coches. Corta al instante a los accidentes y funciona en repeticiones.",
+ "ov_tvpodium_n": "Resultado de carrera TV",
+ "ov_tvpodium_d": "Un podio como en TV al final de la carrera: los tres primeros en escalones, neutral.",
+ "ov_tvpodium_h": "Ganador en el centro, segundo a la izquierda, tercero a la derecha; altura según puesto|Logo, nombre, equipo, bandera, número y diferencia|Tus datos nunca se muestran (neutral)|Aparece con retardo cuando terminan los primeros coches y desaparece al rato",
+ "ovg_tvpodium": "Un gráfico de podio como en TV al terminar la carrera: los tres primeros en escalones, el ganador en el centro, el segundo a la izquierda y el tercero a la derecha. Cada uno con logo, nombre, equipo, bandera, número y diferencia con el ganador. Es neutral: tus datos no se muestran. Tras la bandera a cuadros aparece cuando han cruzado los coches que elijas, tras el retardo que fijes; se queda un rato y desaparece."
 }

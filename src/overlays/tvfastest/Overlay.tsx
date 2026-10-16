@@ -2,8 +2,9 @@ import { Show, createEffect, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { onScreen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
-import { TvLogo, upper, useTvStandings, useTvVisible } from "@/sdk/tvkit";
+import { TvLogo, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
+import manifest from "./manifest";
 import "./style.css";
 
 // TV En Hızlı Tur: yeni en hızlı tur atılınca mor bant (birkaç saniye).
@@ -15,8 +16,8 @@ interface Shot {
 }
 
 export default function TvFastest(props: OverlayProps) {
-  const o = () => props.options;
-  const { rows, sample } = useTvStandings(() => !!props.editing);
+  const o = withDefaults(manifest, () => props.options);
+  const { rows, info, sample, session } = useTvStandings(() => !!props.editing);
   const [shot, setShot] = createSignal<Shot | null>(null);
   let hideT = 0;
   onCleanup(() => clearTimeout(hideT));
@@ -24,6 +25,17 @@ export default function TvFastest(props: OverlayProps) {
   // Kapsam anahtarı → o kapsamın en iyi turu
   const bests = new Map<string, number>();
   let primed = false;
+  // Her oturum (antrenman, sıralama, yarış) ayrı: oturum değişince ve yarışta yeşil bayrakta en iyiler sıfırlanır
+  let sesKey = "";
+  createEffect(() => {
+    const st = session()?.state ?? 0;
+    const key = `${info().session}|${st >= 4 ? "go" : "pre"}`;
+    if (key !== sesKey) {
+      sesKey = key;
+      bests.clear();
+      primed = false;
+    }
+  });
   createEffect(() => {
     const l = rows();
     if (sample() || !l.length) return;
@@ -38,12 +50,17 @@ export default function TvFastest(props: OverlayProps) {
       const c = cand.get(k);
       if (!c || r.best < c.best) cand.set(k, r);
     }
+    for (const k of [...bests.keys()]) if (!cand.has(k)) bests.delete(k);
     for (const [k, r] of cand) {
       const prev = bests.get(k);
       if (prev === undefined || r.best < prev - 0.0005) {
         bests.set(k, r.best);
-        // İlk görülen değerler (overlay açıldığında zaten atılmış turlar) duyurulmaz
-        if (primed && prev !== undefined) show({ r, time: r.best, gain: prev - r.best });
+        // Overlay açıldığında zaten atılmış turlar duyurulmaz; sonra gelen ilk tur (oturumun ilk en hızlısı) ve
+        // her iyileşme duyurulur
+        if (primed) show({ r, time: r.best, gain: prev !== undefined ? prev - r.best : 0 });
+      } else if (r.best > prev + 0.0005) {
+        // Tekrarda geri sarıldı: en iyi tur izlenen ana göre yavaşladı, duyurmadan güncelle
+        bests.set(k, r.best);
       }
     }
     primed = true;

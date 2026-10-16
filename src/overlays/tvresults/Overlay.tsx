@@ -1,9 +1,10 @@
-import { For, Index, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { For, Index, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
-import { TvLogo, numberColors, resultGap, sessionLabel, upper, useTvStandings, useTvVisible } from "@/sdk/tvkit";
+import { TvLogo, tvName, numberColors, resultGap, sessionLabel, upper, isRaceSession, podiumDoneAt, podiumMounted, useFinishReady, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
+import manifest from "./manifest";
 import "./style.css";
 
 // TV Sonuç Tablosu: yarış sonunda gösterilen büyük tablo (sayfa sayfa döner).
@@ -15,7 +16,7 @@ const SAMPLE_CO: Record<string, string[]> = {
 };
 
 export default function TvResults(props: OverlayProps) {
-  const o = () => props.options;
+  const o = withDefaults(manifest, () => props.options);
   const { rows, info, sample, session } = useTvStandings(() => !!props.editing);
 
   // Aracı süren herkes (takım yarışında sürücü değişir): araç numarası → sürücü adları (ilk görülme sırasıyla)
@@ -25,7 +26,7 @@ export default function TvResults(props: OverlayProps) {
     let changed = false;
     for (const r of rows()) {
       const key = r.number || String(r.idx);
-      const short = initial(r.name);
+      const short = r.name.trim();
       const l = seen.get(key) ?? [];
       if (short && !l.includes(short)) {
         l.push(short);
@@ -37,33 +38,38 @@ export default function TvResults(props: OverlayProps) {
   });
   const driversOf = (r: Row) => {
     drv();
-    const l = [...(seen.get(r.number || String(r.idx)) ?? [initial(r.name)])];
+    const l = [...(seen.get(r.number || String(r.idx)) ?? [r.name.trim()])];
     if (sample()) l.push(...(SAMPLE_CO[r.number] ?? []));
-    return l.slice(0, Math.max(1, Math.min(3, Number(o().drivers) || 3)));
+    const fmt = String(o().nameFormat || "initial");
+    return l.slice(0, Math.max(1, Math.min(3, Number(o().drivers) || 3))).map((n) => (fmt === "initial" ? initial(n) : tvName(n, fmt)));
   };
 
   const me = createMemo(() => rows().find((r) => r.isMe));
+  // Son dolu liste tutulur: yarış sonunda sıralama verisi bir an boş gelirse (araçlar sunucudan çıkarken) tablo
+  // kapanıp yeniden açılmasın (yanıp sönme)
+  let lastList: Row[] = [];
   const list = createMemo(() => {
     const all = rows();
-    if (o().classFilter === "mine" && me()) return all.filter((r) => r.classId === me()!.classId).sort((a, b) => a.classPos - b.classPos);
-    return all;
+    const l = o().classFilter === "mine" && me() ? all.filter((r) => r.classId === me()!.classId).sort((a, b) => a.classPos - b.classPos) : all;
+    if (l.length) lastList = l;
+    return l.length ? l : lastList;
   });
   const per = () => Math.max(5, Math.min(30, Number(o().perPage) || 20));
-  const pages = () => Math.max(1, Math.ceil(list().length / per()));
+  const pages = createMemo(() => Math.max(1, Math.ceil(list().length / per())));
+  const pageMs = createMemo(() => Math.max(3, Number(o().pageSecs) || 10) * 1000);
+  // Sayfa çevirme: zamanlayıcı yalnızca sayfa sayısı ya da süre değişince yeniden kurulur
+  // (eskiden her veri güncellemesinde baştan kuruluyor, sayfa hiç dönmüyordu)
   const [page, setPage] = createSignal(0);
-  let timer = 0;
-  const restart = () => {
-    clearInterval(timer);
-    timer = window.setInterval(() => {
-      if (!previewFrozen()) setPage((p) => (p + 1) % pages());
-    }, Math.max(3, Number(o().pageSecs) || 10) * 1000);
-  };
-  createEffect(() => {
-    pages();
-    o().pageSecs;
-    restart();
-  });
-  onCleanup(() => clearInterval(timer));
+  createEffect(
+    on([pages, pageMs], ([n, ms]) => {
+      if (page() >= n) setPage(0);
+      if (n <= 1) return;
+      const timer = window.setInterval(() => {
+        if (!previewFrozen()) setPage((p) => (p + 1) % pages());
+      }, ms);
+      onCleanup(() => clearInterval(timer));
+    }),
+  );
   const shown = createMemo(() => {
     const p = Math.min(page(), pages() - 1);
     return list().slice(p * per(), p * per() + per());
@@ -71,14 +77,22 @@ export default function TvResults(props: OverlayProps) {
 
   // Görünürlük: damalı bayraktan sonra (session.state 5/6) ya da her zaman
   // Eski ayar: when = "always" → show = "always"
-  const opts = () => (o().show === undefined && o().when === "always" ? { ...o(), show: "always" } : o());
+  const opts = () => (props.options?.show === undefined && o().when === "always" ? { ...o(), show: "always" } : o());
+  const finishReady = useFinishReady(o, rows, () => session()?.state ?? 0, () => isRaceSession(info().session));
+  // TV Yarış Sonucu (podyum) bu pencerede açıksa önce o gösterilir; sonuç tablosu podyum kapanınca açılır
+  const afterPodium = () => o().afterPodium !== false && podiumMounted() > 0 && isRaceSession(info().session);
   const visible = useTvVisible({
     o: opts,
-    event: () => (String(opts().show || "auto") === "auto" ? (session()?.state ?? 0) >= 5 : true),
+    event: () =>
+      String(opts().show || "auto") === "auto"
+        ? (session()?.state ?? 0) >= 5 && (afterPodium() ? podiumDoneAt() > 0 && Date.now() - podiumDoneAt() >= 1000 : finishReady())
+        : true,
     editing: () => !!props.editing,
     sample,
     once: true,
   });
+
+  const showing = createMemo(() => visible() && list().length > 0);
 
   const title = () => upper(String(o().title || "").trim() || String(o().trackText || "").trim() || info().track || "RESULTS");
   const sub = () => `${upper(String(o().trackText || "").trim() || info().track || "")} - ${sessionLabel(info().session)}`.replace(/^ - /, "");
@@ -103,7 +117,7 @@ export default function TvResults(props: OverlayProps) {
               const nc = () => numberColors(p.r, String(o().numColor || "category"));
               const i = () => list().indexOf(p.r);
               return (
-                <div class="tvr-row" classList={{ me: p.r.isMe }}>
+                <div class="tvr-row" classList={{ me: p.r.isMe && o().highlightMe === true }}>
                   <span class="tv-pos tvr-pos">{posOf(p.r)}</span>
                   <Show when={o().showLogos !== false}>
                     <TvLogo carName={p.r.carName} class="tvr-logo" />
@@ -124,13 +138,13 @@ export default function TvResults(props: OverlayProps) {
                       {p.r.best > 0 ? lapTime(p.r.best) : "—"}
                     </span>
                   </Show>
-                  <span class="tvr-gap">{resultGap(p.r, i(), info().leaderLap)}</span>
+                  <span class="tvr-gap">{resultGap(p.r, i(), info().leaderLap, isRaceSession(info().session), list()[0])}</span>
                 </div>
               );
             }
 
   return (
-    <Show when={visible() && list().length}>
+    <Show when={showing()}>
       <div
         class="tv tvr"
         style={{ "--tv-red": String(o().accent || "#d4151d"), "--tv-line": String(o().lineColor || "#f07a12"), "--nd": String(nDrivers()), "--tvr-cols": cols(), zoom: String(scale()) }}

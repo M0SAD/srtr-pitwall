@@ -4,6 +4,7 @@
 // gelen mesajı raporlama sağ tıkla. Veri paylaşımı (güvenilir işaretleme) ve arkadaş görünümünü özelleştirme PRO.
 
 import { Portal } from "solid-js/web";
+import { blobPasteGuard } from "./LinkPreview";
 import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { settings, uiPref, updateSettings } from "@/sdk/settings";
@@ -2433,6 +2434,7 @@ function Chat(props: {
               <Smile />
             </button>
             <textarea
+              onPaste={(e) => blobPasteGuard(e)}
               ref={ta}
               class="input"
               rows={1}

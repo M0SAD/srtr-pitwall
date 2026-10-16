@@ -7,7 +7,11 @@ export default defineOverlay({
   description:
     "Pistte kıyasıya bir mücadele olunca TV'deki gibi “BATTLE FOR P5” bandı çıkar: iki sürücü (logo, ad, numara), aradaki fark ve farkın kapanıp açıldığını gösteren ok ve son 30 sn'lik küçük grafik. Fark açılınca kendiliğinden kaybolur.",
   category: "stream",
-  topics: [{ name: "standings", hz: 2 }],
+  topics: [
+    { name: "standings", hz: 2 },
+    { name: "session", hz: 1 },
+    { name: "status", hz: 1 },
+  ],
   size: { w: 640, h: 120 },
   defaultPosition: { x: 640, y: 60 },
   defaultEnabled: false,

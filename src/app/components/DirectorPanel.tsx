@@ -7,6 +7,8 @@ import { t } from "@/sdk/i18n";
 import { DIRECTOR_DEFAULT, settings, updateSettings, type DirectorCfg } from "@/sdk/settings";
 import { inTauri } from "@/sdk/platform";
 import { Slider, Switch } from "./SettingsForm";
+import { F, proLocked } from "@/sdk/proFeatures";
+import { ProLockNote } from "./ProLock";
 import * as I from "../icons";
 
 interface DirStatus {
@@ -32,6 +34,7 @@ const KIND: Record<string, string> = {
   field: "Diğer araçlar",
   me: "Kendi aracım",
   incident: "Kaza / pist dışı",
+  finish: "Bitiş çizgisi",
 };
 
 export function DirectorPanel() {
@@ -40,6 +43,7 @@ export function DirectorPanel() {
     updateSettings((d) => {
       d.general.director = { ...DIRECTOR_DEFAULT, ...(d.general.director ?? {}), [k]: v };
     });
+  const locked = () => proLocked(F.director);
   const [st, setSt] = createSignal<DirStatus | null>(null);
   const [adv, setAdv] = createSignal(false);
   const poll = () => inTauri && invoke<DirStatus>("director_status").then(setSt).catch(() => {});
@@ -52,6 +56,7 @@ export function DirectorPanel() {
     if (!cfg().enabled) return t("Kapalı");
     if (!s) return t("Bekleniyor…");
     if (s.active) return "";
+    if (s.why === "pro") return t("PRO üyelere özel");
     if (s.why === "nosim") return t("iRacing'e bağlanınca başlar");
     if (s.why === "driving") return t("Araçta sürerken kameraya dokunmaz (izleyici modunda, ya da tekrarda çalışır)");
     if (s.why === "manual") return t("Kamerayı elle değiştirdin: {0} sn sonra devam eder", String(Math.ceil(s.pauseLeft)));
@@ -70,7 +75,7 @@ export function DirectorPanel() {
       <div class="row">
         <div>
           <b>
-            <I.Clapperboard /> Otomatik Rejisör <span class="chip2 small">iRacing</span>
+            <I.Clapperboard /> Otomatik Rejisör <span class="chip2 small">iRacing</span> <span class="pro-badge small" title={t("PRO üyelere özel")}>PRO</span>
           </b>
           <small>
             Yayında kamerayı kendiliğinden yönetir: yarış başlamadan gridi pole'dan başlayarak sırayla gösterir, yeşil bayrakta TV Mixed kamerasına
@@ -78,9 +83,14 @@ export function DirectorPanel() {
             çıkar ya da kaza yaparsa hemen oraya keser. Tekrar izlerken de çalışır.
           </small>
         </div>
-        <Switch checked={cfg().enabled} onChange={(v) => set("enabled", v)} />
+        <Switch checked={cfg().enabled && !locked()} disabled={locked()} onChange={(v) => set("enabled", v)} />
       </div>
+      <Show when={locked()}>
+        <ProLockNote feature={F.director} text="Otomatik Rejisör PRO üyelere özel." />
+      </Show>
 
+      {/* Ayarlar ve canlı durum yalnızca PRO üyelere */}
+      <Show when={!locked()}>
       <div class="dir-live" classList={{ on: !!st()?.active && cfg().enabled }}>
         <span class="dir-dot" />
         <Show when={st()?.active && cfg().enabled} fallback={<span class="muted">{statusText()}</span>}>
@@ -105,7 +115,7 @@ export function DirectorPanel() {
             <span class="chip2 small">{t("Tekrar")}</span>
           </Show>
         </Show>
-        <button class="btn small" disabled={!cfg().enabled} onClick={() => inTauri && invoke("director_next")} title={t("Hemen başka bir çekime geç")}>
+        <button class="btn small" disabled={!cfg().enabled || locked()} onClick={() => inTauri && invoke("director_next")} title={t("Hemen başka bir çekime geç")}>
           <I.SkipForward /> {t("Sonraki çekim")}
         </button>
       </div>
@@ -131,19 +141,42 @@ export function DirectorPanel() {
       </div>
       <div class="row">
         <div>
+          <b>{t("Bitişte ilk araçlara odaklan")}</b>
+          <small>
+            {t(
+              "Son turda (beyaz bayrak) lider, damalı bayraktan sonra ilk {0} araç bitiş çizgisine yaklaşırken kamera onlara geçer ve çizgiyi geçişini gösterir.",
+              String(cfg().finishTop),
+            )}
+          </small>
+        </div>
+        <Switch checked={cfg().finishFocus} onChange={(v) => set("finishFocus", v)} />
+      </div>
+      <Show when={cfg().finishFocus}>
+        <div class="f2">
+          <div class="f2-cap">{t("Bitişte kaç araç gösterilsin")}</div>
+          <Slider value={cfg().finishTop} min={1} max={10} onInput={(v) => set("finishTop", v)} />
+        </div>
+      </Show>
+      <div class="row">
+        <div>
           <b>Kazalara odaklan</b>
           <small>Pistten çıkan ya da hızlıyken birden duran araca hemen geçer, birkaç saniye gösterir.</small>
         </div>
         <Switch checked={cfg().incidents} onChange={(v) => set("incidents", v)} />
       </div>
-      <div class="row">
-        <div>
-          <b>Çekim süresi</b>
-          <small>Her çekim bu iki süre arasında rastgele uzunlukta.</small>
+      <div class="f2">
+        <div class="f2-cap">
+          Çekim süresi <small class="muted">· {t("Her çekim bu iki süre arasında rastgele uzunlukta.")}</small>
         </div>
         <div class="dir-pair">
-          <Slider value={cfg().minShot} min={3} max={60} unit="sn" onInput={(v) => set("minShot", Math.min(v, cfg().maxShot))} />
-          <Slider value={cfg().maxShot} min={3} max={120} unit="sn" onInput={(v) => set("maxShot", Math.max(v, cfg().minShot))} />
+          <div>
+            <small class="muted">{t("En kısa")}</small>
+            <Slider value={cfg().minShot} min={3} max={60} unit="sn" onInput={(v) => set("minShot", Math.min(v, cfg().maxShot))} />
+          </div>
+          <div>
+            <small class="muted">{t("En uzun")}</small>
+            <Slider value={cfg().maxShot} min={3} max={120} unit="sn" onInput={(v) => set("maxShot", Math.max(v, cfg().minShot))} />
+          </div>
         </div>
       </div>
 
@@ -154,31 +187,31 @@ export function DirectorPanel() {
         <p class="muted small">{t("Hangi çekimin ne sıklıkla seçileceği (oran). 0: hiç gösterme.")}</p>
         <For each={W}>
           {(w) => (
-            <div class="row">
-              <b>{t(w.label)}</b>
+            <div class="f2">
+              <div class="f2-cap">{t(w.label)}</div>
               <Slider value={cfg()[w.k]} min={0} max={100} step={5} onInput={(v) => set(w.k, v)} />
             </div>
           )}
         </For>
-        <div class="row">
-          <b>{t("Ön sıralar: ilk kaç araç")}</b>
+        <div class="f2">
+          <div class="f2-cap">{t("Ön sıralar: ilk kaç araç")}</div>
           <Slider value={cfg().frontN} min={2} max={15} onInput={(v) => set("frontN", v)} />
         </div>
-        <div class="row">
-          <b>{t("Mücadele sayılan fark")}</b>
+        <div class="f2">
+          <div class="f2-cap">{t("Mücadele sayılan fark")}</div>
           <Slider value={cfg().battleGap} min={0.2} max={3} step={0.1} unit="sn" onInput={(v) => set("battleGap", v)} />
         </div>
-        <div class="row">
-          <b>{t("Grid turunda araç başına")}</b>
+        <div class="f2">
+          <div class="f2-cap">{t("Grid turunda araç başına")}</div>
           <Slider value={cfg().gridShot} min={2} max={15} unit="sn" onInput={(v) => set("gridShot", v)} />
         </div>
-        <div class="row">
-          <div>
-            <b>{t("Elle kamera değişince bekle")}</b>
-            <small>{t("iRacing'de kamerayı kendin başka araca çevirirsen rejisör bu kadar bekler.")}</small>
+        <div class="f2">
+          <div class="f2-cap">
+            {t("Elle kamera değişince bekle")} <small class="muted">· {t("iRacing'de kamerayı kendin başka araca çevirirsen rejisör bu kadar bekler.")}</small>
           </div>
           <Slider value={cfg().manualPause} min={0} max={120} step={5} unit="sn" onInput={(v) => set("manualPause", v)} />
         </div>
+      </Show>
       </Show>
     </section>
   );

@@ -85,6 +85,7 @@ export const F = {
   timing: "tools.timing",
   engineer: "tools.engineer",
   events: "tools.events",
+  director: "tools.director",
   dashDesigner: "dashboard.designer",
   dashRemote: "dashboard.remote",
   liveMulti: "livechat.multi",
@@ -103,7 +104,7 @@ export const F = {
  *  (bkz. cloud/account.ts withVoiceLock, src-tauri/src/livechat/mod.rs allowed). Varsayılanları aşağıdaki katalogda. */
 export const LIVECHAT_LOCK_KEYS = [F.liveMulti, F.liveFav, F.livePoll, F.liveObs, F.liveTts, F.liveStt, F.liveTranslate, F.liveSend, F.liveAlerts, F.liveLog] as const;
 /** Rust'ın denetlediği diğer anahtarlar (aynı adla "locked" listesine girer): Mesajlar overlay'inde sesli okuma (livechat/tts.rs) */
-export const RUST_LOCK_KEYS = [F.msgTts, F.voiceCommands, F.dashRemote] as const;
+export const RUST_LOCK_KEYS = [F.msgTts, F.voiceCommands, F.dashRemote, F.director] as const;
 
 /** Elle tanımlı özellikler (overlay'ler aşağıda manifestlerden toplanır) */
 const STATIC: ProFeature[] = [
@@ -160,6 +161,7 @@ const STATIC: ProFeature[] = [
   { key: F.timing, label: "Live Timing penceresi", group: "Araçlar", defaultPro: false },
   { key: F.engineer, label: "Mühendis Ekranı penceresi", group: "Araçlar", defaultPro: false },
   { key: F.events, label: "Olaylar penceresi", group: "Araçlar", defaultPro: false },
+  { key: F.director, label: "Otomatik Rejisör (iRacing kamerasını yayında kendiliğinden yönetmek)", group: "Araçlar", defaultPro: true, hint: "Rust da denetler · PRO değilse kamera komutu gönderilmez" },
   { key: F.dashDesigner, label: "Dashboard tasarımcısı (Direksiyon Ekranı için kendi tasarımını yapmak)", group: "Araçlar", defaultPro: true, hint: "Tasarımı overlay'de kullanmak ayrıca: Overlay'ler › Direksiyon Ekranı › Görünüm › Özel tasarım" },
   { key: F.dashRemote, label: "Uzak gösterge (direksiyon ekranını telefon / tabletten açmak: /dash)", group: "Araçlar", defaultPro: true, hint: "Rust da denetler · yerel web sunucusundaki /dash sayfası ve verisi" },
   // Canlı Sohbet (tek kanal okuma, moderasyon, görünüm ve kayıt tutmak herkese açık). Giriş zorunluluğu ve sekme gizleme

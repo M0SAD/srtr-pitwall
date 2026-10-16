@@ -6087,12 +6087,23 @@ button.ovpal-lock:hover {
 .dir-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  min-width: 280px;
+  gap: 12px;
+}
+.dir-pair small {
+  display: block;
+  margin-bottom: 4px;
 }
 .dir-adv {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   margin: 6px 0;
+}
+.dir-panel .f2 {
+  margin: 10px 0;
+}
+.dir-panel .f2-cap small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
 }

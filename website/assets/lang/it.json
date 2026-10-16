@@ -1441,6 +1441,10 @@
  "ov_tvfastest_d": "Un banner viola “FASTEST LAP” quando qualcuno fa il giro più veloce.",
  "ov_tvfastest_h": "Generale, di ogni classe o solo la mia classe|Logo, nome, team, numero e tempo sul giro|Guadagno sul miglior tempo precedente (-0.231)|Visibile per qualche secondo, poi sparisce da solo",
  "ovg_tvfastest": "Appena qualcuno fa il giro più veloce della sessione o della sua classe, entra un banner TV viola “FASTEST LAP”: posizione, logo, nome, team, numero, tempo sul giro e guadagno sul miglior tempo precedente. Sparisce da solo dopo qualche secondo. Generale, il più veloce di ogni classe o solo la tua; titolo e colore modificabili. Scegli tu quando appare: al suo evento, sempre, ogni pochi minuti o solo in gara; si regolano il tempo massimo a schermo e l'attesa prima di riapparire.",
- "fx_ex7_t": "Regia automatica",
- "fx_ex7_d": "Gestisce da sola la telecamera iRacing in diretta: la griglia dalla pole prima del via, TV Mixed alla bandiera verde; leader, prime posizioni, duelli e col tempo tutte le auto. Stacca subito sugli incidenti, funziona anche nei replay."
+ "fx_ex7_t": "Regia automatica (PRO)",
+ "fx_ex7_d": "Gestisce da sola la telecamera iRacing in diretta: la griglia dalla pole prima del via, TV Mixed alla bandiera verde; leader, prime posizioni, duelli e col tempo tutte le auto. Stacca subito sugli incidenti, funziona anche nei replay.",
+ "ov_tvpodium_n": "Risultato gara TV",
+ "ov_tvpodium_d": "Un podio come in TV a fine gara: i primi tre sui gradini, neutrale.",
+ "ov_tvpodium_h": "Vincitore al centro, secondo a sinistra, terzo a destra; altezza in base alla posizione|Logo, nome, team, bandiera, numero e distacco|I tuoi dati non sono mai mostrati (neutrale)|Si apre con ritardo quando le prime auto finiscono, poi sparisce",
+ "ovg_tvpodium": "Una grafica del podio come in TV a fine gara: i primi tre sui gradini, il vincitore al centro, il secondo a sinistra, il terzo a destra. Per ognuno logo, nome, team, bandiera, numero e distacco dal vincitore. È neutrale: i tuoi dati non compaiono. Dopo la bandiera a scacchi si apre quando è arrivato il numero di auto scelto, dopo il ritardo impostato; resta per un po’ e poi sparisce."
 }

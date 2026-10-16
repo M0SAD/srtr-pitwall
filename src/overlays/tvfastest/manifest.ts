@@ -7,7 +7,11 @@ export default defineOverlay({
   description:
     "Biri oturumun (ya da sınıfının) en hızlı turunu attığında TV'deki gibi mor “FASTEST LAP” bandı çıkar: logo, ad, numara, tur süresi ve önceki en iyiye göre kazanç. Birkaç saniye sonra kaybolur.",
   category: "stream",
-  topics: [{ name: "standings", hz: 2 }],
+  topics: [
+    { name: "standings", hz: 2 },
+    { name: "session", hz: 1 },
+    { name: "status", hz: 1 },
+  ],
   size: { w: 560, h: 70 },
   defaultPosition: { x: 680, y: 140 },
   defaultEnabled: false,

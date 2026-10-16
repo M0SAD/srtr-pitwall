@@ -1,5 +1,5 @@
 import { defineOverlay } from "@/sdk/overlay";
-import { tvShowSettings } from "@/sdk/tvkit";
+import { finishSettings, tvShowSettings } from "@/sdk/tvkit";
 
 export default defineOverlay({
   id: "tvresults",
@@ -20,6 +20,9 @@ export default defineOverlay({
     { key: "title", label: "Etkinlik adı", type: "text", default: "", placeholder: "SUZUKA 1000KM", group: "Başlık", hint: "Boş bırakılırsa pist adı yazılır." },
     { key: "trackText", label: "Pist yazısı (boş: simdeki pist)", type: "text", default: "", placeholder: "SUZUKA", group: "Başlık" },
     ...tvShowSettings({ autoLabel: "Damalı bayraktan sonra", maxSecs: 60, showSecs: 30, everyMin: 10, once: { label: "Yarış sonunda ekranda kalma", hint: "Damalı bayraktan sonra bu kadar görünür, sonra kaybolur ve o yarışta tekrar çıkmaz. 0: oturum bitene kadar ekranda kalır." } }),
+    ...finishSettings(),
+    { key: "afterPodium", label: "TV Yarış Sonucu'ndan sonra aç", type: "boolean", default: true, group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] }, hint: "TV Yarış Sonucu (podyum) da açıksa önce podyum gösterilir, o kapanınca sonuç tablosu açılır (kule → podyum → sonuç tablosu)." },
+    { key: "highlightMe", label: "Kendi satırımı vurgula", type: "boolean", default: false, hint: "Kapalıyken tablo tarafsızdır (TV'deki gibi)." },
     { key: "perPage", label: "Sayfadaki satır", type: "number", default: 20, min: 5, max: 30, step: 1, ui: "stepper" },
     { key: "pageSecs", label: "Sayfa değişme süresi", type: "number", default: 10, min: 3, max: 60, step: 1, unit: "sn" },
     {
@@ -45,6 +48,18 @@ export default defineOverlay({
     },
     { key: "showTeam", label: "Takım sütunu", type: "boolean", default: true, hint: "Takım adı yoksa aracın adı yazılır." },
     { key: "drivers", label: "Sürücü sütunu sayısı", type: "number", default: 3, min: 1, max: 3, step: 1, ui: "stepper" },
+    {
+      key: "nameFormat",
+      label: "Sürücü adı",
+      type: "select",
+      default: "initial",
+      options: [
+        { value: "initial", label: "A. SOYAD" },
+        { value: "full", label: "AD SOYAD (tam ad)" },
+        { value: "last", label: "SOYAD" },
+      ],
+      hint: "Tam ad uzunsa sürücü sütunu sayısını azaltmak adların sığmasını kolaylaştırır.",
+    },
     { key: "showLogos", label: "Marka logoları", type: "boolean", default: true },
     { key: "showBest", label: "En iyi tur sütunu", type: "boolean", default: false },
     { key: "accent", label: "Ana renk", type: "color", default: "#d4151d", group: "Görünüm" },

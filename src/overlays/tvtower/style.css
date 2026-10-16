@@ -13,7 +13,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 52px 96px;
   align-items: stretch;
-  height: 40px;
+  min-height: 40px;
 }
 .tvt-title {
   display: flex;
@@ -64,10 +64,15 @@
   font-weight: 700;
 }
 .tvt-track > span:first-child {
+  /* Uzun pist adı alt alta iki satıra sığar */
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.08;
 }
 .tvt-flag img,
 .tvt-flag .ov-flag {
@@ -76,7 +81,7 @@
 }
 .tvt-sub {
   display: grid;
-  grid-template-columns: 52px 1fr 54px;
+  grid-template-columns: minmax(52px, auto) 1fr 54px;
   align-items: stretch;
   height: 28px;
   margin-top: 2px;
@@ -89,6 +94,8 @@
   color: #111;
   font-weight: 700;
   font-size: 0.92em;
+  padding: 0 5px;
+  white-space: nowrap;
 }
 .tvt-over {
   display: flex;
