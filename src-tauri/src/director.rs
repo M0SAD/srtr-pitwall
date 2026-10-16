@@ -37,6 +37,8 @@ pub struct Cfg {
     /// Bitişte ilk N araç çizgiye yaklaşırken kamerayı onlara çevir (beyaz bayraktan itibaren)
     pub finish_focus: bool,
     pub finish_top: i32,
+    /// İlk N bitirdikten sonra da bitiş çizgisine gelen (henüz bitirmemiş) araçları göster: herkes bitirene kadar
+    pub finish_all: bool,
     pub battle_gap: f32,
     pub manual_pause: f32,
     /// PRO özelliği kilitli (PRO değil): çalışmaz
@@ -61,6 +63,7 @@ impl Default for Cfg {
             grid_shot: 4.0,
             finish_focus: true,
             finish_top: 3,
+            finish_all: true,
             battle_gap: 1.0,
             manual_pause: 20.0,
             locked: false,
@@ -89,6 +92,7 @@ impl Cfg {
         c.grid_shot = f("gridShot", c.grid_shot).clamp(2.0, 30.0);
         c.finish_focus = v.get("finishFocus").and_then(|x| x.as_bool()).unwrap_or(true);
         c.finish_top = f("finishTop", c.finish_top as f32).clamp(1.0, 10.0) as i32;
+        c.finish_all = v.get("finishAll").and_then(|x| x.as_bool()).unwrap_or(true);
         c.battle_gap = f("battleGap", c.battle_gap).clamp(0.2, 3.0);
         c.manual_pause = f("manualPause", c.manual_pause).clamp(0.0, 300.0);
         c
@@ -393,14 +397,16 @@ impl Director {
             }
             self.fin_hold = None;
         }
-        let mut best: Option<(usize, f32)> = None;
+        let mut best: Option<(usize, f32, bool)> = None;
         for i in 0..MAX_CARS {
             let c = &f.cars[i];
             if !crate::calc::active(f, s, i) || self.fin_done[i] || c.on_pit || c.pct < 0.0 {
                 continue;
             }
-            // Damalı bayraktan önce yalnızca lider (son turda); sonra ilk N
-            let ok = if checkered { (1..=cfg.finish_top).contains(&c.position) } else { c.position == 1 };
+            // Damalı bayraktan önce yalnızca lider (son turda); sonra önce ilk N, çizgiye gelen ilk N yoksa (finish_all)
+            // bitirmemiş diğer araçlar: herkes çizgiyi geçene kadar
+            let top = (1..=cfg.finish_top).contains(&c.position);
+            let ok = if checkered { top || (cfg.finish_all && c.position > 0) } else { c.position == 1 };
             if !ok {
                 continue;
             }
@@ -411,8 +417,16 @@ impl Director {
                 .or_else(|| (c.best > 10.0).then_some(c.best))
                 .unwrap_or(100.0);
             let ttl = (1.0 - c.pct) * lap;
-            if ttl < LEAD && best.map(|b| ttl < b.1).unwrap_or(true) {
-                best = Some((i, ttl));
+            if ttl >= LEAD {
+                continue;
+            }
+            // İlk N'den biri çizgiye geliyorsa o önce
+            let better = match best {
+                None => true,
+                Some((_, bt, btop)) => (top && !btop) || (top == btop && ttl < bt),
+            };
+            if better {
+                best = Some((i, ttl, top));
             }
         }
         best.map(|b| b.0)
@@ -750,7 +764,7 @@ mod tests {
         let mut f = frame(8);
         f.session_state = 4;
         let mut d = Director::default();
-        let cfg = Cfg { enabled: true, ..Default::default() };
+        let cfg = Cfg { enabled: true, finish_all: false, ..Default::default() };
         let mut out = Rec(vec![]);
         // Son tur (beyaz bayrak), lider çizgiye 5 sn uzakta
         f.session_flags = 0x2;
@@ -781,6 +795,13 @@ mod tests {
         d.last_step = Instant::now() - Duration::from_secs(1);
         d.step(&f, &s, &cfg, true, &mut out);
         assert_ne!(d.status.kind, "finish", "3. henüz uzakta, 4. ilk 3'te değil");
+        // Herkes bitirene kadar: 4. araç da gösterilir
+        let cfg = Cfg { enabled: true, finish_all: true, ..Default::default() };
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "finish");
+        assert_eq!(d.cur.unwrap().idx, 3);
     }
 
     #[test]

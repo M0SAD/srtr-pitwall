@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-364
+
+- Otomatik Rejisör, bitiş: ilk araçlar bitirdikten sonra da bitiş çizgisine gelen, henüz bitirmemiş araçlara geçer; herkes çizgiyi geçene kadar sürer. Çizgiye gelen ilk N araç her zaman önce gösterilir. Ayar: "Herkes bitirene kadar göster" (varsayılan açık).
+- TV Sonuç Tablosu yarış bitince açılır: pistteki bütün araçlar bitiş çizgisini geçince (2 dk kimse geçmezse ya da soğuma turuna geçilince de) ve "Sonra kaç saniye beklesin" kadar sonra. Ayar: "Yarış bitince aç (herkes bitirince)" (varsayılan açık; kapalıysa eskisi gibi araç sayısı). Podyum açıksa ikisi de beklenir: kule → podyum → (herkes bitince) sonuç tablosu.
+
 ## 161026-363
 
 - Tekrar izlerken lider/sıralama tablolarında en iyi ve son tur, yarışın SONUNDAKİ değerleri gösteriyordu (iRacing tekrarda bu süreleri oturum sonundan verir). Artık turlar tekrar kafasının zamanından hesaplanır: tablo izlenen tura kadar atılan turları gösterir; geri sarınca ilerideki turlar silinir, ileri/geri sarınca bir sonraki tam tura kadar o araç için süre yoktur.

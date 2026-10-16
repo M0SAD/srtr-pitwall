@@ -398,25 +398,46 @@ export function withDefaults(m: OverlayManifest, opts: () => Record<string, unkn
 export function useFinishReady(o: () => Record<string, unknown>, rows: () => Row[], state: () => number, race: () => boolean = () => true) {
   let snap: Map<number, number> | null = null;
   const done = new Set<number>();
+  let lastDone = 0;
   const [readyAt, setReadyAt] = createSignal(0);
+  // Herkesin bitirmesi beklenirken son bitiren üzerinden zaman geçti mi diye ara ara bakılır
+  const [tick, setTick] = createSignal(0);
+  const iv = window.setInterval(() => setTick((x) => x + 1), 2000);
+  onCleanup(() => clearInterval(iv));
   createEffect(() => {
+    tick();
     const st = state();
     const l = rows();
     if (st < 5) {
       snap = null;
       done.clear();
+      lastDone = 0;
       if (readyAt()) setReadyAt(0);
       return;
     }
     if (!snap) {
       snap = new Map(l.map((r) => [r.idx, r.lapsDone ?? 0]));
       if (l[0]) done.add(l[0].idx);
+      lastDone = Date.now();
     }
-    for (const r of l) if ((r.lapsDone ?? 0) > (snap.get(r.idx) ?? 1e9)) done.add(r.idx);
+    for (const r of l)
+      if (!done.has(r.idx) && (r.lapsDone ?? 0) > (snap.get(r.idx) ?? 1e9)) {
+        done.add(r.idx);
+        lastDone = Date.now();
+      }
+    if (readyAt()) return;
+    // Soğuma turu (6): yarış bitti (bitirenler sayılamasa da, ör. uygulama yarış bitince açıldı)
+    if (st >= 6) return void setReadyAt(Date.now());
+    if (!race()) return void setReadyAt(Date.now());
+    if (o().waitAll === true) {
+      // Herkes bitirdi: pistte bitirmemiş (pitte / garajda olmayan) araç kalmadı; ya da 2 dk kimse bitirmedi
+      const left = l.filter((r) => !done.has(r.idx) && !r.onPit && r.pitState !== "GAR" && r.pitState !== "PIT");
+      if (!left.length || Date.now() - lastDone > 120_000) setReadyAt(Date.now());
+      return;
+    }
     // Sıralama / antrenman: damalı bayrak oturumun sonu; bitiren sayısı beklenmez
-    const need = race() ? Math.max(1, Math.min(l.length || 1, Number(o().finishers) || 1)) : 1;
-    // Soğuma turu (6): bitirenler sayılamasa da (uygulama yarış bitince açıldı) aç
-    if (!readyAt() && (done.size >= need || st >= 6)) setReadyAt(Date.now());
+    const need = Math.max(1, Math.min(l.length || 1, Number(o().finishers) || 1));
+    if (done.size >= need) setReadyAt(Date.now());
   });
   return () => readyAt() > 0 && Date.now() - readyAt() >= Math.max(0, Number(o().openDelay) || 0) * 1000;
 }
@@ -429,7 +450,10 @@ export const [podiumMounted, setPodiumMounted] = createSignal(0);
 export const [podiumDoneAt, setPodiumDoneAt] = createSignal(0);
 
 /** Yarış sonu açılış ayarları (TV Sonuç Tablosu, TV Yarış Sonucu) */
-export const finishSettings = (): SettingField[] => [
-  { key: "finishers", label: "Kaç araç bitirince açılsın", type: "number", default: 3, min: 1, max: 20, step: 1, ui: "stepper", group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] }, hint: "Damalı bayrağı bu kadar araç geçince sayaç başlar (lider dahil)." },
+export const finishSettings = (waitAll = false): SettingField[] => [
+  ...(waitAll
+    ? [{ key: "waitAll", label: "Yarış bitince aç (herkes bitirince)", type: "boolean", default: true, group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] }, hint: "Bitiş çizgisini pistteki bütün araçlar geçince açılır (2 dk kimse geçmezse de açılır). Kapalıysa aşağıdaki araç sayısı kadar bitiren yeter." } as SettingField]
+    : []),
+  { key: "finishers", label: "Kaç araç bitirince açılsın", type: "number", default: 3, min: 1, max: 20, step: 1, ui: "stepper", group: "Ne zaman görünsün", showIf: waitAll ? { key: "waitAll", is: [false] } : { key: "show", is: ["auto"] }, hint: "Damalı bayrağı bu kadar araç geçince sayaç başlar (lider dahil)." },
   { key: "openDelay", label: "Sonra kaç saniye beklesin", type: "number", default: 15, min: 0, max: 180, step: 1, unit: "sn", group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] } },
 ];

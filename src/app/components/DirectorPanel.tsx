@@ -156,6 +156,13 @@ export function DirectorPanel() {
           <div class="f2-cap">{t("Bitişte kaç araç gösterilsin")}</div>
           <Slider value={cfg().finishTop} min={1} max={10} onInput={(v) => set("finishTop", v)} />
         </div>
+        <div class="row">
+          <div>
+            <b>{t("Herkes bitirene kadar göster")}</b>
+            <small>{t("İlk araçlar bitirdikten sonra da bitiş çizgisine gelen, yarışı henüz bitirmemiş araçlara geçer; çizgiye gelen ilk araçlar her zaman önce gösterilir.")}</small>
+          </div>
+          <Switch checked={cfg().finishAll} onChange={(v) => set("finishAll", v)} />
+        </div>
       </Show>
       <div class="row">
         <div>

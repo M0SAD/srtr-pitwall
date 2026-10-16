@@ -85,7 +85,7 @@ export default function TvResults(props: OverlayProps) {
     o: opts,
     event: () =>
       String(opts().show || "auto") === "auto"
-        ? (session()?.state ?? 0) >= 5 && (afterPodium() ? podiumDoneAt() > 0 && Date.now() - podiumDoneAt() >= 1000 : finishReady())
+        ? (session()?.state ?? 0) >= 5 && (afterPodium() ? podiumDoneAt() > 0 && Date.now() - podiumDoneAt() >= 1000 && finishReady() : finishReady())
         : true,
     editing: () => !!props.editing,
     sample,

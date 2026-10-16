@@ -43,6 +43,7 @@ export interface DirectorCfg {
   /** Bitişte ilk N araç çizgiye yaklaşırken kamerayı onlara çevir */
   finishFocus: boolean;
   finishTop: number;
+  finishAll: boolean;
   /** Mücadele sayılan fark (sn) */
   battleGap: number;
   /** Elle kamera değişince bekleme (sn) */
@@ -64,6 +65,7 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   gridShot: 4,
   finishFocus: true,
   finishTop: 3,
+  finishAll: true,
   battleGap: 1,
   manualPause: 20,
 };
