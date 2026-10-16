@@ -159,7 +159,7 @@ export const voiceSetRole = (room: string, user: string, role: "admin" | "mod" |
 /** minutes: null = kalıcı yasak, 0 = sadece çıkar */
 export const voiceKick = (room: string, user: string, minutes: number | null) => rpc("voice_kick", { p_room: room, p_user: user, p_minutes: minutes });
 export const voiceUnban = (room: string, user: string) => rpc("voice_unban", { p_room: room, p_user: user });
-export const voiceHeartbeat = (room: string, leave = false) => rpc<boolean>("voice_heartbeat", { p_room: room, p_leave: leave });
+export const voiceHeartbeat = (room: string, leave = false) => rpc<boolean | null>("voice_heartbeat", { p_room: room, p_leave: leave });
 
 // ---- SFU aracısı (Edge Function "voice-sfu")
 export interface SfuSdp {

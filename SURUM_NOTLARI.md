@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-345
+
+Supabase'de `c124_guncelleme.sql` çalıştırılmalı.
+
+- Düzeltme: ses odasında bir süre sonra kişi diğerlerine odadan çıkmış gibi görünüyor, sesler gelmeye devam etse de kendi sesi gitmiyordu. Sebep: bağlantı kısa süre kopup kendiliğinden geri gelince odadaki "buradayım" kaydı yenilenmiyordu; uzun süre yanıt veremeyince de sunucudaki ses oturumu siliniyordu. Artık: kanal yeniden bağlanınca kayıt hemen yenilenir; 15 sn'de bir bekçi kanalı ve kaydı denetler (eksikse yeniler, kanal kapalıysa yeniden bağlanır); sunucudaki oturum kaybolmuşsa uygulama birkaç saniyede sessizce yeniden bağlanır. Bağlantı nabzı 30 yerine 20 sn'de bir.
+
 ## 161026-344
 
 - Ses ayarları › Yayın (OBS): ses odasındaki konuşmalar kulaklığa gitmeye devam ederken ayrıca seçilen ikinci bir aygıta (ör. ücretsiz VB-Audio Virtual Cable) da gönderilir; OBS'te "Ses Girişi Yakalama" ile o aygıt alınır. Oyun ve masaüstü sesinden ayrı, kendi ses ayarıyla. Kişi başı ses ve "benim için sustur" yayına da uygulanır. Kurulum adımları sayfada yazar. (OBS'in "Uygulama Ses Yakalama"sı programın sesini alamayabiliyor: ses WebView2'nin ayrı işleminden çalıyor.)

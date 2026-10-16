@@ -15,7 +15,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { session } from "@/cloud/supabase";
 import { profile } from "@/cloud/account";
-import { realtime } from "@/cloud/social";
+import { realtime, realtimeKeepAlive } from "@/cloud/social";
 import { inTauri } from "@/sdk/platform";
 import { uiPref } from "@/sdk/settings";
 import { t } from "@/sdk/i18n";
@@ -501,11 +501,20 @@ async function joinChannel(name: string) {
   });
   await new Promise<void>((resolve, reject) => {
     const to = window.setTimeout(() => reject(new Error(t("Oda kanalına bağlanılamadı"))), 12000);
+    let first = true;
     c.subscribe((st) => {
       if (st === "SUBSCRIBED") {
-        clearTimeout(to);
-        resolve();
-      } else if (st === "CHANNEL_ERROR" || st === "TIMED_OUT") {
+        if (first) {
+          first = false;
+          clearTimeout(to);
+          resolve();
+        } else if (chan === c) {
+          // Bağlantı koptu ve kanal yeniden katıldı: sunucudaki presence kaydı gitti, yeniden bildir
+          lastPresence = "";
+          void trackPresence();
+        }
+      } else if ((st === "CHANNEL_ERROR" || st === "TIMED_OUT") && first) {
+        first = false;
         clearTimeout(to);
         reject(new Error(t("Oda kanalına bağlanılamadı")));
       }
@@ -516,6 +525,32 @@ async function joinChannel(name: string) {
 }
 
 let lastPresence = "";
+let chanBad = 0;
+async function watchdog() {
+  if (status() !== "connected" || !chan) return;
+  // Gizli pencerede gecikmiş kalp atışını gönder, kopmuş soketi yeniden kur, oturum anahtarını tazele
+  await realtimeKeepAlive().catch(() => {});
+  const c = chan;
+  const st = (c as unknown as { state?: string }).state;
+  if (st && st !== "joined" && st !== "joining") {
+    // İki kontrol üst üste kanal kapalı / hatalıysa baştan bağlan
+    if (++chanBad >= 2) {
+      chanBad = 0;
+      retries = 0;
+      scheduleReconnect();
+    }
+    return;
+  }
+  chanBad = 0;
+  if (st !== "joined") return;
+  // Presence'ta ben yoksam (ya da eski oturumumla görünüyorsam) yeniden bildir
+  const ps = c.presenceState() as Record<string, { s?: string }[]>;
+  const mine = ps[uid()];
+  if (!mine?.some((m) => m.s === sid)) {
+    lastPresence = "";
+    await trackPresence();
+  }
+}
 async function trackPresence() {
   if (!chan) return;
   const body = {
@@ -627,10 +662,17 @@ function startLoops() {
     window.setInterval(() => void refreshState(), 10_000),
     window.setInterval(async () => {
       const r = room();
-      if (!r) return;
+      if (!r || status() !== "connected") return;
       const ok = await voiceHeartbeat(r.id).catch(() => true);
       if (ok === false) void kicked(t("Odadan çıkarıldın"));
-    }, 30_000),
+      // c124: oturum kaydım sunucuda yok (uzun süre yanıt veremedi ve silindi): diğerleri sesimi alamaz → yeniden bağlan
+      else if (ok === null) {
+        retries = 0;
+        scheduleReconnect();
+      }
+    }, 20_000),
+    // Bekçi: oda kanalı ve presence kaydım canlı mı (yoksa diğerleri beni odadan çıkmış görür ve sesimi çekmez)
+    window.setInterval(() => void watchdog(), 15_000),
     // Overlay için (söz süresi, durum); konuşma göstergesi ölçerden anında gider
     window.setInterval(() => pushOverlay(false), 1000),
   );
