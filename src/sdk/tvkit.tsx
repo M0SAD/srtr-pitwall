@@ -262,6 +262,7 @@ export function tvShowSettings(cfg: {
   hideBeforeGreen?: boolean;
   /** Damalı bayraktan sonra gizle; undefined: ayar yok */
   hideAfterFinish?: boolean;
+  finishHint?: string;
   /** Olay başına bir kez: süre dolunca olay bitene dek tekrar çıkmaz (bekleme ayarı yok); süre ayarının adı / açıklaması */
   once?: { label: string; hint: string };
 }): SettingField[] {
@@ -312,7 +313,7 @@ export function tvShowSettings(cfg: {
   if (cfg.hideBeforeGreen !== undefined)
     f.push({ key: "hideBeforeGreen", label: "Yeşil bayraktan önce gizle", type: "boolean", default: cfg.hideBeforeGreen, hint: "Gridde ve ısınma turunda görünmez; yarış başlayınca çıkar.", group: G_SHOW });
   if (cfg.hideAfterFinish !== undefined)
-    f.push({ key: "hideAfterFinish", label: "Damalı bayraktan sonra gizle", type: "boolean", default: cfg.hideAfterFinish, hint: "Yarış bitince ekrandan kalkar (sonuç tablosuna yer açılır).", group: G_SHOW });
+    f.push({ key: "hideAfterFinish", label: "Damalı bayraktan sonra gizle", type: "boolean", default: cfg.hideAfterFinish, hint: cfg.finishHint ?? "Yarış bitince ekrandan kalkar (sonuç tablosuna yer açılır).", group: G_SHOW });
   return f;
 }
 
@@ -440,6 +441,30 @@ export function useFinishReady(o: () => Record<string, unknown>, rows: () => Row
     if (done.size >= need) setReadyAt(Date.now());
   });
   return () => readyAt() > 0 && Date.now() - readyAt() >= Math.max(0, Number(o().openDelay) || 0) * 1000;
+}
+
+/** Damalı bayraktan sonra yarışı bitiren araçlar (idx kümesi): bayrak anında lider + turu artanlar */
+export function useFinishedCars(rows: () => Row[], state: () => number) {
+  let snap: Map<number, number> | null = null;
+  const [done, setDone] = createSignal<ReadonlySet<number>>(new Set());
+  createEffect(() => {
+    const st = state();
+    const l = rows();
+    if (st < 5) {
+      snap = null;
+      if (done().size) setDone(new Set<number>());
+      return;
+    }
+    if (!snap) {
+      snap = new Map(l.map((r) => [r.idx, r.lapsDone ?? 0]));
+      if (l[0]) setDone(new Set([l[0].idx]));
+    }
+    const cur = done();
+    let add: number[] | null = null;
+    for (const r of l) if (!cur.has(r.idx) && (r.lapsDone ?? 0) > (snap.get(r.idx) ?? 1e9)) (add ??= []).push(r.idx);
+    if (add) setDone(new Set([...cur, ...add]));
+  });
+  return (idx: number | undefined) => idx !== undefined && done().has(idx);
 }
 
 /**

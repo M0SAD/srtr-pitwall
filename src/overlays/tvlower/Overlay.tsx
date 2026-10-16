@@ -3,7 +3,7 @@ import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
-import { TvLogo, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
+import { TvLogo, upper, useFinishReady, useFinishedCars, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { MapCar, Row } from "@/sdk/types";
 import manifest from "./manifest";
 import "./style.css";
@@ -137,7 +137,9 @@ export default function TvLower(props: OverlayProps) {
   });
   // Otomatik Rejisör kazaya kesti: kameradaki aracın bandı hemen çıkar, "INCIDENT" etiketiyle (ikinci bant yok)
   const incident = () => !sample() && (info() as { camKind?: string }).camKind === "incident" && o().incidentTag !== false;
-  const other = () => (incident() ? undefined : pairOn() || sample() ? otherRaw() : undefined);
+  // Yarışı bitiren araç gösterilirken yalnızca o: ikinci bant kapalı
+  const isFinished = useFinishedCars(rows, () => ses()?.state ?? 0);
+  const other = () => (incident() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
   // Ekranda soldaki: geride olan (kovalayan), sağdaki: önde olan (TV'deki gibi)
   const pair = createMemo(() => {
     const f = focus();
@@ -157,6 +159,7 @@ export default function TvLower(props: OverlayProps) {
     const m = String(x.mode || "always");
     return { ...x, show: m === "camchange" ? "auto" : m, camSecs: x.camSecs ?? x.showSecs };
   };
+  const allDone = useFinishReady(() => ({ waitAll: true, openDelay: 0 }), rows, () => ses()?.state ?? 0, () => /race/i.test(info().session || ""));
   const visible = useTvVisible({
     o: opts,
     event: () => {
@@ -166,6 +169,8 @@ export default function TvLower(props: OverlayProps) {
     },
     editing: () => !!props.editing,
     sample,
+    // Damalı bayraktan sonra bitirenler de gösterilir: band herkes yarışı bitirince kalkar
+    finished: allDone,
   });
 
   // Hız / fren geçmişi (diğer araçlar için fren tahmini: belirgin yavaşlama)

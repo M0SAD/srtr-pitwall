@@ -92,6 +92,6 @@ export default defineOverlay({
     { key: "accent", label: "Ana renk", type: "color", default: "#d4151d", group: "Görünüm" },
     { key: "scale", label: "Boyut", type: "number", default: 100, min: 60, max: 200, step: 5, unit: "%", group: "Görünüm" },
     ...tvShowSettings({ showSecs: 30, everyMin: 5, hideAfterFinish: true }),
-    { key: "hideAfterN", label: "Kaç araç bitirince kalksın", type: "number", default: 3, min: 1, max: 20, step: 1, ui: "stepper", group: "Ne zaman görünsün", showIf: { key: "hideAfterFinish", is: [true] }, hint: "Damalı bayraktan sonra bu kadar araç çizgiyi geçince kule kaybolur (daha az araç varsa hepsi geçince)." },
+    { key: "hideAfterN", label: "Kaç araç bitirince kalksın", type: "number", default: 0, min: 0, max: 20, step: 1, ui: "stepper", group: "Ne zaman görünsün", showIf: { key: "hideAfterFinish", is: [true] }, hint: "0: herkes yarışı bitirince (pistteki bütün araçlar bitiş çizgisini geçince, 2 dk kimse geçmezse de) kule kaybolur. 1 ve üstü: damalı bayraktan sonra bu kadar araç çizgiyi geçince." },
   ],
 });

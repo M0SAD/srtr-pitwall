@@ -168,7 +168,7 @@ export default function TvTower(props: OverlayProps) {
     return f === "full" ? 160 : f === "initial" ? 120 : 100;
   };
   // Damalı bayraktan sonra ilk N araç (araç sayısı azsa hepsi) çizgiyi geçince kalkar
-  const finished = useFinishReady(() => ({ finishers: Number(o().hideAfterN) || 1, openDelay: 0 }), rows, () => ses()?.state ?? 0, () => isRaceSession(info().session));
+  const finished = useFinishReady(() => ({ finishers: Number(o().hideAfterN) || 1, waitAll: !(Number(o().hideAfterN) > 0), openDelay: 0 }), rows, () => ses()?.state ?? 0, () => isRaceSession(info().session));
   const visible = useTvVisible({ o, event: () => rows().length > 0, editing: () => !!props.editing, sample, finished });
 
   return (

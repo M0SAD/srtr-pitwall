@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-365
+
+- TV Sıralama Kulesi: "Kaç araç bitirince kalksın" artık 0 olabilir ve varsayılanı 0: herkes yarışı bitirince (pistteki bütün araçlar bitiş çizgisini geçince ya da 2 dk kimse geçmezse) kule kaybolur. 1 ve üstü eskisi gibi o kadar araç bitirince.
+
+- TV Sürücü Bandı: damalı bayrakta hemen kalkmıyor, herkes yarışı bitirince kalkıyor ("Damalı bayraktan sonra gizle" açıkken). Yarışı bitirmiş bir araç gösterilirken yanındaki ikinci bant kapalı, yalnızca o araç.
+
 ## 161026-364
 
 - Otomatik Rejisör, bitiş: ilk araçlar bitirdikten sonra da bitiş çizgisine gelen, henüz bitirmemiş araçlara geçer; herkes çizgiyi geçene kadar sürer. Çizgiye gelen ilk N araç her zaman önce gösterilir. Ayar: "Herkes bitirene kadar göster" (varsayılan açık).
