@@ -6029,3 +6029,70 @@ button.ovpal-lock:hover {
   font-size: 12.5px;
   line-height: 1.5;
 }
+
+/* Araçlar › Otomatik Rejisör */
+.dir-panel .row b svg {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.15em;
+  margin-right: 4px;
+}
+.dir-live {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.dir-live .btn {
+  margin-left: auto;
+}
+.dir-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6b7080;
+  flex: none;
+}
+.dir-live.on .dir-dot {
+  background: #e3151f;
+  box-shadow: 0 0 0 0 rgba(227, 21, 31, 0.6);
+  animation: dir-rec 1.6s infinite;
+}
+@keyframes dir-rec {
+  70% {
+    box-shadow: 0 0 0 8px rgba(227, 21, 31, 0);
+  }
+}
+.dir-kind {
+  font-weight: 700;
+  color: var(--accent, #ff7a1a);
+}
+.dir-bar {
+  width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.dir-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent, #ff7a1a);
+}
+.dir-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-width: 280px;
+}
+.dir-adv {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0;
+}

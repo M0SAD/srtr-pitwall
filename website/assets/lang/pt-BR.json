@@ -1440,5 +1440,7 @@
  "ov_tvfastest_n": "Volta mais rápida TV",
  "ov_tvfastest_d": "Uma faixa roxa “FASTEST LAP” quando alguém marca a volta mais rápida.",
  "ov_tvfastest_h": "Geral, de cada classe ou só da minha classe|Logo, nome, equipe, número e tempo de volta|Ganho sobre o melhor anterior (-0.231)|Aparece por alguns segundos e some sozinha",
- "ovg_tvfastest": "Assim que alguém marca a volta mais rápida da sessão ou da classe, entra uma faixa roxa de TV “FASTEST LAP”: posição, logo, nome, equipe, número, tempo de volta e o ganho sobre o melhor anterior. Some sozinha após alguns segundos. Escolha geral, a mais rápida de cada classe ou só a sua; título e cor editáveis. Você escolhe quando aparece: no próprio evento, sempre, a cada poucos minutos ou só na corrida; dá para ajustar o tempo máximo na tela e a espera antes de voltar."
+ "ovg_tvfastest": "Assim que alguém marca a volta mais rápida da sessão ou da classe, entra uma faixa roxa de TV “FASTEST LAP”: posição, logo, nome, equipe, número, tempo de volta e o ganho sobre o melhor anterior. Some sozinha após alguns segundos. Escolha geral, a mais rápida de cada classe ou só a sua; título e cor editáveis. Você escolhe quando aparece: no próprio evento, sempre, a cada poucos minutos ou só na corrida; dá para ajustar o tempo máximo na tela e a espera antes de voltar.",
+ "fx_ex7_t": "Diretor automático",
+ "fx_ex7_d": "Dirige sozinho a câmera do iRacing na live: mostra o grid desde a pole antes da largada, muda para TV Mixed na bandeira verde; líder, primeiras posições, disputas e com o tempo todos os carros. Corta na hora para acidentes e funciona em replays."
 }

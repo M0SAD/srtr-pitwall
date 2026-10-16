@@ -1440,5 +1440,7 @@
  "ov_tvfastest_n": "TV-snelste ronde",
  "ov_tvfastest_d": "Een paarse „FASTEST LAP”-banner als iemand de snelste ronde rijdt.",
  "ov_tvfastest_h": "Overall, per klasse of alleen mijn klasse|Logo, naam, team, nummer en rondetijd|Winst op de vorige beste (-0.231)|Een paar seconden zichtbaar, verdwijnt vanzelf",
- "ovg_tvfastest": "Zodra iemand de snelste ronde van de sessie of zijn klasse rijdt, schuift een paarse tv-banner „FASTEST LAP” in beeld: positie, merklogo, naam, team, nummer, rondetijd en de winst op de vorige beste. Na een paar seconden verdwijnt hij vanzelf. Overall, snelste per klasse of alleen jouw klasse; titel en kleur aanpasbaar. Jij kiest wanneer het verschijnt: bij de eigen gebeurtenis, altijd, om de paar minuten of alleen in de race; maximale tijd in beeld en wachttijd voor het opnieuw verschijnt zijn instelbaar."
+ "ovg_tvfastest": "Zodra iemand de snelste ronde van de sessie of zijn klasse rijdt, schuift een paarse tv-banner „FASTEST LAP” in beeld: positie, merklogo, naam, team, nummer, rondetijd en de winst op de vorige beste. Na een paar seconden verdwijnt hij vanzelf. Overall, snelste per klasse of alleen jouw klasse; titel en kleur aanpasbaar. Jij kiest wanneer het verschijnt: bij de eigen gebeurtenis, altijd, om de paar minuten of alleen in de race; maximale tijd in beeld en wachttijd voor het opnieuw verschijnt zijn instelbaar.",
+ "fx_ex7_t": "Automatische regie",
+ "fx_ex7_d": "Regisseert de iRacing-camera op je stream zelf: de grid vanaf pole voor de start, TV Mixed bij groen; leider, kopgroep, gevechten en na verloop van tijd elke auto. Schakelt meteen naar crashes en werkt ook in herhalingen."
 }

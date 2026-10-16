@@ -40,7 +40,7 @@ export default defineOverlay({
         { value: "close", label: "Hangisi yakınsa" },
       ],
     },
-    ...tvShowSettings({ autoLabel: "Kamera başka araca geçince (birkaç saniye)", def: "always", cooldown: 0, showSecs: 15, everyMin: 3 }),
+    ...tvShowSettings({ autoLabel: "Kamera başka araca geçince (birkaç saniye)", def: "always", cooldown: 0, showSecs: 15, everyMin: 3, hideBeforeGreen: true, hideAfterFinish: true }),
     { key: "camSecs", label: "Kamera değişince ekranda kalma", type: "number", default: 8, min: 3, max: 60, step: 1, unit: "sn", showIf: { key: "show", is: ["auto"] }, group: "Ne zaman görünsün" },
     {
       key: "gauge",

@@ -7,6 +7,7 @@ import * as I from "../icons";
 import { go, sub } from "../ui";
 import { F, proLocked } from "@/sdk/proFeatures";
 import { ProLockBox, ProLockNote, ProLockTag } from "../components/ProLock";
+import { DirectorPanel } from "../components/DirectorPanel";
 
 // Dashboard Tasarımcısı ayrı parça: Araçlar sayfası açılırken yüklenmez
 const DashDesigner = lazy(() => import("@/dash/Designer").then((m) => ({ default: m.DashDesigner })));
@@ -97,6 +98,7 @@ export function ToolsPage() {
           text="Oturumun kazaları, geçişleri, pitleri ve bayrakları. Olaya tıkla, iRacing tekrarı o ana gitsin. Yarış bitince kendiliğinden açılır."
         />
       </div>
+      <DirectorPanel />
       <section class="panel">
         <h3>Direksiyon Ekranı</h3>
         <p class="muted">

@@ -1440,5 +1440,7 @@
  "ov_tvfastest_n": "Meilleur tour TV",
  "ov_tvfastest_d": "Un bandeau violet « FASTEST LAP » quand quelqu'un signe le meilleur tour.",
  "ov_tvfastest_h": "Général, chaque classe ou seulement ma classe|Logo, nom, équipe, numéro et temps au tour|Gain sur le meilleur précédent (-0.231)|Visible quelques secondes puis disparaît seul",
- "ovg_tvfastest": "Dès que quelqu'un signe le meilleur tour de la session ou de sa classe, un bandeau TV violet « FASTEST LAP » glisse à l'écran : position, logo, nom, équipe, numéro, temps au tour et gain sur le meilleur précédent. Il disparaît seul après quelques secondes. Général, meilleur de chaque classe ou seulement ta classe ; titre et couleur modifiables. Tu choisis quand il apparaît : sur son événement, toujours, toutes les quelques minutes ou seulement en course ; durée maximale à l'écran et attente avant de réapparaître réglables."
+ "ovg_tvfastest": "Dès que quelqu'un signe le meilleur tour de la session ou de sa classe, un bandeau TV violet « FASTEST LAP » glisse à l'écran : position, logo, nom, équipe, numéro, temps au tour et gain sur le meilleur précédent. Il disparaît seul après quelques secondes. Général, meilleur de chaque classe ou seulement ta classe ; titre et couleur modifiables. Tu choisis quand il apparaît : sur son événement, toujours, toutes les quelques minutes ou seulement en course ; durée maximale à l'écran et attente avant de réapparaître réglables.",
+ "fx_ex7_t": "Réalisateur automatique",
+ "fx_ex7_d": "Réalise seul la caméra iRacing du stream : la grille depuis la pole avant le départ, TV Mixed au drapeau vert ; leader, tête de course, bagarres et avec le temps toutes les voitures. Coupe aussitôt sur les accidents, fonctionne aussi en replay."
 }

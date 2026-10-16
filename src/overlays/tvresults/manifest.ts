@@ -19,7 +19,7 @@ export default defineOverlay({
   settings: [
     { key: "title", label: "Etkinlik adı", type: "text", default: "", placeholder: "SUZUKA 1000KM", group: "Başlık", hint: "Boş bırakılırsa pist adı yazılır." },
     { key: "trackText", label: "Pist yazısı (boş: simdeki pist)", type: "text", default: "", placeholder: "SUZUKA", group: "Başlık" },
-    ...tvShowSettings({ autoLabel: "Damalı bayraktan sonra", showSecs: 30, everyMin: 10 }),
+    ...tvShowSettings({ autoLabel: "Damalı bayraktan sonra", maxSecs: 60, showSecs: 30, everyMin: 10, once: { label: "Yarış sonunda ekranda kalma", hint: "Damalı bayraktan sonra bu kadar görünür, sonra kaybolur ve o yarışta tekrar çıkmaz. 0: oturum bitene kadar ekranda kalır." } }),
     { key: "perPage", label: "Sayfadaki satır", type: "number", default: 20, min: 5, max: 30, step: 1, ui: "stepper" },
     { key: "pageSecs", label: "Sayfa değişme süresi", type: "number", default: 10, min: 3, max: 60, step: 1, unit: "sn" },
     {

@@ -36,7 +36,7 @@ export default defineOverlay({
       ],
     },
     { key: "minSecs", label: "Ekranda en az kalma", type: "number", default: 8, min: 3, max: 60, step: 1, unit: "sn" },
-    ...tvShowSettings({ autoLabel: "Mücadele olunca", maxSecs: 30, cooldown: 30, raceOnly: true }),
+    ...tvShowSettings({ autoLabel: "Mücadele olunca", maxSecs: 30, cooldown: 30, raceOnly: true, hideBeforeGreen: true, hideAfterFinish: true }),
     { key: "showGraph", label: "Fark grafiği", type: "boolean", default: true },
     { key: "title", label: "Başlık", type: "text", default: "", placeholder: "BATTLE FOR P{0}", hint: "{0} yerine sıra yazılır." },
     { key: "accent", label: "Ana renk", type: "color", default: "#d4151d", group: "Görünüm" },

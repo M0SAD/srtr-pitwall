@@ -1440,5 +1440,7 @@
  "ov_tvfastest_n": "Najszybsze okrążenie TV",
  "ov_tvfastest_d": "Fioletowy pasek „FASTEST LAP”, gdy ktoś zrobi najszybsze okrążenie.",
  "ov_tvfastest_h": "Ogólnie, w każdej klasie lub tylko w mojej klasie|Logo, imię i nazwisko, zespół, numer i czas okrążenia|Zysk względem poprzedniego najlepszego (-0.231)|Widoczny kilka sekund, znika sam",
- "ovg_tvfastest": "Gdy tylko ktoś zrobi najszybsze okrążenie sesji lub swojej klasy, wjeżdża fioletowy pasek TV „FASTEST LAP”: pozycja, logo, imię i nazwisko, zespół, numer, czas okrążenia i zysk względem poprzedniego najlepszego. Po kilku sekundach znika. Ogólnie, najszybsze w każdej klasie lub tylko w twojej; tytuł i kolor do zmiany. Sam wybierasz, kiedy się pojawia: przy swoim zdarzeniu, zawsze, co kilka minut lub tylko w wyścigu; ustawisz maksymalny czas na ekranie i odstęp przed ponownym pokazaniem."
+ "ovg_tvfastest": "Gdy tylko ktoś zrobi najszybsze okrążenie sesji lub swojej klasy, wjeżdża fioletowy pasek TV „FASTEST LAP”: pozycja, logo, imię i nazwisko, zespół, numer, czas okrążenia i zysk względem poprzedniego najlepszego. Po kilku sekundach znika. Ogólnie, najszybsze w każdej klasie lub tylko w twojej; tytuł i kolor do zmiany. Sam wybierasz, kiedy się pojawia: przy swoim zdarzeniu, zawsze, co kilka minut lub tylko w wyścigu; ustawisz maksymalny czas na ekranie i odstęp przed ponownym pokazaniem.",
+ "fx_ex7_t": "Automatyczny reżyser",
+ "fx_ex7_d": "Sam prowadzi kamerę iRacing na streamie: przed startem pola startowe od pole position, po zielonej fladze TV Mixed; lider, czołówka, walki i z czasem każde auto. Od razu przełącza na wypadki, działa też w powtórkach."
 }

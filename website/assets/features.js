@@ -67,6 +67,7 @@ const EXTRAS = [
   ["🌍", "fx_ex2"],
   ["🖥️", "fx_ex3"],
   ["🎬", "fx_ex4"],
+  ["🎥", "fx_ex7"],
   ["🧪", "fx_ex5"],
   ["🔄", "fx_ex6"],
 ];
@@ -631,6 +632,8 @@ addDict({
   fx_ex3_d: ["Pitwall Paneli, Live Timing ve Mühendis Ekranı: ikinci monitör ya da takım mühendisin için ayrı pencereler.", "Pitwall Panel, Live Timing and Engineer Screen: separate windows for a second monitor or your team engineer."],
   fx_ex4_t: ["Olaylar ve replay", "Events and replay"],
   fx_ex4_d: ["Yarış bitince olaylar listesi açılır: kazalar, geçişler, pit girişleri. Birine tıkla, iRacing replay'i o ana atlasın.", "When the race ends the events list opens: incidents, overtakes, pit stops. Click one and the iRacing replay jumps to that moment."],
+  fx_ex7_t: ["Otomatik Rejisör", "Auto Director"],
+  fx_ex7_d: ["iRacing yayınında kamerayı kendisi yönetir: başlamadan gridi pole'dan sırayla gösterir, yeşil bayrakta TV Mixed'e geçer; lider, ön sıralar, mücadeleler ve zamanla bütün araçlar. Kaza olunca hemen oraya keser, tekrarda da çalışır.", "Directs the iRacing camera on stream by itself: shows the grid from pole before the start, switches to TV Mixed at the green flag; the leader, front runners, battles and over time every car. Cuts straight to crashes, and works in replays too."],
   fx_ex5_t: ["Demo modu", "Demo mode"],
   fx_ex5_d: ["Oyunu açmadan bütün overlay'leri canlı veriyle dene, düzenini hazırla.", "Try every overlay with live-looking data and build your layout without starting the game."],
   fx_ex6_t: ["Hafif ve güncel", "Lightweight and up to date"],

@@ -1,12 +1,13 @@
 /* TV Sıralama Kulesi */
 .tvt {
-  width: 330px;
+  width: max(330px, calc(var(--tvt-name, 100px) + 132px));
   font-size: 13px;
 }
 /* GT World Challenge kulesi: başlık geniş, gövde dar (sıra | logo | soyad | numara | fark) */
 .tvt-sub,
 .tvt-list {
-  width: 228px;
+  /* sıra 26 + logo 24 + ad + numara 28 + fark 54 */
+  width: calc(var(--tvt-name, 100px) + 132px);
 }
 .tvt-head {
   display: grid;
@@ -113,7 +114,7 @@
 }
 .tvt-row {
   display: grid;
-  grid-template-columns: 26px 24px minmax(0, 1fr) 28px 54px;
+  grid-template-columns: 26px 24px var(--tvt-name, 100px) 28px 54px;
   align-items: stretch;
   height: 19px;
   margin-top: 1px;

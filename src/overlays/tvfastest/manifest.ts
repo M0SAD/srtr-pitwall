@@ -24,7 +24,7 @@ export default defineOverlay({
       ],
     },
     { key: "secs", label: "Ekranda kalma", type: "number", default: 7, min: 3, max: 30, step: 1, unit: "sn", showIf: { key: "show", is: ["auto"] } },
-    ...tvShowSettings({ autoLabel: "Yeni en hızlı tur atılınca", cooldown: 0 }),
+    ...tvShowSettings({ autoLabel: "Yeni en hızlı tur atılınca", cooldown: 0, hideBeforeGreen: true, hideAfterFinish: true }),
     { key: "title", label: "Başlık", type: "text", default: "", placeholder: "FASTEST LAP" },
     { key: "color", label: "Renk", type: "color", default: "#8e2bff", group: "Görünüm" },
     { key: "scale", label: "Boyut", type: "number", default: 100, min: 50, max: 200, step: 5, unit: "%", group: "Görünüm" },

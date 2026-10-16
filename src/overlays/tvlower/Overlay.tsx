@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { For, Index, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
@@ -141,7 +141,7 @@ export default function TvLower(props: OverlayProps) {
 
   return (
     <div class="tv tvl" classList={{ off: !visible() }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
-      <For each={pair()}>{(r, i) => <Band r={r} mine={r.isMe} side={pair().length < 2 ? "mid" : i() === 0 ? "left" : "right"} />}</For>
+      <Index each={pair()}>{(r, i) => <Band r={r()} mine={r().isMe} side={pair().length < 2 ? "mid" : i === 0 ? "left" : "right"} />}</Index>
     </div>
   );
 

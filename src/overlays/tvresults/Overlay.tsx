@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { For, Index, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
@@ -77,6 +77,7 @@ export default function TvResults(props: OverlayProps) {
     event: () => (String(opts().show || "auto") === "auto" ? (session()?.state ?? 0) >= 5 : true),
     editing: () => !!props.editing,
     sample,
+    once: true,
   });
 
   const title = () => upper(String(o().title || "").trim() || String(o().trackText || "").trim() || info().track || "RESULTS");
@@ -97,6 +98,37 @@ export default function TvResults(props: OverlayProps) {
       .filter(Boolean)
       .join(" ");
 
+  // Satırlar Index ile: her veri güncellemesinde (2 Hz) satır yeniden kurulup giriş animasyonu baştan oynamasın
+  function ResRow(p: { r: Row }) {
+              const nc = () => numberColors(p.r, String(o().numColor || "category"));
+              const i = () => list().indexOf(p.r);
+              return (
+                <div class="tvr-row" classList={{ me: p.r.isMe }}>
+                  <span class="tv-pos tvr-pos">{posOf(p.r)}</span>
+                  <Show when={o().showLogos !== false}>
+                    <TvLogo carName={p.r.carName} class="tvr-logo" />
+                  </Show>
+                  <Show when={o().showTeam !== false}>
+                    <span class="tvr-team" classList={{ long: (p.r.team || p.r.carName || "").length > 22, xlong: (p.r.team || p.r.carName || "").length > 28 }}>
+                      {upper(p.r.team || p.r.carName || "")}
+                    </span>
+                  </Show>
+                  <span class="tvr-drivers">
+                    <For each={driversOf(p.r)}>{(d) => <span>{d}</span>}</For>
+                  </span>
+                  <span class="tv-num tvr-num" style={{ background: nc().bg, color: nc().fg }}>
+                    {p.r.number}
+                  </span>
+                  <Show when={o().showBest}>
+                    <span class="tvr-best" classList={{ purple: p.r.classBest }}>
+                      {p.r.best > 0 ? lapTime(p.r.best) : "—"}
+                    </span>
+                  </Show>
+                  <span class="tvr-gap">{resultGap(p.r, i(), info().leaderLap)}</span>
+                </div>
+              );
+            }
+
   return (
     <Show when={visible() && list().length}>
       <div
@@ -110,37 +142,7 @@ export default function TvResults(props: OverlayProps) {
           <small>{sub()}</small>
         </div>
         <div class="tvr-list">
-          <For each={shown()}>
-            {(r) => {
-              const nc = () => numberColors(r, String(o().numColor || "category"));
-              const i = () => list().indexOf(r);
-              return (
-                <div class="tvr-row" classList={{ me: r.isMe }}>
-                  <span class="tv-pos tvr-pos">{posOf(r)}</span>
-                  <Show when={o().showLogos !== false}>
-                    <TvLogo carName={r.carName} class="tvr-logo" />
-                  </Show>
-                  <Show when={o().showTeam !== false}>
-                    <span class="tvr-team" classList={{ long: (r.team || r.carName || "").length > 22, xlong: (r.team || r.carName || "").length > 28 }}>
-                      {upper(r.team || r.carName || "")}
-                    </span>
-                  </Show>
-                  <span class="tvr-drivers">
-                    <For each={driversOf(r)}>{(d) => <span>{d}</span>}</For>
-                  </span>
-                  <span class="tv-num tvr-num" style={{ background: nc().bg, color: nc().fg }}>
-                    {r.number}
-                  </span>
-                  <Show when={o().showBest}>
-                    <span class="tvr-best" classList={{ purple: r.classBest }}>
-                      {r.best > 0 ? lapTime(r.best) : "—"}
-                    </span>
-                  </Show>
-                  <span class="tvr-gap">{resultGap(r, i(), info().leaderLap)}</span>
-                </div>
-              );
-            }}
-          </For>
+          <Index each={shown()}>{(r) => <ResRow r={r()} />}</Index>
         </div>
         <Show when={pages() > 1}>
           <div class="tvr-pages">

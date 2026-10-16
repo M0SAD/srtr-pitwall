@@ -11,7 +11,7 @@ export default defineOverlay({
     { name: "standings", hz: 2 },
     { name: "session", hz: 1 },
   ],
-  size: { w: 340, h: 560 },
+  size: { w: 360, h: 560 },
   defaultPosition: { x: 50, y: 30 },
   defaultEnabled: false,
   settings: [
@@ -76,12 +76,13 @@ export default defineOverlay({
         { value: "full", label: "AD SOYAD" },
       ],
     },
+    { key: "nameWidth", label: "Ad sütunu genişliği", type: "number", default: 0, min: 0, max: 320, step: 5, unit: "px", hint: "0: otomatik (ad biçimine göre: SOYAD 100, A. SOYAD 120, AD SOYAD 160 px). Uzun adlar sığmazsa büyüt." },
     { key: "showLogos", label: "Marka logoları", type: "boolean", default: true },
     { key: "highlightCam", label: "İzlenen aracı vurgula", type: "boolean", default: true },
     { key: "showMeAlways", label: "Listede yoksam altta kendimi göster", type: "boolean", default: true },
     { key: "flash", label: "Sıra değişince satır yanıp sönsün", type: "boolean", default: true },
     { key: "accent", label: "Ana renk", type: "color", default: "#d4151d", group: "Görünüm" },
     { key: "scale", label: "Boyut", type: "number", default: 100, min: 60, max: 200, step: 5, unit: "%", group: "Görünüm" },
-    ...tvShowSettings({ showSecs: 30, everyMin: 5 }),
+    ...tvShowSettings({ showSecs: 30, everyMin: 5, hideAfterFinish: true }),
   ],
 });

@@ -74,6 +74,12 @@ pub fn camera_to_car(number: &str) -> Result<(), String> {
     send(msg::CAM_SWITCH_NUM, pad_car_num(number), make_long(0, 0))
 }
 
+/// Kamerayı araca ve kamera grubuna çevir (Otomatik Rejisör). `group` 0 = mevcut grup kalsın.
+pub fn camera_to_car_group(number: &str, group: i32) -> Result<(), String> {
+    let g = group.clamp(0, u16::MAX as i32) as u16;
+    send(msg::CAM_SWITCH_NUM, pad_car_num(number), make_long(g, 0))
+}
+
 /// ReplaySearchSessionTime(sessionNum, sessionTimeMS): var1 = oturum no, lParam = 32 bit ms
 fn search_params(session_num: i32, time_s: f64) -> (u16, isize) {
     let ms = (time_s.max(0.0) * 1000.0).min(i32::MAX as f64) as i32;

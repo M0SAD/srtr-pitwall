@@ -1440,5 +1440,7 @@
  "ov_tvfastest_n": "TV-nopein kierros",
  "ov_tvfastest_d": "Violetti ”FASTEST LAP” -palkki, kun joku ajaa session nopeimman kierroksen.",
  "ov_tvfastest_h": "Kokonais-, jokaisen luokan oma tai vain oma luokkani|Logo, nimi, tiimi, numero ja kierrosaika|Parannus edelliseen parhaaseen (-0.231)|Näkyy muutaman sekunnin ja katoaa itsestään",
- "ovg_tvfastest": "Heti kun joku ajaa session tai luokkansa nopeimman kierroksen, ruutuun liukuu violetti TV-palkki ”FASTEST LAP”: sija, merkin logo, nimi, tiimi, numero, kierrosaika ja parannus edelliseen parhaaseen. Se katoaa itsestään muutaman sekunnin kuluttua. Kokonais-, jokaisen luokan nopein tai vain oma luokkasi; otsikko ja väri muutettavissa. Sinä valitset, milloin se näkyy: omassa tapahtumassaan, aina, muutaman minuutin välein tai vain kisassa; enimmäisaika ruudulla ja odotus ennen uutta näyttämistä ovat säädettävissä."
+ "ovg_tvfastest": "Heti kun joku ajaa session tai luokkansa nopeimman kierroksen, ruutuun liukuu violetti TV-palkki ”FASTEST LAP”: sija, merkin logo, nimi, tiimi, numero, kierrosaika ja parannus edelliseen parhaaseen. Se katoaa itsestään muutaman sekunnin kuluttua. Kokonais-, jokaisen luokan nopein tai vain oma luokkasi; otsikko ja väri muutettavissa. Sinä valitset, milloin se näkyy: omassa tapahtumassaan, aina, muutaman minuutin välein tai vain kisassa; enimmäisaika ruudulla ja odotus ennen uutta näyttämistä ovat säädettävissä.",
+ "fx_ex7_t": "Automaattiohjaaja",
+ "fx_ex7_d": "Ohjaa iRacingin kameraa lähetyksessä itse: ennen lähtöä ruudukko paalulta, vihreällä TV Mixed; kärki, kärkipää, taistot ja ajan mittaan kaikki autot. Leikkaa heti kolareihin, toimii myös uusinnoissa."
 }

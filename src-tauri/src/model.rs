@@ -400,6 +400,8 @@ pub struct SessionData {
     pub setup_name: String,
     /// iRacing DriverInfo.DriverSetupIsModified: yüklenen setup garajda değiştirildi (kaydedilmedi)
     pub setup_modified: bool,
+    /// iRacing kamera grupları (CameraInfo › Groups): (GroupNum, GroupName)
+    pub cam_groups: Vec<(i32, String)>,
 }
 
 impl SessionData {

@@ -47,6 +47,7 @@ enum List {
     Drivers,
     Sessions,
     Tires,
+    Cams,
 }
 
 pub fn parse(yaml: &str) -> SessionData {
@@ -121,6 +122,12 @@ pub fn parse(yaml: &str) -> SessionData {
                         dash_col = usize::MAX;
                         continue;
                     }
+                    if section == "CameraInfo" && k == "Groups" {
+                        flush_driver(cur_driver.take(), &mut sd);
+                        list = List::Cams;
+                        dash_col = usize::MAX;
+                        continue;
+                    }
                     if section == "SessionInfo" && k == "Sessions" {
                         list = List::Sessions;
                         dash_col = usize::MAX;
@@ -163,6 +170,7 @@ pub fn parse(yaml: &str) -> SessionData {
                         }
                         cur_tire = Some((-1, String::new()));
                     }
+                    List::Cams => sd.cam_groups.push((-1, String::new())),
                     List::None => {}
                 }
             } else if dash_col != usize::MAX && kv_col < dash_col + 2 && ind <= dash_col {
@@ -287,6 +295,15 @@ pub fn parse(yaml: &str) -> SessionData {
                                 match k {
                                     "TireIndex" => t.0 = v.parse().unwrap_or(-1),
                                     "TireCompoundType" => t.1 = v.to_string(),
+                                    _ => {}
+                                }
+                            }
+                        }
+                        List::Cams => {
+                            if let Some(g) = sd.cam_groups.last_mut() {
+                                match k {
+                                    "GroupNum" => g.0 = v.parse().unwrap_or(-1),
+                                    "GroupName" => g.1 = v.to_string(),
                                     _ => {}
                                 }
                             }
@@ -444,6 +461,13 @@ SplitTimeInfo:
  Sectors:
  - SectorNum: 0
 ";
+
+    #[test]
+    fn parses_camera_groups() {
+        let y = "WeekendInfo:\n TrackLength: 3.00 km\nCameraInfo:\n Groups:\n - GroupNum: 1\n   GroupName: Nose\n   Cameras:\n   - CameraNum: 1\n     CameraName: CamNose\n - GroupNum: 10\n   GroupName: TV Mixed\n   IsScenic: false\n   Cameras:\n   - CameraNum: 1\n     CameraName: CamTV1\nRadioInfo:\n SelectedRadioNum: 0\n";
+        let s = parse(y);
+        assert_eq!(s.cam_groups, vec![(1, "Nose".to_string()), (10, "TV Mixed".to_string())]);
+    }
 
     #[test]
     fn parses_sample() {

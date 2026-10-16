@@ -1440,5 +1440,7 @@
  "ov_tvfastest_n": "TV-Schnellste Runde",
  "ov_tvfastest_d": "Ein lila „FASTEST LAP“-Banner, wenn jemand die schnellste Runde der Session fährt.",
  "ov_tvfastest_h": "Gesamt, jede Klasse für sich oder nur meine Klasse|Logo, Name, Team, Nummer und Rundenzeit|Gewinn gegenüber der bisherigen Bestzeit (-0.231)|Einige Sekunden sichtbar, verschwindet von selbst",
- "ovg_tvfastest": "Sobald jemand die schnellste Runde der Session oder seiner Klasse fährt, gleitet ein lila TV-Banner „FASTEST LAP“ herein: Position, Herstellerlogo, Name, Team, Nummer, Rundenzeit und der Gewinn gegenüber der bisherigen Bestzeit. Nach ein paar Sekunden verschwindet es. Gesamt, jede Klasse für sich oder nur deine Klasse; Titel und Farbe änderbar. Du wählst, wann es erscheint: bei seinem Ereignis, immer, alle paar Minuten oder nur im Rennen; maximale Einblenddauer und Wartezeit bis zur nächsten Einblendung sind einstellbar."
+ "ovg_tvfastest": "Sobald jemand die schnellste Runde der Session oder seiner Klasse fährt, gleitet ein lila TV-Banner „FASTEST LAP“ herein: Position, Herstellerlogo, Name, Team, Nummer, Rundenzeit und der Gewinn gegenüber der bisherigen Bestzeit. Nach ein paar Sekunden verschwindet es. Gesamt, jede Klasse für sich oder nur deine Klasse; Titel und Farbe änderbar. Du wählst, wann es erscheint: bei seinem Ereignis, immer, alle paar Minuten oder nur im Rennen; maximale Einblenddauer und Wartezeit bis zur nächsten Einblendung sind einstellbar.",
+ "fx_ex7_t": "Auto-Regie",
+ "fx_ex7_d": "Führt die iRacing-Kamera im Stream selbst: vor dem Start die Startaufstellung ab der Pole, bei Grün TV Mixed; Führender, Spitzengruppe, Duelle und mit der Zeit jedes Auto. Schneidet sofort auf Unfälle, funktioniert auch in Wiederholungen."
 }

@@ -217,6 +217,12 @@ export function tvShowSettings(cfg: {
   showSecs?: number;
   everyMin?: number;
   raceOnly?: boolean;
+  /** Yeşil bayraktan önce (gridde, ısınma turunda) gizle; undefined: ayar yok */
+  hideBeforeGreen?: boolean;
+  /** Damalı bayraktan sonra gizle; undefined: ayar yok */
+  hideAfterFinish?: boolean;
+  /** Olay başına bir kez: süre dolunca olay bitene dek tekrar çıkmaz (bekleme ayarı yok); süre ayarının adı / açıklaması */
+  once?: { label: string; hint: string };
 }): SettingField[] {
   const auto = !!cfg.autoLabel;
   const options = [
@@ -232,14 +238,14 @@ export function tvShowSettings(cfg: {
     f.push(
       {
         key: "maxSecs",
-        label: "Bir seferde en çok",
+        label: cfg.once?.label ?? "Bir seferde en çok",
         type: "number",
         default: cfg.maxSecs ?? 0,
         min: 0,
         max: 300,
         step: 5,
         unit: "sn",
-        hint: "0: olay sürdükçe ekranda kalır. Süre dolunca gizlenir ve bekleme süresi başlar.",
+        hint: cfg.once?.hint ?? "0: olay sürdükçe ekranda kalır. Süre dolunca gizlenir ve bekleme süresi başlar.",
         showIf: { key: "show", is: ["auto"] },
         group: G_SHOW,
       },
@@ -253,7 +259,7 @@ export function tvShowSettings(cfg: {
         step: 5,
         unit: "sn",
         hint: "Gizlendikten sonra bu süre geçmeden yeniden çıkmaz (ekran sürekli dolu olmasın).",
-        showIf: { key: "show", is: ["auto"] },
+        showIf: { key: "show", is: cfg.once ? ["__never"] : ["auto"] },
         group: G_SHOW,
       },
     );
@@ -262,6 +268,10 @@ export function tvShowSettings(cfg: {
     { key: "showSecs", label: "Her seferde ekranda kalma", type: "number", default: cfg.showSecs ?? 20, min: 3, max: 300, step: 1, unit: "sn", showIf: { key: "show", is: ["interval"] }, group: G_SHOW },
     { key: "raceOnly", label: "Sadece yarış oturumunda", type: "boolean", default: cfg.raceOnly ?? false, group: G_SHOW },
   );
+  if (cfg.hideBeforeGreen !== undefined)
+    f.push({ key: "hideBeforeGreen", label: "Yeşil bayraktan önce gizle", type: "boolean", default: cfg.hideBeforeGreen, hint: "Gridde ve ısınma turunda görünmez; yarış başlayınca çıkar.", group: G_SHOW });
+  if (cfg.hideAfterFinish !== undefined)
+    f.push({ key: "hideAfterFinish", label: "Damalı bayraktan sonra gizle", type: "boolean", default: cfg.hideAfterFinish, hint: "Yarış bitince ekrandan kalkar (sonuç tablosuna yer açılır).", group: G_SHOW });
   return f;
 }
 
@@ -269,11 +279,19 @@ export function tvShowSettings(cfg: {
  * Görünürlük durumu. `event`: overlay'in gösterecek bir şeyi var mı (auto kipinde olay; diğer kiplerde
  * gösterilecek veri var mı). Düzenleme / panel önizlemesi / demo'da her zaman görünür.
  */
-export function useTvVisible(p: { o: () => Record<string, unknown>; event: () => boolean; editing: () => boolean; sample: () => boolean }) {
+export function useTvVisible(p: {
+  o: () => Record<string, unknown>;
+  event: () => boolean;
+  editing: () => boolean;
+  sample: () => boolean;
+  /** Olay başına bir kez göster (süre dolunca olay bitene dek kapalı kalır) */
+  once?: boolean;
+}) {
   const ses = useTopic("session");
   const [now, setNow] = createSignal(Date.now());
   let shownSince = 0;
   let coolUntil = 0;
+  let spent = false;
   const [autoOn, setAutoOn] = createSignal(false);
   const mode = () => String(p.o().show || "auto");
   // auto kipi: olay başlayınca göster, en çok maxSecs, sonra cooldown kadar bekle (zamanlayıcıda güncellenir)
@@ -283,12 +301,14 @@ export function useTvVisible(p: { o: () => Record<string, unknown>; event: () =>
     const ev = p.event();
     const max = Math.max(0, Number(p.o().maxSecs) || 0) * 1000;
     const cool = Math.max(0, Number(p.o().cooldown) || 0) * 1000;
+    if (!ev) spent = false;
     if (autoOn()) {
       if (!ev || (max > 0 && n - shownSince > max)) {
         setAutoOn(false);
         coolUntil = n + cool;
+        if (ev && p.once) spent = true;
       }
-    } else if (ev && n >= coolUntil) {
+    } else if (ev && n >= coolUntil && !spent) {
       shownSince = n;
       setAutoOn(true);
     }
@@ -300,6 +320,10 @@ export function useTvVisible(p: { o: () => Record<string, unknown>; event: () =>
     if (preview()) return true;
     const m = mode();
     if (m === "never") return false;
+    // Yarış durumu (iRacing SessionState): 1-3 gridde / ısınma turunda, 4 yarış, 5 damalı bayrak, 6 soğuma turu
+    const state = ses()?.state ?? 0;
+    if (p.o().hideBeforeGreen && state >= 1 && state <= 3) return false;
+    if (p.o().hideAfterFinish && state >= 5) return false;
     if (p.o().raceOnly) {
       const st = String(ses()?.sessionType ?? "").toLowerCase();
       if (st && !st.includes("race")) return false;

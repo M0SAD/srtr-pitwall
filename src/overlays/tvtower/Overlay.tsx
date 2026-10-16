@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { Index, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { Flag } from "@/sdk/Flag";
@@ -101,10 +101,17 @@ export default function TvTower(props: OverlayProps) {
     );
   };
 
+  // Ad sütunu genişliği: ayar ya da ad biçimine göre otomatik
+  const nameW = () => {
+    const w = Number(o().nameWidth) || 0;
+    if (w > 0) return Math.max(60, w);
+    const f = String(o().nameFormat || "last");
+    return f === "full" ? 160 : f === "initial" ? 120 : 100;
+  };
   const visible = useTvVisible({ o, event: () => rows().length > 0, editing: () => !!props.editing, sample });
 
   return (
-    <div class="tv tvt" classList={{ "tv-off": !visible() }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
+    <div class="tv tvt" classList={{ "tv-off": !visible() }} style={{ "--tv-red": String(o().accent || "#d4151d"), "--tvt-name": `${nameW()}px`, zoom: String(scale()) }} data-no-i18n>
       <Show when={o().showHeader !== false}>
         <div class="tvt-head">
           <div class="tvt-title">
@@ -132,7 +139,7 @@ export default function TvTower(props: OverlayProps) {
         <span class="tvt-gaph">{gapMode() === "interval" ? "INTERVAL" : "GAP TO\nLEADER"}</span>
       </div>
       <div class="tvt-list">
-        <For each={shown()}>{(r, i) => <Line r={r} i={i()} />}</For>
+        <Index each={shown()}>{(r, i) => <Line r={r()} i={i} />}</Index>
         <Show when={extraMe()}>
           {(m) => (
             <>

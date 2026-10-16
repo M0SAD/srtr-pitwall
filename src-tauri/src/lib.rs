@@ -8,6 +8,7 @@ mod coach;
 mod crashlog;
 mod demo;
 mod device;
+mod director;
 mod dock;
 mod drivecues;
 mod engine;
@@ -856,6 +857,18 @@ fn replay_to(session_num: i32, time: f64) -> Result<(), String> {
 #[tauri::command]
 fn replay_live() -> Result<(), String> {
     broadcast::replay_live()
+}
+
+/// Otomatik Rejisör durumu (Araçlar sayfası saniyede bir sorar)
+#[tauri::command]
+fn director_status(state: State<'_, Arc<Shared>>) -> director::Status {
+    state.director_status.lock().clone()
+}
+
+/// Otomatik Rejisör: hemen sonraki çekime geç
+#[tauri::command]
+fn director_next(state: State<'_, Arc<Shared>>) {
+    state.director_next.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Tekrar izlerken sürücü adına tıklandı: canlı yayına dön ve kamerayı o araca çevir
@@ -3455,6 +3468,8 @@ pub fn run() {
             demo_set,
             edit_mode_set,
             watch_car_live,
+            director_status,
+            director_next,
             keyactivity::key_idle_ms,
             settings_backup_broken,
             frontend_error,

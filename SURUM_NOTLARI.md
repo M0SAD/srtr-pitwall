@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-352
+
+- TV Sonuç Tablosu sürekli açılıp kapanıyordu: sıralama verisi her geldiğinde (saniyede 2 kez) satırlar baştan kurulup giriş animasyonu yeniden oynuyordu. Satırlar artık yerinde güncellenir (Sıralama Kulesi ve Sürücü Bandı'nda da).
+- TV Sonuç Tablosu: "Yarış sonunda ekranda kalma" ayarı (varsayılan 60 sn): damalı bayraktan sonra bu kadar görünür, sonra kaybolur ve o yarışta tekrar çıkmaz; 0 = oturum bitene kadar.
+
+## 161026-351
+
+- Yeni: **Otomatik Rejisör** (Araçlar sayfası, iRacing). Yayında kamerayı kendisi yönetir: yarış başlamadan (gridde, ısınma turunda) araçları pole'dan başlayarak sırayla gösterir; yeşil bayrakta iRacing'in TV Mixed kamerasına geçer ve lideri, ön sıraları, mücadeleleri (fark ~1 sn altı, kovalayan araç kadrajda) gösterir, ara sıra arkadaki araçlara geçer (en uzun süredir gösterilmeyen önce: zamanla bütün araçlar ekrana gelir). Biri pistten çıkar ya da hızlıyken birden durursa hemen oraya keser. Tekrar izlerken de çalışır. Çekim süresi, kurgu oranları, kamera grubu (TV Mixed / seçtiğim / TV kameraları / TV + araç üstü), grid turu ve kaza odağı ayarlanır; "Sonraki çekim" düğmesi; kamerayı elle değiştirince 20 sn bekler. Araçta sürerken kameraya dokunmaz.
+- TV overlay'leri: "Damalı bayraktan sonra gizle" (Sıralama Kulesi, Sürücü Bandı, En Hızlı Tur, Mücadele) ve "Yeşil bayraktan önce gizle" (Sürücü Bandı, En Hızlı Tur, Mücadele) ayarları, varsayılan açık.
+- TV Sıralama Kulesi: ad sütunu genişliği ayarı; "AD SOYAD" biçiminde sütun kendiliğinden genişler (uzun adlar sığar).
+- Web sitesi: özelliklere Otomatik Rejisör eklendi.
+
 ## 161026-350
 
 - TV overlay'lerinde marka logoları kutuya sığmıyordu (ör. TV Mücadele'de Porsche armatürünün üstü / altı kesiliyordu): logolar artık oranı korunarak kutunun içine sığar; 48 logo 5 overlay'in kutu boyutlarında denendi. Web sitesindeki TV overlay görselleri yenilendi.

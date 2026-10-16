@@ -19,6 +19,50 @@ import { normalizeLook, type OverlayLook } from "./look";
 import { STANDINGS_DEFAULT_COLUMNS, STANDINGS_OLD_DEFAULT_COLUMNS } from "@/overlays/standings/manifest";
 import { RELATIVE_DEFAULT_COLUMNS, RELATIVE_OLD_DEFAULT_COLUMNS } from "@/overlays/relative/manifest";
 
+/** Otomatik Rejisör ayarları (iRacing kamerası) */
+export interface DirectorCfg {
+  enabled: boolean;
+  /** Çekim süresi (sn) */
+  minShot: number;
+  maxShot: number;
+  /** "Ön sıralar": 2..frontN */
+  frontN: number;
+  /** Kurgu ağırlıkları */
+  wLeader: number;
+  wFront: number;
+  wBattle: number;
+  wField: number;
+  wMe: number;
+  /** Kaza / pist dışına odaklan */
+  incidents: boolean;
+  /** Kamera grubu: tvmix | keep | tv | mix */
+  cams: string;
+  /** Yarış başlamadan gridi pole'dan sırayla göster */
+  gridWalk: boolean;
+  gridShot: number;
+  /** Mücadele sayılan fark (sn) */
+  battleGap: number;
+  /** Elle kamera değişince bekleme (sn) */
+  manualPause: number;
+}
+export const DIRECTOR_DEFAULT: DirectorCfg = {
+  enabled: false,
+  minShot: 8,
+  maxShot: 16,
+  frontN: 5,
+  wLeader: 25,
+  wFront: 25,
+  wBattle: 30,
+  wField: 25,
+  wMe: 0,
+  incidents: true,
+  cams: "tvmix",
+  gridWalk: true,
+  gridShot: 4,
+  battleGap: 1,
+  manualPause: 20,
+};
+
 export interface OverlayInstance {
   /** Overlay türü (manifest kimliği). Aynı türden birden fazla kopya olabilir. */
   type: string;
@@ -930,6 +974,8 @@ export interface GeneralSettings {
   eventsMinCount: number;
   /** Olaylar ekranına hangi türler kaydedilsin (Rust `general.eventsRecord` okur); others = diğer sürücülerin olayları */
   eventsRecord: { crash: boolean; pass: boolean; pit: boolean; fast: boolean; flag: boolean; others: boolean };
+  /** Otomatik Rejisör (iRacing kamerası; Rust `general.director` okur, bkz. src-tauri/src/director.rs) */
+  director: DirectorCfg;
   /** Telemetri: canlı oturumda tamamlanan turları kaydet ve hesaba yükle (Rust `general.telemetryRecord` okur) */
   telemetryRecord: boolean;
   returnFocus: boolean;
@@ -1325,6 +1371,7 @@ export function defaultSettings(): AppSettings {
       eventsAutoOpen: true,
       eventsMinCount: 0,
       eventsRecord: { crash: true, pass: true, pit: true, fast: true, flag: true, others: true },
+      director: { ...DIRECTOR_DEFAULT },
       telemetryRecord: true,
       returnFocus: true,
       shortcutOsd: true,
@@ -1487,6 +1534,7 @@ export function normalize(input: unknown): AppSettings {
         EDIT_BACKDROP_SLOTS.map((k) => [k, { ...d.general.editBackdrop, ...(s.general?.editBackdrop ?? {}), ...(s.general?.editBackdrops?.[k] ?? {}) }]),
       ) as Record<EditBackdropSlot, EditBackdrop>,
       eventsRecord: { ...d.general.eventsRecord, ...(s.general?.eventsRecord ?? {}) },
+      director: { ...DIRECTOR_DEFAULT, ...(s.general?.director ?? {}) },
       // Mesaj almayı kapatma seçeneği kaldırıldı: her zaman açık
       social: { ...d.general.social, ...(s.general?.social ?? {}), acceptMessages: true },
       perf: { ...d.general.perf, ...(s.general?.perf ?? {}) },
@@ -2162,3 +2210,4 @@ export function resolveProfile(st: Status | undefined, stream = false, forced?: 
 export function updateTheme(fn: (t: Theme) => void) {
   updateSettings((d) => fn(d.theme));
 }
+

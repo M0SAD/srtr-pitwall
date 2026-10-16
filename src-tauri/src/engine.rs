@@ -208,6 +208,9 @@ pub struct Shared {
     /// Tekrar taraması sürüyor / durdur isteği
     pub replay_scanning: AtomicBool,
     pub replay_scan_stop: AtomicBool,
+    /// Otomatik Rejisör: durum (arayüz için) ve "sonraki çekim" isteği
+    pub director_status: Mutex<crate::director::Status>,
+    pub director_next: AtomicBool,
 }
 
 const KNOWN: &[&str] = &[
@@ -379,6 +382,8 @@ struct State {
     setups: crate::setupcmp::SetupCmp,
     /// Canlı Kıyas: referans izleri ve oyuncunun süren turu (`coach` konusu)
     coach: crate::coach::Coach,
+    /// Otomatik Rejisör (iRacing kamerası)
+    director: crate::director::Director,
 }
 
 /// Tamamlanan turu arka planda yerel kuyruğa yazar ve arayüze haber verir (yükleme JS tarafında).
@@ -437,6 +442,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
         strategy: crate::strategy::Strategy::new(map_dir.clone()),
         setups: crate::setupcmp::SetupCmp::new(map_dir.clone()),
         coach: Default::default(),
+        director: Default::default(),
     };
     let app_data = map_dir.clone();
     // Telemetri kaydı ayarı (general.telemetryRecord, varsayılan açık); saniyede bir okunur
@@ -461,6 +467,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     // Olaylar penceresine son bildirilen liste sürümü ve kayıt ayarının son okunma anı
     let mut events_rev = 0u64;
     let mut last_events_cfg = crate::crashlog::past(10);
+    let mut director_cfg = crate::director::Cfg::default();
 
     // Canlı sim bağlantısı (iRacing, ACC/AC, LMU/rF2, AMS2). Bkz. sims/mod.rs
     #[cfg(windows)]
@@ -691,6 +698,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
                 last_events_cfg = Instant::now();
+                director_cfg = crate::with_settings(&app, |v| crate::director::Cfg::from_settings(v.and_then(|v| v.pointer("/general/director"))));
                 Some(crate::with_settings(&app, |v| {
                     crate::events::Record::from_settings(
                         v.and_then(|v| v.pointer("/general/eventsRecord")),
@@ -699,6 +707,18 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             } else {
                 None
             };
+            // Otomatik Rejisör: iRacing kamerasını araçtan araca geçir (yalnızca gerçek iRacing bağlantısında)
+            crate::crashlog::guard(|| {
+                if shared.director_next.swap(false, Ordering::Relaxed) {
+                    st.director.next();
+                }
+                let iracing = connected && !demo_on && !preview && st.sim == "iracing";
+                st.director.step(&st.frame, &st.session, &director_cfg, iracing, &mut crate::director::IracingOut);
+                let mut ds = shared.director_status.lock();
+                if *ds != st.director.status {
+                    *ds = st.director.status.clone();
+                }
+            });
             let hits = shared.replay_hits.lock().take();
             let (finished, ev_count, ev_rev) = crate::crashlog::guard(|| {
                 let mut ev = shared.events.lock();
@@ -1142,6 +1162,7 @@ mod publish_tests {
             strategy: crate::strategy::Strategy::new(None),
             setups: crate::setupcmp::SetupCmp::new(None),
             coach: Default::default(),
+            director: Default::default(),
         }
     }
 
