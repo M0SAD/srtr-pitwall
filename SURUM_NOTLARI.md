@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 161026-350
+
+- TV overlay'lerinde marka logoları kutuya sığmıyordu (ör. TV Mücadele'de Porsche armatürünün üstü / altı kesiliyordu): logolar artık oranı korunarak kutunun içine sığar; 48 logo 5 overlay'in kutu boyutlarında denendi. Web sitesindeki TV overlay görselleri yenilendi.
+
 ## 161026-349
 
 - Web sitesi: 5 TV overlay'inin açıklamalarına "Ne zaman görünsün" ayarları eklendi (15 dil).
