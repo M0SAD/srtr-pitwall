@@ -1151,24 +1151,6 @@ fn crew_pit_command(
     broadcast::crew_apply(&kind, &args)
 }
 
-/// Otomatik yakıt (iRacing autofuel): Genel ayarlar › "Autofuel'i otomatik aç". "#autofuel" pit makrosu iRacing
-/// sohbetine yazılır (SDK'da autofuel için pit komutu yok). Komut her zaman "aç" demektir; zaten açıksa değişmez.
-#[tauri::command]
-async fn pit_autofuel(state: State<'_, Arc<Shared>>) -> Result<(), String> {
-    let (sim, demo) = {
-        let ev = state.events.lock();
-        (ev.sim, ev.demo)
-    };
-    if demo || !state.connected.load(Ordering::Relaxed) {
-        return Err("Sürücü oyunda değil".into());
-    }
-    if !sim.is_empty() && sim != "iracing" {
-        return Err("Bu oyunda desteklenmiyor".into());
-    }
-    tauri::async_runtime::spawn_blocking(|| broadcast::chat_macro("#autofuel"))
-        .await
-        .map_err(|e| e.to_string())?
-}
 
 // ---- Ek pencereler: Pitwall ve Live Timing ----
 
@@ -1237,10 +1219,10 @@ async fn window_toggle(app: AppHandle, view: String, dock: Option<bool>) -> Resu
     // Arkadaşlar: ana pencerenin sağ kenarına yapışsın mı (arayüzdeki tercih)
     if view == "friends" {
         if let Some(on) = dock {
-            dock::set(&app, false);
+            dock::set(&app, false, false);
             if on {
                 window_open(app.clone(), view).await?;
-                dock::set(&app, true);
+                dock::set(&app, true, false);
                 return Ok(true);
             }
         }
@@ -1251,8 +1233,8 @@ async fn window_toggle(app: AppHandle, view: String, dock: Option<bool>) -> Resu
 
 /// Arkadaşlar penceresinin ana pencereye yapışma tercihi (Ayarlar › Sohbet); açıksa hemen yerleştirir
 #[tauri::command]
-fn friends_dock_set(app: AppHandle, on: bool) {
-    dock::set(&app, on);
+fn friends_dock_set(app: AppHandle, on: bool, fill: Option<bool>) {
+    dock::set(&app, on, fill.unwrap_or(false));
 }
 
 fn valid_uuid(id: &str) -> bool {
@@ -1462,6 +1444,9 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
     }
     winstate::track(&app, &win);
     if label == "friends" {
+        if saved.is_none() {
+            dock::fill_next();
+        }
         dock::watch(&app, &win);
     }
     Ok(())
@@ -1710,6 +1695,11 @@ fn bring_panel_front(app: &AppHandle) {
 
 /// Ses odasında mı (arayüz bildirir): paneli kapatma düğmesi pencereyi yok etmez, gizler
 static VOICE_ROOM_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[tauri::command]
+fn voice_room_is_active() -> bool {
+    VOICE_ROOM_ACTIVE.load(Ordering::Relaxed)
+}
 
 #[tauri::command]
 fn voice_room_active(on: bool) {
@@ -3432,7 +3422,6 @@ pub fn run() {
             replay_to,
             replay_live,
             crew_pit_command,
-            pit_autofuel,
             events_scan_replay,
             events_scan_stop,
             ibt_import,
@@ -3498,6 +3487,7 @@ pub fn run() {
             preview_freeze,
             panel_front,
             voice_room_active,
+            voice_room_is_active,
             linkpreview::link_preview,
             chat_window_notify,
             chat_tabs_take,

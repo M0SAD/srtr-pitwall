@@ -13,6 +13,14 @@ static DOCKED: AtomicBool = AtomicBool::new(false);
 static MAIN_HOOKED: AtomicBool = AtomicBool::new(false);
 /// Son yerleştirme zamanı (ms): hemen ardından gelen kendi taşıma olaylarımız yapışmayı bozmasın
 static PLACED_AT: AtomicU64 = AtomicU64::new(0);
+/// Bir sonraki yerleştirmede ana pencerenin yüksekliğini doldur (yapışma yeni açıldı / kayıtlı boyut yok).
+/// Aksi halde kullanıcının son verdiği boyut korunur (yalnız ana pencereden uzunsa kısaltılır).
+static FILL_NEXT: AtomicBool = AtomicBool::new(false);
+
+/// Pencere kayıtlı boyutu olmadan açıldı: ilk yerleştirme ana pencere boyunu doldursun
+pub fn fill_next() {
+    FILL_NEXT.store(true, Ordering::Relaxed);
+}
 
 fn now_ms() -> u64 {
     SystemTime::now()
@@ -25,9 +33,12 @@ pub fn docked() -> bool {
     DOCKED.load(Ordering::Relaxed)
 }
 
-/// Yapıştırma tercihini uygula (true: hemen yerleştir)
-pub fn set(app: &AppHandle, on: bool) {
-    DOCKED.store(on, Ordering::Relaxed);
+/// Yapıştırma tercihini uygula (true: hemen yerleştir). `fill`: kullanıcı tercihi şimdi açtı, ana pencere boyunu doldur
+pub fn set(app: &AppHandle, on: bool, fill: bool) {
+    let was = DOCKED.swap(on, Ordering::Relaxed);
+    if on && fill && !was {
+        FILL_NEXT.store(true, Ordering::Relaxed);
+    }
     if on {
         hook_main(app);
         place(app);
@@ -53,12 +64,16 @@ pub fn place(app: &AppHandle) {
     };
     let Some((p, s)) = main_rect(app) else { return };
     let cur = fw.outer_size().unwrap_or(PhysicalSize::new(380, 680));
-    // Genişlik korunur; ana pencerenin en çok %45'i (en az 300 px)
-    let w = cur.width.min((s.width as f64 * 0.45) as u32).max(300);
+    // Genişlik korunur; ana pencerenin en çok %60.ı (en az 300 px). Yükseklik: kullanıcının verdiği (ana pencereden
+    // uzun olamaz); yapışma yeni açıldıysa ana pencere boyu
+    let w = cur.width.min((s.width as f64 * 0.6) as u32).max(300);
+    let h = if FILL_NEXT.swap(false, Ordering::Relaxed) { s.height } else { cur.height.min(s.height).max(300) };
     let x = p.x + s.width as i32 - w as i32;
     PLACED_AT.store(now_ms(), Ordering::Relaxed);
     let _ = fw.set_position(PhysicalPosition::new(x, p.y));
-    let _ = fw.set_size(PhysicalSize::new(w, s.height));
+    if cur.width != w || cur.height != h {
+        let _ = fw.set_size(PhysicalSize::new(w, h));
+    }
 }
 
 /// Ana pencere taşınınca / boyutlanınca Arkadaşlar penceresi peşinden gelsin (bir kez kurulur)
@@ -94,7 +109,7 @@ pub fn watch(app: &AppHandle, w: &WebviewWindow) {
             };
             let right = fp.x + fs.width as i32;
             let main_right = p.x + s.width as i32;
-            // Sağ kenar ve üst hizası korunuyorsa (sol kenardan genişletme) yapışık kalır
+            // Sağ kenar ve üst hizası korunuyorsa (sol / alt kenardan boyutlandırma) yapışık kalır
             if (right - main_right).abs() > 8 || (fp.y - p.y).abs() > 8 {
                 DOCKED.store(false, Ordering::Relaxed);
             }

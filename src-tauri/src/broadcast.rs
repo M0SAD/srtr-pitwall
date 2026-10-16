@@ -397,6 +397,7 @@ pub fn pit_command(mode: u16, var: u16) -> Result<(), String> {
 /// iRacing sohbet / pit makrosu komutu (ör. "#autofuel"): SDK yalnızca sohbet kutusunu açabilir (ChatComand BeginChat);
 /// yazı iRacing penceresine karakter karakter (WM_CHAR) iletilir ve Enter ile gönderilir. Pencere öne gelmeden çalışır.
 /// Yalnızca "#" ile başlayan kısa pit makroları kabul edilir (serbest sohbet mesajı gönderilmez).
+#[allow(dead_code)]
 pub fn chat_macro(text: &str) -> Result<(), String> {
     if !is_pit_macro(text) {
         return Err("Geçersiz komut".into());

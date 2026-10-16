@@ -3,6 +3,22 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-368
+
+- Lider tablosu: sunucudan çıkan sürücülerin (ör. yarışı bitirip çıkanlar) en iyi ve son tur dereceleri artık silinmez; oturumda en son görülen değerleri kalır. Oturum değişince ve yarış gridinde sıfırlanır.
+
+## 161026-367
+
+- Ses odasındayken ana pencerenin çarpısına basınca konuşma kopuyordu: pencere gizlenmesi gerekirken (ayar senkronunun kapatma dinleyicisi yüzünden) yok ediliyordu. Artık ses odasındayken çarpı pencereyi yalnızca gizler; sesler ve mikrofon sürer, panel tepsiden geri açılır.
+
+- Autofuel ayarı kaldırıldı (Genel › "Autofuel'i otomatik aç"): iRacing sohbetine "#autofuel" yazmak oyunu bozuyordu.
+- Sıralama turlarında lider tablosunda dereceler görünmüyordu (sim önceki oturumdan kalan daha hızlı turu verdiği için gizleniyordu). Artık o oturumun resmi sonuçlarındaki en iyi turlar gösterilir.
+- Yarış için gride oturunca (grid / ısınma turu) lider tablosundaki dereceler sıfırlanır; yeşilden sonra yarış turlarıyla dolar.
+
+## 161026-366
+
+- Arkadaşlar penceresi son boyutuyla açılır: ana pencereye yapışıkken her açılışta yüksekliği ana pencere boyuna zorlanıyordu. Artık kullanıcının verdiği genişlik ve yükseklik korunur (yalnızca ana pencereden uzunsa kısaltılır; genişlik ana pencerenin en çok %60'ı). Ana pencere boyunu doldurma yalnızca ilk açılışta (kayıtlı boyut yokken) ve "Ana pencerenin sağına yapışsın" tercihi yeni açıldığında olur.
+
 ## 161026-365
 
 - TV Sıralama Kulesi: "Kaç araç bitirince kalksın" artık 0 olabilir ve varsayılanı 0: herkes yarışı bitirince (pistteki bütün araçlar bitiş çizgisini geçince ya da 2 dk kimse geçmezse) kule kaybolur. 1 ve üstü eskisi gibi o kadar araç bitirince.

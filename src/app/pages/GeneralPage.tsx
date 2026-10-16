@@ -565,23 +565,6 @@ function GeneralExtra() {
           </button>
         </div>
       </div>
-      <div class="row">
-        <div>
-          <b>Autofuel'i otomatik aç</b>
-          <small>Araca her bindiğinde (ve sen araçtayken yarış oturumu başlayınca) iRacing'in otomatik yakıtı (autofuel) açılır: pitte depo doldurulmaz, yarışı bitirmeye yetecek kadar yakıt alınır. iRacing sohbetine "#autofuel" komutu yazılır; ekranda bir an sohbet kutusu görünür.</small>
-        </div>
-        <div class="seg">
-          <button classList={{ on: (g().autoFuel ?? "off") === "off" }} onClick={() => set((x) => (x.autoFuel = "off"))}>
-            Kapalı
-          </button>
-          <button classList={{ on: g().autoFuel === "race" }} onClick={() => set((x) => (x.autoFuel = "race"))}>
-            Yarışlarda
-          </button>
-          <button classList={{ on: g().autoFuel === "all" }} onClick={() => set((x) => (x.autoFuel = "all"))}>
-            Her oturumda
-          </button>
-        </div>
-      </div>
     </section>
     </>
   );

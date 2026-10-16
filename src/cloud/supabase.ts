@@ -545,7 +545,12 @@ export function startAutoSync() {
       const { invoke } = await import("@tauri-apps/api/core");
       const bounded = () => Promise.race([flush().catch(() => {}), new Promise((r) => setTimeout(r, 3500))]);
       const win = getCurrentWindow();
-      await win.onCloseRequested(async () => {
+      await win.onCloseRequested(async (ev) => {
+        // Ses odasındayken ana panel yok edilmez, yalnızca gizlenir: konuşma ve sesler sürer (tepsiden geri açılır).
+        // Not: JS'te bir kapatma dinleyicisi varken Tauri, preventDefault çağrılmazsa pencereyi işleyici bitince yok eder;
+        // Rust tarafındaki prevent_close bunu durduramıyordu.
+        const keep = win.label === "main" && (await invoke<boolean>("voice_room_is_active").catch(() => false));
+        if (keep) ev.preventDefault();
         // Pencere hemen gizlenir: bekleyen ayarlar arka planda (en çok 3,5 sn) gönderilirken kullanıcı beklemesin
         // (eskiden gönderim bitene kadar pencere ekranda kalıyordu)
         await win.hide().catch(() => {});

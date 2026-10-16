@@ -937,9 +937,6 @@ export interface GeneralSettings {
   /** iRacing: araca binince pit servisindeki lastik değişimini kaldır. "race": yalnızca yarış oturumlarında, "all": her
    *  oturumda; yok / "off": kapalı (bkz. src/host/autoPit.ts) */
   autoClearTires?: "off" | "race" | "all";
-  /** iRacing: araca binince autofuel'i aç ("#autofuel" pit makrosu). "race": yalnızca yarış oturumlarında, "all": her
-   *  oturumda; yok / "off": kapalı (bkz. src/host/autoPit.ts) */
-  autoFuel?: "off" | "race" | "all";
   /** Sohbet görünümü (sadece bu kullanıcı görür; arka plan görseli ayar klasöründe dosya) */
   chatLook: ChatLook;
   /** Sohbete özel arka planlar (arkadaş hesap kimliği → arka plan) */

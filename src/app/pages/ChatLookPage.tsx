@@ -53,7 +53,7 @@ export function ChatLookPage() {
               checked={friendsDock()}
               onChange={(v) => {
                 setFriendsDock(v);
-                void invoke("friends_dock_set", { on: v }).catch(() => {});
+                void invoke("friends_dock_set", { on: v, fill: true }).catch(() => {});
               }}
             />
           </div>
