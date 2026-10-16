@@ -60,9 +60,14 @@ export default function TvResults(props: OverlayProps) {
   // Sayfa çevirme: zamanlayıcı yalnızca sayfa sayısı ya da süre değişince yeniden kurulur
   // (eskiden her veri güncellemesinde baştan kuruluyor, sayfa hiç dönmüyordu)
   const [page, setPage] = createSignal(0);
+  // Sayfa çevirme yalnızca tablo ekrandayken; her açılışta 1. sayfadan başlar (gizliyken dönmeye devam edip son
+  // sayfadan açılıyordu)
+  const [onAir, setOnAir] = createSignal(false);
   createEffect(
-    on([pages, pageMs], ([n, ms]) => {
-      if (page() >= n) setPage(0);
+    on([pages, pageMs, onAir], ([n, ms, air], prev) => {
+      if (!air) return;
+      // Yeni açıldı: 1. sayfa (kapanırken sayfa değişmesin diye sıfırlama açılışta)
+      if (!prev?.[2] || page() >= n) setPage(0);
       if (n <= 1) return;
       const timer = window.setInterval(() => {
         if (!previewFrozen()) setPage((p) => (p + 1) % pages());
@@ -93,6 +98,7 @@ export default function TvResults(props: OverlayProps) {
   });
 
   const showing = createMemo(() => visible() && list().length > 0);
+  createEffect(on(showing, (v) => setOnAir(v)));
 
   const title = () => upper(String(o().title || "").trim() || String(o().trackText || "").trim() || info().track || "RESULTS");
   const sub = () => `${upper(String(o().trackText || "").trim() || info().track || "")} - ${sessionLabel(info().session)}`.replace(/^ - /, "");

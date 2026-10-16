@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-369
+
+- TV Sonuç Tablosu her açılışta 1. sayfadan başlar (gizliyken de sayfa çevirdiği için son sayfadan açılabiliyordu); sayfalar yalnızca tablo ekrandayken döner.
+
 ## 171026-368
 
 - Lider tablosu: sunucudan çıkan sürücülerin (ör. yarışı bitirip çıkanlar) en iyi ve son tur dereceleri artık silinmez; oturumda en son görülen değerleri kalır. Oturum değişince ve yarış gridinde sıfırlanır.
