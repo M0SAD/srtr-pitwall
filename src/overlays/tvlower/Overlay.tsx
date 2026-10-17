@@ -41,9 +41,6 @@ export default function TvLower(props: OverlayProps) {
     const st = ses()?.state ?? 0;
     return st >= 1 && st <= 3 && /race/i.test(info().session || "");
   };
-  // Kamera son birkaç saniyede değiştiyse (ör. Otomatik Rejisör'ün grid turu) kameradaki araç; değilse kendi sırası
-  const [camAt, setCamAt] = createSignal(0);
-  createEffect(on(() => info().camIdx, () => setCamAt(Date.now()), { defer: true }));
   const [gridI, setGridI] = createSignal(0);
   let gridLast = Date.now();
   createEffect(() => {
@@ -63,8 +60,10 @@ export default function TvLower(props: OverlayProps) {
       if (cam) return cam;
     }
     if (preGreen() && l.length) {
+      // Gridde ekrandaki araç (rejisör grid turu bitip TV Mixed'e geçince de bant ekrandaki aracı yazar, kendi başına
+      // ikinci kez sırayla dönmez); kamera bilgisi yoksa sürücüler sırayla
       const cam = l.find((r) => r.idx === info().camIdx);
-      if (cam && tick() - camAt() < 6000) return cam;
+      if (cam) return cam;
       return l[gridI() % l.length];
     }
     if (o().focus !== "me") {

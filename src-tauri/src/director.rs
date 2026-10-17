@@ -190,6 +190,7 @@ pub struct Director {
     grid_force: bool,
     /// Grid turunda gösterilen araçlar
     grid_seen: [bool; MAX_CARS],
+    grid_sess: i32,
     pub status: Status,
 }
 
@@ -229,6 +230,7 @@ impl Default for Director {
             grid_done: false,
             grid_force: false,
             grid_seen: [false; MAX_CARS],
+            grid_sess: -1,
             fin_snap: None,
             fin_done: [false; MAX_CARS],
             fin_hold: None,
@@ -354,7 +356,10 @@ impl Director {
             .unwrap_or(false);
         // Tekrarda da: kasetteki an grid / ısınma turuysa (SessionState tekrarın o anını verir)
         let pre = race && (1..=3).contains(&f.session_state);
-        if !pre && !self.grid_force {
+        // Grid turu oturum başına bir kez: durum bir an değişse (grid → ısınma turu, tekrar kafası) baştan başlamaz;
+        // yalnızca yeni oturumda ya da "Baştan başlat" ile
+        if f.session_num != self.grid_sess {
+            self.grid_sess = f.session_num;
             self.grid_done = false;
             self.grid_seen = [false; MAX_CARS];
         }

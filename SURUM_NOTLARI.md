@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-382
+
+- Grid turu oturum başına bir kez: durum bir an değişse de (grid → ısınma turu vb.) baştan başlamaz; yalnızca yeni oturumda ya da "Baştan başlat" ile. TV Sürücü Bandı gridde her zaman ekrandaki aracı yazar (rejisör TV Mixed'e geçince bant kendi başına ikinci kez sırayla dönmez).
+
 ## 171026-381
 
 - Grid turu düzeltildi: araçlar lider tablosundaki sırayla (aynı sıralama) birer kez gösterilir. Gridde olmayan (garajda / pitte / henüz yüklenmemiş) araç atlanır; sonradan gride gelirse sırası gelince gösterilir. Önceden, araçlar gride yüklenirken tur birkaç araçla bitip TV Mixed'e geçebiliyordu.
