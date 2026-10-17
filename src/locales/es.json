@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Reintentar",
   "Tekrar görünmeden önce bekleme": "Espera antes de volver a mostrarse",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "También visible al ver una repetición (aunque esté activado el ajuste general «Ocultar overlays al ver repeticiones»).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Al ver una repetición, al cortar a un incidente se rebobina 3 s antes, para ver el accidente desde el principio. En directo no se puede rebobinar; la cámara cambia cuando ocurre.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Comando de repetición enviado ({0}); no se pudo verificar porque iRacing no informó de la posición de la repetición",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "La repetición no fue a ese momento: debes estar en la pantalla de repetición de iRacing (bájate del coche) y ese momento debe estar en la cinta",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "Durante las repeticiones (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) los overlays se ocultan solos y vuelven al regresar al directo.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Desactivado: la línea solo se dibuja si hay algún coche que mostrar. Con «Mostrar mi fila», tu fila sustituye a la línea.",
   "TEPE": "PICO",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La trazada solo está disponible en vueltas importadas desde un archivo .ibt (los datos en vivo no tienen posición).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Muestra los coches uno a uno ahora mismo desde la P1 (cada uno el tiempo de «Por coche en el recorrido de parrilla», con cámara frontal); al terminar vuelve a la realización normal."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Muestra los coches uno a uno ahora mismo desde la P1 (cada uno el tiempo de «Por coche en el recorrido de parrilla», con cámara frontal); al terminar vuelve a la realización normal.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Al ver una repetición, al cortar a un incidente se rebobina 5 s antes, para ver el accidente desde el principio. En directo no se puede rebobinar; la cámara cambia cuando ocurre."
 }

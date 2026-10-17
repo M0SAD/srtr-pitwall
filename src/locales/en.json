@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Try again",
   "Tekrar görünmeden önce bekleme": "Wait before showing again",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "Also visible while watching a replay (even if the general \"Hide overlays while watching replays\" setting is on).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "While watching a replay, cutting to an incident rewinds the replay to 3 s before it, so the crash is seen from the start. Live sessions can’t be rewound; the camera cuts when it happens.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Replay command sent ({0}); could not be verified because iRacing did not report the replay position",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "Replay did not go to that moment: you must be on the iRacing replay screen (get out of the car) and that moment must be on the tape",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "During replays (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlays hide automatically and come back when you return to live.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "When off, the line is only drawn while there is a car to show. With \"Show my row\" on, your row is shown instead of the line.",
   "TEPE": "PEAK",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "The racing line is only available for laps imported from an .ibt file (live data has no position).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Shows the cars one by one right away, starting from P1 (each for the \"Per car during the grid walk\" time, with a front camera); returns to normal directing once everyone has been shown."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Shows the cars one by one right away, starting from P1 (each for the \"Per car during the grid walk\" time, with a front camera); returns to normal directing once everyone has been shown.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "While watching a replay, cutting to an incident rewinds the replay to 5 s before it, so the crash is seen from the start. Live sessions can’t be rewound; the camera cuts when it happens."
 }

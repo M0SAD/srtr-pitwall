@@ -204,7 +204,7 @@ export function DirectorPanel() {
         <div class="row">
           <div>
             <b>{t("Tekrarda kazayı baştan göster")}</b>
-            <small>{t("Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.")}</small>
+            <small>{t("Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.")}</small>
           </div>
           <Switch checked={cfg().incidentRewind} onChange={(v) => set("incidentRewind", v)} />
         </div>

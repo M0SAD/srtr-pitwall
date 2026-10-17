@@ -66,7 +66,7 @@ impl Default for Cfg {
             incidents: true,
             cams: "tvmix".into(),
             grid_walk: true,
-            grid_shot: 6.0,
+            grid_shot: 5.0,
             finish_focus: true,
             fastest_focus: true,
             incident_rewind: true,
@@ -159,6 +159,8 @@ pub struct Director {
     fastest_at: Option<Instant>,
     /// Kurgunun başladığı an (hiç gösterilmeyen araçların bekleme süresi buradan sayılır)
     born: Instant,
+    /// Bekleyen çekim (araç, tür, süre, ne zamandan beri)
+    pending: Option<(usize, &'static str, f32, Instant)>,
     /// Beyaz bayrak (son tur) liderin önüne çıktı: lider bir süre gösterilir
     white_seen: bool,
     /// Pit yolu: önceki karede pitte miydi, son pit çekimi
@@ -186,6 +188,8 @@ pub struct Director {
     grid_done: bool,
     /// Elle başlatılan grid turu (ayarlardaki düğme): yeşilden sonra da bir kez bütün araçlar
     grid_force: bool,
+    /// Grid turunda gösterilen araçlar
+    grid_seen: [bool; MAX_CARS],
     pub status: Status,
 }
 
@@ -204,6 +208,7 @@ impl Default for Director {
             fast_best: (-1, -1.0),
             fastest_at: None,
             born: Instant::now(),
+            pending: None,
             white_seen: false,
             prev_pit: [false; MAX_CARS],
             pit_shot_at: None,
@@ -223,6 +228,7 @@ impl Default for Director {
             was_grid: false,
             grid_done: false,
             grid_force: false,
+            grid_seen: [false; MAX_CARS],
             fin_snap: None,
             fin_done: [false; MAX_CARS],
             fin_hold: None,
@@ -276,6 +282,8 @@ impl Director {
     /// Grid turunu baştan başlat: araçlar 1. sıradan itibaren sırayla (bir kez), sonra normal kurgu
     pub fn restart_grid(&mut self) {
         self.grid_force = true;
+        self.force_next = true;
+        self.grid_seen = [false; MAX_CARS];
         self.grid_done = false;
         self.was_grid = false;
         self.grid_i = 0;
@@ -346,37 +354,46 @@ impl Director {
             .unwrap_or(false);
         // Tekrarda da: kasetteki an grid / ısınma turuysa (SessionState tekrarın o anını verir)
         let pre = race && (1..=3).contains(&f.session_state);
-        if !pre {
+        if !pre && !self.grid_force {
+            self.grid_done = false;
+            self.grid_seen = [false; MAX_CARS];
+        }
+        // Grid turu: araçlar ön sıradan geriye, her biri bir kez. Gridde sonradan yerini alan (geç yüklenen) araç da
+        // sırası gelince gösterilir; herkes gösterilince yeşile kadar TV Mixed.
+        let order = if pre || self.grid_force { Self::grid_order(f, s) } else { Vec::new() };
+        let next_unseen = order.iter().copied().find(|&i| !self.grid_seen[i]);
+        if self.grid_done && cfg.grid_walk && pre && next_unseen.is_some() && !self.grid_force {
             self.grid_done = false;
         }
         let grid = (cfg.grid_walk && pre && !self.grid_done) || self.grid_force;
         if grid {
             if !self.was_grid {
-                self.grid_i = 0;
                 self.cur = None;
             }
             self.was_grid = true;
             let elapsed = self.cur.map(|c| now.duration_since(c.start).as_secs_f32()).unwrap_or(f32::MAX);
-            let order = Self::grid_order(f, s);
             if !order.is_empty() && (self.force_next || self.cur.map(|c| elapsed >= c.len).unwrap_or(true)) {
-                if self.grid_i >= order.len() {
-                    // Herkes gösterildi: yeşile kadar TV Mixed (normal kurgu)
-                    self.grid_done = true;
-                    self.grid_force = false;
-                    self.was_grid = false;
-                    self.cur = None;
-                    self.force_next = false;
-                } else {
-                    let idx = order[self.grid_i];
-                    self.grid_i += 1;
-                    if let Some(number) = s.driver(idx).map(|d| d.car_number.clone()).filter(|n| !n.is_empty()) {
-                        // Aracı önden gösteren kamera
-                        let g = self.grid_group(s, cfg);
-                        out.switch(&number, g.0);
-                        self.group = g;
-                        self.sent = Some((idx as i32, now));
-                        self.cur = Some(Shot { idx, kind: "grid", start: now, len: cfg.grid_shot });
-                        self.last_shown[idx] = Some(now);
+                match next_unseen {
+                    None => {
+                        // Herkes gösterildi: yeşile kadar TV Mixed (normal kurgu)
+                        self.grid_done = true;
+                        self.grid_force = false;
+                        self.was_grid = false;
+                        self.cur = None;
+                        self.force_next = false;
+                    }
+                    Some(idx) => {
+                        self.grid_seen[idx] = true;
+                        self.grid_i = order.iter().position(|&x| x == idx).map(|p| p + 1).unwrap_or(0);
+                        if let Some(number) = s.driver(idx).map(|d| d.car_number.clone()).filter(|n| !n.is_empty()) {
+                            // Aracı önden gösteren kamera
+                            let g = self.grid_group(s, cfg);
+                            out.switch(&number, g.0);
+                            self.group = g;
+                            self.sent = Some((idx as i32, now));
+                            self.cur = Some(Shot { idx, kind: "grid", start: now, len: cfg.grid_shot });
+                            self.last_shown[idx] = Some(now);
+                        }
                     }
                 }
             }
@@ -438,13 +455,13 @@ impl Director {
             // Yeni en hızlı tur: o araç birkaç saniye (kaza çekimi sürüyorsa onu bölmez)
             let busy = self.cur.map(|c| c.kind == "incident" && elapsed < 10.0).unwrap_or(false);
             if !busy && self.cur.map(|c| c.idx != fi || c.kind != "fastest").unwrap_or(true) {
-                pick = Some((fi, "fastest", 9.0));
+                pick = Some((fi, "fastest", 10.0));
             }
         } else if let Some(pi) = pit_in {
             // Pite giren araç: kaza / bitiş / en hızlı tur çekimini bölmez
             let busy = self.cur.map(|c| matches!(c.kind, "incident" | "fastest" | "finish") && elapsed < c.len).unwrap_or(false);
             if !busy && self.cur.map(|c| c.idx != pi).unwrap_or(true) {
-                pick = Some((pi, "pit", 8.0));
+                pick = Some((pi, "pit", 10.0));
                 self.pit_shot_at = Some(now);
             }
         }
@@ -487,6 +504,27 @@ impl Director {
                 }
             }
         }
+        // Çok hızlı kesme olmasın: bir çekim en az 6 sn ekranda kalır (kaza, bitiş, elle "sonraki" ve görünmez olan araç hariç)
+        // Bekletilen pit çekimi (önceki kesmeye çok yakındı): 8 sn içinde sırası gelince
+        if pick.is_none() {
+            if let Some((pi, k, l, at)) = self.pending {
+                if now.duration_since(at) > Duration::from_secs(8) {
+                    self.pending = None;
+                } else if elapsed >= 6.0 {
+                    pick = Some((pi, k, l));
+                    self.pending = None;
+                }
+            }
+        }
+        if let Some((pi, kind, len)) = pick {
+            let urgent = matches!(kind, "incident" | "finish" | "fastest") || self.force_next || !cur_ok;
+            if !urgent && self.cur.is_some() && elapsed < 6.0 {
+                if kind == "pit" {
+                    self.pending = Some((pi, kind, len, now));
+                }
+                pick = None;
+            }
+        }
         self.force_next = false;
         if let Some((idx, kind, len)) = pick {
             let number = s.driver(idx).map(|d| d.car_number.clone()).unwrap_or_default();
@@ -499,9 +537,9 @@ impl Director {
                 };
                 out.switch(&number, group.0);
                 self.cam_at = now;
-                // Tekrar izlerken: olaydan 3 sn öncesine sar, kaza baştan görünsün (canlıda geri sarılamaz)
+                // Tekrar izlerken: olaydan 5 sn öncesine sar, kaza baştan görünsün (canlıda geri sarılamaz)
                 if kind == "incident" && cfg.incident_rewind && crate::calc::replay_watch(f) && self.inc_t > 0.0 {
-                    out.rewind(f.replay_session_num, (self.inc_t - 3.0).max(0.0));
+                    out.rewind(f.replay_session_num, (self.inc_t - 5.0).max(0.0));
                 }
                 self.group = group;
                 self.sent = Some((idx as i32, now));
@@ -646,15 +684,16 @@ impl Director {
     }
 
     /// Grid sırası: pistteki (pitte olmayan) araçlar, turda en önde olandan geriye (pole en önde durur)
+    /// Grid turu sırası: lider tablosundaki sıra (aynı sıralama işlevi); gridde olmayan (garajda, pitte, dünyada
+    /// olmayan) araçlar atlanır
     fn grid_order(f: &Frame, s: &SessionData) -> Vec<usize> {
-        let mut v: Vec<usize> = (0..MAX_CARS).filter(|&i| crate::calc::active(f, s, i) && !f.cars[i].on_pit && f.cars[i].surface >= 1).collect();
-        if v.is_empty() {
-            v = (0..MAX_CARS).filter(|&i| crate::calc::active(f, s, i)).collect();
-        }
-        let key = |i: usize| f.cars[i].lap.max(0) as f32 + f.cars[i].pct;
-        v.sort_by(|&a, &b| key(b).partial_cmp(&key(a)).unwrap_or(std::cmp::Ordering::Equal));
+        let mut v = crate::calc::field_idxs(f, s);
+        crate::calc::sort_field(f, s, &mut v);
+        v.retain(|&i| crate::calc::active(f, s, i) && !f.cars[i].on_pit && f.cars[i].surface >= 1);
         v
     }
+
+
 
     /// Kaza / pist dışı: yeni olan aracı döndürür
     fn detect(&mut self, f: &Frame, s: &SessionData, now: Instant) -> Option<usize> {
@@ -1189,6 +1228,35 @@ mod tests {
         }
         let miss: Vec<usize> = (0..20).filter(|i| !seen.contains(i)).collect();
         assert_eq!(seen.len(), 20, "zamanla bütün araçlar gösterilir {miss:?}");
+    }
+
+    #[test]
+    fn grid_walk_skips_off_grid_and_restarts() {
+        let mut s = sess(5);
+        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), ..Default::default() }];
+        let mut f = frame(5);
+        f.session_state = 1;
+        f.cars[2].surface = -1; // garajda
+        f.cars[2].pct = -1.0;
+        let mut d = Director::default();
+        let cfg = Cfg { enabled: true, ..Default::default() };
+        let mut out = Rec(vec![]);
+        for _ in 0..4 {
+            d.next();
+            d.step(&f, &s, &cfg, true, &mut out);
+        }
+        let nums: Vec<String> = out.0.iter().map(|x| x.0.clone()).collect();
+        assert_eq!(nums, vec!["10", "11", "13", "14"], "gridde olmayan atlanır");
+        // Sonradan gride geldi: sırası gelince gösterilir
+        f.cars[2].surface = 3;
+        f.cars[2].pct = 0.84;
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(out.0.last().unwrap().0, "12");
+        // Baştan başlat: ilk sıradaki
+        d.restart_grid();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(out.0.last().unwrap().0, "10");
     }
 
     #[test]

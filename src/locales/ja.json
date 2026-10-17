@@ -6703,7 +6703,6 @@
   "Tekrar dene": "再試行",
   "Tekrar görünmeden önce bekleme": "再表示までの待ち時間",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "リプレイ視聴中も表示されます（全般設定「リプレイ視聴中はオーバーレイを隠す」がオンでも）。",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "リプレイ視聴中はアクシデントに切り替える際、その 3 秒前まで巻き戻して最初から映します。ライブでは巻き戻せないため、発生時に切り替わります。",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "リプレイコマンドを送信しました ({0})。iRacing がリプレイ位置を報告しなかったため確認できませんでした",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "リプレイがその時点に移動しませんでした: iRacing のリプレイ画面にいて(車から降りて)、その時点がテープに残っている必要があります",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "リプレイ中（iRacing、ACC、LMU/rF2、AMS2, RaceRoom）はオーバーレイが自動で隠れ、ライブに戻ると再表示されます。",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "オフのとき、表示する車がいる間だけ線を描きます。「自分の行を表示」がオンなら線の代わりに自分の行が出ます。",
   "TEPE": "ピーク",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "走行ラインは .ibt ファイルから取り込んだラップでのみ利用できます（ライブデータには位置情報がありません）。",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "P1 から順に車をすぐに表示（各車「グリッド紹介の1台あたり」の時間、前方カメラ）。全員を表示したら通常の演出に戻ります。"
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "P1 から順に車をすぐに表示（各車「グリッド紹介の1台あたり」の時間、前方カメラ）。全員を表示したら通常の演出に戻ります。",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "リプレイ視聴中はアクシデントに切り替える際、その 5 秒前まで巻き戻して最初から映します。ライブでは巻き戻せないため、発生時に切り替わります。"
 }

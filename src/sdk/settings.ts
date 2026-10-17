@@ -65,7 +65,7 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   incidents: true,
   cams: "tvmix",
   gridWalk: true,
-  gridShot: 6,
+  gridShot: 5,
   finishFocus: true,
   finishTop: 3,
   finishAll: true,
@@ -1434,10 +1434,20 @@ export function defaultSettings(): AppSettings {
 
 /** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
 /** Rejisör: eski varsayılan grid süresi (4 sn) yeni varsayılana (6 sn) bir kez taşınır */
-function directorMigrate(d: DirectorCfg & { gs6?: boolean; w2?: boolean }): DirectorCfg {
-  if (!d.gs6) {
-    if (d.gridShot === 4) d.gridShot = 6;
+function directorMigrate(d: DirectorCfg & { gs6?: boolean; gs5?: boolean; sh2?: boolean; w2?: boolean }): DirectorCfg {
+  // Grid süresi varsayılanı 5 sn: eski varsayılanlar (4 / 6) bir kez 5'e
+  if (!d.gs5) {
+    if (d.gridShot === 4 || d.gridShot === 6) d.gridShot = 5;
+    d.gs5 = true;
     d.gs6 = true;
+  }
+  // Çekim süresi varsayılanı 10–20 sn: eski varsayılan 8–16 bir kez taşınır
+  if (!d.sh2) {
+    if (d.minShot === 8 && d.maxShot === 16) {
+      d.minShot = 10;
+      d.maxShot = 20;
+    }
+    d.sh2 = true;
   }
   // Kurgu oranları: eski varsayılanlar (25/25/30/25) bir kez yenilerine (arka sıralar daha sık: 20/20/25/40)
   if (!d.w2) {

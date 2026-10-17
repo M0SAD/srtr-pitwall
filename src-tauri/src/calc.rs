@@ -837,7 +837,7 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         precip: f.precip,
         incidents: f.incidents,
         incident_limit: s.incident_limit,
-        time_remain: f.session_time_remain,
+        time_remain: shown_remain(f, s),
         laps_remain: f.session_laps_remain,
         ..Default::default()
     };
@@ -938,7 +938,18 @@ fn garage_car(f: &Frame, s: &SessionData, i: usize) -> bool {
 
 /// Sıralamaya giren araçlar: pistteki / pitteki araçlar, sunucudan çıkmış ama resmi sırası duranlar ve garajdakiler.
 /// Garajdakilerin resmi sırası yoktur; her sıralama düzeninde en sona düşerler.
-fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
+/// Ekranda gösterilecek kalan süre: yarışta yeşil bayraktan önce (grid / ısınma turu) sim süreyi saymaya başlasa da
+/// saat işlemez, yarışın toplam süresi gösterilir
+pub(crate) fn shown_remain(f: &Frame, s: &SessionData) -> f64 {
+    if s.is_race(f.session_num) && (1..=3).contains(&f.session_state) {
+        if let Some(t) = s.session(f.session_num).and_then(|e| e.time).filter(|t| *t > 0.0 && *t < 604800.0) {
+            return t;
+        }
+    }
+    f.session_time_remain
+}
+
+pub(crate) fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
     (0..MAX_CARS)
         .filter(|&i| {
             active(f, s, i)
@@ -974,7 +985,7 @@ fn grid_order(s: &SessionData, race_num: i32) -> Vec<usize> {
 /// çizgiyi geçince güncellenir, grid ve start turunda eski / boş kalır. Bu aralıkta:
 /// - yeşil bayraktan önce (araca binme, grid, formasyon turu): sıralama turlarının sonucu (grid sırası);
 /// - start turunda: pistteki konum (önde olan önde).
-fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool {
+pub(crate) fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool {
     use std::cmp::Ordering;
     let race = s.is_race(f.session_num);
     let lap1 = race && f.session_state <= 4 && idxs.iter().all(|&i| f.cars[i].lap_completed <= 0);
@@ -1193,7 +1204,7 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         session_type: entry.map(|e| e.kind.clone()).unwrap_or_default(),
         elapsed: f.session_time,
         total_time,
-        time_remain: f.session_time_remain,
+        time_remain: shown_remain(f, s),
         laps_remain: f.session_laps_remain,
         total_laps: entry.and_then(|e| e.laps).unwrap_or(0),
         leader_lap,
@@ -1550,7 +1561,7 @@ pub fn session(f: &Frame, s: &SessionData) -> Session {
         track: s.track_name.clone(),
         flags: decode_flags(bits),
         penalty,
-        time_remain: f.session_time_remain,
+        time_remain: shown_remain(f, s),
         laps_remain: f.session_laps_remain,
         total_laps: entry.and_then(|e| e.laps).unwrap_or(0),
         lap: f.lap,

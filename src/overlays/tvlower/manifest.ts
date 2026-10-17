@@ -45,7 +45,7 @@ export default defineOverlay({
     { key: "incidentTag", label: "Kazada bandı hemen göster (INCIDENT etiketi)", type: "boolean", default: true, hint: "Otomatik Rejisör olaydaki araca kesince o aracın bandı “INCIDENT” etiketiyle hemen çıkar." },
     { key: "pairGap", label: "Kapışma sayılan fark", type: "number", default: 1, min: 0.2, max: 3, step: 0.1, unit: "sn", showIf: { key: "second", is: ["track", "close"] } },
     { key: "gridCycle", label: "Yeşil bayraktan önce bütün sürücüleri sırayla göster", type: "boolean", default: true, hint: "Gridde ve ısınma turunda tek bant, pole'dan başlayarak; kamera değişirse kameradaki aracı gösterir." },
-    { key: "gridSecs", label: "Grid sırasında sürücü başına", type: "number", default: 6, min: 2, max: 15, step: 1, unit: "sn", showIf: { key: "gridCycle", is: [true] } },
+    { key: "gridSecs", label: "Grid sırasında sürücü başına", type: "number", default: 5, min: 2, max: 15, step: 1, unit: "sn", showIf: { key: "gridCycle", is: [true] } },
     ...tvShowSettings({ autoLabel: "Kamera başka araca geçince (birkaç saniye)", def: "always", cooldown: 0, showSecs: 15, everyMin: 3, hideAfterFinish: true, finishHint: "Herkes yarışı bitirince (pistteki bütün araçlar bitiş çizgisini geçince) ekrandan kalkar; bitirenler çizgiyi geçerken band yalnızca o aracı gösterir." }),
     { key: "camSecs", label: "Kamera değişince ekranda kalma", type: "number", default: 8, min: 3, max: 60, step: 1, unit: "sn", showIf: { key: "show", is: ["auto"] }, group: "Ne zaman görünsün" },
     {

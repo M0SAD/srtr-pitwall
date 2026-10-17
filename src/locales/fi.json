@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Yritä uudelleen",
   "Tekrar görünmeden önce bekleme": "Odotus ennen uutta näyttämistä",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "Näkyy myös uusintaa katsottaessa (vaikka yleinen asetus ”Piilota overlayt uusintoja katsottaessa” olisi päällä).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Uusintaa katsottaessa tapahtumaan vaihdettaessa uusinta kelataan 3 s ennen sitä, jotta onnettomuus näkyy alusta. Suorana ei voi kelata; kamera vaihtaa tapahtumahetkellä.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Uusintakomento lähetettiin ({0}); sitä ei voitu varmistaa, koska iRacing ei ilmoittanut uusinnan sijaintia",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "Uusinta ei siirtynyt siihen hetkeen: sinun on oltava iRacingin uusintanäkymässä (poistu autosta) ja hetken on oltava nauhalla",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "Replayn aikana (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlayt piiloutuvat itsestään ja palaavat, kun palaat liveen.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Pois päältä: viiva piirretään vain, kun näytettävä auto on. \"Näytä oma rivini\" -asetuksella näkyy rivisi viivan sijaan.",
   "TEPE": "HUIPPU",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Ajolinja on saatavilla vain .ibt-tiedostosta tuoduille kierroksille (live-datassa ei ole sijaintia).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Näyttää autot heti yksi kerrallaan P1:stä alkaen (kunkin ”Autoa kohden esittelyssä” -ajan, etukameralla); sen jälkeen normaali ohjaus."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Näyttää autot heti yksi kerrallaan P1:stä alkaen (kunkin ”Autoa kohden esittelyssä” -ajan, etukameralla); sen jälkeen normaali ohjaus.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Uusintaa katsottaessa tapahtumaan vaihdettaessa uusinta kelataan 5 s ennen sitä, jotta onnettomuus näkyy alusta. Suorana ei voi kelata; kamera vaihtaa tapahtumahetkellä."
 }

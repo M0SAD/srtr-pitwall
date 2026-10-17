@@ -3,6 +3,20 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-381
+
+- Grid turu düzeltildi: araçlar lider tablosundaki sırayla (aynı sıralama) birer kez gösterilir. Gridde olmayan (garajda / pitte / henüz yüklenmemiş) araç atlanır; sonradan gride gelirse sırası gelince gösterilir. Önceden, araçlar gride yüklenirken tur birkaç araçla bitip TV Mixed'e geçebiliyordu.
+- "Baştan başlat": kamera hemen 1. sıradaki araca döner.
+
+- Kalan süre yarış başlamadan işlemiyor (asıl düzeltme): iRacing gridde süreyi saymaya başladığı için lider tablosu başlığındaki "Kalan" kutucuğu, Relative ve Oturum overlay'leri geri sayıyordu. Artık yarışta yeşil bayraktan önce kalan süre her yerde yarışın toplam süresi olarak gelir; geri sayım yeşilde başlar.
+- Rejisör: kamera çok hızlı değişmesin diye bir çekim en az 6 sn ekranda kalır (kaza, bitiş, en hızlı tur ve "Sonraki çekim" hariç); bu sırada gelen pite giriş çekimi bekletilir. Pit ve en hızlı tur çekimleri 10 sn.
+
+- Varsayılanlar: grid turunda araç başına 5 sn, çekim süresi 10–20 sn (eski varsayılanlarda kalan ayarlar — grid 4 / 6 sn, çekim 8–16 sn — bir kez yenilerine taşınır).
+
+- Panel açılırken "Cannot access 'J' before initialization" hatası düzeltildi (TV Sürücü Bandı'nda bir ayar tanımlanmadan kullanılıyordu; 376'dan beri).
+- Tekrarda kazaya kesince olaydan 5 sn öncesine sarılır (önceden 3 sn): olay ve öncesi görünür.
+- TV overlay'lerinde Türkçe büyük harf: Türk sürücülerin (ülkesi Türkiye ya da adında Türkçe harf olan) adları ERKİN AZCAN gibi doğru yazılır (önceden ERKIN). Kule, sürücü bandı, en hızlı tur, mücadele, sonuç tablosu ve podyumda.
+
 ## 171026-380
 
 - Otomatik Rejisör: kendi aracın için ayrı kural kaldırıldı ("Kendi aracım" oranı); diğer araçlar gibi sıralamadaki yerine göre gösterilir.

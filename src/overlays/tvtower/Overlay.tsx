@@ -163,7 +163,7 @@ export default function TvTower(props: OverlayProps) {
         <Show when={o().showLogos !== false}>
           <TvLogo carName={p.r.carName} class="tvt-logo" />
         </Show>
-        <span class="tvt-name">{tvName(p.r.name, String(o().nameFormat || "last"))}</span>
+        <span class="tvt-name">{tvName(p.r.name, String(o().nameFormat || "last"), p.r.flair)}</span>
         <span class="tv-num tvt-num" style={{ background: nc().bg, color: nc().fg }}>
           {p.r.number}
         </span>

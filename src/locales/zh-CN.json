@@ -6703,7 +6703,6 @@
   "Tekrar dene": "重试",
   "Tekrar görünmeden önce bekleme": "再次显示前等待",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "观看回放时也会显示（即使通用设置“观看回放时隐藏叠加层”已开启）。",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "观看回放时，切到事故会把回放倒回到事故前 3 秒，从头看到事故。直播中无法倒回；镜头在事故发生时切换。",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "回放指令已发送({0});由于 iRacing 未报告回放位置,无法确认",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "回放没有跳到那一刻:你必须在 iRacing 回放界面(先下车),且那一刻必须还在录像带中",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "回放时（iRacing、ACC、LMU/rF2、AMS2, RaceRoom）overlay 会自动隐藏，回到实时后重新显示。",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "关闭时，只有在有车辆要显示时才绘制中线。开启“显示我的行”时，用你的行代替中线。",
   "TEPE": "峰值",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "行车线仅适用于从 .ibt 文件导入的圈（实时数据没有位置信息）。",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "立即从 P1 开始逐一展示车辆（每辆按“巡览时每辆车”时长，使用前方镜头）；全部展示后恢复正常导播。"
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "立即从 P1 开始逐一展示车辆（每辆按“巡览时每辆车”时长，使用前方镜头）；全部展示后恢复正常导播。",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "观看回放时，切到事故会把回放倒回到事故前 5 秒，从头看到事故。直播中无法倒回；镜头在事故发生时切换。"
 }

@@ -85,7 +85,7 @@ export default function TvPodium(props: OverlayProps) {
                         {r().number}
                       </span>
                     </div>
-                    <b class="tvp-name">{tvName(r().name, String(o().nameFormat || "full"))}</b>
+                    <b class="tvp-name">{tvName(r().name, String(o().nameFormat || "full"), r().flair)}</b>
                     <Show when={o().showTeam !== false}>
                       <small class="tvp-team">{upper(r().team || r().carName || "")}</small>
                     </Show>

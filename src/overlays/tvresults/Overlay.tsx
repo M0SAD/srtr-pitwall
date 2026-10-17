@@ -2,7 +2,7 @@ import { For, Index, Show, createEffect, createMemo, createSignal, on, onCleanup
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
-import { TvLogo, tvName, numberColors, resultGap, sessionLabel, upper, isRaceSession, podiumDoneAt, podiumMounted, useFinishReady, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
+import { TvLogo, isTr, tvName, numberColors, resultGap, sessionLabel, upper, isRaceSession, podiumDoneAt, podiumMounted, useFinishReady, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
 import manifest from "./manifest";
 import "./style.css";
@@ -41,7 +41,7 @@ export default function TvResults(props: OverlayProps) {
     const l = [...(seen.get(r.number || String(r.idx)) ?? [r.name.trim()])];
     if (sample()) l.push(...(SAMPLE_CO[r.number] ?? []));
     const fmt = String(o().nameFormat || "initial");
-    return l.slice(0, Math.max(1, Math.min(3, Number(o().drivers) || 3))).map((n) => (fmt === "initial" ? initial(n) : tvName(n, fmt)));
+    return l.slice(0, Math.max(1, Math.min(3, Number(o().drivers) || 3))).map((n) => (fmt === "initial" ? initial(n, r.flair) : tvName(n, fmt, r.flair)));
   };
 
   const me = createMemo(() => rows().find((r) => r.isMe));
@@ -175,9 +175,9 @@ export default function TvResults(props: OverlayProps) {
 }
 
 /** "Lukas Brenner" → "L. BRENNER" */
-function initial(name: string) {
+function initial(name: string, flair?: string) {
   const parts = name.trim().split(/\s+/).filter((p) => !/^\d+$/.test(p));
   if (!parts.length) return "";
-  if (parts.length < 2) return parts[0].toUpperCase();
-  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`.toUpperCase();
+  if (parts.length < 2) return upper(parts[0], isTr(name, flair));
+  return upper(`${parts[0][0]}. ${parts.slice(1).join(" ")}`, isTr(name, flair));
 }

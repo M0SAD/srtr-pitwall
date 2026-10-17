@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Opnieuw proberen",
   "Tekrar görünmeden önce bekleme": "Wachttijd voor het opnieuw verschijnt",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "Ook zichtbaar tijdens het bekijken van een replay (zelfs als de algemene instelling ‘Overlays verbergen tijdens replays’ aan staat).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Bij een herhaling wordt bij een incident 3 s vóór het moment teruggespoeld, zodat de crash vanaf het begin te zien is. Live kan niet worden teruggespoeld; de camera schakelt op het moment zelf.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Replaycommando verzonden ({0}); niet te verifiëren omdat iRacing de replaypositie niet meldt",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "Replay ging niet naar dat moment: je moet in het iRacing-replayscherm zijn (stap uit de auto) en het moment moet op de tape staan",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "Tijdens replays (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) worden overlays automatisch verborgen en komen ze terug als je weer live gaat.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Uit: de lijn wordt alleen getekend als er een auto te tonen is. Met \"Mijn rij tonen\" verschijnt je rij in plaats van de lijn.",
   "TEPE": "PIEK",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "De racelijn is alleen beschikbaar voor ronden die uit een .ibt-bestand zijn geïmporteerd (livedata bevat geen positie).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Toont de auto’s meteen één voor één vanaf P1 (elk zo lang als \"Per auto tijdens de gridrondgang\", met frontcamera); daarna weer normale regie."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Toont de auto’s meteen één voor één vanaf P1 (elk zo lang als \"Per auto tijdens de gridrondgang\", met frontcamera); daarna weer normale regie.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Bij een herhaling wordt bij een incident 5 s vóór het moment teruggespoeld, zodat de crash vanaf het begin te zien is. Live kan niet worden teruggespoeld; de camera schakelt op het moment zelf."
 }

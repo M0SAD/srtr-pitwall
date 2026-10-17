@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Повторить",
   "Tekrar görünmeden önce bekleme": "Пауза перед повторным показом",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "Видно и при просмотре повтора (даже если включена общая настройка «Скрывать оверлеи при просмотре повторов»).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "При просмотре повтора, переключаясь на инцидент, повтор перематывается на 3 с раньше, чтобы аварию было видно с начала. В прямом эфире перемотать нельзя; камера переключается в момент события.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Команда повтора отправлена ({0}); проверить нельзя, так как iRacing не сообщает позицию повтора",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "Повтор не перешёл к этому моменту: нужно быть на экране повтора iRacing (выйди из машины), и момент должен быть на плёнке",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "Во время повтора (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay скрываются сами и возвращаются, когда вернёшься в эфир.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Выключено: линия рисуется, только когда есть машина для показа. При «Показывать мою строку» вместо линии видна твоя строка.",
   "TEPE": "ПИК",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Траектория доступна только для кругов, импортированных из файла .ibt (в живых данных нет позиции).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Сразу показывает машины по очереди с P1 (каждую в течение «На машину при обзоре решётки», передней камерой); затем обычная режиссура."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Сразу показывает машины по очереди с P1 (каждую в течение «На машину при обзоре решётки», передней камерой); затем обычная режиссура.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "При просмотре повтора, переключаясь на инцидент, повтор перематывается на 5 с раньше, чтобы аварию было видно с начала. В прямом эфире перемотать нельзя; камера переключается в момент события."
 }

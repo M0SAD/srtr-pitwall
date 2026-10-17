@@ -121,7 +121,7 @@ export default function TvBattle(props: OverlayProps) {
       <div class={`tvb-drv ${p.side}`}>
         <span class="tv-pos tvb-pos">{o().classFilter === "class" ? p.r.classPos : p.r.pos}</span>
         <TvLogo carName={p.r.carName} class="tvb-logo" />
-        <b class="tvb-name">{lastNameUpper(p.r.name)}</b>
+        <b class="tvb-name">{lastNameUpper(p.r.name, p.r.flair)}</b>
         <span class="tv-num tvb-num" style={{ background: nc().bg, color: nc().fg }}>
           {p.r.number}
         </span>

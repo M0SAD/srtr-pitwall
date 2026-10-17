@@ -2,7 +2,7 @@ import { Show, createEffect, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { onScreen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
-import { TvLogo, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
+import { TvLogo, isTr, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
 import manifest from "./manifest";
 import "./style.css";
@@ -115,7 +115,7 @@ export default function TvFastest(props: OverlayProps) {
           <span class="tv-pos tvf-pos">{s().r.pos}</span>
           <TvLogo carName={s().r.carName} class="tvf-logo" />
           <span class="tvf-name">
-            <b>{upper(s().r.name)}</b>
+            <b>{upper(s().r.name, isTr(s().r.name, s().r.flair))}</b>
             <small>{upper(s().r.team || s().r.carName)}</small>
           </span>
           <span class="tv-num tvf-num">{s().r.number}</span>

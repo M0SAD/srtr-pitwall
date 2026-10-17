@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Försök igen",
   "Tekrar görünmeden önce bekleme": "Väntetid innan den visas igen",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "Syns även när du tittar på en repris (även om den allmänna inställningen ”Dölj overlays vid repriser” är på).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "När du tittar på en repris spolas reprisen tillbaka till 3 s före incidenten, så att kraschen syns från början. Live kan inte spolas tillbaka; kameran byter när det händer.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Repriskommandot skickades ({0}); kunde inte verifieras eftersom iRacing inte rapporterade reprisens position",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "Reprisen gick inte till det ögonblicket: du måste vara på iRacings reprisskärm (kliv ur bilen) och ögonblicket måste finnas på bandet",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "Under replay (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) döljs overlays automatiskt och kommer tillbaka när du går tillbaka till live.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Av: linjen ritas bara när det finns en bil att visa. Med \"Visa min rad\" visas din rad i stället för linjen.",
   "TEPE": "TOPP",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Körlinjen finns bara för varv som importerats från en .ibt-fil (livedata saknar position).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Visar bilarna en i taget direkt från P1 (var och en under ”Per bil under startfältsvisningen”, med frontkamera); återgår sedan till normal bildregi."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Visar bilarna en i taget direkt från P1 (var och en under ”Per bil under startfältsvisningen”, med frontkamera); återgår sedan till normal bildregi.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "När du tittar på en repris spolas reprisen tillbaka till 5 s före incidenten, så att kraschen syns från början. Live kan inte spolas tillbaka; kameran byter när det händer."
 }

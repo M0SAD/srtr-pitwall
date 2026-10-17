@@ -6703,7 +6703,6 @@
   "Tekrar dene": "Erneut versuchen",
   "Tekrar görünmeden önce bekleme": "Wartezeit bis zur nächsten Einblendung",
   "Tekrar izlerken de görünür (\"Replay izlerken overlay'leri gizle\" genel ayarı açık olsa bile).": "Auch beim Ansehen eines Replays sichtbar (selbst wenn die allgemeine Einstellung „Overlays beim Ansehen von Replays ausblenden“ an ist).",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Beim Ansehen einer Wiederholung wird beim Schnitt zu einem Vorfall 3 s vor das Ereignis zurückgespult, sodass der Unfall von Anfang an zu sehen ist. Live kann nicht zurückgespult werden; die Kamera schneidet, wenn es passiert.",
   "Tekrar komutu gönderildi ({0}); iRacing tekrar konumunu bildirmediği için doğrulanamadı": "Replay-Befehl gesendet ({0}); nicht überprüfbar, da iRacing die Replay-Position nicht gemeldet hat",
   "Tekrar o ana gitmedi: iRacing tekrar ekranında olmalısın (araçtan in) ve o an kasette olmalı": "Replay ist nicht zu diesem Moment gesprungen: Du musst im iRacing-Replay-Bildschirm sein (steig aus dem Auto) und der Moment muss auf dem Band sein",
   "Tekrar oynatılırken (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) overlay'ler kendiliğinden gizlenir, canlıya dönünce geri gelir.": "Während Replays (iRacing, ACC, LMU/rF2, AMS2, RaceRoom) werden Overlays automatisch ausgeblendet und kommen zurück, sobald du wieder live bist.",
@@ -7963,5 +7962,6 @@
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Wenn aus, wird die Linie nur gezeichnet, solange ein Auto angezeigt wird. Mit „Meine Zeile anzeigen“ erscheint statt der Linie deine Zeile.",
   "TEPE": "SPITZE",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Die Ideallinie gibt es nur für Runden, die aus einer .ibt-Datei importiert wurden (Live-Daten enthalten keine Position).",
-  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Zeigt die Autos sofort nacheinander ab P1 (jedes für die Zeit „Pro Auto bei der Startaufstellung“, mit Frontkamera); danach normale Regie."
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Zeigt die Autos sofort nacheinander ab P1 (jedes für die Zeit „Pro Auto bei der Startaufstellung“, mit Frontkamera); danach normale Regie.",
+  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Beim Ansehen einer Wiederholung wird beim Schnitt zu einem Vorfall 5 s vor das Ereignis zurückgespult, sodass der Unfall von Anfang an zu sehen ist. Live kann nicht zurückgespult werden; die Kamera schneidet, wenn es passiert."
 }

@@ -3,7 +3,7 @@ import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { useTopic } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
-import { TvLogo, upper, useFinishReady, useFinishedCars, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
+import { TvLogo, isTr, upper, useFinishReady, useFinishedCars, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { MapCar, Row } from "@/sdk/types";
 import manifest from "./manifest";
 import "./style.css";
@@ -33,6 +33,8 @@ export default function TvLower(props: OverlayProps) {
   const gridCam = () => camKind() === "grid";
   // Kamera araç içinde / üstünde: hangi araç olduğu her zaman yazsın
   const onboardCam = () => !sample() && !!(info() as { camOnboard?: boolean }).camOnboard;
+  // Rejisör bitiş çizgisini / en hızlı turu gösteriyor: band her zaman açık
+  const finishCam = () => camKind() === "finish" || camKind() === "fastest";
   // Yeşil bayraktan önce (yarışta gridde / ısınma turunda): bütün sürücüler sırayla, tek bant
   const preGreen = () => {
     if (sample() || o().gridCycle === false) return false;
@@ -147,8 +149,6 @@ export default function TvLower(props: OverlayProps) {
   });
   // Otomatik Rejisör kazaya kesti: kameradaki aracın bandı hemen çıkar, "INCIDENT" etiketiyle (ikinci bant yok)
   const incident = () => camKind() === "incident" && o().incidentTag !== false;
-  // Rejisör bitiş çizgisini gösteriyor: band her zaman açık (çizgiyi kimin geçtiği görünsün)
-  const finishCam = () => camKind() === "finish" || camKind() === "fastest";
   // Rejisörün grid turu: yalnız araç / sürücü (hız-vites göstergesi ve ikinci bant yok)
 
   // Yarışı bitiren araç gösterilirken yalnızca o: ikinci bant kapalı
@@ -260,7 +260,7 @@ export default function TvLower(props: OverlayProps) {
           <span class="tv-pos tvl-pos">{o().classPos ? p.r.classPos : p.r.pos}</span>
           <TvLogo carName={p.r.carName} class="tvl-logo" />
           <span class="tvl-txt">
-            <b>{upper(name())}</b>
+            <b>{upper(name(), isTr(name(), p.r.flair))}</b>
             <Show when={o().showTeam !== false && team()}>
               <small>{upper(team()!)}</small>
             </Show>

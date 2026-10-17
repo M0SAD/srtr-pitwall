@@ -133,23 +133,29 @@ export function useTvStandings(editing: () => boolean) {
 // ---------------------------------------------------------------------------
 
 /** "Lukas Brenner" → "BRENNER" (TV'deki gibi soyad, büyük harf; Türkçe büyük harf kuralı) */
-export function lastNameUpper(name: string) {
+/** Türkçe büyük harf (i → İ) gerekir mi: adda Türkçe harf var ya da sürücünün ülkesi Türkiye */
+const TR_CHARS = /[çğışöüÇĞİŞÖÜ]/;
+const TR_FLAIR = /^(tr|tur|turkey|türkiye|turkiye)$/i;
+export const isTr = (name: string, flair?: string) => TR_CHARS.test(name) || TR_FLAIR.test(String(flair ?? "").trim());
+/** Büyük harf: Türkçe ad / Türk sürücü için "Erkin" → "ERKİN" (yoksa "ERKIN" olurdu) */
+export const upper = (s: string, tr?: boolean) => ((tr ?? TR_CHARS.test(s)) ? s.toLocaleUpperCase("tr-TR") : s.toUpperCase());
+
+export function lastNameUpper(name: string, flair?: string) {
   const parts = name.trim().split(/\s+/).filter((p) => !/^\d+$/.test(p));
   const last = parts.length > 1 ? parts.slice(1).join(" ") : (parts[0] ?? "");
-  return last.toUpperCase();
+  return upper(last, isTr(name, flair));
 }
 /** "Lukas Brenner" → "L. BRENNER" */
-export function initialLast(name: string) {
+export function initialLast(name: string, flair?: string) {
   const parts = name.trim().split(/\s+/).filter((p) => !/^\d+$/.test(p));
-  if (parts.length < 2) return name.toUpperCase();
-  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`.toUpperCase();
+  if (parts.length < 2) return upper(name, isTr(name, flair));
+  return upper(`${parts[0][0]}. ${parts.slice(1).join(" ")}`, isTr(name, flair));
 }
-export const upper = (s: string) => s.toUpperCase();
 
-export function tvName(name: string, fmt: string) {
-  if (fmt === "full") return upper(name);
-  if (fmt === "initial") return initialLast(name);
-  return lastNameUpper(name);
+export function tvName(name: string, fmt: string, flair?: string) {
+  if (fmt === "full") return upper(name, isTr(name, flair));
+  if (fmt === "initial") return initialLast(name, flair);
+  return lastNameUpper(name, flair);
 }
 
 /** Oturum adı (TV etiketi) */
