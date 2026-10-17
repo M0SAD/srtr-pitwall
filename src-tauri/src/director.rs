@@ -66,7 +66,7 @@ impl Default for Cfg {
             incidents: true,
             cams: "tvmix".into(),
             grid_walk: true,
-            grid_shot: 5.0,
+            grid_shot: 4.0,
             finish_focus: true,
             fastest_focus: true,
             incident_rewind: true,
@@ -191,6 +191,7 @@ pub struct Director {
     /// Grid turunda gösterilen araçlar
     grid_seen: [bool; MAX_CARS],
     grid_sess: i32,
+    prev_pre: bool,
     pub status: Status,
 }
 
@@ -231,6 +232,7 @@ impl Default for Director {
             grid_force: false,
             grid_seen: [false; MAX_CARS],
             grid_sess: -1,
+            prev_pre: false,
             fin_snap: None,
             fin_done: [false; MAX_CARS],
             fin_hold: None,
@@ -355,7 +357,17 @@ impl Director {
             .map(|x| x.kind.to_lowercase().contains("race"))
             .unwrap_or(false);
         // Tekrarda da: kasetteki an grid / ısınma turuysa (SessionState tekrarın o anını verir)
-        let pre = race && (1..=3).contains(&f.session_state);
+        // Yeşil bayraktan önce mi: yarış durumu 1-3 ve yeşil / "start go" bayrağı yok (durum geç güncellense de start
+        // alınınca grid turu biter)
+        const GREEN: u32 = 0x0000_0004;
+        const START_GO: u32 = 0x8000_0000;
+        let pre = race && (1..=3).contains(&f.session_state) && f.session_flags & (GREEN | START_GO) == 0;
+        // Yeşil bayrak: grid turu (elle başlatılmış olsa da) yarıda kalsa bile biter, TV Mixed'e geçilir
+        if self.prev_pre && !pre && race {
+            self.grid_force = false;
+            self.grid_done = true;
+        }
+        self.prev_pre = pre;
         // Grid turu oturum başına bir kez: durum bir an değişse (grid → ısınma turu, tekrar kafası) baştan başlamaz;
         // yalnızca yeni oturumda ya da "Baştan başlat" ile
         if f.session_num != self.grid_sess {
@@ -689,13 +701,16 @@ impl Director {
     }
 
     /// Grid sırası: pistteki (pitte olmayan) araçlar, turda en önde olandan geriye (pole en önde durur)
-    /// Grid turu sırası: lider tablosundaki sıra (aynı sıralama işlevi); gridde olmayan (garajda, pitte, dünyada
-    /// olmayan) araçlar atlanır
+    /// Grid turu sırası: lider tablosundaki sıra (aynı sıralama işlevi): önce griddekiler, sonra pitte olanlar;
+    /// garajdakiler (dünyada olmayan) atlanır
     fn grid_order(f: &Frame, s: &SessionData) -> Vec<usize> {
         let mut v = crate::calc::field_idxs(f, s);
         crate::calc::sort_field(f, s, &mut v);
-        v.retain(|&i| crate::calc::active(f, s, i) && !f.cars[i].on_pit && f.cars[i].surface >= 1);
-        v
+        v.retain(|&i| crate::calc::active(f, s, i));
+        // Önce griddekiler (sıralamaya göre), sonra pitte olanlar; garajdakiler (dünyada olmayan) atlanır
+        let (grid, pit): (Vec<usize>, Vec<usize>) = v.into_iter().partition(|&i| !f.cars[i].on_pit && f.cars[i].surface >= 1);
+        let pit: Vec<usize> = pit.into_iter().filter(|&i| f.cars[i].on_pit || f.cars[i].surface >= 1).collect();
+        grid.into_iter().chain(pit).collect()
     }
 
 
@@ -1027,12 +1042,11 @@ impl Director {
             return (0, String::new());
         }
         if cfg.cams == "tvmix" {
-            return s
-                .cam_groups
-                .iter()
-                .find(|g| g.0 > 0 && g.1.to_lowercase().contains("mix"))
-                .cloned()
-                .unwrap_or((0, String::new()));
+            // TV Mixed yoksa (bazı pist / tekrarlarda adı farklı) aşağıdaki TV kameralarından biri: grup 0 gönderilirse
+            // iRacing o anki grupta kalır (grid turunun önden kamerası takılı kalıyordu)
+            if let Some(g) = s.cam_groups.iter().find(|g| g.0 > 0 && g.1.to_lowercase().contains("mix")) {
+                return g.clone();
+            }
         }
         let has = |names: &[&str], g: &(i32, String)| names.contains(&g.1.trim().to_lowercase().as_str());
         let mut pool: Vec<(i32, String)> = s.cam_groups.iter().filter(|g| g.0 > 0 && has(TV_GROUPS, g)).cloned().collect();
@@ -1044,7 +1058,13 @@ impl Director {
             }
         }
         if pool.is_empty() {
-            return (0, String::new());
+            // Bilinen TV grubu yok: araç içi / önden olmayan herhangi bir grup (yoksa ilk grup)
+            let other = s
+                .cam_groups
+                .iter()
+                .find(|g| g.0 > 0 && !has(ONBOARD_GROUPS, g) && !has(GRID_GROUPS, g))
+                .or_else(|| s.cam_groups.iter().find(|g| g.0 > 0));
+            return other.cloned().unwrap_or((0, String::new()));
         }
         // Aynı grup art arda gelmesin
         if pool.len() > 1 {
@@ -1251,17 +1271,48 @@ mod tests {
             d.step(&f, &s, &cfg, true, &mut out);
         }
         let nums: Vec<String> = out.0.iter().map(|x| x.0.clone()).collect();
-        assert_eq!(nums, vec!["10", "11", "13", "14"], "gridde olmayan atlanır");
+        assert_eq!(nums, vec!["10", "11", "13", "14"], "garajdaki atlanır");
         // Sonradan gride geldi: sırası gelince gösterilir
         f.cars[2].surface = 3;
         f.cars[2].pct = 0.84;
         d.next();
         d.step(&f, &s, &cfg, true, &mut out);
         assert_eq!(out.0.last().unwrap().0, "12");
-        // Baştan başlat: ilk sıradaki
+        // Baştan başlat: ilk sıradaki; pitteki araç griddekilerden sonra
+        f.cars[1].on_pit = true;
         d.restart_grid();
         d.step(&f, &s, &cfg, true, &mut out);
         assert_eq!(out.0.last().unwrap().0, "10");
+        let mut rest = vec![];
+        for _ in 0..4 {
+            d.next();
+            d.step(&f, &s, &cfg, true, &mut out);
+            rest.push(out.0.last().unwrap().0.clone());
+        }
+        assert_eq!(rest, vec!["12", "13", "14", "11"], "pitteki en sonda");
+    }
+
+    #[test]
+    fn forced_grid_walk_stops_at_green() {
+        let mut s = sess(6);
+        s.cam_groups.push((20, "TV Mixed".into()));
+        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), ..Default::default() }];
+        let mut f = frame(6);
+        f.session_state = 3;
+        let mut d = Director::default();
+        let cfg = Cfg { enabled: true, ..Default::default() };
+        let mut out = Rec(vec![]);
+        d.restart_grid();
+        for _ in 0..2 {
+            d.next();
+            d.step(&f, &s, &cfg, true, &mut out);
+        }
+        assert_eq!(d.status.kind, "grid");
+        f.session_state = 4;
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_ne!(d.status.kind, "grid", "yeşilde grid turu biter");
+        assert_eq!(out.0.last().unwrap().1, 20, "TV Mixed");
     }
 
     #[test]

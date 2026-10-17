@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-383
+
+- Grid turu start alınınca kesin biter (yarıda kalsa da; "Baştan başlat" ile başlatılmış olsa da) ve TV Mixed'e geçilir. Yarış başlangıcı artık yarış durumunun yanında yeşil / "start" bayrağından da anlaşılır (durum geç güncellense de).
+- Kamera önden açıda takılı kalmıyor: TV Mixed grubu bulunamazsa başka bir TV kamerasına (yoksa araç içi / önden olmayan herhangi bir gruba) geçilir; önceden "grup 0" gönderildiği için iRacing grid turunun önden kamerasında kalıyordu.
+
+- Grid turu: önce griddeki araçlar (lider tablosu sırasıyla), sonra pitte olanlar gösterilir; herkes gösterilince (yarış başlamadıysa da) baştan başlamaz, TV Mixed ve normal kurguya geçilir. TV Mixed kamerası olmayan pistlerde (ör. Nordschleife) TV kameraları arasında karışık geçilir; dip dibe mücadelede ara sıra araç içi kamera kuralı aynen.
+- Varsayılan grid süresi araç başına 4 sn (5 / 6 sn'de kalan ayar bir kez 4'e).
+- Start alır almaz "en hızlı tur" uyarısı: önceki oturumdan kalan süre yarış turu sayılıyordu. Yeşilden beri geçen süreden uzun "tur" artık sayılmaz; TV En Hızlı Tur yarışta lider 2 tur tamamlamadan duyurmaz.
+- Lider tablosu: gride oturunca son tur dereceleri de silinir (önceden yalnızca en iyi turlar); yeşilden sonra ilk yarış turu tamamlanana kadar sıralamadan kalan son tur gösterilmez.
+
 ## 171026-382
 
 - Grid turu oturum başına bir kez: durum bir an değişse de (grid → ısınma turu vb.) baştan başlamaz; yalnızca yeni oturumda ya da "Baştan başlat" ile. TV Sürücü Bandı gridde her zaman ekrandaki aracı yazar (rejisör TV Mixed'e geçince bant kendi başına ikinci kez sırayla dönmez).

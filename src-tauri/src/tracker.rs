@@ -220,7 +220,12 @@ pub struct Tracker {
     /// Simin bu karedeki ham en iyi turları (düzeltmeden önce) ve yeşil bayrak anındaki değerleri: yeşilden sonra
     /// değişen sim değeri bir yarış turudur (son tur süresinden hesaplananı tamamlar)
     raw_best: Vec<f32>,
+    /// Simin ham son tur süreleri (düzeltmeden önce)
+    raw_last: Vec<f32>,
+    raw_noted: bool,
     green_raw_best: Vec<f32>,
+    /// Son karenin oturum zamanı
+    last_t: f64,
 }
 
 /// Tekrardaki tur süreleri. Simin en iyi / son tur değerleri tekrarda oturumun SONUNDAKİ değerlerdir; bu yüzden turlar
@@ -346,7 +351,10 @@ impl Default for Tracker {
             keep: vec![(-1.0, -1.0); MAX_CARS],
             keep_ses: -1,
             raw_best: vec![-1.0; MAX_CARS],
+            raw_last: vec![-1.0; MAX_CARS],
+            raw_noted: false,
             green_raw_best: vec![-1.0; MAX_CARS],
+            last_t: 0.0,
         }
     }
 }
@@ -403,24 +411,38 @@ impl Tracker {
         }
     }
 
+    /// Simin ham son tur süresi (not_raw çağrılmadıysa karedeki değer)
+    fn raw_last_of(&self, f: &Frame, i: usize) -> f32 {
+        if self.raw_noted {
+            self.raw_last[i]
+        } else {
+            f.cars[i].last
+        }
+    }
+
     /// Simin ham değerlerini not et (her karede apply_race_best'ten önce)
     pub fn note_raw(&mut self, f: &Frame) {
-        if self.raw_best.len() != MAX_CARS {
+        if self.raw_best.len() != MAX_CARS || self.raw_last.len() != MAX_CARS {
             self.raw_best = vec![-1.0; MAX_CARS];
+            self.raw_last = vec![-1.0; MAX_CARS];
         }
         for i in 0..MAX_CARS {
             self.raw_best[i] = f.cars[i].best;
+            self.raw_last[i] = f.cars[i].last;
         }
+        self.raw_noted = true;
     }
 
     fn apply_bests(&self, f: &mut Frame) {
         if self.green_time.is_some() {
             // Yarış: yeşilden sonraki turlar. Üç kaynağın en iyisi: son tur süresinden hesaplanan, oturumun resmi sonucu,
             // yeşilden sonra değişmiş sim değeri (biri eksik kalsa da derece görünür)
+            // Yeşilden beri geçen süreden uzun tur olamaz (önceki oturumdan kalan değer): sayılmaz
+            let since_green = self.green_time.map(|g| (self.last_t - g).max(0.0) as f32 + 1.0).unwrap_or(f32::MAX);
             for i in 0..MAX_CARS {
                 let mut b = self.race_best[i];
                 let mut take = |x: f32| {
-                    if x > 0.0 && (b <= 0.0 || x < b) {
+                    if x > 0.0 && x <= since_green && (b <= 0.0 || x < b) {
                         b = x;
                     }
                 };
@@ -431,6 +453,10 @@ impl Tracker {
                     take(raw);
                 }
                 f.cars[i].best = b;
+                // Son tur: ilk yarış turu tamamlanana kadar (sıralamadan kalan) gösterilmez
+                if self.race_best[i] <= 0.0 && self.raw_noted {
+                    f.cars[i].last = -1.0;
+                }
             }
             return;
         }
@@ -438,6 +464,7 @@ impl Tracker {
         if self.pre_green {
             for i in 0..MAX_CARS {
                 f.cars[i].best = -1.0;
+                f.cars[i].last = -1.0;
             }
             return;
         }
@@ -458,6 +485,7 @@ impl Tracker {
 
     pub fn update(&mut self, f: &Frame, s: &SessionData) {
         self.replay.update(f);
+        self.last_t = f.session_time;
         // Oturumun resmi sonuçları (geçerli en iyi turlar)
         self.ses_best = vec![-1.0; MAX_CARS];
         if let Some(se) = s.session(f.session_num) {
@@ -518,13 +546,13 @@ impl Tracker {
             self.race_best = vec![-1.0; MAX_CARS];
             self.green_raw_best = self.raw_best.clone();
             // Yeşildeki "son tur" değerleri (sıralamadan kalan) yarış turu sayılmaz
-            self.race_last_seen = (0..MAX_CARS).map(|i| f.cars[i].last).collect();
+            self.race_last_seen = (0..MAX_CARS).map(|i| self.raw_last_of(f, i)).collect();
         }
         // Yarış turları: son tur süresi (CarIdxLastLapTime) her değiştiğinde yeni bir tur tamamlanmıştır. iRacing bu
         // değeri çizgiyi geçtikten biraz sonra günceller; tamamlanan tur sayısının arttığı karede eski değer durur.
         if race && self.green_time.is_some() {
             for i in 0..MAX_CARS {
-                let last = f.cars[i].last;
+                let last = self.raw_last_of(f, i);
                 if last > 1.0 && (last - self.race_last_seen[i]).abs() > 1e-4 {
                     self.race_last_seen[i] = last;
                     if self.race_best[i] <= 0.0 || last < self.race_best[i] {
@@ -737,8 +765,23 @@ mod best_tests {
         // Son tur süresi kaçırıldı ama sim yeni en iyi tur verdi (yeşilden sonra değişti): o da sayılır
         f.cars[0].best = 92.4;
         f.cars[0].lap_completed = 3;
+        f.session_time = 400.0;
         step(&mut t, &mut f, &s);
         assert_eq!(f.cars[0].best, 92.4);
+        // Yarış yeni başladı (yeşilden 30 sn): 92 sn'lik "en iyi tur" önceki oturumdan kalmış olamaz, sayılmaz
+        let mut t2 = Tracker::default();
+        let mut g = Frame::default();
+        g.cars[0].pct = 0.1;
+        g.cars[0].best = 88.0;
+        g.session_state = 3;
+        step(&mut t2, &mut g, &s);
+        g.session_state = 4;
+        g.session_time = 10.0;
+        step(&mut t2, &mut g, &s);
+        g.session_time = 40.0;
+        g.cars[0].best = 87.0;
+        step(&mut t2, &mut g, &s);
+        assert!(g.cars[0].best <= 0.0, "{}", g.cars[0].best);
     }
 
     #[test]

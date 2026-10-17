@@ -2,7 +2,7 @@ import { Show, createEffect, createSignal, onCleanup } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { onScreen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
-import { TvLogo, isTr, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
+import { TvLogo, isTr, isRaceSession, upper, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
 import manifest from "./manifest";
 import "./style.css";
@@ -57,7 +57,13 @@ export default function TvFastest(props: OverlayProps) {
         bests.set(k, r.best);
         // Overlay açıldığında zaten atılmış turlar duyurulmaz; sonra gelen ilk tur (oturumun ilk en hızlısı) ve
         // her iyileşme duyurulur
-        if (primed) show({ r, time: r.best, gain: prev !== undefined ? prev - r.best : 0 });
+        // Yarışta: lider en az 2 tur tamamlamadan ve yeşilden beri geçen süreden uzun "tur"da (önceki oturumdan kalan)
+        // duyurulmaz (start alır almaz uyarı çıkıyordu)
+        const i = info() as { raceElapsed?: number };
+        const race = isRaceSession(info().session);
+        const leadDone = Math.max(0, ...l.filter((x) => x.pos === 1).map((x) => x.lapsDone ?? 0));
+        const stale = race && (leadDone < 2 || ((i.raceElapsed ?? -1) >= 0 && r.best > (i.raceElapsed ?? 0) + 1));
+        if (primed && !stale) show({ r, time: r.best, gain: prev !== undefined ? prev - r.best : 0 });
       } else if (r.best > prev + 0.0005) {
         // Tekrarda geri sarıldı: en iyi tur izlenen ana göre yavaşladı, duyurmadan güncelle
         bests.set(k, r.best);

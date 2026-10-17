@@ -65,7 +65,7 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   incidents: true,
   cams: "tvmix",
   gridWalk: true,
-  gridShot: 5,
+  gridShot: 4,
   finishFocus: true,
   finishTop: 3,
   finishAll: true,
@@ -1434,10 +1434,11 @@ export function defaultSettings(): AppSettings {
 
 /** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
 /** Rejisör: eski varsayılan grid süresi (4 sn) yeni varsayılana (6 sn) bir kez taşınır */
-function directorMigrate(d: DirectorCfg & { gs6?: boolean; gs5?: boolean; sh2?: boolean; w2?: boolean }): DirectorCfg {
-  // Grid süresi varsayılanı 5 sn: eski varsayılanlar (4 / 6) bir kez 5'e
-  if (!d.gs5) {
-    if (d.gridShot === 4 || d.gridShot === 6) d.gridShot = 5;
+function directorMigrate(d: DirectorCfg & { gs6?: boolean; gs5?: boolean; gs4b?: boolean; sh2?: boolean; w2?: boolean }): DirectorCfg {
+  // Grid süresi varsayılanı 4 sn: önceki varsayılanlar (5 / 6) bir kez 4'e
+  if (!d.gs4b) {
+    if (d.gridShot === 5 || d.gridShot === 6) d.gridShot = 4;
+    d.gs4b = true;
     d.gs5 = true;
     d.gs6 = true;
   }
