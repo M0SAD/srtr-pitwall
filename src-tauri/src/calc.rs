@@ -319,6 +319,8 @@ pub struct Standings {
     pub cam_idx: i32,
     /// Otomatik Rejisör çekim türü (incident, finish, battle, grid…; çalışmıyorsa boş)
     pub cam_kind: String,
+    /// Kamera araç içinde / üstünde (cockpit, roll bar, gyro…): TV Sürücü Bandı hangi araç olduğunu yazsın
+    pub cam_onboard: bool,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -1203,6 +1205,12 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         classes,
         cam_idx: f.cam_car_idx,
         cam_kind: t.director_kind.to_string(),
+        cam_onboard: f.cam_group > 0
+            && s.cam_groups.iter().any(|g| {
+                g.0 == f.cam_group
+                    && ["cockpit", "roll bar", "gyro", "nose", "gearbox", "rear chase", "lf susp", "rf susp", "lr susp", "rr susp", "chase"]
+                        .contains(&g.1.trim().to_lowercase().as_str())
+            }),
     }
 }
 

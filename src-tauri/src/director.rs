@@ -153,6 +153,8 @@ pub struct Director {
     was_grid: bool,
     /// Grid turu bir kez bütün araçları gösterdi: yeşile kadar TV kamerasıyla normal kurgu
     grid_done: bool,
+    /// Elle başlatılan grid turu (ayarlardaki düğme): yeşilden sonra da bir kez bütün araçlar
+    grid_force: bool,
     pub status: Status,
 }
 
@@ -177,6 +179,7 @@ impl Default for Director {
             grid_i: 0,
             was_grid: false,
             grid_done: false,
+            grid_force: false,
             fin_snap: None,
             fin_done: [false; MAX_CARS],
             fin_hold: None,
@@ -222,6 +225,16 @@ impl Director {
     }
 
     /// Bir sonraki çekime hemen geç (arayüzdeki "Sonraki çekim")
+    /// Grid turunu baştan başlat: araçlar 1. sıradan itibaren sırayla (bir kez), sonra normal kurgu
+    pub fn restart_grid(&mut self) {
+        self.grid_force = true;
+        self.grid_done = false;
+        self.was_grid = false;
+        self.grid_i = 0;
+        self.cur = None;
+        self.manual_until = None;
+    }
+
     pub fn next(&mut self) {
         self.force_next = true;
         self.manual_until = None;
@@ -288,7 +301,7 @@ impl Director {
         if !pre {
             self.grid_done = false;
         }
-        let grid = cfg.grid_walk && pre && !self.grid_done;
+        let grid = (cfg.grid_walk && pre && !self.grid_done) || self.grid_force;
         if grid {
             if !self.was_grid {
                 self.grid_i = 0;
@@ -301,6 +314,7 @@ impl Director {
                 if self.grid_i >= order.len() {
                     // Herkes gösterildi: yeşile kadar TV Mixed (normal kurgu)
                     self.grid_done = true;
+                    self.grid_force = false;
                     self.was_grid = false;
                     self.cur = None;
                     self.force_next = false;

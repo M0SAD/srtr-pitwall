@@ -211,6 +211,8 @@ pub struct Shared {
     /// Otomatik Rejisör: durum (arayüz için) ve "sonraki çekim" isteği
     pub director_status: Mutex<crate::director::Status>,
     pub director_next: AtomicBool,
+    /// Otomatik Rejisör: grid turunu baştan (1. sıradan) başlat
+    pub director_grid: AtomicBool,
 }
 
 const KNOWN: &[&str] = &[
@@ -716,6 +718,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             crate::crashlog::guard(|| {
                 if shared.director_next.swap(false, Ordering::Relaxed) {
                     st.director.next();
+                }
+                if shared.director_grid.swap(false, Ordering::Relaxed) {
+                    st.director.restart_grid();
                 }
                 let iracing = connected && !demo_on && !preview && st.sim == "iracing";
                 st.director.step(&st.frame, &st.session, &director_cfg, iracing, &mut crate::director::IracingOut);

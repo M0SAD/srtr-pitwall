@@ -141,6 +141,15 @@ export function DirectorPanel() {
       </div>
       <div class="row">
         <div>
+          <b>{t("Grid turunu başlat")}</b>
+          <small>{t("Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri yukarıdaki süre kadar, önden kamerayla); herkes gösterilince normal kurguya döner.")}</small>
+        </div>
+        <button class="btn small" disabled={!cfg().enabled} onClick={() => inTauri && invoke("director_grid_restart")}>
+          <I.Play /> {t("Baştan başlat")}
+        </button>
+      </div>
+      <div class="row">
+        <div>
           <b>{t("Bitişte ilk araçlara odaklan")}</b>
           <small>
             {t(

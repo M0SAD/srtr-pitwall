@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-375
+
+- TV Sürücü Bandı: rejisörün grid turunda, kaza ve bitiş çekiminde band her zaman görünür ve kameradaki aracı gösterir (görünürlük ayarları, "Yeşil bayraktan önce gizle", sürelerin bitmesi bandı gizlemez; yalnızca "Gösterme" seçiliyse gizli). Grid turunda hız-vites ve ikinci bant yok; kazada ikinci bant yok.
+- TV Sürücü Bandı: kamera araç içinde / üstündeyken (Cockpit, Roll Bar, Gyro, Nose, Gearbox, Chase, Rear Chase, süspansiyon kameraları) band her zaman görünür ve o aracı yazar (iRacing CamGroupNumber).
+- Otomatik Rejisör: "Grid turunu başlat" düğmesi (Araçlar › Otomatik Rejisör): araçları hemen 1. sıradan başlayarak sırayla gösterir, herkes gösterilince normal kurguya döner (yeşilden sonra da çalışır).
+- TV Sıralama Kulesi: ekrandaki (kameradaki) aracın satırı belirgin: beyaz şerit, koyu kalın yazı.
+
 ## 171026-374
 
 - Grid turu bir kez yapılır: bütün araçlar sırayla gösterilince (yeşil bayraktan önce) TV Mixed kamerasına geçilir; herkes gösterilmeden yeşil bayrak verilirse de hemen TV Mixed.

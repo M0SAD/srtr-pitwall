@@ -240,6 +240,8 @@ export interface Standings {
   totalTime: number;
   timeRemain: number;
   lapsRemain: number;
+  /** Kamera araç içinde / üstünde (cockpit, roll bar, gyro…) */
+  camOnboard?: boolean;
   totalLaps: number;
   leaderLap: number;
   /** Yeşil bayraktan beri geçen süre (sn); yarış başlamadıysa 0, başlangıç anı bilinmiyorsa -1 */

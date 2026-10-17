@@ -176,10 +176,19 @@
   font-weight: 700;
 }
 .tvt-row.cam .tvt-name {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent);
+  /* Ekrandaki (kameradaki) araç: beyaz şerit, koyu yazı, belirgin */
+  background: #fff;
+  color: #111;
+  font-weight: 800;
 }
 .tvt-row.cam {
-  box-shadow: inset 2px 0 0 #fff;
+  box-shadow: inset 3px 0 0 var(--tv-red), 0 0 0 1px rgba(255, 255, 255, 0.9);
+  position: relative;
+  z-index: 1;
+}
+.tvt-row.cam .tvt-gap {
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
 }
 .tvt-row.up {
   background: color-mix(in srgb, var(--tv-green) 55%, var(--tv-dark));

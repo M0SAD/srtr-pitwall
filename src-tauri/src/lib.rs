@@ -871,6 +871,12 @@ fn director_next(state: State<'_, Arc<Shared>>) {
     state.director_next.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// Otomatik Rejisör: grid turunu baştan başlat (araçlar 1. sıradan itibaren sırayla)
+#[tauri::command]
+fn director_grid_restart(state: State<'_, Arc<Shared>>) {
+    state.director_grid.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Tekrar izlerken sürücü adına tıklandı: canlı yayına dön ve kamerayı o araca çevir
 #[tauri::command]
 async fn watch_car_live(number: String) -> Result<(), String> {
@@ -3459,6 +3465,7 @@ pub fn run() {
             watch_car_live,
             director_status,
             director_next,
+            director_grid_restart,
             keyactivity::key_idle_ms,
             settings_backup_broken,
             frontend_error,

@@ -158,6 +158,8 @@ pub struct Frame {
     pub replay_frame: i32,
     pub replay_frame_end: i32,
     pub cam_car_idx: i32,
+    /// iRacing kamera grubu (CamGroupNumber; -1 bilinmiyor)
+    pub cam_group: i32,
     /// Sürücü koltuğu ipucu (bkz. sims/role.rs): 0 sim bildirmiyor / kendi aracı, 1 oyuncunun aracı yok (izleyici),
     /// 2 oyuncunun aracını başkası sürüyor (LMU/rF2 mControl = 2: takım arkadaşı)
     pub seat: u8,
@@ -273,6 +275,7 @@ impl Default for Frame {
             replay_frame: -1,
             replay_frame_end: 0,
             cam_car_idx: -1,
+            cam_group: -1,
             seat: 0,
             air_temp: 0.0,
             track_temp: 0.0,

@@ -121,6 +121,7 @@ export function useTvStandings(editing: () => boolean) {
       session: s.sessionType || ses()?.sessionType || "",
       camIdx: s.camIdx ?? -1,
       camKind: s.camKind ?? "",
+      camOnboard: !!s.camOnboard,
       sample: false,
     };
   };

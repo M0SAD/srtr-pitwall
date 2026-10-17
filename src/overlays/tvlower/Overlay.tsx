@@ -28,6 +28,11 @@ export default function TvLower(props: OverlayProps) {
   const t = window.setInterval(() => !previewFrozen() && setTick(Date.now()), 500);
   onCleanup(() => clearInterval(t));
 
+  const camKind = () => (sample() ? "" : String((info() as { camKind?: string }).camKind || ""));
+  // Rejisörün grid turu: yalnız araç / sürücü / sıra (hız-vites göstergesi ve ikinci bant yok), band hep açık
+  const gridCam = () => camKind() === "grid";
+  // Kamera araç içinde / üstünde: hangi araç olduğu her zaman yazsın
+  const onboardCam = () => !sample() && !!(info() as { camOnboard?: boolean }).camOnboard;
   // Yeşil bayraktan önce (yarışta gridde / ısınma turunda): bütün sürücüler sırayla, tek bant
   const preGreen = () => {
     if (sample() || o().gridCycle === false) return false;
@@ -50,6 +55,11 @@ export default function TvLower(props: OverlayProps) {
 
   const focus = createMemo<Row | undefined>(() => {
     const l = rows();
+    // Rejisörün grid turu, kaza ve bitiş çekimi: her zaman kameradaki araç (kim olduğu görünsün)
+    if (gridCam() || onboardCam() || camKind() === "incident" || camKind() === "finish") {
+      const cam = l.find((r) => r.idx === info().camIdx);
+      if (cam) return cam;
+    }
     if (preGreen() && l.length) {
       const cam = l.find((r) => r.idx === info().camIdx);
       if (cam && tick() - camAt() < 6000) return cam;
@@ -136,15 +146,14 @@ export default function TvLower(props: OverlayProps) {
     }
   });
   // Otomatik Rejisör kazaya kesti: kameradaki aracın bandı hemen çıkar, "INCIDENT" etiketiyle (ikinci bant yok)
-  const camKind = () => (sample() ? "" : String((info() as { camKind?: string }).camKind || ""));
   const incident = () => camKind() === "incident" && o().incidentTag !== false;
   // Rejisör bitiş çizgisini gösteriyor: band her zaman açık (çizgiyi kimin geçtiği görünsün)
   const finishCam = () => camKind() === "finish";
   // Rejisörün grid turu: yalnız araç / sürücü (hız-vites göstergesi ve ikinci bant yok)
-  const gridCam = () => camKind() === "grid";
+
   // Yarışı bitiren araç gösterilirken yalnızca o: ikinci bant kapalı
   const isFinished = useFinishedCars(rows, () => ses()?.state ?? 0);
-  const other = () => (incident() || gridCam() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
+  const other = () => (camKind() === "incident" || gridCam() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
   // Ekranda soldaki: geride olan (kovalayan), sağdaki: önde olan (TV'deki gibi)
   const pair = createMemo(() => {
     const f = focus();
@@ -222,7 +231,7 @@ export default function TvLower(props: OverlayProps) {
   const scale = () => Math.max(0.5, Math.min(2, (Number(o().scale) || 100) / 100));
 
   return (
-    <div class="tv tvl" classList={{ off: !(visible() || ((incident() || finishCam()) && String(o().show) !== "never")) }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
+    <div class="tv tvl" classList={{ off: !(visible() || ((camKind() === "incident" || finishCam() || gridCam() || onboardCam() || (preGreen() && !!focus())) && String(o().show) !== "never")) }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
       <Index each={pair()}>{(r, i) => <Band r={r()} mine={r().isMe} side={pair().length < 2 ? "mid" : i === 0 ? "left" : "right"} />}</Index>
     </div>
   );

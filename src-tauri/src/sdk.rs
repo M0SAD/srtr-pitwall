@@ -152,6 +152,7 @@ pub struct VarIndex {
     pub replay_session_num: Option<VarRef>,
     pub replay_session_time: Option<VarRef>,
     pub cam_car_idx: Option<VarRef>,
+    pub cam_group: Option<VarRef>,
     pub air_temp: Option<VarRef>,
     pub track_temp: Option<VarRef>,
     pub incidents: Option<VarRef>,
@@ -280,6 +281,7 @@ impl VarIndex {
                 "ReplaySessionNum" => ix.replay_session_num = r,
                 "ReplaySessionTime" => ix.replay_session_time = r,
                 "CamCarIdx" => ix.cam_car_idx = r,
+                "CamGroupNumber" => ix.cam_group = r,
                 "AirTemp" => ix.air_temp = r,
                 "TrackTempCrew" => ix.track_temp = r,
                 "PlayerCarMyIncidentCount" => ix.incidents = r,
@@ -458,6 +460,7 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.replay_session_num = i32_or(buf, ix.replay_session_num, 0);
     f.replay_session_time = get_f64(buf, ix.replay_session_time, 0).unwrap_or(0.0);
     f.cam_car_idx = i32_or(buf, ix.cam_car_idx, -1);
+    f.cam_group = i32_or(buf, ix.cam_group, -1);
     // Araçların hızı için (tur yüzdesi değişimi / geçen süre); tekrarda kasetin zamanı
     let now_t = if f.replay { f.replay_session_time } else { f.session_time };
     let dt = (now_t - prev_t) as f32;
