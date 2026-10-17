@@ -64,12 +64,12 @@ export function DirectorPanel() {
     if (s.why === "manual") return t("Kamerayı elle değiştirdin: {0} sn sonra devam eder", String(Math.ceil(s.pauseLeft)));
     return t("Bekleniyor…");
   };
-  const W: { k: "wLeader" | "wFront" | "wBattle" | "wField" | "wMe"; label: string }[] = [
+  // Kendi aracın ayrı bir kural değil: diğer araçlar gibi (sıralamadaki yerine göre) gösterilir
+  const W: { k: "wLeader" | "wFront" | "wBattle" | "wField"; label: string }[] = [
     { k: "wLeader", label: "Lider" },
     { k: "wFront", label: "Ön sıralar" },
     { k: "wBattle", label: "Mücadeleler" },
     { k: "wField", label: "Diğer araçlar (sırayla hepsi)" },
-    { k: "wMe", label: "Kendi aracım" },
   ];
 
   return (
@@ -141,10 +141,14 @@ export function DirectorPanel() {
         </div>
         <Switch checked={cfg().gridWalk} onChange={(v) => set("gridWalk", v)} />
       </div>
+      <div class="f2">
+        <div class="f2-cap">{t("Grid turunda araç başına")}</div>
+        <Slider value={cfg().gridShot} min={2} max={15} unit="sn" onInput={(v) => set("gridShot", v)} />
+      </div>
       <div class="row">
         <div>
           <b>{t("Grid turunu başlat")}</b>
-          <small>{t("Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri yukarıdaki süre kadar, önden kamerayla); herkes gösterilince normal kurguya döner.")}</small>
+          <small>{t("Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.")}</small>
         </div>
         <button class="btn small" disabled={!cfg().enabled} onClick={() => inTauri && invoke("director_grid_restart")}>
           <I.Play /> {t("Baştan başlat")}
@@ -241,10 +245,6 @@ export function DirectorPanel() {
         <div class="f2">
           <div class="f2-cap">{t("Mücadele sayılan fark")}</div>
           <Slider value={cfg().battleGap} min={0.2} max={3} step={0.1} unit="sn" onInput={(v) => set("battleGap", v)} />
-        </div>
-        <div class="f2">
-          <div class="f2-cap">{t("Grid turunda araç başına")}</div>
-          <Slider value={cfg().gridShot} min={2} max={15} unit="sn" onInput={(v) => set("gridShot", v)} />
         </div>
         <div class="f2">
           <div class="f2-cap">

@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "Najwyższy moment zmierzony przez iRacing dla tego auta (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Wyłączone: linia jest rysowana tylko wtedy, gdy jest auto do pokazania. Z „Pokaż mój wiersz” zamiast linii widać twój wiersz.",
   "TEPE": "SZCZYT",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Linia jazdy jest dostępna tylko dla okrążeń zaimportowanych z pliku .ibt (dane na żywo nie zawierają pozycji)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Linia jazdy jest dostępna tylko dla okrążeń zaimportowanych z pliku .ibt (dane na żywo nie zawierają pozycji).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Od razu pokazuje auta po kolei od P1 (każde przez czas „Na auto podczas przeglądu”, kamerą z przodu); potem wraca do normalnej realizacji."
 }

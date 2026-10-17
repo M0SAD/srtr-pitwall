@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "iRacing がこの車で計測した最大トルク(Nm)。",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "オフのとき、表示する車がいる間だけ線を描きます。「自分の行を表示」がオンなら線の代わりに自分の行が出ます。",
   "TEPE": "ピーク",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "走行ラインは .ibt ファイルから取り込んだラップでのみ利用できます（ライブデータには位置情報がありません）。"
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "走行ラインは .ibt ファイルから取り込んだラップでのみ利用できます（ライブデータには位置情報がありません）。",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "P1 から順に車をすぐに表示（各車「グリッド紹介の1台あたり」の時間、前方カメラ）。全員を表示したら通常の演出に戻ります。"
 }

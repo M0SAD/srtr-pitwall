@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "The highest torque iRacing measured for this car (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "When off, the line is only drawn while there is a car to show. With \"Show my row\" on, your row is shown instead of the line.",
   "TEPE": "PEAK",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "The racing line is only available for laps imported from an .ibt file (live data has no position)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "The racing line is only available for laps imported from an .ibt file (live data has no position).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Shows the cars one by one right away, starting from P1 (each for the \"Per car during the grid walk\" time, with a front camera); returns to normal directing once everyone has been shown."
 }

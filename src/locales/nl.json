@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "Het hoogste koppel dat iRacing voor deze auto heeft gemeten (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Uit: de lijn wordt alleen getekend als er een auto te tonen is. Met \"Mijn rij tonen\" verschijnt je rij in plaats van de lijn.",
   "TEPE": "PIEK",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "De racelijn is alleen beschikbaar voor ronden die uit een .ibt-bestand zijn geïmporteerd (livedata bevat geen positie)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "De racelijn is alleen beschikbaar voor ronden die uit een .ibt-bestand zijn geïmporteerd (livedata bevat geen positie).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Toont de auto’s meteen één voor één vanaf P1 (elk zo lang als \"Per auto tijdens de gridrondgang\", met frontcamera); daarna weer normale regie."
 }

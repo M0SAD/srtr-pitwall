@@ -153,7 +153,7 @@ export default function TvLower(props: OverlayProps) {
 
   // Yarışı bitiren araç gösterilirken yalnızca o: ikinci bant kapalı
   const isFinished = useFinishedCars(rows, () => ses()?.state ?? 0);
-  const other = () => (camKind() === "incident" || gridCam() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
+  const other = () => (camKind() === "incident" || gridCam() || onboardCam() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
   // Ekranda soldaki: geride olan (kovalayan), sağdaki: önde olan (TV'deki gibi)
   const pair = createMemo(() => {
     const f = focus();

@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "Das höchste Drehmoment, das iRacing für dieses Auto gemessen hat (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Wenn aus, wird die Linie nur gezeichnet, solange ein Auto angezeigt wird. Mit „Meine Zeile anzeigen“ erscheint statt der Linie deine Zeile.",
   "TEPE": "SPITZE",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Die Ideallinie gibt es nur für Runden, die aus einer .ibt-Datei importiert wurden (Live-Daten enthalten keine Position)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Die Ideallinie gibt es nur für Runden, die aus einer .ibt-Datei importiert wurden (Live-Daten enthalten keine Position).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Zeigt die Autos sofort nacheinander ab P1 (jedes für die Zeit „Pro Auto bei der Startaufstellung“, mit Frontkamera); danach normale Regie."
 }

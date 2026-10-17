@@ -57,10 +57,10 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   minShot: 10,
   maxShot: 20,
   frontN: 5,
-  wLeader: 25,
-  wFront: 25,
-  wBattle: 30,
-  wField: 25,
+  wLeader: 20,
+  wFront: 20,
+  wBattle: 25,
+  wField: 40,
   wMe: 0,
   incidents: true,
   cams: "tvmix",
@@ -1434,10 +1434,20 @@ export function defaultSettings(): AppSettings {
 
 /** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
 /** Rejisör: eski varsayılan grid süresi (4 sn) yeni varsayılana (6 sn) bir kez taşınır */
-function directorMigrate(d: DirectorCfg & { gs6?: boolean }): DirectorCfg {
+function directorMigrate(d: DirectorCfg & { gs6?: boolean; w2?: boolean }): DirectorCfg {
   if (!d.gs6) {
     if (d.gridShot === 4) d.gridShot = 6;
     d.gs6 = true;
+  }
+  // Kurgu oranları: eski varsayılanlar (25/25/30/25) bir kez yenilerine (arka sıralar daha sık: 20/20/25/40)
+  if (!d.w2) {
+    if (d.wLeader === 25 && d.wFront === 25 && d.wBattle === 30 && d.wField === 25) {
+      d.wLeader = 20;
+      d.wFront = 20;
+      d.wBattle = 25;
+      d.wField = 40;
+    }
+    d.w2 = true;
   }
   return d;
 }

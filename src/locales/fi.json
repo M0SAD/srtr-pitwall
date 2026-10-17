@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "Suurin vääntö, jonka iRacing on mitannut tälle autolle (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Pois päältä: viiva piirretään vain, kun näytettävä auto on. \"Näytä oma rivini\" -asetuksella näkyy rivisi viivan sijaan.",
   "TEPE": "HUIPPU",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Ajolinja on saatavilla vain .ibt-tiedostosta tuoduille kierroksille (live-datassa ei ole sijaintia)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Ajolinja on saatavilla vain .ibt-tiedostosta tuoduille kierroksille (live-datassa ei ole sijaintia).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Näyttää autot heti yksi kerrallaan P1:stä alkaen (kunkin ”Autoa kohden esittelyssä” -ajan, etukameralla); sen jälkeen normaali ohjaus."
 }

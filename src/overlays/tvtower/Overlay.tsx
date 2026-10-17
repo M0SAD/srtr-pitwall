@@ -116,6 +116,9 @@ export default function TvTower(props: OverlayProps) {
   const clockVal = () => {
     const i = info();
     const mode = String(o().clock || "race");
+    // Yarış, yeşil bayraktan önce: saat işlemez (kalan: toplam süre, geçen: 0)
+    const preGreen = isRaceSession(i.session) && i.raceElapsed === 0;
+    if (mode === "remain" && preGreen && i.totalTime > 0 && i.totalTime < 600000) return hms(i.totalTime);
     if (mode === "remain") {
       // Süreli yarış: kalan süre; tur sayılı yarışta iRacing kalan süre vermez → kalan tur
       if (timedValid(i.timeRemain)) return hms(i.timeRemain);

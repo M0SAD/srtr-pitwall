@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "El par más alto que iRacing midió para este coche (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Desactivado: la línea solo se dibuja si hay algún coche que mostrar. Con «Mostrar mi fila», tu fila sustituye a la línea.",
   "TEPE": "PICO",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La trazada solo está disponible en vueltas importadas desde un archivo .ibt (los datos en vivo no tienen posición)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La trazada solo está disponible en vueltas importadas desde un archivo .ibt (los datos en vivo no tienen posición).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Muestra los coches uno a uno ahora mismo desde la P1 (cada uno el tiempo de «Por coche en el recorrido de parrilla», con cámara frontal); al terminar vuelve a la realización normal."
 }

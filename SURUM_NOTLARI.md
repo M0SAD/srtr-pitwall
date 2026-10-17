@@ -3,6 +3,23 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-380
+
+- Otomatik Rejisör: kendi aracın için ayrı kural kaldırıldı ("Kendi aracım" oranı); diğer araçlar gibi sıralamadaki yerine göre gösterilir.
+- Yarıştaki bütün araçlar mutlaka gösterilir: 2,5 dakikadır ekrana gelmeyen araç varsa sıra ona gelir (hiç gösterilmeyen / en uzun bekleyen önce). Kurgu oranları arka sıralar lehine: lider 20, ön sıralar 20, mücadele 25, diğer araçlar 40 (eski varsayılanlar bir kez yenilerine taşınır).
+- Aynı ikili sürekli yakın takipteyse çok sık gösterilmez: ikisinden biri son 2 dakikada gösterildiyse o mücadele beklemede.
+- Mücadele çekimleri kısaltıldı: en çok 20 sn, dip dibe olanlar en çok 25 sn (önceki sürümde 30 / 45 sn).
+
+- Dip dibe mücadelede araç içi kamera artık ara sıra (çekimlerin ~üçte biri); mücadele sürerken araç içi ↔ TV geçişi de her seferinde değil. Kamera araç içindeyken TV Sürücü Bandı yalnızca o aracı yazar (ikinci bant yok).
+
+## 171026-379
+
+- Lider tablosu (ve TV Sıralama Kulesi "Kalan süre"): süreli yarışta saat yeşil bayraktan önce (grid / ısınma turu) işlemiyor; yarışın toplam süresi yazar, geri sayım yeşilde başlar.
+
+## 171026-378
+
+- Araçlar › Otomatik Rejisör: "Grid turunda araç başına" süresi gizli "Kurgu ayarları" bölümünden çıkarıldı, "Grid turu" anahtarının hemen altında görünür; "Grid turunu başlat" açıklaması bu ayarı adıyla anıyor.
+
 ## 171026-377
 
 - Otomatik Rejisör: son tur başlamadan önce (lider sondan bir önceki turda, süreli yarışta süre dolmak üzereyken) lider bitiş çizgisine yaklaşırken kamera ona geçer: beyaz bayrağın sallandığı geçiş görünür; ardından son turun başında 10 sn daha lider.

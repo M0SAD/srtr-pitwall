@@ -58,10 +58,10 @@ impl Default for Cfg {
             min_shot: 10.0,
             max_shot: 20.0,
             front_n: 5,
-            w_leader: 25.0,
-            w_front: 25.0,
-            w_battle: 30.0,
-            w_field: 25.0,
+            w_leader: 20.0,
+            w_front: 20.0,
+            w_battle: 25.0,
+            w_field: 40.0,
             w_me: 0.0,
             incidents: true,
             cams: "tvmix".into(),
@@ -157,6 +157,8 @@ pub struct Director {
     /// En hızlı tur takibi: (oturum, en iyi süre), son en hızlı tur çekimi
     fast_best: (i32, f32),
     fastest_at: Option<Instant>,
+    /// Kurgunun başladığı an (hiç gösterilmeyen araçların bekleme süresi buradan sayılır)
+    born: Instant,
     /// Beyaz bayrak (son tur) liderin önüne çıktı: lider bir süre gösterilir
     white_seen: bool,
     /// Pit yolu: önceki karede pitte miydi, son pit çekimi
@@ -201,6 +203,7 @@ impl Default for Director {
             last_incident: [None; MAX_CARS],
             fast_best: (-1, -1.0),
             fastest_at: None,
+            born: Instant::now(),
             white_seen: false,
             prev_pit: [false; MAX_CARS],
             pit_shot_at: None,
@@ -445,13 +448,13 @@ impl Director {
                 self.pit_shot_at = Some(now);
             }
         }
-        // Mücadele sürüyorsa çekim biraz uzar (en çok 30 sn); mücadele bittiyse en kısa süreden sonra kesilir
+        // Mücadele sürüyorsa çekim biraz uzar; mücadele bittiyse en kısa süreden sonra kesilir
         let mut due = self.cur.map(|c| elapsed >= c.len).unwrap_or(true);
         if let Some(c) = self.cur.filter(|c| c.kind == "battle") {
             let on = self.in_battle(f, s, c.idx, cfg.battle_gap * 1.5);
-            // Dip dibe (0,5 sn'den yakın) giderken daha uzun: en çok 45 sn
+            // Dip dibe (0,5 sn'den yakın) giderken biraz daha uzun: en çok 25 sn (diğer mücadeleler 20 sn)
             let tight = self.in_battle(f, s, c.idx, 0.5);
-            let cap = if tight { 45.0f32 } else { 30.0 };
+            let cap = if tight { 25.0f32 } else { 20.0 };
             if due && on && elapsed < cap.max(c.len) {
                 due = false;
             } else if !due && !on && elapsed >= cfg.min_shot.max(6.0) {
@@ -464,7 +467,14 @@ impl Director {
         // Süren dip dibe mücadele: ~10 sn'de bir araç içi kamera ile TV kamerası arasında geçiş (aynı araç)
         if pick.is_none() && !due {
             if let Some(c) = self.cur.filter(|c| c.kind == "battle") {
-                if now.duration_since(self.cam_at) >= Duration::from_secs(10) && self.in_battle(f, s, c.idx, 0.5) {
+                if now.duration_since(self.cam_at) >= Duration::from_secs(12) && self.in_battle(f, s, c.idx, 0.5) {
+                    // Her seferinde değil, ara sıra (araç içi ↔ TV)
+                    self.cam_at = now;
+                    if self.rand() >= 0.4 {
+                        self.fill_status(&mut st, f, s, now);
+                        self.status = st;
+                        return;
+                    }
                     let onboard = self.onboard_group(s, cfg);
                     let is_on = onboard.as_ref().map(|g| g.0 == self.group.0).unwrap_or(false);
                     let g = if is_on { Some(self.pick_group(s, cfg, "battle")) } else { onboard };
@@ -482,7 +492,7 @@ impl Director {
             let number = s.driver(idx).map(|d| d.car_number.clone()).unwrap_or_default();
             if !number.is_empty() {
                 // Dip dibe mücadele: arkadaki aracın içinden (öndekini takip ederken)
-                let group = if kind == "battle" && self.in_battle(f, s, idx, 0.5) {
+                let group = if kind == "battle" && self.in_battle(f, s, idx, 0.5) && self.rand() < 0.35 {
                     self.onboard_group(s, cfg).unwrap_or_else(|| self.pick_group(s, cfg, kind))
                 } else {
                     self.pick_group(s, cfg, kind)
@@ -739,13 +749,14 @@ impl Director {
         cars.sort_by_key(|&i| if f.cars[i].position > 0 { f.cars[i].position } else { 999 });
         let cur = self.cur.map(|c| c.idx);
         let shown = self.last_shown;
-        let since = |i: usize| shown[i].map(|t| now.duration_since(t).as_secs_f32()).unwrap_or(1e6);
+        // Hiç gösterilmeyen araç: kurgunun başlangıcından beri gösterilmemiş sayılır
+        let born = self.born;
+        let since = |i: usize| now.saturating_duration_since(shown[i].unwrap_or(born)).as_secs_f32();
 
         let leader = cars.first().copied().filter(|&i| f.cars[i].position == 1);
         let front: Vec<usize> = cars.iter().copied().filter(|&i| (2..=cfg.front_n).contains(&f.cars[i].position)).collect();
         let battles = self.battles(f, s, &cars, cfg.battle_gap);
         let field: Vec<usize> = cars.iter().copied().filter(|&i| f.cars[i].position > cfg.front_n).collect();
-        let me = (s.player_idx >= 0 && cars.contains(&(s.player_idx as usize))).then_some(s.player_idx as usize);
 
         let mut opts: Vec<(&'static str, f32)> = Vec::new();
         if leader.is_some() && leader != cur {
@@ -754,14 +765,19 @@ impl Director {
         if front.iter().any(|&i| Some(i) != cur) {
             opts.push(("front", cfg.w_front));
         }
-        if battles.iter().any(|&(_, b)| Some(b) != cur) {
+        // Aynı ikili sürekli yakın takipteyse çok sık gösterilmesin: ikisinden biri son 2 dk'da gösterildiyse o mücadele beklemede
+        let fresh = |a: usize, b: usize| since(a) > 120.0 && since(b) > 120.0;
+        if battles.iter().any(|&(a, b)| Some(b) != cur && Some(a) != cur && fresh(a, b)) {
             opts.push(("battle", cfg.w_battle));
         }
         if field.iter().any(|&i| Some(i) != cur) {
             opts.push(("field", cfg.w_field));
         }
-        if me.is_some() && me != cur {
-            opts.push(("me", cfg.w_me));
+        // Uzun süredir (2,5 dk) ekrana gelmeyen araç varsa sıra ona gelir: yarıştaki bütün araçlar mutlaka gösterilir
+        // (kendi aracın da diğerleri gibi; ayrı bir kural yok)
+        let overdue: Vec<usize> = cars.iter().copied().filter(|&i| Some(i) != cur && since(i) > 150.0).collect();
+        if !overdue.is_empty() {
+            opts.push(("overdue", (cfg.w_field.max(15.0)) * 2.5));
         }
         let total: f32 = opts.iter().map(|o| o.1).sum();
         let kind = if total <= 0.0 {
@@ -785,8 +801,8 @@ impl Director {
                 if Some(i) == cur {
                     continue;
                 }
-                // En uzun süredir gösterilmeyen; eşitlikte küçük rastgelelik
-                let sc = since(i) + d.rand() * 3.0;
+                // En uzun süredir gösterilmeyen (hiç gösterilmeyen önce); eşitlikte küçük rastgelelik
+                let sc = since(i) + if shown[i].is_none() { 1000.0 } else { 0.0 } + d.rand() * 3.0;
                 if best.map(|b| sc > b.1).unwrap_or(true) {
                     best = Some((i, sc));
                 }
@@ -800,7 +816,7 @@ impl Director {
                 // Öndeki mücadeleler biraz öncelikli; aynı mücadele art arda gösterilmez
                 let mut best: Option<(usize, f32)> = None;
                 for &(a, b) in &battles {
-                    if Some(b) == cur || Some(a) == cur {
+                    if Some(b) == cur || Some(a) == cur || !fresh(a, b) {
                         continue;
                     }
                     let sc = 100.0 - f.cars[a].position as f32 + since(b).min(120.0) * 0.3 + self.rand() * 10.0;
@@ -810,18 +826,22 @@ impl Director {
                 }
                 best.map(|x| x.0)
             }
-            "me" => me,
+            "overdue" => {
+                let o: Vec<usize> = cars.iter().copied().filter(|&i| Some(i) != cur && since(i) > 150.0).collect();
+                least(&o, self)
+            }
             _ => least(if field.is_empty() { &cars } else { &field }, self),
         }
         .or_else(|| least(&cars, self))?;
         // Türe göre süre (yayınlarda olduğu gibi): lider biraz uzun, mücadele daha uzun (sürdükçe uzar), arkadaki
         // araçlar kısa (bütün sahaya sıra gelsin, izleyici sıkılmasın)
+        let kind = if kind == "overdue" { "field" } else { kind };
         let len = match kind {
             "battle" => {
                 if self.in_battle(f, s, idx, 0.5) {
-                    (len * 1.8).min(30.0f32.max(cfg.max_shot))
+                    (len * 1.4).min(22.0f32.max(cfg.max_shot))
                 } else {
-                    (len * 1.5).min(25.0f32.max(cfg.max_shot))
+                    (len * 1.2).min(18.0f32.max(cfg.max_shot))
                 }
             }
             "leader" => len * 1.2,
@@ -1167,7 +1187,8 @@ mod tests {
             d.step(&f, &s, &cfg, true, &mut out);
             seen.insert(d.cur.unwrap().idx);
         }
-        assert_eq!(seen.len(), 20, "zamanla bütün araçlar gösterilir");
+        let miss: Vec<usize> = (0..20).filter(|i| !seen.contains(i)).collect();
+        assert_eq!(seen.len(), 20, "zamanla bütün araçlar gösterilir {miss:?}");
     }
 
     #[test]

@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "La coppia più alta misurata da iRacing per questa auto (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Se disattivato, la linea viene disegnata solo se c'è un'auto da mostrare. Con «Mostra la mia riga» compare la tua riga al posto della linea.",
   "TEPE": "PICCO",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La traiettoria è disponibile solo per i giri importati da un file .ibt (i dati live non hanno la posizione)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La traiettoria è disponibile solo per i giri importati da un file .ibt (i dati live non hanno la posizione).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Mostra subito le auto una alla volta dalla P1 (ognuna per il tempo «Per auto durante il giro della griglia», con camera frontale); poi torna alla regia normale."
 }

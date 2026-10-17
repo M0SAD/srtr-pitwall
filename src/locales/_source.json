@@ -766,7 +766,7 @@
  "Araçlar": "src/app/App.tsx, src/app/components/AdminExtras.tsx, src/app/components/AdminProFeatures.tsx, src/app/menu.ts, src/app/pages/CommunityPage.tsx, src/overlays/trackmap/manifest.ts, src/sdk/proFeatures.ts",
  "Araçlar / sınıflar": "src/app/pages/LayoutsPage.tsx",
  "Araçlar uzaktayken gizle": "src/overlays/duel/manifest.ts",
- "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri yukarıdaki süre kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "src/app/components/DirectorPanel.tsx",
+ "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "src/app/components/DirectorPanel.tsx",
  "ARAÇTA": "src/overlays/driverswap/Overlay.tsx",
  "Araçta hibrit sistem yoksa gösterge ekranda yer kaplamaz. Düzenleme modunda yine görünür.": "src/overlays/ers/manifest.ts",
  "Araçta sürerken kameraya dokunmaz (izleyici modunda, ya da tekrarda çalışır)": "src/app/components/DirectorPanel.tsx",

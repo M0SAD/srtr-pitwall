@@ -7962,5 +7962,6 @@
   "iRacing'in bu araç için ölçtüğü en yüksek tork (Nm).": "Det högsta vridmoment iRacing har mätt för den här bilen (Nm).",
   "Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür.": "Av: linjen ritas bara när det finns en bil att visa. Med \"Visa min rad\" visas din rad i stället för linjen.",
   "TEPE": "TOPP",
-  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Körlinjen finns bara för varv som importerats från en .ibt-fil (livedata saknar position)."
+  "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Körlinjen finns bara för varv som importerats från en .ibt-fil (livedata saknar position).",
+  "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Visar bilarna en i taget direkt från P1 (var och en under ”Per bil under startfältsvisningen”, med frontkamera); återgår sedan till normal bildregi."
 }

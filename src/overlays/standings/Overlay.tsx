@@ -147,6 +147,11 @@ export default function Standings(props: OverlayProps) {
     // Yarışın saati: oyunun kalan süresi (oturum başındaki bekleme / grid sayılmaz). Bilinmiyorsa oturum süresine düşer.
     const mode = (props.options.timeMode as string) || "remain";
     const remainOk = d.timeRemain >= 0 && d.timeRemain < 604800;
+    // Yarış, yeşil bayraktan önce (grid / ısınma turu): saat işlemez, yarışın toplam süresi yazar
+    if (d.race && d.raceElapsed === 0 && d.totalTime > 0 && d.totalTime < 604800) {
+      if (mode === "remain") return clock(d.totalTime);
+      if (mode === "race") return `${clock(0)} / ${clock(d.totalTime)}`;
+    }
     if (mode === "remain" && remainOk) return clock(d.timeRemain);
     if (mode === "race" && remainOk && d.totalTime > 0) return `${clock(Math.max(0, d.totalTime - d.timeRemain))} / ${clock(d.totalTime)}`;
     if (d.totalTime > 0) return `${clock(d.elapsed)} / ${clock(d.totalTime)}`;
