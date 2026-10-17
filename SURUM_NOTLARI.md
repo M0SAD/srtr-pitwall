@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-377
+
+- Otomatik Rejisör: son tur başlamadan önce (lider sondan bir önceki turda, süreli yarışta süre dolmak üzereyken) lider bitiş çizgisine yaklaşırken kamera ona geçer: beyaz bayrağın sallandığı geçiş görünür; ardından son turun başında 10 sn daha lider.
+
 ## 171026-376
 
 - Otomatik Rejisör: yeni en hızlı tur atılınca kamera o araca geçer (9 sn; yarışta ilk 2 turda ve 25 sn'de bir kezden sık değil, kaza çekimini bölmez). TV Sürücü Bandı bu çekimde de hep görünür. Ayar: "En hızlı tura odaklan" (varsayılan açık).

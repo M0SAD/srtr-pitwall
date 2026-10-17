@@ -535,6 +535,27 @@ impl Director {
             self.white_hold = None;
         }
         if !checkered && !white {
+            // Son tur başlamak üzere: lider çizgiye yaklaşıyor ve bu geçişte beyaz bayrak sallanacak (bayrağı görelim)
+            if !self.white_seen {
+                if let Some(l) = (0..MAX_CARS).find(|&i| f.cars[i].position == 1 && crate::calc::active(f, s, i)) {
+                    let c = &f.cars[l];
+                    let lap = s
+                        .driver(l)
+                        .map(|d| d.class_est_lap)
+                        .filter(|x| *x > 10.0)
+                        .or_else(|| (c.best > 10.0).then_some(c.best))
+                        .unwrap_or(100.0);
+                    let ttl = (1.0 - c.pct.max(0.0)) * lap;
+                    let total = s.session(f.session_num).and_then(|e| e.laps).unwrap_or(0);
+                    // Tur sayılı: lider sondan bir önceki turda; süreli: çizgiye vardığında süre bitmiş olacak
+                    let penult = (total > 0 && total < 32767 && c.lap == total - 1) || f.session_laps_remain == 1;
+                    let rem = f.session_time_remain;
+                    let timed = (total <= 0 || total >= 32767) && rem >= 0.0 && rem < 1e5 && rem - (ttl as f64) <= 0.0;
+                    if (penult || timed) && !c.on_pit && ttl < LEAD {
+                        return Some(l);
+                    }
+                }
+            }
             return None;
         }
         if checkered && self.fin_snap.is_none() {
@@ -1147,6 +1168,25 @@ mod tests {
             seen.insert(d.cur.unwrap().idx);
         }
         assert_eq!(seen.len(), 20, "zamanla bütün araçlar gösterilir");
+    }
+
+    #[test]
+    fn leader_before_white_flag() {
+        let mut s = sess(6);
+        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), laps: Some(10), ..Default::default() }];
+        let mut f = frame(6);
+        f.session_state = 4;
+        for i in 0..6 {
+            f.cars[i].lap = 9;
+            f.cars[i].pct = 0.5;
+        }
+        f.cars[0].pct = 0.96;
+        let mut d = Director::default();
+        let cfg = Cfg { enabled: true, ..Default::default() };
+        let mut out = Rec(vec![]);
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "finish", "beyaz bayraktan önce lider");
+        assert_eq!(d.cur.unwrap().idx, 0);
     }
 
     #[test]
