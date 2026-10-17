@@ -15,8 +15,76 @@ import rnnoiseSimdUrl from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?u
 
 // ---- Tercihler (hesapla eşitlenir)
 export type NoiseMode = "off" | "standard" | "strong";
-export const [inputDevice, setInputDevice] = uiPref<string>("voice.room.inDev", "");
-export const [outputDevice, setOutputDevice] = uiPref<string>("voice.room.outDev", "");
+/**
+ * Ses aygıtı seçimleri bu bilgisayara özel (aygıt kimlikleri makineye göre değişir): bulutla eşitlenen ayarlarda değil
+ * yerel depoda tutulur. Önceden ayarlarda (uiPrefs) kayıtlıysa ilk açılışta oradan alınır. Pencereler arası eşitlenir.
+ */
+function devicePref(key: string): [() => string, (v: string) => void] {
+  const lsKey = `pitwall.dev.${key}`;
+  const [legacy] = uiPref<string>(key, "");
+  const read = () => {
+    try {
+      return localStorage.getItem(lsKey);
+    } catch {
+      return null;
+    }
+  };
+  const [v, setV] = createSignal<string | null>(read());
+  if (typeof window !== "undefined")
+    window.addEventListener("storage", (e) => {
+      if (e.key === lsKey) setV(e.newValue);
+    });
+  const get = () => {
+    const x = v();
+    return x !== null ? x : legacy() || "";
+  };
+  const set = (x: string) => {
+    try {
+      localStorage.setItem(lsKey, x);
+    } catch {
+      /* depo yok */
+    }
+    setV(x);
+  };
+  return [get, set];
+}
+
+export const [inputDevice, setInputDevice] = devicePref("voice.room.inDev");
+export const [outputDevice, setOutputDevice] = devicePref("voice.room.outDev");
+// Seçilen aygıtların adları: aygıt kimliği değişirse (sürücü güncellemesi, USB başka porta takıldı, WebView kimlikleri
+// yeniledi) aynı adlı aygıt bulunup seçim korunur
+export const [inputLabel, setInputLabel] = devicePref("voice.room.inDevLabel");
+export const [outputLabel, setOutputLabel] = devicePref("voice.room.outDevLabel");
+export const [streamLabel, setStreamLabel] = devicePref("voice.room.streamDevLabel");
+/** Yayın çıkışı aygıtı (OBS sanal kablo) */
+export const [streamDevice, setStreamDevice] = devicePref("voice.room.streamDev");
+
+type Pref = { get: () => string; set: (v: string) => void; label: () => string; setLabel: (v: string) => void };
+/** Kayıtlı aygıt kimlikleri listede yoksa adından bulup günceller; adı bilinmiyorsa (eski kayıt) adını not eder */
+export async function fixDevices(stream?: { get: () => string; set: (v: string) => void }) {
+  let all: MediaDeviceInfo[] = [];
+  try {
+    all = await navigator.mediaDevices.enumerateDevices();
+  } catch {
+    return;
+  }
+  const fix = (kind: MediaDeviceKind, p: Pref) => {
+    const id = p.get();
+    if (!id) return;
+    const list = all.filter((d) => d.kind === kind && d.deviceId && d.deviceId !== "default");
+    if (!list.length || list.every((d) => !d.label)) return; // izin yok: adlar gizli, dokunma
+    const hit = list.find((d) => d.deviceId === id);
+    if (hit) {
+      if (hit.label && hit.label !== p.label()) p.setLabel(hit.label);
+      return;
+    }
+    const byName = p.label() && list.find((d) => d.label === p.label());
+    if (byName) p.set(byName.deviceId);
+  };
+  fix("audioinput", { get: inputDevice, set: setInputDevice, label: inputLabel, setLabel: setInputLabel });
+  fix("audiooutput", { get: outputDevice, set: setOutputDevice, label: outputLabel, setLabel: setOutputLabel });
+  if (stream) fix("audiooutput", { get: stream.get, set: stream.set, label: streamLabel, setLabel: setStreamLabel });
+}
 /** Gürültü engelleme: kapalı | standart (tarayıcının) | güçlü (RNNoise + tarayıcının) */
 export const [noiseMode, setNoiseMode] = uiPref<NoiseMode>("voice.room.noise", "strong");
 export const [echoCancel, setEchoCancel] = uiPref<boolean>("voice.room.ec", true);
@@ -77,18 +145,23 @@ export interface MicChain {
 }
 
 export async function getMicStream(): Promise<MediaStream> {
+  await fixDevices();
   const dev = inputDevice();
   const nm = noiseMode();
-  return navigator.mediaDevices.getUserMedia({
-    audio: {
-      ...(dev ? { deviceId: { exact: dev } } : {}),
-      echoCancellation: echoCancel(),
-      noiseSuppression: nm !== "off",
-      autoGainControl: autoGain(),
-      channelCount: 1,
-    },
-    video: false,
+  const audio = (id: string) => ({
+    ...(id ? { deviceId: { exact: id } } : {}),
+    echoCancellation: echoCancel(),
+    noiseSuppression: nm !== "off",
+    autoGainControl: autoGain(),
+    channelCount: 1,
   });
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: audio(dev), video: false });
+  } catch (e) {
+    // Seçili mikrofon takılı değil: varsayılanla devam (seçim silinmez, takılınca yeniden kullanılır)
+    if (!dev) throw e;
+    return navigator.mediaDevices.getUserMedia({ audio: audio(""), video: false });
+  }
 }
 
 /** Mikrofon zincirini kur. RNNoise yüklenemezse (eski WebView) standart engellemeyle sürer. */

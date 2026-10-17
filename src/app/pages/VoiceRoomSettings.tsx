@@ -46,6 +46,7 @@ import {
   type NoiseMode,
 } from "@/voice/engine";
 import { Slider, Switch } from "../components/SettingsForm";
+import { setInputLabel, setOutputLabel, setStreamLabel } from "@/voice/micChain";
 import { PttButtonRow, PttKeyRow, type BindTarget } from "../components/VoiceCommands";
 import { go, openUrl } from "../ui";
 import { ProLockNote } from "../components/ProLock";
@@ -104,15 +105,23 @@ export function VoiceRoomSettings() {
           <span>Mikrofon</span>
           <select
             class="vr-sel"
-            value={inputDevice()}
             onChange={(e) => {
-              setInputDevice(e.currentTarget.value);
+              const v = e.currentTarget.value;
+              setInputDevice(v);
+              setInputLabel(devs()?.inputs.find((d) => d.deviceId === v)?.label ?? "");
               restart();
             }}
           >
-            <option value="">{t("Varsayılan")}</option>
+            {/* Seçim aygıt listesi yüklenince de görünsün: her seçenek kendi "selected" durumunu taşır */}
+            <option value="" selected={!inputDevice()}>
+              {t("Varsayılan")}
+            </option>
             <For each={(devs()?.inputs ?? []).filter((d) => d.deviceId && d.deviceId !== "default")}>
-              {(d, i) => <option value={d.deviceId}>{label(d, i())}</option>}
+              {(d, i) => (
+                <option value={d.deviceId} selected={d.deviceId === inputDevice()}>
+                  {label(d, i())}
+                </option>
+              )}
             </For>
           </select>
         </div>
@@ -120,15 +129,22 @@ export function VoiceRoomSettings() {
           <span>Hoparlör / kulaklık</span>
           <select
             class="vr-sel"
-            value={outputDevice()}
             onChange={(e) => {
-              setOutputDevice(e.currentTarget.value);
+              const v = e.currentTarget.value;
+              setOutputDevice(v);
+              setOutputLabel(devs()?.outputs.find((d) => d.deviceId === v)?.label ?? "");
               changeOutput();
             }}
           >
-            <option value="">{t("Varsayılan")}</option>
+            <option value="" selected={!outputDevice()}>
+              {t("Varsayılan")}
+            </option>
             <For each={(devs()?.outputs ?? []).filter((d) => d.deviceId && d.deviceId !== "default")}>
-              {(d, i) => <option value={d.deviceId}>{label(d, i())}</option>}
+              {(d, i) => (
+                <option value={d.deviceId} selected={d.deviceId === outputDevice()}>
+                  {label(d, i())}
+                </option>
+              )}
             </For>
           </select>
         </div>
@@ -448,14 +464,23 @@ function StreamOut(props: { outputs: MediaDeviceInfo[]; label: (d: MediaDeviceIn
         </div>
         <select
           class="vr-sel"
-          value={streamDevice()}
           onChange={(e) => {
-            setStreamDevice(e.currentTarget.value);
+            const v = e.currentTarget.value;
+            setStreamDevice(v);
+            setStreamLabel(props.outputs.find((d) => d.deviceId === v)?.label ?? "");
             changeStreamOutput();
           }}
         >
-          <option value="">{t("Kapalı")}</option>
-          <For each={props.outputs}>{(d, i) => <option value={d.deviceId}>{props.label(d, i())}</option>}</For>
+          <option value="" selected={!streamDevice()}>
+            {t("Kapalı")}
+          </option>
+          <For each={props.outputs}>
+            {(d, i) => (
+              <option value={d.deviceId} selected={d.deviceId === streamDevice()}>
+                {props.label(d, i())}
+              </option>
+            )}
+          </For>
         </select>
       </div>
       <Show when={streamDevice()}>

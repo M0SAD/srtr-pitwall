@@ -20,7 +20,7 @@ import { inTauri } from "@/sdk/platform";
 import { uiPref } from "@/sdk/settings";
 import { t } from "@/sdk/i18n";
 import { sfu, voiceHeartbeat, voiceRoomState, type VoiceJoin, type VoiceRole, type VoiceState } from "@/cloud/voiceRooms";
-import { buildMicChain, getMicStream, meterNode, micMeter, outputDevice, type MicChain } from "./micChain";
+import { buildMicChain, fixDevices, getMicStream, meterNode, micMeter, outputDevice, setStreamDevice, streamDevice, type MicChain } from "./micChain";
 export * from "./micChain";
 import { VOICE_OVERLAY_EVENT, VOICE_OVERLAY_REQ, type VoiceOverlayData, type VoiceOverlayMember } from "./overlayTypes";
 
@@ -44,7 +44,7 @@ export const [userVolumes, setUserVolumes] = uiPref<Record<string, number>>("voi
 /** Söz hakkı geldiğinde / bittiğinde kısa ses */
 export const [cueSounds, setCueSounds] = uiPref<boolean>("voice.room.cues", true);
 /** Yayın çıkışı (OBS için): odadaki sesler ayrıca bu aygıta da gider (ör. VB-Audio Virtual Cable). Boş = kapalı */
-export const [streamDevice, setStreamDevice] = uiPref<string>("voice.room.streamDev", "");
+export { streamDevice, setStreamDevice };
 export const [streamVolume, setStreamVolume] = uiPref<number>("voice.room.streamVol", 100);
 
 // ---- Durum
@@ -245,6 +245,7 @@ export function changeStreamOutput() {
 }
 
 async function applyOutput() {
+  await fixDevices({ get: streamDevice, set: setStreamDevice });
   const dev = outputDevice();
   // deno-lint-ignore no-explicit-any
   const c = ctx as any;
@@ -993,6 +994,7 @@ export async function audioDevices(): Promise<{
   inputs: MediaDeviceInfo[];
   outputs: MediaDeviceInfo[];
 }> {
+  await fixDevices({ get: streamDevice, set: setStreamDevice });
   try {
     const all = await navigator.mediaDevices.enumerateDevices();
     return {

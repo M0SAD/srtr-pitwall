@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-384
+
+- Ses odası aygıtları (mikrofon, hoparlör / kulaklık, yayın çıkışı) hatırlanıyor: seçim artık bu bilgisayarda yerel olarak saklanır (önceden bulutla eşitlenen ayarlardaydı; aygıt kimlikleri bilgisayara özel). Ayarlar sayfası açılınca kayıtlı seçim görünür (önceden aygıt listesi geç yüklendiği için hep "Varsayılan" / "Kapalı" görünüyordu). Aygıtın kimliği değişirse aynı adlı aygıt bulunur; seçili mikrofon takılı değilse varsayılanla devam edilir.
+
 ## 171026-383
 
 - Grid turu start alınınca kesin biter (yarıda kalsa da; "Baştan başlat" ile başlatılmış olsa da) ve TV Mixed'e geçilir. Yarış başlangıcı artık yarış durumunun yanında yeşil / "start" bayrağından da anlaşılır (durum geç güncellense de).
