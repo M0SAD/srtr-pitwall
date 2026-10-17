@@ -136,10 +136,15 @@ export default function TvLower(props: OverlayProps) {
     }
   });
   // Otomatik Rejisör kazaya kesti: kameradaki aracın bandı hemen çıkar, "INCIDENT" etiketiyle (ikinci bant yok)
-  const incident = () => !sample() && (info() as { camKind?: string }).camKind === "incident" && o().incidentTag !== false;
+  const camKind = () => (sample() ? "" : String((info() as { camKind?: string }).camKind || ""));
+  const incident = () => camKind() === "incident" && o().incidentTag !== false;
+  // Rejisör bitiş çizgisini gösteriyor: band her zaman açık (çizgiyi kimin geçtiği görünsün)
+  const finishCam = () => camKind() === "finish";
+  // Rejisörün grid turu: yalnız araç / sürücü (hız-vites göstergesi ve ikinci bant yok)
+  const gridCam = () => camKind() === "grid";
   // Yarışı bitiren araç gösterilirken yalnızca o: ikinci bant kapalı
   const isFinished = useFinishedCars(rows, () => ses()?.state ?? 0);
-  const other = () => (incident() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
+  const other = () => (incident() || gridCam() || (!sample() && isFinished(focus()?.idx)) ? undefined : pairOn() || sample() ? otherRaw() : undefined);
   // Ekranda soldaki: geride olan (kovalayan), sağdaki: önde olan (TV'deki gibi)
   const pair = createMemo(() => {
     const f = focus();
@@ -214,7 +219,7 @@ export default function TvLower(props: OverlayProps) {
   const scale = () => Math.max(0.5, Math.min(2, (Number(o().scale) || 100) / 100));
 
   return (
-    <div class="tv tvl" classList={{ off: !(visible() || (incident() && String(o().show) !== "never")) }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
+    <div class="tv tvl" classList={{ off: !(visible() || ((incident() || finishCam()) && String(o().show) !== "never")) }} style={{ "--tv-red": String(o().accent || "#d4151d"), zoom: String(scale()) }} data-no-i18n>
       <Index each={pair()}>{(r, i) => <Band r={r()} mine={r().isMe} side={pair().length < 2 ? "mid" : i === 0 ? "left" : "right"} />}</Index>
     </div>
   );
@@ -224,7 +229,7 @@ export default function TvLower(props: OverlayProps) {
     const team = () => (p.mine && String(o().teamText || "").trim() ? String(o().teamText) : p.r.team || (p.mine ? status()?.teamName : "") || p.r.carName);
     const gauge = () => {
       const g = o().gauge;
-      if (g === false || g === "off" || preGreen()) return false;
+      if (g === false || g === "off" || preGreen() || gridCam()) return false;
       const t = telem(p.r);
       // Araç duruyorsa (pitte, gridde, kaza sonrası) hız / vites göstergesi gizlenir (ayar)
       if (o().hideGaugeStopped !== false && !sample() && t.speed * 3.6 < 3) return false;

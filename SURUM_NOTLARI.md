@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-371
+
+- Otomatik Rejisör, grid turu: araçlar yakın açılardan gösterilir (Rear Chase, Gyro, Chase, Far Chase; araçtan araca farklı kamera), kim olduğu anlaşılsın. TV Sürücü Bandı grid turunda yalnızca aracı / sürücüyü yazar (hız-vites göstergesi ve ikinci bant yok).
+- Kaza / pist dışı çekimleri daha uzun: 12 sn (olay ve sonrası görünsün), başka bir kaza en az 7 sn sonra araya girebilir.
+- Mücadele çekimleri biraz daha uzun ve mücadele sürdükçe uzar (en çok 30 sn); mücadele bitince en kısa süreden sonra kesilir.
+- Bitiş çizgisi çekiminde TV Sürücü Bandı her zaman görünür: çizgiyi geçen sürücü yazar.
+
 ## 171026-370
 
 - Lider tablosunda en iyi / son tur boş kalıyordu. Tekrar (ve izleyici) modunda turlar tekrar kafasından ölçülürken tur sayacına güveniliyordu; iRacing bunu tekrarda her zaman güncellemediği için hiç tur ölçülmüyor, tablo bomboş kalıyordu. Artık geçişler aracın pistteki konumundan (çizgiyi geçişi) ölçülür; o tekrarda henüz hiç tur ölçülmediyse simin değerleri gösterilir, tablo boş kalmaz.

@@ -196,6 +196,8 @@ impl CamOut for IracingOut {
 }
 
 const TV_GROUPS: &[&str] = &["tv1", "tv2", "tv3", "tv static", "tv mixed", "chase", "far chase", "blimp", "chopper"];
+/// Grid turunda aracı yakından, kim olduğu anlaşılacak şekilde gösteren kameralar (sırayla değişir)
+const GRID_GROUPS: &[&str] = &["rear chase", "gyro", "chase", "far chase"];
 const ONBOARD_GROUPS: &[&str] = &["cockpit", "roll bar", "gyro", "nose", "gearbox", "rear chase", "pit lane"];
 
 impl Director {
@@ -293,8 +295,10 @@ impl Director {
                 let idx = order[self.grid_i];
                 self.grid_i += 1;
                 if let Some(number) = s.driver(idx).map(|d| d.car_number.clone()).filter(|n| !n.is_empty()) {
-                    out.switch(&number, 0);
-                    self.group = (0, String::new());
+                    // Yakın açılar, araçtan araca farklı kamera
+                    let g = self.grid_group(s, cfg);
+                    out.switch(&number, g.0);
+                    self.group = g;
                     self.sent = Some((idx as i32, now));
                     self.cur = Some(Shot { idx, kind: "grid", start: now, len: cfg.grid_shot });
                     self.last_shown[idx] = Some(now);
@@ -327,13 +331,23 @@ impl Director {
             }
         } else if let Some(ci) = crash {
             let on_incident = self.cur.map(|c| c.kind == "incident" && c.idx == ci).unwrap_or(false);
-            // Sürmekte olan bir kaza çekimi en az 4 sn sürsün
-            let busy = self.cur.map(|c| c.kind == "incident" && elapsed < 4.0).unwrap_or(false);
+            // Sürmekte olan bir kaza çekimi en az 7 sn sürsün (olay ve sonrası görünsün)
+            let busy = self.cur.map(|c| c.kind == "incident" && elapsed < 7.0).unwrap_or(false);
             if !on_incident && !busy {
-                pick = Some((ci, "incident", 7.0));
+                pick = Some((ci, "incident", 12.0));
             }
         }
-        if pick.is_none() && fin.is_none() && (self.force_next || !cur_ok || self.cur.map(|c| elapsed >= c.len).unwrap_or(true)) {
+        // Mücadele sürüyorsa çekim biraz uzar (en çok 30 sn); mücadele bittiyse en kısa süreden sonra kesilir
+        let mut due = self.cur.map(|c| elapsed >= c.len).unwrap_or(true);
+        if let Some(c) = self.cur.filter(|c| c.kind == "battle") {
+            let on = self.in_battle(f, s, c.idx, cfg.battle_gap * 1.5);
+            if due && on && elapsed < 30.0f32.max(c.len) {
+                due = false;
+            } else if !due && !on && elapsed >= cfg.min_shot.max(6.0) {
+                due = true;
+            }
+        }
+        if pick.is_none() && fin.is_none() && (self.force_next || !cur_ok || due) {
             pick = self.choose(f, s, cfg, now);
         }
         self.force_next = false;
@@ -592,7 +606,7 @@ impl Director {
             _ => least(if field.is_empty() { &cars } else { &field }, self),
         }
         .or_else(|| least(&cars, self))?;
-        let len = if kind == "battle" { len * 1.3 } else { len };
+        let len = if kind == "battle" { (len * 1.5).min(25.0f32.max(cfg.max_shot)) } else { len };
         Some((idx, kind, len))
     }
 
@@ -622,6 +636,32 @@ impl Director {
             }
         }
         out
+    }
+
+    /// Araç hâlâ önündeki ya da arkasındaki araçla `gap` sn'den yakın mı
+    fn in_battle(&self, f: &Frame, s: &SessionData, idx: usize, gap: f32) -> bool {
+        let mut cars: Vec<usize> = (0..MAX_CARS)
+            .filter(|&i| crate::calc::active(f, s, i) && f.cars[i].surface >= 1 && !f.cars[i].on_pit && f.cars[i].position > 0)
+            .collect();
+        cars.sort_by_key(|&i| f.cars[i].position);
+        self.battles(f, s, &cars, gap).iter().any(|&(a, b)| a == idx || b == idx)
+    }
+
+    /// Grid turu kamerası: yakın açılardan biri, bir önceki araçtakinden farklı (oturumda yoksa sim seçsin)
+    fn grid_group(&mut self, s: &SessionData, cfg: &Cfg) -> (i32, String) {
+        if cfg.cams == "keep" {
+            return (0, String::new());
+        }
+        let has = |g: &(i32, String)| GRID_GROUPS.contains(&g.1.trim().to_lowercase().as_str());
+        let mut pool: Vec<(i32, String)> = s.cam_groups.iter().filter(|g| g.0 > 0 && has(g)).cloned().collect();
+        if pool.is_empty() {
+            return (0, String::new());
+        }
+        if pool.len() > 1 {
+            pool.retain(|g| g.0 != self.group.0);
+        }
+        let i = ((self.rand() * pool.len() as f32) as usize).min(pool.len() - 1);
+        pool[i].clone()
     }
 
     fn pick_group(&mut self, s: &SessionData, cfg: &Cfg, kind: &str) -> (i32, String) {
