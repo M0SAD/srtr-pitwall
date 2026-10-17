@@ -3,6 +3,19 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-376
+
+- Otomatik Rejisör: yeni en hızlı tur atılınca kamera o araca geçer (9 sn; yarışta ilk 2 turda ve 25 sn'de bir kezden sık değil, kaza çekimini bölmez). TV Sürücü Bandı bu çekimde de hep görünür. Ayar: "En hızlı tura odaklan" (varsayılan açık).
+
+- Kaza algılama sıkılaştırıldı: yalnızca hızlıyken pistten çıkıp en az 0,7 sn dışarıda kalan ya da pistte hızlıyken yavaşlayıp en az 0,6 sn neredeyse duran araç (kısa kenar taşmaları ve ölçüm sıçramaları "INCIDENT" olmaz).
+- Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür (ayar: "Tekrarda kazayı baştan göster", varsayılan açık). Canlıda geri sarılamaz.
+- Ön sıralardaki (ilk N) aracın kazası, arkadaki bir aracın kaza çekimini böler; aynı anda birkaç kaza olursa öndeki gösterilir.
+
+- Dip dibe mücadele (0,5 sn'den yakın): çekim daha uzun (×1,8; sürdükçe en çok 45 sn) ve arkadaki aracın içinden gösterilir (Roll Bar / Cockpit / Nose kamerası, öndekini takip ederken); mücadele sürdükçe ~10 sn'de bir araç içi ↔ TV kamerası arasında geçer. "Seçtiğim kamera kalsın" seçiliyse kamera değişmez.
+
+- Beyaz bayrak (son tur) çıkınca lider hemen 10 sn gösterilir; bitiş çizgisine yaklaşırken yeniden lidere geçilir.
+- Pite girenler: yarışta pit yoluna giren araç ara sıra 8 sn gösterilir (40 sn'de bir kezden sık değil, öndeki öncelikli; kaza / bitiş / en hızlı tur çekimini bölmez). Ayar: "Pite girenleri göster" (varsayılan açık).
+
 ## 171026-375
 
 - TV Sürücü Bandı: rejisörün grid turunda, kaza ve bitiş çekiminde band her zaman görünür ve kameradaki aracı gösterir (görünürlük ayarları, "Yeşil bayraktan önce gizle", sürelerin bitmesi bandı gizlemez; yalnızca "Gösterme" seçiliyse gizli). Grid turunda hız-vites ve ikinci bant yok; kazada ikinci bant yok.

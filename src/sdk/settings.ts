@@ -44,6 +44,9 @@ export interface DirectorCfg {
   finishFocus: boolean;
   finishTop: number;
   finishAll: boolean;
+  fastestFocus: boolean;
+  incidentRewind: boolean;
+  pitFocus: boolean;
   /** Mücadele sayılan fark (sn) */
   battleGap: number;
   /** Elle kamera değişince bekleme (sn) */
@@ -66,6 +69,9 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   finishFocus: true,
   finishTop: 3,
   finishAll: true,
+  fastestFocus: true,
+  incidentRewind: true,
+  pitFocus: true,
   battleGap: 1,
   manualPause: 20,
 };

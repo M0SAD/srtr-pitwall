@@ -56,7 +56,7 @@ export default function TvLower(props: OverlayProps) {
   const focus = createMemo<Row | undefined>(() => {
     const l = rows();
     // Rejisörün grid turu, kaza ve bitiş çekimi: her zaman kameradaki araç (kim olduğu görünsün)
-    if (gridCam() || onboardCam() || camKind() === "incident" || camKind() === "finish") {
+    if (gridCam() || onboardCam() || camKind() === "incident" || finishCam()) {
       const cam = l.find((r) => r.idx === info().camIdx);
       if (cam) return cam;
     }
@@ -148,7 +148,7 @@ export default function TvLower(props: OverlayProps) {
   // Otomatik Rejisör kazaya kesti: kameradaki aracın bandı hemen çıkar, "INCIDENT" etiketiyle (ikinci bant yok)
   const incident = () => camKind() === "incident" && o().incidentTag !== false;
   // Rejisör bitiş çizgisini gösteriyor: band her zaman açık (çizgiyi kimin geçtiği görünsün)
-  const finishCam = () => camKind() === "finish";
+  const finishCam = () => camKind() === "finish" || camKind() === "fastest";
   // Rejisörün grid turu: yalnız araç / sürücü (hız-vites göstergesi ve ikinci bant yok)
 
   // Yarışı bitiren araç gösterilirken yalnızca o: ikinci bant kapalı

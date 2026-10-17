@@ -35,6 +35,8 @@ const KIND: Record<string, string> = {
   me: "Kendi aracım",
   incident: "Kaza / pist dışı",
   finish: "Bitiş çizgisi",
+  fastest: "En hızlı tur",
+  pit: "Pite giriş",
 };
 
 export function DirectorPanel() {
@@ -153,7 +155,7 @@ export function DirectorPanel() {
           <b>{t("Bitişte ilk araçlara odaklan")}</b>
           <small>
             {t(
-              "Son turda (beyaz bayrak) lider, damalı bayraktan sonra ilk {0} araç bitiş çizgisine yaklaşırken kamera onlara geçer ve çizgiyi geçişini gösterir.",
+              "Beyaz bayrak çıkınca (son tur) lider 10 sn gösterilir ve çizgiye yaklaşırken yeniden; damalı bayraktan sonra ilk {0} araç bitiş çizgisine yaklaşırken kamera onlara geçer ve çizgiyi geçişini gösterir.",
               String(cfg().finishTop),
             )}
           </small>
@@ -175,11 +177,34 @@ export function DirectorPanel() {
       </Show>
       <div class="row">
         <div>
+          <b>{t("Pite girenleri göster")}</b>
+          <small>{t("Yarışta pit yoluna giren araç ara sıra (40 sn'de bir kezden sık değil) birkaç saniye gösterilir; öndeki araç öncelikli.")}</small>
+        </div>
+        <Switch checked={cfg().pitFocus} onChange={(v) => set("pitFocus", v)} />
+      </div>
+      <div class="row">
+        <div>
+          <b>{t("En hızlı tura odaklan")}</b>
+          <small>{t("Biri yarışın yeni en hızlı turunu atınca kamera birkaç saniye o araca geçer (TV En Hızlı Tur ile birlikte görünür).")}</small>
+        </div>
+        <Switch checked={cfg().fastestFocus} onChange={(v) => set("fastestFocus", v)} />
+      </div>
+      <div class="row">
+        <div>
           <b>Kazalara odaklan</b>
-          <small>Pistten çıkan ya da hızlıyken birden duran araca hemen geçer, birkaç saniye gösterir.</small>
+          <small>{t("Hızlıyken pistten çıkan (kısa kenar taşmaları sayılmaz) ya da pistte birden duran araca geçer, olayı ve sonrasını gösterir. Ön sıralardaki aracın kazası öncelikli.")}</small>
         </div>
         <Switch checked={cfg().incidents} onChange={(v) => set("incidents", v)} />
       </div>
+      <Show when={cfg().incidents}>
+        <div class="row">
+          <div>
+            <b>{t("Tekrarda kazayı baştan göster")}</b>
+            <small>{t("Tekrar izlerken kazaya kesince tekrar olaydan 3 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.")}</small>
+          </div>
+          <Switch checked={cfg().incidentRewind} onChange={(v) => set("incidentRewind", v)} />
+        </div>
+      </Show>
       <div class="f2">
         <div class="f2-cap">
           Çekim süresi <small class="muted">· {t("Her çekim bu iki süre arasında rastgele uzunlukta.")}</small>
