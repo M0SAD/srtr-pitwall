@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-372
+
+- Otomatik Rejisör çekim süreleri yayınlara göre: varsayılan 10–20 sn (eskiden 8–16). Türe göre: lider ×1,2, mücadele ×1,5 (sürdükçe en çok 30 sn), arkadaki araçlar ×0,75 (en az 6 sn). Daha önce ayarlarını değiştirdiysen kayıtlı süreler kalır; Araçlar › Otomatik Rejisör'den 10–20 yapabilirsin.
+
 ## 171026-371
 
 - Otomatik Rejisör, grid turu: araçlar yakın açılardan gösterilir (Rear Chase, Gyro, Chase, Far Chase; araçtan araca farklı kamera), kim olduğu anlaşılsın. TV Sürücü Bandı grid turunda yalnızca aracı / sürücüyü yazar (hız-vites göstergesi ve ikinci bant yok).

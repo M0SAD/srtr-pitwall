@@ -51,8 +51,8 @@ export interface DirectorCfg {
 }
 export const DIRECTOR_DEFAULT: DirectorCfg = {
   enabled: false,
-  minShot: 8,
-  maxShot: 16,
+  minShot: 10,
+  maxShot: 20,
   frontN: 5,
   wLeader: 25,
   wFront: 25,

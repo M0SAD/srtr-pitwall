@@ -49,8 +49,8 @@ impl Default for Cfg {
     fn default() -> Self {
         Cfg {
             enabled: false,
-            min_shot: 8.0,
-            max_shot: 16.0,
+            min_shot: 10.0,
+            max_shot: 20.0,
             front_n: 5,
             w_leader: 25.0,
             w_front: 25.0,
@@ -606,7 +606,14 @@ impl Director {
             _ => least(if field.is_empty() { &cars } else { &field }, self),
         }
         .or_else(|| least(&cars, self))?;
-        let len = if kind == "battle" { (len * 1.5).min(25.0f32.max(cfg.max_shot)) } else { len };
+        // Türe göre süre (yayınlarda olduğu gibi): lider biraz uzun, mücadele daha uzun (sürdükçe uzar), arkadaki
+        // araçlar kısa (bütün sahaya sıra gelsin, izleyici sıkılmasın)
+        let len = match kind {
+            "battle" => (len * 1.5).min(25.0f32.max(cfg.max_shot)),
+            "leader" => len * 1.2,
+            "field" => (len * 0.75).max(cfg.min_shot.min(6.0)),
+            _ => len,
+        };
         Some((idx, kind, len))
     }
 
