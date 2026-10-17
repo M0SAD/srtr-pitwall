@@ -35,6 +35,7 @@ export default defineOverlay({
         { value: "off", label: "Gösterme" },
       ],
     },
+    { key: "showLap", label: "Kaçıncı turda (liderin turu)", type: "boolean", default: true, group: "Başlık", hint: "Saatin yanında liderin turu: LAP 5/20 (toplam tur bilinmiyorsa LAP 5). Yarış başlamadan önce görünmez." },
     { key: "rows", label: "Satır sayısı", type: "number", default: 25, min: 5, max: 40, step: 1, ui: "stepper" },
     { key: "pageCycle", label: "Sığmayanları sırayla göster", type: "boolean", default: true, hint: "Satır sayısından fazla araç varsa sonraki sıralar (26-50, 51-…) sayfa sayfa gösterilir, sonra başa döner." },
     { key: "firstSecs", label: "İlk sayfada kalma", type: "number", default: 45, min: 5, max: 300, step: 5, unit: "sn", showIf: { key: "pageCycle", is: [true] } },

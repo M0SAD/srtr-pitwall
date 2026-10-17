@@ -74,6 +74,7 @@ export const TV_SAMPLE: Row[] = S.map(([name, carName, number, irating, flair, t
 );
 export const TV_SAMPLE_INFO = {
   leaderLap: 206,
+  totalLaps: 0,
   elapsed: 14 * 3600 + 26 * 60 + 26,
   raceElapsed: 14 * 3600 + 21 * 60 + 5,
   timeRemain: 9 * 3600 + 33 * 60,
@@ -110,6 +111,7 @@ export function useTvStandings(editing: () => boolean) {
     if (sample() || !s) return { ...TV_SAMPLE_INFO, camIdx: 10, sample: true };
     return {
       leaderLap: s.leaderLap,
+      totalLaps: s.totalLaps ?? 0,
       elapsed: s.elapsed,
       raceElapsed: s.raceElapsed ?? -1,
       timeRemain: s.timeRemain,

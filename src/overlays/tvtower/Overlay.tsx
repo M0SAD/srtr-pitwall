@@ -129,6 +129,17 @@ export default function TvTower(props: OverlayProps) {
     }
     return hms(i.elapsed);
   };
+  // Liderin turu (yarışta, yeşilden sonra): LAP 5/20; toplam tur yoksa (süreli yarış) LAP 5
+  const lapText = () => {
+    if (o().showLap === false) return "";
+    const i = info() as { leaderLap: number; totalLaps?: number; sample?: boolean };
+    if (!i.sample && (!isRaceSession(info().session) || (ses()?.state ?? 0) < 4)) return "";
+    const tot = Number(i.totalLaps) || 0;
+    const lap = Math.max(1, Math.min(i.leaderLap, tot > 0 && tot < 32767 ? tot : 1e9));
+    if (!(i.leaderLap > 0)) return "";
+    return tot > 0 && tot < 32767 ? `LAP ${lap}/${tot}` : `LAP ${lap}`;
+  };
+  const subCols = () => [o().clock !== "off" ? "minmax(52px, auto)" : "", lapText() ? "auto" : "", "1fr", "54px"].filter(Boolean).join(" ");
   const track = () => upper(String(o().trackText || "").trim() || info().track || "");
   const scale = () => Math.max(0.6, Math.min(2, (Number(o().scale) || 100) / 100));
 
@@ -192,9 +203,12 @@ export default function TvTower(props: OverlayProps) {
           </div>
         </div>
       </Show>
-      <div class="tvt-sub">
+      <div class="tvt-sub" style={{ "grid-template-columns": subCols() }}>
         <Show when={o().clock !== "off"}>
           <span class="tvt-clock">{clockVal()}</span>
+        </Show>
+        <Show when={lapText()}>
+          <span class="tvt-lapn">{lapText()}</span>
         </Show>
         <span class="tvt-over">{o().classFilter === "mine" && me() ? upper(me()!.className || "CLASS") : "OVERALL"}</span>
         <span class="tvt-gaph">{gapMode() === "interval" ? "INTERVAL" : "GAP TO\nLEADER"}</span>

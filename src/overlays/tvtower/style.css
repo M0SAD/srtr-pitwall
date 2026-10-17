@@ -97,6 +97,17 @@
   padding: 0 5px;
   white-space: nowrap;
 }
+.tvt-lapn {
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  background: var(--tv-red);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
 .tvt-over {
   display: flex;
   align-items: center;

@@ -159,7 +159,8 @@ export default function TvLower(props: OverlayProps) {
   createEffect(on(() => focus()?.idx, () => setShownAt(Date.now()), { defer: true }));
   // Eski ayar (mode) → ortak görünürlük ayarı (show)
   const opts = () => {
-    const x = o();
+    // Eski sürümlerde kaydedilmiş "Yeşil bayraktan önce gizle" yok sayılır: gridde sürücüler sırayla gösterilir
+    const x: Record<string, any> = { ...o(), hideBeforeGreen: o().gridCycle === false ? o().hideBeforeGreen : false };
     if (props.options?.show !== undefined || props.options?.mode === undefined) return x;
     const m = String(x.mode || "always");
     return { ...x, show: m === "camchange" ? "auto" : m, camSecs: x.camSecs ?? x.showSecs };
@@ -169,6 +170,8 @@ export default function TvLower(props: OverlayProps) {
     o: opts,
     event: () => {
       if (!focus()) return false;
+      // Gridde (grid turu): band hep açık, araç / sürücü / sıra yazar
+      if (preGreen() || gridCam()) return true;
       if (String(opts().show || "auto") !== "auto") return true;
       return tick() - shownAt() < Math.max(3, Number(opts().camSecs) || 8) * 1000;
     },

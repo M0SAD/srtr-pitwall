@@ -60,7 +60,7 @@ impl Default for Cfg {
             incidents: true,
             cams: "tvmix".into(),
             grid_walk: true,
-            grid_shot: 4.0,
+            grid_shot: 6.0,
             finish_focus: true,
             finish_top: 3,
             finish_all: true,
@@ -151,6 +151,8 @@ pub struct Director {
     fin_hold: Option<(usize, Instant)>,
     fin_prev_state: i32,
     was_grid: bool,
+    /// Grid turu bir kez bütün araçları gösterdi: yeşile kadar TV kamerasıyla normal kurgu
+    grid_done: bool,
     pub status: Status,
 }
 
@@ -174,6 +176,7 @@ impl Default for Director {
             force_next: false,
             grid_i: 0,
             was_grid: false,
+            grid_done: false,
             fin_snap: None,
             fin_done: [false; MAX_CARS],
             fin_hold: None,
@@ -197,7 +200,9 @@ impl CamOut for IracingOut {
 
 const TV_GROUPS: &[&str] = &["tv1", "tv2", "tv3", "tv static", "tv mixed", "chase", "far chase", "blimp", "chopper"];
 /// Grid turunda aracı yakından, kim olduğu anlaşılacak şekilde gösteren kameralar (sırayla değişir)
-const GRID_GROUPS: &[&str] = &["rear chase", "gyro", "chase", "far chase"];
+const GRID_GROUPS: &[&str] = &["rear chase"];
+/// Önden kamera yoksa
+const GRID_FALLBACK: &[&str] = &["chase", "gyro", "far chase"];
 const ONBOARD_GROUPS: &[&str] = &["cockpit", "roll bar", "gyro", "nose", "gearbox", "rear chase", "pit lane"];
 
 impl Director {
@@ -279,7 +284,11 @@ impl Director {
             .map(|x| x.kind.to_lowercase().contains("race"))
             .unwrap_or(false);
         // Tekrarda da: kasetteki an grid / ısınma turuysa (SessionState tekrarın o anını verir)
-        let grid = cfg.grid_walk && race && (1..=3).contains(&f.session_state);
+        let pre = race && (1..=3).contains(&f.session_state);
+        if !pre {
+            self.grid_done = false;
+        }
+        let grid = cfg.grid_walk && pre && !self.grid_done;
         if grid {
             if !self.was_grid {
                 self.grid_i = 0;
@@ -290,24 +299,31 @@ impl Director {
             let order = Self::grid_order(f, s);
             if !order.is_empty() && (self.force_next || self.cur.map(|c| elapsed >= c.len).unwrap_or(true)) {
                 if self.grid_i >= order.len() {
-                    self.grid_i = 0;
-                }
-                let idx = order[self.grid_i];
-                self.grid_i += 1;
-                if let Some(number) = s.driver(idx).map(|d| d.car_number.clone()).filter(|n| !n.is_empty()) {
-                    // Yakın açılar, araçtan araca farklı kamera
-                    let g = self.grid_group(s, cfg);
-                    out.switch(&number, g.0);
-                    self.group = g;
-                    self.sent = Some((idx as i32, now));
-                    self.cur = Some(Shot { idx, kind: "grid", start: now, len: cfg.grid_shot });
-                    self.last_shown[idx] = Some(now);
+                    // Herkes gösterildi: yeşile kadar TV Mixed (normal kurgu)
+                    self.grid_done = true;
+                    self.was_grid = false;
+                    self.cur = None;
+                    self.force_next = false;
+                } else {
+                    let idx = order[self.grid_i];
+                    self.grid_i += 1;
+                    if let Some(number) = s.driver(idx).map(|d| d.car_number.clone()).filter(|n| !n.is_empty()) {
+                        // Aracı önden gösteren kamera
+                        let g = self.grid_group(s, cfg);
+                        out.switch(&number, g.0);
+                        self.group = g;
+                        self.sent = Some((idx as i32, now));
+                        self.cur = Some(Shot { idx, kind: "grid", start: now, len: cfg.grid_shot });
+                        self.last_shown[idx] = Some(now);
+                    }
                 }
             }
-            self.force_next = false;
-            self.fill_status(&mut st, f, s, now);
-            self.status = st;
-            return;
+            if !self.grid_done {
+                self.force_next = false;
+                self.fill_status(&mut st, f, s, now);
+                self.status = st;
+                return;
+            }
         }
         if self.was_grid {
             // Yeşil bayrak: hemen yeni çekim (TV kamerasına geçilir)
@@ -331,10 +347,10 @@ impl Director {
             }
         } else if let Some(ci) = crash {
             let on_incident = self.cur.map(|c| c.kind == "incident" && c.idx == ci).unwrap_or(false);
-            // Sürmekte olan bir kaza çekimi en az 7 sn sürsün (olay ve sonrası görünsün)
-            let busy = self.cur.map(|c| c.kind == "incident" && elapsed < 7.0).unwrap_or(false);
+            // Sürmekte olan bir kaza çekimi en az 10 sn sürsün (olay ve sonrası görünsün)
+            let busy = self.cur.map(|c| c.kind == "incident" && elapsed < 10.0).unwrap_or(false);
             if !on_incident && !busy {
-                pick = Some((ci, "incident", 12.0));
+                pick = Some((ci, "incident", 16.0));
             }
         }
         // Mücadele sürüyorsa çekim biraz uzar (en çok 30 sn); mücadele bittiyse en kısa süreden sonra kesilir
@@ -654,18 +670,19 @@ impl Director {
         self.battles(f, s, &cars, gap).iter().any(|&(a, b)| a == idx || b == idx)
     }
 
-    /// Grid turu kamerası: yakın açılardan biri, bir önceki araçtakinden farklı (oturumda yoksa sim seçsin)
+    /// Grid turu kamerası: aracı önden gösteren (oturumda yoksa yakın bir arka kamera, o da yoksa sim seçsin)
     fn grid_group(&mut self, s: &SessionData, cfg: &Cfg) -> (i32, String) {
         if cfg.cams == "keep" {
             return (0, String::new());
         }
-        let has = |g: &(i32, String)| GRID_GROUPS.contains(&g.1.trim().to_lowercase().as_str());
-        let mut pool: Vec<(i32, String)> = s.cam_groups.iter().filter(|g| g.0 > 0 && has(g)).cloned().collect();
+        let has = |names: &[&str], g: &(i32, String)| names.contains(&g.1.trim().to_lowercase().as_str());
+        // Aracı önden gösteren kamera (Rear Chase: aracın önünde, ona bakar); yoksa yakın arka kameralar
+        let mut pool: Vec<(i32, String)> = s.cam_groups.iter().filter(|g| g.0 > 0 && has(GRID_GROUPS, g)).cloned().collect();
+        if pool.is_empty() {
+            pool = s.cam_groups.iter().filter(|g| g.0 > 0 && has(GRID_FALLBACK, g)).cloned().collect();
+        }
         if pool.is_empty() {
             return (0, String::new());
-        }
-        if pool.len() > 1 {
-            pool.retain(|g| g.0 != self.group.0);
         }
         let i = ((self.rand() * pool.len() as f32) as usize).min(pool.len() - 1);
         pool[i].clone()
@@ -796,6 +813,22 @@ mod tests {
         }
         let nums: Vec<String> = out.0.iter().map(|x| x.0.clone()).collect();
         assert_eq!(nums, vec!["10", "11", "12", "13", "14", "15"], "pole'dan geriye sırayla");
+        assert_eq!(d.status.kind, "grid");
+        // Herkes gösterildi, yeşil henüz yok: TV Mixed, grid turu baştan başlamaz
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(out.0.last().unwrap().1, 20, "herkes gösterilince TV Mixed");
+        assert_ne!(d.status.kind, "grid");
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_ne!(d.status.kind, "grid");
+        // Yarıda yeşil: yeni bir grid turu (yarıda kalıp) yeşilde TV Mixed
+        let mut d = Director::default();
+        f.session_state = 2;
+        for _ in 0..3 {
+            d.next();
+            d.step(&f, &s, &cfg, true, &mut out);
+        }
         assert_eq!(d.status.kind, "grid");
         f.session_state = 4;
         d.last_step = Instant::now() - Duration::from_secs(1);

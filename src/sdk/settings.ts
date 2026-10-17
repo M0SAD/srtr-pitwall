@@ -62,7 +62,7 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   incidents: true,
   cams: "tvmix",
   gridWalk: true,
-  gridShot: 4,
+  gridShot: 6,
   finishFocus: true,
   finishTop: 3,
   finishAll: true,
@@ -1427,6 +1427,15 @@ export function defaultSettings(): AppSettings {
 }
 
 /** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
+/** Rejisör: eski varsayılan grid süresi (4 sn) yeni varsayılana (6 sn) bir kez taşınır */
+function directorMigrate(d: DirectorCfg & { gs6?: boolean }): DirectorCfg {
+  if (!d.gs6) {
+    if (d.gridShot === 4) d.gridShot = 6;
+    d.gs6 = true;
+  }
+  return d;
+}
+
 function shotKeyMigrate<T extends { shot: string }>(sc: T, done: boolean | undefined): T {
   if (!done && (sc.shot === "PrintScreen" || sc.shot === "Ctrl+PrintScreen")) sc.shot = "F12";
   return sc;
@@ -1538,7 +1547,7 @@ export function normalize(input: unknown): AppSettings {
         EDIT_BACKDROP_SLOTS.map((k) => [k, { ...d.general.editBackdrop, ...(s.general?.editBackdrop ?? {}), ...(s.general?.editBackdrops?.[k] ?? {}) }]),
       ) as Record<EditBackdropSlot, EditBackdrop>,
       eventsRecord: { ...d.general.eventsRecord, ...(s.general?.eventsRecord ?? {}) },
-      director: { ...DIRECTOR_DEFAULT, ...(s.general?.director ?? {}) },
+      director: directorMigrate({ ...DIRECTOR_DEFAULT, ...(s.general?.director ?? {}) }),
       // Mesaj almayı kapatma seçeneği kaldırıldı: her zaman açık
       social: { ...d.general.social, ...(s.general?.social ?? {}), acceptMessages: true },
       perf: { ...d.general.perf, ...(s.general?.perf ?? {}) },

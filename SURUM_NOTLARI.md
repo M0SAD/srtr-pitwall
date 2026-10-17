@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-374
+
+- Grid turu bir kez yapılır: bütün araçlar sırayla gösterilince (yeşil bayraktan önce) TV Mixed kamerasına geçilir; herkes gösterilmeden yeşil bayrak verilirse de hemen TV Mixed.
+- Kaza / pist dışı çekimleri daha uzun: 16 sn (eskiden 12); başka bir kaza en erken 10 sn sonra araya girer.
+
+- TV Sıralama Kulesi: saatin yanında kaçıncı turda olunduğu (liderin turu): LAP 5/20, toplam tur bilinmiyorsa LAP 5. Ayar: "Kaçıncı turda (liderin turu)" (varsayılan açık); yarış başlamadan görünmez.
+
+## 171026-373
+
+- Grid turu: TV Sürücü Bandı gridde her zaman görünür (numara, ad, sıra; hız-vites göstergesi ve ikinci bant yok). Eski sürümlerden kalan "Yeşil bayraktan önce gizle" ayarı bandı gizliyordu; artık yok sayılır.
+- Grid turunda araçlar önden gösterilir (Rear Chase kamerası; pistte yoksa Chase / Gyro / Far Chase), araç başına 6 sn (eskiden 4; kayıtlı 4 sn bir kez 6 sn'ye taşınır). Yeşil bayrakta TV Mixed kamerasına geçilir.
+
 ## 171026-372
 
 - Otomatik Rejisör çekim süreleri yayınlara göre: varsayılan 10–20 sn (eskiden 8–16). Türe göre: lider ×1,2, mücadele ×1,5 (sürdükçe en çok 30 sn), arkadaki araçlar ×0,75 (en az 6 sn). Daha önce ayarlarını değiştirdiysen kayıtlı süreler kalır; Araçlar › Otomatik Rejisör'den 10–20 yapabilirsin.
