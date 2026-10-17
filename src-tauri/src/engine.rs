@@ -691,6 +691,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             if st.league_active {
                 crate::league::reposition(&mut st.frame, &st.session);
             }
+            st.tracker.note_raw(&st.frame);
             st.tracker.apply_race_best(&mut st.frame);
             st.tracker.update(&st.frame, &st.session);
             st.tracker.apply_race_best(&mut st.frame);
@@ -1194,6 +1195,7 @@ mod publish_tests {
         let mut t = 0.0;
         while t < secs {
             d.step(dt, &mut st.frame);
+            st.tracker.note_raw(&st.frame);
             st.tracker.apply_race_best(&mut st.frame);
             st.tracker.update(&st.frame, &st.session);
             st.tracker.apply_race_best(&mut st.frame);

@@ -217,31 +217,41 @@ pub struct Tracker {
     /// dereceleri lider tablosundan silinmesin
     keep: Vec<(f32, f32)>,
     keep_ses: i32,
+    /// Simin bu karedeki ham en iyi turları (düzeltmeden önce) ve yeşil bayrak anındaki değerleri: yeşilden sonra
+    /// değişen sim değeri bir yarış turudur (son tur süresinden hesaplananı tamamlar)
+    raw_best: Vec<f32>,
+    green_raw_best: Vec<f32>,
 }
 
-/// Tekrardaki tur süreleri: her araç çizgiyi geçince (tamamlanan tur +1) geçiş anı tur yüzdesinden ara değerlenir.
-/// İleri / geri sarınca geçiş zinciri kopar (sonraki tam tura kadar süre yok); geri sarınca ilerideki turlar atılır.
+/// Tekrardaki tur süreleri. Simin en iyi / son tur değerleri tekrarda oturumun SONUNDAKİ değerlerdir; bu yüzden turlar
+/// tekrar kafasının zamanından ölçülür: araç çizgiyi geçince (tur yüzdesi 1 → 0) geçiş anı ara değerlenir, iki geçiş
+/// arası tur süresidir. Turlar geçiş zamanıyla tutulur: geri sarınca ilerideki turlar yok sayılır.
+/// Tur sayaçlarına (CarIdxLapCompleted) güvenilmez, tekrarda her zaman güncellenmeyebilir.
+/// Bu tekrarda hiçbir araç için henüz tur ölçülmediyse (tekrar yeni açıldı / tekrar kafası ilerlemiyor) simin değerleri kalır:
+/// tablo bomboş görünmesin.
 #[derive(Default)]
 pub struct ReplayLaps {
     on: bool,
     sess: i32,
     t: f64,
-    prev: Vec<(i32, f32)>,
+    prev_pct: Vec<f32>,
     cross: Vec<f64>,
-    /// araç başına (tur numarası, süre)
-    laps: Vec<Vec<(i32, f32)>>,
+    /// araç başına (geçiş zamanı, tur süresi)
+    laps: Vec<Vec<(f64, f32)>>,
+    /// Bu tekrarda en az bir tur ölçüldü (ölçüm çalışıyor)
+    any: bool,
 }
 
 impl ReplayLaps {
     fn clear(&mut self) {
-        self.prev = vec![(-1, -1.0); MAX_CARS];
+        self.any = false;
+        self.prev_pct = vec![-1.0; MAX_CARS];
         self.cross = vec![-1.0; MAX_CARS];
         self.laps = vec![Vec::new(); MAX_CARS];
     }
 
     pub fn update(&mut self, f: &Frame) {
-        let watch = crate::calc::replay_watch(f);
-        if !watch {
+        if !crate::calc::replay_watch(f) {
             if self.on {
                 self.on = false;
                 self.laps.clear();
@@ -256,54 +266,57 @@ impl ReplayLaps {
             self.clear();
         }
         let dt = t - self.t;
-        // Sarma / atlama: zincir kopar
+        // Sarma / atlama: geçiş zinciri kopar; geri sarınca ilerideki turlar atılır
         let jump = !(0.0..=1.5).contains(&dt);
+        if dt < 0.0 {
+            for v in self.laps.iter_mut() {
+                v.retain(|x| x.0 <= t + 0.01);
+            }
+        }
         for i in 0..MAX_CARS {
-            let c = &f.cars[i];
-            let (plc, ppct) = self.prev[i];
-            if jump || c.lap_completed < 0 {
+            let pct = f.cars[i].pct;
+            let pp = self.prev_pct[i];
+            if jump || pct < 0.0 || pp < 0.0 {
                 self.cross[i] = -1.0;
-                if c.lap_completed >= 0 {
-                    let lc = c.lap_completed;
-                    self.laps[i].retain(|x| x.0 <= lc);
-                }
-            } else if plc >= 0 && c.lap_completed == plc + 1 && dt > 0.0 {
-                // Geçiş anı: önceki karede çizgiye kalan yol / iki kare arası yol
-                let a = (1.0 - ppct).max(0.0) as f64;
-                let b = c.pct.max(0.0) as f64;
-                let frac = if a + b > 1e-6 && ppct > 0.5 && c.pct < 0.5 { a / (a + b) } else { 1.0 };
+            } else if dt > 0.0 && pp > 0.8 && pct < 0.2 {
+                let a = (1.0 - pp) as f64;
+                let b = pct as f64;
+                let frac = if a + b > 1e-6 { a / (a + b) } else { 1.0 };
                 let tc = self.t + dt * frac;
                 if self.cross[i] > 0.0 {
                     let lt = (tc - self.cross[i]) as f32;
                     if lt > 10.0 {
-                        self.laps[i].retain(|x| x.0 != c.lap_completed);
-                        self.laps[i].push((c.lap_completed, lt));
+                        self.laps[i].push((tc, lt));
+                        self.any = true;
                     }
                 }
                 self.cross[i] = tc;
-            } else if plc >= 0 && c.lap_completed != plc {
-                // Birden fazla tur atlandı / geri gitti
-                self.cross[i] = -1.0;
-                let lc = c.lap_completed;
-                self.laps[i].retain(|x| x.0 <= lc);
             }
-            self.prev[i] = (c.lap_completed, c.pct);
+            self.prev_pct[i] = pct;
         }
         self.t = t;
     }
 
     /// Tekrardaysa araçların en iyi / son turunu izlenen ana göre yazar
     fn apply(&self, f: &mut Frame) -> bool {
-        if !self.on || self.laps.len() != MAX_CARS {
+        if !self.on || self.laps.len() != MAX_CARS || !self.any {
             return false;
         }
+        let t = self.t + 0.01;
         for i in 0..MAX_CARS {
-            let lc = f.cars[i].lap_completed;
             let v = &self.laps[i];
-            let best = v.iter().filter(|x| x.0 <= lc).map(|x| x.1).fold(-1.0f32, |m, x| if m <= 0.0 || x < m { x } else { m });
-            let last = v.iter().find(|x| x.0 == lc).map(|x| x.1).unwrap_or(-1.0);
+            let mut best = -1.0f32;
+            let mut last: Option<(f64, f32)> = None;
+            for &(tc, lt) in v.iter().filter(|x| x.0 <= t) {
+                if best <= 0.0 || lt < best {
+                    best = lt;
+                }
+                if last.map(|l| tc > l.0).unwrap_or(true) {
+                    last = Some((tc, lt));
+                }
+            }
             f.cars[i].best = best;
-            f.cars[i].last = last;
+            f.cars[i].last = last.map(|l| l.1).unwrap_or(-1.0);
         }
         true
     }
@@ -332,6 +345,8 @@ impl Default for Tracker {
             pre_green: false,
             keep: vec![(-1.0, -1.0); MAX_CARS],
             keep_ses: -1,
+            raw_best: vec![-1.0; MAX_CARS],
+            green_raw_best: vec![-1.0; MAX_CARS],
         }
     }
 }
@@ -388,10 +403,34 @@ impl Tracker {
         }
     }
 
+    /// Simin ham değerlerini not et (her karede apply_race_best'ten önce)
+    pub fn note_raw(&mut self, f: &Frame) {
+        if self.raw_best.len() != MAX_CARS {
+            self.raw_best = vec![-1.0; MAX_CARS];
+        }
+        for i in 0..MAX_CARS {
+            self.raw_best[i] = f.cars[i].best;
+        }
+    }
+
     fn apply_bests(&self, f: &mut Frame) {
         if self.green_time.is_some() {
+            // Yarış: yeşilden sonraki turlar. Üç kaynağın en iyisi: son tur süresinden hesaplanan, oturumun resmi sonucu,
+            // yeşilden sonra değişmiş sim değeri (biri eksik kalsa da derece görünür)
             for i in 0..MAX_CARS {
-                f.cars[i].best = self.race_best[i];
+                let mut b = self.race_best[i];
+                let mut take = |x: f32| {
+                    if x > 0.0 && (b <= 0.0 || x < b) {
+                        b = x;
+                    }
+                };
+                take(self.ses_best.get(i).copied().unwrap_or(-1.0));
+                let raw = self.raw_best.get(i).copied().unwrap_or(-1.0);
+                let g = self.green_raw_best.get(i).copied().unwrap_or(-1.0);
+                if raw > 0.0 && (raw - g).abs() > 1e-4 {
+                    take(raw);
+                }
+                f.cars[i].best = b;
             }
             return;
         }
@@ -477,6 +516,7 @@ impl Tracker {
         } else if race && racing && self.saw_pre_green && self.green_time.is_none() {
             self.green_time = Some(f.session_time);
             self.race_best = vec![-1.0; MAX_CARS];
+            self.green_raw_best = self.raw_best.clone();
             // Yeşildeki "son tur" değerleri (sıralamadan kalan) yarış turu sayılmaz
             self.race_last_seen = (0..MAX_CARS).map(|i| f.cars[i].last).collect();
         }
@@ -664,6 +704,7 @@ mod best_tests {
         s
     }
     fn step(t: &mut Tracker, f: &mut Frame, s: &SessionData) {
+        t.note_raw(f);
         t.apply_race_best(f);
         t.update(f, s);
         t.apply_race_best(f);
@@ -693,6 +734,11 @@ mod best_tests {
         f.cars[0].last = 93.1;
         step(&mut t, &mut f, &s);
         assert_eq!(f.cars[0].best, 93.1);
+        // Son tur süresi kaçırıldı ama sim yeni en iyi tur verdi (yeşilden sonra değişti): o da sayılır
+        f.cars[0].best = 92.4;
+        f.cars[0].lap_completed = 3;
+        step(&mut t, &mut f, &s);
+        assert_eq!(f.cars[0].best, 92.4);
     }
 
     #[test]
@@ -778,20 +824,24 @@ mod replay_tests {
     #[test]
     fn replay_laps_follow_playhead() {
         let mut r = ReplayLaps::default();
-        // 100 sn'lik turlar, 0.5 sn'de bir kare
+        // Tekrar yeni açıldı, tur ölçülmedi: simin değerleri kalır
+        r.update(&frame(0.0, 0, 0.0));
+        let mut f = frame(0.0, 0, 0.0);
+        assert!(!r.apply(&mut f));
+        // 100 sn'lik turlar, 0.5 sn'de bir kare (tur sayacı tekrarda güncellenmiyor: hep 0)
         let mut t: f64 = 0.0;
         while t <= 350.0 {
-            let lap = (t / 100.0).floor() as i32;
-            let pct = ((t / 100.0) - lap as f64) as f32;
-            r.update(&frame(t, lap, pct));
+            let pct = ((t / 100.0) - (t / 100.0).floor()) as f32;
+            r.update(&frame(t, 0, pct));
             t += 0.5;
         }
-        let mut f = frame(350.0, 3, 0.5);
+        let mut f = frame(350.0, 0, 0.5);
         assert!(r.apply(&mut f));
         assert!((f.cars[0].best - 100.0).abs() < 0.01, "{}", f.cars[0].best);
-        // Geri sar: tur 1'in ortası, 2. ve 3. tur atılır, tur 1 hiç ölçülmedi
-        r.update(&frame(150.0, 1, 0.5));
-        let mut f = frame(150.0, 1, 0.5);
+        assert!((f.cars[0].last - 100.0).abs() < 0.01);
+        // Geri sar: 150. sn; 200 ve 300'deki turlar yok sayılır, ölçülen tek tur yok (ilk geçiş 100'de)
+        r.update(&frame(150.0, 0, 0.5));
+        let mut f = frame(150.0, 0, 0.5);
         r.apply(&mut f);
         assert_eq!(f.cars[0].best, -1.0);
     }

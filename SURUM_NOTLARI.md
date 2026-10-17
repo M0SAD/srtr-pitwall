@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 171026-370
+
+- Lider tablosunda en iyi / son tur boş kalıyordu. Tekrar (ve izleyici) modunda turlar tekrar kafasından ölçülürken tur sayacına güveniliyordu; iRacing bunu tekrarda her zaman güncellemediği için hiç tur ölçülmüyor, tablo bomboş kalıyordu. Artık geçişler aracın pistteki konumundan (çizgiyi geçişi) ölçülür; o tekrarda henüz hiç tur ölçülmediyse simin değerleri gösterilir, tablo boş kalmaz.
+- Yarışta en iyi tur üç kaynaktan alınır (son tur süresinden hesaplanan, oturumun resmi sonucu, yeşilden sonra değişen sim değeri); biri eksik kalsa da derece görünür.
+
 ## 171026-369
 
 - TV Sonuç Tablosu her açılışta 1. sayfadan başlar (gizliyken de sayfa çevirdiği için son sayfadan açılabiliyordu); sayfalar yalnızca tablo ekrandayken döner.
