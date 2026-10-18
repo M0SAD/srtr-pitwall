@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-391
+
+- Tekrarda aynı kaza sonsuz döngüde gösteriliyordu: kazaya kesince tekrar olaydan öncesine sarılıyor, olay yeniden oynayınca yeniden kaza sayılıp yine sarılıyordu. Tekrarda gösterilen kazalar oturum zamanıyla hatırlanır; aynı an (±20 sn) yeniden kaza sayılmaz ve bir daha geri sarılmaz.
+
 ## 181026-390
 
 - Lider tablosu, yarışta en iyi tur: sıralama turlarındaki derece görünüyordu (1 tur atan sürücünün en iyisi attığı turdan farklıydı). Yarışta oturumun sonuç listesi artık kullanılmaz (yarış başında sıralama derecelerini taşıyabiliyor); en iyi tur yalnızca yarış turlarından (son tur süreleri) ve yeşilden sonra değişen sim değerinden gelir. Simin ham değerleri sonuç listesiyle karıştırılmadan alınır.

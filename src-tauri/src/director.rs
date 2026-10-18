@@ -166,6 +166,9 @@ pub struct Director {
     /// Gösterilmeyi bekleyen kazalar (araç, olayın başladığı oturum zamanı, algılandığı an): aynı anda olan ikinci
     /// kaza ya da bir kaza çekimi sürerken olan kaza, o çekim bitince gösterilir
     inc_queue: Vec<(usize, f64, Instant)>,
+    /// Tekrarda gösterilmiş kazalar (oturum, olayın oturum zamanı): geri sarınca aynı olay yeniden oynar, yeniden kaza
+    /// sayılıp tekrar sarılmasın (aynı sahne sonsuz döngüde gösteriliyordu)
+    shown_inc: Vec<(i32, f64)>,
     /// Beyaz bayrak (son tur) liderin önüne çıktı: lider bir süre gösterilir
     white_seen: bool,
     /// Pit yolu: önceki karede pitte miydi, son pit çekimi
@@ -218,6 +221,7 @@ impl Default for Director {
             pending: None,
             seek_until: None,
             inc_queue: Vec::new(),
+            shown_inc: Vec::new(),
             white_seen: false,
             prev_pit: [false; MAX_CARS],
             pit_shot_at: None,
@@ -606,9 +610,19 @@ impl Director {
                 self.cam_at = now;
                 // Tekrar izlerken: olaydan 6 sn öncesine sar, kaza ve öncesi görünsün (canlıda geri sarılamaz). Sarma
                 // tamamlanana kadar (birkaç sn) kurgu yeni kamera komutu göndermez
-                if kind == "incident" && cfg.incident_rewind && crate::calc::replay_watch(f) && self.inc_t > 0.0 {
-                    out.rewind(f.replay_session_num, (self.inc_t - 6.0).max(0.0), &number, idx as i32);
-                    self.seek_until = Some(now + Duration::from_secs(5));
+                if kind == "incident" && crate::calc::replay_watch(f) && self.inc_t > 0.0 {
+                    let sn = f.replay_session_num;
+                    let done = self.shown_inc.iter().any(|&(x, t)| x == sn && (t - self.inc_t).abs() < 20.0);
+                    if !done {
+                        self.shown_inc.push((sn, self.inc_t));
+                        if self.shown_inc.len() > 200 {
+                            self.shown_inc.remove(0);
+                        }
+                        if cfg.incident_rewind {
+                            out.rewind(sn, (self.inc_t - 6.0).max(0.0), &number, idx as i32);
+                            self.seek_until = Some(now + Duration::from_secs(5));
+                        }
+                    }
                 }
                 self.group = group;
                 self.sent = Some((idx as i32, now));
@@ -831,7 +845,10 @@ impl Director {
                 self.fast_t[i] = -1.0;
                 self.fast_at[i] = None;
                 let recent = self.last_incident[i].map(|x| now.duration_since(x) < Duration::from_secs(12)).unwrap_or(false);
-                if !recent {
+                // Tekrarda bu an (±20 sn) zaten gösterildi: geri sarmanın yeniden oynattığı aynı olay
+                let replayed = crate::calc::replay_watch(f)
+                    && self.shown_inc.iter().any(|&(sn, st)| sn == f.replay_session_num && (st - start).abs() < 20.0);
+                if !recent && !replayed {
                     self.last_incident[i] = Some(now);
                     // Öndeki sıradaki aracın olayı öncelikli
                     let better = hit.map(|(h, _)| {
@@ -1444,6 +1461,45 @@ mod tests {
         d.step(&f, &s, &cfg, true, &mut out);
         assert_eq!(d.status.kind, "incident");
         assert_eq!(d.cur.unwrap().idx, 7);
+    }
+
+    #[test]
+    fn replay_rewind_does_not_loop() {
+        struct Out(Vec<f64>);
+        impl CamOut for Out {
+            fn switch(&mut self, _n: &str, _g: i32) {}
+            fn rewind(&mut self, _s: i32, t: f64, _n: &str, _i: i32) {
+                self.0.push(t);
+            }
+        }
+        let mut s = sess(10);
+        s.track_length_km = 5.0;
+        let mut f = frame(10);
+        f.replay = true;
+        f.replay_live = false;
+        let mut d = Director::default();
+        let cfg = Cfg { enabled: true, ..Default::default() };
+        let mut out = Out(vec![]);
+        let crash = |d: &mut Director, f: &mut Frame, out: &mut Out, t0: f64| {
+            f.replay_session_time = t0;
+            f.cars[7].surface = 3;
+            d.last_step = Instant::now() - Duration::from_secs(1);
+            d.step(f, &s, &cfg, true, out);
+            f.replay_session_time = t0 + 0.2;
+            f.cars[7].surface = 0;
+            d.last_step = Instant::now() - Duration::from_secs(1);
+            d.step(f, &s, &cfg, true, out);
+            f.replay_session_time = t0 + 1.0;
+            d.last_step = Instant::now() - Duration::from_secs(1);
+            d.step(f, &s, &cfg, true, out);
+        };
+        crash(&mut d, &mut f, &mut out, 500.0);
+        assert_eq!(out.0.len(), 1, "ilk kazada geri sarılır");
+        // Sarma bitti, aynı olay yeniden oynuyor (12 sn kuralı dolmuş olsa da)
+        d.seek_until = None;
+        d.last_incident = [None; MAX_CARS];
+        crash(&mut d, &mut f, &mut out, 500.0);
+        assert_eq!(out.0.len(), 1, "aynı kaza için yeniden sarılmaz");
     }
 
     #[test]
