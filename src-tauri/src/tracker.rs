@@ -561,6 +561,7 @@ impl Tracker {
                 }
             }
         }
+        crate::calc::set_green(f.session_num, if race { self.green_time } else { None });
         let record_start = race && racing && !self.race_started;
         if record_start {
             self.race_started = true;

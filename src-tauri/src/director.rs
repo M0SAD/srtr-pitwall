@@ -414,7 +414,12 @@ impl Director {
             if !order.is_empty() && (self.force_next || self.cur.map(|c| elapsed >= c.len).unwrap_or(true)) {
                 match next_unseen {
                     None => {
-                        // Herkes gösterildi: yeşile kadar TV Mixed (normal kurgu)
+                        // Herkes gösterildi: yeşile kadar TV Mixed (normal kurgu). "En uzun süredir gösterilmeyen" kuralı
+                        // grid sırasını yeniden üretmesin (yine sırayla gidiyordu): gösterilme zamanları karıştırılır
+                        for &i in &order {
+                            let back = Duration::from_secs_f32(self.rand() * 120.0);
+                            self.last_shown[i] = Some(now.checked_sub(back).unwrap_or(now));
+                        }
                         self.grid_done = true;
                         self.grid_force = false;
                         self.was_grid = false;
@@ -570,6 +575,9 @@ impl Director {
             if !number.is_empty() {
                 // Dip dibe mücadele: arkadaki aracın içinden (öndekini takip ederken)
                 let group = if kind == "battle" && self.in_battle(f, s, idx, 0.5) && self.rand() < 0.35 {
+                    self.onboard_group(s, cfg).unwrap_or_else(|| self.pick_group(s, cfg, kind))
+                } else if matches!(cfg.cams.as_str(), "tvmix" | "mix") && matches!(kind, "leader" | "front" | "field") && self.cur.is_some() && self.rand() < 0.12 {
+                    // Ara sıra (çekimlerin ~%12'si) araç içinden; çekim en az "en kısa çekim" kadar sürer
                     self.onboard_group(s, cfg).unwrap_or_else(|| self.pick_group(s, cfg, kind))
                 } else {
                     self.pick_group(s, cfg, kind)
@@ -742,8 +750,8 @@ impl Director {
     /// Kaza / pist dışı: yeni olan aracı döndürür
     fn detect(&mut self, f: &Frame, s: &SessionData, now: Instant) -> Option<usize> {
         // Kaza / pist dışı: kısa kenar taşmaları ve hız ölçümündeki sıçramalar sayılmaz, görüntüde görünür olaylar sayılır:
-        //  - pist dışında en az 0,7 sn kalan, hızlıyken çıkmış araç
-        //  - hızlıyken (son 2,5 sn) pistte yavaşlayıp en az 0,6 sn neredeyse duran araç (dönme / çarpışma)
+        //  - pist dışında en az 0,5 sn kalan, hızlıyken (son 5 sn) çıkmış araç
+        //  - hızlıyken (son 5 sn) pistte yavaşlayıp en az 0,5 sn neredeyse duran (< 40 km/s) araç (dönme / çarpışma)
         let len_m = s.track_length_km * 1000.0;
         let t = if crate::calc::replay_watch(f) { f.replay_session_time } else { f.session_time };
         let mut hit: Option<(usize, f64)> = None;
@@ -764,7 +772,7 @@ impl Director {
                 self.fast_t[i] = -1.0;
             }
             let speed = if len_m > 100.0 { c.pct_rate * len_m } else { 0.0 };
-            let was_fast = |ft: f64, at: f64| ft >= 0.0 && at - ft < 2.5;
+            let was_fast = |ft: f64, at: f64| ft >= 0.0 && at - ft < 5.0;
             if speed > 30.0 && c.surface == 3 {
                 self.fast_at[i] = Some(now);
                 self.fast_t[i] = t;
@@ -777,25 +785,32 @@ impl Director {
             } else {
                 self.off_t[i] = -1.0;
             }
-            let off_ev = self.off_t[i] >= 0.0 && t - self.off_t[i] >= 0.7 && was_fast(self.fast_t[i], self.off_t[i]);
+            let off_ev = self.off_t[i] >= 0.0 && t - self.off_t[i] >= 0.5 && was_fast(self.fast_t[i], self.off_t[i]);
             // Pistte neredeyse durdu
-            if c.surface == 3 && !c.on_pit && speed < 9.0 {
+            if c.surface == 3 && !c.on_pit && speed < 11.0 {
                 if self.slow_t[i] < 0.0 && was_fast(self.fast_t[i], t) {
                     self.slow_t[i] = t;
                 }
             } else {
                 self.slow_t[i] = -1.0;
             }
-            let stop_ev = self.slow_t[i] >= 0.0 && t - self.slow_t[i] >= 0.6;
+            let stop_ev = self.slow_t[i] >= 0.0 && t - self.slow_t[i] >= 0.5;
+            // Kaza yapıp araç sıfırlandı (pite ışınlandı: pit yolundan geçmeden pist / pist dışından pit kutusuna). Tekrarda
+            // olayın öncesine sarılıp kaza gösterilir; az önce kazası gösterildiyse tekrar gösterilmez
+            let tow_ev = crate::calc::replay_watch(f)
+                && matches!(self.prev_surface[i], 0 | 3)
+                && (c.surface == 1 || c.on_pit)
+                && self.fast_t[i] >= 0.0
+                && self.last_incident[i].map(|x| now.duration_since(x) > Duration::from_secs(60)).unwrap_or(true);
             self.prev_surface[i] = c.surface;
-            if (off_ev || stop_ev) && !c.on_pit {
+            if ((off_ev || stop_ev) && !c.on_pit) || tow_ev {
                 // Olayın başladığı an: hızlı görüldüğü son an (yavaşlama / çıkış ondan hemen sonra)
                 let start = if off_ev { self.off_t[i].min(self.fast_t[i].max(0.0) + 0.5) } else { self.fast_t[i].max(0.0) };
                 self.off_t[i] = -1.0;
                 self.slow_t[i] = -1.0;
                 self.fast_t[i] = -1.0;
                 self.fast_at[i] = None;
-                let recent = self.last_incident[i].map(|x| now.duration_since(x) < Duration::from_secs(20)).unwrap_or(false);
+                let recent = self.last_incident[i].map(|x| now.duration_since(x) < Duration::from_secs(12)).unwrap_or(false);
                 if !recent {
                     self.last_incident[i] = Some(now);
                     // Öndeki sıradaki aracın olayı öncelikli
@@ -1337,6 +1352,33 @@ mod tests {
         d.step(&f, &s, &cfg, true, &mut out);
         assert_ne!(d.status.kind, "grid", "yeşilde grid turu biter");
         assert_eq!(out.0.last().unwrap().1, 20, "TV Mixed");
+    }
+
+    #[test]
+    fn after_grid_walk_not_sequential_again() {
+        let mut s = sess(12);
+        s.cam_groups.push((20, "TV Mixed".into()));
+        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: "Race".into(), ..Default::default() }];
+        let mut f = frame(12);
+        f.session_state = 2;
+        let mut d = Director::default();
+        let cfg = Cfg { enabled: true, ..Default::default() };
+        let mut out = Rec(vec![]);
+        for _ in 0..13 {
+            d.next();
+            d.step(&f, &s, &cfg, true, &mut out);
+        }
+        assert_ne!(d.status.kind, "grid");
+        // Sonraki 6 çekim grid sırasının (10, 11, 12, …) tekrarı olmamalı
+        let mut nums = vec![];
+        for _ in 0..6 {
+            d.next();
+            d.step(&f, &s, &cfg, true, &mut out);
+            nums.push(out.0.last().unwrap().0.clone());
+        }
+        let seq: Vec<String> = (0..6).map(|i| (10 + i).to_string()).collect();
+        assert_ne!(nums, seq, "{nums:?}");
+        assert!(out.0.iter().rev().take(6).filter(|x| x.1 == 20).count() >= 3, "çoğunlukla TV Mixed (ara sıra araç içi)");
     }
 
     #[test]

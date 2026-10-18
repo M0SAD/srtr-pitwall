@@ -3,6 +3,17 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-386
+
+- Grid turu bittikten sonra kurgu yeniden sırayla gitmiyor: "en uzun süredir gösterilmeyen" kuralı grid sırasını tekrar üretiyordu; grid turu bitince gösterilme zamanları karıştırılır, TV Mixed ile karışık kurgu başlar.
+- Kalan süre (lider tablosu, Relative, Oturum, TV kulesi): süreli yarışta yeşilden sonra toplam süre − yeşilden beri geçen süre gösterilir. iRacing gride oturulan zamanı da saydığı için yeşilde süre birden düşüyordu (ör. 40 dk'lık yarışta).
+- Kazalar daha çok yakalanır: pist dışında 0,5 sn kalan ya da pistte 0,5 sn neredeyse duran (< 40 km/s) araç, son 5 sn'de hızlıysa kaza sayılır (önceden 0,7 / 0,6 sn, 2,5 sn). Aynı araç 12 sn sonra yeniden gösterilebilir.
+- Tekrarda kaza yapıp aracını sıfırlayan (pite ışınlanan) sürücü: tekrar olaydan öncesine sarılıp kaza gösterilir (o araç son 1 dk'da gösterilmediyse).
+- Araç içi kamera ara sıra (normal çekimlerin ~%12'si, yalnız TV Mixed / TV + araç üstü kamera ayarında); grid sonrası ilk çekim TV kamerası. Araç içindeyken sürücü bandı aracı yazar.
+- TV Sürücü Bandı: pit çekiminde bant her zaman görünür; ikinci bant her kipte yalnızca iki araç arasındaki fark "Kapışma sayılan fark"ın (varsayılan 1 sn) altındaysa çıkar (20 sn öndeki aracın bandı çıkıyordu).
+
+- TV Sürücü Bandı hep aynı hizada: hız / vites göstergesi gizliyken (araç duruyor, grid) yeri boş tutulur, INCIDENT etiketi bandı kaydırmaz.
+
 ## 181026-385
 
 - Tekrarda kaza öncesi görünmüyordu: tekrarı geri sarma komutu, hemen ardından gelen kamera / hız komutlarıyla yarıda kalabiliyordu. Artık doğrulamalı sarma kullanılır (zaman araması tutmazsa kare numarasıyla), olaydan 6 sn öncesine gidilir; sarma bitene kadar rejisör başka komut göndermez, sonra kamera kazadaki araçta 1x oynar.

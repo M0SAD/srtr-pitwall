@@ -34,7 +34,7 @@ export default function TvLower(props: OverlayProps) {
   // Kamera araç içinde / üstünde: hangi araç olduğu her zaman yazsın
   const onboardCam = () => !sample() && !!(info() as { camOnboard?: boolean }).camOnboard;
   // Rejisör bitiş çizgisini / en hızlı turu gösteriyor: band her zaman açık
-  const finishCam = () => camKind() === "finish" || camKind() === "fastest";
+  const finishCam = () => camKind() === "finish" || camKind() === "fastest" || camKind() === "pit";
   // Yeşil bayraktan önce (yarışta gridde / ısınma turunda): bütün sürücüler sırayla, tek bant
   const preGreen = () => {
     if (sample() || o().gridCycle === false) return false;
@@ -132,12 +132,12 @@ export default function TvLower(props: OverlayProps) {
       setPairOn(false);
       return;
     }
-    if (mode !== "track" && mode !== "close") {
-      setPairOn(true);
-      return;
-    }
+    // Her kipte: ikinci bant yalnızca iki araç arasındaki fark ayarın (varsayılan 1 sn) altındaysa (20 sn öndeki
+    // aracın bandı çıkıyordu). Fark pistteki konumdan; konum yoksa sıralama aralığından
     const g = Math.max(0.2, Number(o().pairGap) || 1);
-    const gap = mode === "track" ? trackGap(f, x) : Math.min(f.interval > 0 ? f.interval : 999, x.interval > 0 ? x.interval : 999);
+    const tg = trackGap(f, x);
+    const iv = Math.min(f.interval > 0 ? f.interval : 999, x.interval > 0 ? x.interval : 999);
+    const gap = mode === "close" ? iv : tg < 999 ? tg : iv;
     if (gap <= g) {
       farSince = 0;
       setPairOn(true);
@@ -252,7 +252,8 @@ export default function TvLower(props: OverlayProps) {
         <Show when={incident() && p.r.idx === info().camIdx}>
           <span class="tvl-inc">INCIDENT</span>
         </Show>
-        <Show when={gauge()}>
+        {/* Gösterge yokken (araç duruyor, grid, kapalı) yeri boş tutulur: bant hep aynı hizada kalır */}
+        <Show when={gauge()} fallback={<Show when={o().gauge !== false && o().gauge !== "off"}><div class="tvl-gauge tvl-gauge-ph" /></Show>}>
           <Gauge r={p.r} />
         </Show>
         <div class="tvl-band">

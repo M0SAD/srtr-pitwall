@@ -941,12 +941,27 @@ fn garage_car(f: &Frame, s: &SessionData, i: usize) -> bool {
 /// Ekranda gösterilecek kalan süre: yarışta yeşil bayraktan önce (grid / ısınma turu) sim süreyi saymaya başlasa da
 /// saat işlemez, yarışın toplam süresi gösterilir
 pub(crate) fn shown_remain(f: &Frame, s: &SessionData) -> f64 {
-    if s.is_race(f.session_num) && (1..=3).contains(&f.session_state) {
-        if let Some(t) = s.session(f.session_num).and_then(|e| e.time).filter(|t| *t > 0.0 && *t < 604800.0) {
-            return t;
+    if s.is_race(f.session_num) {
+        if let Some(total) = s.session(f.session_num).and_then(|e| e.time).filter(|t| *t > 0.0 && *t < 604800.0) {
+            if (1..=3).contains(&f.session_state) {
+                return total;
+            }
+            // Yeşilden sonra: toplam − yeşilden beri geçen (sim gridde de saydığı için yeşilde süre zıplıyordu)
+            if let Some(g) = green_of(f.session_num) {
+                return (total - (f.session_time - g).max(0.0)).max(0.0);
+            }
         }
     }
     f.session_time_remain
+}
+
+/// Yarışın yeşil bayrak anı (oturum no, oturum zamanı): Tracker yazar, kalan süre gösterimi okur
+static GREEN: parking_lot::Mutex<Option<(i32, f64)>> = parking_lot::Mutex::new(None);
+pub(crate) fn set_green(session_num: i32, t: Option<f64>) {
+    *GREEN.lock() = t.map(|g| (session_num, g));
+}
+fn green_of(session_num: i32) -> Option<f64> {
+    GREEN.lock().filter(|x| x.0 == session_num).map(|x| x.1)
 }
 
 pub(crate) fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {

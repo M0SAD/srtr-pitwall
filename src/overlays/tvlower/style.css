@@ -12,6 +12,7 @@
   transform: translateY(16px);
 }
 .tvl-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -95,6 +96,9 @@
   position: relative;
   width: 207px;
   height: 116px;
+}
+.tvl-gauge-ph {
+  visibility: hidden;
 }
 .tvl-arc {
   position: absolute;
@@ -207,8 +211,11 @@
 
 /* Kaza: Otomatik Rejisör olaydaki araca kesince bandın üstünde kırmızı etiket */
 .tvl-inc {
-  align-self: flex-start;
-  margin-bottom: 4px;
+  /* Bandın hizasını kaydırmasın: bandın hemen üstünde, göstergenin yerinde durur */
+  position: absolute;
+  left: 0;
+  bottom: calc(65px + 4px);
+  z-index: 2;
   padding: 4px 10px 3px;
   background: #e3151f;
   color: #fff;
