@@ -466,7 +466,10 @@ SplitTimeInfo:
     fn parses_camera_groups() {
         let y = "WeekendInfo:\n TrackLength: 3.00 km\nCameraInfo:\n Groups:\n - GroupNum: 1\n   GroupName: Nose\n   Cameras:\n   - CameraNum: 1\n     CameraName: CamNose\n - GroupNum: 10\n   GroupName: TV Mixed\n   IsScenic: false\n   Cameras:\n   - CameraNum: 1\n     CameraName: CamTV1\nRadioInfo:\n SelectedRadioNum: 0\n";
         let s = parse(y);
-        assert_eq!(s.cam_groups, vec![(1, "Nose".to_string()), (10, "TV Mixed".to_string())]);
+        assert_eq!(
+            s.cam_groups,
+            vec![(1, "Nose".to_string()), (10, "TV Mixed".to_string())]
+        );
     }
 
     #[test]

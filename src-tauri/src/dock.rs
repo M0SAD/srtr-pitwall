@@ -67,7 +67,11 @@ pub fn place(app: &AppHandle) {
     // Genişlik korunur; ana pencerenin en çok %60.ı (en az 300 px). Yükseklik: kullanıcının verdiği (ana pencereden
     // uzun olamaz); yapışma yeni açıldıysa ana pencere boyu
     let w = cur.width.min((s.width as f64 * 0.6) as u32).max(300);
-    let h = if FILL_NEXT.swap(false, Ordering::Relaxed) { s.height } else { cur.height.min(s.height).max(300) };
+    let h = if FILL_NEXT.swap(false, Ordering::Relaxed) {
+        s.height
+    } else {
+        cur.height.min(s.height).max(300)
+    };
     let x = p.x + s.width as i32 - w as i32;
     PLACED_AT.store(now_ms(), Ordering::Relaxed);
     let _ = fw.set_position(PhysicalPosition::new(x, p.y));

@@ -61,7 +61,7 @@ export default defineOverlay({
       ],
     },
     { key: "showTeam", label: "Takım / araç satırı", type: "boolean", default: true },
-    { key: "showFlag", label: "Ülke bayrağı", type: "boolean", default: true },
+    { key: "showFlag", label: "Ülke bayrağı", type: "boolean", default: false, hint: "Sürücünün iRacing profilindeki ülke. iRacing ülke bilgisini göndermiyorsa (bazı lig / tekrar oturumları) bayrak çıkmaz." },
     { key: "showGap", label: "Fark", type: "boolean", default: true },
     { key: "accent", label: "Ana renk", type: "color", default: "#d4151d", group: "Görünüm" },
     { key: "scale", label: "Boyut", type: "number", default: 100, min: 50, max: 200, step: 5, unit: "%", group: "Görünüm" },

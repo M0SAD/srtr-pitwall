@@ -65,6 +65,13 @@ fn path() -> PathBuf {
         .unwrap_or_else(|| std::env::temp_dir().join(FALLBACK_FILE))
 }
 
+/// Uygulama veri klasörü (ayarlandıysa)
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn data_dir() -> Option<PathBuf> {
+    let g = PATH.lock().unwrap_or_else(|e| e.into_inner());
+    g.as_ref().and_then(|p| p.parent().map(|d| d.to_path_buf()))
+}
+
 /// Günlük klasörünü ayarlar (uygulama veri klasörü). Kurulumda bir kez çağrılır.
 pub fn set_dir(dir: PathBuf) {
     let _ = std::fs::create_dir_all(&dir);

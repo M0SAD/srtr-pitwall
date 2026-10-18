@@ -125,3 +125,13 @@
   font-size: 0.74em;
   letter-spacing: -0.02em;
 }
+
+.tvr-flag {
+  justify-content: center;
+}
+.tvr-flag img,
+.tvr-flag .ov-flag {
+  height: 15px;
+  width: auto;
+  border-radius: 0;
+}

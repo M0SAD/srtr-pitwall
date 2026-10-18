@@ -407,7 +407,11 @@ fn bool_of(buf: &[u8], v: Option<VarRef>) -> bool {
 /// Telemetri tamponunu normalize edilmiş `Frame` yapısına aktarır. Bellek ayırmaz.
 pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.tick = tick;
-    let prev_t = if f.replay { f.replay_session_time } else { f.session_time };
+    let prev_t = if f.replay {
+        f.replay_session_time
+    } else {
+        f.session_time
+    };
     f.session_time = get_f64(buf, ix.session_time, 0).unwrap_or(0.0);
     f.session_time_remain = get_f64(buf, ix.session_time_remain, 0).unwrap_or(-1.0);
     f.session_laps_remain = i32_or(buf, ix.session_laps_remain, 32767);
@@ -462,7 +466,11 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.cam_car_idx = i32_or(buf, ix.cam_car_idx, -1);
     f.cam_group = i32_or(buf, ix.cam_group, -1);
     // Araçların hızı için (tur yüzdesi değişimi / geçen süre); tekrarda kasetin zamanı
-    let now_t = if f.replay { f.replay_session_time } else { f.session_time };
+    let now_t = if f.replay {
+        f.replay_session_time
+    } else {
+        f.session_time
+    };
     let dt = (now_t - prev_t) as f32;
     f.air_temp = f32_or(buf, ix.air_temp, 0.0);
     f.track_temp = f32_or(buf, ix.track_temp, 0.0);

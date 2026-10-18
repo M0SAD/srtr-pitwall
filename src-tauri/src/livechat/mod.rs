@@ -585,8 +585,11 @@ impl Inner {
 
     fn viewers(&self, chans: &[ChannelStatus]) -> Viewers {
         let per = |p: Platform| -> Option<u64> {
-            let list: Vec<&ChannelStatus> =
-                chans.iter().filter(|c| c.platform == Some(p)).collect();
+            // Gizlenen (göz kapalı) kanallar sayılmaz
+            let list: Vec<&ChannelStatus> = chans
+                .iter()
+                .filter(|c| c.platform == Some(p) && !c.hidden)
+                .collect();
             if let Some(m) = list.iter().find(|c| c.mine && c.viewers.is_some()) {
                 return m.viewers;
             }

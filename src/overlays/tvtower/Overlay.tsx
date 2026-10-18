@@ -164,6 +164,13 @@ export default function TvTower(props: OverlayProps) {
           <TvLogo carName={p.r.carName} class="tvt-logo" />
         </Show>
         <span class="tvt-name">{tvName(p.r.name, String(o().nameFormat || "last"), p.r.flair)}</span>
+        <Show when={o().showFlag === true}>
+          <span class="tvt-flag">
+            <Show when={p.r.flair && p.r.flair !== "NONE"}>
+              <Flag code={p.r.flair} />
+            </Show>
+          </span>
+        </Show>
         <span class="tv-num tvt-num" style={{ background: nc().bg, color: nc().fg }}>
           {p.r.number}
         </span>
@@ -182,11 +189,11 @@ export default function TvTower(props: OverlayProps) {
     return f === "full" ? 160 : f === "initial" ? 120 : 100;
   };
   // Damalı bayraktan sonra ilk N araç (araç sayısı azsa hepsi) çizgiyi geçince kalkar
-  const finished = useFinishReady(() => ({ finishers: Number(o().hideAfterN) || 1, waitAll: !(Number(o().hideAfterN) > 0), openDelay: 0 }), rows, () => ses()?.state ?? 0, () => isRaceSession(info().session));
+  const finished = useFinishReady(() => ({ finishers: Number(o().hideAfterN) || 1, waitAll: o().hideAll !== false || !(Number(o().hideAfterN) > 0), openDelay: 0 }), rows, () => ses()?.state ?? 0, () => isRaceSession(info().session));
   const visible = useTvVisible({ o, event: () => rows().length > 0, editing: () => !!props.editing, sample, finished });
 
   return (
-    <div class="tv tvt" classList={{ "tv-off": !visible() }} style={{ "--tv-red": String(o().accent || "#d4151d"), "--tvt-name": `${nameW()}px`, zoom: String(scale()) }} data-no-i18n>
+    <div class="tv tvt" classList={{ "tv-off": !visible(), flags: o().showFlag === true }} style={{ "--tv-red": String(o().accent || "#d4151d"), "--tvt-name": `${nameW()}px`, zoom: String(scale()) }} data-no-i18n>
       <Show when={o().showHeader !== false}>
         <div class="tvt-head">
           <div class="tvt-title">

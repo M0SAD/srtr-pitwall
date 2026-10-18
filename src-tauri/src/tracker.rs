@@ -438,7 +438,10 @@ impl Tracker {
             // Yarış: yeşilden sonraki turlar. İki kaynağın en iyisi: son tur süresinden hesaplanan ve yeşilden sonra değişmiş
             // sim değeri (biri eksik kalsa da derece görünür)
             // Yeşilden beri geçen süreden uzun tur olamaz (önceki oturumdan kalan değer): sayılmaz
-            let since_green = self.green_time.map(|g| (self.last_t - g).max(0.0) as f32 + 1.0).unwrap_or(f32::MAX);
+            let since_green = self
+                .green_time
+                .map(|g| (self.last_t - g).max(0.0) as f32 + 1.0)
+                .unwrap_or(f32::MAX);
             for i in 0..MAX_CARS {
                 let mut b = self.race_best[i];
                 let mut take = |x: f32| {
@@ -507,7 +510,9 @@ impl Tracker {
             self.saw_pre_green = false;
             // Oturumun başı görüldüyse (henüz kimse tur tamamlamadı) simde kalan eski en iyiler not edilir
             let fresh = (0..MAX_CARS).all(|i| f.cars[i].lap_completed <= 0);
-            self.stale_best = (0..MAX_CARS).map(|i| if fresh { f.cars[i].best } else { -1.0 }).collect();
+            self.stale_best = (0..MAX_CARS)
+                .map(|i| if fresh { f.cars[i].best } else { -1.0 })
+                .collect();
         }
         // Sim yeni bir en iyi tur verdi: artık eski değer değil
         for i in 0..MAX_CARS {
@@ -728,9 +733,19 @@ mod best_tests {
     use super::*;
 
     fn sess(kind: &str) -> SessionData {
-        let mut s = SessionData { drivers: vec![None; MAX_CARS], ..Default::default() };
-        s.sessions = vec![crate::model::SessionEntry { num: 0, kind: kind.into(), ..Default::default() }];
-        s.drivers[0] = Some(crate::model::Driver { car_idx: 0, ..Default::default() });
+        let mut s = SessionData {
+            drivers: vec![None; MAX_CARS],
+            ..Default::default()
+        };
+        s.sessions = vec![crate::model::SessionEntry {
+            num: 0,
+            kind: kind.into(),
+            ..Default::default()
+        }];
+        s.drivers[0] = Some(crate::model::Driver {
+            car_idx: 0,
+            ..Default::default()
+        });
         s
     }
     fn step(t: &mut Tracker, f: &mut Frame, s: &SessionData) {

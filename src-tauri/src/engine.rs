@@ -601,6 +601,9 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     if src.connected() {
                         if let Some(sd) = src.session_update() {
                             st.raw = sd;
+                            // Tekrarda iRacing sürücü ülkesini göndermiyor: canlı oturumlarda öğrenilen ülkeler kullanılır
+                            let filled = crate::flaircache::apply(&mut st.raw);
+                            note_flags(&st.raw, filled);
                             crate::demo::note_player(src.kind().id(), &st.raw);
                             st.league_ver = u64::MAX;
                             let key = src.map_key(&st.raw);
@@ -706,7 +709,11 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             // Hangi türlerin kaydedileceği (general.eventsRecord) saniyede bir okunur
             let record = if last_events_cfg.elapsed() > Duration::from_secs(1) {
                 last_events_cfg = Instant::now();
-                director_cfg = crate::with_settings(&app, |v| crate::director::Cfg::from_settings(v.and_then(|v| v.pointer("/general/director"))));
+                director_cfg = crate::with_settings(&app, |v| {
+                    crate::director::Cfg::from_settings(
+                        v.and_then(|v| v.pointer("/general/director")),
+                    )
+                });
                 // PRO özelliği (tools.director): kilitliyse kamera komutu gönderilmez
                 director_cfg.locked = !crate::livechat::allowed(&app, "tools.director");
                 Some(crate::with_settings(&app, |v| {
@@ -726,8 +733,18 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     st.director.restart_grid();
                 }
                 let iracing = connected && !demo_on && !preview && st.sim == "iracing";
-                st.director.step(&st.frame, &st.session, &director_cfg, iracing, &mut crate::director::IracingOut);
-                st.tracker.director_kind = if st.director.status.active { st.director.current_kind() } else { "" };
+                st.director.step(
+                    &st.frame,
+                    &st.session,
+                    &director_cfg,
+                    iracing,
+                    &mut crate::director::IracingOut,
+                );
+                st.tracker.director_kind = if st.director.status.active {
+                    st.director.current_kind()
+                } else {
+                    ""
+                };
                 let mut ds = shared.director_status.lock();
                 if *ds != st.director.status {
                     *ds = st.director.status.clone();
@@ -1285,5 +1302,31 @@ mod publish_tests {
         publish(&shared, &st, false, false, false);
         assert_eq!(shared.subs.lock().len(), 1);
         assert!(rx2.try_iter().count() >= 1);
+    }
+}
+
+/// Tanılama: ülkesi gelmeyen oturumda (tekrar) kaç sürücüye önbellekten bayrak verildiği bir kez günlüğe yazılır
+#[cfg_attr(not(windows), allow(dead_code))]
+fn note_flags(sd: &crate::model::SessionData, filled: usize) {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static DONE: AtomicBool = AtomicBool::new(false);
+    let all: Vec<_> = sd
+        .drivers
+        .iter()
+        .flatten()
+        .filter(|d| d.user_id > 0 && !d.is_pace_car && !d.is_spectator)
+        .collect();
+    if all.is_empty() || DONE.load(Ordering::Relaxed) {
+        return;
+    }
+    let empty = all.iter().filter(|d| d.flair.trim().is_empty()).count();
+    if filled > 0 || empty > 0 {
+        DONE.store(true, Ordering::Relaxed);
+        crate::crashlog::note(&format!(
+            "bayrak: {} sürücü, {} önbellekten, {} bilinmiyor",
+            all.len(),
+            filled,
+            empty
+        ));
     }
 }

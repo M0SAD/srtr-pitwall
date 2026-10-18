@@ -266,7 +266,7 @@ export default function TvLower(props: OverlayProps) {
               <small>{upper(team()!)}</small>
             </Show>
           </span>
-          <Show when={o().showFlag !== false && p.r.flair}>
+          <Show when={o().showFlag === true && p.r.flair && p.r.flair !== "NONE"}>
             <span class="tvl-flag">
               <Flag code={p.r.flair} />
             </span>

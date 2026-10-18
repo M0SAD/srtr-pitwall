@@ -942,7 +942,11 @@ fn garage_car(f: &Frame, s: &SessionData, i: usize) -> bool {
 /// saat işlemez, yarışın toplam süresi gösterilir
 pub(crate) fn shown_remain(f: &Frame, s: &SessionData) -> f64 {
     if s.is_race(f.session_num) {
-        if let Some(total) = s.session(f.session_num).and_then(|e| e.time).filter(|t| *t > 0.0 && *t < 604800.0) {
+        if let Some(total) = s
+            .session(f.session_num)
+            .and_then(|e| e.time)
+            .filter(|t| *t > 0.0 && *t < 604800.0)
+        {
             if (1..=3).contains(&f.session_state) {
                 return total;
             }
@@ -1234,8 +1238,20 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         cam_onboard: f.cam_group > 0
             && s.cam_groups.iter().any(|g| {
                 g.0 == f.cam_group
-                    && ["cockpit", "roll bar", "gyro", "nose", "gearbox", "rear chase", "lf susp", "rf susp", "lr susp", "rr susp", "chase"]
-                        .contains(&g.1.trim().to_lowercase().as_str())
+                    && [
+                        "cockpit",
+                        "roll bar",
+                        "gyro",
+                        "nose",
+                        "gearbox",
+                        "rear chase",
+                        "lf susp",
+                        "rf susp",
+                        "lr susp",
+                        "rr susp",
+                        "chase",
+                    ]
+                    .contains(&g.1.trim().to_lowercase().as_str())
             }),
     }
 }
@@ -1502,7 +1518,11 @@ pub fn decode_flags(bits: u32) -> Vec<&'static str> {
 /// 400 m içinde pist dışında ya da pistte neredeyse durmuş bir araç varsa sarı (çok yakındaysa dalgalanan sarı);
 /// arkasında 1,5 sn içinde tur önündeki bir araç varsa mavi.
 pub fn replay_flags(f: &Frame, s: &SessionData) -> u32 {
-    let cam = if f.cam_car_idx >= 0 { f.cam_car_idx as usize } else { f.player_idx.max(0) as usize };
+    let cam = if f.cam_car_idx >= 0 {
+        f.cam_car_idx as usize
+    } else {
+        f.player_idx.max(0) as usize
+    };
     let len = s.track_length_km * 1000.0;
     let Some(me) = f.cars.get(cam) else { return 0 };
     if me.pct < 0.0 || len < 100.0 {
@@ -1678,11 +1698,22 @@ mod tests {
 
     #[test]
     fn replay_flags_yellow_and_blue() {
-        let mut s = SessionData { drivers: vec![None; MAX_CARS], track_length_km: 4.0, ..Default::default() };
+        let mut s = SessionData {
+            drivers: vec![None; MAX_CARS],
+            track_length_km: 4.0,
+            ..Default::default()
+        };
         for i in 0..3 {
-            s.drivers[i] = Some(crate::model::Driver { car_idx: i as i32, ..Default::default() });
+            s.drivers[i] = Some(crate::model::Driver {
+                car_idx: i as i32,
+                ..Default::default()
+            });
         }
-        let mut f = Frame { replay: true, cam_car_idx: 0, ..Default::default() };
+        let mut f = Frame {
+            replay: true,
+            cam_car_idx: 0,
+            ..Default::default()
+        };
         for i in 0..3 {
             f.cars[i].surface = 3;
             f.cars[i].pct_rate = 0.012; // ~48 m/sn

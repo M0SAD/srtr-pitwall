@@ -90,7 +90,7 @@ export default function TvPodium(props: OverlayProps) {
                       <small class="tvp-team">{upper(r().team || r().carName || "")}</small>
                     </Show>
                     <div class="tvp-meta">
-                      <Show when={o().showFlag !== false && r().flair}>
+                      <Show when={o().showFlag === true && r().flair && r().flair !== "NONE"}>
                         <span class="tvp-flag">
                           <Flag code={r().flair} />
                         </span>

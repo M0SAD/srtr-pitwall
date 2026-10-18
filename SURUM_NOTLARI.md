@@ -3,6 +3,21 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-395
+
+- Tekrarda (replay) ülke bayrakları: iRacing tekrar dosyasında sürücülerin ülkesini göndermiyor (günlükte tekrar oturumlarında hiç ülke alanı yok). Artık canlı oturumlarda görülen her sürücünün ülkesi üye numarasıyla bilgisayara kaydedilir (flags-cache.json) ve tekrarda bu sürücülerin bayrakları Lider tablosu ve TV overlay'lerinde görünür. Program açıkken canlı olarak hiç karşılaşılmamış sürücülerin bayrağı tekrarda çıkmaz. Günlüğe "bayrak: N sürücü, X önbellekten, Y bilinmiyor" satırı yazılır.
+
+## 181026-394
+
+- Canlı Sohbet, izleyici çubuğu: gizlenen (göz kapalı) kanalların izleyici sayısı çubukta ve toplamda (Σ) sayılmaz; gösterilecek başka kanal yoksa çubuk da gizlenir.
+- İzleyici çubuğundaki simgeye tıklayınca o platformdaki canlı kanalların listesi açılır (Σ: hepsi); listeden kanala tıklayınca sayfası açılır. Liste tekrar tıklayınca ya da kanal seçilince kapanır (önceden tıklama en çok izlenen kanalı doğrudan açıyordu).
+
+## 181026-393
+
+- Rejisör, bitiş: çizgiyi geçen araç ~6 sn daha gösterilir (önceden 3 sn); bu sırada başka bir araç çizgiye 3 sn'den yakınsa ona geçilir.
+- TV Sıralama Kulesi: yeni ayar "Herkes yarışı bitirince kalksın" (varsayılan açık): pistteki bütün araçlar bitiş çizgisini geçene kadar kule ekranda kalır. Kimse bitirmezse bekleme 10 dk (önceden 2 dk; uzun pistlerde kule erken kalkıyordu). Kapatılırsa eskisi gibi araç sayısı.
+- Ülke bayrakları isteğe bağlı ve varsayılan kapalı: TV Sıralama Kulesi ve TV Sonuç Tablosu'na bayrak sütunu eklendi; TV Sürücü Bandı ve TV Yarış Sonucu'nda bayrak artık varsayılan kapalı. iRacing sürücünün ülkesini göndermiyorsa bayrak çıkmaz.
+
 ## 181026-392
 
 - Rejisör: ön sıralar çok az gösteriliyordu. "Uzun süredir gösterilmeyen araç" kuralı 2,5 dk'da bir devreye girip arka sıralara çok ağırlık veriyordu; artık bekleme süresi araç sayısına göre (araç başına 15 sn, en az 3 dk; 30 araçta 7,5 dk) ve ağırlığı düşük. Varsayılan oranlar: lider 30, ön sıralar 30, mücadele 25, diğer araçlar 25 (önceki varsayılanlar 20/20/25/40 bir kez taşınır).

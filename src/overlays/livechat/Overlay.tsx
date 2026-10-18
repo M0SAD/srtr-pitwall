@@ -207,40 +207,51 @@ export default function LiveChat(props: OverlayProps) {
   const barPlatforms = createMemo(() => {
     const chans = real() ? (topic()?.channels ?? []) : [];
     const set = new Set<string>();
-    for (const c of chans) if (c.platform && (c.state !== "locked" || c.mine)) set.add(c.platform);
+    // Gizlenen (göz kapalı) kanal çubukta yer almaz
+    for (const c of chans) if (c.platform && !c.hidden && (c.state !== "locked" || c.mine)) set.add(c.platform);
     return (["youtube", "twitch", "kick"] as const).filter((p) => set.has(p));
   });
-  const barOn = () => barSize() > 0 && (simOn() || real());
+  // Gösterilecek (gizlenmemiş) kanal yoksa çubuk da gizlenir
+  const barOn = () => barSize() > 0 && (simOn() || (real() && barPlatforms().length > 0));
   // İzleyici çubuğuna tıklayınca o platformdaki canlı kanalın sayfası açılır (en çok izleyicisi olan); Σ: tüm kanallar içinde
   let barEl: HTMLDivElement | undefined;
   const barClickable = () => barOn() && real() && onScreen() && !props.editing;
   useClickRegion(() => barEl, barClickable);
   const liveOf = (p?: string) =>
-    (topic()?.channels ?? []).filter((c) => c.state === "live" && c.url && (!p || c.platform === p)).sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
+    (topic()?.channels ?? []).filter((c) => c.state === "live" && c.url && !c.hidden && (!p || c.platform === p)).sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
   const openUrl = (url: string) => void invoke("open_url", { url }).catch(() => window.open(url, "_blank"));
+  // Simgeye tıklayınca o platformdaki canlı kanalların listesi açılır / kapanır (listeden kanal sayfası açılır)
   const openChannel = (p?: string) => {
     if (!barClickable()) return;
-    const c = liveOf(p)[0];
-    if (c) openUrl(c.url);
+    const key = p ?? "";
+    clearTimeout(hideTimer);
+    setPinned(pinned() === key ? null : liveOf(p).length ? key : null);
+    setHoverP(pinned());
   };
   // Simgenin üstüne gelince o platformdaki canlı kanallar listelenir (Σ: hepsi); listeden tıklanan kanal açılır.
   // "" = Σ (tüm platformlar), null = liste kapalı
   const [hoverP, setHoverP] = createSignal<string | null>(null);
+  // Tıklamayla açılan liste: imleç çıkınca kapanmaz (tekrar tıklayınca / kanal seçilince kapanır)
+  const [pinned, setPinned] = createSignal<string | null>(null);
   let popEl: HTMLDivElement | undefined;
   let hideTimer = 0;
   const showList = (p: string) => {
-    if (!barClickable()) return;
+    if (!barClickable() || pinned() != null) return;
     clearTimeout(hideTimer);
     setHoverP(liveOf(p || undefined).length ? p : null);
   };
   // İmleç bölgeden çıkınca pencere yeniden tıklama geçirir olur ve fare olayı gelmeyebilir: liste kısa süre sonra kendiliğinden kapanır
   const hideSoon = (ms = 350) => {
     clearTimeout(hideTimer);
+    if (pinned() != null) return;
     hideTimer = window.setTimeout(() => setHoverP(null), ms);
   };
   onCleanup(() => clearTimeout(hideTimer));
   createEffect(() => {
-    if (!barClickable()) setHoverP(null);
+    if (!barClickable()) {
+      setHoverP(null);
+      setPinned(null);
+    }
   });
   useClickRegion(() => popEl, () => barClickable() && hoverP() != null);
   const sample = simOn;
@@ -311,6 +322,7 @@ export default function LiveChat(props: OverlayProps) {
                   <button
                     class="lc-bar-pop-row"
                     onClick={() => {
+                      setPinned(null);
                       setHoverP(null);
                       openUrl(c.url);
                     }}

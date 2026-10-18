@@ -15,6 +15,7 @@ mod engine;
 mod entitlement;
 mod events;
 mod extras;
+mod flaircache;
 mod glucose;
 mod heartrate;
 mod history;
@@ -868,13 +869,17 @@ fn director_status(state: State<'_, Arc<Shared>>) -> director::Status {
 /// Otomatik Rejisör: hemen sonraki çekime geç
 #[tauri::command]
 fn director_next(state: State<'_, Arc<Shared>>) {
-    state.director_next.store(true, std::sync::atomic::Ordering::Relaxed);
+    state
+        .director_next
+        .store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Otomatik Rejisör: grid turunu baştan başlat (araçlar 1. sıradan itibaren sırayla)
 #[tauri::command]
 fn director_grid_restart(state: State<'_, Arc<Shared>>) {
-    state.director_grid.store(true, std::sync::atomic::Ordering::Relaxed);
+    state
+        .director_grid
+        .store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// Tekrar izlerken sürücü adına tıklandı: canlı yayına dön ve kamerayı o araca çevir
@@ -1156,7 +1161,6 @@ fn crew_pit_command(
     }
     broadcast::crew_apply(&kind, &args)
 }
-
 
 // ---- Ek pencereler: Pitwall ve Live Timing ----
 

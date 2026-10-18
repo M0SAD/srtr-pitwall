@@ -63,7 +63,7 @@ export default defineOverlay({
     { key: "hideGaugeStopped", label: "Araç dururken göstergeyi gizle", type: "boolean", default: true, hint: "Araç hareketsizken (pitte, gridde, kazadan sonra) hız / vites / fren göstergesi görünmez, yalnızca bant kalır." },
     { key: "maxSpeed", label: "Göstergenin en yüksek hızı", type: "number", default: 300, min: 100, max: 400, step: 10, unit: "km/h", showIf: { key: "gauge", is: ["all", "me"] } },
     { key: "showTeam", label: "Takım / araç satırı", type: "boolean", default: true },
-    { key: "showFlag", label: "Ülke bayrağı", type: "boolean", default: true },
+    { key: "showFlag", label: "Ülke bayrağı", type: "boolean", default: false, hint: "Sürücünün iRacing profilindeki ülke. iRacing ülke bilgisini göndermiyorsa (bazı lig / tekrar oturumları) bayrak çıkmaz." },
     { key: "classPos", label: "Sınıf sırası (çok sınıflı yarışta)", type: "boolean", default: false },
     { key: "nameText", label: "Kendi adım (boş: simdeki ad)", type: "text", default: "", placeholder: "AD SOYAD", group: "İçerik" },
     { key: "teamText", label: "Kendi takımım (boş: simdeki takım)", type: "text", default: "", placeholder: "TAKIM", group: "İçerik" },

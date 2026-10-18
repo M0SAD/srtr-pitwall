@@ -442,9 +442,10 @@ export function useFinishReady(o: () => Record<string, unknown>, rows: () => Row
     if (st >= 6) return void setReadyAt(Date.now());
     if (!race()) return void setReadyAt(Date.now());
     if (o().waitAll === true) {
-      // Herkes bitirdi: pistte bitirmemiş (pitte / garajda olmayan) araç kalmadı; ya da 2 dk kimse bitirmedi
+      // Herkes bitirdi: pistte bitirmemiş (pitte / garajda olmayan) araç kalmadı; ya da 10 dk kimse bitirmedi (uzun pistlerde
+      // turlar 8-9 dk sürebiliyor; 2 dk'da kule erken kalkıyordu)
       const left = l.filter((r) => !done.has(r.idx) && !r.onPit && r.pitState !== "GAR" && r.pitState !== "PIT");
-      if (!left.length || Date.now() - lastDone > 120_000) setReadyAt(Date.now());
+      if (!left.length || Date.now() - lastDone > 600_000) setReadyAt(Date.now());
       return;
     }
     // Sıralama / antrenman: damalı bayrak oturumun sonu; bitiren sayısı beklenmez

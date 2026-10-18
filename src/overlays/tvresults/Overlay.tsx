@@ -1,4 +1,5 @@
 import { For, Index, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { Flag } from "@/sdk/Flag";
 import type { OverlayProps } from "@/sdk/overlay";
 import { previewFrozen } from "@/sdk/overlay";
 import { lapTime } from "@/sdk/format";
@@ -111,6 +112,7 @@ export default function TvResults(props: OverlayProps) {
       o().showLogos !== false ? "38px" : "",
       o().showTeam !== false ? "minmax(0, 1.45fr)" : "",
       `minmax(0, ${nDrivers()}fr)`,
+      o().showFlag === true ? "34px" : "",
       "40px",
       o().showBest ? "86px" : "",
       "108px",
@@ -136,6 +138,13 @@ export default function TvResults(props: OverlayProps) {
                   <span class="tvr-drivers">
                     <For each={driversOf(p.r)}>{(d) => <span>{d}</span>}</For>
                   </span>
+                  <Show when={o().showFlag === true}>
+                    <span class="tvr-flag">
+                      <Show when={p.r.flair && p.r.flair !== "NONE"}>
+                        <Flag code={p.r.flair} />
+                      </Show>
+                    </span>
+                  </Show>
                   <span class="tv-num tvr-num" style={{ background: nc().bg, color: nc().fg }}>
                     {p.r.number}
                   </span>

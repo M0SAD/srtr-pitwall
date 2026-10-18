@@ -61,6 +61,7 @@ export default defineOverlay({
       hint: "Tam ad uzunsa sürücü sütunu sayısını azaltmak adların sığmasını kolaylaştırır.",
     },
     { key: "showLogos", label: "Marka logoları", type: "boolean", default: true },
+    { key: "showFlag", label: "Ülke bayrakları", type: "boolean", default: false, hint: "Sürücünün iRacing profilindeki ülke. iRacing ülke bilgisini göndermiyorsa (bazı lig / tekrar oturumları) bayrak çıkmaz." },
     { key: "showBest", label: "En iyi tur sütunu", type: "boolean", default: false },
     { key: "accent", label: "Ana renk", type: "color", default: "#d4151d", group: "Görünüm" },
     { key: "lineColor", label: "Ayırıcı çizgi rengi", type: "color", default: "#f07a12", group: "Görünüm" },

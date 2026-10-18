@@ -139,6 +139,18 @@
   background: var(--tv-dark);
   transition: background 0.4s;
 }
+.tvt.flags .tvt-row {
+  grid-template-columns: 26px 24px var(--tvt-name, 100px) 22px 28px 54px;
+}
+.tvt-flag {
+  justify-content: center;
+}
+.tvt-flag img,
+.tvt-flag .ov-flag {
+  height: 12px;
+  width: auto;
+  border-radius: 0;
+}
 .tvt-row > * {
   display: flex;
   align-items: center;
