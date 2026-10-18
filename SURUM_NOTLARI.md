@@ -3,6 +3,17 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-388
+
+- TV Sürücü Bandı hizası (kesin): kart sabit yükseklikte (gösterge + bant), bant hep en altta. Overlay çerçevesi içeriğe göre ayarlandığı için göstergesiz bantlar (ve INCIDENT etiketi) çerçeveyi yukarı kaydırıyordu; artık içerik yüksekliği hep aynı.
+
+- Aynı anda iki yerde kaza (ya da bir kaza gösterilirken başka bir kaza): öndeki önce gösterilir, diğeri sıraya alınır ve ilk kaza en az 10 sn gösterildikten sonra o da gösterilir (tekrarda onun da öncesine sarılır). Sırada en çok 4 kaza, 1 dk'dan eskisi atlanır.
+
+## 181026-387
+
+- TV Sürücü Bandı hizası: hız / vites göstergesinin yeri her durumda (gösterge kapalıyken de) ayrılır; bant hep aynı yükseklikte.
+- Pitteki / garajda bekleyen (sırası olmayan) sürücü gösterilirken bant çıkmıyordu: TV listesi sırası olmayan araçları süzüyordu. Artık kameradaki araç her zaman bulunur; sıra yerine "PIT" yazar.
+
 ## 181026-386
 
 - Grid turu bittikten sonra kurgu yeniden sırayla gitmiyor: "en uzun süredir gösterilmeyen" kuralı grid sırasını tekrar üretiyordu; grid turu bitince gösterilme zamanları karıştırılır, TV Mixed ile karışık kurgu başlar.

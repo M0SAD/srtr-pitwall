@@ -17,7 +17,7 @@ const GEARS = ["R", "N", "1", "2", "3", "4", "5", "6", "7", "8"];
 
 export default function TvLower(props: OverlayProps) {
   const o = withDefaults(manifest, () => props.options);
-  const { rows, info, sample } = useTvStandings(() => !!props.editing);
+  const { rows, allRows, info, sample } = useTvStandings(() => !!props.editing);
   const inputs = useTopic("inputs");
   const status = useTopic("status");
   const map = useTopic("map");
@@ -56,18 +56,19 @@ export default function TvLower(props: OverlayProps) {
     const l = rows();
     // Rejisörün grid turu, kaza ve bitiş çekimi: her zaman kameradaki araç (kim olduğu görünsün)
     if (gridCam() || onboardCam() || camKind() === "incident" || finishCam()) {
-      const cam = l.find((r) => r.idx === info().camIdx);
+      // Sırası olmayan araç (pitte / garajda bekleyen) da: süzülmemiş satırlardan
+      const cam = l.find((r) => r.idx === info().camIdx) ?? allRows().find((r) => r.idx === info().camIdx);
       if (cam) return cam;
     }
     if (preGreen() && l.length) {
       // Gridde ekrandaki araç (rejisör grid turu bitip TV Mixed'e geçince de bant ekrandaki aracı yazar, kendi başına
       // ikinci kez sırayla dönmez); kamera bilgisi yoksa sürücüler sırayla
-      const cam = l.find((r) => r.idx === info().camIdx);
+      const cam = l.find((r) => r.idx === info().camIdx) ?? allRows().find((r) => r.idx === info().camIdx);
       if (cam) return cam;
       return l[gridI() % l.length];
     }
     if (o().focus !== "me") {
-      const c = l.find((r) => r.idx === info().camIdx);
+      const c = l.find((r) => r.idx === info().camIdx) ?? allRows().find((r) => r.idx === info().camIdx);
       if (c) return c;
     }
     return l.find((r) => r.isMe) ?? l[0];
@@ -253,11 +254,11 @@ export default function TvLower(props: OverlayProps) {
           <span class="tvl-inc">INCIDENT</span>
         </Show>
         {/* Gösterge yokken (araç duruyor, grid, kapalı) yeri boş tutulur: bant hep aynı hizada kalır */}
-        <Show when={gauge()} fallback={<Show when={o().gauge !== false && o().gauge !== "off"}><div class="tvl-gauge tvl-gauge-ph" /></Show>}>
+        <Show when={gauge()} fallback={<div class="tvl-gauge tvl-gauge-ph" />}>
           <Gauge r={p.r} />
         </Show>
         <div class="tvl-band">
-          <span class="tv-pos tvl-pos">{o().classPos ? p.r.classPos : p.r.pos}</span>
+          <span class="tv-pos tvl-pos">{(o().classPos ? p.r.classPos : p.r.pos) || (p.r.onPit ? "PIT" : "–")}</span>
           <TvLogo carName={p.r.carName} class="tvl-logo" />
           <span class="tvl-txt">
             <b>{upper(name(), isTr(name(), p.r.flair))}</b>

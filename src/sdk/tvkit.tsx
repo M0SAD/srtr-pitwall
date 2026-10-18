@@ -125,7 +125,9 @@ export function useTvStandings(editing: () => boolean) {
       sample: false,
     };
   };
-  return { rows, info, sample, standings: st, session: ses };
+  /** Süzülmemiş satırlar (sırası olmayan: pitte / garajda bekleyen araçlar da) */
+  const allRows = () => (sample() ? TV_SAMPLE : ((st()?.rows ?? []) as Row[]));
+  return { rows, allRows, info, sample, standings: st, session: ses };
 }
 
 // ---------------------------------------------------------------------------

@@ -163,6 +163,9 @@ pub struct Director {
     pending: Option<(usize, &'static str, f32, Instant)>,
     /// Tekrar sarılıyor: bu ana kadar kamera komutu yok, yeni kaza algılanmaz
     seek_until: Option<Instant>,
+    /// Gösterilmeyi bekleyen kazalar (araç, olayın başladığı oturum zamanı, algılandığı an): aynı anda olan ikinci
+    /// kaza ya da bir kaza çekimi sürerken olan kaza, o çekim bitince gösterilir
+    inc_queue: Vec<(usize, f64, Instant)>,
     /// Beyaz bayrak (son tur) liderin önüne çıktı: lider bir süre gösterilir
     white_seen: bool,
     /// Pit yolu: önceki karede pitte miydi, son pit çekimi
@@ -214,6 +217,7 @@ impl Default for Director {
             born: Instant::now(),
             pending: None,
             seek_until: None,
+            inc_queue: Vec::new(),
             white_seen: false,
             prev_pit: [false; MAX_CARS],
             pit_shot_at: None,
@@ -494,6 +498,9 @@ impl Director {
             let busy = !front_first && self.cur.map(|c| c.kind == "incident" && elapsed < 10.0).unwrap_or(false);
             if !on_incident && !busy {
                 pick = Some((ci, "incident", 16.0));
+            } else if busy && !on_incident {
+                // Şu anki kaza çekimi bitince gösterilir
+                Self::enqueue(&mut self.inc_queue, ci, self.inc_t, now);
             }
         } else if let Some(fi) = fastest {
             // Yeni en hızlı tur: o araç birkaç saniye (kaza çekimi sürüyorsa onu bölmez)
@@ -507,6 +514,19 @@ impl Director {
             if !busy && self.cur.map(|c| c.idx != pi).unwrap_or(true) {
                 pick = Some((pi, "pit", 10.0));
                 self.pit_shot_at = Some(now);
+            }
+        }
+        // Sırada bekleyen kaza (aynı anda olan ikinci kaza vb.): şu anki kaza çekimi en az 10 sn gösterildiyse sıradaki
+        // (1 dk'dan eski ya da artık görünmeyen araç atlanır)
+        if pick.is_none() && fin.is_none() {
+            self.inc_queue.retain(|q| now.duration_since(q.2) < Duration::from_secs(60) && crate::calc::active(f, s, q.0));
+            let cur_inc = self.cur.map(|c| c.kind == "incident").unwrap_or(false);
+            if !self.inc_queue.is_empty() && (!cur_inc || elapsed >= 10.0) {
+                let (qi, qt, _) = self.inc_queue.remove(0);
+                if self.cur.map(|c| c.idx != qi).unwrap_or(true) {
+                    self.inc_t = qt;
+                    pick = Some((qi, "incident", 14.0));
+                }
             }
         }
         // Mücadele sürüyorsa çekim biraz uzar; mücadele bittiyse en kısa süreden sonra kesilir
@@ -820,7 +840,13 @@ impl Director {
                         pi > 0 && (ph <= 0 || pi < ph)
                     });
                     if better.unwrap_or(true) {
+                        // Aynı anda başka bir kaza: o da sıraya (sonra gösterilir)
+                        if let Some(prev) = hit {
+                            Self::enqueue(&mut self.inc_queue, prev.0, prev.1, now);
+                        }
                         hit = Some((i, start));
+                    } else {
+                        Self::enqueue(&mut self.inc_queue, i, start, now);
                     }
                 }
             }
@@ -1034,6 +1060,13 @@ impl Director {
         }
         self.fastest_at = Some(now);
         Some(idx)
+    }
+
+    /// Kaza sırasına ekle (aynı araç zaten sıradaysa eklenmez; en çok 4)
+    fn enqueue(q: &mut Vec<(usize, f64, Instant)>, idx: usize, t: f64, now: Instant) {
+        if !q.iter().any(|x| x.0 == idx) && q.len() < 4 {
+            q.push((idx, t, now));
+        }
     }
 
     /// Araç hâlâ önündeki ya da arkasındaki araçla `gap` sn'den yakın mı
@@ -1379,6 +1412,38 @@ mod tests {
         let seq: Vec<String> = (0..6).map(|i| (10 + i).to_string()).collect();
         assert_ne!(nums, seq, "{nums:?}");
         assert!(out.0.iter().rev().take(6).filter(|x| x.1 == 20).count() >= 3, "çoğunlukla TV Mixed (ara sıra araç içi)");
+    }
+
+    #[test]
+    fn second_incident_shown_after() {
+        let mut s = sess(10);
+        s.track_length_km = 5.0;
+        let mut f = frame(10);
+        let mut d = Director::default();
+        let cfg = Cfg { enabled: true, ..Default::default() };
+        let mut out = Rec(vec![]);
+        f.session_time = 100.0;
+        d.step(&f, &s, &cfg, true, &mut out);
+        // 3. ve 7. araç aynı anda pist dışı
+        f.session_time = 100.2;
+        f.cars[3].surface = 0;
+        f.cars[7].surface = 0;
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.step(&f, &s, &cfg, true, &mut out);
+        f.session_time = 101.0;
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "incident");
+        assert_eq!(d.cur.unwrap().idx, 3, "öndeki önce");
+        // 10 sn sonra sıradaki kaza
+        if let Some(c) = d.cur.as_mut() {
+            c.start = Instant::now() - Duration::from_secs(11);
+        }
+        f.session_time = 112.0;
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "incident");
+        assert_eq!(d.cur.unwrap().idx, 7);
     }
 
     #[test]
