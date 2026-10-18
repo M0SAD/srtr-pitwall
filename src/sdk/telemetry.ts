@@ -147,7 +147,31 @@ function streamBase(): Promise<string> {
   return streamBaseCache;
 }
 
+/**
+ * Tarayıcıdaki overlay sayfası (OBS tarayıcı kaynağı): uygulama güncellenince sayfa kendini yeniler. OBS sayfayı
+ * açık tuttuğu sürece eski arayüz kodu çalışmaya devam ediyordu (yeni sürümün düzeltmeleri yayına yansımıyordu).
+ */
+let versionWatch = false;
+function watchAppVersion() {
+  if (versionWatch || inTauri || remoteBase || typeof window === "undefined") return;
+  versionWatch = true;
+  let first: string | null = null;
+  const check = async () => {
+    try {
+      const v = (await (await fetch(`${apiBase}/api/version`, { cache: "no-store" })).text()).trim();
+      if (!v || v.length > 40) return;
+      if (first === null) first = v;
+      else if (v !== first) location.reload();
+    } catch {
+      /* uygulama kapalı: sonra yeniden denenir */
+    }
+  };
+  void check();
+  window.setInterval(() => void check(), 20_000);
+}
+
 export async function setSubscriptions(topics: Sub[]) {
+  watchAppVersion();
   const list = normalize(topics);
   const key = list
     .map((t) => `${t.name}:${t.hz}`)

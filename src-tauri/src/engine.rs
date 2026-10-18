@@ -608,8 +608,12 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                         }
                         new_frame = src.read(&mut st.frame);
                         if new_frame {
+                            // Simin ham en iyi / son turları (sonuç listesinden tamamlamadan önce)
+                            st.tracker.note_raw(&st.frame);
                             last_data = Instant::now();
-                            if src.kind().id() == "iracing" {
+                            // Yarışın yeşil anı biliniyorsa sonuç listesinden tamamlanmaz: yarış başında sıralama turlarını
+                            // taşıyabiliyor; yarış turları son tur sürelerinden hesaplanır (tracker)
+                            if src.kind().id() == "iracing" && st.tracker.green_time.is_none() {
                                 crate::session::fill_lap_times(&mut st.frame, &st.raw);
                             }
                         }
@@ -693,7 +697,6 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             if st.league_active {
                 crate::league::reposition(&mut st.frame, &st.session);
             }
-            st.tracker.note_raw(&st.frame);
             st.tracker.apply_race_best(&mut st.frame);
             st.tracker.update(&st.frame, &st.session);
             st.tracker.apply_race_best(&mut st.frame);

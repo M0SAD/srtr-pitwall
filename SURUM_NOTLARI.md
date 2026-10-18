@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-390
+
+- Lider tablosu, yarışta en iyi tur: sıralama turlarındaki derece görünüyordu (1 tur atan sürücünün en iyisi attığı turdan farklıydı). Yarışta oturumun sonuç listesi artık kullanılmaz (yarış başında sıralama derecelerini taşıyabiliyor); en iyi tur yalnızca yarış turlarından (son tur süreleri) ve yeşilden sonra değişen sim değerinden gelir. Simin ham değerleri sonuç listesiyle karıştırılmadan alınır.
+
+## 181026-389
+
+- OBS tarayıcı kaynağındaki overlay sayfası uygulama güncellenince kendini yeniler (20 sn'de bir sürüm sorulur). OBS sayfayı açık tuttuğu için güncellemeden sonra yayında eski arayüz (ör. eski TV Sürücü Bandı hizası) çalışmaya devam ediyordu.
+
 ## 181026-388
 
 - TV Sürücü Bandı hizası (kesin): kart sabit yükseklikte (gösterge + bant), bant hep en altta. Overlay çerçevesi içeriğe göre ayarlandığı için göstergesiz bantlar (ve INCIDENT etiketi) çerçeveyi yukarı kaydırıyordu; artık içerik yüksekliği hep aynı.

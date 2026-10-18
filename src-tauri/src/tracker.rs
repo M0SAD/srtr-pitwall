@@ -435,8 +435,8 @@ impl Tracker {
 
     fn apply_bests(&self, f: &mut Frame) {
         if self.green_time.is_some() {
-            // Yarış: yeşilden sonraki turlar. Üç kaynağın en iyisi: son tur süresinden hesaplanan, oturumun resmi sonucu,
-            // yeşilden sonra değişmiş sim değeri (biri eksik kalsa da derece görünür)
+            // Yarış: yeşilden sonraki turlar. İki kaynağın en iyisi: son tur süresinden hesaplanan ve yeşilden sonra değişmiş
+            // sim değeri (biri eksik kalsa da derece görünür)
             // Yeşilden beri geçen süreden uzun tur olamaz (önceki oturumdan kalan değer): sayılmaz
             let since_green = self.green_time.map(|g| (self.last_t - g).max(0.0) as f32 + 1.0).unwrap_or(f32::MAX);
             for i in 0..MAX_CARS {
@@ -446,7 +446,8 @@ impl Tracker {
                         b = x;
                     }
                 };
-                take(self.ses_best.get(i).copied().unwrap_or(-1.0));
+                // Oturumun resmi sonuç listesi yarışta kullanılmaz: yarış başında sıralama turlarını taşıyabiliyor (1 tur atan
+                // sürücünün en iyi turu, attığı turdan farklı / daha hızlı görünüyordu)
                 let raw = self.raw_best.get(i).copied().unwrap_or(-1.0);
                 let g = self.green_raw_best.get(i).copied().unwrap_or(-1.0);
                 if raw > 0.0 && (raw - g).abs() > 1e-4 {

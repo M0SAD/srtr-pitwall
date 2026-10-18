@@ -242,6 +242,16 @@ pub fn start(
                     continue;
                 }
                 // Veri akışı için açık ek portlar (bkz. start_stream_ports): sayfa akışını bunlardan birine bağlar
+                // Uygulama sürümü: OBS'teki overlay sayfası güncellemeyi fark edip kendini yeniler
+                if path == "/api/version" {
+                    let v = app.package_info().version.to_string();
+                    let resp = Response::from_string(v)
+                        .with_header(header("Content-Type", "text/plain; charset=utf-8"))
+                        .with_header(header("Cache-Control", "no-store"))
+                        .with_header(header("Access-Control-Allow-Origin", "*"));
+                    let _ = req.respond(resp);
+                    continue;
+                }
                 if path == "/api/ports" {
                     let v = serde_json::to_string(&*ports2.lock()).unwrap_or_else(|_| "[]".into());
                     let resp = Response::from_string(v)
