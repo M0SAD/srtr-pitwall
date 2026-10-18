@@ -7963,5 +7963,5 @@
   "TEPE": "PICCO",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La traiettoria è disponibile solo per i giri importati da un file .ibt (i dati live non hanno la posizione).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Mostra subito le auto una alla volta dalla P1 (ognuna per il tempo «Per auto durante il giro della griglia», con camera frontale); poi torna alla regia normale.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Guardando un replay, passando a un incidente il replay torna indietro a 5 s prima, così l’incidente si vede dall’inizio. In diretta non si può tornare indietro; la camera cambia quando accade."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Guardando un replay, passando a un incidente il replay torna indietro a 6 s prima, così l’incidente si vede dall’inizio. In diretta non si può tornare indietro; la camera cambia quando accade."
 }

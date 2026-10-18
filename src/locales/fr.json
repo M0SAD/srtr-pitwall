@@ -7963,5 +7963,5 @@
   "TEPE": "PIC",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "La trajectoire n'est disponible que pour les tours importés depuis un fichier .ibt (les données en direct n'ont pas de position).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Montre tout de suite les voitures une à une à partir de P1 (chacune pendant « Par voiture pendant le tour de grille », caméra avant) ; puis reprend la réalisation normale.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Pendant un replay, en passant à un incident, le replay recule de 5 s avant l’événement : l’accident est vu depuis le début. En direct impossible de reculer ; la caméra change au moment de l’incident."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Pendant un replay, en passant à un incident, le replay recule de 6 s avant l’événement : l’accident est vu depuis le début. En direct impossible de reculer ; la caméra change au moment de l’incident."
 }

@@ -7963,5 +7963,5 @@
   "TEPE": "TOPP",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Körlinjen finns bara för varv som importerats från en .ibt-fil (livedata saknar position).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Visar bilarna en i taget direkt från P1 (var och en under ”Per bil under startfältsvisningen”, med frontkamera); återgår sedan till normal bildregi.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "När du tittar på en repris spolas reprisen tillbaka till 5 s före incidenten, så att kraschen syns från början. Live kan inte spolas tillbaka; kameran byter när det händer."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "När du tittar på en repris spolas reprisen tillbaka till 6 s före incidenten, så att kraschen syns från början. Live kan inte spolas tillbaka; kameran byter när det händer."
 }

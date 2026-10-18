@@ -7963,5 +7963,5 @@
   "TEPE": "PEAK",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "The racing line is only available for laps imported from an .ibt file (live data has no position).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Shows the cars one by one right away, starting from P1 (each for the \"Per car during the grid walk\" time, with a front camera); returns to normal directing once everyone has been shown.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "While watching a replay, cutting to an incident rewinds the replay to 5 s before it, so the crash is seen from the start. Live sessions can’t be rewound; the camera cuts when it happens."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "While watching a replay, cutting to an incident rewinds the replay to 6 s before it, so the crash is seen from the start. Live sessions can’t be rewound; the camera cuts when it happens."
 }

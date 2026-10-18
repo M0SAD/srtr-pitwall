@@ -7963,5 +7963,5 @@
   "TEPE": "SPITZE",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Die Ideallinie gibt es nur für Runden, die aus einer .ibt-Datei importiert wurden (Live-Daten enthalten keine Position).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Zeigt die Autos sofort nacheinander ab P1 (jedes für die Zeit „Pro Auto bei der Startaufstellung“, mit Frontkamera); danach normale Regie.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Beim Ansehen einer Wiederholung wird beim Schnitt zu einem Vorfall 5 s vor das Ereignis zurückgespult, sodass der Unfall von Anfang an zu sehen ist. Live kann nicht zurückgespult werden; die Kamera schneidet, wenn es passiert."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Beim Ansehen einer Wiederholung wird beim Schnitt zu einem Vorfall 6 s vor das Ereignis zurückgespult, sodass der Unfall von Anfang an zu sehen ist. Live kann nicht zurückgespult werden; die Kamera schneidet, wenn es passiert."
 }

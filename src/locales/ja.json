@@ -7963,5 +7963,5 @@
   "TEPE": "ピーク",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "走行ラインは .ibt ファイルから取り込んだラップでのみ利用できます（ライブデータには位置情報がありません）。",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "P1 から順に車をすぐに表示（各車「グリッド紹介の1台あたり」の時間、前方カメラ）。全員を表示したら通常の演出に戻ります。",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "リプレイ視聴中はアクシデントに切り替える際、その 5 秒前まで巻き戻して最初から映します。ライブでは巻き戻せないため、発生時に切り替わります。"
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "リプレイ視聴中はアクシデントに切り替える際、その 6 秒前まで巻き戻して最初から映します。ライブでは巻き戻せないため、発生時に切り替わります。"
 }

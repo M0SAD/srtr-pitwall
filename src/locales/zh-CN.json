@@ -7963,5 +7963,5 @@
   "TEPE": "峰值",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "行车线仅适用于从 .ibt 文件导入的圈（实时数据没有位置信息）。",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "立即从 P1 开始逐一展示车辆（每辆按“巡览时每辆车”时长，使用前方镜头）；全部展示后恢复正常导播。",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "观看回放时，切到事故会把回放倒回到事故前 5 秒，从头看到事故。直播中无法倒回；镜头在事故发生时切换。"
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "观看回放时，切到事故会把回放倒回到事故前 6 秒，从头看到事故。直播中无法倒回；镜头在事故发生时切换。"
 }

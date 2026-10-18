@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-385
+
+- Tekrarda kaza öncesi görünmüyordu: tekrarı geri sarma komutu, hemen ardından gelen kamera / hız komutlarıyla yarıda kalabiliyordu. Artık doğrulamalı sarma kullanılır (zaman araması tutmazsa kare numarasıyla), olaydan 6 sn öncesine gidilir; sarma bitene kadar rejisör başka komut göndermez, sonra kamera kazadaki araçta 1x oynar.
+
 ## 171026-384
 
 - Ses odası aygıtları (mikrofon, hoparlör / kulaklık, yayın çıkışı) hatırlanıyor: seçim artık bu bilgisayarda yerel olarak saklanır (önceden bulutla eşitlenen ayarlardaydı; aygıt kimlikleri bilgisayara özel). Ayarlar sayfası açılınca kayıtlı seçim görünür (önceden aygıt listesi geç yüklendiği için hep "Varsayılan" / "Kapalı" görünüyordu). Aygıtın kimliği değişirse aynı adlı aygıt bulunur; seçili mikrofon takılı değilse varsayılanla devam edilir.

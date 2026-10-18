@@ -7963,5 +7963,5 @@
   "TEPE": "ПИК",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "Траектория доступна только для кругов, импортированных из файла .ibt (в живых данных нет позиции).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Сразу показывает машины по очереди с P1 (каждую в течение «На машину при обзоре решётки», передней камерой); затем обычная режиссура.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "При просмотре повтора, переключаясь на инцидент, повтор перематывается на 5 с раньше, чтобы аварию было видно с начала. В прямом эфире перемотать нельзя; камера переключается в момент события."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "При просмотре повтора, переключаясь на инцидент, повтор перематывается на 6 с раньше, чтобы аварию было видно с начала. В прямом эфире перемотать нельзя; камера переключается в момент события."
 }

@@ -161,6 +161,8 @@ pub struct Director {
     born: Instant,
     /// Bekleyen çekim (araç, tür, süre, ne zamandan beri)
     pending: Option<(usize, &'static str, f32, Instant)>,
+    /// Tekrar sarılıyor: bu ana kadar kamera komutu yok, yeni kaza algılanmaz
+    seek_until: Option<Instant>,
     /// Beyaz bayrak (son tur) liderin önüne çıktı: lider bir süre gösterilir
     white_seen: bool,
     /// Pit yolu: önceki karede pitte miydi, son pit çekimi
@@ -211,6 +213,7 @@ impl Default for Director {
             fastest_at: None,
             born: Instant::now(),
             pending: None,
+            seek_until: None,
             white_seen: false,
             prev_pit: [false; MAX_CARS],
             pit_shot_at: None,
@@ -245,8 +248,8 @@ impl Default for Director {
 /// Komut gönderici (testte sahte)
 pub trait CamOut {
     fn switch(&mut self, number: &str, group: i32);
-    /// Tekrarı oturumdaki zamana sar (yalnız tekrar izlerken)
-    fn rewind(&mut self, _session_num: i32, _time_s: f64) {}
+    /// Tekrarı oturumdaki zamana sar ve kamerayı araçta tut (yalnız tekrar izlerken)
+    fn rewind(&mut self, _session_num: i32, _time_s: f64, _number: &str, _idx: i32) {}
 }
 
 pub struct IracingOut;
@@ -254,8 +257,13 @@ impl CamOut for IracingOut {
     fn switch(&mut self, number: &str, group: i32) {
         let _ = crate::broadcast::camera_to_car_group(number, group);
     }
-    fn rewind(&mut self, session_num: i32, time_s: f64) {
-        let _ = crate::broadcast::replay_to(session_num, time_s);
+    fn rewind(&mut self, session_num: i32, time_s: f64, number: &str, idx: i32) {
+        // Doğrulamalı sarma (zaman araması tutmazsa kare numarasıyla), bitince kamera araca ve 1x oynatma. Bekleme
+        // içerdiği için ayrı iş parçacığında; sarma sürerken kamera komutu gönderilmez (sarmayı yarıda bırakabiliyor)
+        let number = number.to_string();
+        std::thread::spawn(move || {
+            let _ = crate::broadcast::replay_seek(session_num, time_s, &number, Some(idx), 0.0);
+        });
     }
 }
 
@@ -347,6 +355,20 @@ impl Director {
                 return;
             }
             self.manual_until = None;
+        }
+
+        // Tekrar sarılıyor: bitene kadar kamera komutu gönderme (sarmayı yarıda bırakır)
+        if let Some(u) = self.seek_until {
+            if now < u {
+                self.fill_status(&mut st, f, s, now);
+                self.status = st;
+                return;
+            }
+            self.seek_until = None;
+            // Sarmadan sonraki zaman sıçraması kaza sayılmasın: çekim yeniden başlar
+            if let Some(c) = self.cur.as_mut() {
+                c.start = now;
+            }
         }
 
         // Yarış başlamadan: gridi pole'dan başlayarak sırayla göster; yeşil bayrakta normal kurguya geç
@@ -554,9 +576,11 @@ impl Director {
                 };
                 out.switch(&number, group.0);
                 self.cam_at = now;
-                // Tekrar izlerken: olaydan 5 sn öncesine sar, kaza baştan görünsün (canlıda geri sarılamaz)
+                // Tekrar izlerken: olaydan 6 sn öncesine sar, kaza ve öncesi görünsün (canlıda geri sarılamaz). Sarma
+                // tamamlanana kadar (birkaç sn) kurgu yeni kamera komutu göndermez
                 if kind == "incident" && cfg.incident_rewind && crate::calc::replay_watch(f) && self.inc_t > 0.0 {
-                    out.rewind(f.replay_session_num, (self.inc_t - 5.0).max(0.0));
+                    out.rewind(f.replay_session_num, (self.inc_t - 6.0).max(0.0), &number, idx as i32);
+                    self.seek_until = Some(now + Duration::from_secs(5));
                 }
                 self.group = group;
                 self.sent = Some((idx as i32, now));

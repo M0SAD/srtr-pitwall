@@ -7963,5 +7963,5 @@
   "TEPE": "PIEK",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "De racelijn is alleen beschikbaar voor ronden die uit een .ibt-bestand zijn geïmporteerd (livedata bevat geen positie).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Toont de auto’s meteen één voor één vanaf P1 (elk zo lang als \"Per auto tijdens de gridrondgang\", met frontcamera); daarna weer normale regie.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Bij een herhaling wordt bij een incident 5 s vóór het moment teruggespoeld, zodat de crash vanaf het begin te zien is. Live kan niet worden teruggespoeld; de camera schakelt op het moment zelf."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Bij een herhaling wordt bij een incident 6 s vóór het moment teruggespoeld, zodat de crash vanaf het begin te zien is. Live kan niet worden teruggespoeld; de camera schakelt op het moment zelf."
 }

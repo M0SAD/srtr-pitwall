@@ -7963,5 +7963,5 @@
   "TEPE": "PICO",
   "Sürüş çizgisi yalnızca .ibt dosyasından içe aktarılan turlarda var (canlı veride konum yok).": "O traçado só está disponível para voltas importadas de um arquivo .ibt (dados ao vivo não têm posição).",
   "Araçları hemen 1. sıradan başlayarak sırayla gösterir (her biri \"Grid turunda araç başına\" süresi kadar, önden kamerayla); herkes gösterilince normal kurguya döner.": "Mostra os carros um a um agora, a partir do P1 (cada um pelo tempo de \"Por carro no passeio pelo grid\", com câmera frontal); depois volta à direção normal.",
-  "Tekrar izlerken kazaya kesince tekrar olaydan 5 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Ao assistir a um replay, ao cortar para um incidente o replay volta 5 s antes, para ver o acidente desde o início. Ao vivo não é possível voltar; a câmera muda quando acontece."
+  "Tekrar izlerken kazaya kesince tekrar olaydan 6 sn öncesine sarılır: kaza baştan görünür. Canlıda geri sarılamaz; kamera olay anında geçer.": "Ao assistir a um replay, ao cortar para um incidente o replay volta 6 s antes, para ver o acidente desde o início. Ao vivo não é possível voltar; a câmera muda quando acontece."
 }
