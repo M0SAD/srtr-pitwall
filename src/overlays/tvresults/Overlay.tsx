@@ -1,7 +1,8 @@
 import { For, Index, Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 import { Flag } from "@/sdk/Flag";
 import type { OverlayProps } from "@/sdk/overlay";
-import { previewFrozen } from "@/sdk/overlay";
+import { onScreen, previewFrozen } from "@/sdk/overlay";
+import { demoShow } from "@/sdk/telemetry";
 import { lapTime } from "@/sdk/format";
 import { TvLogo, isTr, tvName, numberColors, resultGap, sessionLabel, upper, isRaceSession, podiumDoneAt, podiumMounted, useFinishReady, useTvStandings, useTvVisible, withDefaults } from "@/sdk/tvkit";
 import type { Row } from "@/sdk/types";
@@ -57,7 +58,13 @@ export default function TvResults(props: OverlayProps) {
   });
   const per = () => Math.max(5, Math.min(30, Number(o().perPage) || 20));
   const pages = createMemo(() => Math.max(1, Math.ceil(list().length / per())));
-  const pageMs = createMemo(() => Math.max(3, Number(o().pageSecs) || 10) * 1000);
+  const pageMs = createMemo(() => Math.max(3, Number(o().pageTime) || 20) * 1000);
+  // Yarış sonu (Damalı bayraktan sonra kipi, gerçek yayında): sayfalar bir kez sırayla, son sayfadan sonra kapanır
+  // (eskiden son sayfadan sonra 1. sayfa bir an görünüp kayboluyordu)
+  // maxSecs: eski kayıtlardaki "ekranda kalma" süresi yok sayılır; tablo son sayfadan sonra kendisi kapanır
+  const opts = (): Record<string, unknown> => ({ ...(props.options?.show === undefined && o().when === "always" ? { ...o(), show: "always" } : o()), maxSecs: 0 });
+  const [closed, setClosed] = createSignal(false);
+  const oneShot = () => String(opts().show || "auto") === "auto" && !props.editing && !sample() && onScreen() && !demoShow();
   // Sayfa çevirme: zamanlayıcı yalnızca sayfa sayısı ya da süre değişince yeniden kurulur
   // (eskiden her veri güncellemesinde baştan kuruluyor, sayfa hiç dönmüyordu)
   const [page, setPage] = createSignal(0);
@@ -69,9 +76,12 @@ export default function TvResults(props: OverlayProps) {
       if (!air) return;
       // Yeni açıldı: 1. sayfa (kapanırken sayfa değişmesin diye sıfırlama açılışta)
       if (!prev?.[2] || page() >= n) setPage(0);
-      if (n <= 1) return;
+      const once = oneShot();
+      if (n <= 1 && !once) return;
       const timer = window.setInterval(() => {
-        if (!previewFrozen()) setPage((p) => (p + 1) % pages());
+        if (previewFrozen()) return;
+        if (once && page() + 1 >= pages()) setClosed(true);
+        else setPage((p) => (p + 1) % pages());
       }, ms);
       onCleanup(() => clearInterval(timer));
     }),
@@ -83,7 +93,6 @@ export default function TvResults(props: OverlayProps) {
 
   // Görünürlük: damalı bayraktan sonra (session.state 5/6) ya da her zaman
   // Eski ayar: when = "always" → show = "always"
-  const opts = () => (props.options?.show === undefined && o().when === "always" ? { ...o(), show: "always" } : o());
   const finishReady = useFinishReady(o, rows, () => session()?.state ?? 0, () => isRaceSession(info().session));
   // TV Yarış Sonucu (podyum) bu pencerede açıksa önce o gösterilir; sonuç tablosu podyum kapanınca açılır
   const afterPodium = () => o().afterPodium !== false && podiumMounted() > 0 && isRaceSession(info().session);
@@ -98,7 +107,9 @@ export default function TvResults(props: OverlayProps) {
     once: true,
   });
 
-  const showing = createMemo(() => visible() && list().length > 0);
+  // Yeni yarış / oturum (olay bitti): kapanma bayrağı sıfırlanır
+  createEffect(on(visible, (v) => !v && setClosed(false)));
+  const showing = createMemo(() => visible() && list().length > 0 && !(closed() && oneShot()));
   createEffect(on(showing, (v) => setOnAir(v)));
 
   const title = () => upper(String(o().title || "").trim() || String(o().trackText || "").trim() || info().track || "RESULTS");

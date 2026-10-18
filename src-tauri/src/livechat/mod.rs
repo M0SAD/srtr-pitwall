@@ -622,6 +622,10 @@ impl Inner {
             if !self.multi && i > 0 && !(self.fav && ch.cfg.mine) {
                 return false;
             }
+            // Gizlenen (göz kapalı) kanal yayın sayılmaz: mesajları ve izleyicisi gösterilmez, overlay de açılmasın
+            if ch.cfg.hidden {
+                return false;
+            }
             match self.rt.get(&ch.link.key) {
                 Some(r) if r.live == Some(true) => true,
                 // Sohbet bağlı ve mesaj geliyor: yayın sorgusu "kapalı" dese de (ya da hiç öğrenilemese de) canlı

@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-396
+
+- Otomatik Rejisör: yeşil bayraktan hemen önce kamera lidere geçer (lider start çizgisine 15 sn'den az kala ya da duran startta gridde ışıkları beklerken), start yapıldıktan sonra 8 sn daha liderde kalır. Grid turu yarıda kalsa da lider gösterilir. Rejisör ayarlarında "Startta lider" ile kapatılabilir.
+- TV Sonuç Tablosu: yarış sonunda sayfalar bir kez sırayla gösterilir, son sayfadan sonra başa dönmeden kapanır (2. sayfadan sonra 1. sayfa bir an görünüp kayboluyordu). Sayfa başına süre varsayılanı 20 sn ("Sayfa başına süre"); eski "Yarış sonunda ekranda kalma" ayarı kaldırıldı, tablonun ekranda kalma süresi sayfa sayısı × sayfa süresi.
+- Canlı Sohbet: izleyici çubuğu yalnızca yayını canlı olan (gizlenmemiş) kanal varken görünür. Yayın yokken ya da canlı kanal gizlenmişken masaüstünde boş izleyici çubuğu kalmıyor; gizlenen kanalın canlı yayını artık "yayın var" sayılmıyor.
+
 ## 181026-395
 
 - Tekrarda (replay) ülke bayrakları: iRacing tekrar dosyasında sürücülerin ülkesini göndermiyor (günlükte tekrar oturumlarında hiç ülke alanı yok). Artık canlı oturumlarda görülen her sürücünün ülkesi üye numarasıyla bilgisayara kaydedilir (flags-cache.json) ve tekrarda bu sürücülerin bayrakları Lider tablosu ve TV overlay'lerinde görünür. Program açıkken canlı olarak hiç karşılaşılmamış sürücülerin bayrağı tekrarda çıkmaz. Günlüğe "bayrak: N sürücü, X önbellekten, Y bilinmiyor" satırı yazılır.

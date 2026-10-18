@@ -28,6 +28,7 @@ interface DirStatus {
 
 const KIND: Record<string, string> = {
   grid: "Grid turu",
+  start: "Start (lider)",
   leader: "Lider",
   front: "Ön sıralar",
   battle: "Mücadele",
@@ -144,6 +145,13 @@ export function DirectorPanel() {
       <div class="f2">
         <div class="f2-cap">{t("Grid turunda araç başına")}</div>
         <Slider value={cfg().gridShot} min={2} max={15} unit="sn" onInput={(v) => set("gridShot", v)} />
+      </div>
+      <div class="row">
+        <div>
+          <b>{t("Startta lider")}</b>
+          <small>{t("Yeşil bayraktan hemen önce (lider start çizgisine yaklaşırken ya da duran startta ışıklar beklenirken) kamera lidere geçer, start yapıldıktan sonra 8 sn daha onda kalır.")}</small>
+        </div>
+        <Switch checked={cfg().startFocus} onChange={(v) => set("startFocus", v)} />
       </div>
       <div class="row">
         <div>

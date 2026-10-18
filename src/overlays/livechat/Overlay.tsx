@@ -207,8 +207,9 @@ export default function LiveChat(props: OverlayProps) {
   const barPlatforms = createMemo(() => {
     const chans = real() ? (topic()?.channels ?? []) : [];
     const set = new Set<string>();
-    // Gizlenen (göz kapalı) kanal çubukta yer almaz
-    for (const c of chans) if (c.platform && !c.hidden && (c.state !== "locked" || c.mine)) set.add(c.platform);
+    // Yalnızca yayını canlı olan kanallar; gizlenen (göz kapalı) kanal çubukta yer almaz. Canlı kanal yoksa çubuk
+    // görünmez ("Yalnızca yayın canlıyken göster" kapalı olsa da: yayın yokken masaüstünde boş çubuk kalıyordu)
+    for (const c of chans) if (c.platform && !c.hidden && (c.state !== "locked" || c.mine) && (c.state === "live" || c.viewers != null)) set.add(c.platform);
     return (["youtube", "twitch", "kick"] as const).filter((p) => set.has(p));
   });
   // Gösterilecek (gizlenmemiş) kanal yoksa çubuk da gizlenir

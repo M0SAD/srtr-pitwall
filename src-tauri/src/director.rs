@@ -34,6 +34,9 @@ pub struct Cfg {
     /// Yarış başlamadan (gridde, ısınma turunda) araçları pole'dan başlayarak sırayla göster
     pub grid_walk: bool,
     pub grid_shot: f32,
+    /// Yeşil bayraktan hemen önce (lider start çizgisine yaklaşırken / duran startta ışıklar beklenirken) kamera
+    /// lidere geçer ve start ile birkaç saniye onda kalır
+    pub start_focus: bool,
     /// Bitişte ilk N araç çizgiye yaklaşırken kamerayı onlara çevir (beyaz bayraktan itibaren)
     pub finish_focus: bool,
     /// Yeni en hızlı tur atılınca kamera o araca geçer
@@ -67,6 +70,7 @@ impl Default for Cfg {
             cams: "tvmix".into(),
             grid_walk: true,
             grid_shot: 4.0,
+            start_focus: true,
             finish_focus: true,
             fastest_focus: true,
             incident_rewind: true,
@@ -108,6 +112,7 @@ impl Cfg {
             .to_string();
         c.grid_walk = v.get("gridWalk").and_then(|x| x.as_bool()).unwrap_or(true);
         c.grid_shot = f("gridShot", c.grid_shot).clamp(2.0, 30.0);
+        c.start_focus = v.get("startFocus").and_then(|x| x.as_bool()).unwrap_or(true);
         c.finish_focus = v
             .get("finishFocus")
             .and_then(|x| x.as_bool())
@@ -218,6 +223,8 @@ pub struct Director {
     grid_seen: [bool; MAX_CARS],
     grid_sess: i32,
     prev_pre: bool,
+    /// Start çekimi yeşil bayrakta sürüyordu: lider bu andan itibaren birkaç saniye daha gösterilir
+    start_hold: Option<(usize, Instant)>,
     pub status: Status,
 }
 
@@ -262,6 +269,7 @@ impl Default for Director {
             grid_seen: [false; MAX_CARS],
             grid_sess: -1,
             prev_pre: false,
+            start_hold: None,
             fin_snap: None,
             fin_done: [false; MAX_CARS],
             fin_hold: None,
@@ -457,6 +465,10 @@ impl Director {
         if self.prev_pre && !pre && race {
             self.grid_force = false;
             self.grid_done = true;
+            // Start çekimi sürüyordu: lider start anında da ekranda kalsın
+            if let Some(c) = self.cur.filter(|c| c.kind == "start") {
+                self.start_hold = Some((c.idx, now));
+            }
         }
         self.prev_pre = pre;
         // Grid turu oturum başına bir kez: durum bir an değişse (grid → ısınma turu, tekrar kafası) baştan başlamaz;
@@ -465,6 +477,55 @@ impl Director {
             self.grid_sess = f.session_num;
             self.grid_done = false;
             self.grid_seen = [false; MAX_CARS];
+        }
+        // Yeşil bayraktan hemen önce: lider (grid turu yarıda kalsa da). Elle başlatılan grid turu bunu bölmez.
+        let start_l = if cfg.start_focus && pre && !self.grid_force {
+            Self::start_target(f, s)
+        } else {
+            None
+        };
+        if let Some(l) = start_l {
+            if !self.cur.map(|c| c.kind == "start" && c.idx == l).unwrap_or(false) {
+                if let Some(number) = s
+                    .driver(l)
+                    .map(|d| d.car_number.clone())
+                    .filter(|n| !n.is_empty())
+                {
+                    let g = self.pick_group(s, cfg, "leader");
+                    out.switch(&number, g.0);
+                    self.group = g;
+                    self.sent = Some((l as i32, now));
+                    self.cur = Some(Shot {
+                        idx: l,
+                        kind: "start",
+                        start: now,
+                        len: 999.0,
+                    });
+                    self.last_shown[l] = Some(now);
+                    self.was_grid = false;
+                }
+            }
+            self.force_next = false;
+            self.fill_status(&mut st, f, s, now);
+            self.status = st;
+            return;
+        }
+        if pre && self.cur.map(|c| c.kind == "start").unwrap_or(false) {
+            // Lider çizgiyi yeşil çıkmadan geçti (bir pace turu daha): grid turu / normal kurgu sürer
+            self.cur = None;
+        }
+        // Start yapıldı: lider 8 sn daha (kaza ya da elle "sonraki" bunu keser)
+        if let Some((l, at)) = self.start_hold {
+            let on = self.cur.map(|c| c.kind == "start" && c.idx == l).unwrap_or(false);
+            if !pre && on && crash.is_none() && !self.force_next && now.duration_since(at) < Duration::from_secs(8) {
+                self.fill_status(&mut st, f, s, now);
+                self.status = st;
+                return;
+            }
+            self.start_hold = None;
+            if on {
+                self.cur = None;
+            }
         }
         // Grid turu: araçlar ön sıradan geriye, her biri bir kez. Gridde sonradan yerini alan (geç yüklenen) araç da
         // sırası gelince gösterilir; herkes gösterilince yeşile kadar TV Mixed.
@@ -952,6 +1013,25 @@ impl Director {
             }
             st.group = self.group.1.clone();
         }
+    }
+
+    /// Yeşil bayraktan hemen önce gösterilecek lider (pole): pace / formasyon turunda (SessionState 3) start
+    /// çizgisine 15 sn'den az kaldıysa ya da duran startta gridde durmuş ışıkları bekliyorsa
+    fn start_target(f: &Frame, s: &SessionData) -> Option<usize> {
+        if f.session_state != 3 {
+            return None;
+        }
+        let l = Self::grid_order(f, s).into_iter().next()?;
+        let c = &f.cars[l];
+        if c.on_pit || c.pct < 0.0 || c.surface < 1 {
+            return None;
+        }
+        if c.pct_rate < 0.0005 {
+            // Durmuş: duran start gridi (çizginin hemen gerisinde)
+            return (c.pct > 0.8).then_some(l);
+        }
+        let ttl = (1.0 - c.pct) / c.pct_rate;
+        (ttl < 15.0).then_some(l)
     }
 
     /// Grid sırası: pistteki (pitte olmayan) araçlar, turda en önde olandan geriye (pole en önde durur)
@@ -1788,6 +1868,64 @@ mod tests {
         d.step(&f, &s, &cfg, true, &mut out);
         assert_ne!(d.status.kind, "grid", "yeşilde grid turu biter");
         assert_eq!(out.0.last().unwrap().1, 20, "TV Mixed");
+    }
+
+    #[test]
+    fn leader_on_camera_before_green() {
+        let mut s = sess(6);
+        s.sessions = vec![crate::model::SessionEntry {
+            num: 0,
+            kind: "Race".into(),
+            ..Default::default()
+        }];
+        let mut f = frame(6);
+        // Pace turu, lider (pole) çizgiye uzak: grid turu
+        f.session_state = 3;
+        for i in 0..6 {
+            f.cars[i].pct = 0.3 - i as f32 * 0.01;
+        }
+        let mut d = Director::default();
+        let cfg = Cfg {
+            enabled: true,
+            ..Default::default()
+        };
+        let mut out = Rec(vec![]);
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "grid");
+        // Lider çizgiye yaklaştı (0,05 / 0,012 ≈ 4 sn): kamera lidere
+        for i in 0..6 {
+            f.cars[i].pct = 0.95 - i as f32 * 0.01;
+        }
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "start");
+        assert_eq!(out.0.last().unwrap().0, "10", "lider");
+        let n = out.0.len();
+        // Yeşil: lider ekranda kalır (yeni komut yok)
+        f.session_state = 4;
+        f.session_flags = 0x4;
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "start");
+        assert_eq!(out.0.len(), n);
+        // 8 sn sonra normal kurgu
+        d.start_hold = Some((0, Instant::now() - Duration::from_secs(9)));
+        d.last_step = Instant::now() - Duration::from_secs(1);
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_ne!(d.status.kind, "start");
+        // Ayar kapalıyken lider çekimi yok
+        let mut d = Director::default();
+        let cfg = Cfg {
+            enabled: true,
+            start_focus: false,
+            ..Default::default()
+        };
+        f.session_state = 3;
+        f.session_flags = 0;
+        d.next();
+        d.step(&f, &s, &cfg, true, &mut out);
+        assert_eq!(d.status.kind, "grid");
     }
 
     #[test]

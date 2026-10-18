@@ -19,12 +19,24 @@ export default defineOverlay({
   settings: [
     { key: "title", label: "Etkinlik adı", type: "text", default: "", placeholder: "SUZUKA 1000KM", group: "Başlık", hint: "Boş bırakılırsa pist adı yazılır." },
     { key: "trackText", label: "Pist yazısı (boş: simdeki pist)", type: "text", default: "", placeholder: "SUZUKA", group: "Başlık" },
-    ...tvShowSettings({ autoLabel: "Damalı bayraktan sonra", maxSecs: 60, showSecs: 30, everyMin: 10, once: { label: "Yarış sonunda ekranda kalma", hint: "Damalı bayraktan sonra bu kadar görünür, sonra kaybolur ve o yarışta tekrar çıkmaz. 0: oturum bitene kadar ekranda kalır." } }),
+    // Yarış sonunda kalma süresi sayfa sayısı × "Sayfa başına süre" (ayrı süre ayarı yok)
+    ...tvShowSettings({ autoLabel: "Damalı bayraktan sonra", maxSecs: 0, showSecs: 30, everyMin: 10, once: { label: "", hint: "" } }).filter((f) => f.key !== "maxSecs"),
     ...finishSettings(true),
     { key: "afterPodium", label: "TV Yarış Sonucu'ndan sonra aç", type: "boolean", default: true, group: "Ne zaman görünsün", showIf: { key: "show", is: ["auto"] }, hint: "TV Yarış Sonucu (podyum) da açıksa önce podyum gösterilir, o kapanınca sonuç tablosu açılır (kule → podyum → sonuç tablosu)." },
     { key: "highlightMe", label: "Kendi satırımı vurgula", type: "boolean", default: false, hint: "Kapalıyken tablo tarafsızdır (TV'deki gibi)." },
     { key: "perPage", label: "Sayfadaki satır", type: "number", default: 20, min: 5, max: 30, step: 1, ui: "stepper" },
-    { key: "pageSecs", label: "Sayfa değişme süresi", type: "number", default: 10, min: 3, max: 60, step: 1, unit: "sn" },
+    // Eski "pageSecs" (varsayılan 10) kayıtlı kopyalarda kalmasın diye yeni anahtar
+    {
+      key: "pageTime",
+      label: "Sayfa başına süre",
+      type: "number",
+      default: 20,
+      min: 3,
+      max: 60,
+      step: 1,
+      unit: "sn",
+      hint: "Yarış sonunda (Damalı bayraktan sonra) her sayfa bu kadar gösterilir; son sayfadan sonra başa dönmeden kapanır. Diğer kiplerde sayfalar sırayla döner.",
+    },
     {
       key: "classFilter",
       label: "Gösterilen sınıf",
