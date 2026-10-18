@@ -58,10 +58,10 @@ impl Default for Cfg {
             min_shot: 10.0,
             max_shot: 20.0,
             front_n: 5,
-            w_leader: 20.0,
-            w_front: 20.0,
+            w_leader: 30.0,
+            w_front: 30.0,
             w_battle: 25.0,
-            w_field: 40.0,
+            w_field: 25.0,
             w_me: 0.0,
             incidents: true,
             cams: "tvmix".into(),
@@ -916,9 +916,12 @@ impl Director {
         }
         // Uzun süredir (2,5 dk) ekrana gelmeyen araç varsa sıra ona gelir: yarıştaki bütün araçlar mutlaka gösterilir
         // (kendi aracın da diğerleri gibi; ayrı bir kural yok)
-        let overdue: Vec<usize> = cars.iter().copied().filter(|&i| Some(i) != cur && since(i) > 150.0).collect();
+        // Bekleme süresi araç sayısına göre (30 araçta ~7,5 dk): ön sıralar ihmal edilmesin (önceden 2,5 dk'da bir arka
+        // sıralar neredeyse her çekimi alıyordu)
+        let overdue_after = (cars.len() as f32 * 15.0).max(180.0);
+        let overdue: Vec<usize> = cars.iter().copied().filter(|&i| Some(i) != cur && since(i) > overdue_after).collect();
         if !overdue.is_empty() {
-            opts.push(("overdue", (cfg.w_field.max(15.0)) * 2.5));
+            opts.push(("overdue", cfg.w_field.max(10.0) * 0.8));
         }
         let total: f32 = opts.iter().map(|o| o.1).sum();
         let kind = if total <= 0.0 {
@@ -968,7 +971,7 @@ impl Director {
                 best.map(|x| x.0)
             }
             "overdue" => {
-                let o: Vec<usize> = cars.iter().copied().filter(|&i| Some(i) != cur && since(i) > 150.0).collect();
+                let o: Vec<usize> = cars.iter().copied().filter(|&i| Some(i) != cur && since(i) > overdue_after).collect();
                 least(&o, self)
             }
             _ => least(if field.is_empty() { &cars } else { &field }, self),

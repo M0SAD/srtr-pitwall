@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181026-392
+
+- Rejisör: ön sıralar çok az gösteriliyordu. "Uzun süredir gösterilmeyen araç" kuralı 2,5 dk'da bir devreye girip arka sıralara çok ağırlık veriyordu; artık bekleme süresi araç sayısına göre (araç başına 15 sn, en az 3 dk; 30 araçta 7,5 dk) ve ağırlığı düşük. Varsayılan oranlar: lider 30, ön sıralar 30, mücadele 25, diğer araçlar 25 (önceki varsayılanlar 20/20/25/40 bir kez taşınır).
+
 ## 181026-391
 
 - Tekrarda aynı kaza sonsuz döngüde gösteriliyordu: kazaya kesince tekrar olaydan öncesine sarılıyor, olay yeniden oynayınca yeniden kaza sayılıp yine sarılıyordu. Tekrarda gösterilen kazalar oturum zamanıyla hatırlanır; aynı an (±20 sn) yeniden kaza sayılmaz ve bir daha geri sarılmaz.

@@ -57,10 +57,10 @@ export const DIRECTOR_DEFAULT: DirectorCfg = {
   minShot: 10,
   maxShot: 20,
   frontN: 5,
-  wLeader: 20,
-  wFront: 20,
+  wLeader: 30,
+  wFront: 30,
   wBattle: 25,
-  wField: 40,
+  wField: 25,
   wMe: 0,
   incidents: true,
   cams: "tvmix",
@@ -1434,7 +1434,7 @@ export function defaultSettings(): AppSettings {
 
 /** Eski varsayılanlar "PrintScreen" / "Ctrl+PrintScreen" bir kez "F12" olur (kullanıcı sonra tekrar seçebilir) */
 /** Rejisör: eski varsayılan grid süresi (4 sn) yeni varsayılana (6 sn) bir kez taşınır */
-function directorMigrate(d: DirectorCfg & { gs6?: boolean; gs5?: boolean; gs4b?: boolean; sh2?: boolean; w2?: boolean }): DirectorCfg {
+function directorMigrate(d: DirectorCfg & { gs6?: boolean; gs5?: boolean; gs4b?: boolean; sh2?: boolean; w2?: boolean; w3?: boolean }): DirectorCfg {
   // Grid süresi varsayılanı 4 sn: önceki varsayılanlar (5 / 6) bir kez 4'e
   if (!d.gs4b) {
     if (d.gridShot === 5 || d.gridShot === 6) d.gridShot = 4;
@@ -1459,6 +1459,15 @@ function directorMigrate(d: DirectorCfg & { gs6?: boolean; gs5?: boolean; gs4b?:
       d.wField = 40;
     }
     d.w2 = true;
+  }
+  // Kurgu oranları (2): ön sıralar daha sık (30/30/25/25); önceki varsayılanlar (20/20/25/40) bir kez taşınır
+  if (!d.w3) {
+    if (d.wLeader === 20 && d.wFront === 20 && d.wBattle === 25 && d.wField === 40) {
+      d.wLeader = 30;
+      d.wFront = 30;
+      d.wField = 25;
+    }
+    d.w3 = true;
   }
   return d;
 }
