@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 191026-400
+
+- Üst çubuk: PRO üyelerde soldaki bağlantıların hemen yanında altın renkli "PRO" rozeti. Tıklayınca kalan süre (gün / saat), bitiş tarihi, kampanya PRO'su ve kendini yenileyen abonelik bilgisi açılır; "PRO süresini uzat" düğmesi PRO satın alma sayfasına gider. Bitimine 10 günden az kalan (yenilenmeyen) üyelikte rozet turuncu olur.
+
 ## 191026-399
 
 - Kan Şekeri: CareSens Air (i-SENS Sens365) desteği. Overlay ayarlarında "Sensör / kaynak" → "CareSens Air (Sens365)" → "Sens365 ile giriş yap": Sens365 giriş sayfası ayrı pencerede açılır, e-posta / şifre orada girilir (uygulamaya girilmez). Değer, yön oku (değişim hızından) ve ölçüm saati Sens365'ten dakikada bir okunur; mini grafik program açıkken okunan ölçümlerden oluşur. Oturum anahtarı 24 saat geçerli; süresi dolunca giriş sayfası gizli pencerede yeniden açılır ve oturum hatırlanıyorsa sessizce yenilenir, hatırlanmıyorsa "yeniden giriş yap" uyarısı çıkar. Şimdilik Avrupa sunucusu (accounts-de / cgm-api-de).

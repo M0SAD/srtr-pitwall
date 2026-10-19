@@ -36,6 +36,7 @@ import { AppBgLayer, appBgActive } from "./appBg";
 import { AdminTopStats } from "./components/AdminTopStats";
 import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
+import { ProBadge } from "./components/ProBadge";
 import { VoiceDock } from "./components/VoiceDock";
 import { VoiceRoomsNav } from "./components/VoiceRoomsNav";
 import { roomsTotal, watchRoomsBackground } from "@/voice/roomsStore";
@@ -310,6 +311,7 @@ export function App() {
       </Show>
       <header class="top2">
         <TopLinks />
+        <ProBadge onExtend={() => go("pro")} />
         <AdminTopStats />
         <h1>{TITLES[section()]}</h1>
         <div class="top2-right">
