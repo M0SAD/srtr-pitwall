@@ -698,6 +698,8 @@ export interface Tires {
   compound: number;
   available: boolean;
   onPit: boolean;
+  /** false: canlı değil, son pit ölçümü (iRacing yalnızca pit kutusunda ölçer) */
+  live?: boolean;
 }
 
 export interface TeamMember {

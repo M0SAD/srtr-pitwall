@@ -7,6 +7,7 @@ import type { CarFamily, CarModel } from "@/sdk/cars";
 import { CarDash2, type CarStyle2 } from "./carstyles2";
 import "./carstyles.css";
 import "./carstyles2.css";
+import { PIT_GREY } from "./tyrepanel";
 
 export type CarStyle =
   | "carF1"
@@ -111,6 +112,8 @@ export interface TyreInfo {
   t: string;
   /** Basınç metni (yoksa undefined) */
   p?: string;
+  /** Canlı değil, son pit ölçümü (iRacing): renk nötr gri */
+  pit?: boolean;
 }
 
 /** Ekranların okuduğu değerler (hepsi reaktif) */
@@ -312,7 +315,7 @@ export function TyreGrid(p: { c: DashCtx; class?: string; press?: boolean }) {
         <div class={`cd-tyres ${p.class ?? ""}`}>
           <For each={ty()}>
             {(t) => (
-              <div class="cd-tyre" style={{ "--tc": tyreColor(t.c) }}>
+              <div class="cd-tyre" style={{ "--tc": t.pit && t.c ? PIT_GREY : tyreColor(t.c) }}>
                 <b>{t.t}</b>
                 <Show when={p.press && t.p}>
                   <small>{t.p}</small>

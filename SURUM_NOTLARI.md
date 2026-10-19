@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 191026-397
+
+- Direksiyon Ekranı lastik bilgileri (iRacing): iRacing lastik sıcaklığını ve aşınmasını sürüş sırasında göndermiyor, yalnızca pit kutusunda ölçüyor (kayıtlı telemetride bütün oturum boyunca 2 farklı değer). Ekran bu değerleri canlıymış gibi renklendiriyordu (ilk pite kadar ortam sıcaklığı "soğuk lastik" mavisiyle). Artık iRacing'de değerler "PİT" etiketiyle ve nötr gri renkle gösterilir; Lastik göstergesinde her lastiğin kalan dişi (%) de yazılır. Araç tarzı ekranlarda, klasik görünümde ve özel tasarım ekranlarında da aynı. Diğer simlerde (ACC, LMU, AMS2, RaceRoom…) canlı renkli gösterim değişmedi.
+
 ## 181026-396
 
 - Otomatik Rejisör: yeşil bayraktan hemen önce kamera lidere geçer (lider start çizgisine 15 sn'den az kala ya da duran startta gridde ışıkları beklerken), start yapıldıktan sonra 8 sn daha liderde kalır. Grid turu yarıda kalsa da lider gösterilir. Rejisör ayarlarında "Startta lider" ile kapatılabilir.

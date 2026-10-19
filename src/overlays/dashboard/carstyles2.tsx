@@ -4,6 +4,7 @@
 
 import { For, Match, Show, Switch, type JSX } from "solid-js";
 import { lapTime } from "@/sdk/format";
+import { PIT_GREY } from "./tyrepanel";
 import {
   Cell,
   Leds,
@@ -71,7 +72,11 @@ function AidBox(p: { c: DashCtx; k: "abs" | "tc"; l?: string; col?: string; clas
 
 const tT = (c: DashCtx, i: number) => c.tyres()?.[i]?.t ?? DASH;
 const tP = (c: DashCtx, i: number) => c.tyres()?.[i]?.p ?? DASH;
-const tC = (c: DashCtx, i: number) => tyreColor(c.tyres()?.[i]?.c);
+// Son pit ölçümü (iRacing): canlı durum sanılmasın diye nötr gri
+const tC = (c: DashCtx, i: number) => {
+  const t = c.tyres()?.[i];
+  return t?.pit && t.c ? PIT_GREY : tyreColor(t?.c);
+};
 const socTxt = (c: DashCtx) => (fin(c.soc()) ? `${Math.round(c.soc()! * 100)}` : DASH);
 const lapOf = (c: DashCtx) => (
   <>

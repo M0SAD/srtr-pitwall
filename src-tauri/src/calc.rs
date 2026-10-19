@@ -1461,6 +1461,8 @@ pub struct Tires {
     pub compound: i32,
     pub available: bool,
     pub on_pit: bool,
+    /// false: değerler canlı değil, son pit ölçümü (iRacing)
+    pub live: bool,
 }
 
 pub fn tires(f: &Frame) -> Tires {
@@ -1477,6 +1479,7 @@ pub fn tires(f: &Frame) -> Tires {
         compound: f.tire_compound,
         available,
         on_pit: f.on_pit_road,
+        live: f.tire_live,
     }
 }
 

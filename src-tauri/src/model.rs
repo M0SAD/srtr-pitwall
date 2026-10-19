@@ -193,6 +193,9 @@ pub struct Frame {
     /// Soğuk basınç (kPa)
     pub tire_press: [f32; 4],
     pub tire_compound: i32,
+    /// Lastik sıcaklığı / aşınması sürüş sırasında canlı güncelleniyor mu. iRacing: hayır (yalnızca pit kutusunda
+    /// ölçülür; canlı veride yüzey sıcaklığı yok). Diğer simler canlı verir.
+    pub tire_live: bool,
     /// Pit servisi seçimleri (iRacing PitSvFlags: 1 LF, 2 RF, 4 LR, 8 RR lastik, 0x10 yakıt, 0x20 vizör filmi,
     /// 0x40 hızlı tamir); sim vermiyorsa -1
     pub pit_sv_flags: i32,
@@ -300,6 +303,7 @@ impl Default for Frame {
             tire_wear: [[-1.0; 3]; 4],
             tire_press: [0.0; 4],
             tire_compound: -1,
+            tire_live: true,
             pit_sv_flags: -1,
             pit_sv_fuel: 0.0,
             pit_sv_compound: -1,

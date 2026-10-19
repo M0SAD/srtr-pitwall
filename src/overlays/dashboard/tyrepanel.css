@@ -244,3 +244,11 @@
 .tp:not(.tp-v) .tp-imo {
   grid-template-columns: repeat(4, auto);
 }
+
+/* Canlı olmayan veri (iRacing: son pit ölçümü) */
+.tp-pit {
+  color: #ffb02e;
+}
+.tp small.tp-w {
+  color: #d6dae0;
+}

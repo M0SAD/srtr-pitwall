@@ -498,6 +498,9 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
         f.tire_press[c] = f32_or(buf, ix.tire_press[c], 0.0);
     }
     f.tire_compound = i32_or(buf, ix.tire_compound, -1);
+    // iRacing lastik karkas sıcaklığını ve aşınmayı yalnızca pit kutusunda günceller (kayıtlı telemetride bütün oturum
+    // boyunca 2 farklı değer); basınç garajdaki soğuk basınç. Ekranlar bunu "pit ölçümü" olarak gösterir.
+    f.tire_live = false;
     f.pit_sv_flags = if ix.pit_sv_flags.is_some() {
         (u32_bits(buf, ix.pit_sv_flags) & 0x7f) as i32
     } else {

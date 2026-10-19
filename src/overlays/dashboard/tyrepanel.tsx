@@ -5,6 +5,9 @@
 import { For, Show } from "solid-js";
 import type { Tires } from "@/sdk/types";
 
+/** Canlı olmayan (son pit ölçümü) değerlerin rengi: ideal aralık rengi canlı durum sanılmasın */
+export const PIT_GREY = "#7a808a";
+
 export type TyrePanelStyle = "grid" | "car" | "bars" | "imo" | "rings";
 const NAMES = ["FL", "FR", "RL", "RR"];
 
@@ -36,7 +39,15 @@ export function TyrePanel(p: {
   vertical: boolean;
 }) {
   const corners = () => (p.tires?.available && p.tires.corners.length >= 4 ? p.tires.corners.slice(0, 4) : null);
-  const col = (c: number | undefined) => tpColor(c, p.lo, p.hi);
+  // iRacing: sıcaklık ve aşınma yalnızca pit kutusunda ölçülür; sürüşte değişmez. Değerler gri ve "PİT" etiketiyle,
+  // yanında kalan diş (%) gösterilir (eskiden ilk pite kadar ortam sıcaklığı "soğuk lastik" mavisiyle görünüyordu)
+  const pit = () => p.tires?.live === false;
+  const col = (c: number | undefined) => (pit() && c != null && c > 0 ? PIT_GREY : tpColor(c, p.lo, p.hi));
+  const wear = (c: { wear: number[] }) => {
+    if (!pit()) return "";
+    const v = c.wear.filter((x) => x >= 0);
+    return v.length ? `${Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 100)}%` : "";
+  };
   const txt = (c: number | undefined) => (c == null ? "—" : p.tv(c));
   const psi = (kpa: number) => (kpa > 0 ? (kpa * 0.145038).toFixed(1) : "");
   // Sıcaklık → 0..1 (çubuk / halka doluluğu): 40 °C boş, 130 °C dolu
@@ -58,6 +69,9 @@ export function TyrePanel(p: {
                       <Show when={p.press && c.press > 0}>
                         <small>{psi(c.press)}</small>
                       </Show>
+                      <Show when={wear(c)}>
+                        <small class="tp-w">{wear(c)}</small>
+                      </Show>
                     </div>
                   )}
                 </For>
@@ -73,6 +87,9 @@ export function TyrePanel(p: {
                       <b style={{ color: col(avg(c.temp)) }}>{txt(avg(c.temp))}</b>
                       <Show when={p.press && c.press > 0}>
                         <small>{psi(c.press)}</small>
+                      </Show>
+                      <Show when={wear(c)}>
+                        <small class="tp-w">{wear(c)}</small>
                       </Show>
                     </div>
                   )}
@@ -102,6 +119,9 @@ export function TyrePanel(p: {
                       <Show when={p.press && c.press > 0}>
                         <small>{psi(c.press)}</small>
                       </Show>
+                      <Show when={wear(c)}>
+                        <small class="tp-w">{wear(c)}</small>
+                      </Show>
                     </div>
                   )}
                 </For>
@@ -126,6 +146,9 @@ export function TyrePanel(p: {
                       </div>
                       <Show when={p.press && c.press > 0}>
                         <small class="tp-p">{psi(c.press)} psi</small>
+                      </Show>
+                      <Show when={wear(c)}>
+                        <small class="tp-p tp-w">{wear(c)}</small>
                       </Show>
                     </div>
                   )}
@@ -160,6 +183,9 @@ export function TyrePanel(p: {
                         <Show when={p.press && c.press > 0}>
                           <small>{psi(c.press)}</small>
                         </Show>
+                        <Show when={wear(c)}>
+                          <small class="tp-w">{wear(c)}</small>
+                        </Show>
                       </div>
                     );
                   }}
@@ -169,7 +195,15 @@ export function TyrePanel(p: {
           </>
         )}
       </Show>
-      <span class="tp-unit">{p.unit}</span>
+      <span class="tp-unit">
+        {p.unit}
+        <Show when={pit() && corners()}>
+          <span class="tp-pit" title="iRacing lastik sıcaklığını ve aşınmasını yalnızca pit kutusunda ölçer: değerler son pit ölçümüdür">
+            {" "}
+            · PİT
+          </span>
+        </Show>
+      </span>
     </div>
   );
 }

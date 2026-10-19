@@ -193,7 +193,8 @@ function Tyres(p: WP) {
   const mode = () => pr().tyreMode ?? "temp";
   const field = (i: number) => `${mode() === "press" ? "tyrePress" : mode() === "wear" ? "tyreWear" : "tyreTemp"}${CORNERS[i]}`;
   const bg = (i: number) => {
-    if (mode() === "temp") return tempColor(tyreTemp(p.data(), i));
+    // Son pit ölçümü (iRacing): canlı durum rengi verilmez
+    if (mode() === "temp") return p.data().tires?.live === false && tyreTemp(p.data(), i) != null ? "#4a4f57" : tempColor(tyreTemp(p.data(), i));
     if (mode() === "wear") return wearColor(fieldNum(field(i), p.data(), p.units));
     return undefined;
   };

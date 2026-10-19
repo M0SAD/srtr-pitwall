@@ -665,6 +665,7 @@ export default function Dashboard(props: OverlayProps) {
           t: avg != null ? tempVal(avg, fmt(), 0) : "—",
           // Lastik basıncı her zaman psi
           p: c.press > 0 ? (c.press * 0.145038).toFixed(1) : undefined,
+          pit: t.live === false,
         };
       });
     },
@@ -896,7 +897,10 @@ export default function Dashboard(props: OverlayProps) {
               <Cell value={tempVal(src().tel?.waterTemp, fmt())} label={`Water ${tempUnitLabel(fmt())}`} el="temps" />
             </div>
             <div class="dash-tyres">
-              <span class="dash-l el-tyres">Tyres {tempUnitLabel(fmt())}</span>
+              <span class="dash-l el-tyres">
+                Tyres {tempUnitLabel(fmt())}
+                {src().tires?.live === false && src().tires?.available ? " · PIT" : ""}
+              </span>
               <For each={["LF", "RF", "LR", "RR"]}>
                 {(n, i) => (
                   <span class="dash-tyre el-tyres">
