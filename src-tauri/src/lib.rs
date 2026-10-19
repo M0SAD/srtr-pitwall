@@ -3486,6 +3486,7 @@ pub fn run() {
             monitors_list,
             overlay_set_monitor,
             glucose::glucose_login,
+            glucose::glucose_caresens_login,
             glucose::glucose_logout,
             glucose::glucose_state,
             glucose::glucose_refresh,

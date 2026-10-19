@@ -16,7 +16,7 @@ export default defineOverlay({
   id: "glucose",
   name: "Kan Şekeri",
   description:
-    "Sürekli şeker ölçüm sensöründen (FreeStyle Libre / LibreLinkUp, Dexcom, Nightscout) anlık kan şekeri: değer, yön oku, değişim, mini grafik ve düşük / yüksek uyarısı. Giriş bilgileri yalnızca bu bilgisayarda saklanır.",
+    "Sürekli şeker ölçüm sensöründen (FreeStyle Libre / LibreLinkUp, Dexcom, Nightscout, CareSens Air / Sens365) anlık kan şekeri: değer, yön oku, değişim, mini grafik ve düşük / yüksek uyarısı. Giriş bilgileri yalnızca bu bilgisayarda saklanır.",
   category: "info",
   topics: [],
   size: { w: 230, h: 96 },

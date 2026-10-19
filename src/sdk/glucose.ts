@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { inTauri } from "./platform";
 
-export type GlucoseSource = "libre" | "dexcom" | "nightscout";
+export type GlucoseSource = "libre" | "dexcom" | "nightscout" | "caresens";
 export interface GlucoseState {
   loggedIn: boolean;
   source: string;
@@ -81,6 +81,8 @@ export function useGlucose(watch: () => boolean = () => true) {
 }
 
 export const glucoseLogin = (cfg: GlucoseLogin) => invoke<GlucoseState>("glucose_login", { cfg }).then((s) => (setState(s), s));
+/** CareSens Air: Sens365 giriş penceresi açılır (şifre uygulamaya girilmez) */
+export const glucoseCaresensLogin = () => invoke<GlucoseState>("glucose_caresens_login").then((s) => (setState(s), s));
 export const glucoseLogout = () => invoke("glucose_logout").then(() => setState(EMPTY));
 export const glucoseRefresh = () => (inTauri ? invoke("glucose_refresh").catch(() => {}) : Promise.resolve());
 export const glucoseAlert = (level: "ul" | "l" | "h" | "uh" | "ok", volume: number) => (inTauri ? invoke<boolean>("glucose_alert", { level, volume }).catch(() => false) : Promise.resolve(false));

@@ -190,6 +190,12 @@ pub struct VarIndex {
     pub tire_temp: [[Option<VarRef>; 3]; 4],
     pub tire_wear: [[Option<VarRef>; 3]; 4],
     pub tire_press: [Option<VarRef>; 4],
+    /// Yüzey sıcaklığı [L, M, R] ve sıcak basınç: iRacing bunları kayıtlı telemetriye (.ibt) yazar; canlı veride
+    /// varsa (sürüşte değişen değer) onlar kullanılır
+    pub tire_surf: [[Option<VarRef>; 3]; 4],
+    pub tire_hot_press: [Option<VarRef>; 4],
+    /// Tanılama: veride bulunan lastik değişkenlerinin adları
+    pub tire_vars: Vec<String>,
     pub tire_compound: Option<VarRef>,
     pub pit_sv_flags: Option<VarRef>,
     pub pit_sv_fuel: Option<VarRef>,
@@ -337,7 +343,14 @@ impl VarIndex {
                     const CORNERS: [&str; 4] = ["LF", "RF", "LR", "RR"];
                     if let Some(ci) = CORNERS.iter().position(|c| name.starts_with(c)) {
                         let rest = &name[2..];
+                        if rest.starts_with("temp") || rest.starts_with("wear") || rest.contains("ressure") {
+                            ix.tire_vars.push(name.to_string());
+                        }
                         match rest {
+                            "tempL" => ix.tire_surf[ci][0] = r,
+                            "tempM" => ix.tire_surf[ci][1] = r,
+                            "tempR" => ix.tire_surf[ci][2] = r,
+                            "pressure" => ix.tire_hot_press[ci] = r,
                             "tempCL" => ix.tire_temp[ci][0] = r,
                             "tempCM" => ix.tire_temp[ci][1] = r,
                             "tempCR" => ix.tire_temp[ci][2] = r,
@@ -500,7 +513,21 @@ pub fn extract_frame(ix: &VarIndex, buf: &[u8], tick: i32, f: &mut Frame) {
     f.tire_compound = i32_or(buf, ix.tire_compound, -1);
     // iRacing lastik karkas sıcaklığını ve aşınmayı yalnızca pit kutusunda günceller (kayıtlı telemetride bütün oturum
     // boyunca 2 farklı değer); basınç garajdaki soğuk basınç. Ekranlar bunu "pit ölçümü" olarak gösterir.
-    f.tire_live = false;
+    // Yüzey sıcaklığı (LFtempL…) veride varsa (kayıtlı .ibt; canlı veride iRacing şu an vermiyor) sürüşte değişir:
+    // onunla canlı gösterilir
+    let surf = ix.tire_surf.iter().all(|c| c.iter().all(|v| v.is_some()));
+    if surf {
+        for c in 0..4 {
+            for k in 0..3 {
+                f.tire_temp[c][k] = f32_or(buf, ix.tire_surf[c][k], 0.0);
+            }
+            let hot = f32_or(buf, ix.tire_hot_press[c], 0.0);
+            if hot > 0.0 {
+                f.tire_press[c] = hot;
+            }
+        }
+    }
+    f.tire_live = surf;
     f.pit_sv_flags = if ix.pit_sv_flags.is_some() {
         (u32_bits(buf, ix.pit_sv_flags) & 0x7f) as i32
     } else {
@@ -708,6 +735,26 @@ mod win {
                 let mem = unsafe { std::slice::from_raw_parts(self.view, len) };
                 self.index = VarIndex::build(mem, &h);
                 self.index_vars = h.num_vars;
+                // Tanılama (bir kez): canlı veride hangi lastik değişkenleri var (yüzey sıcaklığı canlı geliyor mu)
+                {
+                    use std::sync::atomic::{AtomicBool, Ordering};
+                    static DONE: AtomicBool = AtomicBool::new(false);
+                    if !DONE.swap(true, Ordering::Relaxed) {
+                        let lf: Vec<&str> = self
+                            .index
+                            .tire_vars
+                            .iter()
+                            .filter(|n| n.starts_with("LF"))
+                            .map(|n| n.as_str())
+                            .collect();
+                        let surf = self.index.tire_surf[0][1].is_some();
+                        crate::crashlog::note(&format!(
+                            "lastik: canlı değişkenler [{}], yüzey sıcaklığı {}",
+                            lf.join(", "),
+                            if surf { "VAR (canlı)" } else { "yok (yalnızca pit ölçümü)" }
+                        ));
+                    }
+                }
             }
             for _ in 0..2 {
                 let h = match self.header() {

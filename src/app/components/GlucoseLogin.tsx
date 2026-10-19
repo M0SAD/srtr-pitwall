@@ -3,15 +3,16 @@
 import { Show, createSignal } from "solid-js";
 import { t } from "@/sdk/i18n";
 import { inTauri } from "@/sdk/platform";
-import { glucoseLogin, glucoseLogout, glucoseRefresh, useGlucose, type GlucoseSource } from "@/sdk/glucose";
+import { glucoseCaresensLogin, glucoseLogin, glucoseLogout, glucoseRefresh, useGlucose, type GlucoseSource } from "@/sdk/glucose";
 import { Section } from "./OverlaySettings";
 
 const SOURCES: { id: GlucoseSource; label: string }[] = [
   { id: "libre", label: "FreeStyle Libre (LibreLinkUp)" },
   { id: "dexcom", label: "Dexcom (Share)" },
   { id: "nightscout", label: "Nightscout" },
+  { id: "caresens", label: "CareSens Air (Sens365)" },
 ];
-const NAMES: Record<string, string> = { libre: "LibreLinkUp", dexcom: "Dexcom", nightscout: "Nightscout" };
+const NAMES: Record<string, string> = { libre: "LibreLinkUp", dexcom: "Dexcom", nightscout: "Nightscout", caresens: "Sens365" };
 
 /** Rust tarafından dönen hata / bilgi metinleri (çeviri kataloğuna girsin diye burada da durur) */
 export const GLUCOSE_MESSAGES = [
@@ -44,6 +45,14 @@ export const GLUCOSE_MESSAGES = [
   "Okuma hatası",
   "LibreLinkUp hatası",
   "Nightscout hatası",
+  "Sens365 girişi tamamlanmadı",
+  "Sens365 girişi iptal edildi",
+  "Sens365 girişi başarısız",
+  "Sens365 giriş adresi geçersiz",
+  "Sens365 sunucusuna ulaşılamadı",
+  "Sens365 yanıtı okunamadı",
+  "Sens365 hatası",
+  "Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap",
 ];
 
 export function GlucoseLoginPanel() {
@@ -62,7 +71,8 @@ export function GlucoseLoginPanel() {
     setErr("");
     setBusy(true);
     try {
-      await glucoseLogin({ source: source(), user: user(), password: pass(), region: region(), ns_url: url(), ns_token: token() });
+      if (source() === "caresens") await glucoseCaresensLogin();
+      else await glucoseLogin({ source: source(), user: user(), password: pass(), region: region(), ns_url: url(), ns_token: token() });
       // Şifre ve belirteç bellekte kalmasın
       setPass("");
       setToken("");
@@ -118,7 +128,7 @@ export function GlucoseLoginPanel() {
               ))}
             </select>
           </div>
-          <Show when={source() !== "nightscout"}>
+          <Show when={source() !== "nightscout" && source() !== "caresens"}>
             <div class="f2">
               <div class="f2-cap">{source() === "dexcom" ? t("Dexcom kullanıcı adı / e-posta") : t("LibreLinkUp e-posta")}</div>
               <input class="input f2-text" type="email" autocomplete="off" spellcheck={false} value={user()} onInput={(e) => setUser(e.currentTarget.value)} onKeyDown={enter} />
@@ -150,7 +160,7 @@ export function GlucoseLoginPanel() {
           </Show>
           <div class="f2">
             <button class="btn primary" disabled={busy()} onClick={login}>
-              {busy() ? t("Giriş yapılıyor…") : t("Giriş yap")}
+              {busy() ? (source() === "caresens" ? t("Açılan pencerede Sens365'e giriş yap…") : t("Giriş yapılıyor…")) : source() === "caresens" ? t("Sens365 ile giriş yap") : t("Giriş yap")}
             </button>
             <Show when={err()}>
               <p class="error">{t(err().split("\n")[0])}</p>
@@ -163,7 +173,11 @@ export function GlucoseLoginPanel() {
             <small class="f2-hint">
               <Show when={source() === "libre"}>Sensörü takip eden LibreLinkUp (takipçi) hesabının bilgilerini gir. </Show>
               <Show when={source() === "dexcom"}>Dexcom uygulamasında Share açık ve en az bir takipçi ekli olmalı. </Show>
-              Giriş bilgileri yalnızca bu bilgisayarda, şifreli saklanır; buluta, yedeğe ve diğer cihazlara gönderilmez.
+              <Show when={source() === "caresens"}>
+                Sens365 giriş sayfası ayrı bir pencerede açılır; e-posta ve şifreni orada gir (uygulamaya girilmez). Giriş açık kaldıkça oturum günlük olarak kendiliğinden yenilenir.{" "}
+              </Show>
+              <Show when={source() !== "caresens"}>Giriş bilgileri</Show>
+              <Show when={source() === "caresens"}>Oturum anahtarı</Show> yalnızca bu bilgisayarda, şifreli saklanır; buluta, yedeğe ve diğer cihazlara gönderilmez.
             </small>
           </div>
         </Show>

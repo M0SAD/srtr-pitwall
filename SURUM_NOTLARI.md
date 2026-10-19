@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 191026-399
+
+- Kan Şekeri: CareSens Air (i-SENS Sens365) desteği. Overlay ayarlarında "Sensör / kaynak" → "CareSens Air (Sens365)" → "Sens365 ile giriş yap": Sens365 giriş sayfası ayrı pencerede açılır, e-posta / şifre orada girilir (uygulamaya girilmez). Değer, yön oku (değişim hızından) ve ölçüm saati Sens365'ten dakikada bir okunur; mini grafik program açıkken okunan ölçümlerden oluşur. Oturum anahtarı 24 saat geçerli; süresi dolunca giriş sayfası gizli pencerede yeniden açılır ve oturum hatırlanıyorsa sessizce yenilenir, hatırlanmıyorsa "yeniden giriş yap" uyarısı çıkar. Şimdilik Avrupa sunucusu (accounts-de / cgm-api-de).
+
+## 191026-398
+
+- iRacing lastik verisi: veride lastik yüzey sıcaklığı varsa (LFtempL/M/R; kayıtlı .ibt dosyalarında var) direksiyon ekranı canlı değişen yüzey sıcaklığını ve sıcak basıncı gösterir. Yoksa önceki gibi "PİT" etiketli son pit ölçümü. Günlüğe bir kez "lastik: canlı değişkenler [...], yüzey sıcaklığı VAR / yok" satırı yazılır: iRacing'in canlı veride lastik sıcaklığı gönderip göndermediği buradan görülür.
+
 ## 191026-397
 
 - Direksiyon Ekranı lastik bilgileri (iRacing): iRacing lastik sıcaklığını ve aşınmasını sürüş sırasında göndermiyor, yalnızca pit kutusunda ölçüyor (kayıtlı telemetride bütün oturum boyunca 2 farklı değer). Ekran bu değerleri canlıymış gibi renklendiriyordu (ilk pite kadar ortam sıcaklığı "soğuk lastik" mavisiyle). Artık iRacing'de değerler "PİT" etiketiyle ve nötr gri renkle gösterilir; Lastik göstergesinde her lastiğin kalan dişi (%) de yazılır. Araç tarzı ekranlarda, klasik görünümde ve özel tasarım ekranlarında da aynı. Diğer simlerde (ACC, LMU, AMS2, RaceRoom…) canlı renkli gösterim değişmedi.

@@ -350,3 +350,31 @@ mod tests {
         assert!(laps_from_bytes(&vec![0u8; 4096]).is_err());
     }
 }
+
+#[cfg(test)]
+mod tire_tests {
+    use super::*;
+    use crate::sdk::{extract_frame, VarIndex};
+
+    /// Kayıtlı telemetride (yüzey sıcaklığı var) lastik sıcaklığı sürüşte değişir ve canlı sayılır.
+    /// Dosya yoksa (CI) atlanır: PITWALL_IBT=<.ibt yolu>
+    #[test]
+    fn surface_temps_live_from_ibt() {
+        let Ok(p) = std::env::var("PITWALL_IBT") else { return };
+        let data = std::fs::read(p).unwrap();
+        let h = Header::parse(&data).unwrap();
+        let ix = VarIndex::build(&data, &h);
+        let row0 = h.bufs[0].1 as usize;
+        let len = h.buf_len as usize;
+        let n = (data.len() - row0) / len;
+        let mut f = Frame::default();
+        let mut seen = std::collections::BTreeSet::new();
+        for r in (0..n).step_by(600) {
+            extract_frame(&ix, &data[row0 + r * len..row0 + (r + 1) * len], r as i32, &mut f);
+            assert!(f.tire_live);
+            seen.insert((f.tire_temp[0][1] * 10.0) as i32);
+        }
+        eprintln!("farklı LF orta sıcaklık: {} / {} örnek", seen.len(), n / 600);
+        assert!(seen.len() > 10, "yüzey sıcaklığı değişmeli");
+    }
+}

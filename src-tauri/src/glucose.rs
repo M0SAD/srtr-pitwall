@@ -1,5 +1,10 @@
 //! Kan şekeri (CGM) okuma: "Kan Şekeri" overlay'i için. Kaynaklar: LibreLinkUp (FreeStyle Libre takipçi hesabı),
-//! Dexcom Share (takipçi paylaşımı açık hesap) ve Nightscout.
+//! Dexcom Share (takipçi paylaşımı açık hesap), Nightscout ve CareSens Air (i-SENS Sens365 hesabı).
+//!
+//! CareSens Air: şifre uygulamaya girilmez. Sens365 giriş sayfası (accounts-de.i-sens.com, OAuth) uygulamanın kendi
+//! penceresinde açılır; giriş bitince sayfanın döndüğü adresteki (sens365.com/callback) tek kullanımlık kod yakalanır
+//! ve anahtarla (24 saat geçerli) değiştirilir. Süresi dolunca aynı sayfa gizli pencerede açılır: giriş sayfası
+//! oturumu hatırlıyorsa yeni kod sessizce alınır, hatırlamıyorsa kullanıcıdan yeniden giriş istenir.
 //!
 //! * Giriş bilgileri yalnızca bu bilgisayarda, şifreli saklanır (livechat::secrets → Windows DPAPI); ayarlara,
 //!   buluta, yedeğe ve OBS / tarayıcı kaynağına GİTMEZ. Ölçümler de yalnızca bellekte tutulur.
@@ -37,6 +42,13 @@ pub struct Cfg {
     pub ns_url: String,
     #[serde(default)]
     pub ns_token: String,
+    /// CareSens Air (Sens365): erişim anahtarı (JWT), bitiş anı (epoch sn) ve hesap kimliği (JWT "sub")
+    #[serde(default)]
+    pub token: String,
+    #[serde(default)]
+    pub token_exp: i64,
+    #[serde(default)]
+    pub sub: String,
 }
 
 #[derive(Clone, Serialize, Default)]
@@ -327,6 +339,10 @@ struct Session {
     libre: Option<(String, String, String, String)>,
     /// Dexcom: (taban adres, oturum kimliği)
     dexcom: Option<(String, String)>,
+    /// CareSens Air: (anahtar, bitiş epoch sn); yenilenince ayardakinin yerine geçer
+    cs_token: Option<(String, i64)>,
+    /// CareSens Air yalnızca son ölçümü verir: mini grafik için okunan ölçümler biriktirilir
+    cs_hist: Vec<(i64, f64)>,
 }
 
 struct Reading {
@@ -818,11 +834,346 @@ async fn nightscout(c: &Net, cfg: &Cfg) -> Result<Reading, String> {
     ns_parse(&v)
 }
 
+// ---------------------------------------------------------------- CareSens Air (i-SENS Sens365)
+
+const CS_CLIENT: &str = "ff76a39b-940f-4492-a708-e46f6b4d01d5";
+const CS_REDIRECT: &str = "https://sens365.com/callback";
+const CS_ACCOUNTS: &str = "https://accounts-de.i-sens.com";
+const CS_API: &str = "https://cgm-api-de.i-sens.com";
+const CS_INFO: &str = "c=sens365_web, v=1.1.5";
+const CS_WIN: &str = "sens365login";
+
+static APP: std::sync::OnceLock<AppHandle> = std::sync::OnceLock::new();
+
+/// JWT içeriği (imza doğrulanmaz; yalnızca hesap kimliği, e-posta ve bitiş anı okunur)
+pub fn jwt_claims(token: &str) -> Option<(String, String, i64)> {
+    use base64::Engine;
+    let p = token.split('.').nth(1)?;
+    let raw = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(p.trim_end_matches('='))
+        .ok()?;
+    let v: Value = serde_json::from_slice(&raw).ok()?;
+    let sub = v.get("sub")?.as_str()?.to_string();
+    let email = v.get("email").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let exp = v.get("exp").and_then(|x| x.as_i64()).unwrap_or(0);
+    (!sub.is_empty()).then_some((sub, email, exp))
+}
+
+/// "2026-10-19T21:45:13+03:00" → epoch ms
+pub fn parse_rfc3339(s: &str) -> Option<i64> {
+    let s = s.trim();
+    let (date, rest) = s.split_once('T')?;
+    let mut d = date.split('-');
+    let (y, mo, da) = (
+        d.next()?.parse::<i64>().ok()?,
+        d.next()?.parse::<i64>().ok()?,
+        d.next()?.parse::<i64>().ok()?,
+    );
+    // Saat dilimi: Z | +HH:MM | -HH:MM
+    let (time, off) = if let Some(t) = rest.strip_suffix('Z') {
+        (t, 0)
+    } else if let Some(i) = rest.rfind(['+', '-']) {
+        let (t, z) = rest.split_at(i);
+        let sign = if z.starts_with('-') { -1 } else { 1 };
+        let mut zz = z[1..].split(':');
+        let zh = zz.next()?.parse::<i64>().ok()?;
+        let zm = zz.next().and_then(|x| x.parse::<i64>().ok()).unwrap_or(0);
+        (t, sign * (zh * 3600 + zm * 60))
+    } else {
+        (rest, 0)
+    };
+    let mut t = time.split(':');
+    let h = t.next()?.parse::<i64>().ok()?;
+    let mi = t.next()?.parse::<i64>().ok()?;
+    let se = t
+        .next()
+        .and_then(|x| x.split('.').next())
+        .and_then(|x| x.parse::<i64>().ok())
+        .unwrap_or(0);
+    if !(1..=12).contains(&mo) || !(1..=31).contains(&da) || h > 23 || mi > 59 || se > 60 {
+        return None;
+    }
+    Some((days_from_civil(y, mo, da) * 86_400 + h * 3600 + mi * 60 + se - off) * 1000)
+}
+
+/// Değişim hızı (mg/dL/dk) → ok (Dexcom eşikleri)
+pub fn rate_arrow(r: f64) -> &'static str {
+    if !r.is_finite() {
+        ""
+    } else if r >= 3.0 {
+        "↑↑"
+    } else if r >= 2.0 {
+        "↑"
+    } else if r >= 1.0 {
+        "↗"
+    } else if r > -1.0 {
+        "→"
+    } else if r > -2.0 {
+        "↘"
+    } else if r > -3.0 {
+        "↓"
+    } else {
+        "↓↓"
+    }
+}
+
+/// /v2/cgms/latest yanıtı
+pub fn cs_parse(v: &Value) -> Result<(i64, f64, String), String> {
+    // Yanıt tek kayıt ya da kayıt listesi / { data: ... } olabilir
+    let e = v
+        .get("data")
+        .unwrap_or(v)
+        .as_array()
+        .and_then(|a| a.last())
+        .unwrap_or_else(|| v.get("data").unwrap_or(v));
+    let val = e
+        .get("value")
+        .and_then(|x| x.as_f64())
+        .ok_or("Sensörden henüz veri gelmedi")?;
+    let ts = e
+        .get("event_at")
+        .and_then(|x| x.as_str())
+        .and_then(parse_rfc3339)
+        .ok_or("Sens365 yanıtı okunamadı")?;
+    if e.get("error_code").and_then(|x| x.as_i64()).unwrap_or(0) != 0 || !valid_mgdl(val) {
+        return Err("Sensörden henüz veri gelmedi".into());
+    }
+    let arrow = match e.get("trend_rate").and_then(|x| x.as_f64()) {
+        Some(r) => rate_arrow(r).to_string(),
+        None => e
+            .get("trend")
+            .and_then(|x| x.as_i64())
+            .map(|n| dir_arrow(&n.to_string()).to_string())
+            .unwrap_or_default(),
+    };
+    Ok((ts, val, arrow))
+}
+
+/// Giriş sayfası adresi
+fn cs_authorize_url() -> String {
+    let state: String = format!("{:x}", now_ms() ^ 0x5eed_5eed)
+        .chars()
+        .take(10)
+        .collect();
+    format!(
+        "{CS_ACCOUNTS}/oauth2/authorize?client_id={CS_CLIENT}&response_type=code&redirect_uri={CS_REDIRECT}&state={state}&scope=offline_access&locale=tr_TR"
+    )
+}
+
+/// Sens365 giriş sayfasını açar ve dönüş adresindeki kodu yakalar. `visible`: kullanıcı giriş yapacak (en çok 5 dk;
+/// pencere kapatılırsa iptal). Gizliyken giriş sayfası oturumu hatırlıyorsa birkaç saniyede kod gelir (en çok 25 sn).
+async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+    if let Some(w) = app.get_webview_window(CS_WIN) {
+        let _ = w.destroy();
+        tokio::time::sleep(Duration::from_millis(300)).await;
+    }
+    let url: tauri::Url = cs_authorize_url()
+        .parse()
+        .map_err(|_| "Sens365 giriş adresi geçersiz".to_string())?;
+    let (tx, mut rx) = tokio::sync::oneshot::channel::<String>();
+    let tx = std::sync::Arc::new(Mutex::new(Some(tx)));
+    let tx2 = tx.clone();
+    let w = WebviewWindowBuilder::new(app, CS_WIN, WebviewUrl::External(url))
+        .title("SRTR Pitwall – Sens365 girişi")
+        .inner_size(480.0, 720.0)
+        .center()
+        .visible(visible)
+        .focused(visible)
+        .skip_taskbar(!visible)
+        .additional_browser_args(crate::browser_args())
+        .on_navigation(move |u| {
+            let s = u.as_str();
+            if s.starts_with(CS_REDIRECT) {
+                let code = u
+                    .query_pairs()
+                    .find(|(k, _)| k == "code")
+                    .map(|(_, v)| v.into_owned())
+                    .unwrap_or_default();
+                if let Some(t) = tx2.lock().take() {
+                    let _ = t.send(code);
+                }
+                return false;
+            }
+            true
+        })
+        .build()
+        .map_err(|e| e.to_string())?;
+    let limit = if visible { 300_000 } else { 25_000 };
+    let start = now_ms();
+    let r = loop {
+        match tokio::time::timeout(Duration::from_millis(500), &mut rx).await {
+            Ok(Ok(c)) => break Ok(c),
+            Ok(Err(_)) => break Err("Sens365 girişi tamamlanmadı".to_string()),
+            Err(_) => {}
+        }
+        if now_ms() - start > limit {
+            break Err(if visible {
+                "Sens365 girişi tamamlanmadı".to_string()
+            } else {
+                "Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap".to_string()
+            });
+        }
+        // Kullanıcı pencereyi kapattı
+        if app.get_webview_window(CS_WIN).is_none() {
+            break Err("Sens365 girişi iptal edildi".to_string());
+        }
+    };
+    let _ = w.destroy();
+    drop(tx);
+    match r {
+        Ok(c) if !c.is_empty() => Ok(c),
+        Ok(_) => Err("Sens365 girişi tamamlanmadı".into()),
+        Err(e) => Err(e),
+    }
+}
+
+fn cs_headers(bearer: Option<&str>) -> Vec<(String, String)> {
+    let mut h = hdr(&[
+        ("accept", "application/json, text/plain, */*"),
+        ("origin", "https://sens365.i-sens.com"),
+        ("referer", "https://sens365.i-sens.com/"),
+        ("caresens-info", CS_INFO),
+    ]);
+    if let Some(b) = bearer {
+        h.push(("authorization".into(), format!("Bearer {b}")));
+    }
+    h
+}
+
+/// Kodu anahtarla değiştirir: (anahtar, bitiş epoch sn, hesap kimliği, e-posta)
+async fn cs_exchange(c: &Net, code: &str) -> Result<(String, i64, String, String), String> {
+    let enc: String = code
+        .bytes()
+        .map(|b| {
+            if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {
+                (b as char).to_string()
+            } else {
+                format!("%{b:02X}")
+            }
+        })
+        .collect();
+    let url = format!(
+        "{CS_ACCOUNTS}/oauth2/token/exchange?client_id={CS_CLIENT}&code={enc}&redirect_uri={CS_REDIRECT}"
+    );
+    let (code, raw) = c
+        .send("sens365 giriş", "GET", &url, &cs_headers(None), None)
+        .await
+        .map_err(|_| "Sens365 sunucusuna ulaşılamadı".to_string())?;
+    if !(200..300).contains(&code) {
+        return Err("Sens365 girişi başarısız".into());
+    }
+    // Yanıt tırnak içinde tek bir anahtar ya da { access_token: ... }
+    let v: Value = serde_json::from_slice(&raw)
+        .unwrap_or_else(|_| Value::String(String::from_utf8_lossy(&raw).trim().to_string()));
+    let tok = match &v {
+        Value::String(s) => s.clone(),
+        o => ["access_token", "accessToken", "token"]
+            .iter()
+            .find_map(|k| o.get(*k).and_then(|x| x.as_str()).map(String::from))
+            .unwrap_or_default(),
+    };
+    let (sub, email, exp) = jwt_claims(&tok).ok_or("Sens365 girişi başarısız")?;
+    Ok((tok, exp, sub, email))
+}
+
+/// Gizli pencerede yeni anahtar: başarılıysa kayıtlı ayar da güncellenir
+async fn cs_renew(c: &Net, cfg: &Cfg) -> Result<(String, i64), String> {
+    let app = APP.get().ok_or("Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap")?;
+    let code = cs_code(app, false).await?;
+    let (tok, exp, sub, _) = cs_exchange(c, &code).await?;
+    if sub != cfg.sub {
+        return Err("Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap".into());
+    }
+    let mut nc = cfg.clone();
+    nc.token = tok.clone();
+    nc.token_exp = exp;
+    if let Ok(v) = serde_json::to_value(&nc) {
+        let _ = crate::livechat::secrets::set_json(app, SECRET_KEY, &v);
+    }
+    Ok((tok, exp))
+}
+
+async fn caresens(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
+    let now_s = now_ms() / 1000;
+    let mut tok = s
+        .cs_token
+        .clone()
+        .unwrap_or_else(|| (cfg.token.clone(), cfg.token_exp));
+    // Süresi dolmak üzere (5 dk'dan az): önce yenile
+    if tok.1 > 0 && tok.1 - now_s < 300 {
+        tok = cs_renew(c, cfg).await?;
+        s.cs_token = Some(tok.clone());
+    }
+    let url = format!(
+        "{CS_API}/v2/cgms/latest?producer_id={0}&consumer_id={0}&glucose_unit=mg/dL",
+        cfg.sub
+    );
+    let mut res = c
+        .send("sens365 okuma", "GET", &url, &cs_headers(Some(&tok.0)), None)
+        .await
+        .map_err(|_| "Sens365 sunucusuna ulaşılamadı".to_string())?;
+    if res.0 == 401 || res.0 == 403 {
+        // Anahtar geçersiz (çıkış yapılmış olabilir): bir kez yenileyip tekrar dene
+        tok = cs_renew(c, cfg).await?;
+        s.cs_token = Some(tok.clone());
+        res = c
+            .send("sens365 okuma", "GET", &url, &cs_headers(Some(&tok.0)), None)
+            .await
+            .map_err(|_| "Sens365 sunucusuna ulaşılamadı".to_string())?;
+    }
+    let (code, raw) = res;
+    if code == 401 || code == 403 {
+        return Err("Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap".into());
+    }
+    if code == 404 || code == 204 || raw.is_empty() {
+        return Err("Sensörden henüz veri gelmedi".into());
+    }
+    if !(200..300).contains(&code) {
+        return Err("Sens365 hatası".into());
+    }
+    let v: Value =
+        serde_json::from_slice(&raw).map_err(|_| "Sens365 yanıtı okunamadı".to_string())?;
+    let (ts, val, arrow) = cs_parse(&v)?;
+    s.cs_hist.push((ts, val));
+    s.cs_hist.sort_by_key(|x| x.0);
+    s.cs_hist.dedup_by_key(|x| x.0);
+    if s.cs_hist.len() > HIST {
+        s.cs_hist.drain(..s.cs_hist.len() - HIST);
+    }
+    Ok(Reading {
+        value: val,
+        arrow,
+        ts,
+        hist: s.cs_hist.clone(),
+    })
+}
+
+/// CareSens Air girişi: Sens365 giriş penceresi açılır; kullanıcı giriş yapınca hesap kaydedilir ve okuma başlar
+#[tauri::command]
+pub async fn glucose_caresens_login(app: AppHandle) -> Result<State, String> {
+    let _ = APP.set(app.clone());
+    let c = Net::new()?;
+    DETAIL.lock().clear();
+    let code = cs_code(&app, true).await?;
+    let (token, token_exp, sub, email) = cs_exchange(&c, &code).await?;
+    let cfg = Cfg {
+        source: "caresens".into(),
+        user: email,
+        token,
+        token_exp,
+        sub,
+        ..Default::default()
+    };
+    glucose_login(app, cfg).await
+}
+
 async fn fetch(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String> {
     let mut r = match cfg.source.as_str() {
         "libre" => libre(c, cfg, s).await,
         "dexcom" => dexcom(c, cfg, s).await,
         "nightscout" => nightscout(c, cfg).await,
+        "caresens" => caresens(c, cfg, s).await,
         _ => Err("Bilinmeyen kaynak".into()),
     }?;
     r.hist.sort_by_key(|x| x.0);
@@ -866,6 +1217,18 @@ fn check(cfg: &mut Cfg) -> Result<(), String> {
             }
             cfg.user.clear();
             cfg.password.clear();
+        }
+        "caresens" => {
+            if cfg.token.is_empty() || cfg.sub.is_empty() || cfg.token.len() > 8000 {
+                return Err("Sens365 girişi tamamlanmadı".into());
+            }
+            // Hesap kimliği adrese girer: yalnızca UUID karakterleri
+            if !cfg.sub.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+                return Err("Sens365 girişi başarısız".into());
+            }
+            cfg.password.clear();
+            cfg.ns_url.clear();
+            cfg.ns_token.clear();
         }
         _ => return Err("Kaynak seçilmedi".into()),
     }
@@ -1039,6 +1402,9 @@ fn retry_wait(err: &str, fails: u32) -> i64 {
         "Okuma hatası",
         "Dexcom hatası",
         "Nightscout hatası",
+        "Sens365 hatası",
+        "Sens365 sunucusuna",
+        "Sens365 yanıtı",
         "veri yok",
         "ölçüm bulunamadı",
     ]
@@ -1060,6 +1426,7 @@ pub fn start(app: &AppHandle) {
     if STARTED.swap(true, Ordering::SeqCst) {
         return;
     }
+    let _ = APP.set(app.clone());
     let app = app.clone();
     let _ = std::thread::Builder::new()
         .name("glucose".into())
@@ -1228,5 +1595,35 @@ mod tests {
             ..Cfg::default()
         };
         assert_eq!(mask(&c), "e***@ornek.com");
+    }
+
+    #[test]
+    fn caresens() {
+        // Sens365 /v2/cgms/latest yanıtı (gerçek örnek)
+        let v: Value = serde_json::from_str(
+            r#"{"cgm_id":2112253776386654208,"user_id":"20c1bf87-4d4b-4ec6-b2ef-a9222a0bbc24","serial_number":"X","seq_number":30,"event_at":"2026-10-19T21:45:13+03:00","tz_offset":180,"stage":1,"initial_value":125.149704,"value":125.149704,"trend_rate":0.14040475,"trend":4,"error_code":0,"min_max_flag":0,"temperature":32.71,"ble_index":30,"data_type":0}"#,
+        )
+        .unwrap();
+        let (ts, val, arrow) = cs_parse(&v).unwrap();
+        assert!((val - 125.149704).abs() < 1e-6);
+        assert_eq!(arrow, "→");
+        // 21:45:13 +03:00 = 18:45:13 UTC
+        assert_eq!(ts, parse_rfc3339("2026-10-19T18:45:13Z").unwrap());
+        assert_eq!(ts % 86_400_000, (18 * 3600 + 45 * 60 + 13) * 1000);
+        assert_eq!(rate_arrow(-2.5), "↓");
+        assert_eq!(rate_arrow(3.2), "↑↑");
+        // Sensör hatası: değer gösterilmez
+        let mut e = v.clone();
+        e["error_code"] = json!(5);
+        assert!(cs_parse(&e).is_err());
+        // JWT içeriği (imzasız örnek)
+        use base64::Engine;
+        let p = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(r#"{"sub":"20c1bf87-4d4b-4ec6-b2ef-a9222a0bbc24","email":"a@b.com","exp":1792521218}"#);
+        let (sub, email, exp) = jwt_claims(&format!("x.{p}.y")).unwrap();
+        assert_eq!(sub, "20c1bf87-4d4b-4ec6-b2ef-a9222a0bbc24");
+        assert_eq!(email, "a@b.com");
+        assert_eq!(exp, 1792521218);
+        assert!(cs_authorize_url().starts_with("https://accounts-de.i-sens.com/oauth2/authorize?client_id=ff76a39b"));
     }
 }
