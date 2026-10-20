@@ -8,6 +8,9 @@ import {
   adminAddExpense,
   adminChangePro,
   adminDeleteExpense,
+  adminDeletePayment,
+  adminUpdateExpense,
+  adminUpdatePayment,
   adminExpenses,
   adminPayments,
   adminProMembers,
@@ -588,6 +591,50 @@ export function AdminRevenue() {
     await adminDeleteExpense(x.id).catch((e) => setEErr(String((e as Error).message ?? e)));
     refetchExps();
   };
+  // Ödeme / gider düzenleme: satır yerinde forma dönüşür (aynı anda bir satır)
+  const [payErr, setPayErr] = createSignal("");
+  const [editPay, setEditPay] = createSignal<string | null>(null);
+  const [editExp, setEditExp] = createSignal<string | null>(null);
+  const reloadAll = () => (refetch(), refetchPays());
+  const savePay = async (x: AdminPayment, v: { amount: string; currency: string; method: string; plan: string; kind: string; date: string }) => {
+    const amount = parseFloat(v.amount.replace(",", "."));
+    if (!isFinite(amount) || amount < 0) return setPayErr(t("Geçerli bir tutar yaz."));
+    // Tarih değişmediyse saat korunur
+    const keep = iso(new Date(x.created_at)) === v.date;
+    const at = keep ? x.created_at : new Date(v.date + "T12:00:00").toISOString();
+    setPayErr("");
+    try {
+      await adminUpdatePayment(x.id, { amount, currency: v.currency, method: v.method.trim(), plan: v.plan.trim(), kind: v.kind, created_at: at });
+      setEditPay(null);
+      reloadAll();
+    } catch (e) {
+      setPayErr(String((e as Error).message ?? e));
+    }
+  };
+  const delPay = async (x: AdminPayment) => {
+    const who = x.display_name || x.email || t("(adsız)");
+    if (!confirm(t("{0} · {1} ödemesi silinsin mi? Bu geri alınamaz.", who, fmtMoney({ [x.currency]: Number(x.amount) })))) return;
+    setPayErr("");
+    try {
+      await adminDeletePayment(x.id);
+      setEditPay(null);
+      reloadAll();
+    } catch (e) {
+      setPayErr(String((e as Error).message ?? e));
+    }
+  };
+  const saveExp = async (x: Expense, v: { title: string; category: string; amount: string; currency: string; date: string; note: string }) => {
+    const amount = parseFloat(v.amount.replace(",", "."));
+    if (!v.title.trim() || !isFinite(amount) || amount < 0) return setEErr(t("Ne için harcandığını ve tutarı yaz."));
+    setEErr("");
+    try {
+      await adminUpdateExpense(x.id, { title: v.title.trim().slice(0, 120), category: v.category.trim().slice(0, 60), amount, currency: v.currency, spent_at: v.date || x.spent_at, note: v.note.trim().slice(0, 300) });
+      setEditExp(null);
+      refetchExps();
+    } catch (e) {
+      setEErr(String((e as Error).message ?? e));
+    }
+  };
   const methodName = (x: AdminPayment) => (x.method || "").trim() || SRC[x.source] || x.source || "—";
   const byMethod = () => {
     const m = new Map<string, { name: string; count: number; month: Money; all: Money }>();
@@ -688,6 +735,7 @@ export function AdminRevenue() {
           </div>
           <For each={paysIn().slice(0, payAll() ? 1000 : 15)} fallback={<p class="muted small">Bu aralıkta ödeme yok.</p>}>
             {(x) => (
+              <Show when={editPay() !== x.id} fallback={<PayEdit x={x} iso={iso} onSave={(v) => savePay(x, v)} onDelete={() => delPay(x)} onCancel={() => (setEditPay(null), setPayErr(""))} />}>
               <div class="rev-row">
                 <span>
                   <b data-no-i18n>{x.display_name || "(adsız)"}</b>
@@ -702,17 +750,31 @@ export function AdminRevenue() {
                     <small class="muted">{x.plan}</small>
                   </Show>
                 </span>
-                <span>
-                  {x.kind === "refund" ? "−" : ""}
-                  {fmtMoney({ [x.currency]: Number(x.amount) })}
-                  <Show when={x.kind === "refund"}>
-                    <small class="muted">iade</small>
-                  </Show>
+                <span class="rev-amt">
+                  <span>
+                    {x.kind === "refund" ? "−" : ""}
+                    {fmtMoney({ [x.currency]: Number(x.amount) })}
+                    <Show when={x.kind === "refund"}>
+                      <small class="muted">iade</small>
+                    </Show>
+                  </span>
+                  <span class="rev-acts">
+                    <button class="link" title="Düzenle" onClick={() => (setEditExp(null), setPayErr(""), setEditPay(x.id))}>
+                      ✎
+                    </button>
+                    <button class="link danger" title="Sil" onClick={() => delPay(x)}>
+                      ✕
+                    </button>
+                  </span>
                 </span>
               </div>
+              </Show>
             )}
           </For>
         </div>
+        <Show when={payErr()}>
+          <p class="error">{payErr()}</p>
+        </Show>
         <Show when={paysIn().length > 15 && !payAll()}>
           <button class="btn ghost small" onClick={() => setPayAll(true)}>
             {t("Tümünü göster ({0})", paysIn().length)}
@@ -748,6 +810,7 @@ export function AdminRevenue() {
         </div>
         <For each={expsIn()} fallback={<p class="muted small">{exps.loading ? "Yükleniyor…" : "Bu aralıkta gider yok."}</p>}>
           {(x) => (
+            <Show when={editExp() !== x.id} fallback={<ExpEdit x={x} onSave={(v) => saveExp(x, v)} onDelete={() => delExpense(x)} onCancel={() => (setEditExp(null), setEErr(""))} />}>
             <div class="rev-row">
               <span data-no-i18n>
                 <b>{x.title}</b>
@@ -757,13 +820,19 @@ export function AdminRevenue() {
               </span>
               <span>{fmtDate(x.spent_at)}</span>
               <span data-no-i18n>{x.category || "—"}</span>
-              <span>
-                {fmtMoney({ [x.currency]: Number(x.amount) })}{" "}
-                <button class="link" title="Sil" onClick={() => delExpense(x)}>
-                  ✕
-                </button>
+              <span class="rev-amt">
+                <span>{fmtMoney({ [x.currency]: Number(x.amount) })}</span>
+                <span class="rev-acts">
+                  <button class="link" title="Düzenle" onClick={() => (setEditPay(null), setEErr(""), setEditExp(x.id))}>
+                    ✎
+                  </button>
+                  <button class="link danger" title="Sil" onClick={() => delExpense(x)}>
+                    ✕
+                  </button>
+                </span>
               </span>
             </div>
+            </Show>
           )}
         </For>
       </div>
@@ -820,5 +889,101 @@ export function AdminRevenue() {
         </For>
       </div>
     </section>
+  );
+}
+
+const CURRENCIES = ["TRY", "USD", "EUR", "GBP"];
+
+/** Gelir › Son ödemeler: bir ödemenin yerinde düzenlenmesi */
+function PayEdit(p: {
+  x: AdminPayment;
+  iso: (d: Date) => string;
+  onSave: (v: { amount: string; currency: string; method: string; plan: string; kind: string; date: string }) => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}) {
+  const [amount, setAmount] = createSignal(String(Number(p.x.amount)));
+  const [currency, setCurrency] = createSignal(p.x.currency || "TRY");
+  const [method, setMethod] = createSignal(p.x.method ?? "");
+  const [plan, setPlan] = createSignal(p.x.plan ?? "");
+  const [kind, setKind] = createSignal(p.x.kind === "refund" ? "refund" : "payment");
+  const [date, setDate] = createSignal(p.iso(new Date(p.x.created_at)));
+  const save = () => p.onSave({ amount: amount(), currency: currency(), method: method(), plan: plan(), kind: kind(), date: date() });
+  const key = (e: KeyboardEvent) => (e.key === "Enter" ? save() : e.key === "Escape" ? p.onCancel() : undefined);
+  return (
+    <div class="rev-edit">
+      <div class="rev-edit-who" data-no-i18n>
+        <b>{p.x.display_name || "(adsız)"}</b>
+        <small class="muted">{p.x.email}</small>
+      </div>
+      <div class="pe-quick pe-pay">
+        <input class="input pe-days" inputmode="decimal" placeholder="Tutar" value={amount()} onInput={(e) => setAmount(e.currentTarget.value)} onKeyDown={key} />
+        <select class="f2-select small" value={currency()} onChange={(e) => setCurrency(e.currentTarget.value)}>
+          <For each={[...new Set([...CURRENCIES, currency()])]}>{(c) => <option value={c}>{c}</option>}</For>
+        </select>
+        <select class="f2-select small" value={kind()} onChange={(e) => setKind(e.currentTarget.value)}>
+          <option value="payment">Ödeme</option>
+          <option value="refund">İade</option>
+        </select>
+        <input class="input" type="date" value={date()} onInput={(e) => setDate(e.currentTarget.value)} />
+        <input class="input" placeholder={`Yöntem (${SRC[p.x.source] || p.x.source})`} value={method()} onInput={(e) => setMethod(e.currentTarget.value)} onKeyDown={key} />
+        <input class="input" placeholder="Ne aldı (ör. 3 ay PRO)" value={plan()} onInput={(e) => setPlan(e.currentTarget.value)} onKeyDown={key} />
+      </div>
+      <div class="rev-edit-acts">
+        <button class="btn small primary" onClick={save}>
+          Kaydet
+        </button>
+        <button class="btn small" onClick={() => p.onCancel()}>
+          Vazgeç
+        </button>
+        <span class="lt-sp" />
+        <button class="btn small danger" onClick={() => p.onDelete()}>
+          Ödemeyi sil
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Gelir › Giderler: bir giderin yerinde düzenlenmesi */
+function ExpEdit(p: {
+  x: Expense;
+  onSave: (v: { title: string; category: string; amount: string; currency: string; date: string; note: string }) => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = createSignal(p.x.title);
+  const [category, setCategory] = createSignal(p.x.category ?? "");
+  const [amount, setAmount] = createSignal(String(Number(p.x.amount)));
+  const [currency, setCurrency] = createSignal(p.x.currency || "TRY");
+  const [date, setDate] = createSignal((p.x.spent_at || "").slice(0, 10));
+  const [note, setNote] = createSignal(p.x.note ?? "");
+  const save = () => p.onSave({ title: title(), category: category(), amount: amount(), currency: currency(), date: date(), note: note() });
+  const key = (e: KeyboardEvent) => (e.key === "Enter" ? save() : e.key === "Escape" ? p.onCancel() : undefined);
+  return (
+    <div class="rev-edit">
+      <div class="pe-quick pe-pay">
+        <input class="input" placeholder="Ne için" value={title()} onInput={(e) => setTitle(e.currentTarget.value)} onKeyDown={key} />
+        <input class="input" list="exp-cats" placeholder="Kategori" value={category()} onInput={(e) => setCategory(e.currentTarget.value)} onKeyDown={key} />
+        <input class="input pe-days" inputmode="decimal" placeholder="Tutar" value={amount()} onInput={(e) => setAmount(e.currentTarget.value)} onKeyDown={key} />
+        <select class="f2-select small" value={currency()} onChange={(e) => setCurrency(e.currentTarget.value)}>
+          <For each={[...new Set([...CURRENCIES, currency()])]}>{(c) => <option value={c}>{c}</option>}</For>
+        </select>
+        <input class="input" type="date" value={date()} onInput={(e) => setDate(e.currentTarget.value)} />
+        <input class="input" placeholder="Not (isteğe bağlı)" value={note()} onInput={(e) => setNote(e.currentTarget.value)} onKeyDown={key} />
+      </div>
+      <div class="rev-edit-acts">
+        <button class="btn small primary" onClick={save}>
+          Kaydet
+        </button>
+        <button class="btn small" onClick={() => p.onCancel()}>
+          Vazgeç
+        </button>
+        <span class="lt-sp" />
+        <button class="btn small danger" onClick={() => p.onDelete()}>
+          Gideri sil
+        </button>
+      </div>
+    </div>
   );
 }

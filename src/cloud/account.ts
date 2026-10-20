@@ -948,6 +948,13 @@ export interface Expense {
 export const adminExpenses = () => api<Expense[]>("GET", "expenses?select=*&order=spent_at.desc,created_at.desc&limit=2000").then((r) => r ?? []);
 export const adminAddExpense = (e: Omit<Expense, "id">) => api("POST", "expenses", { body: e, prefer: "return=minimal" });
 export const adminDeleteExpense = (id: string) => api("DELETE", `expenses?id=eq.${encodeURIComponent(id)}`);
+export const adminUpdateExpense = (id: string, e: Omit<Expense, "id">) => api("PATCH", `expenses?id=eq.${encodeURIComponent(id)}`, { body: e, prefer: "return=minimal" });
+/** Ödeme düzenle / sil (c126) */
+export const adminUpdatePayment = (id: string, p: { amount: number; currency: string; method: string; plan: string; kind: string; created_at: string }) =>
+  api("POST", "rpc/admin_payment_update", {
+    body: { p_id: id, p_amount: p.amount, p_currency: p.currency, p_method: p.method, p_plan: p.plan, p_kind: p.kind, p_created_at: p.created_at },
+  });
+export const adminDeletePayment = (id: string) => api("POST", "rpc/admin_payment_delete", { body: { p_id: id } });
 export const adminRevenue = () => api<AdminRevenue>("POST", "rpc/admin_revenue", { body: {} });
 
 export interface ProMember {

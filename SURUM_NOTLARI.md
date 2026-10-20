@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 201026-402
+
+- Yönetim › Gelir: son ödemelerde ve giderlerde her satırın sonunda düzenle (✎) ve sil (✕) düğmeleri. Düzenle satırı yerinde forma çevirir: ödemede tutar, para birimi, tür (ödeme / iade), tarih, yöntem ve "ne aldı"; giderde ad, kategori, tutar, para birimi, tarih ve not. Toplamlar, yönteme göre döküm ve "Parayla PRO" sayısı kaydedince yeniden hesaplanır. Supabase'de c126_guncelleme.sql çalıştırılmalı.
+
 ## 201026-401
 
 - Göreli (Relative) farkları: süre farkı artık ölçülerek hesaplanır. Her aracın pistin her noktasından (turun binde biri) geçtiği an kaydedilir; arkamdaki araç için "o şu an neredeyse ben oradan ne kadar önce geçtim", önümdeki için "o benim bulunduğum yerden ne kadar önce geçti". Eskiden simin tahmini varış süresi (iRacing CarIdxEstTime, referans tur profili) kullanılıyordu: yavaş bölümlerde (firkete, şikan) metre olarak yakın araç gerçekte 2 sn gerideyken 0,2 sn görünebiliyordu; sınıflar arası farklar da kayıyordu. Kayıt yoksa (piste yeni çıkıldı, tekrar sarıldı) eski tahmin kullanılır. Aynı düzeltme yakın trafik verisine ve sesli mühendisin "arkanda / önünde X sn" uyarılarına da uygulandı.

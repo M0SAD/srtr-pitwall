@@ -898,3 +898,54 @@ p.bk-alert {
   background: color-mix(in srgb, var(--red) 14%, transparent);
   color: #ffb3b5;
 }
+
+/* Gelir: satır sonu düzenle / sil düğmeleri ve yerinde düzenleme */
+.rev-row > span.rev-amt {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rev-amt > span:first-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rev-acts {
+  display: inline-flex;
+  gap: 6px;
+  flex: none;
+  opacity: 0.55;
+}
+.rev-row:hover .rev-acts {
+  opacity: 1;
+}
+.rev-acts .link {
+  font-size: 13px;
+}
+.rev-acts .link.danger {
+  color: #ff6b6b;
+}
+.rev-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-3);
+  border-radius: 8px;
+}
+.rev-edit-who {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+.rev-edit .pe-quick {
+  margin: 0;
+}
+.rev-edit-acts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
