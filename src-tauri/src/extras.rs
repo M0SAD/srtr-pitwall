@@ -69,7 +69,8 @@ pub struct Traffic {
     pub cars: Vec<TrafficCar>,
 }
 
-pub fn traffic(f: &Frame, s: &SessionData) -> Traffic {
+/// `pass`: ölçülmüş geçiş anları (varsa farklar tahmin yerine bunlardan)
+pub fn traffic(f: &Frame, s: &SessionData, pass: Option<&crate::gaps::PassTimes>) -> Traffic {
     let mut out = Traffic {
         speed: f.speed,
         on_pit_road: f.on_pit_road,
@@ -117,6 +118,10 @@ pub fn traffic(f: &Frame, s: &SessionData) -> Traffic {
         }
         if dt.abs() > lap_t * 0.5 {
             dt = dp * lap_t;
+        }
+        // Ölçülmüş fark (yavaş bölümlerde tahmin kayıyordu); + arkada
+        if let Some(g) = pass.and_then(|p| p.gap(f, me, i, dp < 0.0, (lap_t as f64 * 0.75).max(5.0))) {
+            dt = -g;
         }
         // Arkada 12 sn, önde 3 sn penceresi
         if !(-3.0..=12.0).contains(&dt) {

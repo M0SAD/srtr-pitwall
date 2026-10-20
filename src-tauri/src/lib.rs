@@ -12,6 +12,7 @@ mod director;
 mod dock;
 mod drivecues;
 mod engine;
+mod gaps;
 mod entitlement;
 mod events;
 mod extras;

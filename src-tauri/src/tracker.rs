@@ -226,6 +226,8 @@ pub struct Tracker {
     green_raw_best: Vec<f32>,
     /// Son karenin oturum zamanı
     last_t: f64,
+    /// Araçların pistin her noktasından geçiş anları: göreli farklar tahmin yerine ölçülerek hesaplanır
+    pub pass: crate::gaps::PassTimes,
 }
 
 /// Tekrardaki tur süreleri. Simin en iyi / son tur değerleri tekrarda oturumun SONUNDAKİ değerlerdir; bu yüzden turlar
@@ -355,6 +357,7 @@ impl Default for Tracker {
             raw_noted: false,
             green_raw_best: vec![-1.0; MAX_CARS],
             last_t: 0.0,
+            pass: crate::gaps::PassTimes::default(),
         }
     }
 }
@@ -489,6 +492,7 @@ impl Tracker {
 
     pub fn update(&mut self, f: &Frame, s: &SessionData) {
         self.replay.update(f);
+        self.pass.update(f);
         self.last_t = f.session_time;
         // Oturumun resmi sonuçları (geçerli en iyi turlar)
         self.ses_best = vec![-1.0; MAX_CARS];

@@ -1149,7 +1149,7 @@ fn publish(shared: &Shared, st: &State, connected: bool, demo: bool, preview: bo
                         "coach" => {
                             Packet::Coach(st.coach.packet(f, st.raw.track_length_km * 1000.0))
                         }
-                        "traffic" => Packet::Traffic(crate::extras::traffic(f, s)),
+                        "traffic" => Packet::Traffic(crate::extras::traffic(f, s, Some(&t.pass))),
                         "brakepoint" => Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)),
                         "tracklimits" => Packet::Tracklimits(st.cues.limits(f, &st.raw)),
                         "damage" => Packet::Damage(crate::drivecues::damage(f)),
@@ -1259,7 +1259,7 @@ mod publish_tests {
         put(Packet::Sectors(st.timing.sectors(f, s)));
         put(Packet::Gaps(st.timing.gaps(f, s)));
         put(Packet::Setupcmp(st.setups.packet(&st.raw)));
-        put(Packet::Traffic(crate::extras::traffic(f, s)));
+        put(Packet::Traffic(crate::extras::traffic(f, s, Some(&tr.pass))));
         put(Packet::Brakepoint(st.cues.brakepoint(f, &st.raw)));
         put(Packet::Tracklimits(st.cues.limits(f, &st.raw)));
         put(Packet::Damage(crate::drivecues::damage(f)));

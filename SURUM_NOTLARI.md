@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 201026-401
+
+- Göreli (Relative) farkları: süre farkı artık ölçülerek hesaplanır. Her aracın pistin her noktasından (turun binde biri) geçtiği an kaydedilir; arkamdaki araç için "o şu an neredeyse ben oradan ne kadar önce geçtim", önümdeki için "o benim bulunduğum yerden ne kadar önce geçti". Eskiden simin tahmini varış süresi (iRacing CarIdxEstTime, referans tur profili) kullanılıyordu: yavaş bölümlerde (firkete, şikan) metre olarak yakın araç gerçekte 2 sn gerideyken 0,2 sn görünebiliyordu; sınıflar arası farklar da kayıyordu. Kayıt yoksa (piste yeni çıkıldı, tekrar sarıldı) eski tahmin kullanılır. Aynı düzeltme yakın trafik verisine ve sesli mühendisin "arkanda / önünde X sn" uyarılarına da uygulandı.
+
 ## 191026-400
 
 - Üst çubuk: PRO üyelerde soldaki bağlantıların hemen yanında altın renkli "PRO" rozeti. Tıklayınca kalan süre (gün / saat), bitiş tarihi, kampanya PRO'su ve kendini yenileyen abonelik bilgisi açılır; "PRO süresini uzat" düğmesi PRO satın alma sayfasına gider. Bitimine 10 günden az kalan (yenilenmeyen) üyelikte rozet turuncu olur.

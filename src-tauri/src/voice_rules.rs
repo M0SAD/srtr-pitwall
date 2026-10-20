@@ -207,6 +207,16 @@ impl<'a> Ctx<'a> {
         if dt.abs() > lap_t * 0.5 || (my.est_time == 0.0 && c.est_time == 0.0) {
             dt = dp * lap_t;
         }
+        // Ölçülmüş fark (geçiş anlarından; yavaş bölümlerde tahmin kayıyordu); + arkada
+        if dp != 0.0 {
+            if let Some(g) = self
+                .t
+                .pass
+                .gap(self.f, self.me, i, dp < 0.0, (lap_t as f64 * 0.75).max(5.0))
+            {
+                dt = -g;
+            }
+        }
         Some(dt)
     }
 

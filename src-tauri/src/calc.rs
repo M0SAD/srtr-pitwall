@@ -880,6 +880,13 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
         if dt.abs() > lap_t {
             dt = dp * lap_t;
         }
+        // Ölçülmüş fark (geçiş anlarından): tahmin yavaş bölümlerde ve sınıflar arasında kayıyordu (0,2 sn görünen
+        // araç gerçekte 2 sn geride). Kayıt yoksa tahmin kalır.
+        if i != me && dp != 0.0 {
+            if let Some(g) = t.pass.gap(f, me, i, dp > 0.0, (lap_t as f64 * 0.75).max(5.0)) {
+                dt = g;
+            }
+        }
         let lap_rel = if race && i != me {
             let diff = (c.lap as f32 + c.pct) - (my.lap as f32 + my.pct);
             // Tam tur farkı: +1/+2 beni turlayanlar, −1/−2 turladıklarım
