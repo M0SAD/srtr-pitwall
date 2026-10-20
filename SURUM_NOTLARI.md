@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 201026-403
+
+- Yönetim › Gelir: "Gelir ekle" formu. Satış tarihi, tutar, para birimi, tür (ödeme / iade), yöntem ve ne alındığı girilir; kimin aldığı üyelerden aranıp seçilir ya da (üye değilse) adı / e-postası yazılır. Yazılan e-posta bir üyeninkiyle aynıysa ödeme o üyeye bağlanır. Yalnızca gelir kaydı ekler, PRO süresini değiştirmez. Supabase'de c127_guncelleme.sql çalıştırılmalı.
+
 ## 201026-402
 
 - Yönetim › Gelir: son ödemelerde ve giderlerde her satırın sonunda düzenle (✎) ve sil (✕) düğmeleri. Düzenle satırı yerinde forma çevirir: ödemede tutar, para birimi, tür (ödeme / iade), tarih, yöntem ve "ne aldı"; giderde ad, kategori, tutar, para birimi, tarih ve not. Toplamlar, yönteme göre döküm ve "Parayla PRO" sayısı kaydedince yeniden hesaplanır. Supabase'de c126_guncelleme.sql çalıştırılmalı.

@@ -954,6 +954,11 @@ export const adminUpdatePayment = (id: string, p: { amount: number; currency: st
   api("POST", "rpc/admin_payment_update", {
     body: { p_id: id, p_amount: p.amount, p_currency: p.currency, p_method: p.method, p_plan: p.plan, p_kind: p.kind, p_created_at: p.created_at },
   });
+/** Elle gelir ekle (c127): PRO süresine dokunmaz. `user` üye seçildiyse; değilse `buyer` (ad ya da e-posta) */
+export const adminAddPayment = (p: { user: string | null; buyer: string; amount: number; currency: string; method: string; plan: string; kind: string; created_at: string }) =>
+  api<string>("POST", "rpc/admin_payment_add", {
+    body: { p_user: p.user, p_buyer: p.buyer, p_amount: p.amount, p_currency: p.currency, p_method: p.method, p_plan: p.plan, p_kind: p.kind, p_created_at: p.created_at },
+  });
 export const adminDeletePayment = (id: string) => api("POST", "rpc/admin_payment_delete", { body: { p_id: id } });
 export const adminRevenue = () => api<AdminRevenue>("POST", "rpc/admin_revenue", { body: {} });
 

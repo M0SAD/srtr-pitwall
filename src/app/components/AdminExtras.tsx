@@ -8,7 +8,9 @@ import {
   adminAddExpense,
   adminChangePro,
   adminDeleteExpense,
+  adminAddPayment,
   adminDeletePayment,
+  adminUsers,
   adminUpdateExpense,
   adminUpdatePayment,
   adminExpenses,
@@ -705,6 +707,12 @@ export function AdminRevenue() {
           </Show>
         </small>
       </Show>
+      <h4 class="rev-h">Gelir ekle</h4>
+      <IncomeAdd
+        iso={iso}
+        methods={[...new Set((pays() ?? []).map((x) => (x.method || "").trim()).filter(Boolean))]}
+        onDone={reloadAll}
+      />
       <Show when={(pays() ?? []).length}>
         <h4 class="rev-h">Ödeme yöntemine göre</h4>
         <div class="rev-table">
@@ -984,6 +992,137 @@ function ExpEdit(p: {
           Gideri sil
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Gelir › Gelir ekle: satış tarihi, tutar, kim aldı (üye ara-seç ya da ad / e-posta), yöntem, ne aldı. PRO'ya dokunmaz. */
+function IncomeAdd(p: { iso: (d: Date) => string; methods: string[]; onDone: () => void }) {
+  const [who, setWho] = createSignal("");
+  const [picked, setPicked] = createSignal<AdminUser | null>(null);
+  const [hits, setHits] = createSignal<AdminUser[]>([]);
+  const [amount, setAmount] = createSignal("");
+  const [currency, setCurrency] = createSignal("TRY");
+  const [kind, setKind] = createSignal("payment");
+  const [date, setDate] = createSignal(p.iso(new Date()));
+  const [method, setMethod] = createSignal("");
+  const [plan, setPlan] = createSignal("");
+  const [err, setErr] = createSignal("");
+  const [ok, setOk] = createSignal("");
+  const [busy, setBusy] = createSignal(false);
+  // Üye arama (yazmayı bırakınca)
+  let timer = 0;
+  let seq = 0;
+  onCleanup(() => clearTimeout(timer));
+  const onWho = (v: string) => {
+    setWho(v);
+    setOk("");
+    clearTimeout(timer);
+    const q = v.trim();
+    if (q.length < 2) return setHits([]);
+    timer = window.setTimeout(async () => {
+      const my = ++seq;
+      const rows = (await adminUsers(q, "all", 0).catch(() => [] as AdminUser[])) ?? [];
+      if (my === seq) setHits(rows.slice(0, 6));
+    }, 300);
+  };
+  const pick = (u: AdminUser) => {
+    setPicked(u);
+    setHits([]);
+    setWho("");
+  };
+  const add = async () => {
+    const amt = parseFloat(amount().replace(",", "."));
+    if (!isFinite(amt) || amt <= 0) return setErr(t("Geçerli bir tutar yaz."));
+    if (!picked() && !who().trim()) return setErr(t("Kimin aldığını seç ya da adını / e-postasını yaz."));
+    if (!date()) return setErr(t("Satış tarihini seç."));
+    setErr("");
+    setOk("");
+    setBusy(true);
+    // Bugün girildiyse şu anki saat, geçmiş bir günse öğlen
+    const today = date() === p.iso(new Date());
+    const at = today ? new Date().toISOString() : new Date(date() + "T12:00:00").toISOString();
+    try {
+      await adminAddPayment({ user: picked()?.id ?? null, buyer: picked() ? "" : who().trim(), amount: amt, currency: currency(), method: method().trim(), plan: plan().trim(), kind: kind(), created_at: at });
+      const name = picked()?.display_name || who().trim();
+      setOk(t("{0} · {1} eklendi", name, fmtMoney({ [currency()]: amt })));
+      setPicked(null);
+      setWho("");
+      setAmount("");
+      setPlan("");
+      p.onDone();
+    } catch (e) {
+      setErr(String((e as Error).message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const key = (e: KeyboardEvent) => e.key === "Enter" && void add();
+  return (
+    <div class="rev-add">
+      <div class="rev-who">
+        <Show
+          when={picked()}
+          fallback={
+            <input
+              class="input"
+              placeholder="Kim aldı: üye ara (ad / e-posta) ya da üye değilse adını yaz"
+              value={who()}
+              onInput={(e) => onWho(e.currentTarget.value)}
+              onKeyDown={(e) => (e.key === "Escape" ? setHits([]) : undefined)}
+              onBlur={() => setTimeout(() => setHits([]), 200)}
+            />
+          }
+        >
+          {(u) => (
+            <span class="rev-chip" data-no-i18n>
+              <b>{u().display_name || "(adsız)"}</b>
+              <small class="muted">{u().email}</small>
+              <button class="link" title="Kaldır" onClick={() => setPicked(null)}>
+                ✕
+              </button>
+            </span>
+          )}
+        </Show>
+        <Show when={hits().length && !picked()}>
+          <div class="rev-hits">
+            <For each={hits()}>
+              {(u) => (
+                <button onMouseDown={(e) => (e.preventDefault(), pick(u))} data-no-i18n>
+                  <b>{u.display_name || "(adsız)"}</b>
+                  <small class="muted">{u.email}</small>
+                </button>
+              )}
+            </For>
+          </div>
+        </Show>
+      </div>
+      <div class="pe-quick pe-pay">
+        <input class="input" type="date" title="Satış tarihi" value={date()} onInput={(e) => setDate(e.currentTarget.value)} />
+        <input class="input pe-days" inputmode="decimal" placeholder="Tutar" value={amount()} onInput={(e) => setAmount(e.currentTarget.value)} onKeyDown={key} />
+        <select class="f2-select small" value={currency()} onChange={(e) => setCurrency(e.currentTarget.value)}>
+          <For each={CURRENCIES}>{(c) => <option value={c}>{c}</option>}</For>
+        </select>
+        <select class="f2-select small" value={kind()} onChange={(e) => setKind(e.currentTarget.value)}>
+          <option value="payment">Ödeme</option>
+          <option value="refund">İade</option>
+        </select>
+        <input class="input" list="rev-methods" placeholder="Yöntem (ör. Havale, Papara)" value={method()} onInput={(e) => setMethod(e.currentTarget.value)} onKeyDown={key} />
+        <datalist id="rev-methods">
+          <For each={[...new Set(["Havale", "EFT", "Papara", "ByNoGame", "Elden", ...p.methods])]}>{(m) => <option value={m} />}</For>
+        </datalist>
+        <input class="input" placeholder="Ne aldı (ör. 3 ay PRO)" value={plan()} onInput={(e) => setPlan(e.currentTarget.value)} onKeyDown={key} />
+        <button class="btn small primary" disabled={busy()} onClick={add}>
+          Gelir ekle
+        </button>
+      </div>
+      <Show when={err()}>
+        <p class="error">{err()}</p>
+      </Show>
+      <Show when={ok()}>
+        <p class="muted small">✓ {ok()}</p>
+      </Show>
+      <small class="muted">Yalnızca gelir kaydı ekler; üyenin PRO süresini değiştirmez (PRO vermek için Üyeler › PRO düzenle).</small>
     </div>
   );
 }

@@ -949,3 +949,61 @@ p.bk-alert {
   align-items: center;
   gap: 6px;
 }
+
+/* Gelir › Gelir ekle */
+.rev-add {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rev-who {
+  position: relative;
+  max-width: 520px;
+}
+.rev-who > .input {
+  width: 100%;
+}
+.rev-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-3);
+  font-size: 13px;
+}
+.rev-hits {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.rev-hits button {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.rev-hits button:hover {
+  background: var(--bg-3);
+}
+.rev-add .pe-quick {
+  margin: 0;
+}
