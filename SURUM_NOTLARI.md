@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-414
+
+- Müzik overlay'i PRO: Supabase'de c134_guncelleme.sql çalıştırılınca (ya da Yönetim › PRO özellikleri'nden işaretlenince) PRO üyelere özel olur. Web sitesindeki overlay listesinde de PRO görünür.
+
+## 211026-413
+
+- Güncelleme uyarısı oyundayken çıkmaz: sim bağlıyken (yarış, antrenman, tekrar) yeni sürüm denetimi yapılmaz ve üstteki "Yeni sürüm hazır" şeridi gösterilmez. Oyundan çıkınca (20 sn sonra) denetlenir ve şerit o zaman görünür. Ayarlar › Genel'den elle denetim ve kurulum her zaman yapılabilir.
+
 ## 211026-412
 
 - Yeni overlay: **Müzik**. Şu an çalan şarkı (kapak resmi, şarkı, sanatçı, albüm, ilerleme çubuğu, süre, çalarken hareketli ses çubukları). Kaynak Windows'un medya oturumları: Spotify, tarayıcıda YouTube Music / YouTube, Apple Music, Deezer, TIDAL ve medya tuşlarını destekleyen diğer oynatıcılar; hesap bağlamak gerekmez. Tasarımlar: kart, ince şerit, büyük kapak, sadece yazı. Renk teması: kapak resmine uyan (bulanık kapak zemini + kapağın rengi), koyu, buzlu cam, açık, uygulama teması, kendi renklerim. "Ne zaman görünsün": her zaman / yalnızca çalarken / şarkı değişince birkaç saniye. Birden çok oynatıcı açıksa kaynak seçilebilir (otomatik, önce Spotify, önce tarayıcı). Uzun adlar kayar, şarkı değişince geçiş animasyonu. OBS tarayıcı kaynağında da çalışır (/api/music, yalnızca bu bilgisayardan).

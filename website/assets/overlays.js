@@ -90,7 +90,7 @@ export const OVERLAYS = [
       ["tvfastest", "⏱️", "free"],
       ["goalbar", "🥅", "mixed"],
       ["socials", "📣", "free"],
-      ["music", "🎵", "free"],
+      ["music", "🎵", "pro"],
       ["setupcover", "🙈", "free"],
       ["webview", "🌐", "free"],
     ],

@@ -242,11 +242,28 @@ export function App() {
     await loadVersion();
     bindUpdateEvents();
     if (version()?.updateConfigured) {
-      checkUpdate();
+      // Oyundayken yeni sürüme bakılmaz ve uyarı gösterilmez (yarış bölünmesin); oyundan çıkınca bakılır
+      if (!inGame()) checkUpdate();
       // Program açık kaldıkça 30 dakikada bir yeni sürüme bakar
-      const ut = setInterval(() => !checking() && checkUpdate(), 30 * 60_000);
+      const ut = setInterval(() => !checking() && !inGame() && checkUpdate(), 30 * 60_000);
       onCleanup(() => clearInterval(ut));
     }
+  });
+
+  /** Sim bağlı (yarışta, antrenmanda, tekrar izlerken; demo değil): güncelleme uyarısı gösterilmez */
+  const inGame = () => {
+    const st = status();
+    return !!st?.connected && !st.demo && !st.preview;
+  };
+  // Oyundan çıkınca (bağlantı kesilince) bekleyen güncelleme denetimi yapılır
+  let wasInGame = false;
+  createEffect(() => {
+    const g = inGame();
+    if (wasInGame && !g && version()?.updateConfigured && !checking()) {
+      // Oyun kapanırken kısa süre bağlantı gidip gelebilir: 20 sn sonra hâlâ oyunda değilse bak
+      setTimeout(() => !inGame() && !checking() && checkUpdate(), 20_000);
+    }
+    wasInGame = g;
   });
 
   const conn = () => {
@@ -306,7 +323,7 @@ export function App() {
           </button>
         </div>
       </Show>
-      <Show when={update()?.available}>
+      <Show when={update()?.available && !inGame()}>
         <div class="update-banner">
           <I.Download />
           <span>{t("Yeni sürüm hazır: {0}", update()!.version ?? "")}</span>
