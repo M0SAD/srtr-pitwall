@@ -3,6 +3,7 @@
 // Kayıt ve yükleme: src-tauri/src/laprec.rs + src/cloud/telemetry.ts
 
 import { localeTag, t } from "@/sdk/i18n";
+import { AdSlot } from "../components/AdSlot";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "@/sdk/platform";
@@ -427,6 +428,7 @@ export function TelemetryPage(p: { sub: string }) {
           </Switch>
         </Match>
       </Switch>
+      <AdSlot placement="telemetry_banner" />
     </div>
   );
 }

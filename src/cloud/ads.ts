@@ -3,20 +3,27 @@
 // PRO üyelere ve oyun içi overlay'lere reklam gösterilmez.
 
 import { lang } from "@/sdk/i18n";
-import { api, publicUrl, storageRemove } from "./supabase";
+import { api, callFunction, publicUrl, session, storageRemove, storageUpload } from "./supabase";
+import { config, isPro, profile } from "./account";
 
 /** Reklam verme sayfası (web sitesi) */
 export const AD_SITE = "https://pitwall.simracetr.com/reklam.html";
 
-export type AdPlacement = "panel_banner" | "panel_card" | "site_home" | "site_account";
+export type AdPlacement = "panel_banner" | "panel_card" | "site_home" | "site_account" | "home_top" | "home_feed" | "overlays_banner" | "telemetry_banner";
 
 /** Yerleşim yerleri: önerilen görsel boyutu (piksel) ve adı */
-export const AD_PLACEMENTS: Record<AdPlacement, { w: number; h: number; label: string }> = {
-  panel_banner: { w: 1200, h: 150, label: "Uygulama · geniş banner" },
-  panel_card: { w: 600, h: 600, label: "Uygulama · kare kart" },
+export const AD_PLACEMENTS: Record<AdPlacement, { w: number; h: number; label: string; app?: boolean; where?: string }> = {
+  home_top: { w: 1200, h: 240, label: "Uygulama · ana sayfa üst banner", app: true, where: "Ana sayfanın en üstü (uygulama açılınca ilk görülen yer)" },
+  home_feed: { w: 1200, h: 300, label: "Uygulama · ana sayfa haberler arası", app: true, where: "Ana sayfada haberlerin arasında" },
+  panel_banner: { w: 1200, h: 150, label: "Uygulama · geniş banner", app: true, where: "Hesap sayfası" },
+  panel_card: { w: 600, h: 600, label: "Uygulama · kare kart", app: true, where: "Topluluk ana sayfası" },
+  overlays_banner: { w: 1200, h: 150, label: "Uygulama · Overlaylarım banner", app: true, where: "Overlaylarım sayfasının altı" },
+  telemetry_banner: { w: 1200, h: 150, label: "Uygulama · Telemetri banner", app: true, where: "Telemetri sayfasının altı" },
   site_home: { w: 1200, h: 240, label: "Site · ana sayfa banner" },
   site_account: { w: 600, h: 400, label: "Site · hesap sayfası kartı" },
 };
+/** Uygulamada gösterilen yerler */
+export const APP_PLACEMENTS = (Object.keys(AD_PLACEMENTS) as AdPlacement[]).filter((k) => AD_PLACEMENTS[k].app);
 
 export const AD_REPORT_REASONS: { id: string; label: string }[] = [
   { id: "inappropriate", label: "Uygunsuz" },
@@ -55,7 +62,9 @@ export interface AdPricing {
   currency_tr?: string;
   impressions: number[];
   days: number[];
-  placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number; cpm_tr?: number; day_tr?: number }>>;
+  placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number; cpm_tr?: number; day_tr?: number; pro_hide?: boolean }>>;
+  /** Boş reklam alanlarında "Bu alana reklam ver" kutusu (varsayılan açık) */
+  placeholder?: boolean;
 }
 
 export const DEFAULT_AD_PRICING: AdPricing = {
@@ -68,8 +77,34 @@ export const DEFAULT_AD_PRICING: AdPricing = {
     panel_card: { on: true, cpm: 3, day: 2 },
     site_home: { on: true, cpm: 5, day: 4 },
     site_account: { on: true, cpm: 3, day: 2 },
+    home_top: { on: true, cpm: 6, day: 5 },
+    home_feed: { on: true, cpm: 4, day: 3 },
+    overlays_banner: { on: true, cpm: 4, day: 3 },
+    telemetry_banner: { on: true, cpm: 3, day: 2 },
   },
 };
+
+/** Kayıtlı fiyatlar + varsayılanlar */
+export function adPricing(): AdPricing {
+  const p = config()?.ad_pricing;
+  return { ...DEFAULT_AD_PRICING, ...(p ?? {}), placements: { ...DEFAULT_AD_PRICING.placements, ...(p?.placements ?? {}) } };
+}
+
+/** Bu yer satışta mı (yönetici kayıtlı fiyatlarda açmış ve fiyat girmiş) */
+export function adOnSale(pl: AdPlacement) {
+  const x = config()?.ad_pricing?.placements?.[pl];
+  return !!x && x.on !== false && ((x.cpm ?? 0) > 0 || (x.day ?? 0) > 0 || (x.cpm_tr ?? 0) > 0 || (x.day_tr ?? 0) > 0);
+}
+
+/** PRO üye bu yerde reklam görmez mi: "Reklamları gizle" açık ve yönetici bu yer için "PRO gizleyebilir" demiş */
+export function adHiddenForMe(pl: AdPlacement) {
+  if (!isPro()) return false;
+  if (profile()?.hide_ads === false) return false;
+  return config()?.ad_pricing?.placements?.[pl]?.pro_hide !== false;
+}
+
+/** PRO: reklam gizleme tercihini kaydet */
+export const setHideAds = (hide: boolean) => api<boolean>("POST", "rpc/set_hide_ads", { body: { p_hide: hide } });
 
 export const adImageUrl = (path: string) => publicUrl("ads", path);
 
@@ -102,6 +137,80 @@ export async function pickAd(placement: AdPlacement, fresh = false): Promise<Ad 
   cache.set(placement, { at: Date.now(), ad: ad ?? null });
   return ad ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// Reklam verme (uygulama içinden): kaydet, öde, kendi reklamlarım
+// ---------------------------------------------------------------------------
+
+export const adPrice = (placement: AdPlacement, model: "impressions" | "days", qty: number, region: "tr" | "intl") =>
+  api<{ price: number; currency: string; region: string }>("POST", "rpc/ad_price", {
+    body: { p_placement: placement, p_model: model, p_qty: qty, p_region: region },
+    auth: "optional",
+  });
+
+/** Reklam görselini 'ads' kovasına yükler (yol: <kullanıcı>/<rastgele>.<uzantı>; en çok 2 MB). Kova içi yolu döner. */
+export async function uploadAdImage(f: File): Promise<string> {
+  const uid = session()?.user.id;
+  if (!uid) throw new Error("Bu işlem için giriş yapmalısın");
+  const ext = ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" } as Record<string, string>)[f.type];
+  if (!ext) throw new Error("Sadece PNG, JPEG, WebP ya da GIF yüklenebilir");
+  if (f.size > 2 * 1024 * 1024) throw new Error("Görsel en fazla 2 MB olabilir");
+  const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+  await storageUpload("ads", path, f, f.type, false);
+  return path;
+}
+
+export interface AdDraft {
+  id: string | null;
+  placement: AdPlacement;
+  model: "impressions" | "days";
+  quantity: number;
+  title: string;
+  body: string;
+  url: string;
+  image: string;
+  langs: string[];
+  region: "tr" | "intl";
+}
+export const adSave = (d: AdDraft) =>
+  api<string>("POST", "rpc/ad_save", {
+    body: {
+      p_id: d.id,
+      p_placement: d.placement,
+      p_model: d.model,
+      p_quantity: d.quantity,
+      p_title: d.title.trim(),
+      p_body: d.body.trim(),
+      p_url: d.url.trim(),
+      p_image: d.image,
+      p_langs: d.langs,
+      p_region: d.region,
+    },
+  });
+
+/** Kendi reklamlarım (c129) */
+export const myAds = () => api<AdCampaign[]>("POST", "rpc/my_ads", { body: {} }).then((r) => r ?? []);
+/** Ödenmemiş reklamı sil (görseliyle) */
+export async function adDelete(id: string) {
+  const img = await api<string | null>("POST", "rpc/ad_delete", { body: { p_ad: id } });
+  if (img) await storageRemove("ads", [img]).catch(() => {});
+}
+/** Günlük gösterim / tıklama, son 90 gün (c130; reklamın sahibi ve yönetici) */
+export interface AdStatDay {
+  day: string;
+  impressions: number;
+  clicks: number;
+}
+export const adStats = (id: string) => api<AdStatDay[]>("POST", "rpc/ad_stats", { body: { p_ad: id } }).then((r) => r ?? []);
+export const adOwnerPause = (id: string, pause: boolean) => api<string>("POST", "rpc/ad_owner_pause", { body: { p_ad: id, p_pause: pause } });
+
+/** Ödeme sayfasının adresi (ads-checkout). Ödeme bitince sağlayıcı reklam.html?paid=<id> adresine döner. */
+export async function adCheckoutUrl(id: string): Promise<string> {
+  const r = await callFunction<{ url?: string }>("ads-checkout", { ad_id: id });
+  if (!r?.url) throw new Error("Ödeme sayfası açılamadı");
+  return r.url;
+}
+export const AD_PAID_PREFIX = "https://pitwall.simracetr.com/reklam.html?paid=";
 
 export function forgetAd(id: string) {
   for (const [k, v] of cache) if (v.ad?.id === id) cache.delete(k);

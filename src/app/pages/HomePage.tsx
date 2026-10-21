@@ -1,5 +1,6 @@
-// Ana sayfa: uygulama açılınca ilk görünen sayfa. En üstte reklam (yöneticinin ana sayfa reklamları; yoksa ücretli
-// reklam alanı), altında yöneticinin yazdığı haberler (görsel, metin, bağlantılar, sabitlenenler önce).
+// Ana sayfa: uygulama açılınca ilk görünen sayfa. En üstte reklam (ücretli "ana sayfa üst banner" reklamı; yoksa
+// yöneticinin ana sayfa reklamları; o da yoksa "Bu alana reklam ver"), altında yöneticinin yazdığı haberler (görsel,
+// metin, bağlantılar, sabitlenenler önce). İkinci haberin altında "haberler arası" reklam alanı.
 // Yönetici haberleri bu sayfada ekler / düzenler / sabitler / yayından kaldırır / siler.
 
 import { For, Show, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js";
@@ -96,7 +97,8 @@ export function HomePage() {
             </Show>
           }
         >
-          {(p) => (
+          {(p, i) => (
+            <>
             <Show
               when={editing() !== p && (editing() as HomePost | null)?.id !== p.id}
               fallback={
@@ -119,6 +121,10 @@ export function HomePage() {
                 onDelete={() => confirm(t('"{0}" haberi silinsin mi?', p.title)) && act(() => homePostDelete(p.id))}
               />
             </Show>
+            <Show when={i() === Math.min(1, (posts() ?? []).length - 1)}>
+              <AdSlot placement="home_feed" class="home-feed-ad" />
+            </Show>
+            </>
           )}
         </For>
       </div>
@@ -153,12 +159,20 @@ function HomeTopAd() {
     if (!isAdmin()) void homeBannerHit(b.id, true);
     openUrl(b.url);
   };
-  return (
-    <Show when={!list.loading}>
-      <Show when={cur()} fallback={<AdSlot placement="panel_banner" class="home-ad" />}>
-        {(b) => (
+  const house = () => (
+    <Show when={cur()}>
+      {(b) => (
           <div class="home-ad home-banner" classList={{ link: !!b().url }} title={b().title || b().url} onClick={() => click(b())}>
             <img src={b().image} alt={b().title} draggable={false} onLoad={() => shown(b())} />
+            <button
+              class="ad-tag"
+              onClick={(e) => {
+                e.stopPropagation();
+                go("advertise", "home_top");
+              }}
+            >
+              {t("Reklam")} · <b>{t("Reklam vermek için tıklayın")}</b>
+            </button>
             <Show when={live().length > 1}>
               <div class="home-dots">
                 <For each={live()}>{(x, k) => <i classList={{ on: k() === i() % live().length }} onClick={(e) => (e.stopPropagation(), setI(k()))} title={x.title} />}</For>
@@ -177,8 +191,13 @@ function HomeTopAd() {
               </button>
             </Show>
           </div>
-        )}
-      </Show>
+      )}
+    </Show>
+  );
+  // Ücretli reklam önce; yoksa yöneticinin reklamları; o da yoksa "Bu alana reklam ver"
+  return (
+    <Show when={!list.loading}>
+      <AdSlot placement="home_top" class="home-ad" fallback={live().length ? house() : undefined} />
     </Show>
   );
 }

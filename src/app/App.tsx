@@ -37,6 +37,7 @@ import { AdminTopStats } from "./components/AdminTopStats";
 import { MENU_SUBS, isHiddenMenu, markedHiddenMenu, visibleSubs } from "./menu";
 import { TopLinks } from "./components/TopLinks";
 import { ProBadge } from "./components/ProBadge";
+import { AdSlot } from "./components/AdSlot";
 import { VoiceDock } from "./components/VoiceDock";
 import { VoiceRoomsNav } from "./components/VoiceRoomsNav";
 import { roomsTotal, watchRoomsBackground } from "@/voice/roomsStore";
@@ -44,6 +45,7 @@ import "@/voice/moveWatch";
 
 // Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
 // (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)
+const AdvertisePage = lazy(() => import("./pages/AdvertisePage").then((m) => ({ default: m.AdvertisePage })));
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
 const LayoutsPage = lazy(() => import("./pages/LayoutsPage").then((m) => ({ default: m.LayoutsPage })));
 const StreamingPage = lazy(() => import("./pages/StreamingPage").then((m) => ({ default: m.StreamingPage })));
@@ -135,6 +137,7 @@ const BOTTOM: NavItem[] = [
 
 const TITLES: Record<Section, string> = {
   home: "Ana Sayfa",
+  advertise: "Reklam ver",
   overlays: "Overlaylarım",
   layouts: "Düzenler",
   streaming: "Yayın",
@@ -407,11 +410,17 @@ export function App() {
             <Match when={section() === "support"}>
               <SupportPage />
             </Match>
+            <Match when={section() === "advertise"}>
+              <AdvertisePage />
+            </Match>
             <Match when={section() === "home"}>
               <HomePage />
             </Match>
             <Match when={section() === "overlays"}>
-              <OverlaysPage />
+              <div class="ovwrap">
+                <OverlaysPage />
+                <AdSlot placement="overlays_banner" class="ov-ad" />
+              </div>
             </Match>
             <Match when={section() === "layouts"}>
               <LayoutsPage />

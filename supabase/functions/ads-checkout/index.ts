@@ -53,6 +53,10 @@ const PLACE_NAMES: Record<string, string> = {
   panel_card: "App card",
   site_home: "Website home banner",
   site_account: "Website account card",
+  home_top: "App home top banner",
+  home_feed: "App home feed",
+  overlays_banner: "App overlays page banner",
+  telemetry_banner: "App telemetry page banner",
 };
 
 const PLACE_NAMES_TR: Record<string, string> = {
@@ -60,6 +64,10 @@ const PLACE_NAMES_TR: Record<string, string> = {
   panel_card: "Uygulama kart",
   site_home: "Site ana sayfa banner",
   site_account: "Site hesap sayfası kartı",
+  home_top: "Uygulama ana sayfa üst banner",
+  home_feed: "Uygulama ana sayfa haberler arası",
+  overlays_banner: "Uygulama Overlaylarım banner",
+  telemetry_banner: "Uygulama Telemetri banner",
 };
 
 const CORS = {

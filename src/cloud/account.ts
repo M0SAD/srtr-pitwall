@@ -20,6 +20,8 @@ export interface Profile {
   pro_source: string | null;
   /** Elle verilen PRO'da logo izninin bitişi (c96/c97): yönetici "logolara müdahale edebilsin" kutusunu işaretlediyse dolu */
   pro_paid_until?: string | null;
+  /** PRO: reklamları gizle (c129; varsayılan açık). Yönetici "PRO gizleyebilir" dediği yerlerde geçerli. */
+  hide_ads?: boolean;
 }
 
 export interface AppConfig {

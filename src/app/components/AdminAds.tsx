@@ -20,7 +20,7 @@ import {
   type AdPricing,
   type AdStatus,
 } from "@/cloud/ads";
-import { openUrl } from "../ui";
+import { go, openUrl } from "../ui";
 import { AdminHomeAds } from "./AdminHomeAds";
 import { fmtMoney } from "./AdminExtras";
 import "../ads.css";
@@ -77,7 +77,7 @@ function AdSettings(p: { run: Run }) {
   const [imp, setImp] = createSignal(pricing().impressions.join(", "));
   const [days, setDays] = createSignal(pricing().days.join(", "));
   const [thr, setThr] = createSignal(String(c()?.ad_report_hide_threshold ?? 3));
-  const setPlace = (id: AdPlacement, k: "on" | "cpm" | "day" | "cpm_tr" | "day_tr", v: boolean | number) =>
+  const setPlace = (id: AdPlacement, k: "on" | "cpm" | "day" | "cpm_tr" | "day_tr" | "pro_hide", v: boolean | number) =>
     setPr((x) => ({ ...x, placements: { ...x.placements, [id]: { ...x.placements[id], [k]: v } } }));
   const savePricing = () => {
     const next: AdPricing = { ...pr(), currency: (pr().currency || "USD").trim().toUpperCase().slice(0, 3), currency_tr: (pr().currency_tr || "TRY").trim().toUpperCase().slice(0, 3), impressions: numList(imp()), days: numList(days()) };
@@ -130,6 +130,7 @@ function AdSettings(p: { run: Run }) {
             <th>{t("Günlük ({0})", pr().currency)}</th>
             <th>{t("Türkiye 1.000 gösterim ({0})", pr().currency_tr || "TRY")}</th>
             <th>{t("Türkiye günlük ({0})", pr().currency_tr || "TRY")}</th>
+            <th title={t("İşaretliyse PRO üyeler Hesap › Reklamları gizle ile bu yerdeki reklamları görmez. İşaretsizse PRO üyeler de görür.")}>{t("PRO gizleyebilir")}</th>
           </tr>
         </thead>
         <tbody>
@@ -155,11 +156,26 @@ function AdSettings(p: { run: Run }) {
                 <td>
                   <input class="input" type="text" inputmode="decimal" value={pr().placements[id]?.day_tr ?? 0} onChange={(e) => setPlace(id, "day_tr", toNum(e.currentTarget.value))} />
                 </td>
+                <td>
+                  <Show when={AD_PLACEMENTS[id].app} fallback={<span class="muted">—</span>}>
+                    <input type="checkbox" checked={pr().placements[id]?.pro_hide !== false} onChange={(e) => setPlace(id, "pro_hide", e.currentTarget.checked)} />
+                  </Show>
+                </td>
               </tr>
             )}
           </For>
         </tbody>
       </table>
+      <small class="muted">
+        {t("PRO gizleyebilir: PRO üyeler Hesap sayfasındaki \"Reklamları gizle\" seçeneğiyle (varsayılan açık) bu yerlerdeki reklamları görmez. İşareti kaldırdığın yerlerde PRO üyeler de reklam görür. Fiyatları kaydedince geçerli olur.")}
+      </small>
+      <div class="row">
+        <div>
+          <b>{t("Boş reklam alanları")}</b>
+          <small>{t("Yayında reklam olmayan alanlarda \"Bu alana reklam ver\" kutusu göster (yalnızca satıştaki yerlerde).")}</small>
+        </div>
+        <input type="checkbox" checked={pr().placeholder !== false} onChange={(e) => setPr((x) => ({ ...x, placeholder: e.currentTarget.checked }))} />
+      </div>
       <div class="row">
         <div>
           <b>Genel para birimi</b>
@@ -192,8 +208,11 @@ function AdSettings(p: { run: Run }) {
         <button class="btn primary" onClick={savePricing}>
           Fiyatları kaydet
         </button>
+        <button class="btn ghost" onClick={() => go("advertise")}>
+          {t("Uygulamadaki Reklam ver sayfası")}
+        </button>
         <button class="btn ghost" onClick={() => openUrl("https://pitwall.simracetr.com/reklam.html")}>
-          Reklam ver sayfasını aç
+          Sitedeki Reklam ver sayfası
         </button>
       </div>
     </section>

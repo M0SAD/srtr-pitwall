@@ -8,6 +8,7 @@ import { settings } from "@/sdk/settings";
 /** Sol ikon menüsündeki bölümler */
 export type Section =
   | "home"
+  | "advertise"
   | "overlays"
   | "layouts"
   | "streaming"

@@ -18965,4 +18965,157 @@ $$;
 revoke all on function public.home_banner_hit(uuid, boolean) from public;
 grant execute on function public.home_banner_hit(uuid, boolean) to anon, authenticated;
 
+-- ===== c129: yeni reklam yerleri, PRO reklam gizleme =====
+-- 1) Yer listesi
+alter table public.ad_campaigns drop constraint if exists ad_campaigns_placement_check;
+alter table public.ad_campaigns add constraint ad_campaigns_placement_check check (placement in (
+  'panel_banner', 'panel_card', 'site_home', 'site_account',
+  'home_top', 'home_feed', 'overlays_banner', 'telemetry_banner'));
+
+-- 2) PRO reklam gizleme tercihi
+alter table public.profiles add column if not exists hide_ads boolean not null default true;
+
+create or replace function public.set_hide_ads(p_hide boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Giriş yapmalısın';
+  end if;
+  update public.profiles set hide_ads = coalesce(p_hide, true) where id = auth.uid();
+  return coalesce(p_hide, true);
+end $$;
+revoke all on function public.set_hide_ads(boolean) from public, anon;
+grant execute on function public.set_hide_ads(boolean) to authenticated;
+
+-- PRO üye bu yerde reklam görmez mi
+create or replace function public.ad_hidden_for_me(p_placement text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null
+     and public.is_pro()
+     and coalesce((select hide_ads from public.profiles where id = auth.uid()), true)
+     and coalesce((select (ad_pricing -> 'placements' -> p_placement ->> 'pro_hide')::boolean from public.app_config where id = 1), true);
+$$;
+revoke all on function public.ad_hidden_for_me(text) from public;
+grant execute on function public.ad_hidden_for_me(text) to anon, authenticated;
+
+-- Gösterilecek reklam (c25'teki kural; PRO üyeye artık yer ve tercihe göre)
+create or replace function public.ad_pick(p_placement text, p_lang text default '', p_visitor text default '')
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  me uuid := auth.uid();
+  grp text := case when lower(coalesce(p_lang, '')) like 'tr%' then 'tr' else 'other' end;
+  r jsonb;
+begin
+  if not coalesce((select ads_enabled from public.app_config where id = 1), false) then
+    return null;
+  end if;
+  if public.ad_hidden_for_me(p_placement) then
+    return null;
+  end if;
+  select jsonb_build_object('id', a.id, 'placement', a.placement, 'title', a.title, 'body', a.body, 'url', a.url, 'image', a.image)
+    into r
+    from public.ad_campaigns a
+    where a.status = 'active' and a.placement = p_placement
+      and (cardinality(a.langs) = 0 or grp = any (a.langs))
+      and (a.model <> 'days' or a.ends_at > now())
+      and (a.model <> 'impressions' or a.impressions < a.quantity)
+      and (me is null or not exists (select 1 from public.ad_reports x where x.ad_id = a.id and x.reporter = me))
+    order by -ln(greatest(random(), 1e-9)) /
+      (case when a.model = 'impressions' then least(5, greatest(1, (a.quantity - a.impressions) / 2000.0)) else 2 end)
+    limit 1;
+  return r;
+end $$;
+grant execute on function public.ad_pick(text, text, text) to anon, authenticated;
+
+-- 3) Reklam verenin kendi reklamları (RLS zaten kendi satırlarını gösteriyor; tek çağrıda sıralı liste)
+create or replace function public.my_ads()
+returns setof public.ad_campaigns language sql stable security definer set search_path = public as $$
+  select * from public.ad_campaigns where user_id = auth.uid() order by created_at desc limit 200;
+$$;
+revoke all on function public.my_ads() from public, anon;
+grant execute on function public.my_ads() to authenticated;
+
+-- ===== c130: reklam istatistikleri (günlük) =====
+create table if not exists public.ad_stats_daily (
+  ad_id uuid not null references public.ad_campaigns (id) on delete cascade,
+  day date not null,
+  impressions int not null default 0,
+  clicks int not null default 0,
+  primary key (ad_id, day)
+);
+alter table public.ad_stats_daily enable row level security;
+drop policy if exists "ad stats own read" on public.ad_stats_daily;
+create policy "ad stats own read" on public.ad_stats_daily for select using (
+  public.is_admin() or exists (select 1 from public.ad_campaigns a where a.id = ad_id and a.user_id = auth.uid()));
+revoke all on public.ad_stats_daily from anon;
+grant select on public.ad_stats_daily to authenticated;
+
+create or replace function public.ad_stat_bump(p_ad uuid, p_click boolean) returns void
+language sql security definer set search_path = public as $$
+  insert into public.ad_stats_daily (ad_id, day, impressions, clicks)
+  values (p_ad, (now() at time zone 'Europe/Istanbul')::date, case when p_click then 0 else 1 end, case when p_click then 1 else 0 end)
+  on conflict (ad_id, day) do update
+    set impressions = public.ad_stats_daily.impressions + excluded.impressions,
+        clicks = public.ad_stats_daily.clicks + excluded.clicks;
+$$;
+revoke all on function public.ad_stat_bump(uuid, boolean) from public, anon, authenticated;
+
+create or replace function public.ad_impression(p_ad uuid, p_visitor text default '') returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  a public.ad_campaigns;
+  pl text;
+begin
+  select placement into pl from public.ad_campaigns where id = p_ad and status = 'active';
+  if pl is null then
+    return;
+  end if;
+  -- Reklamı gizlemiş PRO üye (zaten görmemeli) sayılmaz
+  if public.ad_hidden_for_me(pl) then
+    return;
+  end if;
+  if not public.ad_seen(p_ad, p_visitor, 'view') then
+    return;
+  end if;
+  update public.ad_campaigns set impressions = impressions + 1 where id = p_ad and status = 'active' returning * into a;
+  if a.id is null then
+    return;
+  end if;
+  perform public.ad_stat_bump(p_ad, false);
+  if a.model = 'impressions' and a.impressions >= a.quantity then
+    perform public.ad_finish(a.id);
+  end if;
+end $$;
+
+create or replace function public.ad_click(p_ad uuid, p_visitor text default '') returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  u text;
+begin
+  select url into u from public.ad_campaigns where id = p_ad and status = 'active';
+  if u is null then
+    return null;
+  end if;
+  if public.ad_seen(p_ad, p_visitor, 'click') then
+    update public.ad_campaigns set clicks = clicks + 1 where id = p_ad;
+    perform public.ad_stat_bump(p_ad, true);
+  end if;
+  return u;
+end $$;
+
+create or replace function public.ad_stats(p_ad uuid)
+returns table (day date, impressions int, clicks int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not (public.is_admin() or exists (select 1 from public.ad_campaigns a where a.id = p_ad and a.user_id = auth.uid())) then
+    raise exception 'Reklam bulunamadı';
+  end if;
+  return query
+    select s.day, s.impressions, s.clicks from public.ad_stats_daily s
+    where s.ad_id = p_ad and s.day > (now() at time zone 'Europe/Istanbul')::date - 90
+    order by s.day;
+end $$;
+revoke all on function public.ad_stats(uuid) from public, anon;
+grant execute on function public.ad_stats(uuid) to authenticated;
+
 notify pgrst, 'reload schema';

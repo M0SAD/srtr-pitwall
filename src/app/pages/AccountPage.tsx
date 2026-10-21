@@ -60,6 +60,7 @@ import { manifests } from "@/sdk/registry";
 import { openUrl } from "../ui";
 import { AdSlot } from "../components/AdSlot";
 import { EmailPrefsPanel } from "../components/EmailPrefsPanel";
+import { AdPrefsPanel } from "../components/AdPrefsPanel";
 import { PublicProfilePanel } from "../components/Profile";
 import { DemoShowcaseToggle } from "../components/DemoShowcaseToggle";
 import { PayCats } from "../components/PayCats";
@@ -281,6 +282,7 @@ function Signed() {
       <IracingPanel />
       <EmailPrefsPanel />
       <ProPanel />
+      <AdPrefsPanel />
       <section class="panel">
         <h3>Bulut yedeği</h3>
         <div class="row">

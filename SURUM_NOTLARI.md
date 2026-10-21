@@ -3,6 +3,18 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-406
+
+- Reklam istatistikleri: Reklam ver › Reklamlarım'da her reklamın "İstatistik" paneli: toplam gösterim, tıklama, tıklama oranı, kalan gösterim / süre (ilerleme çubuğuyla); son 30 günün günlük gösterim ve tıklama grafikleri (bir güne gelince o günün sayıları) ve tablo görünümü. Listede de tıklama oranı ve kalan gösterim yazar.
+- Gösterim sayımı: PRO üyelerin de reklam gördüğü yerlerde (yönetici "PRO gizleyebilir"i kaldırdıysa) gösterimler artık sayılır; reklamı gizlemiş PRO üyeler sayılmaz. Supabase'de c130_guncelleme.sql çalıştırılmalı (günlük sayım bu güncellemeden itibaren başlar).
+
+## 211026-405
+
+- Reklamlar: yeni reklam yerleri: ana sayfa üst banner, ana sayfa haberler arası (ikinci haberin altı), Overlaylarım sayfasının altı ve Telemetri sayfasının altı (mevcut Hesap ve Topluluk alanlarına ek). Fiyatları Yönetim › Reklamlar › Fiyatlar'dan girilir.
+- Reklamların köşesinde "Reklam · Reklam vermek için tıklayın"; tıklayınca uygulama içindeki Reklam ver sayfası açılır. Yayında reklam olmayan satıştaki alanlarda "Bu alana reklam ver" kutusu (Yönetim › Reklamlar'dan kapatılabilir). Ana sayfanın üstünde önce ücretli reklam, yoksa yöneticinin ana sayfa reklamları gösterilir.
+- Reklam ver (uygulama içi): yer, gün / gösterim paketi, başlık, kısa metin, bağlantı, görsel, hedef dil; canlı önizleme ve sunucunun hesapladığı fiyat; "Öde" ödeme sayfasını uygulamanın ödeme penceresinde açar. Reklamlarım: durum, gösterim / tıklama, öde / düzenle / sil / durdur / sürdür. Hesap sayfasından ve reklamların sağ tık menüsünden de açılır.
+- PRO: Hesap › Reklamlar › "Reklamları gizle" (varsayılan açık). Yönetici her yer için "PRO gizleyebilir" seçer; işaretsiz yerlerde PRO üyeler de reklam görür. Supabase'de c129_guncelleme.sql çalıştırılmalı.
+
 ## 211026-404
 
 - Ana Sayfa: sol menünün en üstünde gazete simgesiyle yeni "Ana Sayfa"; uygulama artık bu sayfada açılır. En üstte reklam, altında haberler (görsel, metin, içindeki adresler tıklanabilir, düğme olarak bağlantılar; sabitlenenler önce). Yönetici haberleri bu sayfada ekler, düzenler, sabitler, yayından kaldırır, siler; görseller yüklenirken 1600 px genişliğe küçültülür (GIF olduğu gibi).

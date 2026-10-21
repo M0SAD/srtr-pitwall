@@ -1,20 +1,27 @@
-// Reklam alanı: yerleşim yeri için yayındaki bir reklamı gösterir. PRO üyelere ve reklamlar kapalıyken
-// hiçbir şey çizmez. Ekranda en az 1 saniye yarısı göründüğünde gösterim sayılır; tıklayınca hedef adres
-// tarayıcıda açılır. Sağ tık: raporla / reklam ver / reklamsız kullanım (PRO).
+// Reklam alanı: yerleşim yeri için yayındaki bir reklamı gösterir. Reklamlar kapalıyken ve PRO üye bu yerde
+// reklam gizlemişse (Hesap › Reklamları gizle + yöneticinin "PRO gizleyebilir" ayarı) hiçbir şey çizmez.
+// Ekranda en az 1 saniye yarısı göründüğünde gösterim sayılır; tıklayınca hedef adres tarayıcıda açılır.
+// Köşedeki "Reklam vermek için tıklayın" ve sağ tık › Reklam ver uygulama içindeki Reklam ver sayfasını açar.
+// Yayında reklam yoksa: `fallback` verildiyse o, yoksa (yer satıştaysa) "Bu alana reklam ver" kutusu.
 
-import { For, Show, createEffect, createSignal, on, onCleanup } from "solid-js";
+import { For, Show, createEffect, createSignal, on, onCleanup, type JSX } from "solid-js";
 import { Portal } from "solid-js/web";
 import { t } from "@/sdk/i18n";
 import { cloudEnabled, session } from "@/cloud/supabase";
-import { config, isPro } from "@/cloud/account";
-import { AD_REPORT_REASONS, AD_SITE, adClick, adImageUrl, adImpression, pickAd, reportAd, type Ad, type AdPlacement } from "@/cloud/ads";
+import { config, isPro, profile } from "@/cloud/account";
+import { AD_PLACEMENTS, AD_REPORT_REASONS, adClick, adHiddenForMe, adImageUrl, adImpression, adOnSale, pickAd, reportAd, type Ad, type AdPlacement } from "@/cloud/ads";
 import * as I from "../icons";
 import { go, openUrl } from "../ui";
 import "../ads.css";
 
-export function AdSlot(p: { placement: Extract<AdPlacement, "panel_banner" | "panel_card">; class?: string }) {
-  const enabled = () => cloudEnabled && !isPro() && !!config()?.ads_enabled;
+export function AdSlot(p: { placement: AdPlacement; class?: string; fallback?: JSX.Element }) {
+  // profile(): PRO üye gizleme tercihini değiştirince alan yeniden değerlendirilir
+  const enabled = () => cloudEnabled && !!config()?.ads_enabled && (profile(), !adHiddenForMe(p.placement));
   const [ad, setAd] = createSignal<Ad | null>(null);
+  const [loaded, setLoaded] = createSignal(false);
+  const advertise = () => go("advertise", p.placement);
+  /** Boş alanda "Bu alana reklam ver" (yer satışta ve yönetici kapatmadıysa) */
+  const placeholder = () => config()?.ad_pricing?.placeholder !== false && adOnSale(p.placement);
   const [menu, setMenu] = createSignal<{ x: number; y: number } | null>(null);
   const [reporting, setReporting] = createSignal<Ad | null>(null);
   const counted = new Set<string>();
@@ -22,12 +29,16 @@ export function AdSlot(p: { placement: Extract<AdPlacement, "panel_banner" | "pa
   const load = (fresh = false) =>
     pickAd(p.placement, fresh)
       .then((a) => setAd(a && a.url.startsWith("https://") ? a : null))
-      .catch(() => setAd(null));
+      .catch(() => setAd(null))
+      .finally(() => setLoaded(true));
 
   createEffect(
     on(enabled, (on) => {
       if (on) load();
-      else setAd(null);
+      else {
+        setAd(null);
+        setLoaded(true);
+      }
     }),
   );
 
@@ -78,7 +89,31 @@ export function AdSlot(p: { placement: Extract<AdPlacement, "panel_banner" | "pa
   });
 
   return (
-    <Show when={enabled() && ad()}>
+    <Show
+      when={enabled() && ad()}
+      fallback={
+        <Show when={loaded()}>
+          <Show
+            when={p.fallback}
+            fallback={
+              <Show when={enabled() && placeholder()}>
+                <button class={`ad-slot ad-empty ad-${p.placement} ${p.class ?? ""}`} onClick={advertise} title={t("Reklam ver")}>
+                  <I.Megaphone />
+                  <span>
+                    <b>{t("Bu alana reklam ver")}</b>
+                    <small>
+                      {t(AD_PLACEMENTS[p.placement].label)} · {AD_PLACEMENTS[p.placement].w} × {AD_PLACEMENTS[p.placement].h} px
+                    </small>
+                  </span>
+                </button>
+              </Show>
+            }
+          >
+            {p.fallback}
+          </Show>
+        </Show>
+      }
+    >
       {(a) => (
         <div
           class={`ad-slot ad-${p.placement} ${p.class ?? ""}`}
@@ -98,9 +133,16 @@ export function AdSlot(p: { placement: Extract<AdPlacement, "panel_banner" | "pa
               </Show>
             </span>
           </button>
-          <span class="ad-tag" title="Sağ tık: raporla">
-            Reklam
-          </span>
+          <button
+            class="ad-tag"
+            title={t("Sağ tık: raporla")}
+            onClick={(e) => {
+              e.stopPropagation();
+              advertise();
+            }}
+          >
+            {t("Reklam")} · <b>{t("Reklam vermek için tıklayın")}</b>
+          </button>
           <Show when={menu()}>
             <Portal>
               <div class="ad-menu" style={{ left: `${menu()!.x}px`, top: `${menu()!.y}px` }} onPointerDown={(e) => e.stopPropagation()}>
@@ -113,12 +155,21 @@ export function AdSlot(p: { placement: Extract<AdPlacement, "panel_banner" | "pa
                 >
                   <I.Flag /> {session() ? "Reklamı raporla" : "Raporlamak için giriş yap"}
                 </button>
-                <button onClick={() => (closeMenu(), openUrl(AD_SITE))}>
+                <button onClick={() => (closeMenu(), advertise())}>
                   <I.Megaphone /> Reklam ver
                 </button>
-                <button onClick={() => (closeMenu(), go("pro"))}>
-                  <I.Star /> Reklamsız kullan (PRO)
-                </button>
+                <Show
+                  when={isPro()}
+                  fallback={
+                    <button onClick={() => (closeMenu(), go("pro"))}>
+                      <I.Star /> Reklamsız kullan (PRO)
+                    </button>
+                  }
+                >
+                  <button onClick={() => (closeMenu(), go("account"))}>
+                    <I.EyeOff /> Reklam gizleme ayarı
+                  </button>
+                </Show>
               </div>
             </Portal>
           </Show>

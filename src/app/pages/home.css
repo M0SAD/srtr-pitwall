@@ -50,7 +50,7 @@
 .home-ad-edit {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
   display: grid;
   place-items: center;
   width: 28px;
@@ -294,4 +294,11 @@
 }
 .home-editor .f2 > .btn {
   align-self: flex-start;
+}
+
+.home-banner .ad-tag {
+  line-height: normal;
+}
+.home-feed-ad {
+  margin: 0;
 }
