@@ -61,6 +61,7 @@ import { openUrl } from "../ui";
 import { AdSlot } from "../components/AdSlot";
 import { EmailPrefsPanel } from "../components/EmailPrefsPanel";
 import { AdPrefsPanel } from "../components/AdPrefsPanel";
+import { AdvertiseCard } from "../components/AdvertiseCard";
 import { PublicProfilePanel } from "../components/Profile";
 import { DemoShowcaseToggle } from "../components/DemoShowcaseToggle";
 import { PayCats } from "../components/PayCats";
@@ -946,6 +947,7 @@ export function ProPage() {
   return (
     <div class="page narrow">
       <ProPanel />
+      <AdvertiseCard />
       <section class="panel">
         <h3>PRO ile gelenler</h3>
         <ul class="pro-list">

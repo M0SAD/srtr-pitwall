@@ -73,6 +73,14 @@ pub fn place(app: &AppHandle) {
         cur.height.min(s.height).max(300)
     };
     let x = p.x + s.width as i32 - w as i32;
+    // Ekranın kullanılabilir alanının (görev çubuğu hariç) altına taşmasın
+    let h = crate::screenfit::monitor_for(app, (x, p.y, w, h))
+        .map(|m| {
+            let (_, ay, _, ah) = crate::screenfit::work_area(&m);
+            let bottom = ay + ah as i32;
+            h.min((bottom - p.y).max(300) as u32)
+        })
+        .unwrap_or(h);
     PLACED_AT.store(now_ms(), Ordering::Relaxed);
     let _ = fw.set_position(PhysicalPosition::new(x, p.y));
     if cur.width != w || cur.height != h {

@@ -1,7 +1,7 @@
 // Yönetim › Reklamlar: reklamları aç/kapat, otomatik onay, rapor sınırı, yer başına fiyatlar;
 // kampanya listesi (önizleme, onayla / reddet / durdur / sürdür / uzat / bitir), istatistik ve raporlar.
 
-import { For, Show, createResource, createSignal } from "solid-js";
+import { For, Index, Show, createResource, createSignal } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { config, saveConfig } from "@/cloud/account";
 import {
@@ -84,19 +84,29 @@ function AdSettings(p: { run: Run }) {
   const setPlace = (id: AdPlacement, k: "on" | "cpm" | "day" | "cpm_tr" | "day_tr" | "pro_hide", v: boolean | number) =>
     setPr((x) => ({ ...x, placements: { ...x.placements, [id]: { ...x.placements[id], [k]: v } } }));
   const savePricing = () => {
-    const bad = (pr().pay_links ?? []).find((l) => l.on !== false && (!l.name.trim() || !/^https:\/\/\S+$/.test(l.url)));
-    if (bad) return p.run(async () => Promise.reject(new Error(t("Ödeme bağlantısı için ad ve https:// ile başlayan adres gerekli: {0}", bad.name || bad.url || "—"))), "");
-    const next: AdPricing = { ...pr(), currency: (pr().currency || "USD").trim().toUpperCase().slice(0, 3), currency_tr: (pr().currency_tr || "TRY").trim().toUpperCase().slice(0, 3), impressions: numList(imp()), days: numList(days()) };
-    if (!next.impressions.length || !next.days.length) return p.run(async () => Promise.reject(new Error(t("Paket listeleri boş olamaz"))), "");
+    const fail = (m: string) => p.run(async () => Promise.reject(new Error(m)), "");
+    // Adresi boş bağlantı kaydedilir ama reklam verene gösterilmez; yazılmış ama geçersiz adres kaydedilmez
+    const bad = (pr().pay_links ?? []).find((l) => l.on !== false && l.url.trim() !== "" && (!l.name.trim() || !/^https:\/\/\S+$/.test(l.url.trim())));
+    if (bad) return fail(t("Ödeme bağlantısı için ad ve https:// ile başlayan adres gerekli: {0}", bad.name || bad.url || "—"));
+    const cur = (pr().currency || "USD").trim().toUpperCase();
+    const curTr = (pr().currency_tr || "TRY").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(cur) || !/^[A-Z]{3}$/.test(curTr)) return fail(t("Para birimi 3 harfli kod olmalı (ör. USD, TRY, EUR)."));
+    const next: AdPricing = { ...pr(), currency: cur, currency_tr: curTr, impressions: numList(imp()), days: numList(days()) };
+    // Paket listesi yalnızca o fiyat türü bir yerde kullanılıyorsa gerekli
+    const used = (k: "cpm" | "day") =>
+      Object.values(next.placements).some((x) => x && x.on !== false && ((x[k] ?? 0) > 0 || (x[(k + "_tr") as "cpm_tr" | "day_tr"] ?? 0) > 0));
+    if (!next.impressions.length && used("cpm")) return fail(t("1.000 gösterim fiyatı girilen yer var ama \"Gösterim paketleri\" boş. Paket yaz (ör. 1000) ya da gösterim fiyatlarını 0 yap."));
+    if (!next.days.length && used("day")) return fail(t("Günlük fiyat girilen yer var ama \"Gün seçenekleri\" boş. Gün yaz (ör. 30) ya da günlük fiyatları 0 yap."));
     return p.run(() => saveConfig({ ad_pricing: next, ad_report_hide_threshold: Math.max(1, parseInt(thr(), 10) || 3) }), t("Reklam fiyatları kaydedildi"));
   };
   return (
     <section class="panel admin-panel">
       <h3>Reklamlar</h3>
       <p class="muted small">
-        Reklam verenler sitedeki <b>Reklam ver</b> sayfasından yer, gösterim paketi ya da gün seçer, görsel yükler ve Paddle ile öder. Ödeme gelince reklam
-        otomatik yayına girer (otomatik onay kapalıysa burada onay bekler). PRO üyeler reklam görmez; oyun içi overlay'lerde hiç reklam yoktur. Kullanıcılar reklamı sağ
-        tıklayıp raporlayabilir; rapor sınırına ulaşan reklam kendiliğinden gizlenir ve sana bildirim gelir.
+        Reklam verenler uygulamadaki <b>Reklam ver</b> sayfasından yer ve paket seçer, görsel yükler ve aşağıdaki ödeme yöntemlerinden biriyle (ByNoGame, Patreon …)
+        öder; sonra "Ödedim" der. Ödemeyi kontrol edip listede <b>Ödendi say</b>'a basınca reklam yayına girer. PRO üyeler, "PRO gizleyebilir" işaretli yerlerde
+        reklam görmez; oyun içi overlay'lerde hiç reklam yoktur. Kullanıcılar reklamı sağ tıklayıp raporlayabilir; rapor sınırına ulaşan reklam kendiliğinden
+        gizlenir ve sana bildirim gelir.
       </p>
       <div class="ads-settings">
         <label class="check" classList={{ on: !!c()?.ads_enabled }}>
@@ -132,19 +142,20 @@ function AdSettings(p: { run: Run }) {
         )}
       </p>
       <div class="adpay-links">
-        <For each={pr().pay_links ?? []}>
+        {/* Index: satırlar sırayla izlenir; For her harfte satırı yeniden kurup odağı kaybettiriyordu */}
+        <Index each={pr().pay_links ?? []}>
           {(l, i) => (
             <div class="adpay-link">
-              <input type="checkbox" title={t("Açık")} checked={l.on !== false} onChange={(e) => setLink(i(), { on: e.currentTarget.checked })} />
-              <input class="input" placeholder={t("Ad (ör. ByNoGame)")} maxLength={40} value={l.name} onInput={(e) => setLink(i(), { name: e.currentTarget.value })} />
-              <input class="input" placeholder="https://" value={l.url} onInput={(e) => setLink(i(), { url: e.currentTarget.value.trim() })} />
-              <input class="input" placeholder={t("Açıklama (reklam verene görünür)")} maxLength={300} value={l.note} onInput={(e) => setLink(i(), { note: e.currentTarget.value })} />
-              <button class="btn ghost small" title={t("Kaldır")} onClick={() => setPr((x) => ({ ...x, pay_links: (x.pay_links ?? []).filter((_, j) => j !== i()) }))}>
+              <input type="checkbox" title={t("Açık")} checked={l().on !== false} onChange={(e) => setLink(i, { on: e.currentTarget.checked })} />
+              <input class="input" placeholder={t("Ad (ör. ByNoGame)")} maxLength={40} value={l().name} onInput={(e) => setLink(i, { name: e.currentTarget.value })} />
+              <input class="input" placeholder="https://" value={l().url} onInput={(e) => setLink(i, { url: e.currentTarget.value.trim() })} />
+              <input class="input" placeholder={t("Açıklama (reklam verene görünür)")} maxLength={300} value={l().note} onInput={(e) => setLink(i, { note: e.currentTarget.value })} />
+              <button class="btn ghost small" title={t("Kaldır")} onClick={() => setPr((x) => ({ ...x, pay_links: (x.pay_links ?? []).filter((_, j) => j !== i) }))}>
                 ✕
               </button>
             </div>
           )}
-        </For>
+        </Index>
         <div class="btns">
           <button class="btn ghost small" onClick={() => setPr((x) => ({ ...x, pay_links: [...(x.pay_links ?? []), { name: "", url: "", note: "", on: true }] }))}>
             + {t("Ödeme bağlantısı ekle")}

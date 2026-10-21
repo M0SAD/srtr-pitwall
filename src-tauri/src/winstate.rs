@@ -23,6 +23,8 @@ pub struct Geo {
 
 static MAP: Mutex<Option<HashMap<String, Geo>>> = Mutex::new(None);
 static SAVE_PENDING: AtomicBool = AtomicBool::new(false);
+/// `track` ile izlenen pencere etiketleri
+static TRACKED: Mutex<Vec<String>> = Mutex::new(Vec::new());
 /// Taşıma/boyutlandırma olaylarını birleştirip diske en fazla bu aralıkla yazar
 const SAVE_DELAY_MS: u64 = 700;
 
@@ -166,8 +168,27 @@ fn capture(app: &AppHandle, w: &WebviewWindow, label: &str) -> bool {
     true
 }
 
+/// Çıkışta: açık, izlenen pencerelerin (Arkadaşlar, Live Timing…) son yerleşimini hemen diske yaz.
+/// Bekleyen gecikmeli kayıt uygulama kapanınca yazılamadan kaybolmasın.
+pub fn flush_all(app: &AppHandle) {
+    let tracked = TRACKED.lock().clone();
+    for (label, w) in app.webview_windows() {
+        if tracked.contains(&label) {
+            capture(app, &w, &label);
+        }
+    }
+    write_now(app);
+}
+
 /// Pencerenin taşınma/boyutlanma/kapanma olaylarını izleyip yerleşimini kaydeder
 pub fn track(app: &AppHandle, w: &WebviewWindow) {
+    {
+        let mut t = TRACKED.lock();
+        let l = w.label().to_string();
+        if !t.contains(&l) {
+            t.push(l);
+        }
+    }
     let app = app.clone();
     let win = w.clone();
     let label = w.label().to_string();

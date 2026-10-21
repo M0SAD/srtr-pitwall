@@ -13,6 +13,7 @@ mod dock;
 mod drivecues;
 mod engine;
 mod gaps;
+mod screenfit;
 mod entitlement;
 mod events;
 mod extras;
@@ -788,6 +789,12 @@ where
 static QUITTING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn quit_now(app: &AppHandle) {
+    // Pencerelerin son boyutu / konumu kapanmadan diske yazılsın (gecikmeli kayıt beklemesin)
+    if let Some(w) = app.get_webview_window("main").filter(|w| w.is_visible().unwrap_or(false)) {
+        record_panel_geom(app, &w);
+    }
+    save_panel_geom(app, true);
+    winstate::flush_all(app);
     crashlog::session_end();
     app.state::<SettingsStore>().flush(app);
     app.exit(0);
@@ -1407,7 +1414,7 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
             .min_inner_size(340.0, 420.0)
             .additional_browser_args(browser_args())
             .build()
-            .map(|_| ())
+            .map(|w| screenfit::fit_window(&app, &w))
             .map_err(|e| e.to_string());
         }
         _ => return Err("bilinmeyen pencere".into()),
@@ -1450,8 +1457,12 @@ async fn window_open(app: AppHandle, view: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     if let Some(g) = saved {
         winstate::apply(&win, &g);
+        screenfit::fit_window(&app, &win);
         let _ = win.show();
         let _ = win.set_focus();
+    } else {
+        // İlk açılış (Live Timing 800 px, Olaylar 760 px boyunda): küçük ekranda görev çubuğuna taşmasın
+        screenfit::fit_window(&app, &win);
     }
     winstate::track(&app, &win);
     if label == "friends" {
@@ -2586,22 +2597,25 @@ fn open_panel(app: &AppHandle) {
         let _ = w.set_focus();
         return;
     }
-    // İlk açılış: ekranın ~%92'si kadar (en fazla 1760×1000), küçük ekranlarda en az 1200×680.
-    // Sonraki açılışlarda son bırakılan konum ve boyut kullanılır.
-    let (w, h) = app
+    // İlk açılış: ana monitörün KULLANILABİLİR alanının (görev çubuğu hariç) ~%92 × %90'ı kadar (en fazla 1760×1000),
+    // alanın ortasında. Eskiden ekranın tamamına göre ve en az 1200×680 hesaplanıyordu: küçük / yüksek ölçekli
+    // ekranlarda pencerenin altı (Arkadaşlar düğmesi) görev çubuğunun altında kalıyordu.
+    // Sonraki açılışlarda son bırakılan konum ve boyut kullanılır (o da ekrana sığdırılır).
+    let (w, h, pos, min_w, min_h) = app
         .primary_monitor()
         .ok()
         .flatten()
         .map(|m| {
-            let sz = m.size().to_logical::<f64>(m.scale_factor());
-            (
-                (sz.width * 0.92).clamp(1200.0, 1760.0).min(sz.width),
-                (sz.height * 0.85)
-                    .clamp(680.0, 1000.0)
-                    .min(sz.height - 40.0),
-            )
+            let sc = m.scale_factor().max(0.5);
+            let (ax, ay, aw, ah) = screenfit::work_area(&m);
+            let (law, lah) = (aw as f64 / sc, ah as f64 / sc);
+            let w = (law * 0.92).min(1760.0);
+            let h = (lah * 0.90).min(1000.0);
+            let x = ax as f64 / sc + (law - w) / 2.0;
+            let y = ay as f64 / sc + (lah - h) / 2.0;
+            (w, h, Some((x, y)), law.min(900.0), lah.min(600.0))
         })
-        .unwrap_or((1560.0, 880.0));
+        .unwrap_or((1560.0, 880.0, None, 900.0, 600.0));
     let geom = load_panel_geom(app).filter(|g| panel_geom_visible(app, g));
     let built = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .on_page_load(|_, p| {
@@ -2613,8 +2627,7 @@ fn open_panel(app: &AppHandle) {
         // Çerçevesiz: üst çubuktan tutulup taşınır, pencere düğmeleri üst çubuğun sağında (src/window/chrome.tsx)
         .decorations(false)
         .inner_size(w, h)
-        .min_inner_size(900.0, 600.0)
-        .center()
+        .min_inner_size(min_w, min_h)
         .visible(geom.is_none())
         .additional_browser_args(browser_args())
         .build()
@@ -2625,9 +2638,17 @@ fn open_panel(app: &AppHandle) {
                 *PANEL_GEOM.lock() = Some(g);
                 if g.max {
                     let _ = w.maximize();
+                } else {
+                    // Kayıtlı boyut bu ekrana sığmıyorsa (başka monitör / ölçek değişti) küçült, alanın içine çek
+                    screenfit::fit_window(app, &w);
                 }
                 let _ = w.show();
                 let _ = w.set_focus();
+            } else {
+                if let Some((x, y)) = pos {
+                    let _ = w.set_position(tauri::LogicalPosition::new(x, y));
+                }
+                screenfit::fit_window(app, &w);
             }
             // Panel kapanınca (pencere yok edilir) ekranda tutulan yeni overlay bırakılır
             let app2 = app.clone();

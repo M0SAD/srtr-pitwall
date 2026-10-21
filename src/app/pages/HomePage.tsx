@@ -3,7 +3,7 @@
 // metin, bağlantılar, sabitlenenler önce). İkinci haberin altında "haberler arası" reklam alanı.
 // Yönetici haberleri bu sayfada ekler / düzenler / sabitler / yayından kaldırır / siler.
 
-import { For, Show, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Index, Show, createMemo, createResource, createSignal, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
 import { cloudEnabled } from "@/cloud/supabase";
 import { isAdmin, isPro } from "@/cloud/account";
@@ -385,17 +385,17 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
       </div>
       <div class="f2">
         <div class="f2-cap">{t("Bağlantılar (düğme olarak görünür)")}</div>
-        <For each={links()}>
+        <Index each={links()}>
           {(l, i) => (
             <div class="home-linkrow">
-              <input class="input" placeholder={t("Düğme yazısı")} value={l.label} maxLength={60} onInput={(e) => setLink(i(), "label", e.currentTarget.value)} />
-              <input class="input" placeholder="https://" value={l.url} onInput={(e) => setLink(i(), "url", e.currentTarget.value)} />
-              <button class="btn ghost small" title={t("Kaldır")} onClick={() => setLinks((x) => x.filter((_, j) => j !== i()))}>
+              <input class="input" placeholder={t("Düğme yazısı")} value={l().label} maxLength={60} onInput={(e) => setLink(i, "label", e.currentTarget.value)} />
+              <input class="input" placeholder="https://" value={l().url} onInput={(e) => setLink(i, "url", e.currentTarget.value)} />
+              <button class="btn ghost small" title={t("Kaldır")} onClick={() => setLinks((x) => x.filter((_, j) => j !== i))}>
                 ✕
               </button>
             </div>
           )}
-        </For>
+        </Index>
         <button class="btn ghost small" onClick={() => setLinks((x) => [...x, { label: "", url: "" }])} disabled={links().length >= 6}>
           <I.Plus /> {t("Bağlantı ekle")}
         </button>

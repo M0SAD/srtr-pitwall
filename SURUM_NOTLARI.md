@@ -3,6 +3,17 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-410
+
+- Pencere boyutu: kontrol paneli ilk açılışta ekranın tamamına göre değil, kullanılabilir alana (Windows görev çubuğu hariç) göre boyutlanır ve ortalanır; küçük / yüksek ölçekli ekranlarda alttaki "Arkadaşlar" çubuğu görev çubuğunun altında kalmaz. Kayıtlı boyut korunur; yalnız ekrana sığmıyorsa (ör. monitör değişti) küçültülür ve ekranın içine çekilir. Live Timing, Arkadaşlar, Olaylar ve Arkadaş verileri pencereleri de aynı şekilde ekrana sığdırılır; yapışık Arkadaşlar penceresi görev çubuğuna taşmaz.
+- Pencerelerin son boyutu / konumu tepsiden Çıkış'ta da hemen kaydedilir (gecikmeli kayıt kapanışta kaybolmuyor): uygulama ve Arkadaşlar penceresi bir sonraki açılışta kullanıcının en son verdiği boyutla açılır.
+- PRO satın alma sayfasında belirgin "Reklamını SRTR Pitwall'da yayınla" kartı (başlayan fiyat ve "Reklam ver" düğmesi).
+
+## 211026-409
+
+- Düzeltme: Yönetim › Reklamlar › Ödeme yöntemleri ve ana sayfa haber düzenleyicisinin bağlantı satırlarında her harften sonra yazı kutusu odağı kaybediyordu (tek harf yazılabiliyordu).
+- Yönetim › Reklamlar › Fiyatları kaydet: "Paket listeleri boş olamaz" hatası kaldırıldı; gösterim paketleri / gün seçenekleri yalnızca o fiyat türü bir yerde kullanılıyorsa gerekli (hata ne eksik olduğunu söyler). Adresi boş ödeme bağlantısı kaydedilir, reklam verene gösterilmez. Para birimi 3 harfli kod olmalı (USD, TRY …). Üstteki açıklama elle ödeme akışına göre güncellendi.
+
 ## 211026-408
 
 - Patreon reklam tier'ı: pro-webhook artık reklam tier'ındaki (adı "Ad" / "Reklam" ile başlayan ya da PATREON_AD_TIER_IDS'teki) Patreon üyelerine PRO vermez (eskiden her aktif Patreon üyesine PRO veriliyordu). Ödemeleri Gelir'e "Reklam: Patreon" olarak yazılır. PRO tier'ları eskisi gibi; hem PRO hem reklam tier'ındaki üye PRO alır. pro-webhook fonksiyonu yeniden yüklenmeli.
