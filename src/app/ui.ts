@@ -7,6 +7,7 @@ import { settings } from "@/sdk/settings";
 
 /** Sol ikon menüsündeki bölümler */
 export type Section =
+  | "home"
   | "overlays"
   | "layouts"
   | "streaming"
@@ -24,7 +25,8 @@ export type Section =
   | "settings"
   | "support";
 
-export const [section, setSection] = createSignal<Section>("overlays");
+// Uygulama ana sayfada (haberler) açılır
+export const [section, setSection] = createSignal<Section>("home");
 /** Bölüm içindeki alt sayfa (ayarlar: general, appearance, ...) */
 export const [sub, setSub] = createSignal<string>("");
 

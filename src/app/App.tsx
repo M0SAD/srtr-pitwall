@@ -44,6 +44,7 @@ import "@/voice/moveWatch";
 
 // Açılış sayfası (Overlaylarım) dışındaki sayfalar ilk açıldıklarında yüklenir: panel daha hızlı açılır, daha az bellek kullanır.
 // (Suspense sarmalayıcısı bilerek yok: sayfaların kendi createResource'ları eskisi gibi davranır.)
+const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
 const LayoutsPage = lazy(() => import("./pages/LayoutsPage").then((m) => ({ default: m.LayoutsPage })));
 const StreamingPage = lazy(() => import("./pages/StreamingPage").then((m) => ({ default: m.StreamingPage })));
 const ToolsPage = lazy(() => import("./pages/ToolsPage").then((m) => ({ default: m.ToolsPage })));
@@ -110,6 +111,7 @@ function ChatStartButton() {
 const SIM_NAMES: Record<string, string> = { iracing: "iRacing", acc: "Assetto Corsa Competizione", ac: "Assetto Corsa", lmu: "Le Mans Ultimate", rf2: "rFactor 2", ams2: "Automobilista 2", r3e: "RaceRoom", f1: "F1", forza: "Forza", dirt: "DiRT Rally / GRID", beamng: "BeamNG.drive" };
 
 const TOP: NavItem[] = [
+  { id: "home", label: "Ana Sayfa", icon: () => <I.Newspaper /> },
   { id: "overlays", label: "Overlaylarım", icon: () => <I.Box /> },
   { id: "layouts", label: "Düzenler", icon: () => <I.LayoutDashboard /> },
   { id: "streaming", label: "Yayın", icon: () => <I.Radio /> },
@@ -132,6 +134,7 @@ const BOTTOM: NavItem[] = [
 ];
 
 const TITLES: Record<Section, string> = {
+  home: "Ana Sayfa",
   overlays: "Overlaylarım",
   layouts: "Düzenler",
   streaming: "Yayın",
@@ -403,6 +406,9 @@ export function App() {
             </Match>
             <Match when={section() === "support"}>
               <SupportPage />
+            </Match>
+            <Match when={section() === "home"}>
+              <HomePage />
             </Match>
             <Match when={section() === "overlays"}>
               <OverlaysPage />

@@ -21,6 +21,7 @@ import {
   type AdStatus,
 } from "@/cloud/ads";
 import { openUrl } from "../ui";
+import { AdminHomeAds } from "./AdminHomeAds";
 import { fmtMoney } from "./AdminExtras";
 import "../ads.css";
 
@@ -63,6 +64,7 @@ const numList = (s: string) =>
 export function AdminAds(p: { run: Run }) {
   return (
     <div class="ads-admin">
+      <AdminHomeAds run={p.run} />
       <AdSettings run={p.run} />
       <AdCampaigns run={p.run} />
     </div>

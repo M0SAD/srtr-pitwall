@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-404
+
+- Ana Sayfa: sol menünün en üstünde gazete simgesiyle yeni "Ana Sayfa"; uygulama artık bu sayfada açılır. En üstte reklam, altında haberler (görsel, metin, içindeki adresler tıklanabilir, düğme olarak bağlantılar; sabitlenenler önce). Yönetici haberleri bu sayfada ekler, düzenler, sabitler, yayından kaldırır, siler; görseller yüklenirken 1600 px genişliğe küçültülür (GIF olduğu gibi).
+- Yönetim › Reklamlar › Ana sayfa reklamları: yönetici ana sayfanın en üstündeki reklamları doğrudan ekler (görsel + bağlantı, başlangıç / bitiş tarihi, sıra, aç / kapat, "PRO üyelere de göster"); gösterim ve tıklama sayılır. Birden çok reklam 8 sn'de bir döner; hiç yoksa ücretli reklam alanı (geniş banner) görünür. Supabase'de c128_guncelleme.sql çalıştırılmalı.
+
 ## 201026-403
 
 - Yönetim › Gelir: "Gelir ekle" formu. Satış tarihi, tutar, para birimi, tür (ödeme / iade), yöntem ve ne alındığı girilir; kimin aldığı üyelerden aranıp seçilir ya da (üye değilse) adı / e-postası yazılır. Yazılan e-posta bir üyeninkiyle aynıysa ödeme o üyeye bağlanır. Yalnızca gelir kaydı ekler, PRO süresini değiştirmez. Supabase'de c127_guncelleme.sql çalıştırılmalı.

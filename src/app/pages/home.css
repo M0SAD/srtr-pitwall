@@ -1,0 +1,297 @@
+/* Ana sayfa: üstte reklam, altında haber akışı */
+.page.home {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+/* Reklam (yöneticinin ana sayfa reklamı ya da ücretli reklam alanı) */
+.home-ad {
+  margin-bottom: 18px;
+}
+.home-banner {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+  line-height: 0;
+}
+.home-banner.link {
+  cursor: pointer;
+}
+.home-banner img {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  transition: filter 0.15s ease;
+}
+.home-banner.link:hover img {
+  filter: brightness(1.06);
+}
+.home-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+.home-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+}
+.home-dots i.on {
+  background: #fff;
+}
+.home-ad-edit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.home-banner:hover .home-ad-edit {
+  opacity: 1;
+}
+.home-ad-edit svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Başlık satırı */
+.home-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 12px;
+}
+.home-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 19px;
+}
+.home-head h2 svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+/* Haberler */
+.home-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.home-post {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2);
+}
+.home-post.pinned {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+.home-post.draft {
+  opacity: 0.72;
+  border-style: dashed;
+}
+.home-img {
+  display: block;
+  width: 100%;
+  max-height: 380px;
+  object-fit: cover;
+  background: var(--bg-3);
+}
+.home-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px 16px;
+}
+.home-body h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.home-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.home-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 11px;
+}
+.home-tag svg {
+  width: 11px;
+  height: 11px;
+}
+.home-tag.pin {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+}
+.home-tag.draft {
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.home-text {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.home-text p {
+  margin: 0 0 9px;
+}
+.home-text p:last-child {
+  margin-bottom: 0;
+}
+.home-text a {
+  color: var(--accent);
+  word-break: break-all;
+  cursor: pointer;
+}
+.home-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.home-link svg {
+  width: 13px;
+  height: 13px;
+}
+.home-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.home-admin svg {
+  width: 13px;
+  height: 13px;
+}
+.home-admin .danger {
+  color: #ff6b6b;
+}
+.home-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.home-empty svg {
+  width: 34px;
+  height: 34px;
+  opacity: 0.6;
+}
+.home-empty p {
+  margin: 0;
+}
+
+/* Düzenleyici */
+.home-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+}
+.home-editor .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.home-ta {
+  min-height: 140px;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+}
+.home-imgpick {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.home-imgpick img,
+.home-imgph {
+  width: 220px;
+  height: 124px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-3);
+}
+.home-imgph {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+.home-imgbtns {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.home-linkrow {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.home-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13px;
+}
+.home-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .home-imgpick {
+    flex-direction: column;
+  }
+  .home-linkrow {
+    grid-template-columns: 1fr;
+  }
+}
+.home-editor .f2 > .btn {
+  align-self: flex-start;
+}
