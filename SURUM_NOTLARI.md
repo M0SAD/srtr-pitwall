@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-411
+
+- Düzeltme (site › Yönetim › Reklamlar): gösterim paketleri boş / 0 iken "Paket listeleri boş olamaz" hatası veriyordu. Artık gösterim paketleri yalnızca bir yerde 1.000 gösterim fiyatı girilmişse, gün seçenekleri yalnızca günlük fiyat girilmişse gerekli. Ayrıca sitedeki bu sayfadan kaydetmek uygulamanın eklediği reklam ayarlarını (ödeme bağlantıları, yeni reklam yerleri, PRO gizleme, boş alan kutusu) siliyordu; artık yalnızca sayfadaki alanlar değişir, diğerleri korunur.
+
 ## 211026-410
 
 - Pencere boyutu: kontrol paneli ilk açılışta ekranın tamamına göre değil, kullanılabilir alana (Windows görev çubuğu hariç) göre boyutlanır ve ortalanır; küçük / yüksek ölçekli ekranlarda alttaki "Arkadaşlar" çubuğu görev çubuğunun altında kalmaz. Kayıtlı boyut korunur; yalnız ekrana sığmıyorsa (ör. monitör değişti) küçültülür ve ekranın içine çekilir. Live Timing, Arkadaşlar, Olaylar ve Arkadaş verileri pencereleri de aynı şekilde ekrana sığdırılır; yapışık Arkadaşlar penceresi görev çubuğuna taşmaz.

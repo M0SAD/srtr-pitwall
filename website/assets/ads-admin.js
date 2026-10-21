@@ -99,8 +99,8 @@ export async function reklamlar(el, rerender) {
       <div class="grid g3">
         <div class="field" style="margin:0"><label>Genel para birimi (yurt dışı)</label><input name="currency" maxlength="3" value="${esc(pr.currency)}"></div>
         <div class="field" style="margin:0"><label>Türkiye para birimi</label><input name="currency_tr" maxlength="3" value="${esc(pr.currency_tr || "TRY")}"></div>
-        <div class="field" style="margin:0"><label>Gösterim paketleri (virgülle)</label><input name="impressions" value="${esc(pr.impressions.join(", "))}"></div>
-        <div class="field" style="margin:0"><label>Gün seçenekleri (virgülle)</label><input name="days" value="${esc(pr.days.join(", "))}"></div>
+        <div class="field" style="margin:0"><label>Gösterim paketleri (virgülle)</label><input name="impressions" value="${esc((pr.impressions || []).join(", "))}" placeholder="boş: gösterimle satış yok"></div>
+        <div class="field" style="margin:0"><label>Gün seçenekleri (virgülle)</label><input name="days" value="${esc((pr.days || []).join(", "))}" placeholder="boş: günlük satış yok"></div>
       </div>
       <div><button class="btn btn-accent">Kaydet</button></div>
     </form>
@@ -159,9 +159,13 @@ export async function reklamlar(el, rerender) {
   $("#adset").addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
-    const placements = {};
+    // Uygulamanın eklediği ayarlar (ödeme bağlantıları, yeni reklam yerleri, PRO gizleme …) korunur: sadece bu
+    // sayfadaki alanlar değişir
+    const old = c.ad_pricing || {};
+    const placements = { ...(old.placements || {}) };
     for (const id of Object.keys(AD_PLACES)) {
       placements[id] = {
+        ...(placements[id] || {}),
         on: $(`[data-on="${id}"]`).checked,
         cpm: Math.max(0, dec($(`[data-cpm="${id}"]`).value) || 0),
         day: Math.max(0, dec($(`[data-day="${id}"]`).value) || 0),
@@ -171,12 +175,19 @@ export async function reklamlar(el, rerender) {
     }
     const impressions = nums(f.get("impressions"));
     const days = nums(f.get("days"));
-    if (!impressions.length || !days.length) return toast("Paket listeleri boş olamaz", true);
+    // Paket listesi yalnızca o fiyat türü açık bir yerde kullanılıyorsa gerekli (ör. sadece günlük satılıyorsa
+    // gösterim paketi boş / 0 olabilir)
+    const live = Object.values(placements).filter((p) => p && p.on);
+    const useCpm = live.some((p) => (p.cpm || 0) > 0 || (p.cpm_tr || 0) > 0);
+    const useDay = live.some((p) => (p.day || 0) > 0 || (p.day_tr || 0) > 0);
+    if (useCpm && !impressions.length) return toast("Gösterim fiyatı girilen bir yer var: gösterim paketleri boş olamaz (ya da o yerin 1.000 gösterim fiyatını 0 yapın)", true);
+    if (useDay && !days.length) return toast("Günlük fiyat girilen bir yer var: gün seçenekleri boş olamaz (ya da o yerin günlük fiyatını 0 yapın)", true);
     const patch = {
       ads_enabled: !!f.get("ads_enabled"),
       ad_auto_approve: !!f.get("ad_auto_approve"),
       ad_report_hide_threshold: Math.max(1, parseInt(String(f.get("ad_report_hide_threshold")), 10) || 3),
       ad_pricing: {
+        ...old,
         currency: String(f.get("currency") || "USD").trim().toUpperCase().slice(0, 3),
         currency_tr: String(f.get("currency_tr") || "TRY").trim().toUpperCase().slice(0, 3),
         impressions, days, placements },
