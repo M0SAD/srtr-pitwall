@@ -267,6 +267,7 @@ function noticeText(n: Notice): string {
     return n.data.hidden
       ? t('Reklam raporlarla gizlendi: "{0}" ({1} rapor)', n.data.title ?? "", n.data.reports ?? "?")
       : t('Reklam raporlandı: "{0}" ({1} rapor)', n.data.title ?? "", n.data.reports ?? "?");
+  if (n.kind === "ad_pending" && n.data.claim) return t('Reklam ödemesi bildirildi: "{0}" ({1}) · {2}', n.data.title ?? "", n.data.name ?? "?", n.data.method ?? "");
   if (n.kind === "ad_pending") return t('Onay bekleyen reklam: "{0}" ({1})', n.data.title ?? "", n.data.name ?? "?");
   if (n.kind === "message_reported")
     return t(

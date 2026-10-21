@@ -27,6 +27,7 @@ create policy "home posts admin" on public.home_posts for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 grant select on public.home_posts to anon, authenticated;
 grant insert, update, delete on public.home_posts to authenticated;
+grant all on public.home_posts to service_role;
 
 create table if not exists public.home_banners (
   id uuid primary key default gen_random_uuid(),
@@ -50,6 +51,7 @@ create policy "home banners admin" on public.home_banners for all to authenticat
   using (public.is_admin()) with check (public.is_admin());
 grant select on public.home_banners to anon, authenticated;
 grant insert, update, delete on public.home_banners to authenticated;
+grant all on public.home_banners to service_role;
 
 -- updated_at
 create or replace function public.home_posts_touch() returns trigger language plpgsql as $$

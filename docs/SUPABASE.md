@@ -115,6 +115,24 @@ Kurulum (bu projede yapıldı):
 | `layout_ratings` / `layout_comments` | Yıldızlar ve yorumlar |
 | `pending_pro` | Hesap açılmadan önce ödeme yapanlar (kayıt olunca PRO otomatik açılır) |
 
+### Yeni tablo eklerken: açık izin (GRANT) zorunlu
+
+30 Ekim 2026'dan itibaren Supabase, `public` şemasında yeni oluşturulan tablolara Data API (supabase-js, PostgREST)
+erişimini kendiliğinden vermiyor. Yeni tablo oluşturan her `cXXX_guncelleme.sql` dosyası, tabloyu oluşturduğu yerde
+izinleri de açıkça yazmalı (erişimi yine RLS kuralları belirler):
+
+```sql
+alter table public.ornek enable row level security;
+grant select on public.ornek to anon;                                   -- herkese açık okuma gerekiyorsa
+grant select, insert, update, delete on public.ornek to authenticated;  -- uygulamanın ihtiyacı kadar
+grant all on public.ornek to service_role;                              -- sunucu fonksiyonları
+```
+
+Kimlik sütunu (`generated ... as identity` / `serial`) olan tabloya istemci doğrudan satır ekliyorsa sayaç izni de
+gerekir: `grant usage, select on sequence public.ornek_id_seq to authenticated;`. Yalnızca sunucuya özel tablolarda
+(ör. `backup_restore_*`) anon / authenticated izni verilmez. `c131_guncelleme.sql`, eskiden varsayılandan izin alan
+tabloların izinlerini açıkça yazar.
+
 ## E-posta (SMTP) ayarlarını uygulamadan yönetme (c123)
 
 Uygulamada **Yönetim › E-posta (SMTP)** sayfasından Gmail adresi ve uygulama şifresi girilir; hem uygulamanın kendi

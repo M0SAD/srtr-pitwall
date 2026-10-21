@@ -1,20 +1,18 @@
 // Reklam ver (uygulama içinden): yer, fiyat modeli (gösterim paketi / gün) ve paket seçilir; başlık, kısa metin,
-// bağlantı ve görsel girilir; canlı önizleme ve sunucunun hesapladığı fiyat görünür. "Öde" reklamı kaydeder
-// (ad_save) ve ödeme sayfasını uygulamanın ödeme penceresinde açar (ads-checkout). Ödeme gelince reklam yayına girer
-// (otomatik onay kapalıysa yönetici onayından sonra). Altta "Reklamlarım": durum, gösterim / tıklama, öde / sil /
-// durdur / sürdür.
+// bağlantı ve görsel girilir; canlı önizleme ve sunucunun hesapladığı fiyat görünür. "Kaydet ve öde" reklamı kaydeder
+// (ad_save) ve ödeme kutusunu açar: yöneticinin ödeme bağlantıları (ByNoGame, Patreon …) ve tutar. Reklam veren öder,
+// kullanıcı adını / sipariş numarasını yazıp "Ödedim" der (ad_pay_claim); yönetici kontrol edip "Ödendi say" deyince
+// reklam yayına girer. Altta "Reklamlarım": durum, istatistik, öde / düzenle / sil / durdur / sürdür.
 
 import { For, Show, createEffect, createMemo, createResource, createSignal, on, onCleanup } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
 import { localeTag, t } from "@/sdk/i18n";
-import { inTauri } from "@/sdk/platform";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { config, fmtPrice, inTurkey } from "@/cloud/account";
 import {
-  AD_PAID_PREFIX,
   AD_PLACEMENTS,
   AD_STATUS,
-  adCheckoutUrl,
+  adPayClaim,
+  adPayLinks,
   adDelete,
   adImageUrl,
   adOnSale,
@@ -29,7 +27,7 @@ import {
   type AdStatus,
 } from "@/cloud/ads";
 import * as I from "../icons";
-import { go, sub } from "../ui";
+import { go, openUrl, sub } from "../ui";
 import { AdStatsPanel } from "../components/AdStats";
 import "../ads.css";
 
@@ -116,30 +114,11 @@ export function AdvertisePage() {
     () => myAds().catch(() => [] as AdCampaign[]),
   );
 
-  // Ödeme penceresi kapanınca / ödeme bitince listeyi yenile (webhook gecikmesi için birkaç kez)
-  if (inTauri) {
-    let un: (() => void) | undefined;
-    import("@tauri-apps/api/event").then(({ listen }) =>
-      listen<string>("checkout-done", (e) => {
-        if (!String(e.payload).startsWith(AD_PAID_PREFIX)) return;
-        setMsg(t("Ödeme alındı. Reklamın birkaç saniye içinde yayına girer (onay gerekiyorsa yönetici onayından sonra)."));
-        for (const ms of [1500, 4000, 8000, 15000]) setTimeout(() => refetch(), ms);
-      }).then((f) => (un = f)),
-    );
-    onCleanup(() => un?.());
-  }
-
-  const openCheckout = async (id: string) => {
-    const u = await adCheckoutUrl(id);
-    if (!inTauri) {
-      window.open(u, "_blank");
-      return;
-    }
-    try {
-      await invoke("checkout_open", { url: u, donePrefix: AD_PAID_PREFIX });
-    } catch {
-      await invoke("open_url", { url: u }).catch(() => window.open(u, "_blank"));
-    }
+  // Ödeme kutusu açık reklam (kaydedince kendiliğinden açılır)
+  const [payFor, setPayFor] = createSignal<string | null>(null);
+  const openPay = (id: string) => {
+    setPayFor(id);
+    setTimeout(() => document.querySelector(`[data-ad="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
   };
 
   const validate = () => {
@@ -181,9 +160,9 @@ export function AdvertisePage() {
       setImage(path);
       setFile(null);
       uploaded = "";
-      refetch();
-      await openCheckout(id);
-      setMsg(t("Ödeme sayfası açıldı. Ödemeyi tamamlayınca reklamın yayına girer."));
+      await refetch();
+      openPay(id);
+      setMsg(t("Reklamın kaydedildi. Aşağıdaki ödeme kutusundan öde ve \"Ödedim\" de."));
     } catch (x) {
       setErr(String((x as Error)?.message ?? x));
       if (uploaded) void import("@/cloud/supabase").then((m) => m.storageRemove("ads", [uploaded]).catch(() => {}));
@@ -356,14 +335,14 @@ export function AdvertisePage() {
               </Show>
               <div class="adv-actions">
                 <button class="btn primary" disabled={busy() || !price()} onClick={pay}>
-                  {busy() ? t("Ödeme sayfası açılıyor…") : price() ? t("Öde · {0}", fmtPrice(price()!.price, price()!.currency)) : t("Öde")}
+                  {busy() ? t("Kaydediliyor…") : price() ? t("Kaydet ve öde · {0}", fmtPrice(price()!.price, price()!.currency)) : t("Kaydet ve öde")}
                 </button>
                 <Show when={editId()}>
                   <button class="btn ghost" onClick={reset}>
                     {t("Yeni reklam")}
                   </button>
                 </Show>
-                <small class="muted">{t("Ödeme güvenli ödeme sayfasında yapılır. Reklamlar kurallara aykırıysa yayından kaldırılabilir.")}</small>
+                <small class="muted">{t("Ödeme kontrol edilince reklamın yayına girer. Reklamlar kurallara aykırıysa yayından kaldırılabilir.")}</small>
               </div>
             </section>
           </Show>
@@ -373,12 +352,17 @@ export function AdvertisePage() {
             <div class="adv-list">
               <For each={mine() ?? []} fallback={<p class="muted small">{mine.loading ? t("Yükleniyor…") : t("Henüz reklamın yok.")}</p>}>
                 {(a) => (
-                  <div class="adv-wrap" classList={{ open: statsOpen() === a.id }}>
+                  <div class="adv-wrap" data-ad={a.id} classList={{ open: statsOpen() === a.id || payFor() === a.id }}>
                   <div class="adv-item">
                     <img src={adImageUrl(a.image)} alt="" loading="lazy" />
                     <div class="adv-info">
                       <div>
-                        <span class={`ads-chip ${AD_STATUS[a.status as AdStatus]?.tone ?? ""}`}>{t(AD_STATUS[a.status as AdStatus]?.label ?? a.status)}</span>{" "}
+                        <Show
+                          when={a.status === "unpaid" && a.pay_claimed_at}
+                          fallback={<span class={`ads-chip ${AD_STATUS[a.status as AdStatus]?.tone ?? ""}`}>{t(AD_STATUS[a.status as AdStatus]?.label ?? a.status)}</span>}
+                        >
+                          <span class="ads-chip warn">{t("Ödeme kontrol ediliyor")}</span>
+                        </Show>{" "}
                         <b data-no-i18n>{a.title}</b>
                       </div>
                       <small class="muted">
@@ -402,8 +386,8 @@ export function AdvertisePage() {
                         </button>
                       </Show>
                       <Show when={a.status === "unpaid"}>
-                        <button class="btn primary small" onClick={() => act(() => openCheckout(a.id))}>
-                          {t("Öde")}
+                        <button class="btn small" classList={{ primary: !a.pay_claimed_at }} onClick={() => setPayFor(payFor() === a.id ? null : a.id)}>
+                          {a.pay_claimed_at ? t("Ödeme bilgisi") : t("Öde")}
                         </button>
                         <button class="btn ghost small" onClick={() => edit(a)}>
                           <I.Pencil /> {t("Düzenle")}
@@ -424,6 +408,9 @@ export function AdvertisePage() {
                       </Show>
                     </div>
                   </div>
+                  <Show when={payFor() === a.id && a.status === "unpaid"}>
+                    <PayBox ad={a} onDone={() => (refetch(), setMsg(t("Ödeme bildirimin alındı. Kontrol edilince reklamın yayına girer; sana bildirim gelir.")))} />
+                  </Show>
                   <Show when={statsOpen() === a.id}>
                     <AdStatsPanel ad={a} />
                   </Show>
@@ -433,6 +420,75 @@ export function AdvertisePage() {
             </div>
           </section>
         </Show>
+      </Show>
+    </div>
+  );
+}
+
+/** Ödeme kutusu: tutar, yöneticinin ödeme bağlantıları ve "Ödedim" bildirimi */
+function PayBox(p: { ad: AdCampaign; onDone: () => void }) {
+  const links = () => adPayLinks();
+  const [method, setMethod] = createSignal(p.ad.pay_method || links()[0]?.name || "");
+  const [ref, setRef] = createSignal(p.ad.pay_ref ?? "");
+  const [note, setNote] = createSignal(p.ad.pay_note ?? "");
+  const [busy, setBusy] = createSignal(false);
+  const [err, setErr] = createSignal("");
+  const send = async () => {
+    if (!method() || !ref().trim()) return setErr(t("Ödeme yöntemini seç ve kullanıcı adını / sipariş numarasını yaz."));
+    setErr("");
+    setBusy(true);
+    try {
+      await adPayClaim(p.ad.id, method(), ref().trim(), note().trim());
+      p.onDone();
+    } catch (x) {
+      setErr(String((x as Error)?.message ?? x));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="adpay">
+      <div class="adpay-amount">
+        <small class="muted">{t("Ödenecek tutar")}</small>
+        <b>{fmtPrice(Number(p.ad.price), p.ad.currency)}</b>
+        <small class="muted">
+          {t(AD_PLACEMENTS[p.ad.placement]?.label ?? p.ad.placement)} · {p.ad.model === "days" ? t("{0} gün", p.ad.quantity) : t("{0} gösterim", nf(p.ad.quantity))}
+        </small>
+      </div>
+      <Show when={links().length} fallback={<p class="muted">{t("Ödeme yöntemleri henüz tanımlanmadı. Lütfen daha sonra tekrar dene ya da destekten yaz.")}</p>}>
+        <div class="adpay-steps">
+          <b>{t("1. Bu yöntemlerden biriyle öde")}</b>
+          <For each={links()}>
+            {(l) => (
+              <div class="adpay-opt" classList={{ on: method() === l.name }}>
+                <label>
+                  <input type="radio" name={`adpay-${p.ad.id}`} checked={method() === l.name} onChange={() => setMethod(l.name)} />
+                  <b data-no-i18n>{l.name}</b>
+                </label>
+                <Show when={l.note}>
+                  <small data-no-i18n>{l.note}</small>
+                </Show>
+                <button class="btn small" onClick={() => (setMethod(l.name), openUrl(l.url))}>
+                  <I.ExternalLink /> {t("{0} ile öde", l.name)}
+                </button>
+              </div>
+            )}
+          </For>
+          <b>{t("2. Ödeme yaptıktan sonra bildir")}</b>
+          <input class="input" maxLength={120} placeholder={t("{0} kullanıcı adın ya da sipariş numarası", method() || "")} value={ref()} onInput={(e) => setRef(e.currentTarget.value)} />
+          <input class="input" maxLength={500} placeholder={t("Not (isteğe bağlı)")} value={note()} onInput={(e) => setNote(e.currentTarget.value)} />
+          <Show when={err()}>
+            <p class="error">{err()}</p>
+          </Show>
+          <div class="adv-actions">
+            <button class="btn primary" disabled={busy()} onClick={send}>
+              {p.ad.pay_claimed_at ? t("Bildirimi güncelle") : t("Ödedim, bildir")}
+            </button>
+            <Show when={p.ad.pay_claimed_at}>
+              <small class="muted">{t("Bildirildi: {0}. Kontrol edilince reklamın yayına girer.", fmtTime(p.ad.pay_claimed_at))}</small>
+            </Show>
+          </div>
+        </div>
       </Show>
     </div>
   );

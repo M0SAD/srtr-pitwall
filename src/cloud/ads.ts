@@ -65,7 +65,18 @@ export interface AdPricing {
   placements: Partial<Record<AdPlacement, { on?: boolean; cpm?: number; day?: number; cpm_tr?: number; day_tr?: number; pro_hide?: boolean }>>;
   /** Boş reklam alanlarında "Bu alana reklam ver" kutusu (varsayılan açık) */
   placeholder?: boolean;
+  /** Elle ödeme bağlantıları (c132): ByNoGame, Patreon … */
+  pay_links?: AdPayLink[];
 }
+export interface AdPayLink {
+  name: string;
+  url: string;
+  /** Reklam verene açıklama (ör. "Tutarı ilan üzerinden öde, kullanıcı adını yaz") */
+  note: string;
+  on: boolean;
+}
+/** Açık ödeme bağlantıları */
+export const adPayLinks = () => (config()?.ad_pricing?.pay_links ?? []).filter((l) => l.on !== false && l.name.trim() && /^https:\/\//.test(l.url));
 
 export const DEFAULT_AD_PRICING: AdPricing = {
   currency: "USD",
@@ -202,6 +213,12 @@ export interface AdStatDay {
   clicks: number;
 }
 export const adStats = (id: string) => api<AdStatDay[]>("POST", "rpc/ad_stats", { body: { p_ad: id } }).then((r) => r ?? []);
+/** Reklam veren: "Ödedim" (c132) */
+export const adPayClaim = (id: string, method: string, ref: string, note: string) =>
+  api("POST", "rpc/ad_pay_claim", { body: { p_ad: id, p_method: method, p_ref: ref, p_note: note } });
+/** Yönetici: ödemeyi kontrol ettim, ödendi say (Gelir'e yazılır, reklam yayına girer) */
+export const adminAdMarkPaid = (id: string, amount: number, currency: string, method: string) =>
+  api("POST", "rpc/admin_ad_mark_paid", { body: { p_ad: id, p_amount: amount, p_currency: currency, p_method: method } });
 export const adOwnerPause = (id: string, pause: boolean) => api<string>("POST", "rpc/ad_owner_pause", { body: { p_ad: id, p_pause: pause } });
 
 /** Ödeme sayfasının adresi (ads-checkout). Ödeme bitince sağlayıcı reklam.html?paid=<id> adresine döner. */
@@ -264,6 +281,11 @@ export interface AdCampaign extends Ad {
   updated_at: string;
   owner_name?: string | null;
   owner_email?: string | null;
+  /** Elle ödeme bildirimi (c132) */
+  pay_method?: string;
+  pay_ref?: string;
+  pay_note?: string;
+  pay_claimed_at?: string | null;
 }
 
 export interface AdReportRow {

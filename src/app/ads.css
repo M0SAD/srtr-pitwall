@@ -840,3 +840,98 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Yönetim › Reklamlar › Ödeme yöntemleri ve ödeme bildirimi */
+.adpay-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.adpay-link {
+  display: grid;
+  grid-template-columns: auto 140px 1.2fr 2fr auto;
+  gap: 6px;
+  align-items: center;
+}
+.ads-admin .ads-claim {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+@media (max-width: 900px) {
+  .adpay-link {
+    grid-template-columns: auto 1fr auto;
+  }
+  .adpay-link > .input:nth-of-type(2),
+  .adpay-link > .input:nth-of-type(3) {
+    grid-column: 2 / -1;
+  }
+}
+
+/* Reklam ver › ödeme kutusu */
+.adpay {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 18px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 10px 10px;
+  background: var(--bg-2);
+}
+.adpay-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.adpay-amount b {
+  color: var(--accent);
+  font-size: 24px;
+}
+.adpay-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+.adpay-steps > .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.adpay-opt {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-3);
+}
+.adpay-opt.on {
+  border-color: var(--accent);
+}
+.adpay-opt label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.adpay-opt small {
+  grid-column: 1;
+  color: var(--muted);
+}
+.adpay-opt .btn {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.adpay-opt .btn svg {
+  width: 13px;
+  height: 13px;
+}
+@media (max-width: 820px) {
+  .adpay {
+    grid-template-columns: 1fr;
+  }
+}

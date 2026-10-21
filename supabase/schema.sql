@@ -18920,6 +18920,7 @@ create policy "home posts admin" on public.home_posts for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 grant select on public.home_posts to anon, authenticated;
 grant insert, update, delete on public.home_posts to authenticated;
+grant all on public.home_posts to service_role;
 
 create table if not exists public.home_banners (
   id uuid primary key default gen_random_uuid(),
@@ -18943,6 +18944,7 @@ create policy "home banners admin" on public.home_banners for all to authenticat
   using (public.is_admin()) with check (public.is_admin());
 grant select on public.home_banners to anon, authenticated;
 grant insert, update, delete on public.home_banners to authenticated;
+grant all on public.home_banners to service_role;
 
 -- updated_at
 create or replace function public.home_posts_touch() returns trigger language plpgsql as $$
@@ -19049,6 +19051,7 @@ create policy "ad stats own read" on public.ad_stats_daily for select using (
   public.is_admin() or exists (select 1 from public.ad_campaigns a where a.id = ad_id and a.user_id = auth.uid()));
 revoke all on public.ad_stats_daily from anon;
 grant select on public.ad_stats_daily to authenticated;
+grant all on public.ad_stats_daily to service_role;
 
 create or replace function public.ad_stat_bump(p_ad uuid, p_click boolean) returns void
 language sql security definer set search_path = public as $$
@@ -19117,5 +19120,121 @@ begin
 end $$;
 revoke all on function public.ad_stats(uuid) from public, anon;
 grant execute on function public.ad_stats(uuid) to authenticated;
+
+-- ===== c131: açık tablo izinleri (Supabase 30 Ekim 2026 değişikliği) =====
+grant select, insert, update, delete on
+  public.chat_backgrounds,
+  public.coupon_redemptions,
+  public.coupons,
+  public.payments,
+  public.pending_pro,
+  public.pro_feature_catalog,
+  public.pro_features,
+  public.pro_log,
+  public.site_visits,
+  public.user_settings_history,
+  public.voice_bans,
+  public.voice_grants,
+  public.voice_moderators,
+  public.voice_pack_submissions,
+  public.voice_requests,
+  public.voice_room_roles,
+  public.voice_rooms,
+  public.voice_sessions
+to anon, authenticated;
+
+-- Sunucu fonksiyonları (Edge Functions) service_role ile çalışır
+grant all on all tables in schema public to service_role;
+-- Otomatik artan kimlik sütunları (identity / serial)
+grant usage, select on all sequences in schema public to authenticated, service_role;
+
+-- ===== c132: reklam ödemesi elle (ByNoGame, Patreon) =====
+alter table public.ad_campaigns add column if not exists pay_method text not null default '';
+alter table public.ad_campaigns add column if not exists pay_ref text not null default '';
+alter table public.ad_campaigns add column if not exists pay_note text not null default '';
+alter table public.ad_campaigns add column if not exists pay_claimed_at timestamptz;
+
+-- Reklam veren: "Ödedim"
+create or replace function public.ad_pay_claim(p_ad uuid, p_method text, p_ref text, p_note text default '') returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  a public.ad_campaigns;
+begin
+  select * into a from public.ad_campaigns where id = p_ad and user_id = auth.uid() for update;
+  if a.id is null then
+    raise exception 'Reklam bulunamadı';
+  end if;
+  if a.status <> 'unpaid' then
+    raise exception 'Bu reklam zaten ödenmiş';
+  end if;
+  p_method := left(btrim(coalesce(p_method, '')), 60);
+  p_ref := left(btrim(coalesce(p_ref, '')), 120);
+  if p_method = '' or p_ref = '' then
+    raise exception 'Ödeme yöntemini ve kullanıcı adını / sipariş numarasını yaz';
+  end if;
+  -- Aynı reklam için sık sık bildirim gönderilmesin
+  if a.pay_claimed_at is not null and a.pay_claimed_at > now() - interval '2 minutes' then
+    raise exception 'Bildirimin alındı; biraz bekle';
+  end if;
+  update public.ad_campaigns
+    set pay_method = p_method, pay_ref = p_ref, pay_note = left(btrim(coalesce(p_note, '')), 500),
+        pay_claimed_at = now(), updated_at = now()
+    where id = p_ad;
+  perform public.ad_notify_admins(p_ad, 'ad_pending',
+    jsonb_build_object('claim', true, 'method', p_method, 'ref', p_ref, 'price', a.price, 'currency', a.currency), true);
+end $$;
+revoke all on function public.ad_pay_claim(uuid, text, text, text) from public, anon;
+grant execute on function public.ad_pay_claim(uuid, text, text, text) to authenticated;
+
+-- Yönetici: "Ödendi say": ödeme Gelir'e yazılır, reklam yayına girer
+create or replace function public.admin_ad_mark_paid(p_ad uuid, p_amount numeric, p_currency text, p_method text default '')
+returns text language plpgsql security definer set search_path = public, auth as $$
+declare
+  a public.ad_campaigns;
+  em text;
+begin
+  if not public.is_admin() then
+    raise exception 'yetki yok';
+  end if;
+  select * into a from public.ad_campaigns where id = p_ad;
+  if a.id is null then
+    raise exception 'Reklam bulunamadı';
+  end if;
+  if a.status <> 'unpaid' then
+    raise exception 'Bu reklam zaten ödenmiş';
+  end if;
+  if p_amount is null or p_amount < 0 or p_amount > 1000000 then
+    raise exception 'Geçersiz tutar';
+  end if;
+  p_currency := upper(coalesce(nullif(btrim(p_currency), ''), a.currency));
+  if p_currency !~ '^[A-Z]{3}$' then
+    raise exception 'Geçersiz para birimi';
+  end if;
+  p_method := left(btrim(coalesce(nullif(p_method, ''), a.pay_method)), 60);
+  select coalesce(u.email, '') into em from auth.users u where u.id = a.user_id;
+  if p_amount > 0 then
+    insert into public.payments (id, source, user_id, email, amount, currency, plan, kind, created_at, method)
+    values ('ad_' || a.id::text, 'manual', a.user_id, coalesce(em, ''), round(p_amount, 2), p_currency,
+            left('Reklam: ' || a.title, 120), 'payment', now(), p_method)
+    on conflict (id) do nothing;
+  end if;
+  -- Yönetici ödemeyi kontrol etti: onay beklemeden yayına (otomatik onay ayarından bağımsız)
+  update public.ad_campaigns
+    set paid_at = now(), order_id = left('manual:' || p_method, 120), paid_amount = round(p_amount, 2), currency = p_currency,
+        updated_at = now()
+    where id = p_ad;
+  perform public.ad_start(p_ad);
+  perform public.log_mod('ad_paid', 'ad', p_ad::text, a.user_id,
+    jsonb_build_object('title', a.title, 'amount', p_amount, 'currency', p_currency, 'method', p_method));
+  return 'active';
+end $$;
+revoke all on function public.admin_ad_mark_paid(uuid, numeric, text, text) from public, anon;
+grant execute on function public.admin_ad_mark_paid(uuid, numeric, text, text) to authenticated;
+
+-- my_ads yeni sütunlarla
+create or replace function public.my_ads()
+returns setof public.ad_campaigns language sql stable security definer set search_path = public as $$
+  select * from public.ad_campaigns where user_id = auth.uid() order by created_at desc limit 200;
+$$;
 
 notify pgrst, 'reload schema';

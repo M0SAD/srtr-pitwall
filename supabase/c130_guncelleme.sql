@@ -18,6 +18,7 @@ create policy "ad stats own read" on public.ad_stats_daily for select using (
   public.is_admin() or exists (select 1 from public.ad_campaigns a where a.id = ad_id and a.user_id = auth.uid()));
 revoke all on public.ad_stats_daily from anon;
 grant select on public.ad_stats_daily to authenticated;
+grant all on public.ad_stats_daily to service_role;
 
 create or replace function public.ad_stat_bump(p_ad uuid, p_click boolean) returns void
 language sql security definer set search_path = public as $$

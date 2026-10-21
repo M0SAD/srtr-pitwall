@@ -11,6 +11,7 @@ import {
   DEFAULT_AD_PRICING,
   adImageUrl,
   adminAdDelete,
+  adminAdMarkPaid,
   adminAdReports,
   adminAdSet,
   adminAds,
@@ -32,6 +33,7 @@ const nf = (n: number) => Number(n || 0).toLocaleString(localeTag());
 const PLACES = Object.keys(AD_PLACEMENTS) as AdPlacement[];
 const FILTERS: { id: string; label: string }[] = [
   { id: "", label: "Hepsi" },
+  { id: "claimed", label: "Ödeme bildirildi" },
   { id: "pending_review", label: "Onay bekleyen" },
   { id: "active", label: "Yayında" },
   { id: "paused_reports", label: "Raporlarla gizlenen" },
@@ -77,9 +79,13 @@ function AdSettings(p: { run: Run }) {
   const [imp, setImp] = createSignal(pricing().impressions.join(", "));
   const [days, setDays] = createSignal(pricing().days.join(", "));
   const [thr, setThr] = createSignal(String(c()?.ad_report_hide_threshold ?? 3));
+  const setLink = (i: number, patch: Partial<NonNullable<AdPricing["pay_links"]>[number]>) =>
+    setPr((x) => ({ ...x, pay_links: (x.pay_links ?? []).map((l, j) => (j === i ? { ...l, ...patch } : l)) }));
   const setPlace = (id: AdPlacement, k: "on" | "cpm" | "day" | "cpm_tr" | "day_tr" | "pro_hide", v: boolean | number) =>
     setPr((x) => ({ ...x, placements: { ...x.placements, [id]: { ...x.placements[id], [k]: v } } }));
   const savePricing = () => {
+    const bad = (pr().pay_links ?? []).find((l) => l.on !== false && (!l.name.trim() || !/^https:\/\/\S+$/.test(l.url)));
+    if (bad) return p.run(async () => Promise.reject(new Error(t("Ödeme bağlantısı için ad ve https:// ile başlayan adres gerekli: {0}", bad.name || bad.url || "—"))), "");
     const next: AdPricing = { ...pr(), currency: (pr().currency || "USD").trim().toUpperCase().slice(0, 3), currency_tr: (pr().currency_tr || "TRY").trim().toUpperCase().slice(0, 3), impressions: numList(imp()), days: numList(days()) };
     if (!next.impressions.length || !next.days.length) return p.run(async () => Promise.reject(new Error(t("Paket listeleri boş olamaz"))), "");
     return p.run(() => saveConfig({ ad_pricing: next, ad_report_hide_threshold: Math.max(1, parseInt(thr(), 10) || 3) }), t("Reklam fiyatları kaydedildi"));
@@ -117,6 +123,50 @@ function AdSettings(p: { run: Run }) {
           </span>
           <input class="input" type="number" min="1" max="100" style={{ width: "80px" }} value={thr()} onInput={(e) => setThr(e.currentTarget.value)} />
         </div>
+      </div>
+
+      <h4>{t("Ödeme yöntemleri")}</h4>
+      <p class="muted small">
+        {t(
+          "Reklam veren reklamını kaydedince bu bağlantılardan biriyle öder (ör. ByNoGame ilanı, Patreon), sonra kullanıcı adını / sipariş numarasını yazıp \"Ödedim\" der. Sana bildirim gelir; ödemeyi kontrol edip aşağıdaki listede \"Ödendi say\"a basınca ödeme Gelir'e yazılır ve reklam hemen yayına girer. Açıklamada ödenecek tutarın nasıl gönderileceğini yaz (reklam verene tutar ayrıca gösterilir).",
+        )}
+      </p>
+      <div class="adpay-links">
+        <For each={pr().pay_links ?? []}>
+          {(l, i) => (
+            <div class="adpay-link">
+              <input type="checkbox" title={t("Açık")} checked={l.on !== false} onChange={(e) => setLink(i(), { on: e.currentTarget.checked })} />
+              <input class="input" placeholder={t("Ad (ör. ByNoGame)")} maxLength={40} value={l.name} onInput={(e) => setLink(i(), { name: e.currentTarget.value })} />
+              <input class="input" placeholder="https://" value={l.url} onInput={(e) => setLink(i(), { url: e.currentTarget.value.trim() })} />
+              <input class="input" placeholder={t("Açıklama (reklam verene görünür)")} maxLength={300} value={l.note} onInput={(e) => setLink(i(), { note: e.currentTarget.value })} />
+              <button class="btn ghost small" title={t("Kaldır")} onClick={() => setPr((x) => ({ ...x, pay_links: (x.pay_links ?? []).filter((_, j) => j !== i()) }))}>
+                ✕
+              </button>
+            </div>
+          )}
+        </For>
+        <div class="btns">
+          <button class="btn ghost small" onClick={() => setPr((x) => ({ ...x, pay_links: [...(x.pay_links ?? []), { name: "", url: "", note: "", on: true }] }))}>
+            + {t("Ödeme bağlantısı ekle")}
+          </button>
+          <Show when={!(pr().pay_links ?? []).length}>
+            <button
+              class="btn ghost small"
+              onClick={() =>
+                setPr((x) => ({
+                  ...x,
+                  pay_links: [
+                    { name: "ByNoGame", url: "", note: "İlan üzerinden ödeme yap; ByNoGame kullanıcı adını yaz.", on: true },
+                    { name: "Patreon", url: "", note: "Patreon'dan ödeme yap; Patreon adını yaz.", on: true },
+                  ],
+                }))
+              }
+            >
+              {t("ByNoGame + Patreon ekle")}
+            </button>
+          </Show>
+        </div>
+        <small class="muted">{t("Değişiklikler \"Fiyatları kaydet\" ile kaydedilir.")}</small>
       </div>
 
       <h4>Fiyatlar</h4>
@@ -221,7 +271,22 @@ function AdSettings(p: { run: Run }) {
 
 function AdCampaigns(p: { run: Run }) {
   const [filter, setFilter] = createSignal("");
-  const [list, { refetch }] = createResource(filter, (f) => adminAds(f).catch(() => [] as AdCampaign[]));
+  const [list, { refetch }] = createResource(filter, (f) =>
+    adminAds(f === "claimed" ? "unpaid" : f)
+      .then((r) => (f === "claimed" ? r.filter((a) => !!a.pay_claimed_at) : r))
+      .catch(() => [] as AdCampaign[]),
+  );
+  const markPaid = (a: AdCampaign) => {
+    const v = prompt(t("Alınan tutar ({0}). Gelir'e bu tutar yazılır:", a.currency), String(Number(a.price)));
+    if (v === null) return;
+    const amount = Math.round(parseFloat(v.replace(",", ".")) * 100) / 100;
+    if (!isFinite(amount) || amount < 0) return;
+    p.run(async () => {
+      await adminAdMarkPaid(a.id, amount, a.currency, a.pay_method || "");
+      refetch();
+      refetchAll();
+    }, t("Ödeme kaydedildi, reklam yayında"));
+  };
   const [all, { refetch: refetchAll }] = createResource(() => adminAds("").catch(() => [] as AdCampaign[]));
   const [openReports, setOpenReports] = createSignal<string | null>(null);
   const [reports] = createResource(openReports, (id) => adminAdReports(id).catch(() => []));
@@ -266,6 +331,7 @@ function AdCampaigns(p: { run: Run }) {
     return {
       active: rows.filter((r) => r.status === "active").length,
       pending: rows.filter((r) => r.status === "pending_review").length,
+      claimed: rows.filter((r) => r.status === "unpaid" && !!r.pay_claimed_at).length,
       hidden: rows.filter((r) => r.status === "paused_reports").length,
       imp,
       clk,
@@ -285,6 +351,10 @@ function AdCampaigns(p: { run: Run }) {
         <div class="stat on">
           <b>{stats().active}</b>
           <small>Yayında</small>
+        </div>
+        <div class="stat" classList={{ pro: stats().claimed > 0 }}>
+          <b>{stats().claimed}</b>
+          <small>{t("Ödeme bildirildi")}</small>
         </div>
         <div class="stat">
           <b>{stats().pending}</b>
@@ -355,6 +425,16 @@ function AdCampaigns(p: { run: Run }) {
                   <span data-no-i18n>{a.owner_name || "?"}</span> · <span data-no-i18n>{a.owner_email ?? ""}</span> ·{" "}
                   {a.paid_at ? t("Ödendi {0} · {1}", fmtMoney({ [a.currency]: Number(a.paid_amount ?? a.price) }), fmtTime(a.paid_at)) : t("Fiyat {0} · ödenmedi", fmtMoney({ [a.currency]: Number(a.price) }))}
                 </small>
+                <Show when={a.status === "unpaid" && a.pay_claimed_at}>
+                  <small class="ads-claim">
+                    {t("Ödeme bildirildi {0}: {1} · {2}", fmtTime(a.pay_claimed_at), a.pay_method ?? "", "")}
+                    <b data-no-i18n>{a.pay_ref}</b>
+                    <Show when={a.pay_note}>
+                      {" · "}
+                      <span data-no-i18n>{a.pay_note}</span>
+                    </Show>
+                  </small>
+                </Show>
                 <Show when={a.review_note}>
                   <small class="muted">
                     {t("Not: {0}", "")}
@@ -363,6 +443,11 @@ function AdCampaigns(p: { run: Run }) {
                 </Show>
               </div>
               <div class="ads-acts">
+                <Show when={a.status === "unpaid"}>
+                  <button class="btn small primary" onClick={() => markPaid(a)}>
+                    {t("Ödendi say")}
+                  </button>
+                </Show>
                 <Show when={a.status === "pending_review" || (a.status === "rejected" && a.paid_at)}>
                   <button class="btn small primary" onClick={() => act(a, "approve", t("Reklam yayına alındı"))}>
                     Onayla
