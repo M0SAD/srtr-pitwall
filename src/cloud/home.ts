@@ -1,6 +1,7 @@
 // Ana sayfa (c128): yöneticinin yazdığı haberler ve sayfanın en üstündeki reklamlar.
 // Herkes yayındaki haberleri / etkin reklamları okur (giriş yapmadan da); yalnızca yönetici yazar.
 // Görseller herkese açık 'site' kovasına (home/…) yüklenir.
+// c133: haber biçim seçenekleri (özet, kategori, vurgu rengi, görünüm, görsel sığdırma, galeri, video), yorumlar ve beğeniler.
 
 import { api, publicUrl, storageUpload } from "./supabase";
 
@@ -8,6 +9,10 @@ export interface HomeLink {
   label: string;
   url: string;
 }
+/** standard: görsel üstte; hero: büyük kapak, başlık görselin üstünde; side: görsel solda, metin sağda */
+export type HomeLayout = "standard" | "hero" | "side";
+/** full: görselin tamamı (kırpılmaz); wide: 16:9 kırpılır; banner: ince şerit (21:8) kırpılır */
+export type HomeImageFit = "full" | "wide" | "banner";
 export interface HomePost {
   id: string;
   title: string;
@@ -18,6 +23,15 @@ export interface HomePost {
   published: boolean;
   created_at: string;
   updated_at: string;
+  // c133 (eski sunucuda boş gelebilir)
+  summary?: string;
+  category?: string;
+  accent?: string;
+  layout?: HomeLayout;
+  image_fit?: HomeImageFit;
+  gallery?: string[];
+  video?: string;
+  allow_comments?: boolean;
 }
 export type HomePostInput = Omit<HomePost, "id" | "created_at" | "updated_at">;
 
@@ -64,6 +78,44 @@ export function liveBanners(list: HomeBanner[], pro: boolean, now = Date.now()) 
       (!b.ends_at || new Date(b.ends_at).getTime() > now) &&
       (!pro || b.show_pro),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Yorumlar ve beğeniler (c133)
+// ---------------------------------------------------------------------------
+export interface HomeStat {
+  post_id: string;
+  likes: number;
+  comments: number;
+  liked: boolean;
+}
+export interface HomeComment {
+  id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+  author_name: string;
+  avatar_path: string | null;
+  author_admin: boolean;
+  author_pro: boolean;
+}
+
+/** Her haberin beğeni / yorum sayısı ve "ben beğendim mi" (c133 çalıştırılmamışsa boş) */
+export const homeStats = () =>
+  api<HomeStat[]>("POST", "rpc/home_post_stats", { body: {}, auth: "optional" })
+    .then((r) => new Map((r ?? []).map((x) => [x.post_id, x])))
+    .catch(() => new Map<string, HomeStat>());
+export const homeLike = (id: string, on: boolean) => api<number>("POST", "rpc/home_like", { body: { p_post: id, p_on: on } });
+export const homeComments = (id: string) => api<HomeComment[]>("POST", "rpc/home_comment_list", { body: { p_post: id }, auth: "optional" }).then((r) => r ?? []);
+export const homeCommentAdd = (post: string, body: string) => api("POST", "home_comments", { body: { post_id: post, body: body.trim().slice(0, 1000) }, prefer: "return=minimal" });
+export const homeCommentEdit = (id: string, body: string) => api("PATCH", `home_comments?id=eq.${enc(id)}`, { body: { body: body.trim().slice(0, 1000) }, prefer: "return=minimal" });
+export const homeCommentDelete = (id: string) => api("DELETE", `home_comments?id=eq.${enc(id)}`);
+
+/** YouTube adresinden video kimliği (youtu.be, watch?v=, shorts/, embed/, live/) */
+export function youtubeId(url: string): string {
+  const m = url.trim().match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/i);
+  return m ? m[1] : "";
 }
 
 const MAX_W = 1600;

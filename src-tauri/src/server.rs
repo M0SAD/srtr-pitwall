@@ -276,6 +276,26 @@ pub fn start(
                     continue;
                 }
 
+                // Müzik overlay'i (OBS): çalan şarkı ve kapak resmi; yalnızca bu bilgisayardan
+                if path == "/api/music" || path == "/api/music-art" {
+                    let local = req.remote_addr().map(|a| a.ip().is_loopback()).unwrap_or(false);
+                    let resp = if !local {
+                        Response::from_string("{}").with_status_code(403)
+                    } else if path == "/api/music" {
+                        Response::from_string(crate::music::http_state())
+                            .with_header(header("Content-Type", "application/json"))
+                            .with_header(header("Cache-Control", "no-store"))
+                    } else if let Some((bytes, mime)) = crate::music::http_art() {
+                        Response::from_data(bytes)
+                            .with_header(header("Content-Type", &mime))
+                            .with_header(header("Cache-Control", "max-age=3600"))
+                    } else {
+                        Response::from_string("").with_status_code(404)
+                    };
+                    let _ = req.respond(resp);
+                    continue;
+                }
+
                 if path == "/api/entitlement" {
                     let v = serde_json::to_string(&crate::entitlement::view(&app)).unwrap_or_else(|_| "{}".into());
                     let resp = Response::from_string(v)

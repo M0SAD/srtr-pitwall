@@ -73,6 +73,12 @@ function describe(p: OsdPayload): Omit<View, "id"> | null {
       return onOff(t("Ses odası mikrofonu"), p.on);
     case "roomDeafen":
       return onOff(t("Ses odası sesi"), p.on);
+    case "musicToggle":
+      return { label: t("Müzik"), state: t("Durdur / oynat"), tone: "info" };
+    case "musicNext":
+      return { label: t("Müzik"), state: t("Sonraki şarkı"), tone: "info" };
+    case "musicPrev":
+      return { label: t("Müzik"), state: t("Önceki şarkı"), tone: "info" };
     case "dashPage":
       return { label: t("Direksiyon Ekranı"), state: t("Sonraki sayfa"), tone: "info" };
     case "vrConfig":

@@ -1,0 +1,443 @@
+/* Müzik overlay'i. Renkler: --mu-bg / --mu-text / --mu-accent; "Kapak resmine uysun" temasında kapak resminin
+   bulanık hali zemine, baskın rengi (--mu-tint) vurguya gelir. */
+.mu {
+  --mu-bg: #15161b;
+  --mu-text: #f4f6fa;
+  --mu-dim: color-mix(in srgb, var(--mu-text) 62%, transparent);
+  --mu-accent: #1ed760;
+  --mu-k: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--mu-k));
+  box-sizing: border-box;
+  width: var(--mu-w, 380px);
+  overflow: hidden;
+  padding: calc(10px * var(--mu-k));
+  border-radius: var(--mu-radius, 14px);
+  background: color-mix(in srgb, var(--mu-bg) calc(var(--ov-bg-k, 1) * 100%), transparent);
+  color: var(--mu-text);
+  border: 1px solid color-mix(in srgb, var(--mu-text) 14%, transparent);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+  font-family: var(--ov-font, Inter, system-ui, sans-serif);
+  font-size: calc(14px * var(--mu-k));
+  line-height: 1.2;
+  white-space: nowrap;
+  isolation: isolate;
+}
+.mu.mu-noborder {
+  border-color: transparent;
+}
+.mu.mu-noshadow {
+  box-shadow: none;
+}
+
+/* Temalar */
+.mu-th-dark {
+  --mu-bg: #111216;
+}
+.mu-th-light {
+  text-shadow: none;
+  --mu-bg: #f5f6f8;
+  --mu-text: #15171c;
+  --mu-accent: #0f9d58;
+}
+.mu-th-app {
+  --mu-bg: var(--ov-bg-solid, #15161b);
+  --mu-text: var(--ov-text, #f4f6fa);
+  --mu-accent: var(--ov-accent, #ff8a2a);
+  background: var(--ov-bg, var(--mu-bg));
+  border-radius: var(--ov-radius, var(--mu-radius, 14px));
+}
+.mu-th-art,
+.mu-th-glass {
+  --mu-bg: #0e0f13;
+}
+.mu-th-art {
+  background: color-mix(in srgb, color-mix(in srgb, var(--mu-tint, #222) 28%, #0b0c10) calc(var(--ov-bg-k, 1) * 100%), transparent);
+}
+.mu-th-glass {
+  background: color-mix(in srgb, #16171c calc(var(--ov-bg-k, 1) * 55%), transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+.mu-bgart {
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  width: 160%;
+  height: 160%;
+  object-fit: cover;
+  filter: blur(28px) saturate(1.4) brightness(0.45);
+  opacity: calc(var(--ov-bg-k, 1) * 0.9);
+  transition: opacity 0.4s ease;
+}
+.mu-th-glass .mu-bgart {
+  opacity: calc(var(--ov-bg-k, 1) * 0.5);
+}
+
+/* Kapak */
+.mu-cover {
+  position: relative;
+  flex: none;
+  width: calc(78px * var(--mu-k));
+  height: calc(78px * var(--mu-k));
+  overflow: hidden;
+  border-radius: calc(var(--mu-radius, 14px) * 0.6);
+  background: color-mix(in srgb, var(--mu-text) 10%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.mu-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mu-cover.sm {
+  width: calc(36px * var(--mu-k));
+  height: calc(36px * var(--mu-k));
+  border-radius: calc(var(--mu-radius, 14px) * 0.4);
+}
+.mu-noart {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--mu-dim);
+}
+.mu-noart svg {
+  width: 45%;
+  height: 45%;
+}
+.mu-paused .mu-cover img {
+  filter: grayscale(0.35) brightness(0.8);
+}
+
+.mu-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(4px * var(--mu-k));
+  min-width: 0;
+}
+.mu-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mu-label {
+  color: var(--mu-accent);
+}
+.mu-paused .mu-label {
+  color: var(--mu-dim);
+}
+.mu-src {
+  overflow: hidden;
+  margin-left: auto;
+  color: var(--mu-dim);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+.mu-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.mu-title {
+  font-size: 1.12em;
+  font-weight: 800;
+}
+.mu-artist {
+  color: var(--mu-dim);
+  font-size: 0.92em;
+  font-weight: 600;
+}
+.mu-album {
+  color: color-mix(in srgb, var(--mu-text) 45%, transparent);
+  font-size: 0.8em;
+}
+
+/* Kayan yazı */
+.mu-mq {
+  display: block;
+  overflow: hidden;
+  min-width: 0;
+}
+.mu-mq > span {
+  display: inline-block;
+  padding-right: 2px;
+}
+.mu-mq.fade:not(.run) > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+.mu-mq.run {
+  mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 14px), transparent);
+}
+.mu-mq.run > span {
+  animation: mu-mq var(--mq-t, 8s) ease-in-out infinite alternate;
+}
+@keyframes mu-mq {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+  82%,
+  100% {
+    transform: translateX(var(--mq-d, 0));
+  }
+}
+
+/* İlerleme */
+.mu-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.mu-t {
+  color: var(--mu-dim);
+  font-size: 0.72em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.mu-bar {
+  position: relative;
+  flex: 1;
+  height: calc(4px * var(--mu-k));
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mu-text) 18%, transparent);
+}
+.mu-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--mu-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--mu-accent) 60%, transparent);
+  transition: width 0.25s linear;
+}
+.mu-bar.thin {
+  height: 3px;
+}
+
+/* Düğmeler */
+.mu-btns {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.mu-btns button {
+  display: grid;
+  place-items: center;
+  width: calc(28px * var(--mu-k));
+  height: calc(28px * var(--mu-k));
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--mu-text);
+  cursor: pointer;
+  opacity: 0.85;
+}
+.mu-btns button:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--mu-text) 12%, transparent);
+}
+.mu-btns button.off {
+  opacity: 0.3;
+}
+.mu-btns svg {
+  width: 52%;
+  height: 52%;
+}
+.mu-btns .mu-play {
+  width: calc(34px * var(--mu-k));
+  height: calc(34px * var(--mu-k));
+  background: var(--mu-text);
+  color: var(--mu-bg);
+  opacity: 1;
+}
+.mu-th-art .mu-btns .mu-play,
+.mu-th-glass .mu-btns .mu-play {
+  color: #111;
+}
+.mu-btns .mu-play:hover {
+  background: var(--mu-text);
+  transform: scale(1.06);
+}
+
+/* Ses çubukları */
+.mu-eq {
+  display: inline-flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+.mu-eq b {
+  width: 3px;
+  height: 30%;
+  border-radius: 1px;
+  background: var(--mu-accent);
+}
+.mu-eq.on b {
+  animation: mu-eq 0.9s ease-in-out infinite;
+}
+.mu-eq.on b:nth-child(2) {
+  animation-delay: -0.45s;
+  animation-duration: 0.7s;
+}
+.mu-eq.on b:nth-child(3) {
+  animation-delay: -0.2s;
+  animation-duration: 1.1s;
+}
+.mu-eq.on b:nth-child(4) {
+  animation-delay: -0.6s;
+  animation-duration: 0.8s;
+}
+@keyframes mu-eq {
+  0%,
+  100% {
+    height: 25%;
+  }
+  50% {
+    height: 100%;
+  }
+}
+
+/* İnce şerit */
+.mu-d-strip {
+  gap: calc(10px * var(--mu-k));
+  padding: calc(6px * var(--mu-k)) calc(8px * var(--mu-k));
+}
+.mu-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.mu-d-strip .mu-title {
+  font-size: 1em;
+}
+.mu-d-strip .mu-btns button {
+  width: calc(24px * var(--mu-k));
+  height: calc(24px * var(--mu-k));
+}
+.mu-d-strip .mu-btns .mu-play {
+  width: calc(28px * var(--mu-k));
+  height: calc(28px * var(--mu-k));
+}
+
+/* Büyük kapak */
+.mu.mu-d-cover {
+  flex-direction: column;
+  align-items: stretch;
+
+  width: var(--mu-w, 260px);
+  padding: calc(12px * var(--mu-k));
+  overflow: hidden;
+  border-radius: var(--mu-radius, 14px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+}
+.mu.mu-d-cover.mu-noshadow {
+  box-shadow: none;
+}
+.mu-big {
+  position: relative;
+}
+.mu-cover.big {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: calc(var(--mu-radius, 14px) * 0.7);
+}
+.mu-big-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 30px 12px 10px;
+  border-radius: 0 0 calc(var(--mu-radius, 14px) * 0.7) calc(var(--mu-radius, 14px) * 0.7);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
+  color: #fff;
+}
+.mu-big-text .mu-artist {
+  color: rgba(255, 255, 255, 0.78);
+}
+.mu.mu-d-cover .mu-prog {
+  margin-top: calc(10px * var(--mu-k));
+}
+.mu.mu-d-cover .mu-btns {
+  justify-content: center;
+  gap: calc(14px * var(--mu-k));
+  margin-top: calc(6px * var(--mu-k));
+}
+
+/* Sadece yazı */
+.mu-d-text {
+  gap: 8px;
+  width: auto;
+  max-width: var(--mu-w, 380px);
+  padding: calc(6px * var(--mu-k)) calc(12px * var(--mu-k));
+}
+.mu-d-text .mu-title {
+  font-size: 1em;
+  font-weight: 700;
+}
+.mu-note {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.1em;
+  height: 1.1em;
+  color: var(--mu-accent);
+}
+.mu-note svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Şarkı değişince */
+.mu-swap .mu-cover img {
+  animation: mu-in 0.45s ease;
+}
+.mu-swap .mu-info,
+.mu-swap .mu-line,
+.mu-swap.mu-d-text .mu-title {
+  animation: mu-slide 0.45s ease;
+}
+@keyframes mu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+@keyframes mu-slide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.mu {
+  animation: mu-appear 0.35s ease;
+}
+@keyframes mu-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

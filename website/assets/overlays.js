@@ -90,6 +90,7 @@ export const OVERLAYS = [
       ["tvfastest", "⏱️", "free"],
       ["goalbar", "🥅", "mixed"],
       ["socials", "📣", "free"],
+      ["music", "🎵", "free"],
       ["setupcover", "🙈", "free"],
       ["webview", "🌐", "free"],
     ],
@@ -184,6 +185,7 @@ export const NAMES = {
   tvfastest: ["TV En Hızlı Tur", "TV Fastest Lap"],
   goalbar: ["Hedef Çubuğu", "Goal Bar"],
   socials: ["Sosyal Hesaplar","Social Accounts"],
+  music: ["Müzik", "Music"],
   setupcover: ["Setup Örtüsü", "Setup Cover"],
   webview: ["Webview", "Webview"],
   messages: ["Mesajlar", "Messages"],
@@ -431,6 +433,7 @@ addDict({
   ],
   ovg_setupcover: ["Yayıncılar için: garajda setup ekranını açtığında yayındaki o bölgeyi örten bir perde. Kendi ekranında ayarlarını rahatça görürsün; izleyici ise logonu ve \"Setup gizli\" yazısını görür. Araç piste çıktığı anda örtü kendiliğinden kalkar, pite / garaja dönünce yeniden gelir. Boyutunu ve yerini setup ekranının yayındaki konumuna göre ayarlarsın; logo, yazı ve renkler serbesttir. Örtü yalnızca OBS'teki SRTR Pitwall tarayıcı kaynağında görünecek şekilde kullanılır.", "For streamers: a curtain that covers the setup screen area on your stream when you open it in the garage. You see your settings normally on your own screen, while viewers see your logo and a \"Setup hidden\" message. The cover lifts by itself the moment the car goes on track and returns when you are back in the pits or garage. Size and position it to match where the setup screen sits on your stream; logo, text and colours are up to you. It is meant to be used through the SRTR Pitwall browser source in OBS."],
   ovg_socials: ["Yayın izleyicilerine seni nerede bulacaklarını gösterir. Overlay ayarlarına hesap adlarını yazarsın (Twitch, YouTube, Instagram, Discord ve diğerleri); overlay bunları ekranda sırayla, hoş geçişlerle döndürür ya da hepsini liste / kayan şerit olarak gösterir. Renkleri, biçimi, yazı boyutunu ve geçişi kendi yayın tasarımına göre ayarlayabilir, her hesap için kendi simgeni yükleyebilirsin. İstersen sürekli ekranda durmaz, belirlediğin aralıklarla kısa süreliğine belirir.","Tells your stream viewers where to find you. You type your account names into the overlay settings (Twitch, YouTube, Instagram, Discord and more); the overlay cycles through them on screen with smooth transitions, or shows them all as a list or scrolling ticker. You can match colours, shape, text size and transition to your stream design and upload your own icon for each account. If you prefer, it does not stay on screen all the time but appears briefly at the interval you set."],
+  ovg_music: ["Şu an çalan şarkıyı ekranda gösterir: kapak resmi, şarkı ve sanatçı adı, ilerleme çubuğu ve çalarken hareket eden ses çubukları. Spotify, tarayıcıda YouTube Music / YouTube, Apple Music, Deezer ve medya tuşlarını destekleyen diğer oynatıcılarla çalışır; hesap bağlamana gerek yoktur. Kart, ince şerit, büyük kapak ya da sadece yazı tasarımlarından birini seçer, renkleri kapak resmine uydurabilirsin. Önceki / sonraki / durdur için direksiyondaki bir düğmeyi ya da bir klavye tuşunu atayıp yarıştan çıkmadan şarkı değiştirebilirsin. İstersen yalnızca şarkı değişince birkaç saniye görünür.","Shows the song that is playing right now: cover art, song and artist name, a progress bar and little bars that bounce while it plays. It works with Spotify, YouTube Music / YouTube in the browser, Apple Music, Deezer and other players that support media keys; no account linking needed. Pick a card, slim strip, big cover or text-only design and let the colours follow the cover art. Assign a wheel button or a keyboard key to previous / next / pause and change songs without leaving the race. If you like, it only appears for a few seconds when the song changes."],
   ovg_goalbar: [
     "Yayıncılar için hedef ilerleme çubuğu: “100 takipçi” ya da bir bağış hedefi gibi. Sayacı elle artırabilir ya da canlı sohbet uyarılarından (yeni takipçi, abone / üye, bağış) kendiliğinden saydırabilirsin. Başlık, hedef, yüzde ve istersen “son destekçi” satırı görünür. İnce çubuk ve ikonlu hap tasarımı ücretsiz, büyük hedef panosu PRO.",
     "A goal progress bar for streamers — “100 followers”, say, or a donation target. Bump the counter by hand or let it count automatically from live chat alerts (new followers, subs / members, donations). It shows a title, the target, the percentage and optionally a “latest supporter” line. The slim bar and icon pill designs are free; the big milestone board is PRO.",

@@ -114,6 +114,7 @@ const OVERLAYS = [
   ["voice", "Sesli Mühendis altyazısı"],
   ["glucose", "Kan Şekeri"],
   ["heartrate", "Kalp Atışı"],
+  ["music", "Müzik"],
   ["windcompass", "Rüzgâr Pusulası"],
 ];
 // Programın sol menüsünde gizlenebilen bölümler (Yönetim, Ayarlar ve Hesap gizlenemez)

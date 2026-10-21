@@ -354,7 +354,8 @@ pub struct CmdCfg {
     pub room_mods: u8,
     pub room_button: Option<(u16, u16, u16)>,
     /// Ses odası aç / kapat tuşları (`general.voiceRoomMute`, `general.voiceRoomDeafen`): basıldığı an
-    /// "voiceroom-key" olayı ("mute" | "deafen"). Klavye tuşu yutulmaz; direksiyon düğmesi de olabilir.
+    /// "voiceroom-key" olayı ("mute" | "deafen"). Müzik tuşları (`general.musicToggle` / `musicNext` / `musicPrev`)
+    /// doğrudan music.rs'e gider. Klavye tuşu yutulmaz; direksiyon düğmesi de olabilir.
     pub room_keys: Vec<(&'static str, u32, u8, Option<(u16, u16, u16)>)>,
 }
 
@@ -431,6 +432,10 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
     let room_keys = [
         ("mute", "/general/voiceRoomMute"),
         ("deafen", "/general/voiceRoomDeafen"),
+        // Müzik overlay'i: durdur / oynat, sonraki, önceki (music.rs)
+        ("musicToggle", "/general/musicToggle"),
+        ("musicNext", "/general/musicNext"),
+        ("musicPrev", "/general/musicPrev"),
     ]
     .into_iter()
     .map(|(name, ptr)| {
@@ -1525,7 +1530,7 @@ mod imp {
                     let mut alert_at: Option<Instant> = None;
                     let mut room_was = false;
                     let mut room_raw_at: Option<Instant> = None;
-                    let mut key_was: [bool; 2] = [false; 2];
+                    let mut key_was: Vec<bool> = Vec::new();
                     loop {
                         let c = cfg();
                         let cap = CAPTURE.lock().as_ref().map(|(_, until)| *until);
@@ -1668,16 +1673,20 @@ mod imp {
                         }
                         room_was = room_down;
 
-                        // Ses odası mikrofon / ses aç-kapat: basıldığı an bir kez
-                        for (i, (name, vk, mods, button)) in c.room_keys.iter().enumerate().take(2)
-                        {
+                        // Ses odası mikrofon / ses aç-kapat ve müzik denetimi: basıldığı an bir kez
+                        key_was.resize(c.room_keys.len(), false);
+                        for (i, (name, vk, mods, button)) in c.room_keys.iter().enumerate() {
                             let down = cap.is_none()
                                 && (ptt_win::key_down(*vk, *mods)
                                     || button
                                         .map(|(v, p, b)| input.is_down(v, p, b))
                                         .unwrap_or(false));
                             if down && !key_was[i] {
-                                if let Some(app) = APP.get() {
+                                if name.starts_with("music") {
+                                    // Denetim music iş parçacığında yapılır (en çok birkaç sn sürebilir): giriş döngüsü beklemesin
+                                    let n = *name;
+                                    std::thread::spawn(move || crate::music::hotkey(n));
+                                } else if let Some(app) = APP.get() {
                                     let _ = app.emit("voiceroom-key", *name);
                                 }
                             }

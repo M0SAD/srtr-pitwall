@@ -32,6 +32,7 @@ const MAP: Record<string, () => JSX.Element> = {
   dataframe: () => <I.Box />,
   glucose: () => <I.Droplet />,
   heartrate: () => <I.HeartPulse />,
+  music: () => <I.Music />,
   webview: () => <I.ExternalLink />,
   tires: () => <I.Car />,
   scene: () => <I.Clapperboard />,

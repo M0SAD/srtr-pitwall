@@ -6107,3 +6107,95 @@ button.ovpal-lock:hover {
   letter-spacing: 0;
   font-weight: 500;
 }
+
+/* Müzik overlay'i ayar kutusu (MusicPanel) */
+.mp-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.mp-art {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--muted);
+}
+.mp-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mp-art svg {
+  width: 24px;
+  height: 24px;
+}
+.mp-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.mp-info > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mp-btns {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+.mp-btns svg {
+  width: 15px;
+  height: 15px;
+}
+.mp-binds {
+  margin-top: 12px;
+}
+.mp-bind {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.mp-bind-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mp-bind-head small {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 500;
+}
+.mp-bind-head small.on {
+  color: var(--ok, #3ddc84);
+}
+.mp-bind-head svg {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+.mp-bind-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 10px 10px;
+}

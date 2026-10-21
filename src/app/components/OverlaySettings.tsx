@@ -15,6 +15,7 @@ import { go } from "../ui";
 import * as I from "../icons";
 import { GlucoseLoginPanel } from "./GlucoseLogin";
 import { HeartRateConnectPanel } from "./HeartRateConnect";
+import { MusicPanel } from "./MusicPanel";
 
 // PRO olmayan üyenin seçtiği kilitli (PRO) seçenekler: kaydedilmez, sadece önizlemede gösterilir
 const [pv, setPv] = createSignal<{ key: string; vals: Record<string, unknown> }>({ key: "", vals: {} });
@@ -138,6 +139,9 @@ export function OverlaySettings(props: {
           </Show>
           <Show when={inst()!.type === "glucose"}>
             <GlucoseLoginPanel />
+          </Show>
+          <Show when={inst()!.type === "music"}>
+            <MusicPanel />
           </Show>
           <Section title="Genel">
             {/* Ad: düzendeki her kopya için (ilk eklenen dahil); boş bırakılırsa overlay'in kendi adı */}

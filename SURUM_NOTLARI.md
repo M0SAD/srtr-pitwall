@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-412
+
+- Yeni overlay: **Müzik**. Şu an çalan şarkı (kapak resmi, şarkı, sanatçı, albüm, ilerleme çubuğu, süre, çalarken hareketli ses çubukları). Kaynak Windows'un medya oturumları: Spotify, tarayıcıda YouTube Music / YouTube, Apple Music, Deezer, TIDAL ve medya tuşlarını destekleyen diğer oynatıcılar; hesap bağlamak gerekmez. Tasarımlar: kart, ince şerit, büyük kapak, sadece yazı. Renk teması: kapak resmine uyan (bulanık kapak zemini + kapağın rengi), koyu, buzlu cam, açık, uygulama teması, kendi renklerim. "Ne zaman görünsün": her zaman / yalnızca çalarken / şarkı değişince birkaç saniye. Birden çok oynatıcı açıksa kaynak seçilebilir (otomatik, önce Spotify, önce tarayıcı). Uzun adlar kayar, şarkı değişince geçiş animasyonu. OBS tarayıcı kaynağında da çalışır (/api/music, yalnızca bu bilgisayardan).
+- Müzik denetimi: overlay ayarlarının üstünde şu an çalan ve önceki / durdur-oynat / sonraki düğmeleri; üç işlem için direksiyon düğmesi ya da klavye tuşu atanabilir (tuş yutulmaz, oyun öndeyken de çalışır; basınca ekranda kısa bildirim).
+- Ana sayfa haberleri: kapak görseli artık kırpılmıyor (16:9 dahil her oranda görselin tamamı görünür; kenar boşluğunu görselin bulanık hali doldurur). Haber başına seçenekler: görünüm (standart / büyük kapak, başlık görselin üstünde / yan görsel), görsel sığdırma (tamamı / 16:9 / ince banner), kategori etiketi, vurgu rengi, özet (spot), galeri (12 görsele kadar, sıralanabilir; tıklayınca tam ekran, oklarla gezinme), YouTube videosu (tıklayınca sayfada oynar), bağlantı düğmeleri. Metinde biçim: kalın, italik, üstü çizili, ara başlık, madde / numaralı liste, alıntı, ayırıcı çizgi, bağlantı (araç çubuğu ve Ctrl+B / I / K). Düzenleyicide canlı önizleme. Uzun haberler "Devamını oku" ile açılır.
+- Haberlere beğeni ve yorum: giriş yapan herkes beğenir ve yorum yazar (profil resmi, Yönetici / PRO etiketi); kendi yorumunu düzenler / siler, yönetici her yorumu siler. Haber başına "Yorumlara açık" seçeneği. Dakikada en çok 5 yorum. Supabase'de c133_guncelleme.sql çalıştırılmalı.
+
 ## 211026-411
 
 - Düzeltme (site › Yönetim › Reklamlar): gösterim paketleri boş / 0 iken "Paket listeleri boş olamaz" hatası veriyordu. Artık gösterim paketleri yalnızca bir yerde 1.000 gösterim fiyatı girilmişse, gün seçenekleri yalnızca günlük fiyat girilmişse gerekli. Ayrıca sitedeki bu sayfadan kaydetmek uygulamanın eklediği reklam ayarlarını (ödeme bağlantıları, yeni reklam yerleri, PRO gizleme, boş alan kutusu) siliyordu; artık yalnızca sayfadaki alanlar değişir, diğerleri korunur.

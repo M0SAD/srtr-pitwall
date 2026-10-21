@@ -32,6 +32,9 @@ mod livechat;
 mod logos;
 mod model;
 mod mqtt;
+mod music;
+#[cfg(windows)]
+mod music_win;
 mod osd;
 mod prtsc;
 #[cfg(windows)]
@@ -3513,6 +3516,8 @@ pub fn run() {
             glucose::glucose_state,
             glucose::glucose_refresh,
             glucose::glucose_alert,
+            music::music_state,
+            music::music_control,
             heartrate::heartrate_connect,
             heartrate::heartrate_disconnect,
             heartrate::heartrate_state,
@@ -3765,6 +3770,7 @@ pub fn run() {
                     // Canlı sohbet merkezi (ayarlar aşağıda apply_dynamic ile uygulanır; autoStart açıksa bağlanır)
                     livechat::init(&handle, shared_state.clone());
                     glucose::start(&handle);
+                    music::start(&handle);
                     heartrate::start(&handle);
                     if srv_on {
                         apply_server(&handle, true, srv_port, srv_lan);

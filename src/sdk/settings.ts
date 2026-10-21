@@ -885,6 +885,10 @@ export interface GeneralSettings {
   /** Ses odası: mikrofonu kapat / aç ve sesi kapat (sağırlaştır) tuşları; basınca bir kez (Rust: "voiceroom-key") */
   voiceRoomMute: { key: string; button: VoiceCommandButton | null };
   voiceRoomDeafen: { key: string; button: VoiceCommandButton | null };
+  /** Müzik overlay'i: durdur / oynat, sonraki, önceki şarkı tuşları; basınca bir kez (Rust: voicecmd.rs → music.rs) */
+  musicToggle: { key: string; button: VoiceCommandButton | null };
+  musicNext: { key: string; button: VoiceCommandButton | null };
+  musicPrev: { key: string; button: VoiceCommandButton | null };
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
   sim: SimChoice;
@@ -1363,6 +1367,9 @@ export function defaultSettings(): AppSettings {
       voiceRoom: { key: "", button: null },
       voiceRoomMute: { key: "", button: null },
       voiceRoomDeafen: { key: "", button: null },
+      musicToggle: { key: "", button: null },
+      musicNext: { key: "", button: null },
+      musicPrev: { key: "", button: null },
       chatLook: { ...DEFAULT_CHAT_LOOK },
       convBg: {},
       appBg: { ...DEFAULT_APP_BG },
@@ -1571,6 +1578,9 @@ export function normalize(input: unknown): AppSettings {
       voiceRoom: { key: "", button: null, ...(s.general?.voiceRoom ?? {}) },
       voiceRoomMute: { key: "", button: null, ...(s.general?.voiceRoomMute ?? {}) },
       voiceRoomDeafen: { key: "", button: null, ...(s.general?.voiceRoomDeafen ?? {}) },
+      musicToggle: { key: "", button: null, ...(s.general?.musicToggle ?? {}) },
+      musicNext: { key: "", button: null, ...(s.general?.musicNext ?? {}) },
+      musicPrev: { key: "", button: null, ...(s.general?.musicPrev ?? {}) },
       shortcuts: chatKeyMigrate(voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1), s.general?.chatKeyV2),
       voiceKeyV1: true,
       chatKeyV2: true,
