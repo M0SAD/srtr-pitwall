@@ -277,7 +277,14 @@ function AdCampaigns(p: { run: Run }) {
       .catch(() => [] as AdCampaign[]),
   );
   const markPaid = (a: AdCampaign) => {
-    const v = prompt(t("Alınan tutar ({0}). Gelir'e bu tutar yazılır:", a.currency), String(Number(a.price)));
+    // Patreon ödemeleri pro-webhook ile Gelir'e kendiliğinden yazılır ("Reklam: Patreon"): iki kez sayılmasın
+    const patreon = /patreon/i.test(a.pay_method ?? "");
+    const v = prompt(
+      patreon
+        ? t("Patreon ödemesi Gelir'e kendiliğinden yazılır; 0 bırak (yalnızca reklam yayına girer). Farklı bir tutar girersen Gelir'e ayrıca yazılır:")
+        : t("Alınan tutar ({0}). Gelir'e bu tutar yazılır:", a.currency),
+      patreon ? "0" : String(Number(a.price)),
+    );
     if (v === null) return;
     const amount = Math.round(parseFloat(v.replace(",", ".")) * 100) / 100;
     if (!isFinite(amount) || amount < 0) return;

@@ -16,6 +16,9 @@
 //
 // Gizli değerler (Supabase -> Edge Functions -> Secrets):
 //   PATREON_WEBHOOK_SECRET  Patreon webhook sayfasındaki "secret"
+//   PATREON_AD_TIER_IDS     (isteğe bağlı) reklam tier'larının numaraları, virgülle. Bu tier'lardaki üyeler PRO almaz;
+//                           ödemeleri Gelir'e "Reklam: Patreon" olarak yazılır. Tanımlı değilse adı "Ad" / "Reklam" ile
+//                           başlayan tier (ör. "Ad 1 Month") reklam tier'ı sayılır.
 //   KOFI_VERIFICATION_TOKEN Ko-fi -> API -> Verification Token
 //   LEMON_WEBHOOK_SECRET    Lemon Squeezy -> Settings -> Webhooks -> signing secret (source=lemon)
 //   LEMON_AD_VARIANT_ID     (isteğe bağlı) reklam ürününün varyantı; reklam siparişleri (order_created /
@@ -179,6 +182,24 @@ async function kofi(req: Request) {
 // Olaylar: members:create/update/delete, members:pledge:create/update/delete.
 // Aktif destekçi: bir sonraki ödeme tarihine kadar (+ek süre) PRO.
 // ---------------------------------------------------------------------------
+/**
+ * Üye yalnızca reklam tier'larında mı (PRO verilmez). Tier numaraları PATREON_AD_TIER_IDS'ten; tanımlı değilse
+ * gövdedeki tier adı "Ad" / "Reklam" ile başlıyorsa. Tier bilgisi yoksa (eski gövde) reklam sayılmaz.
+ */
+// deno-lint-ignore no-explicit-any
+export function patreonAdOnly(j: any): boolean {
+  const ids: string[] = (j?.data?.relationships?.currently_entitled_tiers?.data ?? []).map((t: { id: string }) => String(t.id));
+  if (!ids.length) return false;
+  const conf = (Deno.env.get("PATREON_AD_TIER_IDS") ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const title = (id: string) =>
+    String((j?.included ?? []).find((x: { type: string; id: string }) => x?.type === "tier" && String(x.id) === id)?.attributes?.title ?? "");
+  const isAd = (id: string) => (conf.length ? conf.includes(id) : /^(ad|ads|reklam)\b/i.test(title(id).trim()));
+  return ids.every(isAd);
+}
+
 async function patreon(req: Request) {
   const body = await req.text();
   const secret = Deno.env.get("PATREON_WEBHOOK_SECRET") ?? "";
@@ -198,6 +219,8 @@ async function patreon(req: Request) {
     return ok({ ignored: a.patron_status ?? event });
   }
   const cadence = Number(a.pledge_cadence) || 1; // 1 aylık, 12 yıllık
+  // Reklam tier'ı: PRO verilmez (reklam veren reklam alır; yönetici Reklamlar'dan yayına alır / uzatır)
+  const ad = patreonAdOnly(j);
   // Ödeme kaydı: her tahsilat tarihi bir kez sayılır
   if (a.last_charge_status === "Paid" && a.last_charge_date) {
     await record({
@@ -206,9 +229,10 @@ async function patreon(req: Request) {
       email,
       amount: (Number(a.currently_entitled_amount_cents) || 0) / 100,
       currency: "USD",
-      plan: cadence >= 12 ? "Patreon 12m" : "Patreon 1m",
+      plan: ad ? "Reklam: Patreon" : cadence >= 12 ? "Patreon 12m" : "Patreon 1m",
     });
   }
+  if (ad) return ok({ ok: true, ad: true });
   const next = a.next_charge_date ? new Date(a.next_charge_date) : null;
   const base = next && next.getTime() > Date.now() ? next.getTime() : Date.now() + (cadence >= 12 ? 365 : 31) * DAY;
   const until = new Date(base + GRACE_DAYS * DAY);

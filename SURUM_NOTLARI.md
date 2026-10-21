@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 211026-408
+
+- Patreon reklam tier'ı: pro-webhook artık reklam tier'ındaki (adı "Ad" / "Reklam" ile başlayan ya da PATREON_AD_TIER_IDS'teki) Patreon üyelerine PRO vermez (eskiden her aktif Patreon üyesine PRO veriliyordu). Ödemeleri Gelir'e "Reklam: Patreon" olarak yazılır. PRO tier'ları eskisi gibi; hem PRO hem reklam tier'ındaki üye PRO alır. pro-webhook fonksiyonu yeniden yüklenmeli.
+- Yönetim › Reklamlar › Ödendi say: Patreon ile ödenen reklamda önerilen tutar 0 (ödeme Gelir'e zaten kendiliğinden yazıldığı için iki kez sayılmasın).
+
 ## 211026-407
 
 - Reklam ödemesi elle (ByNoGame, Patreon …): Reklam ver'de "Kaydet ve öde" reklamı kaydeder ve ödeme kutusunu açar: ödenecek tutar, yöneticinin ödeme bağlantıları (açıklamalarıyla) ve "Ödedim, bildir" (yöntem, kullanıcı adı / sipariş numarası, not). Yöneticiye bildirim gider ("Reklam ödemesi bildirildi"). Yönetim › Reklamlar: "Ödeme yöntemleri" düzenleyicisi (ad, bağlantı, açıklama, açık / kapalı; "ByNoGame + Patreon ekle"), "Ödeme bildirildi" süzgeci ve sayacı, reklam satırında bildirim bilgisi ve "Ödendi say" (alınan tutar Gelir'e yazılır, reklam hemen yayına girer). Otomatik ödeme sayfası (Lemon / Paddle) uygulamada artık kullanılmaz. Supabase'de c132_guncelleme.sql çalıştırılmalı.
