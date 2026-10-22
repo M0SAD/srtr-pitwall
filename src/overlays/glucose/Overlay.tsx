@@ -142,6 +142,14 @@ export default function Glucose(props: OverlayProps) {
   };
 
   const design = () => String(o().design ?? "card");
+  /** Yuvarlak / kare / şerit tasarımda uzun hata metni sığmaz: kısa hali (tamamı üzerine gelince ve ayarlarda) */
+  const compact = () => design() === "circle" || design() === "square" || design() === "pill";
+  const shortErr = (e: string) => {
+    if (/oturum|giriş|şifre|hesap|kilitlendi/i.test(e)) return t("Giriş gerekli");
+    if (/ulaşılamadı|bağlan|sunucu/i.test(e)) return t("Bağlantı yok");
+    if (/henüz veri|veri yok|bulunamadı|veri gelmedi/i.test(e)) return t("Veri yok");
+    return t("Hata");
+  };
   const Value = () => (
     <span class="gl-value ov-mono">
       {value() == null ? "—" : fmt(value()!)}
@@ -199,7 +207,9 @@ export default function Glucose(props: OverlayProps) {
             <span class="gl-note">{t("Veri eski")}</span>
           </Show>
           <Show when={!stale() && value() == null && st().error}>
-            <span class="gl-note">{t(st().error)}</span>
+            <span class="gl-note" title={t(st().error)}>
+              {compact() ? shortErr(st().error) : t(st().error)}
+            </span>
           </Show>
         </div>
         <Show when={o().spark !== false && (design() === "card" || design() === "graph")}>

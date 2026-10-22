@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 221026-416
+
+- Dereceler sıfırlanmıyordu: başka bir iRacing sunucusuna geçince (ör. ısınma / antrenman sunucusundan yarış sunucusuna; oturum numarası ikisinde de 0) önceki sunucudaki en iyi ve son tur dereceleri ve tur geçmişi kalıyordu. Artık sunucunun oturum kimliği (SubSessionID) değişince hepsi sıfırlanır (antrenmanda da).
+- Sıralama başında antrenmandan kalan son tur süresi duruyordu (en iyi tur sıfırlanıyordu): oturum başında simde kalan son tur da, o oturumda ilk tur tamamlanana kadar gösterilmez. Kendi aracının tek değerleri (en iyi / son tur) de aynı kurala uyar.
+- Kan Şekeri: yuvarlak / kare / şerit tasarımda uzun hata metni taşıyordu; artık tek satır kısa yazı (Giriş gerekli, Bağlantı yok, Veri yok), tamamı üzerine gelince ve ayarlarda görünür. Kart ve grafik tasarımında en çok 2 satır.
+
 ## 221026-415
 
 - Kan Şekeri › CareSens Air (Sens365): oturum artık sürekli düşmez. Giriş penceresinde "Beni hatırla / oturumu açık tut" kutusu kendiliğinden işaretlenir; böylece Sens365 giriş sayfası oturumu program kapatılıp açılsa da hatırlar ve anahtar her gün arka planda sessizce yenilenir. Yenileme süre dolmadan 6 saat önce başlar; olmazsa anahtar geçerli kaldıkça okumaya devam edilir ve 30 dk'da bir yeniden denenir (önceden yalnızca son 5 dakikada deneniyordu). Sunucu yenileme belirteci verirse giriş sayfası hiç açılmadan yenilenir. Gizli yenilemede giriş formu çıkarsa 25 sn beklenmez. Oturum yine de düşerse ayarlarda "Sens365'e yeniden giriş yap" düğmesi çıkar (önce çıkış yapmak gerekmez).

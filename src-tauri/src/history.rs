@@ -188,6 +188,8 @@ pub fn incident_kind(delta: i32) -> &'static str {
 #[derive(Default)]
 pub struct History {
     session_num: i32,
+    /// iRacing SubSessionID: başka sunucuya geçilince (oturum numarası aynı kalsa da) yeni oturum
+    sub_session: i64,
     started: u64,
     laps: Vec<LapRec>,
     incidents: Vec<IncidentRec>,
@@ -277,11 +279,15 @@ impl History {
     /// Her yeni karede çağrılır. Oturum değişince önceki oturum kaydı döner (diske yazılmak için).
     pub fn update(&mut self, f: &Frame, s: &SessionData, persist: bool) -> Option<SessionRecord> {
         let mut finished = None;
-        if !self.seen_frame || f.session_num != self.session_num {
+        let new_server = s.sub_session_id > 0 && self.seen_frame && s.sub_session_id != self.sub_session;
+        if !self.seen_frame || f.session_num != self.session_num || new_server {
             if self.seen_frame && self.dirty && self.persist_ok {
                 finished = Some(self.record());
             }
             self.clear(f);
+        }
+        if s.sub_session_id > 0 {
+            self.sub_session = s.sub_session_id;
         }
         self.persist_ok = persist;
         if f.player_idx < 0 || f.player_idx as usize >= MAX_CARS {
