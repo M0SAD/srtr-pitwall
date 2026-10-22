@@ -464,7 +464,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
     let mut was_in_car = false;
     // Yarış bitti: Olaylar penceresi çizgide değil, araçtan çıkınca (ESC ile tekrar ekranına geçince) açılır
     let mut events_pending = false;
-    let mut events_seen = false;
+    // Olaylar penceresinin ait olduğu oturum (events::session_key)
+    let mut events_key = String::new();
     let mut last_events_look = Instant::now();
     // Olaylar penceresine son bildirilen liste sürümü ve kayıt ayarının son okunma anı
     let mut events_rev = 0u64;
@@ -889,28 +890,30 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             )
         });
 
-        // Oturumdan çıkıldı (sim bağlantısı bitti): kendiliğinden açılmış Olaylar penceresi kapanır
-        // Oyundan çıkıldı (iRacing'de Quit: sim kapanır): oturum sırasında açılmış Olaylar penceresi kapanır
-        // (kendiliğinden açılan ya da oturumdayken elle açılan; oyun kapalıyken elle açılan dokunulmaz)
         let real = connected && !demo_on && !preview;
         if real && last_events_look.elapsed() > Duration::from_secs(1) {
             last_events_look = Instant::now();
-            if app
-                .get_webview_window("events")
-                .map(|w| w.is_visible().unwrap_or(false))
-                .unwrap_or(false)
-            {
-                events_seen = true;
+            // Başka bir yarışa / sunucuya geçildi (sim kapanmadan; ör. antrenman sunucusundan yarış sunucusuna, ya da
+            // yeni bir yarışa girildi): önceki yarışın Olaylar penceresi kapanır
+            let key = crate::events::session_key(&st.raw);
+            if !key.is_empty() {
+                if !events_key.is_empty() && key != events_key {
+                    if let Some(w) = app.get_webview_window("events") {
+                        let _ = w.close();
+                    }
+                    events_auto = false;
+                    events_pending = false;
+                }
+                events_key = key;
             }
         }
+        // Oyundan çıkıldı (sim bağlantısı bitti): Olaylar penceresi kapanır (kendiliğinden ya da elle açılmış olsun)
         if was_conn_ev && !connected {
-            if events_auto || events_seen {
-                if let Some(w) = app.get_webview_window("events") {
-                    let _ = w.close();
-                }
+            if let Some(w) = app.get_webview_window("events") {
+                let _ = w.close();
             }
             events_auto = false;
-            events_seen = false;
+            events_key.clear();
         }
         was_conn_ev = connected;
         // Araca binildi (sürüş başladı): Olaylar penceresi önde kalmasın. Kendiliğinden açıldıysa kapanır, elle açıldıysa

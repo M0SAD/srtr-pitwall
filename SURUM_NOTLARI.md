@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 221026-417
+
+- Olaylar penceresi: oyundan çıkınca (sim kapanınca) her zaman kapanır (kendiliğinden ya da elle açılmış olsun; önceden yalnızca oturumda görünür olduysa kapanıyordu). Sim kapanmadan başka bir yarışa / sunucuya geçilince (ör. antrenman sunucusundan yarış sunucusuna ya da yeni yarışa girildiğinde) önceki yarışın Olaylar penceresi de kapanır.
+
 ## 221026-416
 
 - Dereceler sıfırlanmıyordu: başka bir iRacing sunucusuna geçince (ör. ısınma / antrenman sunucusundan yarış sunucusuna; oturum numarası ikisinde de 0) önceki sunucudaki en iyi ve son tur dereceleri ve tur geçmişi kalıyordu. Artık sunucunun oturum kimliği (SubSessionID) değişince hepsi sıfırlanır (antrenmanda da).
