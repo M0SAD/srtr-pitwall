@@ -113,7 +113,30 @@ export function GlucoseLoginPanel() {
                 <button class="btn small" onClick={() => glucoseRefresh()}>
                   Şimdi yenile
                 </button>
+                {/* Sens365 oturumu düştüyse çıkış yapmadan doğrudan yeniden giriş */}
+                <Show when={st().source === "caresens" && /oturumu sona erdi/.test(st().error)}>
+                  <button
+                    class="btn small primary"
+                    disabled={busy()}
+                    onClick={async () => {
+                      setBusy(true);
+                      setErr("");
+                      try {
+                        await glucoseCaresensLogin();
+                      } catch (e) {
+                        setErr(String((e as Error)?.message ?? e));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    {busy() ? t("Açılan pencerede Sens365'e giriş yap…") : t("Sens365'e yeniden giriş yap")}
+                  </button>
+                </Show>
               </div>
+              <Show when={err()}>
+                <small class="f2-hint f2-err">{t(err())}</small>
+              </Show>
               <button class="btn small" onClick={logout}>
                 Çıkış yap
               </button>
@@ -174,7 +197,7 @@ export function GlucoseLoginPanel() {
               <Show when={source() === "libre"}>Sensörü takip eden LibreLinkUp (takipçi) hesabının bilgilerini gir. </Show>
               <Show when={source() === "dexcom"}>Dexcom uygulamasında Share açık ve en az bir takipçi ekli olmalı. </Show>
               <Show when={source() === "caresens"}>
-                Sens365 giriş sayfası ayrı bir pencerede açılır; e-posta ve şifreni orada gir (uygulamaya girilmez). Giriş açık kaldıkça oturum günlük olarak kendiliğinden yenilenir.{" "}
+                Sens365 giriş sayfası ayrı bir pencerede açılır; e-posta ve şifreni orada gir (uygulamaya girilmez). "Beni hatırla" kendiliğinden işaretlenir: oturum her gün sessizce yenilenir, program kapatılıp açılsa da yeniden giriş gerekmez.{" "}
               </Show>
               <Show when={source() !== "caresens"}>Giriş bilgileri</Show>
               <Show when={source() === "caresens"}>Oturum anahtarı</Show> yalnızca bu bilgisayarda, şifreli saklanır; buluta, yedeğe ve diğer cihazlara gönderilmez.

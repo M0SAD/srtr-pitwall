@@ -32,7 +32,37 @@ export interface HomePost {
   gallery?: string[];
   video?: string;
   allow_comments?: boolean;
+  // c135
+  /** { "<dil>": { title, summary, body, links: [düğme yazıları] } } */
+  translations?: Record<string, HomePostTr>;
+  /** Çevirinin yapıldığı Türkçe metnin özeti (bkz. homeTranslate.ts srcHash) */
+  translated_from?: string;
+  /** all: her dilde (çevirisiyle); tr: yalnızca Türkçe kullananlara */
+  audience?: "all" | "tr";
 }
+export interface HomePostTr {
+  title: string;
+  summary: string;
+  body: string;
+  links: string[];
+}
+
+/** Haber kategorisi (c135): ad Türkçe; names diğer dillerdeki adları */
+export interface HomeCategory {
+  id: string;
+  name: string;
+  color: string;
+  sort: number;
+  names: Record<string, string>;
+}
+export const homeCategories = () =>
+  api<HomeCategory[]>("GET", "home_categories?select=*&order=sort.asc,name.asc", { auth: "optional" })
+    .then((r) => r ?? [])
+    .catch(() => [] as HomeCategory[]);
+export const homeCategoryAdd = (c: Omit<HomeCategory, "id">) => api("POST", "home_categories", { body: c, prefer: "return=minimal" });
+export const homeCategorySave = (id: string, c: Partial<Omit<HomeCategory, "id">>) =>
+  api("PATCH", `home_categories?id=eq.${encodeURIComponent(id)}`, { body: c, prefer: "return=minimal" });
+export const homeCategoryDelete = (id: string) => api("DELETE", `home_categories?id=eq.${encodeURIComponent(id)}`);
 export type HomePostInput = Omit<HomePost, "id" | "created_at" | "updated_at">;
 
 export interface HomeBanner {

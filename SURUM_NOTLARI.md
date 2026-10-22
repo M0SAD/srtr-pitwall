@@ -3,6 +3,12 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 221026-415
+
+- Kan Şekeri › CareSens Air (Sens365): oturum artık sürekli düşmez. Giriş penceresinde "Beni hatırla / oturumu açık tut" kutusu kendiliğinden işaretlenir; böylece Sens365 giriş sayfası oturumu program kapatılıp açılsa da hatırlar ve anahtar her gün arka planda sessizce yenilenir. Yenileme süre dolmadan 6 saat önce başlar; olmazsa anahtar geçerli kaldıkça okumaya devam edilir ve 30 dk'da bir yeniden denenir (önceden yalnızca son 5 dakikada deneniyordu). Sunucu yenileme belirteci verirse giriş sayfası hiç açılmadan yenilenir. Gizli yenilemede giriş formu çıkarsa 25 sn beklenmez. Oturum yine de düşerse ayarlarda "Sens365'e yeniden giriş yap" düğmesi çıkar (önce çıkış yapmak gerekmez).
+- Haberler: her dilde gösterilecek haberler kaydederken diğer 14 dile otomatik çevrilir (başlık, özet, metin, düğme yazıları; biçim ve bağlantılar korunur). Program hangi dildeyse haber o dilde görünür. "Sadece Türkçe" seçilen haberler yalnızca programı Türkçe kullananlara görünür. Düzenleyicide "Şimdi çevir ve önizle" ve önizlemede dil seçimi. Çeviri servisi: ücretsiz MyMemory (günlük sınırlı) ya da isteğe bağlı DeepL API anahtarı (ayda 500.000 karakter ücretsiz; anahtar yalnızca bu bilgisayarda şifreli). Bir dile çevrilemezse okuyucunun programı haberi kendi diline o an çevirir.
+- Haber kategorileri: yönetici ekler, adını / rengini değiştirir, sıralar, siler (kategori seçiminin yanındaki kalem). Adlar diğer dillere çevrilir; ad değişince o kategorideki haberler de yeni adı alır. Haberlerin üstünde kategori süzgeci. Supabase'de c135_guncelleme.sql çalıştırılmalı.
+
 ## 211026-414
 
 - Müzik overlay'i PRO: Supabase'de c134_guncelleme.sql çalıştırılınca (ya da Yönetim › PRO özellikleri'nden işaretlenince) PRO üyelere özel olur. Web sitesindeki overlay listesinde de PRO görünür.

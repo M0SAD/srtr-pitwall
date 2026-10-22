@@ -9,13 +9,19 @@
 
 import { For, Index, Show, createMemo, createResource, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { Portal } from "solid-js/web";
-import { localeTag, t } from "@/sdk/i18n";
+import { LANGS, lang, localeTag, t } from "@/sdk/i18n";
+import { inTauri } from "@/sdk/platform";
+import { invoke } from "@tauri-apps/api/core";
 import { cloudEnabled, session } from "@/cloud/supabase";
 import { isAdmin, isPro } from "@/cloud/account";
 import { avatarUrl } from "@/cloud/profile";
 import {
   homeBannerHit,
   homeBanners,
+  homeCategories,
+  homeCategoryAdd,
+  homeCategoryDelete,
+  homeCategorySave,
   homeCommentAdd,
   homeCommentDelete,
   homeCommentEdit,
@@ -31,15 +37,18 @@ import {
   uploadHomeImage,
   youtubeId,
   type HomeBanner,
+  type HomeCategory,
   type HomeComment,
   type HomeImageFit,
   type HomeLayout,
   type HomeLink,
   type HomePost,
   type HomePostInput,
+  type HomePostTr,
   type HomeStat,
 } from "@/cloud/home";
 import { AdSlot } from "../components/AdSlot";
+import { TARGET_LANGS, categoryName, localized, srcHash, translateCategoryNames, translatePost } from "./homeTranslate";
 import { MsgText, openProfile } from "../components/FriendsDock";
 import { go, openUrl } from "../ui";
 import * as I from "../icons";
@@ -57,14 +66,18 @@ function ago(v: string) {
   return new Date(v).toLocaleDateString(localeTag(), { day: "numeric", month: "short", year: "numeric" });
 }
 
-/** Sunucuda c133 yoksa anlaşılır hata */
+/** Sunucuda c133 / c135 yoksa anlaşılır hata */
 const errText = (e: unknown) => {
   const m = String((e as Error)?.message ?? e);
+  if (/translations|translated_from|audience|home_categories/i.test(m)) return `${m} — ${t("Supabase'de c135_guncelleme.sql çalıştırılmalı.")}`;
   return /schema cache|column|home_comment|home_like|home_post_stats/i.test(m) ? `${m} — ${t("Supabase'de c133_guncelleme.sql çalıştırılmalı.")}` : m;
 };
 
-/** Hazır kategoriler (serbest de yazılabilir) */
-const CATEGORIES = ["Duyuru", "Güncelleme", "Etkinlik", "Yarış", "Rehber", "Kampanya", "Topluluk"];
+/** Kategoriler (c135): yönetici düzenler; haberde Türkçe adıyla saklanır */
+const [cats, setCats] = createSignal<HomeCategory[]>([]);
+const loadCats = () => (cloudEnabled ? homeCategories().then(setCats) : Promise.resolve());
+const catOf = (name: string | undefined) => (name ? cats().find((c) => c.name === name) : undefined);
+const langName = (c: string) => LANGS.find((l) => l.code === c)?.name ?? c;
 /** Hazır vurgu renkleri */
 const ACCENTS = ["", "#ff8a2a", "#ef4444", "#22c55e", "#3b82f6", "#a855f7", "#eab308", "#14b8a6", "#ec4899"];
 
@@ -77,7 +90,20 @@ export function HomePage() {
   );
   const [editing, setEditing] = createSignal<HomePost | "new" | null>(null);
   const [err, setErr] = createSignal("");
+  const [filter, setFilter] = createSignal("");
   const reload = () => setVer(ver() + 1);
+  onMount(() => void loadCats());
+
+  /** Türkçe dışındaki dillerde "yalnızca Türkçe" haberler görünmez (yönetici hepsini görür, işaretli) */
+  const visiblePosts = createMemo(() =>
+    (posts() ?? []).filter((p) => (lang() === "tr" || p.audience !== "tr" || isAdmin()) && (!filter() || p.category === filter())),
+  );
+  /** Haberlerde kullanılan kategoriler (süzgeç düğmeleri) */
+  const usedCats = createMemo(() => {
+    const used = new Set((posts() ?? []).filter((p) => lang() === "tr" || p.audience !== "tr" || isAdmin()).map((p) => p.category ?? "").filter(Boolean));
+    const known = cats().filter((c) => used.has(c.name)).map((c) => c.name);
+    return [...known, ...[...used].filter((n) => !known.includes(n))];
+  });
 
   const act = async (fn: () => Promise<unknown>) => {
     setErr("");
@@ -113,6 +139,20 @@ export function HomePage() {
       <Show when={err()}>
         <p class="error">{err()}</p>
       </Show>
+      <Show when={usedCats().length > 1}>
+        <div class="home-filter">
+          <button classList={{ on: !filter() }} onClick={() => setFilter("")}>
+            {t("Tümü")}
+          </button>
+          <For each={usedCats()}>
+            {(n) => (
+              <button classList={{ on: filter() === n }} style={catOf(n)?.color ? { "--hc-c": catOf(n)!.color } : undefined} onClick={() => setFilter(filter() === n ? "" : n)} data-no-i18n>
+                {categoryName(catOf(n), n, lang())}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
 
       <Show when={editing() === "new"}>
         <PostEditor
@@ -134,7 +174,7 @@ export function HomePage() {
 
       <div class="home-feed">
         <For
-          each={posts() ?? []}
+          each={visiblePosts()}
           fallback={
             <Show when={!posts.loading && cloudEnabled && !posts.error}>
               <div class="home-empty">
@@ -174,7 +214,7 @@ export function HomePage() {
                   onDelete={() => confirm(t('"{0}" haberi silinsin mi?', p.title)) && act(() => homePostDelete(p.id))}
                 />
               </Show>
-              <Show when={i() === Math.min(1, (posts() ?? []).length - 1)}>
+              <Show when={i() === Math.min(1, visiblePosts().length - 1)}>
                 <AdSlot placement="home_feed" class="home-feed-ad" />
               </Show>
             </>
@@ -271,8 +311,19 @@ function PostCard(p: {
   onPin?: () => void;
   onPublish?: () => void;
   onDelete?: () => void;
+  /** Önizlemede gösterilecek dil (yoksa programın dili) */
+  lang?: string;
 }) {
   const edited = () => new Date(p.post.updated_at).getTime() - new Date(p.post.created_at).getTime() > 60_000;
+  // Programın dilindeki metin (çeviri yoksa Türkçe asıl)
+  const L = () => p.lang ?? lang();
+  const tr = createMemo(() => localized(p.post, L()));
+  const title = () => tr()?.title || p.post.title;
+  const summary = () => (tr() ? tr()!.summary : (p.post.summary ?? ""));
+  const body = () => (tr() ? tr()!.body || p.post.body : p.post.body);
+  const linkLabel = (i: number, l: HomeLink) => tr()?.links?.[i] || l.label || l.url;
+  const cat = () => catOf(p.post.category);
+  const catColor = () => cat()?.color || "";
   const layout = (): HomeLayout => (p.post.image ? (p.post.layout ?? "standard") : "standard");
   const fit = (): HomeImageFit => p.post.image_fit ?? "full";
   const gallery = () => (p.post.gallery ?? []).filter(Boolean);
@@ -280,7 +331,7 @@ function PostCard(p: {
   const [lightbox, setLightbox] = createSignal<number | null>(null);
   const [open, setOpen] = createSignal(false);
   const [showComments, setShowComments] = createSignal(false);
-  const long = () => p.post.body.length > LONG && !p.preview;
+  const long = () => body().length > LONG && !p.preview;
   const accent = () => (p.post.accent && /^#[0-9a-f]{6}$/i.test(p.post.accent) ? p.post.accent : "");
 
   const cover = () => (
@@ -296,8 +347,13 @@ function PostCard(p: {
   const meta = () => (
     <div class="home-meta">
       <Show when={p.post.category}>
-        <span class="home-cat" data-no-i18n>
-          {p.post.category}
+        <span class="home-cat" classList={{ own: !!catColor() }} style={catColor() ? { "--hc-c": catColor() } : undefined} data-no-i18n>
+          {categoryName(cat(), p.post.category!, L())}
+        </span>
+      </Show>
+      <Show when={p.post.audience === "tr" && isAdmin()}>
+        <span class="home-tag draft" title={t("Yalnızca Türkçe kullananlar görür")}>
+          {t("Sadece Türkçe")}
         </span>
       </Show>
       <Show when={p.post.pinned}>
@@ -326,7 +382,7 @@ function PostCard(p: {
           <img src={p.post.image} alt="" loading="lazy" draggable={false} />
           <div class="home-hero-text">
             {meta()}
-            <h3 data-no-i18n>{p.post.title}</h3>
+            <h3 data-no-i18n>{title()}</h3>
           </div>
         </div>
       </Show>
@@ -338,16 +394,16 @@ function PostCard(p: {
         <div class="home-body">
           <Show when={layout() !== "hero"}>
             {meta()}
-            <h3 data-no-i18n>{p.post.title}</h3>
+            <h3 data-no-i18n>{title()}</h3>
           </Show>
-          <Show when={p.post.summary?.trim()}>
+          <Show when={summary().trim()}>
             <p class="home-summary" data-no-i18n>
-              {p.post.summary}
+              {summary()}
             </p>
           </Show>
-          <Show when={p.post.body.trim()}>
+          <Show when={body().trim()}>
             <div class="home-text" classList={{ clipped: long() && !open() }} data-no-i18n>
-              <RichText text={p.post.body} />
+              <RichText text={body()} />
             </div>
             <Show when={long()}>
               <button class="link home-more" onClick={() => setOpen(!open())}>
@@ -370,9 +426,9 @@ function PostCard(p: {
           <Show when={(p.post.links ?? []).length}>
             <div class="home-links">
               <For each={p.post.links}>
-                {(l) => (
+                {(l, i) => (
                   <button class="btn small home-link" onClick={() => !p.preview && openUrl(l.url)} title={l.url} data-no-i18n>
-                    <I.ExternalLink /> {l.label || l.url}
+                    <I.ExternalLink /> {linkLabel(i(), l)}
                   </button>
                 )}
               </For>
@@ -893,6 +949,14 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
   const [pinned, setPinned] = createSignal(p.post?.pinned ?? false);
   const [published, setPublished] = createSignal(p.post?.published ?? true);
   const [comments, setComments] = createSignal(p.post?.allow_comments ?? true);
+  const [audience, setAudience] = createSignal<"all" | "tr">(p.post?.audience ?? "all");
+  const [autoTr, setAutoTr] = createSignal(true);
+  const [catEdit, setCatEdit] = createSignal(false);
+  /** Çeviriler ve çevrildikleri metnin özeti */
+  const [trs, setTrs] = createSignal<{ hash: string; map: Record<string, HomePostTr> }>({ hash: p.post?.translated_from ?? "", map: { ...(p.post?.translations ?? {}) } });
+  const [trProg, setTrProg] = createSignal<{ done: number; total: number; lang: string } | null>(null);
+  const [trErr, setTrErr] = createSignal("");
+  const [previewLang, setPreviewLang] = createSignal("tr");
   const [preview, setPreview] = createSignal(true);
   const [busy, setBusy] = createSignal(false);
   const [uploading, setUploading] = createSignal("");
@@ -1003,13 +1067,38 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
     allow_comments: comments(),
   });
 
+  /** Şu anki metnin çevirileri (metin çevrildikten sonra değiştiyse boş) */
+  const curTrs = () => (trs().hash === srcHash(value()) ? trs().map : {});
+
   const draftPost = createMemo<HomePost>(() => {
     const now = new Date().toISOString();
-    return { ...value(), title: value().title || t("Başlık"), id: p.post?.id ?? "preview", created_at: p.post?.created_at ?? now, updated_at: p.post?.updated_at ?? now };
+    return {
+      ...value(),
+      title: value().title || t("Başlık"),
+      id: "preview",
+      created_at: p.post?.created_at ?? now,
+      updated_at: p.post?.updated_at ?? now,
+      audience: audience(),
+      translations: curTrs(),
+    };
   });
 
-  const save = async () => {
+  /** Eksik dillere çevir (aynı metnin önceki çevirileri korunur). Hata iletileri döner. */
+  const ensureTranslations = async () => {
     const v = value();
+    const hash = srcHash(v);
+    const keep = trs().hash === hash ? trs().map : {};
+    if (TARGET_LANGS.every((l) => keep[l])) return { map: keep, hash, errors: [] as { lang: string; msg: string }[] };
+    setTrErr("");
+    const r = await translatePost({ ...draftPost(), ...v } as HomePost, (done, total, l) => setTrProg(l ? { done, total, lang: l } : null), keep);
+    setTrProg(null);
+    setTrs({ hash, map: r.translations });
+    if (r.errors.length) setTrErr(t("{0} dile çevrilemedi: {1}", r.errors.length + (TARGET_LANGS.length - Object.keys(r.translations).length - r.errors.length), r.errors[0].msg));
+    return { map: r.translations, hash, errors: r.errors };
+  };
+
+  const save = async () => {
+    let v = value();
     if (!v.title) return setErr(t("Başlık gerekli."));
     const bad = v.links.find((l) => !okUrl(l.url));
     if (bad) return setErr(t("Bağlantı adresi https:// ile başlamalı: {0}", bad.label || bad.url));
@@ -1017,11 +1106,24 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
     setErr("");
     setBusy(true);
     try {
+      if (audience() === "tr") {
+        v = { ...v, audience: "tr", translations: {}, translated_from: "" };
+      } else if (autoTr() && inTauri) {
+        const r = await ensureTranslations();
+        const missing = TARGET_LANGS.filter((l) => !r.map[l]);
+        if (missing.length && !confirm(t("{0} dile çevrilemedi ({1}). Yine de yayınlansın mı? Bu dilleri kullananların programı haberi kendisi çevirir.", missing.length, r.errors[0]?.msg ?? ""))) return;
+        v = { ...v, audience: "all", translations: r.map, translated_from: r.hash };
+      } else {
+        // Çevirmeden: metin değişmediyse eski çeviriler kalır, değiştiyse silinir (okuyucunun programı çevirir)
+        const same = trs().hash === srcHash(v);
+        v = { ...v, audience: "all", translations: same ? trs().map : {}, translated_from: same ? trs().hash : "" };
+      }
       await p.onSave(v);
     } catch (e) {
       setErr(errText(e));
     } finally {
       setBusy(false);
+      setTrProg(null);
     }
   };
 
@@ -1049,10 +1151,18 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
           <div class="hed-row2">
             <div class="f2">
               <div class="f2-cap">{t("Kategori")}</div>
-              <input class="input" list="home-cats" maxLength={40} value={category()} onInput={(e) => setCategory(e.currentTarget.value)} placeholder={t("ör. Duyuru")} />
-              <datalist id="home-cats">
-                <For each={CATEGORIES}>{(c) => <option value={t(c)} />}</For>
-              </datalist>
+              <div class="hed-inline">
+                <select class="input" value={category()} onChange={(e) => setCategory(e.currentTarget.value)} data-no-i18n>
+                  <option value="">{t("Kategori yok")}</option>
+                  <For each={cats()}>{(c) => <option value={c.name}>{c.name}</option>}</For>
+                  <Show when={category() && !catOf(category())}>
+                    <option value={category()}>{category()}</option>
+                  </Show>
+                </select>
+                <button class="btn ghost small" title={t("Kategorileri ekle / düzenle")} onClick={() => setCatEdit(!catEdit())}>
+                  <I.Pencil />
+                </button>
+              </div>
             </div>
             <div class="f2">
               <div class="f2-cap">{t("Vurgu rengi")}</div>
@@ -1073,6 +1183,9 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
               </div>
             </div>
           </div>
+          <Show when={catEdit()}>
+            <CategoryManager onClose={() => setCatEdit(false)} onRenamed={(a, b) => category() === a && setCategory(b)} />
+          </Show>
           <div class="f2">
             <div class="f2-cap">{t("Özet (isteğe bağlı)")}</div>
             <textarea class="input" rows={2} maxLength={400} value={summary()} onInput={(e) => setSummary(e.currentTarget.value)} placeholder={t("Başlığın altında büyük yazıyla görünen kısa giriş")} />
@@ -1241,6 +1354,43 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
               <I.Plus /> {t("Bağlantı ekle")}
             </button>
           </div>
+          <div class="f2 hed-aud">
+            <div class="f2-cap">{t("Kimler görsün")}</div>
+            <div class="seg">
+              <button classList={{ on: audience() === "all" }} onClick={() => setAudience("all")}>
+                {t("Tüm diller (otomatik çeviri)")}
+              </button>
+              <button classList={{ on: audience() === "tr" }} onClick={() => setAudience("tr")}>
+                {t("Sadece Türkçe")}
+              </button>
+            </div>
+            <Show
+              when={audience() === "all"}
+              fallback={<small class="f2-hint">{t("Haber yalnızca programı Türkçe kullananlara görünür; diğer dillerde listede çıkmaz.")}</small>}
+            >
+              <label class="hed-switch">
+                <input type="checkbox" checked={autoTr()} onChange={(e) => setAutoTr(e.currentTarget.checked)} /> {t("Kaydederken diğer {0} dile çevir", TARGET_LANGS.length)}
+              </label>
+              <div class="hed-inline hed-trrow">
+                <button class="btn small" disabled={!!trProg() || !inTauri} onClick={() => void ensureTranslations().then(() => setPreviewLang(previewLang() === "tr" ? "en" : previewLang()))}>
+                  <I.Globe /> {t("Şimdi çevir ve önizle")}
+                </button>
+                <small class="muted">{t("{0}/{1} dil hazır", Object.keys(curTrs()).length, TARGET_LANGS.length)}</small>
+              </div>
+              <Show when={trProg()}>
+                {(pr) => (
+                  <div class="hed-trprog">
+                    <i style={{ width: `${(pr().done / Math.max(1, pr().total)) * 100}%` }} />
+                    <small>{t("Çevriliyor: {0} ({1}/{2})", langName(pr().lang), pr().done + 1, pr().total)}</small>
+                  </div>
+                )}
+              </Show>
+              <Show when={trErr()}>
+                <small class="f2-hint f2-err">{trErr()}</small>
+              </Show>
+              <TranslateService />
+            </Show>
+          </div>
           <div class="home-checks">
             <label>
               <input type="checkbox" checked={pinned()} onChange={(e) => setPinned(e.currentTarget.checked)} /> {t("En üste sabitle")}
@@ -1257,7 +1407,7 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
           </Show>
           <div class="home-admin">
             <button class="btn primary small" disabled={busy() || !!uploading()} onClick={save}>
-              {p.post ? t("Kaydet") : published() ? t("Yayınla") : t("Taslak olarak kaydet")}
+              {trProg() ? t("Çevriliyor…") : p.post ? t("Kaydet") : published() ? t("Yayınla") : t("Taslak olarak kaydet")}
             </button>
             <button class="btn small" onClick={p.onCancel}>
               {t("Vazgeç")}
@@ -1266,10 +1416,184 @@ function PostEditor(p: { post?: HomePost; onSave: (v: HomePostInput) => Promise<
         </div>
         <Show when={preview()}>
           <div class="hed-preview">
-            <div class="f2-cap">{t("Önizleme")}</div>
-            <PostCard post={draftPost()} preview />
+            <div class="hed-prevhead">
+              <div class="f2-cap">{t("Önizleme")}</div>
+              <Show when={audience() === "all"}>
+                <select class="input hed-langsel" value={previewLang()} onChange={(e) => setPreviewLang(e.currentTarget.value)} data-no-i18n>
+                  <option value="tr">Türkçe</option>
+                  <For each={TARGET_LANGS}>
+                    {(l) => (
+                      <option value={l} disabled={!curTrs()[l]}>
+                        {langName(l)}
+                        {curTrs()[l] ? "" : " —"}
+                      </option>
+                    )}
+                  </For>
+                </select>
+              </Show>
+            </div>
+            <PostCard post={draftPost()} preview lang={audience() === "all" ? previewLang() : "tr"} />
           </div>
         </Show>
+      </div>
+    </div>
+  );
+}
+
+/** Çeviri servisi: DeepL anahtarı (isteğe bağlı; yoksa ücretsiz MyMemory, günlük sınırı düşük) */
+function TranslateService() {
+  const [has, setHas] = createSignal<boolean | null>(null);
+  const [open, setOpen] = createSignal(false);
+  const [key, setKey] = createSignal("");
+  const [msg, setMsg] = createSignal("");
+  const [busy, setBusy] = createSignal(false);
+  onMount(() => {
+    if (inTauri) void invoke<boolean>("translate_key_status").then(setHas).catch(() => setHas(false));
+  });
+  const saveKey = async (k: string) => {
+    setBusy(true);
+    setMsg("");
+    try {
+      await invoke("translate_key_set", { key: k });
+      setHas(!!k.trim());
+      setKey("");
+      setOpen(false);
+    } catch (e) {
+      setMsg(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Show when={inTauri}>
+      <div class="hed-trsvc">
+        <small class="muted">
+          {t("Çeviri servisi")}: <b>{has() ? "DeepL" : t("MyMemory (ücretsiz, günlük sınırlı)")}</b>{" "}
+          <button class="link" onClick={() => setOpen(!open())}>
+            {has() ? t("Anahtarı değiştir") : t("DeepL anahtarı ekle")}
+          </button>
+        </small>
+        <Show when={open()}>
+          <small class="f2-hint">{t("DeepL API Free hesabıyla ayda 500.000 karakter ücretsiz çevrilir ve çeviri daha iyidir. Anahtar yalnızca bu bilgisayarda şifreli saklanır.")}</small>
+          <div class="hed-inline">
+            <input class="input" type="password" autocomplete="off" placeholder="xxxxxxxx-xxxx-…:fx" value={key()} onInput={(e) => setKey(e.currentTarget.value)} />
+            <button class="btn small primary" disabled={busy() || !key().trim()} onClick={() => saveKey(key())}>
+              {busy() ? t("Deneniyor…") : t("Kaydet")}
+            </button>
+            <Show when={has()}>
+              <button class="btn small ghost" disabled={busy()} onClick={() => saveKey("")}>
+                {t("Kaldır")}
+              </button>
+            </Show>
+          </div>
+          <button class="link" onClick={() => openUrl("https://www.deepl.com/pro-api")}>
+            {t("DeepL API Free hesabı aç")}
+          </button>
+        </Show>
+        <Show when={msg()}>
+          <small class="f2-hint f2-err">{msg()}</small>
+        </Show>
+      </div>
+    </Show>
+  );
+}
+
+/** Kategorileri ekle / düzenle / sil / sırala (yönetici). Adlar kaydederken diğer dillere çevrilir. */
+function CategoryManager(p: { onClose: () => void; onRenamed: (from: string, to: string) => void }) {
+  type Row = { id?: string; name: string; color: string; names: Record<string, string>; orig?: string };
+  const [rows, setRows] = createSignal<Row[]>(cats().map((c) => ({ id: c.id, name: c.name, color: c.color, names: { ...(c.names ?? {}) }, orig: c.name })));
+  const [removed, setRemoved] = createSignal<string[]>([]);
+  const [busy, setBusy] = createSignal("");
+  const [err, setErr] = createSignal("");
+  const set = (i: number, patch: Partial<Row>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const move = (i: number, d: number) =>
+    setRows((r) => {
+      const j = i + d;
+      if (j < 0 || j >= r.length) return r;
+      const n = [...r];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+  const save = async () => {
+    const list = rows().map((r) => ({ ...r, name: r.name.trim().slice(0, 40) }));
+    if (list.some((r) => !r.name)) return setErr(t("Kategori adı boş olamaz."));
+    const lower = list.map((r) => r.name.toLocaleLowerCase("tr"));
+    if (new Set(lower).size !== lower.length) return setErr(t("Aynı adda iki kategori olamaz."));
+    setErr("");
+    try {
+      // Adı yeni ya da değişmiş olanlar çevrilir
+      const need = list.map((r, i) => ({ r, i })).filter(({ r }) => r.name !== r.orig || !Object.keys(r.names).length);
+      if (need.length && inTauri) {
+        setBusy(t("Adlar çevriliyor…"));
+        const tr = await translateCategoryNames(need.map(({ r }) => r.name));
+        need.forEach(({ i }, k) => (list[i].names = tr[k]));
+      }
+      setBusy(t("Kaydediliyor…"));
+      for (const id of removed()) await homeCategoryDelete(id);
+      // Ad çakışmasın: önce yeniden adlandırmalar için geçici ad yok; sırayla kaydedilir
+      for (const [i, r] of list.entries()) {
+        const body = { name: r.name, color: /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : "", sort: i + 1, names: r.names };
+        if (r.id) await homeCategorySave(r.id, body);
+        else await homeCategoryAdd(body);
+        if (r.orig && r.orig !== r.name) p.onRenamed(r.orig, r.name);
+      }
+      await loadCats();
+      p.onClose();
+    } catch (e) {
+      setErr(errText(e));
+    } finally {
+      setBusy("");
+    }
+  };
+  return (
+    <div class="hed-cats">
+      <div class="hed-cats-head">
+        <b>{t("Kategoriler")}</b>
+        <small class="muted">{t("Adı değiştirince o kategorideki haberler de yeni adı alır. Adlar diğer dillere otomatik çevrilir.")}</small>
+      </div>
+      <Index each={rows()}>
+        {(r, i) => (
+          <div class="hed-cat">
+            <input type="color" class="hed-color-pick" value={r().color || "#ff8a2a"} onInput={(e) => set(i, { color: e.currentTarget.value })} title={t("Renk")} />
+            <input class="input" maxLength={40} value={r().name} onInput={(e) => set(i, { name: e.currentTarget.value })} placeholder={t("Kategori adı")} />
+            <small class="muted hed-cat-tr" title={Object.entries(r().names).map(([k, v]) => `${langName(k)}: ${v}`).join("\n")}>
+              {Object.keys(r().names).length ? t("{0} dil", Object.keys(r().names).length) : ""}
+            </small>
+            <button class="btn ghost small" title={t("Yukarı")} disabled={i === 0} onClick={() => move(i, -1)}>
+              <I.ArrowUp />
+            </button>
+            <button class="btn ghost small" title={t("Aşağı")} disabled={i === rows().length - 1} onClick={() => move(i, 1)}>
+              <I.ArrowDown />
+            </button>
+            <button
+              class="btn ghost small danger"
+              title={t("Sil")}
+              onClick={() => {
+                const row = rows()[i];
+                if (row.id && !confirm(t('"{0}" kategorisi silinsin mi? Bu kategorideki haberlerde ad etiket olarak kalır.', row.name))) return;
+                if (row.id) setRemoved((x) => [...x, row.id!]);
+                setRows((x) => x.filter((_, j) => j !== i));
+              }}
+            >
+              <I.Trash />
+            </button>
+          </div>
+        )}
+      </Index>
+      <Show when={err()}>
+        <small class="f2-hint f2-err">{err()}</small>
+      </Show>
+      <div class="hed-inline">
+        <button class="btn ghost small" disabled={rows().length >= 30} onClick={() => setRows((r) => [...r, { name: "", color: "#3b82f6", names: {} }])}>
+          <I.Plus /> {t("Yeni kategori")}
+        </button>
+        <span class="lt-sp" />
+        <button class="btn small primary" disabled={!!busy()} onClick={save}>
+          {busy() || t("Kategorileri kaydet")}
+        </button>
+        <button class="btn small" disabled={!!busy()} onClick={p.onClose}>
+          {t("Vazgeç")}
+        </button>
       </div>
     </div>
   );

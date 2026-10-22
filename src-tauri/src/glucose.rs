@@ -49,6 +49,9 @@ pub struct Cfg {
     pub token_exp: i64,
     #[serde(default)]
     pub sub: String,
+    /// CareSens Air: yenileme belirteci (sunucu verirse; giriş sayfası açılmadan yeni anahtar alınır)
+    #[serde(default)]
+    pub refresh: String,
 }
 
 #[derive(Clone, Serialize, Default)]
@@ -341,6 +344,8 @@ struct Session {
     dexcom: Option<(String, String)>,
     /// CareSens Air: (anahtar, bitiş epoch sn); yenilenince ayardakinin yerine geçer
     cs_token: Option<(String, i64)>,
+    /// CareSens Air: son başarısız sessiz yenileme denemesi (epoch sn); anahtar hâlâ geçerliyken sık denenmez
+    cs_renew_fail: i64,
     /// CareSens Air yalnızca son ölçümü verir: mini grafik için okunan ölçümler biriktirilir
     cs_hist: Vec<(i64, f64)>,
 }
@@ -975,6 +980,7 @@ async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
     let tx = std::sync::Arc::new(Mutex::new(Some(tx)));
     let tx2 = tx.clone();
     let w = WebviewWindowBuilder::new(app, CS_WIN, WebviewUrl::External(url))
+        .initialization_script(&cs_login_js(visible))
         .title("SRTR Pitwall – Sens365 girişi")
         .inner_size(480.0, 720.0)
         .center()
@@ -992,6 +998,13 @@ async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
                     .unwrap_or_default();
                 if let Some(t) = tx2.lock().take() {
                     let _ = t.send(code);
+                }
+                return false;
+            }
+            // Gizli yenilemede giriş formu çıktı (giriş sayfası oturumu hatırlamıyor): beklemeden vazgeç
+            if s.starts_with(CS_NEED_LOGIN) {
+                if let Some(t) = tx2.lock().take() {
+                    let _ = t.send(String::new());
                 }
                 return false;
             }
@@ -1023,9 +1036,54 @@ async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
     drop(tx);
     match r {
         Ok(c) if !c.is_empty() => Ok(c),
+        Ok(_) if !visible => Err(CS_EXPIRED.into()),
         Ok(_) => Err("Sens365 girişi tamamlanmadı".into()),
         Err(e) => Err(e),
     }
+}
+
+const CS_EXPIRED: &str = "Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap";
+/// Gizli yenilemede giriş formu görülünce sayfanın gittiği adres (yakalanır, açılmaz)
+const CS_NEED_LOGIN: &str = "https://sens365.com/callback-login-required";
+/// Anahtar bu kadar süre kala (sn) sessizce yenilenir: süre dolmadan, program açıkken
+const CS_RENEW_BEFORE: i64 = 6 * 3600;
+/// Sessiz yenileme başarısızsa (anahtar hâlâ geçerliyken) yeniden deneme aralığı (sn)
+const CS_RENEW_RETRY: i64 = 30 * 60;
+
+/// Giriş sayfasına eklenen betik: "Beni hatırla / Oturumu açık tut" kutusu kendiliğinden işaretlenir (giriş sayfası
+/// oturumu program kapanınca da hatırlasın, anahtar her gün sessizce yenilenebilsin). Gizli pencerede giriş formu
+/// görünürse (oturum hatırlanmıyor) yakalanan adrese gidilir: 25 sn beklenmez.
+fn cs_login_js(visible: bool) -> String {
+    format!(
+        r#"(function(){{
+  var HIDDEN = {hidden};
+  function remember(){{
+    var boxes = document.querySelectorAll('input[type=checkbox]');
+    for (var i = 0; i < boxes.length; i++) {{
+      var b = boxes[i];
+      var key = ((b.name || '') + ' ' + (b.id || '')).toLowerCase();
+      var lab = '';
+      try {{ lab = ((b.labels && b.labels[0] && b.labels[0].textContent) || (b.closest('label') && b.closest('label').textContent) || '').toLowerCase(); }} catch (e) {{}}
+      if (/remember|keep|stay|persist/.test(key) || /hatırla|açık tut|remember|keep me|stay signed|angemeldet/.test(lab)) {{
+        if (!b.checked) {{ b.checked = true; b.dispatchEvent(new Event('input', {{ bubbles: true }})); b.dispatchEvent(new Event('change', {{ bubbles: true }})); }}
+      }}
+    }}
+  }}
+  function check(){{
+    try {{ remember(); }} catch (e) {{}}
+    if (HIDDEN) {{
+      var pw = document.querySelector('input[type=password]');
+      if (pw && pw.offsetParent !== null) {{ location.href = '{need}'; }}
+    }}
+  }}
+  document.addEventListener('DOMContentLoaded', check);
+  var n = 0;
+  var iv = setInterval(function(){{ check(); if (++n > 120) clearInterval(iv); }}, 500);
+  document.addEventListener('submit', function(){{ try {{ remember(); }} catch (e) {{}} }}, true);
+}})();"#,
+        hidden = if visible { "false" } else { "true" },
+        need = CS_NEED_LOGIN
+    )
 }
 
 fn cs_headers(bearer: Option<&str>) -> Vec<(String, String)> {
@@ -1041,8 +1099,8 @@ fn cs_headers(bearer: Option<&str>) -> Vec<(String, String)> {
     h
 }
 
-/// Kodu anahtarla değiştirir: (anahtar, bitiş epoch sn, hesap kimliği, e-posta)
-async fn cs_exchange(c: &Net, code: &str) -> Result<(String, i64, String, String), String> {
+/// Kodu anahtarla değiştirir: (anahtar, bitiş epoch sn, hesap kimliği, e-posta, yenileme belirteci)
+async fn cs_exchange(c: &Net, code: &str) -> Result<(String, i64, String, String, String), String> {
     let enc: String = code
         .bytes()
         .map(|b| {
@@ -1074,22 +1132,81 @@ async fn cs_exchange(c: &Net, code: &str) -> Result<(String, i64, String, String
             .unwrap_or_default(),
     };
     let (sub, email, exp) = jwt_claims(&tok).ok_or("Sens365 girişi başarısız")?;
-    Ok((tok, exp, sub, email))
+    Ok((tok, exp, sub, email, cs_refresh_of(&v)))
 }
 
-/// Gizli pencerede yeni anahtar: başarılıysa kayıtlı ayar da güncellenir
-async fn cs_renew(c: &Net, cfg: &Cfg) -> Result<(String, i64), String> {
-    let app = APP.get().ok_or("Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap")?;
-    let code = cs_code(app, false).await?;
-    let (tok, exp, sub, _) = cs_exchange(c, &code).await?;
-    if sub != cfg.sub {
-        return Err("Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap".into());
+/// Yanıttaki yenileme belirteci (varsa)
+fn cs_refresh_of(v: &Value) -> String {
+    ["refresh_token", "refreshToken"]
+        .iter()
+        .find_map(|k| v.get(*k).and_then(|x| x.as_str()))
+        .unwrap_or("")
+        .to_string()
+}
+
+fn form_enc(s: &str) -> String {
+    s.bytes()
+        .map(|b| {
+            if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {
+                (b as char).to_string()
+            } else {
+                format!("%{b:02X}")
+            }
+        })
+        .collect()
+}
+
+/// Yenileme belirteciyle yeni anahtar (OAuth2 refresh_token): (anahtar, bitiş, yeni yenileme belirteci)
+async fn cs_refresh(c: &Net, cfg: &Cfg) -> Result<(String, i64, String), String> {
+    if cfg.refresh.is_empty() {
+        return Err("no_refresh".into());
     }
-    let mut nc = cfg.clone();
-    nc.token = tok.clone();
-    nc.token_exp = exp;
-    if let Ok(v) = serde_json::to_value(&nc) {
-        let _ = crate::livechat::secrets::set_json(app, SECRET_KEY, &v);
+    let body = format!(
+        "grant_type=refresh_token&client_id={CS_CLIENT}&refresh_token={}",
+        form_enc(&cfg.refresh)
+    );
+    let mut h = cs_headers(None);
+    h.push(("content-type".into(), "application/x-www-form-urlencoded".into()));
+    let (code, raw) = c
+        .send("sens365 yenileme", "POST", &format!("{CS_ACCOUNTS}/oauth2/token"), &h, Some(&body))
+        .await
+        .map_err(|_| "Sens365 sunucusuna ulaşılamadı".to_string())?;
+    if !(200..300).contains(&code) {
+        return Err("refresh_rejected".into());
+    }
+    let v: Value = serde_json::from_slice(&raw).map_err(|_| "refresh_rejected".to_string())?;
+    let tok = v.get("access_token").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let (sub, _, exp) = jwt_claims(&tok).ok_or("refresh_rejected")?;
+    if sub != cfg.sub {
+        return Err("refresh_rejected".into());
+    }
+    let next = cs_refresh_of(&v);
+    Ok((tok, exp, if next.is_empty() { cfg.refresh.clone() } else { next }))
+}
+
+/// Yeni anahtar: önce yenileme belirteciyle (varsa), olmazsa gizli pencerede giriş sayfasından (sayfa oturumu
+/// hatırlıyorsa). Başarılıysa kayıtlı ayar da güncellenir (program yeniden açılınca da geçerli).
+async fn cs_renew(c: &Net, cfg: &Cfg) -> Result<(String, i64), String> {
+    let app = APP.get().ok_or(CS_EXPIRED)?;
+    let (tok, exp, refresh) = match cs_refresh(c, cfg).await {
+        Ok(x) => x,
+        Err(_) => {
+            let code = cs_code(app, false).await?;
+            let (tok, exp, sub, _, refresh) = cs_exchange(c, &code).await?;
+            if sub != cfg.sub {
+                return Err(CS_EXPIRED.into());
+            }
+            (tok, exp, if refresh.is_empty() { cfg.refresh.clone() } else { refresh })
+        }
+    };
+    // Kayıtlı ayarı güncelle (aynı hesap hâlâ kayıtlıysa)
+    if let Some(mut nc) = load(app).filter(|x| x.source == "caresens" && x.sub == cfg.sub) {
+        nc.token = tok.clone();
+        nc.token_exp = exp;
+        nc.refresh = refresh;
+        if let Ok(v) = serde_json::to_value(&nc) {
+            let _ = crate::livechat::secrets::set_json(app, SECRET_KEY, &v);
+        }
     }
     Ok((tok, exp))
 }
@@ -1100,10 +1217,24 @@ async fn caresens(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String
         .cs_token
         .clone()
         .unwrap_or_else(|| (cfg.token.clone(), cfg.token_exp));
-    // Süresi dolmak üzere (5 dk'dan az): önce yenile
-    if tok.1 > 0 && tok.1 - now_s < 300 {
-        tok = cs_renew(c, cfg).await?;
-        s.cs_token = Some(tok.clone());
+    // Süresinin dolmasına 6 saatten az kaldı: program açıkken sessizce yenile. Olmazsa anahtar geçerli kaldıkça
+    // onunla okumaya devam edilir ve 30 dk sonra yeniden denenir; yalnızca süresi gerçekten dolunca hata verilir.
+    if tok.1 > 0 && tok.1 - now_s < CS_RENEW_BEFORE && now_s - s.cs_renew_fail > CS_RENEW_RETRY {
+        match cs_renew(c, cfg).await {
+            Ok(t) => {
+                tok = t;
+                s.cs_token = Some(tok.clone());
+                s.cs_renew_fail = 0;
+            }
+            Err(e) => {
+                s.cs_renew_fail = now_s;
+                if tok.1 - now_s < 60 {
+                    return Err(e);
+                }
+            }
+        }
+    } else if tok.1 > 0 && tok.1 <= now_s {
+        return Err(CS_EXPIRED.into());
     }
     let url = format!(
         "{CS_API}/v2/cgms/latest?producer_id={0}&consumer_id={0}&glucose_unit=mg/dL",
@@ -1115,7 +1246,7 @@ async fn caresens(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String
         .map_err(|_| "Sens365 sunucusuna ulaşılamadı".to_string())?;
     if res.0 == 401 || res.0 == 403 {
         // Anahtar geçersiz (çıkış yapılmış olabilir): bir kez yenileyip tekrar dene
-        tok = cs_renew(c, cfg).await?;
+        tok = cs_renew(c, cfg).await.inspect_err(|_| s.cs_renew_fail = now_s)?;
         s.cs_token = Some(tok.clone());
         res = c
             .send("sens365 okuma", "GET", &url, &cs_headers(Some(&tok.0)), None)
@@ -1124,7 +1255,7 @@ async fn caresens(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String
     }
     let (code, raw) = res;
     if code == 401 || code == 403 {
-        return Err("Sens365 oturumu sona erdi: Kan Şekeri ayarlarından yeniden giriş yap".into());
+        return Err(CS_EXPIRED.into());
     }
     if code == 404 || code == 204 || raw.is_empty() {
         return Err("Sensörden henüz veri gelmedi".into());
@@ -1156,13 +1287,14 @@ pub async fn glucose_caresens_login(app: AppHandle) -> Result<State, String> {
     let c = Net::new()?;
     DETAIL.lock().clear();
     let code = cs_code(&app, true).await?;
-    let (token, token_exp, sub, email) = cs_exchange(&c, &code).await?;
+    let (token, token_exp, sub, email, refresh) = cs_exchange(&c, &code).await?;
     let cfg = Cfg {
         source: "caresens".into(),
         user: email,
         token,
         token_exp,
         sub,
+        refresh,
         ..Default::default()
     };
     glucose_login(app, cfg).await
@@ -1219,7 +1351,7 @@ fn check(cfg: &mut Cfg) -> Result<(), String> {
             cfg.password.clear();
         }
         "caresens" => {
-            if cfg.token.is_empty() || cfg.sub.is_empty() || cfg.token.len() > 8000 {
+            if cfg.token.is_empty() || cfg.sub.is_empty() || cfg.token.len() > 8000 || cfg.refresh.len() > 8000 {
                 return Err("Sens365 girişi tamamlanmadı".into());
             }
             // Hesap kimliği adrese girer: yalnızca UUID karakterleri

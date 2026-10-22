@@ -1026,3 +1026,127 @@
   font: inherit;
   line-height: 1.5;
 }
+
+/* Kategori süzgeci */
+.home-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 14px;
+}
+.home-filter button {
+  --hc-c: var(--accent);
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.home-filter button:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--hc-c) 60%, var(--line));
+}
+.home-filter button.on {
+  border-color: var(--hc-c);
+  background: color-mix(in srgb, var(--hc-c) 22%, var(--bg-2));
+  color: var(--text);
+}
+.home-cat.own {
+  background: color-mix(in srgb, var(--hc-c) 24%, transparent);
+  color: color-mix(in srgb, var(--hc-c) 78%, #fff);
+}
+.home-hero .home-cat.own {
+  background: var(--hc-c);
+  color: #fff;
+}
+
+/* Düzenleyici: kimler görsün, çeviri, kategoriler */
+.hed-aud {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.hed-aud .seg {
+  align-self: flex-start;
+}
+.hed-trrow {
+  align-items: center;
+}
+.hed-trrow svg {
+  width: 13px;
+  height: 13px;
+}
+.hed-trprog {
+  position: relative;
+  overflow: hidden;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+.hed-trprog i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: width 0.3s ease;
+}
+.hed-trprog small {
+  position: relative;
+}
+.hed-trsvc {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hed-trsvc .link {
+  align-self: flex-start;
+}
+.hed-prevhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.home-editor .hed-langsel {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 12.5px;
+}
+.home-editor .hed-inline select.input {
+  flex: 1;
+}
+.hed-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.hed-cats-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hed-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hed-cat .input {
+  flex: 1;
+}
+.hed-cat-tr {
+  min-width: 44px;
+  text-align: right;
+  white-space: nowrap;
+}
+.hed-cat svg {
+  width: 13px;
+  height: 13px;
+}

@@ -1,6 +1,9 @@
-//! Makine çevirisi (Yönetim › PRO tanıtım mesajı › "Diğer dillere çevir").
+//! Makine çevirisi (Yönetim › PRO tanıtım mesajı › "Diğer dillere çevir"; ana sayfa haberleri ve kategorileri).
 //! Anahtar gerektirmeyen MyMemory servisi kullanılır (istek başına ~500 karakter; uzun metin cümle/satır
-//! bazında bölünür). İstek Rust'tan yapılır (tarayıcı CORS'una takılmasın).
+//! bazında bölünür; günlük ücretsiz sınırı düşüktür). Yönetici bu bilgisayara bir DeepL API anahtarı girdiyse
+//! (DeepL API Free: ayda 500.000 karakter ücretsiz) önce DeepL kullanılır: bir dilin bütün parçaları tek istekte
+//! çevrilir. Anahtar yalnızca bu bilgisayarda şifreli saklanır (livechat::secrets). İstek Rust'tan yapılır
+//! (tarayıcı CORS'una takılmasın).
 //! "SRTR Pitwall" ve "PRO" çevrilmez: gönderilmeden önce yer tutucuya çevrilir, sonra geri konur.
 
 use serde_json::Value;
@@ -180,6 +183,107 @@ fn decode_entities(s: &str) -> String {
         .replace("&amp;", "&")
 }
 
+const DEEPL_KEY: &str = "deepl_key";
+
+/// Program dil kodu -> DeepL dil kodu (kaynak / hedef)
+fn deepl_code(lang: &str, target: bool) -> String {
+    match (lang, target) {
+        ("en", true) => "EN-GB".into(),
+        ("pt-BR", true) => "PT-BR".into(),
+        ("pt-PT", true) => "PT-PT".into(),
+        ("zh-CN", true) => "ZH-HANS".into(),
+        (l, _) => l.split('-').next().unwrap_or(l).to_uppercase(),
+    }
+}
+
+async fn deepl(key: &str, texts: &[String], from: &str, to: &str) -> Result<Vec<String>, String> {
+    let host = if key.trim_end().ends_with(":fx") { "api-free.deepl.com" } else { "api.deepl.com" };
+    let http = crate::livechat::net::http()?;
+    let mut out = Vec::with_capacity(texts.len());
+    // DeepL bir istekte en çok 50 metin alır
+    for part in texts.chunks(50) {
+        let body = serde_json::json!({
+            "text": part.iter().map(|t| protect(t)).collect::<Vec<_>>(),
+            "source_lang": deepl_code(from, false),
+            "target_lang": deepl_code(to, true),
+            "preserve_formatting": true,
+        });
+        let res = http
+            .post(format!("https://{host}/v2/translate"))
+            .header("Authorization", format!("DeepL-Auth-Key {}", key.trim()))
+            .header("Content-Type", "application/json")
+            .body(body.to_string())
+            .send()
+            .await
+            .map_err(|_| "Çeviri servisine bağlanılamadı".to_string())?;
+        let st = res.status().as_u16();
+        let txt = res.text().await.map_err(|_| "Çeviri servisinin yanıtı okunamadı".to_string())?;
+        match st {
+            200 => {}
+            403 => return Err("DeepL anahtarı geçersiz".into()),
+            456 => return Err("DeepL aylık çeviri sınırı doldu".into()),
+            429 => return Err("DeepL çok fazla istek: biraz sonra tekrar dene".into()),
+            _ => return Err(format!("Çeviri yapılamadı ({st})")),
+        }
+        let v: Value = serde_json::from_str(&txt).map_err(|_| "Çeviri servisinin yanıtı okunamadı".to_string())?;
+        let arr = v.get("translations").and_then(|x| x.as_array()).ok_or("Çeviri servisinin yanıtı okunamadı")?;
+        if arr.len() != part.len() {
+            return Err("Çeviri servisinin yanıtı okunamadı".into());
+        }
+        out.extend(arr.iter().map(|t| restore(t.get("text").and_then(|x| x.as_str()).unwrap_or(""))));
+    }
+    Ok(out)
+}
+
+/// Birden çok metni (ör. bir haberin başlığı, özeti, satırları) bir dile çevirir; sıra korunur. DeepL anahtarı
+/// varsa tek istekte, yoksa MyMemory ile tek tek. Boş metinler boş döner.
+#[tauri::command]
+pub async fn translate_batch(app: tauri::AppHandle, texts: Vec<String>, from: String, to: String) -> Result<Vec<String>, String> {
+    if from == to {
+        return Ok(texts);
+    }
+    if texts.iter().map(|t| t.chars().count()).sum::<usize>() > 60_000 {
+        return Err("Metin çok uzun".into());
+    }
+    let idx: Vec<usize> = (0..texts.len()).filter(|&i| !texts[i].trim().is_empty()).collect();
+    let mut out = texts.clone();
+    if idx.is_empty() {
+        return Ok(out);
+    }
+    let key = crate::livechat::secrets::get(&app, DEEPL_KEY);
+    if !key.trim().is_empty() {
+        let parts: Vec<String> = idx.iter().map(|&i| texts[i].clone()).collect();
+        let tr = deepl(&key, &parts, &from, &to).await?;
+        for (k, &i) in idx.iter().enumerate() {
+            out[i] = tr[k].clone();
+        }
+        return Ok(out);
+    }
+    for &i in &idx {
+        out[i] = translate_text(texts[i].clone(), from.clone(), to.clone()).await?;
+    }
+    Ok(out)
+}
+
+/// DeepL anahtarını kaydet (boş: sil). Kaydetmeden önce küçük bir deneme çevirisiyle doğrulanır.
+#[tauri::command]
+pub async fn translate_key_set(app: tauri::AppHandle, key: String) -> Result<(), String> {
+    let key = key.trim().to_string();
+    if !key.is_empty() {
+        if key.len() > 200 || key.contains(char::is_whitespace) {
+            return Err("DeepL anahtarı geçersiz".into());
+        }
+        deepl(&key, &["Merhaba".to_string()], "tr", "en").await?;
+    }
+    crate::livechat::secrets::set(&app, DEEPL_KEY, &key)
+}
+
+/// DeepL anahtarı kayıtlı mı
+#[tauri::command]
+pub fn translate_key_status(app: tauri::AppHandle) -> bool {
+    !crate::livechat::secrets::get(&app, DEEPL_KEY).trim().is_empty()
+}
+
 /// Metni `from` dilinden `to` diline çevirir. Hata iletisi Türkçedir.
 #[tauri::command]
 pub async fn translate_text(text: String, from: String, to: String) -> Result<String, String> {
@@ -215,6 +319,15 @@ pub async fn translate_text(text: String, from: String, to: String) -> Result<St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deepl_codes() {
+        assert_eq!(deepl_code("tr", false), "TR");
+        assert_eq!(deepl_code("en", true), "EN-GB");
+        assert_eq!(deepl_code("zh-CN", true), "ZH-HANS");
+        assert_eq!(deepl_code("pt-BR", true), "PT-BR");
+        assert_eq!(deepl_code("ja", true), "JA");
+    }
 
     #[test]
     fn protects_names() {
