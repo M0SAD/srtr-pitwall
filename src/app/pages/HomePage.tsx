@@ -94,13 +94,13 @@ export function HomePage() {
   const reload = () => setVer(ver() + 1);
   onMount(() => void loadCats());
 
-  /** Türkçe dışındaki dillerde "yalnızca Türkçe" haberler görünmez (yönetici hepsini görür, işaretli) */
-  const visiblePosts = createMemo(() =>
-    (posts() ?? []).filter((p) => (lang() === "tr" || p.audience !== "tr" || isAdmin()) && (!filter() || p.category === filter())),
-  );
+  /** Türkçe dışındaki dillerde "yalnızca Türkçe" haberler hiç görünmez (yöneticiye de; kaç tanesinin gizlendiği yazılır) */
+  const forLang = (p: HomePost) => lang() === "tr" || p.audience !== "tr";
+  const visiblePosts = createMemo(() => (posts() ?? []).filter((p) => forLang(p) && (!filter() || p.category === filter())));
+  const hiddenTr = () => (lang() === "tr" ? 0 : (posts() ?? []).filter((p) => p.audience === "tr").length);
   /** Haberlerde kullanılan kategoriler (süzgeç düğmeleri) */
   const usedCats = createMemo(() => {
-    const used = new Set((posts() ?? []).filter((p) => lang() === "tr" || p.audience !== "tr" || isAdmin()).map((p) => p.category ?? "").filter(Boolean));
+    const used = new Set((posts() ?? []).filter(forLang).map((p) => p.category ?? "").filter(Boolean));
     const known = cats().filter((c) => used.has(c.name)).map((c) => c.name);
     return [...known, ...[...used].filter((n) => !known.includes(n))];
   });
@@ -138,6 +138,9 @@ export function HomePage() {
       </div>
       <Show when={err()}>
         <p class="error">{err()}</p>
+      </Show>
+      <Show when={isAdmin() && hiddenTr()}>
+        <p class="muted small">{t("{0} haber \"Sadece Türkçe\" olduğu için bu dilde gösterilmiyor (programı Türkçe kullananlar görür).", hiddenTr())}</p>
       </Show>
       <Show when={usedCats().length > 1}>
         <div class="home-filter">

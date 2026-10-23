@@ -157,7 +157,8 @@ async function pump() {
 
 /** Haberin `lang` dilindeki metni: kayıtlı çeviri, yoksa bu bilgisayarda yapılan çeviri; o da yoksa null (Türkçe asıl gösterilir) */
 export function localized(p: HomePost, lang: string): HomePostTr | null {
-  if (lang === "tr") return null;
+  // "Sadece Türkçe" haber hiçbir dile çevrilmez
+  if (lang === "tr" || p.audience === "tr") return null;
   const saved = p.translations?.[lang];
   if (saved?.title) return saved;
   if (!inTauri || !p.id || p.id === "preview") return null;

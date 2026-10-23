@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 231026-418
+
+- Haberler: "Sadece Türkçe" haberler program Türkçe dışında bir dildeyken artık yöneticiye de gösterilmez ve hiçbir dile çevrilmez (önceden yönetici diğer dillerde de görüyordu ve okuyucu tarafı çevirisi bu haberleri de çeviriyordu; haber her dilde paylaşılmış gibi görünüyordu). Yöneticiye "N haber Sadece Türkçe olduğu için bu dilde gösterilmiyor" notu çıkar.
+
 ## 221026-417
 
 - Olaylar penceresi: oyundan çıkınca (sim kapanınca) her zaman kapanır (kendiliğinden ya da elle açılmış olsun; önceden yalnızca oturumda görünür olduysa kapanıyordu). Sim kapanmadan başka bir yarışa / sunucuya geçilince (ör. antrenman sunucusundan yarış sunucusuna ya da yeni yarışa girildiğinde) önceki yarışın Olaylar penceresi de kapanır.
