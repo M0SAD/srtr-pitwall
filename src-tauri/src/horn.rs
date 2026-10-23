@@ -250,6 +250,12 @@ pub async fn horn_play(
     if !ok {
         return Err("Korna dosyası geçersiz".into());
     }
+    // Çökme günlüğüne iz (bir çökme olursa öncesinde korna çalınıp çalınmadığı görünsün)
+    crate::crashlog::note(&format!(
+        "korna: {} {key} ses {:.0}% yön {pan:+.1}",
+        if from_idx >= 0 { "gelen" } else { "kendi" },
+        gain * 100.0
+    ));
     crate::audio::send(crate::audio::Cmd::Clip { bytes, volume: gain, pan });
     Ok(true)
 }

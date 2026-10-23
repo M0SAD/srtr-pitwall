@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.420"
+version = "1.0.421"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -99,7 +99,10 @@ lto = "fat"
 codegen-units = 1
 # "unwind": bir iş parçacığındaki panic tüm programı kapatmasın (catch_unwind + crash.log, bkz. src/crashlog.rs).
 panic = "unwind"
-strip = true
+# Çökme günlüğündeki adresleri (pitwall.exe+0x...) koda çevirebilmek için yalnızca satır bilgisi üretilir: Windows'ta
+# ayrı bir pitwall.pdb dosyasına yazılır (exe büyümez); sürüm iş akışı onu GitHub Actions'a "pdb-v1.0.X" adıyla yükler.
+debug = "line-tables-only"
+strip = false
 incremental = false
 
 # Geliştirmede bağımlılıklar optimize derlensin (demo/telemetri akıcı çalışsın).

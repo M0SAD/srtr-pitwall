@@ -83,3 +83,13 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           args: --config src-tauri/tauri.release.conf.json
+
+      # Çökme günlüğündeki adresleri çözmek için hata ayıklama sembolleri (kullanıcılara dağıtılmaz; 90 gün saklanır)
+      - name: Sembol dosyası (pitwall.pdb)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdb-${{ needs.check.outputs.tag }}
+          path: src-tauri/target/release/*.pdb
+          retention-days: 90
+          if-no-files-found: warn

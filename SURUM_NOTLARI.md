@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 231026-421
+
+- Çökme teşhisi: sürüm derlemesi artık ayrı bir sembol dosyası (pitwall.pdb) üretir ve sürüm iş akışı onu GitHub Actions'a "pdb-v1.0.X" adıyla yükler (kullanıcılara dağıtılmaz, exe büyümez). Hata günlüğündeki "pitwall.exe+0x..." adresleri bununla kod satırına çevrilebilir. Korna çalınca / gelince hata günlüğüne kısa bir iz yazılır (bir çökme olursa öncesinde korna olup olmadığı görünsün).
+
 ## 231026-420
 
 - Korna yönü: yanındaki araç korna çalarsa (spotter "solda" / "sağda" dediği araç, aradaki mesafe araç boyu kadar) korna kulaklıkta o yandan gelir. Önde / arkada olanlar ortadan, mesafeye göre kısılarak duyulur (iRacing diğer araçların yanal konumunu vermez).
