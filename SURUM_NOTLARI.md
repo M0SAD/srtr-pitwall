@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 241026-423
+
+- Demo modunda (lider tablosu ve diğer overlay önizlemeleri) son tur ile en iyi tur mantıklı hale geldi: önceden demodaki her tur birebir aynı süredeydi, bu yüzden son tur ile en iyi tur aynı çıkıyordu (ya da son tur sütunu anlamsız görünüyordu). Artık her sürücünün her turu gerçekçi biçimde biraz farklı (çoğu tur en iyiye yakın, ara sıra küçük hatalı tur); en iyi tur her zaman son turdan hızlı ya da ona eşit, başlangıçta da tüm sürücülerin son ve en iyi turu dolu. Gerçek yarıştaki davranış değişmedi.
+
 ## 231026-422
 
 - Tekrarda (replay) en iyi tur ile son tur aynı görünüyordu: simin tekrardaki tur değerleri oturumun sonundaki değerlerdir. Artık oturum canlıyken atılan her tur (bitiş anıyla) kaydedilir; tekrarda tekrar kafası hangi andaysa o ana kadar atılan turlardan en iyi tur ve son tur ayrı ayrı gösterilir (ileri / geri sarınca da doğru; o ana kadar tur yoksa boş). Kendi aracının en iyi / son tur değerleri de aynı kaynaktan. Oturum canlı izlenmediyse (ör. eski bir tekrar dosyası) eskisi gibi tekrarda ölçülen turlar kullanılır. Canlı oturumdaki davranış değişmedi.

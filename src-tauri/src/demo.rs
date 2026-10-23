@@ -43,6 +43,25 @@ struct Car {
     last: f32,
     best: f32,
     pit_until: f64,
+    /// Bu turun hız çarpanı (tur tur değişir: her tur biraz farklı, ara sıra hatalı tur; en iyi ve son tur ayrışır)
+    lap_pace: f32,
+}
+
+/// Tur başına sabit, rastgele görünen sayı (-1..1): aynı araç / tur için her zaman aynı
+fn lap_noise(car: usize, lap: i64, salt: u64) -> f32 {
+    let mut x = (car as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (lap as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9) ^ salt;
+    x ^= x >> 31;
+    x = x.wrapping_mul(0x94D0_49BB_1331_11EB);
+    x ^= x >> 29;
+    (x % 20_001) as f32 / 10_000.0 - 1.0
+}
+
+/// Tur hız çarpanı: çoğu tur en iyiye yakın (%0,2..1,2 yavaş), ara sıra küçük hata (+%1,5..2,5)
+fn lap_pace_for(car: usize, lap: i64) -> f32 {
+    let n = lap_noise(car, lap, 1);
+    let m = lap_noise(car, lap, 2);
+    let mistake = if m > 0.86 { 0.015 + (m - 0.86) * 0.07 } else { 0.0 };
+    1.0 + 0.007 + n * 0.005 + mistake
 }
 
 /// Yanımızdan geçen/bizi geçen sanal araç (kör nokta demosu).
@@ -384,14 +403,19 @@ impl Demo {
             let laps_done = START_T / base as f64;
             let dist = laps_done - (i % 8) as f64 * 0.018 - rng.next() as f64 * 0.01;
             let pct = dist.rem_euclid(1.0);
-            let last = base + rng.range(-0.3, 0.9);
+            // Gerçek tur süresi (hız profiliyle) = base × ortalama (1 / hız çarpanı): başlangıç dereceleri buna göre
+            let eff = base * Demo::lap_scale();
+            let lap_now = dist.floor() as i64;
+            let last = eff * lap_pace_for(i, lap_now - 1);
+            let best = (1..=lap_now.max(1)).map(|k| eff * lap_pace_for(i, k - 1)).fold(f32::MAX, f32::min).min(last);
             cars.push(Car {
                 dist,
                 base_lap: base,
-                lap_start_time: START_T - pct * base as f64,
+                lap_start_time: START_T - pct * eff as f64,
                 last,
-                best: last - rng.range(0.0, 0.6),
+                best,
                 pit_until: 0.0,
+                lap_pace: lap_pace_for(i, lap_now),
             });
             let lic = ["A", "B", "C", "Pro"][(i * 7) % 4];
             drivers[i] = Some(Driver {
@@ -581,7 +605,22 @@ impl Demo {
     }
 
     /// Pist boyunca hız profili: 4 fren bölgesi.
-    fn speed_factor(pct: f32) -> (f32, f32, f32) {
+    /// Hız profiliyle tur süresi / base_lap (adım: v = dt / base × (0,55 + 0,6 × sf))
+    fn lap_scale() -> f32 {
+        static S: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
+        *S.get_or_init(|| {
+            let n = 2000;
+            (0..n)
+                .map(|k| {
+                    let (sf, _, _) = Demo::speed_factor((k as f32 + 0.5) / n as f32);
+                    1.0 / (0.55 + 0.6 * sf)
+                })
+                .sum::<f32>()
+                / n as f32
+        })
+    }
+
+        fn speed_factor(pct: f32) -> (f32, f32, f32) {
         // (hız çarpanı, gaz, fren)
         const CORNERS: [f32; 4] = [0.12, 0.37, 0.61, 0.86];
         let mut thr = 1.0f32;
@@ -749,11 +788,12 @@ impl Demo {
         for (i, c) in self.cars.iter_mut().enumerate() {
             let pct = c.dist.rem_euclid(1.0) as f32;
             let (sf, _, _) = Demo::speed_factor(pct);
-            let pace = if i == PLAYER {
-                1.0
-            } else {
-                1.0 + ((t * 0.05 + i as f64).sin() as f32) * 0.004
-            };
+            let pace = c.lap_pace
+                * if i == PLAYER {
+                    1.0
+                } else {
+                    1.0 + ((t * 0.05 + i as f64).sin() as f32) * 0.002
+                };
             let in_pit = t < c.pit_until;
             let v = if in_pit {
                 0.0
@@ -765,6 +805,7 @@ impl Demo {
             if c.dist.floor() > before && c.dist >= 1.0 {
                 let lt = (t - c.lap_start_time) as f32;
                 c.last = lt;
+                c.lap_pace = lap_pace_for(i, c.dist.floor() as i64);
                 if c.best < 0.0 || lt < c.best {
                     c.best = lt;
                 }
