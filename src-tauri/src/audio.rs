@@ -33,11 +33,14 @@ pub enum Cmd {
     Alongside(Option<(f32, f32, f32)>),
     /// Çıkış cihazı (ad; boş: Windows varsayılanı). Aynı cihaz yeniden gönderilirse hiçbir şey olmaz.
     Device(String),
-    /// Kısa ses kaydı (WAV / OGG baytları; korna): kendi kanalında hemen çalar, diğerleriyle karışır
-    Clip { bytes: std::sync::Arc<Vec<u8>>, volume: f32 },
+    /// Kısa ses kaydı (WAV / OGG baytları; korna): kendi kanalında hemen çalar, diğerleriyle karışır.
+    /// pan -1 sol, 1 sağ. Aynı anda en çok `MAX_CLIPS` kayıt çalar (fazlası atlanır).
+    Clip { bytes: std::sync::Arc<Vec<u8>>, volume: f32, pan: f32 },
 }
 
 static TX: OnceLock<Sender<Cmd>> = OnceLock::new();
+/// Aynı anda çalabilecek en çok kısa kayıt (korna)
+const MAX_CLIPS: usize = 4;
 /// Mühendis ya da spotter şu an konuşuyor mu (ses iş parçacığı en geç 100 ms'de bir günceller)
 static BUSY: AtomicBool = AtomicBool::new(false);
 
@@ -93,6 +96,8 @@ fn run(rx: &Receiver<Cmd>) {
     // Seçili çıkış cihazı ("" = Windows varsayılanı)
     let mut device = String::new();
     let mut tone: Option<Sink> = None;
+    // Çalan kısa kayıtlar (bitenler her yeni kayıtta atılır)
+    let mut clips: Vec<Sink> = Vec::new();
     let mut tone_key: Option<(i32, i32, i32)> = None;
 
     // Altyazı: son gönderilen mesajın kimliği ve kanalın bir önceki durumu
@@ -155,6 +160,7 @@ fn run(rx: &Receiver<Cmd>) {
                     t.stop();
                 }
                 tone_key = None;
+                clips.clear();
                 // Eski akıştaki sesler akışla birlikte kapanır; yenileri yeni cihazda çalar
                 voice = v;
                 spotter = sp;
@@ -227,14 +233,24 @@ fn run(rx: &Receiver<Cmd>) {
                     .linear_gain_ramp(d, 1.0, 0.0, true);
                 fx.append(ChannelVolume::new(src, pan_volumes(0.0, volume * 0.5)));
             }
-            Cmd::Clip { bytes, volume } => {
+            Cmd::Clip { bytes, volume, pan } => {
+                clips.retain(|s| !s.empty());
+                if clips.len() >= MAX_CLIPS {
+                    continue;
+                }
                 let Ok(src) = Decoder::new(std::io::Cursor::new(bytes.as_ref().clone())) else {
                     continue;
                 };
+                // En çok 6 sn (bozuk / uzun dosya kanalı tutmasın)
+                let src = src.take_duration(Duration::from_secs(6));
                 if let Ok(sink) = Sink::try_new(&handle) {
                     sink.set_volume(volume.clamp(0.0, 2.0));
-                    sink.append(src);
-                    sink.detach();
+                    if pan.abs() > 0.01 {
+                        sink.append(ChannelVolume::new(src, pan_volumes(pan, 1.0)));
+                    } else {
+                        sink.append(src);
+                    }
+                    clips.push(sink);
                 }
             }
             Cmd::Alongside(state) => {

@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 231026-420
+
+- Korna yönü: yanındaki araç korna çalarsa (spotter "solda" / "sağda" dediği araç, aradaki mesafe araç boyu kadar) korna kulaklıkta o yandan gelir. Önde / arkada olanlar ortadan, mesafeye göre kısılarak duyulur (iRacing diğer araçların yanal konumunu vermez).
+- Korna sağlamlaştırma: aynı anda en çok 4 korna sesi çalar (fazlası atlanır; bitenler kanaldan atılır, önceden her ses ayrı ve bırakılmış bir kanalda çalıyordu), ses dosyası çalmadan önce denetlenir, her ses en çok 6 sn.
+
 ## 231026-419
 
 - Yeni: **Korna**. PRO üye direksiyon düğmesine ya da klavye tuşuna basınca aynı iRacing sunucusunda SRTR Pitwall kullanan herkes kornasını duyar (duymak herkese açık, varsayılan açık). Ayarlar › Korna: korna sesi seçimi (dinleyerek), korna tuşu / direksiyon düğmesi, gelen kornalar (yalnızca yakındakiler: mesafeye göre kısılır, varsayılan 300 m / sunucudaki herkes / kapalı), ses düzeyi, son korna çalanlar ve susturma. En sık 2,5 sn'de bir; aynı kişiden 2 sn'den sık gelenler yok sayılır; tekrar ve demo modunda çalınmaz. Gönderen gerçekten o sunucuda ve o araçta mı denetlenir. Relative'de korna çalan sürücünün yanında korna simgesi, Radar'da araç sarı yanıp söner.

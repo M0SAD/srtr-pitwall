@@ -25,6 +25,8 @@ pub struct Ctx {
     pub me_idx: i32,
     pub me_name: String,
     pub track_m: f32,
+    /// iRacing CarLeftRight (yanımdaki araç: 2 sol, 3 sağ, 4 iki yanda, 5 iki araç solda, 6 iki araç sağda)
+    pub left_right: i32,
     /// Araç numarasına göre tur yüzdesi (-1: pistte değil)
     pub pct: Vec<f32>,
     /// Araç numarasına göre sürücü adı
@@ -42,6 +44,7 @@ pub fn update(f: &crate::model::Frame, s: &crate::model::SessionData, real: bool
     c.sub = s.sub_session_id;
     c.me_idx = f.player_idx;
     c.track_m = s.track_length_km * 1000.0;
+    c.left_right = f.car_left_right;
     if c.pct.len() != f.cars.len() {
         c.pct = vec![-1.0; f.cars.len()];
     }
@@ -82,6 +85,19 @@ pub fn distance(a: f32, b: f32, track_m: f32) -> Option<f32> {
     }
     let d = (a - b).abs().fract();
     Some(d.min(1.0 - d) * track_m)
+}
+
+/// Kulaklıkta yön: yanımdaki araç (spotter: solda / sağda) ve aradaki mesafe araç boyu kadarsa korna o yandan gelir.
+/// iRacing diğer araçların yanal konumunu vermez; yalnızca kendi aracımın yanında araç olup olmadığını bildirir.
+pub fn side_pan(left_right: i32, dist: f32) -> f32 {
+    if dist > 10.0 {
+        return 0.0;
+    }
+    match left_right {
+        2 | 5 => -0.85,
+        3 | 6 => 0.85,
+        _ => 0.0,
+    }
 }
 
 /// Mesafeye göre ses çarpanı: 25 m'ye kadar tam, `near_m`'de 0 (arası yumuşak)
@@ -200,6 +216,7 @@ pub async fn horn_play(
     near_m: Option<f32>,
 ) -> Result<bool, String> {
     let mut gain = volume.clamp(0.0, 2.0);
+    let mut pan = 0.0f32;
     if from_idx >= 0 {
         let c = CTX.lock().clone().unwrap_or_default();
         if !c.active || from_idx == c.me_idx {
@@ -210,10 +227,14 @@ pub async fn horn_play(
         if name.is_empty() || norm(&name) != norm(from_name.as_deref().unwrap_or("")) {
             return Ok(false);
         }
+        let me = c.pct.get(c.me_idx.max(0) as usize).copied().unwrap_or(-1.0);
+        let them = c.pct.get(from_idx as usize).copied().unwrap_or(-1.0);
+        let dist = distance(me, them, c.track_m);
+        if let Some(d) = dist {
+            pan = side_pan(c.left_right, d);
+        }
         if let Some(n) = near_m.filter(|n| *n > 0.0) {
-            let me = c.pct.get(c.me_idx.max(0) as usize).copied().unwrap_or(-1.0);
-            let them = c.pct.get(from_idx as usize).copied().unwrap_or(-1.0);
-            match distance(me, them, c.track_m) {
+            match dist {
                 Some(d) => gain *= near_gain(d, n),
                 // Biri pistte değil (garaj / pit): mesafe bilinmez, çalınmaz
                 None => return Ok(false),
@@ -224,7 +245,12 @@ pub async fn horn_play(
         return Ok(false);
     }
     let bytes = sound(&app, &key, url.as_deref()).await?;
-    crate::audio::send(crate::audio::Cmd::Clip { bytes, volume: gain });
+    // Çözülebiliyor mu (bozuk dosya ses iş parçacığına gitmesin)
+    let ok = crate::crashlog::guard(|| rodio::Decoder::new(std::io::Cursor::new(bytes.as_ref().clone())).is_ok()).unwrap_or(false);
+    if !ok {
+        return Err("Korna dosyası geçersiz".into());
+    }
+    crate::audio::send(crate::audio::Cmd::Clip { bytes, volume: gain, pan });
     Ok(true)
 }
 
@@ -243,6 +269,10 @@ mod tests {
         let mid = near_gain(150.0, 300.0);
         assert!(mid > 0.1 && mid < 0.5, "{mid}");
         assert_eq!(norm("  Erkin   Azcan "), "erkin azcan");
+        assert_eq!(side_pan(2, 3.0), -0.85);
+        assert_eq!(side_pan(6, 3.0), 0.85);
+        assert_eq!(side_pan(2, 40.0), 0.0);
+        assert_eq!(side_pan(4, 2.0), 0.0);
         for k in ["b:short", "b:long", "b:double", "b:truck", "b:bike"] {
             let b = builtin(k).unwrap();
             assert_eq!(&b[0..4], b"RIFF");
