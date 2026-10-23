@@ -3,7 +3,7 @@
 
 use crate::model::{Frame, SessionData, MAX_CARS};
 use serde::Serialize;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 // ---------------------------------------------------------------------------
 // Araç başına takip
@@ -214,6 +214,10 @@ pub struct Tracker {
     /// Tekrar izlerken turlar tekrar kafasının zamanından hesaplanır (simin en iyi / son tur değerleri tekrarda
     /// oturumun SONUNDAKİ değerlerdir): lider tablosu ve TV En Hızlı Tur izlenen ana kadarki turları gösterir.
     replay: ReplayLaps,
+    /// Canlı izlenen oturumların turları: oturum numarası → araç başına (bitiş anı, tur süresi). Tekrarda izlenen ana
+    /// kadarki en iyi ve son tur bunlardan bulunur (tekrar kafası hangi noktadaysa o ana kadar atılan turlar; tekrar
+    /// yeni açıldığında ya da geri sarıldığında da doğru). Kayıt yoksa (oturum canlı izlenmedi) ReplayLaps ölçümü kullanılır.
+    live_laps: HashMap<i32, LiveLaps>,
     /// Bu oturumun resmi sonuçlarındaki en iyi turlar (ResultsPositions FastestTime; yalnız geçerli turlar)
     ses_best: Vec<f32>,
     /// Yarış oturumu, yeşil bayraktan önce (grid / ısınma turu): lider tablosundaki dereceler boş
@@ -241,6 +245,71 @@ pub struct Tracker {
 /// Tur sayaçlarına (CarIdxLapCompleted) güvenilmez, tekrarda her zaman güncellenmeyebilir.
 /// Bu tekrarda hiçbir araç için henüz tur ölçülmediyse (tekrar yeni açıldı / tekrar kafası ilerlemiyor) simin değerleri kalır:
 /// tablo bomboş görünmesin.
+/// Bir oturumun canlı kaydedilen turları
+#[derive(Default, Clone)]
+pub struct LiveLaps {
+    /// Araç başına (bitiş anı: oturum zamanı sn, tur süresi)
+    laps: Vec<Vec<(f64, f32)>>,
+    /// Araç başına simin son gördüğümüz "son tur" değeri (değişince yeni tur)
+    prev: Vec<f32>,
+    /// Yarışın yeşil bayrak anı (öncesindeki turlar yarış turu sayılmaz)
+    green: Option<f64>,
+}
+
+impl LiveLaps {
+    fn new() -> Self {
+        LiveLaps {
+            laps: vec![Vec::new(); MAX_CARS],
+            prev: vec![f32::NAN; MAX_CARS],
+            green: None,
+        }
+    }
+
+    /// Canlı karede: son tur süresi değişen araç için tur kaydı. İlk görülen değer (önceki oturumdan / uygulama
+    /// açılmadan atılmış tur) kaydedilmez, yalnızca not edilir.
+    fn record(&mut self, t: f64, raw_last: &[f32]) {
+        for (i, &l) in raw_last.iter().enumerate().take(MAX_CARS) {
+            let p = self.prev[i];
+            if p.is_nan() {
+                self.prev[i] = l;
+                continue;
+            }
+            if l > 1.0 && (l - p).abs() > 1e-4 {
+                let v = &mut self.laps[i];
+                // Zaman geri gitmişse (oturum yeniden başladı) eski kayıtlar atılır
+                if v.last().map(|x| x.0 > t + 1.0).unwrap_or(false) {
+                    v.clear();
+                }
+                v.push((t, l));
+                if v.len() > 400 {
+                    v.remove(0);
+                }
+            }
+            self.prev[i] = l;
+        }
+    }
+
+    fn any(&self) -> bool {
+        self.laps.iter().any(|v| !v.is_empty())
+    }
+
+    /// `t` anına kadar atılmış turlardan araç başına (en iyi, son)
+    fn at(&self, t: f64, i: usize) -> (f32, f32) {
+        let from = self.green.unwrap_or(f64::MIN);
+        let mut best = -1.0f32;
+        let mut last: Option<(f64, f32)> = None;
+        for &(end, lap) in self.laps[i].iter().filter(|x| x.0 <= t + 0.5 && x.0 > from) {
+            if best <= 0.0 || lap < best {
+                best = lap;
+            }
+            if last.map(|l| end > l.0).unwrap_or(true) {
+                last = Some((end, lap));
+            }
+        }
+        (best, last.map(|l| l.1).unwrap_or(-1.0))
+    }
+}
+
 #[derive(Default)]
 pub struct ReplayLaps {
     on: bool,
@@ -355,6 +424,7 @@ impl Default for Tracker {
             stale_last: vec![-1.0; MAX_CARS],
             sub_session: 0,
             replay: ReplayLaps::default(),
+            live_laps: HashMap::new(),
             ses_best: vec![-1.0; MAX_CARS],
             pre_green: false,
             keep: vec![(-1.0, -1.0); MAX_CARS],
@@ -403,7 +473,29 @@ impl Tracker {
     /// - Diğer oturumlarda oturum başında simin elinde kalan (önceki oturumdan) değer, değişene kadar yok sayılır.
     /// Oturumun başı görülmediyse (uygulama oturum ortasında açıldı) simin verdiği değer kalır.
     pub fn apply_race_best(&self, f: &mut Frame) {
-        if self.replay.apply(f) {
+        // Tekrar: oturum canlı izlendiyse tekrar kafasının anına kadar atılan turlar; değilse tekrarda ölçülen turlar
+        if crate::calc::replay_watch(f) {
+            let done = match self.live_laps.get(&f.replay_session_num).filter(|l| l.any()) {
+                Some(l) => {
+                    for i in 0..MAX_CARS {
+                        let (b, la) = l.at(f.replay_session_time, i);
+                        f.cars[i].best = b;
+                        f.cars[i].last = la;
+                    }
+                    true
+                }
+                None => self.replay.apply(f),
+            };
+            if done {
+                // Kendi aracımın tek değerleri de aynı kaynaktan (simin değerleri tekrarda oturum sonundakilerdir)
+                if (0..MAX_CARS as i32).contains(&f.player_idx) {
+                    let p = f.player_idx as usize;
+                    f.lap_best = f.cars[p].best;
+                    f.lap_last = f.cars[p].last;
+                }
+                return;
+            }
+        } else if self.replay.apply(f) {
             return;
         }
         self.apply_bests(f);
@@ -536,6 +628,7 @@ impl Tracker {
                 self.race_last_seen = vec![-1.0; MAX_CARS];
                 self.green_raw_best = vec![-1.0; MAX_CARS];
                 self.replay = ReplayLaps::default();
+                self.live_laps.clear();
                 self.pass = crate::gaps::PassTimes::default();
                 self.events.clear();
             }
@@ -586,6 +679,19 @@ impl Tracker {
                 }
             }
         }
+        // Canlı turların kaydı (tekrarda izlenen ana göre en iyi / son tur için)
+        if !crate::calc::replay_watch(f) && self.raw_noted && self.raw_last.len() == MAX_CARS {
+            let raw: Vec<f32> = (0..MAX_CARS).map(|i| self.raw_last[i]).collect();
+            let entry = self.live_laps.entry(f.session_num).or_insert_with(LiveLaps::new);
+            entry.record(f.session_time, &raw);
+            if self.live_laps.len() > 8 {
+                let keep = f.session_num;
+                let oldest = self.live_laps.keys().copied().filter(|k| *k != keep).min();
+                if let Some(k) = oldest {
+                    self.live_laps.remove(&k);
+                }
+            }
+        }
         self.fuel.update(f);
         self.trend.update(f.session_time, f.delta_best);
 
@@ -598,6 +704,9 @@ impl Tracker {
             self.green_time = None;
         } else if race && racing && self.saw_pre_green && self.green_time.is_none() {
             self.green_time = Some(f.session_time);
+            if let Some(l) = self.live_laps.get_mut(&f.session_num) {
+                l.green = Some(f.session_time);
+            }
             self.race_best = vec![-1.0; MAX_CARS];
             self.green_raw_best = self.raw_best.clone();
             // Yeşildeki "son tur" değerleri (sıralamadan kalan) yarış turu sayılmaz
@@ -919,6 +1028,44 @@ mod best_tests {
         f.cars[0].lap_completed = 1;
         step(&mut t, &mut f, &s);
         assert_eq!((f.cars[0].best, f.cars[0].last), (89.5, 89.5));
+    }
+
+    #[test]
+    fn replay_uses_live_laps_at_playhead() {
+        // Canlı antrenman: 3 tur (90, 88, 91), sonra tekrar izleniyor
+        let s = sess("Practice");
+        let mut t = Tracker::default();
+        let mut f = Frame::default();
+        f.player_idx = 0;
+        f.session_state = 4;
+        f.cars[0].pct = 0.1;
+        f.cars[0].last = 95.0; // önceki oturumdan kalan: tur sayılmaz
+        f.session_time = 10.0;
+        step(&mut t, &mut f, &s);
+        for (k, (tm, lap)) in [(100.0, 90.0), (190.0, 88.0), (280.0, 91.0)].into_iter().enumerate() {
+            f.session_time = tm;
+            f.cars[0].last = lap;
+            f.cars[0].best = 88.0;
+            f.cars[0].lap_completed = k as i32 + 1;
+            step(&mut t, &mut f, &s);
+        }
+        // Tekrar: sim değerleri oturum sonundakiler (en iyi = son gibi görünebilir)
+        f.replay = true;
+        f.replay_live = false;
+        f.replay_session_num = 0;
+        let at = |t: &mut Tracker, f: &mut Frame, rt: f64| {
+            f.replay_session_time = rt;
+            f.cars[0].best = 88.0;
+            f.cars[0].last = 88.0;
+            step(t, f, &s);
+            (f.cars[0].best, f.cars[0].last, f.lap_best, f.lap_last)
+        };
+        assert_eq!(at(&mut t, &mut f, 50.0), (-1.0, -1.0, -1.0, -1.0), "henüz tur yok");
+        assert_eq!(at(&mut t, &mut f, 150.0), (90.0, 90.0, 90.0, 90.0));
+        assert_eq!(at(&mut t, &mut f, 250.0), (88.0, 88.0, 88.0, 88.0));
+        assert_eq!(at(&mut t, &mut f, 300.0), (88.0, 91.0, 88.0, 91.0), "en iyi ve son ayrı");
+        // Geri sarıldı
+        assert_eq!(at(&mut t, &mut f, 120.0), (90.0, 90.0, 90.0, 90.0));
     }
 
     #[test]

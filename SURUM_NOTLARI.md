@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 231026-422
+
+- Tekrarda (replay) en iyi tur ile son tur aynı görünüyordu: simin tekrardaki tur değerleri oturumun sonundaki değerlerdir. Artık oturum canlıyken atılan her tur (bitiş anıyla) kaydedilir; tekrarda tekrar kafası hangi andaysa o ana kadar atılan turlardan en iyi tur ve son tur ayrı ayrı gösterilir (ileri / geri sarınca da doğru; o ana kadar tur yoksa boş). Kendi aracının en iyi / son tur değerleri de aynı kaynaktan. Oturum canlı izlenmediyse (ör. eski bir tekrar dosyası) eskisi gibi tekrarda ölçülen turlar kullanılır. Canlı oturumdaki davranış değişmedi.
+
 ## 231026-421
 
 - Çökme teşhisi: sürüm derlemesi artık ayrı bir sembol dosyası (pitwall.pdb) üretir ve sürüm iş akışı onu GitHub Actions'a "pdb-v1.0.X" adıyla yükler (kullanıcılara dağıtılmaz, exe büyümez). Hata günlüğündeki "pitwall.exe+0x..." adresleri bununla kod satırına çevrilebilir. Korna çalınca / gelince hata günlüğüne kısa bir iz yazılır (bir çökme olursa öncesinde korna olup olmadığı görünsün).
