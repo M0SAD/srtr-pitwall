@@ -5,6 +5,7 @@ export const SETTINGS_PAGES = [
   { id: "appearance", label: "Görünüm" },
   { id: "chat", label: "Sohbet" },
   { id: "sounds", label: "Sesler" },
+  { id: "horn", label: "Korna" },
   { id: "performance", label: "Performans" },
   { id: "display", label: "Ekran" },
   { id: "vr", label: "VR" },

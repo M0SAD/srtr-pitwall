@@ -24,6 +24,7 @@ export function adminSubs(): { id: string; label: string }[] {
     { id: "messages", label: "Mesajlar", need: isAdmin },
     { id: "media", label: "Medya", need: isAdmin },
     { id: "voicepacks", label: "Ses paketleri", need: isAdmin },
+    { id: "horns", label: "Kornalar", need: isAdmin },
     { id: "livechat", label: "Canlı Sohbet ayarları", need: isAdmin },
     { id: "propromo", label: "PRO tanıtım mesajı", need: isAdmin },
     { id: "backdrops", label: "Overlay arka planları", need: isAdmin },

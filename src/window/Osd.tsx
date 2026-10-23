@@ -73,6 +73,12 @@ function describe(p: OsdPayload): Omit<View, "id"> | null {
       return onOff(t("Ses odası mikrofonu"), p.on);
     case "roomDeafen":
       return onOff(t("Ses odası sesi"), p.on);
+    case "hornPro":
+      return { label: t("Korna PRO üyelik gerektirir"), tone: "warn" };
+    case "hornNone":
+      return { label: t("Korna"), state: t("Seçili korna kullanılamıyor (Ayarlar › Korna)"), tone: "warn" };
+    case "hornLogin":
+      return { label: t("Korna için giriş yapmalısın"), tone: "warn" };
     case "musicToggle":
       return { label: t("Müzik"), state: t("Durdur / oynat"), tone: "info" };
     case "musicNext":

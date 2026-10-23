@@ -6199,3 +6199,148 @@ button.ovpal-lock:hover {
   gap: 8px;
   padding: 4px 10px 10px;
 }
+
+/* Ayarlar › Korna */
+.horn-page h3 svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  color: var(--accent);
+}
+.horn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.horn-card {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.horn-card.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.horn-play {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+.horn-play:hover {
+  background: var(--bg-2);
+}
+.horn-play svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+.horn-pick {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.horn-pick:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.horn-pick svg {
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  color: var(--accent);
+}
+.horn-pick .hc-badge,
+.horn-admin .hc-badge {
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.hc-badge.admin {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
+.horn-people {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.horn-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.horn-alist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.horn-arow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.horn-arow.off {
+  opacity: 0.55;
+}
+.horn-arow .horn-play {
+  align-self: stretch;
+}
+.horn-arow .input {
+  width: auto;
+  min-width: 0;
+}
+.horn-arow input.input {
+  flex: 1;
+}
+.horn-arow svg {
+  width: 13px;
+  height: 13px;
+}
+.horn-admin .f2 {
+  margin-bottom: 10px;
+}
+.horn-admin .seg {
+  align-self: flex-start;
+}
+.horn-admin .hed-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.horn-slider {
+  flex: none;
+  width: 260px;
+}
+.horn-lbl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

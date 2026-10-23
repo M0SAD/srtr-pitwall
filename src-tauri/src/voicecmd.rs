@@ -436,6 +436,8 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         ("musicToggle", "/general/musicToggle"),
         ("musicNext", "/general/musicNext"),
         ("musicPrev", "/general/musicPrev"),
+        // Korna (src/host/horn.ts gönderir)
+        ("horn", "/general/horn"),
     ]
     .into_iter()
     .map(|(name, ptr)| {
@@ -1686,6 +1688,10 @@ mod imp {
                                     // Denetim music iş parçacığında yapılır (en çok birkaç sn sürebilir): giriş döngüsü beklemesin
                                     let n = *name;
                                     std::thread::spawn(move || crate::music::hotkey(n));
+                                } else if *name == "horn" {
+                                    if let Some(app) = APP.get() {
+                                        let _ = app.emit("horn-press", ());
+                                    }
                                 } else if let Some(app) = APP.get() {
                                     let _ = app.emit("voiceroom-key", *name);
                                 }

@@ -1,3 +1,4 @@
+import { honking } from "@/sdk/horn";
 import { For, Show, createMemo } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useTopic, demoShow } from "@/sdk/telemetry";
@@ -171,6 +172,7 @@ export default function Radar(props: OverlayProps) {
                 <Show when={c()}>
                   <rect
                     class="car other"
+                    classList={{ honk: honking(c()!.idx) }}
                     x="0"
                     y="0"
                     width="22"

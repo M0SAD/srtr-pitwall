@@ -20,6 +20,7 @@ import { ENGINEER_SCREENS } from "@/window/engineerScreens";
 import { SETTINGS_PAGES } from "./settingsPages";
 
 export { SETTINGS_PAGES };
+import { HornSettings } from "../components/HornSettings";
 
 function Row(p: { title: string; sub?: string; children: any }) {
   return (
@@ -361,6 +362,9 @@ export function SettingsPage(props: { page: string }) {
         <div class="page narrow">
           <SoundsPanel />
         </div>
+      </Match>
+      <Match when={props.page === "horn"}>
+        <HornSettings />
       </Match>
       <Match when={props.page === "performance"}>
         <Performance />

@@ -77,6 +77,7 @@ export const F = {
   voicePackSubmit: "voice.pack_submit",
   voiceCommands: "voice.commands",
   voiceRoomTheme: "voice.room_theme",
+  horn: "social.horn",
   shots: "tools.screenshots",
   streaming: "tools.streaming",
   streamBadgeHide: "stream.badge.hide",
@@ -151,6 +152,7 @@ const STATIC: ProFeature[] = [
   { key: VOICE_FEATURE, label: "Sesli mühendis ve spotter", group: "Ses", defaultPro: true },
   { key: F.voiceCommands, label: "Sesli komut (bas-konuş: mühendise sesle soru sormak)", group: "Ses", defaultPro: true, hint: "Rust da denetler · sesli mühendis de açık olmalı" },
   { key: F.voicePackSubmit, label: "Ses paketi göndermek (kendi kaydını paylaşmak)", group: "Ses", defaultPro: false, server: true },
+  { key: F.horn, label: "Korna çalmak (aynı iRacing sunucusundakiler duyar)", group: "Ses", defaultPro: true, hint: "Duymak herkese açık · hangi kornayı kimin kullanacağı Yönetim › Kornalar'da" },
   { key: F.voiceRoomTheme, label: "Ses odaları teması ve kişi görünümü (Ses ayarları › Görünüm)", group: "Ses", defaultPro: true },
   // Araçlar
   { key: F.shots, label: "Ekran görüntüsü almak", group: "Araçlar", defaultPro: false },

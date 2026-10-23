@@ -48,3 +48,14 @@
 .radar .car.other {
   transition: transform 0.12s linear;
 }
+
+/* Korna çalan araç: sarı yanıp söner */
+.car.other.honk {
+  fill: #ffd23f;
+  animation: radar-honk 0.4s ease-in-out 5;
+}
+@keyframes radar-honk {
+  50% {
+    opacity: 0.45;
+  }
+}

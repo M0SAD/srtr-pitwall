@@ -3,6 +3,7 @@
 // Reklamlar, Görünürlük, Bildirimler, Moderasyon, Mesajlar, Medya, Ses paketleri.
 // Moderatörler (reports.view izni): Destek (silme hariç) ve Moderasyon.
 
+import { AdminHorns } from "../components/AdminHorns";
 import { hashColor, initialOf } from "@/cloud/social";
 import { adminOverview, refreshAdminOverview } from "@/cloud/adminOverview";
 import { AdminPayMethods } from "../components/AdminPayMethods";
@@ -115,6 +116,9 @@ export function AdminPage() {
         </Match>
         <Match when={page() === "coupons"}>
           <AdminCoupons run={run} />
+        </Match>
+        <Match when={page() === "horns"}>
+          <AdminHorns run={run} />
         </Match>
         <Match when={page() === "voicepacks"}>
           <AdminVoicePacks run={run} />

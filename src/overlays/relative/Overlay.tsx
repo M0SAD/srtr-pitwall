@@ -4,6 +4,7 @@ import { useRows, useTopic } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
 import { irating, lapTime } from "@/sdk/format";
 import type { Row } from "@/sdk/types";
+import { honking } from "@/sdk/horn";
 import { settings } from "@/sdk/settings";
 import { CarLogo } from "@/sdk/logos";
 import { friendOf, friendRowStyle, friendsOn } from "@/sdk/friends";
@@ -132,6 +133,13 @@ export default function Relative(props: OverlayProps) {
             </span>
             <Show when={friendsOn("relative") && friendOf(r.userId, r.name)?.tag}>
               <span class="ov-tag rel-dtag">{friendOf(r.userId, r.name)!.tag}</span>
+            </Show>
+            <Show when={honking(r.idx)}>
+              {/* Korna çaldı (2 sn) */}
+              <svg class="rel-horn" viewBox="0 0 24 24" aria-label="korna">
+                <path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1z" fill="currentColor" />
+                <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
             </Show>
           </span>
         );

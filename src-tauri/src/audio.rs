@@ -33,6 +33,8 @@ pub enum Cmd {
     Alongside(Option<(f32, f32, f32)>),
     /// Çıkış cihazı (ad; boş: Windows varsayılanı). Aynı cihaz yeniden gönderilirse hiçbir şey olmaz.
     Device(String),
+    /// Kısa ses kaydı (WAV / OGG baytları; korna): kendi kanalında hemen çalar, diğerleriyle karışır
+    Clip { bytes: std::sync::Arc<Vec<u8>>, volume: f32 },
 }
 
 static TX: OnceLock<Sender<Cmd>> = OnceLock::new();
@@ -224,6 +226,16 @@ fn run(rx: &Receiver<Cmd>) {
                     .fade_in(Duration::from_millis(18))
                     .linear_gain_ramp(d, 1.0, 0.0, true);
                 fx.append(ChannelVolume::new(src, pan_volumes(0.0, volume * 0.5)));
+            }
+            Cmd::Clip { bytes, volume } => {
+                let Ok(src) = Decoder::new(std::io::Cursor::new(bytes.as_ref().clone())) else {
+                    continue;
+                };
+                if let Ok(sink) = Sink::try_new(&handle) {
+                    sink.set_volume(volume.clamp(0.0, 2.0));
+                    sink.append(src);
+                    sink.detach();
+                }
             }
             Cmd::Alongside(state) => {
                 let key = state.map(|(pan, freq, vol)| {

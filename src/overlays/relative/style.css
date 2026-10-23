@@ -440,3 +440,18 @@
 .rel-custom .rel-row.behind-lap .rel-name {
   color: var(--ov-blue);
 }
+
+/* Korna çalan sürücü */
+.rel-horn {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  margin-left: 0.3em;
+  color: #ffd23f;
+  animation: rel-horn 0.5s ease-in-out 4;
+}
+@keyframes rel-horn {
+  50% {
+    transform: scale(1.25);
+  }
+}

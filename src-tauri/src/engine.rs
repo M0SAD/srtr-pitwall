@@ -672,6 +672,7 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
                     names.push(d.name.clone());
                 }
                 *shared.driver_names.lock() = names;
+                crate::horn::set_drivers(&st.session);
             }
             st.league_active = active;
             let track = if st.session.track_config.is_empty() {
@@ -704,6 +705,8 @@ fn run(app: AppHandle, shared: Arc<Shared>) {
             st.tracker.apply_race_best(&mut st.frame);
             st.tracker.update(&st.frame, &st.session);
             st.tracker.apply_race_best(&mut st.frame);
+            // Korna: oturum bağlamı (sunucu kimliği, araç konumları)
+            crate::horn::update(&st.frame, &st.session, connected && !demo_on && !preview, st.sim == "iracing");
             // Yardımcı hesaplar tek tek korunur: birindeki panic (crash.log'a yazılır) o kareyi atlar, döngü sürer
             crate::crashlog::guard(|| st.strategy.update(&st.frame, &st.session, st.sim, demo_on));
             // Olaylar ekranı: olayları topla; oyuncu yarışı bitirince pencereyi bir kez aç

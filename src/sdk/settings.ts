@@ -889,6 +889,18 @@ export interface GeneralSettings {
   musicToggle: { key: string; button: VoiceCommandButton | null };
   musicNext: { key: string; button: VoiceCommandButton | null };
   musicPrev: { key: string; button: VoiceCommandButton | null };
+  /** Korna (PRO): basınca aynı sunucudakiler duyar (Rust: voicecmd.rs "horn-press", gönderme: src/host/horn.ts) */
+  horn: { key: string; button: VoiceCommandButton | null };
+  /** Seçili korna sesi ("b:short" hazır, "db:<id>" yöneticinin eklediği) */
+  hornSound: string;
+  /** Gelen kornalar: near = yalnızca yakındakiler (mesafeyle kısılır), all = herkes, off = duyma */
+  hornHear: "near" | "all" | "off";
+  /** "Yakındakiler" mesafesi (m) */
+  hornNear: number;
+  /** Korna ses düzeyi (%) */
+  hornVolume: number;
+  /** Susturulan üyeler (kullanıcı kimliği) */
+  hornMuted: string[];
   demo: boolean;
   /** Hangi simden veri okunacağı (Rust tarafı `general.sim` okur) */
   sim: SimChoice;
@@ -1370,6 +1382,12 @@ export function defaultSettings(): AppSettings {
       musicToggle: { key: "", button: null },
       musicNext: { key: "", button: null },
       musicPrev: { key: "", button: null },
+      horn: { key: "", button: null },
+      hornSound: "b:short",
+      hornHear: "near",
+      hornNear: 300,
+      hornVolume: 80,
+      hornMuted: [],
       chatLook: { ...DEFAULT_CHAT_LOOK },
       convBg: {},
       appBg: { ...DEFAULT_APP_BG },
@@ -1581,6 +1599,12 @@ export function normalize(input: unknown): AppSettings {
       musicToggle: { key: "", button: null, ...(s.general?.musicToggle ?? {}) },
       musicNext: { key: "", button: null, ...(s.general?.musicNext ?? {}) },
       musicPrev: { key: "", button: null, ...(s.general?.musicPrev ?? {}) },
+      horn: { key: "", button: null, ...(s.general?.horn ?? {}) },
+      hornSound: typeof s.general?.hornSound === "string" && s.general.hornSound ? s.general.hornSound : "b:short",
+      hornHear: ["near", "all", "off"].includes(String(s.general?.hornHear)) ? s.general!.hornHear! : "near",
+      hornNear: Math.min(1000, Math.max(50, Number(s.general?.hornNear) || 300)),
+      hornVolume: Math.min(150, Math.max(0, Number(s.general?.hornVolume ?? 80))),
+      hornMuted: Array.isArray(s.general?.hornMuted) ? s.general!.hornMuted!.filter((x) => typeof x === "string").slice(0, 500) : [],
       shortcuts: chatKeyMigrate(voiceKeyMigrate(shotKeyMigrate({ ...d.general.shortcuts, ...(s.general?.shortcuts ?? {}) }, s.general?.shotKeyV3), s.general?.voiceKeyV1), s.general?.chatKeyV2),
       voiceKeyV1: true,
       chatKeyV2: true,

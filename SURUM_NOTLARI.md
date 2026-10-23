@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 231026-419
+
+- Yeni: **Korna**. PRO üye direksiyon düğmesine ya da klavye tuşuna basınca aynı iRacing sunucusunda SRTR Pitwall kullanan herkes kornasını duyar (duymak herkese açık, varsayılan açık). Ayarlar › Korna: korna sesi seçimi (dinleyerek), korna tuşu / direksiyon düğmesi, gelen kornalar (yalnızca yakındakiler: mesafeye göre kısılır, varsayılan 300 m / sunucudaki herkes / kapalı), ses düzeyi, son korna çalanlar ve susturma. En sık 2,5 sn'de bir; aynı kişiden 2 sn'den sık gelenler yok sayılır; tekrar ve demo modunda çalınmaz. Gönderen gerçekten o sunucuda ve o araçta mı denetlenir. Relative'de korna çalan sürücünün yanında korna simgesi, Radar'da araç sarı yanıp söner.
+- Hazır kornalar: kısa, çift, uzun, kamyon, bisiklet zili (programın içinde). Yönetim › Kornalar: ses dosyası ekle (MP3 / OGG / WAV / M4A; en çok 4 sn'ye kısaltılır, sesi dengelenip WAV olarak yüklenir), dinle, ad, sıra, aç / kapat, sil ve kimin kullanacağı: PRO üyeler ya da "Yönetici özel". Kornayı çalmak PRO özellikleri › Ses › Korna'dan yönetilir (varsayılan PRO). Supabase'de c136_guncelleme.sql çalıştırılmalı.
+
 ## 231026-418
 
 - Haberler: "Sadece Türkçe" haberler program Türkçe dışında bir dildeyken artık yöneticiye de gösterilmez ve hiçbir dile çevrilmez (önceden yönetici diğer dillerde de görüyordu ve okuyucu tarafı çevirisi bu haberleri de çeviriyordu; haber her dilde paylaşılmış gibi görünüyordu). Yöneticiye "N haber Sadece Türkçe olduğu için bu dilde gösterilmiyor" notu çıkar.

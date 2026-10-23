@@ -20,6 +20,7 @@ mod extras;
 mod flaircache;
 mod glucose;
 mod heartrate;
+mod horn;
 mod history;
 mod i18n;
 mod ibt;
@@ -3517,6 +3518,8 @@ pub fn run() {
             glucose::glucose_refresh,
             glucose::glucose_alert,
             music::music_state,
+            horn::horn_context,
+            horn::horn_play,
             music::music_control,
             heartrate::heartrate_connect,
             heartrate::heartrate_disconnect,
