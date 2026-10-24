@@ -208,6 +208,7 @@ impl Input {
     }
 
     unsafe fn device_info(h: HANDLE) -> Option<HidDev> {
+        crate::crashlog::crumb("ptt:hid-info");
         let mut info: RID_DEVICE_INFO = std::mem::zeroed();
         info.cbSize = std::mem::size_of::<RID_DEVICE_INFO>() as u32;
         let mut size = info.cbSize;
@@ -282,6 +283,7 @@ impl Input {
     }
 
     unsafe fn on_input(&mut self, hraw: HANDLE) {
+        crate::crashlog::crumb("ptt:raw-input");
         let hdr = std::mem::size_of::<RAWINPUTHEADER>() as u32;
         let mut size: u32 = 0;
         GetRawInputData(hraw as _, RID_INPUT, std::ptr::null_mut(), &mut size, hdr);
@@ -356,6 +358,7 @@ impl Input {
     }
 
     fn poll_mm(&mut self, all: bool, want: Option<(u16, u16)>) {
+        crate::crashlog::crumb("ptt:joystick");
         let rescan = self
             .mm_scan
             .map(|t| t.elapsed() > Duration::from_secs(3))

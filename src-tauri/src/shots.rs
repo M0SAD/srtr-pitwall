@@ -259,6 +259,7 @@ fn apply_wm(app: &AppHandle, img: &mut RgbaImage) -> bool {
 
 #[cfg(windows)]
 fn capture_rect(x: i32, y: i32, w: u32, h: u32) -> Result<RgbaImage, String> {
+        crate::crashlog::crumb("shots:capture");
     use windows_sys::Win32::Graphics::Gdi::*;
     unsafe {
         let screen = GetDC(std::ptr::null_mut());

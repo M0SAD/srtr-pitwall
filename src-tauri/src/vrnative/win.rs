@@ -351,6 +351,7 @@ impl Session {
 
     /// RGBA8 kareyi gönderir (SteamVR tamponu kopyalar)
     pub fn set_raw(&self, h: u64, rgba: &[u8], w: u32, ht: u32) -> Result<(), String> {
+        crate::crashlog::crumb("vr:frame");
         if w == 0 || ht == 0 || rgba.len() < w as usize * ht as usize * 4 {
             return Err("geçersiz kare".into());
         }

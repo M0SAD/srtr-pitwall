@@ -100,6 +100,58 @@ fn append(text: &str) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// İz (kırıntı): yerel kod (Windows API, COM, ses, ham giriş…) çağrılarının son N'si, zamanıyla. Bellek (heap) bozulması
+// çoğu zaman bozan yerde değil, sonradan başka bir iş parçacığında çöker; çökmede ve yığın denetimi bozulma
+// bulduğunda bu iz yazılır: bozan çağrının hangisi olduğunu daraltmak için. Bellek ayırmaz (sabit halka).
+// ---------------------------------------------------------------------------
+
+const CRUMBS: usize = 48;
+/// (etiket, son çağrı: açılıştan beri ms, toplam çağrı sayısı); her etiket bir kez (sık çağrılanlar diğerlerini silmesin)
+type Crumb = (&'static str, u64, u32);
+static CRUMB_TABLE: parking_lot::Mutex<([Crumb; CRUMBS], usize)> = parking_lot::const_mutex(([("", 0, 0); CRUMBS], 0));
+static T0: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+fn since_start_ms() -> u64 {
+    T0.get_or_init(Instant::now).elapsed().as_millis() as u64
+}
+
+/// Yerel kod çağrısı izi (ör. "music:volume", "ptt:hid-info"): etiketin son çağrı zamanı ve sayısı tutulur
+pub fn crumb(label: &'static str) {
+    let t = since_start_ms();
+    let mut g = CRUMB_TABLE.lock();
+    let (tab, n) = &mut *g;
+    for c in tab[..*n].iter_mut() {
+        // Etiketler sabit metin: önce adres, olmazsa içerik karşılaştırılır
+        if std::ptr::eq(c.0, label) || c.0 == label {
+            c.1 = t;
+            c.2 = c.2.saturating_add(1);
+            return;
+        }
+    }
+    if *n < CRUMBS {
+        tab[*n] = (label, t, 1);
+        *n += 1;
+    }
+}
+
+/// Son `max` etiketi en eskiden en yeniye yazar (bellek ayırmadan; kilit alınamazsa boş)
+#[cfg_attr(not(windows), allow(dead_code))]
+fn write_crumbs(out: &mut impl std::fmt::Write, max: usize) {
+    let Some(g) = CRUMB_TABLE.try_lock() else { return };
+    let mut list = [("", 0u64, 0u32); CRUMBS];
+    let n = g.1;
+    list[..n].copy_from_slice(&g.0[..n]);
+    drop(g);
+    let list = &mut list[..n];
+    list.sort_unstable_by_key(|c| c.1);
+    let now = since_start_ms();
+    let from = list.len().saturating_sub(max);
+    for c in &list[from..] {
+        let _ = write!(out, "  {} -{:.1}s (x{})\r\n", c.0, now.saturating_sub(c.1) as f64 / 1000.0, c.2);
+    }
+}
+
 /// Günlüğe tek satır not (ör. bir iş parçacığının yeniden başlatıldığı)
 pub fn note(msg: &str) {
     let msg: String = msg
@@ -339,7 +391,9 @@ pub fn install() {
     {
         seh::set_path(&path());
         seh::install();
+        seh::start_heap_watch();
     }
+    let _ = since_start_ms();
 }
 
 /// `f`'yi çalıştırır; panic olursa yutar (kanca günlüğe yazmıştır) ve `None` döner.
@@ -479,6 +533,58 @@ mod seh {
         PATH_W.store(leaked.as_mut_ptr(), Ordering::SeqCst);
     }
 
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetProcessHeap() -> *mut c_void;
+        fn HeapValidate(heap: *mut c_void, flags: u32, mem: *const c_void) -> i32;
+    }
+
+    /// Yığın (heap) denetimi: birkaç saniyede bir süreç yığını doğrulanır. Bozulma bulunursa (çökmeden önce) zamanı ve
+    /// son yerel çağrılar günlüğe yazılır: bozulma son başarılı denetimle bu denetim arasındaki çağrılardan birindedir.
+    /// Bellek ayırmaz (bozuk yığından ayırmak da çökertebilir). Bir kez yazar.
+    pub fn start_heap_watch() {
+        let _ = std::thread::Builder::new().name("heapwatch".into()).spawn(|| {
+            let mut ok_at = super::since_start_ms();
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(5));
+                // SAFETY: süreç yığını tanıtıcısı her zaman geçerlidir; mem null: tüm yığın denetlenir.
+                let good = unsafe { HeapValidate(GetProcessHeap(), 0, std::ptr::null()) } != 0;
+                let now = super::since_start_ms();
+                if good {
+                    ok_at = now;
+                    continue;
+                }
+                let path = PATH_W.load(Ordering::SeqCst);
+                if path.is_null() {
+                    return;
+                }
+                use std::fmt::Write;
+                let mut buf = Buf { b: [0u8; 4096], n: 0 };
+                let secs = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                let _ = write!(
+                    buf,
+                    "\r\n==== YIGIN (HEAP) BOZULDU unix={} v{} ====\r\nson saglam denetim {:.1} sn once; bu aradaki yerel cagrilardan biri bozdu.\r\nson yerel çağrılar (önce eskiler; -sn: kaç sn önce):\r\n",
+                    secs,
+                    env!("CARGO_PKG_VERSION"),
+                    now.saturating_sub(ok_at) as f64 / 1000.0
+                );
+                super::write_crumbs(&mut buf, 40);
+                unsafe {
+                    let h = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ_WRITE, std::ptr::null_mut(), OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, std::ptr::null_mut());
+                    if !h.is_null() && h as isize != -1 {
+                        let mut written = 0u32;
+                        WriteFile(h, buf.b.as_ptr(), buf.n as u32, &mut written, std::ptr::null_mut());
+                        CloseHandle(h);
+                    }
+                }
+                return;
+            }
+        });
+    }
+
     pub fn install() {
         // SAFETY: süzgeç 'static bir işlevdir; dönen önceki süzgeç zincirleme için saklanır.
         let prev = unsafe { SetUnhandledExceptionFilter(Some(filter)) };
@@ -486,7 +592,7 @@ mod seh {
     }
 
     struct Buf {
-        b: [u8; 2048],
+        b: [u8; 4096],
         n: usize,
     }
     impl std::fmt::Write for Buf {
@@ -513,7 +619,7 @@ mod seh {
                     .map(|d| d.as_secs())
                     .unwrap_or(0);
                 let mut buf = Buf {
-                    b: [0u8; 2048],
+                    b: [0u8; 4096],
                     n: 0,
                 };
                 let _ = write!(
@@ -551,6 +657,8 @@ mod seh {
                     write_module(&mut buf, *f as usize);
                     let _ = buf.write_str("\r\n");
                 }
+                let _ = buf.write_str("son yerel çağrılar (önce eskiler; -sn: kaç sn önce):\r\n");
+                super::write_crumbs(&mut buf, 30);
                 let h = CreateFileW(
                     path,
                     FILE_APPEND_DATA,
@@ -592,6 +700,18 @@ mod tests {
         assert_eq!(stamp(0), "1970-01-01 00:00:00Z");
         assert_eq!(stamp(1_759_536_000), "2025-10-04 00:00:00Z");
         assert_eq!(stamp(951_782_400 + 86_399), "2000-02-29 23:59:59Z");
+    }
+
+    #[test]
+    fn crumbs_keep_each_label_once() {
+        for _ in 0..100 {
+            crumb("test:a");
+        }
+        crumb("test:b");
+        let mut out = String::new();
+        write_crumbs(&mut out, 48);
+        assert!(out.contains("test:a") && out.contains("(x100)") && out.contains("test:b"), "{out}");
+        assert!(out.find("test:a").unwrap() < out.find("test:b").unwrap());
     }
 
     #[test]

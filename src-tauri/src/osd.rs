@@ -132,6 +132,7 @@ pub fn push(app: &AppHandle, mut payload: Value) {
 }
 
 fn ensure_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    crate::crashlog::crumb("osd:window");
     static LOCK: Mutex<()> = parking_lot::const_mutex(());
     let _guard = LOCK.lock();
     if let Some(w) = app.get_webview_window(LABEL) {

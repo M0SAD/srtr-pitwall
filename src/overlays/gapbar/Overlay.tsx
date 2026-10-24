@@ -53,6 +53,52 @@ export default function GapBar(props: OverlayProps) {
     }
   };
 
+  const design = () => {
+    const d = String(o().design ?? "bar");
+    return ["bar", "thin", "values", "chips"].includes(d) ? d : "bar";
+  };
+  const barless = () => design() === "values" || design() === "chips";
+  /** Kutucuk yazısı: açık renkte koyu, koyu renkte beyaz */
+  const ink = (c: string) => {
+    const m = c.match(/\d+/g);
+    if (!m) return "#fff";
+    const [r, g, b] = m.map((x) => Number(x) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55 ? "#0b0d11" : "#fff";
+  };
+
+  /** Çubuksuz görünümler: sadece değer (isteğe bağlı ok ve "önde / arkada" yazısıyla) */
+  const Val = (p: { g: () => NearGap | null; side: "ahead" | "behind" }) => {
+    const k = () => closeness(p.g(), unit(), range());
+    const c = () => color(k());
+    const hidden = () => !p.g() && !!o().hideEmpty;
+    const chip = () => design() === "chips";
+    return (
+      <div class={`gb-v gb-${p.side}`} classList={{ "gb-hide": hidden(), "gb-none": !p.g(), "gb-chip": chip() }}>
+        <Show when={o().labels}>
+          <span class="gb-lbl">{p.side === "ahead" ? t("ÖNDE") : t("ARKADA")}</span>
+        </Show>
+        <span
+          class="gb-vbox"
+          style={
+            chip()
+              ? { background: p.g() ? c() : "rgba(255,255,255,0.12)", color: p.g() ? ink(c()) : "#fff" }
+              : { color: p.g() && o().colorText !== false ? c() : undefined }
+          }
+        >
+          <Show when={o().arrows !== false && p.side === "ahead"}>
+            <i class="gb-arr">▲</i>
+          </Show>
+          <b class="ov-mono" data-no-i18n>
+            {gapLabel(p.g(), unit())}
+          </b>
+          <Show when={o().arrows !== false && p.side === "behind"}>
+            <i class="gb-arr">▼</i>
+          </Show>
+        </span>
+      </div>
+    );
+  };
+
   const Side = (p: { g: () => NearGap | null; side: "ahead" | "behind" }) => {
     const k = () => closeness(p.g(), unit(), range());
     /** Çubuk uzunluğu (0..1) */
@@ -77,11 +123,18 @@ export default function GapBar(props: OverlayProps) {
 
   return (
     <div
-      class="gb"
+      class={`gb gb-d-${design()}`}
       classList={{ "gb-panel": !!o().panel }}
-      style={{ width: `${clamp(num(o().width, 520), 200, 1400)}px`, "--gb-h": `${clamp(num(o().barH, 10), 3, 30)}px` }}
+      style={{
+        width: barless() ? undefined : `${clamp(num(o().width, 520), 200, 1400)}px`,
+        "--gb-h": `${clamp(num(o().barH, 10), 3, 30)}px`,
+        "--gb-gap": `${clamp(num(o().gapPx, 14), 0, 400)}px`,
+        "font-size": `${(14 * clamp(num(o().textSize, 100), 60, 250)) / 100}px`,
+      }}
     >
-      <Side g={() => gaps().ahead} side="ahead" />
+      <Show when={barless()} fallback={<Side g={() => gaps().ahead} side="ahead" />}>
+        <Val g={() => gaps().ahead} side="ahead" />
+      </Show>
       <Show when={(o().center ?? "pos") !== "none"}>
         <div class="gb-mid ov-mono" data-no-i18n>
           {center()}
@@ -90,7 +143,9 @@ export default function GapBar(props: OverlayProps) {
           </Show>
         </div>
       </Show>
-      <Side g={() => gaps().behind} side="behind" />
+      <Show when={barless()} fallback={<Side g={() => gaps().behind} side="behind" />}>
+        <Val g={() => gaps().behind} side="behind" />
+      </Show>
     </div>
   );
 }

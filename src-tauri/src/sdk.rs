@@ -726,6 +726,7 @@ mod win {
 
         /// Yeni bir telemetri satırı varsa `frame`'e yazar ve true döner.
         pub fn read(&mut self, frame: &mut Frame) -> bool {
+            crate::crashlog::crumb("iracing:read");
             let Some(h) = self.header() else { return false };
             if !h.connected() || h.buf_len <= 0 {
                 return false;

@@ -286,6 +286,7 @@ pub(crate) fn refresh_overlay_windows(app: &AppHandle, reason: &str) {
     if OV_REFRESHING.swap(true, Ordering::SeqCst) {
         return;
     }
+    crashlog::crumb("overlays:rebuild");
     crashlog::note(&format!("overlay pencereleri yenileniyor: {reason}"));
     let app = app.clone();
     std::thread::spawn(move || {

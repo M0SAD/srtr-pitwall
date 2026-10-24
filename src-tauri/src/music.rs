@@ -288,6 +288,7 @@ mod imp {
             let wait = if wanted { 1000 } else { 2000 };
             let req = rx.recv_timeout(Duration::from_millis(wait)).ok();
             if media.is_none() && (wanted || req.is_some()) && now_ms() - last_err_at > 10_000 {
+                crate::crashlog::crumb("music:gsmtc-open");
                 match Media::new() {
                     Ok(m) => media = Some(m),
                     Err(e) => {
@@ -298,6 +299,7 @@ mod imp {
             }
             let pref = PREF.lock().clone();
             if let Some((action, reply)) = req {
+                crate::crashlog::crumb("music:control");
                 let r = media.as_ref().map(|m| m.control(&pref, &action)).unwrap_or(Err("no_media".into()));
                 // Ses düzeyi değiştiyse yeni değer hemen durumda (kısayol bildirimi bunu gösterir)
                 if r.is_ok() && (action.starts_with("vol") || action == "mute") {
@@ -324,6 +326,7 @@ mod imp {
                 })
                 .collect();
             // Parça anahtarı belli olmadan kapak resmi istenmez: önce anahtar, değiştiyse resim
+            crate::crashlog::crumb("music:gsmtc-read");
             let snap = match m.snapshot(&pref, false) {
                 Ok(s) => s,
                 Err(e) => {
@@ -347,6 +350,7 @@ mod imp {
             // Kapak resmi: parça değişince; oynatıcı resmi geç verebilir, 5 kez daha denenir
             if art_url.is_empty() && art_tries < 6 {
                 art_tries += 1;
+                crate::crashlog::crumb("music:art");
                 if let Ok(Some((_, Some((bytes, mime))))) = m.snapshot(&pref, true) {
                     art_url = format!("data:{mime};base64,{}", b64(&bytes));
                     *ART.lock() = Some((key.clone(), bytes, mime));
@@ -362,6 +366,7 @@ mod imp {
                 pos = pos.min(s.dur_ms);
             }
             let (kind, source) = describe(&s.app_id);
+            crate::crashlog::crumb("music:volume");
             let (volume, muted) = crate::music_win::volume_of(&s.app_id).unwrap_or((-1, false));
             let st = State {
                 supported: true,

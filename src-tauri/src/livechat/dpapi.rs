@@ -17,6 +17,7 @@ fn blob(b: &[u8]) -> CRYPT_INTEGER_BLOB {
 }
 
 pub fn protect(data: &[u8]) -> Result<Vec<u8>, String> {
+        crate::crashlog::crumb("dpapi:protect");
     unsafe {
         let input = blob(data);
         let ent = blob(ENTROPY);
@@ -43,6 +44,7 @@ pub fn protect(data: &[u8]) -> Result<Vec<u8>, String> {
 }
 
 pub fn unprotect(data: &[u8]) -> Result<Vec<u8>, String> {
+        crate::crashlog::crumb("dpapi:unprotect");
     unsafe {
         let input = blob(data);
         let ent = blob(ENTROPY);

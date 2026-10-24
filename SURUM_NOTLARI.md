@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 251026-426
+
+- Kendiliğinden kapanma teşhisi: son çökmeler (0xC0000005, ntdll) bellek (heap) bozulmasından; sürüm sembolleriyle çözüldüğünde çöken yer her seferinde farklı ve masum (ağ isteği, sunucu iş parçacığı, WebView2): asıl bozan yer daha önce çalışan başka bir yerel (Windows API / COM / ses / ham giriş) çağrısı. Bunu yakalamak için:
+  - Yığın denetimi: süreç belleği 5 sn'de bir doğrulanır; bozulma bulunursa (program kapanmadan önce) crash.log'a "YIGIN (HEAP) BOZULDU" kaydı, son sağlam denetimden bu yana geçen süre ve bu arada çalışan yerel çağrılar yazılır.
+  - Yerel çağrı izi: ham giriş (direksiyon / joystick), mikrofon seçimi, sesli komut, sesli okuma, müzik (medya oturumu, ses düzeyi, kapak), korna, ses çalma, Sens365 penceresi, iRacing okuma, VR, ekran görüntüsü, bildirim pencereleri, DPAPI. Çökme kaydına da en son çağrılan 30'u (kaç sn önce, kaç kez) eklenir.
+
+## 251026-425
+
+- Mesafe Çubuğu: "Görünüm" ayarı eklendi. Çubuklar (eskisi), İnce çizgi (değerin altında kısa çizgi), Sadece değerler (yanlarda çubuk yok; fark yazısı araç yaklaştıkça sarıya, kırmızıya döner) ve Renkli kutucuklar (değer yakınlık renginde kutuda). Çubuksuz görünümlerde ▲ / ▼ okları ve değerlerin ortaya uzaklığı ayarlanabilir; tüm görünümlerde yazı boyutu ayarı var.
+
 ## 241026-424
 
 - Yeni overlay: **Mesafe Çubuğu**. Aynanın altına konacak sade bir şerit: solda öndeki, sağda arkadaki araçla fark. Fark süre (saniye) ya da mesafe (metre) olarak seçilir; mesafe araçların pistteki konumundan hesaplanır. Araç yaklaştıkça çubuk kısalır ve yeşilden sarıya, kırmızıya döner. Ortada sıra, sınıf sırası ya da hız gösterilebilir. Renkler, ölçek, kalınlık, "yalnızca kendi sınıfım" ve "pitteki araçları atla" ayarlanabilir.

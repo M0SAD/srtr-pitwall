@@ -234,6 +234,7 @@ fn run(rx: &Receiver<Cmd>) {
                 fx.append(ChannelVolume::new(src, pan_volumes(0.0, volume * 0.5)));
             }
             Cmd::Clip { bytes, volume, pan } => {
+                crate::crashlog::crumb("audio:clip");
                 clips.retain(|s| !s.empty());
                 if clips.len() >= MAX_CLIPS {
                     continue;

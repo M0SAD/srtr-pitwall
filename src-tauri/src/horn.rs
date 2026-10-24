@@ -215,6 +215,7 @@ pub async fn horn_play(
     volume: f32,
     near_m: Option<f32>,
 ) -> Result<bool, String> {
+    crate::crashlog::crumb("horn:play");
     let mut gain = volume.clamp(0.0, 2.0);
     let mut pan = 0.0f32;
     if from_idx >= 0 {

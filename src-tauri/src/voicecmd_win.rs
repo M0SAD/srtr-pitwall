@@ -193,6 +193,7 @@ impl Recognizer {
     /// Bir cümle dinle. `stop()`: true dönerse (tuş bırakıldı) en çok `grace` kadar daha sonuç beklenir, sonra iptal edilir.
     /// `max`: en uzun dinleme süresi.
     pub fn listen(&self, stop: impl Fn() -> bool, grace: Duration, max: Duration) -> Heard {
+        crate::crashlog::crumb("voice:listen");
         let op = match self.rec.RecognizeAsync() {
             Ok(op) => op,
             Err(e) => return Heard::Error(err(&e)),
@@ -332,6 +333,7 @@ type ReleaseFn = unsafe extern "system" fn(this: *mut c_void) -> u32;
 
 /// Bu sürecin kayıt cihazı tercihini ayarla (boş kimlik: tercihi sil → Windows varsayılanı)
 fn set_process_capture(id: &str) -> Result<(), String> {
+        crate::crashlog::crumb("voice:mic-policy");
     let class = HSTRING::from("Windows.Media.Internal.AudioPolicyConfig");
     let dev = HSTRING::from(id);
     // HSTRING tek işaretçidir (repr(transparent)); boş HSTRING = null
@@ -378,6 +380,7 @@ fn default_capture_id() -> String {
 }
 
 fn list_raw() -> Result<Vec<(String, String)>, String> {
+        crate::crashlog::crumb("voice:mic-list");
     let all = DeviceInformation::FindAllAsyncDeviceClass(DeviceClass::AudioCapture)
         .map_err(|e| err(&e))?
         .join()

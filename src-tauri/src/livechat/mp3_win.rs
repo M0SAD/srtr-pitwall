@@ -46,6 +46,7 @@ fn wav_bytes(pcm: &[u8], rate: u32, channels: u16, bits: u16) -> Vec<u8> {
 /// MP3 baytlarını WAV (PCM) baytlarına çevir. Kaynak çözümleyici dosya uzantısına baktığı için veri geçici bir
 /// `.mp3` dosyasına yazılır ve iş bitince silinir.
 pub fn decode_mp3(mp3: &[u8]) -> Result<Vec<u8>, String> {
+        crate::crashlog::crumb("tts:mp3-decode");
     static N: AtomicU32 = AtomicU32::new(0);
     let path = std::env::temp_dir().join(format!(
         "srtr-pitwall-tts-{}-{}.mp3",

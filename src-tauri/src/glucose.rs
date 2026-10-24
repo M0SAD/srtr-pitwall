@@ -981,6 +981,7 @@ async fn cs_code(app: &AppHandle, visible: bool, cred: Option<(&str, &str)>) -> 
     let (tx, mut rx) = tokio::sync::oneshot::channel::<String>();
     let tx = std::sync::Arc::new(Mutex::new(Some(tx)));
     let tx2 = tx.clone();
+    crate::crashlog::crumb("glucose:sens365-window");
     let w = WebviewWindowBuilder::new(app, CS_WIN, WebviewUrl::External(url))
         .initialization_script(&cs_login_js(visible, cred))
         .title("SRTR Pitwall – Sens365 girişi")

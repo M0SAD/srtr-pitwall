@@ -393,6 +393,7 @@ impl Synth {
         oc_rate: f64,
         oc_pitch: f64,
     ) -> Result<Vec<u8>, String> {
+        crate::crashlog::crumb("tts:speak");
         if let Some(token) = voice.strip_prefix(SAPI_PREFIX) {
             if self.sapi.is_none() {
                 self.sapi = Some(Sapi::new()?);
@@ -421,6 +422,7 @@ impl Synth {
         pitch: f64,
         volume: f64,
     ) -> Result<Vec<u8>, String> {
+        crate::crashlog::crumb("tts:onecore");
         if self.voice != voice {
             let mut chosen: Option<VoiceInformation> = None;
             if !voice.is_empty() {

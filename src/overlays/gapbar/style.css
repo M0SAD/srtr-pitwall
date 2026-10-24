@@ -1,6 +1,7 @@
 /* Mesafe Çubuğu: ortada küçük hap, iki yanda çubuklar. Öndeki çubuk ortadan sola, arkadaki ortadan sağa doğru dolar. */
 .gb {
   --gb-h: 10px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -62,14 +63,14 @@
 }
 .gb-val {
   min-width: 3.4em;
-  font-size: 13px;
+  font-size: 0.93em;
   font-weight: 700;
   text-align: center;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   font-variant-numeric: tabular-nums;
 }
 .gb-lbl {
-  font-size: 10px;
+  font-size: 0.71em;
   font-weight: 700;
   letter-spacing: 0.06em;
   opacity: 0.75;
@@ -85,11 +86,75 @@
   padding: 3px 10px;
   border-radius: 999px;
   background: rgba(10, 12, 16, 0.85);
-  font-size: 15px;
+  font-size: 1.07em;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .gb-mid small {
-  font-size: 9px;
+  font-size: 0.6em;
   opacity: 0.7;
+}
+
+/* "İnce çizgi": değerin altında kısa çizgi */
+.gb-d-thin .gb-side {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+.gb-d-thin .gb-track {
+  flex: none;
+  height: max(2px, calc(var(--gb-h) / 3));
+}
+.gb-d-thin .gb-ahead .gb-val {
+  text-align: right;
+}
+.gb-d-thin .gb-behind .gb-val {
+  text-align: left;
+}
+
+/* Çubuksuz görünümler: değerler ortadaki hapın iki yanında */
+.gb-d-values,
+.gb-d-chips {
+  display: inline-flex;
+  gap: var(--gb-gap, 14px);
+  width: max-content;
+}
+.gb-v {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.25s;
+}
+.gb-v.gb-behind {
+  flex-direction: row-reverse;
+}
+.gb-vbox {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 3.6em;
+  justify-content: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  transition:
+    color 0.25s,
+    background-color 0.25s;
+}
+.gb-vbox b {
+  font-size: 1.15em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.gb-arr {
+  font-size: 0.6em;
+  font-style: normal;
+  opacity: 0.8;
+}
+.gb-chip .gb-vbox {
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-shadow: none;
+}
+.gb-none .gb-vbox {
+  opacity: 0.55;
 }

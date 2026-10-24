@@ -30,6 +30,7 @@ static QUEUE: Mutex<Vec<Value>> = Mutex::new(Vec::new());
 static PENDING_CHAT: Mutex<Option<String>> = Mutex::new(None);
 
 fn ensure_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    crate::crashlog::crumb("toast:window");
     if let Some(w) = app.get_webview_window(LABEL) {
         return Ok(w);
     }
