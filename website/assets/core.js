@@ -374,7 +374,6 @@ function openPayDialog(id) {
   const it = payStore.get(id);
   if (!it) return;
   const { link: x, cat, gift } = it;
-  const form = !!x.claim || !!gift;
   // Sabit Patreon kategorisinde PRO kendiliğinden açılır; kendi bağlantılarda yönetici gün içinde elle tanımlar
   const manual = !(cat && cat.id === "__patreon");
   let host = "";
@@ -384,6 +383,8 @@ function openPayDialog(id) {
     /* geçersiz adres */
   }
   const bynogame = /(^|\.)bynogame\.com$/i.test(host);
+  // ByNoGame bağış ödemesinde "Ödeme yaptım" bildirimi her zaman var (üyelik e-postaya tanımlanır)
+  const form = !!x.claim || !!gift || bynogame;
   const method = [cat && cat.title, x.title || x.url, x.price].filter(Boolean).join(" · ");
   document.querySelector("dialog.paydlg")?.remove();
   const d = document.createElement("dialog");
@@ -397,18 +398,18 @@ function openPayDialog(id) {
       ${form ? `<p><b>1. ${esc(T("pay_step1"))}</b></p>` : ""}
       <p><a class="btn btn-accent" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(T("pay_open"))}</a></p>
       ${manual ? `<p class="muted small">${esc(T("pay_same_day"))}</p>` : ""}
-      ${bynogame ? `<p class="pay-warn">${esc(T("pay_bng"))}</p>` : ""}
+      ${bynogame ? `<p class="pay-warn">${esc(T("pay_bng2"))}</p>` : ""}
       ${
         !form
           ? ""
           : `<p><b>2. ${esc(T("pay_step2"))}</b></p>
       <div data-pay-ask${gift ? " hidden" : ""}>
-        <p class="muted small">${esc(T("pay_bought_h"))}</p>
-        <p><button type="button" class="btn" data-pay-reveal>✓ ${esc(T("pay_bought"))}</button></p>
+        <p class="muted small">${esc(T(bynogame ? "pay_bng_h" : "pay_bought_h"))}</p>
+        <p><button type="button" class="btn" data-pay-reveal>✓ ${esc(T("pay_paid"))}</button></p>
       </div>
       <div data-pay-form${gift ? "" : " hidden"}>
-        <p class="muted small">${esc(T("pay_step2_h"))}</p>
-        <input class="input" maxlength="200" placeholder="${esc(T("pay_contact"))}" data-pay-contact />
+        <p class="muted small">${esc(T(bynogame ? "pay_bng_form" : "pay_step2_h"))}</p>
+        <input class="input" maxlength="200" placeholder="${esc(T(bynogame ? "pay_email" : "pay_contact"))}" data-pay-contact />
         <p><b>${esc(T("pay_info"))}</b></p>
         <textarea class="input" rows="4" maxlength="900" placeholder="${esc(T("pay_note"))}" data-pay-note></textarea>
         <p><button type="button" class="btn btn-accent" data-pay-send>${esc(T("pay_send"))}</button></p>
@@ -682,6 +683,14 @@ addDict({
   pay_bought: ["Satın alım yaptım", "I've made the purchase"],
   pay_bought_h: ["Ödemeyi yaptıysan haber ver; üyeliğin daha hızlı tanımlanır.", "If you have paid, let us know; your membership is assigned sooner."],
   pay_same_day: ["PRO üyeliğin, ödemen kontrol edildikten sonra gün içinde tanımlanır.", "Your PRO membership is assigned within the day, once your payment has been checked."],
+  pay_bng2: [
+    "ByNoGame'de burada yazan tutarı bağış olarak gönder. Ardından \"Ödeme yaptım\" düğmesine basıp SRTR Pitwall hesabının e-posta adresini bildir; PRO üyeliğin bu adrese tanımlanır.",
+    "On ByNoGame, send the amount shown here as a donation. Then press \"I've paid\" and tell us your SRTR Pitwall account e-mail; your PRO membership is assigned to that address.",
+  ],
+  pay_paid: ["Ödeme yaptım", "I've paid"],
+  pay_bng_h: ["Bağışı gönderdikten sonra bas ve e-posta adresini bildir.", "Press this after sending the donation and tell us your e-mail."],
+  pay_bng_form: ["SRTR Pitwall hesabının e-posta adresini yazıp gönder; PRO üyeliğin bu adrese tanımlanır.", "Enter your SRTR Pitwall account e-mail and send it; your PRO membership is assigned to that address."],
+  pay_email: ["E-posta adresin", "Your e-mail address"],
   pay_bng: ["ByNoGame'de siparişin teslim edildiğinde teslimatı onaylamayı unutma.", "Don't forget to confirm the delivery on ByNoGame once your order has been delivered."],
   pay_contact: ["Kullanıcı adın ya da e-postan", "Your username or e-mail"],
   pay_info: ["Ödeme bilgilerin", "Your payment details"],

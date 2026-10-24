@@ -6,7 +6,7 @@ import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount }
 import ArrowUp from "lucide-solid/icons/arrow-up";
 import ArrowDown from "lucide-solid/icons/arrow-down";
 import ArrowUpToLine from "lucide-solid/icons/arrow-up-to-line";
-import type { OverlayManifest } from "@/sdk/overlay";
+import { overlayTopics, type OverlayManifest } from "@/sdk/overlay";
 import ChevronDown from "lucide-solid/icons/chevron-down";
 import { hasOverlayOrder, moveOverlay, orderedOverlays, overlaySort, resetOverlayOrder, setCustomOverlayOrder, setOverlaySort } from "../components/OverlayPalette";
 import { manifestById, manifests } from "@/sdk/registry";
@@ -274,7 +274,7 @@ export function OverlaysPage() {
 
   // Önizlenen overlay sabit görüntü: seçilince bir anlık örnek veri, sonra akış durur (Demo açıksa canlı)
   const snap = useSnapshot(
-    () => manifestById(selected() ?? "")?.topics ?? [],
+    () => overlayTopics(manifestById(selected() ?? ""), inst()?.options),
     // Seçim ya da önizlenen overlay'in ayarı değişince bir tur daha oynar
     () => [selected(), JSON.stringify(inst()?.options ?? null)],
     () => appState().demo,

@@ -8,6 +8,11 @@ export default defineOverlay({
   // Tekrar ekranında çalışmaz (sürüş verisi yalnızca kendin sürerken gelir)
   replay: false,
   topics: [{ name: "inputs", hz: 60 }],
+  // Üstteki öndeki / arkadaki fark satırı açıkken
+  optionalTopics: [
+    { name: "relative", hz: 5, when: (o) => o.showGaps === true },
+    { name: "map", hz: 5, when: (o) => o.showGaps === true && o.gapsUnit === "m" },
+  ],
   size: { w: 430, h: 110 },
   defaultPosition: { x: 750, y: 920 },
   defaultEnabled: true,
@@ -135,6 +140,28 @@ export default defineOverlay({
       hint: "Göstergenin altına son turunun süresini yazan bir satır ekler.",
     },
     { key: "showBestLap", label: "En iyi tur süresi satırı", type: "boolean", default: false, group: "Tur süreleri" },
+    {
+      key: "showGaps",
+      label: "Öndeki / arkadaki farkı",
+      type: "boolean",
+      default: false,
+      group: "Öndeki / arkadaki fark",
+      hint: "Telemetrinin üstüne öndeki ve arkadaki araçla aradaki farkı yazan bir satır ekler; araç yaklaştıkça rengi sarıya, kırmızıya döner.",
+    },
+    {
+      key: "gapsUnit",
+      label: "Fark",
+      type: "select",
+      default: "s",
+      group: "Öndeki / arkadaki fark",
+      showIf: { key: "showGaps", is: [true] },
+      options: [
+        { value: "s", label: "Süre (saniye)" },
+        { value: "m", label: "Mesafe (metre)" },
+      ],
+    },
+    { key: "gapsNames", label: "Sürücü adları", type: "boolean", default: true, group: "Öndeki / arkadaki fark", showIf: { key: "showGaps", is: [true] } },
+    { key: "gapsSameClass", label: "Yalnızca kendi sınıfım", type: "boolean", default: false, group: "Öndeki / arkadaki fark", showIf: { key: "showGaps", is: [true] } },
     { key: "throttleColor", label: "Gaz rengi", type: "color", default: "#33d17a" },
     { key: "brakeColor", label: "Fren rengi", type: "color", default: "#ff4d4f" },
     {

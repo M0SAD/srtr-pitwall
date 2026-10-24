@@ -105,7 +105,7 @@ pub fn show_vr(app: &AppHandle, action: &str) {
     });
 }
 
-fn push(app: &AppHandle, mut payload: Value) {
+pub fn push(app: &AppHandle, mut payload: Value) {
     if !enabled(app) {
         return;
     }

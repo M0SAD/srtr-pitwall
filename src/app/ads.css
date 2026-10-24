@@ -924,7 +924,10 @@
 }
 .adpay-opt .btn {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1 / span 3;
+}
+.adpay-opt small.adpay-bng {
+  color: #ffcf7a;
 }
 .adpay-opt .btn svg {
   width: 13px;

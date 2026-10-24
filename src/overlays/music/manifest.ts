@@ -7,10 +7,10 @@ export default defineOverlay({
   id: "music",
   name: "Müzik",
   description:
-    "Şu an çalan şarkı: kapak resmi, şarkı, sanatçı, albüm, ilerleme çubuğu. Spotify, tarayıcıda YouTube Music / YouTube, Apple Music, Deezer ve medya tuşlarını destekleyen diğer oynatıcılarla çalışır; hesap bağlamak gerekmez. Önceki / sonraki / durdur için klavye tuşu ya da direksiyon düğmesi atanabilir.",
+    "Şu an çalan şarkı: kapak resmi, şarkı, sanatçı, albüm, ilerleme çubuğu. Spotify, tarayıcıda YouTube Music / YouTube, Apple Music, Deezer ve medya tuşlarını destekleyen diğer oynatıcılarla çalışır; hesap bağlamak gerekmez. Önceki / sonraki / durdur ve müziğin sesini açıp kısmak için klavye tuşu ya da direksiyon düğmesi atanabilir.",
   category: "stream",
   topics: [],
-  size: { w: 380, h: 112 },
+  size: { w: 380, h: 128 },
   defaultPosition: { x: 40, y: 900 },
   defaultEnabled: false,
   defaultAlwaysShow: true,
@@ -59,6 +59,19 @@ export default defineOverlay({
     { key: "progress", label: "İlerleme çubuğu", type: "boolean", default: true, group: "Bilgiler", hint: "Oynatıcı süre bildirmiyorsa görünmez (bazı tarayıcı sekmeleri)" },
     { key: "time", label: "Süre (1:23 / 3:45)", type: "boolean", default: true, group: "Bilgiler", showIf: { key: "progress", is: [true] } },
     { key: "buttons", label: "Önceki / durdur / sonraki düğmeleri", type: "boolean", default: true, group: "Bilgiler", hint: "Yarışta overlay'e tıklanamaz: denetim için tuş / direksiyon düğmesi ata (aşağıda)" },
+    {
+      key: "volume",
+      label: "Ses düzeyi bölümü",
+      type: "select",
+      default: "always",
+      group: "Bilgiler",
+      options: [
+        { value: "always", label: "Her zaman" },
+        { value: "change", label: "Ses değişince birkaç saniye" },
+        { value: "off", label: "Gösterme" },
+      ],
+      hint: "Oynatıcının ses düzeyi ve aç / kıs düğmeleri (yalnızca müziğin sesi; oyunun sesi değişmez). Yarışta sesi ayarlamak için tuş / direksiyon düğmesi ata (aşağıda).",
+    },
     { key: "eq", label: "Çalarken hareketli ses çubukları", type: "boolean", default: true, group: "Bilgiler" },
     { key: "marquee", label: "Sığmayan uzun adlar kaysın", type: "boolean", default: true, group: "Bilgiler" },
 

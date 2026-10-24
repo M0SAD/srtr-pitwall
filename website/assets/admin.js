@@ -83,6 +83,7 @@ const OVERLAYS = [
   ["drivercard", "Sürücü Kartı"],
   ["driverswap", "Sürücü Değişimi"],
   ["duel", "Yakın Takip"],
+  ["gapbar", "Mesafe Çubuğu"],
   ["ers", "ERS ve Batarya"],
   ["gapchart", "Fark Grafiği"],
   ["goalbar", "Hedef Çubuğu"],

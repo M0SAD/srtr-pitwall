@@ -162,9 +162,18 @@ impl Media {
         Ok(Some((snap, art)))
     }
 
-    /// "toggle" | "play" | "pause" | "next" | "prev"
+    /// Gösterilen oturumun uygulama kimliği
+    pub fn current_app(&self, pref: &str) -> Option<String> {
+        self.pick(pref).and_then(|s| s.SourceAppUserModelId().ok()).map(|x| x.to_string())
+    }
+
+    /// "toggle" | "play" | "pause" | "next" | "prev" | "volup" | "voldown" | "vol:<0-100>" | "mute"
     pub fn control(&self, pref: &str, action: &str) -> Result<bool, String> {
         let s = self.pick(pref).ok_or_else(|| "no_session".to_string())?;
+        if action.starts_with("vol") || action == "mute" {
+            let app = s.SourceAppUserModelId().map(|x| x.to_string()).unwrap_or_default();
+            return volume_action(&app, action);
+        }
         let op = match action {
             "play" => s.TryPlayAsync(),
             "pause" => s.TryPauseAsync(),
@@ -201,6 +210,176 @@ pub fn is_browser(id_lower: &str) -> bool {
         .any(|b| id_lower.contains(b))
         || id_lower == "308046b0af4a39cb"
         || id_lower == "6f193ccc56814779"
+}
+
+// ---- Ses düzeyi: oynatıcının kendi ses oturumu (Windows ses karıştırıcısındaki uygulama sesi) ----
+// Oyunun ve diğer uygulamaların sesi değişmez. Oturum, oynatıcının işlem (exe) adıyla bulunur; tarayıcıda o
+// tarayıcının tüm sesi değişir.
+
+/// Ses düzeyi adımı (%)
+pub const VOL_STEP: i32 = 10;
+
+/// Uygulama kimliğinden işlem eşleştirme anahtarları: ".exe" ile bitenler dosya adıyla, diğerleri yolun içinde aranır
+pub fn audio_keys(app_id: &str) -> Vec<String> {
+    let a = app_id.trim().to_ascii_lowercase();
+    if a.is_empty() {
+        return vec![];
+    }
+    let known = [
+        ("spotify", "spotify.exe"),
+        ("msedge", "msedge.exe"),
+        ("chrome", "chrome.exe"),
+        ("firefox", "firefox.exe"),
+        ("308046b0af4a39cb", "firefox.exe"),
+        ("6f193ccc56814779", "firefox.exe"),
+        ("opera", "opera.exe"),
+        ("brave", "brave.exe"),
+        ("vivaldi", "vivaldi.exe"),
+        ("yandex", "browser.exe"),
+        ("deezer", "deezer.exe"),
+        ("tidal", "tidal.exe"),
+        ("vlc", "vlc.exe"),
+        ("aimp", "aimp.exe"),
+        ("foobar", "foobar2000.exe"),
+        ("musicbee", "musicbee.exe"),
+    ];
+    for (k, exe) in known {
+        if a.contains(k) {
+            return vec![exe.to_string()];
+        }
+    }
+    // Mağaza uygulaması: "Yayıncı.Uygulama_özet!App" → kurulum klasörü "yayıncı.uygulama_…"
+    if let Some((pkg, _)) = a.split('!').next().unwrap_or(&a).split_once('_') {
+        if !pkg.is_empty() {
+            return vec![format!("\\{pkg}_")];
+        }
+    }
+    let file = a.rsplit(['\\', '/']).next().unwrap_or(&a).to_string();
+    if file.ends_with(".exe") {
+        vec![file]
+    } else {
+        vec![format!("{file}.exe")]
+    }
+}
+
+/// Bir adım aç / kıs; adım ızgarasına oturur (47 → 50 ya da 40)
+pub fn vol_step(cur: i32, up: bool) -> i32 {
+    let c = cur.clamp(0, 100);
+    if up {
+        (c / VOL_STEP + 1) * VOL_STEP
+    } else {
+        ((c + VOL_STEP - 1) / VOL_STEP - 1) * VOL_STEP
+    }
+    .clamp(0, 100)
+}
+
+/// İşlem yolu (küçük harf) anahtarlardan biriyle eşleşiyor mu
+pub fn audio_match(path_lower: &str, keys: &[String]) -> bool {
+    let file = path_lower.rsplit(['\\', '/']).next().unwrap_or(path_lower);
+    keys.iter().any(|k| if k.ends_with(".exe") && !k.contains('\\') { file == k } else { path_lower.contains(k.as_str()) })
+}
+
+fn process_path(pid: u32) -> Option<String> {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+    if pid == 0 {
+        return None;
+    }
+    unsafe {
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if h.is_null() {
+            return None;
+        }
+        let mut buf = [0u16; 1024];
+        let mut n = buf.len() as u32;
+        let ok = QueryFullProcessImageNameW(h, 0, buf.as_mut_ptr(), &mut n);
+        CloseHandle(h);
+        (ok != 0).then(|| String::from_utf16_lossy(&buf[..n as usize]).to_lowercase())
+    }
+}
+
+/// Oynatıcının ses oturumları (tüm etkin çıkış aygıtlarında)
+fn sessions_for(app_id: &str) -> Result<Vec<windows::Win32::Media::Audio::ISimpleAudioVolume>, String> {
+    use windows::core::Interface;
+    use windows::Win32::Media::Audio::{
+        eRender, IAudioSessionControl2, IAudioSessionManager2, IMMDeviceEnumerator, ISimpleAudioVolume, MMDeviceEnumerator,
+        DEVICE_STATE_ACTIVE,
+    };
+    use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_ALL};
+    let keys = audio_keys(app_id);
+    if keys.is_empty() {
+        return Ok(vec![]);
+    }
+    let mut out = Vec::new();
+    unsafe {
+        let en: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).map_err(|e| err(&e))?;
+        let devs = en.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE).map_err(|e| err(&e))?;
+        let nd = devs.GetCount().map_err(|e| err(&e))?;
+        for d in 0..nd {
+            let Ok(dev) = devs.Item(d) else { continue };
+            let Ok(mgr) = dev.Activate::<IAudioSessionManager2>(CLSCTX_ALL, None) else { continue };
+            let Ok(list) = mgr.GetSessionEnumerator() else { continue };
+            let n = list.GetCount().unwrap_or(0);
+            for i in 0..n {
+                let Ok(c) = list.GetSession(i) else { continue };
+                let Ok(c2) = c.cast::<IAudioSessionControl2>() else { continue };
+                let pid = c2.GetProcessId().unwrap_or(0);
+                let Some(path) = process_path(pid) else { continue };
+                if !audio_match(&path, &keys) {
+                    continue;
+                }
+                if let Ok(v) = c.cast::<ISimpleAudioVolume>() {
+                    out.push(v);
+                }
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Oynatıcının ses düzeyi (%) ve sessiz mi; oturum bulunamazsa None
+pub fn volume_of(app_id: &str) -> Option<(i32, bool)> {
+    let vs = sessions_for(app_id).ok()?;
+    let mut best: Option<(i32, bool)> = None;
+    for v in vs {
+        unsafe {
+            let Ok(l) = v.GetMasterVolume() else { continue };
+            let m = v.GetMute().map(|b| b.as_bool()).unwrap_or(false);
+            let p = (l * 100.0).round() as i32;
+            if best.map(|b| p > b.0).unwrap_or(true) {
+                best = Some((p, m));
+            }
+        }
+    }
+    best
+}
+
+fn volume_action(app_id: &str, action: &str) -> Result<bool, String> {
+    let vs = sessions_for(app_id)?;
+    if vs.is_empty() {
+        return Err("no_audio_session".into());
+    }
+    let (cur, muted) = volume_of(app_id).unwrap_or((50, false));
+    let null = std::ptr::null::<windows::core::GUID>();
+    unsafe {
+        if action == "mute" {
+            for v in &vs {
+                let _ = v.SetMute(!muted, null);
+            }
+            return Ok(true);
+        }
+        let target = match action {
+            "volup" | "voldown" => vol_step(cur, action == "volup"),
+            a => a.strip_prefix("vol:").and_then(|x| x.parse::<i32>().ok()).ok_or("bad_volume")?.clamp(0, 100),
+        };
+        for v in &vs {
+            let _ = v.SetMasterVolume(target as f32 / 100.0, null);
+            if muted && target > 0 {
+                let _ = v.SetMute(false, null);
+            }
+        }
+    }
+    Ok(true)
 }
 
 fn read_art(r: &windows::Storage::Streams::IRandomAccessStreamReference) -> Result<Art, String> {

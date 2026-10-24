@@ -425,11 +425,21 @@ export function AdvertisePage() {
   );
 }
 
+/** ByNoGame bağlantısı mı (ödeme bağış olarak gönderilir, e-posta bildirilir) */
+const isBng = (url: string) => {
+  try {
+    return /(^|\.)bynogame\.com$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+};
+
 /** Ödeme kutusu: tutar, yöneticinin ödeme bağlantıları ve "Ödedim" bildirimi */
 function PayBox(p: { ad: AdCampaign; onDone: () => void }) {
   const links = () => adPayLinks();
   const [method, setMethod] = createSignal(p.ad.pay_method || links()[0]?.name || "");
   const [ref, setRef] = createSignal(p.ad.pay_ref ?? "");
+  const bngSel = () => isBng(links().find((l) => l.name === method())?.url ?? "");
   const [note, setNote] = createSignal(p.ad.pay_note ?? "");
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
@@ -468,6 +478,9 @@ function PayBox(p: { ad: AdCampaign; onDone: () => void }) {
                 <Show when={l.note}>
                   <small data-no-i18n>{l.note}</small>
                 </Show>
+                <Show when={isBng(l.url)}>
+                  <small class="adpay-bng">{t("ByNoGame'de yukarıdaki tutarı bağış olarak gönder, sonra aşağıdan e-posta adresini bildir.")}</small>
+                </Show>
                 <button class="btn small" onClick={() => (setMethod(l.name), openUrl(l.url))}>
                   <I.ExternalLink /> {t("{0} ile öde", l.name)}
                 </button>
@@ -475,14 +488,14 @@ function PayBox(p: { ad: AdCampaign; onDone: () => void }) {
             )}
           </For>
           <b>{t("2. Ödeme yaptıktan sonra bildir")}</b>
-          <input class="input" maxLength={120} placeholder={t("{0} kullanıcı adın ya da sipariş numarası", method() || "")} value={ref()} onInput={(e) => setRef(e.currentTarget.value)} />
+          <input class="input" maxLength={120} placeholder={bngSel() ? t("E-posta adresin") : t("{0} kullanıcı adın ya da sipariş numarası", method() || "")} value={ref()} onInput={(e) => setRef(e.currentTarget.value)} />
           <input class="input" maxLength={500} placeholder={t("Not (isteğe bağlı)")} value={note()} onInput={(e) => setNote(e.currentTarget.value)} />
           <Show when={err()}>
             <p class="error">{err()}</p>
           </Show>
           <div class="adv-actions">
             <button class="btn primary" disabled={busy()} onClick={send}>
-              {p.ad.pay_claimed_at ? t("Bildirimi güncelle") : t("Ödedim, bildir")}
+              {p.ad.pay_claimed_at ? t("Bildirimi güncelle") : t("Ödeme yaptım, bildir")}
             </button>
             <Show when={p.ad.pay_claimed_at}>
               <small class="muted">{t("Bildirildi: {0}. Kontrol edilince reklamın yayına girer.", fmtTime(p.ad.pay_claimed_at))}</small>

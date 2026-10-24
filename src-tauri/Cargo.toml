@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.423"
+version = "1.0.424"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -85,6 +85,8 @@ windows = { version = "0.62", features = [
   "Win32_Media_MediaFoundation",
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
+  # Müzik overlay'i: oynatıcının ses düzeyi (IMMDevice::Activate → IAudioSessionManager2), bkz. src/music_win.rs
+  "Win32_System_Variant",
   "Win32_Globalization",
 ] }
 # Sesli komut: komut listesi kısıtı için IIterable<HSTRING> (windows crate'inin zaten kullandığı sürüm)

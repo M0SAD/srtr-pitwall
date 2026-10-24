@@ -94,6 +94,8 @@ export interface OverlayManifest {
   category: OverlayCategory;
   /** Bu overlay'in ihtiyaç duyduğu veri konuları ve saniyedeki güncelleme sayısı. */
   topics: { name: TopicName; hz: number }[];
+  /** Yalnızca bir ayar açıkken istenen konular (ör. Pedallar & Girdi'de öndeki / arkadaki farkı): `when` ayarlara bakar */
+  optionalTopics?: { name: TopicName; hz: number; when: (o: Record<string, any>) => boolean }[];
   /** Ölçek 1'deki yaklaşık boyut (düzenleme modunda çerçeve için). */
   size: { w: number; h: number };
   defaultPosition: { x: number; y: number };
@@ -138,6 +140,13 @@ export interface OverlayManifest {
 }
 
 type NumField = Extract<SettingField, { type: "number" }>;
+/** Overlay'in istediği konular: sabitler + ayarı açık olan isteğe bağlılar (ayar bilinmiyorsa hepsi) */
+export function overlayTopics(m: OverlayManifest | undefined, o?: Record<string, any>): { name: TopicName; hz: number }[] {
+  if (!m) return [];
+  const extra = (m.optionalTopics ?? []).filter((t) => !o || t.when(o)).map(({ name, hz }) => ({ name, hz }));
+  return extra.length ? [...m.topics, ...extra] : m.topics;
+}
+
 /** Kenardan boyutlandırılabilen genişlik / yükseklik ayar alanları (bkz. OverlayManifest.resize) */
 export function resizeFields(m: OverlayManifest | undefined, options?: Record<string, any>): { w?: NumField; h?: NumField; rows?: { row: string; per?: number | ((root: HTMLElement) => number) } } {
   if (!m || m.resize === false) return {};

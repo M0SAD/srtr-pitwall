@@ -5,7 +5,7 @@ import { gear, speed, speedUnit } from "@/sdk/format";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { FREE_WHEELS, WheelArt, resolveWheel, type WheelStyle } from "./wheels";
 import { DesignView, isDesign, type Design } from "./designs";
-import { LapLines } from "./shared";
+import { GapLine, LapLines } from "./shared";
 import "./style.css";
 
 const W0 = 240;
@@ -38,6 +38,9 @@ export default function Inputs(props: OverlayProps) {
   };
   return (
     <div class="inp-stack inp-fit" style={{ "--inp-w": `${width()}px`, "--inp-h": `${height()}px`, "--inp-k": String(sideK()) }}>
+      <Show when={props.options.showGaps === true}>
+        <GapLine {...props} />
+      </Show>
       <Show when={design() !== "default"} fallback={<DefaultDesign {...props} />}>
         <DesignView {...props} design={design() as Design} />
       </Show>

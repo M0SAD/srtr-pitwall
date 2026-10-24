@@ -35,6 +35,8 @@ function sample(now: number): MusicState {
     key: "sample",
     sessions: [],
     error: "",
+    volume: 70,
+    muted: false,
   };
 }
 
@@ -133,6 +135,26 @@ const Icon = {
       <path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor" />
     </svg>
   ),
+  VolDown: () => (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none" />
+    </svg>
+  ),
+  VolUp: () => (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 12h14M12 5v14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none" />
+    </svg>
+  ),
+  Speaker: (p: { muted?: boolean }) => (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+      {p.muted ? (
+        <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+      ) : (
+        <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none" />
+      )}
+    </svg>
+  ),
   Note: () => (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M17 3v11.5a3.5 3.5 0 1 1-2-3.16V7l-6 1.5v8a3.5 3.5 0 1 1-2-3.16V5z" fill="currentColor" />
@@ -224,7 +246,17 @@ export default function Music(props: OverlayProps) {
     return v;
   };
 
-  const act = (a: "prev" | "next" | "toggle") => (e: MouseEvent) => {
+  // Ses düzeyi bölümü: "her zaman" ya da ses değişince birkaç saniye
+  const vol = () => st().volume ?? -1;
+  const [volUntil, setVolUntil] = createSignal(0);
+  createEffect(on(() => [vol(), st().muted], () => setVolUntil(Date.now() + 3000), { defer: true }));
+  const showVol = () => {
+    const m = String(o().volume ?? "always");
+    if (m === "off" || vol() < 0) return false;
+    return m === "always" || props.editing || now() < volUntil();
+  };
+
+  const act = (a: "prev" | "next" | "toggle" | "volup" | "voldown" | "mute") => (e: MouseEvent) => {
     e.stopPropagation();
     if (!demo()) void musicControl(a);
   };
@@ -241,6 +273,26 @@ export default function Music(props: OverlayProps) {
         <button classList={{ off: !st().canNext }} onClick={act("next")} title={t("Sonraki")}>
           <Icon.Next />
         </button>
+      </div>
+    </Show>
+  );
+
+  const Volume = () => (
+    <Show when={showVol()}>
+      <div class="mu-vol">
+        <button class="mu-vbtn" onClick={act("mute")} title={st().muted ? t("Sesi aç") : t("Sessize al")}>
+          <Icon.Speaker muted={st().muted || vol() === 0} />
+        </button>
+        <button class="mu-vbtn" onClick={act("voldown")} title={t("Sesi kıs")}>
+          <Icon.VolDown />
+        </button>
+        <div class="mu-bar mu-vbar">
+          <i style={{ width: `${st().muted ? 0 : vol()}%` }} />
+        </div>
+        <button class="mu-vbtn" onClick={act("volup")} title={t("Sesi aç")}>
+          <Icon.VolUp />
+        </button>
+        <span class="mu-t mu-vnum">{st().muted ? "0" : vol()}</span>
       </div>
     </Show>
   );
@@ -331,6 +383,7 @@ export default function Music(props: OverlayProps) {
             <Head />
             <Info />
             <Progress />
+            <Volume />
           </div>
           <Buttons />
         </Show>
@@ -350,6 +403,7 @@ export default function Music(props: OverlayProps) {
                 <i style={{ width: `${pct()}%` }} />
               </div>
             </Show>
+            <Volume />
           </div>
           <Buttons />
         </Show>
@@ -362,6 +416,7 @@ export default function Music(props: OverlayProps) {
             </div>
           </div>
           <Progress />
+          <Volume />
           <Buttons />
         </Show>
         <Show when={design() === "text"}>

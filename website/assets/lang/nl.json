@@ -1446,5 +1446,10 @@
  "ov_tvpodium_n": "TV-race-uitslag",
  "ov_tvpodium_d": "Een tv-podium aan het eind van de race: de top drie op treden, neutraal.",
  "ov_tvpodium_h": "Winnaar in het midden, tweede links, derde rechts; hoogte per plaats|Logo, naam, team, vlag, nummer en gat|Jouw eigen gegevens worden nooit getoond (neutraal)|Verschijnt met vertraging als de eerste auto’s binnen zijn en verdwijnt daarna",
- "ovg_tvpodium": "Een podiumgrafiek zoals op tv aan het eind van de race: de top drie op treden, de winnaar in het midden, tweede links, derde rechts. Elk met merklogo, naam, team, vlag, nummer en gat tot de winnaar. Neutraal: jouw eigen gegevens worden niet getoond. Na de geblokte vlag verschijnt hij zodra het gekozen aantal auto’s binnen is, na de ingestelde vertraging; blijft even staan en verdwijnt."
+ "ovg_tvpodium": "Een podiumgrafiek zoals op tv aan het eind van de race: de top drie op treden, de winnaar in het midden, tweede links, derde rechts. Elk met merklogo, naam, team, vlag, nummer en gat tot de winnaar. Neutraal: jouw eigen gegevens worden niet getoond. Na de geblokte vlag verschijnt hij zodra het gekozen aantal auto’s binnen is, na de ingestelde vertraging; blijft even staan en verdwijnt.",
+ "pay_bng2": "Stuur op ByNoGame het hier vermelde bedrag als donatie. Druk daarna op ‘Ik heb betaald’ en geef het e-mailadres van je SRTR Pitwall-account door; je PRO wordt aan dat adres gekoppeld.",
+ "pay_paid": "Ik heb betaald",
+ "pay_bng_h": "Druk hierop nadat je de donatie hebt verstuurd en geef je e-mail door.",
+ "pay_bng_form": "Vul het e-mailadres van je SRTR Pitwall-account in en verstuur het; je PRO wordt aan dat adres gekoppeld.",
+ "pay_email": "Je e-mailadres"
 }

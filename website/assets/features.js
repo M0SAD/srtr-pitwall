@@ -137,6 +137,11 @@ addDict({
     "Araç yaklaştıkça satırı büyür ve netleşir, uzaklaştıkça küçülüp silikleşir|Saniye ya da metre eşiği; ön ve arka için ayrı eşik|Yaklaşma oku ve tur farkı rengi (tur önde mavi, tur geride kırmızı)|Eşik içinde kimse yokken gizlenir; sadece kendi sınıfın / sadece yarış seçenekleri",
     "A row grows and sharpens as the car closes in, shrinks and fades as it drops back|Threshold in seconds or metres; separate front and rear thresholds|Closing arrow and lap-difference tint (a lap up blue, a lap down red)|Hides when nobody is within the threshold; own-class-only and race-only options",
   ],
+  ov_gapbar_d: ["Aynanın altına konan sade şerit: öndeki ve arkadaki araçla fark.", "A clean strip under your mirror: the gap to the cars ahead and behind."],
+  ov_gapbar_h: [
+    "Fark süre (saniye) ya da mesafe (metre) olarak|Araç yaklaştıkça çubuk kısalır, yeşilden sarıya ve kırmızıya döner|Ortada sıran ya da hızın; renkler ve ölçek ayarlanabilir",
+    "Gap as time (seconds) or distance (metres)|The bar shrinks as a car closes in and turns green to yellow to red|Your position or speed in the middle; adjustable colours and scale",
+  ],
   ov_battlebox_d: ["Sınıfında hemen önündeki ve arkandaki araç.", "The car directly ahead and behind in your class."],
   ov_battlebox_h: ["Numara, isim, son tur ve aradaki fark|Yanında pozisyon rozeti|Küçük ve yayın dostu", "Number, name, last lap and gap|Position badge on the side|Compact and stream-friendly"],
   ov_trackmap_d: ["Tüm pist ve üzerindeki araçlar.", "The whole track with every car on it."],

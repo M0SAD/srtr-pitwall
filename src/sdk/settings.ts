@@ -889,6 +889,10 @@ export interface GeneralSettings {
   musicToggle: { key: string; button: VoiceCommandButton | null };
   musicNext: { key: string; button: VoiceCommandButton | null };
   musicPrev: { key: string; button: VoiceCommandButton | null };
+  /** Müzik: oynatıcının sesini aç / kıs (%10), sessize al */
+  musicVolUp: { key: string; button: VoiceCommandButton | null };
+  musicVolDown: { key: string; button: VoiceCommandButton | null };
+  musicMute: { key: string; button: VoiceCommandButton | null };
   /** Korna (PRO): basınca aynı sunucudakiler duyar (Rust: voicecmd.rs "horn-press", gönderme: src/host/horn.ts) */
   horn: { key: string; button: VoiceCommandButton | null };
   /** Seçili korna sesi ("b:short" hazır, "db:<id>" yöneticinin eklediği) */
@@ -1382,6 +1386,9 @@ export function defaultSettings(): AppSettings {
       musicToggle: { key: "", button: null },
       musicNext: { key: "", button: null },
       musicPrev: { key: "", button: null },
+      musicVolUp: { key: "", button: null },
+      musicVolDown: { key: "", button: null },
+      musicMute: { key: "", button: null },
       horn: { key: "", button: null },
       hornSound: "b:short",
       hornHear: "near",
@@ -1599,6 +1606,9 @@ export function normalize(input: unknown): AppSettings {
       musicToggle: { key: "", button: null, ...(s.general?.musicToggle ?? {}) },
       musicNext: { key: "", button: null, ...(s.general?.musicNext ?? {}) },
       musicPrev: { key: "", button: null, ...(s.general?.musicPrev ?? {}) },
+      musicVolUp: { key: "", button: null, ...(s.general?.musicVolUp ?? {}) },
+      musicVolDown: { key: "", button: null, ...(s.general?.musicVolDown ?? {}) },
+      musicMute: { key: "", button: null, ...(s.general?.musicMute ?? {}) },
       horn: { key: "", button: null, ...(s.general?.horn ?? {}) },
       hornSound: typeof s.general?.hornSound === "string" && s.general.hornSound ? s.general.hornSound : "b:short",
       hornHear: ["near", "all", "off"].includes(String(s.general?.hornHear)) ? s.general!.hornHear! : "near",

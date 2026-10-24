@@ -8,7 +8,7 @@ import { initSettings, settings } from "@/sdk/settings";
 import { startDomTranslation } from "@/sdk/i18n";
 import { startEntitlement } from "@/cloud/account";
 import { sanitizeOverlayOptions, startProFeatures } from "@/sdk/proFeatures";
-import { defaultOptions } from "@/sdk/overlay";
+import { defaultOptions, overlayTopics } from "@/sdk/overlay";
 import { query } from "@/sdk/platform";
 import { setSubscriptions, streamOpen, useTopic, type Sub } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
@@ -127,7 +127,7 @@ function Remote() {
 
   // Abonelik: özel tasarımın alanları + hazır görünümlerin konuları + araç bilgisi (otomatik araç tarzı)
   createEffect(() => {
-    const subs: Sub[] = [...DASH_TOPICS, ...manifest.topics, { name: "status", hz: 1 }];
+    const subs: Sub[] = [...DASH_TOPICS, ...overlayTopics(manifest), { name: "status", hz: 1 }];
     void setSubscriptions(subs);
   });
   const live = useLiveDash();

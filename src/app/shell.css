@@ -5105,6 +5105,30 @@ button.ovpal-lock:hover {
   align-items: flex-start;
   gap: 6px;
 }
+.gl-autobox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.gl-autobox .btn {
+  align-self: flex-start;
+}
+.gl-auto {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+.gl-auto > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .gl-acct-row {
   display: flex;
   align-items: center;
@@ -6149,6 +6173,28 @@ button.ovpal-lock:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.mp-vol {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.mp-vol-cap {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mp-vol-range {
+  flex: 1;
+  max-width: 220px;
+  accent-color: var(--accent);
+}
+.mp-vol-num {
+  min-width: 42px;
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .mp-btns {
   display: flex;

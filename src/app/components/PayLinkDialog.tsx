@@ -8,10 +8,10 @@ import { t } from "@/sdk/i18n";
 import * as I from "../icons";
 
 export function PayLinkDialog(p: { link: PayLink; cat?: PayCat | null; gift?: string; open: (url: string) => void; onClose: () => void }) {
-  /** Hediye ödemesinde alıcıyı iletmek için form her zaman açık */
-  const form = () => !!p.link.claim || !!p.gift;
+  /** Hediye ödemesinde alıcıyı iletmek için form her zaman açık; ByNoGame bağış ödemesinde de ("Ödeme yaptım") */
+  const form = () => !!p.link.claim || !!p.gift || bynogame();
   const method = () => [p.cat?.title, p.link.title || p.link.url, p.link.price].filter(Boolean).join(" · ");
-  const [contact, setContact] = createSignal(profile()?.display_name || session()?.user.email || "");
+  const [contact, setContact] = createSignal("");
   const [note, setNote] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [err, setErr] = createSignal("");
@@ -27,6 +27,8 @@ export function PayLinkDialog(p: { link: PayLink; cat?: PayCat | null; gift?: st
       return "";
     }
   })());
+  // ByNoGame bağışında üyelik e-postaya tanımlanır: alan e-postayla dolu gelir
+  setContact((bynogame() ? session()?.user.email : profile()?.display_name || session()?.user.email) || "");
   const send = async () => {
     if (busy() || contact().trim().length < 2) return;
     setBusy(true);
@@ -76,7 +78,9 @@ export function PayLinkDialog(p: { link: PayLink; cat?: PayCat | null; gift?: st
             <p class="paydlg-info">PRO üyeliğin, ödemen kontrol edildikten sonra gün içinde tanımlanır.</p>
           </Show>
           <Show when={bynogame()}>
-            <p class="paydlg-warn">ByNoGame'de siparişin teslim edildiğinde teslimatı onaylamayı unutma.</p>
+            <p class="paydlg-warn">
+              {t("ByNoGame'de burada yazan tutarı bağış olarak gönder. Ardından \"Ödeme yaptım\" düğmesine basıp SRTR Pitwall hesabının e-posta adresini bildir; PRO üyeliğin bu adrese tanımlanır.")}
+            </p>
           </Show>
         </div>
         <Show when={form()}>
@@ -91,15 +95,27 @@ export function PayLinkDialog(p: { link: PayLink; cat?: PayCat | null; gift?: st
                   when={bought()}
                   fallback={
                     <>
-                      <p class="muted small">Ödemeyi yaptıysan haber ver; üyeliğin daha hızlı tanımlanır.</p>
+                      <p class="muted small">
+                      {bynogame() ? t("Bağışı gönderdikten sonra bas ve e-posta adresini bildir.") : t("Ödemeyi yaptıysan haber ver; üyeliğin daha hızlı tanımlanır.")}
+                    </p>
                       <button class="btn" onClick={() => setBought(true)}>
-                        <I.Check /> Satın alım yaptım
+                        <I.Check /> Ödeme yaptım
                       </button>
                     </>
                   }
                 >
-                  <p class="muted small">Ödemeyi yaptıktan sonra SRTR Pitwall kullanıcı adını ya da e-postanı yazıp gönder; üyeliğin bu bilgiye göre tanımlanır.</p>
-                  <input class="input" maxLength={200} placeholder="Kullanıcı adın ya da e-postan" value={contact()} onInput={(e) => setContact(e.currentTarget.value)} />
+                  <p class="muted small">
+                    {bynogame()
+                      ? t("SRTR Pitwall hesabının e-posta adresini yazıp gönder; PRO üyeliğin bu adrese tanımlanır.")
+                      : t("Ödemeyi yaptıktan sonra SRTR Pitwall kullanıcı adını ya da e-postanı yazıp gönder; üyeliğin bu bilgiye göre tanımlanır.")}
+                  </p>
+                  <input
+                    class="input"
+                    maxLength={200}
+                    placeholder={bynogame() ? t("E-posta adresin") : t("Kullanıcı adın ya da e-postan")}
+                    value={contact()}
+                    onInput={(e) => setContact(e.currentTarget.value)}
+                  />
                   <label class="paydlg-lbl">Ödeme bilgilerin</label>
                   <textarea
                     class="input"

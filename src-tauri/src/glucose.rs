@@ -74,6 +74,8 @@ pub struct State {
     pub detail: String,
     /// Son başarılı okuma anı (epoch ms)
     pub checked_at: i64,
+    /// Sens365: otomatik yeniden giriş açık (şifre bu bilgisayarda kayıtlı)
+    pub auto_login: bool,
 }
 
 static STATE: Mutex<Option<State>> = parking_lot::const_mutex(None);
@@ -967,7 +969,7 @@ fn cs_authorize_url() -> String {
 
 /// Sens365 giriş sayfasını açar ve dönüş adresindeki kodu yakalar. `visible`: kullanıcı giriş yapacak (en çok 5 dk;
 /// pencere kapatılırsa iptal). Gizliyken giriş sayfası oturumu hatırlıyorsa birkaç saniyede kod gelir (en çok 25 sn).
-async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
+async fn cs_code(app: &AppHandle, visible: bool, cred: Option<(&str, &str)>) -> Result<String, String> {
     use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
     if let Some(w) = app.get_webview_window(CS_WIN) {
         let _ = w.destroy();
@@ -980,7 +982,7 @@ async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
     let tx = std::sync::Arc::new(Mutex::new(Some(tx)));
     let tx2 = tx.clone();
     let w = WebviewWindowBuilder::new(app, CS_WIN, WebviewUrl::External(url))
-        .initialization_script(&cs_login_js(visible))
+        .initialization_script(&cs_login_js(visible, cred))
         .title("SRTR Pitwall – Sens365 girişi")
         .inner_size(480.0, 720.0)
         .center()
@@ -1012,7 +1014,13 @@ async fn cs_code(app: &AppHandle, visible: bool) -> Result<String, String> {
         })
         .build()
         .map_err(|e| e.to_string())?;
-    let limit = if visible { 300_000 } else { 25_000 };
+    let limit = if visible {
+        300_000
+    } else if cred.is_some() {
+        45_000
+    } else {
+        25_000
+    };
     let start = now_ms();
     let r = loop {
         match tokio::time::timeout(Duration::from_millis(500), &mut rx).await {
@@ -1049,14 +1057,72 @@ const CS_NEED_LOGIN: &str = "https://sens365.com/callback-login-required";
 const CS_RENEW_BEFORE: i64 = 6 * 3600;
 /// Sessiz yenileme başarısızsa (anahtar hâlâ geçerliyken) yeniden deneme aralığı (sn)
 const CS_RENEW_RETRY: i64 = 30 * 60;
+/// Anahtarın süresi dolmuşsa yeniden deneme aralığı (sn): ağ kesintisinden sonra çabuk toparlansın
+const CS_RENEW_RETRY_EXPIRED: i64 = 3 * 60;
 
 /// Giriş sayfasına eklenen betik: "Beni hatırla / Oturumu açık tut" kutusu kendiliğinden işaretlenir (giriş sayfası
-/// oturumu program kapanınca da hatırlasın, anahtar her gün sessizce yenilenebilsin). Gizli pencerede giriş formu
-/// görünürse (oturum hatırlanmıyor) yakalanan adrese gidilir: 25 sn beklenmez.
-fn cs_login_js(visible: bool) -> String {
+/// oturumu program kapanınca da hatırlasın, anahtar her gün sessizce yenilenebilsin).
+/// `cred` (kullanıcı otomatik yeniden girişi açtıysa): e-posta ve şifre forma yazılıp gönderilir; yalnızca i-sens.com
+/// sayfasında. Gizli pencerede giriş formu görünür ve doldurulacak bilgi yoksa (ya da 3 denemede giriş olmadıysa)
+/// yakalanan adrese gidilir: beklenmez.
+fn cs_login_js(visible: bool, cred: Option<(&str, &str)>) -> String {
+    let (cu, cp) = cred.unwrap_or(("", ""));
+    let cu = serde_json::to_string(cu).unwrap_or_else(|_| "\"\"".into());
+    let cp = serde_json::to_string(cp).unwrap_or_else(|_| "\"\"".into());
     format!(
         r#"(function(){{
   var HIDDEN = {hidden};
+  var CU = {cu}, CP = {cp};
+  var HOST_OK = /(^|\.)i-sens\.com$/i.test(location.hostname);
+  var HAS = HOST_OK && !!CU && !!CP;
+  var tries = 0, last = 0, gaveUp = false;
+  function vis(el){{ return !!el && el.offsetParent !== null && !el.disabled; }}
+  function setVal(el, v){{
+    if (el.value === v) return;
+    var d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    d.set.call(el, v);
+    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+  }}
+  function userField(){{
+    var sel = 'input[type=email],input[autocomplete=username],input[name*=mail i],input[id*=mail i],input[name*=user i],input[id*=user i],input[name*=login i],input[id*=login i],input[type=text]';
+    var l = document.querySelectorAll(sel);
+    for (var i = 0; i < l.length; i++) if (vis(l[i]) && l[i].type !== 'password' && l[i].type !== 'hidden') return l[i];
+    return null;
+  }}
+  function pwField(){{
+    var l = document.querySelectorAll('input[type=password]');
+    for (var i = 0; i < l.length; i++) if (vis(l[i])) return l[i];
+    return null;
+  }}
+  function button(form){{
+    var b = (form || document).querySelector('button[type=submit],input[type=submit]');
+    if (vis(b)) return b;
+    var l = document.querySelectorAll('button,[role=button],input[type=button]');
+    for (var i = 0; i < l.length; i++) {{
+      var t = ((l[i].textContent || l[i].value || '') + '').trim();
+      if (vis(l[i]) && /giriş|oturum aç|devam|ileri|log ?in|sign ?in|anmelden|next|continue/i.test(t)) return l[i];
+    }}
+    return null;
+  }}
+  function auto(){{
+    if (!HAS || gaveUp) return false;
+    var pw = pwField(), u = userField();
+    if (!pw && !u) return false;
+    if (Date.now() - last < 5000) return true;
+    if (tries >= 3) {{ gaveUp = true; return false; }}
+    if (u) setVal(u, CU);
+    if (pw) setVal(pw, CP);
+    try {{ remember(); }} catch (e) {{}}
+    tries++;
+    last = Date.now();
+    setTimeout(function(){{
+      var b = button((pw || u).form);
+      if (b) b.click();
+      else if ((pw || u).form && (pw || u).form.requestSubmit) (pw || u).form.requestSubmit();
+    }}, 400);
+    return true;
+  }}
   function remember(){{
     var boxes = document.querySelectorAll('input[type=checkbox]');
     for (var i = 0; i < boxes.length; i++) {{
@@ -1071,18 +1137,21 @@ fn cs_login_js(visible: bool) -> String {
   }}
   function check(){{
     try {{ remember(); }} catch (e) {{}}
-    if (HIDDEN) {{
-      var pw = document.querySelector('input[type=password]');
-      if (pw && pw.offsetParent !== null) {{ location.href = '{need}'; }}
+    var busy = false;
+    try {{ busy = auto(); }} catch (e) {{}}
+    if (HIDDEN && !busy) {{
+      if (pwField()) {{ location.href = '{need}'; }}
     }}
   }}
   document.addEventListener('DOMContentLoaded', check);
   var n = 0;
-  var iv = setInterval(function(){{ check(); if (++n > 120) clearInterval(iv); }}, 500);
+  var iv = setInterval(function(){{ check(); if (++n > 160) clearInterval(iv); }}, 500);
   document.addEventListener('submit', function(){{ try {{ remember(); }} catch (e) {{}} }}, true);
 }})();"#,
         hidden = if visible { "false" } else { "true" },
-        need = CS_NEED_LOGIN
+        need = CS_NEED_LOGIN,
+        cu = cu,
+        cp = cp
     )
 }
 
@@ -1191,7 +1260,8 @@ async fn cs_renew(c: &Net, cfg: &Cfg) -> Result<(String, i64), String> {
     let (tok, exp, refresh) = match cs_refresh(c, cfg).await {
         Ok(x) => x,
         Err(_) => {
-            let code = cs_code(app, false).await?;
+            let cred = (!cfg.user.is_empty() && !cfg.password.is_empty()).then(|| (cfg.user.as_str(), cfg.password.as_str()));
+            let code = cs_code(app, false, cred).await?;
             let (tok, exp, sub, _, refresh) = cs_exchange(c, &code).await?;
             if sub != cfg.sub {
                 return Err(CS_EXPIRED.into());
@@ -1219,7 +1289,8 @@ async fn caresens(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String
         .unwrap_or_else(|| (cfg.token.clone(), cfg.token_exp));
     // Süresinin dolmasına 6 saatten az kaldı: program açıkken sessizce yenile. Olmazsa anahtar geçerli kaldıkça
     // onunla okumaya devam edilir ve 30 dk sonra yeniden denenir; yalnızca süresi gerçekten dolunca hata verilir.
-    if tok.1 > 0 && tok.1 - now_s < CS_RENEW_BEFORE && now_s - s.cs_renew_fail > CS_RENEW_RETRY {
+    let retry = if tok.1 <= now_s { CS_RENEW_RETRY_EXPIRED } else { CS_RENEW_RETRY };
+    if tok.1 > 0 && tok.1 - now_s < CS_RENEW_BEFORE && now_s - s.cs_renew_fail > retry {
         match cs_renew(c, cfg).await {
             Ok(t) => {
                 tok = t;
@@ -1282,15 +1353,34 @@ async fn caresens(c: &Net, cfg: &Cfg, s: &mut Session) -> Result<Reading, String
 
 /// CareSens Air girişi: Sens365 giriş penceresi açılır; kullanıcı giriş yapınca hesap kaydedilir ve okuma başlar
 #[tauri::command]
-pub async fn glucose_caresens_login(app: AppHandle) -> Result<State, String> {
+pub async fn glucose_caresens_login(
+    app: AppHandle,
+    user: Option<String>,
+    password: Option<String>,
+    remember: Option<bool>,
+) -> Result<State, String> {
     let _ = APP.set(app.clone());
     let c = Net::new()?;
     DETAIL.lock().clear();
-    let code = cs_code(&app, true).await?;
+    // Bilgi verilmediyse (yeniden giriş düğmesi) kayıtlı otomatik giriş bilgileri kullanılır
+    let saved = load(&app).filter(|x| x.source == "caresens" && !x.password.is_empty());
+    let mut user = user.map(|u| u.trim().to_string()).unwrap_or_default();
+    let mut password = password.unwrap_or_default();
+    if user.is_empty() && password.is_empty() {
+        if let Some(sv) = &saved {
+            user = sv.user.clone();
+            password = sv.password.clone();
+        }
+    }
+    let cred = (!user.is_empty() && !password.is_empty()).then(|| (user.as_str(), password.as_str()));
+    let code = cs_code(&app, true, cred).await?;
     let (token, token_exp, sub, email, refresh) = cs_exchange(&c, &code).await?;
+    let keep = remember.unwrap_or(true) && cred.is_some();
     let cfg = Cfg {
         source: "caresens".into(),
-        user: email,
+        // Otomatik giriş açıksa forma yazılan e-posta (giriş sayfası onunla doldurulur)
+        user: if keep { user.clone() } else { email },
+        password: if keep { password.clone() } else { String::new() },
         token,
         token_exp,
         sub,
@@ -1358,7 +1448,10 @@ fn check(cfg: &mut Cfg) -> Result<(), String> {
             if !cfg.sub.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
                 return Err("Sens365 girişi başarısız".into());
             }
-            cfg.password.clear();
+            // Otomatik yeniden giriş için şifre (kullanıcı isterse; yalnızca bu bilgisayarda şifreli)
+            if cfg.user.is_empty() || cfg.user.len() > 200 || cfg.password.len() > 200 {
+                cfg.password.clear();
+            }
             cfg.ns_url.clear();
             cfg.ns_token.clear();
         }
@@ -1380,6 +1473,7 @@ fn state_of(cfg: &Cfg, r: Result<Reading, String>, prev: &State) -> State {
             error: String::new(),
             detail: String::new(),
             checked_at: now_ms(),
+            auto_login: cfg.source == "caresens" && !cfg.password.is_empty(),
         },
         // Hata: son değer ekranda kalır (overlay eskiyince gri gösterir), hata metni eklenir
         Err(e) => State {
@@ -1388,6 +1482,7 @@ fn state_of(cfg: &Cfg, r: Result<Reading, String>, prev: &State) -> State {
             account: mask(cfg),
             error: e,
             detail: DETAIL.lock().clone(),
+            auto_login: cfg.source == "caresens" && !cfg.password.is_empty(),
             ..prev.clone()
         },
     }
@@ -1593,6 +1688,7 @@ pub fn start(app: &AppHandle) {
                                 logged_in: true,
                                 source: cf.source.clone(),
                                 account: mask(cf),
+                                auto_login: cf.source == "caresens" && !cf.password.is_empty(),
                                 ..State::default()
                             },
                         ),
@@ -1727,6 +1823,16 @@ mod tests {
             ..Cfg::default()
         };
         assert_eq!(mask(&c), "e***@ornek.com");
+    }
+
+    #[test]
+    fn caresens_login_js() {
+        let js = cs_login_js(false, Some(("a@b.com", "p\"w'</script>")));
+        assert!(js.contains(r#"var CU = "a@b.com", CP = "p\"w'</script>";"#), "{js}");
+        assert!(cs_login_js(true, None).contains(r#"var CU = "", CP = "";"#));
+        if let Ok(p) = std::env::var("CS_JS_DUMP") {
+            std::fs::write(p, js).unwrap();
+        }
     }
 
     #[test]

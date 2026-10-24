@@ -1,6 +1,7 @@
 // Düzenler: monitör seçerek overlay yerleşimi. Solda düzenler, üstte monitör haritası,
 // ortada seçili monitörün tuvali (gerçek overlay görüntüleriyle sürükle-bırak).
 
+import { overlayTopics } from "@/sdk/overlay";
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { ShareDialog } from "./CommunityPage";
 import { appState, setDemo } from "../App";
@@ -297,7 +298,7 @@ export function LayoutsPage() {
   useSnapshot(
     () => {
       const prof = p();
-      return prof ? keys().flatMap((k) => manifestById(prof.overlays[k].type)?.topics ?? []) : [];
+      return prof ? keys().flatMap((k) => overlayTopics(manifestById(prof.overlays[k].type), prof.overlays[k].options)) : [];
     },
     () => [p()?.id, keys().join(",")],
     () => appState().demo,

@@ -436,6 +436,9 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         ("musicToggle", "/general/musicToggle"),
         ("musicNext", "/general/musicNext"),
         ("musicPrev", "/general/musicPrev"),
+        ("musicVolUp", "/general/musicVolUp"),
+        ("musicVolDown", "/general/musicVolDown"),
+        ("musicMute", "/general/musicMute"),
         // Korna (src/host/horn.ts gönderir)
         ("horn", "/general/horn"),
     ]

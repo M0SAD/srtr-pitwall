@@ -25,6 +25,7 @@ const MAP: Record<string, () => JSX.Element> = {
   digiflags: () => <I.Flag />,
   battlebox: () => <I.Users />,
   duel: () => <I.Layers />,
+  gapbar: () => <I.MoveHorizontal />,
   pitwindow: () => <I.Fuel />,
   stint: () => <I.Timer />,
   driverswap: () => <I.RefreshCw />,

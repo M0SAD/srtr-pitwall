@@ -6,7 +6,7 @@ import { Show, Suspense, createEffect, createMemo, lazy, onCleanup, onMount } fr
 import { invoke } from "@tauri-apps/api/core";
 import { Dynamic } from "solid-js/web";
 import { isLocked } from "@/cloud/account";
-import { defaultOptions, setOnScreen } from "@/sdk/overlay";
+import { defaultOptions, overlayTopics, setOnScreen } from "@/sdk/overlay";
 import { sanitizeOverlayOptions } from "@/sdk/proFeatures";
 import { loadComponent, manifestById } from "@/sdk/registry";
 import { instanceName, settings } from "@/sdk/settings";
@@ -48,7 +48,7 @@ export function Single(props: { type: string }) {
   // gibi davranmasın (ör. Canlı Sohbet kapı kararını uygular, örnek veriyi kendiliğinden göstermez)
   setOnScreen(true);
   createEffect(() => {
-    if (m) void setSubscriptions(m.topics);
+    if (m) void setSubscriptions(overlayTopics(m, instance()?.options));
   });
 
   // Tema + bu kopyanın kendi görünümü (sdk/look.ts)

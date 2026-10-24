@@ -64,6 +64,8 @@ export function GlucoseLoginPanel() {
   const [url, setUrl] = createSignal("");
   const [token, setToken] = createSignal("");
   const [busy, setBusy] = createSignal(false);
+  /** Sens365: otomatik yeniden giriş (e-posta + şifre bu bilgisayarda şifreli saklanır) */
+  const [csAuto, setCsAuto] = createSignal(true);
   const [err, setErr] = createSignal("");
 
   const login = async () => {
@@ -71,7 +73,7 @@ export function GlucoseLoginPanel() {
     setErr("");
     setBusy(true);
     try {
-      if (source() === "caresens") await glucoseCaresensLogin();
+      if (source() === "caresens") await (csAuto() && user().trim() && pass() ? glucoseCaresensLogin(user().trim(), pass(), true) : glucoseCaresensLogin("", "", false));
       else await glucoseLogin({ source: source(), user: user(), password: pass(), region: region(), ns_url: url(), ns_token: token() });
       // Şifre ve belirteç bellekte kalmasın
       setPass("");
@@ -134,6 +136,38 @@ export function GlucoseLoginPanel() {
                   </button>
                 </Show>
               </div>
+              {/* Sens365: otomatik yeniden giriş kapalıysa açma kutusu (oturum düşünce program kendisi girsin) */}
+              <Show when={st().source === "caresens" && !st().autoLogin}>
+                <div class="gl-autobox">
+                  <b>{t("Otomatik yeniden girişi aç")}</b>
+                  <small class="f2-hint">
+                    {t("Sens365 oturumu düşünce program arka planda kendisi yeniden giriş yapar; sürekli giriş yapman gerekmez. E-posta ve şifren yalnızca bu bilgisayarda şifreli saklanır, yalnızca Sens365 giriş sayfasına yazılır.")}
+                  </small>
+                  <input class="input f2-text" type="email" autocomplete="off" spellcheck={false} placeholder={t("Sens365 e-posta")} value={user()} onInput={(e) => setUser(e.currentTarget.value)} />
+                  <input class="input f2-text" type="password" autocomplete="off" placeholder={t("Şifre")} value={pass()} onInput={(e) => setPass(e.currentTarget.value)} />
+                  <button
+                    class="btn small primary"
+                    disabled={busy() || !user().trim() || !pass()}
+                    onClick={async () => {
+                      setBusy(true);
+                      setErr("");
+                      try {
+                        await glucoseCaresensLogin(user().trim(), pass(), true);
+                        setPass("");
+                      } catch (e) {
+                        setErr(String((e as Error)?.message ?? e));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    {busy() ? t("Sens365'e giriş yapılıyor…") : t("Aç ve giriş yap")}
+                  </button>
+                </div>
+              </Show>
+              <Show when={st().source === "caresens" && st().autoLogin}>
+                <small class="f2-hint">{t("Otomatik yeniden giriş açık: oturum düşerse program kendisi yeniden giriş yapar.")}</small>
+              </Show>
               <Show when={err()}>
                 <small class="f2-hint f2-err">{t(err())}</small>
               </Show>
@@ -160,6 +194,27 @@ export function GlucoseLoginPanel() {
               <div class="f2-cap">Şifre</div>
               <input class="input f2-text" type="password" autocomplete="off" value={pass()} onInput={(e) => setPass(e.currentTarget.value)} onKeyDown={enter} />
             </div>
+          </Show>
+          <Show when={source() === "caresens"}>
+            <label class="f2 gl-auto">
+              <input type="checkbox" checked={csAuto()} onChange={(e) => setCsAuto(e.currentTarget.checked)} />
+              <span>
+                <b>{t("Otomatik yeniden giriş (önerilir)")}</b>
+                <small class="f2-hint">
+                  {t("Sens365 oturumu düşünce program arka planda kendisi yeniden giriş yapar; sürekli giriş yapman gerekmez. E-posta ve şifren yalnızca bu bilgisayarda şifreli saklanır, yalnızca Sens365 giriş sayfasına yazılır.")}
+                </small>
+              </span>
+            </label>
+            <Show when={csAuto()}>
+              <div class="f2">
+                <div class="f2-cap">Sens365 e-posta</div>
+                <input class="input f2-text" type="email" autocomplete="off" spellcheck={false} value={user()} onInput={(e) => setUser(e.currentTarget.value)} onKeyDown={enter} />
+              </div>
+              <div class="f2">
+                <div class="f2-cap">Şifre</div>
+                <input class="input f2-text" type="password" autocomplete="off" value={pass()} onInput={(e) => setPass(e.currentTarget.value)} onKeyDown={enter} />
+              </div>
+            </Show>
           </Show>
           <Show when={source() === "dexcom"}>
             <div class="f2">
@@ -197,10 +252,11 @@ export function GlucoseLoginPanel() {
               <Show when={source() === "libre"}>Sensörü takip eden LibreLinkUp (takipçi) hesabının bilgilerini gir. </Show>
               <Show when={source() === "dexcom"}>Dexcom uygulamasında Share açık ve en az bir takipçi ekli olmalı. </Show>
               <Show when={source() === "caresens"}>
-                Sens365 giriş sayfası ayrı bir pencerede açılır; e-posta ve şifreni orada gir (uygulamaya girilmez). "Beni hatırla" kendiliğinden işaretlenir: oturum her gün sessizce yenilenir, program kapatılıp açılsa da yeniden giriş gerekmez.{" "}
+                {csAuto()
+                  ? t("Sens365 giriş sayfası ayrı bir pencerede açılır ve bilgilerin kendiliğinden yazılır (doğrulama istenirse orada tamamla).")
+                  : t("Sens365 giriş sayfası ayrı bir pencerede açılır; e-posta ve şifreni orada gir. Otomatik yeniden giriş kapalıyken oturum düşerse yeniden giriş yapman gerekebilir.")}{" "}
               </Show>
-              <Show when={source() !== "caresens"}>Giriş bilgileri</Show>
-              <Show when={source() === "caresens"}>Oturum anahtarı</Show> yalnızca bu bilgisayarda, şifreli saklanır; buluta, yedeğe ve diğer cihazlara gönderilmez.
+              Giriş bilgileri yalnızca bu bilgisayarda, şifreli saklanır; buluta, yedeğe ve diğer cihazlara gönderilmez.
             </small>
           </div>
         </Show>

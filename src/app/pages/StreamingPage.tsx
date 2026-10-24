@@ -1,6 +1,7 @@
 // Yayın: OBS için ayrı düzenler (varsayılan 1920×1080 tuval). Düzenler sayfasıyla aynı mantık: solda yayın
 // düzenleri ve overlay listesi, ortada tuval, sağda seçili overlay'in ayarları.
 
+import { overlayTopics } from "@/sdk/overlay";
 import { For, Show, createEffect, createMemo, createResource, createSignal } from "solid-js";
 import { useCols } from "../colResize";
 import { t } from "@/sdk/i18n";
@@ -146,7 +147,7 @@ export function StreamingPage() {
   useSnapshot(
     () => {
       const prof = view();
-      return prof ? keys().flatMap((k) => manifestById(prof.overlays[k]?.type ?? "")?.topics ?? []) : [];
+      return prof ? keys().flatMap((k) => overlayTopics(manifestById(prof.overlays[k]?.type ?? ""), prof.overlays[k]?.options)) : [];
     },
     () => [p()?.id, keys().join(",")],
     () => appState().demo,

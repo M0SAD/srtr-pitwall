@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 241026-424
+
+- Yeni overlay: **Mesafe Çubuğu**. Aynanın altına konacak sade bir şerit: solda öndeki, sağda arkadaki araçla fark. Fark süre (saniye) ya da mesafe (metre) olarak seçilir; mesafe araçların pistteki konumundan hesaplanır. Araç yaklaştıkça çubuk kısalır ve yeşilden sarıya, kırmızıya döner. Ortada sıra, sınıf sırası ya da hız gösterilebilir. Renkler, ölçek, kalınlık, "yalnızca kendi sınıfım" ve "pitteki araçları atla" ayarlanabilir.
+- Pedallar & Girdi: "Öndeki / arkadaki fark" ayarı eklendi. Açılınca telemetrinin üstünde öndeki ve arkadaki araçla fark (süre ya da mesafe, isteğe bağlı sürücü adıyla) görünür; araç yaklaştıkça renk sarıya, kırmızıya döner. Ayar kapalıyken bu veri hiç istenmez.
+- Müzik: overlay'e ses düzeyi bölümü eklendi (hoparlör / sessize al, kıs, düzey çubuğu, aç). Yalnızca oynatıcının sesi değişir (Windows ses karıştırıcısındaki uygulama sesi); oyunun sesi değişmez. Sesi aç, sesi kıs ve sessize al için klavye tuşu ya da direksiyon düğmesi atanabilir; basınca ekranda yeni ses düzeyi görünür. Ayar kutusuna ses kaydırıcısı eklendi. Bölüm her zaman, yalnızca ses değişince ya da hiç gösterilmeyebilir.
+- Yakıt Hesaplayıcı: kalan yakıt rengi (çubuk, ibre yayı, simge) ve yakıt azken kullanılan renk overlay ayarlarından seçilebilir (Renkler › "Kalan yakıt rengini kendim seçeyim"). Çubuğun üstündeki yazı seçilen renge göre açık ya da koyu olur.
+- Kan şekeri (Sens365): sık sık yeniden giriş istemesi için "Otomatik yeniden giriş" eklendi. Sens365 e-posta ve şifresi yalnızca bu bilgisayarda şifreli saklanır; oturum düşünce program arka planda giriş sayfasını kendisi doldurup yeniden girer. Giriş yapılmış hesapta da ayar kutusundan açılabilir. Anahtarın süresi dolmuşsa yenileme 30 dk yerine 3 dk'da bir denenir.
+- ByNoGame ödemesi (uygulama ve web sitesi): ödeme penceresinde "burada yazan tutarı bağış olarak gönder, ardından 'Ödeme yaptım' düğmesine basıp SRTR Pitwall hesabının e-posta adresini bildir" açıklaması var. ByNoGame bağlantılarında "Ödeme yaptım" düğmesi her zaman çıkar, e-posta alanı hesabın e-postasıyla dolu gelir. Reklam ödemesinde de ByNoGame için aynı açıklama gösterilir.
+
 ## 241026-423
 
 - Demo modunda (lider tablosu ve diğer overlay önizlemeleri) son tur ile en iyi tur mantıklı hale geldi: önceden demodaki her tur birebir aynı süredeydi, bu yüzden son tur ile en iyi tur aynı çıkıyordu (ya da son tur sütunu anlamsız görünüyordu). Artık her sürücünün her turu gerçekçi biçimde biraz farklı (çoğu tur en iyiye yakın, ara sıra küçük hatalı tur); en iyi tur her zaman son turdan hızlı ya da ona eşit, başlangıçta da tüm sürücülerin son ve en iyi turu dolu. Gerçek yarıştaki davranış değişmedi.

@@ -31,8 +31,11 @@ export interface MusicState {
   /** [uygulama kimliği, ad, çalıyor mu] */
   sessions: [string, string, boolean][];
   error: string;
+  /** Oynatıcının ses düzeyi (%; Windows ses karıştırıcısındaki uygulama sesi), -1: bilinmiyor */
+  volume?: number;
+  muted?: boolean;
 }
-export type MusicAction = "toggle" | "play" | "pause" | "next" | "prev";
+export type MusicAction = "toggle" | "play" | "pause" | "next" | "prev" | "volup" | "voldown" | "mute" | `vol:${number}`;
 
 const EMPTY: MusicState = {
   supported: true,
@@ -55,6 +58,8 @@ const EMPTY: MusicState = {
   key: "",
   sessions: [],
   error: "",
+  volume: -1,
+  muted: false,
 };
 const [state, setState] = createSignal<MusicState>(EMPTY);
 let users = 0;

@@ -1446,5 +1446,10 @@
  "ov_tvpodium_n": "TV-Rennergebnis",
  "ov_tvpodium_d": "Ein TV-Podium am Rennende: die ersten drei auf Stufen, neutral.",
  "ov_tvpodium_h": "Sieger in der Mitte, Zweiter links, Dritter rechts; Stufenhöhe nach Platz|Logo, Name, Team, Flagge, Nummer und Abstand|Deine eigenen Daten werden nie gezeigt (neutral)|Öffnet sich mit Verzögerung, wenn die ersten Autos im Ziel sind, und verschwindet nach einer Weile",
- "ovg_tvpodium": "Eine Podiumsgrafik wie im TV am Rennende: die ersten drei auf Stufen, Sieger in der Mitte, Zweiter links, Dritter rechts. Jeweils Herstellerlogo, Name, Team, Landesflagge, Nummer und Abstand zum Sieger. Neutral: deine eigenen Daten werden nicht gezeigt. Nach der Zielflagge öffnet sie sich, sobald die gewählte Zahl Autos im Ziel ist, nach der eingestellten Verzögerung; bleibt eine Weile und verschwindet."
+ "ovg_tvpodium": "Eine Podiumsgrafik wie im TV am Rennende: die ersten drei auf Stufen, Sieger in der Mitte, Zweiter links, Dritter rechts. Jeweils Herstellerlogo, Name, Team, Landesflagge, Nummer und Abstand zum Sieger. Neutral: deine eigenen Daten werden nicht gezeigt. Nach der Zielflagge öffnet sie sich, sobald die gewählte Zahl Autos im Ziel ist, nach der eingestellten Verzögerung; bleibt eine Weile und verschwindet.",
+ "pay_bng2": "Sende auf ByNoGame den hier angegebenen Betrag als Spende. Drücke dann „Ich habe bezahlt“ und nenne uns die E-Mail-Adresse deines SRTR Pitwall-Kontos; deine PRO-Mitgliedschaft wird dieser Adresse zugewiesen.",
+ "pay_paid": "Ich habe bezahlt",
+ "pay_bng_h": "Drücke hier, nachdem du die Spende gesendet hast, und nenne uns deine E-Mail.",
+ "pay_bng_form": "Gib die E-Mail-Adresse deines SRTR Pitwall-Kontos ein und sende sie; deine PRO-Mitgliedschaft wird dieser Adresse zugewiesen.",
+ "pay_email": "Deine E-Mail-Adresse"
 }

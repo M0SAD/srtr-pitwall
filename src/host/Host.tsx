@@ -40,7 +40,7 @@ import { themeVars } from "@/sdk/theme";
 import { lookClear, lookStyle } from "@/sdk/lookStyle";
 import { UndoRedo } from "@/sdk/UndoRedo";
 import type { AppState } from "@/sdk/types";
-import { clampField, previewFrozen, resizeFields, rowUnit, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
+import { clampField, overlayTopics, previewFrozen, resizeFields, rowUnit, setOnScreen, setPreviewFrozen, setScreenEditing, type OverlayComponent, type OverlayManifest } from "@/sdk/overlay";
 import {
   CORNERS,
   clampRect,
@@ -357,7 +357,7 @@ export function Host() {
     const live = feedLive();
     const topics = enabled().flatMap(([k, m]) => {
       const hzOverride = prof.overlays[k]?.options?.hz;
-      return m.topics.filter((t) => live || OFFLINE_TOPICS.includes(t.name)).map((t) => {
+      return overlayTopics(m, prof.overlays[k]?.options).filter((t) => live || OFFLINE_TOPICS.includes(t.name)).map((t) => {
         const hz = typeof hzOverride === "number" ? hzOverride : t.hz;
         const cap = t.name === "inputs" ? perf.inputHz : perf.telemetryHz;
         return { name: t.name, hz: cap > 0 ? Math.min(hz, cap) : hz };

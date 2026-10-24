@@ -441,3 +441,43 @@
     transform: translateY(8px);
   }
 }
+
+/* Ses düzeyi bölümü: hoparlör (sessize al), kıs, çubuk, aç, yüzde */
+.mu-vol {
+  display: flex;
+  align-items: center;
+  gap: calc(3px * var(--mu-k));
+  margin-top: calc(3px * var(--mu-k));
+}
+.mu-vbtn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(20px * var(--mu-k));
+  height: calc(20px * var(--mu-k));
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--mu-text);
+  opacity: 0.8;
+  cursor: pointer;
+}
+.mu-vbtn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--mu-text) 12%, transparent);
+}
+.mu-vbtn svg {
+  width: 72%;
+  height: 72%;
+}
+.mu-vbar {
+  max-width: calc(140px * var(--mu-k));
+}
+.mu-vbar i {
+  transition: width 0.2s;
+}
+.mu-vnum {
+  min-width: 2em;
+  text-align: right;
+}

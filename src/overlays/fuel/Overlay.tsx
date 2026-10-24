@@ -89,8 +89,22 @@ export default function Fuel(props: OverlayProps) {
     ];
   };
 
+  /** Kullanıcının seçtiği kalan yakıt rengi (çubuk, ibre yayı, simge) ve az yakıt rengi */
+  const fuelVars = () => {
+    if (props.options.fuelColorOn !== true) return undefined;
+    const ok = (v: unknown, d: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : d);
+    const c = ok(props.options.fuelColor, "#b5e61d");
+    const lo = ok(props.options.fuelLowColor, "#ff4d4f");
+    // Çubuğun üstündeki yazı: açık renkte koyu, koyu renkte açık
+    const lum = (h: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    return { "--fuel-c": c, "--fuel-low": lo, "--fuel-ink": lum(c) > 0.55 ? "#0b0d11" : "#ffffff", "--fuel-ink-low": lum(lo) > 0.55 ? "#0b0d11" : "#ffffff" };
+  };
+
   return (
-    <div class={`ov-panel fuel fuel-d-${design()}`}>
+    <div class={`ov-panel fuel fuel-d-${design()}`} style={fuelVars()}>
       <Show when={data()} fallback={<div class="ov-empty">Veri bekleniyor…</div>}>
         {(d) => (
           <Switch>

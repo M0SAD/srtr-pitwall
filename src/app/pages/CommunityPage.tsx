@@ -1,5 +1,6 @@
 // Topluluk: paylaşılan overlay düzenleri. Ara, önizle, profil olarak indir, puan ver, yorum yaz.
 
+import { overlayTopics } from "@/sdk/overlay";
 import { localeTag, t } from "@/sdk/i18n";
 import { For, Show, createEffect, createMemo, createResource, createSignal, onMount } from "solid-js";
 import { independentProfile } from "@/sdk/streamLink";
@@ -589,7 +590,7 @@ export function LayoutDetail(props: { l: LayoutSummary; kind: LayoutKind; onClos
       const d = data();
       if (!d) return [];
       const types = new Set(Object.values(d.profile.overlays ?? {}).filter((o) => o.enabled).map((o) => o.type));
-      return [...types].flatMap((t) => manifestById(t)?.topics ?? []);
+      return [...types].flatMap((t) => overlayTopics(manifestById(t)));
     },
     () => data(),
     demo,

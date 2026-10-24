@@ -22,6 +22,8 @@ export interface GlucoseState {
   /** Hatanın teknik özeti (aşama · HTTP kodu · yol) */
   detail?: string;
   checkedAt: number;
+  /** Sens365: otomatik yeniden giriş açık */
+  autoLogin?: boolean;
 }
 export interface GlucoseLogin {
   source: GlucoseSource;
@@ -81,8 +83,11 @@ export function useGlucose(watch: () => boolean = () => true) {
 }
 
 export const glucoseLogin = (cfg: GlucoseLogin) => invoke<GlucoseState>("glucose_login", { cfg }).then((s) => (setState(s), s));
-/** CareSens Air: Sens365 giriş penceresi açılır (şifre uygulamaya girilmez) */
-export const glucoseCaresensLogin = () => invoke<GlucoseState>("glucose_caresens_login").then((s) => (setState(s), s));
+/** CareSens Air: Sens365 giriş penceresi açılır. E-posta ve şifre verilirse (otomatik yeniden giriş) form kendiliğinden
+ *  doldurulur ve bilgiler yalnızca bu bilgisayarda şifreli saklanır: oturum düşünce program arka planda yeniden girer.
+ *  Bilgi verilmezse kayıtlı otomatik giriş bilgileri (varsa) kullanılır. */
+export const glucoseCaresensLogin = (user?: string, password?: string, remember?: boolean) =>
+  invoke<GlucoseState>("glucose_caresens_login", { user: user ?? null, password: password ?? null, remember: remember ?? null }).then((s) => (setState(s), s));
 export const glucoseLogout = () => invoke("glucose_logout").then(() => setState(EMPTY));
 export const glucoseRefresh = () => (inTauri ? invoke("glucose_refresh").catch(() => {}) : Promise.resolve());
 export const glucoseAlert = (level: "ul" | "l" | "h" | "uh" | "ok", volume: number) => (inTauri ? invoke<boolean>("glucose_alert", { level, volume }).catch(() => false) : Promise.resolve(false));

@@ -1446,5 +1446,10 @@
  "ov_tvpodium_n": "Risultato gara TV",
  "ov_tvpodium_d": "Un podio come in TV a fine gara: i primi tre sui gradini, neutrale.",
  "ov_tvpodium_h": "Vincitore al centro, secondo a sinistra, terzo a destra; altezza in base alla posizione|Logo, nome, team, bandiera, numero e distacco|I tuoi dati non sono mai mostrati (neutrale)|Si apre con ritardo quando le prime auto finiscono, poi sparisce",
- "ovg_tvpodium": "Una grafica del podio come in TV a fine gara: i primi tre sui gradini, il vincitore al centro, il secondo a sinistra, il terzo a destra. Per ognuno logo, nome, team, bandiera, numero e distacco dal vincitore. È neutrale: i tuoi dati non compaiono. Dopo la bandiera a scacchi si apre quando è arrivato il numero di auto scelto, dopo il ritardo impostato; resta per un po’ e poi sparisce."
+ "ovg_tvpodium": "Una grafica del podio come in TV a fine gara: i primi tre sui gradini, il vincitore al centro, il secondo a sinistra, il terzo a destra. Per ognuno logo, nome, team, bandiera, numero e distacco dal vincitore. È neutrale: i tuoi dati non compaiono. Dopo la bandiera a scacchi si apre quando è arrivato il numero di auto scelto, dopo il ritardo impostato; resta per un po’ e poi sparisce.",
+ "pay_bng2": "Su ByNoGame invia come donazione l'importo indicato qui. Poi premi «Ho pagato» e comunicaci l'e-mail del tuo account SRTR Pitwall; il PRO verrà assegnato a quell'indirizzo.",
+ "pay_paid": "Ho pagato",
+ "pay_bng_h": "Premi qui dopo aver inviato la donazione e comunicaci la tua e-mail.",
+ "pay_bng_form": "Scrivi l'e-mail del tuo account SRTR Pitwall e inviala; il PRO verrà assegnato a quell'indirizzo.",
+ "pay_email": "La tua e-mail"
 }

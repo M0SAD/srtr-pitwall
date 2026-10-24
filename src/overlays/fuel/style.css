@@ -29,11 +29,11 @@
 .fuel-fill {
   height: 100%;
   border-radius: 4px;
-  background: #b5e61d;
+  background: var(--fuel-c, #b5e61d);
 }
 
 .fuel-fill.low {
-  background: var(--ov-red);
+  background: var(--fuel-low, var(--ov-red));
 }
 
 .fuel-tank-row {
@@ -285,11 +285,11 @@
 .fuel-s-bar > div {
   height: 100%;
   border-radius: 3px;
-  background: var(--ov-accent);
+  background: var(--fuel-c, var(--ov-accent));
   transition: width 0.4s linear;
 }
 .fuel-s-bar > div.low {
-  background: var(--ov-red);
+  background: var(--fuel-low, var(--ov-red));
 }
 .fuel-s-row {
   display: flex;
@@ -366,10 +366,10 @@
 .fuel-l-ic {
   width: 1.15em;
   height: 1.15em;
-  fill: var(--ov-accent);
+  fill: var(--fuel-c, var(--ov-accent));
 }
 .fuel-l-ic.low {
-  fill: var(--ov-red);
+  fill: var(--fuel-low, var(--ov-red));
 }
 
 /* Kompakt çubuk */
@@ -402,15 +402,18 @@
   position: absolute;
   inset: 0 auto 0 0;
   overflow: hidden;
-  background: var(--ov-accent);
+  background: var(--fuel-c, var(--ov-accent));
   border-radius: 5px 0 0 5px;
   transition: width 0.4s linear;
 }
 .fuel-b-fill.low {
-  background: var(--ov-red);
+  background: var(--fuel-low, var(--ov-red));
+}
+.fuel-b-fill.low .fuel-b-txt {
+  color: var(--fuel-ink-low, #0b0d11);
 }
 .fuel-b-fill .fuel-b-txt {
-  color: #0b0d11;
+  color: var(--fuel-ink, #0b0d11);
   text-shadow: none;
 }
 .fuel-b .fuel-chips {
@@ -446,11 +449,11 @@
   stroke: color-mix(in srgb, var(--ov-text) 10%, transparent);
 }
 .fuel-g-fill {
-  stroke: var(--ov-accent);
+  stroke: var(--fuel-c, var(--ov-accent));
   transition: stroke-dasharray 0.4s linear;
 }
 .fuel-g .low .fuel-g-fill {
-  stroke: var(--ov-red);
+  stroke: var(--fuel-low, var(--ov-red));
 }
 .fuel-g-res {
   stroke: color-mix(in srgb, var(--ov-red) 45%, transparent);

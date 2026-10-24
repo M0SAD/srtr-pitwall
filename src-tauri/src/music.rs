@@ -50,6 +50,9 @@ pub struct State {
     /// Açık medya oturumları: (uygulama kimliği, okunur ad, çalıyor mu); kaynak seçimi için
     pub sessions: Vec<(String, String, bool)>,
     pub error: String,
+    /// Oynatıcının ses düzeyi (%, Windows ses karıştırıcısındaki uygulama sesi); -1: bilinmiyor
+    pub volume: i32,
+    pub muted: bool,
 }
 
 static STATE: Mutex<Option<State>> = parking_lot::const_mutex(None);
@@ -195,21 +198,31 @@ fn urlenc(s: &str) -> String {
         .collect()
 }
 
-/// Denetim: "toggle" | "play" | "pause" | "next" | "prev"
+/// Denetim: "toggle" | "play" | "pause" | "next" | "prev" | "volup" | "voldown" | "vol:<0-100>" | "mute"
 #[tauri::command]
 pub fn music_control(action: String) -> Result<bool, String> {
     control(&action)
 }
 
-/// Kısayol / direksiyon düğmesi (voicecmd.rs): "musicToggle" | "musicNext" | "musicPrev"
+/// Kısayol / direksiyon düğmesi (voicecmd.rs): "musicToggle" | "musicNext" | "musicPrev" | "musicVolUp" |
+/// "musicVolDown" | "musicMute"
 pub fn hotkey(name: &str) {
     let action = match name {
         "musicNext" => "next",
         "musicPrev" => "prev",
+        "musicVolUp" => "volup",
+        "musicVolDown" => "voldown",
+        "musicMute" => "mute",
         _ => "toggle",
     };
-    let _ = control(action);
-    if let Some(app) = APP.get() {
+    let r = control(action);
+    let Some(app) = APP.get() else { return };
+    if action.starts_with("vol") || action == "mute" {
+        // Yeni ses düzeyi ekranda (bulunamadıysa uyarı)
+        let s = snapshot();
+        let v = if r.is_ok() && s.volume >= 0 { if s.muted { 0 } else { s.volume } } else { -1 };
+        crate::osd::push(app, serde_json::json!({ "key": "musicVol", "value": v, "on": s.muted }));
+    } else {
         crate::osd::show(app, name, None);
     }
 }
@@ -286,6 +299,14 @@ mod imp {
             let pref = PREF.lock().clone();
             if let Some((action, reply)) = req {
                 let r = media.as_ref().map(|m| m.control(&pref, &action)).unwrap_or(Err("no_media".into()));
+                // Ses düzeyi değiştiyse yeni değer hemen durumda (kısayol bildirimi bunu gösterir)
+                if r.is_ok() && (action.starts_with("vol") || action == "mute") {
+                    if let Some(app_id) = media.as_ref().and_then(|m| m.current_app(&pref)) {
+                        let (v, mu) = crate::music_win::volume_of(&app_id).unwrap_or((-1, false));
+                        let cur = STATE.lock().clone().unwrap_or(State { supported: true, ..State::default() });
+                        publish(app, State { volume: v, muted: mu, ..cur });
+                    }
+                }
                 let _ = reply.send(r);
                 // Oynatıcının yeni durumu bir an sonra gelir
                 std::thread::sleep(Duration::from_millis(250));
@@ -341,6 +362,7 @@ mod imp {
                 pos = pos.min(s.dur_ms);
             }
             let (kind, source) = describe(&s.app_id);
+            let (volume, muted) = crate::music_win::volume_of(&s.app_id).unwrap_or((-1, false));
             let st = State {
                 supported: true,
                 active: true,
@@ -362,6 +384,8 @@ mod imp {
                 key: key.clone(),
                 sessions,
                 error: String::new(),
+                volume,
+                muted,
             };
             // Konum her saniye ilerler: yalnızca beklenenden 1,5 sn'den fazla saptıysa ya da başka bir şey
             // değiştiyse yayınla (overlay konumu kendisi ilerletir)

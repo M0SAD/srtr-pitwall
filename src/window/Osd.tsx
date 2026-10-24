@@ -85,6 +85,11 @@ function describe(p: OsdPayload): Omit<View, "id"> | null {
       return { label: t("Müzik"), state: t("Sonraki şarkı"), tone: "info" };
     case "musicPrev":
       return { label: t("Müzik"), state: t("Önceki şarkı"), tone: "info" };
+    case "musicVol": {
+      const v = Number((p as { value?: number }).value);
+      if (!Number.isFinite(v) || v < 0) return { label: t("Müzik sesi"), state: t("Oynatıcının sesi ayarlanamadı"), tone: "warn" };
+      return { label: t("Müzik sesi"), state: p.on || v === 0 ? t("Kapalı") : `%${v}`, tone: "info" };
+    }
     case "dashPage":
       return { label: t("Direksiyon Ekranı"), state: t("Sonraki sayfa"), tone: "info" };
     case "vrConfig":

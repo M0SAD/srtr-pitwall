@@ -1446,5 +1446,10 @@
  "ov_tvpodium_n": "TV-kisan tulos",
  "ov_tvpodium_d": "TV-tyylinen palkintokoroke kisan lopussa: kolme parasta korokkeilla, puolueeton.",
  "ov_tvpodium_h": "Voittaja keskellä, toinen vasemmalla, kolmas oikealla; korkeus sijan mukaan|Logo, nimi, tiimi, lippu, numero ja ero|Omia tietojasi ei näytetä (puolueeton)|Avautuu viiveellä, kun ensimmäiset autot ovat maalissa, ja katoaa hetken päästä",
- "ovg_tvpodium": "TV-tyylinen palkintokorokegrafiikka kisan päätyttyä: kolme parasta korokkeilla, voittaja keskellä, toinen vasemmalla, kolmas oikealla. Jokaisella merkin logo, nimi, tiimi, lippu, numero ja ero voittajaan. Puolueeton: omia tietojasi ei näytetä. Ruutulipun jälkeen avautuu, kun valitsemasi määrä autoja on maalissa, asettamasi viiveen jälkeen; pysyy hetken ja katoaa."
+ "ovg_tvpodium": "TV-tyylinen palkintokorokegrafiikka kisan päätyttyä: kolme parasta korokkeilla, voittaja keskellä, toinen vasemmalla, kolmas oikealla. Jokaisella merkin logo, nimi, tiimi, lippu, numero ja ero voittajaan. Puolueeton: omia tietojasi ei näytetä. Ruutulipun jälkeen avautuu, kun valitsemasi määrä autoja on maalissa, asettamasi viiveen jälkeen; pysyy hetken ja katoaa.",
+ "pay_bng2": "Lähetä ByNoGamessa tässä näkyvä summa lahjoituksena. Paina sitten ”Olen maksanut” ja kerro SRTR Pitwall -tilisi sähköpostiosoite; PRO-jäsenyytesi liitetään siihen osoitteeseen.",
+ "pay_paid": "Olen maksanut",
+ "pay_bng_h": "Paina tätä lahjoituksen lähettämisen jälkeen ja kerro sähköpostisi.",
+ "pay_bng_form": "Kirjoita SRTR Pitwall -tilisi sähköpostiosoite ja lähetä se; PRO-jäsenyytesi liitetään siihen osoitteeseen.",
+ "pay_email": "Sähköpostiosoitteesi"
 }

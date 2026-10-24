@@ -1,0 +1,95 @@
+/* Mesafe Çubuğu: ortada küçük hap, iki yanda çubuklar. Öndeki çubuk ortadan sola, arkadaki ortadan sağa doğru dolar. */
+.gb {
+  --gb-h: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  font-family: var(--ov-font, Inter, system-ui, sans-serif);
+  color: #f4f6fa;
+  white-space: nowrap;
+}
+.gb.gb-panel {
+  border-radius: 999px;
+  background: rgba(10, 12, 16, 0.72);
+}
+.gb-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: opacity 0.25s;
+}
+.gb-ahead {
+  flex-direction: row;
+}
+.gb-behind {
+  flex-direction: row-reverse;
+}
+.gb-hide {
+  visibility: hidden;
+}
+.gb-none .gb-val {
+  opacity: 0.5;
+}
+.gb-track {
+  position: relative;
+  flex: 1;
+  height: var(--gb-h);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.gb-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--gb-len, 1) * 100%);
+  min-width: var(--gb-h);
+  border-radius: 999px;
+  transition:
+    width 0.18s linear,
+    background-color 0.25s;
+}
+/* Öndeki: ortaya (sağ uca) yaslı, sola doğru; arkadaki: ortaya (sol uca) yaslı, sağa doğru */
+.gb-ahead .gb-fill {
+  right: 0;
+}
+.gb-behind .gb-fill {
+  left: 0;
+}
+.gb-val {
+  min-width: 3.4em;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+.gb-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+.gb-mid {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  min-width: 34px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(10, 12, 16, 0.85);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.gb-mid small {
+  font-size: 9px;
+  opacity: 0.7;
+}

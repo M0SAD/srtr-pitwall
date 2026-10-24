@@ -270,3 +270,44 @@
 .inp-lap.best b {
   color: var(--ov-purple);
 }
+
+/* Üstteki öndeki / arkadaki fark satırı */
+.inp-gaps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(4px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1));
+  white-space: nowrap;
+}
+.inp-gap {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.inp-gap-behind {
+  flex-direction: row-reverse;
+}
+.inp-gap-ic {
+  font-size: 0.7em;
+  color: var(--ov-dim);
+}
+.inp-gap b {
+  font-size: 1.077em;
+  font-weight: var(--ov-weight-strong);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.25s;
+}
+.inp-gap.mid b {
+  color: #f5b301;
+}
+.inp-gap.near b {
+  color: #ff4d4f;
+}
+.inp-gap-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85em;
+  color: var(--ov-dim);
+}

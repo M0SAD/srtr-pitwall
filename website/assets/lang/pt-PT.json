@@ -1446,5 +1446,10 @@
  "ov_tvpodium_n": "Resultado da corrida TV",
  "ov_tvpodium_d": "Um pódio como na TV no fim da corrida: os três primeiros em degraus, neutro.",
  "ov_tvpodium_h": "Vencedor ao centro, segundo à esquerda, terceiro à direita; altura pela posição|Logótipo, nome, equipa, bandeira, número e diferença|Os teus dados nunca aparecem (neutro)|Abre com atraso quando os primeiros carros terminam e desaparece depois",
- "ovg_tvpodium": "Um gráfico de pódio como na TV no fim da corrida: os três primeiros em degraus, o vencedor ao centro, o segundo à esquerda, o terceiro à direita. Cada um com logótipo, nome, equipa, bandeira, número e diferença para o vencedor. É neutro: os teus dados não aparecem. Após a bandeira de xadrez abre quando o número de carros escolhido cruzar a linha, depois do atraso definido; fica algum tempo e desaparece."
+ "ovg_tvpodium": "Um gráfico de pódio como na TV no fim da corrida: os três primeiros em degraus, o vencedor ao centro, o segundo à esquerda, o terceiro à direita. Cada um com logótipo, nome, equipa, bandeira, número e diferença para o vencedor. É neutro: os teus dados não aparecem. Após a bandeira de xadrez abre quando o número de carros escolhido cruzar a linha, depois do atraso definido; fica algum tempo e desaparece.",
+ "pay_bng2": "No ByNoGame, envia o valor indicado aqui como donativo. Depois carrega em “Já paguei” e indica o e-mail da tua conta SRTR Pitwall; o teu PRO será atribuído a esse endereço.",
+ "pay_paid": "Já paguei",
+ "pay_bng_h": "Carrega aqui depois de enviares o donativo e indica o teu e-mail.",
+ "pay_bng_form": "Escreve o e-mail da tua conta SRTR Pitwall e envia; o teu PRO será atribuído a esse endereço.",
+ "pay_email": "O teu e-mail"
 }

@@ -13,6 +13,7 @@ export const OVERLAYS = [
       ["relative", "↕️", "free"],
       ["standings", "🏆", "free"],
       ["duel", "🎯", "pro"],
+      ["gapbar", "↔️", "free"],
       ["battlebox", "⚔️", "free"],
       ["gapchart", "📉", "pro"],
       ["target", "🔭", "pro"],
@@ -121,6 +122,7 @@ export const NAMES = {
   relative: ["Yakındakiler (Relative)", "Relative"],
   standings: ["Sıralama Tablosu", "Standings"],
   duel: ["Yakın Takip", "Close Battle"],
+  gapbar: ["Mesafe Çubuğu", "Gap Bar"],
   battlebox: ["Battle Box", "Battle Box"],
   gapchart: ["Fark Grafiği", "Gap Chart"],
   target: ["Rakip Takibi", "Rival Tracker"],
@@ -226,6 +228,10 @@ addDict({
   ovg_standings: [
     "Yarışın sıralama tablosu: kim kaçıncı, lidere ya da öndeki araca ne kadar fark var. Çok sınıflı yarışlarda her sınıf kendi başlığı ve ortalama gücüyle (SOF) ayrı gösterilir. Tablonun tamamını ya da yalnızca “liderler + etrafımdakiler” görünümünü seçebilir; kazanılan / kaybedilen sıra, pit sayısı ve en iyi tur gibi sütunları açıp kapatabilirsin.",
     "The race leaderboard: who is in which position and how far they are from the leader or the car in front. In multi-class races each class gets its own header and strength of field (SOF). Show the whole table or just “leaders + around me”, and toggle columns such as positions gained / lost, pit count and best lap.",
+  ],
+  ovg_gapbar: [
+    "Aynanın hemen altına yerleştirebileceğin sade bir şerit: solda öndeki, sağda arkadaki araçla aradaki fark. Farkı süre (saniye) ya da mesafe (metre) olarak seçersin. Araç yaklaştıkça çubuk kısalır ve rengi yeşilden sarıya, kırmızıya döner; ortada sıranı ya da hızını gösterebilirsin.",
+    "A clean strip you can place right under your mirror: the gap to the car ahead on the left and the car behind on the right. Choose to show it as time (seconds) or distance (metres). As a car closes in, the bar shrinks and turns from green to yellow to red; the middle can show your position or speed.",
   ],
   ovg_duel: [
     "Önündeki ve arkandaki araçlara olan farkı, makara gibi dönen küçük bir şeritte gösterir. Araç yaklaştıkça satırı büyür ve netleşir, uzaklaştıkça küçülüp silikleşir; böylece sayı okumadan tehlikenin yaklaştığını hissedersin. Eşiği saniye ya da metre olarak belirlersin; yakında kimse yokken kendiliğinden gizlenir.",

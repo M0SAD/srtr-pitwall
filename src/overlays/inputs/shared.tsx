@@ -9,6 +9,8 @@ import { useTopic } from "@/sdk/telemetry";
 import { gear, lapTime, speed, speedUnit } from "@/sdk/format";
 import { overlayValueLocked } from "@/sdk/proFeatures";
 import { FREE_WHEELS, WheelArt, resolveWheel, type WheelStyle } from "./wheels";
+import { closeness, gapLabel, useNearGaps, type NearGap } from "@/sdk/nearGaps";
+import { formatName } from "@/sdk/HeaderStats";
 import "./style.css";
 import "./designs.css";
 
@@ -334,5 +336,33 @@ export function LapLines(props: OverlayProps) {
         </Show>
       </div>
     </Show>
+  );
+}
+
+/** Göstergenin üstündeki isteğe bağlı fark satırı: öndeki ve arkadaki araçla fark (süre ya da mesafe) */
+export function GapLine(props: OverlayProps) {
+  const unit = () => (props.options.gapsUnit === "m" ? "m" : "s") as "s" | "m";
+  const g = useNearGaps(() => ({ sameClass: !!props.options.gapsSameClass, skipPit: true }));
+  /** Yakınlık rengi: 2 sn / 100 m içinde sarı, çok yakında kırmızı */
+  const tone = (x: NearGap | null) => {
+    const k = closeness(x, unit(), unit() === "m" ? 100 : 2);
+    return k > 0.7 ? "near" : k > 0.25 ? "mid" : "";
+  };
+  const Cell = (p: { x: () => NearGap | null; side: "ahead" | "behind" }) => (
+    <div class={`inp-gap inp-gap-${p.side} ${tone(p.x())}`}>
+      <span class="inp-gap-ic">{p.side === "ahead" ? "▲" : "▼"}</span>
+      <b class="ov-mono">{gapLabel(p.x(), unit())}</b>
+      <Show when={props.options.gapsNames !== false && p.x()}>
+        <span class="inp-gap-name" data-no-i18n>
+          {formatName(p.x()!.row.name, "initial")}
+        </span>
+      </Show>
+    </div>
+  );
+  return (
+    <div class="ov-panel inp-gaps">
+      <Cell x={() => g().ahead} side="ahead" />
+      <Cell x={() => g().behind} side="behind" />
+    </div>
   );
 }

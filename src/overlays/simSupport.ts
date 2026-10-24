@@ -72,6 +72,7 @@ const UNSUPPORTED: Record<string, SimFamily[]> = {
   standings: ["ac", "acc", "forza", "dirt", "beamng"],
   battlebox: ["ac", "acc", "forza", "dirt", "beamng"],
   duel: ["ac", "acc", "forza", "dirt", "beamng"],
+  gapbar: ["ac", "acc", "forza", "dirt", "beamng"],
   // Fark Grafiği / Rakip Takibi: rakiplerin çizgi geçişleri gerekir (sectors her simde çalışır: AC/ACC'de sınıf
   // en iyisi = kendi en iyin)
   gapchart: ["ac", "acc", "forza", "dirt", "beamng"],

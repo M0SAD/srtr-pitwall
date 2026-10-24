@@ -123,3 +123,4 @@ export { default as Minus } from "lucide-solid/icons/minus";
 export { default as Images } from "lucide-solid/icons/images";
 export { default as SkipBack } from "lucide-solid/icons/skip-back";
 export { default as LayoutTemplate } from "lucide-solid/icons/layout-template";
+export { default as MoveHorizontal } from "lucide-solid/icons/move-horizontal";

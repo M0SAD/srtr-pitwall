@@ -1,6 +1,7 @@
 // Mühendis ekranı: tablet/ikinci monitör için, ekranlar kendiliğinden döner.
 // Adres: window.html?view=engineer&size=1920x480
 
+import { overlayTopics } from "@/sdk/overlay";
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { setSubscriptions, useTopic, useTopicSource } from "@/sdk/telemetry";
 import { themeVars } from "@/sdk/theme";
@@ -29,7 +30,7 @@ export function Engineer(props: { readOnly?: boolean; waiting?: string } = {}) {
   const cur = () => screens()[idx() % screens().length];
 
   onMount(() => {
-    const all = ENGINEER_SCREENS.flatMap((s) => s.overlays.flatMap((o) => manifestById(o.type)?.topics ?? []));
+    const all = ENGINEER_SCREENS.flatMap((s) => s.overlays.flatMap((o) => overlayTopics(manifestById(o.type))));
     if (!remote) setSubscriptions(all.map((t) => ({ name: t.name, hz: Math.min(t.hz, 10) })));
     const tick = setInterval(() => {
       const sec = settings().general.engineer.cycleSec;

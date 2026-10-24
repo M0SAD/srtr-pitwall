@@ -10,7 +10,7 @@ import { Section } from "./OverlaySettings";
 import { PttButtonRow, PttKeyRow, type BindTarget } from "./VoiceCommands";
 import * as I from "../icons";
 
-type Bind = "musicToggle" | "musicNext" | "musicPrev";
+type Bind = "musicToggle" | "musicNext" | "musicPrev" | "musicVolUp" | "musicVolDown" | "musicMute";
 const target = (k: Bind, hint: string): BindTarget => ({
   get: () => settings().general[k],
   set: (fn) => updateSettings((d) => fn(d.general[k])),
@@ -20,6 +20,9 @@ const BINDS: { k: Bind; label: string; target: BindTarget }[] = [
   { k: "musicToggle", label: "Durdur / oynat", target: target("musicToggle", "Bir kez bas: çalan şarkı durur, tekrar bas: devam eder.") },
   { k: "musicNext", label: "Sonraki şarkı", target: target("musicNext", "Basınca sonraki şarkıya geçer.") },
   { k: "musicPrev", label: "Önceki şarkı", target: target("musicPrev", "Basınca önceki şarkıya (ya da şarkının başına) döner.") },
+  { k: "musicVolUp", label: "Sesi aç", target: target("musicVolUp", "Her basışta oynatıcının sesini %10 açar (yalnızca müziğin sesi; oyunun sesi değişmez).") },
+  { k: "musicVolDown", label: "Sesi kıs", target: target("musicVolDown", "Her basışta oynatıcının sesini %10 kısar (yalnızca müziğin sesi; oyunun sesi değişmez).") },
+  { k: "musicMute", label: "Sessize al / aç", target: target("musicMute", "Bir kez bas: müzik sessize alınır, tekrar bas: sesi geri gelir.") },
 ];
 
 export function MusicPanel() {
@@ -77,6 +80,35 @@ export function MusicPanel() {
             </div>
           </Show>
         </div>
+        <Show when={st().active}>
+          <div class="mp-vol">
+            <span class="mp-vol-cap">{t("Müzik sesi")}</span>
+            <Show
+              when={(st().volume ?? -1) >= 0}
+              fallback={<small class="f2-hint">{t("Bu oynatıcının sesi okunamadı (ses karıştırıcıda görünmüyor olabilir).")}</small>}
+            >
+              <button class="btn small ghost" title={st().muted ? t("Sesi aç") : t("Sessize al")} onClick={() => void musicControl("mute")}>
+                {st().muted ? <I.VolumeX /> : <I.Volume2 />}
+              </button>
+              <button class="btn small ghost" title={t("Sesi kıs")} onClick={() => void musicControl("voldown")}>
+                <I.Minus />
+              </button>
+              <input
+                class="mp-vol-range"
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={st().volume ?? 0}
+                onChange={(e) => void musicControl(`vol:${Math.round(Number(e.currentTarget.value))}`)}
+              />
+              <button class="btn small ghost" title={t("Sesi aç")} onClick={() => void musicControl("volup")}>
+                <I.Plus />
+              </button>
+              <b class="mp-vol-num">{st().muted ? t("Kapalı") : `%${st().volume}`}</b>
+            </Show>
+          </div>
+        </Show>
         <Show when={st().error}>
           <small class="f2-hint f2-err">{st().error}</small>
         </Show>
@@ -98,7 +130,7 @@ export function MusicPanel() {
 
         <div class="f2 mp-binds">
           <div class="f2-cap">{t("Tuş / direksiyon düğmesi ata")}</div>
-          <small class="f2-hint">{t("Yarışta overlay'e tıklanamaz; şarkıyı direksiyondaki bir düğmeyle ya da klavye tuşuyla değiştirebilirsin. Tuş yutulmaz, oyun öndeyken de çalışır.")}</small>
+          <small class="f2-hint">{t("Yarışta overlay'e tıklanamaz; şarkıyı ve müziğin sesini direksiyondaki bir düğmeyle ya da klavye tuşuyla değiştirebilirsin. Tuş yutulmaz, oyun öndeyken de çalışır.")}</small>
           <For each={BINDS}>
             {(b) => (
               <div class="mp-bind">
