@@ -1,0 +1,22 @@
+sections {1: 4096, 2: 22237184, 3: 39161856, 4: 39202816, 5: 40091648, 6: 40095744, 7: 40124416}
+procs 17833
+0x939D53 -> pitwall_lib::crashlog::seh::filter +0x322
+0x125C577 -> rustls::msgs::message::outbound::PrefixedPayload::with_capacity +0x36
+0x125EA63 -> rustls::crypto::ring::tls13::impl$4::encrypt +0x52
+0x129BC5B -> rustls::common_state::CommonState::send_appdata_encrypt +0x3FA
+0x104BD61 -> rustls::conn::connection::impl$8::write_vectored<rustls::client::client_conn::ClientConnectionData> +0x1A0
+0x104A5DA -> reqwest::connect::rustls_tls_conn::impl$5::poll_write_vectored<hyper_util::rt::tokio::TokioIo<hyper_util::rt::tokio::TokioIo<tokio::net::tcp::stream::TcpStream> > > +0x69
+0x10BF64F -> h2::codec::framed_write::FramedWrite::flush<hyper::common::io::compat::Compat<reqwest::connect::sealed::Conn>,h2::proto::streams::prioritize::Prioritized<enum2$<hyper::proto::h2::SendBuf<bytes::bytes::Bytes> > > > +0x29E
+0x10B8525 -> hyper::proto::h2::client::impl$6::poll<reqwest::connect::sealed::Conn,reqwest::async_impl::body::Body> +0xDE4
+0x1061420 -> tokio::runtime::task::raw::poll<core::pin::Pin<alloc::boxed::Box<dyn$<core::future::future::Future<assoc$<Output,tuple$<> > >,core::marker::Send>,alloc::alloc::Global> >,alloc::sync::Arc<tokio::runtime::scheduler::multi_thread::handle::Handle,alloc::alloc::Global> > +0x10F
+0x1415371 -> tokio::runtime::scheduler::multi_thread::worker::Context::run_task +0x1A0
+0x14103E9 -> tokio::runtime::task::raw::poll<tokio::runtime::blocking::task::BlockingTask<tokio::runtime::scheduler::multi_thread::worker::impl$0::launch::closure_env$0>,tokio::runtime::blocking::schedule::BlockingSchedule> +0xB38
+0x1401345 -> std::sys::backtrace::__rust_begin_short_backtrace<tokio::runtime::blocking::pool::impl$6::spawn_thread::closure_env$0,tuple$<> > +0x2F4
+0x1406157 -> core::ops::function::FnOnce::call_once<std::thread::lifecycle::spawn_unchecked::closure_env$1<tokio::runtime::blocking::pool::impl$6::spawn_thread::closure_env$0,tuple$<> >,tuple$<> > +0x66
+0x130373F -> std::sys::thread::windows::impl$0::new::thread_start +0x1CE
+0x12F63 -> bytes::bytes_mut::BytesMut::reserve_inner +0x142
+0x1098261 -> hyper::proto::h1::io::Buffered::poll_read_from_io<reqwest::connect::sealed::Conn,hyper::proto::h1::encode::EncodedBuf<bytes::bytes::Bytes> > +0x60
+0x109842A -> hyper::proto::h1::conn::Conn::maybe_notify<reqwest::connect::sealed::Conn,bytes::bytes::Bytes,enum2$<hyper::proto::h1::role::Client> > +0x69
+0x1099D77 -> hyper::proto::h1::conn::Conn::poll_read_body<reqwest::connect::sealed::Conn,bytes::bytes::Bytes,enum2$<hyper::proto::h1::role::Client> > +0xAF6
+0x109011C -> futures_util::future::future::impl$15::poll<futures_util::future::try_future::MapErr<hyper::client::conn::http1::upgrades::UpgradeableConnection<reqwest::connect::sealed::Conn,reqwest::async_impl::body::Body>,hyper_util::client::legacy::client::impl$1::connect_to::closure$0::closure$1::async_block$0::closure_env$2<enum2$<reqwest::connect::Connector>,reqwest::async_impl::body::Body> >,hyper_util::client::legacy::client::impl$1::connect_to::closure$0::closure$1::async_block$0::closure_env$3<enum2$<reqwest::connect::Connector>,reqwest::async_impl::body::Body> > +0x3DB
+0x141532F -> tokio::runtime::scheduler::multi_thread::worker::Context::run_task +0x15E

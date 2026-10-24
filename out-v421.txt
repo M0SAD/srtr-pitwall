@@ -1,0 +1,6 @@
+sections {1: 4096, 2: 22204416, 3: 39112704, 4: 39153664, 5: 40038400, 6: 40042496, 7: 40071168}
+procs 17822
+0x93DF93 -> pitwall_lib::crashlog::seh::filter +0x322
+0x89F5C7 -> std::sys::backtrace::__rust_begin_short_backtrace<pitwall_lib::server::serve_sse::closure_env$2,tuple$<> > +0x406
+0x89EF24 -> core::ops::function::FnOnce::call_once<std::thread::lifecycle::spawn_unchecked::closure_env$1<pitwall_lib::server::serve_sse::closure_env$2,tuple$<> >,tuple$<> > +0xD3
+0x13034EF -> std::sys::thread::windows::impl$0::new::thread_start +0x1CE
