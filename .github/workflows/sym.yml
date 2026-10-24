@@ -1,0 +1,34 @@
+name: crash-symbolize
+on:
+  push:
+    branches: [crash-symbolize]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  sym:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: pdb-v1.0.424, run-id: "40123475405", github-token: "${{ secrets.GITHUB_TOKEN }}", path: p424 }
+      - uses: actions/download-artifact@v4
+        with: { name: pdb-v1.0.421, run-id: "39966099126", github-token: "${{ secrets.GITHUB_TOKEN }}", path: p421 }
+      - name: tools
+        run: |
+          ls -la p424 p421
+          T=$(ls /usr/bin/llvm-pdbutil* /usr/lib/llvm-*/bin/llvm-pdbutil 2>/dev/null | head -1)
+          if [ -z "$T" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq llvm >/dev/null; T=$(ls /usr/bin/llvm-pdbutil* /usr/lib/llvm-*/bin/llvm-pdbutil 2>/dev/null | head -1); fi
+          echo "T=$T" >> $GITHUB_ENV
+      - name: symbolize
+        run: |
+          P424=$(ls p424/*.pdb | grep -i pitwall | head -1); P421=$(ls p421/*.pdb | grep -i pitwall | head -1)
+          python3 sym.py "$P424" v424 0x939D53,0x125C577,0x125EA63,0x129BC5B,0x104BD61,0x104A5DA,0x10BF64F,0x10B8525,0x1061420,0x1415371,0x14103E9,0x1401345,0x1406157,0x130373F,0x12F63,0x1098261,0x109842A,0x1099D77,0x109011C,0x141532F "$T"
+          python3 sym.py "$P421" v421 0x93DF93,0x89F5C7,0x89EF24,0x13034EF "$T"
+      - name: save
+        run: |
+          git config user.name "crash-symbolize"
+          git config user.email "actions@users.noreply.github.com"
+          git add out-*.txt
+          git commit -m "symbolize output"
+          git push origin HEAD:crash-symbolize
