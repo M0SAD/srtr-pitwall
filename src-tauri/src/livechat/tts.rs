@@ -818,7 +818,7 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
     let mut synth: Option<super::tts_win::Synth> = None;
     let mut out: Option<(String, OutputStream, OutputStreamHandle)> = None;
     // Edge sesi çalışmazsa kullanılacak Windows sesi (dil kodu → ses kimliği; boş: Windows varsayılanı)
-    let mut win_fallback: std::collections::HashMap<String, String> =
+    let mut win_fallback: std::collections::HashMap<String, (String, bool)> =
         std::collections::HashMap::new();
     loop {
         // Sıradaki mesaj (20 sn boşta kalınca ses akışı kapatılır)
@@ -871,27 +871,53 @@ fn worker(t: Arc<Tts>, hub: Arc<Hub>) {
             .map(str::to_string)
         {
             t.st.lock().skip = false;
-            match super::tts_edge::synth_wav_blocking(&item.text, &short, ov.rate, ov.pitch) {
+            // Geçici ağ hatasında bir kez daha denenir
+            let mut res = super::tts_edge::synth_wav_blocking(&item.text, &short, ov.rate, ov.pitch);
+            if res.is_err() && !t.st.lock().skip {
+                std::thread::sleep(Duration::from_millis(400));
+                res = super::tts_edge::synth_wav_blocking(&item.text, &short, ov.rate, ov.pitch);
+            }
+            match res {
                 Ok(w) => edge_wav = Some(w),
                 Err(e) => {
-                    notice = Some(format!(
-                        "Edge sesi kullanılamadı, Windows sesiyle okundu ({e})"
-                    ));
+                    // Neden kullanılamadığı günlüğe (aynı hata bir kez)
+                    {
+                        use std::sync::Mutex as M;
+                        static LAST: M<String> = M::new(String::new());
+                        let mut l = LAST.lock().unwrap_or_else(|x| x.into_inner());
+                        if *l != e {
+                            *l = e.clone();
+                            crate::crashlog::note(&format!("sesli okuma: Edge sesi ({short}) kullanılamadı: {e}"));
+                        }
+                    }
+                    // Yedek Windows sesi: aynı dil ve AYNI CİNSİYET (seçilen ses kadınsa kadın); yoksa aynı dilde herhangi biri
+                    let female = tauri::async_runtime::block_on(super::tts_edge::voices())
+                        .0
+                        .into_iter()
+                        .chain(super::tts_edge::builtin_voices())
+                        .find(|v| v.short == short)
+                        .map(|v| v.female);
                     let lang = short.split('-').next().unwrap_or("").to_lowercase();
-                    let fb = win_fallback.entry(lang.clone()).or_insert_with(|| {
-                        super::tts_win::voices()
-                            .ok()
-                            .and_then(|l| {
-                                l.into_iter().find(|v| {
-                                    !lang.is_empty()
-                                        && v.language.to_lowercase().split('-').next()
-                                            == Some(lang.as_str())
-                                })
-                            })
-                            .map(|v| v.id)
-                            .unwrap_or_default()
+                    let key = format!("{lang}|{female:?}");
+                    let (fb, same) = win_fallback
+                        .entry(key)
+                        .or_insert_with(|| {
+                            let all: Vec<(String, String, bool)> = super::tts_win::voices()
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(|v| (v.id, v.language, v.female))
+                                .collect();
+                            fallback_voice(&all, &lang, female)
+                        })
+                        .clone();
+                    notice = Some(if same {
+                        format!("Edge sesi kullanılamadı, Windows sesiyle okundu ({e})")
+                    } else if female == Some(true) {
+                        format!("Edge sesi kullanılamadı ({e}); Windows'ta bu dilde kadın sesi kurulu olmadığı için başka bir sesle okundu")
+                    } else {
+                        format!("Edge sesi kullanılamadı ({e}); Windows'ta bu dilde erkek sesi kurulu olmadığı için başka bir sesle okundu")
                     });
-                    ov.voice = fb.clone();
+                    ov.voice = fb;
                 }
             }
             // Beklerken susturulduysa / sıra boşaltıldıysa okuma
@@ -1091,6 +1117,20 @@ pub struct VoiceOut {
     pub gender: &'static str,
     /// "edge" (Edge çevrimiçi doğal sesleri) | "onecore" (Windows Ayarları › Konuşma sesleri) | "sapi" (klasik SAPI5 sesleri)
     pub engine: &'static str,
+}
+
+/// Edge sesi kullanılamayınca okunacak Windows sesi: `all` (kimlik, dil etiketi, kadın mı). Aynı dil ve aynı cinsiyet;
+/// yoksa aynı dilde ilk ses (yoksa "" = Windows varsayılanı). İkinci değer: cinsiyet tuttu mu (bilinmiyorsa doğru).
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn fallback_voice(all: &[(String, String, bool)], lang: &str, female: Option<bool>) -> (String, bool) {
+    let in_lang: Vec<&(String, String, bool)> = all
+        .iter()
+        .filter(|v| !lang.is_empty() && v.1.to_lowercase().split('-').next() == Some(lang))
+        .collect();
+    match in_lang.iter().find(|v| female.map_or(true, |f| v.2 == f)) {
+        Some(v) => (v.0.clone(), true),
+        None => (in_lang.first().map(|v| v.0.clone()).unwrap_or_default(), female.is_none()),
+    }
 }
 
 /// Edge çevrimiçi sesleri (liste alınamazsa yerleşik liste). Kimlik: `edge:<kısa ad>`
@@ -1545,6 +1585,20 @@ mod tests {
         c.mode = Mode::All;
         c.read_alerts = false;
         assert_eq!(decide(&c, &a), None);
+    }
+
+    #[test]
+    fn edge_fallback_keeps_gender() {
+        let all = vec![
+            ("tolga".to_string(), "tr-TR".to_string(), false),
+            ("zira".to_string(), "en-US".to_string(), true),
+            ("david".to_string(), "en-US".to_string(), false),
+        ];
+        assert_eq!(fallback_voice(&all, "en", Some(true)), ("zira".into(), true));
+        assert_eq!(fallback_voice(&all, "en", Some(false)), ("david".into(), true));
+        // Türkçe kadın ses kurulu değil: Türkçe ses, ama cinsiyet tutmadı
+        assert_eq!(fallback_voice(&all, "tr", Some(true)), ("tolga".into(), false));
+        assert_eq!(fallback_voice(&all, "de", Some(true)), (String::new(), false));
     }
 
     #[test]

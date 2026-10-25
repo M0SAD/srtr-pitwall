@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 251026-431
+
+- Sesli okuma: kadın ses (Edge, ör. Emel) seçiliyken erkek sesle okunuyordu. Edge sesi o an alınamayınca mesaj aynı dildeki İLK Windows sesiyle okunuyordu; Türkçe'de bu Windows'un erkek sesi (Tolga). Artık: Edge önce bir kez daha denenir (geçici ağ hatası), yine olmazsa aynı dilde AYNI CİNSİYETTE Windows sesi seçilir; bu dilde kadın sesi kurulu değilse ayarlardaki bildirimde bu açıkça yazılır. Edge sesinin neden kullanılamadığı crash.log'a da not düşülür (aynı hata bir kez).
+
 ## 251026-430
 
 - Lider tablosu: sunucuya oturum ortasında girince tablo boş görünüyordu. Önceki oturumdan kalan dereceleri gizleme kuralı (henüz tur tamamlamamış araç) sunucuya yeni giren için garajdaki / pitteki sürücüleri de kapsıyordu (sim bu araçların tamamlanan tur sayısını -1 verir). Artık oturumun resmi sonuçlarında turu olan her sürücünün en iyi ve son turu gösterilir; simin araç değeri yoksa (garajda, sunucudan çıkmış) son tur da resmi sonuçlardan alınır. Oturum başında önceki oturumdan kalan dereceler eskisi gibi gizli.
