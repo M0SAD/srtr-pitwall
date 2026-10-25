@@ -102,6 +102,8 @@ pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Re
             // kurulum bitince yeni sürüm olarak yeniden açılır (Windows'ta eklenti süreci sonlandırır).
             move || {
                 let _ = done.emit("update-stage", "installing");
+                // Kurulum programı süreci sonlandırır: bu kapanış "beklenmedik" sayılmasın
+                crate::crashlog::session_end();
             },
         )
         .await

@@ -65,6 +65,53 @@ fn path() -> PathBuf {
         .unwrap_or_else(|| std::env::temp_dir().join(FALLBACK_FILE))
 }
 
+/// Windows olay günlüğünden son `window_ms` içindeki pitwall.exe çökme kayıtları (Application Error / Windows Error
+/// Reporting: hata kodu, hatalı modül) ve Windows'un kapatılması / yeniden başlatılması (System: 1074, 6008).
+#[cfg(windows)]
+fn windows_events(window_ms: u64) -> Vec<String> {
+    use std::os::windows::process::CommandExt;
+    let run = |log: &str, q: String| -> String {
+        std::process::Command::new("wevtutil")
+            .args(["qe", log, &format!("/q:{q}"), "/c:12", "/rd:true", "/f:text"])
+            .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+            .output()
+            .ok()
+            .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+            .unwrap_or_default()
+    };
+    let mut out = Vec::new();
+    let app = run(
+        "Application",
+        format!("*[System[(Provider[@Name='Application Error'] or Provider[@Name='Windows Error Reporting']) and TimeCreated[timediff(@SystemTime) <= {window_ms}]]]"),
+    );
+    for ev in app.split("Event[").skip(1) {
+        if !ev.to_ascii_lowercase().contains("pitwall") {
+            continue;
+        }
+        let one: String = ev
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty() && !l.starts_with("Log Name") && !l.starts_with("Task:") && !l.starts_with("Keyword") && !l.starts_with("User") && !l.starts_with("Computer") && !l.starts_with("Opcode"))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        out.push(format!("Windows olay günlüğü (çökme): {}", one.chars().take(700).collect::<String>()));
+        if out.len() >= 3 {
+            break;
+        }
+    }
+    let sys = run(
+        "System",
+        format!("*[System[(EventID=1074 or EventID=6008) and TimeCreated[timediff(@SystemTime) <= {window_ms}]]]"),
+    );
+    if sys.contains("Event[") {
+        out.push("Windows olay günlüğü: bu arada Windows kapatıldı / yeniden başlatıldı (kapanma bu yüzden olabilir)".into());
+    }
+    if out.is_empty() {
+        out.push("Windows olay günlüğünde pitwall.exe için çökme kaydı yok (program kapatılmış ya da sonlandırılmış olabilir)".into());
+    }
+    out
+}
+
 /// Uygulama veri klasörü (ayarlandıysa)
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn data_dir() -> Option<PathBuf> {
@@ -266,6 +313,19 @@ pub fn session_start(dir: &std::path::Path) {
             get("peak"),
             get("info")
         ));
+        // Windows olay günlüğünde bu oturumda pitwall.exe için çökme kaydı var mı (bellek bozulması çoğu zaman
+        // "hızlı sonlandırma" ile biter: süreç içindeki çökme süzgecine hiç uğramaz, yalnızca Windows kaydeder)
+        #[cfg(windows)]
+        {
+            let window_ms = now_secs().saturating_sub(start.max(1)).saturating_add(120).min(7 * 86_400) * 1000;
+            let _ = std::thread::Builder::new()
+                .name("crash-events".into())
+                .spawn(move || {
+                    for line in windows_events(window_ms) {
+                        note(&line);
+                    }
+                });
+        }
     }
     SESSION_START.store(now_secs(), Ordering::Relaxed);
     *SESSION.lock().unwrap_or_else(|e| e.into_inner()) = Some(p.clone());

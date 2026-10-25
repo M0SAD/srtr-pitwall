@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 261026-434
+
+- Kapanma teşhisi: program beklenmedik kapandıysa bir sonraki açılışta Windows olay günlüğüne bakılır ve crash.log'a eklenir: o oturumda pitwall.exe için Windows'un kaydettiği çökme (hata kodu, hatalı modül; bellek bozulmasında programın kendi çökme kaydına hiç uğramayan "hızlı sonlandırma" dahil) ya da Windows'un kapatılması / yeniden başlatılması. Kayıt yoksa bu da yazılır (program kapatılmış / sonlandırılmış).
+- Güncelleme kurulurken programın kapanması artık "beklenmedik kapandı" olarak kaydedilmez (kurulum programı süreci sonlandırmadan önce oturum temiz kapatılır).
+
 ## 251026-433
 
 - Sesli okuma: Edge çevrimiçi sesleri (Emel, Ahmet…) yeniden çalışıyor. Microsoft 13 Ekim 2026'da bağlantı belirtecini değiştirdi (Sec-MS-GEC v2); eski belirteçle her istek reddediliyordu (403) ve okuma Windows sesine düşüyordu (Türkçe'de erkek ses). Yeni belirteç (CS64 + önekli SHA-256, sürüm "2-") eklendi; edge-tts 7.3.1'in ürettiği değerlerle birebir aynı olduğu testle doğrulandı. Ses listesi isteği de aynı belirteci kullanır.
