@@ -220,6 +220,9 @@ pub struct Tracker {
     live_laps: HashMap<i32, LiveLaps>,
     /// Bu oturumun resmi sonuçlarındaki en iyi turlar (ResultsPositions FastestTime; yalnız geçerli turlar)
     ses_best: Vec<f32>,
+    /// Bu oturumun resmi sonuçlarındaki son turlar (ResultsPositions LastTime): sunucuya oturum ortasında girince
+    /// garajdaki / pitteki sürücülerin (simin araç değerleri -1) son turu da görünsün
+    ses_last: Vec<f32>,
     /// Yarış oturumu, yeşil bayraktan önce (grid / ısınma turu): lider tablosundaki dereceler boş
     pre_green: bool,
     /// Oturumda araçların görülen son en iyi / son tur değerleri: sunucudan çıkan aracın (sim değerleri -1 olur)
@@ -426,6 +429,7 @@ impl Default for Tracker {
             replay: ReplayLaps::default(),
             live_laps: HashMap::new(),
             ses_best: vec![-1.0; MAX_CARS],
+            ses_last: vec![-1.0; MAX_CARS],
             pre_green: false,
             keep: vec![(-1.0, -1.0); MAX_CARS],
             keep_ses: -1,
@@ -592,6 +596,11 @@ impl Tracker {
             }
             // Oturumun resmi sonucu varsa o (simin en iyi tur değeri önceki oturumdan kalmış olabilir: sıralamada
             // antrenmandaki daha hızlı tur kalıyor ve sıralama dereceleri hiç görünmüyordu)
+            // Simin son tur değeri yoksa (garajdaki / sunucudan çıkmış sürücü) resmi sonuçlardaki son tur
+            let rl = self.ses_last.get(i).copied().unwrap_or(-1.0);
+            if f.cars[i].last <= 0.0 && rl > 0.0 {
+                f.cars[i].last = rl;
+            }
             let rb = self.ses_best.get(i).copied().unwrap_or(-1.0);
             if rb > 0.0 {
                 f.cars[i].best = rb;
@@ -610,10 +619,16 @@ impl Tracker {
         self.last_t = f.session_time;
         // Oturumun resmi sonuçları (geçerli en iyi turlar)
         self.ses_best = vec![-1.0; MAX_CARS];
+        self.ses_last = vec![-1.0; MAX_CARS];
         if let Some(se) = s.session(f.session_num) {
-            for &(idx, best, _) in &se.results {
-                if (0..MAX_CARS as i32).contains(&idx) && best > 0.0 {
-                    self.ses_best[idx as usize] = best;
+            for &(idx, best, last) in &se.results {
+                if (0..MAX_CARS as i32).contains(&idx) {
+                    if best > 0.0 {
+                        self.ses_best[idx as usize] = best;
+                    }
+                    if last > 0.0 {
+                        self.ses_last[idx as usize] = last;
+                    }
                 }
             }
         }
@@ -643,8 +658,10 @@ impl Tracker {
             self.green_time = None;
             self.saw_pre_green = false;
             // Bu oturumda henüz tur tamamlamamış araçların simde kalan en iyi / son turları önceki oturumdandır:
-            // değişene kadar yok sayılır (araç başına: oturuma sonradan bağlanınca da kendi aracı için geçerli)
-            let fresh = |i: usize| f.cars[i].lap_completed <= 0;
+            // değişene kadar yok sayılır (araç başına: oturuma sonradan bağlanınca da kendi aracı için geçerli).
+            // Oturumun resmi sonuçlarında turu olan araç bu oturumda tur atmıştır: değeri eski değildir (sunucuya oturum
+            // ortasında girilince garajdaki / pitteki sürücülerin tamamlanan tur sayısı -1 görünür, dereceleri gizlenmesin)
+            let fresh = |i: usize| f.cars[i].lap_completed <= 0 && self.ses_best[i] <= 0.0 && self.ses_last[i] <= 0.0;
             self.stale_best = (0..MAX_CARS).map(|i| if fresh(i) { f.cars[i].best } else { -1.0 }).collect();
             self.stale_last = (0..MAX_CARS).map(|i| if fresh(i) { f.cars[i].last } else { -1.0 }).collect();
         }
@@ -653,6 +670,11 @@ impl Tracker {
         }
         // Sim yeni bir en iyi / son tur verdi ya da araç bu oturumda tur tamamladı: artık eski değer değil
         for i in 0..MAX_CARS {
+            // Oturumun resmi sonuçlarına girdi: bu oturumda tur attı
+            if self.ses_best[i] > 0.0 || self.ses_last[i] > 0.0 {
+                self.stale_best[i] = -1.0;
+                self.stale_last[i] = -1.0;
+            }
             let st = self.stale_best[i];
             if st > 0.0 && f.cars[i].best > 0.0 && (f.cars[i].best - st).abs() >= 1e-4 {
                 self.stale_best[i] = -1.0;
@@ -995,6 +1017,33 @@ mod best_tests {
         step(&mut t, &mut f, &s);
         assert_eq!(f.cars[0].last, 92.3);
         assert!(f.cars[0].best <= 0.0, "antrenmandaki daha hızlı tur görünmez");
+    }
+
+    #[test]
+    fn joining_mid_session_shows_earlier_laps() {
+        // Antrenmanın ortasında sunucuya girildi: tur atmış sürücüler resmi sonuçlarda; garajdakilerin tamamlanan tur
+        // sayısı -1 ve sim değerleri -1 olabilir
+        let mut s = sess("Practice");
+        s.sub_session_id = 300;
+        s.sessions[0].results = vec![(3, 88.0, 89.0), (4, 87.5, 90.0)];
+        let mut t = Tracker::default();
+        let mut f = Frame::default();
+        f.player_idx = 0;
+        f.session_state = 4;
+        // 3: garajda ama sim değerleri duruyor
+        f.cars[3].lap_completed = -1;
+        f.cars[3].best = 88.0;
+        f.cars[3].last = 89.0;
+        // 4: garajda, sim değerleri yok
+        f.cars[4].lap_completed = -1;
+        // 5: henüz tur atmamış, simde başka oturumdan kalan değer
+        f.cars[5].lap_completed = 0;
+        f.cars[5].best = 91.0;
+        f.cars[5].last = 92.0;
+        step(&mut t, &mut f, &s);
+        assert_eq!((f.cars[3].best, f.cars[3].last), (88.0, 89.0));
+        assert_eq!((f.cars[4].best, f.cars[4].last), (87.5, 90.0));
+        assert!(f.cars[5].best <= 0.0 && f.cars[5].last <= 0.0, "{} {}", f.cars[5].best, f.cars[5].last);
     }
 
     #[test]

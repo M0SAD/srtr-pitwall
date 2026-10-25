@@ -67,7 +67,7 @@ export default function Glucose(props: OverlayProps) {
     const p = pal();
     const v: Record<string, string> = p ? { "--gl-normal": p.normal, "--gl-warn": p.warn, "--gl-urgent": p.urgent, "--gl-bg": p.bg, "--gl-text": p.text } : {};
     if (o().dropColor === "custom" && o().cDrop) v["--gl-drop"] = String(o().cDrop);
-    if (design() !== "circle" && design() !== "pill") v["--gl-radius"] = `${n("radius", 14)}px`;
+    if (design() !== "circle" && design() !== "pill" && design() !== "dial") v["--gl-radius"] = `${n("radius", 14)}px`;
     v["--gl-vk"] = String(n("valueSize", 100) / 100);
     return v;
   };
@@ -143,13 +143,80 @@ export default function Glucose(props: OverlayProps) {
 
   const design = () => String(o().design ?? "card");
   /** Yuvarlak / kare / şerit tasarımda uzun hata metni sığmaz: kısa hali (tamamı üzerine gelince ve ayarlarda) */
-  const compact = () => design() === "circle" || design() === "square" || design() === "pill";
+  const compact = () => design() === "circle" || design() === "square" || design() === "pill" || design() === "dial";
   const shortErr = (e: string) => {
     if (/oturum|giriş|şifre|hesap|kilitlendi/i.test(e)) return t("Giriş gerekli");
     if (/ulaşılamadı|bağlan|sunucu/i.test(e)) return t("Bağlantı yok");
     if (/henüz veri|veri yok|bulunamadı|veri gelmedi/i.test(e)) return t("Veri yok");
     return t("Hata");
   };
+  /** Kadran: 270° yay (sol alttan saat yönünde sağ alta); bölgeler sınırlara göre renkli, nokta şu anki değer */
+  const DIAL_R = 41;
+  const dialMin = () => Math.min(40, uLow() - 10);
+  const dialMax = () => Math.max(300, uHigh() + 40);
+  const dialAng = (v: number) => 135 + (270 * (Math.min(dialMax(), Math.max(dialMin(), v)) - dialMin())) / (dialMax() - dialMin());
+  const pt = (a: number, r = DIAL_R) => [50 + r * Math.cos((a * Math.PI) / 180), 50 + r * Math.sin((a * Math.PI) / 180)];
+  const arc = (v1: number, v2: number) => {
+    const a1 = dialAng(v1);
+    const a2 = dialAng(v2);
+    if (a2 - a1 < 0.2) return "";
+    const [x1, y1] = pt(a1);
+    const [x2, y2] = pt(a2);
+    return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${DIAL_R} ${DIAL_R} 0 ${a2 - a1 > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  };
+  /** Bölgeler: [başlangıç, bitiş, renk sınıfı] */
+  const zones = () =>
+    [
+      [dialMin(), uLow(), "u"],
+      [uLow(), low(), "w"],
+      [low(), high(), "n"],
+      [high(), uHigh(), "w"],
+      [uHigh(), dialMax(), "u"],
+    ] as [number, number, string][];
+  const levelLabel = () => (level() === "ok" ? t("NORMAL") : levelText());
+  const Dial = () => (
+    <div class="gl-dialbox">
+      <svg class="gl-dialsvg" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="gl-dial-rim" cx="50" cy="50" r="48" />
+        {/* Soluk bölgeler, üstüne değere kadar parlak kısım */}
+        <For each={zones()}>{(z) => <path class={`gl-dz gl-dz-${z[2]}`} d={arc(z[0], z[1])} />}</For>
+        <Show when={value() != null}>
+          <For each={zones()}>{(z) => <path class={`gl-dz on gl-dz-${z[2]}`} d={arc(z[0], Math.min(z[1], value()!))} />}</For>
+          <circle class="gl-dial-dot" cx={pt(dialAng(value()!))[0]} cy={pt(dialAng(value()!))[1]} r="4.6" />
+        </Show>
+      </svg>
+      <div class="gl-dial-mid">
+        <span class="gl-value ov-mono">
+          {value() == null ? "—" : fmt(value()!)}
+          <Show when={o().arrow !== false && st().arrow && value() != null}>
+            <i class="gl-arrow">{st().arrow}</i>
+          </Show>
+        </span>
+        <Show when={value() != null && !stale()}>
+          <em class="gl-dial-lvl">{levelLabel()}</em>
+        </Show>
+        <Show when={stale()}>
+          <span class="gl-note">{t("Veri eski")}</span>
+        </Show>
+        <Show when={!stale() && value() == null && st().error}>
+          <span class="gl-note" title={t(st().error)}>
+            {shortErr(st().error)}
+          </span>
+        </Show>
+        <span class="gl-dial-sub">
+          <Show when={o().delta !== false && value() != null && deltaText()}>
+            <b>{deltaText()}</b>{" "}
+          </Show>
+          <small>{mmol() ? "mmol/L" : "mg/dL"}</small>
+        </span>
+      </div>
+      {/* Saat: halkanın açık kalan alt kısmında, en altta */}
+      <Show when={o().time !== false && timeText()}>
+        <span class="gl-dial-time">{timeText()}</span>
+      </Show>
+    </div>
+  );
+
   const Value = () => (
     <span class="gl-value ov-mono">
       {value() == null ? "—" : fmt(value()!)}
@@ -186,13 +253,16 @@ export default function Glucose(props: OverlayProps) {
           </div>
         }
       >
+        <Show when={design() === "dial"}>
+          <Dial />
+        </Show>
         <Show when={design() === "circle"}>
           <svg class="gl-ring" viewBox="0 0 100 100">
             <circle class="gl-ring-bg" cx="50" cy="50" r="44" />
             <circle class="gl-ring-fg" cx="50" cy="50" r="44" stroke-dasharray={ring().dash} transform="rotate(-90 50 50)" />
           </svg>
         </Show>
-        <div class="gl-main">
+        <div class="gl-main" style={design() === "dial" ? { display: "none" } : undefined}>
           <div class="gl-head">
             <Show when={o().drop !== false}>
               <Drop />

@@ -141,6 +141,8 @@ fn enumerate() -> Vec<WheelDev> {
 
     let mut out: Vec<WheelDev> = Vec::new();
     unsafe {
+        let _joy = crate::ptt_win::JOY_LOCK.lock();
+        crate::crashlog::crumb("wheel:detect");
         let n = joyGetNumDevs().min(16);
         for id in 0..n {
             let mut caps: JOYCAPSW = std::mem::zeroed();

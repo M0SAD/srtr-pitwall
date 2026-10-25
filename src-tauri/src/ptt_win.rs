@@ -118,6 +118,11 @@ pub struct Input {
     pub raw_ok: bool,
 }
 
+/// WinMM oyun kumandası işlevleri (joyGetNumDevs / joyGetDevCapsW / joyGetPosEx) iş parçacığı güvenli değil: aynı anda
+/// iki iş parçacığından çağrılınca (giriş döngüsü + direksiyon algılama) süreç belleği bozulabiliyor. Tüm çağrılar bu
+/// kilitle sıraya girer (wheeldev.rs de kullanır).
+pub static JOY_LOCK: parking_lot::Mutex<()> = parking_lot::const_mutex(());
+
 fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
@@ -358,7 +363,20 @@ impl Input {
     }
 
     fn poll_mm(&mut self, all: bool, want: Option<(u16, u16)>) {
+        // Atanan düğmenin aygıtı Raw Input'tan sorunsuz okunuyorsa WinMM yoklanmaz (saniyede ~100 sürücü çağrısı
+        // gereksiz; WinMM yalnızca HID çözümlemesi başarısız olan aygıtlar için yedek)
+        if !all {
+            if let Some((vid, pid)) = want {
+                if self.hid.values().any(|d| d.vid == vid && d.pid == pid && !d.reports.is_empty()) {
+                    for d in self.mm.iter_mut() {
+                        d.buttons = 0;
+                    }
+                    return;
+                }
+            }
+        }
         crate::crashlog::crumb("ptt:joystick");
+        let _joy = JOY_LOCK.lock();
         let rescan = self
             .mm_scan
             .map(|t| t.elapsed() > Duration::from_secs(3))

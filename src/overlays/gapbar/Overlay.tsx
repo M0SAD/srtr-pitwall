@@ -132,8 +132,10 @@ export default function GapBar(props: OverlayProps) {
         "font-size": `${(14 * clamp(num(o().textSize, 100), 60, 250)) / 100}px`,
       }}
     >
-      <Show when={barless()} fallback={<Side g={() => gaps().ahead} side="ahead" />}>
-        <Val g={() => gaps().ahead} side="ahead" />
+      <Show when={o().showAhead !== false}>
+        <Show when={barless()} fallback={<Side g={() => gaps().ahead} side="ahead" />}>
+          <Val g={() => gaps().ahead} side="ahead" />
+        </Show>
       </Show>
       <Show when={(o().center ?? "pos") !== "none"}>
         <div class="gb-mid ov-mono" data-no-i18n>
@@ -143,8 +145,10 @@ export default function GapBar(props: OverlayProps) {
           </Show>
         </div>
       </Show>
-      <Show when={barless()} fallback={<Side g={() => gaps().behind} side="behind" />}>
-        <Val g={() => gaps().behind} side="behind" />
+      <Show when={o().showBehind !== false}>
+        <Show when={barless()} fallback={<Side g={() => gaps().behind} side="behind" />}>
+          <Val g={() => gaps().behind} side="behind" />
+        </Show>
       </Show>
     </div>
   );

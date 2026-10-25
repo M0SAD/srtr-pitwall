@@ -539,14 +539,14 @@ mod seh {
         fn HeapValidate(heap: *mut c_void, flags: u32, mem: *const c_void) -> i32;
     }
 
-    /// Yığın (heap) denetimi: birkaç saniyede bir süreç yığını doğrulanır. Bozulma bulunursa (çökmeden önce) zamanı ve
+    /// Yığın (heap) denetimi: 2 saniyede bir süreç yığını doğrulanır. Bozulma bulunursa (çökmeden önce) zamanı ve
     /// son yerel çağrılar günlüğe yazılır: bozulma son başarılı denetimle bu denetim arasındaki çağrılardan birindedir.
     /// Bellek ayırmaz (bozuk yığından ayırmak da çökertebilir). Bir kez yazar.
     pub fn start_heap_watch() {
         let _ = std::thread::Builder::new().name("heapwatch".into()).spawn(|| {
             let mut ok_at = super::since_start_ms();
             loop {
-                std::thread::sleep(std::time::Duration::from_secs(5));
+                std::thread::sleep(std::time::Duration::from_secs(2));
                 // SAFETY: süreç yığını tanıtıcısı her zaman geçerlidir; mem null: tüm yığın denetlenir.
                 let good = unsafe { HeapValidate(GetProcessHeap(), 0, std::ptr::null()) } != 0;
                 let now = super::since_start_ms();

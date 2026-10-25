@@ -3,6 +3,23 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 251026-430
+
+- Lider tablosu: sunucuya oturum ortasında girince tablo boş görünüyordu. Önceki oturumdan kalan dereceleri gizleme kuralı (henüz tur tamamlamamış araç) sunucuya yeni giren için garajdaki / pitteki sürücüleri de kapsıyordu (sim bu araçların tamamlanan tur sayısını -1 verir). Artık oturumun resmi sonuçlarında turu olan her sürücünün en iyi ve son turu gösterilir; simin araç değeri yoksa (garajda, sunucudan çıkmış) son tur da resmi sonuçlardan alınır. Oturum başında önceki oturumdan kalan dereceler eskisi gibi gizli.
+- Kendiliğinden kapanma (bellek bozulması) için düzeltme: son çökmede yerel çağrı izi, bozulmanın olduğu anda yalnızca direksiyon / joystick okumasının çalıştığını gösterdi. Windows'un eski oyun kumandası işlevleri (WinMM joyGetPosEx / joyGetDevCaps; direksiyon sürücüsünün kodunu programın içinde çalıştırır) iş parçacığı güvenli değil ve iki yerden aynı anda çağrılabiliyordu: atanan düğmeleri okuyan giriş döngüsü (saniyede ~100 kez) ve Pedallar & Girdi'nin bağlı direksiyonu algılaması (20 sn'de bir, ana iş parçacığında). Artık bu çağrılar tek kilitle sıraya girer; ayrıca atanan düğmenin aygıtı Raw Input'tan sorunsuz okunuyorsa WinMM hiç yoklanmaz (yalnızca HID çözümlemesi başarısız olan aygıtlar için yedek kalır). Yığın denetimi 5 sn yerine 2 sn'de bir (bozulma yeniden olursa bozan çağrı daha dar aralıkta görünür).
+
+## 251026-429
+
+- Kan Şekeri › Kadran: ölçüm saati halkanın açık kalan alt kısmına, en alta taşındı (değer, durum ve değişim ortada biraz yukarıda).
+
+## 251026-428
+
+- Kan Şekeri: yeni tasarım **Kadran**. Sol alttan sağ alta uzanan renkli halka: çok düşük, düşük, normal (yeşil), yüksek ve çok yüksek bölgeleri overlay ayarlarındaki sınırlara göre renklenir; yuvarlak nokta şu anki şeker seviyesinin halkadaki yerini gösterir, değere kadar olan kısım parlak, kalanı soluk. Ortada değer ve yön oku, durum (NORMAL / DÜŞÜK / YÜKSEK…), değişim ve birim, ölçüm saati. Renk temaları, değer yazı boyutu (kadranı da büyütür) ve çerçeve ayarları bu tasarımda da geçerli.
+
+## 251026-427
+
+- Mesafe Çubuğu: "Öndeki araç" ve "Arkadaki araç" ayrı ayrı kapatılabilir (yalnızca öndekini ya da yalnızca arkadakini göstermek için). Overlay artık birden çok kez eklenebilir: her kopyanın kendi görünümü, konumu ve ayarları olur (ör. öndeki fark aynanın soluna, arkadaki sağına).
+
 ## 251026-426
 
 - Kendiliğinden kapanma teşhisi: son çökmeler (0xC0000005, ntdll) bellek (heap) bozulmasından; sürüm sembolleriyle çözüldüğünde çöken yer her seferinde farklı ve masum (ağ isteği, sunucu iş parçacığı, WebView2): asıl bozan yer daha önce çalışan başka bir yerel (Windows API / COM / ses / ham giriş) çağrısı. Bunu yakalamak için:

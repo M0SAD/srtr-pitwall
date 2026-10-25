@@ -22,6 +22,8 @@ export default defineOverlay({
   defaultPosition: { x: 700, y: 140 },
   defaultEnabled: false,
   noBgOpacity: true,
+  // Birden çok kopya eklenebilir (ör. biri yalnızca öndeki, biri yalnızca arkadaki farkı göstersin)
+  multiInstance: true,
   resize: { w: "width" },
   settings: [
     {
@@ -37,6 +39,8 @@ export default defineOverlay({
       ],
       hint: "Sadece değerler: yanlarda çubuk yok, yalnızca fark yazılır; rengi araç yaklaştıkça sarıya, kırmızıya döner. Renkli kutucuklar: değer yakınlık renginde bir kutunun içinde.",
     },
+    { key: "showAhead", label: "Öndeki araç", type: "boolean", default: true, hint: "Kapatılınca öndeki araçla fark gösterilmez." },
+    { key: "showBehind", label: "Arkadaki araç", type: "boolean", default: true, hint: "Kapatılınca arkadaki araçla fark gösterilmez." },
     {
       key: "unit",
       label: "Fark",

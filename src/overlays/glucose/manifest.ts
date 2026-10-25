@@ -37,6 +37,7 @@ export default defineOverlay({
         { value: "circle", label: "Yuvarlak" },
         { value: "square", label: "Kare" },
         { value: "graph", label: "Geniş grafik" },
+        { value: "dial", label: "Kadran (renkli halka + seviye noktası)" },
       ],
     },
     {
