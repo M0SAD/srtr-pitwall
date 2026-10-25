@@ -132,6 +132,15 @@ export default defineOverlay({
     },
     { key: "hideSameCar", label: "Tüm araçlar aynıysa araç sütununu gizle", type: "boolean", default: true, group: "Sütunlar", hint: "Tek marka serilerde (ör. Porsche Cup) herkes aynı araçta olduğundan logo / araç adı gösterilmez; yer açılır." },
     { key: "logoSize", label: "Logo boyutu", type: "number", default: 150, min: 80, max: 220, step: 10, unit: "%", group: "Sütunlar", showIf: { key: "carStyle", not: ["text"] } },
+    {
+      key: "seriesTitle",
+      label: "Seri adı",
+      type: "boolean",
+      default: true,
+      group: "Başlık",
+      hint: "Tablonun üstünde katıldığın serinin adı (yarışa / sunucuya girince). iRacing seri adını vermediği için adı olmayan seriyi bir kez adlandırırsın (yukarıdaki Seri adı kutusu); herkes için kaydedilir.",
+    },
+    { key: "carTitle", label: "Araç adı", type: "boolean", default: true, group: "Başlık", hint: "Tablonun üstünde sürdüğün aracın adı." },
     { key: "showHeader", label: "Başlık satırı", type: "boolean", default: true, group: "Başlık" },
     {
       key: "timeMode",

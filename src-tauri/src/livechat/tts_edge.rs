@@ -61,19 +61,14 @@ fn hex_upper(b: &[u8]) -> String {
     s
 }
 
-/// Sec-MS-GEC değeri: `unix_secs` anı için (5 dakikalık dilime yuvarlanır)
+/// Sec-MS-GEC değeri: `unix_secs` anı için (5 dakikalık dilime yuvarlanır). 13 Ekim 2026'dan beri v2 (v1 403 alır):
+/// bkz. gec2.rs
 pub fn sec_ms_gec(unix_secs: i64) -> String {
-    let mut ticks = unix_secs + WIN_EPOCH;
-    ticks -= ticks.rem_euclid(300);
-    // 100 nanosaniyelik adımlar
-    let ticks = ticks as i128 * 10_000_000;
-    hex_upper(&Sha256::digest(
-        format!("{ticks}{TRUSTED_CLIENT_TOKEN}").as_bytes(),
-    ))
+    super::gec2::sec_ms_gec_v2(unix_secs as f64, TRUSTED_CLIENT_TOKEN)
 }
 
 pub fn sec_ms_gec_version() -> String {
-    format!("1-{CHROMIUM_FULL}")
+    format!("2-{CHROMIUM_FULL}")
 }
 
 fn user_agent() -> String {
@@ -574,21 +569,18 @@ mod tests {
     fn gec_token() {
         // 5 dakikalık dilim içinde aynı, dilim değişince farklı; 64 haneli büyük harf hex
         let a = sec_ms_gec(1_700_000_000);
-        assert_eq!(a.len(), 64);
+        // v2: "<16 hex>-<64 hex>"
+        assert_eq!(a.len(), 81);
         assert!(a
             .chars()
-            .all(|c| c.is_ascii_digit() || ('A'..='F').contains(&c)));
+            .all(|c| c == '-' || c.is_ascii_digit() || ('A'..='F').contains(&c)));
         // (1_700_000_000 + 11_644_473_600) % 300 == 200 → dilim 1_699_999_800..1_700_000_099
         assert_eq!(a, sec_ms_gec(1_699_999_800));
         assert_eq!(a, sec_ms_gec(1_700_000_099));
         assert_ne!(a, sec_ms_gec(1_700_000_100));
         assert_ne!(a, sec_ms_gec(1_699_999_799));
-        // Karma girdisi: yuvarlanmış dosya zamanı (100 ns) + belirteç
-        let expect = hex_upper(&Sha256::digest(
-            format!("133444734000000000{TRUSTED_CLIENT_TOKEN}").as_bytes(),
-        ));
-        assert_eq!(a, expect);
-        assert_eq!(sec_ms_gec_version(), format!("1-{CHROMIUM_FULL}"));
+        assert_eq!(a, "2CD23A2CA0B2595A-F3C846C370E05F9CC83ACC5F995C5F5D87A4D0F14CE8936A0F902E64099E38A2");
+        assert_eq!(sec_ms_gec_version(), format!("2-{CHROMIUM_FULL}"));
         assert_eq!(rand_hex().len(), 32);
         assert_ne!(rand_hex(), rand_hex());
     }

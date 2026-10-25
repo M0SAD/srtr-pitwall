@@ -2,6 +2,7 @@ import { For, Show, createMemo, type JSX } from "solid-js";
 import type { OverlayProps } from "@/sdk/overlay";
 import { orderValue } from "@/sdk/overlay";
 import { useRows, useTopic } from "@/sdk/telemetry";
+import { seriesName } from "@/cloud/series";
 import { clock, irating, lapTime } from "@/sdk/format";
 import type { ClassInfo, Row } from "@/sdk/types";
 import { CarLogo } from "@/sdk/logos";
@@ -276,10 +277,39 @@ export default function Standings(props: OverlayProps) {
     return { "--st-cap": String(capOf(props.options, mine)), "--st-hd": head ? "1" : "0", "--st-sep": sep ? "1" : "0" };
   };
 
+  // Üst başlık: seri adı ve sürdüğüm araç (bağlıyken; demoda örnek)
+  const status = useTopic("status");
+  const titleSeries = () => {
+    if (props.options.seriesTitle === false) return "";
+    const st = status();
+    if (st?.demo) return t("Örnek Seri");
+    return st?.connected ? seriesName(st.seriesId ?? 0) : "";
+  };
+  const titleCar = () => {
+    if (props.options.carTitle === false) return "";
+    const st = status();
+    return st?.connected || st?.demo ? (st.carName ?? "") : "";
+  };
+  const titleText = () => titleSeries() || titleCar();
+
   const rowBg = () => (props.options.rowOpacity as number) ?? 100;
 
   return (
     <div class="ov-panel st" classList={{ "st-clear": rowBg() <= 0, "st-framed": !!props.options.rowsFrame, "st-rowframed": !!props.options.rowFrame }} data-per={(props.options.drivers ?? "all") === "smart" ? Math.max(1, groups().filter((g) => g.mine).length) : Math.max(1, groups().length)} style={{ "--st-fill": `${Math.min(100, Math.max(0, Number(props.options.rowFill) || 0))}%`, "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`, "--st-bg": `${rowBg()}%`, "--st-gap-w": `${5.5 + Math.max(0, Math.min(3, (props.options.decimals as number) ?? 1))}ch` }}>
+      <Show when={titleText()}>
+        <div class="st-title" style={{ "font-size": `${barK(props.options.barSize)}em` }}>
+          <Show when={titleSeries()}>
+            <b class="st-series" data-no-i18n>
+              {titleSeries()}
+            </b>
+          </Show>
+          <Show when={titleCar()}>
+            <span class="st-carname" data-no-i18n>
+              {titleCar()}
+            </span>
+          </Show>
+        </div>
+      </Show>
       <Show when={props.options.showHeader && data()}>
         <div class="st-head" style={{ "font-size": `${barK(props.options.barSize)}em` }}>
           <Show

@@ -417,3 +417,32 @@
 .st-row.garage {
   opacity: 0.6;
 }
+
+/* Üst başlık: seri adı · araç */
+.st-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  min-width: 0;
+  padding: calc(6px * var(--ov-pad-k, 1)) calc(10px * var(--ov-pad-k, 1)) calc(4px * var(--ov-pad-k, 1));
+  border-bottom: 1px solid var(--ov-divider);
+  white-space: nowrap;
+}
+.st-series {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--ov-weight-strong);
+  color: var(--ov-text);
+}
+.st-carname {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: auto;
+  color: var(--ov-dim);
+  font-size: 0.92em;
+}
+.st-title > .st-carname:first-child {
+  margin-left: 0;
+}

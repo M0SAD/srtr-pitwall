@@ -68,6 +68,7 @@ pub mod stt_cloud;
 pub mod stt_win;
 pub mod translate;
 pub mod tts;
+pub mod gec2;
 pub mod tts_edge;
 #[cfg(windows)]
 pub mod tts_win;

@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 251026-433
+
+- Sesli okuma: Edge çevrimiçi sesleri (Emel, Ahmet…) yeniden çalışıyor. Microsoft 13 Ekim 2026'da bağlantı belirtecini değiştirdi (Sec-MS-GEC v2); eski belirteçle her istek reddediliyordu (403) ve okuma Windows sesine düşüyordu (Türkçe'de erkek ses). Yeni belirteç (CS64 + önekli SHA-256, sürüm "2-") eklendi; edge-tts 7.3.1'in ürettiği değerlerle birebir aynı olduğu testle doğrulandı. Ses listesi isteği de aynı belirteci kullanır.
+
+## 251026-432
+
+- Sıralama Tablosu: tablonun üstünde katıldığın serinin adı ve sürdüğün aracın adı yazar (bağlıyken). İkisi de ayarlardan (Başlık › Seri adı / Araç adı) ayrı ayrı kapatılabilir. iRacing yalnızca seri numarasını verdiği için adlar Supabase'de tutulur: adı henüz kayıtlı olmayan bir serideyken overlay ayarlarının üstündeki "Seri adı" kutusuna adı bir kez yazman yeterli (herkes için kaydedilir); kayıtlı adı yalnızca yöneticiler değiştirebilir. Supabase'de c137_guncelleme.sql çalıştırılmalı.
+
 ## 251026-431
 
 - Sesli okuma: kadın ses (Edge, ör. Emel) seçiliyken erkek sesle okunuyordu. Edge sesi o an alınamayınca mesaj aynı dildeki İLK Windows sesiyle okunuyordu; Türkçe'de bu Windows'un erkek sesi (Tolga). Artık: Edge önce bir kez daha denenir (geçici ağ hatası), yine olmazsa aynı dilde AYNI CİNSİYETTE Windows sesi seçilir; bu dilde kadın sesi kurulu değilse ayarlardaki bildirimde bu açıkça yazılır. Edge sesinin neden kullanılamadığı crash.log'a da not düşülür (aynı hata bir kez).
