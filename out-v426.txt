@@ -1,0 +1,11 @@
+sections {1: 4096, 2: 22257664, 3: 39190528, 4: 39231488, 5: 40120320, 6: 40124416, 7: 40153088}
+procs 17843
+0x93E38F -> pitwall_lib::crashlog::seh::filter +0x32E
+0x14EC52F -> alloc::raw_vec::RawVecInner::finish_grow<alloc::alloc::Global> +0x3E
+0x14EC4B2 -> alloc::raw_vec::impl$4::reserve::do_reserve_and_handle<alloc::alloc::Global> +0x41
+0x3ACD -> alloc::string::impl$63::write_str +0x5C
+0x1587E -> core::fmt::write +0x15D
+0x3971 -> alloc::fmt::format::format_inner +0x130
+0x8984D5 -> std::sys::backtrace::__rust_begin_short_backtrace<pitwall_lib::server::serve_sse::closure_env$2,tuple$<> > +0x324
+0x897F14 -> core::ops::function::FnOnce::call_once<std::thread::lifecycle::spawn_unchecked::closure_env$1<pitwall_lib::server::serve_sse::closure_env$2,tuple$<> >,tuple$<> > +0xD3
+0x1307E7F -> std::sys::thread::windows::impl$0::new::thread_start +0x1CE
