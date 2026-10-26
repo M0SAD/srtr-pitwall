@@ -1003,7 +1003,11 @@ export function adminStats() {
   return api<AdminStats>("POST", "rpc/admin_stats", { body: {} });
 }
 
-export type UserFilter = "all" | "pro" | "admin" | "online";
+/** "dup": aynı e-postayla (farklı yazılışıyla) birden çok hesap (c138) */
+export type UserFilter = "all" | "pro" | "admin" | "online" | "dup";
+
+/** Üyeyi kalıcı olarak sil (c139): hesap ve bağlı tüm kayıtları. Döner: silinen hesabın e-postası. */
+export const adminDeleteUser = (id: string) => api<string>("POST", "rpc/admin_delete_user", { body: { p_id: id } });
 
 export function adminUsers(q: string, filter: UserFilter, offset = 0) {
   return api<AdminUser[]>("POST", "rpc/admin_users", { body: { p_q: q, p_filter: filter, p_offset: offset } });

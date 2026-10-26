@@ -3,6 +3,16 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 261026-436
+
+- Yönetim › Üyeler: "Üyeyi sil". Hesap ve ona bağlı tüm kayıtlar (profil, ayarlar, PRO kaydı, arkadaşlıklar, mesajlar…) kalıcı olarak silinir. Yanlışlıkla silmeye karşı onay penceresi açılır ve üyenin e-posta adresi (yoksa adı) yazılmadan silme düğmesi çalışmaz. Kendi hesabın ve sahip hesabı silinemez; başka bir yöneticiyi yalnızca sahip silebilir. Supabase'de c139_guncelleme.sql çalıştırılmalı.
+
+## 261026-435
+
+- Sıralama tablosu yarış başında karışıyordu: start turunda araçlar pistteki konuma göre diziliyordu; tur yüzdesi çizgide sıfırlanırken tur sayısı geç arttığı için araçlar bir anda en sona düşüp geri geliyordu. Artık hiçbir araç tur tamamlamadan (grid, formasyon ve start turu) tablo grid sırasını gösterir. Grid, resmi yarışlarda ayrı sıralama oturumunun sonucundan (QualifyResultsInfo) alınır; yoksa sunucudaki son sıralama oturumundan. İlk turdan sonra iRacing'in resmi sırası; henüz çizgiyi geçmemiş araçlar grid sıralarıyla arkada.
+- Seri adı: adı kayıtlı olmayan bir iRacing serisine bağlanınca panelin sağ altında küçük bir kutu çıkar; adı oradan bir kez yazılır ve Sıralama Tablosu'nun üstünde herkes için görünür. Supabase'de c137 çalıştırılmadıysa kaydederken bunu söyler.
+- Aynı e-postayla tek hesap: aynı adresin farklı yazılışları (Gmail'de noktalar, googlemail.com, her sağlayıcıda +etiket; büyük / küçük harf) ile ikinci hesap açılamaz, e-posta da başka bir hesabın adresine değiştirilemez (uygulama ve web sitesinde anlaşılır hata). Yönetim › Üyeler'de "Aynı e-posta" süzgeci var olan çift hesapları gruplu listeler. Supabase'de c138_guncelleme.sql çalıştırılmalı.
+
 ## 261026-434
 
 - Kapanma teşhisi: program beklenmedik kapandıysa bir sonraki açılışta Windows olay günlüğüne bakılır ve crash.log'a eklenir: o oturumda pitwall.exe için Windows'un kaydettiği çökme (hata kodu, hatalı modül; bellek bozulmasında programın kendi çökme kaydına hiç uğramayan "hızlı sonlandırma" dahil) ya da Windows'un kapatılması / yeniden başlatılması. Kayıt yoksa bu da yazılır (program kapatılmış / sonlandırılmış).

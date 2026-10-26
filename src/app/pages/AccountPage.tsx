@@ -108,6 +108,9 @@ function authError(t: string): string {
   if (/email not confirmed/i.test(t)) return "E-posta henüz onaylanmadı. E-postana gelen kodu gir.";
   if (/token has expired|invalid/i.test(t) && /token|otp/i.test(t)) return "Kod hatalı ya da süresi dolmuş. Yeni kod iste.";
   if (/already registered/i.test(t)) return "Bu e-postayla zaten bir hesap var. Giriş yap ya da şifreni sıfırla.";
+  // c138: aynı adresin farklı yazılışı (Gmail noktası, +etiket) ile ikinci hesap engellenir; Supabase genel hata döndürür
+  if (/DUPLICATE_EMAIL|database error (saving new|updating) user/i.test(t))
+    return "Bu e-posta adresiyle (ya da aynı adresin farklı bir yazılışıyla) zaten bir hesap var. Giriş yap ya da şifreni sıfırla.";
   if (/rate limit|too many/i.test(t) || /security purposes/i.test(t)) return "Çok sık denendi. Bir dakika sonra tekrar dene.";
   if (/password should be/i.test(t)) return "Şifre en az 6 karakter olmalı.";
   if (/same.*password/i.test(t)) return "Yeni şifre eskisiyle aynı olamaz.";

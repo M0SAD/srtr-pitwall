@@ -366,6 +366,8 @@ pub struct SessionEntry {
 /// Session YAML'ından çıkarılan, seyrek değişen bilgiler.
 #[derive(Debug, Clone, Default)]
 pub struct SessionData {
+    /// Yarışın başlangıç grid'i (QualifyResultsInfo: resmi yarışlarda ayrı sıralama oturumunun sonucu): (sıra 0'dan, araç)
+    pub qualify_grid: Vec<(i32, i32)>,
     pub track_name: String,
     pub track_config: String,
     pub track_length_km: f32,

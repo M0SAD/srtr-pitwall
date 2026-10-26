@@ -30,6 +30,11 @@ function save(c: Cache) {
 const [names, setNames] = createSignal<Cache>(load());
 const pending = new Set<number>();
 
+/** Seri için sunucuya soruldu mu (ad olsun ya da olmasın) */
+export function seriesChecked(id: number): boolean {
+  return !!names()[id];
+}
+
 /** Seri adı ("" : bilinmiyor / henüz okunmadı). Reaktif: okununca güncellenir. */
 export function seriesName(id: number): string {
   if (!(id > 0)) return "";
@@ -39,7 +44,8 @@ export function seriesName(id: number): string {
     pending.add(id);
     void api<{ name: string }[]>("GET", `iracing_series?select=name&series_id=eq.${id}`, { auth: "optional" })
       .then((r) => remember(id, r?.[0]?.name ?? ""))
-      .catch(() => {})
+      // Tablo yoksa (c137 çalıştırılmadı) da "soruldu" sayılır: adlandırma kutusu çıkar, kaydederken sebebi yazar
+      .catch(() => remember(id, ""))
       .finally(() => pending.delete(id));
   }
   return c?.n ?? "";

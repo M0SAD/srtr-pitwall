@@ -988,6 +988,10 @@ pub(crate) fn field_idxs(f: &Frame, s: &SessionData) -> Vec<usize> {
 
 /// Son sıralama turlarının (Qualify) sonucu: grid sırası (CarIdx listesi). iRacing ResultsPositions sıra düzeninde gelir.
 fn grid_order(s: &SessionData, race_num: i32) -> Vec<usize> {
+    // Resmi grid (ayrı sıralama oturumu); yoksa bu sunucudaki son sıralama oturumunun sonucu
+    if !s.qualify_grid.is_empty() {
+        return s.qualify_grid.iter().map(|g| g.1 as usize).collect();
+    }
     s.sessions
         .iter()
         .filter(|e| {
@@ -1015,25 +1019,22 @@ pub(crate) fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool
     use std::cmp::Ordering;
     let race = s.is_race(f.session_num);
     let lap1 = race && f.session_state <= 4 && idxs.iter().all(|&i| f.cars[i].lap_completed <= 0);
+    let grid = if race { grid_order(s, f.session_num) } else { Vec::new() };
+    let grid_slot = |i: usize| grid.iter().position(|&g| g == i).map(|p| p as i32);
+    // Resmi sırası henüz olmayan araç (yarışta çizgiyi geçmedi): grid sırasıyla, yoksa araç sırasıyla resmi olanların arkasında
     let official = |i: usize| {
         if f.cars[i].position > 0 {
             f.cars[i].position
         } else {
-            1000 + i as i32
+            1000 + grid_slot(i).unwrap_or(500 + i as i32)
         }
     };
-    if lap1 && f.session_state < 4 {
-        let grid = grid_order(s, f.session_num);
-        if !grid.is_empty() {
-            let slot = |i: usize| {
-                grid.iter()
-                    .position(|&g| g == i)
-                    .map(|p| p as i32)
-                    .unwrap_or(500 + official(i))
-            };
-            idxs.sort_by_key(|&i| slot(i));
-            return false;
-        }
+    // Grid'den start turunun sonuna kadar (hiçbir araç tur tamamlamadan): grid sırası. Pistteki konuma göre dizmek start
+    // anında karışıyordu (tur yüzdesi çizgide sıfırlanırken tur sayısı geç artınca araç bir anda en sona düşüyor).
+    if lap1 && !grid.is_empty() {
+        let slot = |i: usize| grid_slot(i).unwrap_or(500 + official(i));
+        idxs.sort_by_key(|&i| slot(i));
+        return false;
     }
     if lap1 && f.session_state >= 4 {
         let rolling = |i: usize| f.cars[i].pct >= 0.0 && !f.cars[i].on_pit;
@@ -1788,14 +1789,16 @@ mod tests {
         // Yeşilden önce: grid sırası (sıralama turları sonucu)
         let p = positions(&f, &s);
         assert_eq!([p[2].0, p[0].0, p[3].0, p[1].0], [1, 2, 3, 4]);
-        // Start turu: pistteki konum; resmi sıra eski kalsa bile
+        // Start turu (hiçbir araç tur tamamlamadan): yine grid sırası; resmi sıra eski kalsa ve tur yüzdesi çizgide
+        // sıfırlansa bile (araç 0'da: karışmaz)
         f.session_state = 4;
         for i in 0..4 {
             f.cars[i].position = 4 - i as i32;
             f.cars[i].class_position = 4 - i as i32;
         }
+        f.cars[2].pct = 0.001;
         let p = positions(&f, &s);
-        assert_eq!([p[0].1, p[1].1, p[2].1, p[3].1], [1, 2, 3, 4]);
+        assert_eq!([p[2].1, p[0].1, p[3].1, p[1].1], [1, 2, 3, 4]);
         // Yakındakiler aynı numaraları gösterir
         let t = Tracker::default();
         let rel = relative(&f, &s, &t, 3);

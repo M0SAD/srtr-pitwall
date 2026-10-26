@@ -1,5 +1,6 @@
 // Kontrol paneli kabuğu: solda ikon menü, üstte durum çubuğu, ortada bölüm.
 
+import { SeriesNameBanner } from "./components/SeriesNamePanel";
 import "./pageStyles";
 import { t } from "@/sdk/i18n";
 import { For, Match, Show, Switch, createEffect, createSignal, lazy, onCleanup, onMount, type JSX } from "solid-js";
@@ -323,6 +324,7 @@ export function App() {
           </button>
         </div>
       </Show>
+      <SeriesNameBanner />
       <Show when={update()?.available && !inGame()}>
         <div class="update-banner">
           <I.Download />

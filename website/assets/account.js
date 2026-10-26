@@ -39,6 +39,10 @@ import { couponBox, decoratePlans, proCouponFor } from "./coupon.js";
 addDict({
   a_login: ["Giriş yap", "Sign in"],
   a_signup: ["Kayıt ol", "Sign up"],
+  a_dup_email: [
+    "Bu e-posta adresiyle (ya da aynı adresin farklı bir yazılışıyla) zaten bir hesap var. Giriş yap ya da şifreni sıfırla.",
+    "An account with this e-mail address (or a different spelling of the same address) already exists. Sign in or reset your password.",
+  ],
   a_email: ["E-posta", "E-mail"],
   a_password: ["Şifre", "Password"],
   a_password_new: ["Yeni şifre (en az 6 karakter)", "New password (min. 6 characters)"],
@@ -340,7 +344,10 @@ async function onSubmit(e) {
       return afterLogin();
     }
   } catch (err) {
-    authView(esc(err.message || String(err)), true);
+    const m = err.message || String(err);
+    // c138: aynı e-postayla (ya da farklı yazılışıyla) ikinci hesap engellenir; Supabase genel hata döndürür
+    if (/DUPLICATE_EMAIL|database error (saving new|updating) user/i.test(m)) return authView(esc(T("a_dup_email")), true);
+    authView(esc(m), true);
   } finally {
     btn.disabled = false;
   }

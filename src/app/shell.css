@@ -6390,3 +6390,56 @@ button.ovpal-lock:hover {
   flex-direction: column;
   gap: 2px;
 }
+
+/* Adı kayıtlı olmayan iRacing serisi: sağ altta küçük kutu */
+.series-banner {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 10px;
+  background: var(--bg-2, #15171c);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+  font-size: 12.5px;
+}
+.series-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.series-banner .hed-inline {
+  display: flex;
+  gap: 6px;
+}
+.series-banner .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Üye silme onayı */
+.del-member {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(440px, calc(100vw - 32px));
+}
+.del-member .del-warn {
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, #ff5c5c 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #ff5c5c 10%, transparent);
+  color: #ffb4b4;
+  font-size: 12.5px;
+}
+.del-member .btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

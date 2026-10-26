@@ -50,6 +50,51 @@ enum List {
     Cams,
 }
 
+/// QualifyResultsInfo › Results: (Position, CarIdx), sıraya göre. Resmi yarışlarda sıralama ayrı bir oturumda yapılır;
+/// yarışın grid'i buradadır (oturum listesinde sıralama oturumu olmayabilir).
+fn qualify_grid(yaml: &str) -> Vec<(i32, i32)> {
+    let mut out: Vec<(i32, i32)> = Vec::new();
+    let mut inside = false;
+    let mut cur: Option<(i32, i32)> = None;
+    for raw in yaml.lines() {
+        let line = raw.trim_end_matches('\r');
+        if line.trim().is_empty() {
+            continue;
+        }
+        let ind = line.len() - line.trim_start().len();
+        if ind == 0 {
+            inside = line.trim_end() == "QualifyResultsInfo:";
+            continue;
+        }
+        if !inside {
+            continue;
+        }
+        let mut body = line.trim();
+        if let Some(rest) = body.strip_prefix("- ") {
+            if let Some(c) = cur.take() {
+                out.push(c);
+            }
+            cur = Some((-1, -1));
+            body = rest.trim();
+        }
+        let Some((k, v)) = body.split_once(':') else { continue };
+        let v = v.trim();
+        if let Some(c) = cur.as_mut() {
+            match k.trim() {
+                "Position" => c.0 = v.parse().unwrap_or(-1),
+                "CarIdx" => c.1 = v.parse().unwrap_or(-1),
+                _ => {}
+            }
+        }
+    }
+    if let Some(c) = cur.take() {
+        out.push(c);
+    }
+    out.retain(|c| c.0 >= 0 && (0..MAX_CARS as i32).contains(&c.1));
+    out.sort_by_key(|c| c.0);
+    out
+}
+
 pub fn parse(yaml: &str) -> SessionData {
     let mut sd = SessionData {
         drivers: vec![None; MAX_CARS],
@@ -385,6 +430,7 @@ pub fn parse(yaml: &str) -> SessionData {
         sd.tire_types.push(t);
     }
     sd.tire_types.retain(|(i, _)| *i >= 0);
+    sd.qualify_grid = qualify_grid(yaml);
     sd
 }
 
@@ -461,6 +507,13 @@ SplitTimeInfo:
  Sectors:
  - SectorNum: 0
 ";
+
+    #[test]
+    fn parses_qualify_grid() {
+        let y = "WeekendInfo:\n TrackName: x\nQualifyResultsInfo:\n Results:\n - Position: 1\n   ClassPosition: 1\n   CarIdx: 7\n   FastestTime: 90.1\n - Position: 0\n   ClassPosition: 0\n   CarIdx: 3\n   FastestTime: 89.9\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Race\n";
+        assert_eq!(qualify_grid(y), vec![(0, 3), (1, 7)]);
+        assert!(qualify_grid("QualifyResultsInfo: null\n").is_empty());
+    }
 
     #[test]
     fn parses_camera_groups() {

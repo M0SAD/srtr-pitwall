@@ -6,6 +6,8 @@
 import { AdminHorns } from "../components/AdminHorns";
 import { hashColor, initialOf } from "@/cloud/social";
 import { adminOverview, refreshAdminOverview } from "@/cloud/adminOverview";
+import { session } from "@/cloud/supabase";
+import * as I from "../icons";
 import { AdminPayMethods } from "../components/AdminPayMethods";
 import { For, Match, Show, Switch, createEffect, createResource, createSignal, on, onCleanup, onMount } from "solid-js";
 import { localeTag, t } from "@/sdk/i18n";
@@ -17,6 +19,7 @@ import {
   adminStats,
   adminSubscriptions,
   adminUsers,
+  adminDeleteUser,
   config,
   isAdmin,
   isOwner,
@@ -276,6 +279,10 @@ function Members(props: { run: Run }) {
     }, "");
   onMount(() => (search(), void refreshAdminOverview()));
   const [editing, setEditing] = createSignal<AdminUser | null>(null);
+  const [deleting, setDeleting] = createSignal<AdminUser | null>(null);
+  const me = () => session()?.user.id ?? "";
+  /** Silinebilir mi: kendisi ve sahip değil; yöneticiyi yalnızca sahip siler */
+  const canDelete = (u: AdminUser) => u.id !== me() && !u.is_owner && (!u.is_admin || isOwner());
   return (
     <section class="panel admin-panel">
       <h3>Üyeler</h3>
@@ -304,7 +311,7 @@ function Members(props: { run: Run }) {
         )}
       </Show>
       <div class="cm-tabs">
-        <For each={[["all", "Tüm kayıtlılar"], ["pro", "PRO üyeler"], ["online", "Çevrimiçi"], ["admin", "Yöneticiler"]] as const}>
+        <For each={[["all", "Tüm kayıtlılar"], ["pro", "PRO üyeler"], ["online", "Çevrimiçi"], ["admin", "Yöneticiler"], ["dup", "Aynı e-posta"]] as const}>
           {([id, label]) => (
             <button classList={{ on: filter() === id }} onClick={() => (setFilter(id), search())}>
               {label}
@@ -382,6 +389,11 @@ function Members(props: { run: Run }) {
                   <button class="btn small" title="Gün ekle / çıkar, tarih ayarla, süresiz ya da kaldır; istersen kullanıcıya bildir" onClick={() => setEditing(u)}>
                     PRO süresini düzenle
                   </button>
+                  <Show when={canDelete(u)}>
+                    <button class="btn ghost small danger" title="Hesabı ve tüm kayıtlarını kalıcı olarak sil (onay istenir)" onClick={() => setDeleting(u)}>
+                      <I.Trash /> Üyeyi sil
+                    </button>
+                  </Show>
                 </div>
                 <Show when={isOwner() && !u.is_owner}>
                   <div class="btns owner-row">
@@ -429,10 +441,80 @@ function Members(props: { run: Run }) {
           Daha fazla
         </button>
       </Show>
+      <Show when={deleting()}>
+        <DeleteMember
+          user={deleting()!}
+          onClose={() => setDeleting(null)}
+          onDone={(id) => {
+            setUsers(users().filter((x) => x.id !== id));
+            setDeleting(null);
+            void refreshAdminOverview();
+          }}
+        />
+      </Show>
       <Show when={editing()}>
         <ProEditor user={editing()!} run={props.run} onClose={() => setEditing(null)} onDone={() => adminUsers(q().trim(), filter(), 0).then((rows) => rows && setUsers(rows)).catch(() => {})} />
       </Show>
     </section>
+  );
+}
+
+/** Üye silme onayı: yanlışlıkla silmeyi önlemek için e-posta adresi (yoksa adı) yazılınca silinir */
+function DeleteMember(p: { user: AdminUser; onClose: () => void; onDone: (id: string) => void }) {
+  const key = () => (p.user.email || p.user.display_name || "").trim();
+  const [typed, setTyped] = createSignal("");
+  const [busy, setBusy] = createSignal(false);
+  const [err, setErr] = createSignal("");
+  const ok = () => !!key() && typed().trim().toLowerCase() === key().toLowerCase();
+  const del = async () => {
+    if (!ok() || busy()) return;
+    setBusy(true);
+    setErr("");
+    try {
+      await adminDeleteUser(p.user.id);
+      p.onDone(p.user.id);
+    } catch (e) {
+      const m = String((e as Error)?.message ?? e);
+      setErr(/admin_delete_user|schema cache|404/i.test(m) ? "Sunucuda silme işlevi yok: Supabase'de c139_guncelleme.sql çalıştırılmalı" : m);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div class="modal-back" onClick={(e) => e.target === e.currentTarget && !busy() && p.onClose()}>
+      <div class="modal del-member">
+        <header>
+          <h3>Üye silinsin mi?</h3>
+          <button class="icon-btn" title="Kapat" disabled={busy()} onClick={p.onClose}>
+            <I.X />
+          </button>
+        </header>
+        <p>
+          <b data-no-i18n>{p.user.display_name || "(adsız)"}</b>{" "}
+          <span class="muted" data-no-i18n>
+            {p.user.email}
+          </span>
+        </p>
+        <p class="del-warn">
+          Hesap ve ona bağlı her şey (profil, ayarlar, PRO kaydı, arkadaşlıklar, mesajlar…) <b>kalıcı olarak</b> silinir. Bu işlem geri alınamaz.
+        </p>
+        <label class="muted small">
+          Onaylamak için üyenin {p.user.email ? "e-posta adresini" : "adını"} yaz: <b data-no-i18n>{key()}</b>
+        </label>
+        <input class="input" value={typed()} onInput={(e) => setTyped(e.currentTarget.value)} onKeyDown={(e) => e.key === "Enter" && void del()} autofocus data-no-i18n />
+        <Show when={err()}>
+          <p class="error small">{err()}</p>
+        </Show>
+        <div class="btns">
+          <button class="btn ghost" disabled={busy()} onClick={p.onClose}>
+            Vazgeç
+          </button>
+          <button class="btn danger" disabled={!ok() || busy()} onClick={del}>
+            <I.Trash /> {busy() ? "Siliniyor…" : "Kalıcı olarak sil"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
