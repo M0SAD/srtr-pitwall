@@ -1577,8 +1577,10 @@ mod imp {
                                 .iter()
                                 .filter_map(|k| k.3.map(|(v, p, _)| (v, p))),
                         );
-                        let two = devs.iter().any(|d| *d != devs[0]);
-                        input.pump(cap.is_some() || two, devs.first().copied());
+                        devs.sort_unstable();
+                        devs.dedup();
+                        // Yakalamada tüm aygıtlar; değilse yalnızca düğme atanmış aygıtlar (birden çok olabilir)
+                        input.pump(cap.is_some(), &devs);
 
                         // Düğme yakalama ("Direksiyon tuşu ata")
                         if let Some(until) = cap {

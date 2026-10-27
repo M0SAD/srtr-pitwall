@@ -1,8 +1,9 @@
 #![cfg_attr(not(windows), allow(dead_code))]
 //! Bilgisayara bağlı direksiyonu bulur (Pedallar & Girdi overlay'indeki "bağlı direksiyona göre" görsel seçimi).
 //!
-//! Windows: WinMM (`joyGetDevCapsW` / `joyGetPosEx`) ile takılı oyun kumandaları listelenir; ürün adı kayıt
-//! defterindeki OEMName değerinden okunur (WinMM adı çoğu zaman genel "PC-joystick" olur).
+//! Windows: takılı oyun kumandaları Raw Input aygıt listesinden okunur (ptt_win::game_devices; WinMM kullanılmaz:
+//! sürücü kodunu süreç içinde çalıştırıp direksiyon kapatılıp açılırken programı çökertiyordu); ürün adı kayıt
+//! defterindeki OEMName değerinden, yoksa HID ürün adından.
 //! Aygıt, USB üretici numarası (VID) ve ürün adına göre genel bir direksiyon biçimine eşlenir:
 //! `round` (yuvarlak), `gt` (altı düz / D biçimli), `formula` (dikdörtgen), `truck` (büyük çaplı kamyon).
 //! Bu yalnızca bir TAHMİNDİR: direksiyon tabanı çoğu zaman takılı simidin modelini bildirmez; overlay de
@@ -101,10 +102,6 @@ fn make(name: String, vid: u16, pid: u16) -> WheelDev {
 
 #[cfg(windows)]
 fn enumerate() -> Vec<WheelDev> {
-    use windows_sys::Win32::Media::Multimedia::{
-        joyGetDevCapsW, joyGetNumDevs, joyGetPosEx, JOYCAPSW, JOYERR_NOERROR, JOYINFOEX,
-        JOY_RETURNBUTTONS,
-    };
     use windows_sys::Win32::System::Registry::{
         RegGetValueW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ,
     };
@@ -139,46 +136,16 @@ fn enumerate() -> Vec<WheelDev> {
         None
     }
 
-    let mut out: Vec<WheelDev> = Vec::new();
-    unsafe {
-        let _joy = crate::ptt_win::JOY_LOCK.lock();
-        crate::crashlog::crumb("wheel:detect");
-        let n = joyGetNumDevs().min(16);
-        for id in 0..n {
-            let mut caps: JOYCAPSW = std::mem::zeroed();
-            if joyGetDevCapsW(
-                id as usize,
-                &mut caps,
-                std::mem::size_of::<JOYCAPSW>() as u32,
-            ) != JOYERR_NOERROR
-            {
-                continue;
-            }
-            // Takılı mı: konum okunabiliyorsa
-            let mut ji: JOYINFOEX = std::mem::zeroed();
-            ji.dwSize = std::mem::size_of::<JOYINFOEX>() as u32;
-            ji.dwFlags = JOY_RETURNBUTTONS as u32;
-            if joyGetPosEx(id, &mut ji) != JOYERR_NOERROR {
-                continue;
-            }
-            let (vid, pid) = (caps.wMid, caps.wPid);
-            if out.iter().any(|d| d.vid == vid && d.pid == pid) {
-                continue;
-            }
-            let pname = caps.szPname;
-            let end = pname.iter().position(|&c| c == 0).unwrap_or(pname.len());
-            let mm = String::from_utf16_lossy(&pname[..end]).trim().to_string();
-            let name = oem_name(vid, pid).unwrap_or(
-                if mm.is_empty() || mm.to_lowercase().contains("pc-joystick") {
-                    format!("Joystick {vid:04X}:{pid:04X}")
-                } else {
-                    mm
-                },
-            );
-            out.push(make(name, vid, pid));
-        }
-    }
-    out
+    // Raw Input aygıt listesinden (WinMM / sürücü kodu çağrılmaz: direksiyon kapatılıp açılırken ya da simit
+    // değiştirilirken programı çökertiyordu)
+    crate::crashlog::crumb("wheel:detect");
+    crate::ptt_win::game_devices()
+        .into_iter()
+        .map(|(hid_name, vid, pid)| {
+            let name = oem_name(vid, pid).unwrap_or(if hid_name.is_empty() { format!("Joystick {vid:04X}:{pid:04X}") } else { hid_name });
+            make(name, vid, pid)
+        })
+        .collect()
 }
 
 #[cfg(not(windows))]

@@ -3409,6 +3409,21 @@ fn setup_shortcuts(app: &AppHandle, saved: Option<&Value>) {
 pub fn run() {
     // Çökme günlüğü (crash.log) ve panic kancası: her şeyden önce
     crashlog::install();
+    // Program yine de çökerse Windows onu kendiliğinden yeniden açsın (en az 60 sn çalışmış olmalı; güncelleme ve
+    // yeniden başlatmada açmaz). Overlay'ler ve pencereler kaldığı yerden gelir.
+    #[cfg(windows)]
+    {
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn RegisterApplicationRestart(cmd: *const u16, flags: u32) -> i32;
+        }
+        // RESTART_NO_PATCH (4) | RESTART_NO_REBOOT (8): yalnızca çökme / donma sonrası
+        let args: Vec<u16> = "--restarted\0".encode_utf16().collect();
+        // SAFETY: sıfır sonlu UTF-16 dizi; Windows kopyalar
+        unsafe {
+            RegisterApplicationRestart(args.as_ptr(), 4 | 8);
+        }
+    }
     startup::boot_step("başladı");
     // Donmuş eski kopya varsa yeni kopya ona ileti gönderirken sonsuza dek bekliyordu: önce yoklanır.
     // Ad, tauri.conf.json "identifier" ile aynı olmalı (tek örnek eklentisinin mutex / pencere adları).

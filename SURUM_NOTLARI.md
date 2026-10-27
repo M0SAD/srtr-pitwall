@@ -3,6 +3,15 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 271026-438
+
+- Kapanma (direksiyonu kapatıp açınca, simit değiştirirken, durup dururken): Windows'un eski oyun kumandası işlevleri (WinMM joyGetPosEx / joyGetDevCaps) programdan tamamen kaldırıldı. Bu işlevler direksiyon sürücüsünün kodunu programın içinde çalıştırıyordu; sürücü yeniden yüklenirken (direksiyon kapatılıp açılınca, simit değişince — simit ayrı bir aygıt olarak bağlanıp kopar) program çöküyordu. Düğmeler artık yalnızca Raw Input'tan (çekirdekten gelen ham HID raporları; sürücü kodu programda çalışmaz) okunur; Pedallar & Girdi'nin bağlı direksiyonu algılaması da Raw Input aygıt listesinden. (WinMM yalnızca HID raporu çözülemeyen nadir aygıtlar için yedekti.)
+- Program yine de çökerse Windows onu kendiliğinden yeniden açar (en az 60 sn çalışmışsa); crash.log'a not düşülür.
+
+## 261026-437
+
+- Direksiyonu kapatıp açınca program kapanıyordu. Direksiyon / button box düğmeleri iki yoldan okunuyordu: Raw Input ve yedek olarak Windows'un eski oyun kumandası işlevleri (WinMM; direksiyon sürücüsünün kodunu programın içinde çalıştırır). Düğmeler birden çok aygıta atanmışsa (ör. korna direksiyonda, müzik button box'ta) WinMM saniyede ~100 kez tüm aygıtlar için yoklanıyordu; direksiyon kapatılıp açılırken sürücü yeniden yüklenirken yapılan bu çağrılar programı çökertiyordu (önceki "durup dururken kapanma" bellek bozulmalarının da muhtemel kaynağı). Artık: Raw Input'tan sorunsuz okunan aygıtlar için WinMM hiç çağrılmaz (birden çok aygıtta da); bir aygıt takılıp çıkarılınca (Windows bildirir) 6 sn boyunca WinMM'e dokunulmaz, aygıt listesi yeniden okunur; direksiyon algılama da bu sürede son bulunan listeyi kullanır.
+
 ## 261026-436
 
 - Yönetim › Üyeler: "Üyeyi sil". Hesap ve ona bağlı tüm kayıtlar (profil, ayarlar, PRO kaydı, arkadaşlıklar, mesajlar…) kalıcı olarak silinir. Yanlışlıkla silmeye karşı onay penceresi açılır ve üyenin e-posta adresi (yoksa adı) yazılmadan silme düğmesi çalışmaz. Kendi hesabın ve sahip hesabı silinemez; başka bir yöneticiyi yalnızca sahip silebilir. Supabase'de c139_guncelleme.sql çalıştırılmalı.

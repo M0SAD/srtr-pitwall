@@ -327,6 +327,9 @@ pub fn session_start(dir: &std::path::Path) {
                 });
         }
     }
+    if std::env::args().any(|a| a == "--restarted") {
+        note("program çöktükten sonra Windows tarafından kendiliğinden yeniden açıldı");
+    }
     SESSION_START.store(now_secs(), Ordering::Relaxed);
     *SESSION.lock().unwrap_or_else(|e| e.into_inner()) = Some(p.clone());
     let _ = std::fs::write(&p, session_text());

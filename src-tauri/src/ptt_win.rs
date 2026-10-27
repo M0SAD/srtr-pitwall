@@ -6,7 +6,8 @@
 //!   1. Raw Input (HID): `RegisterRawInputDevices` + `RIDEV_INPUTSINK` ile pencere arka plandayken de WM_INPUT gelir;
 //!      rapor `HidP_GetUsages` (Button sayfası 0x09) ile çözülür. Düğme sayısı sınırı yoktur (32'den fazla düğmeli
 //!      direksiyonlar, düğme kutuları).
-//!   2. WinMM `joyGetPosEx`: en çok 16 aygıt, aygıt başına ilk 32 düğme; HID çözümlemesi başarısız olursa yedek.
+//!   2. (Kaldırıldı) WinMM `joyGetPosEx` yedeği: direksiyon sürücüsünün kodunu süreç içinde çalıştırıyordu; direksiyon
+//!      kapatılıp açılırken / simit değiştirilirken programı çökertiyordu. Artık yalnızca Raw Input.
 //! Aygıt kimliği iki yolda da USB üretici / ürün numarasıdır (VID:PID); düğme numarası 0'dan başlar
 //! (HID Button usage N → N-1, WinMM bit N).
 //!
@@ -16,15 +17,11 @@
 //! Bu dosya bilerek kendi başına (sadece std + windows-sys) yazıldı: Linux'ta da tip denetimi yapılabilsin.
 
 use std::collections::{HashMap, HashSet};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use windows_sys::Win32::Devices::HumanInterfaceDevice::{
     HidD_GetProductString, HidP_GetUsages, HidP_Input, HIDP_STATUS_SUCCESS,
 };
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, INVALID_HANDLE_VALUE, SYSTEMTIME};
-use windows_sys::Win32::Media::Multimedia::{
-    joyGetDevCapsW, joyGetNumDevs, joyGetPosEx, JOYCAPSW, JOYERR_NOERROR, JOYINFOEX,
-    JOY_RETURNBUTTONS,
-};
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
 };
@@ -99,6 +96,7 @@ impl HidDev {
     }
 }
 
+#[allow(dead_code)]
 struct MmDev {
     id: u32,
     vid: u16,
@@ -118,10 +116,68 @@ pub struct Input {
     pub raw_ok: bool,
 }
 
-/// WinMM oyun kumandası işlevleri (joyGetNumDevs / joyGetDevCapsW / joyGetPosEx) iş parçacığı güvenli değil: aynı anda
-/// iki iş parçacığından çağrılınca (giriş döngüsü + direksiyon algılama) süreç belleği bozulabiliyor. Tüm çağrılar bu
-/// kilitle sıraya girer (wheeldev.rs de kullanır).
-pub static JOY_LOCK: parking_lot::Mutex<()> = parking_lot::const_mutex(());
+
+/// Bir oyun kumandası takılıp çıkarılınca (direksiyon kapatılıp açılınca) WinMM bir süre hiç çağrılmaz: sürücü yeniden
+/// yüklenirken yapılan joyGetDevCaps / joyGetPosEx çağrıları programı çökertebiliyor. Değer: Instant yerine
+/// açılıştan beri ms (atomik).
+static JOY_QUIET_UNTIL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+const JOY_QUIET_MS: u64 = 6000;
+
+fn mono_ms() -> u64 {
+    static T0: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    T0.get_or_init(Instant::now).elapsed().as_millis() as u64
+}
+
+/// WinMM şu an çağrılabilir mi (son aygıt değişikliğinden beri yeterince zaman geçti)
+pub fn joy_ready() -> bool {
+    mono_ms() >= JOY_QUIET_UNTIL.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+fn joy_quiet() {
+    JOY_QUIET_UNTIL.store(mono_ms() + JOY_QUIET_MS, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Takılı oyun kumandaları (Raw Input aygıt listesi; sürücü kodu çağrılmaz): (ad, VID, PID), VID:PID başına bir kez.
+/// Genel Masaüstü sayfası: joystick (0x04), gamepad (0x05), çok eksenli kumanda (0x08; direksiyonlar).
+pub fn game_devices() -> Vec<(String, u16, u16)> {
+    use windows_sys::Win32::UI::Input::{GetRawInputDeviceList, RAWINPUTDEVICELIST};
+    let mut out: Vec<(String, u16, u16)> = Vec::new();
+    unsafe {
+        let mut n: u32 = 0;
+        let sz = std::mem::size_of::<RAWINPUTDEVICELIST>() as u32;
+        if GetRawInputDeviceList(std::ptr::null_mut(), &mut n, sz) == u32::MAX || n == 0 || n > 512 {
+            return out;
+        }
+        let mut list: Vec<RAWINPUTDEVICELIST> = vec![std::mem::zeroed(); n as usize + 8];
+        let mut cap = list.len() as u32;
+        let got = GetRawInputDeviceList(list.as_mut_ptr(), &mut cap, sz);
+        if got == u32::MAX {
+            return out;
+        }
+        for d in list.iter().take((got as usize).min(list.len())) {
+            if d.dwType != RIM_TYPEHID {
+                continue;
+            }
+            let mut info: RID_DEVICE_INFO = std::mem::zeroed();
+            info.cbSize = std::mem::size_of::<RID_DEVICE_INFO>() as u32;
+            let mut size = info.cbSize;
+            if GetRawInputDeviceInfoW(d.hDevice, RIDI_DEVICEINFO, &mut info as *mut _ as *mut _, &mut size) as i32 <= 0 || info.dwType != RIM_TYPEHID {
+                continue;
+            }
+            let hid = info.Anonymous.hid;
+            if hid.usUsagePage != 0x01 || !matches!(hid.usUsage, 0x04 | 0x05 | 0x08) {
+                continue;
+            }
+            let (vid, pid) = (hid.dwVendorId as u16, hid.dwProductId as u16);
+            if out.iter().any(|x| x.1 == vid && x.2 == pid) {
+                continue;
+            }
+            let name = Input::device_info(d.hDevice).map(|h| h.name).unwrap_or_default();
+            out.push((name, vid, pid));
+        }
+    }
+    out
+}
 
 fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
@@ -190,20 +246,26 @@ impl Input {
 
     /// Bekleyen iletileri işle (WM_INPUT) ve WinMM aygıtlarını yokla. `all`: tüm WinMM aygıtları (yakalama),
     /// değilse yalnız `want` (VID, PID) aygıtı.
-    pub fn pump(&mut self, all: bool, want: Option<(u16, u16)>) {
+    pub fn pump(&mut self, all: bool, want: &[(u16, u16)]) {
         unsafe {
             let mut msg: MSG = std::mem::zeroed();
             while PeekMessageW(&mut msg, std::ptr::null_mut(), 0, 0, PM_REMOVE) != 0 {
                 if msg.message == WM_INPUT {
                     self.on_input(msg.lParam as HANDLE);
-                } else if msg.message == WM_INPUT_DEVICE_CHANGE && msg.wParam == 2 {
-                    // GIDC_REMOVAL: aygıt çıkarıldı
-                    self.hid.remove(&(msg.lParam as usize));
+                } else if msg.message == WM_INPUT_DEVICE_CHANGE {
+                    // GIDC_ARRIVAL (1) / GIDC_REMOVAL (2): direksiyon takıldı / çıkarıldı (kapatılıp açıldı)
+                    crate::crashlog::crumb("ptt:device-change");
+                    joy_quiet();
+                    self.mm.clear();
+                    self.mm_scan = None;
+                    if msg.wParam == 2 {
+                        self.hid.remove(&(msg.lParam as usize));
+                    }
                 }
                 DispatchMessageW(&msg);
             }
         }
-        if all || want.is_some() {
+        if all || !want.is_empty() {
             self.poll_mm(all, want);
         } else {
             for d in self.mm.iter_mut() {
@@ -362,81 +424,11 @@ impl Input {
         }
     }
 
-    fn poll_mm(&mut self, all: bool, want: Option<(u16, u16)>) {
-        // Atanan düğmenin aygıtı Raw Input'tan sorunsuz okunuyorsa WinMM yoklanmaz (saniyede ~100 sürücü çağrısı
-        // gereksiz; WinMM yalnızca HID çözümlemesi başarısız olan aygıtlar için yedek)
-        if !all {
-            if let Some((vid, pid)) = want {
-                if self.hid.values().any(|d| d.vid == vid && d.pid == pid && !d.reports.is_empty()) {
-                    for d in self.mm.iter_mut() {
-                        d.buttons = 0;
-                    }
-                    return;
-                }
-            }
-        }
-        crate::crashlog::crumb("ptt:joystick");
-        let _joy = JOY_LOCK.lock();
-        let rescan = self
-            .mm_scan
-            .map(|t| t.elapsed() > Duration::from_secs(3))
-            .unwrap_or(true);
-        unsafe {
-            if rescan {
-                self.mm_scan = Some(Instant::now());
-                let old: HashMap<u32, u32> = self.mm.iter().map(|d| (d.id, d.buttons)).collect();
-                self.mm.clear();
-                let n = joyGetNumDevs().min(16);
-                for id in 0..n {
-                    let mut caps: JOYCAPSW = std::mem::zeroed();
-                    if joyGetDevCapsW(
-                        id as usize,
-                        &mut caps,
-                        std::mem::size_of::<JOYCAPSW>() as u32,
-                    ) != JOYERR_NOERROR
-                    {
-                        continue;
-                    }
-                    // Takılı mı: konum okunabiliyorsa
-                    let mut ji: JOYINFOEX = std::mem::zeroed();
-                    ji.dwSize = std::mem::size_of::<JOYINFOEX>() as u32;
-                    ji.dwFlags = JOY_RETURNBUTTONS as u32;
-                    if joyGetPosEx(id, &mut ji) != JOYERR_NOERROR {
-                        continue;
-                    }
-                    let (vid, pid) = (caps.wMid, caps.wPid);
-                    let pname = caps.szPname;
-                    let mut name = from_wide(&pname);
-                    // WinMM adı çoğu zaman genel ("Microsoft PC-joystick driver"): HID adını yeğle
-                    if let Some(h) = self.hid.values().find(|h| h.vid == vid && h.pid == pid) {
-                        name = h.name.clone();
-                    } else if name.is_empty() || name.to_lowercase().contains("pc-joystick") {
-                        name = format!("Joystick {vid:04X}:{pid:04X}");
-                    }
-                    self.mm.push(MmDev {
-                        id,
-                        vid,
-                        pid,
-                        name,
-                        buttons: old.get(&id).copied().unwrap_or(0),
-                    });
-                }
-            }
-            for d in self.mm.iter_mut() {
-                if !all && want != Some((d.vid, d.pid)) {
-                    d.buttons = 0;
-                    continue;
-                }
-                let mut ji: JOYINFOEX = std::mem::zeroed();
-                ji.dwSize = std::mem::size_of::<JOYINFOEX>() as u32;
-                ji.dwFlags = JOY_RETURNBUTTONS as u32;
-                d.buttons = if joyGetPosEx(d.id, &mut ji) == JOYERR_NOERROR {
-                    ji.dwButtons
-                } else {
-                    0
-                };
-            }
-        }
+    /// WinMM (joyGetPosEx) artık hiç çağrılmaz: direksiyon sürücüsünün kodunu programın içinde çalıştırıyordu ve
+    /// direksiyon kapatılıp açılırken / simit değiştirilirken (sürücü yeniden yüklenirken) programı çökertiyordu.
+    /// Düğmeler yalnızca Raw Input'tan (çekirdekten gelen ham HID raporları, sürücü kodu süreçte çalışmaz) okunur.
+    fn poll_mm(&mut self, _all: bool, _want: &[(u16, u16)]) {
+        self.mm.clear();
     }
 
     /// Bu aygıtın bu düğmesi şu an basılı mı (HID ya da WinMM)
