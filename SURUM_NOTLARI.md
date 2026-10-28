@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 281026-439
+
+- Lastik değişimini otomatik kapat: artık her oturumda (yarış oturumu) yalnızca BİR KEZ, araca ilk binildiğinde çalışır. Önceden aracın "pistte / sürüyor" durumu bir an düşüp geri gelince (pite girme, sıfırlama, kısa bağlantı kopması) komut yeniden gönderiliyordu: sürücü pit stoptan önce lastik değişimini kendisi açsa da tekrar kapatılıyordu. Oturum, iRacing oturum kimliği ve oturum numarasıyla tanınır; program yarış ortasında yeniden açılsa da aynı oturumda tekrar kapatmaz.
+
 ## 271026-438
 
 - Kapanma (direksiyonu kapatıp açınca, simit değiştirirken, durup dururken): Windows'un eski oyun kumandası işlevleri (WinMM joyGetPosEx / joyGetDevCaps) programdan tamamen kaldırıldı. Bu işlevler direksiyon sürücüsünün kodunu programın içinde çalıştırıyordu; sürücü yeniden yüklenirken (direksiyon kapatılıp açılınca, simit değişince — simit ayrı bir aygıt olarak bağlanıp kopar) program çöküyordu. Düğmeler artık yalnızca Raw Input'tan (çekirdekten gelen ham HID raporları; sürücü kodu programda çalışmaz) okunur; Pedallar & Girdi'nin bağlı direksiyonu algılaması da Raw Input aygıt listesinden. (WinMM yalnızca HID raporu çözülemeyen nadir aygıtlar için yedekti.)

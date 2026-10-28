@@ -25,6 +25,9 @@ export interface Status {
   track: string;
   trackId: number;
   seriesId: number;
+  /** iRacing SubSessionID ve oturum numarası ("bu oturumda bir kez" işlemleri) */
+  subSessionId?: number;
+  sessionNum?: number;
   category: string;
   carName: string;
   carPath: string;

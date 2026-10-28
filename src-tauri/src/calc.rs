@@ -39,6 +39,9 @@ pub struct Status {
     pub track: String,
     pub track_id: i32,
     pub series_id: i32,
+    /// iRacing oturum kimliği (SubSessionID) ve oturum numarası: "bu yarışta bir kez" işlemleri için
+    pub sub_session_id: i64,
+    pub session_num: i32,
     pub category: String,
     pub car_name: String,
     pub car_path: String,
@@ -723,6 +726,8 @@ pub fn status(f: &Frame, s: &SessionData, connected: bool, demo: bool, preview: 
         track: s.track_name.clone(),
         track_id: s.track_id,
         series_id: s.series_id,
+        sub_session_id: s.sub_session_id,
+        session_num: f.session_num,
         category: s.category.clone(),
         car_name: me.map(|d| d.car_name.clone()).unwrap_or_default(),
         user_id: me.map(|d| d.user_id).unwrap_or(0),
