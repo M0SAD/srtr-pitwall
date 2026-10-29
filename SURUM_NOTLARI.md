@@ -3,6 +3,11 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 291026-446
+
+- Ses odası: konuşma takılıyordu (kesik kesik / cızırtılı ses). Odadakilerin sesi, mikrofon zinciriyle (RNNoise gürültü engelleme) aynı ses bağlamında en küçük tamponla çalınıyordu; oyun işlemciyi yorunca gürültü engelleme bir an geç kalınca hem gelen ses hem giden mikrofon sesi takılıyordu. Artık gelen ses ayrı bir ses bağlamında (kendi ses iş parçacığı), takılmaya dayanıklı daha geniş tamponla ve ses kartının kendi örnekleme hızında çalınır; mikrofon zinciri de biraz daha geniş tamponla çalışır. Ses odası overlay'ine giden veride gereksiz tekrarlanan iş azaltıldı.
+- Webview: YouTube videosu denetimi. Düzenleme modunda videonun altında denetim çubuğu (geri / ileri sar, durdur / oynat, ilerleme çubuğu, süre, ses ve sessize al). Yarışta denetlemek için klavye tuşu / direksiyon düğmesi atanabilir (overlay ayarları › Video denetimi: durdur / oynat, geri sar, ileri sar, sesi aç, sesi kıs, sessize al); denetimde videonun köşesinde kısa bilgi (+10 sn, Ses %60). Sarma adımı ve ses adımı ayarlanır. (Twitch / Kick oynatıcıları dışarıdan denetlenemez.)
+
 ## 291026-445
 
 - Hesaptan çıkış yapınca ses odasında kalınıyordu (başkaları odada görmeye devam ediyordu). Artık çıkışta önce ses odasından ayrılınır: mikrofon kapanır, bağlantı kesilir, ayrılma bildirimi oturum kapanmadan sunucuya gönderilir. Oturum başka yoldan kapanırsa (süresi dolması, başka pencereden çıkış, hesap değişmesi) da odadan çıkılır.

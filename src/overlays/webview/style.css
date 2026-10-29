@@ -28,3 +28,63 @@
   position: absolute;
   inset: 0;
 }
+
+/* Kısa denetim bilgisi (+10 sn, Ses %60) */
+.webv-osd {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Düzenleme modunda YouTube denetim çubuğu */
+.webv-ctl {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(10, 12, 16, 0.85);
+  color: #fff;
+  font-size: 12px;
+}
+.webv-ctl button {
+  flex: none;
+  min-width: 28px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.webv-ctl button:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.webv-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.webv-seek {
+  flex: 1;
+  min-width: 40px;
+}
+.webv-vol {
+  flex: none;
+  width: 70px;
+}

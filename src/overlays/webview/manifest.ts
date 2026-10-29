@@ -34,6 +34,17 @@ export default defineOverlay({
       ],
       hint: "Sayfanın sesi tek bir yerden gelir; panel önizlemesi ve VR pencereleri hep sessizdir (ses iki kez duyulmaz). OBS kaynağını da ekrandaki overlay'i de yakalıyorsan yayında ses iki kez çıkmasın diye birini seç. YouTube, Twitch ve Kick oynatıcıları kendiliğinden sessize alınır; diğer sitelerde OBS kaynağının kendi ses ayarını kullan.",
     },
+    { key: "seekStep", label: "İleri / geri sarma adımı", type: "number", default: 10, min: 5, max: 120, step: 5, unit: "sn", group: "Video denetimi" },
+    { key: "volStep", label: "Ses adımı", type: "number", default: 10, min: 5, max: 25, step: 5, unit: "%", group: "Video denetimi" },
+    { key: "osd", label: "Denetimde kısa bilgi göster (ör. +10 sn, Ses %60)", type: "boolean", default: true, group: "Video denetimi" },
+    {
+      key: "controls",
+      label: "Düzenleme modunda denetim çubuğu",
+      type: "boolean",
+      default: true,
+      group: "Video denetimi",
+      hint: "YouTube videolarında: durdur / oynat, geri / ileri sar, ilerleme çubuğu ve ses. Yarışta overlay'e tıklanamaz; bunun için yukarıdan tuş / direksiyon düğmesi ata.",
+    },
     { key: "transparent", label: "Şeffaf arka plan", type: "boolean", default: true },
     {
       key: "reload",

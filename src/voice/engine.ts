@@ -143,7 +143,10 @@ let mic: MediaStream | null = null;
 let chain: MicChain | null = null;
 let micTx: RTCRtpTransceiver | null = null;
 let chan: RealtimeChannel | null = null;
+/** Mikrofon zinciri (RNNoise, kapı, ölçer): 48 kHz, düşük gecikme */
 let ctx: AudioContext | null = null;
+/** Odadakilerin sesi ve kısa sesler: ayrı ses bağlamı, daha geniş tampon */
+let playCtx: AudioContext | null = null;
 let timers: number[] = [];
 let expiryTimer = 0;
 let joinArgs: { room: string | null; code: string | null } | null = null;
@@ -179,7 +182,8 @@ function audioCtx(): AudioContext {
   if (!ctx) {
     // RNNoise 48 kHz ister
     try {
-      ctx = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
+      // "balanced": biraz daha geniş tampon (oyun işlemciyi yorunca RNNoise geç kalırsa giden ses kesilmesin)
+      ctx = new AudioContext({ sampleRate: 48000, latencyHint: "balanced" });
     } catch {
       ctx = new AudioContext();
     }
@@ -187,6 +191,25 @@ function audioCtx(): AudioContext {
   }
   if (ctx.state === "suspended") void ctx.resume().catch(() => {});
   return ctx;
+}
+
+/**
+ * Çalma bağlamı. Önceden odadakilerin sesi mikrofon zinciriyle (RNNoise gürültü engelleme) aynı ses bağlamında, en
+ * küçük tamponla çalınıyordu: oyun işlemciyi yorunca RNNoise bir an geç kalınca hem gelen ses hem giden mikrofon
+ * sesi takılıyordu (cızırtı / kesik kesik ses). Artık çalma ayrı bağlamda (kendi ses iş parçacığı), "playback"
+ * gecikmesiyle (~40 ms tampon, takılmaya dayanıklı) ve ses kartının kendi örnekleme hızında (dönüştürme yok).
+ */
+function playAudioCtx(): AudioContext {
+  if (!playCtx) {
+    try {
+      playCtx = new AudioContext({ latencyHint: "playback" });
+    } catch {
+      playCtx = new AudioContext();
+    }
+    void applyOutput();
+  }
+  if (playCtx.state === "suspended") void playCtx.resume().catch(() => {});
+  return playCtx;
 }
 
 // ---- Yayın çıkışı: ikinci ses bağlamı, seçilen aygıta çalar (OBS "Ses Girişi Yakalama" ile alınır)
@@ -249,8 +272,7 @@ async function applyOutput() {
   await fixDevices({ get: streamDevice, set: setStreamDevice });
   const dev = outputDevice();
   // deno-lint-ignore no-explicit-any
-  const c = ctx as any;
-  if (c?.setSinkId) await c.setSinkId(dev || "").catch(() => {});
+  for (const x of [ctx, playCtx] as any[]) if (x?.setSinkId) await x.setSinkId(dev || "").catch(() => {});
 }
 
 /** Opus: DTX (sessizken neredeyse sıfır veri), FEC, mono ~32 kbps */
@@ -893,7 +915,7 @@ function onTrack(e: RTCTrackEvent) {
   let gain: GainNode | null = null;
   let src: MediaStreamAudioSourceNode | null = null;
   try {
-    const c = audioCtx();
+    const c = playAudioCtx();
     src = c.createMediaStreamSource(stream);
     gain = c.createGain();
     src.connect(gain);
@@ -908,8 +930,8 @@ function onTrack(e: RTCTrackEvent) {
   attachStream(p);
   applyVolume(p);
   // Seviye ölçer (konuşma göstergesi; ses iş parçacığında, panel gizliyken de çalışır)
-  if (src && ctx) {
-    void meterNode(ctx, (db) => noteLevel(user, db)).then((m) => {
+  if (src && playCtx) {
+    void meterNode(playCtx, (db) => noteLevel(user, db)).then((m) => {
       if (!m) return;
       if (pulled.get(target) !== p) return m.disconnect();
       p.meter = m;
@@ -971,7 +993,7 @@ export function toggleLocalMute(user: string) {
 function cue(kind: "join" | "leave" | "grant" | "end") {
   if (!cueSounds()) return;
   try {
-    const c = audioCtx();
+    const c = playAudioCtx();
     const o = c.createOscillator();
     const g = c.createGain();
     const f = {
@@ -1017,13 +1039,19 @@ export async function audioDevices(): Promise<{
 // ---------------------------------------------------------------------------
 
 let lastOverlay = "";
+let avatarIds = "";
 function overlayData(): VoiceOverlayData {
   const r = room();
   if (!r || status() === "idle" || status() === "error") return { room: null, mode: "", members: [] };
   const me = uid();
   const now = voice.now();
   // Yuvarlak görünümler için fotoğraflar (bilinmeyenler bir kez getirilir; gelince sonraki gönderimde görünür)
-  void loadAvatars(members().map((m) => m.user_id));
+  const ids = members().map((m) => m.user_id);
+  const idKey = ids.join(",");
+  if (idKey !== avatarIds) {
+    avatarIds = idKey;
+    void loadAvatars(ids);
+  }
   const list = members().map((m) => {
     const isMe = m.user_id === me;
     const g = grantUntil(m.user_id);

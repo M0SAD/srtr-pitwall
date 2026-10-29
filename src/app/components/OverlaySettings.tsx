@@ -16,6 +16,7 @@ import * as I from "../icons";
 import { GlucoseLoginPanel } from "./GlucoseLogin";
 import { HeartRateConnectPanel } from "./HeartRateConnect";
 import { MusicPanel } from "./MusicPanel";
+import { WebviewPanel } from "./WebviewPanel";
 import { SeriesNamePanel } from "./SeriesNamePanel";
 
 // PRO olmayan üyenin seçtiği kilitli (PRO) seçenekler: kaydedilmez, sadece önizlemede gösterilir
@@ -143,6 +144,9 @@ export function OverlaySettings(props: {
           </Show>
           <Show when={inst()!.type === "music"}>
             <MusicPanel />
+          </Show>
+          <Show when={inst()!.type === "webview"}>
+            <WebviewPanel />
           </Show>
           <Show when={inst()!.type === "standings" && (inst()!.options.seriesTitle !== false)}>
             <SeriesNamePanel />

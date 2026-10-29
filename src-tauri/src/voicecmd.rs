@@ -439,6 +439,13 @@ pub fn cfg_from_settings(v: &Value, allowed: bool) -> CmdCfg {
         ("musicVolUp", "/general/musicVolUp"),
         ("musicVolDown", "/general/musicVolDown"),
         ("musicMute", "/general/musicMute"),
+        // Webview overlay'i: YouTube oynatıcısı denetimi (src/overlays/webview "webview-key")
+        ("webPlay", "/general/webPlay"),
+        ("webBack", "/general/webBack"),
+        ("webFwd", "/general/webFwd"),
+        ("webVolUp", "/general/webVolUp"),
+        ("webVolDown", "/general/webVolDown"),
+        ("webMute", "/general/webMute"),
         // Korna (src/host/horn.ts gönderir)
         ("horn", "/general/horn"),
     ]
@@ -1696,6 +1703,10 @@ mod imp {
                                 } else if *name == "horn" {
                                     if let Some(app) = APP.get() {
                                         let _ = app.emit("horn-press", ());
+                                    }
+                                } else if name.starts_with("web") {
+                                    if let Some(app) = APP.get() {
+                                        let _ = app.emit("webview-key", *name);
                                     }
                                 } else if let Some(app) = APP.get() {
                                     let _ = app.emit("voiceroom-key", *name);

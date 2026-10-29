@@ -893,6 +893,13 @@ export interface GeneralSettings {
   musicVolUp: { key: string; button: VoiceCommandButton | null };
   musicVolDown: { key: string; button: VoiceCommandButton | null };
   musicMute: { key: string; button: VoiceCommandButton | null };
+  /** Webview overlay'i (YouTube oynatıcısı): durdur / oynat, geri / ileri sar, ses aç / kıs, sessize al (Rust: "webview-key") */
+  webPlay: { key: string; button: VoiceCommandButton | null };
+  webBack: { key: string; button: VoiceCommandButton | null };
+  webFwd: { key: string; button: VoiceCommandButton | null };
+  webVolUp: { key: string; button: VoiceCommandButton | null };
+  webVolDown: { key: string; button: VoiceCommandButton | null };
+  webMute: { key: string; button: VoiceCommandButton | null };
   /** Korna (PRO): basınca aynı sunucudakiler duyar (Rust: voicecmd.rs "horn-press", gönderme: src/host/horn.ts) */
   horn: { key: string; button: VoiceCommandButton | null };
   /** Seçili korna sesi ("b:short" hazır, "db:<id>" yöneticinin eklediği) */
@@ -1386,6 +1393,12 @@ export function defaultSettings(): AppSettings {
       musicVolUp: { key: "", button: null },
       musicVolDown: { key: "", button: null },
       musicMute: { key: "", button: null },
+      webPlay: { key: "", button: null },
+      webBack: { key: "", button: null },
+      webFwd: { key: "", button: null },
+      webVolUp: { key: "", button: null },
+      webVolDown: { key: "", button: null },
+      webMute: { key: "", button: null },
       horn: { key: "", button: null },
       hornSound: "b:short",
       hornHear: "near",
@@ -1606,6 +1619,12 @@ export function normalize(input: unknown): AppSettings {
       musicVolUp: { key: "", button: null, ...(s.general?.musicVolUp ?? {}) },
       musicVolDown: { key: "", button: null, ...(s.general?.musicVolDown ?? {}) },
       musicMute: { key: "", button: null, ...(s.general?.musicMute ?? {}) },
+      webPlay: { key: "", button: null, ...(s.general?.webPlay ?? {}) },
+      webBack: { key: "", button: null, ...(s.general?.webBack ?? {}) },
+      webFwd: { key: "", button: null, ...(s.general?.webFwd ?? {}) },
+      webVolUp: { key: "", button: null, ...(s.general?.webVolUp ?? {}) },
+      webVolDown: { key: "", button: null, ...(s.general?.webVolDown ?? {}) },
+      webMute: { key: "", button: null, ...(s.general?.webMute ?? {}) },
       horn: { key: "", button: null, ...(s.general?.horn ?? {}) },
       hornSound: typeof s.general?.hornSound === "string" && s.general.hornSound ? s.general.hornSound : "b:short",
       hornHear: ["near", "all", "off"].includes(String(s.general?.hornHear)) ? s.general!.hornHear! : "near",
