@@ -1,5 +1,6 @@
 import { Show, createEffect, createSignal, onCleanup } from "solid-js";
-import type { OverlayProps } from "@/sdk/overlay";
+import { onScreen, type OverlayProps } from "@/sdk/overlay";
+import { inTauri, query } from "@/sdk/platform";
 import "./style.css";
 
 /** Gömülü oynatıcının izinleri */
@@ -16,10 +17,29 @@ export default function Webview(props: OverlayProps) {
   });
   onCleanup(() => clearInterval(timer));
 
-  const url = () => {
+  /**
+   * Aynı overlay birden çok yerde çizilir (ekrandaki overlay penceresi, panel önizlemesi / düzen tuvali, VR penceresi,
+   * OBS kaynağı). Her biri sayfayı ayrı yükleyince video sesi iki-üç kez duyuluyordu. Ses tek yerden gelir.
+   */
+  const where = (): "panel" | "vr" | "screen" | "obs" => {
+    if (!onScreen()) return "panel";
+    if (inTauri && query.get("vr")) return "vr";
+    return inTauri ? "screen" : "obs";
+  };
+  const audible = () => {
+    const s = String(props.options.sound ?? "screen");
+    const w = where();
+    if (w === "screen") return s === "screen" || s === "both";
+    if (w === "obs") return s === "obs" || s === "both";
+    return false;
+  };
+  const raw = () => {
     const u = String(props.options.url ?? "").trim();
     return /^https?:\/\//i.test(u) ? embedUrl(u) : "";
   };
+  const url = () => (audible() ? raw() : mutedUrl(raw()));
+  // Panelde sessize alınamayan (bilinen oynatıcı olmayan) sayfa yüklenmez: önizleme kartı gösterilir
+  const placeholder = () => where() === "panel" && !!raw() && !isPlayer(raw());
   // YouTube oynatıcısı yönlendiren adresi (Referer) ister; diğer sitelerde gönderilmez
   const refPolicy = () => (/youtube(-nocookie)?\.com\/embed\//.test(url()) ? "strict-origin-when-cross-origin" : "no-referrer");
 
@@ -39,9 +59,20 @@ export default function Webview(props: OverlayProps) {
           </div>
         }
       >
-        {/* nonce değişince iframe yeniden yüklenir */}
-        <Show when={nonce() >= 0} keyed>
-          <iframe src={url()} title="Webview" loading="lazy" referrerpolicy={refPolicy()} allow={ALLOW} data-no-i18n />
+        <Show
+          when={!placeholder()}
+          fallback={
+            <div class="ov-panel ov-empty webv-empty">
+              {hostOf(raw())}
+              <br />
+              <small>Sayfa ekrandaki overlay'de açılır (panelde iki kez ses çıkmasın diye yüklenmez)</small>
+            </div>
+          }
+        >
+          {/* nonce değişince iframe yeniden yüklenir */}
+          <Show when={`${nonce()}|${url()}`} keyed>
+            <iframe src={url()} title="Webview" loading="lazy" referrerpolicy={refPolicy()} allow={ALLOW} data-no-i18n />
+          </Show>
         </Show>
       </Show>
       {/* Düzenleme modunda iframe fareyi yutmasın diye üstüne şeffaf katman */}
@@ -50,6 +81,33 @@ export default function Webview(props: OverlayProps) {
       </Show>
     </div>
   );
+}
+
+function hostOf(u: string): string {
+  try {
+    return new URL(u).hostname.replace(/^www\./, "");
+  } catch {
+    return u;
+  }
+}
+
+/** Sessize alınabilen bilinen oynatıcı adresi mi (embedUrl çıktısı) */
+export function isPlayer(u: string): boolean {
+  return /^https:\/\/(www\.youtube(-nocookie)?\.com\/embed\/|player\.twitch\.tv\/|player\.kick\.com\/)/i.test(u);
+}
+
+/** Bilinen oynatıcıları sessiz başlatır (YouTube mute=1, Twitch muted=true, Kick muted=true). Diğer adresler aynen kalır. */
+export function mutedUrl(u: string): string {
+  if (!u || !isPlayer(u)) return u;
+  let x: URL;
+  try {
+    x = new URL(u);
+  } catch {
+    return u;
+  }
+  if (/youtube/.test(x.hostname)) x.searchParams.set("mute", "1");
+  else x.searchParams.set("muted", "true");
+  return x.toString();
 }
 
 /**

@@ -328,9 +328,37 @@ pub fn sync(app: &AppHandle, settings: &Value) {
             let off = 36 * (i as i32 % 12);
             let _ = w.set_position(PhysicalPosition::new(base_x + off, base_y + off));
         }
+        // VR kopyaları masaüstü overlay penceresindeki overlay'lerin ikinci çizimi: kendi sesleri olmasın (Webview'de
+        // açılan video, uyarı sesleri vb. iki kez duyuluyordu). Ses masaüstü overlay penceresinden gelir (gizli olsa da).
+        mute_window(&w);
         let _ = w.show();
         open.insert(x.label.clone(), x.url.clone());
     }
+}
+
+/// Pencerenin tüm sesini kapatır (WebView2 IsMuted). Sayfa yeniden yüklense de geçerli kalır.
+pub fn mute_window(w: &tauri::WebviewWindow) {
+    #[cfg(windows)]
+    {
+        let r = w.with_webview(|wv| {
+            use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_8;
+            use windows::core::Interface;
+            let res = unsafe {
+                wv.controller()
+                    .CoreWebView2()
+                    .and_then(|c| c.cast::<ICoreWebView2_8>())
+                    .and_then(|c| c.SetIsMuted(true))
+            };
+            if let Err(e) = res {
+                crate::crashlog::note(&format!("VR penceresi sessize alınamadı: {e}"));
+            }
+        });
+        if let Err(e) = r {
+            crate::crashlog::note(&format!("VR penceresi sessize alınamadı: {e}"));
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = w;
 }
 
 /// VR overlay penceresi içeriğini ölçtü: pencereyi içeriğe sığdır ve başlığı overlay'in adına çevir.

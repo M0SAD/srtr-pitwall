@@ -3674,7 +3674,7 @@ dependencies = [
 
 [[package]]
 name = "pitwall"
-version = "1.0.438"
+version = "1.0.439"
 dependencies = [
  "base64 0.22.1",
  "futures-util",
@@ -3701,6 +3701,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "vorbis_rs",
+ "webview2-com",
  "windows 0.62.2",
  "windows-collections",
  "windows-future",

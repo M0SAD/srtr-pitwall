@@ -1,6 +1,6 @@
 [package]
 name = "pitwall"
-version = "1.0.439"
+version = "1.0.440"
 description = "Hafif ve hızlı iRacing overlay uygulaması"
 edition = "2021"
 rust-version = "1.77"
@@ -89,6 +89,8 @@ windows = { version = "0.62", features = [
   "Win32_System_Variant",
   "Win32_Globalization",
 ] }
+# VR pencerelerinin sesini kapatmak (ICoreWebView2_8::SetIsMuted), bkz. src/vr.rs mute_window. Tauri'nin kullandığı sürüm.
+webview2-com = "0.39"
 # Sesli komut: komut listesi kısıtı için IIterable<HSTRING> (windows crate'inin zaten kullandığı sürüm)
 windows-collections = "0.3"
 # Müzik overlay'i: WinRT zaman uyumsuz işlemleri (IAsyncOperation) zaman aşımıyla beklemek için

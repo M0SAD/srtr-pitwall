@@ -3,6 +3,14 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 291026-440
+
+- Webview'de video açınca ses çift çıkıyordu: aynı Webview overlay'i birden çok yerde çiziliyor ve her biri sayfayı ayrı yüklüyordu (ekrandaki overlay penceresi + panelde Overlay'ler / Düzenler önizlemesi + VR pencereleri / VR panosu; yerel VR açıkken her overlay için ayrı pencere açılır). Artık ses tek yerden gelir:
+  - Panel önizlemesinde YouTube / Twitch / Kick oynatıcısı sessiz açılır; diğer siteler panelde hiç yüklenmez (yerine adresin yazdığı bir kart görünür).
+  - VR pencereleri ve VR panosu tamamen sessize alınır (WebView2 sesi kapalı); ses masaüstü overlay penceresinden gelir (masaüstü overlay'i gizli olsa da). Diğer overlay seslerinin VR'da iki kez duyulması da böylece biter.
+  - Webview'e yeni "Ses" ayarı: ekrandaki overlay'de / sadece OBS kaynağında / ikisinde de / sessiz (OBS kaynağını ve ekranı birlikte yakalayınca yayında çift ses olmasın).
+- Webview "Otomatik yenile" çalışmıyordu (sayfa yeniden yüklenmiyordu); düzeltildi.
+
 ## 281026-439
 
 - Lastik değişimini otomatik kapat: artık her oturumda (yarış oturumu) yalnızca BİR KEZ, araca ilk binildiğinde çalışır. Önceden aracın "pistte / sürüyor" durumu bir an düşüp geri gelince (pite girme, sıfırlama, kısa bağlantı kopması) komut yeniden gönderiliyordu: sürücü pit stoptan önce lastik değişimini kendisi açsa da tekrar kapatılıyordu. Oturum, iRacing oturum kimliği ve oturum numarasıyla tanınır; program yarış ortasında yeniden açılsa da aynı oturumda tekrar kapatmaz.

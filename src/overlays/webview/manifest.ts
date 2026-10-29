@@ -21,6 +21,19 @@ export default defineOverlay({
     },
     { key: "width", label: "Genişlik", type: "number", default: 400, min: 100, max: 1920, step: 10, unit: "px" },
     { key: "height", label: "Yükseklik", type: "number", default: 300, min: 60, max: 1080, step: 10, unit: "px" },
+    {
+      key: "sound",
+      label: "Ses",
+      type: "select",
+      default: "screen",
+      options: [
+        { value: "screen", label: "Ekrandaki overlay'de çalsın" },
+        { value: "obs", label: "Sadece OBS kaynağında çalsın" },
+        { value: "both", label: "İkisinde de çalsın" },
+        { value: "off", label: "Sessiz" },
+      ],
+      hint: "Sayfanın sesi tek bir yerden gelir; panel önizlemesi ve VR pencereleri hep sessizdir (ses iki kez duyulmaz). OBS kaynağını da ekrandaki overlay'i de yakalıyorsan yayında ses iki kez çıkmasın diye birini seç. YouTube, Twitch ve Kick oynatıcıları kendiliğinden sessize alınır; diğer sitelerde OBS kaynağının kendi ses ayarını kullan.",
+    },
     { key: "transparent", label: "Şeffaf arka plan", type: "boolean", default: true },
     {
       key: "reload",
