@@ -310,7 +310,18 @@ export async function signUp(email: string, password: string, displayName = ""):
 let flushPending: () => Promise<void> = async () => {};
 export const flushSync = () => flushPending();
 
+/** Çıkıştan hemen önce (oturum hâlâ geçerliyken) çalışacak işler: ör. ses odasından ayrılma (src/voice/engine.ts) */
+const beforeSignOut: (() => Promise<void> | void)[] = [];
+export function onBeforeSignOut(fn: () => Promise<void> | void) {
+  beforeSignOut.push(fn);
+}
+
 export async function signOut() {
+  // Ses odasında kalınmasın: odadan oturum kapanmadan çıkılır (sunucu odadan çıkışı bu oturumla kaydeder)
+  await Promise.race([
+    Promise.all(beforeSignOut.map((f) => Promise.resolve().then(f).catch(() => {}))),
+    new Promise((r) => setTimeout(r, 4000)),
+  ]);
   // Son değişiklikler gönderilmeden oturum kapanmasın (eskiden son 1 dakikadaki değişiklikler hesaba hiç gitmiyordu)
   await Promise.race([flushPending().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]);
   const t = session()?.access_token;

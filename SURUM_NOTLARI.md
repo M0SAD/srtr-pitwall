@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 291026-445
+
+- Hesaptan çıkış yapınca ses odasında kalınıyordu (başkaları odada görmeye devam ediyordu). Artık çıkışta önce ses odasından ayrılınır: mikrofon kapanır, bağlantı kesilir, ayrılma bildirimi oturum kapanmadan sunucuya gönderilir. Oturum başka yoldan kapanırsa (süresi dolması, başka pencereden çıkış, hesap değişmesi) da odadan çıkılır.
+
 ## 291026-444
 
 - Kan Şekeri overlay'ine 7 yeni tasarım:

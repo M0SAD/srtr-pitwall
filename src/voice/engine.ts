@@ -8,12 +8,12 @@
 // Kimin odada olduğu: Supabase Realtime presence (oda kanalı, voice_room_join'den gelen gizli adla).
 // Söz hakları / sıra / yetkiler: voice_room_state (10 sn'de bir + değişiklikte "refresh" yayını).
 
-import { createSignal } from "solid-js";
+import { createEffect, createRoot, createSignal, on } from "solid-js";
 import { emit } from "@tauri-apps/api/event";
 import type { RealtimeChannel } from "@supabase/realtime-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { session } from "@/cloud/supabase";
+import { onBeforeSignOut, session } from "@/cloud/supabase";
 import { profile } from "@/cloud/account";
 import { cachedAvatar, loadAvatars } from "@/cloud/profile";
 import { realtime, realtimeKeepAlive } from "@/cloud/social";
@@ -447,6 +447,9 @@ export async function leaveRoom() {
   pushOverlay(true);
 }
 
+/** Son ayrılma bildirimleri (çıkış yaparken oturum kapanmadan önce gitmeleri beklenir) */
+let lastBye: Promise<void> = Promise.resolve();
+
 async function teardown(sayBye: boolean) {
   const r = room();
   const s = sid;
@@ -480,8 +483,10 @@ async function teardown(sayBye: boolean) {
   mic = null;
   sid = "";
   if (sayBye && r) {
-    if (s) void sfu.leave(s).catch(() => {});
-    void voiceHeartbeat(r.id, true).catch(() => {});
+    const bye: Promise<unknown>[] = [];
+    if (s) bye.push(sfu.leave(s).catch(() => {}));
+    bye.push(voiceHeartbeat(r.id, true).catch(() => {}));
+    lastBye = Promise.all(bye).then(() => {});
   }
   if (inTauri && sayBye) void invoke("voice_room_active", { on: false }).catch(() => {});
 }
@@ -1084,3 +1089,23 @@ if (typeof window !== "undefined") {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// Hesaptan çıkınca ses odasından da çık
+// ---------------------------------------------------------------------------
+
+// Çıkış düğmesi: oturum kapanmadan önce odadan ayrıl (ayrılma bildirimi oturumla gönderilir)
+onBeforeSignOut(async () => {
+  if (!room() && status() === "idle") return;
+  await leaveRoom();
+  await Promise.race([lastBye, new Promise((r) => setTimeout(r, 3000))]);
+});
+// Oturum başka yoldan kapanırsa (süresi doldu, başka pencereden çıkış, hesap değişti): odada kalınmaz
+createRoot(() => {
+  createEffect(
+    on(uid, (id, prev) => {
+      if (prev && id !== prev && (room() || status() !== "idle")) void leaveRoom();
+    }),
+  );
+});
+
