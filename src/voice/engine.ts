@@ -15,6 +15,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { session } from "@/cloud/supabase";
 import { profile } from "@/cloud/account";
+import { cachedAvatar, loadAvatars } from "@/cloud/profile";
 import { realtime, realtimeKeepAlive } from "@/cloud/social";
 import { inTauri } from "@/sdk/platform";
 import { uiPref } from "@/sdk/settings";
@@ -1016,6 +1017,8 @@ function overlayData(): VoiceOverlayData {
   if (!r || status() === "idle" || status() === "error") return { room: null, mode: "", members: [] };
   const me = uid();
   const now = voice.now();
+  // Yuvarlak görünümler için fotoğraflar (bilinmeyenler bir kez getirilir; gelince sonraki gönderimde görünür)
+  void loadAvatars(members().map((m) => m.user_id));
   const list = members().map((m) => {
     const isMe = m.user_id === me;
     const g = grantUntil(m.user_id);
@@ -1029,6 +1032,7 @@ function overlayData(): VoiceOverlayData {
       me: isMe,
       left: g ? Math.max(0, Math.ceil((g - now) / 1000)) : null,
       role: r.owner === m.user_id ? "owner" : roleOf(m.user_id),
+      avatar: cachedAvatar(m.user_id),
     } as VoiceOverlayMember;
   });
   return { room: r.name, mode: vstate()?.mode ?? r.mode, members: list };

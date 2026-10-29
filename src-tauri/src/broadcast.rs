@@ -394,60 +394,6 @@ pub fn pit_command(mode: u16, var: u16) -> Result<(), String> {
     send(msg::PIT_COMMAND, mode, make_long(var, 0))
 }
 
-/// iRacing sohbet / pit makrosu komutu (ör. "#autofuel"): SDK yalnızca sohbet kutusunu açabilir (ChatComand BeginChat);
-/// yazı iRacing penceresine karakter karakter (WM_CHAR) iletilir ve Enter ile gönderilir. Pencere öne gelmeden çalışır.
-/// Yalnızca "#" ile başlayan kısa pit makroları kabul edilir (serbest sohbet mesajı gönderilmez).
-#[allow(dead_code)]
-pub fn chat_macro(text: &str) -> Result<(), String> {
-    if !is_pit_macro(text) {
-        return Err("Geçersiz komut".into());
-    }
-    chat_macro_send(text)
-}
-
-/// "#" ile başlayan, en çok 40 karakterlik, yalnızca harf / rakam / boşluk / + - . ! içeren komut
-fn is_pit_macro(text: &str) -> bool {
-    text.starts_with('#')
-        && text.len() <= 40
-        && text[1..]
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, ' ' | '+' | '-' | '.' | '!'))
-        && text.len() > 1
-}
-
-#[cfg(windows)]
-fn chat_macro_send(text: &str) -> Result<(), String> {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        FindWindowW, PostMessageW, WM_CHAR, WM_KEYDOWN, WM_KEYUP,
-    };
-    const VK_RETURN: usize = 0x0D;
-    let name: Vec<u16> = "iRacing.com Simulator\0".encode_utf16().collect();
-    let hwnd = unsafe { FindWindowW(std::ptr::null(), name.as_ptr()) };
-    if hwnd.is_null() {
-        return Err("iRacing penceresi bulunamadı".into());
-    }
-    send(msg::CHAT_COMMAND, msg::CHAT_BEGIN, 0)?;
-    // Sohbet kutusu açılsın
-    std::thread::sleep(std::time::Duration::from_millis(200));
-    unsafe {
-        for ch in text.encode_utf16() {
-            PostMessageW(hwnd, WM_CHAR, ch as usize, 1);
-            std::thread::sleep(std::time::Duration::from_millis(15));
-        }
-        std::thread::sleep(std::time::Duration::from_millis(60));
-        // Gerçek bir Enter basışı gibi: tuş inişi + karakter + tuş çıkışı
-        PostMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0x001C_0001);
-        PostMessageW(hwnd, WM_CHAR, VK_RETURN, 0x001C_0001);
-        PostMessageW(hwnd, WM_KEYUP, VK_RETURN, 0xC01C_0001u32 as isize);
-    }
-    Ok(())
-}
-
-#[cfg(not(windows))]
-fn chat_macro_send(_text: &str) -> Result<(), String> {
-    Err("iRacing komutları sadece Windows'ta çalışır".into())
-}
-
 /// Ekip (uzaktan pit) komutunu iRacing pit komutlarına çevirir: [(mod, değer)].
 /// Sadece burada sayılan türler kabul edilir; `message` bir pit komutu değildir (arayüz gösterir).
 pub fn crew_plan(kind: &str, args: &serde_json::Value) -> Result<Vec<(u16, u16)>, String> {
@@ -557,17 +503,6 @@ mod tests {
         // Pit komutu olmayan hiçbir şey çalıştırılamaz
         assert!(crew_plan("message", &json!({ "text": "x" })).is_err());
         assert!(crew_plan("settings_set", &json!({})).is_err());
-    }
-    #[test]
-    fn pit_macros_only() {
-        assert!(is_pit_macro("#autofuel"));
-        assert!(is_pit_macro("#autofuel +1.5"));
-        assert!(is_pit_macro("#-autofuel"));
-        assert!(!is_pit_macro("autofuel"));
-        assert!(!is_pit_macro("#"));
-        assert!(!is_pit_macro("#fuel 20l; /quit"));
-        assert!(!is_pit_macro("#a\nb"));
-        assert!(!is_pit_macro(&format!("#{}", "a".repeat(60))));
     }
     #[test]
     fn car_numbers() {

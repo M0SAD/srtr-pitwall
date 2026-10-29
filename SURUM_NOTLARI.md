@@ -3,6 +3,34 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 291026-444
+
+- Kan Şekeri overlay'ine 7 yeni tasarım:
+  - Kadran Pro: bölgeli halka, düşük/yüksek sınır çentikleri, dış halkada 30 dk tahmin yayı ve hayalet nokta, durum hapı (NORMAL / DÜŞÜK / DÜŞECEK …), tahmin satırı, en altta saat
+  - Büyük sayı, Gösterge (yarım daire), Skala (hedef aralık çubuğu + işaretçi), Mini (sayı ve ok)
+  - Tahmin: son 1 saatin grafiği + önümüzdeki 30 dakikanın tahmini (kesikli çizgi, belirsizlik konisi, güven yüzdesi)
+  - Arka plansız: gölgeli iri sayı ve durum (oyunun üstünde)
+  Tahmin, son 30 dakikanın ölçümlerine uydurulan eğilimle yapılır (yalnızca fikir verir). Değer normalken tahmin sınır dışına çıkıyorsa DÜŞECEK / YÜKSELECEK yazar.
+- Kan Şekeri: yeni görünüm ayarları (tüm tasarımlarda): kutu boyutu (%), yazı tipi (Segoe UI, Bahnschrift, Calibri, Arial, Verdana, Trebuchet MS, Consolas, Georgia, Rajdhani), sayı kalınlığı (ince / normal / kalın).
+
+## 291026-443
+
+- Kan Şekeri: uyarıda ekran kenarı parlaması (yeni ayar, Ölçüm ve uyarı › "Uyarıda ekran kenarı parlasın"). Değer sınır dışına çıkınca overlay'in bulunduğu ekranın kenarında uyarı renginde (tema rengi: düşük/yüksek sarı, çok düşük/çok yüksek kırmızı) nabız gibi atan bir çerçeve belirir; tıklamaları engellemez, oyunun üstünde kalır. Seçenekler: kapalı / sadece çok düşük-çok yüksek / tüm uyarılar; süre ve kalınlık ayarlanır. Uyarı sürerken yeni ölçüm geldikçe düşük/yüksekte 15 dk'da, çok düşük/çok yüksekte 5 dk'da bir tekrarlar; değer kötüleşince hemen yanar. Düzenleme modunda örnek olarak görünür.
+
+## 291026-442
+
+- Ses Odası overlay'ine tasarım seçimi eklendi:
+  - Liste (önceki görünüm)
+  - Yuvarlak fotoğraflar, alt alta (Discord gibi): profil fotoğrafı + koyu ad etiketi; konuşanın fotoğrafının çevresi konuşan renginde yanar
+  - Yuvarlak fotoğraflar yan yana, ad altta
+  - Sadece yuvarlak fotoğraflar
+  Fotoğrafı olmayanın baş harfleri renkli dairede gösterilir; mikrofonu / sesi kapalı olanlarda fotoğrafın köşesinde rozet. Yeni ayarlar: fotoğraf boyutu, konuşmayanları soluk göster.
+
+## 291026-441
+
+- "Lastik değişimini otomatik kapat" özelliği tamamen kaldırıldı (Genel ayarlar › Pit servisi bölümü, arka planda çalışan otomatik komut ve kayıtları). Program artık iRacing pit servisine kendiliğinden hiçbir komut göndermez; lastik ve yakıt seçimleri yalnızca senin (ya da Ekip panelinden ekibinin) yaptığın gibi kalır.
+- Kullanılmayan iRacing pit makrosu gönderme kodu (#autofuel vb. sohbet komutları) da kaldırıldı.
+
 ## 291026-440
 
 - Webview'de video açınca ses çift çıkıyordu: aynı Webview overlay'i birden çok yerde çiziliyor ve her biri sayfayı ayrı yüklüyordu (ekrandaki overlay penceresi + panelde Overlay'ler / Düzenler önizlemesi + VR pencereleri / VR panosu; yerel VR açıkken her overlay için ayrı pencere açılır). Artık ses tek yerden gelir:

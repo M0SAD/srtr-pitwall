@@ -16,6 +16,8 @@ export interface VoiceOverlayMember {
   /** Söz hakkının bitişine kalan sn (söz hakkıyla odada) */
   left: number | null;
   role: string;
+  /** Profil fotoğrafı adresi ("" = yok; baş harf gösterilir) */
+  avatar?: string;
 }
 export interface VoiceOverlayData {
   room: string | null;

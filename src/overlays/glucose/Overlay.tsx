@@ -1,8 +1,11 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { Portal } from "solid-js/web";
 import { onScreen, previewFrozen, type OverlayProps } from "@/sdk/overlay";
 import { MGDL_PER_MMOL, STALE_MS, glucoseAlert, glucoseRefresh, useGlucose, type GlucoseState } from "@/sdk/glucose";
 import { t } from "@/sdk/i18n";
 import { GLUCOSE_THEMES } from "./manifest";
+import { Dynamic } from "solid-js/web";
+import { SVG_DESIGNS, forecast, type Ctx } from "./designs";
 import "./style.css";
 
 type Level = "ul" | "l" | "ok" | "h" | "uh";
@@ -69,6 +72,9 @@ export default function Glucose(props: OverlayProps) {
     if (o().dropColor === "custom" && o().cDrop) v["--gl-drop"] = String(o().cDrop);
     if (design() !== "circle" && design() !== "pill" && design() !== "dial") v["--gl-radius"] = `${n("radius", 14)}px`;
     v["--gl-vk"] = String(n("valueSize", 100) / 100);
+    v["--gl-zoom"] = String(Math.max(0.4, n("boxSize", 100) / 100));
+    if (o().font) v["--gl-font"] = `"${String(o().font)}", var(--ov-font, Inter, system-ui, sans-serif)`;
+    v["--gl-w"] = o().weight === "light" ? "300" : o().weight === "normal" ? "500" : "800";
     return v;
   };
 
@@ -107,6 +113,45 @@ export default function Glucose(props: OverlayProps) {
     if (o().sound !== false) void glucoseAlert(lv, n("volume", 60) / 100);
   });
 
+  // Ekran kenarı parlaması: değer sınır dışına çıkınca (ya da kötüleşince) ve uyarı sürerken yeni ölçüm geldikçe
+  // (düşük / yüksekte 15 dk, çok düşük / çok yüksekte 5 dk ara) bir süre ekranın kenarında nabız gibi atar.
+  // Yalnızca ekrandaki gerçek veride; düzenleme modunda örnek olarak sürekli görünür.
+  const [glowUntil, setGlowUntil] = createSignal(0);
+  let glowLast = 0;
+  let glowLevel: Level = "ok";
+  const glowWanted = (lv: Level) => {
+    const m = String(o().edgeGlow ?? "off");
+    return m === "all" ? lv !== "ok" : m === "urgent" ? lv === "ul" || lv === "uh" : false;
+  };
+  createEffect(() => {
+    if (demo() || !onScreen() || value() == null || stale()) return;
+    const lv = level();
+    st().ts;
+    const prev = glowLevel;
+    glowLevel = lv;
+    if (!glowWanted(lv)) {
+      if (lv === "ok") setGlowUntil(0);
+      return;
+    }
+    const urgent = lv === "ul" || lv === "uh";
+    const worse = prev === "ok" || (urgent && prev !== lv);
+    const gap = (urgent ? 5 : 15) * 60_000;
+    const t0 = Date.now();
+    if (!worse && t0 - glowLast < gap) return;
+    glowLast = t0;
+    setGlowUntil(t0 + Math.max(2, n("edgeGlowSec", 6)) * 1000);
+  });
+  const [glowTick, setGlowTick] = createSignal(Date.now());
+  const glowIv = setInterval(() => glowUntil() > Date.now() - 1000 && setGlowTick(Date.now()), 500);
+  onCleanup(() => clearInterval(glowIv));
+  const glowOn = () =>
+    onScreen() && String(o().edgeGlow ?? "off") !== "off" && (props.editing ? alerting() || demo() : glowUntil() > glowTick());
+  const glowColor = () => {
+    const p = pal();
+    const k = tone() === "normal" ? "urgent" : tone();
+    return p ? String(p[k as "warn" | "urgent"]) : k === "warn" ? "#ffb340" : "#ff5c5c";
+  };
+
   /** Mini grafik: son ölçümler, hedef aralık bandı */
   const spark = (w: number, h: number) => {
     const pts = st().hist;
@@ -142,6 +187,40 @@ export default function Glucose(props: OverlayProps) {
   };
 
   const design = () => String(o().design ?? "card");
+  const svgDesign = () => SVG_DESIGNS[design()];
+  /** Ek (SVG) tasarımların verisi */
+  const fc = createMemo(() => (value() != null && !stale() ? forecast(st().hist, st().ts) : null));
+  const predicted = () => {
+    const f = fc();
+    if (!f || level() !== "ok") return "";
+    const v = f.at(30);
+    return v < low() ? t("DÜŞECEK") : v > high() ? t("YÜKSELECEK") : "";
+  };
+  const zoneCss = (v: number) =>
+    v <= uLow() || v >= uHigh() ? "var(--gl-urgent)" : v < low() || v > high() ? "var(--gl-warn)" : "var(--gl-normal)";
+  const ctx = (): Ctx => ({
+    value: value(),
+    text: value() == null ? "—" : fmt(value()!),
+    arrow: st().arrow ?? "",
+    stale: stale(),
+    low: low(),
+    high: high(),
+    uLow: uLow(),
+    uHigh: uHigh(),
+    unit: mmol() ? "mmol/L" : "mg/dL",
+    delta: o().delta !== false && value() != null ? deltaText() : "",
+    time: o().time !== false ? (stale() ? `${timeText()} · ${t("veri eski")}` : timeText()) : "",
+    hist: st().hist,
+    ts: st().ts,
+    fc: fc(),
+    status: alerting() ? levelText() : predicted(),
+    scolor: alerting() ? "var(--gl-c)" : "var(--gl-warn)",
+    pline: fc() && value() != null ? `30 ${t("dk")} ≈ ${fmt(fc()!.at(30))}` : "",
+    fmt,
+    zone: zoneCss,
+    weight: o().weight === "light" ? 300 : o().weight === "normal" ? 500 : 800,
+    showArrow: o().arrow !== false,
+  });
   /** Yuvarlak / kare / şerit tasarımda uzun hata metni sığmaz: kısa hali (tamamı üzerine gelince ve ayarlarda) */
   const compact = () => design() === "circle" || design() === "square" || design() === "pill" || design() === "dial";
   const shortErr = (e: string) => {
@@ -237,11 +316,16 @@ export default function Glucose(props: OverlayProps) {
   return (
     <div
       class={`gl gl-${design()}`}
-      classList={{ "gl-app": !pal(), "gl-stale": stale(), "gl-alert": alerting() && o().flash !== false, [`gl-${tone()}`]: true, "gl-dropstatus": o().dropColor === "status", "gl-noborder": o().border === false, "gl-noshadow": o().shadow === false }}
+      classList={{ "gl-svg": !!svgDesign() && (demo() || live().loggedIn), "gl-app": !pal(), "gl-stale": stale(), "gl-alert": alerting() && o().flash !== false, [`gl-${tone()}`]: true, "gl-dropstatus": o().dropColor === "status", "gl-noborder": o().border === false, "gl-noshadow": o().shadow === false }}
       style={vars()}
       onDblClick={() => glucoseRefresh()}
       title={st().error ? t(st().error) : undefined}
     >
+      <Show when={glowOn()}>
+        <Portal>
+          <div class="gl-edge" style={{ "--gl-edge": glowColor(), "--gl-edge-w": `${n("edgeGlowWidth", 40)}px` }} />
+        </Portal>
+      </Show>
       <Show
         when={demo() || live().loggedIn}
         fallback={
@@ -253,6 +337,9 @@ export default function Glucose(props: OverlayProps) {
           </div>
         }
       >
+        <Show when={svgDesign()}>
+          <Dynamic component={svgDesign()} x={ctx()} />
+        </Show>
         <Show when={design() === "dial"}>
           <Dial />
         </Show>
@@ -262,7 +349,7 @@ export default function Glucose(props: OverlayProps) {
             <circle class="gl-ring-fg" cx="50" cy="50" r="44" stroke-dasharray={ring().dash} transform="rotate(-90 50 50)" />
           </svg>
         </Show>
-        <div class="gl-main" style={design() === "dial" ? { display: "none" } : undefined}>
+        <div class="gl-main" style={design() === "dial" || svgDesign() ? { display: "none" } : undefined}>
           <div class="gl-head">
             <Show when={o().drop !== false}>
               <Drop />

@@ -94,3 +94,122 @@
   stroke: currentColor;
   opacity: 0.6;
 }
+
+/* ---- Yuvarlak fotoğraflı görünümler ---- */
+.vro-discord,
+.vro-grid,
+.vro-bubbles {
+  max-width: none;
+}
+.vro-av {
+  position: relative;
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Konuşmazken ince koyu çerçeve; konuşunca vurgu rengi halka + parıltı */
+  box-shadow: 0 0 0 0.16em rgba(0, 0, 0, 0.55);
+  transition:
+    box-shadow 0.12s,
+    opacity 0.15s,
+    transform 0.12s;
+}
+.vro-av img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.vro-ini {
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.talking .vro-av {
+  box-shadow:
+    0 0 0 0.18em var(--talk),
+    0 0 0.9em color-mix(in srgb, var(--talk) 70%, transparent);
+}
+.vro.quiet .vro-dc:not(.talking) .vro-av,
+.vro.quiet .vro-cell:not(.talking) .vro-av {
+  opacity: 0.6;
+}
+.vro-badge {
+  position: absolute;
+  right: -0.15em;
+  bottom: -0.15em;
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 50%;
+  background: #1e1f22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vro-badge .vro-ic {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+/* Discord gibi: alt alta, fotoğraf + koyu ad etiketi */
+.vro-discord {
+  gap: 0.45em;
+}
+.vro-dc {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+}
+.vro-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+  padding: 0.22em 0.6em;
+  border-radius: 0.35em;
+  background: rgba(30, 31, 34, 0.9);
+  color: #fff;
+}
+.vro-discord.bare .vro-tag {
+  text-shadow: none;
+}
+.vro-dc.talking .vro-n {
+  font-weight: 700;
+}
+.vro-dc.dim .vro-tag {
+  opacity: 0.7;
+}
+
+/* Yan yana: fotoğraf, altında ad */
+.vro-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em 0.7em;
+  align-items: flex-start;
+}
+.vro-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+  min-width: 0;
+  padding-top: 0.2em;
+}
+.vro-cell .vro-n {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85em;
+  text-align: center;
+}
+.vro-cell.talking .vro-n {
+  font-weight: 700;
+  color: var(--talk);
+}
+.vro-bubbles .vro-wrap {
+  gap: 0.5em;
+}

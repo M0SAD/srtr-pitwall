@@ -426,3 +426,105 @@
     opacity: 0.35;
   }
 }
+
+/* Uyarıda ekran kenarı parlaması (overlay penceresinin tamamı = ekran; tıklamaları engellemez) */
+.gl-edge {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  /* Dıştan içe sönen katmanlar */
+  box-shadow:
+    inset 0 0 0 calc(var(--gl-edge-w) * 0.12) var(--gl-edge),
+    inset 0 0 calc(var(--gl-edge-w) * 0.5) calc(var(--gl-edge-w) * 0.2) color-mix(in srgb, var(--gl-edge) 80%, transparent),
+    inset 0 0 var(--gl-edge-w) calc(var(--gl-edge-w) * 0.45) color-mix(in srgb, var(--gl-edge) 45%, transparent);
+  animation: gl-edge-pulse 0.76s steps(1, end) infinite;
+}
+@keyframes gl-edge-pulse {
+  0% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.reduce-fx .gl-edge {
+  animation: none;
+  opacity: 0.7;
+}
+
+/* Kutu boyutu ve yazı tipi (tüm tasarımlar) */
+.gl {
+  zoom: var(--gl-zoom, 1);
+  font-family: var(--gl-font, var(--ov-font, Inter, system-ui, sans-serif));
+}
+.gl .gl-value {
+  font-weight: var(--gl-w, 800);
+}
+/* Ek tasarımlar (designs.tsx): kutuyu SVG çizer, dış kutu yalnızca taşıyıcı */
+.gl.gl-svg {
+  padding: 0;
+  background: none !important;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  display: inline-flex;
+  width: max-content;
+  line-height: 0;
+}
+.gl.gl-svg.gl-alert {
+  animation: none;
+}
+.gld {
+  display: block;
+  overflow: visible;
+  font-family: inherit;
+}
+.gld text {
+  font-family: inherit;
+}
+.gld-num {
+  font-family: var(--gl-font, var(--ov-mono, inherit));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.gld-frame {
+  stroke-width: 2;
+}
+.gl:not(.gl-noshadow) .gld:not(.gld-hud) {
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.35));
+}
+.gl-noborder .gld-frame {
+  stroke: transparent !important;
+}
+/* Uyarıda kutu kenarı yanıp söner */
+.gl-svg.gl-alert .gld-frame {
+  animation: gld-pulse 1.4s ease-in-out infinite;
+}
+.gl-svg.gl-alert.gl-urgent .gld-frame {
+  animation-duration: 0.8s;
+}
+@keyframes gld-pulse {
+  50% {
+    stroke: var(--gl-c);
+    stroke-width: 3.5;
+  }
+}
+.reduce-fx .gl-svg.gl-alert .gld-frame {
+  animation: none;
+  stroke: var(--gl-c);
+}
+/* Arka plansız: koyu gölgeyle okunur */
+.gld-shadow {
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.gld-hud text.gld-shadow {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+}
+/* Kutu arka planı kopyanın "Arka plan opaklığı"na uyar */
+.gld-frame {
+  fill-opacity: var(--ov-bg-k, 1);
+}

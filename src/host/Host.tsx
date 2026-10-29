@@ -4,7 +4,6 @@
 import { isHiddenOverlay, isLocked, startPing } from "@/cloud/account";
 import { msgPending, msgToast, startSocial } from "./social";
 import { crewBox, startCrew } from "./crew";
-import { startAutoPit } from "./autoPit";
 import { startFriendAlert } from "./friendAlert";
 import { startHorn } from "./horn";
 import { startBrakeRef } from "./brakeref";
@@ -236,7 +235,12 @@ export function Host() {
         .catch(() => {});
       startSocial(status);
       startCrew(status);
-      startAutoPit(status);
+      // Eski "lastik değişimini otomatik kapat" özelliği kaldırıldı: kalan kaydını sil
+      try {
+        localStorage.removeItem("pitwall.autoTiresDone");
+      } catch {
+        /* yok */
+      }
       startFriendAlert(status);
       startHorn(status);
       startBrakeRef();
