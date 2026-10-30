@@ -1130,6 +1130,21 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
         }
     }
 
+    // Katılımcı sayısı (tablonun üstündeki araç sayısı ve sınıf sayıları): yarışta yalnızca yarışa katılanlar sayılır
+    // (gridde yeri olan, yarış sonucunda adı geçen ya da pistte / pitte olan). Sunucuya girip garajda kalan, yarışa
+    // hiç çıkmayan sürücüler tabloda en sonda "GAR" olarak görünür ama sayılmaz. Diğer oturumlarda tablodaki herkes.
+    let grid: Vec<usize> = if race { grid_order(s, f.session_num) } else { Vec::new() };
+    let entrant = |i: usize| -> bool {
+        if !race {
+            return true;
+        }
+        active(f, s, i)
+            || f.cars[i].position > 0
+            || grid.contains(&i)
+            || entry.is_some_and(|e| e.results.iter().any(|r| r.0 == i as i32))
+    };
+    let mut entrants = 0i32;
+
     let mut rows: Vec<Row> = Vec::with_capacity(idxs.len());
     let mut classes: Vec<ClassInfo> = Vec::new();
     let mut class_irs: Vec<(i32, Vec<i32>)> = Vec::new();
@@ -1167,8 +1182,12 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
                 i
             }
         };
-        if let Some(ci) = classes.iter_mut().find(|x| x.id == r.class_id) {
-            ci.count += 1;
+        let counted = entrant(i);
+        if counted {
+            entrants += 1;
+            if let Some(ci) = classes.iter_mut().find(|x| x.id == r.class_id) {
+                ci.count += 1;
+            }
         }
         match class_irs.iter_mut().find(|x| x.0 == r.class_id) {
             Some(x) => x.1.push(r.irating),
@@ -1229,7 +1248,7 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
     let total_time = entry.and_then(|e| e.time).unwrap_or(0.0);
     let leader_lap = idxs.first().map(|&i| f.cars[i].lap).unwrap_or(0);
     Standings {
-        car_count: rows.len() as i32,
+        car_count: entrants,
         rows,
         multiclass: s.class_count() > 1,
         race,
@@ -1747,6 +1766,41 @@ mod tests {
         f.cars[2].pct = 0.49;
         f.cars[2].lap = 6;
         assert!(replay_flags(&f, &s) & 0x0020 != 0);
+    }
+
+    #[test]
+    fn car_count_is_race_entrants_only() {
+        use crate::model::{Driver, SessionEntry};
+        let mut s = SessionData {
+            player_idx: 0,
+            ..Default::default()
+        };
+        s.drivers = vec![None; 6];
+        for i in 0..6 {
+            s.drivers[i] = Some(Driver {
+                car_idx: i as i32,
+                class_id: 1,
+                name: format!("D{i}"),
+                ..Default::default()
+            });
+        }
+        s.sessions.push(SessionEntry { num: 0, kind: "Practice".into(), ..Default::default() });
+        s.sessions.push(SessionEntry { num: 1, kind: "Race".into(), results: vec![(3, 0.0, 0.0)], ..Default::default() });
+        let mut f = Frame { player_idx: 0, session_num: 0, session_state: 4, ..Default::default() };
+        // 0, 1, 2 pistte; 3 sunucudan çıktı (yarış sonucu var); 4, 5 garajda (yarışa çıkmadı)
+        for i in 0..6 {
+            f.cars[i].pct = if i < 3 { 0.5 } else { -1.0 };
+            f.cars[i].position = 0;
+        }
+        // Antrenmanda tablodaki herkes
+        let t = Tracker::default();
+        assert_eq!(standings(&f, &s, &t).car_count, 6);
+        // Yarışta yalnızca katılanlar: pistteki 3 + sonucu olan 1
+        f.session_num = 1;
+        let st = standings(&f, &s, &t);
+        assert_eq!(st.rows.len(), 6);
+        assert_eq!(st.car_count, 4);
+        assert_eq!(st.classes.iter().map(|c| c.count).sum::<i32>(), 4);
     }
 
     #[test]

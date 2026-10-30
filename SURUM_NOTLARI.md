@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 311026-447
+
+- Sıralama Tablosu: üstteki katılımcı sayısı yanlıştı; sunucuya girip garajda kalan, yarışa hiç çıkmayan sürücüler de sayılıyordu. Artık yarışta yalnızca yarışa katılanlar sayılır (gridde yeri olan, yarış sonucunda adı geçen ya da pistte / pitte olan; yarışı bitirip sunucudan çıkanlar dahil). Sınıf başına sayılar da aynı kuralla. Garajdakiler tabloda yine en sonda "GAR" olarak görünür. Antrenman / sıralamada tablodaki herkes sayılır.
+
 ## 291026-446
 
 - Ses odası: konuşma takılıyordu (kesik kesik / cızırtılı ses). Odadakilerin sesi, mikrofon zinciriyle (RNNoise gürültü engelleme) aynı ses bağlamında en küçük tamponla çalınıyordu; oyun işlemciyi yorunca gürültü engelleme bir an geç kalınca hem gelen ses hem giden mikrofon sesi takılıyordu. Artık gelen ses ayrı bir ses bağlamında (kendi ses iş parçacığı), takılmaya dayanıklı daha geniş tamponla ve ses kartının kendi örnekleme hızında çalınır; mikrofon zinciri de biraz daha geniş tamponla çalışır. Ses odası overlay'ine giden veride gereksiz tekrarlanan iş azaltıldı.
