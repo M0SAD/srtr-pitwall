@@ -1020,10 +1020,29 @@ fn grid_order(s: &SessionData, race_num: i32) -> Vec<usize> {
 /// çizgiyi geçince güncellenir, grid ve start turunda eski / boş kalır. Bu aralıkta:
 /// - yeşil bayraktan önce (araca binme, grid, formasyon turu): sıralama turlarının sonucu (grid sırası);
 /// - start turunda: pistteki konum (önde olan önde).
+/// Bir aracın kat ettiği mesafe (tur): başlanan tur − 1 + tur yüzdesi. Gridde (çizginin gerisinde) 0'dan küçüktür.
+pub(crate) fn raw_dist(lap: i32, pct: f32) -> f64 {
+    (lap - 1) as f64 + pct as f64
+}
+
+/// Tracker'ın bu kare için düzelttiği mesafeler (oturum no, oturum zamanı, araç başı mesafe)
+static LIVE_DIST: parking_lot::Mutex<Option<(i32, f64, Vec<f64>)>> = parking_lot::Mutex::new(None);
+pub(crate) fn set_live_dist(session_num: i32, t: f64, d: &[f64]) {
+    *LIVE_DIST.lock() = Some((session_num, t, d.to_vec()));
+}
+/// Canlı sıralama mesafeleri: Tracker bu kareyi işlediyse onun düzelttiği, yoksa ham değer
+fn live_dists(f: &Frame) -> Vec<f64> {
+    if let Some((n, t, d)) = LIVE_DIST.lock().as_ref() {
+        if *n == f.session_num && (*t - f.session_time).abs() < 1e-6 && d.len() == MAX_CARS {
+            return d.clone();
+        }
+    }
+    (0..MAX_CARS).map(|i| raw_dist(f.cars[i].lap, f.cars[i].pct)).collect()
+}
+
 pub(crate) fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool {
     use std::cmp::Ordering;
     let race = s.is_race(f.session_num);
-    let lap1 = race && f.session_state <= 4 && idxs.iter().all(|&i| f.cars[i].lap_completed <= 0);
     let grid = if race { grid_order(s, f.session_num) } else { Vec::new() };
     let grid_slot = |i: usize| grid.iter().position(|&g| g == i).map(|p| p as i32);
     // Resmi sırası henüz olmayan araç (yarışta çizgiyi geçmedi): grid sırasıyla, yoksa araç sırasıyla resmi olanların arkasında
@@ -1034,21 +1053,20 @@ pub(crate) fn sort_field(f: &Frame, s: &SessionData, idxs: &mut [usize]) -> bool
             1000 + grid_slot(i).unwrap_or(500 + i as i32)
         }
     };
-    // Grid'den start turunun sonuna kadar (hiçbir araç tur tamamlamadan): grid sırası. Pistteki konuma göre dizmek start
-    // anında karışıyordu (tur yüzdesi çizgide sıfırlanırken tur sayısı geç artınca araç bir anda en sona düşüyor).
-    if lap1 && !grid.is_empty() {
+    // Yeşil bayraktan önce (grid, ısınma / pace turu): grid sırası
+    if race && f.session_state <= 3 && !grid.is_empty() {
         let slot = |i: usize| grid_slot(i).unwrap_or(500 + official(i));
         idxs.sort_by_key(|&i| slot(i));
         return false;
     }
-    if lap1 && f.session_state >= 4 {
-        let rolling = |i: usize| f.cars[i].pct >= 0.0 && !f.cars[i].on_pit;
-        idxs.sort_by(|&a, &b| match (rolling(a), rolling(b)) {
-            (true, true) => {
-                let da = f.cars[a].lap as f32 + f.cars[a].pct;
-                let db = f.cars[b].lap as f32 + f.cars[b].pct;
-                db.total_cmp(&da)
-            }
+    // Yarış sürerken (yeşil bayraktan damalı bayrağa kadar): CANLI sıra, pistteki konuma göre (kat edilen mesafe).
+    // iRacing'in resmi sırası yalnızca başlangıç / bitiş çizgisinde güncellenir; tur içindeki geçişler tabloya bir
+    // sonraki çizgi geçişinde yansıyordu. Dünyada olmayanlar (sunucudan çıkan, garajdaki) arkada, resmi sırayla.
+    if race && f.session_state == 4 {
+        let dist = live_dists(f);
+        let on = |i: usize| f.cars[i].pct >= 0.0 && dist[i].is_finite();
+        idxs.sort_by(|&a, &b| match (on(a), on(b)) {
+            (true, true) => dist[b].total_cmp(&dist[a]).then(official(a).cmp(&official(b))),
             (true, false) => Ordering::Less,
             (false, true) => Ordering::Greater,
             (false, false) => official(a).cmp(&official(b)),
@@ -1848,26 +1866,30 @@ mod tests {
         // Yeşilden önce: grid sırası (sıralama turları sonucu)
         let p = positions(&f, &s);
         assert_eq!([p[2].0, p[0].0, p[3].0, p[1].0], [1, 2, 3, 4]);
-        // Start turu (hiçbir araç tur tamamlamadan): yine grid sırası; resmi sıra eski kalsa ve tur yüzdesi çizgide
-        // sıfırlansa bile (araç 0'da: karışmaz)
+        // Yeşilden sonra: canlı sıra (pistteki konum); resmi sıra eski kalsa da. Araç 2 çizgiyi geçti (tur 1), diğerleri
+        // gridde çizginin gerisinde (tur 0)
         f.session_state = 4;
         for i in 0..4 {
             f.cars[i].position = 4 - i as i32;
             f.cars[i].class_position = 4 - i as i32;
+            f.cars[i].lap = 0;
         }
         f.cars[2].pct = 0.001;
+        f.cars[2].lap = 1;
         let p = positions(&f, &s);
-        assert_eq!([p[2].1, p[0].1, p[3].1, p[1].1], [1, 2, 3, 4]);
+        assert_eq!([p[2].1, p[0].1, p[1].1, p[3].1], [1, 2, 3, 4]);
         // Yakındakiler aynı numaraları gösterir
         let t = Tracker::default();
         let rel = relative(&f, &s, &t, 3);
         for r in &rel.rows {
             assert_eq!(r.class_pos, p[r.idx as usize].1);
         }
-        // Lider ilk turunu tamamlayınca resmi sıra
-        for i in 0..4 {
-            f.cars[i].lap_completed = 1;
-        }
+        // Tur içinde geçiş: araç 3, araç 1'i geçti (resmi sıra çizgiye kadar eski) → tabloda hemen önde
+        f.cars[3].pct = 0.95;
+        let p = positions(&f, &s);
+        assert_eq!(p[3].0, 2);
+        // Damalı bayraktan sonra resmi (bitiş) sırası
+        f.session_state = 5;
         let p = positions(&f, &s);
         assert_eq!(p[0].0, 4);
     }

@@ -186,6 +186,10 @@ pub const CF_BLUE: u32 = 0x0020;
 // ---------------------------------------------------------------------------
 
 pub struct Tracker {
+    /// Canlı yarış sırası için her aracın kat ettiği mesafe (tur; bkz. calc::set_live_dist): çizgide tur sayacı ile tur
+    /// yüzdesi aynı anda değişmeyince oluşan ±1 turluk sıçrama düzeltilir
+    live_dist: Vec<f64>,
+    live_dist_ses: i32,
     pub cars: Vec<CarTrack>,
     pub fuel: FuelTracker,
     pub trend: DeltaTrend,
@@ -406,9 +410,41 @@ impl ReplayLaps {
     }
 }
 
+impl Tracker {
+    /// Her aracın yarışta kat ettiği mesafe: (başlanan tur − 1) + tur yüzdesi. Başlangıç / bitiş çizgisinde iRacing tur
+    /// sayacını ve tur yüzdesini birkaç kare arayla güncelleyebiliyor: araç bir anda bir tur geride (ya da önde)
+    /// görünüp tabloda en sona düşüyordu. Çizgi yakınında önceki değerden yarım turdan fazla sapma düzeltilir.
+    fn update_live_dist(&mut self, f: &Frame) {
+        if self.live_dist_ses != f.session_num || self.live_dist.len() != MAX_CARS {
+            self.live_dist = vec![f64::NAN; MAX_CARS];
+            self.live_dist_ses = f.session_num;
+        }
+        for i in 0..MAX_CARS {
+            let c = &f.cars[i];
+            if c.pct < 0.0 {
+                self.live_dist[i] = f64::NAN;
+                continue;
+            }
+            let mut d = crate::calc::raw_dist(c.lap, c.pct);
+            let prev = self.live_dist[i];
+            if prev.is_finite() {
+                if d < prev - 0.5 && c.pct < 0.15 {
+                    d += 1.0;
+                } else if d > prev + 0.5 && c.pct > 0.85 {
+                    d -= 1.0;
+                }
+            }
+            self.live_dist[i] = d;
+        }
+        crate::calc::set_live_dist(f.session_num, f.session_time, &self.live_dist);
+    }
+}
+
 impl Default for Tracker {
     fn default() -> Self {
         Tracker {
+            live_dist: vec![f64::NAN; MAX_CARS],
+            live_dist_ses: -1,
             cars: vec![CarTrack::default(); MAX_CARS],
             fuel: FuelTracker::default(),
             trend: DeltaTrend::default(),
@@ -748,6 +784,7 @@ impl Tracker {
             }
         }
         crate::calc::set_green(f.session_num, if race { self.green_time } else { None });
+        self.update_live_dist(f);
         let record_start = race && racing && !self.race_started;
         if record_start {
             self.race_started = true;
@@ -911,6 +948,27 @@ pub fn fmt_lap(t: f32) -> String {
 #[cfg(test)]
 mod best_tests {
     use super::*;
+
+    #[test]
+    fn live_dist_survives_line_counter_lag() {
+        let mut t = Tracker::default();
+        let mut f = Frame::default();
+        f.cars[0].lap = 0;
+        f.cars[0].pct = 0.99;
+        t.update_live_dist(&f);
+        assert!((t.live_dist[0] - -0.01).abs() < 1e-6);
+        // Çizgiyi geçti, tur yüzdesi sıfırlandı ama tur sayacı henüz artmadı
+        f.session_time = 0.1;
+        f.cars[0].pct = 0.01;
+        t.update_live_dist(&f);
+        assert!((t.live_dist[0] - 0.01).abs() < 1e-6);
+        // Sayaç arttı: aynı mesafe
+        f.session_time = 0.2;
+        f.cars[0].lap = 1;
+        f.cars[0].pct = 0.02;
+        t.update_live_dist(&f);
+        assert!((t.live_dist[0] - 0.02).abs() < 1e-6);
+    }
 
     fn sess(kind: &str) -> SessionData {
         let mut s = SessionData {

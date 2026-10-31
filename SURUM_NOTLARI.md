@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 311026-448
+
+- Sıralama Tablosu artık yarışta CANLI: sıra pistteki konuma (kat edilen mesafeye) göre anlık güncellenir. Önceden iRacing'in resmi sırası kullanılıyordu; o yalnızca başlangıç / bitiş çizgisinde güncellendiği için tur içindeki geçişler tabloya ancak bir sonraki çizgi geçişinde yansıyordu. Yeşil bayraktan önce (grid, ısınma / pace turu) grid sırası, damalı bayraktan sonra resmi bitiş sırası gösterilir. Çizgide tur sayacı ile tur yüzdesi aynı anda değişmeyince aracın bir an en sona düşmesi düzeltildi. Sunucudan çıkanlar ve garajdakiler sonda kalır. Yakındakiler, sesli mühendis ve diğer sıra gösterenler de aynı canlı sırayı kullanır.
+
 ## 311026-447
 
 - Sıralama Tablosu: üstteki katılımcı sayısı yanlıştı; sunucuya girip garajda kalan, yarışa hiç çıkmayan sürücüler de sayılıyordu. Artık yarışta yalnızca yarışa katılanlar sayılır (gridde yeri olan, yarış sonucunda adı geçen ya da pistte / pitte olan; yarışı bitirip sunucudan çıkanlar dahil). Sınıf başına sayılar da aynı kuralla. Garajdakiler tabloda yine en sonda "GAR" olarak görünür. Antrenman / sıralamada tablodaki herkes sayılır.
