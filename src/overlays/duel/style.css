@@ -364,13 +364,13 @@
 }
 .duel-cv-focus .duel-row.duel-mine {
   background-image: linear-gradient(90deg, color-mix(in srgb, var(--cc) 32%, transparent), color-mix(in srgb, var(--cc) 6%, transparent));
+}
+.duel-cv-focus .duel-row.duel-mine .duel-name {
   font-weight: 700;
 }
-.duel-cv-focus .duel-row.duel-mine .duel-class {
-  width: 6px;
-}
-.duel-cv-focus .duel-row.duel-other {
-  font-size: 0.88em;
+/* Hizalama bozulmasın: yazı boyutu ve sütun genişlikleri değişmez; vurgu yalnızca boya ile */
+.duel-cv-focus .duel-row.duel-mine {
+  box-shadow: inset 6px 0 0 var(--cc);
 }
 .duel-name:has(.duel-ctag) {
   display: flex;

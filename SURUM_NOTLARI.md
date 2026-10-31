@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 011126-450
+
+- Yakındakiler / Yakın Takip "Kendi sınıfım öne çıksın" görünümünde sütunlar kayıyordu (simgeler, rozetler ve süreler satırdan satıra hizasız): kendi sınıfının satırları büyük yazı ve kalın şeritle, diğer sınıflar küçük yazıyla çiziliyordu. Artık yazı boyutu ve sütun genişlikleri tüm satırlarda aynı; vurgu yalnızca renk, dolgu ve şeritle (sola boyanan gölge, yer kaplamaz), kalın yazı yalnızca adda. "Sınıf şeritli" görünümünde de aynı düzeltme.
+
 ## 011126-449
 
 - Sıralama Tablosu: fark sütunu düzeltildi. Tur geride sayısı artık pistte kat edilen mesafeden hesaplanır: lider çizgiyi geçti diye hemen arkasındaki araç "tur geride" görünmez, gerçekten bir tam tur geride olmalı (önceden tamamlanan tur sayısının farkına bakılıyordu). Bir ya da daha fazla tur geride olanlarda saniye yerine diğer overlay programlarındaki gibi "+1L" yazar; "Öndekine fark" kipinde de öndeki araç bir tur ya da daha fazla öndeyse "+1L" (önceden anlamsız büyük saniyeler görünüyordu).

@@ -482,19 +482,17 @@
 /* Kendi sınıfım öne çıksın: sınıf renginde dolgu ve kalın şerit, kalın ad; diğer sınıflar küçük yazı */
 .rel-cv-focus .rel-row.rel-mine {
   background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 30%, transparent), color-mix(in srgb, var(--cc) 8%, transparent));
+}
+/* Kalın yazı yalnızca adda (ad sütunu esnek; diğer sütunların genişliği değişmesin) */
+.rel-cv-focus .rel-row.rel-mine .rel-name {
   font-weight: var(--ov-weight-strong, 700);
 }
-.rel-cv-focus .rel-row.rel-mine .rel-class {
-  width: 6px;
+/* Hizalama bozulmasın: yazı boyutu ve sütun genişlikleri değişmez; vurgu yalnızca boya (gölge / renk) ile */
+.rel-cv-focus .rel-row.rel-mine {
+  box-shadow: inset 6px 0 0 var(--cc);
 }
 .rel-cv-focus .rel-row.rel-mine .rel-name {
-  font-size: 1.06em;
-}
-.rel-cv-focus .rel-row.rel-other {
-  font-size: 0.86em;
-}
-.rel-cv-focus .rel-row.me .rel-class {
-  width: 6px;
+  color: color-mix(in srgb, var(--cc) 25%, var(--ov-text));
 }
 /* Sınıf şeritli: her satırın arka planı sınıf renginde (soldan sağa sönen), kendi sınıfımda daha belirgin */
 .rel-cv-split .rel-row:not(.me) {
@@ -503,8 +501,8 @@
 .rel-cv-split .rel-row.rel-other:not(.me) {
   background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 18%, transparent) 0%, transparent 45%);
 }
-.rel-cv-split .rel-row .rel-class {
-  width: 5px;
+.rel-cv-split .rel-row:not(.me) {
+  box-shadow: inset 5px 0 0 var(--cc);
 }
 /* Sınıf etiketi varken: ad kısalır (…), etiket hep görünür */
 .rel-name:has(.rel-ctag) {
