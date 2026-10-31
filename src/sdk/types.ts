@@ -184,6 +184,8 @@ export interface Row {
   gap: number;
   interval: number;
   lapsDown: number;
+  /** Sıralama (yarış): öndeki araçla (sınıfında) arada kaç tam tur var */
+  intervalLaps?: number;
   lapRel: number;
   last: number;
   best: number;

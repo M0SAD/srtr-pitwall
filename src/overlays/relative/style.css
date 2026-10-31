@@ -455,3 +455,65 @@
     transform: scale(1.25);
   }
 }
+
+/* ---- Sınıf görünümleri (classView): kendi sınıfındaki rakipler bir bakışta ayrılsın ---- */
+.rel-ctag {
+  flex: none;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  color: #fff;
+  background: color-mix(in srgb, var(--cc) 70%, #000);
+  opacity: 0.9;
+}
+/* Diğer sınıflar soluk */
+.rel-cv-dim .rel-row.rel-other,
+.rel-cv-focus .rel-row.rel-other {
+  opacity: var(--rel-dim, 0.45);
+}
+.rel-cv-dim .rel-row.rel-other.pit,
+.rel-cv-focus .rel-row.rel-other.pit {
+  opacity: calc(var(--rel-dim, 0.45) * 0.8);
+}
+/* Kendi sınıfım öne çıksın: sınıf renginde dolgu ve kalın şerit, kalın ad; diğer sınıflar küçük yazı */
+.rel-cv-focus .rel-row.rel-mine {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 30%, transparent), color-mix(in srgb, var(--cc) 8%, transparent));
+  font-weight: var(--ov-weight-strong, 700);
+}
+.rel-cv-focus .rel-row.rel-mine .rel-class {
+  width: 6px;
+}
+.rel-cv-focus .rel-row.rel-mine .rel-name {
+  font-size: 1.06em;
+}
+.rel-cv-focus .rel-row.rel-other {
+  font-size: 0.86em;
+}
+.rel-cv-focus .rel-row.me .rel-class {
+  width: 6px;
+}
+/* Sınıf şeritli: her satırın arka planı sınıf renginde (soldan sağa sönen), kendi sınıfımda daha belirgin */
+.rel-cv-split .rel-row:not(.me) {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 34%, transparent) 0%, color-mix(in srgb, var(--cc) 10%, transparent) 55%, transparent 100%);
+}
+.rel-cv-split .rel-row.rel-other:not(.me) {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 18%, transparent) 0%, transparent 45%);
+}
+.rel-cv-split .rel-row .rel-class {
+  width: 5px;
+}
+/* Sınıf etiketi varken: ad kısalır (…), etiket hep görünür */
+.rel-name:has(.rel-ctag) {
+  display: flex;
+  align-items: center;
+  text-overflow: clip;
+}
+.rel-name:has(.rel-ctag) > span[data-no-i18n]:not(.rel-ctag) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

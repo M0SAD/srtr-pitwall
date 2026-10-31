@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 011126-449
+
+- Sıralama Tablosu: fark sütunu düzeltildi. Tur geride sayısı artık pistte kat edilen mesafeden hesaplanır: lider çizgiyi geçti diye hemen arkasındaki araç "tur geride" görünmez, gerçekten bir tam tur geride olmalı (önceden tamamlanan tur sayısının farkına bakılıyordu). Bir ya da daha fazla tur geride olanlarda saniye yerine diğer overlay programlarındaki gibi "+1L" yazar; "Öndekine fark" kipinde de öndeki araç bir tur ya da daha fazla öndeyse "+1L" (önceden anlamsız büyük saniyeler görünüyordu).
+- Yakındakiler (Relative): sınıf tasarımları. "Tasarım (sınıflar)": Klasik / Diğer sınıflar soluk / Kendi sınıfım öne çıksın (sınıf renginde dolgu, kalın şerit ve ad; diğer sınıflar küçük ve soluk) / Sınıf şeritli (her satır sınıf renginde) / Sadece kendi sınıfım (araya giren diğer sınıflar atlanır, önde / arkada yine seçilen sayıda kendi sınıfından araç). Diğer sınıfların satırında kısa sınıf adı etiketi (GTP, GT3 …) ve soluklık ayarı.
+- Yakın Takip: "Sınıflar" ayarı: tüm sınıflar eşit / diğer sınıflar soluk / kendi sınıfım öne çıksın / sadece kendi sınıfım; sınıf adı etiketi, soluklık ve "yakınlık vurgusu yalnızca kendi sınıfımda" seçeneği. Eski "Sadece kendi sınıfım" ayarı korunur.
+- Yakındakiler verisi, kendi sınıfından önde / arkada en yakın araçları da içerir (araya başka sınıflar girse de "sadece kendi sınıfım" dolu kalır).
+
 ## 311026-448
 
 - Sıralama Tablosu artık yarışta CANLI: sıra pistteki konuma (kat edilen mesafeye) göre anlık güncellenir. Önceden iRacing'in resmi sırası kullanılıyordu; o yalnızca başlangıç / bitiş çizgisinde güncellendiği için tur içindeki geçişler tabloya ancak bir sonraki çizgi geçişinde yansıyordu. Yeşil bayraktan önce (grid, ısınma / pace turu) grid sırası, damalı bayraktan sonra resmi bitiş sırası gösterilir. Çizgide tur sayacı ile tur yüzdesi aynı anda değişmeyince aracın bir an en sona düşmesi düzeltildi. Sunucudan çıkanlar ve garajdakiler sonda kalır. Yakındakiler, sesli mühendis ve diğer sıra gösterenler de aynı canlı sırayı kullanır.

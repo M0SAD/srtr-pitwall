@@ -1,4 +1,5 @@
 import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
+import { shortClass } from "@/sdk/classTag";
 import type { OverlayProps } from "@/sdk/overlay";
 import { useRows, useTopic, demoShow } from "@/sdk/telemetry";
 import { Flag } from "@/sdk/Flag";
@@ -65,6 +66,15 @@ export default function Duel(props: OverlayProps) {
   const has = (f: string) => fields().has(f) && !(f === "car" && o().hideSameCar !== false && sameCar());
 
   const me = createMemo(() => stable().find((r) => r.isMe));
+  /** Sınıf görünümü (eski "Sadece kendi sınıfım" ayarı da geçerli) */
+  const cview = () => {
+    const v = String(o().classView ?? "all");
+    return v === "all" && o().sameClass === true ? "only" : v;
+  };
+  const multi = createMemo(() => new Set(stable().map((r) => r.classId)).size > 1);
+  const other = (r: Row) => !r.isMe && !!me() && r.classId !== me()!.classId;
+  const dimK = () => clamp(num(o().dimLevel, 45) / 100, 0.15, 0.9);
+  const classDim = (r: Row) => ((cview() === "dim" || cview() === "focus") && multi() && other(r) ? dimK() : 1);
 
   /** Gösterilecek satırlar ve yuvaları: −1 hemen öndeki, +1 hemen arkadaki. Sınırın bir dışındaki araç da
    *  (görünmez olarak) tutulur ki sıraya girerken makaranın kenarından dönerek gelsin. */
@@ -74,7 +84,7 @@ export default function Duel(props: OverlayProps) {
     const slots = new Map<Row, number>();
     if (mi < 0) return { list: [] as Row[], slots };
     const cls = all[mi].classId;
-    const ok = (r: Row) => !o().sameClass || r.classId === cls;
+    const ok = (r: Row) => cview() !== "only" || r.classId === cls;
     const list: Row[] = [];
     let s = 0;
     for (let i = mi - 1; i >= 0 && s < nAhead() + 1; i--) {
@@ -106,7 +116,9 @@ export default function Duel(props: OverlayProps) {
   const distance = (r: Row) => dist(r, metres());
   /** Yakınlık 0..1: eşikte 0, tampon tampona 1. Sınırsızda eşik yok: 3 sn'lik ölçekle büyür ama hiçbir satır sönmez. */
   const closeness = (r: Row) =>
-    unlimited() ? Math.max(0.45, 1 - clamp(Math.abs(r.gap) / 3, 0, 1)) : 1 - clamp(dist(r, mode() === "m") / threshold(r.gap < 0), 0, 1);
+    o().classNear === true && (cview() === "dim" || cview() === "focus") && multi() && other(r)
+      ? 0
+      : unlimited() ? Math.max(0.45, 1 - clamp(Math.abs(r.gap) / 3, 0, 1)) : 1 - clamp(dist(r, mode() === "m") / threshold(r.gap < 0), 0, 1);
   /** Tur farkı (yarış): +1 / +2 beni turlayanlar, −1 / −2 turladıklarım */
   const lapText = (r: Row) => (r.lapRel ? `${r.lapRel > 0 ? "+" : "−"}${Math.abs(r.lapRel)}` : "");
 
@@ -188,7 +200,7 @@ export default function Duel(props: OverlayProps) {
     const inside = j <= limit && !(!unlimited() && o().hideOutside && c <= 0);
     const scale = slotScale(j) * (0.84 + 0.16 * c);
     const tilt = clamp(-s * k() * 13, -64, 64);
-    const opacity = inside ? clamp((1 - k() * 0.13 * (j - 1)) * (0.4 + 0.6 * c) * farFade(r), 0.14, 1) : 0;
+    const opacity = inside ? clamp((1 - k() * 0.13 * (j - 1)) * (0.4 + 0.6 * c) * farFade(r) * classDim(r), 0.1, 1) : 0;
     const blur = o().blur === true ? k() * 0.45 * (j - 1) + (1 - c) * 1.1 : 0;
     const y = (Math.sign(s) * offsets()[Math.min(j, 6)]).toFixed(1);
     return {
@@ -199,6 +211,7 @@ export default function Duel(props: OverlayProps) {
       opacity: opacity.toFixed(2),
       filter: blur > 0.15 && inside ? `blur(${blur.toFixed(1)}px)` : "none",
       "--duel-c": c.toFixed(3),
+      "--cc": r.classColor || "#888",
       "z-index": String(10 - j),
     };
   };
@@ -216,6 +229,7 @@ export default function Duel(props: OverlayProps) {
     let c = slotOf(r) < 0 ? "ahead" : "behind";
     if (r.onPit) c += " pit";
     if (o().lapTint !== false) c += r.lapRel > 0 ? " lap-ahead" : r.lapRel < 0 ? " lap-behind" : "";
+    if (multi() && me()) c += other(r) ? " duel-other" : " duel-mine";
     return c;
   };
 
@@ -248,7 +262,14 @@ export default function Duel(props: OverlayProps) {
         <span class="duel-num" data-no-i18n>#{r.number}</span>
       </Show>
       <Show when={has("name")}>
-        <span class="duel-name" data-no-i18n>{formatName(r.name, o().nameFormat as string)}</span>
+        <span class="duel-name" data-no-i18n>
+          <span class="duel-nm">{formatName(r.name, o().nameFormat as string)}</span>
+          <Show when={!self && o().classTag !== false && multi() && other(r) && (cview() === "dim" || cview() === "focus")}>
+            <span class="duel-ctag" style={{ "--cc": r.classColor || "#888" }}>
+              {shortClass(r.className)}
+            </span>
+          </Show>
+        </span>
       </Show>
       <Show when={!has("name")}>
         <span class="duel-name" />
@@ -316,6 +337,7 @@ export default function Duel(props: OverlayProps) {
         "duel-nocolor": !fx().color,
         "duel-nomask": !fx().mask,
         "duel-noglow": !fx().glow,
+        [`duel-cv-${cview()}`]: true,
         "duel-2d": !fx().d3, "duel-noframe": o().rowFrame === false || num(o().bgOpacity, 90) <= 0 && o().rowFrame !== true, "duel-framed": !!o().rowsFrame && (props.editing || anyoneShown() || o().showMe === true),
       }}
       style={{

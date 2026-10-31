@@ -134,9 +134,14 @@ export default function Standings(props: OverlayProps) {
 
   const gapText = (r: Row) => {
     const d = data()!;
-    const v = props.options.gapMode === "interval" ? r.interval : r.gap;
-    if (d.race && r.lapsDown > 0 && props.options.gapMode === "gap") return `+${r.lapsDown}T`;
+    const iv = props.options.gapMode === "interval";
+    const v = iv ? r.interval : r.gap;
     if (r.classPos === 1) return d.race ? "Lider" : "—";
+    // Bir ya da daha fazla tur geride: saniye yerine tur farkı (diğer overlay programlarındaki gibi "+1L")
+    if (d.race) {
+      const laps = iv ? r.intervalLaps ?? 0 : r.lapsDown;
+      if (laps > 0) return `+${laps}L`;
+    }
     if (v <= 0) return "-";
     return "+" + v.toFixed((props.options.decimals as number) ?? 1);
   };

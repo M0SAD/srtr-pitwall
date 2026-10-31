@@ -247,6 +247,8 @@ pub struct Row {
     pub gap: f32,
     pub interval: f32,
     pub laps_down: i32,
+    /// Sıralama (yarış): öndeki araçla (sınıfında) arada kaç tam tur var; 0 = aynı tur
+    pub interval_laps: i32,
     /// Relative: +N = N tur önde (seni turluyor), -N = turlanıyor, 0 = aynı tur
     pub lap_rel: i32,
     pub last: f32,
@@ -911,8 +913,35 @@ pub fn relative(f: &Frame, s: &SessionData, t: &Tracker, n: usize) -> Relative {
     let me_pos = list.iter().position(|x| x.1 == me).unwrap_or(0);
     let from = me_pos.saturating_sub(n);
     let to = (me_pos + n + 1).min(list.len());
-    out.rows = list[from..to]
+    // Önde / arkada en yakın n araç; ayrıca kendi sınıfımdan en yakın n'er araç ("Sadece kendi sınıfım" görünümü
+    // araya başka sınıflar girse de dolu kalsın). Liste farka göre sıralı kalır: en yakın n araç yine ortadadır.
+    let cls_of = |i: usize| s.driver(i).map(|d| d.class_id).unwrap_or(0);
+    let mut keep: Vec<bool> = (0..list.len()).map(|k| k >= from && k < to).collect();
+    let mut cnt = 0;
+    for k in (0..me_pos).rev() {
+        if cnt >= n {
+            break;
+        }
+        if cls_of(list[k].1) == my_class {
+            keep[k] = true;
+            cnt += 1;
+        }
+    }
+    cnt = 0;
+    for k in me_pos + 1..list.len() {
+        if cnt >= n {
+            break;
+        }
+        if cls_of(list[k].1) == my_class {
+            keep[k] = true;
+            cnt += 1;
+        }
+    }
+    out.rows = list
         .iter()
+        .enumerate()
+        .filter(|(k, _)| keep[*k])
+        .map(|(_, x)| x)
         .map(|&(gap, i, lr)| {
             let mut r = base_row(f, s, t, i);
             let (p, cp) = pos_of[i];
@@ -1162,6 +1191,7 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
             || entry.is_some_and(|e| e.results.iter().any(|r| r.0 == i as i32))
     };
     let mut entrants = 0i32;
+    let live = live_dists(f);
 
     let mut rows: Vec<Row> = Vec::with_capacity(idxs.len());
     let mut classes: Vec<ClassInfo> = Vec::new();
@@ -1218,7 +1248,17 @@ pub fn standings(f: &Frame, s: &SessionData, t: &Tracker) -> Standings {
             r.interval = 0.0;
         } else if race {
             let lc = f.cars[leader];
-            r.laps_down = (lc.lap_completed - c.lap_completed).max(0);
+            // Tur geride: yarış sürerken pistte kat edilen mesafeden (lider çizgiyi geçti diye hemen arkasındaki araç
+            // "1 tur geride" sayılmaz; gerçekten bir tam tur geride olmalı). Damalı bayraktan sonra tamamlanan turlardan.
+            let laps_between = |a: usize, b: usize| -> i32 {
+                if f.session_state == 4 && live[a].is_finite() && live[b].is_finite() {
+                    ((live[a] - live[b]).floor() as i32).max(0)
+                } else {
+                    (f.cars[a].lap_completed - f.cars[b].lap_completed).max(0)
+                }
+            };
+            r.laps_down = laps_between(leader, i);
+            r.interval_laps = prev.map(|p| laps_between(p, i)).unwrap_or(0);
             r.gap = (c.f2 - lc.f2).max(0.0);
             r.interval = match prev {
                 Some(p) => (c.f2 - f.cars[p].f2).max(0.0),
@@ -1784,6 +1824,34 @@ mod tests {
         f.cars[2].pct = 0.49;
         f.cars[2].lap = 6;
         assert!(replay_flags(&f, &s) & 0x0020 != 0);
+    }
+
+    #[test]
+    fn laps_down_from_track_distance() {
+        use crate::model::{Driver, SessionEntry};
+        let mut s = SessionData { player_idx: 0, ..Default::default() };
+        s.drivers = vec![None; 3];
+        for i in 0..3 {
+            s.drivers[i] = Some(Driver { car_idx: i as i32, class_id: 1, name: format!("D{i}"), ..Default::default() });
+        }
+        s.sessions.push(SessionEntry { num: 0, kind: "Race".into(), ..Default::default() });
+        let mut f = Frame { player_idx: 0, session_num: 0, session_state: 4, ..Default::default() };
+        // Lider çizgiyi yeni geçti (tur 3), 1 numara hemen arkasında (çizgiye varmadı), 2 numara bir tam tur geride
+        let set = |f: &mut Frame, i: usize, lap: i32, pct: f32, lc: i32| {
+            f.cars[i].lap = lap;
+            f.cars[i].pct = pct;
+            f.cars[i].lap_completed = lc;
+        };
+        set(&mut f, 0, 3, 0.02, 2);
+        set(&mut f, 1, 2, 0.98, 1);
+        set(&mut f, 2, 2, 0.01, 1);
+        let t = Tracker::default();
+        let st = standings(&f, &s, &t);
+        let r = |i: i32| st.rows.iter().find(|r| r.idx == i).unwrap().clone();
+        assert_eq!(r(0).laps_down, 0);
+        assert_eq!(r(1).laps_down, 0, "hemen arkadaki tur geride sayılmaz");
+        assert_eq!(r(2).laps_down, 1);
+        assert_eq!(r(2).interval_laps, 0, "öndekiyle arası bir turdan az");
     }
 
     #[test]

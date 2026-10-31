@@ -76,7 +76,22 @@ export default defineOverlay({
     { key: "farLimit", label: "Uzaklık sınırı", type: "number", default: 30, min: 2, max: 120, step: 1, unit: "sn", showIf: { key: "farHide", is: [true] } },
     { key: "farFade", label: "Uzaktaki araçlar şeffaflaşsın", type: "boolean", default: true, hint: "Araç uzaklaştıkça satırı silikleşir (30 sn'de en silik hâline gelir; \"Araçlar uzaktayken gizle\" açıksa onun sınırında)." },
     { key: "centerLine", label: "Ortadaki çizgiyi hep göster", type: "boolean", default: true, hint: "Pistte başka araç yokken çizgi hiç çizilmez. Kapalıyken çizgi yalnızca gösterilecek bir araç varken çizilir. \"Kendi satırımı göster\" açıkken çizgi yerine kendi satırın görünür." },
-    { key: "sameClass", label: "Sadece kendi sınıfım", type: "boolean", default: false },
+    {
+      key: "classView",
+      label: "Sınıflar",
+      type: "select",
+      default: "all",
+      options: [
+        { value: "all", label: "Tüm sınıflar eşit" },
+        { value: "dim", label: "Diğer sınıflar soluk" },
+        { value: "focus", label: "Kendi sınıfım öne çıksın (renkli, büyük)" },
+        { value: "only", label: "Sadece kendi sınıfım" },
+      ],
+      hint: "Çok sınıflı yarışta kendi sınıfındaki rakipleri bir bakışta ayırt etmek için. Sadece kendi sınıfım: araya giren diğer sınıflar atlanır, önde / arkada yine seçilen sayıda kendi sınıfından araç görünür.",
+    },
+    { key: "classTag", label: "Diğer sınıflarda sınıf adı etiketi", type: "boolean", default: true, showIf: { key: "classView", is: ["dim", "focus"] } },
+    { key: "dimLevel", label: "Diğer sınıfların soluklığı", type: "number", default: 45, min: 15, max: 90, step: 5, unit: "%", showIf: { key: "classView", is: ["dim", "focus"] } },
+    { key: "classNear", label: "Yakınlık vurgusu yalnızca kendi sınıfımda", type: "boolean", default: false, showIf: { key: "classView", is: ["dim", "focus"] }, hint: "Diğer sınıftan yaklaşan araç satırını büyütmez ve vurgu rengiyle doldurmaz; yalnızca kendi sınıfın büyür." },
     { key: "raceOnly", label: "Sadece yarış oturumunda göster", type: "boolean", default: false },
     { key: "showMe", label: "Kendi satırımı göster", type: "boolean", default: false },
     {

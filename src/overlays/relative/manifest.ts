@@ -77,6 +77,22 @@ export default defineOverlay({
   resize: { h: { key: "rows", row: ".rel-row", per: 2 } },
   settings: [
     { key: "rows", label: "Önde/arkada gösterilecek araç", type: "number", default: 3, min: 1, max: 8, step: 1, hint: "Pencere hep bu kadar satırlık yer tutar; araç azsa sen yine tam ortada kalırsın. Düzenleme modunda pencerenin alt / üst kenarından sürükleyerek de ayarlanır." },
+    {
+      key: "classView",
+      label: "Tasarım (sınıflar)",
+      type: "select",
+      default: "normal",
+      options: [
+        { value: "normal", label: "Klasik (tüm sınıflar eşit)" },
+        { value: "dim", label: "Diğer sınıflar soluk" },
+        { value: "focus", label: "Kendi sınıfım öne çıksın (renkli, büyük)" },
+        { value: "split", label: "Sınıf şeritli (her satır sınıf renginde)" },
+        { value: "only", label: "Sadece kendi sınıfım" },
+      ],
+      hint: "Çok sınıflı yarışta kendi sınıfındaki rakipleri bir bakışta ayırt etmek için. Diğer sınıfların satırında sınıf adı küçük bir etiketle yazar. Sadece kendi sınıfım: araya giren diğer sınıflar atlanır, önde / arkada yine seçilen sayıda kendi sınıfından araç görünür.",
+    },
+    { key: "classTag", label: "Diğer sınıflarda sınıf adı etiketi", type: "boolean", default: true, showIf: { key: "classView", is: ["dim", "focus", "split"] } },
+    { key: "dimLevel", label: "Diğer sınıfların soluklığı", type: "number", default: 45, min: 15, max: 90, step: 5, unit: "%", showIf: { key: "classView", is: ["dim", "focus"] }, hint: "Düştükçe diğer sınıflar daha silik görünür." },
     { key: "nameFormat", label: "Ad biçimi", type: "select", default: "full", options: NAME_FORMATS },
     { key: "showHeader", label: "Üst satır", type: "boolean", default: true, group: "Başlık" },
     headerField("headerFields", "Üst satır bilgileri", ["air", "track", "wetness", "humidity", "precip"]),

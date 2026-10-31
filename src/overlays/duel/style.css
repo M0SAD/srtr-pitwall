@@ -347,3 +347,38 @@
 .duel.duel-noslide .duel-row {
   will-change: auto;
 }
+
+/* ---- Sınıf görünümleri (classView) ---- */
+.duel-ctag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  vertical-align: middle;
+  color: #fff;
+  background: color-mix(in srgb, var(--cc) 70%, #000);
+}
+.duel-cv-focus .duel-row.duel-mine {
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--cc) 32%, transparent), color-mix(in srgb, var(--cc) 6%, transparent));
+  font-weight: 700;
+}
+.duel-cv-focus .duel-row.duel-mine .duel-class {
+  width: 6px;
+}
+.duel-cv-focus .duel-row.duel-other {
+  font-size: 0.88em;
+}
+.duel-name:has(.duel-ctag) {
+  display: flex;
+  align-items: center;
+  text-overflow: clip;
+}
+.duel-name:has(.duel-ctag) > .duel-nm {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

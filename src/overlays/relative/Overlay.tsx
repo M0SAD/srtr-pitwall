@@ -16,6 +16,7 @@ import { LicenseBadge } from "@/sdk/LicenseBadge";
 import { FlagBadge } from "@/sdk/FlagBadge";
 import { replayClick, watchLive } from "@/sdk/replayClick";
 import { RELATIVE_COLUMNS, RELATIVE_DEFAULT_COLUMNS } from "./manifest";
+import { shortClass } from "@/sdk/classTag";
 import "./style.css";
 
 export function LicensePill(props: { r: Row }) {
@@ -64,8 +65,13 @@ export default function Relative(props: OverlayProps) {
   /** Önde / arkada gösterilen araç sayısı: pencere her zaman 2n+1 satırlık yer tutar */
   const span = () => Math.min(8, Math.max(1, Math.round(Number(props.options.rows) || 3)));
   // Pencere boyu sabit: araç azsa eksik satırlar boş yer olarak kalır, oyuncu hep tam ortadaki satırdadır
+  const cview = () => String(props.options.classView ?? "normal");
+  const myClass = createMemo(() => stable().find((r) => r.isMe)?.classId ?? null);
+  /** Çok sınıflı mı (görünen satırlarda birden çok sınıf) */
+  const multi = createMemo(() => new Set(stable().map((r) => r.classId)).size > 1);
+  const other = (r: Row) => !r.isMe && myClass() != null && r.classId !== myClass();
   const view = createMemo(() => {
-    const all = stable();
+    const all = cview() === "only" && myClass() != null ? stable().filter((r) => r.isMe || r.classId === myClass()) : stable();
     const n = span();
     const me = all.findIndex((r) => r.isMe);
     if (me < 0) {
@@ -131,6 +137,11 @@ export default function Relative(props: OverlayProps) {
             >
               {formatName(r.name, props.options.nameFormat as string)}
             </span>
+            <Show when={props.options.classTag !== false && multi() && other(r) && ["dim", "focus", "split"].includes(cview())}>
+              <span class="rel-ctag" style={{ "--cc": r.classColor || "#888" }} data-no-i18n>
+                {shortClass(r.className)}
+              </span>
+            </Show>
             <Show when={friendsOn("relative") && friendOf(r.userId, r.name)?.tag}>
               <span class="ov-tag rel-dtag">{friendOf(r.userId, r.name)!.tag}</span>
             </Show>
@@ -229,16 +240,25 @@ export default function Relative(props: OverlayProps) {
     };
   };
 
-  const rowClass = (r: Row) =>
-    r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
+  const rowClass = (r: Row) => {
+    let c = r.isMe ? "me" : r.onPit ? "pit" : r.lapRel > 0 ? "ahead-lap" : r.lapRel < 0 ? "behind-lap" : "";
+    if (multi() && myClass() != null && !r.isMe) c += r.classId === myClass() ? " rel-mine" : " rel-other";
+    return c;
+  };
+  const rowStyleOf = (r: Row) => {
+    const st: Record<string, string> = { "--cc": r.classColor || "#888" };
+    const f = r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name);
+    return f && typeof f === "object" ? { ...st, ...(f as Record<string, string>) } : st;
+  };
 
   return (
     <div
       class="ov-panel rel"
-      classList={{ "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame, "rel-custom": !!props.options.customColors }}
+      classList={{ [`rel-cv-${cview()}`]: true, "rel-framed": !!props.options.rowsFrame, "rel-rowframed": !!props.options.rowFrame, "rel-custom": !!props.options.customColors }}
       style={{
         "--rel-fill": `${Math.min(100, Math.max(0, Number(props.options.rowFill) || 0))}%`,
         "--ov-w": `${Math.min(1600, Math.max(300, Number(props.options.width) || 560))}px`,
+        "--rel-dim": String(Math.min(0.9, Math.max(0.15, (Number(props.options.dimLevel) || 45) / 100))),
         ...customColors(),
       }}
     >
@@ -251,7 +271,7 @@ export default function Relative(props: OverlayProps) {
         <For each={blanks(padTop())}>{() => <div class="rel-row rel-blank" />}</For>
         <For each={rows()}>
           {(r) => (
-            <div class={`rel-row ${rowClass(r)}`} style={r.isMe ? undefined : friendRowStyle("relative", r.userId, r.name)}>
+            <div class={`rel-row ${rowClass(r)}`} style={rowStyleOf(r)}>
               <For each={columns()}>{(c) => col(c, r)}</For>
             </div>
           )}
@@ -269,3 +289,4 @@ export default function Relative(props: OverlayProps) {
     </div>
   );
 }
+
