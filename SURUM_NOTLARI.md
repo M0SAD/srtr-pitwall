@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 011126-451
+
+- Canlı Sohbet: bağış / abonelik / bits / raid uyarıları iki kez geliyordu. Sebep: Streamlabs, bağlı Twitch / YouTube / Kick hesabının olaylarını (abonelik, bits, raid, takip, Super Chat, üyelik…) da yayınlıyor; kanal programa doğrudan da bağlıyken aynı olay hem platformdan hem Streamlabs'ten geliyordu (Streamlabs aynı olayı aynı kimlikle yeniden de gönderebiliyor). Artık aynı olay bir kez gösterilir ve bir kez okunur / çalınır: önce gelen kalır, 90 sn içinde diğer kaynaktan gelen eşi atlanır. Aynı kişinin aynı tutarda arka arkaya yaptığı iki ayrı bağış ikisi de görünür.
+
 ## 011126-450
 
 - Yakındakiler / Yakın Takip "Kendi sınıfım öne çıksın" görünümünde sütunlar kayıyordu (simgeler, rozetler ve süreler satırdan satıra hizasız): kendi sınıfının satırları büyük yazı ve kalın şeritle, diğer sınıflar küçük yazıyla çiziliyordu. Artık yazı boyutu ve sütun genişlikleri tüm satırlarda aynı; vurgu yalnızca renk, dolgu ve şeritle (sola boyanan gölge, yer kaplamaz), kalın yazı yalnızca adda. "Sınıf şeritli" görünümünde de aynı düzeltme.

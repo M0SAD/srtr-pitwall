@@ -450,6 +450,8 @@ struct Inner {
     dirty_poll: bool,
     dirty_captions: bool,
     session_bans: HashSet<(Platform, String)>,
+    /// Son olaylar (bağış, abonelik, bits, raid…): aynı olay iki kaynaktan gelince bir kez gösterilir (event_key)
+    recent_events: std::collections::VecDeque<(String, Platform, f64)>,
     spam: SpamFilter,
     words: WordFilter,
     poll: Poll,
@@ -750,6 +752,28 @@ impl Inner {
                 m.author.login = norm_user(&m.author.name);
             }
             let login = norm_user(&m.author.login);
+            // Aynı olay iki kez: Streamlabs, Twitch / YouTube / Kick olaylarını (abonelik, bits, raid, takip, Super Chat…)
+            // da yayınlar; kanal doğrudan bağlıyken aynı bağış / abonelik hem platformdan hem Streamlabs'ten geliyor ve
+            // uyarı (ses, sesli okuma, overlay) iki kez çıkıyordu. Streamlabs aynı olayı (aynı kimlikle) yeniden de
+            // gönderebiliyor. Önce gelen gösterilir, 90 sn içinde gelen eşi atlanır.
+            // (Aynı kimlik her durumda eştir; içerik eşleşmesi yalnızca farklı kaynaklar arasında: aynı kişinin aynı
+            // tutarda arka arkaya iki ayrı bağışı ikisi de görünür.)
+            if let Some(keys) = event_keys(&m, &login) {
+                g.recent_events.retain(|(_, _, t)| now - *t < 90.0);
+                let dup = g.recent_events.iter().any(|(x, p, _)| {
+                    *x == keys[0] || (*x == keys[1] && *p != m.platform)
+                });
+                if dup {
+                    debug_file(&format!("yinelenen olay atlandı: {}", keys[1]));
+                    return None;
+                }
+                for k in keys {
+                    g.recent_events.push_back((k, m.platform, now));
+                }
+                while g.recent_events.len() > 200 {
+                    g.recent_events.pop_front();
+                }
+            }
             // Yasaklı kullanıcı (ayarlar + bu oturumda platformda yasaklananlar)
             if m.platform != Platform::Streamlabs
                 && (g.cfg.banned.contains(&login)
@@ -2512,6 +2536,31 @@ mod tests {
     }
 
     #[test]
+    fn same_alert_from_two_sources_once() {
+        let cfg = cfg_from_settings(&cfg_json());
+        let mut g = Inner { running: true, multi: true, login_ok: true, words: WordFilter::new(&cfg.words), cfg, ..Default::default() };
+        let alert = |platform: Platform, channel: &str, id: &str, kind: &str, amount: Option<&str>, count: Option<u64>| {
+            let mut m = chat(platform, channel, id, "Ali", "");
+            m.kind = Kind::Donation;
+            m.amount = amount.map(|x| x.to_string());
+            m.alert = Some(model::AlertInfo { kind: kind.into(), count, ..Default::default() });
+            m
+        };
+        // Twitch bits, ardından Streamlabs'in aynı bits olayı: bir kez
+        assert!(g.accept(alert(Platform::Twitch, "twitch:erkin", "t1", "cheer", Some("100 bits"), Some(100)), 0.0).is_some());
+        assert!(g.accept(alert(Platform::Streamlabs, "streamlabs", "s1", "cheer", Some("100 bits"), None), 1.0).is_none());
+        // Streamlabs aynı bağışı (aynı kimlik) yeniden gönderdi: bir kez
+        assert!(g.accept(alert(Platform::Streamlabs, "streamlabs", "d1", "tip", Some("₺50,00"), None), 2.0).is_some());
+        assert!(g.accept(alert(Platform::Streamlabs, "streamlabs", "d1", "tip", Some("₺50,00"), None), 3.0).is_none());
+        // Aynı kişinin aynı tutarda ikinci (ayrı) bağışı görünür
+        assert!(g.accept(alert(Platform::Streamlabs, "streamlabs", "d2", "tip", Some("₺50,00"), None), 4.0).is_some());
+        // Twitch abonelik + Streamlabs "subscriber": bir kez; 90 sn sonra yeni olay sayılır
+        assert!(g.accept(alert(Platform::Twitch, "twitch:erkin", "t2", "resub", None, None), 5.0).is_some());
+        assert!(g.accept(alert(Platform::Streamlabs, "streamlabs", "s2", "resubscriber", None, None), 6.0).is_none());
+        assert!(g.accept(alert(Platform::Streamlabs, "streamlabs", "s3", "resubscriber", None, None), 200.0).is_some());
+    }
+
+    #[test]
     fn pipeline() {
         let mut v = cfg_json();
         v["general"]["livechat"]["moderation"]["wordMode"] = "mask".into();
@@ -2663,4 +2712,37 @@ mod tests {
             )
             .is_none());
     }
+}
+
+/// Uyarı olayının eşleştirme anahtarları (yoksa sıradan mesaj): kimlik ve "tür|kullanıcı|tutar". Kaynaklar olayları farklı
+/// adlarla verir (Twitch "sub" / Streamlabs "subscriber"), tür ortak gruba indirgenir. Abonelikte ay sayısı kaynaklar
+/// arasında farklı olabildiği için anahtara girmez; bits / bağış / Super Chat'te tutarın rakamları girer.
+fn event_keys(m: &ChatMsg, login: &str) -> Option<Vec<String>> {
+    let a = m.alert.as_ref()?;
+    let group = match a.kind.as_str() {
+        "sub" | "resub" | "subscriber" | "resubscriber" | "primepaidupgrade" | "giftpaidupgrade" | "anongiftpaidupgrade" => "sub",
+        "subgift" | "anonsubgift" => "subgift",
+        "submysterygift" | "anonsubmysterygift" => "mystery",
+        "gift" => "gift",
+        "cheer" => "cheer",
+        "raid" => "raid",
+        "host" => "host",
+        "tip" => "tip",
+        "superchat" => "superchat",
+        "member" | "membership" => "member",
+        "follower" | "follow" => "follow",
+        other => other,
+    };
+    let digits = |s: &str| s.chars().filter(|c| c.is_ascii_digit()).collect::<String>();
+    let num = match group {
+        "cheer" => a.count.map(|c| c.to_string()).unwrap_or_else(|| digits(m.amount.as_deref().unwrap_or(""))),
+        "tip" | "superchat" => digits(m.amount.as_deref().unwrap_or("")),
+        "mystery" | "gift" => a.count.map(|c| c.to_string()).unwrap_or_default(),
+        "subgift" => a.recipient.clone().map(|r| norm_user(&r)).unwrap_or_default(),
+        _ => String::new(),
+    };
+    Some(vec![
+        format!("id|{}", m.id),
+        format!("{group}|{login}|{num}"),
+    ])
 }
