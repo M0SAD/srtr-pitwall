@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 081126-453
+
+- Tarayıcı overlay'i: sayfa küçücük bir kutuda kalıyordu (kaydırma çubuklarıyla) ve büyütülemiyordu: overlay çerçevesinin boyutu ayarlardaki genişlik / yükseklikten alınmıyordu. Artık çerçeve ayarlanan boyutta (varsayılan 480×320) ve düzenleme modunda kenarından sürükleyerek büyütülebilir; tarayıcı penceresi de aynı boyutta açılır.
+
 ## 081126-452
 
 - Yeni overlay: Tarayıcı. Her web sitesini overlay olarak gösterir. Webview overlay'i sayfayı overlay'in içine gömer; birçok site gömülmeyi engellediği için boş görünüyordu. Tarayıcı overlay'i sayfayı kendi tarayıcı penceresinde, overlay çerçevesinin tam üstünde açar: gömülme yasağı olan siteler de çalışır. Pencere tıklamaları oyuna geçirir, overlay'lerle birlikte gizlenir / görünür, düzenleme modunda çerçeveyi taşıyıp boyutlandırabilmen için gizlenir. Ayarlar: adres, boyut, yakınlaştırma, sessiz, otomatik yenile, "sayfayla etkileşim" (giriş yapmak / tıklamak için; girişler kalıcıdır), şeffaf arka plan, ek CSS. Birden çok eklenebilir. Sayfanın uygulamaya erişimi yoktur. (OBS ve VR'da gösterilmez; OBS'de aynı adres için Tarayıcı kaynağı kullan.)

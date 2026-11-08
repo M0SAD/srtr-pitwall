@@ -94,7 +94,13 @@ export default function Browser(props: OverlayProps) {
   // Ekranda, düzenleme dışında: pencere bu alanın üstünde, burası boş kalır
   const card = () => !live() || props.editing || !!err();
   return (
-    <div ref={el} class="brw" classList={{ "brw-card": card(), "brw-live": !card() }} data-no-i18n>
+    <div
+      ref={el}
+      class="brw"
+      classList={{ "brw-card": card(), "brw-live": !card() }}
+      style={{ width: `${Math.max(120, Number(props.options.width) || 480)}px`, height: `${Math.max(80, Number(props.options.height) || 320)}px` }}
+      data-no-i18n
+    >
       <Show when={card()}>
         <div>
           <Show when={url()} fallback={<b>{t("Ayarlardan bir adres gir")}</b>}>
