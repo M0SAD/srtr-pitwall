@@ -76,6 +76,7 @@ const OVERLAYS = [
   ["twitch", "Twitch Sohbeti"],
   ["weather", "Canlı Hava"],
   ["webview", "Webview"],
+  ["browser", "Tarayıcı"],
   ["brakepoint", "Fren ve Vites İşareti"],
   ["captions", "Altyazı"],
   ["crewcall", "Ekip Çağrısı"],

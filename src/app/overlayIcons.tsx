@@ -35,6 +35,7 @@ const MAP: Record<string, () => JSX.Element> = {
   heartrate: () => <I.HeartPulse />,
   music: () => <I.Music />,
   webview: () => <I.ExternalLink />,
+  browser: () => <I.ExternalLink />,
   tires: () => <I.Car />,
   scene: () => <I.Clapperboard />,
   laptimes: () => <I.Timer />,

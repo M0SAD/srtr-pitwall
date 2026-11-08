@@ -338,27 +338,32 @@ pub fn sync(app: &AppHandle, settings: &Value) {
 
 /// Pencerenin tüm sesini kapatır (WebView2 IsMuted). Sayfa yeniden yüklense de geçerli kalır.
 pub fn mute_window(w: &tauri::WebviewWindow) {
+    set_muted(w, true);
+}
+
+/// Pencerenin sesini kapatır / açar (WebView2 IsMuted)
+pub fn set_muted(w: &tauri::WebviewWindow, muted: bool) {
     #[cfg(windows)]
     {
-        let r = w.with_webview(|wv| {
+        let r = w.with_webview(move |wv| {
             use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_8;
             use windows::core::Interface;
             let res = unsafe {
                 wv.controller()
                     .CoreWebView2()
                     .and_then(|c| c.cast::<ICoreWebView2_8>())
-                    .and_then(|c| c.SetIsMuted(true))
+                    .and_then(|c| c.SetIsMuted(muted))
             };
             if let Err(e) = res {
-                crate::crashlog::note(&format!("VR penceresi sessize alınamadı: {e}"));
+                crate::crashlog::note(&format!("pencere sesi ayarlanamadı: {e}"));
             }
         });
         if let Err(e) = r {
-            crate::crashlog::note(&format!("VR penceresi sessize alınamadı: {e}"));
+            crate::crashlog::note(&format!("pencere sesi ayarlanamadı: {e}"));
         }
     }
     #[cfg(not(windows))]
-    let _ = w;
+    let _ = (w, muted);
 }
 
 /// VR overlay penceresi içeriğini ölçtü: pencereyi içeriğe sığdır ve başlığı overlay'in adına çevir.

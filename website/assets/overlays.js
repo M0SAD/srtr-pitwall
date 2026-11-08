@@ -94,6 +94,7 @@ export const OVERLAYS = [
       ["music", "🎵", "pro"],
       ["setupcover", "🙈", "free"],
       ["webview", "🌐", "free"],
+      ["browser", "🧭", "free"],
     ],
   ],
   [
@@ -190,6 +191,7 @@ export const NAMES = {
   music: ["Müzik", "Music"],
   setupcover: ["Setup Örtüsü", "Setup Cover"],
   webview: ["Webview", "Webview"],
+  browser: ["Tarayıcı", "Browser"],
   messages: ["Mesajlar", "Messages"],
   voice: ["Sesli Mühendis altyazısı", "Voice Engineer subtitles"],
 };

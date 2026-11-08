@@ -1,0 +1,51 @@
+import { defineOverlay } from "@/sdk/overlay";
+
+export default defineOverlay({
+  id: "browser",
+  name: "Tarayıcı",
+  description: "Her web sitesini overlay olarak göster: kendi tarayıcı penceresinde açılır, gömülmeyi engelleyen siteler de çalışır.",
+  category: "info",
+  noBgOpacity: true,
+  topics: [],
+  size: { w: 480, h: 320 },
+  defaultPosition: { x: 720, y: 360 },
+  defaultEnabled: false,
+  multiInstance: true,
+  settings: [
+    {
+      key: "url",
+      label: "Adres",
+      type: "text",
+      default: "",
+      hint: "https:// ile başlayan tam adres. Webview overlay'inde boş görünen siteler (gömülmeyi engelleyenler) burada açılır. Sayfa ayrı bir tarayıcı penceresinde, bu overlay'in çerçevesinin tam üstünde gösterilir; düzenleme modunda gizlenir (çerçeveyi taşıyıp boyutlandırabil diye).",
+    },
+    { key: "width", label: "Genişlik", type: "number", default: 480, min: 120, max: 3840, step: 10, unit: "px" },
+    { key: "height", label: "Yükseklik", type: "number", default: 320, min: 80, max: 2160, step: 10, unit: "px" },
+    { key: "zoom", label: "Yakınlaştırma", type: "number", default: 100, min: 25, max: 300, step: 5, unit: "%" },
+    { key: "muted", label: "Sessiz", type: "boolean", default: false },
+    {
+      key: "interact",
+      label: "Sayfayla etkileşim (tıkla, giriş yap, kaydır)",
+      type: "boolean",
+      default: false,
+      hint: "Açıkken sayfaya tıklanabilir (ör. bir siteye giriş yapmak ya da videoyu başlatmak için); tıklamalar oyuna geçmez. İşin bitince kapat. Girişler (çerezler) kalıcıdır, bir kez giriş yapman yeter.",
+    },
+    { key: "reload", label: "Otomatik yenile", type: "number", default: 0, min: 0, max: 3600, step: 10, unit: "sn", hint: "0 = kapalı" },
+    {
+      key: "transparent",
+      label: "Şeffaf arka plan",
+      type: "boolean",
+      default: false,
+      group: "Gelişmiş",
+      hint: "Arka planı şeffaf olarak tasarlanmış sayfalar için (yayın uyarıları, sohbet kutuları vb.).",
+    },
+    {
+      key: "css",
+      label: "Ek CSS",
+      type: "text",
+      default: "",
+      group: "Gelişmiş",
+      hint: "Sayfaya eklenecek stil (ör. reklam / üst menü gizlemek için: header{display:none!important}).",
+    },
+  ],
+});

@@ -65,6 +65,7 @@ mod voicepack_build;
 mod voicepack_dl;
 mod voicesub;
 mod vr;
+mod webov;
 mod vrnative;
 mod wheeldev;
 mod winstate;
@@ -273,6 +274,8 @@ pub(crate) fn sync_overlay_visibility(app: &AppHandle) {
             let _ = w.hide();
         }
     }
+    // Tarayıcı overlay'i pencereleri sahipleriyle (overlay pencereleri) birlikte
+    webov::sync(app);
     broadcast_state(app);
 }
 
@@ -3463,6 +3466,9 @@ pub fn run() {
         .manage(shots::ShotState::default())
         .manage(entitlement::EntitlementState::default())
         .invoke_handler(guard_invoke(tauri::generate_handler![
+            webov::browser_set,
+            webov::browser_close,
+            webov::browser_reload,
             settings_get,
             settings_set,
             sync_flushed,

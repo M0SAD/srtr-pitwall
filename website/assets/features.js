@@ -309,6 +309,8 @@ addDict({
   ov_scene_d: ["Yayın için tam ekran sahneler.", "Full-screen scenes for your stream."],
   ov_scene_h: ["Başlıyor (geri sayım), Hemen dönerim, Yayın sonu|Garajdayken ekranı kapatan örtü", "Starting soon (countdown), Be right back, Stream ending|A cover that hides the screen while you are in the garage"],
   ov_webview_d: ["Herhangi bir web sayfasını overlay olarak gösterir.", "Shows any web page as an overlay."],
+  ov_browser_d: ["Her siteyi kendi tarayıcı penceresinde overlay olarak gösterir; gömülmeyi engelleyen siteler de açılır.", "Shows any site as an overlay in its own browser window, including sites that block embedding."],
+  ov_browser_h: ["Gömülmeyi engelleyen siteler|Giriş gerektiren paneller", "Sites that block embedding|Dashboards that need a login"],
   ov_webview_h: ["Sohbet, yayın uyarıları, zamanlayıcı|Kendi panelin ya da aracın", "Chat, stream alerts, timers|Your own dashboard or tool"],
 
   ov_messages_d: ["Yarışırken gelen mesajları ekranda küçük balonlarla gösterir.", "Shows incoming messages as small bubbles while you race."],
