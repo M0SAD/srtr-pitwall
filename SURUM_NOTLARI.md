@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 151126-454
+
+- Le Mans Ultimate: pistteyken tüm overlay'ler birkaç saniyede bir (bazen 15-20 sn) kaybolup geri geliyordu. Sebep: LMU'nun kendi belleğinde skorlama ve fizik verisi birlikte okunuyor; her döngüde önce yapılan oturum denetimi okuyunca yeni fizik verisi de "görüldü" sayılıyor, hemen ardından gelen kare okuması yeni veri bulamıyordu. Kare neredeyse hiç güncellenmediği için program 3 sn'de bir "oyundan veri kesildi" deyip overlay'leri gizliyor, arada bir veri yakalayınca yeniden gösteriyordu (sesli spotter etkilenmiyordu). Yeni veri artık kare işlenene kadar bekletilir; overlay'ler kesintisiz kalır ve tüm LMU verileri saniyede onlarca kez güncellenir. rF2 Shared Memory eklentisi LMU için gerekmez.
+
 ## 081126-453
 
 - Tarayıcı overlay'i: sayfa küçücük bir kutuda kalıyordu (kaydırma çubuklarıyla) ve büyütülemiyordu: overlay çerçevesinin boyutu ayarlardaki genişlik / yükseklikten alınmıyordu. Artık çerçeve ayarlanan boyutta (varsayılan 480×320) ve düzenleme modunda kenarından sürükleyerek büyütülebilir; tarayıcı penceresi de aynı boyutta açılır.

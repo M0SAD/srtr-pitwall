@@ -721,6 +721,9 @@ mod win {
         sig_ver: u32,
         last_tele: u32,
         last_scor: u32,
+        /// LMU: okunup henüz kareye işlenmemiş yeni skorlama / fizik verisi (bkz. poll_lmu)
+        pend_scor: bool,
+        pend_tele: bool,
         tick: i32,
         last_new: Instant,
         checked: Cell<Instant>,
@@ -767,6 +770,8 @@ mod win {
                 sig_ver: u32::MAX,
                 last_tele: u32::MAX,
                 last_scor: u32::MAX,
+                pend_scor: false,
+                pend_tele: false,
                 tick: 0,
                 last_new: now,
                 checked: Cell::new(now),
@@ -855,23 +860,37 @@ mod win {
             (false, false)
         }
 
+        /// LMU belleğini okur. LMU'da skorlama ile fizik aynı bellekte ve tek okumayla birlikte alınır: oturum
+        /// denetimi (session_update) okuyunca yeni fizik verisi de "görüldü" sayılıyor, hemen ardından gelen kare okuması
+        /// (read) yeni veri bulamıyordu. Kare neredeyse hiç güncellenmeyince bağlantı 3 sn'de bir "veri kesildi" sayılıyor,
+        /// tüm overlay'ler birkaç saniyede bir kaybolup geri geliyordu. Yeni veri artık kare işlenene kadar bekletilir.
+        fn poll_lmu(&mut self) -> (bool, bool) {
+            let Backend::Lmu(m) = &self.mem else {
+                return (false, false);
+            };
+            let (sc, te) = Self::refresh_lmu(
+                m,
+                &mut self.sb,
+                &mut self.tb,
+                &mut self.last_scor,
+                &mut self.last_tele,
+            );
+            if sc {
+                self.scoring = parse_scoring(&self.sb);
+            }
+            self.pend_scor |= sc;
+            self.pend_tele |= te;
+            (sc, te)
+        }
+
         /// Skorlama değiştiyse yeniden okur
         fn refresh_scoring(&mut self) -> bool {
+            if matches!(self.mem, Backend::Lmu(_)) {
+                return self.poll_lmu().0;
+            }
             let (tele, scor) = match &self.mem {
                 Backend::Plugin { tele, scor } => (tele, scor),
-                Backend::Lmu(m) => {
-                    let (sc, _) = Self::refresh_lmu(
-                        m,
-                        &mut self.sb,
-                        &mut self.tb,
-                        &mut self.last_scor,
-                        &mut self.last_tele,
-                    );
-                    if sc {
-                        self.scoring = parse_scoring(&self.sb);
-                    }
-                    return sc;
-                }
+                Backend::Lmu(_) => return false,
             };
             let _ = tele;
             let ver = scor.u32_at(buf::VERSION_END);
@@ -888,21 +907,12 @@ mod win {
         }
 
         fn refresh_tele(&mut self) -> bool {
+            if matches!(self.mem, Backend::Lmu(_)) {
+                return self.poll_lmu().1;
+            }
             let tele = match &self.mem {
                 Backend::Plugin { tele, .. } => tele,
-                Backend::Lmu(m) => {
-                    let (sc, te) = Self::refresh_lmu(
-                        m,
-                        &mut self.sb,
-                        &mut self.tb,
-                        &mut self.last_scor,
-                        &mut self.last_tele,
-                    );
-                    if sc {
-                        self.scoring = parse_scoring(&self.sb);
-                    }
-                    return te;
-                }
+                Backend::Lmu(_) => return false,
             };
             let ver = tele.u32_at(buf::VERSION_END);
             if ver == self.last_tele {
@@ -961,21 +971,17 @@ mod win {
         }
 
         fn read(&mut self, frame: &mut Frame) -> bool {
-            let (sc, te) = match &self.mem {
-                Backend::Lmu(m) => {
-                    let (sc, te) = Self::refresh_lmu(
-                        m,
-                        &mut self.sb,
-                        &mut self.tb,
-                        &mut self.last_scor,
-                        &mut self.last_tele,
-                    );
-                    if sc {
-                        self.scoring = parse_scoring(&self.sb);
-                    }
-                    (sc, te)
+            let lmu = matches!(self.mem, Backend::Lmu(_));
+            let (sc, te) = match lmu {
+                true => {
+                    self.poll_lmu();
+                    // Bu kareden önce (ör. oturum denetiminde) okunmuş yeni veri de sayılır
+                    let r = (self.pend_scor, self.pend_tele);
+                    self.pend_scor = false;
+                    self.pend_tele = false;
+                    r
                 }
-                Backend::Plugin { .. } => {
+                false => {
                     let sc = self.refresh_scoring();
                     (sc, self.refresh_tele())
                 }
