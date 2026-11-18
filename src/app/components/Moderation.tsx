@@ -9,6 +9,7 @@ import { session } from "@/cloud/supabase";
 import { REPORT_REASONS, deleteAllNotices, deleteNotice, markNoticesRead, notices, sendReport, type Notice, type ReportTarget } from "@/cloud/moderation";
 import * as I from "../icons";
 import { go, openTicket, openUrl } from "../ui";
+import { openAdmin } from "./adminFocus";
 import { AD_SITE } from "@/cloud/ads";
 import { respondInvite, setTeamFocus } from "@/cloud/teams";
 import { TRIAL_REASONS } from "@/cloud/trial";
@@ -239,7 +240,7 @@ function noticeText(n: Notice): string {
     return n.data.note ? `${s}\n${t("Not: {0}", n.data.note)}` : s;
   }
   if (n.kind === "pay_claim")
-    return t('{0} "{1}" ile ödeme yaptığını bildirdi ({2}). Ödemeyi kontrol edip Yönetim › Planlar › Ödeme bildirimleri bölümünden PRO tanımla.', n.data.name ?? "?", n.data.method ?? "", n.data.contact ?? "");
+    return t('{0} "{1}" ile ödeme yaptığını bildirdi ({2}). Ödemeyi kontrol et; profilini açıp PRO tanımlamak için tıkla.', n.data.name ?? "?", n.data.method ?? "", n.data.contact ?? "");
   if (n.kind === "support_new") return t('{0} yeni destek talebi açtı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
   if (n.kind === "support_user_reply") return t('{0} destek talebine yazdı: "{1}"', n.data.name ?? "?", n.data.subject ?? "");
   if (n.kind === "support_reply") return t('Destek talebin yanıtlandı: "{0}"', n.data.subject ?? "");
@@ -330,6 +331,9 @@ function noticeTarget(n: Notice): (() => void) | null {
   if (n.kind === "trial_started") return () => go("pro");
   if (n.kind === "trial_abuse") return () => go("admin", "trial");
   if (n.kind === "pro_gift" || n.kind === "pro_gift_sent" || n.kind === "pro_gift_ended") return () => go("pro");
+  // Ödeme bildirimi (PRO ya da reklam): üyenin profili (Yönetim › Üyeler'de açılır, PRO süresi oradan tanımlanır)
+  if ((n.kind === "pay_claim" || (n.kind === "ad_pending" && n.data.claim)) && (n.data.user || n.data.email || n.data.name))
+    return () => openAdmin({ sub: "members", q: String(n.data.email || n.data.name || ""), id: n.data.user ? String(n.data.user) : undefined });
   if (n.kind === "ad_reported" || n.kind === "ad_pending") return () => go("admin", "ads");
   if (n.kind === "payment_new") return () => go("admin", "revenue");
   if (n.kind === "message_reported") return () => go("admin", "moderation");
@@ -434,6 +438,13 @@ export function NoticeBell() {
                           <span class="notice-body">{n.ann!.body}</span>
                         </Show>
                       </p>
+                    </Show>
+                    <Show when={n.kind === "ad_pending" && n.data.claim}>
+                      <div class="notice-actions">
+                        <button class="btn small" onClick={() => (go("admin", "ads"), setOpen(false))}>
+                          {t("Reklamı aç")}
+                        </button>
+                      </div>
                     </Show>
                     <Show when={(n.kind === "team_invite" || n.kind === "team_request") && n.data.invite}>
                       <div class="notice-actions">

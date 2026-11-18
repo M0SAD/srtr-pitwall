@@ -14,7 +14,10 @@ import { siteGorselleri } from "./siteimages-admin.js";
 import { attachEmoji } from "./emoji.js";
 
 const app = () => $("#app");
-let section = location.hash.slice(1) || "ozet";
+// Adres: #bolum ya da #bolum?q=arama (ör. e-postadaki "Profili aç": #uyeler?q=uye@ornek.com)
+const hashPart = () => location.hash.slice(1).split("?");
+const hashQuery = () => new URLSearchParams(hashPart()[1] || "").get("q") || "";
+let section = hashPart()[0] || "ozet";
 let range = 30;
 
 const SECTIONS = [
@@ -1093,6 +1096,7 @@ async function show() {
 }
 
 async function main() {
+  if (section === "uyeler" && hashQuery()) userQ = hashQuery();
   await boot("/yonetim", "admin");
   const p = await myProfile(true);
   if (!p) {
@@ -1122,8 +1126,10 @@ async function main() {
     }),
   );
   window.addEventListener("hashchange", () => {
-    const h = location.hash.slice(1);
-    if (h && h !== section && RENDER[h] && sections.some(([k]) => k === h)) {
+    const h = hashPart()[0];
+    const q = hashQuery();
+    if (h === "uyeler" && q) userQ = q;
+    if (h && (h !== section || q) && RENDER[h] && sections.some(([k]) => k === h)) {
       section = h;
       show();
     }

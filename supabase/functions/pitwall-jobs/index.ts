@@ -1041,6 +1041,32 @@ async function adAdmin(id: string) {
   const L = u.lang === "tr" ? "tr" : "en";
   const d = n.data ?? {};
   const pending = n.kind === "ad_pending";
+  // Reklam veren "Ödeme yaptım, bildir" dedi (ad_pay_claim): ödeme yöntemi, kullanıcı adı / sipariş no ve üye
+  const claim = pending && d.claim === true;
+  if (claim) {
+    const title = L === "tr" ? "Reklam ödemesi bildirildi" : "Ad payment reported";
+    const row = (k: string, v: string) =>
+      `<tr><td style="color:#8b93a3;padding:4px 12px 4px 0;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0">${v}</td></tr>`;
+    const price = d.price != null ? `${esc(String(d.price))} ${esc(String(d.currency ?? ""))}` : "—";
+    const body = `
+    <p style="margin:0 0 12px">${
+      L === "tr"
+        ? "Bir reklam veren kendi ödeme bağlantınla ödeme yaptığını bildirdi. Ödemeyi kontrol et, sonra reklamı \"Ödendi say\" ile yayına al."
+        : "An advertiser reported a payment through one of your payment links. Check it, then mark the ad as paid to put it live."
+    }</p>
+    <table style="font-size:14px;border-collapse:collapse;margin:0 0 14px">
+      ${row(L === "tr" ? "Reklam" : "Ad", `<b style="color:#ffb35c">${esc(d.title ?? "?")}</b>`)}
+      ${row(L === "tr" ? "Reklam veren" : "Advertiser", `<b>${esc(d.name ?? "?")}</b>`)}
+      ${row(L === "tr" ? "Hesap e-postası" : "Account email", esc(d.email || "—"))}
+      ${row(L === "tr" ? "Ödeme yöntemi" : "Payment method", esc(d.method || "—"))}
+      ${row(L === "tr" ? "Kullanıcı adı / sipariş no" : "Username / order no", `<b>${esc(d.ref || "—")}</b>`)}
+      ${row(L === "tr" ? "Tutar" : "Amount", price)}
+    </table>
+    ${button(`${SITE}/yonetim.html#reklamlar`, L === "tr" ? "Reklamı aç" : "Open the ad")}
+    ${d.email || d.name ? button(`${SITE}/yonetim.html#uyeler?q=${encodeURIComponent(String(d.email || d.name))}`, L === "tr" ? "Üyenin profilini aç" : "Open member profile") : ""}`;
+    const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.title ?? ""} · ${d.name ?? "?"}`, page(title, body, String(d.title ?? "")));
+    return { ok: true, sent };
+  }
   const title = pending
     ? L === "tr" ? "Onay bekleyen reklam" : "Ad awaiting approval"
     : d.hidden ? (L === "tr" ? "Reklam raporlarla gizlendi" : "Ad hidden by reports") : L === "tr" ? "Reklam raporlandı" : "Ad reported";
@@ -1195,8 +1221,11 @@ async function payClaimAdmin(id: string) {
     </table>
     ${d.note ? quote(String(d.note)) : ""}
     <p style="color:#8b93a3;font-size:13px;margin:0">${
-      L === "tr" ? "Uygulamada Yönetim → Planlar → Ödeme bildirimleri bölümünden süreyi tanımlayabilirsin." : "Grant the period in the app under Management → Plans → Payment notices."
-    }</p>`;
+      L === "tr"
+        ? "Uygulamada bildirime tıklayınca üyenin profili açılır; PRO süresini oradan tanımlayabilirsin."
+        : "In the app, click the notification to open the member's profile and grant the PRO period there."
+    }</p>
+    ${button(`${SITE}/yonetim.html#uyeler?q=${encodeURIComponent(String(d.email || d.name || ""))}`, L === "tr" ? "Üyenin profilini aç" : "Open member profile")}`;
   const sent = await sendMail([u.email], `SRTR Pitwall · ${title}: ${d.name ?? "?"} · ${d.method ?? ""}`, page(title, body, `${title}: ${d.name ?? "?"}`));
   return { ok: true, sent };
 }

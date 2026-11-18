@@ -51,7 +51,7 @@ import { AdminTopLinks } from "../components/AdminTopLinks";
 import { AdminBackup } from "../components/AdminBackup";
 import { AdminMail } from "../components/AdminMail";
 import { AdminBackdrops, AdminProPromo, AdminSimIcons, AdminTranslations } from "../components/AdminContent";
-import { takeAdminFocus } from "../components/adminFocus";
+import { adminFocus, takeAdminFocus } from "../components/adminFocus";
 import { AdminTrial } from "../components/AdminTrial";
 import { AdminLiveChat } from "../components/AdminLiveChat";
 import { sub } from "../ui";
@@ -267,7 +267,10 @@ function Overview() {
 function Members(props: { run: Run }) {
   const [groups] = createResource(() => listGroups().catch(() => [] as PermGroup[]));
   // Moderasyon kaydından gelindiyse arama dolu açılır
-  const [q, setQ] = createSignal(takeAdminFocus("members")?.q ?? "");
+  const focus = takeAdminFocus("members");
+  const [q, setQ] = createSignal(focus?.q ?? "");
+  /** Bildirimden gelindiyse (ödeme bildirimi) bu üyenin düzenleme penceresi açılır */
+  let focusId = focus?.id ?? "";
   const [users, setUsers] = createSignal<AdminUser[]>([]);
   const [filter, setFilter] = createSignal<UserFilter>("all");
   const [more, setMore] = createSignal(false);
@@ -276,8 +279,22 @@ function Members(props: { run: Run }) {
       const rows = (await adminUsers(q().trim(), filter(), append ? users().length : 0)) ?? [];
       setUsers(append ? [...users(), ...rows] : rows);
       setMore(rows.length === 50);
+      if (focusId) {
+        const u = rows.find((r) => r.id === focusId);
+        focusId = "";
+        if (u) setEditing(u);
+      }
     }, "");
   onMount(() => (search(), void refreshAdminOverview()));
+  // Üyeler zaten açıkken bildirime tıklandı: aramayı yenile, üyeyi aç
+  createEffect(() => {
+    if (adminFocus()?.sub !== "members") return;
+    const f = takeAdminFocus("members");
+    if (!f) return;
+    setQ(f.q ?? "");
+    focusId = f.id ?? "";
+    search();
+  });
   const [editing, setEditing] = createSignal<AdminUser | null>(null);
   const [deleting, setDeleting] = createSignal<AdminUser | null>(null);
   const me = () => session()?.user.id ?? "";

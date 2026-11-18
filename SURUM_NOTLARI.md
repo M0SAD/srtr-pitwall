@@ -3,6 +3,13 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 181126-455
+
+- Ödeme bildirimleri (yönetici): bir üye "Ödedim, bildir" deyince gelen bildirime tıklayınca üyenin profili açılır (Yönetim › Üyeler'de o üye aranır ve PRO süresi düzenleme penceresi açılır). Reklam ödemesi bildiriminde de aynı; bildirimdeki "Reklamı aç" düğmesi reklamlar sayfasına gider.
+- Ödeme bildirimi e-postası: PRO ödeme bildirimi e-postasına "Üyenin profilini aç" düğmesi eklendi (web yönetim panelinde üyeyi arar). Reklam ödemesi bildirildiğinde artık ayrı bir e-posta gider ("Reklam ödemesi bildirildi": reklam, reklam veren, hesap e-postası, ödeme yöntemi, kullanıcı adı / sipariş no, tutar); önceden "onay bekleyen reklam" e-postası yanlış olarak "ödeme alındı" diyordu.
+- Web yönetim paneli: adres #uyeler?q=… ile açılınca üye araması dolu gelir.
+- Veritabanı: c140 (reklam ödemesi bildirimine reklam verenin kimliği ve e-postası).
+
 ## 151126-454
 
 - Le Mans Ultimate: pistteyken tüm overlay'ler birkaç saniyede bir (bazen 15-20 sn) kaybolup geri geliyordu. Sebep: LMU'nun kendi belleğinde skorlama ve fizik verisi birlikte okunuyor; her döngüde önce yapılan oturum denetimi okuyunca yeni fizik verisi de "görüldü" sayılıyor, hemen ardından gelen kare okuması yeni veri bulamıyordu. Kare neredeyse hiç güncellenmediği için program 3 sn'de bir "oyundan veri kesildi" deyip overlay'leri gizliyor, arada bir veri yakalayınca yeniden gösteriyordu (sesli spotter etkilenmiyordu). Yeni veri artık kare işlenene kadar bekletilir; overlay'ler kesintisiz kalır ve tüm LMU verileri saniyede onlarca kez güncellenir. rF2 Shared Memory eklentisi LMU için gerekmez.
