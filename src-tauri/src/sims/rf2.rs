@@ -324,6 +324,32 @@ pub fn session_sig(sc: &Scoring) -> u64 {
 }
 
 /// Skorlamadan oturum/sürücü listesi. `slots` araç kimliklerini 0..64 indekslerine eşler.
+/// Yarış tur sınırlı mı (yoksa süre sınırlı mı). LMU süreli yarışlarda da bir tur sınırı verir (beklenen turdan epey
+/// fazla, ör. 20 dakikalık yarışta 20 tur): önceden bu yüzden süreli yarış "tur yarışı" sayılıyor, kalan süre yerine
+/// kalan tur gösteriliyor ve sesli mühendis "yarı yol"u tur sayısının yarısında, yani yarışın sonuna doğru söylüyordu.
+/// İkisi de verilmişse önce biten geçerlidir: liderin tur süresiyle kalan turlar kalan süreden kısa sürecekse tur sınırı.
+pub fn laps_limited(sc: &Scoring, now: f64) -> bool {
+    let laps_ok = sc.max_laps > 0 && sc.max_laps < 10_000;
+    let time_ok = sc.end_et > 0.0 && sc.end_et < 604_800.0;
+    if !laps_ok {
+        return false;
+    }
+    if !time_ok {
+        return true;
+    }
+    let leader = sc.vehicles.iter().find(|v| v.place == 1);
+    let laps_left = (sc.max_laps - leader.map(|v| v.total_laps).unwrap_or(0)).max(0) as f64;
+    let lap = leader
+        .map(|v| if v.best > 0.0 { v.best } else if v.last > 0.0 { v.last } else { v.est_lap })
+        .filter(|t| *t > 1.0)
+        .or_else(|| sc.vehicles.iter().map(|v| v.est_lap).find(|t| *t > 1.0));
+    match lap {
+        Some(t) => laps_left * t < (sc.end_et - now).max(0.0),
+        // Tur süresi henüz yok: süre sınırı varsay (LMU'nun tur sınırı genelde yalnızca üst sınır)
+        None => false,
+    }
+}
+
 pub fn build_session(sc: &Scoring, tele: &[u8], slots: &mut Slots) -> SessionData {
     let mut sd = empty_session();
     sd.track_name = sc.track.clone();
@@ -364,7 +390,7 @@ pub fn build_session(sc: &Scoring, tele: &[u8], slots: &mut Slots) -> SessionDat
     sd.sessions.push(SessionEntry {
         num: sc.session,
         kind: kind.to_string(),
-        laps: if kind == "Race" && sc.max_laps > 0 && sc.max_laps < 10_000 {
+        laps: if kind == "Race" && laps_limited(sc, sc.current_et) {
             Some(sc.max_laps)
         } else {
             None
@@ -417,7 +443,7 @@ pub fn extract(
         .find(|v| v.place == 1)
         .map(|v| v.total_laps)
         .unwrap_or(0);
-    f.session_laps_remain = if race && sc.max_laps > 0 && sc.max_laps < 10_000 {
+    f.session_laps_remain = if race && laps_limited(sc, now) {
         (sc.max_laps - leader_laps).max(0)
     } else {
         32767
@@ -1095,6 +1121,27 @@ mod tests {
         put_v3(&mut t, w + tv::W_TEMPERATURE, [353.15, 363.15, 373.15]);
         put_f64(&mut t, w + tv::W_WEAR, 0.9);
         (s, t)
+    }
+
+    #[test]
+    fn lmu_timed_race_with_lap_cap_is_timed() {
+        let leader = |laps: i32, best: f64| Veh { place: 1, total_laps: laps, best, ..Default::default() };
+        // 20 dk yarış, LMU tur sınırı 20 (beklenenin iki katı), lider turu 90 sn: süre sınırlı
+        let mut sc = Scoring { max_laps: 20, end_et: 1200.0, vehicles: vec![leader(0, 90.0)], ..Default::default() };
+        assert!(!laps_limited(&sc, 0.0));
+        // Tur süresi henüz yok: süre sınırı varsayılır
+        sc.vehicles = vec![leader(0, 0.0)];
+        assert!(!laps_limited(&sc, 0.0));
+        // 5 tur ya da 20 dk, hangisi önce: 5 × 90 sn < 20 dk → tur sınırlı
+        sc.max_laps = 5;
+        sc.vehicles = vec![leader(0, 90.0)];
+        assert!(laps_limited(&sc, 0.0));
+        // Süre yoksa tur; tur sınırı yoksa süre
+        sc.end_et = 0.0;
+        assert!(laps_limited(&sc, 0.0));
+        sc.end_et = 1200.0;
+        sc.max_laps = i32::MAX;
+        assert!(!laps_limited(&sc, 0.0));
     }
 
     #[test]

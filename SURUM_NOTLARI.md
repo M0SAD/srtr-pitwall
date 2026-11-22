@@ -3,6 +3,10 @@
 Sürüm biçimi **GGAAYY-NN**: yükseltmenin yapıldığı gün/ay/yıl ve her değişiklikte bir artan sıra numarası.
 En yeni sürüm en üstte.
 
+## 221126-456
+
+- Le Mans Ultimate: süreli yarışlarda kalan süre görünmüyordu ve sesli mühendis "yarışın yarısındayız"ı yarışın son dakikasında söylüyordu. LMU süreli yarışlarda da bir tur sınırı veriyor (beklenen tur sayısının epey üstünde, yalnızca üst sınır); program bu yüzden yarışı "tur yarışı" sayıyor, kalan süre yerine kalan tur gösteriyor ve yarı yolu o tur sınırının yarısında (yani sona doğru) söylüyordu. Artık hem süre hem tur sınırı varsa önce biten geçerli: liderin tur süresiyle kalan turlar kalan süreden kısa sürecekse tur yarışı, değilse süreli yarış. Süreli yarışta kalan süre geri sayar; mühendis 20 / 15 / 10 / 5 / 2 / 1 dakika kala ve gerçek yarı yolda söyler.
+
 ## 181126-455
 
 - Ödeme bildirimleri (yönetici): bir üye "Ödedim, bildir" deyince gelen bildirime tıklayınca üyenin profili açılır (Yönetim › Üyeler'de o üye aranır ve PRO süresi düzenleme penceresi açılır). Reklam ödemesi bildiriminde de aynı; bildirimdeki "Reklamı aç" düğmesi reklamlar sayfasına gider.
